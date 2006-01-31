@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.11 2006/01/25 17:59:36 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.12 2006/01/31 00:09:39 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -108,8 +108,8 @@ float threshmin  = -1.0;
 float threshmax  = -1.0;
 char  *signstring = "abs";
 int   threshsign =    0;
-float sizethresh    = -1.0;
-int   sizethreshvox = -1;
+float sizethresh    = 0.0;
+int   sizethreshvox = 0;
 float distthresh =   0.0;
 int   allowdiag  = 0;
 
@@ -123,6 +123,8 @@ float colres, rowres, sliceres, voxsize;
 FILE *fpsum;
 
 int fixtkreg = 1;
+double threshminadj, threshmaxadj;
+int AdjustThreshWhenOneTail=1;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -136,7 +138,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.11 2006/01/25 17:59:36 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.12 2006/01/31 00:09:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -238,7 +240,7 @@ int main(int argc, char **argv)
   /* Initialize the hit map - this is a map of voxels that have been
      accounted for as either outside of a the threshold range or
      belonging to a cluster. The initialization is for thresholding */
-  HitMap = clustInitHitMap(vol, frame, threshmin, threshmax, threshsign, 
+  HitMap = clustInitHitMap(vol, frame, threshminadj, threshmaxadj, threshsign, 
          &nhits, &hitcol, &hitrow, &hitslc, 
          binmask, maskframe);
   if(HitMap == NULL) exit(1);
@@ -338,6 +340,7 @@ int main(int argc, char **argv)
   else
     fprintf(fpsum,"Maximum Threshold: %g\n",threshmax);
   fprintf(fpsum,"Threshold Sign:    %s\n",signstring);  
+  fprintf(fpsum,"AdjustThreshWhenOneTail %d\n",AdjustThreshWhenOneTail);
 
   if(distthresh > 0) 
     fprintf(fpsum,"Distance Threshold: %g (mm)\n",distthresh);
@@ -456,6 +459,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
+    else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
 
     else if (!strcasecmp(option, "--allowdiag")) allowdiag = 1;
     else if (!strcmp(option, "--maskinvert"))    maskinvert = 1;
@@ -666,11 +670,12 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --thmin   minthresh\n");
   fprintf(stdout, "   --thmax   maxthresh (default is infinity)\n");
-  fprintf(stdout, "   --sign    <abs>, neg, pos\n");
+  fprintf(stdout, "   --sign    <abs>, neg, pos for one-sided tests\n");
   fprintf(stdout, "   --minsize    minimum volume (mm^3)\n");
   fprintf(stdout, "   --minsizevox minimum volume (voxels)\n");
   fprintf(stdout, "   --mindist distance threshold <0>\n");
   fprintf(stdout, "   --allowdiag  : define contiguity to include diagonal\n");
+  fprintf(stdout, "   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --mask      mask volid (same dim as input)\n");
   fprintf(stdout, "   --mask_type file format \n");
@@ -934,11 +939,6 @@ static void check_options(void)
     err = 1;
   }
 
-  if(sizethresh < 0.0 && sizethreshvox < 0) {
-    fprintf(stderr,"ERROR: no cluster size threshold supplied\n");
-    err = 1;
-  }
-
   if(      !strncmp(signstring,"a",1) ) threshsign = 0;
   else if( !strncmp(signstring,"p",1) ) threshsign = +1;
   else if( !strncmp(signstring,"n",1) ) threshsign = -1;
@@ -946,6 +946,22 @@ static void check_options(void)
     fprintf(stderr,"ERROR: sign = %s, must be neg, abs, or pos\n",signstring);
     err = 1;
   }
+
+  if(threshsign != 0 && AdjustThreshWhenOneTail){
+    // user has requested a tailed threshold, so adjust threshold
+    // to account for a one-tailed test. This requires that the
+    // input be -log10(p), where p is computed from a two-tailed
+    // test.
+    printf("Adjusting threshold for 1-tailed test.\n");
+    printf("If the input is not a -log10(p) volume, re-run with --no-adjust.\n");
+    threshminadj = threshmin - log10(2.0);
+    threshmaxadj = threshmax - log10(2.0);
+  } else {
+    printf("NOT Adjusting threshold for 1-tailed test\n");
+    threshminadj = threshmin;
+    threshmaxadj = threshmax;
+  } 
+
 
   if(synthfunction != NULL){
     if(strcmp(synthfunction,"uniform")    && 
