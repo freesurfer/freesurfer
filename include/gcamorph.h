@@ -35,12 +35,17 @@ typedef struct
   float  odx, ody, odz ; /* previous gradient */
 	float  jx, jy, jz ;    /* jacobian gradient */
   float  area ;
+  float  area1 ;      // right handed coordinate system
+  float  area2 ;      // left-handed coordinate system
   float  orig_area ;
+  float  orig_area1 ;
+  float  orig_area2 ;
   int    status ;       /* ignore likelihood term */
   char   invalid;       /* if invalid = 1, then don't use this structure */
 	float  label_dist ;   /* for computing label dist */
 	float  last_se ;
 	float  predicted_val ; /* weighted average of all class means in a ball around this node */
+	float  mean_uk ;       // mean of all class means in a ball around this node
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
