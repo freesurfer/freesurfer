@@ -141,7 +141,13 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   int nh, *hrow, *hcol, *hslc;
   int maskval;
 
-  if(Gdiag_no > 0) printf("maskframe = %d\n",maskframe);
+  if(Gdiag_no > 0) {
+    printf("clustInitHitMap: \n");
+    printf("   thmin  = %f\n",thmin);
+    printf("   thmax  = %f\n",thmax);
+    printf("   thsign = %d\n",thsign);
+    printf("   maskframe = %d\n",maskframe);
+  }
 
   /* count the number of hits */
   nh = 0;
@@ -157,10 +163,11 @@ MRI *clustInitHitMap(MRI *vol, int frame,
       }
     }
   }
-  //printf("INFO: clustInitHitMap: found %d hits\n", nh );
+  printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   /* check that there are hits */
   if(nh == 0 ){
+    if(Gdiag_no > 0) printf("no hits in hit map\n");
     *nhits = 0;
     return(NULL);
   }
@@ -168,20 +175,20 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   /* allocate the rows cols and slices */
   hcol = (int *) calloc( nh, sizeof(int));
   if(hcol == NULL){
-    fprintf(stderr,"ERROR: clustInitHitMap: could not alloc hit cols\n");
+    printf("ERROR: clustInitHitMap: could not alloc hit cols\n");
     MRIfree(&HitMap);
     return(NULL);
   }
   hrow = (int *) calloc( nh, sizeof(int));
   if(hrow == NULL){
-    fprintf(stderr,"ERROR: clustInitHitMap: could not alloc hit rows\n");
+    printf("ERROR: clustInitHitMap: could not alloc hit rows\n");
     free(hcol);
     MRIfree(&HitMap);
     return(NULL);
   }
   hslc = (int *) calloc( nh, sizeof(int));
   if(hslc == NULL){
-    fprintf(stderr,"ERROR: clustInitHitMap: could not alloc hit slices\n");
+    printf("ERROR: clustInitHitMap: could not alloc hit slices\n");
     free(hcol);
     free(hrow);
     MRIfree(&HitMap);
@@ -194,7 +201,7 @@ MRI *clustInitHitMap(MRI *vol, int frame,
     free(hcol);
     free(hrow);
     free(hslc);
-    fprintf(stderr,"ERROR: clustInitHitMap: could not alloc HitMap\n");
+    printf("ERROR: clustInitHitMap: could not alloc HitMap\n");
     return(NULL);
   }
 
@@ -203,23 +210,23 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   for(col = 0; col < vol->width; col ++){
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
-  val = MRIFseq_vox(vol,col,row,slc,frame);
-  if(binmask != NULL){
-    maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
-    //printf("%2d %2d %2d  %d %g\n",col,row,slc,maskval,val);
-    if(maskval == 0){
-      MRIIseq_vox(HitMap,col,row,slc,0) = 1;
-      continue;
-    }
-  }
-  if(clustValueInRange(val,thmin,thmax,thsign)){
-    hcol[nh] = col;
-    hrow[nh] = row;
-    hslc[nh] = slc;
-    MRIIseq_vox(HitMap,col,row,slc,0) = 0;
-    nh ++;
-  }
-  else MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	val = MRIFseq_vox(vol,col,row,slc,frame);
+	if(binmask != NULL){
+	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+	  //printf("%2d %2d %2d  %d %g\n",col,row,slc,maskval,val);
+	  if(maskval == 0){
+	    MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	    continue;
+	  }
+	}
+	if(clustValueInRange(val,thmin,thmax,thsign)){
+	  hcol[nh] = col;
+	  hrow[nh] = row;
+	  hslc[nh] = slc;
+	  MRIIseq_vox(HitMap,col,row,slc,0) = 0;
+	  nh ++;
+	}
+	else MRIIseq_vox(HitMap,col,row,slc,0) = 1;
       }
     }
   }
@@ -243,42 +250,42 @@ int clustAddMember(VOLCLUSTER *vc, int col, int row, int slc)
 
   tmp = (int *) realloc(vc->col, (nmemb+1) * sizeof(int));
   if(tmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->col = tmp;
 
   tmp = (int *) realloc(vc->row, (nmemb+1) * sizeof(int));
   if(tmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->row = tmp;
 
   tmp = (int *) realloc(vc->slc, (nmemb+1) * sizeof(int));
   if(tmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->slc = tmp;
 
   ftmp = (float *) realloc(vc->x, (nmemb+1) * sizeof(float));
   if(ftmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->x = ftmp;
 
   ftmp = (float *) realloc(vc->y, (nmemb+1) * sizeof(float));
   if(ftmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->y = ftmp;
 
   ftmp = (float *) realloc(vc->z, (nmemb+1) * sizeof(float));
   if(ftmp == NULL){
-    fprintf(stderr,"ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
+    printf("ERROR: clustAddMember: could not alloc %d\n",nmemb+1);
     return(1);
   }
   vc->z = ftmp;
@@ -661,7 +668,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
       }
     }
   }
-  fprintf(stderr,"INFO: nlabel = %d\n",nlabel);
+  printf("INFO: nlabel = %d\n",nlabel);
 
   /* Alloc the label */
   label = LabelAlloc(nlabel,NULL,NULL);
@@ -713,7 +720,7 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
       MATRIX *XFM)
 {
   int nthhit,nclusters,nhits, *hitcol, *hitrow, *hitslc;
-  int col,row,slc,allowdiag=1,nprunedclusters;
+  int col,row,slc,allowdiag=0,nprunedclusters;
   MRI *HitMap;
   VOLCLUSTER **ClusterList, **ClusterList2;
   float voxsizemm3, distthresh=0; 
@@ -845,10 +852,6 @@ int clustDumpSummary(FILE *fp,VOLCLUSTER **ClusterList, int nClusters)
 
 
 
-
-/*----------------------------------------------------------------*/
-/*--------------- STATIC FUNCTIONS BELOW HERE --------------------*/
-/*----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------
   ConvertCRS2XYZ() - computes the xyz coordinate given the CRS and
