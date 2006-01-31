@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.27 2006/01/23 17:33:14 greve Exp $
+   $Id: fmriutils.c,v 1.28 2006/01/31 21:37:49 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.27 2006/01/23 17:33:14 greve Exp $");
+  return("$Id: fmriutils.c,v 1.28 2006/01/31 21:37:49 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -1161,14 +1161,15 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame)
 /*---------------------------------------------------------------
   MRIframeMax() - finds the maximum in the given frame. The max is
   returned. The CRS of the max are passed back as args. If mask is
-  non-null, then only voxels in the mask are considered. If absflag
-  is 1, then the maximum of the absolute is searched for (signed
-  value still returned).
+  non-null, then only voxels in the mask are considered. If signflag
+  is 0, then the maximum of the absolute is searched for (signed
+  value still returned). If signflag = +1, then only the pos max
+  is found. If signflag = -1, then only the neg max  is found. 
   --------------------------------------------------------------*/
-double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
+double MRIframeMax(MRI *vol, int frame, MRI *mask, int signflag,
 		   int *cmax, int *rmax, int *smax)
 {
-  int c, r, s;
+  int c, r, s, nhits;
   double v,vmax,m;
 
   if(frame > vol->nframes){
@@ -1176,6 +1177,7 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
     return(1);
   }
 
+  nhits = -1;
   vmax = 0.0;
   for(c=0; c < vol->width; c++){
     for(r=0; r < vol->height; r++){
@@ -1184,24 +1186,43 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
 	  m = MRIgetVoxVal(mask,c,r,s,0);
 	  if(m < 0.5) continue;
 	}
+	nhits ++;
 	v = MRIgetVoxVal(vol,c,r,s,frame);
 
-	if(absflag){
+	if(nhits == 0){ // first hit
+	  vmax = v;
+	  *cmax = c;
+	  *rmax = r;
+	  *smax = s;
+	  continue;
+	}
+	
+	switch(signflag){
+	case 0: // absolute
 	  if(fabs(vmax) < fabs(v)){
 	    vmax = v;
 	    *cmax = c;
 	    *rmax = r;
 	    *smax = s;
 	  }
-	}
-	else{
-	  if(vmax < v){
+	  break;
+	case 1: // positive
+	  if( vmax < v){
 	    vmax = v;
 	    *cmax = c;
 	    *rmax = r;
-	      *smax = s;
+	    *smax = s;
 	  }
-	}
+	  break;
+	case -1: // negative
+	  if( vmax > v){
+	    vmax = v;
+	    *cmax = c;
+	    *rmax = r;
+	    *smax = s;
+	  }
+	  break;
+	} // end swtich
       }//s
     }//r
   }//s
