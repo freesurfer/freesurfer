@@ -30,7 +30,7 @@ USAGE: ./mri_glmfit
 
    --surf subject hemi : needed for some flags (uses white by default)
 
-   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z
+   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z
    --sim-sign signstring : abs, pos, or neg. Default is abs.
    --perm-1 : do permutation test for one-sample group mean
 
@@ -46,6 +46,7 @@ USAGE: ./mri_glmfit
    --profile     niters : test speed
 
    --diag Gdiag_no : set diagnositc level 
+   --diag-cluster : save sig volume and exit from first sim loop
    --debug     turn on debugging
    --checkopts don't run anything, just check options and exit
    --help      print out information on how to use this program
@@ -320,8 +321,8 @@ you are analyzing surface data, then include --surf.
 
 nulltype is the method of generating the null data. Legal values are: 
   (1) perm - perumation, randomly permute rows of X (cf FSL randomise)
-  (2) null-full - replace input with white gaussian noise
-  (3) null-z - do not actually do analysis, just assume the output 
+  (2) mc-full - replace input with white gaussian noise
+  (3) mc-z - do not actually do analysis, just assume the output 
       is z-distributed (cf ANFI AlphaSim)
 nsim - number of simulation iterations to run (see below)
 thresh - threshold, specified as -log10(pvalue) to use for clustering
@@ -410,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.58 2006/01/31 00:05:39 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.59 2006/01/31 20:59:08 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -487,7 +488,6 @@ double csize;
 VOLCLUSTER **VolClustList;
 
 int DiagCluster=0;
-double DiagClusterSize=0;
 
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
@@ -875,7 +875,7 @@ int main(int argc, char **argv)
     csd->searchspace = searchspace;
     csd->nreps = nsim;
     CSDallocData(csd);
-    if(!strcmp(csd->simtype,"null-z")){
+    if(!strcmp(csd->simtype,"mc-z")){
       rfs = RFspecInit(SynthSeed,NULL);
       rfs->name = strcpyalloc("gaussian");
       rfs->params[0] = 0;
@@ -901,7 +901,7 @@ int main(int argc, char **argv)
       printf("%d/%d t=%g ----------------------------------------------------\n",
 	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
-      if(!strcmp(csd->simtype,"null-full")){
+      if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
 	if(FWHM > 0){
@@ -913,7 +913,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"perm")) MatrixRandPermRows(mriglm->Xg);
 
       // Variance smoothing
-      if(strcmp(csd->simtype,"null-z")){ // not a null z
+      if(strcmp(csd->simtype,"mc-z")){ // not a null z
 	// If variance smoothing, then need to test and fit separately
 	if(VarFWHM > 0){
 	  printf("Starting fit\n");
@@ -931,7 +931,7 @@ int main(int argc, char **argv)
       
       // Go through each contrast
       for(n=0; n < mriglm->glm->ncontrasts; n++){
-	if(strcmp(csd->simtype,"null-z")){
+	if(strcmp(csd->simtype,"mc-z")){
 	  // not a null z
 	  sig  = MRIlog10(mriglm->p[n],sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
@@ -940,7 +940,7 @@ int main(int argc, char **argv)
 	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	}
 	else{
-	  // null-z: synth z-field, smooth, rescale, compute p, compute sig
+	  // mc-z: synth z-field, smooth, rescale, compute p, compute sig
 	  // This should do the same thing as AFNI's AlphaSim
 	  RFsynth(z,rfs,mriglm->mask);
 	  if(SmoothLevel > 0){
@@ -972,9 +972,6 @@ int main(int argc, char **argv)
 	}
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
-	//MRIwrite(sig,"sig.mgh");
-	//MRIwrite(mriglm->p[0],"p.mgh");
-	//exit(1);
 
 	// Re-write the full CSD file each time. Should not take that
 	// long and assures output can be used immediately regardless
@@ -991,8 +988,6 @@ int main(int argc, char **argv)
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
-	//fprintf(fp,"# label  %s\n",labelFile);
-	//fprintf(fp,"# label-inv  %d\n",clabelinv);
 	csd->nreps = nthsim+1;
 	csd->nClusters[nthsim] = nClusters;
 	csd->MaxClusterSize[nthsim] = csize;
@@ -1000,10 +995,9 @@ int main(int argc, char **argv)
 	CSDprint(fp, csd);
 	fclose(fp);
 
-	if(DiagCluster && csize > DiagClusterSize){
+	if(DiagCluster){
 	  sprintf(tmpstr,"./%s-sig.mgh",mriglm->glm->Cname[n]);
-	  printf("Found cluster size =%lf > %lf, saving into %s\n",
-		 csize,DiagClusterSize,tmpstr);
+	  printf("Saving sig into %s and exiting ... \n",tmpstr);
 	  MRIwrite(sig,tmpstr);
 	  exit(1);
 	}
@@ -1199,23 +1193,18 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
     else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
+    else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--diag-cluster")){
-      if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&DiagClusterSize);
-      DiagCluster=1;
-      nargsused = 1;
-    }
     else if (!strcasecmp(option, "--sim")){
       if(nargc < 4) CMDargNErr(option,4);
       if(CSDcheckSimType(pargv[0])){
 	printf("ERROR: simulation type %s unrecognized, supported values are\n"
-	       "  perm, null-full, null-z\n", pargv[0]);
+	       "  perm, mc-full, mc-z\n", pargv[0]);
 	exit(1);
       }
       strcpy(csd->simtype,pargv[0]);
@@ -1443,7 +1432,7 @@ printf("   --save-mask : save final mask to glmdir/mask.mgh\n");
 printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
-printf("   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z\n");
+printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
 printf("   --perm-1 : do permutation test for one-sample group mean\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
@@ -1735,8 +1724,8 @@ printf("you are analyzing surface data, then include --surf.\n");
 printf("\n");
 printf("nulltype is the method of generating the null data. Legal values are: \n");
 printf("  (1) perm - perumation, randomly permute rows of X (cf FSL randomise)\n");
-printf("  (2) null-full - replace input with white gaussian noise\n");
-printf("  (3) null-z - do not actually do analysis, just assume the output \n");
+printf("  (2) mc-full - replace input with white gaussian noise\n");
+printf("  (3) mc-z - do not actually do analysis, just assume the output \n");
 printf("      is z-distributed (cf ANFI AlphaSim)\n");
 printf("nsim - number of simulation iterations to run (see below)\n");
 printf("thresh - threshold, specified as -log10(pvalue) to use for clustering\n");
@@ -1828,8 +1817,8 @@ static void check_options(void)
     exit(1);
   }
 
-  if(DoSim && VarFWHM > 0 && !strcmp(csd->simtype,"null-z")){
-    printf("ERROR: cannot use variance smoothing with null-z simulation\n");
+  if(DoSim && VarFWHM > 0 && !strcmp(csd->simtype,"mc-z")){
+    printf("ERROR: cannot use variance smoothing with mc-z simulation\n");
     exit(1);
   }
 
