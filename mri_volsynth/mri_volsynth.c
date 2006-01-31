@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.10 2005/09/01 16:25:29 greve Exp $
+  $Id: mri_volsynth.c,v 1.11 2006/01/31 22:21:47 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.10 2005/09/01 16:25:29 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.11 2006/01/31 22:21:47 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -73,6 +73,7 @@ double delta_value = 1;
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
+  double voxradius;
 
   Progname = argv[0] ;
   argc --;
@@ -126,6 +127,13 @@ int main(int argc, char **argv)
     mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if(strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
+  else if(strcmp(pdfname,"sphere")==0){
+    voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
+    printf("voxradius = %lf\n",voxradius);
+    mri = MRIsphereMask(dim[0], dim[1], dim[2], dim[3], 
+			dim[0]/2.0, dim[1]/2.0, dim[2]/2.0,
+			voxradius, 1, NULL);
+  }
   else if(strcmp(pdfname,"delta")==0){
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     if(delta_crsf_speced == 0){
@@ -339,7 +347,7 @@ static void print_usage(void)
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
-  printf("   --pdf pdfname : <gaussian>, uniform, const, delta\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
   printf("\n");
@@ -355,7 +363,9 @@ static void print_help(void)
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
   printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
   printf("to 1. If delta, the middle voxel is set to 1, the rest to 0 unless\n");
-  printf("the actual location is chosen with --delta-crsf.\n");
+  printf("the actual location is chosen with --delta-crsf. If sphere, then\n");
+  printf("a spherical binary mask centered in the volume with radius half\n");
+  printf("the field of view.\n");
   printf("\n");
 
   exit(1) ;
@@ -488,6 +498,4 @@ static int isflag(char *flag)
   return(0);
 }
 
-/*---------------------------------------------------------------*/
-/*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
