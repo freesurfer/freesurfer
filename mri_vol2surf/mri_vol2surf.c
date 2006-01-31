@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $
+  $Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -85,7 +85,7 @@ char *surfreg = "sphere.reg";
 char *thicknessname = "thickness";
 float ProjFrac = 0;
 int   ProjDistFlag = 0;
-float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=0.0;
+float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=1.0;
 
 MRI_SURFACE *Surf    = NULL;
 MRI_SURFACE *SurfOut = NULL;
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
