@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/31 14:24:59 $
-// Revision       : $Revision: 1.328 $
-char *MRI_C_VERSION = "$Revision: 1.328 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/01/31 18:48:48 $
+// Revision       : $Revision: 1.329 $
+char *MRI_C_VERSION = "$Revision: 1.329 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11184,6 +11184,7 @@ MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr, float max_
 {
   int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
   float dist, min_dist, min_val, dx, dy, dz ;
+  dist = 0.0;
 
   x = mri->xi[nint(xr)] ; y = mri->yi[nint(yr)] ; z = mri->zi[nint(zr)] ;
 	min_val = MRIgetVoxVal(mri, x, y, z, 0) ;
