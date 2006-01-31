@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:21 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/31 18:56:21 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -81,6 +81,7 @@ main(int argc, char *argv[])
 	mp.dt = 0.005 ;
 	mp.noneg = True ;
 	mp.exp_k = 20 ;
+	mp.diag_write_snapshots = 1 ;
 	mp.momentum = 0.9 ;
 	if (FZERO(mp.l_smoothness))
 		mp.l_smoothness = 2 ;
@@ -137,11 +138,12 @@ main(int argc, char *argv[])
 	printf("padding source with %d voxels...\n", pad) ;
 	if (pad < 1)
 		pad = 1 ;
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE)
+	if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
 		MRIwrite(mri_tmp, "t.mgz") ;
 	MRIfree(&mri_source) ;
 	mri_source = mri_tmp ;
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
+	MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 
 	mp.max_grad = 0.3*mri_source->xsize ;
 	
@@ -214,6 +216,7 @@ main(int argc, char *argv[])
 		if (mp.diag_morph_from_atlas)
 		{
 			printf("writing target volume to %s...\n", fname) ;
+			MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
 			MRIwrite(mri_target, fname) ;
 		}
 		else
@@ -237,11 +240,12 @@ main(int argc, char *argv[])
 		
 		FileNameRemoveExtension(out_fname, fname) ;
 		strcat(fname, ".mgz") ;
-		mri_aligned = GCAMmorphFieldFromAtlas(gcam, mp.mri, GCAM_LABEL,0, 1) ;
+		mri_aligned = GCAMmorphFieldFromAtlas(gcam, mp.mri, GCAM_MEANS,0, 1) ;
 		printf("writing transformed output volume to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
 	}
+	printf("writing warp vector field to %s\n", out_fname) ;
 	GCAMvoxToRas(gcam) ;
 	GCAMwrite(gcam, out_fname) ;
 	GCAMrasToVox(gcam, mri_target) ;
