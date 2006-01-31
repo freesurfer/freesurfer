@@ -28,6 +28,7 @@
 #include "matrix.h"
 #include "registerio.h"
 #include "resample.h"
+#include "cmdargs.h"
 
 #include "volcluster.h"
 #include "version.h"
@@ -63,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.13 2006/01/31 00:40:42 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.14 2006/01/31 20:23:25 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -142,7 +143,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.13 2006/01/31 00:40:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.14 2006/01/31 20:23:25 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -244,6 +245,7 @@ int main(int argc, char **argv)
   /* Initialize the hit map - this is a map of voxels that have been
      accounted for as either outside of a the threshold range or
      belonging to a cluster. The initialization is for thresholding */
+  
   HitMap = clustInitHitMap(vol, frame, threshminadj, threshmaxadj, threshsign, 
          &nhits, &hitcol, &hitrow, &hitslc, 
          binmask, maskframe);
@@ -495,6 +497,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--nofixtkreg"))    fixtkreg = 0;
     else if (!strcmp(option, "--fixtkreg"))      fixtkreg = 1;
 
+    else if (!strcasecmp(option, "--diag")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    }
+
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i") || !strcmp(option, "--in")){
       if(nargc < 1) argnerr(option,1);
@@ -711,6 +719,9 @@ static void print_usage(void)
   fprintf(stdout, "   --thmin   minthresh\n");
   fprintf(stdout, "   --thmax   maxthresh (default is infinity)\n");
   fprintf(stdout, "   --sign    <abs>, neg, pos for one-sided tests\n");
+  fprintf(stdout, "   --csd csdfile <--csd csdfile> : cluster simulation data\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
   fprintf(stdout, "   --minsize    minimum volume (mm^3)\n");
   fprintf(stdout, "   --minsizevox minimum volume (voxels)\n");
   fprintf(stdout, "   --mindist distance threshold <0>\n");
@@ -730,15 +741,13 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --out      output volid \n");
   fprintf(stdout, "   --ocn      output cluster number volid \n");
-  //fprintf(stdout, "   --out_type file format \n");
-  //fprintf(stdout, "   --ocn_type file format \n");
-  //fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --label   label file\n");
   fprintf(stdout, "   --nlabelcluster n : save nth cluster in label\n");
   fprintf(stdout, "   --labelbase  base : save all clusters under base-NNNN.label\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --synth   synthfunc (uniform,loguniform,gaussian)\n");
+  fprintf(stdout, "   --diag diagno : set diagnostic level\n");
   fprintf(stdout, "   --help    : how to use this program \n");
   fprintf(stdout, "\n");
 }
