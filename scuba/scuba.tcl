@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.172 2006/01/30 23:15:00 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.173 2006/01/31 17:00:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2113,6 +2113,30 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
 
+    frame $fwProps2DMRI.fwHeatScale
+    tkuMakeNormalLabel $fwProps2DMRI.fwHeatScale.lwHeatScale \
+	-label "Heat Scale"
+    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMin \
+	-label "Min" -notify 1 -font [tkuNormalFont] \
+	-variable gaLayer(current,heatScaleMin) \
+	-command {Set2DMRILayerHeatScaleMin $gaLayer(current,id) $gaLayer(current,heatScaleMin) ; RedrawFrame [GetMainFrameID]}
+    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMid \
+	-label "Mid" -notify 1 -font [tkuNormalFont] \
+	-variable gaLayer(current,heatScaleMid) \
+	-command {Set2DMRILayerHeatScaleMid $gaLayer(current,id) $gaLayer(current,heatScaleMid) ; RedrawFrame [GetMainFrameID]}
+    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
+	-label "Max" -notify 1 -font [tkuNormalFont] \
+	-variable gaLayer(current,heatScaleMax) \
+	-command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; RedrawFrame [GetMainFrameID]}
+    pack $fwProps2DMRI.fwHeatScale.lwHeatScale $fwProps2DMRI.fwHeatScale.ewHeatScaleMin $fwProps2DMRI.fwHeatScale.ewHeatScaleMid $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
+	-side left -expand yes -fill x
+    set gaWidget(layerProperties,heatScaleMin) \
+	$fwProps2DMRI.fwHeatScale.ewHeatScaleMin
+    set gaWidget(layerProperties,heatScaleMid) \
+	$fwProps2DMRI.fwHeatScale.ewHeatScaleMid
+    set gaWidget(layerProperties,heatScaleMax) \
+	$fwProps2DMRI.fwHeatScale.ewHeatScaleMax
+
     tkuMakeCheckboxes $fwProps2DMRI.cbwEditableROI \
 	-font [tkuNormalFont] \
 	-checkboxes { 
@@ -2135,8 +2159,9 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
     grid $fwProps2DMRI.swMinMax          -column 0 -row 6 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 7 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 8 -sticky ew
+    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 7 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 8 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 9 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -3005,6 +3030,15 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerEditableROI $iLayerID]
 	    set gaLayer(current,roiOpacity) \
 		[Get2DMRILayerROIOpacity $iLayerID]
+	    set gaLayer(current,heatScaleMin) \
+		[Get2DMRILayerHeatScaleMin $iLayerID]
+	    set gaLayer(current,heatScaleMid) \
+		[Get2DMRILayerHeatScaleMid $iLayerID]
+	    set gaLayer(current,heatScaleMax) \
+		[Get2DMRILayerHeatScaleMax $iLayerID]
+	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMin)
+	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMid)
+	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMax)
 
 	    # Set the LUT menu.
 	    $gaWidget(layerProperties,lutMenu) config -disablecallback 1
@@ -5754,7 +5788,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.172 2006/01/30 23:15:00 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.173 2006/01/31 17:00:13 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
