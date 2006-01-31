@@ -16,6 +16,9 @@ typedef struct {
   int maxmember;
   float maxval;
   float voxsize;
+  double pval_clusterwise;
+  double pval_clusterwise_low;
+  double pval_clusterwise_hi;
 } VOLCLUSTER;
 
 VOLCLUSTER *clustAllocCluster(int nmembers);
