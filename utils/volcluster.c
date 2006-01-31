@@ -1222,8 +1222,10 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       if(!strcmp(tag,"simtype")) fscanf(fp,"%s",csd->simtype);
       else if(!strcmp(tag,"anattype")){
 	fscanf(fp,"%s",csd->anattype);
-	fscanf(fp,"%s",csd->subject);
-	fscanf(fp,"%s",csd->hemi);
+	if(!strcmp(csd->anattype,"surface")){
+	  fscanf(fp,"%s",csd->subject);
+	  fscanf(fp,"%s",csd->hemi);
+	}
       }
       else if(!strcmp(tag,"thresh"))     fscanf(fp,"%lf",&(csd->thresh));
       else if(!strcmp(tag,"threshsign")) fscanf(fp,"%lf",&(csd->threshsign));
