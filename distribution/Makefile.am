@@ -30,5 +30,5 @@ SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=".license .xdebug_tk* error.log surfer.log csurf.log"
 include $(top_srcdir)/Makefile.extra
