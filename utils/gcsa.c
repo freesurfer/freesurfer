@@ -810,6 +810,7 @@ GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
   CP_NODE    *cpn ;
   double     max_prior ;
   CP         *cp ;
+  vno_prior=0; max_label=0; v=NULL;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
