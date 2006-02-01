@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.61 2006/02/01 05:50:02 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.62 2006/02/01 05:58:04 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -989,11 +989,15 @@ int main(int argc, char **argv)
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
+	fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
+        if(mriglm->mask) fprintf(fp,"# masking 1\n");
+        else             fprintf(fp,"# masking 0\n");
 	csd->nreps = nthsim+1;
 	csd->nClusters[nthsim] = nClusters;
 	csd->MaxClusterSize[nthsim] = csize;
 	csd->MaxSig[nthsim] = sigmax;
 	CSDprint(fp, csd);
+
 	fclose(fp);
 
 	if(DiagCluster){
