@@ -235,3 +235,13 @@ SUBDIRS=unix \
 # release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
+
+# for the make dist target, which creates the source-code tarball,
+# use 'dist-hook' to do what EXCLUDE_FILES does for the make install target,
+# that is, remove files that should not go public.  
+# to make things easy, just list all the files to be removed here
+# (no need to do so in the originating directories Makefile.am, 
+# but doing so is not harmful, just redundant.)
+dist-hook:
+	rm -Rf $(distdir)/distribution/grad_unwarp_tables
+	rm -f  $(distdir)/distribution/average/HPMarch022005_ras.mgz
