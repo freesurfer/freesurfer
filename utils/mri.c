@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/31 18:48:48 $
-// Revision       : $Revision: 1.329 $
-char *MRI_C_VERSION = "$Revision: 1.329 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/01 18:50:14 $
+// Revision       : $Revision: 1.330 $
+char *MRI_C_VERSION = "$Revision: 1.330 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12713,6 +12713,7 @@ int MRIdircosToOrientationString(MRI *mri, char *ostr)
   int c;
   float Mdc[3][3], sag, cor, ax;
 
+	ostr[3] = 0 ;
   if(! mri->ras_good_flag){
     ostr[0] = '?';
     ostr[1] = '?';
@@ -13053,8 +13054,7 @@ MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir)
   return(mri_sup) ;
 }
 MRI *
-MRIextractRegionAndPad
-(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
+MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
 {
   MRI *mri_tmp ;
   MRI_REGION box ;
@@ -13076,12 +13076,12 @@ MRIextractRegionAndPad
   MRIextractInto
     (mri_tmp, mri_dst, 0, 0, 0,
      region->dx, region->dy, region->dz, pad, pad, pad);
+	MRIfree(&mri_tmp) ;
   return(mri_dst) ;
 }
 
 MRI *
-MRIsetValuesOutsideRegion
-(MRI *mri_src, MRI_REGION *region, MRI *mri_dst, float val)
+MRIsetValuesOutsideRegion(MRI *mri_src, MRI_REGION *region, MRI *mri_dst, float val)
 {
   int x, y, z ;
 
