@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.107 2006/01/18 17:56:04 kteich Exp $
+# $Id: tkmedit.tcl,v 1.108 2006/02/01 22:00:33 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -186,6 +186,7 @@ set Volm_tResampleMethod(slice) 1
 set FunD_tRegistration(file) 0
 set FunD_tRegistration(find) 1
 set FunD_tRegistration(identity) 2
+set FunD_tRegistration(noneNeeded) 3
 
 set ksaLinkedCursorString(0) notlinked
 set ksaLinkedCursorString(1) linked
@@ -1322,6 +1323,7 @@ proc DoLoadFunctionalDlog { isType } {
 	
 	set fwRegSub           [$fwRegistration subwidget frame]
 
+	set fwRegNone          $fwRegSub.fwRegNone
 	set fwRegFile          $fwRegSub.fwRegFile
 	set fwRegFileName      $fwRegSub.fwRegFileName
 	set fwRegFind          $fwRegSub.fwRegFind
@@ -1329,6 +1331,8 @@ proc DoLoadFunctionalDlog { isType } {
 
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegNone "No registration needed" \
+	    gRegistrationType $FunD_tRegistration(noneNeeded) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
 	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	tkm_MakeFileSelector $fwRegFileName "register.dat file:" \
@@ -1341,7 +1345,7 @@ proc DoLoadFunctionalDlog { isType } {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
-	pack $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	pack $fwRegNone $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \

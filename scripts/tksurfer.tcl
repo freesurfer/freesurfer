@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.107 2006/01/26 20:14:20 kteich Exp $
+# $Id: tksurfer.tcl,v 1.108 2006/02/01 22:00:36 kteich Exp $
 
 package require BLT;
 
@@ -129,6 +129,7 @@ set kanDefaultTransform(scale) 110
 set FunD_tRegistration(file) 0
 set FunD_tRegistration(find) 1
 set FunD_tRegistration(identity) 2
+set FunD_tRegistration(noneNeeded) 3
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
@@ -1549,16 +1550,16 @@ proc DoLoadOverlayDlog {} {
 	
 	set fwRegSub           [$fwRegistration subwidget frame]
 
-	set fwRegNote          $fwRegSub.fwRegNote
+	set fwRegNone          $fwRegSub.fwRegNone
 	set fwRegFile          $fwRegSub.fwRegFile
 	set fwRegFileName      $fwRegSub.fwRegFileName
 	set fwRegFind          $fwRegSub.fwRegFind
 	set fwRegIdentity      $fwRegSub.fwRegIdentity
 
-	tkm_MakeNormalLabel $fwRegNote "If you are loading a volume encoded value file, ignore the registration options." 400
-	
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegNone "No registration needed" \
+	    gRegistrationType $FunD_tRegistration(noneNeeded) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
 	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gfnFunctionalRegistration [GetDefaultLocation LoadOverlay]
@@ -1573,7 +1574,7 @@ proc DoLoadOverlayDlog {} {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
-	pack $fwRegNote $fwRegFile $fwRegFileName \
+	pack $fwRegNone $fwRegFile $fwRegFileName \
 	    $fwRegFind $fwRegIdentity \
 	    -side top       \
 	    -expand yes     \
@@ -1654,16 +1655,16 @@ proc DoLoadTimeCourseDlog {} {
 	
 	set fwRegSub           [$fwRegistration subwidget frame]
 
-	set fwRegNote          $fwRegSub.fwRegNote
+	set fwRegNone          $fwRegSub.fwRegNone
 	set fwRegFile          $fwRegSub.fwRegFile
 	set fwRegFileName      $fwRegSub.fwRegFileName
 	set fwRegFind          $fwRegSub.fwRegFind
 	set fwRegIdentity      $fwRegSub.fwRegIdentity
 
-	tkm_MakeNormalLabel $fwRegNote "If you are loading a volume encoded value file, ignore the registration options." 400
-	
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegNone "No registration needed" \
+	    gRegistrationType $FunD_tRegistration(noneNeeded) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
 	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gfnFunctionalRegistration [GetDefaultLocation LoadTimeCourse]
@@ -1678,7 +1679,7 @@ proc DoLoadTimeCourseDlog {} {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
-	pack $fwRegNote $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	pack $fwRegNone $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
