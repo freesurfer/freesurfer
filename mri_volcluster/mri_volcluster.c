@@ -64,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.14 2006/01/31 20:23:25 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.15 2006/02/01 05:48:57 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.14 2006/01/31 20:23:25 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.15 2006/02/01 05:48:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1001,18 +1001,23 @@ static void check_options(void)
       printf("ERROR: you cannot specify --thmax  with --csd\n");
       exit(1);
     }
+    threshsign = csd->threshsign;
+    if(threshsign ==  0) signstring = "abs";
+    if(threshsign == +1) signstring = "pos";
+    if(threshsign == -1) signstring = "neg";
   } // end csd != NULL
+  else {  
+    if(      !strncmp(signstring,"a",1) ) threshsign = 0;
+    else if( !strncmp(signstring,"p",1) ) threshsign = +1;
+    else if( !strncmp(signstring,"n",1) ) threshsign = -1;
+    else {
+      fprintf(stderr,"ERROR: sign = %s, must be neg, abs, or pos\n",signstring);
+      err = 1;
+    }
+  }
 
   if(threshmin < 0) {
     fprintf(stderr,"ERROR: no minimum threshold supplied\n");
-    err = 1;
-  }
-
-  if(      !strncmp(signstring,"a",1) ) threshsign = 0;
-  else if( !strncmp(signstring,"p",1) ) threshsign = +1;
-  else if( !strncmp(signstring,"n",1) ) threshsign = -1;
-  else {
-    fprintf(stderr,"ERROR: sign = %s, must be neg, abs, or pos\n",signstring);
     err = 1;
   }
 
