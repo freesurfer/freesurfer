@@ -106,7 +106,7 @@ UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
 		.ui/roisettingsdlog.h roisettingsdlog.ui.h \
 		.ui/prefsdlog.h prefsdlog.ui.h \
 		.ui/editdatdlog.h editdatdlog.ui.h \
-		.ui/findsurfacevertexdlog.h findsurfacevertexdlog.u.h
+		.ui/findsurfacevertexdlog.h findsurfacevertexdlog.ui.h
 
 UICIMPLS = .ui/mainwindow.cpp \
 		.ui/viewlayersdlog.cpp \
