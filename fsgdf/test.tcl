@@ -12,14 +12,14 @@ set glID {}
 
 FsgdfPlot_Init
 set ID [FsgdfPlot_Read "$fnTestDataDir/fsgdf/y-lh.fsgd"]
-if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
+if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed, ID was $ID." ; exit }
 FsgdfPlot_ShowWindow $ID
 
 lappend glID $ID
 
-set ID [FsgdfPlot_Read "$fnTestDataDir/fsgdf/novar.fsgd"]
-if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
-FsgdfPlot_ShowWindow $ID
+# set ID [FsgdfPlot_Read "$fnTestDataDir/fsgdf/novar.fsgd"]
+# if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
+# FsgdfPlot_ShowWindow $ID
 
 lappend glID $ID
 
