@@ -1,8 +1,9 @@
 #
 # Makefile.am for docs
 #
+
 foodir=$(prefix)/fsfast/docs
-# I cannot specify *, since Makefile etc will be copied
+# cannot specify *, since Makefile etc will be copied
 TEXFILES=$(wildcard *.tex)
 foo_DATA = $(TEXFILES:%.tex=%.ps)
 
@@ -20,13 +21,11 @@ foo_DATA = $(TEXFILES:%.tex=%.ps)
 clean:
 	rm -f *.aux *.log *.ps
 
-release:
-	$(MAKE) install
+#release:
+#	$(MAKE) install
 
-uninstall-release:
-	$(MAKE) uninstall 
-
-
+#uninstall-release:
+#	$(MAKE) uninstall 
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
