@@ -225,7 +225,10 @@ SUBDIRS=unix \
 	include \
 	qdec \
 	mri_fslmat_to_lta \
-	plotter
+	plotter \
+	mri_ms_EM \
+	mri_ms_EM_with_atlas \
+	mris_thickness_diff
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -1296,7 +1296,10 @@ mri_segment_wm_damage/Makefile \
 mri_fslmat_to_lta/Makefile \
 plotter/Makefile \
 plotter/docs/Makefile \
-plotter/docs/en/Makefile
+plotter/docs/en/Makefile \
+mri_ms_EM/Makefile \
+mri_ms_EM_with_atlas/Makefile \
+mris_thickness_diff/Makefile
 )
 
 AC_MSG_RESULT(
