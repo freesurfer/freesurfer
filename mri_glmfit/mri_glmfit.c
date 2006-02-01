@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.60 2006/01/31 21:38:43 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.61 2006/02/01 05:50:02 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -491,6 +491,7 @@ int DiagCluster=0;
 
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
+double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm; 
 MRI *ar1=NULL, *z=NULL;
 
 CSD *csd;
@@ -966,7 +967,7 @@ int main(int argc, char **argv)
 	  // volume clustering -------------
 	  VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
 					  mriglm->mask, &nClusters, NULL);
-	  csize = clustMaxClusterCount(VolClustList,nClusters);
+	  csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
 	  if(Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
 	  clustFreeClusterList(&VolClustList,nClusters);
 	}
@@ -1028,7 +1029,7 @@ int main(int argc, char **argv)
 
   // Compute fwhm of residual
   if(surf != NULL){
-    printf("Computing spatial AR1 \n");
+    printf("Computing spatial AR1 on surface\n");
     ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/ar1.mgh",GLMDir);
     MRIwrite(ar1,tmpstr);
@@ -1039,6 +1040,16 @@ int main(int argc, char **argv)
 	   ar1mn,ar1std,eresgstd,eresfwhm);
     //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
     //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);
+  }
+  else{
+    printf("Computing spatial AR1 in volume.\n");
+    fMRIspatialAR1Mean(mriglm->eres, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
+    cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
+    rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
+    sfwhm = RFar1ToFWHM(sar1mn, mriglm->eres->zsize);
+    eresfwhm = sqrt(cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm);
+    printf("Residual: ar1mn = (%lf,%lf,%lf) fwhm = (%lf,%lf,%lf) %lf\n",
+	   car1mn,rar1mn,sar1mn,cfwhm,rfwhm,sfwhm,eresfwhm);
   }
 
   // Save estimation results
