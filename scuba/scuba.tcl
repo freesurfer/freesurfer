@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.173 2006/01/31 17:00:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.174 2006/02/01 22:18:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -75,7 +75,7 @@ set gbDebugOutput false
 proc dputs { isMsg } {
     global gbDebugOutput
     if { $gbDebugOutput } {
-	]puts "scuba: $isMsg"
+	puts "scuba: $isMsg"
     }
 }
 
@@ -5788,7 +5788,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.173 2006/01/31 17:00:13 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.174 2006/02/01 22:18:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
