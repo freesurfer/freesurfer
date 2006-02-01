@@ -98,5 +98,6 @@ int   GCSAsetCovariancesToIdentity(GCSA *gcsa) ;
 VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) ;
 VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
 int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
+int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 #endif

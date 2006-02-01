@@ -802,6 +802,39 @@ GCSAread(char *fname)
   return(gcsa) ;
 }
 
+int
+GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
+{
+  int        vno, vno_prior, max_label, n ;
+  VERTEX     *v, *v_prior ;
+  CP_NODE    *cpn ;
+  double     max_prior ;
+  CP         *cp ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+    
+		v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
+		cpn = &gcsa->cp_nodes[vno_prior] ;
+		max_prior = cpn->cps[0].prior ;
+		max_label = cpn->labels[0] ;
+		for (n = 1 ; n < cpn->nlabels ; n++)
+    {
+      cp = &cpn->cps[n] ;
+			if (cp->prior > max_prior)
+			{
+				max_prior = cp->prior; max_label = cpn->labels[n] ;
+			}
+		}
+	}
+	v->annotation = max_label ;
+	return(NO_ERROR) ;
+}
 static int Gvno = -1 ;
 int
 GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
