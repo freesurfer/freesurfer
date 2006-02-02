@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/01 18:50:14 $
-// Revision       : $Revision: 1.330 $
-char *MRI_C_VERSION = "$Revision: 1.330 $";
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2006/02/02 19:35:56 $
+// Revision       : $Revision: 1.331 $
+char *MRI_C_VERSION = "$Revision: 1.331 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3934,7 +3934,8 @@ MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
                  "MRISaverage: unsupported voxel format %d",mri_src->type));
 #endif
 
-  for (f = 0 ; f < mri_src->nframes ; f++)
+  //  for (f = 0 ; f < mri_src->nframes ; f++)
+  for (f = 0 ; f < mri_dst->nframes ; f++)
     {
       for (z = 0 ; z < depth ; z++)
         {
