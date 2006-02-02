@@ -300,14 +300,20 @@ GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
   vdst = MHTfindClosestVertex(gcsa->mht_classifiers, gcsa->mris_classifiers,v);
   return(vdst) ;
 }
-
-VERTEX *
-GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v)
+/*------------------------------------------------------------------*/
+VERTEX * GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v)
 {
   VERTEX *vdst ;
-
   vdst = MHTfindClosestVertex(gcsa->mht_priors, gcsa->mris_priors, v) ;
   return(vdst) ;
+}
+/*------------------------------------------------------------------*/
+int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v)
+{
+  int vdstno;
+  float dmin;
+  vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin) ;
+  return(vdstno) ;
 }
 
 static int
@@ -801,41 +807,42 @@ GCSAread(char *fname)
   fclose(fp) ;
   return(gcsa) ;
 }
-
-int
-GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
+/*---------------------------------------------------------*/
+int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
 {
   int        vno, vno_prior, max_label, n ;
-  VERTEX     *v, *v_prior ;
+  VERTEX     *v; //, *v_prior ;
   CP_NODE    *cpn ;
   double     max_prior ;
   CP         *cp ;
   vno_prior=0; max_label=0; v=NULL;
+  cpn = NULL;
+  cp = NULL;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		if (v->ripflag)
-			continue ;
-		if (vno == Gdiag_no)
-			DiagBreak() ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)	   continue ;
+    if (vno == Gdiag_no) DiagBreak() ;
     
-		v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
-		cpn = &gcsa->cp_nodes[vno_prior] ;
-		max_prior = cpn->cps[0].prior ;
-		max_label = cpn->labels[0] ;
-		for (n = 1 ; n < cpn->nlabels ; n++)
-    {
+    vno_prior = GCSAsourceToPriorVertexNo(gcsa, v) ;
+    cpn = &gcsa->cp_nodes[vno_prior] ;
+    max_prior = cpn->cps[0].prior ;
+    max_label = cpn->labels[0] ;
+    for (n = 1 ; n < cpn->nlabels ; n++){
       cp = &cpn->cps[n] ;
-			if (cp->prior > max_prior)
-			{
-				max_prior = cp->prior; max_label = cpn->labels[n] ;
-			}
-		}
-	}
-	v->annotation = max_label ;
-	return(NO_ERROR) ;
+      if(cp->prior > max_prior){
+	max_prior = cp->prior; 
+	max_label = cpn->labels[n] ;
+      }
+    }
+    if(Gdiag_no > 0) printf("%5d  nl=%d max_prior=%g  max_label=%d\n",
+			    vno,cpn->nlabels,max_prior,max_label);
+    v->annotation = max_label ;
+  }
+  return(NO_ERROR) ;
 }
+
+
 static int Gvno = -1 ;
 int
 GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
