@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.4 2006/02/02 17:53:34 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.5 2006/02/02 18:14:25 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2088,11 +2088,9 @@ check_params:
       set aseg = $subjdir/mri/aseg
       if(-e $aseg.mgz) then
         cp $aseg.mgz $aseg.legacy.mgz
-        cp $aseg.mgz $aseg.auto.mgz # is this the right thing to do?
       else
         if(-e $aseg/COR-.info) then 
           mri_convert $aseg $aseg.legacy.mgz
-          mri_convert $aseg $aseg.auto.mgz
         endif
       endif
       set wm = $subjdir/mri/wm
