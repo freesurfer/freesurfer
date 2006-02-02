@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.5 2006/02/02 18:14:25 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.6 2006/02/02 18:45:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -54,6 +54,8 @@ set FixWithGA = 1;   # for topology fixer
 set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
 set UseCAAlign = (-align); # not sure
+set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
+set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -63,9 +65,6 @@ set face_template  = face.gca
 # For subcortical segmentation
 set GCA      = RB40_talairach_2005_12_30.gca
 set GCASkull = RB40_talairach_with_skull_2005_12_30.gca
-
-# When set to 0 (using -noaseg), then aseg.mgz is not used
-set UseAseg  = 1
 
 # For cortical registration, as found in:
 # $FREESURFER_HOME/average/$hemi.$AvgCurvTif
@@ -234,7 +233,6 @@ mris_sphere -all-info >> $LF
 mris_fix_topology -all-info >> $LF
 mris_euler_number -all-info >> $LF
 mris_make_surfaces -all-info >> $LF
-mris_sphere -all-info >> $LF
 mris_register -all-info >> $LF
 mrisp_paint -all-info >> $LF
 mri_label2label -all-info >> $LF
@@ -930,8 +928,10 @@ foreach hemi ($hemilist)
     echo "#@# QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
-    set cmd = (mris_sphere  -q $xopts \
-       ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
+    set cmd = (mris_sphere -q)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -1058,7 +1058,10 @@ foreach hemi ($hemilist)
     echo "#@# Sphere $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
-    set cmd = (mris_sphere $xopts ../surf/$hemi.inflated ../surf/$hemi.sphere)
+    set cmd = (mris_sphere)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd ../surf/$hemi.inflated ../surf/$hemi.sphere)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -1074,8 +1077,10 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
-    set cmd = (mris_register -curv $xopts ../surf/$hemi.sphere \
-               $AvgTif ../surf/$hemi.sphere.reg)
+    set cmd = (mris_register -curv)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd ../surf/$hemi.sphere $AvgTif ../surf/$hemi.sphere.reg)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -1096,10 +1101,11 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
-
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
-    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere \
-               $xopts $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
+    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -1998,6 +2004,10 @@ while( $#argv != 0 )
       echo "INFO: all COR volumes are conformed to the min voxel size"
       breaksw
 
+    case "-noneg":
+      set UseNoNeg = 1;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -2655,8 +2665,7 @@ if a file called expert.opts is created containing these lines:
 then the option "-p .5" will be passed to mri_em_register, and "-s 100"
 will be passed to mris_fix_topology.  The name of the expert options file
 is passed to recon-all with the -expert flag,
-eg. recon-all -expert <full pathname>/expert.opts
-Note: the full pathname to the file must be specified.
+eg. recon-all -expert expert.opts
 
 The following FreeSurfer binaries will accept an expert option:
 
