@@ -10,14 +10,12 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
  $(wildcard *.tif) \
  $(wildcard *.txt) \
- $(wildcard *.ctab) \
  $(wildcard *.mgz)
 else
 foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
  $(wildcard *.tif) \
- $(wildcard *.txt) \
- $(wildcard *.ctab)
+ $(wildcard *.txt)
 endif
 
 EXTRA_DIST=$(foo_DATA)
