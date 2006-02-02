@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2005/11/03 00:19:29 $
+** Last Update:   $Author: nicks $, $Date: 2006/02/02 21:46:54 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.22 $
+** Revision:    $Revision: 1.23 $
 ** Status:    $State: Exp $
 */
 
@@ -3405,7 +3405,7 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
                       PRV_ELEMENT_ITEM * item)
 {
   int idx;
-#ifdef Darwin
+#ifdef BIG_ENDIAN_ARCHITECTURE
   unsigned char* b1;
   unsigned char* b2;
 #endif
@@ -3420,7 +3420,7 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
   case DCM_METAGROUPLENGTH:
     (*object)->metaHeaderLength = *item->element.d.ul;
     //printf("(*object)->metaHeaderLength: %d",(*object)->metaHeaderLength);
-#ifdef Darwin
+#ifdef BIG_ENDIAN_ARCHITECTURE
     b1 = (unsigned char *)&(*object)->metaHeaderLength;
     b2 = (unsigned char *)item->element.d.ul;
     *b1++ = b2[2];
