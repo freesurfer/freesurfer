@@ -231,7 +231,8 @@ SUBDIRS=unix \
 	mris_thickness_diff \
 	mri_extract_largest_CC \
 	mri_compute_seg_overlap \
-	mris_ms_surface_CNR
+	mris_ms_surface_CNR \
+	mri_concatenate_lta 
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

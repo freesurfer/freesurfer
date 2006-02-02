@@ -1302,7 +1302,8 @@ mri_ms_EM_with_atlas/Makefile \
 mris_thickness_diff/Makefile \
 mri_extract_largest_CC/Makefile \
 mri_compute_seg_overlap/Makefile \
-mris_ms_surface_CNR/Makefile
+mris_ms_surface_CNR/Makefile \
+mri_concatenate_lta/Makefile
 )
 
 AC_MSG_RESULT(
