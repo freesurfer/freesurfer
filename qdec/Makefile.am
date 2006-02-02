@@ -24,6 +24,7 @@ EXTRA_PROGRAMS=
 
 qdec_SOURCES=\
 	Utilities.cpp \
+	Utilities.h \
 	$(FORMS) \
 	$(UICDECLS) \
 	$(UICIMPLS) \
