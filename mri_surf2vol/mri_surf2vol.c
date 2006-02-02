@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $
+  $Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $
 */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $";
+"$Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -59,9 +59,10 @@ char *targsubject = NULL;
 float projfrac = 0;
 static int fillribbon = 0 ;
 
-char *tempvolpath;
+char *tempvolpath=NULL;
 char *tempvolfmt;
 int   tempvolfmtid = 0;
+char *mergevolpath=NULL;
 char *outvolpath;
 char *outvolfmt;
 int   outvolfmtid = 0;
@@ -94,15 +95,15 @@ int UseVolRegIdentity = 0;
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  float ipr, bpr, intensity;
-  int float2int, err, vtx, nhits;
+  float ipr, bpr, intensity, v;
+  int float2int, err, vtx, nhits, c,r,s,f;
   char fname[2000];
   int nargs;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $",
+     "$Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -285,6 +286,30 @@ int main(int argc, char **argv)
   //  printf("INFO: binarizing output volume\n");
   //}
 
+  /* Read in the merge volume */
+  if(mergevolpath){
+    TempVol = MRIread(mergevolpath);
+    if(TempVol == NULL){
+      printf("mri_surf2vol ERROR: reading %s\n",mergevolpath);
+      exit(1);
+    }
+    for(c=0; c < OutVol->width; c++){
+      for(r=0; r < OutVol->height; r++){
+	for(s=0; s < OutVol->depth; s++){
+	  v = MRIgetVoxVal(VtxVol,c,r,s,0);
+	  if(v == 0){
+	    // output is zero, replace with mergevol
+	    for(f=0; f < OutVol->nframes; f++){
+	      v = MRIgetVoxVal(TempVol,c,r,s,f);
+	      MRIsetVoxVal(OutVol,c,r,s,f,v);
+	    } //frame
+	  } 
+	} //slice
+      } //row
+    } //col
+  }
+
+
   if(outvolpath != NULL){
     printf("INFO: writing output volume to %s\n",outvolpath);
     MRIwriteType(OutVol,outvolpath,outvolfmtid);
@@ -402,6 +427,10 @@ static int parse_commandline(int argc, char **argv)
         tempvolfmtid = string_to_type(tempvolfmt);
       }
     }
+    else if (istringnmatch(option, "--merge",7)){
+      if(nargc < 1) argnerr(option,1);
+      mergevolpath = pargv[0]; nargsused = 1;
+    }
     else if ( !strcmp(option, "--dim") ) {
       if(nargc < 3) argnerr(option,3);
       for(i=0;i<3;i++) sscanf(pargv[i],"%d",&dim[i]);
@@ -468,7 +497,8 @@ static void print_usage(void)
   printf("  --volreg volume registration file\n");
   printf("  --volregidentity subjid : use identity "
          "(must supply subject name)\n");
-  printf("  --template <fmt> output like this volume <fmt>\n");
+  printf("  --template vol : output like this volume\n");
+  printf("  --merge vol : merge with this vol (becomes template)\n");
   printf("  \n");
   printf("  --outvol <fmt>  output volume path id\n");
   printf("  --vtxvol <fmt>  vertex map volume path id\n");
@@ -551,7 +581,14 @@ static void print_help(void)
      "This is the volume that will be used as a template for the output\n"
      "volume in terms of the field-of-view, geometry, and precision. If the\n"
      "format is not included, the format will be inferred from the path\n"
-     "name. See FORMATS below.\n"
+     "name. Not needed with --merge. See FORMATS below.\n"
+     "\n"
+     "--merge mergevolume\n"
+     "\n"
+     "Merge the output volume with this volume. Ie, each voxel that is not\n"
+     "assigned a value from the surface inherits its value from the merge\n"
+     "volume. The merge volume becomes the template volume (ie, --template\n"
+     "not needed or used).\n"
      "\n"
      "--outvol output volume <fmt>\n"
      "\n"
@@ -738,6 +775,7 @@ static void check_options(void)
       exit(1);
     }
   }
+  if(mergevolpath) tempvolpath = mergevolpath;
 
   return;
 }
