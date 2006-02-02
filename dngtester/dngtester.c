@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "mrisurf.h"
 #include "utils.h"
 #include "error.h"
@@ -12,76 +14,86 @@
 #include "region.h"
 #include "machine.h"
 #include "fio.h"
-#include "mri_identify.h" // declare IDisCurv function
-#include "mrisurf.h" // get #define NEW_VERSION_MAGIC_NUMBER
-
-MRI *MRISreadCurvAsMRI(char *curvfile);
+#include "mri_identify.h" 
+#include "mrisurf.h" 
+#include "fmriutils.h" 
+#include "gca.h"
+#include "gcsa.h"
+#include "fsgdf.h"
+#include "icosahedron.h"
 
 char *Progname = "dngtester";
 char *subject=NULL, *hemi=NULL;
 char *SUBJECTS_DIR = NULL;
-char *curvfile = NULL;
-MRI *mri;
-MRIS *mris;
+MRI *mri, *mri2, *template;
 char tmpstr[2000];
 int err;
+GCA  *gca ;
+MATRIX *V2Rsrc,*V2Rtemplate,*V2V;
+MRIS *mris;
+GCSA *gcsa;
+char *fsh;
 
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
-  subject = argv[1];
-  hemi = argv[2];
-  curvfile = argv[3];
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  fsh = getenv("FREESURFER_HOME");
+  //set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
+  //set GCS     = curvature.buckner40.filled.desikan_killiany.gcs
 
-  sprintf(tmpstr,"%s/%s/surf/%s.orig",SUBJECTS_DIR,subject,hemi);
-  printf("%s\n",tmpstr);
-  mris = MRISread(tmpstr);
+  sprintf(tmpstr,"%s/average/lh.curvature.buckner40.filled.desikan_killiany.gcs",fsh);
+  printf("Reading gcsa  %s\n",tmpstr);
+  gcsa = GCSAread(tmpstr);
 
-  sprintf(tmpstr,"%s.%s",hemi,curvfile);
-  err = MRISreadCurvatureFile(mris, tmpstr);
-  if(err) printf("curv err\n");
-  mri = MRIcopyMRIS(NULL,mris,0,"curv");
-  MRIwrite(mri,"./lh.curv0.mgh");
+  printf("Reading ico\n");
+  mris = ReadIcoByOrder(7, 100);
+  printf("Building\n");
+  GCSAbuildMostLikelyLabels(gcsa,mris);
+  mris->ct = gcsa->ct;
+  MRISwriteAnnotation(mris, "./lh.aparc.annot");
+  exit(1);
+  /*-------------------------------------------------*/
 
-  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,curvfile);
-  printf("%s\n",tmpstr);
-  mri = MRISreadCurvAsMRI(tmpstr);
-  MRIwrite(mri,"./lh.curv2.mgh");
+  //set GCA = RB40_talairach_2005_12_30.gca
+  //$FREESURFER_HOME/average/$GCA
+  printf("Reading %s\n",argv[2]) ;
+  template = MRIreadHeader(argv[2],MRI_VOLUME_TYPE_UNKNOWN);
+  if(!template) exit(1);
+
+  printf("Reading %s\n",argv[1]) ;
+  gca = GCAread(argv[1]) ;
+  printf("Building\n");
+  mri = GCAbuildMostLikelyVolume(gca, NULL) ;
+
+  printf("Upsampling\n");
+  V2Rsrc = MRIxfmCRS2XYZtkreg(mri);
+  V2Rtemplate = MRIxfmCRS2XYZtkreg(template);
+  V2V = MatrixMultiply(MatrixInverse(V2Rsrc,NULL),V2Rtemplate,NULL);
+  MatrixPrint(stdout,V2V);
+
+  mri2 = MRIallocSequence(template->width, template->height,template->depth,
+                             MRI_UCHAR, 1);
+  MRIcopyHeader(template, mri2) ;
+  template->nframes = 1;
+  MRIvol2Vol(mri, mri2, NULL, SAMPLE_NEAREST, 0);
+
+  printf("Writings\n");
+  MRIwrite(mri,"T1MLV.lowres.mgz");
+  MRIwrite(mri2,"T1MLV.mgz");
+
+  MRIfree(&mri);
+  MRIfree(&mri2);
+
+  mri = GCAbuildMostLikelyLabelVolume(gca);
+  mri2 = MRIallocSequence(template->width, template->height,template->depth,
+                             MRI_UCHAR, 1);
+  MRIcopyHeader(template, mri2) ;
+  template->nframes = 1;
+  MRIvol2Vol(mri, mri2, NULL, SAMPLE_NEAREST, 0);
+
+  MRIwrite(mri,"aseg.mlv.lowres.mgz");
+  MRIwrite(mri2,"aseg.mlv.mgz");
 
   return(0);
-}
-
-/*----------------------------------------*/
-MRI *MRISreadCurvAsMRI(char *curvfile)
-{
-  int    magno,k,vnum,fnum, vals_per_vertex ;
-  float  curv;
-  FILE   *fp;
-  MRI *curvmri;
-
-  if(!IDisCurv(curvfile)) return(NULL);
-  
-  fp = fopen(curvfile,"r");
-  fread3(&magno,fp);
-  
-  vnum = freadInt(fp);
-  fnum = freadInt(fp);
-  vals_per_vertex = freadInt(fp) ;
-  if (vals_per_vertex != 1){
-    fclose(fp) ;
-    printf("ERROR: MRISreadCurvAsMRI: %s, vals/vertex %d unsupported\n",
-           curvfile,vals_per_vertex);
-    return(NULL);
-  }
-
-  curvmri = MRIalloc(vnum,1,1,MRI_FLOAT);
-  for (k=0;k<vnum;k++){
-    curv = freadFloat(fp) ;
-    MRIsetVoxVal(curvmri,k,0,0,0,curv);
-  }
-  fclose(fp);
-
-  return(curvmri) ;
 }
