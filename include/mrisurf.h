@@ -95,6 +95,7 @@ typedef struct vertex_type_
   float  whitex, whitey, whitez ;  /* white surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
   float  fx, fy, fz ;      /* flattened coordinates */
+	int    px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
@@ -1055,6 +1056,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                                  MRI *mri_wm,
                                  int nsmooth,
                                  TOPOLOGY_PARMS *parms) ;
+int MRISsmoothOnSphere(MRIS* mris, int niters);
 int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;

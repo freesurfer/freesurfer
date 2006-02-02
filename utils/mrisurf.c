@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/01/30 21:21:43 $
-// Revision       : $Revision: 1.431 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/02/02 15:23:20 $
+// Revision       : $Revision: 1.432 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -568,7 +568,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.431 2006/01/30 21:21:43 xhan Exp $"); }
+  return("$Id: mrisurf.c,v 1.432 2006/02/02 15:23:20 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -12103,6 +12103,38 @@ static void sphericalProjection(float xs, float ys , float zs, float *xd,float *
   *yd = ys * lambda;
   *zd = zs * lambda;
 }
+
+int MRISsmoothOnSphere(MRIS *mris, int niters){
+	int n,p;
+	float x,y,z;
+	VERTEX *v,*vp;
+	
+	while(niters--){
+		
+		for(n =  0 ; n < mris->nvertices ; n++){
+			v=&mris->vertices[n];
+			
+			x=y=z=0.0f;
+			for( p = 0 ; p < v->vnum ; p++){
+				vp = &mris->vertices[v->v[p]];
+				x += vp->x;
+				y += vp->y;
+				z += vp->z;
+			}
+			v->tx = x/v->vnum;
+			v->ty = y/v->vnum;
+			v->tz = z/v->vnum;			
+		}
+
+		for(n =  0 ; n < mris->nvertices ; n++){
+      v=&mris->vertices[n];
+			sphericalProjection(v->tx,v->ty,v->tz,&v->x,&v->y,&v->z);
+		}
+	}
+
+	return NO_ERROR;
+}
+
 
 static int mrisSphericalProjection(MRIS *mris){
   int n;

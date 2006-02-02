@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_fix_topology.c,v 1.39 2006/01/27 23:30:48 nicks Exp $";
+"$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,6 +46,7 @@ static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
 static int  write_inflated = 0 ;
 static int nsmooth = 5 ;
+static int sphere_smooth = 5;
 
 static char sdir[STRLEN] = "" ;
 static TOPOLOGY_PARMS parms ;
@@ -69,7 +70,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.39 2006/01/27 23:30:48 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -78,7 +79,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.39 2006/01/27 23:30:48 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -174,6 +175,9 @@ main(int argc, char *argv[])
     exit(0);
   }
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
+
+	MRISsmoothOnSphere(mris,sphere_smooth);
+
   /* at this point : canonical vertices */
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
@@ -296,8 +300,13 @@ get_option(int argc, char *argv[])
       parms.verbose=VERBOSE_MODE_DEFAULT;
       fprintf(stderr,"verbose mode on (default mode)\n");
       nargs = 0 ;
+    }else if (!stricmp(option, "sphere_smooth"))
+    {
+			sphere_smooth=atoi(argv[2]);
+			fprintf(stderr,"smoothing spherical representation for %d iterations\n",sphere_smooth);
+			nargs=1;
     }
-  else if (!stricmp(option, "int"))
+else if (!stricmp(option, "int"))
     {
       noint = 0 ;
       nargs = 0 ;
