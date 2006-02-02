@@ -30,4 +30,4 @@ include $(top_srcdir)/Makefile.extra
 # use 'dist-hook' to do what EXCLUDE_FILES does for the make install target,
 # that is, remove files that should not go public.  
 dist-hook:
-	rm -f HPMarch022005_ras.mgz
+	rm -f $(distdir)/distribution/average/HPMarch022005_ras.mgz
