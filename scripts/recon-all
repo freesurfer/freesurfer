@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.3 2006/01/31 17:31:42 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.4 2006/02/02 17:53:34 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -702,7 +702,7 @@ if($DoCALabel) then
   # Check whether there is a difference bet aseg.auto.mgz
   # and aseg.mgz, which indicates an edit. Must do this
   # prior to doing labeling.
-  if(-e aseg.mgz) then
+  if(-e aseg.auto.mgz && -e aseg.mgz) then
     set cmd = (mri_diff aseg.auto.mgz aseg.mgz);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -2088,8 +2088,12 @@ check_params:
       set aseg = $subjdir/mri/aseg
       if(-e $aseg.mgz) then
         cp $aseg.mgz $aseg.legacy.mgz
+        cp $aseg.mgz $aseg.auto.mgz # is this the right thing to do?
       else
-        if(-e $aseg/COR-.info)  mri_convert $aseg $aseg.legacy.mgz
+        if(-e $aseg/COR-.info) then 
+          mri_convert $aseg $aseg.legacy.mgz
+          mri_convert $aseg $aseg.auto.mgz
+        endif
       endif
       set wm = $subjdir/mri/wm
       if(-e $wm.mgz) then
