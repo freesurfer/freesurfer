@@ -47,8 +47,10 @@ int main(int argc, char **argv)
   surfname    = argv[3];
   outsurfname = argv[4];
 
-  ReverseMorph(subject);
-  exit(1);
+  subject = "fsr-tst";
+  hemi = "lh";
+  surfname = "white";
+  outsurfname = "white.tal.nonlin";
 
   if(!strcmp(surfname,outsurfname)){
     printf("ERROR: input and output surfaces are the same\n");
@@ -146,87 +148,6 @@ int main(int argc, char **argv)
   return(0);
 }
 /*-------------------------------------------------------------------*/
-double round(double x);
-/*-------------------------------------------------------------------*/
-MRI *ReverseMorph(char *subject){
-  char *sd, tmpstr[2000];
-  MRI *mri, *revmorph, *hit, *dist2;
-  float cfov,rfov,sfov, c,r,s, cc,rr,ss;
-  float d2,voxd2;
-  int icc,irr,iss,voxhit,gcaerr;
-  GCA_MORPH *gcam;
-  MATRIX *vox2ras, *ras, *crs;
-
-  sd = getenv("SUBJECTS_DIR");
-  sprintf(tmpstr,"%s/%s/mri/orig.mgz",sd,subject);
-  mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
-  if(mri==NULL) return(NULL);
-
-  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.m3z",sd,subject);
-  printf("Reading %s\n",tmpstr);
-  gcam = GCAMread(tmpstr);
-  if(gcam == NULL) {
-    MRIfree(&mri);
-    return(NULL);
-  }
-
-  revmorph = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,3);
-  hit = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,1);
-  dist2 = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,1);
-
-  vox2ras = MRIxfmCRS2XYZtkreg(mri);
-  crs = MatrixAlloc(4,1,MATRIX_REAL);
-  crs->rptr[4][1] = 1;
-  ras = MatrixAlloc(4,1,MATRIX_REAL);
-
-  cfov  = gcam->width  * gcam->spacing ; 
-  rfov  = gcam->height * gcam->spacing ; 
-  sfov  = gcam->depth  * gcam->spacing ; 
-
-  // go through tal space
-  for(c=0; c<cfov; c++){
-    printf("c = %f\n",c);
-    for(r=0; r<rfov; r++){
-      for(s=0; s<sfov; s++){
-
-	gcaerr = GCAMsampleMorph(gcam, c,r,s, &cc,&rr,&ss);
-	if(!gcaerr){
-	  if(cc < 0 || cc >= mri->width-1 ||
-	     rr < 0 || rr >= mri->height-1 ||
-	     ss < 0 || ss >= mri->depth-1 ) continue;
-	  icc = round(cc);
-	  irr = round(rr);
-	  iss = round(ss);
-	  d2 = pow(icc-cc,2) + pow(irr-rr,2) + pow(iss-ss,2);
-	  voxhit = MRIgetVoxVal(hit,icc,irr,iss,0);
-	  voxd2 = MRIgetVoxVal(dist2,icc,irr,iss,0); 
-	  if(!voxhit || (voxhit && voxd2 > d2)){
-	    MRIsetVoxVal(dist2,icc,irr,iss,0,d2);
-	    crs->rptr[1][1] = c; 
-	    crs->rptr[2][1] = r; 
-	    crs->rptr[3][1] = s; 
-	    ras = MatrixMultiply(vox2ras,crs,NULL);
-	    
-	    MRIsetVoxVal(revmorph,icc,irr,iss,0,ras->rptr[1][1]);
-	    MRIsetVoxVal(revmorph,icc,irr,iss,1,ras->rptr[2][1]);
-	    MRIsetVoxVal(revmorph,icc,irr,iss,2,ras->rptr[3][1]);
-	  } // if vox hit
-	  MRIsetVoxVal(hit,icc,irr,iss,0,1);
-	} // gcaerr
-      } // slice
-    } // row 
-  } // col
-
-  MRIwrite(hit,"hit.mgh");
-  MRIwrite(dist2,"dist2.mgh");
-  MRIwrite(revmorph,"revmoph.mgh");
-
-  return(revmorph);
-}
-
-
-
-
 
 /*-------------------------------------------------------------------*/
 int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
@@ -237,7 +158,8 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   int vtxno;
   VERTEX *v;
   extern char *subject;
-  Real val;
+  Real Acval,Arval,Asval,Mcval,Mrval,Msval;
+  float Acval2,Arval2,Asval2;
 
   sd = getenv("SUBJECTS_DIR");
   //sprintf(tmpstr,"%s/%s/mri/orig.mgz",sd,mris->subject_name);
@@ -251,6 +173,10 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   printf("Inverting \n");
   GCAMinvert(gcam, mri);
 
+  //MRIwrite(gcam->mri_xind,"xm.mgh");
+  //MRIwrite(gcam->mri_yind,"ym.mgh");
+  //MRIwrite(gcam->mri_zind,"zm.mgh");
+
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
   ras = MatrixAlloc(4,1,MATRIX_REAL);
@@ -258,19 +184,48 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   crs = MatrixAlloc(4,1,MATRIX_REAL);
   crs->rptr[4][1] = 1;
 
+  printf("Appling Inverse Morph \n");
   for(vtxno = 0; vtxno < mris->nvertices; vtxno++){
+
+    // convert vertex RAS to CRS in anatomical volume
     v = &(mris->vertices[vtxno]);
     ras->rptr[1][1] = v->x;
     ras->rptr[2][1] = v->y;
     ras->rptr[3][1] = v->z;
-    crs = MatrixMultiply(ras2vox,ras,NULL);
+    crs = MatrixMultiply(ras2vox,ras,crs);
+    Acval = crs->rptr[1][1];
+    Arval = crs->rptr[2][1];
+    Asval = crs->rptr[3][1];
 
-    MRIsampleVolume(gcam->mri_xind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
-    v->x = val;
-    MRIsampleVolume(gcam->mri_yind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
-    v->y = val;
-    MRIsampleVolume(gcam->mri_zind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
-    v->z = val;
+    // compute the CRS where this point will move to in the morph space
+    MRIsampleVolume(gcam->mri_xind,Acval,Arval,Asval,&Mcval);
+    MRIsampleVolume(gcam->mri_yind,Acval,Arval,Asval,&Mrval);
+    MRIsampleVolume(gcam->mri_zind,Acval,Arval,Asval,&Msval);
+
+    Mcval *= gcam->spacing;
+    Mrval *= gcam->spacing;
+    Msval *= gcam->spacing;
+
+    // compute RAS of the morphed point
+    crs->rptr[1][1] = Mcval;
+    crs->rptr[2][1] = Mrval;
+    crs->rptr[3][1] = Msval;
+    ras = MatrixMultiply(vox2ras,crs,ras);
+
+    if(Gdiag_no > 0){
+      GCAMsampleMorph(gcam, Mcval, Mrval, Msval, &Acval2, &Arval2, &Asval2); // test
+      printf("------------------------------------------------\n");
+      printf("%5d   ras=(%6.1f,%6.1f,%6.1f), crsA =(%6.1f,%6.1f,%6.1f) \n"
+	     "     crsM=(%6.1f,%6.1f,%6.1f), crsA2=(%6.1f,%6.1f,%6.1f) \n"
+	     "     rasM=(%6.1f,%6.1f,%6.1f)\n",
+	     vtxno, v->x,v->y,v->z, Acval,Arval,Asval, Mcval,Mrval,Msval,
+	     Acval2,Arval2,Asval2, ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]);
+    }
+
+    // pack it back into the vertex
+    v->x = ras->rptr[1][1];
+    v->y = ras->rptr[2][1];
+    v->z = ras->rptr[3][1];
   }
   return(0);
 }
@@ -359,3 +314,84 @@ MRI *GCAMmorphToAtlas2(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int fram
 
   return(mri_morphed) ;
 }
+double round(double x);
+/*-------------------------------------------------------------------*/
+MRI *ReverseMorph(char *subject){
+  char *sd, tmpstr[2000];
+  MRI *mri, *revmorph, *hit, *dist2;
+  float cfov,rfov,sfov, c,r,s, cc,rr,ss;
+  float d2,voxd2;
+  int icc,irr,iss,voxhit,gcaerr;
+  GCA_MORPH *gcam;
+  MATRIX *vox2ras, *ras, *crs;
+
+  sd = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",sd,subject);
+  mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(mri==NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.m3z",sd,subject);
+  printf("Reading %s\n",tmpstr);
+  gcam = GCAMread(tmpstr);
+  if(gcam == NULL) {
+    MRIfree(&mri);
+    return(NULL);
+  }
+
+  revmorph = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,3);
+  hit = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,1);
+  dist2 = MRIallocSequence(mri->width,mri->height,mri->depth,MRI_FLOAT,1);
+
+  vox2ras = MRIxfmCRS2XYZtkreg(mri);
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+  ras = MatrixAlloc(4,1,MATRIX_REAL);
+
+  cfov  = gcam->width  * gcam->spacing ; 
+  rfov  = gcam->height * gcam->spacing ; 
+  sfov  = gcam->depth  * gcam->spacing ; 
+
+  // go through tal space
+  for(c=0; c<cfov; c++){
+    printf("c = %f\n",c);
+    for(r=0; r<rfov; r++){
+      for(s=0; s<sfov; s++){
+
+	gcaerr = GCAMsampleMorph(gcam, c,r,s, &cc,&rr,&ss);
+	if(!gcaerr){
+	  if(cc < 0 || cc >= mri->width-1 ||
+	     rr < 0 || rr >= mri->height-1 ||
+	     ss < 0 || ss >= mri->depth-1 ) continue;
+	  icc = round(cc);
+	  irr = round(rr);
+	  iss = round(ss);
+	  d2 = pow(icc-cc,2) + pow(irr-rr,2) + pow(iss-ss,2);
+	  voxhit = MRIgetVoxVal(hit,icc,irr,iss,0);
+	  voxd2 = MRIgetVoxVal(dist2,icc,irr,iss,0); 
+	  if(!voxhit || (voxhit && voxd2 > d2)){
+	    MRIsetVoxVal(dist2,icc,irr,iss,0,d2);
+	    crs->rptr[1][1] = c; 
+	    crs->rptr[2][1] = r; 
+	    crs->rptr[3][1] = s; 
+	    ras = MatrixMultiply(vox2ras,crs,NULL);
+	    
+	    MRIsetVoxVal(revmorph,icc,irr,iss,0,ras->rptr[1][1]);
+	    MRIsetVoxVal(revmorph,icc,irr,iss,1,ras->rptr[2][1]);
+	    MRIsetVoxVal(revmorph,icc,irr,iss,2,ras->rptr[3][1]);
+	  } // if vox hit
+	  MRIsetVoxVal(hit,icc,irr,iss,0,1);
+	} // gcaerr
+      } // slice
+    } // row 
+  } // col
+
+  MRIwrite(hit,"hit.mgh");
+  MRIwrite(dist2,"dist2.mgh");
+  MRIwrite(revmorph,"revmoph.mgh");
+
+  return(revmorph);
+}
+
+
+
+
