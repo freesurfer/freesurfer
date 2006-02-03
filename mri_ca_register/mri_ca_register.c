@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/03 17:32:46 $
-// Revision       : $Revision: 1.43 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/03 17:59:56 $
+// Revision       : $Revision: 1.42 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.43 2006/02/03 17:32:46 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.42 2006/02/03 17:59:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -734,7 +734,7 @@ main(int argc, char *argv[])
 	  MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
 	}
 #endif
-      if (reinit && (xform_name != NULL))
+      if (reinit)
 	GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
       if (DIAG_VERBOSE_ON)
 	{
