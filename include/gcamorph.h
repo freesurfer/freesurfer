@@ -59,8 +59,8 @@ typedef struct
   MRI  *mri_xind ;    /* MRI ->gcam transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
-  VOL_GEOM   src;            /* src for the transform       */
-  VOL_GEOM   atlas ;            /* dst for the transform       */
+  VOL_GEOM   image;             /* image that the transforms maps to  */
+  VOL_GEOM   atlas ;            /* atlas for the transform       */
 	int        ninputs ;
 	int     type ;  
 	int     status ;
@@ -138,6 +138,7 @@ typedef struct
 	int    constrain_jacobian ;
 	int    diag_write_snapshots ;
 	int    scale_smoothness ;     // scale down smoothness coef at larger gradient smoothing scales
+	int    target_label ;
 } GCA_MORPH_PARMS, GMP ;
 
 
