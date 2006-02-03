@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.18 2006/01/29 20:26:39 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.19 2006/02/03 21:05:24 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -26,8 +26,8 @@ if ("$1" == "dev") then
 else if ("$1" == "stable") then
   set RELEASE_TYPE=stable
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=/usr/local/freesurfer/beta
-  set PUB_DEST_DIR=/usr/local/freesurfer/pub
+  set DEST_DIR=/usr/local/freesurfer/stable
+  set PUB_DEST_DIR=/usr/local/freesurfer/stable-pub
 else
   echo "ERROR: release_type must be either dev or stable"
   exit 1
