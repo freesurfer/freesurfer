@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-std-env
 #
-# $Id: nmr-std-env,v 1.14 2005/12/05 19:54:34 nicks Exp $
+# $Id: nmr-std-env,v 1.15 2006/02/03 20:50:17 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -17,7 +17,7 @@ else
 endif
 echo "`date`|`whoami`|`hostname -s`|nmr-std-env" >> $USER_LIST_PATH/nmr-std-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-std-env,v 1.14 2005/12/05 19:54:34 nicks Exp $';
+set NSE_VERSION = '$Id: nmr-std-env,v 1.15 2006/02/03 20:50:17 nicks Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -28,9 +28,9 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-std-env,v 1.14 2005/12/05 19:54:34 nicks Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.15 2006/02/03 20:50:17 nicks Exp $';
 
-setenv FREESURFER_HOME /usr/local/freesurfer/beta
+setenv FREESURFER_HOME /usr/local/freesurfer/stable
 if(! $?SUBJECTS_DIR) then
   if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
   if (-e /autofs/space/sake_003/users/inverse/subjects) setenv SUBJECTS_DIR /autofs/space/sake_003/users/inverse/subjects
@@ -59,7 +59,7 @@ endif
 source $FS_ENV_FILE
 
 # TCLLIBPATH is defined in FreeSurferEnv.csh to ensure compatibility
-# in the public distributions, but creates a tix library 
+# in the public distributions, but creates a tix library
 # conflict with FSL, so unset it.
 unsetenv TCLLIBPATH
 
@@ -75,14 +75,14 @@ source $FD_ENV_FILE
 
 ### Create a prompt to indicate the standard environment ###
 set this_shell    = `basename $SHELL`;
-set this_hostname = `hostname` 
+set this_hostname = `hostname`
 set this_host     = `basename $this_hostname .nmr.mgh.harvard.edu`
 if(! $?FSENV_KEEP_PROMPT ) then
 if($this_shell == csh) then
   unalias cd
-  alias cd  'set old=$cwd; 
-  chdir \!*; 
-  set tmpcwd = `basename $cwd`; 
+  alias cd  'set old=$cwd;
+  chdir \!*;
+  set tmpcwd = `basename $cwd`;
   set prompt = "$this_host"":$tmpcwd (nmr-std-env) % "'
   cd $cwd;
 else
