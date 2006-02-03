@@ -86,6 +86,9 @@ mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases
 chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz
 if (-e /Users/Shared/tmp/$2) rm -Rf /Users/Shared/tmp/$2
 
+echo md5sum $TARNAME...
+md5sum ${SPACE_FREESURFER}/build/pub-releases/$TARNAME...
+
 # for the Mac, create_dmg creates the .dmg file from the .tar.gz file
 
 # also, the stable release should be renamed with a version number
