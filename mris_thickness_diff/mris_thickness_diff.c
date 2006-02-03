@@ -46,7 +46,7 @@ void jacobi(float **a, int n, float *d, float** v,int * nrot);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_thickness_diff.c,v 1.1 2006/02/01 22:02:54 xhan Exp $";
+static char vcid[] = "$Id: mris_thickness_diff.c,v 1.2 2006/02/03 17:39:44 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   label = 0; annotation = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness_diff.c,v 1.1 2006/02/01 22:02:54 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness_diff.c,v 1.2 2006/02/03 17:39:44 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1028,6 +1028,7 @@ double transformS(double3d *V1a, double3d *V2a, int N, double TR[3][3],double sh
   double R[3][3],x,y,z;
   double scale1,scale2;
   float dummy;
+  double temp[3][3];
   double error = 0;
 
   int k,l, nrot;
@@ -1174,7 +1175,6 @@ double transformS(double3d *V1a, double3d *V2a, int N, double TR[3][3],double sh
     V1a[k].z += centroid2a.z;
   }  
   
-  double temp[3][3];
   /* Stores the previous transformation matrix */
   temp[0][0]=TR[0][0]; temp[0][1]=TR[0][1]; temp[0][2]=TR[0][2];
   temp[1][0]=TR[1][0]; temp[1][1]=TR[1][1]; temp[1][2]=TR[1][2];
