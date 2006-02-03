@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.174 2006/02/01 22:18:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.175 2006/02/03 18:05:35 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1819,10 +1819,10 @@ proc MakeToolsPanel { ifwTop } {
 	}
     
     tkuMakeSliders $fwPropsFillSub.swFuzziness -sliders {
-	{-label "Fill Fuzziness" -variable gaTool(current,fuzziness) 
+	{-label "Fuzziness" -variable gaTool(current,fuzziness) 
 	    -min 0 -max 50 -entry true
 	    -command {SetToolFloodFuzziness $gaFrame([GetMainFrameID],toolID) $gaTool(current,fuzziness)}}
-	{-label "Fill Max Distance" -variable gaTool(current,maxDistance) 
+	{-label "Max Distance" -variable gaTool(current,maxDistance) 
 	    -min 0 -max 100 -entry true
 	    -command {SetToolFloodMaxDistance $gaFrame([GetMainFrameID],toolID) $gaTool(current,maxDistance)}}
     }
@@ -2079,7 +2079,6 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    {-type text -name nearest -label "Nearest"}
 	    {-type text -name trilinear -label "Trilinear"}
 	    {-type text -name sinc -label "Sinc"}
-	    {-type text -name magnitude -label "Mag"}
 	}
     tkuMakeCheckboxes $fwProps2DMRI.cbwClearZero \
 	-font [tkuNormalFont] \
@@ -2088,13 +2087,16 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 		-variable gaLayer(current,clearZero) 
 		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
 	}
-    tkuMakeCheckboxes $fwProps2DMRI.cbwMIP \
-	-font [tkuNormalFont] \
-	-checkboxes { 
-	    {-type text -label "Draw maximum intensity projection" 
-		-variable gaLayer(current,MIP) 
-		-command {Set2DMRILayerDrawMIP $gaLayer(current,id) $gaLayer(current,MIP); RedrawFrame [GetMainFrameID]} }
+    if { 0 } { 
+	# This is bugged.
+	tkuMakeCheckboxes $fwProps2DMRI.cbwMIP \
+	    -font [tkuNormalFont] \
+	    -checkboxes { 
+		{-type text -label "Draw maximum intensity projection" 
+		    -variable gaLayer(current,MIP) 
+		    -command {Set2DMRILayerDrawMIP $gaLayer(current,id) $gaLayer(current,MIP); RedrawFrame [GetMainFrameID]} }
 	}
+    }
     tkuMakeSliders $fwProps2DMRI.swBC -sliders {
 	{-label "Brightness" -variable gaLayer(current,brightness) 
 	    -min 1 -max 0 -resolution 0.01 -entry 1
@@ -2155,7 +2157,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
-    grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
+#    grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
     grid $fwProps2DMRI.swMinMax          -column 0 -row 6 -sticky ew
@@ -5788,7 +5790,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.174 2006/02/01 22:18:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.175 2006/02/03 18:05:35 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

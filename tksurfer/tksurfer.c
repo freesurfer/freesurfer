@@ -18234,7 +18234,7 @@ ERR(1,"Wrong # args: swap_buffers")
      put_retinotopy_stats_in_vals();  WEND
      
      int                  W_draw_vector  WBEGIN
-     ERR(2,"Wrong # args: draw_vector <0=open,1=closed>")
+     ERR(2,"Wrong # args: draw_vector <file name>")
      draw_vector(argv[1]);  WEND
      
      int                  W_cut_plane  WBEGIN
@@ -18360,8 +18360,8 @@ ERR(1,"Wrong # args: swap_buffers")
      do_lighting_model(atof(argv[1]),atof(argv[2]),
                        atof(argv[3]),atof(argv[4]),atof(argv[5]));  WEND
                        
-                       int                  W_restore_zero_position  WBEGIN 
-                       ERR(1,"Wrong # args: restore_zero_position")
+     int                  W_restore_zero_position  WBEGIN 
+     ERR(1,"Wrong # args: restore_zero_position")
      restore_zero_position();  WEND
      
      int                  W_restore_initial_position  WBEGIN 
@@ -18991,7 +18991,7 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      ERR(2,"Wrong # args: labl_remove index")
      labl_remove (atoi(argv[1])); WEND
      int W_labl_remove_all WBEGIN
-     ERR(1,"Wrong # args: labl_remove")
+     ERR(1,"Wrong # args: labl_remove_all")
      labl_remove_all (); WEND
      int W_labl_select_label_by_vno WBEGIN
      ERR(2,"Wrong # args: labl_select_label_by_vno vno")
@@ -19268,7 +19268,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.178 2006/01/26 21:06:42 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.179 2006/02/03 18:05:46 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

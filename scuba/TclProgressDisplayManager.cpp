@@ -75,7 +75,7 @@ TclProgressDisplayManager::CheckTaskForButton() {
   // Tcl environment handle an event. Otherwise all our windowing
   // stuff will go unnoticed.
   manager.DoTclEvent();
-  
+
   // Search the string for the title of each button. If we find it,
   // return its index.
   int nButton = 0;
