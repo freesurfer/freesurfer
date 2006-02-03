@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/23 22:44:34 $
-// Revision       : $Revision: 1.271 $
-char *VERSION = "$Revision: 1.271 $";
+// Revision Date  : $Date: 2006/02/03 19:24:54 $
+// Revision       : $Revision: 1.272 $
+char *VERSION = "$Revision: 1.272 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1110,7 +1110,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.271 2006/01/23 22:44:34 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.272 2006/02/03 19:24:54 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2383,6 +2383,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
       ImportSurfaceAnnotationToSegmentation( tkm_tSegType_Main,
 					     sAnnotation, 
 					     sAnnotationColorTable );
+      /* set roi alpha */
+      if( bSegmentationAlpha ) {
+	SetSegmentationAlpha( fSegmentationAlpha );
+      }
+
     } else {
       tkm_DisplayError( "Importing Annotation",
 			"Surface not loaded",
@@ -5493,7 +5498,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.271 2006/01/23 22:44:34 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.272 2006/02/03 19:24:54 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
