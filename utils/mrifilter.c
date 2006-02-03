@@ -4545,7 +4545,7 @@ MRI *
 MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
 {
   int   x, y, z, n, width, height, depth, *histo, xk, yk, zk, 
-        xi, yi, zi, val, i, max_histo, max_i, max_val ;
+        xi, yi, zi, val, i, max_histo, max_i, max_val, start_val ;
 	MRI   *mri_tmp ;
 	float fmin, fmax ;
 
@@ -4573,6 +4573,7 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
 					if (x == Gx && y == Gy && z == Gz)
 						DiagBreak() ;
           memset(histo, 0, sizeof(int)*(max_val+1)) ;
+					start_val = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
           for (zk = -1 ; zk <= 1 ; zk++)
           {
             zi = mri_src->zi[z+zk] ;
@@ -4587,7 +4588,8 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
               }
             }
           }
-          for (max_histo = max_i = i = 0 ; i <= max_val ; i++)
+					max_histo = histo[start_val] ; max_i = start_val ;
+          for (i = 0 ; i <= max_val ; i++)
           {
             if (histo[i] > max_histo)
             {
