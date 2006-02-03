@@ -2,13 +2,13 @@
 // mri_info.c
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/17 21:28:56 $
-// Revision       : $Revision: 1.43 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/03 18:24:32 $
+// Revision       : $Revision: 1.44 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.43 $";
+char *MRI_INFO_VERSION = "$Revision: 1.44 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -39,7 +39,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.43 2006/01/17 21:28:56 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.44 2006/02/03 18:24:32 fischl Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -291,7 +291,7 @@ static void do_file(char *fname)
     gcam = GCAMread(fname);
     if(!gcam) return;
     fprintf(fpout,"3D morph source geometry:\n");
-    vg_print(&gcam->src);
+    vg_print(&gcam->image);
     fprintf(fpout,"3D morph atlas geometry:\n");
     vg_print(&gcam->atlas);
     GCAMfree(&gcam);
