@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/01/31 16:07:01 $
-// Revision       : $Revision: 1.90 $
+// Revision Date  : $Date: 2006/02/03 03:35:37 $
+// Revision       : $Revision: 1.91 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -146,27 +146,27 @@ void GCAMwriteGeom(GCA_MORPH *gcam, FILE *fp)
   char buf[512];
 
   // src volume info
-  fwriteInt(gcam->src.valid, fp);
-  fwriteInt(gcam->src.width, fp);
-  fwriteInt(gcam->src.height, fp);
-  fwriteInt(gcam->src.depth, fp);
-  fwriteFloat(gcam->src.xsize, fp) ;
-  fwriteFloat(gcam->src.ysize, fp) ;
-  fwriteFloat(gcam->src.zsize, fp) ;
-  fwriteFloat(gcam->src.x_r, fp) ;
-  fwriteFloat(gcam->src.x_a, fp) ;
-  fwriteFloat(gcam->src.x_s, fp) ;
-  fwriteFloat(gcam->src.y_r, fp) ;
-  fwriteFloat(gcam->src.y_a, fp) ;
-  fwriteFloat(gcam->src.y_s, fp) ;
-  fwriteFloat(gcam->src.z_r, fp) ;
-  fwriteFloat(gcam->src.z_a, fp) ;
-  fwriteFloat(gcam->src.z_s, fp) ;
-  fwriteFloat(gcam->src.c_r, fp) ;
-  fwriteFloat(gcam->src.c_a, fp) ;
-  fwriteFloat(gcam->src.c_s, fp) ;
+  fwriteInt(gcam->image.valid, fp);
+  fwriteInt(gcam->image.width, fp);
+  fwriteInt(gcam->image.height, fp);
+  fwriteInt(gcam->image.depth, fp);
+  fwriteFloat(gcam->image.xsize, fp) ;
+  fwriteFloat(gcam->image.ysize, fp) ;
+  fwriteFloat(gcam->image.zsize, fp) ;
+  fwriteFloat(gcam->image.x_r, fp) ;
+  fwriteFloat(gcam->image.x_a, fp) ;
+  fwriteFloat(gcam->image.x_s, fp) ;
+  fwriteFloat(gcam->image.y_r, fp) ;
+  fwriteFloat(gcam->image.y_a, fp) ;
+  fwriteFloat(gcam->image.y_s, fp) ;
+  fwriteFloat(gcam->image.z_r, fp) ;
+  fwriteFloat(gcam->image.z_a, fp) ;
+  fwriteFloat(gcam->image.z_s, fp) ;
+  fwriteFloat(gcam->image.c_r, fp) ;
+  fwriteFloat(gcam->image.c_a, fp) ;
+  fwriteFloat(gcam->image.c_s, fp) ;
   memset(buf, 0, 512*sizeof(char));
-  strcpy(buf, gcam->src.fname);
+  strcpy(buf, gcam->image.fname);
   fwrite(buf, sizeof(char), 512, fp);
   // dst volume info
   fwriteInt(gcam->atlas.valid, fp);
@@ -196,27 +196,27 @@ void GCAMwriteGeom(GCA_MORPH *gcam, FILE *fp)
 void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
 {
   // src volume info
-  gcam->src.valid = freadInt(fp);
-  gcam->src.width = freadInt(fp);
-  gcam->src.height = freadInt(fp);
-  gcam->src.depth = freadInt(fp);
-  gcam->src.xsize = freadFloat(fp) ;
-  gcam->src.ysize = freadFloat(fp) ;
-  gcam->src.zsize = freadFloat(fp) ;
-  gcam->src.x_r = freadFloat(fp) ;
-  gcam->src.x_a = freadFloat(fp) ;
-  gcam->src.x_s = freadFloat(fp) ;
-  gcam->src.y_r = freadFloat(fp) ;
-  gcam->src.y_a = freadFloat(fp) ;
-  gcam->src.y_s = freadFloat(fp) ;
-  gcam->src.z_r = freadFloat(fp) ;
-  gcam->src.z_a = freadFloat(fp) ;
-  gcam->src.z_s = freadFloat(fp) ;
-  gcam->src.c_r = freadFloat(fp) ;
-  gcam->src.c_a = freadFloat(fp) ;
-  gcam->src.c_s = freadFloat(fp) ;
-  memset(gcam->src.fname, 0, 512*sizeof(char));
-  fread(gcam->src.fname, sizeof(char), 512, fp);
+  gcam->image.valid = freadInt(fp);
+  gcam->image.width = freadInt(fp);
+  gcam->image.height = freadInt(fp);
+  gcam->image.depth = freadInt(fp);
+  gcam->image.xsize = freadFloat(fp) ;
+  gcam->image.ysize = freadFloat(fp) ;
+  gcam->image.zsize = freadFloat(fp) ;
+  gcam->image.x_r = freadFloat(fp) ;
+  gcam->image.x_a = freadFloat(fp) ;
+  gcam->image.x_s = freadFloat(fp) ;
+  gcam->image.y_r = freadFloat(fp) ;
+  gcam->image.y_a = freadFloat(fp) ;
+  gcam->image.y_s = freadFloat(fp) ;
+  gcam->image.z_r = freadFloat(fp) ;
+  gcam->image.z_a = freadFloat(fp) ;
+  gcam->image.z_s = freadFloat(fp) ;
+  gcam->image.c_r = freadFloat(fp) ;
+  gcam->image.c_a = freadFloat(fp) ;
+  gcam->image.c_s = freadFloat(fp) ;
+  memset(gcam->image.fname, 0, 512*sizeof(char));
+  fread(gcam->image.fname, sizeof(char), 512, fp);
   // dst volume info
   gcam->atlas.valid = freadInt(fp);
   gcam->atlas.width = freadInt(fp);
@@ -408,7 +408,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	{
 		MRI *mri_tmp ;
 
-		parms->mri_dist_map = MRIdistanceTransform(mri, NULL, 128, -1, DTRANS_MODE_SIGNED);
+		parms->mri_dist_map = MRIdistanceTransform(mri, NULL, parms->target_label, -1, DTRANS_MODE_SIGNED);
 #if 0
 		if (DZERO(parms->l_area_intensity))
 		{
@@ -723,7 +723,7 @@ GCAMread(char *fname)
 			}
 		}
 	}
-  gcam->src.valid = 0; // make src invalid
+  gcam->image.valid = 0; // make src invalid
   gcam->atlas.valid = 0; // makd dst invalid
   while (freadIntEx(&tag, fp))
 	{
@@ -752,7 +752,7 @@ GCAMread(char *fname)
 			{
 				fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
 				fprintf(stderr, "src geometry:\n");
-				writeVolGeom(stderr, &gcam->src);
+				writeVolGeom(stderr, &gcam->image);
 				fprintf(stderr, "dst geometry:\n");
 				writeVolGeom(stderr, &gcam->atlas);
 			}
@@ -819,7 +819,7 @@ GCAMalloc(int width, int height, int depth)
 		}
 #endif
 	}
-  initVolGeom(&gcam->src);
+  initVolGeom(&gcam->image);
   initVolGeom(&gcam->atlas);
   return(gcam) ;
 }
@@ -830,7 +830,7 @@ GCAMinitVolGeom(GCAM *gcam, MRI *mri_src, MRI *mri_atlas)
   if (gcam->type == GCAM_VOX) /* in some other voxel coords */
     GCAMrasToVox(gcam, mri_src) ;
 
-  getVolGeom(mri_src, &gcam->src) ;
+  getVolGeom(mri_src, &gcam->image) ;
   getVolGeom(mri_atlas, &gcam->atlas) ;
   return(NO_ERROR) ;
 }
@@ -851,7 +851,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
   gcam->ninputs = mri->nframes ;
 
   // save geometry information
-  getVolGeom(mri, &gcam->src);
+  getVolGeom(mri, &gcam->image);
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
 
   TransformInvert(transform, mri) ;
@@ -2622,7 +2622,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 					if (i > 0 && j > 0 && k > 0&&
 							i < gcam->width-1 && j < gcam->height-1 && k < gcam->depth-1)
 						DiagBreak() ;
-					if (gcam->neg == 0)
+					if (gcam->neg == 0 && getenv("SHOW_NEG"))
 						printf("node (%d, %d, %d), label %s (%d) - NEGATIVE!\n", 
 									 i, j, k, cma_label_to_name(gcamn->label), gcamn->label) ;
 					gcam->neg++ ;
@@ -3064,7 +3064,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
   MRIfree(&mri_ctrl) ;
 
   // use gcam src information to the morphed image
-  useVolGeomToMRI(&gcam->src, mri_morphed);
+  useVolGeomToMRI(&gcam->image, mri_morphed);
 
   return(mri_morphed) ;
 }
@@ -4842,9 +4842,9 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     return(NO_ERROR) ;
 
   // verify the volume size ////////////////////////////////////////////
-  if (mri->width != gcam->src.width
-      || mri->height != gcam->src.height
-      || mri->depth != gcam->src.depth)
+  if (mri->width != gcam->image.width
+      || mri->height != gcam->image.height
+      || mri->depth != gcam->image.depth)
     ErrorExit(ERROR_BADPARM, \
               "mri passed volume size is different from the one used to create M3D data\n");
 
@@ -6708,10 +6708,14 @@ gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri)
             error = 0-val ;
           else
             error = 1-val ;
-          if (FZERO(error) && gcamn->invalid == GCAM_VALID)
+          if ((abs(error)<.1) && gcamn->invalid == GCAM_VALID)
             Galigned++ ;
-          else if (gcamn->label > 0)
-            DiagBreak() ;
+          else
+					{
+						DiagBreak() ;
+						if (gcamn->label > 0)
+							DiagBreak() ;
+					}
 
           sse += (error*error) ;
           if (x == Gx && y == Gy && z == Gz)
@@ -7838,10 +7842,17 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 
 	// allocate an initial morphed volume and see if morphed image will fit
   mri_tmp = MRIalloc(gcam->width, gcam->height, gcam->depth, type) ;
+#if 0
   mri_tmp->x_r = mri->x_r; mri_tmp->x_a = mri->x_a; mri_tmp->x_s = mri->x_s; 
 	mri_tmp->y_r = mri->y_r; mri_tmp->y_a = mri->y_a; mri_tmp->y_s = mri->y_s;
   mri_tmp->z_r = mri->z_r; mri_tmp->z_a = mri->z_a; mri_tmp->z_s = mri->z_s; 
 	mri_tmp->c_r = mri->c_r; mri_tmp->c_a = mri->c_a; mri_tmp->c_s = mri->c_s ; 
+#else
+  mri_tmp->x_r = gcam->atlas.x_r; mri_tmp->x_a = gcam->atlas.x_a; mri_tmp->x_s = gcam->atlas.x_s; 
+	mri_tmp->y_r = gcam->atlas.y_r; mri_tmp->y_a = gcam->atlas.y_a; mri_tmp->y_s = gcam->atlas.y_s;
+  mri_tmp->z_r = gcam->atlas.z_r; mri_tmp->z_a = gcam->atlas.z_a; mri_tmp->z_s = gcam->atlas.z_s; 
+	mri_tmp->c_r = gcam->atlas.c_r; mri_tmp->c_a = gcam->atlas.c_a; mri_tmp->c_s = gcam->atlas.c_s ; 
+#endif
 	mri_tmp->xsize = gcam->atlas.xsize ;
   mri_tmp->ysize = gcam->atlas.ysize ;
   mri_tmp->zsize = gcam->atlas.zsize ;
@@ -7888,9 +7899,14 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 					DiagBreak() ;
 				xmin = MIN(xmin, xd) ; ymin = MIN(ymin, yd) ; zmin = MIN(zmin, zd) ;
 				xmax = MAX(xmax, xd) ; ymax = MAX(ymax, yd) ; zmax = MAX(zmax, zd) ;
+				if (xd >= 0 && yd >= 0 && zd >= 0 &&
+						xd < mri_tmp->width && yd < mri_tmp->height && zd < mri_tmp->depth)
+					MRIsetVoxVal(mri_tmp, xd, yd, zd, 0, label) ;  // for debugging
 			}
 		}
 	}
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_tmp, "tmp1.mgz") ;
 	pad = MAX(-xmin, MAX(-ymin, -zmin)) ; pad = MAX(pad, (xmax-mri->width)+1) ;
 	pad = MAX(pad, (ymax-mri->height)+1) ; pad = MAX(pad, (zmax-mri->depth)+1) ;
 	pad = MAX(1,pad) ;
@@ -7932,10 +7948,15 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 
 				xmin = MIN(xmin, xd) ; ymin = MIN(ymin, yd) ; zmin = MIN(zmin, zd) ;
 				xmax = MAX(xmax, xd) ; ymax = MAX(ymax, yd) ; zmax = MAX(zmax, zd) ;
+				if (xd >= 0 && yd >= 0 && zd >= 0 &&
+						xd < mri_tmp2->width && yd < mri_tmp2->height && zd < mri_tmp2->depth)
+					MRIsetVoxVal(mri_tmp2, xd, yd, zd, 0, label) ; // for debugging
 			}
 		}
 	}
 
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_tmp2, "tmp2.mgz") ;
 	printf("bounding box: (%d, %d, %d) --> (%d, %d, %d)\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
 	box.x = xmin ; box.dx = xmax-xmin+1 ;
 	box.y = ymin ; box.dy = ymax-ymin+1 ;
@@ -8586,7 +8607,7 @@ GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensities,
   MATRIX         *m_vox2vox ;
   MRI            *mri_xformed_aseg ;
   HISTOGRAM      *h, *hsmooth;
-  float          val, means[256] ;
+  float          val, means[1000] ;
   MRI_REGION     bbox ;
 
   gcam->ninputs = 1 ;
@@ -8782,7 +8803,7 @@ GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
 	GCAMcomputeOriginalProperties(gcam) ;  // orig node positions have changed to vox coords
   gcam->type = GCAM_VOX ;
   MatrixFree(&m) ;
-  getVolGeom(mri, &gcam->src) ;
+  getVolGeom(mri, &gcam->image) ;
 
   return(NO_ERROR)  ;
 }
@@ -8797,7 +8818,7 @@ GCAMvoxToRas(GCA_MORPH *gcam)
 
   if (gcam->type == GCAM_RAS)
     return(NO_ERROR) ;
-  m = vg_getVoxelToRasXform(&gcam->src) ;
+  m = vg_getVoxelToRasXform(&gcam->image) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     {
       printf("vox 2 ras matrix:\n") ;
@@ -9139,26 +9160,26 @@ gcamComputeMostLikelyDirection(GCA_MORPH *gcam, MRI *mri, double x0, double y0, 
   x = nint(x0) ; y = nint(y0) ; z = nint(z0) ;
   MRIclear(mri_nbhd) ;
   for (xk = -whalf ; xk <= whalf ; xk++)
-    {
-      xi = x+xk ;
-      if (xi < 0 && xi >= mri->width)
-        continue ;
-      for (yk = -whalf ; yk <= whalf ; yk++)
-        {
-          yi = y+yk ;
-          if (yi < 0 && yi >= mri->height)
-            continue ;
-          for (zk = -whalf ; zk <= whalf ; zk++)
-            {
-              zi = z+zk ;
-              if (zi < 0 && zi >= mri->depth)
-                continue ;
-              val = MRIgetVoxVal(mri, xi, yi, zi, 0) ;
-              val = -SQR(val - target) ;  // sort of log(likelihood)
-              MRIsetVoxVal(mri_nbhd, xk+whalf, yk+whalf, zk+whalf, 0, val) ; 
-            }
-        }
-    }
+	{
+		xi = x+xk ;
+		if (xi < 0 || xi >= mri->width)
+			continue ;
+		for (yk = -whalf ; yk <= whalf ; yk++)
+		{
+			yi =y+yk ;
+			if (yi < 0 || yi >= mri->height)
+				continue ;
+			for (zk = -whalf ; zk <= whalf ; zk++)
+			{
+				zi =z+zk ;
+				if (zi < 0 || zi >= mri->depth)
+					continue ;
+				val = MRIgetVoxVal(mri, xi, yi, zi, 0) ;
+				val = -SQR(val - target) ;  // sort of log(likelihood)
+				MRIsetVoxVal(mri_nbhd, xk+whalf, yk+whalf, zk+whalf, 0, val) ; 
+			}
+		}
+	}
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_nbhd, "n.mgz") ;
