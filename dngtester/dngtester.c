@@ -234,10 +234,10 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   char *sd, tmpstr[2000];
   MRI *mri;
   MATRIX *vox2ras, *ras2vox, *ras, *crs;
-  int vtxno, gcaerr;
+  int vtxno;
   VERTEX *v;
-  float xgca,ygca,zgca,xgcam,ygcam,zgcam;
   extern char *subject;
+  Real val;
 
   sd = getenv("SUBJECTS_DIR");
   //sprintf(tmpstr,"%s/%s/mri/orig.mgz",sd,mris->subject_name);
@@ -247,6 +247,9 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
     printf("ERROR: reading %s\n",tmpstr);
     return(1);
   }
+
+  printf("Inverting \n");
+  GCAMinvert(gcam, mri);
 
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
@@ -262,21 +265,12 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
     ras->rptr[3][1] = v->z;
     crs = MatrixMultiply(ras2vox,ras,NULL);
 
-    xgca = crs->rptr[1][1] * mri->xsize;
-    ygca = crs->rptr[2][1] * mri->zsize;
-    zgca = crs->rptr[3][1] * mri->ysize;
-    // Given destination xyz, computes source xyz
-    // I need to go the other way
-    gcaerr = GCAMsampleMorph(gcam, xgca,ygca,zgca, &xgcam,&ygcam,&zgcam);
-    if(!gcaerr){
-      crs->rptr[1][1] = xgcam/mri->xsize;
-      crs->rptr[2][1] = ygcam/mri->ysize;
-      crs->rptr[3][1] = zgcam/mri->zsize;
-      ras = MatrixMultiply(vox2ras,crs,NULL);
-      v->x = ras->rptr[1][1];
-      v->y = ras->rptr[2][1];
-      v->z = ras->rptr[3][1];
-    }
+    MRIsampleVolume(gcam->mri_xind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
+    v->x = val;
+    MRIsampleVolume(gcam->mri_yind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
+    v->y = val;
+    MRIsampleVolume(gcam->mri_zind,crs->rptr[1][1],crs->rptr[2][1],crs->rptr[3][1],&val);
+    v->z = val;
   }
   return(0);
 }
