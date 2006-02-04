@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/02 19:54:05 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2006/02/04 14:07:10 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -75,6 +75,7 @@ main(int argc, char *argv[])
   MRI *mri_wm_cov_components;
   int num_of_cov_components;
   MRI *mri_cnr;
+  MRI *mri_tmp ;
   MRI *mri_weight[MAX_IMAGES]; //this is the relative weighting for each component
   int    msec, minutes, seconds;
   struct timeb start ;
@@ -89,7 +90,7 @@ main(int argc, char *argv[])
   float *weight, weight_norm;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_surface_CNR.c,v 1.1 2006/02/02 19:54:05 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_surface_CNR.c,v 1.2 2006/02/04 14:07:10 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -148,17 +149,16 @@ main(int argc, char *argv[])
     /* conform will convert all data to UCHAR, which will reduce data resolution*/
     printf("%s read in. \n", in_fname) ;
     if (conform){
-      MRI *mri_tmp ;
       
       printf("embedding and interpolating volume\n") ;
       mri_tmp = MRIconform(mri_flash[nvolumes]) ;
+      MRIfree(&mri_flash[nvolumes]);
       mri_flash[nvolumes] = mri_tmp ;
     }
     
     /* Change all volumes to float type for convenience */
     if(mri_flash[nvolumes]->type != MRI_FLOAT){
       printf("Volume %d type is %d\n", nvolumes+1, mri_flash[nvolumes]->type);
-      MRI *mri_tmp;
       printf("Change data to float type \n");
       mri_tmp = MRIchangeType(mri_flash[nvolumes], MRI_FLOAT, 0, 1.0, 1);
       MRIfree(&mri_flash[nvolumes]);
