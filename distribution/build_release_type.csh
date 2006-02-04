@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.20 2006/02/04 02:59:09 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.21 2006/02/04 23:23:08 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -36,6 +36,7 @@ endif
 set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
 set SCRIPT_DIR=/space/freesurfer/build/scripts
 set LOG_DIR=/space/freesurfer/build/logs
+set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}
 
 # this QTDIR path is also used in the configure command further below
 setenv QTDIR /usr/pubsw/packages/qt/current
@@ -129,28 +130,28 @@ echo "Updating dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
 cd ${DEV_DIR} >>& $OUTPUTF
-echo "CMD: cvs update -P -d \>\& $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-cvs update -P -d >& $LOG_DIR/update-output-$HOSTNAME
-chmod g+w $LOG_DIR/update-output-$HOSTNAME
+echo "CMD: cvs update -P -d \>\& $CVSUPDATEF" >>& $OUTPUTF
+cvs update -P -d >& $CVSUPDATEF
+chmod g+w $CVSUPDATEF
 
-echo "CMD: grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+echo "CMD: grep -e "Permission denied" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "Permission denied" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   echo "cvs update: Permission denied" >>& $OUTPUTF
   mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
-echo "CMD: grep -e "cvs update: move away" $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-grep -e "cvs update: move away" $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+echo "CMD: grep -e "cvs update: move away" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "cvs update: move away" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
-  echo "cvs update: a file is 'in the way' (see $LOG_DIR/update-output-$HOSTNAME)" >>& $OUTPUTF
+  echo "cvs update: a file is 'in the way' (see $CVSUPDATEF)" >>& $OUTPUTF
   mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
-echo "CMD: grep -e ^\[UP\]\  $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-grep -e ^\[UP\]\  $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+echo "CMD: grep -e ^\[UP\]\  $CVSUPDATEF" >>& $OUTPUTF
+grep -e ^\[UP\]\  $CVSUPDATEF >& /dev/null
 if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
   mail -s "$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes" $MAIL_LIST < $OUTPUTF
@@ -161,10 +162,10 @@ endif
 touch ${FAILED_FILE}
 chmod g+w ${FAILED_FILE}
 
-echo "CMD: cat $LOG_DIR/update-output-$HOSTNAME \>\>\& $OUTPUTF" >>& $OUTPUTF
-cat $LOG_DIR/update-output-$HOSTNAME >>& $OUTPUTF
-echo "CMD: rm -f $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-rm -f $LOG_DIR/update-output-$HOSTNAME
+echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
+cat $CVSUPDATEF >>& $OUTPUTF
+echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
+rm -f $CVSUPDATEF
 
 echo "##########################################################" >>& $OUTPUTF
 echo "Freshening Makefiles" >>& $OUTPUTF
