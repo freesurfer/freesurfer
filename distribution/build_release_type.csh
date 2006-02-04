@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.19 2006/02/03 21:05:24 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.20 2006/02/04 02:59:09 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -306,6 +306,8 @@ if ($?PUB_DEST_DIR) then
     chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
     exit 1  
   endif
+  # strip symbols from binaries, greatly reducing its size
+  strip ${PUB_DEST_DIR}/bin/*
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
