@@ -64,6 +64,7 @@ typedef struct
 	int        ninputs ;
 	int     type ;  
 	int     status ;
+  VOL_GEOM src;
 } GCA_MORPH, GCAM ;
 
 typedef struct
