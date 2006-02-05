@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.21 2006/01/31 00:04:32 greve Exp $
+  $Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $
 */
 
 #include <stdio.h>
@@ -30,6 +30,8 @@
 #include "transform.h"
 #include "version.h"
 
+LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -45,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.21 2006/01/31 00:04:32 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -60,19 +62,19 @@ int   srcframe = 0;
 float thmin = -1, thmax = -1;
 char *thsign = NULL;
 int   thsignid = 0; 
-float minarea = -1;
+float minarea = 0;
 
 char *maskid   = NULL;
 char *maskfmt  = NULL;
 int   maskfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *masksubjid  = NULL;
-char *masksign  = NULL;
-float maskthresh = -1;
+char *masksignstr  = NULL;
+int  masksign  = 0;
+float maskthresh = 0.5; // assume binary
 
 char *labelfile = NULL;
 int  nth = -1;
 char *labelbase = NULL;
-char *labelsubjid  = NULL;
 
 char *omaskid = NULL;
 char *omaskfmt = "paint";
@@ -80,6 +82,7 @@ char *omasksubjid = NULL;
 
 // Constraining label
 char  *clabelfile=NULL;
+char  *maskfile=NULL;
 LABEL *clabel=NULL;
 int   clabelinv = 0;
 
@@ -123,8 +126,10 @@ float overallmax,overallmin;
 CSD *csd=NULL;
 char *csdfile;
 double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
+char *csdpdffile = NULL;
+int csdpdfonly = 0;
 
-MRI *merged;
+MRI *merged, *mask;
 
 double thminadj, thmaxadj;
 int AdjustThreshWhenOneTail=1;
@@ -142,7 +147,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.21 2006/01/31 00:04:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -163,6 +168,14 @@ int main(int argc, char **argv)
 
   dump_options(stdout);
 
+  // Handle label: either read from mask or read from label file
+  if(maskfile){
+    mask = MRIread(maskfile);
+    if(mask == NULL) exit(1);
+    clabel = MaskToSurfaceLabel(mask,maskthresh,masksign);
+    if(clabel == NULL) exit(1);
+    printf("Found %d points in clabel.\n",clabel->n_points);
+  }
   if(clabelfile){
     printf("Loading clabel %s.\n",clabelfile);
     clabel = LabelRead(NULL, clabelfile);
@@ -256,7 +269,7 @@ int main(int argc, char **argv)
   }
 
   // ---------- Constrain with clabel ----------------------- //
-  if(clabelfile){
+  if(clabel){
     if(clabelinv){
       // Constrain to be OUTSIDE clabel by setting INSIDE values to 0
       for(n=0; n<clabel->n_points; n++){
@@ -526,7 +539,9 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fixmni"))   FixMNI = 1;
     else if (!strcasecmp(option, "--nofixmni")) FixMNI = 0;
     else if (!strcasecmp(option, "--clabelinv")) clabelinv = 1;
+    else if (!strcasecmp(option, "--mask-inv")) clabelinv = 1;
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
+    else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) argnerr(option,1);
@@ -580,6 +595,11 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
+    else if (!strcmp(option, "--csdpdf")){
+      if(nargc < 1) argnerr(option,1);
+      csdpdffile = pargv[0]; 
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--thmin")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&thmin);
@@ -616,32 +636,18 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%f",&minarea);
       nargsused = 1;
     }
-
-
-    else if (!strcmp(option, "--mask")){
+    else if (!strcmp(option, "--mask-sign")){
       if(nargc < 1) argnerr(option,1);
-      maskid = pargv[0]; nargsused = 1;
-      if(nth_is_arg(nargc, pargv, 1)){
-	maskfmt = pargv[1]; nargsused ++;
-      }
-    }
-    else if (!strcmp(option, "--masksubj")){
-      if(nargc < 1) argnerr(option,1);
-      masksubjid = pargv[0];
-      nargsused = 1;
-    }
-    else if (!strcmp(option, "--masksign")){
-      if(nargc < 1) argnerr(option,1);
-      masksign = pargv[0];
-      if(!stringmatch(masksign,"abs") && 
-	 !stringmatch(masksign,"pos") && 
-	 !stringmatch(masksign,"neg") ){
-	printf("ERROR: masksign = %s, must be abs, pos, or neg\n",masksign);
+      masksignstr = pargv[0];
+      if(!stringmatch(masksignstr,"abs") && 
+	 !stringmatch(masksignstr,"pos") && 
+	 !stringmatch(masksignstr,"neg") ){
+	printf("ERROR: masksign = %s, must be abs, pos, or neg\n",masksignstr);
 	exit(1);
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--maskthresh")){
+    else if (!strcmp(option, "--mask-thresh")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&maskthresh);
       if(maskthresh < 0) {
@@ -655,6 +661,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--clabel")){
       if(nargc < 1) argnerr(option,1);
       clabelfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--mask")){
+      if(nargc < 1) argnerr(option,1);
+      maskfile = pargv[0];
       nargsused = 1;
     }
 
@@ -671,24 +682,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--labelbase")){
       if(nargc < 1) argnerr(option,1);
       labelbase = pargv[0];
-      nargsused = 1;
-    }
-    else if (!strcmp(option, "--labelsubj")){
-      if(nargc < 1) argnerr(option,1);
-      labelsubjid = pargv[0];
-      nargsused = 1;
-    }
-
-    else if (!strcmp(option, "--omask")){
-      if(nargc < 1) argnerr(option,1);
-      omaskid = pargv[0]; nargsused = 1;
-      if(nth_is_arg(nargc, pargv, 1)){
-	omaskfmt = pargv[1]; nargsused ++;
-      }
-    }
-    else if (!strcmp(option, "--omasksubj")){
-      if(nargc < 1) argnerr(option,1);
-      omasksubjid = pargv[0];
       nargsused = 1;
     }
 
@@ -777,25 +770,17 @@ static void print_usage(void)
   printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   printf("\n");
+  printf("   --csd csdfile <--csd csdfile ...>\n");
+  printf("   --csdpdf csdpdffile\n");
+  printf("   --csdpdf-only : write csd pdf file and exit.\n");
+  printf("   --ocp ocp : value is cluster-wise pvalue\n");
+  printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
-  printf("   --clabelinv : constrain to be OUTSIDE clabel\n");
-  //  printf("   --mask       maskid <fmt> \n");
-  //  printf("   --maskthresh thresh \n");
-  //  printf("   --masksign   sign : <abs>, pos, or neg \n");
-  //  printf("   --masksubj   subjid : default that of src \n");
-  //  printf("\n");
-  //  printf("   --omask      omaskid <fmt> : o mask file id\n");
-  //  printf("   --omasksubj  subjid  : saved in subject's space\n");
-  //  printf("\n");
-  //  printf("   --label     labelfile : output nth cluster as a label\n");
-  //  printf("   --nth       nth       : nth for --label\n");
-  //  printf("   --labelbase labelbase : output all labels\n");
-  //  printf("   --labelsubj subjid    : default that of src \n");
-  //  printf("\n");
+  printf("   --mask maskfile : constrain to be within mask\n");
+  printf("   --mask-inv : constrain to be OUTSIDE mask or clabel\n");
   printf("   --sum sumfile     : text summary file\n");
   printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
   printf("   --ocn ocnid <fmt>    : value is cluster number \n");
-  printf("   --ocp ocpvalid <fmt> : value is cluster-wise pvalue (not ready yet)\n");
   printf("   --olab labelbase     : output clusters as labels \n");
   printf("\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
@@ -878,6 +863,29 @@ static void print_help(void)
 "from a two-tailed test to a one-tailed test). If the input map does not\n"
 "meet these criteria, then run with --no-adjust.\n"
 "\n"
+"--csd csdfile <--csd csdfile>\n"
+"\n"
+"Load one or more CSD files. CSD stands for 'Cluster Simulation Data'. This\n"
+"file is produced by running mri_glmfit with --sim. The the threshold and hemi\n"
+"info are obtained from the CSD file and cannot be specified on the command-\n"
+"line. If more than one CSD is specified, they are merged into one CSD internally.\n"
+"When a CSD file is specified, three more columns are added to the summary table:\n"
+"  1. CWP - cluster-wise pvalue. The pvalue of the cluster corrected for \n"
+"     multiple comparisons\n"
+"  2. CWPLow - lower 90%% confidence limit of CWP based on binomial distribution\n"
+"  3. CWPHi  - upper 90%% confidence limit of CWP based on binomial distribution\n"
+"In addition, the user can specify --ocp, which saves the sigificance map of \n"
+"the clusters in which the value of each vertex is the -log10(pvalue) of cluster\n"
+"to which the vertex belongs.\n"
+"\n"
+"--csdpdf csdpdfile\n"
+"\n"
+"Compute PDF/CDF of CSD data and save in csdpdffile. This is mostly good for debugging.\n"
+"\n"
+"--csdpdf-only\n"
+"\n"
+"Only write the csd pdf file.\n"
+"\n"
 "--minarea area\n"
 "\n"
 "Minimum surface area (in mm^2) that a set of contiguous vertices\n"
@@ -889,9 +897,9 @@ static void print_help(void)
 "it will be constrained to be INSIDE. For OUTSIDE, specify --clabelinv.\n"
 "clabel must be a surface-based label.\n"
 "\n"
-"--clabelinv \n"
+"--mask-inv \n"
 "\n"
-"Constrain cluster search to be OUTSIDE clabel. \n"
+"Constrain cluster search to be OUTSIDE mask or clabel. \n"
 "\n"
 "--sum summaryfile\n"
 "\n"
@@ -968,7 +976,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.21 2006/01/31 00:04:32 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -998,6 +1006,16 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  if(csdpdffile){
+    if(csd == NULL){
+      printf("ERROR: need --csd with --csdpdf");
+      exit(1);
+    }
+    CSDpdf(csd);
+    CSDwritePDF(csdpdffile,csd);
+    if(csdpdfonly) exit(0);
+  }
+
   if(csd != NULL){
     if(hemi == NULL) hemi = strcpyalloc(csd->hemi);
     else{
@@ -1068,12 +1086,6 @@ static void check_options(void)
     printf("ERROR: thmin must be supplied\n");
     exit(1);
   }
-  if(minarea < 0){
-    printf("ERROR: minarea must be supplied\n");
-    exit(1);
-  }
-
-
   if(srcframe < 0) srcframe = 0; 
 
   if(maskid != NULL){
@@ -1082,12 +1094,11 @@ static void check_options(void)
       exit(1);
     }
     if(masksubjid == NULL) masksubjid = srcsubjid;
-    if(masksign == NULL) masksign = "abs";
+    if(masksignstr == NULL) masksignstr = "abs";
+    if(stringmatch(masksignstr,"abs")) masksign = 0;
+    if(stringmatch(masksignstr,"pos")) masksign = 1;
+    if(stringmatch(masksignstr,"neg")) masksign = -1;
   }
-
-  if(labelsubjid == NULL) labelsubjid = srcsubjid;
-  if(omasksubjid == NULL) omasksubjid = srcsubjid;
-
 
   /* check that the outputs can be written to */
   if(sumfile != NULL){
@@ -1128,10 +1139,16 @@ static void check_options(void)
     exit(1);
   }
 
-  if(clabelinv && clabelfile == NULL){
-    printf("ERROR: must specify a clabel with --clabelinv\n");
+  if(clabelfile != NULL && maskfile != NULL){
+    printf("ERROR: cannot specify both --clabel and --mask\n");
     exit(1);
   }
+  if(clabelinv && (clabelfile == NULL && maskfile == NULL)){
+    printf("ERROR: must specify a --clabel or --mask with --mask-inv\n");
+    exit(1);
+  }
+
+
 
   return;
 }
@@ -1153,14 +1170,13 @@ static void dump_options(FILE *fp)
     fprintf(fp,"maskid         = %s %s\n",maskid, maskfmt);
     fprintf(fp,"masksubjid     = %s\n",masksubjid);
     fprintf(fp,"maskthresh     = %g\n",maskthresh);
-    fprintf(fp,"masksign       = %s\n",masksign);
+    fprintf(fp,"masksign       = %s\n",masksignstr);
   }
   if(clabelfile != NULL){
     fprintf(fp,"clabelfile     = %s\n",clabelfile);
     fprintf(fp,"clabelinv      = %d\n",clabelinv);
   }
   if(labelfile != NULL)  fprintf(fp,"labelfile   = %s\n",labelfile);
-  if(labelsubjid != NULL)fprintf(fp,"labelsubjid = %s\n",labelsubjid);
   if(labelbase != NULL)  fprintf(fp,"labelbase   = %s\n",labelbase);
   if(labelbase != NULL)  fprintf(fp,"nth         = %d\n",nth);
 
@@ -1235,5 +1251,55 @@ static void argnerr(char *option, int n)
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
+}
+
+/*--------------------------------------------------------*/
+LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign)
+{
+  int v,c,r,s,nhits,ishit;
+  LABEL *label;
+  double val;
+
+  nhits = 0;
+  for(s=0; s < mask->depth; s++){
+    for(r=0; r < mask->height; r++){
+      for(c=0; c < mask->width; c++){ // cols must be fasest
+	ishit = 0;
+	val = MRIgetVoxVal(mask,c,r,s,0);
+	if(sign == 0 && fabs(val) > thresh) ishit = 1;
+	if(sign >  0 && val > +thresh)      ishit = 1;
+	if(sign <  0 && val < -thresh)      ishit = 1;
+	if(ishit) nhits ++;
+      }
+    }
+  }
+  printf("Found %d vertices in mask\n",nhits);
+  if(nhits == 0) return(NULL);
+
+  label = LabelAlloc(nhits, "unknown", "mask");
+  label->n_points = nhits;
+
+  nhits = 0;
+  v = 0;
+  for(s=0; s < mask->depth; s++){
+    for(r=0; r < mask->height; r++){
+      for(c=0; c < mask->width; c++){ // cols must be fasest
+	ishit = 0;
+	val = MRIgetVoxVal(mask,c,r,s,0);
+	if(sign == 0 && fabs(val) > thresh) ishit = 1;
+	if(sign >  0 && val > +thresh)      ishit = 1;
+	if(sign <  0 && val < -thresh)      ishit = 1;
+	if(ishit){
+	  // only assign vertex no because it's a surface label
+	  label->lv[nhits].vno = v;
+	  nhits++;
+	}
+	v++;
+      }
+    }
+  }
+
+  printf("Found %d vertices in mask\n",nhits);
+  return(label);
 }
 
