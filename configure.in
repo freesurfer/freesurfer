@@ -5,19 +5,21 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
+# "$Id: configure.in,v 1.153 2006/02/05 04:23:05 nicks Exp $"
+#
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, dev2-0-0, freesurfer@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
 AC_MSG_NOTICE(Setting System...)
-# set target, build, host etc. 
+# set target, build, host etc.
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([config.h.in])
 AM_CONFIG_HEADER([config.h])
 
-# if CFLAGS and CXXFLAGS are not already set, then set to empty, 
-# otherwise, AC_PROG_CPP and AC_PROG_CXX will automatically append 
+# if CFLAGS and CXXFLAGS are not already set, then set to empty,
+# otherwise, AC_PROG_CPP and AC_PROG_CXX will automatically append
 # "-g -O2", flags over which we'd rather have explicit control per OS
 if test "x$CFLAGS" = "x"; then
   CFLAGS=""
@@ -36,10 +38,10 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_CPP
-AC_PROG_LIBTOOL 
+AC_PROG_LIBTOOL
 
 # two programs used for compress/decompress files
-# cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so 
+# cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so
 # that I took it out.
 AC_CHECK_PROG([HAS_ZCAT],[zcat],[1],[])
 if test ! "$HAS_ZCAT" = "1"; then
@@ -51,7 +53,7 @@ AC_CHECK_PROG([HAS_GZIP],[gzip],[1],[])
 if test ! "$HAS_GZIP" = "1"; then
   AC_MSG_ERROR([FATAL: gzip is required in creating mgz etc. \
 Put it in the path.])
-fi  
+fi
 
 ##################################################################
 # allow user to specify tixwish
@@ -71,26 +73,32 @@ if test "x$TIXWISH" = "x"; then
   AC_MSG_ERROR([FATAL: tixwish needed for csurf not found. \
 Use --with-tixwish=... to specify])
 fi
-  
+
 AC_SUBST(TIXWISH)
 
 #################################################################
-# If on a Mac, make a scuba bundle.
+# If on a Mac, make scuba, qdec, and plotter bundles (Qt apps)
 SCUBA_BUNDLE_TARGET=""
 if test "x$target_vendor" = "xapple" ; then
   SCUBA_BUNDLE_TARGET="scuba_bundle"
 fi
 AC_SUBST(SCUBA_BUNDLE_TARGET)
 
+QDEC_BUNDLE_TARGET=""
+if test "x$target_vendor" = "xapple" ; then
+  QDEC_BUNDLE_TARGET="qdec_bundle"
+fi
+AC_SUBST(QDEC_BUNDLE_TARGET)
+
+PLOTTER_BUNDLE_TARGET=""
+if test "x$target_vendor" = "xapple" ; then
+  PLOTTER_BUNDLE_TARGET="plotter_bundle"
+fi
+AC_SUBST(PLOTTER_BUNDLE_TARGET)
+
 ################################################################
 # define OS
 ################################################################
-# examples are:
-# SUSE9.0:   host = x86_64-suse-linux          uname -p: x86_64
-# RedHat9.0: host = i686-pc-linux-gnu          uname -p: i686
-# MacOSX10 : host = powerpc-apple-darwin6.8    uname -p: powerpc
-# powerpc    host = powerpc64-suse-linux       uname -p: unknown
-#################################################################
 AC_C_BIGENDIAN_CROSS
 echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
@@ -117,9 +125,9 @@ case "${target}" in
  SHARED_LDFLAGS="-shared"
  CFLAGS="$CFLAGS -g -O2 -Wall -Werror -fwritable-strings"
  CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
- ;; 
-*-apple-darwin*)
- # Mac OS X 
+ ;;
+ *-apple-darwin*)
+ # Mac OS X
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS=
@@ -148,11 +156,11 @@ if test "${CC}" = "gcc"; then
 AC_MSG_NOTICE(Setting CPU optimization...)
 CPUFLAGS=""
 CPUTYPE="NO"
-#### 
-#### cpu type: we support 
-####     pentium3, pentium4,  
+####
+#### cpu type: we support
+####     pentium3, pentium4,
 ####     athlon-xp, opteron, athlon64, athlon-fx
-####      
+####
 AC_ARG_WITH(cpu,
 [  --with-cpu=CPUTYPE      where CPUTYPE is pentium4, athlon-xp, G4, G5...],
   [CPUTYPE=$withval],[])
@@ -179,7 +187,7 @@ if test "$CPUTYPE" = "NO"; then
     ;;
   Linux)
     case "${target}" in
-    i*86-*-linux-gnu*)  
+    i*86-*-linux-gnu*)
       cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
       case "$cpu386" in
         PentiumIII*)
@@ -188,9 +196,9 @@ if test "$CPUTYPE" = "NO"; then
         Pentium4)
         CPUTYPE=pentium4
         ;;
-  PentiumM*)
-  CPUTYPE=pentium4
-  ;;
+        PentiumM*)
+        CPUTYPE=pentium4
+        ;;
         AMDAthlonXP*)
         CPUTYPE=athlonxp
         ;;
@@ -219,8 +227,8 @@ AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
 AC_MSG_CHECKING(CPU optimization...)
 
 # now set the flags
-case "$CPUTYPE" in 
-  pentium3) 
+case "$CPUTYPE" in
+  pentium3)
 #     CPUFLAGS="-march=pentium3"
      CPUFLAGS=""
      ;;
@@ -231,7 +239,7 @@ case "$CPUTYPE" in
   athlonxp)
 #     CPUFLAGS="-march=pentium3"
      CPUFLAGS=""
-     ;; 
+     ;;
   opteron)
 #     CPUFLAGS="-march=x86-64"
      CPUFLAGS="-m64"
@@ -262,7 +270,7 @@ case "$CPUTYPE" in
      ;;
 esac
 
-found=$CPUFLAGS 
+found=$CPUFLAGS
 # set the value
 
 AC_MSG_RESULT($found)
@@ -319,7 +327,7 @@ echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
 if test $ac_cv_prog_cc_cpuflags = no; then
  AC_MSG_NOTICE([gcc on this PC cannot accept $CPUFLAGS. gcc may be too old?])
  CPUFLAGS=""
-fi 
+fi
 # write the flag file
 echo "CPUFLAGS=$CPUFLAGS" > cpuflags.mak
 
@@ -335,7 +343,7 @@ else
 fi
 
 ##############################################################
-# This macro figures out how to build C programs using 
+# This macro figures out how to build C programs using
 # POSIX threads.
 ##############################################################
 ACX_PTHREAD
@@ -346,7 +354,7 @@ ACX_PTHREAD
 AC_PATH_X
 ##### Apple is really tricky
 ##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
-##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not 
+##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not
 ##### automaticaly found
 if test -z "$x_includes"; then
   x_includes=/usr/X11R6/include
@@ -358,9 +366,9 @@ AC_SUBST(X_LIBS)
 
 ##############################################################
 # allow user to specify root of multi-package directory,
-# such as one containing all freesurfer dependencies: 
-# jpeg, tiff, gsl, tcl, tk, tix, blt, MNI (netcdf, minc, 
-# mni-perlib, EBTKS, N3)... 
+# such as one containing all freesurfer dependencies:
+# jpeg, tiff, gsl, tcl, tk, tix, blt, MNI (netcdf, minc,
+# mni-perlib, EBTKS, N3)...
 ##############################################################
 ac_pkgs_includes="NO"
 ac_pkgs_libraries="NO"
@@ -379,8 +387,8 @@ if test ! "$ac_pkgs_includes" = "NO"; then
   pkgs_includes=-I$ac_pkgs_includes
   CPPFLAGS="$CPPFLAGS $pkgs_includes"
 fi
-if test ! "$ac_pkgs_libraries" = "NO"; then 
-  pkgs_libraries=-L$ac_pkgs_libraries 
+if test ! "$ac_pkgs_libraries" = "NO"; then
+  pkgs_libraries=-L$ac_pkgs_libraries
   LDFLAGS="$LDFLAGS $pkgs_libraries"
 fi
 
@@ -394,8 +402,8 @@ Jpeg, Qt, and GSL])
 #############################################################
 # MNI
 #############################################################
-ac_mni_includes=NO 
-ac_mni_libraries=NO 
+ac_mni_includes=NO
+ac_mni_libraries=NO
 ac_mni_bindir=NO
 MNI_CFLAGS=""
 MNI_LIBS=""
@@ -409,13 +417,13 @@ AC_ARG_WITH(mni-dir,
   ])
 
 if test ! "$ac_mni_includes" = "NO"; then
-  AC_MSG_RESULT(MNI directory is $withval)  
+  AC_MSG_RESULT(MNI directory is $withval)
   MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
 fi
-if test ! "$ac_mni_libraries" = "NO"; then 
-  MNI_LIBS=-L$ac_mni_libraries 
+if test ! "$ac_mni_libraries" = "NO"; then
+  MNI_LIBS=-L$ac_mni_libraries
 fi
 
 AC_SUBST(MNI_CFLAGS)
@@ -445,14 +453,14 @@ else
   AC_MSG_RESULT(BLT directory is not supplied)
 fi
 if test ! "$ac_blt_libraries" = "NO"; then
-  BLT_LIBS=-L$ac_blt_libraries 
+  BLT_LIBS=-L$ac_blt_libraries
 fi
 
 AC_SUBST(BLT_CFLAGS)
 AC_SUBST(BLT_LIBS)
 
 ################################################################
-# tiff   
+# tiff
 ################################################################
 ac_tiff_includes="NO"
 ac_tiff_libraries="NO"
@@ -474,15 +482,15 @@ if test ! "$ac_tiff_includes" = "NO"; then
 else
   AC_MSG_RESULT(Tiff directory is not supplied)
 fi
-if test ! "$ac_tiff_libraries" = "NO"; then 
-  TIFF_LIBS=-L$ac_tiff_libraries 
+if test ! "$ac_tiff_libraries" = "NO"; then
+  TIFF_LIBS=-L$ac_tiff_libraries
 fi
 
 AC_SUBST(TIFF_CFLAGS)
 AC_SUBST(TIFF_LIBS)
 
 ################################################################
-# jpeg   
+# jpeg
 ################################################################
 ac_jpeg_includes="NO"
 ac_jpeg_libraries="NO"
@@ -504,8 +512,8 @@ if test ! "$ac_jpeg_includes" = "NO"; then
 else
   AC_MSG_RESULT(Jpeg directory is not supplied)
 fi
-if test ! "$ac_jpeg_libraries" = "NO"; then 
-  JPEG_LIBS=-L$ac_jpeg_libraries 
+if test ! "$ac_jpeg_libraries" = "NO"; then
+  JPEG_LIBS=-L$ac_jpeg_libraries
 fi
 
 AC_SUBST(JPEG_CFLAGS)
@@ -534,8 +542,8 @@ if test ! "$ac_gsl_includes" = "NO"; then
 else
   AC_MSG_RESULT(GSL directory is not supplied)
 fi
-if test ! "$ac_gsl_libraries" = "NO"; then 
-  GSL_LIBS=-L$ac_gsl_libraries 
+if test ! "$ac_gsl_libraries" = "NO"; then
+  GSL_LIBS=-L$ac_gsl_libraries
 fi
 
 AC_SUBST(GSL_CFLAGS)
@@ -568,8 +576,8 @@ if test ! "$ac_qt_includes" = "NO"; then
 else
   AC_MSG_RESULT(Qt directory is not supplied)
 fi
-if test ! "$ac_qt_libraries" = "NO"; then 
-  QT_LIBS=-L$ac_qt_libraries 
+if test ! "$ac_qt_libraries" = "NO"; then
+  QT_LIBS=-L$ac_qt_libraries
 fi
 
 AC_SUBST(QT_CFLAGS)
@@ -626,8 +634,8 @@ else
   else
     AC_MSG_RESULT(OpenGL directory is not supplied)
   fi
-  if test ! "$ac_gl_libraries" = "NO"; then 
-    GL_LIBS=-L$ac_gl_libraries 
+  if test ! "$ac_gl_libraries" = "NO"; then
+    GL_LIBS=-L$ac_gl_libraries
   fi
 
   AC_SUBST(GL_CFLAGS)
@@ -639,7 +647,7 @@ else
   ac_glut_includes="NO"
   ac_glut_libraries="NO"
   ac_glut_bindir="NO"
-  # these are lower-case because later AX_CHECK_GLUT trounces 
+  # these are lower-case because later AX_CHECK_GLUT trounces
   # GLUT_CLFLAGS and GLUT_LIBS:
   glut_cflags=""
   glut_libs=""
@@ -658,8 +666,8 @@ else
   else
     AC_MSG_RESULT(GLUT directory is not supplied)
   fi
-  if test ! "$ac_glut_libraries" = "NO"; then 
-    glut_libs="-L$ac_glut_libraries -lglut" 
+  if test ! "$ac_glut_libraries" = "NO"; then
+    glut_libs="-L$ac_glut_libraries -lglut"
   fi
 
   AC_SUBST(glut_cflags)
@@ -673,7 +681,7 @@ if test "X$no_gl" = "Xyes"; then
   AC_MSG_RESULT([GL not found])
 else
   AC_MSG_RESULT([GL found:
-Setting GL_CFLAGS='$GL_CFLAGS' 
+Setting GL_CFLAGS='$GL_CFLAGS'
 and GL_LIBS='$GL_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
 fi
@@ -684,7 +692,7 @@ if test "X$no_glu" = "Xyes"; then
   AC_MSG_RESULT([GLu not found])
 else
   AC_MSG_RESULT([GLu found:
-Setting GLU_CFLAGS='$GLU_CFLAGS' 
+Setting GLU_CFLAGS='$GLU_CFLAGS'
 and GLU_LIBS='$GLU_LIBS'])
   #redundant: LIBS_OPENGL="$LIBS_OPENGL $GLU_LIBS"
 fi
@@ -697,7 +705,7 @@ if test "X$no_glut" = "Xyes"; then
   AC_MSG_RESULT([GLut not found])
 else
   if test "$OS" = "Darwin"; then
-    #AX_CHECK_GLUT really fudges these, 
+    #AX_CHECK_GLUT really fudges these,
     #so use proper settings (from above)
     GLUT_CFLAGS="$glut_cflags"
     GLUT_LIBS="$glut_libs"
@@ -708,7 +716,7 @@ else
     AC_SUBST([GLUT_LIBS])
   fi
   AC_MSG_RESULT([GLut found:
-Setting GLUT_CFLAGS='$GLUT_CFLAGS' 
+Setting GLUT_CFLAGS='$GLUT_CFLAGS'
 and GLUT_LIBS='$GLUT_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GLUT_LIBS"
 fi
@@ -754,8 +762,8 @@ else
     AC_MSG_RESULT([Tcl directory is not supplied])
   fi
 
-  if test ! "$ac_tcl_libraries" = "NO"; then 
-    TCL_LIBS=-L$ac_tcl_libraries 
+  if test ! "$ac_tcl_libraries" = "NO"; then
+    TCL_LIBS=-L$ac_tcl_libraries
   fi
 
   TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
@@ -767,15 +775,15 @@ AC_SUBST(TCL_LIBS)
 AC_SUBST(LIBS_TCL)
 
 
-############################################################
+###################################################################
 # Install NMR Martinos Center files (not included in distribution)
-############################################################
+###################################################################
 AC_ARG_ENABLE(nmr-install,
  [  --enable-nmr-install     install NMR Center-only files],
    [case "${enableval}" in
-	yes) nmrinstall=true ;;
-	no)  nmrinstall=false  ;;
-	*)   AC_MSG_ERROR(bad value ${enableval} for --enable-nmr-install) ;;
+        yes) nmrinstall=true ;;
+        no)  nmrinstall=false  ;;
+        *)   AC_MSG_ERROR(bad value ${enableval} for --enable-nmr-install) ;;
     esac],
 [nmrinstall=false])
 
@@ -830,7 +838,7 @@ AC_CHECK_LIB([z], [gzopen])
 AC_CHECK_LIB([crypt], [crypt],[],[echo "(Note: Mac OS X doesn't use crypt)"])
 LIB_CRYPT="-lcrypt"
 if test "$OS" = "Darwin"; then
-  LIB_CRYPT=""  
+  LIB_CRYPT=""
 fi
 AC_SUBST(LIB_CRYPT)
 AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
@@ -884,16 +892,16 @@ AC_CHECK_LIB([tk8.4],[Tk_Init],
     AC_CHECK_LIB([tk8.3],[Tk_Init],
     [LIB_TK=-ltk8.3],
 # check tk
-    [ 
+    [
       AC_CHECK_LIB([tk],[Tk_Init],
       [LIB_TK=-ltk],
       [AC_MSG_ERROR([FATAL: libtk not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
-    ])  
+    ])
   ])
 
-##################### Tix 
+##################### Tix
 LIBS="$LIB_TK $LIB_TCL $LIBS"
 AC_CHECK_LIB([tix],[Tix_Init],
   [LIB_TIX=-ltix],
@@ -924,7 +932,7 @@ AC_CHECK_LIB([BLT],[Blt_Init],
     [
 # check BLT24 (Fedora)
       AC_CHECK_LIB([BLT24],[Blt_Init],
-      [LIB_BLT=-lBLT24], 
+      [LIB_BLT=-lBLT24],
           [AC_MSG_ERROR([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
       ])
@@ -945,7 +953,7 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
 # GLU_CFLAGS, GLU_LIBS
 # GLUT_CFLAGS, GLUT_LIBS
 # QT_CFLAGS, QT_LIBS, QTDIR
-# 
+#
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
 LDFLAGS=$ac_save_ldflags
@@ -974,7 +982,7 @@ AC_SUBST(LIBS)
 
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
-if ! test "$LIB_TCL" = "-ltcl8.4"; then 
+if ! test "$LIB_TCL" = "-ltcl8.4"; then
   AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
 fi
 
