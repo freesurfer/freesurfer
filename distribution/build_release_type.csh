@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.21 2006/02/04 23:23:08 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.22 2006/02/05 23:55:43 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -12,31 +12,33 @@ if ("$OSTYPE" == "linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
 if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
+set OS=${OSTYPE}
+set PLATFORM=`cat /usr/local/freesurfer/PLATFORM`
 
 # Set up directories.
 ######################################################################
-if(! $?BUILD_DIR) then
-  setenv BUILD_DIR /space/freesurfer/build/$HOSTNAME
-endif
+#
+setenv BUILD_DIR /space/freesurfer/build/$HOSTNAME
 
 if ("$1" == "dev") then
   set RELEASE_TYPE=dev
   set DEV_DIR=${BUILD_DIR}/trunk/dev
   set DEST_DIR=/usr/local/freesurfer/dev
-else if ("$1" == "stable") then
+else if ("$1" == "stable-pub") then
   set RELEASE_TYPE=stable
   set DEV_DIR=${BUILD_DIR}/stable/dev
   set DEST_DIR=/usr/local/freesurfer/stable
   set PUB_DEST_DIR=/usr/local/freesurfer/stable-pub
 else
-  echo "ERROR: release_type must be either dev or stable"
+  echo "ERROR: release_type must be either dev or stable-pub"
+  echo ""
+  echo "Examples: "
+  echo "  build_release_type dev"
+  echo "  build_release_type stable-pub"
   exit 1
 endif
-
-set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
 set SCRIPT_DIR=/space/freesurfer/build/scripts
 set LOG_DIR=/space/freesurfer/build/logs
-set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}
 
 # this QTDIR path is also used in the configure command further below
 setenv QTDIR /usr/pubsw/packages/qt/current
@@ -51,35 +53,39 @@ endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 
-# Output file
+# Output files (OUTPUTF and CVSUPDATEF)
 ######################################################################
+#
 set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
-set OUTPUTF=$LOG_DIR/build_log-$RELEASE_TYPE-$HOSTNAME.txt
+set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
+set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
+set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
 echo "$HOSTNAME $RELEASE_TYPE build" >& $OUTPUTF
 chmod g+w $OUTPUTF
 set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
-
 set TIME_STAMP=`date +%Y%m%d`
-set PLATFORM=`cat /usr/local/freesurfer/PLATFORM`
-set OS=`uname -s`
 
 # Sanity checks
 ######################################################################
+#
 if(! -d $SCRIPT_DIR) then 
   echo "$SCRIPT_DIR doesn't exist" >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 if(! -d $DEV_DIR) then 
   echo "$DEV_DIR doesn't exist" >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 if(! -d $DEST_DIR) then 
   echo "$DEST_DIR doesn't exist" >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
@@ -120,13 +126,14 @@ echo "" >>& $OUTPUTF
 
 # Do the build.
 ######################################################################
-
+#
 # Go to dev directory, update code, and check the result. If there are
 # lines starting with "U " or "P " then we had some changes, so go
 # through with the build. If not, quit now. But don't quit if the file
 # FAILED exists, because that means that the last build failed.
+# Also check for 'Permission denied" and "File is in the way" errors.
 echo "##########################################################" >>& $OUTPUTF
-echo "Updating dev" >>& $OUTPUTF
+echo "Updating $DEV_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
 cd ${DEV_DIR} >>& $OUTPUTF
@@ -167,6 +174,9 @@ cat $CVSUPDATEF >>& $OUTPUTF
 echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
 rm -f $CVSUPDATEF
 
+#
+# CVS update is now complete, so now, make distclean, and re-configure
+#
 echo "##########################################################" >>& $OUTPUTF
 echo "Freshening Makefiles" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -203,7 +213,8 @@ if ($status != 0) then
   echo "config.log" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
   cat ${DEV_DIR}/config.log >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED after configure" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED after configure" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -213,16 +224,19 @@ if ($status != 0) then
   exit 1
 endif
 
-echo "##########################################################" >>& $OUTPUTF
-echo "Building dev" >>& $OUTPUTF
-echo "" >>& $OUTPUTF
+#
 # make
+#
+echo "##########################################################" >>& $OUTPUTF
+echo "Making $DEV_DIR" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
 echo "CMD: make" >>& $OUTPUTF
 make >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
-  mail -s "$HOSTNAME $RELEASE_TYPE build (make) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build (make) FAILED" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -232,7 +246,9 @@ if ($status != 0) then
   exit 1  
 endif
 
+#
 # make install
+#
 # (recall that configure sets $bindir to bin-new/ instead of /bin, 
 # to minimize disruption of machines using contents of /bin)
 echo "CMD: rm -Rf ${DEST_DIR}/bin-new" >>& $OUTPUTF
@@ -240,7 +256,8 @@ if (-e ${DEST_DIR}/bin-new) rm -rf ${DEST_DIR}/bin-new >>& $OUTPUTF
 echo "CMD: make install" >>& $OUTPUTF
 make install >>& $OUTPUTF
 if ($status != 0) then
-  mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -250,22 +267,7 @@ if ($status != 0) then
   exit 1  
 endif
 
-# On the Mac, the Qt-based packages have special targets for installing
-# files necessary to run as Mac Apps
-if ("$OSTYPE" == "Darwin") then
-  echo "CMD: make scuba_bundle" >>& $OUTPUTF
-  cd scuba
-  make scuba_bundle >>& $OUTPUTF
-  echo "CMD: make qdec_bundle" >>& $OUTPUTF
-  cd ../qdec
-  make qdec_bundle >>& $OUTPUTF
-  echo "CMD: make plotter_bundle" >>& $OUTPUTF
-  cd ../plotter
-  make plotter_bundle >>& $OUTPUTF
-  cd ..
-endif
-
-# Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep around old versions.
+# Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
 # is using a binary in bin/.
 # Move newly created bin-new/ to bin/.
@@ -280,6 +282,10 @@ mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
 mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
 
+#
+# make install is now complete, and /bin dir is now setup with new code
+#
+
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -291,15 +297,19 @@ chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
+#
+# If building the stable release, then do the special stuff necessary
+# for the public version of it.
+#
 if ($?PUB_DEST_DIR) then
   echo "########################################################" >>& $OUTPUTF
   echo "Building public stable" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
-  # make
   echo "CMD: make release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
   make release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
   if ($status != 0) then
-    mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
+    mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" \
+      $FAILURE_MAIL_LIST < $OUTPUTF
     touch ${FAILED_FILE}
     chmod g+w ${FAILED_FILE}
     # set group write bit on files changed by make tools:
@@ -307,7 +317,7 @@ if ($?PUB_DEST_DIR) then
     chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
     exit 1  
   endif
-  # strip symbols from binaries, greatly reducing its size
+  # strip symbols from binaries, greatly reducing their size
   strip ${PUB_DEST_DIR}/bin/*
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
@@ -334,9 +344,7 @@ gzip -f ${LOG_DIR}/build_log-$RELEASE_TYPE-$HOSTNAME-$TIME_STAMP.txt
 
 # Send email.
 echo "Begin ${BEGIN_TIME}, end ${END_TIME}" >& $LOG_DIR/message-$HOSTNAME.txt
-mail -s "$HOSTNAME $RELEASE_TYPE build is wicked awesome." $MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
+mail -s "$HOSTNAME $RELEASE_TYPE build is wicked awesome." \
+  $MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
 rm $LOG_DIR/message-$HOSTNAME.txt
 
-# Soon, processor-specific builds:
-# make install ${x8664BUILDCXXFLAGS} bindir=\\\$\\\{prefix\\\}/bin/x86-64
-# make release prefix={$STABLEDEST} bindir=\\\$\\\{prefix\\\}/bin/x86-64
