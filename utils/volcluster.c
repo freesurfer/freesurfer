@@ -1601,10 +1601,12 @@ int CSDprintPDF(FILE *fp, CSD *csd)
     printf("ERROR: CSDprintPDF: csd pdf is NULL\n");
     return(1);
   }
-
-  // BinNo   MaxClustBin MaxClustPDF  MaxClustCDF    MaxSigBin MaxSigPDF MaxSigCDF
+  fprintf(fp,"# CSD PDF/CDF\n");
+  CSDprintHeader(fp,csd);
+  fprintf(fp,"# nbins %d\n",csd->mcs_pdf->nbins);
+  fprintf(fp,"# BinNo  MaxClustBin MaxClustPDF MaxClustCDF    MaxSigBin MaxSigPDF MaxSigCDF\n");
   for(nthbin = 0; nthbin < csd->mcs_pdf->nbins; nthbin++){
-    fprintf(fp,"%3d    %f %f %f    %f %f %f \n",nthbin,
+    fprintf(fp,"%4d      %f   %f     %f     %f  %f  %f \n",nthbin,
 	    csd->mcs_pdf->bins[nthbin],csd->mcs_pdf->counts[nthbin],csd->mcs_cdf->counts[nthbin],
 	    csd->ms_pdf->bins[nthbin],csd->ms_pdf->counts[nthbin],csd->ms_cdf->counts[nthbin]);
   }
