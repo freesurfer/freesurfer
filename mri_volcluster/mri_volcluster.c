@@ -64,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.15 2006/02/01 05:48:57 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.16 2006/02/05 18:59:28 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -130,6 +130,9 @@ int AdjustThreshWhenOneTail=1;
 CSD *csd=NULL;
 char *csdfile;
 double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
+char *csdpdffile = NULL;
+int csdpdfonly = 0;
+
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -143,7 +146,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.15 2006/02/01 05:48:57 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.16 2006/02/05 18:59:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -491,11 +494,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
-
     else if (!strcasecmp(option, "--allowdiag")) allowdiag = 1;
     else if (!strcmp(option, "--maskinvert"))    maskinvert = 1;
     else if (!strcmp(option, "--nofixtkreg"))    fixtkreg = 0;
     else if (!strcmp(option, "--fixtkreg"))      fixtkreg = 1;
+    else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -648,12 +651,17 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
+    else if (!strcmp(option, "--csdpdf")){
+      if(nargc < 1) argnerr(option,1);
+      csdpdffile = pargv[0]; 
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--frame")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&frame);
       if(frame < 0){
-  fprintf(stderr,"ERROR: negative frame number: frame = %d\n",frame);
-  exit(1);
+	fprintf(stderr,"ERROR: negative frame number: frame = %d\n",frame);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -679,8 +687,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&distthresh);
       if(distthresh <= 0){
-  fprintf(stderr,"ERROR: negative distance threshold not allowed\n");
-  exit(1);
+	fprintf(stderr,"ERROR: negative distance threshold not allowed\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -709,47 +717,50 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stdout, "USAGE: %s \n",Progname) ;
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --in      input volid \n");
-  fprintf(stdout, "   --in_type file format : only needed with .w files \n");
-  fprintf(stdout, "   --frame   frameno <0>\n");
-  fprintf(stdout, "   --reg     register.dat : for reporting talairach coords\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --thmin   minthresh\n");
-  fprintf(stdout, "   --thmax   maxthresh (default is infinity)\n");
-  fprintf(stdout, "   --sign    <abs>, neg, pos for one-sided tests\n");
-  fprintf(stdout, "   --csd csdfile <--csd csdfile> : cluster simulation data\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --minsize    minimum volume (mm^3)\n");
-  fprintf(stdout, "   --minsizevox minimum volume (voxels)\n");
-  fprintf(stdout, "   --mindist distance threshold <0>\n");
-  fprintf(stdout, "   --allowdiag  : define contiguity to include diagonal\n");
-  fprintf(stdout, "   --no-adjust  : do not adjust thresh for one-tailed tests\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --mask      mask volid (same dim as input)\n");
-  fprintf(stdout, "   --mask_type file format \n");
-  fprintf(stdout, "   --maskframe frameno <0> \n");
-  fprintf(stdout, "   --maskthresh  upper threshold \n");
-  fprintf(stdout, "   --masksign   <abs>, neg, pos \n");
-  fprintf(stdout, "   --maskinvert  \n");
-  fprintf(stdout, "   --outmask      final binary mask\n");
-  fprintf(stdout, "   --outmask_type file format \n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --sum file   : text summary file \n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --out      output volid \n");
-  fprintf(stdout, "   --ocn      output cluster number volid \n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --label   label file\n");
-  fprintf(stdout, "   --nlabelcluster n : save nth cluster in label\n");
-  fprintf(stdout, "   --labelbase  base : save all clusters under base-NNNN.label\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --synth   synthfunc (uniform,loguniform,gaussian)\n");
-  fprintf(stdout, "   --diag diagno : set diagnostic level\n");
-  fprintf(stdout, "   --help    : how to use this program \n");
-  fprintf(stdout, "\n");
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --in      input volid \n");
+  printf("   --in_type file format : only needed with .w files \n");
+  printf("   --frame   frameno <0>\n");
+  printf("   --reg     register.dat : for reporting talairach coords\n");
+  printf("\n");
+  printf("   --thmin   minthresh\n");
+  printf("   --thmax   maxthresh (default is infinity)\n");
+  printf("   --sign    <abs>, neg, pos for one-sided tests\n");
+  printf("\n");
+  printf("   --csd csdfile <--csd csdfile ...>\n");
+  printf("   --csdpdf csdpdffile\n");
+  printf("   --csdpdf-only : write csd pdf file and exit.\n");
+  printf("   --ocp ocp : map of cluster-wise pvalue\n");
+  printf("\n");
+  printf("   --minsize    minimum volume (mm^3)\n");
+  printf("   --minsizevox minimum volume (voxels)\n");
+  printf("   --mindist distance threshold <0>\n");
+  printf("   --allowdiag  : define contiguity to include diagonal\n");
+  printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("\n");
+  printf("   --mask      mask volid (same dim as input)\n");
+  printf("   --mask_type file format \n");
+  printf("   --maskframe frameno <0> \n");
+  printf("   --maskthresh  upper threshold \n");
+  printf("   --masksign   <abs>, neg, pos \n");
+  printf("   --maskinvert  \n");
+  printf("   --outmask      final binary mask\n");
+  printf("   --outmask_type file format \n");
+  printf("\n");
+  printf("   --sum file   : text summary file \n");
+  printf("\n");
+  printf("   --out      output volid \n");
+  printf("   --ocn      output cluster number volid \n");
+  printf("\n");
+  printf("   --label   label file\n");
+  printf("   --nlabelcluster n : save nth cluster in label\n");
+  printf("   --labelbase  base : save all clusters under base-NNNN.label\n");
+  printf("\n");
+  printf("   --synth   synthfunc (uniform,loguniform,gaussian)\n");
+  printf("   --diag diagno : set diagnostic level\n");
+  printf("   --help    : how to use this program \n");
+  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -799,6 +810,28 @@ static void print_help(void)
 "    as a candidate for a cluster. pos = positive, neg = negative, abs = \n"
 "    absolute (ie, ignore sign). Default is abs. When neg is used, the \n"
 "    interpretation of minthreshold and maxthreshold are reversed.\n"
+"--csd csdfile <--csd csdfile>\n"
+"\n"
+"    Load one or more CSD files. CSD stands for 'Cluster Simulation Data'. This\n"
+"    file is produced by running mri_glmfit with --sim. The the threshold and hemi\n"
+"    info are obtained from the CSD file and cannot be specified on the command-\n"
+"    line. If more than one CSD is specified, they are merged into one CSD internally.\n"
+"    When a CSD file is specified, three more columns are added to the summary table:\n"
+"      1. CWP - cluster-wise pvalue. The pvalue of the cluster corrected for \n"
+"         multiple comparisons\n"
+"      2. CWPLow - lower 90%% confidence limit of CWP based on binomial distribution\n"
+"      3. CWPHi  - upper 90%% confidence limit of CWP based on binomial distribution\n"
+"    In addition, the user can specify --ocp, which saves the sigificance map of \n"
+"    the clusters in which the value of each voxel is the -log10(pvalue) of cluster\n"
+"    to which the vertex belongs.\n"
+"\n"
+"--csdpdf csdpdfile\n"
+"\n"
+"    Compute PDF/CDF of CSD data and save in csdpdffile. This is mostly good for debugging.\n"
+"\n"
+"--csdpdf-only\n"
+"\n"
+"    Only write the csd pdf file.\n"
 "\n"
 "  --minsize volume : minimum volume (in mm^3) of contiguous voxels that\n"
 "    meet the threshold criteria needed to become a cluster. See also\n"
@@ -977,6 +1010,16 @@ static void check_options(void)
   int err;
 
   err = 0;
+
+  if(csdpdffile){
+    if(csd == NULL){
+      printf("ERROR: need --csd with --csdpdf");
+      exit(1);
+    }
+    CSDpdf(csd);
+    CSDwritePDF(csdpdffile,csd);
+    if(csdpdfonly) exit(0);
+  }
 
   if(volid == NULL){
     fprintf(stderr,"ERROR: no input volume supplied\n");
