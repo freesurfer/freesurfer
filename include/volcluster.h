@@ -96,6 +96,8 @@ typedef struct {
   double *MaxClusterSize;
   double *MaxSig;
   int mergedflag;     // Flag to indicate that two or more merged
+  HISTOGRAM *mcs_pdf, *mcs_cdf; // max cluster size
+  HISTOGRAM *ms_pdf, *ms_cdf;   // max sig
 } CLUSTER_SIM_DATA, CSD;
 
 CLUSTER_SIM_DATA *CSDalloc(void);
@@ -110,6 +112,9 @@ int CSDprint(FILE *fp, CSD *csd);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 			double ciPct, double *pvalLow, double *pvalHi);
 int CSDcheckSimType(char *simtype);
+int CSDpdf(CSD *csd);
+int CSDprintPDF(FILE *fp, CSD *csd);
+int CSDwritePDF(char *fname, CSD *csd);
 
 /*----------------------------------------------------------*/
 typedef struct {

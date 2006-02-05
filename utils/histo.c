@@ -1484,3 +1484,52 @@ HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
 
 	return(h_dst) ;
 }
+/*-------------------------------------------------------------------
+  HISTObins() - allocates histogram and assigns bin centers uniformly
+  between min and max. The first bin is centered at min. The last
+  bin is centered at max. This makes the bin size (max-min)/(nbins-1).
+  -------------------------------------------------------------------*/
+HISTO *HISTObins(int nbins, double min, double max)
+{
+  HISTO *h;
+  int n;
+
+  h = HISTOalloc(nbins);
+  h->bin_size = (max-min)/(nbins-1);
+  for(n=0; n < nbins; n++)  h->bins[n] = min + h->bin_size*n;
+  return(h);
+}
+/*-------------------------------------------------------------------
+  HISTOcount() - builds histogram based on samples. Must have already
+  allocated hist and set bin centers.
+  -------------------------------------------------------------------*/
+int HISTOcount(HISTO *h, double *samples, int nsamples)
+{
+  int n,bin;
+
+  for(n=0; n<nsamples; n++){
+    bin = HISTOvalToBin(h, samples[n]);
+    h->counts[bin] ++;
+  }
+  return(0);
+}
+/*----------------------------------------------------------
+  HISTOvalToBin() - returns the histogram bin number for
+  the given value.
+  ----------------------------------------------------------*/
+int HISTOvalToBin(HISTO *h, double val)
+{
+  int bin, nthbin;
+  double d,dmin;
+
+  bin = 0;
+  dmin = fabs(h->bins[0]-val);
+  for(nthbin=0; nthbin < h->nbins; nthbin++){
+    d = fabs(h->bins[nthbin]-val);
+    if(dmin > d){
+      dmin = d;
+      bin = nthbin;
+    }
+  }
+  return(bin);
+}

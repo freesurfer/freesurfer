@@ -1311,6 +1311,11 @@ int CSDfreeData(CLUSTER_SIM_DATA *csd)
     free(csd->MaxSig); 
     csd->MaxSig = NULL;
   }
+  if(csd->mcs_pdf) HISTOfree(&csd->mcs_pdf);
+  if(csd->mcs_cdf) HISTOfree(&csd->mcs_cdf);
+  if(csd->ms_pdf) HISTOfree(&csd->ms_pdf);
+  if(csd->ms_cdf) HISTOfree(&csd->ms_cdf);
+
   return(0);
 }
 /*--------------------------------------------------------------
@@ -1533,4 +1538,87 @@ int CSDcheckSimType(char *simtype)
   if(!strcmp(simtype,"mc-full"))   return(0);
   if(!strcmp(simtype,"mc-z"))      return(0);
   return(1);
+}
+
+/*-------------------------------------------------------------------
+  CSDpdf() - computes pdf and cdf of Maximum Cluster Size and
+  Maximum Sig. nbins = csd->nreps/10.
+-------------------------------------------------------------------*/
+int CSDpdf(CSD *csd)
+{
+  int     n;
+  int     nbins ;
+  float   min,max;
+
+  nbins = csd->nreps/10;
+
+  // Maximum Cluster Size ------------------------------------
+  min=csd->MaxClusterSize[0];
+  max=csd->MaxClusterSize[0];
+  for(n=0; n < csd->nreps; n++){
+    if(min > csd->MaxClusterSize[n]) min = csd->MaxClusterSize[n];
+    if(max < csd->MaxClusterSize[n]) max = csd->MaxClusterSize[n];
+  }
+  csd->mcs_pdf = HISTObins(nbins,min,max);
+  HISTOcount(csd->mcs_pdf,csd->MaxClusterSize,csd->nreps);
+
+  for(n=0; n < csd->mcs_pdf->nbins; n++){
+    //printf("%d %g %g\n",n,csd->mcs_pdf->bins[n],csd->mcs_pdf->counts[n]);
+    csd->mcs_pdf->counts[n] /= csd->nreps;
+  }
+  
+  csd->mcs_cdf = HISTOcopy(csd->mcs_pdf,NULL);
+  for(n=1; n < csd->mcs_pdf->nbins; n++)
+    csd->mcs_cdf->counts[n] = csd->mcs_cdf->counts[n-1] + csd->mcs_pdf->counts[n];
+
+  // Maximum Sig ------------------------------------
+  min=csd->MaxSig[0];
+  max=csd->MaxSig[0];
+  for(n=0; n < csd->nreps; n++){
+    if(min > csd->MaxSig[n]) min = csd->MaxSig[n];
+    if(max < csd->MaxSig[n]) max = csd->MaxSig[n];
+  }
+  csd->ms_pdf = HISTObins(nbins,min,max);
+  HISTOcount(csd->ms_pdf,csd->MaxSig,csd->nreps);
+
+  for(n=0; n < csd->ms_pdf->nbins; n++){
+    //printf("%d %g %g\n",n,csd->ms_pdf->bins[n],csd->ms_pdf->counts[n]);
+    csd->ms_pdf->counts[n] /= csd->nreps;
+  }
+  
+  csd->ms_cdf = HISTOcopy(csd->ms_pdf,NULL);
+  for(n=1; n < csd->ms_pdf->nbins; n++)
+    csd->ms_cdf->counts[n] = csd->ms_cdf->counts[n-1] + csd->ms_pdf->counts[n];
+
+  return(0);
+}
+/*------------------------------------------------------------------------*/
+int CSDprintPDF(FILE *fp, CSD *csd)
+{
+  int nthbin;
+
+  if(csd->mcs_pdf == NULL){
+    printf("ERROR: CSDprintPDF: csd pdf is NULL\n");
+    return(1);
+  }
+
+  // BinNo   MaxClustBin MaxClustPDF  MaxClustCDF    MaxSigBin MaxSigPDF MaxSigCDF
+  for(nthbin = 0; nthbin < csd->mcs_pdf->nbins; nthbin++){
+    fprintf(fp,"%3d    %f %f %f    %f %f %f \n",nthbin,
+	    csd->mcs_pdf->bins[nthbin],csd->mcs_pdf->counts[nthbin],csd->mcs_cdf->counts[nthbin],
+	    csd->ms_pdf->bins[nthbin],csd->ms_pdf->counts[nthbin],csd->ms_cdf->counts[nthbin]);
+  }
+  return(0);
+}
+/*------------------------------------------------------------------------*/
+int CSDwritePDF(char *fname, CSD *csd)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(!fp){
+    printf("ERROR: could not open %s\n",fname);
+    return(1);
+  }
+  CSDprintPDF(fp, csd);
+  return(0);
 }
