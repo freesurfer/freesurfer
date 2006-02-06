@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $
+  $Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -558,24 +558,24 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--src")){
+    else if(!strcmp(option, "--src") || !strcmp(option, "--in")){
       if(nargc < 1) argnerr(option,1);
       srcid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
 	srcfmt = pargv[1]; nargsused ++;
       }
     }
-    else if (!strcmp(option, "--srcsubj")){
+    else if(!strcmp(option, "--srcsubj") || !strcmp(option, "--subject")){
       if(nargc < 1) argnerr(option,1);
       srcsubjid = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcsurf")){
+    else if(!strcmp(option, "--srcsurf") || !strcmp(option, "--surf")){
       if(nargc < 1) argnerr(option,1);
       srcsurfid = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcframe")){
+    else if(!strcmp(option, "--srcframe") || !strcmp(option, "--frame")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&srcframe);
       nargsused = 1;
@@ -620,7 +620,7 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--thsign")){
+    else if(!strcmp(option, "--thsign") || !strcmp(option, "--sign")){
       if(nargc < 1) argnerr(option,1);
       thsign = pargv[0];
       if(!stringmatch(thsign,"abs") && 
@@ -758,22 +758,23 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --hemi hemi : lh or rh \n");
   printf("\n");
-  printf("   --src      srcid <fmt> : source of surface values    \n");
-  printf("   --srcsubj  subjid    : source surface subject (can be ico)\n");
-  printf("   --srcsurf  surface   : get coorindates from surface (white)\n");
-  printf("   --srcframe frameno   : 0-based frame number\n");
-  printf("   --thmin    threshold : minimum intensity threshold\n");
-  printf("   --thmax    threshold : maximum intensity threshold\n");
-  printf("   --thsign   sign      : <abs>, pos, neg for one-sided tests\n");
-  printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
+  printf("   --in infile : source of surface values \n");
+  printf("\n");
+  printf("   --thmin  threshold : minimum intensity threshold\n");
+  printf("   --thmax  threshold : maximum intensity threshold\n");
+  printf("   --sign   sign      : <abs> or pos/neg for one-sided tests\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   printf("\n");
+  printf("   --subject  subjid    : source surface subject (can be ico)\n");
+  printf("   --hemi hemi          : lh or rh \n");
+  printf("   --surf     surface   : get coorindates from surface (white)\n");
+  printf("   --frame frameno      : 0-based source frame number\n");
+  printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
-  printf("   --csdpdf csdpdffile\n");
-  printf("   --csdpdf-only : write csd pdf file and exit.\n");
-  printf("   --ocp ocp : value is cluster-wise pvalue\n");
+  printf("   --csdpdf csdpdffile : compute and save PDF/CDF file\n");
+  printf("   --csdpdf-only       : write csd pdf file and exit.\n");
+  printf("   --ocp ocp           : map of cluster-wise pvalue\n");
   printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
   printf("   --mask maskfile : constrain to be within mask\n");
@@ -783,6 +784,7 @@ static void print_usage(void)
   printf("   --ocn ocnid <fmt>    : value is cluster number \n");
   printf("   --olab labelbase     : output clusters as labels \n");
   printf("\n");
+  printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
   printf("   --sd subjects_dir : (default is env SUBJECTS_DIR)\n");
@@ -815,23 +817,26 @@ static void print_help(void)
 "to it. \n"
 "\n"
 "COMMAND-LINE ARGUMENTS\n"
+"--in inputfile \n"
+"\n"
+"This is the input data to the clustering program.\n"
+"Reads all formats supported by mri_convert.\n"
+"\n"
+"--subject subjectid\n"
+"\n"
+"Surface values are defined on this subject.\n"
 "\n"
 "--hemi hemi\n"
 "\n"
 "Specify the cortical hemisphere that the input represents. Valid values\n"
 "are lh and rh.\n"
 "\n"
-"--src srcid <fmt>\n"
-"\n"
-"This is the input data to the clustering program. Fmt is the format \n"
-"specification. Currently, only paint format is supported.\n"
-"\n"
-"--srcsurf surface\n"
+"--surf surface\n"
 "\n"
 "This is the surface to use when computing the talairach coordinagtes.\n"
 "Default is white.\n"
 "\n"
-"--srcframe frameno\n"
+"--frame frameno\n"
 "\n"
 "Zero-based frame number of the input file. Default is 0. For paint\n"
 "format, zero is the only possible value.\n"
@@ -976,7 +981,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.22 2006/02/05 18:52:41 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

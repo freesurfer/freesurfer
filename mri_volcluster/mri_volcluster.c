@@ -64,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.16 2006/02/05 18:59:28 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.17 2006/02/06 23:39:01 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.16 2006/02/05 18:59:28 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.17 2006/02/06 23:39:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -719,14 +719,15 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --in      input volid \n");
-  printf("   --in_type file format : only needed with .w files \n");
-  printf("   --frame   frameno <0>\n");
-  printf("   --reg     register.dat : for reporting talairach coords\n");
+  printf("   --in infile : source of volume values\n");
   printf("\n");
-  printf("   --thmin   minthresh\n");
-  printf("   --thmax   maxthresh (default is infinity)\n");
-  printf("   --sign    <abs>, neg, pos for one-sided tests\n");
+  printf("   --thmin   minthresh : minimum intensity threshold\n");
+  printf("   --thmax   maxthresh : maximum intensity threshold\n");
+  printf("   --sign    sign      : <abs> or pos/neg for one-sided tests\n");
+  printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("\n");
+  printf("   --reg     register.dat : for reporting talairach coords\n");
+  printf("   --frame   frameno <0>\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --csdpdf csdpdffile\n");
@@ -737,7 +738,6 @@ static void print_usage(void)
   printf("   --minsizevox minimum volume (voxels)\n");
   printf("   --mindist distance threshold <0>\n");
   printf("   --allowdiag  : define contiguity to include diagonal\n");
-  printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   printf("\n");
   printf("   --mask      mask volid (same dim as input)\n");
   printf("   --mask_type file format \n");
