@@ -617,6 +617,13 @@ ScubaLayer2DMRIS::ProcessOption ( string isOption, string isValue ) {
       SetVertexColor3d( color );
     }
 
+  } else if( 0 == isOption.compare( "linewidth" ) ) {
+    int width = (int) strtol( sValue, (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad width value" );
+    }
+    SetLineWidth( width );
+
   } else {
     
     return Layer::ProcessOption( isOption, isValue );
