@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $
+  $Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.24 2006/01/31 05:37:36 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -660,7 +660,8 @@ static int parse_commandline(int argc, char **argv)
       ProjFracDelta=1.0;
       nargsused = 1;
     }
-    else if (!strcmp(option, "--projfrac-int")){
+    else if(!strcmp(option, "--projfrac-int") || 
+	    !strcmp(option, "--projfrac-avg")){
       if(nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
@@ -677,7 +678,8 @@ static int parse_commandline(int argc, char **argv)
       ProjDistFlag = 1;
       nargsused = 1;
     }
-    else if (!strcmp(option, "--projdist-int")){
+    else if(!strcmp(option, "--projdist-int") ||
+	    !strcmp(option, "--projdist-avg")){
       if(nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
@@ -807,9 +809,9 @@ static void print_usage(void)
   printf("\n");
   printf(" Options for projecting along the surface normal:\n");
   printf("   --projfrac frac : (0->1)fractional projection along normal \n");  
-  printf("   --projfrac-int min max del : integrate along normal\n");  
+  printf("   --projfrac-avg min max del : average along normal\n");  
   printf("   --projdist mmdist : distance projection along normal \n");  
-  printf("   --projdist-int min max del : integrate along normal\n");  
+  printf("   --projdist-avg min max del : average along normal\n");  
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
@@ -937,8 +939,8 @@ static void print_help(void)
 "    Same as --projfrac but projects the given distance in mm at all\n"
 "    points of the surface regardless of thickness.\n"
 "\n"
-"  --projfrac-int min max delta\n"
-"  --projdist-int min max delta\n"
+"  --projfrac-avg min max delta\n"
+"  --projdist-avg min max delta\n"
 "\n"
 "    Same idea as --projfrac and --projdist, but sample at each of the points\n"
 "    between min and max at a spacing of delta. The samples are then averaged\n"
