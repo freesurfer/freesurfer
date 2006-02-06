@@ -2621,9 +2621,9 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     this->mnHeight = ipEvent->mWhere.mnY;
 
     /* force 1x1 aspect ratio (unless env var is set) */
-    //    if(getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
-    //this->mnWidth = this->mnHeight; // force 1x1 aspect ratio
-    //}
+    if(getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
+      this->mnWidth = this->mnHeight; // force 1x1 aspect ratio
+    }
 
     /* resize the opengl port */
     glutReshapeWindow ( this->mnWidth, this->mnHeight );
