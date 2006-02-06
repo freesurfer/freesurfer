@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.27 2005/08/24 19:48:08 fischl Exp $
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/24 19:48:08 $
-// Revision       : $Revision: 1.27 $
+// ID             : $Id: mri_segment.c,v 1.28 2006/02/06 20:37:32 nicks Exp $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/02/06 20:37:32 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.27 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.28 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +103,7 @@ main(int argc, char *argv[])
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.27 2005/08/24 19:48:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.28 2006/02/06 20:37:32 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -288,8 +288,12 @@ main(int argc, char *argv[])
 
     mri_old = MRIread(output_file_name) ;
     if (!mri_old)
-      ErrorPrintf(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
-                Progname, output_file_name) ;
+    {
+      ErrorPrintf
+	(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
+	 Progname, output_file_name) ;
+      exit(1);
+    }
     else
     {
       MRIcopyLabel(mri_old, mri_dst, WM_EDITED_ON_VAL) ;
