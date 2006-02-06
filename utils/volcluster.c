@@ -1542,7 +1542,7 @@ int CSDcheckSimType(char *simtype)
 
 /*-------------------------------------------------------------------
   CSDpdf() - computes pdf and cdf of Maximum Cluster Size and
-  Maximum Sig. nbins = csd->nreps/10.
+  Maximum Sig. nbins = sqrt(csd->nreps)
 -------------------------------------------------------------------*/
 int CSDpdf(CSD *csd)
 {
@@ -1550,7 +1550,8 @@ int CSDpdf(CSD *csd)
   int     nbins ;
   float   min,max;
 
-  nbins = csd->nreps/10;
+  nbins = sqrt(csd->nreps);
+  if(nbins == 0) nbins = 1;
 
   // Maximum Cluster Size ------------------------------------
   min=csd->MaxClusterSize[0];
