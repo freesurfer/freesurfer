@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.7 2006/02/06 19:51:00 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.8 2006/02/06 20:44:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -795,17 +795,16 @@ if($DoSegmentation) then
   echo "#@# WM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
 
-  if(! $DoCleanWM ) then
-    if(-e wm.mgz) then
-      set cmd = (cp wm.mgz wm.seg.mgz)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-    endif
+  if(! $DoCleanWM && -e wm.mgz) then
+    set cmd = (cp wm.mgz wm.seg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
   endif
   # ----------- Segment -------------------------
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
   set cmd = (mri_segment);
-  if(! $DoCleanWM) set cmd = ($cmd -keep)
+  if(! $DoCleanWM && -e wm.seg.mgz) set cmd = ($cmd -keep)
   set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
