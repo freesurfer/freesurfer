@@ -1,4 +1,4 @@
-## 
+##
 ## Makefile.am
 ##
 
@@ -177,7 +177,7 @@ MRISSUBDIRS=stim \
 	mris_twoclass \
 	mris_w_to_curv \
 	spherical_stats \
-	mris_volume 
+	mris_volume
 
 FSGDF=	mri_gdfglm \
 	mris_glm
@@ -197,7 +197,6 @@ MISCDIRS=histo_compute_joint_density \
 	test_window_env \
 	dngtester \
 	test_makevol \
-	paint \
 	scripts \
 	images \
 	distribution
@@ -232,7 +231,7 @@ SUBDIRS=unix \
 	mri_extract_largest_CC \
 	mri_compute_seg_overlap \
 	mris_ms_surface_CNR \
-	mri_concatenate_lta 
+	mri_concatenate_lta
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
