@@ -2272,6 +2272,95 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     }
     SetContrast( contrast );
 
+  } else if( 0 == isOption.compare( "visiblemin" ) ) {
+    float min = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad visible min value" );
+    }
+    SetMinVisibleValue( min );
+
+  } else if( 0 == isOption.compare( "visiblemax" ) ) {
+    float max = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad visible max value" );
+    }
+    SetMaxVisibleValue( max );
+
+  } else if( 0 == isOption.compare( "visible" ) ) {
+    // Value will be "min,max" so we need to separate out the three
+    // values.
+    vector<string> lResults;
+    Utilities::SplitString( isValue, ",", lResults );
+    if( 2 != lResults.size() ) {
+      throw runtime_error( "Couldn't parse two values from value string" );
+    }
+
+    // Covert each to a float.
+    float min = strtol( lResults[0].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert first value" );
+    }
+    
+    float max = strtol( lResults[1].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert second value" );
+    }
+
+    // Set the visible range.
+    SetMinVisibleValue( min );
+    SetMaxVisibleValue( max );
+
+  } else if( 0 == isOption.compare( "heatscalemin" ) ) {
+    float min = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad heat scale min value" );
+    }
+    SetHeatScaleMinThreshold( min );
+
+  } else if( 0 == isOption.compare( "heatscalemid" ) ) {
+    float mid = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad heat scale mid value" );
+    }
+    SetHeatScaleMidThreshold( mid );
+
+  } else if( 0 == isOption.compare( "heatscalemax" ) ) {
+    float max = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad heat scale max value" );
+    }
+    SetHeatScaleMaxThreshold( max );
+
+  } else if( 0 == isOption.compare( "heatscale" ) ) {
+    // Value will be "min,mid,max" so we need to separate out the
+    // three values.
+    vector<string> lResults;
+    Utilities::SplitString( isValue, ",", lResults );
+    if( 3 != lResults.size() ) {
+      throw runtime_error( "Couldn't parse three values from value string" );
+    }
+
+    // Covert each to a float.
+    float min = strtol( lResults[0].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert first value" );
+    }
+    
+    float mid = strtol( lResults[1].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert second value" );
+    }
+
+    float max = strtol( lResults[2].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert third value" );
+    }
+
+    // Set the heatscale thresholds.
+    SetHeatScaleMinThreshold( min );
+    SetHeatScaleMidThreshold( mid );
+    SetHeatScaleMaxThreshold( max );
+
   } else {
     
     return Layer::ProcessOption( isOption, isValue );
