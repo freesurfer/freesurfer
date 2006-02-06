@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $";
+"$Id: mris_fix_topology.c,v 1.41 2006/02/06 19:41:59 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $",
+     "$Id: mris_fix_topology.c,v 1.41 2006/02/06 19:41:59 nicks Exp $",
      "$Name:  $",
      cmdline);
 
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.40 2006/02/02 15:23:11 segonne Exp $",
+     "$Id: mris_fix_topology.c,v 1.41 2006/02/06 19:41:59 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -301,12 +301,15 @@ get_option(int argc, char *argv[])
       fprintf(stderr,"verbose mode on (default mode)\n");
       nargs = 0 ;
     }else if (!stricmp(option, "sphere_smooth"))
-    {
-			sphere_smooth=atoi(argv[2]);
-			fprintf(stderr,"smoothing spherical representation for %d iterations\n",sphere_smooth);
-			nargs=1;
-    }
-else if (!stricmp(option, "int"))
+      {
+	sphere_smooth=atoi(argv[2]);
+	fprintf
+	  (stderr,
+	   "smoothing spherical representation for %d iterations\n",
+	   sphere_smooth);
+	nargs=1;
+      }
+  else if (!stricmp(option, "int"))
     {
       noint = 0 ;
       nargs = 0 ;
@@ -647,10 +650,10 @@ print_usage(void)
   printf("\n");
   printf("Options:\n");
   printf("\n");
-  printf(" -orig origname   : name of orig surface\n");
+  printf(" -orig origname\n");
   printf(" -sphere spherename\n");
   printf(" -inflated inflatedname\n");
-  printf(" -wi : write fixed inflated\n");
+  printf(" -wi        : write fixed inflated\n");
   printf(" -verbose \n");
   printf(" -verbose_low \n");
   printf(" -warnings\n");
@@ -658,24 +661,23 @@ print_usage(void)
   printf(" -movies\n");
   printf(" -intersect : check if the final surface self-intersects\n");
   printf(" -mappings  : generate several different mappings\n");
-  printf(" -correct_defect nthD : correct nthD defect only\n");
-  printf(" -mri l_mri : ???\n");
-  printf(" -curv  l_curv  : ???\n");
-  printf(" -qcurv l_qcurv : ???\n");
-  printf(" -unmri l_unmri : ???\n");
-  printf(" -niters niters : stopping genetic algorithm after "
-         "niters iterations\n");
-  printf(" -genetic  : use genetic search\n");
-  printf(" -ga       : optmize genetic search\n");
-  printf(" -optimize : optmize genetic search\n");
-  printf(" -random N : use random search with N iterations\n");
-  printf(" -seed N   : set random number generator to seed N\n");
-  printf(" -diag     : sets DIAG_SAVE_DIAGS\n");
-  printf(" -mgz      : assume volumes are in mgz format\n");
-  printf(" -s N      : smooth corrected surface by N iterations\n");
-  printf(" -v D      : set diagnostic level to D\n");
-  printf(" -help     : print help and exit\n");
-  printf(" -version  : print version and exit\n");
+  printf(" -correct_defect N : correct defect N only\n");
+  //printf(" -mri l_mri : ???\n");
+  //printf(" -curv  l_curv  : ???\n");
+  //printf(" -qcurv l_qcurv : ???\n");
+  //printf(" -unmri l_unmri : ???\n");
+  printf(" -niters N         : stop genetic algorithm after N iterations\n");
+  printf(" -genetic   : use genetic search\n");
+  printf(" -ga        : optimize genetic search\n");
+  printf(" -optimize  : optimize genetic search\n");
+  printf(" -random N  : use random search with N iterations\n");
+  printf(" -seed N    : set random number generator to seed N\n");
+  printf(" -diag      : sets DIAG_SAVE_DIAGS\n");
+  printf(" -mgz       : assume volumes are in mgz format\n");
+  printf(" -s N       : smooth corrected surface by N iterations\n");
+  printf(" -v D       : set diagnostic level to D\n");
+  printf(" -help      : print help and exit\n");
+  printf(" -version   : print version and exit\n");
 }
 
 static void
