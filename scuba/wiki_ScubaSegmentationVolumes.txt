@@ -1,0 +1,33 @@
+= Segmentation Volumes =
+
+== Compared to Anatomical Volumes ==
+
+For the most part, segmentation volumes are simply anatomical volumes drawn with a LUT instead of in grayscale, and edited with values from a LUT table rather than explicit numerical values. So, it is a good idea to read the [:ScubaGuide/ScubaWorkingWithData/ScubaAnatomicalVolumes ScubaAnatomicalVolume] section first.
+
+== Loading ==
+
+Loading segmentation volumes from the menu bar is exactly the same as loading anatomical volumes; you don't even declare it as a segmentation volume until after it is loaded.
+
+You can specify a volume as a segmentation volume from the command line with the {{{colormap}}} option.
+
+{{{
+scuba -v segmentation.mgh:colormap=lut:drawzeroclear=1:lut=MyLUT
+}}}
+
+Use the {{{colormap}}} option to specify the {{{lut}}} value. Use the {{{drawzeroclear}}} option set to 1 to tell scuba to draw 0 values transparently, as is appropriate with segmentation volumes. Finally, use the {{{lut}}} option to specify an LUT to use. This will be the label of the LUT loaded. If your LUT is one of the ones loaded automatically by scuba, load up scuba first to see what label is applied to the LUT you wish to load.
+
+If you need to load a new color table, go to the Color LUTs panel, click the '''Make New LUT''' button, then click the '''Browse''' button to set the file name for your new LUT. Then you may change the label if you'd like.
+
+== Display Options ==
+
+To treat an anatomical volume as a segmentation volume, go to the Layer panel and select the '''LUT''' button. This will automatically set the '''Draw 0 values clear''' option to on. Then select the LUT to use from the '''LUT''' pull-down menu. 
+
+Most likely, you will want to enable info display in the label area for segmentation labels, so make sure to stop by the Views panel and check the '''Inf''' checkbox in the row that your segmentation volume is in.
+
+== Editing ==
+
+Editing segmentation volumes is done with the Voxel Editing and Voxel Filling tools. These are covered in the [:ScubaGuide/ScubaWorkingWithData/ScubaAnatomicalVolumes: ScubaAnatomicalVolume] section.
+
+== Saving ==
+
+Saving segmentation volumes is exactly like saving normal anatomical volumes. Just make sure the segmentation volume data collection is the one selected in the Data panel, and use one of the '''File->Save <data collection>...''' commands.
