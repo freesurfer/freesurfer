@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/07 20:09:35 $
-// Revision       : $Revision: 1.332 $
-char *MRI_C_VERSION = "$Revision: 1.332 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/07 23:43:34 $
+// Revision       : $Revision: 1.333 $
+char *MRI_C_VERSION = "$Revision: 1.333 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3763,7 +3763,7 @@ MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
       for (x = 0 ; x < width ; x++){
         for (f = 0 ; f < nframes ; f++){
           val = fabs(MRIgetVoxVal(mri_src,x,y,z,f));
-          MRIsetVoxVal(mri_src,x,y,z,f,val);
+          MRIsetVoxVal(mri_dst,x,y,z,f,val);
         }
       }
     }
