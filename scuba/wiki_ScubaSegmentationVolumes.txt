@@ -28,6 +28,18 @@ Most likely, you will want to enable info display in the label area for segmenta
 
 Editing segmentation volumes is done with the Voxel Editing and Voxel Filling tools. These are covered in the [:ScubaGuide/ScubaWorkingWithData/ScubaAnatomicalVolumes: ScubaAnatomicalVolume] section.
 
+== Histogram Fill ==
+
+There is a special tool for filling areas of a segmentation volume based on an anatomical volume. This tool displays a histogram of the current slice of an anatomical value and allows you to select ranges of values in that volume, and set the corresponding voxels in the segmentation to a specific label.
+
+To use this tool, have an anatomical volume and a segmentation volume loaded and declared as such, and use the '''Tools->Histogram Fill...''' command. In the following dialog box, specify your anatomical and segmentation volume. If you only want to take the histogram of an ROI, choose the ROI.
+
+The histogram will be computed for the current slice. Use the left mouse button to click and drag a range of values. This will create a new region in the histogram as a horizontal bar with a numerical label on it. Below the histogram, a new row will be added for this range, showing the value range and a pull-down menu. Use the pull-down menu to select a segmentation label from the current LUT.
+
+You can click and drag on a region bar with the middle mouse button to move the range, or click with the right button to delete that range.
+
+When you are done declaring ranges, click the '''OK''' button, and the values in the current slice of the segmentation will be set.
+
 == Saving ==
 
 Saving segmentation volumes is exactly like saving normal anatomical volumes. Just make sure the segmentation volume data collection is the one selected in the Data panel, and use one of the '''File->Save <data collection>...''' commands.
