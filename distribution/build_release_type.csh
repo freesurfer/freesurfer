@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.24 2006/02/07 02:07:16 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.25 2006/02/07 02:24:50 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -166,7 +166,7 @@ endif
 echo "CMD: grep -e ^\[M\]\  $CVSUPDATEF" >>& $OUTPUTF
 grep -e ^\[M\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!?"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!"
   echo "$msg" >>& $OUTPUTF
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
@@ -175,7 +175,7 @@ endif
 echo "CMD: grep -e ^\[C\]\  $CVSUPDATEF" >>& $OUTPUTF
 grep -e ^\[C\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!?"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!"
   echo "$msg" >>& $OUTPUTF
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
@@ -184,7 +184,7 @@ endif
 echo "CMD: grep -e ^\[R\]\  $CVSUPDATEF" >>& $OUTPUTF
 grep -e ^\[R\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!?"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!"
   echo "$msg" >>& $OUTPUTF
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
@@ -193,7 +193,7 @@ endif
 echo "CMD: grep -e ^\[A\]\  $CVSUPDATEF" >>& $OUTPUTF
 grep -e ^\[A\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!?"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!"
   echo "$msg" >>& $OUTPUTF
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
