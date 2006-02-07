@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.6 2006/02/07 20:31:39 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.7 2006/02/07 21:42:16 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -108,6 +108,7 @@ static double thresh=0;
 
 static int error_count=0;
 static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
+                              // set by cmd-line parm --maxerrs
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -422,6 +423,11 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%lf",&thresh);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--maxerrs")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&MAX_NUM_ERRORS);
+      nargsused = 1;
+    }
     else{
       if(surf1path == NULL){
         surf1path = option;
@@ -450,20 +456,26 @@ static void usage_exit(void)
 static void print_usage(void)
 {
   printf("USAGE: %s surf1 surf2\n",Progname) ;
-  printf("\n");
+  printf("OR: %s required:\n",Progname);
   printf("   --s1 subj1 \n");
   printf("   --s2 subj2 \n");
   printf("   --sd1 subj1_directory (default is SUBJECTS_DIR)\n");
   printf("   --sd2 subj2_directory (default is SUBJECTS_DIR)\n");
   printf("   --hemi hemi (rh or lh)\n");
+  printf("   and one of:\n");
   printf("   --surf surf\n");
   printf("   --curv curv\n");
   printf("   --aparc aparc\n");
   printf("\n");
-  printf("   --debug     turn on debugging\n");
-  printf("   --checkopts don't run anything, just check options and exit\n");
-  printf("   --help      print out information on how to use this program\n");
-  printf("   --version   print out version and exit\n");
+  printf("other options:\n");
+  printf("   --thresh N    threshold (default=0)\n");
+  printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
+	 MAX_NUM_ERRORS);
+  printf("\n");
+  printf("   --debug       turn on debugging\n");
+  printf("   --checkopts   don't run anything, just check options and exit\n");
+  printf("   --help        print out information on how to use program\n");
+  printf("   --version     print out version and exit\n");
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
