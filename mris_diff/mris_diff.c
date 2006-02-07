@@ -9,20 +9,20 @@
 // --debug
 
 /*
-BEGINHELP
+  BEGINHELP
 
-Determines whether two surfaces or surface-based files differ. 
-See below for what 'differ' means. 
+  Determines whether two surfaces or surface-based files differ.
+  See below for what 'differ' means.
 
-The basic usage is something like:
+  The basic usage is something like:
 
-mris_diff surf1 surf2
+  mris_diff surf1 surf2
 
-mris_diff --s1 subj1 --s2 subj2 --hemi lh --surf white
-same as:
-mris_diff SD/subj1/surf/hemi.surf SD/subj2/surf/hemi.surf
+  mris_diff --s1 subj1 --s2 subj2 --hemi lh --surf white
+  same as:
+  mris_diff SD/subj1/surf/hemi.surf SD/subj2/surf/hemi.surf
 
-Reads in surf1 and surf2, checks:
+  Reads in surf1 and surf2, checks:
   1. nvertices
   2. nfaces
   3. vtx->x
@@ -42,13 +42,13 @@ Reads in surf1 and surf2, checks:
   17. face vertex identities (3)
 
 
-mris_diff --s1 subj1 --s2 subj2 --hemi lh --curv curv
+  mris_diff --s1 subj1 --s2 subj2 --hemi lh --curv curv
   SD/subj1/surf/hemi.curv SD/subj2/surf/hemi.curv
 
-mris_diff --s1 subj1 --s2 subj2 --hemi lh --annot aparc
+  mris_diff --s1 subj1 --s2 subj2 --hemi lh --annot aparc
   SD/subj1/label/hemi.aparc SD/subj2/label/hemi.aparc.annot
 
-ENDHELP
+  ENDHELP
 */
 
 
@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.4 2005/12/12 05:26:06 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.5 2006/02/07 19:44:50 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -103,7 +103,7 @@ MRIS *surf1, *surf2;
 int CheckSurf=0;
 int CheckCurv=0;
 int CheckAParc=0;
-double thresh=0; 
+double thresh=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -163,13 +163,13 @@ int main(int argc, char *argv[])
   //Number of Vertices ----------------------------------------
   if(surf1->nvertices != surf2->nvertices){
     printf("Surfaces differ in number of vertices %d %d\n",
-	   surf1->nvertices,surf2->nvertices);
+           surf1->nvertices,surf2->nvertices);
     exit(101);
   }
   //Number of Faces ------------------------------------------
   if(surf1->nfaces != surf2->nfaces){
     printf("Surfaces differ in number of faces %d %d\n",
-	   surf1->nfaces,surf2->nfaces);
+           surf1->nfaces,surf2->nfaces);
     exit(101);
   }
 
@@ -185,49 +185,49 @@ int main(int argc, char *argv[])
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
       if(vtx1->ripflag != vtx2->ripflag){
-	printf("Vertex %d differs in ripflag %c %c\n",
-	       nthvtx,vtx1->ripflag,vtx2->ripflag);
-	exit(103);
+        printf("Vertex %d differs in ripflag %c %c\n",
+               nthvtx,vtx1->ripflag,vtx2->ripflag);
+        exit(103);
       }
       if(fabs(vtx1->x-vtx2->x)>thresh){
-	printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
-	exit(103);
+        printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
+        exit(103);
       }
       if(fabs(vtx1->y - vtx2->y)>thresh){
-	printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
-	exit(103);
+        printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
+        exit(103);
       }
       if(fabs(vtx1->z - vtx2->z)>thresh){
-	printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
-	exit(103);
+        printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
+        exit(103);
       }
       if(fabs(vtx1->nx - vtx2->nx)>thresh){
-	printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
-	exit(103);
+        printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
+        exit(103);
       }
       if(fabs(vtx1->ny - vtx2->ny)>thresh){
-	printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
-	exit(103);
+        printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
+        exit(103);
       }
       if(fabs(vtx1->nz - vtx2->nz)>thresh){
-	printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
-	exit(103);
+        printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
+        exit(103);
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
       if(nnbrs1 != nnbrs2){
-	printf("Vertex %d has a different number of neighbors %d %d\n",
-	       nthvtx,nnbrs1,nnbrs2);
-	exit(103);
+        printf("Vertex %d has a different number of neighbors %d %d\n",
+               nthvtx,nnbrs1,nnbrs2);
+        exit(103);
       }
       for(nthnbr=0; nthnbr < nnbrs1; nthnbr++){
-	nbrvtxno1 = surf1->vertices[nthvtx].v[nthnbr];
-	nbrvtxno2 = surf2->vertices[nthvtx].v[nthnbr];
-	if(nbrvtxno1 != nbrvtxno2){
-	  printf("Vertex %d has a differs in the identity of the "
-		 "%dth neighbor %d %d\n",nthvtx,nthnbr,nbrvtxno1,nbrvtxno2);
-	  exit(103);
-	}
+        nbrvtxno1 = surf1->vertices[nthvtx].v[nthnbr];
+        nbrvtxno2 = surf2->vertices[nthvtx].v[nthnbr];
+        if(nbrvtxno1 != nbrvtxno2){
+          printf("Vertex %d has a differs in the identity of the "
+                 "%dth neighbor %d %d\n",nthvtx,nthnbr,nbrvtxno1,nbrvtxno2);
+          exit(103);
+        }
       }
     }// loop over vertices
 
@@ -236,32 +236,33 @@ int main(int argc, char *argv[])
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
       if(fabs(face1->nx - face2->nx)>thresh){
-	printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
-	exit(103);
+        printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
+        exit(103);
       }
       if(fabs(face1->ny - face2->ny)>thresh){
-	printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
-	exit(103);
+        printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
+        exit(103);
       }
       if(fabs(face1->nz - face2->nz)>thresh){
-	printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
-	exit(103);
+        printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
+        exit(103);
       }
       if(fabs(face1->area - face2->area)>thresh){
-	printf("Face %d differs in area %g %g\n",nthface,face1->area,face2->area);
-	exit(103);
+        printf("Face %d differs in area %g %g\n",
+               nthface,face1->area,face2->area);
+        exit(103);
       }
       if(face1->ripflag != face2->ripflag){
-	printf("Face %d differs in ripflag %c %c\n",
-	       nthface,face1->ripflag,face2->ripflag);
-	exit(103);
+        printf("Face %d differs in ripflag %c %c\n",
+               nthface,face1->ripflag,face2->ripflag);
+        exit(103);
       }
       for(nthvtx = 0; nthvtx < 3; nthvtx++){
-	if(face1->v[nthvtx] != face2->v[nthvtx]){
-	  printf("Face %d differs in identity of %dth vertex %d %d\n",
-		 nthface,nthvtx,face1->ripflag,face2->ripflag);
-	  exit(103);
-	}
+        if(face1->v[nthvtx] != face2->v[nthvtx]){
+          printf("Face %d differs in identity of %dth vertex %d %d\n",
+                 nthface,nthvtx,face1->ripflag,face2->ripflag);
+          exit(103);
+        }
       } // end loop over nthface vertex
     } // end loop over faces
     printf("Surfaces are the same\n");
@@ -287,9 +288,9 @@ int main(int argc, char *argv[])
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
       if(fabs(vtx1->curv-vtx2->curv) > thresh){
-	printf("curv files differ at vertex %d %g %g\n",
-	       nthvtx,vtx1->curv,vtx2->curv);
-	exit(103);
+        printf("curv files differ at vertex %d %g %g\n",
+               nthvtx,vtx1->curv,vtx2->curv);
+        exit(103);
       }
     } // end loop over vertices
     printf("Curv files are the same\n");
@@ -300,14 +301,14 @@ int main(int argc, char *argv[])
   if(CheckAParc){
     printf("Checking AParc %s\n",aparcname);
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
-	    SUBJECTS_DIR,subject1,hemi,aparcname);
+            SUBJECTS_DIR,subject1,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
     if(MRISreadAnnotation(surf1, tmpstr)){
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
       exit(1);
     }
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
-	    SUBJECTS_DIR,subject2,hemi,aparcname);
+            SUBJECTS_DIR,subject2,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
     if(MRISreadAnnotation(surf2, tmpstr)){
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
@@ -317,9 +318,9 @@ int main(int argc, char *argv[])
       annot1 = surf1->vertices[nthvtx].annotation;
       annot2 = surf2->vertices[nthvtx].annotation;
       if(annot1 != annot2){
-	printf("aparc files differ at vertex %d %d %d\n",
-	       nthvtx,annot1,annot2);
-	exit(103);
+        printf("aparc files differ at vertex %d %d %d\n",
+               nthvtx,annot1,annot2);
+        exit(103);
       }
     } // end loop over vertices
     printf("AParc files are the same\n");
@@ -393,15 +394,15 @@ static int parse_commandline(int argc, char **argv)
     }
     else{
       if(surf1path == NULL){
-	surf1path = option;
-	CheckSurf=1;
+        surf1path = option;
+        CheckSurf=1;
       }
       else if(surf2path == NULL) surf2path = option;
       else{
-	fprintf(stderr,"ERROR: Option %s unknown\n",option);
-	if(CMDsingleDash(option))
-	  fprintf(stderr,"       Did you really mean -%s ?\n",option);
-	exit(-1);
+        fprintf(stderr,"ERROR: Option %s unknown\n",option);
+        if(CMDsingleDash(option))
+          fprintf(stderr,"       Did you really mean -%s ?\n",option);
+        exit(-1);
       }
     }
     nargc -= nargsused;
@@ -484,7 +485,7 @@ static void check_options(void)
     printf("ERROR: need subject names for relative path.\n");
     exit(1);
   }
-  if(surf1path == NULL && surfname == NULL && curvname == NULL 
+  if(surf1path == NULL && surfname == NULL && curvname == NULL
      && aparcname == NULL ){
     printf("ERROR: need --surf or --curv or --aparc with relative path.\n");
     exit(1);
