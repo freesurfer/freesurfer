@@ -33,6 +33,9 @@
 #include "volcluster.h"
 #include "version.h"
 
+double CSDvoxelwisePVal(double val, CSD *csd);
+MRI *CSDvoxelwiseSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig);
+
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
         int nslices, MATRIX **ppCRS2FSA,
         MATRIX **ppFSA2Func,
@@ -64,7 +67,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.17 2006/02/06 23:39:01 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.18 2006/02/07 05:50:08 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -133,6 +136,8 @@ double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
 char *csdpdffile = NULL;
 int csdpdfonly = 0;
 
+char *voxwisesigfile=NULL;
+MRI  *voxwisesig;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -146,7 +151,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.17 2006/02/06 23:39:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.18 2006/02/07 05:50:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -200,7 +205,7 @@ int main(int argc, char **argv)
     }
 
     binmask = MRIbinarize01(maskvol, maskthresh, -1, masksignstring, 
-          maskinvert, 0, 1, NULL);
+			    maskinvert, 0, 1, NULL);
     if(binmask == NULL) exit(1);
 
     if(outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
@@ -245,10 +250,16 @@ int main(int argc, char **argv)
       MRIsynthGaussian(0,0,0,0,vol);
   }
 
+  if(voxwisesigfile){
+    printf("Computing voxel-wise significance\n");
+    voxwisesig = CSDpvalMaxSigMap(vol, csd, binmask, NULL);
+    MRIwrite(voxwisesig,voxwisesigfile);
+  }
+
+
   /* Initialize the hit map - this is a map of voxels that have been
      accounted for as either outside of a the threshold range or
      belonging to a cluster. The initialization is for thresholding */
-  
   HitMap = clustInitHitMap(vol, frame, threshminadj, threshmaxadj, threshsign, 
          &nhits, &hitcol, &hitrow, &hitslc, 
          binmask, maskframe);
@@ -391,7 +402,11 @@ int main(int argc, char **argv)
   }
 
   fprintf(fpsum,"\n");  
-  fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max");
+  if(regfile)
+    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max");
+  else
+    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)        X      Y       Z              Max");
+
   if(csd != NULL)  fprintf(fpsum,"   CWP    CWPLow    CWPHi\n");
   else fprintf(fpsum,"\n");
 
@@ -589,6 +604,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outcntypestring = pargv[0];
       outcntype = string_to_type(outcntypestring);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--vwsig")){
+      if(nargc < 1) argnerr(option,1);
+      voxwisesigfile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--sum")){
@@ -1016,9 +1036,13 @@ static void check_options(void)
       printf("ERROR: need --csd with --csdpdf");
       exit(1);
     }
-    CSDpdf(csd);
+    CSDpdf(csd,-1);
     CSDwritePDF(csdpdffile,csd);
     if(csdpdfonly) exit(0);
+  }
+  if(voxwisesigfile != NULL && csd == NULL){
+    printf("ERROR: need csd with --vwsig\n");
+    exit(1);
   }
 
   if(volid == NULL){
@@ -1134,6 +1158,7 @@ static void check_options(void)
     printf("ERROR: --nlabelcluster must be specified with --label\n");
     err = 1;
   }
+
 
   if(err) exit(1);
   return;
@@ -1279,9 +1304,9 @@ static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices,
   for(col = 0; col < vol->width;   col++){
     for(row = 0; row < vol->height;  row++){
       for(slc = 0; slc < vol->depth;   slc++){
-  for(frm = 0; frm < vol->nframes; frm++){
-    MRIFseq_vox(vol,col,row,slc,frm) = (float)(-log10(drand48()));
-  }
+	for(frm = 0; frm < vol->nframes; frm++){
+	  MRIFseq_vox(vol,col,row,slc,frm) = (float)(-log10(drand48()));
+	}
       }
     }
   }
@@ -1308,9 +1333,9 @@ static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices,
   for(col = 0; col < vol->width;   col++){
     for(row = 0; row < vol->height;  row++){
       for(slc = 0; slc < vol->depth;   slc++){
-  for(frm = 0; frm < vol->nframes; frm++){
-    MRIFseq_vox(vol,col,row,slc,frm) = (float)Gaussian01PDF();
-  }
+	for(frm = 0; frm < vol->nframes; frm++){
+	  MRIFseq_vox(vol,col,row,slc,frm) = (float)Gaussian01PDF();
+	}
       }
     }
   }
@@ -1400,45 +1425,45 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
   for(col = 0; col < vol->width; col++){
     for(row = 0; row < vol->height; row++){
       for(slice = 0; slice < vol->depth; slice++){
-  for(frame = 0; frame < vol->nframes; frame++){
+	for(frame = 0; frame < vol->nframes; frame++){
 
-    switch ( vol->type ){
-    case MRI_UCHAR:
-      val = (float)(MRISCseq_vox(vol,col,row,slice,frame));
-      break;
-    case MRI_INT:
-      val = (float)(MRIIseq_vox(vol,col,row,slice,frame));
-      break;
-    case MRI_LONG:
-      val = (float)(MRILseq_vox(vol,col,row,slice,frame));
-      break;
-    case MRI_FLOAT:
-      val = (float)(MRIFseq_vox(vol,col,row,slice,frame));
-      break;
-    case MRI_SHORT:
-      val = (float)(MRISseq_vox(vol,col,row,slice,frame));
-      break;
-    }
+	  switch ( vol->type ){
+	  case MRI_UCHAR:
+	    val = (float)(MRISCseq_vox(vol,col,row,slice,frame));
+	    break;
+	  case MRI_INT:
+	    val = (float)(MRIIseq_vox(vol,col,row,slice,frame));
+	    break;
+	  case MRI_LONG:
+	    val = (float)(MRILseq_vox(vol,col,row,slice,frame));
+	    break;
+	  case MRI_FLOAT:
+	    val = (float)(MRIFseq_vox(vol,col,row,slice,frame));
+	    break;
+	  case MRI_SHORT:
+	    val = (float)(MRISseq_vox(vol,col,row,slice,frame));
+	    break;
+	  }
 
-    if(ithsign ==  0) val = fabs(val);
-    if(ithsign == -1) val = -val;
+	  if(ithsign ==  0) val = fabs(val);
+	  if(ithsign == -1) val = -val;
 
-    r = 0;
-    if(thmax > 0){
-      if(val >= thmin && val <= thmax) r = 1;
-    }
-    else{
-      if(val >= thmin ) r = 1;
-    }
+	  r = 0;
+	  if(thmax > 0){
+	    if(val >= thmin && val <= thmax) r = 1;
+	  }
+	  else{
+	    if(val >= thmin ) r = 1;
+	  }
 
-    if(invert) r = !r;
+	  if(invert) r = !r;
 
-    if(r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
-    else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
+	  if(r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
+	  else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
 
-    if(r) nhits ++;
+	  if(r) nhits ++;
 
-  }
+	}
       }
     }
   }
