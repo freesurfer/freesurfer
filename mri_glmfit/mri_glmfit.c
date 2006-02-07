@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.62 2006/02/01 05:58:04 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.63 2006/02/07 00:26:06 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -895,7 +895,7 @@ int main(int argc, char **argv)
     }
     printf("thresh = %g, threshadj = %g \n",csd->thresh,threshadj);
 
-    printf("Staring simulation sim over %d trials\n",nsim);
+    printf("Starting simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
     for(nthsim=0; nthsim < nsim; nthsim++){
       msecFitTime = TimerStop(&mytimer) ;
@@ -905,11 +905,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(FWHM > 0){
-	  printf("Smoothing Input ... \n");
-	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
-	  printf("   ... done\n");
-	}
+	if(FWHM > 0)	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
       }
       if(!strcmp(csd->simtype,"perm")) MatrixRandPermRows(mriglm->Xg);
 
@@ -960,11 +956,13 @@ int main(int argc, char **argv)
 	if(surf){
 	  // surface clustering -------------
 	  MRIScopyMRI(surf, sig, 0, "val");
+	  if(debug) printf("Clustering on surface\n");
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
 	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	} else {
 	  // volume clustering -------------
+	  if(debug) printf("Clustering on surface\n");
 	  VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
 					  mriglm->mask, &nClusters, NULL);
 	  csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
@@ -1896,11 +1894,13 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
 
   if(surf == NULL){
     gstd = SmthLevel/sqrt(log(256.0));
-    if(!DoSim) printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
+    if(!DoSim || debug) 
+      printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
   }
   else{
-    if(!DoSim) printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
+    if(!DoSim || debug)  
+      printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
     MRISsmoothMRI(surf, mri, SmthLevel, mri);
   }
   return(0);
