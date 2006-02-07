@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $
+  $Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -981,7 +981,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.23 2006/02/06 23:39:01 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -1016,7 +1016,7 @@ static void check_options(void)
       printf("ERROR: need --csd with --csdpdf");
       exit(1);
     }
-    CSDpdf(csd);
+    CSDpdf(csd,-1);
     CSDwritePDF(csdpdffile,csd);
     if(csdpdfonly) exit(0);
   }
