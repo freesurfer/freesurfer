@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.2 2006/02/07 20:33:20 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.3 2006/02/07 20:35:56 xhan Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -128,7 +128,7 @@ get_option(int argc, char *argv[])
       printf("threshold = %g\n", threshold);
       nargs = 1;
     }
-  if(!stricmp(option, "hemi"))
+  else if(!stricmp(option, "hemi"))
     {
       strcpy(hemi,argv[2]);
       printf("hemisphere = %s\n", hemi);
