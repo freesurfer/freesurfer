@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.28 2006/01/31 21:37:49 greve Exp $
+   $Id: fmriutils.c,v 1.29 2006/02/07 22:34:43 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.28 2006/01/31 21:37:49 greve Exp $");
+  return("$Id: fmriutils.c,v 1.29 2006/02/07 22:34:43 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -1451,8 +1451,10 @@ int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn,
   for(c=1; c < src->width-1; c++){
     for(r=1; r < src->height-1; r++){
       for(s=1; s < src->depth-1; s++){
-	m = MRIgetVoxVal(mask,c,r,s,0);
-	if(m < 0.5) continue;
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
 	if(MRIgetVoxVal(ar1,c,r,s,0) == 0) continue;
 
 	car1sum += MRIgetVoxVal(ar1,c,r,s,0);
