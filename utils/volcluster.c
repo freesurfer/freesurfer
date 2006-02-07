@@ -1644,8 +1644,15 @@ int CSDpdf(CSD *csd, int nbins)
   }
   
   csd->ms_cdf = HISTOcopy(csd->ms_pdf,NULL);
-  for(n=1; n < csd->ms_pdf->nbins; n++)
-    csd->ms_cdf->counts[n] = csd->ms_cdf->counts[n-1] + csd->ms_pdf->counts[n];
+  if(csd->threshsign >= 0){
+    for(n=1; n < csd->ms_pdf->nbins; n++)
+      csd->ms_cdf->counts[n] = csd->ms_cdf->counts[n-1] + csd->ms_pdf->counts[n];
+  } else {
+    // For neg sign, integrate from pos to neg because the tail is neg
+    for(n=csd->ms_pdf->nbins-2; n >= 0;  n--)
+      csd->ms_cdf->counts[n] = csd->ms_cdf->counts[n+1] + csd->ms_pdf->counts[n];
+  }
+
 
   return(0);
 }
