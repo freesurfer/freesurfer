@@ -409,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.64 2006/02/07 05:51:59 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.65 2006/02/07 22:17:20 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -926,7 +926,7 @@ int main(int argc, char **argv)
       // Go through each contrast
       for(n=0; n < mriglm->glm->ncontrasts; n++){
 	if(strcmp(csd->simtype,"mc-z")){
-	  // not a null z
+	  // simtype = perm or mc-full (not mc-z)
 	  sig  = MRIlog10(mriglm->p[n],sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
@@ -936,13 +936,20 @@ int main(int argc, char **argv)
 	else{
 	  // mc-z: synth z-field, smooth, rescale, compute p, compute sig
 	  // This should do the same thing as AFNI's AlphaSim
-	  RFsynth(z,rfs,mriglm->mask);
+	  // Synth and rescale without the mask, otherwise smoothing
+	  // smears the 0s into the mask area. Also, the stuff outisde
+	  // the mask area wont get zeroed.
+	  RFsynth(z,rfs,NULL);
 	  if(SmoothLevel > 0){
 	    SmoothSurfOrVol(surf, z, SmoothLevel);
-	    RFrescale(z,rfs,mriglm->mask,z);
+	    RFrescale(z,rfs,NULL,z);
 	  }
+
 	  if(csd->threshsign == 0) MRIabs(z,z); // two-tailed
+	  if(csd->threshsign < 0) MRIscalarMul(z,z,-1.0); // negate
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
+	  if(csd->threshsign < 0) MRIscalarMul(z,z,-1.0); // restore
+
 	  sig = MRIlog10(mriglm->p[n],sig,1);
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
