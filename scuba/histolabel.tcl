@@ -86,13 +86,16 @@ proc MakeHistogram { ifwTop iwwTop args } {
 proc hl_SetLabelColorTable { ilValueNameColors } {
     global gaHisto
     set gaHisto(CLUT,valueList) {}
+    set nEntry 0
     foreach valueNameColor $ilValueNameColors {
 	set value [lindex $valueNameColor 0]
 	set sName [lindex $valueNameColor 1]
 	set color [lindex $valueNameColor 2]
 	lappend gaHisto(CLUT,valueList) $value
-	set gaHisto(CLUT,$value,name) $sName
-	set gaHisto(CLUT,$value,color) $color
+	set gaHisto(CLUT,$nEntry,name) "$sName"
+	set gaHisto(CLUT,$nEntry,value) $value
+	set gaHisto(CLUT,$nEntry,color) $color
+	incr nEntry
     }
 }
 
@@ -183,20 +186,23 @@ proc hl_FillValueMenu { iow iID } {
     }
 
     # For each value...
+    set nEntry 0
     foreach value $gaHisto(CLUT,valueList) {
 
 	# If we have more than 30, we're adding it to one of our
 	# submenus. Otherwise, we're adding to the main menu.
 	if { [llength $gaHisto(CLUT,valueList)] > 30 } {
-	    set curMenu $iow.mw.mw[expr $value / 30]
+	    set curMenu $iow.mw.mw[expr $nEntry / 30]
 	} else {
 	    set curMenu $iow.mw
 	}
 
 	# Add the item.
 	$curMenu add command \
-	    -command "hl_ValueManuCallback $iID $value" \
-	    -label $gaHisto(CLUT,$value,name)
+	    -command "hl_ValueManuCallback $iID $nEntry" \
+	    -label $gaHisto(CLUT,$nEntry,name)
+
+	incr nEntry
     }
 }
 
@@ -264,7 +270,7 @@ proc hl_NewLabelBegin { ibwHisto iX } {
     incr gaHisto(label,nextID)
     set gaHisto(label,currentID) $id
     set gaHisto(label,$id,value) [lindex $gaHisto(CLUT,valueList) 0]
-    set gaHisto(label,$id,color) $gaHisto(CLUT,$gaHisto(label,$id,value),color)
+    set gaHisto(label,$id,color) $gaHisto(CLUT,0,color)
     set gaHisto(event,anchor) $iX
     set gaHisto(label,$id,begin) $iX
     set gaHisto(label,$id,end) $iX
@@ -375,15 +381,15 @@ proc hl_NewLabelRow { iID } {
     pack $fw -expand true -fill x
 }
 
-proc hl_ValueManuCallback { iID iValue } {
+proc hl_ValueManuCallback { iID inEntry } {
     global gaHisto
-    set gaHisto(label,$iID,value) $iValue
-    set gaHisto(label,$iID,color) $gaHisto(CLUT,$iValue,color)
+    set gaHisto(label,$iID,value) $gaHisto(CLUT,$inEntry,value)
+    set gaHisto(label,$iID,color) $gaHisto(CLUT,$inEntry,color)
     $gaHisto(widget,label).fw-$iID configure \
 	-highlightthickness 2 \
 	-highlightbackground $gaHisto(label,$iID,color)
     hl_DrawHistogram
-    $gaHisto(widget,valueMenu,$iID) config -text $gaHisto(CLUT,$iValue,name)
+    $gaHisto(widget,valueMenu,$iID) config -text $gaHisto(CLUT,$inEntry,name)
 }
 
 proc hl_DeleteLabelRow { iID } {

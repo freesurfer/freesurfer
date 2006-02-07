@@ -36,6 +36,8 @@ class ScubaColorLUT : public DebugReporter, public IDTracker<ScubaColorLUT>, pub
   void GetColorAtIndex ( int iIndex, int oColor[3] );
   void GetIndexOfColor ( int iColor[3], int& oIndex );
 
+  bool IsEntryValid ( int inIndex );
+
   std::string GetLabelAtIndex ( int iIndex );
 
   int GetNumberOfEntries () { return mEntries.size(); }
@@ -51,7 +53,7 @@ class ScubaColorLUT : public DebugReporter, public IDTracker<ScubaColorLUT>, pub
 
   std::string mfnLUT;
   int mcEntries;
-  struct LUTEntry { std::string msLabel; int color[3]; };
+  struct LUTEntry { bool mbValid; std::string msLabel; int color[3]; };
   std::map<int,LUTEntry> mEntries; 
 
   std::string msLabel;

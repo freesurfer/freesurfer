@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.175 2006/02/03 18:05:35 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.176 2006/02/07 19:49:09 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5790,7 +5790,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.175 2006/02/03 18:05:35 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.176 2006/02/07 19:49:09 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6110,11 +6110,13 @@ proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
     set cEntries [GetColorLUTNumberOfEntries $lutID]
     for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
 
-	set sLabel [GetColorLUTEntryLabel $lutID $nEntry]
-	set RGBFloat [GetColorLUTEntryRGB $lutID $nEntry]
-	set RGBHex [hl_IntRGBColorToHexString [lindex $RGBFloat 0] [lindex $RGBFloat 2] [lindex $RGBFloat 2]]
+	if { [IsColorLUTEntryValid $lutID $nEntry] } {
+	    set sLabel [GetColorLUTEntryLabel $lutID $nEntry]
+	    set RGBFloat [GetColorLUTEntryRGB $lutID $nEntry]
+	    set RGBHex [hl_IntRGBColorToHexString [lindex $RGBFloat 0] [lindex $RGBFloat 2] [lindex $RGBFloat 2]]
 
-	lappend lCLUT [list $nEntry $sLabel \#$RGBHex]
+	    lappend lCLUT [list $nEntry $sLabel \#$RGBHex]
+	}
     }
 
     # Get source label.

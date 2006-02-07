@@ -34,7 +34,10 @@ ScubaColorLUT::ScubaColorLUT() {
   commandMgr.AddCommand( *this, "GetColorLUTEntryRGB", 2, "lutID entry",
 			 "Returns the rgb values (0-255) for an entry "
 			 "in an LUT." );
-
+  commandMgr.AddCommand( *this, "IsColorLUTEntryValid", 2, "lutID entry",
+			 "Returns whether or not an entry is valid. Can "
+			 "be invalid if it's out of range or was missing "
+			 "from the LUT." );
 }
 
 ScubaColorLUT::~ScubaColorLUT() {
@@ -55,7 +58,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "SetColorLUTLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -70,7 +73,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetColorLUTLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -86,7 +89,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "SetColorLUTFileName" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -100,7 +103,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetColorLUTFileName" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -116,7 +119,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetColorLUTNumberOfEntries" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -132,7 +135,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetColorLUTEntryLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -160,7 +163,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetColorLUTEntryRGB" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+      sResult = "bad lut ID";
       return error;
     }
     
@@ -186,6 +189,28 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
     }
   }
 
+  // IsColorLUTEntryValid <lutID> <entry>
+  if( 0 == strcmp( isCommand, "IsColorLUTEntryValid" ) ) {
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad lut ID";
+      return error;
+    }
+    
+    if( mID == lutID ) {
+
+      int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad entry index";
+	return error;
+      }
+    
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << IsEntryValid( nEntry );
+      sReturnValues = ssReturnValues.str();
+    }
+  }
 
 
   return ok;
@@ -207,6 +232,16 @@ void
 ScubaColorLUT::GetIndexOfColor ( int[3], int& ) {
 
   
+}
+
+bool 
+ScubaColorLUT::IsEntryValid ( int inIndex ) {
+
+  if( inIndex >= 0 && inIndex < mcEntries ) {
+    return mEntries[inIndex].mbValid;
+  } else  {
+    return false;
+  }
 }
 
 string 
@@ -252,6 +287,7 @@ ScubaColorLUT::ReadFile () {
 	continue;
       }
 
+      mEntries[nEntry].mbValid = true;
       mEntries[nEntry].color[0] = red;
       mEntries[nEntry].color[1] = green;
       mEntries[nEntry].color[2] = blue;
@@ -260,6 +296,7 @@ ScubaColorLUT::ReadFile () {
     
       if( nEntry != nLastEntry + 1 ) {
 	for( int i = nLastEntry+1; i < nEntry; i++ ) {
+	  mEntries[i].mbValid = false;
 	  mEntries[i].color[0] = 255;
 	  mEntries[i].color[1] = 0;
 	  mEntries[i].color[2] = 0;
