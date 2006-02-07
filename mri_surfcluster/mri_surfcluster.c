@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $
+  $Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -134,6 +134,9 @@ MRI *merged, *mask;
 double thminadj, thmaxadj;
 int AdjustThreshWhenOneTail=1;
 
+char *voxwisesigfile=NULL;
+MRI  *voxwisesig;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -147,7 +150,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -332,6 +335,14 @@ int main(int argc, char **argv)
     totarea += srcsurf->faces[vtx].area;
   printf("surface area %f\n",totarea);
 
+  if(voxwisesigfile){
+    printf("Computing voxel-wise significance\n");
+    srcval = MRIcopyMRIS(NULL,srcsurf,0,"val");
+    voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL);
+    MRIwrite(voxwisesig,voxwisesigfile);
+    MRIfree(&srcval);
+    MRIfree(&voxwisesig);
+  }
 
   /*---------------------------------------------------------*/
   /* This is where all the action is */
@@ -714,12 +725,17 @@ static int parse_commandline(int argc, char **argv)
 	  ocnfmt = type_to_string(ocnfmtid);
       }
     }
-    else if (!strcmp(option, "--ocp")){
+    else if(!strcmp(option, "--cwsig") || !strcmp(option, "--ocp") ){
       if(nargc < 1) argnerr(option,1);
       ocpvalid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
 	ocpvalfmt = pargv[1]; nargsused ++;
       }
+    }
+    else if (!strcmp(option, "--vwsig")){
+      if(nargc < 1) argnerr(option,1);
+      voxwisesigfile = pargv[0];
+      nargsused = 1;
     }
     else if (!strcmp(option, "--olab")){
       if(nargc < 1) argnerr(option,1);
@@ -772,9 +788,10 @@ static void print_usage(void)
   printf("   --frame frameno      : 0-based source frame number\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
-  printf("   --csdpdf csdpdffile : compute and save PDF/CDF file\n");
-  printf("   --csdpdf-only       : write csd pdf file and exit.\n");
-  printf("   --ocp ocp           : map of cluster-wise pvalue\n");
+  printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
+  printf("   --cwsig cwsig : map of cluster-wise significances\n");
+  printf("   --csdpdf csdpdffile\n");
+  printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
   printf("   --mask maskfile : constrain to be within mask\n");
@@ -879,9 +896,12 @@ static void print_help(void)
 "     multiple comparisons\n"
 "  2. CWPLow - lower 90%% confidence limit of CWP based on binomial distribution\n"
 "  3. CWPHi  - upper 90%% confidence limit of CWP based on binomial distribution\n"
-"In addition, the user can specify --ocp, which saves the sigificance map of \n"
+"In addition, the user can specify --cwsig, which saves the sigificance map of \n"
 "the clusters in which the value of each vertex is the -log10(pvalue) of cluster\n"
-"to which the vertex belongs.\n"
+"to which the vertex belongs (the cluster-wise significance). The user can also\n"
+"specify that the vertex-wise significance be computed and saved  with --vwsig.\n"
+"The significance is based on the distribution of the maximum significances \n"
+"found during the CSD simulation.\n"
 "\n"
 "--csdpdf csdpdfile\n"
 "\n"
@@ -981,7 +1001,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.24 2006/02/07 05:50:34 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -1052,6 +1072,11 @@ static void check_options(void)
     }
     minarea = 0;
   } // end csd != NULL
+  if(voxwisesigfile != NULL && csd == NULL){
+    printf("ERROR: need csd with --vwsig\n");
+    exit(1);
+  }
+
   if(thsign == NULL) thsign = "abs";
   if(stringmatch(thsign,"pos")) thsignid = +1;
   if(stringmatch(thsign,"abs")) thsignid =  0;
