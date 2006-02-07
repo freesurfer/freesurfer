@@ -26,7 +26,6 @@ USAGE: ./mri_glmfit
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
    --mask-inv : invert mask
-   --save-mask : save final mask to glmdir/mask.mgh
 
    --surf subject hemi : needed for some flags (uses white by default)
 
@@ -136,7 +135,7 @@ The outputs will be saved in mgh format as:
   y.fsgd - fsgd file (if one was input)
   wn.mgh - normalized weights (with --w)
   yhat.mgh - signal estimate (with --save-yhat)
-  mask.mgh - final mask (with --save-mask)
+  mask.mgh - final mask (when a mask is used)
   cond.mgh - design matrix condition at each voxel (with --save-cond)
   contrast1name/ - directory for each contrast (see --C)
     C.dat - copy of contrast matrix
@@ -230,14 +229,13 @@ assumes that the input is a volume and will perform volume smoothing.
 --mask maskfile
 --label labelfile
 --mask-inv
---save-mask
 
 Only perform analysis where mask=1. All other voxels will be set to 0. 
 If using surface, then labelfile will be converted to a binary mask 
 (requires --surf). If --mask-inv is flagged, then performs analysis 
 only where mask=0. If performing a simulation (--sim), map maximums
-and clusters will only be searched for in the mask. --save-mask
-will save final mask in glmdir/mask.mgh
+and clusters will only be searched for in the mask. The final binary
+mask will automatically be saved in glmdir/mask.mgh
 
 --surf subject hemi
 
@@ -411,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.63 2006/02/07 00:26:06 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.64 2006/02/07 05:51:59 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -423,7 +421,6 @@ char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int condSave=0;
-int maskSave=0;
 
 char *labelFile=NULL;
 LABEL *clabel=NULL;
@@ -664,7 +661,7 @@ int main(int argc, char **argv)
   if(mriglm->mask){
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
-    if(!DontSave && maskSave){
+    if(!DontSave){
       sprintf(tmpstr,"%s/mask.mgh",GLMDir);
       printf("Saving mask to %s\n",tmpstr);
       MRIwrite(mriglm->mask,tmpstr);
@@ -1199,7 +1196,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
-    else if (!strcasecmp(option, "--save-mask")) maskSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
@@ -1552,7 +1548,7 @@ printf("  rstd.mgh - residual error stddev (just sqrt of rvar)\n");
 printf("  y.fsgd - fsgd file (if one was input)\n");
 printf("  wn.mgh - normalized weights (with --w)\n");
 printf("  yhat.mgh - signal estimate (with --save-yhat)\n");
-printf("  mask.mgh - final mask (with --save-mask)\n");
+printf("  mask.mgh - final mask (when a mask is used)\n");
 printf("  cond.mgh - design matrix condition at each voxel (with --save-cond)\n");
 printf("  contrast1name/ - directory for each contrast (see --C)\n");
 printf("    C.dat - copy of contrast matrix\n");
@@ -1646,14 +1642,13 @@ printf("\n");
 printf("--mask maskfile\n");
 printf("--label labelfile\n");
 printf("--mask-inv\n");
-printf("--save-mask\n");
 printf("\n");
 printf("Only perform analysis where mask=1. All other voxels will be set to 0. \n");
 printf("If using surface, then labelfile will be converted to a binary mask \n");
 printf("(requires --surf). If --mask-inv is flagged, then performs analysis \n");
 printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
-printf("and clusters will only be searched for in the mask. --save-mask\n");
-printf("will save final mask in glmdir/mask.mgh\n");
+printf("and clusters will only be searched for in the mask. The final binary\n");
+printf("mask will automatically be saved in glmdir/mask.mgh\n");
 printf("\n");
 printf("--surf subject hemi\n");
 printf("\n");
@@ -1761,6 +1756,7 @@ printf("rebuild the design matrix with alternating +1 and -1s. Same\n");
 printf("as the -1 option to FSL's randomise.\n");
 printf("\n");
 printf("\n");
+
   exit(1) ;
 }
 /* ------------------------------------------------------ */
@@ -1834,12 +1830,6 @@ static void check_options(void)
     printf("ERROR: cannot use variance smoothing with mc-z simulation\n");
     exit(1);
   }
-
-  if(maskSave && (maskFile==NULL && labelFile==NULL)){
-    printf("ERROR: need mask with --save-mask\n");
-    exit(1);
-  }
-
 
   return;
 }
