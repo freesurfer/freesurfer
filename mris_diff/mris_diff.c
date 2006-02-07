@@ -86,24 +86,28 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.5 2006/02/07 19:44:50 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.6 2006/02/07 20:31:39 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
-int debug=0;
-int checkoptsonly=0;
-struct utsname uts;
+static int debug=0;
+static int checkoptsonly=0;
+static struct utsname uts;
 
-char *subject1=NULL, *subject2=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
-char *curvname=NULL, *aparcname=NULL,*surfname=NULL;
-char *surf1path=NULL, *surf2path=NULL;
-char tmpstr[2000];
+static char *subject1=NULL, *subject2=NULL, *hemi=NULL;
+static char *SUBJECTS_DIR=NULL, *SUBJECTS_DIR1=NULL, *SUBJECTS_DIR2=NULL;
+static char *curvname=NULL, *aparcname=NULL,*surfname=NULL;
+static char *surf1path=NULL, *surf2path=NULL;
+static char tmpstr[2000];
 
-MRIS *surf1, *surf2;
+static MRIS *surf1, *surf2;
 
-int CheckSurf=0;
-int CheckCurv=0;
-int CheckAParc=0;
-double thresh=0;
+static int CheckSurf=0;
+static int CheckCurv=0;
+static int CheckAParc=0;
+static double thresh=0;
+
+static int error_count=0;
+static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -135,14 +139,17 @@ int main(int argc, char *argv[])
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
+  if(SUBJECTS_DIR1 == NULL) SUBJECTS_DIR1 = SUBJECTS_DIR;
+  if(SUBJECTS_DIR2 == NULL) SUBJECTS_DIR2 = SUBJECTS_DIR;
+
   if(surf1path == NULL && surfname == NULL) surfname = "orig";
 
   if(surf1path == NULL){
-    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject1,hemi,surfname);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR1,subject1,hemi,surfname);
     surf1path = strcpyalloc(tmpstr);
   }
   if(surf2path == NULL){
-    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject2,hemi,surfname);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR2,subject2,hemi,surfname);
     surf2path = strcpyalloc(tmpstr);
   }
   dump_options(stdout);
@@ -181,44 +188,45 @@ int main(int argc, char *argv[])
     printf("Comparing surfaces\n");
 
     // Loop over vertices ---------------------------------------
+    error_count=0;
     for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++){
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
       if(vtx1->ripflag != vtx2->ripflag){
         printf("Vertex %d differs in ripflag %c %c\n",
                nthvtx,vtx1->ripflag,vtx2->ripflag);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->x-vtx2->x)>thresh){
         printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->y - vtx2->y)>thresh){
         printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->z - vtx2->z)>thresh){
         printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->nx - vtx2->nx)>thresh){
         printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->ny - vtx2->ny)>thresh){
         printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(vtx1->nz - vtx2->nz)>thresh){
         printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
       if(nnbrs1 != nnbrs2){
         printf("Vertex %d has a different number of neighbors %d %d\n",
                nthvtx,nnbrs1,nnbrs2);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       for(nthnbr=0; nthnbr < nnbrs1; nthnbr++){
         nbrvtxno1 = surf1->vertices[nthvtx].v[nthnbr];
@@ -226,45 +234,51 @@ int main(int argc, char *argv[])
         if(nbrvtxno1 != nbrvtxno2){
           printf("Vertex %d has a differs in the identity of the "
                  "%dth neighbor %d %d\n",nthvtx,nthnbr,nbrvtxno1,nbrvtxno2);
-          exit(103);
+          if(++error_count>=MAX_NUM_ERRORS) break;
         }
       }
+      if(error_count>=MAX_NUM_ERRORS) break;
     }// loop over vertices
+    if(error_count > 0) exit(103);
 
     // Loop over faces ----------------------------------------
+    error_count=0;
     for(nthface=0; nthface < surf1->nfaces; nthface++){
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
       if(fabs(face1->nx - face2->nx)>thresh){
         printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(face1->ny - face2->ny)>thresh){
         printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(face1->nz - face2->nz)>thresh){
         printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(fabs(face1->area - face2->area)>thresh){
         printf("Face %d differs in area %g %g\n",
                nthface,face1->area,face2->area);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(face1->ripflag != face2->ripflag){
         printf("Face %d differs in ripflag %c %c\n",
                nthface,face1->ripflag,face2->ripflag);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
       for(nthvtx = 0; nthvtx < 3; nthvtx++){
         if(face1->v[nthvtx] != face2->v[nthvtx]){
           printf("Face %d differs in identity of %dth vertex %d %d\n",
                  nthface,nthvtx,face1->ripflag,face2->ripflag);
-          exit(103);
+          if(++error_count>=MAX_NUM_ERRORS) break;
         }
       } // end loop over nthface vertex
+      if(error_count>=MAX_NUM_ERRORS) break;
     } // end loop over faces
+    if(error_count > 0) exit(103);
+
     printf("Surfaces are the same\n");
     exit(0);
   } // end check surf
@@ -272,27 +286,29 @@ int main(int argc, char *argv[])
   // -----------------------------------------------------------------
   if(CheckCurv){
     printf("Checking curv file %s\n",curvname);
-    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject1,hemi,curvname);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR1,subject1,hemi,curvname);
     printf("Loading curv file %s\n",tmpstr);
     if(MRISreadCurvatureFile(surf1, tmpstr) != 0){
       printf("ERROR: reading curvature file %s\n",tmpstr);
       exit(1);
     }
-    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject2,hemi,curvname);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR2,subject2,hemi,curvname);
     printf("Loading curv file %s\n",tmpstr);
     if(MRISreadCurvatureFile(surf2, tmpstr) != 0){
       printf("ERROR: reading curvature file %s\n",tmpstr);
       exit(1);
     }
+    error_count=0;
     for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++){
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
       if(fabs(vtx1->curv-vtx2->curv) > thresh){
         printf("curv files differ at vertex %d %g %g\n",
                nthvtx,vtx1->curv,vtx2->curv);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
+    if(error_count > 0) exit(103);
     printf("Curv files are the same\n");
     exit(0);
   } // end check curv
@@ -301,34 +317,38 @@ int main(int argc, char *argv[])
   if(CheckAParc){
     printf("Checking AParc %s\n",aparcname);
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
-            SUBJECTS_DIR,subject1,hemi,aparcname);
+            SUBJECTS_DIR1,subject1,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
     if(MRISreadAnnotation(surf1, tmpstr)){
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
       exit(1);
     }
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
-            SUBJECTS_DIR,subject2,hemi,aparcname);
+            SUBJECTS_DIR2,subject2,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
     if(MRISreadAnnotation(surf2, tmpstr)){
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
       exit(1);
     }
+    error_count=0;
     for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++){
       annot1 = surf1->vertices[nthvtx].annotation;
       annot2 = surf2->vertices[nthvtx].annotation;
       if(annot1 != annot2){
         printf("aparc files differ at vertex %d %d %d\n",
                nthvtx,annot1,annot2);
-        exit(103);
+        if(++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
+    if(error_count > 0) exit(103);
     printf("AParc files are the same\n");
     exit(0);
   }
 
   return 0;
 }
+
+
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
 {
@@ -337,7 +357,7 @@ static int parse_commandline(int argc, char **argv)
 
   if(argc < 1) usage_exit();
 
-  nargc   = argc;
+  nargc = argc;
   pargv = argv;
   while(nargc > 0){
 
@@ -362,6 +382,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--s2")){
       if(nargc < 1) CMDargNErr(option,1);
       subject2 = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sd1")){
+      if(nargc < 1) CMDargNErr(option,1);
+      SUBJECTS_DIR1 = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sd2")){
+      if(nargc < 1) CMDargNErr(option,1);
+      SUBJECTS_DIR2 = pargv[0];
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--hemi")){
@@ -423,7 +453,9 @@ static void print_usage(void)
   printf("\n");
   printf("   --s1 subj1 \n");
   printf("   --s2 subj2 \n");
-  printf("   --hemi hemi\n");
+  printf("   --sd1 subj1_directory (default is SUBJECTS_DIR)\n");
+  printf("   --sd2 subj2_directory (default is SUBJECTS_DIR)\n");
+  printf("   --hemi hemi (rh or lh)\n");
   printf("   --surf surf\n");
   printf("   --curv curv\n");
   printf("   --aparc aparc\n");
@@ -505,21 +537,23 @@ static void dump_options(FILE *fp)
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"%s\n",Progname);
   fprintf(fp,"FREESURFER_HOME %s\n",getenv("FREESURFER_HOME"));
-  fprintf(fp,"SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
-  fprintf(fp,"cwd       %s\n",cwd);
-  fprintf(fp,"cmdline   %s\n",cmdline);
-  fprintf(fp,"timestamp %s\n",VERcurTimeStamp());
-  fprintf(fp,"sysname   %s\n",uts.sysname);
-  fprintf(fp,"hostname  %s\n",uts.nodename);
-  fprintf(fp,"machine   %s\n",uts.machine);
-  fprintf(fp,"user      %s\n",VERuser());
-  fprintf(fp,"surf1path %s\n",surf1path);
-  fprintf(fp,"surf2path %s\n",surf2path);
-  if(subject1) fprintf(fp,"subject1 %s\n",subject1);
-  if(subject2) fprintf(fp,"subject2 %s\n",subject2);
-  if(hemi)     fprintf(fp,"hemi     %s\n",hemi);
-  if(surfname) fprintf(fp,"surfname %s\n",surfname);
-  if(curvname) fprintf(fp,"curvname %s\n",curvname);
+  fprintf(fp,"SUBJECTS_DIR    %s\n",getenv("SUBJECTS_DIR"));
+  if(SUBJECTS_DIR1) fprintf(fp,"SUBJECTS_DIR1   %s\n",SUBJECTS_DIR1);
+  if(SUBJECTS_DIR2) fprintf(fp,"SUBJECTS_DIR2   %s\n",SUBJECTS_DIR2);
+  fprintf(fp,             "cwd       %s\n",cwd);
+  fprintf(fp,             "cmdline   %s\n",cmdline);
+  fprintf(fp,             "timestamp %s\n",VERcurTimeStamp());
+  fprintf(fp,             "sysname   %s\n",uts.sysname);
+  fprintf(fp,             "hostname  %s\n",uts.nodename);
+  fprintf(fp,             "machine   %s\n",uts.machine);
+  fprintf(fp,             "user      %s\n",VERuser());
+  fprintf(fp,             "surf1path %s\n",surf1path);
+  fprintf(fp,             "surf2path %s\n",surf2path);
+  if(subject1) fprintf(fp,"subject1  %s\n",subject1);
+  if(subject2) fprintf(fp,"subject2  %s\n",subject2);
+  if(hemi)     fprintf(fp,"hemi      %s\n",hemi);
+  if(surfname) fprintf(fp,"surfname  %s\n",surfname);
+  if(curvname) fprintf(fp,"curvname  %s\n",curvname);
   if(aparcname)fprintf(fp,"aparcname %s\n",aparcname);
   fprintf(fp,"\n");
   fprintf(fp,"\n");
