@@ -5087,11 +5087,11 @@ static MRI *genesisRead(char *fname, int read_volume)
 
   header->ras_good_flag = 1;
 
-  header->xend = header->xsize * header->width / 2;
+  header->xend = header->xsize * (double)header->width / 2.0;
   header->xstart = -header->xend;
-  header->yend = header->ysize * header->height / 2;
+  header->yend = header->ysize * (double)header->height / 2.0;
   header->ystart = -header->yend;
-  header->zend = header->zsize * header->depth / 2;
+  header->zend = header->zsize * (double)header->depth / 2.0;
   header->zstart = -header->zend;
 
   xfov = header->xend - header->xstart;
@@ -5359,11 +5359,11 @@ static MRI *gelxRead(char *fname, int read_volume)
 
   header->ras_good_flag = 1;
 
-  header->xend = header->xsize * header->width / 2;
+  header->xend = header->xsize * (double)header->width / 2.0;
   header->xstart = -header->xend;
-  header->yend = header->ysize * header->height / 2;
+  header->yend = header->ysize * (double)header->height / 2.0;
   header->ystart = -header->yend;
-  header->zend = header->zsize * header->depth / 2;
+  header->zend = header->zsize * (double)header->depth / 2.0;
   header->zstart = -header->zend;
 
   xfov = header->xend - header->xstart;
@@ -8725,11 +8725,11 @@ static MRI *ximgRead(char *fname, int read_volume)
 
   header->ras_good_flag = 1;
 
-  header->xend = header->xsize * header->width / 2;
+  header->xend = header->xsize * (double)header->width / 2.0;
   header->xstart = -header->xend;
-  header->yend = header->ysize * header->height / 2;
+  header->yend = header->ysize * (double)header->height / 2.0;
   header->ystart = -header->yend;
-  header->zend = header->zsize * header->depth / 2;
+  header->zend = header->zsize * (double)header->depth / 2.0;
   header->zstart = -header->zend;
 
   xfov = header->xend - header->xstart;
@@ -11162,7 +11162,7 @@ mghRead(char *fname, int read_volume, int frame)
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
-    z_r, z_a, z_s, c_r, c_a, c_s ;
+    z_r, z_a, z_s, c_r, c_a, c_s, xfov, yfov, zfov ;
   short  sval ;
   //  int tag_data_size;
   char *ext;
@@ -11491,6 +11491,12 @@ mghRead(char *fname, int read_volume, int frame)
   mri->yend = mri->height/2.*mri->ysize;
   mri->zstart = - mri->depth/2.*mri->zsize;
   mri->zend = mri->depth/2.*mri->zsize;
+  xfov = mri->xend - mri->xstart;
+  yfov = mri->yend - mri->ystart;
+  zfov = mri->zend - mri->zstart;
+  mri->fov =
+    (xfov > yfov ? (xfov > zfov ? xfov : zfov) : (yfov > zfov ? yfov : zfov));
+
   strcpy(mri->fname, fname);
   return(mri) ;
 }

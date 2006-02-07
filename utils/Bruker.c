@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/12 21:52:49 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/02/07 20:09:36 $
+// Revision       : $Revision: 1.9 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.8 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.9 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -417,7 +417,7 @@ int buildVoxToRASTransform(MRI *mri, BrukerTransform *pTran)
   MatrixMultiply(rotationMatrix, tmp, tmp);
   //
   ctr = VectorAlloc(4, MATRIX_REAL);
-  V4_LOAD(ctr, mri->width/2, mri->height/2, mri->depth/2, 1.);
+  V4_LOAD(ctr, (double)mri->width/2.0, (double)mri->height/2.0, (double)mri->depth/2.0, 1.);
   rcs = MatrixMultiply(tmp, ctr, NULL);
   
   mri->c_r = V3_X(rcs);

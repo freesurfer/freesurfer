@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/02 19:35:56 $
-// Revision       : $Revision: 1.331 $
-char *MRI_C_VERSION = "$Revision: 1.331 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/07 20:09:35 $
+// Revision       : $Revision: 1.332 $
+char *MRI_C_VERSION = "$Revision: 1.332 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2448,9 +2448,9 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
 
   voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
   // modify translation part
-  *MATRIX_RELT(voxelFromSRAS, 1,4) = mri->width/2;
-  *MATRIX_RELT(voxelFromSRAS, 2,4) = mri->height/2;
-  *MATRIX_RELT(voxelFromSRAS, 3,4) = mri->depth/2;
+  *MATRIX_RELT(voxelFromSRAS, 1,4) = (double)mri->width/2.0;
+  *MATRIX_RELT(voxelFromSRAS, 2,4) = (double)mri->height/2.0;
+  *MATRIX_RELT(voxelFromSRAS, 3,4) = (double)mri->depth/2.0;
 
 #if 0
   // no more expensive inverse
@@ -5153,9 +5153,9 @@ MRIrotateX(MRI *mri_src, MRI *mri_dst, float x_angle)
   m = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
 
   mO = MatrixAlloc(3, 1, MATRIX_REAL) ;
-  mO->rptr[1][1] = mri_src->width / 2 ;
-  mO->rptr[2][1] = mri_src->height / 2 ;
-  mO->rptr[3][1] = mri_src->depth / 2 ;
+  mO->rptr[1][1] = (double)mri_src->width / 2.0 ;
+  mO->rptr[2][1] = (double)mri_src->height / 2.0 ;
+  mO->rptr[3][1] = (double)mri_src->depth / 2.0 ;
 
   /* build rotation matrix */
   mri_dst = MRIrotate(mri_src, NULL, m, mO) ;
@@ -5191,9 +5191,9 @@ MRIrotateY(MRI *mri_src, MRI *mri_dst, float y_angle)
 
   /* origin of coordinate system */
   mO = MatrixAlloc(3, 1, MATRIX_REAL) ;
-  mO->rptr[1][1] = mri_src->width / 2 ;
-  mO->rptr[2][1] = mri_src->height / 2 ;
-  mO->rptr[3][1] = mri_src->depth / 2 ;
+  mO->rptr[1][1] = (double)mri_src->width / 2.0 ;
+  mO->rptr[2][1] = (double)mri_src->height / 2.0 ;
+  mO->rptr[3][1] = (double)mri_src->depth / 2.0 ;
 
   m = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
 
@@ -5231,9 +5231,9 @@ MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle)
 
   m = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
   mO = MatrixAlloc(3, 1, MATRIX_REAL) ;
-  mO->rptr[1][1] = mri_src->width / 2 ;
-  mO->rptr[2][1] = mri_src->height / 2 ;
-  mO->rptr[3][1] = mri_src->depth / 2 ;
+  mO->rptr[1][1] = (double)mri_src->width / 2.0 ;
+  mO->rptr[2][1] = (double)mri_src->height / 2.0 ;
+  mO->rptr[3][1] = (double)mri_src->depth / 2.0 ;
 
   mri_dst = MRIrotate(mri_src, NULL, m, mO) ;
   MatrixFree(&m) ;
@@ -5408,9 +5408,9 @@ MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO)
   if (!mO)
     {
       mO = MatrixAlloc(3, 1, MATRIX_REAL) ;
-      mO->rptr[1][1] = mri_src->width / 2 ;
-      mO->rptr[2][1] = mri_src->height / 2 ;
-      mO->rptr[3][1] = mri_src->depth / 2 ;
+      mO->rptr[1][1] = (double)mri_src->width / 2.0 ;
+      mO->rptr[2][1] = (double)mri_src->height / 2.0 ;
+      mO->rptr[3][1] = (double)mri_src->depth / 2.0 ;
       freeit = 1 ;
     }
   else
@@ -5490,9 +5490,9 @@ MRIrotate_I(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO)
   if (!mO)
     {
       mO = MatrixAlloc(3, 1, MATRIX_REAL) ;
-      mO->rptr[1][1] = mri_src->width / 2 ;
-      mO->rptr[2][1] = mri_src->height / 2 ;
-      mO->rptr[3][1] = mri_src->depth / 2 ;
+      mO->rptr[1][1] = (double)mri_src->width / 2.0 ;
+      mO->rptr[2][1] = (double)mri_src->height / 2.0 ;
+      mO->rptr[3][1] = (double)mri_src->depth / 2.0 ;
       freeit = 1 ;
     }
   else
@@ -7293,11 +7293,11 @@ MRIinterpolate(MRI *mri_src, MRI *mri_dst)
 
   mri_dst->imnr0 = 1;
   mri_dst->imnr1 = mri_dst->depth;
-  mri_dst->xstart = -mri_dst->xsize * mri_dst->width / 2;
+  mri_dst->xstart = -mri_dst->xsize * (double)mri_dst->width / 2.0;
   mri_dst->xend = -mri_dst->xstart;
-  mri_dst->ystart = -mri_dst->ysize * mri_dst->height / 2;
+  mri_dst->ystart = -mri_dst->ysize * (double)mri_dst->height / 2.0;
   mri_dst->yend = -mri_dst->ystart;
-  mri_dst->zstart = -mri_dst->zsize * mri_dst->depth / 2;
+  mri_dst->zstart = -mri_dst->zsize * (double)mri_dst->depth / 2.0;
   mri_dst->zend = -mri_dst->zstart;
 
   xorig = (width-1)/2 ; yorig = (height-1)/2 ; zorig = (depth-1)/2 ;
@@ -9199,58 +9199,58 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   v_Y->rptr[4][1] = 1.0f ;
   for (y3 = 0 ; y3 < depth ; y3++)
-    {
-      V3_Z(v_Y) = y3 ;
-      for (y2 = 0 ; y2 < height ; y2++)
-        {
-          V3_Y(v_Y) = y2 ;
-          for (y1 = 0 ; y1 < width ; y1++)
-            {
-              V3_X(v_Y) = y1 ;
-              MatrixMultiply(mAinv, v_Y, v_X) ;
+	{
+		V3_Z(v_Y) = y3 ;
+		for (y2 = 0 ; y2 < height ; y2++)
+		{
+			V3_Y(v_Y) = y2 ;
+			for (y1 = 0 ; y1 < width ; y1++)
+			{
+				V3_X(v_Y) = y1 ;
+				MatrixMultiply(mAinv, v_Y, v_X) ;
 
-              x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
+				x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
 
-              if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
-                DiagBreak() ;
-              if (nint(x1) == Gx && nint(x2) == Gy && nint(x3) == Gz)
-                {
+				if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
+					DiagBreak() ;
+				if (nint(x1) == Gx && nint(x2) == Gy && nint(x3) == Gz)
+				{
 #if 0
-                  fprintf
-                    (stderr,
-                     "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
-                     (float)x1, (float)x2, (float)x3,
-                     (float)y1, (float)y2, (float)y3) ;
+					fprintf
+						(stderr,
+						 "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
+						 (float)x1, (float)x2, (float)x3,
+						 (float)y1, (float)y2, (float)y3) ;
 #endif
-                  DiagBreak() ;
-                }
+					DiagBreak() ;
+				}
 
-              //MRIsampleVolume(mri_src, x1, x2, x3, &val);
-              MRIsampleVolumeType(mri_src, x1, x2, x3, &val, InterpMethod);
-              switch (mri_dst->type)
-                {
-                case MRI_UCHAR:
-                  MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
-                  break ;
-                case MRI_SHORT:
-                  MRISvox(mri_dst,y1,y2,y3) = (short)nint(val) ;
-                  break ;
-                case MRI_FLOAT:
-                  MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
-                  break ;
-                case MRI_INT:
-                  MRIIvox(mri_dst,y1,y2,y3) = nint(val) ;
-                  break ;
-                default:
-                  ErrorReturn(NULL,
-                              (ERROR_UNSUPPORTED,
-                               "MRIlinearTransform: unsupported dst type %d",
-                               mri_dst->type)) ;
-                  break ;
-                }
-            }
-        }
-    }
+				//MRIsampleVolume(mri_src, x1, x2, x3, &val);
+				MRIsampleVolumeType(mri_src, x1, x2, x3, &val, InterpMethod);
+				switch (mri_dst->type)
+				{
+				case MRI_UCHAR:
+					MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
+					break ;
+				case MRI_SHORT:
+					MRISvox(mri_dst,y1,y2,y3) = (short)nint(val) ;
+					break ;
+				case MRI_FLOAT:
+					MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
+					break ;
+				case MRI_INT:
+					MRIIvox(mri_dst,y1,y2,y3) = nint(val) ;
+					break ;
+				default:
+					ErrorReturn(NULL,
+											(ERROR_UNSUPPORTED,
+											 "MRIlinearTransform: unsupported dst type %d",
+											 mri_dst->type)) ;
+					break ;
+				}
+			}
+		}
+	}
 
   MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
@@ -9259,14 +9259,14 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   mri_dst->ras_good_flag = 1;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    {
-      printf("MRIlinearTransform: done\n");
-      printf("mri_dst:\n");
-      printf(" vox res: %g %g %g\n",
-             mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
-      printf(" vox dim: %d %d %d\n",
-             mri_dst->width,mri_dst->height,mri_dst->depth);
-    }
+	{
+		printf("MRIlinearTransform: done\n");
+		printf("mri_dst:\n");
+		printf(" vox res: %g %g %g\n",
+					 mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
+		printf(" vox dim: %d %d %d\n",
+					 mri_dst->width,mri_dst->height,mri_dst->depth);
+	}
 
   return(mri_dst) ;
 }
@@ -12236,9 +12236,9 @@ void MRIcalcCRASforExtractedVolume
   // extracted volume in the original voxel position
   //        x1 of dst corresponds to x0 of src
   // Thus, the "center" of dst corresponds to that of the src is
-  cx = x0+(Real)dst->width/2 - x1;  // integer divide cutoff extra
-  cy = y0+(Real)dst->height/2 - y1;
-  cz = z0+(Real)dst->depth/2 - z1;
+  cx = x0+(Real)dst->width/2.0 - x1;  // integer divide cutoff extra
+  cy = y0+(Real)dst->height/2.0 - y1;
+  cz = z0+(Real)dst->depth/2.0 - z1;
 
   if (!src->i_to_r__)
     {
@@ -12263,7 +12263,7 @@ void MRIcalcCRASforHiresVolume
   // get where the center of hires volume goes to in the lowres volume
   Real cx, cy, cz;
   Real dx, dy, dz;
-  cx = hires->width/2; cy = hires->height/2; cz = hires->depth/2;
+  cx = (double)hires->width/2.0; cy = (double)hires->height/2.0; cz = (double)hires->depth/2.0;
   TransformWithMatrix(vox_xform, cx, cy, cz, &dx, &dy, &dz);
   // get the c_ras values for this position
   TransformWithMatrix(lowres->i_to_r__, dx, dy, dz, pr, pa, ps);
@@ -12346,86 +12346,86 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
 
   // first verify the consistency of the transform stored geometry vs. argument
   if (tran->dst.valid == 1)
-    {
-      // compare the one with orig_dst to the stored one
-      VG dstvg, storedvg;
-      getVolGeom(orig_dst, &dstvg);
-      storedvg.valid = tran->dst.valid;
-      storedvg.width = tran->dst.width;
-      storedvg.height = tran->dst.height;
-      storedvg.depth = tran->dst.depth;
-      storedvg.xsize = tran->dst.xsize;
-      storedvg.ysize = tran->dst.ysize;
-      storedvg.zsize = tran->dst.zsize;
-      storedvg.x_r = tran->dst.x_r;
-      storedvg.x_a = tran->dst.x_a;
-      storedvg.x_s = tran->dst.x_s;
-      storedvg.y_r = tran->dst.y_r;
-      storedvg.y_a = tran->dst.y_a;
-      storedvg.y_s = tran->dst.y_s;
-      storedvg.z_r = tran->dst.z_r;
-      storedvg.z_a = tran->dst.z_a;
-      storedvg.z_s = tran->dst.z_s;
-      storedvg.c_r = tran->dst.c_r;
-      storedvg.c_a = tran->dst.c_a;
-      storedvg.c_s = tran->dst.c_s;
-      if (!vg_isEqual(&dstvg, &storedvg))
-        {
-          fprintf
-            (stderr,
-             "WARNING: stored destination volume for the "
-             "transform differes from the argument.");
-        }
-    }
+	{
+		// compare the one with orig_dst to the stored one
+		VG dstvg, storedvg;
+		getVolGeom(orig_dst, &dstvg);
+		storedvg.valid = tran->dst.valid;
+		storedvg.width = tran->dst.width;
+		storedvg.height = tran->dst.height;
+		storedvg.depth = tran->dst.depth;
+		storedvg.xsize = tran->dst.xsize;
+		storedvg.ysize = tran->dst.ysize;
+		storedvg.zsize = tran->dst.zsize;
+		storedvg.x_r = tran->dst.x_r;
+		storedvg.x_a = tran->dst.x_a;
+		storedvg.x_s = tran->dst.x_s;
+		storedvg.y_r = tran->dst.y_r;
+		storedvg.y_a = tran->dst.y_a;
+		storedvg.y_s = tran->dst.y_s;
+		storedvg.z_r = tran->dst.z_r;
+		storedvg.z_a = tran->dst.z_a;
+		storedvg.z_s = tran->dst.z_s;
+		storedvg.c_r = tran->dst.c_r;
+		storedvg.c_a = tran->dst.c_a;
+		storedvg.c_s = tran->dst.c_s;
+		if (!vg_isEqual(&dstvg, &storedvg))
+		{
+			fprintf
+				(stderr,
+				 "WARNING: stored destination volume for the "
+				 "transform differs from the argument.");
+		}
+	}
   if (tran->src.valid == 1)
-    {
-      // compare the one with orig_dst to the stored one
-      VG srcvg, storedvg;
-      getVolGeom(src, &srcvg);
-      storedvg.valid = tran->src.valid;
-      storedvg.width = tran->src.width;
-      storedvg.height = tran->src.height;
-      storedvg.depth = tran->src.depth;
-      storedvg.xsize = tran->src.xsize;
-      storedvg.ysize = tran->src.ysize;
-      storedvg.zsize = tran->src.zsize;
-      storedvg.x_r = tran->src.x_r;
-      storedvg.x_a = tran->src.x_a;
-      storedvg.x_s = tran->src.x_s;
-      storedvg.y_r = tran->src.y_r;
-      storedvg.y_a = tran->src.y_a;
-      storedvg.y_s = tran->src.y_s;
-      storedvg.z_r = tran->src.z_r;
-      storedvg.z_a = tran->src.z_a;
-      storedvg.z_s = tran->src.z_s;
-      storedvg.c_r = tran->src.c_r;
-      storedvg.c_a = tran->src.c_a;
-      storedvg.c_s = tran->src.c_s;
-      if (!vg_isEqual(&srcvg, &storedvg))
-        {
-          fprintf(stderr, "WARNING: stored destination volume for the "
-                  "transform differes from the argument.");
-        }
-    }
+	{
+		// compare the one with orig_dst to the stored one
+		VG srcvg, storedvg;
+		getVolGeom(src, &srcvg);
+		storedvg.valid = tran->src.valid;
+		storedvg.width = tran->src.width;
+		storedvg.height = tran->src.height;
+		storedvg.depth = tran->src.depth;
+		storedvg.xsize = tran->src.xsize;
+		storedvg.ysize = tran->src.ysize;
+		storedvg.zsize = tran->src.zsize;
+		storedvg.x_r = tran->src.x_r;
+		storedvg.x_a = tran->src.x_a;
+		storedvg.x_s = tran->src.x_s;
+		storedvg.y_r = tran->src.y_r;
+		storedvg.y_a = tran->src.y_a;
+		storedvg.y_s = tran->src.y_s;
+		storedvg.z_r = tran->src.z_r;
+		storedvg.z_a = tran->src.z_a;
+		storedvg.z_s = tran->src.z_s;
+		storedvg.c_r = tran->src.c_r;
+		storedvg.c_a = tran->src.c_a;
+		storedvg.c_s = tran->src.c_s;
+		if (!vg_isEqual(&srcvg, &storedvg))
+		{
+			fprintf(stderr, "WARNING: stored destination volume for the "
+							"transform differes from the argument.");
+		}
+	}
 
   if (lta->type == LINEAR_RAS_TO_RAS)
-    {
-      MATRIX *tmp;
-      //
-      //      src   -->   RAS
-      //       |           |
-      //       | M         | Y
-      //       V           V
-      //    orig_dst -->  RAS
-      //
-      // transform it to the vox-to-vox
-      // now calculate M
-      tmp = MatrixMultiply(tran->m_L, src->i_to_r__, NULL);
-      MatrixFree(&tran->m_L);
-      tran->m_L = MatrixMultiply(orig_dst->r_to_i__, tmp, NULL);
-      MatrixFree(&tmp);
-      lta->type = LINEAR_VOX_TO_VOX;
-    }
+	{
+		MATRIX *tmp;
+		//
+		//      src   -->   RAS
+		//       |           |
+		//       | M         | Y
+		//       V           V
+		//    orig_dst -->  RAS
+		//
+		// transform it to the vox-to-vox
+		// now calculate M
+		tmp = MatrixMultiply(tran->m_L, src->i_to_r__, NULL);
+		MatrixFree(&tran->m_L);
+		tran->m_L = MatrixMultiply(orig_dst->r_to_i__, tmp, NULL);
+		MatrixFree(&tmp);
+		lta->type = LINEAR_VOX_TO_VOX;
+	}
 
   if (lta->type != LINEAR_VOX_TO_VOX)
     ErrorExit
@@ -12512,7 +12512,7 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
   // is its orientation with respect to orig_dst RAS.  Good
   //
   // get where the center of hires volume goes to in the lowres volume
-  cx = dst->width/2; cy = dst->height/2; cz = dst->depth/2;
+  cx = (double)dst->width/2.0; cy = (double)dst->height/2.0; cz = (double)dst->depth/2.0;
   // get the c_ras values for this position
   TransformWithMatrix(dstToRas, cx, cy, cz, &cr, &ca, &cs);
   // if we use this c_ras value for the transformed hires volume, then
