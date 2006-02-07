@@ -33,9 +33,6 @@
 #include "volcluster.h"
 #include "version.h"
 
-double CSDvoxelwisePVal(double val, CSD *csd);
-MRI *CSDvoxelwiseSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig);
-
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
         int nslices, MATRIX **ppCRS2FSA,
         MATRIX **ppFSA2Func,
@@ -67,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.18 2006/02/07 05:50:08 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.19 2006/02/07 09:19:15 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -137,7 +134,8 @@ char *csdpdffile = NULL;
 int csdpdfonly = 0;
 
 char *voxwisesigfile=NULL;
-MRI  *voxwisesig;
+MRI  *voxwisesig, *clustwisesig;
+char *clustwisesigfile=NULL;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -146,12 +144,12 @@ int main(int argc, char **argv)
 {
   int nhits, *hitcol, *hitrow, *hitslc;
   int col, row, slc;
-  int nthhit, n, nclusters, nprunedclusters;
+  int nthhit, n, m, nclusters, nprunedclusters;
   float x,y,z;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.18 2006/02/07 05:50:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.19 2006/02/07 09:19:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -450,6 +448,21 @@ int main(int argc, char **argv)
     MRIfree(&outvol);
   }
 
+  /* --- Save the cluster pval --- */
+  if(clustwisesigfile != NULL){
+    printf("Saving cluster pval %s\n",clustwisesigfile);
+    clustwisesig = MRIclone(vol,NULL);
+    for(n = 0; n < nclusters; n++){
+      for(m = 0; m < ClusterList[n]->nmembers; m++){
+	col = ClusterList[n]->col[m];
+	row = ClusterList[n]->row[m];
+	slc = ClusterList[n]->slc[m];
+	MRIsetVoxVal(clustwisesig,col,row,slc,0,ClusterList[n]->pval_clusterwise);
+      }
+    }
+    MRIwrite(clustwisesig,clustwisesigfile);
+  }
+
   /* Write the given cluster to a label file */
   /* Warning: the cluster xyz will change */
   if(labelfile != NULL){
@@ -593,6 +606,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outtypestring = pargv[0];
       outtype = string_to_type(outtypestring);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--cwsig") ){
+      if(nargc < 1) argnerr(option,1);
+      clustwisesigfile = pargv[0]; 
       nargsused = 1;
     }
     else if (!strcmp(option, "--ocn")){
@@ -741,6 +759,10 @@ static void print_usage(void)
   printf("\n");
   printf("   --in infile : source of volume values\n");
   printf("\n");
+  printf("   --sum file   : text summary file \n");
+  printf("   --out      output volid \n");
+  printf("   --ocn      output cluster number volid \n");
+  printf("\n");
   printf("   --thmin   minthresh : minimum intensity threshold\n");
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
   printf("   --sign    sign      : <abs> or pos/neg for one-sided tests\n");
@@ -750,9 +772,10 @@ static void print_usage(void)
   printf("   --frame   frameno <0>\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
-  printf("   --csdpdf csdpdffile\n");
+  printf("   --cwsig cwsig : map of corrected cluster-wise significances\n");
+  printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
+  printf("   --csdpdf csdpdffile : PDF/CDF of cluster and max sig\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
-  printf("   --ocp ocp : map of cluster-wise pvalue\n");
   printf("\n");
   printf("   --minsize    minimum volume (mm^3)\n");
   printf("   --minsizevox minimum volume (voxels)\n");
@@ -768,10 +791,6 @@ static void print_usage(void)
   printf("   --outmask      final binary mask\n");
   printf("   --outmask_type file format \n");
   printf("\n");
-  printf("   --sum file   : text summary file \n");
-  printf("\n");
-  printf("   --out      output volid \n");
-  printf("   --ocn      output cluster number volid \n");
   printf("\n");
   printf("   --label   label file\n");
   printf("   --nlabelcluster n : save nth cluster in label\n");
@@ -1042,6 +1061,10 @@ static void check_options(void)
   }
   if(voxwisesigfile != NULL && csd == NULL){
     printf("ERROR: need csd with --vwsig\n");
+    exit(1);
+  }
+  if(clustwisesigfile != NULL && csd == NULL){
+    printf("ERROR: need csd with --cwsig\n");
     exit(1);
   }
 
