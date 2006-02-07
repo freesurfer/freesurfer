@@ -17,10 +17,15 @@
 #include "version.h"
 #include "subroutines.h"
 
+static int lh_label = LH_LABEL ;
+static int rh_label = RH_LABEL ;
+
 void usage(int exit_val);
 static int get_option(int argc, char *argv[]) ;
 
 static float threshold = 90;
+
+static char hemi[80] = "lh";
 
 char *Progname;
 
@@ -31,10 +36,12 @@ int main(int argc, char *argv[])
   int ac, nargs;
 
   int x, y, z;
+  int target_value = 255;
+  
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.1 2006/02/02 19:53:11 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.2 2006/02/07 20:33:20 xhan Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -51,6 +58,12 @@ int main(int argc, char *argv[])
   if(argc != 3)
     usage(1);
 
+  if (!stricmp(hemi, "lh")){
+    target_value = lh_label;
+  }else{
+    target_value = rh_label;
+  }
+  
   mri_seg = MRIread(argv[1]) ;
   if (!mri_seg)
     ErrorExit(ERROR_BADPARM, "%s: could not read label volume %s",
@@ -66,6 +79,13 @@ int main(int argc, char *argv[])
       }
 
   GetLargestCC6(mri_seg);
+
+  for(z = 0; z < mri_seg->depth; z++)
+    for(y = 0; y < mri_seg->height; y++)
+      for(x = 0; x < mri_seg->width; x++){
+	if(MRIgetVoxVal(mri_seg, x, y, z, 0) > 0)
+	  MRIsetVoxVal(mri_seg, x, y, z, 0, target_value);
+      }
 
   MRIwrite(mri_seg, argv[2]);
 
@@ -84,6 +104,7 @@ void usage(int exit_val)
   fprintf(fout, "this program extracts the largest connected component of the input volume \n") ;
   fprintf(fout, "\t Options are: \n") ;
   fprintf(fout, "\t\t -T #: threshold for object \n") ;
+  fprintf(fout, "\t\t -hemi lh/rh: set the target value corresponding to lh (255) or rh (127) \n") ;
   exit(exit_val);
 
 }  /*  end usage()  */
@@ -105,6 +126,12 @@ get_option(int argc, char *argv[])
     {
       threshold = atof(argv[2]);
       printf("threshold = %g\n", threshold);
+      nargs = 1;
+    }
+  if(!stricmp(option, "hemi"))
+    {
+      strcpy(hemi,argv[2]);
+      printf("hemisphere = %s\n", hemi);
       nargs = 1;
     }
   else switch (toupper(*option))
