@@ -1528,6 +1528,61 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 
   return(pval);
 }
+/*------------------------------------------------------------------------------
+  CSDpvalMaxSig() - computes the emperical probability of getting a MaxSig 
+  greater than the given value (taking into account the sign).
+  ------------------------------------------------------------------------------*/
+double CSDpvalMaxSig(double val, CSD *csd)
+{
+  int n,nover;
+  double pval;
+
+  nover=0; // number of times maxsig exceeds the given value
+  for(n=0; n < csd->nreps; n++){
+    if(csd->threshsign == 0 && (fabs(csd->MaxSig[n]) > fabs(val)) )nover++;
+    else if(csd->threshsign > +0.5 && (csd->MaxSig[n] > val) ) nover++;
+    else if(csd->threshsign < -0.5 && (csd->MaxSig[n] < val) ) nover++;
+  }
+  pval = (double)nover/csd->nreps;
+  return(pval);
+}
+/*-------------------------------------------------------------------
+  CSDpvalMaxSigMap() - computes the voxel-wise sig value of each voxel
+  based on the CSD. The input and output are -log10(p)*sign, where
+  sign is the sign of the input value. 
+  ------------------------------------------------------------------*/
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig)
+{
+  int c,r,s,f,nhits,nvox;
+  double m,val,voxsig;
+
+  if(vwsig == NULL) vwsig = MRIclone(sig,NULL);
+
+  nvox  = 0;
+  nhits = 0;
+  for(s=0; s < sig->depth; s++){
+    for(r=0; r < sig->height; r++){
+      for(c=0; c < sig->width; c++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	nvox++;
+	for(f=0; f < sig->nframes; f++){
+	  val = MRIgetVoxVal(sig,c,r,s,f);
+	  if(fabs(val) > 0.0)
+	    voxsig = -SIGN(val)*log10(CSDpvalMaxSig(val,csd));
+	  else voxsig = 0;
+	  if(fabs(voxsig) > 0) nhits ++;
+	  MRIsetVoxVal(vwsig,c,r,s,f,voxsig);
+	}
+
+      }
+    }
+  }
+  printf("CSDpvalMaxSigMap(): found %d/%d above 0\n",nhits,nvox);
+  return(vwsig);
+}
 /*-----------------------------------------------------------------------
   CSDcheckSimType() - checks simulation type string to make sure it
   is one that is recognized. Returns 0 if ok, 1 otherwise.
@@ -1542,16 +1597,17 @@ int CSDcheckSimType(char *simtype)
 
 /*-------------------------------------------------------------------
   CSDpdf() - computes pdf and cdf of Maximum Cluster Size and
-  Maximum Sig. nbins = sqrt(csd->nreps)
+  Maximum Sig. if nbins < 1, then nbins = sqrt(csd->nreps)
 -------------------------------------------------------------------*/
-int CSDpdf(CSD *csd)
+int CSDpdf(CSD *csd, int nbins)
 {
   int     n;
-  int     nbins ;
   float   min,max;
 
-  nbins = sqrt(csd->nreps);
-  if(nbins == 0) nbins = 1;
+  if(nbins < 1){
+    nbins = sqrt(csd->nreps);
+    if(nbins == 0) nbins = 1;
+  }
 
   // Maximum Cluster Size ------------------------------------
   min=csd->MaxClusterSize[0];

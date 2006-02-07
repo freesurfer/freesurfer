@@ -109,10 +109,13 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2);
 CSD *CSDreadMerge(char *csdfile, CSD *csd);
 int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd);
 int CSDprint(FILE *fp, CSD *csd);
+double CSDpvalMaxSig(double val, CSD *csd);
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 			double ciPct, double *pvalLow, double *pvalHi);
+
 int CSDcheckSimType(char *simtype);
-int CSDpdf(CSD *csd);
+int CSDpdf(CSD *csd, int nbins);
 int CSDprintPDF(FILE *fp, CSD *csd);
 int CSDwritePDF(char *fname, CSD *csd);
 
