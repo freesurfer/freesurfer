@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.7 2006/02/07 21:42:16 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.8 2006/02/07 23:57:22 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -233,14 +233,20 @@ int main(int argc, char *argv[])
         nbrvtxno1 = surf1->vertices[nthvtx].v[nthnbr];
         nbrvtxno2 = surf2->vertices[nthvtx].v[nthnbr];
         if(nbrvtxno1 != nbrvtxno2){
-          printf("Vertex %d has a differs in the identity of the "
+          printf("Vertex %d differs in the identity of the "
                  "%dth neighbor %d %d\n",nthvtx,nthnbr,nbrvtxno1,nbrvtxno2);
           if(++error_count>=MAX_NUM_ERRORS) break;
         }
       }
       if(error_count>=MAX_NUM_ERRORS) break;
     }// loop over vertices
-    if(error_count > 0) exit(103);
+    if(error_count > 0){
+      printf("Exiting after finding %d errors\n",error_count);
+      if(error_count>=MAX_NUM_ERRORS){
+	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+      } 
+      exit(103);
+    }
 
     // Loop over faces ----------------------------------------
     error_count=0;
@@ -278,7 +284,13 @@ int main(int argc, char *argv[])
       } // end loop over nthface vertex
       if(error_count>=MAX_NUM_ERRORS) break;
     } // end loop over faces
-    if(error_count > 0) exit(103);
+    if(error_count > 0){
+      printf("Exiting after finding %d errors\n",error_count);
+      if(error_count>=MAX_NUM_ERRORS){
+	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+      } 
+      exit(103);
+    }
 
     printf("Surfaces are the same\n");
     exit(0);
@@ -309,7 +321,13 @@ int main(int argc, char *argv[])
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
-    if(error_count > 0) exit(103);
+    if(error_count > 0){
+      printf("Exiting after finding %d errors\n",error_count);
+      if(error_count>=MAX_NUM_ERRORS){
+	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+      } 
+      exit(103);
+    }
     printf("Curv files are the same\n");
     exit(0);
   } // end check curv
@@ -341,7 +359,13 @@ int main(int argc, char *argv[])
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
-    if(error_count > 0) exit(103);
+    if(error_count > 0){
+      printf("Exiting after finding %d errors\n",error_count);
+      if(error_count>=MAX_NUM_ERRORS){
+	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+      } 
+      exit(103);
+    }
     printf("AParc files are the same\n");
     exit(0);
   }
