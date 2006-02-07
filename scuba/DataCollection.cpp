@@ -90,6 +90,13 @@ DataCollection::GetInfo( DataLocation&,
   return;
 }
 
+void
+DataCollection::GetDataRASBounds ( float oRASBounds[6] ) {
+
+  oRASBounds[0] = oRASBounds[1] = oRASBounds[2] = 
+    oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+}
+
 TclCommandListener::TclCommandResult
 DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 

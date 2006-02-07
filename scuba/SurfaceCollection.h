@@ -34,6 +34,10 @@ class SurfaceCollection : public DataCollection {
 
   void LoadPatch ( std::string& ifnPatch );
 
+  // Return the bounds of the data in RAS coords. 0=xmin, 1=xmax,
+  // 2=ymin, etc.
+  virtual void GetDataRASBounds ( float oBounds[6] );
+
   // For getting the surface to data transform from a volume.
   void SetDataToSurfaceTransformFromVolume ( VolumeCollection& iVolume );
   void SetDataToSurfaceTransformToDefault ();
@@ -83,6 +87,10 @@ class SurfaceCollection : public DataCollection {
 
   // Hash table for finding vertices.
   MRIS_HASH_TABLE* mHashTable;
+
+  // Bounds cache.
+  bool mbBoundsCacheDirty;
+  float mRASBounds[6];
 };
 
 

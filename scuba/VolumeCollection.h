@@ -94,7 +94,7 @@ class VolumeCollection : public DataCollection {
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
 
-  void GetRASRange ( float oRASRange[6] );
+  virtual void GetDataRASBounds ( float oBounds[6] );
   void GetMRIIndexRange ( int oMRIIndexRange[3] );
 
   // Coordinate conversion.

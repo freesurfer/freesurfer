@@ -362,7 +362,7 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // plane increment. First select the in plane and get the proper
   // bounds.
   float volumeRASRange[6];
-  mVolume->GetRASRange( volumeRASRange );
+  mVolume->GetDataRASBounds( volumeRASRange );
   float increments[3];
   GetPreferredThroughPlaneIncrements( increments );
   float minZ = 0, maxZ = 0, incZ = 0;

@@ -10,12 +10,14 @@ using namespace std;
 
 
 SurfaceCollection::SurfaceCollection () :
-  DataCollection() {
+  DataCollection(),
 
-  mMRIS = NULL;
-  mHashTable = NULL;
-  mbIsUsingVolumeForTransform = false;
-  mTransformVolume = NULL;
+  mfnMRIS( "" ),
+  mMRIS( NULL ),
+  mbIsUsingVolumeForTransform( false ),
+  mTransformVolume( NULL ),
+  mHashTable( NULL ),
+  mbBoundsCacheDirty( true ) {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2, 
@@ -166,6 +168,40 @@ SurfaceCollection::LoadPatch ( string& ifnPatch ) {
   }
   DataChanged();
   free( cfnPath );
+}
+
+void
+SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
+
+  if( mbBoundsCacheDirty ) {
+
+    mRASBounds[0] = mRASBounds[2] = mRASBounds[4] = 999999;
+    mRASBounds[1] = mRASBounds[3] = mRASBounds[4] = -999999;
+
+    for( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
+      
+      VERTEX* vertex = &(mMRIS->vertices[nVertex]);
+      float surfaceRAS[3], RAS[3];
+      surfaceRAS[0] = vertex->x;
+      surfaceRAS[1] = vertex->y;
+      surfaceRAS[2] = vertex->z;
+      SurfaceToRAS( surfaceRAS, RAS );
+
+      if( RAS[0] < mRASBounds[0] ) mRASBounds[0] = RAS[0];
+      if( RAS[1] > mRASBounds[1] ) mRASBounds[1] = RAS[1];
+      if( RAS[2] < mRASBounds[2] ) mRASBounds[2] = RAS[2];
+      if( RAS[3] > mRASBounds[3] ) mRASBounds[3] = RAS[3];
+      if( RAS[4] < mRASBounds[4] ) mRASBounds[4] = RAS[4];
+      if( RAS[5] > mRASBounds[5] ) mRASBounds[5] = RAS[5];
+    }
+  }
+
+  oRASBounds[0] = mRASBounds[0];
+  oRASBounds[1] = mRASBounds[1];
+  oRASBounds[2] = mRASBounds[2];
+  oRASBounds[3] = mRASBounds[3];
+  oRASBounds[4] = mRASBounds[4];
+  oRASBounds[5] = mRASBounds[5];
 }
 
 TclCommandListener::TclCommandResult 

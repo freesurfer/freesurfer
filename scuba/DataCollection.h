@@ -71,6 +71,10 @@ class DataCollection : public DebugReporter,
   std::string GetLabel() const { return msLabel; }
   void SetLabel( std::string const isLabel ) { msLabel = isLabel; }
   
+  // Return the bounds of the data in RAS coords. 0=xmin, 1=xmax,
+  // 2=ymin, etc.
+  virtual void GetDataRASBounds ( float oBounds[6] );
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 

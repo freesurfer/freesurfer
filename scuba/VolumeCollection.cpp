@@ -299,6 +299,22 @@ VolumeCollection::InitializeFromMRI () {
   mVoxelSize[1] = mMRI->ysize;
   mVoxelSize[2] = mMRI->zsize;
   
+} 
+
+void
+VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
+
+  if( NULL != mMRI ) {
+    oRASBounds[0] = mMRI->xstart;
+    oRASBounds[1] = mMRI->xend;
+    oRASBounds[2] = mMRI->ystart;
+    oRASBounds[3] = mMRI->yend;
+    oRASBounds[4] = mMRI->zstart;
+    oRASBounds[5] = mMRI->zend;
+  } else {
+    oRASBounds[0] = oRASBounds[1] = oRASBounds[2] = 
+      oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+  }
 }
 
 void
@@ -330,19 +346,6 @@ VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) {
   }
 }
 
-
-void
-VolumeCollection::GetRASRange ( float oRASRange[6] ) {
-
-  if( NULL != mMRI ) {
-    oRASRange[0] = mMRI->xstart;
-    oRASRange[1] = mMRI->xend;
-    oRASRange[2] = mMRI->ystart;
-    oRASRange[3] = mMRI->yend;
-    oRASRange[4] = mMRI->zstart;
-    oRASRange[5] = mMRI->zend;
-  }
-}
 
 void
 VolumeCollection::GetMRIIndexRange ( int oMRIIndexRange[3] ) {
