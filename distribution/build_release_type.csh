@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.22 2006/02/05 23:55:43 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.23 2006/02/07 01:37:26 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -132,6 +132,10 @@ echo "" >>& $OUTPUTF
 # through with the build. If not, quit now. But don't quit if the file
 # FAILED exists, because that means that the last build failed.
 # Also check for 'Permission denied" and "File is in the way" errors.
+# Also check for modified files, which is bad, as this checkout is not
+# supposed to be used for development, and it means the real file (the
+# one in CVS) will not be used.  Also check for removed files, added
+# files, and files with conflicts, all these being a big no-no.
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating $DEV_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -153,15 +157,57 @@ echo "CMD: grep -e "cvs update: move away" $CVSUPDATEF" >>& $OUTPUTF
 grep -e "cvs update: move away" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   echo "cvs update: a file is 'in the way' (see $CVSUPDATEF)" >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way" $FAILURE_MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way"\
+    $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
+echo "CMD: grep -e ^\[M\]\  $CVSUPDATEF" >>& $OUTPUTF
+grep -e ^\[M\]\   $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  echo "cvs update: file modified!? (see $CVSUPDATEF)" >>& $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!?"\
+    $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
+echo "CMD: grep -e ^\[C\]\  $CVSUPDATEF" >>& $OUTPUTF
+grep -e ^\[C\]\   $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  echo "cvs update: file conflict!? (see $CVSUPDATEF)" >>& $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!?"\
+    $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
+echo "CMD: grep -e ^\[R\]\  $CVSUPDATEF" >>& $OUTPUTF
+grep -e ^\[R\]\   $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  echo "cvs update: file removed!? (see $CVSUPDATEF)" >>& $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!?" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
+echo "CMD: grep -e ^\[A\]\  $CVSUPDATEF" >>& $OUTPUTF
+grep -e ^\[A\]\   $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  echo "cvs update: file added!? (see $CVSUPDATEF)" >>& $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!?" \
+    $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
 echo "CMD: grep -e ^\[UP\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[UP\]\  $CVSUPDATEF >& /dev/null
+grep -e ^\[UP\]\   $CVSUPDATEF >& /dev/null
 if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
-  mail -s "$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes" $MAIL_LIST < $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes" \
+    $MAIL_LIST < $OUTPUTF
+  echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
+  cat $CVSUPDATEF >>& $OUTPUTF
+  echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
+  rm -f $CVSUPDATEF
   exit 0
 endif
 
