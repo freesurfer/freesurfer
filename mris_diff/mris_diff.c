@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.8 2006/02/07 23:57:22 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.9 2006/02/08 05:09:45 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -102,6 +102,8 @@ static char tmpstr[2000];
 static MRIS *surf1, *surf2;
 
 static int CheckSurf=0;
+static int CheckXYZ=1;
+static int CheckNXYZ=1;
 static int CheckCurv=0;
 static int CheckAParc=0;
 static double thresh=0;
@@ -198,6 +200,7 @@ int main(int argc, char *argv[])
                nthvtx,vtx1->ripflag,vtx2->ripflag);
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
+      if(CheckXYZ){
       if(fabs(vtx1->x-vtx2->x)>thresh){
         printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
         if(++error_count>=MAX_NUM_ERRORS) break;
@@ -210,6 +213,8 @@ int main(int argc, char *argv[])
         printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
+      }
+      if(CheckNXYZ){
       if(fabs(vtx1->nx - vtx2->nx)>thresh){
         printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
         if(++error_count>=MAX_NUM_ERRORS) break;
@@ -221,6 +226,7 @@ int main(int argc, char *argv[])
       if(fabs(vtx1->nz - vtx2->nz)>thresh){
         printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
         if(++error_count>=MAX_NUM_ERRORS) break;
+      }
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
@@ -398,6 +404,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--no-check-xyz")) CheckXYZ = 0;
+    else if (!strcasecmp(option, "--no-check-nxyz")) CheckNXYZ = 0;
 
     else if (!strcasecmp(option, "--s1")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -495,6 +503,9 @@ static void print_usage(void)
   printf("   --thresh N    threshold (default=0)\n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
 	 MAX_NUM_ERRORS);
+  printf("\n");
+  printf("   --no-check-xyz  : do not check vertex xyz\n");
+  printf("   --no-check-nxyz : do not check vertex normals\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
   printf("   --checkopts   don't run anything, just check options and exit\n");
