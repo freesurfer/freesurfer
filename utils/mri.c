@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/08 02:09:29 $
-// Revision       : $Revision: 1.334 $
-char *MRI_C_VERSION = "$Revision: 1.334 $";
+// Revision Date  : $Date: 2006/02/08 20:55:46 $
+// Revision       : $Revision: 1.335 $
+char *MRI_C_VERSION = "$Revision: 1.335 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12532,9 +12532,9 @@ int
 MRIcropBoundingBox(MRI *mri,    MRI_REGION  *box)
 {
   box->x = MAX(0, box->x) ; box->y = MAX(0, box->y) ;box->z = MAX(0, box->z) ;
-  box->dx = MIN(mri->width-box->x-1, box->dx) ;
-  box->dy = MIN(mri->height-box->y-1, box->dy) ;
-  box->dz = MIN(mri->depth-box->z-1, box->dz) ;
+  box->dx = MIN(mri->width-box->x, box->dx) ;
+  box->dy = MIN(mri->height-box->y, box->dy) ;
+  box->dz = MIN(mri->depth-box->z, box->dz) ;
   return(NO_ERROR) ;
 }
 
