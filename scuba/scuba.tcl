@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.176 2006/02/07 19:49:09 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.177 2006/02/08 22:23:08 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -521,6 +521,9 @@ proc MakeMenuBar { ifwTop } {
     pack $gaMenu(edit) -side left
 
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
+	{command "Center View Around Current Layer" 
+	    {SetViewStateToLayerBoundsAllViewsInFrame [GetMainFrameID] $gaLayer(current,id)}}
+	{separator}
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
 	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
 	{check "Markers" { SetPreferencesValue DrawMarkers $gaView(markers); RedrawFrame [GetMainFrameID] } gaView(markers) }
@@ -4796,6 +4799,42 @@ proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
     UpdateLayerList
 }
 
+proc SetViewStateToLayerBoundsAllViewsInFrame { iFrameID iLayerID } {
+    dputs "SetViewStateToLayerBoundsAllViewsInFrame  $iFrameID $iLayerID  "
+
+    global gaView
+
+    # For each view...
+    set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	
+	set err [catch { 
+	    set cCols [GetNumberOfColsAtRowInFrame $iFrameID $nRow]
+	} sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+	    
+	    set err [catch { 
+		set viewID [GetViewIDFromFrameColRow $iFrameID $nCol $nRow] 
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    # Set the view state here.
+	    set err [catch { 
+		SetViewStateToLayerBounds $viewID $iLayerID } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    # That might have changed view properties, so let's
+	    # update.
+	    if { $gaView(current,id) >= 0 } {
+		SelectViewInViewProperties $viewID
+	    }
+       }
+    }
+}
+
 proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
 
     set savedValue [$imw cget -value]
@@ -5159,6 +5198,9 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
+
+	# Show the complete volume.
+	SetViewStateToLayerBoundsAllViewsInFrame [GetMainFrameID] $layerID
 
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
@@ -5790,7 +5832,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.176 2006/02/07 19:49:09 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.177 2006/02/08 22:23:08 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

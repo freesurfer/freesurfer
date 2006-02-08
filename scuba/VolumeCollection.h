@@ -103,6 +103,7 @@ class VolumeCollection : public DataCollection {
   void MRIIndexToRAS ( int const iIndex[3], float oRAS[3] );
   void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] );
   void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
+  void DataRASToRAS  ( float const iDataRAS[3], float oRAS[3] );
 
   // Special conversion for compatibility with old edit.dat formats.
   // Calls MRIRASToSurfaceRAS and MRISurfaceRASToRAS
@@ -305,6 +306,10 @@ protected:
   // The selected voxel cache.
   void InitSelectionVolume ();
   Volume3<bool>* mSelectedVoxels;
+
+  // Bounds cache.
+  bool mbBoundsCacheDirty;
+  float mRASBounds[6];
 };
 
 class VolumeCollectionFlooder {

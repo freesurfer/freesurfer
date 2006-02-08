@@ -86,6 +86,10 @@ public:
   void SetDrawLevelReportInfo ( int inLevel, bool ibReportInfo );
   bool GetDrawLevelReportInfo ( int inLevel );
 
+  // Sets the view state so that the given layer fills the view, and
+  // the inplane is in the middle of the bounds.
+  void SetViewStateToLayerBounds ( int iLayerID );
+
   // Sets the same layers in another view.
   void CopyLayerSettingsToView ( ScubaView& iView );
 

@@ -133,6 +133,9 @@ ScubaView::ScubaView() {
 			 "viewID level",
 			 "Returns whether a level in a view is reporting "
 			 "info." );
+  commandMgr.AddCommand( *this, "SetViewStateToLayerBounds", 2,
+			 "viewID, layerID", "Sets the view so that the "
+			 "layer's data completely fills the view." );
   commandMgr.AddCommand( *this, "GetInfoAtRAS", 2, "viewID setName",
 			 "Get an array list of info at an RAS point." );
   commandMgr.AddCommand( *this, "GetFirstUnusedDrawLevelInView", 1, "viewID",
@@ -641,6 +644,57 @@ ScubaView::GetDrawLevelReportInfo ( int inLevel ) {
   return mLevelReportInfoMap[inLevel];
 }
 
+void
+ScubaView::SetViewStateToLayerBounds ( int iLayerID ) {
+
+  try {
+    // Get the layer.
+    Layer& layer = Layer::FindByID( iLayerID );
+    
+    // Get the main data collection and get its RAS bounds.
+    DataCollection* col = layer.GetMainDataCollection();
+    if( NULL != col ) {
+      
+      // Get the bounds.
+      float RAS[6];
+      col->GetDataRASBounds( RAS );
+      
+      // Set the center.
+      float centerRAS[3];
+      centerRAS[0] = ((RAS[1] - RAS[0]) / 2.0) + RAS[0];
+      centerRAS[1] = ((RAS[3] - RAS[2]) / 2.0) + RAS[2];
+      centerRAS[2] = ((RAS[5] - RAS[4]) / 2.0) + RAS[4];
+      Set2DRASCenter( centerRAS );
+
+      // Calculate the zoom necessary.
+      float dataWidth = 0, dataHeight = 0;
+      switch( mViewState.GetInPlane() ) {
+      case ViewState::X:
+	dataWidth  = RAS[3] - RAS[2];
+	dataHeight = RAS[5] - RAS[4];
+	break;
+      case ViewState::Y:
+	dataWidth  = RAS[1] - RAS[0];
+	dataHeight = RAS[5] - RAS[4];
+	break;
+      case ViewState::Z:
+	dataWidth  = RAS[1] - RAS[0];
+	dataHeight = RAS[3] - RAS[2];
+	break;
+      }
+
+      float xZoomLevel, yZoomLevel;
+      xZoomLevel = (float)mViewState.GetBufferWidth() / (float)dataWidth;
+      yZoomLevel = (float)mViewState.GetBufferHeight() / (float)dataHeight;
+      Set2DZoomLevel( (xZoomLevel<yZoomLevel?xZoomLevel:yZoomLevel) );
+    }
+    
+  }
+  catch(...) {
+    DebugOutput( << "Couldn't find layer " << iLayerID );
+  }
+}
+
 void 
 ScubaView::CopyLayerSettingsToView ( ScubaView& iView ) {
 
@@ -1042,6 +1096,29 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 
       sReturnValues = TclCommandManager::ConvertBooleanToReturnValue( GetDrawLevelReportInfo( nLevel ) );
       sReturnFormat = "i";
+    }
+  }
+
+  // SetViewStateToLayerBounds <viewID> <layerID>
+  if( 0 == strcmp( isCommand, "SetViewStateToLayerBounds" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int layerID;
+      try {
+	layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad layer ID: ") + e.what();
+	return error;
+      }
+
+      SetViewStateToLayerBounds( layerID );
     }
   }
 

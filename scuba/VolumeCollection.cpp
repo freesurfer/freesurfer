@@ -28,6 +28,7 @@ VolumeCollection::VolumeCollection () :
   mfnAutosave = "";
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
   mbUseDataToIndexTransform = true;
+  mbBoundsCacheDirty = true;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -305,12 +306,40 @@ void
 VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
 
   if( NULL != mMRI ) {
-    oRASBounds[0] = mMRI->xstart;
-    oRASBounds[1] = mMRI->xend;
-    oRASBounds[2] = mMRI->ystart;
-    oRASBounds[3] = mMRI->yend;
-    oRASBounds[4] = mMRI->zstart;
-    oRASBounds[5] = mMRI->zend;
+    
+    if( mbBoundsCacheDirty ) {
+      
+      mRASBounds[0] = mRASBounds[2] = mRASBounds[4] = 999999;
+      mRASBounds[1] = mRASBounds[3] = mRASBounds[5] = -999999;
+
+      int index[3];
+      float RAS[3];
+      for( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
+	for( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
+	  for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+	    
+	    MRIIndexToRAS( index, RAS );
+
+	    if( RAS[0] < mRASBounds[0] ) mRASBounds[0] = RAS[0];
+	    if( RAS[0] > mRASBounds[1] ) mRASBounds[1] = RAS[0];
+	    if( RAS[1] < mRASBounds[2] ) mRASBounds[2] = RAS[1];
+	    if( RAS[1] > mRASBounds[3] ) mRASBounds[3] = RAS[1];
+	    if( RAS[2] < mRASBounds[4] ) mRASBounds[4] = RAS[2];
+	    if( RAS[2] > mRASBounds[5] ) mRASBounds[5] = RAS[2];
+	  }
+	}
+      }
+
+      mbBoundsCacheDirty = false;
+    }
+    
+    oRASBounds[0] = mRASBounds[0];
+    oRASBounds[1] = mRASBounds[1];
+    oRASBounds[2] = mRASBounds[2];
+    oRASBounds[3] = mRASBounds[3];
+    oRASBounds[4] = mRASBounds[4];
+    oRASBounds[5] = mRASBounds[5];
+    
   } else {
     oRASBounds[0] = oRASBounds[1] = oRASBounds[2] = 
       oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
@@ -410,6 +439,12 @@ void
 VolumeCollection::RASToDataRAS ( float const iRAS[3], float oDataRAS[3] ) {
   
   mDataToWorldTransform->InvMultiplyVector3( iRAS, oDataRAS );
+}
+
+void
+VolumeCollection::DataRASToRAS ( float const iDataRAS[3], float oRAS[3] ) {
+  
+  mDataToWorldTransform->MultiplyVector3( iDataRAS, oRAS );
 }
 
 void
