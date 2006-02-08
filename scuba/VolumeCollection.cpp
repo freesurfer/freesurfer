@@ -1605,9 +1605,9 @@ VolumeCollection::CalcWorldToIndexTransform () {
   } else {
 
     Transform44 center;
-    center.SetMainTransform( 1, 0, 0, mMRI->width/2,
-			     0, 1, 0, mMRI->height/2,
-			     0, 0, 1, mMRI->depth/2,
+    center.SetMainTransform( 1, 0, 0, (double)mMRI->width/2.0,
+			     0, 1, 0, (double)mMRI->height/2.0,
+			     0, 0, 1, (double)mMRI->depth/2.0,
 			     0, 0, 0, 1 );
     
     Transform44 worldToData = mDataToWorldTransform->Inverse();
