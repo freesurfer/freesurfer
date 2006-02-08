@@ -409,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.65 2006/02/07 22:17:20 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.66 2006/02/08 06:14:13 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -489,7 +489,7 @@ int DiagCluster=0;
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
 double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm; 
-MRI *ar1=NULL, *z=NULL;
+MRI *ar1=NULL, *z=NULL, *zabs=NULL;
 
 CSD *csd;
 RFS *rfs;
@@ -880,6 +880,7 @@ int main(int argc, char **argv)
       rfs->params[1] = 1;
       //z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
       z = MRIcloneBySpace(mriglm->y,1);
+      zabs = MRIcloneBySpace(mriglm->y,1);
     }
     if(csd->threshsign == 0) {
       absflag = 1;
@@ -944,14 +945,21 @@ int main(int argc, char **argv)
 	    SmoothSurfOrVol(surf, z, SmoothLevel);
 	    RFrescale(z,rfs,NULL,z);
 	  }
-
 	  if(csd->threshsign == 0) MRIabs(z,z); // two-tailed
-	  if(csd->threshsign < 0) MRIscalarMul(z,z,-1.0); // negate
-	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
-	  if(csd->threshsign < 0) MRIscalarMul(z,z,-1.0); // restore
 
+	  // Slightly tortured way to get the right p-values because
+	  //   RFstat2P() computes one-sided, but I handle sidedness
+	  //   during thresholding.
+	  // First, use zabs to get a two-sided pval bet 0 and 0.5
+	  zabs = MRIabs(z,zabs); 
+	  mriglm->p[n] = RFstat2P(zabs,rfs,mriglm->mask,mriglm->p[n]);
+	  // Next, mult pvals by 2 to get two-sided bet 0 and 1
+	  MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
+	  // sig = -log10(p)
 	  sig = MRIlog10(mriglm->p[n],sig,1);
+	  // Now sign the sigs
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
+
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
 	}
@@ -973,8 +981,8 @@ int main(int argc, char **argv)
 	  if(Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
 	  clustFreeClusterList(&VolClustList,nClusters);
 	}
-	printf("%s %d nc=%d   csize=%g  sigmax=%g  Fmax=%g\n",mriglm->glm->Cname[n],nthsim,
-	       nClusters,csize,sigmax,Fmax);
+	printf("%s %d nc=%d  maxcsize=%g  sigmax=%g  Fmax=%g\n",
+	       mriglm->glm->Cname[n],nthsim,nClusters,csize,sigmax,Fmax);
 
 	// Re-write the full CSD file each time. Should not take that
 	// long and assures output can be used immediately regardless
