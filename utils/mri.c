@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/07 23:43:34 $
-// Revision       : $Revision: 1.333 $
-char *MRI_C_VERSION = "$Revision: 1.333 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/08 02:09:29 $
+// Revision       : $Revision: 1.334 $
+char *MRI_C_VERSION = "$Revision: 1.334 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10852,9 +10852,9 @@ int apply_i_to_r(MRI *mri, MATRIX *m)
          (ERROR_BADPARM,
           "apply_i_to_r(): error allocating matrix"));
     }
-  *MATRIX_RELT(origin, 1, 1) = (mri->width  - 1.0) / 2.0;
-  *MATRIX_RELT(origin, 2, 1) = (mri->height - 1.0) / 2.0;
-  *MATRIX_RELT(origin, 3, 1) = (mri->depth  - 1.0) / 2.0;
+  *MATRIX_RELT(origin, 1, 1) = (double)mri->width / 2.0;
+  *MATRIX_RELT(origin, 2, 1) = (double)mri->height / 2.0;
+  *MATRIX_RELT(origin, 3, 1) = (double)mri->depth / 2.0;
   *MATRIX_RELT(origin, 4, 1) = 1.0;
 
   c = MatrixMultiply(m, origin, NULL);

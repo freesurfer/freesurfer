@@ -2098,11 +2098,11 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   fread(&im_c_s, 8, 1, fp);  im_c_s = -orderDoubleBytes(im_c_s);
 
   mri->c_r = im_c_r - (mosaic_size - 1) * mri->z_r * mri->zsize + \
-    ((mri->depth - 1.0) / 2.0) * mri->z_r * mri->zsize;
+    ((mri->depth) / 2.0) * mri->z_r * mri->zsize;
   mri->c_a = im_c_a - (mosaic_size - 1) * mri->z_a * mri->zsize + \
-    ((mri->depth - 1.0) / 2.0) * mri->z_a * mri->zsize;
+    ((mri->depth) / 2.0) * mri->z_a * mri->zsize;
   mri->c_s = im_c_s - (mosaic_size - 1) * mri->z_s * mri->zsize + \
-    ((mri->depth - 1.0) / 2.0) * mri->z_s * mri->zsize;
+    ((mri->depth) / 2.0) * mri->z_s * mri->zsize;
 
   mri->ras_good_flag = 1;
 
