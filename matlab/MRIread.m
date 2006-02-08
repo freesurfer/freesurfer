@@ -23,7 +23,7 @@ function mri = MRIread(fstring,headeronly)
 % input is not bhdr, then mri.srcbext will exist but be empty.
 % See also MRIwrite() and mri.outbext.
 %
-% $Id: MRIread.m,v 1.9 2005/11/22 02:06:49 greve Exp $
+% $Id: MRIread.m,v 1.10 2006/02/08 21:14:21 greve Exp $
 
 mri = [];
 
@@ -111,7 +111,7 @@ switch(fmt)
   te = 0;
   ti = 0;
   hdr.vol = []; % already have it above, so clear it 
-  M = hdr.vox2ras;
+  M = vox2ras_1to0(hdr.vox2ras);
   mri.analyzehdr = hdr;
 %--------------------------------------------------- 
  otherwise
