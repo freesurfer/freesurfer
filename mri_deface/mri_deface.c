@@ -162,6 +162,9 @@ main(int argc, char *argv[])
   struct timeb start ;
   float        old_log_p, log_p ;
 
+  sprintf(fname, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
+  setenv(fname,"1",0);
+
   for (i = 0 ; i < MAX_CMA_LABEL ; i++)
   {
     switch (i)
@@ -216,7 +219,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.17 2005/08/26 20:07:19 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.18 2006/02/08 16:44:55 greve Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit(ERROR_BADPARM, 
