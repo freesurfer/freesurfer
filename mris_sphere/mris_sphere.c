@@ -17,7 +17,8 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.36 2006/01/24 02:54:17 fischl Exp $";
+static char vcid[]=
+"$Id: mris_sphere.c,v 1.37 2006/02/08 00:15:02 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,19 +77,24 @@ static int remove_negative = 0 ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_surf_fname, *out_fname, 
-               fname[STRLEN], *cp ;
+  char         **av, *in_surf_fname, *out_fname, fname[STRLEN], *cp ;
   int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
-  struct timeb  then ;
-  float         max_dim ;
+  struct timeb then ;
+  float        max_dim ;
 
-	char cmdline[CMD_LINE_LEN] ;
-	
-  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.36 2006/01/24 02:54:17 fischl Exp $", "$Name:  $", cmdline);
+  char cmdline[CMD_LINE_LEN] ;
+
+  make_cmd_version_string
+    (argc, argv,
+     "$Id: mris_sphere.c,v 1.37 2006/02/08 00:15:02 nicks Exp $",
+     "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.36 2006/01/24 02:54:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_sphere.c,v 1.37 2006/02/08 00:15:02 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,7 +106,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-	memset(&parms, 0, sizeof(parms)) ;
+  memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .05 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
@@ -131,11 +137,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
+    {
+      nargs = get_option(argc, argv) ;
+      argc -= nargs ;
+      argv += nargs ;
+    }
 
   parms.scale = scale ;
 
@@ -151,135 +157,135 @@ main(int argc, char *argv[])
   fflush(stdout);
 
   if (parms.base_name[0] == 0)
-  {
-    FileNameOnly(out_fname, fname) ;
-    cp = strchr(fname, '.') ;
-    if (cp)
-      strcpy(parms.base_name, cp+1) ;
-    else
-      strcpy(parms.base_name, "sphere") ;
-  }
+    {
+      FileNameOnly(out_fname, fname) ;
+      cp = strchr(fname, '.') ;
+      if (cp)
+        strcpy(parms.base_name, cp+1) ;
+      else
+        strcpy(parms.base_name, "sphere") ;
+    }
 
   mris = MRISread(in_surf_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_surf_fname) ;
 
-	MRISaddCommandLine(mris, cmdline) ;
+  MRISaddCommandLine(mris, cmdline) ;
 
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-	if (quick == 0) // don't need original properties unless preserving metric
-		MRISreadOriginalProperties(mris, orig_name) ;
+  if (quick == 0) // don't need original properties unless preserving metric
+    MRISreadOriginalProperties(mris, orig_name) ;
   if (smooth_avgs > 0)
-  {
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRISaverageVertexPositions(mris, smooth_avgs) ;
-    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-  }
-  
-	if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
-	{
-    MRISrotate(mris, mris, RADIANS(ralpha), RADIANS(rbeta), RADIANS(rgamma)) ;
-		//		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRISwrite(mris, "rot") ;
-	}		
+    {
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISaverageVertexPositions(mris, smooth_avgs) ;
+      MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    }
+
+  if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
+    {
+      MRISrotate(mris,mris,RADIANS(ralpha),RADIANS(rbeta),RADIANS(rgamma)) ;
+      //                if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRISwrite(mris, "rot") ;
+    }
   fprintf(stderr, "unfolding cortex into spherical form...\n");
   if (talairach)
-	{
-    MRIStalairachTransform(mris, mris) ;
-		MRISwrite(mris, "tal") ;
-	}
+    {
+      MRIStalairachTransform(mris, mris) ;
+      MRISwrite(mris, "tal") ;
+    }
 
-	if (xform_fname)
-	{
-		LTA *lta ;
-		MRI *mri ;
+  if (xform_fname)
+    {
+      LTA *lta ;
+      MRI *mri ;
 
-		lta = LTAread(xform_fname) ;
-		if (lta == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not load %s", xform_fname) ;
-		mri = MRIread(vol_fname) ;
-		if (mri == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not load %s", vol_fname) ;
-		MRIStransform(mris, mri, lta, mri) ;
-		MRIfree(&mri) ; LTAfree(&lta) ;
-		MRISwrite(mris, "xfm") ;
-	}
+      lta = LTAread(xform_fname) ;
+      if (lta == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load %s", xform_fname) ;
+      mri = MRIread(vol_fname) ;
+      if (mri == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load %s", vol_fname) ;
+      MRIStransform(mris, mri, lta, mri) ;
+      MRIfree(&mri) ; LTAfree(&lta) ;
+      MRISwrite(mris, "xfm") ;
+    }
   max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
   max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
   max_dim = MAX(abs(max_dim), abs(mris->yhi)) ;
   max_dim = MAX(abs(max_dim), abs(mris->zlo)) ;
   max_dim = MAX(abs(max_dim), abs(mris->zhi)) ;
   if (max_dim > .75*DEFAULT_RADIUS)
-  {
-    float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
-    printf("scaling brain by %2.3f...\n", ratio) ;
-    MRISscaleBrain(mris, mris, ratio) ;
-  }
+    {
+      float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
+      printf("scaling brain by %2.3f...\n", ratio) ;
+      MRISscaleBrain(mris, mris, ratio) ;
+    }
 
   if (!load && inflate)
-  {
-    INTEGRATION_PARMS inflation_parms ;
+    {
+      INTEGRATION_PARMS inflation_parms ;
 
-    memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
-    strcpy(inflation_parms.base_name, parms.base_name) ;
-    inflation_parms.write_iterations = parms.write_iterations ;
-    inflation_parms.niterations = inflate_iterations ;
-    inflation_parms.l_spring_norm = l_spring_norm ;
-    inflation_parms.l_nlarea = inflate_nlarea ;
-    inflation_parms.l_area = inflate_area ;
-    inflation_parms.n_averages = inflate_avgs ;
-    inflation_parms.l_sphere = l_sphere ;
-    inflation_parms.l_convex = l_convex ;
+      memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
+      strcpy(inflation_parms.base_name, parms.base_name) ;
+      inflation_parms.write_iterations = parms.write_iterations ;
+      inflation_parms.niterations = inflate_iterations ;
+      inflation_parms.l_spring_norm = l_spring_norm ;
+      inflation_parms.l_nlarea = inflate_nlarea ;
+      inflation_parms.l_area = inflate_area ;
+      inflation_parms.n_averages = inflate_avgs ;
+      inflation_parms.l_sphere = l_sphere ;
+      inflation_parms.l_convex = l_convex ;
 #define SCALE_UP 2
-    inflation_parms.a = SCALE_UP*DEFAULT_RADIUS ;
-    inflation_parms.tol = inflate_tol ;
-    inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
-    inflation_parms.momentum = 0.9 ;
-    inflation_parms.dt = 0.9 ;
-    
-    /* store the inflated positions in the v->c? field so that they can
-       be used in the repulsive term.
-    */
-    /*    inflation_parms.l_repulse_ratio = .1 ;*/
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    MRISinflateToSphere(mris, &inflation_parms) ;
-		MRISscaleBrain(mris, mris, 1.0/SCALE_UP) ;
-    parms.start_t = inflation_parms.start_t ;
-  }
+      inflation_parms.a = SCALE_UP*DEFAULT_RADIUS ;
+      inflation_parms.tol = inflate_tol ;
+      inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
+      inflation_parms.momentum = 0.9 ;
+      inflation_parms.dt = 0.9 ;
+
+      /* store the inflated positions in the v->c? field so that they can
+         be used in the repulsive term.
+      */
+      /*    inflation_parms.l_repulse_ratio = .1 ;*/
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+      MRISinflateToSphere(mris, &inflation_parms) ;
+      MRISscaleBrain(mris, mris, 1.0/SCALE_UP) ;
+      parms.start_t = inflation_parms.start_t ;
+    }
 
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
   if (quick)
-  {
-    if (!load)
     {
+      if (!load)
+        {
 #if 0
-      parms.n_averages = 32 ;
-      parms.tol = .1 ;
-      parms.l_parea = parms.l_dist = 0.0 ; parms.l_nlarea = 1 ; 
+          parms.n_averages = 32 ;
+          parms.tol = .1 ;
+          parms.l_parea = parms.l_dist = 0.0 ; parms.l_nlarea = 1 ;
 #endif
-      MRISprintTessellationStats(mris, stderr) ;
-      MRISquickSphere(mris, &parms, max_passes) ;  
+          MRISprintTessellationStats(mris, stderr) ;
+          MRISquickSphere(mris, &parms, max_passes) ;
+        }
     }
-  }
   else
-    MRISunfold(mris, &parms, max_passes) ;  
-	if (remove_negative)
-	{
-		parms.niterations = 1000 ;
-		MRISremoveOverlapWithSmoothing(mris,&parms) ;
-	}
+    MRISunfold(mris, &parms, max_passes) ;
+  if (remove_negative)
+    {
+      parms.niterations = 1000 ;
+      MRISremoveOverlapWithSmoothing(mris,&parms) ;
+    }
   if (!load)
-  {
-    fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
-    MRISwrite(mris, out_fname) ;
-  }
+    {
+      fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
+      MRISwrite(mris, out_fname) ;
+    }
 
   msec = TimerStop(&then) ;
   fprintf(stderr, "spherical transformation took %2.2f hours\n",
@@ -289,314 +295,319 @@ main(int argc, char *argv[])
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
   float f ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "dist"))
-  {
-    sscanf(argv[2], "%f", &parms.l_dist) ;
-    nargs = 1 ;
-    fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_dist) ;
+      nargs = 1 ;
+      fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
+    }
   else if (!stricmp(option, "lm"))
-  {
-    parms.integration_type = INTEGRATE_LM_SEARCH ;
-    fprintf(stderr, "integrating using binary search line minimization\n") ;
-  }
+    {
+      parms.integration_type = INTEGRATE_LM_SEARCH ;
+      fprintf(stderr, "integrating using binary search line minimization\n") ;
+    }
   else if (!stricmp(option, "avgs"))
-  {
-    smooth_avgs = atoi(argv[2]) ;
-    fprintf(stderr, "smoothing original positions %d times before computing metrics\n",
-            smooth_avgs) ;
-    nargs = 1 ;
-  }
+    {
+      smooth_avgs = atoi(argv[2]) ;
+      fprintf
+        (stderr,
+         "smoothing original positions %d times before computing metrics\n",
+         smooth_avgs) ;
+      nargs = 1 ;
+    }
   else if (!stricmp(option, "rotate"))
-  {
-		ralpha = atof(argv[2]) ;
-		rbeta = atof(argv[3]) ;
-		rgamma = atof(argv[4]) ;
-		nargs = 3 ;
-    fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
-						ralpha, rbeta, rgamma) ;
-  }
+    {
+      ralpha = atof(argv[2]) ;
+      rbeta = atof(argv[3]) ;
+      rgamma = atof(argv[4]) ;
+      nargs = 3 ;
+      fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
+              ralpha, rbeta, rgamma) ;
+    }
   else if (!stricmp(option, "talairach"))
-  {
-    talairach = 1 ;
-    fprintf(stderr, "transforming surface into Talairach space.\n") ;
-  }
+    {
+      talairach = 1 ;
+      fprintf(stderr, "transforming surface into Talairach space.\n") ;
+    }
   else if (!stricmp(option, "remove_negative"))
-  {
-    remove_negative = atoi(argv[2]) ;
-		nargs = 1 ;
-    fprintf(stderr, "%sremoving negative triangles with iterative smoothing\n",
-						remove_negative ? "" : "not ") ;
-  }
+    {
+      remove_negative = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf
+        (stderr,
+         "%sremoving negative triangles with iterative smoothing\n",
+         remove_negative ? "" : "not ") ;
+    }
   else if (!stricmp(option, "notal"))
-  {
-    talairach = 0 ;
-    fprintf(stderr, "transforming surface into Talairach space.\n") ;
-  }
+    {
+      talairach = 0 ;
+      fprintf(stderr, "transforming surface into Talairach space.\n") ;
+    }
   else if (!stricmp(option, "dt"))
-  {
-    parms.dt = atof(argv[2]) ;
-    parms.base_dt = base_dt_scale*parms.dt ;
-    nargs = 1 ;
-    fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
-  }
+    {
+      parms.dt = atof(argv[2]) ;
+      parms.base_dt = base_dt_scale*parms.dt ;
+      nargs = 1 ;
+      fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
+    }
   else if (!stricmp(option, "curv"))
-  {
-    sscanf(argv[2], "%f", &parms.l_curv) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_curv = %2.3f\n", parms.l_curv) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_curv) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_curv = %2.3f\n", parms.l_curv) ;
+    }
   else if (!stricmp(option, "area"))
-  {
-    sscanf(argv[2], "%f", &parms.l_area) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_area) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
+    }
   else if (!stricmp(option, "iarea"))
-  {
-    inflate_area = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "inflation l_area = %2.3f\n", inflate_area) ;
-  }
+    {
+      inflate_area = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "inflation l_area = %2.3f\n", inflate_area) ;
+    }
   else if (!stricmp(option, "itol"))
-  {
-    inflate_tol = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "inflation tol = %2.3f\n", inflate_tol) ;
-  }
+    {
+      inflate_tol = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "inflation tol = %2.3f\n", inflate_tol) ;
+    }
   else if (!stricmp(option, "in"))
-  {
-    inflate_iterations = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "inflation iterations = %d\n", inflate_iterations) ;
-  }
+    {
+      inflate_iterations = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "inflation iterations = %d\n", inflate_iterations) ;
+    }
   else if (!stricmp(option, "iavgs"))
-  {
-    inflate_avgs = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "inflation averages = %d\n", inflate_avgs) ;
-  }
+    {
+      inflate_avgs = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "inflation averages = %d\n", inflate_avgs) ;
+    }
   else if (!stricmp(option, "inlarea"))
-  {
-    inflate_nlarea = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "inflation l_nlarea = %2.3f\n", inflate_nlarea) ;
-  }
+    {
+      inflate_nlarea = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "inflation l_nlarea = %2.3f\n", inflate_nlarea) ;
+    }
   else if (!stricmp(option, "adaptive"))
-  {
-    parms.integration_type = INTEGRATE_ADAPTIVE ;
-    fprintf(stderr, "using adaptive time step integration\n") ;
-  }
+    {
+      parms.integration_type = INTEGRATE_ADAPTIVE ;
+      fprintf(stderr, "using adaptive time step integration\n") ;
+    }
   else if (!stricmp(option, "nbrs"))
-  {
-    nbrs = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-  }
+    {
+      nbrs = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+    }
   else if (!stricmp(option, "spring"))
-  {
-    sscanf(argv[2], "%f", &parms.l_spring) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_spring) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
+    }
   else if (!stricmp(option, "convex"))
-  {
-    sscanf(argv[2], "%f", &l_convex) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_convex = %2.3f\n", l_convex) ;
-  }
+    {
+      sscanf(argv[2], "%f", &l_convex) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_convex = %2.3f\n", l_convex) ;
+    }
   else if (!stricmp(option, "spring_norm"))
-  {
-    sscanf(argv[2], "%f", &l_spring_norm) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_spring_norm = %2.3f\n", l_spring_norm) ;
-  }
+    {
+      sscanf(argv[2], "%f", &l_spring_norm) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_spring_norm = %2.3f\n", l_spring_norm) ;
+    }
   else if (!stricmp(option, "sphere"))
-  {
-    sscanf(argv[2], "%f", &l_sphere) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_sphere = %2.3f\n", l_sphere) ;
-  }
+    {
+      sscanf(argv[2], "%f", &l_sphere) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_sphere = %2.3f\n", l_sphere) ;
+    }
   else if (!stricmp(option, "name"))
-  {
-    strcpy(parms.base_name, argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "using base name = %s\n", parms.base_name) ;
-  }
-
+    {
+      strcpy(parms.base_name, argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "using base name = %s\n", parms.base_name) ;
+    }
   else if (!stricmp(option, "angle"))
-  {
-    sscanf(argv[2], "%f", &parms.l_angle) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_angle = %2.3f\n", parms.l_angle) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_angle) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_angle = %2.3f\n", parms.l_angle) ;
+    }
   else if (!stricmp(option, "area"))
-  {
-    sscanf(argv[2], "%f", &parms.l_area) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
+    {
+      sscanf(argv[2], "%f", &parms.l_area) ;
+      nargs = 1 ;
+      fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
+    }
   else if (!stricmp(option, "tol"))
-  {
-    if (sscanf(argv[2], "%e", &f) < 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan tol from %s",
-                Progname, argv[2]) ;
-    parms.tol = (double)f ;
-    nargs = 1 ;
-    fprintf(stderr, "using tol = %2.2e\n", (float)parms.tol) ;
-  }
+    {
+      if (sscanf(argv[2], "%e", &f) < 1)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan tol from %s",
+                  Progname, argv[2]) ;
+      parms.tol = (double)f ;
+      nargs = 1 ;
+      fprintf(stderr, "using tol = %2.2e\n", (float)parms.tol) ;
+    }
   else if (!stricmp(option, "error_ratio"))
-  {
-    parms.error_ratio = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
-  }
+    {
+      parms.error_ratio = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
+    }
   else if (!stricmp(option, "dt_inc"))
-  {
-    parms.dt_increase = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
-  }
+    {
+      parms.dt_increase = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
+    }
   else if (!stricmp(option, "NLAREA"))
-  {
-    parms.l_nlarea = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "nlarea = %2.3f\n", parms.l_nlarea) ;
-  }
+    {
+      parms.l_nlarea = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "nlarea = %2.3f\n", parms.l_nlarea) ;
+    }
   else if (!stricmp(option, "PAREA"))
-  {
-    parms.l_parea = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "parea = %2.3f\n", parms.l_parea) ;
-  }
+    {
+      parms.l_parea = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "parea = %2.3f\n", parms.l_parea) ;
+    }
   else if (!stricmp(option, "NLDIST"))
-  {
-    parms.l_nldist = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "nldist = %2.3f\n", parms.l_nldist) ;
-  }
+    {
+      parms.l_nldist = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "nldist = %2.3f\n", parms.l_nldist) ;
+    }
   else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
-  {
-    parms.nbhd_size = atof(argv[2]) ;
-    parms.max_nbrs = atof(argv[3]) ;
-    nargs = 2 ;
-    fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
-            parms.nbhd_size, parms.max_nbrs) ;
-  }
+    {
+      parms.nbhd_size = atof(argv[2]) ;
+      parms.max_nbrs = atof(argv[3]) ;
+      nargs = 2 ;
+      fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
+              parms.nbhd_size, parms.max_nbrs) ;
+    }
   else if (!stricmp(option, "dt_dec"))
-  {
-    parms.dt_decrease = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
-  }
+    {
+      parms.dt_decrease = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+    }
   else switch (toupper(*option))
-  {
-	case 'T':
-		xform_fname = argv[2] ;
-		vol_fname = argv[3] ;
-		nargs = 2 ;
-		break ;
-  case 'O':
-    orig_name = argv[2] ;
-    fprintf(stderr, "using %s as original surface...\n", orig_name) ;
-    nargs = 1 ;
-    break ;
-  case 'P':
-    max_passes = atoi(argv[2]) ;
-    fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
-    nargs = 1 ;
-    break ;
-  case 'Q':
-    quick = 1 ;
-		inflate = 1 ;
-		inflate_iterations = 300 ;
-		max_passes = 3 ;
-    fprintf(stderr, "doing quick spherical unfolding.\n") ;
-    nbrs = 1 ;
-    parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
-    parms.l_nlarea = 1.0 ;
-    parms.tol = 1e-1 ;
-    parms.n_averages = 32 ;
-    /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
-    break ;
-  case 'L':
-    load = 1 ;
-    break ;
-  case 'B':
-    base_dt_scale = atof(argv[2]) ;
-    parms.base_dt = base_dt_scale*parms.dt ;
-    nargs = 1;
-    break ;
-  case 'S':
-    scale = atof(argv[2]) ;
-    fprintf(stderr, "scaling brain by = %2.3f\n", (float)scale) ;
-    nargs = 1 ;
-    break ;
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'D':
-    disturb = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "disturbing vertex positions by %2.3f\n",(float)disturb) ;
-    break ;
-  case 'R':
-    randomly_project = !randomly_project ;
-    fprintf(stderr, "using random placement for projection.\n") ;
-    break ;
-  case 'M':
-    parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.momentum = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
-    break ;
-  case 'W':
-    Gdiag |= DIAG_WRITE ;
-    sscanf(argv[2], "%d", &parms.write_iterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
-    break ;
-  case 'I':
-    inflate = 1 ;
-    fprintf(stderr, "inflating brain...\n") ;
-    break ;
-  case 'A':
-    sscanf(argv[2], "%d", &parms.n_averages) ;
-    nargs = 1 ;
-    fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'N':
-    sscanf(argv[2], "%d", &parms.niterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+    {
+    case 'T':
+      xform_fname = argv[2] ;
+      vol_fname = argv[3] ;
+      nargs = 2 ;
+      break ;
+    case 'O':
+      orig_name = argv[2] ;
+      fprintf(stderr, "using %s as original surface...\n", orig_name) ;
+      nargs = 1 ;
+      break ;
+    case 'P':
+      max_passes = atoi(argv[2]) ;
+      fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
+      nargs = 1 ;
+      break ;
+    case 'Q':
+      quick = 1 ;
+      inflate = 1 ;
+      inflate_iterations = 300 ;
+      max_passes = 3 ;
+      fprintf(stderr, "doing quick spherical unfolding.\n") ;
+      nbrs = 1 ;
+      parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ;
+      parms.l_nlarea = 1.0 ;
+      parms.tol = 1e-1 ;
+      parms.n_averages = 32 ;
+      /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
+      break ;
+    case 'L':
+      load = 1 ;
+      break ;
+    case 'B':
+      base_dt_scale = atof(argv[2]) ;
+      parms.base_dt = base_dt_scale*parms.dt ;
+      nargs = 1;
+      break ;
+    case 'S':
+      scale = atof(argv[2]) ;
+      fprintf(stderr, "scaling brain by = %2.3f\n", (float)scale) ;
+      nargs = 1 ;
+      break ;
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'D':
+      disturb = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf
+        (stderr, "disturbing vertex positions by %2.3f\n",(float)disturb) ;
+      break ;
+    case 'R':
+      randomly_project = !randomly_project ;
+      fprintf(stderr, "using random placement for projection.\n") ;
+      break ;
+    case 'M':
+      parms.integration_type = INTEGRATE_MOMENTUM ;
+      parms.momentum = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
+      break ;
+    case 'W':
+      Gdiag |= DIAG_WRITE ;
+      sscanf(argv[2], "%d", &parms.write_iterations) ;
+      nargs = 1 ;
+      fprintf
+        (stderr, "using write iterations = %d\n", parms.write_iterations) ;
+      break ;
+    case 'I':
+      inflate = 1 ;
+      fprintf(stderr, "inflating brain...\n") ;
+      break ;
+    case 'A':
+      sscanf(argv[2], "%d", &parms.n_averages) ;
+      nargs = 1 ;
+      fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'N':
+      sscanf(argv[2], "%d", &parms.niterations) ;
+      nargs = 1 ;
+      fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
@@ -611,7 +622,7 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
+  fprintf(stderr,
           "usage: %s [options] <surface file> <patch file name> <output patch>"
           "\n", Progname) ;
 }
@@ -620,8 +631,8 @@ static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+  fprintf(stderr,
+          "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
@@ -640,17 +651,18 @@ mrisDisturbVertices(MRI_SURFACE *mris, double amount)
   VERTEX *v ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    v->x += randomNumber(-amount, amount) ;
-    v->y += randomNumber(-amount, amount) ;
-  }
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->x += randomNumber(-amount, amount) ;
+      v->y += randomNumber(-amount, amount) ;
+    }
 
   MRIScomputeMetricProperties(mris) ;
   return(NO_ERROR) ;
 }
+
 int
 MRISscaleUp(MRI_SURFACE *mris)
 {
@@ -660,40 +672,40 @@ MRISscaleUp(MRI_SURFACE *mris)
 
   max_ratio = 0.0f ; max_v = max_n = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
     {
-      if (FZERO(v->dist[n]))   /* would require infinite scaling */
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
         continue ;
-      ratio = v->dist_orig[n] / v->dist[n] ;
-      if (ratio > max_ratio)
-      {
-        max_v = vno ; max_n = n ;
-        max_ratio = ratio ;
-      }
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (n = 0 ; n < v->vnum ; n++)
+        {
+          if (FZERO(v->dist[n]))   /* would require infinite scaling */
+            continue ;
+          ratio = v->dist_orig[n] / v->dist[n] ;
+          if (ratio > max_ratio)
+            {
+              max_v = vno ; max_n = n ;
+              max_ratio = ratio ;
+            }
+        }
     }
-  }
 
-  fprintf(stderr, "max @ (%d, %d), scaling brain by %2.3f\n", 
+  fprintf(stderr, "max @ (%d, %d), scaling brain by %2.3f\n",
           max_v, max_n, max_ratio) ;
 #if 0
   MRISscaleBrain(mris, mris, max_ratio) ;
 #else
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
-      v->dist_orig[n] /= max_ratio ;
-  }
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (n = 0 ; n < v->vnum ; n++)
+        v->dist_orig[n] /= max_ratio ;
+    }
 #endif
   return(NO_ERROR) ;
 }
