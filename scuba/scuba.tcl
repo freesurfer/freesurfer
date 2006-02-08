@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.177 2006/02/08 22:23:08 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.178 2006/02/08 22:30:58 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -934,27 +934,26 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
 	    set deltaContrast [expr $deltaY / 512.0 * 30.0]
 	}
 
-	foreach layerID $gaLayer(idList) {
-	    if { [GetLayerType $layerID] == "2DMRI" } {
-		if { $deltaContrast != 0 } {
-		    Set2DMRILayerContrast $layerID \
-	     [expr $gaChangeBC($layerID,origContrast) + $deltaContrast]
-		}
-		if { $deltaBrightness != 0 } {
-		    Set2DMRILayerBrightness $layerID \
-	     [expr $gaChangeBC($layerID,origBrightness) + $deltaBrightness]
-		}
-		if { $layerID == $gaLayer(current,id) } {
-		    set gaLayer(current,brightness) \
-			[Get2DMRILayerBrightness $layerID]
-		    set gaLayer(current,contrast) \
-			[Get2DMRILayerContrast $layerID]
-		}
+	set layerID $gaLayer(current,id)
+	if { [GetLayerType $layerID] == "2DMRI" } {
+	    if { $deltaContrast != 0 } {
+		Set2DMRILayerContrast $layerID \
+		    [expr $gaChangeBC($layerID,origContrast) + $deltaContrast]
 	    }
+	    if { $deltaBrightness != 0 } {
+		Set2DMRILayerBrightness $layerID \
+		 [expr $gaChangeBC($layerID,origBrightness) + $deltaBrightness]
+	    }
+
+	    set gaLayer(current,brightness) \
+		[Get2DMRILayerBrightness $layerID]
+	    set gaLayer(current,contrast) \
+		[Get2DMRILayerContrast $layerID]
+	    
 	    RedrawFrame [GetMainFrameID]
 	}
     }
-
+    
     # Update the mouse area.
     set err [catch { 
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
@@ -5832,7 +5831,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.177 2006/02/08 22:23:08 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.178 2006/02/08 22:30:58 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
