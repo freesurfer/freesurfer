@@ -32,6 +32,7 @@
 
 #include "volcluster.h"
 #include "version.h"
+#include "nrutil.h"
 
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
         int nslices, MATRIX **ppCRS2FSA,
@@ -64,7 +65,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.19 2006/02/07 09:19:15 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.20 2006/02/09 16:08:20 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -145,11 +146,11 @@ int main(int argc, char **argv)
   int nhits, *hitcol, *hitrow, *hitslc;
   int col, row, slc;
   int nthhit, n, m, nclusters, nprunedclusters;
-  float x,y,z;
+  float x,y,z,val;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.19 2006/02/07 09:19:15 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.20 2006/02/09 16:08:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -457,7 +458,8 @@ int main(int argc, char **argv)
 	col = ClusterList[n]->col[m];
 	row = ClusterList[n]->row[m];
 	slc = ClusterList[n]->slc[m];
-	MRIsetVoxVal(clustwisesig,col,row,slc,0,ClusterList[n]->pval_clusterwise);
+	val = -log10(ClusterList[n]->pval_clusterwise)*SIGN(ClusterList[n]->maxval);
+	MRIsetVoxVal(clustwisesig,col,row,slc,0,val);
       }
     }
     MRIwrite(clustwisesig,clustwisesigfile);
