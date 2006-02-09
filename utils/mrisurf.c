@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/02/02 15:23:20 $
-// Revision       : $Revision: 1.432 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/02/09 18:39:45 $
+// Revision       : $Revision: 1.433 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -568,7 +568,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.432 2006/02/02 15:23:20 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.433 2006/02/09 18:39:45 nicks Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -1246,6 +1246,7 @@ MRISread(char *fname)
 
   Description
   ------------------------------------------------------*/
+#define USE_NEW_QUAD_FILE 1  // new style stores float instead of int
 int
 MRISwrite(MRI_SURFACE *mris, char *name)
 {
@@ -1273,7 +1274,8 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   if (fp==NULL)
     ErrorReturn(ERROR_BADFILE,
                 (ERROR_BADFILE,"MRISwrite(%s): can't create file\n",fname));
-#if 0
+
+#if USE_NEW_QUAD_FILE
   fwrite3(NEW_QUAD_FILE_MAGIC_NUMBER,fp);
 #else
   fwrite3(QUAD_FILE_MAGIC_NUMBER,fp);
@@ -1285,14 +1287,14 @@ MRISwrite(MRI_SURFACE *mris, char *name)
       x = mris->vertices[k].x;
       y = mris->vertices[k].y;
       z = mris->vertices[k].z;
-#if 1
-      fwrite2((int)(x*100),fp);
-      fwrite2((int)(y*100),fp);
-      fwrite2((int)(z*100),fp);
-#else
+#if USE_NEW_QUAD_FILE
       fwriteFloat(x, fp) ;
       fwriteFloat(y, fp) ;
       fwriteFloat(z, fp) ;
+#else
+      fwrite2((int)(x*100),fp);
+      fwrite2((int)(y*100),fp);
+      fwrite2((int)(z*100),fp);
 #endif
     }
   for (k = 0 ; k < mris->nfaces ; k+=2)
