@@ -9075,7 +9075,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   } else {
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
     printf("WARNING: your volume will probably be incorrectly oriented\n");
-    mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
+    mri->x_r = -1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
     mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
     mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
     mri->c_r = mri->xsize * mri->width / 2.0;
@@ -9758,7 +9758,7 @@ static MRI *niiRead(char *fname, int read_volume)
   } else {
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
     printf("WARNING: your volume will probably be incorrectly oriented\n");
-    mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
+    mri->x_r = -1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
     mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
     mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
     mri->c_r = mri->xsize * mri->width / 2.0;
