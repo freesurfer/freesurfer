@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.11 2006/01/31 22:21:47 greve Exp $
+  $Id: mri_volsynth.c,v 1.12 2006/02/09 17:03:34 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.11 2006/01/31 22:21:47 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.12 2006/02/09 17:03:34 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -69,6 +69,7 @@ int nframes = -1;
 int delta_crsf[4];
 int delta_crsf_speced = 0;
 double delta_value = 1;
+double gausmean=0, gausstd=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -122,7 +123,7 @@ int main(int argc, char **argv)
   printf("Synthesizing\n");
   srand48(seed);
   if(strcmp(pdfname,"gaussian")==0)
-    mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
+    mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], gausmean, gausstd, NULL);
   else if(strcmp(pdfname,"uniform")==0)
     mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if(strcmp(pdfname,"const")==0)
@@ -293,6 +294,16 @@ static int parse_commandline(int argc, char **argv)
       pdfname = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--gmean")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&gausmean);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--gstd")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&gausstd);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--delta-crsf")){
       if(nargc < 4) argnerr(option,4);
       sscanf(pargv[0],"%d",&delta_crsf[0]);
@@ -348,6 +359,8 @@ static void print_usage(void)
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere\n");
+  printf("   --gmean mean : use mean for gaussian (def is 0)\n");
+  printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
   printf("\n");
