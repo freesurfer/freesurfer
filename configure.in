@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.153 2006/02/05 04:23:05 nicks Exp $"
+# "$Id: configure.in,v 1.154 2006/02/09 20:19:03 xhan Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -1311,7 +1311,8 @@ mris_thickness_diff/Makefile \
 mri_extract_largest_CC/Makefile \
 mri_compute_seg_overlap/Makefile \
 mris_ms_surface_CNR/Makefile \
-mri_concatenate_lta/Makefile
+mri_concatenate_lta/Makefile \
+mris_surface_stats/Makefile
 )
 
 AC_MSG_RESULT(
