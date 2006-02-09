@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/09/27 15:49:31 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2006/02/09 15:23:00 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -386,19 +386,20 @@ char *fio_dirname(char *pathname)
 char *fio_basename(char *pathname, char *ext)
 {
   int l,n,lext;
-  char *basename;
+  char *basename, *tmp;
 
   if(pathname == NULL) return(NULL);
 
   l = strlen(pathname);
+  tmp = strcpyalloc(pathname); // keep a copy
 
   /* strip off the extension if it matches ext */
   if(ext != NULL){
     lext = strlen(ext);
     if(lext < (l + 2)){
       if( strcmp(ext,&(pathname[l-lext]) ) == 0){
-  memset(&(pathname[l-lext]),'\0',lext+1);
-  l = strlen(pathname);
+	memset(&(pathname[l-lext]),'\0',lext+1);
+	l = strlen(pathname);
       }
     }
   }
@@ -408,12 +409,14 @@ char *fio_basename(char *pathname, char *ext)
     pathname[l-1] = '\0';
     l = strlen(pathname);
   }
-
+  
   if(l < 2){
     /* basename is / or . or single character */
     basename = (char *) calloc(2,sizeof(char));
     if(l==0) basename[0] = '/';
     else     basename[0] = pathname[0];
+    memcpy(pathname,tmp,strlen(tmp));
+    free(tmp);
     return(basename);
   }
 
@@ -423,6 +426,11 @@ char *fio_basename(char *pathname, char *ext)
 
   basename = (char *) calloc(l-n,sizeof(char));
   memcpy(basename,&(pathname[n+1]),l-n);
+
+  // Make sure that pathname does not change
+  memcpy(pathname,tmp,strlen(tmp));
+  free(tmp);
+
   return(basename);
 }
 /*--------------------------------------------------------------
