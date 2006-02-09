@@ -409,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.66 2006/02/08 06:14:13 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.67 2006/02/09 05:08:53 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -774,16 +774,10 @@ int main(int argc, char **argv)
   GLMallocY(mriglm->glm);
 
   if(DoSim && OneSamplePerm){
-    // replace design matrix with +/-1s 
     if(mriglm->nregtot > 1){
       printf("ERROR: you have specified a one-sample permuation test,\n");
       printf("       but your design matrix has %d columns.\n",mriglm->nregtot);
       exit(1);
-    }
-    m = 1;
-    for(n=0; n < mriglm->y->nframes; n++){
-      mriglm->Xg->rptr[n+1][1] = m;
-      m *= -1;
     }
   }
 
@@ -905,7 +899,17 @@ int main(int argc, char **argv)
 		 mriglm->y->nframes,0,1,mriglm->y);
 	if(FWHM > 0)	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
       }
-      if(!strcmp(csd->simtype,"perm")) MatrixRandPermRows(mriglm->Xg);
+      if(!strcmp(csd->simtype,"perm")){
+	if(!OneSamplePerm) MatrixRandPermRows(mriglm->Xg);
+	else{
+	  for(n=0; n < mriglm->y->nframes; n++){
+	    if(drand48() > 0.5) m = +1;
+	    else                m = -1;
+	    mriglm->Xg->rptr[n+1][1] = m;
+	  }
+	  //MatrixPrint(stdout,mriglm->Xg);
+	}
+      }
 
       // Variance smoothing
       if(strcmp(csd->simtype,"mc-z")){ // not a null z
