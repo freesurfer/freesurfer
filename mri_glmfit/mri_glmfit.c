@@ -31,7 +31,6 @@ USAGE: ./mri_glmfit
 
    --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z
    --sim-sign signstring : abs, pos, or neg. Default is abs.
-   --perm-1 : do permutation test for one-sample group mean
 
    --pca : perform pca/svd analysis on residual
    --save-yhat : flag to save signal estimate
@@ -313,6 +312,7 @@ The Estimation step is described in detail above. The simulation
 is invoked by calling mri_glmfit with the following arguments:
 
 --sim nulltype nsim thresh csdbasename 
+--sim-sign sign
 
 It is not necessary to specify --glmdir (it will be ignored). If 
 you are analyzing surface data, then include --surf.
@@ -334,22 +334,24 @@ and mri_volcluster. The Full CSD file is written on each iteration,
 which means that the CSD file will be valid if the simulation
 is aborted or crashes.
 
---perm-1
-
 In the cases where the design matrix is a single columns of ones
 (ie, one-sample group mean), it makes no sense to permute the
-rows of the design matrix so this flag tells mri_glmfit to
-rebuild the design matrix with alternating +1 and -1s. Same
-as the -1 option to FSL's randomise.
+rows of the design matrix. mri_glmfit automatically checks
+for this case. If found, the design matrix is rebuilt on each 
+permutation with randomly selected +1 and -1s. Same as the -1 
+option to FSLs randomise.
 
+--sim-sign sign
+
+sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to 
+perform a one-tailed test. In this case, the contrast matrix can
+only have one row.
 
 ENDHELP --------------------------------------------------------------
 
 */
 
 // Things to do:
-// Set up an actual CSD struct
-// Package volume cluster better
 
 // Save some sort of config in output dir.
 
@@ -409,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.67 2006/02/09 05:08:53 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.68 2006/02/09 15:39:27 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -504,8 +506,9 @@ int main(int argc, char **argv)
   struct timeb  mytimer;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
+  MATRIX *Ct, *CCt;
   FILE *fp;
-  double threshadj;
+  double threshadj, Ccond;
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -752,34 +755,65 @@ int main(int argc, char **argv)
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
+      // Get its name
+      mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+      // Read it in
       mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
       if(mriglm->glm->C[n] == NULL){
 	printf("ERROR: loading C %s\n",CFile[n]);
 	exit(1);
       }
+      // Check it's dimension
       if(mriglm->glm->C[n]->cols != mriglm->nregtot){
 	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
 	printf("       X has %d cols, C has %d cols\n",
 	       mriglm->nregtot,mriglm->glm->C[n]->cols);
 	exit(1);
       }
-      // Get its name
-      mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+      // Check it's condition
+      Ct  = MatrixTranspose(mriglm->glm->C[n],NULL);
+      CCt = MatrixMultiply(mriglm->glm->C[n],Ct,NULL);
+      Ccond = MatrixConditionNumber(CCt);
+      if(Ccond > 1000){
+	printf("ERROR: contrast %s is ill-conditioned (%g)\n",
+	       mriglm->glm->Cname[n],Ccond);
+	MatrixPrint(stdout,mriglm->glm->C[n]);
+	exit(1);
+      }
+      MatrixFree(&Ct);
+      MatrixFree(&CCt);
       // Should check to make sure no two are the same
+      // Check that a one-tailed test is not being done with a F contrast
+      if(DoSim){
+	if(mriglm->glm->C[n]->rows > 1 && csd->threshsign != 0){
+	  printf("ERROR: contrast %s has multiple rows, but you have \n"
+		 "specified that the simulation be run with a one-tailed \n"
+		 "test (--sim-sign). These are mutually exclusive. \n"
+		 "Run without --sim-sign or change the conrast.\n",
+		 mriglm->glm->Cname[n]);
+	}
+      }
     }
+  }
+
+  // Check for one-sample group mean with permutation simulation
+  if(!strcmp(csd->simtype,"perm")){
+    OneSamplePerm=1;
+    if(mriglm->nregtot == 1){
+      for(n=0; n < mriglm->y->nframes; n++){
+	if(mriglm->Xg->rptr[n+1][1] != 1) {
+	  OneSamplePerm=0;
+	  break;
+	}
+      }
+    }
+    if(OneSamplePerm)
+      printf("Design detected as one-sample group mean, adjusting permutation simulation\n");
   }
 
   // At this point, y, X, and C have been loaded, now pre-alloc
   GLMallocX(mriglm->glm,mriglm->y->nframes,mriglm->nregtot);
   GLMallocY(mriglm->glm);
-
-  if(DoSim && OneSamplePerm){
-    if(mriglm->nregtot > 1){
-      printf("ERROR: you have specified a one-sample permuation test,\n");
-      printf("       but your design matrix has %d columns.\n",mriglm->nregtot);
-      exit(1);
-    }
-  }
 
   // Check DOF
   GLMdof(mriglm->glm);
@@ -1434,7 +1468,7 @@ static int parse_commandline(int argc, char **argv)
 static void print_usage(void)
 {
 printf("\n");
-printf("USAGE: ./mri_glmfit \n");
+printf("USAGE: mri_glmfit \n");
 printf("\n");
 printf("   --glmdir dir : save outputs to dir\n");
 printf("\n");
@@ -1456,12 +1490,11 @@ printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
 printf("   --mask-inv : invert mask\n");
-printf("   --save-mask : save final mask to glmdir/mask.mgh\n");
 printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
-printf("   --perm-1 : do permutation test for one-sample group mean\n");
+printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
@@ -1475,6 +1508,7 @@ printf("   --resynthtest niters : test GLM by resynthsis\n");
 printf("   --profile     niters : test speed\n");
 printf("\n");
 printf("   --diag Gdiag_no : set diagnositc level \n");
+printf("   --diag-cluster : save sig volume and exit from first sim loop\n");
 printf("   --debug     turn on debugging\n");
 printf("   --checkopts don't run anything, just check options and exit\n");
 printf("   --help      print out information on how to use this program\n");
@@ -1745,6 +1779,7 @@ printf("The Estimation step is described in detail above. The simulation\n");
 printf("is invoked by calling mri_glmfit with the following arguments:\n");
 printf("\n");
 printf("--sim nulltype nsim thresh csdbasename \n");
+printf("--sim-sign sign\n");
 printf("\n");
 printf("It is not necessary to specify --glmdir (it will be ignored). If \n");
 printf("you are analyzing surface data, then include --surf.\n");
@@ -1766,16 +1801,19 @@ printf("and mri_volcluster. The Full CSD file is written on each iteration,\n");
 printf("which means that the CSD file will be valid if the simulation\n");
 printf("is aborted or crashes.\n");
 printf("\n");
-printf("--perm-1\n");
-printf("\n");
 printf("In the cases where the design matrix is a single columns of ones\n");
 printf("(ie, one-sample group mean), it makes no sense to permute the\n");
-printf("rows of the design matrix so this flag tells mri_glmfit to\n");
-printf("rebuild the design matrix with alternating +1 and -1s. Same\n");
-printf("as the -1 option to FSL's randomise.\n");
+printf("rows of the design matrix. mri_glmfit automatically checks\n");
+printf("for this case. If found, the design matrix is rebuilt on each \n");
+printf("permutation with randomly selected +1 and -1s. Same as the -1 \n");
+printf("option to FSLs randomise.\n");
 printf("\n");
+printf("--sim-sign sign\n");
 printf("\n");
-
+printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to \n");
+printf("perform a one-tailed test. In this case, the contrast matrix can\n");
+printf("only have one row.\n");
+printf("\n");
   exit(1) ;
 }
 /* ------------------------------------------------------ */
