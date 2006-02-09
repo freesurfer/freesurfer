@@ -143,6 +143,7 @@ static MRI *niiRead(char *fname, int read_volume);
 static int niiWrite(MRI *mri, char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
+static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr);
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
 static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume);
@@ -9501,6 +9502,10 @@ static int nifti1Write(MRI *mri, char *fname)
   error = mriToNiftiQform(mri, &hdr);
   if(error != NO_ERROR) return(error);
 
+  /* set the nifti header sform values */
+  // This just copies the vox2ras into the sform
+  mriToNiftiSform(mri, &hdr);
+
   memcpy(hdr.magic, NIFTI1_MAGIC, 4);
 
   strcpy(fname_stem, fname);
@@ -10124,8 +10129,11 @@ static int niiWrite(MRI *mri, char *fname)
 
   /* set the nifti header qform values */
   error = mriToNiftiQform(mri, &hdr);
-  if(error != NO_ERROR)
-    return(error);
+  if(error != NO_ERROR) return(error);
+
+  /* set the nifti header sform values */
+  // This just copies the vox2ras into the sform
+  mriToNiftiSform(mri, &hdr);
 
   memcpy(hdr.magic, NII_MAGIC, 4);
 
@@ -10163,6 +10171,7 @@ static int niiWrite(MRI *mri, char *fname)
   return(NO_ERROR);
 
 } /* end niiWrite() */
+
 
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
 {
@@ -10317,9 +10326,28 @@ static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr)
 
 } /* end niftiQformToMri() */
 
+/*---------------------------------------------------------------------
+  mriToNiftiSform() - just copies the vox2ras to sform and sets the
+  xform code to scanner anat.
+  ---------------------------------------------------------------------*/
+static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr)
+{
+  MATRIX *vox2ras;
+  int c;
+  vox2ras = MRIxfmCRS2XYZ(mri, 0);
+  for(c = 0; c<4; c++){
+    hdr->srow_x[c] = vox2ras->rptr[1][c+1];
+    hdr->srow_y[c] = vox2ras->rptr[2][c+1];
+    hdr->srow_z[c] = vox2ras->rptr[3][c+1];
+  }
+  hdr->sform_code = NIFTI_XFORM_SCANNER_ANAT;
+  MatrixFree(&vox2ras);
+  return(0);
+}
+
+/*---------------------------------------------------------------------*/
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr)
 {
-
   MATRIX *i_to_r;
   float r11, r12, r13;
   float r21, r22, r23;
