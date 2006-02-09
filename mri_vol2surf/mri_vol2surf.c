@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $
+  $Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -109,7 +109,7 @@ int reshape = 1;
 int reshapefactor = 0;
 int reshapetarget = 20;
 
-MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc;
+MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc, *vox2ras;
 SXADAT *sxa;
 
 char *SUBJECTS_DIR = NULL;
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.25 2006/02/06 17:20:56 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -229,9 +229,9 @@ int main(int argc, char **argv)
   nrows_src = SrcVol->height;
   nslcs_src = SrcVol->depth;
   nfrms = SrcVol->nframes;
-  colres_src = ipr; /* in-plane resolution */
-  rowres_src = ipr; /* in-plane resolution */
-  slcres_src = bpr; /* between-plane resolution */
+  colres_src = SrcVol->xsize; /* in-plane resolution */
+  rowres_src = SrcVol->ysize; /* in-plane resolution */
+  slcres_src = SrcVol->zsize; /* between-plane resolution */
 
   if(framesave >= nfrms){
     printf("ERROR: frame = %d, input volume limits to < %d\n",framesave,nfrms);
@@ -241,9 +241,9 @@ int main(int argc, char **argv)
   /* check that the resolution of the SrcVol is the same as in reg file */
   if(fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01){
     printf("WARNING: the voxel resolution in the source volume (%g,%g,%g) differs \n",
-     SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
+	   SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
     printf("         from that listed in the registration file (%g,%g,%g)\n",
-     ipr,ipr,bpr);
+	   ipr,ipr,bpr);
     if(fixtkreg){
       printf("ERROR: cannot fix tkreg matrix with resolution inconsistency\n");
       exit(1);
@@ -265,13 +265,12 @@ int main(int argc, char **argv)
 
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
-
   /* Fsrc: Get the source FOV registration matrix */
   Fsrc = NULL;
-
-  /* Qsrc: Compute the quantization matrix for src volume */
-  Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src, 
-      colres_src, rowres_src, slcres_src); 
+  // Compute vox2ras for source
+  vox2ras = MRIxfmCRS2XYZtkreg(SrcVol);
+  // Compute ras2vox (Qsrc: the quantization matrix)
+  Qsrc = MatrixInverse(vox2ras,NULL);
 
   /* If this is a statistical volume, raise each frame to it's appropriate
      power (eg, stddev needs to be squared)*/
