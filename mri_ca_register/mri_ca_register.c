@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/08 20:52:24 $
-// Revision       : $Revision: 1.44 $
+// Revision Date  : $Date: 2006/02/09 16:09:34 $
+// Revision       : $Revision: 1.45 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.44 2006/02/08 20:52:24 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.45 2006/02/09 16:09:34 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -722,8 +722,10 @@ main(int argc, char *argv[])
       sprintf(fname, "%s.gca", parms.base_name) ;
       printf("writing gca to %s...\n", fname) ;
       //		GCAwrite(gca, fname) ;
-      sprintf(fname, "%s_array.lta", parms.base_name) ;
-      LTAwrite(lta, fname) ;
+      if(lta){
+	sprintf(fname, "%s_array.lta", parms.base_name) ;
+	LTAwrite(lta, fname) ;
+      }
       if (DIAG_VERBOSE_ON)
 	{
 	  MRI *mri_seg, *mri_aligned ;
@@ -738,7 +740,7 @@ main(int argc, char *argv[])
 	  MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
 	}
 #endif
-      if (reinit && (xform_name != NULL))
+      if (reinit && (xform_name != NULL) && (lta != NULL))
 	GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
       if (DIAG_VERBOSE_ON)
 	{
@@ -750,7 +752,7 @@ main(int argc, char *argv[])
 	  MRIwrite(mri_seg, "sa.mgz") ;
 	  MRIfree(&mri_seg) ;
 	}
-      LTAfree(&lta) ;
+      if(lta) LTAfree(&lta) ;
     }
   
   if (regularize_mean > 0)
