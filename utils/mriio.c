@@ -9057,8 +9057,23 @@ static MRI *nifti1Read(char *fname, int read_volume)
   // Keep in msec as NIFTI_UNITS_MSEC is specified
   if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
 
-  if(hdr.qform_code == 0){
-    printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
+  // Set the vox2ras matrix
+  if(hdr.qform_code != 0){
+    // Use the qform, if that is ok
+    printf("INFO: using NIfTI-1 qform \n");
+    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  } else if(hdr.sform_code != 0){
+    // Use the sform, if that is ok
+    printf("INFO: using NIfTI-1 sform \n");
+    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  } else {
+    printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
     printf("WARNING: your volume will probably be incorrectly oriented\n");
     mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
     mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
@@ -9066,18 +9081,6 @@ static MRI *nifti1Read(char *fname, int read_volume)
     mri->c_r = mri->xsize * mri->width / 2.0;
     mri->c_a = mri->ysize * mri->height / 2.0;
     mri->c_s = mri->zsize * mri->depth / 2.0;
-  }
-  else if(hdr.sform_code <= 0){
-    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
-      MRIfree(&mri);
-      return(NULL);
-    }
-  }
-  else{
-    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
-      MRIfree(&mri);
-      return(NULL);
-    }
   }
 
   mri->xsize = mri->xsize * space_units_factor;
@@ -9737,8 +9740,23 @@ static MRI *niiRead(char *fname, int read_volume)
   mri->zsize = hdr.pixdim[3];
   if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
 
-  if(hdr.qform_code == 0){
-    printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
+  // Set the vox2ras matrix
+  if(hdr.qform_code != 0){
+    // Use the qform, if that is ok
+    printf("INFO: using NIfTI-1 qform \n");
+    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  } else if(hdr.sform_code != 0){
+    // Use the sform, if that is ok
+    printf("INFO: using NIfTI-1 sform \n");
+    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  } else {
+    printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
     printf("WARNING: your volume will probably be incorrectly oriented\n");
     mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
     mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
@@ -9746,18 +9764,6 @@ static MRI *niiRead(char *fname, int read_volume)
     mri->c_r = mri->xsize * mri->width / 2.0;
     mri->c_a = mri->ysize * mri->height / 2.0;
     mri->c_s = mri->zsize * mri->depth / 2.0;
-  }
-  else if(hdr.sform_code <= 0){
-    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
-      MRIfree(&mri);
-      return(NULL);
-    }
-  }
-  else{
-    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
-      MRIfree(&mri);
-      return(NULL);
-    }
   }
 
   mri->xsize = mri->xsize * space_units_factor;
