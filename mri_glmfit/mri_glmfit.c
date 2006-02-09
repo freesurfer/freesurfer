@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.68 2006/02/09 15:39:27 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.69 2006/02/09 23:17:41 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -983,7 +983,6 @@ int main(int argc, char **argv)
 	    SmoothSurfOrVol(surf, z, SmoothLevel);
 	    RFrescale(z,rfs,NULL,z);
 	  }
-	  if(csd->threshsign == 0) MRIabs(z,z); // two-tailed
 
 	  // Slightly tortured way to get the right p-values because
 	  //   RFstat2P() computes one-sided, but I handle sidedness
