@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.28 2006/02/10 02:14:21 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.29 2006/02/10 02:34:19 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -380,49 +380,56 @@ endif
 #
 # ensure that the symlinks to the necessary packages are in place
 #
+symlinks:
+
 set DEST_DIR_LIST=()
-if ($?DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
-if ($?PUB_DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+if ($?DEST_DIR) then
+  set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
+endif
+if ($?PUB_DEST_DIR) then
+  set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+endif
 foreach destdir ($DEST_DIR_LIST)
-  if (! -e $destdir/mni) then
+  if (! -d $destdir/mni ) then
     set cmd=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -e $destdir/fsl) then
+  if (! -d $destdir/fsl ) then
     set cmd=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -e $destdir/lib/tcltktixblt) then
+  if (! -d $destdir/lib/tcltktixblt ) then
     set cmd=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -e $destdir/lib/gsl) then
+  if (! -d $destdir/lib/gsl ) then
     set cmd=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -e $destdir/lib/qt/lib) then
+  if (! -d $destdir/lib/qt/lib ) then
     set cmd=(ln -s /usr/pubsw/packages/qt/current/lib $destdir/lib/qt/lib)
     echo "$cmd" >>& $OUTPUTF
+    mkdir -p $destdir/lib/qt
     $cmd
   endif
   if ("$OSTYPE" == "Darwin") then
-    if (! -e $destdir/lib/tiffjpegglut) then
-      set cmd=(ln -s /usr/pubsw/packages/tiffjpegglut $destdir/lib/tiffjpegglut)
+    if (! -d $destdir/lib/misc ) then
+      set cmd=(ln -s /usr/pubsw/packages/tiffjpegglut $destdir/lib/misc)
       echo "$cmd" >>& $OUTPUTF
       $cmd
     endif
   endif
   # also sample subjects:
-  if (! -e $destdir/subjects/bert) then
+  if (! -d $destdir/subjects/bert ) then
     set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -e $destdir/subjects/talairach) then
+  if (! -d $destdir/subjects/talairach ) then
     set cmd=(ln -s /space/freesurfer/subjects/talairach $destdir/subjects/talairach)
     echo "$cmd" >>& $OUTPUTF
     $cmd
