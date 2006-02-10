@@ -39,18 +39,29 @@ MRIS *mris;
 GCSA *gcsa;
 char *fsh;
 GCA_MORPH *gcam;
+float c,r,s;
+
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
+  
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   subject     = argv[1];
   hemi        = argv[2];
   surfname    = argv[3];
   outsurfname = argv[4];
-
   subject = "fsr-tst";
   hemi = "lh";
   surfname = "white";
   outsurfname = "white.tal.nonlin";
+
+
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.m3z",SUBJECTS_DIR,subject);
+  printf("Reading %s\n",tmpstr);
+  gcam = GCAMreadAndInvert(tmpstr);
+  if(gcam == NULL) exit(1);
+  Gdiag_no = 1;
+
 
   if(!strcmp(surfname,outsurfname)){
     printf("ERROR: input and output surfaces are the same\n");
@@ -64,11 +75,6 @@ int main(int argc, char **argv)
   printf("Reading %s\n",tmpstr);
   mris = MRISread(tmpstr);
   if(mris == NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.m3z",SUBJECTS_DIR,subject);
-  printf("Reading %s\n",tmpstr);
-  gcam = GCAMread(tmpstr);
-  if(gcam == NULL) exit(1);
 
   printf("Morphing\n");
   GCAMmorphSurfToAtlas(mris, gcam);
@@ -173,10 +179,6 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   printf("Inverting \n");
   GCAMinvert(gcam, mri);
 
-  //MRIwrite(gcam->mri_xind,"xm.mgh");
-  //MRIwrite(gcam->mri_yind,"ym.mgh");
-  //MRIwrite(gcam->mri_zind,"zm.mgh");
-
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
   ras = MatrixAlloc(4,1,MATRIX_REAL);
@@ -220,6 +222,7 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
 	     "     rasM=(%6.1f,%6.1f,%6.1f)\n",
 	     vtxno, v->x,v->y,v->z, Acval,Arval,Asval, Mcval,Mrval,Msval,
 	     Acval2,Arval2,Asval2, ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]);
+      GCAMsampleMorphCheck(gcam, .01, Mcval, Mrval, Msval);
     }
 
     // pack it back into the vertex
@@ -229,6 +232,51 @@ int GCAMmorphSurfToAtlas(MRIS *mris, GCA_MORPH *gcam)
   }
   return(0);
 }
+/*----------------------------------------------------------------------------
+  GCAMsampleMorphRAS() - given an RAS coord in the Morph space (xyzMorph),
+  compute the RAS in the Anat space (xyzAnat). Has not been tested yet.
+  ----------------------------------------------------------------------------*/
+int GCAMsampleMorphRAS(GCA_MORPH *gcam, float xMorph, float yMorph, float zMorph,
+		       float  *xAnat,  float  *yAnat,  float  *zAnat, 
+		       MATRIX *vox2ras)
+{
+  static MATRIX *ras=NULL, *crs=NULL, *ras2vox=NULL;
+  float  cMorph, rMorph, sMorph;
+  float  cAnat, rAnat, sAnat;
+
+  ras2vox = MatrixInverse(vox2ras,ras2vox);
+  if(!ras){
+    ras = MatrixAlloc(4,1,MATRIX_REAL);
+    ras->rptr[4][1] = 1;
+  }
+  if(!crs){
+    crs= MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+  }
+
+  ras->rptr[1][1] = xMorph;
+  ras->rptr[2][1] = yMorph;
+  ras->rptr[3][1] = zMorph;
+  crs = MatrixMultiply(ras2vox,ras,crs);
+  cMorph = crs->rptr[1][1];
+  rMorph = crs->rptr[2][1];
+  sMorph = crs->rptr[3][1];
+  
+  err = GCAMsampleMorph(gcam, cMorph, rMorph, sMorph, &cAnat, &rAnat, &sAnat);
+  if(err) return(1);
+
+  crs->rptr[1][1] = cAnat;
+  crs->rptr[2][1] = rAnat;
+  crs->rptr[3][1] = sAnat;
+  ras = MatrixMultiply(vox2ras,crs,ras);
+
+  *xAnat = ras->rptr[1][1];
+  *yAnat = ras->rptr[2][1];
+  *zAnat = ras->rptr[3][1];
+
+  return(0);
+}
+
 
 
 /*----------------------------------------------------------------------------*/
