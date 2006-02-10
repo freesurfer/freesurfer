@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/09 16:09:34 $
-// Revision       : $Revision: 1.45 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/10 17:51:14 $
+// Revision       : $Revision: 1.46 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.45 2006/02/09 16:09:34 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.46 2006/02/10 17:51:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -165,10 +165,41 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
-    ErrorExit(ERROR_BADPARM, 
-              "usage: %s <in brain> <template> <output file name>\n",
-              Progname) ;
+  if(argc < 4){
+    printf("mri_ca_register [options] inbrain template outputfilename\n");
+    printf("\n");
+    printf("  -align\n");
+    printf("  -T lta \n");
+    printf("  -mask brainmask\n");
+    printf("  -invert-and-save gcamfile\n");
+    printf("\n");
+    printf("  -dist distance\n");
+    printf("  -regularize regularize\n");
+    printf("  -regularize-mean regularizemean\n");
+    printf("  -scale_smoothness smoothness\n");
+    printf("  -nobright \n");
+    printf("  -renormalize\n");
+    printf("  -read_lta \n");
+    printf("  -smoothness smoothness\n");
+    printf("  -samples samples\n");
+    printf("  -nsmall nsmall\n");
+    printf("  -fixed\n");
+    printf("  -optimal\n");
+    printf("  -noneg noneg\n");
+    printf("  -wm\n");
+    printf("  -tl\n");
+    printf("  -relabel relable\n");
+    printf("  -relabel_avgs relable_avgs\n");
+    printf("  -reset_avgs reset_avgs\n");
+    printf("  -vf vf_fname\n");
+    printf("  -diag diagfname\n");
+    printf("  -tr tr\n");
+    printf("  -te te\n");
+    printf("  -example T1 seg\n");
+    printf("\n");
+    printf("\n");
+    exit(1);
+  }
 
   ninputs = argc-3 ;
   printf("reading %d input volumes...\n", ninputs) ;
@@ -859,7 +890,7 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-  int  nargs = 0 ;
+  int  nargs = 0, err ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
@@ -1229,6 +1260,12 @@ get_option(int argc, char *argv[])
 		parms.ratio_thresh = atof(argv[2]) ;
     nargs = 1 ;
     printf("using compression ratio threshold = %2.3f...\n", parms.ratio_thresh) ;
+  }
+ else if (!stricmp(option, "invert-and-save"))
+  {
+    printf("Loading, Inverting, Saving, Exiting ...\n");
+    err = GCAMwriteInverse(argv[2],NULL);
+    exit(err);
   }
   else switch (toupper(*option))
   {
