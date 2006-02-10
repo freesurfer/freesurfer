@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/10 16:06:49 $
-// Revision       : $Revision: 1.93 $
+// Revision Date  : $Date: 2006/02/10 17:23:31 $
+// Revision       : $Revision: 1.94 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -316,12 +316,261 @@ int GCAMwrite(GCA_MORPH *gcam, char *fname)
       }
     }
   } 
+  myclose(fp);
+  return(NO_ERROR);
+}
 
+/*------------------------------------------------------------------------------------*/
+GCA_MORPH * GCAMread(char *fname)
+{
+  GCA_MORPH       *gcam ;
+  FILE            *fp ;
+  int             x, y, z, width, height, depth ;
+  GCA_MORPH_NODE  *gcamn ;
+  float           version ;
+  int             tag;
+
+  if (strstr(fname, ".m3z")){
+    char command[STRLEN];
+#ifdef Darwin
+    // zcat on Max OS always appends and assumes a .Z extention,
+    // whereas we want .m3z
+    strcpy(command, "gunzip -c ");
+#else
+    strcpy(command, "zcat ");
+#endif
+    strcat(command, fname);
+    myclose=pclose;
+    errno = 0;
+    fp = popen(command, "r");
+    if (errno)	{
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, 
+			 "GCAMread: encountered error executing: '%s'",
+			 command)) ;
+    }
+  }
+  else    {
+    myclose=fclose;
+    fp = fopen(fname, "rb") ;
+  }
+  if (!fp)
+    ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
+                       fname)) ;
+
+  version = freadFloat(fp) ;
+  if (version != GCAM_VERSION)    {
+    // fclose(fp) ;
+    myclose(fp);
+    ErrorReturn(NULL, 
+		(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
+  }
+  width = freadInt(fp) ; height = freadInt(fp) ; depth = freadInt(fp) ;
+  gcam = GCAMalloc(width, height, depth) ;
+  
+  gcam->spacing = freadInt(fp) ;
+  gcam->exp_k = freadFloat(fp) ;
+
+  for (x = 0 ; x < width ; x++)    {
+    for (y = 0 ; y < height ; y++)	{
+      for (z = 0 ; z < depth ; z++)	    {
+	gcamn = &gcam->nodes[x][y][z] ;
+	gcamn->origx = freadFloat(fp) ;
+	gcamn->origy = freadFloat(fp) ;
+	gcamn->origz = freadFloat(fp) ;
+
+	gcamn->x = freadFloat(fp) ;
+	gcamn->y = freadFloat(fp) ;
+	gcamn->z = freadFloat(fp) ;
+
+	gcamn->xn = freadInt(fp) ;
+	gcamn->yn = freadInt(fp) ;
+	gcamn->zn = freadInt(fp) ;
+
+	// if all the positions are zero, then this is not a valid point
+	// mark invalid = 1
+	if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
+	    && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
+	  gcamn->invalid = GCAM_POSITION_INVALID ;
+	else
+	  gcamn->invalid = GCAM_VALID ;
+      }
+    }
+  }
+  gcam->image.valid = 0; // make src invalid
+  gcam->atlas.valid = 0; // makd dst invalid
+  while (freadIntEx(&tag, fp))    {
+    switch (tag)	{
+    case TAG_GCAMORPH_LABELS:
+      printf("reading labels out of gcam file...\n") ;
+      gcam->status = GCAM_LABELED ;
+      for (x = 0 ; x < width ; x++)	    {
+	for (y = 0 ; y < height ; y++)		{
+	  for (z = 0 ; z < depth ; z++)		    {
+	    gcamn = &gcam->nodes[x][y][z] ;
+	    gcamn->label = freadInt(fp) ;
+	    if (gcamn->label != 0)
+	      DiagBreak() ;
+	  }
+	}
+      }
+      break ;
+    case TAG_GCAMORPH_GEOM:
+      GCAMreadGeom(gcam, fp);
+      if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)	    {
+	fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
+	fprintf(stderr, "src geometry:\n");
+	writeVolGeom(stderr, &gcam->image);
+	fprintf(stderr, "dst geometry:\n");
+	writeVolGeom(stderr, &gcam->atlas);
+      }
+      break ;
+    case TAG_GCAMORPH_TYPE:
+      gcam->type = freadInt(fp) ;
+      printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
+      break ;
+    }
+  }
   // fclose(fp) ;
   myclose(fp);
 
-  return(NO_ERROR) ;
+  GCAMcomputeOriginalProperties(gcam) ;
+  gcamComputeMetricProperties(gcam) ;
+  return(gcam) ;
 }
+
+/*-------------------------------------------------------------------------
+  GCAMwriteInverse() - saves GCAM inverse to
+  talairach.m3d.inv.{x,y,z}.mgh in the same directory as the GCAM (ie,
+  mri/transforms). It does not write the GCAM. If the inverse already
+  exists, it is NOT read in and will be overwritten.
+
+  This function can be run in  one of two ways:
+    1. GCAMwriteInverse(gcamfile,NULL) - reads in gcam, inverts, 
+       saves inverse, then frees gcam. 
+    2. GCAMwriteInverse(gcamfile,gcam) - pass gcam as arg. If
+       it has not been inverted, then it computes the inverse.
+       It then saves the inverse (does not free gcam).
+
+  If the inverse must be computed, then it reads in the header for 
+  mri/orig.mgz. See also GCAMreadAndInvert().
+  -----------------------------------------------------------------*/
+int GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam)
+{
+  char *gcamdir, *mridir, tmpstr[2000];
+  MRI *mri;
+  int freegcam;
+
+  // Read in gcam if not passed
+  freegcam=0;
+  if(gcam == NULL){
+    printf("Reading %s \n",gcamfname);
+    gcam = GCAMread(gcamfname);
+    if(gcam == NULL) return(1);
+    freegcam=1;
+  }
+  gcamdir  = fio_dirname(gcamfname);
+
+  // Check whether inverse has been computed, if not, do so now
+  if(gcam->mri_xind == NULL){
+    // Need a template MRI in order to compute inverse
+    mridir   = fio_dirname(gcamdir);
+    sprintf(tmpstr,"%s/orig.mgz",mridir);
+    mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mri==NULL){
+      printf("ERROR: reading %s\n",tmpstr);
+      GCAMfree(&gcam);
+      return(1);
+    }
+    printf("Inverting GCAM\n");
+    GCAMinvert(gcam, mri);
+    free(mridir);
+  }
+
+  printf("Saving inverse \n");
+  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+  MRIwrite(gcam->mri_xind,tmpstr);
+  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+  MRIwrite(gcam->mri_yind,tmpstr);
+  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+  MRIwrite(gcam->mri_zind,tmpstr);
+
+  if(freegcam) GCAMfree(&gcam);
+  free(gcamdir);
+
+  return(0);
+}
+/*----------------------------------------------------------------------
+  GCAMreadAndInvert() - reads morph and inverts. If the inverse
+  exists on disk, then it is read in instead of being computed. The
+  files that compose the inverse morph are talairach.m3d.inv.{x,y,z}.mgh,
+  which are assumed to live in the same directory as the forward morph,
+  which is assumed to be in mri/transforms. This is important because,
+  if the morph must be explicitly inverted, it will read in the header
+  for mri/orig.mgz (or die trying).
+  ----------------------------------------------------------------------*/
+GCA_MORPH *GCAMreadAndInvert(char *gcamfname)
+{
+  GCA_MORPH *gcam;
+  char tmpstr[2000], *gcamdir, *mridir;
+  MRI *mri;
+  int xexists, yexists, zexists;
+
+  // Read GCAM
+  gcam = GCAMread(gcamfname);
+  if(gcam == NULL) return(NULL);
+
+  gcamdir  = fio_dirname(gcamfname);
+
+  // Check whether inverse morph (talairach.m3d.inv.{x,y,z}.mgh)  exists
+  xexists=0;
+  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)) xexists = 1;
+  yexists=0;
+  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)) yexists = 1;
+  zexists=0;
+  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)) zexists = 1;
+
+  if(xexists && yexists && zexists){
+    // Inverse found on disk, just read it in
+    printf("Reading morph inverse\n");
+    sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_xind = MRIread(tmpstr);
+    if(gcam->mri_xind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+
+    sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_yind = MRIread(tmpstr);
+    if(gcam->mri_yind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+
+    sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_zind = MRIread(tmpstr);
+    if(gcam->mri_zind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+  } 
+  else {
+    // Must invert explicitly
+    printf("Inverting Morph\n");
+    mridir   = fio_dirname(gcamdir);
+    sprintf(tmpstr,"%s/orig.mgz",mridir);
+    // Need template mri 
+    mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mri==NULL){
+      printf("ERROR: reading %s\n",tmpstr);
+      return(NULL);
+    }
+    GCAMinvert(gcam, mri);
+    free(mridir);
+  }
+
+  free(gcamdir);
+  return(gcam) ;
+}
+
 
 /*-----------------------------------------------------------------------------------*/
 int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
@@ -627,150 +876,6 @@ int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   if (parms->mri_dist_map)
     MRIfree(&parms->mri_dist_map) ;
   return(NO_ERROR) ;
-}
-
-/*------------------------------------------------------------------------------------*/
-GCA_MORPH * GCAMread(char *fname)
-{
-  GCA_MORPH       *gcam ;
-  FILE            *fp ;
-  int             x, y, z, width, height, depth ;
-  GCA_MORPH_NODE  *gcamn ;
-  float           version ;
-  int             tag;
-  char            tmpstr[2000], *gcamdir;
-
-  if (strstr(fname, ".m3z")){
-    char command[STRLEN];
-#ifdef Darwin
-    // zcat on Max OS always appends and assumes a .Z extention,
-    // whereas we want .m3z
-    strcpy(command, "gunzip -c ");
-#else
-    strcpy(command, "zcat ");
-#endif
-    strcat(command, fname);
-    myclose=pclose;
-    errno = 0;
-    fp = popen(command, "r");
-    if (errno)	{
-      pclose(fp);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADPARM, 
-			 "GCAMread: encountered error executing: '%s'",
-			 command)) ;
-    }
-  }
-  else    {
-    myclose=fclose;
-    fp = fopen(fname, "rb") ;
-  }
-  if (!fp)
-    ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
-                       fname)) ;
-
-  version = freadFloat(fp) ;
-  if (version != GCAM_VERSION)    {
-    // fclose(fp) ;
-    myclose(fp);
-    ErrorReturn(NULL, 
-		(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
-  }
-  width = freadInt(fp) ; height = freadInt(fp) ; depth = freadInt(fp) ;
-  gcam = GCAMalloc(width, height, depth) ;
-  
-  gcam->spacing = freadInt(fp) ;
-  gcam->exp_k = freadFloat(fp) ;
-
-  for (x = 0 ; x < width ; x++)    {
-    for (y = 0 ; y < height ; y++)	{
-      for (z = 0 ; z < depth ; z++)	    {
-	gcamn = &gcam->nodes[x][y][z] ;
-	gcamn->origx = freadFloat(fp) ;
-	gcamn->origy = freadFloat(fp) ;
-	gcamn->origz = freadFloat(fp) ;
-
-	gcamn->x = freadFloat(fp) ;
-	gcamn->y = freadFloat(fp) ;
-	gcamn->z = freadFloat(fp) ;
-
-	gcamn->xn = freadInt(fp) ;
-	gcamn->yn = freadInt(fp) ;
-	gcamn->zn = freadInt(fp) ;
-
-	// if all the positions are zero, then this is not a valid point
-	// mark invalid = 1
-	if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
-	    && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
-	  gcamn->invalid = GCAM_POSITION_INVALID ;
-	else
-	  gcamn->invalid = GCAM_VALID ;
-      }
-    }
-  }
-  gcam->image.valid = 0; // make src invalid
-  gcam->atlas.valid = 0; // makd dst invalid
-  while (freadIntEx(&tag, fp))    {
-    switch (tag)	{
-    case TAG_GCAMORPH_LABELS:
-      printf("reading labels out of gcam file...\n") ;
-      gcam->status = GCAM_LABELED ;
-      for (x = 0 ; x < width ; x++)	    {
-	for (y = 0 ; y < height ; y++)		{
-	  for (z = 0 ; z < depth ; z++)		    {
-	    gcamn = &gcam->nodes[x][y][z] ;
-	    gcamn->label = freadInt(fp) ;
-	    if (gcamn->label != 0)
-	      DiagBreak() ;
-	  }
-	}
-      }
-      break ;
-    case TAG_GCAMORPH_GEOM:
-      GCAMreadGeom(gcam, fp);
-      if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)	    {
-	fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
-	fprintf(stderr, "src geometry:\n");
-	writeVolGeom(stderr, &gcam->image);
-	fprintf(stderr, "dst geometry:\n");
-	writeVolGeom(stderr, &gcam->atlas);
-      }
-      break ;
-    case TAG_GCAMORPH_TYPE:
-      gcam->type = freadInt(fp) ;
-      printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
-      break ;
-    }
-  }
-  // fclose(fp) ;
-  myclose(fp);
-
-  GCAMcomputeOriginalProperties(gcam) ;
-  gcamComputeMetricProperties(gcam) ;
-
-  // check for inverse morph, load if it exists
-  // talairach.m3d.inv.{x,y,z}.mgh
-  gcamdir = fio_dirname(fname);
-  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
-  if(fio_FileExistsReadable(tmpstr)){
-    printf("Reading %s\n",tmpstr);
-    gcam->mri_xind = MRIread(tmpstr);
-    if(gcam->mri_xind == NULL)  printf("ERROR: reading %s\n",tmpstr);
-  }
-  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
-  if(fio_FileExistsReadable(tmpstr)){
-    printf("Reading %s\n",tmpstr);
-    gcam->mri_yind = MRIread(tmpstr);
-    if(gcam->mri_yind == NULL)  printf("ERROR: reading %s\n",tmpstr);
-  }
-  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
-  if(fio_FileExistsReadable(tmpstr)){
-    printf("Reading %s\n",tmpstr);
-    gcam->mri_zind = MRIread(tmpstr);
-    if(gcam->mri_zind == NULL)  printf("ERROR: reading %s\n",tmpstr);
-  }
-  free(gcamdir);
-  return(gcam) ;
 }
 
 /*------------------------------------------------------------------------------------*/
