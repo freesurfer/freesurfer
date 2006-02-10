@@ -11248,11 +11248,18 @@ mghRead(char *fname, int read_volume, int frame)
           ErrorReturn
             (NULL,
              (ERROR_BADPARM,
-              "mghRead(%s, %d): could not open file",
+	      "mghRead(%s, %d): could not open file",
               fname, frame)) ;
         }
     }
   }
+
+  // sanity-check that a file was actually opened
+  if (!fp)
+    ErrorReturn(NULL,(ERROR_BADPARM,
+		      "mghRead(%s, %d): could not open file.\n"
+		      "Filename extension must be .mgh, .mgh.gz or .mgz",
+		      fname, frame));
 
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
