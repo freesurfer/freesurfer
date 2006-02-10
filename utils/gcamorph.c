@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/10 17:23:31 $
-// Revision       : $Revision: 1.94 $
+// Revision Date  : $Date: 2006/02/10 17:50:42 $
+// Revision       : $Revision: 1.95 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -442,7 +442,7 @@ GCA_MORPH * GCAMread(char *fname)
 
 /*-------------------------------------------------------------------------
   GCAMwriteInverse() - saves GCAM inverse to
-  talairach.m3d.inv.{x,y,z}.mgh in the same directory as the GCAM (ie,
+  talairach.m3z.inv.{x,y,z}.mgh in the same directory as the GCAM (ie,
   mri/transforms). It does not write the GCAM. If the inverse already
   exists, it is NOT read in and will be overwritten.
 
@@ -489,11 +489,11 @@ int GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam)
   }
 
   printf("Saving inverse \n");
-  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.x.mgz",gcamdir);
   MRIwrite(gcam->mri_xind,tmpstr);
-  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.y.mgz",gcamdir);
   MRIwrite(gcam->mri_yind,tmpstr);
-  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.z.mgz",gcamdir);
   MRIwrite(gcam->mri_zind,tmpstr);
 
   if(freegcam) GCAMfree(&gcam);
@@ -504,7 +504,7 @@ int GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam)
 /*----------------------------------------------------------------------
   GCAMreadAndInvert() - reads morph and inverts. If the inverse
   exists on disk, then it is read in instead of being computed. The
-  files that compose the inverse morph are talairach.m3d.inv.{x,y,z}.mgh,
+  files that compose the inverse morph are talairach.m3z.inv.{x,y,z}.mgh,
   which are assumed to live in the same directory as the forward morph,
   which is assumed to be in mri/transforms. This is important because,
   if the morph must be explicitly inverted, it will read in the header
@@ -523,31 +523,31 @@ GCA_MORPH *GCAMreadAndInvert(char *gcamfname)
 
   gcamdir  = fio_dirname(gcamfname);
 
-  // Check whether inverse morph (talairach.m3d.inv.{x,y,z}.mgh)  exists
+  // Check whether inverse morph (talairach.m3z.inv.{x,y,z}.mgh)  exists
   xexists=0;
-  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.x.mgz",gcamdir);
   if(fio_FileExistsReadable(tmpstr)) xexists = 1;
   yexists=0;
-  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.y.mgz",gcamdir);
   if(fio_FileExistsReadable(tmpstr)) yexists = 1;
   zexists=0;
-  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+  sprintf(tmpstr,"%s/talairach.m3z.inv.z.mgz",gcamdir);
   if(fio_FileExistsReadable(tmpstr)) zexists = 1;
 
   if(xexists && yexists && zexists){
     // Inverse found on disk, just read it in
     printf("Reading morph inverse\n");
-    sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+    sprintf(tmpstr,"%s/talairach.m3z.inv.x.mgz",gcamdir);
     printf("Reading %s\n",tmpstr);
     gcam->mri_xind = MRIread(tmpstr);
     if(gcam->mri_xind == NULL)  printf("ERROR: reading %s\n",tmpstr);
 
-    sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+    sprintf(tmpstr,"%s/talairach.m3z.inv.y.mgz",gcamdir);
     printf("Reading %s\n",tmpstr);
     gcam->mri_yind = MRIread(tmpstr);
     if(gcam->mri_yind == NULL)  printf("ERROR: reading %s\n",tmpstr);
 
-    sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+    sprintf(tmpstr,"%s/talairach.m3z.inv.z.mgz",gcamdir);
     printf("Reading %s\n",tmpstr);
     gcam->mri_zind = MRIread(tmpstr);
     if(gcam->mri_zind == NULL)  printf("ERROR: reading %s\n",tmpstr);
