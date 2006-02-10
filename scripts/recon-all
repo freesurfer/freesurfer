@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.8 2006/02/06 20:44:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.9 2006/02/10 18:06:03 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -94,6 +94,7 @@ set UseControlPoints = 0;
 set DoSkullStrip     = 0;
 set DoSegmentation   = 0;
 set DoGCAReg         = 0;
+set DoCARegInv      = 0;
 set DoCANormalize    = 0;
 set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
@@ -659,6 +660,23 @@ if($DoCAReg) then
     goto error_exit;
   endif
   echo $cmd > $touchdir/ca_register.touch
+endif
+
+#------------ Inverse of Canonical Registration --------------#
+if($DoCARegInv) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# CA Reg Inv `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
+  # set xopts = `fsr-getxopts mri_ca_register $XOptsFile`; # careful here
+  set cmd = (mri_ca_register -invert-and-save transforms/talairach.m3z)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
+  echo $cmd > $touchdir/ca_register_inv.touch
 endif
 
 #------------ Removes neck and part of the face  --------------#
@@ -1421,6 +1439,13 @@ while( $#argv != 0 )
       set DoGCAReg = 0;
       breaksw
 
+    case "-careginv":
+      set DoCARegInv = 1;
+      breaksw
+    case "-nocareginv":
+      set DoCARegInv = 0;
+      breaksw
+
     case "-canorm":
       set DoCANormalize = 1;
       breaksw
@@ -1458,6 +1483,7 @@ while( $#argv != 0 )
 
     case "-subcortseg":
       set DoGCAReg         = 1;
+      set DoCARegInv      = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -1468,6 +1494,7 @@ while( $#argv != 0 )
 
     case "-nosubcortseg":
       set DoGCAReg         = 0;
+      set DoCARegInv      = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -1479,6 +1506,7 @@ while( $#argv != 0 )
     case "-noaseg":
       set UseAseg          = 0;
       set DoGCAReg         = 0;
+      set DoCARegInv      = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -1800,6 +1828,7 @@ while( $#argv != 0 )
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
       set DoGCAReg         = 1;
+      set DoCARegInv      = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -1840,6 +1869,7 @@ while( $#argv != 0 )
 
     case "-autorecon2":
       set DoGCAReg         = 1;
+      set DoCARegInv      = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -2217,7 +2247,7 @@ check_params:
 
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput &&\
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && \
-     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && \
+     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv &&\
      ! $DoMotionCor && ! $DoTalairach && ! $DoNormalization  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface && \
@@ -2816,6 +2846,11 @@ CA Register (-<no>careg)
 
 Computes a nonlinear transform to align with GCA atlas.
 Creates the file mri/transform/talairach.m3z.
+
+CA Register Inverse (-<no>careginv)
+
+Computes the inverse of the nonlinear transform to align with GCA
+atlas.  Creates the files mri/transform/talairach.m3z.{x,y,z}.mgz.
 
 Remove neck (-<no>rmneck)
 
