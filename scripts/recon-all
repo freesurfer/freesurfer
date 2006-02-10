@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.9 2006/02/10 18:06:03 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.10 2006/02/10 18:22:24 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -113,6 +113,7 @@ set DoSmooth2        = 0;
 set DoInflate2       = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
+set DoJacobian       = 0;
 set DoContraSurfReg  = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
@@ -1107,6 +1108,24 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphreg.touch
   endif
 
+  #---------------- Surface Registration --------------------------#
+  if($DoJacobian) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Jacobian $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set cmd = (mris_register -curv -norot -jacobian ../surf/$hemi.jacobian -dist 0)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd ../surf/$hemi.sphere.reg $AvgTif ../surf/$hemi.sphere.jacobian.reg)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.jacobian.touch
+  endif
+
   #-------- Contra Surface Registration ----------------#
   if($DoContraSurfReg) then
     if($hemi == lh) then
@@ -1706,6 +1725,13 @@ while( $#argv != 0 )
       set DoSurfReg = 0;
       breaksw
 
+    case "-jacobian":
+      set DoJacobian = 1;
+      breaksw
+    case "-nojacobian":
+      set DoJacobian = 0;
+      breaksw
+
     case "-contrasurfreg":
       set DoContraSurfReg = 1;
       breaksw
@@ -2258,7 +2284,7 @@ check_params:
      ! $DoSkullLTA &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && \
-     ! $DoCortRibbonVolMask && \
+     ! $DoCortRibbonVolMask && ! $DoJacobian &&\
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS) then
      echo "ERROR: nothing to do"
      exit 1;
@@ -2972,6 +2998,14 @@ Inflates the orig surface into a sphere while minimizing metric
 distortion.  This step is necessary in order to register the surface
 to the spherical atlas. (also known as the spherical morph). Calls
 mris_sphere. Creates surf/?h.sphere.  The -autorecon3 stage begins here.
+
+Jacobian (-<no>jacobian)
+
+Computes how much an individual surface must be distorted in order to
+perfectly match the atlas (ie, distance contraints are turned
+off). Creates ?h.jacobian (a curv formatted file) and
+?h.sphere.jacobian.reg (a surface file). This stage is not done
+automatically because it can add about an hour per hemi.
 
 Ipsilateral Surface Registation (Spherical Morph) (-<no>surfreg)
 
