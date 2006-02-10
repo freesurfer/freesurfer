@@ -2402,7 +2402,7 @@ MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ)
     }
   }
   MRIfree(&srcmasked);
-  MRIfree(&binmask);
+  MRIfree(&binmasksm);
   return(targ);
 }
 
