@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.27 2006/02/10 01:50:10 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.28 2006/02/10 02:14:21 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -376,6 +376,59 @@ if ($?PUB_DEST_DIR) then
   echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
 endif
+
+#
+# ensure that the symlinks to the necessary packages are in place
+#
+set DEST_DIR_LIST=()
+if ($?DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
+if ($?PUB_DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+foreach destdir ($DEST_DIR_LIST)
+  if (! -e $destdir/mni) then
+    set cmd=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if (! -e $destdir/fsl) then
+    set cmd=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if (! -e $destdir/lib/tcltktixblt) then
+    set cmd=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if (! -e $destdir/lib/gsl) then
+    set cmd=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if (! -e $destdir/lib/qt/lib) then
+    set cmd=(ln -s /usr/pubsw/packages/qt/current/lib $destdir/lib/qt/lib)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if ("$OSTYPE" == "Darwin") then
+    if (! -e $destdir/lib/tiffjpegglut) then
+      set cmd=(ln -s /usr/pubsw/packages/tiffjpegglut $destdir/lib/tiffjpegglut)
+      echo "$cmd" >>& $OUTPUTF
+      $cmd
+    endif
+  endif
+  # also sample subjects:
+  if (! -e $destdir/subjects/bert) then
+    set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+  if (! -e $destdir/subjects/talairach) then
+    set cmd=(ln -s /space/freesurfer/subjects/talairach $destdir/subjects/talairach)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd
+  endif
+end
+
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
