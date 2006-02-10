@@ -14,10 +14,11 @@
 #include "gcsa.h"
 #include "transform.h"
 #include "annotation.h"
+#include "icosahedron.h"
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_ca_label.c,v 1.14 2005/12/06 23:19:24 greve Exp $";
+"$Id: mris_ca_label.c,v 1.15 2006/02/10 20:24:30 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -284,12 +285,46 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
+  char *gcsfile, *fsh, *outannot;
+  int  icoorder,err;
+  char tmpstr[2000];
+  GCSA *gcsa;
+  MRIS *ico;
   
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "ml-annot")){
+    // Compute most-likely annotation labeling on ico, save, and exit
+    // args: gcs icoorder outannot
+    if(argc < 5){
+      printf("ERROR: -ml-annot requires 3 args: gcs icoorder outannot\n");
+      exit(1);
+    }
+    gcsfile =  argv[2]; // rel to FREESURFER_HOME/average, ?h.curvature.buckner40.filled.desikan_killiany.gcs
+    sscanf(    argv[3],"%d",&icoorder); // usually 7
+    outannot = argv[4];  // absolute path to output
+    printf("ML Label: %s %d %s\n",gcsfile,icoorder,outannot);
+    ico = ReadIcoByOrder(icoorder, 100);
+    if(ico == NULL) exit(1);
+    fsh = getenv("FREESURFER_HOME");
+    sprintf(tmpstr,"%s/average/%s",fsh,gcsfile);
+    printf("Reading gcsa from %s\n",tmpstr);
+    gcsa = GCSAread(tmpstr);
+    if(gcsa == NULL) exit(1);
+    ico->ct = gcsa->ct;
+    printf("Building most likely labels\n");
+    GCSAbuildMostLikelyLabels(gcsa,ico);
+    printf("Filtering labels\n");
+    MRISmodeFilterAnnotations(ico, 2);
+    err = MRISwriteAnnotation(ico, outannot);
+    if(err) exit(1);
+    MRISfree(&ico);
+    GCSAfree(&gcsa);
+    exit(0);
+  }
   else if (!stricmp(option, "SDIR"))
     {
       strcpy(subjects_dir, argv[2]) ;
@@ -388,12 +423,27 @@ get_option(int argc, char *argv[])
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
-          "Usage:\n"
-          "------\n"
-          "\n%s [options] <subject> <hemi> <canon surf> "
-         "<classifier> <output file>\n", 
-          Progname) ;
+  printf("mris_ca_label [options] <subject> <hemi> <canon surf> <classifier> <output file>\n");
+  printf("\n");
+  printf("   subject - freesurfer subject id\n");
+  printf("   hemi    - lh or rh\n");
+  printf("   canonsurf - cannoincal surface, usually ?h.sphere.reg\n");
+  printf("   classifier - $FREESURFER_HOME/average/?h.curvature.buckner40.filled.desikan_killiany.gcs\n");
+  printf("   outputfile - ?h.aparc.annot\n");
+  printf("\n");
+  printf(" Options:\n");
+  printf("\n");
+  printf("  -ml-annot gcs icoorder annot : Compute most-likely annotation labeling on ico, save, and exit\n");
+  printf("  -orig orig_name\n");
+  printf("  -long\n");
+  printf("  -nbrs\n");
+  printf("  -a navgs\n");
+  printf("  -f filter\n");
+  printf("  -t annottable\n");
+  printf("  -v diagno\n");
+  printf("  -w fname\n");
+  printf("  -r fname : precomputed parcellations\n");
+  printf("\n");
 }
 
 static void
