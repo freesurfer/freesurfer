@@ -20,7 +20,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.69 2006/02/10 21:38:04 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -159,10 +159,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.69 2006/02/10 21:38:04 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.69 2006/02/10 21:38:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -239,7 +239,7 @@ main(int argc, char *argv[])
     fprintf(fp,"%s\n",vcid);
     fprintf(fp,"%s\n",MRISurfSrcVersion());
     fclose(fp);
-    chmod(argv[1],S_IRGRP|S_IWGRP|S_IWUSR|S_IRUSR); // rw by user and group
+    chmod(fname,S_IRGRP|S_IWGRP|S_IWUSR|S_IRUSR); // rw by user and group
   }
   
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
