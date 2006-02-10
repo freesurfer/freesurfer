@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/03 03:35:37 $
-// Revision       : $Revision: 1.91 $
+// Revision Date  : $Date: 2006/02/10 16:01:06 $
+// Revision       : $Revision: 1.92 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -638,8 +638,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   return(NO_ERROR) ;
 }
 
-GCA_MORPH *
-GCAMread(char *fname)
+/*------------------------------------------------------------------------------------*/
+GCA_MORPH * GCAMread(char *fname)
 {
   GCA_MORPH       *gcam ;
   FILE            *fp ;
@@ -647,131 +647,142 @@ GCAMread(char *fname)
   GCA_MORPH_NODE  *gcamn ;
   float           version ;
   int             tag;
+  char            tmpstr[2000], *gcamdir;
 
-  if (strstr(fname, ".m3z"))
-	{
-		char command[STRLEN];
+  if (strstr(fname, ".m3z")){
+    char command[STRLEN];
 #ifdef Darwin
-		// zcat on Max OS always appends and assumes a .Z extention,
-		// whereas we want .m3z
-		strcpy(command, "gunzip -c ");
+    // zcat on Max OS always appends and assumes a .Z extention,
+    // whereas we want .m3z
+    strcpy(command, "gunzip -c ");
 #else
-		strcpy(command, "zcat ");
+    strcpy(command, "zcat ");
 #endif
-		strcat(command, fname);
-		myclose=pclose;
-		errno = 0;
-		fp = popen(command, "r");
-		if (errno)
-		{
-			pclose(fp);
-			errno = 0;
-			ErrorReturn(NULL, (ERROR_BADPARM, 
-												 "GCAMread: encountered error executing: '%s'",
-												 command)) ;
-		}
-	}
-  else
-	{
-		myclose=fclose;
-		fp = fopen(fname, "rb") ;
-	}
+    strcat(command, fname);
+    myclose=pclose;
+    errno = 0;
+    fp = popen(command, "r");
+    if (errno)	{
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, 
+			 "GCAMread: encountered error executing: '%s'",
+			 command)) ;
+    }
+  }
+  else    {
+    myclose=fclose;
+    fp = fopen(fname, "rb") ;
+  }
   if (!fp)
     ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
                        fname)) ;
 
   version = freadFloat(fp) ;
-  if (version != GCAM_VERSION)
-	{
-		// fclose(fp) ;
-		myclose(fp);
-		ErrorReturn(NULL, 
-								(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
-	}
+  if (version != GCAM_VERSION)    {
+    // fclose(fp) ;
+    myclose(fp);
+    ErrorReturn(NULL, 
+		(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
+  }
   width = freadInt(fp) ; height = freadInt(fp) ; depth = freadInt(fp) ;
   gcam = GCAMalloc(width, height, depth) ;
   
   gcam->spacing = freadInt(fp) ;
   gcam->exp_k = freadFloat(fp) ;
 
-  for (x = 0 ; x < width ; x++)
-	{
-		for (y = 0 ; y < height ; y++)
-		{
-			for (z = 0 ; z < depth ; z++)
-			{
-				gcamn = &gcam->nodes[x][y][z] ;
-				gcamn->origx = freadFloat(fp) ;
-				gcamn->origy = freadFloat(fp) ;
-				gcamn->origz = freadFloat(fp) ;
+  for (x = 0 ; x < width ; x++)    {
+    for (y = 0 ; y < height ; y++)	{
+      for (z = 0 ; z < depth ; z++)	    {
+	gcamn = &gcam->nodes[x][y][z] ;
+	gcamn->origx = freadFloat(fp) ;
+	gcamn->origy = freadFloat(fp) ;
+	gcamn->origz = freadFloat(fp) ;
 
-				gcamn->x = freadFloat(fp) ;
-				gcamn->y = freadFloat(fp) ;
-				gcamn->z = freadFloat(fp) ;
+	gcamn->x = freadFloat(fp) ;
+	gcamn->y = freadFloat(fp) ;
+	gcamn->z = freadFloat(fp) ;
 
-				gcamn->xn = freadInt(fp) ;
-				gcamn->yn = freadInt(fp) ;
-				gcamn->zn = freadInt(fp) ;
+	gcamn->xn = freadInt(fp) ;
+	gcamn->yn = freadInt(fp) ;
+	gcamn->zn = freadInt(fp) ;
 
-				// if all the positions are zero, then this is not a valid point
-				// mark invalid = 1
-				if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
-						&& FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
-					gcamn->invalid = GCAM_POSITION_INVALID ;
-				else
-					gcamn->invalid = GCAM_VALID ;
-			}
-		}
-	}
+	// if all the positions are zero, then this is not a valid point
+	// mark invalid = 1
+	if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
+	    && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
+	  gcamn->invalid = GCAM_POSITION_INVALID ;
+	else
+	  gcamn->invalid = GCAM_VALID ;
+      }
+    }
+  }
   gcam->image.valid = 0; // make src invalid
   gcam->atlas.valid = 0; // makd dst invalid
-  while (freadIntEx(&tag, fp))
-	{
-		switch (tag)
-		{
-		case TAG_GCAMORPH_LABELS:
-			printf("reading labels out of gcam file...\n") ;
-			gcam->status = GCAM_LABELED ;
-			for (x = 0 ; x < width ; x++)
-			{
-				for (y = 0 ; y < height ; y++)
-				{
-					for (z = 0 ; z < depth ; z++)
-					{
-						gcamn = &gcam->nodes[x][y][z] ;
-						gcamn->label = freadInt(fp) ;
-						if (gcamn->label != 0)
-							DiagBreak() ;
-					}
-				}
-			}
-			break ;
-		case TAG_GCAMORPH_GEOM:
-			GCAMreadGeom(gcam, fp);
-			if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-			{
-				fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
-				fprintf(stderr, "src geometry:\n");
-				writeVolGeom(stderr, &gcam->image);
-				fprintf(stderr, "dst geometry:\n");
-				writeVolGeom(stderr, &gcam->atlas);
-			}
-			break ;
-		case TAG_GCAMORPH_TYPE:
-			gcam->type = freadInt(fp) ;
-			printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
-			break ;
-		}
+  while (freadIntEx(&tag, fp))    {
+    switch (tag)	{
+    case TAG_GCAMORPH_LABELS:
+      printf("reading labels out of gcam file...\n") ;
+      gcam->status = GCAM_LABELED ;
+      for (x = 0 ; x < width ; x++)	    {
+	for (y = 0 ; y < height ; y++)		{
+	  for (z = 0 ; z < depth ; z++)		    {
+	    gcamn = &gcam->nodes[x][y][z] ;
+	    gcamn->label = freadInt(fp) ;
+	    if (gcamn->label != 0)
+	      DiagBreak() ;
+	  }
 	}
+      }
+      break ;
+    case TAG_GCAMORPH_GEOM:
+      GCAMreadGeom(gcam, fp);
+      if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)	    {
+	fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
+	fprintf(stderr, "src geometry:\n");
+	writeVolGeom(stderr, &gcam->image);
+	fprintf(stderr, "dst geometry:\n");
+	writeVolGeom(stderr, &gcam->atlas);
+      }
+      break ;
+    case TAG_GCAMORPH_TYPE:
+      gcam->type = freadInt(fp) ;
+      printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
+      break ;
+    }
+  }
   // fclose(fp) ;
   myclose(fp);
 
   GCAMcomputeOriginalProperties(gcam) ;
   gcamComputeMetricProperties(gcam) ;
+
+  // check for inverse morph, load if it exists
+  // talairach.m3d.inv.{x,y,z}.mgh
+  gcamdir = fio_dirname(fname);
+  sprintf(tmpstr,"%s/talairach.m3d.inv.x.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)){
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_xind = MRIread(tmpstr);
+    if(gcam->mri_xind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+  }
+  sprintf(tmpstr,"%s/talairach.m3d.inv.y.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)){
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_yind = MRIread(tmpstr);
+    if(gcam->mri_yind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+  }
+  sprintf(tmpstr,"%s/talairach.m3d.inv.z.mgz",gcamdir);
+  if(fio_FileExistsReadable(tmpstr)){
+    printf("Reading %s\n",tmpstr);
+    gcam->mri_zind = MRIread(tmpstr);
+    if(gcam->mri_zind == NULL)  printf("ERROR: reading %s\n",tmpstr);
+  }
+  free(gcamdir);
   return(gcam) ;
 }
 
-
+/*------------------------------------------------------------------------------------*/
 GCA_MORPH *
 GCAMalloc(int width, int height, int depth)
 {
@@ -789,36 +800,36 @@ GCAMalloc(int width, int height, int depth)
     ErrorExit(ERROR_NOMEMORY, "GCAMalloc: could not allocate nodes") ;
 
   for (x = 0 ; x < gcam->width ; x++)
-	{
-		gcam->nodes[x] = (GCA_MORPH_NODE **)calloc(gcam->height, sizeof(GCA_MORPH_NODE *)) ;
-		if (!gcam->nodes[x])
-			ErrorExit(ERROR_NOMEMORY, "GCAMalloc: could not allocate %dth **",x) ;
+    {
+      gcam->nodes[x] = (GCA_MORPH_NODE **)calloc(gcam->height, sizeof(GCA_MORPH_NODE *)) ;
+      if (!gcam->nodes[x])
+	ErrorExit(ERROR_NOMEMORY, "GCAMalloc: could not allocate %dth **",x) ;
 
 #define ELECTRIC_FENCE 0
 #if ELECTRIC_FENCE
-		{
-			GCA_MORPH_NODE *buf ;
+      {
+	GCA_MORPH_NODE *buf ;
 			
-			buf = (GCA_MORPH_NODE *)calloc(gcam->depth*gcam->height, sizeof(GCA_MORPH_NODE)) ;
-			if (buf == NULL)
-				ErrorExit(ERROR_NO_MEMORY, 
-									"GCAMalloc(%d, %d, %d): could not allocate %d bytes for %dth bslice\n",
-									height, width, depth, 
-									(gcam->depth*gcam->height*sizeof(GCA_MORPH_NODE)), x);
-			for (y = 0 ; y < gcam->height ; y++)
-			{
-				gcam->nodes[x][y] = buf+(y*gcam->depth) ;
-			}
-		}
+	buf = (GCA_MORPH_NODE *)calloc(gcam->depth*gcam->height, sizeof(GCA_MORPH_NODE)) ;
+	if (buf == NULL)
+	  ErrorExit(ERROR_NO_MEMORY, 
+		    "GCAMalloc(%d, %d, %d): could not allocate %d bytes for %dth bslice\n",
+		    height, width, depth, 
+		    (gcam->depth*gcam->height*sizeof(GCA_MORPH_NODE)), x);
+	for (y = 0 ; y < gcam->height ; y++)
+	  {
+	    gcam->nodes[x][y] = buf+(y*gcam->depth) ;
+	  }
+      }
 #else
-		for (y = 0 ; y < gcam->height ; y++)
-		{
-			gcam->nodes[x][y] = (GCA_MORPH_NODE *)calloc(gcam->depth, sizeof(GCA_MORPH_NODE)) ;
-			if (!gcam->nodes[x][y])
-				ErrorExit(ERROR_NOMEMORY,"GCAMalloc: could not allocate %d,%dth *",x,y);
-		}
-#endif
+      for (y = 0 ; y < gcam->height ; y++)
+	{
+	  gcam->nodes[x][y] = (GCA_MORPH_NODE *)calloc(gcam->depth, sizeof(GCA_MORPH_NODE)) ;
+	  if (!gcam->nodes[x][y])
+	    ErrorExit(ERROR_NOMEMORY,"GCAMalloc: could not allocate %d,%dth *",x,y);
 	}
+#endif
+    }
   initVolGeom(&gcam->image);
   initVolGeom(&gcam->atlas);
   return(gcam) ;
