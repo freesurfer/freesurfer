@@ -2213,7 +2213,8 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 /*---------------------------------------------------------------------
   MRIgaussianSmooth() - performs isotropic gaussian spatial smoothing.
   The standard deviation of the gaussian is std. If norm is set to 1,
-  then the mean is preserved. Can be done in-place. Handles multiple
+  then the mean is preserved (ie, sets the kernel integral to 1, which
+  is probably what you want). Can be done in-place. Handles multiple
   frames. See also MRIconvolveGaussian().
   ---------------------------------------------------------------*/
 MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
@@ -2222,13 +2223,15 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MATRIX *v, *vg, *G;
 
   if(targ == NULL){
-    targ = MRIcopy(src,NULL);
+    targ = MRIallocSequence(src->width,src->height,src->depth,
+			    MRI_FLOAT,src->nframes);
     if(targ == NULL){
       printf("ERROR: MRIgaussianSmooth: could not alloc\n");
       return(NULL);
     }
+    MRIcopy(src,targ);
   }
-  else {
+  else{
     if(src->width != targ->width){
       printf("ERROR: MRIgaussianSmooth: width dimension mismatch\n");
       return(NULL);
@@ -2263,12 +2266,12 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       for(f=0; f < src->nframes; f++){
 
 	for(c=0; c < src->width; c++) 
-	  v->rptr[c+1][1] = MRIFseq_vox(targ,c,r,s,f);
+	  v->rptr[c+1][1] = MRIgetVoxVal(targ,c,r,s,f);
 
 	MatrixMultiply(G,v,vg);
 
 	for(c=0; c < src->width; c++) 
-	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[c+1][1];
+	  MRIsetVoxVal(targ,c,r,s,f,vg->rptr[c+1][1]);
 
       }
     }
@@ -2294,13 +2297,12 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       for(f=0; f < src->nframes; f++){
 
 	for(r=0; r < src->height; r++)
-	  v->rptr[r+1][1] = MRIFseq_vox(targ,c,r,s,f);
+	  v->rptr[r+1][1] = MRIgetVoxVal(targ,c,r,s,f);
 	
 	MatrixMultiply(G,v,vg);
 	
 	for(r=0; r < src->height; r++)
-	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[r+1][1];
-	  
+	  MRIsetVoxVal(targ,c,r,s,f,vg->rptr[r+1][1]);
       }
     }
   }
@@ -2323,12 +2325,12 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       for(f=0; f < src->nframes; f++){
 
 	for(s=0; s < src->depth; s++)
-	  v->rptr[s+1][1] = MRIFseq_vox(targ,c,r,s,f);
+	  v->rptr[s+1][1] = MRIgetVoxVal(targ,c,r,s,f);
 
 	MatrixMultiply(G,v,vg);
 
 	for(s=0; s < src->depth; s++)
-	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[s+1][1];
+	  MRIsetVoxVal(targ,c,r,s,f,vg->rptr[s+1][1]);
 
       }
     }
