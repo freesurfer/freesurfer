@@ -407,11 +407,11 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
-static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
+static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.69 2006/02/09 23:17:41 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.70 2006/02/10 01:31:36 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -860,7 +860,7 @@ int main(int argc, char **argv)
   }
   if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
     printf("Smoothing input by fwhm %lf \n",FWHM);
-    SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+    SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
     printf("   ... done\n");
   }
 
@@ -873,7 +873,7 @@ int main(int argc, char **argv)
       printf("Starting fit\n");
       MRIglmFit(mriglm);
       printf("Variance smoothing\n");
-      SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
+      SmoothSurfOrVol(surf, mriglm->rvar, mriglm->mask, VarSmoothLevel);
       printf("Starting test\n");
       MRIglmTest(mriglm);
     }
@@ -931,7 +931,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(FWHM > 0)	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+	if(FWHM > 0) SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
       if(!strcmp(csd->simtype,"perm")){
 	if(!OneSamplePerm) MatrixRandPermRows(mriglm->Xg);
@@ -952,7 +952,7 @@ int main(int argc, char **argv)
 	  printf("Starting fit\n");
 	  MRIglmFit(mriglm);
 	  printf("Variance smoothing\n");
-	  SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
+	  SmoothSurfOrVol(surf, mriglm->rvar, mriglm->mask, VarSmoothLevel);
 	  printf("Starting test\n");
 	  MRIglmTest(mriglm);
 	}
@@ -980,7 +980,7 @@ int main(int argc, char **argv)
 	  // the mask area wont get zeroed.
 	  RFsynth(z,rfs,NULL);
 	  if(SmoothLevel > 0){
-	    SmoothSurfOrVol(surf, z, SmoothLevel);
+	    SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
 	    RFrescale(z,rfs,NULL,z);
 	  }
 
@@ -1933,7 +1933,7 @@ static void dump_options(FILE *fp)
 }
 
 /*--------------------------------------------------------------------*/
-static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
+static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel)
 {
   extern int DoSim;
   double gstd;
@@ -1942,7 +1942,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
     gstd = SmthLevel/sqrt(log(256.0));
     if(!DoSim || debug) 
       printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
-    MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
+    MRImaskedGaussianSmooth(mri, mask, gstd, mri);
   }
   else{
     if(!DoSim || debug)  
