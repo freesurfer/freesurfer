@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.29 2006/02/10 02:34:19 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.30 2006/02/10 03:17:22 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -317,7 +317,7 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-strip ${DEST_DIR}/bin-new/* > /dev/null
+strip ${DEST_DIR}/bin-new/* >& /dev/null
 
 # Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
@@ -371,7 +371,7 @@ if ($?PUB_DEST_DIR) then
     exit 1  
   endif
   # strip symbols from binaries, greatly reducing their size
-  strip ${PUB_DEST_DIR}/bin/* > /dev/null
+  strip ${PUB_DEST_DIR}/bin/* >& /dev/null
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
