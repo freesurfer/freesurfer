@@ -2215,8 +2215,8 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   The standard deviation of the gaussian is std. If norm is set to 1,
   then the mean is preserved (ie, sets the kernel integral to 1, which
   is probably what you want). Can be done in-place. Handles multiple
-  frames. See also MRIconvolveGaussian().
-  ---------------------------------------------------------------*/
+  frames. See also MRIconvolveGaussian() and MRImaskedGaussianSmooth().
+  -------------------------------------------------------------------*/
 MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
 {
   int c,r,s,f;
@@ -2340,6 +2340,69 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MatrixFree(&v);
   MatrixFree(&vg);
 
+  return(targ);
+}
+/*---------------------------------------------------------------------------------
+  MRImaskedGaussianSmooth() - smooths only within the binary mask.
+  Source values outside the mask do not contribute to target values
+  inside the mask. Target values outside the mask are set to 0. The
+  target voxels are rescaled so that kernel at each voxel sums to 1.
+  This only has an effect near the edge of the mask. In a noise data
+  set, this will increase the variance near the edge, but the expected
+  value will be correct. The mask *must* be binary (ie, 0 and 1). OK
+  if the mask is NULL. As a test, you can input the mask as both
+  the src and binmask. The targ should end up being the same as
+  the mask. See also MRIgaussianSmooth().
+  ---------------------------------------------------------------------------------*/
+MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ)
+{
+  MRI *binmasksm, *srcmasked;
+  int c,r,s,f;
+  double m,v;
+
+  // If the mask is null, just smooth unmasked source and return
+  if(binmask == NULL){
+    targ = MRIgaussianSmooth(src, std, 1, targ); //1 means sum(g)=1
+    return(targ);
+  }
+
+  // Mask the source so that values outside the mask are 0
+  // so that they will not affect the values inside the mask
+  srcmasked = MRImask(src,binmask,NULL,0.0,0.0);
+
+  // Smooth the masked source
+  targ = MRIgaussianSmooth(srcmasked, std, 1, targ); //1 means sum(g)=1
+
+  // At this point, the voxels inside the mask are smoothed, but the 
+  // voxels near the edge of the mask will be scaled incorrectly (ie,
+  // the kernel weights will not sum to 1). Also, voxels outside the
+  // mask will be non-zero. Both of these are fixed below.
+
+  // Smooth the binary mask - this gives us the correction factor to
+  // make the kernel sum to 1.
+  binmasksm = MRIgaussianSmooth(binmask, std, 1, NULL); // 1 makes sum(g)=1
+
+  for(c=0; c < src->width; c++) { 
+    for(r=0; r < src->height; r++) {
+      for(s=0; s < src->depth; s++) {
+	m = MRIgetVoxVal(binmask,c,r,s,0);
+	if(m < 0.5){
+	  // If outside the mask, set target voxel to 0
+	  for(f=0; f < src->nframes; f++) MRIsetVoxVal(targ,c,r,s,f,0.0);
+	  continue;
+	} else {
+	  // If inside the mask, divide target voxel by smoothed mask value
+	  m = MRIgetVoxVal(binmasksm,c,r,s,0);
+	  for(f=0; f < src->nframes; f++) {
+	    v = MRIgetVoxVal(targ,c,r,s,f);
+	    MRIsetVoxVal(targ,c,r,s,f,v/m);
+	  }
+	}
+      }
+    }
+  }
+  MRIfree(&srcmasked);
+  MRIfree(&binmask);
   return(targ);
 }
 

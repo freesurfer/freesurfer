@@ -431,6 +431,7 @@ MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
 MRI   *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ);
+MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
                                          MRI *mri_gaussian) ;
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
