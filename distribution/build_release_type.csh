@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.26 2006/02/10 01:06:45 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.27 2006/02/10 01:50:10 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -268,6 +268,7 @@ if ($status != 0) then
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
 
@@ -290,6 +291,7 @@ if ($status != 0) then
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
 endif
 
@@ -311,6 +313,7 @@ if ($status != 0) then
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
@@ -343,6 +346,7 @@ chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
 chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
