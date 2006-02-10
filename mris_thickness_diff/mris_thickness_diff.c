@@ -46,7 +46,7 @@ void jacobi(float **a, int n, float *d, float** v,int * nrot);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_thickness_diff.c,v 1.2 2006/02/03 17:39:44 nicks Exp $";
+static char vcid[] = "$Id: mris_thickness_diff.c,v 1.3 2006/02/10 04:36:33 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   label = 0; annotation = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness_diff.c,v 1.2 2006/02/03 17:39:44 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness_diff.c,v 1.3 2006/02/10 04:36:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 
   if(nSmoothSteps > 0){
     printf("Smooth input data 1 by %d steps\n", nSmoothSteps);
-    MRISsmoothMRI(Surf1, SrcVal1, nSmoothSteps, SrcVal1);
+    MRISsmoothMRI(Surf1, SrcVal1, nSmoothSteps, NULL,SrcVal1);
     
   }
 
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
 
   if(nSmoothSteps > 0){
     printf("Smooth input data 2 by %d steps\n", nSmoothSteps);
-    MRISsmoothMRI(Surf2, SrcVal2, nSmoothSteps, SrcVal2);
+    MRISsmoothMRI(Surf2, SrcVal2, nSmoothSteps, NULL, SrcVal2);
   }
 
 

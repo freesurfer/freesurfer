@@ -46,7 +46,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.9 2006/01/10 00:57:06 greve Exp $";
+static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.10 2006/02/10 04:36:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -99,12 +99,14 @@ int main(int argc, char *argv[])
 
   if(debug) dump_options(stdout);
 
-  surf = ReadIcoByOrder(7,100);
+  surf = ReadIcoByOrder(7,50);
   //surf = MRISread(surfpath);
   if(surf == NULL){
     printf("ERROR: could not read %s\n",surfpath);
     exit(1);
   }
+  MRIScomputeMetricProperties(surf) ;
+
   printf("dof %d\n",dof);
   printf("Number of vertices %d\n",surf->nvertices);
   printf("Number of faces    %d\n",surf->nfaces);
@@ -124,7 +126,7 @@ int main(int argc, char *argv[])
   MRIwrite(delta,"delta.mgh");
 
   deltasm = MRISgaussianSmooth2(surf, delta, 2, NULL, 5.0);
-  //deltasm = MRISsmoothMRI(surf, delta, 2, deltasm);
+  //deltasm = MRISsmoothMRI(surf, delta, 2, NULL, deltasm);
   MRIwrite(deltasm,"deltasm.mgh");
   //----------------------------------------------------------
   printf("\n\n");
@@ -133,7 +135,7 @@ int main(int argc, char *argv[])
   mri = MRIcopy(mri0,NULL);
   
   for(nthiter = 2; nthiter <= nitersmax; nthiter++){
-    //MRISsmoothMRI(surf, mri, 1, mri);
+    //MRISsmoothMRI(surf, mri, 1, NULL, mri);
     MRISgaussianSmooth2(surf, mri0, nthiter, mri, 5.0);
 
     var = fMRIvariance(mri, dof, 0, var);

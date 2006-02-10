@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $
+  $Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -263,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -540,7 +540,7 @@ int main(int argc, char **argv)
 
   if(nSmoothSteps_Input > 0){
     printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
-    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, SrcVals);
+    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, NULL, SrcVals);
   }
 
   if(strcmp(srcsubject,trgsubject)){
@@ -655,7 +655,7 @@ int main(int argc, char **argv)
 	   fwhm,gstd,nSmoothSteps);
   }
   if(nSmoothSteps > 0)
-    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
+    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, NULL, TrgVals);
 
   /* readjust frame power if necessary */
   if(is_sxa_volume(srcvalfile)){

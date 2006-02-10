@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.34 2005/12/06 21:58:40 greve Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.35 2006/02/10 04:36:33 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,7 +87,7 @@ main(int argc, char *argv[])
   char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.34 2005/12/06 21:58:40 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.35 2006/02/10 04:36:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -190,7 +190,7 @@ main(int argc, char *argv[])
     if(ThicknessMap == NULL){
       printf("Unable to copy thickness data to a MRI volume \n");
     }else{
-      MRISsmoothMRI(mris, ThicknessMap, nsmooth, ThicknessMap);
+      MRISsmoothMRI(mris, ThicknessMap, nsmooth, NULL,ThicknessMap);
       MRIScopyMRI(mris, ThicknessMap, 0, "curv");
       MRIfree(&ThicknessMap);
     }

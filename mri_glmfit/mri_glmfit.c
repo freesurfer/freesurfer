@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.70 2006/02/10 01:31:36 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.71 2006/02/10 04:36:33 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1947,7 +1947,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel)
   else{
     if(!DoSim || debug)  
       printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
-    MRISsmoothMRI(surf, mri, SmthLevel, mri);
+    MRISsmoothMRI(surf, mri, SmthLevel, mask, mri);
   }
   return(0);
 }

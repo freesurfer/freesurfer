@@ -116,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.6 2006/01/17 22:48:28 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.7 2006/02/10 04:36:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
     }
     printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
 	   infwhm,ingstd,niters);
-    MRISsmoothMRI(surf, InVals, niters, InVals);
+    MRISsmoothMRI(surf, InVals, niters, mask,InVals);
   }
 
   printf("Computing spatial AR1 \n");

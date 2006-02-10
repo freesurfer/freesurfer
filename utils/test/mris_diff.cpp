@@ -54,7 +54,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.8 2006/01/30 21:21:47 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.9 2006/02/10 04:36:32 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
   label = 0; annotation = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.8 2006/01/30 21:21:47 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.9 2006/02/10 04:36:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 
   if(nSmoothSteps > 0){
     printf("Smooth input data 1 by %d steps\n", nSmoothSteps);
-    MRISsmoothMRI(Surf1, SrcVal1, nSmoothSteps, SrcVal1);
+    MRISsmoothMRI(Surf1, SrcVal1, nSmoothSteps, NULL, SrcVal1);
     
   }
 

@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/02/09 18:39:45 $
-// Revision       : $Revision: 1.433 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/10 04:36:31 $
+// Revision       : $Revision: 1.434 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -568,7 +568,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.433 2006/02/09 18:39:45 nicks Exp $"); }
+  return("$Id: mrisurf.c,v 1.434 2006/02/10 04:36:31 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -47516,13 +47516,14 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
   input MRI struct does not have to have any particular configuration
   of cols, rows, and slices as long as the product equals nvertices.
   Does not smooth data from ripped vertices into unripped vertices
-  (but does go the other way).
+  (but does go the other way). Same for mask. If mask is NULL, it
+  is ignored.
   -------------------------------------------------------------------*/
-MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
+MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Targ)
 {
   int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
   int nnbrs_actual;
-  float val;
+  float val,m;
   MRI *SrcTmp;
 
   nvox = Src->width * Src->height * Src->depth;
@@ -47572,6 +47573,12 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
         for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
           nbrvtx = Surf->vertices[vtx].v[nthnbr];
           if(Surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+	  // check mask
+	  if(BinMask){
+	    m = MRIgetVoxVal(BinMask,crslut[0][nbrvtx],
+			     crslut[1][nbrvtx],crslut[2][nbrvtx],frame);
+	    if(m < 0.5) continue;
+	  }
           val += MRIFseq_vox(SrcTmp,crslut[0][nbrvtx],
                              crslut[1][nbrvtx],crslut[2][nbrvtx],frame);
           nnbrs_actual++;
