@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/10 17:50:42 $
-// Revision       : $Revision: 1.95 $
+// Revision Date  : $Date: 2006/02/10 23:03:52 $
+// Revision       : $Revision: 1.96 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3933,21 +3933,36 @@ int boundsCheckf(float x, float y, float z, int width, int height, int depth)
     return NO_ERROR;
 }
 
-int
-GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z, 
+/*----------------------------------------------------------------------------
+  The GCAM is an isotropic FOV with voxel size gcam->spacing and dimension
+  gcam->{width,height,depth} with 3 frames. The values stored at a voxel
+  in this volume are the CRS of this voxel in the Unmorphed space. The morphed
+  and unmorphed spaces are assumed to have the same FOV and geometry, but
+  possibly different resolution. 
+  ---------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------
+  GCAMsampleMorph() - given the CRS in the Morphed-anat-space volume
+  (but not really), computes the CRS in the UnMorphed-anatomical-space
+  volume. This should produce the inverse of GCAMsampleInverseMorph().
+  ---------------------------------------------------------------------------*/
+int GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z, 
                 float *pxd, float *pyd, float *pzd)
 {
   int            xm, xp, ym, yp, zm, zp, width, height, depth ;
   float          xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
   int            errCode = NO_ERROR;
 
-  /* x, y, z are in MRI voxel coords */
+  /* xyz are sort of CRS in the morph volume, but this is only
+     truly the case when the gcam->spacing=1, so divide by
+     the spacing to get actual CRS indices (still float)*/
   x /= gcam->spacing ; y /= gcam->spacing ; z /= gcam->spacing ;
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
 
-  if ((errCode = boundsCheckf(x, y, z, width, height, depth)) != NO_ERROR)
+  if((errCode = boundsCheckf(x, y, z, width, height, depth)) != NO_ERROR)
     return errCode;
 
+  // Compute integer col,row,slice that surround the point to be sampled
   xm = MAX((int)x, 0) ;
   xp = MIN(width-1, xm+1) ;
   ym = MAX((int)y, 0) ;
@@ -3955,6 +3970,7 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
   zm = MAX((int)z, 0) ;
   zp = MIN(depth-1, zm+1) ;
 
+  // Distance from continuous point to nearest values in the grid
   xmd = x - (float)xm ;
   ymd = y - (float)ym ;
   zmd = z - (float)zm ;
@@ -3972,6 +3988,7 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
       (gcam->nodes[xp][yp][zp].invalid == GCAM_POSITION_INVALID))
     return(ERROR_BADPARM) ;
 
+  // Trilinear interp (?)
   *pxd =
     xpd * ypd * zpd * gcam->nodes[xm][ym][zm].x +
     xpd * ypd * zmd * gcam->nodes[xm][ym][zp].x +
@@ -4002,6 +4019,74 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
 
   return(NO_ERROR) ;
 }
+/*----------------------------------------------------------------------------
+  GCAMsampleInverseMorph() - given the CRS in the anatomical volume, computes
+  the CRS in the Morph volume. GCAM must have been inverted. This should
+  produce the inverse of GCAMsampleMorph().
+  ---------------------------------------------------------------------------*/
+int GCAMsampleInverseMorph(GCA_MORPH *gcam, 
+			   float  cAnat,  float  rAnat,  float  sAnat, 
+			   float *cMorph, float *rMorph, float *sMorph)
+{ 
+  int err;
+  Real v;
+
+  if(gcam->mri_xind == NULL){
+    printf("ERROR: GCAMsampleInverseMorph(): GCAM not inverted\n");
+    return(1);
+  }
+
+  err = MRIsampleVolume(gcam->mri_xind, cAnat,rAnat,sAnat, &v); 
+  if(err) return(1);
+  *cMorph = v * gcam->spacing;
+
+  err = MRIsampleVolume(gcam->mri_yind, cAnat,rAnat,sAnat, &v); 
+  if(err) return(1);
+  *rMorph = v * gcam->spacing;
+
+  err = MRIsampleVolume(gcam->mri_zind, cAnat,rAnat,sAnat, &v); 
+  if(err) return(1);
+  *sMorph = v * gcam->spacing;
+
+  return(0);
+}
+/*------------------------------------------------------------------------------
+  GCAMsampleMorphCheck() - checks the morph by going forwards and backwards.
+  Returns 0 if error is less than thresh. Returns 1 if greater. Returns -1
+  if there was some other problem. Typical distances are less than 0.5.
+  ------------------------------------------------------------------------------*/
+int GCAMsampleMorphCheck(GCA_MORPH *gcam, float thresh, 
+			 float cMorph, float rMorph, float sMorph)
+{
+  int err;
+  float cAnat, rAnat, sAnat;
+  float cMorph2, rMorph2, sMorph2;
+  float d;
+
+  // Compute the CRS in the Anat space from the CRS in the Morph space
+  err = GCAMsampleMorph(gcam, cMorph, rMorph, sMorph, &cAnat, &rAnat, &sAnat);
+  if(err) return(-1);
+
+  // Feedback the CRS in the Anat space to compute the CRS in the Morph space
+  err = GCAMsampleInverseMorph(gcam, cAnat, rAnat, sAnat, &cMorph2, &rMorph2, &sMorph2);
+  if(err) return(-1);
+
+  // Compare CRS in Morph space
+  d = sqrt((cMorph-cMorph2)*(cMorph-cMorph2) +
+	   (rMorph-rMorph2)*(rMorph-rMorph2) +
+	   (sMorph-sMorph2)*(sMorph-sMorph2));
+
+  if(Gdiag_no > 0){
+    printf("Mcrs=(%5.1f,%5.1f,%5.1f) Mcrs2=(%5.1f,%5.1f,%5.1f), d=%5.2f th=%g Acrs=(%5.1f,%5.1f,%5.1f)\n",
+	   cMorph, rMorph, sMorph,  cMorph2, rMorph2, sMorph2,  d, thresh, cAnat, rAnat, sAnat);
+
+  }
+
+  if(d > thresh) return(1);
+  return(0);
+}
+/*------------------------------------------------------------------------------*/
+
 
 double
 GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
