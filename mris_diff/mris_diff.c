@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.9 2006/02/08 05:09:45 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.10 2006/02/10 16:03:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -201,32 +201,32 @@ int main(int argc, char *argv[])
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(CheckXYZ){
-      if(fabs(vtx1->x-vtx2->x)>thresh){
-        printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(vtx1->y - vtx2->y)>thresh){
-        printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(vtx1->z - vtx2->z)>thresh){
-        printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
+	if(fabs(vtx1->x-vtx2->x)>thresh){
+	  printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(vtx1->y - vtx2->y)>thresh){
+	  printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(vtx1->z - vtx2->z)>thresh){
+	  printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
       }
       if(CheckNXYZ){
-      if(fabs(vtx1->nx - vtx2->nx)>thresh){
-        printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(vtx1->ny - vtx2->ny)>thresh){
-        printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(vtx1->nz - vtx2->nz)>thresh){
-        printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
+	if(fabs(vtx1->nx - vtx2->nx)>thresh){
+	  printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(vtx1->ny - vtx2->ny)>thresh){
+	  printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(vtx1->nz - vtx2->nz)>thresh){
+	  printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
@@ -259,17 +259,19 @@ int main(int argc, char *argv[])
     for(nthface=0; nthface < surf1->nfaces; nthface++){
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
-      if(fabs(face1->nx - face2->nx)>thresh){
-        printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(face1->ny - face2->ny)>thresh){
-        printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
-        if(++error_count>=MAX_NUM_ERRORS) break;
-      }
-      if(fabs(face1->nz - face2->nz)>thresh){
-        printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
-        if(++error_count>=MAX_NUM_ERRORS) break;
+      if(CheckNXYZ){
+	if(fabs(face1->nx - face2->nx)>thresh){
+	  printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(face1->ny - face2->ny)>thresh){
+	  printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
+	if(fabs(face1->nz - face2->nz)>thresh){
+	  printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
+	  if(++error_count>=MAX_NUM_ERRORS) break;
+	}
       }
       if(fabs(face1->area - face2->area)>thresh){
         printf("Face %d differs in area %g %g\n",
