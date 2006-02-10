@@ -4,11 +4,16 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $
+# $Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
+
+if( -e /etc/NOFREESURFER ) then
+  cat /etc/NOFREESURFER
+  exit
+endif
 
 if ("`uname -s`" == "Darwin") then 
   set USER_LIST_PATH=/autofs/space/freesurfer
@@ -17,7 +22,7 @@ else
 endif
 echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> $USER_LIST_PATH/nmr-dev-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -28,7 +33,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $';
 
 setenv FREESURFER_HOME /usr/local/freesurfer/dev
 if(! $?SUBJECTS_DIR) then
