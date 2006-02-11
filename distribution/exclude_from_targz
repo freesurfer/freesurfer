@@ -21,13 +21,9 @@ freesurfer/lib/gsl/include
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share
 freesurfer/lib/tcltktixblt/include
-freesurfer/lib/qt/src
-freesurfer/lib/qt/doc
 freesurfer/lib/qt/tools
 freesurfer/lib/qt/qmake
 freesurfer/lib/qt/pics
-freesurfer/lib/qt/include
-freesurfer/lib/qt/mkspecs
 freesurfer/lib/qt/phrasebooks
 freesurfer/lib/qt/plugins
 freesurfer/lib/qt/templates
