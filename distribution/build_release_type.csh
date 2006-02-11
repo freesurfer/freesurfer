@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.30 2006/02/10 03:17:22 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.31 2006/02/11 18:57:55 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -410,10 +410,9 @@ foreach destdir ($DEST_DIR_LIST)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
-  if (! -d $destdir/lib/qt/lib ) then
-    set cmd=(ln -s /usr/pubsw/packages/qt/current/lib $destdir/lib/qt/lib)
+  if (! -d $destdir/lib/qt ) then
+    set cmd=(ln -s /usr/pubsw/packages/qt/current $destdir/lib/qt)
     echo "$cmd" >>& $OUTPUTF
-    mkdir -p $destdir/lib/qt
     $cmd
   endif
   if ("$OSTYPE" == "Darwin") then
