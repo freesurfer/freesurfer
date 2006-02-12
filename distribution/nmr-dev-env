@@ -4,25 +4,24 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $
+# $Id: nmr-dev-env,v 1.14 2006/02/12 03:10:34 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
+# check if attempting to execute on a machine which should not run
+# Freesurfer (such as 'gate' and 'entry')
 if( -e /etc/NOFREESURFER ) then
   cat /etc/NOFREESURFER
   exit
 endif
 
-if ("`uname -s`" == "Darwin") then 
-  set USER_LIST_PATH=/autofs/space/freesurfer
-else
-  set USER_LIST_PATH=/space/freesurfer
-endif
+# track usage
 echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> $USER_LIST_PATH/nmr-dev-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.14 2006/02/12 03:10:34 nicks Exp $';
+set NSE_VERSION = ${VERSION}
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -33,12 +32,9 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.13 2006/02/10 17:38:40 kteich Exp $';
-
 setenv FREESURFER_HOME /usr/local/freesurfer/dev
 if(! $?SUBJECTS_DIR) then
   if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
-  if (-e /autofs/space/sake_003/users/inverse/subjects) setenv SUBJECTS_DIR /autofs/space/sake_003/users/inverse/subjects
 endif
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
@@ -56,9 +52,6 @@ source $FS_ENV_FILE
 # in the public distributions, but creates a tix library
 # conflict with FSL, so unset it.
 unsetenv TCLLIBPATH
-
-# Necessary for FSL to work w/ some freesurfer tools:
-setenv FSLOUTPUTTYPE ANALYZE
 
 # Source the FreeDiffusion Environment File
 set FD_ENV_FILE =  $FREESURFER_HOME/SetUpFreeDiffusion.csh

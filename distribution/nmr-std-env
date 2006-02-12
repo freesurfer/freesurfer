@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-std-env
 #
-# $Id: nmr-std-env,v 1.16 2006/02/10 17:38:40 kteich Exp $
+# $Id: nmr-std-env,v 1.17 2006/02/12 03:10:34 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -22,7 +22,7 @@ else
 endif
 echo "`date`|`whoami`|`hostname -s`|nmr-std-env" >> $USER_LIST_PATH/nmr-std-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-std-env,v 1.16 2006/02/10 17:38:40 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-std-env,v 1.17 2006/02/12 03:10:34 nicks Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -33,7 +33,7 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-std-env,v 1.16 2006/02/10 17:38:40 kteich Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.17 2006/02/12 03:10:34 nicks Exp $';
 
 setenv FREESURFER_HOME /usr/local/freesurfer/stable
 if(! $?SUBJECTS_DIR) then
@@ -53,7 +53,7 @@ setenv FSLDIR  /usr/pubsw/packages/fsl/current
 setenv FSL_DIR  $FSLDIR
 setenv FSL_BIN  $FSLDIR/bin
 source $FSLDIR/etc/fslconf/fsl.csh
-setenv FSLOUTPUTTYPE ANALYZE
+setenv FSLOUTPUTTYPE NIFTI_GZ
 
 # Source the FreeSurfer Environment File
 set FS_ENV_FILE =  $FREESURFER_HOME/SetUpFreeSurfer.csh

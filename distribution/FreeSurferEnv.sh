@@ -4,11 +4,13 @@
 # Name:    FreeSurferEnv.sh
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
+# Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
+#          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.8 2006/01/26 22:25:13 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.9 2006/02/12 03:10:34 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.8 2006/01/26 22:25:13 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.9 2006/02/12 03:10:34 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -435,6 +437,7 @@ if [ -n "$FSL_DIR" ]; then
     if [ -e $FSL_DIR/etc/fslconf/fsl.sh ]; then
         source $FSL_DIR/etc/fslconf/fsl.sh
     fi
+    export FSLOUTPUTTYPE=NIFTI_GZ
 fi
 if [ -n "$FSL_BIN" ]; then
     PATH=$FSL_BIN:$PATH
