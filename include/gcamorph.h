@@ -167,6 +167,13 @@ int       GCAMsampleInverseMorph(GCA_MORPH *gcam,
 				 float *cMorph, float *rMorph, float *sMorph);
 int GCAMsampleMorphCheck(GCA_MORPH *gcam, float thresh, 
 			 float cMorph, float rMorph, float sMorph);
+int GCAMsampleMorphRAS(GCA_MORPH *gcam, float xMorph, float yMorph, float zMorph,
+		       float  *xAnat,  float  *yAnat,  float  *zAnat);
+int GCAMsampleInverseMorphRAS(GCA_MORPH *gcam, float xAnat, float yAnat, float zAnat, 
+			      float *xMorph, float *yMorph, float *zMorph);
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
+
+
 int       GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam) ;
 MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
 MRI       *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri) ;

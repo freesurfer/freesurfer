@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/10 23:03:52 $
-// Revision       : $Revision: 1.96 $
+// Revision Date  : $Date: 2006/02/12 20:05:37 $
+// Revision       : $Revision: 1.97 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -4053,7 +4053,8 @@ int GCAMsampleInverseMorph(GCA_MORPH *gcam,
 /*------------------------------------------------------------------------------
   GCAMsampleMorphCheck() - checks the morph by going forwards and backwards.
   Returns 0 if error is less than thresh. Returns 1 if greater. Returns -1
-  if there was some other problem. Typical distances are less than 0.5.
+  if there was some other problem. Typical distances are less than 0.5, which
+  does not seem all that great to me. Also, not all input CRSs will be valid.
   ------------------------------------------------------------------------------*/
 int GCAMsampleMorphCheck(GCA_MORPH *gcam, float thresh, 
 			 float cMorph, float rMorph, float sMorph)
@@ -4085,9 +4086,150 @@ int GCAMsampleMorphCheck(GCA_MORPH *gcam, float thresh,
   if(d > thresh) return(1);
   return(0);
 }
+/*----------------------------------------------------------------------------
+  GCAMsampleMorphRAS() - given an RAS coord in the Morph space
+  (xyzMorph), compute the RAS in the Anat space (xyzAnat).  The Anat
+  space RAS is in "tkregister" or "surface" space (ie, cras=0). See
+  also GCAMsampleInverseMorphRAS().
+  ----------------------------------------------------------------------------*/
+int GCAMsampleMorphRAS(GCA_MORPH *gcam, float xMorph, float yMorph, float zMorph,
+		       float  *xAnat,  float  *yAnat,  float  *zAnat)
+{
+  static int init_needed = 1, err;  
+  static MATRIX *ras=NULL, *crs=NULL, *vox2ras=NULL, *ras2vox=NULL;
+  float  cMorph, rMorph, sMorph;
+  float  cAnat, rAnat, sAnat;
+
+  if(init_needed){
+    // Use static so that all this matrix overhead does not have to be
+    // done on each call.  Init tkreg vox2ras with the inverse volume
+    // as this will be the same as the anatomical volume. The only
+    // time this will fail is if this function is called twice with
+    // two different volume sizes (eg, 1mm^3 res and a high
+    // res). Multiple calls with different subjects is not a problem
+    // as long as they are the same voxel size as the tkreg vox2ras
+    // does not use individual information.
+    if(gcam->mri_xind == NULL){
+      printf("ERROR: GCAsampleMorphRAS(): gcam not inverted\n");
+      return(1);
+    }
+    vox2ras = MRIxfmCRS2XYZtkreg(gcam->mri_xind);
+    ras2vox = MatrixInverse(vox2ras,ras2vox);
+    ras = MatrixAlloc(4,1,MATRIX_REAL);
+    ras->rptr[4][1] = 1;
+    crs= MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+    init_needed = 0;
+  }
+
+  ras->rptr[1][1] = xMorph;
+  ras->rptr[2][1] = yMorph;
+  ras->rptr[3][1] = zMorph;
+  crs = MatrixMultiply(ras2vox,ras,crs);
+  cMorph = crs->rptr[1][1];
+  rMorph = crs->rptr[2][1];
+  sMorph = crs->rptr[3][1];
+  
+  err = GCAMsampleMorph(gcam, cMorph, rMorph, sMorph, &cAnat, &rAnat, &sAnat);
+  if(err) return(1);
+
+  crs->rptr[1][1] = cAnat;
+  crs->rptr[2][1] = rAnat;
+  crs->rptr[3][1] = sAnat;
+  ras = MatrixMultiply(vox2ras,crs,ras);
+
+  *xAnat = ras->rptr[1][1];
+  *yAnat = ras->rptr[2][1];
+  *zAnat = ras->rptr[3][1];
+
+  return(0);
+}
+/*----------------------------------------------------------------------------
+  GCAMsampleInverseMorphRAS() - given an RAS coord in the Anat space
+  (xyzAnat), compute the RAS in the Morph space (xyzMorph).  The Anat
+  space RAS is in "tkregister" or "surface" space (ie, cras=0). See
+  also GCAMsampleMorphRAS().
+  ----------------------------------------------------------------------------*/
+int GCAMsampleInverseMorphRAS(GCA_MORPH *gcam, float xAnat, float yAnat, float zAnat, 
+			      float *xMorph, float *yMorph, float *zMorph)
+{
+  static int init_needed = 1, err;
+  static MATRIX *ras=NULL, *crs=NULL, *vox2ras=NULL, *ras2vox=NULL;
+  float  cMorph, rMorph, sMorph;
+  float  cAnat, rAnat, sAnat;
+
+  if(init_needed){
+    // Use static so that all this matrix overhead does not have to be
+    // done on each call.  Init tkreg vox2ras with the inverse volume
+    // as this will be the same as the anatomical volume. The only
+    // time this will fail is if this function is called twice with
+    // two different volume sizes (eg, 1mm^3 res and a high
+    // res). Multiple calls with different subjects is not a problem
+    // as long as they are the same voxel size as the tkreg vox2ras
+    // does not use individual information.
+    if(gcam->mri_xind == NULL){
+      printf("ERROR: GCAsampleMorphRAS(): gcam not inverted\n");
+      return(1);
+    }
+    vox2ras = MRIxfmCRS2XYZtkreg(gcam->mri_xind);
+    ras2vox = MatrixInverse(vox2ras,ras2vox);
+    ras = MatrixAlloc(4,1,MATRIX_REAL);
+    ras->rptr[4][1] = 1;
+    crs= MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+    init_needed = 0;
+  }
+
+  ras->rptr[1][1] = xAnat;
+  ras->rptr[2][1] = yAnat;
+  ras->rptr[3][1] = zAnat;
+  crs = MatrixMultiply(ras2vox,ras,crs);
+  cAnat = crs->rptr[1][1];
+  rAnat = crs->rptr[2][1];
+  sAnat = crs->rptr[3][1];
+  
+  err = GCAMsampleInverseMorph(gcam, cAnat, rAnat, sAnat, &cMorph, &rMorph, &sMorph);
+  if(err) return(1);
+
+  crs->rptr[1][1] = cMorph;
+  crs->rptr[2][1] = rMorph;
+  crs->rptr[3][1] = sMorph;
+  ras = MatrixMultiply(vox2ras,crs,ras);
+
+  *xMorph = ras->rptr[1][1];
+  *yMorph = ras->rptr[2][1];
+  *zMorph = ras->rptr[3][1];
+
+  return(0);
+}
+/*-----------------------------------------------------------------------
+  GCAMmorphSurf() - compute the vertex xyz in the morph space. Replaces
+  vertex xyz. Does not recompute the metric properties of the surface.
+  ---------------------------------------------------------------------*/
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
+{
+  int vtxno,err;
+  VERTEX *v;
+  float Mx, My, Mz;
+
+  //printf("Appling Inverse Morph \n");
+  for(vtxno = 0; vtxno < mris->nvertices; vtxno++){
+    v = &(mris->vertices[vtxno]);
+    err = GCAMsampleInverseMorphRAS(gcam, v->x, v->y, v->z, &Mx, &My, &Mz);
+    if(err){
+      printf("WARNING: GCAMmorphSurf(): error converting vertex %d\n",vtxno);
+      printf("  Avxyz = (%g,%g,%g), Mvxyz = (%g,%g,%g), \n",
+	     v->x, v->y, v->z, Mx, My, Mz);
+      printf(" ... Continuing\n");
+    }
+    // pack it back into the vertex
+    v->x = Mx;
+    v->y = My;
+    v->z = Mz;
+  }
+  return(0);
+}
 /*------------------------------------------------------------------------------*/
-
-
 double
 GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
