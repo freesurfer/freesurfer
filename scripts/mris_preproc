@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 #
 
-set VERSION = '$Id: mris_preproc,v 1.6 2006/01/31 05:41:26 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.7 2006/02/13 22:52:44 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -30,6 +30,7 @@ set SessDirFile = ();
 set FSFAnalysis = ();
 set FSFContrast = ();
 set LF = ();
+set reshape = 0;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e --help | wc -l` 
@@ -107,6 +108,7 @@ foreach subj ($subjlist)
     set cmd = ($cmd --out $srcsurfpath)
     if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
     if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
+    if(! $reshape) set cmd = ($cmd --noreshape);
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -128,6 +130,7 @@ foreach subj ($subjlist)
   if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
   if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
   if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
+  if(! $reshape)  set cmd = ($cmd --noreshape);
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -158,6 +161,7 @@ if($#fwhmtarg || $#niterstarg) then
   set cmd = ($cmd --tval $outpath)
   if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
   if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
+  if(! $reshape)   set cmd = ($cmd --noreshape);
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -335,6 +339,10 @@ while( $#argv != 0 )
 
     case "--synth":
       set synth = 1;
+      breaksw
+
+    case "--reshape":
+      set reshape = 1;
       breaksw
 
     case "--dontrun":
@@ -585,6 +593,7 @@ usage_exit:
   echo ""
   echo "  --synth"
   echo ""
+  echo "  --reshape : reshape spatial dimensions"
   echo "  --tmpdir dir : use tmpdir. Implies --nocleanup."
   echo "  --nocleanup  : do not delete tmpdir"
   echo "  --cleanup  : delete tmpdir (default)"
@@ -712,6 +721,15 @@ Synthesize the input data with white gaussian noise. For volume source,
 the volume is synthesized prior to resampling to the surface. The 
 synthesis is done prior to any smoothing. This is mainly good for testing
 and running simulations.
+
+--reshape
+
+Reshape spatial dimensions. Normally, the output volume-encoded surface file
+will have spatial dimension of nvertices-by-1-by-1 (ie, number of columns equals
+number of vertices, nrows=nslices=1). This will not work for ANALYZE and NIFTI
+formats because they cannot represent a dimension with more than 32k elements.
+This flag instructs mris_preproc to change the number of cols, rows, and slices
+so that no one dimension is greater than 32k. 
 
 --tmpdir tmpdir
 
