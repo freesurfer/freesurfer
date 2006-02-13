@@ -98,6 +98,8 @@ Volume editing is done with the Voxel Editing tool, which is the attachment:icon
 
  '''Erase Value''': This will set the value drawn when the right mouse button is used. By default, it sets voxels to 0. In the case of a segmentation volume, this erases the segmentation label.
 
+Additionally, if you hold down the shift key while the editing tool is active, you will see a line stretch from the last clicked point to the mouse. If you middle or right click with the shift key still held down, scuba will brush that line with the value corresponding to the mouse button you clicked. You can use this to brush straight lines.
+
 == Voxel Filling ==
 
 Selecting the Voxel Filling tool will show a different set of options in the Tools panel. The filling algorithm starts at a seed point and fills adjacent voxels that are similar to the seed voxel. The degree of similarity is what can be configured with the filling options.
