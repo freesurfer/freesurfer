@@ -40,6 +40,25 @@ You can click and drag on a region bar with the middle mouse button to move the 
 
 When you are done declaring ranges, click the '''OK''' button, and the values in the current slice of the segmentation will be set.
 
+== Segmentation Volume Report ==
+
+There is a tool for generating report about segmentation structure sizes and included voxels. This is in the '''Tools->Generate Segmentation Volume Report...''' command. Before using this tool, you need at least one segmentation volume loaded.
+
+This will bring up a window in which you configure the parameters of the report. At the top, choose a segmentation volume from the pull-down menu. If you would like to include average intensity values for the structures you select, check the checkboxes next to the anatomical volumes for which you would like the information.
+
+Next, select the structures on which you would like to receive information. By default, the same LUT that your segmentation volume uses will be pre-selected in the pull-down menu, but you can change that if you'd like. Double click on the structures in the left list or select them and click the '''Add structure''' button to add them to the list of reported structures on the right. To remove structures, double click on them in the right list or select them and click the '''Remove structure''' button.
+
+If you would only like the report over in an ROI, click the '''Only report for ROI''' checkbox. Then choose a data collection and ROI to which to limit the report.
+
+To generate an additional report that lists all the voxels that are in the structures you have chosen, check the '''Additional intensity report for individual voxels''' checkbox.
+
+Then just enter file names for the two reports, and click the '''OK''' button.
+
+The main report will be in the following tab delimited format. On the first line, the keyword SUBJ and then a column header for each pair of structures and anatomical volumes you have selected. You will see one column for each structure followed by the structure's average intensity in the anatomical volume. The second line contains the subject name, and then for each column, if it is a structure column, the number of voxels in the structure, or if it is a structure-intensity column, the average intensity in that anatomical volume for the voxels in the structure.
+
+The secondary report will have a column for each structure-anatomical volume pair. In each column, the anatomical voxels in each structure will be listed.
+
+
 == Saving ==
 
 Saving segmentation volumes is exactly like saving normal anatomical volumes. Just make sure the segmentation volume data collection is the one selected in the Data panel, and use one of the '''File->Save <data collection>...''' commands.
