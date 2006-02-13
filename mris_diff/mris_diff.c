@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.10 2006/02/10 16:03:23 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.11 2006/02/13 01:41:48 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
   int nthface, annot1, annot2;
   VERTEX *vtx1, *vtx2;
   FACE *face1, *face2;
+  float diff, maxdiff;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -186,6 +187,8 @@ int main(int argc, char *argv[])
   //surf1->faces[10000].area = 100;
   //surf1->vertices[10000].x = 100;
 
+  maxdiff=0;
+
   //------------------------------------------------------------
   if(CheckSurf){
     printf("Comparing surfaces\n");
@@ -201,30 +204,48 @@ int main(int argc, char *argv[])
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(CheckXYZ){
-	if(fabs(vtx1->x-vtx2->x)>thresh){
-	  printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
+	diff=fabs(vtx1->x - vtx2->x);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in x %g %g\t(%g)\n",
+		 nthvtx,vtx1->x,vtx2->x,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(vtx1->y - vtx2->y)>thresh){
-	  printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
+	diff=fabs(vtx1->y - vtx2->y);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in y %g %g\t(%g)\n",
+		 nthvtx,vtx1->y,vtx2->y,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(vtx1->z - vtx2->z)>thresh){
-	  printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
+	diff=fabs(vtx1->z - vtx2->z);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in z %g %g\t(%g)\n",
+		 nthvtx,vtx1->z,vtx2->z,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
       }
       if(CheckNXYZ){
-	if(fabs(vtx1->nx - vtx2->nx)>thresh){
-	  printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
+	diff=fabs(vtx1->nx - vtx2->nx);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in nx %g %g\t(%g)\n",
+		 nthvtx,vtx1->nx,vtx2->nx,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(vtx1->ny - vtx2->ny)>thresh){
-	  printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
+	diff=fabs(vtx1->ny - vtx2->ny);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in ny %g %g\t(%g)\n",
+		 nthvtx,vtx1->ny,vtx2->ny,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(vtx1->nz - vtx2->nz)>thresh){
-	  printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
+	diff=fabs(vtx1->nz - vtx2->nz);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Vertex %d differs in nz %g %g\t(%g)\n",
+		 nthvtx,vtx1->nz,vtx2->nz,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
       }
@@ -246,6 +267,7 @@ int main(int argc, char *argv[])
       }
       if(error_count>=MAX_NUM_ERRORS) break;
     }// loop over vertices
+    if(maxdiff>0) printf("maxdiff=%g\n",maxdiff);
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
@@ -260,22 +282,33 @@ int main(int argc, char *argv[])
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
       if(CheckNXYZ){
-	if(fabs(face1->nx - face2->nx)>thresh){
-	  printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
+	diff=fabs(face1->nx - face2->nx);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Face %d differs in nx %g %g\t(%g)\n",
+		 nthface,face1->nx,face2->nx,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(face1->ny - face2->ny)>thresh){
-	  printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
+	diff=fabs(face1->ny - face2->ny);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Face %d differs in ny %g %g\t(%g)\n",
+		 nthface,face1->ny,face2->ny,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
-	if(fabs(face1->nz - face2->nz)>thresh){
-	  printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
+	diff=fabs(face1->nz - face2->nz);
+	if(diff>maxdiff) maxdiff=diff;
+	if(diff>thresh){
+	  printf("Face %d differs in nz %g %g\t(%g)\n",
+		 nthface,face1->nz,face2->nz,diff);
 	  if(++error_count>=MAX_NUM_ERRORS) break;
 	}
       }
-      if(fabs(face1->area - face2->area)>thresh){
-        printf("Face %d differs in area %g %g\n",
-               nthface,face1->area,face2->area);
+      diff=fabs(face1->area - face2->area);
+      if(diff>maxdiff) maxdiff=diff;
+      if(diff>thresh){
+        printf("Face %d differs in area %g %g\t(%g)\n",
+               nthface,face1->area,face2->area,diff);
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(face1->ripflag != face2->ripflag){
@@ -292,6 +325,7 @@ int main(int argc, char *argv[])
       } // end loop over nthface vertex
       if(error_count>=MAX_NUM_ERRORS) break;
     } // end loop over faces
+    if(maxdiff>0) printf("maxdiff=%g\n",maxdiff);
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
@@ -323,12 +357,15 @@ int main(int argc, char *argv[])
     for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++){
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
-      if(fabs(vtx1->curv-vtx2->curv) > thresh){
-        printf("curv files differ at vertex %d %g %g\n",
-               nthvtx,vtx1->curv,vtx2->curv);
+      diff=fabs(vtx1->curv - vtx2->curv);
+      if(diff>maxdiff) maxdiff=diff;
+      if(diff > thresh){
+        printf("curv files differ at vertex %d %g %g\t(%g)\n",
+               nthvtx,vtx1->curv,vtx2->curv,diff);
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
+    if(maxdiff>0) printf("maxdiff=%g\n",maxdiff);
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
