@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/25 23:41:35 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2006/02/13 23:54:01 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
 /*
@@ -87,8 +87,10 @@ ENDHELP
 #include "transform.h"
 #include "version.h"
 #include "fio.h"
+#include "gca.h"
+#include "gcamorph.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.19 2006/01/25 23:41:35 greve Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.20 2006/02/13 23:54:01 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,9 +124,10 @@ main(int argc, char *argv[])
   VOL_GEOM      vg;
   float        average_surface_area = 0.0 ;
   MATRIX *XFM=NULL;
+  GCA_MORPH *gcam=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.19 2006/01/25 23:41:35 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.20 2006/02/13 23:54:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,10 +178,12 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
                 Progname, argv[1]);
     // read transform
-    sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
-    lta = LTAreadEx(fname) ;
-    if (!lta)
-      ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+    if(0){
+      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
+      lta = LTAreadEx(fname) ;
+      if (!lta)
+	ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+    }
 
     // read T1 volume
     sprintf(fname, "%s/%s/mri/T1.mgz", sdir, argv[i]) ;
@@ -201,9 +206,21 @@ main(int argc, char *argv[])
     
     // this means that we transform "pial" surface
 
-    XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
-    if(XFM == NULL) exit(1);
-    MRISmatrixMultiply(mris, XFM);
+    if(!strcmp(xform_name,"talairach.xfm")){
+      XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
+      if(XFM == NULL) exit(1);
+      MRISmatrixMultiply(mris, XFM);
+    } else if(!strcmp(xform_name,"talairach.m3z")){
+      sprintf(fname, "%s/%s/mri/transforms/talairach.m3z", sdir, argv[i]) ;
+      printf("Applying GCA Morph\n");
+      gcam = GCAMreadAndInvert(fname);
+      if(gcam == NULL) exit(1);
+      GCAMmorphSurf(mris, gcam);
+      GCAMfree(&gcam);
+    } else {
+      printf("ERROR: don't know what to do with %s\n",xform_name);
+      exit(1);
+    }
 
     // save transformed position in ->orig (store "pial" vertices position in orig)
     MRIScomputeMetricProperties(mris) ;
@@ -216,7 +233,8 @@ main(int argc, char *argv[])
     MRISPaccumulate(mrisp, mrisp_total, 0) ;
     MRISPaccumulate(mrisp, mrisp_total, 1) ;
     MRISPaccumulate(mrisp, mrisp_total, 2) ;
-    MRISPfree(&mrisp) ; MRISfree(&mris) ; LTAfree(&lta) ; MRIfree(&mri) ;
+    MRISPfree(&mrisp) ; MRISfree(&mris) ; MRIfree(&mri) ;
+    //LTAfree(&lta) ; 
     n++ ;
   }
   average_surface_area /= (float)n ;
@@ -287,7 +305,8 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
-  {
+
+  if(0){
     char path[STRLEN] ;
     LTA  *lta ;
     
