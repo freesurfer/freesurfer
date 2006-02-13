@@ -17,7 +17,7 @@
  */
 #define __MACTYPES__
 #endif
-#include "volume_io.h"
+#include <volume_io.h> //from MNI
 #include "box.h"
 #include "machine.h"
 
@@ -637,6 +637,7 @@ extern float ic_z_vertices[]  ;
 #define BHDR                          23 // for bshort or bfloat
 #define NII_FILE                      24 // NIfTI-1 .nii (single file)
 #define MRI_CURV_FILE                 25 // surface curv format
+#define NRRD_FILE                     26 // NRRD .nrrd single file
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
