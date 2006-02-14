@@ -10,90 +10,395 @@ they refer to are created. As input, they must refer to valid
 objects. If they don't you'll receive an error. All IDs are integers.
 
 
-[[Anchor(PrintAllCommands)]]
-''Print``All``Commands''
+[[Anchor(AddSegVolReportIntensityVolume)]]
+''Add``Seg``Vol``Report``Intensity``Volume'' '''''volID'''''
 
- Print all registered commands.
+ Add an intensity volume to the segmentation volume report.
 
-[[Anchor(GetLayerIDList)]]
-''Get``Layer``ID``List''
+[[Anchor(BeginValueRangeFillInView)]]
+''Begin``Value``Range``Fill``In``View'' '''''viewID sourceVolID roiID destVolID'''''
 
- Returns a list of all layerIDs.
+ Begins a series of value range fills using the value ranges in sourceVolID to set values in destVolID. '''sourceVolID''' and '''destVolID''' are collectionIDs.
 
-[[Anchor(SetNumberOfViewMarkers)]]
-''Set``Number``Of``View``Markers'' '''''numMarkers'''''
+[[Anchor(CaptureFrameToFile)]]
+''Capture``Frame``To``File'' '''''frameID fileName'''''
 
- Sets the number of view markers.
+ Make a screen capture of the frame.
 
-[[Anchor(GetNumberOfViewMarkers)]]
-''Get``Number``Of``View``Markers''
+[[Anchor(ClearSegVolReport)]]
+''Clear``Seg``Vol``Report''
 
- Returns the number of view markers.
+ Clears all info in the segmentation volume report.
+
+[[Anchor(ConvertWindowToViewRAS)]]
+''Convert``Window``To``View``RAS'' '''''viewID windowX windowY'''''
+
+ Returns the RAS coordinates of the input window coordinate. '''windowX''' and '''windowY''' should be integers.
+
+[[Anchor(CopyViewLayersToAllViewsInFrame)]]
+''Copy``View``Layers``To``All``Views``In``Frame'' '''''frameID viewID'''''
+
+ Copies the layer settings in a view to all other views in a frame.
+
+[[Anchor(DeleteDataCollection)]]
+''Delete``Data``Collection'' '''''collectionID'''''
+
+ Delete a data collection.
+
+[[Anchor(DeleteLayer)]]
+''Delete``Layer'' '''''layerID'''''
+
+ Deletes a layer. Does not delete any data collections associated with it.
+
+[[Anchor(DoOneValueRangeFillInView)]]
+''Do``One``Value``Range``Fill``In``View'' '''''viewID beginValueRange endValueRange fillValue'''''
+
+ Adds a single range to a series of value range fills. Must be between a call to ''BeginValueRangeFillInView'' and ''EndValueRangeFillInView''. '''beginValueRange''', '''endValueRange''', and '''fillValueRange''' should be values appropriate for the volume you are editing.
+
+[[Anchor(DontUseROIInSegVolReport)]]
+''Dont``Use``ROI``In``Seg``Vol``Report''
+
+ Don't use an ROI in the segmentation volume report.
+
+[[Anchor(EndValueRangeFillInView)]]
+''End``Value``Range``Fill``In``View'' '''''viewID'''''
+
+ Performs the series of value range fills specified by ''DoOneValueRangeFill''.
 
 [[Anchor(ExportMarkersToControlPoints)]]
 ''Export``Markers``To``Control``Points'' '''''collectionID fileName'''''
 
  Writes the markers to a control.dat file using a volume collection to transform them.
 
-[[Anchor(ImportMarkersFromControlPoints)]]
-''Import``Markers``From``Control``Points'' '''''collectionID fileName'''''
+[[Anchor(GetColorLUTEntryLabel)]]
+''Get``Color``LUT``Entry``Label'' '''''lutID entry'''''
 
- Imports markers from a control.dat file using a volume collection to transform them..
+ Returns the label for an entry in an LUT. '''entry''' should be an integer index into the LUT.
 
-[[Anchor(SetViewRASCursor)]]
-''Set``View``RAS``Cursor'' '''''x y z'''''
+[[Anchor(GetColorLUTEntryRGB)]]
+''Get``Color``LUT``Entry``RGB'' '''''lutID entry'''''
 
- Sets the cursor in RAS coords. '''x''', '''y''', and '''z''' are floating point numbers.
+ Returns the rgb values (0-255) for an entry in an LUT. '''entry''' should be an integer index into the LUT.
 
-[[Anchor(GetViewRASCursor)]]
-''Get``View``RAS``Cursor''
+[[Anchor(GetColorLUTFileName)]]
+''Get``Color``LUT``File``Name'' '''''lutID'''''
 
- Returns the cursor in RAS coords in a list of x y z coords.
-
-[[Anchor(GetROIIDList)]]
-''Get``ROI``ID``List''
-
- Return a list of all ROIs.
+ Returns the LUT file name for a transform.
 
 [[Anchor(GetColorLUTIDList)]]
 ''Get``Color``LUT``ID``List''
 
  Return a list of all colorLUTIDs.
 
-[[Anchor(MakeNewColorLUT)]]
-''Make``New``Color``LUT''
+[[Anchor(GetColorLUTLabel)]]
+''Get``Color``LUT``Label'' '''''lutID'''''
 
- Creates a new color LUT and returns its ID.
+ Returns the label for a color LUT.
+
+[[Anchor(GetColorLUTNumberOfEntries)]]
+''Get``Color``LUT``Number``Of``Entries'' '''''lutID'''''
+
+ Returns the number of entries in an LUT.
+
+[[Anchor(GetColumnOfViewInFrame)]]
+''Get``Column``Of``View``In``Frame'' '''''frameID viewID'''''
+
+ Return the column of the view ID in a frame.
+
+[[Anchor(CycleCurrentViewInFrame)]]
+''Cycle``Current``View``In``Frame'' '''''frameID'''''
+
+ Selects the next view in a frame.
+
+[[Anchor(GetDataCollectionIDList)]]
+''Get``Data``Collection``ID``List''
+
+ Return a list of all collectionIDs.
+
+[[Anchor(GetFirstUnusedDrawLevelInView)]]
+''Get``First``Unused``Draw``Level``In``View'' '''''viewID'''''
+
+ Returns the first unused draw level.
+
+[[Anchor(GetLayerIDList)]]
+''Get``Layer``ID``List''
+
+ Returns a list of all layerIDs.
+
+[[Anchor(GetLayerInViewAtLevel)]]
+''Get``Layer``In``View``At``Level'' '''''viewID level'''''
+
+ Returns the layer in a view at a given draw level. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(GetLevelReportInfoInView)]]
+''Get``Level``Report``Info``In``View'' '''''viewID level'''''
+
+ Returns whether a level in a view is reporting info. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(GetLevelVisibilityInView)]]
+''Get``Level``Visibility``In``View'' '''''viewID level'''''
+
+ Returns the visibility for a level in a view. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(GetMainFrameID)]]
+''Get``Main``Frame``ID''
+
+ Returns the ID number of the main frame. This should be used whenever a frame ID is required.
+
+[[Anchor(GetNumberOfColsAtRowInFrame)]]
+''Get``Number``Of``Cols``At``Row``In``Frame'' '''''frameID row'''''
+
+ Return the number of columns in arow. '''row''' is an integer.
+
+[[Anchor(GetNumberOfRowsInFrame)]]
+''Get``Number``Of``Rows``In``Frame'' '''''frameID'''''
+
+ Return the number of rows in a frame.
+
+[[Anchor(GetNumberOfViewMarkers)]]
+''Get``Number``Of``View``Markers''
+
+ Returns the number of view markers.
+
+[[Anchor(GetROIIDList)]]
+''Get``ROI``ID``List''
+
+ Return a list of all ROIs.
+
+[[Anchor(GetRowOfViewInFrame)]]
+''Get``Row``Of``View``In``Frame'' '''''frameID viewID'''''
+
+ Return the row of the view ID in a frame.
+
+[[Anchor(GetSelectedViewID)]]
+''Get``Selected``View``ID'' '''''frameID'''''
+
+ Return the viewID of the selected view.
+
+[[Anchor(GetSubjectDir)]]
+''GetS``ubject``Dir''
+
+ Returns the path to the subject's data if the subject name was set.
+
+[[Anchor(GetSubjectName)]]
+''Get``Subject``Name''
+
+ Returns the subject name if one was set.
+
+[[Anchor(GetToolBrush3D)]]
+''Get``Tool``Brush``3D'' '''''toolID'''''
+
+ Returns the current brush 3D of a tool.
+
+[[Anchor(GetToolBrushRadius)]]
+''Get``Tool``Brush``Radius'' '''''toolID'''''
+
+ Gets the current brush radius of a tool.
+
+[[Anchor(GetToolBrushShape)]]
+''Get``Tool``Brush``Shape'' '''''toolID'''''
+
+ Returns the current brush shape of a tool as a string: {{{voxel}}}, {{{square}}} or {{{circle}}}.
+
+[[Anchor(GetToolEdgePathEdgeBias)]]
+''Get``Tool``Edge``Path``Edge``Bias'' '''''toolID'''''
+
+ Returns the bias for edges for the edge path tool.
+
+[[Anchor(GetToolEdgePathStraightBias)]]
+''Get``Tool``Edge``Path``Straight``Bias'' '''''toolID'''''
+
+ Returns the bias for straight paths for the edge path tool.
+
+[[Anchor(GetToolEraseVoxelValue)]]
+''Get``Tool``Erase``Voxel``Value'' '''''toolID'''''
+
+ Gets the erase voxel value of a tool.
+
+[[Anchor(GetToolFlood3D)]]
+''Get``Tool``Flood``3D'' '''''toolID'''''
+
+ Gets the current flood 3D of a tool.
+
+[[Anchor(GetToolFloodFuzziness)]]
+''Get``Tool``Flood``Fuzziness'' '''''toolID'''''
+
+ Returns a tool flood's fuzziness.
+
+[[Anchor(GetToolFloodFuzzinessType)]]
+''Get``Tool``Flood``Fuzziness``Type'' '''''toolID'''''
+
+ Returns the tool's fuzziness type: {{{seed}}} or {{{gradient}}}.
+
+[[Anchor(GetToolFloodMaxDistance)]]
+''Get``Tool``Flood``Max``Distance'' '''''toolID'''''
+
+ Returns a tool flood's max distance.
+
+[[Anchor(GetToolFloodSourceCollection)]]
+''Get``Tool``Flood``Source``Collection'' '''''toolID'''''
+
+ Gets the current flood source collection of a tool.
+
+[[Anchor(GetToolFloodStopAtPaths)]]
+''Get``Tool``Flood``Stop``At``Paths'' '''''toolID'''''
+
+ Returns whether or not a tool flood will stop at paths.
+
+[[Anchor(GetToolFloodStopAtROIs)]]
+''Get``Tool``Flood``Stop``At``ROIs'' '''''toolID'''''
+
+ Returns whether or not a tool flood will stop at ROIs.
+
+[[Anchor(GetToolIDForFrame)]]
+''Get``Tool``ID``For``Frame'' '''''frameID'''''
+
+ Returns the ID of the tool for this frame.
+
+[[Anchor(GetToolMode)]]
+''Get``Tool``Mode'' '''''toolID'''''
+
+ Gets the current mode of a tool. The returned string will be one of the tool modes supplied to '''SetToolMode'''.
+
+[[Anchor(GetToolNewVoxelValue)]]
+''Get``Tool``New``Voxel``Value'' '''''toolID'''''
+
+ Gets the new voxel value of a tool.
+
+[[Anchor(GetToolOnlyBrushZero)]]
+''Get``Tool``Only``Brush``Zero'' '''''toolID'''''
+
+ Returns whether or not a brush is only affecting zero values.
+
+[[Anchor(GetToolOnlyFloodZero)]]
+''Get``Tool``Only``Flood``Zero'' '''''toolID'''''
+
+ Returns whether or not a flood is only affecting zero values.
+
+[[Anchor(GetToolTargetLayer)]]
+''Get``Tool``Target``Layer'' '''''toolID'''''
+
+ Gets the target layer of a tool. Returns a layerID.
 
 [[Anchor(GetTransformIDList)]]
 ''Get``Transform``ID``List''
 
  Return a list of all transformIDs.
 
-[[Anchor(MakeNewTransform)]]
-''Make``New``Transform''
+[[Anchor(GetTransformLabel)]]
+''Get``Transform``Label'' '''''transformID'''''
 
- Creates a new transform and returns its ID.
+ Returns the label for a transform.
 
-[[Anchor(MakeLayer)]]
-''Make``Layer'' '''''layerType'''''
+[[Anchor(GetTransformRegistrationDest)]]
+''Get``Transform``Registration``Dest'' '''''transformID'''''
 
- Makes a new layer of the given type and returns the layerID. '''layerID''' should be a recognized layer type such as:
+ Returns the id of the dest volume if the transform is being treated as a registration.
 
-||2DMRI||A layer for drawing a volume||
-||2DMRIS||A layer for showing a surface intersected on a plane||
+[[Anchor(GetTransformRegistrationSource)]]
+''Get``Transform``Registration``Source'' '''''transformID'''''
 
- Note that there are easier functions to use to load data, such as ''LoadVolume'' and ''LoadSurface''. This is a low level function that creates a layer but does not associate any data with it nor add it to any views.
+ Returns the id of the source volume if the transform is being treated as a registration.
 
-[[Anchor(DeleteLayer)]]
-''DeleteLayer'' '''''layerID'''''
+[[Anchor(GetTransformValues)]]
+''Get``Transform``Values'' '''''transformID'''''
 
- Deletes a layer. Does not delete any data collections associated with it.
+ Returns a list of transform values in column order.
 
-[[Anchor(GetDataCollectionIDList)]]
-''Get``Data``Collection``ID``List''
+[[Anchor(GetViewFlipLeftRightYZ)]]
+''Get``View``Flip``Left``Righ``tYZ'' '''''viewID'''''
 
- Return a list of all collectionIDs.
+ Returns the left-right flip flag for a view.
+
+[[Anchor(GetViewIDAtFrameLocation)]]
+''Get``View``ID``At``Frame``Location'' '''''frameID windowX windowY'''''
+
+ Return the view ID at a window location. '''windowX''' and '''windowY''' should be integers.
+
+[[Anchor(GetViewIDFromFrameColRow)]]
+''Get``View``ID``From``Frame``Col``Row'' '''''frameID col row'''''
+
+ Return the viewID from a view at a certain location. '''col''' and '''row''' must be valid integers for the current view configuration.
+
+[[Anchor(GetViewInPlane)]]
+''Get``View``In``Plane'' '''''viewID'''''
+
+ Returns the in plane in a view.
+
+[[Anchor(GetViewLockOnCursor)]]
+''Get``View``Lock``On``Cursor'' '''''viewID'''''
+
+ Returns whether or not a view is locked on the cursor.
+
+[[Anchor(GetViewLinkedStatus)]]
+''Get``View``Linked``Status'' '''''viewID'''''
+
+ Returns the linked status for a view.
+
+[[Anchor(GetViewRASCenter)]]
+''Get``View``RAS``Center'' '''''viewID'''''
+
+ Returns the view center as a list of x, y, and z RAS coordinates.
+
+[[Anchor(GetViewRASCursor)]]
+''Get``View``RAS``Cursor''
+
+ Returns the cursor in RAS coords in a list of x y z coords.
+
+[[Anchor(GetViewThroughPlaneIncrement)]]
+''Get``View``Through``Plane``Increment'' '''''viewID throughPlane'''''
+
+ Returns the through plane movement increment for throughPlane. '''throughPlane''' should be {{{x}}}, {{{y}}}, or {{{z}}}.
+
+[[Anchor(GetViewTransform)]]
+''Get``View``Transform'' '''''viewID'''''
+
+ Returns the transformID of a view's view to world transform.
+
+[[Anchor(GetViewZoomLevel)]]
+''Get``View``Zoom``Level'' '''''viewID'''''
+
+ Returns the zoom level in a view.
+
+[[Anchor(GetVolumeHistogramInView)]]
+''Get``Volume``Histogram``In``View'' '''''viewID volID roiID numBins'''''
+
+ Returns a histogram of the volume that's visible in a view. Returns the format: '''{minBinValue binIncrement {binCount0 binCount1 .. binCountN}}''' where '''binCountN''' is '''numBins-1'''. '''volID''' is a collectionID. '''numBins''' is an integer.
+
+[[Anchor(ImportMarkersFromControlPoints)]]
+''Import``Markers``From``Control``Points'' '''''collectionID fileName'''''
+
+ Imports markers from a control.dat file using a volume collection to transform them..
+
+[[Anchor(InvertTransform)]]
+''Invert``Transform'' '''''transformID'''''
+
+ Inverts a transform.
+
+[[Anchor(IsTransformRegistration)]]
+''Is``Transform``Registration'' '''''transformID'''''
+
+ Returns whether or not a transform is being treated as a registration.
+
+[[Anchor(LoadVolume)]]
+''Load``Volume'' '''''fileName createLayer frame``ID``To``Add'''''
+
+ Loads a volume from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
+
+[[Anchor(LoadSurface)]]
+''Load``Surface'' '''''fileName createLayer frame``ID``To``Add'''''
+
+ Loads a surface from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
+
+[[Anchor(LoadTransform)]]
+''Load``Transform'' '''''fileName'''''
+
+ Loads a transform.
+
+[[Anchor(LoadTransformFromLTAFile)]]
+''Load``Transform``From``LTA``File'' '''''transformID LTAFileName'''''
+
+ Loads an LTA from a file into an existing transform.
 
 [[Anchor(MakeDataCollection)]]
 ''Make``Data``Collection'' '''''collectionType'''''
@@ -103,67 +408,217 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ||Volume||A 3D volume for display in a 2DMRI layer.||
 ||Surface||A 3D surface for display in a 2DMRIS layer.||
 
- Note that there are easier functions to use to load data, such as ''LoadVolume'' and ''LoadSurface''. This is a low level function that creates a data collection but does not load any actual data nor create a layer.
+ Note that there are easier functions to use to load data, such as ''Load``Volume'' and ''Load``Surface''. This is a low level function that creates a data collection but does not load any actual data nor create a layer.
 
-[[Anchor(DeleteDataCollection)]]
-''Delete``Data``Collection'' '''''collectionID'''''
+[[Anchor(MakeLayer)]]
+''Make``Layer'' '''''layerType'''''
 
- Delete a data collection.
+ Makes a new layer of the given type and returns the layerID. '''layerID''' should be a recognized layer type such as:
 
-[[Anchor(WritePathFile)]]
-''Write``Path``File'' '''''fileName'''''
+||2DMRI||A layer for drawing a volume||
+||2DMRIS||A layer for showing a surface intersected on a plane||
 
- Write paths to a file.
+ Note that there are easier functions to use to load data, such as ''Load``Volume'' and ''Load``Surface''. This is a low level function that creates a layer but does not associate any data with it nor add it to any views.
 
-[[Anchor(ReadPathFile)]]
-''Read``Path``File'' '''''fileName'''''
+[[Anchor(MakeLayer)]]
+''Make``Layer'' '''''layerType'''''
 
- Read paths from a file.
+ Makes a new layer of the given type and returns the layerID. '''layerID''' should be a recognized layer type such as:
 
-[[Anchor(ClearSegVolReport)]]
-''Clear``Seg``Vol``Report''
+||2DMRI||A layer for drawing a volume||
+||2DMRIS||A layer for showing a surface intersected on a plane||
 
- Clears all info in the segmentation volume report.
+ Note that there are easier functions to use to load data, such as ''Load``Volume'' and ''Load``Surface''. This is a low level function that creates a layer but does not associate any data with it nor add it to any views.
 
-[[Anchor(SetSegVolReportSegmentation)]]
-''Set``Seg``Vol``Report``Segmentation'' '''''segID'''''
+[[Anchor(MakeNewColorLUT)]]
+''Make``New``Color``LUT''
 
- Set the segmentation volume in the segmentation volume report.
+ Creates a new color LUT and returns its ID.
 
-[[Anchor(AddSegVolReportIntensityVolume)]]
-''Add``Seg``Vol``Report``Intensity``Volume'' '''''volID'''''
+[[Anchor(MakeNewTransform)]]
+''Make``New``Transform''
 
- Add an intensity volume to the segmentation volume report.
+ Creates a new transform and returns its ID.
 
-[[Anchor(SetROIForSegVolReport)]]
-''Set``ROI``For``Seg``Vol``Report'' '''''volID roiID'''''
+[[Anchor(MakeSegVolIntensityReport)]]
+''Make``Seg``Vol``Intensity``Report'' '''''fnReport'''''
 
- Set the volume and ROI to use in the segmentation volume report.
-
-[[Anchor(DontUseROIInSegVolReport)]]
-''Dont``Use``ROI``In``Seg``Vol``Report''
-
- Don't use an ROI in the segmentation volume report.
-
-[[Anchor(SetSegVolReportLUT)]]
-''SetSegVolReportLUT'' '''''lutID'''''
-
- Set the LUT in the segmentation volume report.
-
-[[Anchor(AddSegmentationToSegVolReport)]]
-''Add``Segmentation``To``Seg``Vol``Report'' '''''structure'''''
-
- Add a segmentation to the segmentation volume report.
+ Make the intensity report from the segmentation volume report.
 
 [[Anchor(MakeSegVolReport)]]
 ''Make``Seg``Vol``Report'' '''''fnReport'''''
 
  Make the segmentation volume report.
 
-[[Anchor(MakeSegVolIntensityReport)]]
-''Make``Seg``Vol``Intensity``Report'' '''''fnReport'''''
+[[Anchor(NewVolume)]]
+''New``Volume'' '''''templateID createLayer frame``ID``To``Add'''''
 
- Make the intensity report from the segmentation volume report.
+ Creates a new volume based on an existing one. '''templateID''' is a collectionID for the volume to use as a template. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
+
+[[Anchor(PrintAllCommands)]]
+''Print``All``Commands''
+
+ Print all registered commands.
+
+[[Anchor(ReadPathFile)]]
+''Read``Path``File'' '''''fileName'''''
+
+ Read paths from a file.
+
+[[Anchor(RedrawFrame)]]
+''Redraw``Frame'' '''''frameID'''''
+
+ Tells a frame to redraw without waiting for the next update event. Should be used in scripts to force a redraw before taking a screenshot.
+
+[[Anchor(RemoveAllLayersFromView)]]
+''Remove``All``Layers``From``View'' '''''viewID'''''
+
+ Remove all layers from a view.
+
+[[Anchor(RemoveLayerFromViewAtLevel)]]
+''Remove``Layer``From``View``At``Level'' '''''viewID level'''''
+
+ Remove a layer from a view. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(SaveSceneScript)]]
+''Save``Scene``Script'' '''''fileName'''''
+
+ Makes a script that can be used to reproduce the current view configuration.
+
+[[Anchor(SetColorLUTFileName)]]
+''Set``Color``LUT``File``Name'' '''''lutID fileName'''''
+
+ Set the LUT file name for a colorLUT.
+
+[[Anchor(SetColorLUTLabel)]]
+''Set``Color``LUT``Label'' '''''lutID label'''''
+
+ Set the label for a color LUT. '''labe''' should be a string.
+
+[[[Anchor(SetCursorFromEditDatFile)]]
+''Set``Cursor``From``Edit``Dat``File''
+
+ Reads a cursor from a subject's edit.dat file if it exists and the subject name has been set.
+
+[Anchor(SetCursorFromSurfaceVertexIndex)]]
+''Set``Cursor``From``Surface``Vertex``Index'' '''''layerID vertexNumber'''''
+
+ Sets the cursor to a vertex in a surface. The layer should be one displaying a surface, and '''vertexNumber''' should be a valid vertx index in the layer's surface.
+
+[[Anchor(SetCursorFromVolumeIndexCoords)]]
+''Set``Cursor``From``Volume``Index``Coords'' '''''collectionID x y z'''''
+
+ Converts the given MRI index coordinate to RAS and sets the cursor from that, converting in the volume referenced by '''collectionID'''. '''x''', '''y''', and '''z''' should be integers.
+
+[[Anchor(SetFrameViewConfiguration)]]
+''Set``Frame``View``Configuration'' '''''frameID configuration'''''
+
+ Sets a frame's view configuration. Supported '''configuration'''s, where each number is the number of columns in a row: {{{c1}}} {{{c22}}} {{{c44}}} {{{c13}}}.
+
+[[Anchor(SetLayerInViewAtLevel)]]
+''Set``Layer``In``View``At``Level'' '''''viewID layerID level'''''
+
+ Sets the layer in a view at a given draw level. Higher draw levels will draw later. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(SetLevelReportInfoInView)]]
+''Set``Level``Report``Info``In``View'' '''''viewID level reportInfo'''''
+
+ Sets the flag for reporting info for a level in a view. '''level''' should be an integer from 0 - 9. '''reportInfo''' should be 1 or 0.
+
+[[Anchor(SetLevelVisibilityInView)]]
+''Set``Level``Visibility``In``View'' '''''viewID level visibility'''''
+
+ Sets the visibility for a level in a view. '''level''' should be an integer from 0 - 9. '''visibility''' should be 1 or 0.
+
+[[Anchor(SetNumberOfViewMarkers)]]
+''Set``Number``Of``View``Markers'' '''''numMarkers'''''
+
+ Sets the number of view markers.
+
+[[Anchor(SetROIForSegVolReport)]]
+''Set``ROI``For``Seg``Vol``Report'' '''''volID roiID'''''
+
+ Set the volume and ROI to use in the segmentation volume report.
+
+[[Anchor(SetSegVolReportLUT)]]
+''Set``Seg``Vol``Report``LUT'' '''''lutID'''''
+
+ Set the LUT in the segmentation volume report.
+
+[[Anchor(SetSegVolReportSegmentation)]]
+''Set``Seg``Vol``Report``Segmentation'' '''''segID'''''
+
+ Set the segmentation volume in the segmentation volume report.
+
+[[Anchor(SetSelectedViewID)]]
+''Set``Selected``View``ID'' '''''frameID viewID'''''
+
+ Sets the select view in a frame.
+
+[[Anchor(SetToolBrush3D)]]
+''Set``Tool``Brush``3D'' '''''toolID 3D'''''
+
+ Sets the current brush 3D of a tool. '''3D''' is either 1 or 0.
+
+[[Anchor(SetToolBrushRadius)]]
+''Set``Tool``Brush``Radius'' '''''toolID radius'''''
+
+ Sets the current brush radius of a tool. '''radius''' should be a floating point number.
+
+[[Anchor(SetToolBrushShape)]]
+''Set``Tool``Brush``Shape'' '''''toolID shape'''''
+
+ Sets the current brush shape of a tool. '''shape''' should be {{{voxel}}}, {{{square}}} or {{{circle}}}.
+
+[[Anchor(SetToolEdgePathEdgeBias)]]
+''Set``Tool``Edge``Path``Edge``Bias'' '''''toolID bias'''''
+
+ Sets the bias for edges for the edge path tool. '''bias''' is a floating point number from 0 to 1.
+
+[[Anchor(SetToolEdgePathStraightBias)]]
+''Set``Tool``Edge``Path``Straight``Bias'' '''''toolID bias'''''
+
+ Sets the bias for straight paths for the edge path tool. '''bias''' is a floating point number from 0 to 1.
+
+[[Anchor(SetToolEraseVoxelValue)]]
+''Set``Tool``Erase``Voxel``Value'' '''''toolID value'''''
+
+ Sets the erase voxel value of a tool.
+
+[[Anchor(SetToolFlood3D)]]
+''Set``Tool``Flood``3D'' '''''toolID 3D'''''
+
+ Sets the current flood 3D of a tool. '''3D''' is either 1 or 0.
+
+[[Anchor(SetToolFloodFuzziness)]]
+''Set``Tool``Flood``Fuzziness'' '''''toolID fuzziness'''''
+
+ Specify a tool flood's fuzziness. '''fuzziness''' is a floating point number.
+
+[[Anchor(SetToolFloodFuzzinessType)]]
+''Set``Tool``Flood``Fuzziness``Type'' '''''toolID type'''''
+
+ Sets the tool's fuzziness type. '''type''' should be {{{seed}}} or {{{gradient}}}.
+
+[[Anchor(SetToolFloodMaxDistance)]]
+''Set``Tool``Flood``Max``Distance'' '''''toolID distance'''''
+
+ Specify a tool flood's max distance. '''distance''' is a floating point number.
+
+[[Anchor(SetToolFloodSourceCollection)]]
+''Set``Tool``Flood``Source``Collection'' '''''toolID collectionID'''''
+
+ Sets the current flood source collection of a tool.
+
+[[Anchor(SetToolFloodStopAtPaths)]]
+''Set``Tool``Flood``Stop``At``Paths'' '''''toolID stop'''''
+
+ Specify whether a tool flood should stop at paths. '''stop''' is either 1 or 0.
+
+[[Anchor(SetToolFloodStopAtROIs)]]
+''Set``Tool``Flood``Stop``At``ROIs'' '''''toolID stop'''''
+
+ Specify whether a tool flood should stop at ROIs. '''stop''' is either 1 or 0.
 
 [[Anchor(SetToolMode)]]
 ''Set``Tool``Mode'' '''''toolID mode'''''
@@ -180,562 +635,253 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ||straightPath||The straight path tool||
 ||edgePath||The edge path tool||
 
-[[Anchor(GetToolMode)]]
-''Get``Tool``Mode'' '''''toolID'''''
-
- Gets the current mode of a tool. The returned string will be one of the tool modes supplied to '''SetToolMode'''.
-
-[[Anchor(SetToolTargetLayer)]]
-''Set``Tool``Target``Layer'' '''''toolID layerID'''''
-
- Sets the target layer of a tool.
-
-[[Anchor(GetToolTargetLayer)]]
-''Get``Tool``Target``Layer'' '''''toolID'''''
-
- Gets the target layer of a tool. Returns a layerID.
-
 [[Anchor(SetToolNewVoxelValue)]]
 ''Set``Tool``New``Voxel``Value'' '''''toolID value'''''
 
  Sets the new voxel value of a tool. '''value''' is a float.
-
-[[Anchor(GetToolNewVoxelValue)]]
-''Get``Tool``New``Voxel``Value'' '''''toolID'''''
-
- Gets the new voxel value of a tool.
-
-[[Anchor(SetToolEraseVoxelValue)]]
-''Set``Tool``Erase``Voxel``Value'' '''''toolID value'''''
-
- Sets the erase voxel value of a tool.
-
-[[Anchor(GetToolEraseVoxelValue)]]
-''Get``Tool``Erase``Voxel``Value'' '''''toolID'''''
-
- Gets the erase voxel value of a tool.
 
 [[Anchor(SetToolOnlyBrushZero)]]
 ''Set``Tool``Only``Brush``Zero'' '''''toolID onlyZero'''''
 
  Specify whether the brush should only affect zero values..
 
-[[Anchor(GetToolOnlyBrushZero)]]
-''Get``Tool``Only``Brush``Zero'' '''''toolID'''''
-
- Returns whether or not a brush is only affecting zero values.
-
-[[Anchor(SetToolBrushRadius)]]
-''Set``Tool``Brush``Radius'' '''''toolID radius'''''
-
- Sets the current brush radius of a tool. '''radius''' should be a floating point number.
-
-[[Anchor(GetToolBrushRadius)]]
-''Get``Tool``Brush``Radius'' '''''toolID'''''
-
- Gets the current brush radius of a tool.
-
-[[Anchor(SetToolBrushShape)]]
-''Set``Tool``Brush``Shape'' '''''toolID shape'''''
-
- Sets the current brush shape of a tool. '''shape''' should be {{{voxel}}}, {{{square}}} or {{{circle}}}.
-
-[[Anchor(GetToolBrushShape)]]
-''Get``Tool``Brush``Shape'' '''''toolID'''''
-
- Returns the current brush shape of a tool as a string: {{{voxel}}}, {{{square}}} or {{{circle}}}.
-
-[[Anchor(SetToolBrush3D)]]
-''Set``Tool``Brush``3D'' '''''toolID 3D'''''
-
- Sets the current brush 3D of a tool. '''3D''' is either 1 or 0.
-
-[[Anchor(GetToolBrush3D)]]
-''Get``Tool``Brush``3D'' '''''toolID'''''
-
- Returns the current brush 3D of a tool.
-
-[[Anchor(SetToolFloodStopAtPaths)]]
-''Set``Tool``Flood``Stop``At``Paths'' '''''toolID stop'''''
-
- Specify whether a tool flood should stop at paths. '''stop''' is either 1 or 0.
-
-[[Anchor(GetToolFloodStopAtPaths)]]
-''Get``Tool``Flood``Stop``At``Paths'' '''''toolID'''''
-
- Returns whether or not a tool flood will stop at paths.
-
-[[Anchor(SetToolFloodStopAtROIs)]]
-''Set``Tool``Flood``Stop``At``ROIs'' '''''toolID stop'''''
-
- Specify whether a tool flood should stop at ROIs. '''stop''' is either 1 or 0.
-
-[[Anchor(GetToolFloodStopAtROIs)]]
-''Get``Tool``Flood``Stop``At``ROIs'' '''''toolID'''''
-
- Returns whether or not a tool flood will stop at ROIs.
-
-[[Anchor(SetToolFloodFuzziness)]]
-''Set``Tool``Flood``Fuzziness'' '''''toolID fuzziness'''''
-
- Specify a tool flood's fuzziness. '''fuzziness''' is a floating point number.
-
-[[Anchor(GetToolFloodFuzziness)]]
-''Get``Tool``Flood``Fuzziness'' '''''toolID'''''
-
- Returns a tool flood's fuzziness.
-
-[[Anchor(SetToolFloodMaxDistance)]]
-''Set``Tool``Flood``Max``Distance'' '''''toolID distance'''''
-
- Specify a tool flood's max distance. '''distance''' is a floating point number.
-
-[[Anchor(GetToolFloodMaxDistance)]]
-''Get``Tool``Flood``Max``Distance'' '''''toolID'''''
-
- Returns a tool flood's max distance.
-
-[[Anchor(SetToolFlood3D)]]
-''Set``Tool``Flood``3D'' '''''toolID 3D'''''
-
- Sets the current flood 3D of a tool. '''3D''' is either 1 or 0.
-
-[[Anchor(GetToolFlood3D)]]
-''Get``Tool``Flood``3D'' '''''toolID'''''
-
- Gets the current flood 3D of a tool.
-
-[[Anchor(SetToolFloodSourceCollection)]]
-''Set``Tool``Flood``Source``Collection'' '''''toolID collectionID'''''
-
- Sets the current flood source collection of a tool.
-
-[[Anchor(SetToolFloodFuzzinessType)]]
-''Set``Tool``Flood``Fuzziness``Type'' '''''toolID type'''''
-
- Sets the tool's fuzziness type. '''type''' should be {{{seed}}} or {{{gradient}}}.
-
-[[Anchor(GetToolFloodFuzzinessType)]]
-''Get``Tool``Flood``Fuzziness``Type'' '''''toolID'''''
-
- Returns the tool's fuzziness type: {{{seed}}} or {{{gradient}}}.
-
-[[Anchor(GetToolFloodSourceCollection)]]
-''Get``Tool``Flood``Source``Collection'' '''''toolID'''''
-
- Gets the current flood source collection of a tool.
-
 [[Anchor(SetToolOnlyFloodZero)]]
 ''Set``Tool``Only``Flood``Zero'' '''''toolID onlyZero'''''
 
  Specify whether the flood should only affect zero values. '''onlyZero''' is 1 or 0.
 
-[[Anchor(GetToolOnlyFloodZero)]]
-''Get``Tool``Only``Flood``Zero'' '''''toolID'''''
+[[Anchor(SetToolTargetLayer)]]
+''Set``Tool``Target``Layer'' '''''toolID layerID'''''
 
- Returns whether or not a flood is only affecting zero values.
-
-[[Anchor(SetToolEdgePathStraightBias)]]
-''Set``Tool``Edge``Path``Straight``Bias'' '''''toolID bias'''''
-
- Sets the bias for straight paths for the edge path tool. '''bias''' is a floating point number from 0 to 1.
-
-[[Anchor(GetToolEdgePathStraightBias)]]
-''Get``Tool``Edge``Path``Straight``Bias'' '''''toolID'''''
-
- Returns the bias for straight paths for the edge path tool.
-
-[[Anchor(SetToolEdgePathEdgeBias)]]
-''Set``Tool``Edge``Path``Edge``Bias'' '''''toolID bias'''''
-
- Sets the bias for edges for the edge path tool. '''bias''' is a floating point number from 0 to 1.
-
-[[Anchor(GetToolEdgePathEdgeBias)]]
-''Get``Tool``Edge``Path``Edge``Bias'' '''''toolID'''''
-
- Returns the bias for edges for the edge path tool.
-
-[[Anchor(SetFrameViewConfiguration)]]
-''Set``Frame``View``Configuration'' '''''frameID configuration'''''
-
- Sets a frame's view configuration. Supported '''configuration'''s, where each number is the number of columns in a row: {{{c1}}} {{{c22}}} {{{c44}}} {{{c13}}}.
-
-[[Anchor(GetViewIDFromFrameColRow)]]
-''Get``View``ID``From``Frame``Col``Row'' '''''frameID col row'''''
-
- Return the viewID from a view at a certain location. '''col''' and '''row''' must be valid integers for the current view configuration.
-
-[[Anchor(GetSelectedViewID)]]
-''Get``Selected``View``ID'' '''''frameID'''''
-
- Return the viewID of the selected view.
-
-[[Anchor(SetSelectedViewID)]]
-''Set``Selected``View``ID'' '''''frameID viewID'''''
-
- Sets the select view in a frame.
-
-[[Anchor(GetNumberOfRowsInFrame)]]
-''Get``Number``Of``Rows``In``Frame'' '''''frameID'''''
-
- Return the number of rows in a frame.
-
-[[Anchor(GetNumberOfColsAtRowInFrame)]]
-''Get``Number``Of``Cols``At``Row``In``Frame'' '''''frameID row'''''
-
- Return the number of columns in arow. '''row''' is an integer.
-
-[[Anchor(GetViewIDAtFrameLocation)]]
-''Get``View``ID``At``Frame``Location'' '''''frameID windowX windowY'''''
-
- Return the view ID at a window location. '''windowX''' and '''windowY''' should be integers.
-
-[[Anchor(GetColumnOfViewInFrame)]]
-''Get``Column``Of``View``In``Frame'' '''''frameID viewID'''''
-
- Return the column of the view ID in a frame.
-
-[[Anchor(GetRowOfViewInFrame)]]
-''Get``Row``Of``View``In``Frame'' '''''frameID viewID'''''
-
- Return the row of the view ID in a frame.
-
-[[Anchor(RedrawFrame)]]
-''Redraw``Frame'' '''''frameID'''''
-
- Tells a frame to redraw without waiting for the next update event. Should be used in scripts to force a redraw before taking a screenshot.
-
-[[Anchor(CopyViewLayersToAllViewsInFrame)]]
-''Copy``View``Layers``To``All``Views``In``Frame'' '''''frameID viewID'''''
-
- Copies the layer settings in a view to all other views in a frame.
-
-[[Anchor(GetToolIDForFrame)]]
-''Get``Tool``ID``For``Frame'' '''''frameID'''''
-
- Returns the ID of the tool for this frame.
-
-[[Anchor(CycleCurrentViewInFrame)]]
-''Cycle``Current``View``In``Frame'' '''''frameID'''''
-
- Selects the next view in a frame.
-
-[[Anchor(CaptureFrameToFile)]]
-''Capture``Frame``To``File'' '''''frameID fileName'''''
-
- Make a screen capture of the frame.
+ Sets the target layer of a tool.
 
 [[Anchor(SetTransformLabel)]]
 ''Set``Transform``Label'' '''''transformID label'''''
 
  Set the label for a transform. '''label''' should be a string.
 
-[[Anchor(GetTransformLabel)]]
-''Get``Transform``Label'' '''''transformID'''''
-
- Returns the label for a transform.
-
 [[Anchor(SetTransformValues)]]
 ''Set``Transform``Values'' '''''transformID listOfValues'''''
 
  Sets the values of a transform. '''listOfValues''' should be a list of 16 values in column order.
 
-[[Anchor(GetTransformValues)]]
-''Get``Transform``Values'' '''''transformID'''''
+[[Anchor(SetViewFlipLeftRightYZ)]]
+''Set``View``Flip``Left``Right``YZ'' '''''viewID flip'''''
 
- Returns a list of transform values in column order.
-
-[[Anchor(LoadTransformFromLTAFile)]]
-''Load``Transform``From``LTA``File'' '''''transformID LTAFileName'''''
-
- Loads an LTA from a file into an existing transform.
-
-[[Anchor(InvertTransform)]]
-''Invert``Transform'' '''''transformID'''''
-
- Inverts a transform.
-
-[[Anchor(TreatTransformAsRegistration)]]
-''Treat``Transform``As``Registration'' '''''transformID sourceVolumeID destVolumeID'''''
-
- Treats a transform as a tkregistration between two volumes, getting the necessary geometry information from them to register them.. '''sourceVolumeID''' and '''destVolumeID''' are collectionIDs.
-
-[[Anchor(TreatTransformAsNative)]]
-''Treat``Transform``As``Native'' '''''transformID'''''
-
- If a transform was set to be treated as a registration, this restores it to normal.
-
-[[Anchor(IsTransformRegistration)]]
-''Is``Transform``Registration'' '''''transformID'''''
-
- Returns whether or not a transform is being treated as a registration.
-
-[[Anchor(GetTransformRegistrationSource)]]
-''Get``Transform``Registration``Source'' '''''transformID'''''
-
- Returns the id of the source volume if the transform is being treated as a registration.
-
-[[Anchor(GetTransformRegistrationDest)]]
-''Get``Transform``Registration``Dest'' '''''transformID'''''
-
- Returns the id of the dest volume if the transform is being treated as a registration.
+ Set the left-right flip flag for a view. '''flip''' should be 1 or 0.
 
 [[Anchor(SetViewInPlane)]]
 ''Set``View``In``Plane'' '''''viewID inPlane'''''
 
  Sets the in plane in a view. '''inPlane''' should be one of the following: {{{x}}} {{{y}}} {{{z}}}
 
-[[Anchor(GetViewInPlane)]]
-''Get``View``In``Plane'' '''''viewID'''''
+[[Anchor(SetViewLinkedStatus)]]
+''Set``View``Linked``Status'' '''''viewID linked'''''
 
- Returns the in plane in a view.
+ Set the linked status for a view.
 
-[[Anchor(SetViewZoomLevel)]]
-''Set``View``Zoom``Level'' '''''viewID zoomLevel'''''
+[[Anchor(SetViewLockOnCursor)]]
+''Set``View``Lock``On``Cursor'' '''''viewID lock'''''
 
- Sets the zoom level in a view. '''zoomLevel''' should be a floating point number. 1 is normal zoom, 0-1 is zoomed out, and 1+ is zoomed in.
-
-[[Anchor(GetViewZoomLevel)]]
-''Get``View``Zoom``Level'' '''''viewID'''''
-
- Returns the zoom level in a view.
+ Set a view to keep its view locked on the cursor. '''lock''' should be 1 or 0.
 
 [[Anchor(SetViewRASCenter)]]
 ''Set``View``RAS``Center'' '''''viewID x y z'''''
 
  Sets the view center. '''x''', '''y''', and '''z''' should be floating point numbers in world RAS coordinates.
 
-[[Anchor(GetViewRASCenter)]]
-''Get``View``RAS``Center'' '''''viewID'''''
+[[Anchor(SetViewRASCursor)]]
+''Set``View``RAS``Cursor'' '''''x y z'''''
 
- Returns the view center as a list of x, y, and z RAS coordinates.
-
-[[Anchor(SetLayerInViewAtLevel)]]
-''Set``Layer``In``View``At``Level'' '''''viewID layerID level'''''
-
- Sets the layer in a view at a given draw level. Higher draw levels will draw later. '''level''' should be an integer from 0 - 9.
-
-[[Anchor(GetLayerInViewAtLevel)]]
-''Get``Layer``In``View``At``Level'' '''''viewID level'''''
-
- Returns the layer in a view at a given draw level. '''level''' should be an integer from 0 - 9.
-
-[[Anchor(RemoveAllLayersFromView)]]
-''Remove``All``Layers``From``View'' '''''viewID'''''
-
- Remove all layers from a view.
-
-[[Anchor(RemoveLayerFromViewAtLevel)]]
-''Remove``Layer``From``View``At``Level'' '''''viewID level'''''
-
- Remove a layer from a view. '''level''' should be an integer from 0 - 9.
-
-[[Anchor(SetLevelVisibilityInView)]]
-''Set``Level``Visibility``In``View'' '''''viewID level visibility'''''
-
- Sets the visibility for a level in a view. '''level''' should be an integer from 0 - 9. '''visibility''' should be 1 or 0.
-
-[[Anchor(GetLevelVisibilityInView)]]
-''Get``Level``Visibility``In``View'' '''''viewID level'''''
-
- Returns the visibility for a level in a view. '''level''' should be an integer from 0 - 9.
-
-[[Anchor(SetLevelReportInfoInView)]]
-''Set``Level``Report``Info``In``View'' '''''viewID level reportInfo'''''
-
- Sets the flag for reporting info for a level in a view. '''level''' should be an integer from 0 - 9. '''reportInfo''' should be 1 or 0.
-
-[[Anchor(GetLevelReportInfoInView)]]
-''Get``Level``Report``Info``In``View'' '''''viewID level'''''
-
- Returns whether a level in a view is reporting info. '''level''' should be an integer from 0 - 9.
+ Sets the cursor in RAS coords. '''x''', '''y''', and '''z''' are floating point numbers.
 
 [[Anchor(SetViewStateToLayerBounds)]]
-''SetViewStateToLayerBounds'' '''''viewID layerID'''''
+''Set``View``State``To``Layer``Bounds'' '''''viewID layerID'''''
 
  Sets the view so that the layer's data completely fills the view.
 
-[[Anchor(GetFirstUnusedDrawLevelInView)]]
-''GetFirstUnusedDrawLevelInView'' '''''viewID'''''
-
- Returns the first unused draw level.
-
-[[Anchor(SetViewLinkedStatus)]]
-''SetViewLinkedStatus'' '''''viewID linked'''''
-
- Set the linked status for a view.
-
-[[Anchor(GetViewLinkedStatus)]]
-''GetViewLinkedStatus'' '''''viewID'''''
-
- Returns the linked status for a view.
-
-[[Anchor(SetViewLockOnCursor)]]
-''SetViewLockOnCursor'' '''''viewID lock'''''
-
- Set a view to keep its view locked on the cursor. '''lock''' should be 1 or 0.
-
-[[Anchor(GetViewLockOnCursor)]]
-''GetViewLockOnCursor'' '''''viewID'''''
-
- Returns whether or not a view is locked on the cursor.
-
-[[Anchor(SetViewTransform)]]
-''SetViewTransform'' '''''viewID transformID'''''
-
- Set the view to world transform for a view.
-
-[[Anchor(GetViewTransform)]]
-''GetViewTransform'' '''''viewID'''''
-
- Returns the transformID of a view's view to world transform.
-
-[[Anchor(SetViewFlipLeftRightYZ)]]
-''SetViewFlipLeftRightYZ'' '''''viewID flip'''''
-
- Set the left-right flip flag for a view. '''flip''' should be 1 or 0.
-
-[[Anchor(GetViewFlipLeftRightYZ)]]
-''GetViewFlipLeftRightYZ'' '''''viewID'''''
-
- Returns the left-right flip flag for a view.
-
 [[Anchor(SetViewThroughPlaneIncrement)]]
-''SetViewThroughPlaneIncrement'' '''''viewID throughPlane increment'''''
+''Set``View``Through``Plane``Increment'' '''''viewID throughPlane increment'''''
 
  Set the amount that using the through plane movement keys will increment or decrement the through plane RAS value. '''throughPlane''' should be {{{x}}}, {{{y}}}, or {{{z}}}. '''increments''' should be a floating point number.
 
-[[Anchor(GetViewThroughPlaneIncrement)]]
-''GetViewThroughPlaneIncrement'' '''''viewID throughPlane'''''
+[[Anchor(SetViewTransform)]]
+''Set``View``Transform'' '''''viewID transformID'''''
 
- Returns the through plane movement increment for throughPlane. '''throughPlane''' should be {{{x}}}, {{{y}}}, or {{{z}}}.
+ Set the view to world transform for a view.
 
-[[Anchor(GetVolumeHistogramInView)]]
-''GetVolumeHistogramInView'' '''''viewID volID roiID numBins'''''
+[[Anchor(SetViewZoomLevel)]]
+''Set``View``Zoom``Level'' '''''viewID zoomLevel'''''
 
- Returns a histogram of the volume that's visible in a view. Returns the format: '''{minBinValue binIncrement {binCount0 binCount1 .. binCountN}}''' where '''binCountN''' is '''numBins-1'''. '''volID''' is a collectionID. '''numBins''' is an integer.
+ Sets the zoom level in a view. '''zoomLevel''' should be a floating point number. 1 is normal zoom, 0-1 is zoomed out, and 1+ is zoomed in.
 
-[[Anchor(BeginValueRangeFillInView)]]
-''BeginValueRangeFillInView'' '''''viewID sourceVolID roiID destVolID'''''
+[[Anchor(TreatTransformAsNative)]]
+''Treat``Transform``As``Native'' '''''transformID'''''
 
- Begins a series of value range fills using the value ranges in sourceVolID to set values in destVolID. '''sourceVolID''' and '''destVolID''' are collectionIDs.
+ If a transform was set to be treated as a registration, this restores it to normal.
 
-[[Anchor(DoOneValueRangeFillInView)]]
-''DoOneValueRangeFillInView'' '''''viewID beginValueRange endValueRange fillValue'''''
+[[Anchor(TreatTransformAsRegistration)]]
+''Treat``Transform``As``Registration'' '''''transformID sourceVolumeID destVolumeID'''''
 
- Adds a single range to a series of value range fills. Must be between a call to ''BeginValueRangeFillInView'' and ''EndValueRangeFillInView''. '''beginValueRange''', '''endValueRange''', and '''fillValueRange''' should be values appropriate for the volume you are editing.
-
-[[Anchor(EndValueRangeFillInView)]]
-''EndValueRangeFillInView'' '''''viewID'''''
-
- Performs the series of value range fills specified by ''DoOneValueRangeFill''.
-
-[[Anchor(ConvertWindowToViewRAS)]]
-''ConvertWindowToViewRAS'' '''''viewID windowX windowY'''''
-
- Returns the RAS coordinates of the input window coordinate. '''windowX''' and '''windowY''' should be integers.
-
-[[Anchor(SetColorLUTLabel)]]
-''SetColorLUTLabel'' '''''lutID label'''''
-
- Set the label for a color LUT. '''labe''' should be a string.
-
-[[Anchor(GetColorLUTLabel)]]
-''GetColorLUTLabel'' '''''lutID'''''
-
- Returns the label for a color LUT.
-
-[[Anchor(SetColorLUTFileName)]]
-''SetColorLUTFileName'' '''''lutID fileName'''''
-
- Set the LUT file name for a colorLUT.
-
-[[Anchor(GetColorLUTFileName)]]
-''GetColorLUTFileName'' '''''lutID'''''
-
- Returns the LUT file name for a transform.
-
-[[Anchor(GetColorLUTNumberOfEntries)]]
-''GetColorLUTNumberOfEntries'' '''''lutID'''''
-
- Returns the number of entries in an LUT.
-
-[[Anchor(GetColorLUTEntryLabel)]]
-''GetColorLUTEntryLabel'' '''''lutID entry'''''
-
- Returns the label for an entry in an LUT. '''entry''' should be an integer index into the LUT.
-
-[[Anchor(GetColorLUTEntryRGB)]]
-''GetColorLUTEntryRGB'' '''''lutID entry'''''
-
- Returns the rgb values (0-255) for an entry in an LUT. '''entry''' should be an integer index into the LUT.
-
-[[Anchor(IsColorLUTEntryValid)]]
-''IsColorLUTEntryValid'' '''''lutID entry'''''
-
- Returns whether or not an entry is valid. Can be invalid if it's out of range or was missing from the LUT. '''entry''' should be an integer index into the LUT.
-
-[[Anchor(GetSubjectName)]]
-''GetSubjectName''
-
- Returns the subject name if one was set.
-
-[[Anchor(GetSubjectDir)]]
-''GetSubjectDir''
-
- Returns the path to the subject's data if the subject name was set.
-
-[[Anchor(NewVolume)]]
-''NewVolume'' '''''templateID createLayer frameIDToAdd'''''
-
- Creates a new volume based on an existing one. '''templateID''' is a collectionID for the volume to use as a template. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frameIDToAdd''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frameIDToAdd''' should be a call to ''GetMainFrameID''.
-
-[[Anchor(LoadVolume)]]
-''LoadVolume'' '''''fileName createLayer frameIDToAdd'''''
-
- Loads a volume from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frameIDToAdd''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frameIDToAdd''' should be a call to ''GetMainFrameID''.
-
-[[Anchor(LoadSurface)]]
-''LoadSurface'' '''''fileName createLayer frameIDToAdd'''''
-
- Loads a surface from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frameIDToAdd''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frameIDToAdd''' should be a call to ''GetMainFrameID''.
-
-[[Anchor(LoadTransform)]]
-''LoadTransform'' '''''fileName'''''
-
- Loads a transform.
-
-[[Anchor(SaveSceneScript)]]
-''SaveSceneScript'' '''''fileName'''''
-
- Makes a script that can be used to reproduce the current view configuration.
-
-[[Anchor(GetMainFrameID)]]
-''GetMainFrameID''
-
- Returns the ID number of the main frame. This should be used whenever a frame ID is required.
+ Treats a transform as a tkregistration between two volumes, getting the necessary geometry information from them to register them.. '''sourceVolumeID''' and '''destVolumeID''' are collectionIDs.
 
 [[Anchor(UpdateFrame)]]
-''UpdateFrame'' '''''frameID'''''
+''Update``Frame'' '''''frameID'''''
 
  Forces a redraw of the given frame.
 
-[[Anchor(SetCursorFromSurfaceVertexIndex)]]
-''SetCursorFromSurfaceVertexIndex'' '''''layerID vertexNumber'''''
-
- Sets the cursor to a vertex in a surface. The layer should be one displaying a surface, and '''vertexNumber''' should be a valid vertx index in the layer's surface.
-
-[[Anchor(SetCursorFromEditDatFile)]]
-''SetCursorFromEditDatFile''
-
- Reads a cursor from a subject's edit.dat file if it exists and the subject name has been set.
-
 [[Anchor(WriteCursorToEditDatFile)]]
-''WriteCursorToEditDatFile''
+''Write``Cursor``To``Edit``Dat``File''
 
  Writes the cursor location to a subject's edit.dat file if it exists and the subject name has been set.
 
-[[Anchor(SetCursorFromVolumeIndexCoords)]]
-''SetCursorFromVolumeIndexCoords'' '''''collectionID x y z'''''
+[[Anchor(WritePathFile)]]
+''Write``Path``File'' '''''fileName'''''
 
- Converts the given MRI index coordinate to RAS and sets the cursor from that, converting in the volume referenced by '''collectionID'''. '''x''', '''y''', and '''z''' should be integers.
+ Write paths to a file.
+
+
+== Index ==
+
+[#PrintAllCommands PrintAllCommands]
+[#GetLayerIDList GetLayerIDList]
+[#SetNumberOfViewMarkers SetNumberOfViewMarkers]
+[#GetNumberOfViewMarkers GetNumberOfViewMarkers]
+[#ExportMarkersToControlPoints ExportMarkersToControlPoints]
+[#ImportMarkersFromControlPoints ImportMarkersFromControlPoints]
+[#SetViewRASCursor SetViewRASCursor]
+[#GetViewRASCursor GetViewRASCursor]
+[#GetROIIDList GetROIIDList]
+[#GetColorLUTIDList GetColorLUTIDList]
+[#MakeNewColorLUT MakeNewColorLUT]
+[#GetTransformIDList GetTransformIDList]
+[#MakeNewTransform MakeNewTransform]
+[#MakeLayer MakeLayer]
+[#DeleteLayer DeleteLayer]
+[#GetDataCollectionIDList GetDataCollectionIDList]
+[#MakeDataCollection MakeDataCollection]
+[#DeleteDataCollection DeleteDataCollection]
+[#WritePathFile WritePathFile]
+[#ReadPathFile ReadPathFile]
+[#ClearSegVolReport ClearSegVolReport]
+[#SetSegVolReportSegmentation SetSegVolReportSegmentation]
+[#AddSegVolReportIntensityVolume AddSegVolReportIntensityVolume]
+[#SetROIForSegVolReport SetROIForSegVolReport]
+[#DontUseROIInSegVolReport DontUseROIInSegVolReport]
+[#SetSegVolReportLUT SetSegVolReportLUT]
+[#AddSegmentationToSegVolReport AddSegmentationToSegVolReport]
+[#MakeSegVolReport MakeSegVolReport]
+[#MakeSegVolIntensityReport MakeSegVolIntensityReport]
+[#SetToolMode SetToolMode]
+[#GetToolMode GetToolMode]
+[#SetToolTargetLayer SetToolTargetLayer]
+[#GetToolTargetLayer GetToolTargetLayer]
+[#SetToolNewVoxelValue SetToolNewVoxelValue]
+[#GetToolNewVoxelValue GetToolNewVoxelValue]
+[#SetToolEraseVoxelValue SetToolEraseVoxelValue]
+[#GetToolEraseVoxelValue GetToolEraseVoxelValue]
+[#SetToolOnlyBrushZero SetToolOnlyBrushZero]
+[#GetToolOnlyBrushZero GetToolOnlyBrushZero]
+[#SetToolBrushRadius SetToolBrushRadius]
+[#GetToolBrushRadius GetToolBrushRadius]
+[#SetToolBrushShape SetToolBrushShape]
+[#GetToolBrushShape GetToolBrushShape]
+[#SetToolBrush3D SetToolBrush3D]
+[#GetToolBrush3D GetToolBrush3D]
+[#SetToolFloodStopAtPaths SetToolFloodStopAtPaths]
+[#GetToolFloodStopAtPaths GetToolFloodStopAtPaths]
+[#SetToolFloodStopAtROIs SetToolFloodStopAtROIs]
+[#GetToolFloodStopAtROIs GetToolFloodStopAtROIs]
+[#SetToolFloodFuzziness SetToolFloodFuzziness]
+[#GetToolFloodFuzziness GetToolFloodFuzziness]
+[#SetToolFloodMaxDistance SetToolFloodMaxDistance]
+[#GetToolFloodMaxDistance GetToolFloodMaxDistance]
+[#SetToolFlood3D SetToolFlood3D]
+[#GetToolFlood3D GetToolFlood3D]
+[#SetToolFloodSourceCollection SetToolFloodSourceCollection]
+[#SetToolFloodFuzzinessType SetToolFloodFuzzinessType]
+[#GetToolFloodFuzzinessType GetToolFloodFuzzinessType]
+[#GetToolFloodSourceCollection GetToolFloodSourceCollection]
+[#SetToolOnlyFloodZero SetToolOnlyFloodZero]
+[#GetToolOnlyFloodZero GetToolOnlyFloodZero]
+[#SetToolEdgePathStraightBias SetToolEdgePathStraightBias]
+[#GetToolEdgePathStraightBias GetToolEdgePathStraightBias]
+[#SetToolEdgePathEdgeBias SetToolEdgePathEdgeBias]
+[#GetToolEdgePathEdgeBias GetToolEdgePathEdgeBias]
+[#SetFrameViewConfiguration SetFrameViewConfiguration]
+[#GetViewIDFromFrameColRow GetViewIDFromFrameColRow]
+[#GetSelectedViewID GetSelectedViewID]
+[#SetSelectedViewID SetSelectedViewID]
+[#GetNumberOfRowsInFrame GetNumberOfRowsInFrame]
+[#GetNumberOfColsAtRowInFrame GetNumberOfColsAtRowInFrame]
+[#GetViewIDAtFrameLocation GetViewIDAtFrameLocation]
+[#GetColumnOfViewInFrame GetColumnOfViewInFrame]
+[#GetRowOfViewInFrame GetRowOfViewInFrame]
+[#RedrawFrame RedrawFrame]
+[#CopyViewLayersToAllViewsInFrame CopyViewLayersToAllViewsInFrame]
+[#GetToolIDForFrame GetToolIDForFrame]
+[#CycleCurrentViewInFrame CycleCurrentViewInFrame]
+[#CaptureFrameToFile CaptureFrameToFile]
+[#SetTransformLabel SetTransformLabel]
+[#GetTransformLabel GetTransformLabel]
+[#SetTransformValues SetTransformValues]
+[#GetTransformValues GetTransformValues]
+[#LoadTransformFromLTAFile LoadTransformFromLTAFile]
+[#InvertTransform InvertTransform]
+[#TreatTransformAsRegistration TreatTransformAsRegistration]
+[#TreatTransformAsNative TreatTransformAsNative]
+[#IsTransformRegistration IsTransformRegistration]
+[#GetTransformRegistrationSource GetTransformRegistrationSource]
+[#GetTransformRegistrationDest GetTransformRegistrationDest]
+[#SetViewInPlane SetViewInPlane]
+[#GetViewInPlane GetViewInPlane]
+[#SetViewZoomLevel SetViewZoomLevel]
+[#GetViewZoomLevel GetViewZoomLevel]
+[#SetViewRASCenter SetViewRASCenter]
+[#GetViewRASCenter GetViewRASCenter]
+[#SetLayerInViewAtLevel SetLayerInViewAtLevel]
+[#GetLayerInViewAtLevel GetLayerInViewAtLevel]
+[#RemoveAllLayersFromView RemoveAllLayersFromView]
+[#RemoveLayerFromViewAtLevel RemoveLayerFromViewAtLevel]
+[#SetLevelVisibilityInView SetLevelVisibilityInView]
+[#GetLevelVisibilityInView GetLevelVisibilityInView]
+[#SetLevelReportInfoInView SetLevelReportInfoInView]
+[#GetLevelReportInfoInView GetLevelReportInfoInView]
+[#SetViewStateToLayerBounds SetViewStateToLayerBounds]
+[#GetFirstUnusedDrawLevelInView GetFirstUnusedDrawLevelInView]
+[#SetViewLinkedStatus SetViewLinkedStatus]
+[#GetViewLinkedStatus GetViewLinkedStatus]
+[#SetViewLockOnCursor SetViewLockOnCursor]
+[#GetViewLockOnCursor GetViewLockOnCursor]
+[#SetViewTransform SetViewTransform]
+[#GetViewTransform GetViewTransform]
+[#SetViewFlipLeftRightYZ SetViewFlipLeftRightYZ]
+[#GetViewFlipLeftRightYZ GetViewFlipLeftRightYZ]
+[#SetViewThroughPlaneIncrement SetViewThroughPlaneIncrement]
+[#GetViewThroughPlaneIncrement GetViewThroughPlaneIncrement]
+[#GetVolumeHistogramInView GetVolumeHistogramInView]
+[#BeginValueRangeFillInView BeginValueRangeFillInView]
+[#DoOneValueRangeFillInView DoOneValueRangeFillInView]
+[#EndValueRangeFillInView EndValueRangeFillInView]
+[#ConvertWindowToViewRAS ConvertWindowToViewRAS]
+[#SetColorLUTLabel SetColorLUTLabel]
+[#GetColorLUTLabel GetColorLUTLabel]
+[#SetColorLUTFileName SetColorLUTFileName]
+[#GetColorLUTFileName GetColorLUTFileName]
+[#GetColorLUTNumberOfEntries GetColorLUTNumberOfEntries]
+[#GetColorLUTEntryLabel GetColorLUTEntryLabel]
+[#GetColorLUTEntryRGB GetColorLUTEntryRGB]
+[#IsColorLUTEntryValid IsColorLUTEntryValid]
+[#GetSubjectName GetSubjectName]
+[#GetSubjectDir GetSubjectDir]
+[#NewVolume NewVolume]
+[#LoadVolume LoadVolume]
+[#LoadSurface LoadSurface]
+[#LoadTransform LoadTransform]
+[#SaveSceneScript SaveSceneScript]
+[#GetMainFrameID GetMainFrameID]
+[#UpdateFrame UpdateFrame]
+[#SetCursorFromSurfaceVertexIndex SetCursorFromSurfaceVertexIndex]
+[#SetCursorFromEditDatFile SetCursorFromEditDatFile]
+[#WriteCursorToEditDatFile WriteCursorToEditDatFile]
+[#SetCursorFromVolumeIndexCoords SetCursorFromVolumeIndexCoords]
