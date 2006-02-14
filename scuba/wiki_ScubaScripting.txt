@@ -11,72 +11,72 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
 
 [[Anchor(PrintAllCommands)]]
-''PrintAllCommands''
+''Print``All``Commands''
 
  Print all registered commands.
 
 [[Anchor(GetLayerIDList)]]
-''GetLayerIDList''
+''Get``Layer``ID``List''
 
  Returns a list of all layerIDs.
 
 [[Anchor(SetNumberOfViewMarkers)]]
-''SetNumberOfViewMarkers'' '''''numMarkers'''''
+''Set``Number``Of``View``Markers'' '''''numMarkers'''''
 
  Sets the number of view markers.
 
 [[Anchor(GetNumberOfViewMarkers)]]
-''GetNumberOfViewMarkers''
+''Get``Number``Of``View``Markers''
 
  Returns the number of view markers.
 
 [[Anchor(ExportMarkersToControlPoints)]]
-''ExportMarkersToControlPoints'' '''''collectionID fileName'''''
+''Export``Markers``To``Control``Points'' '''''collectionID fileName'''''
 
  Writes the markers to a control.dat file using a volume collection to transform them.
 
 [[Anchor(ImportMarkersFromControlPoints)]]
-''ImportMarkersFromControlPoints'' '''''collectionID fileName'''''
+''Import``Markers``From``Control``Points'' '''''collectionID fileName'''''
 
  Imports markers from a control.dat file using a volume collection to transform them..
 
 [[Anchor(SetViewRASCursor)]]
-''SetViewRASCursor'' '''''x y z'''''
+''Set``View``RAS``Cursor'' '''''x y z'''''
 
  Sets the cursor in RAS coords. '''x''', '''y''', and '''z''' are floating point numbers.
 
 [[Anchor(GetViewRASCursor)]]
-''GetViewRASCursor''
+''Get``View``RAS``Cursor''
 
  Returns the cursor in RAS coords in a list of x y z coords.
 
 [[Anchor(GetROIIDList)]]
-''GetROIIDList''
+''Get``ROI``ID``List''
 
  Return a list of all ROIs.
 
 [[Anchor(GetColorLUTIDList)]]
-''GetColorLUTIDList''
+''Get``Color``LUT``ID``List''
 
  Return a list of all colorLUTIDs.
 
 [[Anchor(MakeNewColorLUT)]]
-''MakeNewColorLUT''
+''Make``New``Color``LUT''
 
  Creates a new color LUT and returns its ID.
 
 [[Anchor(GetTransformIDList)]]
-''GetTransformIDList''
+''Get``Transform``ID``List''
 
  Return a list of all transformIDs.
 
 [[Anchor(MakeNewTransform)]]
-''MakeNewTransform''
+''Make``New``Transform''
 
  Creates a new transform and returns its ID.
 
 [[Anchor(MakeLayer)]]
-''MakeLayer'' '''''layerType'''''
+''Make``Layer'' '''''layerType'''''
 
  Makes a new layer of the given type and returns the layerID. '''layerID''' should be a recognized layer type such as:
 
@@ -91,12 +91,12 @@ objects. If they don't you'll receive an error. All IDs are integers.
  Deletes a layer. Does not delete any data collections associated with it.
 
 [[Anchor(GetDataCollectionIDList)]]
-''GetDataCollectionIDList''
+''Get``Data``Collection``ID``List''
 
  Return a list of all collectionIDs.
 
 [[Anchor(MakeDataCollection)]]
-''MakeDataCollection'' '''''collectionType'''''
+''Make``Data``Collection'' '''''collectionType'''''
 
  Make a new data collection of the given type and return the collectionID. '''collectionID''' should be a recognized collection type such as:
 
@@ -106,42 +106,42 @@ objects. If they don't you'll receive an error. All IDs are integers.
  Note that there are easier functions to use to load data, such as ''LoadVolume'' and ''LoadSurface''. This is a low level function that creates a data collection but does not load any actual data nor create a layer.
 
 [[Anchor(DeleteDataCollection)]]
-''DeleteDataCollection'' '''''collectionID'''''
+''Delete``Data``Collection'' '''''collectionID'''''
 
  Delete a data collection.
 
 [[Anchor(WritePathFile)]]
-''WritePathFile'' '''''fileName'''''
+''Write``Path``File'' '''''fileName'''''
 
  Write paths to a file.
 
 [[Anchor(ReadPathFile)]]
-''ReadPathFile'' '''''fileName'''''
+''Read``Path``File'' '''''fileName'''''
 
  Read paths from a file.
 
 [[Anchor(ClearSegVolReport)]]
-''ClearSegVolReport''
+''Clear``Seg``Vol``Report''
 
  Clears all info in the segmentation volume report.
 
 [[Anchor(SetSegVolReportSegmentation)]]
-''SetSegVolReportSegmentation'' '''''segID'''''
+''Set``Seg``Vol``Report``Segmentation'' '''''segID'''''
 
  Set the segmentation volume in the segmentation volume report.
 
 [[Anchor(AddSegVolReportIntensityVolume)]]
-''AddSegVolReportIntensityVolume'' '''''volID'''''
+''Add``Seg``Vol``Report``Intensity``Volume'' '''''volID'''''
 
  Add an intensity volume to the segmentation volume report.
 
 [[Anchor(SetROIForSegVolReport)]]
-''SetROIForSegVolReport'' '''''volID roiID'''''
+''Set``ROI``For``Seg``Vol``Report'' '''''volID roiID'''''
 
  Set the volume and ROI to use in the segmentation volume report.
 
 [[Anchor(DontUseROIInSegVolReport)]]
-''DontUseROIInSegVolReport''
+''Dont``Use``ROI``In``Seg``Vol``Report''
 
  Don't use an ROI in the segmentation volume report.
 
@@ -151,22 +151,22 @@ objects. If they don't you'll receive an error. All IDs are integers.
  Set the LUT in the segmentation volume report.
 
 [[Anchor(AddSegmentationToSegVolReport)]]
-''AddSegmentationToSegVolReport'' '''''structure'''''
+''Add``Segmentation``To``Seg``Vol``Report'' '''''structure'''''
 
  Add a segmentation to the segmentation volume report.
 
 [[Anchor(MakeSegVolReport)]]
-''MakeSegVolReport'' '''''fnReport'''''
+''Make``Seg``Vol``Report'' '''''fnReport'''''
 
  Make the segmentation volume report.
 
 [[Anchor(MakeSegVolIntensityReport)]]
-''MakeSegVolIntensityReport'' '''''fnReport'''''
+''Make``Seg``Vol``Intensity``Report'' '''''fnReport'''''
 
  Make the intensity report from the segmentation volume report.
 
 [[Anchor(SetToolMode)]]
-''SetToolMode'' '''''toolID mode'''''
+''Set``Tool``Mode'' '''''toolID mode'''''
 
  Sets the current mode of a tool. '''mode''' should be one of the following:
 
@@ -181,372 +181,372 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ||edgePath||The edge path tool||
 
 [[Anchor(GetToolMode)]]
-''GetToolMode'' '''''toolID'''''
+''Get``Tool``Mode'' '''''toolID'''''
 
  Gets the current mode of a tool. The returned string will be one of the tool modes supplied to '''SetToolMode'''.
 
 [[Anchor(SetToolTargetLayer)]]
-''SetToolTargetLayer'' '''''toolID layerID'''''
+''Set``Tool``Target``Layer'' '''''toolID layerID'''''
 
  Sets the target layer of a tool.
 
 [[Anchor(GetToolTargetLayer)]]
-''GetToolTargetLayer'' '''''toolID'''''
+''Get``Tool``Target``Layer'' '''''toolID'''''
 
  Gets the target layer of a tool. Returns a layerID.
 
 [[Anchor(SetToolNewVoxelValue)]]
-''SetToolNewVoxelValue'' '''''toolID value'''''
+''Set``Tool``New``Voxel``Value'' '''''toolID value'''''
 
  Sets the new voxel value of a tool. '''value''' is a float.
 
 [[Anchor(GetToolNewVoxelValue)]]
-''GetToolNewVoxelValue'' '''''toolID'''''
+''Get``Tool``New``Voxel``Value'' '''''toolID'''''
 
  Gets the new voxel value of a tool.
 
 [[Anchor(SetToolEraseVoxelValue)]]
-''SetToolEraseVoxelValue'' '''''toolID value'''''
+''Set``Tool``Erase``Voxel``Value'' '''''toolID value'''''
 
  Sets the erase voxel value of a tool.
 
 [[Anchor(GetToolEraseVoxelValue)]]
-''GetToolEraseVoxelValue'' '''''toolID'''''
+''Get``Tool``Erase``Voxel``Value'' '''''toolID'''''
 
  Gets the erase voxel value of a tool.
 
 [[Anchor(SetToolOnlyBrushZero)]]
-''SetToolOnlyBrushZero'' '''''toolID onlyZero'''''
+''Set``Tool``Only``Brush``Zero'' '''''toolID onlyZero'''''
 
  Specify whether the brush should only affect zero values..
 
 [[Anchor(GetToolOnlyBrushZero)]]
-''GetToolOnlyBrushZero'' '''''toolID'''''
+''Get``Tool``Only``Brush``Zero'' '''''toolID'''''
 
  Returns whether or not a brush is only affecting zero values.
 
 [[Anchor(SetToolBrushRadius)]]
-''SetToolBrushRadius'' '''''toolID radius'''''
+''Set``Tool``Brush``Radius'' '''''toolID radius'''''
 
  Sets the current brush radius of a tool. '''radius''' should be a floating point number.
 
 [[Anchor(GetToolBrushRadius)]]
-''GetToolBrushRadius'' '''''toolID'''''
+''Get``Tool``Brush``Radius'' '''''toolID'''''
 
  Gets the current brush radius of a tool.
 
 [[Anchor(SetToolBrushShape)]]
-''SetToolBrushShape'' '''''toolID shape'''''
+''Set``Tool``Brush``Shape'' '''''toolID shape'''''
 
  Sets the current brush shape of a tool. '''shape''' should be {{{voxel}}}, {{{square}}} or {{{circle}}}.
 
 [[Anchor(GetToolBrushShape)]]
-''GetToolBrushShape'' '''''toolID'''''
+''Get``Tool``Brush``Shape'' '''''toolID'''''
 
  Returns the current brush shape of a tool as a string: {{{voxel}}}, {{{square}}} or {{{circle}}}.
 
 [[Anchor(SetToolBrush3D)]]
-''SetToolBrush3D'' '''''toolID 3D'''''
+''Set``Tool``Brush``3D'' '''''toolID 3D'''''
 
  Sets the current brush 3D of a tool. '''3D''' is either 1 or 0.
 
 [[Anchor(GetToolBrush3D)]]
-''GetToolBrush3D'' '''''toolID'''''
+''Get``Tool``Brush``3D'' '''''toolID'''''
 
  Returns the current brush 3D of a tool.
 
 [[Anchor(SetToolFloodStopAtPaths)]]
-''SetToolFloodStopAtPaths'' '''''toolID stop'''''
+''Set``Tool``Flood``Stop``At``Paths'' '''''toolID stop'''''
 
  Specify whether a tool flood should stop at paths. '''stop''' is either 1 or 0.
 
 [[Anchor(GetToolFloodStopAtPaths)]]
-''GetToolFloodStopAtPaths'' '''''toolID'''''
+''Get``Tool``Flood``Stop``At``Paths'' '''''toolID'''''
 
  Returns whether or not a tool flood will stop at paths.
 
 [[Anchor(SetToolFloodStopAtROIs)]]
-''SetToolFloodStopAtROIs'' '''''toolID stop'''''
+''Set``Tool``Flood``Stop``At``ROIs'' '''''toolID stop'''''
 
  Specify whether a tool flood should stop at ROIs. '''stop''' is either 1 or 0.
 
 [[Anchor(GetToolFloodStopAtROIs)]]
-''GetToolFloodStopAtROIs'' '''''toolID'''''
+''Get``Tool``Flood``Stop``At``ROIs'' '''''toolID'''''
 
  Returns whether or not a tool flood will stop at ROIs.
 
 [[Anchor(SetToolFloodFuzziness)]]
-''SetToolFloodFuzziness'' '''''toolID fuzziness'''''
+''Set``Tool``Flood``Fuzziness'' '''''toolID fuzziness'''''
 
  Specify a tool flood's fuzziness. '''fuzziness''' is a floating point number.
 
 [[Anchor(GetToolFloodFuzziness)]]
-''GetToolFloodFuzziness'' '''''toolID'''''
+''Get``Tool``Flood``Fuzziness'' '''''toolID'''''
 
  Returns a tool flood's fuzziness.
 
 [[Anchor(SetToolFloodMaxDistance)]]
-''SetToolFloodMaxDistance'' '''''toolID distance'''''
+''Set``Tool``Flood``Max``Distance'' '''''toolID distance'''''
 
  Specify a tool flood's max distance. '''distance''' is a floating point number.
 
 [[Anchor(GetToolFloodMaxDistance)]]
-''GetToolFloodMaxDistance'' '''''toolID'''''
+''Get``Tool``Flood``Max``Distance'' '''''toolID'''''
 
  Returns a tool flood's max distance.
 
 [[Anchor(SetToolFlood3D)]]
-''SetToolFlood3D'' '''''toolID 3D'''''
+''Set``Tool``Flood``3D'' '''''toolID 3D'''''
 
  Sets the current flood 3D of a tool. '''3D''' is either 1 or 0.
 
 [[Anchor(GetToolFlood3D)]]
-''GetToolFlood3D'' '''''toolID'''''
+''Get``Tool``Flood``3D'' '''''toolID'''''
 
  Gets the current flood 3D of a tool.
 
 [[Anchor(SetToolFloodSourceCollection)]]
-''SetToolFloodSourceCollection'' '''''toolID collectionID'''''
+''Set``Tool``Flood``Source``Collection'' '''''toolID collectionID'''''
 
  Sets the current flood source collection of a tool.
 
 [[Anchor(SetToolFloodFuzzinessType)]]
-''SetToolFloodFuzzinessType'' '''''toolID type'''''
+''Set``Tool``Flood``Fuzziness``Type'' '''''toolID type'''''
 
  Sets the tool's fuzziness type. '''type''' should be {{{seed}}} or {{{gradient}}}.
 
 [[Anchor(GetToolFloodFuzzinessType)]]
-''GetToolFloodFuzzinessType'' '''''toolID'''''
+''Get``Tool``Flood``Fuzziness``Type'' '''''toolID'''''
 
  Returns the tool's fuzziness type: {{{seed}}} or {{{gradient}}}.
 
 [[Anchor(GetToolFloodSourceCollection)]]
-''GetToolFloodSourceCollection'' '''''toolID'''''
+''Get``Tool``Flood``Source``Collection'' '''''toolID'''''
 
  Gets the current flood source collection of a tool.
 
 [[Anchor(SetToolOnlyFloodZero)]]
-''SetToolOnlyFloodZero'' '''''toolID onlyZero'''''
+''Set``Tool``Only``Flood``Zero'' '''''toolID onlyZero'''''
 
  Specify whether the flood should only affect zero values. '''onlyZero''' is 1 or 0.
 
 [[Anchor(GetToolOnlyFloodZero)]]
-''GetToolOnlyFloodZero'' '''''toolID'''''
+''Get``Tool``Only``Flood``Zero'' '''''toolID'''''
 
  Returns whether or not a flood is only affecting zero values.
 
 [[Anchor(SetToolEdgePathStraightBias)]]
-''SetToolEdgePathStraightBias'' '''''toolID bias'''''
+''Set``Tool``Edge``Path``Straight``Bias'' '''''toolID bias'''''
 
  Sets the bias for straight paths for the edge path tool. '''bias''' is a floating point number from 0 to 1.
 
 [[Anchor(GetToolEdgePathStraightBias)]]
-''GetToolEdgePathStraightBias'' '''''toolID'''''
+''Get``Tool``Edge``Path``Straight``Bias'' '''''toolID'''''
 
  Returns the bias for straight paths for the edge path tool.
 
 [[Anchor(SetToolEdgePathEdgeBias)]]
-''SetToolEdgePathEdgeBias'' '''''toolID bias'''''
+''Set``Tool``Edge``Path``Edge``Bias'' '''''toolID bias'''''
 
  Sets the bias for edges for the edge path tool. '''bias''' is a floating point number from 0 to 1.
 
 [[Anchor(GetToolEdgePathEdgeBias)]]
-''GetToolEdgePathEdgeBias'' '''''toolID'''''
+''Get``Tool``Edge``Path``Edge``Bias'' '''''toolID'''''
 
  Returns the bias for edges for the edge path tool.
 
 [[Anchor(SetFrameViewConfiguration)]]
-''SetFrameViewConfiguration'' '''''frameID configuration'''''
+''Set``Frame``View``Configuration'' '''''frameID configuration'''''
 
  Sets a frame's view configuration. Supported '''configuration'''s, where each number is the number of columns in a row: {{{c1}}} {{{c22}}} {{{c44}}} {{{c13}}}.
 
 [[Anchor(GetViewIDFromFrameColRow)]]
-''GetViewIDFromFrameColRow'' '''''frameID col row'''''
+''Get``View``ID``From``Frame``Col``Row'' '''''frameID col row'''''
 
  Return the viewID from a view at a certain location. '''col''' and '''row''' must be valid integers for the current view configuration.
 
 [[Anchor(GetSelectedViewID)]]
-''GetSelectedViewID'' '''''frameID'''''
+''Get``Selected``View``ID'' '''''frameID'''''
 
  Return the viewID of the selected view.
 
 [[Anchor(SetSelectedViewID)]]
-''SetSelectedViewID'' '''''frameID viewID'''''
+''Set``Selected``View``ID'' '''''frameID viewID'''''
 
  Sets the select view in a frame.
 
 [[Anchor(GetNumberOfRowsInFrame)]]
-''GetNumberOfRowsInFrame'' '''''frameID'''''
+''Get``Number``Of``Rows``In``Frame'' '''''frameID'''''
 
  Return the number of rows in a frame.
 
 [[Anchor(GetNumberOfColsAtRowInFrame)]]
-''GetNumberOfColsAtRowInFrame'' '''''frameID row'''''
+''Get``Number``Of``Cols``At``Row``In``Frame'' '''''frameID row'''''
 
  Return the number of columns in arow. '''row''' is an integer.
 
 [[Anchor(GetViewIDAtFrameLocation)]]
-''GetViewIDAtFrameLocation'' '''''frameID windowX windowY'''''
+''Get``View``ID``At``Frame``Location'' '''''frameID windowX windowY'''''
 
  Return the view ID at a window location. '''windowX''' and '''windowY''' should be integers.
 
 [[Anchor(GetColumnOfViewInFrame)]]
-''GetColumnOfViewInFrame'' '''''frameID viewID'''''
+''Get``Column``Of``View``In``Frame'' '''''frameID viewID'''''
 
  Return the column of the view ID in a frame.
 
 [[Anchor(GetRowOfViewInFrame)]]
-''GetRowOfViewInFrame'' '''''frameID viewID'''''
+''Get``Row``Of``View``In``Frame'' '''''frameID viewID'''''
 
  Return the row of the view ID in a frame.
 
 [[Anchor(RedrawFrame)]]
-''RedrawFrame'' '''''frameID'''''
+''Redraw``Frame'' '''''frameID'''''
 
  Tells a frame to redraw without waiting for the next update event. Should be used in scripts to force a redraw before taking a screenshot.
 
 [[Anchor(CopyViewLayersToAllViewsInFrame)]]
-''CopyViewLayersToAllViewsInFrame'' '''''frameID viewID'''''
+''Copy``View``Layers``To``All``Views``In``Frame'' '''''frameID viewID'''''
 
  Copies the layer settings in a view to all other views in a frame.
 
 [[Anchor(GetToolIDForFrame)]]
-''GetToolIDForFrame'' '''''frameID'''''
+''Get``Tool``ID``For``Frame'' '''''frameID'''''
 
  Returns the ID of the tool for this frame.
 
 [[Anchor(CycleCurrentViewInFrame)]]
-''CycleCurrentViewInFrame'' '''''frameID'''''
+''Cycle``Current``View``In``Frame'' '''''frameID'''''
 
  Selects the next view in a frame.
 
 [[Anchor(CaptureFrameToFile)]]
-''CaptureFrameToFile'' '''''frameID fileName'''''
+''Capture``Frame``To``File'' '''''frameID fileName'''''
 
  Make a screen capture of the frame.
 
 [[Anchor(SetTransformLabel)]]
-''SetTransformLabel'' '''''transformID label'''''
+''Set``Transform``Label'' '''''transformID label'''''
 
  Set the label for a transform. '''label''' should be a string.
 
 [[Anchor(GetTransformLabel)]]
-''GetTransformLabel'' '''''transformID'''''
+''Get``Transform``Label'' '''''transformID'''''
 
  Returns the label for a transform.
 
 [[Anchor(SetTransformValues)]]
-''SetTransformValues'' '''''transformID listOfValues'''''
+''Set``Transform``Values'' '''''transformID listOfValues'''''
 
  Sets the values of a transform. '''listOfValues''' should be a list of 16 values in column order.
 
 [[Anchor(GetTransformValues)]]
-''GetTransformValues'' '''''transformID'''''
+''Get``Transform``Values'' '''''transformID'''''
 
  Returns a list of transform values in column order.
 
 [[Anchor(LoadTransformFromLTAFile)]]
-''LoadTransformFromLTAFile'' '''''transformID LTAFileName'''''
+''Load``Transform``From``LTA``File'' '''''transformID LTAFileName'''''
 
  Loads an LTA from a file into an existing transform.
 
 [[Anchor(InvertTransform)]]
-''InvertTransform'' '''''transformID'''''
+''Invert``Transform'' '''''transformID'''''
 
  Inverts a transform.
 
 [[Anchor(TreatTransformAsRegistration)]]
-''TreatTransformAsRegistration'' '''''transformID sourceVolumeID destVolumeID'''''
+''Treat``Transform``As``Registration'' '''''transformID sourceVolumeID destVolumeID'''''
 
  Treats a transform as a tkregistration between two volumes, getting the necessary geometry information from them to register them.. '''sourceVolumeID''' and '''destVolumeID''' are collectionIDs.
 
 [[Anchor(TreatTransformAsNative)]]
-''TreatTransformAsNative'' '''''transformID'''''
+''Treat``Transform``As``Native'' '''''transformID'''''
 
  If a transform was set to be treated as a registration, this restores it to normal.
 
 [[Anchor(IsTransformRegistration)]]
-''IsTransformRegistration'' '''''transformID'''''
+''Is``Transform``Registration'' '''''transformID'''''
 
  Returns whether or not a transform is being treated as a registration.
 
 [[Anchor(GetTransformRegistrationSource)]]
-''GetTransformRegistrationSource'' '''''transformID'''''
+''Get``Transform``Registration``Source'' '''''transformID'''''
 
  Returns the id of the source volume if the transform is being treated as a registration.
 
 [[Anchor(GetTransformRegistrationDest)]]
-''GetTransformRegistrationDest'' '''''transformID'''''
+''Get``Transform``Registration``Dest'' '''''transformID'''''
 
  Returns the id of the dest volume if the transform is being treated as a registration.
 
 [[Anchor(SetViewInPlane)]]
-''SetViewInPlane'' '''''viewID inPlane'''''
+''Set``View``In``Plane'' '''''viewID inPlane'''''
 
  Sets the in plane in a view. '''inPlane''' should be one of the following: {{{x}}} {{{y}}} {{{z}}}
 
 [[Anchor(GetViewInPlane)]]
-''GetViewInPlane'' '''''viewID'''''
+''Get``View``In``Plane'' '''''viewID'''''
 
  Returns the in plane in a view.
 
 [[Anchor(SetViewZoomLevel)]]
-''SetViewZoomLevel'' '''''viewID zoomLevel'''''
+''Set``View``Zoom``Level'' '''''viewID zoomLevel'''''
 
  Sets the zoom level in a view. '''zoomLevel''' should be a floating point number. 1 is normal zoom, 0-1 is zoomed out, and 1+ is zoomed in.
 
 [[Anchor(GetViewZoomLevel)]]
-''GetViewZoomLevel'' '''''viewID'''''
+''Get``View``Zoom``Level'' '''''viewID'''''
 
  Returns the zoom level in a view.
 
 [[Anchor(SetViewRASCenter)]]
-''SetViewRASCenter'' '''''viewID x y z'''''
+''Set``View``RAS``Center'' '''''viewID x y z'''''
 
  Sets the view center. '''x''', '''y''', and '''z''' should be floating point numbers in world RAS coordinates.
 
 [[Anchor(GetViewRASCenter)]]
-''GetViewRASCenter'' '''''viewID'''''
+''Get``View``RAS``Center'' '''''viewID'''''
 
  Returns the view center as a list of x, y, and z RAS coordinates.
 
 [[Anchor(SetLayerInViewAtLevel)]]
-''SetLayerInViewAtLevel'' '''''viewID layerID level'''''
+''Set``Layer``In``View``At``Level'' '''''viewID layerID level'''''
 
  Sets the layer in a view at a given draw level. Higher draw levels will draw later. '''level''' should be an integer from 0 - 9.
 
 [[Anchor(GetLayerInViewAtLevel)]]
-''GetLayerInViewAtLevel'' '''''viewID level'''''
+''Get``Layer``In``View``At``Level'' '''''viewID level'''''
 
  Returns the layer in a view at a given draw level. '''level''' should be an integer from 0 - 9.
 
 [[Anchor(RemoveAllLayersFromView)]]
-''RemoveAllLayersFromView'' '''''viewID'''''
+''Remove``All``Layers``From``View'' '''''viewID'''''
 
  Remove all layers from a view.
 
 [[Anchor(RemoveLayerFromViewAtLevel)]]
-''RemoveLayerFromViewAtLevel'' '''''viewID level'''''
+''Remove``Layer``From``View``At``Level'' '''''viewID level'''''
 
  Remove a layer from a view. '''level''' should be an integer from 0 - 9.
 
 [[Anchor(SetLevelVisibilityInView)]]
-''SetLevelVisibilityInView'' '''''viewID level visibility'''''
+''Set``Level``Visibility``In``View'' '''''viewID level visibility'''''
 
  Sets the visibility for a level in a view. '''level''' should be an integer from 0 - 9. '''visibility''' should be 1 or 0.
 
 [[Anchor(GetLevelVisibilityInView)]]
-''GetLevelVisibilityInView'' '''''viewID level'''''
+''Get``Level``Visibility``In``View'' '''''viewID level'''''
 
  Returns the visibility for a level in a view. '''level''' should be an integer from 0 - 9.
 
 [[Anchor(SetLevelReportInfoInView)]]
-''SetLevelReportInfoInView'' '''''viewID level reportInfo'''''
+''Set``Level``Report``Info``In``View'' '''''viewID level reportInfo'''''
 
  Sets the flag for reporting info for a level in a view. '''level''' should be an integer from 0 - 9. '''reportInfo''' should be 1 or 0.
 
 [[Anchor(GetLevelReportInfoInView)]]
-''GetLevelReportInfoInView'' '''''viewID level'''''
+''Get``Level``Report``Info``In``View'' '''''viewID level'''''
 
  Returns whether a level in a view is reporting info. '''level''' should be an integer from 0 - 9.
 
