@@ -1,11 +1,11 @@
 /**
  * @file   version.c
- * @author $Author: greve $
- * @date   $Date: 2005/12/06 21:37:36 $
- *         $Revision: 1.19 $
+ * @author $Author: nicks $
+ * @date   $Date: 2006/02/14 19:16:59 $
+ *         $Revision: 1.20 $
  * @brief  freesurfer version functions defined here
- * 
- * 
+ *
+ *
  */
 
 #include <stdlib.h>
@@ -69,8 +69,8 @@
    copy the remaining items in argv back, so the caller can shorten
    their own argc variable, like this:
 
-    nargs = handle_version_option (argc, argv, "dollarIDdollar");
-    argc -= nargs ;
+   nargs = handle_version_option (argc, argv, "dollarIDdollar");
+   argc -= nargs ;
 
    (This is done so that it can easily be used with older programs
    that make assumptions about argument counts instead of scanning for
@@ -85,16 +85,15 @@
    The binary may also want to exit if there are no other options to
    handle, i.e.
 
-    nargs = handle_version_option (argc, argv, "dollarIDdollar");
-    if (nargs && argc - nargs == 1)
-      exit (0);
-    argc -= nargs;
+   nargs = handle_version_option (argc, argv, "dollarIDdollar");
+   if (nargs && argc - nargs == 1)
+   exit (0);
+   argc -= nargs;
 */
 int
-make_cmd_version_string (int argc, char** argv,  char* id_string, 
-												 char* version_string, char *return_string) 
+make_cmd_version_string (int argc, char** argv,  char* id_string,
+                         char* version_string, char *return_string)
 {
-
   int nnarg = 0;
   char stripped_version_string[1024];
   int length;
@@ -115,43 +114,43 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
       strcpy (stripped_version_string, &(version_string[7]));
       length = strlen (stripped_version_string);
       if (length > 2)
-	{
-	  stripped_version_string[length-2] = '\0';
-	}
+        {
+          stripped_version_string[length-2] = '\0';
+        }
     }
   else
     {
       strcpy (stripped_version_string, version_string);
     }
-  
+
   begin = argv[0];
   strcpy (program_name, begin);
-  
+
   /* Copy the arguments to the arguments string. */
   strcpy (arguments, "");
   if (argc > 1)
     {
       strcpy (arguments, argv[1]);
       for (nnarg = 2; nnarg < argc; nnarg++)
-	sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+        sprintf (arguments, "%s %s", arguments, argv[nnarg]);
     }
-  
+
   /* Find the time string. */
   seconds = time(NULL);
   gmtime_r (&seconds, &broken_time);
   sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
-	   broken_time.tm_year%100, /* mod here to change 103 to 03 */
-	   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
-	   broken_time.tm_mday, broken_time.tm_hour,
-	   broken_time.tm_min, broken_time.tm_sec);
-  
+           broken_time.tm_year%100, /* mod here to change 103 to 03 */
+           broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+           broken_time.tm_mday, broken_time.tm_hour,
+           broken_time.tm_min, broken_time.tm_sec);
+
   /* Use getlogin() to get the user controlling this process. */
   cp = getlogin() ;
   if (cp != NULL)
-    strcpy (user, cp); 
+    strcpy (user, cp);
   else
     strcpy(user, "UNKNOWN") ;
-  
+
   /* Call uname to get the machine. */
   result = uname (&kernel_info);
   if (0 != result)
@@ -160,31 +159,31 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
     }
   strcpy (machine, kernel_info.nodename);
   strcpy (platform_version, kernel_info.release);
-  
+
   /* Build the info string. */
   sprintf (return_string, "%s %s "
-	   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-	   "Machine: %s Platform: %s PlatformVersion: %s "
-	   "CompilerName: %s CompilerVersion: %d",
-	   program_name,
-	   arguments,
-	   version_string,
-	   time_stamp,
-	   id_string,
-	   user,
-	   machine,
-	   PLATFORM,
-	   platform_version,
-	   COMPILER_NAME,
-	   COMPILER_VERSION);
-  
+           "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+           "Machine: %s Platform: %s PlatformVersion: %s "
+           "CompilerName: %s CompilerVersion: %d",
+           program_name,
+           arguments,
+           version_string,
+           time_stamp,
+           id_string,
+           user,
+           machine,
+           PLATFORM,
+           platform_version,
+           COMPILER_NAME,
+           COMPILER_VERSION);
+
   return(NO_ERROR) ;
 }
-int
-handle_version_option (int argc, char** argv, 
-		       char* id_string, char* version_string) 
-{
 
+int
+handle_version_option (int argc, char** argv,
+                       char* id_string, char* version_string)
+{
   int narg = 0;
   int nnarg = 0;
   int num_processed_args = 0;
@@ -205,133 +204,130 @@ handle_version_option (int argc, char** argv,
 
   /* Go through each option looking for --version, -version,
      --all-info, or -all-info */
-  for (narg = 1; narg < argc; narg++) 
+  for (narg = 1; narg < argc; narg++)
     {
       option = argv[narg];
-      
+
       if (!strncmp(option,"--version",9) ||
-	  !strncmp(option,"-version",8))
-	{
-	  
+          !strncmp(option,"-version",8))
+        {
 #if 0
-	  /* Since BIRN is now using --all-info to get version stuff,
-	     I want to keep this as simple as possible. So I'm
-	     commenting out some of this stuff, let's see if anybody
-	     complains. */
+          /* Since BIRN is now using --all-info to get version stuff,
+             I want to keep this as simple as possible. So I'm
+             commenting out some of this stuff, let's see if anybody
+             complains. */
 
-	  /* Print out the entire command line. */
-	  for (nnarg = 0; nnarg < argc; nnarg++)
-	    fprintf (stdout, "%s ", argv[nnarg]);
-	  fprintf (stdout, "\n");
-	  
-	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
-		   id_string, PLATFORM, COMPILER_VERSION);
+          /* Print out the entire command line. */
+          for (nnarg = 0; nnarg < argc; nnarg++)
+            fprintf (stdout, "%s ", argv[nnarg]);
+          fprintf (stdout, "\n");
+
+          fprintf (stdout, "%s Platform: %s C lib: %d\n",
+                   id_string, PLATFORM, COMPILER_VERSION);
 #else
-	  /* Strip the "{Name: " and "}" from the id string. */
-	  if (strlen(version_string) > 7)
-	    {
-	      strcpy (stripped_version_string, &(version_string[7]));
-	      length = strlen (stripped_version_string);
-	      if (length > 2)
-		{
-		  stripped_version_string[length-2] = '\0';
-		}
-	    }
-	  else
-	    {
-	      strcpy (stripped_version_string, version_string);
-	    }
+          /* Strip the "{Name: " and "}" from the id string. */
+          if (strlen(version_string) > 7)
+            {
+              strcpy (stripped_version_string, &(version_string[7]));
+              length = strlen (stripped_version_string);
+              if (length > 2)
+                {
+                  stripped_version_string[length-2] = '\0';
+                }
+            }
+          else
+            {
+              strcpy (stripped_version_string, version_string);
+            }
 
-	  fprintf (stdout, "%s\n", stripped_version_string);
-		   
+          fprintf (stdout, "%s\n", stripped_version_string);
+
 #endif
-	  
-	  num_processed_args++;
+          num_processed_args++;
 
-	  /* Copy later args one step back. */
-	  for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
-	    {
-	      strcpy (argv[nnarg], argv[nnarg+1] );
-	    }
-	}
-      
-      
+          /* Copy later args one step back. */
+          for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+            {
+              strcpy (argv[nnarg], argv[nnarg+1] );
+            }
+        }
+
       if (!strncmp(option,"--all-info",11) ||
-	  !strncmp(option,"-all-info",10))
-	{
-	  
-	  /* Copy argv[0] without the path into program_name. */
-	  begin = strrchr (argv[0], (int)'/');
-	  if (NULL == begin)
-	    {	
-	      begin = argv[0];
-	    } 
-	  else
-	    { 
-	      begin = begin + 1;
-	    }
-	  strcpy (program_name, begin);
+          !strncmp(option,"-all-info",10))
+        {
 
-	  /* Copy the arguments to the arguments string. */
-	  strcpy (arguments, "");
-	  if (argc > 1)
-	    {
-	      strcpy (arguments, argv[1]);
-	      for (nnarg = 2; nnarg < argc; nnarg++)
-		sprintf (arguments, "%s %s", arguments, argv[nnarg]);
-	    }
+          /* Copy argv[0] without the path into program_name. */
+          begin = strrchr (argv[0], (int)'/');
+          if (NULL == begin)
+            {
+              begin = argv[0];
+            }
+          else
+            {
+              begin = begin + 1;
+            }
+          strcpy (program_name, begin);
 
-	  /* Find the time string. */
-	  seconds = time(NULL);
-	  gmtime_r (&seconds, &broken_time);
-	  sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
-		   broken_time.tm_year%100, /* mod here to change 103 to 03 */
-		   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
-		   broken_time.tm_mday, broken_time.tm_hour,
-		   broken_time.tm_min, broken_time.tm_sec);
+          /* Copy the arguments to the arguments string. */
+          strcpy (arguments, "");
+          if (argc > 1)
+            {
+              strcpy (arguments, argv[1]);
+              for (nnarg = 2; nnarg < argc; nnarg++)
+                sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+            }
 
-	  /* Use getlogin() to get the user controlling this process. */
-	  if (cp != NULL)
-	    strcpy (user, cp); 
-	  else
-	    strcpy(user, "UNKNOWN") ;
-	  
-	  /* Call uname to get the machine. */
-	  result = uname (&kernel_info);
-	  if (0 != result)
-	    {
-	      fprintf (stderr, "uname() returned %d\n", result);
-	    }
-	  strcpy (machine, kernel_info.nodename);
-	  strcpy (platform_version, kernel_info.release);
+          /* Find the time string. */
+          seconds = time(NULL);
+          gmtime_r (&seconds, &broken_time);
+          sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+                   broken_time.tm_year%100, /* mod here to change 103 to 03 */
+                   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+                   broken_time.tm_mday, broken_time.tm_hour,
+                   broken_time.tm_min, broken_time.tm_sec);
 
-	  /* Build the info string. */
-	  fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
-		   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-		   "Machine: %s Platform: %s PlatformVersion: %s "
-		   "CompilerName: %s CompilerVersion: %d\n",
-		   program_name,
-		   arguments,
-		   version_string,
-		   time_stamp,
-		   id_string,
-		   user,
-		   machine,
-		   PLATFORM,
-		   platform_version,
-		   COMPILER_NAME,
-		   COMPILER_VERSION);
-	  
-	  num_processed_args++;
+          /* Use getlogin() to get the user controlling this process. */
+          if (cp != NULL)
+            strcpy (user, cp);
+          else
+            strcpy(user, "UNKNOWN") ;
 
-	  /* Copy later args one step back. */
-	  for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
-	    {
-	      strcpy (argv[nnarg], argv[nnarg+1] );
-	    }
-	}
+          /* Call uname to get the machine. */
+          result = uname (&kernel_info);
+          if (0 != result)
+            {
+              fprintf (stderr, "uname() returned %d\n", result);
+            }
+          strcpy (machine, kernel_info.nodename);
+          strcpy (platform_version, kernel_info.release);
+
+          /* Build the info string. */
+          fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
+                   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+                   "Machine: %s Platform: %s PlatformVersion: %s "
+                   "CompilerName: %s CompilerVersion: %d\n",
+                   program_name,
+                   arguments,
+                   version_string,
+                   time_stamp,
+                   id_string,
+                   user,
+                   machine,
+                   PLATFORM,
+                   platform_version,
+                   COMPILER_NAME,
+                   COMPILER_VERSION);
+
+          num_processed_args++;
+
+          /* Copy later args one step back. */
+          for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+            {
+              strcpy (argv[nnarg], argv[nnarg+1] );
+            }
+        }
     }
-  
+
   /* Return the number of arguments processed. */
   return num_processed_args;
 }
@@ -343,7 +339,7 @@ char *argv2cmdline(int argc, char *argv[])
 {
   int len, n;
   char *cmdline;
-  
+
   len = 0;
   for(n=0; n<argc; n++) len += strlen(argv[n]);
 
@@ -357,9 +353,9 @@ char *argv2cmdline(int argc, char *argv[])
 }
 
 /*----------------------------------------------------------
- VERuser(void) - returns the user id (or UNKNOWN). Allocates
- char, so caller must free.
- *----------------------------------------------------------*/
+  VERuser(void) - returns the user id (or UNKNOWN). Allocates
+  char, so caller must free.
+  *----------------------------------------------------------*/
 char *VERuser(void)
 {
   char *cp, *user;
@@ -370,8 +366,8 @@ char *VERuser(void)
 }
 
 /*----------------------------------------------------------
- VERfileTimeStamp(fname)
- *----------------------------------------------------------*/
+  VERfileTimeStamp(fname)
+  *----------------------------------------------------------*/
 char *VERfileTimeStamp(char *fname)
 {
   struct stat buf;
@@ -386,16 +382,17 @@ char *VERfileTimeStamp(char *fname)
   }
   lt = localtime(&buf.st_mtime);
   sprintf(tmpstr,"%04d/%02d/%02d %02d:%02d:%02d",
-	  lt->tm_year+1900,lt->tm_mday,lt->tm_mon,
-	  lt->tm_hour,lt->tm_min,lt->tm_sec);
+          lt->tm_year+1900,lt->tm_mday,lt->tm_mon,
+          lt->tm_hour,lt->tm_min,lt->tm_sec);
   //free(lt); // Dies here
   timestamp = strcpyalloc(tmpstr);
   return(timestamp);
 }
+
 /*----------------------------------------------------------
- VERcurTimeStamp() - time stamp at the time this function
- is called.
- *----------------------------------------------------------*/
+  VERcurTimeStamp() - time stamp at the time this function
+  is called.
+  *----------------------------------------------------------*/
 char *VERcurTimeStamp(void)
 {
   char tmpstr[2000], *time_stamp;
@@ -404,15 +401,11 @@ char *VERcurTimeStamp(void)
   seconds = time(NULL);
   gmtime_r (&seconds, &broken_time);
   sprintf (tmpstr, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
-	   broken_time.tm_year%100, /* mod here to change 103 to 03 */
-	   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
-	   broken_time.tm_mday, broken_time.tm_hour,
-	   broken_time.tm_min, broken_time.tm_sec);
+           broken_time.tm_year%100, /* mod here to change 103 to 03 */
+           broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+           broken_time.tm_mday, broken_time.tm_hour,
+           broken_time.tm_min, broken_time.tm_sec);
   //Note: NOT Y3K compliant!
   time_stamp = strcpyalloc(tmpstr);
   return(time_stamp);
 }
-
-
-
-
