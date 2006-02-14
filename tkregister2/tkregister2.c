@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $";
+"$Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -343,7 +343,6 @@ MATRIX *vox2ras_targ=NULL,*ras2vox_targ=NULL;
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
 int fstal=0, fixxfm=1; 
-char *fstalfmt = ""; // Format extention for fstal (default is COR)
 char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
@@ -425,8 +424,9 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
       exit(1);
     }
-    sprintf(targ_vol_path,"%s/%s/mri/%s%s",
-            subjectsdir,subjectid,targ_vol_id,fstalfmt);
+    sprintf(targ_vol_path,"%s/%s/mri/%s.mgz",subjectsdir,subjectid,targ_vol_id);
+    if(! fio_FileExistsReadable(targ_vol_path))
+      sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
   }
   else
     memcpy(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
@@ -580,7 +580,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   else                  Tmov = MRIxfmCRS2XYZ(mov_vol,0);
   invTmov = MatrixInverse(Tmov,NULL);
   printf("Tmov: --------------------\n");
-  Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
+  //Tmov = MRIxfmCRS2XYZtkreg(mov_vol); // should this be here?
   MatrixPrint(stdout,Tmov);
    
   /*------------------------------------------------------*/
@@ -878,8 +878,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
-    else if (!strcasecmp(option, "--mgh"))  fstalfmt = ".mgh";
-    else if (!strcasecmp(option, "--mgz"))  fstalfmt = ".mgz";
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -1167,23 +1165,13 @@ static void print_help(void)
          "  \n"
          "  --fstal\n"
          "\n"
-         "  Check and edit the talairach registration that was "
-         "created during\n"
+         "  Check and edit the talairach registration that was created during\n"
          "  the FreeSurfer reconstruction. Sets the movable volume to be \n"
-         "  $SUBJECTS_DIR/talairach/mri/orig and "
-         "sets the registration file to be \n"
+         "  $SUBJECTS_DIR/talairach/mri/orig{.mgz} and sets the registration file to be\n"
          "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
          "  write permission to this file. Do not specify --reg with this\n"
          "  flag. It is ok to specify --regheader with this flag. The format\n"
-         "  of the anatomical can be changed with --mgh or --mghz\n"
-         "\n"
-         "  --mgh\n"
-         "  --mgz\n"
-         "\n"
-         "  Assume mgh or mgz format when loading the anatoical for --fstal.\n"
-         "  With --mgh, looks for mri/orig.mgh. With --mgz, looks for "
-         "mri/orig.mgz.\n"
-         "  This applies only when using --fstal.\n"
+         "  of the anatomical is automatically detected as mgz or COR.\n"
          "\n"
          "  --plane <orientation>\n"
          "\n"
@@ -3953,7 +3941,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
