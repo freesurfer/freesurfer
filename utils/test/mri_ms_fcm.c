@@ -4,9 +4,9 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/08 16:26:18 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: jsnyder $
+// Revision Date  : $Date: 2006/02/14 00:25:33 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr.h"
+#include "nr_wrapper.h"
 #include "nrutil.h"
 #include "mri.h"
 #include "matrix.h"
@@ -155,7 +155,7 @@ main(int argc, char *argv[])
   int setsize = 0; /* Allow to change size for once */
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fcm.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fcm.c,v 1.2 2006/02/14 00:25:33 jsnyder Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

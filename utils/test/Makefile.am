@@ -1,26 +1,25 @@
 #
 # Makefile.am
 #
-AM_CFLAGS=-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/dicom
-AM_CXXFLAGS=-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/dicom
-AM_LDFLAGS=
+AM_CPPFLAGS=-I$(top_srcdir)/include \
+	-I$(top_srcdir)/include/dicom \
+	-I$(top_srcdir)/include/NrrdIO \ 
+	$(CPPUNIT_CFLAGS)
 
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
-	mghxform inftest difftool  mri_ms_fcm mri_compute_stats \
+	mghxform inftest difftool mri_compute_stats \
 	mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta \
 	mri_transform_to_COR  mri_compute_all_CNR \
-	mri_ms_compute_CNR  mris_diff mris_compute_thickness \
-	mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask \
-	mri_extract mri_ms_gca_EM mris_indirect_morph
+	mri_ms_compute_CNR mris_compute_thickness \
+	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
+	mri_extract mri_ms_gca_EM checkanalyze \
+	test_mri_identify test_nr_wrapper test_mriio
 
-TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
+TESTS=test_mriio mnitest i2rtest icotest extest mghxform \
+	inftest checkanalyze test_mri_identify test_nr_wrapper
 
-mri_ms_fcm_SOURCE=mri_ms_fcm.c
 mri_edit_wm_SOURCE=mri_edit_wm.c
 mri_apply_EM_mask_SOURCE=mri_apply_EM_mask.c
-mri_ms_EM_SOURCE=mri_ms_EM.c
 mri_ms_gca_EM_SOURCE=mri_ms_EM.c
 mri_ms_LDA_SOURCE=mri_ms_LDA.c
 mri_apply_INU_SOURCE=mri_apply_INU.c
@@ -29,7 +28,6 @@ mri_compute_all_CNR_SOURCE=mri_compute_all_CNR.c
 mri_fslmat_to_lta_SOURCE=mri_fslmat_to_lta.c
 mri_transform_to_COR_SOURCE=mri_transform_to_COR.c
 mri_concatenate_lta_SOURCE=mri_concatenate_lta.c
-mris_diff_SOURCES=mris_diff.cpp fmarching3dnband.c
 mri_ms_compute_CNR_SOURCES=mri_ms_compute_CNR.c
 mris_compute_thickness_SOURCES=mris_compute_thickness.cpp
 mri_extract_SOURCE=mri_extract.c
@@ -41,21 +39,19 @@ extest_SOURCES=extest.cpp
 mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp
 difftool_SOURCES=difftool.cpp
-mris_indirect_morph_SOURCES=mris_indirect_morph.cpp
+checkanalyze_SOURCES=checkanalyze.cpp
+test_mri_identify_SOURCES=test_mri_identify.cpp
+test_nr_wrapper_SOURCES=test_nr_wrapper.cpp
+test_mriio_SOURCES=test_mriio.cpp
 
-LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
-mris_diff_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib 
-mris_diff_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
-mris_indirect_morph_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib 
-mris_indirect_morph_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 
 #mris_thickness_diff_LDFLAGS=$(OS_LDFLAGS)
 
 mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib
 mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
+test_nr_wrapper_LDADD=$(CPPUNIT_LIBS) $(addprefix $(top_srcdir), $(LIBS_MGH) )
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

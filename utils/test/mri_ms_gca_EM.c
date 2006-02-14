@@ -12,9 +12,9 @@
 // 3. PVE model may be needed; better try on mri_ms_EM first
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/11 22:09:45 $
-// Revision       : $Revision: 1.3 $
+// Revision Author: $Author: jsnyder $
+// Revision Date  : $Date: 2006/02/14 00:25:33 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -22,8 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr.h"
-#include "nrutil.h"
+#include "nr_wrapper.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -115,7 +114,10 @@ static int yoff[6] = {0, 1, 0, -1, 0, 0};
 static int zoff[6] = {0, 0, 0, 0, 1, -1};
 
 static int fix_class_size = 1;
-static double kappa = 0.001; /* 0.01 is too big */
+
+//kappa only used in commented code, treating warnings as errors
+//so removing the definition here
+//static double kappa = 0.001; /* 0.01 is too big */
 
 /* eps and lambda are used for covariance regularization */
 static double eps = 1e-30;
@@ -154,7 +156,7 @@ main(int argc, char *argv[])
   double max_prior;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.3 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.4 2006/02/14 00:25:33 jsnyder Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
