@@ -13788,7 +13788,7 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   //so that it is
   if ((rangeAxisNum == 1) && (rangeAxisIdx[0] != 3)) {
     Nrrd *ntmp = nrrdNew();
-    int axmap[NRRD_DIM_MAX];
+    unsigned int axmap[NRRD_DIM_MAX];
     int axis;
     //axmap[i] = j means: axis i in the output will be the input's axis j
 
