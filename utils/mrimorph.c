@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/22 15:41:05 $
-// Revision       : $Revision: 1.51 $
+// Revision Author: $Author: jsnyder $
+// Revision Date  : $Date: 2006/02/14 00:24:29 $
+// Revision       : $Revision: 1.52 $
 */
 
 /*-----------------------------------------------------
@@ -8005,7 +8005,6 @@ MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, float *pscal
 #endif
 #define TOL 1e-5
 
-#include "nrutil.h"
 static VOXEL_LIST *Gvl_target, *Gvl_source ;
 
 static int

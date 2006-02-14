@@ -1,14 +1,14 @@
+#include "mri_identify.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>
+#include <volume_io.h> // from MNI
 #include "mri.h"
 #include "proto.h"
-#include "mri_identify.h"
 #include "analyze.h"
-#include "volume_io.h"
 #include "machine.h"
 #include "signa.h"
 #include "fio.h"
@@ -50,6 +50,7 @@ char *type_to_string(int type)
   case XIMG_FILE:   tmpstr = "ximg"; break;
   case NIFTI1_FILE: tmpstr = "nifti1"; break;
   case NII_FILE:    tmpstr = "nii"; break;
+  case NRRD_FILE:   tmpstr = "nrrd"; break;
   case MRI_CURV_FILE: tmpstr = "curv"; break;
   default: tmpstr = "unknown"; break;
   }
@@ -118,6 +119,7 @@ int string_to_type(char *string)
   if(strcmp(ls, "ximg") == 0)    type = XIMG_FILE;
   if(strcmp(ls, "nifti1") == 0)  type = NIFTI1_FILE;
   if(strcmp(ls, "nii") == 0)     type = NII_FILE;
+  if(strcmp(ls, "nrrd") == 0)    type = NRRD_FILE;
   // check for IMAGE file
   if (!strcmp(ls, "mat")
       || !strcmp(ls, "tif") || !strcmp(ls, "tiff")
@@ -258,6 +260,10 @@ int mri_identify(char *fname_passed)
 	  if (is_ximg(fname))
 	    return type;
 	  break;
+	case NRRD_FILE:
+	  if (is_nrrd(fname))
+	    return type;
+	  break;
 	default:
 	  break;
 	}
@@ -289,6 +295,7 @@ int mri_identify(char *fname_passed)
   else if(is_otl(fname))    return(OTL_FILE);
   else if(is_gdf(fname))    return(GDF_FILE);
   else if(is_ximg(fname))    return(XIMG_FILE);
+  else if(is_nrrd(fname))    return(NRRD_FILE);
   else if(IDisCurv(fname))    return(MRI_CURV_FILE);
   else return(MRI_VOLUME_TYPE_UNKNOWN);
 }  /*  end mri_identify()  */
@@ -921,6 +928,85 @@ int is_nii(char *fname)
   return(TRUE);
 
 }  /*  end is_nii()  */
+
+int is_nrrd(char *fname){
+  char *dot;
+  FILE *fp;
+  char magic[4];
+
+  // Check that the extension is .nrrd
+  dot = strrchr(fname, '.');
+
+  if(dot != NULL){
+    if((strcmp(dot, ".nrrd") == 0) && (strlen(fname) == dot - fname + 5)){
+      return(TRUE);
+    }
+  }
+  // TODO: add check for .nhdr, or do that in separate function
+
+
+  // Check for the Nrrd magic "NRRD", ignoring the next 4 chars
+  // which specify the format version. Files w/ correct magic,
+  // but w/out correct extension will be recognized.
+
+  //should it read as binary instead?
+  fp = fopen(fname, "r");
+  if(fp == NULL){
+    errno = 0;
+    return(FALSE);
+  }
+
+  if(fread(magic, 1, 4, fp) != 4){
+    errno = 0;
+    fclose(fp);
+    return(FALSE);
+  }
+  fclose(fp);
+
+  if(memcmp(magic, NRRD_MAGIC, 4) != 0) return(FALSE);
+
+  return(TRUE);
+
+}  /*  end is_nrrd()  */
+
+
+/*----------------------------------------
+  c++ version of is_nrrd():
+  ifstream file;
+  string magic;
+  string filename(fname);
+
+  // Check that the extension is .nrrd
+  string::size_type nrrdPos = filename.rfind(".nrrd");
+  if((nrrdPos != string::npos) && (nrrdPos == filename.length() - 5)){
+    return(TRUE);
+  }
+
+  // TODO: add check for .nhdr, or do that in separate function
+
+  // Check for the Nrrd magic "NRRD", ignoring the next 4 chars
+  // which specify the format version. Files w/ correct magic,
+  // but w/out correct extension will be recognized.
+
+  //should it read as binary instead?
+  file.open(fname, ifstream::in);
+  if(file.fail()){
+    errno = 0;
+    return(FALSE);
+  }
+  file >> magic;
+  file.close();
+
+  magic = magic.substr(0, 4);
+  if(magic.compare(NRRD_MAGIC) != 0){
+    errno = 0;
+    return(FALSE);
+  }
+
+  return(TRUE);
+
+END c++ version of is_nrrd()
+ ----------------------------------------*/
 
 /*----------------------------------------
   IDisCurv() - surface curve file format
