@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_ca_label.c,v 1.15 2006/02/10 20:24:30 greve Exp $";
+"$Id: mris_ca_label.c,v 1.16 2006/02/14 20:25:59 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -365,6 +365,13 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
     }
+  else if (!stricmp(option, "seed"))
+    {
+      setRandomSeed(atol(argv[2])) ;
+      fprintf(stderr,"setting seed for random number genererator to %d\n",
+              atoi(argv[2])) ;
+      nargs = 1 ;
+    }
   else switch (toupper(*option))
     {
 #if 0
@@ -425,15 +432,16 @@ print_usage(void)
 {
   printf("mris_ca_label [options] <subject> <hemi> <canon surf> <classifier> <output file>\n");
   printf("\n");
-  printf("   subject - freesurfer subject id\n");
-  printf("   hemi    - lh or rh\n");
-  printf("   canonsurf - cannoincal surface, usually ?h.sphere.reg\n");
+  printf("   subject    - freesurfer subject id\n");
+  printf("   hemi       - lh or rh\n");
+  printf("   canonsurf  - cannoincal surface, usually ?h.sphere.reg\n");
   printf("   classifier - $FREESURFER_HOME/average/?h.curvature.buckner40.filled.desikan_killiany.gcs\n");
   printf("   outputfile - ?h.aparc.annot\n");
   printf("\n");
   printf(" Options:\n");
   printf("\n");
-  printf("  -ml-annot gcs icoorder annot : Compute most-likely annotation labeling on ico, save, and exit\n");
+  printf("  -ml-annot gcs icoorder annot : "
+	 "Compute most-likely annotation labeling on ico, save, and exit\n");
   printf("  -orig orig_name\n");
   printf("  -long\n");
   printf("  -nbrs\n");
@@ -443,6 +451,7 @@ print_usage(void)
   printf("  -v diagno\n");
   printf("  -w fname\n");
   printf("  -r fname : precomputed parcellations\n");
+  printf("  -seed N  : set random number generator to seed N\n");
   printf("\n");
 }
 
