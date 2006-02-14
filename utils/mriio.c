@@ -13682,8 +13682,6 @@ MRIaddCommandLine(MRI *mri, char *cmdline)
 
 static MRI *mriNrrdRead(char *fname, int read_volume)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mriNrrdRead(): Nrrd input not yet supported"));
-
   Nrrd *nrrd = nrrdNew();
   MRI *mri = NULL;
   int mriDataType = MRI_UCHAR; //so compiler won't complain about initialization
@@ -13693,6 +13691,9 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 
   int errorType = NO_ERROR;
   char errorString[50];
+
+  //just give an error until read function is complete and tested
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mriNrrdRead(): Nrrd input not yet supported"));
 
   //from errno.h?
   errno = 0; //is this neccesary because of error.c:ErrorPrintf's use of errno?
@@ -13865,5 +13866,6 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 
 static int mriNrrdWrite(MRI *mri, char *fname)
 {
+  //just give an error until write function is complete and tested
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
 }
