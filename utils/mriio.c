@@ -13716,8 +13716,8 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   switch (nrrd->type) {
 
     //Does nrrdLoad() generate an error for nrrdTypeUnkown and nrrdTypeDefault?
-  case nrrdTypeUnkown: //fall through to next
-  case nrrdTypeDefault:
+  case nrrdTypeUnknown: //fall through to next
+    //case nrrdTypeDefault:
     errorType = ERROR_BADFILE;
     sprintf(errorString, "unset/unknown");
     break;
@@ -13789,10 +13789,11 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   if ((rangeAxisNum == 1) && (rangeAxisIdx[0] != 3)) {
     Nrrd *ntmp = nrrdNew();
     int axmap[NRRD_DIM_MAX];
+    int axis;
     //axmap[i] = j means: axis i in the output will be the input's axis j
 
     axmap[nrrd->dim - 1] = rangeAxisIdx[0];
-    for (int axis = 0; axis < nrrd->dim - 1; axis++) {
+    for (axis = 0; axis < nrrd->dim - 1; axis++) {
       axmap[axis] = axis + (axis >= rangeAxisIdx[0]);
     }
 
@@ -13814,7 +13815,8 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
     
   //data in nrrd have been permuted so first 3 axes are spatial
   //and next if present is non-spatial
-  if (nrrd->dim == 4) nFrames = nrrd->axis[3].size else nFrames = 1;
+  if (nrrd->dim == 4) nFrames = nrrd->axis[3].size;
+  else nFrames = 1;
   mri = MRIallocSequence(nrrd->axis[0].size, nrrd->axis[1].size,
 			 nrrd->axis[2].size, mriDataType, nFrames);
 
@@ -13863,5 +13865,5 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 
 static int mriNrrdWrite(MRI *mri, char *fname)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
 }

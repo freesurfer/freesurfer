@@ -3,7 +3,7 @@
 #
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	-I$(top_srcdir)/include/NrrdIO \ 
+	-I$(top_srcdir)/include/NrrdIO \
 	$(CPPUNIT_CFLAGS)
 
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
