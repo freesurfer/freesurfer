@@ -7,9 +7,9 @@
 //
 // Bias correction may need be done earlier (yes, or refine it here too)
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/01 22:01:21 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: jsnyder $
+// Revision Date  : $Date: 2006/02/14 00:23:30 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -18,7 +18,6 @@
 #include <math.h>
 #include <ctype.h>
 #include "nr_wrapper.h"
-#include "nrutil.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -230,7 +229,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM_with_atlas.c,v 1.1 2006/02/01 22:01:21 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM_with_atlas.c,v 1.2 2006/02/14 00:23:30 jsnyder Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
