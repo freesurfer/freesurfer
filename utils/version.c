@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/02/14 19:16:59 $
- *         $Revision: 1.20 $
+ * @date   $Date: 2006/02/14 19:45:15 $
+ *         $Revision: 1.21 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pwd.h>
 #include "version.h"
 #include "utils.h"
 #include "error.h"
@@ -101,13 +102,14 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   struct tm broken_time;
   struct utsname kernel_info;
   int result;
-  char *begin, *cp;
+  char *begin;
   char program_name[1024];
   char arguments[1024];
   char time_stamp[1024];
   char user[1024];
   char machine[1024];
   char platform_version[1024];
+  struct passwd *pw;
 
   if (strlen(version_string) > 7)
     {
@@ -144,10 +146,15 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
            broken_time.tm_mday, broken_time.tm_hour,
            broken_time.tm_min, broken_time.tm_sec);
 
-  /* Use getlogin() to get the user controlling this process. */
-  cp = getlogin() ;
-  if (cp != NULL)
-    strcpy (user, cp);
+  /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+     to get the user controlling this process. don't use getlogin()
+     as that returns the name of the user logged in on the controlling 
+     terminal of the process (ie the person sitting at the terminal),
+     and don't use cuserid() because the manpage says not to.
+  */
+  pw = getpwuid(geteuid());
+  if ((pw != NULL) && (pw->pw_name != NULL))
+    strcpy (user, pw->pw_name);
   else
     strcpy(user, "UNKNOWN") ;
 
@@ -198,9 +205,10 @@ handle_version_option (int argc, char** argv,
   char program_name[1024];
   char arguments[1024];
   char time_stamp[1024];
-  char user[1024], *cp = NULL;
+  char user[1024];
   char machine[1024];
   char platform_version[1024];
+  struct passwd *pw;
 
   /* Go through each option looking for --version, -version,
      --all-info, or -all-info */
@@ -286,9 +294,15 @@ handle_version_option (int argc, char** argv,
                    broken_time.tm_mday, broken_time.tm_hour,
                    broken_time.tm_min, broken_time.tm_sec);
 
-          /* Use getlogin() to get the user controlling this process. */
-          if (cp != NULL)
-            strcpy (user, cp);
+          /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+             to get the user controlling this process. don't use getlogin()
+             as that returns the name of the user logged in on the controlling 
+             terminal of the process (ie the person sitting at the terminal),
+             and don't use cuserid() because the manpage says not to.
+          */
+          pw = getpwuid(geteuid());
+          if ((pw != NULL) && (pw->pw_name != NULL))
+            strcpy (user, pw->pw_name);
           else
             strcpy(user, "UNKNOWN") ;
 
@@ -358,10 +372,21 @@ char *argv2cmdline(int argc, char *argv[])
   *----------------------------------------------------------*/
 char *VERuser(void)
 {
-  char *cp, *user;
-  cp = getlogin() ;
-  if (cp == NULL) cp = "UNKNOWN";
-  user = strcpyalloc(cp);
+  char *user;
+  struct passwd *pw;
+
+  /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+     to get the user controlling this process. don't use getlogin()
+     as that returns the name of the user logged in on the controlling 
+     terminal of the process (ie the person sitting at the terminal),
+     and don't use cuserid() because the manpage says not to.
+  */
+  pw = getpwuid(geteuid());
+  if ((pw != NULL) && (pw->pw_name != NULL))
+    user = strcpyalloc(pw->pw_name);
+  else
+    user = strcpyalloc("UNKNOWN") ;
+
   return(user);
 }
 
