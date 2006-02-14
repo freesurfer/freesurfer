@@ -609,21 +609,31 @@ MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
 			   int frame, int ValOption)
 {
   MRI *vol;
-  int nthvc, n;
+  int nthvc, n, f;
   VOLCLUSTER *vc;
   float val;
 
-  vol = MRIallocSequence(tvol->width, tvol->height, tvol->depth, tvol->type,1);
+  // Allocate vol and fill with all zeros
+  if(ValOption)
+    vol = MRIallocSequence(tvol->width, tvol->height, tvol->depth, tvol->type,tvol->nframes);
+  else
+    vol = MRIallocSequence(tvol->width, tvol->height, tvol->depth, tvol->type,1);
   MRIcopyHeader(tvol, vol);
 
+  // Go thru each cluster and assign values to the voxels in clusters
   for(nthvc = 0; nthvc < nlist; nthvc++){
     vc = vclist[nthvc];
     for(n = 0; n < vc->nmembers; n++){
-  val = MRIFseq_vox(tvol,vc->col[n],vc->row[n],vc->slc[n],frame);
-      if(ValOption == 1)
-  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = val;
+      if(ValOption == 1){
+	// Copy the values from the input
+	for(f=0; f < tvol->nframes; f++){
+	  val = MRIFseq_vox(tvol,vc->col[n],vc->row[n],vc->slc[n],f);
+	  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],f) = val;
+	}
+      }
       else
-  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = nthvc + 1;
+	// Set values to the cluster number
+	MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],0) = nthvc + 1;
     }
   }
   return(vol);
