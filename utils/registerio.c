@@ -177,8 +177,19 @@ int regio_write_register(char *regfile, char *subject, float inplaneres,
 /* -------------------------------------------------------------- 
    regio_read_mincxfm() - reads a 3x4 transform as the last three
    lines of the xfmfile. Blank lines at the end will defeat it.
+   If fileinfo != NULL, reads in the "fileinfo". This is the 3rd
+   line in the minc xfm file. It will contain information about
+   the center of the transform (-center). This is used by 
+   ltaMNIreadEx() to account for the non-zero center of the MNI
+   talairach template. If the center infomation is not there, 
+   ltaMNIreadEx() assumes that the center is 0 and will produce
+   the wrong transform. Thus, if one is going to write out the
+   xfm, then one needs to keep track of this information when
+   reading it in. regio_write_mincxfm() takes fileinfo as an 
+   argument. If one is not going to write out the xfm, then
+   simply set fileinfo to NULL.
    -------------------------------------------------------------- */
-int regio_read_mincxfm(char *xfmfile, MATRIX **R)
+int regio_read_mincxfm(char *xfmfile, MATRIX **R, char **fileinfo)
 {
   FILE *fp;
   char tmpstr[1000];
@@ -193,6 +204,22 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
     fprintf(stderr,"Could read %s\n",xfmfile);
     return(1);
   }
+
+  fgetl(tmpstr, 900, fp) ;  /* MNI Transform File */
+  if(strncmp("MNI Transform File", tmpstr, 18)){
+    printf("ERROR: %s does not start as 'MNI Transform File'",xfmfile);
+    return(1);
+  }
+
+  fgetl(tmpstr, 900, fp) ;   /* fileinfo */
+  if(fileinfo != NULL) {
+    *fileinfo = strcpyalloc(tmpstr);
+    printf("\n%s\n\n",*fileinfo);
+  } else printf("Not reading in xfm fileinfo\n");
+
+  // Close it and open it up again to rewind it
+  fclose(fp);
+  fp = fopen(xfmfile,"r");
 
   /* Count the number of lines */
   nlines = 0;
@@ -215,10 +242,10 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
     for(c=0;c<4;c++){
       n = fscanf(fp,"%f",&val);
       if(n != 1){
-  perror("regio_read_mincxfm()");
-  fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
-  fclose(fp);
-  return(1);
+	perror("regio_read_mincxfm()");
+	fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
+	fclose(fp);
+	return(1);
       }
       (*R)->rptr[r+1][c+1] = val;
       /*printf("%7.4f ",val);*/
@@ -232,9 +259,10 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 }
 /* -------------------------------------------------------------- 
    regio_write_mincxfm() - writes a 3x4 transform in something
-   like a minc xfm file.
+   like a minc xfm file. See regio_read_mincxfm() for docs on
+   fileinfo.
    -------------------------------------------------------------- */
-int regio_write_mincxfm(char *xfmfile, MATRIX *R)
+int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo)
 {
   FILE *fp;
   int r,c;
@@ -247,6 +275,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R)
     return(1);
   }
   fprintf(fp,"MNI Transform File\n");
+  if(fileinfo) fprintf(fp,"%s\n",fileinfo);
   fprintf(fp,"%% This file was created by %s\n",Progname);
   time(&time_now);
   fprintf(fp,"%% %s\n", ctime(&time_now));
@@ -329,13 +358,15 @@ int regio_read_xfm4(char *xfmfile, MATRIX **R)
    -------------------------------------------------------------- */
 int regio_read_xfm(char *xfmfile, MATRIX **R)
 {
-  char *ext;
+  char *ext, *fileinfo;
   int err = 0;
 
   ext = fio_extension(xfmfile);
 
-  if(strcmp(ext,"xfm") == 0)
-    err = regio_read_mincxfm(xfmfile,R);
+  if(strcmp(ext,"xfm") == 0){
+    err = regio_read_mincxfm(xfmfile,R,&fileinfo);
+    free(fileinfo);
+  }
   else
     err = regio_read_xfm4(xfmfile,R);
 

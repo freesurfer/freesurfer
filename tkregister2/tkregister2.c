@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $";
+"$Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -353,6 +353,7 @@ char *pc;
 
 float int_ipr, int_bpr, int_fscale;
 int int_float2int,err;
+char *xfmfileinfo=NULL;
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
@@ -400,7 +401,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
         printf(" ... continuing\n");
         printf("\n");
       }
-      if(regio_read_mincxfm(talxfmfile, &RegMat)) exit(1);
+      if(regio_read_mincxfm(talxfmfile, &RegMat, &xfmfileinfo)) exit(1);
       printf("talairach.xfm ---------------------\n");
       MatrixPrint(stdout,RegMat);
       for (i=0;i<4;i++){
@@ -2897,7 +2898,7 @@ void write_reg(char *fname)
 
   if(fstal){
     make_backup(talxfmfile);
-    regio_write_mincxfm(talxfmfile,RegMatTmp);
+    regio_write_mincxfm(talxfmfile,RegMatTmp,xfmfileinfo);
     sprintf(touchfile,"%s/%s/touch",subjectsdir,pname);
     if(!fio_IsDirectory(touchfile)) mkdir(touchfile,(mode_t)-1);
     sprintf(touchfile,"%s/%s/touch/talairach.tkregister2.touch",
@@ -3941,7 +3942,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.44 2006/02/14 20:03:23 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

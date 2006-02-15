@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $
+  $Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $
 */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
     /* get the mask2source registration information */
     /* xyzSrc = Mmsk2src * xyzMsk */
     if(msk2srcregfile != NULL){
-      err = regio_read_mincxfm(msk2srcregfile, &Mmsk2src);
+      err = regio_read_mincxfm(msk2srcregfile, &Mmsk2src, NULL);
       if(err) exit(1);
     }
     else Mmsk2src = NULL;
