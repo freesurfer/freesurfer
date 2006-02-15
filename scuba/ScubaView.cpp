@@ -2125,6 +2125,9 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	      VectorOps::Normalize( newPlaneNormal );
 	      scubaView.Set2DPlaneNormal( newPlaneNormal.xyz() );
 	    } break;
+	    
+	    default:
+	      break;
 	    }
 	  }
 	}
