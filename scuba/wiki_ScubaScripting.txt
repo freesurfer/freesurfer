@@ -10,6 +10,11 @@ they refer to are created. As input, they must refer to valid
 objects. If they don't you'll receive an error. All IDs are integers.
 
 
+[[Anchor(AddSegmentationToSegVolReport)]]
+''Add``Segmentation``To``Seg``Vol``Report'' '''''structure'''''
+
+ Adds a structure to the list of structures to be reported on.
+
 [[Anchor(AddSegVolReportIntensityVolume)]]
 ''Add``Seg``Vol``Report``Intensity``Volume'' '''''volID'''''
 
@@ -40,6 +45,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Copies the layer settings in a view to all other views in a frame.
 
+[[Anchor(DeleteCollectionROI)]]
+''Delete``Collection``ROI'' '''''collectionID roiID'''''
+
+ Deletes an ROI for this collection.
+
 [[Anchor(DeleteDataCollection)]]
 ''Delete``Data``Collection'' '''''collectionID'''''
 
@@ -69,6 +79,141 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Export``Markers``To``Control``Points'' '''''collectionID fileName'''''
 
  Writes the markers to a control.dat file using a volume collection to transform them.
+
+[[Anchor(Flood2DMRIVolume)]]
+''Flood``2DMRI``Volume'' '''''layerID x y z toolID viewID type'''''
+
+ Floods the volume in a 2DMRIS layer at the input RAS point '''x''', '''y''', '''z''' (in RAS floating point coords), using the input tool and view for settings. Floods are of the following types: {{{voxelEditingNew}}}, {{{voxelEditingErase}}}, {{{roiEditingSelect}}}, {{{roiEditingUnselect}}}.
+
+[[Anchor(Get2DMRILayerBrightness)]]
+''Get``2DMRI``Layer``Brightness'' '''''layerID'''''
+
+ Returns the brightness for this layer.
+
+[[Anchor(Get2DMRILayerColorLUT)]]
+''Get``2DMRI``Layer``Color``LUT'' '''''layerID'''''
+
+ Returns the LUT id for this layer.
+
+[[Anchor(Get2DMRILayerContrast)]]
+''Get``2DMRI``Layer``Contrast'' '''''layerID'''''
+
+ Returns the contrast for this layer.
+
+[[Anchor(Get2DMRILayerColorMapMethod)]]
+''Get``2DMRI``Layer``Color``Map``Method'' '''''layerID'''''
+
+ Returns the color map method for this layer.
+
+[[Anchor(Get2DMRILayerDrawMIP)]]
+''Get``2DMRI``Layer``Draw``MIP'' '''''layerID'''''
+
+ Returns the value of the property for drawingthe maximum intensity projection.
+
+[[Anchor(Get2DMRILayerDrawZeroClear)]]
+''Get``2DMRI``Layer``Draw``Zero``Clear'' '''''layerID'''''
+
+ Returns the value of the property for drawingvalues of zero clear.
+
+[[Anchor(Get2DMRILayerEditableROI)]]
+''Get``2DMRI``Layer``Editable``ROI'' '''''layerID'''''
+
+ Returns whether or not this layer's ROI is editable.
+
+[[Anchor(Get2DMRILayerHeatScaleMax)]]
+''Get``2DMRI``Layer``Heat``Scale``Max'' '''''layerID'''''
+
+ Returns the heat scale max value for the layer.
+
+[[Anchor(Get2DMRILayerHeatScaleMid)]]
+''Get``2DMRI``Layer``Heat``Scale``Mid'' '''''layerID'''''
+
+ Returns the heat scale mid value for the layer.
+
+[[Anchor(Get2DMRILayerHeatScaleMin)]]
+''Get``2DMRI``Layer``Heat``Scale``Min'' '''''layerID'''''
+
+ Returns the heat scale min value for the layer.
+
+[[Anchor(Get2DMRILayerMaxValue)]]
+''Get``2DMRI``Layer``Max``Value'' '''''layerID'''''
+
+ Returns the maximum value of the volume.
+
+[[Anchor(Get2DMRILayerMaxVisibleValue)]]
+''Get``2DMRI``Layer``Max``Visible``Value'' '''''layerID'''''
+
+ Returns the maximum value to be drawn.
+
+[[Anchor(Get2DMRILayerMinValue)]]
+''Get``2DMRI``Layer``Min``Value'' '''''layerID'''''
+
+ Returns the minimum value of the volume.
+
+[[Anchor(Get2DMRILayerMinVisibleValue)]]
+''Get``2DMRI``Layer``Min``Visible``Value'' '''''layerID'''''
+
+ Returns the minimum value to be drawn.
+
+[[Anchor(Get2DMRILayerROIOpacity)]]
+''Get``2DMRI``Layer``ROI``Opacity'' '''''layerID'''''
+
+ Returns the opacity of the ROI for a layer.
+
+[[Anchor(Get2DMRILayerSampleMethod)]]
+''Get``2DMRI``Layer``Sample``Method'' '''''layerID'''''
+
+ Returns the sample method for this layer.
+
+[[Anchor(Get2DMRILayerVolumeCollection)]]
+''Get``2DMRI``Layer``Volume``Collection'' '''''layerID'''''
+
+ Returns the volume collection for this layer.
+
+[[Anchor(Get2DMRIRASCoordsFromIndex)]]
+''Get``2DMRI``RAS``Coords``From``Index'' '''''layerID x y z'''''
+
+ Returns a list of RAS coords converted from the input index coords. '''x''', '''y''', or '''z''' should be integer coordinates.
+
+[[Anchor(Get2DMRISLayerLineColor)]]
+''Get``2DMRIS``Layer``Line``Color'' '''''layerID'''''
+
+ Returns the line color for this layer as a list of red, green, and blue integers from 0-255.
+
+[[Anchor(Get2DMRISLayerLineWidth)]]
+''Get``2DMRIS``Layer``Line``Width'' '''''layerID'''''
+
+ Returns the line width for this layer as an integer.
+
+[[Anchor(Get2DMRISLayerSurfaceCollection)]]
+''Get``2DMRIS``Layer``Surface``Collection'' '''''layerID'''''
+
+ Returns the surface collection for this layer.
+
+[[Anchor(Get2DMRISLayerVertexColor)]]
+''Get``2DMRIS``Layer``Vertex``Color'' '''''layerID'''''
+
+ Returns the vertex color for this layer as a list of red, green, and blue integers from 0-255.
+
+[[Anchor(Get2DMRISNearestVertexIndex)]]
+''Get``2DMRIS``Nearest``Vertex``Index'' '''''layerID x y z'''''
+
+ Returns the index of the vertex closest to the input RAS coords and the distance to that vertex. '''x''', '''y''', and '''z''' should be floating point numbers.
+
+[[Anchor(Get2DMRISRASCoordsFromVertexIndex)]]
+''Get``2DMRIS``RAS``Coords``From``Vertex``Index'' '''''layerID vertexIndex'''''
+
+ Returns as a list of RAS coords the location of the vertex. '''vertexIndex''' should be an integer that's a valid index for the surface displayed by the layer.
+
+[[Anchor(GetCollectionLabel)]]
+''Get``Collection``Label'' '''''collectionID'''''
+
+ Return the label for this collection.
+
+[[Anchor(GetCollectionType)]]
+''Get``Collection``Type'' '''''collectionID'''''
+
+ Return the type for this layer.
 
 [[Anchor(GetColorLUTEntryLabel)]]
 ''Get``Color``LUT``Entry``Label'' '''''lutID entry'''''
@@ -130,6 +275,31 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns the layer in a view at a given draw level. '''level''' should be an integer from 0 - 9.
 
+[[Anchor(GetLayerLabel)]]
+''Get``Layer``Label'' '''''layerID'''''
+
+ Return the label for this layer.
+
+[[Anchor(GetLayerMainDataCollection)]]
+''Get``Layer``Main``Data``Collection'' '''''layerID'''''
+
+ Returns the collection ID of the main collection for this layer.
+
+[[Anchor(GetLayerOpacity)]]
+''Get``Layer``Opacity'' '''''layerID'''''
+
+ Return the opacity for this layer.
+
+[[Anchor(GetLayerReportInfo)]]
+''Get``Layer``Report``Info'' '''''layerID'''''
+
+ Return whether or not a layer is reporting info.
+
+[[Anchor(GetLayerType)]]
+''Get``Layer``Type'' '''''layerID'''''
+
+ Return the type for this layer.
+
 [[Anchor(GetLevelReportInfoInView)]]
 ''Get``Level``Report``Info``In``View'' '''''viewID level'''''
 
@@ -160,10 +330,20 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns the number of view markers.
 
+[[Anchor(GetRASCoordsFromVolumeSurfaceRAS)]]
+''Get``RAS``Coords``From``Volume``Surface``RAS'' '''''collectionID x y z'''''
+
+ Returns a list of RAS coords converted from the input surface RAS coords. This is for converting RAS points acquired from a surface that is associated with a volume and didn't generate coordinates with CRAS info. '''x''', '''y''', and '''z''' should be floating point numbers.
+
 [[Anchor(GetROIIDList)]]
 ''Get``ROI``ID``List''
 
  Return a list of all ROIs.
+
+[[Anchor(GetROIIDListForCollection)]]
+''Get``ROI``ID``List``For``Collection'' '''''collectionID'''''
+
+ Returns a lit of roiIDs belonging to this collection.
 
 [[Anchor(GetRowOfViewInFrame)]]
 ''Get``Row``Of``View``In``Frame'' '''''frameID viewID'''''
@@ -176,7 +356,7 @@ objects. If they don't you'll receive an error. All IDs are integers.
  Return the viewID of the selected view.
 
 [[Anchor(GetSubjectDir)]]
-''GetS``ubject``Dir''
+''Get``Subject``Dir''
 
  Returns the path to the subject's data if the subject name was set.
 
@@ -184,6 +364,21 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Get``Subject``Name''
 
  Returns the subject name if one was set.
+
+[[Anchor(GetSurfaceCollectionFileName)]]
+''Get``Surface``Collection``File``Name'' '''''collectionID'''''
+
+ Gets the file name for a given surface collection.
+
+[[Anchor(GetSurfaceDataToSurfaceTransformVolume)]]
+''Get``Surface``Data``To``Surface``Transform``Volume'' '''''collectionID'''''
+
+ If a surface collection is using a volume to get its data to surface transform, returns the volume's collection ID.
+
+[[Anchor(GetSurfaceUseRealRAS)]]
+''Get``Surface``Use``Real``RAS'' '''''collectionID'''''
+
+ Returns whether or not a surface has its useRealRAS flag on.
 
 [[Anchor(GetToolBrush3D)]]
 ''Get``Tool``Brush``3D'' '''''toolID'''''
@@ -305,6 +500,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns a list of transform values in column order.
 
+[[Anchor(GetUseVolumeDataToIndexTransform)]]
+''Get``Use``Volume``Data``To``Index``Transform'' '''''collectionID'''''
+
+ Returns whether or not a volume is using its Data to Index transform (usually RAS transform) in displaying data.
+
 [[Anchor(GetViewFlipLeftRightYZ)]]
 ''Get``View``Flip``Left``Righ``tYZ'' '''''viewID'''''
 
@@ -360,10 +560,35 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns the zoom level in a view.
 
+[[Anchor(GetVolumeAutosaveOn)]]
+''Get``Volume``Autosave``On'' '''''collectionID'''''
+
+ Returns whether or not autosave is on for this volume.
+
+[[Anchor(GetVolumeAverageValueInROI)]]
+''Get``Volume``Average``Value``In``ROI'' '''''collectionID roiID'''''
+
+ Returns the average value of the voxels in an ROI in a volume.
+
+[[Anchor(GetVolumeCollectionFileName)]]
+''Get``Volume``Collection``File``Name'' '''''collectionID'''''
+
+ Returns the file name for a given volume collection.
+
 [[Anchor(GetVolumeHistogramInView)]]
 ''Get``Volume``Histogram``In``View'' '''''viewID volID roiID numBins'''''
 
  Returns a histogram of the volume that's visible in a view. Returns the format: '''{minBinValue binIncrement {binCount0 binCount1 .. binCountN}}''' where '''binCountN''' is '''numBins-1'''. '''volID''' is a collectionID. '''numBins''' is an integer.
+
+[[Anchor(GetVolumeStandardDeviationInROI)]]
+''Get``Volume``Standard``Deviation``In``ROI'' '''''collectionID roiID'''''
+
+ Returns the standard deviation of the voxels in an ROI in a volume.
+
+[[Anchor(GetVolumeSurfaceRASCoordsFromRAS)]]
+''Get``Volume``Surface``RAS``Coords``From``RAS'' '''''collectionID x y z'''''
+
+ Returns a list of surface RAS coords converted from the input RAS coords. Thisis for converting RAS points acquired from a surface that is associated with a volume and didn't generate coordinates with CRAS info. '''x''', '''y''', and '''z''' should be floating point numbers.
 
 [[Anchor(ImportMarkersFromControlPoints)]]
 ''Import``Markers``From``Control``Points'' '''''collectionID fileName'''''
@@ -375,6 +600,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Inverts a transform.
 
+[[Anchor(IsSurfaceUsingDataToSurfaceTransformFromVolume)]]
+''Is``Surface``Using``Data``To``Surface``Transform``From``Volume'' '''''collectionID'''''
+
+ Returns whether or not a surface collection is using a volume to get its data to surface transform.
+
 [[Anchor(IsTransformRegistration)]]
 ''Is``Transform``Registration'' '''''transformID'''''
 
@@ -385,10 +615,25 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Loads a volume from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
 
+[[Anchor(LoadVolumeFromFileName)]]
+''Load``Volume``From``File``Name'' '''''collectionID'''''
+
+ Loads the volume from the file name. The file name must have been set previously.
+
 [[Anchor(LoadSurface)]]
 ''Load``Surface'' '''''fileName createLayer frame``ID``To``Add'''''
 
  Loads a surface from '''fileName'''. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
+
+[[Anchor(LoadSurfaceFromFileName)]]
+''Load``Surface``From``File``Name'' '''''collectionID'''''
+
+ Loads the surface from the file name.
+
+[[Anchor(LoadSurfacePatch)]]
+''Load``Surface``Patch'' '''''collectionID fileName'''''
+
+ Loads a patch into a surface.
 
 [[Anchor(LoadTransform)]]
 ''Load``Transform'' '''''fileName'''''
@@ -450,10 +695,25 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Make the segmentation volume report.
 
+[[Anchor(MakeVolumeUsingTemplate)]]
+''Make``Volume``Using``Template'' '''''collectionID templateCollectionID'''''
+
+ Makes a volume using an existing volume as a template. Given an existing volume, this initializes internal settings according to an existing template.
+
+[[Anchor(NewCollectionROI)]]
+''New``Collection``ROI'' '''''collectionID'''''
+
+ Makes a new ROI for this collection and returns the ID.
+
 [[Anchor(NewVolume)]]
 ''New``Volume'' '''''templateID createLayer frame``ID``To``Add'''''
 
  Creates a new volume based on an existing one. '''templateID''' is a collectionID for the volume to use as a template. '''createLayer''' should be 1 or 0 and specifies whether an appropriate layer will be created, and if so, '''frame``ID``To``Add''' should specify which frame to add the layer to in all views. '''createLayer''' should probably be 1 and '''frame``ID``To``Add''' should be a call to ''GetMainFrameID''.
+
+[[Anchor(NewVolumeROIFromLabel)]]
+''New``Volume``ROI``From``Label'' '''''collectionID fileName'''''
+
+ Creates an ROI from a label file and returns the ID of the new ROI.
 
 [[Anchor(PrintAllCommands)]]
 ''Print``All``Commands''
@@ -485,6 +745,121 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Makes a script that can be used to reproduce the current view configuration.
 
+[[Anchor(SaveVolume)]]
+''Save``Volume'' '''''collectionID'''''
+
+ Save volume with its file name.
+
+[[Anchor(SaveVolumeWithFileName)]]
+''Save``Volume``With``File``Name'' '''''collectionID fileName'''''
+
+ Save volume with a given file name.
+
+[[Anchor(SelectCollectionROI)]]
+''Select``Collection``ROI'' '''''collectionID roiID'''''
+
+ Selects an ROI for this collection.
+
+[[Anchor(Set2DMRILayerBrightness)]]
+''Set``2DMRI``Layer``Brightness'' '''''layerID brightness'''''
+
+ Sets the brightness for this layer. '''brightness''' should be a floating point number from 0 to 1.
+
+[[Anchor(Set2DMRILayerColorLUT)]]
+''Set``2DMRI``Layer``Color``LUT'' '''''layerID lutID'''''
+
+ Sets the LUT  for this layer.
+
+[[Anchor(Set2DMRILayerColorMapMethod)]]
+''Set``2DMRI``Layer``Color``Map``Method'' '''''layerID method'''''
+
+ Sets the color map method for this layer. '''method''' should be {{{grayscale}}}, {{{heatScale}}}, or {{{lut}}}.
+
+[[Anchor(Set2DMRILayerContrast)]]
+''Set``2DMRI``Layer``Contrast'' '''''layerID contrast'''''
+
+ Sets the contrast for this layer. '''contrast''' should be a floating point number from 0 to 30.
+
+[[Anchor(Set2DMRILayerDrawMIP)]]
+''Set``2DMRI``Layer``Draw``MIP'' '''''layerID drawMIP'''''
+
+ Sets property for drawing the maximum intensity projection. '''drawMIP''' should be 1 or 0.
+
+[[Anchor(Set2DMRILayerDrawZeroClear)]]
+''Set``2DMRI``Layer``Draw``Zero``Clear'' '''''layerID drawClear'''''
+
+ Sets property for drawingvalues of zero clear. '''drawClear''' should be 1 or 0.
+
+[[Anchor(Set2DMRILayerEditableROI)]]
+''Set``2DMRI``Layer``Editable``ROI'' '''''layerID editable'''''
+
+ Specify whether or not this layer's ROI is editable. '''editable''' should be 1 or 0.
+
+[[Anchor(Set2DMRILayerHeatScaleMax)]]
+''Set``2DMRI``Layer``Heat``Scale``Max'' '''''layerID value'''''
+
+ Sets the heat scale max value for the layer. '''value''' should be a value in the range of the volume belonging to the layer.
+
+[[Anchor(Set2DMRILayerHeatScaleMid)]]
+''Set``2DMRI``Layer``Heat``Scale``Mid'' '''''layerID value'''''
+
+ Sets the heat scale mid value for the layer. '''value''' should be a value in the range of the volume belonging to the layer.
+
+[[Anchor(Set2DMRILayerHeatScaleMin)]]
+''Set``2DMRI``Layer``Heat``Scale``Min'' '''''layerID value'''''
+
+ Sets the heat scale min value for the layer. '''value''' should be a value in the range of the volume belonging to the layer.
+
+[[Anchor(Set2DMRILayerMaxVisibleValue)]]
+''Set``2DMRI``Layer``Max``Visible``Value'' '''''layerID value'''''
+
+ Sets the maximum value to be drawn.values of zero clear. '''value''' should be a value in the range of the volume belonging to the layer.
+
+[[Anchor(Set2DMRILayerMinVisibleValue)]]
+''Set``2DMRI``Layer``Min``Visible``Value'' '''''layerID value'''''
+
+ Sets the minimum value to be drawn.values of zero clear. '''value''' should be a value in the range of the volume belonging to the layer.
+
+[[Anchor(Set2DMRILayerROIOpacity)]]
+''Set``2DMRI``Layer``ROI``Opacity'' '''''layerID opacity'''''
+
+ Sets the opacity of the ROI for a layer. '''opacity''' should be from 0 to 1.
+
+[[Anchor(Set2DMRILayerSampleMethod)]]
+''Set``2DMRI``Layer``Sample``Method'' '''''layerID method'''''
+
+ Sets the sample method for this layer. '''method''' should be {{{nearest}}}, {{{trilinear}}}, or {{{sinc}}}.
+
+[[Anchor(Set2DMRILayerVolumeCollection)]]
+''Set``2DMRI``Layer``Volume``Collection'' '''''layerID collectionID'''''
+
+ Sets the volume collection for this layer.
+
+[[Anchor(Set2DMRISLayerLineColor)]]
+''Set``2DMRIS``Layer``Line``Color'' '''''layerID red green blue'''''
+
+ Sets the line color for this layer. '''red''', '''green''', and '''blue''' should be 0-255 integers.
+
+[[Anchor(Set2DMRISLayerLineWidth)]]
+''Set``2DMRIS``Layer``Line``Width'' '''''layerID width'''''
+
+ Sets the line width for this layer. '''width''' should be an integer.
+
+[[Anchor(Set2DMRISLayerSurfaceCollection)]]
+''Set``2DMRIS``Layer``Surface``Collection'' '''''layerID collectionID'''''
+
+ Sets the surface collection for this layer.
+
+[[Anchor(Set2DMRISLayerVertexColor)]]
+''Set``2DMRIS``Layer``Vertex``Color'' '''''layerID red green blue'''''
+
+ Sets the vertex color for this layer. '''red''', '''green''', and '''blue''' should be 0-255 integers.
+
+[[Anchor(SetCollectionLabel)]]
+''Set``Collection``Label'' '''''collectionID label'''''
+
+ Set the label for a collection.
+
 [[Anchor(SetColorLUTFileName)]]
 ''Set``Color``LUT``File``Name'' '''''lutID fileName'''''
 
@@ -495,12 +870,12 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Set the label for a color LUT. '''labe''' should be a string.
 
-[[[Anchor(SetCursorFromEditDatFile)]]
+[[Anchor(SetCursorFromEditDatFile)]]
 ''Set``Cursor``From``Edit``Dat``File''
 
  Reads a cursor from a subject's edit.dat file if it exists and the subject name has been set.
 
-[Anchor(SetCursorFromSurfaceVertexIndex)]]
+[[Anchor(SetCursorFromSurfaceVertexIndex)]]
 ''Set``Cursor``From``Surface``Vertex``Index'' '''''layerID vertexNumber'''''
 
  Sets the cursor to a vertex in a surface. The layer should be one displaying a surface, and '''vertexNumber''' should be a valid vertx index in the layer's surface.
@@ -509,6 +884,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Set``Cursor``From``Volume``Index``Coords'' '''''collectionID x y z'''''
 
  Converts the given MRI index coordinate to RAS and sets the cursor from that, converting in the volume referenced by '''collectionID'''. '''x''', '''y''', and '''z''' should be integers.
+
+[[Anchor(SetDataTransform)]]
+''Set``Data``Transform'' '''''collectionID transformID'''''
+
+ Set the data to world transform for a data collection.
 
 [[Anchor(SetFrameViewConfiguration)]]
 ''Set``Frame``View``Configuration'' '''''frameID configuration'''''
@@ -519,6 +899,21 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Set``Layer``In``View``At``Level'' '''''viewID layerID level'''''
 
  Sets the layer in a view at a given draw level. Higher draw levels will draw later. '''level''' should be an integer from 0 - 9.
+
+[[Anchor(SetLayerLabel)]]
+''Set``Layer``Label'' '''''layerID label'''''
+
+ Set the label for a layer.
+
+[[Anchor(SetLayerOpacity)]]
+''Set``Layer``Opacity'' '''''layerID opacity'''''
+
+ Set the opacity for this layer. '''opacity''' should be a float from 0 to 1.
+
+[[Anchor(SetLayerReportInfo)]]
+''Set``Layer``Report``Info'' '''''layerID report'''''
+
+ Set whether or not a layer should report info. '''report''' should be 1 or 0.
 
 [[Anchor(SetLevelReportInfoInView)]]
 ''Set``Level``Report``Info``In``View'' '''''viewID level reportInfo'''''
@@ -554,6 +949,21 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Set``Selected``View``ID'' '''''frameID viewID'''''
 
  Sets the select view in a frame.
+
+[[Anchor(SetSurfaceCollectionFileName)]]
+''Set``Surface``Collection``File``Name'' '''''collectionID fileName'''''
+
+ Sets the file name for a given surface collection.
+
+[[Anchor(SetSurfaceDataToSurfaceTransformFromVolume)]]
+''Set``Surface``Data``To``Surface``Transform``From``Volume'' '''''collectionID volumeID'''''
+
+ Gets the data to surface transform from a volume.
+
+[[Anchor(SetSurfaceDataToSurfaceTransformToDefault)]]
+''Set``Surface``Data``To``Surface``Transform``To``Default'' '''''collectionID'''''
+
+ Sets the data to surface transform for a surface to the default, which will be ../mri/orig or identity.
 
 [[Anchor(SetToolBrush3D)]]
 ''Set``Tool``Brush``3D'' '''''toolID 3D'''''
@@ -665,6 +1075,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Sets the values of a transform. '''listOfValues''' should be a list of 16 values in column order.
 
+[[Anchor(SetUseVolumeDataToIndexTransform)]]
+''Set``Use``Volume``Data``To``Index``Transform'' '''''collectionID use'''''
+
+ Use or don't use the volume's Data to Index transform (usually RAS transform) in displaying data. '''use''' should be 1 or 0.
+
 [[Anchor(SetViewFlipLeftRightYZ)]]
 ''Set``View``Flip``Left``Right``YZ'' '''''viewID flip'''''
 
@@ -715,6 +1130,16 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Sets the zoom level in a view. '''zoomLevel''' should be a floating point number. 1 is normal zoom, 0-1 is zoomed out, and 1+ is zoomed in.
 
+[[Anchor(SetVolumeAutosaveOn)]]
+''Set``Volume``Autosave``On'' '''''collectionID on'''''
+
+ Set whether or not autosave is on for this volume. '''on''' should be 1 or 0.
+
+[[Anchor(SetVolumeCollectionFileName)]]
+''Set``Volume``Collection``File``Name'' '''''collectionID fileName'''''
+
+ Sets the file name for a given volume collection. This does not actually load the volume.
+
 [[Anchor(TreatTransformAsNative)]]
 ''Treat``Transform``As``Native'' '''''transformID'''''
 
@@ -740,29 +1165,219 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Write paths to a file.
 
+[[Anchor(WriteVolumeROIsToSegmentation)]]
+''Write``Volume``ROIs``To``Segmentation'' '''''collectionID fileName'''''
+
+ Writes a series of structure ROIs to a segmentation volume. This will write all of the ROIs in the collection that are marked as structure ROIs to a new segmentation volume.
+
+[[Anchor(WriteVolumeROIToLabel)]]
+''Write``Volume``ROI``To``Label'' '''''collectionID roiID fileName'''''
+
+ Writes an ROI to a label file. Must provide the collectionID that the ROI is associated with; if the ROI doesn't match the collection, you'll receive an error.
+
 
 == Index ==
 
-[#PrintAllCommands PrintAllCommands]
-[#GetLayerIDList GetLayerIDList]
+=== Loading Data ===
+
+[#NewVolume NewVolume]
+[#LoadVolume LoadVolume]
+[#LoadSurface LoadSurface]
+[#LoadTransform LoadTransform]
+
+=== Frames ===
+
+[#GetMainFrameID GetMainFrameID]
+[#UpdateFrame UpdateFrame]
+[#RedrawFrame RedrawFrame]
+[#SetFrameViewConfiguration SetFrameViewConfiguration]
+[#GetViewIDFromFrameColRow GetViewIDFromFrameColRow]
+[#GetSelectedViewID GetSelectedViewID]
+[#SetSelectedViewID SetSelectedViewID]
+[#GetNumberOfRowsInFrame GetNumberOfRowsInFrame]
+[#GetNumberOfColsAtRowInFrame GetNumberOfColsAtRowInFrame]
+[#GetViewIDAtFrameLocation GetViewIDAtFrameLocation]
+[#GetColumnOfViewInFrame GetColumnOfViewInFrame]
+[#GetRowOfViewInFrame GetRowOfViewInFrame]
+[#CopyViewLayersToAllViewsInFrame CopyViewLayersToAllViewsInFrame]
+[#GetToolIDForFrame GetToolIDForFrame]
+[#CycleCurrentViewInFrame CycleCurrentViewInFrame]
+[#CaptureFrameToFile CaptureFrameToFile]
+
+=== Views ===
+
+[#SaveSceneScript SaveSceneScript]
+[#ConvertWindowToViewRAS ConvertWindowToViewRAS]
+
+==== View State ====
+
+[#SetViewInPlane SetViewInPlane]
+[#GetViewInPlane GetViewInPlane]
+[#SetViewZoomLevel SetViewZoomLevel]
+[#GetViewZoomLevel GetViewZoomLevel]
+[#SetViewRASCenter SetViewRASCenter]
+[#GetViewRASCenter GetViewRASCenter]
+[#SetViewStateToLayerBounds SetViewStateToLayerBounds]
+[#SetViewLinkedStatus SetViewLinkedStatus]
+[#GetViewLinkedStatus GetViewLinkedStatus]
+[#SetViewLockOnCursor SetViewLockOnCursor]
+[#GetViewLockOnCursor GetViewLockOnCursor]
+[#SetViewTransform SetViewTransform]
+[#GetViewTransform GetViewTransform]
+[#SetViewFlipLeftRightYZ SetViewFlipLeftRightYZ]
+[#GetViewFlipLeftRightYZ GetViewFlipLeftRightYZ]
+[#SetViewThroughPlaneIncrement SetViewThroughPlaneIncrement]
+[#GetViewThroughPlaneIncrement GetViewThroughPlaneIncrement]
+
+==== Draw Levels ====
+
+[#SetLayerInViewAtLevel SetLayerInViewAtLevel]
+[#GetLayerInViewAtLevel GetLayerInViewAtLevel]
+[#RemoveAllLayersFromView RemoveAllLayersFromView]
+[#RemoveLayerFromViewAtLevel RemoveLayerFromViewAtLevel]
+[#SetLevelVisibilityInView SetLevelVisibilityInView]
+[#GetLevelVisibilityInView GetLevelVisibilityInView]
+[#SetLevelReportInfoInView SetLevelReportInfoInView]
+[#GetLevelReportInfoInView GetLevelReportInfoInView]
+[#GetFirstUnusedDrawLevelInView GetFirstUnusedDrawLevelInView]
+
+==== Cursor ====
+
+[#SetViewRASCursor SetViewRASCursor]
+[#GetViewRASCursor GetViewRASCursor]
+[#SetCursorFromSurfaceVertexIndex SetCursorFromSurfaceVertexIndex]
+[#SetCursorFromVolumeIndexCoords SetCursorFromVolumeIndexCoords]
+[#SetCursorFromEditDatFile SetCursorFromEditDatFile]
+[#WriteCursorToEditDatFile WriteCursorToEditDatFile]
+
+==== Markers ====
+
 [#SetNumberOfViewMarkers SetNumberOfViewMarkers]
 [#GetNumberOfViewMarkers GetNumberOfViewMarkers]
 [#ExportMarkersToControlPoints ExportMarkersToControlPoints]
 [#ImportMarkersFromControlPoints ImportMarkersFromControlPoints]
-[#SetViewRASCursor SetViewRASCursor]
-[#GetViewRASCursor GetViewRASCursor]
-[#GetROIIDList GetROIIDList]
-[#GetColorLUTIDList GetColorLUTIDList]
-[#MakeNewColorLUT MakeNewColorLUT]
-[#GetTransformIDList GetTransformIDList]
-[#MakeNewTransform MakeNewTransform]
+
+==== Paths ====
+
+[#WritePathFile WritePathFile]
+[#ReadPathFile ReadPathFile]
+
+=== Layers ===
+
+[#GetLayerIDList GetLayerIDList]
 [#MakeLayer MakeLayer]
 [#DeleteLayer DeleteLayer]
+[#SetLayerLabel SetLayerLabel]
+[#GetLayerLabel GetLayerLabel]
+[#GetLayerType GetLayerType]
+[#GetLayerOpacity GetLayerOpacity]
+[#SetLayerOpacity SetLayerOpacity]
+[#GetLayerReportInfo GetLayerReportInfo]
+[#SetLayerReportInfo SetLayerReportInfo]
+[#GetLayerMainDataCollection GetLayerMainDataCollection]
+
+==== 2DMRI Layer ====
+
+[#Set2DMRILayerVolumeCollection Set2DMRILayerVolumeCollection]
+[#Get2DMRILayerVolumeCollection Get2DMRILayerVolumeCollection]
+[#Set2DMRILayerColorMapMethod Set2DMRILayerColorMapMethod]
+[#Get2DMRILayerColorMapMethod Get2DMRILayerColorMapMethod]
+[#Set2DMRILayerSampleMethod Set2DMRILayerSampleMethod]
+[#Get2DMRILayerSampleMethod Get2DMRILayerSampleMethod]
+[#Set2DMRILayerBrightness Set2DMRILayerBrightness]
+[#Get2DMRILayerBrightness Get2DMRILayerBrightness]
+[#Set2DMRILayerContrast Set2DMRILayerContrast]
+[#Get2DMRILayerContrast Get2DMRILayerContrast]
+[#Set2DMRILayerColorLUT Set2DMRILayerColorLUT]
+[#Get2DMRILayerColorLUT Get2DMRILayerColorLUT]
+[#Set2DMRILayerDrawZeroClear Set2DMRILayerDrawZeroClear]
+[#Get2DMRILayerDrawZeroClear Get2DMRILayerDrawZeroClear]
+[#Set2DMRILayerDrawMIP Set2DMRILayerDrawMIP]
+[#Get2DMRILayerDrawMIP Get2DMRILayerDrawMIP]
+[#Set2DMRILayerMinVisibleValue Set2DMRILayerMinVisibleValue]
+[#Get2DMRILayerMinVisibleValue Get2DMRILayerMinVisibleValue]
+[#Set2DMRILayerMaxVisibleValue Set2DMRILayerMaxVisibleValue]
+[#Get2DMRILayerMaxVisibleValue Get2DMRILayerMaxVisibleValue]
+[#Get2DMRILayerMinValue Get2DMRILayerMinValue]
+[#Get2DMRILayerMaxValue Get2DMRILayerMaxValue]
+[#Get2DMRILayerHeatScaleMin Get2DMRILayerHeatScaleMin]
+[#Set2DMRILayerHeatScaleMin Set2DMRILayerHeatScaleMin]
+[#Get2DMRILayerHeatScaleMid Get2DMRILayerHeatScaleMid]
+[#Set2DMRILayerHeatScaleMid Set2DMRILayerHeatScaleMid]
+[#Get2DMRILayerHeatScaleMax Get2DMRILayerHeatScaleMax]
+[#Set2DMRILayerHeatScaleMax Set2DMRILayerHeatScaleMax]
+[#Set2DMRILayerROIOpacity Set2DMRILayerROIOpacity]
+[#Get2DMRILayerROIOpacity Get2DMRILayerROIOpacity]
+[#Set2DMRILayerEditableROI Set2DMRILayerEditableROI]
+[#Get2DMRILayerEditableROI Get2DMRILayerEditableROI]
+[#Get2DMRIRASCoordsFromIndex Get2DMRIRASCoordsFromIndex]
+[#Flood2DMRIVolume Flood2DMRIVolume]
+
+==== 2DMRIS Layer ====
+
+[#Set2DMRISLayerSurfaceCollection Set2DMRISLayerSurfaceCollection]
+[#Get2DMRISLayerSurfaceCollection Get2DMRISLayerSurfaceCollection]
+[#Set2DMRISLayerLineColor Set2DMRISLayerLineColor]
+[#Get2DMRISLayerLineColor Get2DMRISLayerLineColor]
+[#Set2DMRISLayerVertexColor Set2DMRISLayerVertexColor]
+[#Get2DMRISLayerVertexColor Get2DMRISLayerVertexColor]
+[#Set2DMRISLayerLineWidth Set2DMRISLayerLineWidth]
+[#Get2DMRISLayerLineWidth Get2DMRISLayerLineWidth]
+[#Get2DMRISRASCoordsFromVertexIndex Get2DMRISRASCoordsFromVertexIndex]
+[#Get2DMRISNearestVertexIndex Get2DMRISNearestVertexIndex]
+
+=== ROIs ===
+
+[#GetROIIDList GetROIIDList]
+
+=== Color LUTs ===
+
+[#GetColorLUTIDList GetColorLUTIDList]
+[#MakeNewColorLUT MakeNewColorLUT]
+[#SetColorLUTLabel SetColorLUTLabel]
+[#GetColorLUTLabel GetColorLUTLabel]
+[#SetColorLUTFileName SetColorLUTFileName]
+[#GetColorLUTFileName GetColorLUTFileName]
+[#GetColorLUTNumberOfEntries GetColorLUTNumberOfEntries]
+[#GetColorLUTEntryLabel GetColorLUTEntryLabel]
+[#GetColorLUTEntryRGB GetColorLUTEntryRGB]
+[#IsColorLUTEntryValid IsColorLUTEntryValid]
+
+=== Transforms ===
+
+[#GetTransformIDList GetTransformIDList]
+[#MakeNewTransform MakeNewTransform]
+[#SetTransformLabel SetTransformLabel]
+[#GetTransformLabel GetTransformLabel]
+[#SetTransformValues SetTransformValues]
+[#GetTransformValues GetTransformValues]
+[#LoadTransformFromLTAFile LoadTransformFromLTAFile]
+[#InvertTransform InvertTransform]
+[#TreatTransformAsRegistration TreatTransformAsRegistration]
+[#TreatTransformAsNative TreatTransformAsNative]
+[#IsTransformRegistration IsTransformRegistration]
+[#GetTransformRegistrationSource GetTransformRegistrationSource]
+[#GetTransformRegistrationDest GetTransformRegistrationDest]
+
+=== Data Collections ===
+
 [#GetDataCollectionIDList GetDataCollectionIDList]
 [#MakeDataCollection MakeDataCollection]
 [#DeleteDataCollection DeleteDataCollection]
-[#WritePathFile WritePathFile]
-[#ReadPathFile ReadPathFile]
+
+==== Volumes ====
+
+[#SetUseVolumeDataToIndexTransform SetUseVolumeDataToIndexTransform]
+[#GetUseVolumeDataToIndexTransform GetUseVolumeDataToIndexTransform]
+[#SetVolumeAutosaveOn SetVolumeAutosaveOn]
+[#GetVolumeAutosaveOn GetVolumeAutosaveOn]
+[#GetRASCoordsFromVolumeSurfaceRAS GetRASCoordsFromVolumeSurfaceRAS]
+[#GetVolumeSurfaceRASCoordsFromRAS GetVolumeSurfaceRASCoordsFromRAS]
+[#GetVolumeAverageValueInROI GetVolumeAverageValueInROI]
+[#GetVolumeStandardDeviationInROI GetVolumeStandardDeviationInROI]
+
+===== Segmentation Volume Report =====
+
 [#ClearSegVolReport ClearSegVolReport]
 [#SetSegVolReportSegmentation SetSegVolReportSegmentation]
 [#AddSegVolReportIntensityVolume AddSegVolReportIntensityVolume]
@@ -772,6 +1387,28 @@ objects. If they don't you'll receive an error. All IDs are integers.
 [#AddSegmentationToSegVolReport AddSegmentationToSegVolReport]
 [#MakeSegVolReport MakeSegVolReport]
 [#MakeSegVolIntensityReport MakeSegVolIntensityReport]
+
+===== Volume Histogram =====
+
+[#GetVolumeHistogramInView GetVolumeHistogramInView]
+[#BeginValueRangeFillInView BeginValueRangeFillInView]
+[#DoOneValueRangeFillInView DoOneValueRangeFillInView]
+[#EndValueRangeFillInView EndValueRangeFillInView]
+
+==== Surfaces ====
+
+[#SetSurfaceCollectionFileName SetSurfaceCollectionFileName]
+[#LoadSurfaceFromFileName LoadSurfaceFromFileName]
+[#GetSurfaceCollectionFileName GetSurfaceCollectionFileName]
+[#SetSurfaceDataToSurfaceTransformFromVolume SetSurfaceDataToSurfaceTransformFromVolume]
+[#SetSurfaceDataToSurfaceTransformToDefault SetSurfaceDataToSurfaceTransformToDefault]
+[#IsSurfaceUsingDataToSurfaceTransformFromVolume IsSurfaceUsingDataToSurfaceTransformFromVolume]
+[#GetSurfaceDataToSurfaceTransformVolume GetSurfaceDataToSurfaceTransformVolume]
+[#LoadSurfacePatch LoadSurfacePatch]
+[#GetSurfaceUseRealRAS GetSurfaceUseRealRAS]
+
+=== Tools ===
+
 [#SetToolMode SetToolMode]
 [#GetToolMode GetToolMode]
 [#SetToolTargetLayer SetToolTargetLayer]
@@ -808,80 +1445,10 @@ objects. If they don't you'll receive an error. All IDs are integers.
 [#GetToolEdgePathStraightBias GetToolEdgePathStraightBias]
 [#SetToolEdgePathEdgeBias SetToolEdgePathEdgeBias]
 [#GetToolEdgePathEdgeBias GetToolEdgePathEdgeBias]
-[#SetFrameViewConfiguration SetFrameViewConfiguration]
-[#GetViewIDFromFrameColRow GetViewIDFromFrameColRow]
-[#GetSelectedViewID GetSelectedViewID]
-[#SetSelectedViewID SetSelectedViewID]
-[#GetNumberOfRowsInFrame GetNumberOfRowsInFrame]
-[#GetNumberOfColsAtRowInFrame GetNumberOfColsAtRowInFrame]
-[#GetViewIDAtFrameLocation GetViewIDAtFrameLocation]
-[#GetColumnOfViewInFrame GetColumnOfViewInFrame]
-[#GetRowOfViewInFrame GetRowOfViewInFrame]
-[#RedrawFrame RedrawFrame]
-[#CopyViewLayersToAllViewsInFrame CopyViewLayersToAllViewsInFrame]
-[#GetToolIDForFrame GetToolIDForFrame]
-[#CycleCurrentViewInFrame CycleCurrentViewInFrame]
-[#CaptureFrameToFile CaptureFrameToFile]
-[#SetTransformLabel SetTransformLabel]
-[#GetTransformLabel GetTransformLabel]
-[#SetTransformValues SetTransformValues]
-[#GetTransformValues GetTransformValues]
-[#LoadTransformFromLTAFile LoadTransformFromLTAFile]
-[#InvertTransform InvertTransform]
-[#TreatTransformAsRegistration TreatTransformAsRegistration]
-[#TreatTransformAsNative TreatTransformAsNative]
-[#IsTransformRegistration IsTransformRegistration]
-[#GetTransformRegistrationSource GetTransformRegistrationSource]
-[#GetTransformRegistrationDest GetTransformRegistrationDest]
-[#SetViewInPlane SetViewInPlane]
-[#GetViewInPlane GetViewInPlane]
-[#SetViewZoomLevel SetViewZoomLevel]
-[#GetViewZoomLevel GetViewZoomLevel]
-[#SetViewRASCenter SetViewRASCenter]
-[#GetViewRASCenter GetViewRASCenter]
-[#SetLayerInViewAtLevel SetLayerInViewAtLevel]
-[#GetLayerInViewAtLevel GetLayerInViewAtLevel]
-[#RemoveAllLayersFromView RemoveAllLayersFromView]
-[#RemoveLayerFromViewAtLevel RemoveLayerFromViewAtLevel]
-[#SetLevelVisibilityInView SetLevelVisibilityInView]
-[#GetLevelVisibilityInView GetLevelVisibilityInView]
-[#SetLevelReportInfoInView SetLevelReportInfoInView]
-[#GetLevelReportInfoInView GetLevelReportInfoInView]
-[#SetViewStateToLayerBounds SetViewStateToLayerBounds]
-[#GetFirstUnusedDrawLevelInView GetFirstUnusedDrawLevelInView]
-[#SetViewLinkedStatus SetViewLinkedStatus]
-[#GetViewLinkedStatus GetViewLinkedStatus]
-[#SetViewLockOnCursor SetViewLockOnCursor]
-[#GetViewLockOnCursor GetViewLockOnCursor]
-[#SetViewTransform SetViewTransform]
-[#GetViewTransform GetViewTransform]
-[#SetViewFlipLeftRightYZ SetViewFlipLeftRightYZ]
-[#GetViewFlipLeftRightYZ GetViewFlipLeftRightYZ]
-[#SetViewThroughPlaneIncrement SetViewThroughPlaneIncrement]
-[#GetViewThroughPlaneIncrement GetViewThroughPlaneIncrement]
-[#GetVolumeHistogramInView GetVolumeHistogramInView]
-[#BeginValueRangeFillInView BeginValueRangeFillInView]
-[#DoOneValueRangeFillInView DoOneValueRangeFillInView]
-[#EndValueRangeFillInView EndValueRangeFillInView]
-[#ConvertWindowToViewRAS ConvertWindowToViewRAS]
-[#SetColorLUTLabel SetColorLUTLabel]
-[#GetColorLUTLabel GetColorLUTLabel]
-[#SetColorLUTFileName SetColorLUTFileName]
-[#GetColorLUTFileName GetColorLUTFileName]
-[#GetColorLUTNumberOfEntries GetColorLUTNumberOfEntries]
-[#GetColorLUTEntryLabel GetColorLUTEntryLabel]
-[#GetColorLUTEntryRGB GetColorLUTEntryRGB]
-[#IsColorLUTEntryValid IsColorLUTEntryValid]
+
+=== Miscellaneous ===
+
 [#GetSubjectName GetSubjectName]
 [#GetSubjectDir GetSubjectDir]
-[#NewVolume NewVolume]
-[#LoadVolume LoadVolume]
-[#LoadSurface LoadSurface]
-[#LoadTransform LoadTransform]
-[#SaveSceneScript SaveSceneScript]
-[#GetMainFrameID GetMainFrameID]
-[#UpdateFrame UpdateFrame]
-[#SetCursorFromSurfaceVertexIndex SetCursorFromSurfaceVertexIndex]
-[#SetCursorFromEditDatFile SetCursorFromEditDatFile]
-[#WriteCursorToEditDatFile WriteCursorToEditDatFile]
-[#SetCursorFromVolumeIndexCoords SetCursorFromVolumeIndexCoords]
+[#PrintAllCommands PrintAllCommands]
+
