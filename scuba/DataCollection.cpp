@@ -54,10 +54,11 @@ DataCollection::DataCollection() :
 			 "Returns a lit of roiIDs belonging to this "
 			 "collection." );
   commandMgr.AddCommand( *this, "SetDataTransform", 2, "colID transformID",
-			 "Set the data to world transform for a view." );
+			 "Set the data to world transform for a data "
+			 "collection." );
   commandMgr.AddCommand( *this, "GetDataTransform", 1, "colID",
-			 "Returns the transformID of a view's data to "
-			 "world transform." );
+			 "Returns the transformID of a data collection's "
+			 "data to world transform." );
 }
 
 DataCollection::~DataCollection() {
