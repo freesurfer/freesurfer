@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/13 23:54:01 $
-// Revision       : $Revision: 1.20 $
+// Revision Date  : $Date: 2006/02/15 05:34:02 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
 /*
@@ -90,7 +90,7 @@ ENDHELP
 #include "gca.h"
 #include "gcamorph.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.20 2006/02/13 23:54:01 greve Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.21 2006/02/15 05:34:02 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -127,7 +127,7 @@ main(int argc, char *argv[])
   GCA_MORPH *gcam=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.20 2006/02/13 23:54:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.21 2006/02/15 05:34:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 
   mdir = getenv("FREESURFER_HOME") ;
   if (!mdir)
-    ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in envoronment.\n",Progname);
+    ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in environment.\n",Progname);
 
   ac = argc ;
   av = argv ;
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
   if(sdir == NULL){
     sdir =  getenv("SUBJECTS_DIR");
     if (!sdir)
-      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
+      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in environment.\n",Progname);
   }
   if(sdirout == NULL) sdirout = sdir;
   if(argc < 6) usage_exit() ;
@@ -160,13 +160,28 @@ main(int argc, char *argv[])
   canon_surf_name = argv[3] ;
   out_sname = argv[4] ;
 
+  printf("---------------------------------------------------\n");
+  printf("hemi            = %s\n",hemi);
+  printf("avg_surf_name   = %s\n",avg_surf_name);
+  printf("canon_surf_name = %s\n",canon_surf_name);
+  printf("out_sname       = %s\n",out_sname);
+  printf("xform           = %s\n",xform_name);
+  printf("---------------------------------------------------\n");
+  printf("\n\n");
+  fflush(stdout);
+
 #define SCALE 1
   mrisp_total = MRISPalloc(SCALE, 3) ;
   for (n = 0, i = 5 ; i < argc ; i++)
   {
-    fprintf(stderr, "processing subject %s...\n", argv[i]) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, canon_surf_name) ;
+    printf("\n---------------------------------------------------\n");
+    printf("#@# processing subject %d/%d %s...\n", i-4,argc-4,argv[i]) ;
+    fflush(stdout);
+
     // read sphere.reg
+    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, canon_surf_name) ;
+    printf("  Reading %s\n",fname);
+    fflush(stdout);
     mris = MRISread(fname) ;
     if (!mris){
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -192,27 +207,34 @@ main(int argc, char *argv[])
       sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
       mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
     }
+    printf("  Read %s\n",fname);
+    fflush(stdout);
 
     if (!mri)
-      ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
+      ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", 
+		Progname, fname) ;
 
     // save current vertex position into ->cx
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     // get the vertex position from ->origx, ... (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
-    printf("surface area: %2.1f cm^2\n", mris->total_area/100) ;
+    printf("  Surface area: %2.1f cm^2\n", mris->total_area/100) ;
+    fflush(stdout);
     average_surface_area += mris->total_area ;
     
     // this means that we transform "pial" surface
 
     if(!strcmp(xform_name,"talairach.xfm")){
+      printf("  Applying linear transform\n");
+      fflush(stdout);
       XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
       if(XFM == NULL) exit(1);
       MRISmatrixMultiply(mris, XFM);
     } else if(!strcmp(xform_name,"talairach.m3z")){
+      printf("  Applying GCA Morph\n");
+      fflush(stdout);
       sprintf(fname, "%s/%s/mri/transforms/talairach.m3z", sdir, argv[i]) ;
-      printf("Applying GCA Morph\n");
       gcam = GCAMreadAndInvert(fname);
       if(gcam == NULL) exit(1);
       GCAMmorphSurf(mris, gcam);
@@ -235,13 +257,17 @@ main(int argc, char *argv[])
     MRISPaccumulate(mrisp, mrisp_total, 2) ;
     MRISPfree(&mrisp) ; MRISfree(&mris) ; MRIfree(&mri) ;
     //LTAfree(&lta) ; 
+    fflush(stdout);
     n++ ;
   }
+  printf("Finished loading all data\n");
   average_surface_area /= (float)n ;
+  printf("Avg surf area = %g cm\n",average_surface_area/100.0);
+  fflush(stdout);
 
   // mrisp_total lost info on the modified surface
   sprintf(ico_fname, "%s/lib/bem/ic%d.tri", mdir, ico_no) ;
-  fprintf(stderr, "reading icosahedron from %s...\n", ico_fname) ;
+  printf("Reading icosahedron from %s...\n", ico_fname) ;
   mris_ico = ICOread(ico_fname) ;
   if (!mris_ico)
     ErrorExit(ERROR_NOFILE, "%s: could not read icosahedron file %s\n",
@@ -261,19 +287,19 @@ main(int argc, char *argv[])
     VERTEX *vn ;
 
     v = &mris_ico->vertices[Gdiag_no] ;
-    fprintf(stderr, "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
+    printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
             Gdiag_no, v->origx, v->origy, v->origz) ;
     for (n = 0 ; n < v->vnum ; n++)
     {
       vn = &mris_ico->vertices[v->v[n]] ;
-      fprintf(stderr, "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
+      printf( "v %d: x = (%2.2f, %2.2f, %2.2f)\n",
               v->v[n], vn->origx, vn->origy, vn->origz) ;
     }
   }
   // write *h.sphere.reg
   sprintf(fname, "%s/%s/surf/%s.%s", sdirout, out_sname, hemi, canon_surf_name) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"writing average canonical surface to %s\n", fname);
+    printf("writing average canonical surface to %s\n", fname);
   MRISwrite(mris_ico, fname) ;
 
   // get "pial vertices" from orig
@@ -385,7 +411,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    printf( "unknown option %s\n", argv[1]) ;
     exit(1) ;
     break ;
   }
@@ -476,7 +502,7 @@ printf("  \n");
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  printf( "%s\n", vcid) ;
   exit(1) ;
 }
 
