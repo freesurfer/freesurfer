@@ -79,7 +79,7 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
     maDone->Set( current, true );
     
     // remove it from Q
-    mQueue->Remove( (listElement**)&min );
+    mQueue->Remove( min );
     
     // Check out neighbors.
     for( int direction = 1; direction < 9; direction++ ) {
@@ -238,14 +238,13 @@ void
 circularQueue::Remove ( Point2<int>& iLocation ) {
 
   listElement *el = this->A->Element( iLocation );
-  this->Remove( &el );
+  this->Remove( el );
 }
 
 void
-circularQueue::Remove( listElement **iElementToDelete ) {
+circularQueue::Remove( listElement *el ) {
 
   // if el is in linked list
-  listElement* el = *iElementToDelete;
   if (el->Prev != NULL) {
     if (el->Next == NULL) {
       cout <<"ERROR. el->Next is NULL."<< endl;

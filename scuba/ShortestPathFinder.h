@@ -35,7 +35,7 @@ class circularQueue {
 
   void Insert ( Point2<int>& iLocation, int iCost );
   void Remove ( Point2<int>& iLocation );
-  void Remove ( listElement *el );
+  void Remove ( listElement *el ); 
   listElement *GetListElement ( int iCost );
 
  private:
