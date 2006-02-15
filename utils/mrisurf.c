@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/10 09:23:58 $
-// Revision       : $Revision: 1.435 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/02/15 11:59:31 $
+// Revision       : $Revision: 1.436 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -121,18 +121,23 @@ typedef struct
 
 /* edge intersection onto the sphere */
 #define SPHERE_INTERSECTION 1
+
 /* speeds things up */
 #define MATRIX_ALLOCATION 1
+
 /* add extra vertices to avoid topological inconsistencies */
-#define ADD_EXTRA_VERTICES 0
+#define ADD_EXTRA_VERTICES 1
 /* defect becomes a enclosed patch
    requires ADD_VERTEX_VERTICES to avoid top. inconsistencies */
-#define FIND_ENCLOSING_LOOP 0
+#define FIND_ENCLOSING_LOOP ADD_EXTRA_VERTICES
+
 /* solve the neighboring defect problem
    becomes obsolet because of ADD_EXTRA_VERTICES */
 #define MERGE_NEIGHBORING_DEFECTS 1
+
 /* limit the convex hull to the strict minimum set of first neighbors*/
 #define SMALL_CONVEX_HULL 1
+
 /* */
 #define MRIS_FIX_TOPOLOGY_ERROR_MODE 1
 #define DEBUG_HOMEOMORPHISM 0
@@ -568,7 +573,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.435 2006/02/10 09:23:58 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.436 2006/02/15 11:59:31 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -34095,6 +34100,10 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
   float              max_len ;
 #endif
 
+#if ADD_EXTRA_VERTICES
+	int retessellation_error=-1;
+#endif
+
   OPTIMAL_DEFECT_MAPPING *o_d_m;
 
   fprintf(WHICH_OUTPUT,"\nCorrection of the Topology\n");
@@ -34668,7 +34677,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                            h_k1,h_k2,mri_k1_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
 
 #if 1
-      {
+      { 
         int ne,nv,nf,tt,theoric_euler,euler_nb;
         nf=mris_corrected->nfaces;
         ne=nv=0;
@@ -34682,6 +34691,11 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         euler_nb=nv+nf-ne;
         theoric_euler=3+defect->defect_number-dl->ndefects;
         fprintf(WHICH_OUTPUT,"After retessellation of defect %d, euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
+
+#if ADD_EXTRA_VERTICES
+        if(theoric_euler-euler_nb && retessellation_error<0)
+          retessellation_error=i;
+#endif
 
       }
 #endif
@@ -34785,6 +34799,12 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
               theoric_euler=3+defect->defect_number-dl->ndefects;
               fprintf(WHICH_OUTPUT,"After retessellation of defect %d, euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
 
+
+#if ADD_EXTRA_VERTICES
+							if(theoric_euler-euler_nb && retessellation_error<0)
+								retessellation_error=i;
+#endif
+
             }
 #endif
 #if 0
@@ -34862,13 +34882,20 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                 "euler #=%d (%d,%d,%d) : "
                 "difference with theory (%d) = %d \n",
                 i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
-      }
+#if ADD_EXTRA_VERTICES
+				if(theoric_euler-euler_nb && retessellation_error<0)
+					retessellation_error=i;
+#endif
+			}
 
       if(parms->correct_defect>=0 && i==parms->correct_defect)
         ErrorExit(ERROR_BADPARM,
                   "TERMINATING PROGRAM AFTER CORRECTED DEFECT\n");
     }
-
+#if ADD_EXTRA_VERTICES
+		if(retessellation_error>=0)
+			fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe first retessellation error happened for defect %d\n\n",retessellation_error);
+#endif
 
     HISTOfree(&h_white) ;
     HISTOfree(&h_gray) ;
