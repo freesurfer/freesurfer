@@ -3,12 +3,12 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/15 23:53:32 $
-// Revision       : $Revision: 1.46 $
+// Revision Date  : $Date: 2006/02/15 23:57:23 $
+// Revision       : $Revision: 1.47 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.46 $";
+char *MRI_INFO_VERSION = "$Revision: 1.47 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -39,7 +39,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.46 2006/02/15 23:53:32 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.47 2006/02/15 23:57:23 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -66,6 +66,8 @@ int PrintDet = 0;
 int PrintOrientation = 0;
 int PrintSliceDirection = 0;
 int PrintCRAS = 0;
+int PrintVoxel = 0;
+int VoxelCRS[3];
 FILE *fpout;
 int PrintToFile = 0;
 char *outfile = NULL;
@@ -170,6 +172,14 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--o")){
       PrintToFile = 1;
       outfile = pargv[0];
+      nargc --;
+      pargv ++;
+    }
+    else if (!strcasecmp(option, "--voxel")){
+      PrintVoxel = 1;
+      sscanf(pargv[0],"%d",&VoxelCRS[0]);
+      sscanf(pargv[1],"%d",&VoxelCRS[1]);
+      sscanf(pargv[2],"%d",&VoxelCRS[2]);
       nargc --;
       pargv ++;
     }
