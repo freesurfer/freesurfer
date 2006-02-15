@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.178 2006/02/08 22:30:58 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.179 2006/02/15 22:26:18 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5831,7 +5831,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.178 2006/02/08 22:30:58 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.179 2006/02/15 22:26:18 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6879,6 +6879,7 @@ proc AddStructureToSelectedInGenerateReportDlog {} {
     # Get selected structure from listbox.
     set nListbox [$gaReportInfo(widget,structureListBox) \
 			subwidget listbox curselection]
+    if { $nListbox < 0 } { return }
     set nStructure $nListbox
 
     # If not already in selected list...
@@ -6901,6 +6902,7 @@ proc RemoveStructureFromSelectedInGenerateReportDlog {} {
     # Get selected structure from seleceted listbox.
     set nListbox [$gaReportInfo(widget,selectedListBox) \
 		      subwidget listbox curselection]
+    if { $nListbox < 0 } { return }
     
     set sStructure [$gaReportInfo(widget,selectedListBox) \
 			subwidget listbox get $nListbox]
