@@ -3076,16 +3076,20 @@ EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
 float 
 EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
 
+
   // Get the magnitude value at this point.
+  float cost = 0.0;
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
 
   if( mVolume->IsInBounds( loc ) ) {
-    return 1.0 / (mVolume->GetMRIMagnitudeValue( loc ) + 0.0001);
+    cost = 1.0 / (mVolume->GetMRIMagnitudeValue( loc ) + 0.0001);
   } else {
-    return mLongestEdge;
+    cost = mLongestEdge;
   }
 
   delete &loc;
+
+  return cost;
 }
