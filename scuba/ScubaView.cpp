@@ -117,7 +117,7 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "RemoveAllLayersFromView", 1, "viewID",
 			 "Remove all layers from a view." );
   commandMgr.AddCommand( *this, "RemoveLayerFromViewAtLevel", 2, 
-			 "viewID layer",
+			 "viewID level",
 			 "Remove a layer from a view." );
   commandMgr.AddCommand( *this, "SetLevelVisibilityInView", 3, 
 			 "viewID level visibility",
@@ -159,7 +159,7 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "GetViewFlipLeftRightYZ", 1, "viewID",
 			 "Returns the left-right flip flag for a view." );
   commandMgr.AddCommand( *this, "SetViewThroughPlaneIncrement", 3,
-			 "viewID throughPlane increments",
+			 "viewID throughPlane increment",
 			 "Set the amount that using the through plane "
 			 "movement keys will increment or decrement the "
 			 "through plane RAS value. throughPlane should be "
