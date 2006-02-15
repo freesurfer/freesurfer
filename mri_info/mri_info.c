@@ -2,13 +2,13 @@
 // mri_info.c
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/03 18:27:18 $
-// Revision       : $Revision: 1.45 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/15 23:53:32 $
+// Revision       : $Revision: 1.46 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.45 $";
+char *MRI_INFO_VERSION = "$Revision: 1.46 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -39,7 +39,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.45 2006/02/03 18:27:18 fischl Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.46 2006/02/15 23:53:32 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -65,6 +65,7 @@ int PrintVox2RAStkr = 0;
 int PrintDet = 0;
 int PrintOrientation = 0;
 int PrintSliceDirection = 0;
+int PrintCRAS = 0;
 FILE *fpout;
 int PrintToFile = 0;
 char *outfile = NULL;
@@ -158,6 +159,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
     else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
+    else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
 
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
@@ -202,6 +204,7 @@ static void print_usage(void)
   printf("   --vox2ras : print the the native/qform vox2ras matrix\n");
   printf("   --ras2vox : print the the native/qform ras2vox matrix\n");
   printf("   --vox2ras-tkr : print the the tkregister vox2ras matrix\n");
+  printf("   --cras : print the the RAS at the 'center' of the volume\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
@@ -359,6 +362,10 @@ static void do_file(char *fname)
   }
   if(PrintSliceDC){
     fprintf(fpout,"%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
+    return;
+  }
+  if(PrintCRAS){
+    fprintf(fpout,"%g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
     return;
   }
   if(PrintDet){
