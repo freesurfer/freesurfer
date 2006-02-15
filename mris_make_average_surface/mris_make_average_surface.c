@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/15 05:34:02 $
-// Revision       : $Revision: 1.21 $
+// Revision Date  : $Date: 2006/02/15 05:45:09 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
 /*
@@ -90,7 +90,7 @@ ENDHELP
 #include "gca.h"
 #include "gcamorph.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.21 2006/02/15 05:34:02 greve Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.22 2006/02/15 05:45:09 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -127,7 +127,7 @@ main(int argc, char *argv[])
   GCA_MORPH *gcam=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.21 2006/02/15 05:34:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.22 2006/02/15 05:45:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,7 +175,7 @@ main(int argc, char *argv[])
   for (n = 0, i = 5 ; i < argc ; i++)
   {
     printf("\n---------------------------------------------------\n");
-    printf("#@# processing subject %d/%d %s...\n", i-4,argc-4,argv[i]) ;
+    printf("#@# processing subject %d/%d %s...\n", i-4,argc-5,argv[i]) ;
     fflush(stdout);
 
     // read sphere.reg
