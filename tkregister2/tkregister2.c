@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $";
+"$Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -879,6 +879,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
+    else if (!strcasecmp(option, "--mgz"))  ; // for backwards compat
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -3942,7 +3943,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.45 2006/02/15 22:46:03 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
