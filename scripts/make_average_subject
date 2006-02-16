@@ -7,13 +7,15 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_subject,v 1.6 2006/01/25 23:53:06 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.7 2006/02/16 18:30:23 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
-set DoLink = 1;
+set DoLink = 0;
 set DoSurfaces = 1;
 set DoVolumes  = 1;
+set IcoOrder = ();
+set Force = 0;
 
 set cmdargs = ($argv);
 
@@ -86,6 +88,11 @@ while( $#argv != 0 )
       set average_subject = $argv[1]; shift;
       breaksw
 
+    case "--ico":
+      if($#argv < 1) goto arg1err;
+      set IcoOrder = $argv[1]; shift;
+      breaksw
+
     case "--sd-out":
       if ( $#argv == 0) goto arg1err;
       set sdout = $argv[1]; shift;
@@ -95,12 +102,21 @@ while( $#argv != 0 )
       set DoLink = 0;
       breaksw
 
+    case "--link":
+      set DoLink = 1;
+      breaksw
+
     case "--no-surf":
       set DoSurfaces = 0;
       breaksw
 
     case "--no-vol":
       set DoVolumes = 0;
+      breaksw
+
+    case "--force":
+      set Force = 1;
+      set DoLink = 0;
       breaksw
 
    case "--debug": 
@@ -145,7 +161,7 @@ check_params:
   endif
   if($#sdout == 0) set sdout = $SUBJECTS_DIR
   set outdir = $sdout/$average_subject
-  if(-e $outdir) then
+  if(-e $outdir && ! $Force) then
     echo "ERROR: $outdir already exists, select a new average subject name"
     echo "       or delete and rerun" 
     exit 1;
@@ -178,6 +194,7 @@ usage_exit:
   echo "Optional Arguments"
   echo "   --out <average subject name>    : default name is 'average'"
   echo "   --sd-out sdout : put output under sdout instead of SUBJECTS_DIR"
+  echo "   --link : link back to the original SUBJECTS_DIR with --sd-out"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo "   --xform <transform_fname>       : filename of transform file"
