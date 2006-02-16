@@ -1817,8 +1817,11 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 							}
 						}
 					}
-					val /= num ;
-					MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+					if (FZERO(num) == 0)
+					{
+						val /= num ;
+						MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+					}
 				}
 			}
 		}
@@ -1899,11 +1902,11 @@ MRIinvert(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
 {
-  static BUFTYPE *sort_array = NULL ;
+  static float *sort_array = NULL ;
   static int   sort_size = 0 ;
   int     width, height, depth, x, y, z, whalf, x0, y0, z0,
           median_index, wcubed, yi, zi ;
-  BUFTYPE *sptr, *pdst ;
+  float   *sptr ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1911,13 +1914,9 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
 
   if (!mri_dst)
   {
-    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    mri_dst = MRIclone(mri_src, NULL) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
-
-  if (mri_dst->type != MRI_UCHAR)
-    ErrorReturn(mri_dst, 
-                (ERROR_UNSUPPORTED, "MRImedian: dst must be MRI_UCHAR")) ;
 
   wcubed = (wsize*wsize*wsize) ;
   median_index = wcubed / 2 ;
@@ -1930,14 +1929,13 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
   }
   if (!sort_array)
   {
-    sort_array = (BUFTYPE *)calloc(wcubed, sizeof(BUFTYPE)) ;
+    sort_array = (float *)calloc(wcubed, sizeof(float)) ;
     sort_size = wcubed ;
   }
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
@@ -1947,12 +1945,12 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
           {
             yi = mri_src->yi[y+y0] ;
             for (x0 = -whalf ; x0 <= whalf ; x0++)
-              *sptr++ = MRIvox(mri_src, mri_src->xi[x+x0], yi, zi) ;
+              *sptr++ = MRIgetVoxVal(mri_src, mri_src->xi[x+x0], yi, zi, 0) ;
           }
         }
 
-        qsort(sort_array, wcubed, sizeof(BUFTYPE), compare_sort_array) ;
-        *pdst++ = sort_array[median_index] ;
+        qsort(sort_array, wcubed, sizeof(float), compare_sort_array) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, sort_array[median_index]) ;
       }
     }
   }
@@ -1969,11 +1967,11 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
 MRI *
 MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
 {
-  static BUFTYPE *sort_array = NULL ;
+  static float *sort_array = NULL ;
   static int   sort_size = 0 ;
   int     width, height, depth, x, y, z, whalf, x0, y0, z0,
           order_index, wcubed, yi, zi ;
-  BUFTYPE *sptr, *pdst ;
+  float   *sptr ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2000,14 +1998,13 @@ MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
   }
   if (!sort_array)
   {
-    sort_array = (BUFTYPE *)calloc(wcubed, sizeof(BUFTYPE)) ;
+    sort_array = (float *)calloc(wcubed, sizeof(float)) ;
     sort_size = wcubed ;
   }
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
@@ -2017,12 +2014,12 @@ MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
           {
             yi = mri_src->yi[y+y0] ;
             for (x0 = -whalf ; x0 <= whalf ; x0++)
-              *sptr++ = MRIvox(mri_src, mri_src->xi[x+x0], yi, zi) ;
+              *sptr++ = MRIgetVoxVal(mri_src, mri_src->xi[x+x0], yi, zi, 0) ;
           }
         }
 
-        qsort(sort_array, wcubed, sizeof(BUFTYPE), compare_sort_array) ;
-        *pdst++ = sort_array[order_index] ;
+        qsort(sort_array, wcubed, sizeof(float), compare_sort_array) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, sort_array[order_index]) ;
       }
     }
   }
@@ -2031,10 +2028,10 @@ MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
 static int
 compare_sort_array(const void *pc1, const void *pc2)
 {
-  register BUFTYPE c1, c2 ;
+  register float c1, c2 ;
 
-  c1 = *(BUFTYPE *)pc1 ;
-  c2 = *(BUFTYPE *)pc2 ;
+  c1 = *(float *)pc1 ;
+  c2 = *(float *)pc2 ;
 
 /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (c1 > c2)

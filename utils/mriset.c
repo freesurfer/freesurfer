@@ -1335,8 +1335,11 @@ MRI *
 MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, whalf, offset;
-  BUFTYPE *pdst, max_val, val, *pdir, min_val ;
+  float   max_val, val, min_val ;
+	float   fmin, fmax ;
 
+ 
+  MRIvalRange(mri_src, &fmin, &fmax) ;
   whalf = (wsize-1) / 2 ;
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1349,13 +1352,11 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      pdir = &MRIvox(mri_dir, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        offset = *pdir++ ;
-        max_val = 0 ;
-        min_val = 255 ;
+        offset = MRIgetVoxVal(mri_dir, x, y, z, 0);
+        max_val = fmin ;
+        min_val = fmax ;
         if (offset != OFFSET_ZERO) for (z0 = -whalf ; z0 <= whalf ; z0++)
         {
           zi = mri_src->zi[z+z0] ;
@@ -1365,7 +1366,7 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
             for (x0 = -whalf ; x0 <= whalf ; x0++)
             {
               xi = mri_src->xi[x+x0] ;
-              val = MRIvox(mri_src, xi,yi,zi) ;
+              val = MRIgetVoxVal(mri_src, xi,yi,zi,0) ;
               if (val > max_val)
                 max_val = val ;
               if (val < min_val)
@@ -1383,10 +1384,10 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
           break ;
         default:
         case OFFSET_ZERO:
-          val = MRIvox(mri_src, x, y, z) ;
+          val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           break ;
         }
-        *pdst++ = val ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
@@ -1493,7 +1494,7 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
 
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
+                (ERROR_UNSUPPORTED, "MRImeanMask: src and dst must be same type")) ;
 
   for (z = 0 ; z < depth ; z++)
   {

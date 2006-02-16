@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/08 20:55:46 $
-// Revision       : $Revision: 1.335 $
-char *MRI_C_VERSION = "$Revision: 1.335 $";
+// Revision Date  : $Date: 2006/02/16 14:12:01 $
+// Revision       : $Revision: 1.336 $
+char *MRI_C_VERSION = "$Revision: 1.336 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -6277,6 +6277,7 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   int     width, depth, height, x, y, z, x1, y1, z1 ;
   BUFTYPE *psrc ;
   short   *pssrc ;
+  float   *pfsrc ;
   float   val ;
 
   if (mri_dst && mri_src->type != mri_dst->type)
@@ -6290,55 +6291,63 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth/2 ;
 
   if (!mri_dst)
-    {
-      mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
-      MRIcopyHeader(mri_src, mri_dst) ;
-    }
+	{
+		mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+		MRIcopyHeader(mri_src, mri_dst) ;
+	}
 
   MRIclear(mri_dst) ;
   for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          for (x = 0 ; x < width ; x++)
-            {
-              for (val = 0.0f, z1 = 2*z ; z1 <= 2*z+1 ; z1++)
-                {
-                  for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
-                    {
-                      switch (mri_src->type)
-                        {
-                        case MRI_UCHAR:
-                          psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
-                          for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-                            val += *psrc++ ;
-                          break ;
-                        case MRI_SHORT:
-                          pssrc = &MRISvox(mri_src, 2*x, y1, z1) ;
-                          for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-                            val += *pssrc++ ;
-                          break ;
-                        default:
-                          ErrorReturn
-                            (NULL,
-                             (ERROR_UNSUPPORTED,
-                              "MRIdownsample2: unsupported input type %d",
-                              mri_src->type));
-                        }
-                    }
-                }
-              switch (mri_src->type)
-                {
-                case MRI_UCHAR:
-                  MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
-                  break ;
-                case MRI_SHORT:
-                  MRISvox(mri_dst, x, y, z) = (short)nint(val/8.0f) ;
-                  break ;
-                }
-            }
-        }
-    }
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				for (val = 0.0f, z1 = 2*z ; z1 <= 2*z+1 ; z1++)
+				{
+					for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
+					{
+						switch (mri_src->type)
+						{
+						case MRI_UCHAR:
+							psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *psrc++ ;
+							break ;
+						case MRI_SHORT:
+							pssrc = &MRISvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *pssrc++ ;
+							break ;
+						case MRI_FLOAT:
+							pfsrc = &MRIFvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *pfsrc++ ;
+							break ;
+						default:
+							ErrorReturn
+								(NULL,
+								 (ERROR_UNSUPPORTED,
+									"MRIdownsample2: unsupported input type %d",
+									mri_src->type));
+						}
+					}
+				}
+				switch (mri_src->type)
+				{
+				case MRI_UCHAR:
+					MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
+					break ;
+				case MRI_FLOAT:
+					MRIFvox(mri_dst, x, y, z) = val/8.0f ;
+					break ;
+				case MRI_SHORT:
+					MRISvox(mri_dst, x, y, z) = (short)nint(val/8.0f) ;
+					break ;
+				}
+			}
+		}
+	}
 
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
@@ -9211,7 +9220,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
 				x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
 
-				if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
+				if (nint(y1) == Gx && nint(y2) == Gy && nint(y3) == Gz)
 					DiagBreak() ;
 				if (nint(x1) == Gx && nint(x2) == Gy && nint(x3) == Gz)
 				{
