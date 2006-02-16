@@ -686,7 +686,9 @@ ScubaView::SetViewStateToLayerBounds ( int iLayerID ) {
       float xZoomLevel, yZoomLevel;
       xZoomLevel = (float)mViewState.GetBufferWidth() / (float)dataWidth;
       yZoomLevel = (float)mViewState.GetBufferHeight() / (float)dataHeight;
-      Set2DZoomLevel( (xZoomLevel<yZoomLevel?xZoomLevel:yZoomLevel) );
+      // Scale it by 0.9 so there's a little bit of border around the
+      // view.
+      Set2DZoomLevel( 0.9 * (xZoomLevel<yZoomLevel?xZoomLevel:yZoomLevel) );
     }
     
   }
