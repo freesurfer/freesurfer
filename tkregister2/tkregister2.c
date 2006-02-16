@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $";
+"$Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -419,18 +419,33 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     st_2 = 1.0;
   }
 
+  // Get full path to target
   if(fstarg){
+    // Relative path is specified, compute full
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if (subjectsdir==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
       exit(1);
     }
+    // First try .mgz
     sprintf(targ_vol_path,"%s/%s/mri/%s.mgz",subjectsdir,subjectid,targ_vol_id);
-    if(! fio_FileExistsReadable(targ_vol_path))
+    if(! fio_FileExistsReadable(targ_vol_path)){
+      // Now try COR
       sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
+      if(! fio_FileExistsReadable(targ_vol_path)){
+	printf("ERROR: could not find %s as either mgz or COR\n",targ_vol_id);
+	exit(1);
+      }
+    }
   }
-  else
+  else{
+    // Full path is specified
     memcpy(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
+    if(! fio_FileExistsReadable(targ_vol_path)){
+      printf("ERROR: could not find %s\n",targ_vol_path);
+      exit(1);
+    }
+  }
 
   /* extract and check types */
   if(targ_vol_fmt == MRI_VOLUME_TYPE_UNKNOWN){
@@ -3943,7 +3958,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.46 2006/02/16 19:52:03 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
