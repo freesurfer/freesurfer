@@ -233,7 +233,8 @@ SUBDIRS=unix \
 	mris_ms_surface_CNR \
 	mri_concatenate_lta \
 	mris_surface_stats \
-	mri_normalize_tp2
+	mri_normalize_tp2 \
+	mri_ms_LDA
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
