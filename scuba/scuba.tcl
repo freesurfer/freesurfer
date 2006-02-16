@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.179 2006/02/15 22:26:18 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.180 2006/02/16 22:27:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2035,7 +2035,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,labelEntry) $fwPropsCommon.ewLabel
     tkuMakeSliders $fwPropsCommon.swOpacity -sliders {
 	{-label "Opacity" -variable gaLayer(current,opacity) 
-	    -min 0 -max 1 -resolution 0.1
+	    -min 0 -max 1 -resolution 0.1 -entry 1
 	    -command {SetLayerOpacity $gaLayer(current,id) $gaLayer(current,opacity); RedrawFrame [GetMainFrameID]}}
     }
 
@@ -2151,7 +2151,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     tkuMakeSliders $fwProps2DMRI.swROIOpacity -sliders {
 	{-label "ROI Opacity" -variable gaLayer(current,roiOpacity) 
-	    -min 0 -max 1 -resolution 0.1 
+	    -min 0 -max 1 -resolution 0.1 -entry 1
 	    -command {Set2DMRILayerROIOpacity $gaLayer(current,id) $gaLayer(current,roiOpacity); RedrawFrame [GetMainFrameID]}}
     }
 
@@ -5831,7 +5831,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.179 2006/02/15 22:26:18 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.180 2006/02/16 22:27:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
