@@ -6653,14 +6653,16 @@ add_subject_to_average_curvim(char *name, char *morphsubdir)
   int i,j,k;
   float curv,avgcurv;
   char fname[NAME_LENGTH],fpref[NAME_LENGTH];
+  FILE* test;
   
   /* check if images there first */
   /*sprintf(fpref,"%s/%s/%s.%s.%s/COR-",
     subjectsdir,name,CURVDIR_STEM,stem,ext);*/
   sprintf(fname,"%s/%s/morph/%s/COR-001",subjectsdir,name,morphsubdir);
-  if (fopen(fname,"r")==NULL) {
+  if ((test = fopen(fname,"r"))==NULL) {
     printf("surfer: ### File %s not found\n",fname);PR return;}
-  
+  fclose (test);
+
   /* avgcurv->old */
   if (!curvim_allocated)
     alloc_curv_images();
@@ -19268,7 +19270,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.179 2006/02/03 18:05:46 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.180 2006/02/16 02:42:08 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
