@@ -14,7 +14,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.9 2003/09/05 04:45:35 kteich Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.10 2006/02/16 14:12:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.9 2003/09/05 04:45:35 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.10 2006/02/16 14:12:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -201,8 +201,7 @@ main(int argc, char *argv[])
                    "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEAN:
-          mri_filter_dst = 
-            MRImeanByte(mri_filter_src, NULL, filter_window_size) ;
+          mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size) ;
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY, 
                    "%s: could not allocate temporary buffer space",Progname);
@@ -225,7 +224,7 @@ main(int argc, char *argv[])
         if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "applying offset field...") ;
         if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_filter_dst, "minmax.mnc") ;
+          MRIwrite(mri_filter_dst, "minmax.mgz") ;
         mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset) ;
         if (!mri_filtered)
           ErrorExit(ERROR_NOMEMORY, 
@@ -237,11 +236,11 @@ main(int argc, char *argv[])
         MRIfree(&mri_offset) ;
         MRIfree(&mri_filter_dst) ;
         if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_filtered, "upfilt.mnc") ;
+          MRIwrite(mri_filtered, "upfilt.mgz") ;
         mri_tmp = MRIdownsample2(mri_filtered, NULL) ;
         MRIfree(&mri_filtered) ;
         if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_tmp, "downfilt.mnc") ;
+          MRIwrite(mri_tmp, "downfilt.mgz") ;
         region.x += xborder ; region.y += yborder ; region.z += zborder ;
 #if 0
         region.dx -=2*xborder; region.dy-= 2*yborder; region.dz -= 2 * zborder;
@@ -256,8 +255,7 @@ main(int argc, char *argv[])
                   region.x,region.y,region.z,region.dx,region.dy,region.dz);
         }
         else
-          MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,
-                               &region);
+          MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,&region);
         MRIfree(&mri_tmp); 
       }
     }
