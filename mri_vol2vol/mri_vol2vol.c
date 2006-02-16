@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.14 2006/02/16 01:13:01 greve Exp $
+  $Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -58,7 +58,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.14 2006/02/16 01:13:01 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -129,10 +129,10 @@ int main(int argc, char **argv)
 
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.14 2006/02/16 01:13:01 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.14 2006/02/16 01:13:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -386,7 +386,10 @@ int main(int argc, char **argv)
       R = Xtalfov;
       subject = talsubject;
     }
-    else  R = MatrixIdentity(4,NULL);
+    else  {
+      R = MRItkRegMtx(TempVol,InVol,NULL);
+      //R = MatrixIdentity(4,NULL);
+    }
     regio_write_register(regfile,subject,OutVol->xsize,
 			 OutVol->zsize,1,R,FLT2INT_ROUND);
 
@@ -604,7 +607,7 @@ static void print_usage(void)
   printf("\n");
   printf("  --irescale min max : rescale intensities to min/max\n");
   printf("  \n");
-  printf("  --xfm xfmfile : apply transform \n");
+  printf("  --xfm xfmfile : apply transform (assumes identity if not give)\n");
   printf("  --fstal : resample volume into talairach space (needs xfm).\n");
   printf("  --talres : Output talairach resolution (1, 1.5, or <2>)\n");
   printf("  --invxfm : invert transform before applying\n");
