@@ -3,12 +3,12 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/15 23:57:23 $
-// Revision       : $Revision: 1.47 $
+// Revision Date  : $Date: 2006/02/16 01:27:47 $
+// Revision       : $Revision: 1.48 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.47 $";
+char *MRI_INFO_VERSION = "$Revision: 1.48 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -30,6 +30,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.47 $";
 #include "version.h"
 #include "mghendian.h"
 #include "fio.h"
+#include "cmdargs.h"
 
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
@@ -39,7 +40,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.47 2006/02/15 23:57:23 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.48 2006/02/16 01:27:47 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -176,12 +177,17 @@ static int parse_commandline(int argc, char **argv)
       pargv ++;
     }
     else if (!strcasecmp(option, "--voxel")){
+      if(nargc < 3){
+	CMDargNErr(option, 3);
+	exit(1);
+      }
       PrintVoxel = 1;
       sscanf(pargv[0],"%d",&VoxelCRS[0]);
       sscanf(pargv[1],"%d",&VoxelCRS[1]);
       sscanf(pargv[2],"%d",&VoxelCRS[2]);
-      nargc --;
-      pargv ++;
+      if(Gdiag_no > 1) printf("%d %d %d\n",VoxelCRS[0],VoxelCRS[1],VoxelCRS[2]);
+      nargc -= 3;
+      pargv += 3;
     }
     else{
       // Must be an input volume
@@ -220,6 +226,7 @@ static void print_usage(void)
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
+  printf("   --voxel c r s : dump voxel value from col row slice (0-based, all frames)\n");
   printf("   --o file : print flagged results to file \n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
@@ -290,7 +297,7 @@ static void do_file(char *fname)
 {
   MRI *mri ;
   MATRIX *m, *minv ;
-  int r,c;
+  int r,c,s,f;
   char ostr[5];
   GCA_MORPH *gcam;
   ostr[4] = '\0';
@@ -315,7 +322,8 @@ static void do_file(char *fname)
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  if(!PrintVoxel)  mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  else             mri = MRIread(fname);
   if(!mri) return;
 
   if(PrintTR){
@@ -426,6 +434,14 @@ static void do_file(char *fname)
   }
   if(PrintSliceDirection){
     fprintf(fpout,"%s\n",MRIsliceDirectionName(mri));
+    return;
+  }
+  if(PrintVoxel){
+    c = VoxelCRS[0];
+    r = VoxelCRS[1];
+    s = VoxelCRS[2];
+    for(f=0; f<mri->nframes; f++)
+      fprintf(fpout,"%f\n",MRIgetVoxVal(mri,c,r,s,f));
     return;
   }
 
