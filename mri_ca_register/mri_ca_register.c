@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/10 17:51:14 $
-// Revision       : $Revision: 1.46 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2006/02/16 19:58:13 $
+// Revision       : $Revision: 1.47 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.46 2006/02/10 17:51:14 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.47 2006/02/16 19:58:13 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -536,6 +536,8 @@ main(int argc, char *argv[])
     if (!gca_tl)
       ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
 								Progname, tl_fname) ;
+    
+    /* Is the following still right in longitudinal mode? */
     GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
     GCAMmarkNegativeNodesInvalid(gcam);
     // debugging
@@ -660,12 +662,16 @@ main(int argc, char *argv[])
     printf("initial white matter registration complete - full registration...\n") ;
   }
 
-  //note that transform is meaningless when -L option is used! A bug! -xh
+  //note that transform is meaningless when -L option is used! 
+  //Note really. Now if -T is still used when -L is used, the following will
+  // still use the linear xform loaded in -T to do gca renormalization!
+  // If wanted to use the previous m3d, then don't use -T option.
+
   //  if (renormalize)
   //  GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
   if (renormalize)
     {
-      if(!xform_name)
+      if(!xform_name || transform_loaded)
 	GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
       else
 	{
@@ -679,7 +685,7 @@ main(int argc, char *argv[])
     }
   else if (renormalize_new)
     {
-      if(!xform_name)
+      if(!xform_name || transform_loaded)
 	GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
       else
 	{
@@ -701,7 +707,7 @@ main(int argc, char *argv[])
       sprintf(fname, "%s.lta", parms.base_name) ;
       lta = LTAread(fname) ;
       
-      if (Gdiag & DIAG_WRITE)
+      if (Gdiag & DIAG_WRITE & transform_loaded)
 	{
 	  char fname[STRLEN] ;
 	  sprintf(fname, "%s.log", parms.base_name) ;
@@ -731,7 +737,9 @@ main(int argc, char *argv[])
 	}
       else
 	lta = NULL ;
-      if(!xform_name)
+
+      //again, using the linear xform loaded in -T even if xform_name != NULL
+      if(!xform_name || transform_loaded )
 	{
 	  //      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 	  GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
@@ -757,7 +765,7 @@ main(int argc, char *argv[])
 	sprintf(fname, "%s_array.lta", parms.base_name) ;
 	LTAwrite(lta, fname) ;
       }
-      if (DIAG_VERBOSE_ON)
+      if (DIAG_VERBOSE_ON && transform_loaded)
 	{
 	  MRI *mri_seg, *mri_aligned ;
 	  int l ;
