@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/02/12 20:05:37 $
-// Revision       : $Revision: 1.97 $
+// Revision Date  : $Date: 2006/02/16 22:17:25 $
+// Revision       : $Revision: 1.98 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -556,8 +556,15 @@ GCA_MORPH *GCAMreadAndInvert(char *gcamfname)
     // Must invert explicitly
     printf("Inverting Morph\n");
     mridir   = fio_dirname(gcamdir);
-    sprintf(tmpstr,"%s/orig.mgz",mridir);
     // Need template mri 
+    sprintf(tmpstr,"%s/orig.mgz",mridir); // first try mgz
+    if(! fio_FileExistsReadable(tmpstr)){
+      sprintf(tmpstr,"%s/orig",mridir); // now COR
+      if(! fio_FileExistsReadable(tmpstr)){
+	printf("ERROR: cannot find %s as either mgz or COR\n",tmpstr);
+	return(NULL);
+      }
+    }
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if(mri==NULL){
       printf("ERROR: reading %s\n",tmpstr);
