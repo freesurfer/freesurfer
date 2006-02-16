@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.8 2006/01/25 23:53:07 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.9 2006/02/16 18:31:31 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -89,6 +89,12 @@ foreach volid (orig T1 brain)
 
   set outvol = $outdir/mri/$volid.mgz
   set cmd = (mri_average $invollist $outvol)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+
+  # remove reference to individual subject's talairach.xfm
+  set cmd = (mri_add_xform_to_header -c auto $outvol $outvol)
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
@@ -208,6 +214,7 @@ while( $#argv != 0 )
     case "--no-link":
     case "--no-surf":
     case "--no-vol":
+    case "--force":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
