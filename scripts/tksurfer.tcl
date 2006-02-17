@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.108 2006/02/01 22:00:36 kteich Exp $
+# $Id: tksurfer.tcl,v 1.109 2006/02/17 22:47:35 kteich Exp $
 
 package require BLT;
 
@@ -2363,6 +2363,13 @@ proc CreateMenuBar { ifwMenuBar } {
 	{command
 	    "Load Group Descriptor File..."
 	    {GDF_LoadDlog} }
+	{ separator }
+	{ command
+	    "Load Paths..."
+	    {DoFileDlog LoadPaths} }
+	{ command
+	    "Save Paths As..."
+	    {DoFileDlog SavePaths} }
 	{ separator }
 	{cascade "Curvature" {
 	    {command "Load Curvature..."
@@ -5033,6 +5040,31 @@ set tDlogSpecs(ExportAnnotation) \
 	     labl_export_annotation [ExpandFileName %s1 kFileName_Label];
 	     SetDefaultLocation ExpandFileName %s1;
 	     UpdateAndRedraw; }]
+
+set tDlogSpecs(LoadPaths) \
+    [list \
+	 -title "Load Paths" \
+	 -prompt1 "Load Paths:" \
+	 -default1 [list GetDefaultLocation LoadPaths] \
+	 -entry1 [list GetDefaultLocation LoadPaths] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the paths file" \
+	 -okCmd {
+	     path_load [ExpandFileName %s1 kFileName_PWD];
+	     SetDefaultLocation LoadPaths %s1;
+	     UpdateAndRedraw;  }]
+set tDlogSpecs(SavePaths) \
+    [list \
+	 -title "Save Paths" \
+	 -prompt1 "Save Paths:" \
+	 -default1 [list GetDefaultLocation SavePaths] \
+	 -entry1 [list GetDefaultLocation SavePaths] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the paths file" \
+	 -okCmd {
+	     path_save [ExpandFileName %s1 kFileName_PWD];
+	     SetDefaultLocation SavePaths %s1;
+	     UpdateAndRedraw;  }]
 
 set tDlogSpecs(SaveDipolesAs) [list \
   -title "Save Dipoles As" \

@@ -1808,6 +1808,10 @@ int path_select_path_by_vno (int vno);
    accordingly. */
 int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
 
+/* Writes and reads a path files. */
+int path_save (char* fname);
+int path_load (char* fname);
+
 /* ---------------------------------------------------------------------- */
 
 /* ------------------------------------------------------- floodfill mark */
@@ -19019,6 +19023,12 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      int W_path_remove_selected_path WBEGIN
      ERR(1,"Wrong # args: path_remove_selected_path")
      path_remove_selected_path(); WEND
+     int W_path_save WBEGIN
+     ERR(2,"Wrong # args: path_save fname")
+     path_save(argv[1]); WEND
+     int W_path_load WBEGIN
+     ERR(2,"Wrong # args: path_load fname")
+     path_load(argv[1]); WEND
      
 int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
                               int argc,char *argv[])
@@ -19270,7 +19280,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.180 2006/02/16 02:42:08 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.181 2006/02/17 22:47:28 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20028,6 +20038,10 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_path_new_path_from_marked_vertices, REND);
   Tcl_CreateCommand(interp, "path_remove_selected_path",
                     (Tcl_CmdProc*) W_path_remove_selected_path, REND);
+  Tcl_CreateCommand(interp, "path_save",
+                    (Tcl_CmdProc*) W_path_save, REND);
+  Tcl_CreateCommand(interp, "path_load",
+                    (Tcl_CmdProc*) W_path_load, REND);
   
   Tcl_CreateCommand(interp, "fill_flood_from_cursor",
                     (Tcl_CmdProc*) W_fill_flood_from_cursor, REND);
@@ -25992,6 +26006,240 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
           *b = 0;
         }
     }
+  
+  return (ERROR_NONE);
+}
+
+int path_save (char* fname) 
+{
+  FILE* fp;
+  int path;
+  int path_vno;
+  int vno;
+
+  /* Try to open the file. */  
+  fp = fopen (fname, "w");
+  if (NULL == fp)
+    {
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                                 "path_save: couldn't open %s\n",fname));
+    }
+
+  /* Right some header info. */
+  fprintf (fp, "# Path file\n");
+
+  /* Version keyword. */
+  fprintf (fp, "VERSION 1\n");
+
+  /* For each path... */
+  for (path = 0; path < path_num_paths; path++)
+    {
+      /* Add BEGINPATH and NUMVERTICES keywords and info. */
+      fprintf (fp, "BEGINPATH\n");
+      fprintf (fp, "NUMVERTICES %d\n", path_paths[path].num_vertices);
+
+      /* For each vertex, write a line with the coordinate on it. */
+      for (path_vno = 0; path_vno < path_paths[path].num_vertices; path_vno++)
+	{
+	  vno = path_paths[path].vertices[path_vno];
+
+	  fprintf (fp, "%f %f %f\n", 
+		   mris->vertices[vno].origx,
+		   mris->vertices[vno].origy,
+		   mris->vertices[vno].origz);
+	}
+      
+      /* ENDPATH keyword. */
+      fprintf (fp, "ENDPATH\n");
+    }
+
+  fclose (fp);
+  
+  return (ERROR_NONE);
+}
+
+int path_load (char* fname)
+{
+  FILE* fp;
+  int line_number;
+  int path_vno;
+  char line[1024] = "";
+  int num_read = 0;
+  int num_vertices;
+  int* vertices;
+  int version;
+  float x, y, z;
+  LABEL* label;
+
+  /* Try opening the file. */
+  fp = fopen (fname, "r");
+  if (NULL == fp)
+    {
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                                 "path_load: couldn't open %s\n",fname));
+    }
+  line_number = 0;
+  
+  /* Allocate a vertex array that we'll use when adding the path. */
+  vertices = (int*) calloc (mris->nvertices, sizeof(int));
+  if (NULL == vertices)
+    {
+      fclose (fp);
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+				 "path_load: couldn't allocate size for %d vertices\n",
+				 num_vertices));
+    }
+
+  /* Look for keywords... */
+  while (!feof(fp))
+    {
+      fgetl (line, 1024, fp);
+      line_number++;
+
+      /* Skip comments. */
+      if (line[0] == '#')
+	continue;
+      
+      /* If this is the end of file, go to the end. */
+      if (feof(fp))
+	continue;
+
+      /* VERSION keyword */
+      if (0 == strncmp (line, "VERSION", 7))
+	{
+	  /* See if we recognize this version number. */
+	  num_read = sscanf (line, "VERSION %d", &version);
+	  if (1 != num_read)
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					 "           line number %d\n"
+			      "           couldn't read version number\n",
+					 fname, line_number));
+	    }
+	  if (1 != version)
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					 "           wrong version %d\n",
+					 fname, version));
+	    }
+	}
+      else if (0 == strncmp (line, "BEGINPATH", 9))
+	{
+	  /* Start a new path decsription. */
+	  fgetl (line, 1024, fp);
+	  line_number++;
+	  if (0 != strncmp (line, "NUMVERTICES", 11))
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					 "           line number %d\n"
+					 "           expected NUMVERTICES\n",
+					 fname, line_number));
+	    }
+
+	  /* Scan for the number of vertices. */
+	  num_read = sscanf (line, "NUMVERTICES %d", &num_vertices);
+	  if (1 != num_read || feof(fp))
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					 "           line number %d\n"
+			     "           couldn't read NUMVERTICES number\n",
+					 fname, line_number));
+	    }
+
+	  /* We'll do our coordinate->vertex conversion using the
+    	     LabelFillUnassignedVertices, but it only takes LABEL
+    	     structures, so we'll fill one of those out with the
+    	     coords we read in. */
+	  label = LabelAlloc (num_vertices, NULL, NULL);
+	  label->n_points = num_vertices;
+	  if (NULL == label)
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: couldn't allocate label for %d vertices\n",
+					 num_vertices));
+	    }
+
+	  /* Read in a line of coordinates for every vertex we
+	     have. */
+	  for (path_vno = 0; path_vno < num_vertices; path_vno++)
+	    {
+	      fgetl (line, 1024, fp);
+	      line_number++;
+	      num_read = sscanf (line, "%f %f %f", &x, &y, &z);
+	      if (3 != num_read || feof(fp))
+		{
+		  fclose (fp);
+		  free (vertices);
+		  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					     "           line number %d\n"
+				  "           couldn't read three floats\n",
+					     fname, line_number));
+		}
+
+	      /* Add this coordinate to our label. */
+	      label->lv[path_vno].x = x;
+	      label->lv[path_vno].y = y;
+	      label->lv[path_vno].z = z;
+	      label->lv[path_vno].vno = -1;
+	    }
+
+	  /* This will find vertex numbers for all those points. */
+	  LabelFillUnassignedVertices (mris, label);
+
+	  /* Copy the vertex numbers from the label into our vertices
+	     array. */
+	  for (path_vno = 0; path_vno < num_vertices; path_vno++)
+	    {
+	      vertices[path_vno] = label->lv[path_vno].vno;
+	    }
+	  LabelFree (&label);
+
+	  /* Make a new path from our num_vertices and vertices
+	     array. */
+	  path_add (num_vertices, vertices, NULL);
+
+	  /* Make sure we got the ENDPATH keyword. */
+	  fgetl (line, 1024, fp);
+	  line_number++;
+	  if (0 != strncmp (line, "ENDPATH", 7))
+	    {
+	      fclose (fp);
+	      free (vertices);
+	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+					 "path_load: error reading file %s\n"
+					 "           line number %d\n"
+					 "           expected ENDPATH\n",
+					 fname, line_number));
+	    }
+	}
+      else
+	{
+	  /* Didn't get a keyword we're looking for. */
+	  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+				     "path_load: error reading file %s\n"
+				     "           line number %d\n"
+				     "           no expected keyword found\n",
+				     fname, line_number));
+	}
+    }
+
+  free (vertices);
+  fclose (fp);
   
   return (ERROR_NONE);
 }
