@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.14 2006/02/17 04:03:48 greve Exp $
+  $Id: mri_volsynth.c,v 1.15 2006/02/17 05:14:03 greve Exp $
 */
 
 #include <stdio.h>
@@ -24,6 +24,8 @@
 #include "MRIio_old.h"
 #include "randomfields.h"
 
+MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -41,7 +43,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.14 2006/02/17 04:03:48 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.15 2006/02/17 05:14:03 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -160,12 +162,49 @@ int main(int argc, char **argv)
     printf("Synthesizing chi2 with dof=%d\n",dendof);
     RFsynth(mri,rfs,NULL);
   }
+  else if(strcmp(pdfname,"z")==0){
+    printf("Synthesizing z \n");
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("gaussian");
+    rfs->params[0] = 0; // mean
+    rfs->params[1] = 1; // std
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri,rfs,NULL);
+  }
   else if(strcmp(pdfname,"t")==0){
+    printf("Synthesizing t with dof=%d\n",dendof);
     rfs = RFspecInit(seed,NULL);
     rfs->name = strcpyalloc("t");
     rfs->params[0] = dendof;
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
-    printf("Synthesizing t with dof=%d\n",dendof);
+    RFsynth(mri,rfs,NULL);
+  }
+  else if(strcmp(pdfname,"tr")==0){
+    printf("Synthesizing t with dof=%d as ratio of z/sqrt(chi2)\n",dendof);
+    rfs = RFspecInit(seed,NULL);
+    // numerator
+    rfs->name = strcpyalloc("gaussian");
+    rfs->params[0] = 0; // mean
+    rfs->params[1] = 1; // std
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri,rfs,NULL);
+    // denominator
+    rfs->name = strcpyalloc("chi2");
+    rfs->params[0] = dendof;
+    mri2 = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri2,rfs,NULL);
+    fMRIsqrt(mri2,mri2); // sqrt of chi2
+    mri = MRIdivide(mri,mri2,mri);
+    MRIscalarMul(mri, mri, sqrt(dendof)) ;
+    MRIfree(&mri2);
+  }
+  else if(strcmp(pdfname,"F")==0){
+    printf("Synthesizing F with num=%d den=%d\n",numdof,dendof);
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("F");
+    rfs->params[0] = numdof;
+    rfs->params[1] = dendof;
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     RFsynth(mri,rfs,NULL);
   }
   else if(strcmp(pdfname,"Fr")==0){
@@ -183,15 +222,6 @@ int main(int argc, char **argv)
     mri = MRIdivide(mri,mri2,mri);
     MRIscalarMul(mri, mri, (double)dendof/numdof) ;
     MRIfree(&mri2);
-  }
-  else if(strcmp(pdfname,"F")==0){
-    printf("Synthesizing F with num=%d den=%d\n",numdof,dendof);
-    rfs = RFspecInit(seed,NULL);
-    rfs->name = strcpyalloc("F");
-    rfs->params[0] = numdof;
-    rfs->params[1] = dendof;
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
-    RFsynth(mri,rfs,NULL);
   }
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
@@ -228,9 +258,12 @@ int main(int argc, char **argv)
     MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* gmnnorm = 1 = normalize */
     if(rescale){
       printf("Rescaling\n");
+      if(strcmp(pdfname,"z")==0)     RFrescale(mri,rfs,NULL,mri);
       if(strcmp(pdfname,"chi2")==0)  RFrescale(mri,rfs,NULL,mri);
-      if(strcmp(pdfname,"t")==0)  RFrescale(mri,rfs,NULL,mri);
-      if(strcmp(pdfname,"F")==0)  RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"t")==0)     RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"tr")==0)    RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"F")==0)     RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"Fr")==0)    RFrescale(mri,rfs,NULL,mri);
     }
   }
 
@@ -422,7 +455,7 @@ static void print_usage(void)
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
-  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere, t, F, chi2\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere, z, t, F, chi2\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
@@ -430,7 +463,7 @@ static void print_usage(void)
   printf("   --dof dof : dof for t and chi2 \n");
   printf("   --dof-num numdof : numerator dof for F\n");
   printf("   --dof-den dendof : denomenator dof for F\n");
-  printf("   --rescale : rescale t, F, or chi2 after smoothing\n");
+  printf("   --rescale : rescale z, t, F, or chi2 after smoothing\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
@@ -580,3 +613,25 @@ static int isflag(char *flag)
 }
 
 /*---------------------------------------------------------------*/
+MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt)
+{
+  int c,r,s,f;
+  double val;
+
+  if(mrisqrt == NULL) mrisqrt = MRIcopy(mri,NULL);
+  if(mrisqrt == NULL) return(NULL);
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	for(f=0; f < mri->nframes; f++){
+	  val = MRIgetVoxVal(mri,c,r,s,f);
+	  if(val < 0.0) val = 0;
+	  else          val = sqrt(val);
+	  MRIsetVoxVal(mri,c,r,s,f,val);
+	}
+      }
+    }
+  }
+  return(mrisqrt);
+}
