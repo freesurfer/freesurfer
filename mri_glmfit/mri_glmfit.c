@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.71 2006/02/10 04:36:33 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.72 2006/02/17 03:30:32 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -910,6 +910,13 @@ int main(int argc, char **argv)
       z = MRIcloneBySpace(mriglm->y,1);
       zabs = MRIcloneBySpace(mriglm->y,1);
     }
+    if(!strcmp(csd->simtype,"mc-t")){
+      rfs = RFspecInit(SynthSeed,NULL);
+      rfs->name = strcpyalloc("t");
+      rfs->params[0] = mriglm->glm->dof;
+      z = MRIcloneBySpace(mriglm->y,1);
+      zabs = MRIcloneBySpace(mriglm->y,1);
+    }
     if(csd->threshsign == 0) {
       absflag = 1;
       threshadj = csd->thresh;
@@ -946,7 +953,7 @@ int main(int argc, char **argv)
       }
 
       // Variance smoothing
-      if(strcmp(csd->simtype,"mc-z")){ // not a null z
+      if(!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")){
 	// If variance smoothing, then need to test and fit separately
 	if(VarFWHM > 0){
 	  printf("Starting fit\n");
@@ -964,26 +971,24 @@ int main(int argc, char **argv)
       
       // Go through each contrast
       for(n=0; n < mriglm->glm->ncontrasts; n++){
-	if(strcmp(csd->simtype,"mc-z")){
-	  // simtype = perm or mc-full (not mc-z)
+	if(!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")){
 	  sig  = MRIlog10(mriglm->p[n],sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	}
-	else{
-	  // mc-z: synth z-field, smooth, rescale, compute p, compute sig
+	else {
+	  // mc-z or mc-t: synth z-field, smooth, rescale, compute p, compute sig
 	  // This should do the same thing as AFNI's AlphaSim
 	  // Synth and rescale without the mask, otherwise smoothing
 	  // smears the 0s into the mask area. Also, the stuff outisde
 	  // the mask area wont get zeroed.
-	  RFsynth(z,rfs,NULL);
+	  RFsynth(z,rfs,NULL); // z or t, as needed
 	  if(SmoothLevel > 0){
 	    SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
 	    RFrescale(z,rfs,NULL,z);
 	  }
-
 	  // Slightly tortured way to get the right p-values because
 	  //   RFstat2P() computes one-sided, but I handle sidedness
 	  //   during thresholding.
@@ -1882,8 +1887,9 @@ static void check_options(void)
     exit(1);
   }
 
-  if(DoSim && VarFWHM > 0 && !strcmp(csd->simtype,"mc-z")){
-    printf("ERROR: cannot use variance smoothing with mc-z simulation\n");
+  if(DoSim && VarFWHM > 0 && 
+     (!strcmp(csd->simtype,"mc-z") || !strcmp(csd->simtype,"mc-t"))){
+    printf("ERROR: cannot use variance smoothing with mc-z or mc-t simulation\n");
     exit(1);
   }
 
