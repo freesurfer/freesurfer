@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.13 2006/02/17 02:43:47 greve Exp $
+  $Id: mri_volsynth.c,v 1.14 2006/02/17 04:03:48 greve Exp $
 */
 
 #include <stdio.h>
@@ -41,7 +41,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.13 2006/02/17 02:43:47 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.14 2006/02/17 04:03:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -62,7 +62,7 @@ float cras[4];
 float cdircos[3], rdircos[3], sdircos[3];
 char *pdfname = "gaussian";
 char *precision=NULL; /* not used yet */
-MRI *mri, *mrism, *mritemp;
+MRI *mri, *mrism, *mritemp, *mri2;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
 float fwhm = 0, gstd = 0, gmnnorm = 1;
@@ -168,12 +168,28 @@ int main(int argc, char **argv)
     printf("Synthesizing t with dof=%d\n",dendof);
     RFsynth(mri,rfs,NULL);
   }
+  else if(strcmp(pdfname,"Fr")==0){
+    printf("Synthesizing F with num=%d den=%d as ratio of two chi2\n",numdof,dendof);
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("chi2");
+    // numerator
+    rfs->params[0] = numdof;
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri,rfs,NULL);
+    // denominator
+    rfs->params[0] = dendof;
+    mri2 = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri2,rfs,NULL);
+    mri = MRIdivide(mri,mri2,mri);
+    MRIscalarMul(mri, mri, (double)dendof/numdof) ;
+    MRIfree(&mri2);
+  }
   else if(strcmp(pdfname,"F")==0){
+    printf("Synthesizing F with num=%d den=%d\n",numdof,dendof);
     rfs = RFspecInit(seed,NULL);
     rfs->name = strcpyalloc("F");
     rfs->params[0] = numdof;
-    rfs->params[0] = dendof;
-    printf("Synthesizing F with num=%d den=%d\n",numdof,dendof);
+    rfs->params[1] = dendof;
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     RFsynth(mri,rfs,NULL);
   }
