@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/02/15 11:59:31 $
-// Revision       : $Revision: 1.436 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/17 22:23:08 $
+// Revision       : $Revision: 1.437 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -573,7 +573,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.436 2006/02/15 11:59:31 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.437 2006/02/17 22:23:08 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -47552,6 +47552,8 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Ta
   int nnbrs_actual;
   float val,m;
   MRI *SrcTmp;
+  struct timeb  mytimer;
+  int msecTime;
 
   nvox = Src->width * Src->height * Src->depth;
   if(Surf->nvertices != nvox){
@@ -47584,9 +47586,15 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Ta
     }
   }
 
+  /*------------------------------------------------------------*/
+  TimerStart(&mytimer) ;
   SrcTmp = MRIcopy(Src,NULL);
   for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-    //printf("Step = %d\n",nthstep); fflush(stdout);
+    if(Gdiag_no > 0) {
+      msecTime = TimerStop(&mytimer) ;
+      printf("Step = %d, tsec = %g\n",nthstep,msecTime/1000.0); 
+      fflush(stdout);
+    }
 
     for(vtx = 0; vtx < Surf->nvertices; vtx++){
       nnbrs = Surf->vertices[vtx].vnum;
@@ -47618,6 +47626,10 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Ta
 
     MRIcopy(Targ,SrcTmp);
   }/* end loop over smooth step */
+
+  msecTime = TimerStop(&mytimer) ;
+  printf("Smoothing done, nsteps = %d, tsec = %g\n",nthstep,msecTime/1000.0); 
+  fflush(stdout);
 
   MRIfree(&SrcTmp);
   MRIScrsLUTFree(crslut);
