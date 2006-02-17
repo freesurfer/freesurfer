@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.12 2006/02/09 17:03:34 greve Exp $
+  $Id: mri_volsynth.c,v 1.13 2006/02/17 02:43:47 greve Exp $
 */
 
 #include <stdio.h>
@@ -22,6 +22,7 @@
 #include "matrix.h"
 #include "mri.h"
 #include "MRIio_old.h"
+#include "randomfields.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -40,7 +41,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.12 2006/02/09 17:03:34 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.13 2006/02/17 02:43:47 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -70,6 +71,10 @@ int delta_crsf[4];
 int delta_crsf_speced = 0;
 double delta_value = 1;
 double gausmean=0, gausstd=1;
+RFS *rfs;
+int rescale = 0;
+int numdof =  2;
+int dendof = 20;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -147,6 +152,31 @@ int main(int argc, char **argv)
 	   delta_crsf[1],delta_crsf[2],delta_crsf[3]);
     MRIFseq_vox(mri,delta_crsf[0],delta_crsf[1],delta_crsf[2],delta_crsf[3]) = delta_value;
   }
+  else if(strcmp(pdfname,"chi2")==0){
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("chi2");
+    rfs->params[0] = dendof;
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    printf("Synthesizing chi2 with dof=%d\n",dendof);
+    RFsynth(mri,rfs,NULL);
+  }
+  else if(strcmp(pdfname,"t")==0){
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("t");
+    rfs->params[0] = dendof;
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    printf("Synthesizing t with dof=%d\n",dendof);
+    RFsynth(mri,rfs,NULL);
+  }
+  else if(strcmp(pdfname,"F")==0){
+    rfs = RFspecInit(seed,NULL);
+    rfs->name = strcpyalloc("F");
+    rfs->params[0] = numdof;
+    rfs->params[0] = dendof;
+    printf("Synthesizing F with num=%d den=%d\n",numdof,dendof);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri,rfs,NULL);
+  }
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
 	   pdfname);
@@ -179,7 +209,13 @@ int main(int argc, char **argv)
 
   if(gstd > 0){
     printf("Smoothing\n");
-    MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* 1 = normalize */
+    MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* gmnnorm = 1 = normalize */
+    if(rescale){
+      printf("Rescaling\n");
+      if(strcmp(pdfname,"chi2")==0)  RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"t")==0)  RFrescale(mri,rfs,NULL,mri);
+      if(strcmp(pdfname,"F")==0)  RFrescale(mri,rfs,NULL,mri);
+    }
   }
 
   printf("Saving\n");
@@ -212,6 +248,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
+    else if (!strcasecmp(option, "--rescale")) rescale=1;
+    else if (!strcasecmp(option, "--norescale")) rescale=0;
 
     else if (!strcmp(option, "--vol")){
       if(nargc < 1) argnerr(option,1);
@@ -294,6 +332,16 @@ static int parse_commandline(int argc, char **argv)
       pdfname = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--dof-num")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&numdof);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--dof-den") || !strcmp(option, "--dof")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&dendof);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--gmean")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&gausmean);
@@ -358,11 +406,15 @@ static void print_usage(void)
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
-  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere, t, F, chi2\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
+  printf("   --dof dof : dof for t and chi2 \n");
+  printf("   --dof-num numdof : numerator dof for F\n");
+  printf("   --dof-den dendof : denomenator dof for F\n");
+  printf("   --rescale : rescale t, F, or chi2 after smoothing\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
