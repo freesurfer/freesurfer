@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.73 2006/02/17 22:24:47 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.74 2006/02/17 22:45:20 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -984,10 +984,10 @@ int main(int argc, char **argv)
 	  // Synth and rescale without the mask, otherwise smoothing
 	  // smears the 0s into the mask area. Also, the stuff outisde
 	  // the mask area wont get zeroed.
-	  RFsynth(z,rfs,NULL); // z or t, as needed
+	  RFsynth(z,rfs,mriglm->mask); // z or t, as needed
 	  if(SmoothLevel > 0){
 	    SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
-	    RFrescale(z,rfs,NULL,z);
+	    RFrescale(z,rfs,mriglm->mask,z);
 	  }
 	  // Slightly tortured way to get the right p-values because
 	  //   RFstat2P() computes one-sided, but I handle sidedness
@@ -1039,6 +1039,7 @@ int main(int argc, char **argv)
 	  printf("ERROR: opening %s\n",tmpstr);
 	  exit(1);
 	}
+	fprintf(fp,"# ClusterSimulationData 1\n");
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
