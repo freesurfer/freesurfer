@@ -234,7 +234,9 @@ SUBDIRS=unix \
 	mri_concatenate_lta \
 	mris_surface_stats \
 	mri_normalize_tp2 \
-	mri_ms_LDA
+	mri_ms_LDA \
+	mri_transform_to_COR \
+	mri_apply_inu_correction
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
