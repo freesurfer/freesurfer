@@ -19,7 +19,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) { 
-  return("$Id: randomfields.c,v 1.2 2006/01/23 17:34:52 greve Exp $"); 
+  return("$Id: randomfields.c,v 1.3 2006/02/17 02:30:55 greve Exp $"); 
 }
 
 /*-------------------------------------------------------------------*/
@@ -31,6 +31,7 @@ int RFname2Code(RFS *rfs)
   if(!strcmp(rfs->name,"z"))        code = RF_Z;
   if(!strcmp(rfs->name,"t"))        code = RF_T;
   if(!strcmp(rfs->name,"F"))        code = RF_F;
+  if(!strcmp(rfs->name,"chi2"))     code = RF_CHI2;
   rfs->code = code;
   return(code);
 }
@@ -43,6 +44,7 @@ const char *RFcode2Name(RFS *rfs)
   case RF_Z:        return("z"); break;
   case RF_T:        return("t"); break;
   case RF_F:        return("F"); break;
+  case RF_CHI2:     return("chi2"); break;
   }
   return(NULL);
 }
@@ -102,6 +104,7 @@ int RFnparams(RFS *rfs)
   case RF_Z:        nparams=0; break;
   case RF_T:        nparams=1; break;
   case RF_F:        nparams=2; break;
+  case RF_CHI2:     nparams=1; break;
   }
   rfs->nparams = nparams;
   return(nparams);
@@ -117,6 +120,8 @@ int RFexpectedMeanStddev(RFS *rfs)
     return(RFexpectedMeanStddevt(rfs));
   if(!strcmp(rfs->name,"F"))
     return(RFexpectedMeanStddevt(rfs));
+  if(!strcmp(rfs->name,"chi2"))
+    return(RFexpectedMeanStddevChi2(rfs));
   printf("ERROR: RFexpectedMeanStddev(): field type %s unknown\n",rfs->name);
   return(1);
 }
@@ -302,6 +307,10 @@ double RFdrawVal(RFS *rfs)
     //params[1] = denominator dof
     return(gsl_ran_fdist(rfs->rng,rfs->params[0],rfs->params[1]));
   }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(gsl_ran_chisq(rfs->rng,rfs->params[0]));
+  }
   printf("ERROR: RFdrawVal(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
 }
@@ -334,6 +343,10 @@ double RFstat2PVal(RFS *rfs, double stat)
     //params[0] = numerator dof (rows in C)
     //params[1] = denominator dof
     return(gsl_cdf_fdist_Q(stat,rfs->params[0],rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(gsl_cdf_chisq_Q(stat,rfs->params[0]));
   }
   printf("ERROR: RFstat2PVal(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
@@ -368,6 +381,10 @@ double RFp2StatVal(RFS *rfs, double p)
     // GSL does not have the Qinv for F :<.
     printf("ERROR: RFp2StatVal(): cannot invert RF field\n");
     return(10000000000.0);
+  }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(gsl_cdf_chisq_Qinv(p,rfs->params[0]));
   }
   printf("ERROR: RFp2v(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
@@ -412,6 +429,15 @@ int RFexpectedMeanStddevF(RFS *rfs)
   ddof = rfs->params[1]; // dof
   rfs->mean = ddof/(ddof-2);
   rfs->stddev  = 2*(ddof*ddof)*(ndof+ddof-2)/(ndof*((ddof-2)*(ddof-2))*(ddof-4));
+  return(0);
+}
+/*-------------------------------------------------------------------*/
+int RFexpectedMeanStddevChi2(RFS *rfs)
+{
+  double dof;
+  dof = rfs->params[0];
+  rfs->mean = dof;
+  rfs->stddev = sqrt(2.0*dof);
   return(0);
 }
 

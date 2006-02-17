@@ -1,4 +1,4 @@
-// $Id: randomfields.h,v 1.2 2006/01/23 17:34:53 greve Exp $
+// $Id: randomfields.h,v 1.3 2006/02/17 02:30:55 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -13,6 +13,7 @@
 #define RF_Z 3
 #define RF_T 4 
 #define RF_F 5
+#define RF_CHI2 6
 
 typedef struct {
   char   *name;
@@ -51,6 +52,7 @@ int RFexpectedMeanStddevUniform(RFS *rfs);
 int RFexpectedMeanStddevGaussian(RFS *rfs);
 int RFexpectedMeanStddevt(RFS *rfs);
 int RFexpectedMeanStddevF(RFS *rfs);
+int RFexpectedMeanStddevChi2(RFS *rfs);
 
 double RFar1ToGStd(double ar1, double d);
 double RFar1ToFWHM(double ar1, double d);
