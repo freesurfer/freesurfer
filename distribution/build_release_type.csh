@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.31 2006/02/11 18:57:55 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.32 2006/02/17 01:20:28 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -317,7 +317,7 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-strip ${DEST_DIR}/bin-new/* >& /dev/null
+#strip ${DEST_DIR}/bin-new/* >& /dev/null
 
 # Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
