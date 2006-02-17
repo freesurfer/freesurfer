@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.159 2006/02/17 00:57:54 nicks Exp $"
+# "$Id: configure.in,v 1.160 2006/02/17 17:47:23 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -892,9 +892,6 @@ if test "$OS" = "Darwin"; then
   LIB_CRYPT=""
 fi
 AC_SUBST(LIB_CRYPT)
-AC_CHECK_LIB([GL], [glBegin],[],
-  [AC_MSG_ERROR([FATAL: GL lib not found. \
-Please install GL header files and libs.])] )
 AC_CHECK_LIB([glut], [glutMainLoop],[],
   [AC_MSG_ERROR([FATAL: glut lib not found. \
 Please install glut header files and libs.])] )
