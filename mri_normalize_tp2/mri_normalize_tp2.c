@@ -63,10 +63,13 @@ int main(int argc, char *argv[])
   float bin_size;
   int nbins, bin_no;
   double mean1, std1, mean2, std2, count1, count2, slope, offset;
+  VOL_GEOM vgtmp;
+  LT *lt = NULL;
+  MATRIX *m_tmp = NULL;
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize_tp2.c,v 1.1 2006/02/16 19:27:39 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize_tp2.c,v 1.2 2006/02/17 15:46:27 kteich Exp $", "$Name:  $");
   argc -= nargs ;
   
   ac = argc ;
@@ -205,9 +208,7 @@ int main(int argc, char *argv[])
     }
     
     if (invert){
-      VOL_GEOM vgtmp;
-      LT *lt;
-      MATRIX *m_tmp = lta->xforms[0].m_L ;
+      m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
@@ -246,9 +247,7 @@ int main(int argc, char *argv[])
     else if(mask2_fname != NULL && mask1_fname == NULL){
       printf("map mask for tp2 to get mask for tp1 ...\n");
       //need to invert lta first
-      VOL_GEOM vgtmp;
-      LT *lt;
-      MATRIX *m_tmp = lta->xforms[0].m_L ;
+      m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
