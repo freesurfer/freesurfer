@@ -1602,6 +1602,7 @@ int CSDcheckSimType(char *simtype)
   if(!strcmp(simtype,"perm"))      return(0);
   if(!strcmp(simtype,"mc-full"))   return(0);
   if(!strcmp(simtype,"mc-z"))      return(0);
+  if(!strcmp(simtype,"mc-t"))      return(0);
   return(1);
 }
 
