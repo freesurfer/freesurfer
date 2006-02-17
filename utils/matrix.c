@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.77 2005/11/28 02:37:01 greve Exp $
+// $Id: matrix.c,v 1.78 2006/02/17 19:43:14 dsjen Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,13 +53,11 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
   return(mOut) ;
 }
 
-#define MAX_ELTS 10*1024
-  
 MATRIX * 
 MatrixInverse(MATRIX *mIn, MATRIX *mOut)
 {
-  float  **a, **y, d, col[MAX_ELTS] ;
-  int    i, j, index[MAX_ELTS], rows, cols, alloced = 0 ;
+  float  **a, **y;
+  int    isError, i, j, rows, cols, alloced = 0 ;
   MATRIX *mTmp ;
 
   if (mIn->rows != mIn->cols)
@@ -135,33 +133,15 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
     a = mTmp->rptr ;
     y = mOut->rptr ;
 
-#if 0    
-    index = (int *)calloc(rows+1, sizeof(int)) ;
-    col = (float *)calloc(rows+1, sizeof(float)) ;
-#endif
-    if (ludcmp(a, rows, index, &d) < 0)
-    {
-#if 0
-      free(index) ; free(col) ;
-#endif
-      MatrixFree(&mTmp) ;
-      if (alloced)
-        MatrixFree(&mOut) ;
+    isError = lu_matrix_inverse(a, y, rows);
+    
+    if( isError < 0 ) {
+      MatrixFree(&mTmp);
+      if (alloced) {
+        MatrixFree(&mOut);
+      }
       return(NULL) ;
     }
-    
-    for (j = 1 ; j <= rows ; j++)
-    {
-      for (i = 1 ; i <= rows ; i++)
-        col[i] = 0.0f ;
-      col[j] = 1.0f ;
-      lubksb(a, rows, index, col) ;
-      for (i = 1 ; i <= rows ; i++)
-        y[i][j] = col[i] ;
-    }
-#if 0
-    free(col) ; free(index) ;
-#endif
   }
 
   MatrixFree(&mTmp) ;
@@ -1212,21 +1192,28 @@ float
 MatrixDeterminant(MATRIX *mIn)
 {
   float  d, **in ;
-  int    j,*index, rows ;
+  int    j,*index, rows, columns ;
   MATRIX *mSrc ;
 
   rows = mIn->rows ;
-  mSrc = MatrixCopy(mIn, NULL) ;
-  in = mSrc->rptr ;
-  index = (int *)calloc(rows+1, sizeof(int)) ;
-  if (ludcmp(in, rows, index, &d) < 0)
-    return(0.0f) ;
+  columns = mIn->cols;
 
-  for (j = 1 ; j <= rows ; j++) 
-    d *= in[j][j];
-
-  free(index) ;
-  MatrixFree(&mSrc) ;
+  if( rows == columns ) {    
+    mSrc = MatrixCopy(mIn, NULL) ;
+    in = mSrc->rptr ;
+    index = (int *)calloc(rows+1, sizeof(int)) ;
+    if (ludcmp(in, rows, index, &d) < 0)
+      return(0.0f) ;
+  
+    for (j = 1 ; j <= rows ; j++) 
+      d *= in[j][j];
+  
+    free(index) ;
+    MatrixFree(&mSrc) ;
+  } else {
+    // the matrix isn't square, so we're returning 0
+    d = 0.0f;
+  }  
   return d;
 }
 
