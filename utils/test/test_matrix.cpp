@@ -20,6 +20,7 @@ class MatrixTest : public CppUnit::TestFixture {
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( MatrixTest );  
     CPPUNIT_TEST( TestMatrixInverse );
+    CPPUNIT_TEST( TestMatrixDeterminant );
   CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -41,7 +42,7 @@ private:
   /** non-square matrix */  
   MATRIX* mNonSquareMatrix;
 
-  /** 1x1 matrix*/  
+  /** 1x1 matrix of a 5*/  
   MATRIX* mOneMatrix;
   
   bool AreMatricesEqual(MATRIX *m1, MATRIX *m2);
@@ -66,6 +67,7 @@ public:
   static const string NON_SQUARE_MATRIX;
 
   static const string ONE_MATRIX;
+  static const string ONE_INVERSE;
   
   // setUp is called automatically before each test
   void setUp();
@@ -74,6 +76,7 @@ public:
   void tearDown();
   
   void TestMatrixInverse();
+  void TestMatrixDeterminant();
 
 };
 
@@ -91,9 +94,10 @@ const string MatrixTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 
 const string MatrixTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 
-const string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";;
+const string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";
 
-const string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";;
+const string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
+const string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
 
 void
 MatrixTest::setUp() {
@@ -178,18 +182,51 @@ MatrixTest::TestMatrixInverse() {
   CPPUNIT_ASSERT( AreInversesEqual(mIdentityMatrix, IDENTITY_MATRIX) );
     
   // test a 1 x 1 matrix
-  CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_MATRIX) );
+  CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_INVERSE) );
   
   // test a singular matrix
   CPPUNIT_ASSERT( MatrixInverse(mSingularMatrix, NULL) == NULL );
 
   // test a sparse matrix
   CPPUNIT_ASSERT( AreInversesEqual(mBuckyMatrix, BUCKY_INVERSE) );  
-    
+
   // test non-square matrix
   CPPUNIT_ASSERT( MatrixInverse(mNonSquareMatrix, NULL) == NULL );
 }
 
+void
+MatrixTest::TestMatrixDeterminant() {
+  double tolerance = 1e-6;
+  
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mPascalMatrix),
+                                1.0,
+                                tolerance);
+                        
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mZeroesMatrix),
+                                0.0,
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mIdentityMatrix), 
+                                1.0,
+                                tolerance );
+  
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mOneMatrix), 
+                                5.0, 
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mSingularMatrix),
+                                0.0,
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mBuckyMatrix), 
+                                2985984.0,
+                                tolerance );
+
+  // non-square matrices will have a determinant of 0 for us
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mNonSquareMatrix),
+                                0.0,
+                                tolerance );
+}
 
 int main ( int argc, char** argv ) {
   
