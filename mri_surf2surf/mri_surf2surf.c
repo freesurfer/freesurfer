@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $
+  $Id: mri_surf2surf.c,v 1.34 2006/02/18 00:35:45 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -263,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.34 2006/02/18 00:35:45 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.33 2006/02/10 04:36:33 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.34 2006/02/18 00:35:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -543,8 +543,8 @@ int main(int argc, char **argv)
     MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, NULL, SrcVals);
   }
 
-  if(strcmp(srcsubject,trgsubject)){
-    /* ------- Source and Target Subjects are different -------------- */
+  if(strcmp(srcsubject,trgsubject) || strcmp(srchemi,trghemi)){
+    /* ------- Source and Target Subjects or Hemis are different -------------- */
     /* ------- Load the registration surface for target subject ------- */
     if(!strcmp(trgsubject,"ico")){
       sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,TrgIcoOrder);
