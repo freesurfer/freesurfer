@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.12 2006/02/11 22:49:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.13 2006/02/18 02:29:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -43,7 +43,7 @@ set WSLess    = 0;      # Shrinks skull surface
 set WSMore    = 0;      # Expands skull surface
 set WSPctPreFlood = (); # Pre-flooding height
 set WSSeedPoint = ();   # C R S
-set WSAtlas     = 1;    # 0=don't use atlas, 1=use atlas (for skull strip)
+set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set HiRes = ();         # hires option (currently only conformed to min)
 set Norm3dIters = ();   # passed as -n to mri_normalize
