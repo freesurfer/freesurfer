@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.22 2006/02/18 00:59:30 greve Exp $
+  $Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -25,6 +25,13 @@
                     --regmethod volume
 
     Note that no hemisphere is specified with -regmethod.
+
+
+
+   When mapping from lh to rh: 
+     src reg: lh.sphere.reg
+     trg reg: rh.lh.sphere.reg
+
   -----------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +66,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.22 2006/02/18 00:59:30 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -125,7 +132,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.22 2006/02/18 00:59:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -232,12 +239,8 @@ int main(int argc, char **argv)
     
     /*** Load the source registration surface ***/
     if(strcmp(srcsubject,"ico")){
-      if(strcmp(srchemi,trghemi)==0)
-	sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
-		srchemi,srcsurfreg); 
-      else
-	sprintf(tmpstr,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,srcsubject,
-		srchemi,trghemi,srcsurfreg); 
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
+	      srchemi,srcsurfreg); 
 
       printf("Reading source registration \n %s\n",tmpstr);
       SrcSurfReg = MRISread(tmpstr);
@@ -273,8 +276,15 @@ int main(int argc, char **argv)
         exit(1);
       }
       /* load target registration surface */
-      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
-	      trghemi,trgsurfreg); 
+      // same hemi: hemi.sphere.reg
+      // diff hemi: trghemi.srchemi.sphere.reg
+      // Eg, when mapping from lh to rh: rh.lh.sphere.reg
+      if(strcmp(srchemi,trghemi)==0)
+	sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
+		trghemi,trgsurfreg); 
+      else
+	sprintf(tmpstr,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,srcsubject,
+		trghemi,srchemi,srcsurfreg); 
       printf("Reading target registration \n %s\n",tmpstr);
       TrgSurfReg = MRISread(tmpstr);
       if(TrgSurfReg == NULL){

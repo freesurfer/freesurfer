@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.13 2006/02/18 02:29:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.14 2006/02/19 17:54:38 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1138,7 +1138,7 @@ foreach hemi ($hemilist)
     echo "#@# Contra Surf Reg $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    set AvgTif = $FREESURFER_HOME/average/$nothemi.$AvgCurvTif
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
