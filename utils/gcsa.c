@@ -21,6 +21,7 @@
 
 #define BIG_AND_NEGATIVE            -10000000.0
 
+static int    gcsaFixSingularCovarianceMatrices(GCSA *gcsa) ;
 static int    edge_to_index(VERTEX *v, VERTEX *vn) ;
 static int    MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices) ;
 static int    GCSAupdateNodeMeans(GCSA_NODE *gcsan, 
@@ -682,129 +683,130 @@ GCSAread(char *fname)
   gcsa = GCSAalloc(ninputs,icno_priors, icno_classifiers) ;
 
   for (i = 0 ; i < ninputs ; i++)
-    {
-      gcsa->inputs[i].type = freadInt(fp) ;
-      j = freadInt(fp) ;
-      fread(gcsa->inputs[i].fname, sizeof(char), j, fp) ;
-      gcsa->inputs[i].navgs = freadInt(fp) ;
-      gcsa->inputs[i].flags = freadInt(fp) ;
-    }
+	{
+		gcsa->inputs[i].type = freadInt(fp) ;
+		j = freadInt(fp) ;
+		fread(gcsa->inputs[i].fname, sizeof(char), j, fp) ;
+		gcsa->inputs[i].navgs = freadInt(fp) ;
+		gcsa->inputs[i].flags = freadInt(fp) ;
+	}
 
   /* first read in class statistics */
   for (vno = 0 ; vno < gcsa->mris_classifiers->nvertices ; vno++)
-    {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      gcsan = &gcsa->gc_nodes[vno] ;
-      for (n = 0 ; n < gcsan->nlabels ; n++)
-        {
-          MatrixFree(&gcsan->gcs[n].v_means) ;
-          MatrixFree(&gcsan->gcs[n].m_cov) ;
-        }
-      gcsan->max_labels = gcsan->nlabels = freadInt(fp) ;
-      free(gcsan->labels) ; free(gcsan->gcs) ;
-      gcsan->gcs = (GCS *)calloc(gcsan->nlabels, sizeof(GCS)) ;
-      if (!gcsan->gcs)
-        ErrorExit(ERROR_NOMEMORY, "GCSAread(%s): could not allocate gcs %d",
-                  fname, vno) ;
-      gcsan->labels = (int *)calloc(gcsan->nlabels, sizeof(int)) ;
-      if (!gcsan->labels)
-        ErrorExit(ERROR_NOMEMORY, 
-                  "GCSAread(%s): could not allocate labels %d", fname, vno) ;
+	{
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		gcsan = &gcsa->gc_nodes[vno] ;
+		for (n = 0 ; n < gcsan->nlabels ; n++)
+		{
+			MatrixFree(&gcsan->gcs[n].v_means) ;
+			MatrixFree(&gcsan->gcs[n].m_cov) ;
+		}
+		gcsan->max_labels = gcsan->nlabels = freadInt(fp) ;
+		free(gcsan->labels) ; free(gcsan->gcs) ;
+		gcsan->gcs = (GCS *)calloc(gcsan->nlabels, sizeof(GCS)) ;
+		if (!gcsan->gcs)
+			ErrorExit(ERROR_NOMEMORY, "GCSAread(%s): could not allocate gcs %d",
+								fname, vno) ;
+		gcsan->labels = (int *)calloc(gcsan->nlabels, sizeof(int)) ;
+		if (!gcsan->labels)
+			ErrorExit(ERROR_NOMEMORY, 
+								"GCSAread(%s): could not allocate labels %d", fname, vno) ;
     
-      gcsan->total_training = freadInt(fp) ;
+		gcsan->total_training = freadInt(fp) ;
     
-      for (n = 0 ; n < gcsan->nlabels ; n++)
-        {
-          gcs = &gcsan->gcs[n] ;
-          gcsan->labels[n] = freadInt(fp) ;
-          gcs->total_training = freadInt(fp) ;
-          gcs->v_means = MatrixAsciiReadFrom(fp, NULL) ;
-          gcs->m_cov = MatrixAsciiReadFrom(fp, NULL) ;
-        }
-    }
+		for (n = 0 ; n < gcsan->nlabels ; n++)
+		{
+			gcs = &gcsan->gcs[n] ;
+			gcsan->labels[n] = freadInt(fp) ;
+			gcs->total_training = freadInt(fp) ;
+			gcs->v_means = MatrixAsciiReadFrom(fp, NULL) ;
+			gcs->m_cov = MatrixAsciiReadFrom(fp, NULL) ;
+		}
+	}
 
   /* now read in prior info */
   for (vno = 0 ; vno < gcsa->mris_priors->nvertices ; vno++)
-    {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      cpn = &gcsa->cp_nodes[vno] ;
-      cpn->max_labels = cpn->nlabels = freadInt(fp) ;
-      free(cpn->labels) ; free(cpn->cps) ;
-      cpn->cps = (CP *)calloc(cpn->nlabels, sizeof(CP)) ;
-      if (!cpn->cps)
-        ErrorExit(ERROR_NOMEMORY, "GCSAread(%s): could not allocate cps %d",
-                  fname, vno) ;
-      cpn->labels = (int *)calloc(cpn->nlabels, sizeof(int)) ;
-      if (!cpn->labels)
-        ErrorExit(ERROR_NOMEMORY, 
-                  "GCSAread(%s): could not allocate labels %d", fname, vno) ;
+	{
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		cpn = &gcsa->cp_nodes[vno] ;
+		cpn->max_labels = cpn->nlabels = freadInt(fp) ;
+		free(cpn->labels) ; free(cpn->cps) ;
+		cpn->cps = (CP *)calloc(cpn->nlabels, sizeof(CP)) ;
+		if (!cpn->cps)
+			ErrorExit(ERROR_NOMEMORY, "GCSAread(%s): could not allocate cps %d",
+								fname, vno) ;
+		cpn->labels = (int *)calloc(cpn->nlabels, sizeof(int)) ;
+		if (!cpn->labels)
+			ErrorExit(ERROR_NOMEMORY, 
+								"GCSAread(%s): could not allocate labels %d", fname, vno) ;
     
-      cpn->total_training = freadInt(fp) ;
+		cpn->total_training = freadInt(fp) ;
     
-      for (n = 0 ; n < cpn->nlabels ; n++)
-        {
-          cp = &cpn->cps[n] ;
-          cpn->labels[n] = freadInt(fp) ;
-          cp->prior = freadFloat(fp) ;
-          for (i = 0 ; i < GIBBS_SURFACE_NEIGHBORS ; i++)
-            {
-              cp->total_nbrs[i] = freadInt(fp) ;
-              cp->nlabels[i] = freadInt(fp) ;
-              cp->labels[i] = (int *)calloc(cp->nlabels[i], sizeof(int)) ;
-              if (!cp->labels[i])
-                ErrorExit(ERROR_NOMEMORY, 
-                          "GCSAread: couldn't allocate labels to %d",
-                          cp->nlabels[i]+1) ;
+		for (n = 0 ; n < cpn->nlabels ; n++)
+		{
+			cp = &cpn->cps[n] ;
+			cpn->labels[n] = freadInt(fp) ;
+			cp->prior = freadFloat(fp) ;
+			for (i = 0 ; i < GIBBS_SURFACE_NEIGHBORS ; i++)
+			{
+				cp->total_nbrs[i] = freadInt(fp) ;
+				cp->nlabels[i] = freadInt(fp) ;
+				cp->labels[i] = (int *)calloc(cp->nlabels[i], sizeof(int)) ;
+				if (!cp->labels[i])
+					ErrorExit(ERROR_NOMEMORY, 
+										"GCSAread: couldn't allocate labels to %d",
+										cp->nlabels[i]+1) ;
 
-              cp->label_priors[i] = 
-                (float *)calloc(cp->nlabels[i], sizeof(float));
-              if (!cp->label_priors[i])
-                ErrorExit(ERROR_NOMEMORY, 
-                          "GCSAread: couldn't allocate gcs to %d" ,
-                          cp->nlabels[i]+1) ;
-              for (j = 0 ; j < cp->nlabels[i] ; j++)
-                {
-                  cp->labels[i][j] = freadInt(fp) ;
-                  cp->label_priors[i][j] = freadFloat(fp) ;
-                }
-            }
-        }
-    }
+				cp->label_priors[i] = 
+					(float *)calloc(cp->nlabels[i], sizeof(float));
+				if (!cp->label_priors[i])
+					ErrorExit(ERROR_NOMEMORY, 
+										"GCSAread: couldn't allocate gcs to %d" ,
+										cp->nlabels[i]+1) ;
+				for (j = 0 ; j < cp->nlabels[i] ; j++)
+				{
+					cp->labels[i][j] = freadInt(fp) ;
+					cp->label_priors[i][j] = freadFloat(fp) ;
+				}
+			}
+		}
+	}
 
   while (!feof(fp))
-    {
-      int tag ;
-      COLOR_TABLE *tmp_ct;
+	{
+		int tag ;
+		COLOR_TABLE *tmp_ct;
 
-      tag = freadInt(fp) ;
-      switch (tag)
-        {
-        case TAG_OLD_COLORTABLE:
-          printf("reading color table from GCSA file....\n") ;
-          tmp_ct = CTABreadFrom(fp) ;
-          //printf("gcsa ct:%8.8X, bins:%8.8X, nbins: %d, fname: %s\n",
-          //       tmp_ct, tmp_ct->bins, tmp_ct->nbins, tmp_ct->fname);
-          // NJS: for some reason, on Mac OS X Tiger, the feof(fp)
-          // while loop loops twice instead of once, and on the second
-          // time, overwrites gcsa->ct with a valid pointer, but an
-          // nbins=0 and null fname, even though in the prior loop,
-          // the proper data was found, so this is a hacky fix that
-          // retains compatibility across platforms (hopefully!).
-          // The symptom of this bug was that mris_anatomical_stats
-          // would display '** annotate' instead of the proper name.
-          if ((tmp_ct->nbins > 0) && (tmp_ct->fname != NULL))
-            {
-              gcsa->ct = tmp_ct;
-            }
-          break ;
-        default:
-          break ;
-        }
-    }
+		tag = freadInt(fp) ;
+		switch (tag)
+		{
+		case TAG_OLD_COLORTABLE:
+			printf("reading color table from GCSA file....\n") ;
+			tmp_ct = CTABreadFrom(fp) ;
+			//printf("gcsa ct:%8.8X, bins:%8.8X, nbins: %d, fname: %s\n",
+			//       tmp_ct, tmp_ct->bins, tmp_ct->nbins, tmp_ct->fname);
+			// NJS: for some reason, on Mac OS X Tiger, the feof(fp)
+			// while loop loops twice instead of once, and on the second
+			// time, overwrites gcsa->ct with a valid pointer, but an
+			// nbins=0 and null fname, even though in the prior loop,
+			// the proper data was found, so this is a hacky fix that
+			// retains compatibility across platforms (hopefully!).
+			// The symptom of this bug was that mris_anatomical_stats
+			// would display '** annotate' instead of the proper name.
+			if ((tmp_ct->nbins > 0) && (tmp_ct->fname != NULL))
+			{
+				gcsa->ct = tmp_ct;
+			}
+			break ;
+		default:
+			break ;
+		}
+	}
 
   fclose(fp) ;
+	gcsaFixSingularCovarianceMatrices(gcsa) ;
   return(gcsa) ;
 }
 /*---------------------------------------------------------*/
@@ -2159,6 +2161,116 @@ GCSAsetCovariancesToIdentity(GCSA *gcsa)
         }
     }
 
+  return(NO_ERROR) ;
+}
+
+#define MIN_DET  1e-7
+int
+gcsaFixSingularCovarianceMatrices(GCSA *gcsa)
+{
+  int       j, fixed = 0, r, n, num, nparams, regularized = 0 ;
+  GCSA_NODE *gcsan ;
+  GCS      *gcs ; 
+  double    det, vars[1000], min_det ;
+  MATRIX    *m_cov_inv, *m_cov = NULL ;
+  
+  nparams = (gcsa->ninputs * (gcsa->ninputs+1))/2 + gcsa->ninputs ; 
+  /* covariance matrix and means */
+  
+  memset(vars, 0, sizeof(vars)) ;
+  
+  for (num = 0, j = 0 ; j < gcsa->mris_classifiers->nvertices ; j++)
+	{
+		if (j == Gdiag_no)
+			DiagBreak() ;
+		gcsan = &gcsa->gc_nodes[j] ;
+		for (n = 0 ; n < gcsan->nlabels ; n++)
+		{
+			gcs = &gcsan->gcs[n] ;
+			det = MatrixDeterminant(gcs->m_cov) ;
+			if ((gcs->total_training == 0 && det > 1) || 
+					(gcs->total_training*gcsa->ninputs > 2.5*nparams))  
+				/* enough to estimate parameters */
+			{
+				m_cov = gcs->m_cov ;
+				for (r = 0 ; r < gcsa->ninputs ; r++)
+				{
+					vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
+				}
+				num++ ;
+			}
+		}
+	}
+  if (num >= 1)
+	{
+		printf("average std = ") ;
+		for (min_det = 1.0, r = 0 ; r < gcsa->ninputs ; r++)
+		{
+			vars[r] /= (float)num ;
+			printf("%2.1f ", sqrt(vars[r])) ;
+			min_det *= vars[r] ;
+		}
+		min_det = min_det / pow(10.0, gcsa->ninputs) ;
+		printf("  using min determinant for regularization = %2.1f\n", min_det) ;
+	}
+  else
+    min_det = MIN_DET ;
+
+  for (regularized = fixed = j = 0 ; j < gcsa->mris_classifiers->nvertices ; j++)
+	{
+		if (j == Gdiag_no)
+			DiagBreak() ;
+		gcsan = &gcsa->gc_nodes[j] ;
+		for (n = 0 ; n < gcsan->nlabels ; n++)
+		{
+			gcs = &gcsan->gcs[n] ;
+			det = MatrixDeterminant(gcs->m_cov) ;
+			m_cov_inv = MatrixInverse(m_cov, NULL) ;
+			
+			if (det <= 0 || m_cov_inv == NULL)
+			{
+				fixed++ ;
+				gcs->regularized = 1 ;
+				for (r = 0 ; r < gcsa->ninputs ; r++)
+				{
+					*MATRIX_RELT(gcs->m_cov, r+1, r+1) += vars[r] ;  
+				}   
+			}
+			else   /* not singular - check if it is ill-conditioned */
+			{
+				if ((gcs->total_training*gcsa->ninputs
+						 < 2*nparams && det < 0.1) 
+						|| (det < min_det))
+				{
+					gcs->regularized = 1 ;
+					regularized++ ;
+					for (r = 0 ; r < gcsa->ninputs ; r++)
+					{
+						*MATRIX_RELT(gcs->m_cov, r+1, r+1) += vars[r] ;  
+					}
+				}
+			}
+          
+			if (m_cov_inv)
+				MatrixFree(&m_cov_inv) ;
+			det = MatrixDeterminant(gcs->m_cov) ;
+			m_cov_inv = MatrixInverse(gcs->m_cov, NULL) ;
+			if (det <= min_det || m_cov_inv == NULL)
+			{
+				printf("warning: regularization of node (%d) "
+							 "label %s failed\n",
+							 j, annotation_to_name(gcsan->labels[n], NULL)) ;
+				DiagBreak() ;
+            
+			}
+			if (m_cov_inv)
+				MatrixFree(&m_cov_inv) ;
+		}
+	}
+
+  printf("%d singular and %d ill-conditioned covariance"
+         " matrices regularized\n", 
+         fixed, regularized) ;
   return(NO_ERROR) ;
 }
 
