@@ -34,6 +34,7 @@ typedef struct
   VECTOR  *v_means ;
   MATRIX  *m_cov ;
   int     total_training ;
+	int     regularized ;
 } GCS, SURFACE_GAUSSIAN_CLASSIFIER ;
 
 typedef struct
