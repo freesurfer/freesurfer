@@ -2210,8 +2210,8 @@ gcsaFixSingularCovarianceMatrices(GCSA *gcsa)
 			printf("%2.1f ", sqrt(vars[r])) ;
 			min_det *= vars[r] ;
 		}
-		min_det = min_det / pow(10.0, gcsa->ninputs) ;
-		printf("  using min determinant for regularization = %2.1f\n", min_det) ;
+		min_det = min_det / pow(100.0, gcsa->ninputs) ;
+		printf("  using min determinant for regularization = %2.3f\n", min_det) ;
 	}
   else
     min_det = MIN_DET ;
@@ -2240,7 +2240,7 @@ gcsaFixSingularCovarianceMatrices(GCSA *gcsa)
 			{
 				if ((gcs->total_training*gcsa->ninputs
 						 < 2*nparams && det < 0.1) 
-						|| (det < min_det))
+						|| ((det < min_det) && (gcs->total_training < 4*nparams)))
 				{
 					gcs->regularized = 1 ;
 					regularized++ ;
@@ -2255,7 +2255,7 @@ gcsaFixSingularCovarianceMatrices(GCSA *gcsa)
 				MatrixFree(&m_cov_inv) ;
 			det = MatrixDeterminant(gcs->m_cov) ;
 			m_cov_inv = MatrixInverse(gcs->m_cov, NULL) ;
-			if (det <= min_det || m_cov_inv == NULL)
+			if (det <= MIN_DET || m_cov_inv == NULL)
 			{
 				printf("warning: regularization of node (%d) "
 							 "label %s failed\n",
