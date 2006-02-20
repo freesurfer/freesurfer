@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.162 2006/02/17 23:08:55 xhan Exp $"
+# "$Id: configure.in,v 1.163 2006/02/20 05:07:50 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -748,8 +748,8 @@ and GLU_LIBS='$GLU_LIBS'])
 fi
 #####################################################
 # AX_CHECK_GLUT produces GLUT_CFLAGS GLUT_LIBS
-CFLAGS="$glut_cflags $CFLAGS"
-LDFLAGS="$glut_libs $LDFLAGS"
+CFLAGS="$glut_cflags $GL_CFLAGS $GLU_CFLAGS $CFLAGS"
+LDFLAGS="$glut_libs $GL_LIBS $GLU_LIBS $LDFLAGS"
 AX_CHECK_GLUT
 if test "X$no_glut" = "Xyes"; then
   AC_MSG_RESULT([GLut not found])
@@ -878,9 +878,10 @@ ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
-$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS"
+$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS \
+$GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $GSL_LIBS $TCL_LIBS \
-$CPPUNIT_LIBS"
+$CPPUNIT_LIBS $GL_LIBS $GLU_LIBS $GLUT_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
