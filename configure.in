@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.163 2006/02/20 05:07:50 nicks Exp $"
+# "$Id: configure.in,v 1.164 2006/02/20 06:19:53 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -748,6 +748,8 @@ and GLU_LIBS='$GLU_LIBS'])
 fi
 #####################################################
 # AX_CHECK_GLUT produces GLUT_CFLAGS GLUT_LIBS
+ac_save_cflags=$CFLAGS
+ac_save_ldflags=$LDFLAGS
 CFLAGS="$glut_cflags $GL_CFLAGS $GLU_CFLAGS $CFLAGS"
 LDFLAGS="$glut_libs $GL_LIBS $GLU_LIBS $LDFLAGS"
 AX_CHECK_GLUT
@@ -770,6 +772,8 @@ Setting GLUT_CFLAGS='$GLUT_CFLAGS'
 and GLUT_LIBS='$GLUT_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GLUT_LIBS"
 fi
+CFLAGS=$ac_save_cflags
+LDFLAGS=$ac_save_ldflags
 
 
 #####################################################
