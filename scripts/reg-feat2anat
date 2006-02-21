@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.12 2005/12/15 21:54:17 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.13 2006/02/21 18:35:35 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -16,6 +16,7 @@ set usedev = 0;
 set manual = 0;
 set manual_use_surf = 1;
 set manxfm = func2anat;
+set fslext = img; # Can be changed with --fslext-auto
 
 set PrintHelp = 0;
 
@@ -55,14 +56,25 @@ if(! -e $exf2std_fslmat) then
   exit 1;
 endif
 
-set tempvol = $FeatDir/example_func.img
+if($#fslext == 0) then
+  switch($FSLOUTPUTTYPE)
+    case "ANALYZE":
+      set fslext = img;
+      breaksw
+    case "NIFTI":
+      set fslext = nii;
+      breaksw
+    case "NIFTI_GZ":
+      set fslext = nii.gz;
+      breaksw
+  endsw
+endif
+echo "FSL extension is $fslext"
+
+set tempvol = $FeatDir/example_func.$fslext
 if(! -e $tempvol) then
-  set tempvol0 = $tempvol;
-  set tempvol = $FeatDir/example_func.nii
-  if(! -e $tempvol) then
-    echo "ERROR: cannot find $tempvol0 or $tempvol"
-    exit 1;
-  endif
+  echo "ERROR: cannot find $tempvol"
+  exit 1;
 endif
 
 set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
@@ -121,7 +133,7 @@ if($manual && $manxfm == func2std) then
     exit 1;
   endif
   set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
-            --mov $FeatDir/example_func.img \
+            --mov $FeatDir/example_func.$fslext \
             --reg $std2exf_regdat --s $subject --tag);
   echo $cmd 
   $cmd 
@@ -148,7 +160,7 @@ if(! -e $refvolcor) then
   endif
 endif
 # Convert the reference volume to analyze
-set refvol =  $FeatDir/reg/freesurfer/tmp/anat.img
+set refvol =  $FeatDir/reg/freesurfer/tmp/anat.$fslext
 set cmd = (mri_convert $refvolcor $refvol)
 echo $cmd | tee -a $LF 
 $cmd |& tee -a $LF 
@@ -188,7 +200,7 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF 
 if($status) exit 1;
 set tempvol0 = $tempvol
-set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.img;
+set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.$fslext;
 
 # Now run flirt
 set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
@@ -246,7 +258,7 @@ echo "0 0 0 1" >> $outvolreg
 
 # Just for fun, create a matrix to map exf to talairach:
 set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
-            --mov $FeatDir/example_func.img \
+            --mov $FeatDir/example_func.$fslext \
             --fslreg $FeatDir/reg/example_func2standard.mat \
             --reg $std2exf_regdat --noedit)
 echo $cmd | tee -a $LF 
@@ -357,6 +369,10 @@ while( $#argv != 0 )
     case "--fsreg":
       if ( $#argv == 0) goto arg1err;
       set fsreg = $argv[1]; shift;
+      breaksw
+
+    case "--fslext-auto":
+      set fslext = ();
       breaksw
 
     case "--debug":
@@ -533,8 +549,12 @@ already run reg-feat2anat without --manxfm to create the initial registration.
 
 EXAMPLE
 
-# Assume a data set exists called fbert.img
-# Analyze fbert.img with Feat to generate directory fbert.feat
+# Assume a data set exists called fbert.$fslext, where fslext is either
+# img, nii, or nii.gz. Uses .img by default, but can be set based on
+# FSLOUTPUTTYPE with --fslext-auto. Note: not verified for format
+# other than img.
+#
+# Analyze fbert.$fslext with Feat to generate directory fbert.feat
 
 # Register fbert.feat to subject bert:
 reg-feat2anat --feat fbert.feat --subject bert
@@ -545,18 +565,18 @@ reg-feat2anat --feat fbert.feat --subject bert --manual
 # If the registration has catastropically failed, then check that
 # the registration to standard space did not fail:
 tkregister2 --targ $FSLDIR/etc/standard/avg152T1_brain.img \
-            --mov fbert.feat/example_func.img \
+            --mov fbert.feat/example_func.$fslext \
             --fslreg fbert.feat/reg/example_func2standard.mat \
             --reg /tmp/tmp.reg.dat
 
 # Overlay zmap onto the bert's orig volume. Set the threshold at z=1.3
-tkmedit bert orig -overlay ./fbert.feat/stats/zstat1.img \
+tkmedit bert orig -overlay ./fbert.feat/stats/zstat1.$fslext \
      -overlay-reg ./fbert.feat/reg/freesurfer/anat2exf.register.dat \
      -fthresh 1.3 -fmid 2.3 -fslope 1
 
 # Overlay zmap onto the standard volume. Set the threshold at z=1.3
 tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.img \
-     -overlay ./fbert.feat/stats/zstat1.img \
+     -overlay ./fbert.feat/stats/zstat1.$fslext \
      -overlay-reg ./fbert.feat/reg/freesurfer/std2exf.register.dat \
      -fthresh 1.3 -fmid 2.3 -fslope 1
 
