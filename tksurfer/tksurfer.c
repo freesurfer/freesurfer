@@ -19280,7 +19280,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.181 2006/02/17 22:47:28 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.182 2006/02/21 18:17:18 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24181,65 +24181,24 @@ int labl_update_cache (int force_rebuild_all) {
 
 int labl_load_color_table (char* fname)
 {
-  CLUT_tErr clut_err = CLUT_tErr_NoErr;
-  mriColorLookupTableRef table = NULL;
-  int label;
-  xColor3n color;
-  
-  /* create a new table. */
-  clut_err = CLUT_NewFromFile (&table, fname);
-  if (CLUT_tErr_NoErr != clut_err)
+  COLOR_TABLE* ctab;
+
+  /* Attempt to read the color table. */
+  ctab = CTABread (fname);
+  if (NULL == ctab)
     {
-      fprintf (stderr, "labl_load_color_table %s: CLUT_NewFromFile returned "
-               "%d: %s\n", fname, clut_err, CLUT_GetErrorString (clut_err) );
-      return (ERROR_CLUT);
-    }
-  
-  /* if a table exists, delete it. */
-  if (NULL != labl_table) 
-    {
-      clut_err = CLUT_Delete (&labl_table);
-      if (CLUT_tErr_NoErr != clut_err)
-        {
-          fprintf (stderr, "labl_load_color_table: CLUT_Delete returned "
-                   "%d: %s\n",  clut_err, CLUT_GetErrorString (clut_err) );
-          labl_table = NULL;
-        }
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "Couldn't open %s\n", fname));
     }
 
-  /* save the new table. */
-  labl_table = table;
-  
-  /* get the number of entries. */
-  CLUT_GetNumEntries (labl_table, &labl_num_structures);
-  printf ("Read %s, found %d structures\n", fname, labl_num_structures);
-  
-  /* for each label, if it's not free, reset its color to the new
-     color in the table. if the structure index is > the number of
-     entries we have now, set it to 0 and the corresponding color. */
-  for (label = 0; label < labl_num_labels; label++ )
+  /* Save it in the surface. */
+  if (NULL != mris->ct)
     {
-      if (labl_labels[label].structure >= 0 &&
-          labl_labels[label].structure < labl_num_structures)
-        {
-          CLUT_GetColorInt (labl_table, labl_labels[label].structure, &color);
-          labl_labels[label].r = color.mnRed;
-          labl_labels[label].g = color.mnGreen;
-          labl_labels[label].b = color.mnBlue;
-        } 
-      else if (labl_labels[label].structure >= labl_num_structures)
-        {
-          CLUT_GetColorInt (labl_table, 0, &color);
-          labl_labels[label].structure = 0;
-          labl_labels[label].r = color.mnRed;
-          labl_labels[label].g = color.mnGreen;
-          labl_labels[label].b = color.mnBlue;
-        }
+      CTABfree (&mris->ct);
     }
-  
+  mris->ct = ctab;
+
   /* save the name of the color table */
-  /* this will crash on a second call to this function. why??? (who cares?) */
-  //  strcpy (labl_color_table_name, fname);
+  strcpy (labl_color_table_name, fname);
   
   /* send the color table to tcl. */
   labl_send_color_table_info ();
@@ -24616,6 +24575,16 @@ int labl_import_annotation (char *fname)
   for (vno = 0; vno < mris->nvertices; vno++)
     mris->vertices[vno].annotation = 0;
   mris_err = MRISreadAnnotation (mris, fname);
+
+  /* Check if we got an embedded color table. */
+  if (mris->ct)
+    {
+      printf ("Found embedded color table in annotation.\n");
+    }
+  else
+    {
+      printf ("No embedded color table found in annotation.\n");
+    }
   
   /* check all annotations... */
   for (annotation_vno = 0; annotation_vno < mris->nvertices; annotation_vno++)
