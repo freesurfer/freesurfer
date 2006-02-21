@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.74 2006/02/17 22:45:20 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.75 2006/02/21 00:41:55 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1010,10 +1010,12 @@ int main(int argc, char **argv)
 	if(surf){
 	  // surface clustering -------------
 	  MRIScopyMRI(surf, sig, 0, "val");
-	  if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",TimerStop(&mytimer)/1000.0);
+	  if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
+					   TimerStop(&mytimer)/1000.0);
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
-	  if(debug || Gdiag_no > 0) printf("Done Clustering %lf\n",TimerStop(&mytimer)/1000.0);
+	  if(debug || Gdiag_no > 0) printf("Done Clustering %lf\n",
+					   TimerStop(&mytimer)/1000.0);
 	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	} else {
 	  // volume clustering -------------
@@ -1039,7 +1041,7 @@ int main(int argc, char **argv)
 	  printf("ERROR: opening %s\n",tmpstr);
 	  exit(1);
 	}
-	fprintf(fp,"# ClusterSimulationData 1\n");
+	fprintf(fp,"# ClusterSimulationData 2\n");
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
@@ -1053,6 +1055,7 @@ int main(int argc, char **argv)
 	csd->nClusters[nthsim] = nClusters;
 	csd->MaxClusterSize[nthsim] = csize;
 	csd->MaxSig[nthsim] = sigmax;
+	csd->MaxStat[nthsim] = Fmax * SIGN(sigmax);
 	CSDprint(fp, csd);
 
 	fclose(fp);
