@@ -887,7 +887,6 @@ void do_lighting_model(float lite0,float lite1,float lite2,float lite3,
                        float newoffset) ;
 void make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
                     char *lext) ;
-void print_help_surfer(void) ;
 void print_help_tksurfer(void) ;
 int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
 int main(int argc, char *argv[]) ;
@@ -2136,7 +2135,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
     strcpy(str,argv[1]);
   if (MATCH_STR("-help") || MATCH_STR("-h")) {
     strcpy(str,argv[0]);
-    if (MATCH_STR("surfer")) print_help_surfer();
     if (MATCH_STR("tksurfer")) print_help_tksurfer();
     exit(1);
   }
@@ -2158,11 +2156,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       printf("   surf:  orig,smoothwm,plump,1000,1000a\n");
       printf("\n");
     }
-#ifdef OPENGL
-    printf("                                    [vers: 24m23s23j--OpenGL]\n");
-#else
-    printf("                                    [vers: 24m23s23j--GL]\n");
-#endif
     /* begin rkt */
     print_help_tksurfer();
     /* end rkt */
@@ -17257,368 +17250,65 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
 }
 
 void
-print_help_surfer(void)
-{
-  printf("\n");
-  printf("  [interactive only]                   mouse\n");
-  printf("  -----------------                 -------------\n");
-  printf("  [#mark_vertex]                       left \n");
-  printf("  [#unmark_vertex]                     middle\n");
-  printf("  [#clear_vertex_marks]                right\n");
-  printf("  [scale up brain around click]      ctrl-left \n");
-  printf("  [scale down brain around click]    ctrl-right \n");
-  printf("\n");
-  printf("  [interactive only]                  keyboard\n");
-  printf("  -----------------                 -------------\n");
-  printf("  [#print_help]                          h,?\n");
-  printf("  [#find_orig_vertex_coordinates]         f\n");
-  printf("  [#cut_line]                             j\n");
-  printf("  [#cut_plane]                            J\n");
-  printf("  [#flatten]                              L\n");
-  printf("  [#cut_marked_vertices(closedcurve)]     p\n");
-  printf("  [#cut_marked_vertices(opencurve)]       P\n");
-  printf("  [#enter second surface]                 E\n");
-  printf("  [dilate_patch]                         \n");
-  printf("  [#floodfill_marked_patch]               i\n");
-  printf("  [#fill_surface,write_images]            I\n");
-  printf("\n");
-  printf("  commands (old surfer script)      keyboard equiv\n");
-  printf("  ---------------                   --------------\n");
-  printf("  redraw                                  r\n");
-  printf("  shrink <steps>            s[=1],S[=10],d[=100],D[=1000]\n");
-  printf("  normalize_area                          U\n");
-  printf("  smooth_curv <steps>                     l[=5]\n");
-  printf("  smooth_val_sparse <steps>               m[=5]\n");
-  printf("  smooth_curvim_sparse <steps>          [script]\n");
-  printf("  smooth_fs <steps>                     [script]\n");
-  printf("  invert_vertex <vno>                   [script]\n");
-  printf("  invert_face <fno>                     [script]\n");
-  printf("  mark_annotation                       [script]\n");
-  printf("  mark_faces <vno>                      [script]\n");
-  printf("  mark_face <fno>                       [script]\n");
-  printf("  dump_vertex <vno>                     [script]\n");
-  printf("  show_flat_regions surf thresh         [script]\n");
-  printf("  resize_brain <surface area>           [script]\n");
-  printf("  val_to_mark                           [script]\n");
-  printf("  transform_brain                       [script]\n");
-  printf("  val_to_curv                           [script]\n");
-  printf("  val_to_stat                           [script]\n");
-  printf("  stat_to_val                           [script]\n");
-  
-  printf("  read_imag_vals <fname>                [script]\n");
-  printf("  read_soltimecourse <fname>            [script]\n");
-  printf("  sol_plot <timept> <plot type>         [script]\n");
-  
-  printf("  remove_triangle_links            [script]\n");
-  
-  printf("  label_to_stat <overlay #>        \n");
-  printf("  f_to_t                           [script]\n");
-  printf("  t_to_p                           [script]\n");
-  printf("  f_to_p                           [script]\n");
-  
-  printf("  curv_to_val                           [script]\n");
-  printf("  read_parcellation                     <parc. name> <lut name>\n");
-  printf("  read_and_smooth_parcellation          <parc. name> <lut name>"
-         " <siter> <miter>\n");
-  printf("  read_curv_to_val                      [script]\n");
-  printf("  read_disc <subject name>              [script]\n");
-  printf("  deconvolve_weights <weight file name> <scale file name>\n");
-  printf("  read_stds <cond no>                   [script]\n");
-  printf("  mask_label                            [script]\n");
-  printf("  dump_faces <vno>                      [script]\n");
-  printf("  load_gcsa <fname>                     [script]\n");
-  printf("  read_binary_curv                        R\n");
-  printf("  read_binary_sulc                        K\n");
-  printf("  read_binary_values                      q\n");
-  printf("  read_binary_patch                       b\n");
-  printf("  write_binary_curv                       W\n");
-  printf("  write_binary_values                     Q\n");
-  printf("  write_binary_areas                      G\n");
-  printf("  write_binary_surface                    w\n");
-  printf("  write_binary_patch                      B\n");
-  printf("  write_dipoles                           N\n");
-  printf("  write_decimation                        N\n");
-  printf("  subsample_orient <orientthresh>      n [0.03]\n");
-  printf("  compute_curvature                       c\n");
-  printf("  clear_curvature                         C\n");
-  printf("  draw_radius                             X\n");
-  printf("  draw_theta                              Y\n");
-  printf("  save_rgb                                T\n");
-  printf("  rotate_brain_x <deg>             right/leftarr[=18]\n");
-  printf("  rotate_brain_y <deg>               up/downarr[=18]\n");
-  printf("  rotate_brain_z <deg>               pgdown/del[=18]\n");
-  printf("  translate_brain_x <mm>           right/leftpad[=10]\n");
-  printf("  translate_brain_y <mm>            up/downpad[=10]\n");
-  printf("  scaledown_lg,scaleup_lg                { }\n");
-  printf("  scaledown_sm,scaleup_sm                [ ]\n");
-  printf("  restore_zero_position                   0\n");
-  printf("  restore_initial_position                1\n");
-  printf("  make_lateral_view                       2\n");
-  printf("  raise_mri_force                      + [*=1.1]\n");
-  printf("  lower_mri_force                      - [/=1.1]\n");
-  printf("  exit                                   esc\n");
-  printf("\n");
-  printf("  setparms (keyboard only now)      keyboard equiv\n");
-  printf("  ---------------                   --------------\n");
-  printf("  set fslope <float>               / [/=1.5], * [*=1.5]\n");
-  printf("  set fmid <float>                 - [-=1],   + [+=1]\n");
-  printf("  set foffset <float>              - [-=1],   + [+=1]\n");
-  printf("  set cslope <float>               / [/=1.5], * [*=1.5]\n");
-  printf("  set cmid <float>                 - [-=1],   + [+=1]\n");
-  printf("  set stressthresh <float>         / [/=1.1], * [*=1.1]\n");
-  printf("  set wt <float>                          u\n");
-  printf("  set wa <float>                          u\n");
-  printf("  set ws <float>                          u\n");
-  printf("  set wn <float>                          u\n");
-  printf("  set wsh <float>                         u\n");
-  printf("  set wbn <float>                         u\n");
-  printf("  set cthk <float mm>              ( [-=0.1], ) [+=0.1]\n");
-  printf("  set expandflag <boolean>           e [toggle]\n");
-  printf("  set MRIflag <boolean>              M [toggle]\n");
-  printf("  set avgflag <boolean>              k [toggle]\n");
-  printf("  set areaflag <boolean>             A [toggle]\n");
-  printf("  set overlayflag <boolean>          o [toggle]\n");
-  printf("  set ncthreshflag <boolean>         a [toggle]\n");
-  printf("  set verticesflag <boolean>         v [toggle]\n");
-  printf("  set surfcolor <0no,1cv/su,2ar,3sh>  t,V [toggle]\n");
-  printf("  set shearvecflag <boolean>            t\n");
-  printf("  set normvecflag <boolean>             t\n");
-  printf("  set movevecflag <boolean>             t\n");
-  printf("\n");
-}
-
-void
 print_help_tksurfer(void)
 {
-  printf("\n");
-  printf("  [in surfer window]                      mouse\n");
-  printf("  -----------------                   -------------\n");
-  printf("  [mark_vertex]                          left \n");
-  printf("  [unmark_vertex]                       middle\n");
-  printf("  [clear_vertex_marks]                   right\n");
-  printf("  [scale up brain around click]         ctrl-left \n");
-  printf("  [scale down brain around click]       ctrl-right \n");
-  printf("\n");
-  printf("  [in surfer window]                     keyboard\n");
-  printf("  -----------------                    -------------\n");
-  printf("  [find_orig_vertex_coordinates]          Alt-f\n");
-  printf("  [cut_line(opencurve]                    Alt-j\n");
-  printf("  [cut_plane]                             Alt-J\n");
-  printf("  [flatten]                               Alt-L\n");
-  printf("  [cut vertex]                            Alt-p\n");
-  printf("  [cut_line(closedcurve)]                 Alt-P\n");
-  printf("  [floodfill_marked_patch]                Alt-i\n");
-  printf("\n");
-  printf("  script commands [at tcl prompt]     keyboard equiv\n");
-  printf("  -------------------------------     --------------\n");
-  printf("  help                                    Alt-h\n");
-  printf("  swapbuffers                            [script]\n");
-  printf("  to_single_buffer    [GL only]          [script]\n");
-  printf("  to_double_buffer    [GL only]          [script]\n");
-  printf("  setsize_window     [only before open]  [script]\n");
-  printf("  open_window        [only one window]   [script]\n");
-  printf("  redraw           [no auto update]       Alt-r\n");
-  printf("  redraw_second    [doublebuffer only]   [script]\n");
-  printf("  shrink <steps>              s[=1],S[=10],d[=100],D[=1000]\n");
-  printf("  area_shrink <steps>                    [script]\n");
-  printf("  sphere_shrink <steps> <mm rad>         [script]\n");
-  printf("  ellipsoid_project <xrad> <yrad> <zrad>  [script]\n");
-  printf("  ellipsoid_morph <steps> <xrad> <yrad> <zrad>  [script]\n");
-  printf("  ellipsoid_shrink <steps> <xrad> <yrad> <zrad>  [script]\n");
-  printf("  normalize_binary_curvature             [script]\n");
-  printf("  normalize_area                          Alt-U\n");
-  printf("  smooth_curvim <steps>                  [script]\n");
-  printf("  smooth_curv <steps>                     Alt-l [=5]\n");
-  printf("  smooth_val <steps>                     [script]\n");
-  printf("  smooth_val_sparse <steps>               Alt-m [=5]\n");
-  printf("  average_curv_images <subject>          [script]\n");
-  printf("  read_curv_images                       [script]\n");
-  printf("  read_second_binary_curv    [targcurv]  [script]\n");
-  printf("  read_second_binary_sulc                [script]\n");
-  printf("  normalize_second_binary_curv           [script]\n");
-  printf("  curv_to_curvim                         [script]\n");
-  printf("  second_surface_curv_to_curvim          [script]\n");
-  printf("  add_subject_to_average_curvim          [script]\n");
-  printf("  swap_curv                              [script]\n");
-  printf("  curvim_to_surface                      [script]\n");
-  printf("  curvim_to_second_surface               [script]\n");
-  printf("  read_binary_curv                        Alt-R\n");
-  printf("  read_binary_sulc                        Alt-K\n");
-  printf("  read_binary_values                     [script]\n");
-  printf("  read_binary_values_frame               [script]\n");
-  printf("  read_annotated_image                   [script]\n");
-  printf("  read_annotations                       [script]\n");
-  printf("  read_binary_patch                      [script]\n");
-  printf("  read_fieldsign                         [script]\n");
-  printf("  read_fsmask                            [script]\n");
-  printf("  write_binary_curv                      [script]\n");
-  printf("  write_binary_sulc                      [script]\n");
-  printf("  write_binary_values                     Alt-Q\n");
-  printf("  write_binary_areas                      Alt-G\n");
-  printf("  write_binary_surface                    Alt-w\n");
-  printf("  write_binary_patch                      Alt-B\n");
-  printf("  write_fieldsign                        [script]\n");
-  printf("  write_fsmask                           [script]\n");
-  printf("  write_dipoles                          [script]\n");
-  printf("  write_decimation                       [script]\n");
-  printf("  write_curv_images                      [script]\n");
-  printf("  write_fill_images                      [script]\n");
-  printf("  fill_second_surface                    [script]\n");
-  printf("  subsample_dist <num>                   [script]\n");
-  printf("  subsample_orient <orientthr[0.03]>     [script]\n");
-  printf("  write_subsample                        [script]\n");
-  printf("  write_binary_subsample                 [script]\n");
-  printf("  compute_curvature                       Alt-c\n");
-  printf("  compute_CMF                            [script]\n");
-  printf("  compute_cortical_thickness             [script]\n");
-  printf("  clear_curvature                         Alt-C\n");
-  printf("  clear_ripflags                         [script]\n");
-  printf("  restore_ripflags                        Alt-u\n");
-  printf("  floodfill_marked_patch <0=cut,1=fthr,2=curv>  Alt-i,I\n");
-  printf("  cut_line <0=open,1=closed>            Alt-j,Alt-P\n");
-  printf("  plot_curv <0=open,1=closed>            [script]\n");
-  printf("  draw_fundus                            [script]\n");
-  printf("  plot_marked <file name>                [script]\n");
-  printf("  put_retinotopy_stats_in_vals           \n");
-  printf("  cut_plane  [mark 4: 3=plane,1=save]     Alt-J\n");
-  printf("  flatten                                 Alt-L\n");
-  printf("  shift_values                           [script]\n");
-  printf("  swap_values                            [script]\n");
-  printf("  swap_stat_val                          [script]\n");
-  printf("  swap_val_val2                          [script]\n");
-  printf("  compute_angles                         [script]\n");
-  printf("  compute_fieldsign                      [script]\n");
-  printf("  draw_radius                            [script]\n");
-  printf("  draw_theta                             [script]\n");
-  printf("  save_rgb                                Alt-T\n");
-  printf("  save_rgb_named_orig <str> [*/rgb/name] [script]\n");
-  printf("  save_rgb_cmp_frame [auto-open,1st=end] [script]\n");
-  printf("  open_rgb_cmp_named <str>               [script]\n");
-  printf("  save_rgb_cmp_frame_named <latency>     [script]\n");
-  printf("  close_rgb_cmp_named                    [script]\n");
-  printf("  rotate_brain_x <deg>                right/left[=18]\n");
-  printf("  rotate_brain_y <deg>                  up/down[=18]\n");
-  printf("  rotate_brain_z <deg>                pageup/pagedown[=10]\n");
-  printf("  translate_brain_x <mm>             padright/padleft[=10]\n");
-  printf("  translate_brain_y <mm>              padup/paddown[=10]\n");
-  printf("  translate_brain_z <mm>                 [script]\n");
-  printf("  scale_brain <0.0-4.0x>                 [script]\n");
-  printf("  scaledown_lg,scaleup_lg             Alt-{ Alt-}\n");
-  printf("  scaledown_sm,scaleup_sm             Alt-[ Alt-]\n");
-  printf("  restore_zero_position                   Alt-0\n");
-  printf("  restore_initial_position                Alt-1\n");
-  printf("  read_view_matrix                        [script]\n");
-  printf("  write_view_matrix                       [script]\n");
-  printf("  read_really_matrix                      [script]\n");
-  printf("  write_really_matrix                     [script]\n");
-  printf("  really_translate_brain <rh/lh> <ant/post> <sup/inf>   [script]\n");
-  printf("  really_scale_brain <rh/lh> <ant/post> <sup/inf>       [script]\n");
-  printf("  align_sphere                            [script]\n");
-  printf("  really_rotate_brain_x <deg>  [N.B.: lh/rh axis]       [script]\n");
-  printf("  really_rotate_brain_y <deg>  [N.B.: ant/post axis]    [script]\n");
-  printf("  really_rotate_brain_z <deg>  [N.B.: sup/inf axis]     [script]\n");
-  printf("  really_center_brain                     [script]\n");
-  printf("  really_center_second_brain              [script]\n");
-  printf("  make_lateral_view                       Alt-2\n");
-  printf("  make_lateral_view_second               [script]\n");
-  printf("  do_lighting_model <lit0> <lit1> <lit2> <lit3> <offset>\n");
-  printf("                     %3.2f   %3.2f   %3.2f   %3.2f   %3.2f\n",
-         LIGHT0_BR,LIGHT1_BR,LIGHT2_BR,LIGHT3_BR,OFFSET);
-  printf("  mriforce <up,down>                   *[=up] /]=down]\n");
-  printf("  resize_window <pix>                    [script]\n");
-  printf("  exit                                      esc\n");
-  printf("\n");
-  printf("  script setparms                     keyboard equiv\n");
-  printf("  ---------------                     --------------\n");
-  printf("  set fthresh <float>                    [script]\n");
-  printf("  set fslope <float>  [0.0=linear]       [script]\n");
-  printf("  set fcurv <float>  [0.0=linear]        [script]\n");
-  printf("  set fmid <float>                       [script]\n");
-  printf("  set foffset <float>                     [script]\n");
-  printf("  set cslope <float>                     [script]\n");
-  printf("  set cmid <float>                       [script]\n");
-  printf("  set mslope <float>                     [script]\n");
-  printf("  set mmid <float>                       [script]\n");
-  printf("  set mstrength <float>                  [script]\n");
-  printf("  set whitemid <float>                   [script]\n");
-  printf("  set graymid <float>                    [script]\n");
-  printf("  set stressthresh <float>               [script]\n");
-  printf("  set icstrength <float>                 [script]\n");
-  printf("  set angle_offset <float>               [script]\n");
-  printf("  set angle_cycles <float>               [script]\n");
-  printf("  set wt <float>                         [script]\n");
-  printf("  set wa <float>                         [script]\n");
-  printf("  set ws <float>                         [script]\n");
-  printf("  set wn <float>                         [script]\n");
-  printf("  set wc <float>                         [script]\n");
-  printf("  set wsh <float>                        [script]\n");
-  printf("  set wbn <float>                        [script]\n");
-  printf("  set update <float>                     [script]\n");
-  printf("  set decay <float>                      [script]\n");
-  printf("  set cthk <float mm>          Alt-( [-=0.1], Alt-) [+=0.1]\n");
-  printf("  set mingm <0-255>                      [script]\n");
-  printf("  set blufact <float>                    [script]\n");
-  printf("  set cvfact <float>                     [script]\n");
-  printf("  set fadef <float>                      [script]\n");
-  printf("  set mesh_linewidth <int>               [script]\n");
-  printf("  set meshr <0-255>                      [script]\n");
-  printf("  set meshg <0-255>                      [script]\n");
-  printf("  set meshb <0-255>                      [script]\n");
-  printf("  set scalebar_bright <0-255>            [script]\n");
-  printf("  set scalebar_xpos <-1.0 to 1.0>        [script]\n");
-  printf("  set scalebar_ypos <-1.0 to 1.0>        [script]\n");
-  printf("  set colscalebar_width <-1.0 to 1.0>    [script]\n");
-  printf("  set colscalebar_height <-1.0 to 1.0>   [script]\n");
-  printf("  set colscalebar_xpos <-1.0 to 1.0>     [script]\n");
-  printf("  set colscalebar_ypos <-1.0 to 1.0>     [script]\n");
-  printf("  set ncthresh <float>                   [script]\n");
-  printf("  set colscale <0wh,1he,2cr,3bgr,4two,5bw> [script]\n");
-  printf("  set momentumflag <boolean>              Alt-F\n");
-  printf("  set expandflag <boolean>                Alt-e\n");
-  printf("  set MRIflag <boolean>                   Alt-M\n");
-  printf("  set sulcflag <boolean>                 [script]\n");
-  printf("  set avgflag <boolean>                  [script]\n");
-  printf("  set areaflag <boolean>                  Alt-A\n");
-  printf("  set complexvalflag <boolean>           [script]\n");
-  printf("  set overlayflag <boolean>               Alt-o\n");
-  printf("  set ncthreshflag <boolean>              Alt-a\n");
-  printf("  set verticesflag <boolean>              Alt-v\n");
-  printf("  set surfcolor <0no,1cv/su,2area,3shr>  [script]\n");
-  printf("  set shearvecflag <boolean>             [script]\n");
-  printf("  set normvecflag <boolean>              [script]\n");
-  printf("  set movevecflag <boolean>              [script]\n");
-  printf("  set autoscaleflag <boolean>            [script]\n");
-  printf("  set revfsflag <boolean> [computetime]  [script]\n");
-  printf("  set revphaseflag <boolean> [displaytime]   [script]\n");
-  printf("  set truncphaseflag <boolean> [displaytime] [script]\n");
-  printf("  set scalebarflag <boolean>   [1 cm]    [script]\n");
-  printf("  set colscalebarflag <boolean>          [script]\n");
-  printf("  set isocontourflag <boolean>           [script]\n");
-  printf("  set phasecontourflag <boolean>         [script]\n");
-  printf("  set doublebufferflag <boolean>         [script]\n");
-  printf("  set renderoffscreen <boolean> "
-         "[only works before window opened]\n");
-  printf("   ==> abbrev:  tilde     star       pound     abs     rel\n");
-  printf("   ==>   dirs:  <home>  <session> <defscript> <none>  <none>\n");
-  printf("  setfile outsurf <[~]string>            [script]\n");
-  printf("  setfile curv    <[~]string>            [script]\n");
-  printf("  setfile sulc    <[~]string>            [script]\n");
-  printf("  setfile patch   <[~]string>            [script]\n");
-  printf("  setfile dip     <[~]string>            [script]\n");
-  printf("  setfile dec     <[~]string>            [script]\n");
-  printf("  setfile annot   <[~]string>            [script]\n");
-  printf("  setfile label   <[~]string>            [script]\n");
-  printf("  setfile area    <[~]string>            [script]\n");
-  printf("  setfile script  <[~ or #]string>       [script]\n");
-  printf("  setsession   <[~]/string> [this is *]  [script]\n");
-  printf("  setfile val  <[* or ~]string>          [script]\n");
-  printf("  setfile fs   <[* or ~]string>          [script]\n");
-  printf("  setfile fm   <[* or ~]string>          [script]\n");
-  printf("  setfile num_rgbdir   <[~ or *]string>  [script]\n");
-  printf("  setfile named_rgbdir <[~ or *]string>  [script]\n");
-  printf("  setfile rgb  <[~ or *]string>          [script]\n");
-  printf("  setfile targsurf  <[~]string>          [script]\n");
-  printf("  setfile targcurv  <[~]string>          [script]\n");
+   printf("usage: tksurfer subject hemisphere surface [options]\n");
+   printf("\n");
+   printf("surface    : a subject directory in the SUBJECTS_DIR path\n");
+   printf("hemipshere : rh or lh\n");
+   printf("surface    : a surface file name relative to the subject's surf directory\n");
+   printf("\n");
+
+   printf("Options\n");
+   printf("\n");
+
+   printf("-sdir <path>   : sets the subjects directory path\n");
+   printf("-orig <suffix> : sets the orig suffix string\n");
+   printf("\n");
+
+   printf("-patch <filename> : load a patch\n");
+   printf("\n");
+
+   printf("-tcl <filename> : run a script\n");
+   printf("\n");
+
+   printf("-annotation <filename> : load an annotation\n");
+   printf("-colortable <filename> : load a color table file\n");
+   printf("\n");
+
+   printf("-overlay          <filename> : load an overlay volume\n");
+   printf("-overlay-reg-file <filename> : use a file for the overlay registration\n");
+   printf("-overlay-reg-find            : look in the data directory for a register.dat\n");
+   printf("                             : file\n");
+   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
+   printf("-fslope <value>              : set the overlay threshold slope value\n");
+   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
+   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
+   printf("-foffset <value>             : set the overlay threshold offset value\n");
+   printf("-colscalebarflag <1|0>       : display color scale bar\n");
+   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
+   printf("-revphaseflag <1|0>          : reverse the overlay display\n");
+   printf("-invphaseflag <1|0>          : invert the overlay display\n");
+   printf("\n");
+
+   printf("-timecourse          <filename>        : load an timecourse volume\n");
+   printf("-timecourse-reg-file <filename>        : use a file for the timecourse\n");
+   printf("                                       : registration\n");
+   printf("-timecourse-reg-find                   : look in the data directory for a\n");
+   printf("                                       : register.dat file\n");
+   printf("-timecourse-reg-identity               : calculate an identity transform for\n");
+   printf("                                       : regisrtation\n");
+   printf("-timecourse-offset          <filename> : load an timecourse offset volume\n");
+   printf("-timecourse-offset-reg-file <filename> : use a file for the timecourse offset\n");
+   printf("                                       : registration\n");
+   printf("-timecourse-offset-reg-find            : look in the data directory for a\n");
+   printf("                                       : register.dat file\n");
+   printf("-timecourse-offset-reg-identity        : calculate an identity transform for\n");
+   printf("                                       : registration\n");
+   printf("\n");
+
+   printf("-scalebarflag <1|0> : display the scale bar\n");
+   printf("\n");
 }
 
 #endif /* defined(TCL) && defined(TKSURFER) */
@@ -19280,7 +18970,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.182 2006/02/21 18:17:18 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183 2006/02/21 21:47:19 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
