@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/25 21:46:41 $
-// Revision       : $Revision: 1.119 $
+// Revision Date  : $Date: 2006/02/21 17:19:21 $
+// Revision       : $Revision: 1.120 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.119 2006/01/25 21:46:41 nicks Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.120 2006/02/21 17:19:21 nicks Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.119 2006/01/25 21:46:41 nicks Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.120 2006/02/21 17:19:21 nicks Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2599,8 +2599,8 @@ void usage(FILE *stream)
          "a direction cosine is, don't use\n"
          "this method. Instead, (2) specify an orientation string. \n"
          "\n"
-         "--in-orientation  ostring\n"
-         "--out-orientation ostring\n"
+         "--in_orientation  ostring\n"
+         "--out_orientation ostring\n"
          "  \n"
          "  Supply the orientation information in the form "
          "of an orientation string \n"
