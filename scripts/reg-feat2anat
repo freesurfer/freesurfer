@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.13 2006/02/21 18:35:35 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.14 2006/02/21 21:50:58 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -56,26 +56,26 @@ if(! -e $exf2std_fslmat) then
   exit 1;
 endif
 
-if($#fslext == 0) then
-  switch($FSLOUTPUTTYPE)
-    case "ANALYZE":
-      set fslext = img;
-      breaksw
-    case "NIFTI":
-      set fslext = nii;
-      breaksw
-    case "NIFTI_GZ":
-      set fslext = nii.gz;
-      breaksw
-  endsw
+# Automatically detect the file format
+set exfbase = $FeatDir/example_func
+if(-e $exfbase.nii.gz) then
+  setenv FSLOUTPUTTYPE NIFTI_GZ
+  set fslext = nii.gz;
 endif
-echo "FSL extension is $fslext"
-
-set tempvol = $FeatDir/example_func.$fslext
-if(! -e $tempvol) then
-  echo "ERROR: cannot find $tempvol"
+if(-e $exfbase.nii) then
+  setenv FSLOUTPUTTYPE NIFTI
+  set fslext = nii;
+endif
+if(-e $exfbase.img) then
+  setenv FSLOUTPUTTYPE ANALYZE
+  set fslext = img;
+endif
+if($#fslext == 0) then
+  echo "ERROR: cannot determine type of fsl output from $exfbase"
   exit 1;
 endif
+set tempvol = $FeatDir/example_func.$fslext
+echo "template volume is $tempvol"
 
 set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
 set anat2std_regdat = $FeatDir/reg/freesurfer/anat2std.register.dat
@@ -542,7 +542,6 @@ xfmtype can be func2anat, std2anat, or func2std. Implies --manual.
 Interactively view or edit registration with tkregister2. You must have
 already run reg-feat2anat without --manxfm to create the initial registration.
 
-
 --version            : print version and exit
 --help               : print help and exit
 --debug              : turn on debugging
@@ -550,9 +549,8 @@ already run reg-feat2anat without --manxfm to create the initial registration.
 EXAMPLE
 
 # Assume a data set exists called fbert.$fslext, where fslext is either
-# img, nii, or nii.gz. Uses .img by default, but can be set based on
-# FSLOUTPUTTYPE with --fslext-auto. Note: not verified for format
-# other than img.
+# img, nii, or nii.gz. It determines the file format based on the format
+# of the example_func. FSLOUTPUTTYPE is then set accordingly.
 #
 # Analyze fbert.$fslext with Feat to generate directory fbert.feat
 
