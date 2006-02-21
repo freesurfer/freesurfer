@@ -42,8 +42,11 @@ private:
   /** non-square matrix */  
   MATRIX* mNonSquareMatrix;
 
-  /** 1x1 matrix of a 5*/  
+  /** 1x1 matrix of a 5 */  
   MATRIX* mOneMatrix;
+  
+  /** 1x1 matrix of a small number */
+  MATRIX* mOneSmallMatrix;
   
   bool AreMatricesEqual(MATRIX *m1, MATRIX *m2);
   bool AreInversesEqual(MATRIX *matrix, const string inverseFile);
@@ -68,6 +71,9 @@ public:
 
   static const string ONE_MATRIX;
   static const string ONE_INVERSE;
+
+  static const string ONE_SMALL_MATRIX;
+  static const string ONE_SMALL_INVERSE;
   
   // setUp is called automatically before each test
   void setUp();
@@ -99,6 +105,9 @@ const string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";
 const string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
 
+const string MatrixTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
+const string MatrixTest::ONE_SMALL_INVERSE = TESTING_DIR + "OneSmallInverse.mat";
+
 void
 MatrixTest::setUp() {
   mPascalMatrix =    MatrixRead( (char*) ( PASCAL_MATRIX.c_str() ) );
@@ -108,6 +117,7 @@ MatrixTest::setUp() {
   mSingularMatrix =  MatrixRead( (char*) ( SINGULAR_MATRIX.c_str() ) );
   mNonSquareMatrix = MatrixRead( (char*) ( NON_SQUARE_MATRIX.c_str() ) );
   mOneMatrix =       MatrixRead( (char*) ( ONE_MATRIX.c_str() ) );
+  mOneSmallMatrix =  MatrixRead( (char*) ( ONE_SMALL_MATRIX.c_str() ) );
 }
 
 void
@@ -119,6 +129,7 @@ MatrixTest::tearDown() {
   MatrixFree( &mSingularMatrix );
   MatrixFree( &mNonSquareMatrix );
   MatrixFree( &mOneMatrix );
+  MatrixFree( &mOneSmallMatrix );
 }
 
 bool 
@@ -148,8 +159,8 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2 ) {
   return areEqual;
 }
 
-bool MatrixTest::
-AreInversesEqual(MATRIX *matrix, const string inverseFile) {
+bool
+MatrixTest::AreInversesEqual(MATRIX *matrix, const string inverseFile) {
   MATRIX *expectedInverse = MatrixRead((char*)( inverseFile.c_str() ));
   MATRIX *actualInverse = MatrixInverse(matrix, NULL);
 
@@ -183,7 +194,7 @@ MatrixTest::TestMatrixInverse() {
     
   // test a 1 x 1 matrix
   CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_INVERSE) );
-  
+
   // test a singular matrix
   CPPUNIT_ASSERT( MatrixInverse(mSingularMatrix, NULL) == NULL );
 
@@ -192,6 +203,9 @@ MatrixTest::TestMatrixInverse() {
 
   // test non-square matrix
   CPPUNIT_ASSERT( MatrixInverse(mNonSquareMatrix, NULL) == NULL );
+
+  // test a 1x1 matrix with a small number
+  CPPUNIT_ASSERT( AreInversesEqual(mOneSmallMatrix, ONE_SMALL_INVERSE) );  
 }
 
 void
@@ -226,6 +240,11 @@ MatrixTest::TestMatrixDeterminant() {
   CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mNonSquareMatrix),
                                 0.0,
                                 tolerance );
+                                
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mOneSmallMatrix), 
+                                2.e-20, 
+                                tolerance );
+                                
 }
 
 int main ( int argc, char** argv ) {
