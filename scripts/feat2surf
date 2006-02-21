@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.6 2005/08/29 15:55:04 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.7 2006/02/21 21:44:07 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -13,6 +13,7 @@ set DontRun = 0;
 set usedev = 0;
 set myoutstatsdir = ();
 set NoLog = 0;
+set fslext = ();
 
 set PrintHelp = 0;
 
@@ -61,18 +62,31 @@ echo "subject is $subject" | tee -a $LF
 
 set statsdir = $FeatDir/stats
 set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+if(! -e $reg_anat2exf) then
+  echo "ERROR: cannot find $reg_anat2exf"
+  echo "Try running reg-feat2anat"
+  exit 1
+endif
 set subject = `cat $reg_anat2exf| head -n 1`;
 
-set nonomatch # This prevents crashing due to file expansion errors
-set imglist = ($statsdir/*.img $statsdir/*.nii)
-set imglist = ($imglist $FeatDir/cluster*.img $FeatDir/cluster*.nii)
-set imglist = ($imglist $FeatDir/rendered_thresh*.img $FeatDir/rendered_thresh*.nii)
+# Automatically detect the file format
+set exfbase = $FeatDir/example_func
+if(-e $exfbase.nii.gz) set fslext = nii.gz;
+if(-e $exfbase.nii)    set fslext = nii;
+if(-e $exfbase.img)    set fslext = img;
+if($#fslext == 0) then
+  echo "ERROR: cannot determine type of fsl output"
+  exit 1;
+endif
 
-#set imglist = ($statsdir/zstat1.img)
-
+# Get a list of images to convert
+#set nonomatch # This prevents crashing due to file expansion errors
+set imglist = (`ls $statsdir/*.$fslext`)
+set imglist = (`ls $imglist $FeatDir/cluster*.$fslext`)
+set imglist = (`ls $imglist $FeatDir/rendered_thresh*.$fslext`)
 set nimg = $#imglist
 if($nimg == 0) then
-  echo "ERROR: cannot find any .img or .nii files in $statsdir"| tee -a $LF 
+  echo "ERROR: cannot find any .img, .nii, .nii.gz files in $statsdir"| tee -a $LF 
   exit 1;
 endif
 echo "Found $nimg images in $statsdir" | tee -a $LF 
@@ -80,36 +94,22 @@ echo "Found $nimg images in $statsdir" | tee -a $LF
 @ nthimg = 0
 foreach img ($imglist)
    @ nthimg = $nthimg + 1;
+   echo $img ---------------------
 
    # Get the extension
-   set ext = .img;     
-   set tmp = `basename $img $ext`;
-   if($tmp == $img) then
-      set ext = .nii;     
-      set tmp = `basename $img $ext`;
-   endif
-   set baseimg = `basename $img $ext`;
+   set ext = $fslext
+   set baseimg = `basename $img $ext`
 
    # Dont know whether these should be conv too
    #if($baseimg == corrections) continue;
    #if($baseimg == threshac1) continue;
 
    foreach targ ($subject $TargetSubj)
-   #foreach targ ( $TargetSubj)
      foreach hemi ($HemiList)
-       if($targ != $subject) then
-         #if($FSLOUTPUTTYPE == ANALYZE)  set outext = .img;
-         #if($FSLOUTPUTTYPE == NIFTI)    set outext = .nii;
-         set outext = .img;
-         set outtype = analyze4d;
-       else
-         set outstatsdir = $FeatDir/reg_surf-$hemi/stats
-         set outext = .mgh;
-         set outtype = mgh;
-       endif
+       set outext = $fslext
 
        # Only used for testing
-       if($#myoutstatsdir != 0) then
+       if($#myoutstatsdir == 0) then
          set outstatsdir = $FeatDir/reg_surf-$hemi-$targ/stats
        else
          set outstatsdir = $myoutstatsdir
@@ -123,7 +123,7 @@ foreach img ($imglist)
        
       set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
                   --trgsubject $targ --hemi $hemi --out $outimg\
-                  --surf $Surf --out_type $outtype)
+                  --surf $Surf)
        if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac) 
 
        echo " " | tee -a $LF
@@ -335,12 +335,11 @@ Resamples Feat statistics onto the surface of the subject and onto a
 stereo-taxic surface atlas. Statistics are obtained from FeatDir/stats
 as well as those volumes in FeatDir beginning with "cluster" and
 "rendered". The results are stored in FeatDir/reg_surf-lh/stats and
-FeatDir/reg_surf-rh/stats for the individual (in MGH format). For the
-common space, they are stored in FeatDir/reg_surf-lh-targid/stats and
-FeatDir/reg_surf-rh-targid/stats (in ANALYZE format), where targid is
-the subject that defines the common surface space (default is
-average7). All of the .img or .nii files are resampled. Does not work
-on compressed NIFTI.
+FeatDir/reg_surf-rh/stats for the individual. For the common space,
+they are stored in FeatDir/reg_surf-lh-targid/stats and
+FeatDir/reg_surf-rh-targid/stats, where targid is the subject that
+defines the common surface space (default is average7).
+
 
 Creates log file featdir/reg/freesurfer/feat2surf.log
 
@@ -389,18 +388,18 @@ feat2surf --feat fbert.feat
 
 BUGS
 
-The surface-based data are stored in "volume" formats (ie, ANALYZE or
-MGH).  In this case, the spatial dimensions do not correspond to
-volume dimensions but rather the number of vertices on the
-surface. This is typically on the order of 150,000. Ideally, we would
-simply store the surface data as a "volume" with 150,000 columns, 1
-row, and 1 slice.  However, ANALYZE cannot represent dimensions over
-2^15, or 32768.  Same problem with NIFTI. To get around this, we
-factor the number of vertices into dimensions smaller than 32768. Eg,
-the average7 surface has 163842 vertices which we factor into
-1974x83. However, for individuals there is no guarantee that the 
-number of vertices will have a factor less than 32768. For this
-reason the data resampled on the individual surfaces is stored in 
+The surface-based data are stored in "volume" formats (ie, the format
+found in the FEAT dir).  In this case, the spatial dimensions do not
+correspond to volume dimensions but rather the number of vertices on
+the surface. This is typically on the order of 150,000. Ideally, we
+would simply store the surface data as a "volume" with 150,000
+columns, 1 row, and 1 slice.  However, ANALYZE cannot represent
+dimensions over 2^15, or 32768.  Same problem with NIFTI. To get
+around this, we factor the number of vertices into dimensions smaller
+than 32768. Eg, the average7 surface has 163842 vertices which we
+factor into 1974x83. However, for individuals there is no guarantee
+that the number of vertices will have a factor less than 32768. For
+this reason the data resampled on the individual surfaces is stored in
 MGH format (which does not have these restrictions).
 
 
