@@ -150,8 +150,7 @@ int mri_identify(char *fname_passed)
   {
     // now get the extension
     ext = strrchr(fname, '.');
-    if (ext) // if found .
-    {  
+    if (ext){ // if found a dot (.)
       ++ext; // now points to extension
       // first use the extension to identify
       type = string_to_type(ext);
@@ -161,8 +160,9 @@ int mri_identify(char *fname_passed)
 	if(strstr(fname, ".nii.gz")) type = NII_FILE;
 	else{
 	  type = MRI_VOLUME_TYPE_UNKNOWN;
-	  printf("INFO: Currently supports gzipped mgh file "
-		 "(.mgz or .mgh.gz) only\n");
+	  printf("INFO: Currently supports gzipped mgh or nifti file "
+		 "(.mgz, .mgh.gz, or nii.gz) only.\n");
+	  printf("fname = %s\n",fname);
 	  return type;
 	}
       }
