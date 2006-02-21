@@ -95,6 +95,7 @@ typedef struct {
   int *nClusters;
   double *MaxClusterSize;
   double *MaxSig;
+  double *MaxStat;
   int mergedflag;     // Flag to indicate that two or more merged
   HISTOGRAM *mcs_pdf, *mcs_cdf; // max cluster size
   HISTOGRAM *ms_pdf, *ms_cdf;   // max sig

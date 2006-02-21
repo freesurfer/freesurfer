@@ -1208,8 +1208,9 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
 {
   FILE *fp;
   CLUSTER_SIM_DATA *csd;
-  char tag[1000], tmpstr[1000];
+  char tag[1000], tmpstr[1000], c;
   int r,nthrep;
+  double d;
 
   fp = fopen(csdfile,"r");
   if(fp == NULL){
@@ -1256,6 +1257,16 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       fscanf(fp,"%d", &(csd->nClusters[nthrep]));
       fscanf(fp,"%lf",&(csd->MaxClusterSize[nthrep]));
       fscanf(fp,"%lf",&(csd->MaxSig[nthrep]));
+      // Check for max stat on this line
+      c = fgetc(fp);
+      while(c == ' ') c = fgetc(fp);
+      fputc(c,fp);
+      if(c != '\n') {
+	fscanf(fp,"%lf",&d);
+	csd->MaxStat[nthrep] = d;
+	//printf("d = %g\n",d);
+      }
+      //exit(1);
       nthrep++;
     }
   }
@@ -1300,7 +1311,8 @@ int CSDallocData(CLUSTER_SIM_DATA *csd)
 {
   csd->nClusters = (int *) calloc(csd->nreps, sizeof(int));
   csd->MaxClusterSize = (double *) calloc(csd->nreps, sizeof(double));
-  csd->MaxSig = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxSig  = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxStat = (double *) calloc(csd->nreps, sizeof(double));
   return(0);
 }
 /*--------------------------------------------------------------
@@ -1320,6 +1332,10 @@ int CSDfreeData(CLUSTER_SIM_DATA *csd)
   if(csd->MaxSig){
     free(csd->MaxSig); 
     csd->MaxSig = NULL;
+  }
+  if(csd->MaxStat){
+    free(csd->MaxStat); 
+    csd->MaxStat = NULL;
   }
   if(csd->mcs_pdf) HISTOfree(&csd->mcs_pdf);
   if(csd->mcs_cdf) HISTOfree(&csd->mcs_cdf);
@@ -1358,6 +1374,7 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
     csdcopy->nClusters[nthrep]      = csd->nClusters[nthrep];
     csdcopy->MaxClusterSize[nthrep] = csd->MaxClusterSize[nthrep];
     csdcopy->MaxSig[nthrep]         = csd->MaxSig[nthrep];
+    csdcopy->MaxStat[nthrep]        = csd->MaxStat[nthrep];
   }
   return(csdcopy);
 }
@@ -1439,12 +1456,14 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
     csd->nClusters[nthrep]      = csd1->nClusters[nthrep1];
     csd->MaxClusterSize[nthrep] = csd1->MaxClusterSize[nthrep1];
     csd->MaxSig[nthrep]         = csd1->MaxSig[nthrep1];
+    csd->MaxStat[nthrep]        = csd1->MaxStat[nthrep1];
     nthrep++;
   }
   for(nthrep2 = 0; nthrep2 < csd2->nreps; nthrep2++){
     csd->nClusters[nthrep]      = csd2->nClusters[nthrep2];
     csd->MaxClusterSize[nthrep] = csd2->MaxClusterSize[nthrep2];
     csd->MaxSig[nthrep]         = csd2->MaxSig[nthrep2];
+    csd->MaxStat[nthrep]        = csd2->MaxStat[nthrep2];
     nthrep++;
   }
 
@@ -1478,10 +1497,11 @@ int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
 {
   int nthrep;
   CSDprintHeader(fp,csd);
-  fprintf(fp,"# LoopNo nClusters MaxClustSize        MaxSig\n");
+  fprintf(fp,"# LoopNo nClusters MaxClustSize        MaxSig    MaxStat\n");
   for(nthrep = 0; nthrep < csd->nreps; nthrep++){
-    fprintf(fp,"%7d       %3d      %g          %g \n",nthrep,csd->nClusters[nthrep],
-	    csd->MaxClusterSize[nthrep],csd->MaxSig[nthrep]);
+    fprintf(fp,"%7d       %3d      %g          %g     %g\n",nthrep,
+	    csd->nClusters[nthrep],csd->MaxClusterSize[nthrep],
+	    csd->MaxSig[nthrep],csd->MaxStat[nthrep]);
   }
   return(0);
 }
