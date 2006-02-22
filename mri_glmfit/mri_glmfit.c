@@ -412,7 +412,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.76 2006/02/22 04:55:46 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.77 2006/02/22 06:01:38 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1130,7 +1130,7 @@ int main(int argc, char **argv)
     cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
     rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
     sfwhm = RFar1ToFWHM(sar1mn, mriglm->eres->zsize);
-    eresfwhm = sqrt(cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm);
+    eresfwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
     printf("Residual: ar1mn = (%lf,%lf,%lf) fwhm = (%lf,%lf,%lf) %lf\n",
 	   car1mn,rar1mn,sar1mn,cfwhm,rfwhm,sfwhm,eresfwhm);
   }
