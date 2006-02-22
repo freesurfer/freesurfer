@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # ipfsl - front-end for FSL's IP program
 #
-# $Id: ipfsl,v 1.4 2005/08/30 17:05:56 greve Exp $
+# $Id: ipfsl,v 1.5 2006/02/22 05:27:23 greve Exp $
 #
 
-set VERSION = '$Id: ipfsl,v 1.4 2005/08/30 17:05:56 greve Exp $';
+set VERSION = '$Id: ipfsl,v 1.5 2006/02/22 05:27:23 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -155,7 +155,7 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       set makemask = 1;
       set maskbase = `basename $maskstem`
-      set fslargs = ($fslargs -m $maskbase); shift;     
+      set fslargs = ($fslargs -m $maskbase);
       breaksw
 
     case "-pctthresh"
