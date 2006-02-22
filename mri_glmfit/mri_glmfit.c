@@ -43,6 +43,7 @@ USAGE: ./mri_glmfit
    --resynthtest niters : test GLM by resynthsis
    --profile     niters : test speed
 
+   --perm-force : force perumtation test, even when design matrix is not orthog
    --diag Gdiag_no : set diagnositc level 
    --diag-cluster : save sig volume and exit from first sim loop
    --debug     turn on debugging
@@ -411,7 +412,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.75 2006/02/21 00:41:55 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.76 2006/02/22 04:55:46 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -476,6 +477,7 @@ int DontSave = 0;
 
 int DoSim=0;
 int synth = 0;
+int PermForce = 0;
 
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
@@ -718,6 +720,11 @@ int main(int argc, char **argv)
 
   // Handle self-regressors
   if(nSelfReg > 0){
+    if(DoSim && !strcmp(csd->simtype,"perm")){
+      printf("ERROR: cannot use --selfreg with perm simulation\n");
+      exit(1);
+    }
+
     for(n=0; n<nSelfReg; n++){
       c = crsSelfReg[n][0];
       r = crsSelfReg[n][1];
@@ -750,6 +757,17 @@ int main(int argc, char **argv)
     mriglm = mriglmtmp;
   }
   MRIglmNRegTot(mriglm);
+
+  if(DoSim && !strcmp(csd->simtype,"perm")){
+    if(MatrixColsAreNotOrthog(mriglm->Xg)){
+      if(PermForce) printf("INFO: design matrix is not orthogonal, but perm forced\n");
+      else{
+	printf("ERROR: design matrix is not orthogonal, cannot be used with permutation.\n");
+	printf("If this something you really want to do, run with --perm-force\n");
+	exit(1);
+      }
+    }
+  }
 
   // Load the contrast matrices ---------------------------------
   mriglm->glm->ncontrasts = nContrasts;
@@ -807,6 +825,7 @@ int main(int argc, char **argv)
 	}
       }
     }
+    else OneSamplePerm=0;
     if(OneSamplePerm)
       printf("Design detected as one-sample group mean, adjusting permutation simulation\n");
   }
@@ -1268,6 +1287,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
     else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
+    else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1480,7 +1500,7 @@ static int parse_commandline(int argc, char **argv)
 static void print_usage(void)
 {
 printf("\n");
-printf("USAGE: mri_glmfit \n");
+printf("USAGE: ./mri_glmfit \n");
 printf("\n");
 printf("   --glmdir dir : save outputs to dir\n");
 printf("\n");
@@ -1519,6 +1539,7 @@ printf("\n");
 printf("   --resynthtest niters : test GLM by resynthsis\n");
 printf("   --profile     niters : test speed\n");
 printf("\n");
+printf("   --perm-force : force perumtation test, even when design matrix is not orthog\n");
 printf("   --diag Gdiag_no : set diagnositc level \n");
 printf("   --diag-cluster : save sig volume and exit from first sim loop\n");
 printf("   --debug     turn on debugging\n");
