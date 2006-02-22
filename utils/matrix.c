@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.78 2006/02/17 19:43:14 dsjen Exp $
+// $Id: matrix.c,v 1.79 2006/02/22 00:05:09 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,6 +20,7 @@
 #include "macros.h"
 #include "nr_wrapper.h"
 #include "evschutils.h"
+#include "values.h"
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
@@ -3314,5 +3315,31 @@ int MatrixRandPermRows(MATRIX *X)
   X0 = MatrixCopy(X,NULL);
   MatrixReorderRows(X0, NewRowOrder, X);
   MatrixFree(&X0);
+  return(0);
+}
+/*--------------------------------------------------------------------
+  MatrixColsAreNotOrthog() - returns 1 if matrix columns are not
+  orthogonal. Computes X'*X and examines the off diagonals. If any
+  are greater than 2*FLT_MIN, then returns 1.
+  --------------------------------------------------------------------*/
+int MatrixColsAreNotOrthog(MATRIX *X)
+{
+  MATRIX *Xt, *XtX;
+  int r,c;
+
+  Xt = MatrixTranspose(X,NULL);
+  XtX = MatrixMultiply(Xt,X,NULL);
+  MatrixFree(&Xt);
+
+  for(r=1; r < XtX->rows; r++){
+    for(c=r+1; c < XtX->rows; c++){
+      // only upper triangle
+      if(XtX->rptr[r][c] > 2*FLT_MIN){
+	MatrixFree(&XtX);
+	return(1);
+      }
+    }
+  }
+  MatrixFree(&XtX);
   return(0);
 }

@@ -211,5 +211,6 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G);
 MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g);
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
+int MatrixColsAreNotOrthog(MATRIX *X);
 
 #endif
