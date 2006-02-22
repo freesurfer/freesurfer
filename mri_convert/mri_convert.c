@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/02/21 17:19:21 $
-// Revision       : $Revision: 1.120 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/22 05:39:36 $
+// Revision       : $Revision: 1.121 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,6 +142,7 @@ int main(int argc, char *argv[])
   MATRIX *T;
   float scale_factor ;
   int nthframe=-1;
+  float fwhm, gstd;
   char cmdline[STRLEN] ;
 
   ErrorInit(NULL, NULL, NULL) ;
@@ -149,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.120 2006/02/21 17:19:21 nicks Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -241,13 +242,14 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
   nskip = 0;
   ndrop = 0;
+  fwhm=-1;gstd=-1;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.120 2006/02/21 17:19:21 nicks Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -682,6 +684,11 @@ int main(int argc, char *argv[])
           get_ints(argc, argv, &i, &in_n_k, 1);
           in_n_k_flag = TRUE;
         }
+      else if(strcmp(argv[i], "--fwhm") == 0){
+	get_floats(argc, argv, &i, &fwhm, 1);
+	gstd = fwhm/sqrt(log(256.0));
+	printf("fwhm = %g, gstd = %g\n",fwhm,gstd);
+      }
       else if( strcmp(argv[i], "-tr") == 0 )
         {
           get_floats(argc, argv, &i, &in_tr, 1);
@@ -1430,11 +1437,15 @@ int main(int argc, char *argv[])
     }
 
 
-  if(mri == NULL)
-    {
-      if(in_like_flag) MRIfree(&mri_in_like);
-      exit(1);
-    }
+  if(mri == NULL){
+    if(in_like_flag) MRIfree(&mri_in_like);
+    exit(1);
+  }
+  
+  if(fwhm > 0){
+    printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
+    MRIgaussianSmooth(mri, gstd, 1, mri);
+  }
 
   MRIaddCommandLine(mri, cmdline) ;
   if (!FEQUAL(scale_factor,1.0))
@@ -2409,6 +2420,7 @@ void usage(FILE *stream)
           "<dx, dy, dz> \n");
   fprintf(stream, "  --like vol: output is embedded in "
           "a volume like vol\n");
+  fprintf(stream, "  --fwhm fwhm : smooth input volume by fwhm mm\n ");
   fprintf(stream, "\n");
 
   fprintf(stream,
