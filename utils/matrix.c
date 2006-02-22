@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.80 2006/02/22 04:54:14 greve Exp $
+// $Id: matrix.c,v 1.81 2006/02/22 20:24:37 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,6 +10,11 @@
 #ifdef _POSIX_MAPPED_FILES
 #include <sys/mman.h>
 #endif
+#ifdef Darwin
+#include <float.h>  // defines FLT_MIN
+#else
+#include <values.h> // defines FLT_MIN
+#endif
 
 #include "matrix.h"
 #include "proto.h"
@@ -20,7 +25,6 @@
 #include "macros.h"
 #include "nr_wrapper.h"
 #include "evschutils.h"
-#include "values.h"
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
