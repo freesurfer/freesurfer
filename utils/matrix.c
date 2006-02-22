@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.79 2006/02/22 00:05:09 greve Exp $
+// $Id: matrix.c,v 1.80 2006/02/22 04:54:14 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3330,9 +3330,8 @@ int MatrixColsAreNotOrthog(MATRIX *X)
   Xt = MatrixTranspose(X,NULL);
   XtX = MatrixMultiply(Xt,X,NULL);
   MatrixFree(&Xt);
-
-  for(r=1; r < XtX->rows; r++){
-    for(c=r+1; c < XtX->rows; c++){
+  for(r=1; r <= XtX->rows; r++){
+    for(c=r+1; c <= XtX->cols; c++){
       // only upper triangle
       if(XtX->rptr[r][c] > 2*FLT_MIN){
 	MatrixFree(&XtX);
