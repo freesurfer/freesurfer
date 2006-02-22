@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $
+  $Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -436,16 +436,16 @@ int main(int argc, char **argv)
     fprintf(fp,"# FixMNI = %d\n",FixMNI);  
     fprintf(fp,"# \n");  
     fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
-    if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi\n");
-    else fprintf(fp,"\n");
+    if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
+    fprintf(fp,"   NVtxs\n");
     for(n=0; n < NClusters; n++){
       fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
        scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
     if(csd != NULL)  
-      fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf\n",
+      fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf",
 	      scs[n].pval_clusterwise,scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
-    else fprintf(fp,"\n");
+    fprintf(fp,"  %4d\n",scs[n].nmembers);
     }
     fclose(fp);
   }
@@ -492,7 +492,7 @@ int main(int argc, char **argv)
   /* --- Save the cluster pval --- */
   if(ocpvalid != NULL){
     sclustSetSurfaceValToCWP(srcsurf,scs);
-    MRIcopyMRIS(merged, srcsurf, 0, "val"); // cluster-wise pval
+    MRIcopyMRIS(merged, srcsurf, 0, "val"); // cluster-wise -log10(pval)
     printf("Saving cluster pval %s\n",ocpvalid);
     MRIwrite(merged,ocpvalid);
   }
@@ -1001,7 +1001,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.25 2006/02/07 09:02:26 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
