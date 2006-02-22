@@ -26,7 +26,7 @@
 #include "subroutines.h"
 
 static char vcid[] =
-"$Id: mri_fill.c,v 1.100 2006/01/18 20:01:50 nicks Exp $";
+"$Id: mri_fill.c,v 1.101 2006/02/22 23:05:06 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -341,7 +341,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_fill.c,v 1.100 2006/01/18 20:01:50 nicks Exp $", "$Name:  $",
+     "$Id: mri_fill.c,v 1.101 2006/02/22 23:05:06 nicks Exp $", "$Name:  $",
      cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -349,7 +349,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_fill.c,v 1.100 2006/01/18 20:01:50 nicks Exp $", "$Name:  $");
+     "$Id: mri_fill.c,v 1.101 2006/02/22 23:05:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -478,6 +478,9 @@ main(int argc, char *argv[])
       MRIfree(&mri_p_wm) ;
       MRI3DmorphFree(&m3d) ;
     }
+
+
+
 
   if (!Gdiag)
     fprintf(stderr, "done.\nsearching for cutting planes...") ;
@@ -640,6 +643,26 @@ main(int argc, char *argv[])
   // cc_seed is give by voxel position
   else if (cc_seed_vol_set)
     {
+      /* bounds-check cc voxel coordinates */
+      if ((cc_vol_x >= mri_im->width) || (cc_vol_x < 0))
+	{
+	  ErrorExit
+	    (ERROR_BADPARM,
+	     "ERROR: cc_vol_x voxel coordinate out-of-bounds!\n");
+	}
+      if ((cc_vol_y >= mri_im->height) || (cc_vol_y < 0))
+	{
+	  ErrorExit
+	    (ERROR_BADPARM,
+	     "ERROR: cc_vol_y voxel coordinate out-of-bounds!\n");
+	}
+      if ((cc_vol_z >= mri_im->depth) || (cc_vol_z < 0))
+	{
+	  ErrorExit
+	    (ERROR_BADPARM,
+	     "ERROR: cc_vol_z voxel coordinate out-of-bounds!\n");
+	}
+
       // compute the tal position using lta
       MRIvoxelToTalairachEx(mri_im, cc_vol_x, cc_vol_y, cc_vol_z,
                             &cc_tal_x, &cc_tal_y, &cc_tal_z, lta);
@@ -771,6 +794,26 @@ main(int argc, char *argv[])
       //////////////////////////////////////////////////////////////////////
       if (pons_seed_vol_set)
         {
+	  /* bounds-check pons voxel coordinates */
+	  if ((pons_vol_x >= mri_im->width) || (pons_vol_x < 0))
+	    {
+	      ErrorExit
+		(ERROR_BADPARM,
+		 "ERROR: pons_vol_x voxel coordinate out-of-bounds!\n");
+	    }
+	  if ((pons_vol_y >= mri_im->height) || (pons_vol_y < 0))
+	    {
+	      ErrorExit
+		(ERROR_BADPARM,
+		 "ERROR: pons_vol_y voxel coordinate out-of-bounds!\n");
+	    }
+	  if ((pons_vol_z >= mri_im->depth) || (pons_vol_z < 0))
+	    {
+	      ErrorExit
+		(ERROR_BADPARM,
+		 "ERROR: pons_vol_z voxel coordinate out-of-bounds!\n");
+	    }
+
           // compute the tal position using lta
           MRIvoxelToTalairachEx(mri_im, pons_vol_x, pons_vol_y, pons_vol_z,
                                 &pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
