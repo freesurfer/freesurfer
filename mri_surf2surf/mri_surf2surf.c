@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.35 2006/02/19 17:55:08 greve Exp $
+  $Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -263,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.35 2006/02/19 17:55:08 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -345,14 +345,14 @@ int main(int argc, char **argv)
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
-  float MnTrgMultiHits,MnSrcMultiHits;
+  float MnTrgMultiHits,MnSrcMultiHits, val;
   int nargs;
   FACE *face;
   VERTEX *vtx0,*vtx1,*vtx2;
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.35 2006/02/19 17:55:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -467,7 +467,15 @@ int main(int argc, char **argv)
     }
     if(UseSurfSrc == SURF_SRC_AREA){
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "area"); 
+      if(SurfSrc->group_avg_surface_area > 0){
+	if(getenv("FIX_VERTEX_AREA") != NULL){
+	  printf("INFO: Fixing group surface area\n");
+	  val = SurfSrc->group_avg_surface_area / SurfSrc->total_area;
+	  MRIscalarMul(SrcVals,SrcVals,val);
+	}
+      }
     }
+    else printf("INFO: surfcluster: NOT fixing group surface area\n");
     MRISfree(&SurfSrc);
   }
   else { /* Use MRIreadType */
