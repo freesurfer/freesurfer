@@ -39,7 +39,7 @@ inflate_subject_new-rh \
 inflate_subject-rh \
 inflate_subject_sc \
 isanalyze \
-isnifit \
+isnifti \
 label_child \
 label_elderly_subject \
 label_subject \
