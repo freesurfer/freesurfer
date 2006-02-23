@@ -1,4 +1,24 @@
 
+/*--------------------------------------------------------------
+Example Usage:
+
+set subject = fsr-tst
+
+mri_segstats \
+  --in  $SUBJECTS_DIR/$subject/mri/norm.mgz \
+  --seg $SUBJECTS_DIR/$subject/mri/aseg.mgz \
+  --ctab-default \
+  --avgwfvol stats.mgh --avgwf stats.txt \
+  --sum sum.txt
+
+./mri_stats2seg --stat stats.mgh \
+  --seg $SUBJECTS_DIR/$subject/mri/aseg.mgz \
+  --o asegstats.mgh
+
+tkmedit $subject norm.mgz -aux ./asegstats.mgh\
+  -segmentation $SUBJECTS_DIR/$subject/mri/aseg.mgz \
+      $FREESURFER_HOME/FreeSurferColorLUT.txt
+--------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +62,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.2 2006/02/23 04:13:24 greve Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.3 2006/02/23 06:30:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -52,18 +72,30 @@ struct utsname uts;
 char *TempVolFile=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 
+char *statfile=NULL;
+MRI *statmri;
+char *segfile=NULL;
+MRI *seg;
+
+char *outfile=NULL;
+MRI *out;
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs;
+  int nargs,r,c,s,f,segid;
   MRIS *mris;
   MRI *mri;
+  double val;
 
+  if(0){
   mris = MRISread("/space/greve/1/users/greve/subjects/fsr-tst/surf/lh.white");
   MRISreadAnnotation(mris,"/space/greve/1/users/greve/subjects/fsr-tst/label/lh.aparc.annot");
   mri = MRISannotIndex2Seg(mris);
   MRIwrite(mri,"lh.aparc.mgh");
   exit(1);
+  }
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -89,6 +121,34 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  seg = MRIread(segfile);
+  if(seg == NULL) exit(1);
+
+  statmri = MRIread(statfile);
+  if(statmri == NULL) exit(1);
+
+  out = MRIcloneBySpace(seg,statmri->nframes);
+  if(out == NULL) exit(1);
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	//if(segid == 0) continue; 
+	if(segid >= statmri->width){
+	  printf("ERROR: %d %d %d segid=%d >= %d\n",c,r,s,segid,statmri->width);
+	  exit(1);
+	}
+	for(f=0; f < statmri->nframes; f++){
+	  val = MRIgetVoxVal(statmri,segid,0,0,f);;
+	  MRIsetVoxVal(out,c,r,s,f,val);
+	}
+      }
+    }
+  }
+  MRIwrite(out,outfile);
+
+  printf("mri_stats2seg done\n");
   return 0;
 }
 /* --------------------------------------------- */
@@ -116,9 +176,19 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
+    else if (!strcasecmp(option, "--stat")){
+      if(nargc < 1) CMDargNErr(option,1);
+      statfile = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--seg")){
       if(nargc < 1) CMDargNErr(option,1);
-      TempVolFile = pargv[0];
+      segfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--o")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outfile = pargv[0];
       nargsused = 1;
     }
     else{
@@ -143,7 +213,11 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --temp-vol volfile : template volume \n");
+  printf("   --stat mristat : stat file in an mri format\n");
+  //printf("   --stat-txt stat.txt : text stat file \n");
+  printf("   --seg segvol \n");
+  printf("   --o out\n");
+  printf("\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -169,6 +243,18 @@ static void print_version(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  if(statfile == NULL){
+    printf("ERROR: need to specify a stat file\n");
+    exit(1);
+  }
+  if(segfile == NULL){
+    printf("ERROR: need to specify a seg file\n");
+    exit(1);
+  }
+  if(outfile == NULL){
+    printf("ERROR: need to specify an out file\n");
+    exit(1);
+  }
   return;
 }
 
