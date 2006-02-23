@@ -39,7 +39,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.20 2006/01/10 21:26:33 greve Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.21 2006/02/23 22:18:33 greve Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -201,6 +201,7 @@ int main(int argc, char *argv[])
   fprintf(fp,"total_area  %f\n",mris->total_area);
   if(mris->group_avg_surface_area > 0)
     fprintf(fp,"group_avg_surf_area  %f\n",mris->group_avg_surface_area);
+  printf("group_avg_vtxarea_loaded %d\n",mris->group_avg_vtxarea_loaded);
   fprintf(fp,"avgvtxarea  %lf\n",avgvtxarea);
   fprintf(fp,"avgvtxdist  %lf\n",InterVertexDistAvg);
   fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);

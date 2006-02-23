@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/23 02:34:16 $
-// Revision       : $Revision: 1.438 $
+// Revision Date  : $Date: 2006/02/23 22:18:30 $
+// Revision       : $Revision: 1.439 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -573,7 +573,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.438 2006/02/23 02:34:16 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.439 2006/02/23 22:18:30 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -587,6 +587,8 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   VERTEX      *vertex ;
   FACE        *face ;
   int         tag;
+  char        tmpstr[2000];
+  MRI         *mri;
 
   chklc() ;    /* check to make sure license.dat is present */
   type = MRISfileNameType(fname) ; /* using extension to get type */
@@ -940,6 +942,22 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   /*  mrisFindPoles(mris) ;*/
 
   MRISstoreCurrentPositions(mris) ;
+
+  // Check whether there is an area file for group average
+  sprintf(tmpstr,"%s.avg.area.mgh",fname);
+  if(fio_FileExistsReadable(tmpstr)){
+    printf("Reading in average area %s\n",tmpstr);
+    mri = MRIread(tmpstr);
+    if(!mri){
+      printf("ERROR: reading in average area %s\n",tmpstr);
+      return(NULL);
+    }
+    MRIScopyMRI(mris,mri,0,"group_avg_area");
+    MRIfree(&mri);
+    mris->group_avg_vtxarea_loaded=1;
+  }
+  else mris->group_avg_vtxarea_loaded=0;
+
   return(mris) ;
 }
 
@@ -47432,6 +47450,7 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
           Surf->vertices[vtx].annotation = val;
         else if(!strcmp(Field,"ripflag")) Surf->vertices[vtx].ripflag = val;
         else if(!strcmp(Field,"area")) Surf->vertices[vtx].area = val;
+        else if(!strcmp(Field,"group_avg_area")) Surf->vertices[vtx].group_avg_area = val;
         else if(!strcmp(Field,"K")) Surf->vertices[vtx].K = val;
         else if(!strcmp(Field,"H")) Surf->vertices[vtx].H = val;
         else if(!strcmp(Field,"k1")) Surf->vertices[vtx].k1 = val;
@@ -47516,6 +47535,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
           val = surf->vertices[vtx].annotation;
         else if(!strcmp(Field,"ripflag")) val = surf->vertices[vtx].ripflag;
         else if(!strcmp(Field,"area")) val = surf->vertices[vtx].area;
+        else if(!strcmp(Field,"group_avg_area")) val = surf->vertices[vtx].group_avg_area;
         else if(!strcmp(Field,"K")) val = surf->vertices[vtx].K;
         else if(!strcmp(Field,"H")) val = surf->vertices[vtx].H;
         else if(!strcmp(Field,"k1")) val = surf->vertices[vtx].k1;

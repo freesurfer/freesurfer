@@ -2,7 +2,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.12 2006/02/17 21:55:43 greve Exp $
+  $Id: surfcluster.c,v 1.13 2006/02/23 22:18:33 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,11 +140,14 @@ float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs)
   for(vtx = 0; vtx < Surf->nvertices; vtx++){
     vtx_clusterno = Surf->vertices[vtx].undefval;
     if(vtx_clusterno != ClusterNo) continue;
-    ClusterArea += Surf->vertices[vtx].area;
+    if(! Surf->group_avg_area_loaded)
+      ClusterArea += Surf->vertices[vtx].area;
+    else
+      ClusterArea += Surf->vertices[vtx].group_avg_area;
     (*nvtxs) ++;
   }
 
-  if(Surf->group_avg_surface_area > 0){
+  if(0 && Surf->group_avg_surface_area > 0){
     if(getenv("FIX_VERTEX_AREA") != NULL){
       printf("INFO: surfcluster: Fixing group surface area\n");
       ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);

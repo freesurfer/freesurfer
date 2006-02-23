@@ -155,7 +155,7 @@ typedef struct vertex_type_
 	short  marked2 ;
   char   ripflag ;
   char   border;         /* flag */
-  float area,origarea ;
+  float area, origarea, group_avg_area ;
   float K ;              /* Gaussian curvature */
   float H ;              /* mean curvature */
   float k1, k2 ;         /* the principal curvatures */
@@ -257,9 +257,10 @@ typedef struct
   VOL_GEOM     vg;                /* volume information from which 
                                      this surface is created. 
                                      check validity by vg.valid = 1 or not */
-	char   *cmdlines[MAX_CMDS] ;
-	int    ncmds;
-	float  group_avg_surface_area ;
+  char   *cmdlines[MAX_CMDS] ;
+  int    ncmds;
+  float  group_avg_surface_area ;  // average of total surface area for group
+  int    group_avg_vtxarea_loaded; // average vertex area for group at each vertex
 } MRI_SURFACE, MRIS ;
 
 
