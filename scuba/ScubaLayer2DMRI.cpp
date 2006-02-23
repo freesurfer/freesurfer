@@ -1614,7 +1614,36 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       
   }
 #endif
-  
+
+  // If this is our contrast/brightness key combo..
+  if( iInput.IsShiftKeyDown() &&
+      iInput.Button () == 1 ) {
+
+    if( iInput.IsButtonDownEvent() ) {
+
+      mOriginalBrightness = mBrightness;
+      mOriginalContrast = mContrast;
+
+    } else if( iInput.IsButtonDragEvent() ) {
+
+      try { 
+	SetBrightness( mOriginalBrightness + 
+		       ((float)iInput.GetTotalButtonDeltaX() / 512.0 * -1.0) );
+      }
+      catch(...) {}
+      try {
+	SetContrast( mOriginalContrast + 
+		     ((float)iInput.GetTotalButtonDeltaY() / 512.0 * 30.0) );
+      }
+      catch(...) {}
+      RequestRedisplay();
+
+    } 
+
+    return;
+  }
+
+
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
   case ScubaToolState::roiEditing: {

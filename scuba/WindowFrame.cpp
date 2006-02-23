@@ -53,6 +53,7 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
       float delta[2];
       delta[0] = iWindow[0] - mLastMoved[0];
       delta[1] = iWindow[1] - mLastMoved[1];
+
       if( delta[0] != 0 || delta[1] != 0 ) {
 	
 	// Find the greater one (absolute value). Divide each delta by

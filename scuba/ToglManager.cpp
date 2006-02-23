@@ -9,6 +9,7 @@ using namespace std;
 map<WindowFrame::ID,WindowFrame*> ToglManager::mFrames;
 WindowFrameFactory* ToglManager::mFactory = NULL;
 InputState ToglManager::mState;
+int ToglManager::mCurrentWindowCoords[2];
 
 
 void
@@ -91,11 +92,13 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
-  int windowCoords[2];
-  windowCoords[0] = atoi(iArgv[2]);
-  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  mState.AddButtonDelta( atoi(iArgv[2]) - mCurrentWindowCoords[0],
+			 YFlip(frame, atoi(iArgv[3])) - mCurrentWindowCoords[1] );
+
+  mCurrentWindowCoords[0] = atoi(iArgv[2]);
+  mCurrentWindowCoords[1] = YFlip(frame, atoi(iArgv[3]));
   try {
-    frame->MouseMoved( windowCoords, mState );
+    frame->MouseMoved( mCurrentWindowCoords, mState );
   }
   catch( runtime_error& e) {
     char sError[1024];
@@ -134,11 +137,10 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
-  int windowCoords[2];
-  windowCoords[0] = atoi(iArgv[2]);
-  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  mCurrentWindowCoords[0] = atoi(iArgv[2]);
+  mCurrentWindowCoords[1] = YFlip(frame, atoi(iArgv[3]));
   try {
-    frame->MouseDown( windowCoords, mState );
+    frame->MouseDown( mCurrentWindowCoords, mState );
   }
   catch( runtime_error& e) {
     char sError[1024];
@@ -176,11 +178,10 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
-  int windowCoords[2];
-  windowCoords[0] = atoi(iArgv[2]);
-  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  mCurrentWindowCoords[0] = atoi(iArgv[2]);
+  mCurrentWindowCoords[1] = YFlip(frame, atoi(iArgv[3]));
   try {
-    frame->MouseUp( windowCoords, mState );
+    frame->MouseUp( mCurrentWindowCoords, mState );
   }
   catch( runtime_error& e) {
     char sError[1024];
@@ -243,11 +244,10 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
 
-    int windowCoords[2];
-    windowCoords[0] = atoi(iArgv[2]);
-    windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+    mCurrentWindowCoords[0] = atoi(iArgv[2]);
+    mCurrentWindowCoords[1] = YFlip(frame, atoi(iArgv[3]));
     try {
-      frame->KeyDown( windowCoords, mState );
+      frame->KeyDown( mCurrentWindowCoords, mState );
     }
     catch( runtime_error& e) {
       char sError[1024];
@@ -302,11 +302,10 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
 
-    int windowCoords[2];
-    windowCoords[0] = atoi(iArgv[2]);
-    windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+    mCurrentWindowCoords[0] = atoi(iArgv[2]);
+    mCurrentWindowCoords[1] = YFlip(frame, atoi(iArgv[3]));
     try {
-      frame->KeyUp( windowCoords, mState );
+      frame->KeyUp( mCurrentWindowCoords, mState );
     }
     catch( runtime_error& e) {
       char sError[1024];

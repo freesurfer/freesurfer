@@ -59,6 +59,7 @@ class ToglManager {
   // Our modifers for shift, contrl, and alt keys.
   static InputState mState;
 
+  static int mCurrentWindowCoords[2];
 };
 
 

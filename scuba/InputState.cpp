@@ -7,6 +7,7 @@ InputState::InputState () :
   mbButtonDownEvent(false), mbButtonDragEvent(false), mbButtonUpEvent(false),
   mButton(0), mKey(NULL) { 
   mKey = ScubaKeyCombo::MakeKeyCombo();
+  mDelta[0] = mDelta[1] = 0;
 }
 
 bool InputState::IsShiftKeyDown () { 
@@ -56,11 +57,28 @@ InputState::IsButtonUpEvent () {
 }
 
 void
+InputState::AddButtonDelta ( int iX, int iY ) {
+  mDelta[0] += iX;
+  mDelta[1] += iY;
+}
+
+int
+InputState::GetTotalButtonDeltaX () {
+  return mDelta[0];
+}
+
+int
+InputState::GetTotalButtonDeltaY () {
+  return mDelta[1];
+}
+
+void
 InputState::SetButtonDownEvent ( int iButton ) {
   mbButtonDownEvent = true;
   mbButtonUpEvent   = false;
   mbButtonDragEvent = false;
   mButton = iButton;
+  mDelta[0] = mDelta[1] = 0;
 }
 
 void
@@ -83,6 +101,7 @@ InputState::ClearEvents () {
   mbButtonUpEvent   = false;
   mbButtonDragEvent = false;
   mButton = 0;
+  mDelta[0] = mDelta[1] = 0;
 }
 
 void

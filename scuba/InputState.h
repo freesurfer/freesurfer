@@ -19,6 +19,12 @@ class InputState {
   bool IsButtonDown ();
   bool IsButtonUp ();
 
+  // Returns the button delta during a drag event. This is in window
+  // coords.
+  void AddButtonDelta( int iX, int iY );
+  int GetTotalButtonDeltaX ();
+  int GetTotalButtonDeltaY ();
+
   // For getting the exact mouse event.
   bool IsButtonDownEvent ();
   bool IsButtonDragEvent ();
@@ -45,6 +51,7 @@ class InputState {
   bool mbButtonUpEvent;
   int mButton;
   ScubaKeyCombo* mKey;
+  int mDelta[2];
 };
 
 std::ostream& operator << ( std::ostream& os, InputState& iInput );

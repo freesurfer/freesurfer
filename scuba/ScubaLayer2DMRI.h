@@ -194,6 +194,7 @@ class ScubaLayer2DMRI : public Layer {
 
   // For grayscale drawing.
   float mBrightness, mContrast;
+  float mOriginalBrightness, mOriginalContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 

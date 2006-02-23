@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.180 2006/02/16 22:27:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -921,39 +921,6 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     global gaTool
     global gaWidget
 
-    # state 257 = mouse 1 + shift. Change the brightness or contrast.
-    if { $iState == 257 } {
-
-	set deltaX [expr $inX - $gaChangeBC(mouseDown,x)]
-	set deltaY [expr $inY - $gaChangeBC(mouseDown,y)]
-	set deltaBrightness 0
-	set deltaContrast 0
-	if { [expr abs($deltaX) > abs($deltaY)] } {
-	    set deltaBrightness [expr -$deltaX / 512.0]
-	} else {
-	    set deltaContrast [expr $deltaY / 512.0 * 30.0]
-	}
-
-	set layerID $gaLayer(current,id)
-	if { [GetLayerType $layerID] == "2DMRI" } {
-	    if { $deltaContrast != 0 } {
-		Set2DMRILayerContrast $layerID \
-		    [expr $gaChangeBC($layerID,origContrast) + $deltaContrast]
-	    }
-	    if { $deltaBrightness != 0 } {
-		Set2DMRILayerBrightness $layerID \
-		 [expr $gaChangeBC($layerID,origBrightness) + $deltaBrightness]
-	    }
-
-	    set gaLayer(current,brightness) \
-		[Get2DMRILayerBrightness $layerID]
-	    set gaLayer(current,contrast) \
-		[Get2DMRILayerContrast $layerID]
-	    
-	    RedrawFrame [GetMainFrameID]
-	}
-    }
-    
     # Update the mouse area.
     set err [catch { 
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
@@ -5831,7 +5798,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.180 2006/02/16 22:27:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
