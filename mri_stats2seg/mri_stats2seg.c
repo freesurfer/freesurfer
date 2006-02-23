@@ -33,7 +33,6 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -43,7 +42,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.1 2006/02/23 02:02:18 greve Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.2 2006/02/23 04:13:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -57,6 +56,14 @@ char *subject, *hemi, *SUBJECTS_DIR;
 int main(int argc, char *argv[])
 {
   int nargs;
+  MRIS *mris;
+  MRI *mri;
+
+  mris = MRISread("/space/greve/1/users/greve/subjects/fsr-tst/surf/lh.white");
+  MRISreadAnnotation(mris,"/space/greve/1/users/greve/subjects/fsr-tst/label/lh.aparc.annot");
+  mri = MRISannotIndex2Seg(mris);
+  MRIwrite(mri,"lh.aparc.mgh");
+  exit(1);
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -178,21 +185,4 @@ static void dump_options(FILE *fp)
   fprintf(fp,"user     %s\n",VERuser());
 
   return;
-}
-
-/*----------------------------------------------------------------*/
-MRI *MRISannot2seg(MRIS *mris)
-{
-  MRI *seg;
-  int vno, annot, annotid;
-
-  annotid = 0;
-  seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
-  for(vno = 0; vno < mris->nvertices; vno ++){
-    annot = mris->vertices[vno].annotation;
-    if(mris->ct)      annotid = CTABannotationToIndex(mris->ct, annot);
-    else 	      annotid = annotation_to_index(annot);
-    MRIsetVoxVal(seg,vno,0,0,0,annotid);
-  }
-  return(seg);
 }
