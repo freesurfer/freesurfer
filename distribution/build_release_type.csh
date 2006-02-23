@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.32 2006/02/17 01:20:28 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.33 2006/02/23 21:17:02 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -250,6 +250,7 @@ echo "CMD: ./configure..." >>& $OUTPUTF
 --with-mni-dir=/usr/pubsw/packages/mni/current \
 --with-gsl-dir=/usr/pubsw/packages/gsl/current \
 --with-tcl-dir=/usr/pubsw/packages/tcltktixblt/current \
+--with-tixwish=/usr/pubsw/packages/tcltktixblt/current/bin/tixwish8.1.8.4 \
 --with-qt-dir=${QTDIR} \
 --prefix=${DEST_DIR} \
 --bindir=${DEST_DIR}/bin-new \
