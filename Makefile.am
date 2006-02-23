@@ -107,6 +107,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_vol2roi \
 	mri_vol2vol \
 	mri_segstats \
+        mri_stats2seg \
 	mri_vol2surf \
 	mri_watershed \
 	mri_wmfilter \
