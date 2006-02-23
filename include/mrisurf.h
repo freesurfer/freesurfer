@@ -1275,5 +1275,6 @@ MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
+MRI *MRISannotIndex2Seg(MRIS *mris);
 
 #endif
