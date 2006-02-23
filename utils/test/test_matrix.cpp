@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <math.h>
 
 // testing
 #include <cppunit/TestCase.h>
@@ -21,6 +22,7 @@ class MatrixTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE( MatrixTest );  
     CPPUNIT_TEST( TestMatrixInverse );
     CPPUNIT_TEST( TestMatrixDeterminant );
+    CPPUNIT_TEST( TestMatrixEigenSystem );
   CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -48,10 +50,11 @@ private:
   /** 1x1 matrix of a small number */
   MATRIX* mOneSmallMatrix;
   
-  bool AreMatricesEqual(MATRIX *m1, MATRIX *m2);
+  bool AreMatricesEqual(MATRIX *m1, MATRIX *m2, float tolerance);
   bool AreInversesEqual(MATRIX *matrix, const string inverseFile);
   void DeleteMatrix(MATRIX *m);
-
+  bool DoesCreateValidEigenSystem( MATRIX* matrix );
+  
 public:  
   static const string TESTING_DIR;
 
@@ -83,6 +86,7 @@ public:
   
   void TestMatrixInverse();
   void TestMatrixDeterminant();
+  void TestMatrixEigenSystem();
 
 };
 
@@ -133,7 +137,7 @@ MatrixTest::tearDown() {
 }
 
 bool 
-MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2 ) {
+MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
   bool areEqual = true;
 
   if( m1->rows == m2->rows &&
@@ -145,8 +149,11 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2 ) {
     for( int row=0; row<numberOfRows; row++ ) {
       for( int column=0; column<numberOfColumns; column++ ) {    
 
-        int index = column + row * numberOfColumns;
-        if( m1->data[ index ] != m2->data[ index ] ) {
+        int index = column + row * numberOfColumns;        
+        float difference = fabs( m1->data[ index ] - m2->data[ index ] );
+                
+        if( difference > tolerance ) {
+          cerr << "diff: " << difference << endl;
           areEqual = false;
         }
         
@@ -245,6 +252,59 @@ MatrixTest::TestMatrixDeterminant() {
                                 2.e-20, 
                                 tolerance );
                                 
+}
+
+bool
+MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
+  const float TOLERANCE = 1e-5;
+  
+  bool isValid = false;
+  
+  int size = matrix->rows;
+  
+  float *eigenValues = new float[ size ];
+  MATRIX *eigenVectors = MatrixAlloc( size, size, MATRIX_REAL );
+
+  MatrixEigenSystem( matrix, eigenValues, eigenVectors );
+
+  MATRIX* eigenValuesMatrix = MatrixAlloc( size, size, MATRIX_REAL );
+  
+  for( int i=0; i<size; i++ ) {
+    // index of the diagonal
+    int index = i + i * size;
+    eigenValuesMatrix->data[index] = eigenValues[i];
+  }
+  
+  MATRIX* xv = MatrixMultiply( matrix, eigenVectors, NULL );
+  MATRIX* vd = MatrixMultiply( eigenVectors, eigenValuesMatrix, NULL );
+
+  isValid = AreMatricesEqual( xv, vd, TOLERANCE );
+
+  delete []eigenValues;
+  DeleteMatrix( eigenVectors );
+  DeleteMatrix( eigenValuesMatrix );
+  
+  return isValid;
+}
+
+void
+MatrixTest::TestMatrixEigenSystem() {
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mPascalMatrix ) );
+  
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mBuckyMatrix ) );
+  
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mZeroesMatrix ) );
+  
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mIdentityMatrix ) );
+  
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mSingularMatrix ) );
+  
+  // TODO: should this gracefully exit with a non-square matrix rather than seg fault?
+//  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
+
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mOneMatrix ) );
+  
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mOneSmallMatrix ) );
 }
 
 int main ( int argc, char** argv ) {
