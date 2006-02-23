@@ -1,12 +1,19 @@
+$Id: mni305.cor.readme,v 1.2 2006/02/23 23:22:42 greve Exp $
 
 The data in mni305.cor.mgz was derived from the MINC Software package with:
 
 mri_convert $MINCDIR/share/mni_autoreg/average_305.mnc mni305.cor.mgz -oc 0 0 0
+mri_add_xform_to_header -c auto mni305.cor.mgz mni305.cor.mgz
+
+The purpose is to provide a the target volume of MNI Talairach
+registration in FreeSurfer format.
 
 D. L.  Collins, P.  Neelin, T.  M.  Peters and A.  C.  Evans,
 Automatic 3D Inter-Subject Registration of MR Volumetric Data in
 Standardized Talairach Space, Journal of Computer Assisted Tomography,
 18(2) p192-205, 1994 PMID: 8126267; UI: 94172121
+
+www.bic.mni.mcgill.ca
 
 Copyright 1993-2000 Peter Neelin and David MacDonald, McConnell Brain
 Imaging Centre, Montreal Neurological Institute, McGill University.
@@ -17,5 +24,4 @@ author and McGill University make no representations about the
 suitability of this software for any purpose.  It is provided "as is"
 without express or implied warranty.
 
-www.bic.mni.mcgill.ca
 
