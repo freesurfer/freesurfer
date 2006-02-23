@@ -96,6 +96,10 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
         MRI_SURFACE *TrgSurfReg, MRI **SrcHits,
         MRI **SrcDist, MRI **TrgHits, MRI **TrgDist,
         int ReverseMapFlag, int UseHash);
+MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
+        MRI_SURFACE *TrgSurfReg, MRI **SrcHits,
+        MRI **SrcDist, MRI **TrgHits, MRI **TrgDist,
+	int ReverseMapFlag, int UseHash);
 
 MRI *surf2surf_nnf(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
        MRI_SURFACE *TrgSurfReg, int UseHash);

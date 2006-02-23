@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $
+  $Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -263,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -331,6 +331,7 @@ char tmpstr[2000];
 
 int ReverseMapFlag = 0;
 int cavtx = 0; /* command-line vertex -- for debugging */
+int jac = 0;
 
 MRI *sphdist;
 
@@ -352,7 +353,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.36 2006/02/23 00:29:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -574,11 +575,17 @@ int main(int argc, char **argv)
     
     /*-------------------------------------------------------------*/
     /* Map the values from the surface to surface */
-    printf("Mapping Source Volume onto Source Subject Surface\n");
-    TrgVals = surf2surf_nnfr(SrcVals, SrcSurfReg,TrgSurfReg,
-           &SrcHits,&SrcDist,&TrgHits,&TrgDist,
-           ReverseMapFlag,UseHash);
-    
+    if(!jac){
+      printf("Mapping Source Volume onto Source Subject Surface\n");
+      TrgVals = surf2surf_nnfr(SrcVals, SrcSurfReg,TrgSurfReg,
+			       &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+			       ReverseMapFlag,UseHash);
+    } else {
+      printf("Mapping Source Volume onto Source Subject Surface with Jacobian Correction\n");
+      TrgVals = surf2surf_nnfr_jac(SrcVals, SrcSurfReg,TrgSurfReg,
+				   &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+				   ReverseMapFlag,UseHash);
+    }
     
     /* Compute some stats on the mapping number of srcvtx mapping to a 
        target vtx*/
@@ -746,6 +753,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--usediff"))   usediff = 1;
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
     else if (!strcasecmp(option, "--synth"))     SynthPDF = 1;
+    else if (!strcasecmp(option, "--jac"))       jac = 1;
 
     else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);

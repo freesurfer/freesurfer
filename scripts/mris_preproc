@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.13 2006/02/23 03:26:55 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.14 2006/02/23 04:49:57 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -36,6 +36,7 @@ set FSFContrast = ();
 set LF = ();
 set reshape = 0;
 set sval = ();
+set jac = 0;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e --help | wc -l` 
@@ -135,6 +136,7 @@ foreach subj ($subjlist)
   else
      set cmd = ($cmd --sval-$sval white)
   endif
+  if($jac) set cmd = ($cmd --jac)
   if($#srcfmt) set cmd = ($cmd --sfmt curv)
   set cmd = ($cmd --trgsubject $target --tval $tval)
   if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
@@ -244,6 +246,7 @@ while( $#argv != 0 )
     case "--area":
       set sval = area;
       set srcsurf = 1;
+      set jac = 1;
       breaksw
 
     case "--srcfmt":
