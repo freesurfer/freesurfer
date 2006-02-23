@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 #
 
-set VERSION = '$Id: mris_preproc,v 1.10 2006/02/23 02:35:00 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.11 2006/02/23 03:00:10 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -119,7 +119,7 @@ foreach subj ($subjlist)
     if($status) exit 1;
   else
     # Source is already a surface
-    if($#meas) then
+    if($#meas || $#sval) then
       set srcsurfpath = $subjpath/surf/$hemi.$meas
     else
       set srcsurfpath = $isplist[$nthsubj];
@@ -238,6 +238,7 @@ while( $#argv != 0 )
 
     case "--area":
       set sval = area;
+      set srcsurf = 1;
       breaksw
 
     case "--srcfmt":
