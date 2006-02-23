@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.14 2006/02/23 04:49:57 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.15 2006/02/23 23:52:30 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -36,8 +36,10 @@ set FSFContrast = ();
 set LF = ();
 set reshape = 0;
 set sval = ();
+set svalsurf = ();
 set jac = 0;
 
+set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e --help | wc -l` 
 if($n != 0) then
@@ -91,7 +93,7 @@ endif
 
 date | tee -a $LF
 pwd | tee -a $LF
-echo $argv  | tee -a $LF
+echo $cmdargs  | tee -a $LF
 uname -a  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "tmpdir is $tmpdir"| tee -a $LF
@@ -134,7 +136,7 @@ foreach subj ($subjlist)
   if($#sval == 0) then
      set cmd = ($cmd --sval $srcsurfpath)
   else
-     set cmd = ($cmd --sval-$sval white)
+     set cmd = ($cmd --sval-$sval $svalsurf)
   endif
   if($jac) set cmd = ($cmd --jac)
   if($#srcfmt) set cmd = ($cmd --sfmt curv)
@@ -244,6 +246,8 @@ while( $#argv != 0 )
       breaksw
 
     case "--area":
+      if($#argv < 1) goto arg1err;
+      set svalsurf = $argv[1]; shift;
       set sval = area;
       set srcsurf = 1;
       set jac = 1;
@@ -600,6 +604,7 @@ usage_exit:
   echo "  --hemi hemi "
   echo ""
   echo "  --meas surfmeas"
+  echo "  --area surfname"
   echo "  --s subj1 <--s subj2 ... --s subjN>" 
   echo "  --fsgd fsgdfile"
   echo "  --f subjectlistfile"
@@ -677,6 +682,11 @@ Use hemi for source and target surfaces. hemi can be lh or rh.
 
 Use subject/surf/hemi.surfmeasure as input. For use with --s, --fsgd,
 or --f.  Implies --srcfmt curv.
+
+--area surfname
+
+Extract vertex area from subject/surf/hemi.surfname to use as input. For use 
+with --s, --fsgd, or --f.  surfname does not include hemi. Eg, white, pial.
 
 --s subjN
 
