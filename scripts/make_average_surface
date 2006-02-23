@@ -1,5 +1,4 @@
 #!/bin/tcsh -ef
-
 #
 # make_average_surface
 #
@@ -8,7 +7,8 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.25 2006/02/16 18:30:50 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.26 2006/02/23 23:53:04 greve Exp $';
+setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
 set sdout = ();
@@ -75,8 +75,17 @@ echo ==================== | tee -a $LF
 echo input subjects: ${SUBJECTS}  | tee -a $LF
 echo output subject: ${average_subject}  | tee -a $LF
 
+set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+if(! -e $mni305) then
+  echo "ERROR: cannot find $mni305"
+  exit 1;
+endif
+
+cp $mni305 $sdout/${average_subject}/mri
+
 set tmp_subjects = ( $SUBJECTS )
 
+#------------------------------------------------------------
 foreach hemi (rh lh)
 
   echo ""  | tee -a $LF
@@ -183,6 +192,24 @@ foreach hemi (rh lh)
   ln -s -f ${hemi}.pial_avg ${hemi}.pial
   set echo=1
 
+end
+
+#--------------------------------------------------------------
+# Now create the average area surface
+set subjlistfile = /tmp/subjlist.$$
+rm -f $subjlistfile
+echo $SUBJECTS > $subjlistfile
+foreach hemi (rh lh)
+  foreach surf (orig white pial)
+    set avgarea = $hemi.$surf.avg.area.mgh
+    set cmd = (mris_preproc --out $avgarea  --f $subjlistfile)
+    set cmd = ($cmd --target $average_subject --hemi $hemi)
+    set cmd = ($cmd --area $surf --mean)
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit (1)
+  end
 end
 
 echo "---------------------------------------------------" | tee -a $LF
