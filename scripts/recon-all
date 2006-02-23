@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.14 2006/02/19 17:54:38 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.15 2006/02/23 20:14:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -63,8 +63,8 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB40_talairach_2005_12_30.gca
-set GCASkull = RB40_talairach_with_skull_2005_12_30.gca
+set GCA      = RB_all_2006-02-15.gca
+set GCASkull = RB_all_withskull_2006-02-15.gca
 
 # For cortical registration, as found in:
 # $FREESURFER_HOME/average/$hemi.$AvgCurvTif
