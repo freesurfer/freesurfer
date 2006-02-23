@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.12 2006/02/23 03:20:07 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.13 2006/02/23 03:26:55 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -129,9 +129,13 @@ foreach subj ($subjlist)
 
   # Now srcsurfpath file exists, convert it to the target subject
   set tval = $tmpdir/$subj.mgh
-  set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --sval $srcsurfpath)
+  set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj)
+  if($#sval == 0) then
+     set cmd = ($cmd --sval $srcsurfpath)
+  else
+     set cmd = ($cmd --sval-$sval white)
+  endif
   if($#srcfmt) set cmd = ($cmd --sfmt curv)
-  if($#sval)   set cmd = ($cmd --sval-$sval white)
   set cmd = ($cmd --trgsubject $target --tval $tval)
   if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
   if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
