@@ -10,12 +10,15 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
  $(wildcard *.tif) \
  $(wildcard *.txt) \
- $(wildcard *.mgz)
+ $(wildcard *.mgz) \
+ mni305.cor.readme 
 else
 foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
  $(wildcard *.tif) \
- $(wildcard *.txt)
+ $(wildcard *.txt) \
+ mni305.cor.mgz \
+ mni305.cor.readme 
 endif
 
 EXTRA_DIST=$(foo_DATA)
