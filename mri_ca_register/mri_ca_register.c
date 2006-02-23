@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/16 19:58:13 $
-// Revision       : $Revision: 1.47 $
+// Revision Date  : $Date: 2006/02/23 15:53:27 $
+// Revision       : $Revision: 1.48 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.47 2006/02/16 19:58:13 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.48 2006/02/23 15:53:27 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -779,8 +779,10 @@ main(int argc, char *argv[])
 	  MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
 	}
 #endif
-      if (reinit && (xform_name != NULL) && (lta != NULL))
+      if (reinit && (xform_name == NULL) && (lta != NULL)){
+	printf("Reinitialize GCAM with LTA \n");
 	GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
+      }
       if (DIAG_VERBOSE_ON)
 	{
 	  MRI *mri_seg ;
