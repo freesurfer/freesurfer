@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.15 2006/02/23 20:14:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.16 2006/02/23 23:20:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2689,8 +2689,8 @@ FREESURFER_HOME/average.
 
 -nuiterations
 
-Number of iterations in the non-uniform intensity correction. Default
-is 4.
+Number of iterations in the non-uniform intensity correction. 
+Default is 2.
 
 -norm3diters niters
 
