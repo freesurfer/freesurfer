@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $
+  $Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -263,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -289,6 +289,7 @@ MATRIX *XFM=NULL;
 #define SURF_SRC_TAL_XYZ 2
 #define SURF_SRC_AREA    3
 #define SURF_SRC_NXYZ    4 // surface normals
+#define SURF_SRC_RIP     5 // rip flag
 int UseSurfTarg=0; // Put Src XYZ into a target surface
 
 char *trgsubject = NULL;
@@ -353,7 +354,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.37 2006/02/23 04:49:57 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -475,6 +476,9 @@ int main(int argc, char **argv)
 	  MRIscalarMul(SrcVals,SrcVals,val);
 	}
       }
+    }
+    if(UseSurfSrc == SURF_SRC_RIP){
+      SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "ripflag"); 
     }
     else printf("INFO: surfcluster: NOT fixing group surface area\n");
     MRISfree(&SurfSrc);
@@ -798,6 +802,12 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       SurfSrcName = pargv[0];
       UseSurfSrc = SURF_SRC_AREA;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sval-rip")){
+      if(nargc < 1) argnerr(option,1);
+      SurfSrcName = pargv[0];
+      UseSurfSrc = SURF_SRC_RIP;
       nargsused = 1;
     }
     else if (!strcmp(option, "--srcdump")){
