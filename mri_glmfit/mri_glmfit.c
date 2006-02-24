@@ -412,7 +412,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.77 2006/02/22 06:01:38 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.78 2006/02/24 03:28:48 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1202,6 +1202,8 @@ int main(int argc, char **argv)
   if(fsgd != NULL){
     strcpy(fsgd->measname,"external");
     sprintf(fsgd->datafile,"%s",yFile);
+    if(surf)  strcpy(fsgd->tessellation,"surface");
+    else      strcpy(fsgd->tessellation,"volume");
 
     sprintf(tmpstr,"%s/fsgd.X.mat",GLMDir);
     MatlabWrite(mriglm->Xg,tmpstr,"X");
