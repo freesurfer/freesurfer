@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.10 2005/11/22 00:31:13 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.11 2006/02/24 09:27:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -52,7 +52,6 @@ char *InIntensityUnits = "unknown";
 char *MaskVolFile = NULL;
 char *PVVolFile = NULL;
 char *BrainMaskFile = NULL;
-char *subject = NULL;
 char *StatTableFile = NULL;
 char *FrameAvgFile = NULL;
 char *FrameAvgVolFile = NULL;
@@ -86,12 +85,17 @@ COLOR_TABLE *ctab = NULL;
 STATSUMENTRY *StatSumTable = NULL;
 STATSUMENTRY *StatSumTable2 = NULL;
 
+MRIS *mris;
+char *subject = NULL;
+char *hemi    = NULL;
+char *annot   = NULL;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int nargs, n, n0, skip, nhits, f, nsegidrep, ind, nthsegid;
-  int c,r,s;
-  float voxelvolume;
+  int c,r,s,err;
+  float voxelvolume,vol;
   float min, max, range, mean, std;
   FILE *fp;
   double  **favg;
@@ -100,6 +104,8 @@ int main(int argc, char **argv)
   char tmpstr[1000];
   LTA    *atlas_lta ;
   double atlas_det=0, atlas_icv=0 ;
+  nhits = 0;
+  vol = 0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -159,11 +165,30 @@ int main(int argc, char **argv)
   }
 
   /* Load the segmentation */
-  printf("Loading %s\n",SegVolFile);
-  seg = MRIread(SegVolFile);
-  if(seg == NULL){
-    printf("ERROR: loading %s\n",SegVolFile);
-    exit(1);
+  if(SegVolFile){
+    printf("Loading %s\n",SegVolFile);
+    seg = MRIread(SegVolFile);
+    if(seg == NULL){
+      printf("ERROR: loading %s\n",SegVolFile);
+      exit(1);
+    }
+  }
+  else{
+    printf("Constructing seg from annotation\n");
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
+    err = MRISreadAnnotation(mris, tmpstr);
+    if(err) exit(1);
+    seg = MRISannotIndex2Seg(mris);
+    // Now create a colortable in a temp location to be read out below (hokey)
+    if(mris->ct){
+      sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
+	      (int)floor(100*drand48()+1));
+      ctabfile = strcpyalloc(tmpstr);
+      CTABwriteTxt(ctabfile, mris->ct);
+    }
   }
 
   /* Load the input volume */
@@ -254,8 +279,16 @@ int main(int argc, char **argv)
     }
   }
 
-  voxelvolume = seg->xsize * seg->ysize * seg->zsize;
-  printf("Voxel Volume is %g mm^3\n",voxelvolume);
+  if(!mris){
+    voxelvolume = seg->xsize * seg->ysize * seg->zsize;
+    printf("Voxel Volume is %g mm^3\n",voxelvolume);
+  } else {
+    if(mris->group_avg_surface_area > 0)
+      voxelvolume = mris->group_avg_surface_area/mris->nvertices;
+    else
+      voxelvolume = mris->total_area/mris->nvertices;
+    printf("Vertex Area is %g mm^3\n",voxelvolume);
+  }
 
   /* There are three ways that the list of segmentations
      can be specified:
@@ -338,15 +371,33 @@ int main(int argc, char **argv)
     }
 
     if(!dontrun){
-      if(pvvol == NULL)
-	nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
-      else
-	nhits = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id);
+      if(!mris){
+	if(pvvol == NULL)
+	  nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
+	else
+	  nhits = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id);
+	vol = nhits*voxelvolume;
+      }
+      else {
+	// Compute area here
+	nhits = 0;
+	vol = 0;
+	for(c=0; c < mris->nvertices; c++){
+	  if(MRIgetVoxVal(seg,c,0,0,0)==StatSumTable[n].id) {
+	    nhits++;
+	    if(mris->group_avg_vtxarea_loaded)
+	      vol += mris->vertices[c].group_avg_area;
+	    else
+	      vol += mris->vertices[c].area;
+	  }
+	}
+      }
     }
     else  nhits = n;
 
     printf("%4d\n",nhits);
     StatSumTable[n].nhits = nhits;
+    StatSumTable[n].vol = vol;
     if(InVolFile != NULL && !dontrun){
       if(nhits > 0){
 	MRIsegStats(seg, StatSumTable[n].id, invol, frame,
@@ -397,7 +448,7 @@ int main(int argc, char **argv)
   if(debug){
     for(n=0; n < nsegid; n++){
       printf("%3d  %8d %10.1f  ", StatSumTable[n].id,StatSumTable[n].nhits,
-	     voxelvolume*StatSumTable[n].nhits);
+	     StatSumTable[n].vol);
       if(ctabfile != NULL) printf("%-30s ",StatSumTable[n].name);
       if(InVolFile != NULL)
 	printf("%10.4f %10.4f %10.4f %10.4f %10.4f ", 
@@ -420,7 +471,8 @@ int main(int argc, char **argv)
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
     fprintf(fp,"# user     %s\n",VERuser());
-    fprintf(fp,"# anatomy_type volume\n");
+    if(mris) fprintf(fp,"# anatomy_type surface\n");
+    else     fprintf(fp,"# anatomy_type volume\n");
     fprintf(fp,"# \n");
     if(subject != NULL){
       fprintf(fp,"# SUBJECTS_DIR %s\n",SUBJECTS_DIR);
@@ -442,8 +494,11 @@ int main(int argc, char **argv)
     if(DoETIV){
       fprintf(fp,"# Measure IntraCranialVol, ICV, Intracranial Volume, %f, mm^3\n",atlas_icv);
     }   
-    fprintf(fp,"# SegVolFile %s \n",SegVolFile);
-    fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
+    if(SegVolFile){
+      fprintf(fp,"# SegVolFile %s \n",SegVolFile);
+      fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
+    }
+    if(annot) fprintf(fp,"# Annot %s %s %s\n",subject,hemi,annot);
     if(ctabfile) {
       fprintf(fp,"# ColorTable %s \n",ctabfile);
       fprintf(fp,"# ColorTableTimeStamp %s \n",VERfileTimeStamp(ctabfile));
@@ -467,7 +522,8 @@ int main(int argc, char **argv)
     }
     if(DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
     if(NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
-    fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
+    if(!mris) fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
+    else      fprintf(fp,"# VertexArea_mm2 %g \n",voxelvolume);
     fprintf(fp,"# TableCol  1 ColHeader Index \n");
     fprintf(fp,"# TableCol  1 FieldName Index \n");
     fprintf(fp,"# TableCol  1 Units     NA \n");
@@ -475,16 +531,21 @@ int main(int argc, char **argv)
     fprintf(fp,"# TableCol  2 ColHeader SegId \n");
     fprintf(fp,"# TableCol  2 FieldName Segmentation Id\n");
     fprintf(fp,"# TableCol  2 Units     NA\n");
-
-    fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
-    fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
-    fprintf(fp,"# TableCol  3 Units     unitless\n");
-
-
-    fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
-    fprintf(fp,"# TableCol  4 FieldName Volume\n");
-    fprintf(fp,"# TableCol  4 Units     mm^3\n");
-
+    if(!mris) {
+      fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
+      fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
+      fprintf(fp,"# TableCol  3 Units     unitless\n");
+      fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
+      fprintf(fp,"# TableCol  4 FieldName Volume\n");
+      fprintf(fp,"# TableCol  4 Units     mm^3\n");
+    } else {
+      fprintf(fp,"# TableCol  3 ColHeader NVertices \n");
+      fprintf(fp,"# TableCol  3 FieldName Number of Vertices\n");
+      fprintf(fp,"# TableCol  3 Units     unitless\n");
+      fprintf(fp,"# TableCol  4 ColHeader Area_mm2\n");
+      fprintf(fp,"# TableCol  4 FieldName Area\n");
+      fprintf(fp,"# TableCol  4 Units     mm^2\n");
+    }
     n = 5;
     if(ctabfile) {
       fprintf(fp,"# TableCol %2d ColHeader StructName\n",n);
@@ -523,7 +584,9 @@ int main(int argc, char **argv)
     fprintf(fp,"# NRows %d \n",nsegid);
     fprintf(fp,"# NTableCols %d \n",n-1); 
 
-    fprintf(fp,"# ColHeaders  Index SegId NVoxels Volume_mm3 "); 
+    fprintf(fp,"# ColHeaders  Index SegId "); 
+    if(!mris) fprintf(fp,"NVoxels Volume_mm3 "); 
+    else      fprintf(fp,"NVertices Area_mm2 "); 
     if(ctabfile) fprintf(fp,"StructName ");
     if(InVolFile) fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
 			  InIntensityName,InIntensityName,InIntensityName,InIntensityName,
@@ -532,8 +595,7 @@ int main(int argc, char **argv)
 
     for(n=0; n < nsegid; n++){
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
-	      StatSumTable[n].nhits,
-	      voxelvolume*StatSumTable[n].nhits);
+	      StatSumTable[n].nhits, StatSumTable[n].vol);
       if(ctabfile != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
       if(InVolFile != NULL)
 	fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ", 
@@ -722,6 +784,13 @@ static int parse_commandline(int argc, char **argv)
       subject = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--annot")){
+      if(nargc < 3) argnerr(option,1);
+      subject = pargv[0];
+      hemi    = pargv[1];
+      annot   = pargv[2];
+      nargsused = 3;
+    }
     else if (!strcmp(option, "--synth")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%ld",&seed);
@@ -756,6 +825,8 @@ static void print_usage(void)
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --seg segvol : segmentation volume path \n");
+  printf("   --annot subject hemi annot : not fully tested yet\n");
+  printf("\n");
   printf("   --sum file   : stats summary table file \n");
   printf("\n");
   printf(" Other Options\n");
@@ -1049,7 +1120,7 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if(SegVolFile == NULL){
+  if(SegVolFile == NULL && annot == NULL){
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
