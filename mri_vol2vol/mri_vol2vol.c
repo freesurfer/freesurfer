@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $
+  $Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -58,7 +58,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -70,7 +70,7 @@ int   tempvolfmtid = 0;
 char *outvolpath;
 char *outvolfmt = NULL;
 int   outvolfmtid = 0;
-char *outprecision = NULL;
+char *outprecision = "float";
 int   outprecisioncode;
 
 float outvoxres[3];
@@ -129,10 +129,10 @@ int main(int argc, char **argv)
 
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.15 2006/02/16 23:08:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -439,6 +439,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fstalairach")) fstalairach = 1;
     else if (!strcasecmp(option, "--invxfm"))   invertxfm = 1;
     else if (!strcasecmp(option, "--modinput"))  ModInput = 1;
+    else if (istringnmatch(option, "--precision-temp",0)) outprecision=NULL;
 
     else if ( !strcmp(option, "--gdiagno") ) {
       if(nargc < 1) argnerr(option,1);
@@ -598,7 +599,8 @@ static void print_usage(void)
   printf("  \n");
   printf("  --temp output template volume <fmt>\n");
   //printf("  --conform : use COR as output template <fmt>\n");
-  printf("  --precision precision : overrides template precision\n");
+  printf("  --precision precision : overrides default (float)\n");
+  printf("  --precision-temp : uses precision of template\n");
   printf("  --voxres colres rowres sliceres : override template\n");
   printf("  --voxres-in-plane colres rowres : override template\n");
   printf("  --voxdim ncols  nrows  nslices : override template\n");
@@ -660,7 +662,11 @@ static void print_help(void)
 "--precision precisionid \n"
 "\n"
 "Set output precision to precisionid. Legal values are uchar, short,\n"
-"int, long, and float. Overrides precision in template.\n"
+"int, long, and float. Default is float.\n"
+"\n"
+"--precision-temp \n"
+"\n"
+"Set output precision to be that of the template. Overrides default of float.\n"
 "\n"
 "--voxres colres rowres sliceres \n"
 "\n"
