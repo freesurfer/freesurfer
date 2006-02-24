@@ -6350,33 +6350,40 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   short i1, i2, i3;
   int shortmax;
 
-  c = strrchr(fname, '.');
-  if(c == NULL)
-    {
-      errno = 0;
-      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): "
-                                  "bad file name %s", fname));
-    }
-  if(strcmp(c, ".img") != 0)
-    {
-      errno = 0;
-      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): "
-                                  "bad file name %s", fname));
-    }
-
   shortmax = (int)(pow(2.0,15.0));
-  if(mri->width > shortmax)
-    printf("ANALYZE FORMAT WARNING: ncols %d in volume exceeds %d\n",
+  if(mri->width > shortmax){
+    printf("ANALYZE FORMAT ERROR: ncols %d in volume exceeds %d\n",
            mri->width,shortmax);
-  if(mri->height > shortmax)
-    printf("ANALYZE FORMAT WARNING: nrows %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->height > shortmax){
+    printf("ANALYZE FORMAT ERROR: nrows %d in volume exceeds %d\n",
            mri->height,shortmax);
-  if(mri->depth > shortmax)
-    printf("ANALYZE FORMAT WARNING: nslices %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->depth > shortmax){
+    printf("ANALYZE FORMAT ERROR: nslices %d in volume exceeds %d\n",
            mri->depth,shortmax);
-  if(mri->nframes > shortmax)
-    printf("ANALYZE FORMAT WARNING:  nframes %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->nframes > shortmax){
+    printf("ANALYZE FORMAT ERROR:  nframes %d in volume exceeds %d\n",
            mri->nframes,shortmax);
+    exit(1);
+  }
+
+
+  c = strrchr(fname, '.');
+  if(c == NULL)    {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): "
+				"bad file name %s", fname));
+  }
+  if(strcmp(c, ".img") != 0){
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): "
+				"bad file name %s", fname));
+  }
 
   /* create the file name for the header */
   strcpy(hdr_fname, fname);
@@ -9438,6 +9445,29 @@ static int nifti1Write(MRI *mri, char *fname)
   char img_fname[STRLEN];
   char *dot;
   int error;
+  int shortmax;
+
+  shortmax = (int)(pow(2.0,15.0));
+  if(mri->width > shortmax){
+    printf("NIFTI FORMAT ERROR: ncols %d in volume exceeds %d\n",
+           mri->width,shortmax);
+    exit(1);
+  }
+  if(mri->height > shortmax){
+    printf("NIFTI FORMAT ERROR: nrows %d in volume exceeds %d\n",
+           mri->height,shortmax);
+    exit(1);
+  }
+  if(mri->depth > shortmax){
+    printf("NIFTI FORMAT ERROR: nslices %d in volume exceeds %d\n",
+           mri->depth,shortmax);
+    exit(1);
+  }
+  if(mri->nframes > shortmax){
+    printf("NIFTI FORMAT ERROR:  nframes %d in volume exceeds %d\n",
+           mri->nframes,shortmax);
+    exit(1);
+  }
 
   memset(&hdr, 0x00, sizeof(hdr));
 
@@ -10077,6 +10107,29 @@ static int niiWrite(MRI *mri, char *fname)
   BUFTYPE *buf;
   struct nifti_1_header hdr;
   int error;
+  int shortmax;
+
+  shortmax = (int)(pow(2.0,15.0));
+  if(mri->width > shortmax){
+    printf("NIFTI FORMAT ERROR: ncols %d in volume exceeds %d\n",
+           mri->width,shortmax);
+    exit(1);
+  }
+  if(mri->height > shortmax){
+    printf("NIFTI FORMAT ERROR: nrows %d in volume exceeds %d\n",
+           mri->height,shortmax);
+    exit(1);
+  }
+  if(mri->depth > shortmax){
+    printf("NIFTI FORMAT ERROR: nslices %d in volume exceeds %d\n",
+           mri->depth,shortmax);
+    exit(1);
+  }
+  if(mri->nframes > shortmax){
+    printf("NIFTI FORMAT ERROR:  nframes %d in volume exceeds %d\n",
+           mri->nframes,shortmax);
+    exit(1);
+  }
 
   memset(&hdr, 0x00, sizeof(hdr));
 
