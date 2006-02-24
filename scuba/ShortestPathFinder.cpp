@@ -1,5 +1,10 @@
 #include "ShortestPathFinder.h"
 
+//  Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All
+//  Rights Reserved.
+//  See docs/license.slicer
+//  or http://www.slicer.org/copyright/copyright.txt for details.
+
 using namespace std;
 
 ShortestPathFinder::ShortestPathFinder() {

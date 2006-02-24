@@ -1,6 +1,10 @@
 #ifndef ShortestPathFinder_h
 #define ShortestPathFinder_h
 
+//  Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All
+//  Rights Reserved.
+//  See docs/license.slicer
+//  or http://www.slicer.org/copyright/copyright.txt for details.
 
 #include <list>
 #include "Point2.h"
@@ -13,6 +17,7 @@
 // path from point A to B is returned as A+1 to B, not including the
 // original point A.
 // To use it, subclass Shortest and redefine GetEdgeCost if you want. 
+
 
 class listElement {
  public:

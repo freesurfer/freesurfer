@@ -2122,7 +2122,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	      Point3<float> newPlaneNormal;
 	      rotate.MultiplyVector3( mOriginalPlaneNormal.xyz(),
 				      newPlaneNormal.xyz() );
-	      
+             
 	      // Normalize it and set it in the view.
 	      VectorOps::Normalize( newPlaneNormal );
 	      scubaView.Set2DPlaneNormal( newPlaneNormal.xyz() );
