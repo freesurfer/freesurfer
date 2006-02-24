@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $";
+"$Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -2494,7 +2494,15 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       switch (ks) {
 
         /* numbers */
-      case XK_0: record_swapbuffers(); break;
+      case XK_0: record_swapbuffers(); updateflag = TRUE; break;
+      case XK_c: 
+	if(altkeypressed) {
+	  if(overlay_mode == TARGET) overlay_mode = MOVEABLE;
+	  else if(overlay_mode == MOVEABLE) overlay_mode = TARGET;
+	  updateflag = TRUE; 
+	}
+	break;
+
       case XK_1: overlay_mode = TARGET;   updateflag = TRUE; break;
       case XK_2: overlay_mode = MOVEABLE; updateflag = TRUE; break;
           
@@ -2633,13 +2641,16 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
         /* others */
       case XK_Up:
-          
-        Tcl_Eval(interp,
-                 "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
+	upslice();
+        updateflag = TRUE; 
+        //Tcl_Eval(interp,
+        //         "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
         break;
       case XK_Down:
-        Tcl_Eval(interp,
-                 "set fscale_2 [expr $fscale_2 / 1.5]; set updateflag TRUE");
+	downslice();
+        updateflag = TRUE; 
+        //Tcl_Eval(interp,
+	//       "set fscale_2 [expr $fscale_2 / 1.5]; set updateflag TRUE");
         break;
       case XK_Right:
         Tcl_Eval(interp,"changeslice up $plane; set updateflag TRUE");
@@ -3956,7 +3967,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
