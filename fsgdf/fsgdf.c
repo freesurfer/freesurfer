@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.25 2006/01/02 21:48:42 greve Exp $
+  $Id: fsgdf.c,v 1.26 2006/02/24 02:32:40 nicks Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -195,13 +195,13 @@ FSGD *gdfRead(char *gdfname, int LoadData)
 
   fp = fopen(gdfname,"r");
   if(fp==NULL){
-    printf("ERROR: cannot open %s for reading\n",gdfname);
+    printf("ERROR: gdfRead: cannot open %s for reading\n",gdfname);
     return(NULL);
   }
 
   fscanf(fp,"%s",tmpstr);
   if(strcasecmp(tmpstr,"GroupDescriptorFile") != 0){
-    printf("ERROR: %s is nore formated properly\n",gdfname);
+    printf("ERROR: gdfRead: %s is not formated properly\n",gdfname);
     return(NULL);
   }
 
@@ -231,13 +231,13 @@ FSGD *gdfRead(char *gdfname, int LoadData)
     if(!fio_FileExistsReadable(datafilename)){
       sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
       if(!fio_FileExistsReadable(datafilename)){
-	printf("ERROR: could not find file %s\n",gd->DesignMatFile);
+	printf("ERROR: gdfRead: could not find file %s\n",gd->DesignMatFile);
 	return(NULL);
       }
     }
     gd->X = ReadMatlabFileVariable(datafilename,"X");
     if(gd->X == NULL){
-      printf("ERROR: could not read variable X from %s\n",gd->DesignMatFile);
+      printf("ERROR: gdfRead: could not read variable X from %s\n",gd->DesignMatFile);
       return(NULL);
     }
     Xt = MatrixTranspose(gd->X,NULL);
@@ -269,7 +269,7 @@ FSGD *gdfRead(char *gdfname, int LoadData)
 
     gd->data = MRIread(datafilename);
     if(NULL == gd->data){
-      printf("ERROR: Couldn't read raw data at %s \n",gd->datafile);
+      printf("ERROR: gdfRead: Couldn't read raw data at %s \n",gd->datafile);
       gdfFree(&gd);
       return(NULL);
     }
@@ -299,19 +299,19 @@ static FSGD *gdfReadV1(char *gdfname)
 
   fp = fopen(gdfname,"r");
   if(fp==NULL){
-    printf("ERROR: cannot open %s for reading\n",gdfname);
+    printf("ERROR: gdfReadV1: cannot open %s for reading\n",gdfname);
     return(NULL);
   }
 
   fscanf(fp,"%s",tag);
   if(strcasecmp(tag,"GroupDescriptorFile") != 0){
-    printf("ERROR: %s is not formated properly\n",gdfname);
+    printf("ERROR: gdfReadV1: %s is not formated properly\n",gdfname);
     return(NULL);
   }
 
   fscanf(fp,"%d",&version);
   if(version != 1){
-    printf("ERROR: version=%d, != 1 (%s)\n",version,gdfname);
+    printf("ERROR: gdfReadV1: version=%d, != 1 (%s)\n",version,gdfname);
     return(NULL);
   }    
 
@@ -385,12 +385,12 @@ static FSGD *gdfReadV1(char *gdfname)
 
     if(!strcasecmp(tag,"Variables")){
       if(gd->nvariables != 0){
-	printf("ERROR: multiple 'Variables' lines found\n");
+	printf("ERROR: gdfReadV1: multiple 'Variables' lines found\n");
 	goto formaterror;
       }
       r = gdfCountItemsOnLine(fp);
       if(r==0){
-	fprintf(stderr,"WARNING: no variables on 'Variables' line found\n");
+	fprintf(stderr,"WARNING: gdfReadV1: no variables on 'Variables' line found\n");
 	continue;
       }
       for(m=0; m < r; m++)
@@ -398,7 +398,7 @@ static FSGD *gdfReadV1(char *gdfname)
       gd->nvariables = r;
       r = gdfCheckVarRep(gd);
       if(r != -1){
-	printf("ERROR: variable label %s appears multiple times\n",gd->varlabel[r]);
+	printf("ERROR: gdfReadV1: variable label %s appears multiple times\n",gd->varlabel[r]);
 	goto formaterror;
       }
       continue;
@@ -406,7 +406,7 @@ static FSGD *gdfReadV1(char *gdfname)
 
     if(!strcasecmp(tag,"Input")){
       if(gd->ninputs > FSGDF_NINPUTS_MAX){
-	printf("ERROR: the number of inputs in FSGD file exceeds the maximum allowed %d\n",
+	printf("ERROR: gdfReadV1: the number of inputs in FSGD file exceeds the maximum allowed %d\n",
 	       FSGDF_NINPUTS_MAX);
 	return(NULL);
       }
@@ -430,7 +430,7 @@ static FSGD *gdfReadV1(char *gdfname)
 
       r = gdfCountItemsOnLine(fp);
       if(r != gd->nvariables){
-	printf("ERROR: Input line %d, subjid = %s\n",n+1,gd->subjid[n]); 
+	printf("ERROR: gdfReadV1: Input line %d, subjid = %s\n",n+1,gd->subjid[n]); 
 	printf("       Found %d variables, expected. %d \n",r,gd->nvariables);
 	//printf("%s\n",tmpstr);
 	goto formaterror;
@@ -449,27 +449,26 @@ static FSGD *gdfReadV1(char *gdfname)
 
   r = gdfCheckClassRep(gd);
   if(r != -1){
-    printf("ERROR: class label %s appears multiple times\n",gd->classlabel[r]);
+    printf("ERROR: gdfReadV1: class label %s appears multiple times\n",gd->classlabel[r]);
     sprintf(tag,"Class");
     goto formaterror;
   }
 
   r = gdfCheckAllClassesUsed(gd);
   if(r != -1)
-    printf("WARNING: class %s is defined but not used.\n",gd->classlabel[r]);
+    printf("WARNING: gdfReadV1: class %s is defined but not used.\n",gd->classlabel[r]);
 
   r = gdfCheckSubjRep(gd);
   if(r != -1){
     /* See gdfCheckSubjRep() for fsgdf_AllowSubjRep usage */
-    printf("ERROR: subject id %s appears multiple times\n",gd->subjid[r]);
+    printf("ERROR: gdfReadV1: subject id %s appears multiple times\n",gd->subjid[r]);
     sprintf(tag,"Input");
     goto formaterror;
   }
-
  
   r = gdfGetDefVarLabelNo(gd);
   if(r == -1){
-    printf("ERROR: default varible %s does not exist in list\n",gd->defvarlabel);
+    printf("ERROR: gdfReadV1: default varible %s does not exist in list\n",gd->defvarlabel);
     sprintf(tag,"DefaultVariable");
     goto formaterror;
   }
@@ -725,7 +724,7 @@ MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X)
   if(gdfCheckMatrixMethod(gd2mtx_method)) return(NULL);
 
   if(strcmp(gd2mtx_method,"none") == 0){
-    printf("ERROR: cannot create matrix when method is none\n");
+    printf("ERROR: gdfMatrix: cannot create matrix when method is none\n");
     return(NULL);
   }
 
@@ -759,30 +758,30 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
 
   if(strlen(gd->DesignMatMethod) == 0 ||
      strcmp(gd->DesignMatMethod,"none") == 0){
-    printf("ERROR: cannot determine the offset and slope for the \n"
+    printf("ERROR: gdfOffsetSlope: cannot determine the offset and slope for the \n"
 	   "given group descriptor because the design matrix \n"
 	   "creation method is unknown\n");
     return(1);
   }
 
   if(classno >= gd->nclasses){
-    printf("ERROR: class number %d exceeds max %d\n",
+    printf("ERROR: gdfOffsetSlope: class number %d exceeds max %d\n",
 	   classno,gd->nclasses);
     return(1);
   }
   if(varno >= gd->nvariables){
-    printf("ERROR: variable number %d exceeds max %d\n",
+    printf("ERROR: gdfOffsetSlope: variable number %d exceeds max %d\n",
 	   varno,gd->nvariables);
     return(1);
   }
   if(c < 0 || c >= gd->data->width ||
      r < 0 || r >= gd->data->height ||
      s < 0 || s >= gd->data->depth){
-    printf("ERROR: index exceeds data matrix dimension\n");
+    printf("ERROR: gdfOffsetSlope: index exceeds data matrix dimension\n");
     return(1);
   }
   if(gd->T->cols != gd->data->nframes){
-    printf("ERROR: dimension mismatch.\n");
+    printf("ERROR: gdfOffsetSlope: dimension mismatch.\n");
     return(1);
   }
   nf = gd->T->cols;
@@ -1119,12 +1118,56 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
     return(-1);
-#if 0
-  if(x < gd->data->xstart || x > gd->data->xend ||
-     y < gd->data->ystart || y > gd->data->yend ||
-     z < gd->data->zstart || z > gd->data->zend ||
-     nsubject < 0 || nsubject >= gd->data->nframes)
-    return(-1);
+#if 1
+  int errs=0;
+
+  if(x < 0){
+    printf("ERROR: gdfGetNthSubjectMeasurement: x=%d < 0\n", x);
+    errs++;
+  }
+
+  if(x > gd->data->width){
+    printf("ERROR: gdfGetNthSubjectMeasurement: x=%d > gd->data->width=%d\n",
+            x, gd->data->width);
+    errs++;
+  }
+
+  if(y < 0){
+    printf("ERROR: gdfGetNthSubjectMeasurement: y=%d < 0\n", y);
+    errs++;
+  }
+
+  if(y > gd->data->height){
+    printf("ERROR: gdfGetNthSubjectMeasurement: y=%d > gd->data->height=%d\n",
+            y, gd->data->height);
+    errs++;
+  }
+
+  if(z < 0){
+    printf("ERROR: gdfGetNthSubjectMeasurement: z=%d < 0\n", z);
+    errs++;
+  }
+
+  if(z > gd->data->depth){
+    printf("ERROR: gdfGetNthSubjectMeasurement: z=%d > gd->data->depth=%d\n",
+            z, gd->data->depth);
+    errs++;
+  }
+
+  if(nsubject < 0){
+    printf("ERROR: gdfGetNthSubjectMeasurement: nsubject=%d < 0\n",
+            nsubject);
+    errs++;
+  }
+
+  if(nsubject >= gd->data->nframes){
+    printf("ERROR: gdfGetNthSubjectMeasurement: "
+	   "nsubject=%d >= gd->data->nframes=%d\n",
+            nsubject, gd->data->nframes);
+    errs++;
+  }
+
+  if(errs) return -1;
 #endif    
 
   switch( gd->data->type ) {
