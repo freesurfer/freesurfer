@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/24 15:10:03 $
-// Revision       : $Revision: 1.440 $
+// Revision Date  : $Date: 2006/02/24 20:40:56 $
+// Revision       : $Revision: 1.441 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -579,7 +579,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.440 2006/02/24 15:10:03 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.441 2006/02/24 20:40:56 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -27071,9 +27071,9 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, i
 			mrisWriteSnapshot(mris, parms, 0) ;
 		mrisClearMomentum(mris) ;
 		if (use_thick)  // distance is a % of the total thickness
-			niter = 5*nint(distance*3.5 / MAX_EXP_MM) ;
+			niter = 3*nint(distance*3.5 / MAX_EXP_MM) ;
 		else
-			niter = 5*nint(distance / MAX_EXP_MM) ;
+			niter = 3*nint(distance / MAX_EXP_MM) ;
 		MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 		avgs = parms->n_averages ;
 		if (Gdiag_no >= 0)
