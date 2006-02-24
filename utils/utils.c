@@ -13,8 +13,8 @@
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
   // Revision Author: $Author: nicks $
-  // Revision Date  : $Date: 2006/01/27 23:38:07 $
-  // Revision       : $Revision: 1.50 $
+  // Revision Date  : $Date: 2006/02/24 20:27:58 $
+  // Revision       : $Revision: 1.51 $
 
   ------------------------------------------------------------------------*/
 
@@ -82,6 +82,11 @@ int
 setRandomSeed(long seed)
 {
   idum = seed ;
+
+  // also seed the 'standard' random number generators: rand() and random()
+  srand(seed);
+  srandom(seed);
+
   return(NO_ERROR) ;
 }
 
