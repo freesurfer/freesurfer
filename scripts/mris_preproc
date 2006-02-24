@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.17 2006/02/24 02:33:40 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.18 2006/02/24 03:06:33 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -43,6 +43,8 @@ set CacheOutOnly = 0;
 set CacheIn = 0;
 set MeasIn  = 0;
 set outdir = ();
+set DoFSFCVar = 0;
+set DoFSFOffset = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
@@ -406,9 +408,18 @@ while( $#argv != 0 )
       set FSFAnalysis = $argv[1]; shift;
       breaksw
 
+    case "--contrast":
     case "--c":
       if ( $#argv == 0) goto arg1err;
       set FSFContrast = $argv[1]; shift;
+      breaksw
+
+    case "--offset":
+      set DoFSFOffset=1;
+      breaksw
+
+    case "--cvar":
+      set DoFSFCVar=1;
       breaksw
 
     case "--cache-out":
@@ -522,12 +533,15 @@ if($#SessFile) then
   set ivplist = ();
   set irplist = ();
   foreach sess ($SessList)
-    set ces = $sess/$fsd/$FSFAnalysis/$FSFContrast/ces.bhdr
-    if(! -e $ces) then
-      echo "ERROR: cannot find $ces"
+    set anadir = $sess/$fsd/$FSFAnalysis
+    set map = $anadir/$FSFContrast/ces.bhdr
+    if($DoFSFCVar)   set map = $anadir/$FSFContrast/cesvar.bhdr
+    if($DoFSFOffset) set map = $anadir/h-offset.bhdr
+    if(! -e $map) then
+      echo "ERROR: cannot find $map"
       exit 1;
     endif
-    # should check that ces has only one frame
+    # should check that map has only one frame
     set reg = $sess/$fsd/register.dat
     if(! -e $reg) then
       echo "ERROR: cannot find $reg"
@@ -535,7 +549,7 @@ if($#SessFile) then
     endif
     set subject = `head -n 1 $reg`;
     set fsfsubjects = ($fsfsubjects $subject)
-    set ivplist = ($ivplist $ces);
+    set ivplist = ($ivplist $map);
     set irplist = ($irplist $reg);
     @ nthsess = $nthsess + 1;
   end
@@ -703,6 +717,8 @@ usage_exit:
   echo "  --df sessdirfile     : fsfast session directory file"
   echo "  --analysis analysis  : fsfast analysis"
   echo "  --contrast constrast : fsfast contrast"
+  echo "  --cvar               : use fsfast contrast variance (cesvar)"
+  echo "  --offset             : use fsfast mean offset (h-offset)"
   echo ""
   echo "  --fwhm fwhm : smooth by fwhm mm on the target surface"
   echo "  --fwhm-src fwhmsrc : smooth by fwhm mm on the source surface"
