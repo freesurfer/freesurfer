@@ -5,11 +5,10 @@
 #  exit status 1 - is an analyze
 #  exit status 255 - some error
 #
-#  First looks for a .img extension (exits 1 if so)
-#  Then examines file with mri_info with --format arg
+#  Looks for a .img extension (exits 1 if so)
 #
 
-set VERSION = '$Id: isanalyze,v 1.3 2006/01/24 19:16:02 greve Exp $';
+set VERSION = '$Id: isanalyze,v 1.4 2006/02/24 02:18:30 greve Exp $';
 
 if($#argv != 1) then
   echo "isanalyze filename"
@@ -22,25 +21,6 @@ set baseimg = `basename $fname`;
 set base = `basename $fname .img`;
 set newfname = $base.img
 if($baseimg == $newfname) exit 1;
-
-# Cannot determine from extension, so examine the file
-if(! -e $fname) then
-  echo "ERROR: $fname does not exist"
-  exit 255;
-endif
-
-set tmpfile = /tmp/isanalyze.$$
-rm -f $tmpfile
-
-set cmd = (mri_info --format --o $tmpfile $fname);
-$cmd > /dev/null
-if($status) exit 0
-
-set fmt = `cat $tmpfile`;
-if($fmt == analyze || $fmt == analyze4d || $fmt == analyze3d || $fmt == spm) then
-  exit 1;
-endif
-
 
 exit 0
 
