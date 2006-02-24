@@ -1575,6 +1575,9 @@ MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v, int 
   MHB       *bin ;
   MHBT      *bucket ;
   float     x, y, z, tx, ty, tz ;
+  tx=0;
+  ty=0;
+  tz=0;
 
   min_dist = 10000000 ; vmin = NULL ;
   for (zk = -1 ; zk <= 1 ; zk++)
