@@ -1096,7 +1096,7 @@ float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float nx, float ny, float nz) ;
 int    MRISexpandSurface(MRI_SURFACE *mris, 
                          float distance,
-                         INTEGRATION_PARMS *parms) ;
+                         INTEGRATION_PARMS *parms, int use_thickness) ;
 
 #endif
                              

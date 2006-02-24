@@ -72,6 +72,8 @@ MHBT *MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z) ;
 
 VERTEX          *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
                                      MRI_SURFACE *mris, VERTEX *v) ;
+VERTEX          *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
+                                     MRI_SURFACE *mris, VERTEX *v, int which) ;
 int             *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, 
                                                 MRI_SURFACE *mris, 
                                                 int vno, float max_dist, 
