@@ -18,7 +18,8 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.tif) \
  $(wildcard *.txt) \
  mni305.cor.mgz \
- mni305.cor.readme 
+ mni305.cor.readme \
+ mni305.mask.cor.mgz
 endif
 
 EXTRA_DIST=$(foo_DATA)
