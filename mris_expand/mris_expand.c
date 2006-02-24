@@ -19,6 +19,9 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
+static INTEGRATION_PARMS parms ;
+static int navgs = 0 ;
+static int use_thickness = 0 ;
 
 
 int
@@ -32,8 +35,15 @@ main(int argc, char *argv[])
   float        mm_out ;
   MRI_SURFACE  *mris ;
 
+
+	parms.l_spring = .1;
+	//	parms.l_curv = 1.0 ;
+	parms.n_averages = 4 ;
+	//	parms.l_surf_repulse = .1 ;
+	parms.dt = 0.5 ;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_expand.c,v 1.4 2003/09/05 04:45:41 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_expand.c,v 1.5 2006/02/24 15:10:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -59,13 +69,33 @@ main(int argc, char *argv[])
   in_fname = argv[1] ;
   mm_out = atof(argv[2]) ;
   out_fname = argv[3] ;
+	FileNameExtension(out_fname,parms.base_name) ;  // remove hemi (e.g. lh.)
 
-  printf("expanding surface %s by %2.1f mm and writing it to %s\n",
-         in_fname, mm_out, out_fname) ;
+	if (use_thickness)
+		printf("expanding surface %s by %2.2f%% of thickness and writing it to %s\n",
+					 in_fname, mm_out, out_fname) ;
+	else
+		printf("expanding surface %s by %2.1f mm and writing it to %s\n",
+					 in_fname, mm_out, out_fname) ;
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
-  MRISexpandSurface(mris, mm_out, NULL) ;
+	if (use_thickness)
+	{
+		printf("reading thickness...\n") ;
+		if (MRISreadCurvatureFile(mris, "thickness") != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s: could not load thickness file", Progname) ;
+		MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+		if (MRISreadVertexPositions(mris, "pial") != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s: could not read pial vertex positions\n", Progname) ;
+		MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+		MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+	}
+	MRIScomputeMetricProperties(mris) ;
+	MRISstoreMetricProperties(mris) ;
+  MRISexpandSurface(mris, mm_out, &parms, use_thickness) ;
+	if (navgs > 0)
+		MRISaverageVertexPositions(mris, navgs) ;
   printf("writing expanded surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   msec = TimerStop(&start) ;
@@ -89,12 +119,43 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+	if (!stricmp(option, "thickness"))
+	{
+		use_thickness = 1 ;
+		printf("using distance as a %% of thickness\n") ;
+	}
+  else switch (toupper(*option))
   {
   case '?':
   case 'U':
     usage_exit(0) ;
     break ;
+	case 'V':
+		Gdiag_no = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("debugging vertex %d\n", Gdiag_no) ;
+		break ;
+	case 'S':
+		parms.l_spring = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("setting spring term to %2.2f\n", parms.l_spring) ;
+		break ;
+	case 'T':
+		parms.dt = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("setting dt = %2.2f\n", parms.dt) ;
+		break ;
+	case 'W':
+		parms.write_iterations = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("writing snapshots of expansion every %d iterations\n", parms.write_iterations) ;
+		Gdiag |= DIAG_WRITE ;
+		break ;
+	case 'A':
+		navgs = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("smoothing surface with %d iterations after expansion\n", navgs) ;
+		break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     exit(1) ;
