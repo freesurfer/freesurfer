@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.26 2006/02/24 02:32:40 nicks Exp $
+  $Id: fsgdf.c,v 1.27 2006/02/24 11:27:07 nicks Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -1113,62 +1113,53 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 				int x, int y, int z, float *value)
 {
   float v;
+  int errs=0;
 
   if(NULL == gd)
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
     return(-1);
-#if 1
-  int errs=0;
 
+  // bounds-checks
   if(x < 0){
     printf("ERROR: gdfGetNthSubjectMeasurement: x=%d < 0\n", x);
     errs++;
   }
-
   if(x > gd->data->width){
     printf("ERROR: gdfGetNthSubjectMeasurement: x=%d > gd->data->width=%d\n",
             x, gd->data->width);
     errs++;
   }
-
   if(y < 0){
     printf("ERROR: gdfGetNthSubjectMeasurement: y=%d < 0\n", y);
     errs++;
   }
-
   if(y > gd->data->height){
     printf("ERROR: gdfGetNthSubjectMeasurement: y=%d > gd->data->height=%d\n",
             y, gd->data->height);
     errs++;
   }
-
   if(z < 0){
     printf("ERROR: gdfGetNthSubjectMeasurement: z=%d < 0\n", z);
     errs++;
   }
-
   if(z > gd->data->depth){
     printf("ERROR: gdfGetNthSubjectMeasurement: z=%d > gd->data->depth=%d\n",
             z, gd->data->depth);
     errs++;
   }
-
   if(nsubject < 0){
     printf("ERROR: gdfGetNthSubjectMeasurement: nsubject=%d < 0\n",
             nsubject);
     errs++;
   }
-
   if(nsubject >= gd->data->nframes){
     printf("ERROR: gdfGetNthSubjectMeasurement: "
 	   "nsubject=%d >= gd->data->nframes=%d\n",
             nsubject, gd->data->nframes);
     errs++;
   }
-
   if(errs) return -1;
-#endif    
 
   switch( gd->data->type ) {
     case MRI_UCHAR:
