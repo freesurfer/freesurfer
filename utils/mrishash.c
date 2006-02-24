@@ -1604,6 +1604,7 @@ MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v, int 
 					case CURRENT_VERTICES:
 						tx = vdst->x ; ty = vdst->y  ; tz = vdst->z ; 
 						break ;
+					default:
 					case ORIGINAL_VERTICES:
 						tx = vdst->origx ; ty = vdst->origy  ; tz = vdst->origz ; 
 						break ;
