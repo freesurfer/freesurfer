@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/23 22:18:30 $
-// Revision       : $Revision: 1.439 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/24 15:10:03 $
+// Revision       : $Revision: 1.440 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -277,7 +277,13 @@ static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]) ;
+static int   mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]) ;
+static int   mrisComputeWhichSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
+																									MHT *mht, int which, float max_dot) ;
+static int   mrisComputePialNormal(MRIS *mris, int vno, float norm[]) ;
 static int   mrisOrigNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
+static int   mrisPialNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
+static int   mrisWhiteNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
 static MRI_SURFACE *mrisReadGeoFile(char *fname) ;
@@ -573,7 +579,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.439 2006/02/23 22:18:30 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.440 2006/02/24 15:10:03 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -3020,6 +3026,68 @@ mrisComputeOrigNormal(MRIS *mris, int vno, float norm[])
   mrisNormalize(norm);
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[])
+{
+  float snorm[3] ;
+  VERTEX *v ;
+  int    n, num ;
+
+  v = &mris->vertices[vno] ;
+
+  norm[0]=norm[1]=norm[2]=0.0;
+  for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
+    {
+      num++ ;
+      mrisWhiteNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+      norm[0] += snorm[0];
+      norm[1] += snorm[1];
+      norm[2] += snorm[2];
+
+    }
+  if (!num)
+    return(ERROR_BADPARM) ;
+  mrisNormalize(norm);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisComputePialNormal(MRIS *mris, int vno, float norm[])
+{
+  float snorm[3] ;
+  VERTEX *v ;
+  int    n, num ;
+
+  v = &mris->vertices[vno] ;
+
+  norm[0]=norm[1]=norm[2]=0.0;
+  for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
+    {
+      num++ ;
+      mrisPialNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+      norm[0] += snorm[0];
+      norm[1] += snorm[1];
+      norm[2] += snorm[2];
+
+    }
+  if (!num)
+    return(ERROR_BADPARM) ;
+  mrisNormalize(norm);
+  return(NO_ERROR) ;
+}
 
 /*-----------------------------------------------------
   Parameters:
@@ -3047,6 +3115,80 @@ mrisOrigNormalFace(MRIS *mris, int fac,int n,float norm[])
   v0[2] = v->origz - vn0->origz;
   v1[0] = vn1->origx - v->origx; v1[1] = vn1->origy - v->origy;
   v1[2] = vn1->origz - v->origz;
+  mrisNormalize(v0);
+  mrisNormalize(v1);
+  norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
+  norm[1] = v1[0]*v0[2] - v0[0]*v1[2];
+  norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
+  /*
+    printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
+    v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
+  */
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisWhiteNormalFace(MRIS *mris, int fac,int n,float norm[])
+{
+  int     n0,n1, *pv ;
+  FACE    *f;
+  float   v0[3],v1[3];
+  register VERTEX  *v, *vn0, *vn1 ;
+
+  n0 = (n == 0)                   ? VERTICES_PER_FACE-1 : n-1;
+  n1 = (n == VERTICES_PER_FACE-1) ? 0                   : n+1;
+  f = &mris->faces[fac];
+  pv = f->v ;
+  vn0 = &mris->vertices[pv[n0]] ;
+  vn1 = &mris->vertices[pv[n1]] ;
+  v =  &mris->vertices[pv[n]] ;
+  v0[0] = v->whitex - vn0->whitex; v0[1] = v->whitey - vn0->whitey;
+  v0[2] = v->whitez - vn0->whitez;
+  v1[0] = vn1->whitex - v->whitex; v1[1] = vn1->whitey - v->whitey;
+  v1[2] = vn1->whitez - v->whitez;
+  mrisNormalize(v0);
+  mrisNormalize(v1);
+  norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
+  norm[1] = v1[0]*v0[2] - v0[0]*v1[2];
+  norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
+  /*
+    printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
+    v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
+  */
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisPialNormalFace(MRIS *mris, int fac,int n,float norm[])
+{
+  int     n0,n1, *pv ;
+  FACE    *f;
+  float   v0[3],v1[3];
+  register VERTEX  *v, *vn0, *vn1 ;
+
+  n0 = (n == 0)                   ? VERTICES_PER_FACE-1 : n-1;
+  n1 = (n == VERTICES_PER_FACE-1) ? 0                   : n+1;
+  f = &mris->faces[fac];
+  pv = f->v ;
+  vn0 = &mris->vertices[pv[n0]] ;
+  vn1 = &mris->vertices[pv[n1]] ;
+  v =  &mris->vertices[pv[n]] ;
+  v0[0] = v->pialx - vn0->pialx; v0[1] = v->pialy - vn0->pialy;
+  v0[2] = v->pialz - vn0->pialz;
+  v1[0] = vn1->pialx - v->pialx; v1[1] = vn1->pialy - v->pialy;
+  v1[2] = vn1->pialz - v->pialz;
   mrisNormalize(v0);
   mrisNormalize(v1);
   norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
@@ -12648,26 +12790,26 @@ MRISstoreMetricProperties(MRI_SURFACE *mris)
 #endif
   nvertices = mris->nvertices ;
   for (vno = 0 ; vno < nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      v->origarea = v->area ;
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		v->origarea = v->area ;
 #if 1
-      if (v->dist && v->dist_orig)
-        for (n = 0 ; n < v->vtotal ; n++)
-          v->dist_orig[n] = v->dist[n] ;
+		if (v->dist && v->dist_orig)
+			for (n = 0 ; n < v->vtotal ; n++)
+				v->dist_orig[n] = v->dist[n] ;
 #endif
-    }
+	}
   for (fno = 0 ; fno < mris->nfaces ; fno++)
-    {
-      f = &mris->faces[fno] ;
-      if (f->ripflag)
-        continue ;
-      f->orig_area = f->area ;
-      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-        f->orig_angle[ano] = f->angle[ano] ;
-    }
+	{
+		f = &mris->faces[fno] ;
+		if (f->ripflag)
+			continue ;
+		f->orig_area = f->area ;
+		for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+			f->orig_angle[ano] = f->angle[ano] ;
+	}
   mris->orig_area = mris->total_area ;
   return(NO_ERROR) ;
 }
@@ -15701,6 +15843,105 @@ mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
                   max_vno, max_scale, max_dot) ;
         }
     }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisComputeWhichSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, int which, float dot_thresh)
+{
+  int     vno, max_vno, i ;
+  float   dx, dy, dz, x, y, z, sx, sy, sz,norm[3],dot;
+  float   max_scale, max_dot ;
+  double  scale, sgn ;
+  VERTEX  *v, *vn ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+
+  if (FZERO(l_repulse))
+    return(NO_ERROR) ;
+
+	if (l_repulse < 0)
+		sgn = -1 ;
+	else
+		sgn = 1 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		x = v->x ; y = v->y ; z = v->z ;
+		bucket = MHTgetBucket(mht, x, y, z) ;
+		if (!bucket)
+			continue ;
+		bin = bucket->bins ;
+		sx = sy = sz = 0.0 ;
+		max_dot = max_scale = 0.0 ; max_vno = 0 ;
+		for (i = 0 ; i < bucket->nused ; i++, bin++)
+		{
+			vn = &mris->vertices[bin->fno] ;
+			if (bin->fno == Gdiag_no)
+				DiagBreak() ;
+			if (vn->ripflag)
+				continue ;
+			switch (which)
+			{
+			default:
+			case ORIGINAL_VERTICES:
+				mrisComputeOrigNormal(mris, bin->fno, norm) ;
+				dx = x - vn->origx ; dy = y - vn->origy ; dz = z - vn->origz ;
+				break ;
+			case WHITE_VERTICES:
+				mrisComputeWhiteNormal(mris, bin->fno, norm) ;
+				dx = x - vn->whitex ; dy = y - vn->whitey ; dz = z - vn->whitez ;
+				break ;
+			case PIAL_VERTICES:
+				mrisComputePialNormal(mris, bin->fno, norm) ;
+				dx = x - vn->pialx ; dy = y - vn->pialy ; dz = z - vn->pialz ;
+				break ;
+			}
+			dot = dx*norm[0] + dy*norm[1] + dz*norm[2] ;
+			if (sgn*dot > dot_thresh)
+				continue ;
+			if (dot < 0 && vno == Gdiag_no)
+				DiagBreak() ;
+			if (dot > MAX_NEG_RATIO)
+				dot = MAX_NEG_RATIO ;
+			else if (dot < -MAX_NEG_RATIO)
+				dot = -MAX_NEG_RATIO ;
+#if 0
+			scale = l_repulse / (1.0+exp(NEG_AREA_K*dot)) ;
+#else
+			scale = l_repulse*pow(1.0-(double)dot,15.0) ;
+#endif
+			if (scale > max_scale)
+			{
+				max_scale = scale ;
+				max_vno = bin->fno ;
+				max_dot = dot ;
+			}
+			sx += (scale*v->nx) ; sy += (scale*v->ny) ; sz += (scale*v->nz) ;
+		}
+
+		v->dx += sgn*sx ; v->dy += sgn*sy ; v->dz += sgn*sz ;
+		if (vno == Gdiag_no)
+		{
+			vn = &mris->vertices[max_vno] ;
+			dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ;
+
+			fprintf(stdout, "v %d inside repulse term:  (%2.3f, %2.3f, %2.3f)\n",
+							vno, sx, sy, sz) ;
+			fprintf(stdout, "max_scale @ %d = %2.2f, max dot = %2.2f\n",
+							max_vno, max_scale, max_dot) ;
+		}
+	}
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -26796,13 +27037,16 @@ MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,float x0,float y0,float z0,
   Returns value:
 
   Description
-  ------------------------------------------------------*/
+ ------------------------------------------------------*/
+#define MAX_EXP_MM 0.1
+
 int
-MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms)
+MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, int use_thick)
 {
-  int    vno, n, niter, avgs ;
+  int    vno, n, niter, avgs, done ;
   VERTEX *v ;
-  MHT    *mht = NULL ;
+  MHT    *mht = NULL, *mht_white = NULL, *mht_pial = NULL ;
+	double dist, dx, dy, dz ;
 
   if (parms == NULL)
 	{
@@ -26818,12 +27062,26 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms)
 	}
   else
 	{
-#define EXPANSION_STEP_SIZE 0.25
+		if (use_thick)
+		{
+			mht_white = MHTfillVertexTableRes(mris, NULL, WHITE_VERTICES,3.0) ;
+			mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES,3.0) ;
+		}
 		if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
 			mrisWriteSnapshot(mris, parms, 0) ;
 		mrisClearMomentum(mris) ;
-		niter = nint(distance / EXPANSION_STEP_SIZE) ;
+		if (use_thick)  // distance is a % of the total thickness
+			niter = 5*nint(distance*3.5 / MAX_EXP_MM) ;
+		else
+			niter = 5*nint(distance / MAX_EXP_MM) ;
+		MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 		avgs = parms->n_averages ;
+		if (Gdiag_no >= 0)
+		{
+			v = &mris->vertices[Gdiag_no] ;
+			printf("v %d: thickness=%2.2f, moving outwards %2.2fmm\n", 
+						 Gdiag_no, v->curv, v->curv*distance) ;
+		}
 		for (n = parms->start_t ; n < parms->start_t+niter ; n++)
 		{
 			printf("\rstep %d of %d     ", n+1, parms->start_t+niter) ;
@@ -26836,27 +27094,92 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms)
 				v = &mris->vertices[vno] ;
 				if (v->ripflag)
 					continue ;
-				v->dx = v->nx*EXPANSION_STEP_SIZE ;
-				v->dy = v->ny*EXPANSION_STEP_SIZE ;
-				v->dz = v->nz*EXPANSION_STEP_SIZE ;
+				if (vno == Gdiag_no)
+					DiagBreak() ;
+				done = 0 ;
+				if (use_thick)
+				{
+#if 1
+					double dwhite, dpial, d ;
+					VERTEX *v_white, *v_pial ;
+
+					v_white = MHTfindClosestVertexSet(mht_white, mris, v, WHITE_VERTICES) ;
+					v_pial = MHTfindClosestVertexSet(mht_pial, mris, v, PIAL_VERTICES) ;
+					if (v_white != NULL && v_pial != NULL)
+					{
+						dx = v_pial->pialx-v->x ; dy = v_pial->pialy-v->y ; dz = v_pial->pialz-v->z ;
+						dpial = sqrt(dx*dx + dy*dy + dz*dz) ;
+						dx = v_white->whitex-v->x ; dy = v_white->whitey-v->y ; dz = v_white->whitez-v->z ;
+						dwhite = sqrt(dx*dx + dy*dy + dz*dz) ;
+						if (n == 0)
+							v->curv = dpial ;
+						d = dwhite+dpial ;
+						d = ((v->curv*distance-dwhite) + (dpial-(1-distance)*v->curv))/2 ;
+						if (vno == Gdiag_no)
+							printf("v %d: dwhite = %2.2f, dpial = %2.2f, target=%2.2f\n",
+										 vno, dwhite, dpial, d) ;
+						if (fabs(d) > 1)
+							d /= fabs(d) ;  // move at constant speed when far away
+						dx = d*v->nx ;
+						dy = d*v->ny ;
+						dz = d*v->nz ;
+					}
+#else
+					double nx, ny, nz ;
+
+					nx = v->pialx-v->whitex ; ny = v->pialy-v->whitey ; nz = v->pialz-v->whitez ;
+					dist = sqrt(nx*nx + ny*ny + nz*nz) ;
+					if (FZERO(dist))
+						dist=1;
+					nx /= dist ; ny /= dist ; nz /= dist ;
+					dx = (v->x-v->whitex)*nx ; dy = (v->y-v->whitey)*ny ; dz = (v->z-v->whitez)*nz ;
+					dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
+					if (dist > v->curv*distance)
+						done = 1 ;
+#endif
+				}
+				else
+				{
+					dx = (v->x-v->origx)*v->nx ; dy = (v->y-v->origy)*v->ny ; 
+					dz = (v->z-v->origz)*v->nz ;
+					dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
+					dist = distance-dist ;  // how far still to go
+					dx = v->nx*dist ;
+					dy = v->ny*dist ;
+					dz = v->nz*dist ;
+				}
+
+				v->dx = dx ;
+				v->dy = dy ;
+				v->dz = dz ;
 			}
-			/*      mrisAverageGradients(mris, avgs) ;*/
 			mrisComputeSpringTerm(mris, parms->l_spring) ;
 			mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
 			mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
 			mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
 			mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
-
+			if (use_thick)
+			{
+				mrisComputeWhichSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_white,
+																						 WHITE_VERTICES, .2);
+#if 1
+				mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_surf_repulse, mht_pial,
+																						 PIAL_VERTICES,.2);
+#endif
+			}
+			
 			mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
-			mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,
-															 MAX_ASYNCH_MM) ;
-
+			mrisAverageGradients(mris, avgs) ;
+			mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,MAX_EXP_MM) ;
+			
 			if ((parms->write_iterations > 0) &&
 					!((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
 				mrisWriteSnapshot(mris, parms, n+1) ;
 		}
 		parms->start_t += n ;
 		printf("\n") ;
+    MHTfree(&mht_white) ;
+    MHTfree(&mht_pial) ;
 	}
   if (mht)
     MHTfree(&mht) ;

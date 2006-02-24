@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: jsnyder $
-// Revision Date  : $Date: 2006/02/14 00:24:29 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/02/24 15:10:04 $
+// Revision       : $Revision: 1.53 $
 */
 
 /*-----------------------------------------------------
@@ -5677,7 +5677,7 @@ MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
   MRISpositionSurface(mris, mri, mri_smooth, &lparms) ;  /* outer skin */
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin3.geo") ;
-  MRISexpandSurface(mris, -5, NULL) ;
+  MRISexpandSurface(mris, -5, NULL, 0) ;
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin_expanded.geo") ;
   MRISsetVals(mris, 0) ;

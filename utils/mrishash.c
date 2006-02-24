@@ -112,6 +112,12 @@ MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
     case CURRENT_VERTICES:
       mhtAddFacePositions(mht, v->x, v->y, v->z, vno) ;
       break ;
+    case WHITE_VERTICES:
+      mhtAddFacePositions(mht, v->whitex, v->whitey, v->whitez, vno) ;
+      break ;
+    case PIAL_VERTICES:
+      mhtAddFacePositions(mht, v->pialx, v->pialy, v->pialz, vno) ;
+      break ;
     }
   }
 
@@ -550,6 +556,16 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
     adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
     cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
     break ;
+  case WHITE_VERTICES:
+    adx = v1->whitex - v0->whitex ; ady = v1->whitey - v0->whitey ; 
+		adz = v1->whitez - v0->whitez ;
+    cdx = v2->whitex - v0->whitex ; cdy = v2->whitey - v0->whitey ; 
+		cdz = v2->whitez - v0->whitez ;
+    break ;
+  case PIAL_VERTICES:
+    adx = v1->pialx - v0->pialx ; ady = v1->pialy - v0->pialy ; adz = v1->pialz - v0->pialz ;
+    cdx = v2->pialx - v0->pialx ; cdy = v2->pialy - v0->pialy ; cdz = v2->pialz - v0->pialz ;
+    break ;
   }
   alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
   clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
@@ -645,6 +661,14 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
   case CANONICAL_VERTICES:
     xa = v0->cx + t0*adx ; ya = v0->cy + t0*ady ; za = v0->cz + t0*adz ;
     xc = v0->cx + t0*cdx ; yc = v0->cy + t0*cdy ; zc = v0->cz + t0*cdz ;
+    break ;
+  case WHITE_VERTICES:
+    xa = v0->whitex + t0*adx ; ya = v0->whitey + t0*ady ; za = v0->whitez + t0*adz ;
+    xc = v0->whitex + t0*cdx ; yc = v0->whitey + t0*cdy ; zc = v0->whitez + t0*cdz ;
+    break ;
+  case PIAL_VERTICES:
+    xa = v0->pialx + t0*adx ; ya = v0->pialy + t0*ady ; za = v0->pialz + t0*adz ;
+    xc = v0->pialx + t0*cdx ; yc = v0->pialy + t0*cdy ; zc = v0->pialz + t0*cdz ;
     break ;
   }
   dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
@@ -1542,6 +1566,64 @@ MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
 
   return(vmin) ;
 }
+VERTEX *
+MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v, int which)
+{
+  VERTEX    *vmin, *vdst ;
+  int       i, xk, yk, zk ;
+  double    dist, min_dist ;
+  MHB       *bin ;
+  MHBT      *bucket ;
+  float     x, y, z, tx, ty, tz ;
+
+  min_dist = 10000000 ; vmin = NULL ;
+  for (zk = -1 ; zk <= 1 ; zk++)
+  {
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {      
+        x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
+        y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
+        z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
+        bucket = MHTgetBucket(mht, x, y, z) ;
+        if (!bucket)
+          continue ;
+        bin = bucket->bins ; 
+        for (i = 0 ; i < bucket->nused ; i++, bin++)
+        {
+          vdst = &mris->vertices[bin->fno] ;
+
+          if (bin->fno == Gdiag_no)
+            DiagBreak() ;
+					switch (which)
+					{
+					case CURRENT_VERTICES:
+						tx = vdst->x ; ty = vdst->y  ; tz = vdst->z ; 
+						break ;
+					case ORIGINAL_VERTICES:
+						tx = vdst->origx ; ty = vdst->origy  ; tz = vdst->origz ; 
+						break ;
+					case WHITE_VERTICES:
+						tx = vdst->whitex ; ty = vdst->whitey  ; tz = vdst->whitez ; 
+						break ;
+					case PIAL_VERTICES:
+						tx = vdst->pialx ; ty = vdst->pialy  ; tz = vdst->pialz ; 
+						break ;
+					}
+          dist = sqrt(SQR(tx-v->x)+SQR(ty-v->y)+SQR(tz-v->z)) ;
+          if (dist < min_dist)
+          {
+            min_dist = dist ;
+            vmin = vdst ;
+          }
+        }
+      }
+    }
+  }
+
+  return(vmin) ;
+}
 /*--------------------------------------------------------------------
   MHTfindClosestVertexNo() - basically the same as findClosestVertex
   except it returns the vertex number instead of a pointer to the
@@ -1613,6 +1695,16 @@ MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
           y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cy)+yk) ;
           z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cz)+zk) ;
           break ;
+        case WHITE_VERTICES:
+          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitex)+xk) ;
+          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitey)+yk) ;
+          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitez)+zk) ;
+          break ;
+        case PIAL_VERTICES:
+          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialx)+xk) ;
+          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialy)+yk) ;
+          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialz)+zk) ;
+          break ;
         case ORIGINAL_VERTICES:
           x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origx)+xk) ;
           y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origy)+yk) ;
@@ -1636,6 +1728,12 @@ MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
           default:
           case CURRENT_VERTICES:
             dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
+            break ;
+          case WHITE_VERTICES:
+            dist = sqrt(SQR(vdst->whitex-v->whitex)+SQR(vdst->whitey-v->whitey)+SQR(vdst->whitez-v->whitez)) ;
+            break ;
+          case PIAL_VERTICES:
+            dist = sqrt(SQR(vdst->pialx-v->pialx)+SQR(vdst->pialy-v->pialy)+SQR(vdst->pialz-v->pialz)) ;
             break ;
           case CANONICAL_VERTICES:
             dist = 
