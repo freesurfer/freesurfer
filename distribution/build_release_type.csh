@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.33 2006/02/23 21:17:02 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.34 2006/02/24 00:56:00 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -423,14 +423,9 @@ foreach destdir ($DEST_DIR_LIST)
       $cmd
     endif
   endif
-  # also sample subjects:
+  # also sample subject:
   if (! -d $destdir/subjects/bert ) then
     set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/subjects/talairach ) then
-    set cmd=(ln -s /space/freesurfer/subjects/talairach $destdir/subjects/talairach)
     echo "$cmd" >>& $OUTPUTF
     $cmd
   endif
