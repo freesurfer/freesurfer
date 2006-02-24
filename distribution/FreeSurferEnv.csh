@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.42 2006/02/12 03:10:34 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43 2006/02/24 01:12:13 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.42 2006/02/12 03:10:34 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43 2006/02/24 01:12:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -191,9 +191,6 @@ endif
 if( $output && $?FUNCTIONALS_DIR ) then
     echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 endif
-
-## Talairach subject in anatomical database.
-setenv FS_TALAIRACH_SUBJECT talairach
 
 
 ######## --------- Functional Analysis Stuff ----------- #######

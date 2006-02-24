@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.9 2006/02/12 03:10:34 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10 2006/02/24 01:12:13 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.9 2006/02/12 03:10:34 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10 2006/02/24 01:12:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -196,9 +196,6 @@ fi
 if [[ $output == 1 && -n "$FUNCTIONALS_DIR" ]]; then
     echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 fi
-
-## Talairach subject in anatomical database.
-export FS_TALAIRACH_SUBJECT=talairach
 
 
 ######## --------- Functional Analysis Stuff ----------- #######
