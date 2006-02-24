@@ -23,15 +23,20 @@ class NRWrapperTest : public CppUnit::TestFixture {
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( NRWrapperTest );
   
-//TODO:    CPPUNIT_TEST( TestLUDecomp );
+//TODO: tested by test_matrix::inverse
+//   CPPUNIT_TEST( TestLUDecomp );
+//   CPPUNIT_TEST( TestLUMatrixInverse );
+
     CPPUNIT_TEST( TestDFPMin );
     CPPUNIT_TEST( TestPowell );
     CPPUNIT_TEST( TestSVDcmp );
-    CPPUNIT_TEST( TestTred2 );
-    CPPUNIT_TEST( TestTQLI );
+
+// TODO: tested by test_matrix::eigensystem
+//    CPPUNIT_TEST( TestTred2 );
+//    CPPUNIT_TEST( TestTQLI );
+
     CPPUNIT_TEST( TestRan1 );
     CPPUNIT_TEST( TestSplineAndSplInt );
-//TODO:    CPPUNIT_TEST( TestLUMatrixInverse );
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -88,11 +93,16 @@ public:
 
   bool AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance,
     int numberOfRows, int numberOfColumns );
+
   bool AreSplinesEqual( MATRIX* x, MATRIX* y, MATRIX* xx, 
     string yyFile, float derivative1, float derivativeN );
+
   MATRIX* ReconstructFromSVD( MATRIX* u, VECTOR* wVector, MATRIX* v );
+
   int TestSVDcmpHelper( string matrixFile, 
       int numberOfRows, int nubmerOfColumns );
+      
+  bool isBetween0And1( float x );
   
   void TestLUDecomp();
   void TestDFPMin();
@@ -124,6 +134,11 @@ const string NRWrapperTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 const string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 const string NRWrapperTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const string NRWrapperTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
+
+/**
+ * This is actually a 61 x 61 matrix that has zeros outside of the 61 x 2 
+ * bounds. 
+ **/
 const string NRWrapperTest::RANDOM_61_2 = TESTING_DIR + "Random_61_2.mat";
 const string NRWrapperTest::RANDOM_5_11 = TESTING_DIR + "Random_5_11.mat";
 
@@ -168,6 +183,21 @@ NRWrapperTest::tearDown() {
 }
 
 bool 
+NRWrapperTest::isBetween0And1( float x ) {
+  bool isBetween = true;
+  
+  if( x>1.0 ) {
+    isBetween = false;
+  }
+  
+  if( x<0.0) {
+    isBetween = false;
+  }
+  
+  return isBetween;
+}
+
+bool 
 NRWrapperTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance, 
   int numberOfRows, int numberOfColumns) {
         
@@ -185,8 +215,7 @@ NRWrapperTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance,
         int index2 = column + row * m2->cols;
         
         float difference = fabs( m1->data[ index1 ] - m2->data[ index2 ] );
-        
-        
+                
         if( difference > tolerance ) {
           areEqual = false;
         }
@@ -365,17 +394,45 @@ NRWrapperTest::TestTQLI() {
 
 void 
 NRWrapperTest::TestRan1() {
-
-/*    
-  long seed = -1L * (long)(abs((int)time(NULL))) ;
-
-  for(int i=0; i<25; i++) {
-    float val = ran1(&seed);  
-    cerr << " " << val << " ";
-  }
-*/  
+  const int numberOfBins = 10;
+  int bins[numberOfBins];
   
-  CPPUNIT_FAIL("not implemented");
+  for(int i=0; i<numberOfBins; i++) {
+    bins[i] = 0;
+  }
+  
+  const int numberOfRuns = 1000;  
+  long seed = -1L * (long)( abs( (int)time(NULL) ) );
+  for(int i=0; i<numberOfRuns; i++) {
+    float randomNumber = ran1( &seed );
+ 
+    CPPUNIT_ASSERT( isBetween0And1( randomNumber ) );
+
+    int bin = (int)floor(randomNumber * numberOfBins);
+    bins[bin]++;
+  }
+    
+  float binMean = (float)numberOfRuns/(float)numberOfBins;
+    
+  float x2 = 0;
+  for( int i=0; i<numberOfBins; i++ ) {
+    float n = (float)bins[i];
+    float top = ( n - binMean );
+    x2 += top * top / binMean;
+  }  
+  
+  int x2Mean = numberOfBins - 1;
+  float lowerBound = 4.0;
+  float upperBound = x2Mean*3;
+  
+  // if x2 is close to 0, it means that the distribution it very uniform -- bad!  
+  CPPUNIT_ASSERT( x2 > lowerBound );
+
+  // if x2 is way above the mean, then it's too non-uniform
+  CPPUNIT_ASSERT( x2 < upperBound );
+  
+  // TODO: I think we need a test case to make sure that the numbers don't
+  //       follow some period (try Unbinned KS testing).
 }
 
 bool
