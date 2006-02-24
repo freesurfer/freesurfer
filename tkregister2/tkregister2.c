@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $";
+"$Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -283,6 +283,7 @@ int impt = -1,ipt = -1,jpt = -1;
 int cScreenCur = 0, rScreenCur = 0;
 int PixelSelected = 1;
 
+char *freesurferhome; // FREESURFER_HOME
 char *subjectsdir;   /* SUBJECTS_DIR */
 char *srname;        /* sessiondir (funct: image) */
 char *psrname;       /* parent sessiondir (funct: 970703MS) */
@@ -343,7 +344,6 @@ MATRIX *vox2ras_targ=NULL,*ras2vox_targ=NULL;
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
 int fstal=0, fixxfm=1; 
-char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
@@ -377,17 +377,23 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
+  freesurferhome = getenv("FREESURFER_HOME");
+  if(freesurferhome==NULL) {
+    printf("ERROR: FREESURFER_HOME undefined. \n");
+    exit(1);
+  }
+
   /* read the registration here to get subjectid */
   if(!mkheaderreg && fslregfname == NULL && !fstal && int_vol_id == NULL) 
     read_reg(regfname);
 
   if(fstal){
-    // Load the talairach.xfm 
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if(subjectsdir==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
       exit(1);
     }
+    // Load the talairach.xfm 
     sprintf(talxfmdir,"%s/%s/mri/transforms",subjectsdir,subjectid);
     sprintf(talxfmfile,"%s/talairach.xfm",talxfmdir);
     if(!mkheaderreg){
@@ -411,9 +417,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       }
     }
     mov_vol_id = (char *) calloc(sizeof(char),2000);
-    sprintf(mov_vol_id,"%s/%s/mri/orig.mgz",subjectsdir,talsubject);
-    if(! fio_FileExistsReadable(mov_vol_id))
-      sprintf(mov_vol_id,"%s/%s/mri/orig",subjectsdir,talsubject);
+    sprintf(mov_vol_id,"%s/average/mni305.cor.mgz",freesurferhome);
 
     ps_2 = 1.0;
     st_2 = 1.0;
@@ -1028,12 +1032,6 @@ static int parse_commandline(int argc, char **argv)
       memcpy(subjectid,pargv[0],strlen(pargv[0]));
       nargsused = 1;
     }
-    else if ( !strcmp(option, "--talsubject") ||
-              !strcmp(option, "--tals") ){
-      if(nargc < 1) argnerr(option,1);
-      talsubject = pargv[0];
-      nargsused = 1;
-    }
     else if ( !strcmp(option, "--sd") ){
       if(nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0];
@@ -1184,7 +1182,7 @@ static void print_help(void)
          "\n"
          "  Check and edit the talairach registration that was created during\n"
          "  the FreeSurfer reconstruction. Sets the movable volume to be \n"
-         "  $SUBJECTS_DIR/talairach/mri/orig{.mgz} and sets the registration file to be\n"
+         "  $FREESURFER_HOME/average/mni305.cor.mgz and sets the registration file to be\n"
          "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
          "  write permission to this file. Do not specify --reg with this\n"
          "  flag. It is ok to specify --regheader with this flag. The format\n"
@@ -3958,7 +3956,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.47 2006/02/16 20:48:42 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.48 2006/02/24 00:11:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
