@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.15 2006/02/23 23:52:30 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.16 2006/02/24 01:19:29 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -64,6 +64,22 @@ handle_fsfast_return:
 # Check the command-line arguments
 goto check_params;
 check_params_return:
+
+# Check for analyze and nifti output format
+isanalyze $outpath >& /dev/null
+if($status) then
+  if(! $reshape) then
+    set reshape = 1
+    echo "INFO: output detected as analyze, turning on reshaping"
+  endif
+endif
+isnifti $outpath >& /dev/null
+if($status) then
+  if(! $reshape) then
+    set reshape = 1
+    echo "INFO: output detected as nifti, turning on reshaping"
+  endif
+endif
 
 set nsubjects = $#subjlist;
 if($srcsurf) set geom = surface
@@ -786,12 +802,14 @@ and running simulations.
 
 --reshape
 
-Reshape spatial dimensions. Normally, the output volume-encoded surface file
-will have spatial dimension of nvertices-by-1-by-1 (ie, number of columns equals
-number of vertices, nrows=nslices=1). This will not work for ANALYZE and NIFTI
-formats because they cannot represent a dimension with more than 32k elements.
-This flag instructs mris_preproc to change the number of cols, rows, and slices
-so that no one dimension is greater than 32k. 
+Reshape spatial dimensions. Normally, the output volume-encoded
+surface file will have spatial dimension of nvertices-by-1-by-1 (ie,
+number of columns equals number of vertices, nrows=nslices=1). This
+will not work for ANALYZE and NIFTI formats because they cannot
+represent a dimension with more than 32k elements.  This flag
+instructs mris_preproc to change the number of cols, rows, and slices
+so that no one dimension is greater than 32k.  When ANALYZE and NIFTI
+formats are automatically detected, reshaping is turned on.
 
 --tmpdir tmpdir
 
