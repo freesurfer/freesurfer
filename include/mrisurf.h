@@ -1277,5 +1277,6 @@ int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 MRI *MRISannotIndex2Seg(MRIS *mris);
+double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
 
 #endif
