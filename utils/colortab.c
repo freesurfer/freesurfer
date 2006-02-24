@@ -311,7 +311,9 @@ int CTABwriteTxt(char *fname, COLOR_TABLE *ctab)
     printf("ERROR: could not open %s for writing\n",fname);
     return(1);
   }
-  return(CTABprint(fp, ctab));
+  CTABprint(fp, ctab);
+  fclose(fp);
+  return(0);
 }
 
 
