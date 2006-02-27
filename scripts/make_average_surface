@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.26 2006/02/23 23:53:04 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.27 2006/02/27 21:47:52 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -75,13 +75,20 @@ echo ==================== | tee -a $LF
 echo input subjects: ${SUBJECTS}  | tee -a $LF
 echo output subject: ${average_subject}  | tee -a $LF
 
+# Copy MNI 305 to output mri dir
 set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
 if(! -e $mni305) then
   echo "ERROR: cannot find $mni305"
   exit 1;
 endif
-
 cp $mni305 $sdout/${average_subject}/mri
+
+# Set the MNI305 xfm fname to 'auto'
+set mnivol = $sdout/${average_subject}/mri/mni305.cor.mgz
+set cmd = (mri_add_xform_to_header -c auto $mnivol $mnivol)
+echo $cmd | tee -a $LF
+$cmd  | tee -a $LF
+if($status) exit 1;
 
 set tmp_subjects = ( $SUBJECTS )
 
