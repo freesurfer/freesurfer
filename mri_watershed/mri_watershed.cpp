@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/15 22:39:53 $
-// Revision       : $Revision: 1.47 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/02/27 16:57:57 $
+// Revision       : $Revision: 1.48 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.47 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.48 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -691,7 +691,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.47 2006/01/15 22:39:53 fischl Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.48 2006/02/27 16:57:57 segonne Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -703,7 +703,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.47 2006/01/15 22:39:53 fischl Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.48 2006/02/27 16:57:57 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -7491,22 +7491,23 @@ static MRI* generateFinalMRI(MRI_variables *MRI_var){
           }
         }
   }
-
+#if 0
 	if (Gdiag & DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
 		MRIwrite(mri,"./tmp4..mgz");
-
+#endif
   //merge mri and mri_src
   for(k = 0 ; k< mri->depth ; k++)
     for(j = 0 ; j < mri->height ; j++)
       for(i = 0 ; i < mri->width ; i++)
         if(MRIvox(mri_src,i,j,k) || MRIvox(mri,i,j,k))
           MRIvox(mri,i,j,k)=MRIvox(mri_orig,i,j,k);
-
+#if 0
 	if (Gdiag & DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
 	{
 		MRIwrite(mri,"./tmp2");
 		MRIwrite(mri_src,"./tmp3");
 	}
+#endif
   fprintf(stderr,"done\n");
   return mri;
 }
