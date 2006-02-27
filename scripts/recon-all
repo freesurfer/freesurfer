@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.16 2006/02/23 23:20:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17 2006/02/27 18:45:26 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -33,6 +33,9 @@ set InputList = ();
 
 # Expert preferences
 set XOptsFile = ();
+set XOptsClean = 0; # Delete a pre-existing xopts file
+set XOptsUse   = 0; # Use a pre-existing xopts file
+set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
 set ControlPointsFile = ();
 set PonsSeedCRS = (); # SeedCRS center of pons for mri_fill #
 set CCSeedCRS = ();   # SeedCRS center of corpus callosum for mri_fill #
@@ -1805,6 +1808,16 @@ while( $#argv != 0 )
       set XOptsFile = `getfullpath $XOptsFile`
       breaksw
 
+    case "-xopts-use"
+      set XOptsUse = 1; # Use pre-existing xopts
+      breaksw
+    case "-xopts-clean"
+      set XOptsClean = 1; # Delete pre-existing xopts
+      breaksw
+    case "-xopts-overwrite"
+      set XOptsOverwrite = 1; # Overwrite pre-existing xopts
+      breaksw
+
     case "-legacy":
       set DoLegacy = 1;
       breaksw
@@ -2254,6 +2267,51 @@ check_params:
     endif
   end
 
+  if($XOptsUse == 1 && $XOptsClean == 1) then
+    echo "ERROR: cannot specify both -xopts-clean and -xopts-use"
+    exit(1);
+  endif
+
+  set XOptsPreExist = $subjdir/scripts/expert-options
+  if(-e $XOptsPreExist) then
+    # There is a pre-existing xopts file
+    if($#XOptsFile == 0) then
+      # XOpts not passed on cmd line
+      if($XOptsUse == 0 && $XOptsClean == 0) then
+        echo "ERROR: there is a pre-existing expert options file."
+        echo "You must explicitly specify whether to:"
+        echo "  1. Use the pre-existing file (-xopts-use)"
+        echo "  2. Delete the pre-existing file (-xopts-clean)"
+        exit(1);
+      endif
+      if($XOptsClean == 1) then
+        rm -f $XOptsPreExist
+        set XOptsFile = (); 
+      endif
+      if($XOptsUse == 1) then
+        set XOptsFile = $XOptsPreExist;
+      endif
+    else
+      # XOpts was passed on cmd line, but pre-existing xopts file
+      if(! $XOptsOverwrite) then
+        echo "ERROR: there is a pre-existing expert options file and"
+        echo "you have specified an expert options file on the command-line." 
+        echo "If you want to use the file specified on the command-line,"
+        echo "you must run with -xopts-overwrite."
+        exit(1);
+      endif
+      # If it gets here, then overwrite
+      rm -f $XOptsPreExist
+      cp $XOptsFile $XOptsPreExist
+    endif
+  else
+    # No pre-existing file
+    if($#XOptsFile != 0) then
+      # Expert options file specified on cmd line, make copy
+      cp $XOptsFile $XOptsPreExist
+    endif
+  endif
+
   if($#NotifyFile != 0) then
     rm -f $NotifyFile;
     set tmpdir = `dirname $NotifyFile`;
@@ -2432,7 +2490,11 @@ usage_exit:
   echo "  -seg-ghi ghi : set ghi value for mri_segment"
   echo "  -no-ca-align : turn off -align with mri_ca_{register,label}. "
   echo "  -deface      : deface subject, written to orig_defaced.mgz"
-  echo "  -expert file : read-in expert options file"
+  echo ""
+  echo "  -expert file     : read-in expert options file"
+  echo "  -xopts-use       : use pre-existing expert options file"
+  echo "  -xopts-clean     : delete pre-existing expert options file"
+  echo "  -xopts-overwrite : overwrite pre-existing expert options file"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -2724,8 +2786,15 @@ if a file called expert.opts is created containing these lines:
 
 then the option "-p .5" will be passed to mri_em_register, and "-s 100"
 will be passed to mris_fix_topology.  The name of the expert options file
-is passed to recon-all with the -expert flag,
-eg. recon-all -expert expert.opts
+is passed to recon-all with the -expert flag, eg. 
+
+  recon-all -expert expert.opts
+
+When an expert options is passed, it will be copied to scripts/expert-options.
+Future calls to recon-all, the user MUST explicitly specify how to treat this file.
+Options are (1) use the file (-xopts-use), or (2) delete it (-xopts-clean). If
+this file exsts and the user specifies another expert options file, then
+the user must also specify -xopts-overwrite.
 
 The following FreeSurfer binaries will accept an expert option:
 
