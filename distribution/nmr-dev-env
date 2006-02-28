@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.14 2006/02/12 03:10:34 nicks Exp $
+# $Id: nmr-dev-env,v 1.15 2006/02/28 20:06:28 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -18,10 +18,11 @@ if( -e /etc/NOFREESURFER ) then
 endif
 
 # track usage
+set USER_LIST_PATH=/space/freesurfer
 echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> $USER_LIST_PATH/nmr-dev-env_user_list.txt
 
-set VERSION = '$Id: nmr-dev-env,v 1.14 2006/02/12 03:10:34 nicks Exp $';
-set NSE_VERSION = ${VERSION}
+set VERSION = '$Id: nmr-dev-env,v 1.15 2006/02/28 20:06:28 nicks Exp $';
+set NSE_VERSION = '${VERSION}';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
