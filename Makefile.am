@@ -118,7 +118,8 @@ MRISUBDIRS=check_siemens_dir \
 	mri_morphology \
 	mri_topologycorrection \
 	mri_segment_wm_damage \
-	mri_make_density_map
+	mri_make_density_map \
+	mri_path2label
 
 MRISSUBDIRS=stim \
 	stim_polar \

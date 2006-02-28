@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165 2006/02/23 02:02:18 greve Exp $"
+# "$Id: configure.in,v 1.166 2006/02/28 21:07:47 kteich Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -1374,7 +1374,8 @@ mris_surface_stats/Makefile \
 mri_normalize_tp2/Makefile \
 mri_ms_LDA/Makefile \
 mri_transform_to_COR/Makefile \
-mri_apply_inu_correction/Makefile
+mri_apply_inu_correction/Makefile \
+mri_path2label/Makefile
 )
 
 AC_MSG_RESULT(
