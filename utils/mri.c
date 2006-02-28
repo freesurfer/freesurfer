@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/16 14:12:01 $
-// Revision       : $Revision: 1.336 $
-char *MRI_C_VERSION = "$Revision: 1.336 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/28 00:25:00 $
+// Revision       : $Revision: 1.337 $
+char *MRI_C_VERSION = "$Revision: 1.337 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -104,8 +104,11 @@ static long mris_alloced = 0 ;
   at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is
   necessary with SPM matrices.
 
-  See also: MRIxfmCRS2XYZtkreg, MRItkReg2Native
-  ------------------------------------------------------*/
+  See also: MRIxfmCRS2XYZtkreg, MRItkReg2Native, extract_i_to_r().
+  surfaceRASFromVoxel_(MRI *mri), voxelFromSurfaceRAS_().
+
+  Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
+  ----------------------------------------------------------------*/
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
 {
   MATRIX *m;
@@ -167,6 +170,67 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
 
   return(m);
 }
+/*--------------------------------------------------------------------------
+  extract_i_to_r() - computes scanner vox2ras. On 2/27/06, this was replaced
+  with a simple call to MRIxfmCRS2XYZ(). The original code is below (but
+  removed with #defines). MRIxfmCRS2XYZ() is more general in that it handles
+  non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
+  Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
+  ---------------------------------------------------------------------------*/
+#if 1 /*----=========++++++000000++++++==========-----------*/
+MATRIX *extract_i_to_r(MRI *mri)
+{
+  MATRIX *m;
+  m = MRIxfmCRS2XYZ(mri, 0);
+  return(m);
+}
+#else
+// Code prior to 2/27/06
+MATRIX *extract_i_to_r(MRI *mri)
+{
+  MATRIX *m;
+  float m11, m12, m13, m14;
+  float m21, m22, m23, m24;
+  float m31, m32, m33, m34;
+  float ci, cj, ck;
+  // allocate memory and the user must free it.
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(m == NULL)
+    ErrorReturn(NULL,(ERROR_BADPARM,"extract_i_to_r(): error allocating matrix"));
+  m11 = mri->xsize * mri->x_r;
+  m12 = mri->ysize * mri->y_r;
+  m13 = mri->zsize * mri->z_r;
+  m21 = mri->xsize * mri->x_a;
+  m22 = mri->ysize * mri->y_a;
+  m23 = mri->zsize * mri->z_a;
+  m31 = mri->xsize * mri->x_s;
+  m32 = mri->ysize * mri->y_s;
+  m33 = mri->zsize * mri->z_s;
+  ci = (mri->width) / 2.0;
+  cj = (mri->height) / 2.0;
+  ck = (mri->depth) / 2.0;
+  m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
+  m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
+  m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
+  stuff_four_by_four(m, m11, m12, m13, m14,
+                     m21, m22, m23, m24,
+                     m31, m32, m33, m34,
+                     0.0, 0.0, 0.0, 1.0);
+  return(m);
+} 
+#endif/*----=========++++++000000++++++==========-----------*/
+/*---------------------------------------------------------------------
+  extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r() 
+  and MRIxfmCRS2XYZ()
+  ---------------------------------------------------------------------*/
+MATRIX *extract_r_to_i(MRI *mri)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
+  m_voxel_to_ras = extract_i_to_r(mri) ;
+  m_ras_to_voxel = MatrixInverse(m_voxel_to_ras, NULL) ;
+  MatrixFree(&m_voxel_to_ras) ;
+  return(m_ras_to_voxel) ;
+}
 /*-------------------------------------------------------------
   MRIxfmCRS2XYZtkreg() - computes the linear transform between the
   column, row, and slice of a voxel and the x, y, z of that voxel as
@@ -176,7 +240,7 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
   the "y" direction. The center of the coordinates is set to the
   center of the FOV. These definitions are arbitrary (and more than a
   little confusing). Since they are arbitrary, they must be applied
-  consistently.
+  consistently. See also: surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
 {
@@ -2171,18 +2235,15 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-int
-MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
-                Real *pxw, Real *pyw, Real *pzw)
+int MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
+		    Real *pxw, Real *pyw, Real *pzw)
 {
   VECTOR *vw, *vv;
   MATRIX *RfromI;
 
   // if the transform is not cached yet, then
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)
-    mri->r_to_i__ = extract_r_to_i(mri);
+  if(!mri->i_to_r__)   mri->i_to_r__ = extract_i_to_r(mri);
+  if(!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
 
   RfromI = mri->i_to_r__; // extract_i_to_r(mri);
 
@@ -2220,101 +2281,42 @@ int MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
   *pxv = (int) xv;
   *pyv = (int) yv;
   *pzv = (int) zv;
-
-  /*
-    switch (getSliceDirection(mri))
-    {
-    case MRI_CORONAL:
-    #if 0
-    *pxv = ((Real)mri->xend - xw) / mri->xsize ;
-    *pzv = (yw - (Real)mri->zstart) / mri->zsize ;
-    *pyv = (-zw - (Real)mri->ystart) / mri->ysize ;
-    #else
-    trans_SetBounds ( mri->xstart, mri->xend, mri->ystart, mri->yend,
-    mri->zstart, mri->zend );
-    trans_SetResolution ( mri->xsize, mri->ysize, mri->zsize );
-    trans_RASToVoxelIndex(xw, yw, zw, pxv, pyv, pzv) ;
-    #endif
-    break ;
-    default:
-    ErrorReturn(ERROR_UNSUPPORTED,
-    (ERROR_UNSUPPORTED,
-    "MRIworldToVoxel: unsupported slice direction %d",
-    getSliceDirection(mri))) ;
-    break ;
-    }
-  */
   return(NO_ERROR) ;
 }
 
 /*
-   int MRIvoxelToSurfaceRAS and int MRIsurfaceRASToVoxel
+   Tosa: MRIvoxelToSurfaceRAS and MRIsurfaceRASToVoxel get the
+   surfaceRAS values from original voxel Note that this is different
+   from MRIvoxelToWorld().  Note that currently MATRIX uses float** to
+   store data.  Going around the circle of transform causes error
+   accumulation quickly.  I noticed that 7 x 10^(-6) is very common.
 
-   get the surfaceRAS values from original voxel
-   Note that this is different from MRIvoxelToWorld().
-
-   Note that currently MATRIX uses float** to store data.
-   Going around the circle of transform causes error accumulation quickly.
-   I noticed that 7 x 10^(-6) is very common.
-
+   Doug: Tosa's code has been modified somewhat extensively
+   (2/27/06). What he calls "surface" RAS is really supposed to be
+   "tkregister" RAS.  They are the same with conformed volumes, but
+   surface RAS is wrong otherwise.
 */
 
 MATRIX *surfaceRASFromVoxel_(MRI *mri)
 {
-  // Derivation (avoid expensive matrix calculation)
-  //
-  //     orig -----(rasFromVoxel)------> RAS (scanner RAS or physical RAS)
-  //       |                              |
-  //(conformedVoxelFromVoxel)            (1)
-  //       |                              |
-  //       V                              V
-  //conformed--(RASfromConformed)----->RAS (scanner RAS or physical RAS)
-  //       |                              |
-  //      (1)                      (surfaceRASFromRAS)
-  //       |                              |
-  //       V                              V
-  //conformed-(surfaceRASFromConformed)->surfaceRAS
-  //
-  //
-  // where  RASFromConformed = [ -1  0  0   s1 ] where s1 = c_r + 128
-  //                           [  0  0  1   s2 ]       s2 = c_a - 128
-  //                           [  0 -1  0   s3 ]       s3 = c_s + 128
-  //                           [  0  0  0    1 ]
-  //
-  //  surfaceRASFromConformed= [ -1  0  0  128 ]
-  //                           [  0  0  1 -128 ]
-  //                           [  0 -1  0  128 ]
-  //                           [  0  0  0   1  ]
-  // Therefore
-  //        surfaceRASFromRAS= [  1  0  0  -c_r]  just a translation matrix
-  //                           [  0  1  0  -c_a]
-  //                           [  0  0  1  -c_s]
-  //                           [  0  0  0    1 ]
-  //
-  //  surfaceRASFromVoxel = surfaceRASFromRAS (x) rasFromVoxel
-  //
-  //  i.e.       applying translation on RASFromVoxel
-  //
-  // This means tha
-  //
-  //  if RASFromVoxel = (  X  | T ), then
-  //                    (  0  | 1 )
-  //
-  //    surfaceRASFromVoxel =  ( 1 | -C) * ( X | T ) = ( X | T - C )
-  //                           ( 0 | 1 )   ( 0 | 1 )   ( 0 |   1   )
-  //
-  MATRIX *rasFromVoxel;
-  MATRIX *sRASFromVoxel;
-  double m14, m24, m34;
+  MATRIX *vox2ras;
 
-  // if the transform is not cached yet, then
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)
-    mri->r_to_i__ = extract_r_to_i(mri);
+  // Compute i_to_r and r_to_i if it has not been done yet. This is
+  // not necessary for this function, but it was in Tosa's original
+  // code, and I don't know what else might be using it.
+  if(!mri->i_to_r__) mri->i_to_r__ = extract_i_to_r(mri);
+  if(!mri->r_to_i__) mri->r_to_i__ = extract_r_to_i(mri);
+  vox2ras = MRIxfmCRS2XYZtkreg(mri);
+  if(Gdiag_no > 0){
+    printf("surfaceRASFromVoxel_() vox2ras --------------------\n");
+    MatrixPrint(stdout,vox2ras);
+  }
+  return(vox2ras);
 
+  /*-----------------------------------------------------------------
+    This was tosa's old code. It is broken in that it only
+    works for COR-oriented volumes. 
   rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
-
   sRASFromVoxel = MatrixCopy(rasFromVoxel, NULL);
   // MatrixFree(&rasFromVoxel);
   // modify
@@ -2324,10 +2326,43 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   *MATRIX_RELT(sRASFromVoxel, 2,4) = m24 - mri->c_a;
   m34 = *MATRIX_RELT(sRASFromVoxel, 3,4);
   *MATRIX_RELT(sRASFromVoxel, 3,4) = m34 - mri->c_s;
-
-  return sRASFromVoxel;
+  ---------------------------------------------------*/
+}
+/*------------------------------------------------------------------
+   voxelFromSurfaceRAS_() - this is a Tosa function that is supposed
+   to compute the voxel index from "surface" RAS. The problem is that
+   it only worked for COR-oriented volumes. What it is supposed to do
+   is compute the tkregister-style Vox2RAS/RAS2Vox, so now it simply
+   invertes the matrix from MRIxfmCRS2XYZtkreg(mri).
+   *-------------------------------------------------------------------*/
+MATRIX *voxelFromSurfaceRAS_(MRI *mri)
+{
+  MATRIX *vox2ras, *ras2vox;
+  // Compute i_to_r and r_to_i if it has not been done yet. This is
+  // not necessary for this function, but it was in Tosa's original
+  // code, and I don't know what else might be using it.
+  if(!mri->i_to_r__)   mri->i_to_r__ = extract_i_to_r(mri);
+  if(!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
+  vox2ras = MRIxfmCRS2XYZtkreg(mri);
+  ras2vox = MatrixInverse(vox2ras,NULL);
+  if(Gdiag_no > 0){
+    printf("voxelFromSurfaceRAS_() ras2vox --------------------\n");
+    MatrixPrint(stdout,ras2vox);
+  }
+  MatrixFree(&vox2ras);
+  return(ras2vox);
+  /*----------------------------------------------------------
+    This was tosa's old code. It is broken in that it only
+     works for COR-oriented volumes. 
+  voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
+  // modify translation part
+  *MATRIX_RELT(voxelFromSRAS, 1,4) = (double)mri->width/2.0;
+  *MATRIX_RELT(voxelFromSRAS, 2,4) = (double)mri->height/2.0;
+  *MATRIX_RELT(voxelFromSRAS, 3,4) = (double)mri->depth/2.0;
+  ---------------------------------------------------*/
 }
 
+//--------------------------------------------------------------
 MATRIX *surfaceRASFromRAS_(MRI *mri)
 {
   MATRIX *sRASFromRAS;
@@ -2338,7 +2373,7 @@ MATRIX *surfaceRASFromRAS_(MRI *mri)
   *MATRIX_RELT(sRASFromRAS, 3,4) = - mri->c_s;
   return sRASFromRAS;
 }
-
+//--------------------------------------------------------------
 MATRIX *RASFromSurfaceRAS_(MRI *mri)
 {
   MATRIX *RASFromSRAS;
@@ -2349,7 +2384,7 @@ MATRIX *RASFromSurfaceRAS_(MRI *mri)
   *MATRIX_RELT(RASFromSRAS, 3,4) = mri->c_s;
   return RASFromSRAS;
 }
-
+//--------------------------------------------------------------
 int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
                        Real *xsr, Real *ysr, Real *zsr)
 {
@@ -2367,7 +2402,7 @@ int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
   VectorFree(&sr);
   return (NO_ERROR);
 }
-
+//--------------------------------------------------------------
 int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
                        Real *xr, Real *yr, Real *zr)
 {
@@ -2386,7 +2421,7 @@ int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
   return (NO_ERROR);
 }
 
-
+//--------------------------------------------------------------
 int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
                          Real *xs, Real *ys, Real *zs)
 {
@@ -2407,59 +2442,6 @@ int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
   VectorFree(&sr);
 
   return (NO_ERROR);
-}
-
-MATRIX *voxelFromSurfaceRAS_(MRI *mri)
-{
-  MATRIX *voxelFromSRAS =0;
-  //////////////////////////////////////////////////////////////////
-  // it turned out that this can be done easily without taking inverse
-  // Note the surfaceRASFromVoxel_ is given by
-  //
-  //       ( X | T - C)
-  //       ( 0 |  1   )
-  // Note, however, that we define C by
-  //
-  //      (  X | T ) (S/2) = ( C )  where S = (w/2, h/2, d/2)^t
-  //      (  0 | 1 ) ( 1 )   ( 1 )
-  // Thus
-  //        X*S/2 + T = C
-  // or
-  //        T - C = - X*S/2
-  // or
-  //     surfaceRASFromVoxel = ( X | - X*S/2 )
-  //                           ( 0 |    1    )
-  // whose inverse is given by
-  //
-  //     voxelFromSurfaceRAS = ( X ^(-1)| S/2 )
-  //                           (  0     |  1  )
-  //
-  // since
-  //           ( X^(-1)  S/2) ( X  -X*S/2) = ( 1   S/2 - S/2) = 1
-  //           (   0      1 ) ( 0     1  )   ( 0      1     )
-  //
-  // thus get r_to_i__ and set translation part to S/2 is the quickest way
-  /////////////////////////////////////////////////////////////////////
-  // if the transform is not cached yet, then
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)
-    mri->r_to_i__ = extract_r_to_i(mri);
-
-  voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
-  // modify translation part
-  *MATRIX_RELT(voxelFromSRAS, 1,4) = (double)mri->width/2.0;
-  *MATRIX_RELT(voxelFromSRAS, 2,4) = (double)mri->height/2.0;
-  *MATRIX_RELT(voxelFromSRAS, 3,4) = (double)mri->depth/2.0;
-
-#if 0
-  // no more expensive inverse
-  MATRIX *sRASFromVoxel = surfaceRASFromVoxel_(mri);
-  MATRIX *voxelFromSRAS = MatrixInverse(sRASFromVoxel, NULL);
-  MatrixFree(&sRASFromVoxel) ;
-#endif
-
-  return voxelFromSRAS;
 }
 
 /* extract the RASToVoxel Matrix */
@@ -10929,15 +10911,6 @@ MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_voxel_xform,
   return(m_ras_xform) ;
 }
 
-MATRIX *extract_r_to_i(MRI *mri)
-{
-  MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
-
-  m_voxel_to_ras = extract_i_to_r(mri) ;
-  m_ras_to_voxel = MatrixInverse(m_voxel_to_ras, NULL) ;
-  MatrixFree(&m_voxel_to_ras) ;
-  return(m_ras_to_voxel) ;
-}
 
 int
 MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
@@ -10975,51 +10948,6 @@ MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
   return(NO_ERROR) ;
 }
 
-// allocate memory and the user must free it.
-MATRIX *extract_i_to_r(MRI *mri)
-{
-  MATRIX *m;
-  float m11, m12, m13, m14;
-  float m21, m22, m23, m24;
-  float m31, m32, m33, m34;
-  float ci, cj, ck;
-
-  m = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(m == NULL)
-    {
-      ErrorReturn
-        (NULL,
-         (ERROR_BADPARM,
-          "extract_i_to_r(): error allocating matrix"));
-    }
-
-  m11 = mri->xsize * mri->x_r;
-  m12 = mri->ysize * mri->y_r;
-  m13 = mri->zsize * mri->z_r;
-  m21 = mri->xsize * mri->x_a;
-  m22 = mri->ysize * mri->y_a;
-  m23 = mri->zsize * mri->z_a;
-  m31 = mri->xsize * mri->x_s;
-  m32 = mri->ysize * mri->y_s;
-  m33 = mri->zsize * mri->z_s;
-
-  ci = (mri->width) / 2.0;
-  cj = (mri->height) / 2.0;
-  ck = (mri->depth) / 2.0;
-
-  m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
-  m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
-  m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
-
-  stuff_four_by_four(m, m11, m12, m13, m14,
-                     m21, m22, m23, m24,
-                     m31, m32, m33, m34,
-                     0.0, 0.0, 0.0, 1.0);
-
-
-  return(m);
-
-} /* end extract_i_to_r() */
 
 /* eof */
 MRI *
