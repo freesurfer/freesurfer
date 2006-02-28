@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/02/06 02:28:58 $
-// Revision       : $Revision: 1.273 $
-char *VERSION = "$Revision: 1.273 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/02/28 00:19:06 $
+// Revision       : $Revision: 1.274 $
+char *VERSION = "$Revision: 1.274 $";
 
 #define TCL
 #define TKMEDIT
@@ -1108,7 +1108,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.273 2006/02/06 02:28:58 nicks Exp $",
+     "$Id: tkmedit.c,v 1.274 2006/02/28 00:19:06 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5510,6 +5510,9 @@ int main ( int argc, char** argv ) {
   /* init our debugging macro code, if any. */
   InitDebugging( "tkmedit" );
   EnableDebuggingOutput;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  //printf("Gdiag_no = %d\n",Gdiag_no);
 
   /* install our segfault handler */
   DebugRegisterSegfaultHandler( HandleSegfault );
@@ -5541,7 +5544,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.273 2006/02/06 02:28:58 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.274 2006/02/28 00:19:06 greve Exp $ $Name:  $\n"
       )
      );
 
