@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.5 2005/01/26 19:53:48 greve Exp $
+# $Id: mc-sess,v 1.6 2006/02/28 18:24:03 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.5 2005/01/26 19:53:48 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.6 2006/02/28 18:24:03 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -19,6 +19,7 @@ set targnthrun = 1;  # use nth run as target
 set targrun = ();    # use explicit run as target
 set nolog = 0;
 set RunListFile = ();
+set targstem = ();
 
 if($#argv == 0) then
   goto usage_exit;
@@ -137,7 +138,7 @@ foreach sess ($SessList)
   else
     if(! $PerRun) set targstem = $targrun/$funcstem
   endif
-  echo "Targ Stem is $targstem"
+  if($#targstem) echo "Targ Stem is $targstem"
 
   foreach run ($RunList)  
     echo "  ------- ************************** -----------" |& tee -a $LF
