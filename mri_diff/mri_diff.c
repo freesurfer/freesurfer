@@ -134,7 +134,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.8 2006/01/03 21:52:24 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.9 2006/02/28 17:45:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -348,9 +348,11 @@ int main(int argc, char *argv[])
   //------------------------------------------------------
   // Compare pixel values
   if(CheckPixVals){
-    if(DiffVolFile) 
+    if(DiffVolFile) {
       DiffVol = MRIallocSequence(InVol1->width,InVol1->height,
-                                 InVol1->depth,MRI_FLOAT,InVol1->nframes);
+				 InVol1->depth,MRI_FLOAT,InVol1->nframes);
+      MRIcopyHeader(InVol1,DiffVol);
+    }
     c=r=s=f=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
