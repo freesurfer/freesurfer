@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.34 2006/02/24 00:56:00 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.35 2006/02/28 20:30:43 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -27,8 +27,9 @@ if ("$1" == "dev") then
 else if ("$1" == "stable-pub") then
   set RELEASE_TYPE=stable
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=/usr/local/freesurfer/stable
-  set PUB_DEST_DIR=/usr/local/freesurfer/stable-pub
+  # notice that the destination is the 'stable3' directory
+  set DEST_DIR=/usr/local/freesurfer/stable3
+  set PUB_DEST_DIR=/usr/local/freesurfer/stable3-pub
 else
   echo "ERROR: release_type must be either dev or stable-pub"
   echo ""
@@ -57,7 +58,8 @@ setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 ######################################################################
 #
 set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
 set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
