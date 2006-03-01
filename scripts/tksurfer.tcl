@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.109 2006/02/17 22:47:35 kteich Exp $
+# $Id: tksurfer.tcl,v 1.110 2006/03/01 22:22:43 kteich Exp $
 
 package require BLT;
 
@@ -636,7 +636,6 @@ proc DoConfigLightingDlog {} {
     set wwDialog .wwConfigLightingDlog
 
     UpdateLinkedVarGroup scene
-    puts "offset is $gaLinkedVars(offset)"
 
     if { [Dialog_Create $wwDialog "Configure Lighting" {-borderwidth 10}] } {
 
@@ -4559,7 +4558,7 @@ proc GetDefaultLocation { iType } {
 	    WriteDecimation - SaveGraphToPS - 
 	    WriteMarkedVerticesTCSummary - WriteLabelTCSummary -
 	    SaveGDFPlotToPS - SaveGDFPlotToTable -
-	    LoadGDF {
+	    LoadPaths - SavePaths - LoadGDF {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_PWD]
 	    }
