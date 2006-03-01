@@ -32,7 +32,7 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
   if (NULL == fp)
     {
       ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-                                 "path_load: couldn't open %s\n",fname));
+                                 "Couldn't open %s\n",fname));
     }
   line_number = 0;
 
@@ -64,9 +64,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-			      "           couldn't read version number\n",
+					 "Error reading file %s\n"
+					 "     line number %d\n"
+					 "     couldn't read version number\n",
 					 fname, line_number));
 	    }
 	  if (1 != version)
@@ -76,8 +76,8 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           wrong version %d\n",
+					 "Error reading file %s\n"
+					 "     wrong version %d\n",
 					 fname, version));
 	    }
 	}
@@ -86,7 +86,7 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	  /* Start a new path decsription. */
 	  getline (&line, &line_size, fp);
 	  line_number++;
-	  if (0 != strncmp (line, "NUMVERTICES", 11) ||
+	  if (0 != strncmp (line, "NUMVERTICES", 11) &&
 	      0 != strncmp (line, "NUMPOINTS", 9))
 	    {
 	      fclose (fp);
@@ -94,9 +94,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-					 "           expected NUMVERTICES\n",
+					 "Error reading file %s\n"
+					 "     line number %d\n"
+					 "     expected NUMVERTICES\n",
 					 fname, line_number));
 	    }
 
@@ -111,9 +111,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-			     "           couldn't read NUMPOINTS number\n",
+					 "Error reading file %s\n"
+					 "     line number %d\n"
+				       "     couldn't read NUMPOINTS number\n",
 					 fname, line_number));
 	    }
 
@@ -126,10 +126,10 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error creating path of\n"
-					 "           size %d\n"
-					 "           line number %d\n"
-			     "           couldn't read NUMPOINTS number\n",
+					 "Error creating path of\n"
+					 "     size %d\n"
+					 "     line number %d\n"
+				       "     couldn't read NUMPOINTS number\n",
 					 num_points, fname, line_number));
 	    }
 
@@ -148,9 +148,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 		  if (paths) free (paths);
 		  if (path) free (path);
 		  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					     "           line number %d\n"
-				  "           couldn't read three floats\n",
+					     "Error reading file %s\n"
+					     "     line number %d\n"
+					   "     couldn't read three floats\n",
 					     fname, line_number));
 		}
 
@@ -170,9 +170,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	      if (paths) free (paths);
 	      if (path) free (path);
 	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-					 "           expected ENDPATH\n",
+					 "Error reading file %s\n"
+					 "     line number %d\n"
+					 "     expected ENDPATH\n",
 					 fname, line_number));
 	    }
 
@@ -191,9 +191,9 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	{
 	  /* Didn't get a keyword we're looking for. */
 	  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-				     "path_load: error reading file %s\n"
-				     "           line number %d\n"
-				     "           no expected keyword found\n",
+				     "Error reading file %s\n"
+				     "     line number %d\n"
+				     "     no expected keyword found\n",
 				     fname, line_number));
 	}
     }
@@ -204,9 +204,6 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
   *num_read = num_paths;
   *returned_paths = paths;
   
-  if (NULL != path) free (path);
-  if (NULL != paths) free (paths);
-
   return (ERROR_NONE);
 }
 
@@ -222,7 +219,7 @@ int PathWriteMany (char *fname, int num_paths, PATH **paths)
   if (NULL == fp)
     {
       ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-                                 "path_save: couldn't open %s\n",fname));
+                                 "Couldn't open %s\n",fname));
     }
 
   /* Write some header info. */
@@ -256,3 +253,51 @@ int PathWriteMany (char *fname, int num_paths, PATH **paths)
   return (ERROR_NONE);
 }
 
+PATH* PathAlloc (int n_points, char* name)
+{
+  PATH* path;
+
+  if (n_points < 0)
+    return NULL;
+  
+  /* Allocate path struct. */
+  path = (PATH*) malloc (sizeof(PATH));
+  if (NULL == path)
+    {
+      printf ("ERROR: Couldn't allocate path.\n");
+      return NULL;
+    }
+
+  /* Set the number of points. */
+  path->n_points = n_points;
+
+  /* Copy in a name. */
+  if (NULL != name )
+    strncpy (path->name, name, 100);
+  else
+    strcpy (path->name, "");
+
+  /* Allocate the point storage. */
+  path->points = (PATH_POINT*) calloc (n_points, sizeof(PATH_POINT));
+  if (NULL == path)
+    {
+      printf ("ERROR: Couldn't allocate %d points in path.\n", n_points);
+      free (path);
+      return NULL;
+    }
+  
+  return path;
+}
+
+int PathFree (PATH** path)
+{
+  if (NULL == path || NULL == (*path))
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"No path supplied."));
+
+  /* Free the points array, then the path struct. */
+  free ((*path)->points);
+  free ((*path));
+  *path = NULL;
+      
+  return (ERROR_NONE);
+}
