@@ -6,7 +6,7 @@
  *       AUTHOR:      Bruce Fischl
  *       DATE:        2/5/96
  *
-*/
+ */
 
 #ifndef DIAG_H
 #define DIAG_H
@@ -16,14 +16,15 @@
 
 int  DiagShowImage(unsigned long diag_bits, int win, int which,
                    IMAGE *I, char *fmt,...) ;
-int  DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, 
+int  DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
                  int rows, int cols, int color) ;
 int  DiagCloseWindow(unsigned long diag_bits, int win) ;
-int  DiagCreateWindow(unsigned long diag_bits, 
+int  DiagCreateWindow(unsigned long diag_bits,
                       int wrows, int wcols, int rows, int cols) ;
-unsigned long  DiagInit(char *fname, 
-                  int (*vfprint)(FILE *fp, const char *fmt, va_list args),
-                  int (*vprint)(const char *fmt, va_list args)) ;
+unsigned long  DiagInit
+(char *fname,
+ int (*vfprint)(FILE *fp, const char *fmt, va_list args),
+ int (*vprint)(const char *fmt, va_list args)) ;
 
 int  DiagPrintf(unsigned long diag_bits, char *fmt, ...) ;
 int  DiagFprintf(unsigned long diag_bits, char *fmt, ...) ;
@@ -33,7 +34,6 @@ void DiagShowPctDone(float pct_done, int nprints) ;
 int check_finite(char *where, double what) ;
 
 /* diagnostic codes */
-#define DIAG_LP         0x00000001L   /* license plate detection diagnostics */
 #define DIAG_SURFACE    0x00000001L  /* never in same apps, so can re-use */
 #define DIAG_EXM        0x00000002L
 #define DIAG_TIMER      0x00000004L
@@ -68,7 +68,6 @@ int check_finite(char *where, double what) ;
 
 /* misc. stuff */
 #define DIAG_NEW_WINDOW   -1
-
 
 extern unsigned long Gdiag ;    /* global diagnostic flag */
 extern int Gdiag_no ;           /* misc. int for diagnostics */
@@ -121,7 +120,6 @@ extern int Gprofile ;
 extern FILE *Gstdout ;
 extern FILE *Gstderr ;
 extern FILE *Gstdin ;
-
 
 #endif
 
