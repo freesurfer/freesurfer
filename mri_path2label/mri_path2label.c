@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/03/01 19:16:01 $
+ * @date   $Date: 2006/03/01 23:14:31 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -14,6 +14,9 @@
 #include <getopt.h>
 #include <string.h>
 #include "version.h"
+#include "label.h"
+#include "path.h"
+#include "error.h"
 
 #ifdef Darwin
 #include "getline.h"
@@ -24,7 +27,7 @@ char *Progname = NULL;
 static void print_usage (void) ;
 static void print_help (void) ;
 static int  guess_file_type (char* fname, int* is_path, int *is_label);
-
+static int  convert_path_to_label (char* fname, char* ofname);
 
 struct option long_options[] = 
   {
@@ -48,7 +51,7 @@ int main(int argc, char *argv[]) {
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.2 2006/03/01 19:16:01 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.3 2006/03/01 23:14:31 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,6 +144,9 @@ int main(int argc, char *argv[]) {
     printf ("Label to path\n");
   printf ("\n");
 
+  if (path_to_label)
+    convert_path_to_label (source_file, dest_file);
+
   return 0;
 }
 
@@ -218,6 +224,57 @@ static int guess_file_type (char* fname, int* is_path, int *is_label)
   if (!found)
     return 1;
   else
-    return 0;
+    return (ERROR_NONE);
 }
 
+static int convert_path_to_label (char* fname, char* ofname)
+{
+  int num_paths;
+  PATH** paths;
+  int path_index;
+  int pno;
+  LABEL* label = NULL;
+  int label_vno;
+
+  PathReadMany (fname, &num_paths, &paths);
+
+  label_vno = 0;
+  for (path_index = 0; path_index < num_paths; path_index++)
+    {
+      if (NULL == label)
+	{
+	  label = LabelAlloc (paths[path_index]->n_points, NULL, NULL);
+	}
+      else
+	{
+	  LabelRealloc (label, 
+			label->n_points + paths[path_index]->n_points + 1);
+	}
+
+      for (pno = 0; pno < paths[path_index]->n_points; pno++)
+	{
+	  label->lv[label_vno].x = paths[path_index]->points[pno].x;
+	  label->lv[label_vno].y = paths[path_index]->points[pno].y;
+	  label->lv[label_vno].z = paths[path_index]->points[pno].z;
+	  label->lv[label_vno].vno = -1;
+	  label_vno++;
+	}
+
+      /* Sentinel value. */
+      label->lv[label_vno].x = -99999;
+      label->lv[label_vno].y = -99999;
+      label->lv[label_vno].z = -99999;
+      label->lv[label_vno].vno = -1;
+      label_vno++;
+
+      PathFree (&paths[path_index]);
+    }
+
+  free (paths);
+
+  LabelWrite (label, ofname);
+
+  LabelFree (&label);
+
+  return (ERROR_NONE);
+}
