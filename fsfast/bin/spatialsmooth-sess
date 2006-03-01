@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.8 2005/06/20 15:57:04 greve Exp $
+# $Id: spatialsmooth-sess,v 1.9 2006/03/01 04:37:59 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.8 2005/06/20 15:57:04 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.9 2006/03/01 04:37:59 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -17,6 +17,7 @@ set PrintHelp = 0;
 set HPF = ();
 set inorm = 1;
 set nolog = 0;
+set tmpdir = ();
 
 if($#argv == 0) then
   goto usage_exit;
@@ -133,6 +134,8 @@ foreach sess ($SessList)
     # Construct and run the command for this run #
     set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
     set cmd = ($cmd -fwhm $fwhm -fmt $fmt)
+    if($#tmpdir == 0) set cmd = ($cmd -scratch tmp.ipfsl)
+    if($#tmpdir != 0) set cmd = ($cmd -scratch $tmpdir)
     if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
     echo ---------------------------------------------- |& tee -a $LF
     $PWDCMD   |& tee -a $LF
@@ -235,6 +238,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set fmt = $argv[1]; shift;
       if($fmt == mgh) set inorm = 0;
+      breaksw
+
+    case "-tmp":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
       breaksw
 
     case "-nolog":
