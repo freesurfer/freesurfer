@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/02/28 21:08:12 $
+ * @date   $Date: 2006/03/01 19:16:01 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -14,6 +14,10 @@
 #include <getopt.h>
 #include <string.h>
 #include "version.h"
+
+#ifdef Darwin
+#include "getline.h"
+#endif
 
 char *Progname = NULL;
 
@@ -44,7 +48,7 @@ int main(int argc, char *argv[]) {
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.1 2006/02/28 21:08:12 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.2 2006/03/01 19:16:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

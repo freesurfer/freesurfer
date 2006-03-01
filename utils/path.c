@@ -4,6 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef Darwin
+// Mac OS X doesnt have gnulib, so it doesn't have getline, 
+// so the source for getline is found here in utils and built on the Mac
+#include "getline.h"
+#endif 
 #include "path.h"
 #include "error.h"
 
