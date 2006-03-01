@@ -51,6 +51,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_extract_conditions \
 	mri_extract_label \
 	mri_fill \
+	mri_fwhm \
 	mri_gca_ambiguous \
 	mri_glmfit \
 	mri_head \
