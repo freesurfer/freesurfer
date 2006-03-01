@@ -11,7 +11,6 @@
 #include"const.h"
 #include"diag.h"
 #include"error.h"
-#include"exm.h"
 #include"general.h"
 #include"handle.h"
 #include"hmem.h"
@@ -24,8 +23,6 @@
 #include"matfile.h"
 #include"matrix.h"
 #include"mthread.h"
-/*#include"nr.h"*/
-/*#include"nrutil.h"*/
 #include"proto.h"
 #include"queue.h"
 #include"thread.h"
