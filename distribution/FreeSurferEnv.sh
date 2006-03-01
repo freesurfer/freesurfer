@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.10 2006/02/24 01:12:13 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10.2.1 2006/03/01 16:32:14 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.10 2006/02/24 01:12:13 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.1 2006/03/01 16:32:14 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -154,7 +154,7 @@ if [[ -z "$NO_MINC" && ( -z "$MNI_DATAPATH" || $FS_OVERRIDE != 0 ) ]]; then
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MNI_DATAPATH=$MNI_INSTALL_DIR/data
     elif [ -e $FREESURFER_HOME/mni/data ]; then
-        export =$FREESURFER_HOME/mni/data
+        export MNI_DATAPATH=$FREESURFER_HOME/mni/data
     elif [ -e /usr/pubsw/packages/mni/current/data ]; then
         export MNI_DATAPATH=/usr/pubsw/packages/mni/current/data
     elif [ -e /usr/local/mni/data ]; then
