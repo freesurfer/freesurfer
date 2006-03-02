@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.167 2006/03/01 22:49:53 greve Exp $"
+# "$Id: configure.in,v 1.168 2006/03/02 21:46:42 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
@@ -610,7 +610,7 @@ CPPUNIT_LIBS=""
 AC_MSG_CHECKING(CppUnit directory)
 
 AC_ARG_WITH(cppunit-dir,
-  [  --with-cppunit-dir=DIR       where the root of CppUnit is installed.],
+  [  --with-cppunit-dir=DIR  where the root of CppUnit is installed.],
   [  ac_cppunit_includes="$withval"/include
      ac_cppunit_libraries="$withval"/lib
      ac_cppunit_bindir="$withval"/bin
