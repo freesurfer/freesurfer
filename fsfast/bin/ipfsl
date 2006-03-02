@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # ipfsl - front-end for FSL's IP program
 #
-# $Id: ipfsl,v 1.5 2006/02/22 05:27:23 greve Exp $
+# $Id: ipfsl,v 1.6 2006/03/02 04:19:03 greve Exp $
 #
 
-set VERSION = '$Id: ipfsl,v 1.5 2006/02/22 05:27:23 greve Exp $';
+set VERSION = '$Id: ipfsl,v 1.6 2006/03/02 04:19:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -108,6 +108,7 @@ if($status) then
 endif
 
 if($makemask) then
+  cp $inmatfile $scratchdir/$maskbase.mat
   echo "# ---------- Converting mask to bshort ------------------ #"
   set cmd = (mri_convert $scratchdir/$maskbase.img --in_type analyze4d)
   set cmd = ($cmd $maskstem.$fmt )
