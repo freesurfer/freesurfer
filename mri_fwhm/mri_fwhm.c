@@ -1,40 +1,23 @@
 /*
 BEGINHELP
 
-Estimates the smoothness of a surface-based data set.
+Estimates the smoothness of a volume-based data set. The smoothness is
+measured as the Full-Width-Half-Max (FWHM) in mm.
 
---i input
+--i inputvol
 
 Input data. Format must be something readable by mri_convert
 (eg, mgh, mgz, img, nii). Alternately, one can synthesize
 white gaussian noise with --synth and --synth-frames.
 
---subject subject (--s)
-
-Subject whose surface the input is defined on. Can use --s instead of
---subject.
-
---surf surfname
-
-Compute AR1 on surface surfname. Default is white.
-
 --mask maskfile
 
-Compute AR1 only over voxels in the given mask. Format can be anything
-accepted by mri_convert. See also --label.
+Compute FWHM only over voxels in the given mask. Format can be anything
+accepted by mri_convert.
 
 --mask-inv
 
-Invert mask, ie, compute AR1 only over voxels outside the given mask.
-
---label label
-
-Use label as a mask. Can be inverted with --mask-inv.
-
---hemi hemi (--h)
-
-Hemifield that the input is defined on. Legal values are lh and rh.
-Can use --h instead of --hemi.
+Invert mask, ie, compute FWHM only over voxels outside the given mask.
 
 --X x.mat
 
@@ -48,20 +31,12 @@ Prints ascii summary to sumfile.
 --fwhm fwhm
 
 Smooth by fwhm mm before estimating the fwhm. This is mainly good for 
-debuggging. But with --out can also be used to smooth data on the
-surface (but might be better to use mri_surf2surf for this).
+debuggging. But with --out can also be used to smooth data.
 
---niters-only
-
-Only report the number of iterations needed to achieve the FWHM given
-by fwhm.
-
---out outfile
+--o outvol
 
 Save (possibly synthesized and/or smoothed) data to outfile. Automatically
-detects format. Format must be one accepted as by mri_convert. Note: do 
-not use analyze or nifit as these cannot store more than 32k in a dimension.
-mri_surf2surf can store surface data in those formats.
+detects format. Format must be one accepted as by mri_convert. 
 
 --synth 
 
@@ -116,46 +91,41 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.1 2006/03/01 22:49:33 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.2 2006/03/02 00:40:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-char *subject=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
-char *surfname="white";
-char *surfpath=NULL;
 char *inpath=NULL;
 char *outpath=NULL;
 char *sumfile=NULL;
-char tmpstr[2000];
-MRI *InVals=NULL, *mritmp;
+MRI *InVals=NULL;
 
 char *maskpath=NULL;
-char *labelpath=NULL;
 MRI *mask=NULL;
-LABEL *label=NULL;
 int maskinv = 0;
+double maskthresh = 0.5;
+char *outmaskpath=NULL;
 
 MRI *mritmp=NULL;
+char tmpstr[2000];
 
-MRIS *surf;
 double infwhm = 0, ingstd = 0;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
-int nitersonly=0;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
+int DetrendOrder = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs, niters=0;
-  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea;
-  double InterVertexDistAvg, InterVertexDistStdDev;
-  MRI *ar1=NULL;
+  int nargs, n, Ntp, nsearch;
+  double fwhm = 0, nresels, voxelvolume, nvoxperresel;
+  double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm, ftmp; 
   FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -175,70 +145,53 @@ int main(int argc, char *argv[])
   check_options();
   if(checkoptsonly) return(0);
 
-  setenv("FIX_VERTEX_AREA", "1", 1);
-
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
-  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
-  surfpath = strcpyalloc(tmpstr);
-
   if(debug) dump_options(stdout);
-
-  surf = MRISread(surfpath);
-  if(surf == NULL){
-    printf("ERROR: could not read %s\n",surfpath);
-    exit(1);
-  }
-  MRIScomputeMetricProperties(surf);
-  InterVertexDistAvg    = surf->avg_vertex_dist;
-  InterVertexDistStdDev = surf->std_vertex_dist;
-  avgvtxarea = surf->avg_vertex_area;
-
-  printf("%s %s %s\n",subject,hemi,surfname);
-  printf("Number of vertices %d\n",surf->nvertices);
-  printf("Number of faces    %d\n",surf->nfaces);
-  printf("Total area         %lf\n",surf->total_area);
-  if(surf->group_avg_surface_area > 0) printf("GroupSurface %f\n",surf->group_avg_surface_area);
-  else                                 printf("GroupSurface 0\n");
-  if(getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
-  else                                  printf("FIX_VERTEX_AREA 0\n");
-  printf("AvgVtxArea       %lf\n",avgvtxarea);
-  printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
-  printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
 
   if(!synth){
     InVals = MRIread(inpath);
     if(InVals == NULL) exit(1);
+    if(InVals->type != MRI_FLOAT){
+      mritmp = MRISeqchangeType(InVals, MRI_FLOAT, 0, 0, 0);
+      MRIfree(&InVals);
+      InVals = mritmp;
+    }
   }
   else{
+    InVals = MRIreadHeader(inpath,MRI_VOLUME_TYPE_UNKNOWN);
+    if(InVals == NULL) exit(1);
+    if(InVals->type != MRI_FLOAT) InVals->type = MRI_FLOAT;
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
-    InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
+    InVals = MRIrandn(InVals->width, InVals->height, InVals->depth, nframes,0, 1, NULL);
   }
+  voxelvolume = InVals->xsize * InVals->ysize * InVals->zsize ;
+  printf("voxelvolume %g mm3\n",voxelvolume);
 
-  if(labelpath){
-    label = LabelRead(NULL, labelpath);
-    if(label == NULL){
-      printf("ERROR reading %s\n",labelpath);
-      exit(1);
-    }
-    mask = MRISlabel2Mask(surf, label, NULL);
-    mritmp = mri_reshape(mask, InVals->width,InVals->height, InVals->depth, 1);
-    MRIfree(&mask);
-    mask = mritmp;
-  }
   if(maskpath){
     printf("Loading mask %s\n",maskpath);
     mask = MRIread(maskpath);
     if(mask==NULL) exit(1);
   }
   if(mask){
+    MRIbinarize(mask, mask, maskthresh, 0, 1);
     if(maskinv) MRImaskInvert(mask,mask);
-    printf("Found %d voxels in mask\n",MRInMask(mask));
+    nsearch = MRInMask(mask);
+  }
+  else nsearch = InVals->width * InVals->height * InVals->depth;
+  printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
+
+  if(outmaskpath) MRIwrite(mask,outmaskpath);
+
+  if(DetrendOrder >= 0){
+    Ntp = InVals->nframes;
+    printf("Polynomial detrending, order = %d\n",DetrendOrder);
+    X = MatrixAlloc(Ntp,DetrendOrder+1,MATRIX_REAL);
+    for(n=0;n<Ntp;n++) X->rptr[n+1][1] = 1.0;
+    ftmp = Ntp/2.0;
+    if(DetrendOrder >= 1)
+      for(n=0;n<Ntp;n++) X->rptr[n+1][2] = (n-ftmp)/ftmp;
+    if(DetrendOrder >= 2)
+      for(n=0;n<Ntp;n++) X->rptr[n+1][3] = pow((n-ftmp),2.0)/(ftmp*ftmp);
   }
 
   if(X){
@@ -254,24 +207,27 @@ int main(int argc, char *argv[])
   }
 
   if(infwhm > 0){
-    niters = MRISfwhm2niters(infwhm,surf);
-    if(nitersonly){
-      printf("niters %d\n",niters);
-      exit(0);
-    }
-    printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
-	   infwhm,ingstd,niters);
-    MRISsmoothMRI(surf, InVals, niters, mask,InVals);
+    printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
+    MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
   }
 
-  printf("Computing spatial AR1 \n");
-  ar1 = MRISar1(surf, InVals, mask, NULL);
-
-  // Average AR1 over all vertices
-  RFglobalStats(ar1, mask, &ar1mn, &ar1std, &ar1max);
-  fwhm = MRISfwhmFromAR1(surf, ar1mn);
-
+  printf("Computing spatial AR1 in volume.\n");
+  fMRIspatialAR1Mean(InVals, mask, &car1mn, &rar1mn, &sar1mn);
+  cfwhm = RFar1ToFWHM(car1mn, InVals->xsize);
+  rfwhm = RFar1ToFWHM(rar1mn, InVals->ysize);
+  sfwhm = RFar1ToFWHM(sar1mn, InVals->zsize);
+  fwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
+  printf("ar1mn = (%lf,%lf,%lf)\n",car1mn,rar1mn,sar1mn);
+  printf("colfwhm   = %lf\n",cfwhm);
+  printf("rowfwhm   = %lf\n",rfwhm);
+  printf("slicefwhm = %lf\n",sfwhm);
   printf("fwhm = %lf\n",fwhm);
+
+  nvoxperresel = pow(fwhm,3.0)/voxelvolume;
+  nresels = voxelvolume*nsearch/(pow(fwhm,3.0));
+  printf("nresels %lf\n",nresels);
+  printf("nvoxperresel %lf\n",nvoxperresel);
+
   fflush(stdout);
 
   if(sumfile){
@@ -281,25 +237,11 @@ int main(int argc, char *argv[])
       exit(1);
     }
     dump_options(fp);
-    if(infwhm>0) fprintf(fp,"inniters %d\n",niters);
-    fprintf(fp,"Number of vertices %d\n",surf->nvertices);
-    fprintf(fp,"Number of faces    %d\n",surf->nfaces);
-    fprintf(fp,"Total area         %lf\n",surf->total_area);
-    if(surf->group_avg_surface_area > 0) fprintf(fp,"GroupSurface %f\n",surf->group_avg_surface_area);
-    else                                 fprintf(fp,"GroupSurface 0\n");
-    if(getenv("FIX_VERTEX_AREA") != NULL) fprintf(fp,"FIX_VERTEX_AREA 1\n");
-    else                                  fprintf(fp,"FIX_VERTEX_AREA 0\n");
-    fprintf(fp,"AvgVtxArea       %lf\n",avgvtxarea);
-    fprintf(fp,"AvgVtxDist       %lf\n",InterVertexDistAvg);
-    fprintf(fp,"StdVtxDist       %lf\n",InterVertexDistStdDev);
-    fprintf(fp,"ar1mn %lf\n",ar1mn);
-    fprintf(fp,"ar1std %lf\n",ar1std);
     fprintf(fp,"fwhm %lf\n",fwhm);
     fclose(fp);
   }
 
   if(outpath) MRIwrite(InVals,outpath);
-
 
   return 0;
 }
@@ -330,23 +272,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
-    else if (!strcasecmp(option, "--niters-only")) nitersonly = 1;
 
-    else if(!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")){
-      if(nargc < 1) CMDargNErr(option,1);
-      subject = pargv[0];
-      nargsused = 1;
-    }
-    else if(!strcasecmp(option, "--h") || !strcasecmp(option, "--hemi")){
-      if(nargc < 1) CMDargNErr(option,1);
-      hemi = pargv[0];
-      nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--surf")){
-      if(nargc < 1) CMDargNErr(option,1);
-      surfname = pargv[0];
-      nargsused = 1;
-    }
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
@@ -357,9 +283,14 @@ static int parse_commandline(int argc, char **argv)
       maskpath = pargv[0];
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--label")){
+    else if (!strcasecmp(option, "--mask-thresh")){
       if(nargc < 1) CMDargNErr(option,1);
-      labelpath = pargv[0];
+      sscanf(pargv[0],"%lf",&maskthresh);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--out-mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outmaskpath = pargv[0];
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--sum")){
@@ -391,6 +322,15 @@ static int parse_commandline(int argc, char **argv)
       X = MatlabRead(Xfile);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--detrend")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&DetrendOrder);
+      if(DetrendOrder > 2){
+	printf("ERROR: cannot have detrending order > 2\n");
+	exit(1);
+      }
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
@@ -413,17 +353,14 @@ static void print_usage(void)
 {
   printf("USAGE: %s\n",Progname) ;
   printf("\n");
-  printf("   --i input\n");
-  printf("   --subject subject (--s)\n");
-  printf("   --hemi hemi (--h)\n");
-  printf("   --surf surf <white>\n");
-  printf("   --label labelfile\n");
-  printf("   --mask maskfile\n");
+  printf("   --i inputvol\n");
+  printf("   --mask maskvol : binary mask\n");
+  printf("   --mask-inv : invert mask\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
+  printf("   --detrend order : polynomial detrending\n");
   printf("   --sum sumfile\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
-  printf("   --niters-only : only report on niters for fwhm\n");
   printf("   --o output\n");
   printf("\n");
   printf("   --synth \n");
@@ -441,81 +378,6 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-printf("\n");
-printf("Estimates the smoothness of a surface-based data set.\n");
-printf("\n");
-printf("--i input\n");
-printf("\n");
-printf("Input data. Format must be something readable by mri_convert\n");
-printf("(eg, mgh, mgz, img, nii). Alternately, one can synthesize\n");
-printf("white gaussian noise with --synth and --synth-frames.\n");
-printf("\n");
-printf("--subject subject (--s)\n");
-printf("\n");
-printf("Subject whose surface the input is defined on. Can use --s instead of\n");
-printf("--subject.\n");
-printf("\n");
-printf("--surf surfname\n");
-printf("\n");
-printf("Compute AR1 on surface surfname. Default is white.\n");
-printf("\n");
-printf("--mask maskfile\n");
-printf("\n");
-printf("Compute AR1 only over voxels in the given mask. Format can be anything\n");
-printf("accepted by mri_convert. See also --label.\n");
-printf("\n");
-printf("--mask-inv\n");
-printf("\n");
-printf("Invert mask, ie, compute AR1 only over voxels outside the given mask.\n");
-printf("\n");
-printf("--label label\n");
-printf("\n");
-printf("Use label as a mask. Can be inverted with --mask-inv.\n");
-printf("\n");
-printf("--hemi hemi (--h)\n");
-printf("\n");
-printf("Hemifield that the input is defined on. Legal values are lh and rh.\n");
-printf("Can use --h instead of --hemi.\n");
-printf("\n");
-printf("--X x.mat\n");
-printf("\n");
-printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where\n");
-printf("y is the input. x.mat must be a matlab4 matrix.\n");
-printf("\n");
-printf("--sum sumfile\n");
-printf("\n");
-printf("Prints ascii summary to sumfile.\n");
-printf("\n");
-printf("--fwhm fwhm\n");
-printf("\n");
-printf("Smooth by fwhm mm before estimating the fwhm. This is mainly good for \n");
-printf("debuggging. But with --out can also be used to smooth data on the\n");
-printf("surface (but might be better to use mri_surf2surf for this).\n");
-printf("\n");
-printf("--niters-only\n");
-printf("\n");
-printf("Only report the number of iterations needed to achieve the FWHM given\n");
-printf("by fwhm.\n");
-printf("\n");
-printf("--out outfile\n");
-printf("\n");
-printf("Save (possibly synthesized and/or smoothed) data to outfile. Automatically\n");
-printf("detects format. Format must be one accepted as by mri_convert. Note: do \n");
-printf("not use analyze or nifit as these cannot store more than 32k in a dimension.\n");
-printf("mri_surf2surf can store surface data in those formats.\n");
-printf("\n");
-printf("--synth \n");
-printf("\n");
-printf("Synthesize input with white gaussian noise. Ten frames are used by default,\n");
-printf("but this can be changed with --synth-frames.\n");
-printf("\n");
-printf("--synth-frames nframes\n");
-printf("\n");
-printf("Synthesize input with white gaussian noise with the given number of frames.\n");
-printf("Implies --synth.\n");
-printf("\n");
-printf("\n");
-
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -527,27 +389,14 @@ static void print_version(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if(subject == NULL){
-    printf("ERROR: need to specify --subject\n");
-    exit(1);
-  }
-  if(hemi == NULL){
-    printf("ERROR: need to specify --hemi\n");
-    exit(1);
-  }
   if(inpath == NULL && !synth){
     printf("ERROR: need to specify --in or --synth\n");
     exit(1);
   }
-  if(maskpath && labelpath){
-    printf("ERROR: cannot specify both --label and --mask\n");
+  if(Xfile && DetrendOrder >= 0){
+    printf("ERROR: cannot use --X and --detrend\n");
     exit(1);
   }
-  if(infwhm == 0 && nitersonly){
-    printf("ERROR: must specify --fwhm with --niters-only\n");
-    exit(1);
-  }
-
   return;
 }
 
@@ -558,7 +407,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"%s\n",Progname);
   fprintf(fp,"FREESURFER_HOME %s\n",getenv("FREESURFER_HOME"));
-  fprintf(fp,"SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
   fprintf(fp,"cwd       %s\n",cwd);
   fprintf(fp,"cmdline   %s\n",cmdline);
   fprintf(fp,"timestamp %s\n",VERcurTimeStamp());
@@ -566,9 +414,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname  %s\n",uts.nodename);
   fprintf(fp,"machine   %s\n",uts.machine);
   fprintf(fp,"user      %s\n",VERuser());
-  fprintf(fp,"subject %s\n",subject);
-  fprintf(fp,"hemi     %s\n",hemi);
-  fprintf(fp,"surfname %s\n",surfname);
   if(inpath)   fprintf(fp,"input  %s\n",inpath);
   if(maskpath) fprintf(fp,"mask  %s\n",maskpath);
   fprintf(fp,"infwhm %lf\n",infwhm);
@@ -579,6 +424,7 @@ static void dump_options(FILE *fp)
     fprintf(fp,"seed  %d\n",SynthSeed);
   }
   if(Xfile) fprintf(fp,"xfile %s\n",Xfile);
+  if(DetrendOrder >= 0) fprintf(fp,"detrend %d\n",DetrendOrder);
   if(sumfile) fprintf(fp,"sumfile  %s\n",sumfile);
   if(outpath) fprintf(fp,"out  %s\n",outpath);
 
