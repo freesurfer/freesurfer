@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.20 2006/01/26 00:50:43 greve Exp $
+  $Id: mri2.c,v 1.21 2006/03/02 18:36:25 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1093,7 +1093,7 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol)
   if(outvol == NULL){
     outvol = MRIallocSequence(invol->width, invol->height,
 	      invol->depth,MRI_FLOAT, invol->nframes);
-    MRIcopyHeader(outvol,invol);
+    MRIcopyHeader(invol,outvol);
     outvol->type = MRI_FLOAT;
   }
   // Should check that the dims are the same
