@@ -24,6 +24,10 @@ endif
 
 EXTRA_DIST=$(foo_DATA)
 
+install: install-fooDATA
+	mkdir -p $(prefix)/subjects
+	tar zxvf fsaverage.tar.gz --directory $(prefix)/subjects
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
