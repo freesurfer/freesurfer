@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/03/02 20:11:57 $
+ * @date   $Date: 2006/03/02 20:14:13 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.5 2006/03/02 20:11:57 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.6 2006/03/02 20:14:13 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -177,6 +177,7 @@ static void print_usage(void)
 {
   printf ("USAGE: %s [options] input output\n", Progname);
   printf ("\n");
+  printf ("   --single : only convert a single path, and don't use sentinel values\n");
   printf ("   --path2label : will treat input as a path and output a label\n");
   printf ("   --label2path : will treat input as a label and output a path\n");
   printf ("\n");
@@ -195,7 +196,9 @@ static void print_help(void)
 "\n"
 "  Multiple paths will be encoded in a label file separated by a\n"
 "  line with all columns -99999. This is a sentinel dividing lists\n"
-"  of path points from each other.\n"
+"  of path points from each other. If the option --single is provided,\n"
+"  then sentinel values won't be used, and the label file will look\n"
+"  like a normal label file.\n"
 );
   printf ("\n");
 }
