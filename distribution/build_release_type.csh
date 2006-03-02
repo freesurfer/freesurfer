@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.39 2006/03/02 20:13:37 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.40 2006/03/02 22:51:11 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -485,6 +485,21 @@ endif
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
+
+
+# create a build-stamp file, containing some basic info on this build
+# which is displayed when FreeSurferEnv.csh is executed
+if ("$RELEASE_TYPE" == "stable") then
+  # Note: this stable build version info is hard-coded here!
+  echo "-------------- FreeSurfer stable3 (v3.0) --------------" \
+    > ${DEST_DIR}/build-stamp.txt
+  if ($?PUB_DEST_DIR) cp ${DEST_DIR}/build-stamp.txt ${PUB_DEST_DIR}/
+else
+  setenv DEV_STAMP "dev`date +%Y-%m-%d-%H:%M`"
+  echo "----------- FreeSurfer ${DEV_STAMP} -----------" \
+    > ${DEST_DIR}/build-stamp.txt
+endif
+
 
 done:
 
