@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.37 2006/03/02 16:30:29 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.38 2006/03/02 19:04:00 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -47,7 +47,7 @@ setenv GLUT_DYLIB_DIR ""
 # on Mac OS X Tiger, glut is not automatically in lib path.
 # also, need /sw/bin to get latex and dvips
 if ("$OSTYPE" == "Darwin") then
-  set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
+  set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/current/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
@@ -362,6 +362,7 @@ if ($?PUB_DEST_DIR) then
   echo "Building public stable" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
   echo "CMD: make release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
+  rm -Rf ${DEST_DIR}/bin-new >>& $OUTPUTF
   make release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE release build (make) FAILED"
@@ -373,6 +374,7 @@ if ($?PUB_DEST_DIR) then
     chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
     exit 1  
   endif
+  rm -Rf ${PUB_DEST_DIR}/bin >>& $OUTPUTF
   mv ${DEST_DIR}/bin-new ${PUB_DEST_DIR}/bin >>& $OUTPUTF
   # strip symbols from binaries, greatly reducing their size
   strip ${PUB_DEST_DIR}/bin/* >& /dev/null
@@ -380,6 +382,7 @@ if ($?PUB_DEST_DIR) then
   echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
 endif
+
 
 #
 # ensure that the symlinks to the necessary packages are in place
@@ -394,50 +397,70 @@ if ($?PUB_DEST_DIR) then
   set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
 endif
 foreach destdir ($DEST_DIR_LIST)
-  if (! -d $destdir/mni ) then
-    set cmd=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/fsl ) then
-    set cmd=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/tcltktixblt ) then
-    set cmd=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/gsl ) then
-    set cmd=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/qt ) then
-    set cmd=(ln -s /usr/pubsw/packages/qt/current $destdir/lib/qt)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if ("$OSTYPE" == "Darwin") then
-    if (! -d $destdir/lib/misc ) then
-      set cmd=(ln -s /usr/pubsw/packages/tiffjpegglut $destdir/lib/misc)
-      echo "$cmd" >>& $OUTPUTF
-      $cmd
+  # first remove existing links
+  rm -f $destdir/mni
+  rm -f $destdir/fsl
+  rm -f $destdir/lib/tcltktixblt
+  rm -f $destdir/lib/gsl
+  rm -f $destdir/lib/qt
+  rm -f $destdir/lib/misc
+
+  # then setup for proper installation
+  if ("$RELEASE_TYPE" == "stable") then
+  #  stable enviro points to explicit versions
+    set cmd1=(ln -s /usr/pubsw/packages/mni/1.4 $destdir/mni)
+    if (-e /usr/pubsw/packages/fsl/3.2b) then
+      set cmd2=(ln -s /usr/pubsw/packages/fsl/3.2b $destdir/fsl)
+    else
+      set cmd2=(ln -s /usr/pubsw/packages/fsl/3.2 $destdir/fsl)
+    endif
+    set cmd3=(ln -s /usr/pubsw/packages/tcltktixblt/8.4.6 $destdir/lib/tcltktixblt)
+    set cmd4=(ln -s /usr/pubsw/packages/gsl/1.6 $destdir/lib/gsl)
+    set cmd5=(ln -s /usr/pubsw/packages/qt/3.3.5 $destdir/lib/qt)
+    if ("$OSTYPE" == "Darwin") then
+      set cmd6=(ln -s /usr/pubsw/packages/tiffjpegglut/1.0 $destdir/lib/misc)
+    endif
+  else 
+  #  dev enviro points to current versions (which may be newer)
+    set cmd1=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
+    set cmd2=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
+    set cmd3=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
+    set cmd4=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
+    set cmd5=(ln -s /usr/pubsw/packages/qt/current $destdir/lib/qt)
+    if ("$OSTYPE" == "Darwin") then
+      set cmd6=(ln -s /usr/pubsw/packages/tiffjpegglut/current $destdir/lib/misc)
     endif
   endif
-  # also sample subject:
-  if (! -d $destdir/subjects/bert ) then
-    set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
+
+  # execute the commands
+  echo "$cmd1" >>& $OUTPUTF
+  $cmd1
+  echo "$cmd2" >>& $OUTPUTF
+  $cmd2
+  echo "$cmd3" >>& $OUTPUTF
+  $cmd3
+  echo "$cmd4" >>& $OUTPUTF
+  $cmd4
+  echo "$cmd5" >>& $OUTPUTF
+  $cmd5
+  if ("$OSTYPE" == "Darwin") then
+    echo "$cmd6" >>& $OUTPUTF
+    $cmd6
   endif
+
+  # also setup sample subject:
+  rm -f $destdir/subjects/bert
+  set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd
 end
+
 
 # If building stable-pub, then create a tarball
 if ("$RELEASE_TYPE" == "stable") then
   $SCRIPT_DIR/create_targz.csh $PLATFORM stable-pub
 endif
+
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
