@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.36 2006/03/01 00:51:42 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.37 2006/03/02 16:30:29 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -434,6 +434,10 @@ foreach destdir ($DEST_DIR_LIST)
   endif
 end
 
+# If building stable-pub, then create a tarball
+if ("$RELEASE_TYPE" == "stable") then
+  $SCRIPT_DIR/create_targz.csh $PLATFORM stable-pub
+endif
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
