@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/02/14 19:45:15 $
- *         $Revision: 1.21 $
+ * @date   $Date: 2006/03/02 19:45:08 $
+ *         $Revision: 1.22 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -248,6 +248,14 @@ handle_version_option (int argc, char** argv,
               strcpy (stripped_version_string, version_string);
             }
 
+	  if (strcmp(" $",stripped_version_string)==0)
+	    {
+	      // on the dev build, where a sticky tag does not exist,
+	      // just a dollar sign is printed, which isnt very helpful,
+	      // so print something...
+	      strcpy(stripped_version_string,
+		     "dev build (use --all-info flag for full version info)");
+	    }
           fprintf (stdout, "%s\n", stripped_version_string);
 
 #endif
