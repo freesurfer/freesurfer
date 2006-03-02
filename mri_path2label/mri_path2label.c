@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/03/01 23:14:31 $
+ * @date   $Date: 2006/03/02 17:54:54 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -28,6 +28,7 @@ static void print_usage (void) ;
 static void print_help (void) ;
 static int  guess_file_type (char* fname, int* is_path, int *is_label);
 static int  convert_path_to_label (char* fname, char* ofname);
+static int  convert_label_to_path (char* fname, char* ofname);
 
 struct option long_options[] = 
   {
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.3 2006/03/01 23:14:31 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.4 2006/03/02 17:54:54 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -136,16 +137,18 @@ int main(int argc, char *argv[]) {
     }
   fclose (fp);
 
-  printf ("Converting %s\n", source_file);
-  printf ("        to %s\n", dest_file);
+  printf ("INFO: Converting %s\n", source_file);
+  printf ("INFO:         to %s\n", dest_file);
   if (path_to_label)
-    printf ("Path to label\n");
+    printf ("INFO: Path to label\n");
   else 
-    printf ("Label to path\n");
+    printf ("INFO: Label to path\n");
   printf ("\n");
 
   if (path_to_label)
     convert_path_to_label (source_file, dest_file);
+  else if (label_to_path)
+    convert_label_to_path (source_file, dest_file);
 
   return 0;
 }
@@ -182,6 +185,7 @@ static int guess_file_type (char* fname, int* is_path, int *is_label)
   char*  needle     = NULL;
   int    found      = 0;
 
+  /* Open the file. */
   fp = fopen (fname, "r");
   if (NULL == fp)
     {
@@ -193,13 +197,18 @@ static int guess_file_type (char* fname, int* is_path, int *is_label)
   *is_label = 0;
   found = 0;
 
+  /* Line buffer. */
   line = (char*) malloc (size);
   
   while (!feof(fp) && !found)
     {
+      /* Get a line. */
       getline (&line, &size, fp);
+
+      /* If it's a comment line. */
       if (line[0] == '#')
 	{
+	  /* Look for the label string. It's a label file if so. */
 	  needle = strstr( line, "label" );
 	  if( NULL != needle ) 
 	    {
@@ -207,10 +216,11 @@ static int guess_file_type (char* fname, int* is_path, int *is_label)
 	      found = 1;
 	      break;
 	    }
+	  /* Look for the Path string. It's a path file if so. */
 	  needle = strstr( line, "Path" );
 	  if( NULL != needle ) 
 	    {
-	      *is_path = 0;
+	      *is_path = 1;
 	      found = 1;
 	      break;
 	    }
@@ -222,35 +232,57 @@ static int guess_file_type (char* fname, int* is_path, int *is_label)
   free (line);
 
   if (!found)
-    return 1;
-  else
-    return (ERROR_NONE);
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't identify %s", fname));
+
+  return (ERROR_NONE);
 }
 
 static int convert_path_to_label (char* fname, char* ofname)
 {
-  int num_paths;
-  PATH** paths;
-  int path_index;
-  int pno;
-  LABEL* label = NULL;
-  int label_vno;
+  int     err;
+  int     num_paths;
+  PATH**  paths       = NULL;
+  int     path_index;
+  int     label_size;
+  int     pno;
+  LABEL*  label       = NULL;
+  int     label_vno;
 
-  PathReadMany (fname, &num_paths, &paths);
+  /* Read the paths file. */
+  err = PathReadMany (fname, &num_paths, &paths);
+  if (ERROR_NONE != err)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't read %s", fname));
+    }
 
+  printf ("INFO: Got %d paths\n\n", num_paths);
+
+  /* Go through the paths we can and build a sum of number of points
+     we'll need to write to the label, including an extra one per path
+     for the sentinel value. */
   label_vno = 0;
+  label_size = 0;
   for (path_index = 0; path_index < num_paths; path_index++)
     {
-      if (NULL == label)
-	{
-	  label = LabelAlloc (paths[path_index]->n_points, NULL, NULL);
-	}
-      else
-	{
-	  LabelRealloc (label, 
-			label->n_points + paths[path_index]->n_points + 1);
-	}
+      label_size += paths[path_index]->n_points + 1;
+    }
 
+  /* Allocate a label of that size. */
+  label = LabelAlloc (label_size, NULL, NULL);
+  if (NULL == label)
+    {
+      ErrorReturn (ERROR_NO_MEMORY, 
+		   (ERROR_NO_MEMORY, "Couldn't allocate label of %d points",
+		    label_size));
+    }
+  label->n_points = label_size;
+
+  /* For each path...*/
+  for (path_index = 0; path_index < num_paths; path_index++)
+    {
+      /* Write all the path points to the label. */
       for (pno = 0; pno < paths[path_index]->n_points; pno++)
 	{
 	  label->lv[label_vno].x = paths[path_index]->points[pno].x;
@@ -260,21 +292,122 @@ static int convert_path_to_label (char* fname, char* ofname)
 	  label_vno++;
 	}
 
-      /* Sentinel value. */
+      /* Write the sentinel value. */
       label->lv[label_vno].x = -99999;
       label->lv[label_vno].y = -99999;
       label->lv[label_vno].z = -99999;
-      label->lv[label_vno].vno = -1;
+      label->lv[label_vno].vno = -99999;
       label_vno++;
 
+      /* Go ahead and delte the path now. */
       PathFree (&paths[path_index]);
     }
-
+  
+  /* Free our paths variable. */
   free (paths);
-
+  
+  /* Write the label file. */
   LabelWrite (label, ofname);
 
+  /* Free the label. */
   LabelFree (&label);
+
+  return (ERROR_NONE);
+}
+
+static int convert_label_to_path (char* fname, char* ofname)
+{
+  LABEL* label           = NULL;
+  int    label_vno;
+  int    num_paths;
+  PATH** paths           = NULL;
+  int    label_vno_test;
+  int    path_size;
+  int    path_index;
+  int    pno;
+  int    err;
+  
+  /* Read the label file. */
+  label = LabelRead (NULL, fname);
+  if (NULL == label)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't read %s", fname));
+    }
+
+  /* Count the number of sentinels, -99999 vnos in the label; this is
+     the number of labels. */
+  num_paths = 0;
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+    {
+      if (-99999 == label->lv[label_vno].vno)
+	  num_paths++;
+    }
+
+  /* Make sure we got some paths. */
+  if (0 == num_paths)
+    {
+      LabelFree (&label);
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "No encoded paths found in label file"));
+    }
+
+  printf ("INFO: Found %d paths in label file.\n\n", num_paths);
+
+  /* Allocate path objects. */
+  paths = (PATH**) calloc (num_paths, sizeof(PATH*));
+  if (NULL == paths)
+    {
+      ErrorReturn (ERROR_NO_MEMORY, 
+		   (ERROR_NO_MEMORY, "Couldn't allocate %d paths", num_paths));
+    }
+
+  /* For each path we're goint o read.. */
+  path_index = 0;
+  label_vno = 0;
+  for (path_index = 0; path_index < num_paths; path_index++)
+    {
+      /* Count the size of the path, the number of points between here
+	 and the next sentinel. */
+      path_size = 0;
+      label_vno_test = label_vno;
+      while (-99999 != label->lv[label_vno_test].vno)
+	{
+	  path_size++;
+	  label_vno_test++;
+	}
+
+      /* Make the path. */
+      paths[path_index] = PathAlloc (path_size, NULL);
+      if (NULL == paths)
+	{
+	  ErrorReturn (ERROR_NO_MEMORY, 
+		       (ERROR_NO_MEMORY, "Couldn't allocate path of %d points",
+			path_size));
+	}
+
+      /* Read points into the path from the label. */
+      pno = 0;
+      while (-99999 != label->lv[label_vno].vno)
+	{
+	  paths[path_index]->points[pno].x = label->lv[label_vno].x;
+	  paths[path_index]->points[pno].y = label->lv[label_vno].y;
+	  paths[path_index]->points[pno].z = label->lv[label_vno].z;
+	  label_vno++;
+	  pno++;
+	}      
+
+      /* Now we're at the sentinel, so skip past it. */
+      label_vno++;
+    }
+
+  /* Write the path file. */
+  err = PathWriteMany (ofname, num_paths, paths);
+  if (0 != err)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't write to %s", ofname));
+    }
 
   return (ERROR_NONE);
 }
