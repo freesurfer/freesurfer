@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/03/02 17:54:54 $
+ * @date   $Date: 2006/03/02 20:11:57 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -29,11 +29,14 @@ static void print_help (void) ;
 static int  guess_file_type (char* fname, int* is_path, int *is_label);
 static int  convert_path_to_label (char* fname, char* ofname);
 static int  convert_label_to_path (char* fname, char* ofname);
+static int  convert_single_path_to_label (char* fname, char* ofname);
+static int  convert_single_label_to_path (char* fname, char* ofname);
 
 struct option long_options[] = 
   {
     {"path2label", 0, 0, 0},
     {"label2path", 0, 0, 0},
+    {"single", 0, 0, 0},
     {"help", 0, 0, 0},
     {0, 0, 0, 0}
   };
@@ -49,10 +52,11 @@ int main(int argc, char *argv[]) {
   int   label_to_path  = 0;
   int   source_is_label      = 0;
   int   source_is_path       = 0;
+  int   single_path          = 0;
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.4 2006/03/02 17:54:54 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.5 2006/03/02 20:11:57 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -89,7 +93,10 @@ int main(int argc, char *argv[]) {
 		}
 	      label_to_path = 1;
 	      break;
-	    case 2:
+	    case 2: // single
+	      single_path = 1;
+	      break;
+	    case 3:
 	      print_usage();
 	      print_help();
 	      exit(0);
@@ -144,11 +151,23 @@ int main(int argc, char *argv[]) {
   else 
     printf ("INFO: Label to path\n");
   printf ("\n");
+  if (single_path)
+    printf ("INFO: Converting a single path\n");
 
-  if (path_to_label)
-    convert_path_to_label (source_file, dest_file);
-  else if (label_to_path)
-    convert_label_to_path (source_file, dest_file);
+  if (single_path)
+    {
+      if (path_to_label)
+	convert_single_path_to_label (source_file, dest_file);
+      else if (label_to_path)
+	convert_single_label_to_path (source_file, dest_file);
+    }
+  else 
+    {
+      if (path_to_label)
+	convert_path_to_label (source_file, dest_file);
+      else if (label_to_path)
+	convert_label_to_path (source_file, dest_file);
+    }
 
   return 0;
 }
@@ -173,6 +192,10 @@ static void print_help(void)
 "  the file. Use one of the options to override this behavior.\n"
 "  Will return an error if it cannot guess a format and none is\n"
 "  explicitly supplied.\n"
+"\n"
+"  Multiple paths will be encoded in a label file separated by a\n"
+"  line with all columns -99999. This is a sentinel dividing lists\n"
+"  of path points from each other.\n"
 );
   printf ("\n");
 }
@@ -411,3 +434,136 @@ static int convert_label_to_path (char* fname, char* ofname)
 
   return (ERROR_NONE);
 }
+
+static int convert_single_path_to_label (char* fname, char* ofname)
+{
+  int     err;
+  int     num_paths;
+  PATH**  paths       = NULL;
+  int     pno;
+  LABEL*  label       = NULL;
+  int     path_index;
+
+  /* Read the paths file. */
+  err = PathReadMany (fname, &num_paths, &paths);
+  if (ERROR_NONE != err)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't read %s", fname));
+    }
+
+  if (num_paths != 1)
+    {
+      printf ("WARNING: Found multiple paths in paths file. Maybe you didn't mean to use the single option? Will only convert first path\n\n");
+    }
+
+  /* Make a label the size of the first path. */
+  /* Allocate a label of that size. */
+  label = LabelAlloc (paths[0]->n_points, NULL, NULL);
+  if (NULL == label)
+    {
+      ErrorReturn (ERROR_NO_MEMORY, 
+		   (ERROR_NO_MEMORY, "Couldn't allocate label of %d points",
+		    paths[0]->n_points));
+    }
+  label->n_points = paths[0]->n_points;
+
+  /* Write all the path points to the label. */
+  for (pno = 0; pno < paths[0]->n_points; pno++)
+    {
+      label->lv[pno].x = paths[0]->points[pno].x;
+      label->lv[pno].y = paths[0]->points[pno].y;
+      label->lv[pno].z = paths[0]->points[pno].z;
+      label->lv[pno].vno = -1;
+    }
+
+  for (path_index = 0; path_index < num_paths; path_index++)
+    {
+      PathFree (&paths[path_index]);
+    }
+
+  /* Free our paths variable. */
+  free (paths);
+  
+  /* Write the label file. */
+  LabelWrite (label, ofname);
+
+  /* Free the label. */
+  LabelFree (&label);
+
+  return (ERROR_NONE);
+}
+
+static int convert_single_label_to_path (char* fname, char* ofname)
+{
+  LABEL* label           = NULL;
+  int    label_vno;
+  int    num_paths;
+  PATH** paths           = NULL;
+  int    path_size;
+  int    pno;
+  int    err;
+  
+  /* Read the label file. */
+  label = LabelRead (NULL, fname);
+  if (NULL == label)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't read %s", fname));
+    }
+
+  /* Count the number of sentinels, -99999 vnos in the label; we only
+     want one path, so this is just to check if this is a
+     multiple-path label file. */
+  num_paths = 0;
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+    {
+      if (-99999 == label->lv[label_vno].vno)
+	  num_paths++;
+    }
+
+  /* Make sure we only got one paths. */
+  if (num_paths > 1)
+    {
+      printf ("WARNING: Found multiple paths in label file. Maybe you didn't mean to use the single option? Converting it to a single path.\n");
+    }
+
+  /* Allocate path objects. */
+  paths = (PATH**) calloc (1, sizeof(PATH*));
+  if (NULL == paths)
+    {
+      ErrorReturn (ERROR_NO_MEMORY, 
+		   (ERROR_NO_MEMORY, "Couldn't allocate %d paths", 1));
+    }
+
+  /* Make the path. */
+  paths[0] = PathAlloc (label->n_points, NULL);
+  if (NULL == paths)
+    {
+      ErrorReturn (ERROR_NO_MEMORY, 
+		   (ERROR_NO_MEMORY, "Couldn't allocate path of %d points",
+		    path_size));
+    }
+
+  /* Read points into the path from the label. */
+  for (pno = 0; pno < label->n_points; pno++ )
+    {
+      paths[0]->points[pno].x = label->lv[pno].x;
+      paths[0]->points[pno].y = label->lv[pno].y;
+      paths[0]->points[pno].z = label->lv[pno].z;
+    }      
+  
+  /* Write the path file. */
+  err = PathWriteMany (ofname, 1, paths);
+  if (0 != err)
+    {
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't write to %s", ofname));
+    }
+
+  PathFree (&paths[0]);
+  free (paths);
+
+  return (ERROR_NONE);
+}
+
