@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.11 2006/02/24 09:27:27 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.11.2.1 2006/03/02 18:06:31 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -395,7 +395,8 @@ int main(int argc, char **argv)
     }
     else  nhits = n;
 
-    printf("%4d\n",nhits);
+    printf("%4d  %g\n",nhits,vol);
+    fflush(stdout);
     StatSumTable[n].nhits = nhits;
     StatSumTable[n].vol = vol;
     if(InVolFile != NULL && !dontrun){
@@ -430,6 +431,7 @@ int main(int argc, char **argv)
       if(DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
       StatSumTable2[nthsegid].id    = StatSumTable[n].id;
       StatSumTable2[nthsegid].nhits = StatSumTable[n].nhits;
+      StatSumTable2[nthsegid].vol   = StatSumTable[n].vol;
       StatSumTable2[nthsegid].min   = StatSumTable[n].min;
       StatSumTable2[nthsegid].max   = StatSumTable[n].max;
       StatSumTable2[nthsegid].range = StatSumTable[n].range;
