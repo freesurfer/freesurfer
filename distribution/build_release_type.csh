@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.38 2006/03/02 19:04:00 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.39 2006/03/02 20:13:37 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -454,6 +454,27 @@ foreach destdir ($DEST_DIR_LIST)
   echo "$cmd" >>& $OUTPUTF
   $cmd
 end
+
+
+#
+# On the Mac, for the Qt apps to work, the binary in the bin directory
+# cannot be called directly.  The 'real' binary is found in the directory
+# (qtapp).app/Contents/MacOS/.  So replace the bad binary with a script.
+#
+if ("$OSTYPE" == "Darwin") then
+  set QT_APPS=(scuba2 qdec plotter)
+  set DEST_DIR_LIST=()
+  if ($?DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
+  if ($?PUB_DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+  foreach destdir ($DEST_DIR_LIST)
+    foreach qtapp ($QT_APPS)
+      rm -f $destdir/bin/$qtapp
+      echo "$destdir/bin/$qtapp.app/Contents/MacOS/$qtapp" \
+        > $destdir/bin/$qtapp
+      chmod a+x $destdir/bin/$qtapp
+    end
+  end
+endif
 
 
 # If building stable-pub, then create a tarball
