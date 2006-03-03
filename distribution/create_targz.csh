@@ -1,5 +1,7 @@
 #!/bin/tcsh -ef
 
+set ID='$Id: create_targz.csh,v 1.10 2006/03/04 00:00:26 nicks Exp $'
+
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -7,6 +9,7 @@ umask 002
 
 setenv PLATFORM     $1
 setenv RELEASE_TYPE $2
+setenv SPACE_FREESURFER /space/freesurfer
 
 if ("$PLATFORM" == "rh7.3") then
     if ("`uname -n`" != "martinos01" ) then
@@ -16,11 +19,6 @@ if ("$PLATFORM" == "rh7.3") then
 else if ("$PLATFORM" == "rh9") then
     if ("`uname -n`" != "kani" ) then
         echo "must run on machine kani"
-        exit 1
-    endif
-else if ("$PLATFORM" == "rhel4") then
-    if ("`uname -n`" != "triassic" ) then
-        echo "must run on machine triassic"
         exit 1
     endif
 else if ("$PLATFORM" == "centos4") then
@@ -41,27 +39,15 @@ else if ("$PLATFORM" == "tiger") then
 else
     echo "Usage:"
     echo "$0 <platform> <release_type>"
-    echo "where <platform> is rh7.3, rh9, rhel4, centos4, centos4_x86_64, or tiger"
+    echo "where <platform> is rh7.3, rh9, centos4, centos4_x86_64, or tiger"
     echo "and <release_type> is either dev, or stable-pub"
     exit 1
-endif
-
-setenv SPACE_FREESURFER /space/freesurfer
-cd $SPACE_FREESURFER
-if ( "$PLATFORM" == "centos4") then
-    cd centos4.0
-else if ( "$PLATFORM" == "centos4_x86_64") then
-    cd centos4.0_x86_64
-else 
-    cd $PLATFORM
 endif
 
 if (( "$RELEASE_TYPE" != "dev") && ( "$RELEASE_TYPE" != "stable-pub")) then
   echo "ERROR: release_type is either dev or stable-pub"
   exit 1
 endif
-
-if ("$RELEASE_TYPE" == "stable-pub") setenv RELEASE_TYPE stable3-pub
 
 if ( "$PLATFORM" == "tiger") then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
@@ -70,31 +56,35 @@ if ( "$PLATFORM" == "tiger") then
   cd /Users/Shared/tmp
 endif
 
+cd /usr/local/freesurfer
 if (-e freesurfer) rm freesurfer
 set cmd=(ln -s $RELEASE_TYPE freesurfer)
 echo $cmd
 $cmd
 
-setenv OSTYPE `uname -s`
-if ("$OSTYPE" == "linux") setenv OSTYPE Linux
-if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
-if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
-if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
-setenv DATE `date +%Y%m%d`
-setenv FILENAME freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}${DATE}-full
-setenv  TARNAME ${FILENAME}.tar
+setenv BUILD_STAMP "`cat /usr/local/freesurfer/${RELEASE_TYPE}/build-stamp.txt`"
+setenv FILENAME ${BUILD_STAMP}-full
+setenv TARNAME ${FILENAME}.tar
 echo creating $TARNAME...
+# the -h flag passed to tar is critical!  it follows the links to the libraries.
 tar -X ${SPACE_FREESURFER}/build/scripts/exclude_from_targz -hcvf $TARNAME freesurfer
 echo gzipping $TARNAME...
 gzip $TARNAME
-mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases
-chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz
+set cmd=(mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases)
+echo $cmd
+$cmd
+set cmd=(chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz)
+echo $cmd
+$cmd
 if (-e /Users/Shared/tmp/$RELEASE_TYPE) rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
 
-echo md5sum $TARNAME...
-md5sum ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz
+# cleanup useless link
+cd /usr/local/freesurfer
+if (-e freesurfer) rm freesurfer
 
-# for the Mac, create_dmg creates the .dmg file from the .tar.gz file
-
-# also, the stable release should be renamed with a version number
+# for the Mac, create_dmg.csh creates the .dmg file from the .tar.gz file.
+# create_dmg must be executed separately, since root access is 
+# required to chown the files to root.
+# for Linux, the script postprocess_targz.csh does the same (and also
+# requires root access).
 

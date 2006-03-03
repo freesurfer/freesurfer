@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.42 2006/03/03 21:05:11 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.43 2006/03/03 23:59:44 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -53,26 +53,26 @@ if ("${RELEASE_TYPE}" == "stable") then
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
-  set QTDIR=/usr/pubsw/packages/qt
-  if (-e ${QTDIR}/3.3.5) then
-    setenv QTDIR ${QTDIR}/3.3.5
-  else if (-e ${QTDIR}/3.3.4) then
-    setenv QTDIR ${QTDIR}/3.3.4
+  unsetenv QTDIR
+  if (-e /usr/pubsw/packages/qt/3.3.5) then
+    setenv QTDIR /usr/pubsw/packages/qt/3.3.5
+  else if (-e /usr/pubsw/packages/qt/3.3.4) then
+    setenv QTDIR /usr/pubsw/packages/qt/3.3.4
   endif
-  set FSLDIR=/usr/pubsw/packages/fsl
-  if (-e ${FSLDIR}/3.2b) then
-    set FSLDIR=${FSLDIR}/3.2b
-  else if (-e ${FSLDIR}/3.2) then
-    set FSLDIR=${FSLDIR}/3.2
+  unsetenv FSLDIR
+  if (-e /usr/pubsw/packages/fsl/3.2b) then
+    setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
+  else if (-e /usr/pubsw/packages/fsl/3.2) then
+    setenv FSLDIR /usr/pubsw/packages/fsl/3.2
   endif
 else
   set MNIDIR=/usr/pubsw/packages/mni/current
   set GSLDIR=/usr/pubsw/packages/gsl/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set QTDIR=/usr/pubsw/packages/qt/current
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
-  set FSLDIR=/usr/pubsw/packages/fsl/current
+  setenv QTDIR /usr/pubsw/packages/qt/current
+  setenv FSLDIR /usr/pubsw/packages/fsl/current
 endif
 
 # on Mac OS X Tiger, glut is not automatically in lib path.
@@ -97,6 +97,8 @@ chmod g+w $OUTPUTF
 set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
 set TIME_STAMP=`date +%Y%m%d`
+
+#goto symlinks
 
 # Sanity checks
 ######################################################################
@@ -313,8 +315,8 @@ endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Making $DEV_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: make" >>& $OUTPUTF
-make >>& $OUTPUTF
+echo "CMD: make -j 4" >>& $OUTPUTF
+make -j 4 >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
@@ -474,8 +476,12 @@ end
 if ("$OSTYPE" == "Darwin") then
   set QT_APPS=(scuba2 qdec plotter)
   set DEST_DIR_LIST=()
-  if ($?DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
-  if ($?PUB_DEST_DIR) set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+  if ($?DEST_DIR) then
+    set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
+  endif
+  if ($?PUB_DEST_DIR) then
+    set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
+  endif
   foreach destdir ($DEST_DIR_LIST)
     foreach qtapp ($QT_APPS)
       rm -f $destdir/bin/$qtapp
@@ -487,17 +493,16 @@ if ("$OSTYPE" == "Darwin") then
 endif
 
 # create a build-stamp file, containing some basic info on this build
-# which is displayed when FreeSurferEnv.csh is executed
+# which is displayed when FreeSurferEnv.csh is executed.  
+# its also used by create_targz to name the tarball.
 if ("$RELEASE_TYPE" == "stable") then
   # Note: this stable build version info is hard-coded here! so it
   # should be updated here with each release
-  echo "--------- freesurfer-${OSTYPE}-${PLATFORM}-stable-v3.0 ---------" \
-    > ${DEST_DIR}/build-stamp.txt
+  echo "freesurfer-${OSTYPE}-${PLATFORM}-stable-v3.0" > ${DEST_DIR}/build-stamp.txt
   if ($?PUB_DEST_DIR) cp ${DEST_DIR}/build-stamp.txt ${PUB_DEST_DIR}/
 else
   setenv DEV_STAMP "dev`date +%Y%m%d`"
-  echo "------ freesurfer-${OSTYPE}-${PLATFORM}-${DEV_STAMP} ------" \
-    > ${DEST_DIR}/build-stamp.txt
+  echo "freesurfer-${OSTYPE}-${PLATFORM}-${DEV_STAMP}" > ${DEST_DIR}/build-stamp.txt
 endif
 
 # If building stable-pub, then create a tarball
