@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.2 2006/03/02 22:37:30 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.3 2006/03/03 00:41:40 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.2 2006/03/02 22:37:30 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.3 2006/03/03 00:41:40 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -64,17 +64,6 @@ if($?USER == 0 || $?prompt == 0) then
     set output = 0
 endif
 
-if( $output ) then
-    if (-e build-stamp.txt) echo "`cat build-stamp.txt`"
-    echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
-    if (("$1" == "--version") || \
-        ("$1" == "--V") || \
-        ("$1" == "-V") || \
-        ("$1" == "-v")) then
-        echo $VERSION
-    endif
-endif
-
 ## Check if FREESURFER_HOME variable exists, then check if the actual
 ## directory exists.
 if(! $?FREESURFER_HOME) then
@@ -89,6 +78,19 @@ if(! -e $FREESURFER_HOME) then
     echo "ERROR: $FREESURFER_HOME "
     echo "       does not exist. Check that this value is correct.";
     exit 1;
+endif
+
+if( $output ) then
+    if (-e $FREESURFER_HOME/build-stamp.txt) then
+	echo "`cat $FREESURFER_HOME/build-stamp.txt`"
+    endif
+    echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
+    if (("$1" == "--version") || \
+        ("$1" == "--V") || \
+        ("$1" == "-V") || \
+        ("$1" == "-v")) then
+        echo $VERSION
+    endif
 endif
 
 ## Now we'll set directory locations based on FREESURFER_HOME for use
