@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $
+  $Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -26,7 +26,10 @@
 
     Note that no hemisphere is specified with -regmethod.
 
+  Example 3: You can specify the --usepathfiles flag to read and write
+    from a tksurfer path file.
 
+    mri_label2label --usepathfiles ...
 
    When mapping from lh to rh: 
      src reg: lh.sphere.reg
@@ -51,6 +54,7 @@
 #include "mri.h"
 #include "mri2.h"
 #include "version.h"
+#include "path.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -66,7 +70,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -117,10 +121,12 @@ MRI *SrcMask;
 int useprojabs = 0, useprojfrac = 0; 
 float projabs = 0.0, projfrac = 0.0;
 int reversemap = 1;
+int usepathfiles = 0;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
 {
+  int err;
   MATRIX *xyzSrc, *xyzTrg;
   MHT *TrgHash, *SrcHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
@@ -130,9 +136,12 @@ int main(int argc, char **argv)
   char fname[2000];
   int nSrcLabel, nTrgLabel;
   int nargs;
+  int numpathsread;
+  PATH** paths;
+  PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,11 +175,38 @@ int main(int argc, char **argv)
   printf("FREESURFER_HOME is %s\n",FREESURFER_HOME);
 
   /*--- Load in Source Label ------*/
-  printf("Loading source label.\n");
-  srclabel = LabelRead(NULL, srclabelfile);
-  if(srclabel == NULL){
-    fprintf(stderr,"ERROR reading %s\n",srclabelfile);
-    exit(1);
+  if(usepathfiles){
+    printf("INFO: Attempting to read a path file.\n");
+    /* Make sure this is a path file. */
+    if(!PathIsPathFile(srclabelfile)){
+      fprintf(stderr,"ERROR: %s is not a path file\n",srclabelfile);
+      exit(1);
+    }
+    /* Try to read the path file. */
+    err = PathReadMany(srclabelfile, &numpathsread, &paths);
+    if(ERROR_NONE!=err){
+      fprintf(stderr,"ERROR reading %s\n",srclabelfile);
+      exit(1);
+    }
+    /* Print a warning if we got more than one. */
+    if(numpathsread>0){
+      printf("WARNING: Multiple paths read, only using first one.\n");
+    }
+    /* Convert the first path. */
+    srclabel = NULL;
+    err = PathConvertToLabel(paths[0], &srclabel);
+    if(ERROR_NONE!=err){
+      fprintf(stderr,"ERROR: Couldn't convert path to label\n");
+      exit(1);
+    }
+  }
+  else{
+    printf("Loading source label.\n");
+    srclabel = LabelRead(NULL, srclabelfile);
+    if(srclabel == NULL){
+      fprintf(stderr,"ERROR reading %s\n",srclabelfile);
+      exit(1);
+    }
   }
   printf("Found %d points in source label.\n",srclabel->n_points);
   fflush(stdout); fflush(stderr);
@@ -500,9 +536,29 @@ int main(int argc, char **argv)
 
   }/*---------- done with surface-based mapping -------------*/
 
-  printf("Writing label file %s \n",trglabelfile);
-  if(LabelWrite(trglabel,trglabelfile))
-    printf("ERROR: writing label file\n");
+  if(usepathfiles){
+    /* Convert the label to a path. */
+    err = PathCreateFromLabel(trglabel,&path);
+    if(ERROR_NONE!=err){
+      fprintf(stderr,"ERROR: Couldn't convert label to path\n");
+      exit(1);
+    }
+    /* Set the first path in the array. */
+    PathFree(&paths[0]);
+    paths[0] = path;
+    /* Write the path file. */
+    printf("Writing path file %s \n",trglabelfile);
+    err = PathWriteMany(trglabelfile, 1, paths);
+    if(ERROR_NONE!=err){
+      fprintf(stderr,"ERROR writing %s\n",trglabelfile);
+      exit(1);
+    }
+  }
+  else{
+    printf("Writing label file %s \n",trglabelfile);
+    if(LabelWrite(trglabel,trglabelfile))
+      printf("ERROR: writing label file\n");
+  }
 
   printf("mri_label2label: Done\n\n");
 
@@ -534,6 +590,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nohash")) usehash = 0;
     else if (!strcasecmp(option, "--norevmap")) reversemap = 0;
     else if (!strcasecmp(option, "--revmap")) reversemap = 1;
+    else if (!strcasecmp(option, "--usepathfiles")) usepathfiles = 1;
 
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--sd")){
@@ -687,11 +744,12 @@ static void print_usage(void)
 {
   fprintf(stdout, "USAGE: %s \n",Progname) ;
   fprintf(stdout, "\n");
-  fprintf(stdout, "   --srclabel   input label file \n");
-  fprintf(stdout, "   --srcsubject source subject\n");
-  fprintf(stdout, "   --trgsubject target subject\n");
-  fprintf(stdout, "   --trglabel   output label file \n");
-  fprintf(stdout, "   --regmethod  registration method (surface, volume) \n");
+  fprintf(stdout, "   --srclabel     input label file \n");
+  fprintf(stdout, "   --srcsubject   source subject\n");
+  fprintf(stdout, "   --trgsubject   target subject\n");
+  fprintf(stdout, "   --trglabel     output label file \n");
+  fprintf(stdout, "   --regmethod    registration method (surface, volume) \n");
+  fprintf(stdout, "   --usepathfiles read from and write to a path file\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --hemi        hemisphere (lh or rh) (with surface)\n");
   fprintf(stdout, "   --srchemi     hemisphere (lh or rh) (with surface)\n");
