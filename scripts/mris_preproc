@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.18 2006/02/24 03:06:33 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.19 2006/03/03 18:45:42 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -333,6 +333,7 @@ while( $#argv != 0 )
       set srcsurf = 1;
       breaksw
 
+    case "--iv": # Input volume path
     case "--ivp": # Input volume path
       if($#argv < 2) goto arg2err;
       set ivp = $argv[1];shift;
@@ -347,6 +348,8 @@ while( $#argv != 0 )
       endif
       set ivplist = ($ivplist $ivp);
       set irplist = ($irplist $irp);
+      set subj = `head -1 $irp`;
+      set subjlist = ($subjlist $subj); 
       set srcvol = 1;
       breaksw
 
