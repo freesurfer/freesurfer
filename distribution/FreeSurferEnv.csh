@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.46 2006/03/03 19:40:16 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.47 2006/03/03 23:03:09 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.46 2006/03/03 19:40:16 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.47 2006/03/03 23:03:09 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -82,7 +82,7 @@ endif
 
 if( $output ) then
     if (-e $FREESURFER_HOME/build-stamp.txt) then
-	echo "`cat $FREESURFER_HOME/build-stamp.txt`"
+	echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     endif
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if (("$1" == "--version") || \
