@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.3 2006/03/03 00:41:40 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.4 2006/03/03 19:41:08 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.3 2006/03/03 00:41:40 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.4 2006/03/03 19:41:08 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -207,7 +207,7 @@ if( ! $?NO_FSFAST) then
 
         echo "%------------ FreeSurfer -----------------------------%" >> $SUF
         echo "fshome = getenv('FREESURFER_HOME');"                     >> $SUF
-        echo "fsmatlab = sprintf('%s/matlab',fsmatlab);"               >> $SUF
+        echo "fsmatlab = sprintf('%s/matlab',fshome);"                 >> $SUF
         echo "path(path,fsmatlab);"                                    >> $SUF
         echo "clear fshome fsmatlab;"                                  >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
