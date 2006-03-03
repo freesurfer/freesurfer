@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.12 2006/03/02 22:35:58 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.13 2006/03/03 00:40:37 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.12 2006/03/02 22:35:58 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.13 2006/03/03 00:40:37 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -67,19 +67,6 @@ if [[ -z "$USER" || -z "$PS1" ]]; then
     output=0
 fi
 
-if [ $output == 1 ]; then
-    if [ -e build-stamp.txt ]; then 
-	echo "`cat build-stamp.txt`"
-    fi
-    echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
-    if [[ "$1" == "--version" || \
-        "$1" == "--V" || \
-        "$1" == "-V" || \
-        "$1" == "-v" ]]; then
-        echo $VERSION
-    fi
-fi
-
 ## Check if FREESURFER_HOME variable exists, then check if the actual
 ## directory exists.
 if [ -z "$FREESURFER_HOME" ]; then
@@ -94,6 +81,19 @@ if [ ! -d $FREESURFER_HOME ]; then
     echo "ERROR: $FREESURFER_HOME "
     echo "       does not exist. Check that this value is correct.";
     return 1;
+fi
+
+if [ $output == 1 ]; then
+    if [ -e $FREESURFER_HOME/build-stamp.txt ]; then 
+	echo "`cat $FREESURFER_HOME/build-stamp.txt`"
+    fi
+    echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
+    if [[ "$1" == "--version" || \
+        "$1" == "--V" || \
+        "$1" == "-V" || \
+        "$1" == "-v" ]]; then
+        echo $VERSION
+    fi
 fi
 
 ## Now we'll set directory locations based on FREESURFER_HOME for use
