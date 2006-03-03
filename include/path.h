@@ -1,6 +1,14 @@
 #ifndef PATHS_INCLUDED
 #define PATHS_INCLUDED
 
+#define _GNU_SOURCE
+#include <stdio.h>
+#ifdef Darwin
+// Mac OS X doesnt have gnulib, so it doesn't have getline, 
+// so the source for getline is found here in utils and built on the Mac
+#include "getline.h"
+#endif 
+
 #include "label.h"
 
 /* One of these for every point in the path. */
