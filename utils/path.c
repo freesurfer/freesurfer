@@ -301,3 +301,126 @@ int PathFree (PATH** path)
       
   return (ERROR_NONE);
 }
+
+int PathIsPathFile (char* fname)
+{
+
+  FILE*  fp           = NULL;
+  int    is_path_file = 0;
+
+  /* Open the file. */
+  fp = fopen (fname, "r");
+  if (NULL == fp)
+    return 0;
+
+  /* Run the stream version. */
+  is_path_file = PathIsPathFileStream (fp);
+
+  /* Close the file. */
+  fclose (fp);
+  
+  return is_path_file;
+}
+
+int PathIsPathFileStream (FILE* fp)
+{
+
+  char*  line       = NULL;
+  size_t size       = 1024;
+  char*  needle     = NULL;
+  int    found      = 0;
+
+  found = 0;
+
+  /* Line buffer. */
+  line = (char*) malloc (size);
+  
+  while (!feof(fp) && !found)
+    {
+      /* Get a line. */
+      getline (&line, &size, fp);
+
+      /* If it's a comment line. */
+      if (line[0] == '#')
+	{
+	  /* Look for the Path string. It's a path file if so. */
+	  needle = strstr( line, "Path" );
+	  if( NULL != needle ) 
+	    {
+	      found = 1;
+	      break;
+	    }
+	}
+    }
+
+  free (line);
+
+  return found;
+}
+
+int PathConvertToLabel (PATH* path, LABEL** label)
+{
+  LABEL* new_label = NULL;
+  int    pno       = 0;
+
+  if (NULL == path)
+    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "Path pointer was null"));
+
+  if (NULL == label)
+    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "Label pointer not null"));
+
+  /* Make a label the size of first path. */
+  new_label = LabelAlloc (path->n_points, NULL, NULL);
+  if (NULL == new_label)
+    ErrorReturn (ERROR_NO_MEMORY, 
+		 (ERROR_NO_MEMORY, "Couldn't allocate label of %d points",
+		  path->n_points));
+
+  new_label->n_points = path->n_points;
+
+  /* Write all the path points to the label. */
+  for (pno = 0; pno < path->n_points; pno++)
+    {
+      new_label->lv[pno].x = path->points[pno].x;
+      new_label->lv[pno].y = path->points[pno].y;
+      new_label->lv[pno].z = path->points[pno].z;
+      new_label->lv[pno].vno = -1;
+    }
+
+  /* Return the label. */
+  *label = new_label;
+
+  return (ERROR_NONE);
+}
+
+int PathCreateFromLabel (LABEL* label, PATH** path)
+{
+  PATH* new_path = NULL;
+  int   pno      = 0;
+  
+  if (NULL == label)
+    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "Label pointer was null"));
+
+  if (NULL == path)
+    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "Path pointer was null"));
+
+  /* Make the path. */
+  new_path = PathAlloc (label->n_points, NULL);
+  if (NULL == path)
+    ErrorReturn (ERROR_NO_MEMORY, 
+		 (ERROR_NO_MEMORY, "Couldn't allocate path of %d points",
+		  label->n_points));
+
+  /* Read points into the path from the label. */
+  for (pno = 0; pno < label->n_points; pno++ )
+    {
+      new_path->points[pno].x = label->lv[pno].x;
+      new_path->points[pno].y = label->lv[pno].y;
+      new_path->points[pno].z = label->lv[pno].z;
+    }      
+  
+  /* Return the path. */
+  *path = new_path;
+
+  return (ERROR_NONE);
+}
