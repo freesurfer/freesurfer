@@ -1,6 +1,7 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.41 2006/03/03 20:46:38 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.42 2006/03/03 21:05:11 nicks Exp $'
+
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -54,9 +55,9 @@ if ("${RELEASE_TYPE}" == "stable") then
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
   set QTDIR=/usr/pubsw/packages/qt
   if (-e ${QTDIR}/3.3.5) then
-    setenv QTDIR=${QTDIR}/3.3.5
+    setenv QTDIR ${QTDIR}/3.3.5
   else if (-e ${QTDIR}/3.3.4) then
-    setenv QTDIR=${QTDIR}/3.3.4
+    setenv QTDIR ${QTDIR}/3.3.4
   endif
   set FSLDIR=/usr/pubsw/packages/fsl
   if (-e ${FSLDIR}/3.2b) then
