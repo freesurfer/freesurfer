@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.7 2006/01/01 20:12:47 greve Exp $
+// $Id: mri_concat.c,v 1.8 2006/03/03 00:10:49 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,22 +26,25 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.7 2006/01/01 20:12:47 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.8 2006/03/03 00:10:49 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
-char *inlist[100];
+char *inlist[5000];
 int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout;
 int DoMean=0;
 int DoPairedDiff=0;
+int DoPairedDiffNorm=0;
+int DoPairedDiffNorm1=0;
+int DoPairedDiffNorm2=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
   int r,c,s,f;
-  double v, v1, v2;
+  double v, v1, v2, vavg;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -98,6 +101,9 @@ int main(int argc, char **argv)
 
   fout = 0;
   for(nthin = 0; nthin < ninputs; nthin++){
+    printf("---=====------=========----=======-----========---------\n");
+    printf("#@# %d th input \n",nthin);
+    fflush(stdout);
     mritmp = MRIread(inlist[nthin]);
     if(nthin == 0) {
       MRIcopyHeader(mritmp, mriout);
@@ -128,7 +134,20 @@ int main(int argc, char **argv)
 	  for(f=0; f < mriout->nframes; f+=2){
 	    v1 = MRIgetVoxVal(mriout,c,r,s,f);
 	    v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
-	    MRIsetVoxVal(mritmp,c,r,s,fout,v1-v2);
+	    v = v1-v2; // difference
+	    if(DoPairedDiffNorm){
+	      vavg = (v1+v2)/2.0;
+	      if(vavg != 0.0) v = v/vavg;
+	    }
+	    if(DoPairedDiffNorm1) {
+	      if(v1 != 0.0) v = v/v1;
+	      else v = 0;
+	    }
+	    if(DoPairedDiffNorm2){
+	      if(v2 != 0.0) v = v/v2;
+	      else v = 0;
+	    }
+	    MRIsetVoxVal(mritmp,c,r,s,fout,v);
 	    fout++;
 	  }
 	}
@@ -178,6 +197,18 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
     else if (!strcasecmp(option, "--paired-diff")) DoPairedDiff = 1;
+    else if (!strcasecmp(option, "--paired-diff-norm")) {
+      DoPairedDiff = 1;
+      DoPairedDiffNorm = 1;
+    }
+    else if (!strcasecmp(option, "--paired-diff-norm1")) {
+      DoPairedDiff = 1;
+      DoPairedDiffNorm1 = 1;
+    }
+    else if (!strcasecmp(option, "--paired-diff-norm2")) {
+      DoPairedDiff = 1;
+      DoPairedDiffNorm2 = 1;
+    }
 
     else if ( !strcmp(option, "--i") ) {
       if(nargc < 1) argnerr(option,1);
@@ -218,6 +249,9 @@ static void print_usage(void)
   printf("   --o out \n");
   printf("\n");
   printf("   --paired-diff : compute paired diff (1-2, 3-4, etc) \n");
+  printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
+  printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
+  printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
@@ -238,6 +272,8 @@ static void print_help(void)
   printf("  mri_concat f*.mgh --o cout.mgh\n");
   printf("  mri_concat f*.mgh --o coutmn.mgh --mean\n");
   printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff\n");
+  printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm\n");
+  printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm1\n");
 
   exit(1) ;
 }
@@ -267,6 +303,19 @@ static void check_options(void)
     printf("ERROR: no output specified\n");
     exit(1);
   }
+  if(DoPairedDiffNorm1 && DoPairedDiffNorm2){
+    printf("ERROR: cannot specify both --paried-diff-norm1 and --paried-diff-norm2 \n");
+    exit(1);
+  }
+  if(DoPairedDiffNorm && DoPairedDiffNorm1){
+    printf("ERROR: cannot specify both --paried-diff-norm and --paried-diff-norm1 \n");
+    exit(1);
+  }
+  if(DoPairedDiffNorm && DoPairedDiffNorm2){
+    printf("ERROR: cannot specify both --paried-diff-norm and --paried-diff-norm2 \n");
+    exit(1);
+  }
+
   return;
 }
 
