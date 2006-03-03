@@ -31,7 +31,13 @@ Invert mask, ie, compute FWHM only over voxels outside the given mask.
 
 --out-mask outmaskfile
 
-Save final mask to outmaskfile.
+Save final mask to outmaskfile. This mask does not include any eroding.
+
+--nerode n
+
+Erode mask n times prior to computing the fwhm. This applies only
+to the fwhm computation and not the smoothing. This assures that
+the fwhm is not computed near the edges of the mask.
 
 --X x.mat
 
@@ -113,7 +119,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.3 2006/03/02 03:08:56 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.4 2006/03/03 06:22:00 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -143,11 +149,12 @@ MATRIX *X=NULL;
 int DetrendOrder = -1;
 int automask = 0;
 double automaskthresh = .1;
+int nerode = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs, n, Ntp, nsearch;
+  int nargs, n, Ntp, nsearch, nsearch2=0;
   double fwhm = 0, nresels, voxelvolume, nvoxperresel, reselvolume;
   double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm, ftmp; 
   double gmean, gstd, gmax;
@@ -257,6 +264,17 @@ int main(int argc, char *argv[])
     MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
   }
 
+  if(nerode > 0){
+    printf("Eroding mask %d times\n",nerode);
+    for(n=0; n<nerode; n++) MRIerode(mask,mask);
+    nsearch2 = MRInMask(mask);
+    if(nsearch2 == 0){
+      printf("ERROR: no voxels found in mask after eroding\n");
+      exit(1);
+    }
+    printf("%d voxels in mask after eroding\n",nsearch2);
+  }
+
   // ----------- Compute smoothness -----------------------------
   printf("Computing spatial AR1 in volume.\n");
   fMRIspatialAR1Mean(InVals, mask, &car1mn, &rar1mn, &sar1mn);
@@ -287,6 +305,7 @@ int main(int argc, char *argv[])
       exit(1);
     }
     dump_options(fp);
+    fprintf(fp,"nsearch2        %d\n",nsearch2);
     fprintf(fp,"searchspace_vox %d\n",nsearch);
     fprintf(fp,"searchspace_mm3 %lf\n",nsearch*voxelvolume);
     fprintf(fp,"voxelvolume_mm3 %g\n",voxelvolume);
@@ -376,6 +395,11 @@ static int parse_commandline(int argc, char **argv)
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--nerode")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nerode);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--synth-frames")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframes);
@@ -431,8 +455,11 @@ static void print_usage(void)
   printf("   --mask-thresh absthresh : threshold for mask (default is .5)\n");
   printf("   --auto-mask rthresh : compute mask\n");
   printf("   --mask-inv : invert mask\n");
+  printf("   --nerode n : erode mask n times prior to computing fwhm\n");
+  printf("   \n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --detrend order : polynomial detrending\n");
+  printf("   \n");
   printf("   --sum sumfile\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
@@ -486,7 +513,13 @@ printf("Invert mask, ie, compute FWHM only over voxels outside the given mask.\n
 printf("\n");
 printf("--out-mask outmaskfile\n");
 printf("\n");
-printf("Save final mask to outmaskfile.\n");
+printf("Save final mask to outmaskfile. This mask does not include any eroding.\n");
+printf("\n");
+printf("--nerode n\n");
+printf("\n");
+printf("Erode mask n times prior to computing the fwhm. This applies only\n");
+printf("to the fwhm computation and not the smoothing. This assures that\n");
+printf("the fwhm is not computed near the edges of the mask.\n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
@@ -578,6 +611,7 @@ static void dump_options(FILE *fp)
   if(mask) {
     fprintf(fp,"maskthresh %g\n",maskthresh);
     fprintf(fp,"maskinv %d\n",maskinv);
+    fprintf(fp,"nerode  %d\n",nerode);
   }
   if(outmaskpath) fprintf(fp,"outmask  %s\n",outmaskpath);
   if(synth){
