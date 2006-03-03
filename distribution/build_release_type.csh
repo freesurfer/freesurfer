@@ -1,10 +1,13 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.40 2006/03/02 22:51:11 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.41 2006/03/03 20:46:38 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
 umask 002
+
+set SUCCESS_MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
@@ -13,7 +16,7 @@ if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
 if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 set OS=${OSTYPE}
-set PLATFORM=`cat /usr/local/freesurfer/PLATFORM`
+setenv PLATFORM "`cat /usr/local/freesurfer/PLATFORM`"
 
 # Set up directories.
 ######################################################################
@@ -41,13 +44,41 @@ endif
 set SCRIPT_DIR=/space/freesurfer/build/scripts
 set LOG_DIR=/space/freesurfer/build/logs
 
-# this QTDIR path is also used in the configure command further below
-setenv QTDIR /usr/pubsw/packages/qt/current
-setenv GLUT_DYLIB_DIR ""
+# dev build use latest-and-greatest package libs
+# stable build use explicit package versions (for stability)
+if ("${RELEASE_TYPE}" == "stable") then
+  set MNIDIR=/usr/pubsw/packages/mni/1.4
+  set GSLDIR=/usr/pubsw/packages/gsl/1.6
+  set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
+  set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
+  set QTDIR=/usr/pubsw/packages/qt
+  if (-e ${QTDIR}/3.3.5) then
+    setenv QTDIR=${QTDIR}/3.3.5
+  else if (-e ${QTDIR}/3.3.4) then
+    setenv QTDIR=${QTDIR}/3.3.4
+  endif
+  set FSLDIR=/usr/pubsw/packages/fsl
+  if (-e ${FSLDIR}/3.2b) then
+    set FSLDIR=${FSLDIR}/3.2b
+  else if (-e ${FSLDIR}/3.2) then
+    set FSLDIR=${FSLDIR}/3.2
+  endif
+else
+  set MNIDIR=/usr/pubsw/packages/mni/current
+  set GSLDIR=/usr/pubsw/packages/gsl/current
+  set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
+  set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set QTDIR=/usr/pubsw/packages/qt/current
+  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
+  set FSLDIR=/usr/pubsw/packages/fsl/current
+endif
+
 # on Mac OS X Tiger, glut is not automatically in lib path.
 # also, need /sw/bin to get latex and dvips
+setenv GLUT_DYLIB_DIR ""
 if ("$OSTYPE" == "Darwin") then
-  set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/current/lib
+  set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
@@ -57,9 +88,6 @@ setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 # Output files (OUTPUTF and CVSUPDATEF)
 ######################################################################
 #
-set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
 set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
@@ -112,6 +140,9 @@ echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
 echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
 echo "DEV_DIR $DEV_DIR" >>& $OUTPUTF
 echo "DEST_DIR $DEST_DIR" >>& $OUTPUTF
+if( $?PUB_DEST_DIR ) then 
+  echo "PUB_DEST_DIR $PUB_DEST_DIR" >>& $OUTPUTF
+endif
 if( $?CFLAGS ) then 
   echo "CFLAGS $CFLAGS" >>& $OUTPUTF
 endif
@@ -206,7 +237,7 @@ grep -e ^\[UP\]\   $CVSUPDATEF >& /dev/null
 if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes"
-  mail -s "$msg" $MAIL_LIST < $OUTPUTF
+  mail -s "$msg" $SUCCESS_MAIL_LIST < $OUTPUTF
   echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
   cat $CVSUPDATEF >>& $OUTPUTF
   echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
@@ -249,10 +280,10 @@ echo "CMD: ./configure..." >>& $OUTPUTF
 # the default /bin.  later, after make install, bin-new is moved to /bin.
 # this is to minimize disruption of machines running recon-all.
 ./configure \
---with-mni-dir=/usr/pubsw/packages/mni/current \
---with-gsl-dir=/usr/pubsw/packages/gsl/current \
---with-tcl-dir=/usr/pubsw/packages/tcltktixblt/current \
---with-tixwish=/usr/pubsw/packages/tcltktixblt/current/bin/tixwish8.1.8.4 \
+--with-mni-dir=${MNIDIR} \
+--with-gsl-dir=${GSLDIR} \
+--with-tcl-dir=${TCLDIR} \
+--with-tixwish=${TIXWISH} \
 --with-qt-dir=${QTDIR} \
 --prefix=${DEST_DIR} \
 --bindir=${DEST_DIR}/bin-new \
@@ -383,7 +414,6 @@ if ($?PUB_DEST_DIR) then
   chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
 endif
 
-
 #
 # ensure that the symlinks to the necessary packages are in place
 #
@@ -404,34 +434,15 @@ foreach destdir ($DEST_DIR_LIST)
   rm -f $destdir/lib/gsl
   rm -f $destdir/lib/qt
   rm -f $destdir/lib/misc
-
   # then setup for proper installation
-  if ("$RELEASE_TYPE" == "stable") then
-  #  stable enviro points to explicit versions
-    set cmd1=(ln -s /usr/pubsw/packages/mni/1.4 $destdir/mni)
-    if (-e /usr/pubsw/packages/fsl/3.2b) then
-      set cmd2=(ln -s /usr/pubsw/packages/fsl/3.2b $destdir/fsl)
-    else
-      set cmd2=(ln -s /usr/pubsw/packages/fsl/3.2 $destdir/fsl)
-    endif
-    set cmd3=(ln -s /usr/pubsw/packages/tcltktixblt/8.4.6 $destdir/lib/tcltktixblt)
-    set cmd4=(ln -s /usr/pubsw/packages/gsl/1.6 $destdir/lib/gsl)
-    set cmd5=(ln -s /usr/pubsw/packages/qt/3.3.5 $destdir/lib/qt)
-    if ("$OSTYPE" == "Darwin") then
-      set cmd6=(ln -s /usr/pubsw/packages/tiffjpegglut/1.0 $destdir/lib/misc)
-    endif
-  else 
-  #  dev enviro points to current versions (which may be newer)
-    set cmd1=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
-    set cmd2=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
-    set cmd3=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
-    set cmd4=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
-    set cmd5=(ln -s /usr/pubsw/packages/qt/current $destdir/lib/qt)
-    if ("$OSTYPE" == "Darwin") then
-      set cmd6=(ln -s /usr/pubsw/packages/tiffjpegglut/current $destdir/lib/misc)
-    endif
+  set cmd1=(ln -s ${MNIDIR} $destdir/mni)
+  set cmd2=(ln -s ${FSLDIR} $destdir/fsl)
+  set cmd3=(ln -s ${TCLDIR} $destdir/lib/tcltktixblt)
+  set cmd4=(ln -s ${GSLDIR} $destdir/lib/gsl)
+  set cmd5=(ln -s ${QTDIR}  $destdir/lib/qt)
+  if ("$OSTYPE" == "Darwin") then
+      set cmd6=(ln -s ${MISCDIR} $destdir/lib/misc)
   endif
-
   # execute the commands
   echo "$cmd1" >>& $OUTPUTF
   $cmd1
@@ -447,14 +458,12 @@ foreach destdir ($DEST_DIR_LIST)
     echo "$cmd6" >>& $OUTPUTF
     $cmd6
   endif
-
   # also setup sample subject:
   rm -f $destdir/subjects/bert
   set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
   echo "$cmd" >>& $OUTPUTF
   $cmd
 end
-
 
 #
 # On the Mac, for the Qt apps to work, the binary in the bin directory
@@ -476,29 +485,29 @@ if ("$OSTYPE" == "Darwin") then
   end
 endif
 
-
-# If building stable-pub, then create a tarball
-if ("$RELEASE_TYPE" == "stable") then
-  $SCRIPT_DIR/create_targz.csh $PLATFORM stable-pub
-endif
-
-
-# Success, so remove fail indicator:
-rm -rf ${FAILED_FILE}
-
-
 # create a build-stamp file, containing some basic info on this build
 # which is displayed when FreeSurferEnv.csh is executed
 if ("$RELEASE_TYPE" == "stable") then
-  # Note: this stable build version info is hard-coded here!
-  echo "-------------- FreeSurfer stable3 (v3.0) --------------" \
+  # Note: this stable build version info is hard-coded here! so it
+  # should be updated here with each release
+  echo "--------- freesurfer-${OSTYPE}-${PLATFORM}-stable-v3.0 ---------" \
     > ${DEST_DIR}/build-stamp.txt
   if ($?PUB_DEST_DIR) cp ${DEST_DIR}/build-stamp.txt ${PUB_DEST_DIR}/
 else
-  setenv DEV_STAMP "dev`date +%Y-%m-%d-%H:%M`"
-  echo "----------- FreeSurfer ${DEV_STAMP} -----------" \
+  setenv DEV_STAMP "dev`date +%Y%m%d`"
+  echo "------ freesurfer-${OSTYPE}-${PLATFORM}-${DEV_STAMP} ------" \
     > ${DEST_DIR}/build-stamp.txt
 endif
+
+# If building stable-pub, then create a tarball
+if ("$RELEASE_TYPE" == "stable") then
+  set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM stable-pub)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+endif
+
+# Success, so remove fail indicator:
+rm -rf ${FAILED_FILE}
 
 
 done:
@@ -519,5 +528,5 @@ gzip -f ${LOG_DIR}/build_log-$RELEASE_TYPE-$HOSTNAME-$TIME_STAMP.txt
 # Send email.
 echo "Begin ${BEGIN_TIME}, end ${END_TIME}" >& $LOG_DIR/message-$HOSTNAME.txt
 set msg="$HOSTNAME $RELEASE_TYPE build is wicked awesome."
-mail -s "$msg" $MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
+mail -s "$msg" $SUCCESS_MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
 rm $LOG_DIR/message-$HOSTNAME.txt
