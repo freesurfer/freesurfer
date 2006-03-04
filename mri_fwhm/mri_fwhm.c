@@ -1,19 +1,51 @@
 /*
 BEGINHELP
 
-Estimates the smoothness of a volume-based data set. The smoothness is
-measured as the Full-Width-Half-Max (FWHM) in mm and resel size.
+FreeSurfer program to estimate the global Gaussian smoothness of a
+multi-frame, volume-based data set. The smoothness is measured as the
+Full-Width-Half-Max (FWHM) in mm.  Gaussian stddev =
+fwhm/sqrt(log(256.0)). The voxels used in the fwhm estimation can be
+constrained to be inside of a mask. It is STRONGLY recommended that a
+masked be used. The mask can be specified explictly or computed
+automatically. By default, the time course will be detrended by
+removing the mean. Higher order polynomial detrending is
+possible. Alternatively, the user can specify a detrending matrix. The
+data can be smoothed BY a given fwhm or TO a given fwhm prior to
+estimating the fwhm.  The resulting data can then be saved (thus
+turning this program into a smoother). If smoothing is to be done, it
+will only be done inside the mask (except see --save-unmasked).
+
+For more info, see surfer.nmr.mgh.harvard.edu. For help, send email
+and summary file to  freesurfer@nmr.mgh.harvard.edu.
 
 --i inputvol
 
 Input data. Format must be something readable by mri_convert
-(eg, mgh, mgz, img, nii). Alternately, one can synthesize
-white gaussian noise with --synth and --synth-frames.
+(eg, mgh, mgz, img, nii, nii.gz). Alternately, one can synthesize
+white gaussian noise with --synth and --synth-frames in which
+case inputvol is used as a dimension template.
 
---mask maskfile
+--o outputvol
+
+Save input after smoothing. See also --save-detended and --save-unmasked.
+
+--save-detended
+
+Save input after smoothing, masking, and detrending.
+
+--save-unmasked
+
+Save input after smoothing and detrending, but do not mask while
+smoothing. Note that the output will be different even inside
+the mask because the smoother handles voxels on the boundary
+of the mask differently than those at the center.
+
+--mask maskvol
 
 Compute FWHM only over voxels in the given mask. Format can be anything
-accepted by mri_convert.
+accepted by mri_convert. If smoothing is to be done, it will only be
+done inside the mask. It is strongly recommended that a masked be used
+(see also --auto-mask and --save-unmasked).
 
 --mask-thresh thresh
 
@@ -29,44 +61,73 @@ are in the mask.
 
 Invert mask, ie, compute FWHM only over voxels outside the given mask.
 
---out-mask outmaskfile
-
-Save final mask to outmaskfile. This mask does not include any eroding.
-
 --nerode n
 
-Erode mask n times prior to computing the fwhm. This applies only
-to the fwhm computation and not the smoothing. This assures that
-the fwhm is not computed near the edges of the mask.
+Erode mask n times (ie, make it smaller). Occurs after any mask inversion.
+
+--out-mask outmaskvol
+
+Save final mask to outmaskvol. 
 
 --X x.mat
 
-Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where
-y is the input. x.mat must be a matlab4 matrix. Not with --detrend.
+Detrend/residualize data with the matrix in x.mat. Ie, 
+y = (I-inv(X'*X)*X')*y, where y is the input. x.mat must 
+be a matlab4 matrix. Not with --detrend.
 
 --detrend order
 
-Detrend data with polynomial of given order. Not with --X.
-
---sum sumfile
-
-Prints ascii summary to sumfile.
+Detrend data with polynomial of given order. Not with --X. Note:
+if neither --X nor --detrend are specified, then detrending
+order of 0 is used (ie, the mean is removed).
 
 --fwhm fwhm
 
-Smooth by fwhm mm before estimating the fwhm. This is mainly good for 
+Smooth BY fwhm mm before estimating the fwhm. This is mainly good for 
 debuggging. But with --out can also be used to smooth data.
 
---o outvol
+--to-fwhm tofwhm
 
-Save (possibly synthesized and/or smoothed and/or detrended and/or masked) data 
-to outfile. Automatically detects format. Format must be one accepted as by 
-mri_convert. 
+Smooth TO tofwhm mm. This is idea proposed by Lee Friedman 
+(lfriedman10@comcast.net) and fBIRN (www.birn.net) as a way to 
+reduce variation across data sets, particularly when the data 
+may have come from different scanners. The method implemented
+here uses an iterative approach in which the data are smoothed
+BY varying amounmts until the resulting fwhm is within a certain
+tolerance of tofwhm. By default, the tolerance is 0.5 mm, but 
+can be changed with --to-fwhm-tol. It will iterate at most 20
+times (can be changed with --to-fwhm-nmax). An error will be 
+returned if the tofwhm is less than the inherent fwhm or the max 
+number of iterations is exceeded. The minimization is done with 
+a Golden Section Search (see Numerical Recipes in C).
+
+--to-fwhm-tol tol
+
+Keep iterating the tofwhm search until the result is within tol
+of the desired fwhm (or until the maximum number of iterations
+is reached).
+
+--to-fwhm-nmax niterationsmax
+
+Maximum number of iterations. Default is 20.
+
+--to-fwhm-file file
+
+Save some results of the tofwhm minimization to file. Good for 
+debugging. Results also saved in summary file.
+
+--sum sumfile
+
+Prints summary to ascii sumfile. Send this file when requesting
+help or more information.
 
 --synth 
 
 Synthesize input with white gaussian noise. Ten frames are used by default,
-but this can be changed with --synth-frames.
+but this can be changed with --synth-frames. Uses input volume as template.
+This functionality is useful for degugging. Eg, when using --synth and --fwhm,
+it should measure the resulting fwhm to be that passed by --fwhm. Can do
+the same with --to-fwhm.
 
 --synth-frames nframes
 
@@ -108,7 +169,8 @@ double round(double x);
 #include "matfile.h"
 
 MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM, 
-			       double *pByFWHM, double tol, double *pToFWHMActual, 
+			       double tol, int nitersmax,
+			       double *pByFWHM, double *pToFWHMActual, int *niters,
 			       MRI *outvol);
 
 int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
@@ -127,7 +189,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.5 2006/03/04 19:31:16 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.6 2006/03/04 21:52:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -138,6 +200,7 @@ char *inpath=NULL;
 char *outpath=NULL;
 char *sumfile=NULL;
 MRI *InVals=NULL;
+MRI *InValsCopy=NULL;
 
 char *maskpath=NULL;
 MRI *mask=NULL;
@@ -149,13 +212,19 @@ MRI *mritmp=NULL;
 char tmpstr[2000];
 
 double infwhm = 0, ingstd = 0;
-double byfwhm, tofwhm, tofwhmact;
+double byfwhm, tofwhm, tofwhmact, tofwhmtol=0.5;
+double bygstd;
+char *tofwhmfile = NULL;
+int tofwhmnitersmax = 20;
+int tofwhmniters;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
 int DetrendOrder = -1;
+int SaveDetrended = 0;
+int SaveUnmasked = 0;
 int automask = 0;
 double automaskthresh = .1;
 int nerode = 0;
@@ -193,6 +262,10 @@ int main(int argc, char *argv[])
   if(!synth){
     InVals = MRIread(inpath);
     if(InVals == NULL) exit(1);
+    if(InVals->nframes < 10){
+      printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
+      exit(1);
+    }
     if(InVals->type != MRI_FLOAT){
       mritmp = MRISeqchangeType(InVals, MRI_FLOAT, 0, 0, 0);
       MRIfree(&InVals);
@@ -202,9 +275,14 @@ int main(int argc, char *argv[])
   else{
     InVals = MRIreadHeader(inpath,MRI_VOLUME_TYPE_UNKNOWN);
     if(InVals == NULL) exit(1);
+    if(InVals->nframes < 10){
+      printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
+      exit(1);
+    }
     if(InVals->type != MRI_FLOAT) InVals->type = MRI_FLOAT;
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
-    InVals = MRIrandn(InVals->width, InVals->height, InVals->depth, nframes,0, 1, NULL);
+    InVals = MRIrandn(InVals->width, InVals->height, InVals->depth, nframes,
+		      0, 1, NULL);
   }
   voxelvolume = InVals->xsize * InVals->ysize * InVals->zsize ;
   printf("voxelvolume %g mm3\n",voxelvolume);
@@ -236,12 +314,25 @@ int main(int argc, char *argv[])
       printf("ERROR: no voxels found in mask\n");
       exit(1);
     }
+    // Erode the mask -----------------------------------------------
+    if(nerode > 0){
+      printf("Eroding mask %d times\n",nerode);
+      for(n=0; n<nerode; n++) MRIerode(mask,mask);
+      nsearch2 = MRInMask(mask);
+      if(nsearch2 == 0){
+	printf("ERROR: no voxels found in mask after eroding\n");
+	exit(1);
+      }
+      printf("%d voxels in mask after eroding\n",nsearch2);
+    }
     //---- Save mask -----
     if(outmaskpath) MRIwrite(mask,outmaskpath);
   }
   else nsearch = InVals->width * InVals->height * InVals->depth;
   printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
 
+  // Make a copy, if needed, prior to doing anything to data
+  if(outpath) InValsCopy = MRIcopy(InVals,NULL);
 
   //------------------------ Detrend ------------------
   if(DetrendOrder >= 0){
@@ -267,27 +358,58 @@ int main(int argc, char *argv[])
     InVals = mritmp;
   }
 
-  // ------------ Smooth Input ---------------------------------
+  // ------------ Smooth Input By infwhm -------------------------
   if(infwhm > 0){
     printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
     MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
   }
+  // ------------ Smooth Input To fwhm -------------------------
   if(tofwhm > 0){
-    printf("Attempting to smooth to %g fwhm\n",tofwhm);
-    mritmp = MRImaskedGaussianSmoothTo(InVals, mask, tofwhm, &byfwhm, .5, &tofwhmact, InVals);
+    printf("Attempting to smooth to %g +/- %g mm fwhm (nitersmax=%d)\n",
+	   tofwhm,tofwhmtol,tofwhmnitersmax);
+    mritmp = MRImaskedGaussianSmoothTo(InVals, mask, tofwhm, 
+				       tofwhmtol, tofwhmnitersmax,
+				       &byfwhm, &tofwhmact, &tofwhmniters,
+				       InVals);
     if(mritmp == NULL) exit(1);
-    printf("Smoothed by %g to %g \n",byfwhm,tofwhmact);
+    printf("Smoothed by %g to %g in %d iterations\n",
+	   byfwhm,tofwhmact,tofwhmniters);
+    if(tofwhmfile){
+      fp = fopen(tofwhmfile,"w");
+      if(!fp){
+	printf("ERROR: opening %s\n",tofwhmfile);
+	exit(1);
+      }
+      fprintf(fp,"tofwhm    %lf\n",tofwhm);
+      fprintf(fp,"tofwhmtol %lf\n",tofwhmtol);
+      fprintf(fp,"tofwhmact %lf\n",tofwhmact);
+      fprintf(fp,"byfwhm    %lf\n",byfwhm);
+      fprintf(fp,"niters    %d\n",tofwhmniters);
+      fprintf(fp,"nitersmax %d\n",tofwhmnitersmax);
+      fclose(fp);
+    }
   }
 
-  if(nerode > 0){
-    printf("Eroding mask %d times\n",nerode);
-    for(n=0; n<nerode; n++) MRIerode(mask,mask);
-    nsearch2 = MRInMask(mask);
-    if(nsearch2 == 0){
-      printf("ERROR: no voxels found in mask after eroding\n");
-      exit(1);
+  // ------ Save smoothed/detrended ------------------------------
+  if(outpath){
+    printf("Saving to %s\n",outpath);
+    // Smoothed output will not be masked
+    if(SaveDetrended && X){
+      mritmp = fMRIdetrend(InValsCopy,X);
+      if(mritmp == NULL) exit(1);
+      MRIfree(&InValsCopy);
+      InValsCopy = mritmp;
     }
-    printf("%d voxels in mask after eroding\n",nsearch2);
+    if(SaveUnmasked) mritmp = NULL;
+    else             mritmp = mask;
+    if(infwhm > 0) 
+      MRImaskedGaussianSmooth(InValsCopy, mritmp, ingstd, InValsCopy);
+    if(tofwhm > 0) {
+      bygstd = byfwhm/sqrt(log(256.0));
+      MRImaskedGaussianSmooth(InValsCopy, mritmp, bygstd, InValsCopy);
+    }
+    MRIwrite(InValsCopy,outpath);
+    MRIfree(&InValsCopy);
   }
 
   // ----------- Compute smoothness -----------------------------
@@ -336,7 +458,6 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
-  if(outpath) MRIwrite(InVals,outpath);
 
   return 0;
 }
@@ -372,6 +493,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
+    else if (!strcasecmp(option, "--save-detrended")) SaveDetrended = 1;
+    else if (!strcasecmp(option, "--save-unmasked")) SaveUnmasked = 1;
 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -410,9 +533,24 @@ static int parse_commandline(int argc, char **argv)
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--tofwhm")){
+    else if (!strcasecmp(option, "--to-fwhm")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&tofwhm);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--to-fwhm-tol")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&tofwhmtol);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--to-fwhm-nmax")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&tofwhmnitersmax);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--to-fwhm-file")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tofwhmfile = pargv[0];
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--nerode")){
@@ -436,6 +574,10 @@ static int parse_commandline(int argc, char **argv)
       Xfile = pargv[0];
       //X = MatrixReadTxt(Xfile, NULL);
       X = MatlabRead(Xfile);
+      if(X == NULL){
+	printf("ERROR: reading %s\n",Xfile);
+	exit(1);
+      }
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--detrend")){
@@ -469,23 +611,29 @@ static void print_usage(void)
 {
   printf("USAGE: %s\n",Progname) ;
   printf("\n");
-  printf("   --i inputvol\n");
+  printf("   --i inputvol  : input volume\n");
+  printf("   --o outputvol : save input after smoothing\n");
+  printf("   --save-detrended : detrend output when saving\n");
+  printf("   --save-unmasked  : do not mask outputvol\n");
   printf("\n");
   printf("   --mask maskvol : binary mask\n");
   printf("   --mask-thresh absthresh : threshold for mask (default is .5)\n");
   printf("   --auto-mask rthresh : compute mask\n");
-  printf("   --mask-inv : invert mask\n");
   printf("   --nerode n : erode mask n times prior to computing fwhm\n");
-  printf("   \n");
-  printf("   --X x.mat : matlab4 detrending matrix\n");
-  printf("   --detrend order : polynomial detrending\n");
-  printf("   \n");
-  printf("   --sum sumfile\n");
-  printf("   \n");
-  printf("   --fwhm fwhm : apply before measuring\n");
-  printf("   \n");
-  printf("   --o output : save input after detrending, masking, smoothing\n");
+  printf("   --mask-inv : invert mask\n");
   printf("   --out-mask outmask : save final mask\n");
+  printf("\n");
+  printf("   --X x.mat : matlab4 detrending matrix\n");
+  printf("   --detrend order : polynomial detrending (default 0)\n");
+  printf("\n");
+  printf("   --fwhm fwhm : smooth BY fwhm before measuring\n");
+  printf("\n");
+  printf("   --to-fwhm tofwhm : smooth TO fwhm\n");
+  printf("   --to-fwhm-tol tolerance : smooth to fwhm +/- tol (def .5mm)\n");
+  printf("   --to-fwhm-nmax nitersmax : maximum number of iterations (def 20)\n");
+  printf("   --to-fwhm-file file : save to-fwhm params in file\n");
+  printf("\n");
+  printf("   --sum sumfile\n");
   printf("\n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
@@ -503,19 +651,51 @@ static void print_help(void)
 {
   print_usage() ;
 printf("\n");
-printf("Estimates the smoothness of a volume-based data set. The smoothness is\n");
-printf("measured as the Full-Width-Half-Max (FWHM) in mm and resel size.\n");
+printf("FreeSurfer program to estimate the global Gaussian smoothness of a\n");
+printf("multi-frame, volume-based data set. The smoothness is measured as the\n");
+printf("Full-Width-Half-Max (FWHM) in mm.  Gaussian stddev =\n");
+printf("fwhm/sqrt(log(256.0)). The voxels used in the fwhm estimation can be\n");
+printf("constrained to be inside of a mask. It is STRONGLY recommended that a\n");
+printf("masked be used. The mask can be specified explictly or computed\n");
+printf("automatically. By default, the time course will be detrended by\n");
+printf("removing the mean. Higher order polynomial detrending is\n");
+printf("possible. Alternatively, the user can specify a detrending matrix. The\n");
+printf("data can be smoothed BY a given fwhm or TO a given fwhm prior to\n");
+printf("estimating the fwhm.  The resulting data can then be saved (thus\n");
+printf("turning this program into a smoother). If smoothing is to be done, it\n");
+printf("will only be done inside the mask (except see --save-unmasked).\n");
+printf("\n");
+printf("For more info, see surfer.nmr.mgh.harvard.edu. For help, send email\n");
+printf("and summary file to  freesurfer@nmr.mgh.harvard.edu.\n");
 printf("\n");
 printf("--i inputvol\n");
 printf("\n");
 printf("Input data. Format must be something readable by mri_convert\n");
-printf("(eg, mgh, mgz, img, nii). Alternately, one can synthesize\n");
-printf("white gaussian noise with --synth and --synth-frames.\n");
+printf("(eg, mgh, mgz, img, nii, nii.gz). Alternately, one can synthesize\n");
+printf("white gaussian noise with --synth and --synth-frames in which\n");
+printf("case inputvol is used as a dimension template.\n");
 printf("\n");
-printf("--mask maskfile\n");
+printf("--o outputvol\n");
+printf("\n");
+printf("Save input after smoothing. See also --save-detended and --save-unmasked.\n");
+printf("\n");
+printf("--save-detended\n");
+printf("\n");
+printf("Save input after smoothing, masking, and detrending.\n");
+printf("\n");
+printf("--save-unmasked\n");
+printf("\n");
+printf("Save input after smoothing and detrending, but do not mask while\n");
+printf("smoothing. Note that the output will be different even inside\n");
+printf("the mask because the smoother handles voxels on the boundary\n");
+printf("of the mask differently than those at the center.\n");
+printf("\n");
+printf("--mask maskvol\n");
 printf("\n");
 printf("Compute FWHM only over voxels in the given mask. Format can be anything\n");
-printf("accepted by mri_convert.\n");
+printf("accepted by mri_convert. If smoothing is to be done, it will only be\n");
+printf("done inside the mask. It is strongly recommended that a masked be used\n");
+printf("(see also --auto-mask and --save-unmasked).\n");
 printf("\n");
 printf("--mask-thresh thresh\n");
 printf("\n");
@@ -531,44 +711,73 @@ printf("--mask-inv\n");
 printf("\n");
 printf("Invert mask, ie, compute FWHM only over voxels outside the given mask.\n");
 printf("\n");
-printf("--out-mask outmaskfile\n");
-printf("\n");
-printf("Save final mask to outmaskfile. This mask does not include any eroding.\n");
-printf("\n");
 printf("--nerode n\n");
 printf("\n");
-printf("Erode mask n times prior to computing the fwhm. This applies only\n");
-printf("to the fwhm computation and not the smoothing. This assures that\n");
-printf("the fwhm is not computed near the edges of the mask.\n");
+printf("Erode mask n times (ie, make it smaller). Occurs after any mask inversion.\n");
+printf("\n");
+printf("--out-mask outmaskvol\n");
+printf("\n");
+printf("Save final mask to outmaskvol. \n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
-printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where\n");
-printf("y is the input. x.mat must be a matlab4 matrix. Not with --detrend.\n");
+printf("Detrend/residualize data with the matrix in x.mat. Ie, \n");
+printf("y = (I-inv(X'*X)*X')*y, where y is the input. x.mat must \n");
+printf("be a matlab4 matrix. Not with --detrend.\n");
 printf("\n");
 printf("--detrend order\n");
 printf("\n");
-printf("Detrend data with polynomial of given order. Not with --X.\n");
-printf("\n");
-printf("--sum sumfile\n");
-printf("\n");
-printf("Prints ascii summary to sumfile.\n");
+printf("Detrend data with polynomial of given order. Not with --X. Note:\n");
+printf("if neither --X nor --detrend are specified, then detrending\n");
+printf("order of 0 is used (ie, the mean is removed).\n");
 printf("\n");
 printf("--fwhm fwhm\n");
 printf("\n");
-printf("Smooth by fwhm mm before estimating the fwhm. This is mainly good for \n");
+printf("Smooth BY fwhm mm before estimating the fwhm. This is mainly good for \n");
 printf("debuggging. But with --out can also be used to smooth data.\n");
 printf("\n");
-printf("--o outvol\n");
+printf("--to-fwhm tofwhm\n");
 printf("\n");
-printf("Save (possibly synthesized and/or smoothed and/or detrended and/or masked) data \n");
-printf("to outfile. Automatically detects format. Format must be one accepted as by \n");
-printf("mri_convert. \n");
+printf("Smooth TO tofwhm mm. This is idea proposed by Lee Friedman \n");
+printf("(lfriedman10@comcast.net) and fBIRN (www.birn.net) as a way to \n");
+printf("reduce variation across data sets, particularly when the data \n");
+printf("may have come from different scanners. The method implemented\n");
+printf("here uses an iterative approach in which the data are smoothed\n");
+printf("BY varying amounmts until the resulting fwhm is within a certain\n");
+printf("tolerance of tofwhm. By default, the tolerance is 0.5 mm, but \n");
+printf("can be changed with --to-fwhm-tol. It will iterate at most 20\n");
+printf("times (can be changed with --to-fwhm-nmax). An error will be \n");
+printf("returned if the tofwhm is less than the inherent fwhm or the max \n");
+printf("number of iterations is exceeded. The minimization is done with \n");
+printf("a Golden Section Search (see Numerical Recipes in C).\n");
+printf("\n");
+printf("--to-fwhm-tol tol\n");
+printf("\n");
+printf("Keep iterating the tofwhm search until the result is within tol\n");
+printf("of the desired fwhm (or until the maximum number of iterations\n");
+printf("is reached).\n");
+printf("\n");
+printf("--to-fwhm-nmax niterationsmax\n");
+printf("\n");
+printf("Maximum number of iterations. Default is 20.\n");
+printf("\n");
+printf("--to-fwhm-file file\n");
+printf("\n");
+printf("Save some results of the tofwhm minimization to file. Good for \n");
+printf("debugging.\n");
+printf("\n");
+printf("--sum sumfile\n");
+printf("\n");
+printf("Prints summary to ascii sumfile. Send this file when requesting\n");
+printf("help or more information.\n");
 printf("\n");
 printf("--synth \n");
 printf("\n");
 printf("Synthesize input with white gaussian noise. Ten frames are used by default,\n");
-printf("but this can be changed with --synth-frames.\n");
+printf("but this can be changed with --synth-frames. Uses input volume as template.\n");
+printf("This functionality is useful for degugging. Eg, when using --synth and --fwhm,\n");
+printf("it should measure the resulting fwhm to be that passed by --fwhm. Can do\n");
+printf("the same with --to-fwhm.\n");
 printf("\n");
 printf("--synth-frames nframes\n");
 printf("\n");
@@ -595,6 +804,8 @@ static void check_options(void)
     printf("ERROR: cannot use --X and --detrend\n");
     exit(1);
   }
+  // At least remove the mean
+  if(Xfile == NULL && DetrendOrder < 0) DetrendOrder = 0;
   if(maskpath && automask){
     printf("ERROR: cannot use --mask and --auto-mask\n");
     exit(1);
@@ -626,6 +837,13 @@ static void dump_options(FILE *fp)
   if(DetrendOrder >= 0) fprintf(fp,"detrend %d\n",DetrendOrder);
   fprintf(fp,"infwhm %lf\n",infwhm);
   fprintf(fp,"ingstd %lf\n",ingstd);
+  fprintf(fp,"tofwhm %lf\n",tofwhm);
+  if(tofwhm > 0){
+    fprintf(fp,"byfwhm-tofwhm     %lf\n",byfwhm);
+    fprintf(fp,"tofwhm-tol        %lf\n",tofwhmtol);
+    fprintf(fp,"tofwhm-niters     %d\n",tofwhmniters);
+    fprintf(fp,"tofwhm-niters-max %d\n",tofwhmnitersmax);
+  }
   if(maskpath) fprintf(fp,"mask  %s\n",maskpath);
   if(automask) fprintf(fp,"automaskthresh %g\n",automaskthresh);
   if(mask) {
@@ -633,7 +851,11 @@ static void dump_options(FILE *fp)
     fprintf(fp,"maskinv %d\n",maskinv);
     fprintf(fp,"nerode  %d\n",nerode);
   }
-  if(outmaskpath) fprintf(fp,"outmask  %s\n",outmaskpath);
+  if(outmaskpath){
+    fprintf(fp,"outmask  %s\n",outmaskpath);
+    fprintf(fp,"SaveDetrended  %d\n",SaveDetrended);
+    fprintf(fp,"SaveUnmasked   %d\n",SaveUnmasked);
+  }
   if(synth){
     fprintf(fp,"synth-frames %d\n",nframes);
     fprintf(fp,"seed  %d\n",SynthSeed);
@@ -690,7 +912,8 @@ double EvalFWHM(MRI *vol, MRI *mask)
 }
 /*------------------------------------------------------------------------*/
 MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM, 
-			       double *pByFWHM, double tol, double *pToFWHMActual, 
+			       double tol, int nitersmax,
+			       double *pByFWHM, double *pToFWHMActual, int *niters,
 			       MRI *outvol)
 {
   double SrcFWHM, ByGStd;
@@ -703,6 +926,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   C = (3.0-sqrt(5.0))/2.0; // golden mean
   R = 1-C;
 
+  *niters = 0;
   SrcFWHM = EvalFWHM(invol, mask);
   if(SrcFWHM > ToFWHM){
     printf("ERROR: MRImaskedGaussianSmoothTo(): source fwhm = %g > to fwhm = %g\n",
@@ -726,6 +950,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   // First point in the bracket
 
   // Second point in the bracket
+  (*niters)++;
   xb = sqrt(ToFWHM*ToFWHM - SrcFWHM*SrcFWHM); // power law
   ByGStd = xb/sqrt(log(256.0));
   printf("Trying smoothing by fwhm %g  ",xb); fflush(stdout);
@@ -744,6 +969,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   // Third point in the bracket. Not sure how to choose this point, 
   // it needs to be far enough to bracket the min, but too far
   // and we end up doing to many evaluations.
+  (*niters)++;
   xc = xb + (xb - xa); // 
   ByGStd = xc/sqrt(log(256.0));
   printf("Trying smoothing by fwhm %g  ",xc); fflush(stdout);
@@ -765,17 +991,20 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   }
 
   // ok, we've brackated the min, now chase it down like a scared rabbit
+  // using a golden section search (see numerical recipes in C).
+  printf("Beginning golden section search\n");
   nth = 0;
   getybest(xa, ya, xb, yb, xc, yc, pByFWHM, pToFWHMActual, ToFWHM);
   err = fabs(*pToFWHMActual-ToFWHM);
   while( err > tol){
-    if(nth > 20){
-      printf("ERROR: timed out at ntry=%d\n",nth);
+    if(nth > nitersmax){
+      printf("ERROR: searched timed out at niters=%d\n",nth);
       MRIfree(&volsm);
       return(NULL);
     }
-    printf("ntry=%3d  by=%6.4lf  to=%6.4lf (%6.4lf,%6.4lf)  err=%g\n",nth, 
-	   *pByFWHM, *pToFWHMActual, xa, xc, err);
+    printf("ntry=%3d  by=%6.4lf  to=%6.4lf (%6.4lf,%6.4lf,%6.4lf)  err=%g\n",nth, 
+	   *pByFWHM, *pToFWHMActual, xa, xb, xc, err);
+    fflush(stdout);
     s1 = xb - xa;
     s2 = xc - xb;
     if(s1 > s2){ // s1 is bigger
@@ -785,7 +1014,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
       MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
       yn = EvalFWHM(volsm, mask);
       printf("results in actual fwhm of %g\n",yn);
-      if(yn < yb){
+      if(fabs(yn-ToFWHM) < fabs(ToFWHM-yb)){
 	xc = xb;
 	yc = yb;
 	xb = xn;
@@ -802,7 +1031,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
       MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
       yn = EvalFWHM(volsm, mask);
       printf("results in actual fwhm of %g\n",yn);
-      if(yn < yb){
+      if(fabs(yn-ToFWHM) < fabs(ToFWHM-yb)){
 	xa = xb; //a replaced by  b
 	ya = yb;
 	xb = xn; //b replace by new
@@ -817,8 +1046,10 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
     getybest(xa, ya, xb, yb, xc, yc, pByFWHM, pToFWHMActual, ToFWHM);
     err = fabs(*pToFWHMActual-ToFWHM);
     nth++;
+    (*niters)++;
   }
-  printf("ntry=%3d  by=%6.4lf  to=%6.4lf targ=%6.4lf  err=%g\n",nth, *pByFWHM, *pToFWHMActual, ToFWHM, err);
+  printf("ntry=%3d  by=%6.4lf  to=%6.4lf targ=%6.4lf  err=%g\n",
+	 nth, *pByFWHM, *pToFWHMActual, ToFWHM, err);
   outvol = MRIcopy(volsm,outvol);
   MRIfree(&volsm);
   return(outvol);
