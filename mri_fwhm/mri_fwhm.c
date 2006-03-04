@@ -189,7 +189,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.6 2006/03/04 21:52:58 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.7 2006/03/04 23:56:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -358,12 +358,12 @@ int main(int argc, char *argv[])
     InVals = mritmp;
   }
 
-  // ------------ Smooth Input By infwhm -------------------------
+  // ------------ Smooth Input BY infwhm -------------------------
   if(infwhm > 0){
     printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
     MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
   }
-  // ------------ Smooth Input To fwhm -------------------------
+  // ------------ Smooth Input TO fwhm -------------------------
   if(tofwhm > 0){
     printf("Attempting to smooth to %g +/- %g mm fwhm (nitersmax=%d)\n",
 	   tofwhm,tofwhmtol,tofwhmnitersmax);
@@ -935,7 +935,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   }
   xa = 0;
   ya = SrcFWHM;
-  printf("Unsmoothed actual fwhm of %g\n",ya);
+  printf("Unsmoothed actual fwhm is %g\n",ya);
 
   // Check whether we are close enough already
   if(fabs(SrcFWHM-ToFWHM) < tol){
@@ -992,7 +992,9 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
 
   // ok, we've brackated the min, now chase it down like a scared rabbit
   // using a golden section search (see numerical recipes in C).
-  printf("Beginning golden section search\n");
+  printf("Beginning golden section search.\n");
+  printf("Expecting roughly %d iterations will be needed.\n",
+	 (int)ceil(log(tol/(xc-xa))/log(R)));
   nth = 0;
   getybest(xa, ya, xb, yb, xc, yc, pByFWHM, pToFWHMActual, ToFWHM);
   err = fabs(*pToFWHMActual-ToFWHM);
@@ -1002,8 +1004,8 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
       MRIfree(&volsm);
       return(NULL);
     }
-    printf("ntry=%3d  by=%6.4lf  to=%6.4lf (%6.4lf,%6.4lf,%6.4lf)  err=%g\n",nth, 
-	   *pByFWHM, *pToFWHMActual, xa, xb, xc, err);
+    printf("n=%d by=(%4.2lf,%4.2lf,%4.2lf) to=(%4.2lf,%4.2lf,%4.2lf) err=%g\n",
+	   nth, xa, xb, xc, ya, yb, yc, err);
     fflush(stdout);
     s1 = xb - xa;
     s2 = xc - xb;
@@ -1048,7 +1050,7 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
     nth++;
     (*niters)++;
   }
-  printf("ntry=%3d  by=%6.4lf  to=%6.4lf targ=%6.4lf  err=%g\n",
+  printf("niters=%3d  by=%6.4lf  to=%6.4lf targ=%6.4lf  err=%g\n",
 	 nth, *pByFWHM, *pToFWHMActual, ToFWHM, err);
   outvol = MRIcopy(volsm,outvol);
   MRIfree(&volsm);
