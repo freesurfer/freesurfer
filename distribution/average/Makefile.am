@@ -25,7 +25,8 @@ endif
 EXTRA_DIST=$(foo_DATA)
 
 install: install-fooDATA
-	mkdir -p $(prefix)/subjects
+	mkdir -p $(prefix)/subjects/fsaverage
+	chmod -R a+w $(prefix)/subjects/fsaverage
 	tar zxvf fsaverage.tar.gz --directory $(prefix)/subjects
 	chmod -R a-w $(prefix)/subjects/fsaverage
 
