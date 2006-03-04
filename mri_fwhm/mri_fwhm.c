@@ -107,6 +107,14 @@ double round(double x);
 #include "pdf.h"
 #include "matfile.h"
 
+MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM, 
+			       double *pByFWHM, double tol, double *pToFWHMActual, 
+			       MRI *outvol);
+
+int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
+	     double *xbest, double *ybest, double ytarg);
+double EvalFWHM(MRI *vol, MRI *mask);
+
 MRI * MRIbinarize2(MRI *mri_src, MRI *mri_dst, 
 		   double threshold, double low_val, double hi_val);
 
@@ -119,7 +127,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.4 2006/03/03 06:22:00 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.5 2006/03/04 19:31:16 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -141,6 +149,7 @@ MRI *mritmp=NULL;
 char tmpstr[2000];
 
 double infwhm = 0, ingstd = 0;
+double byfwhm, tofwhm, tofwhmact;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
 
@@ -262,6 +271,12 @@ int main(int argc, char *argv[])
   if(infwhm > 0){
     printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
     MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
+  }
+  if(tofwhm > 0){
+    printf("Attempting to smooth to %g fwhm\n",tofwhm);
+    mritmp = MRImaskedGaussianSmoothTo(InVals, mask, tofwhm, &byfwhm, .5, &tofwhmact, InVals);
+    if(mritmp == NULL) exit(1);
+    printf("Smoothed by %g to %g \n",byfwhm,tofwhmact);
   }
 
   if(nerode > 0){
@@ -393,6 +408,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--tofwhm")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&tofwhm);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--nerode")){
@@ -656,5 +676,175 @@ MRI * MRIbinarize2(MRI *mri_src, MRI *mri_dst,
 }
 
 
+/*------------------------------------------------------------------------*/
+double EvalFWHM(MRI *vol, MRI *mask)
+{
+  double car1mn, rar1mn, sar1mn;
+  double cfwhm,rfwhm,sfwhm,fwhm;
+  fMRIspatialAR1Mean(vol, mask, &car1mn, &rar1mn, &sar1mn);
+  cfwhm = RFar1ToFWHM(car1mn, vol->xsize);
+  rfwhm = RFar1ToFWHM(rar1mn, vol->ysize);
+  sfwhm = RFar1ToFWHM(sar1mn, vol->zsize);
+  fwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
+  return(fwhm);
+}
+/*------------------------------------------------------------------------*/
+MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM, 
+			       double *pByFWHM, double tol, double *pToFWHMActual, 
+			       MRI *outvol)
+{
+  double SrcFWHM, ByGStd;
+  MRI *volsm;
+  double ya, yb, yc, xa, xb, xc, s1, s2;
+  double xn,yn;
+  double C, R, err;
+  int nth;
+
+  C = (3.0-sqrt(5.0))/2.0; // golden mean
+  R = 1-C;
+
+  SrcFWHM = EvalFWHM(invol, mask);
+  if(SrcFWHM > ToFWHM){
+    printf("ERROR: MRImaskedGaussianSmoothTo(): source fwhm = %g > to fwhm = %g\n",
+	   SrcFWHM,ToFWHM);
+    return(NULL);
+  }
+  xa = 0;
+  ya = SrcFWHM;
+  printf("Unsmoothed actual fwhm of %g\n",ya);
+
+  // Check whether we are close enough already
+  if(fabs(SrcFWHM-ToFWHM) < tol){
+    *pByFWHM = 0.0;
+    *pToFWHMActual = SrcFWHM;
+    outvol = MRIcopy(invol,outvol);
+    return(outvol);
+  }
+
+  volsm = MRIcopy(invol,NULL); // allocate
+
+  // First point in the bracket
+
+  // Second point in the bracket
+  xb = sqrt(ToFWHM*ToFWHM - SrcFWHM*SrcFWHM); // power law
+  ByGStd = xb/sqrt(log(256.0));
+  printf("Trying smoothing by fwhm %g  ",xb); fflush(stdout);
+  MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
+  yb = EvalFWHM(volsm, mask);
+  printf("results in actual fwhm of %g\n",yb);
+  // Check whether we are close enough now
+  if(fabs(yb-ToFWHM) < tol){
+    *pByFWHM = xb;
+    *pToFWHMActual = yb;
+    outvol = MRIcopy(volsm,outvol);
+    MRIfree(&volsm);
+    return(outvol);
+  }
+
+  // Third point in the bracket. Not sure how to choose this point, 
+  // it needs to be far enough to bracket the min, but too far
+  // and we end up doing to many evaluations.
+  xc = xb + (xb - xa); // 
+  ByGStd = xc/sqrt(log(256.0));
+  printf("Trying smoothing by fwhm %g  ",xc); fflush(stdout);
+  MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
+  yc = EvalFWHM(volsm, mask);
+  printf("results in actual fwhm of %g\n",yc);
+  // Check whether we are close enough now
+  if(fabs(yc-ToFWHM) < tol){
+    *pByFWHM = xc;
+    *pToFWHMActual = yc;
+    outvol = MRIcopy(volsm,outvol);
+    MRIfree(&volsm);
+    return(outvol);
+  }
+  if(yc < ToFWHM){
+    // Did not step far enough out
+    printf("ERROR: did not step far enough out\n");
+    return(NULL);
+  }
+
+  // ok, we've brackated the min, now chase it down like a scared rabbit
+  nth = 0;
+  getybest(xa, ya, xb, yb, xc, yc, pByFWHM, pToFWHMActual, ToFWHM);
+  err = fabs(*pToFWHMActual-ToFWHM);
+  while( err > tol){
+    if(nth > 20){
+      printf("ERROR: timed out at ntry=%d\n",nth);
+      MRIfree(&volsm);
+      return(NULL);
+    }
+    printf("ntry=%3d  by=%6.4lf  to=%6.4lf (%6.4lf,%6.4lf)  err=%g\n",nth, 
+	   *pByFWHM, *pToFWHMActual, xa, xc, err);
+    s1 = xb - xa;
+    s2 = xc - xb;
+    if(s1 > s2){ // s1 is bigger
+      xn = xa + R*s1;
+      printf("   Trying smoothing by fwhm %g  ",xn); fflush(stdout);
+      ByGStd = xn/sqrt(log(256.0));
+      MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
+      yn = EvalFWHM(volsm, mask);
+      printf("results in actual fwhm of %g\n",yn);
+      if(yn < yb){
+	xc = xb;
+	yc = yb;
+	xb = xn;
+	yb = yn;
+      } else {
+	xa = xn; //a replaced by new
+	ya = yn;
+	// b and c stay the same
+      }
+    } else { // s2 is bigger
+      xn = xb + C*s2;
+      ByGStd = xn/sqrt(log(256.0));
+      printf("   Trying smoothing by fwhm %g  ",xn); fflush(stdout);
+      MRImaskedGaussianSmooth(invol, mask, ByGStd, volsm);
+      yn = EvalFWHM(volsm, mask);
+      printf("results in actual fwhm of %g\n",yn);
+      if(yn < yb){
+	xa = xb; //a replaced by  b
+	ya = yb;
+	xb = xn; //b replace by new
+	yb = yn;
+	// c stays the same
+      } else {
+	xc = xn; //c replaced by new
+	yc = yn;
+	// a and b stay the same
+      }
+    }
+    getybest(xa, ya, xb, yb, xc, yc, pByFWHM, pToFWHMActual, ToFWHM);
+    err = fabs(*pToFWHMActual-ToFWHM);
+    nth++;
+  }
+  printf("ntry=%3d  by=%6.4lf  to=%6.4lf targ=%6.4lf  err=%g\n",nth, *pByFWHM, *pToFWHMActual, ToFWHM, err);
+  outvol = MRIcopy(volsm,outvol);
+  MRIfree(&volsm);
+  return(outvol);
+}
 
 
+int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
+	     double *xbest, double *ybest, double ytarg)
+{
+  double ea, eb, ec;
+
+  ea = fabs(ya-ytarg);
+  eb = fabs(yb-ytarg);
+  ec = fabs(yc-ytarg);
+
+  if(ea < eb && ea < ec){
+    *xbest = xa;
+    *ybest = ya;
+    return(0);
+  }
+  if(eb < ec){
+    *xbest = xb;
+    *ybest = yb;
+    return(0);
+  }
+  *xbest = xc;
+  *ybest = yc;
+  return(0);
+}
