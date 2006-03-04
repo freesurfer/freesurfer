@@ -24,7 +24,7 @@ function hdr = load_analyze_hdr(hdrfile)
 % hdr.vox2ras is the vox2ras matrix if the hdrfile is accompanied
 %   by a .mat file.
 %
-% $Id: load_analyze_hdr.m,v 1.3 2006/03/03 23:56:20 greve Exp $
+% $Id: load_analyze_hdr.m,v 1.4 2006/03/04 01:08:33 greve Exp $
 
 
 hdr = [];
@@ -119,6 +119,11 @@ matfile = sprintf('%s.mat',basename);
 fp = fopen(matfile,'r');
 if(fp == -1) 
   hdr.vox2ras = diag([hdr.dime.pixdim(2:4)' 1]);
+  % v = voxsize*ndim/2; -2 needed for 1-based
+  v = abs(hdr.dime.pixdim .* (hdr.dime.dim+2)/2); 
+  hdr.vox2ras(1,4) = +v(2); 
+  hdr.vox2ras(2,4) = -v(3);
+  hdr.vox2ras(3,4) = -v(4);
   hdr.have_vox2ras = 0;
 else
   fclose(fp);
