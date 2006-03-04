@@ -12,6 +12,7 @@ USAGE: ./mri_glmfit
    --fsgd FSGDF <gd2mtx> : freesurfer descriptor file
    --X design matrix file
    --C contrast1.mat <--C contrast2.mat ...>
+   --osgm : construct X and C as a one-sample group mean
 
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
@@ -181,6 +182,13 @@ ASCII text file with the contrast matrix in it (make sure the last
 line is blank). The output will be saved in glmdir/contrast1,
 glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput
 will be glmdir/norm-v-cont.
+
+--osgm
+
+Construct X and C as a one-sample group mean. X is then a one-column
+matrix filled with all 1s, and C is a 1-by-1 matrix with value 1.
+You cannot specify both --X and --osgm. A contrast cannot be specified
+either. The contrast name will be osgm.
 
 --pvr pvr1 <--prv pvr2 ...>
 
@@ -412,7 +420,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.78 2006/02/24 03:28:48 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.79 2006/03/04 00:13:25 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -500,6 +508,7 @@ RFS *rfs;
 int weightinv=0, weightsqrt=0;
 
 int OneSamplePerm=0;
+int OneSampleGroupMean=0;
 struct timeb  mytimer;
 
 /*--------------------------------------------------*/
@@ -589,6 +598,15 @@ int main(int argc, char **argv)
   mriglm->yhatsave = yhatSave;
   mriglm->condsave = condSave;
 
+  // Load input--------------------------------------
+  printf("Loading y from %s\n",yFile);
+  mriglm->y = MRIread(yFile);
+  if(mriglm->y == NULL){
+    printf("ERROR: loading y %s\n",yFile);
+    exit(1);
+  }
+  nvoxels = mriglm->y->width*mriglm->y->height*mriglm->y->depth;
+
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
   if(XFile != NULL){  
@@ -598,9 +616,12 @@ int main(int argc, char **argv)
       exit(1);
     }
   }
-  else{
+  if(fsgd != NULL){
     mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
     if(mriglm->Xg==NULL) exit(1);
+  }
+  if(OneSampleGroupMean){
+    mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
   }
 
   // Check the condition of the global matrix -----------------
@@ -627,15 +648,6 @@ int main(int argc, char **argv)
       }
     }
   }
-
-  // Load input--------------------------------------
-  printf("Loading y from %s\n",yFile);
-  mriglm->y = MRIread(yFile);
-  if(mriglm->y == NULL){
-    printf("ERROR: loading y %s\n",yFile);
-    exit(1);
-  }
-  nvoxels = mriglm->y->width*mriglm->y->height*mriglm->y->depth;
 
   mriglm->mask = NULL;
   // Load the mask file ----------------------------------
@@ -812,6 +824,12 @@ int main(int argc, char **argv)
 	}
       }
     }
+  }
+  if(OneSampleGroupMean){
+    nContrasts = 1;
+    mriglm->glm->ncontrasts = nContrasts;
+    mriglm->glm->Cname[0] = strcpyalloc("osgm");
+    mriglm->glm->C[0] = MatrixConstVal(1.0,1,1,NULL);
   }
 
   // Check for one-sample group mean with permutation simulation
@@ -1288,6 +1306,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
     else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
+    else if (!strcasecmp(option, "--osgm"))   OneSampleGroupMean = 1;
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
 
@@ -1510,6 +1529,7 @@ printf("   --y inputfile\n");
 printf("   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file\n");
 printf("   --X design matrix file\n");
 printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
+printf("   --osgm : construct X and C as a one-sample group mean\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -1683,6 +1703,13 @@ printf("line is blank). The output will be saved in glmdir/contrast1,\n");
 printf("glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput\n");
 printf("will be glmdir/norm-v-cont.\n");
 printf("\n");
+printf("--osgm\n");
+printf("\n");
+printf("Construct X and C as a one-sample group mean. X is then a one-column\n");
+printf("matrix filled with all 1s, and C is a 1-by-1 matrix with value 1.\n");
+printf("You cannot specify both --X and --osgm. A contrast cannot be specified\n");
+printf("either. The contrast name will be osgm.\n");
+printf("\n");
 printf("--pvr pvr1 <--prv pvr2 ...>\n");
 printf("\n");
 printf("Per-voxel (or vertex) regressors (PVR). Normally, the design matrix is\n");
@@ -1849,6 +1876,7 @@ printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to \n
 printf("perform a one-tailed test. In this case, the contrast matrix can\n");
 printf("only have one row.\n");
 printf("\n");
+
   exit(1) ;
 }
 /* ------------------------------------------------------ */
@@ -1870,15 +1898,26 @@ static void check_options(void)
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
-  if(XFile == NULL && fsgdfile == NULL){
-    printf("ERROR: must specify an input X file or fsgd file\n");
+  if(XFile == NULL && fsgdfile == NULL && ! OneSampleGroupMean){
+    printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
   if(XFile && fsgdfile ){
     printf("ERROR: cannot specify both X file and fsgd file\n");
     exit(1);
   }
-
+  if(XFile && OneSampleGroupMean){
+    printf("ERROR: cannot specify both X file and --osgm\n");
+    exit(1);
+  }
+  if(nContrasts > 0 && OneSampleGroupMean){
+    printf("ERROR: cannot specify --C with --osgm\n");
+    exit(1);
+  } 
+  if(nContrasts == 0 && !OneSampleGroupMean){
+    printf("ERROR: no contrasts specified\n");
+    exit(1);
+  }
   if(GLMDir == NULL && !DontSave){
     printf("ERROR: must specify GLM output dir\n");
     exit(1);
@@ -1900,10 +1939,6 @@ static void check_options(void)
     }
   }
 
-  if(nContrasts == 0){
-    printf("ERROR: no contrasts specified\n");
-    exit(1);
-  }
 
   if(SUBJECTS_DIR == NULL){
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -1951,6 +1986,7 @@ static void dump_options(FILE *fp)
   }
 
   if(synth) fprintf(fp,"SynthSeed = %d\n",SynthSeed);
+  fprintf(fp,"OneSampleGroupMean %d\n",OneSampleGroupMean);
 
   fprintf(fp,"y    %s\n",yFile);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
