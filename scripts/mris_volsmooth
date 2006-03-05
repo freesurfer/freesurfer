@@ -1,0 +1,261 @@
+#!/bin/csh -f
+# mris_volsmooth
+# Smooths a surface inside a volume
+
+set VERSION = '$Id: mris_volsmooth,v 1.1 2006/03/05 20:59:18 greve Exp $'
+set invol  = ();
+set reg = ();
+set outvol = ();
+set fwhm   = ();
+set niters = ();
+set projfrac = 0;
+set cleanup = 1;
+
+set PrintHelp = 0;
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+set subj = `head -n 1 $reg`;
+echo $subj
+if(! -d $SUBJECTS_DIR/$subj) then
+  echo "ERROR: cannot find $subj in $SUBJECTS_DIR"
+  exit 1;
+endif
+
+set outdir = `dirname $outvol`;
+mkdir -p $outdir
+
+rm -f $outvol
+
+foreach hemi (lh rh)
+  set surfval = $outdir/tmp.$hemi.mris_volsmooth.$$.mgh
+
+  # sample volume to the surface
+  set cmd = (mri_vol2surf --src $invol --srcreg $reg --hemi $hemi \
+    --out $surfval --noreshape --projfrac $projfrac)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+
+  # smooth on the surface
+  set cmd = (mri_surf2surf --s $subj --sval $surfval --tval $surfval --hemi $hemi)
+  if($#fwhm)   set cmd = ($cmd  --fwhm $fwhm)
+  if($#niters) set cmd = ($cmd  --nsmooth-in $niters)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+
+  # stuff it back into the volume
+  set cmd = (mri_surf2vol \
+    --surfval $surfval --hemi $hemi --projfrac $projfrac \
+    --template $invol --volreg $reg --outvol $outvol);
+  if(! -e $outvol) set cmd = ($cmd --merge $invol);
+  if(-e $outvol)   set cmd = ($cmd --merge $outvol);
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+
+  if($cleanup) rm -f $surfval
+
+end
+
+
+date 
+echo "mris_volsmooth done"
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv == 0) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--niters":
+      if ( $#argv == 0) goto arg1err;
+      set niters = $argv[1]; shift;
+      breaksw
+
+    case "--projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "--tmpdir":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#invol == 0) then
+  echo "ERROR: must specify input volume"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+if($#outvol == 0) then
+  echo "ERROR: must specify output volume"
+  exit 1;
+endif
+if($outvol == $invol) then
+  echo "ERROR: invol cannot be the same as outvol"
+  exit 1;
+endif
+if($#reg == 0) then
+  echo "ERROR: must specify registration"
+  exit 1;
+endif
+if(! -e $reg) then
+  echo "ERROR: cannot find $reg"
+  exit 1;
+endif
+if($#niters && $#fwhm) then
+  echo "ERROR: cannot specify fwhm and niters"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mris_volsmooth"
+  echo ""
+  echo " --i invol       : source volume"
+  echo " --o outvol      : output volume"
+  echo " --reg volreg    : registers vol to surface anatomical"
+  echo " --projfrac frac : project frac of thickness along surface normal"
+  echo " "
+  echo " --fwhm fwhm     : suface FWHM in mm"
+  echo " --niters niters  : specify smoothing with niters instead of fwhm"
+  echo " "
+  echo " --nocleanup      : do not delete temporary files"
+  echo " --version        : print version and exit"
+  echo " --help           : print help and exit"
+  echo " --debug          : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs surface-based smoothing inside a volume. This is just a
+frontend for a series of programs which will sample a volume to a
+surface, smooth on the surface, then replace the surface voxels in the
+volume with values that were smoothed on the surface. This can make it
+convenient for interfacing volume-based functional analysis tools with
+surface-based smoothing. When complete, values not on the surface will
+be the same as in the input volume. Both hemispheres are done.
+
+--i invol
+
+Input volume with values that will be smoothed on the surface
+
+--o outvol
+
+Duh.
+
+--reg volreg
+
+tkregister-style registration matrix that maps between the input/output 
+volumes and the FreeSurfer surface anatomical. See tkregister2.
+
+--projfrac frac
+
+When sampling to/from the surface, project along the surface normal
+an amount equal to frac*thickeness at each vertex. See mri_vol2surf.
+
+--fwhm fwhm
+
+Smooth on the surface by full-width/half-max in mm. See also --niters.
+
+--niters niters
+
+Specify surface smoothing by number of nearest neighbor smoothing
+iterations instead of fwhm.
+
