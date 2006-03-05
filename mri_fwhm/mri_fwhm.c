@@ -134,6 +134,28 @@ the same with --to-fwhm.
 Synthesize input with white gaussian noise with the given number of frames.
 Implies --synth.
 
+EXAMPLES:
+
+1. Measure the fwhm of an input data set, compute mask automatically by
+   thresholding input at 20%% of global mean. The time series will be
+   have its mean removed prior to computing the fwhm. Save result in 
+   a summary file (one example uses mgh format, the other gzipped NIFTI):
+
+      mri_fwhm --i f.mgh    --auto-mask .2 --sum f.fwhm.sum
+      mri_fwhm --i f.nii.gz --auto-mask .2 --sum f.fwhm.sum
+
+2. Same as above, but smooth input BY 5mm fwhm first. Save the
+   smoothed output in fsm5.mgh. Save the mask to automask.nii.
+   Note: mask is computed on unsmoothed data.
+
+      mri_fwhm --i f.mgh --auto-mask .2 --sum f.fwhm5.sum 
+        --fwhm 5 --o fsm5.mgh --out-mask automask.nii
+
+3. Same as above, but smooth input TO 5 +/- .1mm fwhm first. 
+   Save the smoothed output in fto5.mgh. 
+
+      mri_fwhm --i f.mgh --auto-mask .2 --sum f.fwhm5.sum 
+        --to-fwhm-tol .1 --to-fwhm 5 --o fto5.mgh 
 
 ENDHELP
 */
@@ -189,7 +211,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.7 2006/03/04 23:56:10 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.8 2006/03/05 00:09:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -764,7 +786,7 @@ printf("\n");
 printf("--to-fwhm-file file\n");
 printf("\n");
 printf("Save some results of the tofwhm minimization to file. Good for \n");
-printf("debugging.\n");
+printf("debugging. Results also saved in summary file.\n");
 printf("\n");
 printf("--sum sumfile\n");
 printf("\n");
@@ -784,6 +806,28 @@ printf("\n");
 printf("Synthesize input with white gaussian noise with the given number of frames.\n");
 printf("Implies --synth.\n");
 printf("\n");
+printf("EXAMPLES:\n");
+printf("\n");
+printf("1. Measure the fwhm of an input data set, compute mask automatically by\n");
+printf("   thresholding input at 20%% of global mean. The time series will be\n");
+printf("   have its mean removed prior to computing the fwhm. Save result in \n");
+printf("   a summary file (one example uses mgh format, the other gzipped NIFTI):\n");
+printf("\n");
+printf("      mri_fwhm --i f.mgh    --auto-mask .2 --sum f.fwhm.sum\n");
+printf("      mri_fwhm --i f.nii.gz --auto-mask .2 --sum f.fwhm.sum\n");
+printf("\n");
+printf("2. Same as above, but smooth input BY 5mm fwhm first. Save the\n");
+printf("   smoothed output in fsm5.mgh. Save the mask to automask.nii.\n");
+printf("   Note: mask is computed on unsmoothed data.\n");
+printf("\n");
+printf("      mri_fwhm --i f.mgh --auto-mask .2 --sum f.fwhm5.sum \n");
+printf("        --fwhm 5 --o fsm5.mgh --out-mask automask.nii\n");
+printf("\n");
+printf("3. Same as above, but smooth input TO 5 +/- .1mm fwhm first. \n");
+printf("   Save the smoothed output in fto5.mgh. \n");
+printf("\n");
+printf("      mri_fwhm --i f.mgh --auto-mask .2 --sum f.fwhm5.sum \n");
+printf("        --to-fwhm-tol .1 --to-fwhm 5 --o fto5.mgh \n");
 printf("\n");
   exit(1) ;
 }
