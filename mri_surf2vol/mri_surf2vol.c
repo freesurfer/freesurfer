@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $
+  $Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $
 */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@
 #include "registerio.h"
 #include "resample.h"
 #include "version.h"
+#include "fio.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -43,7 +44,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $";
+"$Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -99,11 +100,12 @@ int main(int argc, char **argv)
   int float2int, err, vtx, nhits, c,r,s,f;
   char fname[2000];
   int nargs;
+  int n ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.13 2006/02/02 05:04:24 greve Exp $",
+     "$Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -135,7 +137,7 @@ int main(int argc, char **argv)
   }
 
   /* Read in the template volume header */
-  TempVol = MRIreadHeader(tempvolpath,tempvolfmtid);
+  TempVol = MRIreadHeader(tempvolpath,MRI_VOLUME_TYPE_UNKNOWN);
   if(TempVol == NULL){
     printf("mri_surf2vol ERROR: reading %s header\n",tempvolpath);
     exit(1);
@@ -143,7 +145,8 @@ int main(int argc, char **argv)
 
   /* Read in the anatomical reference volume header */
   sprintf(fname,"%s/%s/mri/orig.mgz",subjectsdir,srcsubject);
-  RefAnat = MRIread(fname);
+  if(fio_FileExistsReadable(fname)) RefAnat = MRIread(fname);
+  if(fio_FileExistsReadable(fname)) RefAnat = NULL;
   if(RefAnat == NULL){
     printf("Cannot find orig.mgz, trying orig/COR files instead...\n");
     sprintf(fname,"%s/%s/mri/orig",subjectsdir,srcsubject);
@@ -240,24 +243,20 @@ int main(int argc, char **argv)
   OutVol->nframes = SurfVal->nframes;
 
   printf("INFO: mapping vertices to closest voxel\n");
-  if (fillribbon)   /* fill entire ribbon */
-    {
-      int n ;
-      for (nhits = 0, projfrac = 0.0 ; projfrac <= 1.0 ; projfrac += 0.05)
-        {
-          VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
-          if(VtxVol == NULL){
-            printf("ERROR: could not map vertices to voxels\n");
-            exit(1);
-          }
+  if (fillribbon){   /* fill entire ribbon */
+    for (nhits = 0, projfrac = 0.0 ; projfrac <= 1.0 ; projfrac += 0.05){
+      VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+      if(VtxVol == NULL){
+	printf("ERROR: could not map vertices to voxels\n");
+	exit(1);
+      }
 
-          n = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
-          printf
-            ("INFO: resampling surface to volume at projfrac=%2.2f, %d hits\n",
+      n = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+      printf("INFO: resampling surface to volume at projfrac=%2.2f, %d hits\n",
              projfrac, n);
-          nhits += n ;
-          MRIfree(&VtxVol) ;
-        }
+      nhits += n ;
+      MRIfree(&VtxVol) ;
+    }
 #if 0
       /* nhits is not valid yet for filling the ribbon.
          MRIsurf2Vol needs to be rewritten to take into
@@ -266,19 +265,19 @@ int main(int argc, char **argv)
       */
       printf("INFO: sampled %d voxels in the volume\n",nhits);
 #endif
+  }
+  else{  /* sample from one point */
+    VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+    if(VtxVol == NULL){
+      printf("ERROR: could not map vertices to voxels\n");
+      exit(1);
     }
-  else  /* sample from one point */
-    {
-      VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
-      if(VtxVol == NULL){
-        printf("ERROR: could not map vertices to voxels\n");
-        exit(1);
-      }
 
-      printf("INFO: resampling surface to volume\n");
-      nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
-      printf("INFO: sampled %d voxels in the volume\n",nhits);
-    }
+    printf("INFO: resampling surface to volume\n");
+    nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+    printf("INFO: sampled %d voxels in the volume\n",nhits);
+  }
+  MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
 
   /* count the number of hits */
 
@@ -297,7 +296,7 @@ int main(int argc, char **argv)
       for(r=0; r < OutVol->height; r++){
 	for(s=0; s < OutVol->depth; s++){
 	  v = MRIgetVoxVal(VtxVol,c,r,s,0);
-	  if(v == 0){
+	  if(v == -1){
 	    // output is zero, replace with mergevol
 	    for(f=0; f < OutVol->nframes; f++){
 	      v = MRIgetVoxVal(TempVol,c,r,s,f);
@@ -317,7 +316,7 @@ int main(int argc, char **argv)
 
   if(vtxvolpath != NULL){
     printf("INFO: writing closest vertex map to %s\n",vtxvolpath);
-    MRIwriteType(VtxVol,vtxvolpath,vtxvolfmtid);
+    MRIwrite(VtxVol,vtxvolpath);
   }
 
   printf("done\n");
@@ -361,7 +360,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0]; nargsused = 1;
     }
-    else if (istringnmatch(option, "--surfval",0)){
+    else if (istringnmatch(option, "--surfval",0) || istringnmatch(option, "--sval",0)){
       if(nargc < 1) argnerr(option,1);
       surfvalpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
@@ -713,6 +712,11 @@ static void check_options(void)
     printf("ERROR: No output supplied.\n");
     exit(1);
   }
+  if(mergevolpath != NULL){
+    printf("Using merge volume as template\n");
+    tempvolpath = mergevolpath;
+  }
+
   if(tempvolpath == NULL){
     printf("A template volume path must be supplied\n");
     exit(1);
