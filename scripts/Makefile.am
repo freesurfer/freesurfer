@@ -85,6 +85,7 @@ mri_motion_correct2 \
 mri_motion_correct.fsl \
 mri-sph2surf \
 mris_preproc \
+mris_volsmooth \
 ms_refine_subject \
 parcellate_subject \
 parcellate_subject-lh \
