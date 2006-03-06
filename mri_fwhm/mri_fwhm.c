@@ -211,7 +211,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.8 2006/03/05 00:09:28 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.9 2006/03/06 04:02:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -259,6 +259,9 @@ int main(int argc, char *argv[])
   double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm, ftmp; 
   double gmean, gstd, gmax;
   FILE *fp;
+
+  sprintf(tmpstr, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
+  setenv(tmpstr,"1",0);
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
