@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/28 00:19:06 $
-// Revision       : $Revision: 1.274 $
-char *VERSION = "$Revision: 1.274 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/03/06 19:28:29 $
+// Revision       : $Revision: 1.275 $
+char *VERSION = "$Revision: 1.275 $";
 
 #define TCL
 #define TKMEDIT
@@ -1108,7 +1108,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.274 2006/02/28 00:19:06 greve Exp $",
+     "$Id: tkmedit.c,v 1.275 2006/03/06 19:28:29 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5158,7 +5158,7 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
 
     if( argc > 3 && argv[3][0] != '\0' ) {
       sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
-      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
+      xUtil_strncpy( sRegistration, argv[3], tkm_knPathLen );
     }
 
     LoadFunctionalOverlay( sFileName, NULL, regType, sRegistration );
@@ -5197,7 +5197,7 @@ int TclLoadFunctionalTimeCourse ( ClientData inClientData,
 
     if( argc > 3 && argv[3][0] != '\0' ) {
       sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
-      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
+      xUtil_strncpy( sRegistration, argv[3], tkm_knPathLen );
     }
 
     LoadFunctionalTimeCourse( sFileName, NULL, regType, sRegistration );
@@ -5544,7 +5544,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.274 2006/02/28 00:19:06 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.275 2006/03/06 19:28:29 kteich Exp $ $Name:  $\n"
       )
      );
 
