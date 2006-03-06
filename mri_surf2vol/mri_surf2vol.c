@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $
+  $Id: mri_surf2vol.c,v 1.13.2.2 2006/03/06 17:36:00 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $";
+"$Id: mri_surf2vol.c,v 1.13.2.2 2006/03/06 17:36:00 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.13.2.1 2006/03/05 20:17:53 greve Exp $",
+     "$Id: mri_surf2vol.c,v 1.13.2.2 2006/03/06 17:36:00 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -145,8 +145,8 @@ int main(int argc, char **argv)
 
   /* Read in the anatomical reference volume header */
   sprintf(fname,"%s/%s/mri/orig.mgz",subjectsdir,srcsubject);
-  if(fio_FileExistsReadable(fname)) RefAnat = MRIread(fname);
-  if(fio_FileExistsReadable(fname)) RefAnat = NULL;
+  if(fio_FileExistsReadable(fname))  RefAnat = MRIread(fname);
+  if(!fio_FileExistsReadable(fname)) RefAnat = NULL;
   if(RefAnat == NULL){
     printf("Cannot find orig.mgz, trying orig/COR files instead...\n");
     sprintf(fname,"%s/%s/mri/orig",subjectsdir,srcsubject);
