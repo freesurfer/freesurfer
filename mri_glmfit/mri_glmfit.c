@@ -420,7 +420,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.81 2006/03/06 22:43:19 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.82 2006/03/06 23:03:23 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1360,7 +1360,7 @@ static int parse_commandline(int argc, char **argv)
       if(!strcmp(subject,"average7")){
 	if(!ReallyUseAverage7){
 	  printf("\n");
-	  printf("ERROR: use have selected subject average7. It is recommended that\n");
+	  printf("ERROR: you have selected subject average7. It is recommended that\n");
 	  printf("you use the fsaverage subject in $FREESURFER_HOME/subjects.\n");
 	  printf("If you really want to use average7, re-run this program with\n");
 	  printf("--really-use-average7 as the first argument.\n");
@@ -1368,7 +1368,7 @@ static int parse_commandline(int argc, char **argv)
 	  exit(1);
 	} else {
 	  printf("\n");
-	  printf("INFO: use have selected subject average7 (and REALLY want to use it)\n");
+	  printf("INFO: you have selected subject average7 (and REALLY want to use it)\n");
 	  printf("instead of fsaverage. So I'm going to turn off fixing of vertex area\n");
 	  printf("to maintain compatibility with the pre-stable3 release.\n");
 	  printf("\n");
