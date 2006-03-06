@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.26.2.1 2006/03/06 21:12:32 greve Exp $
+  $Id: mri_surfcluster.c,v 1.26.2.2 2006/03/06 22:44:37 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.26.2.1 2006/03/06 21:12:32 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.26.2.2 2006/03/06 22:44:37 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -136,6 +136,7 @@ int AdjustThreshWhenOneTail=1;
 
 char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
+int ReallyUseAverage7 = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26.2.1 2006/03/06 21:12:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26.2.2 2006/03/06 22:44:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -581,9 +582,28 @@ static int parse_commandline(int argc, char **argv)
 	srcfmt = pargv[1]; nargsused ++;
       }
     }
+    else if(!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
     else if(!strcmp(option, "--srcsubj") || !strcmp(option, "--subject")){
       if(nargc < 1) argnerr(option,1);
       srcsubjid = pargv[0];
+      if(!strcmp(srcsubjid,"average7")){
+	if(!ReallyUseAverage7){
+	  printf("\n");
+	  printf("ERROR: use have selected subject average7. It is recommended that\n");
+	  printf("you use the fsaverage subject in $FREESURFER_HOME/subjects.\n");
+	  printf("If you really want to use average7, re-run this program with\n");
+	  printf("--really-use-average7 as the first argument.\n");
+	  printf("\n");
+	  exit(1);
+	} else {
+	  printf("\n");
+	  printf("INFO: use have selected subject average7 (and REALLY want to use it)\n");
+	  printf("instead of fsaverage. So I'm going to turn off fixing of vertex area\n");
+	  printf("to maintain compatibility with the pre-stable3 release.\n");
+	  printf("\n");
+	  MRISsetFixVertexAreaValue(0);
+	}
+      }
       nargsused = 1;
     }
     else if(!strcmp(option, "--srcsurf") || !strcmp(option, "--surf")){
@@ -1007,7 +1027,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.26.2.1 2006/03/06 21:12:32 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.26.2.2 2006/03/06 22:44:37 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
