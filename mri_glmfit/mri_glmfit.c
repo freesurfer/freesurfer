@@ -51,7 +51,7 @@ USAGE: ./mri_glmfit
    --checkopts don't run anything, just check options and exit
    --help      print out information on how to use this program
    --version   print out version and exit
-
+   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -420,7 +420,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.79 2006/03/04 00:13:25 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.80 2006/03/06 21:03:33 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1083,6 +1083,7 @@ int main(int argc, char **argv)
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
 	fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
+	fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
         if(mriglm->mask) fprintf(fp,"# masking 1\n");
         else             fprintf(fp,"# masking 0\n");
 	fprintf(fp,"# num_dof %d\n",mriglm->glm->C[n]->rows);
@@ -1309,6 +1310,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--osgm"))   OneSampleGroupMean = 1;
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
+    else if (!strcmp(option, "--no-fix-vertex-area")){
+      printf("Turning off fixing of vertex area\n");
+      MRISsetFixVertexAreaValue(0);
+    }
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1568,7 +1573,7 @@ printf("   --debug     turn on debugging\n");
 printf("   --checkopts don't run anything, just check options and exit\n");
 printf("   --help      print out information on how to use this program\n");
 printf("   --version   print out version and exit\n");
-printf("\n");
+printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("\n");
 
 }
@@ -1975,6 +1980,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
 
   if(FWHM > 0){
     fprintf(fp,"fwhm     %lf\n",FWHM);

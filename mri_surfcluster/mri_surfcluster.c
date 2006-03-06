@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $
+  $Id: mri_surfcluster.c,v 1.27 2006/03/06 21:03:33 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.27 2006/03/06 21:03:33 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.27 2006/03/06 21:03:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -397,6 +397,7 @@ int main(int argc, char **argv)
     fprintf(fp,"# sysname  %s\n",uts.sysname);
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
+    fprintf(fp,"# FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
     fprintf(fp,"# \n");
     fprintf(fp,"# Input      %s\n",srcid);  
     fprintf(fp,"# Frame Number      %d\n",srcframe);  
@@ -553,6 +554,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--mask-inv")) clabelinv = 1;
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
+    else if (!strcmp(option, "--no-fix-vertex-area")){
+      printf("Turning off fixing of vertex area\n");
+      MRISsetFixVertexAreaValue(0);
+    }
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) argnerr(option,1);
@@ -806,6 +811,7 @@ static void print_usage(void)
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
   printf("   --sd subjects_dir : (default is env SUBJECTS_DIR)\n");
   //  printf("   --synth synthfunc : uniform,loguniform,gaussian\n");
+  printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
   printf("   --help : answers to ALL your questions\n");
   printf("\n");
 }
@@ -1001,7 +1007,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.26 2006/02/22 23:57:53 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.27 2006/03/06 21:03:33 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

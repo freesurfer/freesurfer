@@ -116,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.7 2006/02/10 04:36:33 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.8 2006/03/06 21:03:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -174,8 +174,6 @@ int main(int argc, char *argv[])
   parse_commandline(argc, argv);
   check_options();
   if(checkoptsonly) return(0);
-
-  setenv("FIX_VERTEX_AREA", "1", 1);
 
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
 
