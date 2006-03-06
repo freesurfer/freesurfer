@@ -420,7 +420,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.80 2006/03/06 21:03:33 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.81 2006/03/06 22:43:19 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -510,6 +510,7 @@ int weightinv=0, weightsqrt=0;
 int OneSamplePerm=0;
 int OneSampleGroupMean=0;
 struct timeb  mytimer;
+int ReallyUseAverage7 = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -1347,6 +1348,7 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
+    else if(!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
     else if (!strcasecmp(option, "--surf")){
       if(nargc < 2) CMDargNErr(option,1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -1355,6 +1357,24 @@ static int parse_commandline(int argc, char **argv)
 	exit(1);
       }
       subject = pargv[0];
+      if(!strcmp(subject,"average7")){
+	if(!ReallyUseAverage7){
+	  printf("\n");
+	  printf("ERROR: use have selected subject average7. It is recommended that\n");
+	  printf("you use the fsaverage subject in $FREESURFER_HOME/subjects.\n");
+	  printf("If you really want to use average7, re-run this program with\n");
+	  printf("--really-use-average7 as the first argument.\n");
+	  printf("\n");
+	  exit(1);
+	} else {
+	  printf("\n");
+	  printf("INFO: use have selected subject average7 (and REALLY want to use it)\n");
+	  printf("instead of fsaverage. So I'm going to turn off fixing of vertex area\n");
+	  printf("to maintain compatibility with the pre-stable3 release.\n");
+	  printf("\n");
+	  MRISsetFixVertexAreaValue(0);
+	}
+      }
       hemi    = pargv[1];
       nargsused = 2;
       sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
