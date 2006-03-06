@@ -29,6 +29,12 @@ case inputvol is used as a dimension template.
 
 Save input after smoothing. See also --save-detended and --save-unmasked.
 
+--smooth-only
+
+Does not attempt to compute FWHM. Smooths the input, saves to outputvol, 
+and exists. Respects --save-unmasked, but not --save-detended. This allows 
+for data sets with fewer than 10 frames to be smoothed.
+
 --save-detended
 
 Save input after smoothing, masking, and detrending.
@@ -211,7 +217,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.9 2006/03/06 04:02:46 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.10 2006/03/06 23:32:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -250,6 +256,7 @@ int SaveUnmasked = 0;
 int automask = 0;
 double automaskthresh = .1;
 int nerode = 0;
+int SmoothOnly = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -287,7 +294,7 @@ int main(int argc, char *argv[])
   if(!synth){
     InVals = MRIread(inpath);
     if(InVals == NULL) exit(1);
-    if(InVals->nframes < 10){
+    if(InVals->nframes < 10 && !SmoothOnly){
       printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
       exit(1);
     }
@@ -355,6 +362,17 @@ int main(int argc, char *argv[])
   }
   else nsearch = InVals->width * InVals->height * InVals->depth;
   printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
+
+  if(infwhm > 0 && SmoothOnly){
+    printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
+    if(SaveUnmasked) mritmp = NULL;
+    else             mritmp = mask;
+    MRImaskedGaussianSmooth(InVals, mritmp, ingstd, InVals);
+    printf("Saving to %s\n",outpath);
+    MRIwrite(InVals,outpath);
+    printf("SmoothOnly requested, so exiting now\n");
+    exit(1);
+  }
 
   // Make a copy, if needed, prior to doing anything to data
   if(outpath) InValsCopy = MRIcopy(InVals,NULL);
@@ -520,6 +538,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
     else if (!strcasecmp(option, "--save-detrended")) SaveDetrended = 1;
     else if (!strcasecmp(option, "--save-unmasked")) SaveUnmasked = 1;
+    else if (!strcasecmp(option, "--smooth-only")) SmoothOnly = 1;
 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -640,6 +659,7 @@ static void print_usage(void)
   printf("   --o outputvol : save input after smoothing\n");
   printf("   --save-detrended : detrend output when saving\n");
   printf("   --save-unmasked  : do not mask outputvol\n");
+  printf("   --smooth-only    : smooth and save, do not compute fwhm.\n");
   printf("\n");
   printf("   --mask maskvol : binary mask\n");
   printf("   --mask-thresh absthresh : threshold for mask (default is .5)\n");
@@ -703,6 +723,12 @@ printf("\n");
 printf("--o outputvol\n");
 printf("\n");
 printf("Save input after smoothing. See also --save-detended and --save-unmasked.\n");
+printf("\n");
+printf("--smooth-only\n");
+printf("\n");
+printf("Does not attempt to compute FWHM. Smooths the input, saves to outputvol, \n");
+printf("and exists. Respects --save-unmasked, but not --save-detended. This allows \n");
+printf("for data sets with fewer than 10 frames to be smoothed.\n");
 printf("\n");
 printf("--save-detended\n");
 printf("\n");
@@ -832,6 +858,7 @@ printf("\n");
 printf("      mri_fwhm --i f.mgh --auto-mask .2 --sum f.fwhm5.sum \n");
 printf("        --to-fwhm-tol .1 --to-fwhm 5 --o fto5.mgh \n");
 printf("\n");
+
   exit(1) ;
 }
 /* --------------------------------------------- */
