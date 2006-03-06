@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/24 20:40:56 $
-// Revision       : $Revision: 1.441 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/03/06 21:12:31 $
+// Revision       : $Revision: 1.441.2.1 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -190,9 +190,7 @@ static int mriSurfaceRASToVoxel(Real xr, Real yr, Real zr,
 #endif
 
 static int mris_readval_frame = -1;
-
-static int fix_vertex_area_env_read = 0;
-static int fix_vertex_area= 0;
+static int fix_vertex_area = 1;
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
@@ -579,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.441 2006/02/24 20:40:56 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.441.2.1 2006/03/06 21:12:31 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2755,16 +2753,6 @@ MRIScomputeNormals(MRI_SURFACE *mris)
         continue ;
       mrisNormalize(snorm);
 
-      // DNG Changed from /=2 to /=3.
-      // See also MRIScomputeTriangleProperties()
-      if(!fix_vertex_area_env_read){
-        if(getenv("FIX_VERTEX_AREA") != NULL){
-          printf("INFO: Fixing vertex area\n");
-          fix_vertex_area = 1;
-        }
-        else printf("INFO: NOT fixing vertex area\n");
-        fix_vertex_area_env_read = 1;
-      }
       if(fix_vertex_area) v->area /= 3.0 ;
       else                v->area /= 2.0 ;
 
@@ -6963,16 +6951,6 @@ mrisOrientPlane(MRI_SURFACE *mris)
           face = &mris->faces[v->f[fno]] ;
           v->area += face->area ;
         }
-      // DNG Changed from /=2 to /=3.
-      // See als MRIScomputeTriangleProperties()
-      if(!fix_vertex_area_env_read){
-        if(getenv("FIX_VERTEX_AREA") != NULL){
-          printf("INFO: Fixing vertex area\n");
-          fix_vertex_area = 1;
-        }
-        else printf("INFO: NOT fixing vertex area\n");
-        fix_vertex_area_env_read = 1;
-      }
       if(fix_vertex_area) v->area /= 3.0 ;
       else                v->area /= 2.0 ;
     }
@@ -7448,15 +7426,6 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
           if (face->ripflag == 0)
             v->area += face->area ;
         }
-      // DNG Changed from /=2 to /=3.
-      if(!fix_vertex_area_env_read){
-        if(getenv("FIX_VERTEX_AREA") != NULL){
-          printf("INFO: Fixing vertex area\n");
-          fix_vertex_area = 1;
-        }
-        else printf("INFO: NOT fixing vertex area\n");
-        fix_vertex_area_env_read = 1;
-      }
       if(fix_vertex_area) v->area /= 3.0 ;
       else                v->area /= 2.0 ;
     }
@@ -50427,4 +50396,19 @@ MRI *MRISannotIndex2Seg(MRIS *mris)
     MRIsetVoxVal(seg,vno,0,0,0,annotid);
   }
   return(seg);
+}
+// These are for backwards compatibility for when we don't want to fix
+// the vertex area. Default is to fix, but this can be changed
+// by setting to 0. fix_vertex_area is defined as "static int fix_vertex_area;"
+// at the top of this file.
+int MRISsetFixVertexAreaValue(int value)
+{
+  extern int fix_vertex_area;
+  fix_vertex_area = value;
+  return(fix_vertex_area);
+}
+int MRISgetFixVertexAreaValue(void)
+{
+  extern int fix_vertex_area;
+  return(fix_vertex_area);
 }

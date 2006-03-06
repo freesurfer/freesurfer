@@ -482,6 +482,11 @@ extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
 extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, 
                                                        double pct) ;
 
+// These are for backwards compatibility for when we don't want to fix
+// the vertex area. Default is to fix, but this can be changed
+// by setting to 0.
+int MRISsetFixVertexAreaValue(int value); 
+int MRISgetFixVertexAreaValue(void);
 
 /* The following structure is used in MRISvectorRegistration 
    The original values are loaded in orig_vals
