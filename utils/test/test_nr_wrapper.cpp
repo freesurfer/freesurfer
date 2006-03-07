@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
-#include <math.h>
+#include <cmath>
 
 // testing
 #include <cppunit/TestCase.h>
@@ -15,8 +15,6 @@ extern "C" {
   #include "matrix.h"
   #include "error.h"
 }
-
-using namespace std;
   
 class NRWrapperTest : public CppUnit::TestFixture {
 
@@ -53,37 +51,39 @@ public:
   
   static const float EPSILON = 5e-5;
   
-  static const string TESTING_DIR;
+  static const std::string TESTING_DIR;
 
-//  static const string WELL_FORMED_MATRIX;
-//  static const string WELL_FORMED_LUDCMP;
+//  static const std::string WELL_FORMED_MATRIX;
+//  static const std::string WELL_FORMED_LUDCMP;
 
-  static const string PASCAL_MATRIX;
-//  static const string PASCAL_LUDCMP;
-//  static const string PASCAL_INVERSE;
-  static const string ZEROES_MATRIX;
-  static const string IDENTITY_MATRIX;
-  static const string SINGULAR_MATRIX;
-  static const string ONE_MATRIX;
-  static const string ONE_SMALL_MATRIX;
-  static const string RANDOM_61_2;
-  static const string RANDOM_5_11;
+  static const std::string PASCAL_MATRIX;
+//  static const std::string PASCAL_LUDCMP;
+//  static const std::string PASCAL_INVERSE;
+  static const std::string ZEROES_MATRIX;
+  static const std::string IDENTITY_MATRIX;
+  static const std::string SINGULAR_MATRIX;
+  static const std::string ONE_MATRIX;
+  static const std::string ONE_SMALL_MATRIX;
+  static const std::string RANDOM_61_2;
+  static const std::string RANDOM_5_11;
   
-  static const string SINE_X;
-  static const string SINE_Y;
+  static const std::string SINE_X;
+  static const std::string SINE_Y;
   
-  static const string SINE_XX_COURSE;
-  static const string SINE_SPLINE_YY_0_0_COURSE;
-  static const string SINE_SPLINE_YY_5_5_COURSE;
-  static const string SINE_SPLINE_YY_0_17_COURSE;
-  static const string SINE_SPLINE_YY_19_2_COURSE;
+  static const std::string SINE_XX_COURSE;
+  static const std::string SINE_SPLINE_YY_0_0_COURSE;
+  static const std::string SINE_SPLINE_YY_5_5_COURSE;
+  static const std::string SINE_SPLINE_YY_0_17_COURSE;
+  static const std::string SINE_SPLINE_YY_19_2_COURSE;
   
-  static const string SINE_XX_FINE;
-  static const string SINE_SPLINE_YY_0_0_FINE;
-  static const string SINE_SPLINE_YY_5_5_FINE;
-  static const string SINE_SPLINE_YY_0_17_FINE;
-  static const string SINE_SPLINE_YY_19_2_FINE;
+  static const std::string SINE_XX_FINE;
+  static const std::string SINE_SPLINE_YY_0_0_FINE;
+  static const std::string SINE_SPLINE_YY_5_5_FINE;
+  static const std::string SINE_SPLINE_YY_0_17_FINE;
+  static const std::string SINE_SPLINE_YY_19_2_FINE;
 
+  static float testFunction1(float *p);
+  static float testFunction2(float *p);
 
   // setUp is called automatically before each test
   void setUp();
@@ -95,12 +95,19 @@ public:
     int numberOfRows, int numberOfColumns );
 
   bool AreSplinesEqual( MATRIX* x, MATRIX* y, MATRIX* xx, 
-    string yyFile, float derivative1, float derivativeN );
+    std::string yyFile, float derivative1, float derivativeN );
+
+  bool AreEqualWithinTolerance( const float expected, 
+                                const float actual,
+                                const float tolerance );
 
   MATRIX* ReconstructFromSVD( MATRIX* u, VECTOR* wVector, MATRIX* v );
 
-  int TestSVDcmpHelper( string matrixFile, 
+  int TestSVDcmpHelper( std::string matrixFile, 
       int numberOfRows, int nubmerOfColumns );
+      
+  bool TestPowellHelper( const int numberOfParameters, float expectedFret,
+                         float * expectedP, float (*function)(float []) );
       
   bool isBetween0And1( float x );
   
@@ -120,42 +127,42 @@ const int NRWrapperTest::MATRICES_NOT_EQUAL = 0;
 const int NRWrapperTest::MATRICES_EQUAL = 1;
 const int NRWrapperTest::MATRICES_ERROR = 2;
 
-const string NRWrapperTest::TESTING_DIR = "test_nr_wrapper_data/";
+const std::string NRWrapperTest::TESTING_DIR = "test_nr_wrapper_data/";
 
-//const string NRWrapperTest::WELL_FORMED_MATRIX = TESTING_DIR + "WellFormed.mat";
-//const string NRWrapperTest::WELL_FORMED_LUDCMP = TESTING_DIR + "WellFormedLUDCMP.mat";
+//const std::string NRWrapperTest::WELL_FORMED_MATRIX = TESTING_DIR + "WellFormed.mat";
+//const std::string NRWrapperTest::WELL_FORMED_LUDCMP = TESTING_DIR + "WellFormedLUDCMP.mat";
 
-const string NRWrapperTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
-//const string NRWrapperTest::PASCAL_LUDCMP = TESTING_DIR + "PascalLUDCMP.mat";
-//const string NRWrapperTest::PASCAL_INVERSE = TESTING_DIR + "PascalInverse.mat";
+const std::string NRWrapperTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
+//const std::string NRWrapperTest::PASCAL_LUDCMP = TESTING_DIR + "PascalLUDCMP.mat";
+//const std::string NRWrapperTest::PASCAL_INVERSE = TESTING_DIR + "PascalInverse.mat";
 
-const string NRWrapperTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
-const string NRWrapperTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
-const string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
-const string NRWrapperTest::ONE_MATRIX = TESTING_DIR + "One.mat";
-const string NRWrapperTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
+const std::string NRWrapperTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
+const std::string NRWrapperTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
+const std::string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
+const std::string NRWrapperTest::ONE_MATRIX = TESTING_DIR + "One.mat";
+const std::string NRWrapperTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
 
 /**
  * This is actually a 61 x 61 matrix that has zeros outside of the 61 x 2 
  * bounds. 
  **/
-const string NRWrapperTest::RANDOM_61_2 = TESTING_DIR + "Random_61_2.mat";
-const string NRWrapperTest::RANDOM_5_11 = TESTING_DIR + "Random_5_11.mat";
+const std::string NRWrapperTest::RANDOM_61_2 = TESTING_DIR + "Random_61_2.mat";
+const std::string NRWrapperTest::RANDOM_5_11 = TESTING_DIR + "Random_5_11.mat";
 
-const string NRWrapperTest::SINE_X = TESTING_DIR + "SineX.mat";
-const string NRWrapperTest::SINE_Y = TESTING_DIR + "SineY.mat";
+const std::string NRWrapperTest::SINE_X = TESTING_DIR + "SineX.mat";
+const std::string NRWrapperTest::SINE_Y = TESTING_DIR + "SineY.mat";
 
-const string NRWrapperTest::SINE_XX_COURSE = TESTING_DIR + "SineXXCourse.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_0_0_COURSE = TESTING_DIR + "SineSplineYY_0_0_Course.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_5_5_COURSE = TESTING_DIR + "SineSplineYY_5_5_Course.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_0_17_COURSE = TESTING_DIR + "SineSplineYY_0_17_Course.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_19_2_COURSE = TESTING_DIR + "SineSplineYY_19_2_Course.mat";
+const std::string NRWrapperTest::SINE_XX_COURSE = TESTING_DIR + "SineXXCourse.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_COURSE = TESTING_DIR + "SineSplineYY_0_0_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_COURSE = TESTING_DIR + "SineSplineYY_5_5_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_COURSE = TESTING_DIR + "SineSplineYY_0_17_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_COURSE = TESTING_DIR + "SineSplineYY_19_2_Course.mat";
 
-const string NRWrapperTest::SINE_XX_FINE = TESTING_DIR + "SineXXFine.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_0_0_FINE = TESTING_DIR + "SineSplineYY_0_0_Fine.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_5_5_FINE = TESTING_DIR + "SineSplineYY_5_5_Fine.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_0_17_FINE = TESTING_DIR + "SineSplineYY_0_17_Fine.mat";
-const string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE = TESTING_DIR + "SineSplineYY_19_2_Fine.mat";
+const std::string NRWrapperTest::SINE_XX_FINE = TESTING_DIR + "SineXXFine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_FINE = TESTING_DIR + "SineSplineYY_0_0_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_FINE = TESTING_DIR + "SineSplineYY_5_5_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_FINE = TESTING_DIR + "SineSplineYY_0_17_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE = TESTING_DIR + "SineSplineYY_19_2_Fine.mat";
 
 void
 NRWrapperTest::setUp() {
@@ -278,9 +285,98 @@ NRWrapperTest::TestDFPMin() {
   CPPUNIT_FAIL("not implemented");
 }
 
+// static
+float 
+NRWrapperTest::testFunction1(float *p) {
+  float x = p[1];
+  float y = ( x - 1 ) * ( x - 5 );
+  
+  return y;
+}
+
+// static
+float 
+NRWrapperTest::testFunction2(float *p) {
+  float Ax[2];
+  Ax[0] = 3 * p[1] + 2 * p[2];
+  Ax[1] = 2 * p[1] + 6 * p[2];
+  
+  float xTAx = p[1] * Ax[0] + p[2] * Ax[1];
+  
+  float bx = 2 * p[1] + (-8 * p[2]);
+
+  return .5 * xTAx - bx;
+}
+
+
+bool
+NRWrapperTest::AreEqualWithinTolerance( const float expected, 
+                                        const float actual,
+                                        const float tolerance ) {
+  float difference = std::fabs( expected - actual );
+  return difference <= tolerance;                                            
+}                                          
+
+
 void 
 NRWrapperTest::TestPowell() {
-  CPPUNIT_FAIL("not implemented");
+  float expectedFret = -4.0;
+  float *expectedP = new float[2];
+  expectedP[1] = 3.0;
+  CPPUNIT_ASSERT(TestPowellHelper(1, expectedFret, expectedP, testFunction1));
+  
+
+  delete [] expectedP;
+  expectedP = new float[3];
+  expectedFret = -10.0;
+  expectedP[1] = 2.0;
+  expectedP[2] = -2.0;
+  CPPUNIT_ASSERT(TestPowellHelper(2, expectedFret, expectedP, testFunction2));
+  
+  delete [] expectedP;
+}
+
+bool
+NRWrapperTest::TestPowellHelper( const int numberOfParameters, float expectedFret,
+                                float * expectedP, float (*function)(float []) ) {
+                                  
+  const float tolerance = 1e-5;
+  float fret = 0;
+  int iter = 0;
+  
+  float *p = vector( 1, numberOfParameters );
+  float **xi = matrix( 1, numberOfParameters, 1, numberOfParameters );
+
+  for (int i = 0; i < numberOfParameters; i++) {
+    p[i + 1] = 0.0;
+  }
+  
+  for (int i = 0; i < numberOfParameters; i++) {
+    for (int j = 0; j < numberOfParameters; j++) {
+      if (i == j) {
+        xi[i + 1][j + 1] = 1.0;
+      } else {
+        xi[i + 1][j + 1] = 0.0;
+      }
+    }
+  }
+  
+  powell( p, xi, numberOfParameters, tolerance, &iter, &fret, function );
+    
+  const float equalsTolerance = 1e-4;
+  bool gotExpectedValues = true;
+  for (int i = 0; i < numberOfParameters; i++) {
+    if ( !AreEqualWithinTolerance( p[i + 1], expectedP[i + 1], equalsTolerance) ) {
+      gotExpectedValues = false;
+    }
+  }
+  
+  if (fret != expectedFret) gotExpectedValues = false;
+  
+  free_vector( p, 1, numberOfParameters );  
+  free_matrix( xi, 1, numberOfParameters, 1, numberOfParameters );
+  
+  return gotExpectedValues;
 }
 
 MATRIX*
@@ -307,7 +403,7 @@ NRWrapperTest::ReconstructFromSVD( MATRIX* u, VECTOR* wVector, MATRIX* v ) {
 }
 
 int
-NRWrapperTest::TestSVDcmpHelper( string matrixFile,
+NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
                                  int numberOfRows=-1, 
                                  int numberOfColumns=-1 ) {
     
@@ -437,7 +533,7 @@ NRWrapperTest::TestRan1() {
 
 bool
 NRWrapperTest::AreSplinesEqual(MATRIX* x, MATRIX* y, MATRIX* xx,
-    string yyFile, float derivative1, float derivativeN) {    
+    std::string yyFile, float derivative1, float derivativeN) {    
 
   bool areEqual = true;
   
