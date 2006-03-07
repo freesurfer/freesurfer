@@ -217,7 +217,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.11 2006/03/07 06:32:02 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.12 2006/03/07 07:09:03 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1013,8 +1013,10 @@ MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
   *niters = 0;
   SrcFWHM = EvalFWHM(invol, mask);
   if(SrcFWHM > ToFWHM){
-    printf("ERROR: MRImaskedGaussianSmoothTo(): source fwhm = %g > to fwhm = %g\n",
-	   SrcFWHM,ToFWHM);
+    printf("ERROR: MRImaskedGaussianSmoothTo(): the inherent smoothness\n");
+    printf("of the data set is about fwhm=%gmm, which is more than the\n",SrcFWHM);
+    printf("amount that you want to smooth it to (%gmm). It is impossible\n",ToFWHM);
+    printf("to 'unsmooth' the data.\n");
     return(NULL);
   }
   xa = 0;
