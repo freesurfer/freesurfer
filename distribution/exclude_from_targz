@@ -5,6 +5,10 @@ freesurfer/csurf.log
 freesurfer/error.log
 freesurfer/surfer.log
 freesurfer/arthur_colors
+freesurfer/jeans_labels.txt
+freesurfer/numaris4-protocols.unpackcfg
+freesurfer/Simple_surface_labels2002.txt
+freesurfer/Simple_surface_labels2005.txt
 freesurfer/README
 freesurfer/COPYING
 freesurfer/INSTALL

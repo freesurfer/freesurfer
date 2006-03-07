@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.44 2006/03/07 20:40:08 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.45 2006/03/07 21:55:05 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -75,12 +75,7 @@ if ("${RELEASE_TYPE}" == "stable" || "${RELEASE_TYPE}" == "stable-pub") then
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
-  unsetenv QTDIR
-  if (-e /usr/pubsw/packages/qt/3.3.5) then
-    setenv QTDIR /usr/pubsw/packages/qt/3.3.5
-  else if (-e /usr/pubsw/packages/qt/3.3.4) then
-    setenv QTDIR /usr/pubsw/packages/qt/3.3.4
-  endif
+  setenv QTDIR /usr/pubsw/packages/qt/3.3.5
   unsetenv FSLDIR
   if (-e /usr/pubsw/packages/fsl/3.2b) then
     setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
