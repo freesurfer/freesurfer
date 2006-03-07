@@ -1,7 +1,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/03/03 19:10:07 $
+ * @date   $Date: 2006/03/07 22:32:55 $
  * 
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
   int   err                  = 0;
   FILE* fp                   = NULL;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.8 2006/03/03 19:10:07 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.9 2006/03/07 22:32:55 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -313,7 +313,7 @@ static int convert_path_to_label (char* fname, char* ofname)
 	  label->lv[label_vno].x = paths[path_index]->points[pno].x;
 	  label->lv[label_vno].y = paths[path_index]->points[pno].y;
 	  label->lv[label_vno].z = paths[path_index]->points[pno].z;
-	  label->lv[label_vno].vno = -1;
+	  label->lv[label_vno].vno = paths[path_index]->points[pno].vno;
 	  label_vno++;
 	}
 
@@ -418,6 +418,7 @@ static int convert_label_to_path (char* fname, char* ofname)
 	  paths[path_index]->points[pno].x = label->lv[label_vno].x;
 	  paths[path_index]->points[pno].y = label->lv[label_vno].y;
 	  paths[path_index]->points[pno].z = label->lv[label_vno].z;
+	  paths[path_index]->points[pno].vno = label->lv[label_vno].vno;
 	  label_vno++;
 	  pno++;
 	}      
