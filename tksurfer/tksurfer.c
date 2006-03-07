@@ -18971,7 +18971,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.184 2006/03/07 22:15:39 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.185 2006/03/07 22:33:55 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25717,6 +25717,7 @@ int path_save (char* fname)
 	  paths[path_index]->points[path_vno].x = mris->vertices[vno].origx;
 	  paths[path_index]->points[path_vno].y = mris->vertices[vno].origy;
 	  paths[path_index]->points[path_vno].z = mris->vertices[vno].origz;
+	  paths[path_index]->points[path_vno].vno = vno;
 	}
     }
 
@@ -25792,7 +25793,7 @@ int path_load (char* fname)
 	  label->lv[pno].x = path->points[pno].x;
 	  label->lv[pno].y = path->points[pno].y;
 	  label->lv[pno].z = path->points[pno].z;
-	  label->lv[pno].vno = -1;
+	  label->lv[pno].vno = path->points[pno].vno;
 	}
       
       /* This will find vertex numbers for all those points. */
