@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.15 2006/03/06 17:35:10 greve Exp $
+  $Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.15 2006/03/06 17:35:10 greve Exp $";
+"$Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.15 2006/03/06 17:35:10 greve Exp $",
+     "$Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
     printf("INFO: resampling surface to volume\n");
     nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
     printf("INFO: sampled %d voxels in the volume\n",nhits);
+    MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
   }
-  MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
 
   /* count the number of hits */
 
