@@ -5,7 +5,8 @@ The following files, found in the directory:
 are under CVS control:
 
   build_dev.csh
-  build_stablepub.csh
+  build_stable.csh
+  build_stable-pub.csh
   build_release_type.csh
   create_targz.csh
   exclude_from_targz
@@ -27,4 +28,4 @@ Per the files listed in the exclude_from_targz file, it is
 important that the grad_unwarp_table directory is excluded from 
 public distribution, as MGH is not allowed to distribute it.
 
-#cvs log: '$Id: build_scripts_README.txt,v 1.1 2006/03/03 21:00:19 nicks Exp $'
+#cvs log: '$Id: build_scripts_README.txt,v 1.2 2006/03/07 20:41:53 nicks Exp $'
