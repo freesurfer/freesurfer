@@ -217,7 +217,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.10 2006/03/06 23:32:18 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.11 2006/03/07 06:32:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -229,6 +229,7 @@ char *outpath=NULL;
 char *sumfile=NULL;
 MRI *InVals=NULL;
 MRI *InValsCopy=NULL;
+int InValsType = MRI_VOLUME_TYPE_UNKNOWN;
 
 char *maskpath=NULL;
 MRI *mask=NULL;
@@ -292,7 +293,7 @@ int main(int argc, char *argv[])
 
   // ------------- load or synthesize input ---------------------
   if(!synth){
-    InVals = MRIread(inpath);
+    InVals = MRIreadType(inpath,InValsType);
     if(InVals == NULL) exit(1);
     if(InVals->nframes < 10 && !SmoothOnly){
       printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
@@ -305,7 +306,7 @@ int main(int argc, char *argv[])
     }
   }
   else{
-    InVals = MRIreadHeader(inpath,MRI_VOLUME_TYPE_UNKNOWN);
+    InVals = MRIreadHeader(inpath,InValsType);
     if(InVals == NULL) exit(1);
     if(InVals->nframes < 10){
       printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
@@ -539,6 +540,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--save-detrended")) SaveDetrended = 1;
     else if (!strcasecmp(option, "--save-unmasked")) SaveUnmasked = 1;
     else if (!strcasecmp(option, "--smooth-only")) SmoothOnly = 1;
+    else if (!strcasecmp(option, "--ispm")) InValsType = MRI_ANALYZE_FILE;
 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -633,6 +635,12 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--in_nspmzeropad")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&N_Zero_Pad_Input);
+      InValsType = MRI_ANALYZE_FILE;
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
@@ -683,6 +691,8 @@ static void print_usage(void)
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
   printf("\n");
+  printf("   --ispm : input is spm-analyze. Set --i to stem.\n");
+  printf("   --in_nspmzeropad nz : zero-padding for spm-analyze\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
