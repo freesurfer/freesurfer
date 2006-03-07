@@ -30,6 +30,7 @@
 #include "tiffio.h"
 #include "gcsa.h"
 #include "mri2.h"
+#include "path.h"
 
 //////////////////////////////////////////////////////
 
@@ -18970,7 +18971,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183 2006/02/21 21:47:19 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.184 2006/03/07 22:15:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25671,235 +25672,152 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
 
 int path_save (char* fname) 
 {
-  FILE* fp;
-  int path;
-  int path_vno;
-  int vno;
+  PATH** paths;
+  int    path_index;
+  int    path_del_index;
+  int    path_vno;
+  int    vno;
+  int    err = ERROR_NONE;
 
-  /* Try to open the file. */  
-  fp = fopen (fname, "w");
-  if (NULL == fp)
+  /* We need to convert out vertex paths to PATH object. Make a list
+     of them of the size of the number of paths we have. */
+  paths = (PATH**) calloc (path_num_paths, sizeof(PATH));
+  if (NULL == paths)
     {
-      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-                                 "path_save: couldn't open %s\n",fname));
+      ErrorReturn (ERROR_NO_MEMORY,
+		   (ERROR_NO_MEMORY, "Couldn't allocate %d paths",
+		    path_num_paths));
+				     
     }
 
-  /* Right some header info. */
-  fprintf (fp, "# Path file\n");
-
-  /* Version keyword. */
-  fprintf (fp, "VERSION 1\n");
-
-  /* For each path... */
-  for (path = 0; path < path_num_paths; path++)
+  for (path_index = 0; path_index < path_num_paths; path_index++)
     {
-      /* Add BEGINPATH and NUMVERTICES keywords and info. */
-      fprintf (fp, "BEGINPATH\n");
-      fprintf (fp, "NUMVERTICES %d\n", path_paths[path].num_vertices);
 
-      /* For each vertex, write a line with the coordinate on it. */
-      for (path_vno = 0; path_vno < path_paths[path].num_vertices; path_vno++)
+      /* Allocate a path. */
+      paths[path_index] =
+	PathAlloc (path_paths[path_index].num_vertices, "");
+      if (NULL == paths[path_index])
 	{
-	  vno = path_paths[path].vertices[path_vno];
-
-	  fprintf (fp, "%f %f %f\n", 
-		   mris->vertices[vno].origx,
-		   mris->vertices[vno].origy,
-		   mris->vertices[vno].origz);
+	  for (path_del_index = 0; path_index < path_index; path_del_index++)
+	    {
+	      PathFree( &paths[path_del_index] );
+	    }
+	  free (paths);
+	  ErrorReturn (ERROR_NO_MEMORY,
+		       (ERROR_NO_MEMORY, "Couldn't path with %d points",
+			path_paths[path_index].num_vertices));
 	}
-      
-      /* ENDPATH keyword. */
-      fprintf (fp, "ENDPATH\n");
+
+      /* Put the orig coordinates into the path we just created. */
+      for (path_vno = 0; 
+	   path_vno < path_paths[path_index].num_vertices; path_vno++)
+	{
+	  vno = path_paths[path_index].vertices[path_vno];
+	  
+	  paths[path_index]->points[path_vno].x = mris->vertices[vno].origx;
+	  paths[path_index]->points[path_vno].y = mris->vertices[vno].origy;
+	  paths[path_index]->points[path_vno].z = mris->vertices[vno].origz;
+	}
     }
 
-  fclose (fp);
-  
-  return (ERROR_NONE);
+  /* Write the paths. */
+  err = PathWriteMany (fname, path_num_paths, paths);
+  if (err != ERROR_NONE)
+    {
+      printf ("ERROR: Couldn't write paths.\n");
+      err = ERROR_NO_FILE;
+    }
+
+  /* Delete the stuff we allocated. */
+  for (path_index = 0; path_index < path_num_paths; path_index++)
+    {
+      PathFree( &paths[path_index] );
+    }
+  free (paths);
+
+  return err;
 }
 
 int path_load (char* fname)
 {
-  FILE* fp;
-  int line_number;
-  int path_vno;
-  char line[1024] = "";
-  int num_read = 0;
-  int num_vertices;
-  int* vertices;
-  int version;
-  float x, y, z;
-  LABEL* label;
+  int    err;
+  int    num_read;
+  int*   vertices = NULL;
+  PATH** paths    = NULL;
+  int    path_index;
+  PATH*  path     = NULL;
+  LABEL* label    = NULL;
+  int    pno;
+  int    path_vno;
 
-  /* Try opening the file. */
-  fp = fopen (fname, "r");
-  if (NULL == fp)
+  /* Try to read the paths file. */
+  err = PathReadMany (fname, &num_read, &paths);
+  if (err != ERROR_NONE ||
+      num_read <= 0 || paths == NULL)
     {
-      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-                                 "path_load: couldn't open %s\n",fname));
+      ErrorReturn (ERROR_BADFILE, 
+		   (ERROR_BADFILE, "Couldn't read any paths."));
     }
-  line_number = 0;
-  
-  /* Allocate a vertex array that we'll use when adding the path. */
+
+  /* Allocate temp vno storage for our conversions. */
   vertices = (int*) calloc (mris->nvertices, sizeof(int));
   if (NULL == vertices)
     {
-      fclose (fp);
-      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-				 "path_load: couldn't allocate size for %d vertices\n",
-				 num_vertices));
+      ErrorReturn (ERROR_NO_MEMORY,
+		   (ERROR_NO_MEMORY, "Couldn't allocate vertex storage."));
     }
 
-  /* Look for keywords... */
-  while (!feof(fp))
+  for (path_index = 0; path_index < num_read; path_index++)
     {
-      fgetl (line, 1024, fp);
-      line_number++;
+      /* Get the path. */
+      path = paths[path_index];
 
-      /* Skip comments. */
-      if (line[0] == '#')
-	continue;
-      
-      /* If this is the end of file, go to the end. */
-      if (feof(fp))
-	continue;
-
-      /* VERSION keyword */
-      if (0 == strncmp (line, "VERSION", 7))
+      /* We'll do our coordinate->vertex conversion using the
+	 LabelFillUnassignedVertices, but it only takes LABEL
+	 structures, so we'll fill one of those out with the
+	 path's coords. */
+      label = LabelAlloc (path->n_points, NULL, NULL);
+      if (NULL == label)
 	{
-	  /* See if we recognize this version number. */
-	  num_read = sscanf (line, "VERSION %d", &version);
-	  if (1 != num_read)
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-			      "           couldn't read version number\n",
-					 fname, line_number));
-	    }
-	  if (1 != version)
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           wrong version %d\n",
-					 fname, version));
-	    }
-	}
-      else if (0 == strncmp (line, "BEGINPATH", 9))
-	{
-	  /* Start a new path decsription. */
-	  fgetl (line, 1024, fp);
-	  line_number++;
-	  if (0 != strncmp (line, "NUMVERTICES", 11))
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-					 "           expected NUMVERTICES\n",
-					 fname, line_number));
-	    }
-
-	  /* Scan for the number of vertices. */
-	  num_read = sscanf (line, "NUMVERTICES %d", &num_vertices);
-	  if (1 != num_read || feof(fp))
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-			     "           couldn't read NUMVERTICES number\n",
-					 fname, line_number));
-	    }
-
-	  /* We'll do our coordinate->vertex conversion using the
-    	     LabelFillUnassignedVertices, but it only takes LABEL
-    	     structures, so we'll fill one of those out with the
-    	     coords we read in. */
-	  label = LabelAlloc (num_vertices, NULL, NULL);
-	  label->n_points = num_vertices;
-	  if (NULL == label)
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: couldn't allocate label for %d vertices\n",
-					 num_vertices));
-	    }
-
-	  /* Read in a line of coordinates for every vertex we
-	     have. */
-	  for (path_vno = 0; path_vno < num_vertices; path_vno++)
-	    {
-	      fgetl (line, 1024, fp);
-	      line_number++;
-	      num_read = sscanf (line, "%f %f %f", &x, &y, &z);
-	      if (3 != num_read || feof(fp))
-		{
-		  fclose (fp);
-		  free (vertices);
-		  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					     "           line number %d\n"
-				  "           couldn't read three floats\n",
-					     fname, line_number));
-		}
-
-	      /* Add this coordinate to our label. */
-	      label->lv[path_vno].x = x;
-	      label->lv[path_vno].y = y;
-	      label->lv[path_vno].z = z;
-	      label->lv[path_vno].vno = -1;
-	    }
-
-	  /* This will find vertex numbers for all those points. */
-	  LabelFillUnassignedVertices (mris, label);
-
-	  /* Copy the vertex numbers from the label into our vertices
-	     array. */
-	  for (path_vno = 0; path_vno < num_vertices; path_vno++)
-	    {
-	      vertices[path_vno] = label->lv[path_vno].vno;
-	    }
-	  LabelFree (&label);
-
-	  /* Make a new path from our num_vertices and vertices
-	     array. */
-	  path_add (num_vertices, vertices, NULL);
-
-	  /* Make sure we got the ENDPATH keyword. */
-	  fgetl (line, 1024, fp);
-	  line_number++;
-	  if (0 != strncmp (line, "ENDPATH", 7))
-	    {
-	      fclose (fp);
-	      free (vertices);
-	      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					 "path_load: error reading file %s\n"
-					 "           line number %d\n"
-					 "           expected ENDPATH\n",
-					 fname, line_number));
-	    }
-	}
-      else
-	{
-	  /* Didn't get a keyword we're looking for. */
+	  free (vertices);
 	  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-				     "path_load: error reading file %s\n"
-				     "           line number %d\n"
-				     "           no expected keyword found\n",
-				     fname, line_number));
+				 "Couldn't allocate label for %d vertices\n", 
+				     path->n_points));
 	}
+      label->n_points = path->n_points;
+      
+      /* Put the path coords in the label. */
+      for (pno = 0; pno < path->n_points; pno++)
+	{
+	  label->lv[pno].x = path->points[pno].x;
+	  label->lv[pno].y = path->points[pno].y;
+	  label->lv[pno].z = path->points[pno].z;
+	  label->lv[pno].vno = -1;
+	}
+      
+      /* This will find vertex numbers for all those points. */
+      LabelFillUnassignedVertices (mris, label);
+      
+      /* Copy the vertex numbers from the label into our vertices
+	 array. */
+      for (path_vno = 0; path_vno < path->n_points; path_vno++)
+	{
+	  vertices[path_vno] = label->lv[path_vno].vno;
+	}
+      LabelFree (&label);
+      
+      /* Make a new path from our num_vertices and vertices
+	 array. */
+      path_add (path->n_points, vertices, NULL);
+
+      /* Free this path. */
+      PathFree (&paths[path_index]);
+	 
     }
 
   free (vertices);
-  fclose (fp);
-  
+  free (paths);
+
   return (ERROR_NONE);
 }
 
