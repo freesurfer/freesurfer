@@ -24,8 +24,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mbClearZero(false),
   mMinVisibleValue(0),
   mMaxVisibleValue(0),
-  mBrightness(0.25),
-  mContrast(12.0), 
+  mBrightness(0.5),
+  mContrast(15.0), 
   mHeatScaleMinThreshold(0),
   mHeatScaleMidThreshold(0),
   mHeatScaleMaxThreshold(0),
@@ -2481,6 +2481,15 @@ ScubaLayer2DMRI::SetContrast ( float iContrast ) {
 void
 ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
+  float level =  
+    ((mBrightness * ((mMaxVisibleValue-mMinVisibleValue)+mMinVisibleValue)));
+  
+  float range = (mContrast * ((mMaxVisibleValue-mMinVisibleValue)))/30.0;
+
+  float window[2];
+  window[0] = level - range*0.5;
+  window[1] = level + range*0.5;
+
   for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
 
     // Get the value using the actual min/max to get highest
@@ -2488,6 +2497,7 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
     float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
 		   cGrayscaleLUTEntries) + mMinVisibleValue;
 
+#if 0
     // Use sigmoid to apply brightness/contrast. Gets 0-1 value.
     float bcdValue;
     if( value != 0 ) {
@@ -2501,6 +2511,15 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
     // Assign in table.
     mGrayscaleLUT[(int)nEntry] = (int) floor( normValue );
+#endif
+
+    float intensity = (value - window[0]) / (window[1] - window[0]); 
+
+    if( intensity < 0.0 ) intensity = 0.0;
+    if( intensity > 1.0 ) intensity = 1.0;
+
+    mGrayscaleLUT[(int)nEntry] = (int) floor( intensity * kMaxPixelComponentValueFloat );
+
   }
 }
 
