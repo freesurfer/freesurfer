@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-set ID='$Id: create_targz.csh,v 1.10 2006/03/04 00:00:26 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.11 2006/03/07 20:40:35 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -9,30 +9,40 @@ umask 002
 
 setenv PLATFORM     $1
 setenv RELEASE_TYPE $2
-setenv SPACE_FREESURFER /space/freesurfer
+setenv HOSTNAME `hostname -s`
+
+setenv SPACE_FS /space/freesurfer
+setenv LOCAL_FS /usr/local/freesurfer
+# if /space/freesurfer is down, or if there is a need to run
+# the build scripts outside of /usr/local/freesurfer, then 
+# the var USE_SPACE_MINERVA can be set
+if ($?USE_SPACE_MINERVA) then
+  setenv SPACE_FS /space/minerva/1/users/nicks
+  setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
+endif
 
 if ("$PLATFORM" == "rh7.3") then
-    if ("`uname -n`" != "martinos01" ) then
+    if ("${HOSTNAME}" != "martinos01" ) then
         echo "must run on machine martinos01"
         exit 1
     endif
 else if ("$PLATFORM" == "rh9") then
-    if ("`uname -n`" != "kani" ) then
+    if ("${HOSTNAME}" != "kani" ) then
         echo "must run on machine kani"
         exit 1
     endif
 else if ("$PLATFORM" == "centos4") then
-    if ("`uname -n`" != "fishie" ) then
+    if ("${HOSTNAME}" != "fishie" ) then
         echo "must run on machine fishie"
         exit 1
     endif
 else if ("$PLATFORM" == "centos4_x86_64") then
-    if ("`uname -n`" != "minerva" ) then
+    if ("${HOSTNAME}" != "minerva" ) then
         echo "must run on machine minerva"
         exit 1
     endif
 else if ("$PLATFORM" == "tiger") then
-    if ("`uname -n`" != "storm.nmr.mgh.harvard.edu" ) then
+    if ("${HOSTNAME}" != "storm" ) then
         echo "must run on machine storm"
         exit 1
     endif
@@ -49,6 +59,7 @@ if (( "$RELEASE_TYPE" != "dev") && ( "$RELEASE_TYPE" != "stable-pub")) then
   exit 1
 endif
 
+cd ${LOCAL_FS}
 if ( "$PLATFORM" == "tiger") then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
@@ -56,30 +67,31 @@ if ( "$PLATFORM" == "tiger") then
   cd /Users/Shared/tmp
 endif
 
-cd /usr/local/freesurfer
+cd ${LOCAL_FS}
 if (-e freesurfer) rm freesurfer
 set cmd=(ln -s $RELEASE_TYPE freesurfer)
 echo $cmd
 $cmd
 
-setenv BUILD_STAMP "`cat /usr/local/freesurfer/${RELEASE_TYPE}/build-stamp.txt`"
+setenv BUILD_STAMP "`cat ${LOCAL_FS}/${RELEASE_TYPE}/build-stamp.txt`"
 setenv FILENAME ${BUILD_STAMP}-full
 setenv TARNAME ${FILENAME}.tar
 echo creating $TARNAME...
-# the -h flag passed to tar is critical!  it follows the links to the libraries.
-tar -X ${SPACE_FREESURFER}/build/scripts/exclude_from_targz -hcvf $TARNAME freesurfer
+# the -h flag passed to tar is critical!  
+# it follows the links to the libraries.
+tar -X ${SPACE_FS}/build/scripts/exclude_from_targz -hcvf $TARNAME freesurfer
 echo gzipping $TARNAME...
 gzip $TARNAME
-set cmd=(mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases)
+set cmd=(mv $TARNAME.gz ${SPACE_FS}/build/pub-releases)
 echo $cmd
 $cmd
-set cmd=(chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz)
+set cmd=(chmod g+w ${SPACE_FS}/build/pub-releases/$TARNAME.gz)
 echo $cmd
 $cmd
 if (-e /Users/Shared/tmp/$RELEASE_TYPE) rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
 
 # cleanup useless link
-cd /usr/local/freesurfer
+cd ${LOCAL_FS}
 if (-e freesurfer) rm freesurfer
 
 # for the Mac, create_dmg.csh creates the .dmg file from the .tar.gz file.
