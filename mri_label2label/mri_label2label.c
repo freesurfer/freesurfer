@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $
+  $Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -70,7 +70,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -122,6 +122,8 @@ int useprojabs = 0, useprojfrac = 0;
 float projabs = 0.0, projfrac = 0.0;
 int reversemap = 1;
 int usepathfiles = 0;
+char *XFMFile = NULL;
+LTA *lta_transform;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
@@ -141,7 +143,7 @@ int main(int argc, char **argv)
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.24 2006/03/03 22:53:00 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -225,17 +227,25 @@ int main(int argc, char **argv)
 
     printf("Starting volumetric mapping\n");
 
-    /*** Load the Src2Tal registration ***/
-    SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
-    if(SrcVolReg == NULL) exit(1);
+    if(XFMFile){
+      printf("Reading in xmf file %s",XFMFile);
+      lta_transform = LTAreadEx(XFMFile);
+      Src2TrgVolReg = lta_transform->xforms[0].m_L;
+    } else {
+      /*** Load the Src2Tal registration ***/
+      SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
+      if(SrcVolReg == NULL) exit(1);
+      
+      /*** Load the Trg2Tal registration ***/
+      TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
+      if(TrgVolReg == NULL) exit(1);
     
-    /*** Load the Trg2Tal registration ***/
-    TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
-    if(TrgVolReg == NULL) exit(1);
-    
-    /* Compte the Src-to-Trg Registration */
-    InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
-    Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
+      /* Compte the Src-to-Trg Registration */
+      InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
+      Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
+    }
+    printf("Src2TrgVolReg: -----------------\n");
+    MatrixPrint(stdout,Src2TrgVolReg);
     
     /* Loop through each source label and map its xyz to target */
     for(n = 0; n < srclabel->n_points; n++){
@@ -619,7 +629,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[1],"%f",&srcmaskthresh); 
       nargsused = 2;
       if(nth_is_arg(nargc, pargv, 2)){
-  srcmaskfmt = pargv[2]; nargsused ++;
+	srcmaskfmt = pargv[2]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--srcmaskframe")){
@@ -630,11 +640,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       srcmasksign = pargv[0]; nargsused = 1;
       if(strcmp(srcmasksign,"abs") &&
-   strcmp(srcmasksign,"pos") &&
-   strcmp(srcmasksign,"neg")){
-  printf("ERROR: srcmasksign = %s, must be either "
-         "abs, pos, or neg\n", srcmasksign);
-  exit(1);
+	 strcmp(srcmasksign,"pos") &&
+	 strcmp(srcmasksign,"neg")){
+	printf("ERROR: srcmasksign = %s, must be either "
+	       "abs, pos, or neg\n", srcmasksign);
+	exit(1);
       }
     }
     /* -------- target inputs ------ */
@@ -714,12 +724,17 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       regmethod = pargv[0];
       if(strcmp(regmethod,"surface") && strcmp(regmethod,"volume") &&
-   strcmp(regmethod,"surf") && strcmp(regmethod,"vol")){
-  fprintf(stderr,"ERROR: regmethod must be surface or volume\n");
-  exit(1);
+	 strcmp(regmethod,"surf") && strcmp(regmethod,"vol")){
+	fprintf(stderr,"ERROR: regmethod must be surface or volume\n");
+	exit(1);
       }
       if(!strcmp(regmethod,"surf")) regmethod = "surface";
       if(!strcmp(regmethod,"vol"))  regmethod = "volume";
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--xfm")){
+      if(nargc < 1) argnerr(option,1);
+      XFMFile = pargv[0];
       nargsused = 1;
     }
     else{
@@ -764,6 +779,8 @@ static void print_usage(void)
   fprintf(stdout, "   --srcmask     surfvalfile thresh <format>\n");
   fprintf(stdout, "   --srcmasksign sign (<abs>,pos,neg)\n");
   fprintf(stdout, "   --srcmaskframe 0-based frame number <0>\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --xfm xfmfile : use xfm instead of computing tal xfm\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --projabs  dist project dist mm along surf normal\n");
   fprintf(stdout, "   --projfrac frac project frac of thickness along surf normal\n");
