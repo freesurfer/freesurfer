@@ -39,10 +39,16 @@ class NRWrapperTest : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE_END();
 
 private:
-  MATRIX* mIdentityMatrix;
-  MATRIX* mZeroMatrix;
-  MATRIX* mWellFormedMatrix;
-  MATRIX* mPascalMatrix;
+  float mExpectedFret1;
+  float *mExpectedP1;
+  int mFunction1Size;
+
+  float mExpectedFret2;
+  float *mExpectedP2;
+  int mFunction2Size;
+
+  void SetUpMinimizationTestResults();
+  void TearDownMinimizationTestResults();
 
 public:
   static const int MATRICES_NOT_EQUAL;
@@ -53,12 +59,7 @@ public:
   
   static const std::string TESTING_DIR;
 
-//  static const std::string WELL_FORMED_MATRIX;
-//  static const std::string WELL_FORMED_LUDCMP;
-
   static const std::string PASCAL_MATRIX;
-//  static const std::string PASCAL_LUDCMP;
-//  static const std::string PASCAL_INVERSE;
   static const std::string ZEROES_MATRIX;
   static const std::string IDENTITY_MATRIX;
   static const std::string SINGULAR_MATRIX;
@@ -82,8 +83,13 @@ public:
   static const std::string SINE_SPLINE_YY_0_17_FINE;
   static const std::string SINE_SPLINE_YY_19_2_FINE;
 
-  static float testFunction1(float *p);
-  static float testFunction2(float *p);
+  static float TestFunction1( float *p );
+  static void TestFunction1Gradient( float *p, float *g );
+  
+  static float TestFunction2( float *p );
+  static void TestFunction2Gradient( float *p, float *g );
+
+  static void StepFunction( int itno, float sse, void *parms, float *p );
 
   // setUp is called automatically before each test
   void setUp();
@@ -101,15 +107,26 @@ public:
                                 const float actual,
                                 const float tolerance );
 
+  bool AreNByNArraysEqual( float *expected, float *actual, int n, 
+    float tolerance );
+
+  bool IsBetween0And1( float x );
+
   MATRIX* ReconstructFromSVD( MATRIX* u, VECTOR* wVector, MATRIX* v );
 
   int TestSVDcmpHelper( std::string matrixFile, 
-      int numberOfRows, int nubmerOfColumns );
+    int numberOfRows, int numberOfColumns );
       
   bool TestPowellHelper( const int numberOfParameters, float expectedFret,
                          float * expectedP, float (*function)(float []) );
-      
-  bool isBetween0And1( float x );
+                         
+  bool TestDFPMinHelper( int numberOfParameters, 
+    float expectedFret, float * expectedP, 
+    float ( *function )(float []),
+    void ( *functionGradient )(float [], float []),
+    void ( *stepFunction )( int itno, float sse, void *parms, float *p ), 
+    void *params );
+          
   
   void TestLUDecomp();
   void TestDFPMin();
@@ -128,14 +145,8 @@ const int NRWrapperTest::MATRICES_EQUAL = 1;
 const int NRWrapperTest::MATRICES_ERROR = 2;
 
 const std::string NRWrapperTest::TESTING_DIR = "test_nr_wrapper_data/";
-
-//const std::string NRWrapperTest::WELL_FORMED_MATRIX = TESTING_DIR + "WellFormed.mat";
-//const std::string NRWrapperTest::WELL_FORMED_LUDCMP = TESTING_DIR + "WellFormedLUDCMP.mat";
-
+ 
 const std::string NRWrapperTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
-//const std::string NRWrapperTest::PASCAL_LUDCMP = TESTING_DIR + "PascalLUDCMP.mat";
-//const std::string NRWrapperTest::PASCAL_INVERSE = TESTING_DIR + "PascalInverse.mat";
-
 const std::string NRWrapperTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
 const std::string NRWrapperTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 const std::string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
@@ -166,31 +177,16 @@ const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE = TESTING_DIR + "SineS
 
 void
 NRWrapperTest::setUp() {
-/*  
-  MATRIX *identityMatrix = NULL;
-  identityMatrix = MatrixIdentity( 3, identityMatrix );
-  mIdentityMatrix = identityMatrix;
   
-  MATRIX *zeroMatrix = MatrixAlloc( 3, 3, MATRIX_REAL );
-  MatrixClear(zeroMatrix);
-  mZeroMatrix = zeroMatrix;
-  
-  mWellFormedMatrix = MatrixRead( (char*)( WELL_FORMED_MATRIX.c_str() ) );
-  
-  mPascalMatrix = MatrixRead( (char*)( PASCAL_MATRIX.c_str() ) );
-*/  
 }
 
 void
 NRWrapperTest::tearDown() {
-/*  
-  delete mIdentityMatrix;
-  delete mZeroMatrix;
-*/  
+
 }
 
 bool 
-NRWrapperTest::isBetween0And1( float x ) {
+NRWrapperTest::IsBetween0And1( float x ) {
   bool isBetween = true;
   
   if( x>1.0 ) {
@@ -238,65 +234,115 @@ NRWrapperTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance,
 
 void 
 NRWrapperTest::TestLUDecomp() {
-/*
-  int ERROR = -1;
-    
-//  MATRIX *inverseMatrix = NULL;
-  inverseMatrix = MatrixInverse( mIdentityMatrix, inverseMatrix );  
-  MatrixPrint(stdout, inverseMatrix);    
-  CPPUNIT_ASSERT( AreMatricesEqual( mIdentityMatrix, inverseMatrix ) );
-  
-  MATRIX *matrix = mPascalMatrix;
-  
-  // LU Decomposition, takes
-  int numberOfRows = matrix->rows;
-  MATRIX *decomposedMatrix = MatrixCopy( matrix, NULL );
-  float **decomposedMatrixData = decomposedMatrix->rptr;
-  int *index = (int *)calloc( numberOfRows+1, sizeof( int ) );
-  float d;
-
-  cerr << "--- original" << endl;
-  MatrixPrint( stdout, matrix );
-
-  cerr << "+++ ludcmp calculated" << endl;
-
-  int isError = ludcmp( decomposedMatrixData, numberOfRows, index, &d );
-  if( isError == ERROR ) {
-    cerr << "--- Error ----" << endl;
-    MatrixPrint( stdout, decomposedMatrix );
-  } else {
-    MatrixPrint( stdout, decomposedMatrix );
-  }
-  
-  cerr << "+++ ludcmp index" << endl;
-  for(int i=0; i<numberOfRows; i++) {
-    cerr << index[0] << endl;
-  }
-  
-  cerr << "*** ludcmp matlab" << endl;  
-  MATRIX* pascalLUDCMP = MatrixRead( (char*)( PASCAL_LUDCMP.c_str() ));
-  MatrixPrint( stdout, pascalLUDCMP );
-*/  
   CPPUNIT_FAIL("not implemented");
+}
+
+bool
+NRWrapperTest::TestDFPMinHelper( int numberOfParameters, 
+    float expectedFret, float * expectedP, 
+    float ( *function )(float []),
+    void ( *functionGradient )(float [], float []),
+    void ( *stepFunction )( int itno, float sse, void *parms, float *p ), 
+    void *params ) {
+    
+  int iter = 0;
+  float fret = 0;
+  float ftol = .1;
+  
+  float *p = vector( 1, numberOfParameters );
+  
+  dfpmin( p, numberOfParameters, ftol, &iter, &fret, function, functionGradient,
+    stepFunction, params);
+
+  bool gotExpectedValues = true;
+  
+  if( stepFunction != NULL ) {
+    bool *isCalled = (bool *)params;
+    
+    if( !isCalled[0] ) {
+      gotExpectedValues = false;
+    }
+  }
+
+  const float equalsTolerance = 1e-4;
+  gotExpectedValues = AreNByNArraysEqual( p, expectedP, numberOfParameters, 
+    equalsTolerance );
+    
+  if (fret != expectedFret) gotExpectedValues = false;
+    
+  free_vector( p, 1, numberOfParameters );
+  
+  return gotExpectedValues;
+}
+
+void 
+NRWrapperTest::SetUpMinimizationTestResults() {
+  mFunction1Size = 1;
+  mExpectedFret1 = -4.0;
+  mExpectedP1 = new float[2];
+  mExpectedP1[1] = 3.0;
+
+  mFunction2Size = 2;
+  mExpectedFret2 = -10.0;
+  mExpectedP2 = new float[3];
+  mExpectedP2[1] = 2.0;
+  mExpectedP2[2] = -2.0;
+}
+
+void 
+NRWrapperTest::TearDownMinimizationTestResults() {
+  delete []mExpectedP1;
+  mExpectedP1 = NULL;
+  
+  delete []mExpectedP2;
+  mExpectedP2 = NULL;
 }
 
 void 
 NRWrapperTest::TestDFPMin() {
-  CPPUNIT_FAIL("not implemented");
+  SetUpMinimizationTestResults();
+  
+  bool isSuccess = TestDFPMinHelper( mFunction1Size, mExpectedFret1, 
+    mExpectedP1, TestFunction1, TestFunction1Gradient, NULL, NULL );
+  CPPUNIT_ASSERT( isSuccess );
+
+  isSuccess = TestDFPMinHelper( mFunction2Size, mExpectedFret2, mExpectedP2, 
+    TestFunction2, TestFunction2Gradient, NULL, NULL );
+  CPPUNIT_ASSERT( isSuccess );
+
+  bool* isCalled = new bool[1];
+  isSuccess = TestDFPMinHelper( mFunction2Size, mExpectedFret2, mExpectedP2, 
+    TestFunction2, TestFunction2Gradient, StepFunction, isCalled );
+  CPPUNIT_ASSERT( isSuccess );
+  delete isCalled;
+  
+  TearDownMinimizationTestResults();
+}
+
+void 
+NRWrapperTest::StepFunction( int itno, float sse, void *parms, float *p ) {
+  bool* isCalled = (bool *)parms;
+  isCalled[0] = true;
 }
 
 // static
 float 
-NRWrapperTest::testFunction1(float *p) {
+NRWrapperTest::TestFunction1( float *p ) {
   float x = p[1];
   float y = ( x - 1 ) * ( x - 5 );
   
   return y;
 }
 
+void
+NRWrapperTest::TestFunction1Gradient( float *p, float *g ) {
+  float x = p[1];
+  g[1] = 2*x - 6;
+}
+
 // static
 float 
-NRWrapperTest::testFunction2(float *p) {
+NRWrapperTest::TestFunction2( float *p ) {
   float Ax[2];
   Ax[0] = 3 * p[1] + 2 * p[2];
   Ax[1] = 2 * p[1] + 6 * p[2];
@@ -308,6 +354,14 @@ NRWrapperTest::testFunction2(float *p) {
   return .5 * xTAx - bx;
 }
 
+void
+NRWrapperTest::TestFunction2Gradient( float *p, float *g ) {
+  float x1 = p[1];
+  float x2 = p[2];
+  
+  g[1] = ( 3 * x1 ) + ( 2 * x2 ) - 2;
+  g[2] = ( 6 * x2 ) + ( 2 * x1 ) + 8;
+}
 
 bool
 NRWrapperTest::AreEqualWithinTolerance( const float expected, 
@@ -320,20 +374,15 @@ NRWrapperTest::AreEqualWithinTolerance( const float expected,
 
 void 
 NRWrapperTest::TestPowell() {
-  float expectedFret = -4.0;
-  float *expectedP = new float[2];
-  expectedP[1] = 3.0;
-  CPPUNIT_ASSERT(TestPowellHelper(1, expectedFret, expectedP, testFunction1));
-  
+  SetUpMinimizationTestResults();
 
-  delete [] expectedP;
-  expectedP = new float[3];
-  expectedFret = -10.0;
-  expectedP[1] = 2.0;
-  expectedP[2] = -2.0;
-  CPPUNIT_ASSERT(TestPowellHelper(2, expectedFret, expectedP, testFunction2));
-  
-  delete [] expectedP;
+  CPPUNIT_ASSERT( TestPowellHelper( mFunction1Size, mExpectedFret1, mExpectedP1, 
+                                    TestFunction1 ) );
+
+  CPPUNIT_ASSERT( TestPowellHelper( mFunction2Size, mExpectedFret2, mExpectedP2, 
+                                    TestFunction2));
+
+  TearDownMinimizationTestResults();
 }
 
 bool
@@ -364,19 +413,30 @@ NRWrapperTest::TestPowellHelper( const int numberOfParameters, float expectedFre
   powell( p, xi, numberOfParameters, tolerance, &iter, &fret, function );
     
   const float equalsTolerance = 1e-4;
-  bool gotExpectedValues = true;
-  for (int i = 0; i < numberOfParameters; i++) {
-    if ( !AreEqualWithinTolerance( p[i + 1], expectedP[i + 1], equalsTolerance) ) {
-      gotExpectedValues = false;
-    }
-  }
-  
+
+  bool gotExpectedValues = AreNByNArraysEqual( p, expectedP, numberOfParameters,
+    equalsTolerance );
+    
   if (fret != expectedFret) gotExpectedValues = false;
   
   free_vector( p, 1, numberOfParameters );  
   free_matrix( xi, 1, numberOfParameters, 1, numberOfParameters );
   
   return gotExpectedValues;
+}
+
+bool
+NRWrapperTest::AreNByNArraysEqual( float *expected, float *actual, int n,
+  float tolerance ) {
+  
+  bool areEqual = true;
+  for (int i = 0; i < n; i++) {
+    if ( !AreEqualWithinTolerance( actual[i + 1], expected[i + 1], tolerance) ) {
+      areEqual = false;
+    }
+  }
+  
+  return areEqual;
 }
 
 MATRIX*
@@ -502,7 +562,7 @@ NRWrapperTest::TestRan1() {
   for(int i=0; i<numberOfRuns; i++) {
     float randomNumber = ran1( &seed );
  
-    CPPUNIT_ASSERT( isBetween0And1( randomNumber ) );
+    CPPUNIT_ASSERT( IsBetween0And1( randomNumber ) );
 
     int bin = (int)floor(randomNumber * numberOfBins);
     bins[bin]++;
