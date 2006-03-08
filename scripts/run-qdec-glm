@@ -1,8 +1,8 @@
 #!/bin/csh -f
-# $Id: run-qdec-glm,v 1.4 2005/11/10 22:56:50 greve Exp $
+# $Id: run-qdec-glm,v 1.4.2.1 2006/03/08 03:58:11 greve Exp $
 # setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
 
-set version = '$Id: run-qdec-glm,v 1.4 2005/11/10 22:56:50 greve Exp $';
+set version = '$Id: run-qdec-glm,v 1.4.2.1 2006/03/08 03:58:11 greve Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"
@@ -95,7 +95,8 @@ mri_info --nframes $y --o /tmp/nframes.$$.dat
 set nsubjects = `cat /tmp/nframes.$$.dat`;
 
 # ----------- Run the GLM -------------------------
-set cmd = (mri_glmfit --y $y --fsgd $fsgdf dods --glmdir $qdecdir)
+set cmd = (mri_glmfit --y $y --fsgd $fsgdf dods --glmdir $qdecdir \
+  --really-use-average7 --surf average7 lh)
 foreach c ($contrasts)
   set cmat = $cdir/$c.mat
   set cmd = ($cmd --C $cmat)
