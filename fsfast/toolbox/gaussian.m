@@ -12,6 +12,6 @@ if(nargin ~= 3)
   error(msg);
 end
 
-y = exp( -((x-mean).^2)/(2*(stddev.^2))) / (stddev * sqrt(2*pi));
+y = exp( -((x-mean).^2)./(2*(stddev.^2))) ./ (stddev * sqrt(2*pi));
 
 return
