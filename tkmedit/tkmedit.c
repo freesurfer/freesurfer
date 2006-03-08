@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/03/06 19:28:29 $
-// Revision       : $Revision: 1.275 $
-char *VERSION = "$Revision: 1.275 $";
+// Revision Date  : $Date: 2006/03/08 00:31:26 $
+// Revision       : $Revision: 1.276 $
+char *VERSION = "$Revision: 1.276 $";
 
 #define TCL
 #define TKMEDIT
@@ -987,6 +987,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   int          bFatalError                = FALSE;
   char         sArg[tkm_knPathLen]        = "";
   char         sError[tkm_knErrStringLen] = "";
+  char*        pEnvVar                    = NULL;
 
   tBoolean     bSubjectDeclared = FALSE;
   tBoolean     bUsingMRIRead    = FALSE;
@@ -1108,7 +1109,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.275 2006/03/06 19:28:29 kteich Exp $",
+     "$Id: tkmedit.c,v 1.276 2006/03/08 00:31:26 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1201,9 +1202,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("                               : same path as volume)\n");
     printf("-timecourse-offset <path/stem> : load timecourse offset volume\n");
     printf("\n");
-    printf("-segmentation <volume> <colors>    : load segmentation "
+    printf("-segmentation <volume> [colors]    : load segmentation "
            "volume and color file\n");
-    printf("-aux-segmentation <volume> <colors>: load aux "
+    printf("-aux-segmentation <volume> [colors]: load aux "
            "segmentation volume and color file\n");
     printf("-segmentation-opacity <opacity>    : opacity of the "
            "segmentation \n");
@@ -1652,56 +1653,97 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                  MATCH( sArg, "-parcellation" ) ||
                  MATCH( sArg, "-parc" ) ) {
 
-        /* make sure there are enough args */
-        if( argc > nCurrentArg + 2 &&
-            '-' != argv[nCurrentArg+1][0] &&
-            '-' != argv[nCurrentArg+2][0] ) {
+        /* make sure there is at least one argument. */
+        if( argc > nCurrentArg + 1 &&
+            '-' != argv[nCurrentArg+1][0] ) {
 
-          /* copy path and color file */
+          /* copy the filename */
           DebugNote( ("Parsing -segmentation option") );
           xUtil_strncpy( sSegmentationPath, argv[nCurrentArg+1],
                          sizeof(sSegmentationPath) );
-          xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg+2],
-                         sizeof(sSegmentationColorFile) );
+          nCurrentArg += 2;
+
+	  /* Check for the additional LUT filename. */
+	  if( argc > nCurrentArg &&
+	      '-' != argv[nCurrentArg][0] ) {
+
+	    /* Get the LUT from the command line. */
+	    xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg],
+			   sizeof(sSegmentationColorFile) );
+	    nCurrentArg += 1;
+
+	  } else {
+
+	    /* If not, use a default color table name. */
+	    pEnvVar = getenv("FREESURFER_HOME");
+	    if( NULL != pEnvVar ) {
+	      sprintf( sSegmentationColorFile, 
+		       "%s/FreeSurferColorLUT.txt", pEnvVar );
+	    } else {
+	      xUtil_strncpy( sSegmentationColorFile,"./FreeSurferColorLUT.txt",
+			     sizeof(sSegmentationColorFile) );
+	    }
+	  }
+
           bLoadingSegmentation = TRUE;
-          nCurrentArg += 3;
 
         } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -segmentation/seg option",
-                            "Expected two arguments",
-                            "This option needs two arguments: the path of "
-                            "the COR volume and the name of the colors "
-                            "file." );
+                            "Expected one or two arguments",
+                            "This option needs at least one argument: the "
+			    "file name of the segmentation volume, and "
+			    "an optional color table file name." );
           nCurrentArg ++;
         }
 
       } else if( MATCH( sArg, "-aux-segmentation" ) ||
                  MATCH( sArg, "-aux-seg" ) ) {
 
-        /* make sure there are enough args */
-        if( argc > nCurrentArg + 2 &&
-            '-' != argv[nCurrentArg+1][0] &&
-            '-' != argv[nCurrentArg+2][0] ) {
+        /* make sure there is at least one arg */
+        if( argc > nCurrentArg + 1 &&
+            '-' != argv[nCurrentArg+1][0] ) {
 
-          /* copy path and color file */
+          /* copy the filename */
           DebugNote( ("Parsing -aux-segmentation option") );
           xUtil_strncpy( sAuxSegmentationPath, argv[nCurrentArg+1],
                          sizeof(sAuxSegmentationPath) );
-          xUtil_strncpy( sAuxSegmentationColorFile, argv[nCurrentArg+2],
-                         sizeof(sAuxSegmentationColorFile) );
-          bLoadingAuxSegmentation = TRUE;
-          nCurrentArg += 3;
+	  nCurrentArg += 2;
+
+	  /* Check for the additional LUT filename. */
+	  if( argc > nCurrentArg &&
+	      '-' != argv[nCurrentArg][0] ) {
+
+	    /* Get the LUT from the command line. */
+	    xUtil_strncpy( sAuxSegmentationColorFile, argv[nCurrentArg],
+			   sizeof(sAuxSegmentationColorFile) );
+	    nCurrentArg += 1;
+
+	  } else {
+
+	    /* If not, use a default color table name. */
+	    pEnvVar = getenv("FREESURFER_HOME");
+	    if( NULL != pEnvVar ) {
+	      sprintf( sAuxSegmentationColorFile, 
+		       "%s/FreeSurferColorLUT.txt", pEnvVar );
+	    } else {
+	      xUtil_strncpy( sAuxSegmentationColorFile,
+			     "./FreeSurferColorLUT.txt",
+			     sizeof(sAuxSegmentationColorFile) );
+	    }
+	  }
+	  
+	  bLoadingAuxSegmentation = TRUE;
 
         } else {
 
           /* misuse of that switch */
-          tkm_DisplayError( "Parsing -segmentation/seg option",
-                            "Expected two arguments",
-                            "This option needs two arguments: the path of "
-                            "the COR volume and the name of the colors "
-                            "file." );
+          tkm_DisplayError( "Parsing -aux-segmentation/aux-seg option",
+                            "Expected one or two arguments",
+                            "This option needs at least one argument: the "
+			    "file name of the segmentation volume, and "
+			    "an optional color table file name." );
           nCurrentArg ++;
         }
 
@@ -2431,6 +2473,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if( bLoadingSegmentation ) {
     eResult = LoadSegmentationVolume( tkm_tSegType_Main, sSegmentationPath,
                                       sSegmentationColorFile );
+    printf( "LoadSegmentationVolume main %s %s\n", sSegmentationPath, sSegmentationColorFile );
     /* set roi alpha */
     if( bSegmentationAlpha ) {
       SetSegmentationAlpha( fSegmentationAlpha );
@@ -2441,6 +2484,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if( bLoadingAuxSegmentation ) {
     eResult = LoadSegmentationVolume( tkm_tSegType_Aux, sAuxSegmentationPath,
                                       sAuxSegmentationColorFile );
+    printf( "LoadSegmentationVolume aux %s %s\n", sAuxSegmentationPath, sAuxSegmentationColorFile );
   }
 
   /* load VLIs */
@@ -5544,7 +5588,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.275 2006/03/06 19:28:29 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.276 2006/03/08 00:31:26 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -10027,7 +10071,7 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
   tkm_DisplayError( sError,
                     tkm_GetErrorString(eResult),
                     "Tkmedit couldn't read the color table you "
-                    "specified. This could be because the file wasn't"
+                    "specified. This could be because the file wasn't "
                     "valid or wasn't found." );
   EndDebugCatch;
 
