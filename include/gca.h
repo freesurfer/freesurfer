@@ -349,6 +349,7 @@ int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
 GCA *GCAcompactify(GCA *gca);
 MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform) ;
 GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
+int free_gcs(GC1D *gcs, int nlabels, int ninputs) ;
 int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label ;
 extern char *G_write_probs ;
