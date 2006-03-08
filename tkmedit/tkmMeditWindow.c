@@ -2620,8 +2620,6 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     this->mnWidth  = ipEvent->mWhere.mnX;
     this->mnHeight = ipEvent->mWhere.mnY;
 
-    fprintf( stderr, "Got resize %d, %d\n", this->mnWidth, this->mnHeight );
-
     /* force 1x1 aspect ratio (unless env var is set) */
     if(getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
       this->mnWidth = this->mnHeight; // force 1x1 aspect ratio
