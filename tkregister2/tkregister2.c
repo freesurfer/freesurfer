@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.49.2.2 2006/03/08 06:28:34 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $";
+"$Id: tkregister2.c,v 1.49.2.2 2006/03/08 06:28:34 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -588,7 +588,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   }
   if(mov_vol->type != MRI_FLOAT  && LoadVol){
     printf("INFO: changing move type to float\n");
-    mritmp = MRIchangeType(mov_vol,MRI_FLOAT,0,0,0);
+    mritmp = MRISeqchangeType(mov_vol,MRI_FLOAT,0,0,0);
     if(mritmp == NULL){
       printf("ERROR: could change type\n");
       exit(1);
@@ -2382,9 +2382,9 @@ void select_pixel(short sx, short sy)
   sFunc = nint(sfFunc);
 
   printf("------------------------------------------------------------\n");
-  printf("  Screen:  %3d %3d (%d,%d,%d), inorm = %d\n",cScreen,rScreen,
-         lvidbuf[3*kScreen], lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
-         use_inorm);
+  printf("  Screen:  %3d %3d (%d,%d,%d), inorm = %d, mov_frame = %d \n",
+         cScreen,rScreen,lvidbuf[3*kScreen], lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
+         use_inorm,mov_frame);
   printf("  Anat:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
          sag,hor,cor,xAnat,yAnat,zAnat);
   if(!soob) printf("%8.4f  %6.1f\n",MRIFseq_vox(targ_vol,sag,hor,cor,0),
@@ -2600,14 +2600,14 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       case 'a': /* advance frame */
         mov_frame ++;
         if(mov_frame >= mov_vol->nframes) mov_frame = 0;
-        printf("mov_frame = %d\n",mov_frame);
+        //printf("mov_frame = %d\n",mov_frame);
         updateflag = TRUE; 
         break;
 
       case 'b': /* recede frame */
         mov_frame --;
         if(mov_frame < 0) mov_frame = mov_vol->nframes-1;
-        printf("mov_frame = %d\n",mov_frame);
+        //printf("mov_frame = %d\n",mov_frame);
         updateflag = TRUE; 
         break;
 
@@ -3978,7 +3978,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.49.2.2 2006/03/08 06:28:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
