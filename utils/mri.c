@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/28 00:25:00 $
-// Revision       : $Revision: 1.337 $
-char *MRI_C_VERSION = "$Revision: 1.337 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/03/08 14:47:40 $
+// Revision       : $Revision: 1.338 $
+char *MRI_C_VERSION = "$Revision: 1.338 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12057,27 +12057,32 @@ MRIcomputeLabelNbhd
   float  val ;
 
   memset(label_counts, 0, sizeof(label_counts[0])*max_labels) ;
-  memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
+	if (label_means)
+		memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
   for (xk = -whalf ; xk <= whalf ; xk++)
     {
-      xi = mri_vals->xi[x+xk] ;
+      xi = mri_labels->xi[x+xk] ;
       for (yk = -whalf ; yk <= whalf ; yk++)
         {
-          yi = mri_vals->yi[y+yk] ;
+          yi = mri_labels->yi[y+yk] ;
           for (zk = -whalf ; zk <= whalf ; zk++)
             {
-              zi = mri_vals->zi[z+zk] ;
+              zi = mri_labels->zi[z+zk] ;
               label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
-              val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
               label_counts[label]++ ;
-              label_means[label] += val ;
+							if (mri_vals)
+							{
+								val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
+								label_means[label] += val ;
+							}
             }
         }
     }
 
-  for (label = 0 ; label < max_labels ; label++)
-    if (label_counts[label] > 0)
-      label_means[label] /= label_counts[label] ;
+	if (mri_vals)
+		for (label = 0 ; label < max_labels ; label++)
+			if (label_counts[label] > 0)
+				label_means[label] /= label_counts[label] ;
   return(NO_ERROR) ;
 }
 
