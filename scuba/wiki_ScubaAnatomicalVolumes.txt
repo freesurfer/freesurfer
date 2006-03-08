@@ -1,3 +1,5 @@
+||Up to ScubaGuide||Back to [:ScubaGuide/ScubaWorkingWithData: ScubaWorkingWithData]||Continue to [:ScubaGuide/ScubaWorkingWithData/ScubaVolumeROIs: ScubaVolumeROIs]||
+
 = Anatomical Volumes =
 
 Scuba can view multiple anatomical volumes and show them composited in the same space, each with different opacity and thresholding options. Volumes can be treated as anatomical, meaning they are drawn in grayscale, as segmentations, drawn with a color table and each voxel treated as an anatomical labelling, or functional, drawn with a heatscale and with special thresholding options. This section deals with options and controls relating to anatomical volumes, which also generally apply to the other volume types.
@@ -64,7 +66,9 @@ In the Layers panel, you can configure the following things:
 
   ''Sinc'': This option is the slowest, but the nicest looking interpolation.
 
- '''Brightness''', '''Contrast''': Sets the brightness and contrast, applicable only to grayscale volumes. This can also be set by clicking and dragging if you hold down the shift key and drag with mouse button 1.
+ '''Brightness''', '''Contrast''': Sets the brightness and contrast, applicable only to grayscale volumes. This shapes the sinusoidal curve that controls grayscale level adjustment within the range determined by the window and level.
+
+ '''Window''', '''Level''': Sets the grayscale level and window. This is used in configuring the range of the brightness and contrast curve. This can also be set by clicking and dragging if you hold down the shift key and drag with mouse button 1.
 
  '''Min''', '''Max''': Sets the minimum and maximum visible values for volume display. Values below the the minimum value and above the maximum value will not be drawn, so those voxels will be transparent.
 

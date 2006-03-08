@@ -1,3 +1,5 @@
+||Up to ScubaGuide||Back to [:ScubaGuide/ScubaReference: ScubaReference]||
+
 = Scripting =
 
 [[TableOfContents]]
@@ -135,6 +137,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns the heat scale min value for the layer.
 
+[[Anchor(Get2DMRILayerLevel)]]
+''Get``2DMRI``Layer``Level'' '''''layerID'''''
+
+ Returns the grayscale color level of the volume.
+
 [[Anchor(Get2DMRILayerMaxValue)]]
 ''Get``2DMRI``Layer``Max``Value'' '''''layerID'''''
 
@@ -169,6 +176,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Get``2DMRI``Layer``Volume``Collection'' '''''layerID'''''
 
  Returns the volume collection for this layer.
+
+[[Anchor(Get2DMRILayerWindow)]]
+''Get``2DMRI``Layer``Window'' '''''layerID'''''
+
+ Returns the grayscale window for this layer.
 
 [[Anchor(Get2DMRIRASCoordsFromIndex)]]
 ''Get``2DMRI``RAS``Coords``From``Index'' '''''layerID x y z'''''
@@ -810,6 +822,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Sets the heat scale min value for the layer. '''value''' should be a value in the range of the volume belonging to the layer.
 
+[[Anchor(Set2DMRILayerLevel)]]
+''Set``2DMRI``Layer``Level'' '''''layerID level'''''
+
+ Sets the grayscale color level for the layer. '''level''' should be a floating value from 0 to 1.
+
 [[Anchor(Set2DMRILayerMaxVisibleValue)]]
 ''Set``2DMRI``Layer``Max``Visible``Value'' '''''layerID value'''''
 
@@ -854,6 +871,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 ''Set``2DMRIS``Layer``Vertex``Color'' '''''layerID red green blue'''''
 
  Sets the vertex color for this layer. '''red''', '''green''', and '''blue''' should be 0-255 integers.
+
+[[Anchor(Set2DMRILayerWindow)]]
+''Set``2DMRI``Layer``Window'' '''''layerID window'''''
+
+ Sets the grayscale window for the layer. '''window''' should be a floating value from 0 to 1.
 
 [[Anchor(SetCollectionLabel)]]
 ''Set``Collection``Label'' '''''collectionID label'''''
@@ -1288,6 +1310,10 @@ objects. If they don't you'll receive an error. All IDs are integers.
 [#Get2DMRILayerBrightness Get2DMRILayerBrightness]
 [#Set2DMRILayerContrast Set2DMRILayerContrast]
 [#Get2DMRILayerContrast Get2DMRILayerContrast]
+[#Set2DMRILayerLevel Set2DMRILayerMinLevel]
+[#Get2DMRILayerLevel Get2DMRILayerMinLevel]
+[#Set2DMRILayerWindow Set2DMRILayerMinWindow]
+[#Get2DMRILayerWindow Get2DMRILayerMinWindow]
 [#Set2DMRILayerColorLUT Set2DMRILayerColorLUT]
 [#Get2DMRILayerColorLUT Get2DMRILayerColorLUT]
 [#Set2DMRILayerDrawZeroClear Set2DMRILayerDrawZeroClear]
@@ -1329,6 +1355,15 @@ objects. If they don't you'll receive an error. All IDs are integers.
 === ROIs ===
 
 [#GetROIIDList GetROIIDList]
+[#GetROIIDListForCollection GetROIIDListForCollection]
+[#NewVolumeROIFromLabel NewVolumeROIFromLabel]
+[#DeleteCollectionROI DeleteCollectionROI]
+[#NewCollectionROI NewCollectionROI]
+[#SelectCollectionROI SelectCollectionROI]
+[#WriteVolumeROIsToSegmentation WriteVolumeROIsToSegmentation]
+[#WriteVolumeROIToLabel WriteVolumeROIToLabel]
+[#GetVolumeAverageValueInROI GetVolumeAverageValueInROI]
+[#GetVolumeStandardDeviationInROI GetVolumeStandardDeviationInROI]
 
 === Color LUTs ===
 
@@ -1451,4 +1486,3 @@ objects. If they don't you'll receive an error. All IDs are integers.
 [#GetSubjectName GetSubjectName]
 [#GetSubjectDir GetSubjectDir]
 [#PrintAllCommands PrintAllCommands]
-
