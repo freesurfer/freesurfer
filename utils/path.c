@@ -21,6 +21,7 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
   PATH** paths = NULL;
   int num_paths = 0;
   float x, y, z;
+  int vno;
 
   /* Try opening the file. */
   fp = fopen (fname, "r");
@@ -64,7 +65,7 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 					 "     couldn't read version number\n",
 					 fname, line_number));
 	    }
-	  if (1 != version)
+	  if (1 != version && 2 != version)
 	    {
 	      fclose (fp);
 	      free (line);
@@ -134,25 +135,50 @@ int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 	    {
 	      getline (&line, &line_size, fp);
 	      line_number++;
-	      num_scanf = sscanf (line, "%f %f %f", &x, &y, &z);
-	      if (3 != num_scanf || feof(fp))
+
+	      switch (version)
 		{
-		  fclose (fp);
-		  free (line);
-		  free (path);
-		  if (paths) free (paths);
-		  if (path) free (path);
-		  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-					     "Error reading file %s\n"
-					     "     line number %d\n"
-					   "     couldn't read three floats\n",
-					     fname, line_number));
+		case 1:
+
+		  num_scanf = sscanf (line, "%f %f %f", &x, &y, &z);
+		  if (3 != num_scanf || feof(fp))
+		    {
+		      fclose (fp);
+		      free (line);
+		      free (path);
+		      if (paths) free (paths);
+		      if (path) free (path);
+		      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+						 "Error reading file %s\n"
+						 "     line number %d\n"
+				    "     couldn't read three floats\n",
+						 fname, line_number));
+		    }
+		  vno = -1;
+		  break;
+		case 2:
+		  num_scanf = sscanf (line, "%f %f %f %d", &x, &y, &z, &vno);
+		  if (4 != num_scanf || feof(fp))
+		    {
+		      fclose (fp);
+		      free (line);
+		      free (path);
+		      if (paths) free (paths);
+		      if (path) free (path);
+		      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+						 "Error reading file %s\n"
+						 "     line number %d\n"
+			  "     couldn't read three floats and an int\n",
+						 fname, line_number));
+		    }
+		  break;
 		}
 
 	      /* Add this coordinate to our label. */
 	      path->points[path_pno].x = x;
 	      path->points[path_pno].y = y;
 	      path->points[path_pno].z = z;
+	      path->points[path_pno].vno = vno;
 	    }
 
 	  /* Make sure we got the ENDPATH keyword. */
@@ -221,7 +247,7 @@ int PathWriteMany (char *fname, int num_paths, PATH **paths)
   fprintf (fp, "# Path file\n");
 
   /* Version keyword. */
-  fprintf (fp, "VERSION 1\n");
+  fprintf (fp, "VERSION 2\n");
 
   /* For each path... */
   for (path = 0; path < num_paths; path++)
@@ -233,10 +259,11 @@ int PathWriteMany (char *fname, int num_paths, PATH **paths)
       /* For each vertex, write a line with the coordinate on it. */
       for (path_pno = 0; path_pno < paths[path]->n_points; path_pno++)
 	{
-	  fprintf (fp, "%f %f %f\n", 
+	  fprintf (fp, "%f %f %f %d\n", 
 		   paths[path]->points[path_pno].x,
 		   paths[path]->points[path_pno].y,
-		   paths[path]->points[path_pno].z);
+		   paths[path]->points[path_pno].z,
+		   paths[path]->points[path_pno].vno);
 	}
       
       /* ENDPATH keyword. */
@@ -379,7 +406,7 @@ int PathConvertToLabel (PATH* path, LABEL** label)
       new_label->lv[pno].x = path->points[pno].x;
       new_label->lv[pno].y = path->points[pno].y;
       new_label->lv[pno].z = path->points[pno].z;
-      new_label->lv[pno].vno = -1;
+      new_label->lv[pno].vno = path->points[pno].vno;
     }
 
   /* Return the label. */
@@ -412,6 +439,7 @@ int PathCreateFromLabel (LABEL* label, PATH** path)
       new_path->points[pno].x = label->lv[pno].x;
       new_path->points[pno].y = label->lv[pno].y;
       new_path->points[pno].z = label->lv[pno].z;
+      new_path->points[pno].vno = label->lv[pno].vno;
     }      
   
   /* Return the path. */
