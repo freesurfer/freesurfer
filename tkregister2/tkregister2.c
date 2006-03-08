@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.51 2006/03/08 06:26:56 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.52 2006/03/08 23:18:01 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.51 2006/03/08 06:26:56 greve Exp $";
+"$Id: tkregister2.c,v 1.52 2006/03/08 23:18:01 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -346,6 +346,7 @@ int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
 int fstal=0, fixxfm=1; 
 char talxfmfile[2000],talxfmdir[2000];
+char tmpstr[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
 char *targ_ostr = NULL; // orientation string for targ
@@ -904,7 +905,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
     else if (!strcasecmp(option, "--mgz"))  ; // for backwards compat
-
+    else if (stringmatch(option, "--fsl-targ")){
+      sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
+      targ_vol_id = strcpyalloc(tmpstr);
+    }
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
       targ_vol_id = pargv[0];
@@ -1092,6 +1096,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
+  printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --mov  movable volume  <fmt> \n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --movbright  f : brightness of movable volume\n");
@@ -3978,7 +3983,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.51 2006/03/08 06:26:56 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.52 2006/03/08 23:18:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
