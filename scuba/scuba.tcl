@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.182 2006/03/08 20:23:05 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2073,6 +2073,12 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	{-label "Contrast" -variable gaLayer(current,contrast) 
 	    -min 0 -max 30 -resolution 1 -entry 1
 	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
+	{-label "Window" -variable gaLayer(current,window) 
+	    -min 0 -max 1 -resolution 0.05 -entry 1
+	    -command {Set2DMRILayerWindow $gaLayer(current,id) $gaLayer(current,window); RedrawFrame [GetMainFrameID]}}
+	{-label "Level" -variable gaLayer(current,level) 
+	    -min 0 -max 1 -resolution 0.05 -entry 1
+	    -command {Set2DMRILayerLevel $gaLayer(current,id) $gaLayer(current,level); RedrawFrame [GetMainFrameID]}}
     }
     tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
 	{-label "Min" -variable gaLayer(current,minVisibleValue) 
@@ -2992,6 +2998,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerSampleMethod $iLayerID]
 	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
 	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
+	    set gaLayer(current,window) [Get2DMRILayerWindow $iLayerID]
+	    set gaLayer(current,level) [Get2DMRILayerLevel $iLayerID]
 	    set gaLayer(current,lutID) [Get2DMRILayerColorLUT $iLayerID]
 	    set gaLayer(current,minVisibleValue) \
 		[Get2DMRILayerMinVisibleValue $iLayerID]
@@ -5798,7 +5806,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.182 2006/03/08 20:23:05 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5857,6 +5865,8 @@ proc SaveSceneScript { ifnScene } {
 		set sampleMethod [Get2DMRILayerSampleMethod $layerID]
 		set brightness [Get2DMRILayerBrightness $layerID]
 		set contrast [Get2DMRILayerContrast $layerID]
+		set window [Get2DMRILayerWindow $layerID]
+		set level [Get2DMRILayerLevel $layerID]
 		set lutID [Get2DMRILayerColorLUT $layerID]
 		set minVisibleValue [Get2DMRILayerMinVisibleValue $layerID]
 		set maxVisibleValue [Get2DMRILayerMaxVisibleValue $layerID]

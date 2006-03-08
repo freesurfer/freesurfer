@@ -112,6 +112,12 @@ class ScubaLayer2DMRI : public Layer {
   void SetContrast ( float iContrast );
   float GetContrast () { return mContrast; }
 
+  // Window / level settings.
+  void SetWindow ( float iWindow );
+  float GetWindow () { return mWindow; }
+  void SetLevel ( float iLevel );
+  float GetLevel () { return mLevel; }
+
   void SetMinVisibleValue ( float iValue );
   float GetMinVisibleValue () { return mMinVisibleValue; }
   void SetMaxVisibleValue ( float iValue );
@@ -195,6 +201,7 @@ class ScubaLayer2DMRI : public Layer {
   // For grayscale drawing.
   float mBrightness, mContrast;
   float mOriginalBrightness, mOriginalContrast;
+  float mWindow, mLevel;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 

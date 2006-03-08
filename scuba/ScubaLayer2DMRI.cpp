@@ -24,8 +24,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mbClearZero(false),
   mMinVisibleValue(0),
   mMaxVisibleValue(0),
-  mBrightness(0.5),
-  mContrast(15.0), 
+  mBrightness(0.25),
+  mContrast(12.0), 
+  mWindow(1.0),
+  mLevel(0.5),
   mHeatScaleMinThreshold(0),
   mHeatScaleMidThreshold(0),
   mHeatScaleMaxThreshold(0),
@@ -88,6 +90,16 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 			 "Sets the contrast for this layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerContrast", 1, "layerID",
 			 "Returns the contrast for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerWindow", 2, 
+			 "layerID window",
+			 "Sets the window for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerWindow", 1, "layerID",
+			 "Returns the window for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerLevel", 2, 
+			 "layerID level",
+			 "Sets the level for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerLevel", 1, "layerID",
+			 "Returns the level for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerColorLUT", 2, "layerID lutID",
 			 "Sets the LUT  for this layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerColorLUT", 1, "layerID",
@@ -1017,6 +1029,84 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       
       stringstream ssReturnValues;
       ssReturnValues << mContrast;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "f";
+    }
+  }
+
+  // Set2DMRILayerWindow <layerID> <window>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerWindow" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float window = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad window";
+	return error;
+      }
+
+      if( window >= 0 && window <= 1 ) {
+	SetWindow( window );
+      }	
+    }
+  }
+
+  // Get2DMRILayerWindow <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerWindow" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      stringstream ssReturnValues;
+      ssReturnValues << GetWindow();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "f";
+    }
+  }
+
+  // Set2DMRILayerLevel <layerID> <level>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerLevel" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float level = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad level";
+	return error;
+      }
+
+      if( level >= 0 && level <= 1 ) {
+	SetLevel( level );
+      }
+    }
+  }
+
+  // Get2DMRILayerLevel <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerLevel" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      stringstream ssReturnValues;
+      ssReturnValues << GetLevel();
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "f";
     }
@@ -2301,6 +2391,20 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     }
     SetContrast( contrast );
 
+  } else if( 0 == isOption.compare( "window" ) ) {
+    float window = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad window value" );
+    }
+    SetWindow( window );
+
+  } else if( 0 == isOption.compare( "level" ) ) {
+    float level = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad level value" );
+    }
+    SetLevel( level );
+
   } else if( 0 == isOption.compare( "visiblemin" ) ) {
     float min = (float) strtod( sValue, (char**)NULL );
     if( ERANGE == errno ) {
@@ -2476,50 +2580,64 @@ ScubaLayer2DMRI::SetContrast ( float iContrast ) {
   BuildGrayscaleLUT();
 }
 
+void
+ScubaLayer2DMRI::SetWindow ( float iWindow ) {
 
+  if( iWindow < 0 || iWindow > 1 ) {
+    throw runtime_error( "Invalid window" );
+  }
+  mWindow = iWindow;
+  BuildGrayscaleLUT();
+}
+
+void
+ScubaLayer2DMRI::SetLevel ( float iLevel ) {
+
+  if( iLevel < 0 || iLevel > 1 ) {
+    throw runtime_error( "Invalid level" );
+  }
+  mLevel = iLevel;
+  BuildGrayscaleLUT();
+}
 
 void
 ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
-  float level =  
-    ((mBrightness * ((mMaxVisibleValue-mMinVisibleValue)+mMinVisibleValue)));
-  
-  float range = (mContrast * ((mMaxVisibleValue-mMinVisibleValue)))/30.0;
+  // Our level and window values are 0-1, so let's first get them in
+  // the value range of our volume.
+  float normLevel = mVolume->GetMRIMinValue() +
+    (mLevel * ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) + mVolume->GetMRIMinValue()));
+    
+  float normWindow = (mWindow * ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) + mVolume->GetMRIMinValue()));
 
+  // Calculate the window so that it is centered on the level and
+  // extends window/2 in either direction.
   float window[2];
-  window[0] = level - range*0.5;
-  window[1] = level + range*0.5;
+  window[0] = normLevel - normWindow*0.5;
+  window[1] = normLevel + normWindow*0.5;
 
   for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
 
-    // Get the value using the actual min/max to get highest
+    // Get the value using the visible min/max to get highest
     // granularity within the 0 - cGrayscaleLUTEntries range.
     float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
 		   cGrayscaleLUTEntries) + mMinVisibleValue;
 
-#if 0
-    // Use sigmoid to apply brightness/contrast. Gets 0-1 value.
-    float bcdValue;
-    if( value != 0 ) {
-      bcdValue = (1.0 / (1.0 + exp( (((value-mMinVisibleValue)/(mMaxVisibleValue-mMinVisibleValue))-mBrightness) * -mContrast)));
-    } else {
-      bcdValue = 0;
-    }
-
-    // Normalize back to pixel component value.
-    float normValue = bcdValue * kMaxPixelComponentValueFloat;
-
-    // Assign in table.
-    mGrayscaleLUT[(int)nEntry] = (int) floor( normValue );
-#endif
-
+    // Get an intensity from 0-1 based on our window.
     float intensity = (value - window[0]) / (window[1] - window[0]); 
 
+    // Cap the intensity.
     if( intensity < 0.0 ) intensity = 0.0;
     if( intensity > 1.0 ) intensity = 1.0;
 
-    mGrayscaleLUT[(int)nEntry] = (int) floor( intensity * kMaxPixelComponentValueFloat );
+    // Now apply a sigmoid function with the brightness and contrast
+    // values, with the brightness adjusting the x shift and the
+    // contrast adjusting the sharpness of the curve.
+    float bcdValue = 1.0 / (1.0 + exp( (intensity-mBrightness) * -mContrast) );
 
+    // Set the value.
+    mGrayscaleLUT[(int)nEntry] = 
+      (int) floor( bcdValue * kMaxPixelComponentValueFloat );
   }
 }
 
