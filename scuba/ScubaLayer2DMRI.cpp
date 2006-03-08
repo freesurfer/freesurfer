@@ -1711,19 +1711,19 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     if( iInput.IsButtonDownEvent() ) {
 
-      mOriginalBrightness = mBrightness;
-      mOriginalContrast = mContrast;
+      mOriginalBrightness = GetLevel();
+      mOriginalContrast = GetWindow();
 
     } else if( iInput.IsButtonDragEvent() ) {
 
       try { 
-	SetBrightness( mOriginalBrightness + 
-		       ((float)iInput.GetTotalButtonDeltaX() / 512.0 * -1.0) );
+	SetLevel( mOriginalBrightness + 
+		  ((float)iInput.GetTotalButtonDeltaX() / 512.0) );
       }
       catch(...) {}
       try {
-	SetContrast( mOriginalContrast + 
-		     ((float)iInput.GetTotalButtonDeltaY() / 512.0 * 30.0) );
+	SetWindow( mOriginalContrast + 
+		   ((float)iInput.GetTotalButtonDeltaY() / 512.0) );
       }
       catch(...) {}
       RequestRedisplay();
