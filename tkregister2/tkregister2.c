@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $";
+"$Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -319,6 +319,7 @@ int   targ_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char targ_vol_path[1000];
 int  fstarg = 0;
 int mkheaderreg = 0, noedit = 0, fixtkreg = 1, fixonly = 0;
+int identityreg = 0;
 int LoadVol = 1;
 int tagmov = 0;
 
@@ -384,8 +385,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   }
 
   /* read the registration here to get subjectid */
-  if(!mkheaderreg && fslregfname == NULL && !fstal && int_vol_id == NULL) 
+  if(!mkheaderreg && fslregfname == NULL && !fstal && 
+     int_vol_id == NULL && !identityreg) 
     read_reg(regfname);
+  // Just use identity
+  if(identityreg) RegMat = MatrixIdentity(4,NULL);
 
   if(fstal){
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
@@ -663,7 +667,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       tm[i][j] = RegMat->rptr[i+1][j+1];
     }
   }
-  if(mkheaderreg || fslregfname != NULL){
+  if(mkheaderreg || fslregfname != NULL || identityreg){
     printf("---- Input registration matrix (computed) --------\n");
     MatrixPrint(stdout,RegMat);
     printf("---------------------------------------\n");
@@ -891,6 +895,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fixonly"))   fixonly = 1;
     else if (!strcasecmp(option, "--inorm"))    use_inorm = 1;
     else if (!strcasecmp(option, "--regheader")) mkheaderreg = 1;
+    else if (!strcasecmp(option, "--identity"))  identityreg = 1;
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
     else if (!strcasecmp(option, "--fstal")){
       fstal = 1; LoadSurf = 0; UseSurf = 0; fscale_2 = 1;}
@@ -1099,6 +1104,7 @@ static void print_usage(void)
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
   printf("   --fslreg file : FSL-Style registration input matrix\n");
+  printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
   printf("   --sd dir : use dir as SUBJECTS_DIR\n");
   printf("   --noedit : do not open edit window (exit) - for conversions\n");
@@ -1258,6 +1264,11 @@ static void print_help(void)
          "  It should be an ascii file with a 4x4 matrix. "
          "Note: the matrix should\n"
          "  map from the mov to the target.\n"
+         "  \n"
+         "  --s identity\n"
+         "  \n"
+         "  Use identity as input registration. Same as simply creating\n"
+         "  the identity matrix in a register.dat.\n"
          "  \n"
          "  --s subjectid\n"
          "  \n"
@@ -3967,7 +3978,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.49 2006/02/24 06:58:27 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.49.2.1 2006/03/08 05:36:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
