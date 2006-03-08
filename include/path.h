@@ -17,6 +17,7 @@ typedef struct
   float x;
   float y;
   float z;
+  int vno;
 } PATH_POINT;
 
 /* Main path struct. */
