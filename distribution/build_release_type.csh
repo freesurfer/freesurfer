@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.45 2006/03/07 21:55:05 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.46 2006/03/09 17:37:34 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -69,7 +69,7 @@ set LOG_DIR=${SPACE_FS}/build/logs
 
 # dev build use latest-and-greatest package libs
 # stable build use explicit package versions (for stability)
-if ("${RELEASE_TYPE}" == "stable" || "${RELEASE_TYPE}" == "stable-pub") then
+if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set MNIDIR=/usr/pubsw/packages/mni/1.4
   set GSLDIR=/usr/pubsw/packages/gsl/1.6
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
@@ -94,12 +94,14 @@ else
 endif
 
 # on Mac OS X Tiger, glut is not automatically in lib path.
-# also, need /sw/bin (Fink) to get latex and dvips
+# also, need /sw/bin (Fink) to get latex and dvips.
+# also, make Mac OS X 10.3 the deployment target
 setenv GLUT_DYLIB_DIR ""
 if ("$OSTYPE" == "Darwin") then
   set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
+  setenv MACOSX_DEPLOYMENT_TARGET 10.3
 endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
@@ -424,7 +426,7 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-if ("${RELEASE_TYPE}"=="stable" || "${RELEASE_TYPE}"=="stable-pub") then
+if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   strip ${DEST_DIR}/bin-new/* >& /dev/null
 endif
 #
@@ -535,7 +537,7 @@ set DATE_STAMP="`date +%Y%m%d`"
 set FS_PREFIX="freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}"
 if ("$RELEASE_TYPE" == "dev") then
   echo "${FS_PREFIX}-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
-if ("$RELEASE_TYPE" == "stable") then
+else if ("$RELEASE_TYPE" == "stable") then
   echo "${FS_PREFIX}-v3.0-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable-pub") then
   echo "${FS_PREFIX}-v3.0.1" > ${DEST_DIR}/build-stamp.txt
