@@ -13,8 +13,6 @@
 extern "C" {
   #include "matrix.h"
 }
-
-using namespace std;
   
 class MatrixTest : public CppUnit::TestFixture {
 
@@ -51,32 +49,32 @@ private:
   MATRIX* mOneSmallMatrix;
   
   bool AreMatricesEqual(MATRIX *m1, MATRIX *m2, float tolerance);
-  bool AreInversesEqual(MATRIX *matrix, const string inverseFile);
+  bool AreInversesEqual(MATRIX *matrix, const std::string inverseFile);
   void DeleteMatrix(MATRIX *m);
   bool DoesCreateValidEigenSystem( MATRIX* matrix );
   
 public:  
-  static const string TESTING_DIR;
+  static const std::string TESTING_DIR;
 
-  static const string PASCAL_MATRIX;
-  static const string PASCAL_INVERSE;
+  static const std::string PASCAL_MATRIX;
+  static const std::string PASCAL_INVERSE;
 
-  static const string BUCKY_MATRIX;
-  static const string BUCKY_INVERSE;
+  static const std::string BUCKY_MATRIX;
+  static const std::string BUCKY_INVERSE;
 
-  static const string ZEROES_MATRIX;
+  static const std::string ZEROES_MATRIX;
 
-  static const string IDENTITY_MATRIX;
+  static const std::string IDENTITY_MATRIX;
   
-  static const string SINGULAR_MATRIX;
+  static const std::string SINGULAR_MATRIX;
   
-  static const string NON_SQUARE_MATRIX;
+  static const std::string NON_SQUARE_MATRIX;
 
-  static const string ONE_MATRIX;
-  static const string ONE_INVERSE;
+  static const std::string ONE_MATRIX;
+  static const std::string ONE_INVERSE;
 
-  static const string ONE_SMALL_MATRIX;
-  static const string ONE_SMALL_INVERSE;
+  static const std::string ONE_SMALL_MATRIX;
+  static const std::string ONE_SMALL_INVERSE;
   
   // setUp is called automatically before each test
   void setUp();
@@ -90,27 +88,28 @@ public:
 
 };
 
-const string MatrixTest::TESTING_DIR = "test_matrix_data/";
+const std::string MatrixTest::TESTING_DIR = "test_matrix_data/";
 
-const string MatrixTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
-const string MatrixTest::PASCAL_INVERSE = TESTING_DIR + "PascalInverse.mat";
+const std::string MatrixTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
+const std::string MatrixTest::PASCAL_INVERSE = TESTING_DIR + "PascalInverse.mat";
 
-const string MatrixTest::BUCKY_MATRIX = TESTING_DIR + "Bucky.mat";
-const string MatrixTest::BUCKY_INVERSE = TESTING_DIR + "BuckyInverse.mat";
+const std::string MatrixTest::BUCKY_MATRIX = TESTING_DIR + "Bucky.mat";
+const std::string MatrixTest::BUCKY_INVERSE = TESTING_DIR + "BuckyInverse.mat";
 
-const string MatrixTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
+const std::string MatrixTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
 
-const string MatrixTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
+const std::string MatrixTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 
-const string MatrixTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
+const std::string MatrixTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 
-const string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";
+const std::string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";
 
-const string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
-const string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
+const std::string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
+const std::string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
 
-const string MatrixTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
-const string MatrixTest::ONE_SMALL_INVERSE = TESTING_DIR + "OneSmallInverse.mat";
+const std::string MatrixTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
+const std::string MatrixTest::ONE_SMALL_INVERSE = 
+  TESTING_DIR + "OneSmallInverse.mat";
 
 void
 MatrixTest::setUp() {
@@ -153,7 +152,6 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
         float difference = fabs( m1->data[ index ] - m2->data[ index ] );
                 
         if( difference > tolerance ) {
-          cerr << "diff: " << difference << endl;
           areEqual = false;
         }
         
@@ -167,7 +165,7 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
 }
 
 bool
-MatrixTest::AreInversesEqual(MATRIX *matrix, const string inverseFile) {
+MatrixTest::AreInversesEqual(MATRIX *matrix, const std::string inverseFile) {
   MATRIX *expectedInverse = MatrixRead((char*)( inverseFile.c_str() ));
   MATRIX *actualInverse = MatrixInverse(matrix, NULL);
 
@@ -299,7 +297,8 @@ MatrixTest::TestMatrixEigenSystem() {
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mSingularMatrix ) );
   
-  // TODO: should this gracefully exit with a non-square matrix rather than seg fault?
+// TODO: should this gracefully exit with a non-square matrix rather than seg 
+//       fault?
 //  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
 
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mOneMatrix ) );

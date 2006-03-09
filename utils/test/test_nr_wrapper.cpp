@@ -21,7 +21,7 @@ class NRWrapperTest : public CppUnit::TestFixture {
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( NRWrapperTest );
   
-//TODO: tested by test_matrix::inverse
+// tested by test_matrix::inverse
 //   CPPUNIT_TEST( TestLUDecomp );
 //   CPPUNIT_TEST( TestLUMatrixInverse );
 
@@ -29,7 +29,7 @@ class NRWrapperTest : public CppUnit::TestFixture {
     CPPUNIT_TEST( TestPowell );
     CPPUNIT_TEST( TestSVDcmp );
 
-// TODO: tested by test_matrix::eigensystem
+// tested by test_matrix::eigensystem
 //    CPPUNIT_TEST( TestTred2 );
 //    CPPUNIT_TEST( TestTQLI );
 
@@ -128,15 +128,11 @@ public:
     void *params );
           
   
-  void TestLUDecomp();
   void TestDFPMin();
   void TestPowell();
   void TestSVDcmp();
-  void TestTred2();
-  void TestTQLI();
   void TestRan1();
   void TestSplineAndSplInt();
-  void TestLUMatrixInverse();
 
 };
 
@@ -151,7 +147,8 @@ const std::string NRWrapperTest::ZEROES_MATRIX = TESTING_DIR + "Zeroes.mat";
 const std::string NRWrapperTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 const std::string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 const std::string NRWrapperTest::ONE_MATRIX = TESTING_DIR + "One.mat";
-const std::string NRWrapperTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
+const std::string NRWrapperTest::ONE_SMALL_MATRIX = 
+  TESTING_DIR + "OneSmall.mat";
 
 /**
  * This is actually a 61 x 61 matrix that has zeros outside of the 61 x 2 
@@ -163,17 +160,26 @@ const std::string NRWrapperTest::RANDOM_5_11 = TESTING_DIR + "Random_5_11.mat";
 const std::string NRWrapperTest::SINE_X = TESTING_DIR + "SineX.mat";
 const std::string NRWrapperTest::SINE_Y = TESTING_DIR + "SineY.mat";
 
-const std::string NRWrapperTest::SINE_XX_COURSE = TESTING_DIR + "SineXXCourse.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_COURSE = TESTING_DIR + "SineSplineYY_0_0_Course.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_COURSE = TESTING_DIR + "SineSplineYY_5_5_Course.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_COURSE = TESTING_DIR + "SineSplineYY_0_17_Course.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_COURSE = TESTING_DIR + "SineSplineYY_19_2_Course.mat";
+const std::string NRWrapperTest::SINE_XX_COURSE = 
+  TESTING_DIR + "SineXXCourse.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_COURSE = 
+  TESTING_DIR + "SineSplineYY_0_0_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_COURSE = 
+  TESTING_DIR + "SineSplineYY_5_5_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_COURSE = 
+  TESTING_DIR + "SineSplineYY_0_17_Course.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_COURSE = 
+  TESTING_DIR + "SineSplineYY_19_2_Course.mat";
 
 const std::string NRWrapperTest::SINE_XX_FINE = TESTING_DIR + "SineXXFine.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_FINE = TESTING_DIR + "SineSplineYY_0_0_Fine.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_FINE = TESTING_DIR + "SineSplineYY_5_5_Fine.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_FINE = TESTING_DIR + "SineSplineYY_0_17_Fine.mat";
-const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE = TESTING_DIR + "SineSplineYY_19_2_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_0_FINE = 
+  TESTING_DIR + "SineSplineYY_0_0_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_5_5_FINE = 
+  TESTING_DIR + "SineSplineYY_5_5_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_0_17_FINE = 
+  TESTING_DIR + "SineSplineYY_0_17_Fine.mat";
+const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE = 
+  TESTING_DIR + "SineSplineYY_19_2_Fine.mat";
 
 void
 NRWrapperTest::setUp() {
@@ -230,11 +236,6 @@ NRWrapperTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance,
     areEqual = false;    
   }
   return areEqual;
-}
-
-void 
-NRWrapperTest::TestLUDecomp() {
-  CPPUNIT_FAIL("not implemented");
 }
 
 bool
@@ -319,6 +320,7 @@ NRWrapperTest::TestDFPMin() {
   TearDownMinimizationTestResults();
 }
 
+// static
 void 
 NRWrapperTest::StepFunction( int itno, float sse, void *parms, float *p ) {
   bool* isCalled = (bool *)parms;
@@ -369,8 +371,7 @@ NRWrapperTest::AreEqualWithinTolerance( const float expected,
                                         const float tolerance ) {
   float difference = std::fabs( expected - actual );
   return difference <= tolerance;                                            
-}                                          
-
+}
 
 void 
 NRWrapperTest::TestPowell() {
@@ -386,9 +387,10 @@ NRWrapperTest::TestPowell() {
 }
 
 bool
-NRWrapperTest::TestPowellHelper( const int numberOfParameters, float expectedFret,
-                                float * expectedP, float (*function)(float []) ) {
-                                  
+NRWrapperTest::TestPowellHelper( const int numberOfParameters, 
+                                 float expectedFret,
+                                 float * expectedP, 
+                                 float (*function)(float []) ) {                                  
   const float tolerance = 1e-5;
   float fret = 0;
   int iter = 0;
@@ -431,7 +433,9 @@ NRWrapperTest::AreNByNArraysEqual( float *expected, float *actual, int n,
   
   bool areEqual = true;
   for (int i = 0; i < n; i++) {
-    if ( !AreEqualWithinTolerance( actual[i + 1], expected[i + 1], tolerance) ) {
+    if ( !AreEqualWithinTolerance( actual[i + 1], 
+                                   expected[i + 1], 
+                                   tolerance) ) {
       areEqual = false;
     }
   }
@@ -539,16 +543,6 @@ NRWrapperTest::TestSVDcmp() {
 }
 
 void 
-NRWrapperTest::TestTred2() {
-  CPPUNIT_FAIL("not implemented");
-}
-
-void 
-NRWrapperTest::TestTQLI() {
-  CPPUNIT_FAIL("not implemented");
-}
-
-void 
 NRWrapperTest::TestRan1() {
   const int numberOfBins = 10;
   int bins[numberOfBins];
@@ -578,7 +572,7 @@ NRWrapperTest::TestRan1() {
   }  
   
   int x2Mean = numberOfBins - 1;
-  float lowerBound = 4.0;
+  float lowerBound = 2.0;
   float upperBound = x2Mean*3;
   
   // if x2 is close to 0, it means that the distribution it very uniform -- bad!  
@@ -586,9 +580,6 @@ NRWrapperTest::TestRan1() {
 
   // if x2 is way above the mean, then it's too non-uniform
   CPPUNIT_ASSERT( x2 < upperBound );
-  
-  // TODO: I think we need a test case to make sure that the numbers don't
-  //       follow some period (try Unbinned KS testing).
 }
 
 bool
@@ -656,12 +647,6 @@ NRWrapperTest::TestSplineAndSplInt() {
   MatrixFree( &xxFine );
 }
 
-void
-NRWrapperTest::TestLUMatrixInverse() {
-  CPPUNIT_FAIL("not implemented");
-}
-
-
 int main ( int argc, char** argv ) {
   
   int SUCCESS = 0;
@@ -676,4 +661,3 @@ int main ( int argc, char** argv ) {
   
   exit( FAIL );
 }
-
