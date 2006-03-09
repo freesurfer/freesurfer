@@ -26,6 +26,7 @@ EXTRA_DIST=$(foo_DATA)
 
 install: install-fooDATA
 	mkdir -p $(prefix)/subjects
+	rm -Rf $(prefix)/subjects/fsaverage
 	tar zxvf fsaverage.tar.gz --directory $(prefix)/subjects
 
 # Our release target. Include files to be excluded here. They will be
