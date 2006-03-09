@@ -1,0 +1,15 @@
+unsetenv FREESURFER_HOME
+unsetenv FSFAST_HOME
+unsetenv SUBJECTS_DIR
+unsetenv FUNCTIONALS_DIR
+unsetenv MINC_BIN_DIR
+unsetenv MINC_LIB_DIR
+unsetenv MNI_DATAPATH
+unsetenv MNI_PERL5LIB
+unsetenv PERL5LIB
+unsetenv GSL_DIR
+unsetenv QTDIR
+unsetenv TCLLIBPATH
+unsetenv MISC_LIB
+unsetenv FSL_DIR
+unsetenv FSLDIR
