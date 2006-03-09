@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source /usr/local/freesurfer/nmr-std-env
 #
-# $Id: nmr-std-env,v 1.18 2006/03/03 00:34:29 nicks Exp $
+# $Id: nmr-std-env,v 1.19 2006/03/09 00:15:27 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -21,7 +21,7 @@ endif
 set USER_LIST_PATH=/space/freesurfer
 echo "`date`|`whoami`|`hostname -s`|nmr-std-env" >> $USER_LIST_PATH/nmr-std-env_user_list.txt
 
-set VERSION = '$Id: nmr-std-env,v 1.18 2006/03/03 00:34:29 nicks Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.19 2006/03/09 00:15:27 nicks Exp $';
 set NSE_VERSION = '${VERSION}';
 
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
@@ -35,9 +35,9 @@ if($?NMR_STD_VERBOSE) then
 endif
 
 setenv FREESURFER_HOME /usr/local/freesurfer/stable
-if(! $?SUBJECTS_DIR) then
-  if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
-endif
+#if(! $?SUBJECTS_DIR) then
+#  if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
+#endif
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
 unsetenv NO_MINC
