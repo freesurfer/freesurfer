@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.47 2006/03/09 18:11:40 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.48 2006/03/09 22:25:42 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -100,7 +100,11 @@ if ("$OSTYPE" == "Darwin") then
   set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
-  setenv MACOSX_DEPLOYMENT_TARGET 10.3
+  if ("${RELEASE_TYPE}" == "dev") then
+    setenv MACOSX_DEPLOYMENT_TARGET 10.3
+  else if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+  #  setenv MACOSX_DEPLOYMENT_TARGET 10.3
+  endif
 endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
