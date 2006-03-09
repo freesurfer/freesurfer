@@ -9,6 +9,7 @@ bblabel \
 browse-minc-header.tcl \
 browse-sessions \
 check_subject \
+clear_fs_env.csh \
 cor_to_minc \
 csurf \
 dcmdir-info-mgh \
