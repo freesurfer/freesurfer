@@ -13,3 +13,5 @@ unsetenv TCLLIBPATH
 unsetenv MISC_LIB
 unsetenv FSL_DIR
 unsetenv FSLDIR
+unsetenv LD_LIBRARY_PATH
+unsetenv DYLD_LIBRARY_PATH
