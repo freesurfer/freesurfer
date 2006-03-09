@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.46 2006/03/09 17:37:34 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.47 2006/03/09 18:11:40 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -14,8 +14,7 @@ umask 002
 set RELEASE_TYPE=$1
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(${SUCCESS_MAIL_LIST})
+set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
 
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
