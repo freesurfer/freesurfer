@@ -18971,7 +18971,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.185 2006/03/07 22:33:55 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.186 2006/03/09 22:28:30 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25744,6 +25744,8 @@ int path_load (char* fname)
   int    err;
   int    num_read;
   int*   vertices = NULL;
+  int*   connected_verts = NULL;
+  int    size_connected_path;
   PATH** paths    = NULL;
   int    path_index;
   PATH*  path     = NULL;
@@ -25763,6 +25765,13 @@ int path_load (char* fname)
   /* Allocate temp vno storage for our conversions. */
   vertices = (int*) calloc (mris->nvertices, sizeof(int));
   if (NULL == vertices)
+    {
+      ErrorReturn (ERROR_NO_MEMORY,
+		   (ERROR_NO_MEMORY, "Couldn't allocate vertex storage."));
+    }
+
+  connected_verts = (int*) calloc (mris->nvertices, sizeof(int));
+  if (NULL == connected_verts)
     {
       ErrorReturn (ERROR_NO_MEMORY,
 		   (ERROR_NO_MEMORY, "Couldn't allocate vertex storage."));
@@ -25807,9 +25816,15 @@ int path_load (char* fname)
 	}
       LabelFree (&label);
       
+      size_connected_path = 0;
+
+      /* Make sure the path is connected. */
+      find_path (vertices, path->n_points, "Connecting path",
+      		 mris->nvertices, connected_verts, &size_connected_path);
+
       /* Make a new path from our num_vertices and vertices
 	 array. */
-      path_add (path->n_points, vertices, NULL);
+      path_add (size_connected_path, connected_verts, NULL);
 
       /* Free this path. */
       PathFree (&paths[path_index]);
@@ -25817,6 +25832,7 @@ int path_load (char* fname)
     }
 
   free (vertices);
+  free (connected_verts);
   free (paths);
 
   return (ERROR_NONE);
@@ -26084,7 +26100,6 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
   int num_path = 0;
   int num_checked;
   float vu_x, vu_y, vu_z;
-  float srcdst_x, srcdst_y, srcdst_z;
   
   dist = (float*) calloc (mris->nvertices, sizeof(float));
   pred = (int*) calloc (mris->nvertices, sizeof(int));
@@ -26103,7 +26118,7 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
       if (cncl_user_canceled()) {
         goto cancel;
       }
-      
+
       /* clear everything */
       for (vno = 0; vno < mris->nvertices; vno++)
         {
@@ -26121,11 +26136,9 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 	  dest_vno < 0 || dest_vno >= mris->nvertices)
 	continue;
 
-      /* calc the vector from src to dst. */
-      srcdst_x = mris->vertices[dest_vno].x - mris->vertices[src_vno].x;
-      srcdst_y = mris->vertices[dest_vno].y - mris->vertices[src_vno].y;
-      srcdst_z = mris->vertices[dest_vno].z - mris->vertices[src_vno].z;
-      
+      if (src_vno == dest_vno)
+	continue;
+
       /* pull the src vertex in. */
       dist[src_vno] = 0;
       pred[src_vno] = vno;
@@ -26168,16 +26181,6 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
                   vu_x = u->x - v->x;
                   vu_y = u->y - v->y;
                   vu_z = u->z - v->z;
-                  
-                  /* calc the dot product between srcdest vector and
-                     uv vector. if it's < 0, this neighbor is in the
-                     opposite direction of dest, and we can skip it. */
-                  if ( (vu_x * srcdst_x) + 
-                       (vu_y * srcdst_y) +
-                       (vu_z * srcdst_z)  < 0 )
-                    {
-                      continue;
-                    }
                   
                   /* recalc the weight. */
                   dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
