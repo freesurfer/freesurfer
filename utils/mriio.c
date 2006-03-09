@@ -5655,6 +5655,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   int nv,nreal;
   char direction[64];
   int signX, signY, signZ;
+  int thiserrno;
 
   fp = NULL;
   startframe = GetSPMStartFrame();
@@ -5685,7 +5686,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
   if(hdr == NULL) return(NULL);
-  if (Gdiag & DIAG_VERBOSE_ON)  DumpAnalyzeHeader(stdout,hdr);
+  if(Gdiag_no > 0)  DumpAnalyzeHeader(stdout,hdr);
 
   /* Get the number of frames as either the fourth dimension or
      the number of files. */
@@ -5942,31 +5943,33 @@ static MRI *analyzeRead(char *fname, int read_volume)
       k = slice + mri->depth * frame;
 
       /* --------- Row Loop ------------------*/
-      for(row = 0; row < mri->height; row++)
-        {
+      for(row = 0; row < mri->height; row++){
 
-          nread = fread(buf, bytes_per_voxel, mri->width, fp);
-          if(nread != mri->width){
-            errno = 0;
-            printf("frame = %d, slice = %d, k=%d, row = %d\n",
-                   frame,slice,k,row);
-            printf("nread = %d, nexpected = %d\n",nread,mri->width);
-            fflush(stdout);
-            MRIfree(&mri);free(buf);fclose(fp);
-            ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead2(): error reading "
-                               "from file %s\n", imgfile));
-          }
+	nread = fread(buf, bytes_per_voxel, mri->width, fp);
+	thiserrno = errno;
+	if(nread != mri->width){
+	  if(feof(fp)) printf("ERROR: premature end of file\n");
+	  printf("ERROR: %s (%d)\n",strerror(thiserrno),thiserrno);
+	  errno = 0;
+	  printf("frame = %d, slice = %d, k=%d, row = %d\n",
+		 frame,slice,k,row);
+	  printf("nread = %d, nexpected = %d\n",nread,mri->width);
+	  MRIdump(mri, stdout);
+	  fflush(stdout);
+	  MRIfree(&mri);free(buf);fclose(fp);
+	  ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead2(): error reading "
+			     "from file %s\n", imgfile));
+	}
 
-          if(swap){
-            if(bytes_per_voxel == 2)
-              byteswapbufshort((void*)buf,bytes_per_voxel*mri->width);
-            if(bytes_per_voxel == 4)
-              byteswapbuffloat((void*)buf,bytes_per_voxel*mri->width);
-            //nflip(buf, bytes_per_voxel, mri->width); /* byte swap */
-          }
-
-          memcpy
-            (mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
+	if(swap){
+	  if(bytes_per_voxel == 2)
+	    byteswapbufshort((void*)buf,bytes_per_voxel*mri->width);
+	  if(bytes_per_voxel == 4)
+	    byteswapbuffloat((void*)buf,bytes_per_voxel*mri->width);
+	  //nflip(buf, bytes_per_voxel, mri->width); /* byte swap */
+	}
+	
+	memcpy(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
 
         } /* End Row Loop */
     }  /* End Slice Loop */
