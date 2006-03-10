@@ -9,6 +9,7 @@ dngtester_SOURCES=dngtester.c
 dngtester_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 dngtester_LDFLAGS=$(OS_LDFLAGS)
 
+install:
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
