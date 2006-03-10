@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.20.2.1 2006/03/02 18:36:03 greve Exp $
+  $Id: mri2.c,v 1.20.2.2 2006/03/10 23:10:47 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1168,4 +1168,43 @@ MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst)
   }
 
   return(dst);
+}
+/*--------------------------------------------------------------------
+  MRIframeBinarize() - creates a binary mask of voxels for which the
+  abs(mri->val) of all frames are > thresh. If input mask is not null,
+  then that mask is pruned, ie, if a voxel was not in the input mask,
+  it will not be in the return mask. If it was in the input mask but
+  it does not meet the frame criteria in mri, then it will be set to
+  0. Note: if mask is not null, it's values will be changed.
+  --------------------------------------------------------------------*/
+MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
+{
+  int c,r,s,f,n,premask;
+  double val,m;
+
+  premask = 1;
+  if(!mask){
+    mask = MRIcloneBySpace(mri,1);
+    MRIclear(mask);
+    premask = 0;
+  }
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(premask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	n = 0;
+	for(f=0; f < mri->nframes; f++){
+	  val = MRIgetVoxVal(mri,c,r,s,f);
+	  if(fabs(val) > thresh) n++;
+	}
+	if(n == mri->nframes) MRIsetVoxVal(mask,c,r,s,0,1);
+	else                  MRIsetVoxVal(mask,c,r,s,0,0);
+      }
+    }
+  }
+  return(mask);
 }
