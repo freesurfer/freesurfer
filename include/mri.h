@@ -715,6 +715,8 @@ MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI *MRImaskInvert(MRI *mask, MRI *outmask);
 int MRInMask(MRI *mask);
+MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask);
+
 
 MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                    int mask, int wsize) ;
