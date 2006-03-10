@@ -1498,3 +1498,43 @@ int MRISscale(MRIS *mris, double scale)
   }
   return(0);
 }
+/*------------------------------------------------------------------------------
+  MRISsmoothingArea() - computes the area coverted by the give number
+  of iterations at the given vertex. Essentially it's the area of the
+  neighborhood.
+  ------------------------------------------------------------------------------*/
+double MRISsmoothingArea(MRIS *mris, int vtxno, int niters)
+{
+  MRI *mri;
+  int n,nhits;
+  double val,area;
+
+  // alloc a surface mri, zeros for everybody
+  mri = MRIalloc(mris->nvertices,1,1,MRI_FLOAT);
+
+  // create a delta function at the target vertex
+  MRIsetVoxVal(mri,vtxno,0,0,0,1);
+
+  // smooth it by the number of iterations
+  MRISsmoothMRI(mris, mri, niters, NULL, mri);
+
+  // find the non-zero vertices. these are the vertices in the neighborhood
+  // add up the number of vertices and area
+  nhits = 0;
+  area = 0.0;
+  for(n=0; n < mris->nvertices; n++){
+    val = MRIgetVoxVal(mri,n,0,0,0);
+    if(val > 0.0){
+      nhits ++;
+      if(mris->group_avg_vtxarea_loaded) 
+	area += mris->vertices[n].group_avg_area;
+      else
+	area += mris->vertices[n].area;
+    }
+  }
+  MRIfree(&mri);
+  printf("%6d  %3d   %4d %7.1f\n",vtxno,niters,nhits,area);
+  fflush(stdout);
+
+  return(area);
+}
