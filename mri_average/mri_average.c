@@ -28,6 +28,7 @@ static int window_flag = 0 ;
 static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
+static int pct = 0 ;
 
 static int sqr_images = 0 ;
 static double tx = 0.0 ;
@@ -109,7 +110,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.28 2006/01/31 18:45:03 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.29 2006/03/10 20:24:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -149,6 +150,9 @@ main(int argc, char *argv[])
     mri_src = MRIread(in_fname) ;
     if (!mri_src)
       ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
+		if (pct)
+			MRIbinarize(mri_src, mri_src, 1, 0, 100) ;
+
 		if (scale_factor > 0)
 			MRIscalarMul(mri_src, mri_src, scale_factor) ;
     if (conform)
@@ -364,6 +368,10 @@ get_option(int argc, char *argv[])
     tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
     nargs = 3 ;
     break ;
+	case 'P':
+		pct = 1 ;
+		printf("binarizing images to compute pct at each voxel\n") ;
+		break ;
   case 'R':
     rxrot = RADIANS(atof(argv[2])) ;
     ryrot = RADIANS(atof(argv[3])) ;
