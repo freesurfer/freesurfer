@@ -51,6 +51,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_extract_conditions \
 	mri_extract_label \
 	mri_fill \
+	mri_fwhm \
 	mri_gca_ambiguous \
 	mri_glmfit \
 	mri_head \
@@ -118,8 +119,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_morphology \
 	mri_topologycorrection \
 	mri_segment_wm_damage \
-	mri_make_density_map \
-	mri_path2label
+	mri_make_density_map
 
 MRISSUBDIRS=stim \
 	stim_polar \
