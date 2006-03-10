@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $
+  $Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -70,7 +70,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -123,6 +123,7 @@ float projabs = 0.0, projfrac = 0.0;
 int reversemap = 1;
 int usepathfiles = 0;
 char *XFMFile = NULL;
+int InvertXFM=0;
 LTA *lta_transform;
 
 /*-------------------------------------------------*/
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.25 2006/03/07 17:43:26 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -246,6 +247,12 @@ int main(int argc, char **argv)
     }
     printf("Src2TrgVolReg: -----------------\n");
     MatrixPrint(stdout,Src2TrgVolReg);
+    if(InvertXFM){
+      printf("Inverting \n");
+      MatrixInverse(Src2TrgVolReg,Src2TrgVolReg);
+      printf("Inverted Src2TrgVolReg: -----------------\n");
+      MatrixPrint(stdout,Src2TrgVolReg);
+    }
     
     /* Loop through each source label and map its xyz to target */
     for(n = 0; n < srclabel->n_points; n++){
@@ -601,6 +608,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--norevmap")) reversemap = 0;
     else if (!strcasecmp(option, "--revmap")) reversemap = 1;
     else if (!strcasecmp(option, "--usepathfiles")) usepathfiles = 1;
+    else if (!strcmp(option, "--xfm-invert")) InvertXFM = 1;
 
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--sd")){
@@ -781,6 +789,7 @@ static void print_usage(void)
   fprintf(stdout, "   --srcmaskframe 0-based frame number <0>\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --xfm xfmfile : use xfm instead of computing tal xfm\n");
+  fprintf(stdout, "   --xfm-invert : invert xfm \n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --projabs  dist project dist mm along surf normal\n");
   fprintf(stdout, "   --projfrac frac project frac of thickness along surf normal\n");
