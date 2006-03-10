@@ -27,6 +27,8 @@ USAGE: ./mri_glmfit
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
    --mask-inv : invert mask
+   --prune : remove voxels that do not have a non-zero value at each frame
+   --no-prune : do not prune
 
    --surf subject hemi : needed for some flags (uses white by default)
 
@@ -245,6 +247,18 @@ only where mask=0. If performing a simulation (--sim), map maximums
 and clusters will only be searched for in the mask. The final binary
 mask will automatically be saved in glmdir/mask.mgh
 
+--prune
+
+Remove voxels from the analysis if the ALL the frames at that voxel
+do not have an absolute value that exceeds zero (actually FLT_MIN).
+This helps to prevent the situation where some frames are 0 and
+others are not. If no mask is supplied, a mask is created and saved.
+If a mask is supplied, it is pruned, and the final mask is saved.
+Do not use with --sim. Rather, run the non-sim analysis with --prune,
+then pass the created mask when running simulation. It is generally
+a good idea to prune (though the default is not to). --no-prune
+will turn off pruning if it had been turned on.
+
 --surf subject hemi
 
 Specify that the input has a surface geometry from the hemisphere of the
@@ -381,6 +395,7 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <float.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -407,6 +422,7 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 
+
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
 
 static int  parse_commandline(int argc, char **argv);
@@ -420,7 +436,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.78.2.4 2006/03/06 23:04:44 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.78.2.5 2006/03/10 23:27:29 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -438,6 +454,7 @@ LABEL *clabel=NULL;
 int   maskinv = 0;
 int   nmask, nvoxels;
 float maskfraction, voxelsize;
+int   prunemask = 0;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
 
@@ -672,6 +689,10 @@ int main(int argc, char **argv)
 			 mriglm->y->height, mriglm->y->depth, 1);
     MRIfree(&mriglm->mask);
     mriglm->mask = mritmp;
+  }
+  if(prunemask){
+    printf("Pruning voxels by frame.\n");
+    mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
   }
   if(mriglm->mask && maskinv) MRImaskInvert(mriglm->mask,mriglm->mask);
   if(surf && mriglm->mask) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
@@ -1305,6 +1326,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
+    else if (!strcasecmp(option, "--prune"))    prunemask = 1;
+    else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
     else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
     else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
@@ -1569,6 +1592,8 @@ printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
 printf("   --mask-inv : invert mask\n");
+printf("   --prune : remove voxels that do not have a non-zero value at each frame\n");
+printf("   --no-prune : do not prune\n");
 printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -1595,7 +1620,6 @@ printf("   --help      print out information on how to use this program\n");
 printf("   --version   print out version and exit\n");
 printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("\n");
-
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -1790,6 +1814,18 @@ printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
 printf("and clusters will only be searched for in the mask. The final binary\n");
 printf("mask will automatically be saved in glmdir/mask.mgh\n");
 printf("\n");
+printf("--prune\n");
+printf("\n");
+printf("Remove voxels from the analysis if the ALL the frames at that voxel\n");
+printf("do not have an absolute value that exceeds zero (actually FLT_MIN).\n");
+printf("This helps to prevent the situation where some frames are 0 and\n");
+printf("others are not. If no mask is supplied, a mask is created and saved.\n");
+printf("If a mask is supplied, it is pruned, and the final mask is saved.\n");
+printf("Do not use with --sim. Rather, run the non-sim analysis with --prune,\n");
+printf("then pass the created mask when running simulation. It is generally\n");
+printf("a good idea to prune (though the default is not to). --no-prune\n");
+printf("will turn off pruning if it had been turned on.\n");
+printf("\n");
 printf("--surf subject hemi\n");
 printf("\n");
 printf("Specify that the input has a surface geometry from the hemisphere of the\n");
@@ -1975,6 +2011,11 @@ static void check_options(void)
 
   if(labelFile != NULL && surf==NULL){
     printf("ERROR: need --surf with --label\n");
+    exit(1);
+  }
+
+  if(prunemask && DoSim){
+    printf("ERROR: do not use --prune with --sim\n");
     exit(1);
   }
 
