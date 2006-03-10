@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.15 2006/01/19 13:59:54 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.16 2006/03/10 23:42:05 fischl Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -77,8 +77,8 @@
  75  Left-Lateral-Ventricles              120   18  134    0
  76  Right-Lateral-Ventricles             120   18  134    0
  77  WM-hypointensities                   200   70  255    0
- 78  Left-WM-hypointensities              124  140  178    0
- 79  Right-WM-hypointensities             124  140  178    0
+ 78  Left-WM-hypointensities              275  148  10    0
+ 79  Right-WM-hypointensities             275  148  10    0
  80  non-WM-hypointensities               164  108  226    0
  81  Left-non-WM-hypointensities          164  108  226    0
  82  Right-non-WM-hypointensities         164  108  226    0
@@ -209,12 +209,12 @@
 207  CA2				 128	128	255	0
 208  CA3				 0	128	0	0
 209  CA4				 196	160	128	0
-210 GC-DG			 255	128	255	0
+210 GC-DG			 32	200	255	0
 211 HATA				 128	255	128	0
 212 fimbria   	204 153 204	0
-213 lateral_ventricle		 255	0	255	0
+213 lateral_ventricle		          121   17  136     0 
 214 molecular_layer_HP            128    0       0       0
-215 hippocampal_fissure           64	255	196	0
+215 hippocampal_fissure           128	32	255	0
 216 entorhinal_cortex             255	204	102	0
 217 molecular_layer_subiculum       128 128 128 0 
 218 Amygdala                          104  255  255    0    
