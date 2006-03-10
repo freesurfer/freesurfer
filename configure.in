@@ -5,10 +5,10 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165.2.1 2006/03/10 21:07:09 greve Exp $"
+# "$Id: configure.in,v 1.165.2.2 2006/03/10 22:59:13 nicks Exp $"
 #
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, dev2, freesurfer@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, stable3, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
 AC_MSG_NOTICE(Setting System...)
