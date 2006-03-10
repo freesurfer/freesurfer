@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.15 2006/02/17 05:14:03 greve Exp $
+  $Id: mri_volsynth.c,v 1.15.2.1 2006/03/10 20:37:37 greve Exp $
 */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.15 2006/02/17 05:14:03 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.15.2.1 2006/03/10 20:37:37 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -71,7 +71,7 @@ float fwhm = 0, gstd = 0, gmnnorm = 1;
 int nframes = -1;
 int delta_crsf[4];
 int delta_crsf_speced = 0;
-double delta_value = 1;
+double delta_value = 1, delta_off_value = 0;
 double gausmean=0, gausstd=1;
 RFS *rfs;
 int rescale = 0;
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 			voxradius, 1, NULL);
   }
   else if(strcmp(pdfname,"delta")==0){
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], delta_off_value, NULL);
     if(delta_crsf_speced == 0){
       delta_crsf[0] = dim[0]/2;
       delta_crsf[1] = dim[1]/2;
@@ -415,6 +415,11 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%lf",&delta_value);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--delta-val-off")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&delta_off_value);
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -460,6 +465,7 @@ static void print_usage(void)
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
+  printf("   --delta-val-off offval : set delta background value to offval. Default is 0.\n");
   printf("   --dof dof : dof for t and chi2 \n");
   printf("   --dof-num numdof : numerator dof for F\n");
   printf("   --dof-den dendof : denomenator dof for F\n");
