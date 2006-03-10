@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.18 2006/02/16 20:25:02 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.18.2.1 2006/03/10 00:19:45 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -119,7 +119,8 @@ foreach sess ($SessList)
       echo "  SUBJECTS_DIR is $SUBJECTS_DIR"
       exit 1;
     endif
-    set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol;
+    set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol.mgz;
+    if(! -e $anatdir)  set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol
   endif
 
   echo "INFO: anatdir set to $anatdir"
@@ -129,9 +130,9 @@ foreach sess ($SessList)
   endif
 
   ## Get absolute path for anatdir ##
-  pushd $anatdir > /dev/null
-  set anatdir = `pwd`;
-  popd > /dev/null
+  #pushd $anatdir > /dev/null
+  #set anatdir = `pwd`;
+  #popd > /dev/null
 
   ## Make sure the functional subdirectory exists ##
   if($rsd != $fsd && ! $nocopy) then
