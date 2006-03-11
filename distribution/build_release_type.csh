@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.48 2006/03/09 22:25:42 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.49 2006/03/11 21:50:02 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -558,6 +558,10 @@ if ("$RELEASE_TYPE" == "stable-pub") then
   set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
+  if ($status) then
+    echo "create_targz.csh failed to create tarball!"
+    # don't exit with error, since create_targz can be re-run manually
+  endif
 endif
 
 # Success, so remove fail indicator:
