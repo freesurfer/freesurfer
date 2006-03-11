@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-set ID='$Id: create_targz.csh,v 1.11 2006/03/07 20:40:35 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.12 2006/03/11 21:59:33 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -59,15 +59,18 @@ if (( "$RELEASE_TYPE" != "dev") && ( "$RELEASE_TYPE" != "stable-pub")) then
   exit 1
 endif
 
+echo "cd ${LOCAL_FS}"
 cd ${LOCAL_FS}
+
 if ( "$PLATFORM" == "tiger") then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
-  cp -R $RELEASE_TYPE /Users/Shared/tmp
+  echo "cp -r $RELEASE_TYPE /Users/Shared/tmp"
+  cp -r $RELEASE_TYPE /Users/Shared/tmp
+  echo "cd /Users/Shared/tmp"
   cd /Users/Shared/tmp
 endif
 
-cd ${LOCAL_FS}
 if (-e freesurfer) rm freesurfer
 set cmd=(ln -s $RELEASE_TYPE freesurfer)
 echo $cmd
