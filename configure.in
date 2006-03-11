@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.169 2006/03/10 22:57:49 nicks Exp $"
+# "$Id: configure.in,v 1.170 2006/03/11 02:53:03 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -148,7 +148,9 @@ case "${target}" in
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
  CFLAGS="$CFLAGS -g -O2 -Wall -Werror -Wno-long-double"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+# -Wno-non-virtual-dtor suppresses valid scuba warning:
+# "has virtual functions but non-virtual destructor"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror -Wno-non-virtual-dtor"
  ;;
 esac
 AC_SUBST(OS)
