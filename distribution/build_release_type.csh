@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.49 2006/03/11 21:50:02 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.50 2006/03/12 00:30:14 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -588,3 +588,17 @@ echo "Begin ${BEGIN_TIME}, end ${END_TIME}" >& $LOG_DIR/message-$HOSTNAME.txt
 set msg="$HOSTNAME $RELEASE_TYPE build is wicked awesome."
 mail -s "$msg" $SUCCESS_MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
 rm $LOG_DIR/message-$HOSTNAME.txt
+
+#
+# Now for a cheap way to build stable-pub, which is normally only run
+# when a public distribution is needed.  Just create an empty file
+# called build_stable-pub_flag in the BUILD_DIR, and stable-pub will
+# is built.
+if ("$RELEASE_TYPE" == "stable") then
+  if (-e ${BUILD_DIR}/build_stable-pub) then
+    rm -f ${BUILD_DIR}/build_stable-pub
+    # force stable build to run again:
+    touch ${FAILED_FILE}
+    ${SCRIPT_DIR}/build_stable-pub.csh
+  endif
+endif
