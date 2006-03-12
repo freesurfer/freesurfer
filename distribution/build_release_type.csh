@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.50 2006/03/12 00:30:14 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.51 2006/03/12 19:24:11 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -597,8 +597,8 @@ rm $LOG_DIR/message-$HOSTNAME.txt
 if ("$RELEASE_TYPE" == "stable") then
   if (-e ${BUILD_DIR}/build_stable-pub) then
     rm -f ${BUILD_DIR}/build_stable-pub
-    # force stable build to run again:
-    touch ${FAILED_FILE}
+    # force stable build to run again by removing a CVS'd file:
+    rm -f ${DEV_DIR}/setup_configure
     ${SCRIPT_DIR}/build_stable-pub.csh
   endif
 endif
