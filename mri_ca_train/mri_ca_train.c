@@ -3,9 +3,9 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: nicks $                                  */
-/* Revision Date  : $Date: 2005/11/01 23:57:38 $                       */
-/* Revision       : $Revision: 1.43 $                                  */
+/* Revision Author: $Author: fischl $                                  */
+/* Revision Date  : $Date: 2006/03/13 21:25:36 $                       */
+/* Revision       : $Revision: 1.44 $                                  */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -31,11 +31,13 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
 static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca);
+static int lateralize_hypointensities(MRI *mri_seg) ;
 
 static int flash = 0 ;
 static int binarize = 0 ;
 static int binarize_in = 0 ;
 static int binarize_out = 0 ;
+static char *wmsa_fname = NULL ;
 
 static int gca_flags = GCA_NO_FLAGS ;
 
@@ -94,7 +96,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.43 2005/11/01 23:57:38 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.44 2006/03/13 21:25:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -205,6 +207,24 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: segmentation file %s is not type UCHAR",
                   Progname, fname) ;
 
+			if (wmsa_fname)
+			{
+				MRI *mri_wmsa ;
+				sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, wmsa_fname) ;
+				printf("reading WMSA labels from %s...\n", fname) ;
+				mri_wmsa = MRIread(fname) ;
+				if (mri_wmsa == NULL)
+					ErrorExit(ERROR_NOFILE, "%s: could not read WMSA file %s", fname) ;
+				MRIbinarize(mri_wmsa, mri_wmsa,  1, 0, WM_hypointensities) ;
+				MRIcopyLabel(mri_wmsa, mri_seg, WM_hypointensities) ;
+				lateralize_hypointensities(mri_seg) ;
+				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON )
+				{
+					char s[STRLEN] ;
+					sprintf(s, "%s/%s/mri/seg_%s", subjects_dir, subject_name, wmsa_fname) ;
+					MRIwrite(mri_seg, s) ;
+				}
+			}
       if (binarize)
       {
         int j ;
@@ -546,6 +566,24 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
+			if (wmsa_fname)
+			{
+				MRI *mri_wmsa ;
+				sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, wmsa_fname) ;
+				printf("reading WMSA labels from %s...\n", fname) ;
+				mri_wmsa = MRIread(fname) ;
+				if (mri_wmsa == NULL)
+					ErrorExit(ERROR_NOFILE, "%s: could not read WMSA file %s", fname) ;
+				MRIbinarize(mri_wmsa, mri_wmsa,  1, 0, WM_hypointensities) ;
+				MRIcopyLabel(mri_wmsa, mri_seg, WM_hypointensities) ;
+				lateralize_hypointensities(mri_seg) ;
+				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON )
+				{
+					char s[STRLEN] ;
+					sprintf(s, "%s/%s/mri/seg_%s", subjects_dir, subject_name, wmsa_fname) ;
+					MRIwrite(mri_seg, s) ;
+				}
+			}
       if (insert_fname)
       {
         MRI *mri_insert ;
@@ -637,7 +675,7 @@ main(int argc, char *argv[])
       {
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
-        if (DIAG_VERBOSE_ON)
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           printf("reading transform from %s...\n", fname) ;
         transform = TransformRead(fname) ;
         if (!transform)
@@ -846,6 +884,12 @@ get_option(int argc, char *argv[])
     gca_flags |= GCA_XGRAD ;
     printf("using x gradient information in training...\n") ;
   }
+  else if (!stricmp(option, "WMSA"))
+  {
+		wmsa_fname = argv[2] ;
+		nargs = 1 ;
+    printf("reading white matter signal abnormalities from %s\n", wmsa_fname) ;
+  }
   else if (!stricmp(option, "YGRAD"))
   {
     gca_flags |= GCA_YGRAD ;
@@ -974,7 +1018,7 @@ get_option(int argc, char *argv[])
             T1_name) ;
   }
   else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR") || 
-                                         !stricmp(option, "SEGMENTATION"))
+					 !stricmp(option, "SEG") || !stricmp(option, "SEGMENTATION"))
   {
     seg_dir = argv[2] ;
     nargs = 1 ;
@@ -1050,7 +1094,8 @@ usage_exit(int code)
          Progname) ;
   printf("where SUBJECTS_DIR env variable must be set.\n"
 	 "Options are:\n"
-	 "\t-parc_dir dir   - (Required) segmentation directory (path relative to $subject/mri.\n"
+	 "\t-seg dir   - (Required) segmentation volume (path relative to $subject/mri).\n"
+	 "\t-xform xform  -  atlas transform (path relative to $subject/mri/transforms).\n"
 	 "\t-mask volname   - use volname as a mask (path relative to $subject/mri.\n"
          "\t-node_spacing   - spacing of classifiers in canonical space\n"
          "\t-prior_spacing  - spacing of class priors in canonical space\n"
@@ -1232,3 +1277,65 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
 
   MRIfree(&mri_buf);
 }
+#define WSIZE 9
+#define WHALF ((WSIZE-1)/2)
+static int
+lateralize_hypointensities(MRI *mri_seg)
+{
+	int left, right, n, x, y, z, label_counts[MAX_CMA_LABELS], label ;
+
+	for (x = 0 ; x < mri_seg->width ; x++)
+	{
+		for (y = 0 ; y < mri_seg->height ; y++)
+		{
+			for (z = 0 ; z < mri_seg->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+				if (label != WM_hypointensities)
+					continue ;
+				MRIcomputeLabelNbhd(mri_seg, NULL, x, y, z, label_counts,  NULL, WHALF, MAX_CMA_LABELS) ;
+				for (left = right = n = 0 ; n < MAX_CMA_LABELS ; n++)
+				{
+					switch (n)
+					{
+					case Left_Lateral_Ventricle:
+					case Left_Cerebral_White_Matter:
+					case Left_Caudate:
+					case Left_Putamen:
+					case Left_Pallidum:
+					case Left_Thalamus:
+					case Left_Cerebral_Cortex:
+					case Left_Hippocampus:
+					case Left_Amygdala:
+					case Left_Cerebellum_Cortex:
+					case Left_Cerebellum_White_Matter:
+						left += label_counts[n] ;
+						break ;
+					case Right_Lateral_Ventricle:
+					case Right_Cerebral_White_Matter:
+					case Right_Caudate:
+					case Right_Putamen:
+					case Right_Pallidum:
+					case Right_Thalamus:
+					case Right_Cerebral_Cortex:
+					case Right_Hippocampus:
+					case Right_Amygdala:
+					case Right_Cerebellum_Cortex:
+					case Right_Cerebellum_White_Matter:
+						right += label_counts[n] ;
+						break ;
+					}
+				}
+				if (left > right)
+					MRIsetVoxVal(mri_seg, x, y, z, 0, Left_WM_hypointensities) ;
+				else
+					MRIsetVoxVal(mri_seg, x, y, z, 0, Right_WM_hypointensities) ;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
+
