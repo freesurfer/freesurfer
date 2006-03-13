@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/03/13 19:14:11 $
-// Revision       : $Revision: 1.99 $
+// Revision Date  : $Date: 2006/03/13 21:24:52 $
+// Revision       : $Revision: 1.100 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2136,13 +2136,15 @@ gcamJacobianTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_jacobian,
 
 static int
 gcamVolumeChangeTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area, 
-													 int i, int j, int k, double *pdx, double *pdy, double *pdz)
+int i, int j, int k, double *pdx, double *pdy, double *pdz)
 {
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   float          delta ;
   int            n, width = 0, height = 0, depth = 0, num, invert ;
   static VECTOR  *v_i = NULL, *v_j, *v_k, *v_j_x_k, *v_i_x_j,*v_k_x_i,*v_grad, *v_tmp ;
-	double          area, orig_area, del_v_scale, uk, image_val, error ;
+  double          area, orig_area, del_v_scale, uk, image_val, error ;
+
+  del_v_scale=0;
 
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ; 
   if (!v_i)   /* initialize */
