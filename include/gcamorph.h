@@ -45,7 +45,8 @@ typedef struct
 	float  label_dist ;   /* for computing label dist */
 	float  last_se ;
 	float  predicted_val ; /* weighted average of all class means in a ball around this node */
-	float  mean_uk ;       // mean of all class means in a ball around this node
+	double sum_ci_vi_ui ;
+	double sum_ci_vi ;
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
@@ -69,15 +70,15 @@ typedef struct
 
 typedef struct
 {
-	int x ;   /* node coords */
-	int y ;
-	int z ;
+	int    x ;   /* node coords */
+	int    y ;
+	int    z ;
 } NODE_BIN ;
 
 typedef struct
 {
-	int      nnodes ;
-	NODE_BIN *node_bins ;
+	int       nnodes ;
+	NODE_BIN  *node_bins ;
 } NODE_BUCKET ;
 
 typedef struct
@@ -100,6 +101,7 @@ typedef struct
   double l_area ;
   double l_jacobian ;
   double l_smoothness ;
+  double l_lsmoothness ;
   double l_distance ;
   double l_label ;
 	double l_binary ;
