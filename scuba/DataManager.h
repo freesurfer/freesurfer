@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/03/22 19:23:27 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/03/13 16:33:02 $
+// Revision       : $Revision: 1.9 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -53,6 +53,7 @@ class DataLoader : public DebugReporter {
   // Returns the number of references to this data.
   int CountReferences( T iData );
 
+  virtual ~DataLoader() {};
  protected:
   DataLoader();
 
@@ -75,6 +76,8 @@ class DataLoader : public DebugReporter {
 
 
 class MRILoader : public DataLoader<MRI*> {
+ public:
+  virtual ~MRILoader() {};
  protected:
   MRI* LoadData( std::string& ifnData );
   void FreeData( MRI** ioMRI ) ;
@@ -82,6 +85,8 @@ class MRILoader : public DataLoader<MRI*> {
 };
 
 class MRISLoader : public DataLoader<MRIS*> {
+ public:
+  virtual ~MRISLoader() {}
  protected:
   MRIS* LoadData( std::string& ifnData );
   void FreeData( MRIS** ioMRI ) ;
