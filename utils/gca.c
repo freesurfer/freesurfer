@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/08 14:47:50 $
-// Revision       : $Revision: 1.188 $
+// Revision Date  : $Date: 2006/03/13 21:26:11 $
+// Revision       : $Revision: 1.189 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11561,7 +11561,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     scales[MAX_GCA_INPUTS], max_wm/*, scale*/ ;
   HISTOGRAM *h_mri, *h_smooth ;
   MRI_REGION box ;
-  MRI        *mri_frame ;
+  MRI        *mri_frame, *mri_mask ;
 
   float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
 
@@ -11574,25 +11574,25 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 #if 0
   max_wm = 0 ;
   for (r = 0 ; r < gca->ninputs ; r++)
-    {
-      wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
-      if (wm_means[r] > max_wm)
-        {
-          max_T1_weighted_image = r ; max_wm = wm_means[r] ;
-        }
-    }
+	{
+		wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+		if (wm_means[r] > max_wm)
+		{
+			max_T1_weighted_image = r ; max_wm = wm_means[r] ;
+		}
+	}
 #else
   GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
   gray_white_CNR = wm_means[0] - gm_means[0];
   for (r = 0 ; r < gca->ninputs ; r++)
-    {
-      wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
-      if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
-        {
-          max_T1_weighted_image = r ; 
-          gray_white_CNR = (wm_means[r] - gm_means[r]);
-        }
-    }
+	{
+		wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+		if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
+		{
+			max_T1_weighted_image = r ; 
+			gray_white_CNR = (wm_means[r] - gm_means[r]);
+		}
+	}
 #endif
   printf("Note: program considers input volume #%d as the most T1-like\n", 
          max_T1_weighted_image +1);
@@ -11618,6 +11618,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   printf("using real data threshold=%2.1f\n", min_real_val) ;
 
   MRIfindApproximateSkullBoundingBox(mri_frame, min_real_val, &box) ;
+	mri_mask = MRIbinarize(mri_frame, NULL, min_real_val, 0, 1) ;
   MRIfree(&mri_frame) ; HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
 
   //why divided by 3 for x and y?? mistake or experience?? -xh
@@ -11633,55 +11634,56 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   box.dz /= 4 ; box.z = z0 - box.dz/2;
 #endif
   for (r = 0 ; r < gca->ninputs ; r++)
-    {
-      mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
+	{
+		mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
+		MRImask(mri_frame, mri_mask, mri_frame, 0,0) ;  // remove stuff that is background or csf
       
-      printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
-             "to find MRI wm\n", wm_means[r], box.x, box.y, box.z, 
-             box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+		printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
+					 "to find MRI wm\n", wm_means[r], box.x, box.y, box.z, 
+					 box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
     
-      h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
-      if (gca->ninputs == 1)
-        HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        HISTOplot(h_mri, "mri.histo") ;
-      HISTOclearZeroBin(h_mri) ;
-      if (gca->ninputs == 1)   /* assume it is T1-weighted */
-        mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-      else
-        mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
-      mri_peak = h_mri->bins[mri_peak] ;
-      printf("before smoothing, mri peak at %d\n", mri_peak) ;
-      h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        HISTOplot(h_smooth, "mri_smooth.histo") ;
-      /* assume it is the right-most peak of image 
-         is supposed to be T1-weighted */
-      if (gca->ninputs == 1 && 
-          (gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
-           (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
-        mri_peak = 
-          HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-      else
-        mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
-      mri_peak = h_smooth->bins[mri_peak] ;
-      printf("after smoothing, mri peak at %d, scaling input intensities "
-             "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
+		h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
+		if (gca->ninputs == 1)
+			HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			HISTOplot(h_mri, "mri.histo") ;
+		HISTOclearZeroBin(h_mri) ;
+		if (gca->ninputs == 1)   /* assume it is T1-weighted */
+			mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+		else
+			mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
+		mri_peak = h_mri->bins[mri_peak] ;
+		printf("before smoothing, mri peak at %d\n", mri_peak) ;
+		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			HISTOplot(h_smooth, "mri_smooth.histo") ;
+		/* assume it is the right-most peak of image 
+			 is supposed to be T1-weighted */
+		if (gca->ninputs == 1 && 
+				(gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
+				 (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
+			mri_peak = 
+				HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+		else
+			mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
+		mri_peak = h_smooth->bins[mri_peak] ;
+		printf("after smoothing, mri peak at %d, scaling input intensities "
+					 "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
 #if 0
-      MRIscalarMul(mri_frame, mri_frame, wm_means[r]/mri_peak) ;
-      MRIcopyFrame(mri_frame, mri, 0, r) ;   
-      /* put it back in multi-frame image */
+		MRIscalarMul(mri_frame, mri_frame, wm_means[r]/mri_peak) ;
+		MRIcopyFrame(mri_frame, mri, 0, r) ;   
+		/* put it back in multi-frame image */
 #endif
-      if (mri_peak == 0)
-        ErrorExit(ERROR_BADPARM, 
-                  "GCAhistoScaleImageIntensities: could not find wm peak") ;
-      scales[r] = wm_means[r]/mri_peak ;
+		if (mri_peak == 0)
+			ErrorExit(ERROR_BADPARM, 
+								"GCAhistoScaleImageIntensities: could not find wm peak") ;
+		scales[r] = wm_means[r]/mri_peak ;
       
-      MRIfree(&mri_frame) ;
-      HISTOfree(&h_mri) ;
-      HISTOfree(&h_smooth) ; 
+		MRIfree(&mri_frame) ;
+		HISTOfree(&h_mri) ;
+		HISTOfree(&h_smooth) ; 
 
-    }
+	}
 
 #if 0
   for (scale = 0.0, r = 0 ; r < gca->ninputs ; r++)
@@ -11696,6 +11698,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     MRIscalarMulFrame(mri, mri, scales[r], r);
   }
 #endif
+	MRIfree(&mri_mask) ;
   return(NO_ERROR) ;
 }
 
