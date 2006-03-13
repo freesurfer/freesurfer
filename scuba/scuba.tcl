@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.182 2006/03/08 20:23:05 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.183 2006/03/13 21:17:41 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -271,7 +271,13 @@ proc FindFile { ifn } {
 
     global gSubject
 
+    # Chop off everything after the pound sign, as this might be used
+    # to specify a frame in a file.
     set fn $ifn
+    set hashIndex [string last \# $ifn]
+    if { $hashIndex > -1 } {
+	set fn [string range $ifn 0 [expr $hashIndex - 1]]
+    }
 
     # If this is not a full path...
     if { [file pathtype $fn] != "absolute" } {
@@ -5806,7 +5812,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.182 2006/03/08 20:23:05 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.183 2006/03/13 21:17:41 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
