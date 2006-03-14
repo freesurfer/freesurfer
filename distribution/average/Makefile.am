@@ -11,7 +11,7 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.tif) \
  $(wildcard *.txt) \
  $(wildcard *.mgz) \
- mni305.cor.readme 
+ mni305.cor.readme
 else
 foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
@@ -22,7 +22,7 @@ foo_DATA=$(wildcard *.gcs) \
  mni305.mask.cor.mgz
 endif
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
 
 install: install-fooDATA
 	mkdir -p $(prefix)/subjects
