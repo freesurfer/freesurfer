@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.51 2006/03/12 19:24:11 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.52 2006/03/14 21:29:18 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -12,6 +12,9 @@ umask 002
 #  build_release_type stable
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
+
+set STABLE_VER_NUM="v3.0.1"
+set STABLE_PUB_VER_NUM="v3.0.1"
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
@@ -541,9 +544,10 @@ set FS_PREFIX="freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}"
 if ("$RELEASE_TYPE" == "dev") then
   echo "${FS_PREFIX}-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable") then
-  echo "${FS_PREFIX}-v3.0-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
+  echo "${FS_PREFIX}-${STABLE_VER_NUM}-${DATE_STAMP}" \
+    > ${DEST_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable-pub") then
-  echo "${FS_PREFIX}-v3.0.1" > ${DEST_DIR}/build-stamp.txt
+  echo "${FS_PREFIX}-${STABLE_PUB_VER_NUM}" > ${DEST_DIR}/build-stamp.txt
 else
   echo "ERROR: unknown RELEASE_TYPE: $RELEASE_TYPE"
   exit 1
