@@ -90,6 +90,7 @@ public:
 
 class ViewFactory {
  public:
+  virtual ~ViewFactory() {};
   virtual View* NewView() { 
     return new View();
   }

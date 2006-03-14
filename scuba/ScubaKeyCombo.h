@@ -40,6 +40,8 @@ class ScubaKeyCombo : public DebugReporter {
 
  public:
 
+  virtual ~ScubaKeyCombo() {};
+
   static void SetFactory ( ScubaKeyComboFactory* iFactory ) {
     mFactory = iFactory;
   }
@@ -224,6 +226,7 @@ class ScubaKeyCombo : public DebugReporter {
 
 class ScubaKeyComboFactory {
  public:
+  virtual ~ScubaKeyComboFactory() {};
   virtual ScubaKeyCombo* MakeKeyCombo() {
     return new ScubaKeyCombo();
   }

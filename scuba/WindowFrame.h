@@ -77,6 +77,7 @@ class WindowFrame : public DebugReporter,
 // SetFrameFactory().
 class WindowFrameFactory {
  public:
+  virtual ~WindowFrameFactory() {};
   virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
     return new WindowFrame( iID );
   }

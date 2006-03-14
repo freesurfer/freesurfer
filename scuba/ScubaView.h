@@ -348,6 +348,7 @@ protected:
 
 class ScubaViewFactory : public ViewFactory {
  public:
+  virtual ~ScubaViewFactory () {};
   virtual View* NewView();
 };
 
