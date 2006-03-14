@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165.2.3 2006/03/11 02:56:11 nicks Exp $"
+# "$Id: configure.in,v 1.165.2.4 2006/03/14 16:50:40 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, stable3, freesurfer@nmr.mgh.harvard.edu)
@@ -1332,7 +1332,6 @@ test_window_env/Makefile \
 test_makevol/Makefile \
 brik2bfloat/Makefile \
 minc_to_bshort/Makefile \
-paint/Makefile \
 histo_compute_joint_density/Makefile \
 histo_register_block/Makefile \
 scripts/Makefile \
