@@ -5524,8 +5524,11 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       n[2] = -(-m[0][2]*f->nx + m[1][2]*f->nz + m[2][2]*f->ny);
                         
       /* Make sure the normal's z < 0, so the face is facing us. */
-      if (n[2] > 0)
-        continue;
+      /* RKT: Removed this test as it caused vertices 'inside' folds
+	 on the non-inflated surface to be not selected, even if in
+	 the inflated view. */
+/*       if (n[2] > 0) */
+/*         continue; */
                         
       /* Do an initial distance test in the xy to weed out unnecessary
          intersection tests. */
@@ -18971,7 +18974,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.186 2006/03/09 22:28:30 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.187 2006/03/14 19:20:52 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
