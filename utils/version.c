@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/02/14 19:45:15 $
- *         $Revision: 1.21 $
+ * @date   $Date: 2006/03/15 20:59:09 $
+ *         $Revision: 1.21.2.1 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -209,6 +209,7 @@ handle_version_option (int argc, char** argv,
   char machine[1024];
   char platform_version[1024];
   struct passwd *pw;
+  char *myarg;
 
   /* Go through each option looking for --version, -version,
      --all-info, or -all-info */
@@ -256,7 +257,9 @@ handle_version_option (int argc, char** argv,
           /* Copy later args one step back. */
           for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
             {
-              strcpy (argv[nnarg], argv[nnarg+1] );
+              myarg=malloc(strlen(argv[nnarg+1])+1);
+              strcpy (myarg, argv[nnarg+1]);
+              argv[nnarg]=myarg;
             }
         }
 
@@ -337,7 +340,9 @@ handle_version_option (int argc, char** argv,
           /* Copy later args one step back. */
           for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
             {
-              strcpy (argv[nnarg], argv[nnarg+1] );
+              myarg=malloc(strlen(argv[nnarg+1])+1);
+              strcpy (myarg, argv[nnarg+1]);
+              argv[nnarg]=myarg;
             }
         }
     }
