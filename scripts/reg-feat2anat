@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.14 2006/02/21 21:50:58 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.14.2.1 2006/03/15 22:24:49 ayendiki Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -46,6 +46,9 @@ if($?DEV == 0) set DEV = "";
 
 set TKR = tkregister2
 if($usedev) set TKR = $DEV/$TKR/$TKR
+
+set MM = mri_matrix_multiply
+if($usedev) set MM = $DEV/$MM/$MM
 
 echo FeatDir is $FeatDir
 mkdir -p $FeatDir/reg/freesurfer/tmp
@@ -169,27 +172,43 @@ if($status) then
   exit 1;
 endif
 
-# Create the init std2anat matrix -- this is not accurate, Just
+# Create the init exf2anat matrix -- this is not accurate, Just
 # gets things lined up. We'll compute a better one below
-set cmd = ($TKR \
-            --targ $refvolcor \
-            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
-            --reg $anat2std_regdat \
-            --fslregout $std2anat_fslmat \
-            --regheader)
-if(! $debug) set cmd = ($cmd --noedit)
-echo "-------------------------------------------------------" | tee -a $LF 
-echo $cmd | tee -a $LF 
-$cmd | tee -a $LF 
-if($status) exit 1;
-cp $std2anat_fslmat $std2anat_fslmat.init
+if (-e $FeatDir/example_func.mat) then
+  set cmd = ($TKR \
+              --targ $refvolcor \
+              --mov $FeatDir/example_func.img \
+              --reg $anat2exf_regdat.init \
+              --fslregout $exf2anat_init_fslmat \
+              --regheader)
+  if(! $debug) set cmd = ($cmd --noedit)
+  echo "-------------------------------------------------------" | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd | tee -a $LF 
+  if($status) exit 1;
 
-set MM = mri_matrix_multiply
-if($usedev) set MM = $DEV/$MM/$MM
+  set cmd = ($MM -fsl -bin \
+              -iim $exf2anat_init_fslmat \
+              -om $exf2anat_init_fslmat)
+else
+  set cmd = ($TKR \
+              --targ $refvolcor \
+              --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+              --reg $anat2std_regdat \
+              --fslregout $std2anat_fslmat \
+              --regheader)
+  if(! $debug) set cmd = ($cmd --noedit)
+  echo "-------------------------------------------------------" | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd | tee -a $LF 
+  if($status) exit 1;
+  cp $std2anat_fslmat $std2anat_fslmat.init
 
-set cmd = ($MM -fsl -bin \
-            -iim $exf2std_fslmat -iim $std2anat_fslmat \
-            -om $exf2anat_init_fslmat)
+  set cmd = ($MM -fsl -bin \
+              -iim $exf2std_fslmat -iim $std2anat_fslmat \
+              -om $exf2anat_init_fslmat)
+endif
+
 echo $cmd | tee -a $LF 
 $cmd | tee -a $LF 
 if($status) exit 1;
@@ -222,7 +241,7 @@ endif
 
 # Check for possible LR flip
 set tmp = (`cat $exf2anat_fslmat`);
-set isflipped = `echo $tmp[1] < 0 | bc -l`;
+set isflipped = `echo "$tmp[1] < 0" | bc -l`;
 if($isflipped) then
   echo "WARNING: possible left-right reversal" | tee -a $LF 
   exit 1;
