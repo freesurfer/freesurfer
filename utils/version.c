@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/03/02 19:45:08 $
- *         $Revision: 1.22 $
+ * @date   $Date: 2006/03/15 20:56:04 $
+ *         $Revision: 1.23 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -209,6 +209,7 @@ handle_version_option (int argc, char** argv,
   char machine[1024];
   char platform_version[1024];
   struct passwd *pw;
+  char *myarg;
 
   /* Go through each option looking for --version, -version,
      --all-info, or -all-info */
@@ -248,14 +249,14 @@ handle_version_option (int argc, char** argv,
               strcpy (stripped_version_string, version_string);
             }
 
-	  if (strcmp(" $",stripped_version_string)==0)
-	    {
-	      // on the dev build, where a sticky tag does not exist,
-	      // just a dollar sign is printed, which isnt very helpful,
-	      // so print something...
-	      strcpy(stripped_version_string,
-		     "dev build (use --all-info flag for full version info)");
-	    }
+          if (strcmp(" $",stripped_version_string)==0)
+            {
+              // on the dev build, where a sticky tag does not exist,
+              // just a dollar sign is printed, which isnt very helpful,
+              // so print something...
+              strcpy(stripped_version_string,
+                     "dev build (use --all-info flag for full version info)");
+            }
           fprintf (stdout, "%s\n", stripped_version_string);
 
 #endif
@@ -264,7 +265,9 @@ handle_version_option (int argc, char** argv,
           /* Copy later args one step back. */
           for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
             {
-              strcpy (argv[nnarg], argv[nnarg+1] );
+              myarg=malloc(strlen(argv[nnarg+1])+1);
+              strcpy (myarg, argv[nnarg+1]);
+              argv[nnarg]=myarg;
             }
         }
 
@@ -345,7 +348,9 @@ handle_version_option (int argc, char** argv,
           /* Copy later args one step back. */
           for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
             {
-              strcpy (argv[nnarg], argv[nnarg+1] );
+              myarg=malloc(strlen(argv[nnarg+1])+1);
+              strcpy (myarg, argv[nnarg+1]);
+              argv[nnarg]=myarg;
             }
         }
     }
