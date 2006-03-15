@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/03/08 00:31:26 $
-// Revision       : $Revision: 1.276 $
-char *VERSION = "$Revision: 1.276 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/03/15 21:41:49 $
+// Revision       : $Revision: 1.277 $
+char *VERSION = "$Revision: 1.277 $";
 
 #define TCL
 #define TKMEDIT
@@ -1109,7 +1109,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.276 2006/03/08 00:31:26 kteich Exp $",
+     "$Id: tkmedit.c,v 1.277 2006/03/15 21:41:49 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5588,7 +5588,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.276 2006/03/08 00:31:26 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.277 2006/03/15 21:41:49 nicks Exp $ $Name:  $\n"
       )
      );
 
@@ -7992,9 +7992,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   tkm_DisplayError
     ( sError,
       tkm_GetErrorString(eResult),
-      "Tkmedit couldn't read the volume you specified. "
-      "This could be because the image format wasn't "
-      "recognized, or it couldn't find the proper header, "
+      "Tkmedit couldn't read the volume you specified.\n"
+      "This could be because the image format wasn't\n"
+      "recognized, or it couldn't find the proper header,\n"
       "or the file(s) were unreadable, or it was the wrong size." );
 
   EndDebugCatch;
