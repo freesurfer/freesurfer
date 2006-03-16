@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/08 14:47:40 $
-// Revision       : $Revision: 1.338 $
-char *MRI_C_VERSION = "$Revision: 1.338 $";
+// Revision Date  : $Date: 2006/03/16 15:59:09 $
+// Revision       : $Revision: 1.339 $
+char *MRI_C_VERSION = "$Revision: 1.339 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2345,7 +2345,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   if(!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
-  if(Gdiag_no > 0){
+  if(Gdiag_no > 0 && DIAG_VERBOSE_ON){
     printf("voxelFromSurfaceRAS_() ras2vox --------------------\n");
     MatrixPrint(stdout,ras2vox);
   }
