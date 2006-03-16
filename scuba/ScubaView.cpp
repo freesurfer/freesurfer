@@ -3039,9 +3039,15 @@ ScubaView::BuildFrameBuffer () {
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
     
     int nLevel = (*tLevelLayerID).first;
-    if( !mLevelVisibilityMap[nLevel] ) 
+    if( !mLevelVisibilityMap[nLevel] ) {
+      // This clears the draw list that we might already have saved
+      // for this layer.
+      glNewList( mLevelGLListIDMap[nLevel], GL_COMPILE );
+      glBegin( GL_POINTS ); glVertex2d( 0, 0 ); glEnd();
+      glEndList();
       continue;
-    
+    }
+
     int layerID = (*tLevelLayerID).second;
     try { 
       Layer& layer = Layer::FindByID( layerID );
