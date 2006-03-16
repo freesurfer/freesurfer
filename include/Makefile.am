@@ -1,4 +1,4 @@
-SUBDIRS=dicom xview sys gsl nodelib pixrect NrrdIO
+SUBDIRS=dicom xview sys nodelib pixrect NrrdIO
 
 EXTRA_DIST= $(wildcard *.h)
 
