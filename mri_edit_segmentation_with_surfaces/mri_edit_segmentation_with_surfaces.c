@@ -19,22 +19,24 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.9 2005/12/15 20:09:12 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.10 2006/03/17 18:24:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 double MRIlabelMean(MRI *mri, MRI  *mri_labels, int x, int y, int z, int whalf, int label) ;
 static int  get_option(int argc, char *argv[]) ;
-static int  edit_unknowns(MRI *mri_aseg, MRI *mri) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
 /*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
+#if 0
+static int  edit_unknowns(MRI *mri_aseg, MRI *mri) ;
 static int edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name, float *thickness) ;
 /*static int edit_hippocampus(MRI *mri) ;*/
 static int edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) ;
+#endif
 
 static char *annot_name = "aparc.annot" ;
 
@@ -118,19 +120,23 @@ main(int argc, char *argv[])
 				ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s",Progname, fname) ;
 		}
 
+#if 0
 		printf("%s: removing ventricular voxels in calcarine...\n", hemi) ;
 		edit_calcarine(mri_aseg, mris, h) ;
 		printf("%s: editing hippocampal complex...\n", hemi) ;
 		edit_hippocampal_complex(mri_aseg, mris, h, annot_name, thickness) ;
+#endif
 		printf("%s: relabeling hypointensities...\n", hemi) ;
 		relabel_hypointensities(mri_aseg, mris, h) ;
 		MRISfree(&mris) ; free(thickness) ;
 	}
 	/*	relabel_hypointensities_neighboring_gray(mri_aseg) ;*/
 
+#if 0
 	/*	edit_hippocampus(mri_aseg) ;*/
 	if (mri_vals)
 		edit_unknowns(mri_aseg, mri_vals) ;
+#endif
 
 	printf("writing modified segmentation to %s...\n", out_aseg_name) ;
 	MRIwrite(mri_aseg, out_aseg_name) ;
@@ -247,7 +253,7 @@ static int
 relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 {
 	int   x, y, z, label, changed ;
-	MRI              *mri_inside ;
+	MRI              *mri_inside, *mri_inside_eroded, *mri_inside_dilated ;
 	MRIS_HASH_TABLE *mht ;
 	VERTEX           *v ;
 	float            dx, dy, dz, dot, dist ;
@@ -255,7 +261,15 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 
 	mri_inside = MRIclone(mri, NULL) ;
 	MRISeraseOutsideOfSurface(0.5, mri_inside, mris, 128) ;
+	mri_inside_eroded = MRIerode(mri_inside, NULL) ;
+	mri_inside_dilated = MRIdilate(mri_inside, NULL) ;
 	mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		char fname[STRLEN] ;
+		sprintf(fname, "%s_inside.mgz", right?"rh":"lh") ;
+		MRIwrite(mri_inside, fname) ;
+	}
 	for (changed = x = 0 ; x < mri->width ; x++)
 	{
 		for (y = 0 ; y < mri->height ; y++)
@@ -264,43 +278,65 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 			{
 				if (x == Gx && y == Gy && z == Gz)
 					DiagBreak() ;
-				if (MRIvox(mri_inside, x, y, z) == 0)
-					continue ;
 				label = MRIvox(mri, x, y, z) ;
-				if (label == Left_WM_hypointensities)
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
-				else if (label == Right_WM_hypointensities)
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
-				if ((!right && (label != Left_Cerebral_Cortex)) ||
-						(right && (label != Right_Cerebral_Cortex)))
+				if (right &&
+						((label != Right_Cerebral_Cortex) && (label != Right_WM_hypointensities)))
 					continue ;
+				if (right == 0 &&
+						((label != Left_Cerebral_Cortex) && (label != Left_WM_hypointensities)))
+					continue ;
+
 				if (MRIneighbors(mri, x, y, z, Unknown) >= 3) /* avoid stuff outside of brain in a sea of unknown */
 					continue ;
 
-				MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
+				MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
 				v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
-				if (v == NULL)  /* no vertices within range - assume it is hypointensity */
+				if (v == NULL)  // no vertices within range - either way inside or way outside
 				{
-					dot = -1 ;
+					if  (MRIgetVoxVal(mri_inside, x, y, z, 0) > 0)
+						dot = -1 ;
+					else
+						dot = 1 ;
 					dist = 1000 ;
 				}
-				else
+				else  // see where we are relative to closest vertex
 				{
 					dx = xw - v->x ; dy = yw - v->y ; dz = zw - v->z ; 
 					dot = v->nx*dx + v->ny*dy + v->nz*dz ;
 					dist = sqrt(dx*dx+dy*dy+dz*dz) ;
 				}
-				if (dot < 0 && dist > 1)
+
+				if (dot > 0 && (MRIgetVoxVal(mri_inside_eroded, x, y, z, 0) > 0))  // should be inside
+					dot *= -1 ;
+				else if (dot < 0 && (MRIgetVoxVal(mri_inside_dilated, x, y, z, 0) == 0)) // should be outside
+					dot *= -1 ;
+
+				switch (label)
 				{
-					changed++ ;
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
+				case Left_Cerebral_Cortex:
+				case Right_Cerebral_Cortex:  // check to see if it's inside ribbon and change it to hypointensity
+					if (dot < 0 && dist > 2)
+					{
+						changed++ ;
+						MRIvox(mri, x, y, z) = right ? Right_WM_hypointensities : Left_WM_hypointensities ;
+					}
+					break ;
+				case Left_WM_hypointensities:
+				case Right_WM_hypointensities: // check to see if it's outside ribbon and change it to gm
+					// if it's outside, or just inside change it to gm
+					if (dot > 0 || (dot < 0 &&  dist < 1))
+					{
+						changed++ ;
+						MRIvox(mri, x, y, z) = right ? Right_Cerebral_Cortex : Left_Cerebral_Cortex ;
+					}
+					break ;
 				}
 			}
 		}
 	}
 
 	printf("%d voxels changed to hypointensity...\n", changed) ;
-	MHTfree(&mht) ; MRIfree(&mri_inside) ;
+	MHTfree(&mht) ; MRIfree(&mri_inside) ;  MRIfree(&mri_inside_eroded) ; MRIfree(&mri_inside_dilated) ; 
 	return(NO_ERROR) ;
 }
 #if 0
@@ -356,6 +392,7 @@ relabel_hypointensities_neighboring_gray(MRI *mri)
 #define IS_INF_TO_HIPPO(index)  (index == PARAHIPPOCAMPAL_GYRUS || index == LINGUAL_SULCUS || index == LINGUAL_SULCUS2 || index == COLLATERAL_SULCUS_ANT || index == COLLATERAL_SULCUS_POS)
 
 
+#if 0
 static int
 edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name, float *thickness)
 {
@@ -584,7 +621,7 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 	if ((right && ((label != Right_Hippocampus) && (label != Right_Amygdala) && (label != Right_Inf_Lat_Vent))) ||
 	    (!right && ((label != Left_Hippocampus) && (label != Left_Amygdala) && (label != Left_Inf_Lat_Vent))))
 	  continue ;
-	MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
 	v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
 	if (v == NULL)
 	  continue ;
@@ -658,7 +695,7 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 	if ((right && ((label != Right_Cerebral_Cortex) && (label != Right_Hippocampus))) ||
 	    (!right && ((label != Left_Cerebral_Cortex) && (label != Left_Hippocampus))))
 	  continue ;
-	MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
 	v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
 	if (v == NULL)
 	  continue ;
@@ -707,7 +744,7 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 	  if ((right && ((label != Right_Cerebral_Cortex))) ||
 	      (!right && ((label != Left_Cerebral_Cortex))))
 	    continue ;
-	  MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
+	  MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
 #if 0
 	  v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
 	  if (v == NULL)
@@ -796,6 +833,7 @@ edit_unknowns(MRI *mri_aseg, MRI *mri)
   }
   return(NO_ERROR) ;
 }
+#endif
 
 #if 0
 static int
@@ -880,6 +918,7 @@ MRIlabelMean(MRI *mri, MRI  *mri_labels, int x, int y, int z, int whalf, int lab
     mean /= (double)nvox ;
   return(mean) ;
 }
+#if 0
 static int
 edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right)
 {
@@ -939,3 +978,4 @@ edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right)
   return(NO_ERROR) ;
 }
 
+#endif
