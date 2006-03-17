@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.173 2006/03/16 22:52:43 nicks Exp $"
+# "$Id: configure.in,v 1.174 2006/03/17 20:15:24 dsjen Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -414,7 +414,7 @@ AC_SUBST(pkgs_libraries)
 
 
 AC_MSG_NOTICE([Checking directories for MNI, BLT, Tiff, \
-Jpeg, Qt, and GSL])
+Jpeg, Qt, GSL, CppUnit, and VXL])
 
 #############################################################
 # MNI
@@ -634,6 +634,42 @@ fi
 
 AC_SUBST(CPPUNIT_CFLAGS)
 AC_SUBST(CPPUNIT_LIBS)
+
+################################################################
+# VXL
+################################################################
+ac_vxl_includes="NO"
+ac_vxl_libraries="NO"
+ac_vxl_dir="NO"
+VXL_CFLAGS=""
+VXL_LIBS=""
+AC_MSG_CHECKING(VXL directory)
+
+AC_ARG_WITH(vxl-dir,
+  [  --with-vxl-dir=DIR       where the root of VXL is installed.],
+  [  ac_vxl_includes="$withval/include/core $withval/include/vcl"
+     ac_vxl_libraries="$withval"/lib
+     ac_vxl_dir="$withval"
+  ])
+
+if test ! "$ac_vxl_includes" = "NO"; then
+  AC_MSG_RESULT(vxl directory is $withval)
+  for item in $ac_vxl_includes; do
+  	VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
+  done
+  VXL_DIR=$ac_vxl_dir
+  AC_SUBST(VXL_DIR)
+else
+  AC_MSG_RESULT(vxl directory is not supplied)
+fi
+
+if test ! "$ac_vxl_libraries" = "NO"; then
+  VXL_LIBS=-L$ac_vxl_libraries 
+fi
+
+AC_SUBST(VXL_CFLAGS)
+AC_SUBST(VXL_LIBS)
+
 
 #####################################################
 # OpenGL
@@ -884,10 +920,10 @@ ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
-$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS \
+$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $GSL_LIBS $TCL_LIBS \
-$CPPUNIT_LIBS $GL_LIBS $GLU_LIBS $GLUT_LIBS"
+$GL_LIBS $GLU_LIBS $GLUT_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1011,6 +1047,7 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
 # GLU_CFLAGS, GLU_LIBS
 # GLUT_CFLAGS, GLUT_LIBS
 # QT_CFLAGS, QT_LIBS, QTDIR
+# CPPUNIT_CFLAGS, CPPUNIT_LIBS, CPPUNIT_DIR
 #
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
@@ -1030,8 +1067,10 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS"
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS"
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS \
+	$CPPUNIT_CFLAGS $VXL_CFLAGS"
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS $CPPUNIT_LIBS \
+	$VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS=" -lgsl -lgslcblas $LIBS"
 AC_SUBST(CPPFLAGS)
