@@ -10,6 +10,22 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
+#include <vnl/vnl_matrix.h>
+
+// svd
+#include <vnl/algo/vnl_svd.h>
+
+// random
+#include <vnl/vnl_random.h>
+
+// TODO:dfpmin
+
+// TODO: powell
+#include <vnl/algo/vnl_powell.h>
+
+// TODO: spline
+
+
 extern "C" {
   #include "nr_wrapper.h"
   #include "matrix.h"
@@ -51,6 +67,8 @@ private:
   void TearDownMinimizationTestResults();
 
 public:
+  static const bool IS_USING_VNL;
+
   static const int MATRICES_NOT_EQUAL;
   static const int MATRICES_EQUAL;
   static const int MATRICES_ERROR;
@@ -136,6 +154,8 @@ public:
 
 };
 
+const bool NRWrapperTest::IS_USING_VNL = true;
+
 const int NRWrapperTest::MATRICES_NOT_EQUAL = 0;
 const int NRWrapperTest::MATRICES_EQUAL = 1;
 const int NRWrapperTest::MATRICES_ERROR = 2;
@@ -183,7 +203,6 @@ const std::string NRWrapperTest::SINE_SPLINE_YY_19_2_FINE =
 
 void
 NRWrapperTest::setUp() {
-  
 }
 
 void
@@ -450,19 +469,22 @@ NRWrapperTest::ReconstructFromSVD( MATRIX* u, VECTOR* wVector, MATRIX* v ) {
   
   MATRIX *w = MatrixAlloc( numberOfRows, numberOfColumns, MATRIX_REAL );
   
-  for (int i=0; i < numberOfColumns; i++) {
-    int index = i + numberOfColumns * i;
-    w->data[index] = wVector->data[i];
+  for( int row=0, column=0; 
+       row < numberOfRows && column < numberOfColumns; 
+       row++, column++ ) {
+        
+    w->rptr[ row+1 ][ column+1 ] = wVector->rptr[ 1 ][ column+1 ];
+    
   }
     
-  MATRIX *vTranspose = MatrixTranspose( v, NULL );  
+  MATRIX* vTranspose = MatrixTranspose( v, NULL );      
   MATRIX* uw = MatrixMultiply( u, w, NULL );
   MATRIX* result = MatrixMultiply( uw, vTranspose, NULL );
-
+  
   MatrixFree( &w );
   MatrixFree( &vTranspose );
   MatrixFree( &uw );
-  
+
   return result;
 }
 
@@ -474,7 +496,7 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   int status;
   
   MATRIX* x = MatrixRead( (char*) ( matrixFile.c_str() ) );
-
+  
   if( numberOfRows == -1 ) {
     numberOfRows = x->rows;
   }
@@ -487,10 +509,66 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   VECTOR *w = RVectorAlloc( numberOfColumns, MATRIX_REAL );
   MATRIX *v = MatrixAlloc( numberOfColumns, numberOfColumns, MATRIX_REAL );
   
-  int isError = svdcmp( u->rptr, numberOfRows, numberOfColumns, 
-                        w->rptr[1], v->rptr );
+  int isError = NO_ERROR;
+  
+  // this will become the new svdcmp
+  if( IS_USING_VNL ) {
+    // takes care of the case where matrices are padded with zeros, as required
+    // in the old case where there were more rows than columns (extra columns
+    // filled with zeros)
+    bool isPadded = x->rows != numberOfRows || x->cols != numberOfColumns;
+    
+    if( isPadded ) {
+      MATRIX *tmp = MatrixCopyRegion( x, NULL, 
+                                      1, 1,
+                                      numberOfRows, numberOfColumns, 
+                                      1, 1 );
+      MatrixFree( &x );
+      x = tmp;
+    }
+    
+    vnl_matrix< float > *vnlX = new vnl_matrix< float >( x->data, 
+      numberOfRows, numberOfColumns );
+    vnl_svd< float > *svdMatrix = new vnl_svd< float >( *vnlX );
+        
+    if( svdMatrix->valid() ) {
       
+      // TODO: this isn't efficiently using memory...
+      if( isPadded ) {
+        // get the data so it's in the correct rows and columns and move it over
+        MATRIX *reshaped = MatrixAlloc( numberOfRows, numberOfColumns, 
+          MATRIX_REAL );
+        svdMatrix->U().copy_out( reshaped->data );
+        MatrixCopyRegion( reshaped, u, 1, 1, 
+          numberOfRows, numberOfColumns, 1, 1 );
+        MatrixFree( &reshaped );
+      } else {
+        svdMatrix->U().copy_out( u->data );
+      }
+            
+      svdMatrix->W().diagonal().copy_out( w->data );
+      svdMatrix->V().copy_out( v->data );
+    } else {
+      isError = ERROR_BADPARM;
+    }
+    
+    delete svdMatrix;
+    delete vnlX;
+  } else {
+    isError = svdcmp( u->rptr, numberOfRows, numberOfColumns, 
+                          w->rptr[1], v->rptr );
+  }
+    
   if( isError == NO_ERROR ) {
+    
+    // resize
+    if( u->rows < u->cols ) {
+      // TODO: maybe this should be ported over to the replacement algorithm too
+      MATRIX *tmp = MatrixCopyRegion( u, NULL, 1, 1, u->rows, u->rows, 1, 1 );
+      MatrixFree( &u );
+      u = tmp;
+    }
+
     MATRIX* result = ReconstructFromSVD( u, w, v );    
     bool areEqual = AreMatricesEqual( x, result, EPSILON, 
       numberOfRows, numberOfColumns );
@@ -516,7 +594,9 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
 
 void 
 NRWrapperTest::TestSVDcmp() {
-  int status = TestSVDcmpHelper( PASCAL_MATRIX );
+  int status;
+
+  status = TestSVDcmpHelper( PASCAL_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
   status = TestSVDcmpHelper( ZEROES_MATRIX );
@@ -534,12 +614,21 @@ NRWrapperTest::TestSVDcmp() {
   status = TestSVDcmpHelper( ONE_SMALL_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+// TODO: using vxl, this test case will fail--meaning the matrix is valid, which
+// is a feature actually...
+// TODO: with more columns than rows, this used to fail, but will now return
+// a u of 5x11, rather than 5x5.  We should make a note of this.  I believe that
+// the way that svdcmp has been used is to copy the 5x11 matrix into u initially
   status = TestSVDcmpHelper( RANDOM_5_11 );
-  CPPUNIT_ASSERT_EQUAL( MATRICES_ERROR, status );
-
+  if( IS_USING_VNL ) {
+    CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
+  } else {
+    CPPUNIT_ASSERT_EQUAL( MATRICES_ERROR, status );
+  }
+  
+// TODO:
   status = TestSVDcmpHelper( RANDOM_61_2, 61, 2 );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
-
 }
 
 void 
@@ -553,8 +642,18 @@ NRWrapperTest::TestRan1() {
   
   const int numberOfRuns = 1000;  
   long seed = -1L * (long)( abs( (int)time(NULL) ) );
+  vnl_random vnlRandom( seed );
+  double min = 0.0;
+  double max = 1.0;
+  
+  float randomNumber;
+  
   for(int i=0; i<numberOfRuns; i++) {
-    float randomNumber = ran1( &seed );
+    if( IS_USING_VNL ) {
+      randomNumber = vnlRandom.drand64( min, max );
+    } else {
+      randomNumber = ran1( &seed );
+    }
  
     CPPUNIT_ASSERT( IsBetween0And1( randomNumber ) );
 
@@ -579,7 +678,7 @@ NRWrapperTest::TestRan1() {
   CPPUNIT_ASSERT( x2 > lowerBound );
 
   // if x2 is way above the mean, then it's too non-uniform
-  CPPUNIT_ASSERT( x2 < upperBound );
+  CPPUNIT_ASSERT( x2 < upperBound );  
 }
 
 bool

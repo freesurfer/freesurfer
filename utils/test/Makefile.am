@@ -3,9 +3,8 @@
 #
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	-I$(top_srcdir)/include/NrrdIO \
-	$(CPPUNIT_CFLAGS)
-
+	-I$(top_srcdir)/include/NrrdIO 
+	
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mghxform inftest difftool mri_compute_stats \
 	mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta \
@@ -55,11 +54,11 @@ mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 test_nr_wrapper_LDFLAGS=-ldl
 test_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
-  -L$(CPPUNIT_DIR)/lib -lcppunit  
+	-lcppunit -lvnl_algo -lvnl -lnetlib
 
 test_matrix_LDFLAGS=-ldl
 test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
-  -L$(CPPUNIT_DIR)/lib -lcppunit  
+  -lcppunit  
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
