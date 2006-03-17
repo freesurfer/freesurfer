@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/03/06 21:12:31 $
-// Revision       : $Revision: 1.441.2.1 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/03/17 22:37:04 $
+// Revision       : $Revision: 1.441.2.2 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ typedef struct
 #define MATRIX_ALLOCATION 1
 
 /* add extra vertices to avoid topological inconsistencies */
-#define ADD_EXTRA_VERTICES 1
+#define ADD_EXTRA_VERTICES 0
 /* defect becomes a enclosed patch
    requires ADD_VERTEX_VERTICES to avoid top. inconsistencies */
 #define FIND_ENCLOSING_LOOP ADD_EXTRA_VERTICES
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.441.2.1 2006/03/06 21:12:31 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.441.2.2 2006/03/17 22:37:04 nicks Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
