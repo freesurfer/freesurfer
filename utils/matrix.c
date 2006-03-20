@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.81 2006/02/22 20:24:37 nicks Exp $
+// $Id: matrix.c,v 1.82 2006/03/20 14:29:51 fischl Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3346,3 +3346,17 @@ int MatrixColsAreNotOrthog(MATRIX *X)
   MatrixFree(&XtX);
   return(0);
 }
+double
+MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
+{
+	VECTOR *v_dif, *v_tmp ;
+	double dist ;
+
+	v_dif = VectorSubtract(v_mean, v,NULL) ;
+	v_tmp = MatrixMultiply(m_inv_cov, v_dif, NULL) ;
+	dist = VectorDot(v_dif, v_tmp) ;
+
+	VectorFree(&v_dif) ; VectorFree(&v_tmp) ;
+	return(dist) ;
+}
+

@@ -137,6 +137,7 @@ float  VectorAngle(VECTOR *v1, VECTOR *v2) ;
 float  VectorDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
+double MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_cov, VECTOR *v);
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
