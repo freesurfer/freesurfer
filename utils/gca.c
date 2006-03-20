@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/13 21:26:11 $
-// Revision       : $Revision: 1.189 $
+// Revision Date  : $Date: 2006/03/20 14:29:13 $
+// Revision       : $Revision: 1.190 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18095,3 +18095,61 @@ MRI *GCAbuildMostLikelyLabelVolume(GCA *gca)
   return(mri) ;
 }
 
+int
+GCAcomputeLabelMeansAndCovariances(GCA *gca, int target_label, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+  int      x, y, z, n, r ;
+  double   var, dof, total_dof ;
+  GC1D     *gc ;
+  GCA_NODE *gcan ;
+  float fval;
+	MATRIX *m_cov=NULL, *m_cov_total ;
+	VECTOR *v_means ;
+
+	m_cov_total = MatrixAlloc(gca->ninputs, gca->ninputs, MATRIX_REAL) ;
+	v_means = VectorAlloc(gca->ninputs, MATRIX_REAL) ;
+
+  var = total_dof = 0.0 ;
+  for (x = 0 ; x < gca->node_width ; x++)
+	{
+		for (y = 0 ; y < gca->node_height ; y++)
+		{
+			for (z = 0 ; z < gca->node_depth ; z++)
+			{
+				gcan = &gca->nodes[x][y][z] ;
+        
+				for (n = 0 ; n < gcan->nlabels ; n++)
+				{
+					if (gcan->labels[n] == target_label)
+					{
+						gc = &gcan->gcs[n] ;
+						fval = get_node_prior(gca, target_label, x,y,z);
+						if (fval != 0)
+						{
+							dof = 
+								get_node_prior(gca, target_label, x, y, z) \
+								* gcan->total_training ;
+							for (r = 0 ; r < gca->ninputs ; r++)
+								VECTOR_ELT(v_means, r+1) += dof*gc->means[r] ;
+							m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+							MatrixScalarMul(m_cov, dof, m_cov) ;
+							MatrixAdd(m_cov, m_cov_total, m_cov_total) ;
+							total_dof += dof ;
+						}
+					}
+				}
+			}
+		}
+	}
+
+  if (total_dof > 0.0)
+	{
+		MatrixScalarMul(m_cov_total, 1/(double)total_dof, m_cov_total) ;
+		VectorScalarMul(v_means, 1/(double)total_dof, v_means) ;
+	}
+
+	*p_mcov = m_cov_total ;
+	*p_vmeans = v_means ;
+	MatrixFree(&m_cov) ;
+  return(NO_ERROR) ;
+}

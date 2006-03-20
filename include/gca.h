@@ -355,6 +355,7 @@ extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label ;
 extern char *G_write_probs ;
 MRI *GCAmarkImpossible(GCA *gca, MRI *mri_labeled, MRI *mri_dst, TRANSFORM *transform) ;
 int GCAclassMode(GCA *gca, int class, float *modes) ;
+int GCAcomputeLabelMeansAndCovariances(GCA *gca, int target_label, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
 
