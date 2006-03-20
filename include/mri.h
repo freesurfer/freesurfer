@@ -1043,5 +1043,6 @@ MRI *MRIsetValuesOutsideRegion(MRI *mri_src,
                                float val) ;
 int MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 MRI *MRImatchMeanIntensity(MRI *mri_source, MRI *mri_target, MRI *mri_source_scaled) ;
+double MRImaxInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0, int z0, int whalf) ;
 
 #endif
