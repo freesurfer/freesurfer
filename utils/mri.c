@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/16 15:59:09 $
-// Revision       : $Revision: 1.339 $
-char *MRI_C_VERSION = "$Revision: 1.339 $";
+// Revision Date  : $Date: 2006/03/20 19:23:42 $
+// Revision       : $Revision: 1.340 $
+char *MRI_C_VERSION = "$Revision: 1.340 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11698,6 +11698,41 @@ MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
             }
         }
     }
+  if (!nvox)
+    nvox = 1 ;
+  return(mean/nvox) ;
+}
+
+double
+MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0, int z0, int whalf)
+{
+  int  x, y, z, nvox, l ;
+  double mean = 0.0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = x0-whalf ; x <= x0+whalf ; x++)
+	{
+		if (x < 0 || x >= mri_src->width)
+			continue ;
+		for (y = y0-whalf ; y <= y0+whalf ; y++)
+		{
+			if (y < 0 || y >= mri_src->height)
+				continue ;
+			for (z = z0-whalf ; z <= z0+whalf ; z++)
+			{
+				if (z < 0 || z >= mri_src->depth)
+					continue ;
+				l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+				if (l == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					mean += val ;
+					nvox++ ;
+				}
+			}
+		}
+	}
   if (!nvox)
     nvox = 1 ;
   return(mean/nvox) ;
