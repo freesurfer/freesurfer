@@ -5,6 +5,7 @@ SUBDIRS=average lib docs grad_unwarp_tables fsafd subjects sessions
 
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
+	tkmeditColorsCMA \
 	tkmeditParcColorsCMA \
 	Simple_surface_labels2002.txt \
         Simple_surface_labels2005.txt	\
