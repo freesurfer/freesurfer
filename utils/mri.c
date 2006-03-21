@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/28 00:25:00 $
-// Revision       : $Revision: 1.337 $
-char *MRI_C_VERSION = "$Revision: 1.337 $";
+// Revision Date  : $Date: 2006/03/21 18:48:13 $
+// Revision       : $Revision: 1.337.2.1 $
+char *MRI_C_VERSION = "$Revision: 1.337.2.1 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -476,31 +476,18 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
 
   return(Rfix);
 }
-
 /*-------------------------------------------------------------------
   MRIfsl2TkReg() - converts an FSL registration matrix to one
   compatible with tkregister.  Note: the FSL matrix is assumed to map
   from the mov to the ref whereas the tkreg matrix maps from the ref
   to the mov.
-
-  mov voxel --(Tmov)--> tkRegXYZ(mov)
-  ^                          ^
-  | inv(Dmov)                |
-  |                          |
-  mov' physvox                |
-  ^                          |
-  | inv(Mfsl)                | R
-  |                          |
-  ref' physvox                |
-  ^                          |
-  | Dref                     |
-  |                          |
-  ref voxel <--inv(Tref)--tkRegXYZ(ref)
   -------------------------------------------------------------------*/
 MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
 {
   MATRIX *RegMat=NULL, *invDmov, *Tmov, *Dref;
   MATRIX *invFSLRegMat, *invTref, *Tref;
+  MATRIX *Qmov,*Qref;
+  char *FSLOUTPUTTYPE=NULL;
 
   /* R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) */
   invDmov = MatrixAlloc(4,4,MATRIX_REAL);
@@ -508,12 +495,57 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   invDmov->rptr[2][2] = 1.0/mov->ysize;
   invDmov->rptr[3][3] = 1.0/mov->zsize;
   invDmov->rptr[4][4] = 1.0;
-
   Dref = MatrixAlloc(4,4,MATRIX_REAL);
   Dref->rptr[1][1] = ref->xsize;
   Dref->rptr[2][2] = ref->ysize;
   Dref->rptr[3][3] = ref->zsize;
   Dref->rptr[4][4] = 1.0;
+
+  /*-------------------------------------------------------------------
+    This next section of code alters the way the reg mat is computed
+    based on the current FSL format and the determinant of the vox2ras
+    matrices. When using ANALYZE, FSL did not know what the true
+    vox2ras was. However, with NIFTI, FSL does know, and it treats the
+    data differently depending upon whether the vox2ras has a negative
+    or positive determinant. If positive, FSL (flirt) will flip the
+    data left-right internally to make it negative, and this has to be
+    taken into account when computing the tkreg matrix. It is not
+    possible to stop FSL/flirt from flipping the data, even when
+    supplying an initial matrix that has a flip in it.  With ANALYZE,
+    FSL always assumes negative determinant, so no flipping  occurs. 
+    This change was also implemented in MRItkreg2FSL().
+    -------------------------------------------------------------------*/
+  FSLOUTPUTTYPE = getenv("FSLOUTPUTTYPE");
+  if(FSLOUTPUTTYPE == NULL){
+    printf("ERROR: trying to convert FSL registration matrix to FreeSurfer,\n");
+    printf("       but FSLOUTPUTTYPE variable is not set.\n");
+    exit(1);
+  }
+  printf("FSLOUTPUTTYPE %s \n",FSLOUTPUTTYPE);
+  if(!strcmp(FSLOUTPUTTYPE,"NIFTI") || 
+     !strcmp(FSLOUTPUTTYPE,"NIFTI_PAIR") ||
+     !strcmp(FSLOUTPUTTYPE,"NIFTI_GZ") ){
+    Qref = MRIxfmCRS2XYZ(ref,0);
+    Qmov = MRIxfmCRS2XYZ(mov,0);
+    printf("fsl2TkReg: mov det = %g, ref det = %g\n",
+	   MatrixDeterminant(Qmov),MatrixDeterminant(Qref));
+    if(MatrixDeterminant(Qmov) > 0){
+      printf("INFO: FSL2FreeSurfer: Mov volume is NIFTI with positive det,\n");
+      printf("      applying LR flip to registration matrix.\n");
+      invDmov->rptr[1][1] *= -1;
+      invDmov->rptr[1][4] = mov->width-1;
+      // Note: this is diff than for Dref because this is an inverse
+    }
+    if(MatrixDeterminant(Qref) > 0){
+      printf("INFO: FSL2FreeSurfer: Ref volume is NIFTI with positive det,\n");
+      printf("      applying LR flip to registration matrix.\n");
+      Dref->rptr[1][1] *= -1;
+      Dref->rptr[1][4] = ref->xsize*(ref->width-1);
+    }
+    MatrixFree(&Qref);
+    MatrixFree(&Qmov);
+  }
+  /*-------------------------------------------------------------------*/
 
   Tmov = MRIxfmCRS2XYZtkreg(mov);
   Tref = MRIxfmCRS2XYZtkreg(ref);
@@ -541,25 +573,12 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   compatible with FSL. Note: the FSL matrix is assumed to map from the
   mov to the ref whereas the tkreg matrix maps from the ref to the
   mov.
-
-  mov voxel<--inv(Tmov)-- tkRegXYZ(mov)
-  |                           ^
-  |  Dmov                     |
-  V                           |
-  mov' physvox                 |
-  |                           |
-  |  Mfsl                     | R
-  V                           |
-  ref' physvox                 |
-  |                           |
-  |  inv(Dref)                |
-  V                           |
-  ref voxel -- Tref  -->  tkRegXYZ(ref)
-
   -------------------------------------------------------------------*/
 MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
 {
   MATRIX *FSLRegMat=NULL, *Dmov, *Tmov, *invTmov, *Tref, *Dref, *invDref;
+  MATRIX *Qmov,*Qref;
+  char *FSLOUTPUTTYPE=NULL;
 
   /* R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) */
   /* Mfsl =  inv( Dmov * inv(Tmov) * R * Tref * inv(Dref)) */
@@ -574,8 +593,44 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
   Dref->rptr[2][2] = ref->ysize;
   Dref->rptr[3][3] = ref->zsize;
   Dref->rptr[4][4] = 1.0;
-  invDref = MatrixInverse(Dref,NULL);
 
+  /*-------------------------------------------------------------------
+    This next section of code alters the way the reg mat is computed
+    based on the current FSL format and the determinant of the vox2ras
+    matrices. See MRIfsl2TkReg() above for a fuller explanation.
+    -------------------------------------------------------------------*/
+  FSLOUTPUTTYPE = getenv("FSLOUTPUTTYPE");
+  if(FSLOUTPUTTYPE == NULL){
+    printf("ERROR: trying to convert FSL registration matrix to FreeSurfer,\n");
+    printf("       but FSLOUTPUTTYPE variable is not set.\n");
+    exit(1);
+  }
+  printf("FSLOUTPUTTYPE %s \n",FSLOUTPUTTYPE);
+  if(!strcmp(FSLOUTPUTTYPE,"NIFTI") || 
+     !strcmp(FSLOUTPUTTYPE,"NIFTI_PAIR") ||
+     !strcmp(FSLOUTPUTTYPE,"NIFTI_GZ") ){
+    Qref = MRIxfmCRS2XYZ(ref,0);
+    Qmov = MRIxfmCRS2XYZ(mov,0);
+    printf("tkreg2FSL: mov det = %g, ref det = %g\n",
+	   MatrixDeterminant(Qmov),MatrixDeterminant(Qref));
+    if(MatrixDeterminant(Qmov) > 0){
+      printf("INFO: FSL2FreeSurfer: Mov volume is NIFTI with positive det,\n");
+      printf("      applying LR flip to registration matrix.\n");
+      Dmov->rptr[1][1] *= -1;
+      Dmov->rptr[1][4] = mov->xsize*(mov->width-1);
+    }
+    if(MatrixDeterminant(Qref) > 0){
+      printf("INFO: FSL2FreeSurfer: Ref volume is NIFTI with positive det,\n");
+      printf("      applying LR flip to registration matrix.\n");
+      Dref->rptr[1][1] *= -1;
+      Dref->rptr[1][4] = ref->xsize*(ref->width-1);
+    }
+    MatrixFree(&Qref);
+    MatrixFree(&Qmov);
+  }
+  /*-------------------------------------------------------------------*/
+
+  invDref = MatrixInverse(Dref,NULL);
   Tmov = MRIxfmCRS2XYZtkreg(mov);
   invTmov = MatrixInverse(Tmov,NULL);
   Tref = MRIxfmCRS2XYZtkreg(ref);
