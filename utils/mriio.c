@@ -4006,26 +4006,25 @@ static MRI *get_b_info
       mri->nframes = nt;
       fclose(fp);
     }
-  else
-    { /* ----- get defaults ----- */
-      fprintf
-        (stderr,
-         "-----------------------------------------------------------------\n"
-         "Could not find the direction cosine information.\n"
-         "Will use the CORONAL orientation.\n"
-         "If not suitable, please provide the information in %s file\n"
-         "-----------------------------------------------------------------\n",
-         bhdr_name);
-      sprintf(fname, "%s/%s_000.hdr", directory, stem);
-      if((fp = fopen(fname, "r")) == NULL)
-        {
-          MRIfree(&mri);
-          errno = 0;
-          ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s (last resort);"
-                             "bailing out on read", fname));
-        }
-      fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
-      fclose(fp);
+  else{ 
+    /* ----- get defaults ----- */
+    fprintf
+      (stderr,
+       "-----------------------------------------------------------------\n"
+       "Could not find the direction cosine information.\n"
+       "Will use the CORONAL orientation.\n"
+       "If not suitable, please provide the information in %s file\n"
+       "-----------------------------------------------------------------\n",
+       bhdr_name);
+    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    if((fp = fopen(fname, "r")) == NULL){
+      MRIfree(&mri);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s (last resort);"
+			 "bailing out on read", fname));
+    }
+    fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
+    fclose(fp);
 
       /* --- get the number of slices --- */
       sprintf(fname, "%s/%s_000.%s", directory, stem, extension);
@@ -5864,7 +5863,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
               "WARNING: assuming %s\n",matfile, direction);
     }
     else{
-      mri->ras_good_flag = 1;
+      mri->ras_good_flag = 0;
       fprintf
         (stderr,
          "-----------------------------------------------------------------\n"
@@ -9095,6 +9094,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else if(hdr.qform_code != 0){
     // Then, try the qform, if that is ok
     printf("INFO: using NIfTI-1 qform \n");
@@ -9102,6 +9102,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else {
     // Should probably just die here.
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
@@ -9804,6 +9805,7 @@ static MRI *niiRead(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else if(hdr.qform_code != 0){
     // Then, try the qform, if that is ok
     printf("INFO: using NIfTI-1 qform \n");
@@ -9811,6 +9813,7 @@ static MRI *niiRead(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else {
     // Should probably just die here.
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
