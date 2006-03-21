@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.15 2006/03/15 22:26:38 ayendiki Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.16 2006/03/21 21:51:09 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -173,24 +173,29 @@ if($status) then
 endif
 
 # Create the init exf2anat matrix -- this is not accurate, Just
-# gets things lined up. We'll compute a better one below
-if (-e $FeatDir/example_func.mat) then
+# gets things lined up. We'll compute a better one below. If
+# the input has a valid vox2ras, then use that.
+mri_info --o /tmp/reg-feat2anat.rasgood.$$ \
+  --ras_good $FeatDir/example_func.$fslext >& /dev/null
+set exf_ras_good = `cat /tmp/reg-feat2anat.rasgood.$$`;
+echo "example_func ras_good_flag $exf_ras_good"| tee -a $LF 
+if($exf_ras_good) then
+  echo "-------------------------------------------------------" | tee -a $LF 
+  echo "Initializing exf2anat with header" | tee -a $LF 
   set cmd = ($TKR \
               --targ $refvolcor \
-              --mov $FeatDir/example_func.img \
+              --mov $FeatDir/example_func.$fslext\
               --reg $anat2exf_regdat.init \
               --fslregout $exf2anat_init_fslmat \
               --regheader)
   if(! $debug) set cmd = ($cmd --noedit)
-  echo "-------------------------------------------------------" | tee -a $LF 
   echo $cmd | tee -a $LF 
   $cmd | tee -a $LF 
   if($status) exit 1;
-
-  set cmd = ($MM -fsl -bin \
-              -iim $exf2anat_init_fslmat \
-              -om $exf2anat_init_fslmat)
 else
+  echo "-------------------------------------------------------" | tee -a $LF 
+  echo "Initializing exf2anat from crude std2anat" | tee -a $LF 
+  # vox2ras is not valid in exf, so init from crude std2anat
   set cmd = ($TKR \
               --targ $refvolcor \
               --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
@@ -198,7 +203,6 @@ else
               --fslregout $std2anat_fslmat \
               --regheader)
   if(! $debug) set cmd = ($cmd --noedit)
-  echo "-------------------------------------------------------" | tee -a $LF 
   echo $cmd | tee -a $LF 
   $cmd | tee -a $LF 
   if($status) exit 1;
@@ -240,11 +244,13 @@ if($status) then
 endif
 
 # Check for possible LR flip
-set tmp = (`cat $exf2anat_fslmat`);
-set isflipped = `echo "$tmp[1] < 0" | bc -l`;
-if($isflipped) then
-  echo "WARNING: possible left-right reversal" | tee -a $LF 
-  exit 1;
+if(fslext == img) then
+  set tmp = (`cat $exf2anat_fslmat`);
+  set isflipped = `echo "$tmp[1] < 0" | bc -l`;
+  if($isflipped) then
+    echo "ERROR: appears to be a left-right reversal" | tee -a $LF 
+    exit 1;
+  endif
 endif
 
 # Now create the freesurfer registration matrix
@@ -326,11 +332,6 @@ if($cleanup == 0) then
   echo ""
 else
   rm -r $FeatDir/reg/freesurfer/tmp
-endif
-
-if($isflipped) then
-  echo "WARNING: possible left-right reversal" | tee -a $LF 
-  exit 1;
 endif
 
 date | tee -a $LF 
@@ -487,6 +488,7 @@ usage_exit:
   echo ""
   echo " --manual         : interactively view/edit registration"
   echo " --manxfm xfmtype : interactively view/edit registration for xfmtype"
+  echo "        xfmtype can be: func2anat, std2anat, or func2std"
   echo " --dof  dof       : FLIRT DOF (default is $dof)"
   echo " --bins bins      : FLIRT bins (default is $bins)"
   echo " --cost cost      : FLIRT cost (default is $cost)"
@@ -508,20 +510,29 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Registers FSL-Feat example_func to FreeSurfer anatomical (FS-anat). It
-is required that the registration between the example_func and
-standard space have been performed. This registration is used to
+Registers FSL-Feat example_func (exf) to FreeSurfer anatomical (anat).
+If the geometry in the header for the example_func is "good", then
+creates an initial matrix between the anat and the exf based on
+headers of the two volumes. NIFTI should always have a good
+geometry. ANALYZE can have a good geometry if a valid SPM-style .mat
+file exits (ie, example_func.mat). If the geometry is good, this
+should work regardless of whether the exf is in radiological
+convention (ie, negative determinant) or neurological convention (ie,
+positive determinant).
+
+If the example_func geometry is not good, then it uses the
+registration between the example_func and standard space is used to
 generate an approximate initial registration between the example_func
-and the FS-anat -- this just assures that the two are in the same
+and the anat -- this just assures that the two are in the same
 orientation at the start.  The registration matrices for FSL and FS
 have different interpretations and formats.
 
 Creates featdir/reg/freesurfer with the following files:
-  anat2std.register.dat - init  FS  reg from FS-anat to FSL-std.
-  std2anat.fsl.mat      - init  FSL reg from FSL-std to FS-anat.
-  exf2anat.init.fsl.mat - init  FSL reg from example_func to FS-anat.
-  exf2anat.fsl.mat      - final FSL reg from example_func to FS-anat.
-  anat2exf.register.dat - final FS  reg from example_func to FS-anat.
+  anat2std.register.dat - init  FS  reg from anat to FSL-standard.
+  std2anat.fsl.mat      - init  FSL reg from FSL-standard to anat.
+  exf2anat.init.fsl.mat - init  FSL reg from example_func to anat.
+  exf2anat.fsl.mat      - final FSL reg from example_func to anat.
+  anat2exf.register.dat - final FS  reg from example_func to anat.
 
 anat2exf.register.dat is the final product of this script and is what is
 used by other FreeSurfer programs.
@@ -599,8 +610,6 @@ tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.img \
 
 # Resample fbert.feat onto the surface
 feat2surf --feat fbert.feat 
-
-
 
 
 SEE ALSO
