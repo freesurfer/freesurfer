@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.14.2.3 2006/03/21 22:27:26 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.14.2.4 2006/03/21 23:55:56 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -103,7 +103,7 @@ if($manual && $manxfm == func2anat) then
     exit 1;
   endif
   set cmd = ($TKR --s $subject --mov $tempvol \
-              --reg $anat2exf_regdat --tag)
+              --reg $anat2exf_regdat --tag --inorm)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
   if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
   echo $cmd
@@ -118,7 +118,7 @@ if($manual && $manxfm == std2anat) then
     echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
-  set cmd = ($TKR   --tag --s $subject \
+  set cmd = ($TKR   --tag --s $subject  --inorm\
             --targ $refvolcor \
             --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
             --reg $anat2std_regdat --fslreg $std2anat_fslmat)
@@ -137,7 +137,7 @@ if($manual && $manxfm == func2std) then
   endif
   set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
             --mov $FeatDir/example_func.$fslext \
-            --reg $std2exf_regdat --s $subject --tag);
+            --reg $std2exf_regdat --s $subject --tag  --inorm);
   echo $cmd 
   $cmd 
   if($status) exit 1;
@@ -593,10 +593,7 @@ reg-feat2anat --feat fbert.feat --subject bert --manual
 
 # If the registration has catastropically failed, then check that
 # the registration to standard space did not fail:
-tkregister2 --targ $FSLDIR/etc/standard/avg152T1_brain.img \
-            --mov fbert.feat/example_func.$fslext \
-            --fslreg fbert.feat/reg/example_func2standard.mat \
-            --reg /tmp/tmp.reg.dat
+reg-feat2anat --feat fbert.feat --subject bert --manxfm func2std
 
 # Overlay zmap onto the bert's orig volume. Set the threshold at z=1.3
 tkmedit bert orig -overlay ./fbert.feat/stats/zstat1.$fslext \
@@ -615,6 +612,7 @@ feat2surf --feat fbert.feat
 
 SEE ALSO
 
-tkregister2, tkmedit, feat2surf
+feat2surf, aseg2feat, aparc2feat, tkmedit, tksurfer, mris_preproc,
+mri_glmfit, tkregister2.
 
 
