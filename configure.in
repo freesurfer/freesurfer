@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165.2.5 2006/03/14 18:38:54 nicks Exp $"
+# "$Id: configure.in,v 1.165.2.6 2006/03/21 19:11:58 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, stable3, freesurfer@nmr.mgh.harvard.edu)
@@ -124,7 +124,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror -fwritable-strings"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
  CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;;
  x86_64-*)
@@ -135,7 +135,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror -fwritable-strings"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
  CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  TEEM_32BIT=0
  ;;
