@@ -3,12 +3,12 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/16 01:27:47 $
-// Revision       : $Revision: 1.48 $
+// Revision Date  : $Date: 2006/03/21 20:29:49 $
+// Revision       : $Revision: 1.49 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.48 $";
+char *MRI_INFO_VERSION = "$Revision: 1.49 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -40,7 +40,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.48 2006/02/16 01:27:47 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.49 2006/03/21 20:29:49 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -62,6 +62,7 @@ int PrintRowDC   = 0;
 int PrintSliceDC = 0;
 int PrintVox2RAS = 0;
 int PrintRAS2Vox = 0;
+int PrintRASGood = 0;
 int PrintVox2RAStkr = 0;
 int PrintDet = 0;
 int PrintOrientation = 0;
@@ -162,6 +163,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
     else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
+    else if (!strcasecmp(option, "--ras_good"))   PrintRASGood = 1;
     else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
 
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
@@ -220,6 +222,7 @@ static void print_usage(void)
   printf("   --vox2ras : print the the native/qform vox2ras matrix\n");
   printf("   --ras2vox : print the the native/qform ras2vox matrix\n");
   printf("   --vox2ras-tkr : print the the tkregister vox2ras matrix\n");
+  printf("   --ras_good : print the the ras_good_flag\n");
   printf("   --cras : print the the RAS at the 'center' of the volume\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
@@ -401,6 +404,10 @@ static void do_file(char *fname)
       fprintf(fpout,"\n");
     }
     MatrixFree(&m) ;
+    return;
+  }
+  if(PrintRASGood){
+    fprintf(fpout,"%d\n",mri->ras_good_flag);
     return;
   }
   if(PrintRAS2Vox){
