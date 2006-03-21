@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.14.2.2 2006/03/21 21:51:42 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.14.2.3 2006/03/21 22:27:26 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -207,15 +207,16 @@ else
   $cmd | tee -a $LF 
   if($status) exit 1;
   cp $std2anat_fslmat $std2anat_fslmat.init
-
+  # Compute initial matrix. Binarize because otherwise there
+  # might be a stretch (due to 12 dof reg to standard), which
+  # would not be appropriate for a 6 dof reg (I think).
   set cmd = ($MM -fsl -bin \
               -iim $exf2std_fslmat -iim $std2anat_fslmat \
               -om $exf2anat_init_fslmat)
+  echo $cmd | tee -a $LF 
+  $cmd | tee -a $LF 
+  if($status) exit 1;
 endif
-
-echo $cmd | tee -a $LF 
-$cmd | tee -a $LF 
-if($status) exit 1;
 
 # Brain extraction on the example func
 set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
