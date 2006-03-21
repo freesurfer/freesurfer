@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.7 2006/02/21 21:44:07 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.7.2.1 2006/03/21 23:34:03 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -82,8 +82,8 @@ endif
 # Get a list of images to convert
 #set nonomatch # This prevents crashing due to file expansion errors
 set imglist = (`ls $statsdir/*.$fslext`)
-set imglist = (`ls $imglist $FeatDir/cluster*.$fslext`)
-set imglist = (`ls $imglist $FeatDir/rendered_thresh*.$fslext`)
+set imglist = ($imglist `ls $imglist $FeatDir/cluster*.$fslext`)
+set imglist = ($imglist `ls $imglist $FeatDir/rendered_thresh*.$fslext`)
 set nimg = $#imglist
 if($nimg == 0) then
   echo "ERROR: cannot find any .img, .nii, .nii.gz files in $statsdir"| tee -a $LF 
