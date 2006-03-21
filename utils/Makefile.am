@@ -70,6 +70,15 @@ mrisurf.o: mrisurf.c
 	$(CCDEPMODE) $(depcomp) \
 	$(COMPILE) -O0 -c `test -f '$<' || echo '$(srcdir)/'`$<
 
+# mr_wrapper must be compiled w/o optimization disabled, in order 
+# to prevent bad curv data on the rh9 platform, due to the tqli routine
+nr_wrapper.o: nr_wrapper.c
+	@echo "compiling nr_wrapper.c to nr_wrapper.o (with -O0)"
+	source='$<' object='$@' libtool=no \
+	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
+	$(CCDEPMODE) $(depcomp) \
+	$(COMPILE) -O0 -c `test -f '$<' || echo '$(srcdir)/'`$<
+
 .c.o:
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
