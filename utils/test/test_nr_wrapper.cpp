@@ -10,21 +10,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include <vnl/vnl_matrix.h>
-
-// svd
-#include <vnl/algo/vnl_svd.h>
-
-// random
-#include <vnl/vnl_random.h>
-
-// TODO:dfpmin
-
-// TODO: powell
-#include <vnl/algo/vnl_powell.h>
-
-// TODO: spline
-
+#include "nr_wrapper_open_source.h"
 
 extern "C" {
   #include "nr_wrapper.h"
@@ -495,7 +481,7 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
     
   int status;
   
-  MATRIX* x = MatrixRead( (char*) ( matrixFile.c_str() ) );
+  MATRIX *x = MatrixRead( (char*) ( matrixFile.c_str() ) );
   
   if( numberOfRows == -1 ) {
     numberOfRows = x->rows;
@@ -513,47 +499,7 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   
   // this will become the new svdcmp
   if( IS_USING_VNL ) {
-    // takes care of the case where matrices are padded with zeros, as required
-    // in the old case where there were more rows than columns (extra columns
-    // filled with zeros)
-    bool isPadded = x->rows != numberOfRows || x->cols != numberOfColumns;
-    
-    if( isPadded ) {
-      MATRIX *tmp = MatrixCopyRegion( x, NULL, 
-                                      1, 1,
-                                      numberOfRows, numberOfColumns, 
-                                      1, 1 );
-      MatrixFree( &x );
-      x = tmp;
-    }
-    
-    vnl_matrix< float > *vnlX = new vnl_matrix< float >( x->data, 
-      numberOfRows, numberOfColumns );
-    vnl_svd< float > *svdMatrix = new vnl_svd< float >( *vnlX );
-        
-    if( svdMatrix->valid() ) {
-      
-      // TODO: this isn't efficiently using memory...
-      if( isPadded ) {
-        // get the data so it's in the correct rows and columns and move it over
-        MATRIX *reshaped = MatrixAlloc( numberOfRows, numberOfColumns, 
-          MATRIX_REAL );
-        svdMatrix->U().copy_out( reshaped->data );
-        MatrixCopyRegion( reshaped, u, 1, 1, 
-          numberOfRows, numberOfColumns, 1, 1 );
-        MatrixFree( &reshaped );
-      } else {
-        svdMatrix->U().copy_out( u->data );
-      }
-            
-      svdMatrix->W().diagonal().copy_out( w->data );
-      svdMatrix->V().copy_out( v->data );
-    } else {
-      isError = ERROR_BADPARM;
-    }
-    
-    delete svdMatrix;
-    delete vnlX;
+    isError = OpenSvdcmp( u, numberOfRows, numberOfColumns, w, v );
   } else {
     isError = svdcmp( u->rptr, numberOfRows, numberOfColumns, 
                           w->rptr[1], v->rptr );
@@ -572,13 +518,12 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
     MATRIX* result = ReconstructFromSVD( u, w, v );    
     bool areEqual = AreMatricesEqual( x, result, EPSILON, 
       numberOfRows, numberOfColumns );
-    
+                
     if( areEqual ) {
       status = MATRICES_EQUAL;
     } else {
       status = MATRICES_NOT_EQUAL;
-    }
-    
+    }    
     MatrixFree( &result );
   } else {
     status = MATRICES_ERROR;
@@ -626,7 +571,6 @@ NRWrapperTest::TestSVDcmp() {
     CPPUNIT_ASSERT_EQUAL( MATRICES_ERROR, status );
   }
   
-// TODO:
   status = TestSVDcmpHelper( RANDOM_61_2, 61, 2 );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 }
@@ -642,15 +586,13 @@ NRWrapperTest::TestRan1() {
   
   const int numberOfRuns = 1000;  
   long seed = -1L * (long)( abs( (int)time(NULL) ) );
-  vnl_random vnlRandom( seed );
-  double min = 0.0;
-  double max = 1.0;
   
   float randomNumber;
   
   for(int i=0; i<numberOfRuns; i++) {
+    // TODO: done
     if( IS_USING_VNL ) {
-      randomNumber = vnlRandom.drand64( min, max );
+      randomNumber = OpenRan1( &seed );
     } else {
       randomNumber = ran1( &seed );
     }

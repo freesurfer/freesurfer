@@ -12,11 +12,11 @@ check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mri_ms_compute_CNR mris_compute_thickness \
 	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
 	mri_extract mri_ms_gca_EM checkanalyze \
-	test_mri_identify test_nr_wrapper test_mriio test_matrix
+	test_mri_identify test_nr_wrapper test_mriio test_matrix test_c_nr_wrapper
 
 TESTS=test_mriio mnitest i2rtest icotest extest mghxform \
 	inftest checkanalyze test_mri_identify test_nr_wrapper \
-	test_matrix
+	test_matrix test_c_nr_wrapper
 
 mri_edit_wm_SOURCE=mri_edit_wm.c
 mri_apply_EM_mask_SOURCE=mri_apply_EM_mask.c
@@ -41,7 +41,8 @@ inftest_SOURCES=inftest.cpp
 difftool_SOURCES=difftool.cpp
 checkanalyze_SOURCES=checkanalyze.cpp
 test_mri_identify_SOURCES=test_mri_identify.cpp
-test_nr_wrapper_SOURCES=test_nr_wrapper.cpp
+test_nr_wrapper_SOURCES=nr_wrapper_open_source.cpp test_nr_wrapper.cpp
+test_c_nr_wrapper_SOURCES=nr_wrapper_open_source.cpp test_c_nr_wrapper.c
 test_mriio_SOURCES=test_mriio.cpp
 test_matrix_SOURCES=test_matrix.cpp
 
@@ -59,6 +60,9 @@ test_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
 test_matrix_LDFLAGS=-ldl
 test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
   -lcppunit  
+
+test_c_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
+  -lvnl_algo -lvnl -lnetlib
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
