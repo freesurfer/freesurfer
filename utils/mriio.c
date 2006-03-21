@@ -5862,7 +5862,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
               "WARNING: assuming %s\n",matfile, direction);
     }
     else{
-      mri->ras_good_flag = 1;
+      mri->ras_good_flag = 0;
       fprintf
         (stderr,
          "-----------------------------------------------------------------\n"
@@ -9093,6 +9093,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else if(hdr.qform_code != 0){
     // Then, try the qform, if that is ok
     printf("INFO: using NIfTI-1 qform \n");
@@ -9100,6 +9101,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else {
     // Should probably just die here.
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
@@ -9803,6 +9805,7 @@ static MRI *niiRead(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else if(hdr.qform_code != 0){
     // Then, try the qform, if that is ok
     printf("INFO: using NIfTI-1 qform \n");
@@ -9810,6 +9813,7 @@ static MRI *niiRead(char *fname, int read_volume)
       MRIfree(&mri);
       return(NULL);
     }
+    mri->ras_good_flag = 1;
   } else {
     // Should probably just die here.
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
