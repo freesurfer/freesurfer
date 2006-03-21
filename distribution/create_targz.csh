@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-set ID='$Id: create_targz.csh,v 1.12 2006/03/11 21:59:33 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.13 2006/03/21 00:23:52 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -54,7 +54,7 @@ else
     exit 1
 endif
 
-if (( "$RELEASE_TYPE" != "dev") && ( "$RELEASE_TYPE" != "stable-pub")) then
+if (("$RELEASE_TYPE" != "dev") && ("$RELEASE_TYPE" != "stable-pub") && ("$RELEASE_TYPE" != "stable3-pub")) then
   echo "ERROR: release_type is either dev or stable-pub"
   exit 1
 endif

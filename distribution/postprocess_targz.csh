@@ -1,6 +1,6 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -ef
 
-set ID='$Id: postprocess_targz.csh,v 1.2 2006/03/07 20:40:35 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.3 2006/03/21 00:23:52 nicks Exp $'
 
 set echo=1
 
@@ -28,9 +28,6 @@ sudo chgrp -R root freesurfer
 if ($status) exit 1
 sudo chgrp -R root freesurfer/*.*
 if ($status) exit 1
-sudo strip freesurfer/bin/* >& /dev/null
-# don't check strip return status, as strip returns error because 
-# it finds files that aren't binaries, but thats ok
 tar cvf $1.tar freesurfer
 if ($status) exit 1
 gzip $1.tar
