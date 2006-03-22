@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/20 14:29:13 $
-// Revision       : $Revision: 1.190 $
+// Revision Date  : $Date: 2006/03/22 14:36:22 $
+// Revision       : $Revision: 1.191 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12475,27 +12475,30 @@ GCAfreeGibbs(GCA *gca)
     return(NO_ERROR) ;  /* already done */
 
   for (x = 0 ; x < gca->node_width ; x++)
-    {
-      for (y = 0 ; y < gca->node_height ; y++)
-        {
-          for (z = 0 ; z < gca->node_depth ; z++)
-            {
-              gcan = &gca->nodes[x][y][z] ;
-              for (n = 0 ; n < gcan->nlabels ; n++)
-                {
-                  gc = &gcan->gcs[n] ;
-                  for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-                    {
-                      free(gc->label_priors[i]) ;
-                      free(gc->labels[i]) ;
-                    }
-                  free(gc->nlabels) ;
-                  free(gc->labels) ;
-                  free(gc->label_priors) ;
-                }
-            }
-        }
-    }
+	{
+		for (y = 0 ; y < gca->node_height ; y++)
+		{
+			for (z = 0 ; z < gca->node_depth ; z++)
+			{
+				gcan = &gca->nodes[x][y][z] ;
+				for (n = 0 ; n < gcan->nlabels ; n++)
+				{
+					gc = &gcan->gcs[n] ;
+					for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+					{
+						free(gc->label_priors[i]) ;
+						free(gc->labels[i]) ;
+						gc->label_priors[i] = NULL ;
+						gc->labels[i] = NULL ;
+					}
+					free(gc->nlabels) ;
+					free(gc->labels) ;
+					free(gc->label_priors) ;
+					gc->nlabels = NULL ; gc->labels = NULL ; gc->label_priors = NULL ;
+				}
+			}
+		}
+	}
   gca->flags |= GCA_NO_MRF ;
   return(NO_ERROR) ;
 }

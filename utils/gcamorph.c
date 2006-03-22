@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/03/13 21:24:52 $
-// Revision       : $Revision: 1.100 $
+// Revision Date  : $Date: 2006/03/22 14:36:22 $
+// Revision       : $Revision: 1.101 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -1216,7 +1216,7 @@ GCAMfreeContents(GCA_MORPH *gcam)
 				for (z = 0 ; z < gcam->depth ; z++)
 				{
 					gcamn = &gcam->nodes[x][y][z] ;
-					if (gcamn->gc)
+					if (gcamn->gc && gcam->gca == NULL)  // don't free the gcs if they are part of the gca
 						free_gcs(gcamn->gc, 1, gcam->ninputs) ;
 				}
         free(gcam->nodes[x][y]) ;
@@ -6704,7 +6704,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
     parms->l_binary = parms->l_area = parms->l_smoothness = parms->l_label = 0.0 ;
   parms->navgs = 0 ; parms->l_area = 0.0 ; 
   parms->l_jacobian = 1 ; parms->dt = 0.1 ; parms->ratio_thresh = compression_ratio ;
-	parms->exp_k = 5 ;
+	parms->exp_k = 10 ;
 	parms->integration_type = GCAM_INTEGRATE_BOTH ;  // iterate between fixed and optimal
 	integration_type = GCAM_INTEGRATE_OPTIMAL ;      // start with optimal
 	parms->navgs = 0 ;
@@ -6740,7 +6740,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 		default:
 		case GCAM_INTEGRATE_FIXED:
 			nfixed++ ;
-			min_dt = lattice_spacing/(5*max_grad) ;
+			min_dt = lattice_spacing/(2*max_grad) ;
 			if (min_dt < orig_dt)
 				min_dt = orig_dt ;
 			break ;
@@ -6759,8 +6759,9 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 		pct_change = 100.0*(last_rms-rms)/(last_rms) ;
 		delta = old_compressed-new_compressed ;
 
-		printf("  iter %d, dt=%2.6f: new compressed %d, old_compressed %d, delta %d, rms=%2.5f\n", \
-					 ++i, min_dt, new_compressed, old_compressed, old_compressed-new_compressed, rms) ;
+		printf("  iter %d, %c dt=%2.6f: new compressed %d, old_compressed %d, delta %d, rms=%2.5f\n", \
+					 ++i, integration_type == GCAM_INTEGRATE_OPTIMAL ? 'O' : 'F', 
+					 min_dt, new_compressed, old_compressed, old_compressed-new_compressed, rms) ;
 		if (Gdiag & DIAG_SHOW)
 			gcamShowCompressed(gcam, stdout) ;
 		if (new_compressed == 0)
