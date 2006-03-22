@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.81 2005/11/15 19:41:29 greve Exp $
+   $Id: DICOMRead.c,v 1.81.2.1 2006/03/22 17:07:51 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -237,7 +237,12 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
            sdfi->NumarisVer, Maj, Min, MinMin);
     if(tmpstring == NULL) return(NULL);
     free(tmpstring);
-    if(Min == 1 && MinMin <= 6){
+    if((Min == 1 && MinMin <= 6) && Maj < 4){
+      // This should only be run for pretty old data. I've lost
+      // track as to which versions should do this. With Maj<4,
+      // I'm pretty sure that this section of code will never
+      // be run.  It might need to be run with version 4VA16
+      // and earlier.
       printf("Computing TR with number of slices\n");
       vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
     }
