@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.18 2006/03/22 16:34:54 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.19 2006/03/22 18:13:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -59,6 +59,8 @@ set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
 set UseCAAlign = (-align); # not sure
 set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
+set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
+                     # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 
 # For defacing, as found in:
@@ -787,7 +789,7 @@ if($DoNormalization2) then
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   set cmd = ($cmd -mask brainmask.mgz)
-  if($UseAseg)            set cmd = ($cmd -aseg aseg.mgz)
+  if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.mgz)
   set cmd = ($cmd $xopts norm.mgz brain.mgz)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1506,7 +1508,7 @@ while( $#argv != 0 )
 
     case "-subcortseg":
       set DoGCAReg         = 1;
-      set DoCARegInv      = 1;
+      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -1517,7 +1519,7 @@ while( $#argv != 0 )
 
     case "-nosubcortseg":
       set DoGCAReg         = 0;
-      set DoCARegInv      = 0;
+      set DoCARegInv       = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -1529,7 +1531,7 @@ while( $#argv != 0 )
     case "-noaseg":
       set UseAseg          = 0;
       set DoGCAReg         = 0;
-      set DoCARegInv      = 0;
+      set DoCARegInv       = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -1537,6 +1539,10 @@ while( $#argv != 0 )
       set DoCALabel        = 0;
       set DoSegStats       = 0;
       set DoAParc2ASeg     = 0;
+      breaksw
+
+    case "-noaseg-inorm2":
+      set NoAsegInorm2     = 1;
       breaksw
 
     case "-gca":
@@ -2783,6 +2789,10 @@ Skips subcortical segmentation steps (same as -nosubcortseg), and does
 not use aseg.mgz for inorm2, wm segmentation, or filling. Use this flag
 for brains that do not support usage of Freesurfers subcortical
 segmentation, such as baby brains, or non-human primates.
+
+-noaseg-inorm2
+
+Does not use aseg.mgz for the second mri_normalize step.
 
 
 EXPERT OPTIONS FILE
