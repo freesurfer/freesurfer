@@ -26,6 +26,7 @@ int         CTABfree(COLOR_TABLE **pct) ;
 int         CTABwriteInto(FILE *fp, COLOR_TABLE *ct) ;
 COLOR_TABLE *CTABreadFrom(FILE *fp) ;
 
+COLOR_TABLE *CTABalloc(int nbins) ;
 int         CTABcolorToIndex(COLOR_TABLE *pct, int r, int g, int b, int*index);
 int         CTABindexToColor(COLOR_TABLE *pct, int index, int*r, int*g, int*b);
 int         CTABindexToAnnotation(COLOR_TABLE *pct, int index, int *pannot);
