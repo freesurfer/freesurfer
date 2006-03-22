@@ -1224,6 +1224,7 @@ int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
 MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *binmask, MRI *Targ);
 int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
+int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
