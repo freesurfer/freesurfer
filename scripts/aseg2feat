@@ -2,7 +2,7 @@
 # aseg2feat
 # 
 
-set VERSION = '$Id: aseg2feat,v 1.8 2005/12/12 23:54:52 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.8.2.1 2006/03/22 00:11:42 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -64,17 +64,21 @@ foreach FeatDir ($FeatDirList)
   set aseg = $SUBJECTS_DIR/$subject/mri/$asegvol.mgz
   if(! -e $aseg) set aseg = $SUBJECTS_DIR/$subject/mri/$asegvol
 
+  if(-e $FeatDir/example_func.img)    set fslext = .img
+  if(-e $FeatDir/example_func.nii)    set fslext = .nii
+  if(-e $FeatDir/example_func.nii.gz) set fslext = .nii.gz
+
   set cmd = ($L2V --seg $aseg \
-              --temp $FeatDir/example_func.img  \
+              --temp $FeatDir/example_func$fslext  \
               --reg  $reg_anat2exf)
   if($svstats) then
     if($space == native) then
-      set outfile = $FeatDir/stats/$asegvol.img;
+      set outfile = $FeatDir/stats/$asegvol$fslext;
     else
-      set outfile = $FeatDir/reg_standard/stats/$asegvol.img;
+      set outfile = $FeatDir/reg_standard/stats/$asegvol$fslext;
     endif
   else
-      set outfile = $FeatDir/reg/freesurfer/$asegvol.img
+      set outfile = $FeatDir/reg/freesurfer/$asegvol$fslext
   endif
   set cmd = ($cmd --o $outfile);
 
@@ -271,7 +275,7 @@ Flag to save result in featdir/stats instead of featdir/reg/freesurfer
 
 NOTES
 
-The result is stored in featdir/reg/freesurfer/aseg.img. The aseg.img
+The result is stored in featdir/reg/freesurfer/aseg.nii.gz. The aseg.nii.gz
 will be the same size as the example_func and in voxel-for-voxel
 registration. The value of a voxel indicates which structure it
 belongs to. The correspondance between index number and structure can
@@ -280,9 +284,9 @@ is 12.
 
 A binary mask of the left putamen can be constructed with:
 
-avwmaths featdir/reg/freesurfer/aseg.img \
+avwmaths featdir/reg/freesurfer/aseg.nii.gz \
          -thr 12 -uthr 12 \
-         featdir/reg/freesurfer/lh.putamen.img
+         featdir/reg/freesurfer/lh.putamen.nii.gz
 
 SEE ALSO
 
