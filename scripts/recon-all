@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17 2006/02/27 18:45:26 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.18 2006/03/22 16:34:54 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -22,6 +22,7 @@ set AppendLog    = 1;
 set AppendStatus = 1;
 set DoLegacy = 0;
 
+set Force = 0;
 set DoCleanTal   = 0;
 set DoCleanCP    = 0;
 set DoCleanSeed  = 0;
@@ -2043,6 +2044,10 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-force":
+      set Force = 1;
+      breaksw
+
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -2213,8 +2218,15 @@ check_params:
       endif
     else
       if( -e $subjdir) then
-        echo "ERROR: $subjdir exists"
-        exit 1;
+        if(! $Force) then
+          echo "ERROR: $subjdir exists, delete or re-run with -force"
+          exit 1;
+        else
+          echo "INFO: $subjdir exists with -i, but -force specified."
+          echo "Deleting any previous source volumes"
+          rm -f $subjdir/src/[0-9][0-9][0-9].mgz >& /dev/null
+          rm -f $subjdir/mri/orig/[0-9][0-9][0-9].mgz >& /dev/null
+        endif
       endif
       mkdir -p $subjdir
     endif
@@ -2506,6 +2518,7 @@ usage_exit:
   echo "  -noappend     : start new log and status files instead of appending"
   echo ""
   echo " Other Arguments (Optional)"
+  echo "  -force          : with -i, allows preexiting subjdir. Deletes source."
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -mail username  : mail user when done"
   echo "  -umask umask    : set unix file permission mask (default 002)"
@@ -2542,7 +2555,9 @@ Basic usages:
 
 Creates analysis directory $SUBJECTS_DIR/subjectname, converts one or
 more input volumes to MGZ format in subjectname/mri/orig, and runs
-all processing steps.
+all processing steps. If subjectname exists, then an error is returned
+when -i is used; but this can be overridden with -force (in which 
+case any pre-existing source volumes are deleted).
 
 2. Manual conversion into mgz:
 
