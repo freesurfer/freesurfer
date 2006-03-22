@@ -25,8 +25,8 @@ class NRWrapperTest : public CppUnit::TestFixture {
   
 // tested by test_matrix::inverse
 //   CPPUNIT_TEST( TestLUDecomp );
-    CPPUNIT_TEST( TestLUMatrixInverse );
 
+    CPPUNIT_TEST( TestLUMatrixInverse );
     CPPUNIT_TEST( TestDFPMin );
     CPPUNIT_TEST( TestPowell );
     CPPUNIT_TEST( TestSVDcmp );
@@ -73,6 +73,8 @@ public:
   static const std::string RANDOM_5_11;
   
   static const std::string PASCAL_INVERSE;
+  static const std::string ONE_INVERSE;
+  static const std::string ONE_SMALL_INVERSE;
     
   static const std::string SINE_X;
   static const std::string SINE_Y;
@@ -133,6 +135,8 @@ public:
     void ( *stepFunction )( int itno, float sse, void *parms, float *p ), 
     void *params );
           
+  bool TestLUMatrixInverseHelper( std::string matrixFile, 
+    std::string expectedInverseFile );
   
   void TestLUMatrixInverse();
   void TestDFPMin();
@@ -161,6 +165,9 @@ const std::string NRWrapperTest::ONE_SMALL_MATRIX =
   
 const std::string NRWrapperTest::PASCAL_INVERSE = 
   TESTING_DIR + "PascalInverse.mat";
+const std::string NRWrapperTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
+const std::string NRWrapperTest::ONE_SMALL_INVERSE = 
+  TESTING_DIR + "OneSmallInverse.mat";
 
 /**
  * This is actually a 61 x 61 matrix that has zeros outside of the 61 x 2 
@@ -429,9 +436,9 @@ NRWrapperTest::TestPowellHelper( const int numberOfParameters,
 
   bool gotExpectedValues = AreNByNArraysEqual( p, expectedP, numberOfParameters,
     equalsTolerance );
-    
+        
   if (fret != expectedFret) gotExpectedValues = false;
-  
+
   free_vector( p, 1, numberOfParameters );  
   free_matrix( xi, 1, numberOfParameters, 1, numberOfParameters );
   
@@ -448,6 +455,9 @@ NRWrapperTest::AreNByNArraysEqual( float *expected, float *actual, int n,
                                    expected[i + 1], 
                                    tolerance) ) {
       areEqual = false;
+      
+      std::cerr << "NRWrapperTest::AreNByNArraysEqual() not equal: (" << 
+        actual[i + 1] << ", " << expected[i + 1] << ")\n";
     }
   }
   
@@ -694,30 +704,63 @@ NRWrapperTest::TestSplineAndSplInt() {
   MatrixFree( &xxFine );
 }
 
-void 
-NRWrapperTest::TestLUMatrixInverse() {
-  MATRIX* matrix = MatrixRead( (char*) ( PASCAL_MATRIX.c_str() ) );
-  MATRIX* expectedInverse = MatrixRead( (char*) ( PASCAL_INVERSE.c_str() ) );
+bool
+NRWrapperTest::TestLUMatrixInverseHelper( std::string matrixFile, 
+    std::string expectedInverseFile ) {
+      
+  bool isEqual = true;
+
+  MATRIX* matrix = MatrixRead( (char*) ( matrixFile.c_str() ) );
+  MATRIX* expectedInverse = MatrixRead( (char*) ( 
+    expectedInverseFile.c_str() ) );
   MATRIX* actualInverse = MatrixAlloc( matrix->rows, matrix->cols, 
     MATRIX_REAL );
   
   int numberOfRows = matrix->rows;
-  int isError = lu_matrix_inverse( matrix->rptr, actualInverse->rptr, 
-    numberOfRows);
+  int isError = 0;
+  
+  if( IS_USING_VNL ) {
+    isError = OpenLUMatrixInverse( matrix, actualInverse );
+  } else {
+    isError = lu_matrix_inverse( matrix->rptr, actualInverse->rptr, 
+      numberOfRows);
+  }
     
   if( isError == -1 ) {
-    CPPUNIT_FAIL("something");
+    isEqual = false;
   }
-  
-  std::cerr << "expected inverse:\n";
-  MatrixPrint( stdout, expectedInverse );
-
-  std::cerr << "actual inverse:\n";
-  MatrixPrint( stdout, actualInverse );
-  
+    
+  if( isEqual ) {
+    // TODO: is this tolerance ok?    
+    float tolerance = 1e-3;
+    isEqual = AreMatricesEqual( expectedInverse, actualInverse, tolerance,
+      matrix->rows, matrix->cols );
+  }
+      
   MatrixFree( &matrix );
   MatrixFree( &expectedInverse );   
-  MatrixFree( &actualInverse );   
+  MatrixFree( &actualInverse );  
+  
+  return isEqual;
+}
+
+void 
+NRWrapperTest::TestLUMatrixInverse() {  
+  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( PASCAL_MATRIX, PASCAL_INVERSE ) );
+
+  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( 
+    IDENTITY_MATRIX, IDENTITY_MATRIX) );
+
+  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( 
+    ONE_SMALL_MATRIX, ONE_SMALL_INVERSE) );
+  
+  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( ONE_MATRIX, ONE_INVERSE) );
+  
+  CPPUNIT_ASSERT( 
+    TestLUMatrixInverseHelper( SINGULAR_MATRIX, SINGULAR_MATRIX ) == false );
+
+  CPPUNIT_ASSERT( 
+    TestLUMatrixInverseHelper( ZEROES_MATRIX, ZEROES_MATRIX ) == false );  
 }
 
 int main ( int argc, char** argv ) {
