@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.8 2006/03/21 23:33:44 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.9 2006/03/22 00:06:06 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -332,14 +332,20 @@ exit 1;
 BEGINHELP
 
 Resamples Feat statistics onto the surface of the subject and onto a
-stereo-taxic surface atlas. Statistics are obtained from FeatDir/stats
-as well as those volumes in FeatDir beginning with "cluster" and
-"rendered". The results are stored in FeatDir/reg_surf-lh/stats and
-FeatDir/reg_surf-rh/stats for the individual. For the common space,
-they are stored in FeatDir/reg_surf-lh-targid/stats and
-FeatDir/reg_surf-rh-targid/stats, where targid is the subject that
-defines the common surface space (default is average7).
+stereo-taxic surface atlas. 
 
+Statistics are obtained from FeatDir/stats as well as those volumes in
+FeatDir beginning with "cluster" and "rendered". The results are
+stored in FeatDir/reg_surf-lh-SUBJECT/stats, and
+FeatDir/reg_surf-rh-SUBJECT/stats where SUBJECT is the freesurfer name
+of the subject. It will also resample to the common space and stored
+the results in in FeatDir/reg_surf-lh-targid/stats and
+FeatDir/reg_surf-rh-targid/stats, where targid is the subject that
+defines the common surface space (default is average7). If you are using
+the "new" FreeSurfer recon where you have registered your surfaces
+to the "filled" atlas, then use fsaverage instead.
+
+Works properly on ANALYZE or NIFTI; output is stored in mgz format.  
 
 Creates log file featdir/reg/freesurfer/feat2surf.log
 
@@ -385,6 +391,15 @@ reg-feat2anat --feat fbert.feat --subject bert
 
 # Resample fbert.feat onto the surface
 feat2surf --feat fbert.feat 
+
+# View on native surface
+tksurfer bert lh inflated \
+  -overlay fbert.feat/reg_surf-lh-bert/stats/zstat1.nii.gz
+
+# View on common surface
+tksurfer average7 lh inflated \
+  -overlay fbert.feat/reg_surf-lh-average7/stats/zstat1.nii.gz
+
 
 BUGS
 
