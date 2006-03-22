@@ -2,7 +2,7 @@
 # aparc2feat
 # 
 
-set VERSION = '$Id: aparc2feat,v 1.3 2005/07/18 16:01:24 greve Exp $';
+set VERSION = '$Id: aparc2feat,v 1.4 2006/03/22 00:36:33 greve Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -53,13 +53,17 @@ foreach FeatDir ($FeatDirList)
   set subject = `cat $reg_anat2exf| head -n 1`;
 
   foreach hemi ($HemiList)
+    if(-e $FeatDir/example_func.img)    set fslext = .img
+    if(-e $FeatDir/example_func.nii)    set fslext = .nii
+    if(-e $FeatDir/example_func.nii.gz) set fslext = .nii.gz
+
     set aparc = $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot
     set L2V = mri_label2vol
     if($usedev) set L2V = $DEV/$L2V/$L2V
     set cmd = ($L2V --annot $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot \
-                 --temp $FeatDir/example_func.img  \
+                 --temp $FeatDir/example_func$fslext  \
                  --reg  $FeatDir/reg/freesurfer/anat2exf.register.dat \
-                 --o    $FeatDir/reg/freesurfer/$hemi.aparc.img \
+                 --o    $FeatDir/reg/freesurfer/$hemi.aparc$fslext \
                  --hemi $hemi --subject $subject --proj frac 0 1 .1)
     date      | tee -a $LF
     pwd       | tee -a $LF
@@ -232,8 +236,8 @@ than specifying all of them with --feat on the command-line. Multiple
 
 NOTES
 
-The result is stored in featdir/reg/freesurfer as lh.aparc.img and
-rh.aparc.img. The volumes will be the same size as the example_func
+The result is stored in featdir/reg/freesurfer as lh.aparc.nii.gz and
+rh.aparc.nii.gz. The volumes will be the same size as the example_func
 and in voxel-for-voxel registration. The value of a voxel indicates
 which structure it belongs to. The correspondance between index number
 and structure can be found in $FREESURFER_HOME/Simple_surface_labels2002.txt
@@ -241,9 +245,9 @@ Eg, the calcarine sulcus is 44.
 
 A binary mask of the left calcarine sulcus can be constructed with:
 
-avwmaths featdir/reg/freesurfer/lh.aparc.img \
+avwmaths featdir/reg/freesurfer/lh.aparc.nii.gz \
          -thr 44 -uthr 44 \
-         featdir/reg/freesurfer/lh.calc_sulc.img
+         featdir/reg/freesurfer/lh.calc_sulc.nii.gz
 
 SEE ALSO
 
