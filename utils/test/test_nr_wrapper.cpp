@@ -25,7 +25,7 @@ class NRWrapperTest : public CppUnit::TestFixture {
   
 // tested by test_matrix::inverse
 //   CPPUNIT_TEST( TestLUDecomp );
-//   CPPUNIT_TEST( TestLUMatrixInverse );
+    CPPUNIT_TEST( TestLUMatrixInverse );
 
     CPPUNIT_TEST( TestDFPMin );
     CPPUNIT_TEST( TestPowell );
@@ -72,6 +72,8 @@ public:
   static const std::string RANDOM_61_2;
   static const std::string RANDOM_5_11;
   
+  static const std::string PASCAL_INVERSE;
+    
   static const std::string SINE_X;
   static const std::string SINE_Y;
   
@@ -132,6 +134,7 @@ public:
     void *params );
           
   
+  void TestLUMatrixInverse();
   void TestDFPMin();
   void TestPowell();
   void TestSVDcmp();
@@ -155,6 +158,9 @@ const std::string NRWrapperTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 const std::string NRWrapperTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const std::string NRWrapperTest::ONE_SMALL_MATRIX = 
   TESTING_DIR + "OneSmall.mat";
+  
+const std::string NRWrapperTest::PASCAL_INVERSE = 
+  TESTING_DIR + "PascalInverse.mat";
 
 /**
  * This is actually a 61 x 61 matrix that has zeros outside of the 61 x 2 
@@ -686,6 +692,32 @@ NRWrapperTest::TestSplineAndSplInt() {
   MatrixFree( &y ); 
   MatrixFree( &xxCourse );
   MatrixFree( &xxFine );
+}
+
+void 
+NRWrapperTest::TestLUMatrixInverse() {
+  MATRIX* matrix = MatrixRead( (char*) ( PASCAL_MATRIX.c_str() ) );
+  MATRIX* expectedInverse = MatrixRead( (char*) ( PASCAL_INVERSE.c_str() ) );
+  MATRIX* actualInverse = MatrixAlloc( matrix->rows, matrix->cols, 
+    MATRIX_REAL );
+  
+  int numberOfRows = matrix->rows;
+  int isError = lu_matrix_inverse( matrix->rptr, actualInverse->rptr, 
+    numberOfRows);
+    
+  if( isError == -1 ) {
+    CPPUNIT_FAIL("something");
+  }
+  
+  std::cerr << "expected inverse:\n";
+  MatrixPrint( stdout, expectedInverse );
+
+  std::cerr << "actual inverse:\n";
+  MatrixPrint( stdout, actualInverse );
+  
+  MatrixFree( &matrix );
+  MatrixFree( &expectedInverse );   
+  MatrixFree( &actualInverse );   
 }
 
 int main ( int argc, char** argv ) {

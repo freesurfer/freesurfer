@@ -10,6 +10,8 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
+#include "nr_wrapper_open_source.h"
+
 extern "C" {
   #include "matrix.h"
 }
@@ -18,9 +20,14 @@ class MatrixTest : public CppUnit::TestFixture {
 
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( MatrixTest );  
-    CPPUNIT_TEST( TestMatrixInverse );
-    CPPUNIT_TEST( TestMatrixDeterminant );
-    CPPUNIT_TEST( TestMatrixEigenSystem );
+    CPPUNIT_TEST( TestNRMatrixInverse );
+    CPPUNIT_TEST( TestOpenMatrixInverse );
+
+    CPPUNIT_TEST( TestNRMatrixDeterminant );
+    CPPUNIT_TEST( TestOpenMatrixDeterminant );
+
+    CPPUNIT_TEST( TestNRMatrixEigenSystem );
+    CPPUNIT_TEST( TestOpenMatrixEigenSystem );
   CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -49,7 +56,8 @@ private:
   MATRIX* mOneSmallMatrix;
   
   bool AreMatricesEqual(MATRIX *m1, MATRIX *m2, float tolerance);
-  bool AreInversesEqual(MATRIX *matrix, const std::string inverseFile);
+  bool AreInversesEqual(MATRIX *matrix, const std::string inverseFile, 
+    bool isTestingOpen);
   void DeleteMatrix(MATRIX *m);
   bool DoesCreateValidEigenSystem( MATRIX* matrix );
   
@@ -82,9 +90,14 @@ public:
   // tearDown is called automatically after each test
   void tearDown();
   
-  void TestMatrixInverse();
-  void TestMatrixDeterminant();
-  void TestMatrixEigenSystem();
+  void TestNRMatrixInverse();
+  void TestOpenMatrixInverse();
+
+  void TestNRMatrixDeterminant();
+  void TestOpenMatrixDeterminant();
+
+  void TestNRMatrixEigenSystem();
+  void TestOpenMatrixEigenSystem();
 
 };
 
@@ -135,6 +148,16 @@ MatrixTest::tearDown() {
   MatrixFree( &mOneSmallMatrix );
 }
 
+/*
+void
+MatrixTest::ConvertMATRIXToVNL_Matrix( MATRIX *source, 
+                                       vnl_matrix *destination ) {
+  float data;                                      
+                                          
+  destination = new vnl_matrix( data, source->rows, source->cols );  
+}
+*/
+
 bool 
 MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
   bool areEqual = true;
@@ -165,9 +188,16 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
 }
 
 bool
-MatrixTest::AreInversesEqual(MATRIX *matrix, const std::string inverseFile) {
+MatrixTest::AreInversesEqual(MATRIX *matrix, const std::string inverseFile, 
+    bool isTestingOpen) {
+      
   MATRIX *expectedInverse = MatrixRead((char*)( inverseFile.c_str() ));
-  MATRIX *actualInverse = MatrixInverse(matrix, NULL);
+  MATRIX *actualInverse = NULL;
+  if( isTestingOpen ) {    
+    actualInverse = OpenMatrixInverse(matrix, NULL);
+  } else {
+    actualInverse = MatrixInverse(matrix, NULL);
+  }
 
   CPPUNIT_ASSERT( expectedInverse != NULL );
   CPPUNIT_ASSERT( actualInverse != NULL );
@@ -187,36 +217,76 @@ MatrixTest::DeleteMatrix(MATRIX* m) {
 }
 
 void
-MatrixTest::TestMatrixInverse() {
+MatrixTest::TestOpenMatrixInverse() {
+  bool isTestingOpen = true;
+  
   // test a well-formed pascal matrix
-  CPPUNIT_ASSERT( AreInversesEqual(mPascalMatrix, PASCAL_INVERSE) );
+  CPPUNIT_ASSERT( AreInversesEqual(mPascalMatrix, PASCAL_INVERSE, 
+    isTestingOpen) );
+
+  // test a zero matrix
+  CPPUNIT_ASSERT( OpenMatrixInverse(mZeroesMatrix, NULL) == NULL );
+  
+  // test an identity matrix
+  CPPUNIT_ASSERT( AreInversesEqual(mIdentityMatrix, IDENTITY_MATRIX, 
+    isTestingOpen) );
+    
+  // test a 1 x 1 matrix
+  CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_INVERSE, isTestingOpen) );
+
+  // test a singular matrix
+  CPPUNIT_ASSERT( OpenMatrixInverse(mSingularMatrix, NULL) == NULL );
+
+  // test a sparse matrix
+  CPPUNIT_ASSERT( AreInversesEqual(mBuckyMatrix, BUCKY_INVERSE, 
+    isTestingOpen) );  
+
+  // test non-square matrix
+  CPPUNIT_ASSERT( OpenMatrixInverse(mNonSquareMatrix, NULL) == NULL );
+
+  // test a 1x1 matrix with a small number
+  CPPUNIT_ASSERT( AreInversesEqual(mOneSmallMatrix, ONE_SMALL_INVERSE, 
+    isTestingOpen) );  
+}
+
+void
+MatrixTest::TestNRMatrixInverse() {
+  bool isTestingOpen = false;
+  
+  // test a well-formed pascal matrix
+  CPPUNIT_ASSERT( AreInversesEqual(mPascalMatrix, PASCAL_INVERSE, 
+    isTestingOpen) );
 
   // test a zero matrix
   CPPUNIT_ASSERT( MatrixInverse(mZeroesMatrix, NULL) == NULL );
   
   // test an identity matrix
-  CPPUNIT_ASSERT( AreInversesEqual(mIdentityMatrix, IDENTITY_MATRIX) );
+  CPPUNIT_ASSERT( AreInversesEqual(mIdentityMatrix, IDENTITY_MATRIX, 
+    isTestingOpen) );
     
   // test a 1 x 1 matrix
-  CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_INVERSE) );
+  CPPUNIT_ASSERT( AreInversesEqual(mOneMatrix, ONE_INVERSE, isTestingOpen) );
 
   // test a singular matrix
   CPPUNIT_ASSERT( MatrixInverse(mSingularMatrix, NULL) == NULL );
 
   // test a sparse matrix
-  CPPUNIT_ASSERT( AreInversesEqual(mBuckyMatrix, BUCKY_INVERSE) );  
+  CPPUNIT_ASSERT( AreInversesEqual(mBuckyMatrix, BUCKY_INVERSE, 
+    isTestingOpen) );  
 
   // test non-square matrix
   CPPUNIT_ASSERT( MatrixInverse(mNonSquareMatrix, NULL) == NULL );
 
   // test a 1x1 matrix with a small number
-  CPPUNIT_ASSERT( AreInversesEqual(mOneSmallMatrix, ONE_SMALL_INVERSE) );  
+  CPPUNIT_ASSERT( AreInversesEqual(mOneSmallMatrix, ONE_SMALL_INVERSE, 
+    isTestingOpen) );  
 }
 
 void
-MatrixTest::TestMatrixDeterminant() {
+MatrixTest::TestNRMatrixDeterminant() {
   double tolerance = 1e-6;
-  
+
+//=== NR Tests  
   CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mPascalMatrix),
                                 1.0,
                                 tolerance);
@@ -247,6 +317,44 @@ MatrixTest::TestMatrixDeterminant() {
                                 tolerance );
                                 
   CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mOneSmallMatrix), 
+                                2.e-20, 
+                                tolerance );
+}
+
+void
+MatrixTest::TestOpenMatrixDeterminant() {
+  double tolerance = 1e-6;
+//=== NR Replacement Tests
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mPascalMatrix),
+                                1.0,
+                                tolerance);
+                        
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mZeroesMatrix),
+                                0.0,
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mIdentityMatrix), 
+                                1.0,
+                                tolerance );
+  
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mOneMatrix), 
+                                5.0, 
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mSingularMatrix),
+                                0.0,
+                                tolerance );
+
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mBuckyMatrix), 
+                                2985984.0,
+                                tolerance );
+
+  // non-square matrices will have a determinant of 0 for us
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mNonSquareMatrix),
+                                0.0,
+                                tolerance );
+                                
+  CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mOneSmallMatrix), 
                                 2.e-20, 
                                 tolerance );
                                 
@@ -286,7 +394,7 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
 }
 
 void
-MatrixTest::TestMatrixEigenSystem() {
+MatrixTest::TestNRMatrixEigenSystem() {
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mPascalMatrix ) );
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mBuckyMatrix ) );
@@ -305,6 +413,12 @@ MatrixTest::TestMatrixEigenSystem() {
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mOneSmallMatrix ) );
 }
+
+void
+MatrixTest::TestOpenMatrixEigenSystem() {
+  CPPUNIT_FAIL( "not implemented" );
+}
+
 
 int main ( int argc, char** argv ) {
   

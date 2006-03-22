@@ -44,7 +44,7 @@ test_mri_identify_SOURCES=test_mri_identify.cpp
 test_nr_wrapper_SOURCES=nr_wrapper_open_source.cpp test_nr_wrapper.cpp
 test_c_nr_wrapper_SOURCES=nr_wrapper_open_source.cpp test_c_nr_wrapper.c
 test_mriio_SOURCES=test_mriio.cpp
-test_matrix_SOURCES=test_matrix.cpp
+test_matrix_SOURCES=nr_wrapper_open_source.cpp test_matrix.cpp
 
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 
@@ -59,7 +59,7 @@ test_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
 
 test_matrix_LDFLAGS=-ldl
 test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
-  -lcppunit  
+  -lcppunit -lvnl_algo -lvnl -lnetlib
 
 test_c_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
   -lvnl_algo -lvnl -lnetlib
