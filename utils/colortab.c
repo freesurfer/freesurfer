@@ -316,5 +316,33 @@ int CTABwriteTxt(char *fname, COLOR_TABLE *ctab)
   return(0);
 }
 
+COLOR_TABLE *
+CTABalloc(int nbins)
+{
+	COLOR_TABLE        *ct ;
+	int                i ;
+	COLOR_TABLE_ENTRY  *cte ;
+
+	ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE)) ;
+	if (ct == NULL)
+		ErrorReturn(NULL, (ERROR_NOFILE, "CTABalloc(%d): could not allocate table", nbins)) ;
+	ct->bins = (COLOR_TABLE_ENTRY *)calloc(nbins, sizeof(COLOR_TABLE_ENTRY)) ;
+	if (ct->bins == NULL)
+		ErrorReturn(NULL, (ERROR_NOFILE, "CTABalloc: could not allocate %d bin table", nbins)) ;
+	strcpy(ct->fname, "none") ;
+	ct->nbins = nbins ;  
+
+	for (i = 0 ; i < nbins ; i++)
+	{
+		cte = &ct->bins[i] ;
+		cte->r = nint(randomNumber(0, 255)) ;
+		cte->g = nint(randomNumber(0, 255)) ;
+		cte->b = nint(randomNumber(0, 255)) ;
+		cte->index = i ;
+		sprintf(cte->name, "cluster%d", i) ;
+	}
+
+	return(ct) ;
+}
 
 
