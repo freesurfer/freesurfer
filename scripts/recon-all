@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.19 2006/03/22 18:13:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.20 2006/03/22 18:17:10 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2524,7 +2524,7 @@ usage_exit:
   echo "  -noappend     : start new log and status files instead of appending"
   echo ""
   echo " Other Arguments (Optional)"
-  echo "  -force          : with -i, allows preexiting subjdir. Deletes source."
+  echo "  -force          : with -i, allows pre-existing subjdir. Deletes source."
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -mail username  : mail user when done"
   echo "  -umask umask    : set unix file permission mask (default 002)"
