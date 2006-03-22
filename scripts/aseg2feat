@@ -2,7 +2,7 @@
 # aseg2feat
 # 
 
-set VERSION = '$Id: aseg2feat,v 1.9 2006/03/22 00:11:19 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.10 2006/03/22 00:37:20 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -272,6 +272,18 @@ Map results to standard space instead of native functional space. Implies
 --svstats
 
 Flag to save result in featdir/stats instead of featdir/reg/freesurfer
+
+EXAMPLES
+
+aseg2feat --feat fbert.feat 
+
+aseg2feat --feat fbert.feat --aseg aparc+aseg
+
+To view the segmentation in the functional space:
+
+  tkmedit -f fbert.feat/example_func.nii.gz \
+     -segmentation fbert.feat/reg/freesurfer/aseg.nii.gz
+
 
 NOTES
 
