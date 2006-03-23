@@ -9643,8 +9643,14 @@ static MRI *niiRead(char *fname, int read_volume)
   int swapped_flag;
   int n_read, i, j, k, t;
   int bytes_per_voxel,time_units,space_units ;
+  int use_compression, fnamelen;
 
-  fp = znzopen(fname, "r", 1);
+  use_compression = 0;
+  fnamelen = strlen(fname);
+  if(fname[fnamelen-1] == 'z') use_compression = 1;
+  if(Gdiag_no > 0) printf("niiRead: use_compression = %d\n",use_compression);
+
+  fp = znzopen(fname, "r", use_compression);
   if(fp == NULL){
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE,
@@ -9837,7 +9843,7 @@ static MRI *niiRead(char *fname, int read_volume)
 
   if(!read_volume) return(mri);
 
-  fp = znzopen(fname, "r", 1);
+  fp = znzopen(fname, "r", use_compression);
   if(fp == NULL) {
     MRIfree(&mri);
     errno = 0;
@@ -10122,6 +10128,12 @@ static int niiWrite(MRI *mri, char *fname)
   struct nifti_1_header hdr;
   int error;
   int shortmax;
+  int use_compression, fnamelen;
+
+  use_compression = 0;
+  fnamelen = strlen(fname);
+  if(fname[fnamelen-1] == 'z') use_compression = 1;
+  if(Gdiag_no > 0) printf("niiWrite: use_compression = %d\n",use_compression);
 
   shortmax = (int)(pow(2.0,15.0));
   if(mri->width > shortmax){
@@ -10227,7 +10239,7 @@ static int niiWrite(MRI *mri, char *fname)
 
   memcpy(hdr.magic, NII_MAGIC, 4);
 
-  fp = znzopen(fname, "w", 1);
+  fp = znzopen(fname, "w", use_compression);
   if(fp == NULL){
     errno = 0;
     ErrorReturn(ERROR_BADFILE,
