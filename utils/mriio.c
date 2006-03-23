@@ -63,6 +63,7 @@
 typedef unsigned char  Byte;  /* 8 bits */
 #endif
 #include "nifti1.h"
+#include "nifti1_io.h"
 #include "znzlib.h"
 #include "NrrdIO.h"
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
@@ -5656,7 +5657,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   int nv,nreal;
   char direction[64];
   int signX, signY, signZ;
-  int thiserrno;
+  int thiserrno, nifticode;
 
   fp = NULL;
   startframe = GetSPMStartFrame();
@@ -5683,6 +5684,19 @@ static MRI *analyzeRead(char *fname, int read_volume)
     sprintf(hdrfile,"%s.hdr",stem);
     sprintf(matfile,"%s.mat",stem);
     sprintf(imgfile,"%s.img",stem);
+  }
+  // here, nifticode can only be 0 (ANALYZE) or 2 (Two-File NIFTI)
+  nifticode = is_nifti_file(hdrfile);
+  if(Gdiag > 0) printf("nifticode = %d\n",nifticode);
+  if(nifticode == 2){
+    if(nfiles == 1){
+      printf("INFO: reading as a two-file NIFTI\n");
+      mri = nifti1Read(hdrfile, read_volume);
+      return(mri);
+    }
+    printf("ERROR: no support for two-file NIFTI with each frame in a different file.\n");
+    printf("       Try using mri_concat instead.\n");
+    return(NULL);
   }
 
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
@@ -9024,6 +9038,13 @@ static MRI *nifti1Read(char *fname, int read_volume)
           fs_type = MRI_SHORT;
           bytes_per_voxel = 2;
         }
+      else if(hdr.datatype == DT_UINT16){
+	// This will not always work ...
+	printf("INFO: this is an unsiged short. I'll try to read it, but\n");
+	printf("      it might not work if there are values over 32k\n");
+	fs_type = MRI_SHORT;
+	bytes_per_voxel = 2;
+      }
       else if(hdr.datatype == DT_SIGNED_INT)
         {
           fs_type = MRI_INT;
@@ -9751,6 +9772,13 @@ static MRI *niiRead(char *fname, int read_volume)
       bytes_per_voxel = 1;
     }
     else if(hdr.datatype == DT_SIGNED_SHORT){
+      fs_type = MRI_SHORT;
+      bytes_per_voxel = 2;
+    }
+    else if(hdr.datatype == DT_UINT16){
+      // This will not always work ...
+      printf("INFO: this is an unsiged short. I'll try to read it, but\n");
+      printf("      it might not work if there are values over 32k\n");
       fs_type = MRI_SHORT;
       bytes_per_voxel = 2;
     }
