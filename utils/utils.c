@@ -13,8 +13,8 @@
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
   // Revision Author: $Author: nicks $
-  // Revision Date  : $Date: 2006/02/24 20:27:58 $
-  // Revision       : $Revision: 1.51 $
+  // Revision Date  : $Date: 2006/03/23 22:09:49 $
+  // Revision       : $Revision: 1.51.2.1 $
 
   ------------------------------------------------------------------------*/
 
@@ -86,6 +86,9 @@ setRandomSeed(long seed)
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
   srandom(seed);
+
+  // reset numerical recipes ran1 state storage
+  reset_ran1();
 
   return(NO_ERROR) ;
 }
