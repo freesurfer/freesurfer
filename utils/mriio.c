@@ -66,6 +66,8 @@ typedef unsigned char  Byte;  /* 8 bits */
 #include "znzlib.h"
 #include "NrrdIO.h"
 
+static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
+
 // unix director separator
 #define DIR_SEPARATOR '/'
 #define CURDIR "./"
@@ -9483,6 +9485,7 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
+  for(t=0; t<8; t++){hdr.dim[t] = 1;hdr.pixdim[t] = 1;} // needed for afni
   if(mri->nframes == 1){
     hdr.dim[0] = 3;
     hdr.dim[1] = mri->width;
@@ -9556,6 +9559,7 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.cal_max = 0.0;
   hdr.cal_min = 0.0;
   hdr.toffset = 0;
+  sprintf(hdr.descrip,"FreeSurfer %s",__DATE__);
 
   /* set the nifti header qform values */
   error = mriToNiftiQform(mri, &hdr);
@@ -9840,6 +9844,12 @@ static MRI *niiRead(char *fname, int read_volume)
   mri->c_a = mri->c_a * space_units_factor;
   mri->c_s = mri->c_s * space_units_factor;
   if(hdr.dim[0] == 4)  mri->tr = mri->tr * time_units_factor;
+
+  if(Gdiag_no > 0){
+    printf("nifti header ---------------------------------\n");
+    niiPrintHdr(stdout, &hdr);
+    printf("-----------------------------------------\n");
+  }
 
   if(!read_volume) return(mri);
 
@@ -10162,6 +10172,7 @@ static int niiWrite(MRI *mri, char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
+  for(t=0; t<8; t++){hdr.dim[t] = 1;hdr.pixdim[t] = 1;} // for afni
   if(mri->nframes == 1){
     hdr.dim[0] = 3;
     hdr.dim[1] = mri->width;
@@ -10228,6 +10239,7 @@ static int niiWrite(MRI *mri, char *fname)
   hdr.cal_max = 0.0;
   hdr.cal_min = 0.0;
   hdr.toffset = 0;
+  sprintf(hdr.descrip,"FreeSurfer %s",__DATE__);
 
   /* set the nifti header qform values */
   error = mriToNiftiQform(mri, &hdr);
@@ -13953,4 +13965,48 @@ static int mriNrrdWrite(MRI *mri, char *fname)
 {
   //just give an error until write function is complete and tested
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
+}
+
+/*------------------------------------------------------------------
+  niiPrintHdr() - this dumps (most of) the nifti header to the given
+  stream.
+  ------------------------------------------------------------------*/
+static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
+{
+  int n;
+  fprintf(fp,"sizeof_hdr %d \n",hdr->sizeof_hdr);
+  fprintf(fp,"data_type  %s \n",hdr->data_type);
+  fprintf(fp,"db_name    %s \n",hdr->db_name);
+  fprintf(fp,"extents    %d \n",hdr->extents);
+  fprintf(fp,"session_error %d \n",hdr->session_error);
+  fprintf(fp,"regular    %c \n",hdr->regular);
+  fprintf(fp,"dim_info   %c \n",hdr->dim_info);
+  for(n=0; n<8; n++)  fprintf(fp,"dim[%d] %d\n",n,hdr->dim[n]);
+  fprintf(fp,"intent_p1  %f \n",hdr->intent_p1);
+  fprintf(fp,"intent_p2  %f \n",hdr->intent_p2);
+  fprintf(fp,"intent_p3  %f \n",hdr->intent_p3);
+  fprintf(fp,"intent_code  %d \n",hdr->intent_code);
+  fprintf(fp,"datatype      %d \n",hdr->datatype);
+  fprintf(fp,"bitpix        %d \n",hdr->bitpix);
+  fprintf(fp,"slice_start   %d \n",hdr->slice_start);
+  for(n=0; n<8; n++)  fprintf(fp,"pixdim[%d] %f\n",n,hdr->pixdim[n]);
+  fprintf(fp,"vox_offset    %f\n",hdr->vox_offset);
+  fprintf(fp,"scl_slope     %f\n",hdr->scl_slope);
+  fprintf(fp,"scl_inter     %f\n",hdr->scl_inter);
+  fprintf(fp,"slice_end     %d\n",hdr->slice_end);
+  fprintf(fp,"slice_code    %c\n",hdr->slice_code);
+  fprintf(fp,"xyzt_units    %c\n",hdr->xyzt_units);
+  fprintf(fp,"cal_max       %f\n",hdr->cal_max);
+  fprintf(fp,"cal_min       %f\n",hdr->cal_min);
+  fprintf(fp,"slice_duration %f\n",hdr->slice_duration);
+  fprintf(fp,"toffset        %f \n",hdr->toffset);
+  fprintf(fp,"glmax          %d \n",hdr->glmax);
+  fprintf(fp,"glmin          %d \n",hdr->glmin);
+  fprintf(fp,"descrip        %s \n",hdr->descrip);
+  fprintf(fp,"aux_file       %s \n",hdr->aux_file);
+  fprintf(fp,"qform_code     %d \n",hdr->qform_code);
+  fprintf(fp,"sform_code     %d \n",hdr->sform_code);
+  // There's more, but I ran out of steam ...
+  //fprintf(fp,"          %d \n",hdr->);
+  return(0);
 }
