@@ -3805,7 +3805,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
                     useRealRAS) ;
 
         }
-      xctrl[i] = (int) xr ; yctrl[i] = (int) yr ; zctrl[i] = (int) zr ;
+      xctrl[i] = (int) nint(xr) ; yctrl[i] = (int) nint(yr) ; zctrl[i] = (int) nint(zr) ;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "( %5d, %5d, %5d )\n", xctrl[i], yctrl[i], zctrl[i]);
     }
