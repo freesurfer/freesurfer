@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.5 2006/03/24 01:03:12 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.6 2006/03/24 01:19:04 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -437,15 +437,11 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcmp(option, "--a2005s")){
       annotname = "aparc.a2005s";
-      sprintf(tmpstr,"%s+aseg.mgz",annotname);
-      OutASegFile = strcpyalloc(tmpstr);
       baseoffset = 100;
     }
     else if (!strcmp(option, "--annot")){
       if(nargc < 1) argnerr(option,1);
       annotname = pargv[0];
-      sprintf(tmpstr,"%s+aseg.mgz",annotname);
-      OutASegFile = strcpyalloc(tmpstr);
       nargsused = 1;
     }
     else if (!strcmp(option, "--oaparc")){
@@ -483,7 +479,7 @@ static void print_usage(void)
   printf("   --s subject \n");
   printf("   --o volfile : output aparc+aseg volume file\n");
   //printf("   --oaparc file : output aparc-only volume file\n");
-  printf("   --noribbon : do not use mri/hemi.ribbon.mgz as a mask for ctx.\n");
+  printf("   --ribbon : use mri/hemi.ribbon.mgz as a mask for ctx.\n");
   printf("\n");
   printf("   --a2005 : use aparc.a2005 instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
@@ -522,9 +518,9 @@ static void print_help(void)
 "Full path of file to save the output segmentation in. Default\n"
 "is mri/aparc+aseg.mgz\n"
 "\n"
-"--noribbon\n"
+"--ribbon\n"
 "\n"
-"Do not mask cortical voxels with mri/hemi.ribbon.mgz. \n"
+"Mask cortical voxels with mri/hemi.ribbon.mgz. \n"
 "\n"
 "--a2005s\n"
 "\n"
@@ -580,7 +576,7 @@ static void check_options(void)
     exit(1);
   }
   if(OutASegFile == NULL){
-    sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+    sprintf(tmpstr,"%s/%s/mri/%s+aseg.mgz",SUBJECTS_DIR,subject,annotname);
     OutASegFile = strcpyalloc(tmpstr);
   }
   return;
