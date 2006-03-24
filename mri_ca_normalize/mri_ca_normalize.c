@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/03/24 22:34:13 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2006/03/24 23:02:01 $
+// Revision       : $Revision: 1.34 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -121,13 +121,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.33 2006/03/24 22:34:13 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.34 2006/03/24 23:02:01 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.33 2006/03/24 22:34:13 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.34 2006/03/24 23:02:01 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -265,25 +265,6 @@ main(int argc, char *argv[])
             ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                       Progname, mask_fname) ;
 
-          /* sanity-check: make sure the mask volume and the input volume
-             are the same size */
-          if (mri_mask->height != mri_tmp->height)
-            ErrorExit(ERROR_BADPARM, 
-                      "ERROR: %s: mask volume height=%d != "
-		      "input volume height=%d.\n",
-                      Progname, mri_mask->height, mri_tmp->height);
-          if (mri_mask->width != mri_tmp->width)
-            ErrorExit(ERROR_BADPARM, 
-                      "ERROR: %s: mask volume width=%d != "
-		      "input volume width=%d.\n",
-                      Progname, mri_mask->width, mri_tmp->width);
-          if (mri_mask->depth != mri_tmp->depth)
-            ErrorExit(ERROR_BADPARM, 
-                      "ERROR: %s: mask volume depth=%d != "
-		      "input volume depth=%d.\n",
-                      Progname, mri_mask->depth, mri_tmp->depth);
-
-          // now mask input vol w/ the mask
           for (i = 1 ; i < WM_MIN_VAL ; i++)
             MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
           MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
