@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.4 2005/10/04 21:19:30 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.5 2006/03/24 01:03:12 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -53,6 +53,8 @@ int LabelWM=0;
 
 char tmpstr[2000];
 char annotfile[1000];
+char *annotname = "aparc";
+int baseoffset = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
   }
 
   /* ------ Load lh annotation ------ */
-  sprintf(annotfile,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
+  sprintf(annotfile,"%s/%s/label/lh.%s.annot",SUBJECTS_DIR,subject,annotname);
   printf("\nLoading lh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(lhwhite, annotfile);
   if(err){
@@ -155,7 +157,7 @@ int main(int argc, char **argv)
   }
 
   /* ------ Load rh annotation ------ */
-  sprintf(annotfile,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
+  sprintf(annotfile,"%s/%s/label/rh.%s.annot",SUBJECTS_DIR,subject,annotname);
   printf("\nLoading rh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(rhwhite, annotfile);
   if(err){
@@ -331,10 +333,10 @@ int main(int argc, char **argv)
 	  dmin = drhp;
 	}
 
-	if( IsCortex && hemi == 1) segval = annotid+1000;
-	if( IsCortex && hemi == 2) segval = annotid+2000;
-	if(!IsCortex && hemi == 1) segval = annotid+3000;
-	if(!IsCortex && hemi == 2) segval = annotid+4000;
+	if( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;
+	if( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;
+	if(!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;
+	if(!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;
 
 	if(!IsCortex && dmin > dminctx && hemi == 1) segval = 5001;
 	if(!IsCortex && dmin > dminctx && hemi == 2) segval = 5002;
@@ -433,6 +435,19 @@ static int parse_commandline(int argc, char **argv)
       OutASegFile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--a2005s")){
+      annotname = "aparc.a2005s";
+      sprintf(tmpstr,"%s+aseg.mgz",annotname);
+      OutASegFile = strcpyalloc(tmpstr);
+      baseoffset = 100;
+    }
+    else if (!strcmp(option, "--annot")){
+      if(nargc < 1) argnerr(option,1);
+      annotname = pargv[0];
+      sprintf(tmpstr,"%s+aseg.mgz",annotname);
+      OutASegFile = strcpyalloc(tmpstr);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--oaparc")){
       if(nargc < 1) argnerr(option,1);
       OutAParcFile = pargv[0];
@@ -470,6 +485,8 @@ static void print_usage(void)
   //printf("   --oaparc file : output aparc-only volume file\n");
   printf("   --noribbon : do not use mri/hemi.ribbon.mgz as a mask for ctx.\n");
   printf("\n");
+  printf("   --a2005 : use aparc.a2005 instead of aparc\n");
+  printf("   --annot annotname : use annotname instead of aparc\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
@@ -508,6 +525,19 @@ static void print_help(void)
 "--noribbon\n"
 "\n"
 "Do not mask cortical voxels with mri/hemi.ribbon.mgz. \n"
+"\n"
+"--a2005s\n"
+"\n"
+"Use ?h.aparc.a2005s.annot. Output will be aparc.a2005s+aseg.mgz.   \n"
+"Creates index numbers that match a2005s entries in FreeSurferColorsLUT.txt\n"
+"\n"
+"--annot annotname\n"
+"\n"
+"Use annotname surface annotation. By default, uses ?h.aparc.annot. \n"
+"With this option, it will load ?h.annotname.annot. \n"
+"The output file will be set to annotname+aseg.mgz, but this can be \n"
+"changed with --o. Note: running --annot aparc.a2005s is NOT the\n"
+"same as running --a2005s. The index numbers will be different.\n"
 "\n"
 "EXAMPLE:\n"
 "\n"
@@ -559,10 +589,11 @@ static void check_options(void)
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
-  fprintf(fp,"SUBJECTS_DIR %s",SUBJECTS_DIR);
-  fprintf(fp,"subject %s",subject);
-  fprintf(fp,"outvol %s",OutASegFile);
-  fprintf(fp,"useribbon %d",UseRibbon);
+  fprintf(fp,"SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  fprintf(fp,"subject %s\n",subject);
+  fprintf(fp,"outvol %s\n",OutASegFile);
+  fprintf(fp,"useribbon %d\n",UseRibbon);
+  fprintf(fp,"baseoffset %d\n",baseoffset);
   return;
 }
 /*---------------------------------------------------------------*/
