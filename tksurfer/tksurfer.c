@@ -18979,7 +18979,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.1 2006/03/24 19:16:14 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.2 2006/03/24 20:06:56 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23881,6 +23881,9 @@ int labl_update_cache (int force_rebuild_all) {
 int labl_load_color_table (char* fname)
 {
   COLOR_TABLE* ctab;
+  int label_index;
+  LABL_LABEL* label;
+  int r, g, b;
 
   /* Attempt to read the color table. */
   ctab = CTABread (fname);
@@ -23901,6 +23904,22 @@ int labl_load_color_table (char* fname)
   
   /* send the color table to tcl. */
   labl_send_color_table_info ();
+
+  /* Update all currently loaded structural labels. */
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+    {
+      label = &(labl_labels[label_index]);
+      if (LABL_TYPE_FREE != label->structure)
+	{
+	  CTABcopyName (mris->ct, label->structure, label->name);
+	  r = 255; g = b = 0;
+	  CTABindexToColor (mris->ct, label->structure, &r, &g, &b);
+	  labl_set_color (label_index, r, g, b);
+	  labl_send_info (label_index);
+	}
+    }
+  
+  redraw();
 
   return (ERROR_NONE);
 }
