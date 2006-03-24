@@ -2060,7 +2060,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
           strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
           load_timecourse = TRUE;
         }
-      else if (!stricmp(argv[i], "-timecourse-reg-file"))
+      else if (!stricmp(argv[i], "-timecourse-reg"))
         {
           nargs = 2;
           strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
@@ -2083,7 +2083,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
                    sizeof(timecourse_offset_fname));
           load_timecourse_offset = TRUE;
         }
-      else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
+      else if (!stricmp(argv[i], "-timecourse-offset-reg"))
         {
           nargs = 2;
           strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
@@ -17292,14 +17292,14 @@ print_help_tksurfer(void)
    printf("\n");
 
    printf("-timecourse          <filename>        : load an timecourse volume\n");
-   printf("-timecourse-reg-file <filename>        : use a file for the timecourse\n");
+   printf("-timecourse-reg      <filename>        : use a file for the timecourse\n");
    printf("                                       : registration\n");
    printf("-timecourse-reg-find                   : look in the data directory for a\n");
    printf("                                       : register.dat file\n");
    printf("-timecourse-reg-identity               : calculate an identity transform for\n");
    printf("                                       : regisrtation\n");
    printf("-timecourse-offset          <filename> : load an timecourse offset volume\n");
-   printf("-timecourse-offset-reg-file <filename> : use a file for the timecourse offset\n");
+   printf("-timecourse-offset-reg      <filename> : use a file for the timecourse offset\n");
    printf("                                       : registration\n");
    printf("-timecourse-offset-reg-find            : look in the data directory for a\n");
    printf("                                       : register.dat file\n");
@@ -18970,7 +18970,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.3 2006/03/24 21:48:18 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.4 2006/03/24 21:51:14 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
