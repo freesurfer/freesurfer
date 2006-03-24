@@ -43,6 +43,38 @@
 /*-----------------------------------------------------
   GLOBAL FUNCTIONS
   -------------------------------------------------------*/
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description: A sanity-check: make sure the volumes being
+  operated upon are the same dimensions
+  ------------------------------------------------------*/
+static void MRIcheckVolDims(MRI *mri1, MRI *mri2)
+{
+  if (mri1 == NULL) return;
+  if (mri2 == NULL) return;
+
+  if (mri1->height != mri2->height)
+    ErrorExit(ERROR_BADPARM, 
+              "ERROR: %s-MRIcheckVolDims: volume1 height=%d != "
+              "volume2 height=%d.\n",
+              Progname, mri1->height, mri2->height);
+  if (mri1->width != mri2->width)
+    ErrorExit(ERROR_BADPARM, 
+              "ERROR: %s-MRIcheckVolDims: volume1 width=%d != "
+              "volume2 width=%d.\n",
+              Progname, mri1->width, mri2->width);
+  if (mri1->depth != mri2->depth)
+    ErrorExit(ERROR_BADPARM, 
+              "ERROR: %s-MRIcheckVolDims: volume1 depth=%d != "
+              "volume2 depth=%d.\n",
+              Progname, mri1->depth, mri2->depth);
+}
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -55,6 +87,8 @@ MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+
+  MRIcheckVolDims(mri1, mri2);
 
   width = mri1->width ;
   height = mri1->height ;
@@ -93,6 +127,8 @@ MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst)
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst, v1, v2 ;
 
+  MRIcheckVolDims(mri1, mri2);
+
   width = mri1->width ;
   height = mri1->height ;
   depth = mri1->depth ;
@@ -129,6 +165,8 @@ MRIcomplement(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *psrc, *pdst, b ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -168,6 +206,7 @@ MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
   int     width, height, depth, x, y, z, f ;
   Real    val1, val2 ;
 
+  MRIcheckVolDims(mri1, mri2);
 
   width = mri1->width ;
   height = mri1->height ;
@@ -209,6 +248,8 @@ MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+
+  MRIcheckVolDims(mri1, mri2);
 
   if ((mri1->type != MRI_UCHAR) || (mri2->type != MRI_UCHAR))
     ErrorReturn(NULL,
@@ -287,6 +328,8 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
   BUFTYPE *pdst, min_val, val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -387,6 +430,8 @@ MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
     xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
+
+  MRIcheckVolDims(mri_src, mri_val);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -499,6 +544,8 @@ MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
 
+  MRIcheckVolDims(mri_src, mri_val);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -609,6 +656,8 @@ MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter)
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -701,6 +750,8 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
     xmin, xmax, ymin, ymax, zmin, zmax, i, f ;
   MRI     *mri_tmp = NULL ;
   Real    out_val, val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   if (mri_src->type == MRI_UCHAR)
     return(MRIdilateLabelUchar(mri_src, mri_dst, label, niter)) ;
@@ -816,6 +867,8 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   if (mri_dst == mri_src)
     {
       same = 1 ;
@@ -912,6 +965,8 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   if (mri_dst == mri_src)
     {
@@ -1054,6 +1109,8 @@ MRIerode6(MRI *mri_src, MRI *mri_dst)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   for (z = 0 ; z < depth ; z++)
     {
       for (y = 0 ; y < height ; y++)
@@ -1116,6 +1173,8 @@ MRIdilate6(MRI *mri_src, MRI *mri_dst)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   for (z = 0 ; z < depth ; z++)
     {
@@ -1207,6 +1266,8 @@ MRIerodeRegion(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *region)
   int     width, height, depth, x, y, z, whalf, x0, y0, z0, val,
     xk, yk, zk, xi, yi, zi, min_val ;
   BUFTYPE *pdst ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   whalf = wsize/2 ;
   width = region->x + region->dx ;
@@ -1302,6 +1363,7 @@ MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
                 (ERROR_UNSUPPORTED,
                  "MRIcomputeResidual: destination must be UCHAR")) ;
 
+  MRIcheckVolDims(mri1, mri2);
 
   for (z = 0 ; z < depth ; z++)
     {
@@ -1342,6 +1404,7 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
   float   max_val, val, min_val ;
   float   fmin, fmax ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
 
   MRIvalRange(mri_src, &fmin, &fmax) ;
   whalf = (wsize-1) / 2 ;
@@ -1410,6 +1473,8 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   int     width, height, depth, x, y, z;
   float   val ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -1449,6 +1514,8 @@ MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
   int     width, height, depth, x, y, z;
   BUFTYPE  val ;
   BUFTYPE *psrc, *pdst ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1490,6 +1557,8 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
   int     width, height, depth, x, y, z, mask_val;
   BUFTYPE *pmask ;
   float   val ;
+
+  MRIcheckVolDims(mri_src, mri_mask);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1537,6 +1606,8 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
   int     width, height, depth, nframes, x, y, z, f, mask_val;
   float   val ;
 
+  MRIcheckVolDims(mri_src, mri_mask);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -1571,6 +1642,8 @@ MRI *MRImaskInvert(MRI *mask, MRI *outmask)
 {
   int c,r,s,f;
   double v;
+
+  MRIcheckVolDims(mask, outmask);
 
   if(outmask == NULL) outmask = MRIcopy(mask,NULL);
 
@@ -1625,6 +1698,8 @@ MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
   int     width, height, depth, x, y, z;
   BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
   float   fval, fmask ;
+
+  MRIcheckVolDims(mri_src, mri_mask);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1685,6 +1760,8 @@ MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
   BUFTYPE   *pmask, *pdst, *psrc, out_val, mask, in_val ;
   int       width, height, depth, x, y, z, nchanged, noff, non ;
   float     nvox ;
+
+  MRIcheckVolDims(mri_src, mri_mask);
 
   if (mri_mask->type != MRI_UCHAR)
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,
@@ -1752,6 +1829,8 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
 {
   int      x, y, z, width, height, depth, xi, yi, zi, xk, yk, zk, nfilled,
     total_filled, xmin, xmax, ymin, ymax, zmin, zmax ;
+
+  MRIcheckVolDims(mri, mri_filled);
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   total_filled = 0 ;
@@ -1892,6 +1971,8 @@ MRIturnOnFG(MRI *mri, MRI *mri_fg, MRI *mri_bg)
 {
   int    x, y, z, width, height, depth ;
 
+  MRIcheckVolDims(mri, mri_fg);
+
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   for (z = 0 ; z < depth ; z++)
@@ -1987,6 +2068,8 @@ int
 MRIturnOffBG(MRI *mri, MRI *mri_bg)
 {
   int    x, y, z, width, height, depth ;
+
+  MRIcheckVolDims(mri, mri_bg);
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
@@ -2108,6 +2191,8 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
   MRI     *mri_tmp = NULL ;
   float   mean ;
 
+  MRIcheckVolDims(mri_src, mri_label);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -2200,6 +2285,8 @@ MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
   int     width, height, depth, x, y, z, nvox ;
   BUFTYPE *psrc, *pdst ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -2247,6 +2334,8 @@ MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
 {
   int     width, height, depth, x, y, z, nvox ;
   BUFTYPE *pbuf1, *pbuf2 ;
+
+  MRIcheckVolDims(mri1, mri2);
 
   width = mri1->width ; height = mri1->height ; depth = mri1->depth ;
 
@@ -2329,6 +2418,8 @@ MRInot(MRI *mri_src, MRI *mri_dst)
   int   x, y, z, out ;
   float val ;
 
+  MRIcheckVolDims(mri_src, mri_dst);
+
   if (mri_dst == NULL)
     mri_dst = MRIclone(mri_src, NULL) ;
 
@@ -2353,6 +2444,8 @@ MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int label)
 {
   int     width, height, depth, x, y, z, nvox ;
   float   val ;
+
+  MRIcheckVolDims(mri_src, mri_labeled);
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2382,6 +2475,8 @@ MRIsetLabelValues(MRI *mri_src, MRI *mri_label, MRI *mri_dst,
                   int label, float val)
 {
   int     x, y, z, l ;
+
+  MRIcheckVolDims(mri_src, mri_label);
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
