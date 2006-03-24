@@ -1960,6 +1960,15 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
           nargs = 2 ;
           functional_fname = argv[i+1] ;
         }
+      if (!stricmp(argv[i], "-overlay-reg")) 
+	{
+	  printf ("\n"
+		  "surfer: ERROR: -overlay-reg is not supported any more. You "
+		  "must specify a registration type for overlay. "
+		  "Use -overlay-reg-file <file>, -overlay-reg-find, "
+		  "or -overlay-reg-identity.\n\n");
+	  exit(1);
+	}
       else if (!stricmp(argv[i], "-overlay-reg-file")) 
         {
           nargs = 2 ;
@@ -8186,7 +8195,7 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   if (FunD_tRegistration_None == reg_type)
     {
       printf ("surfer: ERROR: Must specify registration type for overlay. "
-              "Use -overlay-reg <file>, -overlay-reg-find, "
+              "Use -overlay-reg-file <file>, -overlay-reg-find, "
               "or -overlay-reg-identity.\n");
       return ERROR_BADPARM;
     }
@@ -18974,7 +18983,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.187 2006/03/14 19:20:52 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.188 2006/03/24 18:39:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
