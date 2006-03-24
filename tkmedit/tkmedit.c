@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/03/15 21:41:49 $
-// Revision       : $Revision: 1.277 $
-char *VERSION = "$Revision: 1.277 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/03/24 21:46:02 $
+// Revision       : $Revision: 1.278 $
+char *VERSION = "$Revision: 1.278 $";
 
 #define TCL
 #define TKMEDIT
@@ -1109,7 +1109,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.277 2006/03/15 21:41:49 nicks Exp $",
+     "$Id: tkmedit.c,v 1.278 2006/03/24 21:46:02 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1503,7 +1503,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if( MATCH( sArg, "-overlay-reg" ) ) {
+      } else if( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) ) {
 
         /* make sure there are enough args */
         if( argc > nCurrentArg + 1 &&
@@ -5588,7 +5588,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.277 2006/03/15 21:41:49 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.278 2006/03/24 21:46:02 kteich Exp $ $Name:  $\n"
       )
      );
 
