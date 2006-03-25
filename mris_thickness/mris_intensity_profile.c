@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.6 2006/03/24 19:59:18 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.7 2006/03/25 17:55:50 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.6 2006/03/24 19:59:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.7 2006/03/25 17:55:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -828,7 +828,7 @@ MRIfitQuadratic(MRI *mri_profiles, MRI *mri_quad)
 	float   max_curv, a, b, c ;
 	MATRIX  *mX, *mXinv = NULL ;
 	VECTOR  *vY, *vP = NULL ;
-	
+	max_curv=0;
 
 	wsize = 5 ; whalf = (wsize-1)/2 ;
   mX = MatrixAlloc(wsize, 3, MATRIX_REAL) ;
