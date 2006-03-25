@@ -5861,6 +5861,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
       }
     if (hdr->hist.orient == -1){
       /* Unknown, so assume: x = -r, y = -a, z = s */
+      // This is incompatible with mghRead() when rasgood=0.
+      // mghRead() uses coronal dircos, not transverse.
+      // I'm not changing it because don't know what will happen.
       strcpy(direction, "transverse flipped");
       T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][1] = -mri->xsize;
@@ -5877,7 +5880,10 @@ static MRI *analyzeRead(char *fname, int read_volume)
               "WARNING: assuming %s\n",matfile, direction);
     }
     else{
-      mri->ras_good_flag = 0;
+      // It's probably not a good idea to set this to 1, but setting it
+      // to 0 created all kinds of problems with mghRead() which will
+      // force dir cos to be Coronal if rasgood<0.
+      mri->ras_good_flag = 1;
       fprintf
         (stderr,
          "-----------------------------------------------------------------\n"
