@@ -5,9 +5,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.175 2006/03/21 00:36:32 nicks Exp $"
+# "$Id: configure.in,v 1.176 2006/03/25 22:22:41 nicks Exp $"
 #
-AC_PREREQ(2.57)
+AC_PREREQ(2.59)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
@@ -31,13 +31,13 @@ if test "x$CXXFLAGS" = "x"; then
 fi
 
 # Checks for programs.
-AC_PROG_AWK
 AC_PROG_CXX
-AC_PROG_CC_STDC
+AC_PROG_AWK
+AC_PROG_CC
+AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_CPP
 AC_PROG_LIBTOOL
 
 # two programs used for compress/decompress files
@@ -655,7 +655,7 @@ AC_ARG_WITH(vxl-dir,
 if test ! "$ac_vxl_includes" = "NO"; then
   AC_MSG_RESULT(vxl directory is $withval)
   for item in $ac_vxl_includes; do
-  	VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
+        VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
   done
   VXL_DIR=$ac_vxl_dir
   AC_SUBST(VXL_DIR)
@@ -1068,9 +1068,9 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # some common flags and libs
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS \
-	$CPPUNIT_CFLAGS $VXL_CFLAGS"
+        $CPPUNIT_CFLAGS $VXL_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS $CPPUNIT_LIBS \
-	$VXL_LIBS"
+        $VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS=" -lgsl -lgslcblas $LIBS"
 AC_SUBST(CPPFLAGS)
@@ -1127,6 +1127,7 @@ AC_STRUCT_TM
 AC_CHECK_TYPES([ptrdiff_t])
 
 # Checks for library functions.
+# autoscan says freesurfer uses these:
 AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_LSTAT
@@ -1137,20 +1138,31 @@ AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-# freesurfer uses calloc, getenv often so added
+AC_C_VOLATILE
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_REALLOC
+AC_HEADER_STDBOOL
+AC_TYPE_PID_T
+# autoscan says freesurfer uses these functions:
 AC_CHECK_FUNCS([\
   bzero \
   calloc \
+  dup2 \
   floor \
   ftime \
+  getdelim \
   getenv \
   getcwd \
   getpagesize \
   gettimeofday \
+  isascii \
   memmove \
   memset \
   mkdir \
   munmap \
+  pow \
   putenv \
   rint \
   select \
@@ -1158,6 +1170,7 @@ AC_CHECK_FUNCS([\
   sqrt \
   strcasecmp \
   strchr \
+  strcspn \
   strdup \
   strerror \
   strncasecmp \
@@ -1170,254 +1183,260 @@ AC_CHECK_FUNCS([\
 #########################################################################
 # output
 #########################################################################
-AC_OUTPUT(\
-Makefile \
-unix/Makefile \
-dicom/Makefile \
-rgb/Makefile \
-utils/Makefile \
-hipsstubs/Makefile \
-log/Makefile \
-utilscpp/Makefile \
-mris2rgb/Makefile \
-nmovie/Makefile \
-mris_show/Makefile \
-tkmedit/Makefile \
-tkregister/Makefile \
-tkregister2/Makefile \
-tksurfer/Makefile \
-check_siemens_dir/Makefile \
-repair_siemens_file/Makefile \
-mkxsubjreg/Makefile \
-rbftest/Makefile rawtocor/Makefile \
-include/Makefile \
-include/dicom/Makefile \
-include/xview/Makefile \
-include/sys/Makefile \
-include/nodelib/Makefile \
-include/pixrect/Makefile \
-include/NrrdIO/Makefile \
-mri_add_xform_to_header/Makefile \
-mri_annotation2label/Makefile \
-mri_aparc2aseg/Makefile \
-mri_aparc2wmseg/Makefile \
-mri_auto_fill/Makefile \
-mri_edit_wm_with_aseg/Makefile \
-mri_average/Makefile \
-mri_bc_sc_bias_correct/Makefile \
-mri_build_priors/Makefile \
-mri_ca_label/Makefile \
-mri_ca_normalize/Makefile \
-mri_ca_tissue_parms/Makefile \
-mri_ca_register/Makefile \
-mri_ca_train/Makefile \
-mri_cc/Makefile \
-mri_cht2p/Makefile \
-mri_cor2label/Makefile \
-mri_cnr/Makefile \
-mri_compute_overlap/Makefile \
-mri_concat/Makefile \
-mri_convert/Makefile \
-mri_convert_mdh/Makefile \
-mri_copy_values/Makefile \
-mri_deface/Makefile \
-mri_diff/Makefile \
-mri_distance_transform/Makefile \
-mri_edit_segmentation/Makefile \
-mri_edit_segmentation_with_surfaces/Makefile \
-mri_em_register/Makefile \
-mri_estimate_tissue_parms/Makefile \
-mri_evaluate_morph/Makefile \
-mri_extract/Makefile \
-mri_extract_conditions/Makefile \
-mri_extract_label/Makefile \
-mri_fill/Makefile \
-mri_fwhm/Makefile \
-mri_gca_ambiguous/Makefile \
-mri_gdfglm/Makefile \
-mri_glmfit/Makefile \
-mri_head/Makefile \
-mri_hires_register/Makefile \
-mri_histo_eq/Makefile \
-mri_info/Makefile \
-mri_joint_density/Makefile \
-mri_label_histo/Makefile \
-label_area/Makefile \
-mri_label_vals/Makefile \
-mri_label_volume/Makefile \
-mri_label2label/Makefile \
-mri_label2vol/Makefile \
-mri_linear_register/Makefile \
-mri_make_bem_surfaces/Makefile \
-mri_make_density_map/Makefile \
-mri_make_template/Makefile \
-mri_make_register/Makefile \
-mri_mark_temporal_lobe/Makefile \
-mri_mask/Makefile \
-mri_mcsim/Makefile \
-mri_mc/Makefile \
-mri_matrix_multiply/Makefile \
-mri_ms_fitparms/Makefile \
-mri_modify/Makefile \
-mri_morphology/Makefile \
-mri_nlfilter/Makefile \
-mri_normalize/Makefile \
-mri_partial_ribbon/Makefile \
-mri_paint/Makefile \
-mri_parselabel/Makefile \
-mri_parse_sdcmdir/Makefile \
-mri_polv/Makefile \
-mri_probedicom/Makefile \
-mri_probe_ima/Makefile \
-mri_reduce/Makefile \
-mri_register/Makefile \
-mri_relabel_hypointensities/Makefile \
-mri_remove_neck/Makefile \
-mri_ribbon/Makefile \
-mri_rigid_register/Makefile \
-mri_segstats/Makefile \
-mri_segment/Makefile \
-mri_seghead/Makefile \
-mri_surfcluster/Makefile \
-mri_surfacemask/Makefile \
-mri_stats2seg/Makefile \
-mri_strip_skull/Makefile \
-mri_strip_subject_info/Makefile \
-mri_strip_nonwhite/Makefile \
-mri_surf2surf/Makefile \
-mri_surf2vol/Makefile \
-mri_synthesize/Makefile \
-mri_tessellate/Makefile \
-mri_threshold/Makefile \
-mri_topologycorrection/Makefile \
-mri_transform/Makefile \
-mri_train/Makefile \
-mri_twoclass/Makefile \
-mri_volcluster/Makefile \
-mri_voldiff/Makefile \
-mri_volsynth/Makefile \
-mri_vol2roi/Makefile \
-mri_vol2surf/Makefile \
-mri_vol2vol/Makefile \
-mri_watershed/Makefile \
-mri_watershed/brain_volume/Makefile \
-mri_wmfilter/Makefile \
-mri_xvolavg/Makefile \
-mris_add_template/Makefile \
-mris_anatomical_stats/Makefile \
-mris_annot_to_segmentation/Makefile \
-mris_average_curvature/Makefile \
-mris_ca_label/Makefile \
-mris_ca_train/Makefile \
-mris_classify_thickness/Makefile \
-mris_compute_acorr/Makefile \
-mris_compute_overlap/Makefile \
-mris_convert/Makefile mris_curvature/Makefile \
-mris_curvature_stats/Makefile \
-mris_diff/Makefile \
-mris_entropy/Makefile mris_errors/Makefile \
-mris_euler_number/Makefile \
-mris_expand/Makefile \
-mris_find_flat_regions/Makefile \
-mris_fix_topology/Makefile \
-mris_flatten/Makefile \
-mris_fwhm/Makefile \
-mris_glm/Makefile mris_inflate/Makefile \
-mris_info/Makefile mris_jacobian/Makefile \
-mris_label_area/Makefile \
-mris_label_mode/Makefile \
-mris_make_average_surface/Makefile \
-mris_make_surfaces/Makefile \
-mris_make_template/Makefile \
-mris_morph_stats/Makefile \
-mris_multiscale_stats/Makefile \
-mris_niters2fwhm/Makefile \
-mris_remove_variance/Makefile \
-mris_rescale/Makefile \
-mris_reverse/Makefile \
-mris_rotate/Makefile \
-mris_ms_refine/Makefile \
-mris_distance_to_label/Makefile \
-mris_register/Makefile \
-mris_sample_label/Makefile \
-mris_sample_parc/Makefile \
-mris_segment_vals/Makefile \
-mris_smooth/Makefile \
-mris_sphere/Makefile \
-mris_spherical_average/Makefile \
-mris_surface_to_vol_distances/Makefile \
-mrisp_paint/Makefile \
-mris_talairach/Makefile \
-mris_thickness/Makefile \
-mris_thickness_comparison/Makefile \
-mris_transform/Makefile \
-mris_translate_annotation/Makefile \
-mris_twoclass/Makefile \
-mris_volume/Makefile \
-mris_w_to_curv/Makefile \
-stim/Makefile \
-stim_polar/Makefile \
-tridec/Makefile \
-fsgdf/Makefile \
-fslutils/Makefile \
-optseq2/Makefile \
-spm2bfloat/Makefile \
-statcombine/Makefile \
-stat_normalize/Makefile \
-regdat2xfm/Makefile \
-scuba/Makefile \
-scuba/images/Makefile \
-test_window_env/Makefile \
-test_makevol/Makefile \
-brik2bfloat/Makefile \
-minc_to_bshort/Makefile \
-histo_compute_joint_density/Makefile \
-histo_register_block/Makefile \
-scripts/Makefile \
-images/Makefile \
-utils/NrrdIO/Makefile \
-utils/test/Makefile \
-utilscpp/test/Makefile \
-dngtester/Makefile \
-dummy/Makefile \
-hiam_make_surfaces/Makefile \
-spherical_stats/Makefile \
-fsfast/Makefile \
-fsfast/bin/Makefile \
-fsfast/docs/Makefile \
-fsfast/toolbox/Makefile \
-matlab/Makefile \
-distribution/Makefile \
-distribution/lib/Makefile \
-distribution/lib/bem/Makefile \
-distribution/average/Makefile \
-distribution/average/surf/Makefile \
-distribution/docs/Makefile \
-distribution/grad_unwarp_tables/Makefile \
-distribution/fsafd/Makefile \
-distribution/subjects/Makefile \
-distribution/sessions/Makefile \
-qdec/Makefile \
-qdec/images/Makefile \
-mri_segment_wm_damage/Makefile \
-mri_fslmat_to_lta/Makefile \
-plotter/Makefile \
-plotter/docs/Makefile \
-plotter/docs/en/Makefile \
-mri_ms_EM/Makefile \
-mri_ms_EM_with_atlas/Makefile \
-mris_thickness_diff/Makefile \
-mri_extract_largest_CC/Makefile \
-mri_compute_seg_overlap/Makefile \
-mris_ms_surface_CNR/Makefile \
-mri_concatenate_lta/Makefile \
-mris_surface_stats/Makefile \
-mri_normalize_tp2/Makefile \
-mri_ms_LDA/Makefile \
-mri_transform_to_COR/Makefile \
-mri_apply_inu_correction/Makefile \
-mri_path2label/Makefile
-)
+AC_CONFIG_FILES([Makefile
+                 brik2bfloat/Makefile
+                 check_siemens_dir/Makefile
+                 dicom/Makefile
+                 distribution/Makefile
+                 distribution/average/Makefile
+                 distribution/average/surf/Makefile
+                 distribution/docs/Makefile
+                 distribution/fsafd/Makefile
+                 distribution/grad_unwarp_tables/Makefile
+                 distribution/lib/Makefile
+                 distribution/lib/bem/Makefile
+                 distribution/sessions/Makefile
+                 distribution/subjects/Makefile
+                 dngtester/Makefile
+                 dummy/Makefile
+                 fsfast/Makefile
+                 fsfast/bin/Makefile
+                 fsfast/docs/Makefile
+                 fsfast/toolbox/Makefile
+                 fsgdf/Makefile
+                 fslutils/Makefile
+                 hiam_make_surfaces/Makefile
+                 hipsstubs/Makefile
+                 histo_compute_joint_density/Makefile
+                 histo_register_block/Makefile
+                 image/Makefile
+                 images/Makefile
+                 include/Makefile
+                 include/NrrdIO/Makefile
+                 include/dicom/Makefile
+                 include/nodelib/Makefile
+                 include/pixrect/Makefile
+                 include/sys/Makefile
+                 include/xview/Makefile
+                 label_area/Makefile
+                 log/Makefile
+                 matlab/Makefile
+                 minc_to_bshort/Makefile
+                 mkxsubjreg/Makefile
+                 mri_add_xform_to_header/Makefile
+                 mri_annotation2label/Makefile
+                 mri_aparc2aseg/Makefile
+                 mri_aparc2wmseg/Makefile
+                 mri_apply_inu_correction/Makefile
+                 mri_auto_fill/Makefile
+                 mri_average/Makefile
+                 mri_bc_sc_bias_correct/Makefile
+                 mri_build_priors/Makefile
+                 mri_ca_label/Makefile
+                 mri_ca_normalize/Makefile
+                 mri_ca_register/Makefile
+                 mri_ca_tissue_parms/Makefile
+                 mri_ca_train/Makefile
+                 mri_cc/Makefile
+                 mri_cht2p/Makefile
+                 mri_cnr/Makefile
+                 mri_compute_overlap/Makefile
+                 mri_compute_seg_overlap/Makefile
+                 mri_concat/Makefile
+                 mri_concatenate_lta/Makefile
+                 mri_convert/Makefile
+                 mri_convert_mdh/Makefile
+                 mri_copy_values/Makefile
+                 mri_cor2label/Makefile
+                 mri_deface/Makefile
+                 mri_diff/Makefile
+                 mri_distance_transform/Makefile
+                 mri_edit_segmentation/Makefile
+                 mri_edit_segmentation_with_surfaces/Makefile
+                 mri_edit_wm_with_aseg/Makefile
+                 mri_em_register/Makefile
+                 mri_estimate_tissue_parms/Makefile
+                 mri_evaluate_morph/Makefile
+                 mri_extract/Makefile
+                 mri_extract_conditions/Makefile
+                 mri_extract_label/Makefile
+                 mri_extract_largest_CC/Makefile
+                 mri_fill/Makefile
+                 mri_fslmat_to_lta/Makefile
+                 mri_fwhm/Makefile
+                 mri_gca_ambiguous/Makefile
+                 mri_gdfglm/Makefile
+                 mri_glmfit/Makefile
+                 mri_head/Makefile
+                 mri_hires_register/Makefile
+                 mri_histo_eq/Makefile
+                 mri_info/Makefile
+                 mri_joint_density/Makefile
+                 mri_label2label/Makefile
+                 mri_label2vol/Makefile
+                 mri_label_histo/Makefile
+                 mri_label_vals/Makefile
+                 mri_label_volume/Makefile
+                 mri_linear_register/Makefile
+                 mri_make_bem_surfaces/Makefile
+                 mri_make_density_map/Makefile
+                 mri_make_register/Makefile
+                 mri_make_template/Makefile
+                 mri_mark_temporal_lobe/Makefile
+                 mri_mask/Makefile
+                 mri_matrix_multiply/Makefile
+                 mri_mc/Makefile
+                 mri_mcsim/Makefile
+                 mri_modify/Makefile
+                 mri_morphology/Makefile
+                 mri_ms_EM/Makefile
+                 mri_ms_EM_with_atlas/Makefile
+                 mri_ms_LDA/Makefile
+                 mri_ms_fitparms/Makefile
+                 mri_nlfilter/Makefile
+                 mri_normalize/Makefile
+                 mri_normalize_tp2/Makefile
+                 mri_paint/Makefile
+                 mri_parse_sdcmdir/Makefile
+                 mri_parselabel/Makefile
+                 mri_partial_ribbon/Makefile
+                 mri_path2label/Makefile
+                 mri_polv/Makefile
+                 mri_probe_ima/Makefile
+                 mri_probedicom/Makefile
+                 mri_reduce/Makefile
+                 mri_register/Makefile
+                 mri_relabel_hypointensities/Makefile
+                 mri_remove_neck/Makefile
+                 mri_ribbon/Makefile
+                 mri_rigid_register/Makefile
+                 mri_seghead/Makefile
+                 mri_segment/Makefile
+                 mri_segment_wm_damage/Makefile
+                 mri_segstats/Makefile
+                 mri_stats2seg/Makefile
+                 mri_strip_nonwhite/Makefile
+                 mri_strip_skull/Makefile
+                 mri_strip_subject_info/Makefile
+                 mri_surf2surf/Makefile
+                 mri_surf2vol/Makefile
+                 mri_surfacemask/Makefile
+                 mri_surfcluster/Makefile
+                 mri_synthesize/Makefile
+                 mri_tessellate/Makefile
+                 mri_threshold/Makefile
+                 mri_topologycorrection/Makefile
+                 mri_train/Makefile
+                 mri_transform/Makefile
+                 mri_transform_to_COR/Makefile
+                 mri_twoclass/Makefile
+                 mri_vol2roi/Makefile
+                 mri_vol2surf/Makefile
+                 mri_vol2vol/Makefile
+                 mri_volcluster/Makefile
+                 mri_voldiff/Makefile
+                 mri_volsynth/Makefile
+                 mri_watershed/Makefile
+                 mri_watershed/brain_volume/Makefile
+                 mri_wmfilter/Makefile
+                 mri_xvolavg/Makefile
+                 mris2rgb/Makefile
+                 mris_add_template/Makefile
+                 mris_anatomical_stats/Makefile
+                 mris_annot_to_segmentation/Makefile
+                 mris_average_curvature/Makefile
+                 mris_ca_label/Makefile
+                 mris_ca_train/Makefile
+                 mris_classify_thickness/Makefile
+                 mris_compute_acorr/Makefile
+                 mris_compute_overlap/Makefile
+                 mris_convert/Makefile
+                 mris_curvature/Makefile
+                 mris_curvature_stats/Makefile
+                 mris_diff/Makefile
+                 mris_distance_to_label/Makefile
+                 mris_entropy/Makefile
+                 mris_errors/Makefile
+                 mris_euler_number/Makefile
+                 mris_expand/Makefile
+                 mris_find_flat_regions/Makefile
+                 mris_fix_topology/Makefile
+                 mris_flatten/Makefile
+                 mris_fwhm/Makefile
+                 mris_glm/Makefile
+                 mris_inflate/Makefile
+                 mris_info/Makefile
+                 mris_jacobian/Makefile
+                 mris_label_area/Makefile
+                 mris_label_mode/Makefile
+                 mris_make_average_surface/Makefile
+                 mris_make_surfaces/Makefile
+                 mris_make_template/Makefile
+                 mris_morph_stats/Makefile
+                 mris_ms_refine/Makefile
+                 mris_ms_surface_CNR/Makefile
+                 mris_multiscale_stats/Makefile
+                 mris_niters2fwhm/Makefile
+                 mris_register/Makefile
+                 mris_remove_variance/Makefile
+                 mris_rescale/Makefile
+                 mris_reverse/Makefile
+                 mris_rotate/Makefile
+                 mris_sample_label/Makefile
+                 mris_sample_parc/Makefile
+                 mris_segment_vals/Makefile
+                 mris_show/Makefile
+                 mris_smooth/Makefile
+                 mris_sphere/Makefile
+                 mris_spherical_average/Makefile
+                 mris_surface_stats/Makefile
+                 mris_surface_to_vol_distances/Makefile
+                 mris_talairach/Makefile
+                 mris_thickness/Makefile
+                 mris_thickness_comparison/Makefile
+                 mris_thickness_diff/Makefile
+                 mris_transform/Makefile
+                 mris_translate_annotation/Makefile
+                 mris_twoclass/Makefile
+                 mris_volume/Makefile
+                 mris_w_to_curv/Makefile
+                 mrisp_paint/Makefile
+                 nmovie/Makefile
+                 optseq2/Makefile
+                 paint/Makefile
+                 plotter/Makefile
+                 plotter/docs/Makefile
+                 plotter/docs/en/Makefile
+                 qdec/Makefile
+                 qdec/images/Makefile
+                 rawtocor/Makefile
+                 rbftest/Makefile
+                 regdat2xfm/Makefile
+                 repair_siemens_file/Makefile
+                 rgb/Makefile
+                 scripts/Makefile
+                 scuba/Makefile
+                 scuba/images/Makefile
+                 spherical_stats/Makefile
+                 spm2bfloat/Makefile
+                 stat_normalize/Makefile
+                 statcombine/Makefile
+                 stim/Makefile
+                 stim_polar/Makefile
+                 test_makevol/Makefile
+                 test_window_env/Makefile
+                 tkmedit/Makefile
+                 tkregister/Makefile
+                 tkregister2/Makefile
+                 tksurfer/Makefile
+                 tridec/Makefile
+                 unix/Makefile
+                 utils/Makefile
+                 utils/NrrdIO/Makefile
+                 utils/test/Makefile
+                 utilscpp/Makefile
+                 utilscpp/test/Makefile])
+AC_OUTPUT
 
 AC_MSG_RESULT(
 [
