@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/26 17:43:30 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/03/25 18:55:59 $
+// Revision       : $Revision: 1.9 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.8 2005/09/26 17:43:30 fischl Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.9 2006/03/25 18:55:59 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) ;
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
-static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
+//static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -144,7 +144,7 @@ static char suffix[STRLEN] = "" ;
 static int MGZ = 0; // for use with MGZ format
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
 
-#define MIN_BORDER_DIST 20.0  // mm from border
+#define MIN_BORDER_DIST 15.0  // mm from border
 
 int
 main(int argc, char *argv[])
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.8 2005/09/26 17:43:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.9 2006/03/25 18:55:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
   parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.l_spring = 1.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.1 ;
-  parms.l_spring = 0.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.1 ;
+  parms.l_spring = 0.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.2 ;
   parms.l_tspring = 1.0f ; parms.l_nspring = 1 ;
 
   parms.niterations = 0 ;
@@ -476,7 +476,7 @@ main(int argc, char *argv[])
     if (!max_csf_set)
       max_csf = gray_mean-2*gray_std ;
     if (!min_border_white_set)
-      min_border_white = gray_mean ;
+      min_border_white = white_mean - white_std ;
     fprintf(stderr, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
             min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
     fprintf(stderr, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
@@ -874,6 +874,18 @@ get_option(int argc, char *argv[])
     nowhite = 1 ;
     fprintf(stderr, "reading previously compute gray/white surface\n") ;
   }
+  else if (!stricmp(option, "wa"))
+  {
+    max_white_averages = atoi(argv[2]) ;
+    fprintf(stderr, "using max white averages = %d\n", max_white_averages) ;
+    nargs = 1 ;
+    if (isdigit(*argv[3]))
+    {
+      min_white_averages = atoi(argv[3]) ;
+      fprintf(stderr, "using min white averages = %d\n", min_white_averages) ;
+      nargs++ ;
+    }
+  }
   else if (!stricmp(option, "orig_pial"))
   {
     orig_pial = argv[2] ;
@@ -1011,6 +1023,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'O':
+		strcpy(output_suffix, argv[2]) ;
+		printf("using output suffix %s...\n", output_suffix) ;
+		nargs = 1 ;
+		break ;
 	case 'L':
 		other_label_names[num_other_labels++] = argv[2] ;
 		nargs = 1 ;
@@ -1214,13 +1231,19 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires)
 
     x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
     // check new function
-    
-    MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+
+    if (mris->useRealRAS)
+			MRIworldToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+		else
+			MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_outside += val ;
 
     x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
-    MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+    if (mris->useRealRAS)
+			MRIworldToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+		else
+			MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_inside += val ;
     n++ ;
@@ -1231,6 +1254,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires)
   return(mean_inside - mean_outside) ;
 }
 
+#if 0
 static int
 MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std)
 {	
@@ -1238,6 +1262,15 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, floa
 	int     total_vertices, vno ;
 	VERTEX  *v ;
 	Real    mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
+	FILE    *fpwm, *fpgm ;
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		fpwm = fopen("wm.dat", "w") ;
+		fpgm = fopen("gm.dat", "w") ;
+	}
+	else
+		fpgm = fpwm = NULL ;
 	
 	std_white = std_gray = mean_white = mean_gray = 0.0 ;
 	for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -1250,14 +1283,24 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, floa
 			DiagBreak() ;
 		
 		x = v->x+1.0*v->nx ; y = v->y+1.0*v->ny ; z = v->z+1.0*v->nz ;
-    MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    if (mris->useRealRAS)
+			MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
+		else
+			MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
+		if (fpgm)
+			fprintf(fpgm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
 		mean_gray += val ;
 		std_gray += (val*val) ;
 
 		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
-    MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    if (mris->useRealRAS)
+			MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
+		else
+			MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
+		if (fpwm)
+			fprintf(fpwm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
 		mean_white += val ;
 		std_white += (val*val) ;
 	}
@@ -1271,5 +1314,10 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, floa
 	printf("white %2.1f +- %2.1f,    gray %2.1f +- %2.1f, G/W boundary at %2.1f\n",
 				 mean_white, std_white, mean_gray, std_gray, gw_thresh) ;
 
+	if (fpwm)
+	{
+		fclose(fpgm) ; fclose(fpwm) ;
+	}
 	return(NO_ERROR) ;
 }
+#endif
