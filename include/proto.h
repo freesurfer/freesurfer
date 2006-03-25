@@ -41,7 +41,6 @@ int putw(int w, FILE *stream);
 int fputc(int c, FILE *stream);
 int fgetc(FILE *stream);
 int pclose(FILE *stream);
-char *getwd(char *buf);
 int ftime(struct timeb *tp) ;
 /* void ftime(struct timeb *tm) ;*/
 int fflush(FILE *fp) ;

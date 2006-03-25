@@ -2222,7 +2222,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   printf("surfer: current subjects dir: %s\n",lsubjectsdir);
   
   /* guess datadir from cwd path */
-  getwd(cwd);
+  getcwd(cwd,100*NAME_LENGTH);
   word = strtok(cwd,"/");
   strcpy(path[0],word);
   i = 1; 
@@ -18975,7 +18975,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.191 2006/03/24 21:51:50 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.192 2006/03/25 22:09:39 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

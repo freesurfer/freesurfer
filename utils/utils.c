@@ -13,8 +13,8 @@
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
   // Revision Author: $Author: nicks $
-  // Revision Date  : $Date: 2006/03/23 22:10:29 $
-  // Revision       : $Revision: 1.52 $
+  // Revision Date  : $Date: 2006/03/25 22:09:38 $
+  // Revision       : $Revision: 1.53 $
 
   ------------------------------------------------------------------------*/
 
@@ -772,7 +772,7 @@ StrRemoveSpaces(char *str)
   Return Values:
   ------------------------------------------------------------------------*/
 #ifdef SunOS
-extern char *getwd(char *pathname) ;
+extern char *getcwd(char *pathname, size_t size) ;
 #endif
 
 char *
@@ -792,7 +792,7 @@ FileNameAbsolute(char *fname, char *absFname)
       if (fname[len-1] == '/')
         fname[len-1] = 0 ;
 #ifndef Linux
-      getwd(pathname) ;
+      getcwd(pathname,MAXPATHLEN-1) ;
 #else
 #if 0
       getcwd(pathname, MAXPATHLEN-1) ;
@@ -825,7 +825,7 @@ FileNamePath(char *fname, char *pathName)
     *slash = 0 ;          /* remove file name */
   else
 #ifndef Linux
-    getwd(pathName)  ;    /* no path at all, must be cwd */
+    getcwd(pathName, MAXPATHLEN-1)  ;    /* no path at all, must be cwd */
 #else
 #if 0
   getcwd(pathName, MAXPATHLEN-1) ;
@@ -882,17 +882,7 @@ deltaAngle(float angle1, float angle2)
 
   return(delta) ;
 }
-#ifdef Linux
-char *
-getwd(char *buf)
-{
-  if (!buf)
-    buf = (char *)calloc(MAXPATHLEN, sizeof(char)) ;
-  getcwd(buf, MAXPATHLEN-1) ;
-  return(buf) ;
-}
 
-#endif
 /* ---------------------------------------------------------
    Name: AppendString()
    Author: Douglas Greve, 9/20/99
