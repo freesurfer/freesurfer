@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.14.2.4 2006/03/21 23:55:56 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.14.2.5 2006/03/25 00:34:51 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -174,10 +174,20 @@ endif
 
 # Create the init exf2anat matrix -- this is not accurate, Just
 # gets things lined up. We'll compute a better one below. If
-# the input has a valid vox2ras, then use that.
-mri_info --o /tmp/reg-feat2anat.rasgood.$$ \
-  --ras_good $FeatDir/example_func.$fslext >& /dev/null
-set exf_ras_good = `cat /tmp/reg-feat2anat.rasgood.$$`;
+# the input has a valid vox2ras, then use that, otherwise,
+# use the std2anat.
+if($fslext == img) then
+  # Cannot trust rasgood with analyze
+  if( -e $FeatDir/example_func.mat) then
+    set exf_ras_good = 1;
+  else
+    set exf_ras_good = 0;
+  endif
+else
+  mri_info --o /tmp/reg-feat2anat.rasgood.$$ \
+    --ras_good $FeatDir/example_func.$fslext >& /dev/null
+  set exf_ras_good = `cat /tmp/reg-feat2anat.rasgood.$$`;
+endif
 echo "example_func ras_good_flag $exf_ras_good"| tee -a $LF 
 if($exf_ras_good) then
   echo "-------------------------------------------------------" | tee -a $LF 
