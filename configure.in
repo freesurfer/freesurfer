@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.177 2006/03/26 11:02:53 nicks Exp $"
+# "$Id: configure.in,v 1.178 2006/03/26 17:56:33 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1153,9 +1153,9 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_C_VOLATILE
 AC_FUNC_FORK
-AC_FUNC_MALLOC
+#AC_FUNC_MALLOC (can redefine malloc as rpl_malloc)
 AC_FUNC_MEMCMP
-AC_FUNC_REALLOC
+#AC_FUNC_REALLOC
 AC_HEADER_STDBOOL
 AC_TYPE_PID_T
 # autoscan says freesurfer uses these functions:
@@ -1196,7 +1196,7 @@ AC_CHECK_FUNCS([\
 #########################################################################
 # output
 #########################################################################
-AC_CONFIG_FILES([Makefile
+AC_OUTPUT([Makefile
                  brik2bfloat/Makefile
                  check_siemens_dir/Makefile
                  dicom/Makefile
@@ -1449,7 +1449,6 @@ AC_CONFIG_FILES([Makefile
                  utils/test/Makefile
                  utilscpp/Makefile
                  utilscpp/test/Makefile])
-AC_OUTPUT
 
 AC_MSG_RESULT(
 [
