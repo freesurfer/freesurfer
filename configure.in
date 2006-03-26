@@ -5,9 +5,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.176 2006/03/25 22:22:41 nicks Exp $"
+# "$Id: configure.in,v 1.177 2006/03/26 11:02:53 nicks Exp $"
 #
-AC_PREREQ(2.59)
+AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
@@ -151,6 +151,16 @@ case "${target}" in
 # -Wno-non-virtual-dtor suppresses valid scuba warning:
 # "has virtual functions but non-virtual destructor"
  CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror -Wno-non-virtual-dtor"
+ ;;
+ i*86-*-solaris*)
+ OS=SunOS
+ OS_CPPFLAGS=""
+ OS_LDFLAGS=
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC "
+ SHARED_LDFLAGS="-shared "
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;;
 esac
 AC_SUBST(OS)
@@ -453,6 +463,9 @@ ac_blt_includes="NO"
 ac_blt_libraries="NO"
 ac_blt_bindir="NO"
 BLT_CFLAGS=""
+if test "$OS" = "SunOS"; then
+  BLT_CFLAGS="-lm"
+fi
 BLT_LIBS=""
 AC_MSG_CHECKING(BLT directory)
 

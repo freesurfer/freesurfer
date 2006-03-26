@@ -20,7 +20,9 @@ struct file {
 char *Progname;
 
 #ifndef Darwin
+#ifndef SunOS
 extern void swab(const void *from, void *to, size_t n);
+#endif
 #endif
 
 void check_directory(DIR *dp, char *dir_name);
@@ -42,7 +44,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.6 2005/06/08 19:44:48 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.7 2006/03/26 11:02:54 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -147,9 +149,15 @@ void check_directory(DIR *dp, char *dir_name)
               fclose(fp);
 	      // #ifdef Linux
 #if (BYTE_ORDER == LITTLE_ENDIAN)
+  #ifdef SunOS
+              swab((const char *)&rows, (char *)&rows, 2);
+              swab((const char *)&cols, (char *)&cols, 2);
+              swab((const char *)&bits_per_voxel, (char *)&bits_per_voxel, 2);
+  #else
               swab(&rows, &rows, 2);
               swab(&cols, &cols, 2);
               swab(&bits_per_voxel, &bits_per_voxel, 2);
+  #endif
 #endif
               files[image].rows = rows;
               files[image].cols = cols;
