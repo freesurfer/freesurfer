@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.54 2006/03/24 21:57:09 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.55 2006/03/27 22:15:24 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -567,6 +567,42 @@ if ("$RELEASE_TYPE" == "stable-pub") then
     # don't exit with error, since create_targz can be re-run manually
   endif
 endif
+
+#
+# copy libraries and include filed needed by those who want to 
+# build against the freesurfer enviro (NMR center only)
+######################################################################
+#
+if ("$RELEASE_TYPE" == "dev") then
+  # remove existing 
+  set cmd=(rm -Rf ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  set cmd=(rm -Rf ${DEST_DIR}/include)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  set cmd=(mkdir -p ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # cp necessary libs
+  set dirlist=(${DEV_DIR}/dicom/libdicom.a \
+	${DEV_DIR}/hipsstubs/libhipsstubs.a \
+	${DEV_DIR}/rgb/librgb.a \
+	${DEV_DIR}/unix/libunix.a \
+	${DEV_DIR}/utils/libutils.a)
+  set cmd=(cp $dirlist ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # cp include dir
+  set cmd=(cp -r ${DEV_DIR}/include ${DEST_DIR})
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # make sure all files in DEST_DIR are group writable
+  set cmd=(chmod -R g+rw ${DEST_DIR})
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+endif
+
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
