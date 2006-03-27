@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/25 14:13:30 $
-// Revision       : $Revision: 1.445 $
+// Revision Date  : $Date: 2006/03/27 14:00:02 $
+// Revision       : $Revision: 1.446 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.445 2006/03/25 14:13:30 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.446 2006/03/27 14:00:02 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -50619,8 +50619,9 @@ MRIScomputeClassModes(MRI_SURFACE *mris, MRI *mri, float *pwhite_mode, float *pg
 			continue ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
-		
-		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
+
+#define WM_SAMPLE_DIST 1.0		
+		x = v->x-WM_SAMPLE_DIST*v->nx ; y = v->y-WM_SAMPLE_DIST*v->ny ; z = v->z-WM_SAMPLE_DIST*v->nz ;
 		MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
 		bin = nint(val - min_val) ;
@@ -50638,45 +50639,57 @@ MRIScomputeClassModes(MRI_SURFACE *mris, MRI *mri, float *pwhite_mode, float *pg
 
 	}
 
-	MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
-	MRIScomputeMetricProperties(mris) ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	if (pcsf_mode)
 	{
-		v = &mris->vertices[vno] ;
-		if (v->ripflag)
-			continue ;
-		if (vno == Gdiag_no)
-			DiagBreak() ;
-		
-		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
-		MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-    MRIsampleVolume(mri, xw, yw, zw, &val) ;
-		bin = nint(val - min_val) ;
-		if (bin < 0 || bin >= h_gray->nbins)
-			DiagBreak() ;
-		h_gray->counts[bin]++ ;
+		MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+		MRIScomputeMetricProperties(mris) ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			
+			x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
+			MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+			MRIsampleVolume(mri, xw, yw, zw, &val) ;
+			bin = nint(val - min_val) ;
+			if (bin < 0 || bin >= h_gray->nbins)
+				DiagBreak() ;
+			h_gray->counts[bin]++ ;
 
-		x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
-		MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-    MRIsampleVolume(mri, xw, yw, zw, &val) ;
-		bin = nint(val - min_val) ;
-		if (bin < 0 || bin >= h_gray->nbins)
-			DiagBreak() ;
-		h_csf->counts[bin]++ ;
+			x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
+			MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+			MRIsampleVolume(mri, xw, yw, zw, &val) ;
+			bin = nint(val - min_val) ;
+			if (bin < 0 || bin >= h_gray->nbins)
+				DiagBreak() ;
+			h_csf->counts[bin]++ ;
+		}
+		HISTOclearZeroBin(h_csf) ;
+		csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins) ;
+		*pcsf_mode = h_csf->bins[csf_peak] ;
+		if (Gdiag & DIAG_WRITE)
+			HISTOplot(h_csf, "csf.plt") ; 
 	}
 
 	HISTOclearZeroBin(h_white) ;
 	HISTOclearZeroBin(h_gray) ;
-	HISTOclearZeroBin(h_csf) ;
 	white_peak = HISTOfindHighestPeakInRegion(h_white, 0, h_white->nbins) ;
-	csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins) ;
 	gray_peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins) ;
 	*pwhite_mode = h_white->bins[white_peak] ;
 	*pgray_mode = h_gray->bins[gray_peak] ;
-	*pcsf_mode = h_csf->bins[csf_peak] ;
-	printf("intensity peaks found at WM=%d,    GM=%d,   CSF=%d\n",
-				 nint(*pwhite_mode), nint(*pgray_mode), nint(*pcsf_mode)) ;
-	HISTOplot(h_white, "wm.plt") ; HISTOplot(h_csf, "csf.plt") ; HISTOplot(h_gray, "gm.plt") ;
+	if (pcsf_mode)
+		printf("intensity peaks found at WM=%d,    GM=%d,   CSF=%d\n",
+					 nint(*pwhite_mode), nint(*pgray_mode), nint(*pcsf_mode)) ;
+	else
+		printf("intensity peaks found at WM=%d,    GM=%d\n",
+					 nint(*pwhite_mode), nint(*pgray_mode)) ;
+	if (Gdiag & DIAG_WRITE)
+	{
+		HISTOplot(h_white, "wm.plt") ; HISTOplot(h_gray, "gm.plt") ;
+	}
 	HISTOfree(&h_white) ;HISTOfree(&h_csf) ;HISTOfree(&h_gray) ;
 
 	// back to initial state
