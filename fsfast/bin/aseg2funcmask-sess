@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # aseg2funcmask-sess
 #
-set VERSION = '$Id: aseg2funcmask-sess,v 1.3 2005/05/24 22:44:51 greve Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.4 2006/03/27 05:20:18 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -67,10 +67,13 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set segpath = $sd/mri/$segvol
+  set segpath = $sd/mri/$segvol.mgz
   if(! -e $segpath) then
-    echo "ERROR: cannot find $subject in $segpath" | tee -a $LF
-    exit 1;
+    set segpath = $sd/mri/$segvol
+    if(! -e $segpath) then
+      echo "ERROR: cannot find $subject in $segpath" | tee -a $LF
+      exit 1;
+    endif
   endif
 
   set RunList = `getrunlist $sess/$fsd $RunListFile`;
