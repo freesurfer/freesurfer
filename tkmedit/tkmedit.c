@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/03/24 21:46:02 $
-// Revision       : $Revision: 1.278 $
-char *VERSION = "$Revision: 1.278 $";
+// Revision Date  : $Date: 2006/03/27 19:09:01 $
+// Revision       : $Revision: 1.279 $
+char *VERSION = "$Revision: 1.279 $";
 
 #define TCL
 #define TKMEDIT
@@ -371,7 +371,8 @@ static mriTransformRef  gIdxToRASTransform    = NULL;
 static tBoolean         gbAnatomicalVolumeDirty[tkm_knNumVolumeTypes];
 
 tkm_tErr LoadVolume    ( tkm_tVolumeType iType,
-                         char*     isFileName );
+                         char*           isFileName,
+			 tBoolean        ibConform );
 
 tkm_tErr UnloadVolume  ( tkm_tVolumeType iType );
 
@@ -522,7 +523,8 @@ tkm_tErr NewSegmentationVolume  ( tkm_tSegType    iVolume,
    anatomical (i think) */
 tkm_tErr LoadSegmentationVolume ( tkm_tSegType    iVolume,
                                   char*           inVolumeDir,
-                                  char*           inColorFileName );
+                                  char*           inColorFileName,
+				  tBoolean        ibConform );
 
 /* Saves a segmentation volume to COR format. */
 void SaveSegmentationVolume     ( tkm_tSegType    iVolume,
@@ -995,6 +997,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char         sSubject[tkm_knPathLen]  = "";
   char         sImageDir[tkm_knPathLen] = "";
   tBoolean     bScaleUpVolume           = FALSE;
+  tBoolean     bConformVolume           = FALSE;
 
   tBoolean     bSurfaceDeclared        = FALSE;
   char         sSurface[tkm_knPathLen] = "";
@@ -1007,6 +1010,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 
   tBoolean     bLoadingAuxVolume         = FALSE;
   char         sAuxVolume[tkm_knPathLen] = "";
+  tBoolean     bConformAuxVolume         = FALSE;
 
   tBoolean     bLoadingMainTransform         = FALSE;
   char         sMainTransform[tkm_knPathLen] = "";
@@ -1032,10 +1036,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean     bLoadingSegmentation                  = FALSE;
   char         sSegmentationPath[tkm_knPathLen]      = "";
   char         sSegmentationColorFile[tkm_knPathLen] = "";
+  tBoolean     bConformSegmentation                  = FALSE;
 
   tBoolean     bLoadingAuxSegmentation                  = FALSE;
   char         sAuxSegmentationPath[tkm_knPathLen]      = "";
   char         sAuxSegmentationColorFile[tkm_knPathLen] = "";
+  tBoolean     bConformAuxSegmentation                  = FALSE;
 
   tBoolean     bLoadingVLI              = FALSE;
   char         sVLIFile1[tkm_knPathLen] = "";
@@ -1109,7 +1115,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.278 2006/03/24 21:46:02 kteich Exp $",
+     "$Id: tkmedit.c,v 1.279 2006/03/27 19:09:01 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1166,6 +1172,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
            "contrast for aux volume\n");
     printf("-mm-aux <min> <max>              : color scale min "
            "and max for aux volume\n");
+    printf("\n");
+    printf("-conform      : conform the main anatomical volume\n");
+    printf("-aux-conform  : conform the aux anatomical volume\n");
+    printf("\n");
     printf("-overlay <file>            : load functional overlay volume\n");
     printf("-overlay-reg-find          : find overlay registration "
            "volume in data dir\n");
@@ -1209,6 +1219,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-segmentation-opacity <opacity>    : opacity of the "
            "segmentation \n");
     printf("                                   : overlay (default is 0.3)\n");
+    printf("\n");
+    printf("-seg-conform      : conform the main segmentation volume\n");
+    printf("-aux-seg-conform  : conform the aux segmentation volume\n");
     printf("\n");
     printf("-headpts <points> [<trans>]   : load head points file "
            "and optional\n");
@@ -1294,6 +1307,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         /* set our flag */
         DebugNote( ("Enabling scaleup.") );
         gbScaleUpVolume = bScaleUpVolume = TRUE;
+        nCurrentArg ++;
+
+      } else if (MATCH(sArg, "-conform"  ) ) {
+
+        /* set our flag */
+        DebugNote( ("Enabling conform.") );
+        bConformVolume = TRUE;
         nCurrentArg ++;
 
       } else if( MATCH( sArg, "-mm-main" ) ) {
@@ -1698,6 +1718,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
+      } else if (MATCH(sArg, "-seg-conform"  ) ) {
+
+        /* set our flag */
+        DebugNote( ("Enabling seg conform.") );
+        bConformSegmentation = TRUE;
+        nCurrentArg ++;
+
       } else if( MATCH( sArg, "-aux-segmentation" ) ||
                  MATCH( sArg, "-aux-seg" ) ) {
 
@@ -1747,7 +1774,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if( MATCH( sArg, "-voxel-label" ) ) {
+      } else if (MATCH(sArg, "-aux-seg-conform"  ) ) {
+	
+        /* set our flag */
+        DebugNote( ("Enabling conform.") );
+        bConformAuxSegmentation = TRUE;
+        nCurrentArg ++;
+
+     } else if( MATCH( sArg, "-voxel-label" ) ) {
 
         /* make sure there are enough args */
         if( argc > nCurrentArg + 2 &&
@@ -2009,9 +2043,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                             "as the aux volume." );
           nCurrentArg += 1;
         }
-
+	
+      } else if (MATCH(sArg, "-aux-conform"  ) ) {
+	
+        /* set our flag */
+        DebugNote( ("Enabling aux conform.") );
+        bConformAuxVolume = TRUE;
+        nCurrentArg ++;
+	
       } else if( MATCH( sArg, "-main-transform" ) ) {
-
+	
         /* check for the value following the switch */
         if( argc > nCurrentArg + 1
             && '-' != argv[nCurrentArg+1][0] ) {
@@ -2356,14 +2397,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      the subject name, otherwise use the image dir. */
   if( bUsingMRIRead ) {
     DebugNote( ("Loading volume %s", sSubject) );
-    eResult = LoadVolume( tkm_tVolumeType_Main, sSubject );
+    eResult = LoadVolume( tkm_tVolumeType_Main, sSubject, bConformVolume );
     if( tkm_tErr_NoErr != eResult ) {
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
     }
   } else {
     DebugNote( ("Loading volume %s", sImageDir) );
-    eResult = LoadVolume( tkm_tVolumeType_Main, sImageDir );
+    eResult = LoadVolume( tkm_tVolumeType_Main, sImageDir, bConformVolume );
     if( tkm_tErr_NoErr != eResult ) {
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
@@ -2408,7 +2449,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* if reading in an aux image... */
   if( bLoadingAuxVolume ) {
     DebugNote( ("Loading aux volume %s", sAuxVolume) );
-    eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume );
+    eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume, bConformAuxVolume );
 
     /* If we got a non-default brightness and contrast or min and max,
        set it now. */
@@ -2471,8 +2512,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 
   /* load segmentation */
   if( bLoadingSegmentation ) {
-    eResult = LoadSegmentationVolume( tkm_tSegType_Main, sSegmentationPath,
-                                      sSegmentationColorFile );
+    eResult = LoadSegmentationVolume( tkm_tSegType_Main,
+				      sSegmentationPath,
+                                      sSegmentationColorFile,
+				      bConformSegmentation );
     printf( "LoadSegmentationVolume main %s %s\n", sSegmentationPath, sSegmentationColorFile );
     /* set roi alpha */
     if( bSegmentationAlpha ) {
@@ -2482,8 +2525,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 
   /* load aux segmentation */
   if( bLoadingAuxSegmentation ) {
-    eResult = LoadSegmentationVolume( tkm_tSegType_Aux, sAuxSegmentationPath,
-                                      sAuxSegmentationColorFile );
+    eResult = LoadSegmentationVolume( tkm_tSegType_Aux, 
+				      sAuxSegmentationPath,
+                                      sAuxSegmentationColorFile,
+				      bConformAuxSegmentation );
     printf( "LoadSegmentationVolume aux %s %s\n", sAuxSegmentationPath, sAuxSegmentationColorFile );
   }
 
@@ -4057,7 +4102,7 @@ int TclLoadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadVolume( tkm_tVolumeType_Main, argv[1] );
+    LoadVolume( tkm_tVolumeType_Main, argv[1], FALSE );
   }
 
   return TCL_OK;
@@ -4073,7 +4118,7 @@ int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadVolume( tkm_tVolumeType_Aux, argv[1] );
+    LoadVolume( tkm_tVolumeType_Aux, argv[1], FALSE );
 
     /* show the aux volume */
     MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_AuxVolume,
@@ -4994,7 +5039,7 @@ int TclLoadSegmentationVolume ( ClientData inClientData,
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadSegmentationVolume ( atoi(argv[1]), argv[2], argv[3] );
+    LoadSegmentationVolume ( atoi(argv[1]), argv[2], argv[3], FALSE );
   }
 
   return TCL_OK;
@@ -5588,7 +5633,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.278 2006/03/24 21:46:02 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.279 2006/03/27 19:09:01 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -7769,7 +7814,8 @@ void SendCachedTclCommands () {
 
 
 tkm_tErr LoadVolume ( tkm_tVolumeType iType,
-                      char*      isName ) {
+                      char*           isName,
+		      tBoolean        ibConform ) {
 
   tkm_tErr             eResult                        = tkm_tErr_NoErr;
   Volm_tErr            eVolume                        = Volm_tErr_NoErr;
@@ -7786,8 +7832,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   int                  mainDimensions[3]    = {0, 0, 0};
   int                  auxDimensions[3]     = {0, 0, 0};
 
-  DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )",
-                       (int)iType, isName) );
+  DebugEnterFunction( ("LoadVolume( iType=%d, isName=%s, ibConform = %d )",
+                       (int)iType, isName, ibConform) );
 
   DebugAssertThrowX( (NULL != isName), eResult, tkm_tErr_InvalidParameter );
 
@@ -7811,6 +7857,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   eVolume = Volm_ImportData( newVolume, sPath );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                      eResult, tkm_tErr_CouldntReadVolume );
+
+  /* Conform if desired. */
+  if( ibConform ) {
+    Volm_Conform( newVolume );
+  }
 
   /* If this is the aux volume, make sure it is the same size as the
      main volume. */
@@ -7983,19 +8034,16 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                   (int)iType, (int)sampleType );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSampleType, sTclArguments );
 
-
-
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
 
   xUtil_snprintf( sError, sizeof(sError), "Loading volume %s", isName );
-  tkm_DisplayError
-    ( sError,
-      tkm_GetErrorString(eResult),
-      "Tkmedit couldn't read the volume you specified.\n"
-      "This could be because the image format wasn't\n"
-      "recognized, or it couldn't find the proper header,\n"
-      "or the file(s) were unreadable, or it was the wrong size." );
+  tkm_DisplayError( sError, tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the volume you specified. "
+		    "This could be because the image format wasn't "
+		    "recognized, or it couldn't find the proper header, "
+		    "or the file(s) were unreadable, or it was the wrong "
+		    "size." );
 
   EndDebugCatch;
 
@@ -9568,7 +9616,8 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
 
 tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
                                   char*        isVolumeDirWithPrefix,
-                                  char*        isColorFileName ) {
+                                  char*        isColorFileName,
+				  tBoolean     ibConform ) {
 
   tkm_tErr     eResult         = tkm_tErr_NoErr;
   Volm_tErr    eVolume         = Volm_tErr_NoErr;
@@ -9605,6 +9654,11 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
                      eResult, tkm_tErr_CouldntLoadSegmentation );
   if( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
+  }
+
+  /* Conform if desired. */
+  if( ibConform ) {
+    Volm_Conform( newVolume );
   }
 
   /* Try to load the color table. */
