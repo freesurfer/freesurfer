@@ -453,6 +453,12 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != iMRI), eResult, Volm_tErr_InvalidParamater );
+
+  /* Clear old volume if we have one. */
+  if( NULL != this->mpMriValues &&
+      this->mpMriValues != iMRI ) {
+    MRIfree( &this->mpMriValues );
+  }
   
   /* Get the reange. */
   MRIvalRange(iMRI, &this->mfMinValue, &this->mfMaxValue) ;
@@ -3382,6 +3388,36 @@ Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this ) {
   return eResult;
 }
 
+Volm_tErr Volm_Conform ( mriVolumeRef this ) {
+
+  Volm_tErr eResult   = Volm_tErr_NoErr;
+  MRI*      conformed = NULL;
+
+  DebugEnterFunction( ("Volm_Conform( this=%p )", this ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  /* Call the conform function. */
+  DebugNote( ("Conforming MRI") );
+  conformed = MRIconform( this->mpMriValues );
+  DebugAssertThrowX( (NULL != conformed), eResult, 
+		     Volm_tErr_CouldntReadVolume );
+
+  /* Set from the newly conformed MRI. */
+  DebugNote( ("Setting from MRI") );
+  eResult = Volm_SetFromMRI_( this, conformed );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
 
 /* ======================================== BEGIN FUNCTION VERION OF MACROS */
 #ifndef VOLM_USE_MACROS
