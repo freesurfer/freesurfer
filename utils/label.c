@@ -464,7 +464,7 @@ LabelWrite(LABEL *area, char *label_name)
                                Progname, fname)) ;
 
 #if 1
-  fprintf(fp, "#!ascii label %s, from subject %s\n", 
+  fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg\n", 
           area->name, area->subject_name);
 #endif
   fprintf(fp, "%d\n", num) ;
