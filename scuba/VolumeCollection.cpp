@@ -1473,9 +1473,12 @@ VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
 	    MRIIndexToRAS( voxel, ras );
 	    VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( ras );
 
-	    label->lv[nPoint].x = ras[0];
-	    label->lv[nPoint].y = ras[1];
-	    label->lv[nPoint].z = ras[2];
+	    float TkRegRAS[3];
+	    RASToTkRegRAS( ras, TkRegRAS );
+
+	    label->lv[nPoint].x = TkRegRAS[0];
+	    label->lv[nPoint].y = TkRegRAS[1];
+	    label->lv[nPoint].z = TkRegRAS[2];
 	    label->lv[nPoint].stat = GetMRINearestValue( loc );
 	    label->lv[nPoint].vno = -1;
 	    label->lv[nPoint].deleted = false;
@@ -1523,10 +1526,13 @@ VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
 
   for( int nPoint = 0; nPoint < label->n_points; nPoint++ ) {
 
+    float TkRegRAS[3];
+    TkRegRAS[0] = label->lv[nPoint].x;
+    TkRegRAS[1] = label->lv[nPoint].y;
+    TkRegRAS[2] = label->lv[nPoint].z;
+
     float ras[3];
-    ras[0] = label->lv[nPoint].x;
-    ras[1] = label->lv[nPoint].y;
-    ras[2] = label->lv[nPoint].z;
+    TkRegRASToRAS( TkRegRAS, ras );
 
     int index[3];
     RASToMRIIndex( ras, index );
