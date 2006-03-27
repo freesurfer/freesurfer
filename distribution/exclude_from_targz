@@ -76,4 +76,5 @@ freesurfer/bin/plotter
 freesurfer/bin/scuba2.app
 freesurfer/bin/qdec.app
 freesurfer/bin/plotter.app
-
+freesurfer/lib/dev
+freesurfer/include
