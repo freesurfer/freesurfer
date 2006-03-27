@@ -127,7 +127,7 @@ SurfaceCollection::LoadSurface () {
     // Get transform.
     if( NULL != mMRIS->lta ) {
 
-      // This is our RAS -> surfaceRAS transform.
+      // This is our RAS -> TkRegRAS transform.
       mDataToSurfaceTransform.SetMainTransform
 	( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
 	  0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,
@@ -181,11 +181,11 @@ SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
     for( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
       
       VERTEX* vertex = &(mMRIS->vertices[nVertex]);
-      float surfaceRAS[3], RAS[3];
-      surfaceRAS[0] = vertex->x;
-      surfaceRAS[1] = vertex->y;
-      surfaceRAS[2] = vertex->z;
-      SurfaceToRAS( surfaceRAS, RAS );
+      float TkRegRAS[3], RAS[3];
+      TkRegRAS[0] = vertex->x;
+      TkRegRAS[1] = vertex->y;
+      TkRegRAS[2] = vertex->z;
+      SurfaceToRAS( TkRegRAS, RAS );
 
       if( RAS[0] < mRASBounds[0] ) mRASBounds[0] = RAS[0];
       if( RAS[0] > mRASBounds[1] ) mRASBounds[1] = RAS[0];
@@ -574,7 +574,7 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
     }
   }
 
-  // We want to get the MRIsurfaceRASToRAS matrix from the volume.
+  // We want to get the MRITkRegRASToRAS matrix from the volume.
   MRI* mri = iVolume.GetMRI();
   if( NULL == mri ) {
     throw runtime_error( "Couldn't get MRI from volume" );
@@ -583,7 +583,7 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   // Enh... OK, this is what Tosa told me to change it to a while ago,
   // but it apparently stopped working after he left. So I changed it
   // back to what I originally had, which is just getting the matrix
-  // with surfaceRASFromRAS_ and setting our dataToSurface transform
+  // with TkRegRASFromRAS_ and setting our dataToSurface transform
   // to it. So we'll see how that goes for now.
 #if 0  
   VOL_GEOM  surfaceGeometry;
@@ -611,13 +611,13 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   }
 
 #else  
-  MATRIX* RASToSurfaceRASMatrix = surfaceRASFromRAS_( mri );
-  if( NULL == RASToSurfaceRASMatrix ) {
-    throw runtime_error( "Couldn't get SurfaceRASFromRAS_ from MRI" );
+  MATRIX* RASToTkRegRASMatrix = surfaceRASFromRAS_( mri );
+  if( NULL == RASToTkRegRASMatrix ) {
+    throw runtime_error( "Couldn't get surfaceRASFromRAS_ from MRI" );
   }
   
-  mDataToSurfaceTransform.SetMainTransform( RASToSurfaceRASMatrix );
-  MatrixFree( &RASToSurfaceRASMatrix );
+  mDataToSurfaceTransform.SetMainTransform( RASToTkRegRASMatrix );
+  MatrixFree( &RASToTkRegRASMatrix );
 #endif
 
   CalcWorldToSurfaceTransform();
@@ -637,7 +637,7 @@ SurfaceCollection::SetDataToSurfaceTransformToDefault () {
   // We want to get the lta from the mris or else use identity.
   if( NULL != mMRIS->lta ) {
     
-    // This is our RAS -> surfaceRAS transform.
+    // This is our RAS -> TkRegRAS transform.
     mDataToSurfaceTransform.SetMainTransform
       ( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
 	0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,

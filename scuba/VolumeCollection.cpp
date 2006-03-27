@@ -73,13 +73,13 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeAutosaveOn", 1, "collectionID",
 			 "Returns whether or not autosave is on for this "
 			 "volume." );
-  commandMgr.AddCommand( *this, "GetRASCoordsFromVolumeSurfaceRAS", 4, 
+  commandMgr.AddCommand( *this, "GetRASCoordsFromVolumeTkRegRAS", 4, 
 			 "collectionID x y z", "Returns a list of RAS coords "
 			 "converted from the input surface RAS coords. This "
 			 "is for converting RAS points acquired from a "
 			 "surface that is associated with a volume and "
 			 "didn't generate coordinates with CRAS info." );
-  commandMgr.AddCommand( *this, "GetVolumeSurfaceRASCoordsFromRAS", 4, 
+  commandMgr.AddCommand( *this, "GetVolumeTkRegRASCoordsFromRAS", 4, 
 			 "collectionID x y z", "Returns a list of surface "
 			 "RAS coords converted from the input RAS coords. This"
 			 "is for converting RAS points acquired from a "
@@ -259,19 +259,19 @@ VolumeCollection::InitializeFromMRI () {
     throw runtime_error( "InitializeFromMRI called without an MRI" );
   }
 
-  // Get our surfaceRAS -> index transform.
-  MATRIX* voxelFromSurfaceRAS = extract_r_to_i( mMRI );
-  if( NULL == voxelFromSurfaceRAS ) {
-    throw runtime_error( "Couldn't get voxelFromSurfaceRAS matrix" );
+  // Get our TkRegRAS -> index transform.
+  MATRIX* voxelFromTkRegRAS = extract_r_to_i( mMRI );
+  if( NULL == voxelFromTkRegRAS ) {
+    throw runtime_error( "Couldn't get voxelFromTkRegRAS matrix" );
   }
 
   // Copy it to a Matrix44 and release the MATRIX. Then set our
   // mDataToIndexTransform transform from this matrix. Then calculate
   // the WorldToIndex transform.
   Matrix44 m;
-  m.SetMatrix( voxelFromSurfaceRAS );
+  m.SetMatrix( voxelFromTkRegRAS );
 
-  MatrixFree( &voxelFromSurfaceRAS );
+  MatrixFree( &voxelFromTkRegRAS );
   
   mDataToIndexTransform.SetMainTransform( m );
   
@@ -448,15 +448,15 @@ VolumeCollection::DataRASToRAS ( float const iDataRAS[3], float oRAS[3] ) {
 }
 
 void
-VolumeCollection::SurfaceRASToRAS ( float const iSurfaceRAS[3],
+VolumeCollection::TkRegRASToRAS ( float const iTkRegRAS[3],
 				    float oRAS[3] ) {
 
   if( NULL != mMRI ) {
-    Real surfaceRAS[3], RAS[3];
-    surfaceRAS[0] = iSurfaceRAS[0];
-    surfaceRAS[1] = iSurfaceRAS[1];
-    surfaceRAS[2] = iSurfaceRAS[2];
-    MRIsurfaceRASToRAS( mMRI, surfaceRAS[0], surfaceRAS[1], surfaceRAS[2],
+    Real TkRegRAS[3], RAS[3];
+    TkRegRAS[0] = iTkRegRAS[0];
+    TkRegRAS[1] = iTkRegRAS[1];
+    TkRegRAS[2] = iTkRegRAS[2];
+    MRIsurfaceRASToRAS( mMRI, TkRegRAS[0], TkRegRAS[1], TkRegRAS[2],
 		       &RAS[0], &RAS[1], &RAS[2] );
     oRAS[0] = RAS[0];
     oRAS[1] = RAS[1];
@@ -468,19 +468,19 @@ VolumeCollection::SurfaceRASToRAS ( float const iSurfaceRAS[3],
 }
 
 void
-VolumeCollection::RASToSurfaceRAS ( float const iRAS[3],
-				    float oSurfaceRAS[3] ) {
+VolumeCollection::RASToTkRegRAS ( float const iRAS[3],
+				    float oTkRegRAS[3] ) {
 
   if( NULL != mMRI ) {
-    Real surfaceRAS[3], RAS[3];
+    Real TkRegRAS[3], RAS[3];
     RAS[0] = iRAS[0];
     RAS[1] = iRAS[1];
     RAS[2] = iRAS[2];
     MRIRASToSurfaceRAS( mMRI, RAS[0], RAS[1], RAS[2],
-			&surfaceRAS[0], &surfaceRAS[1], &surfaceRAS[2] );
-    oSurfaceRAS[0] = surfaceRAS[0];
-    oSurfaceRAS[1] = surfaceRAS[1];
-    oSurfaceRAS[2] = surfaceRAS[2];
+			&TkRegRAS[0], &TkRegRAS[1], &TkRegRAS[2] );
+    oTkRegRAS[0] = TkRegRAS[0];
+    oTkRegRAS[1] = TkRegRAS[1];
+    oTkRegRAS[2] = TkRegRAS[2];
   } else {
     throw runtime_error( "Cannot transform from RAS to surface RAS because no"
 			 "MRI is loaded." );
@@ -883,8 +883,8 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // GetRASCoordsFromVolumeSurfaceRAS <colllectionID> <x> <y> <z>
-  if( 0 == strcmp( isCommand, "GetRASCoordsFromVolumeSurfaceRAS" ) ) {
+  // GetRASCoordsFromVolumeTkRegRAS <colllectionID> <x> <y> <z>
+  if( 0 == strcmp( isCommand, "GetRASCoordsFromVolumeTkRegRAS" ) ) {
     int collectionID;
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
@@ -896,13 +896,13 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     
     if( mID == collectionID ) {
 
-      float surfaceRAS[3];
-      surfaceRAS[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
-      surfaceRAS[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
-      surfaceRAS[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      float TkRegRAS[3];
+      TkRegRAS[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+      TkRegRAS[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+      TkRegRAS[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
 
       float ras[3];
-      SurfaceRASToRAS( surfaceRAS, ras );
+      TkRegRASToRAS( TkRegRAS, ras );
 
       stringstream ssReturnValues;
       ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
@@ -913,8 +913,8 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
   
-  // GetVolumeSurfaceRASCoordsFromRAS <colllectionID> <x> <y> <z>
-  if( 0 == strcmp( isCommand, "GetVolumeSurfaceRASCoordsFromRAS" ) ) {
+  // GetVolumeTkRegRASCoordsFromRAS <colllectionID> <x> <y> <z>
+  if( 0 == strcmp( isCommand, "GetVolumeTkRegRASCoordsFromRAS" ) ) {
     int collectionID;
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
@@ -931,11 +931,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
       ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
 
-      float surfaceRAS[3];
-      RASToSurfaceRAS( ras, surfaceRAS );
+      float TkRegRAS[3];
+      RASToTkRegRAS( ras, TkRegRAS );
 
       stringstream ssReturnValues;
-      ssReturnValues << surfaceRAS[0] << " " << surfaceRAS[1] << " " << surfaceRAS[2];
+      ssReturnValues << TkRegRAS[0] << " " << TkRegRAS[1] << " " << TkRegRAS[2];
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "Lfffl";
 
@@ -1682,12 +1682,12 @@ VolumeCollection::ImportControlPoints ( string ifnControlPoints,
 
       // We're getting surface RAS points. Need to convert to normal
       // RAS points.
-      Real surfaceRAS[3];
+      Real TkRegRAS[3];
       Real ras[3];
-      surfaceRAS[0] = aControlPoints[nControlPoint].x;
-      surfaceRAS[1] = aControlPoints[nControlPoint].y;
-      surfaceRAS[2] = aControlPoints[nControlPoint].z;
-      MRIsurfaceRASToRAS( mMRI, surfaceRAS[0], surfaceRAS[1], surfaceRAS[2],
+      TkRegRAS[0] = aControlPoints[nControlPoint].x;
+      TkRegRAS[1] = aControlPoints[nControlPoint].y;
+      TkRegRAS[2] = aControlPoints[nControlPoint].z;
+      MRIsurfaceRASToRAS( mMRI, TkRegRAS[0], TkRegRAS[1], TkRegRAS[2],
 			  &ras[0], &ras[1], &ras[2] );
       newControlPoint[0] = ras[0];
       newControlPoint[1] = ras[1];
