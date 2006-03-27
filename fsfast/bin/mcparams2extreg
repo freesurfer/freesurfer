@@ -6,7 +6,7 @@
 ############################################################
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.2 2006/03/27 21:16:22 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -79,10 +79,19 @@ tee $MLF > /dev/null <<EOF
   nkeep     = [$nkeep];
   northog   = [$northog];
   pctorthog = [$pctorthog];
+  monly     = $monly;
 
   mc = textread(mcfile);
   mc = mc(:,2:7);
   ntrs = size(mc,1);
+  if(ntrs < 6)
+    fprintf('ERROR: ntrs = %d < 6\n',ntrs);
+    if(~monly) 
+      fprintf('Quiting matlab\n');
+      quit; 
+      fprintf('should not be here\n');
+    end
+  end
 
   if(~isempty(nkeep))
     x = mc(:,1:nkeep);
@@ -121,6 +130,12 @@ if(! $monly ) then
   cat $MLF | $MATLAB -display iconic | tee -a $LF
   echo "------------------------------------------" | tee -a $LF
   rm $MLF
+
+  if(! -e $extreg"_000.bfloat") then
+    echo "ERROR: output not created"
+    exit 1;
+  endif
+
 endif
 
 echo " " | tee -a $LF
