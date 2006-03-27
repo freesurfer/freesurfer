@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $
+  $Id: mri_label2label.c,v 1.27 2006/03/27 22:22:36 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -70,7 +70,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.27 2006/03/27 22:22:36 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.26 2006/03/10 20:44:59 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.27 2006/03/27 22:22:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -266,6 +266,7 @@ int main(int argc, char **argv)
       MatrixMultiply(Src2TrgVolReg,xyzSrc,xyzTrg);
       
       /* unload vector into target label */
+      trglabel->lv[n].vno = srclabel->lv[n].vno; 
       trglabel->lv[n].x = xyzTrg->rptr[0+1][0+1];
       trglabel->lv[n].y = xyzTrg->rptr[0+2][0+1];
       trglabel->lv[n].z = xyzTrg->rptr[0+3][0+1];
