@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.49.2.3 2006/03/08 23:18:45 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.49.2.4 2006/03/27 21:48:16 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.49.2.3 2006/03/08 23:18:45 greve Exp $";
+"$Id: tkregister2.c,v 1.49.2.4 2006/03/27 21:48:16 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -309,7 +309,7 @@ char colormap[512];
 
 int use_draw_image2 = 1;
 int interpmethod = SAMPLE_TRILINEAR;
-int use_inorm = 0;
+int use_inorm = 1;
 
 char subjectid[1000];
 char *mov_vol_id = NULL;
@@ -3983,7 +3983,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.49.2.3 2006/03/08 23:18:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.49.2.4 2006/03/27 21:48:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
