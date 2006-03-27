@@ -2,13 +2,16 @@
 # mris_volsmooth
 # Smooths a surface inside a volume
 
-set VERSION = '$Id: mris_volsmooth,v 1.1 2006/03/05 20:59:18 greve Exp $'
+set VERSION = '$Id: mris_volsmooth,v 1.2 2006/03/27 05:03:43 greve Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
 set fwhm   = ();
 set niters = ();
-set projfrac = 0;
+set projfrac = ();
+set pfa_min   = ();
+set pfa_max   = ();
+set pfa_delta = ();
 set cleanup = 1;
 
 set PrintHelp = 0;
@@ -51,7 +54,9 @@ foreach hemi (lh rh)
 
   # sample volume to the surface
   set cmd = (mri_vol2surf --src $invol --srcreg $reg --hemi $hemi \
-    --out $surfval --noreshape --projfrac $projfrac)
+    --out $surfval --noreshape)
+  if($projfrac) set cmd = ($cmd --projfrac $projfrac)
+  if($#pfa_min)   set cmd = ($cmd --projfrac-avg $pfa_min $pfa_max $pfa_delta)
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -66,8 +71,10 @@ foreach hemi (lh rh)
 
   # stuff it back into the volume
   set cmd = (mri_surf2vol \
-    --surfval $surfval --hemi $hemi --projfrac $projfrac \
+    --surfval $surfval --hemi $hemi \
     --template $invol --volreg $reg --outvol $outvol);
+  if($projfrac) set cmd = ($cmd --projfrac $projfrac)
+  if($#pfa_min)   set cmd = ($cmd --projfrac 0) # Not really sure what to do here
   if(! -e $outvol) set cmd = ($cmd --merge $invol);
   if(-e $outvol)   set cmd = ($cmd --merge $outvol);
   echo $cmd
@@ -124,6 +131,13 @@ while( $#argv != 0 )
     case "--projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "--projfrac-avg":
+      if ( $#argv < 3) goto arg3err;
+      set pfa_min   = $argv[1]; shift;
+      set pfa_max   = $argv[1]; shift;
+      set pfa_delta = $argv[1]; shift;
       breaksw
 
     case "--tmpdir":
@@ -184,6 +198,10 @@ if($#niters && $#fwhm) then
   echo "ERROR: cannot specify fwhm and niters"
   exit 1;
 endif
+if($#projfrac && $#pfa_min) then
+  echo "ERROR: cannot specify both --projfrac and --projfrac-avg"
+  exit 1;
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -191,6 +209,12 @@ goto check_params_return;
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
   exit 1
 ############--------------##################
 
@@ -203,6 +227,7 @@ usage_exit:
   echo " --o outvol      : output volume"
   echo " --reg volreg    : registers vol to surface anatomical"
   echo " --projfrac frac : project frac of thickness along surface normal"
+  echo " --projfrac-avg min max delta : average along normal"
   echo " "
   echo " --fwhm fwhm     : suface FWHM in mm"
   echo " --niters niters  : specify smoothing with niters instead of fwhm"
@@ -249,6 +274,16 @@ volumes and the FreeSurfer surface anatomical. See tkregister2.
 
 When sampling to/from the surface, project along the surface normal
 an amount equal to frac*thickeness at each vertex. See mri_vol2surf.
+
+--projfrac-avg min max delta
+
+Same idea as --projfrac, but sample at each of the points between min
+and max at a spacing of delta. The samples are then averaged
+together. The idea here is to average along the normal. Eg,
+--projfrac-avg 0 1 .1 will sample along the normal between the white
+(0) and pial (1) every 10% for a total of 11 samples. These will then
+be averaged together. The values are then projected back into the
+surface with --projfrac 0.
 
 --fwhm fwhm
 
