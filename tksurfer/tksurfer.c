@@ -5499,11 +5499,11 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 
   /* From this, make endpoints of a segment going through the view
      plane. */
-  p1[0] = wx; p1[1] = wy; p1[2] = -1000;
-  p2[0] = wx; p2[1] = wy; p2[2] = 1000;
+  p1[0] = wx; p1[1] = wy; p1[2] = -10000;
+  p2[0] = wx; p2[1] = wy; p2[2] = 10000;
 
   /* For each face... */
-  sImin = 1000;
+  sImin = 10000;
   fmin = -1;
   for (fno = 0; fno < mris->nfaces; fno++)
     {
@@ -18970,7 +18970,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.4 2006/03/24 21:51:14 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.5 2006/03/27 16:04:26 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
