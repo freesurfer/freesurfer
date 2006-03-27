@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.53 2006/03/27 21:47:26 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.53 2006/03/27 21:47:26 greve Exp $";
+"$Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -740,6 +740,12 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       c = nint(Vcrs->rptr[1][1]);
       r = nint(Vcrs->rptr[2][1]);
       s = nint(Vcrs->rptr[3][1]);
+      if(c < 0 || c > 255 || r < 0 || r > 255 || s < 0 || s > 255){
+	printf("ERROR: vertex %d (%g,%g,%g) is out of range (%d,%d,%d)\n",
+	       n,surf->vertices[n].x,surf->vertices[n].y,surf->vertices[n].z,
+	       c,r,s);
+	exit(1);
+      }
       MRIvox(mrisurf,c,r,s) = 1;
     }
     MRISfree(&surf);
@@ -764,6 +770,12 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       c = nint(Vcrs->rptr[1][1]);
       r = nint(Vcrs->rptr[2][1]);
       s = nint(Vcrs->rptr[3][1]);
+      if(c < 0 || c > 255 || r < 0 || r > 255 || s < 0 || s > 255){
+	printf("ERROR: vertex %d (%g,%g,%g) is out of range (%d,%d,%d)\n",
+	       n,surf->vertices[n].x,surf->vertices[n].y,surf->vertices[n].z,
+	       c,r,s);
+	exit(1);
+      }
       MRIvox(mrisurf,c,r,s) = 2;
     }
     MRISfree(&surf);
@@ -3983,7 +3995,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.53 2006/03/27 21:47:26 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
