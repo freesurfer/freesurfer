@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/03/22 14:36:22 $
-// Revision       : $Revision: 1.101 $
+// Revision Date  : $Date: 2006/03/28 16:56:34 $
+// Revision       : $Revision: 1.102 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -644,7 +644,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 					}
 					else
 					{
-						printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
+						if (Gdiag & DIAG_SHOW)
+							printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
 						mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
 						if (parms->mri_binary)
 							parms->mri_binary_smooth = MRIconvolveGaussian(parms->mri_binary, 
@@ -3572,7 +3573,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			pct_change = 100.0*(last_rms-rms)/last_rms ;
 		if ((pct_change < last_pct_change) || FZERO(pct_change))
 		{
-			if (increasing)
+			if (increasing && (Gdiag & DIAG_SHOW))
 				printf("pct change decreased\n") ;
 			increasing = 0 ;
 		}
@@ -3580,7 +3581,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			increasing = 1 ;
 		if (pct_change < 0)
 		{
-			printf("rms increased - undoing step...\n") ;
+			if (Gdiag & DIAG_SHOW)
+				printf("rms increased - undoing step...\n") ;
 			increasing = 0 ;
 			if (parms->constrain_jacobian == 0)
 			{
@@ -3621,7 +3623,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 		{
 			int compressed ;
 
-			if (max_small > 1)
+			if ((max_small > 1) && (Gdiag & DIAG_SHOW))
 				printf("\tpct change < tol %2.3f, nsmall = %d of %d\n",
 							 tol, nsmall+1, max_small) ;
 			// if we ever took a good step since the last regridding, and we tried to uncomress and failed, regrid
@@ -3694,8 +3696,9 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 									min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
 #endif
 							}
-							printf("\tswitching integration type to %s (done=%d)\n",
-										 which == GCAM_INTEGRATE_FIXED ? "fixed" : "optimal",done);
+							if (Gdiag & DIAG_SHOW)
+								printf("\tswitching integration type to %s (done=%d)\n",
+											 which == GCAM_INTEGRATE_FIXED ? "fixed" : "optimal",done);
 						}
 						good_step = nsmall = 0 ; gcamClearMomentum(gcam) ;
 					}
