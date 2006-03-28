@@ -1,0 +1,288 @@
+#!/bin/csh -f
+
+set VERSION = '$Id';
+
+set PrintHelp = 0;
+set cleanup = 1;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+####### check that the AFNI commands exist #######
+which 3dvolreg > /dev/null
+if($status) then
+  echo "ERROR: cannot find AFNI command 3dvolreg"
+  exit 1;
+endif
+
+set mcdat = $outdir/$outbase.mcdat 
+if(-e $mcdat) then
+  if(! -w $mcdat) then
+    echo "ERROR: $mcdat file exists but you do not have write permission"
+    echo "change the permissions on this file and re-run"
+    exit 1;
+  endif
+endif
+
+  set VR = 3dvolreg
+  $VR -verbose -dfile $mcdat \
+      -prefix $afniprefix.volreg  \
+      -base targ-$afniprefix+orig\[$targoff\] $afniprefix+orig
+  set st = $status;
+  if($st) then
+    echo "ERROR: 3dvolreg existed with status $st"
+    exit 1;
+  endif
+
+# add total distplacment
+set tmpmc = /tmp/tmp_$$.mcdat
+addmcparams $mcdat > $tmpmc
+mv $tmpmc $mcdat
+
+popd > /dev/null
+
+set cmd = (mri_convert $afnisession/$afniprefix.volreg+orig.BRIK \
+  $outstem"_000".$inext)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+## Clean up the anfi files ##
+if( $cleanup ) then
+  rm -f $afnisession/$afniprefix+orig.*
+  rm -f $afnisession/$afniprefix.volreg+orig.*
+  rm -f $afnisession/$targprefix+orig.* >& /dev/null
+  rmdir $afnisession >& /dev/null
+endif
+
+if(-e $instem.bhdr) cp $instem.bhdr $outstem.bhdr
+
+echo "----------------------------------------------------"
+echo "Those using the AFNI motion correction should cite:"
+echo "  RW Cox and A Jesmanowicz."
+echo "  Real-time 3D image registration for functional MRI."
+echo "  Magnetic Resonance in Medicine, 42: 1014-1018, 1999."
+echo "----------------------------------------------------"
+
+echo "mc-afni completed SUCCESSFULLY"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set targstem = $argv[1]; shift;
+      breaksw
+
+    case "-toff":
+      if ( $#argv == 0) goto arg1err;
+      set targoff = $argv[1]; shift;
+      breaksw
+
+    case "-session":
+      if ( $#argv == 0) goto arg1err;
+      set afnisession = $argv[1]; shift;
+      breaksw
+
+    case "-prefix":
+      if ( $#argv == 0) goto arg1err;
+      set afniprefix = $argv[1]; shift;
+      breaksw
+
+    case "-ipr"
+    case "-inplaneres":
+      if ( $#argv == 0) goto arg1err;
+      set inplaneres = $argv[1]; shift;
+      breaksw
+
+    case "-bpr"
+    case "-betplaneres":
+      if ( $#argv == 0) goto arg1err;
+      set betplaneres = $argv[1]; shift;
+      breaksw
+
+    case "-TR"
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-bvol2afni":
+      set UseBVOL2AFNI = 1;
+      breaksw
+
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose ;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if ($#instem == 0) then
+     echo "ERROR: no input stem specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  set i0 = $instem"_000.hdr";
+  if(! -e $i0) then
+    echo "ERROR: cannot find $i0"
+    exit 1;
+  endif
+
+  if ($#targstem != 0) then
+    set i0 = $targstem"_000.hdr";
+    if(! -e $i0) then
+      echo "ERROR: cannot find $i0"
+      exit 1;
+    endif
+  endif
+
+  if ($#outstem == 0) then
+     echo "ERROR: no output stem specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if($#inplaneres == 0) then
+    # Automatically determine resolutions if not specified
+    mri_info --cres $instem.bhdr --o /tmp/tmp.$$.dat
+    set inplaneres = `cat /tmp/tmp.$$.dat`;
+    mri_info --sres $instem.bhdr --o /tmp/tmp.$$.dat
+    set betplaneres = `cat /tmp/tmp.$$.dat`;
+    mri_info --tr $instem.bhdr --o /tmp/tmp.$$.dat
+    set TR = `cat /tmp/tmp.$$.dat`;
+    set TR = `echo $TR/1000 | bc -l`;
+    rm /tmp/tmp.$$.dat
+  endif
+
+  if($#inplaneres == 0) then
+    echo "ERROR: must specify an in-plane resolution"
+    set errs = 1;
+  endif
+
+  if($#betplaneres == 0) then
+    echo "ERROR: must specify a between-planes resolution"
+    set errs = 1;
+  endif
+
+  if($#TR == 0) then
+    set TR = 1;
+    echo "INFO: no TR specified ... using $TR seconds"
+  endif
+
+  if($errs) then
+    echo "ERRORS detected ... aborting"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mc-afni2"
+  echo ""
+  echo " Required:";
+  echo "   --i invol  : input  volume "
+  echo "   --o outvol : output volume "
+  echo ""
+  echo " Options:";
+  echo "   --t templatevol : default is to use input volume"
+  echo "   --frame frame  : 0-based frame of template "
+  echo ""
+  echo "   --help"
+  echo "   --tmp tmpdir   : specify template directory (implies --nocleanup)"
+  echo "   --nocleanup    : do not delete temporary files"
+  echo "   --cleanup      : force cleanup"
+  echo "   --version : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Motion correction with AFNI 3dvolreg.
