@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.111 2006/03/14 22:06:17 kteich Exp $
+# $Id: tksurfer.tcl,v 1.112 2006/03/28 22:23:13 kteich Exp $
 
 package require BLT;
 
@@ -2831,11 +2831,13 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ cascade "Time Course" {
 	    { command "Graph Marked Vertices Avg"
-		{ func_select_marked_vertices
+		{ func_clear_selection
+		    func_select_marked_vertices
 		    func_graph_timecourse_selection}
 		mg_TimeCourseLoaded }
 	    { command "Graph Label Avg"
-		{ func_select_label
+		{ func_clear_selection
+		    func_select_label
 		    func_graph_timecourse_selection }
 		mg_TimeCourseLoaded }
 	    { command "Write Summary of Marked Vertices..."
@@ -3549,8 +3551,8 @@ proc Graph_HideWindow {} {
 proc Graph_BeginData {} {
     global gConditionData gnNumDataSets
     for { set nCond 0 } { $nCond < $gnNumDataSets } { incr nCond } {
-  set gConditionData($nCond,points) {}
-  set gConditionData($nCond,errors) {}
+	set gConditionData($nCond,points) {}
+	set gConditionData($nCond,errors) {}
     }
 }
 
@@ -3596,126 +3598,126 @@ proc Graph_Draw {} {
     
     # if there is only one condition, show it (0 is hidden by default)
     if { $gnNumDataSets == 1 } {
-  set gGraphSetting(Red,visible) 1
+	set gGraphSetting(Red,visible) 1
     }
     
     foreach dataSet $glGraphColors {
-  
-  # skip if not visible.
-  if { $gGraphSetting($dataSet,visible) == 0 } { continue; }
-  
-  # get the condition index for this color
-  set nCondition $gGraphSetting($dataSet,condition)
-  
-  # get the data. continue if we couldn't get it. get its length.
-  if { [catch { set lGraphData $gConditionData($nCondition,points) } \
-    sResult]} { continue; }
-  set nLength [llength $lGraphData]
-  if { $nLength <= 0 } { continue; }
-  
-  # try to size the spacing of the ticks on the x axis appropriatly.
-  # get the x range of this data and find out how many points we have.
-  # then get the width of the graph and divide it by the number
-  # of points. if < knMinWidthPerTick pixels, set the step size to
-  # the width divided by knMinWidthPerTick. otherwise set it to half
-  # time res (half because the minor tick goes in between each
-  # major tick).
-  set nNumPoints [expr $nLength / 2]
-  set nWidth [$gwGraph cget -width]
-  set nWidthPerTick [expr $nWidth / $nNumPoints]
-  if { $nWidthPerTick < $knMinWidthPerTick } {
-      set nNumMarks [expr $nWidth / $knMinWidthPerTick]
-      set nWidthPerTick [expr $nNumPoints / $nNumMarks]
-      $gwGraph axis configure x -stepsize $nWidthPerTick
-  } else {
-      set nWidthPerTick [expr $gaLinkedVars(timeresolution) / 2]
-      if { $nWidthPerTick < 1 } {
-    set nWidthPerTick 1
-      }
-      $gwGraph axis configure x -stepsize $nWidthPerTick
-  }
-
-  # if we're subtracting the prestim avg..
-  if { $gbPreStimOffset && $gaLinkedVars(numprestimpoints) > 0 } {
-
-      # get the sum of all the points before the stim.
-      set fPreStimSum 0
-      set nNumPreStimPoints $gaLinkedVars(numprestimpoints)
-      for { set nTP 0 } { $nTP < $nNumPreStimPoints } { incr nTP } {
-    set nIndex [expr [expr $nTP * 2] + 1];
-    set fPreStimSum [expr double($fPreStimSum) + double([lindex $lGraphData $nIndex])];
-      }
-
-      # find the avg.
-      set fPreStimAvg [expr double($fPreStimSum) / double($nNumPreStimPoints)]
-      # subtract from all points.
-      for { set nTP 0 } { $nTP < $nNumPoints } { incr nTP } {
-    set nIndex [expr [expr $nTP * 2] + 1];
-    set fOldValue [lindex $lGraphData $nIndex]
-    set fNewValue [expr double($fOldValue) - double($fPreStimAvg)]
-    set lGraphData [lreplace $lGraphData $nIndex $nIndex $fNewValue]
-      }
-  }
-
-
-  # graph the data
-  $gwGraph element create line$dataSet \
-    -data $lGraphData \
-    -color $dataSet \
-    -label $gGraphSetting($dataSet,label) \
-    -pixels 2 \
-    -linewidth 2
-  
-  # if we're drawing error bars...
-  if { 1 == $gbErrorBars } {
-      
-      # get the data for this condition.
-      if { [catch { set lErrors $gConditionData($nCondition,errors) } \
-        sResult] } { continue; }
-      
-      # get the num of errors. save the highest number
-      set nLength [llength $lErrors]
-      if { $nLength > $gnMaxNumErrorBars } { 
-    set gnMaxNumErrorBars $nLength
-      }
-
-      # for each value...
-      for {set nErrorIndex 0} \
-        {$nErrorIndex < $nLength} \
-        {incr nErrorIndex} {
+	
+	# skip if not visible.
+	if { $gGraphSetting($dataSet,visible) == 0 } { continue; }
+	
+	# get the condition index for this color
+	set nCondition $gGraphSetting($dataSet,condition)
+	
+	# get the data. continue if we couldn't get it. get its length.
+	if { [catch { set lGraphData $gConditionData($nCondition,points) } \
+		  sResult]} { continue; }
+	set nLength [llength $lGraphData]
+	if { $nLength <= 0 } { continue; }
+	
+	# try to size the spacing of the ticks on the x axis appropriatly.
+	# get the x range of this data and find out how many points we have.
+	# then get the width of the graph and divide it by the number
+	# of points. if < knMinWidthPerTick pixels, set the step size to
+	# the width divided by knMinWidthPerTick. otherwise set it to half
+	# time res (half because the minor tick goes in between each
+	# major tick).
+	set nNumPoints [expr $nLength / 2]
+	set nWidth [$gwGraph cget -width]
+	set nWidthPerTick [expr $nWidth / $nNumPoints]
+	if { $nWidthPerTick < $knMinWidthPerTick } {
+	    set nNumMarks [expr $nWidth / $knMinWidthPerTick]
+	    set nWidthPerTick [expr $nNumPoints / $nNumMarks]
+	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	} else {
+	    set nWidthPerTick [expr $gaLinkedVars(timeresolution) / 2]
+	    if { $nWidthPerTick < 1 } {
+		set nWidthPerTick 1
+	    }
+	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	}
+	
+	# if we're subtracting the prestim avg..
+	if { $gbPreStimOffset && $gaLinkedVars(numprestimpoints) > 0 } {
+	    
+	    # get the sum of all the points before the stim.
+	    set fPreStimSum 0
+	    set nNumPreStimPoints $gaLinkedVars(numprestimpoints)
+	    for { set nTP 0 } { $nTP < $nNumPreStimPoints } { incr nTP } {
+		set nIndex [expr [expr $nTP * 2] + 1];
+		set fPreStimSum [expr double($fPreStimSum) + double([lindex $lGraphData $nIndex])];
+	    }
+	    
+	    # find the avg.
+	    set fPreStimAvg [expr double($fPreStimSum) / double($nNumPreStimPoints)]
+	    # subtract from all points.
+	    for { set nTP 0 } { $nTP < $nNumPoints } { incr nTP } {
+		set nIndex [expr [expr $nTP * 2] + 1];
+		set fOldValue [lindex $lGraphData $nIndex]
+		set fNewValue [expr double($fOldValue) - double($fPreStimAvg)]
+		set lGraphData [lreplace $lGraphData $nIndex $nIndex $fNewValue]
+	    }
+	}
+	
+	
+	# graph the data
+	$gwGraph element create line$dataSet \
+	    -data $lGraphData \
+	    -color $dataSet \
+	    -label $gGraphSetting($dataSet,label) \
+	    -pixels 2 \
+	    -linewidth 2
+	
+	# if we're drawing error bars...
+	if { 1 == $gbErrorBars } {
+	    
+	    # get the data for this condition.
+	    if { [catch { set lErrors $gConditionData($nCondition,errors) } \
+		      sResult] } { continue; }
+	    
+	    # get the num of errors. save the highest number
+	    set nLength [llength $lErrors]
+	    if { $nLength > $gnMaxNumErrorBars } { 
+		set gnMaxNumErrorBars $nLength
+	    }
+	    
+	    # for each value...
+	    for {set nErrorIndex 0} \
+		{$nErrorIndex < $nLength} \
+		{incr nErrorIndex} {
     
-    # get error amt
-    set nError [lindex $lErrors $nErrorIndex]
-    
-    # if 0, continue
-    if { $nError == 0 } { continue; }
-    
-    # get the index of the data in the graph data list
-    set nGraphIndex [expr $nErrorIndex * 2]
-    
-    # get the x/y coords at this point on the graph
-    set nX [lindex $lGraphData $nGraphIndex]
-    set nY [lindex $lGraphData [expr $nGraphIndex + 1]];
-    
-    # draw a graph line from the top to the bottom
-    $gwGraph element create error$dataSet$nErrorIndex \
-      -data [list $nX [expr $nY - $nError] \
-      $nX [expr $nY + $nError] ] \
-      -color $dataSet \
-      -symbol splus \
-      -label "" \
-      -pixels 5
-      }
-  }
+		    # get error amt
+		    set nError [lindex $lErrors $nErrorIndex]
+		    
+		    # if 0, continue
+		    if { $nError == 0 } { continue; }
+		    
+		    # get the index of the data in the graph data list
+		    set nGraphIndex [expr $nErrorIndex * 2]
+		    
+		    # get the x/y coords at this point on the graph
+		    set nX [lindex $lGraphData $nGraphIndex]
+		    set nY [lindex $lGraphData [expr $nGraphIndex + 1]];
+		    
+		    # draw a graph line from the top to the bottom
+		    $gwGraph element create error$dataSet$nErrorIndex \
+			-data [list $nX [expr $nY - $nError] \
+				   $nX [expr $nY + $nError] ] \
+			-color $dataSet \
+			-symbol splus \
+			-label "" \
+			-pixels 5
+		}
+	}
     }
     
     # draw some axes
     $gwGraph marker create line \
-      -coords [list 0 -Inf 0 Inf] \
-      -name xAxis
+	-coords [list 0 -Inf 0 Inf] \
+	-name xAxis
     $gwGraph marker create line \
-      -coords [list -Inf 0 Inf 0] \
-      -name yAxis
+	-coords [list -Inf 0 Inf 0] \
+	-name yAxis
     
     # if autorange is off, set the min and max of the axes to the saved
     # amounts.
