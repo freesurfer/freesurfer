@@ -1,9 +1,17 @@
 #!/bin/csh -f
 
-set VERSION = '$Id';
+set VERSION = '$Id: mc-afni2,v 1.2 2006/03/28 06:37:17 greve Exp $';
 
-set PrintHelp = 0;
+set invol = ();
+set outvol = ();
+set tempvol = ();
+set frame = 0;
+set mcdat = ();
+
+set nolog = 0;
+set tmpdir = ();
 set cleanup = 1;
+set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
@@ -25,63 +33,133 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-####### check that the AFNI commands exist #######
+# Check that the AFNI 3dvolreg exists
 which 3dvolreg > /dev/null
 if($status) then
   echo "ERROR: cannot find AFNI command 3dvolreg"
   exit 1;
 endif
 
-set mcdat = $outdir/$outbase.mcdat 
-if(-e $mcdat) then
-  if(! -w $mcdat) then
-    echo "ERROR: $mcdat file exists but you do not have write permission"
-    echo "change the permissions on this file and re-run"
-    exit 1;
-  endif
-endif
-
-  set VR = 3dvolreg
-  $VR -verbose -dfile $mcdat \
-      -prefix $afniprefix.volreg  \
-      -base targ-$afniprefix+orig\[$targoff\] $afniprefix+orig
-  set st = $status;
-  if($st) then
-    echo "ERROR: 3dvolreg existed with status $st"
-    exit 1;
-  endif
-
-# add total distplacment
-set tmpmc = /tmp/tmp_$$.mcdat
-addmcparams $mcdat > $tmpmc
-mv $tmpmc $mcdat
-
-popd > /dev/null
-
-set cmd = (mri_convert $afnisession/$afniprefix.volreg+orig.BRIK \
-  $outstem"_000".$inext)
+# Set up template volume
+if($#tempvol == 0) set tempvol = $invol;
+set infotxt = /tmp/mriinfo.$$
+set cmd = (mri_info --nframes --o $infotxt $tempvol);
+pwd
 echo $cmd
 $cmd
 if($status) exit 1;
-
-## Clean up the anfi files ##
-if( $cleanup ) then
-  rm -f $afnisession/$afniprefix+orig.*
-  rm -f $afnisession/$afniprefix.volreg+orig.*
-  rm -f $afnisession/$targprefix+orig.* >& /dev/null
-  rmdir $afnisession >& /dev/null
+set nframes = `cat $infotxt`;
+if($frame >= $nframes) then
+  echo "ERROR: template volume $tempvol has only $nframes"
+  echo "       but you have specified to use $frame"
+  exit 1;
 endif
 
-if(-e $instem.bhdr) cp $instem.bhdr $outstem.bhdr
+# Output directory
+set outdir = `dirname $outvol`;
+mkdir -p $outdir
+if($status) then
+  echo "ERROR: creating $outdir"
+  exit 1;
+endif
 
-echo "----------------------------------------------------"
-echo "Those using the AFNI motion correction should cite:"
-echo "  RW Cox and A Jesmanowicz."
-echo "  Real-time 3D image registration for functional MRI."
-echo "  Magnetic Resonance in Medicine, 42: 1014-1018, 1999."
-echo "----------------------------------------------------"
+# Setup the log file
+if(! $nolog) then
+  set LF = $outvol.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+echo "log file is $LF"
+pwd >> $LF
+which mc-afni2 >> $LF
+echo $cmdargs >> $LF
+date     >> $LF
+id       >> $LF
+hostname >> $LF
+uname -a >> $LF
+which 3dvolreg >> $LF
 
-echo "mc-afni completed SUCCESSFULLY"
+# Set up output mcdat
+if($#mcdat == 0) set mcdat = $outvol.mcdat 
+echo "mcdat file is $mcdat" |& tee -a $LF
+
+# Tmp Dir
+if($#tmpdir == 0) set tmpdir = $outdir/tmp.mc-afni2.$$
+mkdir -p $tmpdir
+echo "tmp dir is $tmpdir" |& tee -a $LF
+
+# Extract Template from template volume
+set newtempvol = $tmpdir/tempvol.nii.gz
+@ nskip = $frame
+@ ndrop = ($nframes - $frame) - 1;
+set cmd = (mri_convert $tempvol $newtempvol \
+  --nskip $nskip --ndrop $ndrop -odt float)
+echo "#@# --------------------------------" |& tee -a $LF
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Convert the input to nifti (always to assure float)
+set newinvol = $tmpdir/invol.nii.gz
+set cmd = (mri_convert $invol $newinvol -odt float)
+echo "#@# --------------------------------" |& tee -a $LF
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Setup the output volume
+set newoutvol = $tmpdir/outvol.nii.gz
+
+# Now, finally, do the motion correction
+set cmd = (3dvolreg -verbose -dfile $mcdat \
+           -base $newtempvol -prefix $newoutvol $newinvol)
+echo "#@# --------------------------------" |& tee -a $LF
+pwd       |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd      |& tee -a $LF
+if($status) then
+  echo "ERROR: 3dvolreg" |& tee -a $LF
+  if($cleanup) then
+    echo "... cleaning up ...."; |& tee -a $LF
+    rm -r $tmpdir
+  endif
+  exit 1;
+endif
+
+# Always convert the output. AFNI mucks with the goemetry,
+# so we have to run mri_convert with --like to keep it.
+# 3dvolreg will remove off-diagonal components (but keeps
+# the basic geometry correct).
+echo "#@# --------------------------------" |& tee -a $LF
+set cmd = (mri_convert $newoutvol $outvol --like $tempvol)
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: converting output " |& tee -a $LF
+  if($cleanup) then
+    echo "... cleaning up ...."; |& tee -a $LF
+    rm -r $tmpdir
+  endif
+  exit 1;
+endif
+
+# add total distplacment to last col of mcdat file
+set tmpmc = /tmp/tmp_$$.mcdat
+addmcparams $mcdat > $tmpmc 
+mv $tmpmc $mcdat
+
+## Clean up the anfi files ##
+if($cleanup) then
+   echo "... cleaning up ...." |& tee -a $LF
+   rm -r $tmpdir
+endif
+
+date |& tee -a $LF
+echo "mc-afni2 done" |& tee -a $LF
 
 exit 0;
 
@@ -94,83 +172,52 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "-i":
+    case "--i":
       if ( $#argv == 0) goto arg1err;
-      set instem = $argv[1]; shift;
+      set invol = $argv[1]; shift;
       breaksw
 
-    case "-o":
+    case "--o":
       if ( $#argv == 0) goto arg1err;
-      set outstem = $argv[1]; shift;
+      set outvol = $argv[1]; shift;
       breaksw
 
-    case "-t":
+    case "--mcdat":
       if ( $#argv == 0) goto arg1err;
-      set targstem = $argv[1]; shift;
+      set mcdat = $argv[1]; shift;
       breaksw
 
-    case "-toff":
+    case "--t":
       if ( $#argv == 0) goto arg1err;
-      set targoff = $argv[1]; shift;
+      set tempvol = $argv[1]; shift;
       breaksw
 
-    case "-session":
+    case "--frame":
       if ( $#argv == 0) goto arg1err;
-      set afnisession = $argv[1]; shift;
+      set frame = $argv[1]; shift;
       breaksw
 
-    case "-prefix":
+    case "--tmp":
       if ( $#argv == 0) goto arg1err;
-      set afniprefix = $argv[1]; shift;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
       breaksw
 
-    case "-ipr"
-    case "-inplaneres":
-      if ( $#argv == 0) goto arg1err;
-      set inplaneres = $argv[1]; shift;
+    case "--nocleanup":
+      set cleanup = 0;
       breaksw
 
-    case "-bpr"
-    case "-betplaneres":
-      if ( $#argv == 0) goto arg1err;
-      set betplaneres = $argv[1]; shift;
+    case "--cleanup":
+      set cleanup = 1;
       breaksw
 
-    case "-TR"
-      if ( $#argv == 0) goto arg1err;
-      set TR = $argv[1]; shift;
+    case "--nolog":
+      set nolog = 1;
       breaksw
 
-    case "-bvol2afni":
-      set UseBVOL2AFNI = 1;
-      breaksw
-
-    case "-version":
-      echo $VERSION
-      exit 0;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      set umaskarg = "-umask $argv[1]";
-      umask $argv[1]; shift;
-      breaksw
-
-    case "-verbose":
-      set verbose ;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
-      breaksw
-
-    case "-debug":
+    case "--debug":
       set verbose = 1;
       set echo = 1;
-      breaksw
-
-    case "-nocleanup":
-      set cleanup = 0;
       breaksw
 
     default:
@@ -188,63 +235,24 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  set errs = 0;
-
-  if ($#instem == 0) then
-     echo "ERROR: no input stem specified"|& tee -a $LF 
-     exit 1
-  endif
-
-  set i0 = $instem"_000.hdr";
-  if(! -e $i0) then
-    echo "ERROR: cannot find $i0"
+if($#invol == 0) then
+  echo "ERROR: must specify an input volume"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+if($#outvol == 0) then
+  echo "ERROR: must specify an output volume"
+  exit 1;
+endif
+if($#tempvol != 0) then
+  if(! -e $tempvol) then 
+    echo "ERROR: cannot find template volume $tempvol"
     exit 1;
   endif
-
-  if ($#targstem != 0) then
-    set i0 = $targstem"_000.hdr";
-    if(! -e $i0) then
-      echo "ERROR: cannot find $i0"
-      exit 1;
-    endif
-  endif
-
-  if ($#outstem == 0) then
-     echo "ERROR: no output stem specified"|& tee -a $LF 
-     exit 1
-  endif
-
-  if($#inplaneres == 0) then
-    # Automatically determine resolutions if not specified
-    mri_info --cres $instem.bhdr --o /tmp/tmp.$$.dat
-    set inplaneres = `cat /tmp/tmp.$$.dat`;
-    mri_info --sres $instem.bhdr --o /tmp/tmp.$$.dat
-    set betplaneres = `cat /tmp/tmp.$$.dat`;
-    mri_info --tr $instem.bhdr --o /tmp/tmp.$$.dat
-    set TR = `cat /tmp/tmp.$$.dat`;
-    set TR = `echo $TR/1000 | bc -l`;
-    rm /tmp/tmp.$$.dat
-  endif
-
-  if($#inplaneres == 0) then
-    echo "ERROR: must specify an in-plane resolution"
-    set errs = 1;
-  endif
-
-  if($#betplaneres == 0) then
-    echo "ERROR: must specify a between-planes resolution"
-    set errs = 1;
-  endif
-
-  if($#TR == 0) then
-    set TR = 1;
-    echo "INFO: no TR specified ... using $TR seconds"
-  endif
-
-  if($errs) then
-    echo "ERRORS detected ... aborting"
-    exit 1;
-  endif
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -264,13 +272,15 @@ usage_exit:
   echo "   --o outvol : output volume "
   echo ""
   echo " Options:";
-  echo "   --t templatevol : default is to use input volume"
-  echo "   --frame frame  : 0-based frame of template "
+  echo "   --t templatevol   : default is to use input volume"
+  echo "   --frame frame     : 0-based frame of template "
+  echo "   --mcdat mcdatfile : text file with mc parameters"
   echo ""
-  echo "   --help"
   echo "   --tmp tmpdir   : specify template directory (implies --nocleanup)"
   echo "   --nocleanup    : do not delete temporary files"
   echo "   --cleanup      : force cleanup"
+  echo ""
+  echo "   --help"
   echo "   --version : print version and exit"
   echo ""
 
@@ -285,4 +295,72 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Motion correction with AFNI 3dvolreg.
+Front-end for motion correction with AFNI 3dvolreg. See 3dvolreg -help
+for more info.
+
+Those using the AFNI motion correction should cite: RW Cox and A
+Jesmanowicz.  Real-time 3D image registration for functional MRI.
+Magnetic Resonance in Medicine, 42: 1014-1018, 1999.
+
+Differs from mc-afni in that: (1) it can take any format for input and
+output, (2) uses nifit gz as input/output from 3dvolreg, and (3) gives
+and gets floats to/from 3dvolreg instead of shorts.
+
+--i invol
+
+Input volume to be registered. Can/should have multiple frames.
+
+--o outvol 
+
+Output after all frames have been aligned with the template. Will
+have the same geometry as the template. Note: this is NOT the default
+for AFNI/3dvolreg.
+
+--t templatevol
+
+Volume to register to. If not specified, defaults to the first frame
+of the input. The output volume will have the same geometry as the
+template volume.
+
+--frame nth
+
+Use nth frame from the template volume as the template. nth is 0-based,
+ie, nth=0 means first frame, etc. Default is 0.
+
+--mcdat mcdatfile
+
+Save motion correction parameters into mcdatfile. Default is outvol.mcdat.
+
+  The AFNI 3dvolreg output mcdat file will have the following 10 columns:
+  1. n      : time point
+  2. roll   : rotation about the column (?) axis (degrees CCW)
+  3. pitch  : rotation about the row (?) axis (degrees CCW)
+  4. yaw    : rotation about the slice (?) axis (degrees CCW)
+  5. dcol   : displacement in the column direction (mm)
+  6. drow   : displacement in the row direction (mm)
+  7. dslice : displacement in the slice direction (mm)
+  8. rmsold : RMS difference between input frame and reference frame
+  9. rmsnew : RMS difference between output frame and reference frame
+  10. trans : translation (mm) = sqrt(dslice^2 + dcol^2 + drow^2)
+
+  Where "displacement in the column direction" means orthogonal to the
+  row-slice plane. A negative dcol indicates that the input volume was
+  originally shifted up from the template and had to be shifted down. A
+  negative drow indicates that the input was was originally to the right
+  of the template and had to be shifted to the left. A negative dslice
+  means that the input started closer to slice 0 than the template and
+  had to be shifted away from slice 0.
+
+--tmp tmpdir
+
+Use tmpdir as a staging area. Default is to create a randomly named
+subdirectory in the output directory. --tmp implies --nocleanup
+
+--nocleanup
+
+Do NOT delete tmpdir
+
+--cleanup
+
+DO delete tmpdir
+
