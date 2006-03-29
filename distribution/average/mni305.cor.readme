@@ -1,4 +1,4 @@
-$Id: mni305.cor.readme,v 1.4 2006/03/29 02:30:24 greve Exp $
+$Id: mni305.cor.readme,v 1.5 2006/03/29 07:21:50 greve Exp $
 
 The data in mni305.cor.mgz was derived from the MINC Software package with:
 
@@ -37,6 +37,14 @@ by the mksubfov.m matlab script. Here are the docs for that script:
 %   mri_convert mni305.cor.subfov1.mgz mni305.cor.subfov1.mgz --odt uchar
 %   mri_convert mni305.cor.subfov2.mgz mni305.cor.subfov2.mgz --odt uchar
 % This just reduces the size by a factor of 4.
+
+Registration matrices are also saved with:
+tkregister2 --targ mni305.cor.mgz --mov mni305.cor.subfov1.mgz \
+        --regheader --reg mni305.cor.subfov1.reg --noedit \
+        --subject fsaverage
+tkregister2 --targ mni305.cor.mgz --mov mni305.cor.subfov2.mgz \
+        --regheader --reg mni305.cor.subfov2.reg --noedit \
+        --subject fsaverage
 
 D. L.  Collins, P.  Neelin, T.  M.  Peters and A.  C.  Evans,
 Automatic 3D Inter-Subject Registration of MR Volumetric Data in
