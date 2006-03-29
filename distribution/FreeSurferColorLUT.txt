@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.17 2006/03/24 01:01:14 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.18 2006/03/29 21:33:59 fischl Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -200,6 +200,14 @@
 153  SC-Tissue                                     139 121  94    0
 154  Orbital-Adipose                               238  59  59    0
 
+193  Left-hippocampal_fissure		0	196	255	0
+194  Left-CADG-head			255	164	164	0
+195  Left-subiculum			196	196	0	0
+196  Left-fimbria			0	100	255	0
+197  Right-hippocampal_fissure		128	196	164	0
+198  Right-CADG-head			0	196	0	0
+199  Right-subiculum			128	96	64	0
+200  Right-fimbria			0	50	128	0
 201  alveus                        255 204 153	0
 202  perforant_pathway		 255	128	128	0
 203  parasubiculum		 255	255	0	0
