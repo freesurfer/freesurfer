@@ -11,6 +11,9 @@
 #include "mriSurface.h"
 #include "mriHeadPointList.h"
 #include "vlabels.h"
+#ifdef Darwin
+  #include <sys/select.h>
+#endif
 
 typedef enum {
   
