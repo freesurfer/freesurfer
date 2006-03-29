@@ -1,4 +1,4 @@
-$Id: mni305.cor.readme,v 1.3 2006/02/24 00:54:52 greve Exp $
+$Id: mni305.cor.readme,v 1.4 2006/03/29 02:30:24 greve Exp $
 
 The data in mni305.cor.mgz was derived from the MINC Software package with:
 
@@ -10,11 +10,33 @@ mri_convert $mincdir/share/mni_autoreg/average_305.mnc mni305.cor.mgz \
 mri_convert $mincdir/share/mni_autoreg/average_305_mask.mnc mni305.mask.cor.mgz \
   -oc 0 0 0 --conform
 
-
-
 The purpose is to provide a the target volume of MNI Talairach
 registration in "conformed" FreeSurfer format. This can be used to
 check talairach registrations.
+
+In addition, there are two more volumes based on this volume: 
+mni305.cor.subfov1.mgz and mni305.cor.subfov2.mgz. These are created
+by the mksubfov.m matlab script. Here are the docs for that script:
+
+% The purpose of this matlab script is to create the
+% mni305.cor.subfov1.mgz and mni305.cor.subfov2.mgz volumes.  These
+% are the same data as found in mni305.cor.mgz, but the field-of-view
+% is much smaller and only covers the brain. The purpose of this is to
+% reduce the amount of space needed to store the data. This is
+% especially important when doing group functional analysis where
+% there might be many subjects combined. In one subfov (subfov1), the
+% voxel size is 1mm isotropic, 151 x 151 x 186. In the other (yep,
+% subfov2), its 2mm isotropic,  76 x 76 x 93. These volumes are in
+% register with mni305.cor.mgz in that the share the same RAS
+% space, ie, you can run:
+%   tkregister2 --targ mni305.cor.mgz --mov mni305.cor.subfov1.mgz \
+%        --regheader --reg /tmp/reg
+% And the volumes will be in register.
+%
+% After these files are created by this program, run the following:
+%   mri_convert mni305.cor.subfov1.mgz mni305.cor.subfov1.mgz --odt uchar
+%   mri_convert mni305.cor.subfov2.mgz mni305.cor.subfov2.mgz --odt uchar
+% This just reduces the size by a factor of 4.
 
 D. L.  Collins, P.  Neelin, T.  M.  Peters and A.  C.  Evans,
 Automatic 3D Inter-Subject Registration of MR Volumetric Data in
