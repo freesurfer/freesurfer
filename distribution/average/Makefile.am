@@ -11,7 +11,9 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.tif) \
  $(wildcard *.txt) \
  $(wildcard *.mgz) \
- mni305.cor.readme
+ mni305.cor.readme \
+ mni305.cor.subfov1.reg \
+ mni305.cor.subfov1.reg
 else
 foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.gca) \
@@ -19,7 +21,11 @@ foo_DATA=$(wildcard *.gcs) \
  $(wildcard *.txt) \
  mni305.cor.mgz \
  mni305.cor.readme \
- mni305.mask.cor.mgz
+ mni305.mask.cor.mgz \
+ mni305.cor.subfov1.mgz \
+ mni305.cor.subfov2.mgz \
+ mni305.cor.subfov1.reg \
+ mni305.cor.subfov1.reg
 endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
