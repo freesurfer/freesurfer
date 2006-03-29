@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/03/21 18:48:13 $
-// Revision       : $Revision: 1.337.2.1 $
-char *MRI_C_VERSION = "$Revision: 1.337.2.1 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/03/29 00:23:47 $
+// Revision       : $Revision: 1.337.2.2 $
+char *MRI_C_VERSION = "$Revision: 1.337.2.2 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11732,11 +11732,11 @@ MRInormalizeSequence(MRI *mri, float target)
 double
 MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 {
-  int  x, y, z, nvox, l ;
-  double mean = 0.0 ;
+  int  x, y, z, l ;
   float  val ;
+  double mean = 0.0 ;
+  int nvox = 0 ;
 
-  nvox = 0 ;
   for (x = 0 ; x < mri_src->width ; x++)
     {
       for (y = 0 ; y < mri_src->height ; y++)
