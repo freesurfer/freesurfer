@@ -1,6 +1,6 @@
 % mksubfov.m
 %
-% $Id: mksubfov.m,v 1.1 2006/03/29 02:16:59 greve Exp $
+% $Id: mksubfov.m,v 1.2 2006/03/29 02:23:57 greve Exp $
 %
 % The purpose of this matlab script is to create the
 % mni305.cor.subfov1.mgz and mni305.cor.subfov2.mgz volumes.  These
@@ -9,8 +9,8 @@
 % reduce the amount of space needed to store the data. This is
 % especially important when doing group functional analysis where
 % there might be many subjects combined. In one subfov (subfov1), the
-% voxel size is 1mm isotropic, 147 x 147 x 184. In the other (yep,
-% subfov2), its 2mm isotropic,  74 x 74 x 92. These volumes are in
+% voxel size is 1mm isotropic, 151 x 151 x 186. In the other (yep,
+% subfov2), its 2mm isotropic,  76 x 76 x 93. These volumes are in
 % register with mni305.cor.mgz in that the share the same RAS
 % space, ie, you can run:
 %   tkregister2 --targ mni305.cor.mgz --mov mni305.cor.subfov1.mgz \
@@ -38,7 +38,7 @@ end
 % Create a bounding box from the mask, expanded by 2 voxels
 ind = find(m.vol);
 [r c s] = ind2sub(m.volsize,ind); % These are all 1-based
-rmin = min(r)-2;
+rmin = min(r)-4; % do 4 here 'cause it's close to the edge
 rmax = max(r)+2;
 fovr = rmax - rmin;
 cmin = min(c)-2;
@@ -60,6 +60,7 @@ cor2.vox2ras0 = vox2ras;
 MRIwrite(cor2,'mni305.cor.subfov1.mgz');
 
 % 2mm isotropic SubFOV ---------------------------------------
+% Subsample, don't interpolate
 crsP0 = [cmin rmin smin 1]';
 P0 = m.vox2ras1*crsP0; % use vox2ras1 since crs are 1-based
 D = 2*diag(m.volres); % use 2-times volres
