@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/03/21 18:46:44 $
-// Revision       : $Revision: 1.342 $
-char *MRI_C_VERSION = "$Revision: 1.342 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/03/29 00:16:23 $
+// Revision       : $Revision: 1.343 $
+char *MRI_C_VERSION = "$Revision: 1.343 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11796,11 +11796,12 @@ MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0
 double
 MRImaxInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0, int z0, int whalf)
 {
-  int  x, y, z, nvox, l ;
-  double max = 0.0 ;
+  int  x, y, z;
+  int l;
   float  val ;
+  int nvox = 0;
+  double max = 0.0 ;
 
-  nvox = 0 ;
   for (x = x0-whalf ; x <= x0+whalf ; x++)
 	{
 		if (x < 0 || x >= mri_src->width)
