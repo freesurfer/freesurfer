@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.21 2006/03/26 16:04:03 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.22 2006/03/29 18:28:05 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2395,7 +2395,12 @@ handle_legacy_brain_mask:
   # calls.
   set BL = brain.legacy.mgz
   if(-e $BL) then
-    # BL exists, so check whether it is the same as BM
+    # BL exists
+    if(! -e $BM) then
+      # this can only happen if -clean was run
+      goto handle_legacy_brain_mask_return;
+    endif
+    # Check whether it is the same as BM
     set mridifflog = /tmp/mridiff.tmp.$$.log
     set cmd = (mri_diff $BL $BM --log $mridifflog)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3277,11 +3282,3 @@ Halgren, Florent Segonne, David H. Salat, Evelina Busa, Larry
 J. Seidman, Jill Goldstein, David Kennedy, Verne Caviness, Nikos
 Makris, Bruce Rosen, and Anders M. Dale.  Automatically Parcellating
 the Human Cerebral Cortex. Cerebral Cortex January 2004; 14:11-22.
-
-[10] Segonne F, Dale, AM, Busa E, Glessner M, Salvolini U, Hahn HK,
-Fischl B, A Hybrid Approach to the Skull-Stripping Problem in MRI.
-NeuroImage, 22,  pp. 1160-1075, 2004
-
-[11] Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
-AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
-NeuroImage 23 Suppl 1, S69-84.
