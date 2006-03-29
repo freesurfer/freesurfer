@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.112 2006/03/28 22:23:13 kteich Exp $
+# $Id: tksurfer.tcl,v 1.113 2006/03/29 16:50:58 kteich Exp $
 
 package require BLT;
 
@@ -144,6 +144,11 @@ set gaFillAction(new_label) 1
 set gaFillAction(add_to_label) 2
 set gaFillAction(remove_from_label) 3
 
+# func graph avg mode constants
+set gaFuncGraphAvgMode(single) 0
+set gaFuncGraphAvgMode(marked) 1
+set gaFuncGraphAvgMode(label) 2
+
 # ====================================================== LINKED VAR MANAGEMENT
 
 # holds local values of all the linked variables
@@ -197,7 +202,7 @@ set gaLinkedVars(labelstyle) 0
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
 set gaLinkedVars(colortablename) ""
-
+set gaLinkedVars(func_graph_avg_mode) $gaFuncGraphAvgMode(single)
     
 # groups of variables that get sent to c code together
 array set gaLinkedVarGroups {
@@ -215,7 +220,7 @@ array set gaLinkedVarGroups {
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
-    graph { timeresolution numprestimpoints }
+    graph { timeresolution numprestimpoints func_graph_avg_mode }
     label { colortablename drawlabelflag labelstyle labels_before_overlay_flag }
 }
 
@@ -2310,6 +2315,8 @@ proc CreateMenuBar { ifwMenuBar } {
 
     global gaLinkedVars
     global gbShowToolBar gbShowLabel
+    global gaFuncGraphAvgMode
+    
     UpdateLinkedVarGroup view
 
     set mbwFile   $ifwMenuBar.mbwFile
@@ -2830,15 +2837,23 @@ proc CreateMenuBar { ifwMenuBar } {
 		    UpdateAndRedraw } }
 	}}
 	{ cascade "Time Course" {
-	    { command "Graph Marked Vertices Avg"
-		{ func_clear_selection
-		    func_select_marked_vertices
-		    func_graph_timecourse_selection}
+	    { radio "Graph Selected Vertex"
+		{ SendLinkedVarGroup graph
+		    Graph_SelectVerticesFromMode }
+		gaLinkedVars(func_graph_avg_mode)
+		0
 		mg_TimeCourseLoaded }
-	    { command "Graph Label Avg"
-		{ func_clear_selection
-		    func_select_label
-		    func_graph_timecourse_selection }
+	    { radio "Graph Avg Marked Vertices"
+		{ SendLinkedVarGroup graph
+		    Graph_SelectVerticesFromMode }
+		gaLinkedVars(func_graph_avg_mode)
+		1
+		mg_TimeCourseLoaded }
+	    { radio "Graph Avg Label"
+		{ SendLinkedVarGroup graph
+		    Graph_SelectVerticesFromMode }
+		gaLinkedVars(func_graph_avg_mode)
+		2
 		mg_TimeCourseLoaded }
 	    { command "Write Summary of Marked Vertices..."
 		{ DoFileDlog WriteMarkedVerticesTCSummary }
@@ -3482,7 +3497,6 @@ proc CreateGraphWindow { iwwTop } {
     set gwwGraphWindow $iwwTop
     toplevel $iwwTop
     wm title $iwwTop $ksGraphWindowName
-    wm geometry $iwwTop 600x400
 
     # if they hit the close box for this window, it will just hide it
     # instead of destroying the window.
@@ -3496,46 +3510,55 @@ proc CreateGraphFrame { ifwGraph } {
 
     frame $ifwGraph
 
-    set gwGraph      $ifwGraph.gwGraph
-    set fwNotes      $ifwGraph.fwNotes
+    set gwGraph(graph) $ifwGraph.gwGraph
+    set fwLabel        $ifwGraph.fwLabel
+    set fwNotes        $ifwGraph.fwNotes
 
-    blt::graph $gwGraph -title "Time Course" \
-      -plotbackground white
+    blt::graph $gwGraph(graph) -title "Time Course" \
+	-plotbackground white
     
-    tkm_MakeNormalLabel $fwNotes "Click-1 to set time point. Click-2 and drag to zoom in. Click-3 to unzoom."
+    tkm_MakeNormalLabel $fwLabel ""
+    set gwGraph(label) [$fwLabel.label subwidget label]
 
-    pack $gwGraph        \
-      -side top    \
-      -fill both   \
-      -expand true
+    tkm_MakeSmallLabel $fwNotes "Click-1 to set time point. Click-2 and drag to zoom in. Click-3 to unzoom."
+    
+    pack $gwGraph(graph) \
+	-side top    \
+	-fill both   \
+	-expand true
+    
+    pack $fwNotes $fwLabel \
+	-side top \
+	-fill x   \
+	-expand true
+    
+    pack $ifwGraph   \
+	-side top    \
+	-padx 3      \
+	-pady 3      \
+	-expand true \
+	-fill both
 
-    pack $fwNotes -side top
-
-    pack $ifwGraph       \
-      -side top    \
-      -padx 3      \
-      -pady 3      \
-      -expand true \
-      -fill both
-
-
-    $gwGraph legend bind all <Enter> { 
-  $gwGraph element configure [$gwGraph legend get current] \
-    -linewidth $knLineWidth(active)
-  $gwGraph legend activate [$gwGraph legend get current]
+    
+    $gwGraph(graph) legend bind all <Enter> { 
+	$gwGraph(graph) element configure \
+	    [$gwGraph(graph) legend get current] \
+	    -linewidth $knLineWidth(active)
+	$gwGraph(graph) legend activate [$gwGraph(graph) legend get current]
     }
     
     
-    $gwGraph legend bind all <Leave> { 
-  $gwGraph element configure [$gwGraph legend get current] \
-    -linewidth $knLineWidth(inactive)
-  $gwGraph legend deactivate [$gwGraph legend get current]
+    $gwGraph(graph) legend bind all <Leave> { 
+	$gwGraph(graph) element configure \
+	    [$gwGraph(graph) legend get current] \
+	    -linewidth $knLineWidth(inactive)
+	$gwGraph(graph) legend deactivate [$gwGraph(graph) legend get current]
     }
     
-    bind $gwGraph <ButtonPress-2> { Graph_RegionStart %W %x %y }
-    bind $gwGraph <B2-Motion> { Graph_RegionMotion %W %x %y }
-    bind $gwGraph <ButtonRelease-2> { Graph_RegionEnd %W %x %y }
-    bind $gwGraph <ButtonRelease-3> { Graph_Unzoom %W }
+    bind $gwGraph(graph) <ButtonPress-2> { Graph_RegionStart %W %x %y }
+    bind $gwGraph(graph) <B2-Motion> { Graph_RegionMotion %W %x %y }
+    bind $gwGraph(graph) <ButtonRelease-2> { Graph_RegionEnd %W %x %y }
+    bind $gwGraph(graph) <ButtonRelease-3> { Graph_Unzoom %W }
 }
 
 proc Graph_ShowWindow {} {
@@ -3563,9 +3586,9 @@ proc Graph_EndData {} {
 
 proc Graph_ClearGraph {} {
     global gwGraph
-    set lElements [$gwGraph element names *]
+    set lElements [$gwGraph(graph) element names *]
     foreach element $lElements {
-  $gwGraph element delete $element
+	$gwGraph(graph) element delete $element
     }
 }
 
@@ -3573,13 +3596,40 @@ proc Graph_SetPointsData { inCondition ilPoints } {
     global gConditionData gnNumDataSets
     # save the data. update the number of data sets. 
     set gConditionData($inCondition,points) $ilPoints
-  set gnNumDataSets [expr $inCondition + 1]
+    set gnNumDataSets [expr $inCondition + 1]
 }
 
 proc Graph_SetErrorData { inCondition ilErrors } {
     global gConditionData
     # save the data
     set gConditionData($inCondition,errors) $ilErrors
+}
+
+proc Graph_SetLabel { isText } {
+    global gwGraph
+
+    $gwGraph(label) config -text $isText
+}
+
+proc Graph_SelectVerticesFromMode {} {
+    global gaLinkedVars gaFuncGraphAvgMode
+
+    func_clear_selection
+    switch $gaLinkedVars(func_graph_avg_mode) {
+	# single
+	0 {
+	    func_select_selected_vertex
+	}
+	# marked
+	1 {
+	    func_select_marked_vertices
+	}
+	# label
+	2 {
+	    func_select_label
+	}
+    }
+    func_graph_timecourse_selection
 }
 
 proc Graph_Draw {} {
@@ -3623,18 +3673,18 @@ proc Graph_Draw {} {
 	# time res (half because the minor tick goes in between each
 	# major tick).
 	set nNumPoints [expr $nLength / 2]
-	set nWidth [$gwGraph cget -width]
+	set nWidth [$gwGraph(graph) cget -width]
 	set nWidthPerTick [expr $nWidth / $nNumPoints]
 	if { $nWidthPerTick < $knMinWidthPerTick } {
 	    set nNumMarks [expr $nWidth / $knMinWidthPerTick]
 	    set nWidthPerTick [expr $nNumPoints / $nNumMarks]
-	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	    $gwGraph(graph) axis configure x -stepsize $nWidthPerTick
 	} else {
 	    set nWidthPerTick [expr $gaLinkedVars(timeresolution) / 2]
 	    if { $nWidthPerTick < 1 } {
 		set nWidthPerTick 1
 	    }
-	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	    $gwGraph(graph) axis configure x -stepsize $nWidthPerTick
 	}
 	
 	# if we're subtracting the prestim avg..
@@ -3661,7 +3711,7 @@ proc Graph_Draw {} {
 	
 	
 	# graph the data
-	$gwGraph element create line$dataSet \
+	$gwGraph(graph) element create line$dataSet \
 	    -data $lGraphData \
 	    -color $dataSet \
 	    -label $gGraphSetting($dataSet,label) \
@@ -3700,7 +3750,7 @@ proc Graph_Draw {} {
 		    set nY [lindex $lGraphData [expr $nGraphIndex + 1]];
 		    
 		    # draw a graph line from the top to the bottom
-		    $gwGraph element create error$dataSet$nErrorIndex \
+		    $gwGraph(graph) element create error$dataSet$nErrorIndex \
 			-data [list $nX [expr $nY - $nError] \
 				   $nX [expr $nY + $nError] ] \
 			-color $dataSet \
@@ -3712,33 +3762,33 @@ proc Graph_Draw {} {
     }
     
     # draw some axes
-    $gwGraph marker create line \
+    $gwGraph(graph) marker create line \
 	-coords [list 0 -Inf 0 Inf] \
 	-name xAxis
-    $gwGraph marker create line \
+    $gwGraph(graph) marker create line \
 	-coords [list -Inf 0 Inf 0] \
 	-name yAxis
     
     # if autorange is off, set the min and max of the axes to the saved
     # amounts.
     if { $gbAutoRangeGraph == 0 } {
-	$gwGraph axis configure y -min $gnFixedAxesSize(y1) \
+	$gwGraph(graph) axis configure y -min $gnFixedAxesSize(y1) \
 	    -max $gnFixedAxesSize(y2)
     }
 }
 
 proc Graph_SaveToPS { isFileName } {
     global gwGraph
-    catch {$gwGraph postscript output $isFileName}
+    catch {$gwGraph(graph) postscript output $isFileName}
 }
 
 proc Graph_UpdateSize { } {
     global gbAutoRangeGraph gwGraph gnFixedAxesSize
     if { $gbAutoRangeGraph == 0 } {
-  set gnFixedAxesSize(y1) [lindex [$gwGraph axis limits y] 0]
-  set gnFixedAxesSize(y2) [lindex [$gwGraph axis limits y] 1]
+  set gnFixedAxesSize(y1) [lindex [$gwGraph(graph) axis limits y] 0]
+  set gnFixedAxesSize(y2) [lindex [$gwGraph(graph) axis limits y] 1]
     } else {
-  $gwGraph axis configure x y -min {} -max {}
+  $gwGraph(graph) axis configure x y -min {} -max {}
     }
 }
 

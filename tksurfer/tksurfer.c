@@ -1370,6 +1370,13 @@ static int func_num_prestim_points = 0;
 static int func_num_conditions = 0;
 static int func_num_timepoints = 0;
 
+/* Controls whether we are graphing the current selected vertex or the
+   average of the marked vertices or the average of the label. */
+#define FUNC_GRAPH_AVG_MODE_SELECTED 0
+#define FUNC_GRAPH_AVG_MODE_MARKED 1
+#define FUNC_GRAPH_AVG_MODE_LABEL 2
+static int func_graph_avg_mode = FUNC_GRAPH_AVG_MODE_SELECTED;
+
 int func_initialize ();
 
 int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
@@ -1377,18 +1384,30 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                                  char* registration);
 
+/* Adds voxels to the functional vertex selection. The first adds only
+   the selected vertex, the second adds all marked vertices, and the
+   third adds all the verts in the current label. */
+int func_select_selected_vertex ();
 int func_select_marked_vertices ();
 int func_select_label ();
 
+/* Clear the selection. */
 int func_clear_selection();
+
+/* Add a voxel to the selection. */
 int func_select_voxel (int vno, float x, float y, float z);
 
+/* Graph the currently selected vertices. If > 1, will graph the
+   average. */
 int func_graph_timecourse_selection ();
 
-int func_print_timecourse_selection (char* filename);
-
+/* Calcs teh avg values and deviations of the selected voxels. */
 int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
                                      float values[], float deviations[] );
+
+/* Prints summary data about the currently selected verts to a
+   file. */
+int func_print_timecourse_selection (char* filename);
 
 int func_convert_error (FunD_tErr error);
 
@@ -5364,7 +5383,6 @@ select_vertex(short sx,short sy)
   /* begin rkt */
   int vno;
   float d;
-  VERTEX* v;
   char command[NAME_LENGTH];
   
   /* sets d to the distance of the vertex found */
@@ -5375,20 +5393,34 @@ select_vertex(short sx,short sy)
       print_vertex_data(selection, stdout, d) ;
     }
   
+  /* select the label at this vertex, if there is one. */
+  if (labl_draw_flag)
+    {
+      labl_select_label_by_vno (vno);
+    }  
+
   /* if we have functional data... */
   if(func_timecourse)
     {
-      v = &(mris->vertices[selection]);
-      
-      /* select only this voxel and graph it */
       func_clear_selection ();
-      func_select_voxel (vno, v->origx, v->origy, v->origz);
-      func_graph_timecourse_selection ();
+
+      /* Depending on our avg mode, select the proper voxels and graph
+	 them. */
+      switch (func_graph_avg_mode)
+	{
+	case FUNC_GRAPH_AVG_MODE_SELECTED:
+	  func_select_selected_vertex();
+	  break;
+	case FUNC_GRAPH_AVG_MODE_MARKED:
+	  func_select_marked_vertices();
+	  break;
+	case FUNC_GRAPH_AVG_MODE_LABEL:
+	  func_select_label();
+	  break;
+	}
+
+      func_graph_timecourse_selection();
     }
-  
-  /* select the label at this vertex, if there is one. */
-  if (labl_draw_flag)
-    labl_select_label_by_vno (vno);
   
   /* select the path at this vertex, if there is one. */
   path_select_path_by_vno (vno);
@@ -18634,6 +18666,9 @@ int W_sclv_get_normalized_color_for_value (ClientData clientData,
 int W_func_select_marked_vertices  WBEGIN
 ERR(1,"Wrong # args: func_select_marked_vertices")
      func_select_marked_vertices();  WEND
+     int W_func_select_selected_vertex  WBEGIN
+     ERR(1,"Wrong # args: func_select_selected_vertex")
+     func_select_selected_vertex();  WEND
      int W_func_select_label  WBEGIN
      ERR(1,"Wrong # args: func_select_label")
      func_select_label();  WEND
@@ -18975,7 +19010,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.193 2006/03/27 16:03:50 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.194 2006/03/29 16:50:53 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19677,6 +19712,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_func_load_timecourse, REND);
   Tcl_CreateCommand(interp, "func_load_timecourse_offset",
                     (Tcl_CmdProc*) W_func_load_timecourse_offset, REND);
+  Tcl_CreateCommand(interp, "func_select_selected_vertex",
+                    (Tcl_CmdProc*) W_func_select_selected_vertex, REND);
   Tcl_CreateCommand(interp, "func_select_marked_vertices",
                     (Tcl_CmdProc*) W_func_select_marked_vertices, REND);
   Tcl_CreateCommand(interp, "func_select_label",
@@ -19882,6 +19919,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"fnumconditions",
               (char *)&sclv_num_conditions, TCL_LINK_INT);
   Tcl_LinkVar(interp,"labelstyle",(char *)&labl_draw_style, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"func_graph_avg_mode",(char *)&func_graph_avg_mode,
+              TCL_LINK_INT);
   /* end rkt */
   /*=======================================================================*/
   /***** link global surfer DOUBLE variables to tcl equivalents (were float) */
@@ -22410,10 +22449,26 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   return(ERROR_NONE);
 }
 
+int func_select_selected_vertex()
+{
+  VERTEX* v = NULL;
+  char tcl_cmd[1024];
+
+  v = &(mris->vertices[selection]);
+  func_select_voxel (selection, v->origx,v->origy,v->origz);
+
+  sprintf (tcl_cmd, "Graph_SetLabel \"VNO %d (%.2f, %.2f, %.2f)\"",
+	   selection, v->origx, v->origy, v->origz);
+  send_tcl_command (tcl_cmd);
+
+  return(ERROR_NONE);
+}
+
 int func_select_marked_vertices()
 {
   int vno, count;
   VERTEX* v = NULL;
+  char tcl_cmd[1024];
   
   count = 0;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -22425,7 +22480,11 @@ int func_select_marked_vertices()
           count++;
         }
     }
-  printf("surfer: averaging %d voxels\n",count);
+
+  sprintf (tcl_cmd, "Graph_SetLabel \"Averaging %d marked vertices\"", count);
+  send_tcl_command (tcl_cmd);
+
+  printf("surfer: averaging %d marked vertices\n",count);
   return(ERROR_NONE);
 }
 
@@ -22435,9 +22494,12 @@ int func_select_label()
   int count;
   VERTEX* v = NULL;
   LABEL* area;
+  char tcl_cmd[1024];
 
   if (LABL_NONE_SELECTED == labl_selected_label)
     {
+      sprintf (tcl_cmd, "Graph_SetLabel \"No label selected\"");
+      send_tcl_command (tcl_cmd);
       printf ("surfer: No label selected.\n" );
       return (ERROR_BADPARM);
     }
@@ -22454,7 +22516,12 @@ int func_select_label()
         }
     }
   
-  printf("surfer: averaging %d voxels\n",count);
+  sprintf (tcl_cmd, "Graph_SetLabel \"Averaging label %s\"\n",
+	   labl_labels[labl_selected_label].name);
+  send_tcl_command (tcl_cmd);
+
+  printf("surfer: averaging label %s\"\n",
+	 labl_labels[labl_selected_label].name);
   return(ERROR_NONE);
 }
 
