@@ -4,15 +4,249 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $
+  $Id: mri_vol2vol.c,v 1.17 2006/03/29 07:15:35 greve Exp $
 
-  Things to do:
-    1. Add ability to spec output center XYZ.
-    2. Handle selxavg files (frame power).
-    3. Test with no template.
-    4. Add ability to spec another tal.xfm
-    5. Unwarping
-    6. Synthesizing
+*/
+
+/*
+BEGINHELP --------------------------------------------------------------
+
+Resamples a volume into another field-of-view. 
+
+FLAGS AND ARGUMENTS
+
+--i invol <fmt>
+
+Input volume, and, optionally, the intput format.  If the format is
+not included, the format will be inferred from the path name. See
+FORMATS below.
+
+--o outvol <fmt>
+
+Path name of the output volume. If the format is not included, the
+format will be inferred from the path name. See FORMATS below.
+A register.dat-style file will also be produced. It will be called
+outvol.reg.
+
+--t templatevol <fmt>
+
+This is the volume that will be used as a geometry template for the
+output volume in terms of the field-of-view, geometry, and
+precision. Some of the template parameters can be overridden as
+explained below. If the format is not included, the format will be
+inferred from the path name. See FORMATS below. If no template volume
+is specified, the input is used as the template.
+
+--xfm in-to-temp-xfmfile
+--reg temp-to-in-xfmfile
+
+The xfmfile contains the matrix that maps the XYZ of one volume to
+that of another. There can be some confusion as to which direction
+this goes. For historical reasons, matrices that are compatible with
+tkregister2 actually map from the targ/template to the mov/input. But
+one can also use matrices that were created with the MNI mritotal or
+Register tools which more reasonably map from input to template. When
+using tkregister2 xfmfiles, specify them with --reg and mri_vol2vol
+will automatically invert them to go in the right direction. When
+using an xfmfile that already goes in the right direction, pass it
+with --xfm. 
+
+--invxfm
+
+Invert the xfm matrix before applying transform. Will not have an 
+effect with --reg.
+
+--noinvxfm
+
+Do not invert the xfm matrix before applying transform. 
+
+--fstal
+
+Resample the input volume to talairach space. The xfm file must be a
+register.dat-format matrix. The talairach matrix is obtained from
+talairach.xfm from SUBJECTS_DIR/subjid/transforms. SUBJECTS_DIR is
+read from the environment or can be specified with --sd. subjid is
+read from the xfm file. The transformation matrix is then computed as
+inv(R*inv(Xtal)*inv(Rtal)), where Xtal is talairach.xfm matrix, R is
+the matrix in the xfm file, and Rtal maps from the talairach COR FOV
+to a reduced FOV that covers only the brain. Reducing the FOV saves
+space relative to the 256^3 COR FOV. By default, the output will be
+2mm isotropic, but this can be changed with --fstalres. Specify the 
+xfm with --reg. If you want to go from talairach space back to the input,
+then specify --noinvxfm. The talairach subject is assumed to be fsaverage.
+
+--fstalres resmm
+
+Set the resolution of the output when using --fstal. By default, it
+is 2 mm, but can be changed to 1.0 mm.
+
+--interp method
+
+Interpolate the output based on the given method. Legal values are:
+nearest, trilin, and sinc. trilin is the default. sinc requires one
+parameter (hw). sinc probably does not work.
+
+--s subjectname
+
+Subject name for output registration file. This has not effect on the
+actual reslicing but can have an effect when the registration file
+is used in subsequent processing.
+
+--precision precisionid 
+
+Set output precision to precisionid. Legal values are uchar, short,
+int, long, and float. Default is float.
+
+--precision-temp 
+
+Set output precision to be that of the template. Overrides default of float.
+
+--voxres colres rowres sliceres 
+
+Set output voxel resolution (in mm). Overrides voxres in template.
+Keeps the same field-of-view, so the output dimension is automatically
+changed accordingly (so it cannot be used with --voxdim).
+
+--voxres-in-plane colres rowres 
+
+Same as --voxres but only on the in-plane components.
+
+--voxdim ncols nrows nslices 
+
+Set output voxel dimension. Overrides voxres in template. Keeps
+the same field-of-view, so the output resolution is automatically
+changed accordingly (so it cannot be used with --voxres).
+
+--voxdim-in-plane ncols nrows 
+
+Same as --voxdim but only on the in-plane components.
+
+--irescale min max
+
+Rescale intensity to be between min and max. This can be useful when
+the output precision is less than that of the input. When the output
+is COR, the values are automatically rescaled to 0 to 255.
+
+
+
+--gdiagno diagnostic level
+
+Sets the diagnostic level (only good for debuggin').
+
+--version
+
+Print out version string and exit.
+
+--help 
+
+Prints out all this information.
+
+ALGORITH/TKREGISTER MATRIX CONENTION 
+
+To convert a volume from one space/FOV to another, one needs to know
+how to convert CRS (ie, col, row, slice) in the target FOV to that
+in the source. This is referred to as the voxel-to-voxel transform,
+and its matrix is called V.
+
+CRSin = V * CRSout
+V = inv(Tin*X)*Tout
+
+where T is a matrix that converts CRS to XYZ. X is the matrix
+specified with -xfm and maps from XYZin to XYZout. The X matrix is
+only meaningful in terms of what Tin and Tout are.  The TkRegister
+Convention defines T to be:
+
+T = [-dc  0   0  Nc/2
+      0   0  ds -Ns/2
+      0 -dr   0  Nr/2
+      0   0   0  1];
+
+where dc, dr, and ds are the resolutions of the columns, rows, and 
+slices, respectively, and Nc, Nr, and Ns are the number of columns,
+rows, and slices, respectively. Column is the fastest dimension,
+Row is the next fastest, and Slice is the slowest.
+
+EXAMPLES:
+
+If a functional volume is f.bhdr (or f.nii.gz, or f.mgh, etc), and the
+subject is bert, and the registration file is register.dat, then
+running the following command should show that they are in
+registration:
+
+tkregister2 --reg register.dat --mov f.bhdr
+
+If they are not, then fix it because nothing below is going to work.
+
+1. Resample a functional volume to talairach space at 1 mm res
+
+   mri_vol2vol --i f.bhdr --o ftal.mgh \
+     --reg register.dat --fstal --fstalres 1
+
+   register.dat registers the subject anatomical and functional. Note
+   that a template is not needed (it is generated internally). The
+   registration of the ftal volume with the talairach subject can then
+   be checked with: tkregister2 --mov ftal.mgh --reg ftal.mgh.reg. This
+   is specially designed to be in registration with a FreeSurfer average
+   subject (ie, one created by make_average_subject) such as the default
+   fsaverage. Accordingly, you do not need a registration file when
+   displaying ftal.mgh as an overlay on the average subject, eg:
+     tkmedit fsaverage orig.mgz -overlay ftal.mgh
+   will overlay ftal.mgh correctly.
+
+2. Resample an anatomical volume into the functional space with a
+   1 mm in-plane resolution:
+
+  mri_vol2vol --i $SUBJECTS_DIR/mysubj/mri/orig.mgz
+    --t mysubjsess/bold/001/f.bhdr --s mysubj 
+    --reg  mysubjsess/bold/register.dat --noinvxfm 
+    --o  mysubjsess/anatfunc/999/f.mgh
+    --voxres-in-plane 1 1
+
+3. Resample a subcortical segmentation to functional space. NOTE: THIS
+   IS NOT THE RECOMMENDED METHOD FOR THIS. TRY USING mri_label2vol
+   INSTEAD.  This uses nearest-neighbor interp because the
+   segmentation values are categorical, not continuous.
+
+   mri_vol2vol --i $SUBJECTS_DIR/subjid/mri/aseg.mgz
+               --o aseg.mgh
+               --t func.bhdr
+               --reg  register.dat --noinvxfm
+               --interp nearest
+
+4. Resample a structural volume to talairach space.
+   NOTE: BUG!! THIS WILL LIKELY NOT WORK!!!!
+   cd  $SUBJECTS_DIR/subjid/mri/
+   mri_vol2vol --i orig.mgz --o orig-tal.mgz
+               --t $SUBJECTS_DIR/fsaverage/mri/orig.mgz
+               --xfm transforms/talairach.xfm 
+
+   NOTE: this should give the same result as:
+   mri_convert orig.mgz orig-tal.mgz --apply_transform transforms/talairach.xfm 
+
+FORMATS
+
+Data file format can be specified implicitly (through the path name)
+or explicitly. All formats accepted by mri_convert can be used. 
+
+BUGS
+
+sinc interpolation is broken except for maybe COR to COR.
+
+
+BUG REPORTING
+
+Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following 
+formatted as a list as follows: (1) command-line, (2) directory where
+the program was run (for those in the MGH-NMR Center), (3) version, 
+(4) text output, (5) description of the problem.
+
+SEE ALSO 
+
+mri_convert, tkregister2
+
+
+ENDHELP --------------------------------------------------------------
+
 */
 
 #include <stdio.h>
@@ -58,7 +292,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.17 2006/03/29 07:15:35 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -99,40 +333,40 @@ MRI *InVol;
 MRI *TempVol,*OutVol;
 MRI *tmpmri;
 
-MATRIX *Vt2s, *X, *invX, *Xtmp;
+MATRIX *Vt2s, *X, *invX, *Xtmp, *invXtal;
 MATRIX *Tin, *Tout, *invTin;
-MATRIX *Xtal, *R, *Xtalfov;
+MATRIX *Xtal, *R, *Rtal, *invRtal;
 MATRIX *Ttemp, *Mtemp, *D;
 MATRIX *invTtemp;
 
+char *FSH=NULL;
 char *subjectsdir = NULL;   /* SUBJECTS_DIR */
 char *talxfmfile = "talairach.xfm";
 char talxfmpath[1000];
 int fstalairach = 0;
-char *talsubject = "talmni305", *talsubjecttmp;
-float talres = 2.0; // Can only be 1, 1.5, or 2
+char *talsubject = NULL;
+int talres = 2; // Can only be 1 or 2
 char *subject = NULL;
 
 int dont_irescale = 1;
 float minrescale = 0.0, maxrescale = 255.0;
 char fname[1000], dname[1000];
 int ModInput = 0;
+float ipr, bpr, intensity, xfov, yfov, zfov;
+int float2int,err, nargs;
 
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  float ipr, bpr, intensity, xfov, yfov, zfov;
-  int float2int,err, nargs;
   char *trgsubject;
   char regfile[1000];
+  char cmdline[CMD_LINE_LEN] ;
 
-	char cmdline[CMD_LINE_LEN] ;
-
-  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.17 2006/03/29 07:15:35 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.16 2006/02/24 00:47:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.17 2006/03/29 07:15:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -141,6 +375,11 @@ int main(int argc, char **argv)
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  FSH = getenv("FREESURFER_HOME");
+  if(FSH==NULL){
+    printf("ERROR: FREESURFER_HOME undefined.\n");
+    exit(1);
+  }
 
   if(argc == 0) usage_exit();
 
@@ -244,23 +483,15 @@ int main(int argc, char **argv)
       if(fstalairach){
 	printf("INFO: recomputing xfm for talairach transform\n");
 	Xtal = DevolveXFM(trgsubject, NULL, NULL);
-	invX = MatrixInverse(X,NULL);
+	invXtal = MatrixInverse(Xtal,NULL);
 	printf("Xtal: ------------------------------\n");
 	MatrixPrint(stdout,Xtal);
 	printf("inv(Xtal): ------------------------------\n");
-	MatrixPrint(stdout,invX);
-	sprintf(fname,"%s/%s/mri/brainfov%2d.reg",
-		subjectsdir,talsubject,(int)(10*talres));
-	err = regio_read_register(fname, &talsubjecttmp, &ipr, &bpr, 
-			      &intensity, &Xtalfov, &float2int);
-	if(err){
-	  printf("ERROR: could not read %s\n",fname);
-	  exit(1);
-	}
-	printf("Xtalfov (%g): ------------------------------\n",talres);
-	MatrixPrint(stdout,Xtalfov);
-        MatrixMultiply(Xtal,invX,X); // X = Xtal*inv(X)
-        MatrixMultiply(Xtalfov,X,X); // X = Xtalfov*Xtal*inv(X)
+	MatrixPrint(stdout,invXtal);
+	// X = X*inv(Xtal)*inv(Rtal)
+	X = MatrixMultiply(X,invXtal,X); 
+	invRtal = MatrixInverse(Rtal,NULL);
+	X = MatrixMultiply(X,invRtal,X); 
       }
     }
     else{
@@ -379,16 +610,17 @@ int main(int argc, char **argv)
       decompose_b_fname(outvolpath, dname, fname);
       sprintf(regfile,"%s/%s.reg",dname,fname);
     }
-    else
-      sprintf(regfile,"%s.reg",outvolpath);
+    else  sprintf(regfile,"%s.reg",outvolpath);
     printf("INFO: writing registration matrix to %s\n",regfile);
     if(fstalairach){
-      R = Xtalfov;
+      R = Rtal;
       subject = talsubject;
     }
     else  {
-      R = MRItkRegMtx(TempVol,InVol,NULL);
-      //R = MatrixIdentity(4,NULL);
+      R = MatrixIdentity(4,NULL);
+      // On 6/3/28, it used to be this:
+      //    R = MRItkRegMtx(TempVol,InVol,NULL);
+      // I have no idea why it was that, seems clearly wrong
     }
     regio_write_register(regfile,subject,OutVol->xsize,
 			 OutVol->zsize,1,R,FLT2INT_ROUND);
@@ -438,6 +670,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fstal"))       fstalairach = 1;
     else if (!strcasecmp(option, "--fstalairach")) fstalairach = 1;
     else if (!strcasecmp(option, "--invxfm"))   invertxfm = 1;
+    else if (!strcasecmp(option, "--noinvxfm"))   invertxfm = 0;
     else if (!strcasecmp(option, "--modinput"))  ModInput = 1;
     else if (istringnmatch(option, "--precision-temp",0)) outprecision=NULL;
 
@@ -447,7 +680,7 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
 
-    else if (istringnmatch(option, "--in",0)){
+    else if(istringnmatch(option, "--in",0) || istringnmatch(option, "--i",0)){
       if(nargc < 1) argnerr(option,1);
       involpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
@@ -455,7 +688,7 @@ static int parse_commandline(int argc, char **argv)
 	involfmtid = string_to_type(involfmt);
       }
     }
-    else if (istringnmatch(option, "--out",0)){
+    else if(istringnmatch(option, "--out",0) || istringnmatch(option, "--o",0)){
       if(nargc < 1) argnerr(option,1);
       outvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
@@ -512,7 +745,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[2],"%f",&shiftcenter[2]);
       nargsused = 3;
     }
-    else if (istringnmatch(option, "--template",6)){
+    else if(istringnmatch(option, "--template",6) || istringnmatch(option, "--t",6)){
       if(nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
@@ -543,16 +776,17 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       xfmfile = pargv[0]; nargsused = 1;
     }
+    else if (istringnmatch(option, "--reg",8)){
+      if(nargc < 1) argnerr(option,1);
+      xfmfile = pargv[0]; nargsused = 1;
+      invertxfm = 1;
+    }
 
     else if (istringnmatch(option, "--talres",8)){
       if(nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%f",&talres); 
-      if( fabs(talres-1.0) < EPSILON ) talres = 1.0;
-      else if( fabs(talres-1.5) < EPSILON ) talres = 1.5;
-      else if( fabs(talres-2.0) < EPSILON ) talres = 2.0;
-      else {
-	printf("ERROR: tal res %g invalid. Only use 1.0, 1.5, or 2.0\n",
-	       talres);
+      sscanf(pargv[0],"%d",&talres); 
+      if(talres != 1 && talres != 2){
+	printf("ERROR: tal res %d invalid. Only use 1 or 2\n",talres);
 	exit(1);
       }
       nargsused = 1;
@@ -610,6 +844,7 @@ static void print_usage(void)
   printf("  --irescale min max : rescale intensities to min/max\n");
   printf("  \n");
   printf("  --xfm xfmfile : apply transform (assumes identity if not give)\n");
+  printf("  --reg regfile : same as --xfm with --invxfm for register.dat\n");
   printf("  --fstal : resample volume into talairach space (needs xfm).\n");
   printf("  --talres : Output talairach resolution (1, 1.5, or <2>)\n");
   printf("  --invxfm : invert transform before applying\n");
@@ -629,229 +864,241 @@ static void print_help(void)
   print_usage() ;
 
   printf("\n%s\n\n",vcid);
-
-  printf(
-
-"Resamples a volume into another field-of-view. \n"
-"\n"
-"FLAGS AND ARGUMENTS\n"
-"\n"
-"--in input volume path <fmt>\n"
-"\n"
-"Input volume, and, optionally, the intput format.\n"
-"If the format is not included, the format will be inferred from the\n"
-"path name. See FORMATS below.\n"
-"\n"
-"--out output volume <fmt>\n"
-"\n"
-"Path name of the output volume. If the format is not included, the\n"
-"format will be inferred from the path name. See FORMATS below.\n"
-"A register.dat-style file will also be produce. It will be called\n"
-"output.reg (for COR, it will be COR.reg; for bshort/bfloat it will\n"
-"be stem.reg).\n"
-"\n"
-"--temp template volume <fmt>\n"
-"\n"
-"This is the volume that will be used as a template for the output\n"
-"volume in terms of the field-of-view, geometry, and precision. Some\n"
-"of the template parameters can be overridden as explained below. If\n"
-"the format is not included, the format will be inferred from the path\n"
-"name. See FORMATS below. If no template volume is specified, the \n"
-"input is used as the template.\n"
-"\n"
-"--precision precisionid \n"
-"\n"
-"Set output precision to precisionid. Legal values are uchar, short,\n"
-"int, long, and float. Default is float.\n"
-"\n"
-"--precision-temp \n"
-"\n"
-"Set output precision to be that of the template. Overrides default of float.\n"
-"\n"
-"--voxres colres rowres sliceres \n"
-"\n"
-"Set output voxel resolution (in mm). Overrides voxres in template.\n"
-"Keeps the same field-of-view, so the output dimension is automatically\n"
-"changed accordingly (so it cannot be used with --voxdim).\n"
-"\n"
-"--voxres-in-plane colres rowres \n"
-"\n"
-"Same as --voxres but only on the in-plane components.\n"
-"\n"
-"--voxdim ncols nrows nslices \n"
-"\n"
-"Set output voxel dimension. Overrides voxres in template. Keeps\n"
-"the same field-of-view, so the output resolution is automatically\n"
-"changed accordingly (so it cannot be used with --voxres).\n"
-"\n"
-"--voxdim-in-plane ncols nrows \n"
-"\n"
-"Same as --voxdim but only on the in-plane components.\n"
-"\n"
-"--xfm xfmfile\n"
-"\n"
-"Apply matrix to input XYZ to get output XYZ. Matrix is assumed to be \n"
-"tkregister-style. Note: the output of tkregister is a matrix that \n"
-"maps XYZCor to XYZFunc, so, to resample a functional into the space\n"
-"of the structural, make sure to invert the transform with -invxfm.\n"
-"If no xfm is specified, the identity is assumed.\n"
-"\n"
-"--invxfm\n"
-"\n"
-"Invert the xfm matrix before applying transform.\n"
-"\n"
-"--fstal\n"
-"\n"
-"Resample the input volume to talairach space. The xfm file must be\n"
-"a register.dat-format matrix. The talairach matrix is obtained from\n"
-"talairach.xfm from SUBJECTS_DIR/subjid/transforms. SUBJECTS_DIR is\n"
-"read from the environment or can be specified with --sd. subjid is\n"
-"read from the xfm file. The transformation matrix is then computed\n"
-"as Xfov*Xtal*inv(R), where Xtal is talairach.xfm matrix, R is the \n"
-"matrix in the xfm file, and Xfov maps from the talairach COR FOV to \n"
-"a reduced FOV that covers only the brain. Reducing the FOV saves space \n"
-"relative to the 256^3 COR FOV. By default, the output will be 2mm \n "
-"isotropic, but this can be changed with --fstalres\n"
-" Don't use --invxfm unless you want to go from \n"
-"talairach space back to the input.\n"
-"\n"
-"--fstalres resmm\n"
-"\n"
-"Set the resolution of the output when using --fstal. By default, it\n"
-"is 2 mm, but can be changed to 1.5 mm or 1.0 mm.\n"
-"\n"
-"--irescale min max\n"
-"\n"
-"Rescale intensity to be between min and max. This can be useful when\n"
-"the output precision is less than that of the input. When the output\n"
-"is COR, the values are automatically rescaled to 0 to 255.\n"
-"\n"
-"--interp method\n"
-"\n"
-"Interpolate the output based on the given method. Legal values\n"
-"are: nearest, trilin, and sinc. trilin is the default. sinc requires\n"
-"one parameter (hw). sinc probably does not work.\n"
-"\n"
-"--s subjectname\n"
-"\n"
-"Subject name for output registration file. This has not effect on the\n"
-"actual reslicing but can have an effect when the registration file\n"
-"is used in subsequent processing.\n"
-"\n"
-"--gdiagno diagnostic level\n"
-"\n"
-"Sets the diagnostic level (only good for debuggin').\n"
-"\n"
-"--version\n"
-"\n"
-"Print out version string and exit.\n"
-"\n"
-"--help \n"
-"\n"
-"Prints out all this information.\n"
-"\n"
-"ALGORITH/TKREGISTER MATRIX CONENTION \n"
-"\n"
-"To convert a volume from one space/FOV to another, one needs to know\n"
-"how to convert CRS (ie, col, row, slice) in the target FOV to that\n"
-"in the source. This is referred to as the voxel-to-voxel transform,\n"
-"and its matrix is called V.\n"
-"\n"
-"CRSin = V * CRSout\n"
-"V = inv(Tin*X)*Tout\n"
-"\n"
-"where T is a matrix that converts CRS to XYZ. X is the matrix\n"
-"specified with -xfm and maps from XYZin to XYZout. The X matrix is\n"
-"only meaningful in terms of what Tin and Tout are.  The TkRegister\n"
-"Convention defines T to be:\n"
-"\n"
-"T = [-dc  0   0  Nc/2\n"
-"      0   0  ds -Ns/2\n"
-"      0 -dr   0  Nr/2\n"
-"      0   0   0  1];\n"
-"\n"
-"where dc, dr, and ds are the resolutions of the columns, rows, and \n"
-"slices, respectively, and Nc, Nr, and Ns are the number of columns,\n"
-"rows, and slices, respectively. Column is the fastest dimension,\n"
-"Row is the next fastest, and Slice is the slowest.\n"
-"\n"
-"EXAMPLES:\n"
-"\n"
-"1. Resample a functional volume to talairach space at 1.5 mm res\n"
-"\n"
-"   mri_vol2vol --in f_000.bfloat --out ftal_000.bfloat\n"
-"     --xfm register.dat --fstal --fstalres 1.5\n"
-"\n"
-"   register.dat registers the subject anatomical and functional. Note\n"
-"   that a template is not needed (it is generated internally). The\n"
-"   registration of the ftal volume with the talairach subject can then\n"
-"   be checked with: tkregister2 --mov ftal_000.bfloat --reg ftal.reg\n"
-"\n"
-"2. Resample a structural volume to talairach space.\n"
-"\n"
-"   cd  $SUBJECTS_DIR/subjid/mri/\n"
-"   mkdir -p orig-tal\n"
-"   mri_vol2vol --in orig --out orig-tal\n"
-"               --temp $SUBJECTS_DIR/talairach/mri/orig\n"
-"               --xfm transforms/talairach.xfm \n"
-"\n"
-"   NOTE: this should give the same result as:\n"
-"   mri_convert orig orig-tal --apply_transform transforms/talairach.xfm \n"
-"\n"
-"3. Resample a subcortical segmentation to functional space. It uses\n"
-"   nearest-neighbor interp because the segmentation values are\n"
-"   categorical, not continuous (for this see also mri_label2vol). \n"
-"\n"
-"   mri_vol2vol --in   $SUBJECTS_DIR/subjid/mri/aseg \n"
-"               --out  aseg_000.bshort\n"
-"               --temp func_000.bshort\n"
-"               --xfm  register.dat\n"
-"               --interp nearest\n"
-"\n"
-"4. Resample an anatomical volume into the functional space with a\n"
-"   1 mm in-plane resolution:\n"
-"\n"
-"  mri_vol2vol --in $SUBJECTS_DIR/mysubj/mri/orig \n"
-"    --temp mysubjsess/bold/001/f_000.bshort --s mysubj \n"
-"    --xfm  mysubjsess/bold/register.dat \n"
-"    --out  mysubjsess/anatfunc/999/f_000.bshort \n"
-"    --voxres-in-plane 1 1\n"
-"\n"
-"\n"
-"MORE NOTES\n"
-"\n"
-"mri_vol2vol --in vol.mgh --out vol2.mgh --temp temp.mgh --xfm register.dat\n"
-"\n"
-"where vol.mgh is the targ and temp.mgh is the mov (in tkregister-speak). \n"
-"If you want to go the other way, add --invxfm.\n"
-"\n"
-"On the input side, vol.mgh  and temp.mgh should be in register when you run:\n"
-"\n"
-"tkregister2 --targ vol.mgh --mov temp.mgh --reg register.dat\n"
-"\n"
-"On the output side, this should also be in register:\n"
-"\n"
-"tkregister2 --targ temp.mgh --mov vol2.mgh --reg vol2.mgh.reg\n"
-"\n"
-"FORMATS\n"
-"\n"
-"Data file format can be specified implicitly (through the path name)\n"
-"or explicitly. All formats accepted by mri_convert can be used. \n"
-"\n"
-"BUGS\n"
-"\n"
-"sinc interpolation is broken except for maybe COR to COR.\n"
-"\n"
-"BUG REPORTING\n"
-"\n"
-"Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following \n"
-"formatted as a list as follows: (1) command-line, (2) directory where\n"
-"the program was run (for those in the MGH-NMR Center), (3) version, \n"
-"(4) text output, (5) description of the problem.\n"
-"\n"
-"SEE ALSO \n"
-"\n"
-"mri_convert, tkregister2\n");
+printf("\n");
+printf("Resamples a volume into another field-of-view. \n");
+printf("\n");
+printf("FLAGS AND ARGUMENTS\n");
+printf("\n");
+printf("--i invol <fmt>\n");
+printf("\n");
+printf("Input volume, and, optionally, the intput format.  If the format is\n");
+printf("not included, the format will be inferred from the path name. See\n");
+printf("FORMATS below.\n");
+printf("\n");
+printf("--o outvol <fmt>\n");
+printf("\n");
+printf("Path name of the output volume. If the format is not included, the\n");
+printf("format will be inferred from the path name. See FORMATS below.\n");
+printf("A register.dat-style file will also be produced. It will be called\n");
+printf("outvol.reg.\n");
+printf("\n");
+printf("--t templatevol <fmt>\n");
+printf("\n");
+printf("This is the volume that will be used as a geometry template for the\n");
+printf("output volume in terms of the field-of-view, geometry, and\n");
+printf("precision. Some of the template parameters can be overridden as\n");
+printf("explained below. If the format is not included, the format will be\n");
+printf("inferred from the path name. See FORMATS below. If no template volume\n");
+printf("is specified, the input is used as the template.\n");
+printf("\n");
+printf("--xfm in-to-temp-xfmfile\n");
+printf("--reg temp-to-in-xfmfile\n");
+printf("\n");
+printf("The xfmfile contains the matrix that maps the XYZ of one volume to\n");
+printf("that of another. There can be some confusion as to which direction\n");
+printf("this goes. For historical reasons, matrices that are compatible with\n");
+printf("tkregister2 actually map from the targ/template to the mov/input. But\n");
+printf("one can also use matrices that were created with the MNI mritotal or\n");
+printf("Register tools which more reasonably map from input to template. When\n");
+printf("using tkregister2 xfmfiles, specify them with --reg and mri_vol2vol\n");
+printf("will automatically invert them to go in the right direction. When\n");
+printf("using an xfmfile that already goes in the right direction, pass it\n");
+printf("with --xfm. \n");
+printf("\n");
+printf("--invxfm\n");
+printf("\n");
+printf("Invert the xfm matrix before applying transform. Will not have an \n");
+printf("effect with --reg.\n");
+printf("\n");
+printf("--noinvxfm\n");
+printf("\n");
+printf("Do not invert the xfm matrix before applying transform. \n");
+printf("\n");
+printf("--fstal\n");
+printf("\n");
+printf("Resample the input volume to talairach space. The xfm file must be a\n");
+printf("register.dat-format matrix. The talairach matrix is obtained from\n");
+printf("talairach.xfm from SUBJECTS_DIR/subjid/transforms. SUBJECTS_DIR is\n");
+printf("read from the environment or can be specified with --sd. subjid is\n");
+printf("read from the xfm file. The transformation matrix is then computed as\n");
+printf("inv(R*inv(Xtal)*inv(Rtal)), where Xtal is talairach.xfm matrix, R is\n");
+printf("the matrix in the xfm file, and Rtal maps from the talairach COR FOV\n");
+printf("to a reduced FOV that covers only the brain. Reducing the FOV saves\n");
+printf("space relative to the 256^3 COR FOV. By default, the output will be\n");
+printf("2mm isotropic, but this can be changed with --fstalres. Specify the \n");
+printf("xfm with --reg. If you want to go from talairach space back to the input,\n");
+printf("then specify --noinvxfm. The talairach subject is assumed to be fsaverage.\n");
+printf("\n");
+printf("--fstalres resmm\n");
+printf("\n");
+printf("Set the resolution of the output when using --fstal. By default, it\n");
+printf("is 2 mm, but can be changed to 1.0 mm.\n");
+printf("\n");
+printf("--interp method\n");
+printf("\n");
+printf("Interpolate the output based on the given method. Legal values are:\n");
+printf("nearest, trilin, and sinc. trilin is the default. sinc requires one\n");
+printf("parameter (hw). sinc probably does not work.\n");
+printf("\n");
+printf("--s subjectname\n");
+printf("\n");
+printf("Subject name for output registration file. This has not effect on the\n");
+printf("actual reslicing but can have an effect when the registration file\n");
+printf("is used in subsequent processing.\n");
+printf("\n");
+printf("--precision precisionid \n");
+printf("\n");
+printf("Set output precision to precisionid. Legal values are uchar, short,\n");
+printf("int, long, and float. Default is float.\n");
+printf("\n");
+printf("--precision-temp \n");
+printf("\n");
+printf("Set output precision to be that of the template. Overrides default of float.\n");
+printf("\n");
+printf("--voxres colres rowres sliceres \n");
+printf("\n");
+printf("Set output voxel resolution (in mm). Overrides voxres in template.\n");
+printf("Keeps the same field-of-view, so the output dimension is automatically\n");
+printf("changed accordingly (so it cannot be used with --voxdim).\n");
+printf("\n");
+printf("--voxres-in-plane colres rowres \n");
+printf("\n");
+printf("Same as --voxres but only on the in-plane components.\n");
+printf("\n");
+printf("--voxdim ncols nrows nslices \n");
+printf("\n");
+printf("Set output voxel dimension. Overrides voxres in template. Keeps\n");
+printf("the same field-of-view, so the output resolution is automatically\n");
+printf("changed accordingly (so it cannot be used with --voxres).\n");
+printf("\n");
+printf("--voxdim-in-plane ncols nrows \n");
+printf("\n");
+printf("Same as --voxdim but only on the in-plane components.\n");
+printf("\n");
+printf("--irescale min max\n");
+printf("\n");
+printf("Rescale intensity to be between min and max. This can be useful when\n");
+printf("the output precision is less than that of the input. When the output\n");
+printf("is COR, the values are automatically rescaled to 0 to 255.\n");
+printf("\n");
+printf("\n");
+printf("\n");
+printf("--gdiagno diagnostic level\n");
+printf("\n");
+printf("Sets the diagnostic level (only good for debuggin').\n");
+printf("\n");
+printf("--version\n");
+printf("\n");
+printf("Print out version string and exit.\n");
+printf("\n");
+printf("--help \n");
+printf("\n");
+printf("Prints out all this information.\n");
+printf("\n");
+printf("ALGORITH/TKREGISTER MATRIX CONENTION \n");
+printf("\n");
+printf("To convert a volume from one space/FOV to another, one needs to know\n");
+printf("how to convert CRS (ie, col, row, slice) in the target FOV to that\n");
+printf("in the source. This is referred to as the voxel-to-voxel transform,\n");
+printf("and its matrix is called V.\n");
+printf("\n");
+printf("CRSin = V * CRSout\n");
+printf("V = inv(Tin*X)*Tout\n");
+printf("\n");
+printf("where T is a matrix that converts CRS to XYZ. X is the matrix\n");
+printf("specified with -xfm and maps from XYZin to XYZout. The X matrix is\n");
+printf("only meaningful in terms of what Tin and Tout are.  The TkRegister\n");
+printf("Convention defines T to be:\n");
+printf("\n");
+printf("T = [-dc  0   0  Nc/2\n");
+printf("      0   0  ds -Ns/2\n");
+printf("      0 -dr   0  Nr/2\n");
+printf("      0   0   0  1];\n");
+printf("\n");
+printf("where dc, dr, and ds are the resolutions of the columns, rows, and \n");
+printf("slices, respectively, and Nc, Nr, and Ns are the number of columns,\n");
+printf("rows, and slices, respectively. Column is the fastest dimension,\n");
+printf("Row is the next fastest, and Slice is the slowest.\n");
+printf("\n");
+printf("EXAMPLES:\n");
+printf("\n");
+printf("If a functional volume is f.bhdr (or f.nii.gz, or f.mgh, etc), and the\n");
+printf("subject is bert, and the registration file is register.dat, then\n");
+printf("running the following command should show that they are in\n");
+printf("registration:\n");
+printf("\n");
+printf("tkregister2 --reg register.dat --mov f.bhdr\n");
+printf("\n");
+printf("If they are not, then fix it because nothing below is going to work.\n");
+printf("\n");
+printf("1. Resample a functional volume to talairach space at 1 mm res\n");
+printf("\n");
+printf("   mri_vol2vol --i f.bhdr --o ftal.mgh \\n");
+printf("     --reg register.dat --fstal --fstalres 1\n");
+printf("\n");
+printf("   register.dat registers the subject anatomical and functional. Note\n");
+printf("   that a template is not needed (it is generated internally). The\n");
+printf("   registration of the ftal volume with the talairach subject can then\n");
+printf("   be checked with: tkregister2 --mov ftal.mgh --reg ftal.mgh.reg. This\n");
+printf("   is specially designed to be in registration with a FreeSurfer average\n");
+printf("   subject (ie, one created by make_average_subject) such as the default\n");
+printf("   fsaverage. Accordingly, you do not need a registration file when\n");
+printf("   displaying ftal.mgh as an overlay on the average subject, eg:\n");
+printf("     tkmedit fsaverage orig.mgz -overlay ftal.mgh\n");
+printf("   will overlay ftal.mgh correctly.\n");
+printf("\n");
+printf("2. Resample an anatomical volume into the functional space with a\n");
+printf("   1 mm in-plane resolution:\n");
+printf("\n");
+printf("  mri_vol2vol --i $SUBJECTS_DIR/mysubj/mri/orig.mgz\n");
+printf("    --t mysubjsess/bold/001/f.bhdr --s mysubj \n");
+printf("    --reg  mysubjsess/bold/register.dat --noinvxfm \n");
+printf("    --o  mysubjsess/anatfunc/999/f.mgh\n");
+printf("    --voxres-in-plane 1 1\n");
+printf("\n");
+printf("3. Resample a subcortical segmentation to functional space. NOTE: THIS\n");
+printf("   IS NOT THE RECOMMENDED METHOD FOR THIS. TRY USING mri_label2vol\n");
+printf("   INSTEAD.  This uses nearest-neighbor interp because the\n");
+printf("   segmentation values are categorical, not continuous.\n");
+printf("\n");
+printf("   mri_vol2vol --i $SUBJECTS_DIR/subjid/mri/aseg.mgz\n");
+printf("               --o aseg.mgh\n");
+printf("               --t func.bhdr\n");
+printf("               --reg  register.dat --noinvxfm\n");
+printf("               --interp nearest\n");
+printf("\n");
+printf("4. Resample a structural volume to talairach space.\n");
+printf("   NOTE: BUG!! THIS WILL LIKELY NOT WORK!!!!\n");
+printf("   cd  $SUBJECTS_DIR/subjid/mri/\n");
+printf("   mri_vol2vol --i orig.mgz --o orig-tal.mgz\n");
+printf("               --t $SUBJECTS_DIR/fsaverage/mri/orig.mgz\n");
+printf("               --xfm transforms/talairach.xfm \n");
+printf("\n");
+printf("   NOTE: this should give the same result as:\n");
+printf("   mri_convert orig.mgz orig-tal.mgz --apply_transform transforms/talairach.xfm \n");
+printf("\n");
+printf("FORMATS\n");
+printf("\n");
+printf("Data file format can be specified implicitly (through the path name)\n");
+printf("or explicitly. All formats accepted by mri_convert can be used. \n");
+printf("\n");
+printf("BUGS\n");
+printf("\n");
+printf("sinc interpolation is broken except for maybe COR to COR.\n");
+printf("\n");
+printf("\n");
+printf("BUG REPORTING\n");
+printf("\n");
+printf("Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following \n");
+printf("formatted as a list as follows: (1) command-line, (2) directory where\n");
+printf("the program was run (for those in the MGH-NMR Center), (3) version, \n");
+printf("(4) text output, (5) description of the problem.\n");
+printf("\n");
+printf("SEE ALSO \n");
+printf("\n");
+printf("mri_convert, tkregister2\n");
+printf("\n");
+printf("\n");
 
   exit(1) ;
 }
@@ -900,15 +1147,15 @@ static void check_options(void)
   }
 
   if(fstalairach){
-    if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
-    if (subjectsdir==NULL) {
-      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
+    if(tempvolpath != NULL){
+      printf("ERROR: cannot specify --temp and --fstal\n");
       exit(1);
     }
-    sprintf(fname,"%s/%s/mri/brainfov%2d.mgh",
-		subjectsdir,talsubject,(int)(10*talres));
-    tempvolpath = (char *)calloc(strlen(fname)+1,sizeof(char));
-    memcpy(tempvolpath,fname,strlen(fname)+1);
+    sprintf(fname,"%s/average/mni305.cor.subfov%d.mgz",FSH,(int)talres);
+    tempvolpath = strcpyalloc(fname);
+    sprintf(fname,"%s/average/mni305.cor.subfov%d.reg",FSH,(int)talres);
+    err = regio_read_register(fname, &talsubject, &ipr, &bpr, 
+			      &intensity, &Rtal, &float2int);
   }
 
   if(tempvolpath == NULL){
