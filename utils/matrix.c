@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.82 2006/03/20 14:29:51 fischl Exp $
+// $Id: matrix.c,v 1.83 2006/03/30 01:33:59 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,9 +11,13 @@
 #include <sys/mman.h>
 #endif
 #ifdef Darwin
-#include <float.h>  // defines FLT_MIN
+  #include <float.h>  // defines FLT_MIN
 #else
-#include <values.h> // defines FLT_MIN
+  #ifdef SunOS
+    #include <limits.h> // defines FLT_MIN
+  #else
+    #include <values.h> // defines FLT_MIN
+  #endif
 #endif
 
 #include "matrix.h"
