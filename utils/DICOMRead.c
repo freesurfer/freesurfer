@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.82 2006/03/22 17:07:33 greve Exp $
+   $Id: DICOMRead.c,v 1.83 2006/03/30 01:27:01 nicks Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4035,6 +4035,7 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
 }
 
 #ifdef SunOS
+#ifndef HAVE_SCANDIR
 /* added by kteich for solaris, since it doesn't have them by default. */
 /* these funcs Copyright (c) Joerg-R. Hill, December 2000 */
 int scandir(const char *dir, struct_dirent ***namelist,
@@ -4072,12 +4073,15 @@ int scandir(const char *dir, struct_dirent ***namelist,
     
   return(i);
 }
+#endif
+#ifndef HAVE_ALPHASORT
 int alphasort(const void *a, const void *b)
 {
   struct_dirent **da = (struct_dirent **)a;
   struct_dirent **db = (struct_dirent **)b;
   return(strcmp((*da)->d_name, (*db)->d_name));
 }
+#endif
 #endif
 
 

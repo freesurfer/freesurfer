@@ -246,10 +246,21 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi);
    just replaced all 'struct dirent' in the code with 'struct_dirent'
    to reference the new typedef. seems to work. */
 typedef struct dirent struct_dirent;
+
+/* nicks - this code complains when built on Solaris 10.5
+   it seems to already have scandir and alphasort (29 march 2006) */
+#define HAVE_SCANDIR   1
+#define HAVE_ALPHASORT 1
+
+#ifndef HAVE_SCANDIR
 int scandir(const char *dir, struct_dirent ***namelist,
             int (*select)(const struct_dirent *),
             int (*compar)(const void *, const void *));
+#endif
+#ifndef HAVE_ALPHASORT
 int alphasort(const void *a, const void *b);
+#endif
+
 #endif
 
 #endif
