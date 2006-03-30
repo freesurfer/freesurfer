@@ -10357,20 +10357,23 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
   mri->z_a = hdr->srow_y[2] / mri->zsize;
   mri->z_s = hdr->srow_z[2] / mri->zsize;
 
-  mri->c_r =   hdr->srow_x[0] * mri->width / 2.0
-    + hdr->srow_x[1] * mri->height / 2.0
-    + hdr->srow_x[2] * mri->depth / 2.0
-    + hdr->srow_x[3];
+  mri->c_r =
+    hdr->srow_x[0] * (mri->width/2.0)  +
+    hdr->srow_x[1] * (mri->height/2.0) +
+    hdr->srow_x[2] * (mri->depth/2.0)  +
+    hdr->srow_x[3];
 
-  mri->c_a =   hdr->srow_y[0] * mri->width / 2.0
-    + hdr->srow_y[1] * mri->height / 2.0
-    + hdr->srow_y[2] * mri->depth / 2.0
-    + hdr->srow_y[3];
+  mri->c_a =
+    hdr->srow_y[0] * (mri->width/2.0)  +
+    hdr->srow_y[1] * (mri->height/2.0) +
+    hdr->srow_y[2] * (mri->depth/2.0)  +
+    hdr->srow_y[3];
 
-  mri->c_r =   hdr->srow_z[0] * mri->width / 2.0
-    + hdr->srow_z[1] * mri->height / 2.0
-    + hdr->srow_z[2] * mri->depth / 2.0
-    + hdr->srow_z[3];
+  mri->c_s =
+    hdr->srow_z[0] * (mri->width/2.0)  +
+    hdr->srow_z[1] * (mri->height/2.0) +
+    hdr->srow_z[2] * (mri->depth/2.0)  +
+    hdr->srow_z[3];
 
   return(NO_ERROR);
 
