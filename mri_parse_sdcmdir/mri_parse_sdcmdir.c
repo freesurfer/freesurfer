@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 // MacOSX does not have malloc.h but declaration is in stdlib.h
-#ifndef __APPLE__
+#ifndef Darwin
 #include <malloc.h>
 #endif   
 #include <errno.h>
@@ -18,14 +18,16 @@
 
 
 // This should be defined in ctype.h but is not (at least on centos,
-// but it is defined on Apple)
-#ifndef __APPLE__
+// but it is defined on Apple and Solaris)
+#ifndef Darwin
+#ifndef SunOS
 extern int isblank(int c);
+#endif
 #endif
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.13 2005/11/01 20:40:22 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.14 2006/03/30 01:43:09 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -187,7 +189,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.13 2005/11/01 20:40:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.14 2006/03/30 01:43:09 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
