@@ -2,13 +2,13 @@ function mri = MRIread(fstring,headeronly)
 % mri = MRIread(fstring,headeronly)
 %
 % Reads in a volume based on the fstring. fstring can be:
-% 1. A stem, in which case the format and full file name is determined
+%  1. A stem, in which case the format and full file name is determined
 %     by finding a file on disk called fstring.ext, where ext can be
-%     either mgh, mgz, img, bhdr, or nii
+%     either mgh, mgz, img, bhdr, nii, or nii.gz
 %  2. MGH file. Eg, f.mgh or f.mgz
 %  3. BVolume HDR file. Eg, f.bhdr 
 %  4. Analyze, eg, f.img or f.hdr
-%  5. NIFTI, eg, f.nii (no compressed yet)
+%  5. NIFTI, eg, f.nii or f.nii.gz
 %
 % Creates a structure similar to the FreeSurfer MRI struct
 % defined in mri.h. Times are in ms and angles are in radians.
@@ -27,7 +27,7 @@ function mri = MRIread(fstring,headeronly)
 % If the input is NIFTI, then mri.niftihdr is the nifti header
 % If the input is ANALYZE, then mri.analyzehdr is the analyze header
 %
-% $Id: MRIread.m,v 1.11 2006/03/30 07:02:01 greve Exp $
+% $Id: MRIread.m,v 1.12 2006/03/30 07:52:48 greve Exp $
 
 mri = [];
 
@@ -118,7 +118,7 @@ switch(fmt)
   M = vox2ras_1to0(hdr.vox2ras);
   mri.analyzehdr = hdr;
 %------- nifti nii -------------------------------------   
- case {'nii'}
+ case {'nii','nii.gz'}
   hdr = load_nifti(fspec,headeronly);
   if(isempty(hdr))
     fprintf('ERROR: loading %s as analyze\n',fspec);

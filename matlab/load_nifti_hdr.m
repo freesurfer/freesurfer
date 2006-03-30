@@ -4,12 +4,14 @@ function hdr = load_nifti_hdr(niftifile)
 % Changes units to mm and msec.
 % Creates hdr.vox2ras based on sform.
 % Does not use qform (yet).
-% Does not handle compressed (yet).
+% Does not and will not handle compressed. Compression is handled
+% in load_nifti.m, which calls load_nifti_hdr.m after any
+% decompression. 
 %
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
-% $Id: load_nifti_hdr.m,v 1.1 2006/03/30 07:00:27 greve Exp $
+% $Id: load_nifti_hdr.m,v 1.2 2006/03/30 07:52:48 greve Exp $
 
 hdr = [];
 

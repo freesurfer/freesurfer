@@ -2,8 +2,12 @@ function hdr = load_nifti(niftifile,hdronly)
 % hdr = load_nifti(niftifile,hdronly)
 %
 % Loads nifti header and volume. The volume is stored
-% in hdr.vol. It is not permuted to swap columns and rows.
+% in hdr.vol. Columns and rows are not swapped.
 %
+% Handles compressed nifti (nii.gz) by issuing a unix command to
+% uncompress the file to a temporary file, which is then deleted.
+%
+% Dimensions are in mm and msec
 % hdr.pixdim(1) = physical size of first dim (eg, 3.125 mm or 2000 ms)
 % hdr.pixdim(2) = ...
 % 
@@ -11,11 +15,11 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.1 2006/03/30 07:00:27 greve Exp $
+% $Id: load_nifti.m,v 1.2 2006/03/30 07:52:48 greve Exp $
 
 hdr = [];
 
-if(nargin < 1 | nargin >2)
+if(nargin < 1 | nargin > 2)
   fprintf('hdr = load_nifti(niftifile,<hdronly>)\n');
   return;
 end
@@ -23,11 +27,30 @@ end
 if(~exist('hdronly','var')) hdronly = []; end
 if(isempty(hdronly)) hdronly = 0; end
 
+% unzip if it is compressed 
+ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
+if(strcmpi(ext,'.gz'))
+  gzipped =  round(rand(1)*10000000);
+  ind = findstr(niftifile, '.');
+  new_niftifile = sprintf('/tmp/tmp%d.nii', gzipped);
+  fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
+  unix(sprintf('zcat %s > %s', niftifile, new_niftifile)) ;
+  niftifile = new_niftifile ;
+else
+  gzipped = -1 ;
+end
+
 hdr = load_nifti_hdr(niftifile);
-if(isempty(hdr)) return; end
+if(isempty(hdr)) 
+  if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+  return; 
+end
 
 % If only header is desired, return now
-if(hdronly) return; end
+if(hdronly) 
+  if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+  return; 
+end
 
 % Open to read the pixel data
 fp = fopen(niftifile,'r',hdr.endian);
@@ -50,6 +73,7 @@ switch(hdr.datatype)
 end
 
 fclose(fp);
+if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
 
 % Get total number of voxels
 dim = hdr.dim(2:end);
