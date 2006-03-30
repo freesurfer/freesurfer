@@ -6,19 +6,19 @@ function [fspec, fstem, fmt] = MRIfspec(fstring,checkdisk)
 %
 % A specification is the name of a file as it could exist on disk. The
 % specification has the form fstem.fmt, where fmt can be mgh, mgz,
-% bhdr, or img. fstring can be either an fspec or fstem. 
+% bhdr, img, nii. fstring can be either an fspec or fstem. 
 %
 % If fstring is an fspec, then the format is determined from the
 % extension.
 %
 % If fstring is an fstem and checkdisk=1 or NOT present, then the
 % format is determined by finding a file on disk named fstem.fmt. The
-% formats are searched in the following order: mgh, mgz, bhdr, or
-% img. The search order is only important when there are multiple
+% formats are searched in the following order: mgh, mgz, bhdr, img, or
+% nii. The search order is only important when there are multiple
 % files that would have met the criteria, then only the first one is
 % chosen. If no such file is found, then empty strings are returned.
 %
-% $Id: MRIfspec.m,v 1.3 2005/06/27 14:32:11 greve Exp $
+% $Id: MRIfspec.m,v 1.4 2006/03/30 07:02:01 greve Exp $
 
 fspec = [];
 fstem = [];
@@ -66,6 +66,11 @@ switch(ext)
   fmt = 'bhdr';
   fstem = fstring(1:end-5);
   return;
+ case 'nii',
+  fspec = fstring;
+  fmt = 'nii';
+  fstem = fstring(1:end-4);
+  return;
 end
 
 % If it gets here, then it cannot determine the format from an
@@ -94,7 +99,11 @@ fspec = sprintf('%s.%s',fstring,fmt);
 if(fast_fileexists(fspec)) return; end
 
 fmt = 'img';
-fspec = sprintf('%s.img',fstring);
+fspec = sprintf('%s.%s',fstring,fmt);
+if(fast_fileexists(fspec)) return; end
+
+fmt = 'nii';
+fspec = sprintf('%s.%s',fstring,fmt);
 if(fast_fileexists(fspec)) return; end
 
 % If it gets here, then could not determine format
