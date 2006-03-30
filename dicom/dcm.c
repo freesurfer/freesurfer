@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2006/02/02 21:46:54 $
+** Last Update:   $Author: nicks $, $Date: 2006/03/30 01:07:58 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.23 $
+** Revision:    $Revision: 1.24 $
 ** Status:    $State: Exp $
 */
 
@@ -103,6 +103,16 @@
 #include "dicom_uids.h"
 #include "dicom_objects.h"
 #include "dcmprivate.h"
+
+#ifdef SunOS
+  #include "config.h"
+  #if BYTEORDER == 1234
+    #define LITTLE_ENDIAN_ARCHITECTURE BYTE_ORDER
+  #endif
+  #if BYTEORDER == 4321
+    #define BIG_ENDIAN_ARCHITECTURE BYTE_ORDER
+  #endif
+#endif
 
 #define BYTEORDER_SAME      1
 #define BYTEORDER_REVERSE   2
@@ -122,7 +132,9 @@ static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
 
 // undeclared ones 
 #ifndef Darwin
+#ifndef SunOS
 extern void swab(const void *from, void *to, size_t n);
+#endif
 #endif
 
 /* Prototypes for internal functions

@@ -23,7 +23,9 @@
 #include <sys/resource.h>
 #include <xview/base.h>
 #ifdef SYSV_WAIT
+#ifndef SunOS
 #include <sys/rusage.h>
+#endif
 #endif 
 #ifdef SYSV_UCONTEXT
 #include <sys/ucontext.h>
