@@ -659,11 +659,30 @@ ScubaView::SetViewStateToLayerBounds ( int iLayerID ) {
       float RAS[6];
       col->GetDataRASBounds( RAS );
       
-      // Set the center.
+      // Calc the center.
       float centerRAS[3];
       centerRAS[0] = ((RAS[1] - RAS[0]) / 2.0) + RAS[0];
       centerRAS[1] = ((RAS[3] - RAS[2]) / 2.0) + RAS[2];
       centerRAS[2] = ((RAS[5] - RAS[4]) / 2.0) + RAS[4];
+
+      // If this is a volume layer, this unfortunately could put us
+      // right at the edge of a slice. This will mess up some of our
+      // intersection stuff because now two slices of voxels intersect
+      // with our plane. So adjust the coords by half a voxel.
+      if( col->GetTypeDescription() == "Volume" ) {
+	VolumeCollection* vol = (VolumeCollection*) col;
+	float voxelZero[3], voxelOne[3];
+	voxelZero[0] = voxelZero[1] = voxelZero[2] = 0;
+	voxelOne[0] = voxelOne[1] = voxelOne[2] = 1;
+	float RASVoxelZero[3], RASVoxelOne[3];
+	vol->MRIIndexToRAS( voxelZero, RASVoxelZero );
+	vol->MRIIndexToRAS( voxelOne, RASVoxelOne );
+	centerRAS[0] += (RASVoxelOne[0] - RASVoxelZero[0]) / 2.0;
+	centerRAS[1] += (RASVoxelOne[1] - RASVoxelZero[1]) / 2.0;
+	centerRAS[2] += (RASVoxelOne[2] - RASVoxelZero[2]) / 2.0;
+      }
+
+      // Set the center.
       Set2DRASCenter( centerRAS );
 
       // Calculate the zoom necessary.

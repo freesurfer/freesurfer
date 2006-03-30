@@ -2515,10 +2515,9 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 		 << "  current\t" << ras << "\t" << curIdx << endl
 		 << "  curVertex " << nCurVertex << "\t" << curVertex << "\t" << curVertexIdx << endl
 		 << "  backVertex " << nBackVertex << "\t" << backVertex << "\t" << backVertexIdx << endl
-		 << "  normal\t" << normal << "\t" << normalIdxf << endl
+		 << "  normal\t" << normalIdxf << endl
 		 << "  int\t" 
-		 << VectorOps::IntersectionResultToString(rInt) << "\t" 
-		 << VectorOps::IntersectionResultToString(rInt2) << endl;
+		 << VectorOps::IntersectionResultToString(rInt) <<  endl;
 #endif	    
 	    if( VectorOps::intersect == rInt ) {
 
@@ -2571,29 +2570,53 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     Point3<int> newIndex;
     CheckPair newPair;
     newPair.mSourceIndex = index;
-    //    if( iParams.mbDiagonal ) {
-      for( int nZ = beginZ; nZ <= endZ; nZ += 1 ) {
-	for( int nY = beginY; nY <= endY; nY += 1 ) {
-	  for( int nX = beginX; nX <= endX; nX += 1 ) {
-
-	    newIndex.Set( nX, nY, nZ );
-
-	    // If not 3D, check if voxel is in same plane.
-	    if( !iParams.mb3D ) {
-	      VectorOps::IntersectionResult rInt =
-		iVolume.VoxelIntersectsPlane( newIndex, planeIdx, planeNIdx,
-					      intersectionIdx );
-	      if( VectorOps::intersect != rInt ) {
-		continue;
-	      }
-	    }
-
-	    newPair.mCheckIndex = newIndex;
-	    checkPairs.push_back( newPair );
+    for( int nZ = beginZ; nZ <= endZ; nZ += 1 ) {
+      for( int nY = beginY; nY <= endY; nY += 1 ) {
+	for( int nX = beginX; nX <= endX; nX += 1 ) {
+	  
+	  if( !iParams.mbDiagonal ) {
+	    if( !( (nX == index.x() && nY == index.y()) ||
+		   (nX == index.x() && nZ == index.z()) ||
+		   (nY == index.y() && nZ == index.z())) ) {
+	      continue;
+	    }	      
 	  }
+	  
+	  newIndex.Set( nX, nY, nZ );
+	    
+	  // If not 3D, check if voxel is in same plane.
+	  if( !iParams.mb3D ) {
+	    VectorOps::IntersectionResult rInt =
+	      iVolume.VoxelIntersectsPlane( newIndex, planeIdx, planeNIdx,
+					    intersectionIdx );
+	    if( VectorOps::intersect != rInt ) {
+		continue;
+	    }
+	  }
+	  
+#if 0
+	  Point3<float> intersectionRAS;
+	  iVolume.MRIIndexToRAS( intersectionIdx.xyz(), 
+				 intersectionRAS.xyz() );
+	  
+	  cerr << "Added " << newIndex << " from " << index << endl;
+	  cerr << "\tplaneRAS " << planeRAS 
+	       << "\tplaneIdx " << planeIdx 
+	       << endl
+	       << "\tplaneNRAS " << planeNRAS 
+	       << "\tplaneNIdx " << planeNIdx 
+	       << endl
+		 << "\tintersectionIdx " << intersectionIdx 
+	       << "\tintersectionRAS " << intersectionRAS
+	       << endl;
+#endif
+	  
+	  newPair.mCheckIndex = newIndex;
+	  checkPairs.push_back( newPair );
 	}
       }
-      //    }
+    }
+    
     delete &loc;
     delete &sourceLoc;
   }
