@@ -18,7 +18,7 @@ function err = MRIwrite(mri,fstring)
 % keep the same precision set mri.outbext = mri.srcbext.  This only
 % applies to bhdr format.
 % 
-% $Id: MRIwrite.m,v 1.5 2006/03/31 06:26:08 greve Exp $
+% $Id: MRIwrite.m,v 1.6 2006/03/31 06:42:35 greve Exp $
 
 err = 1;
 
@@ -59,7 +59,7 @@ switch(fmt)
   end
   err = fast_svbslice(mri.vol,fstem,[],outbext,bmri);
  
- case {'nii'} %----------- NIFTI! ------------%
+ case {'nii','nii.gz'} %----------- NIFTI! ------------%
   hdr.data_type       = '';
   hdr.db_name         = '';
   hdr.extents         = 0;

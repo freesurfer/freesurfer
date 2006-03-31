@@ -10,6 +10,16 @@ if(nargin ~= 2)
   return;
 end
 
+ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
+if(strcmpi(ext,'.gz'))
+  gzip_needed = 1;
+  niftifile = niftifile(1:strlen(niftifile)-3);
+  fprintf('First, saving to %s before compressing\n',niftifile);
+else
+  gzip_needed = 0;
+end
+
+
 fp = fopen(niftifile,'w');
 if(fp == -1)
   fprintf('ERROR: could not open %s\n',niftifile);
@@ -114,6 +124,13 @@ fclose(fp);
 if(npix ~= nitemswritten)
   fprintf('ERROR: tried to write %d, but only wrote %d',npix,nitemswritten);
   return;
+end
+
+if(gzip_needed ~= -1)
+  cmd = sprintf('gzip %s', niftifile);
+  fprintf('Compressing with\n');
+  fprintf('   %s\n',cmd);
+  unix(cmd);
 end
 
 
