@@ -1,6 +1,6 @@
 % mksubfov.m
 %
-% $Id: mksubfov.m,v 1.2 2006/03/29 02:23:57 greve Exp $
+% $Id: mksubfov.m,v 1.3 2006/03/31 06:30:01 greve Exp $
 %
 % The purpose of this matlab script is to create the
 % mni305.cor.subfov1.mgz and mni305.cor.subfov2.mgz volumes.  These
@@ -16,6 +16,11 @@
 %   tkregister2 --targ mni305.cor.mgz --mov mni305.cor.subfov1.mgz \
 %        --regheader --reg /tmp/reg
 % And the volumes will be in register.
+%
+% After these files are created by this program, run the following:
+%   mri_convert mni305.cor.subfov1.mgz mni305.cor.subfov1.mgz --odt uchar
+%   mri_convert mni305.cor.subfov2.mgz mni305.cor.subfov2.mgz --odt uchar
+% This just reduces the size by a factor of 4.
 %
 % You should be in $DEV/distribution/averages when running this script
 
