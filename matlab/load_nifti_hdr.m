@@ -11,7 +11,7 @@ function hdr = load_nifti_hdr(niftifile)
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
-% $Id: load_nifti_hdr.m,v 1.2 2006/03/30 07:52:48 greve Exp $
+% $Id: load_nifti_hdr.m,v 1.3 2006/03/31 06:25:39 greve Exp $
 
 hdr = [];
 
@@ -23,13 +23,8 @@ end
 % Try opening as big endian first
 fp = fopen(niftifile,'r','b');
 if(fp == -1) 
-  niftifile0 = niftifile;
-  niftifile = sprintf('%s.hdr',niftifile);
-  fp = fopen(niftifile,'rb');
-  if(fp == -1) 
-    fprintf('ERROR: could not read %s or %s\n',niftifile0,niftifile);
-    return;
-  end
+  fprintf('ERROR: could not read %s\n',niftifile);
+  return;
 end
 
 hdr.sizeof_hdr  = fread(fp,1,'int');
@@ -51,29 +46,24 @@ else
 end
 
 hdr.data_type       = fscanf(fp,'%c',10);
-hdr.db_name         = fread(fp,18,'char');
+hdr.db_name         = fscanf(fp,'%c',18);
 hdr.extents         = fread(fp, 1,'int');
 hdr.session_error   = fread(fp, 1,'short');
 hdr.regular         = fread(fp, 1,'char');
 hdr.dim_info        = fread(fp, 1,'char');
-
 hdr.dim             = fread(fp, 8,'short');
 hdr.intent_p1       = fread(fp, 1,'float');
 hdr.intent_p2       = fread(fp, 1,'float');
 hdr.intent_p3       = fread(fp, 1,'float');
 hdr.intent_code     = fread(fp, 1,'short');
-
 hdr.datatype        = fread(fp, 1,'short');
 hdr.bitpix          = fread(fp, 1,'short');
 hdr.slice_start     = fread(fp, 1,'short');
-
 hdr.pixdim          = fread(fp, 8,'float'); % physical units
 hdr.vox_offset      = fread(fp, 1,'float');
 hdr.scl_slope       = fread(fp, 1,'float');
 hdr.scl_inter       = fread(fp, 1,'float');
-
 hdr.slice_end       = fread(fp, 1,'short');
-
 hdr.slice_code      = fread(fp, 1,'char');
 hdr.xyzt_units      = fread(fp, 1,'char');
 hdr.cal_max         = fread(fp, 1,'float');
@@ -86,7 +76,6 @@ hdr.descrip         = fscanf(fp,'%c',80);
 hdr.aux_file        = fscanf(fp,'%c',24);
 hdr.qform_code      = fread(fp, 1,'short');
 hdr.sform_code      = fread(fp, 1,'short');
-
 hdr.quatern_b       = fread(fp, 1,'float');
 hdr.quatern_c       = fread(fp, 1,'float');
 hdr.quatern_d       = fread(fp, 1,'float');
