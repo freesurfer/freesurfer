@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $";
+"$Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -260,7 +260,7 @@ int npts = 0;
 int prad = 0;
 float TM[4][4];
 float tm[4][4];
-MATRIX *RegMat;
+MATRIX *RegMat, *XFM=NULL;
 double ps_2,st_2,fscale_2=0.0; /* was float */
 int float2int = 0;
 int float2int_use = FLT2INT_ROUND;
@@ -289,6 +289,7 @@ char *srname;        /* sessiondir (funct: image) */
 char *psrname;       /* parent sessiondir (funct: 970703MS) */
 char *pname;         /* subject */
 char *regfname;      /* register.dat */
+char *xfmfname=NULL; /* something.xfm (minc reg mat) */
 char *afname;        /* analyse.dat */
 char *targpref;      /* abs single image structural stem name */
 char *movformat;     /* abs single image epi structural stem name */
@@ -612,7 +613,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("mkheaderreg = %d, float2int = %d\n",mkheaderreg,float2int);
   if(mkheaderreg){
     /* Compute Reg from Header Info */
-    RegMat = MRItkRegMtx(targ_vol,mov_vol,NULL);
+    RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
   }
   else if(fslregfname != NULL){
     /* Compute Reg from FSLReg */
@@ -1021,6 +1022,15 @@ static int parse_commandline(int argc, char **argv)
         printf("surfname set to %s\n",surfname);
       }
     }
+    else if (!strcmp(option, "--xfm")){
+      if(nargc < 1) argnerr(option,1);
+      xfmfname = pargv[0];
+      printf("INFO: reading xfm file %s, trying as MINC xfm \n",xfmfname);
+      err = regio_read_mincxfm(xfmfname, &XFM,NULL);
+      if(err) exit(1);
+      mkheaderreg = 1;
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--reg")){
       if(nargc < 1) argnerr(option,1);
       regfname = pargv[0];
@@ -1120,7 +1130,8 @@ static void print_usage(void)
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
-  printf("   --fslreg file : FSL-Style registration input matrix\n");
+  printf("   --fslreg file : FSL-style registration input matrix\n");
+  printf("   --xfm file : MNI-style registration input matrix\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
   printf("   --sd dir : use dir as SUBJECTS_DIR\n");
@@ -1281,6 +1292,12 @@ static void print_help(void)
          "  It should be an ascii file with a 4x4 matrix. "
          "Note: the matrix should\n"
          "  map from the mov to the target.\n"
+         "  \n"
+         "  --xfm MNI-Style registration matrix\n"
+         "  \n"
+         "  Use the matrix produced by an MNI prgram as the "
+         "  initial registration.\n"
+         "  Note: the matrix should map from the mov to the target.\n"
          "  \n"
          "  --s identity\n"
          "  \n"
@@ -1641,6 +1658,10 @@ static void check_options(void)
   }
   if(subjectid == NULL && fstal){
     printf("ERROR: must spec subjectid with --fstal\n");
+    exit(1);
+  }
+  if(xfmfname != NULL && fslregfname != NULL){
+    printf("ERROR: cannot make reg from xfm AND fslreg \n");
     exit(1);
   }
   if(mkheaderreg && fslregfname != NULL){
@@ -3995,7 +4016,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.54 2006/03/27 23:09:49 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
