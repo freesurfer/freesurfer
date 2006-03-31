@@ -5,7 +5,7 @@ function err = MRIwrite(mri,fstring)
 %  1. MGH file. Eg, f.mgh or f.mgz
 %  2. BHDR file Eg, f.bhdr. Result will be written to a bfloat
 %     volume, eg f_000.bfloat.
-%  3. NIFIT file, Eg, f.nii (no compressed yet, qform not good)
+%  3. NIFIT file, Eg, f.nii, f.nii.gz (uncompressed and compressed)
 %
 % mri should be a structure like that read by MRIread.m The goemetry
 % (ie, direction cosines, voxel resolution, and P0 are all recomputed
@@ -18,7 +18,7 @@ function err = MRIwrite(mri,fstring)
 % keep the same precision set mri.outbext = mri.srcbext.  This only
 % applies to bhdr format.
 % 
-% $Id: MRIwrite.m,v 1.6 2006/03/31 06:42:35 greve Exp $
+% $Id: MRIwrite.m,v 1.7 2006/03/31 06:46:08 greve Exp $
 
 err = 1;
 
