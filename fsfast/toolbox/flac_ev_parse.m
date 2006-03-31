@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.6 2004/11/01 04:38:08 greve Exp $
+% $Id: flac_ev_parse.m,v 1.7 2006/03/31 02:18:00 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -111,6 +111,38 @@ switch (ev.model)
   ev.nreg = ev.params(1) + 1;
   
 
+ %--------------------------------------------
+ case {'gamma'} % Fourier regressor
+  % 5 parameters: delay dispersion alpha nderiv dpsd
+  % EV Probe gamma task 2.25 1.25 1 0 .1
+  [ev.stf c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: stf\n',ev.model); ev=[]; return; end
+
+  [item c] = sscanfitem(tline,6);
+  if(c ~= 1) fprintf('Format error: %s: delay\n',ev.model); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%f',1); % delay (sec)
+
+  [item c] = sscanfitem(tline,7);
+  if(c ~= 1) fprintf('Format error: %s: dispersion\n',ev.model); ev=[]; return; end
+  ev.params(2) = sscanf(item,'%d',1); % dispersion (sec)
+
+  [item c] = sscanfitem(tline,8);
+  if(c ~= 1) fprintf('Format error: %s: alpha\n',ev.model); ev=[]; return; end
+  ev.params(3) = sscanf(item,'%f',1); % alpha
+
+  [item c] = sscanfitem(tline,9);
+  if(c ~= 1) fprintf('Format error: %s: nderiv\n',ev.model); ev=[]; return; end
+  ev.params(4) = sscanf(item,'%f',1); % nderiv
+
+  [item c] = sscanfitem(tline,10);
+  if(c ~= 1) fprintf('Format error: %s: dpsd\n',ev.model); ev=[]; return; end
+  ev.params(5) = sscanf(item,'%f',1); % dpsd (sec)
+
+  ev.psdwin = [0 40 ev.params(5)];
+  ev.npsd = round((ev.psdwin(2)-ev.psdwin(1))/ev.psdwin(3));
+  ev.ishrf = 1;  
+  ev.nreg = 1+ev.params(4); % 1+nderiv
+  
  %--------------------------------------------
  case {'fourier'} % Fourier regressor
   % 3 parameters: period nharmonics tdelay
