@@ -15,7 +15,7 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.2 2006/03/30 07:52:48 greve Exp $
+% $Id: load_nifti.m,v 1.3 2006/03/31 06:24:12 greve Exp $
 
 hdr = [];
 
@@ -56,7 +56,7 @@ end
 fp = fopen(niftifile,'r',hdr.endian);
 
 % Get past the header
-fseek(fp,hdr.sizeof_hdr,'bof');
+fseek(fp,round(hdr.vox_offset),'bof');
 
 switch(hdr.datatype)
  case   2, [hdr.vol nitemsread] = fread(fp,inf,'char');
@@ -67,7 +67,7 @@ switch(hdr.datatype)
  case 512, [hdr.vol nitemsread] = fread(fp,inf,'ushort');
  case 768, [hdr.vol nitemsread] = fread(fp,inf,'uint');
  otherwise,
-  fprintf('ERROR: data type %d not supported',hdr.dime.datatype);
+  fprintf('ERROR: data type %d not supported',hdr.datatype);
   hdr = [];
   return;
 end
@@ -84,12 +84,18 @@ nvoxels = prod(dim);
 % Check that that many voxels were read in
 if(nitemsread ~= nvoxels) 
   fprintf('ERROR: %s, read in %d voxels, expected %d\n',...
-	  imgfile,nitemsread,nvoxels);
+	  niftifile,nitemsread,nvoxels);
   hdr = [];
   return;
 end
 
 hdr.vol = reshape(hdr.vol, dim');
+if(hdr.scl_slope ~= 0)
+  fprintf('nifti rescale: slope = %g, intercept = %g\n',...
+	  hdr.scl_slope,hdr.inter);
+  fprintf('Good luck, this has never been tested ... \n');
+  hdr.vol = hdr.vol * hdr.scl_slope  + hdr.scl_inter;
+end
 
 return;
 
