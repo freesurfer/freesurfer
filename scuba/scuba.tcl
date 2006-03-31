@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.183 2006/03/13 21:17:41 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.184 2006/03/31 22:33:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -69,6 +69,8 @@ DebugOutput "\$Id: scuba.tcl,v 1.183 2006/03/13 21:17:41 kteich Exp $"
 # gaTool
 #   n - id of tool
 #     mode
+
+set gbFirstVolumeLoaded 0
 
 
 set gbDebugOutput false
@@ -5152,8 +5154,9 @@ proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
 }
 
 proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
-    dputs "LoadVolume  $ifnVolume $ibCreateLayer $iFrameIDToAdd  "
+    global gbFirstVolumeLoaded
 
+    dputs "LoadVolume  $ifnVolume $ibCreateLayer $iFrameIDToAdd  "
 
     set err [catch { set fnVolume [FindFile $ifnVolume] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
@@ -5180,7 +5183,10 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 	}
 
 	# Show the complete volume.
-	SetViewStateToLayerBoundsAllViewsInFrame [GetMainFrameID] $layerID
+	if { ! $gbFirstVolumeLoaded } {
+	    SetViewStateToLayerBoundsAllViewsInFrame [GetMainFrameID] $layerID
+	    set gbFirstVolumeLoaded 1
+	}
 
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
@@ -5812,7 +5818,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.183 2006/03/13 21:17:41 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.184 2006/03/31 22:33:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
