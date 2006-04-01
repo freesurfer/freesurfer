@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.12 2005/10/05 19:21:50 greve Exp $
+% $Id: fast_ldflac.m,v 1.13 2006/04/01 06:16:25 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -117,6 +117,8 @@ while(1)
     if(strcmp(flac.format,'bvolume')) flac.formatext = ''; 
     elseif(strcmp(flac.format,'mgh')) flac.formatext = '.mgh'; 
     elseif(strcmp(flac.format,'mgz')) flac.formatext = '.mgz'; 
+    elseif(strcmp(flac.format,'nii')) flac.formatext = '.nii'; 
+    elseif(strcmp(flac.format,'nii.gz')) flac.formatext = '.nii.gz'; 
     else
       fprintf('ERROR: format %s unrecognized\n',flac.format);
       flac=[]; return; 
