@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $";
+"$Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1036,7 +1036,7 @@ static int parse_commandline(int argc, char **argv)
       regfname = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--fslreg")){
+    else if(!strcmp(option, "--fslreg") || !strcmp(option, "--fsl")){
       if(nargc < 1) argnerr(option,1);
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
@@ -1130,7 +1130,7 @@ static void print_usage(void)
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
-  printf("   --fslreg file : FSL-style registration input matrix\n");
+  printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
@@ -1285,7 +1285,7 @@ static void print_help(void)
          "  were acquired at the same time (ie, when the head motion "
          "is minimal).\n"
          "  \n"
-         "  --fslreg FSL-registration-file\n"
+         "  --fsl FSL-registration-file\n"
          "  \n"
          "  Use the matrix produced by the FSL routines as the "
          "initial registration.\n"
@@ -1310,7 +1310,7 @@ static void print_help(void)
          "output registration\n"
          "  file when no the input registration file is not specified "
          "(ie, with\n"
-         "  --regheader or --fslreg).\n"
+         "  --regheader or --fsl).\n"
          "  \n"
          "  --sd subjectsdir\n"
          "  \n"
@@ -1580,7 +1580,7 @@ static void print_help(void)
          "an FSL \nregistration "
          "file (an ASCII file with the 4x4 matrix). Run tkregister2 "
          "specifying\n"
-         "this file as the argument to the --fslreg flag. Note, it is "
+         "this file as the argument to the --fsl flag. Note, it is "
          "possible\n"
          "to generate an FSL matrix from the headers, which can be useful to\n"
          "initialize the FSL registration routines. To do this, just run\n"
@@ -1591,7 +1591,7 @@ static void print_help(void)
          "the registration as seen by FSL unless --fslregout is specfied.\n"
          "An example command-line is\n"
          "\n"
-         "  tkregister2 --mov f.img --fslreg fsl.mat --s yoursubject "
+         "  tkregister2 --mov f.img --fsl fsl.mat --s yoursubject "
          "--regheader\n"
          "      --noedit --reg register.dat \n"
          "\n"
@@ -4016,7 +4016,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.55 2006/03/31 21:21:31 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
