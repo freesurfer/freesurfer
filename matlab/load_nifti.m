@@ -15,7 +15,7 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.3 2006/03/31 06:24:12 greve Exp $
+% $Id: load_nifti.m,v 1.4 2006/04/03 19:07:42 greve Exp $
 
 hdr = [];
 
@@ -73,7 +73,10 @@ switch(hdr.datatype)
 end
 
 fclose(fp);
-if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+if(gzipped >=0) 
+  fprintf('Deleting temporary uncompressed file %s\n',niftifile);
+  unix(sprintf('rm %s', niftifile)); 
+end
 
 % Get total number of voxels
 dim = hdr.dim(2:end);
@@ -91,9 +94,9 @@ end
 
 hdr.vol = reshape(hdr.vol, dim');
 if(hdr.scl_slope ~= 0)
-  fprintf('nifti rescale: slope = %g, intercept = %g\n',...
-	  hdr.scl_slope,hdr.inter);
-  fprintf('Good luck, this has never been tested ... \n');
+  fprintf('Rescaling NIFTI: slope = %g, intercept = %g\n',...
+	  hdr.scl_slope,hdr.scl_inter);
+  %fprintf('    Good luck, this has never been tested ... \n');
   hdr.vol = hdr.vol * hdr.scl_slope  + hdr.scl_inter;
 end
 
