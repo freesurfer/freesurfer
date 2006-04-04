@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/22 14:35:49 $
-// Revision       : $Revision: 1.49 $
+// Revision Date  : $Date: 2006/04/04 18:36:43 $
+// Revision       : $Revision: 1.50 $
 
 
 #include <math.h>
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
   MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
-  int          msec, minutes, seconds /*, iter*/ ;
+  int          msec, hours, minutes, seconds /*, iter*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.49 2006/03/22 14:35:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.50 2006/04/04 18:36:43 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -722,6 +722,8 @@ main(int argc, char *argv[])
 		if(!xform_name)
 		{
 			//      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, NULL) ;
+			printf("2nd pass renormalization with updated intensity distributions\n");
 			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
 		}
 		else
@@ -735,12 +737,17 @@ main(int argc, char *argv[])
 			TransformInvert(trans, mri_inputs);
 
 			//      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, NULL) ;
+			printf("2nd pass renormalization with updated intensity distributions\n");
 			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
 			free(trans);
 		}
-		sprintf(fname, "%s.gca", parms.base_name) ;
-		printf("writing gca to %s...\n", fname) ;
-		//		GCAwrite(gca, fname) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			sprintf(fname, "%s.gca", parms.base_name) ;
+			printf("writing gca to %s...\n", fname) ;
+			GCAwrite(gca, fname) ;
+		}
 		if(lta){
 			sprintf(fname, "%s_array.lta", parms.base_name) ;
 			LTAwrite(lta, fname) ;
@@ -858,14 +865,16 @@ main(int argc, char *argv[])
   GCAMfree(&gcam) ;
   if (mri_inputs)
     MRIfree(&mri_inputs) ;
+  if (diag_fp)
+    fclose(diag_fp) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
+  hours = minutes / (60) ;
+	minutes = minutes % 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
 				 minutes, seconds) ;
-  if (diag_fp)
-    fclose(diag_fp) ;
   exit(0) ;
   return(0) ;
 }
