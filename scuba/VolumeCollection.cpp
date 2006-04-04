@@ -2076,6 +2076,32 @@ VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
 					 Point3<float>& iPlaneIdxNormal,
 					 Point3<float>& oIntersectionIdx ){
 
+
+  // Call the big function and just return the first result if
+  // present.
+  int cIntersections;
+  VectorOps::IntersectionResult results[12];
+  Point3<float> intersections[12];
+  if( VoxelIntersectsPlane( iMRIIndex, iPlaneIdx, iPlaneIdxNormal,
+			    cIntersections, results, intersections ) ) {
+
+    if( cIntersections > 0 ) {
+      oIntersectionIdx = intersections[0];
+      return results[0];
+    }
+  }
+
+  return VectorOps::dontIntersect;
+}
+
+bool
+VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex, 
+					 Point3<float>& iPlaneIdx, 
+					 Point3<float>& iPlaneIdxNormal,
+					 int& ocIntersections,
+					 VectorOps::IntersectionResult orIntersection[12],
+					 Point3<float> oIntersectionIdx[12] ){
+
   // Create float idx versions of our corners.
   Point3<float> voxelIdx[8];
   voxelIdx[0].Set( iMRIIndex.x()  , iMRIIndex.y()  , iMRIIndex.z()   );
@@ -2101,6 +2127,7 @@ VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
   }
   
   // Intersect these segments with the plane. If any of them hit...
+  int cIntersections = 0;
   for( int nSegment = 0; nSegment < 12; nSegment++ ) {
     
     Point3<float> intersectionIdx;
@@ -2114,14 +2141,20 @@ VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
 	       <<  segmentIdx[nSegment][1] << "..." << endl;
 #endif
 
+    // If an intersection, add the results to the output arrays.
     if( VectorOps::intersect == rInt ) {
 
-      oIntersectionIdx = intersectionIdx;
-      return rInt;
+      orIntersection[cIntersections] = rInt;
+      oIntersectionIdx[cIntersections] = intersectionIdx;
+      cIntersections++;
     }
   }
 
-  return VectorOps::dontIntersect;
+  // Return the number of intersections.
+  ocIntersections = cIntersections;
+
+  // Return true if there was an intersection.
+  return (cIntersections > 0);
 }
 
 VectorOps::IntersectionResult 
@@ -2372,7 +2405,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     Point3<int> sourceIndex = checkPair.mSourceIndex;
     VolumeLocation& sourceLoc =
       (VolumeLocation&) sourceVol->MakeLocationFromIndex( sourceIndex.xyz() );
-    
+
     Point3<float> ras;
     iVolume.MRIIndexToRAS( index.xyz(), ras.xyz() );
     Point3<float> sourceRAS;
@@ -2390,6 +2423,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       continue;
     }
 
+    // See if we've visited here before.
     if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
       delete &loc;
       delete &sourceLoc;
@@ -2417,7 +2451,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	continue;
       }
     }
-
 
     // Check only zero.
     if( iParams.mbOnlyZero ) {
@@ -2461,22 +2494,27 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       // don't proceed.
       bool bCross = false;
       Point3<float> x;
+      // For each path...
       list<Path<float>*>::iterator tPath;
       PathManager& pathMgr = PathManager::GetManager();
       list<Path<float>*>& pathList = pathMgr.GetPathList();
-      for( tPath = pathList.begin(); tPath != pathList.end() && !bCross; ++tPath ) {
+      for( tPath = pathList.begin(); 
+	   tPath != pathList.end() && !bCross; ++tPath ) {
 	Path<float>* path = *tPath;
 	if( path->GetNumVertices() > 0 ) {
 
+	  // For each segment in the path...
 	  int cVertices = path->GetNumVertices();
-	  for( int nCurVertex = 1; nCurVertex < cVertices && !bCross; nCurVertex++ ) {
+	  for( int nCurVertex = 1; 
+	       nCurVertex < cVertices && !bCross; nCurVertex++ ) {
 	    
 	    int nBackVertex = nCurVertex - 1;
 	    
-	    // Get the two vertices.
+	    // Get the end points of this segment.
 	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
 	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
 
+	    // Get the view normal.
 	    Point3<float> viewNormal( iParams.mViewNormal );
 
 	    // Now convert everything to index coords.
@@ -2485,25 +2523,30 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	    iVolume.RASToMRIIndex( curVertex.xyz(), curVertexIdx.xyz() );
 	    iVolume.RASToMRIIndex( backVertex.xyz(), backVertexIdx.xyz() );
 	    iVolume.RASToMRIIndex( viewNormal.xyz(), viewIdx.xyz() );
-	    iVolume.RASToMRIIndex( sourceRAS.xyz(), sourceIdx.xyz() );
-	    iVolume.RASToMRIIndex( ras.xyz(), curIdx.xyz() );
+ 	    iVolume.RASToMRIIndex( sourceRAS.xyz(), sourceIdx.xyz() );
+ 	    iVolume.RASToMRIIndex( ras.xyz(), curIdx.xyz() );
 
 	    // And then get float versions of those index coords
 	    // because that's what we do the math in.
 	    Point3<float> curVertexIdxf, backVertexIdxf, segVertexIdxf,
 	      viewIdxf, normalIdxf, sourceIdxf, curIdxf;
 	    curVertexIdxf.Set(curVertexIdx[0],curVertexIdx[1],curVertexIdx[2]);
-	    backVertexIdxf.Set(backVertexIdx[0],backVertexIdx[1],backVertexIdx[2]);
-	    sourceIdxf.Set( sourceIdx[0], sourceIdx[1], sourceIdx[2] );
-	    curIdxf.Set( curIdx[0], curIdx[1], curIdx[2] );
+	backVertexIdxf.Set(backVertexIdx[0],backVertexIdx[1],backVertexIdx[2]);
 	    viewIdxf.Set( viewIdx[0], viewIdx[1], viewIdx[2]);
+ 	    sourceIdxf.Set( sourceIdx[0], sourceIdx[1], sourceIdx[2] );
+ 	    curIdxf.Set( curIdx[0], curIdx[1], curIdx[2] );
 
-	    // Calculate a vector between the two verts. Calc a plane
-	    // normal by cross that vector and the view normal.
+	    // Calculate a vector between the two path segment
+	    // points. To create a plane on the segment that's
+	    // perpendicular to the screen, calc a plane normal by
+	    // crossing the segment vector and the view normal.
 	    segVertexIdxf = curVertexIdxf - backVertexIdxf;
 	    normalIdxf = VectorOps::Cross( segVertexIdxf, viewIdxf );
 	    normalIdxf = VectorOps::Normalize( normalIdxf );
 
+	    // Intersect the segment between the points in the volume
+	    // we're checking and the plane that's on the path
+	    // segment.
 	    VectorOps::IntersectionResult rInt =
 	      VectorOps::SegmentIntersectsPlane( sourceIdxf, curIdxf,
 						 curVertexIdxf, normalIdxf,
@@ -2522,16 +2565,25 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	    if( VectorOps::intersect == rInt ) {
 
 	      // Make sure x is in the cuboid formed by curVertex and
-	      // backVertex.
-	      if( !(x[0] < MIN(curVertexIdx[0],backVertexIdx[0]) ||
-		    x[0] > MAX(curVertexIdx[0],backVertexIdx[0]) ||
-		    x[1] < MIN(curVertexIdx[1],backVertexIdx[1]) ||
-		    x[1] > MAX(curVertexIdx[1],backVertexIdx[1]) ||
-		    x[2] < MIN(curVertexIdx[2],backVertexIdx[2]) ||
-		    x[2] > MAX(curVertexIdx[2],backVertexIdx[2])) ) {
+	      // backVertex. We extend the cuboid by 0.9 in all
+	      // directions to compensate for volumes that are rotated
+	      // oddly. This number seems to work best.
+	      if( !((float)x[0] <
+		    (float)MIN(curVertexIdx[0],backVertexIdx[0]) - 0.9 ||
+		    (float)x[0] >
+		    (float)MAX(curVertexIdx[0],backVertexIdx[0]) + 0.9 ||
+		    (float)x[1] < 
+		    (float)MIN(curVertexIdx[1],backVertexIdx[1]) - 0.9 ||
+		    (float)x[1] >
+		    (float)MAX(curVertexIdx[1],backVertexIdx[1]) + 0.9 ||
+		    (float)x[2] < 
+		    (float)MIN(curVertexIdx[2],backVertexIdx[2]) - 0.9 ||
+		    (float)x[2] >
+		    (float)MAX(curVertexIdx[2],backVertexIdx[2]) + 0.9 )) {
+
 		bCross = true;
 	      }
-	    }
+	    } 
 	  }
 	}
       }

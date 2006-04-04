@@ -215,11 +215,23 @@ class VolumeCollection : public DataCollection {
 
   // Given an MRI voxel index and a plane in idx coords, returns
   // whether or not the voxel intersects the plane. Tests each of the
-  // voxel's edges against the plane.
+  // voxel's edges against the plane. Returns the result of the first
+  // intersection.
   VectorOps::IntersectionResult VoxelIntersectsPlane
     ( Point3<int>& iMRIIndex,
       Point3<float>& iPlaneIdx, Point3<float>& iPlaneIdxNormal,
       Point3<float>& oIntersectionIdx ); 
+
+  // A longer version, this will return a list of all the
+  // intersections and their results. The above function uses this
+  // one. Returns true if there was an intersection.
+  bool VoxelIntersectsPlane
+    ( Point3<int>& iMRIIndex,
+      Point3<float>& iPlaneIdx,
+      Point3<float>& iPlaneIdxNormal,
+      int& oNumIntersections,
+      VectorOps::IntersectionResult orIntersection[12],
+      Point3<float> oIntersectionIdx[12] ); 
 
   // Does something similar but tests if a segment goes through a
   // voxel. Does this by testing the segment against each face as a
