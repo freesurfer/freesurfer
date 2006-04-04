@@ -127,7 +127,7 @@ if(npix ~= nitemswritten)
 end
 
 if(gzip_needed ~= -1)
-  cmd = sprintf('gzip %s', niftifile);
+  cmd = sprintf('gzip -f %s', niftifile);
   fprintf('Compressing with\n');
   fprintf('   %s\n',cmd);
   unix(cmd);
