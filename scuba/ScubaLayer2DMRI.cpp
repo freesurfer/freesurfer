@@ -2645,7 +2645,7 @@ void
 ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
 
   mMinVisibleValue = iValue; 
-  if( mMinVisibleValue >= mMaxVisibleValue ) {
+  if( mMinVisibleValue > mMaxVisibleValue ) {
     mMinVisibleValue = mMaxVisibleValue - 0.00001;
   }
 }
@@ -2653,7 +2653,7 @@ ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
 void
 ScubaLayer2DMRI::SetMaxVisibleValue ( float iValue ) { 
   mMaxVisibleValue = iValue; 
-  if( mMaxVisibleValue <= mMinVisibleValue ) {
+  if( mMaxVisibleValue < mMinVisibleValue ) {
     mMaxVisibleValue = mMinVisibleValue + 0.00001;
   }
 }
