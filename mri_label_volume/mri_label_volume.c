@@ -22,12 +22,12 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
-static  int spread_sheet = 0 ;
+static int spread_sheet = 0 ;
 static int partial_volume = 0 ;
 static MRI *mri_vals ;  /* for use in partial volume calculation */
 static int in_label = -1 ;
 static int out_label = -1 ;
-static  char  *subject_name = NULL ;
+static char  *subject_name = NULL ;
 static int all_flag = 0 ;
 static int compute_pct = 0 ;
 static char *brain_fname = NULL ;
@@ -36,6 +36,25 @@ static char *icv_fname = NULL ;
 static char *col_strings[MAX_COLS] ;
 static int ncols  = 0 ;
 static double atlas_icv = -1 ;
+
+// Buckner version:
+//static double eTIV_scale_factor = 1755;
+// our version with talairach_with_skull.lta:
+//static double eTIV_scale_factor = 2889.2;
+// NJS calculated scale factor, with newest talairach_with_skull.lta:
+static double eTIV_scale_factor = 2150;
+/* NJS notes: the eTIV_scale_factor is set by finding the best fit of the eTIV
+of 22 reference subjects against their known TIV (manually found).  These
+subjects are found in /autofs/space/jc_001/users/nicks/subjects/SASHA
+In the scripts directory, script run_rb.csh will run this mri_label_volume
+binary and generate a matlab data file called det_eTIV_matdat.m which contains
+the determinant and eTIV data.  Then, the matlab script plot_det.m plots the
+det against the manual TIV, and also the eTIV against manual TIV.  The eTIV
+vs manual TIV plot has a unity slope line which is the ideal (the blue line).
+The best fit line, in red, shows how close to ideal the eTIV_scale_factor
+is doing to match this fit.  eTIV_scale_factor is adjusted iteratively to
+find the best match.
+*/
 
 int
 main(int argc, char *argv[])
@@ -51,7 +70,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.22 2006/04/04 21:52:20 nicks Exp $",
+     "$Id: mri_label_volume.c,v 1.23 2006/04/04 22:46:23 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -142,7 +161,6 @@ main(int argc, char *argv[])
     // (5) Just use brain_volume=1 (ie, don't try to take it into account)
     brain_volume = 1.0 ;
   }
-
 
   // For spread sheet, print first col as subj name.
   // The next col is the brain volume.
@@ -292,7 +310,9 @@ get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
   }
-  else if (!stricmp(option, "atlas_icv") || !stricmp(option, "eTIV")){
+  else if (!stricmp(option, "atlas_icv") ||
+           !stricmp(option, "eTIV") ||
+           !stricmp(option, "eTIV_matdat")){
     LTA    *atlas_lta ;
     double atlas_det ;
 
@@ -303,15 +323,30 @@ get_option(int argc, char *argv[])
          "%s: could not open atlas transform file %s", Progname, argv[2]) ;
     atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
     LTAfree(&atlas_lta) ;
-#if 0
-    atlas_icv = 1755*(10*10*10) / atlas_det ;  // Buckner version
-#else
-    atlas_icv = 2889.2*(10*10*10) / atlas_det ;  /* our version with
-                                                    talairach_with_skull.lta*/
-#endif
+    atlas_icv = eTIV_scale_factor*(10*10*10) / atlas_det ;
     printf("using eTIV from atlas transform of %2.0f cm^3\n",
            atlas_icv/(10*10*10)) ;
     nargs = 1 ;
+
+    if (!stricmp(option, "eTIV_matdat"))
+      {
+        /* create matlab-readable data file (append to
+           existing file named "det_eTIV_matdat.m") */
+        FILE *dat_fp = fopen("det_eTIV_matdat.m", "a+") ;
+        if (dat_fp)
+          {
+            fprintf(dat_fp,
+                    "eTIV_scale_factor = %f;\n", eTIV_scale_factor);
+            fprintf(dat_fp,
+                    "det_eTIV(length(det_eTIV)+1).det = %f;\n", atlas_det);
+            fprintf(dat_fp,
+                    "det_eTIV(length(det_eTIV)).eTIV = %f;\n", atlas_icv);
+            fprintf(dat_fp,
+                    "det_eTIV(length(det_eTIV)).id = '%s';\n\n\n", argv[3]);
+            fclose(dat_fp);
+          }
+        nargs = 2 ;
+      }
   }
   else switch (toupper(*option)){
   case 'C':
@@ -375,21 +410,25 @@ usage_exit(int code)
 {
   printf("usage: %s [options] <volume> <label 1> <label 2> ...\n", Progname) ;
   printf("valid options are:\n") ;
-  printf("\t-pv <fname>   - compute partial volume effects "
+  printf("  -pv <fname>   - compute partial volume effects "
          "using intensity volume <fname>\n") ;
-  printf("\t-icv <fname>  - normalize by the intracranial "
+  printf("  -icv <fname>  - normalize by the intracranial "
          "volume in <fname>\n") ;
-  printf("\t-s <subject>  - output in spreadsheet mode, "
+  printf("  -s <subject>  - output in spreadsheet mode, "
          "including <subject> name in file\n") ;
-  printf("\t-a            - compute volume of all non-zero "
+  printf("  -a            - compute volume of all non-zero "
          "voxels (e.g. for computing brain volume)\n") ;
-  printf("\t-t <in> <out> - replace label <in> with label <out>. "
+  printf("  -t <in> <out> - replace label <in> with label <out>. "
          "Useful for compute e.g. whole hippo vol\n") ;
-  printf("\t-b <brain vol>- compute the brain volume from "
+  printf("  -b <brain vol>- compute the brain volume from "
          "<brain vol> and normalize by it\n") ;
-  printf("\t-p            - compute volume as a %% of all non-zero labels\n") ;
-  printf("\t-l <fname>    - log results to <fname>\n") ;
-  printf("\t-atlas_icv <fname> - use 1755cm^3/(det(fname)) "
-         "for ICV correction (c.f. Buckner et al., 2004)\n");
+  printf("  -p            - compute volume as a %% of all non-zero labels\n") ;
+  printf("  -l <fname>    - log results to <fname>\n") ;
+  printf("  -atlas_icv <fname> - use %2.1fcm^3/(det(fname)) "
+         "for ICV correction (c.f. Buckner et al., 2004)\n",
+         eTIV_scale_factor);
+  printf("  -eTIV <fname> - same as -atlas_icv\n");
+  printf("  -eTIV_matdat <fname> <subject> - same as -eTIV, and generate \n");
+  printf("                  matlab data appending <subject> to structure\n");
   exit(code) ;
 }
