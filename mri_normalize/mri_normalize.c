@@ -15,6 +15,7 @@
 #include "version.h"
 #include "cma.h"
 
+static MRI *MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(int code) ;
@@ -64,16 +65,17 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
+	fprintf(stderr,"WM removal version\n") ;
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.44 2006/01/22 03:44:04 nicks Exp $",
+     "$Id: mri_normalize.c,v 1.45 2006/04/04 18:33:33 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.44 2006/01/22 03:44:04 nicks Exp $",
+     "$Id: mri_normalize.c,v 1.45 2006/04/04 18:33:33 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -87,11 +89,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+	{
+		nargs = get_option(argc, argv) ;
+		argc -= nargs ;
+		argv += nargs ;
+	}
 
   if (argc < 3)
     usage_exit(0) ;
@@ -111,48 +113,48 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, in_fname) ;
   if (!mriConformed(mri_src))
-    {
-      printf("unconformed source detected - conforming...\n") ;
-      mri_src = MRIconform(mri_src) ;
-    }
+	{
+		printf("unconformed source detected - conforming...\n") ;
+		mri_src = MRIconform(mri_src) ;
+	}
 
   MRIaddCommandLine(mri_src, cmdline) ;
   if (mask_fname)
-    {
-      MRI *mri_mask ;
+	{
+		MRI *mri_mask ;
 
-      mri_mask = MRIread(mask_fname) ;
-      if (!mri_mask)
-        ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                  Progname, mask_fname) ;
-      MRImask(mri_src, mri_mask, mri_src, 0, 0) ;
-      MRIfree(&mri_mask) ;
-    }
+		mri_mask = MRIread(mask_fname) ;
+		if (!mri_mask)
+			ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+								Progname, mask_fname) ;
+		MRImask(mri_src, mri_mask, mri_src, 0, 0) ;
+		MRIfree(&mri_mask) ;
+	}
   if (read_flag)
-    {
-      MRI *mri_ctrl ;
-      double scale ;
+	{
+		MRI *mri_ctrl ;
+		double scale ;
 
-      mri_bias = MRIread(bias_volume_fname) ;
-      if (!mri_bias)
-        ErrorExit
-          (ERROR_BADPARM,
-           "%s: could not read bias volume %s", Progname, bias_volume_fname) ;
-      mri_ctrl = MRIread(control_volume_fname) ;
-      if (!mri_ctrl)
-        ErrorExit
-          (ERROR_BADPARM,
-           "%s: could not read control volume %s",
-           Progname, control_volume_fname) ;
-      MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
-      mri_dst = MRImultiply(mri_bias, mri_src, NULL) ;
-      scale = MRImeanInLabel(mri_dst, mri_ctrl, 128) ;
-      printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
-      scale = 110/scale ;
-      MRIscalarMul(mri_dst, mri_dst, scale) ;
-      MRIwrite(mri_dst, out_fname) ;
-      exit(0) ;
-    }
+		mri_bias = MRIread(bias_volume_fname) ;
+		if (!mri_bias)
+			ErrorExit
+				(ERROR_BADPARM,
+				 "%s: could not read bias volume %s", Progname, bias_volume_fname) ;
+		mri_ctrl = MRIread(control_volume_fname) ;
+		if (!mri_ctrl)
+			ErrorExit
+				(ERROR_BADPARM,
+				 "%s: could not read control volume %s",
+				 Progname, control_volume_fname) ;
+		MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
+		mri_dst = MRImultiply(mri_bias, mri_src, NULL) ;
+		scale = MRImeanInLabel(mri_dst, mri_ctrl, 128) ;
+		printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
+		scale = 110/scale ;
+		MRIscalarMul(mri_dst, mri_dst, scale) ;
+		MRIwrite(mri_dst, out_fname) ;
+		exit(0) ;
+	}
 
 #if 0
 #if 0
@@ -161,25 +163,25 @@ main(int argc, char *argv[])
 #else
     if (conform || mri_src->type != MRI_UCHAR)
 #endif
-      {
-        MRI  *mri_tmp ;
+		{
+			MRI  *mri_tmp ;
 
-        fprintf
-          (stderr,
-           "downsampling to 8 bits and scaling to isotropic voxels...\n") ;
-        mri_tmp = MRIconform(mri_src) ;
-        mri_src = mri_tmp ;
-      }
+			fprintf
+				(stderr,
+				 "downsampling to 8 bits and scaling to isotropic voxels...\n") ;
+			mri_tmp = MRIconform(mri_src) ;
+			mri_src = mri_tmp ;
+		}
 #endif
 
   if (aseg_fname)
-    {
-      mri_aseg = MRIread(aseg_fname) ;
-      if (mri_aseg == NULL)
-        ErrorExit
-          (ERROR_NOFILE,
-           "%s: could not read aseg from file %s", Progname, aseg_fname) ;
-    }
+	{
+		mri_aseg = MRIread(aseg_fname) ;
+		if (mri_aseg == NULL)
+			ErrorExit
+				(ERROR_NOFILE,
+				 "%s: could not read aseg from file %s", Progname, aseg_fname) ;
+	}
   else
     mri_aseg = NULL ;
 
@@ -193,68 +195,66 @@ main(int argc, char *argv[])
     // this just setup writing control-point volume saving
     MRI3dWriteControlPoints(control_volume_fname) ;
 
+	/* first do a gentle normalization to get
+		 things in the right intensity range */
+	if (control_point_fname != NULL)  /* do one pass with only
+																			 file control points first */
+		mri_dst =
+			MRI3dGentleNormalize(mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+													 NULL,intensity_above, intensity_below/2,1, bias_sigma);
+	else
+		mri_dst = MRIcopy(mri_src, NULL) ;
+	
   if (mri_aseg)
-    {
-      MRI *mri_ctrl, *mri_bias ;
-      int  i ;
+	{
+		MRI *mri_ctrl, *mri_bias ;
+		int  i ;
 
-      mri_ctrl = MRIclone(mri_aseg, NULL) ;
-      for (i = 0 ; i < NWM_LABELS ; i++)
-        MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
-      MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
-      MRIerode(mri_ctrl, mri_ctrl) ;
-      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-	MRIwrite(mri_ctrl, "norm_ctrl.mgz") ;
-      mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
-      MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
-      mri_dst = MRIapplyBiasCorrectionSameGeometry
-        (mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_dst, "norm_1.mgz") ;
-    }
+		mri_ctrl = MRIclone(mri_aseg, NULL) ;
+		for (i = 0 ; i < NWM_LABELS ; i++)
+			MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
+		fprintf(stderr,"removing outliers in the aseg WM...\n") ;
+		MRIremoveWMOutliers(mri_dst, mri_ctrl, mri_ctrl) ;
+		MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+		MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_ctrl, "norm_ctrl.mgz") ;
+		mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, bias_sigma) ;
+		MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
+		mri_dst = MRIapplyBiasCorrectionSameGeometry
+			(mri_dst, mri_bias, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_dst, "norm_1.mgz") ;
+	}
   else
-    {
-      /* first do a gentle normalization to get
-         things in the right intensity range */
-      if (control_point_fname != NULL)  /* do one pass with only
-                                           file control points first */
-        mri_dst =
-          MRI3dGentleNormalize
-          (mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-           NULL,
-           intensity_above, intensity_below/2,
-           1, bias_sigma);
-      else
-        mri_dst = MRIcopy(mri_src, NULL) ;
-
-      if (!no1d)
-        {
-          MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
-          mri_dst = MRInormalize(mri_src, NULL, &mni) ;
-          if (!mri_dst)
-            ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
-        }
-      else
-        {
-          if ((file_only && nosnr) ||
-              ((gentle_flag != 0) && (control_point_fname != NULL)))
-            {
-              if (mri_dst == NULL)
-                mri_dst = MRIcopy(mri_src, NULL) ;
-            }
-          else
-            {
-              printf("computing initial normalization using SNR...\n") ;
-              mri_dst = MRInormalizeHighSignalLowStd
-                (mri_src, mri_dst, bias_sigma,
-                 DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-            }
-          if (!mri_dst)
-            ErrorExit
-              (ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
-        }
-    }
+	{
+		if (!no1d)
+		{
+			MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
+			mri_dst = MRInormalize(mri_src, NULL, &mni) ;
+			if (!mri_dst)
+				ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+		}
+		else
+		{
+			if ((file_only && nosnr) ||
+					((gentle_flag != 0) && (control_point_fname != NULL)))
+			{
+				if (mri_dst == NULL)
+					mri_dst = MRIcopy(mri_src, NULL) ;
+			}
+			else
+			{
+				printf("computing initial normalization using SNR...\n") ;
+				mri_dst = MRInormalizeHighSignalLowStd
+					(mri_src, mri_dst, bias_sigma,
+					 DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+			}
+			if (!mri_dst)
+				ErrorExit
+					(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
+		}
+	}
 
   if (file_only == 0)
     MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
@@ -263,29 +263,29 @@ main(int argc, char *argv[])
                          file_only, bias_sigma);
   mri_orig = MRIcopy(mri_dst, NULL) ;
   for (n = 0 ; n < num_3d_iter ; n++)
-    {
-      if (file_only)
-        break ;
-      fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
-      if (gentle_flag)
-        MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-                             mri_dst,
-                             intensity_above/2, intensity_below/2,
-                             file_only, bias_sigma);
-      else
-        MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-                       mri_dst,
-                       intensity_above, intensity_below,
-                       file_only, prune, bias_sigma);
-    }
+	{
+		if (file_only)
+			break ;
+		fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
+		if (gentle_flag)
+			MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+													 mri_dst,
+													 intensity_above/2, intensity_below/2,
+													 file_only, bias_sigma);
+		else
+			MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+										 mri_dst,
+										 intensity_above, intensity_below,
+										 file_only, prune, bias_sigma);
+	}
 
   if (bias_volume_fname)
-    {
-      mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
-      printf("writing bias field to %s....\n", bias_volume_fname) ;
-      MRIwrite(mri_bias, bias_volume_fname) ;
-      MRIfree(&mri_bias) ;
-    }
+	{
+		mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
+		printf("writing bias field to %s....\n", bias_volume_fname) ;
+		MRIwrite(mri_bias, bias_volume_fname) ;
+		MRIfree(&mri_bias) ;
+	}
 
   if (verbose)
     fprintf(stderr, "writing output to %s\n", out_fname) ;
@@ -532,5 +532,128 @@ compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias)
     }
 
   return(mri_bias) ;
+}
+
+static MRI *
+MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl)
+{
+	MRI  *mri_inside, *mri_bin ;
+	HISTOGRAM *histo, *hsmooth ;
+	int   wm_peak, x, y, z, nremoved ;
+	float thresh ;
+	double val, lmean, max ;
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_src_ctrl, "sc.mgz") ;
+	mri_dst_ctrl = MRIerode(mri_src_ctrl, mri_dst_ctrl) ;
+	mri_inside = MRIerode(mri_dst_ctrl, NULL) ;
+	MRIbinarize(mri_inside, mri_inside, 1, 0, 1) ;
+
+	histo = MRIhistogramLabel(mri_src, mri_inside, 1, 256) ;
+	hsmooth = HISTOcopy(histo, NULL) ;
+	HISTOsmooth(histo, hsmooth, 2) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		HISTOplot(histo, "h.plt") ;
+		HISTOplot(hsmooth, "hs.plt") ;
+	}
+	wm_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins-1) ;
+	wm_peak = hsmooth->bins[wm_peak] ;
+	thresh = wm_peak-10 ;
+	printf("using wm threshold %2.1f for removing exterior voxels\n", thresh) ;
+
+	// now remove stuff that's on the border and is pretty dark
+	for (nremoved = x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				// if it's a control point, it's not in the interior of the wm, and it's T1 val is too low
+				if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
+					continue ;  // not a  control point
+
+				// if it's way far from the wm mode then remove it even if it's in the interior
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				if (val < thresh-5)
+				{
+					MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+					nremoved++ ;
+				}
+
+				if (nint(MRIgetVoxVal(mri_inside, x, y, z, 0)) > 0)  // don't process interior voxels further
+					continue ;   // in the interior
+				if (val < thresh)
+				{
+					MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+					nremoved++ ;
+				}
+				else
+				{
+					lmean = MRImeanInLabelInRegion(mri_src, mri_inside, 1, x, y, z, 7);
+					if (val < lmean-10)
+					{
+						MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+						nremoved++ ;
+					}
+				}
+			}
+		}
+	}
+
+#if 0
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				// if it's a control point, it's not in the interior of the wm, and it's T1 val is too low
+				if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
+					continue ;  // not a  control point
+				if (MRIcountNonzeroInNbhd(mri_dst_ctrl,3, x, y, z)<=2)
+				{
+					MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+					nremoved++ ;
+				}
+			}
+		}
+	}
+#endif
+
+	// now take out voxels that have too big an intensity diff with surrounding ones
+	mri_bin = MRIbinarize(mri_dst_ctrl, NULL, 1, 0, 1) ;
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				// if it's a control point, it's not in the interior of the wm, and it's T1 val is too low
+				if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
+					continue ;  // not a  control point
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				max = MRImaxInLabelInRegion(mri_src, mri_bin, 1, x, y, z, 3);
+				if (val+7 < max)
+				{
+					MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+					nremoved++ ;
+				}
+			}
+		}
+	}
+
+	fprintf(stderr, "%d control points removed\n", nremoved) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_dst_ctrl, "dc.mgz") ;
+	HISTOfree(&histo) ; HISTOfree(&hsmooth) ; 
+	MRIfree(&mri_inside) ; MRIfree(&mri_bin) ;
+	return(mri_dst_ctrl) ;
 }
 
