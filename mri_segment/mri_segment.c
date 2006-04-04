@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.28 2006/02/06 20:37:32 nicks Exp $
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/02/06 20:37:32 $
-// Revision       : $Revision: 1.28 $
+// ID             : $Id: mri_segment.c,v 1.29 2006/04/04 18:34:06 fischl Exp $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/04/04 18:34:06 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.28 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.29 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +103,7 @@ main(int argc, char *argv[])
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.28 2006/02/06 20:37:32 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.29 2006/04/04 18:34:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -184,8 +184,10 @@ main(int argc, char *argv[])
     if (!gray_hi_set)
 		{
       gray_hi = gray_mean + 2*gray_sigma ;
+#if 0
 			if (gray_hi >= white_mean-white_sigma)
 				gray_hi = white_mean-white_sigma ;
+#endif
 		}
     fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
     fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
