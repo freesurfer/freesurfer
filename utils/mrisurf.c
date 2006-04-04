@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/27 14:00:02 $
-// Revision       : $Revision: 1.446 $
+// Revision Date  : $Date: 2006/04/04 18:35:41 $
+// Revision       : $Revision: 1.447 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.446 2006/03/27 14:00:02 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.447 2006/04/04 18:35:41 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -50625,7 +50625,7 @@ MRIScomputeClassModes(MRI_SURFACE *mris, MRI *mri, float *pwhite_mode, float *pg
 		MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
 		bin = nint(val - min_val) ;
-		if (bin < 0 || bin >= h_gray->nbins)
+		if (bin < 0 || bin >= h_white->nbins)
 			DiagBreak() ;
 		h_white->counts[bin]++ ;
 
@@ -50706,3 +50706,29 @@ MRISrasToVoxel(MRI_SURFACE *mris, MRI *mri, Real xs, Real ys, Real zs, Real *pxv
 	else
 		return(MRIsurfaceRASToVoxel(mri, xs, ys, zs, pxv, pyv, pzv));
 }	
+int
+MRISstoreRipFlags(MRI_SURFACE *mris)
+{
+	int    vno ;
+	VERTEX *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		v->oripflag = v->ripflag ;
+	}
+	return(NO_ERROR) ;
+}
+int
+MRISrestoreRipFlags(MRI_SURFACE *mris)
+{
+	int    vno ;
+	VERTEX *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		v->ripflag = v->oripflag ;
+	}
+	return(NO_ERROR) ;
+}
