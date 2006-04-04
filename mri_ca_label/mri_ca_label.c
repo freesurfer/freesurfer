@@ -135,13 +135,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.69 2006/03/20 14:28:26 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.70 2006/04/04 20:02:47 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.69 2006/03/20 14:28:26 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.70 2006/04/04 20:02:47 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -579,8 +579,14 @@ main(int argc, char *argv[])
 					logfp = NULL ;
 				if(!no_old_renormalize)
 					GCAmapRenormalize(gca, mri_inputs, transform) ;
+
+				// run it twice so that the histograms overlap on the 2nd run
 				GCAmapRenormalizeWithAlignment
 					(gca, mri_inputs, transform, logfp, base_name, NULL) ;
+				GCAmapRenormalizeWithAlignment
+					(gca, mri_inputs, transform, logfp, base_name, NULL) ;
+				if (regularize_mean > 0)
+					GCAregularizeConditionalDensities(gca, regularize_mean) ;
 				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
 				{
 					MRI *mri_imp ;
