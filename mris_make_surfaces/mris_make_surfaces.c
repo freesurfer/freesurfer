@@ -20,7 +20,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.71 2006/03/27 14:00:50 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.72 2006/04/04 18:42:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,7 +46,7 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static char *white_fname = NULL ;
-static int use_mode = 0 ;
+static int use_mode = 1 ;
 
 static char *orig_white = NULL ;
 static char *orig_pial = NULL ;
@@ -159,10 +159,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.71 2006/03/27 14:00:50 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.72 2006/04/04 18:42:22 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.71 2006/03/27 14:00:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.72 2006/04/04 18:42:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -904,8 +904,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "mode"))
   {
-		use_mode = 1 ;
-    printf("using class modes instead of means...\n") ;
+		use_mode = atoi(argv[2]) ;
+    printf("%susing class modes instead of means...\n", use_mode ? "" : "NOT ") ;
+		nargs = 1 ;
   }
   else if (!stricmp(option, "T1") || !stricmp(option, "gvol"))
   {
