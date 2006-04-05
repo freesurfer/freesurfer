@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/03/27 19:09:01 $
-// Revision       : $Revision: 1.279 $
-char *VERSION = "$Revision: 1.279 $";
+// Revision Date  : $Date: 2006/04/05 21:05:25 $
+// Revision       : $Revision: 1.280 $
+char *VERSION = "$Revision: 1.280 $";
 
 #define TCL
 #define TKMEDIT
@@ -199,7 +199,7 @@ tkm_tErr FindUserHomeDir    ();
 
 /* subdirectories local to subject's home dir */
 char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
-  ".", "fmri", "", "bem", "surf", "mri",
+  ".", "fmri", "mri", "bem", "surf", "mri",
   "mri/transforms", "label", "mri", "",
   "image/rgb", "tmp", "tmp", "lib/tcl", "touch"
 };
@@ -1115,7 +1115,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.279 2006/03/27 19:09:01 kteich Exp $",
+     "$Id: tkmedit.c,v 1.280 2006/04/05 21:05:25 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5633,7 +5633,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.279 2006/03/27 19:09:01 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.280 2006/04/05 21:05:25 kteich Exp $ $Name:  $\n"
       )
      );
 
