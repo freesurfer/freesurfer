@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.7 2006/04/05 19:15:04 greve Exp $
+# $Id: mc-sess,v 1.8 2006/04/05 19:15:40 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.7 2006/04/05 19:15:04 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.8 2006/04/05 19:15:40 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -175,7 +175,6 @@ foreach sess ($SessList)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
-exit
     else
       echo $cmd >> $scriptfile
     endif
