@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.15 2006/01/04 17:56:05 kteich Exp $
+# $Id: tkUtils.tcl,v 1.16 2006/04/05 20:13:15 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -544,6 +544,9 @@ proc tkuMakeCheckboxes { ifwTop args } {
 #    -command : command to call when changed
 #    -entry : whether to include a text entry
 #    -entrywidth : width of entry
+#    -limitentry : if 1, allows user to type numbers outside of the slider
+#                  range into the entry field. NOTE that if this option is
+#                  used, the -variable MUST be global to function properly.
 proc tkuMakeSliders { ifwTop args } {
 
     # set default arguments for all fields
@@ -574,6 +577,7 @@ proc tkuMakeSliders { ifwTop args } {
 	set aSlider(-resolution) 1.0
 	set aSlider(-length) 100
 	set aSlider(-entry) 0
+	set aSlider(-limitentry) 1
 	set aSlider(-entrywidth) 0
 	set aSlider(-command) ""
 	array set aSlider $lSlider
@@ -584,23 +588,58 @@ proc tkuMakeSliders { ifwTop args } {
 	    }
 	}
 
+	# Make labels.
 	tkuMakeNormalLabel $ifwTop.lw$nSlider -label $aSlider(-label)
 	tkuMakeNormalLabel $ifwTop.lwPost$nSlider -label $aSlider(-postlabel)
 
-	scale $ifwTop.sw$nSlider \
+	# Make the slider.
+	set s $ifwTop.sw$nSlider
+	scale $s \
 	    -orient $aSlider(-orientation) \
-	    -variable $aSlider(-variable) \
 	    -from $aSlider(-min) \
 	    -to $aSlider(-max) \
 	    -length $aSlider(-length) \
 	    -resolution $aSlider(-resolution) \
 	    -showvalue false
-	bind $ifwTop.sw$nSlider <ButtonRelease> $aSlider(-command)
-	bind $ifwTop.sw$nSlider <B1-Motion> $aSlider(-command)
+
+	# Save the command here because we may need to modify it.
+	set cmd $aSlider(-command)
+
+	# If we're limiting the entry, just assign the given variable
+	# name to the slider.
+	if { $aSlider(-limitentry) } {
+	    $s config -variable ::$aSlider(-variable)
+	} else {
+
+	    # If not, we do something tricky. We create an additional
+	    # variable, the variable name with -slider attached, and
+	    # use that as the slider variable. We modify the slider
+	    # command so that when that variable changes, we update
+	    # the real variable. NOTE that we're using global
+	    # variables here because that's the only thing we can
+	    # trace with the trace command (see below).
+	    $s config -variable ::$aSlider(-variable)-slider
+	    set oldCmd $cmd
+	    set cmd "set ::$aSlider(-variable) \${::$aSlider(-variable)-slider}; $oldCmd"
+
+	    # Make an inital assignment to the variable since our
+	    # slider no longer does this for us.
+	    set ::$aSlider(-variable) $aSlider(-min)
+
+	    # Now we need to update the slider's fake variable
+	    # whenever our real one is updated. So we put a trace on
+	    # the real variable so that when it's edited, we call a
+	    # callback function.
+	    trace variable ::$aSlider(-variable) w \
+		"tkuSliderCallback $ifwTop.sw$nSlider ::$aSlider(-variable)-slider"
+	}
+
+	bind $ifwTop.sw$nSlider <ButtonRelease> $cmd
+	bind $ifwTop.sw$nSlider <B1-Motion> $cmd
 
 	if { $aSlider(-entry) } {
 	    entry $ifwTop.ew$nSlider \
-		-textvariable $aSlider(-variable) \
+		-textvariable ::$aSlider(-variable) \
 		-width $aSlider(-entrywidth) \
 		-selectbackground green \
 		-insertbackground black
@@ -626,6 +665,43 @@ proc tkuMakeSliders { ifwTop args } {
     grid columnconfigure $ifwTop 1 -weight 1
     grid columnconfigure $ifwTop 2 -weight 0
     grid columnconfigure $ifwTop 3 -weight 0
+}
+
+
+proc tkuSliderCallback { iswSlider iSliderVar iEntryVar iArrayIndex iOp } {
+
+    # We get passed the variable name and, if it's an array, the array
+    # index. I don't know why. We want the value of this variable, so
+    # we check to see if the name we got is an array or not, and find
+    # the value appropriately.
+    set entryValue 0
+    if { [array exists ::$iEntryVar] } {
+	upvar ::${iEntryVar}($iArrayIndex) entryVar
+	set entryValue $entryVar
+    } else {
+	upvar ::${iEntryVar} entryVar
+	set entryValue $entryVar
+    }
+
+    # Grab a reference to the slider variable.
+    upvar $iSliderVar sliderVar
+
+    # Get our min and max from the slider.
+    set min [$iswSlider cget -from]
+    set max [$iswSlider cget -to]
+    
+    # Position the slider according to the new value. If it's outside
+    # of the slider range, just set the slider var to the max or min.
+    if { $entryValue >= $min &&
+	 $entryValue <= $max } {
+	set sliderVar $entryValue
+    }
+    if { $entryValue < $min } {
+	set sliderVar $min
+    }
+    if { $entryValue > $max } {
+	set sliderVar $max
+    }
 }
 
 # Based on new min and max, will change -from and -to of all sliders
