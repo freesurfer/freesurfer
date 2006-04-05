@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.8 2006/04/05 19:15:40 greve Exp $
+# $Id: mc-sess,v 1.9 2006/04/05 19:40:15 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.8 2006/04/05 19:15:40 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.9 2006/04/05 19:40:15 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -21,7 +21,8 @@ set nolog = 0;
 set RunListFile = ();
 set targstem = ();
 set usenew = 0;
-set fmt = bhdr;
+set infmt = bhdr;
+set outfmt = bhdr;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -160,8 +161,8 @@ foreach sess ($SessList)
                  -t $targstem -toff $targoff);
       set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
     else
-      set cmd = (mc-afni2 --i $instem.$fmt --t $targstem.$fmt \
-         --frame $targoff --o $outstem.$fmt  --mcdat $outstem.mcdat)
+      set cmd = (mc-afni2 --i $instem.$infmt --t $targstem.$infmt \
+         --frame $targoff --o $outstem.$outfmt  --mcdat $outstem.mcdat)
     endif
     if(! $ScriptOnly) then
       echo $cmd |& tee -a $LF
@@ -274,6 +275,18 @@ while( $#argv != 0 )
     case "-fmt":
       if ( $#argv == 0) goto arg1err;
       set fmt = $argv[1]; shift;
+      set infmt = $fmt;
+      set outfmt = $fmt;
+      breaksw
+
+    case "-infmt":
+      if ( $#argv == 0) goto arg1err;
+      set infmt = $argv[1]; shift;
+      breaksw
+
+    case "-outfmt":
+      if ( $#argv == 0) goto arg1err;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-debug":
