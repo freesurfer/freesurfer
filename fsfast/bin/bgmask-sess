@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.1 2005/05/21 05:31:31 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.2 2006/04/05 21:52:36 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -342,6 +342,8 @@ usage_exit:
   echo "   -fsd  fsd : use fsd instead of bold"
   echo "   -fmt  fmt : <bhdr> or mgh"
   echo "   -ofmt fmt : <bhdr> or mgh"
+  echo "   -rlf  rlf : run list file"
+  echo "   -perrun   : analyze each run separately (RRR/masks)"
   echo "   -noepi    : do not assume EPI"
   echo ""
   echo "Session Arguments (Required)"
