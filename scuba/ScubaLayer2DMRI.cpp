@@ -16,6 +16,9 @@ int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
 int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 
+int bReported[195];
+
+
 ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mTimersSinceLastAutosave(0),
   mVolume(NULL),
@@ -185,12 +188,16 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
   mVolume->GetMRI();
   SetMinVisibleValue( mVolume->GetMRIMinValue() );
+  SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
+  SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
+	    mVolume->GetMRIMinValue() );
+  SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
+
   SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
   SetHeatScaleMidThreshold
     ( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) + 
       mVolume->GetMRIMinValue() );
   SetHeatScaleMinThreshold( mVolume->GetMRIMinValue() + oneTenth );
-  SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
 
   mVolume->AddListener( this );
 
@@ -316,6 +323,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       RAS[2] += mColIncrementRAS[window[1]][2];
     }
   }
+
+  bzero( bReported, sizeof(int) * 195 );
 
   delete &loc;
 
@@ -1050,9 +1059,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	return error;
       }
 
-      if( window >= 0 && window <= 1 ) {
-	SetWindow( window );
-      }	
+      SetWindow( window );
     }
   }
 
@@ -1089,9 +1096,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	return error;
       }
 
-      if( level >= 0 && level <= 1 ) {
-	SetLevel( level );
-      }
+      SetLevel( level );
     }
   }
 
@@ -1711,18 +1716,18 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     if( iInput.IsButtonDownEvent() ) {
 
-      mOriginalBrightness = GetLevel();
-      mOriginalContrast = GetWindow();
+      mOriginalLevel = GetLevel();
+      mOriginalWindow = GetWindow();
 
     } else if( iInput.IsButtonDragEvent() ) {
 
       try { 
-	SetLevel( mOriginalBrightness + 
+	SetLevel( mOriginalLevel + 
 		  ((float)iInput.GetTotalButtonDeltaX() / 512.0) );
       }
       catch(...) {}
       try {
-	SetWindow( mOriginalContrast + 
+	SetWindow( mOriginalWindow + 
 		   ((float)iInput.GetTotalButtonDeltaY() / 512.0) );
       }
       catch(...) {}
@@ -2383,6 +2388,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad brightness value" );
     }
     SetBrightness( brightness );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "contrast" ) ) {
     float contrast = (float) strtod( sValue, (char**)NULL );
@@ -2390,6 +2396,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad contrast value" );
     }
     SetContrast( contrast );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "window" ) ) {
     float window = (float) strtod( sValue, (char**)NULL );
@@ -2397,6 +2404,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad window value" );
     }
     SetWindow( window );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "level" ) ) {
     float level = (float) strtod( sValue, (char**)NULL );
@@ -2404,6 +2412,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad level value" );
     }
     SetLevel( level );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "visiblemin" ) ) {
     float min = (float) strtod( sValue, (char**)NULL );
@@ -2411,6 +2420,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad visible min value" );
     }
     SetMinVisibleValue( min );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "visiblemax" ) ) {
     float max = (float) strtod( sValue, (char**)NULL );
@@ -2418,6 +2428,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "Bad visible max value" );
     }
     SetMaxVisibleValue( max );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "visible" ) ) {
     // Value will be "min,max" so we need to separate out the three
@@ -2442,6 +2453,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     // Set the visible range.
     SetMinVisibleValue( min );
     SetMaxVisibleValue( max );
+    BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "heatscalemin" ) ) {
     float min = (float) strtod( sValue, (char**)NULL );
@@ -2583,9 +2595,6 @@ ScubaLayer2DMRI::SetContrast ( float iContrast ) {
 void
 ScubaLayer2DMRI::SetWindow ( float iWindow ) {
 
-  if( iWindow < 0 || iWindow > 1 ) {
-    throw runtime_error( "Invalid window" );
-  }
   mWindow = iWindow;
   BuildGrayscaleLUT();
 }
@@ -2593,9 +2602,6 @@ ScubaLayer2DMRI::SetWindow ( float iWindow ) {
 void
 ScubaLayer2DMRI::SetLevel ( float iLevel ) {
 
-  if( iLevel < 0 || iLevel > 1 ) {
-    throw runtime_error( "Invalid level" );
-  }
   mLevel = iLevel;
   BuildGrayscaleLUT();
 }
@@ -2603,25 +2609,18 @@ ScubaLayer2DMRI::SetLevel ( float iLevel ) {
 void
 ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
-  // Our level and window values are 0-1, so let's first get them in
-  // the value range of our volume.
-  float normLevel = mVolume->GetMRIMinValue() +
-    (mLevel * ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) + mVolume->GetMRIMinValue()));
-    
-  float normWindow = (mWindow * ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) + mVolume->GetMRIMinValue()));
-
   // Calculate the window so that it is centered on the level and
   // extends window/2 in either direction.
   float window[2];
-  window[0] = normLevel - normWindow*0.5;
-  window[1] = normLevel + normWindow*0.5;
+  window[0] = mLevel - mWindow*0.5;
+  window[1] = mLevel + mWindow*0.5;
 
   for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
 
     // Get the value using the visible min/max to get highest
     // granularity within the 0 - cGrayscaleLUTEntries range.
     float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
-		   cGrayscaleLUTEntries) + mMinVisibleValue;
+		   cGrayscaleLUTEntries-1) + mMinVisibleValue;
 
     // Get an intensity from 0-1 based on our window.
     float intensity = (value - window[0]) / (window[1] - window[0]); 
@@ -2652,6 +2651,7 @@ ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
 
 void
 ScubaLayer2DMRI::SetMaxVisibleValue ( float iValue ) { 
+
   mMaxVisibleValue = iValue; 
   if( mMaxVisibleValue < mMinVisibleValue ) {
     mMaxVisibleValue = mMinVisibleValue + 0.00001;
