@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: autoreg-sess,v 1.2 2003/05/13 23:26:53 greve Exp $';
+set VERSION = '$Id: autoreg-sess,v 1.3 2006/04/05 18:01:22 greve Exp $';
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -41,11 +41,12 @@ endif
 echo "Logfile is $LF"
 
 echo "autreg-sess log file" >> $LF
-echo '$Id: autoreg-sess,v 1.2 2003/05/13 23:26:53 greve Exp $'   >> $LF
+echo '$Id: autoreg-sess,v 1.3 2006/04/05 18:01:22 greve Exp $'   >> $LF
 echo $0     >> $LF
 uname -a      >> $LF
 date          >> $LF
 echo "$argv"  >> $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 
 set SessList = (`getsesspath $cmdargs`);
 if($status) then
@@ -147,12 +148,15 @@ foreach sess ($SessList)
     set subject = `cat $sess/subjectname`;
 
     ## Get the subject's anatomical from data base ##
-    set db_anat = $SUBJECTS_DIR/$subject/mri/$mridir;
-    if(! -d $db_anat ) then
-      echo "ERROR: ($sess) cannot find $db_anat"|& tee -a $LF
-      echo "  ... Continuing" |& tee -a $LF
-      set errs = 1;
-      continue;
+    set db_anat = $SUBJECTS_DIR/$subject/mri/$mridir.mgz;
+    if(! -e $db_anat ) then
+      set db_anat = $SUBJECTS_DIR/$subject/mri/$mridir;
+      if(! -e $db_anat ) then
+        echo "ERROR: ($sess) cannot find $db_anat.mgz"|& tee -a $LF
+        echo "  ... Continuing" |& tee -a $LF
+        set errs = 1;
+        continue;
+      endif
     endif
 
     ## Name for the cross-session transform file ##
@@ -167,6 +171,7 @@ foreach sess ($SessList)
     else
       echo "Cross-Session Registration ($sessid)"|& tee -a $LF 
       rm -f $cross_sess_reg;
+      echo $cmd | tee -a $LF
       $cmd |& tee -a $LF
       if($status) then
         echo "ERROR: ($sess) cross-session registration"|& tee -a $LF 
