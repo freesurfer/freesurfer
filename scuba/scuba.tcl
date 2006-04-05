@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.184 2006/03/31 22:33:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.185 2006/04/05 20:14:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -69,6 +69,7 @@ DebugOutput "\$Id: scuba.tcl,v 1.184 2006/03/31 22:33:30 kteich Exp $"
 # gaTool
 #   n - id of tool
 #     mode
+
 
 set gbFirstVolumeLoaded 0
 
@@ -2081,13 +2082,19 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	{-label "Contrast" -variable gaLayer(current,contrast) 
 	    -min 0 -max 30 -resolution 1 -entry 1
 	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
-	{-label "Window" -variable gaLayer(current,window) 
-	    -min 0 -max 1 -resolution 0.05 -entry 1
-	    -command {Set2DMRILayerWindow $gaLayer(current,id) $gaLayer(current,window); RedrawFrame [GetMainFrameID]}}
-	{-label "Level" -variable gaLayer(current,level) 
-	    -min 0 -max 1 -resolution 0.05 -entry 1
-	    -command {Set2DMRILayerLevel $gaLayer(current,id) $gaLayer(current,level); RedrawFrame [GetMainFrameID]}}
     }
+
+    frame $fwProps2DMRI.fwWindowLevel
+    tkuMakeSliders $fwProps2DMRI.swLevelWindow -sliders {
+	{-label "Level" -variable gaLayer(current,level) 
+	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
+	    -command {Set2DMRILayerLevel $gaLayer(current,id) $gaLayer(current,level); RedrawFrame [GetMainFrameID]}}
+	{-label "Window" -variable gaLayer(current,window) 
+	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
+	    -command {Set2DMRILayerWindow $gaLayer(current,id) $gaLayer(current,window); RedrawFrame [GetMainFrameID]}}
+    }
+    set gaWidget(layerProperties,levelWindowSliders) $fwProps2DMRI.swLevelWindow
+
     tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
 	{-label "Min" -variable gaLayer(current,minVisibleValue) 
 	    -min 0 -max 1 -entry 1 -entrywidth 6
@@ -2140,13 +2147,14 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
-#    grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
+#   grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
-    grid $fwProps2DMRI.swMinMax          -column 0 -row 6 -sticky ew
-    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 7 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 8 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 9 -sticky ew
+    grid $fwProps2DMRI.swLevelWindow     -column 0 -row 6 -sticky ew
+    grid $fwProps2DMRI.swMinMax          -column 0 -row 7 -sticky ew
+    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 8 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 9 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 10 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -2987,6 +2995,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
 	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
 		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+	  tkuUpdateSlidersRange $gaWidget(layerProperties,levelWindowSliders) \
+		$gaLayer(current,minValue) $gaLayer(current,maxValue)
 
 	    # Get the type specific properties.
 
@@ -3006,8 +3016,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerSampleMethod $iLayerID]
 	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
 	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
-	    set gaLayer(current,window) [Get2DMRILayerWindow $iLayerID]
 	    set gaLayer(current,level) [Get2DMRILayerLevel $iLayerID]
+	    set gaLayer(current,window) [Get2DMRILayerWindow $iLayerID]
 	    set gaLayer(current,lutID) [Get2DMRILayerColorLUT $iLayerID]
 	    set gaLayer(current,minVisibleValue) \
 		[Get2DMRILayerMinVisibleValue $iLayerID]
@@ -5818,7 +5828,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.184 2006/03/31 22:33:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.185 2006/04/05 20:14:15 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
