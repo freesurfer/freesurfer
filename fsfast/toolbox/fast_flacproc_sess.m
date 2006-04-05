@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.4 2005/12/03 22:57:23 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.5 2006/04/05 22:36:03 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -128,6 +128,15 @@ for nthrun = 1:nruns
     stem = sprintf('%s/rvar0%s',outdir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(rvar,szvol);
+    MRIwrite(tmp,stem);
+  end
+
+  if(svar1)
+    % Save unwhitened ar1
+    stem = sprintf('%s/ar1%s',outdir,flac.formatext);
+    ar1 = sum(r(1:end-1,:).*r(2:end,:))./sum(r.*r);
+    tmp = y;
+    tmp.vol = fast_mat2vol(ar1,szvol);
     MRIwrite(tmp,stem);
   end
 
@@ -286,8 +295,10 @@ for nthrun = 1:nruns
 
 end % runs
 
-fprintf('Computing FFX\n');
-flacffx(flac,'',1);
+if(do_ffx)
+  fprintf('Computing FFX\n');
+  flacffx(flac,'',1);
+end
 
 if(do_rfx & nruns > 1)
   fprintf('Computing RFX\n');
