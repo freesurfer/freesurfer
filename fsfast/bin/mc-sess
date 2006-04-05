@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.6 2006/02/28 18:24:03 greve Exp $
+# $Id: mc-sess,v 1.7 2006/04/05 19:15:04 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.6 2006/02/28 18:24:03 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.7 2006/04/05 19:15:04 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -20,6 +20,8 @@ set targrun = ();    # use explicit run as target
 set nolog = 0;
 set RunListFile = ();
 set targstem = ();
+set usenew = 0;
+set fmt = bhdr;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -153,9 +155,14 @@ foreach sess ($SessList)
       set nframes = `getnframes $instem`;
       set targoff = `echo $nframes/2 | bc`;
     endif
-    set cmd = (mc-$mcmethod -i $instem -o $outstem \
-               -t $targstem -toff $targoff);
-    set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
+    if(! $usenew) then
+      set cmd = (mc-$mcmethod -i $instem -o $outstem \
+                 -t $targstem -toff $targoff);
+      set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
+    else
+      set cmd = (mc-afni2 --i $instem.$fmt --t $targstem.$fmt \
+         --frame $targoff --o $outstem.$fmt  --mcdat $outstem.mcdat)
+    endif
     if(! $ScriptOnly) then
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
@@ -168,7 +175,7 @@ foreach sess ($SessList)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
-
+exit
     else
       echo $cmd >> $scriptfile
     endif
@@ -259,6 +266,15 @@ while( $#argv != 0 )
 
     case "-echo":
       set echo = 1;
+      breaksw
+
+    case "-new":
+      set usenew = 1;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
       breaksw
 
     case "-debug":
