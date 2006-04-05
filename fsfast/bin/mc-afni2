@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mc-afni2,v 1.2 2006/03/28 06:37:17 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.3 2006/04/05 19:16:20 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -65,7 +65,7 @@ endif
 
 # Setup the log file
 if(! $nolog) then
-  set LF = $outvol.log
+  set LF = $outvol.mclog
   rm -f $LF
 else
   set LF = /dev/null
@@ -134,7 +134,7 @@ endif
 # 3dvolreg will remove off-diagonal components (but keeps
 # the basic geometry correct).
 echo "#@# --------------------------------" |& tee -a $LF
-set cmd = (mri_convert $newoutvol $outvol --like $tempvol)
+set cmd = (mri_convert $newoutvol $outvol --in_like $tempvol)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -304,7 +304,8 @@ Magnetic Resonance in Medicine, 42: 1014-1018, 1999.
 
 Differs from mc-afni in that: (1) it can take any format for input and
 output, (2) uses nifit gz as input/output from 3dvolreg, and (3) gives
-and gets floats to/from 3dvolreg instead of shorts.
+and gets floats to/from 3dvolreg instead of shorts. The motion
+correction parameters in the mcdat file may have a different order.
 
 --i invol
 
