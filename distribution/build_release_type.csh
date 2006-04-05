@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.55 2006/03/27 22:15:24 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.56 2006/04/05 17:39:26 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -26,7 +26,6 @@ if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
 if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 set OS=${OSTYPE}
-
 
 #
 # Set up directories.
@@ -77,7 +76,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
-  setenv QTDIR /usr/pubsw/packages/qt/3.3.5
+  setenv QTDIR  /usr/pubsw/packages/qt/3.3.5
   unsetenv FSLDIR
   if (-e /usr/pubsw/packages/fsl/3.2b) then
     setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
@@ -97,17 +96,11 @@ endif
 
 # on Mac OS X Tiger, glut is not automatically in lib path.
 # also, need /sw/bin (Fink) to get latex and dvips.
-# also, make Mac OS X 10.3 the deployment target
 setenv GLUT_DYLIB_DIR ""
 if ("$OSTYPE" == "Darwin") then
   set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
-  if ("${RELEASE_TYPE}" == "dev") then
-    setenv MACOSX_DEPLOYMENT_TARGET 10.3
-  else if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
-  #  setenv MACOSX_DEPLOYMENT_TARGET 10.3
-  endif
 endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
@@ -433,6 +426,7 @@ if ($status != 0) then
 endif
 # strip symbols from binaries, greatly reducing their size
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+  echo "CMD: strip ${DEST_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${DEST_DIR}/bin-new/* >& /dev/null
 endif
 #
