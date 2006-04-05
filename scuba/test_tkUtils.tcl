@@ -46,12 +46,15 @@ pack .cb2
 
 tkuMakeSliders .sw \
     -sliders {
-	{ -label "10-20" -variable slider1 -min 10 -max 20 \
-	      -command { puts $slider1 } }
-	{ -label "00-20(.5)" -variable slider2 -min 0 -max 20 -resolution 0.5 \
-	      -command { puts $slider2 } }
-	{ -label "-10-10e" -variable slider3 -min -10 -max 10 \
-	      -command { puts $slider3 } -entry 1 }
+	{ -label "10-20" -variable slider1 -min 10 -max 20
+	    -command { puts $slider1 } }
+	{ -label "00-20(.5)" -variable slider2 -min 0 -max 20 -resolution 0.5
+	    -command { puts $slider2 } }
+	{ -label "-10-10e" -variable slider3 -min -10 -max 10
+	    -command { puts $slider3 } -entry 1 }
+	{ -label "0-10 nolimit" -variable slider4 -min 0 -max 10 
+	    -limitentry 0 
+	    -command { puts $slider4 } -entry 1 }
     }
 pack .sw
 
