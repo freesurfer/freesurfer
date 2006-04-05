@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.19 2006/03/10 00:19:14 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.20 2006/04/05 21:08:58 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -16,6 +16,7 @@ set anatvol      = T1;
 set UseNew       = 1;
 set Surf         = white;
 set Run          = ();
+set DoPerRun     = 0;
 set Plane        = "cor";
 set Slice        = ();
 set Inorm        = 0;
@@ -24,6 +25,7 @@ set regfilename  = register.dat
 set funcstem     = f;
 set FOV          = ();
 set movscale     = ();
+set movframe     = 0;
 set ForceRegHeader = 0;
 set fmt = bhdr;
 set MGZ = ();
@@ -164,14 +166,14 @@ foreach sess ($SessList)
   endif
 
   cd $funcdir
-  ## Make sure there is not a register.dat in the data dir ##
-  if(-e $regfilename ) then
-    echo "INFO: found $regfilename in `pwd` ..."
-    echo "      ... moving to $regfilename.orig"
-    mv $regfilename $regfilename.orig
-  endif
 
-  set regfile = ../$regfilename
+  if(! $DoPerRun) then
+    set regfile = ../$regfilename
+  else
+    set regfile = $regfilename
+  endif 
+  pwd
+  echo $regfile
 
   if($UseNew) then
     if(! -e $regfile || $ForceRegHeader) then
@@ -204,6 +206,7 @@ foreach sess ($SessList)
     set cmd = ($cmd $mkregopt --reg $regfile --plane $Plane)
     set cmd = ($cmd --title $subject--$sessid--$RunUse)
     set cmd = ($cmd --volview $VolView)
+    set cmd = ($cmd --movframe $movframe)
     if($#Slice) set cmd = ($cmd --slice $Slice)
     if($Inorm)  set cmd = ($cmd --inorm)
     if($FOV)    set cmd = ($cmd --fov $FOV)
@@ -356,6 +359,10 @@ while( $#argv != 0 )
       set Run = $argv[1]; shift;
       breaksw
 
+    case "-perrun":
+      set DoPerRun = 1;
+      breaksw
+
     case "-plane":
       if ( $#argv == 0) goto arg1err;
       set Plane = $argv[1]; shift;
@@ -374,6 +381,11 @@ while( $#argv != 0 )
     case "-movscale":
       if ( $#argv == 0) goto arg1err;
       set movscale = $argv[1]; shift;
+      breaksw
+
+    case "-movframe":
+      if ( $#argv == 0) goto arg1err;
+      set movframe = $argv[1]; shift;
       breaksw
 
     case "-fmt":
@@ -526,12 +538,14 @@ usage_exit:
   echo "   -fsd dir       : functional subdirectory ($fsd)"
   echo "   -asd dir       : anatomical subdirectory ($asd)"
   echo "   -run runid     : register to runid (eg, 003). Def is 1st run."
+  echo "   -perrun        : register each run separately (one per invokation)"
   echo "   -nocopy        : do not copy registration to fsd"
   echo "   -sessanat      : register to same-session anatomical"
   echo "   -anatvol dir   : specify subdirectory of subjid/mri"
   echo "   -volview volid : starup with either <targ> or mov"
   echo "   -fov FOV       : set window FOV in mm (default is 256)"
   echo "   -movscale scale: scale size of move"
+  echo "   -movframe frame: 0-based frame number"
   echo "   -plane orient  : starup with orient. <cor>, sag, or ax"
   echo "   -slice sliceno : starup with slice. Default is 128."
   echo "   -regfile file  : use file instead of register.dat"
