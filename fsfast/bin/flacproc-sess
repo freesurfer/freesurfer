@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.14 2005/11/29 02:02:35 greve Exp $
+# $Id: flacproc-sess,v 1.15 2006/04/05 22:36:35 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.14 2005/11/29 02:02:35 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.15 2006/04/05 22:36:35 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -18,7 +18,9 @@ set npcathresh = 1;
 set svres  = 0;
 set svres0 = 0;
 set svrvar0 = 1;
+set svar1   = 1;
 set do_rfx = 1;
+set do_ffx = 1;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -75,6 +77,8 @@ npcathresh = $npcathresh;
 svres  = $svres;
 svres0 = $svres0;
 svrvar0 = $svrvar0;
+svar1   = $svar1;
+do_ffx = $do_ffx;
 do_rfx = $do_rfx;
 monly = $monly;
 
@@ -153,8 +157,16 @@ while( $#argv != 0 )
       set svrvar0 = 1;
       breaksw
 
+    case "-svar1":
+      set svar1 = 1;
+      breaksw
+
     case "-norfx":
       set do_rfx = 0;
+      breaksw
+
+    case "-noffx":
+      set do_ffx = 0;
       breaksw
 
     case "-monly":
@@ -229,8 +241,12 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
-  echo "   -svres  : save residual error as flac/res"
-  echo "   -svres0 : save unwhitened residual error as flac/res0"
+  echo "   -svres   : save residual error as flac/res"
+  echo "   -svres0  : save unwhitened residual error as flac/res0"
+  echo "   -svrvar0 : save unwhitened resid var as flac/rvar0"
+  echo "   -svar1  : ar1 as flac/ar1"
+  echo "   -norfx  : do not perform cross-run RFx"
+  echo "   -noffx  : do not perform cross-run FFx"
   echo "   -synth"
   echo "   -synthar1 rho"
   echo "   -debug"
