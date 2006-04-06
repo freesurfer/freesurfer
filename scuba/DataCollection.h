@@ -69,7 +69,7 @@ class DataCollection : public DebugReporter,
   virtual std::string GetTypeDescription() { return "BaseCollection"; }
 
   std::string GetLabel() const { return msLabel; }
-  void SetLabel( std::string const isLabel ) { msLabel = isLabel; }
+  void SetLabel( std::string const isLabel );
   
   // Return the bounds of the data in RAS coords. 0=xmin, 1=xmax,
   // 2=ymin, etc.

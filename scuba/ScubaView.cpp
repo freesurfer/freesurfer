@@ -1731,6 +1731,11 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   if( isMessage == "layerChanged" ) {
+
+    // Might have changed the values or labels.    
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+    RebuildLabelValueInfo( mLastMouseOver.xyz(), "mouse" );
+
     RequestRedisplay();
 
     SendBroadcast( "viewChanged", NULL );

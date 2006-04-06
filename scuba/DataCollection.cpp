@@ -91,6 +91,12 @@ DataCollection::GetInfo( DataLocation&,
   return;
 }
 
+void 
+DataCollection::SetLabel( string isLabel ) {
+  msLabel = isLabel; 
+  DataChanged();
+}
+
 void
 DataCollection::GetDataRASBounds ( float oRASBounds[6] ) {
 
