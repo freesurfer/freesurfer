@@ -1,10 +1,10 @@
-function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh] = fast_bgmask(fmn,fstd)
-% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh] = fast_bgmask(fmn,fstd)
+function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn] = fast_bgmask(fmn,fstd)
+% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn] = fast_bgmask(fmn,fstd)
 %
 % White noise floor in the foreground should then be
 %     fstdfgexp = fstdbg/sqrt(2-pi/2);
 %
-% $Id: fast_bgmask.m,v 1.1 2005/03/19 00:22:49 greve Exp $
+% $Id: fast_bgmask.m,v 1.2 2006/04/06 19:50:47 greve Exp $
 %
 
 bgm = [];
@@ -25,6 +25,7 @@ fgm(:,:,1) = 0;   % Exclude first slice
 fgm(:,:,end) = 0; % Exclude last slice
 indfg = find(fgm);
 fstdfg = sqrt(mean(fstd(indfg).^2));
+fgmn = mean(fmn(indfg));
 
 % Use Foreground std to set the background thresh
 bgthresh = 4*fstdfg*sqrt(pi/2);
