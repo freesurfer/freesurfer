@@ -1,10 +1,12 @@
 #!/bin/csh -f
 # mkbrainmask - frontend for FSL's BET (Brain Extraction Tool)
 #
-# $Id: mkbrainmask,v 1.5 2005/08/30 17:10:59 greve Exp $
+# $Id: mkbrainmask,v 1.6 2006/04/06 05:01:10 greve Exp $
 #
 
-set VERSION = '$Id: mkbrainmask,v 1.5 2005/08/30 17:10:59 greve Exp $';
+# Should allow user to spec frame of input to use
+
+set VERSION = '$Id: mkbrainmask,v 1.6 2006/04/06 05:01:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -49,35 +51,9 @@ endif
 mkdir -p $scratchdir
 echo "Scratch Dir is $scratchdir" 
 
-#---------------------------------------------------#
-set inbase  = `basename $instem`;
-set outbase = `basename $outstem`;
-
-#---------------------------------------------------#
-if( -e $instem"_000.bshort") then
-  set suffix = bshort;
-else
-  if( -e $instem"_000.bfloat") then
-    set suffix = bfloat
-  else
-    echo "ERROR: cannot find $instem"
-    exit 1;
-  endif
-endif
-
-if( $#seqinfo != 0 ) then
-  set inplaneres  = `cat $seqinfo | awk '{if($1=="rowpixelsize") print $2}'`;
-  set betplaneres = `cat $seqinfo | awk '{if($1=="slcpixelsize") print $2}'`;
-  set sizeopts = (--in_i_size $inplaneres)
-  set sizeopts = ($sizeopts --in_j_size $inplaneres)
-  set sizeopts = ($sizeopts --in_k_size $betplaneres)
-else
-  set sizeopts = ();
-endif
-
-echo "# ---------- Converting bvolume to .img ------------------ #"
-set cmd = (mri_convert $instem"_000."$suffix $scratchdir/$inbase.img)
-set cmd = ($cmd $sizeopts);
+echo "# ---------- Converting to .img ------------------ #"
+set inimg = $scratchdir/in.img
+set cmd = (mri_convert $instem $inimg)
 pwd
 echo $cmd
 $cmd
@@ -87,7 +63,7 @@ if($status) then
 endif
 
 echo "# ---------- Using FSL's BET to Extract Brain------------------ #"
-set cmd = (bet $scratchdir/$inbase $scratchdir/$outbase -m -f $thresh)
+set cmd = (bet $inimg $scratchdir/brain -m -f $thresh)
 pwd
 echo $cmd
 $cmd
@@ -99,7 +75,7 @@ endif
 #------------------------------------------------------------------
 if($ndilates > 0) then
   echo Diliating $ndilates
-  set srcmask = $scratchdir/$outbase"_mask".img
+  set srcmask = $scratchdir/brain_mask.img
   @ n = 1
   while( $n <= $ndilates) 
     set cmd = (avwmaths $srcmask -dil $srcmask)
@@ -117,7 +93,7 @@ endif
 #------------------------------------------------------------------
 if($nerodes > 0) then
   echo Eroding $nerodes
-  set srcmask = $scratchdir/$outbase"_mask".img
+  set srcmask = $scratchdir/brain_mask.img
   @ n = 1
   while( $n <= $nerodes) 
     set cmd = (avwmaths $srcmask -ero $srcmask)
@@ -133,11 +109,11 @@ if($nerodes > 0) then
 endif
 
 # Copy .mat file to outbase
-cp $scratchdir/$inbase.mat $scratchdir/$outbase"_mask".mat
+cp $scratchdir/in.mat $scratchdir/brain_mask.mat
 
 # Convert the binary mask back to bshort #
 echo "# ---------- Converting binary mask back to bshort ------------------ #"
-set cmd = (mri_convert $scratchdir/$outbase"_mask".img $outstem"_000.bshort")
+set cmd = (mri_convert $scratchdir/brain_mask.img $outstem -odt short)
 pwd
 echo $cmd
 $cmd
@@ -185,11 +161,6 @@ while( $#argv != 0 )
     case "-scratch":
       if ( $#argv == 0) goto arg1err;
       set scratchdir = $argv[1]; shift;
-      breaksw
-
-    case "-seqinfo":
-      if ( $#argv == 0) goto arg1err;
-      set seqinfo = $argv[1]; shift;
       breaksw
 
     case "-ndil":
@@ -264,8 +235,8 @@ usage_exit:
   echo "USAGE: mkbrainmask"
   echo ""
   echo "Required Arguments:";
-  echo "   -i instem"
-  echo "   -o outstem "
+  echo "   -i invol"
+  echo "   -o outvol "
   echo ""
   echo "Optional Arguments:";
   echo "   -thresh threshold : between 0 and 1"

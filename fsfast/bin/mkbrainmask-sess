@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.4 2004/10/06 20:42:06 greve Exp $
-set VERSION = '$Id: mkbrainmask-sess,v 1.4 2004/10/06 20:42:06 greve Exp $'
+# $Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -17,6 +17,8 @@ set run = 1;
 set debug = 0;
 set scratchdir = ();
 set PrintHelp = 0;
+set infmt  = bhdr
+set outfmt = bhdr
 
 set StartTime = `date`;
 
@@ -62,7 +64,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.4 2004/10/06 20:42:06 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -126,18 +128,10 @@ foreach sess ($SessList)
   endif
 
   set instem = $RunList[$run]/$funcstem;
-  if( ! -e $instem.bhdr ) then
-    set seqinfoopt = (-seqinfo seq.info)
-  else
-    set seqinfoopt = ();
-  endif
-
   set cmd = (mkbrainmask);
-  set cmd = ($cmd -i $instem);
-  set cmd = ($cmd -o $maskdir/$maskstem);
+  set cmd = ($cmd -i $instem.$infmt);
+  set cmd = ($cmd -o $maskdir/$maskstem.$outfmt);
   set cmd = ($cmd -thresh $thresh );
-  set cmd = ($cmd -umask `umask` );
-  set cmd = ($cmd $seqinfoopt);
   set cmd = ($cmd -ndil $ndilations)
   set cmd = ($cmd -nerode $nerodes)
   if($debug) set cmd = ($cmd -debug);
@@ -214,6 +208,22 @@ while( $#argv != 0 )
     case "-scratch":
       if ( $#argv == 0) goto arg1err;
       set scratchdir = $argv[1]; shift;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set infmt = $argv[1]; shift;
+      set outfmt = $argv[1]; shift;
+      breaksw
+
+    case "-infmt":
+      if ( $#argv == 0) goto arg1err;
+      set infmt = $argv[1]; shift;
+      breaksw
+
+    case "-outfmt":
+      if ( $#argv == 0) goto arg1err;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-debug":
