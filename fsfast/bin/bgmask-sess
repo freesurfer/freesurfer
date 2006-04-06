@@ -1,12 +1,12 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.4 2006/04/06 19:50:09 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.5 2006/04/06 22:14:02 greve Exp $';
 
 set cmdargs = ($argv);
 
 set omask     = bgmask;
-set fmt       = bhdr;
+set ifmt      = ();
 set ofmt      = bhdr;
 set fsd       = bold;
 set funcstem  = f;
@@ -84,10 +84,22 @@ foreach sess ($SessList)
   if(! $PerRun) set RunList = $RunList[1];
 
   foreach Run ($RunList)
-    set func = $sess/$fsd/$Run/$funcstem.$fmt
-    if(! -e $func) then
-      echo "ERROR: cannot find $func"
-      exit 1;
+    if($#ifmt != 0) then
+      set func = $sess/$fsd/$Run/$funcstem.$ifmt
+      if(! -e $func) then
+        echo "ERROR: cannot find $func" | tee -a $LF
+        exit 1;
+      endif
+    else
+      foreach ifmttry (nii nii.gz mgh mgz bhdr)
+        set func = $sess/$fsd/$Run/$funcstem.$ifmttry
+        if(-e $func) break;
+      end
+      if(! -e $func) then
+        echo "ERROR: cannot determine format for $func" | tee -a $LF
+        exit 1;
+      endif
+      echo "Found input format of $ifmttry" | tee -a $LF
     endif
 
     if(! $PerRun) then
@@ -302,7 +314,7 @@ while( $#argv != 0 )
 
     case "-fmt":
       if ( $#argv == 0) goto arg1err;
-      set fmt = $argv[1]; shift;
+      set ifmt = $argv[1]; shift;
       set ofmt = $fmt;
       breaksw
 
