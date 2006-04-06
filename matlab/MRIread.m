@@ -27,7 +27,7 @@ function mri = MRIread(fstring,headeronly)
 % If the input is NIFTI, then mri.niftihdr is the nifti header
 % If the input is ANALYZE, then mri.analyzehdr is the analyze header
 %
-% $Id: MRIread.m,v 1.12 2006/03/30 07:52:48 greve Exp $
+% $Id: MRIread.m,v 1.13 2006/04/06 05:23:07 greve Exp $
 
 mri = [];
 
@@ -128,6 +128,7 @@ switch(fmt)
   volsz = hdr.dim(2:end);
   indnz = find(volsz~=0);
   volsz = volsz(indnz);
+  volsz = volsz(:)'; % just make sure it's a row vect
   if(~headeronly)
     mri.vol = permute(hdr.vol,[2 1 3 4]);
   else
