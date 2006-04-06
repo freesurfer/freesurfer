@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.9 2006/04/05 19:40:15 greve Exp $
+# $Id: mc-sess,v 1.10 2006/04/06 04:39:38 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.9 2006/04/05 19:40:15 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.10 2006/04/06 04:39:38 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -152,11 +152,11 @@ foreach sess ($SessList)
     set instem  = $run/$funcstem
     set outstem = $run/$funcmcstem
     if($PerRun) set targstem = $instem
-    if($targoffmid) then
-      set nframes = `getnframes $instem`;
-      set targoff = `echo $nframes/2 | bc`;
-    endif
     if(! $usenew) then
+      if($targoffmid) then
+        set nframes = `getnframes $instem`;
+        set targoff = `echo $nframes/2 | bc`;
+      endif
       set cmd = (mc-$mcmethod -i $instem -o $outstem \
                  -t $targstem -toff $targoff);
       set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
