@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.18 2006/03/29 21:33:59 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.19 2006/04/06 23:43:36 greve Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -231,7 +231,8 @@
 221 Inf_Lat_Vent                      197   58  250     0 
 222 Ectorhinal                      197   150  250     0 
 222 Perirhinal                      33   150  250     0 
-
+223 Cerebral_White_Matter_Edge      226    0    0     0   
+224 fMRI_Background                 10  10   10     0   
 
 
 # lymph node and vascular labels
