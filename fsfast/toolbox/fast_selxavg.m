@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.22 2006/01/06 02:37:58 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.23 2006/04/06 22:30:44 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.22 2006/01/06 02:37:58 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.23 2006/04/06 22:30:44 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -503,7 +503,7 @@ for slice = firstslice:lastslice
           tmp = reshape(pmf', [nrows ncols ntrs])/RescaleFactor; %'
   	  fmri_svbfile(tmp,fname);
           bhdrfile = sprintf('%s/s%03d.bhdr',sigestdir,run);
-	  fast_svbhdr(mristruct, bhdrfile, isstem)
+	  fast_svbhdr(mristruct, bhdrfile, 0);
   	  clear tmp pmf;
         end
 
