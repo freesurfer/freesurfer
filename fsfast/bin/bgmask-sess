@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.2 2006/04/05 21:52:36 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.3 2006/04/06 05:43:29 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -113,10 +113,13 @@ runid  = '$Run';
 sumfile = '$sumfile';
 
 fprintf('%s Loading functional %s\n',sessid,runid);
+fprintf('%s\n',fspec);
 f = MRIread(fspec);
 if(isempty(f))
   fprintf('ERROR: loading %s\n',fspec);
-  if(QuitOnError) quit; end
+  if(QuitOnError) 
+    quit; 
+  end
   return;
 end
 f.volmat = fast_vol2mat(f.vol);
@@ -157,7 +160,7 @@ nbgmask = length(indbg);
 bgmn = mean(fmn(indbg));
 bgstdexp = sqrt((4/pi-1)*bgmn.^2); % Expected based on the mean
 
-fprintf('%10s %s  n=%5d  bgmn = %8.3f, bgstdexp = %8.3f  bgstd = %8.3f  fgstdexp = %8.3f  fgstd = %8.3f\n',...
+fprintf('%10s %s  n = %5d  bgmn = %8.3f bgstdexp = %8.3f  bgstd = %8.3f  fgstdexp = %8.3f  fgstd = %8.3f\n',...
         sessid,runid,nbgmask,bgmn, bgstdexp, bgstd, fstdfgexp, fstdfg);
 
 % percentage of variance due to non-white noise
@@ -199,7 +202,7 @@ rm -f $okfile
 echo "fmri_touch('$okfile');" >> $MLF
 
 if(! $monly) then
-  cat $MLF | matlab -display iconic
+  cat $MLF | matlab -display iconic | tee -a $LF | tee $outvol.log
   rm -f $MLF
   if(! -e $okfile) then
     echo "ERROR: in matlab execution"
@@ -250,6 +253,12 @@ while( $#argv != 0 )
     case "-fmt":
       if ( $#argv == 0) goto arg1err;
       set fmt = $argv[1]; shift;
+      set ofmt = $fmt;
+      breaksw
+
+    case "-ifmt":
+      if ( $#argv == 0) goto arg1err;
+      set ifmt = $argv[1]; shift;
       breaksw
 
     case "-ofmt":
