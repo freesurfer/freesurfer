@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $
+  $Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $
 */
 
 
@@ -56,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv, 
-													 "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $", "$Name:  $", cmdline);
+													 "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -190,16 +190,16 @@ int main(int argc, char **argv)
     }
     // Load the thickness for projection along the normal
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,
-						hemi,thicknessname);
+	    hemi,thicknessname);
     printf("Reading thickness %s\n",fname);
     MRISreadCurvatureFile(Surf, fname);
 
     if(AnnotFile != NULL){
       // Load annotation file, get number of labels from it
-      nlabels = (load_annotation(AnnotFile,Surf));
+      nlabels = load_annotation(AnnotFile,Surf);
       if(nlabels==0){
-				printf("ERROR: load annot file %s\n",AnnotFile);
-				exit(1);
+	printf("ERROR: load annot file %s\n",AnnotFile);
+	exit(1);
       }
     }
   }
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
   printf("Allocating Hit Volume (%d) voxels\n",TempVol->width*TempVol->height*
 				 TempVol->depth*nlabels ); 
   HitVol = MRIallocSequence(TempVol->width, TempVol->height, 
-														TempVol->depth, MRI_SHORT, nlabels );
+			    TempVol->depth, MRI_SHORT, nlabels );
   if(HitVol == NULL){
     printf("ERROR: could not alloc hit volume\n");
     exit(1);
@@ -246,14 +246,14 @@ int main(int argc, char **argv)
       if(srclabel == NULL) continue;
     }
     if(ASegFSpec != NULL){
-      printf("   ASeg Code: %d\n",ASegLabelList[nthlabel]);
+      printf("   %d/%d ASeg Code: %d\n",nthlabel,nlabels,ASegLabelList[nthlabel]);
       srclabel = LabelfromASeg(ASeg, ASegLabelList[nthlabel]);
       //LabelWrite(lb,"./tmp.label");
     }
 
     if(DoProj && !is_surface_label(srclabel)){
       printf("ERROR: label %s is not a surface label.\n",
-						 LabelList[nthlabel]);
+	     LabelList[nthlabel]);
       exit(1);
     }
 
@@ -262,37 +262,37 @@ int main(int argc, char **argv)
       if(debug) printf("  nthpoint = %d\n",nthpoint);
 
       if(DoProj){ // Project along the surface normal
-				vtxno = srclabel->lv[nthpoint].vno;
-				ProjDepth = ProjStart;
+	vtxno = srclabel->lv[nthpoint].vno;
+	ProjDepth = ProjStart;
 
-				while(ProjDepth <= ProjStop){
+	while(ProjDepth <= ProjStop){
 
-					if(ProjTypeId == PROJ_TYPE_ABS)
-						ProjNormDist(&x,&y,&z,Surf,vtxno,ProjDepth);
-					if(ProjTypeId == PROJ_TYPE_FRAC)
-						ProjNormFracThick(&x,&y,&z,Surf,vtxno,ProjDepth);
-					oob = get_crs(Tras2vox,x,y,z,&c,&r,&s,TempVol);
-
-					if(debug) printf("   ProjDepth %g   %g %g %g (%g)  %d %d %d   %d\n",
-													 ProjDepth,x,y,z,Surf->vertices[vtxno].curv,c,r,s,oob);
-
-					// Accumulate hit volume
-					if(!oob) MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
-
-					ProjDepth += ProjDelta;
-					if(ProjDelta == 0) break; // only do once
-
-				} // end loop through projection depths
+	  if(ProjTypeId == PROJ_TYPE_ABS)
+	    ProjNormDist(&x,&y,&z,Surf,vtxno,ProjDepth);
+	  if(ProjTypeId == PROJ_TYPE_FRAC)
+	    ProjNormFracThick(&x,&y,&z,Surf,vtxno,ProjDepth);
+	  oob = get_crs(Tras2vox,x,y,z,&c,&r,&s,TempVol);
+	  
+	  if(debug) printf("   ProjDepth %g   %g %g %g (%g)  %d %d %d   %d\n",
+			   ProjDepth,x,y,z,Surf->vertices[vtxno].curv,c,r,s,oob);
+	  
+	  // Accumulate hit volume
+	  if(!oob) MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
+	  
+	  ProjDepth += ProjDelta;
+	  if(ProjDelta == 0) break; // only do once
+	  
+	} // end loop through projection depths
       }// end Do Projection
-
+      
       else{ // Simply compute crs from the label xyz
-				x = srclabel->lv[nthpoint].x;
-				y = srclabel->lv[nthpoint].y;
-				z = srclabel->lv[nthpoint].z;
-				oob = get_crs(Tras2vox,x,y,z,&c,&r,&s,TempVol);
-				if(debug) printf("   %g %g %g   %d %d %d   %d\n",x,y,z,c,r,s,oob);
-				if(oob) continue; // Out of the volume
-				MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
+	x = srclabel->lv[nthpoint].x;
+	y = srclabel->lv[nthpoint].y;
+	z = srclabel->lv[nthpoint].z;
+	oob = get_crs(Tras2vox,x,y,z,&c,&r,&s,TempVol);
+	if(debug) printf("   %g %g %g   %d %d %d   %d\n",x,y,z,c,r,s,oob);
+	if(oob) continue; // Out of the volume
+	MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
       }
     } // end loop over label points
 
@@ -302,9 +302,9 @@ int main(int argc, char **argv)
 
   if(HitVolId != NULL) MRIwrite(HitVol,HitVolId);
 
-  // Create output volume based on template, but use 1 frame short
+  // Create output volume based on template, but use 1 frame int
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
-														TempVol->depth, MRI_INT, 1);
+			    TempVol->depth, MRI_INT, 1);
   if(OutVol == NULL){
     printf("ERROR: could not alloc output volume\n");
     exit(1);
@@ -314,39 +314,36 @@ int main(int argc, char **argv)
 
   printf("Thesholding hit volume.\n");
   // Threshold hit volumes and set outvol to nthlabel+1
-  for(c=0; c < OutVol->width; c++)
-	{
-    for(r=0; r < OutVol->height; r++)
-		{
-      for(s=0; s < OutVol->depth; s++)
-			{
-				nhitsmax = 0;
-				nhitsmax_label = -1;
-				for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
-					nhits = (int)MRIgetVoxVal(HitVol,c,r,s,nthlabel);
-					//nhits = MRIIseq_vox(HitVol,c,r,s,nthlabel);
-					if(nhits <= nHitsThresh) continue;
-					if(nhitsmax < nhits){
-						nhitsmax = nhits;
-						nhitsmax_label = nthlabel;
+  for(c=0; c < OutVol->width; c++){
+    for(r=0; r < OutVol->height; r++){
+      for(s=0; s < OutVol->depth; s++){
+	nhitsmax = 0;
+	nhitsmax_label = -1;
+	for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
+	  nhits = (int)MRIgetVoxVal(HitVol,c,r,s,nthlabel);
+	  //nhits = MRIIseq_vox(HitVol,c,r,s,nthlabel);
+	  if(nhits <= nHitsThresh) continue;
+	  if(nhitsmax < nhits){
+	    nhitsmax = nhits;
+	    nhitsmax_label = nthlabel;
 					}
-				}
-				if(nhitsmax_label == -1) 
-					LabelCode = 0; // No hits -- Unknown
-				else if(ASegFSpec != NULL)
-					LabelCode = ASegLabelList[nhitsmax_label];
-				else if(AnnotFile != NULL)
-					LabelCode = nhitsmax_label;//dont +1, keeps consist with ctab
-				else
-					LabelCode = nhitsmax_label + 1;
-				MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
-
+	}
+	if(nhitsmax_label == -1) 
+	  LabelCode = 0; // No hits -- Unknown
+	else if(ASegFSpec != NULL)
+	  LabelCode = ASegLabelList[nhitsmax_label];
+	else if(AnnotFile != NULL)
+	  LabelCode = nhitsmax_label;//dont +1, keeps consist with ctab
+	else
+	  LabelCode = nhitsmax_label + 1;
+	MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
+	
       }
     }
   }
 
   // Save out volume
-	MRIaddCommandLine(OutVol, cmdline) ;
+  MRIaddCommandLine(OutVol, cmdline) ;
   MRIwrite(OutVol,OutVolId);
 
   printf("done \n");
@@ -564,7 +561,7 @@ static void print_help(void)
 "\n"
 "Path to a segmentation. A segmentation is a volume in which each voxel\n"
 "is assigned a number indicating it's class. The output volume will keep\n"
-"the same numbering. Codes should not exceed 999. The registration in this\n"
+"the same numbering. Codes should not exceed 999999. The registration in this\n"
 "case goes from the seg to the template volume. Not with --label or \n"
 "--annot.\n"
 "\n"
@@ -937,24 +934,27 @@ static int *NthLabelMap(MRI *aseg, int *nlabels)
   int *labelmap, *tmpmap;
   int nthlabel;
   int c,r,s,v;
+  int nmax;
 
-  tmpmap = (int *) calloc(1000,sizeof(int));
+  nmax = 1000000;
+
+  tmpmap = (int *) calloc(nmax,sizeof(int));
   for(c=0; c < aseg->width; c++){
     for(r=0; r < aseg->height; r++){
       for(s=0; s < aseg->depth; s++){
         v = (int)MRIgetVoxVal(aseg,c,r,s,0);
-	if(v >= 0 && v < 999) tmpmap[v] = 1;
+	if(v >= 0 && v < nmax-1) tmpmap[v] = 1;
       }
     }
   }
 
   *nlabels = 0;
-  for(v=0;v<999;v++) if(tmpmap[v]) (*nlabels)++;
+  for(v=0;v<nmax-1;v++) if(tmpmap[v]) (*nlabels)++;
   //printf("nlabels = %d\n",*nlabels);
 
   labelmap = (int *) calloc(*nlabels,sizeof(int));
   nthlabel = 0;
-  for(v=0;v<999;v++){
+  for(v=0;v<nmax-1;v++){
     if(tmpmap[v]){
       //printf("%2d %2d\n",nthlabel,v);
       labelmap[nthlabel] = v;
