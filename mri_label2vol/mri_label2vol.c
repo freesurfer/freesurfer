@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $
+  $Id: mri_label2vol.c,v 1.18.2.1 2006/04/07 04:14:27 greve Exp $
 */
 
 
@@ -56,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.18.2.1 2006/04/07 04:14:27 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv, 
-													 "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $", "$Name:  $", cmdline);
+													 "$Id: mri_label2vol.c,v 1.18.2.1 2006/04/07 04:14:27 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.18 2006/01/27 15:47:30 greve Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.18.2.1 2006/04/07 04:14:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -137,8 +137,8 @@ int main(int argc, char **argv)
   printf("%s\n",vcid);
 
   // Load the template volume
-	if (TempVolId == NULL)
-		ErrorExit(ERROR_UNSUPPORTED, "%s: must specify template volume with --temp",Progname) ;
+  if (TempVolId == NULL)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: must specify template volume with --temp",Progname) ;
   TempVol = MRIreadHeader(TempVolId,MRI_VOLUME_TYPE_UNKNOWN);
   if(TempVol == NULL){
     printf("ERROR: reading %s header\n",TempVolId);
@@ -198,8 +198,8 @@ int main(int argc, char **argv)
       // Load annotation file, get number of labels from it
       nlabels = (load_annotation(AnnotFile,Surf));
       if(nlabels==0){
-				printf("ERROR: load annot file %s\n",AnnotFile);
-				exit(1);
+	printf("ERROR: load annot file %s\n",AnnotFile);
+	exit(1);
       }
     }
   }
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
       if(srclabel == NULL) continue;
     }
     if(ASegFSpec != NULL){
-      printf("   ASeg Code: %d\n",ASegLabelList[nthlabel]);
+      printf("   %d/%d ASeg Code: %d\n",nthlabel,nlabels,ASegLabelList[nthlabel]);
       srclabel = LabelfromASeg(ASeg, ASegLabelList[nthlabel]);
       //LabelWrite(lb,"./tmp.label");
     }
@@ -564,7 +564,7 @@ static void print_help(void)
 "\n"
 "Path to a segmentation. A segmentation is a volume in which each voxel\n"
 "is assigned a number indicating it's class. The output volume will keep\n"
-"the same numbering. Codes should not exceed 999. The registration in this\n"
+"the same numbering. Codes should not exceed 999999. The registration in this\n"
 "case goes from the seg to the template volume. Not with --label or \n"
 "--annot.\n"
 "\n"
@@ -937,24 +937,27 @@ static int *NthLabelMap(MRI *aseg, int *nlabels)
   int *labelmap, *tmpmap;
   int nthlabel;
   int c,r,s,v;
+  int nmax;
 
-  tmpmap = (int *) calloc(1000,sizeof(int));
+  nmax = 1000000;
+
+  tmpmap = (int *) calloc(nmax,sizeof(int));
   for(c=0; c < aseg->width; c++){
     for(r=0; r < aseg->height; r++){
       for(s=0; s < aseg->depth; s++){
         v = (int)MRIgetVoxVal(aseg,c,r,s,0);
-	if(v >= 0 && v < 999) tmpmap[v] = 1;
+	if(v >= 0 && v < nmax-1) tmpmap[v] = 1;
       }
     }
   }
 
   *nlabels = 0;
-  for(v=0;v<999;v++) if(tmpmap[v]) (*nlabels)++;
+  for(v=0;v<nmax-1;v++) if(tmpmap[v]) (*nlabels)++;
   //printf("nlabels = %d\n",*nlabels);
 
   labelmap = (int *) calloc(*nlabels,sizeof(int));
   nthlabel = 0;
-  for(v=0;v<999;v++){
+  for(v=0;v<nmax-1;v++){
     if(tmpmap[v]){
       //printf("%2d %2d\n",nthlabel,v);
       labelmap[nthlabel] = v;
