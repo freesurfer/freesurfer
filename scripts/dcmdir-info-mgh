@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.6 2005/09/20 00:33:44 greve Exp $'
+# '$Id: dcmdir-info-mgh,v 1.7 2006/04/07 21:01:21 greve Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.6 2005/09/20 00:33:44 greve Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.7 2006/04/07 21:01:21 greve Exp $';
 
 if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"
@@ -59,14 +59,18 @@ if($#argv == 2) then
   pwd  | tee -a $LF
   echo $argv | tee -a $LF
   date | tee -a $LF
+  pushd $unpackdir > /dev/null
+  set unpackdir = `pwd`;
+  popd > /dev/null
 else
   set unpackdir = ();
 endif
 
-set serlist = `ls $dcmdir/*.dcm | sed 's/-/ /g' | awk '{a=NF-1;print $a}' | sort -n | uniq`;
+pushd $dcmdir > /dev/null
+set serlist = `ls *.dcm | sed 's/-/ /g' | awk '{a=NF-1;print $a}' | sort -n | uniq`;
 
 set series = $serlist[1];
-set flist = `ls $dcmdir/*-$series-*.dcm`
+set flist = `ls *-$series-*.dcm`
 set dcm0 = $flist[1];
 set Patient = `mri_probedicom --i $dcm0 | grep PatientName`;
 set Date    = `mri_probedicom --i $dcm0 | grep StudyDate`;
@@ -76,7 +80,7 @@ echo $Date
 echo $Time
 
 foreach series ($serlist)
-  set flist = `ls $dcmdir/*-$series-*.dcm`
+  set flist = `ls *-$series-*.dcm`
   set dcm = $flist[1];
   #echo $dcm0
 
