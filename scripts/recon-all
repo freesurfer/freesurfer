@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.1 2006/03/22 18:19:15 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.2 2006/04/08 17:08:41 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -157,7 +157,7 @@ check_params_return:
 set DateString = "`date '+%y%m%d%H%M'`"
 
 cd $subjdir # This variable is set in check_params
-mkdir -p mri scripts surf tmp label touch stats touch src trash
+mkdir -p mri scripts surf tmp label touch stats touch src trash bem
 mkdir -p mri/transforms mri/transforms/bak mri/orig
 set touchdir = $subjdir/touch
 
