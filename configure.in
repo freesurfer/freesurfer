@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.178 2006/03/26 17:56:33 nicks Exp $"
+# "$Id: configure.in,v 1.179 2006/04/10 18:47:06 fischl Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1353,6 +1353,7 @@ AC_OUTPUT([Makefile
                  mri_watershed/brain_volume/Makefile
                  mri_wmfilter/Makefile
                  mri_xvolavg/Makefile
+                 mri_multispectral_segment/Makefile
                  mris2rgb/Makefile
                  mris_add_template/Makefile
                  mris_anatomical_stats/Makefile
@@ -1414,6 +1415,7 @@ AC_OUTPUT([Makefile
                  mris_volume/Makefile
                  mris_w_to_curv/Makefile
                  mrisp_paint/Makefile
+                 mris_longitudinal_surfaces/Makefile
                  nmovie/Makefile
                  optseq2/Makefile
                  paint/Makefile

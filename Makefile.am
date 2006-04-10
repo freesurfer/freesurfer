@@ -153,6 +153,8 @@ MRISSUBDIRS=stim \
 	label_area \
 	mris_make_average_surface \
 	mris_make_surfaces \
+	mris_longitudinal_surfaces \
+	mri_multispectral_segment \
 	mris_make_template \
 	mris_morph_stats \
 	mris_multiscale_stats \
