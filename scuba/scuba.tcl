@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.185 2006/04/05 20:14:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.186 2006/04/10 21:29:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -532,6 +532,10 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{command "Center View Around Current Layer" 
 	    {SetViewStateToLayerBoundsAllViewsInFrame [GetMainFrameID] $gaLayer(current,id)}}
+	{command "Turn On Visibility in Topmost Invisible Layer"
+	    {TurnOnVisibilityInTopmostInvisibleLayer $gaView(current,id)}}
+	{command "Turn Off Visibility in Topmost Visible Layer"
+	    {TurnOffVisibilityInTopmostVisibleLayer $gaView(current,id)}}
 	{separator}
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
 	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
@@ -1019,45 +1023,22 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	RedrawFrame [GetMainFrameID]
     }
 
-    # This is the view shuffle code. It should probaby be put into its
-    # own little funtion, eh.
+    # Shuffle layers.
     if { [string match $sKeyCombo $gaPrefs(KeyShuffleLayers)] } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
-	set nHighestLevel 0
-	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-	    set curLayer($nLevel) [GetLayerInViewAtLevel $viewID $nLevel]
-	    if { $curLayer($nLevel) != -1 } {
-		set nHighestLevel $nLevel
-	    }
-	}
+	ShuffleLayersInView $viewID
+    }
 
-	for { set nLevel 0 } { $nLevel <= $nHighestLevel } { incr nLevel } {
-	    if { $gaView(current,lockedShuffle$nLevel) } {
-		continue
-	    }
+    if { [string match $sKeyCombo \
+	  $gaPrefs(KeyTurnOffVisibilityInTopVisibleLayer)] } {
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	TurnOffVisibilityInTopmostVisibleLayer $viewID
+    }
 
-	    set nNextLevel [expr $nLevel+1]
-	    if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
-	    while { $gaView(current,lockedShuffle$nNextLevel) } {
-		incr nNextLevel
-		if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
-		if { $nNextLevel == $nLevel } {
-		    return
-		}
-	    }
-
-	    SetLayerInViewAtLevel $viewID $curLayer($nNextLevel) $nLevel
-	}
-
-	SelectViewInViewProperties $viewID
-
-	# Also select the layer that's now on the top level.
-	set topLayerID [GetLayerInViewAtLevel $viewID $nHighestLevel]
-	if { $topLayerID >= 0 } {
-	    SelectLayerInLayerProperties $topLayerID
-	}
-
-	AdjustReportInfoForAuto
+    if { [string match $sKeyCombo \
+	  $gaPrefs(KeyTurnOnVisibilityInTopInvisibleLayer)] } {
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	TurnOnVisibilityInTopmostInvisibleLayer $viewID
     }
 
     # This is kind of arbitrary, but since some keypresses can change
@@ -1154,12 +1135,14 @@ proc GetPreferences {} {
     global gaPrefs
     global gaTool
 
-    foreach sKey {
+    foreach pref {
 	KeyInPlaneX
 	KeyInPlaneY
 	KeyInPlaneZ
 	KeyCycleViewsInFrame
 	KeyShuffleLayers
+	KeyTurnOnVisibilityInTopInvisibleLayer
+	KeyTurnOffVisibilityInTopVisibleLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -1171,11 +1154,6 @@ proc GetPreferences {} {
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
-    } {
-	set gaPrefs($sKey) [GetPreferencesValue $sKey]
-    }
-
-    foreach pref {
 	LockOnCursor
 	SelectedTool
     } {
@@ -1193,11 +1171,14 @@ proc SetPreferences {} {
     global gaPrefs
     global gaTool
 
-    foreach sKey {
+    foreach pref {
 	KeyInPlaneX
 	KeyInPlaneY
 	KeyInPlaneZ
 	KeyCycleViewsInFrame
+	KeyShuffleLayers
+	KeyTurnOnVisibilityInTopInvisibleLayer
+	KeyTurnOffVisibilityInTopVisibleLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -1212,7 +1193,7 @@ proc SetPreferences {} {
 	LockOnCursor
 	SelectedTool
     } {
-	SetPreferencesValue $sKey $gaPrefs($sKey)
+	SetPreferencesValue $pref $gaPrefs($pref)
     }
 
     # Write the user structure list.
@@ -4518,12 +4499,16 @@ proc DoPrefsDlog {} {
 	    KeyInPlaneY       "Change view to y axis in-plane"
 	    KeyInPlaneZ       "Change view to z axis in-plane"
 	    KeyShuffleLayers  "Shuffle layers in a view"
+	    KeyTurnOnVisibilityInTopInvisibleLayer
+	    "Turn on visibility in topmost invisible layer"
+	    KeyTurnOffVisibilityInTopVisibleLayer
+	    "Turn off visibility in topmost visible layer"
 	} {
    
 	    tkuMakeNormalLabel $fwKeys.lw$sKey \
 		-font [tkuLabelFont] \
 		-label $sLabel \
-		-width 30
+		-width 40
 
 	    tkuMakeActiveLabel $fwKeys.fw$sKey \
 		-font [tkuNormalFont] \
@@ -5026,6 +5011,94 @@ proc AdjustLayerSettingsForColorMap {} {
 	UpdateLayerList
 	RedrawFrame [GetMainFrameID]
     }
+}
+
+proc ShuffleLayersInView { iViewID } {
+
+    # Find the highest level.
+    set nHighestLevel 0
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $curLayer($nLevel) != -1 } {
+	    set nHighestLevel $nLevel
+	}
+    }
+
+    # For each level up to here, if it's not locked, find the next
+    # unlocked level, and copy it down to this level.
+    for { set nLevel 0 } { $nLevel <= $nHighestLevel } { incr nLevel } {
+	if { $gaView(current,lockedShuffle$nLevel) } {
+		continue
+	}
+	
+	set nNextLevel [expr $nLevel+1]
+	if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
+	while { $gaView(current,lockedShuffle$nNextLevel) } {
+	    incr nNextLevel
+	    if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
+		if { $nNextLevel == $nLevel } {
+		    return
+		}
+	}
+	
+	SetLayerInViewAtLevel $iViewID $curLayer($nNextLevel) $nLevel
+    }
+    
+    SelectViewInViewProperties $iViewID
+    
+    # Also select the layer that's now on the top level.
+    set topLayerID [GetLayerInViewAtLevel $iViewID $nHighestLevel]
+    if { $topLayerID >= 0 } {
+	SelectLayerInLayerProperties $topLayerID
+    }
+
+    AdjustReportInfoForAuto
+}
+
+proc TurnOffVisibilityInTopmostVisibleLayer { iViewID } {
+
+    # Find the highest visible level.
+    set nHighestLevel -1
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $curLayer($nLevel) != -1 &&
+	     [GetLevelVisibilityInView $iViewID $nLevel] } {
+	    set nHighestLevel $nLevel
+	}
+    }
+
+    # If we didn't find anything, return.
+    if { $nHighestLevel == -1 } {
+	return
+    }
+    
+    # Turn the visibility off.
+    SetLevelVisibilityInView $iViewID $nHighestLevel 0
+    
+    SelectViewInViewProperties $iViewID
+}
+
+proc TurnOnVisibilityInTopmostInvisibleLayer { iViewID } {
+
+    # Find the highest invisible level.
+    set nHighestLevel -1
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $curLayer($nLevel) != -1 &&
+	     [GetLevelVisibilityInView $iViewID $nLevel] == 0 } {
+	    set nHighestLevel $nLevel
+	}
+    }
+
+    # If we didn't find anything, return.
+    if { $nHighestLevel == -1 } {
+	return
+    }
+    
+    # Turn the visibility off.
+    SetLevelVisibilityInView $iViewID $nHighestLevel 1
+    
+    SelectViewInViewProperties $iViewID
 }
 
 # DATA LOADING =====================================================
@@ -5828,7 +5901,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.185 2006/04/05 20:14:15 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.186 2006/04/10 21:29:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
