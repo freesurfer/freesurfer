@@ -11,7 +11,7 @@ function hdr = load_nifti_hdr(niftifile)
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
-% $Id: load_nifti_hdr.m,v 1.4 2006/04/11 03:58:02 greve Exp $
+% $Id: load_nifti_hdr.m,v 1.5 2006/04/11 04:00:15 greve Exp $
 
 hdr = [];
 
@@ -164,7 +164,11 @@ elseif(hdr.qform_code ~= 0)
   % Then use qform first
   hdr.vox2ras = hdr.qform;
 else
-  fprintf('WARNING: neither sform or qform are valid in %s\n',niftifile);
+  fprintf('WARNING: neither sform or qform are valid in %s\n', ...
+	  niftifile);
+  D = diag(hdr.pixdim(2:4));
+  P0 = [0 0 0]';
+  hdr.vox2ras = [eye(3)*D P0; 0 0 0 1];
 end
 
 return;
