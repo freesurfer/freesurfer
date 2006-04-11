@@ -2,8 +2,8 @@ function hdr = load_nifti_hdr(niftifile)
 % hdr = load_nifti_hdr(niftifile)
 %
 % Changes units to mm and msec.
-% Creates hdr.vox2ras based on sform.
-% Does not use qform (yet).
+% Creates hdr.sform and hdr.qform with the matrices in them.
+% Creates hdr.vox2ras based on sform if valid, then qform.
 % Does not and will not handle compressed. Compression is handled
 % in load_nifti.m, which calls load_nifti_hdr.m after any
 % decompression. 
@@ -11,7 +11,7 @@ function hdr = load_nifti_hdr(niftifile)
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
-% $Id: load_nifti_hdr.m,v 1.3 2006/03/31 06:25:39 greve Exp $
+% $Id: load_nifti_hdr.m,v 1.4 2006/04/11 03:58:02 greve Exp $
 
 hdr = [];
 
@@ -114,16 +114,57 @@ hdr.pixdim(5) = hdr.pixdim(5) * tscale;
 % Change value in xyzt_units to reflect scale change
 hdr.xyzt_units = bitor(2,16); % 2=mm, 16=msec
 
+% Sform matrix
+hdr.sform =  [hdr.srow_x'; 
+	      hdr.srow_y'; 
+	      hdr.srow_z';
+	      0 0 0 1];
 
-% should look at slc slope and interp and rescale
+% Qform matrix - not quite sure how all this works,
+% mainly just copied CH's code from mriio.c
+b = hdr.quatern_b;
+c = hdr.quatern_c;
+d = hdr.quatern_d;
+x = hdr.quatern_x;
+y = hdr.quatern_y;
+z = hdr.quatern_z;
+a = 1.0 - (b*b + c*c + d*d);
+if(abs(a) < 1.0e-7)
+  a = 1.0 / sqrt(b*b + c*c + d*d);
+  b = b*a;
+  c = c*a;
+  d = d*a;
+  a = 0.0;
+else
+  a = sqrt(a);
+end
+r11 = a*a + b*b - c*c - d*d;
+r12 = 2.0*b*c - 2.0*a*d;
+r13 = 2.0*b*d + 2.0*a*c;
+r21 = 2.0*b*c + 2.0*a*d;
+r22 = a*a + c*c - b*b - d*d;
+r23 = 2.0*c*d - 2.0*a*b;
+r31 = 2.0*b*d - 2*a*c;
+r32 = 2.0*c*d + 2*a*b;
+r33 = a*a + d*d - c*c - b*b;
+if(hdr.pixdim(1) < 0.0)
+  r13 = -r13;
+  r23 = -r23;
+  r33 = -r33;
+end
+qMdc = [r11 r12 r13; r21 r22 r23; r31 r32 r33];
+D = diag(hdr.pixdim(2:4));
+P0 = [x y z]';
+hdr.qform = [qMdc*D P0; 0 0 0 1];
 
 if(hdr.sform_code ~= 0)
-  hdr.vox2ras = [hdr.srow_x'; 
-		 hdr.srow_y'; 
-		 hdr.srow_z';
-		0 0 0 1];
-% Else check qform
-
+  % Use sform first
+  hdr.vox2ras = hdr.sform;
+elseif(hdr.qform_code ~= 0)
+  % Then use qform first
+  hdr.vox2ras = hdr.qform;
+else
+  fprintf('WARNING: neither sform or qform are valid in %s\n',niftifile);
 end
 
 return;
