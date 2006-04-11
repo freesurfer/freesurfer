@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $
+  $Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $
 */
 
 
@@ -32,10 +32,10 @@
 #include "macros.h"
 #include "colortab.h"
 
+
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
 #define PROJ_TYPE_FRAC 2
-
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -56,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -99,7 +99,7 @@ double nHitsThresh;
 int *ASegLabelList;
 int LabelCode;
 int UseNativeVox2RAS=0;
-
+int UseNewASeg2Vol=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv, 
-													 "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $", "$Name:  $", cmdline);
+													 "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.19 2006/04/07 03:22:03 greve Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
   if(RegMatFile != NULL){
     // Load registration matrix
     err = regio_read_register(RegMatFile, &regsubject, &ipr, &bpr, 
-															&intensity, &R, &float2int);
+			      &intensity, &R, &float2int);
     if(err) exit(1);
     printf("RegMat: --------\n");
     MatrixPrint(stdout,R);
@@ -173,6 +173,7 @@ int main(int argc, char **argv)
     }
     MatrixMultiply(Tras2vox,R,Tras2vox);
   }
+  else R = MatrixIdentity(4,NULL);
   printf("Label RAS-to-Vox: --------\n");
   MatrixPrint(stdout,Tras2vox);
 
@@ -203,12 +204,24 @@ int main(int argc, char **argv)
       }
     }
   }
+  /*-------------------------------------------------------------*/
   if(ASegFSpec != NULL){
     ASeg = MRIread(ASegFSpec);
     if(ASeg == NULL){
       printf("ERROR: loading aseg %s\n",ASegFSpec);
       exit(1);
     }
+    if(UseNewASeg2Vol){
+      OutVol = MRIaseg2vol(ASeg, R,TempVol, nHitsThresh, &HitVol);
+      MRIaddCommandLine(OutVol, cmdline) ;
+      MRIwrite(OutVol,OutVolId);
+      if(HitVolId != NULL){
+	MRIaddCommandLine(HitVol, cmdline) ;
+	MRIwrite(HitVol,HitVolId);
+      }
+      exit(0);
+    }
+
     ASegLabelList = NthLabelMap(ASeg, &nlabels);
     printf("nlabels = %d\n",nlabels);
   }
@@ -375,6 +388,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--native-vox2ras"))  UseNativeVox2RAS = 1;
     else if (!strcasecmp(option, "--invertmtx"))  InvertMtx = 1;
+    else if (!strcasecmp(option, "--new-aseg2vol"))  UseNewASeg2Vol = 1;
+    else if (!strcasecmp(option, "--no-new-aseg2vol"))  UseNewASeg2Vol = 0;
 
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
@@ -447,7 +462,7 @@ static int parse_commandline(int argc, char **argv)
       checkhemi(hemi);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--hit")){
+    else if (!strcmp(option, "--hits")){
       if(nargc < 1) argnerr(option,1);
       HitVolId = pargv[0];
       nargsused = 1;
@@ -561,7 +576,7 @@ static void print_help(void)
 "\n"
 "Path to a segmentation. A segmentation is a volume in which each voxel\n"
 "is assigned a number indicating it's class. The output volume will keep\n"
-"the same numbering. Codes should not exceed 999999. The registration in this\n"
+"the same numbering. The registration in this\n"
 "case goes from the seg to the template volume. Not with --label or \n"
 "--annot.\n"
 "\n"
@@ -636,7 +651,8 @@ static void print_help(void)
 "tool, but you could use it to implement your own multi-label\n"
 "arbitration routine. Or you could binarize to have each label\n"
 "represented separately. Takes any format accepted by mri_convert (eg,\n"
-"spm, analyze, bshort, mgh).\n"
+"spm, analyze, bshort, mgh). With --seg, this is a single frame volume\n"
+"with the number of hits from the winning seg id.\n"
 "\n"
 "--native-vox2ras\n"
 "\n"
@@ -777,6 +793,14 @@ static void check_options(void)
     printf("ERROR: you cannot specify a label AND an annot file\n");
     exit(1);
   }
+  if(nlabels != 0 && ASegFSpec != NULL){
+    printf("ERROR: you cannot specify a label AND an aseg file\n");
+    exit(1);
+  }
+  if(AnnotFile != NULL && ASegFSpec != NULL){
+    printf("ERROR: you cannot specify an annot file AND an aseg file\n");
+    exit(1);
+  }
   if(OutVolId == NULL){
     printf("ERROR: no output specified\n");
     exit(1);
@@ -820,6 +844,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"ProjDelta:      %g\n",ProjDelta);
   fprintf(fp,"Subject:  %s\n",subject);
   fprintf(fp,"Hemi:     %s\n",hemi);
+  fprintf(fp,"UseNewASeg2Vol:  %d\n",UseNewASeg2Vol);
 
   return;
 }
@@ -928,7 +953,7 @@ static int load_annotation(char *annotfile, MRIS *Surf)
   printf("annotidmax = %d\n",annotidmax);
   return(annotidmax);
 }
-
+/*--------------------------------------------------------------*/
 static int *NthLabelMap(MRI *aseg, int *nlabels)
 {
   int *labelmap, *tmpmap;
