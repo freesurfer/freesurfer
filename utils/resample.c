@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.17 2006/02/23 04:49:57 greve Exp $
+  $Id: resample.c,v 1.18 2006/04/11 23:37:18 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -60,6 +60,24 @@
 #include "resample.h"
 #include "bfileio.h"
 #include "corio.h"
+/*-------------------------------------------------------------------*/
+double round(double); // why is this never defined?!?
+/*-------------------------------------------------------------------*/
+
+
+/*-------------------------------------------------------------------
+  ASEGVOLINDEX - this structure is used with MRIaseg2vol() to help
+  perform the mapping. Mainly used for sorting with qsort.
+  -------------------------------------------------------------------*/
+typedef struct {
+  int asegindex; // index into the seg volume (instead of col,row,slice)
+  int segid;     // segmentation code
+  int volindex;  // index into the output volume 
+  int cv,rv,sv;  // corresponding col, row, slice in the output volume 
+} ASEGVOLINDEX;
+
+static int CompareAVIndices(const void *i1, const void *i2);
+static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost);
 
 /*---------------------------------------------------------
   interpolation_code(): gets a code that controls the 
@@ -1398,121 +1416,237 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
-
-
-
-#if 0
-/*-----------------------------------------------------------------------
-  label2mask_linear() - converts a label into a masking volume. The masking
-  volume is the same FOV as the source volume.  The mask has a value of 1
-  where ever there is a label point and the SrcMskVol is > 0.5; the mask is 
-  zero everywhere else.  The SrcMskVol is a mask of the same FOV as the source;
-  it is ignored if NULL.
-------------------------------------------------------------------------*/
-MRI *label2mask_linear(MRI *SrcVol, 
-           MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
-           MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-           int float2int, int *nlabelhits, int *nfinalhits)
+/*-------------------------------------------------------------
+  MRIaseg2vol() - maps a segmentation volume to another volume thru a
+  registration file. voltemp is a geometry template for the new
+  volume. The new volume is returned. Also returned (thru the arglist)
+  is a pointer to a "hit" volume. This is the same size as the output
+  volume. The value at each voxel is the number of aseg voxels mapped
+  into that voxel from the seg id assigned to that voxel. If multiple
+  seg ids map to a given voxel, then the seg id with the most number
+  of hits is chosen.  It is possible that some output voxels will not
+  be closest to any aseg voxel. So finds the output voxels that were
+  not initially mapped and assigns them the seg id of the closest in
+  the seg volume.  If nhitsthresh is non-zero, then the number of
+  hits for the winning seg id must exceed nhitsthresh; otherwise the
+  segid is set to 0. The registration should work with: 
+    tkregister2  --targ aseg --mov voltemp --reg  tkR 
+  -------------------------------------------------------------*/
+MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp, 
+		 int nhitsthresh, MRI **pvolhit)
 {
-  MATRIX *QFWDsrc;
-  MATRIX *Lxyz2Scrs;
-  MATRIX *Scrs, *Lxyz, *Mlbl2src;
-  MRI *FinalMskVol;
-  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
-  float mskval;
-  int vlbl;
-  
-  /* compute the transforms */
-  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
-  if(Msrc2lbl != NULL) Mlbl2src = MatrixInverse(Msrc2lbl,NULL);
-  else                 Mlbl2src = NULL;
-  if(Mlbl2src != NULL) Lxyz2Scrs = MatrixMultiply(QFWDsrc,Mlbl2src,NULL);    
-  else                 Lxyz2Scrs = MatrixCopy(QFWDsrc,NULL);
+  int Na,inda,sa,ra,ca,cv,rv,sv,indv,n,segid,nhits,nhitsmost;
+  int nmisses, nfilled;
+  MATRIX *Va2v, *Ka, *Kv, *invKv, *Vv2a, *Pa, *Pv;
+  ASEGVOLINDEX *avind;
+  MRI *volaseg, *volhit;
 
-  printf("\n");
-  printf("Lxyz2Scrs:\n");
-  MatrixPrint(stdout,Lxyz2Scrs);
-  printf("\n");
+  // Compute matrix to map from aseg CRS to vol CRS
+  // Va2v = inv(Kv) * tkR * Ka
+  Ka = MRIxfmCRS2XYZtkreg(aseg);
+  Kv = MRIxfmCRS2XYZtkreg(voltemp);
+  invKv = MatrixInverse(Kv,NULL);
+  Va2v = MatrixMultiply(invKv,tkR,NULL);
+  Va2v = MatrixMultiply(Va2v,Ka,Va2v);
+  Vv2a = MatrixInverse(Va2v,NULL);
+  MatrixFree(&Ka);
+  MatrixFree(&Kv);
+  MatrixFree(&invKv);
 
-  /* preallocate the row-col-slc vectors */
-  Lxyz = MatrixAlloc(4,1,MATRIX_REAL);
-  Lxyz->rptr[3+1][0+1] = 1.0;
-  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+  Na = aseg->width * aseg->height * aseg->depth;
+  avind = (ASEGVOLINDEX *) calloc(Na,sizeof(ASEGVOLINDEX));
 
-  /* allocate an output volume -- same size as source*/
-  FinalMskVol = MRIallocSequence(SrcVol->width,SrcVol->height,SrcVol->depth,
-         MRI_FLOAT,1);
-  if(FinalMskVol == NULL) return(NULL);
-  
-  *nlabelhits = 0;
-  *nfinalhits = 0;
-  
-  /* Go through each point in the label */
-  for(vlbl = 0; vlbl < Label->n_points; vlbl++){
-    
-    /* load the label xyz into a vector */
-    Lxyz->rptr[0+1][0+1] = Label->lv[vlbl].x;
-    Lxyz->rptr[1+1][0+1] = Label->lv[vlbl].y;
-    Lxyz->rptr[2+1][0+1] = Label->lv[vlbl].z;
-    
-    /* compute the corresponding col, row, and slice in the source vol */
-    MatrixMultiply(Lxyz2Scrs,Lxyz,Scrs);
-    
-    /* Convert the analog col, row, and slice to integer */
-    switch(float2int){
-    case FLT2INT_ROUND:
-      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_FLOOR:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_TKREG:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    default:
-      fprintf(stderr,"label2mask_linear(): unrecoginized float2int code %d\n",
-        float2int);
-      MRIfree(&FinalMskVol);
-      return(NULL);
-      break;
+  // Build an LUT that maps from aseg voxel to the closest 
+  // output volume voxel (reverse is done below).
+  printf("ASeg2Vol: Building LUT\n");
+  fflush(stdout);
+  Pa = MatrixConstVal(0,4,1,NULL);
+  Pa->rptr[4][1] = 1;
+  Pv = MatrixConstVal(0,4,1,NULL);
+  inda = 0;
+  for(sa=0; sa < aseg->depth; sa++){
+    for(ra=0; ra < aseg->height; ra++){
+      for(ca=0; ca < aseg->width; ca++){
+	avind[inda].asegindex = inda;
+	avind[inda].segid = MRIgetVoxVal(aseg,ca,ra,sa,0);
+	// map each aseg vox into the volume
+	Pa->rptr[1][1] = ca;
+	Pa->rptr[2][1] = ra;
+	Pa->rptr[3][1] = sa;
+	MatrixMultiply(Va2v,Pa,Pv);
+	cv = (int)round(Pv->rptr[1][1]);
+	rv = (int)round(Pv->rptr[2][1]);
+	sv = (int)round(Pv->rptr[3][1]);
+
+	if(cv < 0 || cv >= voltemp->width ||
+	   rv < 0 || rv >= voltemp->height ||
+	   sv < 0 || sv >= voltemp->depth){
+	  // check for out-of-FOV
+	  avind[inda].volindex = -1;
+	  avind[inda].cv = -1;
+	  avind[inda].rv = -1;
+	  avind[inda].sv = -1;
+	}
+	else{
+	  // save the volume crs and index
+	  indv = cv + (rv * voltemp->width) + (sv * voltemp->width*voltemp->height);
+	  avind[inda].cv = cv;
+	  avind[inda].rv = rv;
+	  avind[inda].sv = sv;
+	  avind[inda].volindex = indv;
+	}
+	inda++;
+      } // col
+    } // row
+  } // slice
+
+  printf("ASeg2Vol: Sorting \n");  fflush(stdout);
+  qsort(avind,Na,sizeof(ASEGVOLINDEX),CompareAVIndices);
+
+  // Alloc output volume
+  volaseg = MRIalloc(voltemp->width,voltemp->height,voltemp->depth,MRI_INT);
+  MRIcopyHeader(voltemp,volaseg);
+
+  // Alloc a hit volume (all values should be 0)
+  volhit = MRIalloc(voltemp->width,voltemp->height,voltemp->depth,MRI_INT);
+  MRIcopyHeader(voltemp,volhit);
+  *pvolhit = volhit;
+
+  // Go through each volume voxel and determine which seg id has the
+  // most representation.
+  printf("ASeg2Vol: Mapping\n");  fflush(stdout);
+  n = 0;
+  while(n < Na){
+    indv = avind[n].volindex;
+    if(indv < 0) {
+      // aseg vox not in fov of outvol
+      n++;
+      continue;  
     }
-    
-    /* check that the point is within the source volume */
-    if(irow_src < 0 || irow_src >= SrcVol->height ||
-       icol_src < 0 || icol_src >= SrcVol->width  ||
-       islc_src < 0 || islc_src >= SrcVol->depth ) continue;
-    (*nlabelhits)++;
 
-    /* check that the point is within the input mask */
-    if(SrcMskVol != NULL){
-      mskval = MRIFseq_vox(SrcMskVol,icol_src,irow_src,islc_src,0);
-      if(mskval < 0.5) continue;
+    // Count number of aseg voxels falling into this volume vox
+    nhits = 0;
+    while((n+nhits < Na) && (indv == avind[n+nhits].volindex)) nhits++;
+
+    // Determine which segid had the most hits
+    nhitsmost = MostHitsInVolVox(&avind[n], nhits, &segid);
+    MRIsetVoxVal(volhit,avind[n].cv,avind[n].rv,avind[n].sv,0,nhitsmost);
+
+    // Threshold
+    if(nhitsmost < nhitsthresh) segid=0;
+
+    // Set the output
+    MRIsetVoxVal(volaseg,avind[n].cv,avind[n].rv,avind[n].sv,0,segid);
+
+    if(Gdiag_no > 1){
+      printf("%6d %6d %5d    %6d    %3d %3d %3d     %3d %3d\n",
+	     n, avind[n].asegindex, segid, avind[n].volindex,
+	     avind[n].cv, avind[n].rv, avind[n].sv,  nhits, nhitsmost);
+      fflush(stdout);
     }
 
-    /* ok, now set the mask value to 1 */
-    /* or should we just keep count and then binarize? */
-    MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) = 1;
-
-    /* increment the number of hits */
-    (*nfinalhits)++;
+    n += nhits;
   }
 
-  fprintf(stderr,"INFO: label2mask: there were %d hits\n", *nfinalhits);
+  // Now do the reverse map. It is possible that some output voxels
+  // will not be closest to any aseg voxel. So find the output voxels
+  // that were not initially mapped and assign them the seg id of the
+  // closest in the seg volume.
+  printf("ASeg2Vol: Reverse Map\n");
+  nmisses = 0;
+  nfilled = 0;
+  for(sv=0; sv < volaseg->depth; sv++){
+    for(rv=0; rv < volaseg->height; rv++){
+      for(cv=0; cv < volaseg->width; cv++){
+	nhits = MRIgetVoxVal(volhit,cv,rv,sv,0);
+	if(nhits != 0) continue;
+	nmisses++;
+	Pv->rptr[1][1] = cv;
+	Pv->rptr[2][1] = rv;
+	Pv->rptr[3][1] = sv;
+	MatrixMultiply(Vv2a,Pv,Pa);
+	ca = (int)round(Pa->rptr[1][1]);
+	ra = (int)round(Pa->rptr[2][1]);
+	sa = (int)round(Pa->rptr[3][1]);
+	if(ca < 0 || ca >= aseg->width ||
+	   ra < 0 || ra >= aseg->height ||
+	   sa < 0 || sa >= aseg->depth){
+	  // out-of-bounds
+	  MRIsetVoxVal(volaseg,cv,rv,sv,0,0);
+	}
+	else{
+	  // in-of-bounds
+	  segid = MRIgetVoxVal(aseg,ca,ra,sa,0);
+	  MRIsetVoxVal(volaseg,cv,rv,sv,0,segid);
+	  MRIsetVoxVal(volhit,cv,rv,sv,0,1);
+	  nfilled++;
+	}
+      }
+    }
+  }  
+  printf("nmisses = %d (%d filled)\n",nmisses,nfilled);
 
-  MatrixFree(&QFWDsrc);
-  MatrixFree(&Lxyz2Scrs);
-  MatrixFree(&Scrs);
-  MatrixFree(&Lxyz);
-  if(Mlbl2src != NULL) MatrixFree(&Mlbl2src);
 
-  printf("label2mask_linear: done\n");
+  //MRIwrite(volaseg,"volaseg.mgh");
+  //MRIwrite(volhit,"volhits.mgh");
+  MatrixFree(&Va2v);
+  MatrixFree(&Vv2a);
+  free(avind);
 
-  return(FinalMskVol);  
+  printf("ASeg2Vol: done\n");
+  return(volaseg);
 }
-#endif
+/*-----------------------------------------------------------------------
+  MostHitsInVolVox() - determines the segid with the most hits in the
+  given volume voxel. In this case, avindsorted points to the first
+  entry of the given voxel, and there are N entries for that voxel.
+  -----------------------------------------------------------------------*/
+static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost)
+{
+  int n,nhits,nmost=0,segid;
+
+  n=0;
+  while(n < N){
+    segid = avindsorted[n].segid;
+    nhits = 0;
+    while( (n+nhits < N) && (segid == avindsorted[n+nhits].segid)) nhits++;
+    if(n==0){
+      *segidmost = segid;
+      nmost = nhits;
+    }
+    if(nmost < nhits){
+      *segidmost = segid;
+      nmost = nhits;
+    }
+    n += nhits;
+  }
+  return(nmost);
+}
+
+/*-----------------------------------------------------------------------
+  CompareAVIndices() - this compares ASEGVOLINDEX structures in a way
+  compatible with qsort. The resulting sorted array will be first sorted
+  by volume index. Entries with the same volume index will be subsorted
+  by segmentation id. In the end, all entries with the same volume index
+  will be contiguous. For a set of entries with the same volume index,
+  all entries with the same seg id will be contiguous.
+  -----------------------------------------------------------------------*/
+static int CompareAVIndices(const void *i1, const void *i2)
+{
+  ASEGVOLINDEX *avind1 = NULL, *avind2=NULL;
+
+  avind1 = (ASEGVOLINDEX *) i1;
+  avind2 = (ASEGVOLINDEX *) i2;
+
+  // Sort by volume index
+  if(avind1->volindex > avind2->volindex) return(+1);
+  if(avind1->volindex < avind2->volindex) return(-1);
+
+  // Only gets here if vol indices are the same, so
+  // sort by seg id
+  if(avind1->segid > avind2->segid) return(+1);
+  if(avind1->segid < avind2->segid) return(-1);
+
+  // Same volume index and seg id.
+  return(0);
+}
