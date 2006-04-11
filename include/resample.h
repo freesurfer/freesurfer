@@ -108,6 +108,8 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
          MATRIX *Ma2v, float projfrac);
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
 
+MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp, 
+		 int nhitsthresh, MRI **pvolhit);
 
 
 #endif /* #ifndef RESAMPLE_H_INC */
