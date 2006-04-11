@@ -11,11 +11,14 @@ function hdr = load_nifti(niftifile,hdronly)
 % hdr.pixdim(1) = physical size of first dim (eg, 3.125 mm or 2000 ms)
 % hdr.pixdim(2) = ...
 % 
-% hdr.vox2ras is the vox2ras matrix based on sform
+% The sform and qform matrices are stored in hdr.sform and hdr.qform.
+%
+% hdr.vox2ras is the vox2ras matrix based on sform (if valid), then
+% qform.
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.4 2006/04/03 19:07:42 greve Exp $
+% $Id: load_nifti.m,v 1.5 2006/04/11 04:02:24 greve Exp $
 
 hdr = [];
 
