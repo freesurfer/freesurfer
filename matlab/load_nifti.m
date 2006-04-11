@@ -18,7 +18,7 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.5 2006/04/11 04:02:24 greve Exp $
+% $Id: load_nifti.m,v 1.6 2006/04/11 04:05:40 greve Exp $
 
 hdr = [];
 
@@ -59,6 +59,11 @@ end
 fp = fopen(niftifile,'r',hdr.endian);
 
 % Get past the header
+if(hdr.vox_offset ~= 348)
+  fprintf('hdr.vox_offset = %d, which is not the size of the hdr (348)\n',...
+	  hdr.vox_offset);
+  fprintf('Just thought I would let you know ...\n');
+end
 fseek(fp,round(hdr.vox_offset),'bof');
 
 switch(hdr.datatype)
