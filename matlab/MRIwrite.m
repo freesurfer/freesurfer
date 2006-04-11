@@ -18,7 +18,7 @@ function err = MRIwrite(mri,fstring)
 % keep the same precision set mri.outbext = mri.srcbext.  This only
 % applies to bhdr format.
 % 
-% $Id: MRIwrite.m,v 1.7 2006/03/31 06:46:08 greve Exp $
+% $Id: MRIwrite.m,v 1.8 2006/04/11 04:33:32 greve Exp $
 
 err = 1;
 
@@ -96,16 +96,19 @@ switch(fmt)
   hdr.glmin           = 0;
   hdr.descrip         = sprintf('%-80s','FreeSurfer matlab');
   hdr.aux_file        = '';
-  hdr.qform_code      = 0; % for now
+  hdr.qform_code      = 1; % 1=NIFTI_XFORM_SCANNER_ANAT
   hdr.sform_code      = 1; % 1=NIFTI_XFORM_SCANNER_ANAT
   
-  % Does not do qform correctly yet
-  hdr.quatern_b       = 0;
-  hdr.quatern_c       = 0;
-  hdr.quatern_d       = 0;
-  hdr.quatern_x       = 0;
-  hdr.quatern_y       = 0;
-  hdr.quatern_z       = 0;
+  % Qform (must be 6dof)
+  [b,c,d,x,y,z,qfac] = vox2rasToQform(mri.vox2ras0);
+  hdr.pixdim(1)       = qfac;
+  hdr.quatern_b       = b;
+  hdr.quatern_c       = c;
+  hdr.quatern_d       = d;
+  hdr.quatern_x       = x;
+  hdr.quatern_y       = y;
+  hdr.quatern_z       = z;
+  % Sform (can by any affine)
   hdr.srow_x          = mri.vox2ras0(1,:);
   hdr.srow_y          = mri.vox2ras0(2,:);
   hdr.srow_z          = mri.vox2ras0(3,:);
