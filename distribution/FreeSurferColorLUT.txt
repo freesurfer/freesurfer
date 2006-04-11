@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.15.2.1 2006/03/24 01:04:08 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.15.2.2 2006/04/11 15:57:10 kteich Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -77,8 +77,8 @@
  75  Left-Lateral-Ventricles              120   18  134    0
  76  Right-Lateral-Ventricles             120   18  134    0
  77  WM-hypointensities                   200   70  255    0
- 78  Left-WM-hypointensities              275  148  10    0
- 79  Right-WM-hypointensities             275  148  10    0
+ 78  Left-WM-hypointensities              255  148  10    0
+ 79  Right-WM-hypointensities             255  148  10    0
  80  non-WM-hypointensities               164  108  226    0
  81  Left-non-WM-hypointensities          164  108  226    0
  82  Right-non-WM-hypointensities         164  108  226    0
