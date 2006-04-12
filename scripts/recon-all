@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.23 2006/04/08 17:07:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.24 2006/04/12 03:26:23 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -21,6 +21,7 @@ set CF = ();
 set AppendLog    = 1;
 set AppendStatus = 1;
 set DoLegacy = 0;
+set LegacyWarnOnly = 0; # only warn if -legacy but not a legacy but was once
 
 set Force = 0;
 set DoCleanTal   = 0;
@@ -1828,6 +1829,11 @@ while( $#argv != 0 )
     case "-legacy":
       set DoLegacy = 1;
       breaksw
+    case "-legacy-warn":
+      # dont exit if -legacy is specified, but the dir is not
+      # a legacy but was at one point
+      set LegacyWarnOnly = 1;
+      breaksw
 
     case "-clean":
       set DoCleanTal   = 1;
@@ -2160,10 +2166,17 @@ check_params:
       echo "ERROR: you have specified -legacy, but this does not look like "
       echo "       a legacy analysis".
       if( -e $subjdir/scripts/recon-all.legacy.status) then
-        echo "       It appears that this was once a legacy analysis, but"
-        echo "       it has been updated."
+        echo "         It appears that this was once a legacy analysis, but"
+        echo "         it has been updated."
+        if($LegacyWarnOnly) then
+          echo "           BUT! you have asked to continue with a warning"
+          set DoLegacy = 0;
+        else
+          exit 1;
+        endif
+      else
+        exit 1;
       endif
-      exit 1;
     endif
     if($DoLegacy) then
       set brain     = $subjdir/mri/brain
