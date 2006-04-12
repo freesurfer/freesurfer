@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.2 2006/04/08 17:08:41 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.3 2006/04/12 19:05:24 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -21,6 +21,7 @@ set CF = ();
 set AppendLog    = 1;
 set AppendStatus = 1;
 set DoLegacy = 0;
+set LegacyWarnOnly = 0; # only warn if -legacy but not a legacy but was once
 
 set Force = 0;
 set DoCleanTal   = 0;
@@ -62,6 +63,7 @@ set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
+set NoThicken = 0 # if 1, and '-thicken 0' to mri_segment
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -829,6 +831,7 @@ if($DoSegmentation) then
   # ----------- Segment -------------------------
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
   set cmd = (mri_segment);
+  if ($NoThicken) set cmd = ($cmd -thicken 0)
   if(! $DoCleanWM && -e wm.seg.mgz) set cmd = ($cmd -keep)
   set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1828,6 +1831,11 @@ while( $#argv != 0 )
     case "-legacy":
       set DoLegacy = 1;
       breaksw
+    case "-legacy-warn":
+      # dont exit if -legacy is specified, but the dir is not
+      # a legacy but was at one point
+      set LegacyWarnOnly = 1;
+      breaksw
 
     case "-clean":
       set DoCleanTal   = 1;
@@ -2091,6 +2099,10 @@ while( $#argv != 0 )
       set UseNoNeg = 1;
       breaksw
 
+    case "-nothicken":
+      set NoThicken = 1;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -2160,10 +2172,17 @@ check_params:
       echo "ERROR: you have specified -legacy, but this does not look like "
       echo "       a legacy analysis".
       if( -e $subjdir/scripts/recon-all.legacy.status) then
-        echo "       It appears that this was once a legacy analysis, but"
-        echo "       it has been updated."
+        echo "         It appears that this was once a legacy analysis, but"
+        echo "         it has been updated."
+        if($LegacyWarnOnly) then
+          echo "           BUT! you have asked to continue with a warning"
+          set DoLegacy = 0;
+        else
+          exit 1;
+        endif
+      else
+        exit 1;
       endif
-      exit 1;
     endif
     if($DoLegacy) then
       set brain     = $subjdir/mri/brain
@@ -2395,7 +2414,12 @@ handle_legacy_brain_mask:
   # calls.
   set BL = brain.legacy.mgz
   if(-e $BL) then
-    # BL exists, so check whether it is the same as BM
+    # BL exists
+    if(! -e $BM) then
+      # this can only happen if -clean was run
+      goto handle_legacy_brain_mask_return;
+    endif
+    # Check whether it is the same as BM
     set mridifflog = /tmp/mridiff.tmp.$$.log
     set cmd = (mri_diff $BL $BM --log $mridifflog)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2506,6 +2530,7 @@ usage_exit:
   echo "                    are created, then stops"
   echo "  -seg-wlo wlo : set wlo value for mri_segment"
   echo "  -seg-ghi ghi : set ghi value for mri_segment"
+  echo "  -nothicken   : pass '-thicken 0' to mri_segment"
   echo "  -no-ca-align : turn off -align with mri_ca_{register,label}. "
   echo "  -deface      : deface subject, written to orig_defaced.mgz"
   echo ""
@@ -3277,3 +3302,11 @@ Halgren, Florent Segonne, David H. Salat, Evelina Busa, Larry
 J. Seidman, Jill Goldstein, David Kennedy, Verne Caviness, Nikos
 Makris, Bruce Rosen, and Anders M. Dale.  Automatically Parcellating
 the Human Cerebral Cortex. Cerebral Cortex January 2004; 14:11-22.
+
+[10] Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
+AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
+NeuroImage 23 Suppl 1, S69-84.
+
+[11] Segonne F, Dale, AM, Busa E, Glessner M, Salvolini U, Hahn HK,
+Fischl B, A Hybrid Approach to the Skull-Stripping Problem in MRI.
+NeuroImage, 22,  pp. 1160-1075, 2004
