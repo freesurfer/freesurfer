@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.25 2006/04/12 18:45:07 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.26 2006/04/12 19:03:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -63,6 +63,7 @@ set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
+set NoThicken = 0 # if 1, and '-thicken 0' to mri_segment
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -830,6 +831,7 @@ if($DoSegmentation) then
   # ----------- Segment -------------------------
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
   set cmd = (mri_segment);
+  if ($NoThicken) set cmd = ($cmd -thicken 0)
   if(! $DoCleanWM && -e wm.seg.mgz) set cmd = ($cmd -keep)
   set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2097,6 +2099,10 @@ while( $#argv != 0 )
       set UseNoNeg = 1;
       breaksw
 
+    case "-nothicken":
+      set NoThicken = 1;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -2524,6 +2530,7 @@ usage_exit:
   echo "                    are created, then stops"
   echo "  -seg-wlo wlo : set wlo value for mri_segment"
   echo "  -seg-ghi ghi : set ghi value for mri_segment"
+  echo "  -nothicken   : pass '-thicken 0' to mri_segment"
   echo "  -no-ca-align : turn off -align with mri_ca_{register,label}. "
   echo "  -deface      : deface subject, written to orig_defaced.mgz"
   echo ""
