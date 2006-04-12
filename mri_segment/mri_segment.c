@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.29 2006/04/04 18:34:06 fischl Exp $
+// ID             : $Id: mri_segment.c,v 1.30 2006/04/12 18:47:51 fischl Exp $
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/04 18:34:06 $
-// Revision       : $Revision: 1.29 $
+// Revision Date  : $Date: 2006/04/12 18:47:51 $
+// Revision       : $Revision: 1.30 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.29 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.30 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +103,7 @@ main(int argc, char *argv[])
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.29 2006/04/04 18:34:06 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.30 2006/04/12 18:47:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -412,7 +412,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "thicken"))
   {
-    thicken = !thicken ;
+    thicken = atoi(argv[2]) ;
+		nargs = 1 ;
     fprintf(stderr,"%sthickening thin strands\n", thicken ? "" : "not ") ;
   }
   else if (!stricmp(option, "thickenonly"))
