@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/03/29 00:23:47 $
-// Revision       : $Revision: 1.337.2.2 $
-char *MRI_C_VERSION = "$Revision: 1.337.2.2 $";
+// Revision Date  : $Date: 2006/04/12 02:03:01 $
+// Revision       : $Revision: 1.337.2.3 $
+char *MRI_C_VERSION = "$Revision: 1.337.2.3 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -476,6 +476,7 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
 
   return(Rfix);
 }
+
 /*-------------------------------------------------------------------
   MRIfsl2TkReg() - converts an FSL registration matrix to one
   compatible with tkregister.  Note: the FSL matrix is assumed to map
@@ -2400,7 +2401,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   if(!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
-  if(Gdiag_no > 0){
+  if(Gdiag_no > 0 && DIAG_VERBOSE_ON){
     printf("voxelFromSurfaceRAS_() ras2vox --------------------\n");
     MatrixPrint(stdout,ras2vox);
   }
@@ -11732,11 +11733,11 @@ MRInormalizeSequence(MRI *mri, float target)
 double
 MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 {
-  int  x, y, z, l ;
-  float  val ;
+  int  x, y, z, nvox, l ;
   double mean = 0.0 ;
-  int nvox = 0 ;
+  float  val ;
 
+  nvox = 0 ;
   for (x = 0 ; x < mri_src->width ; x++)
     {
       for (y = 0 ; y < mri_src->height ; y++)
@@ -11756,6 +11757,77 @@ MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
   if (!nvox)
     nvox = 1 ;
   return(mean/nvox) ;
+}
+
+double
+MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0, int z0, int whalf)
+{
+  int  x, y, z, nvox, l ;
+  double mean = 0.0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = x0-whalf ; x <= x0+whalf ; x++)
+	{
+		if (x < 0 || x >= mri_src->width)
+			continue ;
+		for (y = y0-whalf ; y <= y0+whalf ; y++)
+		{
+			if (y < 0 || y >= mri_src->height)
+				continue ;
+			for (z = z0-whalf ; z <= z0+whalf ; z++)
+			{
+				if (z < 0 || z >= mri_src->depth)
+					continue ;
+				l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+				if (l == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					mean += val ;
+					nvox++ ;
+				}
+			}
+		}
+	}
+  if (!nvox)
+    nvox = 1 ;
+  return(mean/nvox) ;
+}
+double
+MRImaxInLabelInRegion(MRI *mri_src, MRI *mri_labeled, int label, int x0, int y0, int z0, int whalf)
+{
+  int  x, y, z;
+  int l;
+  float  val ;
+  int nvox = 0;
+  double max = 0.0 ;
+
+  for (x = x0-whalf ; x <= x0+whalf ; x++)
+	{
+		if (x < 0 || x >= mri_src->width)
+			continue ;
+		for (y = y0-whalf ; y <= y0+whalf ; y++)
+		{
+			if (y < 0 || y >= mri_src->height)
+				continue ;
+			for (z = z0-whalf ; z <= z0+whalf ; z++)
+			{
+				if (z < 0 || z >= mri_src->depth)
+					continue ;
+				l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+				if (l == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					if (val > max)
+						max = val ;
+					nvox++ ;
+				}
+			}
+		}
+	}
+  if (!nvox)
+    nvox = 1 ;
+  return(max) ;
 }
 
 MRI *
@@ -12112,27 +12184,32 @@ MRIcomputeLabelNbhd
   float  val ;
 
   memset(label_counts, 0, sizeof(label_counts[0])*max_labels) ;
-  memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
+	if (label_means)
+		memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
   for (xk = -whalf ; xk <= whalf ; xk++)
     {
-      xi = mri_vals->xi[x+xk] ;
+      xi = mri_labels->xi[x+xk] ;
       for (yk = -whalf ; yk <= whalf ; yk++)
         {
-          yi = mri_vals->yi[y+yk] ;
+          yi = mri_labels->yi[y+yk] ;
           for (zk = -whalf ; zk <= whalf ; zk++)
             {
-              zi = mri_vals->zi[z+zk] ;
+              zi = mri_labels->zi[z+zk] ;
               label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
-              val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
               label_counts[label]++ ;
-              label_means[label] += val ;
+							if (mri_vals)
+							{
+								val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
+								label_means[label] += val ;
+							}
             }
         }
     }
 
-  for (label = 0 ; label < max_labels ; label++)
-    if (label_counts[label] > 0)
-      label_means[label] /= label_counts[label] ;
+	if (mri_vals)
+		for (label = 0 ; label < max_labels ; label++)
+			if (label_counts[label] > 0)
+				label_means[label] /= label_counts[label] ;
   return(NO_ERROR) ;
 }
 

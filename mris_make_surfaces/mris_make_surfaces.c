@@ -20,7 +20,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.70 2006/02/27 17:46:12 greve Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.70.2.1 2006/04/12 02:02:59 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,6 +46,7 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static char *white_fname = NULL ;
+static int use_mode = 1 ;
 
 static char *orig_white = NULL ;
 static char *orig_pial = NULL ;
@@ -158,10 +159,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.70 2006/02/27 17:46:12 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.1 2006/04/12 02:02:59 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.70 2006/02/27 17:46:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.1 2006/04/12 02:02:59 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -372,15 +373,31 @@ main(int argc, char *argv[])
   }
 
 
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
+  fprintf(stderr, "reading original surface position from %s...\n", fname) ;
+  mris = MRISreadOverAlloc(fname, 1.1) ;
+  if (!mris)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, fname) ;
+	MRISaddCommandLine(mris, cmdline) ;
+
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
+		float white_mode, gray_mode ;
 
     mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     fprintf(stderr, "computing class statistics...\n");
+		MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+		MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL);
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
+		if (use_mode)
+		{
+			printf("using class modes intead of means....\n") ;
+			white_mean = white_mode ; gray_mean = gray_mode ;
+		}
 
     white_std /= std_scale;
     gray_std /= std_scale;
@@ -417,14 +434,6 @@ main(int argc, char *argv[])
     MRIfree(&mri_tmp) ;
   }
   MRIfree(&mri_wm) ;
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
-  fprintf(stderr, "reading original surface position from %s...\n", fname) ;
-  mris = MRISreadOverAlloc(fname, 1.1) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-	MRISaddCommandLine(mris, cmdline) ;
-
   inverted_contrast = (check_contrast_direction(mris,mri_T1) < 0) ;
   if (inverted_contrast)
   {
@@ -892,6 +901,12 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "mode"))
+  {
+		use_mode = atoi(argv[2]) ;
+    printf("%susing class modes instead of means...\n", use_mode ? "" : "NOT ") ;
+		nargs = 1 ;
   }
   else if (!stricmp(option, "T1") || !stricmp(option, "gvol"))
   {
