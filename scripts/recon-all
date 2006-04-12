@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.24 2006/04/12 03:26:23 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.25 2006/04/12 18:45:07 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3295,3 +3295,11 @@ Halgren, Florent Segonne, David H. Salat, Evelina Busa, Larry
 J. Seidman, Jill Goldstein, David Kennedy, Verne Caviness, Nikos
 Makris, Bruce Rosen, and Anders M. Dale.  Automatically Parcellating
 the Human Cerebral Cortex. Cerebral Cortex January 2004; 14:11-22.
+
+[10] Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
+AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
+NeuroImage 23 Suppl 1, S69-84.
+
+[11] Segonne F, Dale, AM, Busa E, Glessner M, Salvolini U, Hahn HK,
+Fischl B, A Hybrid Approach to the Skull-Stripping Problem in MRI.
+NeuroImage, 22,  pp. 1160-1075, 2004
