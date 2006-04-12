@@ -1,14 +1,14 @@
 #!/bin/csh -f
 # aseg2funcmask-sess
 #
-set VERSION = '$Id: aseg2funcmask-sess,v 1.4 2006/03/27 05:20:18 greve Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.5 2006/04/12 23:19:05 greve Exp $';
 
 set cmdargs = ($argv);
 
 set segvol    = aseg;
 set osegvol   = aseg;
-set fmt       = bhdr;
-set ofmt      = bhdr;
+set infmt       = ();
+set outfmt      = nii.gz;
 set fsd       = bold;
 set funcstem  = f;
 set DoASeg    = 1;
@@ -84,11 +84,15 @@ foreach sess ($SessList)
   if(! $PerRun) set RunList = $RunList[1];
 
   foreach Run ($RunList)
-    set functemplate = $sess/$fsd/$Run/$funcstem.$fmt
-    if(! -e $functemplate) then
-      echo "ERROR: cannot find $functemplate"
+
+    set functempstem = $sess/$fsd/$Run/$funcstem
+    set infmtuse = `getformat_from_stem $functempstem $infmt`
+    if($status) then
+      echo "$infmtuse" |& tee -a $LF
       exit 1;
     endif
+    echo "Detected format as $infmtuse" |& tee -a $LF
+    set functemplate = $functempstem.$infmtuse
 
     if(! $PerRun) then
       set regfile = $sess/$fsd/register.dat
@@ -104,7 +108,7 @@ foreach sess ($SessList)
     mkdir -p $maskdir
 
     if($DoASeg) then
-      set outvol = $maskdir/$osegvol.$ofmt
+      set outvol = $maskdir/$osegvol.$outfmt
 
       set cmd = (mri_label2vol --seg $segpath \
         --reg $regfile  --temp $functemplate \
@@ -123,7 +127,7 @@ foreach sess ($SessList)
           echo "ERROR: cannot find $annot"
           exit 1;
         endif
-        set outvol = $maskdir/$hemi.aparc.$ofmt
+        set outvol = $maskdir/$hemi.aparc.$outfmt
         set cmd = (mri_label2vol --annot $annot \
            --reg $regfile  --temp $functemplate \
            --o $outvol --proj frac 0 1 .1 \
@@ -180,14 +184,14 @@ while( $#argv != 0 )
       set funcstem = $argv[1]; shift;
       breaksw
 
-    case "-fmt":
+    case "-infmt":
       if ( $#argv == 0) goto arg1err;
-      set fmt = $argv[1]; shift;
+      set infmt = $argv[1]; shift;
       breaksw
 
-    case "-ofmt":
+    case "-outfmt":
       if ( $#argv == 0) goto arg1err;
-      set ofmt = $argv[1]; shift;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-fillthresh":
@@ -264,8 +268,8 @@ usage_exit:
   echo "   -fsd fsd : use fsd instead of bold"
   echo "   -rlf runlistfile "
   echo "   -func funcstem : only used for template, default f "
-  echo "   -fmt  fmt : input format <bhdr> or mgh"
-  echo "   -ofmt fmt : output format <bhdr> or mgh"
+  echo "   -infmt  fmt : input format <auto>, nii.gz, bhdr, mgh, etc"
+  echo "   -outfmt fmt : output format <nii.gz>, mgh, bhdr, etc"
   echo "   -noaseg   : do not map volume-based subcort segmentation"
   echo "   -noaparc  : do not map surfaced-based cort segmentation"
   echo ""

@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # spmregister-sess
 #
-set VERSION = '$Id: spmregister-sess,v 1.11 2005/09/29 19:49:57 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.12 2006/04/12 23:19:07 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -15,7 +15,7 @@ set RunListFile  = ();
 set fsvol        = brain;
 set regfilename  = register.dat
 set funcstem     = f;
-set fmt          = bhdr;
+set fmt          = ();
 set frame        = 0;
 
 ## If there are no options, just print the usage ##
@@ -117,19 +117,14 @@ foreach sess ($SessList)
       endif
     endif
 
-    set movfile = $funcdir/$funcstem"_000.bshort"
-    if(! -e $movfile) then
-      if($fmt != COR) then
-        set movfile = $funcdir/$funcstem.$fmt
-      else
-        set movfile = $funcdir
-      endif
-      if(! -e $movfile) then
-        echo "ERROR: cannot find f volume in $funcdir" |& tee -a $LF
-        echo "  $movfile"
-        exit 1;
-      endif
+    set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
+    if($status) then
+      echo "$fmtuse" |& tee -a $LF
+      exit 1;
     endif
+    echo "Detected format at $fmtuse" |& tee -a $LF
+    set movfile = $funcdir/$funcstem.$fmtuse
+    # Does not do COR anymore
 
     set regfile = $fsd/$regfilename
     set cmd = (spmregister --s $subject --mov $movfile \
@@ -154,16 +149,15 @@ foreach sess ($SessList)
       echo "  Run: $Run ----------------" |& tee -a $LF
       date  |& tee -a $LF
       set funcdir = $fsd/$Run
-      if($fmt != COR) then
-        set movfile = $funcdir/$funcstem.$fmt
-      else
-        set movfile = $funcdir
-      endif
-      if(! -e $movfile) then
-        echo "ERROR: cannot find f volume in $funcdir" |& tee -a $LF
-        echo "  $movfile"
+      set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
+      if($status) then
+        echo "$fmtuse" |& tee -a $LF
         exit 1;
       endif
+      echo "Detected format as $fmtuse" |& tee -a $LF
+      set movfile = $funcdir/$funcstem.$fmtuse
+      # Does not do COR anymore
+
       set regfile = $funcdir/fs.register.dat
       set cmd = (spmregister --s $subject --mov $movfile \
         --reg $regfile --fsvol $fsvol)
@@ -319,7 +313,8 @@ usage_exit:
   echo "   -frame frameno : 0-based frame no (default 0)"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
   echo "   -regfile file  : Save reg as file instead of register.dat"
-  echo "   -fmt format    : format of functional: <bhdr>, mgh, COR"
+  echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
+  echo ""
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
   echo ""

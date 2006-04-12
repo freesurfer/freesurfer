@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.20 2006/04/05 21:08:58 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.21 2006/04/12 23:19:07 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -27,7 +27,7 @@ set FOV          = ();
 set movscale     = ();
 set movframe     = 0;
 set ForceRegHeader = 0;
-set fmt = bhdr;
+set fmt = ();
 set MGZ = ();
 
 ## If there are no options, just print the usage ##
@@ -187,16 +187,13 @@ foreach sess ($SessList)
       set mkregopt = ();
     endif
 
-    if($fmt != COR) then
-      set movfile = $funcstem.$fmt
-    else
-      set movfile = .
-    endif
-    if(! -e $movfile) then
-      echo "ERROR: cannot find $movfile" |& tee -a $LF
-      pwd
+    set fmtuse = `getformat_from_stem $funcstem $fmt`
+    if($status) then
+      echo "$fmtuse" |& tee -a $LF
       exit 1;
     endif
+    echo "Detected format as $fmtuse" |& tee -a $LF
+    set movfile = $funcstem.$fmtuse
 
     set anatpath = $anatdir;
     if(-e $anatdir.mgz) set anatpath = $anatdir.mgz;
@@ -553,7 +550,7 @@ usage_exit:
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
   echo "   -useold        : use tkregister instead of tkregister2"
-  echo "   -fmt format    : format of functional: <bhdr>, mgh, COR"
+  echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
 
   echo "Also see tkregister2 --help"
 

@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # isxavg-re-sess - random effects intersubject averaging
 #
-set VERSION = '$Id: isxavg-re-sess,v 1.6 2005/03/28 20:56:50 greve Exp $'
+set VERSION = '$Id: isxavg-re-sess,v 1.7 2006/04/12 23:19:06 greve Exp $'
 set cmdargs = ($argv);
 
 set analysis    = ();
@@ -112,6 +112,7 @@ else
   end
 endif
 
+if(0) then
 mkdir -p scripts
 set scriptfile = scripts/run-isxavg-re-$analysis-$contrast
 rm -f $scriptfile
@@ -119,6 +120,7 @@ touch $scriptfile
 echo "#\!/bin/csh -f" >> $scriptfile
 echo "cd .." >> $scriptfile
 chmod a+x $scriptfile
+endif
 
 foreach hs ($hemi)
 
@@ -157,8 +159,15 @@ foreach hs ($hemi)
       set inhoffstem = $sess/$fsd/$analysis/$spacedir/h-$hs-offset
     endif
 
+    if(! -e $instem"_000.bfloat") then
+      echo "ERROR: cannot find $instem"
+      exit 1;
+    endif
+
     set instems     = ($instems     -i $instem);
     set inhoffstems = ($inhoffstems -i $inhoffstem);
+
+
 
   end # loop over SessList #
   

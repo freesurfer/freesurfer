@@ -8,14 +8,39 @@
 #
 # Return: format extension and exit 0. If fails, then exits 1.
 #
-# $Id: getformat_from_stem,v 1.1 2006/04/12 22:45:37 greve Exp $
+# As a convenience, you can spec the format to try as the 2nd arg.
+# If the stem.fmt does not exist, then exit 1. Otherwise exit 0
+# and echoes the given fmt to the terminal. This just helps to
+# cut out a few lines of code from the calling program.
+#
+# $Id: getformat_from_stem,v 1.2 2006/04/12 23:19:06 greve Exp $
 
-if($#argv != 1) then
-  echo "getformat_from_stem stem"
+if($#argv < 1 || $#argv > 2) then
+  echo "getformat_from_stem stem <fmt>"
   exit 1;
 endif
 
 set stem = $argv[1];
+
+if($#argv == 2) then
+  # Format has been specified
+  set fmt = $argv[2];
+else
+  # Format has been not specified
+  set fmt = ();
+endif
+
+if($#fmt) then
+  # Format has been specified, check that file exists
+  if(! -e $stem.$fmt) then
+    echo "ERROR: cannot find $stem.$fmt"
+    exit 1;
+  endif
+  echo $fmt
+  exit 0;
+endif
+
+# Only gets here when autodetecting
 
 if(-e $stem.nii.gz) then
   echo nii.gz
