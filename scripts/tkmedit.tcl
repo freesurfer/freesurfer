@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.108 2006/02/01 22:00:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.109 2006/04/12 14:58:00 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4373,6 +4373,16 @@ proc CreateToolBar { ifwToolBar } {
 	  { image 5 icon_line_tool "Line Tool (l)" } 
       }
 
+    # Control-left-click to show settings for the tool.
+    bind [$fwTools.tbw subwidget 2] <Control-Button-1> {
+	DoBrushInfoDlog
+	DoEditBrushInfoDlog
+    }
+    bind [$fwTools.tbw subwidget 3] <Control-Button-1> {
+	DoBrushInfoDlog
+	DoEditSegBrushInfoDlog
+    }
+    
     tkm_MakeToolbar $fwViews \
 	1 \
 	gViewPreset \
