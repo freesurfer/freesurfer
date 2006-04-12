@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.17.2.1 2006/04/11 23:38:20 greve Exp $
+  $Id: resample.c,v 1.17.2.2 2006/04/12 05:02:24 nicks Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -1440,6 +1440,8 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   MATRIX *Va2v, *Ka, *Kv, *invKv, *Vv2a, *Pa, *Pv;
   ASEGVOLINDEX *avind;
   MRI *volaseg, *volhit;
+
+  segid = 0;
 
   // Compute matrix to map from aseg CRS to vol CRS
   // Va2v = inv(Kv) * tkR * Ka
