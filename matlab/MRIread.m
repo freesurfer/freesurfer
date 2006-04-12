@@ -2,12 +2,13 @@ function mri = MRIread(fstring,headeronly)
 % mri = MRIread(fstring,headeronly)
 %
 % Reads in a volume based on the fstring. fstring can be:
-% 1. A stem, in which case the format and full file name is determined
+%  1. A stem, in which case the format and full file name is determined
 %     by finding a file on disk called fstring.ext, where ext can be
-%     either mgh, mgz, or bhdr
+%     either mgh, mgz, img, bhdr, nii, or nii.gz
 %  2. MGH file. Eg, f.mgh or f.mgz
 %  3. BVolume HDR file. Eg, f.bhdr 
 %  4. Analyze, eg, f.img or f.hdr
+%  5. NIFTI, eg, f.nii or f.nii.gz
 %
 % Creates a structure similar to the FreeSurfer MRI struct
 % defined in mri.h. Times are in ms and angles are in radians.
@@ -23,7 +24,10 @@ function mri = MRIread(fstring,headeronly)
 % input is not bhdr, then mri.srcbext will exist but be empty.
 % See also MRIwrite() and mri.outbext.
 %
-% $Id: MRIread.m,v 1.10 2006/02/08 21:14:21 greve Exp $
+% If the input is NIFTI, then mri.niftihdr is the nifti header
+% If the input is ANALYZE, then mri.analyzehdr is the analyze header
+%
+% $Id: MRIread.m,v 1.10.2.1 2006/04/12 16:01:25 greve Exp $
 
 mri = [];
 
@@ -113,6 +117,30 @@ switch(fmt)
   hdr.vol = []; % already have it above, so clear it 
   M = vox2ras_1to0(hdr.vox2ras);
   mri.analyzehdr = hdr;
+%------- nifti nii -------------------------------------   
+ case {'nii','nii.gz'}
+  hdr = load_nifti(fspec,headeronly);
+  if(isempty(hdr))
+    fprintf('ERROR: loading %s as analyze\n',fspec);
+    mri = [];
+    return;
+  end
+  volsz = hdr.dim(2:end);
+  indnz = find(volsz~=0);
+  volsz = volsz(indnz);
+  volsz = volsz(:)'; % just make sure it's a row vect
+  if(~headeronly)
+    mri.vol = permute(hdr.vol,[2 1 3 4]);
+  else
+    mri.vol = [];
+  end
+  tr = hdr.pixdim(5); % already msec
+  flip_angle = 0;
+  te = 0;
+  ti = 0;
+  hdr.vol = []; % already have it above, so clear it 
+  M = hdr.vox2ras;
+  mri.niftihdr = hdr;
 %--------------------------------------------------- 
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);
