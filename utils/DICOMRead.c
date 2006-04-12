@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.83 2006/03/30 01:27:01 nicks Exp $
+   $Id: DICOMRead.c,v 1.84 2006/04/12 21:37:14 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -82,11 +82,11 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   char **SeriesList;
   char *tmpstring;
   int Maj, Min, MinMin;
-  double xs,ys,zs,xe,ye,ze;
-  double sign;
+  double xs,ys,zs,xe,ye,ze,d;
   int nnlist;
+  extern int sliceDirCosPresent; // set when no ascii header
 
-  xs=ys=zs=xe=ye=ze=sign=0.; /* to avoid compiler warnings */
+  xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
   sliceDirCosPresent = 0; // assume not present
@@ -110,95 +110,89 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   //nnlist,SeriesList[nnlist]);
   //fflush(stdout);
 
-  fprintf(stderr,"INFO: loading series header info.\n");
+  printf("INFO: loading series header info.\n");
   sdfi_list = LoadSiemensSeriesInfo(SeriesList, nlist);
 
   // free memory
   nnlist = nlist;
-  while (nnlist--)
-    free(SeriesList[nnlist]);
+  while (nnlist--) free(SeriesList[nnlist]);
   free(SeriesList);
   
-  fprintf(stderr,"INFO: sorting.\n");
+  printf("INFO: sorting.\n");
   SortSDCMFileInfo(sdfi_list,nlist);
   
   sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  if (nthonly < 0)
-    sdfi = sdfi_list[0];
-  else
-    sdfi = sdfi_list[nthonly];
+  if(nthonly < 0) sdfi = sdfi_list[0];
+  else            sdfi = sdfi_list[nthonly];
 
-  /* there are some Siemens files don't have the slice dircos */
-  if (sliceDirCosPresent == 0)
-    {
-      xs = sdfi_list[0]->ImgPos[0]; 
-      ys = sdfi_list[0]->ImgPos[1]; 
-      zs = sdfi_list[0]->ImgPos[2];
-      xe = sdfi_list[nlist-1]->ImgPos[0]; 
-      ye = sdfi_list[nlist-1]->ImgPos[1]; 
-      ze = sdfi_list[nlist-1]->ImgPos[2];
-      /* check sign. inner product of what we have so far 
-         with the vector we found */
-      /* using two slices.  They should be parallel and 
-         thus we can use the sign.  */
-      /* no need to normalize the vector, since we are 
-         interested in only sign.    */
-      /* Note that DICOM is LPS ... we need RAS        */
-      /* this means that first two must use xs-xe, ys-ye, but ze-zs    */
-      sign = sdfi->Vs[0]*(xs-xe) + sdfi->Vs[1]*(ys-ye) + sdfi->Vs[2]*(ze-zs);
-      if (sign < 0)
-        {
-          fprintf(stderr, "INFO: Handedness changed to left-handed.\n");
-          sdfi->Vs[0] = -sdfi->Vs[0];
-          sdfi->Vs[1] = -sdfi->Vs[1];
-          sdfi->Vs[2] = -sdfi->Vs[2];
-        }
+  /* There are some Siemens files don't have the slice dircos
+     because they dont have ascii header (anonymization?).
+     If this happens on a mosiac, then you cannot unpack it.
+     For non-mosaics, recompute the slice dircos based on
+     the image position of the first and last file. Note:
+     slice dircos may be used to sort the files in the first
+     place, but this should work either way.
+  */
+  if(sliceDirCosPresent == 0) {
+    printf("\n");
+    printf("WARNING: file %s does not contain a Siemens ASCII header\n"
+	   "has this file been anonymized?\n",sdfi_list[0]->FileName);
+    if(sdfi_list[0]->IsMosaic){
+      printf("ERROR: cannot unpack mosiacs without ASCII header\n");
+      exit(1);
     }
-
+    printf("Proceeding as best as I can ... \n");
+    printf("\n");
+    xs = sdfi_list[0]->ImgPos[0]; 
+    ys = sdfi_list[0]->ImgPos[1]; 
+    zs = sdfi_list[0]->ImgPos[2];
+    xe = sdfi_list[nlist-1]->ImgPos[0]; 
+    ye = sdfi_list[nlist-1]->ImgPos[1]; 
+    ze = sdfi_list[nlist-1]->ImgPos[2];
+    d = sqrt( (xe-xs)*(xe-xs) + (ye-ys)*(ye-ys) + (ze-zs)*(ze-zs) );
+    sdfi->Vs[0] = (xe-xs)/d;
+    sdfi->Vs[1] = (ye-ys)/d;
+    sdfi->Vs[2] = (ze-zs)/d;
+    // Note: no need to change to RAS because ImagePos is already RAS
+  }
   sdfiFixImagePosition(sdfi);
   sdfiVolCenter(sdfi);
 
   /* for easy access */
-  ncols   = sdfi->VolDim[0];
-  nrows   = sdfi->VolDim[1];
-  nslices = sdfi->VolDim[2];
-  nframes = sdfi->NFrames;
+  ncols    = sdfi->VolDim[0];
+  nrows    = sdfi->VolDim[1];
+  nslices  = sdfi->VolDim[2];
+  nframes  = sdfi->NFrames;
   IsMosaic = sdfi->IsMosaic;
 
   // verify nthframe is within the range
-  if (nthonly >= 0)
-    {
-      if (nthonly > nframes-1)
-        {
-          fprintf(stderr, 
-                  "ERROR: only has %d frames (%d - %d) but called for %d\n",
-                  nframes, 0, nframes-1, nthonly);
-          fflush(stderr);
-          return NULL;
-        }
+  if(nthonly >= 0){
+    if (nthonly > nframes-1){
+      printf("ERROR: only has %d frames (%d - %d) but called for %d\n",
+	     nframes, 0, nframes-1, nthonly);
+      fflush(stdout);
+      return(NULL);
     }
+  }
 
   printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
          ncols,nrows,nslices,nframes,IsMosaic);
   fflush(stdout);
-  fflush(stdout);
 
   /** Allocate an MRI structure **/
-  if(LoadVolume)
-    {
-      if (nthonly < 0)
-        vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
-      else
-        vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,1);
-
-      if(vol==NULL){
-        fprintf(stderr,"ERROR: could not alloc MRI volume\n");
-        fflush(stderr);
-        return(NULL);
-      }
+  if(LoadVolume){
+    if (nthonly < 0)
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
+    else
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,1);
+    if(vol==NULL){
+      fprintf(stderr,"ERROR: could not alloc MRI volume\n");
+      fflush(stderr);
+      return(NULL);
     }
+  }
   else{
     vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
     if(vol==NULL){
@@ -258,23 +252,22 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
   // verification of number of files vs. slices
-  if (nlist > nslices*nframes)
+  if (nlist > nslices*nframes){
+    fprintf(stderr, "ERROR: nlist (%d) > nslices (%d) x frames (%d)\n",
+	    nlist, nslices, nframes);
+    fprintf(stderr, "ERROR: dump file list into fileinfo.txt.\n");
+    fprintf(stderr, "ERROR: check for consistency\n");
     {
-      fprintf(stderr, "ERROR: nlist (%d) > nslices (%d) x frames (%d)\n",
-              nlist, nslices, nframes);
-      fprintf(stderr, "ERROR: dump file list into fileinfo.txt.\n");
-      fprintf(stderr, "ERROR: check for consistency\n");
-      {
-        FILE *fp;
-        int i;
-        fp = fopen("./fileinfo.txt", "w");
-        for (i=0; i < nlist;++i)
-          DumpSDCMFileInfo(fp, sdfi_list[i]);
-        fclose(fp);
-      }
-      fprintf(stderr, "ERROR: set nlist = nslices*nframes.\n");
-      nlist = nslices*nframes;
+      FILE *fp;
+      int i;
+      fp = fopen("./fileinfo.txt", "w");
+      for (i=0; i < nlist;++i)
+	DumpSDCMFileInfo(fp, sdfi_list[i]);
+      fclose(fp);
     }
+    fprintf(stderr, "ERROR: set nlist = nslices*nframes.\n");
+    nlist = nslices*nframes;
+  }
   /* ------- Go through each file in the Run ---------*/
   for(nthfile = 0; nthfile < nlist; nthfile ++){
 
@@ -290,25 +283,23 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 
     if(!IsMosaic){/*---------------------------------------------*/
       /* It's not a mosaic -- load rows and cols from pixel data */
-      if(nthfile == 0)
-        {
-          frame = 0;
-          slice = 0;
-        }
-#ifdef _DEBUG      
-      printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
-      fflush(stdout);
-#endif
-      if (nthonly <0)
-        {
-          for(row=0; row < nrows; row++)
-            {
-              for(col=0; col < ncols; col++)
-                {
-                  MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
-                }
-            }
-        }
+      if(nthfile == 0){
+	frame = 0;
+	slice = 0;
+      }
+      if(Gdiag_no > 0){
+	printf("%3d %3d %3d    %s   %6.1f %6.1f %6.1f\n",
+	       nthfile,slice,frame,sdfi->FileName,
+	       sdfi->ImgPos[0],sdfi->ImgPos[1],sdfi->ImgPos[2]);
+	fflush(stdout);
+      }
+      if(nthonly <0){
+	for(row=0; row < nrows; row++) {
+	  for(col=0; col < ncols; col++)                {
+	    MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+	  }
+	}
+      }
       // only copy a particular frame
       else if (frame == nthonly)
         {
@@ -1347,7 +1338,6 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   char *strtmp;
   int retval;
   double xr,xa,xs,yr,ya,ys, zr,za,zs;
-  static int warn=0; // warn user once about slice dir not stored
 
   if(! IsSiemensDICOM(dcmfile) ) return(NULL);
 
@@ -1490,40 +1480,39 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   dcmImageDirCos(dcmfile,&(sdcmfi->Vc[0]),&(sdcmfi->Vc[1]),&(sdcmfi->Vc[2]),
                  &(sdcmfi->Vr[0]),&(sdcmfi->Vr[1]),&(sdcmfi->Vr[2]));
  
-  /* the following may return 1 (Vs[i] = 0 for all i) */
-  /* we have to fix  */
-  retval = 
-    sdcmSliceDirCos(dcmfile,
-                    &(sdcmfi->Vs[0]),
-                    &(sdcmfi->Vs[1]),
-                    &(sdcmfi->Vs[2]));
+  /* The following may return 1 (Vs[i] = 0 for all i) when there is no
+     ASCII header (anonymization?). This is a show-stopper for mosaics.
+     For non-mosaics, it is recoverable because we can sort the files
+     and compute the slice dir cos from the image position.*/
+  retval = sdcmSliceDirCos(dcmfile,&(sdcmfi->Vs[0]),
+			   &(sdcmfi->Vs[1]),&(sdcmfi->Vs[2]));
   
   sdcmfi->IsMosaic = sdcmIsMosaic(dcmfile, NULL, NULL, NULL, NULL);
 
-  // if could not get sliceDirCos, then we calculate
-  if (retval == 1 && sdcmfi->IsMosaic == 0)
-    {
-      if (warn == 0)
-        {
-          fprintf(stderr, 
-                  "INFO: slice direction constructed from "
-                  "image direction cosines.\n");
-          warn = 1;
-        }
-      /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be 
-         orthogonal to these */
-      /* get the cross product of x_(r,a,s) and y_(r,a,s) is 
-         in proportion to z_(r,a,s) */
-      /* also x_(r,a,s) and y_(r,a,s) are normalized and 
-         thus cross product is also normalized */
-      /* here right-handedness is assumed. must be compared 
-         with the image positions           */
-      xr = sdcmfi->Vc[0]; xa = sdcmfi->Vc[1]; xs = sdcmfi->Vc[2]; 
-      yr = sdcmfi->Vr[0]; ya = sdcmfi->Vr[1]; ys = sdcmfi->Vr[2];
-      zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
-      /* confirm sign by two files later  */
-      sdcmfi->Vs[0] = zr; sdcmfi->Vs[1] = za; sdcmfi->Vs[2] = zs;
-    }
+  /* If could not get sliceDirCos, then we calculate an initial value.
+     This might not be used at all. If it is used, then it is only
+     used to sort the files and only if the ImageNo is not valid.  If
+     this initial sliceDirCos is wrong, then it can only be wrong by
+     sign. This would cause the slices may be reversed relative to how
+     they were acquired. The final geometry will be correct because
+     the sliceDirCos is recomputed based on the final sorting. The only
+     time this would create a problem is if someone thought that the
+     first slice in the volume was the first slice acquired.
+  */
+  if(retval == 1 && sdcmfi->IsMosaic == 0){
+    /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be 
+       orthogonal to these */
+    /* get the cross product of x_(r,a,s) and y_(r,a,s) is 
+       in proportion to z_(r,a,s) */
+    /* also x_(r,a,s) and y_(r,a,s) are normalized and 
+       thus cross product is also normalized */
+    xr = sdcmfi->Vc[0]; xa = sdcmfi->Vc[1]; xs = sdcmfi->Vc[2]; 
+    yr = sdcmfi->Vr[0]; ya = sdcmfi->Vr[1]; ys = sdcmfi->Vr[2];
+    zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
+    // Assume left-handed
+    sdcmfi->Vs[0] = -zr; sdcmfi->Vs[1] = -za; sdcmfi->Vs[2] = -zs;
+    /* Confirm sign by two files later  */
+  }
 
   dcmGetVolRes(dcmfile,&(sdcmfi->VolRes[0]),&(sdcmfi->VolRes[1]),
                &(sdcmfi->VolRes[2]));
@@ -2069,6 +2058,7 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   SDCMFILEINFO *sdcmfi2;
   int n;
   float dv[3], dvsum2, dot;
+  extern int sliceDirCosPresent;
   //float actm1, actm2;
 
   sdcmfi1 = *((SDCMFILEINFO **) a);
@@ -2092,8 +2082,15 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   /* Compute dot product with Slice Normal vector */
   dot = 0;
   for(n=0; n < 3; n++) dot += (dv[n] * sdcmfi1->Vs[n]);
-  if(dot > +0.5) return(-1);
-  if(dot < -0.5) return(+1);
+
+  // Sort by slice position at this point only if the slice
+  // direction cosines were present in the ascii header,
+  // otherwise go to ImageNo and EchoNo. If those cannot
+  // resolve the order, then use slice position (below).
+  if(sliceDirCosPresent != 0){
+    if(dot > +0.5) return(-1);
+    if(dot < -0.5) return(+1);
+  }
 
   /* Sort by Image Number (Temporal Sequence) */
   if(sdcmfi1->ImageNo < sdcmfi2->ImageNo) return(-1);
@@ -2110,6 +2107,15 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   //sscanf(sdcmfi2->AcquisitionTime,"%f",&actm2);
   //if(actm1 < actm2) return(-1);
   //if(actm1 > actm2) return(+1);
+
+  // As a last resort, use slice position even if the ASCII
+  // header was not present. In the end, it will be OK because
+  // the true slice direction will be computed from the actual
+  // slice ordering.
+  if(sliceDirCosPresent == 0){
+    if(dot > +0.5) return(-1);
+    if(dot < -0.5) return(+1);
+  }
 
   printf("WARNING: files are not found to be different and "
          "cannot be sorted\n");
