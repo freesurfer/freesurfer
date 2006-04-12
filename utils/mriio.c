@@ -9887,6 +9887,14 @@ static MRI *niiRead(char *fname, int read_volume)
                        "niiRead(): error opening file %s", fname));
   }
 
+  // The nifti spec says that the pixel data starts after vox_offset
+  // bytes. I have a feeling that most other software packages are
+  // going to ignore this and just jump past 348 bytes (the nominal
+  // size of the nifti header). So this just lets us know that we
+  // are taking the spec seriously.
+  if(hdr.vox_offset != 348)
+    printf("INFO: nifti vox_offset = %d != 348\n",(int)hdr.vox_offset);
+
   if(znzseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1){
     znzclose(fp);
     MRIfree(&mri);
