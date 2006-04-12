@@ -91,7 +91,7 @@ int clustDumpCluster(FILE *fp, VOLCLUSTER *vc, MRI *vol, int frame)
     fprintf(fp,"%4d  %3d %3d %3d ", n, vc->col[n], vc->row[n], vc->slc[n]);
     fprintf(fp,"%7.2f %7.2f %7.2f ", vc->x[n], vc->y[n], vc->z[n]);
     if(vol != NULL){
-      val = MRIFseq_vox(vol,vc->col[n], vc->row[n], vc->slc[n], frame);
+      val = MRIgetVoxVal(vol,vc->col[n], vc->row[n], vc->slc[n], frame);
       fprintf(fp,"%12.5f\n",val);
     }
     else fprintf(fp,"\n");
@@ -155,10 +155,10 @@ MRI *clustInitHitMap(MRI *vol, int frame,
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
 	if(binmask != NULL){
-	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+	  maskval = MRIgetVoxVal(binmask,col,row,slc,maskframe);
 	  if(maskval == 0) continue;
 	}
-	val = MRIFseq_vox(vol,col,row,slc,frame);
+	val = MRIgetVoxVal(vol,col,row,slc,frame);
 	if(clustValueInRange(val,thmin,thmax,thsign)) nh++;
       }
     }
@@ -210,12 +210,12 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   for(col = 0; col < vol->width; col ++){
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
-	val = MRIFseq_vox(vol,col,row,slc,frame);
+	val = MRIgetVoxVal(vol,col,row,slc,frame);
 	if(binmask != NULL){
-	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+	  maskval = MRIgetVoxVal(binmask,col,row,slc,maskframe);
 	  //printf("%2d %2d %2d  %d %g\n",col,row,slc,maskval,val);
 	  if(maskval == 0){
-	    MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	    MRIsetVoxVal(HitMap,col,row,slc,0,1);
 	    continue;
 	  }
 	}
@@ -223,10 +223,10 @@ MRI *clustInitHitMap(MRI *vol, int frame,
 	  hcol[nh] = col;
 	  hrow[nh] = row;
 	  hslc[nh] = slc;
-	  MRIIseq_vox(HitMap,col,row,slc,0) = 0;
+	  MRIsetVoxVal(HitMap,col,row,slc,0,0);
 	  nh ++;
 	}
-	else MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	else MRIsetVoxVal(HitMap,col,row,slc,0,1);
       }
     }
   }
@@ -325,11 +325,11 @@ int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0,
 	  if(dsum != 1) continue;
 	}
 
-	if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+	if(MRIgetVoxVal(HitMap,col,row,slc,0)) continue;
 	//printf("Adding %3d %3d %3d\n",col,row,slc);
 
 	clustAddMember(vc,col,row,slc);
-	MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	MRIsetVoxVal(HitMap,col,row,slc,0,1);
 	nadded ++;
 
       }
@@ -351,7 +351,7 @@ VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag)
 
   /* put the seed point in the cluster */
   clustAddMember(vc,col0,row0,slc0);
-  MRIIseq_vox(HitMap,col0,row0,slc0,0) = 1;
+  MRIsetVoxVal(HitMap,col0,row0,slc0,0,1);
   vc->voxsize = HitMap->xsize * HitMap->ysize * HitMap->zsize;
 
   nthpass = 0;
@@ -383,7 +383,7 @@ int clustMaxMember(VOLCLUSTER *vc, MRI *vol, int frame, int thsign)
 
   vc->maxval = 0.0;
   for( n = 0; n < vc->nmembers; n++){
-    val0 = MRIFseq_vox(vol,vc->col[n], vc->row[n], vc->slc[n], frame);
+    val0 = MRIgetVoxVal(vol,vc->col[n], vc->row[n], vc->slc[n], frame);
     if(thsign ==  1) val = val0;
     if(thsign ==  0) val = fabs(val0);
     if(thsign == -1) val = -val0;
@@ -627,13 +627,13 @@ MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
       if(ValOption == 1){
 	// Copy the values from the input
 	for(f=0; f < tvol->nframes; f++){
-	  val = MRIFseq_vox(tvol,vc->col[n],vc->row[n],vc->slc[n],f);
-	  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],f) = val;
+	  val = MRIgetVoxVal(tvol,vc->col[n],vc->row[n],vc->slc[n],f);
+	  MRIsetVoxVal(vol,vc->col[n],vc->row[n],vc->slc[n],f,val);
 	}
       }
       else
 	// Set values to the cluster number
-	MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],0) = nthvc + 1;
+	MRIsetVoxVal(vol,vc->col[n],vc->row[n],vc->slc[n],0,nthvc+1);
     }
   }
   return(vol);
@@ -689,7 +689,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
     xc = vc->x[n];
     yc = vc->y[n];
     zc = vc->z[n];
-    val = MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame);
+    val = MRIgetVoxVal(vol,vc->col[n],vc->row[n],vc->slc[n],frame);
 
     /* go through functional space in incr of 1 mm */
     for(x = xc - colres/2; x <= xc + colres/2; x += 1.0){
@@ -766,7 +766,7 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
     col = hitcol[nthhit];
     row = hitrow[nthhit];
     slc = hitslc[nthhit];
-    if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+    if(MRIgetVoxVal(HitMap,col,row,slc,0)) continue;
 
     /* Grow cluster using this hit as a seed */
     ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag);
