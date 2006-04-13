@@ -44,7 +44,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.13 2006/03/21 00:01:04 nicks Exp $";
+"$Id: mri_segstats.c,v 1.14 2006/04/13 03:38:21 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -90,6 +90,9 @@ MRIS *mris;
 char *subject = NULL;
 char *hemi    = NULL;
 char *annot   = NULL;
+
+// eTIV_scale_factor must match the same found in mri_label_volume.c
+static double eTIV_scale_factor = 2150;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -151,8 +154,8 @@ int main(int argc, char **argv)
     atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
     LTAfree(&atlas_lta) ;
     atlas_icv =
-      2889.2*(10*10*10) / atlas_det ;  // our version with
-                                       // talairach_with_skull.lta
+      eTIV_scale_factor*(10*10*10) / atlas_det ;  // our version with
+    // talairach_with_skull.lta
     printf("atlas_icv = %g\n",atlas_icv);
   }
 
