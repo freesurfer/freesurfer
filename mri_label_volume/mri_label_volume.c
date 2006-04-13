@@ -37,24 +37,6 @@ static char *col_strings[MAX_COLS] ;
 static int ncols  = 0 ;
 static double atlas_icv = -1 ;
 
-// Buckner version:
-//static double eTIV_scale_factor = 1755;
-// our version with talairach_with_skull.lta:
-//static double eTIV_scale_factor = 2889.2;
-// NJS calculated scale factor, with newest talairach_with_skull.lta:
-static double eTIV_scale_factor = 2150;
-/* NJS notes: the eTIV_scale_factor is set by finding the best fit of the eTIV
-of 22 reference subjects against their known TIV (manually found).  These
-subjects are found in /autofs/space/jc_001/users/nicks/subjects/SASHA
-In the scripts directory, script run_rb.csh will run this mri_label_volume
-binary and generate a matlab data file called det_eTIV_matdat.m which contains
-the determinant and eTIV data.  Then, the matlab script plot_det.m plots the
-det against the manual TIV, and also the eTIV against manual TIV.  The eTIV
-vs manual TIV plot has a unity slope line which is the ideal (the blue line).
-The best fit line, in red, shows how close to ideal the eTIV_scale_factor
-is doing to match this fit.  eTIV_scale_factor is adjusted iteratively to
-find the best match.
-*/
 
 int
 main(int argc, char *argv[])
@@ -70,7 +52,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.23 2006/04/04 22:46:23 nicks Exp $",
+     "$Id: mri_label_volume.c,v 1.24 2006/04/13 18:55:08 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -313,17 +295,9 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "atlas_icv") ||
            !stricmp(option, "eTIV") ||
            !stricmp(option, "eTIV_matdat")){
-    LTA    *atlas_lta ;
-    double atlas_det ;
+    double atlas_det, eTIV_scale_factor; // filled-in by MRIestimateTIV
 
-    atlas_lta = LTAreadEx(argv[2]) ;
-    if (atlas_lta == NULL)
-      ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not open atlas transform file %s", Progname, argv[2]) ;
-    atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
-    LTAfree(&atlas_lta) ;
-    atlas_icv = eTIV_scale_factor*(10*10*10) / atlas_det ;
+    atlas_icv = MRIestimateTIV(argv[2],&eTIV_scale_factor,&atlas_det);
     printf("using eTIV from atlas transform of %2.0f cm^3\n",
            atlas_icv/(10*10*10)) ;
     nargs = 1 ;
@@ -424,9 +398,8 @@ usage_exit(int code)
          "<brain vol> and normalize by it\n") ;
   printf("  -p            - compute volume as a %% of all non-zero labels\n") ;
   printf("  -l <fname>    - log results to <fname>\n") ;
-  printf("  -atlas_icv <fname> - use %2.1fcm^3/(det(fname)) "
-         "for ICV correction (c.f. Buckner et al., 2004)\n",
-         eTIV_scale_factor);
+  printf("  -atlas_icv <fname> - specify LTA atlas transform file to use "
+	 "for ICV correction (c.f. Buckner et al. 2004)\n");
   printf("  -eTIV <fname> - same as -atlas_icv\n");
   printf("  -eTIV_matdat <fname> <subject> - same as -eTIV, and generate \n");
   printf("                  matlab data appending <subject> to structure\n");
