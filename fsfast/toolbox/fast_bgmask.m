@@ -1,10 +1,12 @@
-function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn] = fast_bgmask(fmn,fstd)
-% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn] = fast_bgmask(fmn,fstd)
+function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd)
+% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd)
 %
 % White noise floor in the foreground should then be
 %     fstdfgexp = fstdbg/sqrt(2-pi/2);
 %
-% $Id: fast_bgmask.m,v 1.2 2006/04/06 19:50:47 greve Exp $
+% bgmB is the background mask as determined by Stoecker's method.
+%
+% $Id: fast_bgmask.m,v 1.3 2006/04/13 00:03:50 greve Exp $
 %
 
 bgm = [];
@@ -55,6 +57,26 @@ end
 
 fstdbg = sqrt(mean(fstd(indbg).^2));
 fstdfgexp = fstdbg/sqrt(2-pi/2);
+
+% Just for fun, use the Stoecker method
+bgmB = zeros(size(m));
+dr = floor(size(bgmB,1)/8);
+dc = floor(size(bgmB,2)/8);
+ds = floor(size(bgmB,3)/8);
+bgmB(1:dr,         1:dc, 1:ds) = 1;
+bgmB(end-dr+1:end, 1:dc, 1:ds) = 1;
+bgmB(1:dr,         end-dc+1:end, 1:ds) = 1;
+bgmB(end-dr+1:end, end-dr+1:end, 1:ds) = 1;
+bgmB(1:dr,         1:dc, end-ds+1:end) = 1;
+bgmB(end-dr+1:end, 1:dc, end-ds+1:end) = 1;
+bgmB(1:dr,         end-dc+1:end, end-ds+1:end) = 1;
+bgmB(end-dr+1:end, end-dr+1:end, end-ds+1:end) = 1;
+% Remove all edges and vox with 0 std
+bgmB(1,:,:)   = 0;
+bgmB(end,:,:) = 0;
+bgmB(:,1,:)   = 0;
+bgmB(:,end,:) = 0;
+bgmB(indz)    = 0;
 
 return;
 
