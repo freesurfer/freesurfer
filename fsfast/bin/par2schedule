@@ -1,0 +1,139 @@
+#!/usr/bin/python
+# $Id: par2schedule,v 1.1 2006/04/13 23:39:50 greve Exp $
+
+import sys;
+import os;
+import string;
+
+# http://docs.python.org/modindex.html
+# 1. Colons go after if, elif, else, while, for
+# 2. Lists are like lists in csh
+# 3. Make sure to import lib
+# 4. globals are declared in the subroutine
+# 5. printf is print("x = %g, y = %g" % (x,y));
+# 6. To read a pipe, fp = os.popen(cmd); a = fp.read(fp);
+#      err=fp.close(fp); result = string.split(a);
+#      err will be None if all goes well.
+# 7. There are no endif, endfor, endwhile. The end of
+#    a control is indicated by indentation
+
+#---------------------------------------------------------
+def print_help():
+  print "USAGE: par2scheduley";
+  print "  --p parfile";
+  print "  --ev evno schfile";
+  return 0;
+#end def print_help:
+
+#---------------------------------------------------------
+def argnerr(narg,flag):
+  print "ERROR: flag %s requires %d arguments" % (flag,narg);
+  sys.exit(1);
+#end def parse_args(argv)
+
+#---------------------------------------------------------
+def parse_args(argv):
+  global parfile;
+  global nevents;
+  global events;
+  global schfiles;
+  global debug;
+
+  del argv[0]; # get past program name (like shift)
+
+  while(len(argv) != 0):
+    flag = argv[0];
+    del argv[0];
+    if(debug): print "flag = %s" % flag;
+
+    if(flag == "--p"):
+      if(len(argv) < 1): argnerr(1,flag);
+      parfile = argv[0]; del argv[0];
+    elif(flag == "--ev"):
+      if(len(argv) < 2): argnerr(2,flag);
+      print "len(events) = %d" % len(events)
+      events.insert(nevents,argv[0]); del argv[0];
+      schfiles.insert(nevents,argv[0]); del argv[0];
+      nevents = nevents + 1;
+    elif(flag == "--debug"):
+      debug = 1;
+    else:
+      print "ERROR: flag %s not recognized" % flag; 
+      sys.exit(1);
+    #endif
+  #endwhile
+  return 0;
+
+#end def parse_args(argv)
+
+#---------------------------------------------------------
+def check_args():
+  global parfile;
+  global nevents;
+
+  if(len(parfile) == 0):
+    print "ERROR: no parfile specified";
+    sys.exit(1);
+  #endif    
+  if(nevents == 0):
+    print "ERROR: no event types specified";
+    sys.exit(1);
+  #endif    
+
+  return 0;
+#end check_args()
+
+#-----------------------------------------------------------
+# ------ main -----------------------------------------------
+#-----------------------------------------------------------
+
+parfile = ();
+nevents  = 0;
+events = [];
+schfiles = [];
+debug = 0;
+
+nargs = len(sys.argv) - 1;
+if(nargs == 0):
+  print_help();
+  sys.exit(0);
+#end
+parse_args(sys.argv);
+check_args();
+
+print "-------here-----------";
+print "parfile  is %s" % parfile
+print "nevents  is %d" % nevents
+print "events   is %s" % events
+print "schfiles is %s" % schfiles
+nth = 0;
+for event in events:
+  print "%d %s %s" % (nth,events[nth],schfiles[nth]);
+  #print "%s" % events[nth]
+  nth = nth + 1;
+#end
+
+fp = open(parfile,'r');
+nthline = 1;
+for line in fp:
+  tmp = string.split(line);
+  t = tmp[0];
+  id = tmp[1];
+  if(events.count(id) == 0):
+    print "ERROR: line %d, event id %s not in even list" % (nthline,id);
+    sys.exit(1);
+  #end
+  print "%s %s %d" % (t,id,events.count(id));
+  nthline = nthline + 1;
+#end
+
+print "-------here-----------";
+
+sys.exit(0);
+#-------------------------------------------------#
+
+
+
+
+
+
