@@ -6,8 +6,8 @@ AM_CPPFLAGS=$(X_CFLAGS) \
 	-I$(top_srcdir)/include/dicom
 
 noinst_LIBRARIES= libutilscpp.a
-libutilscpp_a_SOURCES = mri_fastmarching.cpp mris_fastmarching.cpp
-
+libutilscpp_a_SOURCES = mri_fastmarching.cpp mris_fastmarching.cpp globals.cpp face.cpp vertex.cpp loop.cpp fastloop.cpp surface.cpp patchdisk.cpp 
+ 
 SUBDIRS=test
 
 
