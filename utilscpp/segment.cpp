@@ -1,13 +1,13 @@
 #include "topology/segment.h"
 
-Segment::Segment(){
+Segment::Segment(void){
 	npoints=0;
 	marked=0; 
 	maxpoints=NUMBER_OF_POINTS;
 	points = new int[maxpoints];
 }
 
-Segment::~Segment(){
+Segment::~Segment(void){
 	if(points) delete [] points;
 }
 
@@ -69,4 +69,3 @@ void Segment::Transfer(Segment &b){
 	b.npoints=0;
 	b.points=NULL;
 }
-

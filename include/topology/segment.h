@@ -19,8 +19,8 @@ private:
 
 public:
 	// constructor / destructor
-	Segment();
-	~Segment();
+	Segment(void);
+	~Segment(void);
 
 	int size() const;
 	void clear();

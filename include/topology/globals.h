@@ -1,6 +1,8 @@
 #ifndef TOPOLOGY_GLOBALS_H
 #define TOPOLOGY_GLOBALS_H
 
+
+
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
