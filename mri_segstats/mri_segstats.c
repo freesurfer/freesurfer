@@ -44,7 +44,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.11.2.4 2006/04/13 03:44:24 nicks Exp $";
+"$Id: mri_segstats.c,v 1.11.2.5 2006/04/13 18:57:07 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -91,8 +91,6 @@ char *subject = NULL;
 char *hemi    = NULL;
 char *annot   = NULL;
 
-// eTIV_scale_factor must match the same found in mri_label_volume.c
-static double eTIV_scale_factor = 2150;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -106,8 +104,7 @@ int main(int argc, char **argv)
   struct utsname uts;
   char *cmdline;
   char tmpstr[1000];
-  LTA    *atlas_lta ;
-  double atlas_det=0, atlas_icv=0 ;
+  double atlas_icv=0;
   nhits = 0;
   vol = 0;
 
@@ -140,22 +137,13 @@ int main(int argc, char **argv)
   }
 
   if(DoETIV){
+    // calc total intracranial volume estimation
     sprintf
       (tmpstr,
        "%s/%s/mri/transforms/talairach_with_skull.lta",
        SUBJECTS_DIR,
        subject);
-    atlas_lta = LTAreadEx(tmpstr);
-    if (atlas_lta == NULL)
-      ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not open atlas transform file %s",
-         Progname, tmpstr) ;
-    atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
-    LTAfree(&atlas_lta) ;
-    atlas_icv =
-      eTIV_scale_factor*(10*10*10) / atlas_det ;  // our version with
-    // talairach_with_skull.lta
+    atlas_icv = MRIestimateTIV(tmpstr,NULL,NULL);
     printf("atlas_icv = %g\n",atlas_icv);
   }
 
