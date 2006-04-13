@@ -1,13 +1,13 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.5 2006/04/06 22:14:02 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.6 2006/04/13 00:04:05 greve Exp $';
 
 set cmdargs = ($argv);
 
 set omask     = bgmask;
 set ifmt      = ();
-set ofmt      = bhdr;
+set ofmt      = nii.gz;
 set fsd       = bold;
 set funcstem  = f;
 set epi       = 1;
@@ -84,23 +84,15 @@ foreach sess ($SessList)
   if(! $PerRun) set RunList = $RunList[1];
 
   foreach Run ($RunList)
-    if($#ifmt != 0) then
-      set func = $sess/$fsd/$Run/$funcstem.$ifmt
-      if(! -e $func) then
-        echo "ERROR: cannot find $func" | tee -a $LF
-        exit 1;
-      endif
-    else
-      foreach ifmttry (nii nii.gz mgh mgz bhdr)
-        set func = $sess/$fsd/$Run/$funcstem.$ifmttry
-        if(-e $func) break;
-      end
-      if(! -e $func) then
-        echo "ERROR: cannot determine format for $func" | tee -a $LF
-        exit 1;
-      endif
-      echo "Found input format of $ifmttry" | tee -a $LF
+
+    set funcstem0 = $sess/$fsd/$Run/$funcstem
+    set ifmtuse = `getformat_from_stem $funcstem0 $ifmt`
+    if($status) then
+      echo "$ifmtuse" |& tee -a $LF
+      exit 1;
     endif
+    echo "Detected format as $ifmtuse" |& tee -a $LF
+    set func = $sess/$fsd/$Run/$funcstem.$ifmtuse
 
     if(! $PerRun) then
       set maskdir = $sess/$fsd/masks
@@ -192,11 +184,17 @@ fstd = fast_mat2vol(fstd,f.volsize);
 
 fprintf('  Computing background mask \n');
 bgmask = f;
-[bgmask.vol bgstd fstdfg fstdfgexp bgthresh fmnfg] = fast_bgmask(fmn,fstd);
+[bgmask.vol bgstd fstdfg fstdfgexp bgthresh fmnfg bgmB] = fast_bgmask(fmn,fstd);
 indbg = find(bgmask.vol);
 nbgmask = length(indbg);
 bgmn = mean(fmn(indbg));
 bgstdexp = sqrt((4/pi-1)*bgmn.^2); % Expected based on the mean
+
+% Stocker's method
+indbgB  = find(bgmB);
+bgmnB   = mean(fmn(indbgB));
+bgstdB  = mean(fstd(indbgB));
+bgstdBexp = sqrt((4/pi-1)*bgmnB.^2); % Expected based on the mean
 
 fprintf('%10s %s  n = %5d  bgmn = %8.3f bgstdexp = %8.3f  bgstd = %8.3f  fgstdexp = %8.3f  fgstd = %8.3f fgmn = %g\n',...
         sessid,runid,nbgmask,bgmn, bgstdexp, bgstd, fstdfgexp, fstdfg, fmnfg);
@@ -221,6 +219,9 @@ fprintf(fp,'fgmn      %f\n',fmnfg);
 fprintf(fp,'fgstd     %f\n',fstdfg);
 fprintf(fp,'fgstdexp  %f\n',fstdfgexp);
 fprintf(fp,'fgpctnw   %f\n',pctnw);
+fprintf(fp,'bgmnB     %f\n',bgmnB);
+fprintf(fp,'bgstdB    %f\n',bgstdB);
+fprintf(fp,'bgstdBexp %f\n',bgstdBexp);
 fclose(fp);
 
 if(~isempty(sumfile))
