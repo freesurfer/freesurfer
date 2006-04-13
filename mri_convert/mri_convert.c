@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/22 05:39:36 $
-// Revision       : $Revision: 1.121 $
+// Revision Date  : $Date: 2006/04/13 00:28:38 $
+// Revision       : $Revision: 1.122 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   int DevXFM = 0;
   char devxfm_subject[STRLEN];
   MATRIX *T;
-  float scale_factor ;
+  float scale_factor, out_scale_factor ;
   int nthframe=-1;
   float fwhm, gstd;
   char cmdline[STRLEN] ;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.122 2006/04/13 00:28:38 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -197,6 +197,7 @@ int main(int argc, char *argv[])
 
   /* ----- initialize values ----- */
   scale_factor = 1 ;
+  out_scale_factor = 1 ;
   in_name[0] = '\0';
   out_name[0] = '\0';
   invert_val = -1.0;
@@ -249,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.122 2006/04/13 00:28:38 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -730,11 +731,14 @@ int main(int argc, char *argv[])
               exit(1);
             }
         }
-      else if(strcmp(argv[i], "-sc") == 0 || strcmp(argv[i], "--scale") == 0)
-        {
-          scale_factor = atof(argv[i+1]) ;
-          i++ ;
-        }
+      else if(strcmp(argv[i], "-sc") == 0 || strcmp(argv[i], "--scale") == 0) {
+	scale_factor = atof(argv[i+1]) ;
+	i++ ;
+      }
+      else if(strcmp(argv[i], "-osc") == 0 || strcmp(argv[i], "--out-scale") == 0) {
+	out_scale_factor = atof(argv[i+1]) ;
+	i++ ;
+      }
       else if(strcmp(argv[i], "-rt") == 0 ||
               strcmp(argv[i], "--resample_type") == 0)
         {
@@ -1448,11 +1452,10 @@ int main(int argc, char *argv[])
   }
 
   MRIaddCommandLine(mri, cmdline) ;
-  if (!FEQUAL(scale_factor,1.0))
-    {
-      printf("scaling input volume by %2.3f\n", scale_factor) ;
-      MRIscalarMul(mri, mri, scale_factor) ;
-    }
+  if(!FEQUAL(scale_factor,1.0)){
+    printf("scaling input volume by %2.3f\n", scale_factor) ;
+    MRIscalarMul(mri, mri, scale_factor) ;
+  }
 
   if(zero_ge_z_offset_flag) //E/
     mri->c_s = 0.0;
@@ -2187,24 +2190,28 @@ int main(int argc, char *argv[])
     mri = mri_tmp ;
   }
 
+  if(!FEQUAL(out_scale_factor,1.0)){
+    printf("scaling output intensities by %2.3f\n", out_scale_factor) ;
+    MRIscalarMul(mri, mri, out_scale_factor) ;
+  }
+
   /*------ Finally, write the output -----*/
-  if(!no_write_flag)
-    {
-      printf("writing to %s...\n", out_name);
-      if(force_out_type_flag){
-        if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
-          printf("ERROR: failure writing %s as volume type %d\n",
-                 out_name,out_volume_type);
+  if(!no_write_flag){
+    printf("writing to %s...\n", out_name);
+    if(force_out_type_flag){
+      if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
+	printf("ERROR: failure writing %s as volume type %d\n",
+	       out_name,out_volume_type);
           exit(1);
-        }
-      }
-      else{
-        if(MRIwrite(mri, out_name) != NO_ERROR){
-          printf("ERROR: failure writing %s\n",out_name);
-          exit(1);
-        }
       }
     }
+    else{
+      if(MRIwrite(mri, out_name) != NO_ERROR){
+	printf("ERROR: failure writing %s\n",out_name);
+	exit(1);
+      }
+    }
+  }
   // free memory
   MRIfree(&mri);
   MRIfree(&template);
@@ -2559,7 +2566,8 @@ void usage(FILE *stream)
   printf("  -rl, --reslice_like\n");
   printf("  -tt, --template_type <type> (see above)\n");
   printf("  -f,  --frame\n");
-  printf("  -sc, --scale <scale factor>\n") ;
+  printf("  -sc, --scale factor : input intensity scale factor\n") ;
+  printf("  -osc, --out-scale factor : output intensity scale factor\n") ;
   printf("  -il, --in_like\n");
   printf("  -roi\n");
   printf("  -fp, --fill_parcellation\n");
