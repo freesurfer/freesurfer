@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.81.2.2 2006/04/12 21:41:47 greve Exp $
+   $Id: DICOMRead.c,v 1.81.2.3 2006/04/13 22:16:36 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1491,13 +1491,13 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   /* If could not get sliceDirCos, then we calculate an initial value.
      This might not be used at all. If it is used, then it is only
-     used to sort the files and only if the ImageNo is not valid.  If
-     this initial sliceDirCos is wrong, then it can only be wrong by
-     sign. This would cause the slices may be reversed relative to how
-     they were acquired. The final geometry will be correct because
-     the sliceDirCos is recomputed based on the final sorting. The only
-     time this would create a problem is if someone thought that the
-     first slice in the volume was the first slice acquired.
+     used to sort the files.  If this initial sliceDirCos is wrong,
+     then it can only be wrong by a sign. This would cause the slices
+     may be reversed relative to how they were acquired. The final
+     geometry will be correct because the sliceDirCos is recomputed
+     based on the final sorting. The only time this would create a
+     problem is if someone thought that the first slice in the volume
+     was the first slice acquired.
   */
   if(retval == 1 && sdcmfi->IsMosaic == 0){
     /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be 
@@ -2058,7 +2058,6 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   SDCMFILEINFO *sdcmfi2;
   int n;
   float dv[3], dvsum2, dot;
-  extern int sliceDirCosPresent;
   //float actm1, actm2;
 
   sdcmfi1 = *((SDCMFILEINFO **) a);
@@ -2083,14 +2082,9 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   dot = 0;
   for(n=0; n < 3; n++) dot += (dv[n] * sdcmfi1->Vs[n]);
 
-  // Sort by slice position at this point only if the slice
-  // direction cosines were present in the ascii header,
-  // otherwise go to ImageNo and EchoNo. If those cannot
-  // resolve the order, then use slice position (below).
-  if(sliceDirCosPresent != 0){
-    if(dot > +0.5) return(-1);
-    if(dot < -0.5) return(+1);
-  }
+  // Sort by slice position.
+  if(dot > +0.5) return(-1);
+  if(dot < -0.5) return(+1);
 
   /* Sort by Image Number (Temporal Sequence) */
   if(sdcmfi1->ImageNo < sdcmfi2->ImageNo) return(-1);
@@ -2107,15 +2101,6 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   //sscanf(sdcmfi2->AcquisitionTime,"%f",&actm2);
   //if(actm1 < actm2) return(-1);
   //if(actm1 > actm2) return(+1);
-
-  // As a last resort, use slice position even if the ASCII
-  // header was not present. In the end, it will be OK because
-  // the true slice direction will be computed from the actual
-  // slice ordering.
-  if(sliceDirCosPresent == 0){
-    if(dot > +0.5) return(-1);
-    if(dot < -0.5) return(+1);
-  }
 
   printf("WARNING: files are not found to be different and "
          "cannot be sorted\n");
