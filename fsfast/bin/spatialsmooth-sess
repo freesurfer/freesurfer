@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.9 2006/03/01 04:37:59 greve Exp $
+# $Id: spatialsmooth-sess,v 1.10 2006/04/14 23:40:51 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.9 2006/03/01 04:37:59 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.10 2006/04/14 23:40:51 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -121,7 +121,7 @@ foreach sess ($SessList)
 
     # Make sure input has a .bhdr file #
     set bhdr = $run/$instem.bhdr
-    if(! -e $bhdr) then
+    if($fmt == bhdr && ! -e $bhdr) then
       set bhdr0 = $run/f.bhdr
       if(! -e $bhdr0) then
         echo "WARNING: cannot find $bhdr or $bhdr0"
@@ -146,7 +146,7 @@ foreach sess ($SessList)
       echo "ERROR: ipfsl failed"
       exit 1
     endif
-    if(! -e $run/$outstem.bhdr) then
+    if(! -e $run/$outstem.$fmt) then
       echo "ERROR: ipfsl failed to create output"
       exit 1
     endif
@@ -238,6 +238,8 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set fmt = $argv[1]; shift;
       if($fmt == mgh) set inorm = 0;
+      if($fmt == nii) set inorm = 0;
+      if($fmt == nii.gz) set inorm = 0;
       breaksw
 
     case "-tmp":
