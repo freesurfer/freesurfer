@@ -1012,6 +1012,15 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
                         float resolution, 
                         float distance_from_surface);
 
+
+/* mris_topo_fixer */
+typedef struct
+{
+	MRIS *mris;
+	int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
+	MRIS *mris_source;
+}MRI_PATCH, MRIP;
+
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
 #define RANDOM_SEARCH 2
