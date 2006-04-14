@@ -33,7 +33,7 @@ EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
 install: install-fooDATA
 	mkdir -p $(prefix)/subjects
 	rm -Rf $(prefix)/subjects/fsaverage
-	tar zxvf fsaverage.tar.gz --directory $(prefix)/subjects
+	gunzip -c fsaverage.tar.gz | tar xvf - --directory $(prefix)/subjects
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
