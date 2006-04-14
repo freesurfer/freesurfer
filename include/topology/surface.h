@@ -24,6 +24,7 @@ private:
 	int _FindFace(int n1, int n2, int fn) const;
 	int _Allocate(int nv, int nf);
 	void _OverAlloc(int nextrav,int nextraf);
+	double _FaceDistance(int fdst, int fsrc);
 	
 public:
 	// number of vertices, edges, and faces, and Euler characteristic
@@ -77,9 +78,10 @@ public:
 	Surface *surface_source;
 	PatchDisk *disk;
 
+	double GetLoopLength(Loop &loop);
 	void CutLoop(Loop &loop);
 	bool LoopValid(Loop &loop);
-	void KnitPatch(Loop &loop);
+	void KnitPatch(Loop &loop, PatchDisk *pdisk);
 	void IncreaseEuler(int nattempts,int maxinitface = -1);
 	void CorrectTopology();
 	int CutPatch(int seed=-1, int maxinitface = -1, int nattempts = 10);

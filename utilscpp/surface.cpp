@@ -701,8 +701,9 @@ bool Surface::LoopValid(Loop &loop){
 	return true;
 }
 
-void Surface::KnitPatch(Loop &loop){
-	disk->Init(); //reset the initial values of the ring
+void Surface::KnitPatch(Loop &loop , PatchDisk *pdisk){
+
+	pdisk->Init(); //reset the initial values of the ring
 
 	double x=0.,y=0.,z=0.;
 	for(int n = 0 ; n < loop.npoints ; n++){
@@ -715,11 +716,11 @@ void Surface::KnitPatch(Loop &loop){
 	z /= loop.npoints;
 
 	//adding vertices
-	for(int n = 0 ; n < disk->disk.nvertices ; n++){
+	for(int n = 0 ; n < pdisk->disk.nvertices ; n++){
 		Vertex *vdst = &vertices[nvertices];
-		Vertex *vsrc = &disk->disk.vertices[n];
-		disk->vtrans[n]=nvertices;
-		if(vsrc->marked==2) disk->ring.Replace(n,nvertices);
+		Vertex *vsrc = &pdisk->disk.vertices[n];
+		pdisk->vtrans[n]=nvertices;
+		if(vsrc->marked==2) pdisk->ring.Replace(n,nvertices);
 		nvertices++;
 		vdst->AllocateFaces(vsrc->fnum);
 		vdst->AllocateVertices(vsrc->vnum);
@@ -727,52 +728,52 @@ void Surface::KnitPatch(Loop &loop){
 		vdst->marked=4; //marking vertices with 4
 	}
 	//adding faces
-	for(int n = 0 ; n < disk->disk.nfaces ; n++){
+	for(int n = 0 ; n < pdisk->disk.nfaces ; n++){
 		Face *fdst = &faces[nfaces];
-		Face *fsrc = &disk->disk.faces[n];
-		disk->ftrans[n]=nfaces++;
-		fdst->v[0] = disk->vtrans[fsrc->v[0]];
-		fdst->v[1] = disk->vtrans[fsrc->v[1]];
-		fdst->v[2] = disk->vtrans[fsrc->v[2]];
+		Face *fsrc = &pdisk->disk.faces[n];
+		pdisk->ftrans[n]=nfaces++;
+		fdst->v[0] = pdisk->vtrans[fsrc->v[0]];
+		fdst->v[1] = pdisk->vtrans[fsrc->v[1]];
+		fdst->v[2] = pdisk->vtrans[fsrc->v[2]];
 	}
 	// adding connectivity stuff
-	for(int n = 0 ; n < disk->disk.nvertices ; n++){
-		Vertex *vdst = &vertices[disk->vtrans[n]];
-		Vertex *vsrc = &disk->disk.vertices[n];
+	for(int n = 0 ; n < pdisk->disk.nvertices ; n++){
+		Vertex *vdst = &vertices[pdisk->vtrans[n]];
+		Vertex *vsrc = &pdisk->disk.vertices[n];
 		vdst->fnum = vsrc->fnum;
 		for(int p = 0 ; p < vsrc->fnum ; p++){
-			vdst->f[p] = disk->ftrans[vsrc->f[p]];
+			vdst->f[p] = pdisk->ftrans[vsrc->f[p]];
 			vdst->n[p] = vsrc->n[p];
 		}
 		vdst->vnum = vsrc->vnum;
 		for(int p = 0 ; p < vsrc->vnum ; p++){
-			vdst->v[p] = disk->vtrans[vsrc->v[p]];
+			vdst->v[p] = pdisk->vtrans[vsrc->v[p]];
 			vdst->e[p] = 0;
 		}
 	}
 	
 	int pos1=0,pos2=0;
-	while(pos1<loop.npoints || pos2 < disk->ring.npoints){
+	while(pos1<loop.npoints || pos2 < pdisk->ring.npoints){
 		int v0,v1,v2;
 		if(pos1 == loop.npoints){ //add the triangle pos1,pos2,pos2+1
 			v0=loop[0];
-			v1=disk->ring[pos2];
-			v2=disk->ring[(pos2+1)%disk->ring.npoints];
+			v1=pdisk->ring[pos2];
+			v2=pdisk->ring[(pos2+1)%pdisk->ring.npoints];
 			pos2++;
-		}else if(pos2 == disk->ring.npoints){ //add the triangle pos1,pos1+1,pos2
+		}else if(pos2 == pdisk->ring.npoints){ //add the triangle pos1,pos1+1,pos2
 			v1=loop[pos1];
-			v2=disk->ring[0];
+			v2=pdisk->ring[0];
 			v0=loop[(pos1+1)%loop.npoints];
 			pos1++;
 		}else{ //determine which triangle to add
-			if(fabs(disk->ring.npoints*pos1-loop.npoints*(pos2+1.)) < fabs(disk->ring.npoints*(pos1+1.)-loop.npoints*pos2)){
+			if(fabs(pdisk->ring.npoints*pos1-loop.npoints*(pos2+1.)) < fabs(pdisk->ring.npoints*(pos1+1.)-loop.npoints*pos2)){
 				v0=loop[pos1];
-				v1=disk->ring[pos2];
-				v2=disk->ring[(pos2+1)%disk->ring.npoints];
+				v1=pdisk->ring[pos2];
+				v2=pdisk->ring[(pos2+1)%pdisk->ring.npoints];
 				pos2++;
 			}else{
 				v1=loop[pos1];
-				v2=disk->ring[pos2];
+				v2=pdisk->ring[pos2];
 				v0=loop[(pos1+1)%loop.npoints];
 				pos1++;
 			}
@@ -792,14 +793,39 @@ void Surface::KnitPatch(Loop &loop){
 	}
 }
 
-void Surface::CutLoop(Loop &loop){
+double Surface::_FaceDistance(int fdst, int fsrc)
+{
+	return __norm(faces[fdst].x-faces[fsrc].x,faces[fdst].y-faces[fsrc].y,faces[fdst].z-faces[fsrc].z);
+}
 
-	int init_nvertices = nvertices; //test
+
+double Surface::GetLoopLength(Loop &loop){
+	double length=0;
+	for(int n = 0 ; n < loop.npoints ; n++){
+		int f0 = loop.points[n],f1;
+		if(n==loop.npoints-1) f1=loop.points[0];
+		else f1=loop.points[n+1];
+		length += _FaceDistance(f0,f1);
+	}
+	return length;
+}
+
+
+void Surface::CutLoop(Loop &loop){
 
 	int first_v1 = -1, first_v2 = -1,  first_v3 = -1, first_v4 = -1;
 
 	if(loop.npoints == 0) return;
 	ASSERT(LoopValid(loop));
+
+	//which patch should we use ?
+	int wd = 0 ; 
+	if(loop.npoints < 6 ) wd = 0;
+	else if (loop.npoints < 10 ) wd = 1;
+	else if (loop.npoints <  14) wd = 2;
+	else wd = 3;
+	PatchDisk *pdisk = &disk[wd];
+	cout << "loop is " << wd << " with " << GetLoopLength(loop) << endl;
 
 	int *vertex_list = new int[loop.npoints*3];
 	int nvertex_list=0;
@@ -814,17 +840,17 @@ void Surface::CutLoop(Loop &loop){
 		v->marked=0; //the new vertices are marked with 2
 		for(int p = 0 ; p < v->vnum ; p++)
 			v->e[p]=-1;
-	}	
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//verify that we have enough space in the surface
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// 2*loop.npoints extra vertices and loop.npoints extra faces for the cut
-	// 2*disk->disk.nvertices extra vertices for the 2 extra patches
-	// 2*disk->disk.nfaces extra faces for the 2 patches
-	// 2*(loop.npoints + disk->ring.npoints) to knit the 2 patches
-	_OverAlloc(2*loop.npoints+2*disk->disk.nvertices,2*(2*loop.npoints+disk->disk.nfaces+disk->ring.npoints)); 
+	// 2*pdisk->disk.nvertices extra vertices for the 2 extra patches
+	// 2*pdisk->disk.nfaces extra faces for the 2 patches
+	// 2*(loop.npoints + pdisk->ring.npoints) to knit the 2 patches
+	_OverAlloc(2*loop.npoints+2*pdisk->disk.nvertices,2*(2*loop.npoints+pdisk->disk.nfaces+pdisk->ring.npoints)); 
 
 	//add 3 triangles (but reusing one triangle) & 4 points for each face of the defect
 	for(int n = 0 ; n < loop.npoints ; n++){
@@ -846,10 +872,10 @@ void Surface::CutLoop(Loop &loop){
 		vertex_list[nvertex_list++]=vn0; //potentially with repeatitions
 		vertex_list[nvertex_list++]=vn1;
 		vertex_list[nvertex_list++]=vn2;
-	
-		//			vn2 <-----------> vn1
+		
+		//          vn2 <-----------> vn1
 		//            \               /
-        //             \             /
+		//             \             /
 		//             v4 --------- v3
 		//
 		//              v2 ------ v1 
@@ -893,7 +919,7 @@ void Surface::CutLoop(Loop &loop){
 					break;
 				};
 		}
-			
+		
 		//v2 = 2/3*vn0+1/3*vn2
 		a=2./3.; va=vn0; vb = vn2;
 		v2 = -1;
@@ -910,7 +936,7 @@ void Surface::CutLoop(Loop &loop){
 			vnew->z = a*vertices[va].z + (1.-a)*vertices[vb].z;
 			vnew->AllocateFaces(6);
 			vnew->AllocateVertices(6);
-//			for(int i = 0 ; i < 6 ; i++) vnew->e[i]=0;
+			//for(int i = 0 ; i < 6 ; i++) vnew->e[i]=0;
 			vnew->v[vnew->vnum] = va;
 			vnew->e[vnew->vnum++] = -1;
 			vnew->marked=1;
@@ -1041,7 +1067,7 @@ void Surface::CutLoop(Loop &loop){
 		fnew->v[1] = v4;
 		vertices[v4].f[vertices[v4].fnum] = novel_face;
 		vertices[v4].n[vertices[v4].fnum++] = 1;
-	
+		
 		fnew->v[2] = v3;
 		vertices[v3].f[vertices[v3].fnum] = novel_face;
 		vertices[v3].n[vertices[v3].fnum++] = 2;
@@ -1119,14 +1145,14 @@ void Surface::CutLoop(Loop &loop){
 	}
 	ASSERT(ring_2.npoints == loop.npoints);
 
-	KnitPatch(ring_1);
-	KnitPatch(ring_2);
+	KnitPatch(ring_1,pdisk);
+	KnitPatch(ring_2,pdisk);
 
 	ASSERT(nvertices <= maxvertices && nfaces <= maxfaces);
 
 	ExpandMarks(2,4);
 	// finding vertices that are marked with 4
-	//int * vert = new int[2*disk->disk.nvertices],nvert=0;
+	//int * vert = new int[2*pdisk->disk.nvertices],nvert=0;
 	int nvert=0;
 	for(int n = 0 ; n < nvertices ; n++)
 		if(vertices[n].marked==4)
@@ -1143,12 +1169,6 @@ void Surface::CutLoop(Loop &loop){
 	GetEuler();
 
 	ASSERT(IsSurfaceValid(0));
-
-	// for opengl
-	for(int n = init_nvertices ; n < nvertices ; n++)
-		vertices[n].marked = 4;
-	SetMarks(ring_1.points,ring_1.npoints,2);
-	SetMarks(ring_2.points,ring_2.npoints,3);
 }
 
 bool Surface::IsSurfaceValid(int verbose){

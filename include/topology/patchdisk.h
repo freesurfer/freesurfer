@@ -8,12 +8,14 @@
 class PatchDisk
 {
 	void _Init();
-public:
+	void _Alloc(int which_patch);
+ public:
 	Surface disk;
 	Loop ring,init_ring;
 	int *vtrans ;
 	int *ftrans ;
 
+	PatchDisk();
 	PatchDisk(int which_patch);
 	PatchDisk(const string s):disk(s),init_ring(10){
 		vtrans = new int[disk.nvertices];
@@ -23,7 +25,9 @@ public:
 	~PatchDisk(void);
 
 	void Init();
+	void Create(int which_patch);
 };
+
 
 #endif
 
