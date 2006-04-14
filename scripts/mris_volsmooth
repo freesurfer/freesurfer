@@ -2,7 +2,7 @@
 # mris_volsmooth
 # Smooths a surface inside a volume
 
-set VERSION = '$Id: mris_volsmooth,v 1.2 2006/03/27 05:03:43 greve Exp $'
+set VERSION = '$Id: mris_volsmooth,v 1.3 2006/04/14 19:58:04 ayendiki Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
@@ -55,8 +55,8 @@ foreach hemi (lh rh)
   # sample volume to the surface
   set cmd = (mri_vol2surf --src $invol --srcreg $reg --hemi $hemi \
     --out $surfval --noreshape)
-  if($projfrac) set cmd = ($cmd --projfrac $projfrac)
-  if($#pfa_min)   set cmd = ($cmd --projfrac-avg $pfa_min $pfa_max $pfa_delta)
+  if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+  if($#pfa_min)  set cmd = ($cmd --projfrac-avg $pfa_min $pfa_max $pfa_delta)
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -73,8 +73,8 @@ foreach hemi (lh rh)
   set cmd = (mri_surf2vol \
     --surfval $surfval --hemi $hemi \
     --template $invol --volreg $reg --outvol $outvol);
-  if($projfrac) set cmd = ($cmd --projfrac $projfrac)
-  if($#pfa_min)   set cmd = ($cmd --projfrac 0) # Not really sure what to do here
+  if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+  if($#pfa_min)  set cmd = ($cmd --projfrac 0) # Not really sure what to do here
   if(! -e $outvol) set cmd = ($cmd --merge $invol);
   if(-e $outvol)   set cmd = ($cmd --merge $outvol);
   echo $cmd
