@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/04 18:35:41 $
-// Revision       : $Revision: 1.447 $
+// Revision Date  : $Date: 2006/04/14 19:21:40 $
+// Revision       : $Revision: 1.448 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.447 2006/04/04 18:35:41 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.448 2006/04/14 19:21:40 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -19210,94 +19210,100 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                          float min_degrees, float max_degrees, int nangles)
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
-    sse, min_sse ;
+    sse, min_sse, ext_sse ;
   int      old_status = mris->status ;
 
   min_degrees = RADIANS(min_degrees) ; max_degrees = RADIANS(max_degrees) ;
   mrisOrientSurface(mris) ;
   mris->status = MRIS_RIGID_BODY ;
   if (!parms->start_t)
-    {
-      mrisLogStatus(mris, parms, stdout, 0.0f) ;
-      if (Gdiag & DIAG_WRITE)
-        {
-          mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
-          if (parms->write_iterations > 0)
-            mrisWriteSnapshot(mris, parms, 0) ;
-        }
-    }
+	{
+		mrisLogStatus(mris, parms, stdout, 0.0f) ;
+		if (Gdiag & DIAG_WRITE)
+		{
+			mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
+			if (parms->write_iterations > 0)
+				mrisWriteSnapshot(mris, parms, 0) ;
+		}
+	}
   for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f)
-    {
-      mina = minb = ming = 0.0 ;
-      min_sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
-      if (gMRISexternalSSE)
-        min_sse += (*gMRISexternalSSE)(mris, parms) ;
-      delta = 2*degrees / (float)nangles ;
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stdout, "scanning %2.2f degree nbhd, min sse = %2.2f\n",
-                (float)DEGREES(degrees), (float)min_sse) ;
-      for (alpha = -degrees ; alpha <= degrees ; alpha += delta)
-        {
-          for (beta = -degrees ; beta <= degrees ; beta += delta)
-            {
-              if (Gdiag & DIAG_SHOW)
-                fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
-                        "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
-                        (float)DEGREES(alpha), (float)DEGREES(beta), (float)
-                        DEGREES(-degrees), (float)DEGREES(mina),
-                        (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+	{
+		mina = minb = ming = 0.0 ;
+		min_sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+		if (gMRISexternalSSE)
+		{
+			ext_sse = (*gMRISexternalSSE)(mris, parms) ;
+			min_sse += ext_sse ;
+		}
+		delta = 2*degrees / (float)nangles ;
+		if (Gdiag & DIAG_SHOW)
+			fprintf(stdout, "scanning %2.2f degree nbhd, min sse = %2.2f\n",
+							(float)DEGREES(degrees), (float)min_sse) ;
+		for (alpha = -degrees ; alpha <= degrees ; alpha += delta)
+		{
+			for (beta = -degrees ; beta <= degrees ; beta += delta)
+			{
+				if (Gdiag & DIAG_SHOW)
+					fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
+									"min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
+									(float)DEGREES(alpha), (float)DEGREES(beta), (float)
+									DEGREES(-degrees), (float)DEGREES(mina),
+									(float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
 
-              for (gamma = -degrees ; gamma <= degrees ; gamma += delta)
-                {
-                  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-                  MRISrotate(mris, mris, alpha, beta, gamma) ;
-                  sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
-                  if (gMRISexternalSSE)
-                    sse += (*gMRISexternalSSE)(mris, parms) ;
-                  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-                  if (sse < min_sse)
-                    {
-                      mina = alpha ; minb = beta ; ming = gamma ;
-                      min_sse = sse ;
-                    }
+				for (gamma = -degrees ; gamma <= degrees ; gamma += delta)
+				{
+					MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+					MRISrotate(mris, mris, alpha, beta, gamma) ;
+					sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+					if (gMRISexternalSSE)
+					{
+						ext_sse = (*gMRISexternalSSE)(mris, parms) ;
+						sse += ext_sse ;
+					}
+					MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+					if (sse < min_sse)
+					{
+						mina = alpha ; minb = beta ; ming = gamma ;
+						min_sse = sse ;
+					}
 #if 0
-                  if (Gdiag & DIAG_SHOW)
-                    fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
-                            "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
-                            (float)DEGREES(alpha), (float)DEGREES(beta), (float)
-                            DEGREES(gamma), (float)DEGREES(mina),
-                            (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+					if (Gdiag & DIAG_SHOW)
+						fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
+										"min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
+										(float)DEGREES(alpha), (float)DEGREES(beta), (float)
+										DEGREES(gamma), (float)DEGREES(mina),
+										(float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
 #endif
-                }
-            }
-        }
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stdout, "\n") ;
-      if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
-        {
-          MRISrotate(mris, mris, mina, minb, ming) ;
-          sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
-          if (gMRISexternalSSE)
-            sse += (*gMRISexternalSSE)(mris, parms) ;
-          if (Gdiag & DIAG_SHOW)
-            fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
-                    sse, (float)DEGREES(mina), (float)DEGREES(minb),
-                    (float)DEGREES(ming)) ;
-          if (Gdiag & DIAG_WRITE)
-            fprintf(parms->fp,
-                    "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
-                    (float)DEGREES(mina), (float)DEGREES(minb),
-                    (float)DEGREES(ming), (float)sse) ;
-          parms->start_t += 1.0f ;
-          parms->t += 1.0f ;
-          if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-            mrisWriteSnapshot(mris, parms, parms->start_t) ;
-          if (Gdiag & DIAG_WRITE)
-            mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
-          if (Gdiag & DIAG_SHOW)
-            mrisLogStatus(mris, parms, stdout, 0.0f) ;
-        }
-    }
+				}
+			}
+		}
+		if (Gdiag & DIAG_SHOW)
+			fprintf(stdout, "\n") ;
+		if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
+		{
+			MRISrotate(mris, mris, mina, minb, ming) ;
+			sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+			if (gMRISexternalSSE)
+				sse += (*gMRISexternalSSE)(mris, parms) ;
+			if (Gdiag & DIAG_SHOW)
+				fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
+								sse, (float)DEGREES(mina), (float)DEGREES(minb),
+								(float)DEGREES(ming)) ;
+			if (Gdiag & DIAG_WRITE)
+				fprintf(parms->fp,
+								"rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
+								(float)DEGREES(mina), (float)DEGREES(minb),
+								(float)DEGREES(ming), (float)sse) ;
+			parms->start_t += 1.0f ;
+			parms->t += 1.0f ;
+			if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+				mrisWriteSnapshot(mris, parms, parms->start_t) ;
+			if (Gdiag & DIAG_WRITE)
+				mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
+			if (Gdiag & DIAG_SHOW)
+				mrisLogStatus(mris, parms, stdout, 0.0f) ;
+		}
+	}
 
   mris->status = old_status ;
   return(NO_ERROR) ;
@@ -50068,24 +50074,44 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int
 MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int    negative, old_neg, same = 0 ;
+  int    negative, old_neg, same = 0, min_neg, min_neg_iter, last_expand ;
 
   parms->dt = 1 ;
 	parms->max_nbrs = 0 ;
-  negative = MRIScountNegativeTriangles(mris) ;
+  min_neg = negative = MRIScountNegativeTriangles(mris) ; min_neg_iter = 0 ;
+	last_expand = 0 ;
   while (negative > 0)
 	{
 		old_neg = negative ;
 		printf("%03d: %d negative triangles\n", parms->t++, negative) ;
 		mrisSmoothingTimeStep(mris, parms) ;
 		mrisProjectSurface(mris) ;
+		MRIScomputeMetricProperties(mris) ;
 		negative = MRIScountNegativeTriangles(mris) ;
+		if (negative < min_neg)
+		{
+			min_neg = negative ;
+			min_neg_iter = parms->t ;
+		}
+		else if ((parms->t > min_neg_iter+100) && parms->t > last_expand+50)
+		{
+			parms->max_nbrs++ ;
+			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+			last_expand = parms->t ;
+			same = 0 ;
+		}
+		if (parms->t > min_neg_iter+1000)
+		{
+			printf("terminating loop due to lack of progress\n") ;
+			break ;
+		}
 		if (old_neg == negative)
 		{
 			if (same++ > 5)
 			{
 				parms->max_nbrs++ ;
 				printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+				last_expand = parms->t ;
 				same = 0 ;
 			}
 		}
@@ -50094,16 +50120,19 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 		if (parms->t == parms->niterations/4)
 		{
 			parms->max_nbrs++ ;
+			last_expand = parms->t ;
 			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
 		}
 		if (parms->t == parms->niterations/2)
 		{
 			parms->max_nbrs++ ;
+			last_expand = parms->t ;
 			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
 		}
 
 		if (parms->t == 3*parms->niterations/4)
 		{
+			last_expand = parms->t ;
 			parms->max_nbrs++ ;
 			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
 		}
@@ -50124,6 +50153,7 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double   dx, dy, dz, x, y, z ;
 
   MRIScomputeMetricProperties(mris) ;
+	MRISclearMarks(mris) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
 	{
 		face = &mris->faces[fno] ;
@@ -50133,38 +50163,42 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 			{
 				v = &mris->vertices[face->v[n]] ;
 				v->area = -1 ;
+				v->marked = 1 ;
 			}
 		}
 	}
 
 	for (m = 0 ; m < parms->max_nbrs ; m++)
 	{
-		MRISclearMarks(mris) ;
 		for (vno = 0 ; vno < mris->nvertices ; vno++)
 		{
 			v = &mris->vertices[vno] ;
-			if (v->ripflag || v->area > 0)
+			if (v->ripflag || v->area <  0 || v->marked == 1)
 				continue ;
+			
+			// check to see if it has a nbr that is marked
 			for (n = 0 ; n < v->vnum ; n++)
 			{
 				vn = &mris->vertices[v->v[n]] ;
-				if (vn->area < 0)
-					continue ;
-				vn->marked = 1 ;
+				if (vn->marked == 1)
+				{
+					v->marked = 2 ;
+					break ;
+				}
 			}
 		}
 		for (vno = 0 ; vno < mris->nvertices ; vno++)
 		{
 			v = &mris->vertices[vno] ;
-			if (v->marked)
-				v->area = -1 ;
+			if (v->marked == 2)
+				v->marked = 1 ;
 		}
 	}
-	
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
+		
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
 		v = &mris->vertices[vno] ;
-		if (v->ripflag || v->area > 0)
+		if (v->marked == 0)
 			continue ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
@@ -50183,9 +50217,6 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 				n++;
 			}
 		}
-#if 0
-		n = 4 ;  /* avg # of nearest neighbors */
-#endif
 		if (n>0)
 		{
 			dx = dx/n;
@@ -50209,7 +50240,7 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 		v->y += v->dy * parms->dt ;
 		v->z += v->dz * parms->dt ;
 	}
-
+	MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
 
