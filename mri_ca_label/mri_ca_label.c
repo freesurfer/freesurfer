@@ -135,13 +135,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.70 2006/04/04 20:02:47 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.71 2006/04/14 22:52:32 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.70 2006/04/04 20:02:47 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.71 2006/04/14 22:52:32 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -770,7 +770,8 @@ main(int argc, char *argv[])
 		MRIwrite(mri_labeled, fname) ;
 	}
 
-  GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
+	if (read_fname == NULL)
+		GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
 	if (wmsa)
 		GCAlabelWMandWMSAs(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
 
@@ -2839,7 +2840,7 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 	MATRIX *m_cov_wm, *m_cov_wmsa, *m_inv_cov_wmsa, *m_inv_cov_wm, *m_I ;
 	VECTOR *v_mean_wm, *v_mean_wmsa, *v_vals, *v_dif_wm, *v_dif_wmsa, 
 		     *v_dif_caudate, *v_mean_caudate ;
-	double pwm, pwmsa, wmsa_dist, wm_dist ;
+	double pwm, pwmsa, wmsa_dist, wm_dist, wm_mdist, wmsa_mdist ;
 
 	if (mri_dst_labels == NULL)
 		mri_dst_labels = MRIclone(mri_src_labels, NULL) ;
@@ -2916,16 +2917,20 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 					{
 						wm_dist = VectorDistance(v_mean_wm, v_vals) ;
 						wmsa_dist = VectorDistance(v_mean_wmsa, v_vals) ;
+						wm_mdist = MatrixMahalanobisDistance(v_mean_wm, m_inv_cov_wm, v_vals) ;
+						wmsa_mdist = MatrixMahalanobisDistance(v_mean_wmsa, m_inv_cov_wmsa, v_vals) ;
 						if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-							printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
-										 wm_dist, wmsa_dist) ;
-						if (wm_dist > wmsa_dist)
+							printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f, mdists = (%2.0f, %2.0f)\n",
+										 wm_dist, wmsa_dist, wm_mdist, wmsa_mdist) ;
+						if ((wm_dist > wmsa_dist) && (wm_mdist > wmsa_mdist))
 						{
 							VectorSubtract(v_vals, v_mean_wm, v_dif_wm) ;
 							VectorSubtract(v_vals, v_mean_wmsa, v_dif_wmsa) ;
-							if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_wm,1))) &&
+							if (
+									((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_wm,1))) &&
 									(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_wm,2))) &&
-									(fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_wm,3))))
+									 (fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_wm,3)))) ||
+									((2*wmsa_dist < wm_dist) && (2*wmsa_mdist < wm_mdist)))
 							{
 								if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
 									printf("changing label from %s to %s\n",
