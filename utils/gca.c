@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/04 18:35:40 $
-// Revision       : $Revision: 1.192 $
+// Revision Date  : $Date: 2006/04/14 19:21:08 $
+// Revision       : $Revision: 1.193 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +71,7 @@ static float gcaFindCerebellarScaleFactor(GCA *gca,
                                           int label,
                                           FILE *logfp);
 #endif
-static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label) ;
+static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame) ;
 int GCAmaxLabel(GCA *gca) ;
 static int gcaRelabelSegment(GCA *gca, 
                              TRANSFORM *transform, 
@@ -9798,6 +9798,22 @@ cma_label_to_name(int label)
     return("Cerebral_Cortex") ;
   if (label == Inf_Lat_Vent  )
     return("Inf_Lat_Vent") ;
+	if (Left_hippocampal_fissure == label)
+		return("Left_hippocampal_fissure") ;
+	if (Left_CADG_head == label)
+		return("Left_CADG_head") ;
+	if (Left_subiculum == label)
+		return("Left_subiculum") ;
+	if (Left_fimbria == label)
+		return("Left_fimbria") ;
+	if (Right_hippocampal_fissure == label)
+		return("Right_hippocampal_fissure") ;
+	if (Right_CADG_head == label)
+		return("Right_CADG_head") ;
+	if (Right_subiculum == label)
+		return("Right_subiculum") ;
+	if (Right_fimbria == label)
+		return("Right_fimbria") ;
 
   return(name) ;
 }
@@ -11556,10 +11572,10 @@ int
 GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 {
   float      x0, y0, z0, fmin, fmax, min_real_val ;
-  int        mri_peak, r, max_T1_weighted_image = 0, min_real_bin ;
-  float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS], \
+  int        mri_peak, r, max_T1_weighted_image = 0, min_real_bin, peak ;
+  float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS],
     scales[MAX_GCA_INPUTS], max_wm/*, scale*/ ;
-  HISTOGRAM *h_mri, *h_smooth ;
+  HISTOGRAM *h_mri, *h_smooth, *h_gca ;
   MRI_REGION box ;
   MRI        *mri_frame, *mri_mask ;
 
@@ -11583,10 +11599,31 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 	}
 #else
   GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+	{
+		// use modes instead of means
+		h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r) ;
+		peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+		printf("resetting wm mean[%d]: %2.0f --> %2.0f\n",
+					 r, wm_means[r], h_gca->bins[peak]) ;
+		wm_means[r] = h_gca->bins[peak] ;
+		if (Gdiag & DIAG_WRITE)
+			HISTOplot(h_gca, "wm.plt") ;
+		HISTOfree(&h_gca) ;
+
+		h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r) ;
+		peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+		gm_means[r] = h_gca->bins[peak] ;
+		printf("resetting gm mean[%d]: %2.0f --> %2.0f\n",
+					 r, gm_means[r], h_gca->bins[peak]) ;
+		if (Gdiag & DIAG_WRITE)
+			HISTOplot(h_gca, "gm.plt") ;
+		HISTOfree(&h_gca) ;
+	}
   gray_white_CNR = wm_means[0] - gm_means[0];
   for (r = 0 ; r < gca->ninputs ; r++)
 	{
-		wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+		//		wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
 		if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
 		{
 			max_T1_weighted_image = r ; 
@@ -11594,12 +11631,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 		}
 	}
 #endif
-  printf("Note: program considers input volume #%d as the most T1-like\n", 
+  printf("input volume #%d is the most T1-like\n", 
          max_T1_weighted_image +1);
 
-  max_wm = wm_means[max_T1_weighted_image];
-  
 
+  max_wm = wm_means[max_T1_weighted_image];
   
   mri_frame = MRIcopyFrame(mri, NULL, max_T1_weighted_image, 0) ;
   MRIvalRange(mri_frame, &fmin, &fmax) ; 
@@ -14780,7 +14816,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 				else
 					MatrixFree(&m_L) ;
 			}
-			h_gca = gcaGetLabelHistogram(gca, l) ;
+			h_gca = gcaGetLabelHistogram(gca, l, 0) ;
 			HISTOmakePDF(h_gca, h_gca) ;
 
 			{
@@ -15528,7 +15564,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 			}
 			MRIfree(&mri_aligned) ; 
 
-			h_gca = gcaGetLabelHistogram(gca, l) ;
+			h_gca = gcaGetLabelHistogram(gca, l, 0) ;
 			peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
 			HISTOmakePDF(h_gca, h_gca) ;
 			printf("gca peak = %2.5f (%d)\n", h_gca->counts[peak], peak) ;
@@ -17886,7 +17922,7 @@ gcaComputeHistogramNormalization(GCA *gca, HISTOGRAM *h_mri, int label)
 {
   HISTOGRAM *h_gca, *h_gca_eq, *h_mri_eq, *h_norm ;
 
-  h_gca = gcaGetLabelHistogram(gca, label) ;
+  h_gca = gcaGetLabelHistogram(gca, label, 0) ;
   h_norm = HISTOcomposeInvert(h_gca, h_mri, NULL) ;
   HISTOfree(&h_gca) ;
   return(h_eq) ;
@@ -17894,10 +17930,10 @@ gcaComputeHistogramNormalization(GCA *gca, HISTOGRAM *h_mri, int label)
 
 #endif
 static HISTOGRAM *
-gcaGetLabelHistogram(GCA *gca, int label)
+gcaGetLabelHistogram(GCA *gca, int label, int frame)
 {
   HISTOGRAM *h_gca ;
-  int       xn, yn, zn, n, r ;
+  int       xn, yn, zn, n ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
   float     prior ;
@@ -17909,34 +17945,34 @@ gcaGetLabelHistogram(GCA *gca, int label)
   for (b = 0 ; b < h_gca->nbins ; b++)
     h_gca->bins[b] = b ;
   for (zn = 0 ; zn < gca->node_depth ; zn++)
-    {
-      for (yn = 0 ; yn < gca->node_height ; yn++)
-        {
-          for (xn = 0 ; xn < gca->node_width ; xn++)
-            {
-              gcan = &gca->nodes[xn][yn][zn] ;
-              for (n = 0 ; n < gcan->nlabels ; n++)
-                {
-                  /* find index in lookup table for this label */
-                  if (gcan->labels[n] != label)
-                    continue ;
-                  gc = &gcan->gcs[n] ;
-                  prior = get_node_prior(gca, label, xn, yn, zn) ;
-                  if (prior != 0)
-                    {
-                      for (r = 0 ; r < gca->ninputs ; r++)
-                        {
-                          b = nint(gc->means[r]) ;
-                          h_gca->counts[b] += prior ;
-                          if (!finite(gc->means[r]))
-                            DiagBreak() ;
-                        }
-                    }
+	{
+		for (yn = 0 ; yn < gca->node_height ; yn++)
+		{
+			for (xn = 0 ; xn < gca->node_width ; xn++)
+			{
+				gcan = &gca->nodes[xn][yn][zn] ;
+				for (n = 0 ; n < gcan->nlabels ; n++)
+				{
+					/* find index in lookup table for this label */
+					if (gcan->labels[n] != label)
+						continue ;
+					gc = &gcan->gcs[n] ;
+					prior = get_node_prior(gca, label, xn, yn, zn) ;
+					if (prior != 0)
+					{
+						//						for (r = 0 ; r < gca->ninputs ; r++)
+						{
+							b = nint(gc->means[frame]) ;
+							h_gca->counts[b] += prior ;
+							if (!finite(gc->means[frame]))
+								DiagBreak() ;
+						}
+					}
     
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
   return(h_gca) ;
 }
 #if INTERP_PRIOR
