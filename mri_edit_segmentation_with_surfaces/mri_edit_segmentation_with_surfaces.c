@@ -19,7 +19,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.10 2006/03/17 18:24:20 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.11 2006/04/14 22:52:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -29,7 +29,8 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
+static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right,
+																	 GCA *gca, TRANSFORM *transform) ;
 /*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
 #if 0
 static int  edit_unknowns(MRI *mri_aseg, MRI *mri) ;
@@ -40,7 +41,6 @@ static int edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) ;
 
 static char *annot_name = "aparc.annot" ;
 
-
 char *Progname ;
 
 static char *label_name = NULL ;
@@ -49,6 +49,8 @@ static char *annotation_name = NULL ;
 static char *surf_name = "white" ;
 
 static MRI *mri_vals = NULL ;
+static GCA *gca = NULL ;
+static TRANSFORM *transform = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -83,7 +85,6 @@ main(int argc, char *argv[])
   mri_aseg = MRIread(in_aseg_name) ;
   if (!mri_aseg)
     ErrorExit(ERROR_NOFILE, "%s: could not read input segmentation %s", Progname, in_aseg_name) ;
-
 
 	for (h = 0 ; h <= 1 ; h++)
 	{
@@ -127,7 +128,7 @@ main(int argc, char *argv[])
 		edit_hippocampal_complex(mri_aseg, mris, h, annot_name, thickness) ;
 #endif
 		printf("%s: relabeling hypointensities...\n", hemi) ;
-		relabel_hypointensities(mri_aseg, mris, h) ;
+		relabel_hypointensities(mri_aseg, mris, h, gca, transform) ;
 		MRISfree(&mris) ; free(thickness) ;
 	}
 	/*	relabel_hypointensities_neighboring_gray(mri_aseg) ;*/
@@ -182,6 +183,19 @@ get_option(int argc, char *argv[])
 			ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume from %s",
 								Progname, argv[2]) ;
 		nargs = 1 ;
+	}
+  else if (!stricmp(option, "GCA"))
+	{
+		printf("reading GCA from %s, and xform from %s...\n", argv[2], argv[3]) ;
+		gca = GCAread(argv[2]) ;
+		if (!gca)
+			ErrorExit(ERROR_NOFILE, "%s: could not read GCA from %s",
+								Progname, argv[2]) ;
+		transform = TransformRead(argv[3]) ;
+		if (!transform)
+			ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s",
+								Progname, argv[3]) ;
+		nargs = 2 ;
 	}
   else switch (toupper(*option))
   {
@@ -250,9 +264,10 @@ print_version(void)
 }
 
 static int
-relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
+relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSFORM *transform)
 {
-	int   x, y, z, label, changed ;
+	int              x, y, z, label, changed, n ;
+	GCA_PRIOR        *gcap ;
 	MRI              *mri_inside, *mri_inside_eroded, *mri_inside_dilated ;
 	MRIS_HASH_TABLE *mht ;
 	VERTEX           *v ;
@@ -270,6 +285,8 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 		sprintf(fname, "%s_inside.mgz", right?"rh":"lh") ;
 		MRIwrite(mri_inside, fname) ;
 	}
+	if (gca)
+		TransformInvert(transform, mri) ;
 	for (changed = x = 0 ; x < mri->width ; x++)
 	{
 		for (y = 0 ; y < mri->height ; y++)
@@ -311,22 +328,89 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 				else if (dot < 0 && (MRIgetVoxVal(mri_inside_dilated, x, y, z, 0) == 0)) // should be outside
 					dot *= -1 ;
 
+				if (x == Gx && y == Gy && z == Gz)
+					printf("(%d, %d, %d), label %s, dist = %2.1f, dot = %2.1f\n", Gx, Gy, Gz, 
+								 cma_label_to_name(label), dist, dot) ;
 				switch (label)
 				{
 				case Left_Cerebral_Cortex:
 				case Right_Cerebral_Cortex:  // check to see if it's inside ribbon and change it to hypointensity
 					if (dot < 0 && dist > 2)
 					{
+						if (x == Gx && y == Gy && z == Gz)
+							printf("inside gray/white boundary, changing to hypointensity...\n") ;
 						changed++ ;
 						MRIvox(mri, x, y, z) = right ? Right_WM_hypointensities : Left_WM_hypointensities ;
 					}
 					break ;
 				case Left_WM_hypointensities:
 				case Right_WM_hypointensities: // check to see if it's outside ribbon and change it to gm
+					if (gca)  // if we have a gca, check to make sure gm is possible here
+					{
+						int found, xk, yk, zk, xi, yi, zi, whalf ;
+						double dist ;
+						
+						// don't change things on the walls of the ventricles
+						gcap = getGCAP(gca, mri, transform, x, y, z) ;
+						found = 0 ;
+						for (n = 0 ; n < gcap->nlabels ; n++)
+						{
+							if (IS_LAT_VENT(gcap->labels[n]) && (gcap->priors[n] > 0.5))
+							{
+								found = 1 ;
+							}
+						}
+						if (found == 1)  // too near ventricle - can't be gm
+						{
+							if (x == Gx && y == Gy && z == Gz)
+								printf("too near ventricles - not changing\n") ;
+							continue ;
+						}
+
+						// now see if gm is possible in this region 
+						whalf = gca->prior_spacing ;
+						for (found = 0, xk =-whalf ; !found && xk <= whalf ; xk++)
+						{
+							xi = mri->xi[x+xk] ;
+							for (yk =-whalf ; !found && yk <= whalf ; yk++)
+							{
+								yi = mri->yi[y+yk] ;
+								for (zk =-whalf ; !found && zk <= whalf ; zk++)
+								{
+									zi = mri->zi[z+zk] ;
+
+									dist = sqrt(xk*xk+yk*yk+zk*zk) ;
+									if (dist > gca->prior_spacing+1)
+										continue ;
+									gcap = getGCAP(gca, mri, transform, xi, yi, zi) ;
+									for (n = 0 ; n < gcap->nlabels ; n++)
+									{
+										if (IS_GM(gcap->labels[n]) && gcap->priors[n] > 0.1)
+										{
+											if (x == Gx && y == Gy && z == Gz)
+												printf("possible gray matter found at (%d, %d, %d)\n",
+															 xi, yi, zi) ;
+											found = 1  ;
+											break ;
+										}
+									}
+								}
+							}
+						}
+						if (found == 0)
+						{
+							if (x == Gx && y == Gy && z == Gz)
+								printf("gray matter not possible at this location...\n") ;
+							continue ;   // don't change it
+						}
+					}
+
 					// if it's outside, or just inside change it to gm
 					if (dot > 0 || (dot < 0 &&  dist < 1))
 					{
 						changed++ ;
+						if (x == Gx && y == Gy && z == Gz)
+							printf("outside ribbon: changing to cerebral cortex...\n") ;
 						MRIvox(mri, x, y, z) = right ? Right_Cerebral_Cortex : Left_Cerebral_Cortex ;
 					}
 					break ;
