@@ -1,7 +1,7 @@
 #ifndef TOPOLOGY_GLOBALS_H
 #define TOPOLOGY_GLOBALS_H
 
-
+#ifdef __cplusplus
 
 #include <cmath>
 #include <cstdlib>
@@ -78,5 +78,7 @@ inline int Random(int nmax){
 void check(bool exp);
 
 void ErrorExit(string s);
+
+#endif
 
 #endif

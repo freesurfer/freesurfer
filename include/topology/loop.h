@@ -1,6 +1,8 @@
 #ifndef TOPOLOGY_LOOP_H
 #define TOPOLOGY_LOOP_H
 
+#ifdef __cplusplus
+
 #include "globals.h"
 
 class Loop
@@ -28,5 +30,7 @@ public:
 	}
 	const Loop & operator=(const Loop& loop);
 };
+
+#endif
 
 #endif

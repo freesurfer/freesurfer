@@ -1,6 +1,8 @@
 #ifndef TOPOLOGY_PATCHDISK_H
 #define TOPOLOGY_PATCHDISK_H
 
+#ifdef __cplusplus
+
 #include "surface.h"
 
 class PatchDisk
@@ -22,5 +24,7 @@ public:
 
 	void Init();
 };
+
+#endif
 
 #endif

@@ -1,6 +1,7 @@
 #ifndef TOPOLOGY_SURFACE_H
 #define TOPOLOGY_SURFACE_H
 
+#ifdef __cplusplus
 
 #include "globals.h"
 #include "vertex.h"
@@ -103,5 +104,7 @@ public:
 	int initHT(HT &ht);
 #endif
 };
+
+#endif
 
 #endif
