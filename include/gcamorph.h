@@ -218,12 +218,14 @@ GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSF
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 
+#define MAX_LTT_LABELS 1000
 typedef struct
 {
 	int nlabels ;
-	int input_labels[1000] ;
-	int output_labels[1000] ;
-	double means[1000] ;
+	int input_labels[MAX_LTT_LABELS] ;
+	int output_labels[MAX_LTT_LABELS] ;
+	double means[MAX_LTT_LABELS] ;
+	double scales[MAX_LTT_LABELS] ;
 } GCAM_LABEL_TRANSLATION_TABLE ;
 MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensities,
 												GCAM_LABEL_TRANSLATION_TABLE *gcam_ltt) ;
