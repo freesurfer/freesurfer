@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.179 2006/04/10 18:47:06 fischl Exp $"
+# "$Id: configure.in,v 1.180 2006/04/15 00:35:26 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -124,8 +124,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -135,8 +135,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -147,10 +147,10 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror -Wno-long-double"
+ CFLAGS="-g -O2 -Wall -Werror -Wno-long-double $CFLAGS"
 # -Wno-non-virtual-dtor suppresses valid scuba warning:
 # "has virtual functions but non-virtual destructor"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror -Wno-non-virtual-dtor"
+ CXXFLAGS="-g -O2 -Wall -Werror -Wno-non-virtual-dtor $CXXFLAGS"
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -159,8 +159,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
