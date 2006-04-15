@@ -11357,7 +11357,7 @@ mghRead(char *fname, int read_volume, int frame)
     if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz")){
       gzipped = 1;
       myclose = pclose;  // assign function pointer for closing
-#ifdef Darwin
+#if defined(Darwin) || defined(SunOS)
       // zcat on Max OS always appends and assumes a .Z extention,
       // whereas we want .m3z
       strcpy(command, "gunzip -c ");

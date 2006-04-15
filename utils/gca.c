@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/14 19:21:08 $
-// Revision       : $Revision: 1.193 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/04/15 01:05:17 $
+// Revision       : $Revision: 1.194 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1944,7 +1944,7 @@ GCAread(char *fname)
     {
       char command[STRLEN];
       myclose = pclose;
-#ifdef Darwin
+#if defined(Darwin) || defined(SunOS)
       // zcat on Max OS always appends and assumes a .Z extention,
       // whereas we want .gcz
       strcpy(command, "gunzip -c ");

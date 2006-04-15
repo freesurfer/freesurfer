@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/03/28 16:56:34 $
-// Revision       : $Revision: 1.102 $
+// Revision Date  : $Date: 2006/04/15 01:05:17 $
+// Revision       : $Revision: 1.103 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -786,7 +786,7 @@ GCAMread(char *fname)
   if (strstr(fname, ".m3z"))
 	{
 		char command[STRLEN];
-#ifdef Darwin
+#if defined(Darwin) || defined(SunOS)
 		// zcat on Max OS always appends and assumes a .Z extention,
 		// whereas we want .m3z
 		strcpy(command, "gunzip -c ");
