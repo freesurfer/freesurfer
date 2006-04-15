@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.47 2006/03/03 23:03:09 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.48 2006/04/15 00:48:32 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.47 2006/03/03 23:03:09 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.48 2006/04/15 00:48:32 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -315,6 +315,9 @@ if(! $?NO_MINC) then
         else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ) then
             # Max OS X Panther default:
             setenv MNI_PERL5LIB "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
+        else if ( -e $MINC_LIB_DIR/MNI) then
+            # Solaris:
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR"
         else
             setenv MNI_PERL5LIB       ""
         endif
