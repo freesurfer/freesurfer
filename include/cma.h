@@ -140,6 +140,14 @@
 #define Cerebral_Cortex           220 /*	 205   62   78     0 */
 #define Inf_Lat_Vent              221 /*  196   58  250     0 */
 
+#define Left_hippocampal_fissure 193 //		0	196	255	0
+#define Left_CADG_head 194 //			255	164	164	0
+#define Left_subiculum 195 //			196	196	0	0
+#define Left_fimbria 196 //			0	100	255	0
+#define Right_hippocampal_fissure 197 //		128	196	164	0
+#define Right_CADG_head 198 //			0	196	0	0
+#define Right_subiculum 199 //			128	96	64	0
+#define Right_fimbria 200 //			0	50	128	0
 
 // vascular and lymph labels (from Alex G)
 #define Aorta 331 // 255 0 0 0
