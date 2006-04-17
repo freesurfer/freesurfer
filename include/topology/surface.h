@@ -42,17 +42,17 @@ public:
 	//constructor/destructor
 	Surface(void);
 	Surface(int nv, int nf);
-	Surface(const string s);
+	//	Surface(const string s);
 	~Surface(void);
 
 	Surface *Clone() const;
 	void Expand(int nextrav,int nextraf);
 	void Center();
 	void scale(double scaling_factor);
-	int OpenFile(const string s,int verbose=0);
-	int WriteFile(const string s, int verbose = -1) const;
-	int GetDefectLabels(const string s);
-	int OpenCurvatureFile(const string s);
+	//	int OpenFile(const string s,int verbose=0);
+	//	int WriteFile(const string s, int verbose = -1) const;
+	//	int GetDefectLabels(const string s);
+	//	int OpenCurvatureFile(const string s);
 	bool IsSurfaceValid(int verbose = 0);
 	void PrintDefectInfo(int ndefect=-1);
 	int InitSurface(void);

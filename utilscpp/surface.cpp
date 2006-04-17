@@ -25,7 +25,7 @@ Surface::Surface(int nv, int nf)
 	surface_source = NULL;
 	disk=0;
 }
-
+#if 0 
 Surface::Surface(const string s){
 	nvertices = maxvertices= 0;
 	vertices = NULL;
@@ -37,6 +37,7 @@ Surface::Surface(const string s){
 	disk=0;
 	OpenFile(s);
 }
+#endif
 
 Surface *Surface::Clone() const
 {
@@ -103,7 +104,7 @@ void Surface::_OverAlloc(int nextrav,int nextraf){
 void Surface::Expand(int nextrav,int nextraf){
 	_OverAlloc(nextrav,nextraf);
 }
-
+#if 0
 int Surface::OpenFile(const string s, int verbose)
 {
 	ifstream file(&s[0]);
@@ -157,8 +158,6 @@ int Surface::WriteFile(const string s, int verbose) const
 	return 0;
 }
 
-
-
 int Surface::GetDefectLabels(const string s)
 {
 	OpenCurvatureFile(s);
@@ -179,7 +178,7 @@ int Surface::OpenCurvatureFile(const string s){
 	}
 	return 0;
 }
-
+#endif
 int Surface::InitSurface(void)
 {
 	_InitSurfaceConnectivity();
