@@ -4,17 +4,17 @@
 set labellist = ();
 set outlabel = ();
 
-set VERSION = '$Id: merge-labels,v 1.1 2004/02/12 22:58:09 greve Exp $';
+set VERSION = '$Id: merge-labels,v 1.2 2006/04/17 20:29:25 nicks Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep -e -help | wc -l` 
+set n = `echo $argv | egrep -e -help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | grep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;

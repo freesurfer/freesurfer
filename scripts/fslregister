@@ -1,6 +1,6 @@
 #!/bin/csh -f
 # 
-set VERSION = '$Id: fslregister,v 1.4 2006/02/13 20:14:22 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.5 2006/04/17 20:29:25 nicks Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -24,7 +24,7 @@ set PrintHelp = 0;
 set frame = 0;
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;

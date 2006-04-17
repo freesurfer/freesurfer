@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.14 2006/02/13 20:13:19 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.14 2006/02/13 20:13:19 greve Exp $';
+# $Id: fsl_rigid_register,v 1.15 2006/04/17 20:29:25 nicks Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.15 2006/04/17 20:29:25 nicks Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -29,12 +29,12 @@ set xfmmatfile = ();
 set ltamatfile = ();
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | grep help | wc -l` 
+set n = `echo $argv | egrep help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;

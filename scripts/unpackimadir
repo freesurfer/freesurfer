@@ -8,14 +8,14 @@
 # The temporary minc directory can be specified with -mincdir,
 # otherwise it will be put in the output directory.
 
-set VERSION = '$Id: unpackimadir,v 1.2 2006/02/13 20:14:56 greve Exp $';
+set VERSION = '$Id: unpackimadir,v 1.3 2006/04/17 20:29:26 nicks Exp $';
 set unpackmincdiropts = ();
 set srcdir   = ();
 set targdir  = ();
 set mincdir  = ();
 set removeminc = 1;
 
-set n = `echo $argv | grep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;

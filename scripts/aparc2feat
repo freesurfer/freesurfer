@@ -2,7 +2,7 @@
 # aparc2feat
 # 
 
-set VERSION = '$Id: aparc2feat,v 1.4 2006/03/22 00:36:33 greve Exp $';
+set VERSION = '$Id: aparc2feat,v 1.5 2006/04/17 20:29:25 nicks Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -12,12 +12,12 @@ set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | grep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | grep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;

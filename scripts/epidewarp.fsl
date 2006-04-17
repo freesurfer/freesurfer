@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.17 2005/06/08 00:55:43 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.18 2006/04/17 20:29:25 nicks Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -34,12 +34,12 @@ set PrintHelp = 0;
 
 ## If there are no arguments, just print useage and exit ##
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | grep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;

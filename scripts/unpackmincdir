@@ -2,9 +2,9 @@
 # Name: unpackmincdir
 # Purpose: unpacks the functionals and anatomicals and copies others
 
-set VERSION = '$Id: unpackmincdir,v 1.4 2006/02/13 20:16:01 greve Exp $';
+set VERSION = '$Id: unpackmincdir,v 1.5 2006/04/17 20:29:26 nicks Exp $';
 
-set n = `echo $argv | grep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
