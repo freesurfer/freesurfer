@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/03/15 20:56:04 $
- *         $Revision: 1.23 $
+ * @date   $Date: 2006/04/17 20:07:05 $
+ *         $Revision: 1.24 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -146,9 +146,9 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
            broken_time.tm_mday, broken_time.tm_hour,
            broken_time.tm_min, broken_time.tm_sec);
 
-  /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+  /* As suggested by the getlogin() manpage, use getpwuid(geteuid())
      to get the user controlling this process. don't use getlogin()
-     as that returns the name of the user logged in on the controlling 
+     as that returns the name of the user logged in on the controlling
      terminal of the process (ie the person sitting at the terminal),
      and don't use cuserid() because the manpage says not to.
   */
@@ -162,10 +162,15 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   result = uname (&kernel_info);
   if (0 != result)
     {
-      fprintf (stderr, "uname() returned %d\n", result);
+      //fprintf (stderr, "uname() returned %d\n", result);
+      strcpy (machine, "UNKNOWN");
+      strcpy (platform_version, "UNKNOWN");
     }
-  strcpy (machine, kernel_info.nodename);
-  strcpy (platform_version, kernel_info.release);
+  else
+    {
+      strcpy (machine, kernel_info.nodename);
+      strcpy (platform_version, kernel_info.release);
+    }
 
   /* Build the info string. */
   sprintf (return_string, "%s %s "
@@ -305,9 +310,9 @@ handle_version_option (int argc, char** argv,
                    broken_time.tm_mday, broken_time.tm_hour,
                    broken_time.tm_min, broken_time.tm_sec);
 
-          /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+          /* As suggested by the getlogin() manpage, use getpwuid(geteuid())
              to get the user controlling this process. don't use getlogin()
-             as that returns the name of the user logged in on the controlling 
+             as that returns the name of the user logged in on the controlling
              terminal of the process (ie the person sitting at the terminal),
              and don't use cuserid() because the manpage says not to.
           */
@@ -321,10 +326,15 @@ handle_version_option (int argc, char** argv,
           result = uname (&kernel_info);
           if (0 != result)
             {
-              fprintf (stderr, "uname() returned %d\n", result);
+              //fprintf (stderr, "uname() returned %d\n", result);
+              strcpy (machine, "UNKNOWN");
+              strcpy (platform_version, "UNKNOWN");
             }
-          strcpy (machine, kernel_info.nodename);
-          strcpy (platform_version, kernel_info.release);
+          else
+            {
+              strcpy (machine, kernel_info.nodename);
+              strcpy (platform_version, kernel_info.release);
+            }
 
           /* Build the info string. */
           fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
@@ -388,9 +398,9 @@ char *VERuser(void)
   char *user;
   struct passwd *pw;
 
-  /* As suggested by the getlogin() manpage, use getpwuid(geteuid()) 
+  /* As suggested by the getlogin() manpage, use getpwuid(geteuid())
      to get the user controlling this process. don't use getlogin()
-     as that returns the name of the user logged in on the controlling 
+     as that returns the name of the user logged in on the controlling
      terminal of the process (ie the person sitting at the terminal),
      and don't use cuserid() because the manpage says not to.
   */
