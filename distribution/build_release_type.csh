@@ -1,10 +1,23 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.36 2006/03/01 00:51:42 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.34.2.1 2006/04/17 20:00:02 nicks Exp $'
+
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
 umask 002
+
+# usage:
+#  build_release_type dev
+#  build_release_type stable
+#  build_release_type stable-pub
+set RELEASE_TYPE=$1
+
+set STABLE_VER_NUM="v3.0.2"
+set STABLE_PUB_VER_NUM="v3.0.2"
+
+set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
 
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
@@ -13,53 +26,90 @@ if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
 if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 set OS=${OSTYPE}
-set PLATFORM=`cat /usr/local/freesurfer/PLATFORM`
 
+#
 # Set up directories.
 ######################################################################
 #
-setenv BUILD_DIR /space/freesurfer/build/$HOSTNAME
+setenv SPACE_FS /space/freesurfer
+setenv LOCAL_FS /usr/local/freesurfer
+# if /space/freesurfer is down, or if there is a need to install
+# outside of /usr/local/freesurfer, 
+# then the var USE_SPACE_MINERVA can be set
+if ($?USE_SPACE_MINERVA) then
+  setenv SPACE_FS /space/minerva/1/users/nicks
+  setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
+endif
 
-if ("$1" == "dev") then
-  set RELEASE_TYPE=dev
+setenv BUILD_DIR      ${SPACE_FS}/build/$HOSTNAME
+setenv PLATFORM       "`cat ${LOCAL_FS}/PLATFORM`"
+setenv BUILD_PLATFORM "`cat ${BUILD_DIR}/PLATFORM`"
+
+# DEV_DIR is the CVS checkout of either the main trunk and the stable branch.
+# DEST_DIR is where the build will be installed.
+if ("$RELEASE_TYPE" == "dev") then
   set DEV_DIR=${BUILD_DIR}/trunk/dev
-  set DEST_DIR=/usr/local/freesurfer/dev
-else if ("$1" == "stable-pub") then
-  set RELEASE_TYPE=stable
+  set DEST_DIR=${LOCAL_FS}/dev
+else if ("$RELEASE_TYPE" == "stable") then
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  # notice that the destination is the 'stable3' directory
-  set DEST_DIR=/usr/local/freesurfer/stable3
-  set PUB_DEST_DIR=/usr/local/freesurfer/stable3-pub
+  set DEST_DIR=${LOCAL_FS}/stable
+else if ("$RELEASE_TYPE" == "stable-pub") then
+  set DEV_DIR=${BUILD_DIR}/stable/dev
+  set DEST_DIR=${LOCAL_FS}/stable-pub
 else
-  echo "ERROR: release_type must be either dev or stable-pub"
+  echo "ERROR: release_type must be either dev, stable or stable-pub"
   echo ""
   echo "Examples: "
   echo "  build_release_type dev"
+  echo "  build_release_type stable"
   echo "  build_release_type stable-pub"
   exit 1
 endif
-set SCRIPT_DIR=/space/freesurfer/build/scripts
-set LOG_DIR=/space/freesurfer/build/logs
+set SCRIPT_DIR=${SPACE_FS}/build/scripts
+set LOG_DIR=${SPACE_FS}/build/logs
 
-# this QTDIR path is also used in the configure command further below
-setenv QTDIR /usr/pubsw/packages/qt/current
-setenv GLUT_DYLIB_DIR ""
+# dev build use latest-and-greatest package libs
+# stable build use explicit package versions (for stability)
+if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+  set MNIDIR=/usr/pubsw/packages/mni/1.4
+  set GSLDIR=/usr/pubsw/packages/gsl/1.6
+  set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
+  set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
+  setenv QTDIR  /usr/pubsw/packages/qt/3.3.5
+  unsetenv FSLDIR
+  if (-e /usr/pubsw/packages/fsl/3.2b) then
+    setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
+  else if (-e /usr/pubsw/packages/fsl/3.2) then
+    setenv FSLDIR /usr/pubsw/packages/fsl/3.2
+  endif
+else
+  # dev build uses most current
+  set MNIDIR=/usr/pubsw/packages/mni/current
+  set GSLDIR=/usr/pubsw/packages/gsl/current
+  set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
+  set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
+  setenv QTDIR  /usr/pubsw/packages/qt/current
+  setenv FSLDIR /usr/pubsw/packages/fsl/current
+endif
+
 # on Mac OS X Tiger, glut is not automatically in lib path.
-# also, need /sw/bin to get latex and dvips
+# also, need /sw/bin (Fink) to get latex and dvips.
+setenv GLUT_DYLIB_DIR ""
 if ("$OSTYPE" == "Darwin") then
-  set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
+  set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 
-# Output files (OUTPUTF and CVSUPDATEF)
+
+#
+# Output log files (OUTPUTF and CVSUPDATEF)
 ######################################################################
 #
-set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
 set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
@@ -69,6 +119,10 @@ set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
 set TIME_STAMP=`date +%Y%m%d`
 
+#goto symlinks
+
+
+#
 # Sanity checks
 ######################################################################
 #
@@ -90,20 +144,25 @@ if(! -d $DEST_DIR) then
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
-
-# processor-specific build options.
-######################################################################
-#set P3CXXFLAGS="CXXFLAGS=-march=pentium3"
-#set P4CXXFLAGS="CXXFLAGS=-march=pentium4-64"
-#set x8664CXXFLAGS="CXXFLAGS=-march=x86-64"
-
-# Source the source_before_building file if they have it
-if( -f ${BUILD_DIR}/source_before_building.csh ) then
-  source ${BUILD_DIR}/source_before_building.csh
+if ("${BUILD_PLATFORM}" != "${PLATFORM}") then
+  echo "PLATFORM mismatch!" >>& $OUTPUTF
+  echo "${LOCAL_FS}/PLATFORM=${PLATFORM}" >>& $OUTPUTF
+  echo "${BUILD_DIR}/PLATFORM=${BUILD_PLATFORM}" >>& $OUTPUTF
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
+  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
 endif
 
+
+# Source the source_before_building file if it exists
+if( -f ${BUILD_DIR}/source_before_building.csh ) then
+  echo "source ${BUILD_DIR}/source_before_building.csh" >>& $OUTPUTF
+  source ${BUILD_DIR}/source_before_building.csh
+endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Settings" >>& $OUTPUTF
+echo "PLATFORM $PLATFORM" >>& $OUTPUTF
+echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
 echo "QTDIR $QTDIR" >>& $OUTPUTF
 echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" >>& $OUTPUTF
@@ -126,7 +185,23 @@ if( $?LDFLAGS ) then
 endif
 echo "" >>& $OUTPUTF
 
-# Do the build.
+# in case a new dev dir needed to be created, and the old one cant
+# be deleted because of permissions, then name that old dir 'devold',
+# and it will get deleted here:
+set DEVOLD=${BUILD_DIR}/trunk/devold
+if (-e ${DEVOLD}) then
+  echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
+  rm -rf ${DEVOLD} >>& $OUTPUTF
+endif
+set DEVOLD=${BUILD_DIR}/stable/devold
+if (-e ${DEVOLD}) then
+  echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
+  rm -rf ${DEVOLD} >>& $OUTPUTF
+endif
+
+
+#
+# CVS update
 ######################################################################
 #
 # Go to dev directory, update code, and check the result. If there are
@@ -206,7 +281,7 @@ grep -e ^\[UP\]\   $CVSUPDATEF >& /dev/null
 if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes"
-  mail -s "$msg" $MAIL_LIST < $OUTPUTF
+  mail -s "$msg" $SUCCESS_MAIL_LIST < $OUTPUTF
   echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
   cat $CVSUPDATEF >>& $OUTPUTF
   echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
@@ -222,9 +297,12 @@ echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
 cat $CVSUPDATEF >>& $OUTPUTF
 echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
 rm -f $CVSUPDATEF
+# CVS update is now complete
+
 
 #
-# CVS update is now complete, so now, make distclean, and re-configure
+# make distclean and configure
+######################################################################
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "Freshening Makefiles" >>& $OUTPUTF
@@ -234,8 +312,8 @@ if (-e Makefile) make distclean >>& $OUTPUTF
 echo "CMD: rm -rf autom4te.cache" >>& $OUTPUTF
 if (-e autom4te.cache) rm -rf autom4te.cache >>& $OUTPUTF
 echo "CMD: libtoolize --force" >>& $OUTPUTF
-if ( "`uname -s`" == "Linux") libtoolize --force >>& $OUTPUTF
-if ( "`uname -s`" == "Darwin") glibtoolize --force >>& $OUTPUTF
+if ( "${OSTYPE}" == "Linux") libtoolize --force >>& $OUTPUTF
+if ( "${OSTYPE}" == "Darwin") glibtoolize --force >>& $OUTPUTF
 echo "CMD: autoreconf --force" >>& $OUTPUTF
 autoreconf --force >>& $OUTPUTF
 echo "CMD: aclocal" >>& $OUTPUTF
@@ -248,16 +326,23 @@ echo "CMD: ./configure..." >>& $OUTPUTF
 # notice that the configure command sets 'bindir' to /bin-new, overriding
 # the default /bin.  later, after make install, bin-new is moved to /bin.
 # this is to minimize disruption of machines running recon-all.
-./configure \
---with-mni-dir=/usr/pubsw/packages/mni/current \
---with-gsl-dir=/usr/pubsw/packages/gsl/current \
---with-tcl-dir=/usr/pubsw/packages/tcltktixblt/current \
---with-tixwish=/usr/pubsw/packages/tcltktixblt/current/bin/tixwish8.1.8.4 \
---with-qt-dir=${QTDIR} \
---prefix=${DEST_DIR} \
---bindir=${DEST_DIR}/bin-new \
---enable-nmr-install \
-`cat ${BUILD_DIR}/configure_options.txt` >>& $OUTPUTF
+set ENAB_NMR="--enable-nmr-install"
+if ("${RELEASE_TYPE}" == "stable-pub") then
+  # public build doesn't get the extra special stuff
+  set ENAB_NMR=""
+endif
+set cnfgr=(./configure)
+set cnfgr=($cnfgr --prefix=${DEST_DIR})
+set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
+set cnfgr=($cnfgr $ENAB_NMR)
+set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
+set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
+set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
+set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
+set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
+set cnfgr=($cnfgr --with-qt-dir=${QTDIR})
+echo "$cnfgr" >>& $OUTPUTF
+$cnfgr >>& $OUTPUTF
 if ($status != 0) then
   echo "########################################################" >>& $OUTPUTF
   echo "config.log" >>& $OUTPUTF
@@ -268,6 +353,8 @@ if ($status != 0) then
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
+  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
@@ -275,14 +362,16 @@ if ($status != 0) then
   exit 1
 endif
 
+
 #
 # make
+######################################################################
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "Making $DEV_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: make" >>& $OUTPUTF
-make >>& $OUTPUTF
+echo "CMD: make -j 4" >>& $OUTPUTF
+make -j 4 >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
@@ -291,6 +380,8 @@ if ($status != 0) then
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
+  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
@@ -298,30 +389,47 @@ if ($status != 0) then
   exit 1  
 endif
 
+
 #
 # make install
-#
+######################################################################
 # (recall that configure sets $bindir to bin-new/ instead of /bin, 
 # to minimize disruption of machines using contents of /bin)
 echo "CMD: rm -Rf ${DEST_DIR}/bin-new" >>& $OUTPUTF
 if (-e ${DEST_DIR}/bin-new) rm -rf ${DEST_DIR}/bin-new >>& $OUTPUTF
-echo "CMD: make install" >>& $OUTPUTF
-make install >>& $OUTPUTF
+if ("${RELEASE_TYPE}" == "stable-pub") then
+  # make release does make install, and runs some extra commands that
+  # remove stuff not intended for public release
+  echo "Building public stable" >>& $OUTPUTF
+  set make_cmd=(make release)
+else
+  set make_cmd=(make install)
+endif
+echo "$make_cmd" >>& $OUTPUTF
+$make_cmd >>& $OUTPUTF
 if ($status != 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build (make install) FAILED"
+  set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
+  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  # and the fsaverage in the subjects dir...
+  echo "CMD: chmod -R g+rw ${DEST_DIR}/subjects/fsaverage" >>& $OUTPUTF
+  chmod -R g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-#strip ${DEST_DIR}/bin-new/* >& /dev/null
-
+if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+  echo "CMD: strip ${DEST_DIR}/bin-new/*" >>& $OUTPUTF
+  strip ${DEST_DIR}/bin-new/* >& /dev/null
+endif
+#
 # Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
 # is using a binary in bin/.
@@ -336,16 +444,16 @@ echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
 mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
-
 #
 # make install is now complete, and /bin dir is now setup with new code
 #
-
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
+echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
+chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
 chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
@@ -353,100 +461,156 @@ chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
-#
-# If building the stable release, then do the special stuff necessary
-# for the public version of it.
-#
-if ($?PUB_DEST_DIR) then
-  echo "########################################################" >>& $OUTPUTF
-  echo "Building public stable" >>& $OUTPUTF
-  echo "" >>& $OUTPUTF
-  echo "CMD: make release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
-  make release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
-  if ($status != 0) then
-    set msg="$HOSTNAME $RELEASE_TYPE release build (make) FAILED"
-    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
-    touch ${FAILED_FILE}
-    chmod g+w ${FAILED_FILE}
-    # set group write bit on files changed by make tools:
-    echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
-    chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
-    exit 1  
-  endif
-  mv ${DEST_DIR}/bin-new ${PUB_DEST_DIR}/bin >>& $OUTPUTF
-  # strip symbols from binaries, greatly reducing their size
-  strip ${PUB_DEST_DIR}/bin/* >& /dev/null
-  # set group write bit on files changed by make tools:
-  echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
-  chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
-endif
 
 #
+# library and sample subject symlinks
+######################################################################
 # ensure that the symlinks to the necessary packages are in place
 #
 symlinks:
 
-set DEST_DIR_LIST=()
-if ($?DEST_DIR) then
-  set DEST_DIR_LIST=($DEST_DIR_LIST $DEST_DIR)
-endif
-if ($?PUB_DEST_DIR) then
-  set DEST_DIR_LIST=($DEST_DIR_LIST $PUB_DEST_DIR)
-endif
-foreach destdir ($DEST_DIR_LIST)
-  if (! -d $destdir/mni ) then
-    set cmd=(ln -s /usr/pubsw/packages/mni/current $destdir/mni)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/fsl ) then
-    set cmd=(ln -s /usr/pubsw/packages/fsl/current $destdir/fsl)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/tcltktixblt ) then
-    set cmd=(ln -s /usr/pubsw/packages/tcltktixblt/current $destdir/lib/tcltktixblt)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/gsl ) then
-    set cmd=(ln -s /usr/pubsw/packages/gsl/current $destdir/lib/gsl)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
-  if (! -d $destdir/lib/qt ) then
-    set cmd=(ln -s /usr/pubsw/packages/qt/current $destdir/lib/qt)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
-  endif
+  # first remove existing links
+  rm -f ${DEST_DIR}/mni
+  rm -f ${DEST_DIR}/fsl
+  rm -f ${DEST_DIR}/lib/tcltktixblt
+  rm -f ${DEST_DIR}/lib/gsl
+  rm -f ${DEST_DIR}/lib/qt
+  rm -f ${DEST_DIR}/lib/misc
+  # then setup for proper installation
+  set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
+  set cmd2=(ln -s ${FSLDIR} ${DEST_DIR}/fsl)
+  set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
+  set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
+  set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
   if ("$OSTYPE" == "Darwin") then
-    if (! -d $destdir/lib/misc ) then
-      set cmd=(ln -s /usr/pubsw/packages/tiffjpegglut $destdir/lib/misc)
-      echo "$cmd" >>& $OUTPUTF
-      $cmd
-    endif
+      set cmd6=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
   endif
-  # also sample subject:
-  if (! -d $destdir/subjects/bert ) then
-    set cmd=(ln -s /space/freesurfer/subjects/bert $destdir/subjects/bert)
-    echo "$cmd" >>& $OUTPUTF
-    $cmd
+  # execute the commands
+  echo "$cmd1" >>& $OUTPUTF
+  $cmd1
+  echo "$cmd2" >>& $OUTPUTF
+  $cmd2
+  echo "$cmd3" >>& $OUTPUTF
+  $cmd3
+  echo "$cmd4" >>& $OUTPUTF
+  $cmd4
+  echo "$cmd5" >>& $OUTPUTF
+  $cmd5
+  if ("$OSTYPE" == "Darwin") then
+    echo "$cmd6" >>& $OUTPUTF
+    $cmd6
   endif
-end
+  # also setup sample subject:
+  rm -f ${DEST_DIR}/subjects/bert
+  set cmd=(ln -s ${SPACE_FS}/subjects/bert ${DEST_DIR}/subjects/bert)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd
+
+
+#
+# Qt fixup
+######################################################################
+# On the Mac, for the Qt apps to work, the binary in the bin directory
+# cannot be called directly.  The 'real' binary is found in the directory
+# (qtapp).app/Contents/MacOS/.  So replace the bad binary with a script.
+#
+if ("$OSTYPE" == "Darwin") then
+  set QT_APPS=(scuba2 qdec plotter)
+  foreach qtapp ($QT_APPS)
+    rm -f ${DEST_DIR}/bin/$qtapp
+    echo "${DEST_DIR}/bin/$qtapp.app/Contents/MacOS/$qtapp" \
+      > ${DEST_DIR}/bin/$qtapp
+    chmod a+x ${DEST_DIR}/bin/$qtapp
+  end
+endif
+
+
+#
+# create build-stamp.txt
+######################################################################
+# create a build-stamp file, containing some basic info on this build
+# which is displayed when FreeSurferEnv.csh is executed.  
+# its also used by create_targz to name the tarball.
+# Note: the stable build version info is hard-coded here! so it
+# should be updated here with each release update
+set DATE_STAMP="`date +%Y%m%d`"
+set FS_PREFIX="freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}"
+if ("$RELEASE_TYPE" == "dev") then
+  echo "${FS_PREFIX}-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
+else if ("$RELEASE_TYPE" == "stable") then
+  echo "${FS_PREFIX}-${STABLE_VER_NUM}-${DATE_STAMP}" \
+    > ${DEST_DIR}/build-stamp.txt
+else if ("$RELEASE_TYPE" == "stable-pub") then
+  echo "${FS_PREFIX}-${STABLE_PUB_VER_NUM}" > ${DEST_DIR}/build-stamp.txt
+else
+  echo "ERROR: unknown RELEASE_TYPE: $RELEASE_TYPE"
+  exit 1
+endif
+
+
+#
+# create tarball
+######################################################################
+# If building stable-pub, then create a tarball
+if ("$RELEASE_TYPE" == "stable-pub") then
+  set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  if ($status) then
+    echo "create_targz.csh failed to create tarball!"
+    # don't exit with error, since create_targz can be re-run manually
+  endif
+endif
+
+#
+# copy libraries and include filed needed by those who want to 
+# build against the freesurfer enviro (NMR center only)
+######################################################################
+#
+if ("$RELEASE_TYPE" == "dev") then
+  # remove existing 
+  set cmd=(rm -Rf ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  set cmd=(rm -Rf ${DEST_DIR}/include)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  set cmd=(mkdir -p ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # cp necessary libs
+  set dirlist=(${DEV_DIR}/dicom/libdicom.a \
+	${DEV_DIR}/hipsstubs/libhipsstubs.a \
+	${DEV_DIR}/rgb/librgb.a \
+	${DEV_DIR}/unix/libunix.a \
+	${DEV_DIR}/utils/libutils.a)
+  set cmd=(cp $dirlist ${DEST_DIR}/lib/dev)
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # cp include dir
+  set cmd=(cp -r ${DEV_DIR}/include ${DEST_DIR})
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+  # make sure all files in DEST_DIR are group writable
+  set cmd=(chmod -R g+rw ${DEST_DIR})
+  echo "$cmd" >>& $OUTPUTF
+  $cmd >>& $OUTPUTF
+endif
 
 
 # Success, so remove fail indicator:
 rm -rf ${FAILED_FILE}
 
+
 done:
 
+# Finish up
+######################################################################
+#
 echo "##########################################################" >>& $OUTPUTF
 echo "Done." >>& $OUTPUTF
 set END_TIME=`date`
 echo $END_TIME >>& $OUTPUTF
-
-# Finish up
-######################################################################
 
 # Move log file to stamped version.
 chmod g+w $OUTPUTF
@@ -456,5 +620,19 @@ gzip -f ${LOG_DIR}/build_log-$RELEASE_TYPE-$HOSTNAME-$TIME_STAMP.txt
 # Send email.
 echo "Begin ${BEGIN_TIME}, end ${END_TIME}" >& $LOG_DIR/message-$HOSTNAME.txt
 set msg="$HOSTNAME $RELEASE_TYPE build is wicked awesome."
-mail -s "$msg" $MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
+mail -s "$msg" $SUCCESS_MAIL_LIST < $LOG_DIR/message-$HOSTNAME.txt
 rm $LOG_DIR/message-$HOSTNAME.txt
+
+#
+# Now for a cheap way to build stable-pub, which is normally only run
+# when a public distribution is needed.  Just create an empty file
+# called build_stable-pub_flag in the BUILD_DIR, and stable-pub will
+# is built.
+if ("$RELEASE_TYPE" == "stable") then
+  if (-e ${BUILD_DIR}/build_stable-pub) then
+    rm -f ${BUILD_DIR}/build_stable-pub
+    # force stable build to run again by removing a CVS'd file:
+    rm -f ${DEV_DIR}/setup_configure
+    ${SCRIPT_DIR}/build_stable-pub.csh
+  endif
+endif
