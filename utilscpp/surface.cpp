@@ -107,7 +107,7 @@ void Surface::Expand(int nextrav,int nextraf){
 #if 0
 int Surface::OpenFile(const string s, int verbose)
 {
-	ifstream file(&s[0]);
+	ifstream file(s.c_str());
 
 	if(s[s.size()-1]=='d'){ // CERTIS file format 
 		file >> nvertices;
@@ -146,7 +146,7 @@ int Surface::OpenFile(const string s, int verbose)
 
 int Surface::WriteFile(const string s, int verbose) const
 {
-	ofstream file(&s[0]);
+	ofstream file(s.c_str());
 
 	file << nvertices << endl;
 	for(int n= 0 ; n < nvertices ; n++)
@@ -168,7 +168,7 @@ int Surface::GetDefectLabels(const string s)
 
 int Surface::OpenCurvatureFile(const string s){
 
-	ifstream file(&s[0]);
+	ifstream file(s.c_str());
 
 	int tmp;
 	float a,b,c,curv;
