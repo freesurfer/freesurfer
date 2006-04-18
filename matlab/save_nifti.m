@@ -14,7 +14,7 @@ ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
 if(strcmpi(ext,'.gz'))
   gzip_needed = 1;
   niftifile = niftifile(1:strlen(niftifile)-3);
-  fprintf('First, saving to %s before compressing\n',niftifile);
+  %fprintf('First, saving to %s before compressing\n',niftifile);
 else
   gzip_needed = 0;
 end
@@ -128,8 +128,8 @@ end
 
 if(gzip_needed)
   cmd = sprintf('gzip -f %s', niftifile);
-  fprintf('Compressing with\n');
-  fprintf('   %s\n',cmd);
+  %fprintf('Compressing with\n');
+  %fprintf('   %s\n',cmd);
   unix(cmd);
 end
 
