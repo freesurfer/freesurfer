@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.15 2006/04/05 22:36:35 greve Exp $
+# $Id: flacproc-sess,v 1.16 2006/04/18 19:58:53 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.15 2006/04/05 22:36:35 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.16 2006/04/18 19:58:53 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -19,7 +19,7 @@ set svres  = 0;
 set svres0 = 0;
 set svrvar0 = 1;
 set svar1   = 1;
-set do_rfx = 1;
+set do_rfx = 0;
 set do_ffx = 1;
 
 if($#argv == 0)  goto usage_exit;
