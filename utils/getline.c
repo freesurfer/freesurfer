@@ -18,8 +18,8 @@
 
 /* Written by Simon Josefsson. */
 
-#ifdef Darwin
-// getline does not exist on Mac OS X
+#if defined(Darwin) || defined (SunOS)
+// getline does not exist on Mac OS X or Solaris
 
 #if HAVE_CONFIG_H
 # include <config.h>
@@ -34,4 +34,4 @@ getline (char **lineptr, size_t *n, FILE *stream)
   return getdelim (lineptr, n, '\n', stream);
 }
 
-#endif // Darwin
+#endif // Darwin or SunOS

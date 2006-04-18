@@ -19,8 +19,8 @@
 
 /* Ported from glibc by Simon Josefsson. */
 
-#ifdef Darwin
-// getline does not exist on Mac OS X                                                                                                                                                                                                                                                     
+#if defined(Darwin) || defined(SunOS)
+// getline does not exist on Mac OS X or Solaris                                                                                                                                                                                                                                                     
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -129,4 +129,4 @@ getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
   return result;
 }
 
-#endif // Darwin
+#endif // Darwin or SunOS

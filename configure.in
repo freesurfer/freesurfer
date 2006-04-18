@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.180 2006/04/15 00:35:26 nicks Exp $"
+# "$Id: configure.in,v 1.181 2006/04/18 23:10:12 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -159,8 +159,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
- CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
+ CFLAGS="-g -O2 -Wall $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
@@ -718,8 +718,10 @@ else
   ac_gl_includes="NO"
   ac_gl_libraries="NO"
   ac_gl_bindir="NO"
-  GL_CFLAGS=""
-  GL_LIBS=""
+  # these are lower-case because later AX_CHECK_GL trounces
+  # GL_CLFLAGS and GL_LIBS:
+  gl_cflags=""
+  gl_libs=""
   AC_MSG_CHECKING(GL directory)
 
   AC_ARG_WITH(gl-dir,
@@ -731,16 +733,16 @@ else
 
   if test ! "$ac_gl_includes" = "NO"; then
     AC_MSG_RESULT(gl directory is $withval)
-    GL_CFLAGS=-I$ac_gl_includes
+    gl_cflags=-I$ac_gl_includes
   else
     AC_MSG_RESULT(OpenGL directory is not supplied)
   fi
   if test ! "$ac_gl_libraries" = "NO"; then
-    GL_LIBS=-L$ac_gl_libraries
+    gl_libs=-L$ac_gl_libraries
   fi
 
-  AC_SUBST(GL_CFLAGS)
-  AC_SUBST(GL_LIBS)
+  AC_SUBST(gl_cflags)
+  AC_SUBST(gl_libs)
 
   #######
   # GLUT
@@ -777,6 +779,10 @@ fi
 
 #####################################################
 # AX_CHECK_GL produces GL_CFLAGS GL_LIBS
+ac_save_cflags=$CFLAGS
+ac_save_ldflags=$LDFLAGS
+CFLAGS="$gl_cflags $CFLAGS"
+LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
   AC_MSG_RESULT([GL not found])
@@ -786,8 +792,14 @@ Setting GL_CFLAGS='$GL_CFLAGS'
 and GL_LIBS='$GL_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
 fi
+CFLAGS=$ac_save_cflags
+LDFLAGS=$ac_save_ldflags
 #####################################################
 # AX_CHECK_GLU produces GLU_CFLAGS GLU_LIBS
+ac_save_cflags=$CFLAGS
+ac_save_ldflags=$LDFLAGS
+CFLAGS="$gl_cflags $CFLAGS"
+LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GLU
 if test "X$no_glu" = "Xyes"; then
   AC_MSG_RESULT([GLu not found])
@@ -797,6 +809,8 @@ Setting GLU_CFLAGS='$GLU_CFLAGS'
 and GLU_LIBS='$GLU_LIBS'])
   #redundant: LIBS_OPENGL="$LIBS_OPENGL $GLU_LIBS"
 fi
+CFLAGS=$ac_save_cflags
+LDFLAGS=$ac_save_ldflags
 #####################################################
 # AX_CHECK_GLUT produces GLUT_CFLAGS GLUT_LIBS
 ac_save_cflags=$CFLAGS
