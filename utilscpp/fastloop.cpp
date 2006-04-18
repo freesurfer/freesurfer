@@ -415,8 +415,9 @@ int FastLoop::_ExtractFirstLoop(Loop &loop, int init_fn1, int init_fn2)
 			vertexdata[facedata[fn].v[i]].fmState = 1;
 		ASSERT(fn!=facedata[fn].fmFather);
 		if(fn==facedata[fn].fmFather) {
-			surface->WriteFile("pp2.3d",1);
-			exit(-1);
+			//		surface->WriteFile("pp2.3d",1);
+			//exit(-1);
+			ErrorExit("ExtractFirstLoop: father same as son..."); 
 		}
 		fn=facedata[fn].fmFather;
 	}
