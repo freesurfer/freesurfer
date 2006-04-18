@@ -19,7 +19,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
 %
-% $Id: fast_st2fir.m,v 1.3 2004/10/23 01:42:39 greve Exp $
+% $Id: fast_st2fir.m,v 1.4 2006/04/18 19:34:51 greve Exp $
 
 Xfir = [];
 
@@ -38,14 +38,14 @@ st = sortrows(st); % sort in order of onset time
 d = diff(st(:,1));
 ind = find(d == 0);
 if(~isempty(ind))
-  fprintf('ERROR: two or more presentations are simultaneous\n');
+  fprintf('ERROR: fast_st2fir: two or more presentations are simultaneous\n');
   return;
 end
 tonset  = st(:,1);
 toffset = st(:,1) + st(:,2);
 ind = find(toffset(1:end-1) > tonset(2:end));
 if(~isempty(ind))
-  fprintf('ERROR: two or more presentations overlap\n');
+  fprintf('ERROR: fast_st2fir: two or more presentations overlap\n');
   return;
 end
 
