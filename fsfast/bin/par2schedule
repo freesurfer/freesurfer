@@ -1,15 +1,15 @@
 #!/usr/bin/python
-# $Id: par2schedule,v 1.1 2006/04/13 23:39:50 greve Exp $
-
+# $Id: par2schedule,v 1.2 2006/04/18 04:18:27 greve Exp $
 import sys;
 import os;
 import string;
 
+#---------------------------------------------------------
 # http://docs.python.org/modindex.html
 # 1. Colons go after if, elif, else, while, for
 # 2. Lists are like lists in csh
 # 3. Make sure to import lib
-# 4. globals are declared in the subroutine
+# 4. globals are annoyingly declared in the subroutine 
 # 5. printf is print("x = %g, y = %g" % (x,y));
 # 6. To read a pipe, fp = os.popen(cmd); a = fp.read(fp);
 #      err=fp.close(fp); result = string.split(a);
@@ -17,11 +17,65 @@ import string;
 # 7. There are no endif, endfor, endwhile. The end of
 #    a control is indicated by indentation
 
+
+# -------------------------------------------------------------------
+# Everything between BEGINHELP and ENDHELP will be printed when the
+# program is called with --help.
+#
+
+# BEGINHELP
+
+# Converts a paradigm file to a series of stimulus schedule files.
+# The parfile has two columns: (1) onset time and, (2) numberic
+# stimulus id.  There is a different schedule file for each event
+# type. The schedule file has 3 columns: (1) onset time, (2) duration,
+# and (3) weight (which will always be 1.0 from this program). The
+# duration is determined from the onset time of one stimulus to the
+# onset time of the next. The duration of the last stimulus is
+# computed as the time from its onset to the end of the run, which is
+# why the TR and number of TRs is needed. 
+
+#
+# par2schedule --p main3.par --ev 1 D0.sch --ev 2 D2.sch \
+#   --ev 3 D4.sch --tr 2 --ntrs 144
+
+# ENDHELP
+# -------------------------------------------------------------------
+
+
 #---------------------------------------------------------
-def print_help():
+def print_usage():
   print "USAGE: par2scheduley";
   print "  --p parfile";
-  print "  --ev evno schfile";
+  print "  --ev eventtypeid schedulefile";
+  print "  --tr TR : repetition time in seconds";
+  print "  --ntrs ntrs : number of TRs";
+  print "  --help : help";
+  print "  --debug ";
+  return 0;
+#end def print_usage:
+
+#---------------------------------------------------------
+def print_help():
+  global ProgName;
+  print "help %s" % ProgName;
+  printon = 0;
+  fp = open(ProgName,'r');
+  for line in fp:
+    if(printon):
+      ind = line.rfind('ENDHELP');
+      if(ind == -1):
+        print "%s" % line.replace('# ','',1);
+      else:
+        sys.exit(1);
+      #endif
+    else:
+      ind = line.rfind('BEGINHELP');
+      if(ind != -1):
+        printon = 1;
+      #endif
+    #endif
+  #end # while
   return 0;
 #end def print_help:
 
@@ -33,13 +87,11 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global parfile;
-  global nevents;
-  global events;
-  global schfiles;
-  global debug;
+  global Version;
+  global parfile, nevent_types, eventtypes, schfiles;
+  global tr,ntrs,debug;
 
-  del argv[0]; # get past program name (like shift)
+  del argv[0]; # get past program name (del is like shift)
 
   while(len(argv) != 0):
     flag = argv[0];
@@ -51,10 +103,24 @@ def parse_args(argv):
       parfile = argv[0]; del argv[0];
     elif(flag == "--ev"):
       if(len(argv) < 2): argnerr(2,flag);
-      print "len(events) = %d" % len(events)
-      events.insert(nevents,argv[0]); del argv[0];
-      schfiles.insert(nevents,argv[0]); del argv[0];
-      nevents = nevents + 1;
+      #print "len(eventtypes) = %d" % len(eventtypes)
+      id = string.atoi(argv[0]);
+      eventtypes.insert(nevent_types,id); del argv[0];
+      schfiles.insert(nevent_types,argv[0]); del argv[0];
+      nevent_types = nevent_types + 1;
+    elif(flag == "--tr"):
+      if(len(argv) < 1): argnerr(1,flag);
+      tr = string.atof(argv[0]); del argv[0];
+    elif(flag == "--ntrs"):
+      if(len(argv) < 1): argnerr(1,flag);
+      ntrs = string.atoi(argv[0]); del argv[0];
+    elif(flag == "--help"):
+      print_usage();
+      print_help();
+      sys.exit(1);
+    elif(flag == "--version"):
+      print "%s" % (Version)
+      sys.exit(1);
     elif(flag == "--debug"):
       debug = 1;
     else:
@@ -69,14 +135,28 @@ def parse_args(argv):
 #---------------------------------------------------------
 def check_args():
   global parfile;
-  global nevents;
+  global nevent_types;
+  global tr;
+  global ntrs;
 
   if(len(parfile) == 0):
     print "ERROR: no parfile specified";
     sys.exit(1);
   #endif    
-  if(nevents == 0):
+  if(not os.path.exists(parfile)):
+    print "ERROR: no parfile %s does not exist" % parfile;
+    sys.exit(1);
+  #endif
+  if(nevent_types == 0):
     print "ERROR: no event types specified";
+    sys.exit(1);
+  #endif    
+  if(ntrs < 0):
+    print "ERROR: need to specify number of TRs";
+    sys.exit(1);
+  #endif    
+  if(tr < 0):
+    print "ERROR: need to specify TR";
     sys.exit(1);
   #endif    
 
@@ -84,53 +164,86 @@ def check_args():
 #end check_args()
 
 #-----------------------------------------------------------
-# ------ main -----------------------------------------------
+# ----- main -----------------------------------------------
 #-----------------------------------------------------------
 
+ProgName = sys.argv[0];
+Version = '$Id: par2schedule,v 1.2 2006/04/18 04:18:27 greve Exp $';
 parfile = ();
-nevents  = 0;
-events = [];
+nevent_types  = 0;
+eventtypes = [];
 schfiles = [];
 debug = 0;
+tr = -1;
+ntrs = -1;
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
-  print_help();
+  print_usage();
   sys.exit(0);
 #end
 parse_args(sys.argv);
 check_args();
+trun = tr*ntrs;
 
-print "-------here-----------";
 print "parfile  is %s" % parfile
-print "nevents  is %d" % nevents
-print "events   is %s" % events
+print "nevent_types  is %d" % nevent_types
+print "eventtypes   is %s" % eventtypes
 print "schfiles is %s" % schfiles
 nth = 0;
-for event in events:
-  print "%d %s %s" % (nth,events[nth],schfiles[nth]);
-  #print "%s" % events[nth]
+for event in eventtypes:
+  print "%s %s" % (eventtypes[nth],schfiles[nth]);
+  #print "%s" % eventtypes[nth]
   nth = nth + 1;
 #end
 
 fp = open(parfile,'r');
-nthline = 1;
+tevents = [];
+idevents = [];
+nthevent = 1;
 for line in fp:
   tmp = string.split(line);
-  t = tmp[0];
-  id = tmp[1];
-  if(events.count(id) == 0):
-    print "ERROR: line %d, event id %s not in even list" % (nthline,id);
+  t = string.atof(tmp[0]);
+  #id = tmp[1];
+  id = string.atoi(tmp[1]);
+  if(id != 0 and eventtypes.count(id) == 0):
+    print "ERROR: line %d, event id %s not in even list" % (nthevent,id);
     sys.exit(1);
   #end
-  print "%s %s %d" % (t,id,events.count(id));
-  nthline = nthline + 1;
+  #print "%f %d %d" % (t,id,eventtypes.count(id));
+  tevents.insert(nthevent,t);
+  idevents.insert(nthevent,id);
+  nthevent = nthevent + 1;
+#end
+fp.close;
+nevents = nthevent-1;
+print "Found %d events" % (nevents);
+
+nth = 0;
+schfp = [];
+for event in eventtypes:
+  fp = open(schfiles[nth],'w');
+  schfp.insert(nth,fp);
+  nth = nth + 1;
 #end
 
-print "-------here-----------";
+nthevent = 0;
+for tev in tevents:
+  id = idevents[nthevent];
+  if(nthevent < nevents-1):
+    tnext = tevents[nthevent+1];
+  else:
+    tnext = trun;
+  #end
+  tduration = tnext - tev;  
+  #print "%d %f %d %f %s" % (nthevent+1,tev,id,tduration,schfiles[id-1]);
+  schfp[id-1].write( "%f %f 1\n" % (tev,tduration) );
+  nthevent = nthevent + 1;
+#end
 
 sys.exit(0);
 #-------------------------------------------------#
+
 
 
 
