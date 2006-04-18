@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.16 2006/04/18 19:58:53 greve Exp $
+# $Id: flacproc-sess,v 1.17 2006/04/18 21:37:32 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.16 2006/04/18 19:58:53 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.17 2006/04/18 21:37:32 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -165,8 +165,16 @@ while( $#argv != 0 )
       set do_rfx = 0;
       breaksw
 
+    case "-rfx":
+      set do_rfx = 1;
+      breaksw
+
     case "-noffx":
       set do_ffx = 0;
+      breaksw
+
+    case "-ffx":
+      set do_ffx = 1;
       breaksw
 
     case "-monly":
