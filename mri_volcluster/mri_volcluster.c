@@ -64,7 +64,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.21 2006/02/14 03:30:15 jsnyder Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.21.2.1 2006/04/18 16:12:07 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.21 2006/02/14 03:30:15 jsnyder Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.21.2.1 2006/04/18 16:12:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
     MatrixPrint(stdout,CRS2MNI);
   }
 
-  if(sizethresh < 0) sizethresh = sizethreshvox*voxsize;
+  if(sizethresh == 0) sizethresh = sizethreshvox*voxsize;
 
   /* Replace data with synthetic if desired */
   if(synthfunction != NULL){
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
     col = hitcol[nthhit];
     row = hitrow[nthhit];
     slc = hitslc[nthhit];
-    if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+    if(MRIgetVoxVal(HitMap,col,row,slc,0)) continue;
 
     /* Grow cluster using this hit as a seed */
     ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag);
@@ -309,8 +309,8 @@ int main(int argc, char **argv)
 
   /* Remove clusters that do not meet the minimum size requirement */
   ClusterList2 = clustPruneBySize(ClusterList,nclusters,
-          voxsize,sizethresh,
-          &nprunedclusters);
+				  voxsize,sizethresh,
+				  &nprunedclusters);
   //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   nclusters = nprunedclusters;
   ClusterList = ClusterList2;
