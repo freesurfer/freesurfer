@@ -6082,35 +6082,37 @@ read_image_info(char *fpref)
 {
   char fname[NAME_LENGTH];
   MRI* mri_header;
-  struct stat info;
-  int rStat;
+  FILE* fTest;
 
   mri_header = NULL;
   sprintf (fname, "%s.info", fpref);
-  rStat = stat (fname, &info);
-  if (S_ISREG(info.st_mode))
+  fTest = fopen (fname, "r");
+  if (NULL != fTest)
     {
+      fclose (fTest);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
 
   if (NULL == mri_header) 
     {
       sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
-      rStat = stat (fname, &info);
-      if (S_ISREG(info.st_mode))
-        {
-          mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-        }
+      fTest = fopen (fname, "r");
+      if (NULL != fTest)
+	{
+	  fclose (fTest);
+	  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	}
     }
 
   if (NULL == mri_header) 
     {
       sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
-      rStat = stat (fname, &info);
-      if (S_ISREG(info.st_mode))
-        {
-          mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-        }
+      fTest = fopen (fname, "r");
+      if (NULL != fTest)
+	{
+	  fclose (fTest);
+	  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	}
     }
 
   if (mri_header)
@@ -19010,7 +19012,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.194 2006/03/29 16:50:53 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.195 2006/04/18 19:02:52 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21716,8 +21718,7 @@ int conv_initialize()
 {
   char fname[STRLEN] = "";
   char surf_path[STRLEN] = "";
-  struct stat info;
-  int rStat;
+  FILE* fTest;
 
 
   /* allocate our conversion matrices. */
@@ -21762,26 +21763,28 @@ int conv_initialize()
       FileNamePath (mris->fname, surf_path);
       sprintf (fname, "%s/../mri/orig/COR-.info", surf_path);
       
-      info.st_mode = 0;
-      rStat = stat (fname, &info);
-      if (S_ISREG(info.st_mode))
+      fTest = fopen (fname, "r" );
+      if (NULL != fTest)
         {
+	  fclose (fTest );
           orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
         }
       if( NULL == orig_mri_header ) 
         {
 	  sprintf (fname, "%s/../mri/orig.mgh", surf_path);
-          rStat = stat (fname, &info);
-          if (S_ISREG(info.st_mode))
-            {
+	  fTest = fopen (fname, "r" );
+	  if (NULL != fTest)
+	    {
+	      fclose (fTest );
               orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
             }
           if( NULL == orig_mri_header ) 
             {
 	      sprintf (fname, "%s/../mri/orig.mgz", surf_path);
-	      rStat = stat (fname, &info);
-	      if (S_ISREG(info.st_mode))
+	      fTest = fopen (fname, "r" );
+	      if (NULL != fTest)
 		{
+		  fclose (fTest );
 		  orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
 		}
 	      if( NULL == orig_mri_header ) 
