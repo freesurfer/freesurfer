@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/04/13 00:28:38 $
-// Revision       : $Revision: 1.122 $
+// Revision Date  : $Date: 2006/04/18 17:45:06 $
+// Revision       : $Revision: 1.123 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.122 2006/04/13 00:28:38 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.123 2006/04/18 17:45:06 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.122 2006/04/13 00:28:38 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.123 2006/04/18 17:45:06 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1489,47 +1489,43 @@ int main(int argc, char *argv[])
     }
 
   /* ----- apply the in_like volume if it's been read ----- */
-  if(in_like_flag)
-    {
-      if(mri->width   != mri_in_like->width ||
-         mri->height  != mri_in_like->height ||
-         mri->depth   != mri_in_like->depth ||
-         mri->nframes != mri_in_like->nframes)
-        {
-          errno = 0;
-          ErrorPrintf(ERROR_BADPARM, "volume sizes do not match\n");
-          ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) "
-                      "= (%d, %d, %d, %d)\n",
-                      in_name,
-                      mri->width, mri->height, mri->depth, mri->nframes);
-          ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) "
-                      "= (%d, %d, %d, %d)\n",
-                      in_like_name, mri_in_like->width,
-                      mri_in_like->height, mri_in_like->depth,
-                      mri_in_like->nframes);
-          MRIfree(&mri);
-          MRIfree(&mri_in_like);
-          exit(1);
-        }
-
-      temp_type = mri->type;
-
-      if(MRIcopyHeader(mri_in_like, mri) != NO_ERROR)
-        {
-          errno = 0;
-          ErrorPrintf(ERROR_BADPARM, "error copying information from "
-                      "%s structure to %s structure\n",
-                      in_like_name, in_name);
-          MRIfree(&mri);
-          MRIfree(&mri_in_like);
-          exit(1);
-        }
-
-      mri->type = temp_type;
-
+  if(in_like_flag){
+    if(mri->width   != mri_in_like->width ||
+       mri->height  != mri_in_like->height ||
+       mri->depth   != mri_in_like->depth){
+      errno = 0;
+      ErrorPrintf(ERROR_BADPARM, "volume sizes do not match\n");
+      ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) "
+		  "= (%d, %d, %d, %d)\n",
+		  in_name,
+		  mri->width, mri->height, mri->depth, mri->nframes);
+      ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) "
+		  "= (%d, %d, %d, %d)\n",
+		  in_like_name, mri_in_like->width,
+		  mri_in_like->height, mri_in_like->depth,
+		  mri_in_like->nframes);
+      MRIfree(&mri);
       MRIfree(&mri_in_like);
-
+      exit(1);
     }
+    if(mri->nframes != mri_in_like->nframes)
+      printf("INFO: frames are not the same, but I'm going to let that slide\n");
+
+    temp_type = mri->type;
+
+    if(MRIcopyHeader(mri_in_like, mri) != NO_ERROR){
+      errno = 0;
+      ErrorPrintf(ERROR_BADPARM, "error copying information from "
+		  "%s structure to %s structure\n",
+		  in_like_name, in_name);
+      MRIfree(&mri);
+      MRIfree(&mri_in_like);
+      exit(1);
+    }
+    
+    mri->type = temp_type;
+    MRIfree(&mri_in_like);
+  }
 
   if(mri->ras_good_flag == 0){
     printf("WARNING: it does not appear that there "
