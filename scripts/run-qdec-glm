@@ -1,8 +1,8 @@
-#!/bin/csh -f
-# $Id: run-qdec-glm,v 1.6 2006/03/08 03:57:21 greve Exp $
+#!/bin/tcsh -f
+# $Id: run-qdec-glm,v 1.7 2006/04/18 23:05:05 nicks Exp $
 # setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
 
-set version = '$Id: run-qdec-glm,v 1.6 2006/03/08 03:57:21 greve Exp $';
+set version = '$Id: run-qdec-glm,v 1.7 2006/04/18 23:05:05 nicks Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"

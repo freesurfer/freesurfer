@@ -1,6 +1,6 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # 
-set VERSION = '$Id: fslregister,v 1.5 2006/04/17 20:29:25 nicks Exp $';
+set VERSION = '$Id: fslregister,v 1.6 2006/04/18 23:05:04 nicks Exp $';
 set inputargs = ($argv);
 
 set subjid = ();

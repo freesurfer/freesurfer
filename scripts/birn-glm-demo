@@ -1,7 +1,7 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # birn-glm-demo
-# $Id: birn-glm-demo,v 1.5 2006/04/17 20:29:25 nicks Exp $
-set VERSION = '$Id: birn-glm-demo,v 1.5 2006/04/17 20:29:25 nicks Exp $';
+# $Id: birn-glm-demo,v 1.6 2006/04/18 23:05:03 nicks Exp $
+set VERSION = '$Id: birn-glm-demo,v 1.6 2006/04/18 23:05:03 nicks Exp $';
 
 set inputargs = ($argv);
 

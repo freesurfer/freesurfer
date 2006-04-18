@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #  
 #  
 
-set SPH2SURF_VER = '$Id: mri-sph2surf,v 1.1 2000/02/10 22:56:03 greve Exp $';
+set SPH2SURF_VER = '$Id: mri-sph2surf,v 1.2 2006/04/18 23:05:05 nicks Exp $';
 
 set subject = ();
 set hemi    = ();

@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 
 
 set SOURCE_DIR = $argv[1]

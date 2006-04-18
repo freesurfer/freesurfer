@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.15 2006/04/17 20:29:25 nicks Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.15 2006/04/17 20:29:25 nicks Exp $';
+# $Id: fsl_rigid_register,v 1.16 2006/04/18 23:05:04 nicks Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.16 2006/04/18 23:05:04 nicks Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 

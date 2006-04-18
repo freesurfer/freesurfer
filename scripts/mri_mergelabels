@@ -1,9 +1,9 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # evspatfil - front end for fast_evspatfil.m to filter
 # a functional data set by projecting out the eigenvectors
 # as computed from evfunc (fast_evfunc.m)
 #
-set VERSION = '$Id: mri_mergelabels,v 1.1 2004/01/30 23:22:30 kteich Exp $'
+set VERSION = '$Id: mri_mergelabels,v 1.2 2006/04/18 23:05:05 nicks Exp $'
 set inputargs = ($argv);
 
 set PWDCMD = `getpwdcmd`;

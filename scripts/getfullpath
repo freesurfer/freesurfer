@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # Returns the full path name to the given file 
 
 if($#argv < 1) then

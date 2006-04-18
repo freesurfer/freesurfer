@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 
 echo ""
 echo "ERROR: spmmat2register is obsolete. Use tkregister2."
@@ -7,7 +7,7 @@ echo "In particular, look at the section called USING WITH FSL and SPM"
 echo ""
 exit 1;
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.10 2004/11/17 22:50:58 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.11 2006/04/18 23:05:05 nicks Exp $';
 
 set OutStream = /dev/null;
 set funcvol   = ();

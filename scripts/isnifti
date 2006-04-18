@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # isnifti - checks whether the passed file is a nifti file
 #  exit status 0 - not an nifit
@@ -10,7 +10,7 @@
 #  Then  looks for a .nii.gz extension (exits 2 if so)
 #
 
-set VERSION = '$Id: isnifti,v 1.2 2006/02/24 02:18:30 greve Exp $'
+set VERSION = '$Id: isnifti,v 1.3 2006/04/18 23:05:04 nicks Exp $'
 
 if($#argv != 1) then
   echo "isnifti filename"

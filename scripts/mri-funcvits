@@ -1,6 +1,6 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.5 2003/08/05 19:19:21 kteich Exp $';
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.6 2006/04/18 23:05:04 nicks Exp $';
 
 set stem     = ();
 set outdir   = ();

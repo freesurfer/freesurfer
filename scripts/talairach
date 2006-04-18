@@ -1,6 +1,6 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # 
-set VERSION = '$Id: talairach,v 1.3 2006/04/17 20:29:26 nicks Exp $'
+set VERSION = '$Id: talairach,v 1.4 2006/04/18 23:05:05 nicks Exp $'
 setenv LANG C # needed by MNI perl module
 
 

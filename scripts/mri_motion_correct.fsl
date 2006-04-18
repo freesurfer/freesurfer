@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # mri_motion_correct.fsl - should do the same thing as mri_motion_correct2,
 # but using flirt.
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.5 2006/04/17 20:32:23 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.6 2006/04/18 23:05:05 nicks Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();

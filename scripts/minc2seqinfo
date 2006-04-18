@@ -1,7 +1,7 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # Name: minc2seqinfo
-# $Id: minc2seqinfo,v 1.1 2004/01/30 23:22:30 kteich Exp $
+# $Id: minc2seqinfo,v 1.2 2006/04/18 23:05:04 nicks Exp $
 #
 # Author: Douglas Greve
 # Date:   10/28/00

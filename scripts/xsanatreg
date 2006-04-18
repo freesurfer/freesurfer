@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # xsanatreg -- cross-session anatomical registration.  This is a front end
 #   for minctracc.  The inputs are directories pointing to COR volumes.
 
-set VERSION = '$Id: xsanatreg,v 1.4 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: xsanatreg,v 1.5 2006/04/18 23:05:05 nicks Exp $';
 
 set src      = ();
 set srcminc  = ();

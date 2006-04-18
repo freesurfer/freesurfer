@@ -1,11 +1,11 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # WARNING: this file is under revision control. Please
 # use the appropriate checkin/checkout procedures when
 # editing.
 #
 # mkfssnapshot
-# $Id: mkfssnapshot,v 1.3 2003/08/01 22:14:37 kteich Exp $
+# $Id: mkfssnapshot,v 1.4 2006/04/18 23:05:04 nicks Exp $
 #
 # Purpose: creates a FreeSurfer snapshot in the directory specified on
 # the command-line. This is not a full release, but merely a
@@ -65,7 +65,7 @@
 #  files found in tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfssnapshot,v 1.3 2003/08/01 22:14:37 kteich Exp $';
+set VERSION = '$Id: mkfssnapshot,v 1.4 2006/04/18 23:05:04 nicks Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)

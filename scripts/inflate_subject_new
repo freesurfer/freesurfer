@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/tcsh
 
 # this scripts needs to be rerun each time the
 # wm volume is edited

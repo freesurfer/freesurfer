@@ -1,10 +1,10 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # isnewer - takes two input files (A B) and returns 1 if A is newer
 #           than B (based on sort order of ls -ct )
 # Returns:   1 if A is newer then B
 #            0 if B is newer then A
 #
-# $Id: isnewer,v 1.1 2000/03/06 22:01:08 greve Exp $
+# $Id: isnewer,v 1.2 2006/04/18 23:05:04 nicks Exp $
 
 if($#argv != 2) then
   echo "USAGE: isnewer AFile BFile"

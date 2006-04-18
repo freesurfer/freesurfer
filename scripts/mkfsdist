@@ -1,11 +1,11 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # WARNING: this file is under revision control. Please
 # use the appropriate checkin/checkout procedures when
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.32 2005/01/21 17:35:14 kteich Exp $
+# $Id: mkfsdist,v 1.33 2006/04/18 23:05:04 nicks Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -72,7 +72,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.32 2005/01/21 17:35:14 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.33 2006/04/18 23:05:04 nicks Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)

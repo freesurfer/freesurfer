@@ -1,3 +1,3 @@
-#!/bin/csh
+#!/bin/tcsh
 
 mri_show -m 1.5 -T $SUBJECTS_DIR/$1/mri/transforms/talairach.xfm $SUBJECTS_DIR/$1/mri/orig -T $SUBJECTS_DIR/$1/mri/transforms/talairach_new.xfm $SUBJECTS_DIR/$1/mri/orig $SUBJECTS_DIR/talairach/mri/orig

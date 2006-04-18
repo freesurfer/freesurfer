@@ -1,7 +1,7 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # wfilemask
 #
-set VERSION = '$Id: wfilemask,v 1.3 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: wfilemask,v 1.4 2006/04/18 23:05:05 nicks Exp $';
 set inputargs = ($argv);
 
 set LabelFile = ();

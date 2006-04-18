@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # make-segvol-table - creates a table of volumes of subcortical 
 # structures for the given list of subjects.
 
-set VERSION = '$Id: make-segvol-table,v 1.1 2003/02/21 19:59:08 greve Exp $';
+set VERSION = '$Id: make-segvol-table,v 1.2 2006/04/18 23:05:04 nicks Exp $';
 set inputargs = ($argv);
 set subjects = ();
 set outfile = ();

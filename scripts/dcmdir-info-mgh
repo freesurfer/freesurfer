@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.7 2006/04/07 21:01:21 greve Exp $'
+# '$Id: dcmdir-info-mgh,v 1.8 2006/04/18 23:05:03 nicks Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.7 2006/04/07 21:01:21 greve Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.8 2006/04/18 23:05:03 nicks Exp $';
 
 if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"

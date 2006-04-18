@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.18 2006/04/17 20:29:25 nicks Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.19 2006/04/18 23:05:03 nicks Exp $'
 set inputargs = ($argv);
 
 set dph = ();

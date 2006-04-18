@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # Name: unpackimadir
 # Purpose: converts data in an IMA directory to MINC and
 # then calls unpackmincdir to convert to Sessions format 
@@ -8,7 +8,7 @@
 # The temporary minc directory can be specified with -mincdir,
 # otherwise it will be put in the output directory.
 
-set VERSION = '$Id: unpackimadir,v 1.3 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: unpackimadir,v 1.4 2006/04/18 23:05:05 nicks Exp $';
 set unpackmincdiropts = ();
 set srcdir   = ();
 set targdir  = ();

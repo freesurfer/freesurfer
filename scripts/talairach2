@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # talairach2
 #
 # USAGE: talairach2 subjectid <mgzflag>
@@ -12,7 +12,7 @@
 # The algorithm of mritotal is correlation based and thus
 # it is better to use the intensity normalized volume, nu.
 #########################################################
-set VERSION = '$Id: talairach2,v 1.11 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: talairach2,v 1.12 2006/04/18 23:05:05 nicks Exp $';
 
 set MGZ = ();
 

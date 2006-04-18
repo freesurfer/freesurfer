@@ -1,5 +1,5 @@
-#! /bin/csh -f
-# $Id: mksubjdirs,v 1.2 2005/08/29 20:56:49 greve Exp $
+#! /bin/tcsh -f
+# $Id: mksubjdirs,v 1.3 2006/04/18 23:05:04 nicks Exp $
 
 if ($#argv != 1) then
   echo "usage: mksubjdirs <subj_name>"

@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.10 2005/04/13 21:33:56 greve Exp $
-set VERSION = '$Id: grad_unwarp,v 1.10 2005/04/13 21:33:56 greve Exp $';
+# $Id: grad_unwarp,v 1.11 2006/04/18 23:05:04 nicks Exp $
+set VERSION = '$Id: grad_unwarp,v 1.11 2006/04/18 23:05:04 nicks Exp $';
 
 set inputargs = ($argv);
 

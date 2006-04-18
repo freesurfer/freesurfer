@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 #
 # isanalyze - checks whether the passed file is an analyze file
 #  exit status 0 - not an analyze
@@ -8,7 +8,7 @@
 #  Looks for a .img extension (exits 1 if so)
 #
 
-set VERSION = '$Id: isanalyze,v 1.4 2006/02/24 02:18:30 greve Exp $';
+set VERSION = '$Id: isanalyze,v 1.5 2006/04/18 23:05:04 nicks Exp $';
 
 if($#argv != 1) then
   echo "isanalyze filename"
