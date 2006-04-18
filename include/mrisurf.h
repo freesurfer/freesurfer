@@ -67,6 +67,7 @@ typedef struct face_type_
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   char   ripflag;                        /* ripped face */
+  int    marked;                         /* marked face */ 
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
@@ -119,6 +120,7 @@ typedef struct vertex_type_
   uchar *n;              /* [0-3, num long] */
   uchar vnum;            /* number neighboring vertices */
   int   *v;              /* array neighboring vertex numbers, vnum long */
+	int   *e;              /* edge state for neighboring vertices */
   uchar  v2num ;         /* number of 2-connected neighbors */
   uchar  v3num ;         /* number of 3-connected neighbors */
   short  vtotal ;        /* total # of neighbors, 
@@ -1017,6 +1019,7 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
 typedef struct
 {
 	MRIS *mris;
+	int n_vertices,n_faces; //number of vertices & faces before top. correction
 	int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
 	MRIS *mris_source;
 }MRI_PATCH, MRIP;
