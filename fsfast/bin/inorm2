@@ -1,0 +1,215 @@
+#!/bin/csh -f
+# inorm2
+#
+# $Id: inorm2,v 1.1 2006/04/19 18:11:44 greve Exp $
+
+set VERSION = '$Id: inorm2,v 1.1 2006/04/19 18:11:44 greve Exp $';
+
+set cmdargs = ($argv);
+
+set instem = ();
+set meanvalfile = ();
+set maskstem = ();
+set rthresh = .75;
+
+set monly     = 0;
+set MLF       = ();
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set instem = `getfullpath $instem`;
+if($#maskstem) set maskstem = `getfullpath $maskstem`;
+set meanvalfile = `getfullpath $meanvalfile`;
+
+#--------------------------#
+if($#MLF == 0) set MLF = /tmp/inorm2-$$.m
+rm -f $MLF
+tee -a $MLF > /dev/null <<EOF
+tic;
+instem   = '$instem';
+maskstem = '$maskstem';
+rthresh = $rthresh;
+meanvalfile = '$meanvalfile';
+monly = $monly;
+
+f = MRIread(instem);
+if(isempty(f))
+  fprintf('ERROR: reading %s\n',instem);
+  if(~monly) quit; end
+  return;
+end
+
+fmn = mean(f.vol,4);
+if(~isempty(maskstem))
+  mask = MRIread(maskstem);
+  if(isempty(mask))
+    fprintf('ERROR: reading %s\n',maskstem);
+    if(~monly) quit; end
+    return;
+  end
+else
+  fprintf('Constructing mask from mean image\n');
+  gfmn = mean(fmn(:));
+  athresh = rthresh * gfmn;
+  mask.vol = fmn > athresh;
+  mask.vol = fast_dilate(mask.vol,1);
+end
+indmask = find(mask.vol);
+nmask = length(indmask);
+nvox = prod(f.volsize);
+fprintf('Found %d/%d (%4.1f%%) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+if(nmask == 0) 
+  fprintf('ERROR: no voxels found in mask\n');
+  if(~monly) quit; end
+  return;
+end 
+
+meanval = mean(fmn(indmask));
+fprintf('In-Brain Mean Value is %g\n',meanval);
+
+fp = fopen(meanvalfile,'w');
+if(fp == -1)
+  fprintf('ERROR: opening %s\n',meanvalfile);
+  if(~monly) quit; end
+  return;
+end
+fprintf(fp,'%f\n',meanval);
+fclose(fp);
+  
+
+EOF
+#--------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+
+echo "inorm2 Done"
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if($#argv < 1) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+      if($#argv < 1) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-meanval":
+      if($#argv < 1) goto arg1err;
+      set meanvalfile = $argv[1]; shift;
+      breaksw
+
+    case "-synth":
+      set Synth = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#instem == 0) then
+    echo "ERROR: need input"
+    exit 1;
+  endif
+  if($#meanvalfile == 0) set meanvalfile = $instem.meanval
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: inorm2"
+  echo ""
+  echo "   -i instem "
+  echo ""
+  echo "   -m maskstem "
+  echo "   -meanval meanvalfile : default is instem.meanval "
+  echo "   "
+  echo "   -debug"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the in-brain mean value of the given input volume.
+The result is stored in instem.meanval unless otherwise 
+specified.
+
+By default, "In-brain" is defined by thresholding the input volume
+at .75 of its grand mean and then dilating by 1 voxel. If a mask is
+specified, then the voxels in the mask define in-brian.
+
+Autodetects format from the input stem.
+
+Runs matlab.
