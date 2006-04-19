@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # inorm2
 #
-# $Id: inorm2,v 1.2 2006/04/19 18:26:07 greve Exp $
+# $Id: inorm2,v 1.3 2006/04/19 23:02:22 greve Exp $
 
-set VERSION = '$Id: inorm2,v 1.2 2006/04/19 18:26:07 greve Exp $';
+set VERSION = '$Id: inorm2,v 1.3 2006/04/19 23:02:22 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -120,6 +120,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-m":
+    case "-mask":
       if($#argv < 1) goto arg1err;
       set maskstem = $argv[1]; shift;
       breaksw
