@@ -9,7 +9,6 @@ GLSUBDIRS=mris2rgb \
 	nmovie \
 	mris_show \
 	tkmedit \
-	tkregister \
 	tkregister2 \
 	tksurfer \
 	mri_probedicom

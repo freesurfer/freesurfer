@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.181 2006/04/18 23:10:12 nicks Exp $"
+# "$Id: configure.in,v 1.182 2006/04/19 22:38:34 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1455,7 +1455,6 @@ AC_OUTPUT([Makefile
                  test_makevol/Makefile
                  test_window_env/Makefile
                  tkmedit/Makefile
-                 tkregister/Makefile
                  tkregister2/Makefile
                  tksurfer/Makefile
                  tridec/Makefile
