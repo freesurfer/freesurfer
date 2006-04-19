@@ -2,14 +2,17 @@
 # Makefile.am for docs
 #
 
+# Note: the pdf files should be committed to CVS, so as not to require a
+# latex installation on all build systems.
+
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
 TEXFILES=$(wildcard *.tex)
-foo_DATA = $(TEXFILES:%.tex=%.ps)
+foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
-# latex FILE.tex
-# dvips FILE.dvi -o FILE.ps
-# rm FILE.dvi
+.ps.pdf:
+	@ps2pdf $< $@
+	@rm -f $<
 
 .dvi.ps:
 	@dvips $< -o $@ >& /dev/null
@@ -20,12 +23,6 @@ foo_DATA = $(TEXFILES:%.tex=%.ps)
 
 clean:
 	rm -f *.aux *.log *.ps
-
-#release:
-#	$(MAKE) install
-
-#uninstall-release:
-#	$(MAKE) uninstall 
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
