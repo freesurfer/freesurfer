@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # inorm2
 #
-# $Id: inorm2,v 1.1 2006/04/19 18:11:44 greve Exp $
+# $Id: inorm2,v 1.2 2006/04/19 18:26:07 greve Exp $
 
-set VERSION = '$Id: inorm2,v 1.1 2006/04/19 18:11:44 greve Exp $';
+set VERSION = '$Id: inorm2,v 1.2 2006/04/19 18:26:07 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -65,7 +65,7 @@ else
   gfmn = mean(fmn(:));
   athresh = rthresh * gfmn;
   mask.vol = fmn > athresh;
-  mask.vol = fast_dilate(mask.vol,1);
+  %mask.vol = fast_dilate(mask.vol,1);
 end
 indmask = find(mask.vol);
 nmask = length(indmask);
@@ -206,9 +206,9 @@ Computes the in-brain mean value of the given input volume.
 The result is stored in instem.meanval unless otherwise 
 specified.
 
-By default, "In-brain" is defined by thresholding the input volume
-at .75 of its grand mean and then dilating by 1 voxel. If a mask is
-specified, then the voxels in the mask define in-brian.
+By default, "In-brain" is defined by thresholding the input volume at
+.75 of its grand mean. If a mask is specified, then the voxels in the
+mask define in-brian.
 
 Autodetects format from the input stem.
 
