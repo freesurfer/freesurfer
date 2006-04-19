@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.17 2006/04/18 21:37:32 greve Exp $
+# $Id: flacproc-sess,v 1.18 2006/04/19 23:03:19 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.17 2006/04/18 21:37:32 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.18 2006/04/19 23:03:19 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -121,11 +121,18 @@ while( $#argv != 0 )
     case "-flac":
       if ( $#argv == 0) goto arg1err;
       set flacname = $argv[1]; shift;
-      set flacfile = flac/$flacname
+      set flacfile = $flacname
       if(! -e $flacfile) then
-        echo "ERROR: cannot find $flacfile"
-        exit 1;
+        set flacfile = flac/$flacname
+        if(! -e $flacfile) then
+          set flacfile = flac/$flacname.flac
+          if(! -e $flacfile) then
+            echo "ERROR: cannot find $flac"
+            exit 1;
+          endif
+        endif
       endif
+      echo flacfile $flacfile
       set flac = `basename $flacname .flag`;
       breaksw
 
