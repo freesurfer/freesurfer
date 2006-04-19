@@ -28,6 +28,7 @@ freesurfer/bin/scuba2.app
 freesurfer/bin/qdec.app
 freesurfer/bin/plotter.app
 freesurfer/bin/paint
+freesurfer/bin/tkregister
 freesurfer/lib/gsl/share
 freesurfer/lib/gsl/include
 freesurfer/lib/tcltktixblt/man
