@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.18 2005/10/27 21:14:31 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.19 2006/04/19 22:47:21 nicks Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -89,7 +89,7 @@ float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
 int Strict = 1;
 int nthpcn;
 int BinaryADCDump=0;
-char *basename = "meas";
+char *the_basename = "meas";
 int DumpPCN = 1;
 
 /*------------------------------------------------------------------*/
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.18 2005/10/27 21:14:31 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.19 2006/04/19 22:47:21 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
-  sprintf(measoutpath,"%s/%s.out",srcdir,basename);
+  sprintf(measoutpath,"%s/%s.out",srcdir,the_basename);
   if(!fio_FileExistsReadable(measoutpath)){
     printf("ERROR: %s does not exist or is not readable\n",measoutpath);
     exit(1);
@@ -335,7 +335,7 @@ int main(int argc, char **argv)
   }
 
   /* copy the meas.asc to the output directory */
-  sprintf(fname,"cp %s/%s.asc %s/%s.asc",srcdir,basename,outdir,basename);
+  sprintf(fname,"cp %s/%s.asc %s/%s.asc",srcdir,the_basename,outdir,the_basename);
   system(fname);
 
 
@@ -491,7 +491,7 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (stringmatch(option, "--base")){
       if(nargc < 1) argnerr(option,1);
-      basename = pargv[0];
+      the_basename = pargv[0];
       nargsused = 1;
     }
     else if (stringmatch(option, "--outdir")){
@@ -751,7 +751,7 @@ int MDHversion(char *measoutpath)
   sprintf(fname,"%s/mrprot.asc",measoutdir);
   if(fio_FileExistsReadable(fname))  return(15);
 
-  sprintf(fname,"%s/%s.asc",measoutdir,basename);
+  sprintf(fname,"%s/%s.asc",measoutdir,the_basename);
   if(fio_FileExistsReadable(fname))  return(21);
 
   free(measoutdir);
@@ -787,7 +787,7 @@ char *MDHascPath(char *measoutdir)
     return(mrprot);
   }
 
-  sprintf(fname,"%s/%s.asc",measoutdir,basename);
+  sprintf(fname,"%s/%s.asc",measoutdir,the_basename);
   if(fio_FileExistsReadable(fname)){
     len = strlen(fname);
     mrprot = (char *) calloc(sizeof(char),len+1);

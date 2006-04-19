@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.7 2006/03/30 01:36:16 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.8 2006/04/19 22:47:27 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -87,9 +87,15 @@ int repair_file(char *fname)
   fread(&bits_per_voxel, sizeof(short), 1, fp);
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
+  #if defined(SunOS)
+  swab((const char *)&rows, (char *)&rows, 2);
+  swab((const char *)&cols, (char *)&cols, 2);
+  swab((const char *)&bits_per_voxel, (char *)&bits_per_voxel, 2);
+  #else
   swab(&rows, &rows, 2);
   swab(&cols, &cols, 2);
   swab(&bits_per_voxel, &bits_per_voxel, 2);
+  #endif
 #endif
 
   bytes_per_voxel = bits_per_voxel / 8;

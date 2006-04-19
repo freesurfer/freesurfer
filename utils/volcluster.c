@@ -1185,11 +1185,11 @@ CLUSTER_SIM_DATA *CSDalloc(void)
   CLUSTER_SIM_DATA *csd;
   csd = (CLUSTER_SIM_DATA *) calloc(sizeof(CLUSTER_SIM_DATA),1);
   csd->mergedflag = 0; // not a merged data 
-  bzero(csd->simtype,strlen(csd->simtype));
-  bzero(csd->anattype,strlen(csd->anattype));
-  bzero(csd->subject,strlen(csd->subject));
-  bzero(csd->hemi,strlen(csd->hemi));
-  bzero(csd->contrast,strlen(csd->contrast));
+  memset(csd->simtype,0,strlen(csd->simtype));
+  memset(csd->anattype,0,strlen(csd->anattype));
+  memset(csd->subject,0,strlen(csd->subject));
+  memset(csd->hemi,0,strlen(csd->hemi));
+  memset(csd->contrast,0,strlen(csd->contrast));
   csd->seed = -1;
   csd->thresh = -1;
   csd->threshsign = 0;

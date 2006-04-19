@@ -6,6 +6,7 @@
 
 #include "path.h"
 #include "error.h"
+#include "getline.h"
 
 int PathReadMany (char *fname, int *num_read, PATH ***returned_paths)
 {

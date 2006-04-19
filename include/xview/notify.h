@@ -229,7 +229,7 @@ extern	struct itimerval NOTIFY_NO_ITIMER;	/* {{0,0},{0,0}} */
 
 #ifndef _NOTIFY_MIN_SYMBOLS
 
-#ifdef SYSV_WAIT
+#if defined(SYSV_WAIT) || defined(SunOS)
 EXTERN_FUNCTION (Notify_value   notify_default_wait3, (Notify_client nclient, int pid, int  *status, struct rusage *rusage));
 #else
 EXTERN_FUNCTION (Notify_value 	notify_default_wait3, (Notify_client nclient, int pid, union wait *status, struct rusage *rusage));
@@ -305,7 +305,7 @@ EXTERN_FUNCTION (Notify_value 	notify_next_itimer_func, (Notify_client nclient, 
 EXTERN_FUNCTION (Notify_value	notify_next_output_func, (Notify_client nclient, int fd));
 EXTERN_FUNCTION (Notify_value 	notify_next_signal_func, (Notify_client nclient, int signal, Notify_signal_mode mode));
 
-#ifdef SYSV_WAIT
+#if defined(SYSV_WAIT) || defined(SunOS)
 EXTERN_FUNCTION (Notify_value 	notify_next_wait3_func, (Notify_client nclient, int pid, int  *status, struct rusage *rusage));
 #else
 EXTERN_FUNCTION (Notify_value 	notify_next_wait3_func, (Notify_client nclient, int pid, union wait *status, struct rusage *rusage));

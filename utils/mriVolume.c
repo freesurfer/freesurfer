@@ -61,15 +61,15 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   this->mIdxToRASTransform     = NULL;
   this->mDisplayTransform      = NULL;
   this->mScannerTransform      = NULL;
-  bzero( this->msSubjectName, sizeof( this->msSubjectName ) );
-  bzero( this->msVolumeName, sizeof( this->msVolumeName ) );
-  bzero( this->msOriginalPath, sizeof( this->msOriginalPath ) );
+  memset( this->msSubjectName, 0, sizeof( this->msSubjectName ) );
+  memset( this->msVolumeName, 0, sizeof( this->msVolumeName ) );
+  memset( this->msOriginalPath, 0, sizeof( this->msOriginalPath ) );
   this->mfColorBrightness      = Volm_kfDefaultBrightness;
   this->mfColorContrast        = Volm_kfDefaultContrast;
   this->mfColorMin             = 0;
   this->mfColorMax             = 0;
-  bzero( this->mafColorTable, sizeof( this->mafColorTable ) );
-  bzero( this->manColorTable, sizeof( this->manColorTable ) );
+  memset( this->mafColorTable, 0, sizeof( this->mafColorTable ) );
+  memset( this->manColorTable, 0, sizeof( this->manColorTable ) );
 
   /* make our color table with default values */
   eResult = Volm_MakeColorTable( this );
@@ -2214,14 +2214,8 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize) ;
   DebugAssertThrowX( (NULL != visited), eResult, Volm_tErr_AllocationFailed );
   
-  /* Zero it. Solaris doesn't like bzero here... ??? */
   DebugNote( ("Zeroing visited volume") );
-#ifdef Solaris
-  for( i = 0; i < nSize; i++ )
-    visited[i] = FALSE;
-#else
-  bzero( visited, nSize * sizeof( tBoolean ) );
-#endif
+  memset( visited, 0, nSize * sizeof( tBoolean ) );
 
   /* Initialize the list of voxels. Create a new voxel, copy our
      source into it, and put it in the list. */

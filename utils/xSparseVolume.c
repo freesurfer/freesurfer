@@ -52,7 +52,7 @@ xSVol_tErr xSVol_New( xSparseVolumeRef* opVolume,
     eResult = xSVol_tErr_AllocationFailed;
     goto error;
   }
-  bzero( this->mStorage, sizeof(void***) * this->mnZDim );
+  memset( this->mStorage, 0, sizeof(void***) * this->mnZDim );
 
   /* return us */
   *opVolume = this;
@@ -186,7 +186,7 @@ xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
   eResult = xSVol_tErr_AllocationFailed;
   goto error;
       }
-      bzero( this->mStorage[xVoxl_GetZ(iWhere)], 
+      memset( this->mStorage[xVoxl_GetZ(iWhere)], 0,
        sizeof(void*) * this->mnYDim );
     }
 
@@ -198,7 +198,7 @@ xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
   eResult = xSVol_tErr_AllocationFailed;
   goto error;
       }
-      bzero( this->mStorage[xVoxl_GetZ(iWhere)][xVoxl_GetY(iWhere)], 
+      memset( this->mStorage[xVoxl_GetZ(iWhere)][xVoxl_GetY(iWhere)], 0, 
        sizeof(void**) * this->mnXDim );
     }
 
@@ -253,7 +253,7 @@ xSVol_tErr xSVol_Purge ( xSparseVolumeRef          this,
   }
 
   /* zero the z array */
-  bzero( this->mStorage, sizeof(void***) * this->mnZDim );
+  memset( this->mStorage, 0, sizeof(void***) * this->mnZDim );
 
   goto cleanup;
 

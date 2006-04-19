@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2006/03/30 01:07:58 $
+** Last Update:   $Author: nicks $, $Date: 2006/04/19 22:47:08 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.24 $
+** Revision:    $Revision: 1.25 $
 ** Status:    $State: Exp $
 */
 
@@ -105,6 +105,9 @@
 #include "dcmprivate.h"
 
 #ifdef SunOS
+  #include <sys/types.h>
+  #include <sys/stat.h>
+  #include <fcntl.h>
   #include "config.h"
   #if BYTEORDER == 1234
     #define LITTLE_ENDIAN_ARCHITECTURE BYTE_ORDER

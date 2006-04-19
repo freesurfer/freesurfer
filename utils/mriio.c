@@ -2201,9 +2201,15 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
               fread(&MRISvox(mri_raw, 0, i, file_n - n_low),
                     sizeof(short), cols, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
+  #if defined(SunOS)
+              swab((const char*)&MRISvox(mri_raw, 0, i, file_n - n_low), \
+                   (char *)&MRISvox(mri_raw, 0, i, file_n - n_low),
+                   sizeof(short) * cols);
+  #else
               swab(&MRISvox(mri_raw, 0, i, file_n - n_low), \
                    &MRISvox(mri_raw, 0, i, file_n - n_low),
                    sizeof(short) * cols);
+  #endif
 #endif
             }
 
@@ -5176,9 +5182,15 @@ static MRI *genesisRead(char *fname, int read_volume)
 #if (BYTE_ORDER == LITTLE_ENDIAN)
               //swab(mri->slices[slice][y],
               // mri->slices[slice][y], 2 * mri->width);
+  #if defined(SunOS)
+              swab((const char *)&MRISseq_vox(mri, 0, y, slice, frame),
+                   (char *)&MRISseq_vox(mri, 0, y, slice, frame),
+                   sizeof(short) * mri->width);
+  #else
               swab(&MRISseq_vox(mri, 0, y, slice, frame),
                    &MRISseq_vox(mri, 0, y, slice, frame),
                    sizeof(short) * mri->width);
+  #endif
 #endif
             }
 
@@ -8248,7 +8260,13 @@ static int read_otl_file(FILE *fp,
                            "error reading points from otl file %d", slice));
             }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
+  #if defined(SunOS)
+          swab((const char *)points, 
+	       (char *)points, 
+	       2 * n_rows * sizeof(short));
+  #else
           swab(points, points, 2 * n_rows * sizeof(short));
+  #endif
 #endif
         }
 

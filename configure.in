@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.182 2006/04/19 22:38:34 nicks Exp $"
+# "$Id: configure.in,v 1.183 2006/04/19 22:47:00 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -159,8 +159,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall $CFLAGS"
- CXXFLAGS="-g -O2 -Wall $CXXFLAGS"
+ CFLAGS="-g -O0 -Wall $CFLAGS"
+ CXXFLAGS="-g -O0 -Wall $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
@@ -373,7 +373,9 @@ fi
 # This macro figures out how to build C programs using
 # POSIX threads.
 ##############################################################
-ACX_PTHREAD
+if test ! "$OS" = "SunOS"; then
+  ACX_PTHREAD
+fi
 
 ##############################################################
 # get the path for X includes and X libraries
@@ -463,10 +465,10 @@ ac_blt_includes="NO"
 ac_blt_libraries="NO"
 ac_blt_bindir="NO"
 BLT_CFLAGS=""
-if test "$OS" = "SunOS"; then
-  BLT_CFLAGS="-lm"
-fi
 BLT_LIBS=""
+if test "$OS" = "SunOS"; then
+  BLT_LIBS="-lm "
+fi
 AC_MSG_CHECKING(BLT directory)
 
 AC_ARG_WITH(BLT-dir,

@@ -139,7 +139,7 @@ void xUtil_snprintf ( char* ipDest, int inSize, char* isFormat, ... ) {
 
   va_list args;
 
-  bzero( ipDest, inSize );
+  memset( ipDest, 0, inSize );
 
   va_start( args, isFormat );
 #ifdef IRIX

@@ -2,9 +2,9 @@
 // fio.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/09 15:23:00 $
-// Revision       : $Revision: 1.28 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/04/19 22:47:33 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -21,6 +21,7 @@
 #include "proto.h"
 #include "error.h"
 #include "mghendian.h"
+#include "utils.h" // strcpyalloc
 
 #define FIO_NPUSHES_MAX 100
 int  fio_npushes = -1;
