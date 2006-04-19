@@ -1043,6 +1043,7 @@ typedef struct{
 	MRI *mri_wm; //wm volume
 	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
 	MRI *mri_gray_white, *mri_k1_k2;
+	MATRIX *transformation_matrix;
 } TOPOFIX_PARMS;
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);

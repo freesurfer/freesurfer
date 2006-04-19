@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/19 17:34:04 $
-// Revision       : $Revision: 1.449 $
+// Revision Date  : $Date: 2006/04/19 18:04:51 $
+// Revision       : $Revision: 1.450 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.449 2006/04/19 17:34:04 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.450 2006/04/19 18:04:51 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29761,13 +29761,23 @@ static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGR
 static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot); 
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
+	int n ;
+
+#if MATRIX_ALLOCATION
+  /* allocation of the transform matrix */
+  VoxelFromSRASmatrix=GetSurfaceRASToVoxelMatrix(parms->mri);
+	parms->transformation_matrix = VoxelFromSRASmatrix ; 
+#endif
 
 	MRISaverageVertexPositions(mris, 2) ;
 
-	//	mrisRipAllDefects(mris, dl, 1) ;
-	// mrisFindGrayWhiteBorderMean(mris, mri) ;
-	// mrisRipAllDefects(mris, dl, 0) ;
-
+	//ripping all defects
+	for(n = 0 ; n < mris->nvertices ; n++)
+		if(mris->vertices[n].marked2) mris->vertices[n].ripflag=1;
+	mrisFindGrayWhiteBorderMean(mris, parms->mri) ;
+	// unripping defects
+	for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked2) mris->vertices[n].ripflag=0;
 
 	//computing curvature statistics
 	MRISsetNeighborhoodSize(mris,2);
@@ -29794,9 +29804,6 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	
   /* compute statistics on original */
   mrisComputeSurfaceStatistics(mris, parms->mri, parms->h_k1, parms->h_k2, parms->mri_k1_k2, parms->mri_gray_white,parms->h_dot);
-
-
-
 
 }
 
