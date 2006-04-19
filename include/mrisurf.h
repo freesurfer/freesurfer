@@ -23,6 +23,8 @@
 #include "const.h"
 #include "label.h"
 #include "colortab.h"
+#include "histo.h"
+
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -1014,8 +1016,8 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
                         float resolution, 
                         float distance_from_surface);
 
-
-/* mris_topo_fixer */
+////////////////////////////////////////////////////
+/* for mris_topo_fixer */
 typedef struct
 {
 	MRIS *mris;
@@ -1023,6 +1025,27 @@ typedef struct
 	int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
 	MRIS *mris_source;
 }MRI_PATCH, MRIP;
+
+typedef struct{
+	int mode;
+	int no_self_intersections;
+	int nattempts;
+	double minimal_loop_percent;
+	int nminimal_attempts;
+	int max_face;
+
+	// loglikelihood
+	double  l_mri ;
+  double  l_curv ;
+  double  l_qcurv;
+  double  l_unmri ;
+	MRI *mri; //brain volume
+	MRI *mri_wm; //wm volume
+	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
+	MRI *mri_gray_white, *mri_k1_k2;
+} TOPOFIX_PARMS;
+
+void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1

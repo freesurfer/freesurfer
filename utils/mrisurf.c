@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/14 19:21:40 $
-// Revision       : $Revision: 1.448 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/04/19 17:34:04 $
+// Revision       : $Revision: 1.449 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.448 2006/04/14 19:21:40 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.449 2006/04/19 17:34:04 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -22139,6 +22139,7 @@ MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs, float pct_fixed)
 
   Description
   ------------------------------------------------------*/
+
 int
 MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
 {
@@ -22146,7 +22147,7 @@ MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
   VERTEX *v ;
   float  r ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
@@ -29751,6 +29752,55 @@ mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, DEFECT *defect, int *
 #endif
 
 
+static int mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, 
+																												MRI *mri,MRI *mri_gray_white, MRI *mri_wm) ;
+static int mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, DEFECT *defect,
+                                                   HISTOGRAM *h_white, HISTOGRAM *h_gray,
+                                                   HISTOGRAM *h_border, HISTOGRAM *h_grad);
+static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2) ;
+static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot); 
+
+void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
+
+	MRISaverageVertexPositions(mris, 2) ;
+
+	//	mrisRipAllDefects(mris, dl, 1) ;
+	// mrisFindGrayWhiteBorderMean(mris, mri) ;
+	// mrisRipAllDefects(mris, dl, 0) ;
+
+
+	//computing curvature statistics
+	MRISsetNeighborhoodSize(mris,2);
+	parms->h_k1 = HISTOalloc(100) ; 
+  parms->h_k2 = HISTOalloc(100) ;
+  parms->mri_k1_k2 = MRIalloc(100, 100, 1, MRI_FLOAT) ;
+  parms->h_dot = HISTOalloc(100) ;
+  mrisComputePrincipalCurvatureDistributions(mris, parms->h_k1, parms->h_k2,parms->mri_k1_k2) ;
+  mrisComputeNormalDotDistribution(mris, parms->h_dot) ;
+	MRISsetNeighborhoodSize(mris,1);
+
+	//computing mri statistics
+	MRIScomputeMetricProperties(mris) ;
+  MRISsmoothSurfaceNormals(mris, 10) ;
+
+  parms->h_gray = HISTOalloc(256) ; 
+  parms->h_white = HISTOalloc(256) ; 
+  parms->h_border = HISTOalloc(256) ;
+  parms->h_grad = HISTOalloc(256) ; 
+  parms->mri_gray_white = MRIalloc(256, 256, 1, MRI_FLOAT) ;
+  
+	//  mrisMarkAllDefects(mris, dl, 1) ;
+  mrisComputeJointGrayWhiteBorderDistributions(mris, parms->mri,  parms->mri_gray_white,  parms->mri_wm) ;
+	
+  /* compute statistics on original */
+  mrisComputeSurfaceStatistics(mris, parms->mri, parms->h_k1, parms->h_k2, parms->mri_k1_k2, parms->mri_gray_white,parms->h_dot);
+
+
+
+
+}
+
+
 // --------------------- Definition of the static functions -------------------- //
 
 static void TPinit(TP *tp){
@@ -33098,13 +33148,6 @@ mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
   return(NO_ERROR) ;
 }
 
-static int mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri,
-                                                        MRI *mri_gray_white, MRI *mri_wm) ;
-static int mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, DEFECT *defect,
-                                                   HISTOGRAM *h_white, HISTOGRAM *h_gray,
-                                                   HISTOGRAM *h_border, HISTOGRAM *h_grad);
-static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2) ;
-static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot) ;
 static int
 mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 {
