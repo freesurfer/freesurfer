@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $
-set VERSION = '$Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $'
+# $Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -17,8 +17,11 @@ set run = 1;
 set debug = 0;
 set scratchdir = ();
 set PrintHelp = 0;
-set infmt  = bhdr
+set infmt  = ();
 set outfmt = bhdr
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
 
 set StartTime = `date`;
 
@@ -64,7 +67,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -128,8 +131,14 @@ foreach sess ($SessList)
   endif
 
   set instem = $RunList[$run]/$funcstem;
+  set infmtuse = `getformat_from_stem $instem $infmt`
+  if($status) then
+    echo "$infmtuse" 
+    exit 1;
+  endif
+
   set cmd = (mkbrainmask);
-  set cmd = ($cmd -i $instem.$infmt);
+  set cmd = ($cmd -i $instem.$infmtuse);
   set cmd = ($cmd -o $maskdir/$maskstem.$outfmt);
   set cmd = ($cmd -thresh $thresh );
   set cmd = ($cmd -ndil $ndilations)

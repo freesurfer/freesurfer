@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # inorm-sess - 
 #
-# $Id: inorm-sess,v 1.3 2003/12/19 21:51:38 greve Exp $
-set VERSION = '$Id: inorm-sess,v 1.3 2003/12/19 21:51:38 greve Exp $'
+# $Id: inorm-sess,v 1.4 2006/04/19 23:02:51 greve Exp $
+set VERSION = '$Id: inorm-sess,v 1.4 2006/04/19 23:02:51 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -14,6 +14,7 @@ set funcstem = (); # stem of functional volume
 set RunListFile = ();
 set nolog = 0;
 set UseMask = 0;
+set use_new_inorm = 1;
 
 set StartTime = `date`;
 
@@ -90,9 +91,6 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  ### Record the disk space ###
-  df $sess |& tee -a $LF
-
   ### Goto the functional subdirectory ###
   cd $sess/$fsd
 
@@ -138,9 +136,13 @@ foreach sess ($SessList)
   #### Add all the commands to the script ####
   foreach run ($RunList)  
     set instem = $run/$funcstem
-    set cmd = (inorm -i $instem $umaskarg $INormArgs \
-               -TR $TR -ipr $inplaneres -bpr $betplaneres \
-               -seqname $seqname);
+    if($use_new_inorm == 0) then
+      set cmd = (inorm -i $instem $umaskarg $INormArgs \
+                 -TR $TR -ipr $inplaneres -bpr $betplaneres \
+                 -seqname $seqname);
+    else
+      set cmd = (inorm2 -i $instem)
+    endif
     if($UseMask) then
       set maskstem = masks/brain
       set cmd = ($cmd -mask $maskstem)

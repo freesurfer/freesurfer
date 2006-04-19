@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.10 2006/04/06 04:39:38 greve Exp $
+# $Id: mc-sess,v 1.11 2006/04/19 23:02:51 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.10 2006/04/06 04:39:38 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.11 2006/04/19 23:02:51 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -20,9 +20,12 @@ set targrun = ();    # use explicit run as target
 set nolog = 0;
 set RunListFile = ();
 set targstem = ();
-set usenew = 0;
-set infmt = bhdr;
+set usenew = 1;
+set infmt = ();
 set outfmt = bhdr;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
 
 if($#argv == 0) then
   goto usage_exit;
@@ -150,6 +153,11 @@ foreach sess ($SessList)
     echo "sess = $sessid" |& tee -a $LF
     date |& tee -a $LF
     set instem  = $run/$funcstem
+    set infmtuse = `getformat_from_stem $instem $infmt`
+    if($status) then
+      echo "$infmtuse" 
+      exit 1;
+    endif
     set outstem = $run/$funcmcstem
     if($PerRun) set targstem = $instem
     if(! $usenew) then
@@ -161,7 +169,7 @@ foreach sess ($SessList)
                  -t $targstem -toff $targoff);
       set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
     else
-      set cmd = (mc-afni2 --i $instem.$infmt --t $targstem.$infmt \
+      set cmd = (mc-afni2 --i $instem.$infmtuse --t $targstem.$infmtuse \
          --frame $targoff --o $outstem.$outfmt  --mcdat $outstem.mcdat)
     endif
     if(! $ScriptOnly) then
@@ -356,12 +364,14 @@ usage_exit:
   echo "   -targnthrun n      : use nth run as target (default=1)"
   echo "   -targrun RRR       : use run RRR as target"
   echo "   -toff m            : target image offset ($targoff)"
-  echo "   -fstem stem        : stem of output motion-corrected volume (fmc)"
+  echo "   -fstem stem        : stem of input volume <f>"
   echo "   -fmcstem stem      : stem of output motion-corrected volume (fmc)"
   echo "   -umask umask       : set unix file permission mask"
   echo "   -version           : print version and exit"
   echo "   -rlf  runlistfile  : only process those in the runlist file"
   echo "   -perrun            : MC each run separately (targ=mid)"
+  echo "   -infmt  format     : <auto>, bhdr, mgh, mgz, nii, nii.gz"
+  echo "   -outfmt format     : <bhdr>, mgh, mgz, nii, nii.gz"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
