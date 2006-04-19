@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # ipfsl - front-end for FSL's IP program
 #
-# $Id: ipfsl,v 1.6 2006/03/02 04:19:03 greve Exp $
+# $Id: ipfsl,v 1.7 2006/04/19 18:28:50 greve Exp $
 #
 
-set VERSION = '$Id: ipfsl,v 1.6 2006/03/02 04:19:03 greve Exp $';
+set VERSION = '$Id: ipfsl,v 1.7 2006/04/19 18:28:50 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -14,7 +14,11 @@ set maskstem   = ();
 set makemask   = 0;
 set pctthresh  = ();
 set fslargs    = ();
-set fmt        = bhdr;
+set infmt      = ();
+set outfmt  = bhdr;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
 
 set scratchdir = ();
 set cleanup    = 1;
@@ -70,8 +74,15 @@ echo "Scratch Dir is $scratchdir"
 set inbase  = `basename $instem`;
 set outbase = `basename $outstem`;
 
-echo "# ---------- Converting bvolume to .img ------------------ #"
-set cmd = (mri_convert $instem.$fmt)
+echo "# ---------- Converting to .img ------------------ #"
+set infmtuse = `getformat_from_stem $instem $infmt`
+if($status) then
+  echo "$infmtuse" 
+  exit 1;
+endif
+echo "Input  format is $infmtuse"
+echo "Output format is $outfmt"
+set cmd = (mri_convert $instem.$infmtuse)
 set cmd = ($cmd $scratchdir/$inbase.img --out_type analyze4d)
 $cmd
 if($status) then
@@ -98,7 +109,7 @@ cp $inmatfile $outmatfile
 
 echo "# ---------- Converting output to bvolume ------------------ #"
 set cmd = (mri_convert $scratchdir/$outbase.img --in_type analyze4d)
-set cmd = ($cmd $outstem.$fmt)
+set cmd = ($cmd $outstem.$outfmt)
 $cmd
 if($status) then
   pwd
@@ -111,7 +122,7 @@ if($makemask) then
   cp $inmatfile $scratchdir/$maskbase.mat
   echo "# ---------- Converting mask to bshort ------------------ #"
   set cmd = (mri_convert $scratchdir/$maskbase.img --in_type analyze4d)
-  set cmd = ($cmd $maskstem.$fmt )
+  set cmd = ($cmd $maskstem.$outfmt )
   $cmd
   if($status) then
     pwd
@@ -189,8 +200,19 @@ while( $#argv != 0 )
       breaksw
 
     case "-fmt":
-      if ( $#argv == 0) goto arg1err;
-      set fmt = $argv[1]; shift;
+      if($#argv < 0) goto arg1err;
+      set infmt  = $argv[1]; shift;
+      set outfmt = $argv[1]; shift;
+      breaksw
+
+    case "-infmt":
+      if($#argv < 0) goto arg1err;
+      set infmt  = $argv[1]; shift;
+      breaksw
+
+    case "-outfmt":
+      if($#argv < 0) goto arg1err;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-scratch":
@@ -268,7 +290,8 @@ usage_exit:
   echo "Required Arguments:";
   echo "   -i instem"
   echo "   -o outstem "
-  echo "   -fmt format : bhdr (default) or mgh (img should work too)"
+  echo "   -infmt  format : <auto>, bhdr, mgh, mgz, nii, nii.gz"
+  echo "   -outfmt format : <bhdr>, mgh, mgz, nii, nii.gz"
   echo "   -pctthresh thresh : percent of grand-mean for thresholding"
   echo ""
   echo "IP Optional Arguments:";

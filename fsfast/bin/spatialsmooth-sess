@@ -1,14 +1,13 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.10 2006/04/14 23:40:51 greve Exp $
+# $Id: spatialsmooth-sess,v 1.11 2006/04/19 18:29:02 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.10 2006/04/14 23:40:51 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.11 2006/04/19 18:29:02 greve Exp $';
 
 set cmdargs = ($argv);
 
 set fsd     = "bold";
-set fmt     = bhdr;
 set instem  = (); 
 set outstem = (); 
 set RunList0 = ();
@@ -16,6 +15,14 @@ set RunListFile = ();
 set PrintHelp = 0;
 set HPF = ();
 set inorm = 1;
+set use_new_inorm = 1;
+
+set infmt   = ();
+set outfmt  = bhdr;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
+
 set nolog = 0;
 set tmpdir = ();
 
@@ -105,7 +112,7 @@ foreach sess ($SessList)
   endif
   echo "RunList $RunList" |& tee -a $LF
 
-  if($inorm) then
+  if($inorm && $use_new_inorm == 0) then
     set seqinfo = seq.info
     if(! -e $seqinfo) then
       echo "ERROR: cannot find $seqinfo"
@@ -119,21 +126,10 @@ foreach sess ($SessList)
   ## Go through each run ##
   foreach run ($RunList)
 
-    # Make sure input has a .bhdr file #
-    set bhdr = $run/$instem.bhdr
-    if($fmt == bhdr && ! -e $bhdr) then
-      set bhdr0 = $run/f.bhdr
-      if(! -e $bhdr0) then
-        echo "WARNING: cannot find $bhdr or $bhdr0"
-        exit 1;
-      endif
-      echo "INFO: could not find $bhdr, using $bhdr0"
-      cp $bhdr0 $bhdr 
-    endif
-
     # Construct and run the command for this run #
     set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
-    set cmd = ($cmd -fwhm $fwhm -fmt $fmt)
+    set cmd = ($cmd -fwhm $fwhm -outfmt $outfmt)
+    if($#infmt != 0)  set cmd = ($cmd -infmt $infmt)
     if($#tmpdir == 0) set cmd = ($cmd -scratch tmp.ipfsl)
     if($#tmpdir != 0) set cmd = ($cmd -scratch $tmpdir)
     if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
@@ -146,14 +142,18 @@ foreach sess ($SessList)
       echo "ERROR: ipfsl failed"
       exit 1
     endif
-    if(! -e $run/$outstem.$fmt) then
+    if(! -e $run/$outstem.$outfmt) then
       echo "ERROR: ipfsl failed to create output"
       exit 1
     endif
 
   if($inorm) then
     echo "INFO: intensity normalizing smoothed volume"
-    set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
+    if(! $use_new_inorm) then
+      set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
+    else
+      set cmd = (inorm2 -i $run/$outstem);
+    endif
     echo ---------------------------------------------- |& tee -a $LF
     $PWDCMD   |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -234,12 +234,24 @@ while( $#argv != 0 )
       set inorm = 1;
       breaksw
 
+    case "-inorm-old":
+      set use_new_inorm = 0;
+      breaksw
+
     case "-fmt":
-      if ( $#argv == 0) goto arg1err;
-      set fmt = $argv[1]; shift;
-      if($fmt == mgh) set inorm = 0;
-      if($fmt == nii) set inorm = 0;
-      if($fmt == nii.gz) set inorm = 0;
+      if($#argv < 0) goto arg1err;
+      set infmt  = $argv[1]; shift;
+      set outfmt = $argv[1]; shift;
+      breaksw
+
+    case "-infmt":
+      if($#argv < 0) goto arg1err;
+      set infmt  = $argv[1]; shift;
+      breaksw
+
+    case "-outfmt":
+      if($#argv < 0) goto arg1err;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-tmp":
@@ -345,8 +357,9 @@ usage_exit:
   echo ""
   echo "Other Arguments"
   echo "   -noinorm        : do not intensity norm smoothed volume"
-  echo "   -fmt fileformat : bhdr (default) or mgh"
-  echo "   -umask umask    : set unix file permission mask"
+  echo "   -inorm-old      : use old inorm"
+  echo "   -infmt format   : <autodetect>, bhdr, mgh, nii.gz, etc"
+  echo "   -outfmt format  : <bhdr>, mgh, nii.gz, etc"
   echo "   -version        : print version and exit"
   echo "   -nolog          : do create a log file"
   echo "   -help           : print help and exit"
