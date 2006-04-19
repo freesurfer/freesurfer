@@ -1,15 +1,15 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $
-set VERSION = '$Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $'
+# $Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $'
 
 set cmdargs = ($argv);
 
 set fsd = "bold";
 set funcstem = f; # stem of functional volume
 set thresh = 0.1;
-set ndilations = 0;
+set ndilations = 1;
 set nerodes = 0;
 set maskstem = brain;
 set maskdir = masks;
@@ -64,7 +64,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.5 2006/04/06 05:01:10 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.6 2006/04/19 17:07:55 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -290,7 +290,7 @@ usage_exit:
   echo "   -funcstem stem     : stem of functional volume (default: f)"
   echo "   -thresh  threshold : fraction of global mean to separate "
   echo "                        brain and air (default is .1)"
-  echo "   -ndil ndialations  : dialate (ie, expand) the mask"
+  echo "   -ndil ndialations  : dialate (ie, expand) the mask (def is 1)"
   echo "   -nero nerodes      : erodes (ie, contracts) the mask"
   echo "   -maskstem stem     : stem of binary mask (stored in fsd/masks/stem)"
   echo "                        default is brain"
