@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $
-set VERSION = '$Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $'
+# $Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -13,6 +13,7 @@ set ndilations = 1;
 set nerodes = 0;
 set maskstem = brain;
 set maskdir = masks;
+set nolog     = 0;
 set run = 1;
 set debug = 0;
 set scratchdir = ();
@@ -58,7 +59,7 @@ goto check_params;
 check_params_return:
 
 # Create a log file #
-if(-w .) then
+if(! $nolog) then
   mkdir -p log
   set LF = `$PWDCMD`/log/mkbrainmask-sess-$fsd.log
   rm -f $LF
@@ -67,7 +68,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.7 2006/04/19 23:02:52 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -233,6 +234,10 @@ while( $#argv != 0 )
     case "-outfmt":
       if ( $#argv == 0) goto arg1err;
       set outfmt = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     case "-debug":
