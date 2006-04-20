@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.8 2006/03/03 00:10:49 greve Exp $
+// $Id: mri_concat.c,v 1.9 2006/04/20 21:44:35 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.8 2006/03/03 00:10:49 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.9 2006/04/20 21:44:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
   printf("ninputs = %d\n",ninputs);
   for(nthin = 0; nthin < ninputs; nthin++){
-    printf("%2d %s\n",nthin,inlist[nthin]);
+    if(Gdiag_no > 0) printf("%2d %s\n",nthin,inlist[nthin]);
     mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
     if(mritmp == NULL){
       printf("ERROR: reading %s\n",inlist[nthin]);
@@ -101,8 +101,10 @@ int main(int argc, char **argv)
 
   fout = 0;
   for(nthin = 0; nthin < ninputs; nthin++){
-    printf("---=====------=========----=======-----========---------\n");
-    printf("#@# %d th input \n",nthin);
+    if(Gdiag_no > 0){
+      printf("---=====------=========----=======-----========---------\n");
+      printf("#@# %d th input \n",nthin);
+    }
     fflush(stdout);
     mritmp = MRIread(inlist[nthin]);
     if(nthin == 0) {
