@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.188 2006/04/20 15:53:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.189 2006/04/20 21:45:45 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5901,7 +5901,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.188 2006/04/20 15:53:25 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.189 2006/04/20 21:45:45 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7265,8 +7265,11 @@ proc ROIStatsDlogROICallback { iROIID } {
 set argc [GetArgc]
 set argv [GetArgv]
 
-# Source our support files.
-foreach sSourceFileName { tkUtils.tcl histolabel.tcl tkcon.tcl } {
+proc FindScubaSupportFile { ifn } {
+    global env
+
+    set sFoundFileName ""
+
     set lPath [list "$env(PWD)" ../scripts]
     if { [info exists env(DEV)] } {
 	lappend lPath "$env(DEV)/scripts"
@@ -7277,22 +7280,56 @@ foreach sSourceFileName { tkUtils.tcl histolabel.tcl tkcon.tcl } {
     set bFound 0
     foreach sPath $lPath {
 	if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
+	    set sFullFileName [ file join $sPath $ifn ]
 	    if { [file exists $sFullFileName] } { 
-		set nErr [catch { source $sFullFileName } sResult]
-		if { $nErr != 0 } {
-		    puts "Error sourcing $sFullFileName: $sResult"
-		} else {
-		    puts "Using $sFullFileName"
-		    set bFound 1
-		}
+		set sFoundFileName $sFullFileName
+		set bFound 1
 	    }
 	}
     }    
     if { $bFound == 0 } {
-	puts "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
+	error "Couldn't load $ifn: Not found in $lPath"
+    } 
+
+    return $sFoundFileName
 }
+
+# Source our support files. Try to load tkcon.tcl last as it will
+# replace puts with a function that outputs to the tkcon shell and you
+# won't see the output.
+foreach fn { tkUtils.tcl histolabel.tcl tkcon.tcl } {
+    
+    set fnToLoad "" 
+    set err [catch { set fnToLoad [FindScubaSupportFile $fn] } sResult ]
+    if { 0 != $err } {
+	puts ""
+	puts "Error starting scuba:"
+	puts ""
+	puts "   $sResult"
+	puts ""
+	puts "   scuba could not be loaded because a support file was missing."
+	puts "   Please check your installation. Make sure that the "
+	puts "   FREESURFER_HOME environment variable is set. "
+	puts ""
+	exit
+    }
+	     
+    set err [catch { source $fnToLoad } sResult ]
+    if { 0 != $err } {
+	puts ""
+	puts "Error starting scuba:"
+	puts ""
+	puts "   $fnToLoad:"
+	puts "   $sResult"
+	puts ""
+	puts "   scuba could not be loaded because of an error in a support "
+	puts "   file. Please try reinstalling the above file."
+	puts ""
+	exit
+    }
+    puts "Using $fnToLoad"
+}
+
 
 # Look at our command line args. For some we will want to process and
 # exit without bringing up all our windows. For some, we need to bring
