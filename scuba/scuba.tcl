@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.186 2006/04/10 21:29:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.187 2006/04/20 15:49:57 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4927,7 +4927,7 @@ proc GetListOfViews { iFrameID } {
 	}
     }
     
-    return lViewIDs
+    return $lViewIDs
 }
 
 
@@ -4977,9 +4977,12 @@ proc AdjustReportInfoForAuto {} {
 		    }
 		    SetLevelReportInfoInView $viewID $layerID $bReportInfo
 		    
+		    puts "SHOULD MATCH $viewID == $gaView(current,id)"
+
 		    if { $viewID == $gaView(current,id) } {
 			set gaView(current,reportInfo$nLevel) \
 			    $bReportInfo
+			puts "DOING set gaView(current,reportInfo$nLevel) $bReportInfo"
 		    }
 		}
 	    }
@@ -5901,7 +5904,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.186 2006/04/10 21:29:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.187 2006/04/20 15:49:57 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
