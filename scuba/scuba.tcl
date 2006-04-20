@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.189 2006/04/20 21:45:45 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.190 2006/04/20 21:53:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5901,7 +5901,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.189 2006/04/20 21:45:45 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.190 2006/04/20 21:53:21 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7265,8 +7265,8 @@ proc ROIStatsDlogROICallback { iROIID } {
 set argc [GetArgc]
 set argv [GetArgv]
 
-proc FindScubaSupportFile { ifn } {
-    global env
+proc LoadScubaSupportFile { ifn } {
+    global env sFullFileName
 
     set sFoundFileName ""
 
@@ -7282,13 +7282,38 @@ proc FindScubaSupportFile { ifn } {
 	if { $bFound == 0 } {
 	    set sFullFileName [ file join $sPath $ifn ]
 	    if { [file exists $sFullFileName] } { 
+
+		set err [catch { uplevel \#0 {source $sFullFileName} } sResult ]
+		if { 0 != $err } {
+		    puts ""
+		    puts "Error starting scuba:"
+		    puts ""
+		    puts "   $sFullFileName:"
+		    puts "   $sResult"
+		    puts ""
+		    puts "   scuba could not be loaded because of an error in a support "
+		    puts "   file. Please try reinstalling the above file."
+		    puts ""
+		    exit
+		}
+
+		puts "Using $sFullFileName"
 		set sFoundFileName $sFullFileName
 		set bFound 1
 	    }
 	}
     }    
     if { $bFound == 0 } {
-	error "Couldn't load $ifn: Not found in $lPath"
+	puts ""
+	puts "Error starting scuba:"
+	puts ""
+	puts "   File: $ifn"
+	puts ""
+	puts "   scuba could not be loaded because a support file was missing."
+	puts "   Please check your installation. Make sure that the "
+	puts "   FREESURFER_HOME environment variable is set. "
+	puts ""
+	exit
     } 
 
     return $sFoundFileName
@@ -7297,38 +7322,9 @@ proc FindScubaSupportFile { ifn } {
 # Source our support files. Try to load tkcon.tcl last as it will
 # replace puts with a function that outputs to the tkcon shell and you
 # won't see the output.
-foreach fn { tkUtils.tcl histolabel.tcl tkcon.tcl } {
-    
-    set fnToLoad "" 
-    set err [catch { set fnToLoad [FindScubaSupportFile $fn] } sResult ]
-    if { 0 != $err } {
-	puts ""
-	puts "Error starting scuba:"
-	puts ""
-	puts "   $sResult"
-	puts ""
-	puts "   scuba could not be loaded because a support file was missing."
-	puts "   Please check your installation. Make sure that the "
-	puts "   FREESURFER_HOME environment variable is set. "
-	puts ""
-	exit
-    }
-	     
-    set err [catch { source $fnToLoad } sResult ]
-    if { 0 != $err } {
-	puts ""
-	puts "Error starting scuba:"
-	puts ""
-	puts "   $fnToLoad:"
-	puts "   $sResult"
-	puts ""
-	puts "   scuba could not be loaded because of an error in a support "
-	puts "   file. Please try reinstalling the above file."
-	puts ""
-	exit
-    }
-    puts "Using $fnToLoad"
-}
+LoadScubaSupportFile tkUtils.tcl
+LoadScubaSupportFile histolabel.tcl 
+LoadScubaSupportFile tkcon.tcl
 
 
 # Look at our command line args. For some we will want to process and
