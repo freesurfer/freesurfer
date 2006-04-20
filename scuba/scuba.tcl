@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.181.2.1 2006/04/20 15:50:34 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4916,7 +4916,7 @@ proc GetListOfViews { iFrameID } {
 	}
     }
     
-    return lViewIDs
+    return $lViewIDs
 }
 
 
@@ -5798,7 +5798,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181 2006/02/23 23:13:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181.2.1 2006/04/20 15:50:34 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
