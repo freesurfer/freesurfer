@@ -1,5 +1,5 @@
-#ifndef WindowManager_h
-#define WindowManager_h
+#ifndef WindowFrame_h
+#define WindowFrame_h
 
 #include <map>
 #include "DebugReporter.h"
@@ -19,7 +19,7 @@ class WindowFrame : public DebugReporter,
   // Accessor for the ID
   ID GetID() const { return mID; }
 
-  // These callabacks are called by the WindowManager. Subclasses
+  // These callabacks are called by the WindowFrame. Subclasses
   // can't/shouldn't override these as these setup the environment
   // before the overridable versions are called.
   virtual void Draw();
@@ -31,9 +31,9 @@ class WindowFrame : public DebugReporter,
   virtual void KeyDown( int iWindow[2], InputState& iInput );
   virtual void KeyUp( int iWindow[2], InputState& iInput );
   
-  // These manage flags that the WindowManager will check to see if the
+  // These manage flags that the WindowFrame will check to see if the
   // frame wants a redisplay. The frame should call RequestRedisplay()
-  // to request one. Then WindowManager will ask the frame if it wants
+  // to request one. Then WindowFrame will ask the frame if it wants
   // one by calling WantRedisplay() on it, and notify that the
   // redisplay has been posted with RedisplayPosted().
   void RequestRedisplay() { mbPostRedisplay = true; }
@@ -71,9 +71,9 @@ class WindowFrame : public DebugReporter,
 
 
 
-// A factory class for the WindowManager so it can create WindowFrame
+// A factory class for the WindowFrame so it can create WindowFrame
 // subclasses. WindowFrame subclasses should also have their own
-// subclass of the WindowFrameFactory and pass it to the WindowManager's
+// subclass of the WindowFrameFactory and pass it to the WindowFrame's
 // SetFrameFactory().
 class WindowFrameFactory {
  public:
