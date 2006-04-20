@@ -5,6 +5,7 @@
 
 using namespace std;
 
+bool TclChartWindow::sbInitedTclFile = false;
 
 TclChartWindow::TclChartWindow () :
   ChartWindow() {
@@ -12,6 +13,18 @@ TclChartWindow::TclChartWindow () :
 
   TclCommandManager& manager = TclCommandManager::GetManager();
   manager.SendCommand( "Chart_Init" );
+
+  if( !sbInitedTclFile ) {
+    
+    stringstream ssCommand;
+
+    ssCommand.str("");
+    ssCommand << "LoadScubaSupportFile TclChartWindow.tcl";
+    manager.SendCommand( ssCommand.str() );
+
+    sbInitedTclFile = true;
+  }
+
 }
 
 TclChartWindow::~TclChartWindow () {

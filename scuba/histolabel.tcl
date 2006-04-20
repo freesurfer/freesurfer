@@ -4,7 +4,6 @@ package require Tix
 package require BLT
 
 # WIDGET BUILDING =========================================================
-
 proc MakeHistogram { ifwTop iwwTop args } {
     global gaHisto
 

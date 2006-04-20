@@ -17,6 +17,8 @@ class TclChartWindow : public ChartWindow {
 
   TclChartWindow ();
   virtual ~TclChartWindow ();
+
+  static bool sbInitedTclFile;
 };
 
 class TclChartWindowFactory : public ChartWindowFactory {
