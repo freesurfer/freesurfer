@@ -664,6 +664,7 @@ void FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2)
 		if(!nfaces[0] && !nfaces[1]){ // should never happen!
 			delete [] PathFaces[0];
 			delete [] PathFaces[1];
+			//surface->WriteFile("./test.3d",1);
 			ErrorExit("_FindFacePath: could not find path!");
 		};
 		if(!nfaces[0]) which_path = 1;
@@ -1115,10 +1116,12 @@ double FastLoop::_GetLoopLength(Loop &loop){
 
 void FastLoop::FindMinimalLoop(Loop & minimal_loop, int max_init_face , int nattempts){
 
+	int minimal_seed=-1,wloop=-1,nfound=-1;
+
 	double minimal_length=_GetLoopLength(minimal_loop);
 
 	if(max_init_face == -1) max_init_face = surface->nfaces;
-	if( nattempts < 1 ) nattempts = 1 + int(0.1*max_init_face);
+	if( nattempts < 1 ) nattempts = 10;
 
 	for(int n = 0 ; n < nattempts ; n++){
 		Loop *loop; 
@@ -1146,9 +1149,15 @@ void FastLoop::FindMinimalLoop(Loop & minimal_loop, int max_init_face , int natt
 		
 		if(minimal_loop.npoints == 0 || //loop[which_loop].npoints < minimal_loop.npoints){
 			 length < minimal_length){
+			minimal_seed=seed_face;
+			wloop=which_loop;
+			nfound=n;
 			minimal_length = length;
 			minimal_loop = loop[which_loop];
 		}
 		delete [] loop;
 	}
+	//	cout << "minimal seed is " << minimal_seed << " avec " 
+	//		 << minimal_loop.npoints << " points  et length = " << minimal_length << " ("<< wloop << " -" << nfound << ")" << endl;
+
 }

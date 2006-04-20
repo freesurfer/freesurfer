@@ -824,7 +824,9 @@ void Surface::CutLoop(Loop &loop){
 	else if (loop.npoints <  14) wd = 2;
 	else wd = 3;
 	PatchDisk *pdisk = &disk[wd];
+#if PRINT_ERROR_MODE	
 	cout << "loop is " << wd << " with " << GetLoopLength(loop) << endl;
+#endif
 
 	int *vertex_list = new int[loop.npoints*3];
 	int nvertex_list=0;
@@ -1332,7 +1334,15 @@ void Surface::CorrectTopology(){
 //	>0 if success with initial seed s,  
 //	-1 if failure in finding the loop
 //	-2 if failure in cutting the patch
+// a negative seed specifies the cutting mode
 int Surface::CutPatch(int seed, int maxinitface, int nattempts){
+	int mode = 0 ; 
+	if(seed < 0){
+		if(seed == -2) {
+			mode=1; // minimal loop mode
+		}
+		seed=-1;
+	}
 
 	// assume that the euler number was computed for this patch
 	if(euler==1) return 0;
@@ -1350,7 +1360,7 @@ int Surface::CutPatch(int seed, int maxinitface, int nattempts){
 	FL.SetDefectList(nfaces,defectfaces);
 
 	// finding the loop in at most nattempts attempts
-	Loop *loop; 
+	Loop *loop=0; 
 	int ntries = 0;
 	do{
 		ntries++;
@@ -1367,7 +1377,18 @@ int Surface::CutPatch(int seed, int maxinitface, int nattempts){
 			seed_face = seed;
 			seed = -2;
 		};
-		loop = FL.FindLoop(seed_face);
+		if(mode){
+			if(mode==1){
+				loop = new Loop[2];
+				FL.FindMinimalLoop(loop[0], maxinitface , nattempts);
+				if(loop->npoints==0){ // did not work ! try again!
+					delete [] loop;
+					loop=0;
+				}else
+					nattempts=1; //success -> exit
+			}
+		}else
+			loop = FL.FindLoop(seed_face);
 	}while(loop==0);
 	if(defectfaces) delete [] defectfaces;
 

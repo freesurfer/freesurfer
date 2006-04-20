@@ -1,10 +1,255 @@
 #include "mris_topology.h"
+#include "topology/patchdisk.h"
 
-extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number){
+extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms){
+
+	fprintf(stderr,"Correcting Topology of defect %d\n",defect_number);
+	//what is the maximum face generating a cutting loop
+  parms.max_face = mris->nfaces;
+  //parms.nattempts = 1; //nint(0.1*mris->nfaces+1);
+	parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+1);
+
+  fprintf(stderr,"computing Euler Number for defect %d!\n",defect_number);
+  int euler = MRISgetEuler(mris, defect_number);
+  fprintf(stderr,  "Euler is %d\n",euler);
+	if(euler == 1) {
+		fprintf(stderr,"Nothing to correct for defect %d\n",defect_number);
+		return true;
+	}
+
+	parms.defect_number  = defect_number ;
+	MRISinitDefectParameters(mris,&parms);
+
+	fprintf(stderr,"extracting MRIP\n");
+	MRIP *mrip = MRIPextractFromMRIS(mris,defect_number);
+	if(mrip==NULL) return false;
 	
+	euler = MRISgetEuler(mrip->mris);
+  fprintf(stderr,  "BEFORE TOP euler is %d\n",euler);
+
+	fprintf(stderr,"correcting defect\n");
+	bool correct = MRIScorrectPatchTopology(mrip->mris,parms);
+	if(correct == false){
+		fprintf(stderr," could not correct topology\n");
+		MRIPfree(&mrip);
+		return false;
+	}
+
+	fprintf(stderr,"transferring corrections\n");
+	MRISaddMRIP(mris,mrip);
+	euler = MRISgetEuler(mris);
+  fprintf(stderr,  "Now, euler is %d\n",euler);
+
+	MRIPfree(&mrip);
+
+	fprintf(stderr,"\n");
+
 	return true; 
 }
 
+bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
+	fprintf(stderr,"Correcting Topology\n");
+
+	int nloops = (1-MRISgetEuler(mris))/2;
+	
+	for(int n = 0 ; n < nloops ; n++){
+		bool correct = MRISincreaseEuler(mris,parms);
+		if(correct == false) return false;
+	}
+	return true;
+}
+
+extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
+  int nattempts=parms.nattempts;
+
+	MRIS *best_mris = NULL;
+	double best_fitness = -1;
+
+  fprintf(stderr,"increasing euler number\n");
+
+  //read the patching surface
+  PatchDisk *disk = new PatchDisk[4];
+  for(int n = 0 ; n < 4 ; n++)
+    disk[n].Create(n);
+
+  for(int n = 0 ; n < nattempts ; n++){
+
+    //generate a surface
+    Surface *surface = MRIStoSurface(mris);
+    surface->disk=disk;
+
+		//compute the euler number of the surface
+		int euler = surface->GetEuler();
+		fprintf(stderr,"BEFORE %d (%d: %d, %d)\n",euler,n,surface->nvertices,surface->nfaces);
+    //increase the euler number by 2
+    int correct;
+		if(n == 0 ) 
+			correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
+		else
+			correct = surface->CutPatch(-1,parms.max_face,parms.nattempts);
+
+		if(correct < 0){ //echec exit
+			fprintf(stderr,"Could Not Increase Euler Number\n");
+			delete surface;
+			return false;
+		}
+		fprintf(stderr,"AFTER %d (%d,%d)\n",surface->GetEuler(),surface->nvertices,surface->nfaces);
+
+		//transfer data into MRIS structure
+    MRIS *mris_work = SurfaceToMRIS(surface,NULL);
+		fprintf(stderr,"free surface\n");
+		delete surface;
+		MRIScopyHeader(mris,mris_work);
+		
+		euler = MRISgetEuler(mris_work);
+    fprintf(stderr,"Topology -> %d \n",euler);
+
+		// we have a correct surface : evaluate if valid
+		// check if self-intersect
+
+		//compute associated fitness
+		double fitness = MRIScomputeFitness(mris_work,&parms);;
+
+		if(best_mris == NULL || fitness < best_fitness){
+			if(best_mris) MRISfree(&best_mris);
+			best_mris = mris_work;
+			best_fitness = fitness;
+		}else{
+			MRISfree(&mris_work);
+		}
+	}
+
+
+	fprintf(stderr,"free disk\n");
+  delete [] disk;
+
+	//update the surface
+	if(best_mris == NULL )
+		return false;
+
+	MRISfree(&mris);
+	mris = best_mris;
+
+	return true;
+}
+
+
+extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode){
+	MRIS *mris_dst;
+	//clone the surface mris
+	mris_dst = MRISclone(mris); 
+	for(int n = 0 ; n < mris->nvertices ; n++){
+		VERTEX *vdst = & mris_dst->vertices[n];
+		VERTEX *vsrc = & mris->vertices[n];
+		vdst->marked2=vsrc->marked2;
+		vdst->origx = vsrc->origx;
+		vdst->origy = vsrc->origy;
+		vdst->origz = vsrc->origz;
+		vdst->val = vsrc->val;
+		vdst->val2 = vsrc->val2;
+		vdst->val2bak = vsrc->val2bak;
+	}
+
+	int n_extra_vertices,n_extra_faces;
+
+	if(mode==0){
+		//count the number of loops to be corrected
+		int nloops = (1-MRISgetEuler(mris))/2;
+
+		//count the number of defective vertices
+		n_extra_vertices = 0;
+		for(int n = 0 ; n < mris->nvertices ; n++)
+			if(mris->vertices[n].marked2) n_extra_vertices++;
+		n_extra_vertices = 2*n_extra_vertices + nloops*MAX_EXTRA_VERTICES;
+		
+		//count the number of defective faces
+		n_extra_faces = 0 ;
+		for(int n = 0 ; n < mris->nfaces ; n++){
+			bool isface=true;
+			for(int i = 0 ; i < 3 ; i++){
+				if(mris->vertices[mris->faces[n].v[i]].marked2==0){
+					isface = false;
+					break;
+				}
+			}
+			if(isface) n_extra_faces++;
+		}
+		n_extra_faces = 4*n_extra_faces + nloops*MAX_EXTRA_FACES;
+	}else{
+		n_extra_vertices = __MAX(mris->max_vertices-mris->nvertices,0);
+		n_extra_faces =__MAX(mris->max_faces-mris->nfaces,0);
+	}
+	//now allocate the extra space
+	VERTEX *vertices = (VERTEX*)calloc(mris->nvertices+n_extra_vertices,sizeof(VERTEX));
+  FACE *faces = (FACE*)calloc(mris->nfaces+n_extra_faces,sizeof(FACE));
+  for(int n = 0 ; n < mris_dst->nvertices ; n++){
+    vertices[n] = mris_dst->vertices[n];
+  }
+  for(int n = 0 ; n < mris_dst->nfaces ;n++){
+    faces[n] = mris_dst->faces[n];
+  }
+	delete [] mris_dst->vertices;
+  mris_dst->vertices=vertices;
+  mris_dst->max_vertices = mris_dst->nvertices+n_extra_vertices;
+  delete [] mris_dst->faces;
+  mris_dst->faces  = faces;
+  mris_dst->max_faces = mris_dst->nfaces+n_extra_faces;
+	return mris_dst;
+}
+
+
+extern "C" int MRISgetEuler(MRIS *mris, int defect_number){
+	int *list_of_faces,nfaces;
+
+	if(defect_number < 0){
+		//counting faces
+		nfaces = mris->nfaces ;
+		if(nfaces == 0) return 0;
+
+		//allocate the list of faces
+		list_of_faces = (int*)malloc(nfaces*sizeof(int));
+
+		for(int n = 0 ; n < nfaces ; n++)
+			list_of_faces[n]=n;
+	}else{
+
+		//counting faces
+		nfaces = 0 ;
+		for(int n = 0 ; n < mris->nfaces ; n++){
+			bool isface=true;
+			for(int i = 0 ; i < 3 ; i++){
+				if(mris->vertices[mris->faces[n].v[i]].marked2!=defect_number){
+					isface=false;
+					break;
+				}
+			}
+			if(isface) nfaces++;
+		}
+		if(nfaces==0) return 0;
+		
+		//allocate the list of faces
+		list_of_faces = (int*)malloc(nfaces*sizeof(int));
+		
+		//initialize the list of faces
+		nfaces = 0 ;
+		for(int n = 0 ; n < mris->nfaces ; n++){
+			bool isface = true;
+			for(int i = 0 ; i < 3 ; i++){
+				if(mris->vertices[mris->faces[n].v[i]].marked2!=defect_number){
+					isface = false;
+					break;
+				}
+			}
+			if(isface) list_of_faces[nfaces++]=n;
+		}
+	}
+
+	int euler = MRISgetEulerNumber(mris, list_of_faces,nfaces);
+
+	delete [] list_of_faces;
+
+	return euler;
+}
 
 extern "C"  int MRISgetEulerNumber(const MRIS *mris, const int *list_of_faces, int nfs){
 
@@ -25,8 +270,6 @@ extern "C"  int MRISgetEulerNumber(const MRIS *mris, const int *list_of_faces, i
 				v->marked=1;
 				if(v->e) delete [] v->e; 
 				v->e = (int*)calloc(v->vnum,sizeof(int));
-				//for(int p = 0 ; p < v->vnum ; p++)
-				//v->e[p]=0;
 			};
 		}
 
@@ -79,6 +322,8 @@ extern "C"  int MRISgetEulerNumber(const MRIS *mris, const int *list_of_faces, i
 			}
 		}
 	}
+	
+	//	fprintf(stderr,"(%d,%d,%d)\n",nv,ne,nf);
 
 	return (nv-ne+nf);
 }
@@ -122,20 +367,24 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number){
 		delete [] list_of_faces;
 		return NULL;
 	}
-	if(euler%2) {
-		//ici	
-	};
+	if((euler+1)%2) {
+		fprintf(stderr,"\n\n Surface non Valid %d\n\n",euler);
+		delete [] list_of_faces;
+		return NULL;
+	}
+
+	//number of loops to be cut
 	int ncorrections = (1-euler)/2;
 
 	/* allocate the patch with extra space */
 	int max_vertices,max_faces;
 //	_OverAlloc(2*loop.npoints+2*pdisk->disk.nvertices,2*(2*loop.npoints+pdisk->disk.nfaces+pdisk->ring.npoints)); 
-	max_vertices = nvertices + ncorrections*(nvertices + 2*33);
-	max_faces = nfaces + ncorrections*(2*nvertices+ 52);
+	max_vertices = nvertices + ncorrections*(2*nvertices + MAX_EXTRA_VERTICES);
+	max_faces = nfaces + ncorrections*(4*nvertices+ MAX_EXTRA_FACES);
 
 	MRIP *mrip = MRIPalloc(max_vertices, max_faces);
-	mrip->n_vertices = nvertices;
-	mrip->n_faces = nfaces;
+	mrip->n_vertices = nvertices; // number of vertices before correction
+	mrip->n_faces = nfaces; //number of faces before correction
 
 	MRIS *mris_dst=mrip->mris;
 	/* copy the necessary information */
@@ -147,10 +396,11 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number){
 	vt_to = new int[max_vertices];
 	for(int n = 0 ; n < max_vertices ; n++)
 		vt_to[n]=-1;
-	vt_from = new int[nvertices];
+	vt_from = new int[mris->nvertices];
 
 	nvertices=0;
-	for(int n = 0 ; n < mris->nvertices ; n++)
+	for(int n = 0 ; n < mris->nvertices ; n++){
+		vt_from[n]=-1;
 		if(mris->vertices[n].marked2 == defect_number){
 			VERTEX *vsrc = &mris->vertices[n];
 			VERTEX *v = &mris_dst->vertices[nvertices];
@@ -161,6 +411,7 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number){
 			v->y = vsrc->y;
 			v->z = vsrc->z;
 		};
+	}
 	mrip->vtrans_to = vt_to;
 	mrip->vtrans_from = vt_from;
 
@@ -173,6 +424,7 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number){
 
 	nfaces=0;
 	for(int n = 0 ; n < mris->nfaces ; n++){
+		ft_from[n]=-1;
 		bool is_face = true;
 		for(int i = 0 ; i < 3 ; i++)
 			if(mris->vertices[mris->faces[n].v[i]].marked2 != defect_number){
@@ -204,6 +456,12 @@ void MRISinitSurface(MRIS *mris){
 		v=&mris->vertices[n];
 		v->num=0;
 		v->marked=0;
+		if(v->f) free(v->f);
+    if(v->n) free(v->n);
+		if(v->v) free(v->v);
+		v->f=NULL;
+		v->n=NULL;
+		v->v=NULL;
 	}
 
 	// counting the number of faces per vertex
@@ -212,9 +470,10 @@ void MRISinitSurface(MRIS *mris){
 			mris->vertices[mris->faces[n].v[i]].num++;
 	// allocate the list of faces
 	for(int n = 0 ; n < mris->nvertices ; n++){
-		mris->vertices[n].f=(int *)calloc(mris->vertices[n].num,sizeof(int));
-		mris->vertices[n].n=(uchar *)calloc(mris->vertices[n].num,sizeof(uchar));
-		mris->vertices[n].num=0;
+		VERTEX *v=&mris->vertices[n];
+		v->f=(int *)calloc(mris->vertices[n].num,sizeof(int));
+		v->n=(uchar *)calloc(mris->vertices[n].num,sizeof(uchar));
+		v->num=0;
 	}
 	// initialize the list of faces
 	for(int n = 0 ; n < mris->nfaces ; n++){
@@ -264,12 +523,14 @@ MRIP *MRIPalloc(int nvertices, int nfaces){
 	/* allocate the patch */
 	patch = (MRIP*)calloc(1,sizeof(MRIP));
 	/* allocate the surface */
-	MRIS *mris = MRISalloc(nvertices,nfaces);
+	MRIS *mris = MRISoverAlloc(nvertices,nfaces,nvertices,nfaces);
+
 	for(int n = 0 ; n < mris->nvertices ; n++){ //making sure...
 		VERTEX *v=&mris->vertices[n];
 		v->f=NULL;
 		v->n=NULL;
 		v->v=NULL;
+		v->e=NULL; 
 	}
 	patch->mris=mris;
 
@@ -281,13 +542,17 @@ void MRIPfree(MRIP **mrip){
 
 	patch = *mrip;
 	*mrip = NULL;
+	MRIS *mris=patch->mris;
 
-	MRISfree(&patch->mris);
+	MRISfree(&mris);
+
 	if(patch->vtrans_to) free(patch->vtrans_to);
 	if(patch->ftrans_to) free(patch->ftrans_to);
 	if(patch->vtrans_from) free(patch->vtrans_from);
 	if(patch->ftrans_from) free(patch->ftrans_from);
+	
 	free(patch);
+
 }
 
 MRIP *MRIPclone(MRIP *src){
@@ -303,7 +568,8 @@ MRIP *MRIPclone(MRIP *src){
 }
 
 Surface *MRIStoSurface(MRIS *mris){
-
+	
+	//allocation of the surface
 	Surface *surface=new Surface(mris->max_vertices,mris->max_faces);
 	surface->nvertices = mris->nvertices;
 	surface->nfaces = mris->nfaces;
@@ -315,6 +581,7 @@ Surface *MRIStoSurface(MRIS *mris){
 		vdst->y=vsrc->y;
 		vdst->z=vsrc->z;
 	}
+
 	for(int n = 0 ; n < mris->nfaces ;n++){
 		Face *fdst = &surface->faces[n];
 		FACE *fsrc = &mris->faces[n];
@@ -328,22 +595,79 @@ Surface *MRIStoSurface(MRIS *mris){
 	return surface;
 }
 
-void SurfaceToMRIP(Surface &surface, MRIS &mris){
-	mris.nvertices=surface.nvertices;
-	mris.nfaces=surface.nfaces;
+void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst){
+
+	mris_dst->type = mris_src->type;  // missing
+  mris_dst->hemisphere = mris_src->hemisphere ;
+  mris_dst->xctr = mris_src->xctr ;
+  mris_dst->yctr = mris_src->yctr ;
+  mris_dst->zctr = mris_src->zctr ;
+  mris_dst->xlo = mris_src->xlo ;
+  mris_dst->ylo = mris_src->ylo ;
+  mris_dst->zlo = mris_src->zlo ;
+  mris_dst->xhi = mris_src->xhi ;
+  mris_dst->yhi = mris_src->yhi ;
+  mris_dst->zhi = mris_src->zhi ;
+  mris_dst->min_curv = mris_src->min_curv ;
+  mris_dst->max_curv = mris_src->max_curv ;
+  mris_dst->total_area = mris_src->total_area ;
+  mris_dst->orig_area = mris_src->orig_area ;
+
+  mris_dst->radius = mris_src->radius; // to be checked 
+
+  // just copy the pointer ///////////////////////////////////
+#if 0
+  mris_dst->linear_transform = mris_src->linear_transform ;
+  mris_dst->inverse_linear_transform = mris_src->inverse_linear_transform ;
+#endif
+  mris_dst->lta = mris_src->lta;
+  mris_dst->SRASToTalSRAS_ = mris_src->SRASToTalSRAS_;
+  mris_dst->TalSRASToSRAS_ = mris_src->TalSRASToSRAS_;
+  mris_dst->free_transform = 0 ;  // mark not to try to free them
+  /////////////////////////////////////////////////////////////
+	if (mris_src->v_frontal_pole)
+      mris_dst->v_frontal_pole = 
+				&mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices] ;
+	if (mris_src->v_occipital_pole)
+      mris_dst->v_occipital_pole = 
+				&mris_dst->vertices[mris_src->v_occipital_pole - mris_src->vertices] ;
+	if (mris_src->v_temporal_pole)
+      mris_dst->v_temporal_pole = 
+				&mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices] ;
+
+	// copy geometry info
+	copyVolGeom(&mris_src->vg, &mris_dst->vg);
+}
+
+MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris){
+	
+	if(mris==NULL){//allocate the new surface
+		mris=MRISoverAlloc(surface->maxvertices,surface->maxfaces,surface->nvertices,surface->nfaces);
+	}
+	mris->nvertices=surface->nvertices;
+	mris->nfaces=surface->nfaces;
+	if(mris->nvertices>=mris->max_vertices)
+		fprintf(stderr,"too many vertices in mris!\n");
+	if(mris->nfaces>=mris->max_faces)
+    fprintf(stderr,"too many faces in mris!\n");
+
 	//Vertices
-	for(int n = 0 ; n < surface.nvertices ; n++){
-		VERTEX *vdst=&mris.vertices[n];
-		Vertex *vsrc = &surface.vertices[n];
+	for(int n = 0 ; n < surface->nvertices ; n++){
+		VERTEX *vdst=&mris->vertices[n];
+		Vertex *vsrc = &surface->vertices[n];
+		vdst->x=vsrc->x;
+		vdst->y=vsrc->y;
+		vdst->z=vsrc->z;
+
 		//vertices
-		if(vdst->v) delete [] vdst->v;
+		if(vdst->v) free(vdst->v); vdst->v=NULL;
 		vdst->v = (int*)calloc(vsrc->vnum , sizeof(int));
 		for(int p = 0 ; p < vsrc->vnum ; p++)
 			vdst->v[p]=vsrc->v[p];
 		vdst->vnum=vsrc->vnum;
 		//faces
-		if(vdst->f) delete [] vdst->f;
-		if(vdst->n) delete [] vdst->n;
+		if(vdst->f) free(vdst->f); vdst->f=NULL;
+		if(vdst->n) free(vdst->n); vdst->n=NULL;
 		vdst->f = (int*)calloc(vsrc->fnum , sizeof(int));
 		vdst->n = (uchar*)calloc(vsrc->fnum , sizeof(uchar));
 		for(int p = 0 ; p < vsrc->fnum ; p++){
@@ -353,13 +677,15 @@ void SurfaceToMRIP(Surface &surface, MRIS &mris){
 		vdst->num=vsrc->fnum;
 	}
 	//Faces
-	for(int n = 0 ; n < surface.nfaces ; n++){
-		FACE *fdst=&mris.faces[n];
-		Face *fsrc = &surface.faces[n];
+	for(int n = 0 ; n < surface->nfaces ; n++){
+		FACE *fdst=&mris->faces[n];
+		Face *fsrc = &surface->faces[n];
 		fdst->v[0]=fsrc->v[0];
 		fdst->v[1]=fsrc->v[1];
 		fdst->v[2]=fsrc->v[2];
 	}
+	
+	return mris;
 }
 
 
@@ -367,6 +693,16 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip){
 	int nvertices=mrip->n_vertices,nfaces=mrip->n_faces;
 	int *vto = mrip->vtrans_to,*fto=mrip->ftrans_to;
 	
+	int new_vertices = mrip->mris->nvertices - nvertices;
+	int new_faces = mrip->mris->nfaces - nfaces;
+
+	if(new_vertices+mris_dst->nvertices>=mris_dst->max_vertices){
+		ErrorExit("Not Enough Vertex Space in mris_dst!");
+	}
+	if(new_faces+mris_dst->nfaces>=mris_dst->max_faces){
+    ErrorExit("Not Enough Face Space in mris_dst!");
+  }
+
 	MRIS *mris = mrip->mris;
 
 	//vertices
@@ -383,21 +719,15 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip){
 	for(int n = 0 ; n < mris->nfaces ; n++){
 		FACE *fsrc = &mris->faces[n];
 		if(n >= nfaces) fto[n] = mris_dst->nfaces++;
-		FACE *fdst = &mris_dst->faces[vto[n]];
+		FACE *fdst = &mris_dst->faces[fto[n]];
 		//vertex indices
 		fdst->v[0]=vto[fsrc->v[0]];
 		fdst->v[1]=vto[fsrc->v[1]];
 		fdst->v[2]=vto[fsrc->v[2]];
 	}
+	
 	//stuff in vertices and faces
-	for(int n = 0 ; n < mris->nvertices ; n++){
-		VERTEX *vsrc = &mris->vertices[n];
-		VERTEX *vdst = &mris_dst->vertices[vto[n]];
-		vsrc=vdst=NULL;
-	//...
-
-	}
-
+	MRISinitSurface(mris_dst);
 
 	return true;
 }
