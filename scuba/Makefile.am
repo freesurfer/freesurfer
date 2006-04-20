@@ -50,7 +50,7 @@ FSDATA_SRCS= \
 	ScubaROI.cpp ScubaROI.h \
 	ScubaROIVolume.cpp ScubaROIVolume.h \
 	SegmentationVolumeReport.cpp SegmentationVolumeReport.h \
-	ChartManager.cpp ChartManager.h
+	ChartWindow.cpp ChartWindow.h
 
 LAYER_SRCS=ScubaLayerFactory.cpp ScubaLayerFactory.h \
 	ScubaLayer2DMRI.cpp ScubaLayer2DMRI.h \
@@ -80,7 +80,7 @@ QCONSOLE_SRCS = \
 SCUBA1_SRCS= \
 	ToglManager.cpp ToglManager.h \
 	TclProgressDisplayManager.cpp TclProgressDisplayManager.h \
-	TclChartManager.cpp TclChartManager.h \
+	TclChartWindow.cpp TclChartWindow.h \
 	togl.c \
 	TclScubaKeyCombo.cpp TclScubaKeyCombo.h
 
@@ -196,7 +196,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
-	testTclChartManager
+	testTclChartWindow
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
@@ -359,9 +359,9 @@ testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-testTclChartManager_SOURCES=test_TclChartManager.cpp TclChartManager.cpp \
+testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
-testTclChartManager_LDADD=$(LIBS_TCL_OPENGL) \
+testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
