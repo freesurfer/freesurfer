@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.113 2006/03/29 16:50:58 kteich Exp $
+# $Id: tksurfer.tcl,v 1.114 2006/04/20 17:27:17 kteich Exp $
 
 package require BLT;
 
@@ -197,6 +197,7 @@ set gaLinkedVars(dipavg) 0
 set gaLinkedVars(curvflag) 1
 set gaLinkedVars(mouseoverflag) 0
 set gaLinkedVars(redrawlockflag) 0
+set gaLinkedVars(selectlabelflag) 1
 set gaLinkedVars(drawlabelflag) 1
 set gaLinkedVars(labelstyle) 0
 set gaLinkedVars(timeresolution) 0
@@ -218,10 +219,10 @@ array set gaLinkedVarGroups {
 	colscalebarflag verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
-    label { colortablename drawlabelflag labelstyle labels_before_overlay_flag }
+    label { colortablename selectlabelflag drawlabelflag labelstyle labels_before_overlay_flag }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -2737,6 +2738,11 @@ proc CreateMenuBar { ifwMenuBar } {
 		UpdateAndRedraw }
 	    gaLinkedVars(overlayflag) 
 	    mg_OverlayLoaded }
+	{ check 
+	    "Clicks Select Labels"
+	    { SendLinkedVarGroup label }
+	    gaLinkedVars(selectlabelflag) 
+	    mg_LabelLoaded }
 	{ check 
 	    "Labels"
 	    { SendLinkedVarGroup label

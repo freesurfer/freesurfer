@@ -1652,6 +1652,9 @@ int   labl_cache_updated;
 int*  labl_num_labels_at_cache_vno;
 int** labl_cache;   // label_cache[vno][0..labl_num_labels_at_cache_vno[vno]]
 
+/* Whether or not clicking selects labels. */
+int labl_select_flag = 1;
+
 /* initialize everything. */
 int labl_initialize ();
 
@@ -5394,7 +5397,7 @@ select_vertex(short sx,short sy)
     }
   
   /* select the label at this vertex, if there is one. */
-  if (labl_draw_flag)
+  if (labl_draw_flag && labl_select_flag)
     {
       labl_select_label_by_vno (vno);
     }  
@@ -5464,7 +5467,8 @@ select_vertex_by_vno (int vno)
     }
   
   /* select the label at this vertex, if there is one. */
-  labl_select_label_by_vno (vno);
+  if (labl_select_flag)
+    labl_select_label_by_vno (vno);
   
   /* select the path at this vertex, if there is one. */
   path_select_path_by_vno (vno);
@@ -19012,7 +19016,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.195 2006/04/18 19:02:52 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.196 2006/04/20 17:27:11 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19873,6 +19877,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"simpledrawmodeflag",
               (char *)&simpledrawmodeflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"redrawlockflag",(char *)&redrawlockflag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"selectlabelflag",(char *)&labl_select_flag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"drawlabelflag",(char *)&labl_draw_flag,
               TCL_LINK_BOOLEAN);
