@@ -1,13 +1,11 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.6 2006/04/13 00:04:05 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.7 2006/04/20 04:23:58 greve Exp $';
 
 set cmdargs = ($argv);
 
 set omask     = bgmask;
-set ifmt      = ();
-set ofmt      = nii.gz;
 set fsd       = bold;
 set funcstem  = f;
 set epi       = 1;
@@ -20,6 +18,11 @@ set PrintHelp = 0;
 set monly     = 0;
 set sumfile   = ();
 set MLF       = ();
+set infmt  = ();
+set outfmt = nii.gz
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -86,13 +89,13 @@ foreach sess ($SessList)
   foreach Run ($RunList)
 
     set funcstem0 = $sess/$fsd/$Run/$funcstem
-    set ifmtuse = `getformat_from_stem $funcstem0 $ifmt`
+    set infmtuse = `getformat_from_stem $funcstem0 $infmt`
     if($status) then
-      echo "$ifmtuse" |& tee -a $LF
+      echo "$infmtuse" |& tee -a $LF
       exit 1;
     endif
-    echo "Detected format as $ifmtuse" |& tee -a $LF
-    set func = $sess/$fsd/$Run/$funcstem.$ifmtuse
+    echo "Detected format as $infmtuse" |& tee -a $LF
+    set func = $sess/$fsd/$Run/$funcstem.$infmtuse
 
     if(! $PerRun) then
       set maskdir = $sess/$fsd/masks
@@ -100,7 +103,7 @@ foreach sess ($SessList)
       set maskdir = $sess/$fsd/$Run/masks
     endif
     mkdir -p $maskdir
-    set outvol = $maskdir/$omask.$ofmt
+    set outvol = $maskdir/$omask.$outfmt
   
     set extregstem = ();
     if($#ExtReg) then
@@ -315,18 +318,18 @@ while( $#argv != 0 )
 
     case "-fmt":
       if ( $#argv == 0) goto arg1err;
-      set ifmt = $argv[1]; shift;
-      set ofmt = $fmt;
+      set infmt = $argv[1]; shift;
+      set outfmt = $infmt;
       breaksw
 
-    case "-ifmt":
+    case "-infmt":
       if ( $#argv == 0) goto arg1err;
-      set ifmt = $argv[1]; shift;
+      set infmt = $argv[1]; shift;
       breaksw
 
-    case "-ofmt":
+    case "-outfmt":
       if ( $#argv == 0) goto arg1err;
-      set ofmt = $argv[1]; shift;
+      set outfmt = $argv[1]; shift;
       breaksw
 
     case "-o":
@@ -412,8 +415,8 @@ usage_exit:
   echo "   -o    outmask : use outmask instead of bgmask"
   echo "   -func funcstem : default is f"
   echo "   -fsd  fsd : use fsd instead of bold"
-  echo "   -ifmt fmt : input  format <bhdr> or mgh"
-  echo "   -ofmt fmt : output format <bhdr> or mgh"
+  echo "   -infmt fmt : input format <auto>, nii, mgh, bhdr, etc"
+  echo "   -outfmt fmt : output format <nii.gz>, mgh, bhdr, etc"
   echo "   -rlf  rlf : run list file"
   echo "   -extreg stem : external regressors"
   echo "   -mcextreg  : same as -extreg mcextreg"
