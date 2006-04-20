@@ -25,8 +25,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mSampleMethod(nearest),
   mColorMapMethod(grayscale),
   mbClearZero(false),
-  mMinVisibleValue(0),
-  mMaxVisibleValue(0),
+  mMinVisibleValue(-99999),
+  mMaxVisibleValue(99999),
   mBrightness(0.25),
   mContrast(12.0), 
   mWindow(1.0),
@@ -2620,7 +2620,7 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
     // Get the value using the visible min/max to get highest
     // granularity within the 0 - cGrayscaleLUTEntries range.
     float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
-		   cGrayscaleLUTEntries-1) + mMinVisibleValue;
+		   (cGrayscaleLUTEntries-1)) + mMinVisibleValue;
 
     // Get an intensity from 0-1 based on our window.
     float intensity = (value - window[0]) / (window[1] - window[0]); 
@@ -2637,6 +2637,7 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
     // Set the value.
     mGrayscaleLUT[(int)nEntry] = 
       (int) floor( bcdValue * kMaxPixelComponentValueFloat );
+
   }
 }
 

@@ -48,7 +48,7 @@ TclProgressDisplayManager::NewTask( string isTitle,
   
 void 
 TclProgressDisplayManager::UpdateTask( string isText,
-			    float iPercent ) {
+				       float iPercent ) {
 
   stringstream ssCommand;
   ssCommand << "UpdateTask ";

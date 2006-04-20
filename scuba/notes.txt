@@ -660,3 +660,24 @@ x Find Nearest Surface Vertex
 Data Collection Info window
 Generate Segementation Volume Report
 ROI stats dlog
+
+
+ChartManager
+
+NewWindow title
+Clear
+SetNumXValues
+SetNumYValues
+SetXValues list<float>
+SetYValues list<float>
+SetXLabels list<string>
+SetYLabels list<string>
+Draw
+SaveToText - one x,y pair per line, tab separated
+
+
+Volume
+
+ChartIntensitiesInVolumeROI colID roiID
+
+ChartIntensitiesInROI ( ScubaVolumeROI& iROI )
