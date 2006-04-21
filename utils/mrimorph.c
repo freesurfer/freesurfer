@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/02/24 15:10:04 $
-// Revision       : $Revision: 1.53 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/04/21 00:24:25 $
+// Revision       : $Revision: 1.54 $
 */
 
 /*-----------------------------------------------------
@@ -8290,6 +8290,7 @@ MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
   vl_source->mri2 = mri_source ;
   VLSTcomputeStats(vl_source);
   printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
+  fflush(stdout);
   farid_align(vl_source, vl_target, m_L) ;
 
   VLSTfree(&vl_source) ;
