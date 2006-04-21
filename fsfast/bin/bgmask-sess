@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # bgmask-sess
 #
-set VERSION = '$Id: bgmask-sess,v 1.7 2006/04/20 04:23:58 greve Exp $';
+set VERSION = '$Id: bgmask-sess,v 1.8 2006/04/21 02:19:33 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -12,6 +12,7 @@ set epi       = 1;
 set RunListFile = ();
 set PerRun    = 0;
 set PolyFitOrder = 2;
+set noepi = 0;
 set ExtReg    = ();
 set nolog     = 0;
 set PrintHelp = 0;
@@ -123,6 +124,7 @@ QuitOnError = ~[$monly];
 fspec = '$func';
 extregstem = '$extregstem';
 polyfitorder = [$PolyFitOrder];
+noepi = $noepi;
 bgmaskspec = '$outvol';
 sessid = '$sessid';
 runid  = '$Run';
@@ -187,7 +189,7 @@ fstd = fast_mat2vol(fstd,f.volsize);
 
 fprintf('  Computing background mask \n');
 bgmask = f;
-[bgmask.vol bgstd fstdfg fstdfgexp bgthresh fmnfg bgmB] = fast_bgmask(fmn,fstd);
+[bgmask.vol bgstd fstdfg fstdfgexp bgthresh fmnfg bgmB] = fast_bgmask(fmn,fstd,noepi);
 indbg = find(bgmask.vol);
 nbgmask = length(indbg);
 bgmn = mean(fmn(indbg));
@@ -213,6 +215,7 @@ fprintf(fp,'fspec     %s\n',basename(fspec));
 if(~isempty(extregstem))
   fprintf(fp,'extreg    %s\n',basename(extregstem));
 end
+fprintf(fp,'noepi     %d\n',noepi);
 fprintf(fp,'poly      %d\n',polyfitorder);
 fprintf(fp,'nbg       %d\n',nbgmask);
 fprintf(fp,'bgmn      %f\n',bgmn);
@@ -353,11 +356,11 @@ while( $#argv != 0 )
       breaksw
 
     case "-epi":
-      set epi = 1;
+      set noepi = 0;
       breaksw
 
     case "-noepi":
-      set epi = 0;
+      set noepi = 1;
       breaksw
 
     case "-nolog":

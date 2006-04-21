@@ -1,21 +1,27 @@
-function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd)
-% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd)
+function [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd,noepi)
+% [bgm, fstdbg, fstdfg, fstdfgexp, bgthresh, fgmn, bgmB] = fast_bgmask(fmn,fstd,<noepi>)
 %
 % White noise floor in the foreground should then be
 %     fstdfgexp = fstdbg/sqrt(2-pi/2);
 %
 % bgmB is the background mask as determined by Stoecker's method.
 %
-% $Id: fast_bgmask.m,v 1.3 2006/04/13 00:03:50 greve Exp $
+% $Id: fast_bgmask.m,v 1.4 2006/04/21 02:19:33 greve Exp $
 %
 
 bgm = [];
 fstdbg = [];
 fstdfg = [];
-if(nargin ~= 2)
-  fprintf('[bgm fstdbg fstdfg fstdfgexp bgthresh] = fast_bgmask(fmn,fstd)\n');
+fstdfgexp = [];
+bgthresh = [];
+fgmn = []; 
+bgmB = [];
+if(nargin < 2 | nargin > 3)
+  fprintf('[bgm fstdbg fstdfg fstdfgexp bgthresh] = fast_bgmask(fmn,fstd,<noepi>)\n');
   return;
 end
+
+if(nargin == 2) noepi = 0; end
 
 indz = find(fstd==0);
 gmean = mean(fmn(:));
@@ -35,10 +41,17 @@ bgthresh = 4*fstdfg*sqrt(pi/2);
 % Now create a new foreground mask
 fgm2 = fmn > bgthresh;
 fgm2 = fast_dilate(fgm2,5); % Dilate by 5
-fggm = fast_ghostmask(fgm2); % Ghost of the fg mask
 
-% Create a mask of everything not wanted in background
-m = fgm2 | fggm; % Foreground and ghost
+if(~noepi)
+  % Ghost of the fg mask
+  fggm = fast_ghostmask(fgm2); 
+  % Create a mask of everything not wanted in background
+  m = fgm2 | fggm; % Foreground and ghost
+else
+  m = fgm2;
+end
+
+
 m(1,:,:)   = 1;  % Set first row to 1
 m(end,:,:) = 1;  % Set last  row to 1
 m(:,1,:)   = 1;  % Set first col to 1
@@ -52,6 +65,7 @@ indbg = find(bgm);
 nbgm = length(indbg);
 if(nbgm == 0)
   fprintf('ERROR: could not segment background\n');
+  keyboard
   return;
 end
 
