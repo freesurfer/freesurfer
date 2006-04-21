@@ -4,6 +4,9 @@
 #define __PRINT_MODE 0
 #define WHICH_OUTPUT stdout
 
+bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
+
+
 //check the new vertices : val2, val2bak... marked2=-1 ?
 
 extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms){
@@ -29,7 +32,6 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 		 return false;
 	}
 
-
 #if __PRINT_MODE 
 	euler = MRISgetEuler(mrip->mris);
 	fprintf(WHICH_OUTPUT,"BEFORE TOP euler is %d\n",euler);
@@ -46,6 +48,8 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 #if __PRINT_MODE
 	fprintf(WHICH_OUTPUT,"transferring corrections\n");
 #endif
+
+
 	MRISaddMRIP(mris,mrip);
 
 
@@ -87,7 +91,6 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	return true;
 }
 
-bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
 extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
   int nattempts=parms.nattempts;
@@ -173,7 +176,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
     MRISdefectMatch(mris_work,&parms);
 		fitness = MRIScomputeFitness(mris_work,&parms);
 
-		//update if necessary
+		//update if necessary 
 		if(best_mris == NULL || fitness > best_fitness){
 			//check if self-intersect
 			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
@@ -201,7 +204,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 
 	MRISfree(&mris);
 	mris = best_mris;
-
+	
 	return true;
 }
 
@@ -223,8 +226,8 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode){
 		vdst->marked = 0 ;
 		vdst->ripflag = 0 ;
  		vdst->origx = vsrc->origx;
-		vdst->origy = vsrc->origy;
-		vdst->origz = vsrc->origz;
+		vdst->origy =  vsrc->origy;
+		vdst->origz =  vsrc->origz;
 		vdst->val = vsrc->val;
 		vdst->val2 = vsrc->val2;
 		vdst->val2bak = vsrc->val2bak;
@@ -790,6 +793,7 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip){
 	if(new_faces+mris_dst->nfaces>=mris_dst->max_faces){
     ErrorExit("Not Enough Face Space in mris_dst!");
   }
+
 
 	MRIS *mris = mrip->mris;
 
