@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.190 2006/04/20 21:53:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.191 2006/04/21 20:12:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5014,6 +5014,7 @@ proc AdjustLayerSettingsForColorMap {} {
 }
 
 proc ShuffleLayersInView { iViewID } {
+    global gaView
 
     # Find the highest level.
     set nHighestLevel 0
@@ -5901,7 +5902,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.190 2006/04/20 21:53:21 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.191 2006/04/21 20:12:13 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
