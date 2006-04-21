@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/21 15:25:42 $
-// Revision       : $Revision: 1.452 $
+// Revision Date  : $Date: 2006/04/21 17:14:26 $
+// Revision       : $Revision: 1.453 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.452 2006/04/21 15:25:42 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.453 2006/04/21 17:14:26 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29772,10 +29772,13 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	parms->transformation_matrix = VoxelFromSRASmatrix ; 
 #endif
 
-	MRISaverageVertexPositions(mris, 2) ;
+	//	MRISaverageVertexPositions(mris, 2) ;
 	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 	MRIScomputeMetricProperties(mris);
 	//	MRISsmoothSurfaceNormals(mris,10);
+
+
+
 
 	//ripping all defects
 	for(n = 0 ; n < mris->nvertices ; n++){
@@ -29797,6 +29800,8 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   mrisComputePrincipalCurvatureDistributions(mris, parms->h_k1, parms->h_k2,parms->mri_k1_k2) ;
   mrisComputeNormalDotDistribution(mris, parms->h_dot) ;
 	MRISsetNeighborhoodSize(mris,1);
+
+
 
 	//computing mri statistics
 	MRIScomputeMetricProperties(mris) ;
@@ -29843,6 +29848,10 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
       nvertices++;
       mris->vertices[n].marked = 1 ;
     };
+	if(nvertices==0){ //empty defect!
+		free(defect);
+		return;
+	}
   defect->nvertices=0;
   defect->vertices = (int*)malloc(nvertices*sizeof(int));
   for(n = 0 ; n < mris->nvertices ; n++)
@@ -29890,7 +29899,8 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 void TOPOFIXfreeDP(TOPOFIX_PARMS *parms){
 	DP *dp;
 	dp=(DP*)parms->dp;
-	free(dp->defect);
+	if(dp==NULL) return;
+	if(dp->defect) free(dp->defect);
 	TPfree(&dp->tp);
 	free(dp);
 	parms->dp=NULL;
@@ -29937,6 +29947,7 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
 
 void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){
 	defectMatch(parms->mri,mris,(DP*)parms->dp,parms->smooth, parms->match);
+	MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
 }
 
 double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
