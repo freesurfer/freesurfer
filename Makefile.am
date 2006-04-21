@@ -142,6 +142,7 @@ MRISSUBDIRS=stim \
 	mris_expand \
 	mris_find_flat_regions \
 	mris_fix_topology \
+	mris_topo_fixer \
 	mris_flatten \
 	mris_fwhm \
 	mris_inflate \
