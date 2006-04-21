@@ -70,10 +70,7 @@ inline void __cross(double x[3], double y[3], double *z){
 }
 
 // a random number in the range 0 to nmax
-inline int Random(int nmax){
-	return rand()*nmax/RAND_MAX;
-}
-
+int Random(int nmax);
 
 void check(bool exp);
 

@@ -1026,14 +1026,25 @@ typedef struct
 	MRIS *mris_source;
 }MRI_PATCH, MRIP;
 
+/* Different verbose mode for mris_fix_topology and mris_topo_fix */
+#define VERBOSE_MODE_DEFAULT 1
+#define VERBOSE_MODE_LOW 2
+#define VERBOSE_MODE_MEDIUM 3
+#define VERBOSE_MODE_HIGH 4
+
 typedef struct{
+	int verbose;
+	int smooth;
+	int match;
+	int defect_number;
 	int mode;
 	int no_self_intersections;
+	double nattempts_percent;
 	int nattempts;
 	double minimal_loop_percent;
 	int nminimal_attempts;
 	int max_face;
-
+	void* patchdisk; // the patching surfaces
 	// loglikelihood
 	double  l_mri ;
   double  l_curv ;
@@ -1044,19 +1055,22 @@ typedef struct{
 	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
 	MRI *mri_gray_white, *mri_k1_k2;
 	MATRIX *transformation_matrix;
+	//defect info
+	void   *dp; 
 } TOPOFIX_PARMS;
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
+void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms); 
+void TOPOFIXfreeDP(TOPOFIX_PARMS *parms);
+void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms);
+void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms);
+void MRISprintInfo(TOPOFIX_PARMS *parms);
+double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
+
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
 #define RANDOM_SEARCH 2
-
-/* Different verbose mode for mris_fix_topology */
-#define VERBOSE_MODE_DEFAULT 1
-#define VERBOSE_MODE_LOW 2 
-#define VERBOSE_MODE_MEDIUM 3
-#define VERBOSE_MODE_HIGH 4
 
 typedef struct
 {

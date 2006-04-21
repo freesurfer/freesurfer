@@ -3,6 +3,10 @@
 
 #ifdef __cplusplus
 
+#define MAX_EXTRA_VERTICES 66
+#define MAX_EXTRA_FACES 128
+
+
 #include "surface.h"
 
 class PatchDisk

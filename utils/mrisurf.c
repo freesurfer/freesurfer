@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/19 18:04:51 $
-// Revision       : $Revision: 1.450 $
+// Revision Date  : $Date: 2006/04/21 12:56:19 $
+// Revision       : $Revision: 1.451 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.450 2006/04/19 18:04:51 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.451 2006/04/21 12:56:19 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2737,14 +2737,16 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       v = &mris->vertices[k];
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
+
       for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
         {
           num++ ;
-
           mrisNormalFace(mris, v->f[n] , (int)v->n[n] , norm);
           snorm[0] += norm[0];
           snorm[1] += norm[1];
           snorm[2] += norm[2];
+
+					
 
           /* Note: overestimates area by *2 !! */
           v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
@@ -29525,10 +29527,11 @@ static void mrisComputeSurfaceStatistics
 static void computeDefectStatistics
 (MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRAM *h_white,
  HISTOGRAM *h_gray, MRI *mri_gw,HISTOGRAM *h_k1,
- HISTOGRAM *h_k2,MRI*mri_k1_k2);
+ HISTOGRAM *h_k2,MRI*mri_k1_k2,int verbose);
 //initialization, free for the tessellated patch structure
 static void TPinit(TP *tp);
 static void TPfree(TP *tp);
+static void TPprint(TP *tp);
 static DEFECT_VERTEX_STATE *mrisRecordVertexState
 (MRI_SURFACE *mris, DEFECT *defect,
  int *vertex_trans) ;
@@ -29770,14 +29773,20 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 #endif
 
 	MRISaverageVertexPositions(mris, 2) ;
+	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
+	MRIScomputeMetricProperties(mris);
+	//	MRISsmoothSurfaceNormals(mris,10);
 
 	//ripping all defects
-	for(n = 0 ; n < mris->nvertices ; n++)
+	for(n = 0 ; n < mris->nvertices ; n++){
+		mris->vertices[n].marked=0;
+		mris->vertices[n].ripflag=0;
 		if(mris->vertices[n].marked2) mris->vertices[n].ripflag=1;
+	}
 	mrisFindGrayWhiteBorderMean(mris, parms->mri) ;
 	// unripping defects
 	for(n = 0 ; n < mris->nvertices ; n++)
-    if(mris->vertices[n].marked2) mris->vertices[n].ripflag=0;
+    mris->vertices[n].ripflag=0;
 
 	//computing curvature statistics
 	MRISsetNeighborhoodSize(mris,2);
@@ -29799,16 +29808,180 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   parms->h_grad = HISTOalloc(256) ; 
   parms->mri_gray_white = MRIalloc(256, 256, 1, MRI_FLOAT) ;
   
-	//  mrisMarkAllDefects(mris, dl, 1) ;
+	for(n = 0 ; n < mris->nvertices ; n++){
+		mris->vertices[n].marked=0;
+    if(mris->vertices[n].marked2) mris->vertices[n].marked=1;
+	}
   mrisComputeJointGrayWhiteBorderDistributions(mris, parms->mri,  parms->mri_gray_white,  parms->mri_wm) ;
-	
+
   /* compute statistics on original */
   mrisComputeSurfaceStatistics(mris, parms->mri, parms->h_k1, parms->h_k2, parms->mri_k1_k2, parms->mri_gray_white,parms->h_dot);
+	for(n = 0 ; n < mris->nvertices ; n++)
+    mris->vertices[n].marked=0;
 
 }
 
 
+void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
+	int n,nvertices, nchull, defect_number;
+	DEFECT *defect;
+	DP *dp;
+
+#if MATRIX_ALLOCATION
+	//  VoxelFromSRASmatrix=parms->transformation_matrix;
+#endif
+
+	defect_number = parms->defect_number;
+	defect = (DEFECT*)calloc(1,sizeof(DEFECT));
+	defect->defect_number = defect_number;
+
+	//reset marks to zero
+  MRISclearMarks(mris);
+  nvertices=0;
+	for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked2 == defect_number){
+      nvertices++;
+      mris->vertices[n].marked = 1 ;
+    };
+  defect->nvertices=0;
+  defect->vertices = (int*)malloc(nvertices*sizeof(int));
+  for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked)
+      defect->vertices[defect->nvertices++]=n;
+	//expand marks
+  for(n =  0 ; n < 3 ; n++)
+    MRISexpandMarked(mris);
+	mrisMarkDefect(mris,defect,2);
+  nchull=0;
+	for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked==1)
+			nchull++;
+  defect->chull = (int*)malloc(nchull*sizeof(int));
+	defect->nchull=0;
+  for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked==1)
+      defect->chull[defect->nchull++]=n;
+
+
+  //computing statistics
+  MRISclearMarks(mris);
+
+	//marking all defects
+	for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked2){
+      mris->vertices[n].marked = 1 ;
+    };
+
+	mrisComputeGrayWhiteBorderDistributions(mris,parms->mri,defect,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad);
+
+
+	computeDefectStatistics(parms->mri,mris,defect, parms->h_white,parms->h_gray, parms->mri_gray_white,parms->h_k1, parms->h_k2,parms->mri_k1_k2,parms->verbose);
+	//unmark vertices
+	MRISclearMarks(mris);
+
+	//initialize the Defect Patch associated with the current defect
+	dp = (DP*)calloc(1,sizeof(DP));
+	free(defect->chull);defect->chull=NULL;defect->nchull=0;
+	free(defect->vertices);defect->vertices=NULL;defect->nvertices=0;
+	dp->defect=defect;
+	parms->dp=(void*)dp;
+}
+
+void TOPOFIXfreeDP(TOPOFIX_PARMS *parms){
+	DP *dp;
+	dp=(DP*)parms->dp;
+	free(dp->defect);
+	TPfree(&dp->tp);
+	free(dp);
+	parms->dp=NULL;
+}
+
+void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
+	int n;
+	DP *dp;
+  TP *tp;
+
+	dp=(DP*)parms->dp;
+  tp=&dp->tp;
+
+	TPfree(tp);
+  TPinit(tp);
+
+	tp->nvertices = mris->nvertices;
+	tp->vertices = (int*)malloc(tp->nvertices*sizeof(int));
+	//first find the inside vertices
+	MRISclearMarks(mris);
+	tp->ninside=0;
+	for(n = 0 ; n < mris->nvertices ; n++){
+		VERTEX *v=&mris->vertices[n];
+		if(v->vnum == v->num){
+			v->marked=1;
+			tp->vertices[tp->ninside++]=n;
+		}
+	}
+	//then the remaining ones
+	tp->nvertices=tp->ninside;
+	for(n = 0 ; n < mris->nvertices ; n++){
+		VERTEX *v=&mris->vertices[n];
+		if(v->marked==1) continue;
+		tp->vertices[tp->nvertices++]=n;
+	}
+	MRISclearMarks(mris);
+	//finally the faces
+  tp->nfaces = mris->nfaces;
+  tp->faces = (int*)malloc(tp->nfaces*sizeof(int));
+  for(n = 0 ; n < tp->nfaces ; n++)
+    tp->faces[n]=n;
+  tp->nedges = 0;
+}
+
+void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){
+	defectMatch(parms->mri,mris,(DP*)parms->dp,parms->smooth, parms->match);
+}
+
+double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
+	double fitness,mri_ll,curv_ll;
+	DP *dp;
+	TP *tp;
+	TOPOLOGY_PARMS top_parms;
+
+#if MATRIX_ALLOCATION
+	//	VoxelFromSRASmatrix=parms->transformation_matrix;
+#endif
+
+	top_parms.l_mri = parms->l_mri;;
+	top_parms.l_curv = parms->l_curv;
+	top_parms.l_unmri = parms->l_unmri;
+	top_parms.l_qcurv = parms->l_qcurv;
+
+	dp=(DP*)parms->dp;
+	tp=&dp->tp;
+
+	fitness = mrisComputeDefectLogLikelihood(mris,parms->mri,dp,parms->h_k1,parms->h_k2,parms->mri_k1_k2,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad,parms->mri_gray_white,parms->h_dot,&top_parms);
+
+	// new computation of the fitness
+	mri_ll = (tp->face_ll+tp->vertex_ll)/4.0;
+  curv_ll = (tp->qcurv_ll+tp->curv_ll)/3.0;
+
+
+	return (mri_ll+curv_ll);
+}
+
+void MRISprintInfo(TOPOFIX_PARMS *parms){
+	TP *tp;
+	tp=&((DP*)parms->dp)->tp;
+	TPprint(tp);
+}
+
 // --------------------- Definition of the static functions -------------------- //
+
+static void TPprint(TP *tp){
+	double mri,curv;
+	mri = (tp->face_ll+tp->vertex_ll)/4.0;
+	curv = (tp->qcurv_ll+tp->curv_ll)/3.0;
+	fprintf(WHICH_OUTPUT,"         mri =%3.3f   curv = %3.3f \n",mri,curv);
+	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n" ,tp->face_ll,tp->vertex_ll,tp->curv_ll,tp->qcurv_ll);
+}
 
 static void TPinit(TP *tp){
   tp->vertices=NULL;
@@ -31162,8 +31335,8 @@ static void mrisComputeSurfaceStatistics(MRIS *mris,MRI *mri,HISTOGRAM *h_k1,HIS
   TPfree(&tp);
 }
 
-static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRAM *h_white, HISTOGRAM *h_gray, MRI *mri_gw,HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2){
-  float val,mean,var,mg,mw,vw,vg,total,max,white_val,gray_val,x,y,z,cx,cy,cz,ival,k1,k2,vk1,vk2;
+static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRAM *h_white, HISTOGRAM *h_gray, MRI *mri_gw,HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2,int verbose){
+  float val,mean,var,mg,mw,vw,vg,total,max,white_val,gray_val,x,y,z,cx,cy,cz,ival,k1,k2,vk1,vk2,wv,gv;
   Real xv,yv,zv,int_val;
   int i,j,n;
   HISTOGRAM *h;
@@ -31191,8 +31364,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   cz /= (float)defect->nvertices;
   ival /= (float)defect->nvertices;
 
-	if(DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"Computing statistics for defect %d [ (%d,%d,%d) - %3.3f ]\n",defect->defect_number,(int)cx,(int)cy,(int)cz,ival);
+		if(verbose)
+		fprintf(WHICH_OUTPUT,"   computing statistics for defect %d \n   location: [ (%d,%d,%d) - average intensity = %3.3f ]\n",defect->defect_number,(int)cx,(int)cy,(int)cz,ival);
 
   /* computing intensity statistics */
 
@@ -31223,8 +31396,7 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   white_val=mean;
 
-	if (DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"      -white ( %2.2f , %2.2f ) \n",mean,sqrt(var));
+	wv = var;
 
   /* white matter */
   h=h_gray;
@@ -31254,9 +31426,10 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   if(var<0) var=0;
 
   gray_val=mean;
+	gv = var;
 
-	if (DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) \n",mean,sqrt(var));
+	 if (verbose)
+		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f )\n",gray_val,sqrt(gv),white_val,sqrt(wv));
 
   for(mw=0,mg=0,vw=0,vg=0,i=0 ; i < 256 ; i++)
     for(j = 0 ; j < 256 ; j++){
@@ -31271,10 +31444,9 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vw -= SQR(mw);
   vg -= SQR(mg);
 
-	if (DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) - white ( %2.2f , %2.2f ) \n",mg,sqrt(vg),mw,sqrt(vw));
+	 if (verbose)
+		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f ) \n",mg,sqrt(vg),mw,sqrt(vw));
 
-  //FLO : To be Checked
   mw=white_val;
   mg=gray_val;
 
@@ -31284,7 +31456,7 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   defect->white_mean_ll = log(h_white->counts[MAX(0,MIN(h_white->nbins-1,nint(mw)))]);
   defect->gray_mean_ll = log(h_gray->counts[MAX(0,MIN(h_gray->nbins-1,nint(mg)))]);
 
-	if (DIAG_VERBOSE_ON)
+	 if (verbose)
 		fprintf(WHICH_OUTPUT,"      -intensity (%f [log = %f ]- %f [log = %f ])\n",mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
 
   /* computing curvature statistics */
@@ -31314,6 +31486,7 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   var=var-SQR(mean);
   if(var<0) var=0;
+	vk1=var;
 
   defect->k1_mean=mean;
 
@@ -31343,12 +31516,13 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   var=var-SQR(mean);
   if(var<0) var=0;
+	vk2=var;
 
   defect->k2_mean=mean;
 
-	if(DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"      -curvature(kmax=%f : rmin = %f |  kmin=%f : rmax = %f )\n",defect->k1_mean,-1.0/defect->k1_mean,
-						defect->k2_mean,-1.0/defect->k2_mean);
+	 if(verbose)
+		fprintf(WHICH_OUTPUT,"      -curv (k1=%3.3f (%3.3f) , r1 = %3.3f | k2=%3.3f (%3.3f), r2 = %3.3f )\n",defect->k1_mean,sqrt(vk1),-1.0/defect->k1_mean,
+						defect->k2_mean,sqrt(vk2),-1.0/defect->k2_mean);
 	
   for(k1=0,vk1=0,k2=0,vk2=0,i=0 ; i < mri_k1_k2->width ; i++)
     for(j = 0 ; j < mri_k1_k2->height ; j++){
@@ -31362,11 +31536,9 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vk1 -= SQR(k1);
   vk2 -= SQR(k2);
 
-	if (DIAG_VERBOSE_ON)
-		fprintf(WHICH_OUTPUT,"      - k1 ( %2.2f , %2.2f ) - k2 ( %2.2f , %2.2f ) \n",k1,sqrt(vk1),k2,sqrt(vk2));
-
-  //    fprintf(stderr," k1 (%f - %f - %f) k2 (%f - %f - %f) \n",mri_k1_k2->xstart,mri_k1_k2->xsize,mri_k1_k2->xstart+mri_k1_k2->width*mri_k1_k2->xsize,mri_k1_k2->ystart,mri_k1_k2->ysize,mri_k1_k2->ystart+mri_k1_k2->height*mri_k1_k2->ysize);
-
+	if(verbose)
+    fprintf(WHICH_OUTPUT,"      -curv (k1=%3.3f (%3.3f) , r1 = %3.3f | k2=%3.3f (%3.3f), r2 = %3.3f )\n",k1,sqrt(vk1),-1.0/k1,
+            k2,sqrt(vk2),-1.0/k2);
 }
 
 /* call the right smoothing and matching functions */
@@ -31691,7 +31863,7 @@ static void defectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int nite
   mean=(wm+gm)/2.0;
 
   nvertices=dp->tp.nvertices;
-  //    nvertices=dp->tp.ninside; /* matching only for inside vertices */
+  nvertices=dp->tp.ninside; /* matching only for inside vertices */
 
   while(niter--){
     /* using the tmp vertices */
@@ -34832,9 +35004,9 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
   //if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-    //MRISwrite(mris,"new_orig_uncorrected");
+    MRISwrite(mris,"new_orig_uncorrected");
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-    //MRISwrite(mris,"new_qsphere_uncorrected");
+    MRISwrite(mris,"new_qsphere_uncorrected");
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     MRISclearCurvature(mris) ;
 
@@ -34853,7 +35025,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         defect = &dl->defects[i] ;
         for (n = 0 ; n < defect->nborder ; n++)
           {
-            mris->vertices[defect->border[n]].curv -= 1;
+            mris->vertices[defect->border[n]].curv = i+1;
           }
       }
     //if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
@@ -37439,7 +37611,7 @@ mrisDefectFaceMRILogLikelihood
     nx=face->nx;
     ny=face->ny;
     nz=face->nz;
-
+ 
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
@@ -37456,6 +37628,7 @@ mrisDefectFaceMRILogLikelihood
 
     MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
     fll += log(val) ;
+
   }
 
   if(tp->nfaces)
@@ -39256,7 +39429,8 @@ mrisComputeDefectLogLikelihood
       l_qcurv = parms->l_qcurv;
 
       first_time = 0 ;
-      if (!FZERO(l_mri))
+
+			/*      if (!FZERO(l_mri))
         fprintf(WHICH_OUTPUT,"l_mri = %2.2f ", l_mri) ;
       if (!FZERO(l_unmri))
         fprintf(WHICH_OUTPUT,"l_unmri = %2.2f ", l_unmri) ;
@@ -39264,7 +39438,7 @@ mrisComputeDefectLogLikelihood
         fprintf(WHICH_OUTPUT,"l_curv = %2.2f ", l_curv) ;
       if (!FZERO(l_qcurv))
         fprintf(WHICH_OUTPUT,"l_qcurv = %2.2f ", l_qcurv) ;
-      fprintf(WHICH_OUTPUT,"\n") ;
+				fprintf(WHICH_OUTPUT,"\n") ;*/
     }
 
   if(!FZERO(l_unmri) && (dp->mri_defect->width <=5 || dp->mri_defect->height <= 5 || dp->mri_defect->depth <= 5)){
@@ -40191,7 +40365,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
 					defect->defect_number, defect->nvertices, defect->nchull);
 
   if(parms->search_mode!=GREEDY_SEARCH)
-    computeDefectStatistics(mri,mris,defect, h_white,h_gray,mri_gray_white,h_k1,h_k2,mri_k1_k2);
+    computeDefectStatistics(mri,mris,defect, h_white,h_gray,mri_gray_white,h_k1,h_k2,mri_k1_k2,0);
 
   /* first build table of all possible edges among vertices in the defect
      and on its border.*/
@@ -47170,6 +47344,8 @@ mrisComputeGrayWhiteBorderDistributions
             }
         }
     }
+
+
   /* add one bin at either end for almost zero probability events */
   bin_size = (max_grad - min_grad) / (h_grad->nbins-2) ;
   h_grad->bin_size = bin_size ;
@@ -47230,6 +47406,7 @@ mrisComputeGrayWhiteBorderDistributions
             }
         }
     }
+
   for (bin = 0 ; bin < h_gray->nbins ; bin++)
     {
       if (h_gray->counts[bin] == 0)
@@ -47245,6 +47422,7 @@ mrisComputeGrayWhiteBorderDistributions
       h_white->counts[bin] /= (float)nvertices ;
       h_border->counts[bin] /= (float)nvertices ;
     }
+
   h_grad_raw = HISTOcopy(h_grad, NULL) ;
   h_gray_raw = HISTOcopy(h_gray, NULL) ;
   h_white_raw = HISTOcopy(h_white, NULL) ;
