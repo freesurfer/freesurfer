@@ -4,10 +4,10 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/21 12:56:19 $
-// Revision       : $Revision: 1.451 $
+// Revision Date  : $Date: 2006/04/21 15:25:42 $
+// Revision       : $Revision: 1.452 $
 //////////////////////////////////////////////////////////////////
-
+ 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.451 2006/04/21 12:56:19 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.452 2006/04/21 15:25:42 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29973,6 +29973,28 @@ void MRISprintInfo(TOPOFIX_PARMS *parms){
 	TPprint(tp);
 }
 
+
+int IsMRISselfIntersecting(MRI_SURFACE *mris)
+{
+  MRIS_HASH_TABLE  *mht ;
+  int fno ;
+
+  mht = MHTfillTable(mris, NULL) ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    if (MHTdoesFaceIntersect(mht, mris, fno))
+    {
+			MHTfree(&mht);
+			return 1; 
+		}
+  }
+
+  MHTfree(&mht) ;
+  return 0 ;
+}
+
+
 // --------------------- Definition of the static functions -------------------- //
 
 static void TPprint(TP *tp){
@@ -31365,7 +31387,7 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   ival /= (float)defect->nvertices;
 
 		if(verbose)
-		fprintf(WHICH_OUTPUT,"   computing statistics for defect %d \n   location: [ (%d,%d,%d) - average intensity = %3.3f ]\n",defect->defect_number,(int)cx,(int)cy,(int)cz,ival);
+		fprintf(WHICH_OUTPUT,"   computing statistics for defect %d: %d vertices\n   location: [ (%d,%d,%d) - average intensity = %3.3f ]\n",defect->defect_number,defect->nvertices,(int)cx,(int)cy,(int)cz,ival);
 
   /* computing intensity statistics */
 

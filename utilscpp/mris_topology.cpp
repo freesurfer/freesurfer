@@ -13,7 +13,7 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
   int euler = MRISgetEuler(mris, defect_number);
   fprintf(WHICH_OUTPUT,"   euler is %d\n",euler);
   if(euler == 1) {
-    fprintf(WHICH_OUTPUT,"Nothing to correct for defect %d!!\n",defect_number);
+    fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",defect_number);
     return true;
   }
 
@@ -71,9 +71,14 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
   //what is the maximum face generating a cutting loop
   parms.max_face = mris->nfaces;
 	parms.nattempts = nint(parms.nattempts_percent*mris->nfaces+1);
-  parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+1);
+  parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+parms.nminattempts);
 
 	int nloops = (1-MRISgetEuler(mris))/2;
+
+	if(parms.verbose){
+    fprintf(WHICH_OUTPUT,"      nfaces = %d - nloops = %d  - ntries = [%d,%d]\n",
+						mris->nfaces,nloops, parms.nattempts,parms.nminimal_attempts);
+  }
 	
 	for(int n = 0 ; n < nloops ; n++){
 		bool correct = MRISincreaseEuler(mris,parms);
@@ -81,6 +86,8 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	}
 	return true;
 }
+
+bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
 extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
   int nattempts=parms.nattempts;
@@ -91,13 +98,15 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 #if __PRINT_MODE
   fprintf(WHICH_OUTPUT,"increasing euler number\n");
 #endif
-
+	
   for(int n = 0 ; n < nattempts ; n++){
+		if(parms.verbose>=VERBOSE_MODE_HIGH)
+			fprintf(stderr, "\r      %3.2f%% [%5d,%5d]",n*100.0/nattempts,n,nattempts);
 
     //generate a surface
     Surface *surface = MRIStoSurface(mris);
     surface->disk=(PatchDisk*)parms.patchdisk;
-
+ 
 		//compute the euler number of the surface (mandatory for CutPatch!)
 		int euler = surface->GetEuler();
 		int init_euler = euler;
@@ -111,7 +120,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		if(n == 0 ) 
 			correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
 		else
-			correct = surface->CutPatch(-1,parms.max_face,parms.nattempts);
+			correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
 
 		if(correct < 0){ 
 			fprintf(WHICH_OUTPUT,"PBM : Could Not Increase Euler Number for defect %d\n",parms.defect_number);
@@ -140,57 +149,51 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 
 		// we have a correct surface : evaluate if valid
 		MRISinitDefectPatch(mris_work,&parms);
-
-		// check if self-intersect
-
+		
 		//compute associated fitness
 		double fitness = MRIScomputeFitness(mris_work,&parms);
-		fprintf(WHICH_OUTPUT,"         fitness is %3.5f \n",fitness);
-    MRISprintInfo(&parms);
+
 		//update if necessary
     if(best_mris == NULL || fitness > best_fitness){
+			// check if self-intersect
+			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
+			if(selfintersect){
+				MRISfree(&mris_work);
+				continue;
+			}
       if(best_mris) MRISfree(&best_mris);
       best_mris = MRISduplicateOver(mris_work,1);
       best_fitness = fitness;
-      fprintf(WHICH_OUTPUT,"      BEST FITNESS is %3.5f \n",best_fitness);
-      MRISprintInfo(&parms);
+			if(parms.verbose>=VERBOSE_MODE_MEDIUM){
+				fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
+				MRISprintInfo(&parms);
+			}
     };
 
-
-		fprintf(WHICH_OUTPUT,"         smoothing ... ");
-		parms.smooth=2;parms.match=0;
-		MRISdefectMatch(mris_work,&parms);
-		fitness = MRIScomputeFitness(mris_work,&parms);
-		fprintf(WHICH_OUTPUT,"         fitness is %3.5f \n",fitness);
-		MRISprintInfo(&parms);
-		//update if necessary
-    if(best_mris == NULL || fitness > best_fitness){
-      if(best_mris) MRISfree(&best_mris);
-      best_mris = MRISduplicateOver(mris_work,1);
-      best_fitness = fitness;
-      fprintf(WHICH_OUTPUT,"      BEST FITNESS is %3.5f \n",best_fitness);
-      MRISprintInfo(&parms);
-    };
-
-		fprintf(WHICH_OUTPUT,"         matching ... ");
-		parms.smooth=0;parms.match=1;
     MRISdefectMatch(mris_work,&parms);
 		fitness = MRIScomputeFitness(mris_work,&parms);
-		fprintf(WHICH_OUTPUT,"         fitness is %3.5f \n",fitness);
-		MRISprintInfo(&parms);
 
-		
 		//update if necessary
 		if(best_mris == NULL || fitness > best_fitness){
+			//check if self-intersect
+			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
+      if(selfintersect){
+        MRISfree(&mris_work);
+        continue;
+      }
 			if(best_mris) MRISfree(&best_mris);
 			best_mris = mris_work;
 			best_fitness = fitness;
-			fprintf(WHICH_OUTPUT,"      BEST FITNESS is %3.5f \n",best_fitness);
-			MRISprintInfo(&parms);
+			if(parms.verbose>=VERBOSE_MODE_MEDIUM){
+				fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (m) is %3.5f \n",best_fitness);
+				MRISprintInfo(&parms);
+			}
 		}else{
 			MRISfree(&mris_work);
 		}
 	}
+	if(parms.verbose>=VERBOSE_MODE_HIGH)
+		fprintf(WHICH_OUTPUT,"\r                             \r");
 
 	//update the surface
 	if(best_mris == NULL )
@@ -202,6 +205,12 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	return true;
 }
 
+bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms){
+	if(parms.no_self_intersections==false) return false;
+
+	//checking self-intersections
+	return IsMRISselfIntersecting(mris_work);
+}
 
 extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode){
 	MRIS *mris_dst;

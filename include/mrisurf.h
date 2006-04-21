@@ -1033,14 +1033,15 @@ typedef struct
 #define VERBOSE_MODE_HIGH 4
 
 typedef struct{
-	int verbose;
-	int smooth;
-	int match;
-	int defect_number;
-	int mode;
-	int no_self_intersections;
-	double nattempts_percent;
+	int verbose; // verbose mode
+	int smooth;  // smoothing defect
+	int match;   // using local intensity to match surface
+	int defect_number; // the defect_number 
+	int mode; // which mode to use (not used so far) 
+	int no_self_intersections; //to prevent self-intersection
+	double nattempts_percent; 
 	int nattempts;
+	int nminattempts;
 	double minimal_loop_percent;
 	int nminimal_attempts;
 	int max_face;
@@ -1066,7 +1067,7 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISprintInfo(TOPOFIX_PARMS *parms);
 double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
-
+int IsMRISselfIntersecting(MRI_SURFACE *mris);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
