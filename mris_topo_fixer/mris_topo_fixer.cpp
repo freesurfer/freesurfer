@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.1 2006/04/21 18:31:53 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.2 2006/04/22 09:36:03 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.1 2006/04/21 18:31:53 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.2 2006/04/22 09:36:03 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -189,8 +189,14 @@ int main(int argc, char *argv[])
 			fprintf(stderr,"\nThe original surface does not self-intersect\n");
 	}
 
-	//MRISmarkOrientationChanges(mris);
-
+	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
+	MRISaverageVertexPositions(mris, 2) ;
+	if(parms.no_self_intersections){
+    int self_intersect =  IsMRISselfIntersecting(mris);
+    if(self_intersect){
+			MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
+    };
+  }
 
 	//number of loops 
 	int nloops = (1-eno)/2;
@@ -220,9 +226,11 @@ int main(int argc, char *argv[])
               "%s: could not read wm volume from %s", Progname, fname) ;
 
 	mris_corrected=MRISduplicateOver(mris);
-
 	//mris becomes useless!
 	MRISfree(&mris) ;
+
+	MRISsaveVertexPositions(mris_corrected,ORIGINAL_VERTICES);
+	MRIScomputeMetricProperties(mris_corrected);
 
 	MRISinitTopoFixParameters(mris_corrected,&parms); 
 
@@ -338,7 +346,7 @@ get_option(int argc, char *argv[])
 	else if (!stricmp(option, "nmin"))
     {
       parms.nminattempts = __MAX(1,atoi(argv[2])) ;
-      fprintf(stderr,"setting minimal number of attempts = %2.2f\n", parms.nminattempts) ;
+      fprintf(stderr,"setting minimal number of attempts = %d\n", parms.nminattempts) ;
       nargs = 1 ;
     }
 	else if (!stricmp(option, "int"))
