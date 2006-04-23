@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $
+  $Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $";
+"$Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.16 2006/03/07 19:18:45 greve Exp $",
+     "$Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -794,7 +794,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hemi           %s\n",hemi);
   fprintf(fp,"mksurfmask     %d\n",mksurfmask);
   fprintf(fp,"projfrac       %g\n",projfrac);
-  fprintf(fp,"volreg file    %s\n",volregfile);
+  if(volregfile) fprintf(fp,"volreg file    %s\n",volregfile);
   fprintf(fp,"outvol   path  %s\n",outvolpath);
   fprintf(fp,"template path  %s\n",tempvolpath);
 
