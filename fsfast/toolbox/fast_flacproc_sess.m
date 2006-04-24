@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.8 2006/04/24 04:28:53 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.9 2006/04/24 05:35:19 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -152,8 +152,7 @@ for nthrun = 1:nruns
     %indseg = find(acfseg.vol(indacfmask)==nthseg);
     indseg = find(acfseg.vol==nthseg);
     nperseg(nthseg) = length(indseg);
-    racf = fast_acorr(r(:,indseg));
-    % Need to take tpexc into account for racf
+    racf = fast_acorr(r(:,indseg),[],[],flac.tpexc);
     racfmri.vol(:,indseg) = racf(1:10,:);
     %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
     racfseg(:,nthseg)  = mean(racf,2);
