@@ -71,6 +71,11 @@ ChartWindow::SetYAxisLabel ( string isLabel ) {
   msYLabel = isLabel;
 }
 
+void
+ChartWindow::SetInfo ( string isInfo ) {
+
+  msInfo = isInfo;
+}
 
 void
 ChartWindow::GenerateReport ( string ifnReport,

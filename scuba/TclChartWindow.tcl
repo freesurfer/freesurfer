@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.1 2006/04/24 13:41:41 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.2 2006/04/24 16:56:19 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -63,11 +63,28 @@ set kValid(lColors) {red blue green yellow black purple orange pink brown}
 
 # Builds the main window. 
 proc Chart_BuildWindow { iID } {
-    global gWidgets
+    global gWidgets gData gChart
 
     set wwTop         .chart-$iID
     set gwChart        $wwTop.gwChart
     set lwInfo         $wwTop.lwInfo
+
+    # Fill out default values.
+    if { ![info exists gData($iID,title)] } {
+	set gData($iID,title) ""
+    }
+    if { ![info exists gData($iID,xAxisLabel)] } {
+	set gData($iID,xAxisLabel) ""
+    }
+    if { ![info exists gData($iID,yAxisLabel)] } {
+	set gData($iID,yAxisLabel) ""
+    }
+    if { ![info exists gData($iID,showLegend)] } {
+	set gData($iID,showLegend) false
+    }
+    if { ![info exists gData($iID,lPoints)] } {
+	set gData($iID,lPoints) {}
+    }
 
     # Make the to window and set its title.
     toplevel $wwTop -height 500 -width 500
@@ -112,6 +129,9 @@ proc Chart_BuildWindow { iID } {
 
     # Note that the window has been built.
     set gWidgets($iID,windowBuilt) 1
+
+    # Insert the ID.
+    lappend gData(lID) $iID
 }
 
 # This plots the current data on the graph. It is fast enough that it
@@ -122,14 +142,21 @@ proc Chart_PlotData { iID } {
 
     # Don't plot if the window isn't built or we don't have data.
     if { ![info exists gWidgets($iID,windowBuilt)] ||
-	 !$gWidgets($iID,windowBuilt) ) {
+	 !$gWidgets($iID,windowBuilt) } {
 	return
     }
 
     set gw $gWidgets($iID,gwChart)
 
-    # Set the x axis title.
+    # Update the window title.
+    wm title $gWidgets($iID,wwTop) $gData($iID,title)
+
+    # Set the graph title.
+    $gw configure -title $gData($iID,title)
+
+    # Set the axis titles.
     $gw axis configure x -title $gData($iID,xAxisLabel)
+    $gw axis configure y -title $gData($iID,yAxisLabel)
 
     # Remove all the elements and markers from the graph.
     set lElements [$gw element names *]
@@ -158,7 +185,13 @@ proc Chart_PlotData { iID } {
 	    -linewidth 0 -outlinewidth 1 \
 	    -activepen activeElement
     }
-
+    
+    # Show or hide the legend.
+    if { $gData($iID,showLegend) } {
+	$gw legend configure -hide false
+    } else {
+ 	$gw legend configure -hide true
+    }
     
     set gChart($iID,state,pointsChanged) 0
 }
@@ -185,33 +218,33 @@ proc Chart_UnhilightElement { iID iElement } {
 # in a text marker in the graph.
 proc Chart_UnfocusElement { iID } {
     global gChart gWidgets
-
+    
     # If we have a focused element, unhighlight it, set the
     # highlighted element name to null, and delete the hover text
     # marker.
     if { [info exists gChart($iID,state,hiElement)] && \
-	     "$gChart($iID,state,hiElement)" != "" } {
-	Chart_UnhilightElement $iID $gChart($iID,state,hiElement)
-	set gChart($iID,state,hiElement) ""
-	$gWidgets($iID,gwChart) marker delete hover
+ 	     "$gChart($iID,state,hiElement)" != "" } {
+ 	Chart_UnhilightElement $iID $gChart($iID,state,hiElement)
+ 	set gChart($iID,state,hiElement) ""
+ 	$gWidgets($iID,gwChart) marker delete hover
     }
 }
 
 proc Chart_FocusElement { iID iElement inSubjInClass iX iY } {
     global gChart gWidgets gData
-
+    
     # Don't focus on error bars.
     if { [string match error* $iElement] } {
-	return
+ 	return
     }
-
+    
     # Set the highlighted element name and highlight the element.
     set gChart($iID,state,hiElement) $iElement
     Chart_HilightElement $iID $gChart($iID,state,hiElement)
-
+    
     $gWidgets($iID,gwChart) marker create text \
-	-name hover -text $iElement -anchor nw \
-	-coords [list $iX $iY]
+ 	-name hover -text $iElement -anchor nw \
+ 	-coords [list $iX $iY]
 }
 
 
@@ -220,7 +253,7 @@ proc Chart_FindMousedElement { iID iX iY } {
     global gWidgets
     set bFound [$gWidgets($iID,gwChart) element closest $iX $iY aFound -halo 10]
     if { $bFound } {
-	return [list $aFound(name) $aFound(index) $aFound(x) $aFound(y)]
+ 	return [list $aFound(name) $aFound(index) $aFound(x) $aFound(y)]
     }
     return ""
 }
@@ -242,8 +275,6 @@ proc Chart_CBLegendLeave { iID igw } {
 }
 
 proc Chart_CBLegendClick { iID igw } {
-    Chart_ToggleVisibility $iID [$igw legend get current]
-    Chart_ChartData $iID
 }
 
 proc Chart_CBGraphMotion { iID igw iX iY } {
@@ -251,10 +282,10 @@ proc Chart_CBGraphMotion { iID igw iX iY } {
     set lResult [Chart_FindMousedElement $iID $iX $iY]
     set element [lindex $lResult 0]
     if { "$element" != "" } { 
-	set index [lindex $lResult 1]
-	set x [lindex $lResult 2]
-	set y [lindex $lResult 3]
-	Chart_FocusElement $iID $element $index $x $y
+ 	set index [lindex $lResult 1]
+ 	set x [lindex $lResult 2]
+ 	set y [lindex $lResult 3]
+ 	Chart_FocusElement $iID $element $index $x $y
     }
 }
 
@@ -267,64 +298,67 @@ proc Chart_Init {} {
     set gData(lID) {}
 }
 
+# Create the window with this ID. This should be called once per
+# window.
+proc Chart_NewWindow { iID } {
+    global gData gWidgets
+    if { ![info exists gWidgets($iID,windowBuilt)] ||
+ 	 !$gWidgets($iID,windowBuilt) } {
+ 	Chart_BuildWindow $iID
+    }
+}
 
-# Show or hide the window. If it hasn't been built, builds the window
-# first.
+# Show or hide the window.
 proc Chart_ShowWindow { iID } {
     global gData gWidgets
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
-    if { ![info exists gWidgets($iID,windowBuilt)] ||
-	 !$gWidgets($iID,windowBuilt) } {
-	Chart_BuildWindow $iID
-    }
     wm deiconify $gWidgets($iID,wwTop)
     if { [info exists gWidgets($iID,state,window,geometry)] } {
-	wm geometry $gWidgets($iID,wwTop) $gWidgets($iID,state,window,geometry)
+ 	wm geometry $gWidgets($iID,wwTop) $gWidgets($iID,state,window,geometry)
     }
+    Chart_PlotData $iID
 }
 
 proc Chart_HideWindow { iID } {
     global gData gWidgets
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
     if { [info exists gWidgets($iID,wwTop)] } {
-	set gWidgets($iID,state,window,geometry) \
-	    [wm geometry $gWidgets($iID,wwTop)]
-	wm withdraw $gWidgets($iID,wwTop)
+ 	set gWidgets($iID,state,window,geometry) \
+ 	    [wm geometry $gWidgets($iID,wwTop)]
+ 	wm withdraw $gWidgets($iID,wwTop)
     }
 }
 
+# Set the window title.
 proc Chart_SetWindowTitle { iID isTitle } {
     global gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
     set gData($iID,title) $isTitle
+    Chart_PlotData $iID
 }
 
-
-# This function expects data to come in as a list of array lists. Each
-# element in ilPoints should be a list of array label/value pairs, e.g.
-#  [list x 10.4 y 20.98 label "Hello World"]
-proc Chart_SetPointData { iID ilPoints } {
-    global gData
-    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
-    set gData($iID,lPoints) $ilPoints
-}
-
+# Set the label under the x axis.
 proc Chart_SetXAxisLabel { iID isLabel } {
     global gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
     set gData($iID,xAxisLabel) $isLabel
+    Chart_PlotData $iID
 }
 
+# Set the label to the side of the y axis.
 proc Chart_SetYAxisLabel { iID isLabel } {
     global gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
     set gData($iID,yAxisLabel) $isLabel
+    Chart_PlotData $iID
 }
 
+# Show or hide the legend.
 proc Chart_SetShowLegend { iID ibShowLegend } {
     global gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
     set gData($iID,showLegend) $ibShowLegend
+    Chart_PlotData $iID
 }
 
 # Set the info string displayed under the graph.
@@ -334,6 +368,15 @@ proc Chart_SetInfo { iID isInfo } {
     set gChart($iID,state,info) $isInfo
 }
 
+# This function expects data to come in as a list of array lists. Each
+# element in ilPoints should be a list of array label/value pairs, e.g.
+#  [list x 10.4 y 20.98 label "Hello World"]
+proc Chart_SetPointData { iID ilPoints } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+    set gData($iID,lPoints) $ilPoints
+    Chart_PlotData $iID
+}
 # Save the current plot graphic to a postscript file.
 proc Chart_SaveToPostscript { iID ifnPS } {
     global gData gWidgets 

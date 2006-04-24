@@ -41,6 +41,9 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
   void SetXAxisLabel ( std::string isLabel );
   void SetYAxisLabel ( std::string isLabel );
 
+  // An info label under the graph.
+  void SetInfo ( std::string isInfo );
+
   // Configuration options for the graph.
   void SetShowLegend ( bool ibShowLegend ) { mbShowLegend = ibShowLegend; }
   bool GetShowLegend () { return mbShowLegend; }
@@ -67,6 +70,7 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
   std::string msTitle;
   std::string msXLabel;
   std::string msYLabel;
+  std::string msInfo;
   bool mbShowLegend;
   
  private:
@@ -82,6 +86,7 @@ class ChartWindowFactory {
  public:
   ChartWindowFactory() {};
   virtual ~ChartWindowFactory() {};
+
   virtual ChartWindow* NewChartWindow() { 
     throw std::runtime_error( "Default chart window constructor "
 			      "is being thrown." );

@@ -12,15 +12,23 @@ TclChartWindow::TclChartWindow () :
   msTitle = "Chart";
 
   TclCommandManager& manager = TclCommandManager::GetManager();
-  manager.SendCommand( "Chart_Init" );
 
+  // If we're not already inited...
   if( !sbInitedTclFile ) {
+    try {
+      // Try using a utility function in scuba.tcl to load the
+      // file. If this doesn't work...
+      manager.SendCommand( "LoadScubaSupportFile TclChartWindow.tcl" );
+    }
+    catch(...) {
+      // Just use the source command. If this doesn't work, we can't
+      // find the TclChartWindow.tcl and we have a genuine error, so
+      // let it be thrown.
+      manager.SendCommand( "source TclChartWindow.tcl" );
+    }
     
-    stringstream ssCommand;
-
-    ssCommand.str("");
-    ssCommand << "LoadScubaSupportFile TclChartWindow.tcl";
-    manager.SendCommand( ssCommand.str() );
+    // This inits the chart stuff.
+    manager.SendCommand( "Chart_Init" );
 
     sbInitedTclFile = true;
   }
@@ -36,12 +44,32 @@ TclChartWindow::Draw () {
 
   TclCommandManager& manager = TclCommandManager::GetManager();
 
-  int chartID = 1;
+  int chartID = GetID();
 
   stringstream ssCommand;
 
   ssCommand.str("");
-  ssCommand << "Chart_BuildWindow " << chartID;
+  ssCommand << "Chart_NewWindow " << chartID;
+  manager.SendCommand( ssCommand.str() );
+  
+  ssCommand.str("");
+  ssCommand << "Chart_SetWindowTitle " << chartID
+	    << " \"" << msTitle << "\"";
+  manager.SendCommand( ssCommand.str() );
+
+  ssCommand.str("");
+  ssCommand << "Chart_SetXAxisLabel " << chartID
+	    << " \"" << msXLabel << "\"";
+  manager.SendCommand( ssCommand.str() );
+
+  ssCommand.str("");
+  ssCommand << "Chart_SetYAxisLabel " << chartID
+	    << " \"" << msYLabel << "\"";
+  manager.SendCommand( ssCommand.str() );
+  
+  ssCommand.str("");
+  ssCommand << "Chart_SetInfo " << chartID
+	    << " \"" << msInfo << "\"";
   manager.SendCommand( ssCommand.str() );
   
   ssCommand.str("");
@@ -51,7 +79,7 @@ TclChartWindow::Draw () {
 
   list<PointData>::iterator tPoint;
   ssCommand.str("");
-  ssCommand << "Chart_SetData " << chartID << " [list ";
+  ssCommand << "Chart_SetPointData " << chartID << " [list ";
   for( tPoint = mPointData.begin(); tPoint != mPointData.end(); ++tPoint ) {
     PointData& point = *tPoint;
     ssCommand << "[list x " << point.mX << " y " << point.mY
@@ -60,4 +88,9 @@ TclChartWindow::Draw () {
   ssCommand << "]";
   manager.SendCommand( ssCommand.str() );
 
+  ssCommand.str("");
+  ssCommand << "Chart_ShowWindow " << chartID;
+  manager.SendCommand( ssCommand.str() );
+  
 }
+

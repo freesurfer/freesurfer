@@ -146,7 +146,10 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
   ssCommand << "pack .f -fill both -expand yes";
   commandMgr.SendCommand( ssCommand.str() );
 
-  ssCommand.str("");
+  mChart->SetTitle( "Window title" );
+  mChart->SetXAxisLabel( "x Axis" );
+  mChart->SetYAxisLabel( "y Axis" );
+  mChart->SetInfo( "Info string" );
 
   NewData();
   mChart->Draw();
@@ -180,8 +183,13 @@ TclChartWindowTester::DoListenToTclCommand ( char* isCommand,
     return ok;
 
   } else if( 0 == strcmp( isCommand, "NewData" ) ) {
-    
+
+    static int cNew = 0;
+    stringstream ssLabel;
+    ssLabel << "Info String " << cNew++;
+
     NewData();
+    mChart->SetInfo( ssLabel.str() );
     mChart->Draw();
     
     return ok;
