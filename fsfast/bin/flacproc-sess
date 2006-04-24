@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.18 2006/04/19 23:03:19 greve Exp $
+# $Id: flacproc-sess,v 1.19 2006/04/24 03:34:48 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.18 2006/04/19 23:03:19 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.19 2006/04/24 03:34:48 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -63,7 +63,6 @@ rm -f $MLF
 set StartTime = `date`;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
-
 #--------------------------#
 tee -a $MLF > /dev/null <<EOF
 tic;
@@ -122,7 +121,7 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set flacname = $argv[1]; shift;
       set flacfile = $flacname
-      if(! -e $flacfile) then
+      if(! -f $flacfile) then
         set flacfile = flac/$flacname
         if(! -e $flacfile) then
           set flacfile = flac/$flacname.flac
@@ -132,8 +131,8 @@ while( $#argv != 0 )
           endif
         endif
       endif
-      echo flacfile $flacfile
-      set flac = `basename $flacname .flag`;
+      set flacfile = `getfullpath $flacfile`;
+      echo flacfile $flacfile $flac
       breaksw
 
     case "-npca":
