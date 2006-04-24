@@ -1068,6 +1068,8 @@ void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISprintInfo(TOPOFIX_PARMS *parms);
 double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
 int IsMRISselfIntersecting(MRI_SURFACE *mris);
+void MRISmapOntoSphere(MRIS *mris);
+void MRISidentifyDefects(MRIS *mris);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
