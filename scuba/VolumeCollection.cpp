@@ -86,10 +86,10 @@ VolumeCollection::VolumeCollection () :
 			 "surface that is associated with a volume and "
 			 "didn't generate coordinates with CRAS info." );
   commandMgr.AddCommand( *this, "GetVolumeAverageValueInROI", 2,
-			 "collectionID, roiID", "Returns the average value "
+			 "collectionID roiID", "Returns the average value "
 			 "of the voxels in an ROI in a volume." );
   commandMgr.AddCommand( *this, "GetVolumeStandardDeviationInROI", 2,
-			 "collectionID, roiID", "Returns the standard "
+			 "collectionID roiID", "Returns the standard "
 			 "deviation of the voxels in an ROI in a volume." );
 }
 
