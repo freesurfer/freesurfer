@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.7 2006/04/24 03:37:16 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.8 2006/04/24 04:28:53 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -92,13 +92,6 @@ for nthrun = 1:nruns
   Nv = prod(szvol);
   y.vol = fast_vol2mat(y.vol);
 
-  if(~isempty(flac.tpexc))
-    % Zero time points to exclude
-    % They have already been zeroed in the design matrix
-    % The design matrix without zeroed points is in X0
-    y.vol(flac.tpexc,:) = 0;
-  end
-  
   if(flac.inorm > 0)
     ygmn = mean(reshape1d(y.vol(:,indmask)));
     fprintf('Inorming, ygmn = %g \n',ygmn);
@@ -116,7 +109,7 @@ for nthrun = 1:nruns
   end
 
   fprintf('Performing OLS estimation   (%6.1f)\n',toc);
-  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
+  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X,[],[],flac.tpexc);
   indrvarz = find(rvar==0);
   rvar(indrvarz) = 10e10;
 
@@ -160,6 +153,7 @@ for nthrun = 1:nruns
     indseg = find(acfseg.vol==nthseg);
     nperseg(nthseg) = length(indseg);
     racf = fast_acorr(r(:,indseg));
+    % Need to take tpexc into account for racf
     racfmri.vol(:,indseg) = racf(1:10,:);
     %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
     racfseg(:,nthseg)  = mean(racf,2);
@@ -173,7 +167,7 @@ for nthrun = 1:nruns
 
   if(flac.whiten)
     fprintf('Performing GLS estimation   (%6.1f)\n',toc);
-    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
+    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol,flac.tpexc);
   else
     fprintf('NOT Whitening   (%6.1f)\n',toc);
   end
@@ -232,9 +226,11 @@ for nthrun = 1:nruns
 
     C = flac.con(nthcon).C;
     if(flac.whiten)
-      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
+      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,...
+					      nacfseg,acfseg.vol,flac.tpexc);
     else
-      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C);
+      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,...
+					      [],[],flac.tpexc);
     end
 
     p = FTest(dof1, dof2, F);
