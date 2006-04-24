@@ -80,6 +80,7 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
 // SetFactory().
 class ChartWindowFactory {
  public:
+  ChartWindowFactory() {};
   virtual ~ChartWindowFactory() {};
   virtual ChartWindow* NewChartWindow() { 
     throw std::runtime_error( "Default chart window constructor "

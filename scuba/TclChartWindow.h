@@ -22,6 +22,7 @@ class TclChartWindow : public ChartWindow {
 };
 
 class TclChartWindowFactory : public ChartWindowFactory {
+  TclChartWindowFactory() {};
   virtual ~TclChartWindowFactory() {};
   virtual ChartWindow* NewChartWindow() { 
     return new TclChartWindow();
