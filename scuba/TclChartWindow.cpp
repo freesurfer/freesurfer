@@ -34,6 +34,14 @@ TclChartWindow::TclChartWindow () :
     sbInitedTclFile = true;
   }
 
+  // Our chart ID is the same as our IDTracker ID.
+  int chartID = GetID();
+
+  // Create a window.
+  stringstream ssCommand;
+  ssCommand << "Chart_NewWindow " << chartID;
+  manager.SendCommand( ssCommand.str() );
+  
 }
 
 TclChartWindow::~TclChartWindow () {
@@ -44,14 +52,13 @@ TclChartWindow::Draw () {
 
   TclCommandManager& manager = TclCommandManager::GetManager();
 
+  // Our chart ID is the same as our IDTracker ID.
   int chartID = GetID();
 
   stringstream ssCommand;
 
-  ssCommand.str("");
-  ssCommand << "Chart_NewWindow " << chartID;
-  manager.SendCommand( ssCommand.str() );
-  
+  // Call the Chart_ commands from TclChartWindow.tcl to set up our
+  // chart.
   ssCommand.str("");
   ssCommand << "Chart_SetWindowTitle " << chartID
 	    << " \"" << msTitle << "\"";
@@ -77,6 +84,7 @@ TclChartWindow::Draw () {
 	    << (mbShowLegend ? "true" : "false");
   manager.SendCommand( ssCommand.str() );
 
+  // Make a tcl command with all our data and send it.
   list<PointData>::iterator tPoint;
   ssCommand.str("");
   ssCommand << "Chart_SetPointData " << chartID << " [list ";
@@ -88,6 +96,7 @@ TclChartWindow::Draw () {
   ssCommand << "]";
   manager.SendCommand( ssCommand.str() );
 
+  // Make sure the window is showing.
   ssCommand.str("");
   ssCommand << "Chart_ShowWindow " << chartID;
   manager.SendCommand( ssCommand.str() );
@@ -109,25 +118,28 @@ TclChartWindowStaticListener::DoListenToTclCommand ( char* isCommand,
   // DeleteTclChartWindow <chartID>
   if( 0 == strcmp( isCommand, "DeleteTclChartWindow" ) ) {
 
-      int chartID;
-      try {
-	chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    // Get our chart ID.
+    int chartID;
+    try {
+      chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-      catch( runtime_error& e ) {
-	sResult = string("bad chartID: ") + e.what();
-	return error;
-      }
-
-      TclChartWindow* chart;
-      try {
-	chart = (TclChartWindow*) &TclChartWindow::FindByID( chartID );
-      }
-      catch(...) {
-	throw runtime_error( "Couldn't find the chart window." );
-      }
-      
-      if( NULL != chart )
-	delete chart;
+    catch( runtime_error& e ) {
+      sResult = string("bad chartID: ") + e.what();
+      return error;
+    }
+    
+    // Try to find the chart window.
+    TclChartWindow* chart;
+    try {
+      chart = (TclChartWindow*) &TclChartWindow::FindByID( chartID );
+    }
+    catch(...) {
+      throw runtime_error( "Couldn't find the chart window." );
+    }
+    
+    // Delete the chart window object.
+    if( NULL != chart )
+      delete chart;
   }
 
   return ok;
