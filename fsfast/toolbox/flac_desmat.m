@@ -7,7 +7,7 @@ function flacnew = flac_desmat(flac)
 % done by flac_customize but could be done in some other way (allows
 % for optseq-type optimization).
 %
-% $Id: flac_desmat.m,v 1.3 2004/11/01 04:38:08 greve Exp $
+% $Id: flac_desmat.m,v 1.4 2006/04/24 03:52:53 greve Exp $
 
 flacnew = [];
 
@@ -73,6 +73,12 @@ for nthev = 1:nev
   
   flacnew.X = [flacnew.X flacnew.ev(nthev).X];
   
+end
+
+flacnew.X0 = flacnew.X;
+if(~isempty(flacnew.tpexc))
+  % Set exluded points to 0
+  flacnew.X(flacnew.tpexc,:) = 0;
 end
 
 return;
