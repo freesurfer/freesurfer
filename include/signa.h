@@ -4,36 +4,36 @@
 #include "mri.h"
 
 /*       "DESC:1
-*  ***********************************************************************
-*
-*         INCLUDE FILE    IDBM_HEADER_DEF
-*
-*         AUTHOR          G.E. Medical Systems
-*                         NMR Software Engineering
-*                         Gregory L. Meyers
-*
-*         PURPOSE
-*
-*                 Defines the sizes, image file offsets, and the header word
-*         offsets into the study, series, image and dss headers.
-*
-*         INCLUDE FILES   None
-*
-*         DETAILS         None
-*
-*         GENERATION      DATE            AUTHOR NAME(S)
-*         ----------      ------------    --------------
-*
-*         01.01.00        July 28, 1983   Gregory L. Meyers
-*         01.06.01        August 17, 1984 Gregory L. Meyers
-*         01.06.02        January 22, 1985 Julie A. Donnell
-*
-* This file ('idbm_hdr_def.h')  Converted to C Language header file
-* format.  W.M. Leue  11-8-85
-*
-*  ***********************************************************************
-*        "ETX
-*/
+ *  ***********************************************************************
+ *
+ *         INCLUDE FILE    IDBM_HEADER_DEF
+ *
+ *         AUTHOR          G.E. Medical Systems
+ *                         NMR Software Engineering
+ *                         Gregory L. Meyers
+ *
+ *         PURPOSE
+ *
+ *                 Defines the sizes, image file offsets, and the header word
+ *         offsets into the study, series, image and dss headers.
+ *
+ *         INCLUDE FILES   None
+ *
+ *         DETAILS         None
+ *
+ *         GENERATION      DATE            AUTHOR NAME(S)
+ *         ----------      ------------    --------------
+ *
+ *         01.01.00        July 28, 1983   Gregory L. Meyers
+ *         01.06.01        August 17, 1984 Gregory L. Meyers
+ *         01.06.02        January 22, 1985 Julie A. Donnell
+ *
+ * This file ('idbm_hdr_def.h')  Converted to C Language header file
+ * format.  W.M. Leue  11-8-85
+ *
+ *  ***********************************************************************
+ *        "ETX
+ */
 
 /* ---------------------------------------*/
 /* Define the offsets in the study header.*/
@@ -307,9 +307,9 @@ typedef struct HINFO_
   int x,y,ptype;
   float tr,ti,te,strtx,endx,strty,endy,strtz,endz;
   float locatn,fov,psiz,thick;
-	float c_r, c_a, c_s ;
-	int  plane_type ;
-	int  num_echoes ;
+  float c_r, c_a, c_s ;
+  int  plane_type ;
+  int  num_echoes ;
 } HINFO;
 
 #define SIGNA_AXIAL      0
