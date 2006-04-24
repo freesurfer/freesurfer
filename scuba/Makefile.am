@@ -184,7 +184,7 @@ scuba2_CXXFLAGS=-DQT_SHARED \
 
 
 foodir=$(prefix)/lib/tcl
-foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl
+foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
 
 check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
