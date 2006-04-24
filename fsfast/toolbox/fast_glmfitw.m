@@ -1,5 +1,5 @@
-function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap)
-% [beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>)
+function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap,tpexclude)
+% [beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>,<tpexclude>)
 %
 % Fits a GLM, possibly including prewhitening
 %
@@ -8,15 +8,16 @@ function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap)
 % nacfmap is a map of which column of nacf is to be applied
 %   to which voxels in y. Voxels that have nacfmap=0 will
 %   be treated as white.
+% tpexclude - 1-based indices of time points to excluded 
 %
 % This gives the same answer as fast_glmfit when no whiting.
 %
 % See also: fast_fratiow, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_glmfitw.m,v 1.2 2004/11/14 22:33:26 greve Exp $
+% $Id: fast_glmfitw.m,v 1.3 2006/04/24 04:28:19 greve Exp $
 
-if(nargin < 2 | nargin > 4)
-  fprintf('[beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>)\n');
+if(nargin < 2 | nargin > 5)
+  fprintf('[beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>,<tpexclude>)\n');
   return;
 end
 
@@ -26,8 +27,9 @@ if(size(X,1) ~= nf)
   return;
 end
 
-if(~exist('nacf','var'))    nacf = []; end
-if(~exist('nacfmap','var')) nacfmap = []; end
+if(~exist('nacf','var'))      nacf = []; end
+if(~exist('nacfmap','var'))   nacfmap = []; end
+if(~exist('tpexclude','var')) tpexclude = []; end
 
 if(~isempty(nacf))
   if(size(nacf,2) > 1 & isempty(nacfmap))
@@ -42,6 +44,13 @@ end
 
 nbeta = size(X,2);
 vdof = nf-nbeta;
+
+if(~isempty(tpexclude))
+  % Set points to exclude to 0, reduce dof (more below with nacf)
+  y(tpexclude,:) = 0;
+  X(tpexclude,:) = 0;
+  vdof = vdof - length(tpexclude);
+end
 
 if(isempty(nacf))
   beta = (inv(X'*X)*X')*y;
@@ -63,6 +72,7 @@ for nthbin = 0:nbins
     nacfbin = nacf(:,nthbin);
     %W = inv(chol(toeplitz(nacfbin))');
     W = chol(inv(toeplitz(nacfbin)));
+    if(isempty(tpexclude)) W(:,tpexclude) = 0;  end
     ybin = W*y(:,indbin);
     Xbin = W*X;
   else

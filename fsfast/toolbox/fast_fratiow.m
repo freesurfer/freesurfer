@@ -1,5 +1,5 @@
-function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
-% [F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>)
+function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap,tpexclude)
+% [F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>,<tpexclude>)
 %
 % beta - GLM regression coefficients from fast_glmfitw
 % rvar - residual error variance from GLM from fast_glmfitw
@@ -9,6 +9,7 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 % nacfmap is a map of which column of nacf is to be applied
 %   to which voxels in y as used with fast_glmfitw. Voxels that 
 %   have nacfmap=0 will be treated as white.
+% tpexclude - 1-based indices of time points to excluded 
 % 
 % F - F-ratio. The Fsig is not computed here. Use:
 %   Fsig = FTest(dof1, dof2, F, dof2max);
@@ -17,9 +18,9 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 %
 % See also: fast_glmfitw, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_fratiow.m,v 1.4 2005/06/19 05:22:53 greve Exp $
+% $Id: fast_fratiow.m,v 1.5 2006/04/24 04:28:19 greve Exp $
 
-if(nargin < 4 | nargin > 6)
+if(nargin < 4 | nargin > 7)
   fprintf('[F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>)\n');
   return;
 end
@@ -27,8 +28,9 @@ end
 [nf nbeta] = size(X);
 nv = size(beta,2);
 
-if(~exist('nacf','var'))    nacf = []; end
-if(~exist('nacfmap','var')) nacfmap = []; end
+if(~exist('nacf','var'))      nacf = []; end
+if(~exist('nacfmap','var'))   nacfmap = []; end
+if(~exist('tpexclude','var')) tpexclude = []; end
 
 if(~isempty(nacf))
   if(size(nacf,2) > 1 & isempty(nacfmap))
@@ -43,6 +45,12 @@ end
 
 dof1 = size(C,1); % J %
 dof2 = nf-nbeta;
+
+if(~isempty(tpexclude))
+  % Set points to exclude to 0, reduce dof (more below with nacf)
+  X(tpexclude,:) = 0;
+  dof2 = dof2 - length(tpexclude);
+end
 
 % Handle case where some voxels are zero
 indz  = find(rvar == 0);
@@ -79,6 +87,7 @@ else
       nacfbin = nacf(:,nthbin);
       %W = inv(chol(toeplitz(nacfbin))');
       W = chol(inv(toeplitz(nacfbin)));
+      if(isempty(tpexclude)) W(:,tpexclude) = 0;  end
       Xbin = W*X;
     else
       Xbin = X;
