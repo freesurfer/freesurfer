@@ -306,8 +306,8 @@ typedef struct HINFO_
   int imnr0,imnr1;
   int x,y,ptype;
   float tr,ti,te,strtx,endx,strty,endy,strtz,endz;
-  float locatn,fov,psiz,thick;
-  float c_r, c_a, c_s ;
+  float locatn,fov,center,psiz,thick;
+  float c_r, c_a, c_s, orien,pos ;
   int  plane_type ;
   int  num_echoes ;
 } HINFO;

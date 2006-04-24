@@ -148,6 +148,7 @@ get_signa_header_info(char *h,HINFO *hinfo)
   hinfo->endz = ghf( h, IHDR_START+IHDR_ENDZ ) ;
   hinfo->locatn = ghf( h, IHDR_START+IHDR_LOCATN ) ;
   hinfo->fov = ghf( h, SEHDR_START+SEHDR_FOV ) ;
+  hinfo->center = ghf( h, SEHDR_START+SEHDR_CENTER ) ;
   hinfo->psiz = ghf( h, IHDR_START+IHDR_PIXSIZ ) ;
   hinfo->thick = ghf( h, IHDR_START+IHDR_THICK ) ;
   hinfo->ptype = ghi( h, SEHDR_START+SEHDR_PTYPE ) ;
@@ -157,6 +158,9 @@ get_signa_header_info(char *h,HINFO *hinfo)
   hinfo->c_r = ghf(h, SEHDR_START+SEHDR_C_R) ;
   hinfo->c_a = ghf(h, SEHDR_START+SEHDR_C_A) ;
   hinfo->c_s = ghf(h, SEHDR_START+SEHDR_C_S) ;
+
+  hinfo->orien = ghf( h, SEHDR_START+SEHDR_ORIEN ) ;
+  hinfo->pos = ghf( h, SEHDR_START+SEHDR_POS ) ;
 
   hinfo->num_echoes = ghi(h, IHDR_START+IHDR_NECHO) ;
 
