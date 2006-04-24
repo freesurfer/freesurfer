@@ -17,6 +17,8 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
 
  public:
 
+  virtual ~ChartWindow ();
+
   // Sets the factory to the correct subclass factory. Use the
   // NewChartWindow() to make sure the correct subclass is being made.
   static void SetFactory ( ChartWindowFactory* iFactory );
@@ -64,7 +66,6 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
   // static NewChartWindow function to create a member of the proper
   // subclass.
   ChartWindow ();
-  virtual ~ChartWindow ();
 
   std::list<PointData> mPointData;
   std::string msTitle;

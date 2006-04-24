@@ -5,6 +5,7 @@
 
 using namespace std;
 
+TclChartWindowStaticListener TclChartWindow::mStaticListener;
 bool TclChartWindow::sbInitedTclFile = false;
 
 TclChartWindow::TclChartWindow () :
@@ -36,7 +37,6 @@ TclChartWindow::TclChartWindow () :
 }
 
 TclChartWindow::~TclChartWindow () {
-
 }
 
 void
@@ -94,3 +94,41 @@ TclChartWindow::Draw () {
   
 }
 
+TclChartWindowStaticListener::TclChartWindowStaticListener () {
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.AddCommand( *this, "DeleteTclChartWindow", 1, "chartID", 
+			 "Deletes a TclChartWindow." );
+
+}
+
+TclCommandListener::TclCommandResult
+TclChartWindowStaticListener::DoListenToTclCommand ( char* isCommand, 
+						     int, char** iasArgv ) {
+
+  // DeleteTclChartWindow <chartID>
+  if( 0 == strcmp( isCommand, "DeleteTclChartWindow" ) ) {
+
+      int chartID;
+      try {
+	chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad chartID: ") + e.what();
+	return error;
+      }
+
+      TclChartWindow* chart;
+      try {
+	chart = (TclChartWindow*) &TclChartWindow::FindByID( chartID );
+      }
+      catch(...) {
+	throw runtime_error( "Couldn't find the chart window." );
+      }
+      
+      if( NULL != chart )
+	delete chart;
+  }
+
+  return ok;
+}

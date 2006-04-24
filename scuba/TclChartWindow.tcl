@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.2 2006/04/24 16:56:19 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.3 2006/04/24 18:14:23 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -264,6 +264,9 @@ proc Chart_FindMousedElement { iID iX iY } {
 proc Chart_CBCloseWindow { iID } {
     global gWidgets
     set gWidgets($iID,windowBuilt) 0
+
+    # Tells the C code to delete the associated C object.
+    DeleteTclChartWindow $iID
 }
 
 proc Chart_CBLegendEnter { iID igw } {
