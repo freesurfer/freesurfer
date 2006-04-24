@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.8 2005/11/27 01:44:12 greve Exp $
+% $Id: flac_customize.m,v 1.9 2006/04/24 03:37:16 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -48,6 +48,30 @@ end
 flacnew.mri = mri;
 flacnew.ntp = mri.nframes;
 flacnew.funcfspec = fstem;
+
+% Time-point exclude file
+if(~isempty(flac.tpexcfile))
+  fname = sprintf('%s/%s',runpath,flac.tpexcfile);
+  fp = fopen(fname,'r'); % ok if it does not exist
+  if(fp ~= -1)
+    flacnew.tpexc = round(fscanf(fp,'%lf')); 
+    flacnew.tpexc = flacnew.tpexc + 1; % change to 1-based
+    indtmp = find(flacnew.tpexc >= flacnew.ntp);
+    if(~isempty(indtmp))
+      fprintf('ERROR: time points in %s exceed nframes (%d)\n',...
+	      fname,flacnew.ntp);
+      flacnew = [];
+      return; 
+    end
+    fclose(fp);
+    % Set up 1-based points to include
+    flacnew.tpinc = ones(flacnew.ntp,1); 
+    flacnew.tpinc(flacnew.tpexc+1) = 0;
+  else
+    flacnew.tpexc = [];
+  end
+end
+    
 
 nev = length(flac.ev);
 for nthev = 1:nev

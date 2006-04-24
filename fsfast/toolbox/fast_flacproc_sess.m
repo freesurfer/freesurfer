@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.6 2006/04/18 21:38:03 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.7 2006/04/24 03:37:16 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -28,7 +28,7 @@ flac.sess = sess;
 flac.nthrun = 1;
 flac = flac_customize(flac);
 if(isempty(flac)) 
-  if(~monly) quit;  end
+  if(~monly) quit; end
   return; 
 end
 
@@ -92,6 +92,13 @@ for nthrun = 1:nruns
   Nv = prod(szvol);
   y.vol = fast_vol2mat(y.vol);
 
+  if(~isempty(flac.tpexc))
+    % Zero time points to exclude
+    % They have already been zeroed in the design matrix
+    % The design matrix without zeroed points is in X0
+    y.vol(flac.tpexc,:) = 0;
+  end
+  
   if(flac.inorm > 0)
     ygmn = mean(reshape1d(y.vol(:,indmask)));
     fprintf('Inorming, ygmn = %g \n',ygmn);

@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.13 2006/04/01 06:16:25 greve Exp $
+% $Id: fast_ldflac.m,v 1.14 2006/04/24 03:37:16 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -25,6 +25,8 @@ if(isempty(flac))
   flac.acfsegstem = '';
   flac.format = '';
   flac.formatext = '';
+  flac.tpexcfile = '';
+  flac.tpexc = [];
   %flac.ev = []; % Leave commented
   flac.inheritlevel = 0;
   inherit = 0;
@@ -39,7 +41,6 @@ else
   inherit = 1;
 end
 if(nargin == 0) return; end
-
 fp = fopen(flacfile,'r');
 if(fp == -1)
   fprintf('ERROR: could not open %s\n',flacfile);
@@ -100,6 +101,7 @@ while(1)
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
+   case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
