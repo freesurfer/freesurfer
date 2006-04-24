@@ -1,5 +1,5 @@
-function R = fast_acorr(x,scaling,dof)
-% R = fast_acorr(x,<scaling>,<dof>)
+function R = fast_acorr(x,scaling,dof,tpexclude)
+% R = fast_acorr(x,<scaling>,<dof>,<tpexclude>)
 %
 % x is the input data (nf-by-nc)
 % scaling is the scaling option
@@ -12,6 +12,11 @@ function R = fast_acorr(x,scaling,dof)
 %   dof only has an effect when unibasedcoeff is chosen. dof can 
 %   be handy when computing the ACF of residuals. Note: the ACF
 %   at lags >= dof is invalid.
+% tpexclude - 1-based time points to exclude from the calculation. 
+%   The values of x at those time points are set to 0, and
+%   the scaling is adjusted at each delay to account for the
+%   fact that not as many data points go into the calculation.
+%   This scaling occurs regardless of the scaling argument.
 %
 % Computes the autocorrelation of x using an FFT.  This should
 % produce the same results as the native matlab function xcorr
@@ -28,21 +33,36 @@ function R = fast_acorr(x,scaling,dof)
 %   5. fast_acorr can incorporate dof information
 %   6. fast_acorr is much faster because it uses an FFT.
 % 
-% $Id: fast_acorr.m,v 1.3 2003/04/15 03:51:32 greve Exp $
+% $Id: fast_acorr.m,v 1.4 2006/04/24 05:34:56 greve Exp $
 
-if(nargin ~= 1 & nargin ~= 2 & nargin ~= 3)
-  msg = 'USAGE: R = fast_acorr(x,<scaling>)';
+R = [];
+if(nargin < 1 | nargin > 4)
+  msg = 'USAGE: R = fast_acorr(x,<scaling>,<dof>,<tpexclude>))';
   qoe(msg);error(msg);
 end
 
 % Get dims of x %
 [ntrs ncols] = size(x);
 
-if(~exist('scaling')) scaling = []; end
-%if(isempty(scaling))  scaling = 'unbiasedcoeff'; end
-if(isempty(scaling))  scaling = 'coeff'; end
-if(~exist('dof'))     dof = ntrs; end
+if(~exist('scaling','var'))   scaling = []; end
+if(isempty(scaling))          scaling = 'coeff'; end
+if(~exist('dof','var'))       dof = ntrs; end
+if(~exist('tpexclude','var')) tpexclude = []; end
 
+% Set points to exclude equal to 0 (more tpexc stuff below)
+if(~isempty(tpexclude))
+  % But first make sure they are in range
+  if(max(tpexclude) > ntrs)
+    fprintf('ERROR: tpexclude max (%d) > ntrs (%d)\n', ...
+	    max(tpexclude),ntrs);
+    return;
+  end
+  if(min(tpexclude) < 1)
+    fprintf('ERROR: tpexclude min (%d) < 1\n',min(tpexclude));
+    return;
+  end
+  x(tpexclude,:) = 0;  
+end
 
 % FFT of X %
 fftx = fft(x,2*ntrs);
@@ -60,6 +80,22 @@ clear fftx2;
 R = R(1:ntrs,:);
 
 % At this point R has no scaling
+
+% Apply scaling for tpexclude
+if(~isempty(tpexclude))
+  tpall = ones(ntrs,1);
+  tpinclude = tpall;
+  tpinclude(tpexclude) = 0;
+  sall  = fast_acorr(tpall,'none');
+  sincl = fast_acorr(tpinclude,'none');
+  indz  = find(sincl==0);
+  %fprintf('nz = %d\n',length(indz));
+  indnz = find(sincl~=0);
+  sc = ones(ntrs,1);
+  sc(indnz) = sall(indnz)./sincl(indnz);
+  R = R ./repmat(sc,[1 ncols]);
+  if(~isempty(indz))  R(indz,:) = 0; end
+end
 
 if(strcmp(scaling,'unbiased') | strcmp(scaling,'unbiasedcoeff'))
   lag = [0:ntrs-1]'; %'
