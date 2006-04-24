@@ -37,6 +37,7 @@ freesurfer/lib/tcltktixblt/include
 freesurfer/lib/tcltktixblt/lib/tk8.4/demos
 freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
+freesurfer/lib/qt
 freesurfer/lib/qt/tools
 freesurfer/lib/qt/qmake
 freesurfer/lib/qt/pics
