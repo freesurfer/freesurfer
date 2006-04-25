@@ -19,7 +19,11 @@ SRCMOC   = .moc/moc_mainform.cpp
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
+if DISABLE_QT_APPS
+bin_PROGRAMS=
+else
 bin_PROGRAMS=qdec ${QDEC_BUNDLE_TARGET}
+endif
 EXTRA_PROGRAMS=
 
 qdec_SOURCES=\
