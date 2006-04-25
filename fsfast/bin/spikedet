@@ -1,6 +1,6 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: spikedet,v 1.5 2005/10/03 21:15:34 greve Exp $';
+set VERSION = '$Id: spikedet,v 1.6 2006/04/25 05:05:08 greve Exp $';
 set inputargs = ($argv);
 
 set instem    = ();
@@ -12,6 +12,7 @@ set MLF       = ();
 set monly = 0;
 set spikethresh = 25;
 set maskthresh = 0;
+set tpexcfile = ();
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -59,11 +60,14 @@ dtorder  = $dtorder;
 sumfile  = '$sumfile';
 matfile  = '$matfile';
 spikethresh = $spikethresh;
-maskthresh = $maskthresh;
+maskthresh  = $maskthresh;
+tpexcfile   = '$tpexcfile';
+monly = $monly;
 
 f = MRIread(instem);
 if(isempty(f)) 
   fprintf('ERROR: with %s\n',instem);
+  if(~monly) quit; end
   return;
 end
 
@@ -136,7 +140,7 @@ fprintf(fp,'aazmax     %g\n',max(aaz(:)));
 fprintf(fp,'nspikes    %d\n',nspikes);
 if(nspikes > 0)
   fprintf(fp,'  Slice   TP     JKZ\n');
-  fprintf(fp,'#  %2d    %3d    %g\n',[spikeslice'; spiketp'; abs(jkzspikes')]);
+  fprintf(fp,'#  %2d    %3d    %g\n',[(spikeslice-1)'; (spiketp-1)'; abs(jkzspikes')]);
 end
 fclose(fp);
 
@@ -154,7 +158,13 @@ fprintf(fp,'aazmax     %g\n',max(aaz(:)));
 fprintf(fp,'nspikes    %d\n',nspikes);
 if(nspikes > 0)
   fprintf(fp,'  Slice   TP     JKZ\n');
-  fprintf(fp,'#  %2d    %3d    %g\n',[spikeslice'; spiketp'; abs(jkzspikes')]);
+  fprintf(fp,'#  %2d    %3d    %g\n',[(spikeslice-1)'; (spiketp-1)'; abs(jkzspikes')]);
+end
+
+if(~isempty(tpexcfile))
+  fp = fopen(tpexcfile,'w');
+  fprintf(fp,'%d \n',spiketp-1);
+  fclose(fp);
 end
 
 save(matfile,'instem','fftflag','dtorder','aaz','jkz','slicelist',...
@@ -211,6 +221,11 @@ while( $#argv != 0 )
     case "--thresh":
       if ( $#argv == 0) goto arg1err;
       set spikethresh = $argv[1]; shift;
+      breaksw
+
+    case "--tpexc":
+      if ( $#argv == 0) goto arg1err;
+      set tpexcfile = $argv[1]; shift;
       breaksw
 
     case "--mask":
@@ -293,6 +308,7 @@ usage_exit:
   echo ""
   echo "  --i instem "
   echo "  --s sumfile  : default is instem.spike.sum or instem.spike.fft.sum"
+  echo "  --tpexc tpexcludefile : not for FS-FAST"
   echo "  --suffix suffix : sumfile = instem.suffix.sum"
   echo "  --thresh jkzthreshold : default is $spikethresh"
   echo "  --fft : perform 2D spatial FFT prior to finding spikes"
@@ -315,9 +331,9 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Spike detector. Determines slices and time points where spikes are likely
-to be. Spikes are asusmed to be scanner artefacts (mostly some sort
-of arcing or electrical discharge).
+Spike detector. Determines slices and time points where spikes are
+likely to be. Spikes are asusmed to be scanner artefacts that are
+discrete in k-space. All slice and time point numbers are 0-based.
 
 --i instem
 
@@ -330,6 +346,13 @@ depending upon whether the FFT flag is set. In addition, a matlab
 mat file is created with the name instem.spike.mat (or 
 instem.spike.fft.mat). If a summary file is explicitly specified,
 then the mat file will be called sumfile.mat. See also --suffix.
+
+--tpexc tpexcludefile
+
+This is a simple ascii file with the 0-based time point numbers
+of the detected spikes. Note that these are the time point
+indices, not the spike time in sec (so do not use it was a time
+point exclude file in FS-FAST). 
 
 --suffix suffix
 

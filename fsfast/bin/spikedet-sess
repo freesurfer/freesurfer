@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spikedet-sess
 #
-# $Id: spikedet-sess,v 1.6 2005/12/20 22:14:27 greve Exp $
+# $Id: spikedet-sess,v 1.7 2006/04/25 05:05:08 greve Exp $
 
-set VERSION = '$Id: spikedet-sess,v 1.6 2005/12/20 22:14:27 greve Exp $';
+set VERSION = '$Id: spikedet-sess,v 1.7 2006/04/25 05:05:08 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -16,6 +16,8 @@ set maskthresh = 0;
 set sumsuffix = ();
 set SessSumFile = ();
 set SessSumOnly = 0;
+set tpexcfile = ();
+set spikethresh = 25;
 set monly = 0;
 set MLF = ();
 
@@ -103,11 +105,12 @@ foreach sess ($SessList)
     # Generate the run-by-run summary file
     if(! $SessSumOnly) then
       # Construct and run the command for this run #
-      set cmd = (spikedet --i $sess/$fsd/$run/$funcstem)
+      set cmd = (spikedet --i $sess/$fsd/$run/$funcstem --thresh $spikethresh)
       if($fftflag) set cmd = ($cmd --fft)
       if("$maskthresh" != "0") set cmd = ($cmd --mask $maskthresh)
       if($#sumsuffix) set cmd = ($cmd --suffix $sumsuffix)
       if($monly) set cmd = ($cmd --monly $MLF)
+      if($#tpexcfile) set cmd = ($cmd --tpexc $sess/$fsd/$run/$tpexcfile)
       pwd | tee -a $LF
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
@@ -175,9 +178,19 @@ while( $#argv != 0 )
       set RunListFile = $argv[1]; shift;
       breaksw
 
+    case "-thresh":
+      if ( $#argv == 0) goto arg1err;
+      set spikethresh = $argv[1]; shift;
+      breaksw
+
     case "-mask":
       if ( $#argv == 0) goto arg1err;
       set maskthresh = $argv[1]; shift;
+      breaksw
+
+    case "-tpexc":
+      if ( $#argv == 0) goto arg1err;
+      set tpexcfile = $argv[1]; shift;
       breaksw
 
     case "-suffix":
@@ -263,6 +276,7 @@ usage_exit:
   echo ""
   echo "Opttional Arguments"
   echo "   -f funcstem      : input  functional volume stem <f>"
+  echo "   -thresh thresh   : spike threshold (default is 25)"
   echo "   -fsd fsd         : functional subdir <bold> "
   echo "   -rlf runlistfile : run list file "
   echo "   -fft             : perform 2D FFT prior to spike detection"
@@ -270,6 +284,7 @@ usage_exit:
   echo "   -suffix suffix   : summary will be funcstem.suffix.sum"
   echo "   -sesssum fname   : summarize all data in file fname"
   echo "   -sesssumonly     : only create summary from already-proc data"
+  echo "   -tpexc tpexcfile : not for use with FS-FAST yet"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
