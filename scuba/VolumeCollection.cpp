@@ -2406,7 +2406,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     CheckPair checkPair = checkPairs.back();
     checkPairs.pop_back();
 
-    Point3<int> index = checkPair.mCheckIndex;
+    Point3<int> index = checkPair.mToIndex;
     VolumeLocation& loc = 
       (VolumeLocation&) iVolume.MakeLocationFromIndex( index.xyz() );
 
