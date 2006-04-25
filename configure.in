@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.186 2006/04/25 22:25:17 nicks Exp $"
+# "$Id: configure.in,v 1.187 2006/04/25 22:42:35 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -703,7 +703,7 @@ else
 fi
 
 if test ! "$ac_vxl_libraries" = "NO"; then
-  VXL_LIBS=-L$ac_vxl_libraries 
+  VXL_LIBS=-L$ac_vxl_libraries
 fi
 
 AC_SUBST(VXL_CFLAGS)
@@ -1415,7 +1415,7 @@ AC_OUTPUT([Makefile
                  mris_expand/Makefile
                  mris_find_flat_regions/Makefile
                  mris_fix_topology/Makefile
-								 mris_topo_fixer/Makefile
+                 mris_topo_fixer/Makefile
                  mris_flatten/Makefile
                  mris_fwhm/Makefile
                  mris_glm/Makefile
