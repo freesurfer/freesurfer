@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $
-set VERSION = '$Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $'
+# $Id: mkbrainmask-sess,v 1.9 2006/04/25 03:47:37 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.9 2006/04/25 03:47:37 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -14,7 +14,8 @@ set nerodes = 0;
 set maskstem = brain;
 set maskdir = masks;
 set nolog     = 0;
-set run = 1;
+set nthrun = ();
+set perrun = 0;
 set debug = 0;
 set scratchdir = ();
 set PrintHelp = 0;
@@ -68,7 +69,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.8 2006/04/20 06:39:09 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.9 2006/04/25 03:47:37 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -126,39 +127,52 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  if($#RunList < $run) then
-    echo "ERROR: number of runs ($#RunList) exceeds specified run $run"
-    exit 1;
+  if($#nthrun) then
+    if($#RunList < $nthrun) then
+      echo "ERROR: number of runs ($#RunList) exceeds specified run $nthrun"
+      exit 1;
+    endif
+    set RunList = $RunList[$nthrun];
   endif
 
-  set instem = $RunList[$run]/$funcstem;
-  set infmtuse = `getformat_from_stem $instem $infmt`
-  if($status) then
-    echo "$infmtuse" 
-    exit 1;
-  endif
+  foreach run ($RunList)
 
-  set cmd = (mkbrainmask);
-  set cmd = ($cmd -i $instem.$infmtuse);
-  set cmd = ($cmd -o $maskdir/$maskstem.$outfmt);
-  set cmd = ($cmd -thresh $thresh );
-  set cmd = ($cmd -ndil $ndilations)
-  set cmd = ($cmd -nerode $nerodes)
-  if($debug) set cmd = ($cmd -debug);
-  if($#scratchdir != 0) set cmd = ($cmd -scratch $scratchdir);
+    set instem = $run/$funcstem;
+    set infmtuse = `getformat_from_stem $instem $infmt`
+    if($status) then
+      echo "$infmtuse" 
+      exit 1;
+    endif
 
-  echo "--------------------------------------------------"
-  pwd       |& tee -a $LF
-  echo $cmd |& tee -a $LF
-  echo "--------------------------------------------------"
+    if($perrun) then
+      set outfile = $run/$maskdir/$maskstem.$outfmt;
+    else
+      set outfile = $maskdir/$maskstem.$outfmt;
+    endif
 
-  $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mkbrainmask failed"  |& tee -a $LF
-    exit 1;
-  endif
+    set cmd = (mkbrainmask);
+    set cmd = ($cmd -i $instem.$infmtuse);
+    set cmd = ($cmd -o $outfile);
+    set cmd = ($cmd -thresh $thresh );
+    set cmd = ($cmd -ndil $ndilations)
+    set cmd = ($cmd -nerode $nerodes)
+    if($debug) set cmd = ($cmd -debug);
+    if($#scratchdir != 0) set cmd = ($cmd -scratch $scratchdir);
 
-end
+    echo "--------------------------------------------------"
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "--------------------------------------------------"
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mkbrainmask failed"  |& tee -a $LF
+      exit 1;
+    endif
+
+  end # Run
+
+end # Session
 
 date |& tee -a $LF
 echo "mkbrainmask-sess done" |& tee -a $LF
@@ -213,6 +227,15 @@ while( $#argv != 0 )
     case "-nero":
       if ( $#argv == 0) goto arg1err;
       set nerodes = $argv[1]; shift;
+      breaksw
+
+    case "-run":
+      if ( $#argv == 0) goto arg1err;
+      set nthrun = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set perrun = 1;
       breaksw
 
     case "-scratch":
@@ -279,10 +302,17 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if ($#SessList == 0) then
-     echo "ERROR: no sessions specified"
-     exit 1
-  endif
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified"
+  exit 1
+endif
+
+if($#nthrun && $perrun) then
+  echo "ERROR: cannot use -run and -perrun"
+  exit 1;
+endif
+if($#nthrun == 0 && ! $perrun) set nthrun = 1;
+
 
 goto check_params_return;
 ############--------------##################
