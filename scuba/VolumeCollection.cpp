@@ -2318,6 +2318,13 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
   float seedValue = sourceVol->GetMRINearestValue( seedLoc );
 
+  // Create locations in the source volume space. These will be used
+  // in the main loop.
+  VolumeLocation& sourceLoc =
+    (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+   VolumeLocation& sourceFromLoc =
+     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+
 #if PRINTOUT
   cerr << "\n\nSeed " << Point3<int>(seedLoc.Index())
        << ", " << Point3<float>(seedLoc.RAS())
@@ -2361,38 +2368,45 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   while( checkPairs.size() > 0 &&
 	 !this->DoStopRequested() ) {
 
-    // Get this voxel, the source voxel, and RAS versions.
+    // Get this voxel, the from voxel, and RAS versions.
     CheckPair checkPair = checkPairs.back();
     checkPairs.pop_back();
 
-    Point3<int> index = checkPair.mCheckIndex;
+    Point3<int> index = checkPair.mToIndex;
     VolumeLocation& loc = 
       (VolumeLocation&) iVolume.MakeLocationFromIndex( index.xyz() );
 
-    Point3<int> sourceIndex = checkPair.mSourceIndex;
-    VolumeLocation& sourceLoc =
-      (VolumeLocation&) sourceVol->MakeLocationFromIndex( sourceIndex.xyz() );
+    Point3<int> fromIndex = checkPair.mFromIndex;
+    VolumeLocation& fromLoc =
+      (VolumeLocation&) iVolume.MakeLocationFromIndex( fromIndex.xyz() );
     
     Point3<float> ras;
     iVolume.MRIIndexToRAS( index.xyz(), ras.xyz() );
-    Point3<float> sourceRAS;
-    iVolume.MRIIndexToRAS( sourceIndex.xyz(), sourceRAS.xyz() );
+    Point3<float> fromRAS;
+    iVolume.MRIIndexToRAS( fromIndex.xyz(), fromRAS.xyz() );
+
+    // If we have a different source, we need to get a location in its
+    // space from the RAS here.
+    if( bDifferentSource ) {
+      sourceLoc.SetFromRAS( ras.xyz() );
+      sourceFromLoc.SetFromRAS( fromRAS.xyz() );
+    }
 
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
       delete &loc;
-      delete &sourceLoc;
+      delete &fromLoc;
       continue;
     }
-    if( bDifferentSource && !sourceVol->IsInBounds( loc ) ) { 
+    if( bDifferentSource && !sourceVol->IsInBounds( sourceLoc ) ) { 
       delete &loc;
-      delete &sourceLoc;
+      delete &fromLoc;
       continue;
     }
 
     if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
       delete &loc;
-      delete &sourceLoc;
+      delete &fromLoc;
       continue;
     }
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
@@ -2401,7 +2415,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     if( iParams.mbStopAtROIs ) {
       if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
 	delete &loc;
-	delete &sourceLoc;
+	delete &fromLoc;
 	continue;
       }
     }
@@ -2413,7 +2427,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 			     ((ras[2]-iRASSeed[2]) * (ras[2]-iRASSeed[2])) );
       if( distance > iParams.mMaxDistance ) {
 	delete &loc;
-	delete &sourceLoc;
+	delete &fromLoc;
 	continue;
       }
     }
@@ -2424,28 +2438,28 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       float value = iVolume.GetMRINearestValue( loc );
       if( value != 0 ) {
 	delete &loc;
-	delete &sourceLoc;
+	delete &fromLoc;
 	continue;
       }
     }
 
     // Check fuzziness.
     if( iParams.mFuzziness > 0 ) {
-      float value = sourceVol->GetMRINearestValue( loc );
+      float value = sourceVol->GetMRINearestValue( sourceLoc );
       switch( iParams.mFuzzinessType ) {
       case Params::seed:
 	if( fabs( value - seedValue ) > iParams.mFuzziness ) {
 	  delete &loc;
-	  delete &sourceLoc;
+	  delete &fromLoc;
 	  continue;
 	}
 	break;
       case Params::gradient: {
-	float sourceValue = 
-	  sourceVol->GetMRINearestValue( sourceLoc );
-	if( fabs( value - sourceValue ) > iParams.mFuzziness ) {
+	float fromValue = 
+	  sourceVol->GetMRINearestValue( sourceFromLoc );
+	if( fabs( value - fromValue ) > iParams.mFuzziness ) {
 	  delete &loc;
-	  delete &sourceLoc;
+	  delete &fromLoc;
 	  continue;
 	}
       } break;
@@ -2481,20 +2495,20 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
 	    // Now convert everything to index coords.
 	    Point3<int> curVertexIdx, backVertexIdx, viewIdx,
-	      sourceIdx, curIdx;
+	      fromIdx, curIdx;
 	    iVolume.RASToMRIIndex( curVertex.xyz(), curVertexIdx.xyz() );
 	    iVolume.RASToMRIIndex( backVertex.xyz(), backVertexIdx.xyz() );
 	    iVolume.RASToMRIIndex( viewNormal.xyz(), viewIdx.xyz() );
-	    iVolume.RASToMRIIndex( sourceRAS.xyz(), sourceIdx.xyz() );
+	    iVolume.RASToMRIIndex( fromRAS.xyz(), fromIdx.xyz() );
 	    iVolume.RASToMRIIndex( ras.xyz(), curIdx.xyz() );
 
 	    // And then get float versions of those index coords
 	    // because that's what we do the math in.
 	    Point3<float> curVertexIdxf, backVertexIdxf, segVertexIdxf,
-	      viewIdxf, normalIdxf, sourceIdxf, curIdxf;
+	      viewIdxf, normalIdxf, fromIdxf, curIdxf;
 	    curVertexIdxf.Set(curVertexIdx[0],curVertexIdx[1],curVertexIdx[2]);
 	    backVertexIdxf.Set(backVertexIdx[0],backVertexIdx[1],backVertexIdx[2]);
-	    sourceIdxf.Set( sourceIdx[0], sourceIdx[1], sourceIdx[2] );
+	    fromIdxf.Set( fromIdx[0], fromIdx[1], fromIdx[2] );
 	    curIdxf.Set( curIdx[0], curIdx[1], curIdx[2] );
 	    viewIdxf.Set( viewIdx[0], viewIdx[1], viewIdx[2]);
 
@@ -2505,13 +2519,13 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	    normalIdxf = VectorOps::Normalize( normalIdxf );
 
 	    VectorOps::IntersectionResult rInt =
-	      VectorOps::SegmentIntersectsPlane( sourceIdxf, curIdxf,
+	      VectorOps::SegmentIntersectsPlane( fromIdxf, curIdxf,
 						 curVertexIdxf, normalIdxf,
 						 x );
 
 #if 0
 	    cerr << "SegmentIntersectsPlane results: "  << endl
-		 << "  source\t" <<sourceRAS << "\t" << sourceIdx << endl
+		 << "  from\t" <<fromRAS << "\t" << fromIdx << endl
 		 << "  current\t" << ras << "\t" << curIdx << endl
 		 << "  curVertex " << nCurVertex << "\t" << curVertex << "\t" << curVertexIdx << endl
 		 << "  backVertex " << nBackVertex << "\t" << backVertex << "\t" << backVertexIdx << endl
@@ -2540,7 +2554,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       // If we crossed a path, continue.
       if( bCross ) {
 	delete &loc;
-	delete &sourceLoc;
+	delete &fromLoc;
 	continue;
       }
     }
@@ -2548,7 +2562,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     // Call the user compare function to give them a chance to bail.
     if( !this->CompareVoxel( ras.xyz() ) ) {
       delete &loc;
-      delete &sourceLoc;
+      delete &fromLoc;
       continue;
     }
     
@@ -2570,7 +2584,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     Point3<int> newIndex;
     CheckPair newPair;
-    newPair.mSourceIndex = index;
+    newPair.mFromIndex = index;
     //    if( iParams.mbDiagonal ) {
       for( int nZ = beginZ; nZ <= endZ; nZ += 1 ) {
 	for( int nY = beginY; nY <= endY; nY += 1 ) {
@@ -2588,19 +2602,21 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	      }
 	    }
 
-	    newPair.mCheckIndex = newIndex;
+	    newPair.mToIndex = newIndex;
 	    checkPairs.push_back( newPair );
 	  }
 	}
       }
       //    }
     delete &loc;
-    delete &sourceLoc;
+    delete &fromLoc;
   }
 
   this->DoEnd();
 
   delete &seedLoc;
+  delete &sourceLoc;
+  delete &sourceFromLoc;
   delete bVisited;
 
   mVolume = NULL;

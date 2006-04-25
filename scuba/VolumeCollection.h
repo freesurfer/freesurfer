@@ -348,11 +348,11 @@ class VolumeCollectionFlooder {
   class CheckPair {
   public:
     CheckPair() {}
-    CheckPair( Point3<int>& iSource, Point3<int>& iCheck ) {
-      mSourceIndex = iSource; mCheckIndex = iCheck;
+    CheckPair( Point3<int>& iFrom, Point3<int>& iTo ) {
+      mFromIndex = iFrom; mToIndex = iTo;
     }
-    Point3<int> mSourceIndex;
-    Point3<int> mCheckIndex;
+    Point3<int> mFromIndex;
+    Point3<int> mToIndex;
   };    
 
   void Flood ( VolumeCollection& iVolume, float iRASSeed[3], Params& iParams );
