@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.185 2006/04/25 22:06:58 nicks Exp $"
+# "$Id: configure.in,v 1.186 2006/04/25 22:25:17 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -154,13 +154,13 @@ case "${target}" in
  ;;
  i*86-*-solaris*)
  OS=SunOS
- OS_CPPFLAGS=""
+ OS_CPPFLAGS=
  OS_LDFLAGS=
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O0 -Wall $CFLAGS"
- CXXFLAGS="-g -O0 -Wall $CXXFLAGS"
+ CFLAGS="-g -O2 -Wall $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
