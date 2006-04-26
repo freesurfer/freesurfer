@@ -2615,29 +2615,37 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
   window[0] = mLevel - mWindow*0.5;
   window[1] = mLevel + mWindow*0.5;
 
-  for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
-
-    // Get the value using the visible min/max to get highest
-    // granularity within the 0 - cGrayscaleLUTEntries range.
-    float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
-		   (cGrayscaleLUTEntries-1)) + mMinVisibleValue;
-
-    // Get an intensity from 0-1 based on our window.
-    float intensity = (value - window[0]) / (window[1] - window[0]); 
-
-    // Cap the intensity.
-    if( intensity < 0.0 ) intensity = 0.0;
-    if( intensity > 1.0 ) intensity = 1.0;
-
-    // Now apply a sigmoid function with the brightness and contrast
-    // values, with the brightness adjusting the x shift and the
-    // contrast adjusting the sharpness of the curve.
-    float bcdValue = 1.0 / (1.0 + exp( (intensity-mBrightness) * -mContrast) );
-
-    // Set the value.
-    mGrayscaleLUT[(int)nEntry] = 
-      (int) floor( bcdValue * kMaxPixelComponentValueFloat );
-
+  if( mMinVisibleValue == mMaxVisibleValue ) {
+    
+    // If same min and max visible values, all values should be 0.
+    memset( mGrayscaleLUT, 0, sizeof(mGrayscaleLUT) );
+    
+  } else {
+    
+    for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
+      
+      // Get the value using the visible min/max to get highest
+      // granularity within the 0 - cGrayscaleLUTEntries range.
+      float value = ((nEntry * (mMaxVisibleValue-mMinVisibleValue)) / 
+		     (cGrayscaleLUTEntries-1)) + mMinVisibleValue;
+      
+      // Get an intensity from 0-1 based on our window.
+      float intensity = (value - window[0]) / (window[1] - window[0]); 
+      
+      // Cap the intensity.
+      if( intensity < 0.0 ) intensity = 0.0;
+      if( intensity > 1.0 ) intensity = 1.0;
+      
+      // Now apply a sigmoid function with the brightness and contrast
+      // values, with the brightness adjusting the x shift and the
+      // contrast adjusting the sharpness of the curve.
+      float bcdValue =
+	1.0 / (1.0 + exp( (intensity-mBrightness) * -mContrast) );
+      
+      // Set the value.
+      mGrayscaleLUT[(int)nEntry] = 
+	(int) floor( bcdValue * kMaxPixelComponentValueFloat );
+    }
   }
 }
 
