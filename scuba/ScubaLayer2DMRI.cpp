@@ -324,7 +324,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
-  bzero( bReported, sizeof(int) * 195 );
+  memset( bReported, 0, sizeof(int) * 195 );
 
   delete &loc;
 

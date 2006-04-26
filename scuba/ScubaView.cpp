@@ -3055,7 +3055,7 @@ ScubaView::BuildFrameBuffer () {
     return;
 
   // Erase the frame buffer.
-  bzero( mBuffer, mHeight * mWidth * kBytesPerPixel );
+  memset( mBuffer, 0, mHeight * mWidth * kBytesPerPixel );
 
   // Go through our draw levels. For each one, get the Layer.
   map<int,int>::iterator tLevelLayerID;
