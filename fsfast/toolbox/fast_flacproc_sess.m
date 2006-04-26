@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.9 2006/04/24 05:35:19 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.10 2006/04/26 04:37:50 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -33,27 +33,10 @@ if(isempty(flac))
 end
 
 nruns = size(flac.runlist,1);
-
-mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
-mask = MRIread(mstem);
-if(isempty(mask))
-  if(~monly) quit; end
-  return;
+if(~flac.perrun)
+  mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
+  acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,flac.acfsegstem);
 end
-indmask = find(mask.vol);
-indnotmask = find(~mask.vol);
-
-acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,flac.acfsegstem);
-fprintf('%s\n',acfsegstem);
-acfseg = MRIread(acfsegstem);
-if(isempty(acfseg)) 
-  if(~monly) quit; end
-  return; 
-end
-acfseglist = unique(acfseg.vol(:));
-nacfsegs = length(acfseglist)-1; % Exclude 0
-acfmask = (acfseg.vol ~= 0);
-indacfmask = find(acfmask);
 
 for nthrun = 1:nruns
   fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
@@ -65,6 +48,36 @@ for nthrun = 1:nruns
   if(isempty(flac)) 
     if(~monly) quit;  end
     return; 
+  end
+
+  if(flac.perrun)
+    runid = flac.runlist(flac.nthrun,:);
+    mstem = sprintf('%s/%s/%s/masks/%s%s',flac.sess,...
+		    flac.fsd,runid,flac.mask);
+    acfsegstem = sprintf('%s/%s/%s/masks/%s',flac.sess,flac.fsd, ...
+			 runid,flac.acfsegstem);
+  end
+
+  if(flac.perrun | nthrun == 1)
+    fprintf('%s\n',mstem);
+    mask = MRIread(mstem);
+    if(isempty(mask))
+      if(~monly) quit; end
+      return;
+    end
+    indmask = find(mask.vol);
+    indnotmask = find(~mask.vol);
+    
+    fprintf('%s\n',acfsegstem);
+    acfseg = MRIread(acfsegstem);
+    if(isempty(acfseg)) 
+      if(~monly) quit; end
+      return; 
+    end
+    acfseglist = unique(acfseg.vol(:));
+    nacfsegs = length(acfseglist)-1; % Exclude 0
+    acfmask = (acfseg.vol ~= 0);
+    indacfmask = find(acfmask);
   end
 
   % Check condition of design matrix after normalizing columns
