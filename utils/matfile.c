@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/26 23:03:00 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2006/04/26 23:10:34 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -26,10 +26,11 @@ static void   swapBytes(MATFILE *mf) ;
 static char *MatProgname = "matfile" ;
 
 #if (BYTE_ORDER==LITTLE_ENDIAN)
-// #ifdef Linux
 #define DIFFERENT_ENDIAN(mf)   (mf->type != MATFILE_PC)
-#else
+#elif (BYTE_ORDER==BIG_ENDIAN)
 #define DIFFERENT_ENDIAN(mf)   (mf->type == MATFILE_PC)
+#else
+#error 'BYTE_ORDER not set'
 #endif
 
 
@@ -217,10 +218,12 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   mf.mrows = (long)rows ;
   mf.ncols = (long)cols ;
   mf.imagf = 0L ;
-#ifdef Linux
+#if (BYTE_ORDER==LITTLE_ENDIAN)
   mtype = MATFILE_PC ;
-#else
+#elif (BYTE_ORDER==BIG_ENDIAN)
   mtype = MATFILE_SPARC ;
+#else
+#error 'BYTE_ORDER not set'
 #endif
   mf.type = mtype + MATFILE_DOUBLE + MATFILE_FULL ;
 
