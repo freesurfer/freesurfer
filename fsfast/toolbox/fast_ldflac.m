@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.15 2006/04/26 04:37:50 greve Exp $
+% $Id: fast_ldflac.m,v 1.16 2006/04/26 22:58:36 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -67,6 +67,7 @@ if(flacversion ~= 1)
   return;
 end
 
+nthline = 1;
 nthev = 1;  % Keep track of the number of EVs
 while(1)
   % scroll through any blank lines or comments
@@ -125,19 +126,28 @@ while(1)
     elseif(strcmp(flac.format,'nii.gz')) flac.formatext = '.nii.gz'; 
     else
       fprintf('ERROR: format %s unrecognized\n',flac.format);
+      fprintf('line %d\n',nthline);
       flac=[]; return; 
     end
    case 'EV', 
     ev = flac_ev_parse(tline);
-    if(isempty(ev)) flac=[]; return; end
+    if(isempty(ev)) 
+      flac=[]; 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
     flac.ev(nthev) = ev;
     nthev = nthev + 1;
    case 'CONTRAST-BEGIN', 
     flac = load_contrast(fp,flac);
-    if(isempty(flac)) return; end
+    if(isempty(flac)) 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
    otherwise
-    fprintf('INFO: key %s unrecognized, skipping\n',key);
+    fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
+  nthline = nthline + 1;
 end % while (1)
 
 fclose(fp);
