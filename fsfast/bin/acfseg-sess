@@ -1,15 +1,16 @@
 #!/bin/csh -f
 # acfseg-sess
 #
-# $Id: acfseg-sess,v 1.6 2006/04/25 01:32:33 greve Exp $
+# $Id: acfseg-sess,v 1.7 2006/04/26 04:13:36 greve Exp $
 
-set VERSION = '$Id: acfseg-sess,v 1.6 2006/04/25 01:32:33 greve Exp $';
+set VERSION = '$Id: acfseg-sess,v 1.7 2006/04/26 04:13:36 greve Exp $';
 
 set cmdargs = ($argv);
 
 set funcstem  = f; 
 set fsd       = "bold";
-set nthrun    = 1;
+set nthrun    = ();
+set perrun    = 0;
 set maskstem  = brain;
 set nbins     = 10;
 set RunListFile = ();
@@ -78,25 +79,27 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  if($#RunListFile == 0) then
-    set RunList = `getrunlist $sess/$fsd`;
-    if($status || $#RunList == 0) then
-      echo "ERROR: $sess/$fsd has no runs"  | tee -a $LF
-      exit 1;
-    endif
-  else  
-    if(! -e $sess/$fsd/$RunListFile) then
-      echo "ERROR: cannot find $RunListFile"| tee -a $LF
-      exit 1;
-    endif
-    set RunList = (`cat $sess/$fsd/$RunListFile`);
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status || $#RunList == 0) then
+    echo "ERROR: $sess/$fsd has no runs"  | tee -a $LF
+    exit 1;
+  endif
+  echo "nthrun $nthrun $#nthrun"
+  if($#nthrun != 0) then
+    set RunList = $RunList[$nthrun];
   endif
   echo "RunList $RunList" | tee -a $LF
-  set run = $RunList[$nthrun];
 
-  set funcpath   = $sess/$fsd/$run/$funcstem
-  set maskpath   = $sess/$fsd/masks/$maskstem
-  set acfsegpath = $sess/$fsd/masks/$acfsegstem
+  foreach run ($RunList)
+
+    set funcpath   = $sess/$fsd/$run/$funcstem
+    if(! $perrun) then
+      set maskpath   = $sess/$fsd/masks/$maskstem
+      set acfsegpath = $sess/$fsd/masks/$acfsegstem
+    else
+      set maskpath   = $sess/$fsd/$run/masks/$maskstem
+      set acfsegpath = $sess/$fsd/$run/masks/$acfsegstem
+    endif
 
 #--------------------------#
 tee -a $MLF > /dev/null <<EOF
@@ -195,9 +198,9 @@ end
 MRIwrite(binmap,acfsegstem);
 if(~monly) clear all; end
 
-
 EOF
 #--------------------------#
+  end # Loop over runs
 
 end # Loop over sessions #
 
@@ -239,6 +242,10 @@ while( $#argv != 0 )
     case "-nthrun":
       if ( $#argv == 0) goto arg1err;
       set nthrun = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set perrun = 1;
       breaksw
 
     case "-rlf":
@@ -314,6 +321,12 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#nthrun && $perrun) then
+  echo "ERROR: cannot -nthrun and -perrun"
+  exit 1;
+endif
+if(! $perrun && $#nthrun == 0) set nthrun = 1;
+
 goto check_params_return;
 ############--------------##################
 
@@ -331,6 +344,7 @@ usage_exit:
   echo "Opttional Arguments"
   echo "   -f funcstem      : input  functional volume stem <f>"
   echo "   -nthrun nthrun   : nthrun to use (default: 1st) "
+  echo "   -perrun          : acfseg per-run (not with -nthrun)" 
   echo "   -rlf runlistfile : explicit run to use "
   echo "   -mask mask       : set out of mask to 0 (def brain)"
   echo "   -nbins nbins     : number of segmentations (10)"
