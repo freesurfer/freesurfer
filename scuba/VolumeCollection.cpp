@@ -2386,12 +2386,11 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     iVolume.MRIIndexToRAS( fromIndex.xyz(), fromRAS.xyz() );
 
     // If we have a different source, we need to get a location in its
-    // space from the RAS here.
-    if( bDifferentSource ) {
-      sourceLoc.SetFromRAS( ras.xyz() );
-      sourceFromLoc.SetFromRAS( fromRAS.xyz() );
-    }
-
+    // space from the RAS here. If we have the same source, this will
+    // just be the same as loc and fromLoc.
+    sourceLoc.SetFromRAS( ras.xyz() );
+    sourceFromLoc.SetFromRAS( fromRAS.xyz() );
+      
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
       delete &loc;
