@@ -312,6 +312,15 @@ DataCollection::GetROIList () {
   return lROIs;
 }
 
+bool
+DataCollection::IsROIInThisCollection ( int iROIID ) {
+
+  map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( iROIID );
+
+  return ( tIDROI != mROIMap.end() );
+}
+
 int
 DataCollection::NewROI () {
 
@@ -396,7 +405,8 @@ void
 DataCollection::DataChanged () {
   
   if( !mbSuspendDataChangedMessage ) {
-    SendBroadcast( "dataChanged", NULL );
+    int id = GetID();
+    SendBroadcast( "dataChanged", (void*)&id );
   }
 }
 

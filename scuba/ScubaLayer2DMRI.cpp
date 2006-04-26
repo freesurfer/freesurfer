@@ -294,7 +294,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
 	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
 	}
-	
+
 	dest[0] = mColorTimesOneMinusOpacity[dest[0]] + 
 	  mColorTimesOpacity[color[0]];
 	dest[1] = mColorTimesOneMinusOpacity[dest[1]] + 

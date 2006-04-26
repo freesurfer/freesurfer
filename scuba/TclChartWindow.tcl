@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.3 2006/04/24 18:14:23 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.4 2006/04/26 17:57:11 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -243,7 +243,9 @@ proc Chart_FocusElement { iID iElement inSubjInClass iX iY } {
     Chart_HilightElement $iID $gChart($iID,state,hiElement)
     
     $gWidgets($iID,gwChart) marker create text \
- 	-name hover -text $iElement -anchor nw \
+ 	-name hover \
+	-text [$gWidgets($iID,gwChart) element cget $iElement -label] \
+	-anchor nw \
  	-coords [list $iX $iY]
 }
 
@@ -311,6 +313,13 @@ proc Chart_NewWindow { iID } {
     }
 }
 
+# Close the window.
+proc Chart_CloseWindow { iID } {
+    global gData gWidgets
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+    wm withdraw $gWidgets($iID,wwTop)
+}
+
 # Show or hide the window.
 proc Chart_ShowWindow { iID } {
     global gData gWidgets
@@ -328,7 +337,7 @@ proc Chart_HideWindow { iID } {
     if { [info exists gWidgets($iID,wwTop)] } {
  	set gWidgets($iID,state,window,geometry) \
  	    [wm geometry $gWidgets($iID,wwTop)]
- 	wm withdraw $gWidgets($iID,wwTop)
+ 	wm inconify $gWidgets($iID,wwTop)
     }
 }
 

@@ -85,7 +85,8 @@ class DataCollection : public DebugReporter,
   // Get a list of ROI IDs that belong to this data collection.
   std::vector<int> GetROIList ();
   int GetNumberOfROIs () { return mROIMap.size(); }
-
+  bool IsROIInThisCollection ( int iROIID );
+  
   // Create a new ROI and assign it to this collection. Return its ID.
   int NewROI ();
 

@@ -8,7 +8,9 @@ DeclareIDTracker(ScubaROI);
 ScubaROIStaticTclListener ScubaROI::mStaticListener;
 
 
-ScubaROI::ScubaROI () {
+ScubaROI::ScubaROI () :
+  Broadcaster( "ScubaROI" ) 
+{
   mType = Free;
   mLUTID = 0;
   mStructure = 0;
@@ -309,6 +311,13 @@ ScubaROI::GetDrawColor( int oColor[3] ) {
   }
     break;
   }
+}
+
+void
+ScubaROI::ROIChanged() {
+  
+  int id = GetID();
+  SendBroadcast( "roiChanged", (void*)&id );
 }
 
 ScubaROIStaticTclListener::ScubaROIStaticTclListener () {

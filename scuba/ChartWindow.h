@@ -5,6 +5,7 @@
 #include <list>
 #include "DebugReporter.h"
 #include "IDTracker.h"
+#include "Broadcaster.h"
 
 // This is a virtual class meant to be reimplemented in a specific
 // widget framework. See TclChartWindow and QtChartWindow. Clients
@@ -13,7 +14,10 @@
 
 class ChartWindowFactory;
 
-class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
+class ChartWindow : public DebugReporter, 
+		    public IDTracker<ChartWindow>,
+		    public Broadcaster  // chartDeleted
+{
 
  public:
 
@@ -49,6 +53,9 @@ class ChartWindow : public DebugReporter, public IDTracker<ChartWindow> {
   // Configuration options for the graph.
   void SetShowLegend ( bool ibShowLegend ) { mbShowLegend = ibShowLegend; }
   bool GetShowLegend () { return mbShowLegend; }
+
+  // Close the chart window.
+  virtual void Close () = 0;
 
   // Draw the graph.
   virtual void Draw () = 0;

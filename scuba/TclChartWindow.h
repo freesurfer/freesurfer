@@ -23,6 +23,9 @@ class TclChartWindow : public ChartWindow {
 
   // Sends tcl commands to the TclChartWindow.tcl code.
   void Draw ();
+  
+  // Sends tcl command to close the window.
+  void Close ();
 
  protected:
 

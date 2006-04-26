@@ -25,13 +25,15 @@ ChartWindow::NewChartWindow () {
 }
 
 ChartWindow::ChartWindow ():
+  Broadcaster( "ChartWindow" ),
   mbShowLegend( false )
 {
 
 }
 
 ChartWindow::~ChartWindow () {
-
+  int id = GetID();
+  SendBroadcast( "chartDeleted", (void*)&id );
 }
 
 void

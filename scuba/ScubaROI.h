@@ -5,8 +5,10 @@
 #include "DebugReporter.h"
 #include "TclCommandManager.h"
 #include "IDTracker.h"
+#include "Broadcaster.h"
 
-class ScubaROIStaticTclListener : public DebugReporter, public TclCommandListener {
+class ScubaROIStaticTclListener : public DebugReporter, 
+				  public TclCommandListener {
 
  public:
   ScubaROIStaticTclListener ();
@@ -16,7 +18,10 @@ class ScubaROIStaticTclListener : public DebugReporter, public TclCommandListene
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 };
 
-class ScubaROI : public DebugReporter, public IDTracker<ScubaROI>, public TclCommandListener {
+class ScubaROI : public DebugReporter,
+		 public IDTracker<ScubaROI>, 
+		 public TclCommandListener,
+		 public Broadcaster {
 
   friend class ScubaROITester;
 
@@ -50,6 +55,10 @@ class ScubaROI : public DebugReporter, public IDTracker<ScubaROI>, public TclCom
   void GetDrawColor( int oColor[3] );
 
  protected:
+
+  // For self to call when the ROI had changed. This will broadcast an
+  // roiChanged message.
+  virtual void ROIChanged ();
 
   std::string msLabel;
 

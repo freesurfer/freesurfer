@@ -18,6 +18,8 @@ extern "C" {
 #include "Scuba-impl.h"
 #include "SegmentationVolumeReport.h"
 #include "TclScubaKeyCombo.h"
+#include "ScubaVolumeROIIntensityChartManager.h"
+#include "TclChartWindow.h"
 
 char* Progname = "scuba";
 
@@ -113,6 +115,10 @@ int main ( int argc, char** argv ) {
     PathManager::GetManager();
 
     ProgressDisplayManager::SetManager( new TclProgressDisplayManager );
+
+    ScubaVolumeROIIntensityChartManager::GetManager();
+
+    ChartWindow::SetFactory( new TclChartWindowFactory );
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     prefsMgr.UseFile( ".scuba" );

@@ -48,6 +48,18 @@ TclChartWindow::~TclChartWindow () {
 }
 
 void
+TclChartWindow::Close () {
+
+  TclCommandManager& manager = TclCommandManager::GetManager();
+
+  int chartID = GetID();
+
+  stringstream ssCommand;
+  ssCommand << "Chart_CloseWindow " << chartID;
+  manager.SendCommand( ssCommand.str() );
+}
+
+void
 TclChartWindow::Draw () {
 
   TclCommandManager& manager = TclCommandManager::GetManager();
