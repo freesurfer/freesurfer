@@ -1537,7 +1537,14 @@ VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
     int index[3];
     RASToMRIIndex( ras, index );
 
-    volumeROI->SelectVoxel( index );
+    try { 
+      volumeROI->SelectVoxel( index );
+    }
+    catch(...) {
+      cerr << "thrown in Set_Unsafe with idx " << Point3<int>(index)
+	   << " TkRegRAS " << Point3<float>(TkRegRAS) 
+	   << " ras " << Point3<float>(ras) << endl;
+    }
 
     // Also mark this in the selection voxel.
     mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], true );
@@ -2420,11 +2427,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     iVolume.MRIIndexToRAS( fromIndex.xyz(), fromRAS.xyz() );
 
     // If we have a different source, we need to get a location in its
-    // space from the RAS here.
-    if( bDifferentSource ) {
-      sourceLoc.SetFromRAS( ras.xyz() );
-      sourceFromLoc.SetFromRAS( fromRAS.xyz() );
-    }
+    // space from the RAS here. If we have the same source, this will
+    // just be the same as loc and fromLoc.
+    sourceLoc.SetFromRAS( ras.xyz() );
+    sourceFromLoc.SetFromRAS( fromRAS.xyz() );
 
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
