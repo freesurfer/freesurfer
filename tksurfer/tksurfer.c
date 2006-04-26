@@ -19016,7 +19016,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.196 2006/04/20 17:27:11 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.197 2006/04/26 21:50:48 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21012,12 +21012,12 @@ update_labels(int label_set, int vno, float dmin)
   int r, g, b;
   float x_mni, y_mni, z_mni;
   float x_tal, y_tal, z_tal;
-  float value;
   char fname[NAME_LENGTH];
   float x, y, z, sx, sy, sz, rr, dd, phi, theta;
   int field;
   int label_index_array[LABL_MAX_LABELS];
   int num_labels_found;
+  float value=0;
 
   /* make sure we an interpreter to send commands to */
   if(g_interp==NULL)

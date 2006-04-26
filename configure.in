@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.187 2006/04/25 22:42:35 nicks Exp $"
+# "$Id: configure.in,v 1.188 2006/04/26 21:50:48 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -135,8 +135,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
- CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
+ CFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CXXFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)

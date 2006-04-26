@@ -32,7 +32,7 @@ public:
 	void Clear();
 	const Vertex &operator=(const Vertex &v);
 
-	inline int Vertex::AllocateFaces(int mf){
+	inline int AllocateFaces(int mf){
 		if(maxfnum < mf){
 			maxfnum = mf;
 			if(f) delete [] f;
@@ -44,7 +44,7 @@ public:
 		fnum=0;
 		return 0;
 	}
-	inline int Vertex::ExpandFaces(int nf){
+	inline int ExpandFaces(int nf){
 		if(fnum + nf <= maxfnum) return 1; // enough free faces are available
 
 		int *f_tmp = f, *n_tmp = n;
@@ -63,7 +63,7 @@ public:
 		delete [] n_tmp;
 		return 0;
 	}
-	inline int Vertex::AllocateVertices(int mv){
+	inline int AllocateVertices(int mv){
 		if(maxvnum < mv){
 			maxvnum = mv;
 			if(v) delete [] v;
@@ -75,7 +75,7 @@ public:
 		vnum=0;
 		return 0;
 	}
-	inline int Vertex::ExpandVertices(int nv){
+	inline int ExpandVertices(int nv){
 		if(vnum + nv <= maxvnum) return 1; // enough free vertices are available
 
 		int *v_tmp = v, *e_tmp = e;
