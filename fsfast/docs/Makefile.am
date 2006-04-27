@@ -12,7 +12,7 @@ foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
 .ps.pdf:
 	@ps2pdf $< $@
-	@rm -f $<
+	@rm -f $< *.aux *.log
 
 .dvi.ps:
 	@dvips $< -o $@ >& /dev/null
