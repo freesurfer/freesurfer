@@ -1,9 +1,9 @@
 #!/bin/tcsh -f
 # bblabel - applies a bounding box to a label
 #
-# $Id: bblabel,v 1.3 2006/04/18 23:05:03 nicks Exp $
+# $Id: bblabel,v 1.4 2006/04/27 22:36:59 ayendiki Exp $
 
-set VERSION = '$Id: bblabel,v 1.3 2006/04/18 23:05:03 nicks Exp $';
+set VERSION = '$Id: bblabel,v 1.4 2006/04/27 22:36:59 ayendiki Exp $';
 
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -32,7 +32,10 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-if(-e $outlabelfile) mv $outlabelfile $outlabelfile.bak.
+if(-e $outlabelfile) mv $outlabelfile $outlabelfile.bak
+
+set tmpfile =  $outlabelfile.tmp$$
+touch $tmpfile
 
 set firstline = `head -n 1 $labelfile`;
 set lno = `tail +3 $labelfile | awk '{print $1}'`;
@@ -41,65 +44,33 @@ set y = `tail +3 $labelfile | awk '{print $3}'`;
 set z = `tail +3 $labelfile | awk '{print $4}'`;
 set s = `tail +3 $labelfile | awk '{print $5}'`;
 
-echo "Determining new points"
-set lnonew = ();
-set xnew = ();
-set ynew = ();
-set znew = ();
-set snew = ();
-@ nth = 0;
+echo "Finding points within bounds"
+@ nth = 1;
 foreach p ($lno)
+
+  set bound = 1
+  if($#xmin) set bound = ($bound && $x[$nth] \> $xmin)
+  if($#xmax) set bound = ($bound && $x[$nth] \< $xmax)
+  if($#ymin) set bound = ($bound && $y[$nth] \> $ymin)
+  if($#ymax) set bound = ($bound && $y[$nth] \< $ymax)
+  if($#zmin) set bound = ($bound && $z[$nth] \> $zmin)
+  if($#zmax) set bound = ($bound && $z[$nth] \< $zmax)
+
+  if(`echo $bound | bc -l`) then
+    echo $lno[$nth] $x[$nth] $y[$nth] $z[$nth] $s[$nth] >> $tmpfile
+  endif
+
   @ nth = $nth + 1;
-
-  if($#xmin) then
-    set t = `echo $x[$nth] \> $xmin | bc -l `;
-    if(! $t) continue;
-  endif
-
-  if($#xmax) then
-    set t = `echo $x[$nth] \< $xmax | bc -l `;
-    if(! $t) continue;
-  endif
-
-  if($#ymin) then
-    set t = `echo $y[$nth] \> $ymin | bc -l `;
-    if(! $t) continue;
-  endif
-
-  if($#ymax) then
-    set t = `echo $y[$nth] \< $ymax | bc -l `;
-    if(! $t) continue;
-  endif
-
-  if($#zmin) then
-    set t = `echo $z[$nth] \> $zmin | bc -l `;
-    if(! $t) continue;
-  endif
-
-  if($#zmax) then
-    set t = `echo $z[$nth] \< $zmax | bc -l `;
-    if(! $t) continue;
-  endif
-
-  set lnonew = ($lnonew $lno[$nth]);
-  set xnew = ($xnew $x[$nth]);
-  set ynew = ($ynew $y[$nth]);
-  set znew = ($znew $z[$nth]);
-  set snew = ($snew $s[$nth]);
-
 end
 
-echo "Creating new label file"
-echo $firstline >> $outlabelfile
-echo $#lnonew >> $outlabelfile
-@ nth = 0;
-foreach p ($lnonew)
-  @ nth = $nth + 1;
-  echo $p $xnew[$nth] $ynew[$nth] $znew[$nth] $snew[$nth] >> $outlabelfile
-end
+echo "Writing new label to $outlabelfile"
+echo $firstline > $outlabelfile
+set npoints = `wc -l $tmpfile`
+echo $npoints[1] >> $outlabelfile
+cat $tmpfile >> $outlabelfile
+rm -f $tmpfile
 
-
-echo "bblabel Done"
+echo "bblabel done"
 
 exit 0;
 ###############################################
@@ -245,10 +216,10 @@ BEGINHELP
 bblabel
 
 Applies a bounding box to a label. The bounding box is specified by
-the triplet: (xmin,xmax,ymin,ymax,zmin,zmax). Only those label points
-within this box are copied to the output. If a min is not specified,
-then -infinity is used. If a max is not specified, then +infinity is
-used.
+six coordinates (xmin,xmax,ymin,ymax,zmin,zmax). Only those label
+points within this box are copied to the output. If a min is not
+specified, then -infinity is used. If a max is not specified, then
++infinity is used.
 
 Example:
 
