@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.23 2006/04/06 22:30:44 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.24 2006/04/27 23:40:15 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.23 2006/04/06 22:30:44 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.24 2006/04/27 23:40:15 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -253,6 +253,10 @@ for slice = firstslice:lastslice
 
       % Get number of TRs in this run %
       [nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+      if(ntrs == 0)
+	fprintf('ERROR: with %s\n',instem);
+	return;
+      end
       ntrstot = ntrstot + ntrs;
       nvoxs = nrows*ncols;
 
