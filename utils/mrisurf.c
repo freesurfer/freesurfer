@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/21 17:14:26 $
-// Revision       : $Revision: 1.453 $
+// Revision Date  : $Date: 2006/04/27 08:06:35 $
+// Revision       : $Revision: 1.454 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -577,7 +577,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.453 2006/04/21 17:14:26 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.454 2006/04/27 08:06:35 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29571,11 +29571,11 @@ DEFECT_LIST      *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous,
                                      int mark_segmented) ;
 static int       mrisSegmentDefect(MRI_SURFACE *mris,int vno,DEFECT *defect,
                                    int mark_ambiguous, int mark_segmented);
-#if FIND_ENCLOSING_LOOP
+//#if FIND_ENCLOSING_LOOP
 static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect,
                                      int mark_ambiguous, int mark_segmented);
 static int mrisSegmentConnectedComponents(MRIS *mris);
-#endif
+//#endif
 static int       mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
                                               DEFECT *defect,
                                               FACE_DEFECT_LIST *fdl,
@@ -29763,6 +29763,178 @@ static int mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, 
 static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2) ;
 static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot); 
 
+void MRISmapOntoSphere(MRIS *mris){
+	MRISprojectOntoSphere(mris, mris, 100.0f) ;
+
+	MRISsmoothOnSphere(mris,10000);
+} 
+
+DEFECT_LIST *
+mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
+{
+  DEFECT_LIST  *dl ;
+  int          vno ,nadded ;
+  VERTEX       *v ;
+  DEFECT *defect;
+
+  dl = (DEFECT_LIST *)calloc(1, sizeof(DEFECT_LIST)) ;
+  if (!dl)
+    ErrorExit(ERROR_NO_MEMORY,
+              "MRISsegmentDefects: could allocate defect list") ;
+
+	/* uses fixedval to mark border vertices */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].fixedval=0;
+
+  for (nadded = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->marked != mark_ambiguous)
+			continue ;
+
+		defect=&dl->defects[dl->ndefects];
+		defect->defect_number=dl->ndefects++;
+
+		/* segment defect #defect->defect_number */
+		nadded += mrisSegmentDefect
+			(mris, vno, defect, mark_ambiguous, mark_segmented) ;
+
+      /* update the defect so it becomes simply connected */
+      mrisSimplyConnectedDefect(mris,defect,mark_ambiguous, mark_segmented);
+
+	}
+  if(nadded)
+    fprintf
+      (stderr,
+       "   total of %d vertices has been added to the surface\n",nadded);
+
+  return(dl) ;
+}
+
+
+static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) ;
+
+
+static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris,DEFECT_LIST *dl ){
+  int i,n,found,removed;
+  DEFECT *defect,*removed_defect;
+	DEFECT_LIST *new_dl;
+
+  fprintf(stderr,"analyzing defects for overlaps...\n");
+
+	found=1;
+	while(found){
+		found=0;
+
+		/* initiliaze flags */
+		for(n=0;n<mris->nvertices;n++){
+			mris->vertices[n].ripflag=0;
+			mris->vertices[n].marked=0;
+			mris->vertices[n].fixedval=0;
+			mris->vertices[n].undefval=0;
+			mris->vertices[n].old_undefval=0;
+		}
+		
+		for (i = 0 ; i < dl->ndefects ; i++){
+			if(found) break;
+			defect = &dl->defects[i] ;
+			for(n = 0 ; n < defect->nvertices ; n++){
+				if(mris->vertices[defect->vertices[n]].marked){
+					/* defect i overlaps defect (marked-1) */
+					/* by construction defect (marked-1) is inside defect i */
+					/* remove defect (marked-1) */
+					fprintf(WHICH_OUTPUT,"  -removing defect %d\n",mris->vertices[defect->vertices[n]].marked-1);
+					removed=mris->vertices[defect->vertices[n]].marked-1;
+					removed_defect=&dl->defects[removed];
+					
+					/* free inside vertices */
+					free(removed_defect->vertices);
+					free(removed_defect->status);
+					removed_defect->vertices=NULL;
+					removed_defect->status=NULL;
+					removed_defect->nvertices=0;
+					/* free border */
+					free(removed_defect->border);
+					removed_defect->border=NULL;
+					removed_defect->nborder=0;
+
+					//newflo
+					// free edge list!!!
+
+					/* clean defect from empty spaces */
+					new_dl=(DEFECT_LIST*)calloc(1,sizeof(DEFECT_LIST));
+					for(i=0;i<dl->ndefects;i++){
+						if(removed) continue;
+						defect=&dl->defects[i];
+						if(defect->nvertices){ /* this defect is not empty */
+							memcpy(&new_dl->defects[new_dl->ndefects++],defect,sizeof(DEFECT));
+						}
+					}
+					free(dl);
+					dl=new_dl;
+
+					found=1;
+					break;
+				}
+				mris->vertices[defect->vertices[n]].marked=i+1;
+			}
+		}
+	}
+
+	return dl;
+}
+
+void MRISidentifyDefects(MRIS *mris){
+	int fno,n,i;
+	FACE_DEFECT_LIST   *fdl ;
+	DEFECT_LIST        *dl ;
+
+
+	/* using CANONICAL_VERTICES */
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+
+	/* marking intersecting edges */
+  fdl = MRISmarkAmbiguousVertices(mris, MARK_AMBIGUOUS) ;
+	
+	fprintf(WHICH_OUTPUT, "segmenting defects...\n") ;
+  dl = mrisSegmentDefects(mris, MARK_AMBIGUOUS, MARK_SEGMENTED) ;
+
+	dl=mrisRemoveOverlappingDefects(mris,dl);
+
+	MRISclearMarks(mris);
+	for (i = 0 ; i < dl->ndefects ; i++){
+		DEFECT *defect = &dl->defects[i];
+		for(n = 0 ; n < defect->nvertices ; n++)
+			mris->vertices[defect->vertices[n]].marked2=i+1;
+		for(n = 0 ; n < defect->nborder ; n++)
+      mris->vertices[defect->border[n]].marked2=i+1;
+	}
+	for(n = 0 ; n < mris->nvertices ; n++)
+		mris->vertices[n].curv =  mris->vertices[n].marked2;
+
+	/* free structures */
+	for (fno = 0 ; fno < mris->nfaces ; fno++)
+		if (fdl->nfaces[fno] > 0)
+			free(fdl->faces[fno]) ;
+	free(fdl->faces) ;
+	free(fdl->nfaces) ;
+	free(fdl) ;
+	for (i = 0 ; i < dl->ndefects ; i++)
+	{
+		if(dl->defects[i].vertices)
+			free(dl->defects[i].vertices) ;
+		if(dl->defects[i].status)
+			free(dl->defects[i].status) ;
+		if(dl->defects[i].border)
+			free(dl->defects[i].border) ;
+		if(dl->defects[i].edges)
+			free(dl->defects[i].edges);
+	}
+	free(dl) ;
+
+}
+
+
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	int n ;
 
@@ -29772,13 +29944,7 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	parms->transformation_matrix = VoxelFromSRASmatrix ; 
 #endif
 
-	//	MRISaverageVertexPositions(mris, 2) ;
-	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
-	MRIScomputeMetricProperties(mris);
 	//	MRISsmoothSurfaceNormals(mris,10);
-
-
-
 
 	//ripping all defects
 	for(n = 0 ; n < mris->nvertices ; n++){
@@ -34239,7 +34405,6 @@ static long ncross = 0 ;
 static long nmut = 0 ;
 static long nkilled = 0;
 
-static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) ;
 static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int ripflag) ;
 static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) ;
 static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl);
@@ -36216,7 +36381,7 @@ mrisSegmentDefect
   defect->nx = nx/len ; defect->ny = ny/len ; defect->nz = nz/len ;
   return(nadded) ;
 }
-#if FIND_ENCLOSING_LOOP
+//#if FIND_ENCLOSING_LOOP
 /* segment a surface into connected components using undefval to mark
    the different components and avoiding old_undefval */
 static int mrisSegmentConnectedComponents(MRIS *mris){
@@ -36641,7 +36806,6 @@ static int mrisSimplyConnectedDefect
 
   return NO_ERROR;
 }
-#endif
 
 /*-----------------------------------------------------
   Parameters:
