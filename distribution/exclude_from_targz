@@ -31,10 +31,8 @@ freesurfer/bin/paint
 freesurfer/bin/tkregister
 freesurfer/bin/csurf
 freesurfer/lib/gsl/share
-freesurfer/lib/gsl/include
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share
-freesurfer/lib/tcltktixblt/include
 freesurfer/lib/tcltktixblt/lib/tk8.4/demos
 freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
@@ -49,7 +47,6 @@ freesurfer/lib/qt/examples
 freesurfer/lib/qt/extensions
 freesurfer/lib/qt/translations
 freesurfer/lib/qt/tutorial
-freesurfer/lib/qt/include
 freesurfer/lib/qt/mkspecs
 freesurfer/lib/qt/doc
 freesurfer/lib/qt/src/qt-x11-free-3.3.5
