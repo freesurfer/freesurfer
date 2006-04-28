@@ -18,7 +18,7 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.8 2006/04/25 01:33:46 greve Exp $
+% $Id: load_nifti.m,v 1.9 2006/04/28 04:58:09 greve Exp $
 
 hdr = [];
 
@@ -33,9 +33,10 @@ if(isempty(hdronly)) hdronly = 0; end
 % unzip if it is compressed 
 ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
 if(strcmpi(ext,'.gz'))
-  % Need to create unique file name
+  % Need to create unique file name (harder than it looks)
   rand('state', sum(100*clock));
-  gzipped =  round(rand(1)*10000000 + length(niftifile));
+  gzipped =  round(rand(1)*10000000 + ...
+		   sum(int16(niftifile))) + round(cputime);
   ind = findstr(niftifile, '.');
   new_niftifile = sprintf('/tmp/tmp%d.nii', gzipped);
   %fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
