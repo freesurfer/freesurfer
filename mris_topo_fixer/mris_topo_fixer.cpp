@@ -14,6 +14,7 @@ extern "C" {
 #include "macros.h"
 #include "version.h"
 #include "timer.h"
+#include "topology/topo_parms.h"
 }
 #include "mris_topology.h"
 #include "topology/patchdisk.h"
@@ -21,6 +22,7 @@ extern "C" {
 int main(int argc, char *argv[]) ;
 
 static int noint = 1 ;
+static int sphere = 1 ;
 
 static int  get_option(int argc, char *argv[]) ;
 static void initTopoFixerParameters();
@@ -32,7 +34,8 @@ char *Progname ;
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
 static char *orig_name     = "orig" ;
-static char *defect_name  = "defects" ;
+//static char *defect_name  = "defects" ;
+static char *sphere_name = "qsphere" ;
 
 static char sdir[STRLEN] = "" ;
 static TOPOFIX_PARMS parms;
@@ -73,6 +76,7 @@ static void initTopoFixerParameters(){
 	parms.h_border = NULL;
 	parms.h_grad = NULL;;
 	parms.transformation_matrix=NULL;
+	parms.defect_list=NULL;
 }
 
 static void freeTopoFixerParameters(){
@@ -92,6 +96,22 @@ static void freeTopoFixerParameters(){
   if(parms.h_border) HISTOfree(&parms.h_border);
   if(parms.h_grad) HISTOfree(&parms.h_grad);
 	if(parms.transformation_matrix)  MatrixFree(&parms.transformation_matrix);
+	//defect_list
+	if(parms.defect_list){
+		DEFECT_LIST *dl = (DEFECT_LIST*)parms.defect_list;
+		for (int i = 0 ; i < dl->ndefects ; i++)
+			{
+				if(dl->defects[i].vertices)
+					free(dl->defects[i].vertices) ;
+				if(dl->defects[i].status)
+					free(dl->defects[i].status) ;
+				if(dl->defects[i].border)
+					free(dl->defects[i].border) ;
+				if(dl->defects[i].edges)
+					free(dl->defects[i].edges);
+			}
+		free(dl) ;
+	}
 } 
 
 
@@ -110,7 +130,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.2 2006/04/22 09:36:03 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.3 2006/04/28 20:05:52 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -119,7 +139,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.2 2006/04/22 09:36:03 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.3 2006/04/28 20:05:52 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -197,17 +217,39 @@ int main(int argc, char *argv[])
 			MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
     };
   }
+	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 
 	//number of loops 
 	int nloops = (1-eno)/2;
 	fprintf(stderr,"The surface has %d loops (X=%d)\n\n",nloops,eno);
 	
-	//read the topological defects 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, defect_name) ;
-	MRISreadCurvature(mris,fname);
-	for(int n = 0 ; n < mris->nvertices ; n++)
-    mris->vertices[n].marked2 = int(mris->vertices[n].curv);
-
+	//	if(curv){
+	//		//read the topological defects 
+	//		sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, defect_name) ;
+	//		MRISreadCurvature(mris,fname);
+	//		for(int n = 0 ; n < mris->nvertices ; n++)
+	//			mris->vertices[n].marked2 = int(mris->vertices[n].curv);
+	//	}else {
+	if(sphere){
+		//read the spherical coordinates
+		sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
+		if (MRISreadVertexPositions(mris, sphere_name) != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
+								Progname, orig_name) ;
+	}else
+		MRISmapOntoSphere(mris);
+	
+	fprintf(stderr,"smoothing spherical vertices...\n");
+	MRISsmoothOnSphere(mris,1000);
+	/* centering the surface using CANONICAL_VERTICES */
+	MRIScenterSphere(mris);
+	MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+	fprintf(stderr,"identify defects...\n");
+	MRISidentifyDefects(mris,&parms); 
+	MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
+	MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+	//	}
+	
 	//read the mri volume
 	sprintf(fname, "%s/%s/mri/%s", sdir, sname, brain_name) ;
   if(MGZ) sprintf(fname, "%s.mgz", fname);
@@ -234,16 +276,26 @@ int main(int argc, char *argv[])
 
 	MRISinitTopoFixParameters(mris_corrected,&parms); 
 
-
 	int def = atoi(argv[3]);
-	if(def<0){
-		int n = 1 ;
-		while(MRISgetEuler(mris_corrected)<2){
-			MRIScorrectDefect(mris_corrected,n++,parms);
-			if(n>1000) break;
-		}
-	}else
-		MRIScorrectDefect(mris_corrected,def,parms);
+
+	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
+	for(int i = 0 ; i < dl->ndefects ; i++){
+		fprintf(stderr, " defect %d has %d vertices\n",i,dl->defects[i].nvertices);
+		if(def >= 0 && def != i) continue;
+		DEFECT *defect = &dl->defects[i];
+		for(int n = 0 ; n < mris_corrected->nvertices ; n++)
+			mris_corrected->vertices[n].marked2=0;
+		for(int n = 0 ; n < defect->nvertices ; n++)
+			mris_corrected->vertices[defect->vertices[n]].marked2=1;
+		for(int n = 0 ; n < defect->nborder ; n++)
+			mris_corrected->vertices[defect->border[n]].marked2=1;
+		fprintf(stderr,"before, euler is %d \n",MRISgetEuler(mris_corrected,1));
+		parms.defect_number = i;
+		MRIScorrectDefect(mris_corrected,1,parms);
+		fprintf(stderr,"after, euler is %d \n",MRISgetEuler(mris_corrected,1));
+		fprintf(stderr,"then ,euler is %d \n",MRISgetEuler(mris_corrected));
+	}
+	
 
 	//checking if we have some self-intersections (should not happen) 
 	if(parms.no_self_intersections){
