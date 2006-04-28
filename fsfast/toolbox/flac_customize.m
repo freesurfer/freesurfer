@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.9 2006/04/24 03:37:16 greve Exp $
+% $Id: flac_customize.m,v 1.10 2006/04/28 03:50:48 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -67,6 +67,8 @@ if(~isempty(flac.tpexcfile))
     % Set up 1-based points to include
     flacnew.tpinc = ones(flacnew.ntp,1); 
     flacnew.tpinc(flacnew.tpexc+1) = 0;
+    ntpexc = length(flacnew.tpexc);
+    fprintf('Excluding %d points\n',ntpexc);
   else
     flacnew.tpexc = [];
   end
