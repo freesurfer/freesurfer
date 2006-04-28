@@ -1057,6 +1057,7 @@ typedef struct{
 	MRI *mri_gray_white, *mri_k1_k2;
 	MATRIX *transformation_matrix;
 	//defect info
+	void *defect_list;
 	void   *dp; 
 } TOPOFIX_PARMS;
 
