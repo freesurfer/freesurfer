@@ -36,7 +36,7 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %  kepi = permute(kepi,[2 1 3 4 5]);
 %  [cimg Rrow epipar] = tdr_epirecon(kepi,'meas.asc');
 %
-% $Id: tdr_epirecon.m,v 1.2 2006/04/28 17:52:02 greve Exp $
+% $Id: tdr_epirecon.m,v 1.3 2006/04/28 18:20:39 greve Exp $
 
 cimg = [];
 Rrow = [];
@@ -67,7 +67,7 @@ nkcols  = size(kepi,2);
 % Does not really matter.
 n1 = size(kepi,3); 
 n2 = size(kepi,4);
-n3 = size(kepi,4);
+n3 = size(kepi,5);
 
 % Apply readout reversal to even numbered rows.
 indkevenrows = [2:2:nrows];
