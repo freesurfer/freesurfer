@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.27 2006/02/27 21:47:52 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.28 2006/04/28 20:48:04 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -360,7 +360,7 @@ while( $#argv != 0 )
       if ( $getting_subjects ) then
         # loop on getting variable number of subjects,
         # until a new flag is found, or no more args
-        set SUBJECTS = "$SUBJECTS $argv[1]"; shift;
+        set SUBJECTS = ( $SUBJECTS $argv[1] ); shift;
         set getting_subjects = 1;
       else
         echo ERROR: Flag $flag unrecognized. 
