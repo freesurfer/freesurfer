@@ -2,6 +2,13 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 % [cimg Rrow epipar] = tdr_epirecon(kepi,measasc)
 % [cimg Rrow epipar] = tdr_epirecon(kepi,epipar)
 %
+% Performs fouirer-based epi recon with ramp-sampling and 
+% ghost correction.
+%
+% kepi is kspace data (nrow x nkcols x n1 x n2 x n3)
+%  The interpretation of n1, n2, n3 is not important.
+%  Applies readout reversals of even numbered rows.
+% 
 % EPI parameters are obtained in one of two ways:
 %   measasc - a Siemens meas.asc 
 %   epipar - a structure with the following fields:
@@ -12,7 +19,6 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %     tRampDown : total ramp down time (usec)
 %     All times are in usec. Note: meas.asc has dwell time in nsec
 %
-% Applies readout reversals of even numbered rows.
 % Returns an image with half the kspace cols.
 % cimg is complex.
 % 
@@ -30,7 +36,7 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %  kepi = permute(kepi,[2 1 3 4 5]);
 %  [cimg Rrow epipar] = tdr_epirecon(kepi,'meas.asc');
 %
-% $Id: tdr_epirecon.m,v 1.1 2006/04/28 17:49:41 greve Exp $
+% $Id: tdr_epirecon.m,v 1.2 2006/04/28 17:52:02 greve Exp $
 
 cimg = [];
 Rrow = [];
