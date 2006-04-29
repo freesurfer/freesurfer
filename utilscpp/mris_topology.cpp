@@ -76,7 +76,10 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
   parms.max_face = mris->nfaces;
 	parms.nattempts = nint(parms.nattempts_percent*mris->nfaces+1);
   parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+parms.nminattempts);
-
+	parms.initial_fitness = MRIScomputeFitness(mris,&parms);
+	parms.fitness = -1.0;
+	parms.ngeneratedpatches=0;
+	parms.nselfintersectingpatches=0;
 	int nloops = (1-MRISgetEuler(mris))/2;
 
 	for(int n = 0 ; n < nloops ; n++){
@@ -217,7 +220,11 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 
 	MRISfree(&mris);
 	mris = best_mris;
-	
+	parms.fitness = best_fitness;
+	parms.ngeneratedpatches += npatches;
+	parms.nselfintersectingpatches += nintersections;
+
+
 	return true;
 }
 
