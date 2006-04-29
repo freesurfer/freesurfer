@@ -62,6 +62,11 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 	TOPOFIXfreeDP(&parms);
 
 	//	fprintf(WHICH_OUTPUT,"\n");
+	//printing out results
+	fprintf(WHICH_OUTPUT,"      INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
+	fprintf(WHICH_OUTPUT,"      FINAL FITNESS   :  %3.5f \n",parms.initial_fitness);
+	fprintf(WHICH_OUTPUT,"      # generated patches : %d \n      # self-intersecting patches",parms.ngeneratedpatches,parms.nselfintersectingpatches);
+
 
 	return true; 
 }

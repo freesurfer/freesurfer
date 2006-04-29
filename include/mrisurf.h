@@ -1059,6 +1059,9 @@ typedef struct{
 	//defect info
 	void *defect_list;
 	void   *dp; 
+	//statistics
+	double fitness,initial_fitness;
+	int ngeneratedpatches,nselfintersectingpatches;
 } TOPOFIX_PARMS;
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
