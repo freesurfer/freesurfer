@@ -1060,7 +1060,7 @@ typedef struct{
 	void *defect_list;
 	void   *dp; 
 	//statistics
-	double fitness,initial_fitness;
+	float fitness,initial_fitness;
 	int ngeneratedpatches,nselfintersectingpatches;
 } TOPOFIX_PARMS;
 
