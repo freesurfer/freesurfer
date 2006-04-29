@@ -36,6 +36,7 @@ static char *wm_name       = "wm" ;
 static char *orig_name     = "orig" ;
 //static char *defect_name  = "defects" ;
 static char *sphere_name = "qsphere" ;
+static char *out_name = "orig_corrected" ;
 
 static char sdir[STRLEN] = "" ;
 static TOPOFIX_PARMS parms;
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.4 2006/04/29 00:06:42 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.5 2006/04/29 00:12:26 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -139,7 +140,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.4 2006/04/29 00:06:42 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.5 2006/04/29 00:12:26 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -289,11 +290,9 @@ int main(int argc, char *argv[])
 			mris_corrected->vertices[defect->vertices[n]].marked2=1;
 		for(int n = 0 ; n < defect->nborder ; n++)
 			mris_corrected->vertices[defect->border[n]].marked2=1;
-		fprintf(stderr,"before, euler is %d \n",MRISgetEuler(mris_corrected,1));
 		parms.defect_number = i;
 		MRIScorrectDefect(mris_corrected,1,parms);
-		fprintf(stderr,"after, euler is %d \n",MRISgetEuler(mris_corrected,1));
-		fprintf(stderr,"then ,euler is %d \n",MRISgetEuler(mris_corrected));
+		fprintf(stderr,"After correction, euler is %d \n",MRISgetEuler(mris_corrected));
 	}
 	
 
@@ -314,7 +313,10 @@ int main(int argc, char *argv[])
 	/* compute the orientation changes */
 	//  MRISmarkOrientationChanges(mris_corrected);
 
-	MRISwrite(mris_corrected,argv[4]);
+	
+
+	sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi,out_name) ;
+	MRISwrite(mris_corrected,fname);
 	
 	fprintf(stderr,"\n\n");
 

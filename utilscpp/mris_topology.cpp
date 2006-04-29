@@ -61,7 +61,7 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 	MRIPfree(&mrip);
 	TOPOFIXfreeDP(&parms);
 
-	fprintf(WHICH_OUTPUT,"\n");
+	//	fprintf(WHICH_OUTPUT,"\n");
 
 	return true; 
 }
