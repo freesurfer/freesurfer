@@ -112,7 +112,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	MRIS *best_mris = NULL;
 	double best_fitness = -1;
 
-#if __PRINT_MODE
+e#if __PRINT_MODE
   fprintf(WHICH_OUTPUT,"increasing euler number\n");
 #endif
 	
@@ -221,7 +221,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	if(parms.verbose>=VERBOSE_MODE_HIGH)
 		fprintf(WHICH_OUTPUT,"\r                             \r");
 
-	if(parms.verbosee>=VERBOSE_MODE_MEDIUM)
+	if(parms.verbose>=VERBOSE_MODE_MEDIUM)
 		fprintf(WHICH_OUTPUT,"      %d patches have been generated - %d self-intersected\n",npatches,nintersections);
 
 	//update the surface
