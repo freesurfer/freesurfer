@@ -63,9 +63,9 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 
 	//	fprintf(WHICH_OUTPUT,"\n");
 	//printing out results
-	fprintf(WHICH_OUTPUT,"   INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
-	fprintf(WHICH_OUTPUT,"   FINAL FITNESS   :  %3.5f \n",parms.fitness);
-	fprintf(WHICH_OUTPUT,"   # generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
+	fprintf(WHICH_OUTPUT,"INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
+	fprintf(WHICH_OUTPUT,"FINAL FITNESS   :  %3.5f \n",parms.fitness);
+	fprintf(WHICH_OUTPUT,"# generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
 
 
 	return true; 
@@ -93,7 +93,7 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	int nloops = (1-MRISgetEuler(mris))/2;
 
 	for(int n = 0 ; n < nloops ; n++){
-		if(parms.verbose){
+		if(parms.verbosee>=VERBOSE_MODE_MEDIUM){
 			fprintf(WHICH_OUTPUT,"      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
 							parms.max_face,mris->nfaces,n+1,nloops, parms.nattempts,parms.nminimal_attempts);
 		}
@@ -221,7 +221,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	if(parms.verbose>=VERBOSE_MODE_HIGH)
 		fprintf(WHICH_OUTPUT,"\r                             \r");
 
-	if(parms.verbose)
+	if(parms.verbosee>=VERBOSE_MODE_MEDIUM)
 		fprintf(WHICH_OUTPUT,"      %d patches have been generated - %d self-intersected\n",npatches,nintersections);
 
 	//update the surface
