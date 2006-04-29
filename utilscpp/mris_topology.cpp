@@ -64,8 +64,8 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 	//	fprintf(WHICH_OUTPUT,"\n");
 	//printing out results
 	fprintf(WHICH_OUTPUT,"      INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
-	fprintf(WHICH_OUTPUT,"      FINAL FITNESS   :  %3.5f \n",parms.initial_fitness);
-	fprintf(WHICH_OUTPUT,"      # generated patches : %d \n      # self-intersecting patches",parms.ngeneratedpatches,parms.nselfintersectingpatches);
+	fprintf(WHICH_OUTPUT,"      FINAL FITNESS   :  %3.5f \n",parms.fitness);
+	fprintf(WHICH_OUTPUT,"      # generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
 
 
 	return true; 
@@ -81,6 +81,7 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
   parms.max_face = mris->nfaces;
 	parms.nattempts = nint(parms.nattempts_percent*mris->nfaces+1);
   parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+parms.nminattempts);
+	MRISinitDefectPatch(mris,&parms);
 	parms.initial_fitness = MRIScomputeFitness(mris,&parms);
 	parms.fitness = -1.0;
 	parms.ngeneratedpatches=0;
