@@ -94,6 +94,8 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
   int nattempts=parms.nattempts;
 
+	int nintersections=0,npatches=0;
+
 	MRIS *best_mris = NULL;
 	double best_fitness = -1;
 
@@ -123,6 +125,8 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
 		else
 			correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
+
+		npatches++;
 
 		if(correct < 0){ 
 			fprintf(WHICH_OUTPUT,"PBM : Could Not Increase Euler Number for defect %d\n",parms.defect_number);
@@ -160,6 +164,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			// check if self-intersect
 			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
 			if(selfintersect){
+				nintersections++;
 				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
 				MRISfree(&mris_work);
 				continue;
@@ -173,14 +178,18 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			}
     };
 
-    MRISdefectMatch(mris_work,&parms);
-		fitness = MRIScomputeFitness(mris_work,&parms);
+		if(parms.smooth || parms.match){
+			MRISdefectMatch(mris_work,&parms);
+			npatches++;
+			fitness = MRIScomputeFitness(mris_work,&parms);
+		}
 
 		//update if necessary 
 		if(best_mris == NULL || fitness > best_fitness){
 			//check if self-intersect
 			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
       if(selfintersect){
+				nintersections++;
 				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
         MRISfree(&mris_work);
         continue;
@@ -198,6 +207,9 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	}
 	if(parms.verbose>=VERBOSE_MODE_HIGH)
 		fprintf(WHICH_OUTPUT,"\r                             \r");
+
+	if(parms.verbose)
+		fprintf(WHICH_OUTPUT,"      %d patches have been generated - %d self-intersected\n",npatches,nintersections);
 
 	//update the surface
 	if(best_mris == NULL )
