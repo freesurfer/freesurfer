@@ -16,7 +16,7 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
   int euler = MRISgetEuler(mris, defect_number);
   fprintf(WHICH_OUTPUT,"   euler is %d\n",euler);
   if(euler == 1) {
-    fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",defect_number);
+    fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",parms.defect_number);
     return true;
   }
 
@@ -55,7 +55,7 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 
 #if __PRINT_MODE
   euler = MRISgetEuler(mris);
-  fprintf(WHICH_OUTPUT,  "Now, euler is %d\n",euler);
+ fprintf(WHICH_OUTPUT,  "Now, euler is %d\n",euler);
 #endif
 
 	MRIPfree(&mrip);
@@ -79,12 +79,11 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 
 	int nloops = (1-MRISgetEuler(mris))/2;
 
-	if(parms.verbose){
-    fprintf(WHICH_OUTPUT,"      nfaces = %d - nloops = %d  - ntries = [%d,%d]\n",
-						mris->nfaces,nloops, parms.nattempts,parms.nminimal_attempts);
-  }
-	
 	for(int n = 0 ; n < nloops ; n++){
+		if(parms.verbose){
+			fprintf(WHICH_OUTPUT,"      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
+							parms.max_face,mris->nfaces,n+1,nloops, parms.nattempts,parms.nminimal_attempts);
+		}
 		bool correct = MRISincreaseEuler(mris,parms);
 		if(correct == false) return false;
 	}
@@ -161,6 +160,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			// check if self-intersect
 			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
 			if(selfintersect){
+				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
 				MRISfree(&mris_work);
 				continue;
 			}
@@ -181,6 +181,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			//check if self-intersect
 			bool selfintersect = doesMRISselfIntersect(mris_work,parms);
       if(selfintersect){
+				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
         MRISfree(&mris_work);
         continue;
       }
