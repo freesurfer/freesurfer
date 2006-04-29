@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.5 2006/04/29 00:12:26 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.6 2006/04/29 22:23:49 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.5 2006/04/29 00:12:26 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.6 2006/04/29 22:23:49 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -215,6 +215,7 @@ int main(int argc, char *argv[])
 	if(parms.no_self_intersections){
     int self_intersect =  IsMRISselfIntersecting(mris);
     if(self_intersect){
+			fprintf(stderr,"smoothing led to self-intersection: restoring original vertices\n");
 			MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
     };
   }
@@ -292,7 +293,14 @@ int main(int argc, char *argv[])
 			mris_corrected->vertices[defect->border[n]].marked2=1;
 		parms.defect_number = i;
 		MRIScorrectDefect(mris_corrected,1,parms);
-		fprintf(stderr,"After correction, euler is %d \n",MRISgetEuler(mris_corrected));
+		fprintf(stderr,"AFTER CORRECTION, EULER IS %d \n",MRISgetEuler(mris_corrected));
+		if(0){//parms.no_self_intersections){
+			int self_intersect =  IsMRISselfIntersecting(mris_corrected);
+			if(self_intersect){
+				fprintf(stderr,"\nThe final surface self-intersects !\n");
+				exit(-1);
+			}
+		}
 	}
 	
 

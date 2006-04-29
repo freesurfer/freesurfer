@@ -93,7 +93,7 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	int nloops = (1-MRISgetEuler(mris))/2;
 
 	for(int n = 0 ; n < nloops ; n++){
-		if(parms.verbosee>=VERBOSE_MODE_MEDIUM){
+		if(parms.verbose>=VERBOSE_MODE_MEDIUM){
 			fprintf(WHICH_OUTPUT,"      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
 							parms.max_face,mris->nfaces,n+1,nloops, parms.nattempts,parms.nminimal_attempts);
 		}
