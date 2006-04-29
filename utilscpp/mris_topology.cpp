@@ -112,7 +112,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 	MRIS *best_mris = NULL;
 	double best_fitness = -1;
 
-e#if __PRINT_MODE
+#if __PRINT_MODE
   fprintf(WHICH_OUTPUT,"increasing euler number\n");
 #endif
 	
