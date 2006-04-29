@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.3 2006/04/28 20:05:52 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.4 2006/04/29 00:06:42 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.3 2006/04/28 20:05:52 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.4 2006/04/29 00:06:42 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 
 	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
 	for(int i = 0 ; i < dl->ndefects ; i++){
-		fprintf(stderr, " defect %d has %d vertices\n",i,dl->defects[i].nvertices);
+		//		fprintf(stderr, " defect %d has %d vertices\n",i,dl->defects[i].nvertices);
 		if(def >= 0 && def != i) continue;
 		DEFECT *defect = &dl->defects[i];
 		for(int n = 0 ; n < mris_corrected->nvertices ; n++)

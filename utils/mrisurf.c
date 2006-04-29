@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/28 19:57:55 $
-// Revision       : $Revision: 1.456 $
+// Revision Date  : $Date: 2006/04/29 00:06:17 $
+// Revision       : $Revision: 1.457 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -572,7 +572,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.456 2006/04/28 19:57:55 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.457 2006/04/29 00:06:17 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29835,8 +29835,8 @@ void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms){
 	MRISclearMarks(mris);
 	for (i = 0 ; i < dl->ndefects ; i++){
 		DEFECT *defect = &dl->defects[i];
-		fprintf(stderr, " defect %d has %d vertices (%d,%d)\n",i,defect->nvertices+
-						defect->nborder, defect->nvertices,defect->nborder);
+		//		fprintf(stderr, " defect %d has %d vertices (%d,%d)\n",i,defect->nvertices+
+		//				defect->nborder, defect->nvertices,defect->nborder);
 		for(n = 0 ; n < defect->nvertices ; n++)
 			mris->vertices[defect->vertices[n]].marked2=i+1;
 		for(n = 0 ; n < defect->nborder ; n++)
