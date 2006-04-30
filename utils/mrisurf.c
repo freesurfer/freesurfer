@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/29 00:06:17 $
-// Revision       : $Revision: 1.457 $
+// Revision Date  : $Date: 2006/04/30 19:27:03 $
+// Revision       : $Revision: 1.458 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -137,7 +137,7 @@ static double NEG_AREA_K=20.0 ; /* was 200 */
 #define MRIS_FIX_TOPOLOGY_ERROR_MODE 1
 #define DEBUG_HOMEOMORPHISM 0
 
-#define WHICH_OUTPUT stderr
+#define WHICH_OUTPUT stdout
 
 //static int mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris);
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -572,7 +572,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.457 2006/04/29 00:06:17 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.458 2006/04/30 19:27:03 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
