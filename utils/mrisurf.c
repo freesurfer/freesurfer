@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/30 19:27:03 $
-// Revision       : $Revision: 1.458 $
+// Revision Date  : $Date: 2006/04/30 20:22:42 $
+// Revision       : $Revision: 1.459 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -572,7 +572,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.458 2006/04/30 19:27:03 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.459 2006/04/30 20:22:42 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29727,8 +29727,8 @@ mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
 		nadded += mrisSegmentDefect
 			(mris, vno, defect, mark_ambiguous, mark_segmented) ;
 
-      /* update the defect so it becomes simply connected */
-      mrisSimplyConnectedDefect(mris,defect,mark_ambiguous, mark_segmented);
+    /* update the defect so it becomes simply connected */
+		mrisSimplyConnectedDefect(mris,defect,mark_ambiguous, mark_segmented);
 
 	}
   if(nadded)
@@ -29749,6 +29749,7 @@ static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris,DEFECT_LIST *dl ){
 	DEFECT_LIST *new_dl;
 
   fprintf(stderr,"analyzing defects for overlaps...\n");
+
 
 	found=1;
 	while(found){
@@ -29771,7 +29772,11 @@ static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris,DEFECT_LIST *dl ){
 					/* defect i overlaps defect (marked-1) */
 					/* by construction defect (marked-1) is inside defect i */
 					/* remove defect (marked-1) */
-					fprintf(WHICH_OUTPUT,"  -removing defect %d\n",mris->vertices[defect->vertices[n]].marked-1);
+					
+					fprintf(WHICH_OUTPUT,"  -removing defect %d (overlapping defect %d)\n",mris->vertices[defect->vertices[n]].marked-1,i);
+					//fprintf(WHICH_OUTPUT,"defect %d has %d vertices - ",i,defect->nvertices);
+					//fprintf(WHICH_OUTPUT,"defect %d has %d vertices : %d\n",mris->vertices[defect->vertices[n]].marked-1,dl->defects[mris->vertices[defect->vertices[n]].marked-1].nvertices,defect->vertices[n]);
+
 					removed=mris->vertices[defect->vertices[n]].marked-1;
 					removed_defect=&dl->defects[removed];
 					
@@ -29828,9 +29833,8 @@ void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms){
 	
   dl = mrisSegmentDefects(mris, MARK_AMBIGUOUS, MARK_SEGMENTED) ;
 	
-
 	dl=mrisRemoveOverlappingDefects(mris,dl);
-	
+
 
 	MRISclearMarks(mris);
 	for (i = 0 ; i < dl->ndefects ; i++){
