@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.188 2006/04/26 21:50:48 nicks Exp $"
+# "$Id: configure.in,v 1.189 2006/05/01 15:29:59 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1237,7 +1237,6 @@ AC_CHECK_FUNCS([\
 # output
 #########################################################################
 AC_OUTPUT([Makefile
-                 brik2bfloat/Makefile
                  check_siemens_dir/Makefile
                  dicom/Makefile
                  distribution/Makefile
@@ -1274,7 +1273,6 @@ AC_OUTPUT([Makefile
                  label_area/Makefile
                  log/Makefile
                  matlab/Makefile
-                 minc_to_bshort/Makefile
                  mkxsubjreg/Makefile
                  mri_add_xform_to_header/Makefile
                  mri_annotation2label/Makefile
@@ -1465,7 +1463,6 @@ AC_OUTPUT([Makefile
                  plotter/docs/en/Makefile
                  qdec/Makefile
                  qdec/images/Makefile
-                 rawtocor/Makefile
                  rbftest/Makefile
                  regdat2xfm/Makefile
                  repair_siemens_file/Makefile
@@ -1474,7 +1471,6 @@ AC_OUTPUT([Makefile
                  scuba/Makefile
                  scuba/images/Makefile
                  spherical_stats/Makefile
-                 spm2bfloat/Makefile
                  stat_normalize/Makefile
                  statcombine/Makefile
                  stim/Makefile

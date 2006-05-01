@@ -17,7 +17,6 @@ MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
-	rawtocor \
 	mri_add_xform_to_header \
 	mri_annotation2label \
 	mri_aparc2aseg \
@@ -52,7 +51,6 @@ MRISUBDIRS=check_siemens_dir \
 	mri_fill \
 	mri_fwhm \
 	mri_gca_ambiguous \
-	mri_glmfit \
 	mri_head \
 	mri_histo_eq \
 	mri_info \
@@ -72,6 +70,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_mc \
 	mri_matrix_multiply \
 	mri_modify \
+	mri_multispectral_segment \
 	mri_nlfilter \
 	mri_normalize \
 	mri_partial_ribbon \
@@ -119,9 +118,21 @@ MRISUBDIRS=check_siemens_dir \
 	mri_topologycorrection \
 	mri_segment_wm_damage \
 	mri_make_density_map \
-	mri_path2label
+	mri_path2label \
+	mri_fslmat_to_lta \
+	mri_ms_EM \
+	mri_ms_EM_with_atlas \
+	mri_extract_largest_CC \
+	mri_compute_seg_overlap \
+	mri_concatenate_lta \
+	mri_normalize_tp2 \
+	mri_ms_LDA \
+	mri_transform_to_COR \
+	mri_apply_inu_correction
 
-MRISSUBDIRS=stim \
+MRISSUBDIRS=label_area \
+	spherical_stats \
+	stim \
 	stim_polar \
 	tridec \
 	mris_add_template \
@@ -150,11 +161,9 @@ MRISSUBDIRS=stim \
 	mris_jacobian \
 	mris_label_area \
 	mris_label_mode \
-	label_area \
 	mris_make_average_surface \
 	mris_make_surfaces \
 	mris_longitudinal_surfaces \
-	mri_multispectral_segment \
 	mris_make_template \
 	mris_morph_stats \
 	mris_multiscale_stats \
@@ -181,67 +190,54 @@ MRISSUBDIRS=stim \
 	mris_translate_annotation \
 	mris_twoclass \
 	mris_w_to_curv \
-	spherical_stats \
-	mris_volume
+	mris_volume \
+	mris_thickness_diff \
+	mris_ms_surface_CNR \
+	mris_surface_stats
 
-FSGDF=	mri_gdfglm \
+FSGDF=	fsgdf \
+	mri_gdfglm \
+	mri_glmfit \
 	mris_glm
 
 FSLUTILS=fslutils
 
 STATSDIRS=optseq2 \
-	spm2bfloat \
 	statcombine \
 	stat_normalize
 
 MISCDIRS=histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
-	brik2bfloat \
-	minc_to_bshort \
 	test_window_env \
 	dngtester \
 	test_makevol \
 	scripts \
 	images \
-	distribution
+	distribution \
+	dummy \
+	hiam_make_surfaces
 
-SUBDIRS=unix \
+SUBDIRS=include \
+	unix \
 	dicom \
 	hipsstubs \
 	rgb \
 	utils \
 	utilscpp \
 	log \
-	fsgdf \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
-	$(GLSUBDIRS) \
 	$(FSGDF) \
 	$(FSLUTILS) \
 	$(STATSDIRS) \
 	$(MISCDIRS) \
-	dummy \
-	scuba \
+	$(GLSUBDIRS) \
 	fsfast \
 	matlab \
-	hiam_make_surfaces \
-	include \
+	scuba \
 	qdec \
-	mri_fslmat_to_lta \
-	plotter \
-	mri_ms_EM \
-	mri_ms_EM_with_atlas \
-	mris_thickness_diff \
-	mri_extract_largest_CC \
-	mri_compute_seg_overlap \
-	mris_ms_surface_CNR \
-	mri_concatenate_lta \
-	mris_surface_stats \
-	mri_normalize_tp2 \
-	mri_ms_LDA \
-	mri_transform_to_COR \
-	mri_apply_inu_correction
+	plotter
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
