@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.7 2006/04/30 20:13:00 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.8 2006/05/01 15:05:12 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.7 2006/04/30 20:13:00 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.8 2006/05/01 15:05:12 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 
 	//number of loops 
-	int nloops = (1-eno)/2;
+	int nloops = (2-eno)/2;
 	fprintf(stderr,"The surface has %d loops (X=%d)\n\n",nloops,eno);
 	
 	//	if(curv){
@@ -288,11 +288,11 @@ int main(int argc, char *argv[])
 		for(int n = 0 ; n < mris_corrected->nvertices ; n++)
 			mris_corrected->vertices[n].marked2=0;
 		for(int n = 0 ; n < defect->nvertices ; n++)
-			mris_corrected->vertices[defect->vertices[n]].marked2=1;
+			mris_corrected->vertices[defect->vertices[n]].marked2=i+1;
 		for(int n = 0 ; n < defect->nborder ; n++)
-			mris_corrected->vertices[defect->border[n]].marked2=1;
-		parms.defect_number = i;
-		MRIScorrectDefect(mris_corrected,1,parms);
+			mris_corrected->vertices[defect->border[n]].marked2=i+1;
+		parms.defect_number = i+1;
+		MRIScorrectDefect(mris_corrected,i+1,parms);
 		fprintf(stderr,"AFTER CORRECTION, EULER IS %d \n",MRISgetEuler(mris_corrected));
 		if(0){//parms.no_self_intersections){
 			int self_intersect =  IsMRISselfIntersecting(mris_corrected);

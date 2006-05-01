@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/04/30 20:22:42 $
-// Revision       : $Revision: 1.459 $
+// Revision Date  : $Date: 2006/05/01 15:04:56 $
+// Revision       : $Revision: 1.460 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -137,7 +137,7 @@ static double NEG_AREA_K=20.0 ; /* was 200 */
 #define MRIS_FIX_TOPOLOGY_ERROR_MODE 1
 #define DEBUG_HOMEOMORPHISM 0
 
-#define WHICH_OUTPUT stdout
+#define WHICH_OUTPUT stderr
 
 //static int mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris);
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -572,7 +572,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.459 2006/04/30 20:22:42 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.460 2006/05/01 15:04:56 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -29817,8 +29817,12 @@ static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris,DEFECT_LIST *dl ){
 	return dl;
 }
 
+static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int ripflag) ;
+static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) ;
+
+
 void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms){
-	int fno,n,i;
+	int fno;
 	FACE_DEFECT_LIST   *fdl ;
 	DEFECT_LIST        *dl ;
 
@@ -29835,19 +29839,7 @@ void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms){
 	
 	dl=mrisRemoveOverlappingDefects(mris,dl);
 
-
 	MRISclearMarks(mris);
-	for (i = 0 ; i < dl->ndefects ; i++){
-		DEFECT *defect = &dl->defects[i];
-		//		fprintf(stderr, " defect %d has %d vertices (%d,%d)\n",i,defect->nvertices+
-		//				defect->nborder, defect->nvertices,defect->nborder);
-		for(n = 0 ; n < defect->nvertices ; n++)
-			mris->vertices[defect->vertices[n]].marked2=i+1;
-		for(n = 0 ; n < defect->nborder ; n++)
-      mris->vertices[defect->border[n]].marked2=i+1;
-	}
-	for(n = 0 ; n < mris->nvertices ; n++)
-		mris->vertices[n].curv =  mris->vertices[n].marked2;
 
 	/* free structures */
 	for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -29863,7 +29855,6 @@ void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms){
 
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
-	int n ;
 
 #if MATRIX_ALLOCATION
   /* allocation of the transform matrix */
@@ -29873,16 +29864,10 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 
 	//	MRISsmoothSurfaceNormals(mris,10);
 
-	//ripping all defects
-	for(n = 0 ; n < mris->nvertices ; n++){
-		mris->vertices[n].marked=0;
-		mris->vertices[n].ripflag=0;
-		if(mris->vertices[n].marked2) mris->vertices[n].ripflag=1;
-	}
+	mrisRipAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 1) ;
 	mrisFindGrayWhiteBorderMean(mris, parms->mri) ;
-	// unripping defects
-	for(n = 0 ; n < mris->nvertices ; n++)
-    mris->vertices[n].ripflag=0;
+	mrisRipAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 0) ;
+
 
 	//computing curvature statistics
 	MRISsetNeighborhoodSize(mris,2);
@@ -29895,7 +29880,6 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	MRISsetNeighborhoodSize(mris,1);
 
 
-
 	//computing mri statistics
 	MRIScomputeMetricProperties(mris) ;
   MRISsmoothSurfaceNormals(mris, 10) ;
@@ -29906,16 +29890,13 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   parms->h_grad = HISTOalloc(256) ; 
   parms->mri_gray_white = MRIalloc(256, 256, 1, MRI_FLOAT) ;
   
-	for(n = 0 ; n < mris->nvertices ; n++){
-		mris->vertices[n].marked=0;
-    if(mris->vertices[n].marked2) mris->vertices[n].marked=1;
-	}
+	mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 1) ;
   mrisComputeJointGrayWhiteBorderDistributions(mris, parms->mri,  parms->mri_gray_white,  parms->mri_wm) ;
+
 
   /* compute statistics on original */
   mrisComputeSurfaceStatistics(mris, parms->mri, parms->h_k1, parms->h_k2, parms->mri_k1_k2, parms->mri_gray_white,parms->h_dot);
-	for(n = 0 ; n < mris->nvertices ; n++)
-    mris->vertices[n].marked=0;
+  mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 0) ;
 
 }
 
@@ -29968,18 +29949,11 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   //computing statistics
   MRISclearMarks(mris);
 
-	//marking all defects
-	for(n = 0 ; n < mris->nvertices ; n++)
-    if(mris->vertices[n].marked2){
-      mris->vertices[n].marked = 1 ;
-    };
-
+	mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 1) ;
 	mrisComputeGrayWhiteBorderDistributions(mris,parms->mri,defect,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad);
 
-
 	computeDefectStatistics(parms->mri,mris,defect, parms->h_white,parms->h_gray, parms->mri_gray_white,parms->h_k1, parms->h_k2,parms->mri_k1_k2,parms->verbose);
-	//unmark vertices
-	MRISclearMarks(mris);
+	mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 0) ;
 
 	//initialize the Defect Patch associated with the current defect
 	dp = (DP*)calloc(1,sizeof(DP));
@@ -34332,8 +34306,6 @@ static long ncross = 0 ;
 static long nmut = 0 ;
 static long nkilled = 0;
 
-static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int ripflag) ;
-static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) ;
 static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl);
 
 static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl)
