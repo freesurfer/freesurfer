@@ -19,10 +19,7 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
     return true;
   }
 
-	int dn = parms.defect_number;
-	parms.defect_number=1;
 	MRISinitDefectParameters(mris,&parms);
-	parms.defect_number=dn;
 
 #if __PRINT_MODE
 	fprintf(WHICH_OUTPUT,"   extracting MRIP\n");
