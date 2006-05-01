@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.11 2006/04/28 20:48:04 nicks Exp $';
+set VERSION = '$Id: make_average_volume,v 1.12 2006/05/01 20:21:28 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -81,8 +81,12 @@ foreach volid (orig T1 brain)
     set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
     #if($transform_fname == talairach.xfm) set cmd = ($cmd --devolvexfm $subject);
     echo $cmd | tee -a $LF
-    $cmd  | tee -a $LF
-    if($status) exit 1;
+    $cmd  |& tee -a $LF
+    if($status) then
+      pwd |& tee -a $LF
+      echo "ERROR: mri_convert failed." |& tee -a $LF
+      exit 1;
+    endif
 
     set invollist = ($invollist $xfmvol);
   end
