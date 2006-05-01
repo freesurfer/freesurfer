@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165.2.7 2006/03/23 21:51:44 nicks Exp $"
+# "$Id: configure.in,v 1.165.2.8 2006/05/01 16:15:00 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, stable3, freesurfer@nmr.mgh.harvard.edu)
@@ -1140,7 +1140,6 @@ utils/Makefile \
 hipsstubs/Makefile \
 log/Makefile \
 utilscpp/Makefile \
-mris2rgb/Makefile \
 nmovie/Makefile \
 mris_show/Makefile \
 tkmedit/Makefile \
@@ -1150,7 +1149,7 @@ tksurfer/Makefile \
 check_siemens_dir/Makefile \
 repair_siemens_file/Makefile \
 mkxsubjreg/Makefile \
-rbftest/Makefile rawtocor/Makefile \
+rbftest/Makefile \
 include/Makefile \
 include/dicom/Makefile \
 include/xview/Makefile \
@@ -1316,13 +1315,13 @@ mris_translate_annotation/Makefile \
 mris_twoclass/Makefile \
 mris_volume/Makefile \
 mris_w_to_curv/Makefile \
+mris2rgb/Makefile \
 stim/Makefile \
 stim_polar/Makefile \
 tridec/Makefile \
 fsgdf/Makefile \
 fslutils/Makefile \
 optseq2/Makefile \
-spm2bfloat/Makefile \
 statcombine/Makefile \
 stat_normalize/Makefile \
 regdat2xfm/Makefile \
@@ -1330,8 +1329,6 @@ scuba/Makefile \
 scuba/images/Makefile \
 test_window_env/Makefile \
 test_makevol/Makefile \
-brik2bfloat/Makefile \
-minc_to_bshort/Makefile \
 histo_compute_joint_density/Makefile \
 histo_register_block/Makefile \
 scripts/Makefile \

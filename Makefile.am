@@ -18,7 +18,6 @@ MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
-	rawtocor \
 	mri_add_xform_to_header \
 	mri_annotation2label \
 	mri_aparc2aseg \
@@ -187,15 +186,12 @@ FSGDF=	mri_gdfglm \
 FSLUTILS=fslutils
 
 STATSDIRS=optseq2 \
-	spm2bfloat \
 	statcombine \
 	stat_normalize
 
 MISCDIRS=histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
-	brik2bfloat \
-	minc_to_bshort \
 	test_window_env \
 	dngtester \
 	test_makevol \
