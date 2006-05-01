@@ -2,7 +2,7 @@
 #include "topology/patchdisk.h"
 
 #define __PRINT_MODE 0
-#define WHICH_OUTPUT stdout
+#define WHICH_OUTPUT stderr
 
 bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
@@ -11,17 +11,18 @@ bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
 extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms){
 
-	fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nCorrecting Topology of defect %d\n",parms.defect_number);
-
   int euler = MRISgetEuler(mris, defect_number);
-  fprintf(WHICH_OUTPUT,"   euler is %d\n",euler);
+	fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nCorrecting Topology of defect %d with euler number %d\n",parms.defect_number,euler);
+
   if(euler == 1) {
     fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",parms.defect_number);
     return true;
   }
 
-	parms.defect_number  = defect_number ;
+	int dn = parms.defect_number;
+	parms.defect_number=1;
 	MRISinitDefectParameters(mris,&parms);
+	parms.defect_number=dn;
 
 #if __PRINT_MODE
 	fprintf(WHICH_OUTPUT,"   extracting MRIP\n");
@@ -91,8 +92,12 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	parms.ngeneratedpatches=0;
 	parms.nselfintersectingpatches=0;
 	int nloops = (1-MRISgetEuler(mris))/2;
+	//we limit the total number of attempts to 2000!
+	parms.nattempts = __MIN(2000/nloops,parms.nattempts);
+	parms.nminimal_attempts = __MIN(__MAX(1000/nloops,500),parms.nminimal_attempts);
 
-	for(int n = 0 ; n < nloops ; n++){
+	
+		for(int n = 0 ; n < nloops ; n++){
 		if(parms.verbose>=VERBOSE_MODE_MEDIUM){
 			fprintf(WHICH_OUTPUT,"      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
 							parms.max_face,mris->nfaces,n+1,nloops, parms.nattempts,parms.nminimal_attempts);
