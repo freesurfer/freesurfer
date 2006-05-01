@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.8 2006/05/01 15:05:12 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.9 2006/05/01 15:30:12 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.8 2006/05/01 15:05:12 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.9 2006/05/01 15:30:12 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -277,8 +277,9 @@ int main(int argc, char *argv[])
 	MRIScomputeMetricProperties(mris_corrected);
 
 	MRISinitTopoFixParameters(mris_corrected,&parms); 
-
-	int def = atoi(argv[3]);
+	
+	int def=-1;
+	if(argc > 3) def = atoi(argv[3]);
 
 	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
 	for(int i = 0 ; i < dl->ndefects ; i++){

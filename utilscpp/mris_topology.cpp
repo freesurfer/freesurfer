@@ -61,10 +61,11 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 
 	//	fprintf(WHICH_OUTPUT,"\n");
 	//printing out results
-	fprintf(WHICH_OUTPUT,"INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
-	fprintf(WHICH_OUTPUT,"FINAL FITNESS   :  %3.5f \n",parms.fitness);
-	fprintf(WHICH_OUTPUT,"# generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
-
+	if(parms.verbose){
+		fprintf(WHICH_OUTPUT,"INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
+		fprintf(WHICH_OUTPUT,"FINAL FITNESS   :  %3.5f \n",parms.fitness);
+		fprintf(WHICH_OUTPUT,"# generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
+	}
 
 	return true; 
 }
@@ -91,7 +92,7 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	int nloops = (1-MRISgetEuler(mris))/2;
 	//we limit the total number of attempts to 2000!
 	parms.nattempts = __MIN(2000/nloops,parms.nattempts);
-	parms.nminimal_attempts = __MIN(__MAX(1000/nloops,500),parms.nminimal_attempts);
+	//parms.nminimal_attempts = __MIN(__MAX(1000/nloops,500),parms.nminimal_attempts);
 
 	
 		for(int n = 0 ; n < nloops ; n++){
