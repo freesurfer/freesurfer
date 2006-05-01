@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.10 2006/04/17 20:29:25 nicks Exp $'
+set VERSION = '$Id: feat2surf,v 1.11 2006/05/01 20:07:47 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -106,7 +106,12 @@ foreach img ($imglist)
 
    foreach targ ($subject $TargetSubj)
      foreach hemi ($HemiList)
-       set outext = $fslext
+
+       if($targ != $subject) then
+         set outext = $fslext
+       else
+         set outext = mgh
+       endif
 
        # Only used for testing
        if($#myoutstatsdir == 0) then
