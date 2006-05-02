@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.193 2006/05/02 20:59:26 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.194 2006/05/02 21:03:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5634,6 +5634,7 @@ proc DoLoadLabelDlog {} {
 
 	# Build a list of collections that the label can be loaded into.
 	set lCollections {}
+	set nDefaultCol -1
 	set nItem 1
 	foreach colID $gaCollection(idList) {
 	    if { [string match [GetCollectionType $colID] Volume] ||
@@ -5916,7 +5917,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.193 2006/05/02 20:59:26 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.194 2006/05/02 21:03:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
