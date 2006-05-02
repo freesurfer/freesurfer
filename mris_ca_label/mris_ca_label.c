@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_ca_label.c,v 1.16 2006/02/14 20:25:59 nicks Exp $";
+"$Id: mris_ca_label.c,v 1.16.2.1 2006/05/02 21:41:01 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -368,7 +368,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "seed"))
     {
       setRandomSeed(atol(argv[2])) ;
-      fprintf(stderr,"setting seed for random number genererator to %d\n",
+      fprintf(stderr,"setting seed for random number generator to %d\n",
               atoi(argv[2])) ;
       nargs = 1 ;
     }

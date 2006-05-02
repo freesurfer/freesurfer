@@ -16,7 +16,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.30.2.1 2006/05/02 21:41:01 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,10 +50,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_inflate.c,v 1.30.2.1 2006/05/02 21:41:01 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.30.2.1 2006/05/02 21:41:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,6 +189,13 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number generator to %d\n",
+	    atoi(argv[2])) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "name"))
   {
     if (argc < 2)

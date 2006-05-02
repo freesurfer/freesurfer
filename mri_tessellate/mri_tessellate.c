@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/30 13:27:37 $
-// Revision       : $Revision: 1.27 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/05/02 21:41:01 $
+// Revision       : $Revision: 1.27.2.1 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.27 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.27.2.1 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.27 $";
 #include "matrix.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $";
+static char vcid[] = "$Id: mri_tessellate.c,v 1.27.2.1 2006/05/02 21:41:01 nicks Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -121,10 +121,10 @@ main(int argc, char *argv[])
   MRI *mri = 0;
   int xnum, ynum, numimg;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_tessellate.c,v 1.27.2.1 2006/05/02 21:41:01 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.27.2.1 2006/05/02 21:41:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -474,6 +474,13 @@ get_option(int argc, char *argv[])
 
   if (!stricmp(option, "an option"))
   {
+  }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number generator to %d\n",
+	    atoi(argv[2])) ;
+    nargs = 1 ;
   }
   else if (!strcasecmp(option, "-version"))
   {
