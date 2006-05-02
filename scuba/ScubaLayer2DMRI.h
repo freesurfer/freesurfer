@@ -122,6 +122,7 @@ class ScubaLayer2DMRI : public Layer {
   float GetMinVisibleValue () { return mMinVisibleValue; }
   void SetMaxVisibleValue ( float iValue );
   float GetMaxVisibleValue () { return mMaxVisibleValue; }
+  void SetMinMaxVisibleValue ( float iMinValue, float iMaxValue );
 
   void SetHeatScaleMinThreshold ( float iValue );
   float GetHeatScaleMinThreshold () { return mHeatScaleMinThreshold; }
@@ -197,12 +198,12 @@ class ScubaLayer2DMRI : public Layer {
   ColorMapMethod mColorMapMethod;
   bool mbClearZero;
   float mMinVisibleValue, mMaxVisibleValue;
+  float mOldMinValue, mOldMaxValue;
 
   // For grayscale drawing.
   float mBrightness, mContrast;
   float mOriginalLevel, mOriginalWindow;
   float mWindow, mLevel;
-  //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 
   // For heatScale drawing.

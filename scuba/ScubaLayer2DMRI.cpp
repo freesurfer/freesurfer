@@ -183,24 +183,38 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
   mVolume = &iVolume;
 
-  float oneTenth;
-  oneTenth = (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 10.0;
-
+  // This makes sure the volume is loaded here instead of later.
   mVolume->GetMRI();
-  SetMinVisibleValue( mVolume->GetMRIMinValue() );
-  SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
+
+  // Set our color scale settings to default values. Min/max visible
+  // go to the min/max values, level is set to the middle of the value
+  // range, and window is set to entire range.
+  SetMinMaxVisibleValue( mVolume->GetMRIMinValue(), 
+			 mVolume->GetMRIMaxValue() );
   SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
 	    mVolume->GetMRIMinValue() );
   SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
 
+  // Calc one tenth of the value range.
+  float oneTenth;
+  oneTenth = (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 10.0;
+
+  // Min heat goes to 1/10 above the min, max goes to 1/10 below the
+  // max, and mid is in the middle.
   SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
   SetHeatScaleMidThreshold
     ( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) + 
       mVolume->GetMRIMinValue() );
   SetHeatScaleMinThreshold( mVolume->GetMRIMinValue() + oneTenth );
 
+  // Save these min/max values.
+  mOldMinValue = mVolume->GetMRIMinValue();
+  mOldMaxValue = mVolume->GetMRIMaxValue();
+
+  // Listen to the volume for dataChanged messages.
   mVolume->AddListener( this );
 
+  // Init our grayscale.
   BuildGrayscaleLUT();
 }
 
@@ -1662,14 +1676,23 @@ ScubaLayer2DMRI::DoListenToMessage ( string isMessage, void* iData ) {
 void
 ScubaLayer2DMRI::DataChanged () {
 
+  // Our data has changed. We want to check the new min and max and
+  // see if they've changed, so we can update our min/max visible
+  // levels and window/level ranges.
   float newMinValue, newMaxValue;
   newMinValue = mVolume->GetMRIMinValue();
   newMaxValue = mVolume->GetMRIMaxValue();
-  if ( newMinValue < mMinVisibleValue ||
-       newMaxValue > mMaxVisibleValue ) {
+  if( newMinValue < mOldMinValue ||
+       newMaxValue > mOldMaxValue ) {
 
-    SetMinVisibleValue( mVolume->GetMRIMinValue() );
-    SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
+    // Set the min and max visible value to include this new range, if
+    // necessary.
+    if( newMinValue < mOldMinValue ) {
+      SetMinVisibleValue( newMinValue );
+    }
+    if( newMaxValue > mOldMaxValue ) {
+      SetMaxVisibleValue( newMaxValue );
+    }
 
     try {
       stringstream ssCommand;
@@ -1678,8 +1701,14 @@ ScubaLayer2DMRI::DataChanged () {
       mgr.SendCommand( ssCommand.str() );
     }
     catch(...) {}
-    
+
+    // Rebuild our grayscale table.
+    BuildGrayscaleLUT();
   }
+
+  // Save these values.
+  mOldMinValue = newMinValue;
+  mOldMaxValue = newMaxValue;
 
   RequestRedisplay();
 }
@@ -2451,8 +2480,7 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     }
 
     // Set the visible range.
-    SetMinVisibleValue( min );
-    SetMaxVisibleValue( max );
+    SetMinMaxVisibleValue( min, max );
     BuildGrayscaleLUT();
 
   } else if( 0 == isOption.compare( "heatscalemin" ) ) {
@@ -2615,6 +2643,15 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
   window[0] = mLevel - mWindow*0.5;
   window[1] = mLevel + mWindow*0.5;
 
+#if 0
+  cerr << "BuildGrayscaleLUT: " << endl
+       << "\tVisible: " << mMinVisibleValue << " -> " 
+       << mMaxVisibleValue << endl
+       << "\tWindow: " << window[0] << " -> " << window[1] << endl
+       << "\tBrightness: " << mBrightness << " Contrast: " << mContrast
+       << endl;
+#endif
+
   if( mMinVisibleValue == mMaxVisibleValue ) {
     
     // If same min and max visible values, all values should be 0.
@@ -2666,6 +2703,21 @@ ScubaLayer2DMRI::SetMaxVisibleValue ( float iValue ) {
     mMaxVisibleValue = mMinVisibleValue + 0.00001;
   }
 }
+
+void
+ScubaLayer2DMRI::SetMinMaxVisibleValue ( float iMinValue, float iMaxValue ) {
+
+  mMinVisibleValue = iMinValue;
+  mMaxVisibleValue = iMaxValue;
+  if( mMinVisibleValue > mMaxVisibleValue ) {
+    mMinVisibleValue = mMaxVisibleValue - 0.00001;
+  }
+  if( mMaxVisibleValue < mMinVisibleValue ) {
+    mMaxVisibleValue = mMinVisibleValue + 0.00001;
+  }
+}
+
+
  
 void
 ScubaLayer2DMRI::SetHeatScaleMinThreshold ( float iValue ) {

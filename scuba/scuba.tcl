@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.191 2006/04/21 20:12:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.192 2006/05/02 19:13:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3061,6 +3061,8 @@ proc 2DMRILayerMinMaxValueChanged { iLayerID } {
 	set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
 	tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
 	    $gaLayer(current,minValue) $gaLayer(current,maxValue)
+	tkuUpdateSlidersRange $gaWidget(layerProperties,levelWindowSliders) \
+	    $gaLayer(current,minValue) $gaLayer(current,maxValue)
 
 	set gaLayer(current,minVisibleValue) \
 	    [Get2DMRILayerMinVisibleValue $iLayerID]
@@ -5902,7 +5904,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.191 2006/04/21 20:12:13 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.192 2006/05/02 19:13:13 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
