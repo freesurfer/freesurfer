@@ -147,10 +147,10 @@ class VolumeCollection : public DataCollection {
 
 
   // Writes an ROI to a label file.
-  void WriteROIToLabel ( int iROIID, std::string ifnLabel );
+  void WriteROIToLabel ( int iROIID, bool ibUseRealRAS, std::string ifnLabel );
 
   // Creates a new ROI in this data collection from a label file.
-  int  NewROIFromLabel ( std::string ifnLabel );
+  int  NewROIFromLabel ( bool ibUseRealRAS, std::string ifnLabel );
 
   // Writes all structure ROIs to a segmentation volume file.
   void WriteROIsToSegmentation ( std::string ifnVolume );

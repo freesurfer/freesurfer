@@ -39,13 +39,18 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeCollectionFileName", 1, 
 			 "collectionID", 
 			 "Gets the file name for a given volume collection.");
-  commandMgr.AddCommand( *this, "WriteVolumeROIToLabel", 3, 
-			 "collectionID roiID fileName", 
-			 "Writes an ROI to a label file." );
-  commandMgr.AddCommand( *this, "NewVolumeROIFromLabel", 2, 
-			 "collectionID fileName", 
+  commandMgr.AddCommand( *this, "WriteVolumeROIToLabel", 4, 
+			 "collectionID roiID useRealRAS fileName", 
+			 "Writes an ROI to a label file. useRealRAS is a "
+			 "flag specifying whether to consider the RAS "
+			 "coords as 'real' RAS or to convert them from "
+			 "TkRegRAS space." );
+  commandMgr.AddCommand( *this, "NewVolumeROIFromLabel", 3, 
+			 "collectionID useRealRAS fileName", 
 			 "Creates an ROI from a label file and returns the "
-			 "ID of the new ROI." );
+			 "ID of the new ROI. useRealRAS is a flag specifying "
+			 "whether to consider the RAS coords as 'real' RAS "
+			 "or to convert them from TkRegRAS space." );
   commandMgr.AddCommand( *this, "WriteVolumeROIsToSegmentation", 2, 
 			 "collectionID fileName", 
 			 "Writes a series of structure ROIs to a "
@@ -699,7 +704,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // WriteVolumeROIToLabel <collectionID> <roiID> <fileName>
+  // WriteVolumeROIToLabel <collectionID> <roiID> <useRealRAS> <fileName>
   if( 0 == strcmp( isCommand, "WriteVolumeROIToLabel" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
@@ -715,8 +720,18 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
        return error;
      }
      
+     bool bUseRealRAS = false;
      try {
-       WriteROIToLabel( roiID, string(iasArgv[3]) );
+       bUseRealRAS =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad useRealRAS \"" + string(iasArgv[3]) + "\"," + e.what();
+	return error;	
+      }
+
+     try {
+       WriteROIToLabel( roiID, bUseRealRAS, string(iasArgv[4]) );
      }
      catch(...) {
        sResult = "That ROI doesn't belong to this collection";
@@ -725,7 +740,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
   
-  // NewVolumeROIFromLabel <collectionID> <fileName>
+  // NewVolumeROIFromLabel <collectionID> <useRealRAS> <fileName>
   if( 0 == strcmp( isCommand, "NewVolumeROIFromLabel" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
@@ -735,8 +750,18 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     
     if( mID == collectionID ) {
      
-       int roiID = NewROIFromLabel( string(iasArgv[2]) );
-       stringstream ssReturnValues;
+      bool bUseRealRAS = false;
+      try {
+	bUseRealRAS =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad useRealRAS \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+      
+      int roiID = NewROIFromLabel( bUseRealRAS, string(iasArgv[3]) );
+      stringstream ssReturnValues;
        ssReturnValues << roiID;
        sReturnValues = ssReturnValues.str();
        sReturnFormat = "i";
@@ -1439,7 +1464,8 @@ VolumeCollection::FindRASPointsOnSegment ( float iPointA[3], float iPointB[3],
 }
 
 void
-VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
+VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS, 
+				    string ifnLabel ) {
   
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( iROIID );
@@ -1473,12 +1499,14 @@ VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
 	    MRIIndexToRAS( voxel, ras );
 	    VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( ras );
 
-	    float TkRegRAS[3];
-	    RASToTkRegRAS( ras, TkRegRAS );
+	    // Convert these points to TkRegRAS space if needed.
+	    if( !ibUseRealRAS ) {
+	      RASToTkRegRAS( ras, ras );
+	    }
 
-	    label->lv[nPoint].x = TkRegRAS[0];
-	    label->lv[nPoint].y = TkRegRAS[1];
-	    label->lv[nPoint].z = TkRegRAS[2];
+	    label->lv[nPoint].x = ras[0];
+	    label->lv[nPoint].y = ras[1];
+	    label->lv[nPoint].z = ras[2];
 	    label->lv[nPoint].stat = GetMRINearestValue( loc );
 	    label->lv[nPoint].vno = -1;
 	    label->lv[nPoint].deleted = false;
@@ -1504,7 +1532,7 @@ VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
 }
 
 int 
-VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
+VolumeCollection::NewROIFromLabel ( bool ibUseRealRAS, string ifnLabel ) {
 
   char* fnLabel = strdup( ifnLabel.c_str() );
   LABEL* label = LabelRead( NULL, fnLabel );
@@ -1526,13 +1554,14 @@ VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
 
   for( int nPoint = 0; nPoint < label->n_points; nPoint++ ) {
 
-    float TkRegRAS[3];
-    TkRegRAS[0] = label->lv[nPoint].x;
-    TkRegRAS[1] = label->lv[nPoint].y;
-    TkRegRAS[2] = label->lv[nPoint].z;
-
     float ras[3];
-    TkRegRASToRAS( TkRegRAS, ras );
+    ras[0] = label->lv[nPoint].x;
+    ras[1] = label->lv[nPoint].y;
+    ras[2] = label->lv[nPoint].z;
+
+    // Convert these points from TkRegRAS if needed.
+    if( !ibUseRealRAS )
+      TkRegRASToRAS( ras, ras );
 
     int index[3];
     RASToMRIIndex( ras, index );
@@ -1542,7 +1571,6 @@ VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
     }
     catch(...) {
       cerr << "thrown in Set_Unsafe with idx " << Point3<int>(index)
-	   << " TkRegRAS " << Point3<float>(TkRegRAS) 
 	   << " ras " << Point3<float>(ras) << endl;
     }
 

@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.192 2006/05/02 19:13:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.193 2006/05/02 20:59:26 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5599,11 +5599,14 @@ proc DoSaveLabelDlog {} {
 		-prompt2 "Save Label: " \
 		-defaultvalue2 [GetDefaultFileLocation SaveLabel] \
 		-defaultdir2 [GetDefaultFileLocation SaveLabel] \
+		-type3 checkbox \
+		-prompt3 "Write label with real RAS coords" \
+		-defaultvalue3 0 \
 		-shortcutdirs [list $glShortcutDirs] \
 		-okCmd { 
 		    set err [catch {
 			WriteVolumeROIToLabel $gaCollection(current,id) \
-			    $gaROI(current,id) %s2
+			    $gaROI(current,id) %s3 %s2
 		    } sResult]
 		    if { 0 != $err } { tkuErrorDlog $sResult }
 		}
@@ -5631,11 +5634,16 @@ proc DoLoadLabelDlog {} {
 
 	# Build a list of collections that the label can be loaded into.
 	set lCollections {}
+	set nItem 1
 	foreach colID $gaCollection(idList) {
 	    if { [string match [GetCollectionType $colID] Volume] ||
 		 [string match [GetCollectionType $colID] Surface] } {
 		set sLabel [GetCollectionLabel $colID]
 		lappend lCollections [list $colID "$sLabel"]
+		if { $colID == $gaCollection(current,id) } {
+		    set nDefaultCol $nItem
+		}
+		incr nItem
 	    }
 	}
 
@@ -5646,10 +5654,14 @@ proc DoLoadLabelDlog {} {
 	    -prompt2 "Into collection: " \
 	    -type2 menu \
 	    -menu2 $lCollections \
+	    -defaultitem2 $nDefaultCol \
+	    -type3 checkbox \
+	    -prompt3 "Label contains real RAS coords" \
+	    -defaultvalue3 0 \
 	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch {
-		    set roiID [NewVolumeROIFromLabel %s2 %s1]
+		    set roiID [NewVolumeROIFromLabel %s2 %s3 %s1]
 		} sResult]
 		if { 0 != $err } { 
 		    tkuErrorDlog $sResult 
@@ -5904,7 +5916,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.192 2006/05/02 19:13:13 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.193 2006/05/02 20:59:26 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

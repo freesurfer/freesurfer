@@ -125,7 +125,11 @@ proc TestFileDlog {} {
 	-type4 menu \
 	-prompt4 "Choose an item:" \
 	-menu4 {{0 "Zero"} {1 "One"} {2 "Two"}} \
-	-okCmd "puts %s1; puts %s2; puts %s3; puts %s4"
+	-type5 menu \
+	-prompt5 "Choose an item (default should be item 3 \"Two\"):" \
+	-menu5 {{0 "Zero"} {1 "One"} {2 "Two"}} \
+	-defaultitem5 3 \
+	-okCmd "puts %s1; puts %s2; puts %s3; puts %s4; puts %s5"
 }
  
 proc TestFormattedErrorDlog {} {
