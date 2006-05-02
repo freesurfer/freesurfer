@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.26 2006/04/12 19:03:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.27 2006/05/02 18:27:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3037,7 +3037,7 @@ mri/brain.mgz, and the output is mri/wm.mgz.  Uses intensity,
 neighborhood, and smoothness constraints.  This is the volume that is
 edited when manually fixing defects. Calls mri_segment,
 mri_edit_wm_with_aseg, and mri_pretess. To keep previous edits, run
-with -keepwmedits. If -noaseg is used, them mri_edit_wm_aseg is skipped.
+with -keep. If -noaseg is used, them mri_edit_wm_aseg is skipped.
 
 Cut/Fill (-<no>fill)
 
