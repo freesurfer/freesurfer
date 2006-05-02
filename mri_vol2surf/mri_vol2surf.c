@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $
+  $Id: mri_vol2surf.c,v 1.27 2006/05/02 20:43:28 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.27 2006/05/02 20:43:28 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -138,6 +138,8 @@ int  srcsynth = 0;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
 
+double scale = 0;
+
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.26 2006/02/09 16:31:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.27 2006/05/02 20:43:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -479,6 +481,11 @@ int main(int argc, char **argv)
     SurfOut = Surf;
   }
 
+  if(scale != 0){
+    printf("Rescaling output by %g\n",scale);
+    MRImultiplyConst(SurfVals2,scale,SurfVals2);
+  }
+
   /* If this is a statistical volume, lower each frame to it's appropriate
      power (eg, variance needs to be sqrt'ed) */
   if(is_sxa_volume(srcvolid)){
@@ -687,6 +694,15 @@ static int parse_commandline(int argc, char **argv)
       ProjDistFlag = 1;
       nargsused = 3;
     }
+    else if(!strcmp(option, "--scale")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&scale);
+      if(scale == 0){
+	printf("ERROR: scale = 0\n");
+	exit(1);
+      }
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--thickness")){
       if(nargc < 1) argnerr(option,1);
       thicknessname = pargv[0];
@@ -697,9 +713,9 @@ static int parse_commandline(int argc, char **argv)
       interpmethod_string = pargv[0];
       interpmethod = interpolation_code(interpmethod_string);
       if(interpmethod == -1){
-  fprintf(stderr,"ERROR: interpmethod = %s\n",interpmethod_string);
-  fprintf(stderr,"  must be either nearest, tli, or sinc\n");
-  exit(1);
+	fprintf(stderr,"ERROR: interpmethod = %s\n",interpmethod_string);
+	fprintf(stderr,"  must be either nearest, tli, or sinc\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -708,9 +724,9 @@ static int parse_commandline(int argc, char **argv)
       float2int_string = pargv[0];
       float2int = float2int_code(float2int_string);
       if(float2int == -1){
-  fprintf(stderr,"ERROR: float2int = %s\n",float2int_string);
-  fprintf(stderr,"  must be either round, floor, or tkreg\n");
-  exit(1);
+	fprintf(stderr,"ERROR: float2int = %s\n",float2int_string);
+	fprintf(stderr,"  must be either round, floor, or tkreg\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -824,6 +840,7 @@ static void print_usage(void)
   printf("   --nvox nvoxfile : write number of voxels intersecting surface\n");
   printf("\n");
   printf(" Other Options\n");
+  printf("   --scale scale : multiply all intensities by scale.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --help      print out information on how to use this program\n");
