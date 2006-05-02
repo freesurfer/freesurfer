@@ -2652,7 +2652,8 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
        << endl;
 #endif
 
-  if( mMinVisibleValue == mMaxVisibleValue ) {
+  if( mMinVisibleValue == mMaxVisibleValue ||
+      (mLevel == 0 && mWindow == 0) ) {
     
     // If same min and max visible values, all values should be 0.
     memset( mGrayscaleLUT, 0, sizeof(mGrayscaleLUT) );

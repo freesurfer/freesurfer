@@ -186,7 +186,10 @@ class ScubaLayer2DMRI : public Layer {
 				ScubaWindowToRASTranslator& iTranslator,
 				ViewState& iViewState );
 
+  // This is the time callback.
   virtual void DoTimer ();
+
+  // Manages when we should do autosaves from the timer callback.
   int mTimersSinceLastAutosave;
   static int const kcTimersBetweenAutosaves;
 
