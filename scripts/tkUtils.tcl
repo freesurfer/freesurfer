@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.17 2006/05/02 20:41:02 kteich Exp $
+# $Id: tkUtils.tcl,v 1.18 2006/05/02 21:03:34 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -1028,7 +1028,8 @@ proc tkuDoFileDlog { args } {
 			-side left
 
 		    # Unless we got one, default value is -1;
-		    if { [info exists aArgs(-defaultitem$nField)] } {
+		    if { [info exists aArgs(-defaultitem$nField)] &&
+			 $aArgs(-defaultitem$nField) != -1 } {
 			$mw invoke $aArgs(-defaultitem$nField)
 		    } else {
 			set sFileName$nField -1
