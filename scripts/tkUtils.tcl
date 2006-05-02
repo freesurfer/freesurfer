@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.16 2006/04/05 20:13:15 kteich Exp $
+# $Id: tkUtils.tcl,v 1.17 2006/05/02 20:41:02 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -996,7 +996,8 @@ proc tkuDoFileDlog { args } {
 		    # field.
 		    set fwMenu [set fwPrompt$nField]
 		    set lw     $fwMenu.lw
-		    set mbw    $fwMenu.mbw
+		    set fmbw   $fwMenu.fmbw
+		    set mbw    $fmbw.mbw
 		    set mw     $mbw.mw
 
 		    frame $fwMenu
@@ -1004,10 +1005,14 @@ proc tkuDoFileDlog { args } {
 		    tkuMakeNormalLabel $lw \
 			-label "$aArgs(-prompt$nField)"
 
+		    frame $fmbw -relief raised -border 2
+
 		    menubutton $mbw \
 			-text "Choose" \
 			-menu $mw \
 			-indicatoron 1
+
+		    pack $mbw
 
 		    menu $mw
 		    foreach lValueLabel $aArgs(-menu$nField) {
@@ -1018,12 +1023,16 @@ proc tkuDoFileDlog { args } {
 	    -command "FileDlogMenuCallback $nField $mbw \"$sLabel\" $value"
 		    }
 
-		    pack $lw $mbw \
+		    pack $lw $fmbw \
 			-anchor w \
 			-side left
 
-		    # Default value is -1;
-		    set sFileName$nField -1
+		    # Unless we got one, default value is -1;
+		    if { [info exists aArgs(-defaultitem$nField)] } {
+			$mw invoke $aArgs(-defaultitem$nField)
+		    } else {
+			set sFileName$nField -1
+		    }
 		}
 		note { 
 		    tkuMakeNormalLabel [set fwPrompt$nField] \
