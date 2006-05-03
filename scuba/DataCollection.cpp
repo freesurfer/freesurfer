@@ -421,3 +421,21 @@ DataCollection::EndBatchChanges () {
   mbSuspendDataChangedMessage = false;
   DataChanged();
 }
+
+void
+DataCollection::BeginBatchROIChanges () {
+  map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( mSelectedROIID );
+  if( tIDROI != mROIMap.end() ) {
+    (*tIDROI).second->BeginBatchChanges();
+  }
+}
+
+void
+DataCollection::EndBatchROIChanges () {
+  map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( mSelectedROIID );
+  if( tIDROI != mROIMap.end() ) {
+    (*tIDROI).second->EndBatchChanges();
+  }
+}

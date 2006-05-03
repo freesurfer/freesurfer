@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.194 2006/05/02 21:03:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.195 2006/05/03 21:01:38 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -571,6 +571,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Read/Write Cursor from edit.dat File..." { DoReadWriteCursorFromEditDatFileDlog } }
 	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
 	{command "ROI Stats..." { DoROIStatsDlog } }
+	{command "Make New Volume ROI Intensity Chart..." { DoMakeNewVolumeROIIntensityChartDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -5917,7 +5918,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.194 2006/05/02 21:03:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.195 2006/05/03 21:01:38 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7275,7 +7276,83 @@ proc ROIStatsDlogROICallback { iROIID } {
     [$gaROIStatsInfo(widget,text) subwidget text] \
 	insert end $sText
 }
-   
+
+proc DoMakeNewVolumeROIIntensityChartDlog {} {
+    global gaCollection
+    global gaROIIntensityChartInfo
+
+    # Build a list of volumes.
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Volume] } {
+
+	    set sLabel [GetCollectionLabel $colID]
+	    lappend lVolumes $colID
+	}
+    }
+    
+    # If no volumes, return.
+    if { [llength $lVolumes] == 0 } {
+	tkuErrorDlog "Must have a volume loaded before generating an ROI chart."
+	return
+    }
+
+    # Create the dialog.
+    set wwDialog .wwVolumeROIIntensityChartDlog
+    if { [tkuCreateDialog $wwDialog "Volume ROI Intensity Chart" {-borderwidth 10}] } {
+
+	set owVolume   $wwDialog.owVolume
+	set owROI      $wwDialog.owROI
+	set fwButtons  $wwDialog.fwButtons
+
+	# Option menu full of volumes. The callback will fill the ROI
+	# menu with the ROIs from the selected volume.
+	tixOptionMenu $owVolume \
+	    -label "Volume: " \
+	    -command ROIIntensityChartDlogVolCallback \
+	    -variable gaROIIntensityChartInfo(volume)
+	FillMenuFromList $owVolume \
+	    $lVolumes "GetCollectionLabel %s" {} false
+
+	# Option menu for ROIs. We start out empty.
+	tixOptionMenu $owROI \
+	    -label "ROI: " \
+	    -variable gaROIIntensityChartInfo(roi)
+
+	set gaROIIntensityChartInfo(widget,ROImenu) $owROI
+
+	# OK button will call the chart functin.
+	tkuMakeCancelOKButtons $fwButtons $wwDialog \
+	    -okCmd {MakeNewVolumeROIIntensityChart $gaROIIntensityChartInfo(volume) $gaROIIntensityChartInfo(roi)}
+
+	pack $owVolume $owROI $fwButtons \
+	    -side top -expand yes -fill x
+
+	# If our current collection is in the list of volumes, select
+	# it in the option menu. Otherwise select the first
+	# one. Populate the ROI list.
+	if { [lsearch $lVolumes $gaCollection(current,id)] != -1 } {
+	    set gaROIIntensityChartInfo(volume) $gaCollection(current,id)
+	} else {
+	    set gaROIIntensityChartInfo(volume) [lindex $lVolumes 0]
+	}
+	ROIIntensityChartDlogVolCallback $gaROIIntensityChartInfo(volume)
+
+    }
+}
+
+proc ROIIntensityChartDlogVolCallback { iVol } {
+    global gaROIIntensityChartInfo
+
+    # Fill the list box from the ROI list for the collectoin.
+    set volID $gaROIIntensityChartInfo(volume)
+    set idList [GetROIIDListForCollection $volID]
+    FillMenuFromList $gaROIIntensityChartInfo(widget,ROImenu) \
+	$idList "GetROILabel %s" {} false
+}
+ 
+
+  
 # MAIN =============================================================
 
 set argc [GetArgc]

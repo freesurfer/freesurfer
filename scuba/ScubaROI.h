@@ -54,6 +54,12 @@ class ScubaROI : public DebugReporter,
   // look up its color from an LUT.
   void GetDrawColor( int oColor[3] );
 
+  // Suppresses the roiChanged message. Use when changing a lot of
+  // elements in a row that don't need updates in between. Will call
+  // ROIChanged() at the end.
+  void BeginBatchChanges ();
+  void EndBatchChanges ();
+
  protected:
 
   // For self to call when the ROI had changed. This will broadcast an
@@ -67,6 +73,8 @@ class ScubaROI : public DebugReporter,
   int mLUTID;
   int mStructure;
   int mColor[3];
+
+  bool mbSuspendROIChangedMessage;
 
   static ScubaROIStaticTclListener mStaticListener;
 };

@@ -13,7 +13,7 @@
 
 class TclChartWindowStaticListener;
 
-class TclChartWindow : public ChartWindow {
+class TclChartWindow : public ChartWindow, public TclCommandListener {
 
   friend class TclChartWindowFactory;
 
@@ -26,6 +26,9 @@ class TclChartWindow : public ChartWindow {
   
   // Sends tcl command to close the window.
   void Close ();
+  
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
  protected:
 

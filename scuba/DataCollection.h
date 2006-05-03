@@ -111,6 +111,10 @@ class DataCollection : public DebugReporter,
   void BeginBatchChanges ();
   void EndBatchChanges ();
 
+  // Passes batch change messages down to the current ROI.
+  void BeginBatchROIChanges ();
+  void EndBatchROIChanges ();
+
 protected:
   std::string msLabel;
 

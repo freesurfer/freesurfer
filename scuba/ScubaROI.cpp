@@ -9,11 +9,13 @@ ScubaROIStaticTclListener ScubaROI::mStaticListener;
 
 
 ScubaROI::ScubaROI () :
-  Broadcaster( "ScubaROI" ) 
+  Broadcaster( "ScubaROI" ) ,
+  msLabel( "" ),
+  mType( Free ),
+  mLUTID( 0 ),
+  mStructure( 0 ),
+  mbSuspendROIChangedMessage( false )
 {
-  mType = Free;
-  mLUTID = 0;
-  mStructure = 0;
   mColor[0] = mColor[1] = mColor[2] = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
@@ -315,9 +317,22 @@ ScubaROI::GetDrawColor( int oColor[3] ) {
 
 void
 ScubaROI::ROIChanged() {
-  
-  int id = GetID();
-  SendBroadcast( "roiChanged", (void*)&id );
+
+  if( !mbSuspendROIChangedMessage ) {
+    int id = GetID();
+    SendBroadcast( "roiChanged", (void*)&id );
+  }
+}
+
+void 
+ScubaROI::BeginBatchChanges () {
+  mbSuspendROIChangedMessage = true;
+}
+
+void 
+ScubaROI::EndBatchChanges () {
+  mbSuspendROIChangedMessage = false;
+  ROIChanged();
 }
 
 ScubaROIStaticTclListener::ScubaROIStaticTclListener () {

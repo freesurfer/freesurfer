@@ -12,27 +12,33 @@ TclChartWindow::TclChartWindow () :
   ChartWindow() {
   msTitle = "Chart";
 
-  TclCommandManager& manager = TclCommandManager::GetManager();
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
 
   // If we're not already inited...
   if( !sbInitedTclFile ) {
     try {
       // Try using a utility function in scuba.tcl to load the
       // file. If this doesn't work...
-      manager.SendCommand( "LoadScubaSupportFile TclChartWindow.tcl" );
+      commandMgr.SendCommand( "LoadScubaSupportFile TclChartWindow.tcl" );
     }
     catch(...) {
       // Just use the source command. If this doesn't work, we can't
       // find the TclChartWindow.tcl and we have a genuine error, so
       // let it be thrown.
-      manager.SendCommand( "source TclChartWindow.tcl" );
+      commandMgr.SendCommand( "source TclChartWindow.tcl" );
     }
     
     // This inits the chart stuff.
-    manager.SendCommand( "Chart_Init" );
+    commandMgr.SendCommand( "Chart_Init" );
 
     sbInitedTclFile = true;
   }
+
+  // Add our commands.
+  commandMgr.AddCommand( *this, "GenerateChartReport", 5, 
+			 "chartID includeLabel includeX includeY fileName",
+			 "Generates a text file with the requested "
+			 "information from the specified chart." );
 
   // Our chart ID is the same as our IDTracker ID.
   int chartID = GetID();
@@ -40,7 +46,7 @@ TclChartWindow::TclChartWindow () :
   // Create a window.
   stringstream ssCommand;
   ssCommand << "Chart_NewWindow " << chartID;
-  manager.SendCommand( ssCommand.str() );
+  commandMgr.SendCommand( ssCommand.str() );
   
 }
 
@@ -113,6 +119,70 @@ TclChartWindow::Draw () {
   ssCommand << "Chart_ShowWindow " << chartID;
   manager.SendCommand( ssCommand.str() );
   
+}
+
+TclCommandListener::TclCommandResult
+TclChartWindow::DoListenToTclCommand ( char* isCommand, 
+				       int, char** iasArgv ) {
+
+  // GenerateChartReport <chartID> <includeLabel> <includeX>
+  // <includeY> <fileName>
+  if( 0 == strcmp( isCommand, "GenerateChartReport" ) ) {
+    int chartID;
+    try {
+      chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == chartID ) {
+      
+      bool bIncludeLabel = false;
+      try {
+	bIncludeLabel =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad includeLabel \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+
+      bool bIncludeX = false;
+      try {
+	bIncludeX =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad includeX \"" + string(iasArgv[3]) + "\"," + e.what();
+	return error;	
+      }
+
+      bool bIncludeY = false;
+      try {
+	bIncludeY =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad includeY \"" + string(iasArgv[4]) + "\"," + e.what();
+	return error;	
+      }
+
+      try {
+	GenerateReport( string(iasArgv[5]),
+			bIncludeLabel, bIncludeX, bIncludeY );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("Error generating report: ") + e.what();
+	return error;	
+      }
+      
+      return ok;
+    }
+  }
+
+  return ok;
 }
 
 TclChartWindowStaticListener::TclChartWindowStaticListener () {

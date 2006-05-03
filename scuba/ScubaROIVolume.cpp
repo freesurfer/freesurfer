@@ -77,6 +77,8 @@ ScubaROIVolume::SelectVoxel ( int const iVoxel[3] ) {
 
     mcSelectedVoxels++;
     mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = true;
+
+    ROIChanged();
   }
 }
 
@@ -93,6 +95,8 @@ ScubaROIVolume::UnselectVoxel ( int const iVoxel[3] ) {
 
     mcSelectedVoxels--;
     mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = false;
+
+    ROIChanged();
   }
 }
 

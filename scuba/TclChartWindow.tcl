@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.4 2006/04/26 17:57:11 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.5 2006/05/03 21:01:38 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -68,6 +68,8 @@ proc Chart_BuildWindow { iID } {
     set wwTop         .chart-$iID
     set gwChart        $wwTop.gwChart
     set lwInfo         $wwTop.lwInfo
+    set fwReport       $wwTop.fwReport
+    set bwReport       $fwReport.bwReport
 
     # Fill out default values.
     if { ![info exists gData($iID,title)] } {
@@ -111,9 +113,18 @@ proc Chart_BuildWindow { iID } {
     tkuMakeActiveLabel $lwInfo \
 	-variable gChart($iID,state,info)
 
-    # Place everythingin the window.
+    # Make the report button.
+    frame $fwReport
+    button $bwReport \
+	-text "Generate Report" \
+	-command "Chart_DoGenerateReportDlog $iID"
+    pack $bwReport \
+	-side right
+
+    # Place everything in the window.
     grid $gwChart       -column 0 -row 0 -columnspan 3 -sticky news
     grid $lwInfo        -column 0 -row 1 -sticky nwe
+    grid $fwReport      -column 0 -row 2 -sticky nwe
     grid columnconfigure $wwTop 0 -weight 1
     grid rowconfigure $wwTop 0 -weight 1
     grid rowconfigure $wwTop 1 -weight 0
@@ -292,6 +303,22 @@ proc Chart_CBGraphMotion { iID igw iX iY } {
  	set y [lindex $lResult 3]
  	Chart_FocusElement $iID $element $index $x $y
     }
+}
+
+proc Chart_DoGenerateReportDlog { iID } {
+
+    tkuDoFileDlog -title "Generate Chart Report" \
+	-type1 checkbox \
+	-prompt1 "Include label column" \
+	-defaultvalue1 1 \
+	-type2 checkbox \
+	-prompt2 "Include X value column" \
+	-defaultvalue2 1 \
+	-type3 checkbox \
+	-prompt3 "Include Y value column" \
+	-defaultvalue3 1 \
+	-prompt4 "Save file: " \
+	-okCmd "GenerateChartReport $iID %s1 %s2 %s3 %s4"
 }
 
 # ============================================================ PUBLIC

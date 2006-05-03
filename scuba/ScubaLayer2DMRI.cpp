@@ -1863,12 +1863,16 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	}
       }
 
-    
       // We'll find voxels. In brush mode, it's only for button
       // drag and up. For line, it's only on mouse up.
       if( (bBrush && 
 	   (iInput.IsButtonDragEvent() || iInput.IsButtonUpEvent()))  ||
 	  (bLine && iInput.IsButtonUpEvent()) ) {
+
+	// If we're working on ROIs, begin batch change mode.
+	if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+	  mVolume->BeginBatchROIChanges();
+	}
 
 	list<Point3<float> > points;
 
@@ -1999,6 +2003,11 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	}
 	
 	RequestRedisplay();
+
+	// If we're working on ROIs, end batch change mode.
+	if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+	  mVolume->EndBatchROIChanges();
+	}
       }
       
       // If this is a mouse up event, close the undo stuff.
