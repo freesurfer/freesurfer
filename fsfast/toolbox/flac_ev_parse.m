@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.7 2006/03/31 02:18:00 greve Exp $
+% $Id: flac_ev_parse.m,v 1.8 2006/05/03 23:43:56 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -28,6 +28,7 @@ ev.Xirf       = [];  % IRF matrix for HRFs
 ev.nonparname = '';  % Name of non-parametric regressor
 ev.X          = [];  % Design matrix for this EV
 ev.nreg       = [];  % number of regressors
+ev.segstem    = '';  % used for selfregseg
 if(nargin == 0)  return; end
 
 % Read in the name
@@ -112,7 +113,7 @@ switch (ev.model)
   
 
  %--------------------------------------------
- case {'gamma'} % Fourier regressor
+ case {'gamma'} % Gamma HRF regressor
   % 5 parameters: delay dispersion alpha nderiv dpsd
   % EV Probe gamma task 2.25 1.25 1 0 .1
   [ev.stf c] = sscanfitem(tline,5);
@@ -143,6 +144,35 @@ switch (ev.model)
   ev.ishrf = 1;  
   ev.nreg = 1+ev.params(4); % 1+nderiv
   
+ %--------------------------------------------
+ case {'selfregseg'} % Segmentation-based Self-Regressor
+   % Variable number of params
+   % EV CSF selfreg nuis segstem ResidFlag nPCA Id1 ... IdN
+   % EV CSF selfreg nuis aparc+aseg 0 10   4 5 43 44 14 15 72
+   % nregressors = nPCA
+   [item c] = sscanfitem(tline,5);
+   if(c ~= 1) fprintf('Format error: %s: SegStem\n',ev.model); ev=[]; return; end
+   ev.segstem = item; % segmentation volume
+   
+   [item c] = sscanfitem(tline,6);
+   if(c ~= 1) fprintf('Format error: %s: ResidFlag\n',ev.model); ev=[]; return; end
+   ev.params(1) = sscanf(item,'%d',1); % resid flag
+   
+   [item c] = sscanfitem(tline,7);
+   if(c ~= 1) fprintf('Format error: %s: nPCA\n',ev.model); ev=[]; return; end
+   ev.params(2) = sscanf(item,'%d',1); % nPCA
+
+   nthid = 0;
+   while(1)
+     [item c] = sscanfitem(tline,8+nthid);
+     if(c ~= 1) break; end
+     ev.params(3+nthid) = sscanf(item,'%d',1); % SegId
+     nthid = nthid + 1;
+   end
+   if(nthid == 0) fprintf('Format error: %s: SegId\n',ev.model); ev=[]; return; end
+   ev.nreg = ev.params(2);
+   ev.ishrf = 0;
+   
  %--------------------------------------------
  case {'fourier'} % Fourier regressor
   % 3 parameters: period nharmonics tdelay
@@ -184,7 +214,7 @@ switch (ev.model)
 
  %--------------------------------------------  
  otherwise
-  fprintf('ERROR: model %s unrecoginized\n');
+  fprintf('ERROR: flac_ev_parse: model %s unrecoginized\n',ev.model);
   ev = [];
   return;
   

@@ -7,7 +7,7 @@ function flacnew = flac_desmat(flac)
 % done by flac_customize but could be done in some other way (allows
 % for optseq-type optimization).
 %
-% $Id: flac_desmat.m,v 1.5 2006/04/24 04:01:43 greve Exp $
+% $Id: flac_desmat.m,v 1.6 2006/05/03 23:43:55 greve Exp $
 
 flacnew = [];
 
@@ -57,10 +57,10 @@ for nthev = 1:nev
      case {'nyquist'}  
       X = 2*(rem([1:flac.ntp]',2)-.5);
       flacnew.ev(nthev).X = X;
-     case {'nonpar'}  
+     case {'nonpar','selfregseg'}  
       % Nonpar X must be already loaded with flac_customize.
       if(isempty(flacnew.ev(nthev).X))
-	printf('ERROR: empty nonpar matrix for %s\n',flac.ev.name);
+	printf('ERROR: empty %s matrix for %s\n',ev.model,ev.name);
 	flacnew = [];
 	return;
       end

@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.10 2006/04/28 03:50:48 greve Exp $
+% $Id: flac_customize.m,v 1.11 2006/05/03 23:43:55 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -123,6 +123,48 @@ for nthev = 1:nev
     continue;
   end
 
+  % Self-Regressor based on Seg
+  if(strcmp(ev.model,'selfregseg'))
+    if(flac.perrun) runtmp = runid;
+    else            runtmp = '';
+    end
+    segstem = sprintf('%s/%s/masks/%s',fsdpath, runtmp, ev.segstem);
+    seg = MRIread(segstem);
+    if(isempty(seg))
+      fprintf('ERROR: flac_customize: reading %s\n',segstem);
+      flacnew = [];
+      return;
+    end
+    segid = ev.params(2:end);
+    nseg = length(segid);
+    segmask = zeros(size(seg.vol));
+    for nthseg = 1:nseg
+      segmask = (segmask | seg.vol == segid(nthseg));
+    end
+    indseg = find(segmask);
+    nindseg = length(indseg);
+    if(nindseg == 0)
+      fprintf('ERROR: flac_customize: %s: no voxels found in seg \n',ev.name);
+      flacnew = [];
+      return;
+    end
+    fmri = MRIread(fstem);
+    f = fast_vol2mat(fmri.vol);
+    clear fmri;
+    fseg = f(:,indseg);
+    fseg = fseg - repmat(mean(fseg,2),[1 nindseg]);
+    [u s v] = fast_svd(fseg);
+    npca = ev.params(2);
+    if(size(u,2) < npca)
+      fprintf('ERROR: flac_customize: %s: not enough components \n',ev.name);
+      flacnew = [];
+      return;
+    end
+    X = u(:,1:npca);
+    flacnew.ev(nthev).X = X;
+    continue;
+  end
+
 end
 
 
@@ -158,6 +200,9 @@ for nthcon = 1:ncon
   flacnew.con(nthcon).gamfspec = ...
       sprintf('%s/%s/fla/%s/%s/%s/gam',flacnew.sess,flacnew.fsd,flacnew.name,...
 	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
+  C = flacnew.con(nthcon).C;
+  eff = 1/trace(C*inv(flacnew.X'*flacnew.X)*C');
+  flacnew.con(nthcon).eff = eff;
   
 end
 
