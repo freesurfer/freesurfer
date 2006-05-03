@@ -1,3 +1,5 @@
+||Up to ScubaGuide||Back to [:ScubaGuide/ScubaWorkingWithData/ScubaAnatomicalVolumes: ScubaAnatomicalVolumes]||Continue to [:ScubaGuide/ScubaWorkingWithData/ScubaSegmentationVolumes: ScubaSegmentationVolumes]||
+
 = Volume ROIs =
 
 Volume ROIs are associated with the data collection volume for which they were created or into which they were loaded. The ROI is in the resolution of that volume, which is important when saving to a label file.
@@ -33,4 +35,14 @@ Note that all edits and fills are undoable with the File->Undo command. All undo
 
 To save an ROI as a label file, go to the data panel, select the data collection to which the ROI belongs, the select the ROI from the '''Current ROI''' menu, and then use the '''File->Save Label...''' menu command.
 
-You can also export all the segmentation ROIs in a collection as a segmentation volume. If this is confusing, here is the process: A segmentation volume is created the same size as the anatomical volume, and for every structure ROI in the data collection, every voxel in that ROI is set to the same structure value in the segmentation volume. Note that only ROIs marked as segmentations are exported, and for ROIs that overlap, the ROI with the highest ID will "win" the placement in the segmentation volume.
+You can also export all the segmentation ROIs in a collection as a segmentation volume with the '''File->Export ROIs as Segmentation...''' command. If this is confusing, here is the process: A segmentation volume is created the same size as the anatomical volume, and for every structure ROI in the data collection, every voxel in that ROI is set to the same structure value in the segmentation volume. Note that only ROIs marked as segmentations are exported, and for ROIs that overlap, the ROI with the highest ID will "win" the placement in the segmentation volume.
+
+== Intensity Reports ==
+
+You can use the Volume ROI Intensity Chart tool to make a chart plotting the intensities in a volume of all voxels in an ROI. To use this tool, you'll need a volume loaded and an ROI drawn. To create the chart, choose the '''Tools->Make New Volume ROI Intensity Chart...''' menu command.
+
+In the resulting dialog box, choose a volume, and then choose an ROI from that volume. Click the OK button to make the chart window. A window will open with the values in the ROI you chose plotted with the intensity on the y axis. As you change the ROI, the chart will update to reflect the changes.
+
+You can generate a report of the currently plotted ponints by clicking the '''Generate Report''' button in the corner of the chart window. This will show a dialog box allowing you to select the information you want in the report. The report will consist of one row for each voxel plotted, with the columns you choose seperated by a tab character. Enter a file name and click OK to generate the report.
+
+As updating the chart when changing the ROI is computationally intensive, you may want to close the chart window when you are done. You may do this by click the normal close window button.
