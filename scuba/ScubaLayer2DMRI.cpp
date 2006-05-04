@@ -1696,7 +1696,7 @@ ScubaLayer2DMRI::DataChanged () {
 
     try {
       stringstream ssCommand;
-      ssCommand << "2DMRILayerMinMaxValueChanged " << GetID();
+      ssCommand << "LayerSettingsChanged " << GetID();
       TclCommandManager& mgr = TclCommandManager::GetManager();
       mgr.SendCommand( ssCommand.str() );
     }
@@ -1750,18 +1750,36 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     } else if( iInput.IsButtonDragEvent() ) {
 
+      float deltaLevel = 
+	( (float)iInput.GetTotalButtonDeltaX() * 
+	  (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) ) / 
+	(float)iViewState.GetBufferWidth();
+
+      float deltaWindow = 
+	( (float)iInput.GetTotalButtonDeltaY() * 
+	  (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) ) / 
+	(float)iViewState.GetBufferHeight();
+
       try { 
-	SetLevel( mOriginalLevel + 
-		  ((float)iInput.GetTotalButtonDeltaX() / 512.0) );
+	SetLevel( mOriginalLevel + deltaLevel );
       }
-      catch(...) {}
+      catch(...) {
+      }
       try {
-	SetWindow( mOriginalWindow + 
-		   ((float)iInput.GetTotalButtonDeltaY() / 512.0) );
+	SetWindow( mOriginalWindow + deltaWindow );
       }
-      catch(...) {}
+      catch(...) {
+      }
       RequestRedisplay();
 
+      try {
+	stringstream ssCommand;
+	ssCommand << "LayerSettingsChanged " << GetID();
+	TclCommandManager& mgr = TclCommandManager::GetManager();
+	mgr.SendCommand( ssCommand.str() );
+      }
+      catch(...) {}
+      
     } 
 
     return;
