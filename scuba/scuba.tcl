@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.195 2006/05/03 21:01:38 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.196 2006/05/04 20:54:27 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -929,7 +929,6 @@ proc MakeScubaFrameBindings { iFrameID } {
 proc ScubaMouseMotionCallback { inX inY iState iButton } {
     dputs "ScubaMouseMotionCallback  $inX $inY $iState $iButton  "
 
-    global gaChangeBC
     global gaFrame
     global gaLayer
     global gaTool
@@ -940,7 +939,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
-    
+
     UpdateMouseLabelArea $viewID
 }
 
@@ -949,27 +948,8 @@ proc ScubaMouseDownCallback { inX inY iState iButton } {
 
     global gaView
     global gaTool
-    global gaChangeBC
     global gaFrame
     global gaLayer
-
-    # If button 1 and if shift is down, set up the change brightness
-    # contrast tool.
-    if { $iButton == 1 && $iState == 1 } {
-
-	set gaChangeBC(viewID) \
-	    [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
-	set gaChangeBC(mouseDown,x) $inX
-	set gaChangeBC(mouseDown,y) $inY
-	foreach layerID $gaLayer(idList) {
-	    if { [GetLayerType $layerID] == "2DMRI" } {
-		set gaChangeBC($layerID,origBrightness) \
-		    [Get2DMRILayerBrightness $layerID]
-		set gaChangeBC($layerID,origContrast) \
-		    [Get2DMRILayerContrast $layerID]
-	    }
-	}
-    }
 
     set viewID [GetSelectedViewID [GetMainFrameID]]
     if { $viewID != $gaView(current,id) } {
@@ -2946,9 +2926,11 @@ proc SelectLayerInLayerProperties { iLayerID } {
     global gaWidget
     global gaLayer
 
-    # Unpack the type-specific panels.
-    grid forget $gaWidget(layerProperties,2DMRI)
-    grid forget $gaWidget(layerProperties,2DMRIS)
+    # Save the old type.
+    set oldType none
+    if { [info exists gaLayer(current,type)] } {
+	set oldType $gaLayer(current,type)
+    }
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
@@ -2966,11 +2948,20 @@ proc SelectLayerInLayerProperties { iLayerID } {
     $gaWidget(layerProperties,menu) config -value $iLayerID
     $gaWidget(layerProperties,menu) config -disablecallback 0
     
+    # Unpack the type-specific panels if our new type is different.
+    if { $oldType != $gaLayer(current,type) } {    
+	grid forget $gaWidget(layerProperties,2DMRI)
+	grid forget $gaWidget(layerProperties,2DMRIS)
+    }
+
     # Do the type specific stuff.
     switch $gaLayer(current,type) {
 	2DMRI { 
-	    # Pack the type panel.
-	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 2 -sticky news
+	    # Pack the type panel if we have a different type.
+	    if { $oldType != $gaLayer(current,type) } {
+		grid $gaWidget(layerProperties,2DMRI) \
+		    -column 0 -row 2 -sticky news
+	    }
 
 	    # Configure the length of the value sliders.
 	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
@@ -3026,9 +3017,11 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    $gaWidget(layerProperties,lutMenu) config -disablecallback 0    
 	}
 	2DMRIS {
-	    # Pack the type panel.
-	    grid $gaWidget(layerProperties,2DMRIS) \
-		-column 0 -row 2 -sticky news
+	    # Pack the type panel if our type is different.
+	    if { $oldType != $gaLayer(current,type) } {
+		grid $gaWidget(layerProperties,2DMRIS) \
+		    -column 0 -row 2 -sticky news
+	    }
 
 	    # Get the type specific properties.
 	    set lColor [Get2DMRISLayerLineColor $iLayerID]
@@ -3049,26 +3042,6 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    tkuUpdateColorPickerValues \
 		$gaWidget(layerProperties,vertexColorPickers)
 	}
-    }
-}
-
-proc 2DMRILayerMinMaxValueChanged { iLayerID } {
-    global gaLayer
-    global gaWidget
-
-    if { $gaLayer(current,id) == $iLayerID } {
-	
-	set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
-	set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
-	tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
-	    $gaLayer(current,minValue) $gaLayer(current,maxValue)
-	tkuUpdateSlidersRange $gaWidget(layerProperties,levelWindowSliders) \
-	    $gaLayer(current,minValue) $gaLayer(current,maxValue)
-
-	set gaLayer(current,minVisibleValue) \
-	    [Get2DMRILayerMinVisibleValue $iLayerID]
-	set gaLayer(current,maxVisibleValue) \
-	    [Get2DMRILayerMaxVisibleValue $iLayerID]
     }
 }
 
@@ -3134,6 +3107,16 @@ proc ClearLayerInLayerProperties {} {
     set gaLayer(current,type) ""
     set gaLayer(current,label) ""
     tkuRefreshEntryNotify $gaWidget(layerProperties,labelEntry)
+}
+
+proc LayerSettingsChanged { iLayerID } {
+    global gaLayer
+
+    if { $gaLayer(current,id) == $iLayerID } {
+	
+	# Reselect the layer to get all the settings again.
+	SelectLayerInLayerProperties $iLayerID
+    }
 }
 
 # VIEW PROPERTIES FUNCTIONS =============================================
@@ -5918,7 +5901,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.195 2006/05/03 21:01:38 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.196 2006/05/04 20:54:27 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
