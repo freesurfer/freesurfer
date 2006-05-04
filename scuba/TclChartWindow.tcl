@@ -1,35 +1,29 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.5 2006/05/03 21:01:38 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.6 2006/05/04 19:30:32 kteich Exp $
 
 package require Tix;
 package require BLT;
 
-# This function finds a file from a list of directories.
-proc FindFile { ifnFile ilDirs } {
-    foreach sPath $ilDirs {
-	set sFullFileName [ file join $sPath $ifnFile ]
-	if { [file readable $sFullFileName] } {
-	    puts "Reading $sFullFileName"
-	    return $sFullFileName
-	}
-    }
-    puts "Couldn't find $ifnFile: Not in $ilDirs"
-    return ""
-}
 
-
-# Also look for tkUtils.tcl.
+# Look for tkUtils.tcl.
 set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
 set sUtilsDir ""
 catch { set sUtilsDir "$env(TKUTILS_SCRIPTS_DIR)" }
 
-set fnUtils \
-    [FindFile tkUtils.tcl \
-	 [list $sUtilsDir "." "../scripts" $sDefaultScriptsDir]]
-if { [string compare $fnUtils ""] == 0 } { exit }
-source $fnUtils
+set bLoaded 0
+foreach sPath [list $sUtilsDir "." "../scripts" $sDefaultScriptsDir] {
+    if { !$bLoaded } {
+	set sFullFileName [ file join $sPath tkUtils.tcl ]
+	if { [file readable $sFullFileName] } {
+	    puts "Reading $sFullFileName"
+	    source $sFullFileName
+	    set bLoaded 1
+	}
+    }
+}
+if { !$bLoaded } { exit }
 
 
 # constant values for stuff

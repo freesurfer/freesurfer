@@ -27,7 +27,7 @@ Broadcaster::RemoveListener ( Listener* iListener ) {
 void
 Broadcaster::SendBroadcast ( std::string iMessage, void* iData ) {
 
-  //  cerr << "Broadcaster " << msLabel << " sending message " << iMessage << endl;
+  //    cerr << "Broadcaster " << msLabel << " sending message " << iMessage << endl;
 
   std::list<Listener*>::iterator tListener;
   for( tListener = mlListeners.begin(); 
