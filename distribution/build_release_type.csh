@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.58 2006/04/08 17:11:12 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.59 2006/05/04 21:48:49 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v3.0.1e"
-set STABLE_PUB_VER_NUM="v3.0.1"
+set STABLE_VER_NUM="v3.0.2"
+set STABLE_PUB_VER_NUM="v3.0.2"
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
@@ -75,6 +75,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set GSLDIR=/usr/pubsw/packages/gsl/1.6
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set VTKDIR=/usr/pubsw/packages/vtk/5.0.0
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
   setenv QTDIR  /usr/pubsw/packages/qt/3.3.5
   unsetenv FSLDIR
@@ -89,6 +90,7 @@ else
   set GSLDIR=/usr/pubsw/packages/gsl/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set VTKDIR=/usr/pubsw/packages/vtk/current
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv QTDIR  /usr/pubsw/packages/qt/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
@@ -475,6 +477,7 @@ symlinks:
   rm -f ${DEST_DIR}/lib/tcltktixblt
   rm -f ${DEST_DIR}/lib/gsl
   rm -f ${DEST_DIR}/lib/qt
+  rm -f ${DEST_DIR}/lib/vtk
   rm -f ${DEST_DIR}/lib/misc
   # then setup for proper installation
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
@@ -482,8 +485,9 @@ symlinks:
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
   set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
   set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
+  set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
   if ("$OSTYPE" == "Darwin") then
-      set cmd6=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
+      set cmd7=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
   endif
   # execute the commands
   echo "$cmd1" >>& $OUTPUTF
@@ -496,9 +500,11 @@ symlinks:
   $cmd4
   echo "$cmd5" >>& $OUTPUTF
   $cmd5
+  echo "$cmd6" >>& $OUTPUTF
+  $cmd6
   if ("$OSTYPE" == "Darwin") then
-    echo "$cmd6" >>& $OUTPUTF
-    $cmd6
+    echo "$cmd7" >>& $OUTPUTF
+    $cmd7
   endif
   # also setup sample subject:
   rm -f ${DEST_DIR}/subjects/bert
