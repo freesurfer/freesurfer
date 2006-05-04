@@ -4,9 +4,9 @@
 // original author: Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/11/08 18:40:18 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/05/04 18:03:26 $
+// Revision       : $Revision: 1.53 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -189,12 +189,12 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_ms_fitparms.c,v 1.52 2005/11/08 18:40:18 kteich Exp $", "$Name:  $",
+"$Id: mri_ms_fitparms.c,v 1.53 2006/05/04 18:03:26 nicks Exp $", "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_ms_fitparms.c,v 1.52 2005/11/08 18:40:18 kteich Exp $", "$Name:  $");
+"$Id: mri_ms_fitparms.c,v 1.53 2006/05/04 18:03:26 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1034,8 +1034,8 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume> ... <output directory>\n", Progname) ;
-  printf("this program takes an arbitrary # of FLASH images as input, and "
+  printf("Usage: %s [options] <volume> ... <output directory>\n", Progname) ;
+  printf("This program takes an arbitrary # of FLASH images as input, and "
          "estimates\n"
          "the T1 and PD values of the data for voxel, as well as a "
          "linear transform\n"
@@ -1051,9 +1051,9 @@ usage_exit(int code)
          "command line using\n"
          "-tr <TR in msec> -te <TE in msec> -fa <flip angle in degrees> "
          "before each volume.\n");
-  printf("use -at <xform file name> or -ait <xform file name> to specify "
+  printf("Use -at <xform file name> or -ait <xform file name> to specify "
          "transformation for each\n"
-         "individual volume. Note only one for each flip-angle is enough. "
+         "individual volume. Note only one for each flip-angle is enough.\n"
          "-at will apply the transform to the following volume to align "
          "with others. \n");
   exit(code) ;
