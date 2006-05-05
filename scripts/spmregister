@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # 
-# $Id: spmregister,v 1.13 2006/04/18 23:05:05 nicks Exp $
-set VERSION = '$Id: spmregister,v 1.13 2006/04/18 23:05:05 nicks Exp $';
+# $Id: spmregister,v 1.14 2006/05/05 18:51:22 greve Exp $
+set VERSION = '$Id: spmregister,v 1.14 2006/05/05 18:51:22 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -17,6 +17,7 @@ set PrintHelp = 0;
 set zero_center = 1; 
 set frame = 0;
 set MGZ = ();
+set nolog = 0;
 # zero_center forces mri_convert to set the coordinate
 # of the center to zero. This allows spm to register
 # two volumes when they do not overlap in the native
@@ -46,8 +47,13 @@ set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
 mkdir -p $tmpdir
 
-set LF = $movvoldir/spmregister.log
-if(-e $LF) mv $LF $LF.old
+if(! $nolog) then
+  set LF = $movvoldir/spmregister.log
+  if(-e $LF) mv $LF $LF.old
+else
+  set LF = /dev/null
+endif
+
 echo "Log file is $LF"
 
 echo "Logfile for spmregister" >> $LF
@@ -301,6 +307,10 @@ while( $#argv != 0 )
     case "--debug":
       set verbose = 1;
       set echo = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
       breaksw
 
     case "--umask":
