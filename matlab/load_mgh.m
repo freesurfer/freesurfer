@@ -22,7 +22,7 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.14 2006/01/18 20:53:03 fischl Exp $
+% $Id: load_mgh.m,v 1.15 2006/05/05 17:22:37 greve Exp $
 
 vol = [];
 M = [];
@@ -38,13 +38,19 @@ end
 % unzip if it is compressed 
 if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
 		strcmpi(fname((strlen(fname)-3):strlen(fname)), '.GZ'))
-	gzipped =  round(rand(1)*10000000);
-	ind = findstr(fname, '.');
-	new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
-	unix(sprintf('zcat %s > %s', fname, new_fname)) ;
-	fname = new_fname ;
+  rand('state', sum(100*clock));
+  gzipped =  round(rand(1)*10000000 + ...
+		   sum(int16(fname))) + round(cputime);
+  ind = findstr(fname, '.');
+  new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
+  if(strcmp(computer,'MAC'))
+    unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
+  else
+    unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+  end
+  fname = new_fname ;
 else
-	gzipped = -1 ;
+  gzipped = -1 ;
 end
 
 
@@ -64,6 +70,10 @@ if(fid == -1)
   return;
 end
 v       = fread(fid, 1, 'int') ; 
+if(isempty(v))
+  fprintf('ERROR: problem reading fname\n');
+  if(gzipped >=0) unix(sprintf('rm %s', fname)); end
+end
 ndim1   = fread(fid, 1, 'int') ; 
 ndim2   = fread(fid, 1, 'int') ; 
 ndim3   = fread(fid, 1, 'int') ; 
