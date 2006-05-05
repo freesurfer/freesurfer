@@ -18,7 +18,7 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % See also: load_nifti_hdr.m
 %
-% $Id: load_nifti.m,v 1.9 2006/04/28 04:58:09 greve Exp $
+% $Id: load_nifti.m,v 1.10 2006/05/05 17:27:33 greve Exp $
 
 hdr = [];
 
@@ -40,7 +40,11 @@ if(strcmpi(ext,'.gz'))
   ind = findstr(niftifile, '.');
   new_niftifile = sprintf('/tmp/tmp%d.nii', gzipped);
   %fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
-  unix(sprintf('zcat %s > %s', niftifile, new_niftifile)) ;
+  if(strcmp(computer,'MAC'))
+    unix(sprintf('gunzip -c %s > %s', niftifile, new_niftifile));
+  else
+    unix(sprintf('zcat %s > %s', niftifile, new_niftifile)) ;
+  end
   niftifile = new_niftifile ;
 else
   gzipped = -1 ;
