@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.20 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.21 2006/05/05 17:24:54 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -45,6 +45,7 @@ set MeasIn  = 0;
 set outdir = ();
 set DoFSFCVar = 0;
 set DoFSFOffset = 0;
+set SurfReg = sphere.reg
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
@@ -163,7 +164,7 @@ foreach subj ($subjlist)
 
     # Now srcsurfpath file exists, convert it to the target subject
     set tval = $tmpdir/$subj.mgh
-    set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj)
+    set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --surfreg $SurfReg)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
     else
@@ -317,12 +318,18 @@ while( $#argv != 0 )
       set jac = 1;
       breaksw
 
+    case "--surfreg":
+      if($#argv < 1) goto arg1err;
+      set SurfReg = $argv[1]; shift;
+      breaksw
+
     case "--srcfmt":
       if($#argv < 1) goto arg1err;
       set srcfmt = $argv[1]; shift;
       breaksw
 
     case "--isp": # Input surface path
+    case "--is": 
       if($#argv < 1) goto arg1err;
       set isp = $argv[1];shift;
       if(! -e $isp) then
@@ -334,7 +341,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--iv": # Input volume path
-    case "--ivp": # Input volume path
+    case "--ivp":
       if($#argv < 2) goto arg2err;
       set ivp = $argv[1];shift;
       if(! -e $ivp) then
@@ -740,6 +747,8 @@ usage_exit:
   echo ""
   echo "  --mean : compute the mean of all inputs"
   echo "  --reshape : reshape spatial dimensions"
+  echo "  --surfreg SurfReg : default is sphere.reg"
+  echo ""
   echo "  --synth"
   echo "  --tmpdir dir : use tmpdir. Implies --nocleanup."
   echo "  --nocleanup  : do not delete tmpdir"
@@ -909,6 +918,11 @@ Synthesize the input data with white gaussian noise. For volume source,
 the volume is synthesized prior to resampling to the surface. The 
 synthesis is done prior to any smoothing. This is mainly good for testing
 and running simulations.
+
+--surfreg SurfReg
+
+Use hemi.SurfReg as the surface registration to the common space. Default
+is sphere.reg.
 
 --reshape
 
