@@ -186,6 +186,7 @@ extern char *Progname;
 
 static char *command_line;
 static char *subject_name;
+static int gdf_crop_flag = FALSE;
 
 #define MAX_UNKNOWN_LABELS  100
 
@@ -353,6 +354,15 @@ int mriio_set_subject_name(char *name)
   return(NO_ERROR);
 
 } /* end mriio_set_subject_name() */
+
+void mriio_set_gdf_crop_flag(int bool)
+{
+
+	gdf_crop_flag = bool;
+
+	return;
+
+} /* end mriio_set_gdf_crop_flag() */
 
 int MRIgetVolumeName(char *string, char *name_only)
 {
@@ -6824,6 +6834,9 @@ static MRI *gdfRead(char *fname, int read_volume)
   float y_r, y_a, y_s;
   float z_r, z_a, z_s;
   float c_r, c_a, c_s;
+  int have_min_crop = FALSE;
+  int have_max_crop = FALSE;
+  float min_crop[3], max_crop[3];
 
   if((fp = fopen(fname, "r")) == NULL)
     {
@@ -6903,6 +6916,20 @@ static MRI *gdfRead(char *fname, int read_volume)
       else if(strncmp(line, "FILE_OFFSET", 11) == 0)
         {
           sscanf(line, "%*s %d", &file_offset);
+        }
+      else if(strncmp(line, "MIN_CROP", 8) == 0)
+        {
+          sscanf(line, "%*s %f %f %f", &min_crop[0], 
+                                       &min_crop[1], 
+                                       &min_crop[2]);
+          have_min_crop = TRUE;
+        }
+      else if(strncmp(line, "MAX_CROP", 8) == 0)
+        {
+          sscanf(line, "%*s %f %f %f", &max_crop[0], 
+                                       &max_crop[1], 
+                                       &max_crop[2]);
+          have_max_crop = TRUE;
         }
       else
         {
@@ -7011,6 +7038,14 @@ static MRI *gdfRead(char *fname, int read_volume)
   ipr[0] /= units_factor;
   ipr[1] /= units_factor;
   st /= units_factor;
+
+  if(gdf_crop_flag && !(have_min_crop && have_max_crop))
+    {
+      errno = 0;
+      ErrorReturn(NULL,
+          (ERROR_BADPARM,
+          "gdfRead(): cropping desired but missing MIN_CROP or MAX_CROP\n"));
+    }
 
   strcpy(file_path_1, file_path);
   c = strrchr(file_path_1, '*');
@@ -7296,6 +7331,52 @@ static MRI *gdfRead(char *fname, int read_volume)
     free(sbuf);
   if(mri->type == MRI_FLOAT)
     free(fbuf);
+
+  /* ----- crop if desired (and possible!) ----- */
+
+  if(gdf_crop_flag)
+    {
+
+      /* we've checked for MIN_CROP and MAX_CROP above, */
+      /* before reading the data... */
+
+      printf("NOTICE: cropping GDF data\n");
+
+      for(k = 0;k < mri->depth;k++)
+        {
+          if(k >= (int)min_crop[1] && k <= (int)max_crop[1])
+            continue;
+          for(j = 0;j < mri->height;j++)
+            {
+              if(j >= (int)min_crop[2] && j <= (int)max_crop[2])
+                continue;
+              for(i = 0;i < mri->width;i++)
+                {
+                  if(i >= (int)min_crop[0] && i <= (int)max_crop[0])
+                    continue;
+                  if(mri->type == MRI_UCHAR)
+                    MRIvox(mri, i, j, k) = 0;
+                  else if(mri->type == MRI_SHORT)
+                    MRISvox(mri, i, j, k) = 0;
+                  else if(mri->type == MRI_FLOAT)
+                    MRIFvox(mri, i, j, k) = 0.0;
+                  else
+                    {
+                    MRIfree(&mri);
+                    errno = 0;
+                    ErrorReturn
+                      (NULL,
+                       (ERROR_BADFILE,
+                        "gdfRead(): internal error (data type while cropping"));
+                    }
+                }
+            }
+        }
+    }
+  else
+    {
+      printf("NOTICE: not cropping GDF data\n");
+    }
 
   return(mri);
 

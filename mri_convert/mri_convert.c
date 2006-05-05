@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/04/18 17:45:06 $
-// Revision       : $Revision: 1.123 $
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2006/05/05 18:39:03 $
+// Revision       : $Revision: 1.124 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.123 2006/04/18 17:45:06 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.124 2006/05/05 18:39:03 ch Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.123 2006/04/18 17:45:06 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.124 2006/05/05 18:39:03 ch Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -863,6 +863,11 @@ int main(int argc, char *argv[])
                strcmp(argv[i], "--nth_frame") == 0)
         {
           get_ints(argc, argv, &i, &nthframe, 1);
+        }
+      else if (strcmp(argv[i], "-cg") == 0 || 
+               strcmp(argv[i], "--crop_gdf") == 0)
+        {
+          mriio_set_gdf_crop_flag(TRUE);
         }
       else if(strcmp(argv[i], "--unwarp_gradient_nonlinearity") == 0){
         /* !@# start */
