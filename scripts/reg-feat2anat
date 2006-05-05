@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.20 2006/04/17 20:29:26 nicks Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.21 2006/05/05 18:52:20 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -456,9 +456,18 @@ if(! -e $FeatDir) then
   echo "ERROR: cannot find feat dir $FeatDir"
   exit 1;
 endif
-if($#subject == 0) then
-  echo "ERROR: must specify a FreeSurfer subject"
-  exit 1;
+if(! $manual) then
+  if($#subject == 0) then
+    echo "ERROR: must specify a FreeSurfer subject"
+    exit 1;
+  endif
+else
+  set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
+  if(! -e $anat2exf_regdat) then
+    echo "ERROR: cannot find $anat2exf_regdat"
+    exit 1;
+  endif
+  set subject = `cat $anat2exf_regdat | head -1`;
 endif
 if($?SUBJECTS_DIR == 0) then
   echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
