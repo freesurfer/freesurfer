@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.19 2006/04/19 22:47:21 nicks Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.20 2006/05/05 22:13:26 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.19 2006/04/19 22:47:21 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.20 2006/05/05 22:13:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1636,6 +1636,10 @@ int MDHdumpADC(char *measoutpath, char *outfile, int binary)
   fseek(fp,offset,SEEK_SET);
 
   outfp = fopen(outfile,"w");
+  if(outfp == NULL){
+    printf("ERROR: opening %s\n",outfile);
+    exit(1);
+  }
 
   n = 0;
   while(!feof(fp)){
