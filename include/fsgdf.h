@@ -23,6 +23,11 @@ extern int fsgdf_AllowSubjRep;
 #define FSGDF_NVARS_MAX    100
 #define FSGDF_NINPUTS_MAX  500
 
+#define FSGDF_REGTYPE_NONE 0
+#define FSGDF_REGTYPE_FILE 1
+#define FSGDF_REGTYPE_FIND 2
+#define FSGDF_REGTYPE_IDENTITY 3
+
 typedef struct {
   int version;
   char title[200];
@@ -46,12 +51,16 @@ typedef struct {
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
   MRI *data;
   double ResFWHM;
+
+  int regtype;
+  char regname[1000];
 } GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
 FSGD   *gdfRead(char *gdfname, int LoadData);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
+int     gdfReadRegistration(FSGD *gd, int type, char *regname);
 int     gdfCheckMatrixMethod(char *gd2mtx_method);
 int     gdfPrint(FILE *fp, FSGD *gd);
 int     gdfPrintStdout(FSGD *gd);

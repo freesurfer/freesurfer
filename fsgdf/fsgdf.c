@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.27 2006/02/24 11:27:07 nicks Exp $
+  $Id: fsgdf.c,v 1.28 2006/05/05 22:47:00 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -49,9 +49,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "mri2.h"
 #include "fio.h"
 #include "matfile.h"
+#include "stats.h"
 
 #define FSGDF_SRC
 #include "fsgdf.h"
@@ -481,6 +484,85 @@ static FSGD *gdfReadV1(char *gdfname)
   return(NULL);
 
 }
+
+int gdfReadRegistration(FSGD *gd, int type, char *regname)
+{
+  char *cur_char, *base_end;
+  int err;
+  struct stat  file_info;
+  fMRI_REG *reg_info;
+
+  switch(type)
+    {
+    case FSGDF_REGTYPE_FILE:
+    case FSGDF_REGTYPE_FIND:
+
+      /* If we're reading a file, copy the file from the input or
+	 generate one from our data file location. */
+      if(FSGDF_REGTYPE_FILE==type)
+	{
+	  strcpy(gd->regname, regname);
+	}
+      else if(FSGDF_REGTYPE_FIND==type)
+	{
+	  /* Copy the data name and find the last / in the file
+	     name. From there, copy in "register.dat" for our file
+	     name. */
+	  strcpy(gd->regname, gd->datafile);
+	  cur_char = gd->regname;
+	  base_end = gd->regname;
+	  while(NULL!=cur_char && '\0' != *cur_char)
+	    {
+	      if('/' == *cur_char) 
+		base_end = cur_char;
+	      cur_char++;
+	    }
+	  base_end = '\0';
+	  sprintf(gd->regname,"%s/%s",gd->regname,"register.dat");
+	}
+
+      /* Check that the file exists. */
+      err = stat(gd->regname,&file_info);
+      if(0!=err) 
+	{
+	  printf("ERROR: Couldn't find FSGD registration %s\n",gd->regname);
+	  strcpy(gd->regname,"");
+	  return(-1);
+	}
+      
+      /* Check if it's a regular file. */
+      if(!S_ISREG(file_info.st_mode))
+	{
+	  printf("ERROR: Couldn't open FSGD registration %s\n",gd->regname);
+	  strcpy(gd->regname,"");
+	  return(-1);
+	}
+
+      /* Read the registration */
+      reg_info = StatReadRegistration(gd->regname);
+      if(NULL==reg_info)
+	{
+	  printf("ERROR: Problem reading FSGD registration %s\n",gd->regname);
+	  strcpy(gd->regname,"");
+	  return(-1);
+	}
+
+
+
+      /* Free the registration info. */
+      StatFreeRegistration(&reg_info);
+      
+
+      break;
+    case FSGDF_REGTYPE_IDENTITY:
+      break;
+    }      
+
+  gd->regtype = type;
+
+  return(0);
+}
+
 /*--------------------------------------------------
   gdfClassNo() - returns the zero-based class number 
   associated with a class label.
