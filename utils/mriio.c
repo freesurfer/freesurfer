@@ -355,10 +355,10 @@ int mriio_set_subject_name(char *name)
 
 } /* end mriio_set_subject_name() */
 
-void mriio_set_gdf_crop_flag(int bool)
+void mriio_set_gdf_crop_flag(int new_gdf_crop_flag)
 {
 
-	gdf_crop_flag = bool;
+	gdf_crop_flag = new_gdf_crop_flag;
 
 	return;
 
