@@ -36,7 +36,7 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %  kepi = permute(kepi,[2 1 3 4 5]);
 %  [cimg Rrow epipar] = tdr_epirecon(kepi,'meas.asc');
 %
-% $Id: tdr_epirecon.m,v 1.3 2006/04/28 18:20:39 greve Exp $
+% $Id: tdr_epirecon.m,v 1.4 2006/05/07 23:18:13 greve Exp $
 
 cimg = [];
 Rrow = [];
@@ -52,11 +52,11 @@ if(isstr(arg2))
   epipar.tDwell = tdr_measasc(measasc,'sRXSPEC.alDwellTime[0]'); % nsec
   if(isempty(epipar.tDwell)) return; end
   epipar.tDwell = epipar.tDwell/1000; % convert to usec
-  epipar.tRampUp   = tdr_measasc(measasc,'m_alRegridRampupTime');  % us
-  epipar.tFlat     = tdr_measasc(measasc,'m_alRegridFlattopTime'); % us
-  epipar.tRampDown = tdr_measasc(measasc,'m_alRegridRampdownTime'); % us
-  epipar.tDelSamp  = tdr_measasc(measasc,'m_alRegridDelaySamplesTime'); % us
-  epipar.ESP       = tdr_measasc(measasc,'m_lEchoSpacing'); % us
+  epipar.tRampUp   = tdr_measasc(measasc,'alRegridRampupTime[0]');  % us
+  epipar.tFlat     = tdr_measasc(measasc,'alRegridFlattopTime[0]'); % us
+  epipar.tRampDown = tdr_measasc(measasc,'alRegridRampdownTime[0]'); % us
+  epipar.tDelSamp  = tdr_measasc(measasc,'alRegridDelaySamplesTime[0]'); % us
+  epipar.ESP       = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
 else
   epipar = arg2;
 end

@@ -1,7 +1,7 @@
-function val = tdr_measasc(measasc,varname)
-% val = tdr_measasc(measasc,varname)
+function val = tdr_measasc(measasc,varname,flag)
+% val = tdr_measasc(measasc,varname,<flag>)
 %
-% $Id: tdr_measasc.m,v 1.3 2005/03/19 00:18:57 greve Exp $
+% $Id: tdr_measasc.m,v 1.4 2006/05/07 23:18:13 greve Exp $
 %
 % EPI ------------------------------------------------------
 % Number of echoes: sWiPMemBlock.alFree[2] (if it exists.
@@ -16,6 +16,8 @@ function val = tdr_measasc(measasc,varname)
 % Can also get these from MDH
 %   nlines (nrows) = sKSpace.lPhaseEncodingLines
 %   nkcols = 'm_iNoOfFourierColumns = [N]';
+% Can also val = tdr_measasc(measasc,[],'epi'). Then val
+%   is an epipar structure.
 %
 % FID ---------------------------------------------------
 %  Applies only after 11/15
@@ -25,8 +27,29 @@ function val = tdr_measasc(measasc,varname)
 %
 
 val = [];
-if(nargin ~= 2)
-  fprintf('val = tdr_measasc(measasc,varname)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('val = tdr_measasc(measasc,varname,<flag>)\n');
+  return;
+end
+
+if(~exist('flag','var')) flag = []; end
+if(~isempty(flag))
+  if(~strcmp(flag,'epi'))
+    fprintf('ERROR: flag (%s) must be epi or empty\n',flag);
+    return;
+  end
+  % Read in as epipar struct.
+  val.tDwell = tdr_measasc(measasc,'sRXSPEC.alDwellTime[0]'); % nsec
+  val.tDwell = val.tDwell/1000; % convert to usec
+  val.tRampUp   = tdr_measasc(measasc,'m_alRegridRampupTime');  % us
+  val.tFlat     = tdr_measasc(measasc,'m_alRegridFlattopTime'); % us
+  val.tRampDown = tdr_measasc(measasc,'m_alRegridRampdownTime'); % us
+  val.tDelSamp  = tdr_measasc(measasc,'m_alRegridDelaySamplesTime'); % us
+  val.echospacing = tdr_measasc(measasc,'m_lEchoSpacing'); % us
+  val.TE        = tdr_measasc(measasc,'alTE[0]'); % us
+  val.nkcols    =  tdr_measasc(measasc,'m_iNoOfFourierColumns');
+  val.nkrows    =  tdr_measasc(measasc,'m_iNoOfFourierLines');
+  val.timeunits = 'usec';
   return;
 end
 

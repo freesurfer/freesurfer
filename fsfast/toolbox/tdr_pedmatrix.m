@@ -1,12 +1,13 @@
 function pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,perev)
 % pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,<perev>)
+% pedmat = tdr_pedmatrix(epipar);
 %
-% Computes the post-excitation delay (PED) of each sample in a k-space
-% image.  The row/col in the PED matrix corresponds to that of the
-% kspace image without any reversals (readout or phase encode)
-% applied. Any such operations applied to the kspace image should
-% then be applied to the PED matrix. It is assumed that the even
-% lines were acquired in reverse readout.
+% Computes the EPI post-excitation delay (PED) of each sample in a
+% k-space image.  The row/col in the PED matrix corresponds to that of
+% the kspace image without any reversals (readout or phase encode)
+% applied. Any such operations applied to the kspace image should then
+% be applied to the PED matrix. It is assumed that the even lines were
+% acquired in reverse readout.
 %
 % The perev indicates that k-space was traversed in the reverse
 % phase encode direction. This changes where the center of k-space is
@@ -27,14 +28,28 @@ function pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,perev)
 %           matrix is not flipped UD). If perev is not given or is
 %           empty, no reversal is assumed.
 %
-% $Id: tdr_pedmatrix.m,v 1.3 2004/01/22 00:51:12 greve Exp $
+% $Id: tdr_pedmatrix.m,v 1.4 2006/05/07 23:18:13 greve Exp $
 %
 
 pedmat = [];
 
-if(nargin ~= 6 & nargin ~= 7)
+if(nargin ~= 1 & nargin ~= 6 & nargin ~= 7)
   fprintf('pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,<perev>)\n');
+  fprintf('pedmat = tdr_pedmatrix(epipar)\n');
   return;
+end
+
+if(nargin == 1)
+  % epipar struct
+  epipar = TE; % Just first arg
+  TE = epipar.TE;
+  echospacing = epipar.echospacing;
+  tDwell = epipar.tDwell;
+  ncols = epipar.nkcols;
+  nrows = epipar.nkrows;
+  delsamp = epipar.tDelSamp;
+  if(~isfield(epipar,'perev')) epi.perev = 0; end
+  perev = epi.perev;
 end
 
 if(exist('perev') ~= 1) perev = []; end

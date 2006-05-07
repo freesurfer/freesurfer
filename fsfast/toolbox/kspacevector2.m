@@ -1,22 +1,37 @@
 function [kvec, gvec, K, icenter] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Tds,Tdelay)
 % [kvec, gvec] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Tds,<Tdelay>)
+% [kvec, gvec] = kspacevector2(epipar);
 %
 % Tru = total ramp up time from 0 gradient.
 % Tds = time after start of ramp up until sampline starts
 % Tdelay = delay waveform
 %
-% $Id: kspacevector2.m,v 1.2 2003/11/06 19:44:39 greve Exp $
-
+% See tdr_measasc.m for info about epipar.
+%
+% $Id: kspacevector2.m,v 1.3 2006/05/07 23:18:13 greve Exp $
 
 kvec = [];
 gvec = [];
 
-if(nargin ~= 6 & nargin ~= 7)
+if(nargin ~= 1 & nargin ~= 6 & nargin ~= 7)
   fprintf('[kvec, gvec] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Tds,Tdelay)\n');
+  fprintf('[kvec, gvec] = kspacevector2(epipar)\n');
   return;
 end
 
-if(exist('Tdelay') ~= 1) Tdelay = []; end
+if(nargin == 1)
+  % epipar struct
+  epipar = nReadout; % Just first arg
+  nReadout = epipar.nkcols;
+  tDwell = epipar.tDwell;
+  Tru = epipar.tRampUp;
+  Tft = epipar.tFlat;
+  Trd = epipar.tRampDown;
+  Tds = epipar.tDelSamp;
+  Tdelay = 0;
+end
+
+if(nargin == 6) Tdelay = []; end
 if(isempty(Tdelay)) Tdelay = 0; end
 
 % Example values
