@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.28 2006/05/05 22:47:00 kteich Exp $
+  $Id: fsgdf.c,v 1.29 2006/05/08 19:55:44 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -485,12 +485,16 @@ static FSGD *gdfReadV1(char *gdfname)
 
 }
 
-int gdfReadRegistration(FSGD *gd, int type, char *regname)
+int gdfReadRegistration(FSGD *gd, int type, char *regname,
+			MATRIX* tkregmat,
+			mriTransformRef client_transform,
+			mriVolumeRef client_volume)
 {
   char *cur_char, *base_end;
   int err;
   struct stat  file_info;
   fMRI_REG *reg_info;
+  MATRIX* rasTofRAS;
 
   switch(type)
     {
@@ -547,7 +551,9 @@ int gdfReadRegistration(FSGD *gd, int type, char *regname)
 	  return(-1);
 	}
 
-
+      /* Copy the registration matrix. */
+      rasTofRAS = NULL;
+      MatrixCopy(reg_info->mri2fmri, rasTofRAS);
 
       /* Free the registration info. */
       StatFreeRegistration(&reg_info);

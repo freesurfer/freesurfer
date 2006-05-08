@@ -5,6 +5,8 @@
 
 #include "matrix.h"
 #include "mri.h"
+#include "mriTransform.h"
+#include "mriVolume.h"
 
 #ifdef X
 #undef X
@@ -60,7 +62,11 @@ FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
 FSGD   *gdfRead(char *gdfname, int LoadData);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
-int     gdfReadRegistration(FSGD *gd, int type, char *regname);
+int     gdfReadRegistration(FSGD *gd, int type, 
+			    char *regname,
+			    MATRIX* tkregmat,
+			    mriTransformRef client_transform,
+			    mriVolumeRef client_volume);
 int     gdfCheckMatrixMethod(char *gd2mtx_method);
 int     gdfPrint(FILE *fp, FSGD *gd);
 int     gdfPrintStdout(FSGD *gd);
