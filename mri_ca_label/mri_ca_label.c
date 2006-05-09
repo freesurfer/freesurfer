@@ -35,8 +35,10 @@ static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
+#if 0
 static int load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) ;
 static double compute_conditional_density(MATRIX *m_inv_cov, VECTOR *v_means, VECTOR *v_vals) ;
+#endif
 static int is_possible(GCA *gca,
                        MRI *mri,
                        TRANSFORM *transform,
@@ -64,7 +66,7 @@ static int edit_amygdala(MRI *mri_in,
                          GCA *gca,
                          TRANSFORM *transform,
                          MRI *mri_fixed) ;
-static MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform) ;
+//static MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform) ;
 static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -135,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.71 2006/04/14 22:52:32 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.72 2006/05/09 21:02:22 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.71 2006/04/14 22:52:32 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.72 2006/05/09 21:02:22 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -773,7 +775,12 @@ main(int argc, char *argv[])
 	if (read_fname == NULL)
 		GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
 	if (wmsa)
-		GCAlabelWMandWMSAs(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
+	{
+		MRI *mri_tmp ;
+		mri_tmp = GCAlabelWMandWMSAs(gca, mri_inputs, mri_labeled, NULL, transform) ;
+		MRIfree(&mri_labeled) ;
+		mri_labeled = mri_tmp ;
+	}
 
   /*  GCAfree(&gca) ; */MRIfree(&mri_inputs) ;
 #if 0
@@ -2822,6 +2829,7 @@ is_possible(GCA *gca,
   return(0) ;
 }
 
+#if 0
 #ifdef WSIZE
 #undef WSIZE
 #endif
@@ -2835,20 +2843,21 @@ is_possible(GCA *gca,
 static MRI *
 GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform)
 {
-	int    h, wm_label, wmsa_label, x, y, z, label, nwm, nwmsa, nunknown,
-		     ncaudate, caudate_label;
-	MATRIX *m_cov_wm, *m_cov_wmsa, *m_inv_cov_wmsa, *m_inv_cov_wm, *m_I ;
-	VECTOR *v_mean_wm, *v_mean_wmsa, *v_vals, *v_dif_wm, *v_dif_wmsa, 
-		     *v_dif_caudate, *v_mean_caudate ;
+	int    h, wm_label, wmsa_label, x, y, z, label, nwm, nwmsa, nunknown, ngm,
+		ncaudate, caudate_label, gm_label, n, found, i;
+	MATRIX *m_cov_wm, *m_cov_wmsa, *m_inv_cov_wmsa, *m_inv_cov_wm, *m_I,
+		*m_cov_un, *m_inv_cov_un;
+	VECTOR *v_mean_wm, *v_mean_wmsa, *v_vals, *v_dif_label, *v_dif_wmsa, 
+		*v_mean_caudate, *v_mean_un ;
 	double pwm, pwmsa, wmsa_dist, wm_dist, wm_mdist, wmsa_mdist ;
+	GCA_PRIOR *gcap ;
+	MRI       *mri_tmp = NULL ;
 
-	if (mri_dst_labels == NULL)
-		mri_dst_labels = MRIclone(mri_src_labels, NULL) ;
+	mri_dst_labels = MRIcopy(mri_src_labels, mri_dst_labels) ;
 
 	v_vals = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
-	v_dif_wm = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+	v_dif_label = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
 	v_dif_wmsa = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
-	v_dif_caudate = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
 	m_I = MatrixIdentity(mri_inputs->nframes, NULL) ;
 	for (h = 0 ; h <= 1 ; h++)
 	{
@@ -2857,14 +2866,17 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 			wm_label = Left_Cerebral_White_Matter ;
 			wmsa_label = Left_WM_hypointensities ;
 			caudate_label = Left_Caudate ;
+			gm_label = Left_Cerebral_Cortex ;
 		}
 		else
 		{
 			wm_label = Right_Cerebral_White_Matter ;
 			wmsa_label = Right_WM_hypointensities ;
 			caudate_label = Right_Caudate ;
+			gm_label = Right_Cerebral_Cortex ;
 		}
 
+		GCAcomputeLabelMeansAndCovariances(gca, Unknown, &m_cov_un, &v_mean_un) ;
 		GCAcomputeLabelMeansAndCovariances(gca, wm_label, &m_cov_wm, &v_mean_wm) ;
 		GCAcomputeLabelMeansAndCovariances(gca, caudate_label, &m_cov_wm, &v_mean_caudate) ;
 		GCAcomputeLabelMeansAndCovariances(gca, wmsa_label, &m_cov_wmsa, &v_mean_wmsa) ;
@@ -2872,11 +2884,17 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 		if (m_inv_cov_wm == NULL)
 			ErrorExit(ERROR_BADPARM, "%s: could not compute inverse covariance for %s (%d)",
 								Progname, cma_label_to_name(wm_label), wm_label) ;
+		m_inv_cov_un = MatrixInverse(m_cov_un, NULL) ;
+		if (m_inv_cov_un == NULL)
+			ErrorExit(ERROR_BADPARM, "%s: could not compute inverse covariance for %s (%d)",
+								Progname, cma_label_to_name(Unknown), Unknown) ;
 		m_inv_cov_wmsa = MatrixInverse(m_cov_wmsa, NULL) ;
 		if (m_inv_cov_wmsa == NULL)
 			ErrorExit(ERROR_BADPARM, "%s: could not compute inverse covariance for %s (%d)",
 								Progname, cma_label_to_name(wmsa_label), wmsa_label) ;
 
+		// do max likelihood reclassification of possible wmsa voxels
+		// if they are in a nbhd with likely labels
 		for (x = 0 ; x < mri_inputs->width ; x++)
 		{
 			for (y = 0 ; y < mri_inputs->height ; y++)
@@ -2907,6 +2925,17 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 					}
 					else if (nwm+nwmsa < .9*WSIZE*WSIZE*WSIZE)  // somewhat arbitrary - the bulk of the nbhd
 						continue ;
+
+					gcap = getGCAP(gca, mri_dst_labels, transform, x, y, z) ;
+					for (found = n = 0 ; n < gcap->nlabels ; n++)
+						if ((IS_WHITE_CLASS(gcap->labels[n]) && gcap->priors[n] > 0.1) ||
+								IS_HYPO(gcap->labels[n]))
+							found = 1 ;
+					if (found == 0)  // no chance of wm or wmsa here
+						continue ;
+
+					if (label == Unknown)
+						DiagBreak() ;
 					load_val_vector(v_vals, mri_inputs, x, y, z) ;
 					pwm = compute_conditional_density(m_inv_cov_wm, v_mean_wm, v_vals) ;
 					pwmsa = compute_conditional_density(m_inv_cov_wmsa, v_mean_wmsa, v_vals) ;
@@ -2924,18 +2953,20 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 										 wm_dist, wmsa_dist, wm_mdist, wmsa_mdist) ;
 						if ((wm_dist > wmsa_dist) && (wm_mdist > wmsa_mdist))
 						{
-							VectorSubtract(v_vals, v_mean_wm, v_dif_wm) ;
+							VectorSubtract(v_vals, v_mean_wm, v_dif_label) ;
 							VectorSubtract(v_vals, v_mean_wmsa, v_dif_wmsa) ;
 							if (
-									((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_wm,1))) &&
-									(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_wm,2))) &&
-									 (fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_wm,3)))) ||
+									((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_label,1))) &&
+									 (fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_label,2))) &&
+									 (fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_label,3)))) ||
 									((2*wmsa_dist < wm_dist) && (2*wmsa_mdist < wm_mdist)))
 							{
 								if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
 									printf("changing label from %s to %s\n",
 												 cma_label_to_name(label),
 												 cma_label_to_name(wmsa_label)) ;
+								if (label == Unknown)
+									DiagBreak() ;
 								label = wmsa_label ;
 							}
 						}
@@ -2945,85 +2976,126 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
 			}
 		}
 
-		// now do 1 iteration of region growing
-		for (x = 0 ; x < mri_inputs->width ; x++)
+		// now do 3 iterations of region growing
+		for (i = 0 ; i < 3 ; i++)
 		{
-			for (y = 0 ; y < mri_inputs->height ; y++)
+			mri_tmp = MRIcopy(mri_dst_labels, mri_tmp) ;
+			for (x = 0 ; x < mri_inputs->width ; x++)
 			{
-				for (z = 0 ; z < mri_inputs->depth ; z++)
+				for (y = 0 ; y < mri_inputs->height ; y++)
 				{
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-						DiagBreak() ;
-					label = MRIgetVoxVal(mri_dst_labels, x, y, z, 0) ;
-					if (label != wm_label && label != Unknown && label != caudate_label)
-						continue ;
-					load_val_vector(v_vals, mri_inputs, x, y, z) ;
-					nwmsa = MRIlabelsInNbhd(mri_dst_labels, x, y, z, 1, wmsa_label) ;
-					if (nwmsa < 1)
-						continue ;
+					for (z = 0 ; z < mri_inputs->depth ; z++)
+					{
+						if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+							DiagBreak() ;
+						label = MRIgetVoxVal(mri_dst_labels, x, y, z, 0) ;
+						if (label != wm_label && label != Unknown && label != caudate_label)
+							continue ;
+						load_val_vector(v_vals, mri_inputs, x, y, z) ;
+						nwmsa = MRIlabelsInNbhd(mri_dst_labels, x, y, z, 1, wmsa_label) ;
+						if (nwmsa < 1)
+							continue ;
+						gcap = getGCAP(gca, mri_dst_labels, transform, x, y, z) ;
+						for (found = n = 0 ; n < gcap->nlabels ; n++)
+							if ((IS_WHITE_CLASS(gcap->labels[n]) && gcap->priors[n] > 0.1) ||
+									IS_HYPO(gcap->labels[n]))
+								found = 1 ;
+						if (found == 0)  // no chance of wm or wmsa here
+							continue ;
 
-					// only process it if it's in the body of the wm
+						// only process it if it's in the body of the wm
 #undef WSIZE
 #define WSIZE 5
 #define WHALF ((WSIZE-1)/2)
 
-					nwm = MRIlabelsInNbhd(mri_src_labels, x, y, z, WHALF, wm_label) ;
-					nwmsa = MRIlabelsInNbhd(mri_src_labels, x, y, z,WHALF, wmsa_label) ;
-					nunknown = MRIlabelsInNbhd(mri_src_labels, x, y, z,WHALF, Unknown) ;
-					ncaudate = MRIlabelsInNbhd(mri_src_labels, x, y, z,WHALF, caudate_label) ;
-					if (ncaudate+nwm+nwmsa+nunknown < .9*WSIZE*WSIZE*WSIZE)  // somewhat arbitrary - the bulk of the nbhd
-						continue ;
-					wm_dist = VectorDistance(v_mean_wm, v_vals) ;
-					wmsa_dist = VectorDistance(v_mean_wmsa, v_vals) ;
-					VectorSubtract(v_vals, v_mean_wmsa, v_dif_wmsa) ;
-					if (label == caudate_label)
-					{
-						VectorSubtract(v_vals, v_mean_caudate, v_dif_caudate) ;
-						if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-							printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
-										 wm_dist, wmsa_dist) ;
-						if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_caudate,1))) &&
-								(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_caudate,2))) &&
-								(fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_caudate,3))))
+						nwm = MRIlabelsInNbhd(mri_tmp, x, y, z, WHALF, wm_label) ;
+						nwmsa = MRIlabelsInNbhd(mri_tmp, x, y, z,WHALF, wmsa_label) ;
+						nunknown = MRIlabelsInNbhd(mri_tmp, x, y, z,WHALF, Unknown) ;
+						ncaudate = MRIlabelsInNbhd(mri_tmp, x, y, z,WHALF, caudate_label) ;
+						ngm = MRIlabelsInNbhd(mri_tmp, x, y, z,WHALF, gm_label) ;
+
+						if (ngm+ncaudate+nwm+nwmsa+nunknown < .9*WSIZE*WSIZE*WSIZE)  // somewhat arbitrary - the bulk of the nbhd
+							continue ;
+						ngm = MRIlabelsInNbhd(mri_tmp, x, y, z,1, gm_label) ;
+						if (ngm > 0)  // not if there are any nearest nbrs that are gm
+							continue ;
+						if (nwm + nwmsa == 0)
+							continue ;
+						wm_dist = VectorDistance(v_mean_wm, v_vals) ;
+						wmsa_dist = VectorDistance(v_mean_wmsa, v_vals) ;
+						VectorSubtract(v_vals, v_mean_wmsa, v_dif_wmsa) ;
+						if (label == caudate_label)
 						{
+							VectorSubtract(v_vals, v_mean_caudate, v_dif_label) ;
 							if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-								printf("changing label from %s to %s\n",
-											 cma_label_to_name(label),
-											 cma_label_to_name(wmsa_label)) ;
-							label = wmsa_label ;
+								printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
+											 wm_dist, wmsa_dist) ;
+							if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_label,1))) &&
+									(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_label,2))) &&
+									(fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_label,3))))
+							{
+								if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+									printf("changing label from %s to %s\n",
+												 cma_label_to_name(label),
+												 cma_label_to_name(wmsa_label)) ;
+								label = wmsa_label ;
+							}
 						}
-					}
-					else
-					{
-						VectorSubtract(v_vals, v_mean_wm, v_dif_wm) ;
-						if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-							printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
-										 wm_dist, wmsa_dist) ;
-						if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_wm,1))) &&
-								(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_wm,2))) &&
-								(fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_wm,3))))
+						else if (label == wm_label)
 						{
+							VectorSubtract(v_vals, v_mean_wm, v_dif_label) ;
 							if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-								printf("changing label from %s to %s\n",
-											 cma_label_to_name(label),
-											 cma_label_to_name(wmsa_label)) ;
-							label = wmsa_label ;
+								printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
+											 wm_dist, wmsa_dist) ;
+							if (((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_label,1))) &&
+									(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_label,2))) &&
+									 (fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_label,3)))) ||
+									 (wmsa_dist*3 < wm_dist))
+							{
+								if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+									printf("changing label from %s to %s\n",
+												 cma_label_to_name(label),
+												 cma_label_to_name(wmsa_label)) ;
+								if (label == Unknown)
+									DiagBreak() ;
+								label = wmsa_label ;
+							}
 						}
+						else if (label == Unknown)
+						{
+							VectorSubtract(v_vals, v_mean_un, v_dif_label) ;
+							if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+								printf("         - wm_dist = %2.0f, wmsa_dist = %2.0f\n",
+											 wm_dist, wmsa_dist) ;
+							if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) < fabs(VECTOR_ELT(v_dif_label,1))) &&
+									(fabs(VECTOR_ELT(v_dif_wmsa,2)) < fabs(VECTOR_ELT(v_dif_label,2))) &&
+									(fabs(VECTOR_ELT(v_dif_wmsa,3)) < fabs(VECTOR_ELT(v_dif_label,3))))
+							{
+								if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+									printf("changing label from %s to %s\n",
+												 cma_label_to_name(label),
+												 cma_label_to_name(wmsa_label)) ;
+								if (label == Unknown)
+									DiagBreak() ;
+								label = wmsa_label ;
+							}
+						}
+						MRIsetVoxVal(mri_dst_labels, x, y, z, 0, label) ;
 					}
-					MRIsetVoxVal(mri_dst_labels, x, y, z, 0, label) ;
 				}
 			}
 		}
+		MatrixFree(&m_cov_un) ; MatrixFree(&m_inv_cov_un) ;
 		MatrixFree(&m_cov_wm) ; MatrixFree(&m_inv_cov_wm) ;
 		MatrixFree(&m_cov_wmsa) ; MatrixFree(&m_inv_cov_wmsa) ;
 		VectorFree(&v_mean_wm) ; VectorFree(&v_mean_wmsa) ;
 		VectorFree(&v_mean_caudate) ;
+		VectorFree(&v_mean_un) ;
 	}
-	VectorFree(&v_vals) ; VectorFree(&v_dif_wm) ; VectorFree(&v_dif_wmsa) ; 
-	VectorFree(&v_dif_caudate) ;
+	VectorFree(&v_vals) ; VectorFree(&v_dif_label) ; VectorFree(&v_dif_wmsa) ; 
+	MRIfree(&mri_tmp) ;
 	return(mri_dst_labels) ;
 }
-
 static double
 compute_conditional_density(MATRIX *m_inv_cov, VECTOR *v_means, VECTOR *v_vals)
 {
@@ -3048,3 +3120,4 @@ load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z)
 	return(NO_ERROR) ;
 }
 
+#endif
