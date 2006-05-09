@@ -557,7 +557,37 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
 
-  /* do the same for the idx -> ras transform. ? */
+  /* This is a very strange function and should be rewritten. The
+     original intention was to have a matrix that went from A->B
+     index->RAS. But in reality, this function creates a matrix that
+     in which A is MRI Idx and B is conformed idx or Ana idx. The RAS
+     space is scanner RAS space. Then you can use A->RAS and RAS->A to
+     convert between scanner RAS and MRI idx, and B->RAS and RAS->B to
+     convert between scanner RAS and Ana Idx.
+
+     Furthermore, this transform is never used in mriVolume.c, as we
+     now use the MRIworldToVoxel etc functions. But this transform is
+     used by tkmedit, esp in the functional transform code.
+
+     Here's the Tosa diagram.
+
+
+                           extract_i_to_r()
+                           = MRIxfmCRS2XYZ()
+
+       "MRI Idx" or (i,j,k) (A)   --------> RAS
+                                             |
+                                             |    Identity
+                                             |
+                                             V
+      "Ana Idx" or conformed (B)  --------> RAS
+
+                    extract_i_to_r * m_resample
+                    = MRIxfmCRS2XYZ() * MRIGetConformMtx()             
+
+  */
+
+  /* Delete existing transform. */
   if( NULL != this->mIdxToRASTransform ) {
     DebugNote( ("Deleting existing idx to ras transform") );
     Trns_Delete( &(this->mIdxToRASTransform) );
@@ -569,8 +599,8 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
   
   identity = MatrixIdentity( 4, NULL );
 
-  /* AtoRAS is extract_i_to_r. This includes the voxel size
-     calculation. */
+  /* AtoRAS is extract_i_to_r. This goes from MRI Idx or (i,j,k) to
+     scanner RAS. This includes the voxel size calculation. */
   DebugNote( ("Getting idx to ras matrix") );
   idxToRASTransform = extract_i_to_r( this->mpMriValues );
   DebugAssertThrowX( (NULL != idxToRASTransform),
@@ -578,20 +608,20 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
   DebugNote( ("Copying idx to ras transform matrix into AtoRAS") );
   Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
   
-  /* ARSToBRAS is identity */
+  /* ARSToBRAS is identity. */
   DebugNote( ("Copying identity matrix into ARAStoBRAS") );
   Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity );
   
   /* BtoRAS = AtoRAS * m_resample */
   /*        = extract_i_to_r * m_resample */
+  /*        = MRIxfmCRS2XYZ() * MRIGetConformMtx() */
+  /* This goes from Ana Idx or conformed index to scanner RAS. */
   DebugNote( ("Copying calc'd matrix into BtoRAS") );
   BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
-
   Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
   
   DebugNote( ("Freeing BtoRAS tmp matrix") );
   MatrixFree(&BtoRAS);
-
 
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   DebugCatch;
