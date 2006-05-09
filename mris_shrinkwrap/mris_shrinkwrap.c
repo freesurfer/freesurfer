@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "mrisegment.h"
 
-static char vcid[] = "$Id: mris_shrinkwrap.c,v 1.3 2005/12/13 21:23:49 fischl Exp $";
+static char vcid[] = "$Id: mris_shrinkwrap.c,v 1.4 2006/05/09 17:07:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,7 +71,7 @@ main(int argc, char *argv[])
 	double        l_spring ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_shrinkwrap.c,v 1.3 2005/12/13 21:23:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_shrinkwrap.c,v 1.4 2006/05/09 17:07:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
 		mri_dist = MRIdistanceTransform(mri_masked, NULL, BORDER_VAL, 10000, DTRANS_MODE_SIGNED) ;
 		parms.l_shrinkwrap = 0 ;  // use intensity term
 		parms.l_spring_norm = parms.l_spring ; parms.l_spring = 0 ;
-		sprintf(parms.base_name, "%s_label%d%s%s", FileNameOnly(vol_name, fname), target_label, output_suffix, suffix) ;
+		sprintf(parms.base_name, "%s%s%s", FileNameOnly(output_dir, fname), output_suffix, suffix) ;
 		MRISsetVals(mris,parms.sigma) ; MRIScopyValToVal2(mris) ;
 		MRISsetVals(mris, 0) ;  // 0 distance is the target
 		
