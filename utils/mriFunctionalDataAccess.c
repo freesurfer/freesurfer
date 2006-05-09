@@ -577,6 +577,50 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
 		      iType < FunD_knNumRegistrationTypes), eResult,
 		     FunD_tErr_InvalidParameter );
   
+  /* This function builds a functional registration transform that
+     takes from:
+
+     A: "client space" 
+  ARAS: to scanner RAS
+  BRAS: tkRegRAS
+     B: functional index
+
+     In this case, we use our clientTransform B->RAS as our own A->RAS
+     transform. This is a hack; we know that what we really want out
+     of the clientTransform is only the B->RAS section (which does
+     conformed anatomical index -> scanner RAS). This should be
+     rewritten so that the clientTransform actually goes from an index
+     space (conformed or not, it's up to the client) to tkRegRAS space
+     in A->B.
+
+     The ARAS->BRAS transform not only goes from scanner RAS to
+     tkRegRAS, but also registers the functional volume onto the
+     client. The ARAS->BRAS does a lot.
+
+     The B->RAS transform takes functional index into tkRegRAS
+     space. Note that this is a different RAS space than the ARAS
+     space. Whee.
+
+     The ARAS->BRAS transform does:
+
+     1: Scanner RAS -> anatomical index (non-conformed). This is done
+     with the clientTransform RAS->A, again because we know something
+     about the clientTransform that tkmedit provides us. This should
+     be rewritten so that this part doesn't need to be done.
+
+     2: -> tkRegRAS. This is done with the tkRegMat, which is calced
+     in tkmedit and is based on the anatomical properties of the
+     anatomical volume. This places the center of the volume in the
+     center of volume.
+
+     3: -> registered tkRegRAS. Same RAS space, but uses the
+     registration matrix to register the volume. In the case where the
+     user wants an identity transform, it uses MRItkRegMtx() to calc
+     one between the two volumes.
+
+  */     
+
+
   /* Switch on the registration type. */
   switch( iType ) {
 
@@ -657,13 +701,14 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
 		   theRegInfo->in_plane_res, theRegInfo->slice_thickness) );
     }
 
-    // create RAS to fRAS transform
+    /* Create RAS to fRAS transform. This incorperates going from
+       scanner RAS to non-conformed client index (RAS->A), then to
+       tkRegRAS, then to registered tkRegRAS space. */
     rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
 				    this->mClientTransform->mRAStoA, NULL);
     rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, 
 				    NULL);
     MatrixFree(&rasTotkregRAS);
-    
     
     /* get rid of the registration info. */
     StatFreeRegistration ( &theRegInfo );
@@ -718,7 +763,10 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     rasTofRAS = MRItkRegMtx( iAnatomicalVolume->mpMriValues,
 			     this->mpData, NULL );
 
-    /* I'm not sure why this is needed, but it works. DNG*/
+    /* No we have a matrix that goes from tkRegRAS to tkRegRAS, but we
+       still need to first go from scanner RAS space to tkRegRAS, so
+       premultiply the scannerRAS -> non-comformed client index ->
+       tkRegRAS transforms. */
     rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
 				    this->mClientTransform->mRAStoA, NULL);
     rasTofRAS     = MatrixMultiply( rasTofRAS, rasTotkregRAS, 
@@ -743,48 +791,19 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   }
 
 
-  /* create transform for conformed volume vs. functional volume Note
-     that theRegInfo->mri2fmri is calculated using the tkregRAS, i.e.
-     the standard rotation matrix */
-  
-  /*
-   *                     
-   *        conformed(B)  -----> RAS  (c_(r,a,s) != 0)
-   *           ^         fixed    |                      These four transfomrs
-   *           |                  |                makes this->mClientTransform
-   *           |                  |identity                        
-   *           |                  |
-   *        original (A)  -----> RAS  (c_(r,a,s) != 0)
-   *           |         given    |
-   *           | identity         | ? rasTotkregRAS
-   *           |                  V
-   *        original      ----> tkregRAS  (c_(r,a,s) == 0)
-   *           |       [tkregMat] |
-   *           | ? (2)            | mri2fmri
-   *           V                  V
-   *        functional    ---->  fRAS      (c_(r,a,s) == 0)
-   *                     fixed
-   * 
-   * Using this picture to create the following transform mIdxToIdxTransform 
-   *
-   *                             AtoRAS
-   *        A (conformed volume) ----> RAS
-   *        |                           | 
-   *        V                           V 
-   *        B (functional volume) ---> RAS
-   *                             BtoRAS 
-   */
-
-  /* Note that mClientTransform keeps track of src(A) and conformed
-     volume(B).  Thus */
+  /* This uses knowledge that the clientTransform from tkmedit is
+     special purpose and clientTransform's B->RAS actualy takes us
+     from conformed anatomical index to scanner RAS.  */
   Trns_CopyAtoRAS(this->mIdxToIdxTransform, this->mClientTransform->mBtoRAS);
 
-  /* set ARAStoBRAS ( conformed volume RAS = src RAS and thus you can
-     use the same) */
+  /* This takes us from scanner RAS space to registered tkRegRAS
+     space. This is what we caluclated above. */
   Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, rasTofRAS );
   MatrixFree(&rasTofRAS);
 
-  /* create the functional index to functional ras matrix */
+  /* Calculate the transfrom between functional index to tkRegRAS
+     space. This transforms the volume to the center and does the
+     voxel size scaling. */
   mTmp = MatrixAlloc( 4, 4, MATRIX_REAL );
   MatrixClear( mTmp );
   *MATRIX_RELT(mTmp,1,1) = -ps;
@@ -794,11 +813,9 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   *MATRIX_RELT(mTmp,2,4) = -(st*slices) / 2.0;
   *MATRIX_RELT(mTmp,3,4) = (ps*rows) / 2.0;
   *MATRIX_RELT(mTmp,4,4) = 1.0;
-  /* set BtoRAS */
+
   Trns_CopyBtoRAS( this->mIdxToIdxTransform, mTmp );
-  /* by doing this->mIdxToIdxTransform->mRAStoB is calculated */
   MatrixFree( &mTmp );
-  /* we finished constructing this->mIdxToIdxTransform */
 
   /* Save the registration. */
   Trns_DeepClone( this->mIdxToIdxTransform,&this->mOriginalIdxToIdxTransform );
