@@ -7344,30 +7344,29 @@ static MRI *gdfRead(char *fname, int read_volume)
 
       for(k = 0;k < mri->depth;k++)
         {
-          if(k >= (int)min_crop[1] && k <= (int)max_crop[1])
-            continue;
           for(j = 0;j < mri->height;j++)
             {
-              if(j >= (int)min_crop[2] && j <= (int)max_crop[2])
-                continue;
               for(i = 0;i < mri->width;i++)
                 {
-                  if(i >= (int)min_crop[0] && i <= (int)max_crop[0])
-                    continue;
-                  if(mri->type == MRI_UCHAR)
-                    MRIvox(mri, i, j, k) = 0;
-                  else if(mri->type == MRI_SHORT)
-                    MRISvox(mri, i, j, k) = 0;
-                  else if(mri->type == MRI_FLOAT)
-                    MRIFvox(mri, i, j, k) = 0.0;
-                  else
+                  if(i < (int)min_crop[0] || i > (int)max_crop[0] || 
+                     j < (int)min_crop[2] || j > (int)max_crop[2] || 
+                     k < (int)min_crop[1]-1 || k > (int)max_crop[1]-1)
                     {
-                    MRIfree(&mri);
-                    errno = 0;
-                    ErrorReturn
-                      (NULL,
-                       (ERROR_BADFILE,
-                        "gdfRead(): internal error (data type while cropping"));
+                      if(mri->type == MRI_UCHAR)
+                        MRIvox(mri, i, j, k) = 0;
+                      else if(mri->type == MRI_SHORT)
+                        MRISvox(mri, i, j, k) = 0;
+                      else if(mri->type == MRI_FLOAT)
+                        MRIFvox(mri, i, j, k) = 0.0;
+                      else
+                        {
+                        MRIfree(&mri);
+                        errno = 0;
+                        ErrorReturn
+                          (NULL,
+                           (ERROR_BADFILE,
+                            "gdfRead(): internal error (data type while cropping"));
+                        }
                     }
                 }
             }
