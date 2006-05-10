@@ -1564,14 +1564,11 @@ SWIG_Tcl_GetArgs(Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[], const char
 /* -------- TYPES TABLE (BEGIN) -------- */
 
 #define SWIGTYPE_p_FSGD swig_types[0]
-#define SWIGTYPE_p_MATRIX swig_types[1]
-#define SWIGTYPE_p_char swig_types[2]
-#define SWIGTYPE_p_float swig_types[3]
-#define SWIGTYPE_p_int swig_types[4]
-#define SWIGTYPE_p_mriTransformRef swig_types[5]
-#define SWIGTYPE_p_mriVolumeRef swig_types[6]
-static swig_type_info *swig_types[8];
-static swig_module_info swig_module = {swig_types, 7, 0, 0, 0, 0};
+#define SWIGTYPE_p_char swig_types[1]
+#define SWIGTYPE_p_float swig_types[2]
+#define SWIGTYPE_p_int swig_types[3]
+static swig_type_info *swig_types[5];
+static swig_module_info swig_module = {swig_types, 4, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -1725,82 +1722,6 @@ _wrap_gdfRead(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tc
   return TCL_OK;
 fail:
   if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
-  return TCL_ERROR;
-}
-
-
-SWIGINTERN int
-_wrap_gdfReadRegistration(ClientData clientData SWIGUNUSED, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
-  FSGD *arg1 = (FSGD *) 0 ;
-  int arg2 ;
-  char *arg3 = (char *) 0 ;
-  MATRIX *arg4 = (MATRIX *) 0 ;
-  mriTransformRef arg5 ;
-  mriVolumeRef arg6 ;
-  int result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
-  int res3 ;
-  char *buf3 = 0 ;
-  int alloc3 = 0 ;
-  void *argp4 = 0 ;
-  int res4 = 0 ;
-  void *argp5 ;
-  int res5 = 0 ;
-  void *argp6 ;
-  int res6 = 0 ;
-  
-  if (SWIG_GetArgs(interp, objc, objv,"oooooo:gdfReadRegistration gd type regname tkregmat client_transform client_volume ",(void *)0,(void *)0,(void *)0,(void *)0,(void *)0,(void *)0) == TCL_ERROR) SWIG_fail;
-  res1 = SWIG_ConvertPtr(objv[1], &argp1,SWIGTYPE_p_FSGD, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "gdfReadRegistration" "', argument " "1"" of type '" "FSGD *""'"); 
-  }
-  arg1 = (FSGD *)(argp1);
-  ecode2 = SWIG_AsVal_int SWIG_TCL_CALL_ARGS_2(objv[2], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gdfReadRegistration" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = (int)(val2);
-  res3 = SWIG_AsCharPtrAndSize(objv[3], &buf3, NULL, &alloc3);
-  if (!SWIG_IsOK(res3)) {
-    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "gdfReadRegistration" "', argument " "3"" of type '" "char *""'");
-  }
-  arg3 = buf3;
-  res4 = SWIG_ConvertPtr(objv[4], &argp4,SWIGTYPE_p_MATRIX, 0 |  0 );
-  if (!SWIG_IsOK(res4)) {
-    SWIG_exception_fail(SWIG_ArgError(res4), "in method '" "gdfReadRegistration" "', argument " "4"" of type '" "MATRIX *""'"); 
-  }
-  arg4 = (MATRIX *)(argp4);
-  {
-    res5 = SWIG_ConvertPtr(objv[5], &argp5, SWIGTYPE_p_mriTransformRef,  0 );
-    if (!SWIG_IsOK(res5)) {
-      SWIG_exception_fail(SWIG_ArgError(res5), "in method '" "gdfReadRegistration" "', argument " "5"" of type '" "mriTransformRef""'"); 
-    }  
-    if (!argp5) {
-      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "gdfReadRegistration" "', argument " "5"" of type '" "mriTransformRef""'");
-    } else {
-      arg5 = *((mriTransformRef *)(argp5));
-    }
-  }
-  {
-    res6 = SWIG_ConvertPtr(objv[6], &argp6, SWIGTYPE_p_mriVolumeRef,  0 );
-    if (!SWIG_IsOK(res6)) {
-      SWIG_exception_fail(SWIG_ArgError(res6), "in method '" "gdfReadRegistration" "', argument " "6"" of type '" "mriVolumeRef""'"); 
-    }  
-    if (!argp6) {
-      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "gdfReadRegistration" "', argument " "6"" of type '" "mriVolumeRef""'");
-    } else {
-      arg6 = *((mriVolumeRef *)(argp6));
-    }
-  }
-  result = (int)gdfReadRegistration(arg1,arg2,arg3,arg4,arg5,arg6);
-  Tcl_SetObjResult(interp,SWIG_From_int((int)(result)));
-  if (alloc3 == SWIG_NEWOBJ) free((char*)buf3);
-  return TCL_OK;
-fail:
-  if (alloc3 == SWIG_NEWOBJ) free((char*)buf3);
   return TCL_ERROR;
 }
 
@@ -2579,7 +2500,6 @@ fail:
 
 static swig_command_info swig_commands[] = {
     { SWIG_prefix "gdfRead", (swig_wrapper_func) _wrap_gdfRead, NULL},
-    { SWIG_prefix "gdfReadRegistration", (swig_wrapper_func) _wrap_gdfReadRegistration, NULL},
     { SWIG_prefix "gdfPrintStdout", (swig_wrapper_func) _wrap_gdfPrintStdout, NULL},
     { SWIG_prefix "gdfGetTitle", (swig_wrapper_func) _wrap_gdfGetTitle, NULL},
     { SWIG_prefix "gdfGetMeasurementName", (swig_wrapper_func) _wrap_gdfGetMeasurementName, NULL},
@@ -2613,39 +2533,27 @@ static swig_const_info swig_constants[] = {
 /* -------- TYPE CONVERSION AND EQUIVALENCE RULES (BEGIN) -------- */
 
 static swig_type_info _swigt__p_FSGD = {"_p_FSGD", "FSGD *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_MATRIX = {"_p_MATRIX", "MATRIX *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_float = {"_p_float", "float *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_int = {"_p_int", "int *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_mriTransformRef = {"_p_mriTransformRef", "mriTransformRef *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_mriVolumeRef = {"_p_mriVolumeRef", "mriVolumeRef *", 0, 0, (void*)0, 0};
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_FSGD,
-  &_swigt__p_MATRIX,
   &_swigt__p_char,
   &_swigt__p_float,
   &_swigt__p_int,
-  &_swigt__p_mriTransformRef,
-  &_swigt__p_mriVolumeRef,
 };
 
 static swig_cast_info _swigc__p_FSGD[] = {  {&_swigt__p_FSGD, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_MATRIX[] = {  {&_swigt__p_MATRIX, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_float[] = {  {&_swigt__p_float, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_int[] = {  {&_swigt__p_int, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_mriTransformRef[] = {  {&_swigt__p_mriTransformRef, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_mriVolumeRef[] = {  {&_swigt__p_mriVolumeRef, 0, 0, 0},{0, 0, 0, 0}};
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_FSGD,
-  _swigc__p_MATRIX,
   _swigc__p_char,
   _swigc__p_float,
   _swigc__p_int,
-  _swigc__p_mriTransformRef,
-  _swigc__p_mriVolumeRef,
 };
 
 

@@ -21,10 +21,6 @@
 }
 
 extern FSGD *gdfRead(char *gdfname, int loaddata);
-extern int gdfReadRegistration(FSGD *gd, int type, char *regname,
-			MATRIX* tkregmat,
-			mriTransformRef client_transform,
-			mriVolumeRef client_volume);
 extern int gdfPrintStdout(FSGD *gd);
 extern int gdfGetTitle(FSGD *gd, char *OUTSTRING);
 extern int gdfGetMeasurementName(FSGD *gd, char *OUTSTRING);

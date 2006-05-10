@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.29 2006/05/08 19:55:44 kteich Exp $
+  $Id: fsgdf.c,v 1.30 2006/05/10 15:12:37 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -485,89 +485,39 @@ static FSGD *gdfReadV1(char *gdfname)
 
 }
 
-int gdfReadRegistration(FSGD *gd, int type, char *regname,
-			MATRIX* tkregmat,
-			mriTransformRef client_transform,
-			mriVolumeRef client_volume)
+/*--------------------------------------------------
+  gdfGetDataMRIHeader() - returns the MRI header 
+  information for the data in the given FSGD header
+  file. This is only the header info, not the data.
+  --------------------------------------------------*/
+MRI *gdfReadDataInfo(char *gdfname)
 {
-  char *cur_char, *base_end;
-  int err;
-  struct stat  file_info;
-  fMRI_REG *reg_info;
-  MATRIX* rasTofRAS;
+  FSGD *gd=NULL;
+  MRI *info=NULL;
 
-  switch(type)
-    {
-    case FSGDF_REGTYPE_FILE:
-    case FSGDF_REGTYPE_FIND:
+  /* Read this header file but don't load the data. */
+  gd = gdfRead(gdfname, 0);
+  if(NULL==gd){
+    printf("ERROR: gdfReadDataInfo: Couldn't read GDF %s\n",gdfname);
+    return(NULL);
+  }
 
-      /* If we're reading a file, copy the file from the input or
-	 generate one from our data file location. */
-      if(FSGDF_REGTYPE_FILE==type)
-	{
-	  strcpy(gd->regname, regname);
-	}
-      else if(FSGDF_REGTYPE_FIND==type)
-	{
-	  /* Copy the data name and find the last / in the file
-	     name. From there, copy in "register.dat" for our file
-	     name. */
-	  strcpy(gd->regname, gd->datafile);
-	  cur_char = gd->regname;
-	  base_end = gd->regname;
-	  while(NULL!=cur_char && '\0' != *cur_char)
-	    {
-	      if('/' == *cur_char) 
-		base_end = cur_char;
-	      cur_char++;
-	    }
-	  base_end = '\0';
-	  sprintf(gd->regname,"%s/%s",gd->regname,"register.dat");
-	}
+  /* Now try and read an MRI struct from the datafile file name we
+     got. This doesn't load the data, just the header info. */
+  info = MRIreadInfo(gd->datafile);
+  if(NULL==info){
+    printf("ERROR: gdfReadDataInfo: Couldn't read MRI %s\n",gd->datafile);
+    gdfFree(&gd);
+    return(NULL);
+  }
 
-      /* Check that the file exists. */
-      err = stat(gd->regname,&file_info);
-      if(0!=err) 
-	{
-	  printf("ERROR: Couldn't find FSGD registration %s\n",gd->regname);
-	  strcpy(gd->regname,"");
-	  return(-1);
-	}
-      
-      /* Check if it's a regular file. */
-      if(!S_ISREG(file_info.st_mode))
-	{
-	  printf("ERROR: Couldn't open FSGD registration %s\n",gd->regname);
-	  strcpy(gd->regname,"");
-	  return(-1);
-	}
+  /* Free the GDF info. */
+  gdfFree(&gd);
 
-      /* Read the registration */
-      reg_info = StatReadRegistration(gd->regname);
-      if(NULL==reg_info)
-	{
-	  printf("ERROR: Problem reading FSGD registration %s\n",gd->regname);
-	  strcpy(gd->regname,"");
-	  return(-1);
-	}
-
-      /* Copy the registration matrix. */
-      rasTofRAS = NULL;
-      MatrixCopy(reg_info->mri2fmri, rasTofRAS);
-
-      /* Free the registration info. */
-      StatFreeRegistration(&reg_info);
-      
-
-      break;
-    case FSGDF_REGTYPE_IDENTITY:
-      break;
-    }      
-
-  gd->regtype = type;
-
-  return(0);
+  /* Return the MRI header we got. */
+  return info;
 }
+
 
 /*--------------------------------------------------
   gdfClassNo() - returns the zero-based class number 
