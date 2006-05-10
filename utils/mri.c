@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/13 18:55:08 $
-// Revision       : $Revision: 1.344 $
-char *MRI_C_VERSION = "$Revision: 1.344 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/05/10 21:55:11 $
+// Revision       : $Revision: 1.345 $
+char *MRI_C_VERSION = "$Revision: 1.345 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2421,29 +2421,72 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
     ---------------------------------------------------*/
 }
 
-//--------------------------------------------------------------
+/*------------------------------------------------------------------
+  surfaceRASFromRAS_(MRI *mri): creates a matrix that converts from
+  Scanner RAS to TkRAS (what Tosa called "surface"  RAS). Note:
+  intermediate matrices are alloced, inverted, and dealloced, so
+  it might not be a good thing to have inside a loop.
+  --------------------------------------------------------------*/
 MATRIX *surfaceRASFromRAS_(MRI *mri)
 {
   MATRIX *sRASFromRAS;
+  MATRIX *Vox2TkRAS, *Vox2RAS;
+
+  Vox2RAS = MRIxfmCRS2XYZ(mri,0); // scanner vox2ras
+  Vox2TkRAS = MRIxfmCRS2XYZtkreg(mri); // tkreg vox2ras
+  // sRASFromRAS = Vox2TkRAS * inv(Vox2RAS)
+  sRASFromRAS = MatrixInverse(Vox2RAS,NULL);
+  sRASFromRAS = MatrixMultiply(Vox2TkRAS,sRASFromRAS,sRASFromRAS);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&Vox2TkRAS);
+  return(sRASFromRAS);
+
+  /*-----------------------------------------
+  // Tosa's code: only works for conformed vols
   sRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
   MatrixIdentity(4, sRASFromRAS);
   *MATRIX_RELT(sRASFromRAS, 1,4) = - mri->c_r;
   *MATRIX_RELT(sRASFromRAS, 2,4) = - mri->c_a;
   *MATRIX_RELT(sRASFromRAS, 3,4) = - mri->c_s;
   return sRASFromRAS;
+  *---------------------------------------------*/
 }
-//--------------------------------------------------------------
+/*------------------------------------------------------------------
+  RASFromSurfaceRAS_(MRI *mri): creates a matrix that converts from
+  TkRAS to Scanner RAS (what Tosa called "surface"  RAS). Note:
+  intermediate matrices are alloced, inverted, and dealloced, so
+  it might not be a good thing to have inside a loop.
+  --------------------------------------------------------------*/
 MATRIX *RASFromSurfaceRAS_(MRI *mri)
 {
   MATRIX *RASFromSRAS;
+
+  MATRIX *Vox2TkRAS, *Vox2RAS;
+
+  Vox2RAS = MRIxfmCRS2XYZ(mri,0); // scanner vox2ras
+  Vox2TkRAS = MRIxfmCRS2XYZtkreg(mri); // tkreg vox2ras
+  // RASFromSRAS = Vox2RAS * inv(Vox2TkRAS)
+  RASFromSRAS = MatrixInverse(Vox2TkRAS,NULL);
+  RASFromSRAS = MatrixMultiply(Vox2RAS,RASFromSRAS,RASFromSRAS);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&Vox2TkRAS);
+  return(RASFromSRAS);
+  /*-----------------------------------------
+  // Tosa's code: only works for conformed vols
   RASFromSRAS = MatrixAlloc(4, 4, MATRIX_REAL);
   MatrixIdentity(4, RASFromSRAS);
   *MATRIX_RELT(RASFromSRAS, 1,4) = mri->c_r;
   *MATRIX_RELT(RASFromSRAS, 2,4) = mri->c_a;
   *MATRIX_RELT(RASFromSRAS, 3,4) = mri->c_s;
   return RASFromSRAS;
+  *---------------------------------------------*/
 }
-//--------------------------------------------------------------
+/*--------------------------------------------------------------
+  MRIRASToSurfaceRAS() - convert from a scanner RAS to a TkReg (or
+  "surface") RAS. Note: intermediate matrices are alloced, inverted,
+  and dealloced, so it might not be a good thing to have inside a
+  loop.
+  -------------------------------------------------------------*/
 int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
                        Real *xsr, Real *ysr, Real *zsr)
 {
@@ -2461,7 +2504,11 @@ int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
   VectorFree(&sr);
   return (NO_ERROR);
 }
-//--------------------------------------------------------------
+/*--------------------------------------------------------------
+  MRIRASToSurfaceRAS() - convert from a TkReg (or "surface") RAS to a
+  scanner RAS. Note: intermediate matrices are alloced, inverted, and
+  dealloced, so it might not be a good thing to have inside a loop.
+  -------------------------------------------------------------*/
 int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
                        Real *xr, Real *yr, Real *zr)
 {
