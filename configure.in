@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.189 2006/05/01 15:29:59 nicks Exp $"
+# "$Id: configure.in,v 1.190 2006/05/10 01:42:53 fischl Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1438,6 +1438,7 @@ AC_OUTPUT([Makefile
                  mris_sample_label/Makefile
                  mris_sample_parc/Makefile
                  mris_segment_vals/Makefile
+                 mris_shrinkwrap/Makefile
                  mris_show/Makefile
                  mris_smooth/Makefile
                  mris_sphere/Makefile
