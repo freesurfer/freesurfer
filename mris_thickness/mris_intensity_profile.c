@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.7 2006/03/25 17:55:50 greve Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.8 2006/05/10 16:10:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,6 +40,7 @@ static int nlabels = 0 ;
 static int inorm = 0 ;
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
+static int remove_bad = 0 ;
 static char *sdir = NULL ;
 static int num_erode = 0 ;
 static float thresh ;
@@ -54,6 +55,7 @@ static char *wm_norm_fname = NULL ;
 static int max_samples = MAX_SAMPLES ;
 static int quadfit = 0 ;
 static int polyfit = 0 ;
+static int extra = 0 ;
 
 /* The following specifies the src and dst volumes of the input FSL/LTA transform */
 MRI          *lta_src = 0;
@@ -73,7 +75,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.7 2006/03/25 17:55:50 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.8 2006/05/10 16:10:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -344,7 +346,8 @@ main(int argc, char *argv[])
   mri_profiles = 
     MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh) ;
 
-	remove_bad_profiles(mris, mri_profiles, mri, 20) ;
+	if (remove_bad)
+		remove_bad_profiles(mris, mri_profiles, mri, 20) ;
   if (navgs > 0)
 	{
 		printf("smoothing profiles %d times\n", navgs) ;
@@ -535,6 +538,17 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'B':
+		remove_bad = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("%sremoving bad intensity profiles\n", remove_bad ? "" : "not ") ;
+		break ;
+	case 'E':
+		extra = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("adding %d extra points to profile\n", extra) ;
+		max_samples += 2*extra ;
+		break ;
 	case 'C':
 		curv_fname = argv[2] ;
 		curv_thresh = atoi(argv[3]) ;
@@ -744,13 +758,15 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 		{
 			sample_dist = SAMPLE_DIST ;
 			//			for (nsamples = 0, d = 0.0 ; d <= max_thick ; d += sample_dist, nsamples++)
-			for (nsamples = 0, d = 0.0 ;nsamples < max_samples; d += sample_dist, nsamples++)
+			for (nsamples = 0, d = -extra*sample_dist ;nsamples < max_samples; d += sample_dist, nsamples++)
 			{
+#if 0
 				if (d > thick)  // so each row has the same # of cols
 				{
 					MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = -1 ;
 				}
 				else
+#endif
 				{
 					x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
 					MRISrasToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
@@ -852,6 +868,7 @@ MRIfitQuadratic(MRI *mri_profiles, MRI *mri_quad)
 			{
 				if (x == Gdiag_no)
 					DiagBreak() ;
+				max_curv = 0 ;
 				for (t = whalf ; t < nsamples-whalf ; t++)
 				{
 					for (tk = -whalf ; tk <= whalf ; tk++)
