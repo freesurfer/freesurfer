@@ -31,7 +31,7 @@ typedef enum {
   FunV_tErr_InvalidParameter,
   FunV_tErr_InvalidTimePoint,
   FunV_tErr_InvalidCondition,
-  FunV_tErr_InvalidAnatomicalVoxel,
+  FunV_tErr_InvalidMRIIdx,
   FunV_tErr_InvalidThreshold,
   FunV_tErr_InvalidDisplayFlag,
   FunV_tErr_WrongNumberArgs,
@@ -148,9 +148,6 @@ struct tkmFunctionalVolume {
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
   void       (*mpSendTclCommandFunction)(char*);
-
-  /* keep track of tkregMat */
-  MATRIX *tkregMat;
 };
 typedef struct tkmFunctionalVolume tkmFunctionalVolume;
 typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
@@ -175,14 +172,12 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume );
 /* loads the data volumes. The transform should be a->b index->RAS
    (only a->RAS transform will be used). */
 FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
-				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
 				FunV_tRegistrationType iRegistrationType,
 				char*                  isRegistration,
 				mriVolumeRef           iAnatomicalVolume );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
-				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
 				FunV_tRegistrationType iRegistrationType,
@@ -192,7 +187,6 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriFunctionalDataRef*  ioppVolume,
-				       mriTransformRef        iTransform,
 				       char*                  isFileName,
 				       char*                  isHeaderStem,
 				      FunV_tRegistrationType iRegistrationType,
@@ -208,10 +202,10 @@ FunV_tErr FunV_SetConversionMethod ( tkmFunctionalVolumeRef this,
    space volume, so it can be indexed with anatomical coords. */
 FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-				       xVoxelRef              ipAnaIdx,
+				       xVoxelRef              ipMRIIdx,
 				       FunV_tFunctionalValue  iValue );
 FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-				       xVoxelRef              ipAnaIdx,
+				       xVoxelRef              ipMRIIdx,
 				       FunV_tFunctionalValue* oValue );
 FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
 				 tBoolean               ibUseCache );
@@ -263,8 +257,8 @@ FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
 				     int                    inDelta );
 
 /* allows functional volume to respond to a click. */
-FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-					xVoxelRef          ipAnatomicalVoxel );
+FunV_tErr FunV_MRIIdxClicked ( tkmFunctionalVolumeRef this,
+			       xVoxelRef              iMRIIdx );
 
 /* modify the overlay registration */
 FunV_tErr FunV_ApplyTransformToOverlay      ( tkmFunctionalVolumeRef this,
@@ -275,7 +269,7 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
 FunV_tErr FunV_RotateOverlayRegistration    ( tkmFunctionalVolumeRef this,
 					      float                  ifDegrees,
 					      tAxis                  iAxis,
-					      xVoxelRef        iCenterAnaIdx );
+					      xVoxelRef        iCenterMRIIdx );
 FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
 					      float                  ifFactor,
 					      tAxis                  iAxis );
@@ -284,7 +278,7 @@ FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
 
 /* basic accessors to values, based on current plane position if
    applicable */
-FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
+FunV_tErr FunV_GetValueAtMRIIdx ( tkmFunctionalVolumeRef this,
 				  xVoxelRef               ipVoxel,
 				  tBoolean               iSampled,
 				  FunV_tFunctionalValue* opValue );
@@ -305,12 +299,12 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
 				       tBoolean*              obIsSelection );
 
 /* converts an anatomical index to a functional overlay index or RAS */
-FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iAnaIdx,
+FunV_tErr FunV_ConvertMRIIdxToFuncIdx ( tkmFunctionalVolumeRef this,
+					xVoxelRef              iMRIIdx,
 					xVoxelRef              oFuncIdx );
 
-FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iAnaIdx,
+FunV_tErr FunV_ConvertMRIIdxToFuncRAS ( tkmFunctionalVolumeRef this,
+					xVoxelRef              iMRIIdx,
 					xVoxelRef              oFuncRAS );
 
 /* time course graph access */
@@ -322,9 +316,8 @@ FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
 
 /* for displaying voxels in graph */
 FunV_tErr FunV_BeginSelectionRange      ( tkmFunctionalVolumeRef this );
-FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange 
-( tkmFunctionalVolumeRef this,
-  xVoxelRef               ipVoxel );
+FunV_tErr FunV_AddMRIIdxToSelectionRange( tkmFunctionalVolumeRef this,
+					  xVoxelRef              ipVoxel );
 FunV_tErr FunV_EndSelectionRange        ( tkmFunctionalVolumeRef this );
 
 /* finds average time course values for a condition over the voxels in the

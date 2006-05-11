@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/15 00:07:00 $
-// Revision       : $Revision: 1.281 $
-char *VERSION = "$Revision: 1.281 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/05/11 20:31:28 $
+// Revision       : $Revision: 1.282 $
+char *VERSION = "$Revision: 1.282 $";
 
 #define TCL
 #define TKMEDIT
@@ -837,6 +837,21 @@ tkm_tErr DeleteVLIs ();
 
 /* ======================================================================= */
 
+/* ============================================================ GDF VOLUME */
+
+int gGDFID = -1;
+mriTransformRef gMRIIdxToGDFIdxTransform = NULL;
+
+tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
+			 int iRegistrationType,
+			 char* isRegistrationFile );
+
+tkm_tErr BeginGDFPointList ();
+tkm_tErr AddGDFPlotPoint ( xVoxelRef iMRIIdx );
+tkm_tErr EndGDFPointList ();
+
+/* ======================================================================= */
+
 /* ========================================================== MEDIT WINDOW */
 
 tkmMeditWindowRef gMeditWindow = NULL;
@@ -1115,7 +1130,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.281 2006/04/15 00:07:00 nicks Exp $",
+     "$Id: tkmedit.c,v 1.282 2006/05/11 20:31:28 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5633,7 +5648,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.281 2006/04/15 00:07:00 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.282 2006/05/11 20:31:28 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -6520,6 +6535,8 @@ void tkm_Quit () {
   exit( 0 );
 }
 
+/* ============================================================ GDF VOLUME */
+
 
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
@@ -7344,6 +7361,7 @@ void GraphSelectedRegion () {
   int        nDimensionZ = 0;
   float      value       = 0;
   xVoxel     idx;
+  xVoxel     MRIIdx;
 
   DebugEnterFunction( ("GraphSelectedRegion()") );
 
@@ -7365,8 +7383,10 @@ void GraphSelectedRegion () {
     if( 0 != value ) {
 
       /* add it to the functional display list. */
+      Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+			       &idx, &MRIIdx );
       eFunctional =
-        FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, &idx );
+        FunV_AddMRIIdxToSelectionRange( gFunctionalVolume, &MRIIdx );
       if( FunV_tErr_NoError != eFunctional )
         goto error;
     }
@@ -9047,8 +9067,6 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
                                 FunD_tRegistrationType iRegType,
                                 char* isRegistrationFileName ) {
 
-  MATRIX*   tkregMat                              = NULL;
-  MRI*      pMRI                                  = NULL;
   tkm_tErr  eResult                               = tkm_tErr_NoErr;
   char      sFileName[tkm_knPathLen]              = "";
   char      sOffsetFileName[tkm_knPathLen]        = "";
@@ -9087,27 +9105,9 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
     psRegistrationFileName = NULL;
   }
 
-  /* Calculate a matrix for transforming conformed volume to
-     functional volume and set it in the functional volume. */
-  pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
-  tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
-  MatrixClear(tkregMat );
-  *MATRIX_RELT(tkregMat,1,1) = -pMRI->xsize;
-  *MATRIX_RELT(tkregMat,2,3) = pMRI->zsize;
-  *MATRIX_RELT(tkregMat,3,2) = -pMRI->ysize;
-  *MATRIX_RELT(tkregMat,1,4) = pMRI->xsize*pMRI->width/ 2.0;
-  *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
-  *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
-  *MATRIX_RELT(tkregMat,4,4) = 1.0;
-  if( gFunctionalVolume->tkregMat != NULL ) {
-    MatrixFree( &gFunctionalVolume->tkregMat );
-    gFunctionalVolume->tkregMat = NULL;
-  }
-  gFunctionalVolume->tkregMat = tkregMat;
-
   /* Load the overlay. */
   DebugNote( ("Loading overlay") );
-  eFunctional = FunV_LoadOverlay( gFunctionalVolume, gIdxToRASTransform,
+  eFunctional = FunV_LoadOverlay( gFunctionalVolume,
                                   sFileName, psOffsetFileName,
                                   iRegType, psRegistrationFileName,
                                   gAnatomicalVolume[tkm_tVolumeType_Main]);
@@ -9146,8 +9146,6 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
                                    FunD_tRegistrationType iRegType,
                                    char* isRegistrationFileName ) {
 
-  MATRIX*   tkregMat                              = NULL;
-  MRI*      pMRI                                  = NULL;
   tkm_tErr  eResult                               = tkm_tErr_NoErr;
   char      sFileName[tkm_knPathLen]              = "";
   char      sOffsetFileName[tkm_knPathLen]        = "";
@@ -9186,27 +9184,9 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
     psRegistrationFileName = NULL;
   }
 
-  /* Calculate a matrix for transforming conformed volume to
-     functional volume and set it in the functional volume. */
-  pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
-  tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
-  MatrixClear(tkregMat );
-  *MATRIX_RELT(tkregMat,1,1) = -pMRI->xsize;
-  *MATRIX_RELT(tkregMat,2,3) = pMRI->zsize;
-  *MATRIX_RELT(tkregMat,3,2) = -pMRI->ysize;
-  *MATRIX_RELT(tkregMat,1,4) = pMRI->xsize*pMRI->width/ 2.0;
-  *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
-  *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
-  *MATRIX_RELT(tkregMat,4,4) = 1.0;
-  if( gFunctionalVolume->tkregMat != NULL ) {
-    MatrixFree( &gFunctionalVolume->tkregMat );
-    gFunctionalVolume->tkregMat = NULL;
-  }
-  gFunctionalVolume->tkregMat = tkregMat;
-
   /* Load the overlay. */
   DebugNote( ("Loading overlay") );
-  eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, gIdxToRASTransform,
+  eFunctional = FunV_LoadTimeCourse( gFunctionalVolume,
                                      sFileName, psOffsetFileName,
                                      iRegType, psRegistrationFileName,
                                      gAnatomicalVolume[tkm_tVolumeType_Main] );
@@ -10322,15 +10302,12 @@ Volm_tVisitCommand AddSimilarVoxelToGraphAvg ( xVoxelRef iMRIIdx,
                                                void*     ipnTarget ) {
   int    nIndex       = 0;
   int    nTargetIndex = 0;
-  xVoxel anaIdx;
 
   nIndex = (int) iValue;
   nTargetIndex = *(int*)ipnTarget;
 
   if( nIndex == nTargetIndex ) {
-    Volm_ConvertMRIIdxToIdx( gSegmentationVolume[tkm_tSegType_Main],
-                             iMRIIdx, &anaIdx );
-    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, &anaIdx );
+    FunV_AddMRIIdxToSelectionRange( gFunctionalVolume, iMRIIdx );
   }
 
   return Volm_tVisitComm_Continue;

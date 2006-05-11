@@ -39,7 +39,7 @@ char *FunV_ksaErrorString [FunV_tErr_knNumErrorCodes] = {
   "Invalid parameter.",
   "Invalid time point.",
   "Invalid condition.",
-  "Invalid anatomical voxel, data doesn't exist in functional space.",
+  "Invalid anatomical  voxel, data doesn't exist in functional space.",
   "Invalid threshold, min must be less than mid.",
   "Invalid display flag.",
   "Wrong number of arguments.",
@@ -152,9 +152,6 @@ FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
   /* return the volume */
   *oppVolume = this;
   
-  /* init tkregMat */
-  this->tkregMat = NULL;
-
   goto cleanup;
   
  error:
@@ -235,10 +232,6 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
   /* trash signature */
   this->mSignature = 0x1;
 
-  /* free up tkregMat */
-  if (NULL != this->tkregMat)
-    MatrixFree(&this->tkregMat);
-
   goto cleanup;
   
  error:
@@ -255,7 +248,6 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
 }
 
 FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
-			     mriTransformRef        iTransform,
 			     char*                  isFileName,
 			     char*                  isOffsetFileName,
 			     FunV_tRegistrationType iRegistrationType,
@@ -272,7 +264,7 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayVolume), 
-					iTransform, isFileName,
+					isFileName,
 					NULL, 
 					iRegistrationType, isRegistration, 
 					iAnatomicalVolume, TRUE );
@@ -290,8 +282,9 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
   if( NULL != isOffsetFileName ) {
     
     /* attempt to load offset volume, if there is one */
-    eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
-					  iTransform, isOffsetFileName,
+    eResult = FunV_LoadFunctionalVolume_( this,
+					  &(this->mpOverlayOffsetVolume),
+					  isOffsetFileName,
 					  NULL, 
 					  iRegistrationType, isRegistration,
 					  iAnatomicalVolume, FALSE );
@@ -374,7 +367,6 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
-				mriTransformRef        iTransform,
 				char*                  isFileName,
 				char*                  isOffsetFileName,
 				FunV_tRegistrationType iRegistrationType,
@@ -391,7 +383,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, 
 					&(this->mpTimeCourseVolume), 
-					iTransform, isFileName,
+					isFileName,
 					NULL, 
 					iRegistrationType, isRegistration, 
 					iAnatomicalVolume, TRUE );
@@ -404,7 +396,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
     /* attempt to load offset volume, if there is one */
     eResult = FunV_LoadFunctionalVolume_( this,
 					  &(this->mpTimeCourseOffsetVolume),
-					  iTransform, isOffsetFileName,
+					  isOffsetFileName,
 					  NULL, 
 					  iRegistrationType, isRegistration, 
 					  iAnatomicalVolume, FALSE );
@@ -456,7 +448,6 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriFunctionalDataRef*  ioppVolume,
-				       mriTransformRef        iTransform,
 				       char*                  isFileName,
 				       char*                  isHeaderStem,
 				      FunV_tRegistrationType iRegistrationType,
@@ -499,12 +490,10 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   
   /* load the volume */
   eVolume = FunD_New( &pVolume,
-		      iTransform,
 		      isFileName,
 		      regType, 
 		      isRegistration,
 		      -1,  /* Don't try to be a scalar volume */
-		      this->tkregMat,
 		      iAnatomicalVolume );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
@@ -707,8 +696,8 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
 		   nY + this->manCacheOffsets[1], 
 		   nZ + this->manCacheOffsets[2] );
 	
-	/* get the functional value at this anatomical voxel */
-	FunV_GetValueAtAnaIdx( this, pVoxel, TRUE, &funcValue );
+	/* get the functional value at this voxel */
+	FunV_GetValueAtMRIIdx( this, pVoxel, TRUE, &funcValue );
 	
 	/* set the cache value */
 	this->mOverlayCache[nIndex] = funcValue;
@@ -799,7 +788,7 @@ FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
       || xVoxl_GetZ(ipVoxel) < this->manCacheOffsets[2]
       || xVoxl_GetZ(ipVoxel) > (this->manCacheOffsets[2] + this->manCacheDimensions[2]) ) {
     *oValue = 0;
-    eResult = FunV_tErr_InvalidAnatomicalVoxel;
+    eResult = FunV_tErr_InvalidMRIIdx;
     goto cleanup;
   }
   
@@ -1711,8 +1700,8 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
-FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-					xVoxelRef         ipAnatomicalVoxel ) {
+FunV_tErr FunV_MRIIdxClicked ( tkmFunctionalVolumeRef this,
+				 xVoxelRef              iMRIIdx ) {
   
   FunV_tErr eResult = FunV_tErr_NoError;
   
@@ -1721,7 +1710,7 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
   if( FunV_tErr_NoError != eResult )
     goto error;
   
-  if( NULL == ipAnatomicalVoxel ) {
+  if( NULL == iMRIIdx ) {
     eResult = FunV_tErr_InvalidParameter;
     goto error;
   }
@@ -1737,7 +1726,7 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
   if( FunV_tErr_NoError != eResult )
     goto error;
   
-  eResult = FunV_AddAnatomicalVoxelToSelectionRange( this, ipAnatomicalVoxel );
+  eResult = FunV_AddMRIIdxToSelectionRange( this, iMRIIdx );
   if( FunV_tErr_NoError != eResult )
     goto error;
   
@@ -1751,7 +1740,7 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_AnatomicalVoxelClicked: %s\n",
+    DebugPrint( ("Error %d in FunV_MRIIdxClicked: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
@@ -1847,7 +1836,7 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
 FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
 					   float                  ifDegrees,
 					   tAxis                  iAxis,
-					   xVoxelRef         iCenterAnaIdx ) {
+					   xVoxelRef         iCenterMRIIdx ) {
   
   FunV_tErr eResult = FunV_tErr_NoError;
   FunD_tErr eVolume = FunD_tErr_NoError;
@@ -1864,7 +1853,7 @@ FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
   }
   
   /* convert ana idx center to func idx */
-  FunV_ConvertAnaIdxToFuncRAS( this, iCenterAnaIdx, &centerFuncRAS );
+  FunV_ConvertMRIIdxToFuncRAS( this, iCenterMRIIdx, &centerFuncRAS );
   
   /* rotate the overlay registration */
   eVolume = FunD_RotateRegistration( this->mpOverlayVolume, 
@@ -1930,7 +1919,7 @@ FunV_tErr FunV_ScaleOverlayRegistration ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
-FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
+FunV_tErr FunV_GetValueAtMRIIdx ( tkmFunctionalVolumeRef this,
 				  xVoxelRef              ipVoxel,
 				  tBoolean               iSampled,
 				  FunV_tFunctionalValue* opValue ) {
@@ -1974,7 +1963,7 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
 			    &fValue );
   }
   if( FunD_tErr_NoError != eVolume ) {
-    eResult = FunV_tErr_InvalidAnatomicalVoxel;
+    eResult = FunV_tErr_InvalidMRIIdx;
     *opValue = 0;
     goto error;
   }
@@ -1992,7 +1981,7 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
 	 get a percent */
       fValue = (fValue / fOffset) * 100.0;
     } else {
-      DebugPrint( ("FunV_GetValueAtAnatomicalVoxel: %d,%d,%d: %s\n",
+      DebugPrint( ("FunV_GetValueAtMRIIdx: %d,%d,%d: %s\n",
 		   xVoxl_ExpandInt(ipVoxel), FunD_GetErrorString(eVolume) ) );
     }
   }
@@ -2006,7 +1995,7 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_GetValueAtAnaIdx: %s\n",
+    DebugPrint( ("Error %d in FunV_GetValueAtMRIIdx: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
@@ -2257,7 +2246,7 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
       /* get the value to create an average. it's okay if this call 
 	 fails, that just means one of the selected voxels are out 
 	 of bounds. */
-      eResult = FunV_GetValueAtAnaIdx( this, pVoxel, FALSE, &value );
+      eResult = FunV_GetValueAtMRIIdx( this, pVoxel, FALSE, &value );
       if( FunV_tErr_NoError == eResult ) {
 	
 	/* add value to sum and inc count */
@@ -2334,8 +2323,8 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
-FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iAnaIdx,
+FunV_tErr FunV_ConvertMRIIdxToFuncIdx ( tkmFunctionalVolumeRef this,
+					xVoxelRef              iMRIIdx,
 					xVoxelRef              oFuncIdx ) {
   
   FunV_tErr eResult = FunV_tErr_NoError;
@@ -2352,7 +2341,7 @@ FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
   }
   
   /* do the conversion */
-  FunD_ConvertClientToFuncIdx_( this->mpOverlayVolume, iAnaIdx, oFuncIdx );
+  FunD_ConvertClientToFuncIdx_( this->mpOverlayVolume, iMRIIdx, oFuncIdx );
   
   goto cleanup;
   
@@ -2360,7 +2349,7 @@ FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_ConvertAnaIdxToFuncIdx: %s\n",
+    DebugPrint( ("Error %d in FunV_ConvertMRIIdxToFuncIdx: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
@@ -2369,8 +2358,8 @@ FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
-FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iAnaIdx,
+FunV_tErr FunV_ConvertMRIIdxToFuncRAS ( tkmFunctionalVolumeRef this,
+					xVoxelRef              iMRIIdx,
 					xVoxelRef              oFuncRAS ) {
   
   FunV_tErr eResult = FunV_tErr_NoError;
@@ -2387,7 +2376,7 @@ FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
   }
   
   /* do the conversion */
-  FunD_ConvertClientToFuncRAS_( this->mpOverlayVolume, iAnaIdx, oFuncRAS );
+  FunD_ConvertClientToFuncRAS_( this->mpOverlayVolume, iMRIIdx, oFuncRAS );
   
   goto cleanup;
   
@@ -2395,7 +2384,7 @@ FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_ConvertAnaIdxToFuncRAS: %s\n",
+    DebugPrint( ("Error %d in FunV_ConvertMRIIdxToFuncRAS: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
@@ -2526,9 +2515,8 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
   return eResult;
 }
 
-FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange 
-( tkmFunctionalVolumeRef this,
-  xVoxelRef               ipVoxel ) {
+FunV_tErr FunV_AddMRIIdxToSelectionRange ( tkmFunctionalVolumeRef this,
+					   xVoxelRef              ipVoxel ) {
   
   FunV_tErr  eResult = FunV_tErr_NoError;
   xVoxelRef   pVoxel  = NULL;
@@ -2556,7 +2544,7 @@ FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_AddAnatomicalVoxelToSelectionRange: %s\n",
+    DebugPrint( ("Error %d in FunV_AddMRIIdxToSelectionRange: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
@@ -3282,7 +3270,7 @@ FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
   params.mComparatorFuncData     = (void*)&callbackData;
 
   /* Get the value at the starting voxel */
-  eResult = FunV_GetValueAtAnaIdx( this, iSeedMRIIdx, FALSE, &funcValue );
+  eResult = FunV_GetValueAtMRIIdx( this, iSeedMRIIdx, FALSE, &funcValue );
   DebugAssertThrow( (FunV_tErr_NoError == eResult) );
 
   /* Initialize the callback data. */
@@ -3339,7 +3327,7 @@ tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
 
   /* Get the functional value at this voxel. */
   DisableDebuggingOutput;
-  eResult = FunV_GetValueAtAnaIdx( this, iMRIIdx, FALSE, &funcValue );
+  eResult = FunV_GetValueAtMRIIdx( this, iMRIIdx, FALSE, &funcValue );
   DebugAssertThrow( (FunV_tErr_NoError == eResult) );
   EnableDebuggingOutput;
   
@@ -3404,216 +3392,6 @@ Volm_tVisitCommand FunV_FloodSelectCallback ( xVoxelRef iMRIIdx,
 
   return Volm_tVisitComm_Continue;
 }
-
-
-#if 0
-
-FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
-					    xVoxelRef              iAnaIdx,
-					    FunV_tFindStatsComp    iCompare ) {
-  
-  FunV_tErr             eResult    = FunV_tErr_NoError;
-  tBoolean*             visited    = NULL;
-  FunV_tFindStatsParams params;
-  int                   nDimensionX =  0;
-  int                   nDimensionY =  0;
-  int                   nDimensionZ =  0;
-  int                  nSize       = 0;
-#ifdef Solaris
-  int                  i           = 0;
-#endif
-  
-  DebugEnterFunction( ("FunV_SelectAnaVoxelsByFuncValue( this=%p, "
-		       "iAnaIdx=%d,%d,%d )", this,xVoxl_ExpandInt( iAnaIdx )));
-  
-  /* verify us */
-  eResult = FunV_Verify( this );
-  DebugAssertThrow( FunV_tErr_NoError == eResult );
-  
-  DebugAssertThrowX( (NULL != iAnaIdx), eResult, FunV_tErr_InvalidParameter );
-  DebugAssertThrowX( ( iCompare > FunV_tFindStatsComp_Invalid &&
-		       iCompare < FunV_knNumFindStatsComp ), 
-		     eResult, FunV_tErr_InvalidParameter );
-  
-  /* init a volume to keep track of visited voxels */
-  DebugNote( ("Allocating visited tracker volume") );
-  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimensionX, &nDimensionY, &nDimensionZ );
-  nSize = nDimensionX * nDimensionY * nDimensionZ ;
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize );
-  DebugAssertThrowX( (NULL != visited), eResult, FunV_tErr_AllocationFailed );
-  
-  /* zero it. solaris doesn't like bzero here... ??? */
-#ifdef Solaris
-  DebugNote( ("Zeroing visited volume iteratively") );
-  for( i = 0; i < nSize; i++ )
-    visited[i] = FALSE;
-#else
-  DebugNote( ("Zeroing visted volume with bzero") );
-  bzero( visited, nSize * sizeof( tBoolean ) );
-#endif
-  
-  /* get the min value */
-  DebugNote( ("Getting starting functional value") );
-  eResult = FunV_GetValueAtAnaIdx( this, iAnaIdx, 
-				   FALSE, &(params.mStartValue) );
-  if( FunV_tErr_NoError != eResult ) {
-    DebugGotoCleanup;
-  }
-  
-  /* copy the starting place */
-  DebugNote( ("Setting starting anatomical index") );
-  xVoxl_SetFloat( &(params.mStart), 
-		  floor( xVoxl_GetFloatX(iAnaIdx) ),
-		  floor( xVoxl_GetFloatY(iAnaIdx) ),
-		  floor( xVoxl_GetFloatZ(iAnaIdx) ) );
-  
-  /* initialize params */
-  params.mnIterationCount = 0;
-  params.mnTotalSelected  = 0;
-  params.compareType      = iCompare;
-  
-  /* recursivly iterate with these values */
-  DebugNote( ("Starting iteration") );
-  FunV_SelectAnaVoxelsByFuncValueIter_( this, &(params.mStart), 
-					&params, visited );
-  
-  /* update the overlay */
-  eResult = FunV_OverlayChanged_( this );
-  DebugAssertThrow( FunV_tErr_NoError == eResult );
-  
-  DebugCatch;
-  DebugCatchError( eResult, FunV_tErr_NoError, FunV_GetErrorString );
-  EndDebugCatch;
-  
-  DebugNote( ("Freeing visited volume") );
-  if( NULL != visited )
-    free( visited );
-  
-  DebugExitFunction;
-  
-  return eResult;
-}
-
-void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
-					    xVoxelRef              iAnaIdx,
-					    FunV_tFindStatsParams* iParams,
-					    tBoolean*              iVisited ) {
-  
-  FunV_tErr              eFunctional = FunV_tErr_NoError;
-  int                    nDimensionX  = 0;
-  int                    nDimensionY  = 0;
-  int                    nDimensionZ  = 0;
-  int                    nZ          = 0;
-  int                    nY          = 0;
-  int                    nX          = 0;
-  xVoxel                 anaIdx;
-  FunV_tFunctionalValue  value       = 0;
-  float                  fDistance   = 0;
-  tBoolean               bGood       = FALSE;
-#if 0
-  FunV_tFunctionalValue  average     = 0;
-  int                    nSamples    = 0;
-  xVoxel                 s;
-#endif
-  
-  if( iParams->mnIterationCount >= FunV_knMaxFindStatsSteps )
-    return;
-  
-  iParams->mnIterationCount++;
-  
-  /* if we've already been here, exit */
-  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimensionX,&nDimensionY, &nDimensionZ  );
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimensionX, nDimensionY ) ] == 1 ) {
-    goto cleanup;
-  }
-  
-  /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimensionX, nDimensionY ) ] = 1;
-  
-  /* get the value at the starting voxel */
-  DisableDebuggingOutput;
-  xVoxl_Copy( &anaIdx, iAnaIdx );
-  eFunctional = FunV_GetValueAtAnaIdx( this, &anaIdx, FALSE, &value );
-  if( FunV_tErr_NoError != eFunctional )
-    goto cleanup;
-  EnableDebuggingOutput;
-  
-  /* if it doesn't make the cut, exit */
-  switch( iParams->compareType ) {
-  case FunV_tFindStatsComp_GTEoLTE:
-    if( iParams->mStartValue > 0 ) {
-      bGood = (value >= iParams->mStartValue);
-    } else {
-      bGood = (value <= iParams->mStartValue);
-    }
-    break;
-  case FunV_tFindStatsComp_EQ:
-    bGood = (value == iParams->mStartValue);
-    break;
-  case FunV_tFindStatsComp_GTEThresholdMin:
-    bGood = (value >= this->mThresholdMin);
-    break;
-  default:
-    bGood = FALSE;
-  }
-  if( !bGood )
-    goto cleanup;
-   
-  /* check the distance */
-  fDistance = sqrt(((xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart))) * 
-		    (xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart)))) +
-		   ((xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mStart))) * 
-		    (xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mStart)))) +
-		   ((xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mStart))) * 
-		    (xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mStart)))) );
-  if( fDistance > FunV_knMaxFindStatsDistance )
-    goto cleanup;
-  
-  /* if so, select this voxel. */
-  tkm_SelectVoxel( iAnaIdx );
-  iParams->mnTotalSelected++;
-  
-  /* check the surrounding voxels */
-  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ+=2 ) {
-    xVoxl_Copy( &anaIdx, iAnaIdx );
-    xVoxl_SetZ( &anaIdx, nZ );
-    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
-      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
-    }
-  }
-  for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY+=2 ) {
-    xVoxl_Copy( &anaIdx, iAnaIdx );
-    xVoxl_SetY( &anaIdx, nY );
-    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
-      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
-    }
-  }
-  for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX+=2 ) {
-    xVoxl_Copy( &anaIdx, iAnaIdx );
-    xVoxl_SetX( &anaIdx, nX );
-    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
-      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
-    }
-  }
-#if 0
-  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ+=2 ) {
-    for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY+=2 ) {
-      for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX+=2 ) {
-	xVoxl_Set( &anaIdx, nX, nY, nZ );
-	if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
-	  FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, 
-						iParams, iVisited );
-	}
-      }
-    }
-  }
-#endif
- cleanup:
-  
-  iParams->mnIterationCount--;
-}
-
-#endif
 
 int FunV_TclOlSaveRegistration ( ClientData iClientData, 
 				 Tcl_Interp *ipInterp, 
@@ -4758,7 +4536,7 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
   if ( xList_tErr_NoErr == eList ) {
     
     /* try to get a value for it */
-    eValueResult = FunV_GetValueAtAnaIdx( this, pVoxel, FALSE, &value );
+    eValueResult = FunV_GetValueAtMRIIdx( this, pVoxel, FALSE, &value );
     if( FunV_tErr_NoError == eValueResult ) {
       
       /* if we got one, send it to the tcl window */

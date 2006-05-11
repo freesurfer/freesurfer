@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/24 21:21:40 $
-// Revision       : $Revision: 1.129 $
+// Revision Date  : $Date: 2006/05/11 20:31:27 $
+// Revision       : $Revision: 1.130 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1166,6 +1166,7 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   HPtL_tHeadPointRef    pHeadPoint  = NULL;
   int                   nSlice      = 0;
   xPoint2f              planePt;
+  xVoxel                MRIIdx;
   
   /* verify us. */
   eResult = DspA_Verify( this );
@@ -1179,8 +1180,9 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   
   /* allow the functional display to respond. */
   if( NULL != this->mpFunctionalVolume ) {
-    eFunctional = FunV_AnatomicalVoxelClicked( this->mpFunctionalVolume,
-					       ipCursor );
+    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			     ipCursor, &MRIIdx );
+    eFunctional = FunV_MRIIdxClicked( this->mpFunctionalVolume, &MRIIdx );
   }
   
   /* get our current slice. */
@@ -5684,6 +5686,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xColor3f              newColor    = {0,0,0};
   GLubyte*              pDest       = NULL;
   xVoxel                anaIdx;
+  xVoxel                mriIdx;
   float                 anaValue    = 0;
   int                   yMin        = 0;
   int                   yMax        = 0;
@@ -5710,8 +5713,10 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 	goto error;
 
       /* get a functional value. */
-      eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
-					   &anaIdx, TRUE, &funcValue );
+      Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			       &anaIdx, &mriIdx );
+      eFunctional = FunV_GetValueAtMRIIdx( this->mpFunctionalVolume,
+					   &mriIdx, TRUE, &funcValue );
 
       /* If we're masking to the aux volume, check its value first. */
       if(this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux]){
@@ -5756,7 +5761,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 		     (newColor.mfBlue * this->mfFuncOverlayAlpha))* 
 		    DspA_knMaxPixelValue);
 
-      } else if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
+      } else if( FunV_tErr_InvalidMRIIdx == eFunctional &&
 	   this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
 	
 	pDest[DspA_knRedPixelCompIndex]   = (GLubyte)0;
@@ -7684,15 +7689,15 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       
       /* if this is the mouseover, use the value at the current point,
 	 and convert the point that to the func idx and ras. */
-      eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
-					   iAnaIdx, FALSE, &funcValue );
+      eFunctional = FunV_GetValueAtMRIIdx( this->mpFunctionalVolume,
+					   &MRIIdx, FALSE, &funcValue );
       if( FunV_tErr_NoError == eFunctional ) {
 	
 	/* convert the points */
-	FunV_ConvertAnaIdxToFuncIdx( this->mpFunctionalVolume,
-				     iAnaIdx, &funcIdx );
-	FunV_ConvertAnaIdxToFuncRAS( this->mpFunctionalVolume,
-				     iAnaIdx, &funcRAS );
+	FunV_ConvertMRIIdxToFuncIdx( this->mpFunctionalVolume,
+				     &MRIIdx, &funcIdx );
+	FunV_ConvertMRIIdxToFuncRAS( this->mpFunctionalVolume,
+				     &MRIIdx, &funcRAS );
       } 
     }
     EnableDebuggingOutput;
