@@ -48,7 +48,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.5 2004/10/22 23:40:14 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.5.4.1 2006/05/11 04:17:14 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.5 2004/10/22 23:40:14 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.5.4.1 2006/05/11 04:17:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1559,6 +1559,7 @@ static int stringmatch(char *str1, char *str2)
 /*------------------------------------------------------------*/
 static int PrintUpdate(FILE *fp, int n)
 {
+  if(EvSchList[n] == NULL) return(1);
   fprintf(fp,
 	  "%2.0f %7d  %6.1f   %g  %g  %6.4f  %g  %g  %g  %g  %g %g %d\n",
 	  PctDone, nSearched, tSearched*60,
