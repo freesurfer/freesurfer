@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.196 2006/05/04 20:54:27 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.197 2006/05/11 15:48:29 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5345,6 +5345,45 @@ proc LoadTransform { ifnLTA } {
     return $transformID
 }
 
+proc LoadLabelIntoVolumeROI { iVolID iRealRAS ifnLabel } {
+    dputs "LoadLabelIntoVolumeROI"
+
+    if { ![string match [info commands GetCollectionType] GetCollectionType] } {
+       tkuErrorDlog "You must load a volume before attempting to load a label."
+       return -1 
+    }
+
+    set err [catch {set sType [GetCollectionType $iVolID]} sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
+    
+    if { ![string match $sType Volume] } {
+	tkuErrorDlog "Cannot load label into data collection \"[GetCollectionLabel $iVolID]\": Not a volume."
+	return -1
+    }
+    
+    set err [catch { set fnLabel [FindFile $ifnLabel] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
+
+    set err [catch {
+	set roiID [NewVolumeROIFromLabel $iVolID $iRealRAS $fnLabel]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
+    
+    set sLabel [ExtractLabelFromFileName $fnLabel]
+    
+    SetROILabel $roiID $sLabel
+
+    UpdateROIList
+
+    SelectROIInROIProperties $roiID
+
+    SetStatusBarText "Loaded $ifnLabel"
+
+    RedrawFrame [GetMainFrameID]
+
+    return $roiID
+}
+
 proc DoSave {} {
     dputs "DoSave "
 
@@ -5644,21 +5683,7 @@ proc DoLoadLabelDlog {} {
 	    -prompt3 "Label contains real RAS coords" \
 	    -defaultvalue3 0 \
 	    -shortcutdirs [list $glShortcutDirs] \
-	    -okCmd { 
-		set err [catch {
-		    set roiID [NewVolumeROIFromLabel %s2 %s3 %s1]
-		} sResult]
-		if { 0 != $err } { 
-		    tkuErrorDlog $sResult 
-		} else {
-		    SetROILabel $roiID [file tail %s1]
-		    UpdateROIList
-		    if { %s2 == $gaCollection(current,id) } {
-			SelectROIInROIProperties $roiID
-			RedrawFrame [GetMainFrameID]
-		    }
-		}
-	    }
+	    -okCmd { LoadLabelIntoVolumeROI %s2 %s3 %s1 }
 	
     } else {
 	
@@ -5901,7 +5926,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.196 2006/05/04 20:54:27 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.197 2006/05/11 15:48:29 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7482,6 +7507,12 @@ while { $nArg < $argc } {
 	    set fnTransform [lindex $argv $nArg]
 	    lappend lCommands "LoadTransform $fnTransform"
 	}
+	l - label {
+	    incr nArg
+	    set fnLabel [lindex $argv $nArg]
+	    lappend lCommands \
+		"LoadLabelIntoVolumeROI \$gaCollection(current,id) 0 $fnLabel"
+	}
 	c - script {
 	    incr nArg
 	    set fnScript [lindex $argv $nArg]
@@ -7500,7 +7531,9 @@ while { $nArg < $argc } {
 	    ::tkcon_tcl_puts "-s, --subject SUBJECT Set the subject for this session. Environment variable "
 	    ::tkcon_tcl_puts "                      SUBJECTS_DIR should be set."
 	    ::tkcon_tcl_puts "-v, --volume FILE     Load a volume file. Can be a file name or a subdir in"
-	    ::tkcon_tcl_puts "                      the subject's directory specified with -s."
+	    ::tkcon_tcl_puts "-l, --label FILE      Load a label file as an ROI into the most recently"
+	    ::tkcon_tcl_puts "                      loaded volume. Can be a full file name or a file in"
+	    ::tkcon_tcl_puts "                      the subject's label directory."
 	    ::tkcon_tcl_puts "-f, --surface FILE    Load a surface file Can be a file name or a subdir in"
 	    ::tkcon_tcl_puts "                      the subject's directory specified with -s."
 	    ::tkcon_tcl_puts "-t, --transform FILE  Load a transform file Can be a file name or a file in"
@@ -7617,7 +7650,7 @@ MakeScubaFrameBindings [GetMainFrameID]
 
 # Now execute all the commands we cached before.
 foreach command $lCommands {
-    eval $command
+    uplevel #0 {eval $command}
 }
 
 # Refresh settings
