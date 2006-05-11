@@ -1770,7 +1770,10 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
     yw = area_src->lv[i].y  ;
     zw = area_src->lv[i].z  ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+		if (mris->useRealRAS)
+			MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+		else
+			MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
   }
   
@@ -1815,7 +1818,10 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
     yw = area_src->lv[i].y  ;
     zw = area_src->lv[i].z  ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+		if (mris->useRealRAS)
+			MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+		else
+			MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
   }
   
@@ -2050,7 +2056,10 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
 			continue ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
-		MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		if (mris->useRealRAS)
+			MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		else
+			MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
 		if (xv < nvox || yv < nvox || zv < nvox ||
 				xv > (mri->width-1)-nvox ||
 				yv > (mri->height-1)-nvox ||
@@ -2067,7 +2076,10 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
 			continue ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
-		MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		if (mris->useRealRAS)
+			MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		else
+			MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
 		if (xv < nvox || yv < nvox || zv < nvox ||
 				xv > (mri->width-1)-nvox ||
 				yv > (mri->height-1)-nvox ||
@@ -2081,3 +2093,21 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
 	//	LabelWrite(area, "./lh.all.label");
 	return(area) ;
 }
+LABEL *
+LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz)
+{
+	int i ;
+
+	if (area_offset == NULL)
+		area_offset = LabelCopy(area, NULL) ;
+
+
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    area_offset->lv[i].x = area->lv[i].x  + dx ;
+    area_offset->lv[i].y = area->lv[i].y  + dy ;
+    area_offset->lv[i].z = area->lv[i].z  + dz ;
+	}
+	return(area_offset) ;
+}
+
