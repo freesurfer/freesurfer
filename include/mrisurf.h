@@ -1042,6 +1042,7 @@ typedef struct{
 	int no_self_intersections; //to prevent self-intersection
 	double nattempts_percent; 
 	int nattempts;
+	int minimal_mode;
 	int nminattempts;
 	double minimal_loop_percent;
 	int nminimal_attempts;

@@ -48,6 +48,7 @@ static void initTopoFixerParameters(){
 	parms.verbose = 1; //minimal mode
 	parms.smooth = 0;    //smoothing
 	parms.match = 1;     //matching using local intensity estimates
+	parms.minimal_mode=0;
 	parms.nminattempts = 10;
 	parms.l_mri = 1.0;
   parms.l_curv = 1.0 ;
@@ -131,7 +132,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.10 2006/05/11 09:07:57 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.11 2006/05/11 11:48:53 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.10 2006/05/11 09:07:57 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.11 2006/05/11 11:48:53 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -269,6 +270,17 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE,
               "%s: could not read wm volume from %s", Progname, fname) ;
 
+	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
+	for(int n = 0 ; n < mris->nvertices ; n++)
+		mris->vertices[n].marked2=0;
+  for(int i = 0 ; i < dl->ndefects ; i++){
+		DEFECT *defect = &dl->defects[i];
+		for(int n = 0 ; n < defect->nvertices ; n++)
+			mris->vertices[defect->vertices[n]].marked2=1;
+		for(int n = 0 ; n < defect->nborder ; n++)
+      mris->vertices[defect->border[n]].marked2=i+1;
+	}
+
 	mris_corrected=MRISduplicateOver(mris);
 	//mris becomes useless!
 	MRISfree(&mris) ;
@@ -281,7 +293,7 @@ int main(int argc, char *argv[])
 	int def=-1;
 	if(argc > 3) def = atoi(argv[3]);
 
-	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
+	dl=(DEFECT_LIST*)parms.defect_list;
 	for(int i = 0 ; i < dl->ndefects ; i++){
 		//		fprintf(stderr, " defect %d has %d vertices\n",i,dl->defects[i].nvertices);
 		if(def > 0 && def != i+1) continue;
@@ -424,6 +436,7 @@ get_option(int argc, char *argv[])
     }
 	else if (!stricmp(option, "minimal"))
     {
+			parms.minimal_mode=1;
 			parms.nminattempts = 1;
 			parms.nattempts_percent=0.0f;
 			fprintf(stderr,"cuting minimal loop only\n") ;
