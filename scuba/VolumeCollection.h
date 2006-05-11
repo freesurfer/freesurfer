@@ -280,6 +280,9 @@ protected:
   // Faster way of getting values.
   float GetMRINearestValueAtIndexUnsafe ( int iIndex[3] );
 
+  // Faster way of checking bounds.
+  bool IsMRIIdxInBounds ( int iMRIIdx[3] );
+  bool IsMRIIdxInBounds ( float iMRIIdx[3] );
 
   // Filename to use when reading or writing.
   std::string mfnMRI;

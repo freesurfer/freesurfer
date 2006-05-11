@@ -380,6 +380,30 @@ VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) {
   }
 }
 
+bool 
+VolumeCollection::IsMRIIdxInBounds ( int iMRIIdx[3] ) {
+
+  if( NULL != mMRI ) {
+      return ( iMRIIdx[0] >= 0 && iMRIIdx[0] < mMRI->width &&
+	       iMRIIdx[1] >= 0 && iMRIIdx[1] < mMRI->height &&
+	       iMRIIdx[2] >= 0 && iMRIIdx[2] < mMRI->depth );
+  } else {
+    return false;
+  }
+}
+
+bool 
+VolumeCollection::IsMRIIdxInBounds ( float iMRIIdx[3] ) {
+
+  if( NULL != mMRI ) {
+      return ( iMRIIdx[0] >= 0 && iMRIIdx[0] < mMRI->width &&
+	       iMRIIdx[1] >= 0 && iMRIIdx[1] < mMRI->height &&
+	       iMRIIdx[2] >= 0 && iMRIIdx[2] < mMRI->depth );
+  } else {
+    return false;
+  }
+}
+
 
 void
 VolumeCollection::GetMRIIndexRange ( int oMRIIndexRange[3] ) {
@@ -1565,6 +1589,16 @@ VolumeCollection::NewROIFromLabel ( bool ibUseRealRAS, string ifnLabel ) {
 
     int index[3];
     RASToMRIIndex( ras, index );
+
+    if( !IsMRIIdxInBounds( index ) ) {
+      cerr << "ERROR: Label point out of bounds: Label point "
+	   << Point3<float>(label->lv[nPoint].x,
+			    label->lv[nPoint].y, label->lv[nPoint].z);
+      if( !ibUseRealRAS )
+	cerr << " -> RAS " << Point3<float>(ras);
+      cerr << " -> index " << Point3<int>(index) << endl;
+      continue;
+    }
 
     try { 
       volumeROI->SelectVoxel( index );
