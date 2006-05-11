@@ -380,6 +380,7 @@ typedef struct
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_scurv ;           /* coefficient of curvature term */
+	float   l_lap ;             // coefficient of laplacian term
   float   l_link ;            /* coefficient of link term to keep 
                                  white and pial vertices approximately 
                                  along normal */
@@ -1346,5 +1347,7 @@ int MRIScomputeClassModes(MRI_SURFACE *mris, MRI *mri, float *pwhite_mode, float
 int MRISrasToVoxel(MRI_SURFACE *mris, MRI *mri, Real xs, Real ys, Real zs, Real *pxv, Real *pyv, Real *pzv) ;
 int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
+int MRISripMedialWall(MRI_SURFACE *mris) ;
+int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) ;
 
 #endif
