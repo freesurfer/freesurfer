@@ -45,7 +45,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -62,7 +61,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.3 2006/02/23 06:30:10 greve Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.3.2.1 2006/05/11 21:58:28 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;

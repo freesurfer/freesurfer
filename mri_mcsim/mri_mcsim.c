@@ -23,10 +23,6 @@ double round(double x);
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-
 #include "macros.h"
 #include "utils.h"
 #include "mrisurf.h"
@@ -43,7 +39,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -61,7 +56,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.3 2005/12/05 05:46:08 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.3.2.1 2006/05/11 21:59:28 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;

@@ -413,7 +413,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -436,7 +435,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.78.2.5 2006/03/10 23:27:29 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.78.2.6 2006/05/11 22:00:37 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
