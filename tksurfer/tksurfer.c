@@ -1474,9 +1474,6 @@ static int sclv_cur_condition = 0;
 
 static double sclv_overlay_alpha = 1.0;
 
-static mriTransformRef sclv_client_transform = NULL;
-static MATRIX *sclv_register_transform = NULL;
-
 #define sclv_set_value(v,i,n) \
  switch((i)) { \
      case SCLV_VAL: (v)->val = (n); break; \
@@ -8267,12 +8264,10 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 
   /* create volume. */
   volume_error = FunD_New (&volume,
-			   sclv_client_transform,
                            fname,
 			   reg_type,
 			   registration, 
 			   mris->nvertices, /* Try to be scalar */
-                           sclv_register_transform,
 			   volm);
   if (volume_error!=FunD_tErr_NoError)
     {
@@ -19031,7 +19026,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.198 2006/05/11 20:07:56 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.199 2006/05/11 21:13:10 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22328,12 +22323,10 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
  
   /* create new volume */
   volume_error = FunD_New (&func_timecourse,
-			   sclv_client_transform,
                            fname,
 			   reg_type,
 			   registration, 
 			   mris->nvertices,
-                           sclv_register_transform,
 			   volm);
   if (volume_error!=FunD_tErr_NoError)
     {
@@ -22449,12 +22442,10 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 
   /* create new volume */
   volume_error = FunD_New (&func_timecourse_offset, 
-			   sclv_client_transform,
                            fname,
 			   reg_type,
 			   registration, 
 			   mris->nvertices, /* Try to be scalar */
-                           sclv_register_transform,
 			   volm);
   if (volume_error!=FunD_tErr_NoError)
     { 
@@ -22981,7 +22972,6 @@ int func_convert_error (FunD_tErr volume_error)
 int sclv_initialize () 
 {
   int field;
-  MATRIX* identity;
   
   /* no layers loaded, clear all the stuff. */
   for (field = 0; field < NUM_SCALAR_VALUES; field++)
@@ -22997,18 +22987,6 @@ int sclv_initialize ()
       sclv_field_info[field].fslope = fslope;
     }
   
-  /* create an identity transform for the functional data client
-     transform. */
-  sclv_register_transform = MatrixIdentity (4, NULL);
-
-  identity = MatrixIdentity (4, NULL);
-  Trns_New (&sclv_client_transform);
-  Trns_CopyAtoRAS (sclv_client_transform, identity);
-  Trns_CopyBtoRAS (sclv_client_transform, identity);
-  Trns_CopyARAStoBRAS (sclv_client_transform, identity);
-
-  MatrixFree (&identity);
-
   return (ERROR_NONE);
 }
 
