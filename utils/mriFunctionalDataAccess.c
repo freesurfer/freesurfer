@@ -545,6 +545,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   tBoolean     bGood            = FALSE;
   FunD_tConversionMethod 
                convMethod       = FunD_tConversionMethod_FCF;
+  int          eMRI             = ERROR_NONE;
 
   DebugEnterFunction( ("FunD_ParseRegistrationAndInitMatricies_( this=%p )", 
 		       this) );
@@ -684,11 +685,13 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   }
 
   /* Generate our anatomical index -> functional index transform */
-  MRImakeVox2VoxReg( iAnatomicalVolume->mpMriValues,
-		     this->mpData,
-		     (int)iType,
-		     this->msRegistrationFileName,
-		     &this->mIdxToIdxTransform );
+  eMRI = MRImakeVox2VoxReg( iAnatomicalVolume->mpMriValues,
+			    this->mpData,
+			    (int)iType,
+			    this->msRegistrationFileName,
+			    &this->mIdxToIdxTransform );
+  DebugAssertThrowX( (ERROR_NONE == eMRI ), 
+		     eResult, FunD_tErr_CouldntReadRegisterFile );
 
   /* Save the registration. */
   Trns_DeepClone( this->mIdxToIdxTransform,
