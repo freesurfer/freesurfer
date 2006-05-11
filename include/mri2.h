@@ -2,7 +2,7 @@
 #define MRI2_H
 
 #include "mri.h"
-
+#include "mriTransform.h"
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -28,4 +28,11 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol);
 double MRImaxAbsDiff(MRI *vol1, MRI *vol2, 
 		     int *cmax, int *rmax, int *smax, int *fmax);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
+
+#define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */
+#define VOX2VOXREGTYPE_FIND 1 /* Look for register.dat in movable MRI dir */
+#define VOX2VOXREGTYPE_IDENTITY 2 /* Use MRItkRegMtx() */
+int MRImakeVox2VoxReg(MRI* targ, MRI* mov,
+		      int regtype, char* regname,
+		      mriTransformRef* transform);
 #endif
