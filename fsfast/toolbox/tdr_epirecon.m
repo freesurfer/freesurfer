@@ -36,7 +36,7 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %  kepi = permute(kepi,[2 1 3 4 5]);
 %  [cimg Rrow epipar] = tdr_epirecon(kepi,'meas.asc');
 %
-% $Id: tdr_epirecon.m,v 1.4 2006/05/07 23:18:13 greve Exp $
+% $Id: tdr_epirecon.m,v 1.5 2006/05/11 21:58:52 greve Exp $
 
 cimg = [];
 Rrow = [];
@@ -56,7 +56,9 @@ if(isstr(arg2))
   epipar.tFlat     = tdr_measasc(measasc,'alRegridFlattopTime[0]'); % us
   epipar.tRampDown = tdr_measasc(measasc,'alRegridRampdownTime[0]'); % us
   epipar.tDelSamp  = tdr_measasc(measasc,'alRegridDelaySamplesTime[0]'); % us
-  epipar.ESP       = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
+  epipar.eshospacing = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
+  epipar.nkcols    = tdr_measasc(measasc,'iNoOfFourierColumns'); 
+  epipar.nkrows    = tdr_measasc(measasc,'iNoOfFourierLines'); 
 else
   epipar = arg2;
 end
