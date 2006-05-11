@@ -18,6 +18,7 @@
 #define CAUDATE_CORR_FRAME            11
 #define LAT_VENTRICLE_CORR_FRAME      12
 #define INF_LAT_VENTRICLE_CORR_FRAME  13 
+#define OVERLAY_FRAME                 14
 
 /* surface names */
 #define INFLATED_CURVATURE_NAME         NULL      /* directly computed */
@@ -37,6 +38,7 @@
 #define		CAUDATE_DIST_NAME            "caudate_dist" 
 #define		LAT_VENTRICLE_DIST_NAME      "latventricle_dist"   
 #define		INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
+#define   OVERLAY_NAME                 "overlay"
 
 #ifndef MAX_OF_TWO
 #define MAX_OF_TWO(a,b) ((a)>(b) ? (a):(b))
@@ -52,10 +54,13 @@ typedef struct{
 	float   l_corr;             /* correlation coefficient */
 	float   l_pcorr;            /* polar correlation coefficient */
 	float   sse;                /* sse associated with this field */
+	char    *name ;             // if user specified
+	int     navgs ;
 }FIELD_LABEL;
 
 int InitFieldLabel(FIELD_LABEL *label);
 
-int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr);
+int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr, int navgs);
+int SetFieldName(FIELD_LABEL *label, char *name) ;
 
 #endif
