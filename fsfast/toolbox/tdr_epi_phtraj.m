@@ -25,7 +25,7 @@ if(isstr(arg1))
   epipar.tFlat     = tdr_measasc(measasc,'alRegridFlattopTime[0]'); % us
   epipar.tRampDown = tdr_measasc(measasc,'alRegridRampdownTime[0]'); % us
   epipar.tDelSamp  = tdr_measasc(measasc,'alRegridDelaySamplesTime[0]'); % us
-  epipar.eshospacing = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
+  epipar.echospacing = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
   epipar.nkcols    = tdr_measasc(measasc,'iNoOfFourierColumns'); 
   epipar.nkrows    = tdr_measasc(measasc,'iNoOfFourierLines'); 
 else
