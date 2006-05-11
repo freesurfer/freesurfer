@@ -121,10 +121,8 @@ typedef struct {
   float mRegistrationThickness;
 
   /* transformation objects. */
-  mriTransformRef mClientTransform;
   mriTransformRef mIdxToIdxTransform;
   mriTransformRef mOriginalIdxToIdxTransform;
-  MATRIX* mTkregMatrix;
   
   /* When we know we have error values present, these are used */
   tBoolean mbErrorDataPresent;
@@ -218,28 +216,23 @@ typedef struct {
 /* Allocates and deletes volumes. Volumes can be interpreted as
    anatomically-based volumes that are registered onto a real
    anatomical volume, or as a scalar volume, with a list of indexed
-   values. iTransform is the client transform, used to transform into
-   client space. The transform should be a->b index->RAS (only a->RAS
-   transform will be used). isFileName should be something appropriate
-   for MRIread. iRegistrationType is one of the registration types,
-   and is used if the volume turns out to be
-   anatomical. isRegistrationFile is an optional registration file to
-   be used if the registration type is
-   FunD_tRegistration_File. inScalarSize is a number of scalar values;
-   if specified (not -1), the size of the volumeis compared to this
-   number and if it matches, the volume will be treated as a scalar
-   value set, and registration will not be use. iTkregMat is a matrix
-   used in calculating the registration. iAnatomicalVolume is used if
-   the registration type is FunD_tRegistration_Identity to calculate
-   an identity registration, and can be NULL. */
+   values. isFileName should be something appropriate for
+   MRIread. iRegistrationType is one of the registration types, and is
+   used if the volume turns out to be anatomical. isRegistrationFile
+   is an optional registration file to be used if the registration
+   type is FunD_tRegistration_File. inScalarSize is a number of scalar
+   values; if specified (not -1), the size of the volumeis compared to
+   this number and if it matches, the volume will be treated as a
+   scalar value set, and registration will not be
+   use. iAnatomicalVolume is used if the registration type is
+   FunD_tRegistration_Identity to calculate an identity registration,
+   and can be NULL. */
 
 FunD_tErr FunD_New    ( mriFunctionalDataRef*  opVolume,
-			mriTransformRef        iTransform,
 			char*                  isFileName,
 			FunD_tRegistrationType iRegistrationType,
 			char*                  isRegistrationFile,
 			int                    inScalarSize,
-			MATRIX*                iTkregMat,
 			mriVolumeRef           iAnatomicalVolume );
 
 FunD_tErr FunD_Delete ( mriFunctionalDataRef*  iopVolume );
