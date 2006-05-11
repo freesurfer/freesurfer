@@ -8,7 +8,15 @@ Multiple ROIs can exist on a data collection. They can be loaded in from a label
 
 == Creating and Loading ==
 
-To load an ROI from a label file, use the '''File->Load Label...''' command. You will need to choose a data collection into which to load the label. This is very important.
+You can load a label file from the command line or from within the program. From the command line, use the {{{-l}}} option after the {{{-v}}} option that loads the volume into which you want to load the label:
+
+{{{
+scuba -v VOLUME_FILE -l LABEL_FILE
+}}}
+
+This will load the label file into the most recently loaded volume.
+
+To load a label file from within the program, use the '''File->Load Label...''' command. You will need to choose a data collection into which to load the label. This is very important.
 
 To create a new ROI, use the '''Make New ROI''' button in the Data panel. This will create a new ROI associated with the data collection currently displayed in the data panel. Note that when data collections are first loaded, there is an ROI already created.
 
