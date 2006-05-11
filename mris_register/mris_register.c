@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,8 @@ static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 
+static char *annot_name = NULL ;
+static int atlas_size=3;
 static int max_passes = 4 ;
 static float min_degrees = 0.5 ;
 static float max_degrees = 64.0 ;
@@ -40,6 +42,9 @@ static float dalpha = 0.0f ;
 static float dbeta = 0.0f ;
 static float dgamma = 0.0f ;
 
+#define MAX_OVERLAYS 1000
+static int noverlays = 0 ;
+static char *overlays[MAX_OVERLAYS]  ;
 char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
@@ -73,10 +78,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -105,7 +110,7 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.dt_increase = 1.0 ;
   parms.dt_decrease = 1.0 ;
-	parms.l_external = 1000 ;   /* in case manual label is specified */
+	parms.l_external = 10000 ;   /* in case manual label is specified */
   parms.error_ratio = 1.1 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_ADAPTIVE ;
   parms.integration_type = INTEGRATE_MOMENTUM /*INTEGRATE_LINE_MINIMIZE*/ ;
@@ -151,6 +156,14 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
 
+	if (annot_name)
+	{
+		if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+			ErrorExit(ERROR_BADPARM, "%s: could not read annot file %s", Progname, annot_name) ;
+		MRISripMedialWall(mris) ;
+	}
+
+	MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
 	MRISaddCommandLine(mris, cmdline) ;
   if (!FZERO(dalpha) || !FZERO(dbeta) || !FZERO(dgamma))
     MRISrotate(mris, mris, RADIANS(dalpha), RADIANS(dbeta), 
@@ -265,6 +278,12 @@ get_option(int argc, char *argv[])
 		 	fprintf(stderr,"\t      field %d is '%s' (type = %d)\n",n,ReturnFieldName(n),IsDistanceField(n));
 		exit(1);
 	}
+	else if (!stricmp(option, "annot"))
+	{
+		annot_name = argv[2] ;
+		fprintf(stderr,"zeroing medial wall in %s\n", annot_name) ;
+		nargs=1;
+	}
 	else if (!stricmp(option, "init"))
   {
 		use_initial_registration=1;
@@ -295,7 +314,7 @@ get_option(int argc, char *argv[])
 		}
 		/* adding field into parms */
 		n=parms.nfields++;
-		SetFieldLabel(&parms.fields[n],which_field,where_in_atlas,l_corr,l_pcorr);
+		SetFieldLabel(&parms.fields[n],which_field,where_in_atlas,l_corr,l_pcorr,0);
 		nargs = 4 ;
 	}
 	/* else if (!stricmp(option, "hippocampus")) */
@@ -481,6 +500,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
   }
+  else if (!stricmp(option, "lap") || !stricmp(option, "lap"))
+  {
+		parms.l_lap = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_laplacian = %2.3f\n", parms.l_lap) ;
+  }
   else if (!stricmp(option, "vnum"))
   {
     parms.nbhd_size = atof(argv[2]) ;
@@ -494,6 +519,24 @@ get_option(int argc, char *argv[])
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  }
+  else if (!stricmp(option, "overlay"))
+  {
+		int navgs ;
+
+		if (multiframes == 0)
+		{
+			initParms() ;
+			multiframes = 1 ;
+		}
+		overlays[noverlays++] = argv[2] ;
+		navgs = atof(argv[3]) ;
+		printf("reading overlay from %s and smoothing it %d times\n", argv[2], navgs) ;
+		n=parms.nfields++;
+		SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs);
+		SetFieldName(&parms.fields[n], argv[2]) ;
+		atlas_size++ ;
+		nargs = 2 ;
   }
   else switch (toupper(*option))
   {

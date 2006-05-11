@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.15 2005/02/14 04:38:39 segonne Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.16 2006/05/11 13:34:01 fischl Exp $";
  
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char *annot_name = NULL ;
 static char *surface_names[] = 
 {
   "inflated",
@@ -55,12 +56,15 @@ static int multiframes = 0 ; /* to use multiframes */
 static int base_default = 1 ;  /* using default vector fields */
 static int atlas_size = 3;
 
+#define MAX_OVERLAYS 1000
+static int noverlays = 0 ;
+static char *overlays[MAX_OVERLAYS] ;
 
 int
 main(int argc, char *argv[])
 {
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
-               *cp, *subject, fname[STRLEN] ;
+		*cp, *subject, fname[STRLEN] ;
   int          ac, nargs, ino, sno, nbad = 0, failed, n,nfields;
   VERTEX *v;
   VALS_VP *vp;
@@ -69,7 +73,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.15 2005/02/14 04:38:39 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.16 2006/05/11 13:34:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -151,9 +155,16 @@ main(int argc, char *argv[])
 		{
 			nbad++ ;
       ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, surf_fname) ;
-			continue ;
+									Progname, surf_fname) ;
+			exit(1) ;
 		}
+		if (annot_name)
+		{
+			if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+				ErrorExit(ERROR_BADPARM, "%s: could not read annot file %s", Progname, annot_name) ;
+			MRISripMedialWall(mris) ;
+		}
+
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ; 
 		MRISstoreMetricProperties(mris) ;
@@ -180,10 +191,12 @@ main(int argc, char *argv[])
     }
 		
 		/* multiframe registration */
-		if(multiframes){
+		if(multiframes)
+		{
 			nfields=parms.nfields;
-			/* allocate the VALS_VP structure */
-			for( n = 0; n < mris->nvertices ; n++){
+			
+			for( n = 0; n < mris->nvertices ; n++) /* allocate the VALS_VP structure */
+			{ 
 				v=&mris->vertices[n];
 				vp=calloc(1,sizeof(VALS_VP));
 				vp->nvals=nfields;
@@ -193,8 +206,17 @@ main(int argc, char *argv[])
 			}
 
 			/* load the different fields */
-			for(n = 0 ; n < parms.nfields ; n++){
-				if (ReturnFieldName(parms.fields[n].field)){  /* read in precomputed curvature file */
+			for(n = 0 ; n < parms.nfields ; n++)
+			{
+				if (parms.fields[n].name != NULL)
+				{
+					sprintf(surf_fname, "%s/%s/label/%s.%s", subjects_dir, subject, hemi, parms.fields[n].name) ;
+					printf("reading overlay file %s...\n", surf_fname) ;
+					if (MRISreadValues(mris, surf_fname) != NO_ERROR)
+						ErrorExit(ERROR_BADPARM, "%s: could not read overlay file %s",  Progname, surf_fname) ;
+					MRIScopyValuesToCurvature(mris) ;
+				}
+				else if (ReturnFieldName(parms.fields[n].field)){  /* read in precomputed curvature file */
 					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, ReturnFieldName(parms.fields[n].field)) ;
 					//	fprintf(stderr,"\nreading field %d from %s(type=%d,frame=%d)\n",parms.fields[n].field,surf_fname,parms.fields[n].type,parms.fields[n].frame);
 					if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR){
@@ -233,18 +255,19 @@ main(int argc, char *argv[])
 				MRISsetCurvaturesToOrigValues(mris,n);
 				MRISsetCurvaturesToValues(mris,n);
 			}
+
 			if(failed){
 				fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 				fprintf(stderr,"Subject %s Failed",subject);
 				fprintf(stderr,"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n");
 				/* free cal structure*/
 				for( n = 0; n < mris->nvertices ; n++){
-				v=&mris->vertices[n];
-				vp=(VALS_VP*)v->vp;
-				free(vp->orig_vals);
-				free(vp->vals);
-				free(vp);
-				v->vp=NULL;
+					v=&mris->vertices[n];
+					vp=(VALS_VP*)v->vp;
+					free(vp->orig_vals);
+					free(vp->vals);
+					free(vp);
+					v->vp=NULL;
 				}
 				/* free surface */
 				MRISfree(&mris);
@@ -297,6 +320,7 @@ main(int argc, char *argv[])
 			for (n = 0; n < parms.nfields ; n++)
 			{
 				MRISsetOrigValuesToCurvatures(mris,n);
+				MRISaverageCurvatures(mris, parms.fields[n].navgs) ;
 				mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
 				MRISPcombine(mrisp, mrisp_template, parms.fields[n].frame * IMAGES_PER_SURFACE) ;
 				MRISPfree(&mrisp) ;
@@ -320,11 +344,11 @@ main(int argc, char *argv[])
 									subjects_dir, subject, hemi, curvature_names[sno]) ;
 					if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
 					{
-					nbad++ ;
-          ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
-											Progname, surf_fname) ;
-					failed = 1 ;
-					break ;
+						nbad++ ;
+						ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
+												Progname, surf_fname) ;
+						failed = 1 ;
+						break ;
 					}
 					/* the two next lines were not in the original code */
 					MRISaverageCurvatures(mris, navgs) ;
@@ -537,6 +561,26 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 		fprintf(stderr,"Setting up atlas size to %d\n",size);
 		nargs=1;
 	}
+	else if (!stricmp(option, "annot"))
+	{
+		annot_name = argv[2] ;
+		fprintf(stderr,"zeroing medial wall in %s\n", annot_name) ;
+		nargs=1;
+	}
+	else if (!stricmp(option, "overlay"))
+	{
+		int navgs ;
+
+		overlays[noverlays++] = argv[2] ;
+		navgs = atoi(argv[3]) ;
+		printf("reading overlay from %s...\n", argv[2]) ;
+		multiframes = 1 ;
+		n=parms->nfields++;
+		SetFieldLabel(&parms->fields[n], OVERLAY_FRAME, atlas_size,0.0,0.0, navgs);
+		SetFieldName(&parms->fields[n], argv[2]) ;
+		atlas_size++ ;
+		nargs = 2 ;
+	}
 	else if (!stricmp(option, "vector"))
   {
 		fprintf(stderr,"\nMultiframe Mode:\n");
@@ -576,7 +620,7 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 		}
 		/* adding field into parms */
 		n=parms->nfields++;
-		SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0);
+		SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0,0);
 		if(where_in_atlas >= atlas_size) {
 			atlas_size = where_in_atlas+1;
 			fprintf(stderr,"Atlas size increased to contain at least %d frames\n",atlas_size);
@@ -653,8 +697,8 @@ static void setParms(INTEGRATION_PARMS *parms){
 	/* default template fields*/
 	parms->nfields=3;
 		
-	SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0);
+	SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0,0);
 	/* only use sulc for rigid registration */
-	SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0);
-	SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0);
+	SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0,0);
+	SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0,0);
 }
