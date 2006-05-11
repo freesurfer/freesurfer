@@ -139,13 +139,13 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
     int correct;
 		if(n == 0 ) 
 			correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
-		else
+		else			
 			correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
 
 		npatches++;
 
 		if(correct < 0){ 
-			fprintf(WHICH_OUTPUT,"PBM : Could Not Increase Euler Number for defect %d\n",parms.defect_number);
+			fprintf(WHICH_OUTPUT,"\r      PBM: Euler Number incorrect for surface (defect %d)\n",parms.defect_number);
 			delete surface;
 			continue;
 		}
@@ -160,7 +160,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		
 		euler = MRISgetEuler(mris_work);
 		if(euler != init_euler+2){
-			fprintf(WHICH_OUTPUT,"PBM : Topology Correction has failed. Defect %d\n",parms.defect_number);
+			fprintf(WHICH_OUTPUT,"\r      PBM: Euler Number incorrect for mris (defect %d)\n",parms.defect_number);
 			MRISfree(&mris_work);
 			continue;
 		}
@@ -183,6 +183,9 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 				nintersections++;
 				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
 				MRISfree(&mris_work);
+				if(parms.minimal_mode && best_mris==NULL){
+					nattempts = __MAX(50,nattempts);
+				}
 				continue;
 			}
       if(best_mris) MRISfree(&best_mris);
@@ -228,9 +231,11 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		fprintf(WHICH_OUTPUT,"      %d patches have been generated - %d self-intersected\n",npatches,nintersections);
 
 	//update the surface
-	if(best_mris == NULL )
+	if(best_mris == NULL ){
+		fprintf(WHICH_OUTPUT,"PBM : Could Not Increase Euler Number for defect %d\n",parms.defect_number);
 		return false;
-
+	}
+	
 	MRISfree(&mris);
 	mris = best_mris;
 	parms.fitness = best_fitness;
