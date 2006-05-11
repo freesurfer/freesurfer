@@ -3,8 +3,8 @@
 
 #ifdef __cplusplus
 
-#define MAX_EXTRA_VERTICES 66
-#define MAX_EXTRA_FACES 128
+#define MAX_EXTRA_VERTICES 100 //66
+#define MAX_EXTRA_FACES 150 //128
 
 
 #include "surface.h"
