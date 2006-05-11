@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.59 2006/05/04 21:48:49 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.60 2006/05/11 17:30:01 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -424,6 +424,7 @@ if ($status != 0) then
   # and the fsaverage in the subjects dir...
   echo "CMD: chmod -R g+rw ${DEST_DIR}/subjects/fsaverage" >>& $OUTPUTF
   chmod -R g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chgrp -R fsdev ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
@@ -452,6 +453,8 @@ mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
+echo "CMD: chgrp -R fsdev ${DEST_DIR}" >>& $OUTPUTF
+chgrp -R fsdev ${DEST_DIR} >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
 echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
