@@ -9,6 +9,9 @@
 
 char *ReturnFieldName(int which_field){
 	switch(which_field){
+	case OVERLAY_FRAME:
+		return(OVERLAY_NAME) ;
+		break ;
 	case INFLATED_CURV_CORR_FRAME:
 		return INFLATED_CURVATURE_NAME;
 		break;
@@ -61,6 +64,9 @@ char *ReturnFieldName(int which_field){
 
 int IsDistanceField(int which_field){
 	switch(which_field){
+	case OVERLAY_FRAME:
+		return(0) ;
+		break ;
 	case INFLATED_CURV_CORR_FRAME:
 		return 0;
 		break;
@@ -116,13 +122,21 @@ int InitFieldLabel(FIELD_LABEL *label){
 	return NO_ERROR;
 }
 
-int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr){
+int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr, int navgs){
 	label->field=field;
 	label->frame=frame;
 	label->type=IsDistanceField(field);
 	label->l_corr=MAX_OF_TWO(0.0,l_corr);
 	label->l_pcorr=MAX_OF_TWO(0.0,l_pcorr);
 	label->sse=0.0f;
+	label->name = NULL ;
+	label->navgs = navgs ;
 	return NO_ERROR;
 }
 
+int
+SetFieldName(FIELD_LABEL *label, char *name)
+{
+	label->name = name ;
+	return(NO_ERROR) ;
+}
