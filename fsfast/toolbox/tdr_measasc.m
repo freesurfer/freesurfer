@@ -1,7 +1,7 @@
 function val = tdr_measasc(measasc,varname,flag)
 % val = tdr_measasc(measasc,varname,<flag>)
 %
-% $Id: tdr_measasc.m,v 1.4 2006/05/07 23:18:13 greve Exp $
+% $Id: tdr_measasc.m,v 1.5 2006/05/11 21:59:40 greve Exp $
 %
 % EPI ------------------------------------------------------
 % Number of echoes: sWiPMemBlock.alFree[2] (if it exists.
@@ -40,15 +40,17 @@ if(~isempty(flag))
   end
   % Read in as epipar struct.
   val.tDwell = tdr_measasc(measasc,'sRXSPEC.alDwellTime[0]'); % nsec
+  if(isempty(val.tDwell)) return; end
   val.tDwell = val.tDwell/1000; % convert to usec
-  val.tRampUp   = tdr_measasc(measasc,'m_alRegridRampupTime');  % us
-  val.tFlat     = tdr_measasc(measasc,'m_alRegridFlattopTime'); % us
-  val.tRampDown = tdr_measasc(measasc,'m_alRegridRampdownTime'); % us
-  val.tDelSamp  = tdr_measasc(measasc,'m_alRegridDelaySamplesTime'); % us
-  val.echospacing = tdr_measasc(measasc,'m_lEchoSpacing'); % us
+  val.tRampUp   = tdr_measasc(measasc,'alRegridRampupTime[0]');  % us
+  val.tFlat     = tdr_measasc(measasc,'alRegridFlattopTime[0]'); % us
+  val.tRampDown = tdr_measasc(measasc,'alRegridRampdownTime[0]'); % us
+  val.tDelSamp  = tdr_measasc(measasc,'alRegridDelaySamplesTime[0]'); % us
+
+  val.echospacing  = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
   val.TE        = tdr_measasc(measasc,'alTE[0]'); % us
-  val.nkcols    =  tdr_measasc(measasc,'m_iNoOfFourierColumns');
-  val.nkrows    =  tdr_measasc(measasc,'m_iNoOfFourierLines');
+  val.nkcols    =  tdr_measasc(measasc,'iNoOfFourierColumns');
+  val.nkrows    =  tdr_measasc(measasc,'iNoOfFourierLines');
   val.timeunits = 'usec';
   return;
 end
