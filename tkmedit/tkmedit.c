@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/11 20:31:28 $
-// Revision       : $Revision: 1.282 $
-char *VERSION = "$Revision: 1.282 $";
+// Revision Date  : $Date: 2006/05/11 20:51:27 $
+// Revision       : $Revision: 1.283 $
+char *VERSION = "$Revision: 1.283 $";
 
 #define TCL
 #define TKMEDIT
@@ -34,6 +34,8 @@ char *VERSION = "$Revision: 1.282 $";
 #include "ctrpoints.h"
 #include "tiffio.h"
 #include "tkmedit.h"
+#include "fsgdf.h"
+#include "mri2.h"
 
 #define SET_TCL_ENV_VAR 0
 #include <tcl.h>
@@ -847,7 +849,7 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 			 char* isRegistrationFile );
 
 tkm_tErr BeginGDFPointList ();
-tkm_tErr AddGDFPlotPoint ( xVoxelRef iMRIIdx );
+tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx );
 tkm_tErr EndGDFPointList ();
 
 /* ======================================================================= */
@@ -1130,7 +1132,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.282 2006/05/11 20:31:28 kteich Exp $",
+     "$Id: tkmedit.c,v 1.283 2006/05/11 20:51:27 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5648,7 +5650,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.282 2006/05/11 20:31:28 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.283 2006/05/11 20:51:27 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -6536,6 +6538,46 @@ void tkm_Quit () {
 }
 
 /* ============================================================ GDF VOLUME */
+
+tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
+			 int iRegistrationType,
+			 char* isRegistrationName ) {
+  MRI* gdInfo = NULL;
+  
+  gGDFID = 0;
+  
+  /* Init the GDF display with tcl commands. Save the GDF ID so that
+     we can use it to send commands. */
+
+  /* Now we need to generate a registration transform so get our
+     MRIIdx coords into the GDF space. First get the MRI header from
+     the GD data file. */
+  gdInfo = gdfReadDataInfo( isFSGDHeader );
+
+  /* Now make the registration transform. We'll use this later. */
+  MRImakeVox2VoxReg( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues,
+		     gdInfo,
+		     iRegistrationType,
+		     isRegistrationName,
+		     &gMRIIdxToGDFIdxTransform );
+
+  return tkm_tErr_NoErr;
+}
+
+tkm_tErr BeginGDFPointList () {
+
+  return tkm_tErr_NoErr;
+}
+
+tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
+
+  return tkm_tErr_NoErr;
+}
+
+tkm_tErr EndGDFPointList () {
+
+  return tkm_tErr_NoErr;
+}
 
 
 /*=== from TkMain.c ===================================================*/
