@@ -23,7 +23,7 @@
 static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist) ;
 static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS *parms) ;
 
-static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.1 2006/05/11 13:19:04 fischl Exp $";
+static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.2 2006/05/11 13:28:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -97,7 +97,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.1 2006/05/11 13:19:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.2 2006/05/11 13:28:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -463,7 +463,7 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside, INT
 {
 	MRI    *mri_dilated ;
 	int    x, y, z, vno ;
-	double x0, y0, z0, radius, dist, num ;
+	double x0, y0, z0, radius = 0, dist, num ;
 	Real   xs, ys, zs ;
 	VERTEX *v ;
 
