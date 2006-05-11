@@ -34,6 +34,9 @@
 
 //////////////////////////////////////////////////////
 
+static void normalize_timecourse(void) ;
+static void load_timecourse(char *fname) ;
+static void show_correlations(int selection) ;
 static void resize_brain(float surface_area) ;
 static void set_value_label_name(char *label_name, int field) ;
 static void drawcb(void) ;
@@ -17614,6 +17617,8 @@ int W_flip_normals PARM;
 int W_mark_contiguous_vertices_over_thresh PARM;
 int W_mark_contiguous_vertices_with_similar_curvature PARM;
 int W_rip_all_vertices_except_contiguous_upripped PARM;
+int W_load_timecourse PARM;
+int W_show_correlations PARM;
 
 /* end rkt */
 
@@ -18924,6 +18929,16 @@ mark_contiguous_vertices_with_similar_curvature(); WEND
 int W_rip_all_vertices_except_contiguous_upripped WBEGIN
 ERR(1,"Wrong # args: rip_all_vertices_except_contiguous_upripped")
 rip_all_vertices_except_contiguous_upripped (); WEND
+
+int W_load_timecourse WBEGIN
+ERR(2,"Wrong # args: load_timecourse axes")
+load_timecourse(argv[1]); WEND
+
+
+int W_show_correlations WBEGIN
+ERR(1,"Wrong # args: show_correlations axes")
+show_correlations(selection); WEND
+
      
 
 /* end rkt */
@@ -19016,7 +19031,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.197 2006/04/26 21:50:48 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.198 2006/05/11 20:07:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19798,6 +19813,12 @@ int main(int argc, char *argv[])   /* new main */
   
   Tcl_CreateCommand(interp, "flip_normals",
                     (Tcl_CmdProc*) W_flip_normals, REND);
+
+  Tcl_CreateCommand(interp, "load_timecourse",
+                    (Tcl_CmdProc*) W_load_timecourse, REND);
+
+  Tcl_CreateCommand(interp, "show_correlations",
+                    (Tcl_CmdProc*) W_show_correlations, REND);
 
   Tcl_CreateCommand(interp, "mark_contiguous_vertices_over_thresh",
                     (Tcl_CmdProc*) W_mark_contiguous_vertices_over_thresh, REND);
@@ -27061,3 +27082,142 @@ transform_brain(void)
   redraw() ;
 }
 
+static MRI *mri_cor = NULL ;
+static void
+show_correlations(int selection)
+{
+	VERTEX *v ;
+	int    t, field ;
+	double cor, val1, val2, min, max, num, d1, d2 ;
+	char   cmd[STRLEN] ;
+
+	int vno ;
+	if (selection < 0)
+	{
+		printf("vertex must be selected\n") ;
+		return ;
+	}
+	if (mri_cor == NULL)
+	{
+		printf("load timecourse with load_timecourse\n") ;
+		return ;
+	}
+
+	field = 0 ;
+  /* Unload this field if it already exists */
+  sclv_unload_field (field);
+	min = 1000000000 ;
+	max = -min ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		for (t = 0, num = d1 = d2 = cor = 0.0 ; t < mri_cor->nframes ; t++)
+		{
+			val1 = MRIgetVoxVal(mri_cor, selection, 0, 0, t) ;
+			val2 = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
+			cor += (val1-val2)*(val1-val2);
+			num += val1*val2 ;
+			d1 += (val1*val1) ;
+			d2 += (val2*val2) ;
+		}
+		cor = 1 - (sqrt(cor/mri_cor->nframes)) ;
+		cor = (num/mri_cor->nframes) / 
+			sqrt((d1/mri_cor->nframes)*(d2/mri_cor->nframes)) ;
+		sclv_set_value(v, field, cor) ;
+		if (cor < min)
+			min = cor ;
+		if (cor > max)
+			max = cor ;
+	}
+  /* Set up some initial stuff here. */
+  sclv_field_info[field].min_value = min;
+  sclv_field_info[field].max_value = max;
+  sclv_field_info[field].cur_timepoint = 0;
+  sclv_field_info[field].cur_condition = 0;
+  sclv_field_info[field].num_timepoints = 1;
+  sclv_field_info[field].num_conditions = 1;
+
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+
+  /* set the field name to the name of the file loaded */
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", 
+	   field, "Correlations");
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+
+  /* Enable menu items. */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+}
+
+static void
+load_timecourse(char *fname)
+{
+	printf("loading correlation timecourse from %s\n", fname) ;
+	mri_cor = MRIread(fname) ;
+	if (mri_cor == NULL)
+	{
+		printf("could not load timecourse\n") ;
+		return ;
+	}
+	if (mri_cor->width * mri_cor->height * mri_cor->depth !=
+			mris->nvertices)
+	{
+		MRIfree(&mri_cor) ;
+		printf("mri dimensions (%d, %d, %d) = %d do not match # of vertices %d\n",
+					 mri_cor->width, mri_cor->height, mri_cor->depth,
+					 mri_cor->width * mri_cor->height * mri_cor->depth,
+					 mris->nvertices) ;
+		return ;
+	}
+	if (mri_cor->width != mris->nvertices)
+	{
+		MRI *mri_tmp ;
+		printf("reshaping MRI\n") ;
+		mri_tmp = mri_reshape(mri_cor, mris->nvertices, 1, 1, mri_cor->nframes);
+		MRIfree(&mri_cor) ;
+		mri_cor = mri_tmp ;
+	}
+	normalize_timecourse() ;
+}
+static void
+normalize_timecourse(void)
+{
+	int    t ;
+	double mean, var, val, std ;
+	int    vno ;
+
+	if (mri_cor == NULL)
+	{
+		printf("load timecourse with load_timecourse\n") ;
+		return ;
+	}
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		for (mean = var = 0.0, t = 0 ; t < mri_cor->nframes ; t++)
+		{
+			val = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
+			mean += val ;
+			var += val*val ;
+		}
+		mean /= mri_cor->nframes ;
+		var = var / mri_cor->nframes - mean*mean ;
+		std = sqrt(var) ;
+		for (t = 0 ; t < mri_cor->nframes ; t++)
+		{
+			val = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
+			val = (val - mean) / std ;
+			MRIsetVoxVal(mri_cor, vno, 0, 0, t, val) ;
+		}
+	}
+}
