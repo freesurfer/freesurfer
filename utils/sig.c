@@ -9,14 +9,12 @@
 #include "macros.h"
 #include "proto.h"
 
-#include "gsl/gsl_cdf.h"
-
 #define ITMAX 100
 #define EPS 3.0e-7
 
 /*---------------------------------------------------------------
-  fdr2vwth() - returns the voxel-wise threshold given the 
-    False Discovery Rate. Complement to vwth2fdr().
+  fdr2vwth() - returns the voxel-wise threshold given the
+  False Discovery Rate. Complement to vwth2fdr().
   p - list of values between 0 and 1.
   np - number in p.
   fdr - False Discovery Rate, between 0 and 1.
@@ -32,7 +30,7 @@ double fdr2vwth(double *p, int np, double fdr)
   int n;
   double r;
   r = fdr/np;
-  
+
   // Sort in ascending order
   qsort(p,np,sizeof(double),doublecompar);
 
@@ -43,9 +41,11 @@ double fdr2vwth(double *p, int np, double fdr)
   // If p[n] never goes less than r*(n+1), then return the smallest p
   return(p[0]);
 }
+
+
 /*---------------------------------------------------------------
   vwth2fdr() - returns the False Discovery Rate given the voxel-wise
-    threshold. Complement to fdr2vwth().
+  threshold. Complement to fdr2vwth().
   p - list of values between 0 and 1.
   np - number in p.
   vwth - voxel-wise threshold between 0 and 1.
@@ -56,7 +56,7 @@ double vwth2fdr(double *p, int np, double vwth)
 {
   double fdr = 0, r = 0;
   int n;
-  
+
   // Sort in ascending order
   qsort(p,np,sizeof(double),doublecompar);
 
@@ -70,6 +70,8 @@ double vwth2fdr(double *p, int np, double vwth)
 
   return(fdr);
 }
+
+
 /*---------------------------------------------------------------
   doublecompar() - qsort compare function to compare two doubles
   --------------------------------------------------------------*/
@@ -130,50 +132,41 @@ float betacf(float a, float b, float x)
 
 float gammln(float xx)
 {
-        double x,tmp,ser,res;
-        static double cof[6]={76.18009173,-86.50532033,24.01409822,
-                -1.231739516,0.120858003e-2,-0.536382e-5};
-        int j;
+  double x,tmp,ser,res;
+  static double cof[6]={76.18009173,-86.50532033,24.01409822,
+                        -1.231739516,0.120858003e-2,-0.536382e-5};
+  int j;
 
-        x=xx-1.0;
-        tmp=x+5.5;
-        tmp -= (x+0.5)*log(tmp);
-        ser=1.0;
-        for (j=0;j<=5;j++) {
-                x += 1.0;
-                ser += cof[j]/x;
-        }
-        res = -tmp+log(2.50662827465*ser);
-        return res;
+  x=xx-1.0;
+  tmp=x+5.5;
+  tmp -= (x+0.5)*log(tmp);
+  ser=1.0;
+  for (j=0;j<=5;j++) {
+    x += 1.0;
+    ser += cof[j]/x;
+  }
+  res = -tmp+log(2.50662827465*ser);
+  return res;
 }
 
 float betai(float a, float b, float x)
 {
-        float bt;
+  float bt;
 
-        if (x < 0.0 || x > 1.0) 
-          ErrorExit(ERROR_BADPARM, "Bad x in routine BETAI");
-        if (x == 0.0 || x == 1.0) bt=0.0;
-        else
-                bt=exp(gammln(a+b)-gammln(a)-gammln(b)+a*log(x)+b*log(1.0-x));
-        if (x < (a+1.0)/(a+b+2.0))
-                return bt*betacf(a,b,x)/a;
-        else
-                return 1.0-bt*betacf(b,a,1.0-x)/b;
+  if (x < 0.0 || x > 1.0)
+    ErrorExit(ERROR_BADPARM, "Bad x in routine BETAI");
+  if (x == 0.0 || x == 1.0) bt=0.0;
+  else
+    bt=exp(gammln(a+b)-gammln(a)-gammln(b)+a*log(x)+b*log(1.0-x));
+  if (x < (a+1.0)/(a+b+2.0))
+    return bt*betacf(a,b,x)/a;
+  else
+    return 1.0-bt*betacf(b,a,1.0-x)/b;
 }
 
 /* End from numrec_c */
 
-#ifdef MGH_GSL
-double sigt(double t,int df)
-{
-  double sig;
-  // Use 2* for two-tailed test, compatible with old version of sigt().
-  sig = 2*gsl_cdf_tdist_Q(fabs(t),(double)df) ;
-  //printf("t = %g, df=%d, sig = %g\n",t,df,sig);
-  return(sig);
-}
-#else
+
 #define MAXT    30.0
 #define MAXDOF 200
 /* note, everything here is Doug's fault */
@@ -181,13 +174,13 @@ double sigt(double t,int df)
 {
   double sig=0.0,sig1,sig2;
 
-  if (df==0)    
+  if (df==0)
     sig = 1;
   else if (df < MAXDOF && fabs(t) < MAXT)
     sig = betai(0.5*df,0.5,df/(df+t*t));
 
   if(df>MAXDOF || sig < DBL_MIN){
-    sig1 = erfc(fabs(t)/sqrt(2.0));        
+    sig1 = erfc(fabs(t)/sqrt(2.0));
     sig2 = 1.0/sqrt(2.0*M_PI)*exp(-0.5*(t*t)); /* use Normal approximation */
     if(sig1 > sig2)  sig = sig1;
     else             sig = sig2;
@@ -196,39 +189,39 @@ double sigt(double t,int df)
   if (!finite(sig))
     printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
   if(sig > 1.0) sig = 1.0;
-  
+
   return sig;
 }
-#endif
+
+
 /*
-float sigt(float t, int df)
-{
+  float sigt(float t, int df)
+  {
   float sig;
 
   sig = betai(0.5*df,0.5,df/(df+t*t));
   return sig;
-}
+  }
 */
 
 float gammp(float a,float x)
 {
   float gamser,gammcf,gln;
 
-  if (x < 0.0 || a <= 0.0) 
+  if (x < 0.0 || a <= 0.0)
     ErrorReturn(0.0f,
                 (ERROR_BADPARM, "Invalid arguments gammp(%2.6f, %2.6f)",a,x));
 
-
-  if (x < (a+1.0)) 
-  {
-    gser(&gamser,a,x,&gln);
-    return gamser;
-  } 
-  else 
-  {
-    gcf(&gammcf,a,x,&gln);
-    return 1.0-gammcf;
-  }
+  if (x < (a+1.0))
+    {
+      gser(&gamser,a,x,&gln);
+      return gamser;
+    }
+  else
+    {
+      gcf(&gammcf,a,x,&gln);
+      return 1.0-gammcf;
+    }
 }
 
 float
@@ -241,7 +234,6 @@ sigchisq(double chisq, int df)
   p = gammp((float)df/2, (float)chisq/2.0) ;
   return(1-p) ;
 }
-
 
 #ifdef ITMAX
 #undef ITMAX
@@ -261,11 +253,11 @@ void gser(float *gamser,float a,float x, float *gln)
 
   *gln=gammln(a);
   if (x <= 0.0) {
-    if (x < 0.0) 
-    {
-      ErrorPrintf(ERROR_BADPARM, "gser(%2.1f) x less than 0",x);
-      return ;
-    }
+    if (x < 0.0)
+      {
+        ErrorPrintf(ERROR_BADPARM, "gser(%2.1f) x less than 0",x);
+        return ;
+      }
     *gamser=0.0;
     return;
   } else {
@@ -323,7 +315,7 @@ void gcf(float *gammcf, float a, float x, float *gln)
     }
   }
   ErrorPrintf(ERROR_BADPARM,
-            "gcf(%2.1f, %2.1f): a too large, ITMAX too small", a, x);
+              "gcf(%2.1f, %2.1f): a too large, ITMAX too small", a, x);
 }
 
 #undef ITMAX
