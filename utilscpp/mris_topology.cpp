@@ -270,13 +270,13 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode){
 
 	if(mode==0){
 		//count the number of loops to be corrected
-		int nloops = (1-MRISgetEuler(mris))/2;
+		int nloops = (2-MRISgetEuler(mris))/2;
 
 		//count the number of defective vertices
 		n_extra_vertices = 0;
 		for(int n = 0 ; n < mris->nvertices ; n++)
 			if(mris->vertices[n].marked2) n_extra_vertices++;
-		n_extra_vertices = 2*n_extra_vertices + nloops*MAX_EXTRA_VERTICES;
+		n_extra_vertices = 3*n_extra_vertices + nloops*MAX_EXTRA_VERTICES; //2
 		
 		//count the number of defective faces
 		n_extra_faces = 0 ;
@@ -290,7 +290,7 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode){
 			}
 			if(isface) n_extra_faces++;
 		}
-		n_extra_faces = 4*n_extra_faces + nloops*MAX_EXTRA_FACES;
+		n_extra_faces = 5*n_extra_faces + nloops*MAX_EXTRA_FACES; //4
 	}else{
 		n_extra_vertices = __MAX(mris->max_vertices-mris->nvertices,0);
 		n_extra_faces =__MAX(mris->max_faces-mris->nfaces,0);
