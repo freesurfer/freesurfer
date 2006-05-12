@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/11 20:31:27 $
-// Revision       : $Revision: 1.130 $
+// Revision Date  : $Date: 2006/05/12 21:44:19 $
+// Revision       : $Revision: 1.131 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1184,6 +1184,9 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 			     ipCursor, &MRIIdx );
     eFunctional = FunV_MRIIdxClicked( this->mpFunctionalVolume, &MRIIdx );
   }
+
+  /* Allow a point to be selected in the GDF volume. */
+  tkm_SelectGDFMRIIdx( &MRIIdx );
   
   /* get our current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );

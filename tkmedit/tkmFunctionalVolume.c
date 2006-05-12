@@ -78,7 +78,7 @@ char *FunV_ksaTclCommand [FunV_knNumTclCommands] = {
 FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
 		     void(*ipOverlayChangedFunction)(void),
 		     void(*ipSendTkmeditCmdFunction)(tkm_tTclCommand,char*),
-		     void(*ipSendTclCommandFunction)(char*) ) {
+		     char*(*ipSendTclCommandFunction)(char*) ) {
   
   FunV_tErr              eResult = FunV_tErr_NoError;
   tkmFunctionalVolumeRef this    = NULL;

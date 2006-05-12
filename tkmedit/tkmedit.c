@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/11 20:51:27 $
-// Revision       : $Revision: 1.283 $
-char *VERSION = "$Revision: 1.283 $";
+// Revision Date  : $Date: 2006/05/12 21:44:19 $
+// Revision       : $Revision: 1.284 $
+char *VERSION = "$Revision: 1.284 $";
 
 #define TCL
 #define TKMEDIT
@@ -121,12 +121,14 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "Couldn't load the VLI volume.",
   "Couldn't load the DTI volume.",
   "Couldn't load the vector field.",
+  "Couldn't load the FSGDF file.",
   "Error accessing a file.",
   "Error accessing the anatomical volume.",
   "Error accessing the segmentation.",
   "Error accessing the functional volume.",
   "Error accessing the list.",
   "Error accessing surface.",
+  "Error accessing GDF plot.",
   "Couldnt write a file.",
   "A memory allocation failed.",
   "The anatomical volume is not loaded.",
@@ -848,6 +850,8 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 			 int iRegistrationType,
 			 char* isRegistrationFile );
 
+tkm_tErr GDFPlotMRIIdx ( xVoxelRef iMRIIdx );
+
 tkm_tErr BeginGDFPointList ();
 tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx );
 tkm_tErr EndGDFPointList ();
@@ -899,7 +903,7 @@ void SetTclInterp ( Tcl_Interp * inInterp );
 Tcl_Interp * GetTclInterp ();
 
 /* send a tcl command */
-void SendTCLCommand ( char * inCommand );
+char* SendTCLCommand ( char * inCommand );
 
 
 xGrowableArrayRef gCachedTclCommands = NULL;
@@ -1132,7 +1136,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.283 2006/05/11 20:51:27 kteich Exp $",
+     "$Id: tkmedit.c,v 1.284 2006/05/12 21:44:19 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5356,6 +5360,29 @@ int TclSetDTIAlpha ( ClientData inClientData,
   return TCL_OK;
 }
 
+int TclLoadGDF ( ClientData inClientData, Tcl_Interp* inInterp,
+		 int argc, char* argv[] ) {
+
+  tkm_tErr eResult = tkm_tErr_NoErr;
+
+  if ( argc != 3 && argc != 4 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadGDF filename:string"
+                    "registrationType:int [registration:string]",
+                    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    if( 3 == argc ) {
+      eResult = LoadGDFHeader( argv[1], atoi(argv[2]), NULL );
+    } else {
+      eResult = LoadGDFHeader( argv[1], atoi(argv[2]), argv[3] );
+    }
+  }
+
+  return TCL_OK;
+}
+
 int TclSmoothFunctionalOverlay ( ClientData inClientData,
                                  Tcl_Interp* inInterp,
                                  int argc, char* argv[] ) {
@@ -5650,7 +5677,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.283 2006/05/11 20:51:27 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.284 2006/05/12 21:44:19 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -5684,7 +5711,8 @@ int main ( int argc, char** argv ) {
   /* create functional volume */
   DebugNote( ("Creating functional volume") );
   eFunctional = FunV_New( &gFunctionalVolume,
-                          UpdateAndRedraw, tkm_SendTclCommand,
+                          UpdateAndRedraw,
+			  tkm_SendTclCommand,
                           SendTCLCommand );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional) );
 
@@ -6347,6 +6375,10 @@ int main ( int argc, char** argv ) {
                       (Tcl_CmdProc*) TclSetDTIAlpha,
                       (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
 
+  Tcl_CreateCommand ( interp, "LoadGDF",
+                      (Tcl_CmdProc*) TclLoadGDF,
+                      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
                       (Tcl_CmdProc*) TclSmoothFunctionalOverlay,
                       (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
@@ -6543,13 +6575,46 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 			 int iRegistrationType,
 			 char* isRegistrationName ) {
   MRI* gdInfo = NULL;
-  
-  gGDFID = 0;
-  
+  char sTclCommand[tkm_knTclCmdLen];
+  char* psTclResult = NULL;
+  char sTclResult[tkm_knTclCmdLen];
+  int cRead = 0;
+
   /* Init the GDF display with tcl commands. Save the GDF ID so that
      we can use it to send commands. */
+  /*
+    set ID [FsgdfPlot_Read $ifnGDF]
+    if { $ID < 0 } { return }
+    FsgdfPlot_ShowWindow $gGDFID
+  */
 
-  /* Now we need to generate a registration transform so get our
+  sprintf( sTclCommand, "FsgdfPlot_Read %s", isFSGDHeader );
+  psTclResult = SendTCLCommand( sTclCommand );
+  if( NULL == psTclResult ) {
+    printf( "tkmedit: ERROR: Couldn't read %s\n", isFSGDHeader );
+    return tkm_tErr_CouldntLoadGDF;
+  }
+  
+  strncpy( sTclResult, psTclResult, sizeof(sTclResult) );
+  cRead = sscanf( sTclResult, "%d", &gGDFID );
+  if( 1 != cRead ) {
+    printf( "tkmedit: ERROR: Couldn't read GDFID from \"%s\"\n", sTclResult );
+    return tkm_tErr_CouldntLoadGDF;
+  }
+
+  if( gGDFID < 0 ) {
+    printf( "tkmedit: ERROR: FsgdfPlot_Read returned ID %d", gGDFID );
+    gGDFID = -1;
+    return tkm_tErr_CouldntLoadGDF;
+  }
+
+  sprintf( sTclCommand, "FsgdfPlot_ShowWindow %d", gGDFID );
+  psTclResult = SendTCLCommand( sTclCommand );
+  if( NULL == psTclResult ) {
+    return tkm_tErr_CouldntLoadGDF;
+  }
+
+  /* now we need to generate a registration transform so get our
      MRIIdx coords into the GDF space. First get the MRI header from
      the GD data file. */
   gdInfo = gdfReadDataInfo( isFSGDHeader );
@@ -6560,25 +6625,117 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 		     iRegistrationType,
 		     isRegistrationName,
 		     &gMRIIdxToGDFIdxTransform );
+  if( NULL == gMRIIdxToGDFIdxTransform ) {
+    printf( "tkmedit: ERROR: Couldn't create GDF transform\n" );
+    return tkm_tErr_CouldntLoadGDF;
+  }
+
+  MRIfree( &gdInfo );
 
   return tkm_tErr_NoErr;
 }
 
+tkm_tErr GDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
+
+  tkm_tErr eResult = tkm_tErr_NoErr;
+
+  if( gGDFID < 0 )
+    return tkm_tErr_NoErr;
+
+  /* Just being a list, add this single point, and end the list. */
+  eResult = BeginGDFPointList();
+  if( tkm_tErr_NoErr != eResult )
+    return eResult;
+
+  eResult = AddGDFPlotMRIIdx( iMRIIdx );
+  if( tkm_tErr_NoErr != eResult )
+    return eResult;
+
+  eResult = EndGDFPointList();
+  if( tkm_tErr_NoErr != eResult )
+    return eResult;
+  
+  return tkm_tErr_NoErr;
+}
+
 tkm_tErr BeginGDFPointList () {
+
+  char sTclCommand[tkm_knTclCmdLen];
+  char* psTclResult = NULL;
+
+  if( gGDFID < 0 )
+    return tkm_tErr_NoErr;
+
+  /*
+    FsgdfPlot_BeginPointList $gGDFID
+  */
+  sprintf( sTclCommand, "Fsgdfplot_BeginPointList %d", gGDFID );
+  psTclResult = SendTCLCommand( sTclCommand );
+  if( NULL == psTclResult ) {
+    return tkm_tErr_ErrorAccessingGDF;
+  }
 
   return tkm_tErr_NoErr;
 }
 
 tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
 
+  char sTclCommand[tkm_knTclCmdLen];
+  char* psTclResult = NULL;
+  Trns_tErr eTrns = Trns_tErr_NoErr;
+  xVoxel gdfIdx;
+  
+  if( gGDFID < 0 )
+    return tkm_tErr_NoErr;
+
+  /* Transform the point to a GDF index. */
+  eTrns = Trns_ConvertAtoB( gMRIIdxToGDFIdxTransform, iMRIIdx, &gdfIdx );
+  if( Trns_tErr_NoErr != eTrns ) {
+    printf( "tkmedit: ERROR: Couldn't convert MRI idx %d, %d, %d\n",
+	    xVoxl_ExpandInt( iMRIIdx ) );
+    return tkm_tErr_ErrorAccessingGDF;
+  }
+  
+  /*
+    FsgdfPlot_AddPoint $gGDFID $x $y $x
+  */
+  sprintf( sTclCommand, "Fsgdfplot_AddPoint %d %d %d %d", 
+	   gGDFID, xVoxl_ExpandInt( &gdfIdx ) );
+  psTclResult = SendTCLCommand( sTclCommand );
+  if( NULL == psTclResult ) {
+    return tkm_tErr_ErrorAccessingGDF;
+  }
+
   return tkm_tErr_NoErr;
 }
 
 tkm_tErr EndGDFPointList () {
 
+  char sTclCommand[tkm_knTclCmdLen];
+  char* psTclResult = NULL;
+
+  if( gGDFID < 0 )
+    return tkm_tErr_NoErr;
+
+  /*
+    FsgdfPlot_EndPointList $gGDFID
+  */
+  sprintf( sTclCommand, "Fsgdfplot_EndPointList %d", gGDFID );
+  psTclResult = SendTCLCommand( sTclCommand );
+  if( NULL == psTclResult ) {
+    return tkm_tErr_ErrorAccessingGDF;
+  }
+
   return tkm_tErr_NoErr;
 }
 
+void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx ) {
+
+  if( gGDFID < 0 )
+    return;
+
+  GDFPlotMRIIdx( iMRIIdx );
+}
 
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
@@ -7799,10 +7956,11 @@ Tcl_Interp * GetTclInterp () {
   return gTclInterp;
 }
 
-void SendTCLCommand ( char * inCommand ) {
+char* SendTCLCommand ( char * inCommand ) {
 
-  int theErr;
+  int rTcl;
   Tcl_Interp * theInterp;
+  char* sTclResult = NULL;
   char sTclCmd[tkm_knTclCmdLen];
   xGArr_tErr eList = xGArr_tErr_NoErr;
 
@@ -7811,10 +7969,11 @@ void SendTCLCommand ( char * inCommand ) {
 
   if ( NULL != theInterp ) {
 
-    theErr = Tcl_Eval ( theInterp, inCommand );
+    rTcl = Tcl_Eval( theInterp, inCommand );
+    sTclResult = Tcl_GetStringResult( theInterp );
 
     // print any error msgs.
-    if ( TCL_OK != theErr ) {
+    if ( TCL_OK != rTcl ) {
       DebugPrint( ( "Cmd: %s\n", inCommand ) );
       DebugPrint( ( "\tCommand did not return OK.\n" ) );
       DebugPrint( ( "\tResult: %s\n", theInterp->result ) );
@@ -7827,7 +7986,7 @@ void SendTCLCommand ( char * inCommand ) {
       if( xGArr_tErr_NoErr != eList ) {
         DebugPrint( ( "Couldn't allocate list: couldn't cache %s\n",
                       inCommand ) );
-        return;
+        return NULL;
       }
     }
 
@@ -7838,6 +7997,8 @@ void SendTCLCommand ( char * inCommand ) {
       DebugPrint( ( "Couldn't cache %s\n", inCommand ) );
     }
   }
+
+  return sTclResult;
 }
 
 void SendCachedTclCommands () {

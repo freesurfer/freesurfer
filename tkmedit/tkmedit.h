@@ -56,12 +56,14 @@ typedef enum {
   tkm_tErr_CouldntLoadVLI,
   tkm_tErr_CouldntLoadDTIVolume,
   tkm_tErr_CouldntLoadVectorField,
+  tkm_tErr_CouldntLoadGDF,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
   tkm_tErr_ErrorAccessingSegmentationVolume,
   tkm_tErr_ErrorAccessingFunctionalVolume,
   tkm_tErr_ErrorAccessingList,
   tkm_tErr_ErrorAccessingSurface,
+  tkm_tErr_ErrorAccessingGDF,
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
   tkm_tErr_AnatomicalVolumeNotLoaded,
@@ -385,6 +387,9 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
 				Surf_tVertexSet  iVertexSet,
 				float            ifValue );
+
+/* Allow a GDF point to be selected. */
+void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx );
 
 /* show nearest verts */
 void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet );

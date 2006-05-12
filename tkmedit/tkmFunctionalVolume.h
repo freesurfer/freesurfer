@@ -147,7 +147,7 @@ struct tkmFunctionalVolume {
   /* functions to access the outside world */
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
-  void       (*mpSendTclCommandFunction)(char*);
+  char*      (*mpSendTclCommandFunction)(char*);
 };
 typedef struct tkmFunctionalVolume tkmFunctionalVolume;
 typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
@@ -166,7 +166,7 @@ typedef enum {
 FunV_tErr FunV_New    ( tkmFunctionalVolumeRef* oppVolume,
 			void(*ipOverlayChangedFunction)(void),
 			void(*ipSendTkmeditCmdFunction)(tkm_tTclCommand,char*),
-			void(*ipSendTclCommandFunction)(char*) );
+			char*(*ipSendTclCommandFunction)(char*) );
 FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume );
 
 /* loads the data volumes. The transform should be a->b index->RAS
