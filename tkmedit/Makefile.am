@@ -19,7 +19,7 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmMeditWindow.h
 tkmedit_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) $(GLUT_LIBS)
+	$(X_LIBS) $(GLUT_LIBS) ../fsgdf/libfsgdf.a
 tkmedit_LDFLAGS=
 
 
