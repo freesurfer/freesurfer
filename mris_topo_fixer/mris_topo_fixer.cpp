@@ -50,7 +50,7 @@ static void initTopoFixerParameters(){
 	parms.match = 1;     //matching using local intensity estimates
 	parms.minimal_mode=0;
 	parms.nminattempts = 10;
-	parms.l_mri = 1.0;
+	parms.l_mri = 10.0;
   parms.l_curv = 1.0 ;
   parms.l_qcurv = 1.0;
   parms.l_unmri = 0.0; //not implemented yet
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.11 2006/05/11 11:48:53 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.12 2006/05/12 11:32:18 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.11 2006/05/11 11:48:53 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.12 2006/05/12 11:32:18 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -271,15 +271,25 @@ int main(int argc, char *argv[])
               "%s: could not read wm volume from %s", Progname, fname) ;
 
 	DEFECT_LIST *dl=(DEFECT_LIST*)parms.defect_list;
-	for(int n = 0 ; n < mris->nvertices ; n++)
+	for(int n = 0 ; n < mris->nvertices ; n++){
+		mris->vertices[n].curv=0;
 		mris->vertices[n].marked2=0;
+	}
   for(int i = 0 ; i < dl->ndefects ; i++){
 		DEFECT *defect = &dl->defects[i];
-		for(int n = 0 ; n < defect->nvertices ; n++)
-			mris->vertices[defect->vertices[n]].marked2=1;
-		for(int n = 0 ; n < defect->nborder ; n++)
+		for(int n = 0 ; n < defect->nvertices ; n++){
+			mris->vertices[defect->vertices[n]].curv=i+1;
+			mris->vertices[defect->vertices[n]].marked2=i+1;
+		}
+		for(int n = 0 ; n < defect->nborder ; n++){
+			mris->vertices[defect->border[n]].curv=i+1;
       mris->vertices[defect->border[n]].marked2=i+1;
+		}
 	}
+
+	sprintf(fname, "%s/%s/surf/%s.defects", sdir, sname, hemi ) ;
+	MRISwriteCurvature(mris,fname);
+	
 
 	mris_corrected=MRISduplicateOver(mris);
 	//mris becomes useless!

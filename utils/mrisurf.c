@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/05/10 16:24:02 $
-// Revision       : $Revision: 1.461 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/05/12 11:30:58 $
+// Revision       : $Revision: 1.462 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.461 2006/05/10 16:24:02 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.462 2006/05/12 11:30:58 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -5115,7 +5115,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
 			FileNamePath(mris->fname, path) ;
       sprintf(fname, "%s/../label/%s.%s",
               path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-							parms->fields[n].name) ;
+									parms->fields[n].name) ;
 			printf("reading overlay file %s...\n", fname) ;
 			if (MRISreadValues(mris, fname) != NO_ERROR)
 				ErrorExit(ERROR_BADPARM, "%s: could not read overlay file %s",  Progname, fname) ;
@@ -30223,8 +30223,8 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 	fitness = mrisComputeDefectLogLikelihood(mris,parms->mri,dp,parms->h_k1,parms->h_k2,parms->mri_k1_k2,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad,parms->mri_gray_white,parms->h_dot,&top_parms);
 
 	// new computation of the fitness
-	mri_ll = (tp->face_ll+tp->vertex_ll)/4.0;
-  curv_ll = (tp->qcurv_ll+tp->curv_ll)/3.0;
+	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
+  curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
 
 
 	return (mri_ll+curv_ll);
@@ -37865,6 +37865,7 @@ mrisDefectFaceMRILogLikelihood
 {
   int n,vno0,vno1,vno2;
   Real x,y,z,nx,ny,nz,xv,yv,zv,white_val,gray_val,val;
+	Real int_w,int_g;
   double fll;
   FACE *face;
   VERTEX *v0, *v1, *v2 ;
@@ -37872,6 +37873,7 @@ mrisDefectFaceMRILogLikelihood
 #if 1
 
   fll = 0.0;
+	int_w = int_g = 0.0;
   for(n = 0 ; n < tp->nfaces ; n++){
     face=&mris->faces[tp->faces[n]];
 
@@ -37900,6 +37902,8 @@ mrisDefectFaceMRILogLikelihood
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
+		int_w += white_val;
+
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
@@ -37907,14 +37911,19 @@ mrisDefectFaceMRILogLikelihood
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
+		int_g += gray_val;
+
     MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
     fll += log(val) ;
 
   }
 
-  if(tp->nfaces)
+  if(tp->nfaces){
     tp->face_ll=(float)fll/(float)tp->nfaces;
-  else
+		int_w /= (double)tp->nfaces;
+		int_g /= (double)tp->nfaces;
+		//		fprintf(stderr,"face : gray = %f and white = %f\n",int_g,int_w);
+	}else
     tp->face_ll=0.0;
 
   //    fprintf(WHICH_OUTPUT,"face : %f  - ",tp->face_ll);
@@ -38127,10 +38136,13 @@ mrisDefectVertexMRILogLikelihood
 {
   int  n;
   Real x,y,z,nx,ny,nz,xv,yv,zv,white_val,gray_val,val;
+	Real int_w,int_g;
   double v_ll,total_ll;
   VERTEX *v;
 
   total_ll = 0.0;
+	int_w = int_g = 0.0;
+
 
   for(n = 0 ; n < tp->nvertices ; n++){
     v=&mris->vertices[tp->vertices[n]];
@@ -38150,6 +38162,8 @@ mrisDefectVertexMRILogLikelihood
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
+		int_w += white_val;
+
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
@@ -38157,15 +38171,20 @@ mrisDefectVertexMRILogLikelihood
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
+		int_g +=gray_val;
+
     MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
 
     v_ll = log(val) ;
     total_ll += v_ll;
   }
 
-  if(tp->nvertices)
+  if(tp->nvertices){
     tp->vertex_ll=total_ll/(double)tp->nvertices;
-  else
+		int_w /= (double)tp->nvertices;
+		int_g /= (double)tp->nvertices;
+		//fprintf(stderr,"vertex : gray = %f and white = %f\n",int_g,int_w);
+	}else
     tp->vertex_ll=0.0;
 
   return tp->vertex_ll;
