@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2006/05/05 18:39:03 $
-// Revision       : $Revision: 1.124 $
+// Revision Date  : $Date: 2006/05/12 03:24:39 $
+// Revision       : $Revision: 1.125 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.124 2006/05/05 18:39:03 ch Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.125 2006/05/12 03:24:39 ch Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.124 2006/05/05 18:39:03 ch Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.125 2006/05/12 03:24:39 ch Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2580,6 +2580,7 @@ void usage(FILE *stream)
   printf("  --sdcmlist (list of DICOM files for conversion)\n");
   printf("  -ti, --template_info : dump info about template\n");
   printf("  -gis <gdf image file stem>\n");
+  printf("  -cg, --crop_gdf: apply GDF cropping\n");
   printf("  -zgez, --zero_ge_z_offset\n");
   printf("            set c_s=0 (appropriate for dicom "
          "files from GE machines with isocenter scanning)\n");
