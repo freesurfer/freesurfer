@@ -204,7 +204,6 @@ FSGDF=	fsgdf \
 FSLUTILS=fslutils
 
 STATSDIRS=optseq2 \
-	statcombine \
 	stat_normalize
 
 MISCDIRS=histo_compute_joint_density \

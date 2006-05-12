@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.190 2006/05/10 01:42:53 fischl Exp $"
+# "$Id: configure.in,v 1.191 2006/05/12 19:49:57 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1473,7 +1473,6 @@ AC_OUTPUT([Makefile
                  scuba/images/Makefile
                  spherical_stats/Makefile
                  stat_normalize/Makefile
-                 statcombine/Makefile
                  stim/Makefile
                  stim_polar/Makefile
                  test_makevol/Makefile
