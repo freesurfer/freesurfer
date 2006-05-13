@@ -11698,27 +11698,19 @@ mghRead(char *fname, int read_volume, int frame)
   {
     long long len ;
     char *fnamedir;
+    char tmpstr[1000];
 
     while ((tag = TAGreadStart(fp, &len)) != 0){
       switch (tag){
       case TAG_OLD_MGH_XFORM:
       case TAG_MGH_XFORM:
-        fgets(mri->transform_fname, len+1, fp);
-        // if this file exists then read the transform
-        if(!FileExists(mri->transform_fname)){
-          fnamedir = fio_dirname(fname);
-	  // If the transform name is auto, don't report that it cannot be found
-	  if(strcmp(mri->transform_fname,"auto"))
-	    printf("  Talairach transform %s does not exist ...\n",
-		   mri->transform_fname);
-          sprintf(mri->transform_fname,"%s/transforms/talairach.xfm",fnamedir);
-	  if(!FileExists(mri->transform_fname))
-	    printf("Cannot load tal xfm file %s\n",mri->transform_fname);
-	  else
-	    printf("Loading tal xfm file %s\n",mri->transform_fname);
 
-          free(fnamedir);
-        }
+	// First, try a path relative to fname (not the abs path)
+	fnamedir = fio_dirname(fname);
+        sprintf(tmpstr,"%s/transforms/talairach.xfm",fnamedir);
+        fgets(mri->transform_fname, len+1, fp);
+        // If this file exists, copy it to transform_fname
+        if(FileExists(tmpstr)) strcpy(mri->transform_fname,tmpstr);
         if(FileExists(mri->transform_fname)){
           // copied from corRead()
           if(input_transform_file
@@ -11748,8 +11740,10 @@ mghRead(char *fname, int read_volume, int frame)
                   "Can't find the talairach xform '%s'\n",
                   mri->transform_fname);
           fprintf(stderr, "Transform is not loaded into mri\n");
+	  // should we do something to transform_fname?
         }
         break ;
+
       case TAG_CMDLINE:
         if (mri->ncmds > MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY,
