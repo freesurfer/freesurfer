@@ -40,11 +40,14 @@ int MRIsegStats(MRI *seg, int segid, MRI *mri,  int frame,
 int compare_ints(const void *v1,const void *v2);
 int nunqiue_int_list(int *idlist, int nlist);
 int *unqiue_int_list(int *idlist, int nlist, int *nunique);
+STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
+int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
+
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.15 2006/04/13 18:55:08 nicks Exp $";
+"$Id: mri_segstats.c,v 1.16 2006/05/13 23:34:21 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -778,6 +781,15 @@ static int parse_commandline(int argc, char **argv)
       StatTableFile = pargv[0];
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--sum-in") ) {
+      if(nargc < 1) argnerr(option,1);
+      StatTableFile = pargv[0];
+      StatSumTable = LoadStatSumFile(StatTableFile,&nsegid);
+      printf("Found %d\n",nsegid);
+      DumpStatSumTable(StatSumTable,nsegid);
+      exit(1);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--avgwf") ) {
       if(nargc < 1) argnerr(option,1);
       FrameAvgFile = pargv[0];
@@ -1375,5 +1387,59 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg)
     for(f=0;f<mri->nframes;f++) favg[f] /= nvoxels;
 
   return(nvoxels);
+}
+
+/*------------------------------------------------------------*/
+STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid)
+{
+  FILE *fp;
+  char tmpstr[1000];
+  STATSUMENTRY *StatSumTable, *e;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    exit(1);
+  }
+
+  // Count the number of entries
+  *nsegid = 0;
+  while(fgets(tmpstr,1000,fp) != NULL){
+    if(tmpstr[0] == '#') continue;
+    (*nsegid)++;
+  }
+  fclose(fp);
+
+  StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),*nsegid);
+
+  // Now actually read it in
+  fp = fopen(fname,"r");
+  *nsegid = 0;
+  while(fgets(tmpstr,1000,fp) != NULL){
+    if(tmpstr[0] == '#') continue;
+    e = &StatSumTable[*nsegid];
+    sscanf(tmpstr,"%*d %d %d %f %s %f %f %f %f %f",
+	   &e->id,&e->nhits,&e->vol,&e->name[0],
+	   &e->mean,&e->std,&e->min,&e->max,&e->range);
+    (*nsegid)++;
+  }
+  fclose(fp);
+
+  return(StatSumTable);
+}
+//----------------------------------------------------------------
+int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid)
+{
+  int n;
+  for(n=0; n < nsegid; n++){
+    printf("%3d  %8d %10.1f  ", StatSumTable[n].id,StatSumTable[n].nhits,StatSumTable[n].vol);
+    printf("%-30s ",StatSumTable[n].name);
+    printf("%10.4f %10.4f %10.4f %10.4f %10.4f ",
+	   StatSumTable[n].min, StatSumTable[n].max,
+	   StatSumTable[n].range, StatSumTable[n].mean,
+	   StatSumTable[n].std);
+    printf("\n");
+  }
+  return(0);
 }
 
