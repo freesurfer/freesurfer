@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/05/15 19:58:22 $
-// Revision       : $Revision: 1.463 $
+// Revision Date  : $Date: 2006/05/15 20:29:33 $
+// Revision       : $Revision: 1.464 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.463 2006/05/15 19:58:22 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.464 2006/05/15 20:29:33 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30256,9 +30256,11 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 	fitness = mrisComputeDefectLogLikelihood(mris,parms->mri,dp,parms->h_k1,parms->h_k2,parms->mri_k1_k2,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad,parms->mri_gray_white,parms->h_dot,&top_parms);
 
 	// new computation of the fitness
-	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
-  curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
+	//	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
+  //curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
 
+	mri_ll = parms->l_mri*(tp->fll+tp->vll)/4.0;
+  curv_ll = (parms->l_qcurv*tp->qcll+parms->l_curv*tp->cll)/3.0;
 
 	return (mri_ll+curv_ll);
 }
@@ -30295,10 +30297,16 @@ int IsMRISselfIntersecting(MRI_SURFACE *mris)
 
 static void TPprint(TP *tp){
 	double mri,curv;
+#if 0 
 	mri = (tp->face_ll+tp->vertex_ll)/4.0;
 	curv = (tp->qcurv_ll+tp->curv_ll)/3.0;
+#else
+	mri = (tp->fll+tp->vll)/4.0;
+  curv = (tp->qcll+tp->cll)/3.0;
+#endif
 	fprintf(WHICH_OUTPUT,"         mri =%3.3f   curv = %3.3f \n",mri,curv);
 	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n" ,tp->face_ll,tp->vertex_ll,tp->curv_ll,tp->qcurv_ll);
+	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n" ,tp->fll,tp->vll,tp->cll,tp->qcll);
 }
 
 static void TPinit(TP *tp){
@@ -38008,11 +38016,13 @@ mrisDefectFaceMRILogLikelihood
   int n,vno0,vno1,vno2;
   Real x,y,z,nx,ny,nz,xv,yv,zv,white_val,gray_val,val;
 	Real int_w,int_g;
-  double fll;
+  double fll,t_area,tf_area;
   FACE *face;
   VERTEX *v0, *v1, *v2 ;
 
 #if 1
+
+	t_area = tf_area=0.0;
 
   fll = 0.0;
 	int_w = int_g = 0.0;
@@ -38058,15 +38068,21 @@ mrisDefectFaceMRILogLikelihood
     MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
     fll += log(val) ;
 
+		t_area += face->area;
+		tf_area += log(val)*face->area;
+
   }
 
   if(tp->nfaces){
     tp->face_ll=(float)fll/(float)tp->nfaces;
+		tp->fll = tf_area / t_area;
 		int_w /= (double)tp->nfaces;
 		int_g /= (double)tp->nfaces;
 		//		fprintf(stderr,"face : gray = %f and white = %f\n",int_g,int_w);
-	}else
+	}else{
+		tp->fll = 0.0;
     tp->face_ll=0.0;
+	}
 
   //    fprintf(WHICH_OUTPUT,"face : %f  - ",tp->face_ll);
 
@@ -38279,12 +38295,12 @@ mrisDefectVertexMRILogLikelihood
   int  n;
   Real x,y,z,nx,ny,nz,xv,yv,zv,white_val,gray_val,val;
 	Real int_w,int_g;
-  double v_ll,total_ll;
+  double v_ll,total_ll,t_area,tv_area;
   VERTEX *v;
 
   total_ll = 0.0;
+	t_area = tv_area = 0.0;
 	int_w = int_g = 0.0;
-
 
   for(n = 0 ; n < tp->nvertices ; n++){
     v=&mris->vertices[tp->vertices[n]];
@@ -38319,15 +38335,20 @@ mrisDefectVertexMRILogLikelihood
 
     v_ll = log(val) ;
     total_ll += v_ll;
+		tv_area += v_ll * v->area;
+		t_area += v->area;
   }
 
   if(tp->nvertices){
     tp->vertex_ll=total_ll/(double)tp->nvertices;
+		tp->vll = tv_area / t_area;
 		int_w /= (double)tp->nvertices;
 		int_g /= (double)tp->nvertices;
 		//fprintf(stderr,"vertex : gray = %f and white = %f\n",int_g,int_w);
-	}else
+	}else{
+		tp->vll = 0.0;
     tp->vertex_ll=0.0;
+	}
 
   return tp->vertex_ll;
 }
@@ -38911,8 +38932,11 @@ mrisComputeDefectCurvatureLogLikelihood
   double   v_ll,total_ll = 0.0 ,new_total;
   int      i,vno,bin,bink1,bink2;
   VERTEX   *v ;
+	double t_area,tc_area;
 
   new_total=0.0;
+
+	t_area=tc_area=0.0;
 
   /* compute faces only for modified vertices */
   for (i = 0 ; i < tp->nvertices ; i++) {
@@ -38941,15 +38965,21 @@ mrisComputeDefectCurvatureLogLikelihood
     bink2=MIN(mri_k1_k2->height-1,MAX(0,(int)((v->k2 - mri_k1_k2->ystart) / mri_k1_k2->ysize))) ;
 
     new_total += log(MRIFvox(mri_k1_k2,bink1,bink2,0));
+		
+		t_area += v->area;
+		tc_area += v->area* log(MRIFvox(mri_k1_k2,bink1,bink2,0));
 
   }
   if(tp->nvertices)
     new_total /= (double)tp->nvertices;
 
-  if(tp->nvertices)
+  if(tp->nvertices){
     tp->qcurv_ll=total_ll/(double)tp->nvertices;
-  else
+		tp->qcll=tc_area/t_area;
+  }else{
+		tp->qcll=0.0;
     tp->qcurv_ll=0.0;
+	}
 
   tp->qcurv_ll=new_total; /* using mri_k1_k2 */
 
@@ -38963,6 +38993,9 @@ mrisComputeDefectNormalDotLogLikelihood
   double   v_ll,total_ll = 0.0, nx, ny, nz, x, y, z, dx, dy, dz, dot ;
   int      vno, n, i, bin ;
   VERTEX   *v, *vn ;
+	double t_area,tc_area;
+
+  t_area=tc_area=0.0;
 
   /* compute faces only for modified vertices */
   for (i = 0 ; i < tp->nvertices ; i++) {
@@ -38989,12 +39022,17 @@ mrisComputeDefectNormalDotLogLikelihood
       v_ll += log(h_dot->counts[bin]) ;
     }
     total_ll += v_ll / v->vnum ;
+		t_area += v->area;
+		tc_area += v->area*v_ll/v->vnum;  
   }
 
-  if(tp->nvertices)
+  if(tp->nvertices){
+		tp->cll = tc_area / t_area;
     tp->curv_ll=total_ll/(double)tp->nvertices;
-  else
+  }else{
+		tp->cll = 0.0;
     tp->curv_ll=0.0;
+	}
 
   return tp->curv_ll;
 }
