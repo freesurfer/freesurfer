@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.1 2006/05/15 04:51:41 greve Exp $
+# $Id: aparcstats2table,v 1.2 2006/05/15 05:03:20 greve Exp $
 import sys;
 import os;
 import string;
@@ -17,6 +17,15 @@ import tempfile;
 # each line is a subject and each column is a parcellation. The values
 # are the area of the parcellation in mm2. The first row is a list of
 # the parcellation names. The first column is the subject name.
+#
+# The subjedts list can be specified on either of two ways:
+#   1. Specify each subject with --s:
+#             --s subject1 --s subject2 ...
+#   2. Specify all subjects after --subjects. --subjects does not have
+#      to be the last argument. Eg:
+#
+#             --subject subject1 subject2 ... --hemi lh
+#
 
 # ENDHELP
 # -------------------------------------------------------------------
@@ -153,7 +162,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.1 2006/05/15 04:51:41 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.2 2006/05/15 05:03:20 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
