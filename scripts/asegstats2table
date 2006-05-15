@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.1 2006/05/15 05:39:54 greve Exp $
+# $Id: asegstats2table,v 1.2 2006/05/15 18:35:52 greve Exp $
 import sys;
 import os;
 import string;
@@ -85,7 +85,7 @@ def parse_args(argv):
       if(len(argv) < 1): argnerr(1,flag);
       SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
       nsubjects = nsubjects + 1;
-    if(flag == "--subjects"):
+    elif(flag == "--subjects"):
       if(len(argv) < 1): argnerr(1,flag);
       while(not isflag(argv[0])):
         SUBJECTS.insert(nsubjects,argv[0]); 
@@ -149,7 +149,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.1 2006/05/15 05:39:54 greve Exp $';
+Version = '$Id: asegstats2table,v 1.2 2006/05/15 18:35:52 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
