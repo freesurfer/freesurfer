@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.2 2006/05/15 05:03:20 greve Exp $
+# $Id: aparcstats2table,v 1.3 2006/05/15 05:37:33 greve Exp $
 import sys;
 import os;
 import string;
@@ -162,7 +162,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.2 2006/05/15 05:03:20 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.3 2006/05/15 05:37:33 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -234,8 +234,8 @@ for subject in SUBJECTS:
     else:
       if(debug): print "%s" % line;
       tmp = string.split(line);
-      if(meas == 'area'): val = string.atoi(tmp[2]);
-      if(meas == 'vol'):  val = string.atoi(tmp[2]);
+      if(meas == 'area'): val = string.atof(tmp[2]);
+      if(meas == 'vol'):  val = string.atof(tmp[2]);
       if(debug): print "%d %s %g %g" % (nthparc,parcid,val)
       fptbl.write(' %g ' % (val) );
       nthparc = nthparc + 1;
