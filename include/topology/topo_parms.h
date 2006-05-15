@@ -77,7 +77,7 @@ typedef struct
   /* fitness information */
   float face_ll,vertex_ll,curv_ll,qcurv_ll,mri_ll,unmri_ll;
 	//the next fitness information takes into account the local area
-	float fll,vll,cll,qll,mrill,unmrill;
+	float fll,vll,cll,qcll,mrill,unmrill;
 
 } TESSELLATED_PATCH, TP ;
 
