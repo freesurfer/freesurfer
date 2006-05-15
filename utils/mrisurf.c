@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/05/12 11:30:58 $
-// Revision       : $Revision: 1.462 $
+// Revision Date  : $Date: 2006/05/15 19:58:22 $
+// Revision       : $Revision: 1.463 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.462 2006/05/12 11:30:58 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.463 2006/05/15 19:58:22 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30130,7 +30130,6 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
     if(mris->vertices[n].marked==1)
       defect->chull[defect->nchull++]=n;
 
-
   //computing statistics
   MRISclearMarks(mris);
 
@@ -30157,6 +30156,33 @@ void TOPOFIXfreeDP(TOPOFIX_PARMS *parms){
 	free(dp);
 	parms->dp=NULL;
 }
+
+void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices){
+	int n;
+  DP *dp;
+  TP *tp;
+
+	dp=(DP*)parms->dp;
+  tp=&dp->tp;
+	
+	MRISclearMarks(mris);
+
+	for(n = ninitvertices ; n < mris->nvertices ; n++)
+		mris->vertices[n].marked=1;
+}
+
+void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms,int mark){
+	int n;
+  DP *dp;
+  TP *tp;
+
+	dp=(DP*)parms->dp;
+  tp=&dp->tp;
+
+	for(n =  tp->ninside ;  n < tp->nvertices ; n++)
+    mris->vertices[tp->vertices[n]].marked=mark;
+}
+
 
 void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
 	int n;
@@ -30197,8 +30223,11 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
   tp->nedges = 0;
 }
 
+static void MRISdefectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int niter,double alpha, int mode);
+
 void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){
-	defectMatch(parms->mri,mris,(DP*)parms->dp,parms->smooth, parms->match);
+	//defectMatch(parms->mri,mris,(DP*)parms->dp,parms->smooth, parms->match);
+	MRISdefectMaximizeLikelihood(parms->mri,mris,(DP*)parms->dp,40,0.5,1);
 	MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
 }
 
@@ -30207,6 +30236,10 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 	DP *dp;
 	TP *tp;
 	TOPOLOGY_PARMS top_parms;
+
+	MRIScomputeNormals(mris);
+  MRIScomputeTriangleProperties(mris);
+  MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 
 #if MATRIX_ALLOCATION
 	//	VoxelFromSRASmatrix=parms->transformation_matrix;
@@ -32135,6 +32168,116 @@ static void defectSmooth(MRI_SURFACE *mris,DP *dp, int niter,double alpha,int ty
   computeDefectVertexNormals(mris,dp);
 }
 
+static void MRISdefectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int niter,double alpha, int mode){
+  float wm,gm,mean;
+  int i,n,nvertices,*vertices;
+  VERTEX *v,*vn;
+  double x,y,z,xm,ym,zm,nx,ny,nz,dx,dy,dz,g,NRG;
+  Real xv,yv,zv,white_val,gray_val,val;
+
+	if(mode==0) return defectMaximizeLikelihood(mri,mris,dp,niter,alpha);
+	
+	// matching marked vertices only !  
+
+  wm=dp->defect->white_mean;
+  gm=dp->defect->gray_mean;
+
+  mean=(wm+gm)/2.0;
+
+	//find marked vertices
+	nvertices=0;
+	for(n = 0 ; n < mris->nvertices ; n++)
+		if(mris->vertices[n].marked) nvertices++;
+	vertices=(int*)malloc(nvertices*sizeof(int));
+	if(nvertices==0) return; 
+	nvertices=0;
+	for(n = 0 ; n < mris->nvertices ; n++)
+    if(mris->vertices[n].marked) vertices[nvertices++]=n;
+
+  while(niter--){
+    /* using the tmp vertices */
+    for (NRG=0,i = 0 ; i < nvertices; i++) {
+      v = &mris->vertices[vertices[i]] ;
+      x=v->origx;
+      y=v->origy;
+      z=v->origz;
+
+      /* smoothness term */
+      for (xm=0,ym=0,zm=0,n = 0 ; n < v->vnum ; n++) {
+        vn = &mris->vertices[v->v[n]] ;
+        xm += vn->origx; ym += vn->origy ; zm += vn->origz;
+      }
+      if(n){
+        xm/=(double)n;
+        ym/=(double)n;
+        zm/=(double)n;
+      }
+
+      /* image gradient */
+      nx=v->nx;
+      ny=v->ny;
+      nz=v->nz;
+
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel(x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
+#else
+      MRIsurfaceRASToVoxel(mri, x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
+#endif
+      MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
+#else
+      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+#endif
+      MRIsampleVolume(mri, xv, yv, zv, &val) ;
+
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel(x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
+#else
+      MRIsurfaceRASToVoxel(mri, x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
+#endif
+      MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+
+      g=(white_val-gray_val)*(val-mean);
+
+			if(fabs(g)>0.1)
+        g=0.1*g/fabs(g);
+
+      dx=0.5*(xm-x)+g*nx;
+      dy=0.5*(ym-y)+g*ny;
+      dz=0.5*(zm-z)+g*nz;
+
+      NRG+=SQR(val-mean);
+
+      v->tx=x+alpha*dx;
+      v->ty=y+alpha*dy;
+      v->tz=z+alpha*dz;
+
+    }
+    NRG=sqrt(NRG/nvertices);
+
+		//    fprintf(WHICH_OUTPUT,"-  NRG = %f  -",NRG);
+
+    /* update orig vertices */
+    for (i = 0 ; i < nvertices; i++) {
+      v = &mris->vertices[vertices[i]] ;
+      v->origx=v->tx;
+      v->origy=v->ty;
+      v->origz=v->tz;
+    }
+
+			/* recompute normals */
+		computeDefectFaceNormals(mris,dp);
+		computeDefectVertexNormals(mris,dp);
+		
+	}
+	if(vertices) free(vertices);
+	
+}
+
+
+
 static void defectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int niter,double alpha){
   float wm,gm,mean;
   int i,n,nvertices;
@@ -32200,7 +32343,6 @@ static void defectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int nite
       if(fabs(g)>0.2)
         g=0.2*g/fabs(g);
 
-
       dx=0.5*(xm-x)+g*nx;
       dy=0.5*(ym-y)+g*ny;
       dz=0.5*(zm-z)+g*nz;
@@ -32212,7 +32354,7 @@ static void defectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int nite
       v->tz=z+alpha*dz;
 
     }
-    NRG=sqrt(NRG/dp->tp.nvertices);
+    NRG=sqrt(NRG/nvertices);
 
     //    fprintf(WHICH_OUTPUT,"-  %f  -",NRG);
 

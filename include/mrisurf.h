@@ -1040,6 +1040,7 @@ typedef struct{
 	int defect_number; // the defect_number 
 	int mode; // which mode to use (not used so far) 
 	int no_self_intersections; //to prevent self-intersection
+	int write; //writing out temporary surfaces
 	double nattempts_percent; 
 	int nattempts;
 	int minimal_mode;
@@ -1076,6 +1077,10 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
 int IsMRISselfIntersecting(MRI_SURFACE *mris);
 void MRISmapOntoSphere(MRIS *mris);
 void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms);
+void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices);
+void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms,int mark);
+
+
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
