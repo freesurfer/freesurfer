@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
 // MacOSX does not have malloc.h but declaration is in stdlib.h
 #ifndef __APPLE__
 #include <malloc.h>
@@ -25,7 +28,7 @@ extern int isblank(int c);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.13 2005/11/01 20:40:22 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.13.2.1 2006/05/15 21:42:35 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -50,6 +53,9 @@ int TRSlice = 0;
 char *tmpstring;
 int Maj, Min, MinMin;
 
+struct utsname uts;
+char *cmdline, cwd[2000];
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -69,8 +75,20 @@ int main(int argc, char **argv)
 
   if(argc == 0) usage_exit();
 
+  cmdline = argv2cmdline(argc,argv);
+
   parse_commandline(argc, argv);
   check_options();
+
+  uname(&uts);
+  getcwd(cwd,2000);
+  fprintf(stdout,"%s\n",vcid);
+  fprintf(stdout,"cwd %s\n",cwd);
+  fprintf(stdout,"cmdline %s\n",cmdline);
+  fprintf(stdout,"sysname  %s\n",uts.sysname);
+  fprintf(stdout,"hostname %s\n",uts.nodename);
+  fprintf(stdout,"machine  %s\n",uts.machine);
+  fprintf(stdout,"user     %s\n",VERuser());
 
   strip_leading_slashes(sdicomdir);
 
@@ -97,7 +115,12 @@ int main(int argc, char **argv)
   tmpstring = sdcmExtractNumarisVer(sdfi_list[0]->NumarisVer, &Maj, &Min, &MinMin);
   if(tmpstring == NULL) free(tmpstring);
   else{
-    if(Min == 1 && MinMin <= 6){
+    if((Min == 1 && MinMin <= 6) && Maj < 4){
+      // This should only be run for pretty old data. I've lost
+      // track as to which versions should do this. With Maj<4,
+      // I'm pretty sure that this section of code will never
+      // be run.  It might need to be run with version 4VA16
+      // and earlier. Note: this same code is in DICOMRead.c
       printf("Computing TR with number of slices\n");
       TRSlice = 1;
     }
@@ -187,7 +210,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.13 2005/11/01 20:40:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.13.2.1 2006/05/15 21:42:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
