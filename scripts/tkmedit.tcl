@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.109 2006/04/12 14:58:00 kteich Exp $
+# $Id: tkmedit.tcl,v 1.110 2006/05/15 21:12:10 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -23,7 +23,8 @@ set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
 set sTkmeditScriptsDir ""
 catch { set sTkmeditScriptsDir "$env(TKMEDIT_SCRIPTS_DIR)" }
-
+set sFsgdfDir ""
+catch { set sFsgdfDir "$env(FSGDF_DIR)" }
 
 
 # Source the tkm_common.tcl and tkm_wrappers.tcl
@@ -38,6 +39,12 @@ set fnWrappers \
 	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir]]
 if { [string compare $fnWrappers ""] == 0 } { exit }
 source $fnWrappers
+
+set fnFsgdf \
+    [FindFile fsgdfPlot.tcl \
+	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnFsgdf ""] == 0 } { exit }
+source $fnFsgdf
 
 
 # constants
@@ -1466,6 +1473,92 @@ proc DoLoadDTIDlog {} {
 	    -padx 5         \
 	    -pady 5
 
+	# after the next idle, the window will be mapped. set the min
+	# width to our width and the min height to the mapped height.
+	after idle [format {
+	    update idletasks
+	    wm minsize %s %d [winfo reqheight %s]
+	    wm geometry %s =%dx[winfo reqheight %s]
+	} $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
+    }
+}
+
+proc DoLoadGDF {} {
+
+    global gDialog gaLinkedVars
+    global glShortcutDirs
+    global gfnGDF
+    global gGDFRegType gfnGDFReg
+    global FunD_tRegistration
+
+    set wwDialog .wwLoadGDFDlog
+
+    set knWidth 400
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load GDF" {-borderwidth 10}] } {
+	
+	set fwFile             $wwDialog.fwFile
+	set fwFileNote         $wwDialog.fwFileNote
+	set fwRegistration     $wwDialog.fwRegistration
+	set fwButtons          $wwDialog.fwButtons
+	
+	set gfnGDF [GetDefaultLocation LoadGDF]
+	tkm_MakeFileSelector $fwFile "Load GDF: " gfnGDF \
+	    [list GetDefaultLocation LoadGDF] \
+	    $glShortcutDirs
+
+	[$fwFile.ew subwidget entry] icursor end
+	
+	tkm_MakeSmallLabel $fwFileNote \
+	    "The .fsgd file" 400
+
+	tixLabelFrame $fwRegistration \
+	    -label "Registration" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwRegSub           [$fwRegistration subwidget frame]
+
+	set fwRegFile          $fwRegSub.fwRegFile
+	set fwRegFileName      $fwRegSub.fwRegFileName
+	set fwRegFind          $fwRegSub.fwRegFind
+	set fwRegIdentity      $fwRegSub.fwRegIdentity
+
+	# The bit of code in the radio buttons disables the file entry
+	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
+	    gGDFRegType $FunD_tRegistration(file) "set state disabled; if { \[set gGDFRegType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeFileSelector $fwRegFileName "register.dat file:" \
+	    gfnGDFReg \
+	    [list GetDefaultLocation LoadGDF] \
+	    $glShortcutDirs
+	tkm_MakeRadioButton $fwRegFind "Find registration in data directory" \
+	    gGDFRegType $FunD_tRegistration(find) "set state disabled; if { \[set gGDFRegType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeRadioButton $fwRegIdentity "Calculate identity matrix" \
+	    gGDFRegType $FunD_tRegistration(identity) "set state disabled; if { \[set gGDFRegType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gGDFRegType $FunD_tRegistration(file)
+
+	pack $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+
+	# buttons.
+        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+	    {set fnGDF $gfnGDF; 
+	      SetDefaultLocation LoadGDF $gfnGDF;
+		LoadGDF $gfnGDF $gGDFRegType $gfnGDFReg }
+	
+	pack $fwFile $fwFileNote $fwRegistration $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+	
 	# after the next idle, the window will be mapped. set the min
 	# width to our width and the min height to the mapped height.
 	after idle [format {
@@ -3643,6 +3736,11 @@ proc CreateMenuBar { ifwMenuBar } {
 		"Load DTI Volumes..."
 		  {DoLoadDTIDlog} }
 	}}
+	{ cascade "GDF" {
+	    { command
+		"Load GDF..."
+		  {DoLoadGDF} }
+	}}
 	{ command
 	    "Save Control Points"
 	    WriteControlPointFile }
@@ -5009,6 +5107,7 @@ foreach toolbar {main nav recon} {
     }
 }
 
+FsgdfPlot_Init
 
 # lets us execute scripts from the command line but only after the
 # window is open
@@ -5031,3 +5130,4 @@ foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl $env(S
 	}
     }
 }
+
