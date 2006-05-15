@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.3 2006/05/15 05:37:33 greve Exp $
+# $Id: aparcstats2table,v 1.4 2006/05/15 18:33:23 greve Exp $
 import sys;
 import os;
 import string;
@@ -14,18 +14,36 @@ import tempfile;
 
 # Converts a cortical stats file created by recon-all and or
 # mris_anatomical_stats (eg, ?h.aparc.stats) into a table in which
-# each line is a subject and each column is a parcellation. The values
-# are the area of the parcellation in mm2. The first row is a list of
-# the parcellation names. The first column is the subject name.
-#
+# each line is a subject and each column is a parcellation. By
+# default, the values are the area of the parcellation in mm2. The
+# first row is a list of the parcellation names. The first column is
+# the subject name.
+
 # The subjedts list can be specified on either of two ways:
 #   1. Specify each subject with --s:
 #             --s subject1 --s subject2 ...
 #   2. Specify all subjects after --subjects. --subjects does not have
 #      to be the last argument. Eg:
-#
+
 #             --subject subject1 subject2 ... --hemi lh
-#
+
+# By default, it looks for the ?h.aparc.stats file based on the
+# Killiany/Desikan parcellation atlas. This can be changed with
+# '--parc parcellation' where parcellation is the parcellation to
+# use. An alternative is aparc.a2005s which was developed by
+# Christophe Destrieux.
+
+# By default, the area (mm2) of each parcellation is reported. This can
+# be changed with '--meas measure', where measure can be area, volume
+# (ie, volume of gray matter), thickness, or meancurv.
+
+# Example:
+#  aparcstats2table --hemi lh --subjects 004 008 --parc aparc.a2005s \
+#     --meas meancurv --t lh.a2005s.meancurv.txt
+
+# lh.a2005s.meancurv.txt will have 3 rows: (1) 'header' with the name
+# of each structure, (2) mean curvature for each structure for subject
+# 004, (3) mean curvature for each structure for subject 008.
 
 # ENDHELP
 # -------------------------------------------------------------------
@@ -36,7 +54,11 @@ def print_usage():
   print "  --subjects  subject1 <subject2 ...>";
   print "  --s subject1 <--s subject2 ...>";
   print "  --h hemi : lh or rh";
-  print "  --t tablefile";
+  print "  --parc parcellation : default is aparc (alt aparc.a2005s)";
+  print "  --meas measure : default is area (alt volume, thickness, meancurv)";
+  print "  ";
+  print "  --t tablefile : output file";
+  print "  ";
   print "  --help : help";
   print "  --debug ";
   return 0;
@@ -74,7 +96,7 @@ def argnerr(narg,flag):
 #---------------------------------------------------------
 def parse_args(argv):
   global Version,debug;
-  global tablefile, SUBJECTS, nsubjects, hemi;
+  global tablefile, SUBJECTS, nsubjects, hemi, parc, meas;
 
   del argv[0]; # get past program name (del is like shift)
 
@@ -85,9 +107,9 @@ def parse_args(argv):
 
     if(flag == "--s"):
       if(len(argv) < 1): argnerr(1,flag);
-      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
+      SUBJECTS.insert(nsubjects,argv[0]);del argv[0];
       nsubjects = nsubjects + 1;
-    if(flag == "--subjects"):
+    elif(flag == "--subjects"):
       if(len(argv) < 1): argnerr(1,flag);
       while(not isflag(argv[0])):
         SUBJECTS.insert(nsubjects,argv[0]); 
@@ -98,11 +120,18 @@ def parse_args(argv):
     elif(flag == "--t"):
       if(len(argv) < 1): argnerr(1,flag);
       tablefile = argv[0];  del argv[0];
+    elif(flag == "--parc"):
+      if(len(argv) < 1): argnerr(1,flag);
+      parc = argv[0];  del argv[0];
+    elif(flag == "--meas"):
+      if(len(argv) < 1): argnerr(1,flag);
+      meas = argv[0];  del argv[0];
     elif(flag == "--h" or flag == "--hemi"):
       if(len(argv) < 1): argnerr(1,flag);
       hemi = argv[0];  del argv[0];
     elif(flag == "--help"):
       print_usage();
+      print "\n%s" % (Version);
       print_help();
       sys.exit(1);
     elif(flag == "--version"):
@@ -144,6 +173,11 @@ def check_args():
     print "ERROR: hemi = %s, must be lh or rh" % (hemi);
     sys.exit(1);
   #endif    
+  if(meas != 'area' and meas != 'volume' and meas != 'thickness' and \
+     meas != 'meancurv'):
+    print "ERROR: meas = %s, must be area, volume, thickness, or meancurv" % (meas);
+    sys.exit(1);
+  #endif    
   if(len(SUBJECTS) == 0):
     # Does not work to look in env
     if(os.environ.get('SUBJECTS',0) == 0):
@@ -162,13 +196,15 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.3 2006/05/15 05:37:33 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.4 2006/05/15 18:33:23 greve Exp $';
 tablefile = ();
-SUBJECTS  = [];
-nsubjects = 0;
+parc = 'aparc';
 hemi = [];
 meas = 'area';
 debug = 0;
+
+SUBJECTS  = [];
+nsubjects = 0;
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
@@ -194,7 +230,7 @@ fptbl = open(tablefile,'w');
 nthsubj = 1;
 for subject in SUBJECTS:
 
-  statsfile = SUBJECTS_DIR + '/' + subject + '/stats/' + hemi + '.aparc.stats';
+  statsfile = SUBJECTS_DIR + '/' + subject + '/stats/' + hemi + '.' + parc + '.stats';
   if(not os.path.exists(statsfile)):
     sys.stdout.write('ERROR: cannot find %s' % (statsfile) );
     sys.exit(1);
@@ -204,7 +240,7 @@ for subject in SUBJECTS:
   # print first line as list of anat structures 
   if(nthsubj == 1):
     # First Co, First Row is hemi 
-    fptbl.write('%s.%s ' % (hemi,meas));
+    fptbl.write('%s.%s.%s ' % (hemi,parc,meas));
     fp = open(statsfile,'r');
     parcid = [];
     for line in fp:
@@ -226,7 +262,6 @@ for subject in SUBJECTS:
   fp = open(statsfile,'r');
   nthparc = 0;
   parcid = [];
-  parcarea = [];
   for line in fp:
     ind = line.rfind('#');
     if(ind != -1):
@@ -234,8 +269,10 @@ for subject in SUBJECTS:
     else:
       if(debug): print "%s" % line;
       tmp = string.split(line);
-      if(meas == 'area'): val = string.atof(tmp[2]);
-      if(meas == 'vol'):  val = string.atof(tmp[2]);
+      if(meas == 'area'):      val = string.atof(tmp[2]);
+      if(meas == 'volume'):    val = string.atof(tmp[3]);
+      if(meas == 'thickness'): val = string.atof(tmp[4]);
+      if(meas == 'meancurv'):  val = string.atof(tmp[6]);
       if(debug): print "%d %s %g %g" % (nthparc,parcid,val)
       fptbl.write(' %g ' % (val) );
       nthparc = nthparc + 1;
