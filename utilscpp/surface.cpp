@@ -1163,7 +1163,7 @@ void Surface::CutLoop(Loop &loop){
 	for(int n = 0 ; n < nvertices ; n++)
 		if(vertices[n].marked==4)
 			vert[nvert++]=n;
-	Smooth(60,vert,nvert);
+	Smooth(150,vert,nvert);
 	if(vert) delete [] vert;
 
 	InitSurface();
