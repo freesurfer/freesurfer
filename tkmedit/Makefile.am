@@ -16,8 +16,10 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmedit.h \
 	tkmDisplayArea.h \
 	tkmFunctionalVolume.h \
-	tkmMeditWindow.h
+	tkmMeditWindow.h \
+	 $(top_srcdir)/fsgdf/fsgdf_wrap.c
 tkmedit_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS) ../fsgdf/libfsgdf.a
 tkmedit_LDFLAGS=
