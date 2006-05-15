@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/12 21:44:19 $
-// Revision       : $Revision: 1.284 $
-char *VERSION = "$Revision: 1.284 $";
+// Revision Date  : $Date: 2006/05/15 21:11:59 $
+// Revision       : $Revision: 1.285 $
+char *VERSION = "$Revision: 1.285 $";
 
 #define TCL
 #define TKMEDIT
@@ -34,6 +34,7 @@ char *VERSION = "$Revision: 1.284 $";
 #include "ctrpoints.h"
 #include "tiffio.h"
 #include "tkmedit.h"
+#include "fsgdf_wrap.h"
 #include "fsgdf.h"
 #include "mri2.h"
 
@@ -1136,7 +1137,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.284 2006/05/12 21:44:19 kteich Exp $",
+     "$Id: tkmedit.c,v 1.285 2006/05/15 21:11:59 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5677,7 +5678,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.284 2006/05/12 21:44:19 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.285 2006/05/15 21:11:59 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -6027,6 +6028,21 @@ int main ( int argc, char** argv ) {
   Tcl_StaticPackage( interp, "BLT", Blt_Init, Blt_SafeInit );
   Tcl_StaticPackage( interp, "Tix", Tix_Init, Tix_SafeInit );
 
+  /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
+  eTcl = Fsgdf_Init( interp );
+  if( TCL_OK != eTcl ) {
+    DebugPrint( ("Fsgdf_Init returned %d: %s\n", (int)eTcl, interp->result) );
+    tkm_DisplayError( "Initializing FSGDF",
+                      "Error initializing FGSDF",
+                      "For some reason, the FSGDF code couldn't be "
+		      "initialized. Possible reasons include it not being "
+		      "installed, installed incorrectly, or the "
+		      "FREESURFER_HOME environment variable "
+                      "not being set or being set incorrectly." );
+    DebugAssertThrowX( (TCL_OK == eTcl), eResult, tkm_tErr_CouldntInitBLT );
+  }
+
+  
 #if SET_TCL_ENV_VAR
   /* restore env vars */
   if( bChangedEnvVar ) {
@@ -6603,7 +6619,7 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
   }
 
   if( gGDFID < 0 ) {
-    printf( "tkmedit: ERROR: FsgdfPlot_Read returned ID %d", gGDFID );
+    printf( "tkmedit: ERROR: FsgdfPlot_Read returned ID %d\n", gGDFID );
     gGDFID = -1;
     return tkm_tErr_CouldntLoadGDF;
   }
