@@ -34,9 +34,6 @@
 
 //////////////////////////////////////////////////////
 
-static void normalize_timecourse(void) ;
-static void load_timecourse(char *fname) ;
-static void show_correlations(int selection) ;
 static void resize_brain(float surface_area) ;
 static void set_value_label_name(char *label_name, int field) ;
 static void drawcb(void) ;
@@ -1404,9 +1401,17 @@ int func_select_voxel (int vno, float x, float y, float z);
    average. */
 int func_graph_timecourse_selection ();
 
-/* Calcs teh avg values and deviations of the selected voxels. */
+/* Calcs the avg values and deviations of the selected voxels. */
 int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
                                      float values[], float deviations[] );
+
+/* Normalizes the values in the time course volume. */
+int func_normalize ();
+
+/* Calcs the correlation of the specified vertex and the time
+   course through all time points and conditions. It writes the
+   results to an overlay layer. */
+int func_calc_correlation_and_write_to_overlay (int vno, int field);
 
 /* Prints summary data about the currently selected verts to a
    file. */
@@ -1513,6 +1518,9 @@ int sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 /* Creates a new overlay and fills it with the stat values from a
    label. */
 int sclv_new_from_label (int field, int label);
+
+/* Initializes an empty field. Pass a name for the field or NULL. */
+int sclv_new_empty (int field, char* name);
 
 /* writes .w files only */
 int sclv_write_dotw (char* fname, int field);
@@ -8230,11 +8238,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
       return ERROR_BADPARM;
     }
 
-  /* If they want to use the identity registration method, we need to
-     load up a volume for them to use as the base for the
+  /* Unless they selected the none-needed registration method, we need
+     to load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_Identity == reg_type)
+  if (FunD_tRegistration_NoneNeeded != reg_type)
     {
       good = 0;
       if (NULL != orig_mri_header)
@@ -8277,6 +8285,19 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
       ErrorReturn(func_convert_error(volume_error),
                   (func_convert_error(volume_error),
                    "sclv_read_from_volume: error in FunD_New\n"));
+    }
+
+  /* Notify the volume we're in tkreg space, so our transform is
+     correct. */
+  volume_error = FunD_ClientSpaceIsTkRegRAS (volume);
+  if (volume_error!=FunD_tErr_NoError)
+    {
+      if (NULL != volm)
+	Volm_Delete (&volm);
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(func_convert_error(volume_error),
+                  (func_convert_error(volume_error),
+                   "sclv_read_from_volume: error in FunD_ClientSpaceIsTkRegRAS\n"));
     }
 
   /* See if it's scalar */
@@ -8419,6 +8440,64 @@ int sclv_new_from_label (int field, int label)
   return (NO_ERROR);
 }
 
+int
+sclv_new_empty (int field, char* name)
+{
+  int    vno;
+  VERTEX *v;
+  char   cmd[STRLEN];
+
+  if (field < 0 || field > NUM_SCALAR_VALUES)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_new_from_label: field was out of bounds: %d)",
+                 field));
+
+
+  /* Unload this field if it already exists */
+  sclv_unload_field (field);
+
+  /* Init the field to 0s. */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      sclv_set_value (v, field, 0);
+    }
+
+  /* Set up some initial stuff here. */
+  sclv_field_info[field].min_value = 0;
+  sclv_field_info[field].max_value = 0;
+  sclv_field_info[field].cur_timepoint = 0;
+  sclv_field_info[field].cur_condition = 0;
+  sclv_field_info[field].num_timepoints = 1;
+  sclv_field_info[field].num_conditions = 1;
+
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+
+  /* set the field name to the name of the file loaded */
+  if (NULL != name)
+    sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, name);
+  else
+    sprintf (cmd, "UpdateValueLabelName %d \"New Layer\"", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+
+  /* Enable menu items. */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+
+  return (NO_ERROR);
+}
 
 void
 read_binary_values_frame(char *fname)
@@ -17612,8 +17691,8 @@ int W_flip_normals PARM;
 int W_mark_contiguous_vertices_over_thresh PARM;
 int W_mark_contiguous_vertices_with_similar_curvature PARM;
 int W_rip_all_vertices_except_contiguous_upripped PARM;
-int W_load_timecourse PARM;
-int W_show_correlations PARM;
+int W_func_calc_correlation_and_write_to_overlay PARM;
+int W_func_normalize PARM;
 
 /* end rkt */
 
@@ -18925,14 +19004,13 @@ int W_rip_all_vertices_except_contiguous_upripped WBEGIN
 ERR(1,"Wrong # args: rip_all_vertices_except_contiguous_upripped")
 rip_all_vertices_except_contiguous_upripped (); WEND
 
-int W_load_timecourse WBEGIN
-ERR(2,"Wrong # args: load_timecourse axes")
-load_timecourse(argv[1]); WEND
+int W_func_calc_correlation_and_write_to_overlay WBEGIN
+ERR(2,"Wrong # args: func_calc_correlation_and_write_to_overlay field")
+func_calc_correlation_and_write_to_overlay(selection,atoi(argv[1])); WEND
 
-
-int W_show_correlations WBEGIN
-ERR(1,"Wrong # args: show_correlations axes")
-show_correlations(selection); WEND
+int W_func_normalize WBEGIN
+ERR(1,"Wrong # args: func_normalize")
+func_normalize(); WEND
 
      
 
@@ -19026,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.200 2006/05/16 19:43:02 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.201 2006/05/16 21:21:03 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19740,6 +19818,10 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_func_graph_timecourse_selection, REND);
   Tcl_CreateCommand(interp, "func_print_timecourse_selection",
                     (Tcl_CmdProc*) W_func_print_timecourse_selection, REND);
+  Tcl_CreateCommand(interp, "func_calc_correlation_and_write_to_overlay",
+                    (Tcl_CmdProc*) W_func_calc_correlation_and_write_to_overlay, REND);
+  Tcl_CreateCommand(interp, "func_normalize",
+                    (Tcl_CmdProc*) W_func_normalize, REND);
   
   Tcl_CreateCommand(interp, "labl_load_color_table",
                     (Tcl_CmdProc*) W_labl_load_color_table, REND);
@@ -19808,12 +19890,6 @@ int main(int argc, char *argv[])   /* new main */
   
   Tcl_CreateCommand(interp, "flip_normals",
                     (Tcl_CmdProc*) W_flip_normals, REND);
-
-  Tcl_CreateCommand(interp, "load_timecourse",
-                    (Tcl_CmdProc*) W_load_timecourse, REND);
-
-  Tcl_CreateCommand(interp, "show_correlations",
-                    (Tcl_CmdProc*) W_show_correlations, REND);
 
   Tcl_CreateCommand(interp, "mark_contiguous_vertices_over_thresh",
                     (Tcl_CmdProc*) W_mark_contiguous_vertices_over_thresh, REND);
@@ -22288,11 +22364,11 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
       return ERROR_BADPARM;
     }
   
-  /* If they want to use the identity registration method, we need to
-     load up a volume for them to use as the base for the
+  /* Unless they selected the none-needed registration method, we need
+     to load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_Identity == reg_type)
+  if (FunD_tRegistration_NoneNeeded != reg_type)
     {
       good = 0;
       if (NULL != orig_mri_header)
@@ -22312,10 +22388,10 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
 	{
 	  if (NULL != volm)
 	    Volm_Delete (&volm);
-	  printf ("surfer: ERROR: You specified registration type identity, "
+	  printf ("surfer: ERROR: You specified a registration type, "
 		  "but tksurfer cannot find an anatomical volume with which "
-		  "to calculate the identity transform. Please try another "
-		  "registration method.\n");
+		  "to calculate the registration. Please make sure the "
+		  "orig volume is present in the subject's mri/ directory.\n");
 	  return ERROR_BADPARM;
 	}
     }
@@ -22338,6 +22414,19 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
                    "func_load_timecourse: error in FunD_New\n"));
     }
   
+  /* Notify the volume we're in tkreg space, so our transform is
+     correct. */
+  volume_error = FunD_ClientSpaceIsTkRegRAS (func_timecourse);
+  if (volume_error!=FunD_tErr_NoError)
+    {
+      if (NULL != volm)
+	Volm_Delete (&volm);
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(func_convert_error(volume_error),
+                  (func_convert_error(volume_error),
+                   "func_load_timecourse: error in FunD_ClientSpaceIsTkRegRAS\n"));
+    }
+
   printf("surfer: loaded timecourse %s\n",fname);
   
   /* See if it's scalar */
@@ -22456,6 +22545,19 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 		   "func_load_timecourse_offset: error in FunD_New\n"));
     }
   
+  /* Notify the volume we're in tkreg space, so our transform is
+     correct. */
+  volume_error = FunD_ClientSpaceIsTkRegRAS (func_timecourse_offset);
+  if (volume_error!=FunD_tErr_NoError)
+    {
+      if (NULL != volm)
+	Volm_Delete (&volm);
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(func_convert_error(volume_error),
+                  (func_convert_error(volume_error),
+                   "func_load_timecourse_offset: error in FunD_ClientSpaceIsTkRegRAS\n"));
+    }
+
   /* enable offset display */
   func_use_timecourse_offset = TRUE;
   
@@ -22939,6 +23041,142 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
 
   return(ERROR_NONE);
 }
+
+int func_calc_correlation_and_write_to_overlay (int selection_vno, int field){
+
+  int    vno;
+  VERTEX *v;
+  int    tp, cond;
+  float  val1, val2;
+  double cor, min, max, num, d1, d2;
+  xVoxel selection_voxel, cur_voxel;
+  int    nframes;
+  FunD_tErr func_error = FunD_tErr_NoError;
+
+  /* make sure we have a volume */
+  if (func_timecourse==NULL)
+    ErrorReturn(ERROR_NOT_INITED,
+                (ERROR_NOT_INITED,
+                 "func_print_timecourse_selection: No timecourse volume.\n"));
+  
+  if (selection_vno < 0 || selection_vno >= mris->nvertices)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "surfer: Please select a vertex.\n"));
+  
+  /* Initialize our field. */
+  sclv_new_empty (field, "Correlation");
+
+  /* Build the voxel for the selected point. If it's scalar, our index
+     is vno,0,0, otherwise use the orig coords. */
+  if (func_is_scalar_volume)
+    xVoxl_Set (&selection_voxel, selection_vno, 0, 0);
+  else
+    {
+      v = &mris->vertices[selection_vno];
+      xVoxl_SetFloat (&selection_voxel, v->origx, v->origy, v->origz);
+    }
+  
+  /* Calc the number of frames. */
+  nframes = (func_num_conditions * func_num_timepoints);
+
+  /* For every vertex... */
+  min = 1000000000;
+  max = -min;
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      v = &mris->vertices[vno];
+
+      /* If it's scalar, our index is vno,0,0, otherwise use the
+	 orig coords. */
+      if (func_is_scalar_volume)
+	xVoxl_Set (&cur_voxel, vno, 0, 0);
+      else
+	xVoxl_SetFloat (&cur_voxel, v->origx, v->origy, v->origz);
+
+      num = d1 = d2 = cor = 0.0;
+      for (cond=0; cond < func_num_conditions; cond++) 
+	{
+	  for (tp=0; tp < func_num_timepoints; tp++)
+	    {
+
+	      /* Get the value at the selection point and the current
+		 point. This will return an error if it's a spatial
+		 volume and these coords are out of bounds. */
+	      func_error = FunD_GetData( func_timecourse, 
+					 &selection_voxel, cond, tp, &val1 );
+	      if (func_error!=FunD_tErr_NoError )
+		{
+		  continue;
+		}
+	      func_error = FunD_GetData( func_timecourse, 
+					 &cur_voxel, cond, tp, &val2 );
+	      if (func_error!=FunD_tErr_NoError )
+		{
+		  continue;
+		}
+
+	      /* Math stuff */
+	      cor += (val1-val2)*(val1-val2);
+	      num += val1*val2;
+	      d1 += (val1*val1);
+	      d2 += (val2*val2);
+	    }
+	}
+
+      /* Calculation the correlation. */
+      cor = 1 - (sqrt(cor/nframes));
+      cor = (num/nframes) / sqrt((d1/nframes)*(d2/nframes));
+
+      /* Set the value in the field. */
+      sclv_set_value(v, field, cor);
+
+      /* Update the min and max. */
+      if (cor < min)
+	min = cor;
+      if (cor > max)
+	max = cor;
+    }
+
+  /* Set the min and max. */
+  sclv_value_min = sclv_field_info[field].min_value = min;
+  sclv_value_max = sclv_field_info[field].max_value = max;
+
+  /* Set the threshold so we go from -1 -> 1 */
+  fthresh = sclv_field_info[field].fthresh = 0;
+  fmid    = sclv_field_info[field].fmid = 0.5;
+  fslope  = sclv_field_info[field].fslope = 1;
+
+  /* Calc the frquencies */
+  sclv_calc_frequencies (field);
+
+  /* Request a redraw. Turn on the overlay flag and select this value
+     set. */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+
+  return (ERROR_NONE);
+}
+
+int func_normalize ()
+{
+  FunD_tErr func_error = FunD_tErr_NoError;
+
+  /* make sure we have a volume */
+  if (func_timecourse==NULL)
+    ErrorReturn(ERROR_NOT_INITED,
+                (ERROR_NOT_INITED,
+                 "func_normalize: No timecourse volume.\n"));
+  
+  func_error = FunD_NormalizeOverAll( func_timecourse );
+  if(func_error!=FunD_tErr_NoError)
+    ErrorPrintf(func_convert_error(func_error),
+		"func_normalize: error in FunD_NormalizeOverAll");
+  
+  return(ERROR_NONE);
+}
+
 
 int func_convert_error (FunD_tErr volume_error)
 {
@@ -27062,142 +27300,3 @@ transform_brain(void)
   redraw() ;
 }
 
-static MRI *mri_cor = NULL ;
-static void
-show_correlations(int selection)
-{
-	VERTEX *v ;
-	int    t, field ;
-	double cor, val1, val2, min, max, num, d1, d2 ;
-	char   cmd[STRLEN] ;
-
-	int vno ;
-	if (selection < 0)
-	{
-		printf("vertex must be selected\n") ;
-		return ;
-	}
-	if (mri_cor == NULL)
-	{
-		printf("load timecourse with load_timecourse\n") ;
-		return ;
-	}
-
-	field = 0 ;
-  /* Unload this field if it already exists */
-  sclv_unload_field (field);
-	min = 1000000000 ;
-	max = -min ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		for (t = 0, num = d1 = d2 = cor = 0.0 ; t < mri_cor->nframes ; t++)
-		{
-			val1 = MRIgetVoxVal(mri_cor, selection, 0, 0, t) ;
-			val2 = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
-			cor += (val1-val2)*(val1-val2);
-			num += val1*val2 ;
-			d1 += (val1*val1) ;
-			d2 += (val2*val2) ;
-		}
-		cor = 1 - (sqrt(cor/mri_cor->nframes)) ;
-		cor = (num/mri_cor->nframes) / 
-			sqrt((d1/mri_cor->nframes)*(d2/mri_cor->nframes)) ;
-		sclv_set_value(v, field, cor) ;
-		if (cor < min)
-			min = cor ;
-		if (cor > max)
-			max = cor ;
-	}
-  /* Set up some initial stuff here. */
-  sclv_field_info[field].min_value = min;
-  sclv_field_info[field].max_value = max;
-  sclv_field_info[field].cur_timepoint = 0;
-  sclv_field_info[field].cur_condition = 0;
-  sclv_field_info[field].num_timepoints = 1;
-  sclv_field_info[field].num_conditions = 1;
-
-  /* calc the frquencies */
-  sclv_calc_frequencies (field);
-  /* request a redraw. turn on the overlay flag and select this value set */
-  vertex_array_dirty = 1 ;
-  overlayflag = TRUE;
-  sclv_set_current_field (field);
-
-  /* set the field name to the name of the file loaded */
-  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", 
-	   field, "Correlations");
-  send_tcl_command (cmd);
-  sprintf (cmd, "ShowValueLabel %d 1", field);
-  send_tcl_command (cmd);
-  sprintf (cmd, "UpdateLinkedVarGroup view");
-  send_tcl_command (cmd);
-  sprintf (cmd, "UpdateLinkedVarGroup overlay");
-  send_tcl_command (cmd);
-
-  /* Enable menu items. */
-  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-}
-
-static void
-load_timecourse(char *fname)
-{
-	printf("loading correlation timecourse from %s\n", fname) ;
-	mri_cor = MRIread(fname) ;
-	if (mri_cor == NULL)
-	{
-		printf("could not load timecourse\n") ;
-		return ;
-	}
-	if (mri_cor->width * mri_cor->height * mri_cor->depth !=
-			mris->nvertices)
-	{
-		MRIfree(&mri_cor) ;
-		printf("mri dimensions (%d, %d, %d) = %d do not match # of vertices %d\n",
-					 mri_cor->width, mri_cor->height, mri_cor->depth,
-					 mri_cor->width * mri_cor->height * mri_cor->depth,
-					 mris->nvertices) ;
-		return ;
-	}
-	if (mri_cor->width != mris->nvertices)
-	{
-		MRI *mri_tmp ;
-		printf("reshaping MRI\n") ;
-		mri_tmp = mri_reshape(mri_cor, mris->nvertices, 1, 1, mri_cor->nframes);
-		MRIfree(&mri_cor) ;
-		mri_cor = mri_tmp ;
-	}
-	normalize_timecourse() ;
-}
-static void
-normalize_timecourse(void)
-{
-	int    t ;
-	double mean, var, val, std ;
-	int    vno ;
-
-	if (mri_cor == NULL)
-	{
-		printf("load timecourse with load_timecourse\n") ;
-		return ;
-	}
-
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		for (mean = var = 0.0, t = 0 ; t < mri_cor->nframes ; t++)
-		{
-			val = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
-			mean += val ;
-			var += val*val ;
-		}
-		mean /= mri_cor->nframes ;
-		var = var / mri_cor->nframes - mean*mean ;
-		std = sqrt(var) ;
-		for (t = 0 ; t < mri_cor->nframes ; t++)
-		{
-			val = MRIgetVoxVal(mri_cor, vno, 0, 0, t) ;
-			val = (val - mean) / std ;
-			MRIsetVoxVal(mri_cor, vno, 0, 0, t, val) ;
-		}
-	}
-}
