@@ -13414,7 +13414,7 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
                       r_overlay = r;
                       g_overlay = g;
                       b_overlay = b;
-                      get_color_vals (val, v->curv, REAL_VAL,  
+                      get_color_vals (val, val2, REAL_VAL,  
                                       &r_overlay, &g_overlay, &b_overlay);
                       r = r + (sclv_overlay_alpha * (r_overlay - r));
                       g = g + (sclv_overlay_alpha * (g_overlay - g));
@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.201 2006/05/16 21:21:03 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.202 2006/05/16 21:43:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
