@@ -71,6 +71,7 @@ typedef enum {
   FunD_tRegistration_File = 0,
   FunD_tRegistration_Find,
   FunD_tRegistration_Identity,
+  FunD_tRegistration_NoneNeeded,
   FunD_knNumRegistrationTypes
 } FunD_tRegistrationType;
 
@@ -128,7 +129,7 @@ typedef struct {
   tBoolean mbErrorDataPresent;
   float** mCovMtx;       /* [conditions-1*timepts][conditions-1*timepts] */
 
-  /* If the client tells us its bound size, we'll try making a
+  /* TODO: If the client tells us its bound size, we'll try making a
      resampled volume in client space to speed up data access (avoids
      coordinate conversion and bounds checking. */
   MRI*     mpResampledData;
@@ -284,6 +285,11 @@ FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this,
 FunD_tErr FunD_IsScalar ( mriFunctionalDataRef this,
 			  tBoolean*            obScalar );
 
+/* Use this if the coordinates in the client space are actually in
+   native tkRegRAS space (e.g. surface). This will set the A->RAS
+   matrix in the IdxToIdx transform to identity. */
+FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this );
+
 /* Value accessors. */
 FunD_tErr FunD_GetData                 ( mriFunctionalDataRef this,
 					 xVoxelRef            iClientVox, 
@@ -317,6 +323,8 @@ FunD_tErr FunD_Smooth ( mriFunctionalDataRef this,
 			int                  iCondition,
 			float                iSigma );
 
+/* Normalizes the data over all time points. */
+FunD_tErr FunD_NormalizeOverAll ( mriFunctionalDataRef this );
 
 
 /* converts a time point index to a second based on the time

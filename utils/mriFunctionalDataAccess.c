@@ -550,12 +550,15 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   DebugEnterFunction( ("FunD_ParseRegistrationAndInitMatricies_( this=%p )", 
 		       this) );
 
-  DebugNote( ("Checking parameters") );
+  DebugNote( ("Checking this") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
   DebugNote( ("Checking registration type") );
   DebugAssertThrowX( (iType >= 0 &&
 		      iType < FunD_knNumRegistrationTypes), eResult,
 		     FunD_tErr_InvalidParameter );
+  DebugNote( ("Checking iAnatomicalVolume") );
+  DebugAssertThrowX( (NULL != iAnatomicalVolume), 
+		     eResult, FunD_tErr_InvalidParameter );
 
   /* Switch on the registration type. We'll need to get some info out
      of the registration file if they specified one, or generate some
@@ -685,6 +688,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   }
 
   /* Generate our anatomical index -> functional index transform */
+  DebugNote(("Calling MRImakeVox2VoxReg"));
   eMRI = MRImakeVox2VoxReg( iAnatomicalVolume->mpMriValues,
 			    this->mpData,
 			    (int)iType,
@@ -867,6 +871,47 @@ FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this,
   
   return eResult;
 }
+
+FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this ) {
+
+  FunD_tErr eResult  = FunD_tErr_NoError;
+  MATRIX*   identity = NULL;
+  Trns_tErr eTrns    = Trns_tErr_NoErr;
+
+  DebugEnterFunction( ("FunD_ClientSpaceIsTkRegRAS( this=%p )", this) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+  
+  /* Set the A->RAS part of the transform to identity. */
+  DebugNote( ("Checking if mIdxToIdxTransform exists") );
+  DebugAssertThrowX( (NULL != this->mIdxToIdxTransform),
+		     eResult, FunD_tErr_ErrorAccessingTransform );
+
+  DebugNote( ("Creating identity matrix") );
+  identity = MatrixIdentity (4, NULL);
+  DebugAssertThrowX( (NULL != identity),
+		     eResult, FunD_tErr_CouldntAllocateMatrix );
+
+  DebugNote( ("Copying in transform") );
+  eTrns = Trns_CopyAtoRAS (this->mIdxToIdxTransform, identity);
+  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
+		     eResult, FunD_tErr_ErrorAccessingTransform );
+
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+
+  if( NULL != identity )
+    MatrixFree (&identity);
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 FunD_tErr FunD_IsScalar ( mriFunctionalDataRef this,
 			  tBoolean* obScalar ) {
@@ -1288,6 +1333,31 @@ FunD_tErr FunD_Smooth ( mriFunctionalDataRef this,
   return eResult;
 }
  
+FunD_tErr FunD_NormalizeOverAll ( mriFunctionalDataRef this ) {
+  FunD_tErr eResult    = FunD_tErr_NoError;
+
+  DebugEnterFunction( ("FunD_NormalizeOverAll( this=%p )", this) );
+
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != this),eResult, FunD_tErr_InvalidParameter );
+  
+  DebugNote( ("Verifying object") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+
+  DebugNote( ("Performing normalization with MRInormalizeFrames") );
+  MRInormalizeFrames( this->mpData );
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
 FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
 					  int                  iTimePoint,
 					  float*               oSecond ) {
