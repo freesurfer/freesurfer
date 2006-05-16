@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $";
+"$Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -345,6 +345,7 @@ MATRIX *vox2ras_targ=NULL,*ras2vox_targ=NULL;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
+int lhsurf_only = 0,rhsurf_only = 0;
 int fstal=0, fixxfm=1; 
 char talxfmfile[2000],talxfmdir[2000];
 char tmpstr[2000];
@@ -719,6 +720,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     vox2ras_targ = MRIxfmCRS2XYZtkreg(targ_vol);
     ras2vox_targ = MatrixInverse(vox2ras_targ,NULL);
 
+    if(! rhsurf_only) {
     /* load in the left hemi */
     sprintf(surf_path,"%s/%s/surf/lh.%s",subjectsdir,subjectid,surfname);
     printf("Reading lh surface %s\n",surfname);
@@ -750,7 +752,9 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       MRIvox(mrisurf,c,r,s) = 1;
     }
     MRISfree(&surf);
+    }
 
+    if(! lhsurf_only) {
     /* load in the right hemi */
     sprintf(surf_path,"%s/%s/surf/rh.%s",subjectsdir,subjectid,surfname);
     printf("Reading rh surface %s\n",surfname);
@@ -780,6 +784,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       MRIvox(mrisurf,c,r,s) = 2;
     }
     MRISfree(&surf);
+    }
 
   }
 
@@ -922,6 +927,8 @@ static int parse_commandline(int argc, char **argv)
       sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
       targ_vol_id = strcpyalloc(tmpstr);
     }
+    else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ; 
+    else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ; 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
       targ_vol_id = pargv[0];
@@ -1128,6 +1135,8 @@ static void print_usage(void)
   printf("   --fov FOV  : window FOV in mm (default is 256)\n");
   printf("   --movscale scale : scale size of mov by scale\n");
   printf("   --surf surfname : display surface as an overlay \n");
+  printf("   --lh-only : only load/display left hemi \n");
+  printf("   --rh-only : only load/display right hemi \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
@@ -4016,7 +4025,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.56 2006/04/03 23:37:12 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
