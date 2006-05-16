@@ -19026,7 +19026,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.199 2006/05/11 21:13:10 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.200 2006/05/16 19:43:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24217,6 +24217,8 @@ int labl_find_and_set_border (int index)
       /* get the vno and look at this vertex in the mris. for each
          neighbor, if we still haven't determined that this vno is a
          border, the neighbor is not in the same label... */
+			if (label->lv[label_vno].vno < 0)
+				continue ;
       v = &(mris->vertices[label->lv[label_vno].vno]);
       for (neighbor_vno = 0; 
            neighbor_vno < v->vnum && !border[label->lv[label_vno].vno];
