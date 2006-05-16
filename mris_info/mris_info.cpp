@@ -18,6 +18,7 @@ extern "C" {
 #include "utils.h"
 #include "gcsa.h"
 #include "colortab.h"
+#include "diag.h"
 #include "transform.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -39,7 +40,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.21 2006/02/23 22:18:33 greve Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.22 2006/05/16 19:42:36 fischl Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -94,7 +95,11 @@ int main(int argc, char *argv[])
     return -1;
   }
   MRIScomputeMetricProperties(mris) ;
-
+	
+	if (Gdiag_no >= 0)
+		printf("v %d: (%2.1f, %2.1f, %2.1f)\n", Gdiag_no, 
+					 mris->vertices[Gdiag_no].x, mris->vertices[Gdiag_no].y, mris->vertices[Gdiag_no].z) ;
+					 
   if(rescale){
     if(mris->group_avg_surface_area == 0){
       printf("ERROR: cannot rescale a non-group surface\n");
@@ -244,6 +249,11 @@ static int parse_commandline(int argc, char **argv)
       outfile = pargv[0];
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--v") ) {
+      if(nargc < 1) argnerr(option,1);
+      Gdiag_no = atoi(pargv[0]);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--o") ) {
       if(nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -256,8 +266,8 @@ static int parse_commandline(int argc, char **argv)
       surfname = pargv[2];
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       if(SUBJECTS_DIR==NULL){
-	printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-	exit(1);
+				printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+				exit(1);
       }
       sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
       surffile = strcpyalloc(tmpstr);
@@ -286,6 +296,7 @@ static void print_usage(void)
   printf("  --s subject hemi surfname : instead of surfacefile\n");
   printf("  --t : apply talairach xfm before reporting info\n");
   printf("  --r : rescale group surface so metrics same as avg of individuals\n");
+  printf("  --v : print out vertex information\n") ;
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
