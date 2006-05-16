@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.11 2006/02/13 01:41:48 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.11.2.1 2006/05/16 21:40:22 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -107,6 +107,7 @@ static int CheckNXYZ=1;
 static int CheckCurv=0;
 static int CheckAParc=0;
 static double thresh=0;
+static double seed=1234;
 
 static int error_count=0;
 static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
@@ -158,11 +159,19 @@ int main(int argc, char *argv[])
   }
   dump_options(stdout);
 
+  //read-in each surface.  notice that the random number generator is
+  //seeded with the same value prior to each read.  this is because in
+  //the routine MRIScomputeNormals, if it finds a zero-length vertex
+  //normal, is adds a random value to the x,y,z and recomputes the normal.
+  //so if comparing identical surfaces, the seed must be the same so that
+  //any zero-length vertex normals appear the same.
+  setRandomSeed(seed) ;
   surf1 = MRISread(surf1path);
   if(surf1 == NULL){
     printf("ERROR: could not read %s\n",surf1path);
     exit(1);
   }
+  setRandomSeed(seed) ;
   surf2 = MRISread(surf2path);
   if(surf2 == NULL){
     printf("ERROR: could not read %s\n",surf2path);
