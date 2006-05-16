@@ -51,13 +51,6 @@ label_subject_mixed \
 make_average_surface \
 make_average_volume \
 make_average_subject \
-make_final_surfaces_corrected_subject \
-make_final_surfaces_subject \
-make_final_surfaces_subject-lh \
-make_final_surfaces_subject_on_seychelles \
-make_final_surfaces_subject-rh \
-make_final_surfaces_subject_richard \
-make_quick_surfaces_subject \
 make-segvol-table \
 map_all_labels \
 map_all_labels-lh \
@@ -78,7 +71,6 @@ morph_subject_on_seychelles \
 morph_subject-rh \
 morph_tables-lh \
 morph_tables-rh \
-mri_autorecon \
 mri_nu_correct.mni\
 mri-func2sph \
 mri-funcvits \
@@ -90,9 +82,6 @@ mri-sph2surf \
 mris_preproc \
 mris_volsmooth \
 ms_refine_subject \
-parcellate_subject \
-parcellate_subject-lh \
-parcellate_subject-rh \
 printdat \
 progressbar.tcl \
 fsr-checkxopts \
