@@ -133,7 +133,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.10 2006/05/11 21:52:06 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.11 2006/05/16 23:41:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -157,6 +157,9 @@ int CheckOrientation=1;
 int CheckPrecision=1;
 MATRIX *vox2ras1,*vox2ras2;
 char Orient1[4], Orient2[4];
+
+int ExitOnDiff = 1;
+int ExitStatus = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -229,6 +232,7 @@ int main(int argc, char *argv[])
       fprintf(fp,"Volumes differ in dimension\n");
       fclose(fp);
     }
+    // Must exit here
     exit(101);
   }
   
@@ -256,7 +260,8 @@ int main(int argc, char *argv[])
         fprintf(fp,"Volumes differ in resolution\n");
         fclose(fp);
       }
-      exit(102);
+      ExitStatus = 102;
+      if(ExitOnDiff) exit(ExitStatus);
     }
   }
 
@@ -285,7 +290,8 @@ int main(int argc, char *argv[])
         fprintf(fp,"Volumes differ in acquisition parameters\n");
         fclose(fp);
       }
-      exit(103);
+      ExitStatus = 103;
+      if(ExitOnDiff) exit(103);
     }
   }
 
@@ -317,7 +323,8 @@ int main(int argc, char *argv[])
                     r,c,diff);
             fclose(fp);
           }
-          exit(104);
+	  ExitStatus = 104;
+          if(ExitOnDiff) exit(104);
         }
       } // c
     } // r
@@ -340,7 +347,8 @@ int main(int argc, char *argv[])
 
         fclose(fp);
       }
-      exit(105);
+      ExitStatus = 105;
+      if(ExitOnDiff) exit(105);
     }
   }
 
@@ -395,7 +403,8 @@ int main(int argc, char *argv[])
         fprintf(fp,"Volumes differ in pixel value\n");
         fclose(fp);
       }
-      exit(106);
+      ExitStatus = 106;
+      if(ExitOnDiff) exit(106);
     }
   }
 
@@ -417,12 +426,13 @@ int main(int argc, char *argv[])
                 Orient1,Orient2);
         fclose(fp);
       }
-      exit(107);
+      ExitStatus = 107;
+      if(ExitOnDiff) exit(107);
     }
   }
 
-  exit(0);
-  return(0);
+  exit(ExitStatus);
+  return(ExitStatus);
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
@@ -448,6 +458,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--no-exit-on-diff")) ExitOnDiff = 0;
+    else if (!strcasecmp(option, "--no-exit-on-error")) ExitOnDiff = 0;
 
     else if (!strcasecmp(option, "--notallow-res"))  CheckResolution = 0;
     else if (!strcasecmp(option, "--notallow-acq"))  CheckAcqParams = 0;
@@ -579,6 +591,7 @@ static void print_usage(void)
   printf("   --notallow-prec : do not check for precision diffs\n");
   printf("   --notallow-pix  : do not check for pixel diffs\n");
   printf("   --notallow-ori  : do not check for orientation diffs\n");
+  printf("   --no-exit-on-diff : do not exit on diff (runs thru everything)\n");
   printf("\n");
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
