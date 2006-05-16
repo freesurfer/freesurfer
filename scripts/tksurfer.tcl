@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.114 2006/04/20 17:27:17 kteich Exp $
+# $Id: tksurfer.tcl,v 1.115 2006/05/16 21:21:24 kteich Exp $
 
 package require BLT;
 
@@ -2872,6 +2872,14 @@ proc CreateMenuBar { ifwMenuBar } {
 		mg_TimeCourseLoaded } 
 	    { command "Save Graphs of Series to Postscript File"
 		{ Graph_DoPrintSeriesDlog }
+		mg_TimeCourseLoaded }
+	    { command "Show Correlation"
+		{ func_calc_correlation_and_write_to_overlay 0;
+		    UpdateAndRedraw }
+		mg_TimeCourseLoaded }
+	    { command "Normalize"
+		{ func_normalize;
+		    UpdateAndRedraw }
 		mg_TimeCourseLoaded }
 	}}
 	{ cascade "Fill" {
