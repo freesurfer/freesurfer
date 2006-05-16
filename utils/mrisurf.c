@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/05/15 20:29:33 $
-// Revision       : $Revision: 1.464 $
+// Revision Date  : $Date: 2006/05/16 12:56:36 $
+// Revision       : $Revision: 1.465 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.464 2006/05/15 20:29:33 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.465 2006/05/16 12:56:36 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30231,6 +30231,8 @@ void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){
 	MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
 }
 
+#define DO_NOT_USE_AREA 1 
+
 double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 	double fitness,mri_ll,curv_ll;
 	DP *dp;
@@ -30256,12 +30258,13 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 	fitness = mrisComputeDefectLogLikelihood(mris,parms->mri,dp,parms->h_k1,parms->h_k2,parms->mri_k1_k2,parms->h_white,parms->h_gray,parms->h_border,parms->h_grad,parms->mri_gray_white,parms->h_dot,&top_parms);
 
 	// new computation of the fitness
-	//	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
-  //curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
-
+#if DO_NOT_USE_AREA
+	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
+  curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
+#else
 	mri_ll = parms->l_mri*(tp->fll+tp->vll)/4.0;
   curv_ll = (parms->l_qcurv*tp->qcll+parms->l_curv*tp->cll)/3.0;
-
+#endif
 	return (mri_ll+curv_ll);
 }
 
@@ -30297,7 +30300,7 @@ int IsMRISselfIntersecting(MRI_SURFACE *mris)
 
 static void TPprint(TP *tp){
 	double mri,curv;
-#if 0 
+#if DO_NOT_USE_AREA 
 	mri = (tp->face_ll+tp->vertex_ll)/4.0;
 	curv = (tp->qcurv_ll+tp->curv_ll)/3.0;
 #else
