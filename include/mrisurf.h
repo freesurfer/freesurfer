@@ -1040,6 +1040,8 @@ typedef struct{
 	int defect_number; // the defect_number 
 	int mode; // which mode to use (not used so far) 
 	int no_self_intersections; //to prevent self-intersection
+	int write; //writing out temporary surfaces using fname  
+	char fname[STRLEN] ;
 	double nattempts_percent; 
 	int nattempts;
 	int minimal_mode;
