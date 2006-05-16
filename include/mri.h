@@ -1055,4 +1055,6 @@ double MRIestimateTIV(char* theLtaFile,
                       double* theScaleFactor,
                       double* theAtlasDet);
 
+int MRInormalizeFrames(MRI *mri);
+
 #endif

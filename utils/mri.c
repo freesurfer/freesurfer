@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/05/10 21:55:11 $
-// Revision       : $Revision: 1.345 $
-char *MRI_C_VERSION = "$Revision: 1.345 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/05/16 21:16:47 $
+// Revision       : $Revision: 1.346 $
+char *MRI_C_VERSION = "$Revision: 1.346 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13311,4 +13311,38 @@ double MRIestimateTIV(char* theLtaFile,
   if (theAtlasDet) *theAtlasDet = atlas_det;
 
   return atlas_icv;
+}
+
+int MRInormalizeFrames(MRI *mri)
+{
+  int    c,r,s,f;
+  double mean, var, val, std ;
+
+  if (NULL==mri)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"MRInormalize: no MRI\n"));
+  
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	for (mean = var = 0.0, f = 0 ; f < mri->nframes ; f++)
+	  {
+	    val = MRIgetVoxVal(mri, c, r, s, f);
+	    mean += val;
+	    var += val*val;
+	  }
+	mean /= mri->nframes ;
+	var = var / mri->nframes - mean*mean ;
+	std = sqrt(var) ;
+
+	for (f = 0 ; f < mri->nframes ; f++)
+	  {
+	    val = MRIgetVoxVal(mri, c, r, s, f);
+	    val = (val - mean) / std ;
+	    MRIsetVoxVal(mri, c, r, s, f, val);
+	  }
+      }
+    }
+  }
+
+  return(ERROR_NONE);
 }
