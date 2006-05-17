@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.13 2006/03/10 01:33:44 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.14 2006/05/17 23:01:00 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -286,8 +286,6 @@ if($UseAvgCurv) then
   endif
   echo Using average curvature $curv
   setenv curvsteps 10
-else
-  setenv curv $hemi.curv
 endif
 setenv floatstem $Stat
 
