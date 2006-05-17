@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.203 2006/05/17 20:45:29 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.204 2006/05/17 21:12:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24159,6 +24159,8 @@ int labl_update_cache (int force_rebuild_all) {
           for (label_vno = 0; label_vno < label->n_points; label_vno++)
             {
               vno = label->lv[label_vno].vno;
+							if (vno < 0)
+								continue ;
               if (NULL == labl_cache[vno])
                 {
                   labl_cache[vno] = (int*) calloc (1, sizeof(int));
