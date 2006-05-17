@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/15 21:11:59 $
-// Revision       : $Revision: 1.285 $
-char *VERSION = "$Revision: 1.285 $";
+// Revision Date  : $Date: 2006/05/17 15:14:47 $
+// Revision       : $Revision: 1.286 $
+char *VERSION = "$Revision: 1.286 $";
 
 #define TCL
 #define TKMEDIT
@@ -1137,7 +1137,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.285 2006/05/15 21:11:59 kteich Exp $",
+     "$Id: tkmedit.c,v 1.286 2006/05/17 15:14:47 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5678,7 +5678,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.285 2006/05/15 21:11:59 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.286 2006/05/17 15:14:47 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -6685,7 +6685,7 @@ tkm_tErr BeginGDFPointList () {
   /*
     FsgdfPlot_BeginPointList $gGDFID
   */
-  sprintf( sTclCommand, "Fsgdfplot_BeginPointList %d", gGDFID );
+  sprintf( sTclCommand, "FsgdfPlot_BeginPointList %d", gGDFID );
   psTclResult = SendTCLCommand( sTclCommand );
   if( NULL == psTclResult ) {
     return tkm_tErr_ErrorAccessingGDF;
@@ -6715,7 +6715,7 @@ tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
   /*
     FsgdfPlot_AddPoint $gGDFID $x $y $x
   */
-  sprintf( sTclCommand, "Fsgdfplot_AddPoint %d %d %d %d", 
+  sprintf( sTclCommand, "FsgdfPlot_AddPoint %d %d %d %d", 
 	   gGDFID, xVoxl_ExpandInt( &gdfIdx ) );
   psTclResult = SendTCLCommand( sTclCommand );
   if( NULL == psTclResult ) {
@@ -6736,7 +6736,7 @@ tkm_tErr EndGDFPointList () {
   /*
     FsgdfPlot_EndPointList $gGDFID
   */
-  sprintf( sTclCommand, "Fsgdfplot_EndPointList %d", gGDFID );
+  sprintf( sTclCommand, "FsgdfPlot_EndPointList %d", gGDFID );
   psTclResult = SendTCLCommand( sTclCommand );
   if( NULL == psTclResult ) {
     return tkm_tErr_ErrorAccessingGDF;
