@@ -30,7 +30,6 @@ static void freeTopoFixerParameters();
 
 char *Progname ;
 
-
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
 static char *orig_name     = "orig" ;
@@ -48,16 +47,20 @@ static void initTopoFixerParameters(){
 	parms.verbose = 1; //minimal mode
 	parms.smooth = 0;    //smoothing
 	parms.match = 1;     //matching using local intensity estimates
+	parms.mode = 0 ;
 	parms.minimal_mode=0;
 	parms.nminattempts = 10;
-	parms.l_mri = 10.0;
+	parms.l_mri = 2.0;
   parms.l_curv = 1.0 ;
   parms.l_qcurv = 1.0;
-  parms.l_unmri = 0.0; //not implemented yet
-	parms.nattempts_percent=0.1;
+  parms.l_unmri = 10.0; 
+	parms.volume_resolution = 2;
+	parms.nattempts_percent=0.3;
   parms.minimal_loop_percent = 0.4;
 	parms.no_self_intersections = 1;
-
+	//does not write out information
+	parms.write = 0;
+	
 	//creation of the patching surfaces
 	PatchDisk *disk = new PatchDisk[4];
   for(int n = 0 ; n < 4 ; n++)
@@ -132,7 +135,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.12 2006/05/12 11:32:18 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.13 2006/05/17 11:03:37 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -141,7 +144,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.12 2006/05/12 11:32:18 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.13 2006/05/17 11:03:37 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -243,7 +246,8 @@ int main(int argc, char *argv[])
 		MRISmapOntoSphere(mris);
 	
 	fprintf(stderr,"smoothing spherical vertices...\n");
-	//	MRISsmoothOnSphere(mris,1000);
+	//MRISsmoothOnSphere(mris,300);
+	//MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 	/* centering the surface using CANONICAL_VERTICES */
 	MRIScenterSphere(mris);
 	MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -342,7 +346,7 @@ int main(int argc, char *argv[])
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
 
 	/* compute the orientation changes */
-	//  MRISmarkOrientationChanges(mris_corrected);
+	MRISmarkOrientationChanges(mris_corrected);
 
 	
 
@@ -373,9 +377,16 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "mgz")){
     printf("INFO: assuming .mgz format\n");
     MGZ = 1;
-  }else if (!stricmp(option , "verbose")){
+  }else if (!stricmp(option , "fast")){
+    parms.mode=1;
+		fprintf(stderr,"fast mode on\n"); 
+  }
+	else if (!stricmp(option , "verbose")){
 		Gdiag = DIAG_VERBOSE;
 	}
+	else if (!stricmp(option , "write")){
+    parms.write=1;;
+  }
 	else if (!stricmp(option, "verbose_low"))
     {
       parms.verbose=VERBOSE_MODE_LOW;
