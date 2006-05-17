@@ -18972,7 +18972,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.6 2006/04/18 19:07:11 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.7 2006/05/17 20:51:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24119,6 +24119,7 @@ int labl_find_and_set_border (int index)
   int label_vno;
   LABEL* label;
   VERTEX* v;
+  int vno;
   int neighbor_vno;
   char* border = NULL;
   int num_borders = 0;
@@ -24137,21 +24138,31 @@ int labl_find_and_set_border (int index)
   label = labl_labels[index].label;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
     {  
+      /* The label vno could be < 0 if it couldn't find a close vertex
+	 for this label point. */
+      vno = label->lv[label_vno].vno;
+      if (vno < 0 || vno >= mris->nvertices)
+	continue;
+
       /* get the vno and look at this vertex in the mris. for each
          neighbor, if we still haven't determined that this vno is a
          border, the neighbor is not in the same label... */
-      v = &(mris->vertices[label->lv[label_vno].vno]);
+      v = &(mris->vertices[vno]);
       for (neighbor_vno = 0; 
-           neighbor_vno < v->vnum && !border[label->lv[label_vno].vno];
+           neighbor_vno < v->vnum && !border[vno];
            neighbor_vno++ )
         {
+	  /* See if there's a label at this neighbor vno. */
           labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
                                   LABL_MAX_LABELS, &num_labels_found);
           if( num_labels_found > 0 ) 
             {
+	      /* We found at least one label, check to see if it's
+		 this label or somethign else. */
               vno_in_other_label = 0;
               vno_in_label = 0;
-              for (found_label_index = 0; found_label_index < num_labels_found;
+              for (found_label_index = 0; 
+		   found_label_index < num_labels_found;
                    found_label_index++)
                 {
                   if (label_index_array[found_label_index] != index)
@@ -24161,18 +24172,19 @@ int labl_find_and_set_border (int index)
                 }
               
               /* it's a border if this vno is in a different (or no)
-                 label and not in this label. makr it so in the real
+                 label and not in this label. mark it so in the real
                  border flag array and our temp one. */
-              if (vno_in_other_label && !vno_in_label)
+              if (vno_in_other_label && !vno_in_label &&
+		  !border[vno])
                 {
-                  border[label->lv[label_vno].vno] = TRUE;
+                  border[vno] = TRUE;
                   num_borders++;
                 }
             }
           else 
             {
               /* it's also a border if the vno is in no label. */
-              border[label->lv[label_vno].vno] = TRUE;
+              border[vno] = TRUE;
               num_borders++;
             }
         }
@@ -24181,7 +24193,7 @@ int labl_find_and_set_border (int index)
          border, check its surrounding vertices. For each one, if it's
          not already also a border, and if it's inside the label, mark
          it in the border list. */
-      if (border[label->lv[label_vno].vno])
+      if (border[vno])
         {
           for (neighbor_vno = 0;
                neighbor_vno < v->vnum && !border[v->v[neighbor_vno]];
@@ -24196,7 +24208,8 @@ int labl_find_and_set_border (int index)
                        found_label_index < num_labels_found;
                        found_label_index++)
                     {
-                      if (label_index_array[found_label_index] == index)
+                      if (label_index_array[found_label_index] == index &&
+			  !border[v->v[neighbor_vno]])
                         {
                           /* Also make it a border. */
                           border[v->v[neighbor_vno]] = TRUE;
@@ -24213,18 +24226,25 @@ int labl_find_and_set_border (int index)
   if (NULL != labl_labels[index].border_vno)
     free (labl_labels[index].border_vno);
   
-  labl_labels[index].border_vno = 
-    calloc (num_borders, sizeof(int));
+  labl_labels[index].border_vno = (int*) calloc (num_borders, sizeof(int));
 
   labl_labels[index].num_border_vnos = 0;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
     {
-      v = &(mris->vertices[label->lv[label_vno].vno]);
-      if (border[label->lv[label_vno].vno])
+      vno = label->lv[label_vno].vno;
+      if (vno < 0 || vno >= mris->nvertices)
+	continue;
+
+      v = &(mris->vertices[vno]);
+      if (border[vno])
         {
           labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
             label->lv[label_vno].vno;
           labl_labels[index].num_border_vnos++;
+
+	  /* By unmarking it now, we make sure that a duplicate label
+	     point will not also be added. */
+	  border[vno] = FALSE;
         }
     }
   
