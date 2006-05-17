@@ -1055,6 +1055,7 @@ typedef struct{
   double  l_curv ;
   double  l_qcurv;
   double  l_unmri ;
+	int volume_resolution; /* used if l_unmri is on */
 	MRI *mri; //brain volume
 	MRI *mri_wm; //wm volume
 	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
