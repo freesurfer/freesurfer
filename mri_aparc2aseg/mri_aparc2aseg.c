@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.6 2006/03/24 01:19:04 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.7 2006/05/17 22:11:35 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -49,7 +49,7 @@ MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, dlhp, drhw, drhp;
 float dminctx = 5.0;
 int LabelWM=0;
-
+int LabelHypoAsWM=0;
 
 char tmpstr[2000];
 char annotfile[1000];
@@ -60,7 +60,7 @@ int baseoffset = 0;
 int main(int argc, char **argv)
 {
   int nargs, err, asegid, c, r, s, nctx, annot;
-  int annotid, IsCortex=0, hemi=0, segval=0;
+  int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
   /* rkt: check for and handle version tag */
@@ -244,13 +244,20 @@ int main(int argc, char **argv)
     for(r=0; r < ASeg->height; r++){
       for(s=0; s < ASeg->depth; s++){
 
-	// If it's not labeled as cortex or wm in the aseg, skip
 	asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(asegid != 3 && asegid != 42 && asegid != 2 && asegid != 41) continue;
-	if(asegid == 3 || asegid == 42) IsCortex = 1;
-	else                            IsCortex = 0;
+	if(asegid == 3 || asegid == 42)  IsCortex = 1;
+	else                             IsCortex = 0;
+	if(asegid >= 77 && asegid <= 82) IsHypo = 1;
+	else                             IsHypo = 0;
+	if(asegid == 2 || asegid == 41)  IsWM = 1;
+	else                             IsWM = 0;
+	if(LabelHypoAsWM && IsHypo )     IsWM = 1;
 
-	if(!IsCortex && !LabelWM) continue;
+	// If it's not labeled as cortex or wm in the aseg, skip
+	if(!IsCortex && !IsWM) continue;
+
+	// If it's wm but not labeling wm, skip
+	if(IsWM && !LabelWM) continue;
 
 	// Check whether this point is in the ribbon
 	if(UseRibbon){
@@ -425,6 +432,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
+    else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
     else if (!strcmp(option, "--s")){
       if(nargc < 1) argnerr(option,1);
       subject = pargv[0];
@@ -590,6 +598,10 @@ static void dump_options(FILE *fp)
   fprintf(fp,"outvol %s\n",OutASegFile);
   fprintf(fp,"useribbon %d\n",UseRibbon);
   fprintf(fp,"baseoffset %d\n",baseoffset);
+  if(LabelWM){
+    printf("labeling wm\n");
+    if(LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
+  }
   return;
 }
 /*---------------------------------------------------------------*/
