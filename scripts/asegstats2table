@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.4 2006/05/18 05:02:42 greve Exp $
+# $Id: asegstats2table,v 1.5 2006/05/18 18:33:38 greve Exp $
 import sys;
 import os;
 import string;
@@ -33,6 +33,11 @@ import tempfile;
 # volume or mean. If mean, it reports the mean intensity value from
 # the 6th column.
 
+# By default, all segmentations found in the input stats file are
+# reported. This can be changed by specifying the maximum segmentation
+# number with --maxsegno. This can be convenient for removing
+# segmentations that are always empty.
+
 # ENDHELP
 # -------------------------------------------------------------------
 
@@ -42,6 +47,7 @@ def print_usage():
   print "  --subjects  subject1 <subject2 ...>";
   print "  --s subject1 <--s subject2 ...>";
   print "  --meas measure : default is vol (alt: mean)";
+  print "  --maxsegno maxno : maximum segmentation no to report"  
   print ""  
   print "  --t tablefile";
   print ""
@@ -82,7 +88,7 @@ def argnerr(narg,flag):
 #---------------------------------------------------------
 def parse_args(argv):
   global Version,debug;
-  global tablefile, SUBJECTS, nsubjects, meas;
+  global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
 
   del argv[0]; # get past program name (del is like shift)
 
@@ -109,6 +115,9 @@ def parse_args(argv):
     elif(flag == "--meas"):
       if(len(argv) < 1): argnerr(1,flag);
       meas = argv[0];  del argv[0];
+    elif(flag == "--maxsegno"):
+      if(len(argv) < 1): argnerr(1,flag);
+      maxsegno = string.atof(argv[0]);  del argv[0];
     elif(flag == "--help"):
       print_usage();
       print_help();
@@ -166,11 +175,12 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.4 2006/05/18 05:02:42 greve Exp $';
+Version = '$Id: asegstats2table,v 1.5 2006/05/18 18:33:38 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
 meas = 'volume';
+maxsegno = -1;
 debug = 0;
 
 nargs = len(sys.argv) - 1;
@@ -193,7 +203,7 @@ SUBJECTS_DIR = os.environ['SUBJECTS_DIR'];
 fptbl = open(tablefile,'w');
 # How to check whether this failed or not?
 
-# Loop thru each subjects
+# Loop thru each subject
 nthsubj = 1;
 for subject in SUBJECTS:
 
@@ -216,6 +226,8 @@ for subject in SUBJECTS:
         continue;
       else:
         tmp = string.split(line);
+        segno = string.atoi(tmp[1]);
+        if(maxsegno > 0 and segno > maxsegno): continue
         segid = tmp[4];
         fptbl.write(' %s' % (segid) );
       #endif
@@ -233,8 +245,6 @@ for subject in SUBJECTS:
   # Now go thru each line and print the measure
   fp = open(statsfile,'r');
   nthseg = 0;
-  segid = [];
-  segarea = [];
   ICV = -1;
   for line in fp:
 
@@ -252,6 +262,8 @@ for subject in SUBJECTS:
     else:
       if(debug): print "%s" % line;
       tmp = string.split(line);
+      segno = string.atoi(tmp[1]);
+      if(maxsegno > 0 and segno > maxsegno): continue
       if(meas == 'volume'):  val = string.atof(tmp[3]);
       if(meas == 'mean'):    val = string.atof(tmp[5]);
       if(debug): print "%d %s %g %g" % (nthseg,segid,val)
