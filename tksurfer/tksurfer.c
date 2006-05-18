@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.204 2006/05/17 21:12:05 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.205 2006/05/18 21:57:48 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24033,6 +24033,9 @@ int sclv_load_label_value_file (char *fname, int field)
                   for (label_vno = 0; label_vno < label->n_points; label_vno++)
                     {
                       vno = label->lv[label_vno].vno;
+		      if( vno < 0 || vno >= mris->nvertices )
+			continue;
+
                       v = &mris->vertices[vno];
                       
                       sclv_set_value (v, field, value);
@@ -24159,9 +24162,10 @@ int labl_update_cache (int force_rebuild_all) {
           for (label_vno = 0; label_vno < label->n_points; label_vno++)
             {
               vno = label->lv[label_vno].vno;
-							if (vno < 0)
-								continue ;
-              if (NULL == labl_cache[vno])
+	      if( vno < 0 || vno >= mris->nvertices )
+		continue;
+
+	      if (NULL == labl_cache[vno])
                 {
                   labl_cache[vno] = (int*) calloc (1, sizeof(int));
                   labl_cache[vno][0] = label_index;
@@ -24369,6 +24373,7 @@ int labl_save (int index, char* fname)
 {   
   LABEL* label = NULL;
   int n;
+  int vno;
   
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
@@ -24388,7 +24393,11 @@ int labl_save (int index, char* fname)
      verts. this is for the LabelWrite call. */
   for (n = 0 ; n < label->n_points ; n++) 
     {
-      sclv_get_value (&(mris->vertices[label->lv[n].vno]),
+      vno = label->lv[n].vno;
+      if( vno < 0 || vno >= mris->nvertices )
+	continue;
+
+      sclv_get_value (&(mris->vertices[vno]),
                       sclv_current_field, &(label->lv[n].stat) );
     }
   
@@ -24556,7 +24565,7 @@ int labl_find_and_set_border (int index)
       if (border[vno])
         {
           labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
-            label->lv[label_vno].vno;
+            vno;
           labl_labels[index].num_border_vnos++;
 
 	  /* By unmarking it now, we make sure that a duplicate label
@@ -24812,6 +24821,10 @@ int labl_export_annotation (char *fname)
           /* for every vertex in the label... */
           for (label_vno = 0; label_vno < label->label->n_points; label_vno++)
             {
+	      if( label->label->lv[label_vno].vno < 0 || 
+		  label->label->lv[label_vno].vno >= mris->nvertices )
+		continue;
+
               /* set the annotation value. */
               mris->vertices[label->label->lv[label_vno].vno].annotation = 
                 color;
@@ -25020,6 +25033,9 @@ int labl_remove_marked_vertices_from_label (int index)
   for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++)
     {
       vno = curlabel->lv[curlabel_vno].vno;
+      if( vno < 0 || vno >= mris->nvertices )
+	continue;
+
       if (mris->vertices[vno].marked)
         {
           num_new_verts--;
@@ -25049,6 +25065,9 @@ int labl_remove_marked_vertices_from_label (int index)
   for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++)
     {
       vno = curlabel->lv[curlabel_vno].vno;
+      if( vno < 0 || vno >= mris->nvertices )
+	continue;
+
       if (!mris->vertices[vno].marked && newlabel_vno < num_new_verts)
         {
           newlabel->lv[newlabel_vno].x = curlabel->lv[curlabel_vno].x;
