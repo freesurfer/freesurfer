@@ -16,6 +16,11 @@ int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
 int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 
+/* When setting the initial window/level, use a histogram and cut this
+   much off either end to find the initial range. */
+float const kPercentValuesToCut = 0.05;
+int const zGrayscaleHistogramBins = 200;
+
 int bReported[195];
 
 
@@ -191,9 +196,73 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   // range, and window is set to entire range.
   SetMinMaxVisibleValue( mVolume->GetMRIMinValue(), 
 			 mVolume->GetMRIMaxValue() );
+
+#if 0
   SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
 	    mVolume->GetMRIMinValue() );
   SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
+#else
+
+  // We're going to get a historgram of the volume and use it to
+  // remove any outliers when determining our initial
+  // window/level. Create the histogram. 
+  HISTOGRAM* histo = MRIhistogram( mVolume->GetMRI(), 
+				   zGrayscaleHistogramBins );
+  if( NULL != histo ) {
+
+    // Calculate the number of values in the volume.
+    int range[3];
+    mVolume->GetMRIIndexRange( range );
+    int zValues = range[0] * range[1] * range[2];
+
+    // Get the number of values to cut based on the percentage.
+    int zCutValues = (int)((float)zValues * (kPercentValuesToCut/100.0));
+
+    // Get the index of the bin with the value zero in it. We'll skip
+    // this bin because we want to ignore zeroes in our histogram.
+    int nZeroBin = HISTOfindBin( histo, 0.0 );
+
+    // Start at the bottom and go up. Sum up the number of the values
+    // in the bins. When we get to the number of values we want to
+    // cut, stop.
+    int cCurValues = 0;
+    int nBin = 0;
+    while( cCurValues < zCutValues ) {
+      if( nBin != nZeroBin )
+	cCurValues += (int)histo->counts[nBin];
+      nBin++;
+    }
+    // Our bin values are the number at the top range of the bin, so
+    // use the bin underneath us.
+    float minValue = histo->bins[nBin>0?nBin-1:0];
+
+    // Do the same for the top end, going down. 
+    cCurValues = 0;
+    nBin = histo->nbins-1;
+    while( cCurValues < zCutValues ) {
+      if( nBin != nZeroBin )
+	cCurValues += (int)histo->counts[nBin];
+      nBin--;
+    }
+    float maxValue = histo->bins[nBin];
+
+    // Use this max and min to define a range and set our level and
+    // window.
+    SetLevel( (maxValue - minValue)/2.0 + minValue );
+    SetWindow( (maxValue - minValue) );
+    
+    // Free the histogram.
+    HISTOfree( &histo );
+
+  } else {
+
+    // Couldn't histogram for some reason, so use defaults. 
+    SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
+	      mVolume->GetMRIMinValue() );
+    SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
+
+  }
+#endif
 
   // Calc one tenth of the value range.
   float oneTenth;
