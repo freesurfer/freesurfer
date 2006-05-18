@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/05/16 12:56:36 $
-// Revision       : $Revision: 1.465 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/05/18 19:31:32 $
+// Revision       : $Revision: 1.466 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.465 2006/05/16 12:56:36 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.466 2006/05/18 19:31:32 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -12315,14 +12315,28 @@ int MRISsmoothOnSphere(MRIS *mris, int niters){
 				y += vp->y;
 				z += vp->z;
 			}
-			v->tx = x/v->vnum;
-			v->ty = y/v->vnum;
-			v->tz = z/v->vnum;			
+			if (v->vnum == 0)
+			{
+				v->tx = v->x;
+				v->ty = v->y;
+				v->tz = v->z;			
+				DiagBreak() ;
+			}
+			else
+			{
+				v->tx = x/v->vnum;
+				v->ty = y/v->vnum;
+				v->tz = z/v->vnum;			
+			}
+			if (!finite(v->tx))
+				DiagBreak() ;
 		}
 
 		for(n =  0 ; n < mris->nvertices ; n++){
       v=&mris->vertices[n];
 			sphericalProjection(v->tx,v->ty,v->tz,&v->x,&v->y,&v->z);
+			if (!finite(v->x))
+				DiagBreak() ;
 		}
 	}
 
@@ -34021,6 +34035,8 @@ static double estimateSquaredRadius(MRIS *mris,
     R2+=SQR(mris->vertices[n].x-cx)+
       SQR(mris->vertices[n].y-cy)+
       SQR(mris->vertices[n].z-cz);
+		if (!finite(R2))
+			DiagBreak() ;
   }
   return (R2/(double)mris->nvertices);
 }
