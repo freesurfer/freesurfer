@@ -6,7 +6,6 @@
 
 bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
-
 //check the new vertices : val2, val2bak... marked2=-1 ?
 
 extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms){
@@ -110,6 +109,10 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
   int nattempts=parms.nattempts;
 
+	static int s_nbr = 0;
+
+	char fname[STRLEN] ;
+
 	int nintersections=0,npatches=0;
 
 	MRIS *best_mris = NULL;
@@ -157,6 +160,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
     MRIS *mris_work = SurfaceToMRIS(surface,NULL);
 		delete surface;
 		MRIScopyHeader(mris,mris_work);
+		MRISsaveVertexPositions(mris_work,INFLATED_VERTICES); //saving current vertex positions into inflated
 		
 		euler = MRISgetEuler(mris_work);
 		if(euler != init_euler+2){
@@ -172,9 +176,60 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		// we have a correct surface : evaluate if valid
 		MRISinitDefectPatch(mris_work,&parms);
 		
+		if(parms.mode == 1){ //very fast mode 
+			MRISsaveVertexPositions(mris_work,ORIGINAL_VERTICES);
+			//MRISmarkPatchVertices(mris_work,&parms,0);
+			MRISmarkPatchVertices(mris_work,&parms,mris->nvertices);
+			for(int n = 0 ; n < 4 ; n++) MRISexpandMarked(mris_work);
+			MRISmarkBorderVertices(mris_work,&parms,0);
+
+			double fitness;
+			if(parms.smooth || parms.match){
+				MRISdefectMatch(mris_work,&parms);
+				npatches++;
+				fitness = MRIScomputeFitness(mris_work,&parms);
+				//if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (M)is %3.5f \n",fitness);
+			}else
+				fitness = MRIScomputeFitness(mris_work,&parms);
+
+			//update if necessary
+			if(best_mris == NULL || fitness > best_fitness){
+				//check if self-intersect
+				bool selfintersect = doesMRISselfIntersect(mris_work,parms);
+				if(selfintersect){
+					nintersections++;
+					if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
+					//try without matching 
+					//MRISrestoreVertexPositions(mris_work,INFLATED_VERTICES);
+					//MRISsaveVertexPositions(mris_work,ORIGINAL_VERTICES);
+					//fitness = MRIScomputeFitness(mris_work,&parms);
+					//if(fitness > best_fitness){
+					//	selfintersect = doesMRISselfIntersect(mris_work,parms);
+					MRISfree(&mris_work);
+					continue;
+				}else{
+					if(best_mris) MRISfree(&best_mris);
+					best_mris = mris_work;
+					best_fitness = fitness;
+					if(parms.verbose>=VERBOSE_MODE_MEDIUM){
+						fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (M) is %3.5f \n",best_fitness);
+						MRISprintInfo(&parms);
+						if(parms.write){
+							sprintf(fname,"./%s_%d_%d.asc" , parms.fname , parms.defect_number,s_nbr++);
+							MRISwrite(mris_work,fname);
+						}
+					}
+				}
+			}else{
+				MRISfree(&mris_work);
+			}
+			continue;
+		}
+
 		//compute associated fitness
 		double fitness = MRIScomputeFitness(mris_work,&parms);
-
+		//if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (o)is %3.5f \n",fitness);
+		
 		//update if necessary
     if(best_mris == NULL || fitness > best_fitness){
 			// check if self-intersect
@@ -182,27 +237,40 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 			if(selfintersect){
 				nintersections++;
 				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
-				MRISfree(&mris_work);
 				if(parms.minimal_mode && best_mris==NULL){
 					nattempts = __MAX(50,nattempts);
 				}
-				continue;
-			}
-      if(best_mris) MRISfree(&best_mris);
-      best_mris = MRISduplicateOver(mris_work,1);
-      best_fitness = fitness;
-			if(parms.verbose>=VERBOSE_MODE_MEDIUM){
-				fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
-				MRISprintInfo(&parms);
+				//MRISfree(&mris_work);
+				//continue;
+				//check if the active contour deformation will help 
+			}else{
+				if(best_mris) MRISfree(&best_mris);
+				best_mris = MRISduplicateOver(mris_work,1);
+				best_fitness = fitness;
+				if(parms.verbose>=VERBOSE_MODE_MEDIUM){
+					fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
+					MRISprintInfo(&parms);
+					if(parms.write){
+						sprintf(fname,"./%s_%d_%d.asc",parms.fname,parms.defect_number,s_nbr++);
+						MRISwrite(mris_work,fname);
+					}
+				}
 			}
     };
 
+		//now try to use local intensities to improve fitness
+		//first mark vertices
+		MRISmarkPatchVertices(mris_work,&parms,mris->nvertices);
+		for(int n = 0 ; n < 4 ; n++) MRISexpandMarked(mris_work);
+		MRISmarkBorderVertices(mris_work,&parms,0);
+		
 		if(parms.smooth || parms.match){
 			MRISdefectMatch(mris_work,&parms);
 			npatches++;
 			fitness = MRIScomputeFitness(mris_work,&parms);
+			//if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (m)is %3.5f \n",fitness);
 		}
-
+		
 		//update if necessary 
 		if(best_mris == NULL || fitness > best_fitness){
 			//check if self-intersect
@@ -212,13 +280,18 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 				if(parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
         MRISfree(&mris_work);
         continue;
-      }
-			if(best_mris) MRISfree(&best_mris);
-			best_mris = mris_work;
-			best_fitness = fitness;
-			if(parms.verbose>=VERBOSE_MODE_MEDIUM){
-				fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (m) is %3.5f \n",best_fitness);
-				MRISprintInfo(&parms);
+      }else{
+				if(best_mris) MRISfree(&best_mris);
+				best_mris = mris_work;
+				best_fitness = fitness;
+				if(parms.verbose>=VERBOSE_MODE_MEDIUM){
+					fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (M) is %3.5f \n",best_fitness);
+					MRISprintInfo(&parms);
+					if(parms.write){
+						sprintf(fname,"./%s_%d_%d.asc" , parms.fname , parms.defect_number,s_nbr++);
+						MRISwrite(mris_work,fname);
+					}
+				}
 			}
 		}else{
 			MRISfree(&mris_work);
