@@ -65,17 +65,16 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
-	fprintf(stderr,"WM removal version\n") ;
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.45 2006/04/04 18:33:33 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.46 2006/05/18 13:56:02 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.45 2006/04/04 18:33:33 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.46 2006/05/18 13:56:02 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
