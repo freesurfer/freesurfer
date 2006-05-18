@@ -421,6 +421,15 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 
+typedef struct {
+  char *measure;
+  int nrows, ncols;
+  char **colnames;
+  char **rownames;
+  double **data;
+} STAT_TABLE;
+STAT_TABLE *LoadStatTable(char *statfile);
+
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
 
@@ -435,7 +444,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.84 2006/05/11 21:53:47 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.85 2006/05/18 06:11:59 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -2121,4 +2130,73 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag)
   free(lbmask);
   MRIScrsLUTFree(crslut);
   return(0);
+}
+/*--------------------------------------------------------------------*/
+STAT_TABLE *LoadStatTable(char *statfile)
+{
+  STAT_TABLE *st;
+  FILE *fp;
+  char tmpstr[100000];
+  int r,c,n;
+
+  fp = fopen(statfile,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s\n",statfile);
+    return(NULL);
+  }
+
+  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
+
+  // Read in the first line
+  fgets(tmpstr,100000,fp);
+  st->ncols = gdfCountItemsInString(tmpstr) - 1;
+  if(st->ncols < 1){
+    printf("ERROR: format:  %s\n",statfile);
+    return(NULL);
+  }
+  printf("Found %d data colums\n",st->ncols);
+
+  // Count the number of rows
+  st->nrows = 0;
+  while(fgets(tmpstr,100000,fp) != NULL) st->nrows ++;
+  printf("Found %d data rows\n",st->nrows);
+  fclose(fp);
+
+  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
+  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
+
+  // OK, now read everything in
+  fp = fopen(statfile,"r");
+
+  // Read the measure
+  fscanf(fp,"%s",tmpstr); 
+  st->measure = strcpyalloc(tmpstr);
+
+  // Read the column headers
+  for(c=0; c < st->ncols; c++){
+    fscanf(fp,"%s",tmpstr);
+    st->colnames[c] = strcpyalloc(tmpstr);
+  }
+
+  st->data = (double **) calloc(st->nrows,sizeof(double *));
+  for(r=0; r < st->nrows; r++)
+    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
+
+  // Read each row
+  for(r=0; r < st->nrows; r++){
+    fscanf(fp,"%s",tmpstr);
+    st->rownames[r] = strcpyalloc(tmpstr);
+    for(c=0; c < st->ncols; c++){
+      n = fscanf(fp,"%lf", &(st->data[r][c]) );
+      if(n != 1){
+	printf("ERROR: format: %s at row %d, col %d\n",
+	       statfile,r,c);
+	return(NULL);
+      }
+    }
+    printf("%s %lf\n",st->rownames[r],st->data[r][st->ncols-1]);
+  }
+  fclose(fp);
+
+  return(st);
 }
