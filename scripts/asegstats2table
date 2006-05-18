@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.3 2006/05/18 04:39:30 greve Exp $
+# $Id: asegstats2table,v 1.4 2006/05/18 05:02:42 greve Exp $
 import sys;
 import os;
 import string;
@@ -15,9 +15,11 @@ import tempfile;
 # Converts a subcortical stats file created by recon-all and/or
 # mri_segstats (eg, aseg.stats) into a table in which each line is a
 # subject and each column is a segmentation. The values are the volume
-# of the segmentation in mm3. The first row is a list of the
-# segmentation names. The first column is the subject name.
-#
+# of the segmentation in mm3 or the mean intensity over the structure.
+# The first row is a list of the segmentation names. The first column
+# is the subject name. If the measure is volume, then the estimated
+# intracranial volume (eTIV) is printed as the last column.
+
 # The subjects list can be specified in either of two ways:
 #   1. Specify each subject with --s:
 #             --s subject1 --s subject2 ...
@@ -164,7 +166,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.3 2006/05/18 04:39:30 greve Exp $';
+Version = '$Id: asegstats2table,v 1.4 2006/05/18 05:02:42 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -219,16 +221,31 @@ for subject in SUBJECTS:
       #endif
     #end # line
     fp.close();
+    if(meas == 'volume'):
+      fptbl.write(' %s' % ('IntraCranialVol'));
+    #endif
     fptbl.write('\n');
   #endif
 
-  # Now go thru each line and print the measure
+  # Print subjectid as first col
   fptbl.write('%s' % (subject) );
+
+  # Now go thru each line and print the measure
   fp = open(statsfile,'r');
   nthseg = 0;
   segid = [];
   segarea = [];
+  ICV = -1;
   for line in fp:
+
+    if(meas == 'volume'):
+      ind = line.rfind('IntraCranialVol');
+      if(ind != -1):
+        tmp = string.split(line,',');
+        ICV = string.atof(tmp[3]);
+      #endif
+    #endif
+
     ind = line.rfind('#');
     if(ind != -1):
       continue;
@@ -243,6 +260,13 @@ for subject in SUBJECTS:
     #endif
   #end  for line
   fp.close();
+  if(meas == 'volume'):
+    if(ICV == -1):
+      sys.stdout.write('ERROR: subjects %s does not have ICV\n' % subject);
+      sys.exit(1);
+    #endif
+    fptbl.write(' %f' % (ICV));
+  #endif
   fptbl.write('\n');
   nthsubj = nthsubj + 1;
 #end  for subject
