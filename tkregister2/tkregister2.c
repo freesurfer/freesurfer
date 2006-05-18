@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $";
+"$Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -35,6 +35,7 @@ static char vcid[] =
 #include "registerio.h"
 #include "version.h"
 #include "fio.h"
+#include "pdf.h"
 
 #define TCL8
 
@@ -1043,6 +1044,27 @@ static int parse_commandline(int argc, char **argv)
       regfname = pargv[0];
       nargsused = 1;
     }
+    else if (stringmatch(option, "--feat")){
+      if(nargc < 1) argnerr(option,1);
+      //pargv[0] is featdir
+      sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
+      targ_vol_id = strcpyalloc(tmpstr);
+      fmt = "";
+      if(strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI")==0)    fmt = "nii";
+      if(strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI_GZ")==0) fmt = "nii.gz";
+      if(strcmp(getenv("FSLOUTPUTTYPE"),"ANALYZE")==0)  fmt = "img";
+      printf("Assuming %s as FSL format extension",fmt);
+      sprintf(tmpstr,"%s/example_func.%s",pargv[0],fmt);
+      mov_vol_id = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/reg/example_func2standard.mat",pargv[0]);
+      fslregfname = strcpyalloc(tmpstr);
+      read_fslreg(fslregfname);
+      fslregoutfname = fslregfname;
+      sprintf(tmpstr,"/tmp/feat.exf2std.reg.%d",(int)PDFtodSeed());      
+      regfname = strcpyalloc(tmpstr);
+      tagmov = 1;
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--fslreg") || !strcmp(option, "--fsl")){
       if(nargc < 1) argnerr(option,1);
       fslregfname = pargv[0];
@@ -1139,13 +1161,14 @@ static void print_usage(void)
   printf("   --rh-only : only load/display right hemi \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
-  printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
+  printf("   --fsl file : FSL-style registration input matrix\n");
+  printf("   --fslregout file : FSL-Style registration output matrix\n");
+  printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
   printf("   --sd dir : use dir as SUBJECTS_DIR\n");
   printf("   --noedit : do not open edit window (exit) - for conversions\n");
-  printf("   --fslregout file : FSL-Style registration output matrix\n");
   printf("   --nofix : don't fix old tkregister matrices\n");
   printf("   --float2int code : spec old tkregister float2int\n");
   printf("   --title title : set window title\n");
@@ -1296,11 +1319,9 @@ static void print_help(void)
          "  \n"
          "  --fsl FSL-registration-file\n"
          "  \n"
-         "  Use the matrix produced by the FSL routines as the "
-         "initial registration.\n"
-         "  It should be an ascii file with a 4x4 matrix. "
-         "Note: the matrix should\n"
-         "  map from the mov to the target.\n"
+         "  Use the matrix produced by the FSL routines as the initial registration.\n"
+         "  It should be an ascii file with a 4x4 matrix. Note: the matrix should\n"
+         "  map from the mov to the target. See also --feat and --fslregout.\n"
          "  \n"
          "  --xfm MNI-Style registration matrix\n"
          "  \n"
@@ -1339,11 +1360,18 @@ static void print_help(void)
          "  \n"
          "  --fslregout FSL-registration-file\n"
          "  \n"
-         "  Compute an FSL-compatible registration matrix based on "
-         "either the\n"
-         "  FreeSurfer matrix or the header. This can be helpful for "
-         "initializing\n"
+         "  Compute an FSL-compatible registration matrix based on either the\n"
+         "  FreeSurfer matrix or the header. This can be helpful for initializing\n"
          "  the FSL registration routines.\n"
+         "  \n"
+         "  --feat featdir\n"
+         "  \n"
+         "  View/modify the FSL FEAT registration to standard space (ie,\n"
+         "  example_func2standard.mat. Manual edits to the registration\n"
+         "  will change this file. There will also be a 'tag', ie, a grid of\n"
+         "  grid dots near the col-row-slice origin of the example_func.\n"
+         "  This might be helpful for determining if the reg is left-right\n"
+         "  reversed.\n"
          "  \n"
          "  --nofix\n"
          "  \n"
@@ -4025,7 +4053,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.57 2006/05/16 17:02:39 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
