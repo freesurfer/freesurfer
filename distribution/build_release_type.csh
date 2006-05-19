@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.60 2006/05/11 17:30:01 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.61 2006/05/19 21:51:46 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,7 +13,7 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v3.0.2"
+set STABLE_VER_NUM="v3.0.2b"
 set STABLE_PUB_VER_NUM="v3.0.2"
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
