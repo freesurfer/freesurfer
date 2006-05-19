@@ -6031,7 +6031,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   free(hdr);
 
   MRIlimits(mri,&min,&max);
-  printf("INFO: analyzeRead(): min = %g, max = %g\n",min,max);
+  if(Gdiag_no > 0) printf("INFO: analyzeRead(): min = %g, max = %g\n",min,max);
 
   return(mri);
 }
@@ -9985,14 +9985,6 @@ static MRI *niiRead(char *fname, int read_volume)
                        "niiRead(): error opening file %s", fname));
   }
 
-  // The nifti spec says that the pixel data starts after vox_offset
-  // bytes. I have a feeling that most other software packages are
-  // going to ignore this and just jump past 348 bytes (the nominal
-  // size of the nifti header). So this just lets us know that we
-  // are taking the spec seriously.
-  if(hdr.vox_offset != 348)
-    printf("INFO: nifti vox_offset = %d != 348\n",(int)hdr.vox_offset);
-
   if(znzseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1){
     znzclose(fp);
     MRIfree(&mri);
@@ -10267,10 +10259,9 @@ static int niiWrite(MRI *mri, char *fname)
   znzFile fp;
   int j, k, t;
   BUFTYPE *buf;
+  char *chbuf;
   struct nifti_1_header hdr;
-  int error;
-  int shortmax;
-  int use_compression, fnamelen;
+  int error, shortmax, use_compression, fnamelen, nfill;
 
   use_compression = 0;
   fnamelen = strlen(fname);
@@ -10364,7 +10355,7 @@ static int niiWrite(MRI *mri, char *fname)
 
   hdr.intent_code = NIFTI_INTENT_NONE;
   hdr.intent_name[0] = '\0';
-  hdr.vox_offset = sizeof(hdr);
+  hdr.vox_offset = 352; // 352 is the min, dont use sizeof(hdr); See below
   hdr.scl_slope = 0.0;
   hdr.slice_code = 0;
   hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC;
@@ -10391,6 +10382,7 @@ static int niiWrite(MRI *mri, char *fname)
                  "niiWrite(): error opening file %s", fname));
   }
 
+  // White the header
   if(znzwrite(&hdr, sizeof(hdr), 1, fp) != 1) {
     znzclose(fp);
     errno = 0;
@@ -10399,6 +10391,19 @@ static int niiWrite(MRI *mri, char *fname)
                  "niiWrite(): error writing header to %s", fname));
   }
 
+  // Fill in space to the voxel offset
+  nfill = hdr.vox_offset-sizeof(hdr);
+  chbuf = (char *) calloc(nfill,sizeof(char));
+  if(znzwrite(chbuf, sizeof(char), nfill, fp) != nfill){
+    znzclose(fp);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE,
+		(ERROR_BADFILE,
+		 "niiWrite(): error writing data to %s", fname));
+  }
+  free(chbuf);
+
+  // Now dump the pixel data
   for(t = 0;t < mri->nframes;t++)
     for(k = 0;k < mri->depth;k++)
       for(j = 0;j < mri->height;j++){
