@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/05/18 19:31:32 $
-// Revision       : $Revision: 1.466 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/05/19 13:07:01 $
+// Revision       : $Revision: 1.467 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.466 2006/05/18 19:31:32 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.467 2006/05/19 13:07:01 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -12309,6 +12309,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters){
 			v=&mris->vertices[n];
 			
 			x=y=z=0.0f;
+			
 			for( p = 0 ; p < v->vnum ; p++){
 				vp = &mris->vertices[v->v[p]];
 				x += vp->x;
@@ -30078,7 +30079,6 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   mrisComputeNormalDotDistribution(mris, parms->h_dot) ;
 	MRISsetNeighborhoodSize(mris,1);
 
-
 	//computing mri statistics
 	MRIScomputeMetricProperties(mris) ;
   MRISsmoothSurfaceNormals(mris, 10) ;
@@ -30096,7 +30096,94 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms){
   /* compute statistics on original */
   mrisComputeSurfaceStatistics(mris, parms->mri, parms->h_k1, parms->h_k2, parms->mri_k1_k2, parms->mri_gray_white,parms->h_dot);
   mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 0) ;
+}
 
+MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms){
+	MRI *mri;
+  VERTEX *v;
+
+  int k,l,p,q;
+  int width,height,depth;
+  float xmin,xmax,ymin,ymax,zmin,zmax,scale;
+
+  if(parms->volume_resolution==-1)
+    scale=VOLUME_SCALE;
+  else
+    scale=parms->volume_resolution;
+
+  /* find dimension of the volume */
+  xmin=ymin=zmin=1000.0;
+  xmax=ymax=zmax=-1000.0;
+  for(k = 0 ; k < mris->nvertices ; k++){
+    v=&mris->vertices[k];
+		if(v->marked2 != parms->defect_number) continue;
+    if(v->origx > xmax) xmax=v->origx;
+    if(v->origy > ymax) ymax=v->origy;
+    if(v->origz > zmax) zmax=v->origz;
+    if(v->origx < xmin) xmin=v->origx;
+    if(v->origy < ymin) ymin=v->origy;
+    if(v->origz < zmin) zmin=v->origz;
+  }
+
+  xmin -= 1.0f;
+  ymin -= 1.0f;
+  zmin -= 1.0f;
+  xmax += 1.0f;
+  ymax += 1.0f;
+  zmax += 1.0f;
+
+  /* allocate the volume */
+  width  = ceil(scale*(xmax-xmin)) ;
+  height = ceil(scale*(ymax-ymin)) ;
+  depth  = ceil(scale*(zmax-zmin)) ;
+  mri=MRIalloc(width,height,depth,MRI_UCHAR);
+
+  if(parms->verbose==VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"      defect volume : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
+
+  mri->xstart=xmin;
+  mri->xsize=scale;
+
+  mri->ystart=ymin;
+  mri->ysize=scale;
+
+	mri->zstart=zmin;
+  mri->zsize=scale;
+
+	for(q = 0 ; q < depth ; q++) for(p = 0 ; p < height ; p++) for(l = 0 ; l < width ; l++)  
+		MRIvox(mri,l,p,q)=1;
+  
+	return mri;
+}
+
+
+void  mrisInitDefectMRIParameters(MRIS *mris, TOPOFIX_PARMS *parms){
+  MRI *mri_defect,*mri_defect_white,*mri_defect_gray,*mri_defect_sign;
+  DP *dp;
+	DEFECT *defect;
+
+  dp=(DP*)parms->dp;
+	defect = dp->defect;
+
+  mri_defect = mri_defect_white = mri_defect_gray = mri_defect_sign = NULL;
+
+  if(!FZERO(parms->l_unmri)){
+    //initialization
+    mri_defect = mriInitDefectVolume(mris, parms);
+    //allocate volumes
+    mri_defect_white = MRIalloc(mri_defect->width,mri_defect->height,mri_defect->depth,MRI_FLOAT);
+    mri_defect_gray = MRIalloc(mri_defect->width,mri_defect->height,mri_defect->depth,MRI_FLOAT);
+    mri_defect_sign = MRIalloc(mri_defect->width,mri_defect->height,mri_defect->depth,MRI_FLOAT);
+    //compute likelihood
+    defectVolumeLikelihood(parms->mri, mri_defect, mri_defect_white,
+                           mri_defect_gray, parms->h_white,
+                           parms->h_gray,defect->white_mean,defect->gray_mean);
+  };
+
+  dp->mri_defect=mri_defect;
+  dp->mri_defect_white=mri_defect_white;
+  dp->mri_defect_gray=mri_defect_gray;
+  dp->mri_defect_sign=mri_defect_sign;
+  dp->mri=parms->mri;
 }
 
 
@@ -30153,12 +30240,21 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms){
 	computeDefectStatistics(parms->mri,mris,defect, parms->h_white,parms->h_gray, parms->mri_gray_white,parms->h_k1, parms->h_k2,parms->mri_k1_k2,parms->verbose);
 	mrisMarkAllDefects(mris, (DEFECT_LIST*)parms->defect_list, 0) ;
 
+	//	HISTOplot(parms->h_white,"w.plt") ;
+	//HISTOplot(parms->h_gray,"g.plt") ;
+	//MRIwrite(parms->mri_k1_k2,"./k1k2.mgz");
+	//MRIwrite(parms->mri_gray_white,"gw.mgz");
+
 	//initialize the Defect Patch associated with the current defect
 	dp = (DP*)calloc(1,sizeof(DP));
 	free(defect->chull);defect->chull=NULL;defect->nchull=0;
 	free(defect->vertices);defect->vertices=NULL;defect->nvertices=0;
 	dp->defect=defect;
 	parms->dp=(void*)dp;
+
+	//now initialize the volume associated with the defect
+	mrisInitDefectMRIParameters(mris,parms);
+
 }
 
 void TOPOFIXfreeDP(TOPOFIX_PARMS *parms){
@@ -30167,7 +30263,13 @@ void TOPOFIXfreeDP(TOPOFIX_PARMS *parms){
 	if(dp==NULL) return;
 	if(dp->defect) free(dp->defect);
 	TPfree(&dp->tp);
+	if(dp->mri_defect) MRIfree(&dp->mri_defect);
+  if(dp->mri_defect_white) MRIfree(&dp->mri_defect_white);
+  if(dp->mri_defect_gray) MRIfree(&dp->mri_defect_gray);
+  if(dp->mri_defect_sign) MRIfree(&dp->mri_defect_sign);
+
 	free(dp);
+	
 	parms->dp=NULL;
 }
 
@@ -30239,16 +30341,16 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
 
 static void MRISdefectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int niter,double alpha, int mode);
 
-void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){
-	//defectMatch(parms->mri,mris,(DP*)parms->dp,parms->smooth, parms->match);
+void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms){//floflo
+	//defectMatch(parms->mri,mris,(DP*)parms->dp,2,1);//parms->smooth, parms->match);
 	MRISdefectMaximizeLikelihood(parms->mri,mris,(DP*)parms->dp,40,0.5,1);
 	MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
 }
 
-#define DO_NOT_USE_AREA 1 
+#define DO_NOT_USE_AREA 0 
 
 double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
-	double fitness,mri_ll,curv_ll;
+	double fitness,mri_ll,curv_ll,unmri_ll;
 	DP *dp;
 	TP *tp;
 	TOPOLOGY_PARMS top_parms;
@@ -30273,13 +30375,15 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms){
 
 	// new computation of the fitness
 #if DO_NOT_USE_AREA
-	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll)/4.0;
-  curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll)/3.0;
+	unmri_ll = parms->l_unmri * tp->unmri_ll;
+	mri_ll = parms->l_mri*(tp->face_ll+tp->vertex_ll);
+  curv_ll = (parms->l_qcurv*tp->qcurv_ll+parms->l_curv*tp->curv_ll);
 #else
-	mri_ll = parms->l_mri*(tp->fll+tp->vll)/4.0;
-  curv_ll = (parms->l_qcurv*tp->qcll+parms->l_curv*tp->cll)/3.0;
+	unmri_ll = parms->l_unmri * tp->unmri_ll;
+	mri_ll = parms->l_mri*(tp->fll+tp->vll);
+  curv_ll = (parms->l_qcurv*tp->qcll+parms->l_curv*tp->cll);
 #endif
-	return (mri_ll+curv_ll);
+	return (mri_ll+curv_ll+unmri_ll);
 }
 
 void MRISprintInfo(TOPOFIX_PARMS *parms){
@@ -30321,8 +30425,8 @@ static void TPprint(TP *tp){
 	mri = (tp->fll+tp->vll)/4.0;
   curv = (tp->qcll+tp->cll)/3.0;
 #endif
-	fprintf(WHICH_OUTPUT,"         mri =%3.3f   curv = %3.3f \n",mri,curv);
-	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n" ,tp->face_ll,tp->vertex_ll,tp->curv_ll,tp->qcurv_ll);
+	fprintf(WHICH_OUTPUT,"         mri =%3.3f   curv = %3.3f unmri = %3.3f\n",mri,curv,tp->unmri_ll);
+	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f  ) \n" ,tp->face_ll,tp->vertex_ll,tp->curv_ll,tp->qcurv_ll);
 	fprintf(WHICH_OUTPUT,"         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n" ,tp->fll,tp->vll,tp->cll,tp->qcll);
 }
 
@@ -31453,7 +31557,7 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
   mri=MRIalloc(width,height,depth,MRI_UCHAR);
 
   if(parms->verbose==VERBOSE_MODE_HIGH)
-		fprintf(WHICH_OUTPUT,"Defect size : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
+		fprintf(WHICH_OUTPUT,"      defect volume : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
 
   mri->xstart=xmin;
   mri->xsize=scale;
@@ -31594,9 +31698,12 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 static void defectVolumeLikelihood(MRI *mri, MRI* mri_defect, MRI *mri_white, MRI *mri_gray,
                                    HISTOGRAM *h_white, HISTOGRAM *h_gray, float white_mean, float gray_mean){
   int i,j,k,n;
-  Real x, y, z, xv, yv, zv, val;
+  Real x, y, z, xv, yv, zv, val,mu,sigma,mean;
 
-  for( n  = 0 , k = 0 ; k < mri_defect->depth ; k++)
+	mean = (gray_mean + white_mean)/2.0;
+	sigma = white_mean-gray_mean;
+
+	for( n  = 0 , k = 0 ; k < mri_defect->depth ; k++)
     for( j = 0 ; j < mri_defect->height ; j++)
       for( i = 0 ; i < mri_defect->width ; i++){
 
@@ -31619,6 +31726,19 @@ static void defectVolumeLikelihood(MRI *mri, MRI* mri_defect, MRI *mri_white, MR
 
         MRIFvox(mri_white,i,j,k) = log(h_white->counts[nint(MIN(val,white_mean))]) ;
         MRIFvox(mri_gray,i,j,k) = log(h_gray->counts[nint(MAX(val,gray_mean))]) ;
+
+
+				//floflo
+				mu = (white_mean+mean)/2;
+				MRIFvox(mri_white,i,j,k) = log(1.0/(1.0+exp(-(val-mu)/sigma)));
+				mu = (gray_mean+mean)/2;
+				MRIFvox(mri_gray,i,j,k) = log(1.0/(1.0+exp((val-mu)/sigma)));
+
+				//fprintf(stderr,"[%f]-",val);
+				//floflo
+				//MRIwrite(mri_white,"./mriw.mgz");
+				//MRIwrite(mri_gray,"./mrig.mgz");
+
 
       }
 
@@ -38352,9 +38472,12 @@ mrisDefectVertexMRILogLikelihood
 
     MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
 
+		//		fprintf(stderr,"(%f)",val);//floflo
+
     v_ll = log(val) ;
     total_ll += v_ll;
 		tv_area += v_ll * v->area;
+		//tv_area += -v->area*(gray_val); //floflo
 		t_area += v->area;
   }
 
@@ -41884,6 +42007,7 @@ static int mrisComputeOptimalRetessellation
 
     free(overlap) ;
   }
+
 
   /* allocate the volume constituted by the potential edges */
   mri_defect = mri_defect_white = mri_defect_gray = mri_defect_sign = NULL;
