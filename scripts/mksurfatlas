@@ -1,0 +1,212 @@
+#!/bin/csh -f
+# Creates an atlas to use for surface registration
+
+set VERSION = '$Id: mksurfatlas,v 1.1 2006/05/19 21:48:42 greve Exp $';
+
+set atlas = ();
+set target = ();
+set subjects = ();
+set surfval = ();
+set surfvaldir = "label";
+set hemi = ();
+
+set force = 0;
+set tmpdir = ();
+set cleanup = 1;
+set debug = 0;
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | egrep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | egrep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+if(-e $atlas && $force) rm -f $atlas
+
+set cmd = (mris_make_template -norot -annot aparc \
+            -overlay $surfval 10 $hemi $surfreg \
+            $subjects $atlas)
+echo $cmd
+$cmd
+if($status) exit(1);
+
+date 
+echo "mksurfatlas done" 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set atlas = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--v":
+      if($#argv < 1) goto arg1err;
+      set surfval = $argv[1]; shift;
+      breaksw
+
+    case "--d":
+      if($#argv < 1) goto arg1err;
+      set surfvaldir = $argv[1]; shift;
+      breaksw
+
+    case "--hemi":
+    case "--h":
+      if($#argv < 1) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--r":
+      if ( $#argv == 0) goto arg1err;
+      set regsurf = $argv[1]; shift;
+      breaksw
+
+    case "--tmpdir":
+      if( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--force":
+      set force = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#atlas == 0) then
+    echo "ERROR: no atlas name specified"
+    exit 1;
+  endif
+  if(-e $atlas && ! $force) then
+    echo "ERROR: $atlas exists. Delete, rename, or run with -force"
+    exit 1;
+  endif
+  if($#hemi == 0) then
+    echo "ERROR: that thing got a hemi?"
+    exit 1;
+  endif
+  if($#subjects == 0) then
+    echo "ERROR: no subjects specified"
+    exit 1;
+  endif
+  foreach subject ($subjects $target)
+    if(! -e $SUBJECTS_DIR/$subject) then
+      echo "ERROR: cannot find $SUBJECTS_DIR/$subject"
+      exit 1;
+    endif
+    set sr = $SUBJECTS_DIR/$subject/surf/$hemi.$surfreg
+    if(! -e $sr) then
+      echo "ERROR: cannot find $sr"
+      exit 1;
+    endif
+    set sv = $SUBJECTS_DIR/$subject/$surfvaldir/$hemi.$surfval
+    if(! -e $sr) then
+      echo "ERROR: cannot find $sv"
+      exit 1;
+    endif
+  end
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mksurfatlas"
+  echo ""
+  echo " --a atlas : saves results here (tif file)"
+  echo ""
+  echo " --h hemi"
+  echo " --s subject <--s subject ...>"
+  echo " --v surfval  : looks for subject/surfvaldir/hemi.surfval"
+  echo ""
+  echo " --d surfvaldir : default is label"
+  echo " --r regsurf : default is sphere"
+  echo ""
+  echo " --version            : print version and exit"
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program has not been tested.
+
+Creates an atlas that can then be used to create a surface registration. 
+
+
+
