@@ -1,0 +1,298 @@
+#!/usr/bin/python
+# $Id: asegstats2table,v 1.5.2.1 2006/05/22 23:07:12 greve Exp $
+import sys;
+import os;
+import string;
+import tempfile;
+
+# -------------------------------------------------------------------
+# Everything between BGINHELP and EDHELP will be printed when the
+# program is called with --help.
+#
+
+# BEGINHELP
+
+# Converts a subcortical stats file created by recon-all and/or
+# mri_segstats (eg, aseg.stats) into a table in which each line is a
+# subject and each column is a segmentation. The values are the volume
+# of the segmentation in mm3 or the mean intensity over the structure.
+# The first row is a list of the segmentation names. The first column
+# is the subject name. If the measure is volume, then the estimated
+# intracranial volume (eTIV) is printed as the last column.
+
+# The subjects list can be specified in either of two ways:
+#   1. Specify each subject with --s:
+#             --s subject1 --s subject2 ...
+#   2. Specify all subjects after --subjects. --subjects does not have
+#      to be the last argument. Eg:
+#             --subject subject1 subject2 ... 
+#
+
+# By default, the volume (mm3) of each segmentation is reported. This
+# can be changed with '--meas measure', where measure can be 
+# volume or mean. If mean, it reports the mean intensity value from
+# the 6th column.
+
+# By default, all segmentations found in the input stats file are
+# reported. This can be changed by specifying the maximum segmentation
+# number with --maxsegno. This can be convenient for removing
+# segmentations that are always empty.
+
+# ENDHELP
+# -------------------------------------------------------------------
+
+#---------------------------------------------------------
+def print_usage():
+  print "USAGE: asegstats2table";
+  print "  --subjects  subject1 <subject2 ...>";
+  print "  --s subject1 <--s subject2 ...>";
+  print "  --meas measure : default is vol (alt: mean)";
+  print "  --maxsegno maxno : maximum segmentation no to report"  
+  print ""  
+  print "  --t tablefile";
+  print ""
+  print "  --help : help";
+  print "  --debug ";
+  return 0;
+#end def print_usage:
+
+#---------------------------------------------------------
+def print_help():
+  global ProgName;
+  printon = 0;
+  fp = open(ProgName,'r');
+  for line in fp:
+    if(printon):
+      ind = line.rfind('ENDHELP');
+      if(ind == -1):
+        sys.stdout.write("%s" % line.replace('# ','',1));
+      else:
+        sys.exit(1);
+      #endif
+    else:
+      ind = line.rfind('BEGINHELP');
+      if(ind != -1):
+        printon = 1;
+      #endif
+    #endif
+  #end # while
+  return 0;
+#end def print_help:
+
+#---------------------------------------------------------
+def argnerr(narg,flag):
+  print "ERROR: flag %s requires %d arguments" % (flag,narg);
+  sys.exit(1);
+#end def parse_args(argv)
+
+#---------------------------------------------------------
+def parse_args(argv):
+  global Version,debug;
+  global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
+
+  del argv[0]; # get past program name (del is like shift)
+
+  while(len(argv) != 0):
+    flag = argv[0];
+    del argv[0];
+    if(debug): print "flag = %s" % flag;
+
+    if(flag == "--s"):
+      if(len(argv) < 1): argnerr(1,flag);
+      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
+      nsubjects = nsubjects + 1;
+    elif(flag == "--subjects"):
+      if(len(argv) < 1): argnerr(1,flag);
+      while(not isflag(argv[0])):
+        SUBJECTS.insert(nsubjects,argv[0]); 
+        nsubjects = nsubjects + 1;
+        del argv[0];
+        if(len(argv) < 1): break;
+      #endwhile
+    elif(flag == "--t"):
+      if(len(argv) < 1): argnerr(1,flag);
+      tablefile = argv[0];  del argv[0];
+    elif(flag == "--meas"):
+      if(len(argv) < 1): argnerr(1,flag);
+      meas = argv[0];  del argv[0];
+    elif(flag == "--maxsegno"):
+      if(len(argv) < 1): argnerr(1,flag);
+      maxsegno = string.atof(argv[0]);  del argv[0];
+    elif(flag == "--help"):
+      print_usage();
+      print_help();
+      sys.exit(1);
+    elif(flag == "--version"):
+      print "%s" % (Version)
+      sys.exit(1);
+    elif(flag == "--debug"):
+      debug = 1;
+    else:
+      print "ERROR: flag %s not recognized" % flag; 
+      sys.exit(1);
+    #endif
+  #endwhile
+  return 0;
+
+#end def parse_args(argv)
+
+#--------------------------------------------------
+def isflag(arg):
+  if(arg[0] == '-' and arg[1] == '-'):
+    return 1;
+  #end
+  return 0;
+#end def isflag(arg):
+
+
+#---------------------------------------------------------
+def check_args():
+  global tablefile, meas, SUBJECTS;
+
+  if(len(tablefile) == 0):
+    print "ERROR: no tablefile specified";
+    sys.exit(1);
+  #endif    
+  if(meas != 'volume' and meas != 'mean'):
+    print "ERROR: meas = %s, must be volume or mean" % (meas);
+    sys.exit(1);
+  #endif    
+  if(len(SUBJECTS) == 0):
+    # Does not work to look in env
+    if(os.environ.get('SUBJECTS',0) == 0):
+      print "ERROR: SUBJECTS not spec on cmd line and not in env";
+      sys.exit(1);
+    #endif  
+    SUBJECTS = os.environ['SUBJECTS'];
+  #endif    
+  print "There are %d subjects" %(len(SUBJECTS));
+  if(debug): print "%s" % (SUBJECTS);
+  return 0;
+#end check_args()
+
+#-----------------------------------------------------------
+# ----- main -----------------------------------------------
+#-----------------------------------------------------------
+
+ProgName = sys.argv[0];
+Version = '$Id: asegstats2table,v 1.5.2.1 2006/05/22 23:07:12 greve Exp $';
+tablefile = ();
+SUBJECTS  = [];
+nsubjects = 0;
+meas = 'volume';
+maxsegno = -1;
+debug = 0;
+
+nargs = len(sys.argv) - 1;
+if(nargs == 0):
+  print_usage();
+  sys.exit(0);
+#end
+parse_args(sys.argv);
+check_args();
+
+print "tablefile  is %s" % (tablefile);
+
+# Get SUBJECTSD_DIR 
+if(os.environ.get('SUBJECTS_DIR',0) == 0):
+  print "ERROR: SUBJECTS_DIR not defined";
+  sys.exit(1);
+#endif  
+SUBJECTS_DIR = os.environ['SUBJECTS_DIR'];
+
+fptbl = open(tablefile,'w');
+# How to check whether this failed or not?
+
+# Loop thru each subject
+nthsubj = 1;
+for subject in SUBJECTS:
+
+  statsfile = SUBJECTS_DIR + '/' + subject + '/stats/' + 'aseg.stats';
+  if(not os.path.exists(statsfile)):
+    sys.stdout.write('ERROR: cannot find %s' % (statsfile) );
+    sys.exit(1);
+  #endif
+  if(debug): print "%s" % (statsfile);
+
+  # print first line as list of anat structures 
+  if(nthsubj == 1):
+    # First Col, First Row is the name of the measure
+    fptbl.write('%s ' % (meas));
+    fp = open(statsfile,'r');
+    segid = [];
+    for line in fp:
+      ind = line.rfind('#');
+      if(ind != -1):
+        continue;
+      else:
+        tmp = string.split(line);
+        segno = string.atoi(tmp[1]);
+        if(maxsegno > 0 and segno > maxsegno): continue
+        segid = tmp[4];
+        fptbl.write(' %s' % (segid) );
+      #endif
+    #end # line
+    fp.close();
+    if(meas == 'volume'):
+      fptbl.write(' %s' % ('IntraCranialVol'));
+    #endif
+    fptbl.write('\n');
+  #endif
+
+  # Print subjectid as first col
+  fptbl.write('%s' % (subject) );
+
+  # Now go thru each line and print the measure
+  fp = open(statsfile,'r');
+  nthseg = 0;
+  ICV = -1;
+  for line in fp:
+
+    if(meas == 'volume'):
+      ind = line.rfind('IntraCranialVol');
+      if(ind != -1):
+        tmp = string.split(line,',');
+        ICV = string.atof(tmp[3]);
+      #endif
+    #endif
+
+    ind = line.rfind('#');
+    if(ind != -1):
+      continue;
+    else:
+      if(debug): print "%s" % line;
+      tmp = string.split(line);
+      segno = string.atoi(tmp[1]);
+      if(maxsegno > 0 and segno > maxsegno): continue
+      if(meas == 'volume'):  val = string.atof(tmp[3]);
+      if(meas == 'mean'):    val = string.atof(tmp[5]);
+      if(debug): print "%d %s %g %g" % (nthseg,segid,val)
+      fptbl.write(' %g ' % (val) );
+      nthseg = nthseg + 1;
+    #endif
+  #end  for line
+  fp.close();
+  if(meas == 'volume'):
+    if(ICV == -1):
+      sys.stdout.write('ERROR: subjects %s does not have ICV\n' % subject);
+      sys.exit(1);
+    #endif
+    fptbl.write(' %f' % (ICV));
+  #endif
+  fptbl.write('\n');
+  nthsubj = nthsubj + 1;
+#end  for subject
+
+fptbl.close();
+
+sys.stdout.write('asegstat2table done\n');
+
+sys.exit(0);
+#-------------------------------------------------#
+
+
+
+
+
+
+
