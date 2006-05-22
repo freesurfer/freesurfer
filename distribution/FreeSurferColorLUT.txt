@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.21 2006/04/17 01:55:58 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.22 2006/05/22 17:30:59 greve Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -378,8 +378,9 @@
 4032 wm-rh-frontalpole 155 255 155 0
 4033 wm-rh-temporalpole 185 185 185 0
 4034 wm-rh-transversetemporal 105 105 55 0
+
 5001 wm-lh-centrum-semiovale 20 30 40 0
-5002 wm-lh-centrum-semiovale 20 30 40 0
+5002 wm-rh-centrum-semiovale 20 30 40 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
