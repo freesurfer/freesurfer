@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/05/19 13:07:01 $
-// Revision       : $Revision: 1.467 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/05/22 19:57:15 $
+// Revision       : $Revision: 1.468 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.467 2006/05/19 13:07:01 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.468 2006/05/22 19:57:15 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -5109,20 +5109,25 @@ int MRISvectorRegister(MRI_SURFACE *mris,
        "  -loading field %d with correlation coefficients "
        "( %2.1f , %2.1f )...\n",
        n,parms->fields[n].l_corr,parms->fields[n].l_pcorr);
-		if (parms->fields[n].name != NULL)
-		{
-			char path[STRLEN] ;
-			FileNamePath(mris->fname, path) ;
-      sprintf(fname, "%s/../label/%s.%s",
-              path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-									parms->fields[n].name) ;
-			printf("reading overlay file %s...\n", fname) ;
-			if (MRISreadValues(mris, fname) != NO_ERROR)
-				ErrorExit(ERROR_BADPARM, "%s: could not read overlay file %s",  Progname, fname) ;
-			if (mris->ct)
-				MRISripMedialWall(mris) ;
-			MRIScopyValuesToCurvature(mris) ;
-		}
+    if (parms->fields[n].name != NULL)		{
+      char path[STRLEN] ;
+      FileNamePath(mris->fname, path) ;
+      if(parms->overlay_dir == NULL){
+	sprintf(fname, "%s/../label/%s.%s",
+		path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
+		parms->fields[n].name) ;
+      }	else {
+	sprintf(fname, "%s/../%s/%s.%s",
+		path, parms->overlay_dir, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
+		parms->fields[n].name) ;
+      }
+      printf("reading overlay file %s...\n", fname) ;
+      if (MRISreadValues(mris, fname) != NO_ERROR)
+	ErrorExit(ERROR_BADPARM, "%s: could not read overlay file %s",  Progname, fname) ;
+      if (mris->ct)
+	MRISripMedialWall(mris) ;
+      MRIScopyValuesToCurvature(mris) ;
+    }
     else if (ReturnFieldName(parms->fields[n].field)){  /* read in precomputed
                                                       curvature file */
       sprintf(fname, "%s.%s",

@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,10 +78,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.33 2006/05/11 13:34:15 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -522,21 +522,24 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "overlay"))
   {
-		int navgs ;
-
-		if (multiframes == 0)
-		{
-			initParms() ;
-			multiframes = 1 ;
-		}
-		overlays[noverlays++] = argv[2] ;
-		navgs = atof(argv[3]) ;
-		printf("reading overlay from %s and smoothing it %d times\n", argv[2], navgs) ;
-		n=parms.nfields++;
-		SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs);
-		SetFieldName(&parms.fields[n], argv[2]) ;
-		atlas_size++ ;
-		nargs = 2 ;
+    int navgs ;
+    if (multiframes == 0)      {
+      initParms() ;
+      multiframes = 1 ;
+    }
+    overlays[noverlays++] = argv[2] ;
+    navgs = atof(argv[3]) ;
+    printf("reading overlay from %s and smoothing it %d times\n", argv[2], navgs) ;
+    n=parms.nfields++;
+    SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs);
+    SetFieldName(&parms.fields[n], argv[2]) ;
+    atlas_size++ ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "overlay-dir"))
+  {
+    parms.overlay_dir = strcpyalloc(argv[2]) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
   {
@@ -633,21 +636,22 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
-       "usage: %s [options] <input surface> <average surface> <output surface>\n",
+  printf("%s [options] <input surface> <average surface> <output surface>\n",
           Progname) ;
+  printf("\n") ;
+  printf("Options are:\n\n") ;
+  printf(" -l <label file> <atlas (*.gcs)> <label name>\n"
+	 "\tthis option will specify a manual label to align with atlas label <label name>\n");
+  printf(" -addframe which_field where_in_atlas l_corr l_pcorr\n");
+  printf(" -overlay surfvals : subject/labels/hemi.surfvals\n");
+  printf(" -overlay-dir  dir : subject/dir/hemi.surfvals\n");
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program register a surface with  an average surface.\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-	fprintf(stderr, "\n\t-l <label file> <atlas (*.gcs)> <label name>\n"
-					"\tthis option will specify a manual label to align with atlas label <label name>\n");
-	fprintf(stderr,"\t-addframe which_field where_in_atlas l_corr l_pcorr\n");
+  printf("This program register a surface with an atlas.\n");
   exit(1) ;
 }
 

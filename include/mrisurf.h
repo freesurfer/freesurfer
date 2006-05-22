@@ -468,9 +468,10 @@ typedef struct
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
   MRI     *mri_dist ;         /* distance map for repulsion term */
-	float   target_radius ;
-	int     ignore_energy ;     // when no valid energy functional is availabel - just integrate
-	int     check_tol ;         // to avoid changing mris_make_surfaces
+  float   target_radius ;
+  int     ignore_energy ;     // when no valid energy functional is availabel - just integrate
+  int     check_tol ;         // to avoid changing mris_make_surfaces
+  char    *overlay_dir;       // subject/overlay_dir/parms->fields[n].fname
 } INTEGRATION_PARMS ;
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, 
