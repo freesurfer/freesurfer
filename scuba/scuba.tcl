@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.200 2006/05/22 16:26:47 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.201 2006/05/22 17:57:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1972,6 +1972,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     set fwTop        $ifwTop.fwLayerProps
     set fwProps      $fwTop.fwProps
+    set fwCommands   $fwTop.fwCommands
 
     frame $fwTop
 
@@ -2188,15 +2189,22 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
 
 
+    frame $fwCommands
+    button $fwCommands.bwCopySettings -text "Copy Settings to Similar Layers" \
+	-command { CopyLayerSettingsToSimilarLayers $gaView(current,id) $gaLayer(current,id) }
+    pack $fwCommands.bwCopySettings -expand yes -fill x
+
+
     grid $fwMenu        -column 0 -row 0 -sticky news
     grid $fwPropsCommon -column 0 -row 1 -sticky news
 
     grid $fwProps -column 0 -row 0 -sticky news
-
+    grid $fwCommands -column 0 -row 1 -sticky news
+    
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
-
-   return $fwTop
+    
+    return $fwTop
 }
 
 proc MakeViewPropertiesPanel { ifwTop } {
@@ -3144,6 +3152,72 @@ proc LayerSettingsChanged { iLayerID } {
 	# Reselect the layer to get all the settings again.
 	SelectLayerInLayerProperties $iLayerID
     }
+}
+
+proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
+
+    set thisType [GetLayerType $iLayerID]
+
+    # Go through the layers in the current view. For each one...
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set layerID [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $layerID != -1 && $layerID != $iLayerID } {
+
+	    # If it's the same type as our layer...
+	    if { [string match $thisType [GetLayerType $layerID]] } {
+		
+		# Copy all the settings into it.
+		switch $thisType {
+		    2DMRI {
+			Set2DMRILayerColorMapMethod $layerID \
+			     [Get2DMRILayerColorMapMethod $iLayerID]
+			Set2DMRILayerDrawZeroClear $layerID \
+			     [Get2DMRILayerDrawZeroClear $iLayerID]
+			Set2DMRILayerDrawMIP $layerID \
+			     [Get2DMRILayerDrawMIP $iLayerID]
+			Set2DMRILayerSampleMethod $layerID \
+			     [Get2DMRILayerSampleMethod $iLayerID]
+			Set2DMRILayerBrightness $layerID \
+			     [Get2DMRILayerBrightness $iLayerID]
+			Set2DMRILayerContrast $layerID \
+			     [Get2DMRILayerContrast $iLayerID]
+			Set2DMRILayerLevel $layerID \
+			     [Get2DMRILayerLevel $iLayerID]
+			Set2DMRILayerWindow $layerID \
+			     [Get2DMRILayerWindow $iLayerID]
+			Set2DMRILayerColorLUT $layerID \
+			     [Get2DMRILayerColorLUT $iLayerID]
+			Set2DMRILayerMinVisibleValue $layerID \
+			     [Get2DMRILayerMinVisibleValue $iLayerID]
+			Set2DMRILayerMaxVisibleValue $layerID \
+			     [Get2DMRILayerMaxVisibleValue $iLayerID]
+			Set2DMRILayerEditableROI $layerID \
+			     [Get2DMRILayerEditableROI $iLayerID]
+			Set2DMRILayerROIOpacity $layerID \
+			     [Get2DMRILayerROIOpacity $iLayerID]
+			Set2DMRILayerHeatScaleMin $layerID \
+			     [Get2DMRILayerHeatScaleMin $iLayerID]
+			Set2DMRILayerHeatScaleMid $layerID \
+			     [Get2DMRILayerHeatScaleMid $iLayerID]
+			Set2DMRILayerHeatScaleMax $layerID \
+			     [Get2DMRILayerHeatScaleMax $iLayerID]
+		    }
+		    2DMRIS {
+			set color [Get2DMRISLayerLineColor $iLayerID]
+			Set2DMRISLayerLineColor $layerID \
+			  [lindex $color 0] [lindex $color 1] [lindex $color 2]
+			set color [Get2DMRISLayerVertexColor $iLayerID]
+			Set2DMRISLayerVertexColor $layerID \
+			  [lindex $color 0] [lindex $color 1] [lindex $color 2]
+			Set2DMRISLayerLineWidth $layerID \
+			     [Get2DMRISLayerLineWidth $iLayerID]
+		    }
+		}
+	    }
+	}
+    }
+
+    RedrawFrame [GetMainFrameID]
 }
 
 # VIEW PROPERTIES FUNCTIONS =============================================
@@ -5985,7 +6059,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.200 2006/05/22 16:26:47 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.201 2006/05/22 17:57:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
