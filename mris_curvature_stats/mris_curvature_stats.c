@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.18 2005/11/01 23:57:38 nicks Exp $";
+	"$Id: mris_curvature_stats.c,v 1.19 2006/05/22 17:02:49 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.18 2005/11/01 23:57:38 nicks Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.19 2006/05/22 17:02:49 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -271,9 +271,24 @@ main(int argc, char *argv[])
     outputFileNames_create(curv_fname);
     outputFiles_open();
 
-    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR)
-      ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
-                Progname, curv_fname);
+    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR) {
+	fprintf(stderr, 
+			"\n\t\t***WARNING!***\n");
+	fprintf(stderr, "\tSome error has occurred while reading '%s.%s'.\n", 
+			hemi, curv_fname);
+	fprintf(stderr, "\tThis might be due a vertex incompatibility\n"); 
+	fprintf(stderr, "\tbetween the surface '%s.%s' and curv '%s.%s'.\n",
+			hemi, surf_name, hemi, curv_fname);
+	fprintf(stderr, "\n\tYou might be able to correct this by re-running\n");
+	fprintf(stderr, "\t'mris_make_surfaces' on this dataset.\n\n");
+	fprintf(stderr, "\tSkipping this (and any remaining) curvature files.\n");
+	fprintf(stderr, "\tAny measurements / calcuations that depend on the\n");
+	fprintf(stderr, "\tcurvature file will be skipped.\n");
+	fprintf(stderr, "\t\t*************\n\n");
+	break;
+/*      ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
+                Progname, curv_fname);*/
+    }
 
     if(Gb_zeroVertex)
 	MRISvertexCurvature_set(mris, G_zeroVertex, 0);
