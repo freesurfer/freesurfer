@@ -3,6 +3,8 @@
 #
 dist_bin_SCRIPTS = \
 archive_pull \
+aparcstats2table \
+asegstats2table \
 aparc2feat \
 aseg2feat \
 bblabel \
