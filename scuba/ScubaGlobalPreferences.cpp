@@ -63,6 +63,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyShuffleLayers ) ||
 	sKey == GetStringForKey( KeyTurnOffVisibilityInTopVisibleLayer ) ||
 	sKey == GetStringForKey( KeyTurnOnVisibilityInTopInvisibleLayer ) ||
+	sKey == GetStringForKey( KeyToggleVisibilityInTopmostUnlockedLayer ) ||
 	sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	sKey == GetStringForKey( KeyMouseButtonThree ) ||
@@ -171,6 +172,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       GetStringForKey( KeyTurnOffVisibilityInTopVisibleLayer ) ||
 	       sKey == 
 	       GetStringForKey( KeyTurnOnVisibilityInTopInvisibleLayer ) ||
+	       sKey == 
+	       GetStringForKey( KeyToggleVisibilityInTopmostUnlockedLayer ) ||
 	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	       sKey == GetStringForKey( KeyMouseButtonThree ) ||
@@ -241,6 +244,7 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, string isValue ) {
       iKey == KeyShuffleLayers ||
       iKey == KeyTurnOffVisibilityInTopVisibleLayer ||
       iKey == KeyTurnOnVisibilityInTopInvisibleLayer ||
+      iKey == KeyToggleVisibilityInTopmostUnlockedLayer ||
       iKey == KeyMouseButtonOne ||
       iKey == KeyMouseButtonTwo ||
       iKey == KeyMouseButtonThree ||
@@ -309,6 +313,7 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyShuffleLayers ||
       iKey == KeyTurnOffVisibilityInTopVisibleLayer ||
       iKey == KeyTurnOnVisibilityInTopInvisibleLayer ||
+      iKey == KeyToggleVisibilityInTopmostUnlockedLayer ||
       iKey == KeyMouseButtonOne ||
       iKey == KeyMouseButtonTwo ||
       iKey == KeyMouseButtonThree ||
@@ -368,6 +373,8 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
     return "KeyTurnOffVisibilityInTopVisibleLayer"; break;
   case KeyTurnOnVisibilityInTopInvisibleLayer:
     return "KeyTurnOnVisibilityInTopInvisibleLayer"; break;
+  case KeyToggleVisibilityInTopmostUnlockedLayer:
+    return "KeyToggleVisibilityInTopmostUnlockedLayer"; break;
   case KeyMouseButtonOne:          return "KeyMouseButtonOne";           break;
   case KeyMouseButtonTwo:          return "KeyMouseButtonTwo";           break;
   case KeyMouseButtonThree:        return "KeyMouseButtonThree";         break;
@@ -478,6 +485,14 @@ ScubaGlobalPreferences::ReadPreferences () {
     RegisterValue( GetStringForKey( KeyTurnOnVisibilityInTopInvisibleLayer ), 
 			  "Key to turn on visibility in the topmost "
 			  "invisible layer in a  view.", turnOnVisibilityKey );
+
+  keyCombo->SetFromString( "Alt T" );
+  PreferencesManager::StringPrefValue 
+    toggleVisibilityKey( keyCombo->ToString() );
+  prefsMgr.
+    RegisterValue( GetStringForKey(KeyToggleVisibilityInTopmostUnlockedLayer), 
+			  "Key to toggle visibility in the topmost "
+			  "unlocked layer in a  view.", toggleVisibilityKey );
 
   keyCombo->SetFromString( "W" );
   PreferencesManager::StringPrefValue mouseOneKey( keyCombo->ToString() );

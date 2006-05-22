@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.199 2006/05/22 16:03:56 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.200 2006/05/22 16:26:47 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -536,6 +536,8 @@ proc MakeMenuBar { ifwTop } {
 	    {TurnOnVisibilityInTopmostInvisibleLayer $gaView(current,id)}}
 	{command "Turn Off Visibility in Topmost Visible Layer"
 	    {TurnOffVisibilityInTopmostVisibleLayer $gaView(current,id)}}
+	{command "Toggle Visibility in Topmost Unlocked Layer"
+	    {ToggleVisibilityInTopmostUnlockedLayer $gaView(current,id)}}
 	{separator}
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
 	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
@@ -1021,7 +1023,6 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	RedrawFrame [GetMainFrameID]
     }
 
-    # Shuffle layers.
     if { [string match $sKeyCombo $gaPrefs(KeyShuffleLayers)] } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	ShuffleLayersInView $viewID
@@ -1038,6 +1039,13 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	TurnOnVisibilityInTopmostInvisibleLayer $viewID
     }
+
+    if { [string match $sKeyCombo \
+	  $gaPrefs(KeyToggleVisibilityInTopmostUnlockedLayer)] } {
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	ToggleVisibilityInTopmostUnlockedLayer $viewID
+    }
+
 
     # This is kind of arbitrary, but since some keypresses can change
     # the information that should be displayed in the label area,
@@ -1141,6 +1149,7 @@ proc GetPreferences {} {
 	KeyShuffleLayers
 	KeyTurnOnVisibilityInTopInvisibleLayer
 	KeyTurnOffVisibilityInTopVisibleLayer
+	KeyToggleVisibilityInTopmostUnlockedLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -1177,6 +1186,7 @@ proc SetPreferences {} {
 	KeyShuffleLayers
 	KeyTurnOnVisibilityInTopInvisibleLayer
 	KeyTurnOffVisibilityInTopVisibleLayer
+	KeyToggleVisibilityInTopmostUnlockedLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -4506,6 +4516,8 @@ proc DoPrefsDlog {} {
 	    "Turn on visibility in topmost invisible layer"
 	    KeyTurnOffVisibilityInTopVisibleLayer
 	    "Turn off visibility in topmost visible layer"
+	    KeyToggleVisibilityInTopmostUnlockedLayer
+	    "Toggle visibility in topmost unlocked layer"
 	} {
    
 	    tkuMakeNormalLabel $fwKeys.lw$sKey \
@@ -5104,6 +5116,36 @@ proc TurnOnVisibilityInTopmostInvisibleLayer { iViewID } {
     
     SelectViewInViewProperties $iViewID
 }
+
+proc ToggleVisibilityInTopmostUnlockedLayer { iViewID } {
+    global gaView
+
+    # Find the highest unlocked level.
+    set nHighestLevel -1
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $curLayer($nLevel) != -1 &&
+	     $gaView(current,lockedShuffle$nLevel) == 0 } {
+	    set nHighestLevel $nLevel
+	}
+    }
+
+    # If we didn't find anything, return.
+    if { $nHighestLevel == -1 } {
+	return
+    }
+    
+    # Toggle the visibility.
+    if { [GetLevelVisibilityInView $iViewID $nHighestLevel] } {
+	SetLevelVisibilityInView $iViewID $nHighestLevel 0
+    } else {
+	SetLevelVisibilityInView $iViewID $nHighestLevel 1	
+    }
+    
+    SelectViewInViewProperties $iViewID
+}
+
+
 
 # DATA LOADING =====================================================
 
@@ -5943,7 +5985,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.199 2006/05/22 16:03:56 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.200 2006/05/22 16:26:47 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
