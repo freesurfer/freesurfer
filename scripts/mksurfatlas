@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # Creates an atlas to use for surface registration
 
-set VERSION = '$Id: mksurfatlas,v 1.3 2006/05/22 18:25:57 greve Exp $';
+set VERSION = '$Id: mksurfatlas,v 1.4 2006/05/22 20:05:24 greve Exp $';
 
 set atlas = ();
 set target = ();
@@ -215,16 +215,60 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-This program has not been tested.
+This program has not been tested, is not supported, and you should not
+use it.
 
 Creates an atlas using mris_make_template. The atlas can then be used
 to create the surface registration for each subject based on this
 atlas.
 
-Eg,
+A typical workflow for creating an fmri-based atlas would be something
+like:
 
-mksurfatlas --a lh.youratlas.tif --h lh --s subject1 --s subject2 \
-  --v yoursurfvals.mgh --r sphere.reg
+1. For each subject, run the functional analysis, map results to the
+   surface, and save in subject/fmri/hemi.func.mgh
+
+2. Choose one subject as the reference subject to create an initial
+   atlas:
+
+   mksurfatlas --a lh.func.atlas.init.tif --h lh --v func.mgh \
+      --r sphere.reg --s refsubject 
+
+   This will create lh.func.atlas.init.tif
+
+3. Create an initial registration surface based on this atlas,
+
+   foreach subject (subject1 subject2 ...)
+     mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
+       -overlay func.mgh 10 -overlay-dir func \
+        $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
+       lh.func.atlas.init.tif $SUBJECTS_DIR/$subject/surf/$hemi.funcreg.init
+   end
+
+   This will create $hemi.funcreg.init.
+
+4. Create final atlas based on all subjects (similar to step 2)
+
+   mksurfatlas --a lh.func.atlas.tif --h lh --v func.mgh \
+     --r $hemi.funcreg.init --s subject1 --s subject2 --s ...
+
+5. Create a final registration surface based on final atlas,
+
+   foreach subject (subject1 subject2 ...)
+     mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
+       -overlay func.mgh 10 -overlay-dir func \ 
+       $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
+       lh.func.atlas.tif $SUBJECTS_DIR/$subject/surf/$hemi.funcreg
+   end
+
+   This will create $hemi.funcreg which can then be used as 
+   you would $hemi.sphere.
+
+
+
+---------------------------------------------------------------------
+
+
 
 This will look for subject1/label/lh.yoursurfvals.mgh and
 subject2/label/lh.yoursurfvals.mgh. They will be mapped to the common
@@ -232,17 +276,12 @@ coordiantes defined by sphere.reg. Averages and StdDevs will be
 computed across subjects at each vertex. The results will be 
 stored in lh.youratlas.tif.
 
-The next step is to create a registration surface based on this atlas,
-eg:
 
-foreach subject (subject1 subject2)
-  mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
-     -overlay $surfval 5 $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
+   foreach subject (subject1 subject2)
+     mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
+       -overlay $surfval 5 $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
      $atlaspath $SUBJECTS_DIR/$subject/surf/$hemi.youratlas 
 end
-
-This will create $hemi.youratlas, which can then be used as you would
-$hemi.sphere.
 
 
 
