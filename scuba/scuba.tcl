@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.198 2006/05/22 15:46:26 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.199 2006/05/22 16:03:56 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -937,8 +937,10 @@ proc MakeScubaFrameBindings { iFrameID } {
     }
 
     # So that when the window is closed by clicking the button on the
-    # title bar, our Quit command gets called.
-    bind all <Destroy> "Quit"
+    # title bar, our Quit command gets called. This only goes on the
+    # window object, because otherwise closing any window would make
+    # us quit.
+    bind  $gaWidget(window) <Destroy> "Quit"
 }
 
 proc ScubaMouseMotionCallback { inX inY iState iButton } {
@@ -5941,7 +5943,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.198 2006/05/22 15:46:26 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.199 2006/05/22 16:03:56 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
