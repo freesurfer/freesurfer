@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.19 2006/05/22 17:02:49 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.20 2006/05/22 17:04:38 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.19 2006/05/22 17:02:49 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.20 2006/05/22 17:04:38 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
