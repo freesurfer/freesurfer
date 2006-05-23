@@ -2,18 +2,19 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.7.2.3 2006/05/23 20:37:50 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.7.2.4 2006/05/23 22:39:03 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
 set Surf = white;
-set TargetSubj = average7;
+set TargetSubj = fsaverage;
 set debug = 0;
 set DontRun = 0;
 set usedev = 0;
 set myoutstatsdir = ();
 set NoLog = 0;
 set fslext = ();
+set CopeOnly = 0;
 
 set PrintHelp = 0;
 
@@ -81,9 +82,16 @@ endif
 
 # Get a list of images to convert
 #set nonomatch # This prevents crashing due to file expansion errors
-set imglist = (`ls $statsdir/*.$fslext`)
-set imglist = ($imglist `ls $imglist $FeatDir/cluster*.$fslext`)
-set imglist = ($imglist `ls $imglist $FeatDir/rendered_thresh*.$fslext`)
+if($CopeOnly) then
+  set imglist = (`ls $statsdir/cope*.$fslext`)
+  set subjectlist = ($TargetSubj)
+else
+  set imglist = (`ls $statsdir/*.$fslext`)
+  set imglist = ($imglist `ls $imglist $FeatDir/cluster*.$fslext`)
+  set imglist = ($imglist `ls $imglist $FeatDir/rendered_thresh*.$fslext`)
+  set subjectlist = ($subject $TargetSubj)
+endif
+
 set nimg = $#imglist
 if($nimg == 0) then
   echo "ERROR: cannot find any .img, .nii, .nii.gz files in $statsdir"| tee -a $LF 
@@ -104,13 +112,15 @@ foreach img ($imglist)
    #if($baseimg == corrections) continue;
    #if($baseimg == threshac1) continue;
 
-   foreach targ ($subject $TargetSubj)
+   foreach targ ($subjectlist)
      foreach hemi ($HemiList)
 
        if($targ != $subject) then
          set outext = $fslext
+         set reshape = (--reshape)
        else
          set outext = mgh
+         set reshape = ()
        endif
 
        # Only used for testing
@@ -128,11 +138,11 @@ foreach img ($imglist)
        
       set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
                   --trgsubject $targ --hemi $hemi --out $outimg\
-                  --surf $Surf)
+                  --surf $Surf $reshape)
        if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac) 
 
        echo " " | tee -a $LF
-       echo "#@# $baseimg $targ $hemi $nthimg/$nimg ----======----=======-----=======----" | tee -a $LF
+       echo "#@# $baseimg $targ $hemi $nthimg/$nimg ----=====-----=====----" | tee -a $LF
        date      | tee -a $LF
        pwd       | tee -a $LF
        echo $cmd | tee -a $LF
@@ -209,6 +219,10 @@ while( $#argv != 0 )
     case "--out":
       if ( $#argv == 0) goto arg1err;
       set myoutstatsdir = $argv[1]; shift;
+      breaksw
+
+    case "--cope-only":
+      set CopeOnly = 1;
       breaksw
 
     case "--debug":
@@ -315,8 +329,9 @@ usage_exit:
   echo ""
   echo " --projfrac fraction : project fraction into cortical surface (default is 0)"
   echo " --hemi hemi : run on hemi (lh or rh) only. Default is lh and rh. "
-  echo " --target subject : subject used to define common surface space (default is average7)"
+  echo " --target subject : subject used to define common surface space (default is fsaverage)"
   echo " --surf surface : surface to resample to (default is white)"
+  echo " --cope-only : only map the copes to the common surface space"
   echo " "
   echo " --version : print version and exit"
   echo " --help    : print help and exit"
@@ -346,7 +361,7 @@ FeatDir/reg_surf-rh-SUBJECT/stats where SUBJECT is the freesurfer name
 of the subject. It will also resample to the common space and stored
 the results in in FeatDir/reg_surf-lh-targid/stats and
 FeatDir/reg_surf-rh-targid/stats, where targid is the subject that
-defines the common surface space (default is average7). If you are using
+defines the common surface space (default is fsaverage). If you are using
 the "new" FreeSurfer recon where you have registered your surfaces
 to the "filled" atlas, then use fsaverage instead.
 
@@ -380,7 +395,7 @@ Run on hemi (lh or rh) only. Default is to do both.
 
 --target subject 
 
-Subject used to define common surface space (default is average7).
+Subject used to define common surface space (default is fsaverage).
 
 --surf surface 
 
@@ -402,8 +417,8 @@ tksurfer bert lh inflated \
   -overlay fbert.feat/reg_surf-lh-bert/stats/zstat1.nii.gz
 
 # View on common surface
-tksurfer average7 lh inflated \
-  -overlay fbert.feat/reg_surf-lh-average7/stats/zstat1.nii.gz
+tksurfer fsaverage lh inflated \
+  -overlay fbert.feat/reg_surf-lh-fsaverage/stats/zstat1.nii.gz
 
 
 BUGS
@@ -416,7 +431,7 @@ would simply store the surface data as a "volume" with 150,000
 columns, 1 row, and 1 slice.  However, ANALYZE cannot represent
 dimensions over 2^15, or 32768.  Same problem with NIFTI. To get
 around this, we factor the number of vertices into dimensions smaller
-than 32768. Eg, the average7 surface has 163842 vertices which we
+than 32768. Eg, the fsaverage surface has 163842 vertices which we
 factor into 1974x83. However, for individuals there is no guarantee
 that the number of vertices will have a factor less than 32768. For
 this reason the data resampled on the individual surfaces is stored in
