@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # Creates an atlas to use for surface registration
 
-set VERSION = '$Id: mksurfatlas,v 1.4 2006/05/22 20:05:24 greve Exp $';
+set VERSION = '$Id: mksurfatlas,v 1.5 2006/05/23 23:43:27 greve Exp $';
 
 set atlas = ();
 set target = ();
@@ -264,24 +264,6 @@ like:
    This will create $hemi.funcreg which can then be used as 
    you would $hemi.sphere.
 
-
-
----------------------------------------------------------------------
-
-
-
-This will look for subject1/label/lh.yoursurfvals.mgh and
-subject2/label/lh.yoursurfvals.mgh. They will be mapped to the common
-coordiantes defined by sphere.reg. Averages and StdDevs will be
-computed across subjects at each vertex. The results will be 
-stored in lh.youratlas.tif.
-
-
-   foreach subject (subject1 subject2)
-     mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
-       -overlay $surfval 5 $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
-     $atlaspath $SUBJECTS_DIR/$subject/surf/$hemi.youratlas 
-end
 
 
 
