@@ -3243,6 +3243,7 @@ ScubaLayer2DMRIFloodSelect::DoBegin () {
     undoList.BeginAction( "Unselection Fill" );
   }
 
+  mVolume->BeginBatchROIChanges();
 }
 
 void 
@@ -3256,6 +3257,8 @@ ScubaLayer2DMRIFloodSelect::DoEnd () {
   // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
   undoList.EndAction();
+
+  mVolume->EndBatchROIChanges();
 }
 
 bool

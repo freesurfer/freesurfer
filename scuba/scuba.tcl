@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.201 2006/05/22 17:57:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.202 2006/05/23 21:15:25 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6059,7 +6059,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.201 2006/05/22 17:57:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.202 2006/05/23 21:15:25 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7444,6 +7444,7 @@ proc DoMakeNewVolumeROIIntensityChartDlog {} {
 
 	set owVolume   $wwDialog.owVolume
 	set owROI      $wwDialog.owROI
+	set fwSort     $wwDialog.fwSort
 	set fwButtons  $wwDialog.fwButtons
 
 	# Option menu full of volumes. The callback will fill the ROI
@@ -7462,11 +7463,34 @@ proc DoMakeNewVolumeROIIntensityChartDlog {} {
 
 	set gaROIIntensityChartInfo(widget,ROImenu) $owROI
 
+	# Initial sort value
+	set gaROIIntensityChartInfo(sort) x
+
+	# Make the sorting radio buttons
+	frame $fwSort
+	label $fwSort.lw \
+	    -text "X-axis sorting order: "
+	radiobutton $fwSort.rbX \
+	    -variable gaROIIntensityChartInfo(sort) \
+	    -value x \
+	    -text "X"
+	radiobutton $fwSort.rbY \
+	    -variable gaROIIntensityChartInfo(sort) \
+	    -value y \
+	    -text "Y"
+	radiobutton $fwSort.rbZ \
+	    -variable gaROIIntensityChartInfo(sort) \
+	    -value z \
+	    -text "Z"
+	pack $fwSort.lw $fwSort.rbX $fwSort.rbY $fwSort.rbZ \
+	    -side left
+
+
 	# OK button will call the chart functin.
 	tkuMakeCancelOKButtons $fwButtons $wwDialog \
-	    -okCmd {MakeNewVolumeROIIntensityChart $gaROIIntensityChartInfo(volume) $gaROIIntensityChartInfo(roi)}
+	    -okCmd {MakeNewVolumeROIIntensityChart $gaROIIntensityChartInfo(volume) $gaROIIntensityChartInfo(roi) $gaROIIntensityChartInfo(sort)}
 
-	pack $owVolume $owROI $fwButtons \
+	pack $owVolume $owROI $fwSort $fwButtons \
 	    -side top -expand yes -fill x
 
 	# If our current collection is in the list of volumes, select
