@@ -18972,7 +18972,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.8 2006/05/23 15:21:00 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.9 2006/05/24 17:35:02 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26114,7 +26114,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
                            fvalue < fthresh) ||
                           (fthresh != 0 && 
                            seed_fvalue < 0 && 
-                           fabs(fvalue) < fthresh) ||
+                           fvalue > -fthresh) ||
                           (fthresh == 0 && (fvalue * seed_fvalue < 0)))
                         {
 			  continue;
