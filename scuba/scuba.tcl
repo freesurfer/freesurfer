@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.181.2.1 2006/04/20 15:50:34 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.181.2.2 2006/05/24 16:08:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3643,10 +3643,6 @@ proc SelectStructureInVoxelEditingListBox { inStructure } {
 	SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue)
     }
 
-    if { [string match $gaTool(structureListOrder,type) user] } {
-	SortVoxelEditingStructureListBox
-    }
-
     # Make sure the structure is highlighted and visible in the listbox.
     catch {
 	set nEntry $gaTool(structureListOrder,indexToEntry,$inStructure)
@@ -5798,7 +5794,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181.2.1 2006/04/20 15:50:34 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.181.2.2 2006/05/24 16:08:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
