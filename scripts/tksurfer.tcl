@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.115 2006/05/16 21:21:24 kteich Exp $
+# $Id: tksurfer.tcl,v 1.116 2006/05/24 19:08:43 kteich Exp $
 
 package require BLT;
 
@@ -1591,7 +1591,7 @@ proc DoLoadOverlayDlog {} {
 	    -variable nFieldIndex \
 	    -options {
 		label.anchor e
-		label.width 5
+		label.width 10
 		menubutton.width 8
 	    }
 	
@@ -1768,7 +1768,7 @@ proc DoSaveValuesAsDlog {} {
 	    -variable nFieldIndex \
 	    -options {
 		label.anchor e
-		label.width 5
+		label.width 10
 		menubutton.width 8
 	    }
 	
@@ -1831,7 +1831,7 @@ proc GDF_LoadDlog {} {
 	    -variable nFieldIndex \
 	    -options {
 		label.anchor e
-		label.width 5
+		label.width 28
 		menubutton.width 8
 	    }
 	
@@ -1879,7 +1879,7 @@ proc DoLabelToOverlayDlog {} {
 	    -variable nFieldIndex \
 	    -options {
 		label.anchor e
-		label.width 5
+		label.width 11
 		menubutton.width 8
 	    }
 	
@@ -1921,7 +1921,7 @@ proc DoSmoothOverlayDlog {} {
     -variable nFieldIndex \
     -options {
       label.anchor e
-      label.width 5
+      label.width 13
       menubutton.width 8
   }
   
@@ -2275,7 +2275,7 @@ proc DoLoadLabelValueFileDlog {} {
 	    -variable nFieldIndex \
 	    -options {
 		label.anchor e
-		label.width 5
+		label.width 11
 		menubutton.width 8
 	    }
 	
@@ -2289,6 +2289,53 @@ proc DoLoadLabelValueFileDlog {} {
 	}
 	
 	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+	
+	# after the next idle, the window will be mapped. set the min
+	# width to our width and the min height to the mapped height.
+	after idle [format {
+	    update idletasks
+	    wm minsize %s %d [winfo reqheight %s]
+	    wm geometry %s =%dx[winfo reqheight %s]
+	} $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
+    }
+}
+
+proc DoShowTimeCourseCorrelationDlog {} {
+
+    set wwDialog .wwShowTimeCourseCorrelation
+
+    set knWidth 400
+    
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Show Correlation" {-borderwidth 10}] } {
+	
+	set fwMain             $wwDialog.fwMain
+	set fwTarget           $wwDialog.fwTarget
+	set fwButtons          $wwDialog.fwButtons
+	
+	frame $fwMain
+	
+	# target scalar field
+	tixOptionMenu $fwTarget -label "In Field:" \
+	    -variable nFieldIndex \
+	    -options {
+		label.anchor e
+		label.width 9
+		menubutton.width 8
+	    }
+	
+	FillOverlayLayerMenu $fwTarget first-empty
+	
+	# buttons.
+	tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+	    { func_calc_correlation_and_write_to_overlay $nFieldIndex; UpdateAndRedraw } {}
+	
+	pack $fwMain $fwTarget $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
@@ -2873,9 +2920,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Save Graphs of Series to Postscript File"
 		{ Graph_DoPrintSeriesDlog }
 		mg_TimeCourseLoaded }
-	    { command "Show Correlation"
-		{ func_calc_correlation_and_write_to_overlay 0;
-		    UpdateAndRedraw }
+	    { command "Show Correlation..."
+		{ DoShowTimeCourseCorrelationDlog }
 		mg_TimeCourseLoaded }
 	    { command "Normalize"
 		{ func_normalize;
