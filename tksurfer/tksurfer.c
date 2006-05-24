@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.206 2006/05/24 17:33:53 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.207 2006/05/24 19:08:31 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23044,6 +23044,7 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
 
 int func_calc_correlation_and_write_to_overlay (int selection_vno, int field){
 
+  char   label[1024];
   int    vno;
   VERTEX *v;
   int    tp, cond;
@@ -23065,7 +23066,8 @@ int func_calc_correlation_and_write_to_overlay (int selection_vno, int field){
                  "surfer: Please select a vertex.\n"));
   
   /* Initialize our field. */
-  sclv_new_empty (field, "Correlation");
+  sprintf (label, "Corrltn %d", selection_vno);
+  sclv_new_empty (field, label);
 
   /* Build the voxel for the selected point. If it's scalar, our index
      is vno,0,0, otherwise use the orig coords. */
