@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.205 2006/05/18 21:57:48 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.206 2006/05/24 17:33:53 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26374,8 +26374,10 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
                         }
                     }
                   
-                  /* if we're not crossing the fthresh, make sure this point
-                     is above it. if not, move on. */
+                  /* if we're not crossing the fthresh, make sure this
+                     point is above it, or, if our initial functional
+                     value was negative, make sure it's not above
+                     -fthresh. if not, move on. */
                   if (params->dont_cross_fthresh)
                     {
                       sclv_get_value (neighbor_v, sclv_current_field, &fvalue);
@@ -26384,7 +26386,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
                            fvalue < fthresh) ||
                           (fthresh != 0 && 
                            seed_fvalue < 0 && 
-                           fabs(fvalue) < fthresh) ||
+                           fvalue > -fthresh) ||
                           (fthresh == 0 && (fvalue * seed_fvalue < 0)))
                         {
 			  continue;
