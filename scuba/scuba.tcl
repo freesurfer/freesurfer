@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.202 2006/05/23 21:15:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.203 2006/05/24 16:07:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3737,10 +3737,6 @@ proc SelectStructureInVoxelEditingListBox { inStructure } {
 	SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue)
     }
 
-    if { [string match $gaTool(structureListOrder,type) user] } {
-	SortVoxelEditingStructureListBox
-    }
-
     # Make sure the structure is highlighted and visible in the listbox.
     catch {
 	set nEntry $gaTool(structureListOrder,indexToEntry,$inStructure)
@@ -6059,14 +6055,14 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.202 2006/05/23 21:15:25 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.203 2006/05/24 16:07:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
     foreach colID $gaCollection(idList) {
 	set type [GetCollectionType $colID]
 	set sLabel [GetCollectionLabel $colID]
-	puts $f "\#Collection $colID"
+	puts $f "\# Collection $colID"
 	switch $type {
 	    Volume {
 		set fnVolume [GetVolumeCollectionFileName $colID]
@@ -6090,6 +6086,7 @@ proc SaveSceneScript { ifnScene } {
 		if { $useTransform } {
 		    puts $f "SetSurfaceDataToSurfaceTransformFromVolume \$colID $volID"
 		}
+		puts $f ""
 	    }
 	}
     }
