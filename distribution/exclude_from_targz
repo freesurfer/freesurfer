@@ -51,6 +51,7 @@ freesurfer/lib/qt/mkspecs
 freesurfer/lib/qt/doc
 freesurfer/lib/qt/src/qt-x11-free-3.3.5
 freesurfer/lib/qt/src/qt-mac-free-3.3.5
+freesurfer/lib/vtk
 freesurfer/lib/dev
 freesurfer/include
 freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
