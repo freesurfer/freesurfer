@@ -1,13 +1,14 @@
 #!/bin/csh -f
 # Creates an atlas to use for surface registration
 
-set VERSION = '$Id: mksurfatlas,v 1.5 2006/05/23 23:43:27 greve Exp $';
+set VERSION = '$Id: mksurfatlas,v 1.6 2006/05/25 18:05:18 greve Exp $';
 
 set atlas = ();
 set target = ();
 set subjects = ();
 set surfval = ();
 set surfvaldir = "label";
+set regsurf = "sphere";
 set hemi = ();
 
 set force = 0;
