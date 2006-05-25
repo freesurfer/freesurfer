@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.203 2006/05/24 16:07:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.204 2006/05/25 21:02:10 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3648,18 +3648,26 @@ proc SortVoxelEditingStructureListBox {} {
 	
 	set nEntry 0
 	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
-	    catch {
-		# Get a label.
-		set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
+	    # If this is a valid entry
+	    if { [IsColorLUTEntryValid \
+		      $gaTool(current,voxelLutID) $nStructure] } {
 
-		# Insert the item.
-		$gaWidget(toolProperties,voxelStructureListBox) subwidget \
-		    listbox insert end $sLabel
-
-		# Hook up index->structure tables.
-		set gaTool(structureListOrder,indexToEntry,$nStructure) $nEntry
-		set gaTool(structureListOrder,entryToIndex,$nEntry) $nStructure
-		incr nEntry
+		catch {
+		    
+		    # Get a label.
+		    set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
+		    
+		    # Insert the item.
+		    $gaWidget(toolProperties,voxelStructureListBox) subwidget \
+			listbox insert end $sLabel
+		    
+		    # Hook up index->structure tables.
+		    set gaTool(structureListOrder,indexToEntry,$nStructure) \
+			$nEntry
+		    set gaTool(structureListOrder,entryToIndex,$nEntry) \
+			$nStructure
+		    incr nEntry
+		}
 	    }
 	}
 
@@ -3670,14 +3678,19 @@ proc SortVoxelEditingStructureListBox {} {
 
 	set lEntries {}
 	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
-	    catch {
-		set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
-
-		# Get the count and if > 0, make an entry into our
-		# unsorted list.
-		set count $gaTool(structureListOrder,count,$nStructure)
-		if { $count > 0 } {
-		    lappend lEntries [list $sLabel $nStructure $count]
+	    # If this is a valid entry
+	    if { [IsColorLUTEntryValid \
+		      $gaTool(current,voxelLutID) $nStructure] } {
+		
+		catch {
+		    set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
+		    
+		    # Get the count and if > 0, make an entry into our
+		    # unsorted list.
+		    set count $gaTool(structureListOrder,count,$nStructure)
+		    if { $count > 0 } {
+			lappend lEntries [list $sLabel $nStructure $count]
+		    }
 		}
 	    }
 	}
@@ -6055,7 +6068,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.203 2006/05/24 16:07:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.204 2006/05/25 21:02:10 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
