@@ -227,7 +227,8 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
     // cut, stop.
     int cCurValues = 0;
     int nBin = 0;
-    while( cCurValues < zCutValues ) {
+    while( cCurValues < zCutValues &&
+	   nBin < zGrayscaleHistogramBins ) {
       if( nBin != nZeroBin )
 	cCurValues += (int)histo->counts[nBin];
       nBin++;
@@ -239,18 +240,30 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
     // Do the same for the top end, going down. 
     cCurValues = 0;
     nBin = histo->nbins-1;
-    while( cCurValues < zCutValues ) {
+    while( cCurValues < zCutValues &&
+	   nBin >= 0 ) {
       if( nBin != nZeroBin )
 	cCurValues += (int)histo->counts[nBin];
       nBin--;
     }
     float maxValue = histo->bins[nBin];
 
-    // Use this max and min to define a range and set our level and
-    // window.
-    SetLevel( (maxValue - minValue)/2.0 + minValue );
-    SetWindow( (maxValue - minValue) );
-    
+    // In the special case of the fixed constant volume, minValue and
+    // MaxValue will be the same.
+    if( fabs( minValue - maxValue ) < 0.0001 ) {
+
+      // Just set the level window appropriately.
+      SetLevel( minValue );
+      SetWindow( 1 );
+
+    } else {
+      
+      // Use this max and min to define a range and set our level and
+      // window.
+      SetLevel( (maxValue - minValue)/2.0 + minValue );
+      SetWindow( (maxValue - minValue) );
+    }    
+
     // Free the histogram.
     HISTOfree( &histo );
 

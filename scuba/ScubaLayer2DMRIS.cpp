@@ -85,6 +85,10 @@ ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
     return;
   }
 
+  if( !mbVisible ) {
+    return;
+  }
+
   // Get a point and a normal for our view plane.
   Point3<float> planeRAS( iViewState.GetCenterRAS() );
   Point3<float> planeN( iViewState.GetPlaneNormal() );
