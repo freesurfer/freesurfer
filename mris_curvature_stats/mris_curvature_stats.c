@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.20 2006/05/22 17:04:38 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.21 2006/05/26 16:28:16 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.20 2006/05/22 17:04:38 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.21 2006/05/26 16:28:16 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -320,8 +320,8 @@ main(int argc, char *argv[])
 	MRISminMaxCurvatureIndicesLookup(mris, &vmin, &vmax);
 	fprintf(stdout, 
 	     	"%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
-	    	G_leftCols, "min = ", mris->min_curv, vmin,
-	    	G_leftCols, "max = ", mris->max_curv, vmax);
+	    	G_leftCols, "Raw min = ", mris->min_curv, vmin,
+	    	G_leftCols, "Raw max = ", mris->max_curv, vmax);
 	if(GpFILE_allLog)
 	    fprintf(GpFILE_allLog, "min = %f\nmax = %f\n", 
 		mris->min_curv, mris->max_curv);
@@ -337,7 +337,7 @@ main(int argc, char *argv[])
     //	calculation, and this does not depend on the curvature processing
     //	loop.
     if(Gb_gaussianAndMean) {
-	fprintf(stdout, 
+	fprintf(stderr, 
 	"\tCalculating second fundamental form for Gaussian, Mean...\n");
 
 	/* Gaussian and Mean curvature calculations */
@@ -394,6 +394,9 @@ void secondOrderParams_print(
 
     char	pch_out[65536];
     char	pch_text[65536];
+    char	pch_type[32];
+    char	pch_min[32];
+    char	pch_max[32];
     float	f_max			= 0.;
     float	f_min			= 0.;
     float	f_maxExplicit		= 0.;
@@ -401,10 +404,12 @@ void secondOrderParams_print(
     int		vmax			= -1;
     int		vmin			= -1;
 
+    sprintf(pch_type, " ");
     if(Gb_zeroVertex)
 	MRISvertexCurvature_set(apmris, G_zeroVertex, 0);
     switch(aesot) {
 	case e_Gaussian:
+	    sprintf(pch_type, "Gaussian");
     	    MRISuseGaussianCurvature(apmris);
 	    sprintf(pch_out, "\nGaussian");
 	    f_min	= apmris->Kmin;
@@ -426,6 +431,7 @@ void secondOrderParams_print(
 	    }
 	break;
 	case e_Mean:
+	    sprintf(pch_type, "Mean");
 	    MRISuseMeanCurvature(apmris);
 	    sprintf(pch_out, "\nMean");
 	    f_min	= apmris->Hmin;
@@ -452,6 +458,9 @@ void secondOrderParams_print(
 	case e_ScaledTrans:
 	break;
     }
+
+    sprintf(pch_min, "%s min =", pch_type);
+    sprintf(pch_max, "%s max =", pch_type);
     
     Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
     sprintf(pch_text, "%s Curvature (using '%s.%s'):", 
@@ -463,8 +472,8 @@ void secondOrderParams_print(
     if(Gb_minMaxShow) {
 	fprintf(stdout, 
 	     	"%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
-	G_leftCols, "min = ", f_min, vmin,
-	G_leftCols, "max = ", f_max, vmax);
+	G_leftCols, pch_min, f_min, vmin,
+	G_leftCols, pch_max, f_max, vmax);
 	if(GpFILE_allLog)
 	    fprintf(GpFILE_allLog, "min = %f\nmax = %f\n",
 			f_min, f_max);
