@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ static void initParms(void);
 static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
-static int remove_negative = 0 ;
+static int remove_negative = 1 ;
 
 int
 main(int argc, char *argv[])
@@ -78,10 +78,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.34 2006/05/22 19:57:21 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
