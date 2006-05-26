@@ -17,7 +17,7 @@
 #include "version.h"
 #include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.27 2005/06/06 14:41:33 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.28 2006/05/26 01:23:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.27 2005/06/06 14:41:33 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.28 2006/05/26 01:23:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -87,8 +87,8 @@ main(int argc, char *argv[])
   parms.momentum = 0.9 ;
   parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
-  parms.nbhd_size = 7 ;    /* out to 7-connected neighbors */
-  parms.max_nbrs = 12 ;    /* 12 at each distance */
+  parms.nbhd_size = 20 ;    /* out to 7-connected neighbors */
+  parms.max_nbrs = 20 ;    /* 12 at each distance */
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
