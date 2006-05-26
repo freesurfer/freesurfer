@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/17 15:14:47 $
-// Revision       : $Revision: 1.286 $
-char *VERSION = "$Revision: 1.286 $";
+// Revision Date  : $Date: 2006/05/26 20:48:57 $
+// Revision       : $Revision: 1.287 $
+char *VERSION = "$Revision: 1.287 $";
 
 #define TCL
 #define TKMEDIT
@@ -222,40 +222,41 @@ void MakeFileName ( char*         isInput,
 /* only tries to prepend subdirectories if this flag is true. it is set to
    false if -f is used on the command line. */
 tBoolean gEnableFileNameGuessing = TRUE;
-tBoolean gGuessWarningSent = FALSE;
+tBoolean gbGuessWarningSent = FALSE;
 
 // ==========================================================================
 
 // ================================================== SELECTING CONTROL POINTS
 
-/* Inits the control point list to the dimensions
-   of the main anatomical volume. */
-tkm_tErr InitControlPointList ();
-
-/* returns distances to nearest control point on the same plane. returns
-   0 if there isn't one. */
-float FindNearestControlPoint ( xVoxelRef   iAnaIdx,
-                                mri_tOrientation iPlane,
-                                xVoxelRef*   opCtrlPt );
-
-/* makes a copy of the ctrl pt and puts it in the ctrl pt list */
-void NewControlPoint         ( xVoxelRef iCtrlPt,
-                               tBoolean  ibWriteToFile );
-
-/* removes ctrl pt from the list and deletes it */
-void DeleteControlPoint         ( xVoxelRef ipCtrlPt );
-
-/* reas the control.dat file, transforms all pts from RAS space
-   to voxel space, and adds them as control pts */
-void ProcessControlPointFile ();
-tBoolean gbParsedControlPointFile = FALSE;
-
-/* writes all control points to the control.dat file in RAS space */
-void WriteControlPointFile   ();
-
 x3DListRef gControlPointList = NULL;
 
-/* function for comparing voxels */
+/* Conformed volumes are 256^3 so that's our size. */
+#define kControlPointSpaceDimension 256
+
+/* Inits the control point list to the dimensions of the main
+   anatomical volume. */
+tkm_tErr InitControlPointList ();
+
+/* Reads the control.dat file, transforms all pts from RAS space to
+   voxel space, and adds them as control pts */
+void ReadControlPointFile ();
+
+/* Writes all control points to the control.dat file in RAS space */
+void WriteControlPointFile   ();
+
+/* Returns distances to nearest control point on the same plane. returns
+   0 if there isn't one. */
+float FindNearestMRIIdxControlPoint ( xVoxelRef   iAnaIdx,
+				      mri_tOrientation iPlane,
+				      xVoxelRef*   opCtrlPt );
+
+/* Makes a copy of the ctrl pt and puts it in the ctrl pt list */
+void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx, tBoolean ibWriteToFile );
+
+/* Removes ctrl pt from the list and deletes it */
+void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx );
+
+/* Function for comparing voxels */
 xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 
 // ===========================================================================
@@ -1137,7 +1138,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.286 2006/05/17 15:14:47 kteich Exp $",
+     "$Id: tkmedit.c,v 1.287 2006/05/26 20:48:57 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -4635,7 +4636,7 @@ int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
     MWin_GetCursor ( gMeditWindow, &cursor );
     Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                              &cursor, &MRIIdx );
-    NewControlPoint ( &MRIIdx, TRUE );
+    AddMRIIdxControlPoint( &MRIIdx, TRUE );
   }
 
   return TCL_OK;
@@ -5678,7 +5679,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.286 2006/05/17 15:14:47 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.287 2006/05/26 20:48:57 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -5881,8 +5882,8 @@ int main ( int argc, char** argv ) {
   DebugPrint( ( "Using interface file %s\n", sInterfaceFileName) );
 
   /* process ctrl pts file */
-  DebugNote( ("Processing control point file.") );
-  ProcessControlPointFile();
+  DebugNote( ("Reading control point file.") );
+  ReadControlPointFile();
 
   /* set window's data */
   DebugNote( ("Setting window title.") );
@@ -6558,18 +6559,26 @@ void tkm_Quit () {
     DebugNote( ("Deleting GCA.") );
     DeleteGCA();
   }
+
   if( NULL != gVLI1 || NULL != gVLI2 ) {
     DebugNote( ("Deleting VLIs.") );
     DeleteVLIs();
   }
+
   DebugNote( ("Deleteing functional volume.") );
   FunV_Delete( &gFunctionalVolume );
+
   DebugNote( ("Deleting selection module.") );
   DeleteSelectionModule ();
-  DebugNote( ("Deleting control point list.") );
-  x3Lst_Delete( &gControlPointList );
+
+  if( NULL != gControlPointList ) {
+    DebugNote( ("Deleting control point list.") );
+    x3Lst_Delete( &gControlPointList );
+  }
+
   DebugNote( ("Deleting undo volume.") );
   DeleteUndoVolume ();
+
   DebugNote( ("Deleting undo list.") );
   DeleteUndoList ();
 
@@ -6826,11 +6835,36 @@ static void Prompt(interp, partial)
 
 /* ================================================ Control point utilities */
 
-/* reads the control.dat file,
-   transforms all pts from RAS space
-   to voxel space, and adds them as
-   control pts */
-void ProcessControlPointFile ( ) {
+tkm_tErr InitControlPointList () {
+
+  tkm_tErr   eResult = tkm_tErr_NoErr;
+  x3Lst_tErr e3DList = xUndL_tErr_NoErr;
+
+  DebugEnterFunction( ("InitControlPointList") );
+
+  /* Free existing list. */
+  if( NULL != gControlPointList ) {
+    x3Lst_Delete( &gControlPointList );
+  }
+
+  /* Make the list. Conformed volumes are 256^3 so that's our size. */
+  e3DList = x3Lst_New( &gControlPointList, kControlPointSpaceDimension );
+  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
+
+  /* Set the comparator for removing duplicates. */
+  x3Lst_SetComparator( gControlPointList, CompareVoxels );
+
+  DebugCatch;
+  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return eResult;
+}
+
+void ReadControlPointFile () {
 
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Volm_tErr eVolume           = Volm_tErr_NoErr;
@@ -6844,40 +6878,51 @@ void ProcessControlPointFile ( ) {
 
   DebugEnterFunction( ("ProcessControlPointFile ()") );
 
-  /* don't parse the file if we already have. */
-  if( TRUE == gbParsedControlPointFile )
+  /* Only load control points for conformed volumes. */
+  if( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     DebugGotoCleanup;
+  }
 
-  /* make the file name */
+  /* Make sure our control point list is ready. */
+  DebugNote( ("Checking if control point list is inited") );
+  DebugAssertThrowX( (NULL != gControlPointList),
+		     eResult, tkm_tErr_ErrorAccessingList );
+  
+  /* Make the file name */
   DebugNote( ("Making file name from control.dat") );
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints,
                 sFileName, sizeof(sFileName) );
 
+  /* If the file doesn't exist, quietly return. */
+  DebugNote( ("Checking if %s exists", sFileName) );
+  if( !FileExists( sFileName ) ) {
+    DebugQuietThrow();
+  }
+
   /* Read the file. */
-  if (FileExists(sFileName))
-    {
-      pControlPoints =
-        MRIreadControlPoints( sFileName, &nNumControlPoints, &bUseRealRAS );
-      DebugAssertThrowX( (NULL != pControlPoints), eResult,
-                         tkm_tErr_ErrorAccessingFile );
-    } else {
+  DebugNote( ("Calling MRIreadControlPoints %s", sFileName) );
+  pControlPoints =
+    MRIreadControlPoints( sFileName, &nNumControlPoints, &bUseRealRAS );
+  DebugAssertThrowX( (NULL != pControlPoints), eResult,
+		     tkm_tErr_ErrorAccessingFile );
 
-      /* No control points file, but no problem. */
-      DebugQuietThrow();
-    }
-
-  /* Parse the points. */
+  /* Parse the points. For each one, transform it from real RAS or
+     tkReg RAS to MRI index, and add the control point. */
   for( nPoint = 0; nPoint < nNumControlPoints; nPoint++ ) {
 
-    /* transform from ras to voxel */
-    xVoxl_SetFloat( &ras, pControlPoints[nPoint].x,
-                    pControlPoints[nPoint].y, pControlPoints[nPoint].z );
+    /* Transform from ras to voxel */
+    xVoxl_SetFloat( &ras,
+		    pControlPoints[nPoint].x,
+                    pControlPoints[nPoint].y,
+		    pControlPoints[nPoint].z );
 
     if( bUseRealRAS ) {
+      DebugNote( ("Converting control point from RAS to MRI Idx") );
       eVolume =
         Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                                  &ras, &MRIIdx );
     } else {
+      DebugNote( ("Converting control point from surface RAS to MRI Idx") );
       eVolume =
         Volm_ConvertSurfaceRASToMRIIdx(gAnatomicalVolume[tkm_tVolumeType_Main],
                                        &ras, &MRIIdx );
@@ -6885,12 +6930,10 @@ void ProcessControlPointFile ( ) {
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                        eResult, tkm_tErr_ErrorAccessingVolume );
 
-    /* add it to our cntrl points list */
-    NewControlPoint( &MRIIdx, FALSE );
+    /* Add it to our control points list */
+    DebugNote( ("Adding control point") );
+    AddMRIIdxControlPoint( &MRIIdx, FALSE );
   }
-
-  /* mark that we have processed the file, and shouldn't do it again. */
-  gbParsedControlPointFile = TRUE;
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6903,9 +6946,7 @@ void ProcessControlPointFile ( ) {
   DebugExitFunction;
 }
 
-/* writes all control points to the
-   control.dat file in RAS space */
-void WriteControlPointFile ( ) {
+void WriteControlPointFile () {
 
   tkm_tErr   eResult                  = tkm_tErr_NoErr;
   Volm_tErr  eVolume                  = Volm_tErr_NoErr;
@@ -6924,7 +6965,17 @@ void WriteControlPointFile ( ) {
 
   DebugEnterFunction( ("WriteControlPointFile()") );
 
-  /* make the file name */
+  /* Only do control points for conformed volumes. */
+  if( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
+    DebugGotoCleanup;
+  }
+
+  /* Make sure our control point list is ready. */
+  DebugNote( ("Checking if control point list is inited") );
+  DebugAssertThrowX( (NULL != gControlPointList),
+		     eResult, tkm_tErr_ErrorAccessingList );
+  
+  /* Make the file name */
   DebugNote( ("Making file name from control.dat") );
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints,
                 sFileName, sizeof(sFileName) );
@@ -6933,8 +6984,8 @@ void WriteControlPointFile ( ) {
      find a home directory for the subject and the file will be saved
      locally. Warn the user of this. */
   if( 0 == strcmp( sFileName, "./control.dat" )) {
-    if( !gGuessWarningSent ) {
-      gGuessWarningSent = TRUE;
+    if( !gbGuessWarningSent ) {
+      gbGuessWarningSent = TRUE;
       tkm_DisplayError( "No Home Directory",
                         "Couldn't guess home directory",
                         "You specified the -f file to load a subject and "
@@ -6948,22 +6999,21 @@ void WriteControlPointFile ( ) {
     }
   }
 
-
-  /* get the ctrl pts in the list... */
+  /* Get the ctrl pts in the list... */
   x3Lst_GetPlaneSize( gControlPointList, &nPlaneSize );
   for( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
 
-    /* get the list for this x value. */
+    /* Get the list for this x value. */
+    DebugNote( ("Getting items in x plane %d\n", nPlane) );
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
     DebugAssertThrowX( (e3DList == x3Lst_tErr_NoErr),
                        eResult, tkm_tErr_ErrorAccessingList );
 
-
     /* Count the control points. */
+    DebugNote( ("Getting the number of points in this list") );
     xList_GetCount( list, &nNumControlPointsInPlane );
     nNumControlPoints += nNumControlPointsInPlane;
   }
-
 
   /* Allocate an MPoints array. */
   DebugNote( ("Allocating array of size %d for control points",
@@ -6972,29 +7022,31 @@ void WriteControlPointFile ( ) {
   DebugAssertThrowX( (NULL != pControlPoints), eResult,
                      tkm_tErr_CouldntAllocate );
 
-
-  /* get the ctrl pts in the list... */
+  /* Get the ctrl pts in the list... */
   nPoint = 0;
   for( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
 
-    /* get the list for this x value. */
+    /* Get the list for this x value. */
+    DebugNote( ("Getting items in x plane %d\n", nPlane) );
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
     DebugAssertThrowX( (e3DList == x3Lst_tErr_NoErr),
                        eResult, tkm_tErr_ErrorAccessingList );
 
-    /* traverse the list */
+    /* Traverse the list */
     eList = xList_ResetPosition( list );
     while( (eList = xList_NextFromPos( list, (void**)&MRIIdx ))
            != xList_tErr_EndOfList ) {
 
       if( MRIIdx ) {
 
-        /* transform to ras space. */
+        /* Transform to ras space. */
         if( gbUseRealRAS ) {
+	  DebugNote( ("Transforming MRI Idx to RAS") );
           eVolume =
             Volm_ConvertMRIIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
                                     MRIIdx, &ras );
         } else {
+	  DebugNote( ("Transforming MRI Idx to surface RAS") );
           eVolume =
             Volm_ConvertMRIIdxToSurfaceRAS
             ( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -7017,6 +7069,7 @@ void WriteControlPointFile ( ) {
   }
 
   /* Write the control points file. */
+  DebugNote( ("Calling MRIwriteControlPoints %s", sFileName) );
   MRIwriteControlPoints( pControlPoints, nNumControlPoints, gbUseRealRAS,
                          sFileName );
 
@@ -7031,50 +7084,9 @@ void WriteControlPointFile ( ) {
   DebugExitFunction;
 }
 
-
-tkm_tErr InitControlPointList () {
-
-  tkm_tErr   eResult   = tkm_tErr_NoErr;
-  x3Lst_tErr e3DList   = xUndL_tErr_NoErr;
-  int nDimX, nDimY, nDimZ;
-  int largestDimension = 0;
-
-  DebugEnterFunction( ("InitControlPointList") );
-
-  /* get the largest dimension. */
-  if( NULL == gAnatomicalVolume[tkm_tVolumeType_Main] ) {
-    largestDimension = 256;
-  } else {
-    Volm_GetDimensions
-      ( gAnatomicalVolume[tkm_tVolumeType_Main], &nDimX, &nDimY, &nDimZ );
-    largestDimension = MAX( MAX( nDimX, nDimY ), nDimZ );
-  }
-
-  /* free existing list. */
-  if( NULL != gControlPointList ) {
-    x3Lst_Delete( &gControlPointList );
-  }
-
-  /* make the list */
-  e3DList = x3Lst_New( &gControlPointList, largestDimension );
-  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
-  x3Lst_SetComparator( gControlPointList, CompareVoxels );
-
-  gbParsedControlPointFile = FALSE;
-
-  DebugCatch;
-  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
-  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-  EndDebugCatch;
-
-  DebugExitFunction;
-
-  return eResult;
-}
-
-float FindNearestControlPoint ( xVoxelRef        iMRIIdx,
-                                mri_tOrientation inPlane,
-                                xVoxelRef*       opCtrlPt ) {
+float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
+				      mri_tOrientation inPlane,
+				      xVoxelRef*       opCtrlPt ) {
 
   tBoolean      bFound           = FALSE;
   float         fDistance        = 0;
@@ -7086,44 +7098,59 @@ float FindNearestControlPoint ( xVoxelRef        iMRIIdx,
   x3Lst_tErr    e3DList          = x3Lst_tErr_NoErr;
   xList_tErr    eList            = xList_tErr_NoErr;
 
-  /* get the list to search in */
-  switch ( inPlane ) {
-  case mri_tOrientation_Coronal:
-    e3DList = x3Lst_GetItemsInZPlane( gControlPointList,
-                                      xVoxl_GetZ(iMRIIdx), &list );
-    break;
-  case mri_tOrientation_Horizontal:
-    e3DList = x3Lst_GetItemsInYPlane( gControlPointList,
-                                      xVoxl_GetY(iMRIIdx), &list );
-    break;
-  case mri_tOrientation_Sagittal:
-    e3DList = x3Lst_GetItemsInXPlane( gControlPointList,
-                                      xVoxl_GetX(iMRIIdx), &list );
-    break;
-  default:
-    bFound = FALSE;
-    goto error;
+  DebugEnterFunction( ("FindNearestMRIIdxControlPoint( iMRIIdx=%p, inPlane=%d,"
+		       "opCtrlPt=%p )", iMRIIdx, (int)inPlane, opCtrlPt) );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrow( (NULL != iMRIIdx) );
+  DebugAssertThrow( (inPlane >= 0 && inPlane < mri_knNumOrientations) );
+  DebugAssertThrow( (NULL != opCtrlPt) );
+
+  /* Only do control points for conformed volumes. */
+  if( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
+    DebugGotoCleanup;
   }
 
-  if ( e3DList != x3Lst_tErr_NoErr )
-    goto error;
+  /* Skip if we don't have a control point list. */
+  DebugAssertThrow( (NULL != gControlPointList ) );
 
-  /* if we got a list... */
+  /* Get the list to search in */
+  switch ( inPlane ) {
+  case mri_tOrientation_Coronal:
+    DebugNote( ("Getting items in z plane %d", xVoxl_GetZ(iMRIIdx)) );
+    e3DList =
+      x3Lst_GetItemsInZPlane( gControlPointList, xVoxl_GetZ(iMRIIdx), &list );
+    break;
+  case mri_tOrientation_Horizontal:
+    DebugNote( ("Getting items in y plane %d", xVoxl_GetY(iMRIIdx)) );
+    e3DList = 
+      x3Lst_GetItemsInYPlane( gControlPointList, xVoxl_GetY(iMRIIdx), &list );
+    break;
+  case mri_tOrientation_Sagittal:
+    DebugNote( ("Getting items in x plane %d", xVoxl_GetX(iMRIIdx)) );
+    e3DList = 
+      x3Lst_GetItemsInXPlane( gControlPointList, xVoxl_GetX(iMRIIdx), &list );
+    break;
+  default:
+    DebugThrow();
+  }
+  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
+
+  /* If we got a list... */
   if ( NULL != list ) {
 
-    /* start with a large distance */
-    fClosestDistance = gnAnatomicalDimensionX * gnAnatomicalDimensionY *
-      gnAnatomicalDimensionZ ;
+    /* Start with a large distance */
+    fClosestDistance = pow( kControlPointSpaceDimension, 3 );
     bFound = FALSE;
 
-    /* traverse the list */
+    /* Traverse the list */
     eList = xList_ResetPosition( list );
     while( (eList = xList_NextFromPos( list, (void**)&MRIIdx ))
            != xList_tErr_EndOfList ) {
 
       if( MRIIdx ) {
 
-        /* get the distance to the clicked voxel... */
+        /* Get the distance to the clicked voxel... */
         fDistance = sqrt(((xVoxl_GetX(iMRIIdx) - xVoxl_GetX(MRIIdx)) *
                           (xVoxl_GetX(iMRIIdx) - xVoxl_GetX(MRIIdx))) +
                          ((xVoxl_GetY(iMRIIdx) - xVoxl_GetY(MRIIdx)) *
@@ -7131,8 +7158,8 @@ float FindNearestControlPoint ( xVoxelRef        iMRIIdx,
                          ((xVoxl_GetZ(iMRIIdx) - xVoxl_GetZ(MRIIdx)) *
                           (xVoxl_GetZ(iMRIIdx) - xVoxl_GetZ(MRIIdx))) );
 
-        /* if it's less than our max, mark the distance and copy the vox */
-        if ( fDistance < fClosestDistance ) {
+        /* If it's less than our max, mark the distance and copy the vox */
+        if( fDistance < fClosestDistance ) {
           fClosestDistance = fDistance;
           closestMRIIdx = MRIIdx;
           bFound = TRUE;
@@ -7140,79 +7167,103 @@ float FindNearestControlPoint ( xVoxelRef        iMRIIdx,
       }
     }
 
-    if( eList != xList_tErr_EndOfList )
-      goto error;
+    DebugNote( ("Make sure we're at the end of the list") );
+    DebugAssertThrow( (xList_tErr_EndOfList == eList) );
 
-    /* if we found a voxel */
+    /* If we found a voxel */
     if ( bFound ) {
 
-      /* return it. */
+      /* Return it. */
       *opCtrlPt = closestMRIIdx;
       fFoundDistance = fClosestDistance;
     }
   }
 
-  goto cleanup;
+  DebugCatch;
+  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
+  DebugCatchError( eList, xList_tErr_NoErr, xList_GetErrorString );
+  EndDebugCatch;
 
- error:
-
-  if( eList != xList_tErr_NoErr )
-    DebugPrint( ( "xList error %d in FindNearestControlPoint.\n", eList ) );
-
-  if( e3DList != x3Lst_tErr_NoErr )
-    DebugPrint( ( "x3Lst error %d in FindNearestControlPoint.\n", eList ) );
-
- cleanup:
+  DebugExitFunction;
 
   return fFoundDistance;
 }
 
-void NewControlPoint ( xVoxelRef iMRIIdx,
-                       tBoolean  ibWriteToFile ) {
+void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx,
+			     tBoolean  ibWriteToFile ) {
 
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
   xVoxelRef  MRIIdx  = NULL;
 
-  /* allocate a copy of the voxel */
+  DebugEnterFunction( ("AddMRIIdxControlPoint( iMRIIdx=%p,ibWriteToFile=%d )",
+		      iMRIIdx, ibWriteToFile) );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrow( (NULL != iMRIIdx) );
+
+  /* Only do control points for conformed volumes. */
+  if( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
+    DebugGotoCleanup;
+  }
+
+  /* Skip if we don't have a control point list. */
+  DebugAssertThrow( (NULL != gControlPointList ) );
+
+  /* Allocate a copy of the voxel */
+  DebugNote( ("Allocating a voxel") );
   xVoxl_New( &MRIIdx );
+  DebugAssertThrow( (NULL != MRIIdx) );
+
   xVoxl_Copy( MRIIdx, iMRIIdx );
 
-  /* add the voxel to the ctrl pt space */
+  /* Add the voxel to the ctrl pt space */
   e3DList = x3Lst_AddItem( gControlPointList, MRIIdx, MRIIdx );
-  if( e3DList != x3Lst_tErr_NoErr )
-    DebugPrint( ( "x3Lst error %d in NewCtrlPt.\n", e3DList ) );
+  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
 
   /* write it to the control point file. */
   if( ibWriteToFile )
     WriteControlPointFile();
+
+  DebugCatch;
+  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
 }
 
-void DeleteControlPoint ( xVoxelRef iMRIIdx ) {
+void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx ) {
 
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
   xVoxelRef  MRIIdx  = NULL;
 
+  DebugEnterFunction( ("DeleteMRIIdxControlPoint( iMRIIdx=%p )", iMRIIdx) );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrow( (NULL != iMRIIdx) );
+
+  /* Only do control points for conformed volumes. */
+  if( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
+    DebugGotoCleanup;
+  }
+
+  /* Skip if we don't have a control point list. */
+  DebugAssertThrow( (NULL != gControlPointList ) );
+
+  /* Point to the voxel. */
   MRIIdx = iMRIIdx;
 
-  /* remove the item */
+  /* Find this voxel in the list and delete it. */
   e3DList = x3Lst_RemoveItem( gControlPointList, MRIIdx, (void**)&MRIIdx );
-  if( e3DList != x3Lst_tErr_NoErr )
-    goto error;
+  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
 
   /* delete it */
   xVoxl_Delete( &MRIIdx );
 
-  goto cleanup;
+  DebugCatch;
+  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
+  EndDebugCatch;
 
- error:
-
-  if( x3Lst_tErr_NoErr != e3DList
-      && x3Lst_tErr_ItemNotInSpace != e3DList ) {
-    DebugPrint( ( "x3Lst error %d in DeleteCtrlPt.\n", e3DList ) );
-  }
-
- cleanup:
-  return;
+  DebugExitFunction;
 }
 
 // ===========================================================================
@@ -8194,7 +8245,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
 
     /* Reread the control points. */
-    ProcessControlPointFile ();
+    ReadControlPointFile();
 
     DebugNote( ("Setting control points space in window") );
     eWindow =
@@ -8272,6 +8323,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d",
                   (int)iType, (int)sampleType );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSampleType, sTclArguments );
+
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d",
+                  mriConformed( gAnatomicalVolume[iType]->mpMriValues ) );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeIsConformed,
+                      sTclArguments );
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -12486,7 +12542,7 @@ void tkm_MakeControlPoint ( xVoxelRef iMRIIdx ) {
     return;
   }
 
-  NewControlPoint( iMRIIdx, TRUE );
+  AddMRIIdxControlPoint( iMRIIdx, TRUE );
 }
 
 void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
@@ -12497,7 +12553,7 @@ void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
   xVoxelRef     pCtrlPt   = NULL;
 
   /* find the closest control point */
-  fDistance = FindNearestControlPoint( iMRIIdx, iPlane, &pCtrlPt );
+  fDistance = FindNearestMRIIdxControlPoint( iMRIIdx, iPlane, &pCtrlPt );
 
   /* if we found one and it's in range... */
   if( NULL != pCtrlPt &&
@@ -12505,7 +12561,7 @@ void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
       fDistance <= (float)inDistance ) {
 
     /* delete it */
-    DeleteControlPoint( pCtrlPt );
+    DeleteMRIIdxControlPoint( pCtrlPt );
   }
 }
 
@@ -12874,6 +12930,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateVolumeSampleType",
   "UpdateVolumeResampleMethod",
   "UpdateSurfaceHemi",
+  "UpdateVolumeIsConformed",
 
   /* display status */
   "ShowVolumeCoords",

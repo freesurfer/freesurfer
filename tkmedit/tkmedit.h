@@ -130,7 +130,8 @@ typedef enum {
   tkm_tTclCommand_UpdateVolumeSampleType,
   tkm_tTclCommand_UpdateVolumeResampleMethod,
   tkm_tTclCommand_UpdateSurfaceHemi,
-  
+  tkm_tTclCommand_UpdateVolumeIsConformed,
+
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
   tkm_tTclCommand_ShowRASCoords,
