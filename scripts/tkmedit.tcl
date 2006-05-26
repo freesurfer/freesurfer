@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.110 2006/05/15 21:12:10 kteich Exp $
+# $Id: tkmedit.tcl,v 1.111 2006/05/26 20:49:22 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -710,6 +710,16 @@ proc UpdateSubjectDirectory { isSubjectDir } {
 proc UpdateSegmentationColorTable { isColorTable } {
     global gsSegmentationColorTable
     set gsSegmentationColorTable $isColorTable
+}
+
+proc UpdateVolumeIsConformed { ibIsConformed } {
+    global gfwaToolBar
+
+    if { $ibIsConformed } {
+	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state normal
+    } else {
+	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state disabled
+    }
 }
 
 proc SendDisplayFlagValue { iFlag } {
