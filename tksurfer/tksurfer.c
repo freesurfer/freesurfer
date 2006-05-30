@@ -1593,7 +1593,7 @@ int sclv_load_label_value_file (char* fname, int field);
 int labl_debug = 0;
 
 typedef enum {
-  LABL_STYLE_OPAQUE = 0,
+  LABL_STYLE_FILLED = 0,
   LABL_STYLE_OUTLINE,
   LABL_NUM_STYLES
 } LABL_DRAW_STYLE;
@@ -1605,13 +1605,14 @@ typedef enum {
 #define LABL_DEFAULT_COLOR_R 100
 #define LABL_DEFAULT_COLOR_G 100
 #define LABL_DEFAULT_COLOR_B 200
+#define LABL_DEFAULT_COLOR_A 255
 
 typedef struct 
 {
   LABEL* label;
   int structure;    /* the structure assigned to this label, or
                        LABL_TYPE_FREE for a free color label */
-  int r, g, b;      /* from color of structure in lookup table or if
+  int r, g, b, a;   /* from color of structure in lookup table or if
                        LABL_TYPE_FREE, assigned by the user */
   int visible;
   char name[NAME_LENGTH];  /* name of this label (not neccessarily the
@@ -1644,7 +1645,7 @@ int labl_selected_label = LABL_NONE_SELECTED;
 int labl_num_labels_created;
 
 /* style in which to draw the labels. */
-LABL_DRAW_STYLE labl_draw_style = LABL_STYLE_OPAQUE;
+LABL_DRAW_STYLE labl_draw_style = LABL_STYLE_FILLED;
 
 /* whether or not to draw labels. */
 int labl_draw_flag = 1;
@@ -1725,6 +1726,7 @@ int labl_set_info (int index, char* name, int structure, int visible,
                    int r, int g, int b);
 /* changes the color of a label. only valid if it is a free label. */
 int labl_set_color (int index, int r, int g, int b);
+int labl_set_alpha (int index, int a);
 
 /* sends a label's information to tcl */
 int labl_send_info (int index);
@@ -19104,7 +19106,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.207 2006/05/24 19:08:31 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.208 2006/05/30 21:55:18 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24120,7 +24122,7 @@ int labl_initialize () {
   labl_num_labels = 0;
   labl_selected_label = LABL_NONE_SELECTED;
   labl_table = NULL;
-  labl_draw_style = LABL_STYLE_OPAQUE;
+  labl_draw_style = LABL_STYLE_FILLED;
   labl_num_labels_created = 0;
   labl_color_table_name = (char*) calloc (NAME_LENGTH, sizeof(char));
   labl_draw_flag = 1;
@@ -24200,7 +24202,7 @@ int labl_load_color_table (char* fname)
   COLOR_TABLE* ctab;
   int label_index;
   LABL_LABEL* label;
-  int r, g, b;
+  int r, g, b, a;
 
   /* Attempt to read the color table. */
   ctab = CTABread (fname);
@@ -24231,7 +24233,9 @@ int labl_load_color_table (char* fname)
 	  CTABcopyName (mris->ct, label->structure, label->name);
 	  r = 255; g = b = 0;
 	  CTABindexToColor (mris->ct, label->structure, &r, &g, &b);
+	  CTABalphaLevel (mris->ct, label->structure, &a);
 	  labl_set_color (label_index, r, g, b);
+	  labl_set_alpha (label_index, a);
 	  labl_send_info (label_index);
 	}
     }
@@ -25177,7 +25181,7 @@ int labl_set_info (int index, char* name, int structure, int visible,
   CLUT_tErr clut_err = CLUT_tErr_NoErr;
   int ctab_err;
   xColor3n color;
-  int r, g, b;
+  int r, g, b, alpha;
 
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
@@ -25201,18 +25205,26 @@ int labl_set_info (int index, char* name, int structure, int visible,
         {
           ctab_err = CTABindexToColor (mris->ct, structure, &r, &g, &b);
           if (NO_ERROR == ctab_err)
-            labl_set_color (index, r, g, b);
-        }
+	      labl_set_color (index, r, g, b);
+
+          ctab_err = CTABalphaLevel (mris->ct, structure, &alpha);
+          if (NO_ERROR == ctab_err)
+	    labl_set_alpha (index, alpha);
+	}
       else 
         {
-          clut_err = CLUT_GetColorInt (labl_table, structure, &color);
+          clut_err = CLUT_GetColorInt (labl_table, structure, &color, &alpha);
           if (CLUT_tErr_NoErr == clut_err)
-            labl_set_color (index, color.mnRed, color.mnGreen, color.mnBlue);
+           {
+	     labl_set_color (index, color.mnRed, color.mnGreen, color.mnBlue);
+	     labl_set_alpha (index, alpha);
+	   }
         }
     } 
   else
     {
       labl_set_color (index, ir, ig, ib);
+      labl_set_alpha (index, 255);
     }
   
   /* send the label info to tcl */
@@ -25232,6 +25244,22 @@ int labl_set_color (int index, int r, int g, int b)
   labl_labels[index].r = r;
   labl_labels[index].g = g;
   labl_labels[index].b = b;
+  
+  /* send the label info to tcl */
+  labl_send_info (index);
+  
+  return (ERROR_NONE);
+}
+
+int labl_set_alpha (int index, int alpha)
+{
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+  if (alpha < 0 || alpha > 255)
+    return (ERROR_BADPARM);
+  
+  /* set the color */
+  labl_labels[index].a = alpha;
   
   /* send the label info to tcl */
   labl_send_info (index);
@@ -25285,6 +25313,7 @@ int labl_add (LABEL* label, int* new_index)
   labl_labels[index].r = LABL_DEFAULT_COLOR_R;
   labl_labels[index].g = LABL_DEFAULT_COLOR_G;
   labl_labels[index].b = LABL_DEFAULT_COLOR_B;
+  labl_labels[index].a = LABL_DEFAULT_COLOR_A;
   labl_labels[index].visible = 1;
   labl_labels[index].border_vno = NULL;
   labl_labels[index].num_border_vnos = 0;
@@ -25513,6 +25542,8 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
 {
   int label_index_array[LABL_MAX_LABELS];
   int num_labels_found, found_label_index;
+  float br, bg, bb;
+  float lr, lg, lb;
   int label_index;
 
   if (vno < 0 || vno >= mris->nvertices)
@@ -25548,10 +25579,27 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
               /* color it in the given drawing style. */
               switch (labl_draw_style)
                 {
-                case LABL_STYLE_OPAQUE:
-                  *r = labl_labels[label_index].r;
-                  *g = labl_labels[label_index].g;
-                  *b = labl_labels[label_index].b;
+                case LABL_STYLE_FILLED:
+		  /* If this is filled, we're going to blend the
+		     background with the label color with the alpha
+		     level from the color table. */
+		  br = ((float)(*r) / 255.0) * 
+		    (1.0 - ((float)labl_labels[label_index].a / 255.0));
+		  bg = ((float)(*g) / 255.0) * 
+		    (1.0 - ((float)labl_labels[label_index].a / 255.0));
+		  bb = ((float)(*b) / 255.0) * 
+		    (1.0 - ((float)labl_labels[label_index].a / 255.0));
+
+		  lr = ((float)labl_labels[label_index].r / 255.0) * 
+		    ((float)labl_labels[label_index].a / 255.0);
+		  lg = ((float)labl_labels[label_index].g / 255.0) * 
+		    ((float)labl_labels[label_index].a / 255.0);
+		  lb = ((float)labl_labels[label_index].b / 255.0) * 
+		    ((float)labl_labels[label_index].a / 255.0);
+
+                  *r = (GLubyte)((br + lr) * 255.0);
+                  *g = (GLubyte)((bg + lb) * 255.0);
+                  *b = (GLubyte)((bg + lb) * 255.0);
                   break;
                 case LABL_STYLE_OUTLINE:
                   /* if this is a border of width 1, color it the color of the
@@ -25631,6 +25679,7 @@ int labl_print_table ()
 {
   int structure_index;
   xColor3n color;
+  int alpha;
   char structure_label[CLUT_knLabelLen];
   
   printf( "Num strucutres: %d\n", labl_num_structures );
@@ -25642,16 +25691,17 @@ int labl_print_table ()
           CTABindexToColor (mris->ct, structure_index, 
                             &color.mnRed, &color.mnGreen, &color.mnBlue);
           CTABcopyName (mris->ct, structure_index, structure_label);
+          CTABalphaLevel (mris->ct, structure_index, &alpha);
         } 
       else
         {
-          CLUT_GetColorInt (labl_table, structure_index, &color);
+          CLUT_GetColorInt (labl_table, structure_index, &color, &alpha);
           CLUT_GetLabel (labl_table, structure_index, structure_label);
         }
 
-      printf( "Structure %d: %s r %d g %d b %d", 
+      printf( "Structure %d: %s r %d g %d b %d a %d", 
               structure_index, structure_label, 
-              color.mnRed, color.mnGreen, color.mnBlue );
+              color.mnRed, color.mnGreen, color.mnBlue, alpha );
     }
   
   return (ERROR_NONE);
