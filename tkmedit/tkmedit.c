@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/26 20:48:57 $
-// Revision       : $Revision: 1.287 $
-char *VERSION = "$Revision: 1.287 $";
+// Revision Date  : $Date: 2006/05/30 21:28:39 $
+// Revision       : $Revision: 1.288 $
+char *VERSION = "$Revision: 1.288 $";
 
 #define TCL
 #define TKMEDIT
@@ -1138,7 +1138,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.287 2006/05/26 20:48:57 kteich Exp $",
+     "$Id: tkmedit.c,v 1.288 2006/05/30 21:28:39 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5679,7 +5679,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.287 2006/05/26 20:48:57 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.288 2006/05/30 21:28:39 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -10469,6 +10469,8 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   int        index        = 0;
   CLUT_tErr  eColorTable  = CLUT_tErr_NoErr;
   xColor3f   roiColor;
+  float      alpha        = 0;
+  float      finalAlpha   = 0;
 
   /* get the index of this voxel */
   GetSegLabel( iVolume, iMRIIdx, &index, NULL );
@@ -10480,17 +10482,20 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   }
 
   /* get the color out of the color map */
-  eColorTable = CLUT_GetColorFloat( gColorTable[iVolume], index, &roiColor );
+  eColorTable = CLUT_GetColorFloat( gColorTable[iVolume], index,
+				    &roiColor, &alpha );
   if( CLUT_tErr_NoErr != eColorTable )
     goto error;
 
+  finalAlpha = gfSegmentationAlpha * alpha;
+
   /* blend them */
-  oColor->mfRed = (gfSegmentationAlpha * roiColor.mfRed) +
-    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfRed);
-  oColor->mfGreen = (gfSegmentationAlpha * roiColor.mfGreen) +
-    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfGreen);
-  oColor->mfBlue = (gfSegmentationAlpha * roiColor.mfBlue) +
-    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfBlue);
+  oColor->mfRed = (finalAlpha * roiColor.mfRed) +
+    (float)((1.0-finalAlpha) * iBaseColor->mfRed);
+  oColor->mfGreen = (finalAlpha * roiColor.mfGreen) +
+    (float)((1.0-finalAlpha) * iBaseColor->mfGreen);
+  oColor->mfBlue = (finalAlpha * roiColor.mfBlue) +
+    (float)((1.0-finalAlpha) * iBaseColor->mfBlue);
 
   goto cleanup;
 
