@@ -23,13 +23,26 @@
 
 // Calculations performed on the curvature surface
 typedef enum _secondOrderType {
-	e_Raw,			// "Raw" (native) curvature - no calcuation
-	e_Gaussian, 		// Gaussian curvature
-	e_Mean,			// Mean curvature
-	e_Normal,		// Normalised curvature
-	e_Scaled,		// "Raw" scaled curvature
-	e_ScaledTrans		// Scaled and translated curvature
+	e_Raw		= 0,	// "Raw" (native) curvature - no calcuation
+	e_Gaussian	= 1,	// Gaussian curvature
+	e_Mean		= 2,	// Mean curvature
+	e_K1		= 3,	// k1 curvature
+	e_K2		= 4,	// k2 curvature
+	e_Normal	= 5,	// Normalised curvature
+	e_Scaled	= 6,	// "Raw" scaled curvature
+	e_ScaledTrans	= 7	// Scaled and translated curvature
 } e_secondOrderType;
+
+char* Gppch[]	= {
+	"Raw",
+	"Gaussian",
+	"Mean",
+	"k1",
+	"k2",
+	"Normal",
+	"Scaled",
+	"ScaledTrans"	
+};
 
 // Output file prefixes
 typedef enum _OFSP {
@@ -39,7 +52,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.21 2006/05/26 16:28:16 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.22 2006/05/30 20:37:11 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -58,7 +71,8 @@ void		histogram_create(
 			float			af_minCurv,
 			double			af_binSize,
 			int			abins,
-			float*			apf_histogram
+			float*			apf_histogram,
+			e_secondOrderType	aesot			
 		);
 void		OFSP_create(
 			char*			apch_prefix,
@@ -112,6 +126,14 @@ int		MRISvertexCurvature_set(
 int  		MRISzeroCurvature(
 			MRI_SURFACE*		apmris 
 		);
+
+int		MRISuseK1Curvature(
+			MRI_SURFACE*		mris
+		);
+int		MRISuseK2Curvature(
+			MRI_SURFACE*		mris
+		);
+
 
 char*		Progname ;
 char*		hemi;
@@ -179,6 +201,17 @@ static char	Gpch_scaledHistS[]	= "scaled.hist";
 static FILE*	GpFILE_scaledHist	= NULL;
 static char	Gpch_scaledCurv[STRBUF];
 static char	Gpch_scaledCurvS[]	= "scaled.crv";
+
+static char	Gpch_K1Hist[STRBUF];
+static char	Gpch_K1HistS[]		= "K1.hist";
+static FILE*	GpFILE_K1Hist		= NULL;
+static char	Gpch_K1Curv[STRBUF];
+static char	Gpch_K1CurvS[]		= "K1.crv";
+static char	Gpch_K2Hist[STRBUF];
+static char	Gpch_K2HistS[]		= "K2.hist";
+static FILE*	GpFILE_K2Hist		= NULL;
+static char	Gpch_K2Curv[STRBUF];
+static char	Gpch_K2CurvS[]		= "K2.crv";
 		
 // These are used for tabular output
 const int	G_leftCols		= 20;
@@ -209,7 +242,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.21 2006/05/26 16:28:16 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.22 2006/05/30 20:37:11 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -347,6 +380,10 @@ main(int argc, char *argv[])
       	if(Gpch_KCurv) MRISwriteCurvature(mris, Gpch_KCurv);
 	secondOrderParams_print(mris, e_Mean,	  i);
       	if(Gpch_HCurv) MRISwriteCurvature(mris, Gpch_HCurv);
+	secondOrderParams_print(mris, e_K1, i);
+      	if(Gpch_K1Curv) MRISwriteCurvature(mris, Gpch_K1Curv);
+	secondOrderParams_print(mris, e_K2, i);
+      	if(Gpch_K2Curv) MRISwriteCurvature(mris, Gpch_K2Curv);
     }
 
 
@@ -436,6 +473,50 @@ void secondOrderParams_print(
 	    sprintf(pch_out, "\nMean");
 	    f_min	= apmris->Hmin;
 	    f_max	= apmris->Hmax;
+	    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
+	    if(f_min != f_minExplicit) {
+	    	printf("\tLookup   min: %f\n", f_min);
+	    	printf("\tExplicit min: %f\tvertex = %d\n", f_minExplicit, vmin);
+		f_min = f_minExplicit;
+		apmris->Hmin 		= f_minExplicit;
+		apmris->min_curv	= f_minExplicit;
+	    }
+	    if(f_max != f_maxExplicit) {
+	    	printf("\tLookup   max: %f\n", f_max);
+	    	printf("\tExplicit max: %f\tvertex = %d\n", f_maxExplicit, vmax);
+		f_max = f_maxExplicit;
+		apmris->Hmax 		= f_maxExplicit;
+		apmris->max_curv	= f_maxExplicit;
+	    }
+	break;
+	case e_K1:
+	    sprintf(pch_type, "k1");
+    	    MRISuseK1Curvature(apmris);
+	    sprintf(pch_out, "\nk1");
+	    f_min	= apmris->min_curv;
+	    f_max	= apmris->max_curv;
+	    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
+	    if(f_min != f_minExplicit) {
+	    	printf("\tLookup   min: %f\n", f_min);
+	    	printf("\tExplicit min: %f\tvertex = %d\n", f_minExplicit, vmin);
+		f_min = f_minExplicit;
+		apmris->Hmin 		= f_minExplicit;
+		apmris->min_curv	= f_minExplicit;
+	    }
+	    if(f_max != f_maxExplicit) {
+	    	printf("\tLookup   max: %f\n", f_max);
+	    	printf("\tExplicit max: %f\tvertex = %d\n", f_maxExplicit, vmax);
+		f_max = f_maxExplicit;
+		apmris->Hmax 		= f_maxExplicit;
+		apmris->max_curv	= f_maxExplicit;
+	    }
+	break;
+	case e_K2:
+	    sprintf(pch_type, "k2");
+    	    MRISuseK2Curvature(apmris);
+	    sprintf(pch_out, "\nk2");
+	    f_min	= apmris->min_curv;
+	    f_max	= apmris->max_curv;
 	    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
 	    if(f_min != f_minExplicit) {
 	    	printf("\tLookup   min: %f\n", f_min);
@@ -586,6 +667,12 @@ MRISminMaxCurvaturesSearchSOT(
 	    case e_Mean:
 		f_curv	= pvertex->H;
 		break;
+	    case e_K1:
+		f_curv	= pvertex->k1;
+		break;
+	    case e_K2:
+		f_curv	= pvertex->k2;
+		break;
 	}
 	if(!vno) { f_min = f_max = f_curv; *ap_vertexMin = *ap_vertexMax = 0;}
       	if (pvertex->ripflag)
@@ -638,6 +725,53 @@ MRISminMaxCurvatureIndicesLookup(
     }
     return(NO_ERROR);
 }
+
+int
+MRISuseK1Curvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  float		f_min =  mris->vertices[0].curv;
+  float		f_max = f_min;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      if (vertex->ripflag)
+        continue ;
+      vertex->curv = vertex->k1 ;
+      if(vertex->curv < f_min) f_min = vertex->curv;
+      if(vertex->curv > f_max) f_max = vertex->curv;
+    }
+
+  mris->min_curv = f_min ; mris->max_curv = f_max;
+  return(NO_ERROR) ;
+}
+
+int
+MRISuseK2Curvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  float		f_min =  mris->vertices[0].curv;
+  float		f_max = f_min;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      if (vertex->ripflag)
+        continue ;
+      vertex->curv = vertex->k2 ;
+      if(vertex->curv < f_min) f_min = vertex->curv;
+      if(vertex->curv > f_max) f_max = vertex->curv;
+    }
+
+  mris->min_curv = f_min ; mris->max_curv = f_max;
+  return(NO_ERROR) ;
+}
+
 
 int  
 MRISzeroCurvature(
@@ -795,7 +929,8 @@ histogram_wrapper(
 			f_minCurv,
 			f_binSize,
 			G_bins,
-			pf_histogram);
+			pf_histogram,
+			aesot);
 
     printf("%*s%*s%*s\n", G_leftCols, "bin start", 
 			  G_leftCols, "bin end", 
@@ -824,6 +959,20 @@ histogram_wrapper(
 	    case e_Mean:
 		if(GpFILE_HHist!=NULL)
 		fprintf(GpFILE_HHist,"%f\t%f\t%f\n", 
+				(i*f_binSize)+f_minCurv,
+				((i+1)*f_binSize)+f_minCurv,
+				pf_histogram[i]);
+	    break;
+	    case e_K1:
+		if(GpFILE_K1Hist!=NULL)
+		fprintf(GpFILE_K1Hist,"%f\t%f\t%f\n", 
+				(i*f_binSize)+f_minCurv,
+				((i+1)*f_binSize)+f_minCurv,
+				pf_histogram[i]);
+	    break;
+	    case e_K2:
+		if(GpFILE_K2Hist!=NULL)
+		fprintf(GpFILE_K2Hist,"%f\t%f\t%f\n", 
 				(i*f_binSize)+f_minCurv,
 				((i+1)*f_binSize)+f_minCurv,
 				pf_histogram[i]);
@@ -884,7 +1033,8 @@ histogram_create(
 	float			af_minCurv,
 	double			af_binSize,
 	int			abins,
-	float*			apf_histogram
+	float*			apf_histogram,
+	e_secondOrderType	aesot
 ) {
     //
     // PRECONDITIONS
@@ -920,11 +1070,14 @@ histogram_create(
     double	l_leftBound;	//	are scaled up and truncated
     double	l_rightBound;	//	to minimise rounding errors
 
+    char	pch_sot[64];
+    strcpy(pch_sot, Gppch[aesot]);
+
     nvertices		= amris_curvature->nvertices;
-    fprintf(stdout, "\n%*s = %f\n",  
-		G_leftCols, "bin size", af_binSize);
-    fprintf(stdout, "%*s = %d\n",  
-		G_leftCols, "surface vertices", nvertices);
+    fprintf(stdout, "\n%*s%s = %f\n",  
+		G_leftCols, pch_sot, " bin size", af_binSize);
+    fprintf(stdout, "%*s%s = %d\n",  
+		G_leftCols, pch_sot, " surface vertices", nvertices);
     pf_curvature	= calloc(nvertices, sizeof(float));
     
     for(vno=0; vno < nvertices; vno++) 
@@ -961,10 +1114,10 @@ histogram_create(
 	if(totalCount == nvertices)
 	    break;
     }
-    fprintf(stdout, "%*s = %d\n", 
-		G_leftCols, "sorted vertices", totalCount);
-    fprintf(stdout, "%*s = %f\n", 
-		G_leftCols, "ratio", (float)totalCount / (float)nvertices);
+    fprintf(stdout, "%*s%s = %d\n", 
+		G_leftCols, pch_sot, " sorted vertices", totalCount);
+    fprintf(stdout, "%*s%s = %f\n", 
+		G_leftCols, pch_sot, " ratio", (float)totalCount / (float)nvertices);
     free(pf_curvature);
 }
 
@@ -1132,6 +1285,10 @@ outputFileNames_create(
     OFSP_create(Gpch_KCurv, 	Gpch_KCurvS,	apch_curv,	e_Partial);
     OFSP_create(Gpch_HHist,	Gpch_HHistS,	apch_curv,	e_Full);
     OFSP_create(Gpch_HCurv,	Gpch_HCurvS,	apch_curv,	e_Partial);
+    OFSP_create(Gpch_K1Hist, 	Gpch_K1HistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_K1Curv, 	Gpch_K1CurvS,	apch_curv,	e_Partial);
+    OFSP_create(Gpch_K2Hist, 	Gpch_K2HistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_K2Curv, 	Gpch_K2CurvS,	apch_curv,	e_Partial);
     OFSP_create(Gpch_scaledHist,Gpch_scaledHistS,apch_curv,	e_Full);
     OFSP_create(Gpch_scaledCurv,Gpch_scaledCurvS,apch_curv,	e_Partial);
 }
@@ -1183,6 +1340,18 @@ outputFiles_open(void) {
 				"%s: Could not open file '%s' for writing.\n",
 				Progname, Gpch_HHist);
 		}
+	    	if((GpFILE_K1Hist=fopen(Gpch_K1Hist, "w"))==NULL) {
+			printf("%*s\n", G_leftCols*2, Gpch_KHist);
+	    		ErrorExit(ERROR_NOFILE, 
+				"%s: Could not open file '%s' for writing.\n",
+				Progname, Gpch_K1Hist);
+		}
+	    	if((GpFILE_K2Hist=fopen(Gpch_K2Hist, "w"))==NULL) {
+			printf("%*s\n", G_leftCols*2, Gpch_KHist);
+	    		ErrorExit(ERROR_NOFILE, 
+				"%s: Could not open file '%s' for writing.\n",
+				Progname, Gpch_K2Hist);
+		}
 	    }
 	    printf("%*s\n", G_leftCols*2, Gpch_KCurv);
 	    printf("%*s\n", G_leftCols*2, Gpch_HCurv);
@@ -1214,6 +1383,8 @@ outputFiles_close(void) {
     if(GpFILE_normHist)	fclose(GpFILE_normHist);GpFILE_normHist	= NULL;
     if(GpFILE_KHist)	fclose(GpFILE_KHist);	GpFILE_KHist	= NULL;
     if(GpFILE_HHist)	fclose(GpFILE_HHist);	GpFILE_HHist	= NULL;
+    if(GpFILE_K1Hist)	fclose(GpFILE_K1Hist);	GpFILE_K1Hist	= NULL;
+    if(GpFILE_K2Hist)	fclose(GpFILE_K2Hist);	GpFILE_K2Hist	= NULL;
     if(GpFILE_scaledHist)
 			fclose(GpFILE_scaledHist); GpFILE_scaledHist = NULL;
 }
