@@ -11796,7 +11796,7 @@ mghWrite(MRI *mri, char *fname, int frame)
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
-  int gzipped = 0;
+  int gzipped = 0, err;
   char *ext;
 
   if (frame >= 0)
@@ -11807,41 +11807,40 @@ mghWrite(MRI *mri, char *fname, int frame)
     }
   ////////////////////////////////////////////////////////////
   ext = strrchr(fname, '.') ;
-  if (ext)
-    {
-      char command[STRLEN];
-      ++ext;
-      // if mgz, then it is compressed
-      if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
-        {
-          // route stdout to a file
-          gzipped = 1;
-          myclose = pclose; // assign function pointer for closing
-          // pipe writeto "gzip" open
-          // pipe can executed under shell and thus understands >
-          strcpy(command, "gzip -f -c > ");
-          strcat(command, fname);
-          errno = 0;
-          fp = popen(command, "w");
-          if (!fp)
-            {
-              errno = 0;
-              ErrorReturn
-                (ERROR_BADPARM,
-                 (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
-                  fname, frame)) ;
-            }
-          if (errno)
-            {
-              pclose(fp);
-              errno = 0;
-              ErrorReturn
-                (ERROR_BADPARM,
-                 (ERROR_BADPARM,"mghWrite(%s, %d): gzip had error",
-                  fname, frame)) ;
-            }
-        }
-      else if (!stricmp(ext, "mgh"))
+  if (ext){
+    char command[STRLEN];
+    ++ext;
+    // if mgz, then it is compressed
+    if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz")){
+      // route stdout to a file
+      gzipped = 1;
+      myclose = pclose; // assign function pointer for closing
+      // pipe writeto "gzip" open
+      // pipe can executed under shell and thus understands >
+      strcpy(command, "gzip -f -c > ");
+      strcat(command, fname);
+      errno = 0;
+      fp = popen(command, "w");
+      err = errno;
+      if(!fp){
+	printf("ERROR: opening pipe %s, errno = %d\n",command,err);
+	printf("%s\n",strerror(err));
+	errno = 0;
+	ErrorReturn
+	  (ERROR_BADPARM,
+	   (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+	    fname, frame)) ;
+      }
+      if(errno) {
+	pclose(fp);
+	errno = 0;
+	ErrorReturn
+	  (ERROR_BADPARM,
+	   (ERROR_BADPARM,"mghWrite(%s, %d): gzip had error",
+	    fname, frame)) ;
+      }
+    }
+    else if (!stricmp(ext, "mgh"))
         {
           fp = fopen(fname, "wb") ;
           myclose = fclose; // assign function pointer for closing
