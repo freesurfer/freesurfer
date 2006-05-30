@@ -44,7 +44,7 @@ CTABread(char *fname)
 	while ((cp = fgetl(line, STRLEN, fp)) != NULL)
 	{
 		cte = &ct->bins[nbins] ;
-		if (sscanf(line, "%d %s %d %d %d %d", &cte->index,cte->name,&cte->r,&cte->g,&cte->b,&cte->flag) != 6)
+		if (sscanf(line, "%d %s %d %d %d %d", &cte->index,cte->name,&cte->r,&cte->g,&cte->b,&cte->trans) != 6)
 		{
 			printf("CTABread(%s): could not scan 6 parms from line %s (%d)\n",fname,cp, nbins) ;
 			continue ;
@@ -84,7 +84,7 @@ CTABwriteInto(FILE *fp, COLOR_TABLE *ct)
 		fwriteInt(cte->r, fp) ;
 		fwriteInt(cte->g, fp) ;
 		fwriteInt(cte->b, fp) ;
-		fwriteInt(cte->flag, fp) ;
+		fwriteInt(cte->trans, fp) ;
 	}
 	return(NO_ERROR) ;
 }
@@ -115,7 +115,7 @@ CTABreadFrom(FILE *fp)
 		cte->r = freadInt(fp) ;
 		cte->g = freadInt(fp) ;
 		cte->b = freadInt(fp) ;
-		cte->flag = freadInt(fp) ;
+		cte->trans   = freadInt(fp) ;
 		cte->index = i ;
 	}
 	return(ct) ;
@@ -193,6 +193,39 @@ CTABindexToAnnotation(COLOR_TABLE *ct, int index, int *pannot)
 }
 
 int
+CTABannotationToIndex(COLOR_TABLE *ctab, int annotation)
+{
+  int   r, g, b, index ;
+
+	if (ctab == NULL)
+		return(-1) ;
+	r = annotation & 0x0000ff ;
+	g = (annotation >> 8) & 0x0000ff ;
+	b = (annotation >> 16) & 0x0000ff ;
+	CTABcolorToIndex(ctab, r, g, b, &index) ;
+	return(index) ;
+}
+
+int
+CTABalphaLevel(COLOR_TABLE *pct, int index, int *alpha)
+{
+  CTE *bin;
+
+  if (NULL == pct)
+    return(ERROR_BAD_PARM);
+
+  if (index < 0 || index >= pct->nbins)
+    return(ERROR_BAD_PARM);
+    
+  /* We return 255 - the transparency value here to make it an alpha
+     level. */
+  bin = &(pct->bins[index]);
+  *alpha = 255 - bin->trans;
+
+  return(NO_ERROR);
+}
+
+int
 CTABcopyName(COLOR_TABLE *pct, int index, char *name)
 {
   CTE *bin;
@@ -209,19 +242,6 @@ CTABcopyName(COLOR_TABLE *pct, int index, char *name)
   return(NO_ERROR);
 }
 
-int
-CTABannotationToIndex(COLOR_TABLE *ctab, int annotation)
-{
-  int   r, g, b, index ;
-
-	if (ctab == NULL)
-		return(-1) ;
-	r = annotation & 0x0000ff ;
-	g = (annotation >> 8) & 0x0000ff ;
-	b = (annotation >> 16) & 0x0000ff ;
-	CTABcolorToIndex(ctab, r, g, b, &index) ;
-	return(index) ;
-}
 int
 CTABnameToIndex(COLOR_TABLE *ctab, char *name)
 {
