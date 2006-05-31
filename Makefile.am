@@ -180,6 +180,7 @@ MRISSUBDIRS=label_area \
 	mris_sample_label \
 	mris_sample_parc \
 	mris_segment_vals \
+	mris_seg2annot \
 	mris_smooth mris_sphere \
 	mris_spherical_average \
 	mris_surface_to_vol_distances \
