@@ -1,4 +1,4 @@
-// $Id: mris_seg2annot.c,v 1.2 2006/05/31 19:47:34 greve Exp $
+// $Id: mris_seg2annot.c,v 1.3 2006/05/31 21:23:18 greve Exp $
 
 /*
   BEGINHELP
@@ -18,7 +18,9 @@ corresponding color table.
 Color table used to map segmentation index to name and color. This is
 something that can be created by the user to create custom
 annotations. This color table is then imbedded in the annotation
-file. The format should be the same as in 
+file. Be default, it will look for this file in $FREESURFER_HOME.  If
+this is not where your color table is, then add a './' in front of the
+name. The format should be the same as in
 $FREESURFER_HOME/FreeSurferColorsLUT.txt.
 
 --s subject
@@ -36,7 +38,7 @@ in front of it (eg, './'). This is a file like lh.aparc.annot.
 EXAMPLE:
 
   mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\
-    --s FL_002 --h lh --ctab MyColorLUT.txt \\
+    --s FL_002 --h lh --ctab ./MyColorLUT.txt \\
     --o ./lh.myaparc.annot
 
 lh.myaparc.annot can then be loaded into tksurfer as with any other 
@@ -88,7 +90,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.2 2006/05/31 19:47:34 greve Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.3 2006/05/31 21:23:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,7 +109,7 @@ MRI *surfseg, *mritmp;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs,vtxno,ano,segid,nv;
+  int nargs,vtxno,ano,segid,nv,err;
   char tmpstr[2000];
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -135,7 +137,12 @@ int main(int argc, char *argv[])
     printf("ERROR: reading %s\n",ctabfile);
     exit(1);
   }
-  read_named_annotation_table(ctabfile);
+  err = read_named_annotation_table(ctabfile);
+  if(err){
+    printf("ERROR: reading %s\n",ctabfile);
+    printf("If you do not give a path, it will look in $FREESURFER_HOME\n");
+    exit(1);
+  }
 
   printf("Reading surface seg %s\n",surfsegfile);
   surfseg = MRIread(surfsegfile);
@@ -289,7 +296,9 @@ printf("\n");
 printf("Color table used to map segmentation index to name and color. This is\n");
 printf("something that can be created by the user to create custom\n");
 printf("annotations. This color table is then imbedded in the annotation\n");
-printf("file. The format should be the same as in \n");
+printf("file. Be default, it will look for this file in $FREESURFER_HOME.  If\n");
+printf("this is not where your color table is, then add a './' in front of the\n");
+printf("name. The format should be the same as in\n");
 printf("$FREESURFER_HOME/FreeSurferColorsLUT.txt.\n");
 printf("\n");
 printf("--s subject\n");
@@ -307,7 +316,7 @@ printf("\n");
 printf("EXAMPLE:\n");
 printf("\n");
 printf("  mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\\n");
-printf("    --s FL_002 --h lh --ctab MyColorLUT.txt \\\n");
+printf("    --s FL_002 --h lh --ctab ./MyColorLUT.txt \\\n");
 printf("    --o ./lh.myaparc.annot\n");
 printf("\n");
 printf("lh.myaparc.annot can then be loaded into tksurfer as with any other \n");
