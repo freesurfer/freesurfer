@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.9 2006/04/20 21:44:35 greve Exp $
+// $Id: mri_concat.c,v 1.10 2006/05/31 22:11:57 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.9 2006/04/20 21:44:35 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.10 2006/05/31 22:11:57 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -34,6 +34,7 @@ int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout;
 int DoMean=0;
+int DoMax=0;
 int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
@@ -160,8 +161,15 @@ int main(int argc, char **argv)
   }
 
   if(DoMean){
-    printf("Computing mean \n");
+    printf("Computing mean across frames\n");
     mritmp = MRIframeMean(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
+  if(DoMax){
+    printf("Computing max across all frames \n");
+    mritmp = MRIvolMax(mriout,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -198,6 +206,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--paired-diff")) DoPairedDiff = 1;
     else if (!strcasecmp(option, "--paired-diff-norm")) {
       DoPairedDiff = 1;
@@ -255,6 +264,7 @@ static void print_usage(void)
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
   printf("   --mean : compute mean of concatenated volumes\n");
+  printf("   --max  : compute max  of concatenated volumes\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
