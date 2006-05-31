@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qmedit - quick tkmedit
 #
-set VERSION = '$Id: qmedit,v 1.4 2005/09/16 17:59:23 greve Exp $';
+set VERSION = '$Id: qmedit,v 1.5 2006/05/31 15:23:59 greve Exp $';
 set cmdargs = ($argv);
 
 set anatvol    = orig;
@@ -18,7 +18,7 @@ set regfile    = ();
 set fthresh = 2
 set fmid = 5;
 set fslope = 0.33
-set MGZ = ();
+set MGZ = .mgz;
 
 set tkmeditargs = ();
 
@@ -39,9 +39,6 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set anatvol = $anatvol$MGZ
-set auxvol  = $auxvol$MGZ
-
 if($#regfile) then
   set regfilebase = `basename $regfile`;
   set regfiledir  = `dirname $regfile`;
@@ -57,10 +54,13 @@ if($#regfile) then
   endif
 endif
 
+set anatvol = $anatvol$MGZ
 if(! -e $SUBJECTS_DIR/$subject/mri/$anatvol) then
-  echo "ERROR: cannot find $anatvol in $subject/mri"
+  echo "ERROR: cannot find $anatvol$MGZ in $subject/mri"
   exit 1;
 endif
+
+set auxvol  = $auxvol$MGZ
 
 if($#segvol) then
   set segpath = $SUBJECTS_DIR/$subject/mri/$segvol$MGZ
@@ -186,6 +186,10 @@ while( $#argv != 0 )
       set MGZ = .mgz
       breaksw
 
+    case "-cor":
+      set MGZ = ();
+      breaksw
+
     case "--version":
     case "-version":
       echo $VERSION
@@ -246,7 +250,7 @@ usage_exit:
   echo "   -fmask  : fthresh=0.5, fmid=1, fslope=1"
   echo "   -anat    anatvol : default is orig"
   echo "   -aux     auxvol : default is brain"
-  echo "   -seg     segvol : eg, aseg"
+  echo "   -seg     segvol : eg, aparc+aseg"
   echo "   -noaux : do not use an aux volume"
   echo "   -mgz : assume anats are mgz"
   echo "   -surf surfname : eg, lh.white"
