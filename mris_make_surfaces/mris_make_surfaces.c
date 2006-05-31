@@ -20,7 +20,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.73 2006/05/31 02:00:21 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.74 2006/05/31 21:21:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -160,10 +160,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.73 2006/05/31 02:00:21 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.74 2006/05/31 21:21:22 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.73 2006/05/31 02:00:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.74 2006/05/31 21:21:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1734,18 +1734,17 @@ smooth_contra_hemi(MRI *mri_filled, MRI *mri_src, MRI *mri_dst, float ipsi_label
 
 	mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-	// do soap bubble smoothing within the contra hemi do blur out any boundaries
-	MRIreplaceValues(mri_filled, mri_filled, ipsi_label, 0) ;
-	MRIwrite(mri_filled, "f.mgz") ;
-	mri_ctrl = MRIdilate(mri_filled, NULL) ;
-	MRIreplaceValues(mri_ctrl, mri_ctrl, contra_label, CONTROL_TMP) ;
-	MRIreplaceValues(mri_ctrl, mri_ctrl, 0, CONTROL_MARKED) ;
-	MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_TMP, 0) ;
+	printf("smoothing contralateral hemisphere...\n") ;
 
-  MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_dst) ;
-  MRIsoapBubble(mri_dst, mri_ctrl, mri_dst, 10) ;
+	// do soap bubble smoothing within the contra hemi do blur out any boundaries
+	mri_ctrl = MRIreplaceValues(mri_filled, NULL, ipsi_label, 0) ;
+	MRIdilate(mri_ctrl, mri_ctrl) ;
+	mri_dst = MRIsmoothLabel(mri_src, mri_ctrl, NULL, 10, contra_label) ;
 	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		MRIwrite(mri_ctrl, "ctrl.mgz") ;
 		MRIwrite(mri_dst, "contra_smoothed.mgz") ;
+	}
 
 	MRIfree(&mri_ctrl) ;
 	return(mri_dst) ;
