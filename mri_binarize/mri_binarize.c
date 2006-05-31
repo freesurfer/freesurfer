@@ -1,4 +1,4 @@
-// $Id: mri_binarize.c,v 1.3 2006/05/31 21:14:48 greve Exp $
+// $Id: mri_binarize.c,v 1.4 2006/05/31 23:09:43 greve Exp $
 
 /*
   BEGINHELP
@@ -102,7 +102,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.3 2006/05/31 21:14:48 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.4 2006/05/31 23:09:43 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -118,6 +118,7 @@ int MinThreshSet=0, MaxThreshSet=0;
 int BinVal=1;
 int BinValNot=0;
 int frame=0;
+int DoAbs=0;
 
 MRI *InVol,*OutVol,*MergeVol,*MaskVol;
 double MaskThresh = 0.5;
@@ -153,6 +154,11 @@ int main(int argc, char *argv[])
     printf("ERROR: requested frame=%d >= nframes=%d\n",
 	   frame,InVol->nframes);
     exit(1);
+  }
+
+  if(DoAbs){
+    printf("Removing sign from input\n");
+    MRIabs(InVol,InVol);
   }
 
   // Load the merge volume (if needed)
@@ -257,6 +263,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--abs")) DoAbs = 0;
 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -344,6 +351,7 @@ static void print_usage(void)
   printf("   --merge mergevol   : merge with mergevolume \n");
   printf("   --mask maskvol       : must be within mask \n");
   printf("   --mask-thresh thresh : set thresh for mask (def is 0.5) \n");
+  printf("   --abs : take abs of invol first (ie, make unsigned)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
