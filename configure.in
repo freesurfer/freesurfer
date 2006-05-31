@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.192 2006/05/31 19:20:57 greve Exp $"
+# "$Id: configure.in,v 1.193 2006/05/31 20:40:10 greve Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1282,6 +1282,7 @@ AC_OUTPUT([Makefile
                  mri_auto_fill/Makefile
                  mri_average/Makefile
                  mri_bc_sc_bias_correct/Makefile
+                 mri_binarize/Makefile
                  mri_build_priors/Makefile
                  mri_ca_label/Makefile
                  mri_ca_normalize/Makefile

@@ -23,6 +23,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_aparc2wmseg \
 	mri_auto_fill \
 	mri_average \
+	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
 	mri_ca_normalize \
