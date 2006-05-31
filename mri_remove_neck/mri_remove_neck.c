@@ -59,7 +59,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.4 2006/05/30 22:23:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.5 2006/05/31 15:41:53 greve Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -107,11 +107,14 @@ main(int argc, char *argv[])
   mri_out = MRIremoveNonBrain(mri_in, NULL, transform, gca, radius, fill_val) ;
   printf("writing output to %s...\n", out_fname) ;
   fflush(stdout) ;
+
+  GCAfree(&gca) ;
+  MRIfree(&mri_in) ; 
+
   err=MRIwrite(mri_out, out_fname);
   if(err) exit(1);
 
-  GCAfree(&gca) ;
-  MRIfree(&mri_in) ; MRIfree(&mri_out)  ;
+  MRIfree(&mri_out)  ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
