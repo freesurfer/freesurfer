@@ -1,4 +1,4 @@
-// $Id: mri_binarize.c,v 1.4 2006/05/31 23:09:43 greve Exp $
+// $Id: mri_binarize.c,v 1.5 2006/05/31 23:17:31 greve Exp $
 
 /*
   BEGINHELP
@@ -102,7 +102,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.4 2006/05/31 23:09:43 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.5 2006/05/31 23:17:31 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -263,7 +263,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--abs")) DoAbs = 0;
+    else if (!strcasecmp(option, "--abs")) DoAbs = 1;
 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -288,7 +288,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--mask-thresh")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&MaskThresh);
-      MinThreshSet = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--min")){
@@ -459,7 +458,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"frame      %d\n",frame);
   fprintf(fp,"output     %s\n",OutVolFile);
   if(MinThreshSet) 
-    fprintf(fp,"min        %g\n",MaxThresh);
+    fprintf(fp,"min        %g\n",MinThresh);
   else
     fprintf(fp,"min        -infinity\n");
   if(MaxThreshSet) 
