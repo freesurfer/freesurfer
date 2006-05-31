@@ -931,6 +931,7 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
+MRI *MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, int label) ;
 MRI *MRIreadGeRoi(char *fname, int n_slices);
 
 int decompose_b_fname(char *fname_passed, char *directory, char *stem);
