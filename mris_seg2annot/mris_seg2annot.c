@@ -1,4 +1,49 @@
+// $Id: mris_seg2annot.c,v 1.2 2006/05/31 19:47:34 greve Exp $
 
+/*
+  BEGINHELP
+
+Converts a surfaced-based segmentation into a custom annotation file.
+
+--seg surfseg
+
+Surface segmentation file. This could be as simple as a binarized
+functional map. The values are whole numbers indicating the index into
+the color table. This file is similar to the volume-based aseg.  The
+hard part to getting a custom annotation is in creating this file and
+corresponding color table.
+
+--ctab colortable
+
+Color table used to map segmentation index to name and color. This is
+something that can be created by the user to create custom
+annotations. This color table is then imbedded in the annotation
+file. The format should be the same as in 
+$FREESURFER_HOME/FreeSurferColorsLUT.txt.
+
+--s subject
+--h hemi
+
+Subject and hemisphere. Used to load in the surface upon which the 
+annotation is created.
+
+--o annot
+
+Output annotation file. By default, it will be stored in the subject's 
+label directory. If you do not want it there, then supply some path
+in front of it (eg, './'). This is a file like lh.aparc.annot. 
+
+EXAMPLE:
+
+  mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\
+    --s FL_002 --h lh --ctab MyColorLUT.txt \\
+    --o ./lh.myaparc.annot
+
+lh.myaparc.annot can then be loaded into tksurfer as with any other 
+parcellation/annotation.
+
+  ENDHELP
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +88,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.1 2006/05/31 19:20:36 greve Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.2 2006/05/31 19:47:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -57,12 +102,12 @@ char  *SUBJECTS_DIR;
 
 COLOR_TABLE *ctab = NULL;
 MRI_SURFACE *mris;
-MRI *surfseg;
+MRI *surfseg, *mritmp;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs,vtxno,ano,segid;
+  int nargs,vtxno,ano,segid,nv;
   char tmpstr[2000];
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -96,6 +141,18 @@ int main(int argc, char *argv[])
   surfseg = MRIread(surfsegfile);
   if(surfseg == NULL) exit(1);
 
+  nv = surfseg->width * surfseg->height * surfseg->depth;
+  if(surfseg->height != 1 || surfseg->depth != 1){
+    printf("Reshaping\n");
+    mritmp = mri_reshape(surfseg, nv, 1, 1, surfseg->nframes);
+    if(mritmp == NULL){
+      printf("ERROR: mri_reshape could not alloc\n");
+      exit(1);
+    }
+    MRIfree(&surfseg);
+    surfseg = mritmp;
+  }
+
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(SUBJECTS_DIR == NULL){
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
@@ -106,6 +163,13 @@ int main(int argc, char *argv[])
   mris = MRISread(tmpstr);
   if(mris==NULL) exit(1);
   mris->ct = ctab;
+
+  if(mris->nvertices != nv){
+    printf("ERROR: dimension mismatch. Surface has %d vertices, seg has %d\n",
+	   mris->nvertices,nv);
+    printf("Make sure the surface segmentation matches the subject and hemi\n");
+    exit(1);
+  }
 
   for(vtxno=0; vtxno < mris->nvertices; vtxno++){
     segid = MRIgetVoxVal(surfseg,vtxno,0,0,0);
@@ -191,11 +255,11 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --seg surfseg : volume-encoded surface segmentation \n");
-  printf("   --s subject \n");
-  printf("   --h hemi \n");
-  printf("   --ctab colortable \n");
-  printf("   --o outparc \n");
+  printf("   --seg  surfseg    : volume-encoded surface segmentation \n");
+  printf("   --ctab colortable : color table (like FreeSurferColorLUT.txt)\n");
+  printf("   --s subject   : subject name\n");
+  printf("   --h hemi      : surface hemifield\n");
+  printf("   --o annot     : output annotation file\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -209,7 +273,46 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+printf("\n");
+printf("Converts a surfaced-based segmentation into a custom annotation file.\n");
+printf("\n");
+printf("--seg surfseg\n");
+printf("\n");
+printf("Surface segmentation file. This could be as simple as a binarized\n");
+printf("functional map. The values are whole numbers indicating the index into\n");
+printf("the color table. This file is similar to the volume-based aseg.  The\n");
+printf("hard part to getting a custom annotation is in creating this file and\n");
+printf("corresponding color table.\n");
+printf("\n");
+printf("--ctab colortable\n");
+printf("\n");
+printf("Color table used to map segmentation index to name and color. This is\n");
+printf("something that can be created by the user to create custom\n");
+printf("annotations. This color table is then imbedded in the annotation\n");
+printf("file. The format should be the same as in \n");
+printf("$FREESURFER_HOME/FreeSurferColorsLUT.txt.\n");
+printf("\n");
+printf("--s subject\n");
+printf("--h hemi\n");
+printf("\n");
+printf("Subject and hemisphere. Used to load in the surface upon which the \n");
+printf("annotation is created.\n");
+printf("\n");
+printf("--o annot\n");
+printf("\n");
+printf("Output annotation file. By default, it will be stored in the subject's \n");
+printf("label directory. If you do not want it there, then supply some path\n");
+printf("in front of it (eg, './'). This is a file like lh.aparc.annot. \n");
+printf("\n");
+printf("EXAMPLE:\n");
+printf("\n");
+printf("  mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\\n");
+printf("    --s FL_002 --h lh --ctab MyColorLUT.txt \\\n");
+printf("    --o ./lh.myaparc.annot\n");
+printf("\n");
+printf("lh.myaparc.annot can then be loaded into tksurfer as with any other \n");
+printf("parcellation/annotation.\n");
+printf("\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
