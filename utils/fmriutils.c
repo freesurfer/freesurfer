@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.29 2006/02/07 22:34:43 greve Exp $
+   $Id: fmriutils.c,v 1.30 2006/05/31 22:11:02 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.29 2006/02/07 22:34:43 greve Exp $");
+  return("$Id: fmriutils.c,v 1.30 2006/05/31 22:11:02 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -1156,6 +1156,40 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame)
     }
   }
   return(0);
+}
+
+/*----------------------------------------------------------------
+  MRI *MRIvolMax(MRI *vol, MRI *out) - the value at each voxel
+  is the maximum over the frames at that voxel.
+  --------------------------------------------------------------*/
+MRI *MRIvolMax(MRI *invol, MRI *out)
+{
+  int c, r, s, f;
+  double v, max;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,invol->type);
+    if(out == NULL) return(NULL);
+  }
+  if(out->width != invol->width || out->height != invol->height ||
+     out->depth != invol->depth){
+    printf("ERROR: MRIvolMax: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for(c=0; c < invol->width; c++){
+    for(r=0; r < invol->height; r++){
+      for(s=0; s < invol->depth; s++){
+	max = MRIgetVoxVal(invol,c,r,s,0);
+	for(f=1; f < invol->nframes; f++){
+	  v = MRIgetVoxVal(invol,c,r,s,f);
+	  if(max < v) max = v;
+	}
+	MRIsetVoxVal(out,c,r,s,0,max);
+      }
+    }
+  }
+  return(out);
 }
 
 /*---------------------------------------------------------------
