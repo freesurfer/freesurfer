@@ -1,4 +1,4 @@
-// $Id: mri_binarize.c,v 1.2 2006/05/31 21:03:59 greve Exp $
+// $Id: mri_binarize.c,v 1.3 2006/05/31 21:14:48 greve Exp $
 
 /*
   BEGINHELP
@@ -34,13 +34,20 @@ values. binvalnot only applies when a merge volume is not specified.
 
 Use give frame of the input. 0-based. Default is 0.
 
---m mergevol
+--merge mergevol
 
 Merge binarization with the mergevol. If the voxel is within the threshold
 range, then its value will be binval. If not, then it will inherit its
 value from the value at that voxel in mergevol. mergevol must be the same
 dimension as the input volume. Combining this with --binval allows you
 to construct crude segmentations.
+
+--mask maskvol
+--mask-thresh thresh
+
+Mask input with mask. The mask volume is itself binarized at thresh 
+(default is 0.5). If a voxel is not in the mask, then it will be assigned
+binvalnot or the value from the merge volume.
 
   ENDHELP
 */
@@ -95,7 +102,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.2 2006/05/31 21:03:59 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.3 2006/05/31 21:14:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -105,19 +112,21 @@ struct utsname uts;
 char *InVolFile=NULL;
 char *OutVolFile=NULL;
 char *MergeVolFile=NULL;
+char *MaskVolFile=NULL;
 double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
 int BinVal=1;
 int BinValNot=0;
 int frame=0;
 
-MRI *InVol,*OutVol,*MergeVol;
+MRI *InVol,*OutVol,*MergeVol,*MaskVol;
+double MaskThresh = 0.5;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs, c, r, s, nhits;
-  double val,outputval;
+  int nargs, c, r, s, nhits, InMask;
+  double val,outputval,maskval;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -164,19 +173,44 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Load the mask volume (if needed)
+  if(MaskVolFile){
+    MaskVol = MRIread(MaskVolFile);
+    if(MaskVol==NULL) exit(1);
+    if(MaskVol->width != InVol->width){
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+    if(MaskVol->height != InVol->height){
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+    if(MaskVol->depth != InVol->depth){
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+  }
+
   // Prepare the output volume
   OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,MRI_INT);
   if(OutVol == NULL) exit(1);
   MRIcopyHeader(InVol, OutVol);
 
   // Binarize
+  InMask = 1;
   nhits = 0;
   for(c=0; c < InVol->width; c++){
     for(r=0; r < InVol->height; r++){
       for(s=0; s < InVol->depth; s++){
 	val = MRIgetVoxVal(InVol,c,r,s,frame);
+	if(MaskVol){
+	  maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
+	  if(maskval > MaskThresh) InMask = 1;
+	  else                     InMask = 0;
+	}
 	if((MinThreshSet && (val < MinThresh)) || 
-	   (MaxThreshSet && (val > MaxThresh)) ){
+	   (MaxThreshSet && (val > MaxThresh)) ||
+	   !InMask ){
 	  // Not in the Range
 	  if(MergeVol)
 	    outputval = MRIgetVoxVal(MergeVol,c,r,s,0);
@@ -234,9 +268,20 @@ static int parse_commandline(int argc, char **argv)
       OutVolFile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--m")){
+    else if (!strcasecmp(option, "--merge")){
       if(nargc < 1) CMDargNErr(option,1);
       MergeVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      MaskVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--mask-thresh")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&MaskThresh);
+      MinThreshSet = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--min")){
@@ -296,7 +341,9 @@ static void print_usage(void)
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
   printf("   --frame frameno    : use 0-based frame of input (default is 0) \n");
-  printf("   --m mergevol : merge with mergevolume \n");
+  printf("   --merge mergevol   : merge with mergevolume \n");
+  printf("   --mask maskvol       : must be within mask \n");
+  printf("   --mask-thresh thresh : set thresh for mask (def is 0.5) \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -342,13 +389,20 @@ printf("--frame frameno\n");
 printf("\n");
 printf("Use give frame of the input. 0-based. Default is 0.\n");
 printf("\n");
-printf("--m mergevol\n");
+printf("--merge mergevol\n");
 printf("\n");
 printf("Merge binarization with the mergevol. If the voxel is within the threshold\n");
 printf("range, then its value will be binval. If not, then it will inherit its\n");
 printf("value from the value at that voxel in mergevol. mergevol must be the same\n");
 printf("dimension as the input volume. Combining this with --binval allows you\n");
 printf("to construct crude segmentations.\n");
+printf("\n");
+printf("--mask maskvol\n");
+printf("--mask-thresh thresh\n");
+printf("\n");
+printf("Mask input with mask. The mask volume is itself binarized at thresh \n");
+printf("(default is 0.5). If a voxel is not in the mask, then it will be assigned\n");
+printf("binvalnot or the value from the merge volume.\n");
 printf("\n");
   exit(1) ;
 }
@@ -408,5 +462,9 @@ static void dump_options(FILE *fp)
   fprintf(fp,"binvalnot     %d\n",BinValNot);
   if(MergeVolFile) 
     fprintf(fp,"merge      %s\n",MergeVolFile);
+  if(MaskVolFile){ 
+    fprintf(fp,"mask       %s\n",MaskVolFile);
+    fprintf(fp,"maskthresh %lf\n",MaskThresh);
+  }
   return;
 }
