@@ -2174,7 +2174,7 @@ MRI *
 MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
   int  width, height, depth, klen, frame ;
-  MRI  *mtmp1 ;
+  MRI  *mtmp1, *mri_tmp ;
   float *kernel ;
 
   kernel = &MRIFvox(mri_gaussian, 0, 0, 0) ;
@@ -2191,6 +2191,11 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+	if (mri_dst == mri_src)
+		mri_tmp = mri_dst = MRIclone(mri_src, NULL) ;
+	else
+		mri_tmp = NULL ;
+
 	mtmp1 = NULL ;
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
   {
@@ -2205,6 +2210,12 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   MRIcopyHeader(mri_src, mri_dst) ;
 	MRIfree(&mtmp1) ;
 
+	if (mri_tmp) // src and dst are the same
+	{
+		MRIcopy(mri_tmp, mri_src) ;
+		mri_dst = mri_src ;
+		MRIfree(&mri_tmp) ;
+	}
   return(mri_dst) ;
 }
 /*---------------------------------------------------------------------
@@ -2707,6 +2718,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
+						if (x == Gx && y == Gy && z == Gz)
+							DiagBreak() ;
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
@@ -2751,6 +2764,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
+						if (Gx == x && Gy == y && Gz == z)
+							DiagBreak() ;
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
@@ -2770,6 +2785,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
+
+						if (x == Gx && y == Gy && z == Gz)
+							DiagBreak() ;
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * 
@@ -4769,5 +4787,59 @@ MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
   }
 
   return(mri_dst) ;
+}
+
+MRI *
+MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, int label)
+{
+	int   x, y, z, n, xi, yi, zi, xk, yk, zk, i, l ;
+	float val, val_mean ;
+	MRI   *mri_tmp ;
+
+	mri_tmp = MRIcopy(mri_intensity, NULL) ;
+	mri_smooth = MRIcopy(mri_intensity, NULL) ;
+
+	for (i = 0 ; i < niter ; i++)
+	{
+		for (x = 0 ; x < mri_tmp->width ; x++)
+		{
+			for (y = 0 ; y < mri_tmp->height ; y++)
+			{
+				for (z = 0 ; z < mri_tmp->depth ; z++)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					l = nint(MRIgetVoxVal(mri_label, x, y, z, 0)) ;
+					if (l != label)
+						continue ;
+					val_mean = 0 ; n = 0 ;
+					for (xk = -1 ; xk <= 1 ; xk++)
+					{
+						xi = mri_tmp->xi[xk+x] ;
+						for (yk = -1 ; yk <= 1 ; yk++)
+						{
+							yi = mri_tmp->yi[yk+y] ;
+							for (zk = -1 ; zk <= 1 ; zk++)
+							{
+								zi = mri_tmp->zi[zk+z] ;
+								l = nint(MRIgetVoxVal(mri_label, xi, yi, zi, 0)) ;
+								if (l != label)
+									continue ;
+								val = MRIgetVoxVal(mri_smooth, xi, yi, zi, 0) ;
+								val_mean += val ;
+								n++ ;
+							}
+						}
+					}
+					if (n > 0)
+						MRIsetVoxVal(mri_tmp, x, y, z, 0, val_mean/(float)n) ;
+				}
+			}
+		}
+		MRIcopy(mri_tmp, mri_smooth) ;
+	}
+
+	MRIfree(&mri_tmp) ;
+	return(mri_smooth) ;
 }
 
