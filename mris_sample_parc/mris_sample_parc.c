@@ -19,7 +19,7 @@
 #include "mrishash.h"
 
 static char vcid[] = 
-"$Id: mris_sample_parc.c,v 1.21 2006/01/31 15:37:22 fischl Exp $";
+"$Id: mris_sample_parc.c,v 1.22 2006/06/01 22:31:53 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mris_sample_parc.c,v 1.21 2006/01/31 15:37:22 fischl Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
+																 "$Id: mris_sample_parc.c,v 1.22 2006/06/01 22:31:53 kteich Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
 																	 exit (0);
   argc -= nargs;
 
@@ -157,11 +157,11 @@ main(int argc, char *argv[])
 	}
 
   if (color_table_fname)
-	{
-    mris->ct = CTABread(color_table_fname) ;
-		if (mris->ct == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not read color file %s", 
-								Progname, color_table_fname) ;
+    {
+      mris->ct = CTABreadASCII(color_table_fname) ;
+      if (mris->ct == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read color file %s", 
+		  Progname, color_table_fname) ;
 	}
 
 	if (sample_from_vol_to_surf) // sample from volume to surface */

@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/05/22 19:57:15 $
-// Revision       : $Revision: 1.468 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/06/01 22:29:22 $
+// Revision       : $Revision: 1.469 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.468 2006/05/22 19:57:15 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.469 2006/06/01 22:29:22 kteich Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -9020,11 +9020,11 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
         {
         case TAG_OLD_COLORTABLE:
           fprintf(stderr, "reading colortable from annotation file...\n") ;
-          mris->ct = CTABreadFrom(fp) ;
+          mris->ct = CTABreadFromBinary(fp) ;
           fprintf
             (stderr,
              "colortable with %d entries read (originally %s)\n",
-             mris->ct->nbins, mris->ct->fname) ;
+             mris->ct->nentries, mris->ct->fname) ;
           break ;
         default:
           break ;
@@ -9148,7 +9148,7 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 	{
 		printf("writing colortable into annotation file...\n") ;
 		fwriteInt(TAG_OLD_COLORTABLE, fp) ;
-		CTABwriteInto(fp, mris->ct);
+		CTABwriteIntoBinary(mris->ct, fp);
 	}
 
   fclose(fp);
@@ -51377,7 +51377,7 @@ MRI *MRISannotIndex2Seg(MRIS *mris)
   seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
   for(vno = 0; vno < mris->nvertices; vno ++){
     annot = mris->vertices[vno].annotation;
-    if(mris->ct)      annotid = CTABannotationToIndex(mris->ct, annot);
+    if(mris->ct)      CTABfindAnnotation(mris->ct, annot, &annotid);
     else 	      annotid = annotation_to_index(annot);
     MRIsetVoxVal(seg,vno,0,0,0,annotid);
   }
@@ -51635,21 +51635,22 @@ MRISrestoreRipFlags(MRI_SURFACE *mris)
 int
 MRISripMedialWall(MRI_SURFACE *mris)
 {
-	int     vno, med_index, unknown_index ;
-	VERTEX  *v ;
+  int     vno, med_index, unknown_index ;
+  VERTEX  *v ;
+  int     structure;
 
-	printf("ripping medial wall...\n") ;
-	unknown_index = CTABnameToIndex(mris->ct, "Unknown") ;
-	med_index = CTABnameToIndex(mris->ct, "Medial_wall") ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		if ((CTABannotationToIndex(mris->ct, v->annotation) == unknown_index) ||
-				(CTABannotationToIndex(mris->ct, v->annotation) == med_index))
-			v->ripflag = 1 ;
-	}
-	MRISripFaces(mris) ;
-	return(NO_ERROR) ;
+  printf("ripping medial wall...\n") ;
+  CTABfindName(mris->ct, "Unknown", &unknown_index) ;
+  CTABfindName(mris->ct, "Medial_wall", &med_index) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      CTABfindAnnotation(mris->ct, v->annotation, &structure);
+      if (structure == unknown_index || structure == med_index)
+	 v->ripflag = 1 ;
+    }
+  MRISripFaces(mris) ;
+  return(NO_ERROR) ;
 }
 
 /*-----------------------------------------------------
@@ -51662,20 +51663,21 @@ MRISripMedialWall(MRI_SURFACE *mris)
 int
 MRISzeroMedialWallCurvature(MRI_SURFACE *mris)
 {
-	int     vno, med_index, unknown_index ;
-	VERTEX  *v ;
+  int     vno, med_index, unknown_index ;
+  VERTEX  *v ;
+    int     structure;
 
-	printf("erasing medial wall curvatures...\n") ;
-	unknown_index = CTABnameToIndex(mris->ct, "Unknown") ;
-	med_index = CTABnameToIndex(mris->ct, "Medial_wall") ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		if ((CTABannotationToIndex(mris->ct, v->annotation) == unknown_index) ||
-				(CTABannotationToIndex(mris->ct, v->annotation) == med_index))
-			v->curv = 0 ;
-	}
-	MRISripFaces(mris) ;
-	return(NO_ERROR) ;
+  printf("erasing medial wall curvatures...\n") ;
+  CTABfindName(mris->ct, "Unknown", &unknown_index) ;
+  CTABfindName(mris->ct, "Medial_wall", &med_index) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      CTABfindAnnotation(mris->ct, v->annotation, &structure);
+      if (structure == unknown_index || structure == med_index)
+	v->curv = 0 ;
+    }
+  MRISripFaces(mris) ;
+  return(NO_ERROR) ;
 }
 

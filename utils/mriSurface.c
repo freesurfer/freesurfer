@@ -385,22 +385,21 @@ Surf_tErr Surf_IsInternalColorTablePresent ( mriSurfaceRef this,
   return eResult;
 }
 
-Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef           this,
-					     mriColorLookupTableRef* opTable ){
+Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef   this,
+					     COLOR_TABLE**   opTable ){
   
-  Surf_tErr              eResult    = Surf_tErr_NoErr;
-  CLUT_tErr              eCLUT      = CLUT_tErr_NoErr;
-  mriColorLookupTableRef colorTable = NULL;
+  Surf_tErr    eResult    = Surf_tErr_NoErr;
+  COLOR_TABLE* colorTable = NULL;
 
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
 
-  /* Make a new color table from our ct, if we have one. */
+  /* Make a COPY our ct, if we have one. */
   if( this->mSurface->ct ) {
 
-    eCLUT = CLUT_NewFromCTAB( &colorTable, this->mSurface->ct );
-    if( CLUT_tErr_NoErr != eCLUT )
+    colorTable = CTABdeepCopy( this->mSurface->ct );
+    if( NULL == colorTable )
       goto error;
 
     *opTable = colorTable;
@@ -415,9 +414,8 @@ Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef           this,
     DebugPrint( ("Error %d in Surf_NewColorTableFromInternal: %s\n",
 		 eResult, Surf_GetErrorString( eResult ) ) );
   }
-  if( CLUT_tErr_NoErr != eCLUT ) {
-    DebugPrint( ("Error %d in Surf_NewColorTableFromInternal: %s\n",
-		 eResult, CLUT_GetErrorString( eResult ) ) );
+  if( NULL == colorTable ) {
+    DebugPrint( ("Error in CTABdeepCopy: Couldn't copy color table\n") );
   }
   
  cleanup:

@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.111 2006/05/26 20:49:22 kteich Exp $
+# $Id: tkmedit.tcl,v 1.112 2006/06/01 22:30:33 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -626,6 +626,7 @@ proc UpdateUseRealRAS { ibUseRealRAS } {
 
 proc UpdateSegBrushInfo { inColor ib3D iSrc iFuzzy iDistance } {
     global gSegBrush
+    global glSegEditColors
 
     set oldSelection  $gSegBrush(color)
 
@@ -637,12 +638,19 @@ proc UpdateSegBrushInfo { inColor ib3D iSrc iFuzzy iDistance } {
 
     # if the seg brush info dialog box is open, we want to select the
     # item with the index of the seg brush color. do all this in a catch
-    # because if the dialog is not open, this will fail.
-    catch { \
-     set fwColor [.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor; \
-     $fwColor subwidget listbox selection clear $oldSelection; \
-     $fwColor subwidget listbox selection set $gSegBrush(color); \
-     $fwColor subwidget listbox see $gSegBrush(color) \
+    # because if the dialog is not open, this will fail. 
+    catch {
+	
+	# We got a structure index, but we need to find the
+	# corresponding list index in our glSegEditColors. To do this,
+	# search the glSegEditColors for the color, and take the
+	# index/2.
+	set nListIndex [expr [lsearch -exact $glSegEditColors $inColor] / 2]
+	
+	set fwColor [.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor
+	$fwColor subwidget listbox selection clear $oldSelection
+	$fwColor subwidget listbox selection set $nListIndex
+	$fwColor subwidget listbox see $nListIndex
     } sResult
 }
 
@@ -2175,96 +2183,99 @@ proc DoEditSegBrushInfoDlog { } {
     global tkm_tVolumeTarget_AuxSeg
 
     set wwDialog .wwEditSegBrushInfoDlog
-
-   # try to create the dlog...
+    
+    # try to create the dlog...
     if { [Dialog_Create $wwDialog "Segmentation Brush Info" {-borderwidth 10}] } {
+	
+	set lfwColor     $wwDialog.lfwColor
+	set lfwFill      $wwDialog.lfwFill
+	set fwButtons    $wwDialog.fwButtons
+	
+	# color
+	tixLabelFrame $lfwColor \
+	    -label "Color" \
+	    -labelside acrosstop \
+	    -options { label.padX 5}
+	
+	set fwColorSub           [$lfwColor subwidget frame]
+	set fwColor              $fwColorSub.fwColor
+	
+	tixScrolledListBox $fwColor -scrollbar auto\
+	    -browsecmd SendSegBrushInfo
+	
+	# go thru the list of entry names and insert each into the listbox
+	$fwColor subwidget listbox configure -selectmode single
+	set nLength [llength $glSegEditColors]
+	foreach {structure name} $glSegEditColors {
+	    $fwColor subwidget listbox insert end "$structure: $name"
+	}
+	
+	# select the one with the index of the seg brush color
+	$fwColor subwidget listbox selection set $gSegBrush(color)
+	$fwColor subwidget listbox see $gSegBrush(color)
+	
+	pack $fwColor \
+	    -side top \
+	    -expand yes \
+	    -fill both
+	
+	# fill characteristics
+	tixLabelFrame $lfwFill \
+	    -label "Fill Parameters" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwFillSub       [$lfwFill subwidget frame]
+	set fwFill          $fwFillSub.fwFill
+	set fw3D            $fwFill.fw3D
+	set fwLabel         $fwFill.fwLabel
+	set fwMainSrc       $fwFill.fwMainSrc
+	set fwAuxSrc        $fwFill.fwAuxSrc
+	set fwSegSrc        $fwFill.fwSegSrc
+	set fwSliders       $fwFill.fwSliders
+	set fwDistanceNote  $fwFill.fwDistanceNote
+	
+	frame $fwFill
+	
+	# 3d
+	tkm_MakeCheckboxes $fw3D y {
+	    { text "3D" gSegBrush(3d) "SendSegBrushInfo" } }
+	
+	# source radios
+	tkm_MakeNormalLabel $fwLabel "Use as source:"
+	tkm_MakeRadioButton $fwMainSrc "Main Anatomical" \
+	    gSegBrush(src) $tkm_tVolumeTarget_MainAna "SendSegBrushInfo"
+	tkm_MakeRadioButton $fwAuxSrc "Aux Anatomical" \
+	    gSegBrush(src) $tkm_tVolumeTarget_AuxAna "SendSegBrushInfo"
+	tkm_MakeRadioButton $fwSegSrc "Segmentation" \
+	    gSegBrush(src) $tkm_tVolumeTarget_MainSeg "SendSegBrushInfo"
+	
+	# fuzziness and max distance
+	tkm_MakeSliders $fwSliders {
+	    { "Fuzziness" gSegBrush(fuzzy) 
+		0 255 50 "SendSegBrushInfo" 1 0.1 } 
+	    {  "\"Max Distance\"" gSegBrush(distance) 
+		0 255 50 "SendSegBrushInfo" 1 0.1 } }
+	tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
+	
+	
+	pack $fw3D $fwLabel $fwMainSrc $fwAuxSrc \
+	    $fwSegSrc $fwSliders $fwDistanceNote $fwFill \
+	    -side top \
+	    -expand yes \
+	    -fill x
+	
+	# close button
+	tkm_MakeCloseButton $fwButtons $wwDialog 
+	
+	grid $lfwColor  -column 0 -row 0 -sticky news
+	grid $lfwFill   -column 0 -row 1 -sticky ews
+	grid $fwButtons -column 0 -row 2 -sticky ews
 
-  set lfwColor     $wwDialog.lfwColor
-  set lfwFill      $wwDialog.lfwFill
-  set fwButtons    $wwDialog.fwButtons
-
-  # color
-  tixLabelFrame $lfwColor \
-    -label "Color" \
-    -labelside acrosstop \
-    -options { label.padX 5}
-
-  set fwColorSub           [$lfwColor subwidget frame]
-  set fwColor              $fwColorSub.fwColor
-
-  tixScrolledListBox $fwColor -scrollbar auto\
-    -browsecmd SendSegBrushInfo
-  
-  # go thru the list of entry names and insert each into the listbox
-  $fwColor subwidget listbox configure -selectmode single
-  set nLength [llength $glSegEditColors]
-  for { set nEntry 0 } { $nEntry < $nLength } { incr nEntry } {
-      $fwColor subwidget listbox insert end \
-        [lindex $glSegEditColors $nEntry]
-  }
-
-  # select the one with the index of the seg brush color
-  $fwColor subwidget listbox selection set $gSegBrush(color)
-  $fwColor subwidget listbox see $gSegBrush(color)
-
-  pack $fwColor \
-    -side top \
-    -expand yes \
-    -fill x
-
-  # fill characteristics
-  tixLabelFrame $lfwFill \
-    -label "Fill Parameters" \
-    -labelside acrosstop \
-    -options { label.padX 5 }
-
-  set fwFillSub       [$lfwFill subwidget frame]
-  set fwFill          $fwFillSub.fwFill
-  set fw3D            $fwFill.fw3D
-  set fwLabel         $fwFill.fwLabel
-  set fwMainSrc       $fwFill.fwMainSrc
-  set fwAuxSrc        $fwFill.fwAuxSrc
-  set fwSegSrc       $fwFill.fwSegSrc
-  set fwSliders       $fwFill.fwSliders
-  set fwDistanceNote  $fwFill.fwDistanceNote
-
-  frame $fwFill
-
-  # 3d
-  tkm_MakeCheckboxes $fw3D y { \
-    { text "3D" gSegBrush(3d) "SendSegBrushInfo" } }
-
-  # source radios
-  tkm_MakeNormalLabel $fwLabel "Use as source:"
-  tkm_MakeRadioButton $fwMainSrc "Main Anatomical" \
-    gSegBrush(src) $tkm_tVolumeTarget_MainAna "SendSegBrushInfo"
-  tkm_MakeRadioButton $fwAuxSrc "Aux Anatomical" \
-    gSegBrush(src) $tkm_tVolumeTarget_AuxAna "SendSegBrushInfo"
-  tkm_MakeRadioButton $fwSegSrc "Segmentation" \
-    gSegBrush(src) $tkm_tVolumeTarget_MainSeg "SendSegBrushInfo"
-  
-  # fuzziness and max distance
-  tkm_MakeSliders $fwSliders { \
-    { "Fuzziness" gSegBrush(fuzzy) \
-    0 255 50 "SendSegBrushInfo" 1 0.1 } \
-    {  "\"Max Distance\"" gSegBrush(distance) \
-    0 255 50 "SendSegBrushInfo" 1 0.1 } }
-  tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
-  
-
-  pack $fw3D $fwLabel $fwMainSrc $fwAuxSrc \
-    $fwSegSrc $fwSliders $fwDistanceNote $fwFill \
-    -side top \
-    -expand yes \
-    -fill x
-
-  # close button
-  tkm_MakeCloseButton $fwButtons $wwDialog 
-
-  pack $lfwColor $lfwFill $fwButtons \
-    -side top \
-    -expand yes \
-    -fill x
+	grid columnconfigure $wwDialog 0 -weight 1
+	grid rowconfigure $wwDialog 0 -weight 1
+	grid rowconfigure $wwDialog 1 -weight 0
+	grid rowconfigure $wwDialog 2 -weight 0
 
     }
 }
@@ -3252,12 +3263,17 @@ proc SetDTIVolumeConfiguration {} {
 
 proc SendSegBrushInfo {} {
     global gSegBrush
+    global glSegEditColors
 
-    # get the selected item from the scrolled box in the dlog. this is the
-    # index of the color to use.
-    set nSelection [[.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor subwidget listbox curselection];
+    # Get the selected item from the scrolled box in the dlog. 
+    set nSelection [[.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor subwidget listbox curselection]
 
-    SetSegBrushInfo $nSelection $gSegBrush(3d) \
+    # Now we need to find the corresponding segmentation index in our
+    # list of eit colors. The list is in the format {structure name
+    # structure name...} so it will be the (nSelection*2)th element.
+    set nStructure [lindex $glSegEditColors [expr $nSelection * 2]]
+
+    SetSegBrushInfo $nStructure $gSegBrush(3d) \
       $gSegBrush(src) $gSegBrush(fuzzy) \
       $gSegBrush(distance)
 }
@@ -3419,7 +3435,7 @@ proc ClearSegColorTable { } {
 proc AddSegColorTableEntry { inIndex isString } {
 
     global glSegEditColors
-    set glSegEditColors [linsert $glSegEditColors $inIndex $isString]
+    lappend glSegEditColors $inIndex "$isString"
 }
 
 # =============================================================== VIEW PRESETS

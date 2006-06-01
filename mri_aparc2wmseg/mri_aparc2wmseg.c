@@ -34,7 +34,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.3 2005/09/08 23:17:32 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.4 2006/06/01 22:31:03 kteich Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 	  annot = lhwhite->vertices[lhwvtx].annotation;
 	  hemioffset = 1000;
 	  if(lhwhite->ct)
-	    annotid = CTABannotationToIndex(lhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	}
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 	  annot = rhwhite->vertices[rhwvtx].annotation;
 	  hemioffset = 2000;
 	  if(rhwhite->ct)
-	    annotid = CTABannotationToIndex(rhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	}

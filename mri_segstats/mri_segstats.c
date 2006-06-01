@@ -47,7 +47,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.16 2006/05/13 23:34:21 greve Exp $";
+"$Id: mri_segstats.c,v 1.17 2006/06/01 22:31:31 kteich Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -108,6 +108,9 @@ int main(int argc, char **argv)
   char *cmdline;
   char tmpstr[1000];
   double atlas_icv=0;
+  int ntotalsegid=0;
+  int valid;
+  int usersegid=0;
   nhits = 0;
   vol = 0;
 
@@ -191,7 +194,7 @@ int main(int argc, char **argv)
       sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
               (int)floor(100*drand48()+1));
       ctabfile = strcpyalloc(tmpstr);
-      CTABwriteTxt(ctabfile, mris->ct);
+      CTABwriteFileASCII(mris->ct,ctabfile);
     }
   }
 
@@ -321,18 +324,32 @@ int main(int argc, char **argv)
   else{ /* Get from user or color table */
     if(ctabfile != NULL){
       /* Load the color table file */
-      ctab = CTABread(ctabfile);
+      ctab = CTABreadASCII(ctabfile);
       if(ctab == NULL){
         printf("ERROR: reading %s\n",ctabfile);
         exit(1);
       }
       if(nUserSegIdList == 0){
         /* User has not spec anything, so use all the ids in the color table */
-        nsegid = ctab->nbins;
+	/* We want to fill StatSumTable with all the valid entries
+	   from the color table. So we'll get the number of valid
+	   entries and create StatSumTable with that many
+	   elements. Then walk through the entirity of the ctab and
+	   skip past the invalid entries. Copy the valid entries into
+	   StatSumTable. We use a separate index with StatSumTable
+	   that only goes from 0->the number of valid entries.*/
+	CTABgetNumberOfValidEntries(ctab,&nsegid);
+	CTABgetNumberOfTotalEntries(ctab,&ntotalsegid);
         StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegid);
-        for(n=0; n < nsegid; n++){
-          StatSumTable[n].id = ctab->bins[n].index;
-          strcpy(StatSumTable[n].name, ctab->bins[n].name);
+	usersegid=0;
+        for(n=0; n < ntotalsegid; n++){
+	  CTABisEntryValid(ctab,n,&valid);
+	  if(!valid)
+	    continue;
+          StatSumTable[usersegid].id = n;
+	  CTABcopyName(ctab,n,StatSumTable[usersegid].name,
+		       sizeof(StatSumTable[usersegid].name));
+	  usersegid++;
         }
       } else {
         /* User has specified --id, use those and get names from ctab */
@@ -340,13 +357,17 @@ int main(int argc, char **argv)
         StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegid);
         for(n=0; n < nsegid; n++){
           StatSumTable[n].id = UserSegIdList[n];
-          ind = CTABindexToItemNo(ctab,StatSumTable[n].id);
-          if(ind == -1){
+	  /* Here ind should be the same as the ctab entry, but make
+	     sure it's valid. */
+          ind = StatSumTable[n].id;
+	  CTABisEntryValid(ctab,ind,&valid);
+          if(!valid){
             printf("ERROR: cannot find seg id %d in %s\n",
                    StatSumTable[n].id,ctabfile);
             exit(1);
           }
-          strcpy(StatSumTable[n].name, ctab->bins[ind].name);
+	  CTABcopyName(ctab,ind,StatSumTable[n].name,
+		       sizeof(StatSumTable[n].name));
         }
       }
     } else { /* User specified ids, but no color table */

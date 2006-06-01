@@ -40,7 +40,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.22 2006/05/16 19:42:36 fischl Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.23 2006/06/01 22:31:46 kteich Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     printf("GCSA file %s opened\n", surffile) ;
     if (gcsa->ct != NULL)	{
       printf("color table:\n") ;
-      CTABprint(stdout, gcsa->ct) ;
+      CTABprintASCII(gcsa->ct,stdout) ;
     }
     return(0) ;
   }

@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.36 2006/06/01 22:31:49 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,10 +78,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.36 2006/06/01 22:31:49 kteich Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.35 2006/05/26 01:28:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.36 2006/06/01 22:31:49 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -560,7 +560,7 @@ get_option(int argc, char *argv[])
 		if (label_gcsa[nlabels] == NULL)
 			ErrorExit(ERROR_NOFILE, "%s: could not read GCSA file %s", Progname, argv[3]) ;
 		label_names[nlabels] = argv[4] ;
-		label_indices[nlabels] = CTABnameToAnnotation(label_gcsa[nlabels]->ct, argv[4]) ;
+		CTABfindName(label_gcsa[nlabels]->ct, argv[4],&label_indices[nlabels]) ;
 
 		if (label_indices[nlabels] < 0)
 			ErrorExit(ERROR_NOFILE, "%s: could not map name %s to index", Progname, argv[3]) ;

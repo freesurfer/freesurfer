@@ -5,7 +5,7 @@
 #include "mrisurf.h"
 #include "mriTransform.h"
 #include "xVoxel.h"
-#include "mriColorLookupTable.h"
+#include "colortab.h"
 
 typedef enum {
   
@@ -126,7 +126,7 @@ Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef this,
 Surf_tErr Surf_IsInternalColorTablePresent ( mriSurfaceRef this,
 					     tBoolean*     obPresent );
 Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef           this,
-					     mriColorLookupTableRef* opTable );
+					     COLOR_TABLE**           opTable );
 
 
 /* ======================================================= Vertex iteration */

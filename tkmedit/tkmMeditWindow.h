@@ -122,7 +122,7 @@ MWin_tErr MWin_SetSegmentationVolume  ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetSegmentationColorTable  ( tkmMeditWindowRef this,
 					    tkm_tSegType      iVolume,
 					    int               inDispIndex,
-					mriColorLookupTableRef iCLUT );
+					    COLOR_TABLE*      iCLUT );
 MWin_tErr MWin_SetSurface             ( tkmMeditWindowRef this, 
 					int               inDispIndex,
 					tkm_tSurfaceType  iType,

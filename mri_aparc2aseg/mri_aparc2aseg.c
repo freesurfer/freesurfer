@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.7 2006/05/17 22:11:35 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.8 2006/06/01 22:30:53 kteich Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 	  annot = lhwhite->vertices[lhwvtx].annotation;
 	  hemi = 1;
 	  if(lhwhite->ct)
-	    annotid = CTABannotationToIndex(lhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	  dmin = dlhw;
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
 	  annot = lhwhite->vertices[lhpvtx].annotation;
 	  hemi = 1;
 	  if(lhwhite->ct)
-	    annotid = CTABannotationToIndex(lhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	  dmin = dlhp;
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 	  annot = rhwhite->vertices[rhwvtx].annotation;
 	  hemi = 2;
 	  if(rhwhite->ct)
-	    annotid = CTABannotationToIndex(rhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	  dmin = drhw;
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 	  annot = rhwhite->vertices[rhpvtx].annotation;
 	  hemi = 2;
 	  if(rhwhite->ct)
-	    annotid = CTABannotationToIndex(rhwhite->ct, annot);
+	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
 	  else
 	    annotid = annotation_to_index(annot);
 	  dmin = drhp;
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
 		 rhpial->vertices[rhpvtx].y,
 		 rhpial->vertices[rhpvtx].z);
 	  printf("annot = %d, annotid = %d\n",annot,annotid);
-	  CTABprint(stdout,lhwhite->ct);
+	  CTABprintASCII(lhwhite->ct,stdout);
 	  exit(1);
 	}
 

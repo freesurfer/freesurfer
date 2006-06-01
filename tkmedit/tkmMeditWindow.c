@@ -617,7 +617,7 @@ MWin_tErr MWin_SetSegmentationVolume ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
                                            tkm_tSegType      iType,
                                            int               inDispIndex,
-                                           mriColorLookupTableRef iCLUT ) {
+                                           COLOR_TABLE*      iCTAB ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -648,7 +648,7 @@ MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
 
     eDispResult =
       DspA_SetSegmentationColorTable ( this->mapDisplays[nDispIndex],
-                                       iType, iCLUT );
+                                       iType, iCTAB );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;

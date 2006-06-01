@@ -388,7 +388,6 @@ enum {
 #define ERROR_FUNC        -1001     /* other error with func volume */
 #define ERROR_NOT_INITED  -1002     /* something that should have been
                                        previously inited, etc, hasn't been */
-#define ERROR_CLUT        -1003     /* error with mriColorLookupTable */
 
 /* end rkt */
 
@@ -1588,8 +1587,6 @@ int sclv_load_label_value_file (char* fname, int field);
 
 /* ------------------------------------------------------ multiple labels */
 
-#include "mriColorLookupTable.h"
-
 int labl_debug = 0;
 
 typedef enum {
@@ -1634,7 +1631,7 @@ LABL_LABEL labl_labels[LABL_MAX_LABELS];
 int labl_num_labels;
 
 /* the color lookup table. */
-mriColorLookupTableRef labl_table = NULL;
+COLOR_TABLE* labl_ctab = NULL;
 int labl_num_structures;
 
 /* the currently selected label */
@@ -19106,7 +19103,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.208 2006/05/30 21:55:18 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.209 2006/06/01 22:30:29 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24121,7 +24118,7 @@ int labl_initialize () {
   
   labl_num_labels = 0;
   labl_selected_label = LABL_NONE_SELECTED;
-  labl_table = NULL;
+  labl_ctab = NULL;
   labl_draw_style = LABL_STYLE_FILLED;
   labl_num_labels_created = 0;
   labl_color_table_name = (char*) calloc (NAME_LENGTH, sizeof(char));
@@ -24205,7 +24202,7 @@ int labl_load_color_table (char* fname)
   int r, g, b, a;
 
   /* Attempt to read the color table. */
-  ctab = CTABread (fname);
+  ctab = CTABreadASCII (fname);
   if (NULL == ctab)
     {
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "Couldn't open %s\n", fname));
@@ -24230,10 +24227,10 @@ int labl_load_color_table (char* fname)
       label = &(labl_labels[label_index]);
       if (LABL_TYPE_FREE != label->structure)
 	{
-	  CTABcopyName (mris->ct, label->structure, label->name);
-	  r = 255; g = b = 0;
-	  CTABindexToColor (mris->ct, label->structure, &r, &g, &b);
-	  CTABalphaLevel (mris->ct, label->structure, &a);
+	  CTABcopyName (mris->ct, label->structure, 
+			label->name, sizeof(label->name));
+	  r = 255; g = b = 0; a = 255;
+	  CTABrgbaAtIndexi (mris->ct, label->structure, &r, &g, &b, &a);
 	  labl_set_color (label_index, r, g, b);
 	  labl_set_alpha (label_index, a);
 	  labl_send_info (label_index);
@@ -24248,78 +24245,64 @@ int labl_load_color_table (char* fname)
 int
 labl_send_color_table_info ()
 {
+  COLOR_TABLE* ctab;
+  int num_valid_entries;
+  int num_entries;
   int structure;
-  char structure_label[CLUT_knLabelLen];
+  char structure_label[1024];
   char* structure_label_list = NULL;
+  int valid;
 
   /* if we have a tcl interpretor... */
   if (NULL != g_interp) 
     {
       /* if we have our own table, get the names from there, otherwise
-         use our external table. this code pretty much does the same
-         thing, just gets the names with different functions. */
+         use our external table. */
       if (NULL != mris->ct) 
-        {
+	ctab = mris->ct;
+      else
+	ctab = labl_ctab;
 
-          /* allocate a string long enough for the update command and all
-             our labels. */
-          structure_label_list = (char*) 
-            malloc (256 * mris->ct->nbins * sizeof(char));
-          if (NULL != structure_label_list)
-            {
-              /* build a string out of all the label names and send them to the
-                 tcl label list. */
-              strcpy (structure_label_list, "LblLst_SetStructures {");
-              for (structure = 0; structure <mris->ct->nbins; structure++ )
-                {
-                  CTABcopyName (mris->ct, structure, structure_label);
-                  sprintf (structure_label_list, "%s %s",
-                           structure_label_list, structure_label);
-                }
-              sprintf (structure_label_list, "%s }", structure_label_list);
-              send_tcl_command (structure_label_list);
-              
-              free( structure_label_list );
-            } 
-          else
-            {
-              fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
-                       "string for %d structres\n", labl_num_structures );
-              return (ERROR_NO_MEMORY);
-            }
+      /* Find out how many valid and total entries we have. */
+      CTABgetNumberOfValidEntries (ctab, &num_valid_entries);
+      CTABgetNumberOfTotalEntries (ctab, &num_entries);
+      
+      /* allocate a string long enough for the update command and all
+	 our labels. */
+      structure_label_list = (char*) 
+	malloc (256 * num_valid_entries * sizeof(char));
+      if (NULL != structure_label_list)
+	{
+	  /* build a string out of all the label names and send them to the
+	     tcl label list. */
+	  strcpy (structure_label_list, "LblLst_SetStructures {");
 
-        } 
-      /* if we have a loaded table... */
-      else if (NULL != labl_table)
-        {
-          
-          /* allocate a string long enough for the update command and all
-             our labels. */
-          structure_label_list = (char*) 
-            malloc (CLUT_knLabelLen * labl_num_structures * sizeof(char));
-          if (NULL != structure_label_list)
-            {
-              
-              /* build a string out of all the label names and send them to the
-                 tcl label list. */
-              strcpy (structure_label_list, "LblLst_SetStructures {");
-              for (structure = 0; structure <labl_num_structures; structure++ )
-                {
-                  CLUT_GetLabel (labl_table, structure, structure_label);
-                  sprintf (structure_label_list, "%s %s",
-                           structure_label_list, structure_label);
-                }
-              sprintf (structure_label_list, "%s }", structure_label_list);
-              send_tcl_command (structure_label_list);
-              
-              free( structure_label_list );
-              
-            } else {
-              fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
-                       "string for %d structres\n", labl_num_structures );
-              return (ERROR_NO_MEMORY);
-            }
-        }
+	  /* Iterate over all the entries, but only get names for the
+	     valid ones. */
+	  for (structure = 0; structure < num_entries; structure++ )
+	    {
+	      /* If not valid, skip it. */
+	      CTABisEntryValid (ctab, structure, &valid);
+	      if (!valid)
+		continue;
+
+	      CTABcopyName (ctab, structure, 
+			    structure_label, sizeof(structure_label));
+	      sprintf (structure_label_list, "%s %d %s",
+		       structure_label_list, structure, structure_label);
+	    }
+	  sprintf (structure_label_list, "%s }", structure_label_list);
+	  send_tcl_command (structure_label_list);
+	  
+	  free( structure_label_list );
+	} 
+      else
+	{
+	  fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
+		   "string for %d structres\n", labl_num_structures );
+	  return (ERROR_NO_MEMORY);
+	}
+      
     }
   
   return (NO_ERROR);
@@ -24607,9 +24590,9 @@ int labl_vno_is_border (int index, int vno)
 
 int labl_import_annotation (char *fname) 
 {
-  CLUT_tErr clut_err = CLUT_tErr_NoErr;
   int mris_err;
   int ctab_err;
+  COLOR_TABLE* ctab;
   int annotation_vno;
   int vno;
   unsigned int annotation, max_annot;
@@ -24620,7 +24603,6 @@ int labl_import_annotation (char *fname)
   int new_index;
   char name[NAME_LENGTH];
   int r, g, b;
-  xColor3n color;
   int structure;
   unsigned int* done;
   int num_labels;
@@ -24709,56 +24691,27 @@ int labl_import_annotation (char *fname)
                      ones have their own. so we'll check the ct
                      member; if it's null, use the external, otherwise
                      use the color info specified in the mris. */
-                  if (NULL == mris->ct) 
-                    {
-                      
-                      /* older file, so use the external color
-                         table. look for a structure index based on
-                         this color. if we don't find one, give it
-                         index -1, making it a free label. */
-                      color.mnRed = r;
-                      color.mnGreen = g;
-                      color.mnBlue = b;
-                      if (NULL != labl_table)
-                        {
-                          clut_err = CLUT_GetIndex (labl_table, 
-                                                    &color, &structure);
-                          if (CLUT_tErr_NoErr != clut_err)
-                            structure = -1;
-                        }
-                      else
-                        {
-                          structure = -1;
-                        }
-                      
-                      /* make a name for it. if we got a color from the
-                         color table, get the label, else use the color. */
-                      if (structure != -1)
-                        {
-                          clut_err = 
-                            CLUT_GetLabel (labl_table, structure, name);
-                          if (CLUT_tErr_NoErr != clut_err)
-                            sprintf (name, "Parcellation %d, %d, %d", r, g, b);
-                        }
-                      else
-                        {
-                          sprintf (name, "Parcellation %d, %d, %d", r, g, b);
-                        }
-                    } 
-                  else
-                    {
-                      /* find the index of the color. */
-                      ctab_err = 
-                        CTABcolorToIndex (mris->ct, r, g, b, &structure);
-                      if (NO_ERROR != ctab_err)
-                        structure = -1;
-                      
-                      /* get the name. */
-                      ctab_err = CTABcopyName (mris->ct, structure, name);
-                      if (NO_ERROR != ctab_err)
-                        sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+		  if (mris->ct)
+		    ctab = mris->ct;
+		  else
+		    ctab = labl_ctab;
 
-                    }
+		  /* If not found, structure will be -1. */
+		  CTABfindRGBi (ctab, r, g, b, &structure);
+
+		  /* make a name for it. if we got a color from the
+		     color table, get the label, else use the color. */
+		  if (structure != -1)
+		    {
+		      ctab_err = CTABcopyName (ctab, structure, 
+					       name, sizeof(name) );
+		      if (NO_ERROR != ctab_err)
+			sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+		    }
+		  else
+		    {
+		      sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+		    }
                                         
                   /* set its other data. set the color; if we found a
                      structure index from the LUT, it will use that,
@@ -25142,13 +25095,13 @@ int labl_set_name_from_table (int index)
 {
   char name[NAME_LENGTH];
   LABL_LABEL* label;
-  int clut_err;
+  COLOR_TABLE* ctab;
   int ctab_err;
 
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   
-  if (NULL == labl_table)
+  if (NULL == labl_ctab)
     return (ERROR_NONE);
   
   label = &(labl_labels[index]);
@@ -25156,21 +25109,14 @@ int labl_set_name_from_table (int index)
   /* if the surface has a color table, use that to get the name,
      otherwise use the external file. */
   if (mris->ct)
-    {
-      ctab_err = CTABcopyName (mris->ct, label->structure, name);
-      if (NO_ERROR == ctab_err)
-        labl_set_info (index, name, label->structure, label->visible,
-                       label->r, label->g, label->b);
-    }
+    ctab = mris->ct;
   else
-    {
-      /* get the name of this structure. if we get it, set the name. pass
-         the other data in as the same. */
-      clut_err = CLUT_GetLabel (labl_table, label->structure, name);
-      if (CLUT_tErr_NoErr == clut_err)
-        labl_set_info (index, name, label->structure, label->visible,
-                       label->r, label->g, label->b);
-    }
+    ctab = labl_ctab;
+
+  ctab_err = CTABcopyName (ctab, label->structure, name, sizeof(name));
+  if (NO_ERROR == ctab_err)
+    labl_set_info (index, name, label->structure, label->visible,
+		   label->r, label->g, label->b);
       
   return (ERROR_NONE);
 }
@@ -25178,10 +25124,9 @@ int labl_set_name_from_table (int index)
 int labl_set_info (int index, char* name, int structure, int visible,
                    int ir, int ig, int ib)
 {
-  CLUT_tErr clut_err = CLUT_tErr_NoErr;
   int ctab_err;
-  xColor3n color;
-  int r, g, b, alpha;
+  COLOR_TABLE* ctab;
+  int r, g, b, a;
 
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
@@ -25198,28 +25143,20 @@ int labl_set_info (int index, char* name, int structure, int visible,
   /* if we have a table (in mris or external), and the structure is
      not free, get the color from the table. otherwise, use the color
      that they gave us. */
-  if ((labl_table || mris->ct) && 
+  if ((labl_ctab || mris->ct) && 
       LABL_TYPE_FREE != labl_labels[index].structure)
     {
       if (mris->ct)
-        {
-          ctab_err = CTABindexToColor (mris->ct, structure, &r, &g, &b);
-          if (NO_ERROR == ctab_err)
-	      labl_set_color (index, r, g, b);
-
-          ctab_err = CTABalphaLevel (mris->ct, structure, &alpha);
-          if (NO_ERROR == ctab_err)
-	    labl_set_alpha (index, alpha);
+	ctab = mris->ct;
+      else
+	ctab = labl_ctab;
+      
+      ctab_err = CTABrgbaAtIndexi (ctab, structure, &r, &g, &b, &a);
+      if (NO_ERROR == ctab_err)
+	{
+	  labl_set_color (index, r, g, b);
+	  labl_set_alpha (index, a);
 	}
-      else 
-        {
-          clut_err = CLUT_GetColorInt (labl_table, structure, &color, &alpha);
-          if (CLUT_tErr_NoErr == clut_err)
-           {
-	     labl_set_color (index, color.mnRed, color.mnGreen, color.mnBlue);
-	     labl_set_alpha (index, alpha);
-	   }
-        }
     } 
   else
     {
@@ -25678,30 +25615,25 @@ int labl_print_list ()
 int labl_print_table ()
 {
   int structure_index;
-  xColor3n color;
-  int alpha;
-  char structure_label[CLUT_knLabelLen];
+  COLOR_TABLE* ctab;
+  int r, g, b, a;
+  char structure_label[1024];
   
   printf( "Num strucutres: %d\n", labl_num_structures );
   for (structure_index = 0; structure_index < labl_num_structures; 
        structure_index++)
     {
       if (mris->ct)
-        {
-          CTABindexToColor (mris->ct, structure_index, 
-                            &color.mnRed, &color.mnGreen, &color.mnBlue);
-          CTABcopyName (mris->ct, structure_index, structure_label);
-          CTABalphaLevel (mris->ct, structure_index, &alpha);
-        } 
+	ctab = mris->ct;
       else
-        {
-          CLUT_GetColorInt (labl_table, structure_index, &color, &alpha);
-          CLUT_GetLabel (labl_table, structure_index, structure_label);
-        }
+	ctab = labl_ctab;
 
-      printf( "Structure %d: %s r %d g %d b %d a %d", 
-              structure_index, structure_label, 
-              color.mnRed, color.mnGreen, color.mnBlue, alpha );
+      CTABrgbaAtIndexi (ctab, structure_index, &r, &g, &b, &a);
+      CTABcopyName (ctab, structure_index,
+		    structure_label, sizeof(structure_label));
+
+      printf ("Structure %d: %s r %d g %d b %d a %d", 
+              structure_index, structure_label, r, g, b, a);
     }
   
   return (ERROR_NONE);

@@ -641,11 +641,11 @@ GCSAwrite(GCSA *gcsa, char *fname)
   if (gcsa->ptable_fname)
     {
       COLOR_TABLE *ct ;
-      ct = CTABread(gcsa->ptable_fname) ;
+      ct = CTABreadASCII(gcsa->ptable_fname) ;
       if (ct)
         {
           fwriteInt(TAG_OLD_COLORTABLE, fp) ;
-          CTABwriteInto(fp, ct) ;
+          CTABwriteIntoBinary(ct, fp) ;
           CTABfree(&ct) ;
         }
     }
@@ -784,7 +784,7 @@ GCSAread(char *fname)
 		{
 		case TAG_OLD_COLORTABLE:
 			printf("reading color table from GCSA file....\n") ;
-			tmp_ct = CTABreadFrom(fp) ;
+			tmp_ct = CTABreadFromBinary(fp) ;
 			//printf("gcsa ct:%8.8X, bins:%8.8X, nbins: %d, fname: %s\n",
 			//       tmp_ct, tmp_ct->bins, tmp_ct->nbins, tmp_ct->fname);
 			// NJS: for some reason, on Mac OS X Tiger, the feof(fp)
@@ -795,7 +795,7 @@ GCSAread(char *fname)
 			// retains compatibility across platforms (hopefully!).
 			// The symptom of this bug was that mris_anatomical_stats
 			// would display '** annotate' instead of the proper name.
-			if ((tmp_ct->nbins > 0) && (tmp_ct->fname != NULL))
+			if ((tmp_ct->nentries > 0) && (tmp_ct->fname != NULL))
 			{
 				gcsa->ct = tmp_ct;
 			}

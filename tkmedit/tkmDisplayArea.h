@@ -14,7 +14,7 @@
 #include "mriVolume.h"
 #include "tkmFunctionalVolume.h"
 #include "mriSurface.h"
-#include "mriColorLookupTable.h"
+#include "colortab.h"
 #include "xGrowableArray.h"
 #include "mriHeadPointList.h"
 #include "gca.h"
@@ -311,7 +311,7 @@ struct tkmDisplayArea {
   /* display data */
   mriVolumeRef           mpVolume[tkm_knNumVolumeTypes];
   mriVolumeRef           mSegmentationVolume[tkm_knNumSegTypes];
-  mriColorLookupTableRef mSegmentationColorTable[tkm_knNumSegTypes];
+  COLOR_TABLE*            mSegmentationColorTable[tkm_knNumSegTypes];
   mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -402,7 +402,7 @@ DspA_tErr DspA_SetSegmentationVolume         ( tkmDisplayAreaRef this,
 					       mriVolumeRef      iVolume );
 DspA_tErr DspA_SetSegmentationColorTable     ( tkmDisplayAreaRef this,
 					       tkm_tSegType      iType,
-					       mriColorLookupTableRef iCLUT );
+					       COLOR_TABLE*      iCLUT );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
 					       tkm_tSurfaceType  iType,
 					       mriSurfaceRef     ipSurface );

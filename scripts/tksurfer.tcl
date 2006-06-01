@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.116 2006/05/24 19:08:43 kteich Exp $
+# $Id: tksurfer.tcl,v 1.117 2006/06/01 22:30:34 kteich Exp $
 
 package require BLT;
 
@@ -4124,15 +4124,34 @@ proc Graph_DoPrintSeriesDlog { } {
 # =============================================================== LABEL WINDOW
 
 set ksLabelListWindowName "Labels"
+
+# We keep track of the current lable's info in an array:
+# gaLabelInfo
+#   name - label's name (can be difference from the structure name)
+#   visible
+#   red
+#   green
+#   blue
+#   structureIndex - -1 if a free label, or else an entry in the LUT
+#                  - Note that this is NOT an index into the structure listbox
+#                  - widget, as that doesn't contain 'empty' entries.
+#   structureName
+
 # the number of labels we know about
 set gnNumLabels 0
-# the strucutre names we know about
+
+# the strucutre names we know about. This is a list of pairs of
+# structure values and structure names. It's not an array so that we
+# can go through it easier and do lookups.
 set glStructures {}
+
 # structure list widget
 set glwStructures ""
-# currently selected label
+
+# Currently selected label. This is an index into the list.
 set gnSelectedLabel 0
-# currently selected structure
+
+# Currently selected structure. This is an index into the list.
 set gnSelectedStructure 0
 
 proc LblLst_CreateWindow { iwwTop } {
@@ -4155,7 +4174,7 @@ proc LblLst_CreateLabelList { ifwList } {
 
     global glwLabel gnNumLabels
     global gaLabelInfo
-    global glStructures glwStructures
+    global glwStructures
     global gaLinkedVars
 
     set fwTop             $ifwList
@@ -4248,33 +4267,43 @@ proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible iRed iGreen iBlue 
     global glwStructures
     global glLabelNames
 
-    # delete the list entry in the list box and reinsert it with the
-    # new name
+    # This is called when a label's information is changed. We'll get
+    # a new name, structure index, visibility, and color info.
+
+    # Delete the label's list entry in the list box and reinsert it
+    # with the new name
     $glwLabel delete $inIndex
     $glwLabel insert $inIndex $isName
 
-    # select these items in their respective list boxes.
+    # Select the item in the list box.
     $glwLabel selection clear 0 end
     $glwLabel selection set $inIndex
     $glwLabel see $inIndex
 
-    # update the info area too.
+    # Update the info area too.
     set gaLabelInfo(name) $isName
     set gaLabelInfo(visible) $ibVisible
     set gaLabelInfo(red) $iRed
     set gaLabelInfo(green) $iGreen
     set gaLabelInfo(blue) $iBlue
 
-    # if the structure is -1, it's a free label with a structure index
+    # If the structure is -1, it's a free label with a structure index
     # of -1, else look up the structure index.
-    set gaLabelInfo(structureIndex) $inStructure
     if { -1 == $inStructure } {
+	set gaLabelInfo(structureIndex) -1
 	set gaLabelInfo(structureName) "Free"
     } else {
-	set gaLabelInfo(structureName) [lindex $glStructures $inStructure]
+	# It's an index. We look for the index in our glStructures
+	# list and then take the next element, which will be the name
+	# for that structure.
+	set gaLabelInfo(structureIndex) $inStructure
+	set nStructureListIndex \
+	    [lsearch -exact $glStructures $inStructure]
+	set gaLabelInfo(structureName) \
+	    [lindex $glStructures [expr $nStructureListIndex + 1]]
     }
 
-    # set the name in the list of names
+    # Set the name in the list of names
     set glLabelNames [lreplace $glLabelNames $inIndex $inIndex $isName]
 }
 
@@ -4302,7 +4331,6 @@ proc LblLst_SelectHilitedLabel {} {
 
     global glwLabel
 
-
     # find the hilighted label in the list box and select it
     set nSelection [$glwLabel curselection]
     if {$nSelection != ""} {
@@ -4325,15 +4353,9 @@ proc LblLst_SendCurrentInfo {} {
     global gnSelectedLabel
     global glwLabel
     global gaLabelInfo
-    global glwStructures
     
-    # If the structure is not -1, get the selected structure name from
-    # the list.
-    if { -1 != $gaLabelInfo(structureIndex) } {
-	set gaLabelInfo(structureName) [$glwStructures curselection]
-    } 
-
-    # send the contents of the label info.
+    # Send the contents of the label info. Note that here we are
+    # sending the actual structural index.
     labl_set_info $gnSelectedLabel $gaLabelInfo(name) \
 	$gaLabelInfo(structureIndex) $gaLabelInfo(visible) \
 	$gaLabelInfo(red) $gaLabelInfo(green) $gaLabelInfo(blue)
@@ -4377,9 +4399,14 @@ proc LblLst_SetHilitedStructure {} {
 	# find the hilighted label in the list box and select it
 	set gnSelectedStructure [$glwStructures curselection]
 
-	# update the structure
-	set gaLabelInfo(structureIndex) $gnSelectedStructure
-	set gaLabelInfo(structureName) [lindex $glStructures $gnSelectedStructure]
+	# We need to translate this into a real structure
+	# number. We'll take the (gnSelectedStructure * 2)th element
+	# from the structure list. The next one after that is the
+	# structure name.
+	set gaLabelInfo(structureIndex) \
+	    [lindex $glStructures [expr $gnSelectedStructure * 2]]
+	set gaLabelInfo(structureName) \
+	    [lindex $glStructures [expr ($gnSelectedStructure * 2) + 1]]
     }
 
     # now we have to reselect the label in the lable list since
@@ -4417,11 +4444,14 @@ proc LblLst_SetStructures { ilStructures } {
     # set our list of structures.
     set glStructures $ilStructures
 
-    # if we have the widget, delete all the entries and reinsert them.
+    # if we have the widget, delete all the entries and reinsert
+    # them. This is a list composed of structure ids and names, in the
+    # format {structure name structure name...} so we'll grab the
+    # elements in pairs.
     if { $glwStructures != "" } {
 	$glwStructures delete 0 end
-	foreach structure $ilStructures {
-	    $glwStructures insert end $structure
+	foreach {structure name} $ilStructures {
+	    $glwStructures insert end "$structure: $name"
 	}
     }
 }

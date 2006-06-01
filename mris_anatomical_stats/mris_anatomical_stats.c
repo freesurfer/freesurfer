@@ -18,7 +18,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.36 2006/04/21 19:44:56 nicks Exp $";
+"$Id: mris_anatomical_stats.c,v 1.37 2006/06/01 22:31:40 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.36 2006/04/21 19:44:56 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.37 2006/06/01 22:31:40 kteich Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -214,7 +214,7 @@ main(int argc, char *argv[])
                 Progname, annotation_name) ;
     if(annotctabfile != NULL && mris->ct != NULL){
       printf("Saving annotation colortable %s\n",annotctabfile);
-      CTABwriteTxt(annotctabfile,mris->ct);
+      CTABwriteFileASCII(mris->ct,annotctabfile);
     }
   }
   printf(" ... done.\n") ;
@@ -384,11 +384,11 @@ main(int argc, char *argv[])
           if (f->ripflag)
             continue ;
           v0 = &mris->vertices[f->v[0]] ;
-          v0_index = CTABannotationToIndex(mris->ct, v0->annotation);
+          CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
           v1 = &mris->vertices[f->v[1]] ;
-          v1_index = CTABannotationToIndex(mris->ct, v1->annotation);
+          CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
           v2 = &mris->vertices[f->v[2]] ;
-          v2_index = CTABannotationToIndex(mris->ct, v2->annotation);
+          CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
           for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
             {
               vno = f->v[m] ;
@@ -411,11 +411,11 @@ main(int argc, char *argv[])
           if (f->ripflag)
             continue ;
           v0 = &mris->vertices[f->v[0]] ;
-          v0_index = CTABannotationToIndex(mris->ct, v0->annotation);
+          CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
           v1 = &mris->vertices[f->v[1]] ;
-          v1_index = CTABannotationToIndex(mris->ct, v1->annotation);
+          CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
           v2 = &mris->vertices[f->v[2]] ;
-          v2_index = CTABannotationToIndex(mris->ct, v2->annotation);
+          CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
           for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
             {
               vno = f->v[m] ;
@@ -439,11 +439,11 @@ main(int argc, char *argv[])
           if (f->ripflag)
             continue ;
           v0 = &mris->vertices[f->v[0]] ;
-          v0_index = CTABannotationToIndex(mris->ct, v0->annotation);
+          CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
           v1 = &mris->vertices[f->v[1]] ;
-          v1_index = CTABannotationToIndex(mris->ct, v1->annotation);
+          CTABfindAnnotation(mris->ct, v1->annotation,&v1_index );
           v2 = &mris->vertices[f->v[2]] ;
-          v2_index = CTABannotationToIndex(mris->ct, v2->annotation);
+          CTABfindAnnotation(mris->ct, v2->annotation,&v2_index );
           areas[v0_index] += f->area/VERTICES_PER_FACE ;
           areas[v1_index] += f->area/VERTICES_PER_FACE ;
           areas[v2_index] += f->area/VERTICES_PER_FACE ;
@@ -453,7 +453,7 @@ main(int argc, char *argv[])
       for (vno = 0 ; vno < mris->nvertices ; vno++)
         {
           v0 = &mris->vertices[vno] ;
-          v0_index = CTABannotationToIndex(mris->ct, v0->annotation);
+          CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
           thicknesses[v0_index] += v0->imag_val ;
           dofs[v0_index]++ ;
         }
@@ -468,7 +468,7 @@ main(int argc, char *argv[])
       for (vno = 0 ; vno < mris->nvertices ; vno++)
         {
           v0 = &mris->vertices[vno] ;
-          v0_index = CTABannotationToIndex(mris->ct, v0->annotation);
+          CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
           std = (v0->imag_val-thicknesses[v0_index]);
           thickness_vars[v0_index] += std*std ;
         }
@@ -477,7 +477,7 @@ main(int argc, char *argv[])
         {
           if (dofs[i] == 0)
             continue ;
-          if (CTABindexToAnnotation(mris->ct, i, &annotation) != NO_ERROR)
+          if (CTABannotationAtIndex(mris->ct, i, &annotation) != NO_ERROR)
             continue ;
           MRISripVerticesWithoutAnnotation(mris, annotation) ;
           MRISuseMeanCurvature(mris) ;
@@ -494,7 +494,7 @@ main(int argc, char *argv[])
 
           if(annotation_name && tablefile != NULL){
             fp = fopen(tablefile,"a");
-            fprintf(fp, "%-40s", mris->ct->bins[i].name);
+            fprintf(fp, "%-40s", mris->ct->entries[i]->name);
             fprintf(fp, "%5d", dofs[i]);
             fprintf(fp, "  %5.0f", areas[i]) ;
             fprintf(fp, "  %5.0f", volumes[i]) ;
@@ -519,7 +519,7 @@ main(int argc, char *argv[])
               fprintf(stdout, "  %8.3f", mean_abs_gaussian_curvature) ;
               fprintf(stdout, "  %7.3f", fi);
               fprintf(stdout, "  %6.3f",ici);
-              fprintf(stdout, "  %s", mris->ct->bins[i].name);
+              fprintf(stdout, "  %s", mris->ct->entries[i]->name);
               fprintf(stdout, "\n");
             }
           else
@@ -530,7 +530,7 @@ main(int argc, char *argv[])
                    "%s: no color table loaded - cannot translate annot  file",
                    Progname);
               fprintf(stdout,
-                      "structure is \"%s\"\n", mris->ct->bins[i].name);
+                      "structure is \"%s\"\n", mris->ct->entries[i]->name);
               fprintf(stdout,
                       "number of vertices                      = %d\n",
                       dofs[i]);
@@ -589,7 +589,7 @@ main(int argc, char *argv[])
 
           annotation = v->annotation ;
           if (mris->ct && Gdiag_no >= 0){
-            ct_index = CTABannotationToIndex(mris->ct, annotation);
+            CTABfindAnnotation(mris->ct, annotation,&ct_index );
             if (ct_index == Gdiag_no) /* 6 is ectorhinal */
               DiagBreak() ;
           }
@@ -619,11 +619,11 @@ main(int argc, char *argv[])
 
           if(annotation_name && tablefile != NULL){
             fp = fopen(tablefile,"a");
-            ct_index = CTABannotationToIndex(mris->ct, annotation);
+            CTABfindAnnotation(mris->ct, annotation,&ct_index );
             if(ct_index < 0)
               fprintf(fp, "  ** annotation %08x", annotation);
             else
-              fprintf(fp, "%-40s", mris->ct->bins[ct_index].name);
+              fprintf(fp, "%-40s", mris->ct->entries[ct_index]->name);
             fprintf(fp, "%5d", n_vertices);
             fprintf(fp, "  %5.0f", mris->total_area) ;
             fprintf(fp, "  %5.0f", gray_volume) ;
@@ -649,11 +649,11 @@ main(int argc, char *argv[])
               fprintf(stdout, "  %7.3f", fi);
               fprintf(stdout, "  %6.3f",ici);
 
-              ct_index = CTABannotationToIndex(mris->ct, annotation);
+              CTABfindAnnotation(mris->ct, annotation,&ct_index );
               if(ct_index < 0)
                 fprintf(stdout, "  ** annotation %08x", annotation);
               else
-                fprintf(stdout, "  %s", mris->ct->bins[ct_index].name);
+                fprintf(stdout, "  %s", mris->ct->entries[ct_index]->name);
 
               fprintf(stdout, "\n");
 
@@ -666,7 +666,7 @@ main(int argc, char *argv[])
                   (ERROR_BADFILE,
                    "%s: no color table loaded - cannot translate annot  file",
                    Progname);
-              ct_index = CTABannotationToIndex(mris->ct, annotation);
+              CTABfindAnnotation(mris->ct, annotation,&ct_index );
 
               if(ct_index < 0)
                 fprintf
@@ -681,7 +681,7 @@ main(int argc, char *argv[])
               else
                 fprintf(stdout,
                         "structure is \"%s\"\n",
-                        mris->ct->bins[ct_index].name);
+                        mris->ct->entries[ct_index]->name);
               fprintf(stdout,
                       "number of vertices                      = %d\n",
                       n_vertices);

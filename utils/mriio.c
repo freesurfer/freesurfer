@@ -49,7 +49,6 @@
 #include "matrix.h"
 #include "diag.h"
 #include "chklc.h"
-#include "mriColorLookupTable.h"
 #include "DICOMRead.h"
 #include "imautils.h"
 #include "cma.h"
@@ -8017,7 +8016,7 @@ static int read_otl_file(FILE *fp,
 static int read_otl_file(FILE *fp,
                          MRI *mri,
                          int slice,
-                         mriColorLookupTableRef color_table,
+                         COLOR_TABLE *ctab,
                          int fill_flag,
                          int translate_label_flag,
                          int zero_outlines_flag)
@@ -8045,6 +8044,8 @@ static int read_otl_file(FILE *fp,
   char *translate_start;
   int internal_structures_flag = FALSE;
   CMAoutlineField *of;
+  int num_entries;
+  char entry_name[STRLEN];
 
   fgets(line, STRLEN, fp);
   if(strncmp(line, "GDF FILE VERSION", 15) != 0)
@@ -8408,12 +8409,18 @@ static int read_otl_file(FILE *fp,
 
 
           label_value = -1;
-          for(j = 0;j < color_table->mnNumEntries;j++)
-            if(strcmp(color_table->maEntries[j].msLabel,
-                      label_to_compare) == 0 ||
-               strcmp(color_table->maEntries[j].msLabel, alt_compare) == 0)
-              label_value = j;
-
+	  CTABgetNumberOfTotalEntries(ctab,&num_entries);
+          for(j = 0;j < num_entries;j++)
+	    {
+	      if( NO_ERROR == 
+		  CTABcopyName(ctab,j,entry_name,sizeof(entry_name)) )
+		{
+		  if(strcmp(entry_name, label_to_compare) == 0 ||
+		     strcmp(entry_name, alt_compare) == 0)
+		    label_value = j;
+		}
+	    }
+	  
           if(label_value == -1)
             {
               register_unknown_label(label);
@@ -8476,7 +8483,7 @@ MRI *MRIreadOtl
   int one_file_exists;
   char first_name[STRLEN], last_name[STRLEN];
   FILE *fp;
-  mriColorLookupTableRef color_table;
+  COLOR_TABLE *ctab;
   int read_volume_flag, fill_flag, translate_labels_flag, zero_outlines_flag;
 
   /* ----- set local flags ----- */
@@ -8574,7 +8581,7 @@ MRI *MRIreadOtl
           "MRIreadOtl(): error allocating MRI structure"));
     }
 
-  if(CLUT_NewFromFile(&color_table, color_file_name) != CLUT_tErr_NoErr)
+  if((ctab = CTABreadASCII(color_file_name)) == NULL)
     {
       MRIfree(&mri);
       errno = 0;
@@ -8591,7 +8598,7 @@ MRI *MRIreadOtl
       if((fp = fopen(stem, "r")) != NULL)
         {
           if(read_otl_file
-             (fp, mri, i, color_table, fill_flag, \
+             (fp, mri, i, ctab, fill_flag, \
               translate_labels_flag, zero_outlines_flag) != NO_ERROR)
             {
               MRIfree(&mri);
@@ -8601,7 +8608,7 @@ MRI *MRIreadOtl
         }
     }
 
-  CLUT_Delete(&color_table);
+  CTABfree(&ctab);
 
   if(!one_file_exists)
     {

@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $
+  $Id: mri_label2vol.c,v 1.21 2006/06/01 22:31:27 kteich Exp $
 */
 
 
@@ -56,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.21 2006/06/01 22:31:27 kteich Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv, 
-													 "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $", "$Name:  $", cmdline);
+													 "$Id: mri_label2vol.c,v 1.21 2006/06/01 22:31:27 kteich Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.20 2006/04/11 23:39:43 greve Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.21 2006/06/01 22:31:27 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -943,10 +943,10 @@ static int load_annotation(char *annotfile, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-		if (Surf->ct != NULL)
-			annotid = CTABannotationToIndex(Surf->ct, annot);
-		else
-			annotid = annotation_to_index(annot);
+    if (Surf->ct != NULL)
+      CTABfindAnnotation(Surf->ct, annot, &annotid);
+    else
+      annotid = annotation_to_index(annot);
     if(annotidmax < annotid) annotidmax = annotid; 
   }
 

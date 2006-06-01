@@ -48,7 +48,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-"$Id: mris_thickness_diff.c,v 1.4 2006/05/19 22:38:24 nicks Exp $";
+"$Id: mris_thickness_diff.c,v 1.5 2006/06/01 22:32:31 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_thickness_diff.c,v 1.4 2006/05/19 22:38:24 nicks Exp $",
+     "$Id: mris_thickness_diff.c,v 1.5 2006/06/01 22:32:31 kteich Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
     MRISreadAnnotation(Surf1, annotation_fname) ;
     printf("mask out vertices not have annotation %d\n", annotation);
     //CTABindexToAnnotation(Surf1->ct, annotation_index, &annotation);
-    annotation = CTABnameToAnnotation(Surf1->ct, annotation_name);
+    CTABfindName(Surf1->ct, annotation_name, &annotation);
     for(index = 0; index < Surf1->nvertices; index++){
       vertex = &Surf1->vertices[index];
       if(vertex->annotation != annotation)

@@ -269,10 +269,10 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-		if (Surf->ct)
-			vtxannotid = CTABannotationToIndex(Surf->ct, annot);
-		else
-			vtxannotid = annotation_to_index(annot);
+    if (Surf->ct)
+      CTABfindAnnotation(Surf->ct, annot, &vtxannotid);
+    else
+      vtxannotid = annotation_to_index(annot);
     if(vtxannotid == annotid) npoints++;
   }
   if(npoints==0) return(NULL);
@@ -286,10 +286,10 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-		if (Surf->ct)
-			vtxannotid = CTABannotationToIndex(Surf->ct, annot);
-		else
-			vtxannotid = annotation_to_index(annot);
+    if (Surf->ct)
+      CTABfindAnnotation(Surf->ct, annot, &vtxannotid);
+    else
+      vtxannotid = annotation_to_index(annot);
     if(vtxannotid == annotid){
       label->lv[npoints].vno = vtxno;
       label->lv[npoints].x = vtx->x;
@@ -312,7 +312,7 @@ int set_atable_from_ctable(COLOR_TABLE *pct){
   if (num_entries > 0) // atable already set
     return(NO_ERROR);
 
-  num_entries = pct->nbins;
+  num_entries = pct->nentries;
 
   if(num_entries <= 0)
     return(ERROR_BAD_PARM);
@@ -320,13 +320,14 @@ int set_atable_from_ctable(COLOR_TABLE *pct){
   atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT)) ;
   for (i = 0 ; i < num_entries ; i++)
   {
-    cte = &(pct->bins[i]);
-    atable[i].index = i;
-    strcpy(atable[i].name, cte->name);
-    atable[i].r = cte->r;
-    atable[i].g = cte->g;
-    atable[i].b = cte->b;
-    atable[i].annotation = atable[i].r+(atable[i].g << 8)+(atable[i].b << 16);
+    cte = pct->entries[i];
+    if (NULL != cte)
+      {
+	atable[i].index = i;
+	CTABcopyName(pct, i, atable[i].name, sizeof(atable[i].name));
+	CTABrgbAtIndexi(pct, i, &atable[i].r, &atable[i].g, &atable[i].b );
+	CTABannotationAtIndex(pct, i, &atable[i].annotation);
+      }
   }
 
   return(NO_ERROR) ;

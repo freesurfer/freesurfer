@@ -1,4 +1,4 @@
-// $Id: mris_seg2annot.c,v 1.3 2006/05/31 21:23:18 greve Exp $
+// $Id: mris_seg2annot.c,v 1.4 2006/06/01 22:31:58 kteich Exp $
 
 /*
   BEGINHELP
@@ -90,7 +90,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.3 2006/05/31 21:23:18 greve Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.4 2006/06/01 22:31:58 kteich Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
   // Have to read ctab both ways
   printf("Reading ctab %s\n",ctabfile);
-  ctab = CTABread(ctabfile);
+  ctab = CTABreadASCII(ctabfile);
   if(ctab == NULL){
     printf("ERROR: reading %s\n",ctabfile);
     exit(1);

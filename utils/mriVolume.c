@@ -622,7 +622,7 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
   
   DebugNote( ("Freeing BtoRAS tmp matrix") );
   MatrixFree(&BtoRAS);
-
+ 
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );

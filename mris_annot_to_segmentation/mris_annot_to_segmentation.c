@@ -3,7 +3,6 @@
 #include <math.h>
 #include <ctype.h>
 
-#include "mriColorLookupTable.h"
 #include "mri.h"
 #include "macros.h"
 #include "volume_io.h"
@@ -34,19 +33,18 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI          *mri ;
   int          err;
-  mriColorLookupTableRef clut;
+  COLOR_TABLE* ctab;
   char surf_name[NAME_LEN];
   char mri_name[NAME_LEN];
   int vno;
   VERTEX* v;
-  xColor3n color;
   int structure;
   float dx, dy, dz, len, d;
   Real idxx, idxy, idxz;
   
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.4 2006/01/14 17:16:43 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.5 2006/06/01 22:31:43 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,8 +98,8 @@ main(int argc, char *argv[])
 	      annot_file);
 
   /* Read the color look up table. */
-  err = CLUT_NewFromFile ( &clut, color_file );
-  if (err != CLUT_tErr_NoErr)
+  ctab = CTABreadASCII ( color_file );
+  if (NULL == ctab)
     ErrorExit(ERROR_NOFILE, "%s: could not read color table %s\n",
 	      color_file);
 
@@ -122,15 +120,11 @@ main(int argc, char *argv[])
       
       /* Get the color and then the index. */
       if ( 0 != v->annotation ) {
-	MRISAnnotToRGB (v->annotation, 			
-			color.mnRed, color.mnGreen, color.mnBlue);
-
 	structure = 0;
 	if (mris->ct) {
-	  CTABcolorToIndex (mris->ct, color.mnRed, color.mnGreen, color.mnBlue,
-			    &structure);
+	  CTABfindAnnotation (mris->ct, v->annotation, &structure);
 	} else {
-	  CLUT_GetIndex (clut, &color, &structure);
+	  CTABfindAnnotation (ctab, v->annotation, &structure);
 	}
 
 	if (0 != structure)

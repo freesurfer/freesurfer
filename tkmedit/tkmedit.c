@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/30 21:28:39 $
-// Revision       : $Revision: 1.288 $
-char *VERSION = "$Revision: 1.288 $";
+// Revision Date  : $Date: 2006/06/01 22:30:26 $
+// Revision       : $Revision: 1.289 $
+char *VERSION = "$Revision: 1.289 $";
 
 #define TCL
 #define TKMEDIT
@@ -502,7 +502,7 @@ void ScaleOverlayRegisgtration     ( float ifDistance, char isDirection );
 
 // ============================================================== SEGMENTATION
 
-#include "mriColorLookupTable.h"
+#include "colortab.h"
 
 #define kfDefaultSegmentationAlpha 0.3
 
@@ -515,7 +515,7 @@ static mriVolumeRef  gSegmentationVolume[tkm_knNumSegTypes];
 static mriVolumeRef  gPreviousSegmentationVolume[tkm_knNumSegTypes];
 static mriVolumeRef  gSegmentationChangedVolume[tkm_knNumSegTypes];
 
-static mriColorLookupTableRef gColorTable[tkm_knNumSegTypes];
+static COLOR_TABLE*  gColorTable[tkm_knNumSegTypes];
 static float         gfSegmentationAlpha   = kfDefaultSegmentationAlpha;
 
 /* Creates a new segementation volume from the settings from an
@@ -1138,7 +1138,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.288 2006/05/30 21:28:39 kteich Exp $",
+     "$Id: tkmedit.c,v 1.289 2006/06/01 22:30:26 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5679,7 +5679,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.288 2006/05/30 21:28:39 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.289 2006/06/01 22:30:26 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -10135,10 +10135,12 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   mriVolumeRef newChangedVolume        = NULL;
   MRIS*        mris                    = NULL;
   tBoolean     bInternalTable          = FALSE;
-  mriColorLookupTableRef colorTable    = NULL;
+  COLOR_TABLE* colorTable              = NULL;
   int          nVertex                 = 0;
   VERTEX*      pVertex                 = 0;
-  xColor3n     color;
+  int          nRed                    = 0;
+  int          nGreen                  = 0;
+  int          nBlue                   = 0;
   int          nStructure              = 0;
   xVoxel       surfRAS;
   xVoxel       MRIIdx;
@@ -10224,7 +10226,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
     if( Surf_tErr_NoErr == eSurface ) {
 
       /* Replace our existing color table with it. */
-      CLUT_Delete( &gColorTable[iVolume] );
+      CTABfree( &gColorTable[iVolume] );
       gColorTable[iVolume] = colorTable;
 
       /* Update the window and tcl stuff. */
@@ -10245,9 +10247,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 
     /* Get the color and then the index. */
     if ( 0 != pVertex->annotation ) {
-      MRISAnnotToRGB( pVertex->annotation,
-                      color.mnRed, color.mnGreen, color.mnBlue );
-      CLUT_GetIndex( gColorTable[iVolume], &color, &nStructure );
+      MRISAnnotToRGB( pVertex->annotation, nRed, nGreen, nBlue );
+      CTABfindRGBi( gColorTable[iVolume], nRed, nGreen, nBlue, &nStructure );
 
       /* Set all the voxels between the white (current) vertex and the
          pial vertex coords. Find the direction from the pial to the
@@ -10349,7 +10350,6 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sColorFileName[tkm_knPathLen]   = "";
-  CLUT_tErr eColorTable         = CLUT_tErr_NoErr;
   char      sError[tkm_knErrStringLen]     = "";
 
   DebugEnterFunction( ("LoadSegmentationColorTable( iVolume=%d, "
@@ -10365,8 +10365,8 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
 
   /* try to load color table */
   DebugNote( ("Loading color table") );
-  eColorTable = CLUT_NewFromFile( &gColorTable[iVolume], isColorFileName );
-  DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
+  gColorTable[iVolume] = CTABreadASCII( isColorFileName );
+  DebugAssertThrowX( (NULL != gColorTable[iVolume]),
                      eResult, tkm_tErr_CouldntLoadColorTable );
 
   /* Send the labels to tcl. */
@@ -10392,10 +10392,11 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
 tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume ) {
 
   tkm_tErr  eResult                        = tkm_tErr_NoErr;
-  CLUT_tErr eColorTable                    = CLUT_tErr_NoErr;
+  int       eCTAB                          = 0;
   int       nNumEntries                    = 0;
   int       nEntry                         = 0;
-  char      sLabel[CLUT_knLabelLen]        = "";
+  int       bValid                         = FALSE;
+  char      sLabel[1024]                   = "";
   char      sTclArguments[tkm_knTclCmdLen] = "";
   char      sFileName[256]                 = "";
 
@@ -10407,25 +10408,37 @@ tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume ) {
      that as a new entry. */
   DebugNote( ("Clearing color table in interface") );
   tkm_SendTclCommand( tkm_tTclCommand_ClearSegColorTable, "" );
-  DebugNote( ("Getting number of color table entries") );
-  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
+
+  /* Find out how many total entries we have. */
+  DebugNote( ("Getting number of total color table entries") );
+  CTABgetNumberOfTotalEntries( gColorTable[iVolume], &nNumEntries );
+ 
+  /* Iterate over all the entries, but only get names for the valid
+     ones. */
   for( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
+
+    /* If not valid, skip it. */
+    CTABisEntryValid( gColorTable[iVolume], nEntry, &bValid );
+    if (!bValid)
+      continue;
+
     DebugNote( ("Getting label for entry %d/%d", nEntry, nNumEntries) );
-    eColorTable = CLUT_GetLabel( gColorTable[iVolume], nEntry, sLabel );
-    DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
+    eCTAB =
+      CTABcopyName( gColorTable[iVolume], nEntry, sLabel, sizeof(sLabel));
+    DebugAssertThrowX( (NO_ERROR == eCTAB),
                        eResult, tkm_tErr_Unrecoverable );
     if( strcmp( sLabel, "" ) == 0 )
       xUtil_strncpy( sLabel, "None", sizeof(sLabel) );
+    
     DebugNote( ("Making tcl command") );
     xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
                     "%d \"%s\"", nEntry, sLabel );
     tkm_SendTclCommand( tkm_tTclCommand_AddSegColorTableEntry,
                         sTclArguments );
   }
-
+  
   /* Copy the file name and send that. */
-  CLUT_CopyFileName( gColorTable[iVolume], sFileName, sizeof(sFileName) );
-
+  CTABcopyFileName( gColorTable[iVolume], sFileName, sizeof(sFileName) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateSegmentationColorTable,
                       sFileName );
 
@@ -10466,14 +10479,16 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
                                    xColor3fRef  iBaseColor,
                                    xColor3fRef  oColor ) {
 
-  int        index        = 0;
-  CLUT_tErr  eColorTable  = CLUT_tErr_NoErr;
-  xColor3f   roiColor;
-  float      alpha        = 0;
-  float      finalAlpha   = 0;
+  int        nIndex       = 0;
+  int        eCTAB        = NO_ERROR;
+  float      fRed         = 0;
+  float      fGreen       = 0;
+  float      fBlue        = 0;
+  float      fAlpha       = 0;
+  float      fFinalAlpha  = 0;
 
   /* get the index of this voxel */
-  GetSegLabel( iVolume, iMRIIdx, &index, NULL );
+  GetSegLabel( iVolume, iMRIIdx, &nIndex, NULL );
 
   /* If 0, just use the base color */
   if( 0 == index ) {
@@ -10482,20 +10497,20 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   }
 
   /* get the color out of the color map */
-  eColorTable = CLUT_GetColorFloat( gColorTable[iVolume], index,
-				    &roiColor, &alpha );
-  if( CLUT_tErr_NoErr != eColorTable )
+  eCTAB = CTABrgbaAtIndexf( gColorTable[iVolume], nIndex,
+			    &fRed, &fGreen, &fBlue, &fAlpha );
+  if( NO_ERROR != eCTAB )
     goto error;
 
-  finalAlpha = gfSegmentationAlpha * alpha;
+  fFinalAlpha = gfSegmentationAlpha * fAlpha;
 
   /* blend them */
-  oColor->mfRed = (finalAlpha * roiColor.mfRed) +
-    (float)((1.0-finalAlpha) * iBaseColor->mfRed);
-  oColor->mfGreen = (finalAlpha * roiColor.mfGreen) +
-    (float)((1.0-finalAlpha) * iBaseColor->mfGreen);
-  oColor->mfBlue = (finalAlpha * roiColor.mfBlue) +
-    (float)((1.0-finalAlpha) * iBaseColor->mfBlue);
+  oColor->mfRed = (fFinalAlpha * fRed) +
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfRed);
+  oColor->mfGreen = (fFinalAlpha * fGreen) +
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfGreen);
+  oColor->mfBlue = (fFinalAlpha * fBlue) +
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfBlue);
 
   goto cleanup;
 
@@ -10514,7 +10529,7 @@ void GetSegLabel ( tkm_tSegType iVolume,
                    int*         onIndex,
                    char*        osLabel ) {
 
-  CLUT_tErr   eColorTable  = CLUT_tErr_NoErr;
+  int         eCTAB        = NO_ERROR;
   Volm_tErr   eVolume      = Volm_tErr_NoErr;
   int         index        = 0;
   float       fValue       = 0;
@@ -10533,8 +10548,8 @@ void GetSegLabel ( tkm_tSegType iVolume,
     if( 0 == index ) {
       strcpy( osLabel, "None" );
     } else {
-      eColorTable = CLUT_GetLabel( gColorTable[iVolume], index, osLabel );
-      if( CLUT_tErr_NoErr != eColorTable ) {
+      eCTAB = CTABcopyName( gColorTable[iVolume], index, osLabel, 256 );
+      if( NO_ERROR != eCTAB ) {
         /* pass an out of bounds notice. */
         strcpy( osLabel, "Out of bounds." );
       }
@@ -10675,7 +10690,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 
   /* check entry index */
   DebugNote( ("Getting number of entries") );
-  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
+  CTABgetNumberOfTotalEntries( gColorTable[iVolume], &nNumEntries );
   DebugAssertThrowX( (inIndex > 0 && inIndex <= nNumEntries),
                      eResult, tkm_tErr_InvalidParameter );
 
@@ -10704,9 +10719,9 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   Volm_tErr eVolume        = Volm_tErr_NoErr;
-  FunV_tErr eFunctional        = FunV_tErr_NoError;
-  int      nNumEntries        = 0;
-  char      sLabel[CLUT_knLabelLen] = "";
+  FunV_tErr eFunctional    = FunV_tErr_NoError;
+  int       nNumEntries    = 0;
+  char      sLabel[1024]   = "";
 
   DebugEnterFunction( ("GraphSegLabel ( iVolume=%d, inIndex=%d )",
                        iVolume, inIndex) );
@@ -10719,7 +10734,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
 
   /* check entry index */
   DebugNote( ("Getting number of entries") );
-  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
+  CTABgetNumberOfTotalEntries( gColorTable[iVolume], &nNumEntries );
   DebugAssertThrowX( (inIndex > 0 && inIndex <= nNumEntries),
                      eResult, tkm_tErr_InvalidParameter );
 
@@ -10743,7 +10758,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
                      eResult, tkm_tErr_ErrorAccessingFunctionalVolume );
 
   /* set the graph window */
-  CLUT_GetLabel( gColorTable[iVolume], inIndex, sLabel );
+  CTABcopyName( gColorTable[iVolume], inIndex, sLabel, sizeof(sLabel) );
   if( sLabel != "" )
     FunV_SetLocationString( gFunctionalVolume, sLabel );
 

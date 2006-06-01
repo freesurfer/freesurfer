@@ -19,7 +19,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.12 2006/05/09 21:05:32 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.13 2006/06/01 22:31:11 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -145,7 +145,7 @@ main(int argc, char *argv[])
 				cp = getenv("FREESURFER_HOME") ;
 				sprintf(fname, "%s/Simple_surface_labels2002.txt", cp) ;
 				printf("reading colortable from %s...\n", fname) ;
-				mris->ct = CTABread(fname) ;
+				mris->ct = CTABreadASCII(fname) ;
 				if (!mris->ct)
 					ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s",Progname, fname) ;
 			}
