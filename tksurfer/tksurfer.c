@@ -19103,7 +19103,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.209 2006/06/01 22:30:29 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.210 2006/06/01 22:45:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25535,8 +25535,8 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
 		    ((float)labl_labels[label_index].a / 255.0);
 
                   *r = (GLubyte)((br + lr) * 255.0);
-                  *g = (GLubyte)((bg + lb) * 255.0);
-                  *b = (GLubyte)((bg + lb) * 255.0);
+                  *g = (GLubyte)((bg + lg) * 255.0);
+                  *b = (GLubyte)((bb + lb) * 255.0);
                   break;
                 case LABL_STYLE_OUTLINE:
                   /* if this is a border of width 1, color it the color of the
