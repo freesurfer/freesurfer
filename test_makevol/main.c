@@ -233,6 +233,7 @@ int main ( int argc, char** argv ) {
     return 1;
   }
 
+  MRIfree( &mri );
 
   return 0;
 }
