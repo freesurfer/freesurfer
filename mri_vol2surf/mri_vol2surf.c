@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.28 2006/05/15 16:01:39 greve Exp $
+  $Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.28 2006/05/15 16:01:39 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -71,6 +71,7 @@ char *srcregfile = NULL;
 char *srcwarp    = NULL;
 int   srcoldreg  = 0;
 char *srcsubject = NULL;
+char *srcsubjectuse = NULL;
 
 char *srchitvolid   = NULL;
 char *srchittypestring = NULL;
@@ -158,7 +159,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.28 2006/05/15 16:01:39 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -185,6 +186,13 @@ int main(int argc, char **argv)
   err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
           &intensity, &Dsrc, &float2int_src);
   if(err) exit(1);
+  if(srcsubjectuse){
+    if(strcmp(srcsubject,srcsubjectuse)){
+      printf("INFO: overriding regsubject %s with %s\n",
+	     srcsubject,srcsubjectuse);
+    }
+    srcsubject = srcsubjectuse;
+  }
 
   /* voxel indices conversion from float to integer */
   if(float2int < 0) float2int = float2int_src;
@@ -647,6 +655,11 @@ static int parse_commandline(int argc, char **argv)
       trgsubject = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srcsubject")){
+      if(nargc < 1) argnerr(option,1);
+      srcsubjectuse = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--icoorder")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&IcoOrder);
@@ -817,6 +830,7 @@ static void print_usage(void)
   printf("   --trgsubject target subject (if different than reg)\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
   printf("   --surf       target surface (white) \n");
+  printf("   --srcsubject source subject (override that in reg)\n");
   printf("\n");
   printf(" Options for use with --trgsubject\n");
   printf("   --surfreg    surface registration (sphere.reg)  \n");
