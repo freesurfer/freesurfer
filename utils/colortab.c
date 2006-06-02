@@ -27,7 +27,6 @@ CTABreadASCII(char *fname)
   int         structure;
   char        name[STRLEN];
   int         r, g, b, t;
-  int         line_num;
 
   /* Try to open the file. */
   fp = fopen(fname, "r");
@@ -79,7 +78,6 @@ CTABreadASCII(char *fname)
      allocate a CTE. This will leave the items in the array for which
      we don't have entries NULL. */
   rewind(fp); 
-  line_num = 1;
   while ((cp = fgetl(line, STRLEN, fp)) != NULL)
     {
       if (sscanf (line, "%d %s %d %d %d %d",
@@ -90,8 +88,14 @@ CTABreadASCII(char *fname)
 	     in the file. Warn, but then continue on.*/
 	  if (ct->entries[structure] != NULL)
 	    {
-	      printf ("CTABreadASCII(%s): Line %d: Duplicate structure "
-		      "index\n", fname, line_num);
+	      printf ("CTABreadASCII(%s): Duplicate structure "
+		      "index %d, was %s %d %d %d %d\n", 
+		      fname, structure,
+		      ct->entries[structure]->name,
+		      ct->entries[structure]->ri,
+		      ct->entries[structure]->gi,
+		      ct->entries[structure]->bi,
+		      ct->entries[structure]->ai);
 	    } 
 	  else
 	    {
@@ -123,7 +127,6 @@ CTABreadASCII(char *fname)
 		(float)ct->entries[structure]->ai / 255.0;
 	    }
 	}
-      line_num++;
     }
   
   fclose(fp);
