@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.27 2006/05/02 18:27:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.28 2006/06/02 00:26:55 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2202,14 +2202,18 @@ check_params:
         cp $aseg.mgz $aseg.legacy.mgz
       else
         if(-e $aseg/COR-.info) then 
-          mri_convert $aseg $aseg.legacy.mgz
+          mri_convert $aseg $aseg.mgz
+          cp $aseg.mgz $aseg.legacy.mgz
         endif
       endif
       set wm = $subjdir/mri/wm
       if(-e $wm.mgz) then
         cp $wm.mgz $wm.legacy.mgz
       else
-        if(-e $wm/COR-.info)  mri_convert $wm $wm.legacy.mgz
+        if(-e $wm/COR-.info) then
+          mri_convert $wm $wm.mgz
+          cp $wm.mgz $wm.legacy.mgz
+        endif
       endif
       if(-e $subjdir/mri/orig) then
         pushd $subjdir/mri/orig > /dev/null
