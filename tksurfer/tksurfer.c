@@ -1581,6 +1581,11 @@ int sclv_get_normalized_color_for_value (int field, float value,
                                          float *outGreen,
                                          float *outBlue);
 
+/* Applies a functional value's heat scale color to the given color,
+   overlaying them in the given opacity. */
+int sclv_apply_color_for_value (float fval, float opacity,
+				GLubyte* r, GLubyte* g, GLubyte* b );
+
 int sclv_load_label_value_file (char* fname, int field);
 
 /* ---------------------------------------------------------------------- */
@@ -13405,19 +13410,15 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
                   g = g_overlay;
                   b = b_overlay;
                 } else {
-                  /* get a color based on the currently 
-                     selected field if it is above fthresh. */
+                  /* get a color based on the currently selected field
+                     if it is above fthresh. */
                   sclv_get_value (v, sclv_current_field, &val);
                   if (val > fthresh || val < -fthresh)
                     {
-                      r_overlay = r;
-                      g_overlay = g;
-                      b_overlay = b;
-                      get_color_vals (val, val2, REAL_VAL,  
-                                      &r_overlay, &g_overlay, &b_overlay);
-                      r = r + (sclv_overlay_alpha * (r_overlay - r));
-                      g = g + (sclv_overlay_alpha * (g_overlay - g));
-                      b = b + (sclv_overlay_alpha * (b_overlay - b));
+		      /* This will blend the functional color into the
+			 input color. */
+		      sclv_apply_color_for_value (val, sclv_overlay_alpha,
+						  &r, &g, &b);
                     }
                 }
             }
@@ -19103,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.210 2006/06/01 22:45:40 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.211 2006/06/02 19:34:19 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23966,6 +23967,97 @@ int sclv_get_normalized_color_for_value (int field, float value,
   return (ERROR_NONE);
 }
 
+int sclv_apply_color_for_value (float f, float opacity,
+				GLubyte* pr, GLubyte* pg, GLubyte* pb )
+{
+  float r,g,b;
+  float ftmp,c1,c2;
+  float min, mid, max;
+  float or, ob, og;
+  float br, bg, bb;
+
+  r = g = b = 0.0f ;
+  if (invphaseflag)
+    f = -f;
+  if (truncphaseflag && f<0)
+    f = 0;
+  if (rectphaseflag)
+    f = fabs(f);
+
+  /* rkt: same way values are calc'd in tkmedit. The main difference
+     is that max is 0.5/slope + mid instead of 1/slope + mid, to make
+     the linear version work better. */
+  min = (float)(fthresh); 
+  mid = (float)(fmid); 
+  max = (0.5 / (float)fslope) + (float)fmid;
+
+  /* Calculate the background colors. */
+  br = (float)*pr / 255.0;
+  bg = (float)*pg / 255.0;
+  bb = (float)*pb / 255.0;
+
+  if (fabs(f)>fthresh && fabs(f)<fmid)
+    {
+      ftmp = fabs(f);
+      c1 = 1.0/(fmid-fthresh);
+      if (fcurv!=1.0)
+        c2 = (fmid-fthresh-fcurv*c1*SQR(fmid-fthresh))/
+          ((1-fcurv)*(fmid-fthresh));
+      else
+        c2 = 0;
+      ftmp = fcurv*c1*SQR(ftmp-fthresh)+c2*(1-fcurv)*(ftmp-fthresh)+fthresh;
+      f = (f<0)?-ftmp:ftmp;
+    }
+  
+  if (colscale==HEAT_SCALE)
+    {
+      if (f>=0)
+        {
+	  /* the offset is a portion of the color that is 'blended'
+	     into the functional color so that a func value right at
+	     the threshold doesn't look black, but translucent. the
+	     rest is a standard interpolated color scale. */
+	  or = br *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = bg *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = bb * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  r = or + 
+	     ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	     ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ob; 
+        } 
+      else
+	{
+	  f = -f;
+	  or = br *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = bg * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = bb * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  b = ob +
+	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = or;
+	  
+	}
+      r = r*255;
+      g = g*255;
+      b = b*255;
+    }
+
+  /* Blend the color into the input color with the given opacity.*/
+  *pr = (int)((1.0 - opacity) * (float)*pr) + (opacity * r);
+  *pg = (int)((1.0 - opacity) * (float)*pg) + (opacity * g);
+  *pb = (int)((1.0 - opacity) * (float)*pb) + (opacity * b);
+
+  return (NO_ERROR);
+}
+
 int sclv_load_label_value_file (char *fname, int field) 
 {
   FILE* fp = NULL;
@@ -25065,7 +25157,6 @@ int labl_select (int index)
 {
   char tcl_command[NAME_LENGTH + 50];
   int old_selected;
-  
   /* mark this label as selected. */
   old_selected = labl_selected_label;
   labl_selected_label = index;
@@ -25083,7 +25174,7 @@ int labl_select (int index)
           
           labl_send_info (index);
         }
-      
+
       /* redraw. */
       redraw ();
     }
