@@ -29,7 +29,7 @@
 #include "cma.h"
 #include "gca.h"
 #include "sig.h"
-
+#include "annotation.h"
 
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -1537,4 +1537,53 @@ double MRISsmoothingArea(MRIS *mris, int vtxno, int niters)
   fflush(stdout);
 
   return(area);
+}
+
+/*-------------------------------------------------------------------
+  MRISseg2annot() - converts a segmentation in a surface-encoded
+  MRI struct to an annotation in an MRIS struct. If ctab is null,
+  it tries to use mris->ct. See also MRISannotIndex2Seg().
+  -------------------------------------------------------------------*/
+int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
+{
+  int vtxno, segid, ano;
+
+  if(ctab == NULL){
+    if(mris->ct == NULL){
+      printf("ERROR: MRISseg2annot: both ctab and mris->ct are NULL\n");
+      return(1);
+    }
+  }
+  else mris->ct = ctab;
+  set_atable_from_ctable(mris->ct);
+
+  for(vtxno=0; vtxno < mris->nvertices; vtxno++){
+    segid = MRIgetVoxVal(surfseg,vtxno,0,0,0);
+    ano = index_to_annotation(segid);
+    mris->vertices[vtxno].annotation = ano;
+    //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
+  }
+
+  return(0);
+}
+/*----------------------------------------------------------------
+  MRISannotIndex2Seg() - creates an MRI struct where each voxel is the
+  annotation index. The struct has nvertices columns, 1 row, 1 slice,
+  and 1 frame. It should not be misconstrued as a volume. See also
+  MRISseg2annot().
+  ----------------------------------------------------------------*/
+MRI *MRISannotIndex2Seg(MRIS *mris)
+{
+  MRI *seg;
+  int vno, annot, annotid;
+
+  annotid = 0;
+  seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+  for(vno = 0; vno < mris->nvertices; vno ++){
+    annot = mris->vertices[vno].annotation;
+    if(mris->ct)      CTABfindAnnotation(mris->ct, annot, &annotid);
+    else 	      annotid = annotation_to_index(annot);
+    MRIsetVoxVal(seg,vno,0,0,0,annotid);
+  }
+  return(seg);
 }

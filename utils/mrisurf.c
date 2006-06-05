@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/06/01 22:29:22 $
-// Revision       : $Revision: 1.469 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/06/05 19:17:46 $
+// Revision       : $Revision: 1.470 $
 //////////////////////////////////////////////////////////////////
  
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.469 2006/06/01 22:29:22 kteich Exp $"); }
+  return("$Id: mrisurf.c,v 1.470 2006/06/05 19:17:46 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -51361,27 +51361,6 @@ MRISexpandMarked(MRI_SURFACE *mris)
 			v->marked = 1 ;
 	}
 	return(NO_ERROR) ;
-}
-
-/*----------------------------------------------------------------
-  MRISannotIndex2Seg() - creates an MRI struct where each voxel is the
-  annotation index. The struct has nvertices columns, 1 row, 1 slice,
-  and 1 frame. It should not be misconstrued as a volume.
-  ----------------------------------------------------------------*/
-MRI *MRISannotIndex2Seg(MRIS *mris)
-{
-  MRI *seg;
-  int vno, annot, annotid;
-
-  annotid = 0;
-  seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
-  for(vno = 0; vno < mris->nvertices; vno ++){
-    annot = mris->vertices[vno].annotation;
-    if(mris->ct)      CTABfindAnnotation(mris->ct, annot, &annotid);
-    else 	      annotid = annotation_to_index(annot);
-    MRIsetVoxVal(seg,vno,0,0,0,annotid);
-  }
-  return(seg);
 }
 // These are for backwards compatibility for when we don't want to fix
 // the vertex area. Default is to fix, but this can be changed
