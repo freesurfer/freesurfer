@@ -27,6 +27,7 @@ CTABreadASCII(char *fname)
   int         structure;
   char        name[STRLEN];
   int         r, g, b, t;
+  int         line_num;
 
   /* Try to open the file. */
   fp = fopen(fname, "r");
@@ -77,8 +78,9 @@ CTABreadASCII(char *fname)
   /* Rewind the file and go through it again. For each entry we find,
      allocate a CTE. This will leave the items in the array for which
      we don't have entries NULL. */
+  line_num = 1;
   rewind(fp); 
-  while ((cp = fgetl(line, STRLEN, fp)) != NULL)
+  while ((cp = fgets(line, STRLEN, fp)) != NULL)
     {
       if (sscanf (line, "%d %s %d %d %d %d",
 		  &structure, name, &r, &g, &b, &t) == 6)
@@ -88,9 +90,9 @@ CTABreadASCII(char *fname)
 	     in the file. Warn, but then continue on.*/
 	  if (ct->entries[structure] != NULL)
 	    {
-	      printf ("CTABreadASCII(%s): Duplicate structure "
+	      printf ("CTABreadASCII(%s): Line %d: Duplicate structure "
 		      "index %d, was %s %d %d %d %d\n", 
-		      fname, structure,
+		      fname, line_num, structure,
 		      ct->entries[structure]->name,
 		      ct->entries[structure]->ri,
 		      ct->entries[structure]->gi,
@@ -127,8 +129,9 @@ CTABreadASCII(char *fname)
 		(float)ct->entries[structure]->ai / 255.0;
 	    }
 	}
+      line_num++;
     }
-  
+ 
   fclose(fp);
   
   /* Return the new color table. */
