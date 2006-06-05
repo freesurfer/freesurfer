@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $
+  $Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -41,6 +41,11 @@ OPTIONS
     the talairach transform from srcsubject/mri/transforms/talairach.xfm.
     --sval-area extracts the vertex area. --sval-nxyz extracts the surface
     normals at each vertex. See also --tval-xyz.
+
+  --sval-annot annotfile
+
+    Map annotation file to the output. The target data will be saved as an
+    annotation.
 
   --sfmt typestring
 
@@ -164,7 +169,7 @@ EXAMPLES:
 
 2. Resample data on the icosahedron to the right hemisphere of subject bert.
    Note that both the source and target data are stored in mgh format
-   as "volume-encoded suface" data.
+   as 'volume-encoded suface' data.
 
    mri_surf2surf --hemi rh --srcsubject ico --srcsurfval icodata-rh.mgh
       --trgsubject bert --trgsurfval ./bert-ico-rh.mgh 
@@ -185,6 +190,14 @@ EXAMPLES:
 
    This will create youraveragesubject/surf/lh.white.yoursubject
 
+
+5. Convert the annotation for one subject to the surface of another
+
+  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \
+    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \
+    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot
+
+   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot
 
 BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure 
     to include the version and full command-line and enough information to
@@ -225,6 +238,7 @@ ENDHELP
 #include "selxavgio.h"
 #include "prime.h"
 #include "version.h"
+#include "colortab.h"
 
 int DumpSurface(MRIS *surf, char *outfile);
 MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
@@ -263,7 +277,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -290,7 +304,9 @@ MATRIX *XFM=NULL;
 #define SURF_SRC_AREA    3
 #define SURF_SRC_NXYZ    4 // surface normals
 #define SURF_SRC_RIP     5 // rip flag
+#define SURF_SRC_ANNOT   6 // surface annotation
 int UseSurfTarg=0; // Put Src XYZ into a target surface
+char *AnnotFile = NULL;
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
@@ -342,7 +358,7 @@ int SynthSeed = -1;
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int f,tvtx,svtx,n;
+  int f,tvtx,svtx,n,err;
   float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
@@ -352,9 +368,10 @@ int main(int argc, char **argv)
   FACE *face;
   VERTEX *vtx0,*vtx1,*vtx2;
   double area, a0, a1, a2;
+  COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.38 2006/02/24 09:41:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -476,6 +493,12 @@ int main(int argc, char **argv)
 	  MRIscalarMul(SrcVals,SrcVals,val);
 	}
       }
+    }
+    if(UseSurfSrc == SURF_SRC_ANNOT){
+      err = MRISreadAnnotation(SurfSrc, AnnotFile);
+      if(err) exit(1);
+      SrcVals = MRISannotIndex2Seg(SurfSrc);
+      ctab = CTABdeepCopy(SurfSrc->ct);
     }
     if(UseSurfSrc == SURF_SRC_RIP){
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "ripflag"); 
@@ -703,6 +726,13 @@ int main(int argc, char **argv)
     MRIScopyMRI(TrgSurfReg,TrgVals,2,"z");
     MRISwrite(TrgSurfReg, trgvalfile);
   }
+  else if(UseSurfSrc == SURF_SRC_ANNOT){
+    printf("Converting to target annot\n");
+    err = MRISseg2annot(TrgSurfReg,TrgVals,ctab);
+    if(err) exit(1);
+    printf("Saving to target annot %s\n",trgvalfile);
+    MRISwriteAnnotation(TrgSurfReg, trgvalfile);
+  }
   else {
     if(reshape){
       if(reshapefactor == 0) 
@@ -802,6 +832,13 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       SurfSrcName = pargv[0];
       UseSurfSrc = SURF_SRC_AREA;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sval-annot")){
+      if(nargc < 1) argnerr(option,1);
+      SurfSrcName = "orig";
+      AnnotFile = pargv[0];
+      UseSurfSrc = SURF_SRC_ANNOT;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--sval-rip")){
@@ -989,6 +1026,7 @@ static void print_usage(void)
   fprintf(stdout, "   --sval-xyz  surfname : use xyz of surfname as input \n");
   fprintf(stdout, "   --sval-tal-xyz  surfname : use tal xyz of surfname as input \n");
   fprintf(stdout, "   --sval-area surfname : use vertex area of surfname as input \n");
+  fprintf(stdout, "   --sval-annot annotfile : map annotation \n");
   fprintf(stdout, "   --sval-nxyz surfname : use surface normals of surfname as input \n");
   fprintf(stdout, "   --sfmt   source format\n");
   fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
@@ -1051,6 +1089,11 @@ printf("    z of each vertex. --sval-tal-xyz is the same as --sval-xyz, but appl
 printf("    the talairach transform from srcsubject/mri/transforms/talairach.xfm.\n");
 printf("    --sval-area extracts the vertex area. --sval-nxyz extracts the surface\n");
 printf("    normals at each vertex. See also --tval-xyz.\n");
+printf("\n");
+printf("  --sval-annot annotfile\n");
+printf("\n");
+printf("    Map annotation file to the output. The target data will be saved as an\n");
+printf("    annotation.\n");
 printf("\n");
 printf("  --sfmt typestring\n");
 printf("\n");
@@ -1173,13 +1216,11 @@ printf("      --trgsubject ico --trgicoorder 7 \n");
 printf("      --trgsurfval bert-thickness-lh.img --trg_type analyze4d \n");
 printf("\n");
 printf("2. Resample data on the icosahedron to the right hemisphere of subject bert.\n");
-printf("   Save in paint so that it can be viewed as an overlay in tksurfer. The \n");
-printf("   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)\n");
+printf("   Note that both the source and target data are stored in mgh format\n");
+printf("   as 'volume-encoded suface' data.\n");
 printf("\n");
-printf("   mri_surf2surf --hemi rh --srcsubject ico \n");
-printf("      --srcsurfval icodata-rh --src_type bfloat \n");
-printf("      --trgsubject bert \n");
-printf("      --trgsurfval ./bert-ico-rh.w --trg_type paint \n");
+printf("   mri_surf2surf --hemi rh --srcsubject ico --srcsurfval icodata-rh.mgh\n");
+printf("      --trgsubject bert --trgsurfval ./bert-ico-rh.mgh \n");
 printf("\n");
 printf("3. Convert the surface coordinates of the lh.white of a subject to a\n");
 printf("   (talairach) average (ie, a subject created by make_average_subject):\n");
@@ -1189,6 +1230,22 @@ printf("      --tval lh.white.yoursubject --tval-xyz --trgsubject youraveragesub
 printf("\n");
 printf("   This will create youraveragesubject/surf/lh.white.yoursubject\n");
 printf("\n");
+printf("4. Extract surface normals of the white surface and save in a\n");
+printf("   volume-encoded file:\n");
+printf("\n");
+printf("   mri_surf2surf --s yoursubject --hemi lh --sval-nxyz white \n");
+printf("      --tval lh.white.norm.mgh \n");
+printf("\n");
+printf("   This will create youraveragesubject/surf/lh.white.yoursubject\n");
+printf("\n");
+printf("\n");
+printf("5. Convert the annotation for one subject to the surface of another\n");
+printf("\n");
+printf("  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\n");
+printf("    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\n");
+printf("    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot\n");
+printf("\n");
+printf("   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot\n");
 printf("\n");
 printf("BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n");
 printf("    to include the version and full command-line and enough information to\n");
@@ -1248,17 +1305,17 @@ static void check_options(void)
   }
 
   if(UseSurfSrc == 0){
-  if( strcasecmp(srctypestring,"w") != 0 &&
-      strcasecmp(srctypestring,"curv") != 0 &&
-      strcasecmp(srctypestring,"paint") != 0 ){
-    if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
-      srctype = mri_identify(srcvalfile);
-      if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
-	fprintf(stdout,"ERROR: could not determine type of %s\n",srcvalfile);
-	exit(1);
+    if( strcasecmp(srctypestring,"w") != 0 &&
+	strcasecmp(srctypestring,"curv") != 0 &&
+	strcasecmp(srctypestring,"paint") != 0 ){
+      if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
+	srctype = mri_identify(srcvalfile);
+	if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
+	  fprintf(stdout,"ERROR: could not determine type of %s\n",srcvalfile);
+	  exit(1);
+	}
       }
     }
-  }
   }
 
   if(trgsubject == NULL){
@@ -1270,7 +1327,7 @@ static void check_options(void)
     exit(1);
   }
 
-  if(UseSurfTarg == 0){
+  if(UseSurfTarg == 0 && UseSurfSrc != SURF_SRC_ANNOT){
     if( strcasecmp(trgtypestring,"w") != 0 &&
 	strcasecmp(trgtypestring,"curv") != 0 &&
 	strcasecmp(trgtypestring,"paint") != 0 ){
@@ -1284,7 +1341,8 @@ static void check_options(void)
     }
   }
   else{
-    if(UseSurfSrc != SURF_SRC_XYZ && UseSurfSrc != SURF_SRC_TAL_XYZ){
+    if(UseSurfSrc != SURF_SRC_XYZ && UseSurfSrc != SURF_SRC_TAL_XYZ &&
+       UseSurfSrc != SURF_SRC_ANNOT){
       printf("ERROR: must use --sval-xyz or --sval-tal-xyz with --tval-xyz\n");
       exit(1);
     }
