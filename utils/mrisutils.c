@@ -1578,7 +1578,7 @@ MRI *MRISannotIndex2Seg(MRIS *mris)
   int vno, annot, annotid;
 
   annotid = 0;
-  seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+  seg = MRIalloc(mris->nvertices,1,1,MRI_FLOAT);
   for(vno = 0; vno < mris->nvertices; vno ++){
     annot = mris->vertices[vno].annotation;
     if(mris->ct)      CTABfindAnnotation(mris->ct, annot, &annotid);
