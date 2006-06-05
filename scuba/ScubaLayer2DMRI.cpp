@@ -725,11 +725,21 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
 
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
-       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
+      (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
+      (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) ) {
 
     int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
 			    ((iValue - mMinVisibleValue) /
 			     (mMaxVisibleValue - mMinVisibleValue)) );
+
+    if( nLUT < 0 || nLUT >= cGrayscaleLUTEntries ) {
+      cerr << "GetGrayscaleColorForValue vol " << mVolume->GetID()
+	   << " iValue " << iValue << " min/max "
+	   << mMinVisibleValue << " " << mMaxVisibleValue
+	   << " nLUT " << nLUT << endl;
+      exit( 1 );
+
+    }
 
     oColor[0] = mGrayscaleLUT[nLUT];
     oColor[1] = mGrayscaleLUT[nLUT];
@@ -748,7 +758,8 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
 
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
-       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
+       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
+      (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) ) {
     
     float minValue = mHeatScaleMinThreshold;
     float midValue = mHeatScaleMidThreshold;
@@ -811,7 +822,8 @@ ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, GLubyte* const iBase,
   
   if( (NULL != mColorLUT) && 
       (!mbClearZero || (mbClearZero && iValue != 0)) &&
-      (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
+      (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
+      (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) ) {
 
     mColorLUT->GetColorAtIndex( (int)iValue, oColor );
 
