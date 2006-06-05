@@ -1,4 +1,4 @@
-// $Id: mris_seg2annot.c,v 1.4 2006/06/01 22:31:58 kteich Exp $
+// $Id: mris_seg2annot.c,v 1.5 2006/06/05 19:11:41 greve Exp $
 
 /*
   BEGINHELP
@@ -80,7 +80,6 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -90,7 +89,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.4 2006/06/01 22:31:58 kteich Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.5 2006/06/05 19:11:41 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -109,7 +108,7 @@ MRI *surfseg, *mritmp;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs,vtxno,ano,segid,nv,err;
+  int nargs,nv,err;
   char tmpstr[2000];
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -135,12 +134,6 @@ int main(int argc, char *argv[])
   ctab = CTABreadASCII(ctabfile);
   if(ctab == NULL){
     printf("ERROR: reading %s\n",ctabfile);
-    exit(1);
-  }
-  err = read_named_annotation_table(ctabfile);
-  if(err){
-    printf("ERROR: reading %s\n",ctabfile);
-    printf("If you do not give a path, it will look in $FREESURFER_HOME\n");
     exit(1);
   }
 
@@ -169,7 +162,6 @@ int main(int argc, char *argv[])
   printf("Reading surface %s\n",tmpstr);
   mris = MRISread(tmpstr);
   if(mris==NULL) exit(1);
-  mris->ct = ctab;
 
   if(mris->nvertices != nv){
     printf("ERROR: dimension mismatch. Surface has %d vertices, seg has %d\n",
@@ -178,12 +170,8 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  for(vtxno=0; vtxno < mris->nvertices; vtxno++){
-    segid = MRIgetVoxVal(surfseg,vtxno,0,0,0);
-    ano = index_to_annotation(segid);
-    mris->vertices[vtxno].annotation = ano;
-    //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
-  }
+  err = MRISseg2annot(mris, surfseg, ctab);
+  if(err) exit(1);
 
   printf("Writing annot to %s\n",annotfile);
   MRISwriteAnnotation(mris, annotfile);
