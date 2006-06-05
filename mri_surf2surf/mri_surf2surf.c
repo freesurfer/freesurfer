@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $
+  $Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -193,11 +193,13 @@ EXAMPLES:
 
 5. Convert the annotation for one subject to the surface of another
 
-  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \
-    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \
-    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot
+  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\
+    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\
+    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot \\
+    --mapmethod nnf
 
-   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot
+   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. The nnf
+   map method is needed so that annot indices are not averaged.
 
 BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure 
     to include the version and full command-line and enough information to
@@ -277,7 +279,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -371,7 +373,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.39 2006/06/05 20:08:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1241,11 +1243,13 @@ printf("\n");
 printf("\n");
 printf("5. Convert the annotation for one subject to the surface of another\n");
 printf("\n");
-printf("  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\n");
-printf("    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\n");
-printf("    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot\n");
+printf("  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\\n");
+printf("    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\\n");
+printf("    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot \\\n");
+printf("    --mapmethod nnf\n");
 printf("\n");
-printf("   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot\n");
+printf("   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. The nnf\n");
+printf("   map method is needed so that annot indices are not averaged.\n");
 printf("\n");
 printf("BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n");
 printf("    to include the version and full command-line and enough information to\n");
