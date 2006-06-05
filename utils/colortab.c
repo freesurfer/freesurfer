@@ -633,8 +633,8 @@ CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
     ErrorReturn(ERROR_BADPARM,
 		(ERROR_BADPARM, "CTABwriteIntoBinaryV2: fp was NULL"));
 
-  /* Write our version number. */
-  fwriteInt (2, fp);
+  /* Write our negative version number. */
+  fwriteInt (-2, fp);
   
   /* First we write the number of entries we have. Note that this is
      really the max structure index; some of these entries could be
