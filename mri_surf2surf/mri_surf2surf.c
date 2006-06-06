@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $
+  $Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -195,11 +195,13 @@ EXAMPLES:
 
   mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\
     --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\
-    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot \\
-    --mapmethod nnf
+    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot
 
-   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. The nnf
-   map method is needed so that annot indices are not averaged.
+   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. 
+   The --sval-annot flag will also change the map method to nnf so that 
+   the annot indices are not averaged. Note: this is not a substitute
+   for running the cortical parcellation! The parcellations that it 
+   maps to the new subject may not be appropriate for that subject.
 
 BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure 
     to include the version and full command-line and enough information to
@@ -279,7 +281,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -373,7 +375,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.40 2006/06/05 20:33:52 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -841,6 +843,8 @@ static int parse_commandline(int argc, char **argv)
       SurfSrcName = "orig";
       AnnotFile = pargv[0];
       UseSurfSrc = SURF_SRC_ANNOT;
+      printf("Setting mapmethod to nnf\n");
+      mapmethod = "nnf";
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--sval-rip")){
@@ -1245,11 +1249,13 @@ printf("5. Convert the annotation for one subject to the surface of another\n");
 printf("\n");
 printf("  mri_surf2surf --srcsubject subj1 --trgsubject subj2 --hemi lh \\\n");
 printf("    --sval-annot $SUBJECTS_DIR/subj1/label/lh.aparc.annot \\\n");
-printf("    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot \\\n");
-printf("    --mapmethod nnf\n");
+printf("    --tval       $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot\n");
 printf("\n");
-printf("   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. The nnf\n");
-printf("   map method is needed so that annot indices are not averaged.\n");
+printf("   This will create $SUBJECTS_DIR/subj2/label/lh.subj1.aparc.annot. \n");
+printf("   The --sval-annot flag will also change the map method to nnf so that \n");
+printf("   the annot indices are not averaged. Note: this is not a substitute\n");
+printf("   for running the cortical parcellation! The parcellations that it \n");
+printf("   maps to the new subject may not be appropriate for that subject.\n");
 printf("\n");
 printf("BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n");
 printf("    to include the version and full command-line and enough information to\n");
