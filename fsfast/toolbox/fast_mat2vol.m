@@ -16,7 +16,7 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % See also fast_vol2mat.
 %
-% $Id: fast_mat2vol.m,v 1.5 2006/04/06 05:24:02 greve Exp $
+% $Id: fast_mat2vol.m,v 1.6 2006/06/06 04:30:29 greve Exp $
 
 vol = [];
 
@@ -55,6 +55,6 @@ if(nv ~= size(mat,2) )
 end
 nframes = size(mat,1);
 
-vol = reshape(mat', [szvol(:)' nframes]);
+vol = reshape(transpose(mat), [szvol(:)' nframes]);
 
 return;

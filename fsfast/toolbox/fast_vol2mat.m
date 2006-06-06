@@ -13,7 +13,7 @@ function mat = fast_vol2mat(vol,sliceflag)
 %
 % See also: fast_mat2vol.
 %
-% $Id: fast_vol2mat.m,v 1.2 2005/09/15 15:53:45 greve Exp $
+% $Id: fast_vol2mat.m,v 1.3 2006/06/06 04:30:29 greve Exp $
 
 mat = [];
 if(nargin < 1 | nargin > 2)
@@ -38,7 +38,7 @@ if(sliceflag)
   nv = nr*nc;
 end
 
-mat = reshape(vol,[nv nf])';
+mat = transpose(reshape(vol,[nv nf]));
 
 
 return;
