@@ -277,17 +277,15 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   }
 #endif
 
-  // Calc one tenth of the value range.
+  // Calc one tenth of the value range above 0.
   float oneTenth;
-  oneTenth = (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 10.0;
+  oneTenth = mVolume->GetMRIMaxValue() / 10.0;
 
-  // Min heat goes to 1/10 above the min, max goes to 1/10 below the
+  // Min heat goes to 1/10 above 0, max goes to 1/10 below the
   // max, and mid is in the middle.
   SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
-  SetHeatScaleMidThreshold
-    ( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) + 
-      mVolume->GetMRIMinValue() );
-  SetHeatScaleMinThreshold( mVolume->GetMRIMinValue() + oneTenth );
+  SetHeatScaleMidThreshold( mVolume->GetMRIMaxValue() / 2.0 );
+  SetHeatScaleMinThreshold( oneTenth );
 
   // Save these min/max values.
   mOldMinValue = mVolume->GetMRIMinValue();
@@ -758,8 +756,9 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
 
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
-       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
-      (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) ) {
+      (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
+      (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) &&
+      (iValue >= mHeatScaleMinThreshold || iValue <= -mHeatScaleMinThreshold)){
     
     float minValue = mHeatScaleMinThreshold;
     float midValue = mHeatScaleMidThreshold;
@@ -774,27 +773,38 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
       iValue = (iValue<0) ? -tmp : tmp;
     }
     
-    /* calc the color */
+    
+    /* First we calculate our background color. This will let us blend
+       the functional overlay color appropriately, so that a value
+       close to the minimum threshold will be a faint color instead of
+       a flat black. */
+    float br, bg, bb;
+    br = ((float)iBase[0] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
+    bg = ((float)iBase[1] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
+    bb = ((float)iBase[2] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
+    
+    /* Now calculate the overlay value color, which is red/yellow for
+       positive values and green/blue for negative. */
     float red, green, blue;
     if( iValue >= 0 ) {
-      red = ((iValue<minValue) ? 0.0 : 
+      red = br + ((iValue<minValue) ? 0.0 : 
 	     (iValue<midValue) ? 
 	     (iValue-minValue)/
 	     (midValue-minValue) :
 	     1.0);
-      green = ((iValue<midValue) ? 0.0 :
+      green = bg + ((iValue<midValue) ? 0.0 :
 	       (iValue<maxValue) ? 
 	       (iValue-midValue)/
 	       (maxValue-midValue) : 1.0);
-      blue = 0.0; 
+      blue = bb; 
     } else {
       iValue = -iValue;
-      red = 0.0;
-      green = ((iValue<midValue) ? 0.0 :
+      red = br;
+      green = bg + ((iValue<midValue) ? 0.0 :
 	       (iValue<maxValue) ? 
 	       (iValue-midValue)/
 	       (maxValue-midValue) : 1.0);
-      blue = ((iValue<minValue) ? 0.0 :
+      blue = bb + ((iValue<minValue) ? 0.0 :
 	      (iValue<midValue) ? 
 	      (iValue-minValue)/
 	      (midValue-minValue) : 
