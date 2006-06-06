@@ -59,7 +59,7 @@ if(isempty(hdr.dim_info)) hdr.dim_info = ' '; end
 if(isempty(hdr.slice_code)) hdr.slice_code = ' '; end
 if(isempty(hdr.xyzt_units)) hdr.xyzt_units = ' '; end % should be err
 
-hdr.vox_offset = 348; 
+hdr.vox_offset = 352; % not 348
 fwrite(fp,348,'int');
 fwrite(fp,hdr.data_type,    'char');
 fwrite(fp,hdr.db_name,      'char');
@@ -103,6 +103,12 @@ fwrite(fp,hdr.srow_y,        'float');
 fwrite(fp,hdr.srow_z,        'float');
 fwrite(fp,hdr.intent_name,   'char');
 fwrite(fp,hdr.magic,         'char');
+
+% Pad to get to 352 bytes (header size is 348)
+fwrite(fp,0,'char');
+fwrite(fp,0,'char');
+fwrite(fp,0,'char');
+fwrite(fp,0,'char');
 
 npix = prod(size(hdr.vol));
 switch(hdr.datatype)
