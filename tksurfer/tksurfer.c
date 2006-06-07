@@ -19104,7 +19104,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.211 2006/06/02 19:34:19 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.212 2006/06/07 21:52:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19113,12 +19113,16 @@ int main(int argc, char *argv[])   /* new main */
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   
-#ifdef USE_XGLUT_WINDOW
+  //#ifdef USE_XGLUT_WINDOW
+  //NJS note: glut needs to initialized, even if USE_XGLUT_WINDOW is not
+  //defined, because if freeglut is used, then glutinit needs be to called
+  //in order for certain tksurfer functions to work, like the 'Show Color 
+  //Scale Bar' button.
   /* init glut */
   DebugNote( ("Initializing glut") );
   glutInit( &argc, argv );
   glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
-#endif
+  //#endif
   
   /* begin rkt */
   undo_initialize();
@@ -21333,7 +21337,6 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
   float md;
   int mvno;
   int vno;
-  int d;
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
   struct timeval tv;
 #endif
@@ -21450,7 +21453,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
       /* Button 2, just select and mark this vertex. */
       else if (2 == event->mButton) 
         {
-          find_closest_marked_vertex (sx, sy, NULL, &vno);
+          find_closest_marked_vertex ((int)sx, (int)sy, NULL, &vno);
           if (vno>=0)
             {
               fprintf (stderr, "Unmarking %d\n", vno);
@@ -21519,7 +21522,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
 
       /* Move the tool window under us. */
       sprintf (command,"MoveToolWindow %d %d", w.x, w.y + w.h + MOTIF_YFUDGE);
-      send_tcl_command (ommand);
+      send_tcl_command (command);
 
       break;
       
@@ -21543,7 +21546,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
       break;
 
     default:
-      
+      break;
+
     }
 }
 
