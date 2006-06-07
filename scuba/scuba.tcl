@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.205 2006/06/02 21:30:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.206 2006/06/07 19:49:58 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -784,6 +784,8 @@ proc ToolBarWrapper { isName iValue } {
 					$gaLayer(current,colorMapMethod) lut]
 		Set2DMRILayerDrawZeroClear $gaLayer(current,id) $bDrawZeroClear
 		set gaLayer(current,clearZero) $bDrawZeroClear
+
+		AdjustLayerPropertiesEnabledWidgets
 		
 		RedrawFrame [GetMainFrameID]
 	    }
@@ -2072,6 +2074,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -min 0 -max 30 -resolution 1 -entry 1
 	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
     }
+    set gaWidget(layerProperties,brightnessContrastSliders) $fwProps2DMRI.swBC
 
     frame $fwProps2DMRI.fwWindowLevel
     tkuMakeSliders $fwProps2DMRI.swLevelWindow -sliders {
@@ -3075,6 +3078,58 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		$gaWidget(layerProperties,lineColorPickers)
 	    tkuUpdateColorPickerValues \
 		$gaWidget(layerProperties,vertexColorPickers)
+
+	}
+    }
+
+    # Set up the proper initially enabled widgets
+    AdjustLayerPropertiesEnabledWidgets
+}
+
+# This enables and disables certain widgets according to the current
+# settings in the layer props panel.
+proc AdjustLayerPropertiesEnabledWidgets {} {
+    global gaLayer
+    global gaWidget
+
+    switch $gaLayer(current,type) {
+	2DMRI { 
+	    set sMethod $gaLayer(current,colorMapMethod)
+	    if { [string match $sMethod grayscale] } {
+		
+		$gaWidget(layerProperties,lutMenu) configure -state disabled
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,brightnessContrastSliders) 1
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,levelWindowSliders) 1
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
+
+
+	    } elseif { [string match $sMethod heatScale] } {
+
+		$gaWidget(layerProperties,lutMenu) configure -state disabled
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,brightnessContrastSliders) 0
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,levelWindowSliders) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 1
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 1
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 1
+
+	    } elseif { [string match $sMethod lut] } {
+
+		$gaWidget(layerProperties,lutMenu) configure -state normal
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,brightnessContrastSliders) 0
+		tkuSetSlidersEnabled \
+		    $gaWidget(layerProperties,levelWindowSliders) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
+		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
+
+	    }
 	}
     }
 }
@@ -6068,7 +6123,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.205 2006/06/02 21:30:25 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.206 2006/06/07 19:49:58 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
