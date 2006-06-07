@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.18 2006/05/02 21:03:34 kteich Exp $
+# $Id: tkUtils.tcl,v 1.19 2006/06/07 19:50:25 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -151,6 +151,18 @@ proc tkuMakeNormalLabel { ifwTop args } {
       -anchor w
 }
 
+proc tkuSetNormalLabelEnabled { ifwTop ibEnabled } {
+
+    set state enabled
+    if { $ibEnabled } { 
+	set state normal 
+    } else {
+	set state disabled 
+    }
+
+    $ifwTop.lw configure -state $state
+}
+
 # The -notify action here is really cool. If you want to remind the
 # user that they have to press return to trigger the -command action,
 # use the -notify option. Whenever the value in the field is different
@@ -223,6 +235,21 @@ proc tkuMakeEntry { ifwTop args } {
 	bind $ifwTop.ewEntry <Return> "$aArgs(-command)"
     }
 
+}
+
+proc tkuSetEntryEnabled { ifwTop ibEnabled } {
+
+    set state enabled
+    if { $ibEnabled } { 
+	set state normal 
+    } else { 
+	set state disabled 
+    }
+
+    catch { 
+	$ifwTop.lwLabel configure -state $state
+    }
+    $ifwTop.ewEntry configure -state $state
 }
 
 proc tkuColorEntry { iew } {
@@ -745,6 +772,31 @@ proc tkuUpdateSlidersRange { ifwTop iMin iMax {iIncrement -1} } {
 	    $ifwTop.sw$nSlider config -from $iMin -to $iMax \
 		-resolution $newResolution}]
 
+	incr nSlider
+    }
+}
+
+proc tkuSetSlidersEnabled { ifwTop ibEnabled } {
+
+    set state enabled
+    if { $ibEnabled } { 
+	set state normal 
+    } else {
+	set state disabled 
+    }
+
+    set nSlider 0
+    set err 0
+    while { $err == 0 } {
+
+	catch { 
+	    tkuSetNormalLabelEnabled $ifwTop.lw$nSlider $ibEnabled
+	    tkuSetNormalLabelEnabled $ifwTop.lwPost$nSlider $ibEnabled
+	    $ifwTop.ew$nSlider config -state $state
+	}
+
+	set err [catch { 
+	    $ifwTop.sw$nSlider config -state $state } sResult]
 	incr nSlider
     }
 }
