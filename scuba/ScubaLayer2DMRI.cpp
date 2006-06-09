@@ -395,7 +395,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  mColorTimesOpacity[color[1]];
 	dest[2] = mColorTimesOneMinusOpacity[dest[2]] + 
 	  mColorTimesOpacity[color[2]];
-	
+
 	if( mVolume->IsSelected( loc, selectColor ) ) {
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
@@ -773,42 +773,51 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
       iValue = (iValue<0) ? -tmp : tmp;
     }
     
-    
-    /* First we calculate our background color. This will let us blend
-       the functional overlay color appropriately, so that a value
-       close to the minimum threshold will be a faint color instead of
-       a flat black. */
+
+    float background_component;
     float br, bg, bb;
-    br = ((float)iBase[0] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
-    bg = ((float)iBase[1] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
-    bb = ((float)iBase[2] / 255.0) * ( (iValue<minValue) ? 1.0 : (iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0 );
-    
-    /* Now calculate the overlay value color, which is red/yellow for
-       positive values and green/blue for negative. */
     float red, green, blue;
     if( iValue >= 0 ) {
-      red = br + ((iValue<minValue) ? 0.0 : 
-	     (iValue<midValue) ? 
-	     (iValue-minValue)/
-	     (midValue-minValue) :
-	     1.0);
+
+      /* First we calculate our background color. This will let us
+	 blend the functional overlay color appropriately, so that a
+	 value close to the minimum threshold will be a faint color
+	 instead of a flat black. background_component is 1 if the
+	 value is < min (so all the background is used), 1->0 from
+	 min->mid, and 0 if > mid. */
+      background_component = (iValue<minValue) ? 1.0 : 
+	(iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0;
+      br = ((float)iBase[0] / 255.0) * background_component;
+      bg = ((float)iBase[1] / 255.0) * background_component;
+      bb = ((float)iBase[2] / 255.0) * background_component;
+
+      /* Now calculate the overlay value color, which is red/yellow
+	 for positive values and green/blue for negative. */
+      red   = br + ((iValue<minValue) ? 0.0 : 
+		    (iValue<midValue) ? (iValue-minValue)/(midValue-minValue) :
+		    1.0);
       green = bg + ((iValue<midValue) ? 0.0 :
-	       (iValue<maxValue) ? 
-	       (iValue-midValue)/
-	       (maxValue-midValue) : 1.0);
-      blue = bb; 
+		    (iValue<maxValue) ? (iValue-midValue)/(maxValue-midValue) :
+		    1.0);
+      blue  = bb; 
     } else {
       iValue = -iValue;
-      red = br;
+
+      /* Do this after reversing iValue so we can compare it to the
+	 positive threshold values. */
+      background_component = (iValue<minValue) ? 1.0 : 
+	(iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0;
+      br = ((float)iBase[0] / 255.0) * background_component;
+      bg = ((float)iBase[1] / 255.0) * background_component;
+      bb = ((float)iBase[2] / 255.0) * background_component;
+
+      red   = br;
       green = bg + ((iValue<midValue) ? 0.0 :
-	       (iValue<maxValue) ? 
-	       (iValue-midValue)/
-	       (maxValue-midValue) : 1.0);
-      blue = bb + ((iValue<minValue) ? 0.0 :
-	      (iValue<midValue) ? 
-	      (iValue-minValue)/
-	      (midValue-minValue) : 
-	      1.0);
+		    (iValue<maxValue) ? (iValue-midValue)/(maxValue-midValue) :
+		    1.0);
+      blue  = bb + ((iValue<minValue) ? 0.0 :
+		    (iValue<midValue) ? (iValue-minValue)/(midValue-minValue) :
+		    1.0);
     }
     
     if( red > 1.0 )   red = 1.0;
