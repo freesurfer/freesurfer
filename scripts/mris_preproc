@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.21 2006/05/05 17:24:54 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.22 2006/06/09 17:48:27 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -11,7 +11,7 @@ set isplist = ();
 set ivplist = ();
 set irplist = ();
 set srcfmt  = ();
-set target = average7
+set target = fsaverage
 set fwhmsrc  = ();
 set fwhmtarg = ();
 set niterssrc = ();
@@ -898,10 +898,10 @@ without actually creating an output, then --cache-out-only. You must
 supply a tmpdir. The true tmpdir will be created under this. tmpdir
 itself will not be deleted. None of the paired diff options will
 affect caching.
-  mris_preproc --target average7 --hemi lh --s subj1 --s subj2 \
+  mris_preproc --target fsaverage --hemi lh --s subj1 --s subj2 \
     --meas thickness --fwhm 5 --cache-out thickness.avg7.sm5.mgh \
     --cache-out-only tmp
-  mris_preproc --target average7 --hemi lh --s subj1 --s subj2 \
+  mris_preproc --target fsaverage --hemi lh --s subj1 --s subj2 \
     --cache-in thickness.avg7.sm5.mgh --out s12.thickness.avg7.sm5.mgh \
 
 --mean
@@ -951,27 +951,27 @@ DO delete temporary directory and files.  Done by default.
 
 EXAMPLES
 
-1. Resample abcXX-anat/surf/lh.thickness onto average7:
+1. Resample abcXX-anat/surf/lh.thickness onto fsaverage:
 
 mris_preproc --s abc01-anat --s abc02-anat --s abc03-anat --s abc04-anat \
-  --target average7 --hemi lh --meas thickness --out abc-lh-thickness.mgh
+  --target fsaverage --hemi lh --meas thickness --out abc-lh-thickness.mgh
 
 2. Same as #1 but using an fsgd file (which would have the abcXXs as Inputs):
 
-mris_preproc --fsgd abc.fsgd --target average7 --hemi lh --meas thickness \
+mris_preproc --fsgd abc.fsgd --target fsaverage --hemi lh --meas thickness \
   --out abc-lh-thickness.mgh
 
 3. Same as #1 but smooths by 5mm fwhm:
 
 mris_preproc --s abc01-anat --s abc02-anat --s abc03-anat --s abc04-anat \
-  --target average7 --hemi lh --meas thickness \
+  --target fsaverage --hemi lh --meas thickness \
   --fwhm 5 --out abc-lh-thickness.sm5.mgh 
 
 4. Same as #1 but using full paths. Note there is no --meas, but
    --fsgd still needed to provide list of subjects, which must be in
    the same order as the --isp. Also note that --srcfmt curv is used:
 
-mris_preproc --target average7 --hemi lh --out abc-lh-thickness.mgh \
+mris_preproc --target fsaverage --hemi lh --out abc-lh-thickness.mgh \
   --fsgd abc.fsgd --srcfmt curv \
   --isp abc01-anat/surf/lh.thickness \
   --isp abc02-anat/surf/lh.thickness \
@@ -982,12 +982,12 @@ mris_preproc --target average7 --hemi lh --out abc-lh-thickness.mgh \
    frames in the output instead of four. The first frame will be
    abc01-abc02, and the second frame will be abc03-abc04:
 
-mris_preproc --fsgd abc.fsgd --target average7 --hemi lh --meas thickness \
+mris_preproc --fsgd abc.fsgd --target fsaverage --hemi lh --meas thickness \
   --out abc-lh-thickness-pdiff.mgh --paired-diff
 
 6. Sample volume data (no --meas):
 
-mris_preproc --fsgd abc.fsgd  --target average7 --hemi lh \
+mris_preproc --fsgd abc.fsgd  --target fsaverage --hemi lh \
   --out abc-lh-vol.mgh \
   --ivp abc01-func/bold/main/nvr/ces.bhdr abc01-func/bold/register.dat \
   --ivp abc02-func/bold/main/nvr/ces.bhdr abc02-func/bold/register.dat \
