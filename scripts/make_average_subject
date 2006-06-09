@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_subject,v 1.8 2006/05/02 18:30:35 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.9 2006/06/09 15:44:34 nicks Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -206,6 +206,7 @@ usage_exit:
   echo "   --xform <transform_fname>       : filename of transform file"
   echo "   --no-surf : do not make average surfaces"
   echo "   --no-vol  : do not make average volumes"
+  echo "   --force   : overwrite existing average subject data"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
