@@ -39,10 +39,11 @@ class VolumeLocation : public DataLocation {
   int    Index      ( int in ) const { return mIdxi[in]; }
   float* IndexF     ()               { return mIdxf; }
   float  IndexF     ( int in ) const { return mIdxf[in]; }
-  void SetFromRAS ( float const iRAS[3] );
+  void   SetFromRAS ( float const iRAS[3] );
   VolumeCollection* GetVolume () const { return mVolume; }
  protected:
   VolumeCollection* mVolume;
+  int mFrame;
   int mIdxi[3];
   float mIdxf[3];
 };
@@ -111,16 +112,16 @@ class VolumeCollection : public DataCollection {
   void RASToTkRegRAS ( float const iRAS[3], float oTkRegRAS[3] );
 
   // Bounds testing.
-  bool IsInBounds ( VolumeLocation& iLoc );
+  bool IsInBounds ( VolumeLocation& iLoc ) const;
 
   // Calculates values.
-  float GetMRINearestValue   ( VolumeLocation& iLoc );
-  float GetMRITrilinearValue ( VolumeLocation& iLoc );
-  float GetMRISincValue      ( VolumeLocation& iLoc );
+  float GetMRINearestValue   ( VolumeLocation& iLoc ) const;
+  float GetMRITrilinearValue ( VolumeLocation& iLoc ) const;
+  float GetMRISincValue      ( VolumeLocation& iLoc ) const;
   float GetMRIMagnitudeValue ( VolumeLocation& iLoc );
   
   // Sets value.
-  void SetMRIValue ( VolumeLocation& iLoc, float iValue );
+  void SetMRIValue ( VolumeLocation& iLoc, float const iValue );
   
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
@@ -278,11 +279,12 @@ protected:
   void MakeMagnitudeVolume ();
 
   // Faster way of getting values.
-  float GetMRINearestValueAtIndexUnsafe ( int iIndex[3] );
+  float GetMRINearestValueAtIndexUnsafe ( int iIndex[3], int inFrame );
 
   // Faster way of checking bounds.
-  bool IsMRIIdxInBounds ( int iMRIIdx[3] );
-  bool IsMRIIdxInBounds ( float iMRIIdx[3] );
+  inline bool IsMRIIdxInBounds ( int const iMRIIdx[3] ) const;
+  inline bool IsMRIIdxInBounds ( float const iMRIIdx[3] ) const;
+  inline bool IsFrameInBounds ( int const iFrame ) const;
 
   // Filename to use when reading or writing.
   std::string mfnMRI;

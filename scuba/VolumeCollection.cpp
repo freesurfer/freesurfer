@@ -369,19 +369,20 @@ VolumeCollection::GetMRIMagnitudeMinValue () {
 
 
 bool 
-VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) {
+VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) const {
 
   if( NULL != mMRI ) {
       return ( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
 	       iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
-	       iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth );
+	       iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth &&
+	       iLoc.mFrame >= 0 && iLoc.mFrame < mMRI->nframes );
   } else {
     return false;
   }
 }
 
 bool 
-VolumeCollection::IsMRIIdxInBounds ( int iMRIIdx[3] ) {
+VolumeCollection::IsMRIIdxInBounds ( int const iMRIIdx[3] ) const {
 
   if( NULL != mMRI ) {
       return ( iMRIIdx[0] >= 0 && iMRIIdx[0] < mMRI->width &&
@@ -393,12 +394,22 @@ VolumeCollection::IsMRIIdxInBounds ( int iMRIIdx[3] ) {
 }
 
 bool 
-VolumeCollection::IsMRIIdxInBounds ( float iMRIIdx[3] ) {
+VolumeCollection::IsMRIIdxInBounds ( float const iMRIIdx[3] ) const {
 
   if( NULL != mMRI ) {
       return ( iMRIIdx[0] >= 0 && iMRIIdx[0] < mMRI->width &&
 	       iMRIIdx[1] >= 0 && iMRIIdx[1] < mMRI->height &&
 	       iMRIIdx[2] >= 0 && iMRIIdx[2] < mMRI->depth );
+  } else {
+    return false;
+  }
+}
+
+bool 
+VolumeCollection::IsFrameInBounds ( int const iFrame ) const {
+
+  if( NULL != mMRI ) {
+      return ( iFrame >= 0 && iFrame < mMRI->nframes );
   } else {
     return false;
   }
@@ -498,7 +509,7 @@ VolumeCollection::TkRegRASToRAS ( float const iTkRegRAS[3],
 
 void
 VolumeCollection::RASToTkRegRAS ( float const iRAS[3],
-				    float oTkRegRAS[3] ) {
+				  float oTkRegRAS[3] ) {
 
   if( NULL != mMRI ) {
     Real TkRegRAS[3], RAS[3];
@@ -517,27 +528,29 @@ VolumeCollection::RASToTkRegRAS ( float const iRAS[3],
 }
 
 float 
-VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) {
+VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) const {
 
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
-	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
-	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
+    if( IsInBounds( iLoc ) ) {
       
       switch( mMRI->type ) {
       case MRI_UCHAR:
-	value = (float)MRIvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
+	value = (float)
+     MRIseq_vox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2],iLoc.mFrame);
 	break ;
       case MRI_SHORT:
-	value =(float)MRISvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
+	value =(float)
+     MRISseq_vox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2],iLoc.mFrame);
 	break ;
       case MRI_INT:
-	value =(float)MRIIvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
+	value =(float)
+     MRIIseq_vox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2],iLoc.mFrame);
 	break ;
       case MRI_FLOAT:
-	value = MRIFvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
+	value = 
+     MRIFseq_vox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2],iLoc.mFrame);
 	break ;
       default:
 	value = 0;
@@ -550,22 +563,23 @@ VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) {
 }
 
 float
-VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3] ) {
+VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3], 
+						    int inFrame ) {
 
   Real value = 0;
   
   switch( mMRI->type ) {
   case MRI_UCHAR:
-    value = (float)MRIvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    value = (float)MRIseq_vox(mMRI, iIndex[0], iIndex[1], iIndex[2], inFrame );
     break ;
   case MRI_SHORT:
-    value = (float)MRISvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    value = (float)MRISseq_vox(mMRI, iIndex[0], iIndex[1], iIndex[2], inFrame);
     break ;
   case MRI_INT:
-    value = (float)MRIIvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    value = (float)MRIIseq_vox(mMRI, iIndex[0], iIndex[1], iIndex[2], inFrame);
     break ;
   case MRI_FLOAT:
-    value = MRIFvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    value = MRIFseq_vox(mMRI, iIndex[0], iIndex[1], iIndex[2], inFrame );
     break ;
   default:
     value = 0;
@@ -575,34 +589,33 @@ VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3] ) {
 }
 
 float 
-VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) {
+VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) const {
 
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
-	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
-	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
+    if( IsInBounds( iLoc ) ) {
       
-      MRIsampleVolumeType( mMRI, iLoc.mIdxf[0], iLoc.mIdxf[1], iLoc.mIdxf[2],
-			   &value, SAMPLE_TRILINEAR );
+      MRIsampleVolumeFrameType( mMRI,
+				iLoc.mIdxf[0], iLoc.mIdxf[1], iLoc.mIdxf[2],
+				iLoc.mFrame, SAMPLE_TRILINEAR, &value );
     }
   }
   return (float)value;
 }
 
 float 
-VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) {
+VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) const {
   
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
-	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
-	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
+    if( IsInBounds( iLoc ) ) {
       
+      /* Unfortunately, MRIsampleVolumeFrameType doesn't support sinc, 
+	 so we just use the single frame sampler here. */
       MRIsampleVolumeType( mMRI, iLoc.mIdxf[0], iLoc.mIdxf[1], iLoc.mIdxf[2],
-			   &value, SAMPLE_SINC );
+			   &value , SAMPLE_SINC );
     }
   }
   return (float)value;
@@ -610,43 +623,47 @@ VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) {
 
 void
 VolumeCollection::SetMRIValue ( VolumeLocation& iLoc,
-					  float iValue ) {
+				float iValue ) {
 
   if( NULL != mMRI ) {
-    switch( mMRI->type ) {
-    case MRI_UCHAR:
-      MRIvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) =
-	(BUFTYPE) iValue;
-      break ;
-    case MRI_SHORT:
-      MRISvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
-	(short) iValue;
-      break ;
-    case MRI_FLOAT:
-      MRIFvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
-	(float) iValue;
-      break ;
-    case MRI_LONG:
-      MRILvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
-	(long) iValue;
-      break ;
-    case MRI_INT:
-      MRIIvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
-	(int) iValue;
-      break ;
-    default:
-      break ;
+
+    if( IsInBounds( iLoc ) ) {
+      
+      switch( mMRI->type ) {
+      case MRI_UCHAR:
+	MRIseq_vox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1],
+		    iLoc.mIdxi[2],iLoc.mFrame ) = (BUFTYPE) iValue;
+	break ;
+      case MRI_SHORT:
+	MRISseq_vox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1],
+		     iLoc.mIdxi[2],iLoc.mFrame ) = (short) iValue;
+	break ;
+      case MRI_FLOAT:
+	MRIFseq_vox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], 
+		     iLoc.mIdxi[2],iLoc.mFrame ) = (float) iValue;
+	break ;
+      case MRI_LONG:
+	MRILseq_vox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1],
+		     iLoc.mIdxi[2],iLoc.mFrame ) = (long) iValue;
+	break ;
+      case MRI_INT:
+	MRIIseq_vox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], 
+		     iLoc.mIdxi[2],iLoc.mFrame ) = (int) iValue;
+	break ;
+      default:
+	break ;
+      }
+      
+      if( iValue < mMRIMinValue ) {
+	mMRIMinValue = iValue;
+      }
+      if( iValue > mMRIMaxValue ) {
+	mMRIMaxValue = iValue;
+      }
+      
+      DataChanged();
     }
   }
-
-  if( iValue < mMRIMinValue ) {
-    mMRIMinValue = iValue;
-  }
-  if( iValue > mMRIMaxValue ) {
-    mMRIMaxValue = iValue;
-  }
-
-  DataChanged();
 }
 
 void
@@ -675,7 +692,8 @@ VolumeCollection::GetMRIMagnitudeValue ( VolumeLocation& iLoc ) {
 
   // Get the value.
   if( NULL != mMagnitudeMRI ) {
-    value = MRIFvox( mMagnitudeMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] );
+    value = MRIFseq_vox( mMagnitudeMRI, iLoc.mIdxi[0], iLoc.mIdxi[1],
+			 iLoc.mIdxi[2], iLoc.mFrame );
   }
   return (float)value;
 }
@@ -1895,7 +1913,7 @@ VolumeCollection::MakeHistogram ( int icBins,
     for( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
       for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
 	
-	float value = GetMRINearestValueAtIndexUnsafe( index );
+	float value = GetMRINearestValueAtIndexUnsafe( index, 0 );
 	if( value < iMinThresh || value > iMaxThresh )
 	  continue;
 
@@ -2769,10 +2787,11 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
 VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
-  : DataLocation( iRAS ), mVolume( &iVolume ) {
+  : DataLocation( iRAS ), mVolume( &iVolume ), mFrame( 0 ) {
 
   mVolume->RASToMRIIndex( iRAS, mIdxf );
   mVolume->RASToMRIIndex( iRAS, mIdxi );
+
 #if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
@@ -2782,7 +2801,7 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 
 VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 int const iIndex[3] )
-  : DataLocation(), mVolume( &iVolume ) {
+  : DataLocation(), mVolume( &iVolume ), mFrame( 0 ) {
 
   mVolume->MRIIndexToRAS( iIndex, mRAS );
   mIdxi[0] = iIndex[0];
@@ -2812,6 +2831,7 @@ VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
   mRAS[2] = iRAS[2];
   mVolume->RASToMRIIndex( iRAS, mIdxf );
   mVolume->RASToMRIIndex( iRAS, mIdxi );
+
 #if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
