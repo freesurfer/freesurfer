@@ -18,7 +18,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,6 +41,7 @@ static char *orig_name = "orig" ;
 
 static int which_ic = 7 ;
 static char *sdir = NULL ;
+static char *osdir = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -48,17 +49,17 @@ main(int argc, char *argv[])
   char            **av, *out_fname, *surf_name, fname[STRLEN], 
                   *hemi, *cp, *data_fname ;
   int             ac, nargs, i, which, nsubjects ;
-  double          max_len ;
+  double          max_len, mean, sigma ;
   MRI_SURFACE     *mris, *mris_avg ;
   MRIS_HASH_TABLE *mht = NULL ;
   LABEL           *area, *area_avg = NULL ;
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -83,6 +84,8 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",
                 Progname);
   }
+	if (!osdir)
+		osdir = sdir ;
   /* 
      command line: <which> <fname> <hemi> <spherical surf> <subject 1> ... 
                    <output>
@@ -135,18 +138,36 @@ main(int argc, char *argv[])
               Progname, fname) ;
 		MRISaddCommandLine(mris, cmdline) ;
 		if (which == VERTEX_COORDS)
+		{
+			printf("reading surface coords from %s...\n", orig_name) ;
+			if (MRISreadVertexPositions(mris, orig_name) != NO_ERROR)
+				ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
 			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+		}
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
       MRISprojectOntoSphere(mris_avg, mris_avg, DEFAULT_RADIUS) ;
-      MRIScomputeVertexSpacingStats(mris_avg, NULL, NULL, &max_len, NULL,NULL);
-      mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,
-                                  2*max_len);
+      mean = MRIScomputeVertexSpacingStats(mris_avg, &sigma, NULL, &max_len, NULL,NULL);
+			if (max_len > mean+3*sigma)
+				max_len = mean+3*sigma ;
+      mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,2*max_len);
     }
 
     switch (which)
     {
+		case VERTEX_VALS:
+			{
+				char fname[STRLEN] ;
+				sprintf(fname,"%s/%s/fmri/%s.%s", sdir, argv[i], hemi, data_fname) ;
+				if (MRISreadValues(mris, fname) != NO_ERROR)
+					ErrorExit(ERROR_BADFILE,"%s: could not read val file %s.\n", Progname, fname);
+				MRIScopyValuesToCurvature(mris) ;
+				MRISaverageCurvatures(mris, navgs) ;
+				if (normalize_flag)
+					MRISnormalizeCurvature(mris) ;
+				break ;
+			}
     case VERTEX_LABEL:
       if (i == FIRST_SUBJECT)
         area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
@@ -158,6 +179,7 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
+			LabelFillUnassignedVertices(mris, area) ;
 			if (argc-1-FIRST_SUBJECT > 1)
 				LabelSetStat(area, 1) ;
 			else
@@ -197,7 +219,7 @@ main(int argc, char *argv[])
 
   if (output_subject_name)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_subject_name,ohemi,osurf);
+    sprintf(fname, "%s/%s/surf/%s.%s", osdir,output_subject_name,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     MRISfree(&mris) ;
     mris = MRISread(fname) ;
@@ -208,9 +230,10 @@ main(int argc, char *argv[])
   }
 
   MRISclear(mris, which) ;
-  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,NULL);
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES,
-                              2*max_len);
+  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL);
+	if (max_len > mean+3*sigma)
+		max_len = mean+3*sigma ;
+  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
   if (which != VERTEX_LABEL)
     MRISsphericalCopy(mris_avg, mris, mht, which) ;
   else
@@ -270,6 +293,10 @@ main(int argc, char *argv[])
         LabelNormalizeStats(area, (float)nsubjects) ;
       LabelWrite(area, out_fname) ;
       break ;
+		case VERTEX_VALS:
+			MRIScopyCurvatureToValues(mris) ;
+      MRISwriteValues(mris, out_fname) ;
+			break ;
     case VERTEX_AREA:
     case VERTEX_CURV:
       MRISwriteCurvature(mris, out_fname) ;
@@ -318,6 +345,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "sdir"))
   {
     sdir = argv[2] ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "osdir"))
+  {
+    osdir = argv[2] ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "orig"))
