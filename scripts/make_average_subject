@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_subject,v 1.7 2006/02/16 18:30:23 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.7.2.1 2006/06/09 15:46:28 nicks Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -36,14 +36,20 @@ if($DoSurfaces) then
   set cmd = (make_average_surface $cmdargs)
   echo $cmd
   $cmd
-  if($status) exit 1;
+  if($status) then
+    echo "ERROR: make_average_surface"
+    exit 1;
+  endif
 endif
 
 if($DoVolumes) then
   set cmd = (make_average_volume $cmdargs)
   echo $cmd
   $cmd
-  if($status) exit 1;
+  if($status) then
+    echo "ERROR: make_average_volume"
+    exit 1;
+  endif
 endif
 
 if($DoLink) then
@@ -200,6 +206,7 @@ usage_exit:
   echo "   --xform <transform_fname>       : filename of transform file"
   echo "   --no-surf : do not make average surfaces"
   echo "   --no-vol  : do not make average volumes"
+  echo "   --force   : overwrite existing average subject data"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"

@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.10.2.2 2006/05/01 20:25:57 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.10.2.3 2006/06/09 15:46:28 nicks Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -313,6 +313,7 @@ usage_exit:
   echo "   --xform xformname : use mri/transforms/xformname (def is talairach.xfm)"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
+  echo "   --force   : overwrite existing average subject data"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
