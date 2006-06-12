@@ -2729,6 +2729,14 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     SetHeatScaleMidThreshold( mid );
     SetHeatScaleMaxThreshold( max );
 
+    // Current frame
+  } else if( 0 == isOption.compare( "frame" ) ) {
+    int frame = (int) strtol( sValue, (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad frame number" );
+    }
+    SetCurrentFrame( frame );
+
   } else {
     
     return Layer::ProcessOption( isOption, isValue );
