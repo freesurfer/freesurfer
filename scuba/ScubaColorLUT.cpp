@@ -2,7 +2,11 @@
 #include <stdio.h>
 #include <fstream>
 #include "ScubaColorLUT.h"
-
+#include "colortab.h"
+extern "C" {
+#include "error.h"
+#include "colortab.h"
+}
 
 using namespace std;
 
@@ -15,7 +19,7 @@ int const ScubaColorLUT::cDefaultEntries = 500;
 ScubaColorLUT::ScubaColorLUT() {
   msLabel = "";
   mfnLUT = "";
-  mcEntries = 0;
+  mHighestItemNo = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetColorLUTLabel", 2, "lutID label",
@@ -126,7 +130,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
     if( mID == lutID ) {
       sReturnFormat = "i";
       stringstream ssReturnValues;
-      ssReturnValues << mcEntries;
+      ssReturnValues << mHighestItemNo + 1;
       sReturnValues = ssReturnValues.str();
     }
   }
@@ -147,7 +151,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
 	return error;
       }
 
-      if( nEntry < 0 || nEntry >= mcEntries ) {
+      if( nEntry < 0 || nEntry > mHighestItemNo ) {
 	sResult = "No entry at this index";
 	return error;
       }
@@ -175,7 +179,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
 	return error;
       }
 
-      if( nEntry < 0 || nEntry >= mcEntries ) {
+      if( nEntry < 0 || nEntry > mHighestItemNo ) {
 	sResult = "No entry at this index";
 	return error;
       }
@@ -219,7 +223,7 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
 void 
 ScubaColorLUT::GetColorAtIndex ( int iIndex, int oColor[3] ) {
 
-  if( iIndex >= 0 && iIndex < mcEntries ) {
+  if( iIndex >= 0 && iIndex <= mHighestItemNo ) {
     oColor[0] = mEntries[iIndex].color[0];
     oColor[1] = mEntries[iIndex].color[1];
     oColor[2] = mEntries[iIndex].color[2];
@@ -237,7 +241,7 @@ ScubaColorLUT::GetIndexOfColor ( int[3], int& ) {
 bool 
 ScubaColorLUT::IsEntryValid ( int inIndex ) {
 
-  if( inIndex >= 0 && inIndex < mcEntries ) {
+  if( inIndex >= 0 && inIndex <= mHighestItemNo ) {
     return mEntries[inIndex].mbValid;
   } else  {
     return false;
@@ -247,7 +251,7 @@ ScubaColorLUT::IsEntryValid ( int inIndex ) {
 string 
 ScubaColorLUT::GetLabelAtIndex ( int iIndex ) {
 
-  if( iIndex >= 0 && iIndex < mcEntries ) {
+  if( iIndex >= 0 && iIndex <= mHighestItemNo ) {
     return mEntries[iIndex].msLabel;
   } else  {
     return "No entry";
@@ -257,70 +261,42 @@ ScubaColorLUT::GetLabelAtIndex ( int iIndex ) {
 void 
 ScubaColorLUT::ReadFile () {
 
-  ifstream fLUT( mfnLUT.c_str() );
-  if( fLUT.is_open() ) {
+  /* Read the file with the CTAB code. */
+  char fnLUT[1024];
+  strncpy( fnLUT, mfnLUT.c_str(), sizeof(fnLUT) );
+  COLOR_TABLE* ctab = CTABreadASCII( fnLUT );
+  if( NULL == ctab ) {
+    throw new runtime_error( string("Couldn't open color table file ") + 
+			     mfnLUT );
+  }
 
-    int nLine = 0;
-    int maxEntry = 0;
-    int nLastEntry = -1;
-    while( !fLUT.eof() ) {
+  /* Go through and make entries for each valid entry we got. */
+  int cEntries;
+  CTABgetNumberOfTotalEntries( ctab, &cEntries );
+  mHighestItemNo = -1;
+  for( int nEntry = 0; nEntry < cEntries; nEntry++ ) {
 
-      string sLine;
-      getline( fLUT, sLine );
-
-      // Skip comment lines.
-      if( sLine[0] == '#' ) {
-	nLine++;
-	continue;
-      }
-      
-      int nEntry;
-      char sLabel[1024];
-      int red, green, blue;
-      int eRead = sscanf( sLine.c_str(), "%d %s %d %d %d %*s",
-			  &nEntry, sLabel, &red, &green, &blue );
-      if( 5 != eRead &&
-	  -1 != eRead ) {
-	DebugOutput(  "Error parsing " << mfnLUT << ": Malformed line " 
-		      << nLine );
-	nLine++;
-	continue;
-      }
+    int bValid;
+    CTABisEntryValid( ctab, nEntry, &bValid );
+    if( bValid ) {
 
       mEntries[nEntry].mbValid = true;
-      mEntries[nEntry].color[0] = red;
-      mEntries[nEntry].color[1] = green;
-      mEntries[nEntry].color[2] = blue;
-      mEntries[nEntry].msLabel  = sLabel;
-      if( nEntry > maxEntry ) maxEntry = nEntry;
-    
-      if( nEntry != nLastEntry + 1 ) {
-	for( int i = nLastEntry+1; i < nEntry; i++ ) {
-	  mEntries[i].mbValid = false;
-	  mEntries[i].color[0] = 255;
-	  mEntries[i].color[1] = 0;
-	  mEntries[i].color[2] = 0;
-	  mEntries[i].msLabel  = "Missing entry";
-	}
-	nLastEntry--; // right now nLastEntry == nEntry, so dec it
-      }
-      nLastEntry = nEntry;
+      CTABrgbaAtIndexi( ctab, nEntry,
+			&mEntries[nEntry].color[0],
+			&mEntries[nEntry].color[1],
+			&mEntries[nEntry].color[2],
+			&mEntries[nEntry].alpha );
+      char sName[1024];
+      CTABcopyName( ctab, nEntry, sName, sizeof(sName) );
+      mEntries[nEntry].msLabel = sName;
 
-      nLine++;
-    }
-
-    mcEntries = maxEntry + 1;
-
-  } else {
-
-    for( int nEntry = 0; nEntry < mcEntries; nEntry+=1 ) {
-      // Assign random colors.
-      mEntries[nEntry].color[0] = rand() % 256;
-      mEntries[nEntry].color[1] = rand() % 256;
-      mEntries[nEntry].color[2] = rand() % 256;
-      mEntries[nEntry].msLabel  = "";
+      /* Update our highest item number. */
+      if( nEntry > mHighestItemNo ) 
+	mHighestItemNo = nEntry;
     }
   }
+
+  CTABfree( &ctab );
 }
 
 

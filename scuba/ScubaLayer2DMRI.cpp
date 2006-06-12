@@ -32,6 +32,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mbClearZero(false),
   mMinVisibleValue(-99999),
   mMaxVisibleValue(99999),
+  mOldMinValue(-99999),
+  mOldMaxValue(99999),
+  mCurrentFrame(0),
   mBrightness(0.25),
   mContrast(12.0), 
   mWindow(1.0),
@@ -78,6 +81,11 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   commandMgr.AddCommand( *this, "Get2DMRILayerVolumeCollection", 1, 
 			 "layerID",
 			 "Returns the volume collection for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerCurrentFrame", 2, 
+			 "layerID frame",
+			 "Sets the current frame for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerCurrentFrame", 1, "layerID",
+			 "Returns the current frame for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerColorMapMethod", 2, 
 			 "layerID method",
 			 "Sets the color map method for this layer." );
@@ -197,87 +205,91 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   SetMinMaxVisibleValue( mVolume->GetMRIMinValue(), 
 			 mVolume->GetMRIMaxValue() );
 
-#if 0
-  SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
-	    mVolume->GetMRIMinValue() );
-  SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
-#else
+  // MRIhistogram doesn't work on vols with more than one frame. :(
+  if( mVolume->GetNumberOfFrames() > 1 ) {
 
-  // We're going to get a historgram of the volume and use it to
-  // remove any outliers when determining our initial
-  // window/level. Create the histogram. 
-  HISTOGRAM* histo = MRIhistogram( mVolume->GetMRI(), 
-				   zGrayscaleHistogramBins );
-  if( NULL != histo ) {
-
-    // Calculate the number of values in the volume.
-    int range[3];
-    mVolume->GetMRIIndexRange( range );
-    int zValues = range[0] * range[1] * range[2];
-
-    // Get the number of values to cut based on the percentage.
-    int zCutValues = (int)((float)zValues * (kPercentValuesToCut/100.0));
-
-    // Get the index of the bin with the value zero in it. We'll skip
-    // this bin because we want to ignore zeroes in our histogram.
-    int nZeroBin = HISTOfindBin( histo, 0.0 );
-
-    // Start at the bottom and go up. Sum up the number of the values
-    // in the bins. When we get to the number of values we want to
-    // cut, stop.
-    int cCurValues = 0;
-    int nBin = 0;
-    while( cCurValues < zCutValues &&
-	   nBin < zGrayscaleHistogramBins ) {
-      if( nBin != nZeroBin )
-	cCurValues += (int)histo->counts[nBin];
-      nBin++;
-    }
-    // Our bin values are the number at the top range of the bin, so
-    // use the bin underneath us.
-    float minValue = histo->bins[nBin>0?nBin-1:0];
-
-    // Do the same for the top end, going down. 
-    cCurValues = 0;
-    nBin = histo->nbins-1;
-    while( cCurValues < zCutValues &&
-	   nBin >= 0 ) {
-      if( nBin != nZeroBin )
-	cCurValues += (int)histo->counts[nBin];
-      nBin--;
-    }
-    float maxValue = histo->bins[nBin];
-
-    // In the special case of the fixed constant volume, minValue and
-    // MaxValue will be the same.
-    if( fabs( minValue - maxValue ) < 0.0001 ) {
-
-      // Just set the level window appropriately.
-      SetLevel( minValue );
-      SetWindow( 1 );
-
-    } else {
-      
-      // Use this max and min to define a range and set our level and
-      // window.
-      SetLevel( (maxValue - minValue)/2.0 + minValue );
-      SetWindow( (maxValue - minValue) );
-    }    
-
-    // Free the histogram.
-    HISTOfree( &histo );
-
-  } else {
-
-    // Couldn't histogram for some reason, so use defaults. 
     SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) +
 	      mVolume->GetMRIMinValue() );
     SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
 
-  }
-#endif
+  } else {
+    
+    // We're going to get a historgram of the volume and use it to
+    // remove any outliers when determining our initial
+    // window/level. Create the histogram. 
+    HISTOGRAM* histo = MRIhistogram( mVolume->GetMRI(), 
+				     zGrayscaleHistogramBins );
+    if( NULL != histo ) {
+      
+      // Calculate the number of values in the volume.
+      int range[3];
+      mVolume->GetMRIIndexRange( range );
+      int zValues = range[0] * range[1] * range[2];
+      
+      // Get the number of values to cut based on the percentage.
+      int zCutValues = (int)((float)zValues * (kPercentValuesToCut/100.0));
+      
+      // Get the index of the bin with the value zero in it. We'll skip
+      // this bin because we want to ignore zeroes in our histogram.
+      int nZeroBin = HISTOfindBin( histo, 0.0 );
+      
+      // Start at the bottom and go up. Sum up the number of the values
+      // in the bins. When we get to the number of values we want to
+      // cut, stop.
+      int cCurValues = 0;
+      int nBin = 0;
+      while( cCurValues < zCutValues &&
+	     nBin < zGrayscaleHistogramBins ) {
+	if( nBin != nZeroBin )
+	  cCurValues += (int)histo->counts[nBin];
+	nBin++;
+      }
+      // Our bin values are the number at the top range of the bin, so
+      // use the bin underneath us.
+      float minValue = histo->bins[nBin>0?nBin-1:0];
+      
+      // Do the same for the top end, going down. 
+      cCurValues = 0;
+      nBin = histo->nbins-1;
+      while( cCurValues < zCutValues &&
+	   nBin >= 0 ) {
+	if( nBin != nZeroBin )
+	  cCurValues += (int)histo->counts[nBin];
+	nBin--;
+      }
+      float maxValue = histo->bins[nBin];
+      
+      // In the special case of the fixed constant volume, minValue and
+      // MaxValue will be the same.
+      if( fabs( minValue - maxValue ) < 0.0001 ) {
 
-  // Calc one tenth of the value range above 0.
+	// Just set the level window appropriately.
+	SetLevel( minValue );
+	SetWindow( 1 );
+
+      } else {
+	
+	// Use this max and min to define a range and set our level and
+	// window.
+	SetLevel( (maxValue - minValue)/2.0 + minValue );
+	SetWindow( (maxValue - minValue) );
+      }    
+      
+      // Free the histogram.
+      HISTOfree( &histo );
+
+    } else {
+      
+      // Couldn't histogram for some reason, so use defaults. 
+      SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) 
+		 / 2.0) +
+		mVolume->GetMRIMinValue() );
+      SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
+      
+    }
+  }
+    
+    // Calc one tenth of the value range above 0.
   float oneTenth;
   oneTenth = mVolume->GetMRIMaxValue() / 10.0;
 
@@ -351,7 +363,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // Create a dummy location, we'll change it soon. Note to self:
   // learn how to use C++ references properly.
   RAS[0] = RAS[1] = RAS[2] = 0;
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+  VolumeLocation& loc =
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS, mCurrentFrame );
 
   for( window[1] = windowUpdateBounds[1];
        window[1] <= windowUpdateBounds[3]; window[1]++ ) {
@@ -503,7 +516,7 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // learn how to use C++ references properly.
   RAS[0] = RAS[1] = RAS[2] = 0;
   VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS, mCurrentFrame );
 
   // Start a progress bar for the MIP since it takes a while.
   ProgressDisplayManager& progMgr = ProgressDisplayManager::GetManager();
@@ -868,7 +881,8 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
 
   // Look up the value of the volume at this point.
   InfoAtRAS info;
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+  VolumeLocation& loc = 
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
   if ( mVolume->IsInBounds( loc ) ) {
     
     float value;
@@ -978,6 +992,45 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       }
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "i";
+    }
+  }
+
+  // Get2DMRILayerCurrentFrame <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerCurrentFrame" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << GetCurrentFrame();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerCurrentFrame <layerID> <frame>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerCurrentFrame" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      int frame = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      SetCurrentFrame( frame );
+      return ok;
     }
   }
 
@@ -1766,7 +1819,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       }
 
       // Do the flood.
-      flooder->Flood( *mVolume, ras, params );
+      flooder->Flood( *mVolume, ras, mCurrentFrame, params );
       delete flooder;
 
       return ok;
@@ -1939,7 +1992,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if( bEyedropper && iInput.IsButtonUpEvent() ) {
 
       VolumeLocation& loc =
-	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
       if( mVolume->IsInBounds( loc ) ) {
 
 	float value = mVolume->GetMRINearestValue( loc );
@@ -2066,8 +2119,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  // If the point is in bounds...
 	  Point3<float> point = *tPoints;
 	  VolumeLocation& loc =
-	    (VolumeLocation&) mVolume->MakeLocationFromRAS( point.xyz() );
-	  
+	    (VolumeLocation&) mVolume->MakeLocationFromRAS( point.xyz(), 
+							    mCurrentFrame );
+
 	  if( mVolume->IsInBounds( loc ) ) {
 	    
 	    // Depending on whether we're editing or selecting, and
@@ -2106,8 +2160,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	      
 	      // Set value and make undo item.
 	      mVolume->SetMRIValue( loc, newValue );
-	      action = new UndoVoxelEditAction( mVolume, newValue,
-						origValue, point.xyz() );
+	      action = 
+		new UndoVoxelEditAction( mVolume, newValue, origValue,
+					 point.xyz(), mCurrentFrame );
 	      
 	      
 	      // Selecting. 
@@ -2167,7 +2222,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
 
       VolumeLocation& loc =
-	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
       if( mVolume->IsInBounds( loc ) ) {
 
 	float value = mVolume->GetMRINearestValue( loc );
@@ -2191,7 +2246,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	 ( iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F )) ) {
       
       VolumeLocation& loc =
-	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
       if( mVolume->IsInBounds( loc ) ) {
 
 	VolumeCollectionFlooder::Params params;
@@ -2203,24 +2258,24 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F && 
 	       !iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
-	    flooder.Flood( *mVolume, iRAS, params );
+	    flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
 	  } else if( iInput.Button() == 3|| 
 	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F && 
 	       iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
-	    flooder.Flood( *mVolume, iRAS, params );
+	    flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
 	  }
 	} else if( ScubaToolState::roiFilling == iTool.GetMode() ) {
 	  if( iInput.Button() == 2|| 
 	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
 	       !iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodSelect flooder( true );
-	    flooder.Flood( *mVolume, iRAS, params );
+	    flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
 	  } else if( iInput.Button() == 3|| 
 	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
 	       iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodSelect flooder( false );
-	    flooder.Flood( *mVolume, iRAS, params );
+	    flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
 	  }
 	}
 	  
@@ -2680,6 +2735,25 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
   }
 }
 
+int
+ScubaLayer2DMRI::GetCurrentFrame () {
+  return mCurrentFrame;
+}
+
+void
+ScubaLayer2DMRI::SetCurrentFrame ( int iFrame ) {
+
+  if( NULL == mVolume ) {
+    throw runtime_error( "No volume" );
+  }
+
+  if( iFrame >= 0 && iFrame < mVolume->GetNumberOfFrames() ) {
+    mCurrentFrame = iFrame;
+  } else {
+    throw runtime_error( "Invalid frame" );
+  }
+}
+
 void
 ScubaLayer2DMRI::SetColorMapMethod ( ColorMapMethod iMethod ) { 
   mColorMapMethod = iMethod; 
@@ -2980,7 +3054,8 @@ ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
 	 tRASPoint != rasPoints.end(); ++tRASPoint ) {
       Point3<float> rasPoint = *tRASPoint;
       VolumeLocation& loc =
-	(VolumeLocation&) mVolume->MakeLocationFromRAS( rasPoint.xyz() );
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( rasPoint.xyz(),
+							mCurrentFrame );
 
       if( ibSelect ) 
 	mVolume->Select( loc );
@@ -3203,17 +3278,18 @@ ScubaLayer2DMRIFloodVoxelEdit::DoStopRequested () {
 }
 
 bool
-ScubaLayer2DMRIFloodVoxelEdit::CompareVoxel ( float[3] ) {
+ScubaLayer2DMRIFloodVoxelEdit::CompareVoxel ( float[3], int iFrame ) {
 
   // Always return true.
   return true;
 }
 
 void
-ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
+ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3], int iFrame ) {
   UndoManager& undoList = UndoManager::GetManager();
 
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+  VolumeLocation& loc = 
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, iFrame );
 
   // Save the original value. Set the new value. 
   float origValue = mVolume->GetMRINearestValue( loc );
@@ -3221,7 +3297,7 @@ ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
 
   // Make an undo item with the old value and add it to the list.
   UndoVoxelEditAction* action = 
-    new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS );
+    new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS, iFrame );
 
   undoList.AddAction( action );
 
@@ -3230,19 +3306,21 @@ ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
 
 UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
 					   float iNewValue, float iOrigValue, 
-					   float iRAS[3] ) {
+					   float iRAS[3], int iFrame ) {
   mVolume = iVolume;
   mNewValue = iNewValue;
   mOrigValue = iOrigValue;
   mRAS[0] = iRAS[0];
   mRAS[1] = iRAS[1];
   mRAS[2] = iRAS[2];
+  mFrame = iFrame;
 }
 
 void
 UndoVoxelEditAction::Undo () {
 
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  VolumeLocation& loc =
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS, mFrame );
   mVolume->SetMRIValue( loc, mOrigValue );
   delete &loc;
 }
@@ -3250,7 +3328,8 @@ UndoVoxelEditAction::Undo () {
 void
 UndoVoxelEditAction::Redo () {
 
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  VolumeLocation& loc = 
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS, mFrame );
   mVolume->SetMRIValue( loc, mNewValue );
   delete &loc;
 }
@@ -3320,17 +3399,18 @@ ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 }
 
 bool
-ScubaLayer2DMRIFloodSelect::CompareVoxel ( float[3] ) {
+ScubaLayer2DMRIFloodSelect::CompareVoxel ( float[3], int iFrame ) {
 
   // Always return true.
   return true;
 }
 
 void
-ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3] ) {
+ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3], int iFrame ) {
   UndoManager& undoList = UndoManager::GetManager();
 
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+  VolumeLocation& loc = 
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, iFrame );
 
   if( mbSelect ) {
     mVolume->Select( loc );
@@ -3358,7 +3438,8 @@ UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
 
 void
 UndoSelectionAction::Undo () {
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  VolumeLocation& loc =
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
 
   if( mbSelect ) {
     mVolume->Unselect( loc );

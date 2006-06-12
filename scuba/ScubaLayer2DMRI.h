@@ -77,34 +77,82 @@ class ScubaLayer2DMRI : public Layer {
   // Override to change min/max range on new value.
   virtual void DataChanged();
 
+  // Handles tool events.
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 
+  // Looks for command line options and sets internals from them.
   virtual void ProcessOption ( std::string isOption, std::string isValue );
 
+  // Sets the current frame of the volume to draw.
+  int GetCurrentFrame ();
+  void SetCurrentFrame ( int iFrame );
+
+  // Color map determines how the volume is drawn to screen, and
+  // contextually, whether it's an anatomical, functional, or
+  // segmenation volume.
   enum ColorMapMethod { grayscale, heatScale, LUT };
   void SetColorMapMethod ( ColorMapMethod iMethod );
   ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
   std::string GetColorMapMethodAsString ();
 
+  // Determines the smoothness of voxels on screen.
   enum SampleMethod { nearest, trilinear, sinc, magnitude };
   void SetSampleMethod ( SampleMethod iSampleMethod ) {
     mSampleMethod = iSampleMethod; }
   SampleMethod GetSampleMethod () { return mSampleMethod; }
   std::string GetSampleMethodAsString ();
 
+  // If the color map method is LUT, this determines the LUT to use.
   void SetColorLUT ( int iLUTID );
   int GetColorLUT ();
 
+  // If true, voxels with values of 0 are clear.
   void SetDrawZeroClear ( bool ibClearZero ) { mbClearZero = ibClearZero; }
   bool GetDrawZeroClear () { return mbClearZero; }
 
+  // Calcs the grayscale table. cGrayscaleLUTEntries is the resolution
+  // of the LUT, kMaxPixelComponentValue is a multiplier to go from a
+  // 0->1 range to the e.g. uchar 0-255 range, and
+  // kMaxPixelComponentValueFloat is the float version of that.
   static int const cGrayscaleLUTEntries;
   static int const kMaxPixelComponentValue;  
   static float const kMaxPixelComponentValueFloat;  
   void BuildGrayscaleLUT ();
 
+  // GRAYSCALE COLOR LUT - See https://surfer.nmr.mgh.harvard.edu/fswiki/ScubaGuide_2fScubaWorkingWithData_2fScubaAnatomicalVolumes
+  //   
+  //       |---level---|   level +- range/2
+  //             |
+  //              .__----               <1 black
+  //             /                       1 begin visible black
+  //             |                       2->3 black->white
+  //             |                       3->4 white
+  //             |                       4 end visible white
+  //   1   2     /    3   4             >4 black
+  //            .
+  //   |--------          |
+  //  min                max
+
+  // This determines the levels above and below which voxels are drawn
+  // as black, or no color.
+  void SetMinVisibleValue ( float iValue );
+  float GetMinVisibleValue () { return mMinVisibleValue; }
+  void SetMaxVisibleValue ( float iValue );
+  float GetMaxVisibleValue () { return mMaxVisibleValue; }
+  void SetMinMaxVisibleValue ( float iMinValue, float iMaxValue );
+
+  // These determine the visible value range. Values below the range
+  // are drawn at the 'lowest' color (e.g. black) and values above are
+  // drawn in the 'highest' color (e.g. white).
+  void SetWindow ( float iWindow );
+  float GetWindow () { return mWindow; }
+  void SetLevel ( float iLevel );
+  float GetLevel () { return mLevel; }
+
+  // Brightness/contrast determines the slope of the sigmoid function
+  // within the valid window/level range.
   // Brightness:  dark  1 --~~==## 0  bright
   // Contrast:    gray  0 --~~==## 30 black/white
   void SetBrightness ( float iBrightness );
@@ -112,18 +160,10 @@ class ScubaLayer2DMRI : public Layer {
   void SetContrast ( float iContrast );
   float GetContrast () { return mContrast; }
 
-  // Window / level settings.
-  void SetWindow ( float iWindow );
-  float GetWindow () { return mWindow; }
-  void SetLevel ( float iLevel );
-  float GetLevel () { return mLevel; }
-
-  void SetMinVisibleValue ( float iValue );
-  float GetMinVisibleValue () { return mMinVisibleValue; }
-  void SetMaxVisibleValue ( float iValue );
-  float GetMaxVisibleValue () { return mMaxVisibleValue; }
-  void SetMinMaxVisibleValue ( float iMinValue, float iMaxValue );
-
+  // These determine the heatscale color map. The threshold is mirrored:
+  //
+  // -> cyan -> blue -> trans_blue -> clear -> trans_orange -> orange -> red ->
+  // -> -max -> -mid ->    -min    ->   0   ->     min      ->   mid  -> max ->
   void SetHeatScaleMinThreshold ( float iValue );
   float GetHeatScaleMinThreshold () { return mHeatScaleMinThreshold; }
   void SetHeatScaleMidThreshold ( float iValue );
@@ -131,9 +171,11 @@ class ScubaLayer2DMRI : public Layer {
   void SetHeatScaleMaxThreshold ( float iValue );
   float GetHeatScaleMaxThreshold () { return mHeatScaleMaxThreshold; }
 
+  // Opacity of ROIs drawn on this layer.
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
 
+  // Flag to draw the maximum intensity projection.
   void SetDrawMIP ( bool ibDrawMIP ) { mbDrawMIP = ibDrawMIP; }
   bool GetDrawMIP () { return mbDrawMIP; }
 
@@ -154,19 +196,31 @@ class ScubaLayer2DMRI : public Layer {
   Path<float>* FindClosestPathInPlane ( float iRAS[3],
 					ViewState& iViewState );
 
- // Draw a path.
+  // Draw a path.
   void DrawRASPathIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			       int iColor[3], ViewState& iViewState,
 			       ScubaWindowToRASTranslator& iTranslator,
 			       Path<float>& iRASPath );
-				 
+
+  // The distance to travel in plane when the user navigates in and
+  // out of the plane.
   virtual void GetPreferredThroughPlaneIncrements ( float oIncrements[3] );
 
+  // A hint for an increment for a brush radius; the GUI will use this
+  // granularity for drawing brushes. This is the suggested size so
+  // that the user may paint one voxel, increment and paint one more
+  // voxel, etc.
   virtual float GetPreferredBrushRadiusIncrement ();
 
+  // A hint for an increment for value in this layer; the GUI will use
+  // this when providing the user with a choice such as fuzziness for
+  // filling. This should be a reasonable granularity based on the
+  // value range of the volume, for example 1 for a volume that goes
+  // from 0->255, or 0.01 for a volume that goes from -.1 to .1.
   virtual float GetPreferredValueIncrement ();
 
-  // For filling.
+  // For filling. Sets the given flooder params based on the given
+  // tool and view state.
   void SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
 			VolumeCollectionFlooder::Params& ioParams );
  
@@ -202,6 +256,7 @@ class ScubaLayer2DMRI : public Layer {
   bool mbClearZero;
   float mMinVisibleValue, mMaxVisibleValue;
   float mOldMinValue, mOldMaxValue;
+  int mCurrentFrame;
 
   // For grayscale drawing.
   float mBrightness, mContrast;
@@ -226,7 +281,6 @@ class ScubaLayer2DMRI : public Layer {
   Point3<float> mLastMouseUpRAS, mCurrentMouseRAS;
   bool mbDrawEditingLine;
 
-  
   // For paths.
   Path<float>*   mCurrentPath;
   Point3<float>  mFirstPathRAS;
@@ -253,8 +307,8 @@ class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
-  virtual bool CompareVoxel ( float iRAS[3] );
-  virtual void DoVoxel ( float iRAS[3] );
+  virtual bool CompareVoxel ( float iRAS[3], int iFrame );
+  virtual void DoVoxel ( float iRAS[3], int iFrame );
 
   float mValue;
 };
@@ -268,8 +322,8 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
-  virtual bool CompareVoxel ( float iRAS[3] );
-  virtual void DoVoxel ( float iRAS[3] );
+  virtual bool CompareVoxel ( float iRAS[3], int iFrame );
+  virtual void DoVoxel ( float iRAS[3], int iFrame );
 
   bool mbSelect;
 };
@@ -280,7 +334,8 @@ class UndoVoxelEditAction : public UndoAction {
  public:
 
   UndoVoxelEditAction ( VolumeCollection* iVolume, 
-			float iNewValue, float iOrigValue, float iRAS[3] );
+			float iNewValue, float iOrigValue, 
+			float iRAS[3], int iFrame );
 
   virtual void Undo ();
   virtual void Redo ();
@@ -290,6 +345,7 @@ class UndoVoxelEditAction : public UndoAction {
   float mNewValue;
   float mOrigValue;
   float mRAS[3];
+  int   mFrame;
 };
 
 class UndoSelectionAction : public UndoAction {

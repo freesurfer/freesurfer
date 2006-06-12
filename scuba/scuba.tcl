@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.206 2006/06/07 19:49:58 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.207 2006/06/12 19:46:11 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2077,15 +2077,18 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,brightnessContrastSliders) $fwProps2DMRI.swBC
 
     frame $fwProps2DMRI.fwWindowLevel
-    tkuMakeSliders $fwProps2DMRI.swLevelWindow -sliders {
+    tkuMakeSliders $fwProps2DMRI.swLevel -sliders {
 	{-label "Level" -variable gaLayer(current,level) 
 	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
 	    -command {Set2DMRILayerLevel $gaLayer(current,id) $gaLayer(current,level); RedrawFrame [GetMainFrameID]}}
+    }
+    tkuMakeSliders $fwProps2DMRI.swWindow -sliders {
 	{-label "Window" -variable gaLayer(current,window) 
 	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
 	    -command {Set2DMRILayerWindow $gaLayer(current,id) $gaLayer(current,window); RedrawFrame [GetMainFrameID]}}
     }
-    set gaWidget(layerProperties,levelWindowSliders) $fwProps2DMRI.swLevelWindow
+    set gaWidget(layerProperties,levelSlider) $fwProps2DMRI.swLevel
+    set gaWidget(layerProperties,windowSlider) $fwProps2DMRI.swWindow
 
     tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
 	{-label "Min" -variable gaLayer(current,minVisibleValue) 
@@ -2121,6 +2124,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,heatScaleMax) \
 	$fwProps2DMRI.fwHeatScale.ewHeatScaleMax
 
+    tkuMakeSliders $fwProps2DMRI.swFrame -sliders { 
+	{ -label "Frame" -variable gaLayer(current,frame)
+	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); RedrawFrame [GetMainFrameID]} }
+    }
+    set gaWidget(layerProperties,frame) $fwProps2DMRI.swFrame
+
     tkuMakeCheckboxes $fwProps2DMRI.cbwEditableROI \
 	-font [tkuNormalFont] \
 	-checkboxes { 
@@ -2142,11 +2152,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 #   grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
-    grid $fwProps2DMRI.swLevelWindow     -column 0 -row 6 -sticky ew
-    grid $fwProps2DMRI.swMinMax          -column 0 -row 7 -sticky ew
-    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 8 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 9 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 10 -sticky ew
+    grid $fwProps2DMRI.swLevel           -column 0 -row 6 -sticky ew
+    grid $fwProps2DMRI.swWindow          -column 0 -row 7 -sticky ew
+    grid $fwProps2DMRI.swMinMax          -column 0 -row 8 -sticky ew
+    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 9 -sticky ew
+    grid $fwProps2DMRI.swFrame           -column 0 -row 10 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 11 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 12 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -3005,8 +3017,14 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
 	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
 		$gaLayer(current,minValue) $gaLayer(current,maxValue)
-	  tkuUpdateSlidersRange $gaWidget(layerProperties,levelWindowSliders) \
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,levelSlider) \
 		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,windowSlider) \
+		0 [expr abs($gaLayer(current,maxValue) - $gaLayer(current,minValue))]
+
+	    # Length of frame slider.
+	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames [Get2DMRILayerVolumeCollection $iLayerID]]
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,frame) 0 [expr $gaLayer(current,numFrames) - 1]
 
 	    # Get the type specific properties.
 
@@ -3046,6 +3064,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMin)
 	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMid)
 	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMax)
+	    set gaLayer(current,frame) [Get2DMRILayerCurrentFrame $iLayerID]
 
 	    # Set the LUT menu.
 	    $gaWidget(layerProperties,lutMenu) config -disablecallback 1
@@ -3100,20 +3119,19 @@ proc AdjustLayerPropertiesEnabledWidgets {} {
 		$gaWidget(layerProperties,lutMenu) configure -state disabled
 		tkuSetSlidersEnabled \
 		    $gaWidget(layerProperties,brightnessContrastSliders) 1
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,levelWindowSliders) 1
+		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 1
+		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 1
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
-
 
 	    } elseif { [string match $sMethod heatScale] } {
 
 		$gaWidget(layerProperties,lutMenu) configure -state disabled
 		tkuSetSlidersEnabled \
 		    $gaWidget(layerProperties,brightnessContrastSliders) 0
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,levelWindowSliders) 0
+		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 0
+		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 1
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 1
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 1
@@ -3123,12 +3141,19 @@ proc AdjustLayerPropertiesEnabledWidgets {} {
 		$gaWidget(layerProperties,lutMenu) configure -state normal
 		tkuSetSlidersEnabled \
 		    $gaWidget(layerProperties,brightnessContrastSliders) 0
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,levelWindowSliders) 0
+		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 0
+		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
 		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
 
+	    }
+
+	    # Only enable frame slider if we have > 1 frames.
+	    if { $gaLayer(current,numFrames) > 1 } {
+		tkuSetSlidersEnabled $gaWidget(layerProperties,frame) 1
+	    } else {
+		tkuSetSlidersEnabled $gaWidget(layerProperties,frame) 0
 	    }
 	}
     }
@@ -4395,10 +4420,15 @@ proc DrawLabelArea {} {
 		-editnotify "LabelAreaEditNotifyCallback $f.gwGrid" \
 		-selectmode single
 
-	    $f.gwGrid size col default -size 20char
+	    $f.gwGrid size column default -size 20char
 	    $f.gwGrid size row default -size 1.1char -pad0 3
 
 	    pack $f.gwGrid -expand yes -fill both -padx 3 -pady 3
+
+	    # Tried to call this function to resize the columns to a
+	    # good width but I can't get this to work.
+#	    bind $f.gwGrid <Visibility> "ResizeLabelArea"
+#	    bind $f.gwGrid <Expose> "ResizeLabelArea"
 	}
 
 	# Get pointer to the grid.
@@ -4586,6 +4616,29 @@ proc DrawLabelArea {} {
 
 	# Size grid appropriately.
 	$grid config -width [expr $maxCol + 1] -height [expr $maxRow + 1]
+    }
+}
+
+proc ResizeLabelArea {} {
+    global gaWidget
+    global glInfoAtRAS
+
+    # This is currently not being used as it doesn't work.
+    foreach nArea {1 2} {
+
+	if { ![info exists glInfoAtRAS($nArea)] } {
+	    continue
+	}
+
+	set fwTop $gaWidget(labelArea,$nArea).fwTop
+
+	set window [$fwTop.swGrid subwidget window]
+	set grid [$fwTop.swGrid subwidget window].gwGrid
+
+	set cCols [$grid cget -width]
+	if { $cCols == 2 } {
+	    $grid size column 2 -size 50
+	}
     }
 }
 
@@ -6123,7 +6176,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.206 2006/06/07 19:49:58 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.207 2006/06/12 19:46:11 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -29,6 +29,7 @@ VolumeCollection::VolumeCollection () :
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
   mbUseDataToIndexTransform = true;
   mbBoundsCacheDirty = true;
+  mcFrames = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -39,6 +40,9 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeCollectionFileName", 1, 
 			 "collectionID", 
 			 "Gets the file name for a given volume collection.");
+  commandMgr.AddCommand( *this, "GetVolumeNumberOfFrames", 1, 
+			 "collectionID", 
+			 "Gets the number of frames in a volume collection.");
   commandMgr.AddCommand( *this, "WriteVolumeROIToLabel", 4, 
 			 "collectionID roiID useRealRAS fileName", 
 			 "Writes an ROI to a label file. useRealRAS is a "
@@ -118,6 +122,7 @@ DataLocation&
 VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
   
   VolumeLocation* loc = new VolumeLocation( *this, iRAS );
+  loc->SetFrame( 0 );
   return *loc;
 }
 
@@ -125,6 +130,23 @@ DataLocation&
 VolumeCollection::MakeLocationFromIndex ( int const iIndex[3] ) {
   
   VolumeLocation* loc = new VolumeLocation( *this, iIndex );
+  loc->SetFrame( 0 );
+  return *loc;
+}
+
+DataLocation&
+VolumeCollection::MakeLocationFromRAS ( float const iRAS[3], int iFrame ) {
+  
+  VolumeLocation* loc = new VolumeLocation( *this, iRAS );
+  loc->SetFrame( iFrame );
+  return *loc;
+}
+
+DataLocation&
+VolumeCollection::MakeLocationFromIndex ( int const iIndex[3], int iFrame ) {
+  
+  VolumeLocation* loc = new VolumeLocation( *this, iIndex );
+  loc->SetFrame( iFrame );
   return *loc;
 }
 
@@ -305,6 +327,8 @@ VolumeCollection::InitializeFromMRI () {
   mVoxelSize[1] = mMRI->ysize;
   mVoxelSize[2] = mMRI->zsize;
   
+  // Save number of frames.
+  mcFrames = mMRI->nframes;
 } 
 
 void
@@ -355,7 +379,18 @@ void
 VolumeCollection::UpdateMRIValueRange () {
 
   if( NULL != mMRI ) {
-    MRIvalRange( mMRI, &mMRIMinValue, &mMRIMaxValue );
+
+    // Get the range in every frame and find the most min and max.
+    mMRIMinValue = 99999;
+    mMRIMaxValue = -99999;
+    float minValue, maxValue;
+    for( int nFrame = 0; nFrame < mMRI->nframes; nFrame++ ) {
+      MRIvalRangeFrame( mMRI, &minValue, &maxValue, nFrame );
+      if( minValue < mMRIMinValue )
+	mMRIMinValue = minValue;
+	if( maxValue > mMRIMaxValue )
+	  mMRIMaxValue = maxValue;
+    }
   }
 }
 
@@ -366,7 +401,6 @@ VolumeCollection::GetMRIMagnitudeMinValue () {
   }
   return mMRIMagMinValue; 
 }
-
 
 bool 
 VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) const {
@@ -743,6 +777,28 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       
       sReturnFormat = "s";
       sReturnValues = mfnMRI;
+    }
+  }
+
+  // GetVolumeNumberOfFrames <colllectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeNumberOfFrames" ) ) {
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << GetNumberOfFrames();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+
+      return ok;
     }
   }
 
@@ -2394,18 +2450,19 @@ VolumeCollectionFlooder::DoStopRequested () {
 }
 
 void 
-VolumeCollectionFlooder::DoVoxel ( float[3] ) {
+VolumeCollectionFlooder::DoVoxel ( float[3], int iFrame ) {
 
 }
 
 bool 
-VolumeCollectionFlooder::CompareVoxel ( float[3] ) {
+VolumeCollectionFlooder::CompareVoxel ( float[3], int iFrame ) {
   return true;
 }
 
 void
 VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume, 
-				 float iRASSeed[3], Params& iParams ) {
+				 float iRASSeed[3], int iFrame,
+				 Params& iParams ) {
 
   mVolume = &iVolume;
   mParams = &iParams;
@@ -2437,14 +2494,17 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   // Save the initial value.
   VolumeLocation& seedLoc =
     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  seedLoc.SetFrame( iFrame );
   float seedValue = sourceVol->GetMRINearestValue( seedLoc );
 
   // Create locations in the source volume space. These will be used
   // in the main loop.
   VolumeLocation& sourceLoc =
     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  sourceLoc.SetFrame( iFrame );
   VolumeLocation& sourceFromLoc =
     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  sourceFromLoc.SetFrame( iFrame );
 
 #if PRINTOUT
   cerr << "\n\nSeed " << Point3<int>(seedLoc.Index())
@@ -2496,10 +2556,12 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     Point3<int> index = checkPair.mToIndex;
     VolumeLocation& loc = 
       (VolumeLocation&) iVolume.MakeLocationFromIndex( index.xyz() );
+    loc.SetFrame( iFrame );
 
     Point3<int> fromIndex = checkPair.mFromIndex;
     VolumeLocation& fromLoc =
       (VolumeLocation&) iVolume.MakeLocationFromIndex( fromIndex.xyz() );
+    fromLoc.SetFrame( iFrame );
 
     Point3<float> ras;
     iVolume.MRIIndexToRAS( index.xyz(), ras.xyz() );
@@ -2698,14 +2760,14 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     }
 
     // Call the user compare function to give them a chance to bail.
-    if( !this->CompareVoxel( ras.xyz() ) ) {
+    if( !this->CompareVoxel( ras.xyz(), iFrame ) ) {
       delete &loc;
       delete &fromLoc;
       continue;
     }
     
     // Call the user function.
-    this->DoVoxel( ras.xyz() );
+    this->DoVoxel( ras.xyz(), iFrame );
 
     // Add adjacent voxels. Look at all adjacent voxels. If we're only
     // working on a single plane, make sure the voxel is in the same
@@ -2837,4 +2899,9 @@ VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
   mIdxi[1] = (int) mIdxf[1];
   mIdxi[2] = (int) mIdxf[2];
 #endif
+}
+
+void
+VolumeLocation::SetFrame ( int iFrame ) {
+  mFrame = iFrame;
 }

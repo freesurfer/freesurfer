@@ -52,8 +52,8 @@ class ScubaColorLUT : public DebugReporter, public IDTracker<ScubaColorLUT>, pub
   void ReadFile ();
 
   std::string mfnLUT;
-  int mcEntries;
-  struct LUTEntry { bool mbValid; std::string msLabel; int color[3]; };
+  int mHighestItemNo;
+  struct LUTEntry { bool mbValid; std::string msLabel; int color[3]; int alpha; };
   std::map<int,LUTEntry> mEntries; 
 
   std::string msLabel;

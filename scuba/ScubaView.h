@@ -258,9 +258,6 @@ protected:
   float mOriginalZoom;
   Point3<float> mOriginalPlaneNormal;
 
-  // A map of increments that override the layer preferred ones, for
-  // each layer.
-  std::map<int,bool> mLayerIDGotThroughPlaneIncrements;
   float mThroughPlaneIncrements[3];
 
   // The buffer for this view.

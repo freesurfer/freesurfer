@@ -487,16 +487,6 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Set pixel size.
       layer.SetBytesPerPixel( kBytesPerPixel );
 
-      // Try to see if we alreayd looked at the preferred through
-      // plane increments for this layer. If not, check them out.
-      map<int,bool>::iterator tLayerIDGotThroughPlaneIncrements;
-      tLayerIDGotThroughPlaneIncrements = 
-	mLayerIDGotThroughPlaneIncrements.find( iLayerID );
-      if( tLayerIDGotThroughPlaneIncrements == 
-	  mLayerIDGotThroughPlaneIncrements.end() ) {
-	mLayerIDGotThroughPlaneIncrements[iLayerID] = true;
-      }
-
       // Start out visible.
       if( mLevelVisibilityMap.find( iLevel ) == mLevelVisibilityMap.end() ) {
 	mLevelVisibilityMap[iLevel] = true;

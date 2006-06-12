@@ -40,6 +40,7 @@ class VolumeLocation : public DataLocation {
   float* IndexF     ()               { return mIdxf; }
   float  IndexF     ( int in ) const { return mIdxf[in]; }
   void   SetFromRAS ( float const iRAS[3] );
+  void   SetFrame   ( int in );
   VolumeCollection* GetVolume () const { return mVolume; }
  protected:
   VolumeCollection* mVolume;
@@ -57,8 +58,13 @@ class VolumeCollection : public DataCollection {
   VolumeCollection ();
   virtual ~VolumeCollection ();
 
+  // Sets the frame in the location to 0.
   virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
   DataLocation& MakeLocationFromIndex ( int const iIndex[3] );
+
+  // Optional way that also sets the frame. 
+  DataLocation& MakeLocationFromRAS ( float const iRAS[3], int iFrame );
+  DataLocation& MakeLocationFromIndex ( int const iIndex[3], int iFrame );
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "Volume"; }
@@ -83,7 +89,6 @@ class VolumeCollection : public DataCollection {
   void Save ();
   void Save ( std::string ifn );
   
-
   // Accessors.
   float GetMRIMinValue () { return mMRIMinValue; }
   float GetMRIMaxValue () { return mMRIMaxValue; }
@@ -94,6 +99,8 @@ class VolumeCollection : public DataCollection {
   float GetVoxelXSize () { return mVoxelSize[0]; }
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
+
+  int GetNumberOfFrames () { return mcFrames; }
 
   virtual void GetDataRASBounds ( float oBounds[6] );
   void GetMRIIndexRange ( int oMRIIndexRange[3] );
@@ -313,6 +320,9 @@ protected:
   bool mbAutosaveDirty;
   std::string mfnAutosave;
 
+  // Number of frames.
+  int mcFrames;
+
   // Voxel sizes.
   float mVoxelSize[3];
 
@@ -340,8 +350,8 @@ class VolumeCollectionFlooder {
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
-  virtual bool CompareVoxel ( float iRAS[3] );
-  virtual void DoVoxel ( float iRAS[3] );
+  virtual bool CompareVoxel ( float iRAS[3], int iFrame );
+  virtual void DoVoxel ( float iRAS[3], int iFrame );
 
   class Params {
   public:
@@ -372,7 +382,9 @@ class VolumeCollectionFlooder {
     Point3<int> mToIndex;
   };    
 
-  void Flood ( VolumeCollection& iVolume, float iRASSeed[3], Params& iParams );
+  void Flood ( VolumeCollection& iVolume, 
+	       float iRASSeed[3], int iFrame,
+	       Params& iParams );
   VolumeCollection* mVolume;
   Params* mParams;
 };
