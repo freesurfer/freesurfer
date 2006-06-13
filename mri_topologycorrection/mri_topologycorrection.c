@@ -219,10 +219,10 @@ int main(int argc, char *argv[])
   if(parms.tesselation_mode==-1)
     parms.tesselation_mode=parms.connectivity;
   if(argc<4)
-    {
-      fprintf(stderr, "\nUsage: %s options input_orig_file input_segmented_file output_folder\n", Progname);   
-      exit(1);
-    };
+	{
+		fprintf(stderr, "\nUsage: %s options input_orig_file input_segmented_file output_folder\n", Progname);   
+		exit(1);
+	};
 
   in_orig_fname=argv[argc-3];
   in_seg_fname = argv[argc-2];
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 
   fprintf(stderr,"************************************************************"
           "\nThe input orig volume is %s"
-	  "\nThe input segmented volume is %s"
+					"\nThe input segmented volume is %s"
           "\nThe output volume is %s"
           "\nIf this is incorrect, please exit quickly the program (Ctl-C)\n",in_orig_fname,in_seg_fname,out_fname);
   for(n=0;n<parms.nlabels;n++)
@@ -238,10 +238,10 @@ int main(int argc, char *argv[])
   if(parms.using_gca_maps)
     fprintf(stderr,"mixing parameters: alpha=%1.3f , beta=%1.3f \n",parms.alpha,parms.beta);
   else
-    {
-      parms.beta=1.0f;
-      parms.alpha=1.0f;
-    }
+	{
+		parms.beta=1.0f;
+		parms.alpha=1.0f;
+	}
   fprintf(stderr,"connectivity = %d\n",parms.connectivity);
 
   mri_orig=MRIread(in_orig_fname);
@@ -260,20 +260,20 @@ int main(int argc, char *argv[])
     mri_tmp=MRIclone(mri_seg,NULL);
     for(k=0;k<mri_seg->depth;k++)
       for(j=0;j<mri_seg->height;j++)
-	for(i=0;i<mri_seg->width;i++)
-	  for(n=0;n<parms.nlabels;n++)
-	    {	    
-	      val=MRIvox(mri_seg,i,j,k);
-	      if(val==parms.labels[n])
-		{
-		  MRIvox(mri_tmp,i,j,k)=1;
-		  break;
-		}
-	    }
+				for(i=0;i<mri_seg->width;i++)
+					for(n=0;n<parms.nlabels;n++)
+					{	    
+						val=MRIgetVoxVal(mri_seg,i,j,k, 0);
+						if(val==parms.labels[n])
+						{
+							MRIsetVoxVal(mri_tmp,i,j,k,0,1);
+							break;
+						}
+					}
     mris=MRIScreateSurfaceFromVolume(mri_tmp,1,parms.connectivity);
     euler=MRIScomputeEulerNumber(mris,&pnvertices,&pnfaces,&pnedges);
     fprintf(stderr,"\ninitial euler characteristic = %d, %d vertices, %d faces, %d edges"
-	    ,euler,pnvertices,pnfaces,pnedges);
+						,euler,pnvertices,pnfaces,pnedges);
     MRISwrite(mris,parms.initial_surface_file);
     MRISfree(&mris);
     MRIfree(&mri_tmp);
@@ -281,11 +281,20 @@ int main(int argc, char *argv[])
 
   mri_out=MRIcorrectTopology(mri_orig,mri_seg,NULL,&parms);
 
+	if (parms.nlabels == 1)
+	{
+		MRI *mri_tmp ;
+
+		mri_tmp = MRIcopy(mri_seg, NULL) ;
+		MRIreplaceValues(mri_out, mri_out, 1, parms.labels[0]) ;
+		MRIcopyLabel(mri_out, mri_tmp, parms.labels[0]) ;
+		MRIfree(&mri_out) ; mri_out = mri_tmp ;
+	}
   MRIwrite(mri_out,out_fname);
 
-////TEMPORARY VALIDATION STUFF //////////////////////////////////////////////////////////////////   
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
+	////TEMPORARY VALIDATION STUFF //////////////////////////////////////////////////////////////////   
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////
 #if 0
   //validation of the algo
   {
@@ -300,76 +309,76 @@ int main(int argc, char *argv[])
     height=parms.mri_seg->height;
     width=parms.mri_seg->width;
     for(n=0;n<14;n++)
-      {
-	MRIfree(&parms.mri_output);
-	MRIfree(&parms.mri_bin);
-	MRIfree(&parms.mri_dist);
-	MRIfree(&parms.mri_fcost);
-	MRIfree(&parms.mri_bcost);
-	MRIfree(&parms.mri_fprior);
-	MRIfree(&parms.mri_bprior);
-	MRIfree(&parms.mri_labeled);
-	segmentationFree(&parms.F_Bseg);
-	segmentationFree(&parms.F_Rseg);
-	segmentationFree(&parms.B_Bseg);
-	segmentationFree(&parms.B_Rseg);
-	CCSfree(&parms.F_Bccs);
-	CCSfree(&parms.F_Rccs);
-	CCSfree(&parms.B_Bccs);
-	CCSfree(&parms.B_Rccs);
+		{
+			MRIfree(&parms.mri_output);
+			MRIfree(&parms.mri_bin);
+			MRIfree(&parms.mri_dist);
+			MRIfree(&parms.mri_fcost);
+			MRIfree(&parms.mri_bcost);
+			MRIfree(&parms.mri_fprior);
+			MRIfree(&parms.mri_bprior);
+			MRIfree(&parms.mri_labeled);
+			segmentationFree(&parms.F_Bseg);
+			segmentationFree(&parms.F_Rseg);
+			segmentationFree(&parms.B_Bseg);
+			segmentationFree(&parms.B_Rseg);
+			CCSfree(&parms.F_Bccs);
+			CCSfree(&parms.F_Rccs);
+			CCSfree(&parms.B_Bccs);
+			CCSfree(&parms.B_Rccs);
 
-	parms.labels[0]=tab[n];
-	MRIcorrectTopology(parms.mri_orig,parms.mri_seg,&parms.mri_output,mris
-		     ,parms.labels,parms.nblabels,parms.f_c,parms);
+			parms.labels[0]=tab[n];
+			MRIcorrectTopology(parms.mri_orig,parms.mri_seg,&parms.mri_output,mris
+												 ,parms.labels,parms.nblabels,parms.f_c,parms);
 	
 	
 
-	MRISwrite(*mris,"./tmp");
-	mristb[n]=MRISread("./tmp");
+			MRISwrite(*mris,"./tmp");
+			mristb[n]=MRISread("./tmp");
 #if 0
-	count=0;count2=0;
-	for(k=0;k<depth;k++)
-	  for(j=0;j<height;j++)
-	    for(i=0;i<width;i++)
-	      {
-		if(MRIvox(parms.mri_seg,i,j,k)==parms.labels[0])
-		  count2++;
-		if(MRIvox(parms.mri_output,i,j,k)==1)
-		  {
-		    MRIvox(mri_val,i,j,k)++;
-		    if(MRIvox(parms.mri_seg,i,j,k)!=parms.labels[0])
-		      count++;
-		  }
-		else if(MRIvox(parms.mri_seg,i,j,k)==parms.labels[0])
-		      count++;
-	      }
-		fprintf(stderr,"\n yeh %d %d %f \n",count,count2,100.*count/count2);
-	sprintf(fname,"./label%d",tab[n]);
-	f=fopen(fname,"a+");
-	fprintf(f,"\n %d %d %f ",count,count2,(float)100.*count/count2);
-	fclose(f);
+			count=0;count2=0;
+			for(k=0;k<depth;k++)
+				for(j=0;j<height;j++)
+					for(i=0;i<width;i++)
+					{
+						if(MRIvox(parms.mri_seg,i,j,k)==parms.labels[0])
+							count2++;
+						if(MRIvox(parms.mri_output,i,j,k)==1)
+						{
+							MRIvox(mri_val,i,j,k)++;
+							if(MRIvox(parms.mri_seg,i,j,k)!=parms.labels[0])
+								count++;
+						}
+						else if(MRIvox(parms.mri_seg,i,j,k)==parms.labels[0])
+							count++;
+					}
+			fprintf(stderr,"\n yeh %d %d %f \n",count,count2,100.*count/count2);
+			sprintf(fname,"./label%d",tab[n]);
+			f=fopen(fname,"a+");
+			fprintf(f,"\n %d %d %f ",count,count2,(float)100.*count/count2);
+			fclose(f);
 #endif
 
 #if 0
-	sprintf(fname,"./surf%d",n);
-	MRISwrite(mristb[n],fname);
-	MRISsmoothSurface2(mristb[n],5,0.5,0);
-	MRISsmoothSurface2(mristb[n],5,0.25,2);
-	MRISsmoothSurface2(mristb[n],10,0.05,5);
-	sprintf(fname,"./surfsmooth%d",n);
-	mristb[n]->type=MRIS_TRIANGULAR_SURFACE;//MRIS_BINARY_QUADRANGLE_FILE;
-	MRISwrite(mristb[n],fname);
+			sprintf(fname,"./surf%d",n);
+			MRISwrite(mristb[n],fname);
+			MRISsmoothSurface2(mristb[n],5,0.5,0);
+			MRISsmoothSurface2(mristb[n],5,0.25,2);
+			MRISsmoothSurface2(mristb[n],10,0.05,5);
+			sprintf(fname,"./surfsmooth%d",n);
+			mristb[n]->type=MRIS_TRIANGULAR_SURFACE;//MRIS_BINARY_QUADRANGLE_FILE;
+			MRISwrite(mristb[n],fname);
 
-	MRISsetNeighborhoodSize(mristb[n],3) ;
-	MRIScomputeMetricProperties(mristb[n]) ;
-	MRIScomputeSecondFundamentalForm(mristb[n]) ;
-	MRISuseMeanCurvature(mristb[n]);
-	MRISaverageCurvatures(mristb[n],2) ;
-	MRISnormalizeCurvature(mristb[n]) ;
-	sprintf(fname,"./curv%d",n);
-	MRISwriteCurvature(mristb[n],fname);
+			MRISsetNeighborhoodSize(mristb[n],3) ;
+			MRIScomputeMetricProperties(mristb[n]) ;
+			MRIScomputeSecondFundamentalForm(mristb[n]) ;
+			MRISuseMeanCurvature(mristb[n]);
+			MRISaverageCurvatures(mristb[n],2) ;
+			MRISnormalizeCurvature(mristb[n]) ;
+			sprintf(fname,"./curv%d",n);
+			MRISwriteCurvature(mristb[n],fname);
 #endif
-      }
+		}
 
 #if 0
     mrisr=MRISconcatenateQuadSurfaces(n,mristb);
@@ -390,15 +399,15 @@ int main(int argc, char *argv[])
     n=0;count=0;
     for(k=0;k<depth;k++)
       for(j=0;j<height;j++)
-	for(i=0;i<width;i++)
-	  {
-	    if(MRIvox(mri_val,i,j,k)>=1)
-	      {
-		n++;
-		if(MRIvox(mri_val,i,j,k)>1)
-		  count++;
-	      }
-	  }
+				for(i=0;i<width;i++)
+				{
+					if(MRIgetVoxVal(mri_val,i,j,k,0)>=1)
+					{
+						n++;
+						if(MRIsetVoxVal(mri_val,i,j,k,0)>1)
+							count++;
+					}
+				}
     //    sprintf(fname,"./labeltotal");
     /// f=fopen(fname,"a+");
     //fprintf(f,"\n %s %d %d %f ",in_seg_fname,count,n,(float)100.*count/n);
@@ -415,33 +424,33 @@ int main(int argc, char *argv[])
     
   }
 #endif
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
 
   if(parms.final_surface_file)
-    {    
-      int euler,pnvertices,  pnfaces, pnedges;
-      mris=MRIScreateSurfaceFromVolume(mri_out,1,parms.connectivity);
-      euler=MRIScomputeEulerNumber(mris,&pnvertices,&pnfaces,&pnedges);
-      fprintf(stderr,"\nfinal euler characteristic = %d, %d vertices, %d faces, %d edges"
-	    ,euler,pnvertices,pnfaces,pnedges);
-      sprintf(fname,parms.final_surface_file);
-      MRISwrite(mris,fname);
+	{    
+		int euler,pnvertices,  pnfaces, pnedges;
+		mris=MRIScreateSurfaceFromVolume(mri_out,1,parms.connectivity);
+		euler=MRIScomputeEulerNumber(mris,&pnvertices,&pnfaces,&pnedges);
+		fprintf(stderr,"\nfinal euler characteristic = %d, %d vertices, %d faces, %d edges"
+						,euler,pnvertices,pnfaces,pnedges);
+		sprintf(fname,parms.final_surface_file);
+		MRISwrite(mris,fname);
 
 #if 0
-      MRISsmoothSurface(mris,7,0.2);
-      strcat(fname,"_smooth");
-      MRISwrite(mris,fname);
-      if(parms.fit)
-	{
-	  sprintf(fname,parms.surfname);
-	  strcat(fname,"_fit");
-	  MRISmatchSurfaceToLabel(parms.mris,parms.mri_output,1,NULL,NULL,parms.f_c);
-	  MRISwrite(parms.mris,fname);
-	}
+		MRISsmoothSurface(mris,7,0.2);
+		strcat(fname,"_smooth");
+		MRISwrite(mris,fname);
+		if(parms.fit)
+		{
+			sprintf(fname,parms.surfname);
+			strcat(fname,"_fit");
+			MRISmatchSurfaceToLabel(parms.mris,parms.mri_output,1,NULL,NULL,parms.f_c);
+			MRISwrite(parms.mris,fname);
+		}
 #endif
-      MRISfree(&mris);
-    }
+		MRISfree(&mris);
+	}
 
   if(mri_out)
     MRIfree(&mri_out);
