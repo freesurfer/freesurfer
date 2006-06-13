@@ -377,6 +377,7 @@ typedef struct
   float   l_nlarea ;          /* coefficient of nonlinear area term */
   float   l_nldist ;          /* coefficient of nonlinear distance term */
   float   l_corr ;            /* coefficient of correlation term */
+	float   l_ocorr ;           // overlay correlation weight
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_scurv ;           /* coefficient of curvature term */
@@ -1357,5 +1358,6 @@ int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
 int MRISripMedialWall(MRI_SURFACE *mris) ;
 int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) ;
+int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *pnx, double *pny, double *pnz) ;
 
 #endif
