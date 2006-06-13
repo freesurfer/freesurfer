@@ -77,7 +77,7 @@ Nbh* loadNbh(MRI* mri,Nbh* nbh_dst,int i,int j, int k,int label)
   for(a=-1;a<2;a++)
     for(b=-1;b<2;b++)
       for(c=-1;c<2;c++)
-	if(MRIvox(mri,a+i,b+j,c+k)==label)
+	if(nint(MRIgetVoxVal(mri,a+i,b+j,c+k,0))==label)
 	  (*nbh)[a+1][b+1][c+1]=1;
 	else
 	  (*nbh)[a+1][b+1][c+1]=0;
@@ -426,7 +426,7 @@ int checkNbh(MRI *mri,int i,int j,int k,int label,int connectivity)
 	  sum=abs(a)+abs(b)+abs(c);
 	  if(sum>con || (!sum))
 	    continue;
-	  if(MRIvox(mri,i+a,j+b,k+c)==label)
+	  if(nint(MRIgetVoxVal(mri,i+a,j+b,k+c,0))==label)
 	    return 1;
 	}
 
@@ -1450,60 +1450,86 @@ static void setBorderValue(MRI *mri,int val,int dst)
   depth=mri->depth;
 
   switch(mri->type)
-    {
-    case MRI_UCHAR:
-      k=dst;
-      for(i=dst;i<width-dst;i++)
-	for(j=dst;j<height-dst;j++)
-	  MRIvox(mri,i,j,k)=val;
-      k=depth-1-dst;
-      for(i=dst;i<width-dst;i++)
-	for(j=dst;j<height-dst;j++)
-	  MRIvox(mri,i,j,k)=val;
-      j=dst;
-      for(i=dst;i<width-dst;i++)
-	for(k=dst;k<depth-dst;k++)
-	  MRIvox(mri,i,j,k)=val;
-      j=height-1-dst;
-      for(i=dst;i<width-dst;i++)
-	for(k=dst;k<depth-dst;k++)
-	  MRIvox(mri,i,j,k)=val;
-      i=dst;
-      for(k=dst;k<depth-dst;k++)
-	for(j=dst;j<height-dst;j++)
-	  MRIvox(mri,i,j,k)=val;
-      i=width-1-dst;
-      for(k=dst;k<depth-dst;k++)
-	for(j=dst;j<height-dst;j++)
-	  MRIvox(mri,i,j,k)=val;
-      break;
-    case MRI_SHORT:
-      k=dst;
-      for(i=dst;i<mri->width-dst;i++)
-	for(j=dst;j<height-dst;j++)
-	  MRISvox(mri,i,j,k)=val;
-      k=depth-1-dst;
-      for(i=dst;i<width-dst;i++)
-	for(j=dst;j<height-dst;j++)
-	  MRISvox(mri,i,j,k)=val;
-      j=dst;
-      for(i=dst;i<width-dst;i++)
-	for(k=dst;k<depth-dst;k++)
-	  MRISvox(mri,i,j,k)=val;
-      j=height-1-dst;
-      for(i=dst;i<width-dst;i++)
-	for(k=dst;k<depth-dst;k++)
-	  MRISvox(mri,i,j,k)=val;
-      i=dst;
-      for(k=dst;k<depth-dst;k++)
-	for(j=dst;j<height-dst;j++)
-	  MRISvox(mri,i,j,k)=val;
-      i=width-1-dst;
-      for(k=dst;k<depth-dst;k++)
-	for(j=dst;j<height-dst;j++)
-	  MRISvox(mri,i,j,k)=val;
-      break;
-    }
+	{
+	case MRI_UCHAR:
+		k=dst;
+		for(i=dst;i<width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		k=depth-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		j=dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		j=height-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		i=dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		i=width-1-dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRIsetVoxVal(mri,i,j,k,0,val);
+		break;
+	case MRI_SHORT:
+		k=dst;
+		for(i=dst;i<mri->width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRISvox(mri,i,j,k)=val;
+		k=depth-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRISvox(mri,i,j,k)=val;
+		j=dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRISvox(mri,i,j,k)=val;
+		j=height-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRISvox(mri,i,j,k)=val;
+		i=dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRISvox(mri,i,j,k)=val;
+		i=width-1-dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRISvox(mri,i,j,k)=val;
+		break;
+	case MRI_FLOAT:
+		k=dst;
+		for(i=dst;i<mri->width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRIFvox(mri,i,j,k)=val;
+		k=depth-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(j=dst;j<height-dst;j++)
+				MRIFvox(mri,i,j,k)=val;
+		j=dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRIFvox(mri,i,j,k)=val;
+		j=height-1-dst;
+		for(i=dst;i<width-dst;i++)
+			for(k=dst;k<depth-dst;k++)
+				MRIFvox(mri,i,j,k)=val;
+		i=dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRIFvox(mri,i,j,k)=val;
+		i=width-1-dst;
+		for(k=dst;k<depth-dst;k++)
+			for(j=dst;j<height-dst;j++)
+				MRIFvox(mri,i,j,k)=val;
+		break;
+	}
 }
 
 static float f(float x)
@@ -1697,62 +1723,62 @@ static void addBorderVoxels(TC_PARMS *parms,int dst)
   k=dst;
   for(i=dst;i<(width-dst);i++)
     for(j=dst;j<(height-dst);j++)
-      if(MRIvox(mri,i,j,k)==RESIDUE)
+      if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(list,cell);
-	MRIvox(mri,i,j,k)=VISITED;    
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);    
       }
   k=depth-1-dst;
   for(i=dst;i<(width-dst);i++)
     for(j=dst;j<(height-dst);j++)
-      if(MRIvox(mri,i,j,k)==RESIDUE)
+      if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(parms->list,cell);
-	MRIvox(mri,i,j,k)=VISITED;  
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(parms->list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);
       }
   j=dst;
   for(i=dst;i<(width-dst);i++)
     for(k=dst+1;k<(depth-dst-1);k++)
-      if(MRIvox(mri,i,j,k)==RESIDUE)
+      if(nint(MRIgetVoxVal(mri,i,j,k,0)) == RESIDUE)
       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(parms->list,cell);
-	MRIvox(mri,i,j,k)=VISITED;  
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(parms->list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);  
       }
   j=height-1-dst;
   for(i=dst;i<(width-dst);i++)
     for(k=dst+1;k<(depth-dst-1);k++)
-      if(MRIvox(mri,i,j,k)==RESIDUE)
+      if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(parms->list,cell);
-	MRIvox(mri,i,j,k)=VISITED;  
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(parms->list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);  
       }
   i=dst;
   for(k=dst+1;k<(depth-dst-1);k++)
     for(j=dst+1;j<(height-dst-1);j++)
-       if(MRIvox(mri,i,j,k)==RESIDUE)
-       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(parms->list,cell);
-	MRIvox(mri,i,j,k)=VISITED;  
+			if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
+			{
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(parms->list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);  
       }
   i=width-1-dst;
   for(k=dst+1;k<(depth-dst-1);k++)
     for(j=dst+1;j<(height-dst-1);j++)
-      if(MRIvox(mri,i,j,k)==RESIDUE)
+      if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
       {
-	cell=&table[k][j][i];
-	cell->type=UNKNOWN;
-	addCell(parms->list,cell);
-	MRIvox(mri,i,j,k)=VISITED;  
+				cell=&table[k][j][i];
+				cell->type=UNKNOWN;
+				addCell(parms->list,cell);
+				MRIsetVoxVal(mri,i,j,k,0,VISITED);  
       }
 
 }
@@ -1778,19 +1804,19 @@ static float computeMap(TC_PARMS *parms)
   for(k=2;k<depth-2;k++)
     for(j=2;j<height-2;j++)
       for(i=2;i<width-2;i++)
-	{
-	  x=xinit+i-2;
-	  y=yinit+j-2;
-	  z=zinit+k-2;
-	  val=1;
-	  for(n=0;n<nlabels;n++)
-	    if(MRIvox(mri_seg,x,y,z)==tab[n])
-	      val=0;
-	  if(val && (MRIvox(mri,i,j,k)==F_B||MRIvox(mri,i,j,k)==F_R))
-	     map+=log(MRIFvox(mri_psi,i,j,k)/MRIFvox(mri_pcsi,i,j,k));
-	  if(!val && (MRIvox(mri,i,j,k)==B_B||MRIvox(mri,i,j,k)==B_R))
-	     map-=log(MRIFvox(mri_psi,i,j,k)/MRIFvox(mri_pcsi,i,j,k));
-	}
+			{
+				x=xinit+i-2;
+				y=yinit+j-2;
+				z=zinit+k-2;
+				val=1;
+				for(n=0;n<nlabels;n++)
+					if(nint(MRIgetVoxVal(mri_seg,x,y,z,0))==tab[n])
+						val=0;
+				if(val && (nint(MRIgetVoxVal(mri,i,j,k,0))==F_B||nint(MRIgetVoxVal(mri,i,j,k,0))==F_R))
+					map+=log(MRIFvox(mri_psi,i,j,k)/MRIFvox(mri_pcsi,i,j,k));
+				if(!val && (nint(MRIgetVoxVal(mri,i,j,k,0))==B_B||nint(MRIgetVoxVal(mri,i,j,k,0))==B_R))
+					map-=log(MRIFvox(mri_psi,i,j,k)/MRIFvox(mri_pcsi,i,j,k));
+			}
   return map;
 }
 
@@ -1821,13 +1847,13 @@ static int computeNLabels(TC_PARMS *parms)
 	  z=zinit+k-2;
 	  val=1;
 	  for(n=0;n<nlabels;n++)
-	    if(MRIvox(mri_seg,x,y,z)==tab[n])
+	    if(nint(MRIgetVoxVal(mri_seg,x,y,z,0))==tab[n])
 	      val=0;
-	  if(val && (MRIvox(mri,i,j,k)==F_B||MRIvox(mri,i,j,k)==F_R))
+	  if(val && (nint(MRIgetVoxVal(mri,i,j,k,0))==F_B||nint(MRIgetVoxVal(mri,i,j,k,0))==F_R))
 	    nb+=1;
-	  if(!val && (MRIvox(mri,i,j,k)==B_B||MRIvox(mri,i,j,k)==B_R))
+	  if(!val && (nint(MRIgetVoxVal(mri,i,j,k,0))==B_B||nint(MRIgetVoxVal(mri,i,j,k,0))==B_R))
 	     nb+=1;
-	  if(MRIvox(mri,i,j,k)==F_B||MRIvox(mri,i,j,k)==F_R)
+	  if(nint(MRIgetVoxVal(mri,i,j,k,0))==F_B||nint(MRIgetVoxVal(mri,i,j,k,0))==F_R)
 	    count++;
 	}
 
@@ -1857,26 +1883,26 @@ static void SmoothImage(MRI *mri,TC_PARMS *parms)
   for(k=1;k<depth-1;k++)
     for(j=1;j<height-1;j++)
       for(i=1;i<width-1;i++)
-	if(MRIvox(mri_bin,i,j,k)==F_R) //inside the volume
+	if(nint(MRIgetVoxVal(mri_bin,i,j,k,0))==F_R) //inside the volume
 	  {
 	    average=0;val=0.0f;
 	    for(a=-1;a<2;a++)
 	      for(b=-1;b<2;b++)
 		for(c=-1;c<2;c++)
-		  if(MRIvox(mri_bin,i+a,j+b,k+c)==F_R)
+		  if(nint(MRIgetVoxVal(mri_bin,i+a,j+b,k+c,0))==F_R)
 		    {
 		      average+=MRIFvox(mri_tmp,i+a,j+b,k+c);
 		      val+=1.0f;
 		    }
 	    MRIFvox(mri,i,j,k)=average/val;
 	  }	
-	else if (MRIvox(mri_bin,i,j,k)==B_R)
+	else if (nint(MRIgetVoxVal(mri_bin,i,j,k,0))==B_R)
 	  {
 	    average=0;val=0.0f;
 	    for(a=-1;a<2;a++)
 	      for(b=-1;b<2;b++)
 		for(c=-1;c<2;c++)
-		  if(MRIvox(mri_bin,i+a,j+b,k+c)==B_R)
+		  if(nint(MRIgetVoxVal(mri_bin,i+a,j+b,k+c,0))==B_R)
 		    {
 		      average+=MRIFvox(mri_tmp,i+a,j+b,k+c);
 		      val+=1.0f;
@@ -1983,7 +2009,7 @@ static void initProb(TC_PARMS *parms)
 	  gcap=&gca->priors[a][b][c];
 	  GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c) ;
 	  gcan=&gca->nodes[a][b][c];
-	  intensity=(float)MRIvox(mri_orig,x,y,z);
+	  intensity=(float)MRIgetVoxVal(mri_orig,x,y,z,0);
 
 	  nlabels1=nlabels2=0;
 	  //compute prior prob
@@ -2351,7 +2377,7 @@ static void guessSegmentation(TC_PARMS *parms)
 	  gcap=&gca->priors[a][b][c];
 	  GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c) ;
 	  gcan=&gca->nodes[a][b][c];
-	  intensity=(float)MRIvox(mri_orig,x,y,z);
+	  intensity=(float)MRIgetVoxVal(mri_orig,x,y,z,0);
 	  
 	  nlabels1=nlabels2=0;
 	  //compute prior prob
@@ -2440,7 +2466,7 @@ static void guessSegmentation(TC_PARMS *parms)
 	  pcsi=PROB(pcsi);
 
 	  if(psi>pcsi)
-	    MRIvox(mri_seg,i,j,k)=val;
+	    MRIsetVoxVal(mri_seg,i,j,k,0,val);
 	}
   parms->mri_seg=mri_seg;
   if(!parms->gca)
@@ -2485,7 +2511,7 @@ static void initImages(TC_PARMS* parms)
     for(j=0;j<height;j++)
       for(i=0;i<width;i++)
 	{
-	  val=MRIvox(mri,i,j,k);
+	  val=nint(MRIgetVoxVal(mri,i,j,k,0));
 	  for(n=0;n<nlabels;n++)
 	    if(val==parms->labels[n])
 	      {
@@ -2537,11 +2563,11 @@ static void initImages(TC_PARMS* parms)
     for(j=0;j<height-4;j++)
       for(i=0;i<width-4;i++)
 	{	  
-	  val=MRIvox(mri,xinit+i,yinit+j,zinit+k);
-	  MRIvox(mri_bin,i+2,j+2,k+2)=B_R;
+	  val=MRIgetVoxVal(mri,xinit+i,yinit+j,zinit+k,0);
+	  MRIsetVoxVal(mri_bin,i+2,j+2,k+2,0,B_R);
 	  for(n=0;n<nlabels;n++)
 	    if(val==parms->labels[n])
-	      MRIvox(mri_bin,i+2,j+2,k+2)=F_R;
+	      MRIsetVoxVal(mri_bin,i+2,j+2,k+2,0,F_R);
 	}	  
   
   //take care of the exterior voxels
@@ -2554,7 +2580,7 @@ static void initImages(TC_PARMS* parms)
     for(j=1;j<height-1;j++)
       for(i=1;i<width-1;i++)
 	{
-	  val=MRIvox(mri_bin,i,j,k);
+	  val=MRIgetVoxVal(mri_bin,i,j,k,0);
 	  if(val==F_R && checkNbh(mri_bin,i,j,k,B_R,parms->f_c))
 	    MRIFvox(mri_dist,i,j,k)=1.0f;
 	  else if(val==B_R && checkNbh(mri_bin,i,j,k,F_R,parms->b_c))
@@ -2575,7 +2601,7 @@ static void initImages(TC_PARMS* parms)
 	    {
 	      if(MRIFvox(mri_dist,i,j,k))
 		continue;
-	      if(MRIvox(mri_bin,i,j,k)==F_R)  //inside the volume
+	      if(nint(MRIgetVoxVal(mri_bin,i,j,k,0))==F_R)  //inside the volume
 		{
 		  con=associatedConnectivity(parms->f_c);
 		  absval=1000;
@@ -2600,7 +2626,7 @@ static void initImages(TC_PARMS* parms)
 			max_dist_int=absval+1;
 		    }
 		}
-	      else if(MRIvox(mri_bin,i,j,k)==B_R) //outside the volume
+	      else if(nint(MRIgetVoxVal(mri_bin,i,j,k,0))==B_R) //outside the volume
 		{
 		  con=associatedConnectivity(parms->b_c);
 		  absval=1000;
@@ -2696,9 +2722,9 @@ static int mriChangeLabel(MRI *mri,int src,int dst)
   for(k=0;k<depth;k++)
     for(j=0;j<height;j++)
       for(i=0;i<width;i++)
-	if(MRIvox(mri,i,j,k)==src)
+	if(nint(MRIgetVoxVal(mri,i,j,k,0))==src)
 	  {
-	    MRIvox(mri,i,j,k)=dst;
+	    MRIsetVoxVal(mri,i,j,k,0,dst);
 	    count++;
 	  }
   //    fprintf(stderr,"\n%d voxels changed of type %d to type %d \n",count,src,dst);
@@ -2730,8 +2756,8 @@ static void modifyImage(TC_PARMS *parms)
   for(k=0;k<depth-4;k++)
     for(j=0;j<height-4;j++)
       for(i=0;i<width-4;i++)
-	if(MRIvox(mri,i+2,j+2,k+2)==F_B)
-	  MRIvox(mri_output,xinit+i,yinit+j,zinit+k)=1;
+	if(nint(MRIgetVoxVal(mri,i+2,j+2,k+2,0))==F_B)
+	  MRIsetVoxVal(mri_output,xinit+i,yinit+j,zinit+k,0,1);
   
   if(parms->mapsfname)
     {
@@ -2739,7 +2765,7 @@ static void modifyImage(TC_PARMS *parms)
       for(k=1;k<depth-1;k++)
 	for(j=1;j<height-1;j++)
 	  for(i=1;i<width-1;i++)
-	    if(MRIvox(mri,i,j,k)==F_B)
+	    if(nint(MRIgetVoxVal(mri,i,j,k,0))==F_B)
 	      MRIFvox(mri_final,i,j,k)=1;
       
       sprintf(fname,parms->mapsfname);
@@ -2777,145 +2803,145 @@ static MSV* findPoint(TC_PARMS *parms, MSV *point)
   depth=mri->depth;
 
   if(!parms->multiplemode)
-    {
-      maxprior=-1;
-      for (z = 1 ; (z<depth-1) ; z++)
-	for (y = 1 ; (y < height-1) ; y++)
-	  for (x = 1 ; (x < width-1) ; x++)
-	    if(MRIvox(mri,x,y,z)==RESIDUE && table[z][y][x].prior>maxprior)
-	      {	 
-		if(checkNbh(mri,x,y,z,BODY,connectivity))
-		  {
-		    loadNbh(mri,&fnbh,x,y,z,BODY);
-		    reverseNbh(&fnbh,&bnbh);
+	{
+		maxprior=-1;
+		for (z = 1 ; (z<depth-1) ; z++)
+			for (y = 1 ; (y < height-1) ; y++)
+				for (x = 1 ; (x < width-1) ; x++)
+					if(nint(MRIgetVoxVal(mri,x,y,z,0))==RESIDUE && table[z][y][x].prior>maxprior)
+					{	 
+						if(checkNbh(mri,x,y,z,BODY,connectivity))
+						{
+							loadNbh(mri,&fnbh,x,y,z,BODY);
+							reverseNbh(&fnbh,&bnbh);
 		    
-		    fgtp=checkTn(&fnbh,&fnbh,connectivity);
-		    bgtp=checkTn(&bnbh,&bnbh,associatedconnectivity);
+							fgtp=checkTn(&fnbh,&fnbh,connectivity);
+							bgtp=checkTn(&bnbh,&bnbh,associatedconnectivity);
 		    
-		    if(fgtp==1 && bgtp==1)
-		      {
-			maxprior=table[z][y][x].prior;
-			pt->x=x;
-			pt->y=y;
-			pt->z=z;
-		      }
-		  }
-		else
-		  {
-		    loadNbh(mri,&fnbh,x,y,z,RESIDUE);
-		    if(checkTn(&fnbh,&fnbh,associatedconnectivity)==0)
-		      {
-			MRIvox(mri,x,y,z)=BODY;
-			s=componentNew(parms->segmentation);
-			addCellToComponent(&parms->segmentation->components[s],&parms->list->table[z][y][x]);
-			MRISvox(parms->mri_labeled,x,y,z)=s;
-			addComponent(parms->ccs,&parms->segmentation->components[s]);
-		      }
-		    else
-		      {
-			maxprior=table[z][y][x].prior;
-			pt->x=x;
-			pt->y=y;
-			pt->z=z;
-		      } 
-		  }
-	      };
-    }
+							if(fgtp==1 && bgtp==1)
+							{
+								maxprior=table[z][y][x].prior;
+								pt->x=x;
+								pt->y=y;
+								pt->z=z;
+							}
+						}
+						else
+						{
+							loadNbh(mri,&fnbh,x,y,z,RESIDUE);
+							if(checkTn(&fnbh,&fnbh,associatedconnectivity)==0)
+							{
+								MRIsetVoxVal(mri,x,y,z,0,BODY);
+								s=componentNew(parms->segmentation);
+								addCellToComponent(&parms->segmentation->components[s],&parms->list->table[z][y][x]);
+								MRISvox(parms->mri_labeled,x,y,z)=s;
+								addComponent(parms->ccs,&parms->segmentation->components[s]);
+							}
+							else
+							{
+								maxprior=table[z][y][x].prior;
+								pt->x=x;
+								pt->y=y;
+								pt->z=z;
+							} 
+						}
+					};
+	}
   else
-    {
-      maxprior=-1;
-      for (z = 1 ; (z<depth-1) ; z++)
-	for (y = 1 ; (y < height-1) ; y++)
-	  for (x = 1 ; (x < width-1) ; x++)
-	    if(MRIvox(mri,x,y,z)==RESIDUE && table[z][y][x].prior>maxprior)
-	      {	 
-		if(checkNbh(mri,x,y,z,BODY,connectivity))
-		  {
-		    //first we have to find all the neighbors
-		    nlabels=0;
-		    for(a=-1;a<2;a++)
-		      for(b=-1;b<2;b++)
-			for(c=-1;c<2;c++)
-			  {
-			    sum=abs(a)+abs(b)+abs(c);
-			    if(!sum && sum>con)
-			      continue;
-			    i=x+a;j=y+b;k=z+c;
-			    if(MRIvox(mri,i,j,k)!=BODY)
-			      continue;
-			    val=MRISvox(mri_labeled,i,j,k);
-			    cc=&parms->segmentation->components[val];
-			    if(cc->found==0)
-			      {
-				border_labels[nlabels]=val;
-				nlabels++;
-				cc->found=1;
-			      }
-			  }
-		    //then check if topology is correct with each of them
-		    topo=1;
-		    for(n=0;topo&&n<nlabels;n++)
-		      {
-			val=border_labels[n];
-			//load Nbh
-			for(a=-1;a<2;a++)
-			  for(b=-1;b<2;b++)
-			    for(c=-1;c<2;c++)
-			      {
-				i=x+a;j=y+b;k=z+c;
-				if(MRIvox(mri,i,j,k)==BODY &&
-				   MRISvox(mri_labeled,i,j,k)==val)
-				  fnbh[1+a][1+b][1+c]=1;
-				else
-				  fnbh[1+a][1+b][1+c]=0;
-			      }
-			reverseNbh(&fnbh,&bnbh);
-			if((checkTn(&fnbh,&fnbh,connectivity)!=1) ||
-			   (checkTn(&bnbh,&bnbh,associatedconnectivity)!=1))
-			  topo=0;
-		      }
-		    //then reinit the components to found=0;
-		    for(n=0;n<nlabels;n++)
-		      parms->segmentation->components[border_labels[n]].found=0;
+	{
+		maxprior=-1;
+		for (z = 1 ; (z<depth-1) ; z++)
+			for (y = 1 ; (y < height-1) ; y++)
+				for (x = 1 ; (x < width-1) ; x++)
+					if(nint(MRIgetVoxVal(mri,x,y,z,0))==RESIDUE && table[z][y][x].prior>maxprior)
+					{	 
+						if(checkNbh(mri,x,y,z,BODY,connectivity))
+						{
+							//first we have to find all the neighbors
+							nlabels=0;
+							for(a=-1;a<2;a++)
+								for(b=-1;b<2;b++)
+									for(c=-1;c<2;c++)
+									{
+										sum=abs(a)+abs(b)+abs(c);
+										if(!sum && sum>con)
+											continue;
+										i=x+a;j=y+b;k=z+c;
+										if(nint(MRIgetVoxVal(mri,i,j,k,0))!=BODY)
+											continue;
+										val=MRISvox(mri_labeled,i,j,k);
+										cc=&parms->segmentation->components[val];
+										if(cc->found==0)
+										{
+											border_labels[nlabels]=val;
+											nlabels++;
+											cc->found=1;
+										}
+									}
+							//then check if topology is correct with each of them
+							topo=1;
+							for(n=0;topo&&n<nlabels;n++)
+							{
+								val=border_labels[n];
+								//load Nbh
+								for(a=-1;a<2;a++)
+									for(b=-1;b<2;b++)
+										for(c=-1;c<2;c++)
+										{
+											i=x+a;j=y+b;k=z+c;
+											if(nint(MRIgetVoxVal(mri,i,j,k,0))==BODY &&
+												 MRISvox(mri_labeled,i,j,k)==val)
+												fnbh[1+a][1+b][1+c]=1;
+											else
+												fnbh[1+a][1+b][1+c]=0;
+										}
+								reverseNbh(&fnbh,&bnbh);
+								if((checkTn(&fnbh,&fnbh,connectivity)!=1) ||
+									 (checkTn(&bnbh,&bnbh,associatedconnectivity)!=1))
+									topo=0;
+							}
+							//then reinit the components to found=0;
+							for(n=0;n<nlabels;n++)
+								parms->segmentation->components[border_labels[n]].found=0;
 		    
-		    if(topo)   //in this case every comp doesn't change the topology
-		      {	
-			maxprior=table[z][y][x].prior;
-			for(n=0;n<nlabels;n++)
-			  parms->border_labels[n]=border_labels[n];
-			parms->nlabels=nlabels;
-			pt->x=x;
-			pt->y=y;
-			pt->z=z;
-		      }
-		  }
-		else
-		  {
-		    loadNbh(mri,&fnbh,x,y,z,RESIDUE);
-		    if(checkTn(&fnbh,&fnbh,associatedconnectivity)==0)
-		      {
-			MRIvox(mri,x,y,z)=BODY;
-			s=componentNew(parms->segmentation);
-			addCellToComponent(&parms->segmentation->components[s],&parms->list->table[z][y][x]);
-			addComponent(parms->ccs,&parms->segmentation->components[s]);
-			MRISvox(parms->mri_labeled,x,y,z)=s;
-		      }
-		    else
-		      {
-			parms->nlabels=0;
-			maxprior=table[z][y][x].prior;
-			pt->x=x;
-			pt->y=y;
-			pt->z=z;
-		      } 
-		  }
-	      };
-    }    
+							if(topo)   //in this case every comp doesn't change the topology
+							{	
+								maxprior=table[z][y][x].prior;
+								for(n=0;n<nlabels;n++)
+									parms->border_labels[n]=border_labels[n];
+								parms->nlabels=nlabels;
+								pt->x=x;
+								pt->y=y;
+								pt->z=z;
+							}
+						}
+						else
+						{
+							loadNbh(mri,&fnbh,x,y,z,RESIDUE);
+							if(checkTn(&fnbh,&fnbh,associatedconnectivity)==0)
+							{
+								MRIsetVoxVal(mri,x,y,z,0,BODY);
+								s=componentNew(parms->segmentation);
+								addCellToComponent(&parms->segmentation->components[s],&parms->list->table[z][y][x]);
+								addComponent(parms->ccs,&parms->segmentation->components[s]);
+								MRISvox(parms->mri_labeled,x,y,z)=s;
+							}
+							else
+							{
+								parms->nlabels=0;
+								maxprior=table[z][y][x].prior;
+								pt->x=x;
+								pt->y=y;
+								pt->z=z;
+							} 
+						}
+					};
+	}    
   if(maxprior==-1)
-    {
-      //      fprintf(stderr,"\nno point found!\n");
-      return NULL;
-    }
+	{
+		//      fprintf(stderr,"\nno point found!\n");
+		return NULL;
+	}
   //  fprintf(stderr,"\npoint (%d , %d , %d) found %d!\n",pt->x,pt->y,pt->z,parms->nlabels);
   return pt; 
 }
@@ -3019,7 +3045,7 @@ static MSV* findMLVoxel(TC_PARMS *parms,MSV *point)
 			  if(!sum && sum>con)
 			    continue;
 			  x=cell->x+a;y=cell->y+b;z=cell->z+c;
-			  if(MRIvox(mri,x,y,z)!=BODY)
+			  if(nint(MRIgetVoxVal(mri,x,y,z,0))!=BODY)
 			    continue;
 			  val=MRISvox(mri_labeled,x,y,z);
 			  cc=&parms->segmentation->components[val];
@@ -3042,8 +3068,8 @@ static MSV* findMLVoxel(TC_PARMS *parms,MSV *point)
 			  for(c=-1;c<2;c++)
 			    {
 			      x=cell->x+a;y=cell->y+b;z=cell->z+c;
-			      if(MRIvox(mri,x,y,z)==BODY &&
-				 MRISvox(mri_labeled,x,y,z)==val)
+			      if(nint(MRIgetVoxVal(mri,x,y,z,0))==BODY &&
+							 MRISvox(mri_labeled,x,y,z)==val)
 				fnbh[1+a][1+b][1+c]=1;
 			      else
 				fnbh[1+a][1+b][1+c]=0;
@@ -3094,26 +3120,26 @@ static int findNeighbors(TC_PARMS *parms,MSV *pt)
   for(a=-1;a<2;a++)
     for(b=-1;b<2;b++)
       for(c=-1;c<2;c++)
-	{
-	  x=pt->x+a;
-	  y=pt->y+b;
-	  z=pt->z+c;
-	  val=MRIvox(mri,x,y,z);
-	  if(val==RESIDUE || val==VISITED)
-	    {
-	      list->table[z][y][x].type=UNKNOWN;
-	      //check
-	    }
-	  sum=abs(a)+abs(b)+abs(c);
-	  if(!sum || sum>con)
-	      continue;
+			{
+				x=pt->x+a;
+				y=pt->y+b;
+				z=pt->z+c;
+				val=MRIgetVoxVal(mri,x,y,z,0);
+				if(val==RESIDUE || val==VISITED)
+				{
+					list->table[z][y][x].type=UNKNOWN;
+					//check
+				}
+				sum=abs(a)+abs(b)+abs(c);
+				if(!sum || sum>con)
+					continue;
  
-	  if(val==RESIDUE)
-	    {
-	      addCell(list,&list->table[z][y][x]);
-	      MRIvox(mri,x,y,z)=VISITED;
-	    } 
-	}
+				if(val==RESIDUE)
+				{
+					addCell(list,&list->table[z][y][x]);
+					MRIsetVoxVal(mri,x,y,z,0,VISITED);
+				} 
+			}
 
   return NO_ERROR;
 }
@@ -3133,7 +3159,7 @@ static void changeLabelfromList(TC_PARMS *parms)
 	  x=cell->x;
 	  y=cell->y;
 	  z=cell->z;
-	  MRIvox(mri,x,y,z)=RESIDUE;
+	  MRIsetVoxVal(mri,x,y,z,0,RESIDUE);
 	  ncell=cell->next;
 	  removeCell(list,cell);
 	  cell=ncell;
@@ -3191,7 +3217,7 @@ static int segmentVoxel(TC_PARMS *parms,MSV *pt)
   addCellToComponent(cc,&parms->list->table[z][y][x]);
   addComponent(ccs,cc);
   MRISvox(mri_labeled, x, y, z) = label ;
-  MRIvox(mri_bin,x,y,z)=BODY;
+  MRIsetVoxVal(mri_bin,x,y,z,0,BODY);
   
   //then take care of the residual neighbors...
   if(parms->c_c==parms->f_c)
@@ -3209,7 +3235,7 @@ static int segmentVoxel(TC_PARMS *parms,MSV *pt)
     for(b=-1;b<2;b++)
       for(c=-1;c<2;c++)
 	{
-	  val=MRIvox(mri_bin,x+a,y+b,z+c);
+	  val=MRIgetVoxVal(mri_bin,x+a,y+b,z+c,0);
 	  if(val==RESIDUE || val==VISITED)
 	    {
 	      sval=MRISvox(mri_labeled,x+a,y+b,z+c);
@@ -3253,7 +3279,7 @@ static void CTExpansion(TC_PARMS *parms)
       addCellToComponent(&parms->segmentation->components[parms->current_label]
 			 ,&parms->list->table[z][y][x]);
       MRISvox(parms->mri_labeled,x,y,z)=parms->current_label;
-      MRIvox(parms->mri_bin,x,y,z)=BODY;
+      MRIsetVoxVal(parms->mri_bin,x,y,z,0,BODY);
       removeCell(list,&list->table[z][y][x]);
       //find the neighbors of this point and update the list
       findNeighbors(parms,&pt);      
@@ -3330,7 +3356,7 @@ static int segmentBody(TC_PARMS *parms)
       addCellToComponent(&parms->segmentation->components[s],&parms->list->table[z][y][x]);    
       MRISvox(parms->mri_labeled,x,y,z)=s;
       parms->current_label=s;
-      MRIvox(parms->mri_bin,x,y,z)=BODY;//modify in the CTExpansion function
+      MRIsetVoxVal(parms->mri_bin,x,y,z,0,BODY);//modify in the CTExpansion function
       //find the neighbors of this point and update the list
       findNeighbors(parms,&msv);
       CTExpansion(parms);
@@ -3383,7 +3409,7 @@ static int segmentConnectedComponents(TC_PARMS *parms,Cell **list,int ncells)
 		  if (!sum || sum>con)
 		    continue ;
 		  xi = x+xk ; 
-		  if(MRIvox(mri, xi, yi, zi)!=RESIDUE)
+		  if(nint(MRIgetVoxVal(mri, xi, yi, zi,0))!=RESIDUE)
 		    continue;
 		  label = MRISvox(mri_labeled, xi, yi, zi) ;
 		  if ((label >= 0) && (!segmentation->components[label].found))
@@ -3482,7 +3508,7 @@ static int analyzeRCCs(TC_PARMS *parms,SEGMENTATION *bccseg,int rcc0,int rcc1)
 	      sum=abs(a)+abs(b)+abs(c);
 	      if(!sum || sum>con)
 		continue;
-	      if(MRIvox(mri_bin,x0+a,y0+b,z0+c)!=BODY)
+	      if(nint(MRIgetVoxVal(mri_bin,x0+a,y0+b,z0+c,0))!=BODY)
 		continue;
 	      val=MRISvox(mri_labeled,x0+a,y0+b,z0+c);
 	      if(val>=0)
@@ -3567,7 +3593,7 @@ static int findRCC(TC_PARMS *parms,int rcc)
 	for(b=-1;loop&&b<2;b++)
 	  for(c=-1;loop&&c<2;c++)
 	    {
-	      val1=MRIvox(mri_bin,a+x,b+y,c+z);
+	      val1=MRIgetVoxVal(mri_bin,a+x,b+y,c+z,0);
 	      val2=MRISvox(mri_labeled,a+x,b+y,c+z);
 	      if(val1==RESIDUE && val2>=0 
 		 && val2<rcc && (!segmentation->components[val2].found))
@@ -3657,7 +3683,7 @@ static int computeResidualSegmentation(TC_PARMS *parms)
   for(k=1;k<depth-1;k++)
     for(j=1;j<height-1;j++)
       for(i=1;i<width-1;i++)
-	if(MRIvox(mri,i,j,k)==RESIDUE)
+	if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
 	  {
 	    if(count==cellnbr)
 	      {
@@ -3752,7 +3778,7 @@ static void SaveOrigMaps(TC_PARMS *parms)
     for(y=1;y<height-1;y++)
       for(x=1;x<width-1;x++)
 	{
-	  val=MRIvox(parms->mri_seg,xinit+x,yinit+y,zinit+z);
+	  val=MRIgetVoxVal(parms->mri_seg,xinit+x,yinit+y,zinit+z,0);;
 	  for(n=0;n<parms->nblabels;n++)
 	    if(val==parms->labels[n])
 	      MRIFvox(mri,x,y,z)=1;
@@ -3767,7 +3793,7 @@ static void SaveOrigMaps(TC_PARMS *parms)
       for(z=1;z<depth-1;z++)
 	for(y=1;y<height-1;y++)
 	  for(x=1;x<width-1;x++)
-	    MRIFvox(mri,x,y,z)=(float)MRIvox(parms->mri_orig,xinit+x,yinit+y,zinit+z);
+	    MRIFvox(mri,x,y,z)=(float)MRIgetVoxVal(parms->mri_orig,xinit+x,yinit+y,zinit+z,0);
       sprintf(fname,parms->mapsfname);
       strcat(fname,"/out_orig.mgh");
       MRIwrite(mri,fname);
@@ -4000,7 +4026,7 @@ static int findandRemoveComponents(TC_PARMS *parms)
 		      cc->cells[n]->cost=MRIFvox(mri_cost,x,y,z);
 		      cc->cells[n]->prior=MRIFvox(mri_prior,x,y,z);
 
-		      MRIvox(mri,x,y,z)=label;
+		      MRIsetVoxVal(mri,x,y,z,0,label);
 		      MRISvox(mri_labeled,x,y,z)=-1;
 		      cc->cells[n]->type=UNKNOWN;
 		    }
@@ -4054,7 +4080,7 @@ static int findandRemoveComponents(TC_PARMS *parms)
 		  cc->cells[n]->cost=MRIFvox(mri_cost,x,y,z);
 		  cc->cells[n]->prior=MRIFvox(mri_prior,x,y,z);
 
-		  MRIvox(mri,x,y,z)=label;
+			MRIsetVoxVal(mri,x,y,z,0,label);
 		  MRISvox(mri_labeled,x,y,z)=-1;
 		  cc->cells[n]->type=UNKNOWN;
 		}
@@ -4104,7 +4130,7 @@ static int findandRemoveComponents(TC_PARMS *parms)
 	      cc->cells[n]->cost=MRIFvox(mri_cost,x,y,z);
 	      cc->cells[n]->prior=MRIFvox(mri_prior,x,y,z);
 		  
-	      MRIvox(mri,x,y,z)=label;
+				MRIsetVoxVal(mri,x,y,z,0,label);
 	      MRISvox(mri_labeled,x,y,z)=-1;
 	      cc->cells[n]->type=UNKNOWN;
 	    }
@@ -4197,7 +4223,7 @@ static int updateResidualSegmentation(TC_PARMS *parms)
   for(k=1;k<depth-1;k++)
     for(j=1;j<height-1;j++)
       for(i=1;i<width-1;i++)
-	if(MRIvox(mri,i,j,k)==RESIDUE)
+	if(nint(MRIgetVoxVal(mri,i,j,k,0))==RESIDUE)
 	  MRISvox(mri_labeled,i,j,k)=-1;
 
   computeResidualSegmentation(parms);
@@ -4279,66 +4305,66 @@ static int correctSegmentation(TC_PARMS *parms)
 {
   float threshold,th1,th2;
   if(parms->verbose_mode)
-    {
-      fprintf(stderr,"\n****************************************************");
-      fprintf(stderr,"\nCORRECTION OF THE SEGMENTATION");
-    }
+	{
+		fprintf(stderr,"\n****************************************************");
+		fprintf(stderr,"\nCORRECTION OF THE SEGMENTATION");
+	}
   computeMap(parms);
   //initialization step
   parms->multiplemode=1;
   if(parms->mode==1)   //priority to the foreground !
-    {
-      parms->c_c=parms->f_c;
-      parms->threshold=updateThreshold(parms,parms->c_c);
-    }
+	{
+		parms->c_c=parms->f_c;
+		parms->threshold=updateThreshold(parms,parms->c_c);
+	}
   else if(parms->mode==2)               //priority to the background !
-    {    
-      parms->c_c=parms->b_c;
-      parms->threshold=updateThreshold(parms,parms->c_c);
-    }
+	{    
+		parms->c_c=parms->b_c;
+		parms->threshold=updateThreshold(parms,parms->c_c);
+	}
   else
-    {
-      th1=updateThreshold(parms,parms->f_c); //foreground correction -> priority background
-      th2=updateThreshold(parms,parms->b_c); //background
-      threshold=MIN(th1,th2);
-      if(threshold==th1)
-	parms->c_c=parms->f_c;
-      else
-	parms->c_c=parms->b_c;
-      parms->threshold=threshold;
-    }
+	{
+		th1=updateThreshold(parms,parms->f_c); //foreground correction -> priority background
+		th2=updateThreshold(parms,parms->b_c); //background
+		threshold=MIN(th1,th2);
+		if(threshold==th1)
+			parms->c_c=parms->f_c;
+		else
+			parms->c_c=parms->b_c;
+		parms->threshold=threshold;
+	}
   if(parms->verbose_mode)
     fprintf(stderr,"\nThreshold Mode  F/B   F/R   B/B   B/R  MAP\n"); 
   while(parms->F_Rseg->ncomponents || parms->B_Rseg->ncomponents)
   {
     if(parms->verbose_mode)
-      {
-	fprintf(stderr,"\r");
-	fprintf(stderr,"%5.5f   ",parms->threshold);
-	if(parms->c_c==parms->b_c)
-	  fprintf(stderr,"bgd ");
-	else
-	  fprintf(stderr,"fgd ");
-      }
+		{
+			fprintf(stderr,"\r");
+			fprintf(stderr,"%5.5f   ",parms->threshold);
+			if(parms->c_c==parms->b_c)
+				fprintf(stderr,"bgd ");
+			else
+				fprintf(stderr,"fgd ");
+		}
     //find the components smaller than threshold and remove them
     if(findandRemoveComponents(parms))   //we stop the segmentation process!
-      {
-	if(parms->verbose_mode)
-	  fprintf(stderr,"    1     0     1     0  ");
-	if(parms->c_c==parms->b_c)
-	  mriChangeLabel(parms->mri_bin,B_R,B_B);
-	else
-	  mriChangeLabel(parms->mri_bin,F_R,F_B);
+		{
+			if(parms->verbose_mode)
+				fprintf(stderr,"    1     0     1     0  ");
+			if(parms->c_c==parms->b_c)
+				mriChangeLabel(parms->mri_bin,B_R,B_B);
+			else
+				mriChangeLabel(parms->mri_bin,F_R,F_B);
 
-	if(parms->verbose_mode)
-	  {
-	    if(parms->priors)
-	      fprintf(stderr," %5.5f    (forced exit)          ",computeMap(parms));
-	    else
-	      fprintf(stderr," (forced exit)       ");
-	  }
-	  break;
-      }
+			if(parms->verbose_mode)
+			{
+				if(parms->priors)
+					fprintf(stderr," %5.5f    (forced exit)          ",computeMap(parms));
+				else
+					fprintf(stderr," (forced exit)       ");
+			}
+			break;
+		}
      
     //update the volume
     updateVolume(parms);
@@ -4355,32 +4381,32 @@ static int correctSegmentation(TC_PARMS *parms)
     resetVolume(parms);
     if(parms->verbose_mode)
       fprintf(stderr," %4d  %4d  %4d  %4d  "
-	    ,parms->F_Bseg->ncomponents,parms->F_Rseg->ncomponents
-	    ,parms->B_Bseg->ncomponents,parms->B_Rseg->ncomponents);
+							,parms->F_Bseg->ncomponents,parms->F_Rseg->ncomponents
+							,parms->B_Bseg->ncomponents,parms->B_Rseg->ncomponents);
 
     if(parms->verbose_mode)
-      {
-	if(parms->priors)
-	  fprintf(stderr," %5.5f              ",computeMap(parms));
-	else
-	  fprintf(stderr,"               ");
-      }
+		{
+			if(parms->priors)
+				fprintf(stderr," %5.5f              ",computeMap(parms));
+			else
+				fprintf(stderr,"               ");
+		}
     if(parms->only)
       parms->threshold=updateThreshold(parms,parms->c_c);
     else 
-      {
-	th1=updateThreshold(parms,parms->c_c); 
-	th2=updateThreshold(parms,associatedConnectivity(parms->c_c)); //background
-	threshold=MIN(th1,th2);
-	if(threshold==th2)  //change of connectivity
-	  parms->c_c=associatedConnectivity(parms->c_c);
-	parms->threshold=threshold;
+		{
+			th1=updateThreshold(parms,parms->c_c); 
+			th2=updateThreshold(parms,associatedConnectivity(parms->c_c)); //background
+			threshold=MIN(th1,th2);
+			if(threshold==th2)  //change of connectivity
+				parms->c_c=associatedConnectivity(parms->c_c);
+			parms->threshold=threshold;
 	
-	//parms->c_c=associatedConnectivity(parms->c_c);
-	//if((parms->mode==1 && parms->c_c==parms->b_c)
-	   // || (parms->mode==0 && parms->c_c==parms->f_c))
-	  //parms->threshold+=THRESHOLD_INCREASE;//updateThreshold(parms)
-      }
+			//parms->c_c=associatedConnectivity(parms->c_c);
+			//if((parms->mode==1 && parms->c_c==parms->b_c)
+			// || (parms->mode==0 && parms->c_c==parms->f_c))
+			//parms->threshold+=THRESHOLD_INCREASE;//updateThreshold(parms)
+		}
   }
   if(parms->verbose_mode)
     fprintf(stderr,"\n");
@@ -4400,10 +4426,10 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   Cell ***table=parms->list->table;
 
   if(parms->verbose_mode)
-    {
-      fprintf(stderr,"\n****************************************************");
-      fprintf(stderr,"\nFINAL TOPOLOGICAL EXPANSION");
-    }
+	{
+		fprintf(stderr,"\n****************************************************");
+		fprintf(stderr,"\nFINAL TOPOLOGICAL EXPANSION");
+	}
 
   parms->multiplemode=0;
   label=parms->labels[0];
@@ -4428,25 +4454,25 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   for(k=0;k<depth-4;k++)
     for(j=0;j<height-4;j++)
       for(i=0;i<width-4;i++)
-	{
-	  val=MRIvox(mri_seg,xinit+i,yinit+j,zinit+k);
-	  for(n=0;n<nlabels;n++)
-	    if(val==tab[n] && 
-	       MRIvox(mri,i+2,j+2,k+2)!=BODY)
-	      {
-		MRIvox(mri,i+2,j+2,k+2)=RESIDUE;
-		list->table[k+2][j+2][i+2].type=UNKNOWN;
-		list->table[k+2][j+2][i+2].prior=table[k+2][j+2][i+2].prior;
-	      }
-	}
+			{
+				val=nint(MRIgetVoxVal(mri_seg,xinit+i,yinit+j,zinit+k,0));
+				for(n=0;n<nlabels;n++)
+					if(val==tab[n] && 
+						 nint(MRIgetVoxVal(mri,i+2,j+2,k+2,0))!=BODY)
+					{
+						MRIsetVoxVal(mri,i+2,j+2,k+2,0,RESIDUE);
+						list->table[k+2][j+2][i+2].type=UNKNOWN;
+						list->table[k+2][j+2][i+2].prior=table[k+2][j+2][i+2].prior;
+					}
+			}
   for(k=1;k<depth;k++)
     for(j=1;j<height;j++)
       for(i=1;i<width;i++)
-	if(MRIvox(mri,i,j,k)==BODY && checkNbh(mri,i,j,k,RESIDUE,parms->c_c))
-	  {
-	    pt.x=i;pt.y=j;pt.z=k;
-	    findNeighbors(parms,&pt);
-	  }
+				if(nint(MRIgetVoxVal(mri,i,j,k,0))==BODY && checkNbh(mri,i,j,k,RESIDUE,parms->c_c))
+				{
+					pt.x=i;pt.y=j;pt.z=k;
+					findNeighbors(parms,&pt);
+				}
   CTExpansion(parms);
  
   mriChangeLabel(mri,BODY,F_B);
@@ -4461,28 +4487,28 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   for(k=0;k<depth-4;k++)
     for(j=0;j<height-4;j++)
       for(i=0;i<width-4;i++)
-	{
-	  test=1;
-	  val=MRIvox(mri_seg,xinit+i,yinit+j,zinit+k);
-	  for(n=0;n<nlabels;n++)
-	    if(val==tab[n])
-	      test=0;
-	  if(test && MRIvox(mri,i+2,j+2,k+2)!=BODY)
-	    {
-	      MRIvox(mri,i+2,j+2,k+2)=RESIDUE;
-	      list->table[k+2][j+2][i+2].type=UNKNOWN;
-	      list->table[k+2][j+2][i+2].prior=table[k+2][j+2][i+2].prior;
-	    }
-	}
+			{
+				test=1;
+				val=nint(MRIgetVoxVal(mri_seg,xinit+i,yinit+j,zinit+k,0));
+				for(n=0;n<nlabels;n++)
+					if(val==tab[n])
+						test=0;
+				if(test && nint(MRIgetVoxVal(mri,i+2,j+2,k+2,0))!=BODY)
+				{
+					MRIsetVoxVal(mri,i+2,j+2,k+2,0,RESIDUE);
+					list->table[k+2][j+2][i+2].type=UNKNOWN;
+					list->table[k+2][j+2][i+2].prior=table[k+2][j+2][i+2].prior;
+				}
+			}
  
   for(k=1;k<depth;k++)
     for(j=1;j<height;j++)
       for(i=1;i<width;i++)
-	if(MRIvox(mri,i,j,k)==BODY && checkNbh(mri,i,j,k,RESIDUE,parms->c_c))
-	  {
-	    pt.x=i;pt.y=j;pt.z=k;
-	    findNeighbors(parms,&pt);
-	  }
+				if(nint(MRIgetVoxVal(mri,i,j,k,0))==BODY && checkNbh(mri,i,j,k,RESIDUE,parms->c_c))
+				{
+					pt.x=i;pt.y=j;pt.z=k;
+					findNeighbors(parms,&pt);
+				}
   CTExpansion(parms);
 
   mriChangeLabel(mri,BODY,B_B);
