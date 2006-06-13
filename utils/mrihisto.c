@@ -781,6 +781,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
+	histo->bin_size = bin_size ;
   x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
   x1 = MIN(width, region->x+region->dx) ;
   y1 = MIN(height, region->y+region->dy) ;
@@ -791,7 +792,9 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
     {
       for (x = x0 ; x < x1 ; x++)
       {
-        if (MRIgetVoxVal(mri_labeled, x, y, z, 0) != label)
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+        if (nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) != label)
           continue ;
         switch (mri->type)
         {
@@ -839,20 +842,22 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   int        val, bmin, bmax ;
   float      fval;
 
-  MRIvalRange(mri, &fmin, &fmax) ;
+  MRIlabelValRange(mri, mri_labeled, label, &fmin, &fmax) ;
   bmin = (int)fmin ; bmax = (int)fmax ;
   if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
 
-  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
+  histo->bin_size = bin_size = (fmax - fmin) / (float)(nbins-1) ;
+	histo->min = fmin ; histo->max = fmax ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
+	// note that I think this is correct, but other routines have off-by-1/2 type errors in them (BRF)!
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -879,6 +884,8 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
           bin_no = nint((fval - fmin) / (float)bin_size);
+					if (bin_no < 0 || bin_no >= histo->nbins)
+						DiagBreak() ;
           histo->counts[bin_no]++;
           break;
           
