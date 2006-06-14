@@ -361,6 +361,7 @@ double GCAgibbsImpossibleConfiguration(GCA *gca,
 																			 int x, int y, int z, 
 																			 TRANSFORM *transform) ;
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform);
+int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
 
