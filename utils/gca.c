@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/05/09 21:04:54 $
-// Revision       : $Revision: 1.196 $
+// Revision Date  : $Date: 2006/06/14 11:17:29 $
+// Revision       : $Revision: 1.197 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +116,6 @@ static double gcaVoxelGibbsLogLikelihood(GCA *gca,
                                          int x, int y, int z,
                                          TRANSFORM *transform,
                                          double gibbs_coef) ;
-static int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 static double gcaNbhdGibbsLogLikelihood(GCA *gca,
                                         MRI *mri_labels,
                                         MRI *mri_inputs,
@@ -12459,7 +12458,7 @@ free_gcs(GC1D *gcs, int nlabels, int ninputs)
   return(NO_ERROR) ;
 }
 
-static int
+int
 copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs)
 {
   int   i, j, k, r, c,v ;
