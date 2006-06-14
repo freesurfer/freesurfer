@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.207 2006/06/12 19:46:11 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.208 2006/06/14 20:52:06 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2106,15 +2106,15 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMin \
 	-label "Min" -notify 1 -font [tkuNormalFont] \
 	-variable gaLayer(current,heatScaleMin) \
-	-command {Set2DMRILayerHeatScaleMin $gaLayer(current,id) $gaLayer(current,heatScaleMin) ; RedrawFrame [GetMainFrameID]}
+	-command {Set2DMRILayerHeatScaleMin $gaLayer(current,id) $gaLayer(current,heatScaleMin); set gaLayer(current,heatScaleMin) [Get2DMRILayerHeatScaleMin $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
     tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMid \
 	-label "Mid" -notify 1 -font [tkuNormalFont] \
 	-variable gaLayer(current,heatScaleMid) \
-	-command {Set2DMRILayerHeatScaleMid $gaLayer(current,id) $gaLayer(current,heatScaleMid) ; RedrawFrame [GetMainFrameID]}
+	-command {Set2DMRILayerHeatScaleMid $gaLayer(current,id) $gaLayer(current,heatScaleMid) ; set gaLayer(current,heatScaleMid) [Get2DMRILayerHeatScaleMid $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
     tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
 	-label "Max" -notify 1 -font [tkuNormalFont] \
 	-variable gaLayer(current,heatScaleMax) \
-	-command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; RedrawFrame [GetMainFrameID]}
+	-command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; set gaLayer(current,heatScaleMax) [Get2DMRILayerHeatScaleMax $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
     pack $fwProps2DMRI.fwHeatScale.lwHeatScale $fwProps2DMRI.fwHeatScale.ewHeatScaleMin $fwProps2DMRI.fwHeatScale.ewHeatScaleMid $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
 	-side left -expand yes -fill x
     set gaWidget(layerProperties,heatScaleMin) \
@@ -6176,7 +6176,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.207 2006/06/12 19:46:11 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.208 2006/06/14 20:52:06 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
