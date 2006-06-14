@@ -644,6 +644,7 @@ extern float ic_z_vertices[]  ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+int        MRIlabelValRange(MRI *mri, MRI *mri_labeled, int label, float *pmin, float *pmax) ;
 int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
