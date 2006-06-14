@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/05/16 21:16:47 $
-// Revision       : $Revision: 1.346 $
-char *MRI_C_VERSION = "$Revision: 1.346 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/06/14 16:42:49 $
+// Revision       : $Revision: 1.347 $
+char *MRI_C_VERSION = "$Revision: 1.347 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -935,6 +935,47 @@ MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
         }
     }
   return(mri_dst) ;
+}
+int
+MRIlabelValRange(MRI *mri, MRI *mri_labeled, int label, float *pmin, float *pmax)
+{
+  int      width, height, depth, x, y, z, frame, l, first = 1 ;
+  float    fmin, fmax, val ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  fmin = 10000.0f ;
+  fmax = -10000.0f ;
+	for (frame = 0 ; frame < mri->nframes ; frame++)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					val = MRIgetVoxVal(mri, x, y, z, frame) ;
+					l = nint(MRIgetVoxVal(mri_labeled, x, y, z, frame)) ;
+					if (l != label)
+						continue ;
+					if (first)
+					{
+						first = 0 ;
+						fmax = fmin = val ;
+					}
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
+				}
+			}
+		}
+	}
+  *pmin = fmin ;
+  *pmax = fmax ;
+  return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2756,6 +2797,23 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
                  "MRIextractInto: bad src location (%d, %d, %d)", x0,y0,z0));
+  if (!mri_dst)
+	{
+		mri_dst = MRIallocSequence(dx, dy, dz, mri_src->type, mri_src->nframes) ;
+		MRIcopyHeader(mri_src, mri_dst) ;
+		mri_dst->imnr0 = z0 + mri_src->imnr0 - z1 ;
+		mri_dst->imnr1 = mri_dst->imnr0 + dz - 1 ;
+		dst_alloced = 1 ;
+	}
+
+  if (mri_src->type != mri_dst->type)
+	{
+		MRIfree(&mri_dst) ;
+		ErrorReturn(NULL,
+								(ERROR_BADPARM,
+								 "MRIextractInto: src and dst types must match"));
+	}
+
   // validation
   if (x0 < 0)
     x0 = 0 ;
@@ -2776,23 +2834,6 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   if (z1 < 0)
     z1 = 0 ;
 
-  if (!mri_dst)
-    {
-      mri_dst = MRIallocSequence(dx, dy, dz, mri_src->type, mri_src->nframes) ;
-      MRIcopyHeader(mri_src, mri_dst) ;
-      mri_dst->imnr0 = z0 + mri_src->imnr0 - z1 ;
-      mri_dst->imnr1 = mri_dst->imnr0 + dz - 1 ;
-      dst_alloced = 1 ;
-    }
-
-  if (mri_src->type != mri_dst->type)
-    {
-      MRIfree(&mri_dst) ;
-      ErrorReturn(NULL,
-                  (ERROR_BADPARM,
-                   "MRIextractInto: src and dst types must match"));
-    }
-
   if (x1+dx > mri_dst->width)
     dx = (mri_dst->width - x1) ;
   if (y1+dy > mri_dst->height)
@@ -2805,62 +2846,62 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   zsize = mri_src->zsize ;
 
   if (dst_alloced)
-    {
-      mri_dst->xstart += x0*xsize ;
-      mri_dst->xend = mri_dst->xstart + dx*xsize ;
-      mri_dst->ystart += y0*ysize ;
-      mri_dst->yend = mri_dst->ystart + dy*ysize ;
-      mri_dst->zstart += z0*zsize ;
-      mri_dst->zend = mri_dst->zstart + dz*zsize  ;
-    }
+	{
+		mri_dst->xstart += x0*xsize ;
+		mri_dst->xend = mri_dst->xstart + dx*xsize ;
+		mri_dst->ystart += y0*ysize ;
+		mri_dst->yend = mri_dst->ystart + dy*ysize ;
+		mri_dst->zstart += z0*zsize ;
+		mri_dst->zend = mri_dst->zstart + dz*zsize  ;
+	}
 
   bytes = dx ;
   switch (mri_src->type)
-    {
-    case MRI_FLOAT:
-      bytes *= sizeof(float) ;
-      break ;
-    case MRI_LONG:
-      bytes *= sizeof(long) ;
-      break ;
-    case MRI_INT:
-      bytes *= sizeof(int) ;
-      break ;
-    case MRI_SHORT:
-      bytes *= sizeof(short) ;
-      break ;
-    default:
-      break ;
-    }
+	{
+	case MRI_FLOAT:
+		bytes *= sizeof(float) ;
+		break ;
+	case MRI_LONG:
+		bytes *= sizeof(long) ;
+		break ;
+	case MRI_INT:
+		bytes *= sizeof(int) ;
+		break ;
+	case MRI_SHORT:
+		bytes *= sizeof(short) ;
+		break ;
+	default:
+		break ;
+	}
 
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
-    {
-      for (zd = z1, zs = z0 ; zs < z0+dz ; zs++, zd++)
-        {
-          for (yd = y1, ys = y0 ; ys < y0+dy ; ys++, yd++)
-            {
-              switch (mri_src->type)
-                {
-                case MRI_UCHAR:
-                  memcpy(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
-                         &MRIseq_vox(mri_src,x0,ys,zs,frame), bytes);
-                  break ;
-                case MRI_FLOAT:
-                  memcpy(&MRIFseq_vox(mri_dst, x1, yd, zd,frame),
-                         &MRIFseq_vox(mri_src,x0,ys,zs,frame), bytes);
-                  break ;
-                case MRI_SHORT:
-                  memcpy(&MRISseq_vox(mri_dst, x1, yd, zd,frame),
-                         &MRISseq_vox(mri_src,x0,ys,zs,frame), bytes);
-                  break ;
-                case MRI_LONG:
-                  memcpy(&MRILseq_vox(mri_dst, x1, yd, zd,frame),
-                         &MRILseq_vox(mri_src,x0,ys,zs,frame), bytes);
-                  break ;
-                }
-            }
-        }
-    }
+	{
+		for (zd = z1, zs = z0 ; zs < z0+dz ; zs++, zd++)
+		{
+			for (yd = y1, ys = y0 ; ys < y0+dy ; ys++, yd++)
+			{
+				switch (mri_src->type)
+				{
+				case MRI_UCHAR:
+					memcpy(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
+								 &MRIseq_vox(mri_src,x0,ys,zs,frame), bytes);
+					break ;
+				case MRI_FLOAT:
+					memcpy(&MRIFseq_vox(mri_dst, x1, yd, zd,frame),
+								 &MRIFseq_vox(mri_src,x0,ys,zs,frame), bytes);
+					break ;
+				case MRI_SHORT:
+					memcpy(&MRISseq_vox(mri_dst, x1, yd, zd,frame),
+								 &MRISseq_vox(mri_src,x0,ys,zs,frame), bytes);
+					break ;
+				case MRI_LONG:
+					memcpy(&MRILseq_vox(mri_dst, x1, yd, zd,frame),
+								 &MRILseq_vox(mri_src,x0,ys,zs,frame), bytes);
+					break ;
+				}
+			}
+		}
+	}
   // calculate c_ras
   MRIcalcCRASforExtractedVolume
     (mri_src, mri_dst, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s);
@@ -6236,41 +6277,41 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   depth = 2*mri_src->depth ;
 
   if (!mri_dst)
-    {
-      mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
-      MRIcopyHeader(mri_src, mri_dst) ;
-    }
+	{
+		mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+		MRIcopyHeader(mri_src, mri_dst) ;
+	}
 
   for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          switch (mri_src->type)
-            {
-            case MRI_UCHAR:
-              pdst = &MRIvox(mri_dst, 0, y, z) ;
-              for (x = 0 ; x < width ; x++)
-                *pdst++ = MRIvox(mri_src, x/2, y/2, z/2) ;
-              break ;
-            case MRI_SHORT:
-              psdst = &MRISvox(mri_dst, 0, y, z) ;
-              for (x = 0 ; x < width ; x++)
-                *psdst++ = MRISvox(mri_src, x/2, y/2, z/2) ;
-              break ;
-            case MRI_FLOAT:
-              pfdst = &MRIFvox(mri_dst, 0, y, z) ;
-              for (x = 0 ; x < width ; x++)
-                *pfdst++ = MRIFvox(mri_src, x/2, y/2, z/2) ;
-              break ;
-            default:
-              ErrorReturn
-                (NULL,
-                 (ERROR_UNSUPPORTED,
-                  "MRIupsample2: unsupported src type %d", mri_src->type)) ;
-            }
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			switch (mri_src->type)
+			{
+			case MRI_UCHAR:
+				pdst = &MRIvox(mri_dst, 0, y, z) ;
+				for (x = 0 ; x < width ; x++)
+					*pdst++ = MRIvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			case MRI_SHORT:
+				psdst = &MRISvox(mri_dst, 0, y, z) ;
+				for (x = 0 ; x < width ; x++)
+					*psdst++ = MRISvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			case MRI_FLOAT:
+				pfdst = &MRIFvox(mri_dst, 0, y, z) ;
+				for (x = 0 ; x < width ; x++)
+					*pfdst++ = MRIFvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			default:
+				ErrorReturn
+					(NULL,
+					 (ERROR_UNSUPPORTED,
+						"MRIupsample2: unsupported src type %d", mri_src->type)) ;
+			}
 
-        }
-    }
+		}
+	}
 
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
