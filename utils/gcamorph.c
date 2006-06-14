@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/06/13 17:01:31 $
-// Revision       : $Revision: 1.104 $
+// Revision Date  : $Date: 2006/06/14 16:20:19 $
+// Revision       : $Revision: 1.105 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -8182,6 +8182,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   int            type, nframes = 1, label, pad ;
 	MRI_REGION     box ;
 
+	gcamn = NULL;
   switch (which)
 	{
 	case GCAM_LABEL:
