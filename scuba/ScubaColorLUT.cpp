@@ -223,7 +223,8 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
 void 
 ScubaColorLUT::GetColorAtIndex ( int iIndex, int oColor[3] ) {
 
-  if( iIndex >= 0 && iIndex <= mHighestItemNo ) {
+  if( iIndex >= 0 && iIndex <= mHighestItemNo &&
+      mEntries[iIndex].mbValid ) {
     oColor[0] = mEntries[iIndex].color[0];
     oColor[1] = mEntries[iIndex].color[1];
     oColor[2] = mEntries[iIndex].color[2];
@@ -251,7 +252,8 @@ ScubaColorLUT::IsEntryValid ( int inIndex ) {
 string 
 ScubaColorLUT::GetLabelAtIndex ( int iIndex ) {
 
-  if( iIndex >= 0 && iIndex <= mHighestItemNo ) {
+  if( iIndex >= 0 && iIndex <= mHighestItemNo &&
+      mEntries[iIndex].mbValid ) {
     return mEntries[iIndex].msLabel;
   } else  {
     return "No entry";
@@ -293,6 +295,10 @@ ScubaColorLUT::ReadFile () {
       /* Update our highest item number. */
       if( nEntry > mHighestItemNo ) 
 	mHighestItemNo = nEntry;
+
+    } else {
+
+      mEntries[nEntry].mbValid = false;
     }
   }
 
