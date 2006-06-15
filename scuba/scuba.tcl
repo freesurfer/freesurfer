@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.208 2006/06/14 20:52:06 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.209 2006/06/15 20:31:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2020,7 +2020,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
     grid $fwPropsCommon.cbwReportInfo -column 0 -row 3 -columnspan 2 -sticky we
 
-
+    # 2DMRI layer settings ----------------------------------------------
     frame $fwProps2DMRI
     tkuMakeToolbar $fwProps2DMRI.tbwColorMapMethod \
 	-allowzero 0 -radio 1 \
@@ -2034,13 +2034,18 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,colorMapToolbar) \
 	$fwProps2DMRI.tbwColorMapMethod
 
-    tixOptionMenu $fwProps2DMRI.mwLUT \
-	-label "LUT:" \
-	-command "LayerPropertiesLUTMenuCallback"
-    set gaWidget(layerProperties,lutMenu) \
-	$fwProps2DMRI.mwLUT
+    set fwCMap      [frame $fwProps2DMRI.fwCMap]
+    set fwGrayscale [frame $fwCMap.fwGrayscale]
+    set fwHeatscale [frame $fwCMap.fwHeatscale]
+    set fwLUT       [frame $fwCMap.fwLUT]
 
-    tkuMakeToolbar $fwProps2DMRI.tbwSampleMethod \
+    set gaWidget(layerProperties,grayscaleFrame) $fwGrayscale
+    set gaWidget(layerProperties,heatscaleFrame) $fwHeatscale
+    set gaWidget(layerProperties,lutFrame) $fwLUT
+
+    # Grayscale settings -------------------------------------------------
+    set gaLayer(current,sampleMethod) nearest
+    tkuMakeToolbar $fwGrayscale.tbwSampleMethod \
 	-allowzero 0 -radio 1 \
 	-variable gaLayer(current,sampleMethod) \
 	-command ToolBarWrapper \
@@ -2049,16 +2054,10 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    {-type text -name trilinear -label "Trilinear"}
 	    {-type text -name sinc -label "Sinc"}
 	}
-    tkuMakeCheckboxes $fwProps2DMRI.cbwClearZero \
-	-font [tkuNormalFont] \
-	-checkboxes { 
-	    {-type text -label "Draw 0 values clear" 
-		-variable gaLayer(current,clearZero) 
-		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
-	}
+
     if { 0 } { 
 	# This is bugged.
-	tkuMakeCheckboxes $fwProps2DMRI.cbwMIP \
+	tkuMakeCheckboxes $fwGrayscale.cbwMIP \
 	    -font [tkuNormalFont] \
 	    -checkboxes { 
 		{-type text -label "Draw maximum intensity projection" 
@@ -2066,7 +2065,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 		    -command {Set2DMRILayerDrawMIP $gaLayer(current,id) $gaLayer(current,MIP); RedrawFrame [GetMainFrameID]} }
 	}
     }
-    tkuMakeSliders $fwProps2DMRI.swBC -sliders {
+
+    tkuMakeSliders $fwGrayscale.swBC -sliders {
 	{-label "Brightness" -variable gaLayer(current,brightness) 
 	    -min 1 -max 0 -resolution 0.01 -entry 1
 	    -command {Set2DMRILayerBrightness $gaLayer(current,id) $gaLayer(current,brightness); RedrawFrame [GetMainFrameID]}}
@@ -2074,23 +2074,22 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -min 0 -max 30 -resolution 1 -entry 1
 	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
     }
-    set gaWidget(layerProperties,brightnessContrastSliders) $fwProps2DMRI.swBC
+    set gaWidget(layerProperties,brightnessContrastSliders) $fwGrayscale.swBC
 
-    frame $fwProps2DMRI.fwWindowLevel
-    tkuMakeSliders $fwProps2DMRI.swLevel -sliders {
+    tkuMakeSliders $fwGrayscale.swLevel -sliders {
 	{-label "Level" -variable gaLayer(current,level) 
 	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
 	    -command {Set2DMRILayerLevel $gaLayer(current,id) $gaLayer(current,level); RedrawFrame [GetMainFrameID]}}
     }
-    tkuMakeSliders $fwProps2DMRI.swWindow -sliders {
+    tkuMakeSliders $fwGrayscale.swWindow -sliders {
 	{-label "Window" -variable gaLayer(current,window) 
 	    -min 0 -max 1 -entry 1 -limitentry 0 -entrywidth 6
 	    -command {Set2DMRILayerWindow $gaLayer(current,id) $gaLayer(current,window); RedrawFrame [GetMainFrameID]}}
     }
-    set gaWidget(layerProperties,levelSlider) $fwProps2DMRI.swLevel
-    set gaWidget(layerProperties,windowSlider) $fwProps2DMRI.swWindow
+    set gaWidget(layerProperties,levelSlider) $fwGrayscale.swLevel
+    set gaWidget(layerProperties,windowSlider) $fwGrayscale.swWindow
 
-    tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
+    tkuMakeSliders $fwGrayscale.swMinMax -sliders {
 	{-label "Min" -variable gaLayer(current,minVisibleValue) 
 	    -min 0 -max 1 -entry 1 -entrywidth 6
 	    -command {Set2DMRILayerMinVisibleValue $gaLayer(current,id) $gaLayer(current,minVisibleValue); RedrawFrame [GetMainFrameID]}}
@@ -2098,39 +2097,80 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -min 0 -max 1 -entry 1 -entrywidth 6
 	    -command {Set2DMRILayerMaxVisibleValue $gaLayer(current,id) $gaLayer(current,maxVisibleValue); RedrawFrame [GetMainFrameID]}}
     }
-    set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
+    set gaWidget(layerProperties,minMaxSliders) $fwGrayscale.swMinMax
 
-    frame $fwProps2DMRI.fwHeatScale
-    tkuMakeNormalLabel $fwProps2DMRI.fwHeatScale.lwHeatScale \
-	-label "Heat Scale"
-    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMin \
-	-label "Min" -notify 1 -font [tkuNormalFont] \
-	-variable gaLayer(current,heatScaleMin) \
-	-command {Set2DMRILayerHeatScaleMin $gaLayer(current,id) $gaLayer(current,heatScaleMin); set gaLayer(current,heatScaleMin) [Get2DMRILayerHeatScaleMin $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
-    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMid \
-	-label "Mid" -notify 1 -font [tkuNormalFont] \
-	-variable gaLayer(current,heatScaleMid) \
-	-command {Set2DMRILayerHeatScaleMid $gaLayer(current,id) $gaLayer(current,heatScaleMid) ; set gaLayer(current,heatScaleMid) [Get2DMRILayerHeatScaleMid $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
-    tkuMakeEntry $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
-	-label "Max" -notify 1 -font [tkuNormalFont] \
-	-variable gaLayer(current,heatScaleMax) \
-	-command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; set gaLayer(current,heatScaleMax) [Get2DMRILayerHeatScaleMax $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]}
-    pack $fwProps2DMRI.fwHeatScale.lwHeatScale $fwProps2DMRI.fwHeatScale.ewHeatScaleMin $fwProps2DMRI.fwHeatScale.ewHeatScaleMid $fwProps2DMRI.fwHeatScale.ewHeatScaleMax \
-	-side left -expand yes -fill x
-    set gaWidget(layerProperties,heatScaleMin) \
-	$fwProps2DMRI.fwHeatScale.ewHeatScaleMin
-    set gaWidget(layerProperties,heatScaleMid) \
-	$fwProps2DMRI.fwHeatScale.ewHeatScaleMid
-    set gaWidget(layerProperties,heatScaleMax) \
-	$fwProps2DMRI.fwHeatScale.ewHeatScaleMax
-
-    tkuMakeSliders $fwProps2DMRI.swFrame -sliders { 
+    tkuMakeSliders $fwGrayscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
 	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); RedrawFrame [GetMainFrameID]} }
     }
-    set gaWidget(layerProperties,frame) $fwProps2DMRI.swFrame
+    set gaWidget(layerProperties,grayscaleFrameSlider) $fwGrayscale.swFrame
 
+    grid $fwGrayscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
+    grid $fwGrayscale.swBC              -column 0 -row 1 -sticky ew
+    grid $fwGrayscale.swLevel           -column 0 -row 2 -sticky ew
+    grid $fwGrayscale.swWindow          -column 0 -row 3 -sticky ew
+    grid $fwGrayscale.swMinMax          -column 0 -row 4 -sticky ew
+    grid $fwGrayscale.swFrame           -column 0 -row 5 -sticky ew
+
+    # Heatscale setting -------------------------------------------------
+    tkuMakeToolbar $fwHeatscale.tbwSampleMethod \
+	-allowzero 0 -radio 1 \
+	-variable gaLayer(current,sampleMethod) \
+	-command ToolBarWrapper \
+	-buttons {
+	    {-type text -name nearest -label "Nearest"}
+	    {-type text -name trilinear -label "Trilinear"}
+	    {-type text -name sinc -label "Sinc"}
+	}
+
+    tkuMakeNormalLabel $fwHeatscale.lwHeatScale \
+	-label "Heat Scale"
+
+    tkuMakeSliders $fwHeatscale.swHeatScale -sliders {
+	{ -label "Min" -entry true
+	    -variable gaLayer(current,heatScaleMin) 
+	    -command {Set2DMRILayerHeatScaleMin $gaLayer(current,id) $gaLayer(current,heatScaleMin); set gaLayer(current,heatScaleMin) [Get2DMRILayerHeatScaleMin $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]} }
+	{ -label "Mid" -entry true
+	    -variable gaLayer(current,heatScaleMid) \
+	      -command {Set2DMRILayerHeatScaleMid $gaLayer(current,id) $gaLayer(current,heatScaleMid) ; set gaLayer(current,heatScaleMid) [Get2DMRILayerHeatScaleMid $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]} }
+	{ -label "Max" -entry true
+	    -variable gaLayer(current,heatScaleMax)
+	    -command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; set gaLayer(current,heatScaleMax) [Get2DMRILayerHeatScaleMax $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]} }
+    }
+
+    set gaWidget(layerProperties,heatScaleSliders) $fwHeatscale.swHeatScale
+
+    tkuMakeSliders $fwHeatscale.swFrame -sliders { 
+	{ -label "Frame" -variable gaLayer(current,frame)
+	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); RedrawFrame [GetMainFrameID]} }
+    }
+    set gaWidget(layerProperties,heatscaleFrameSlider) $fwHeatscale.swFrame
+
+    grid $fwHeatscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
+    grid $fwHeatscale.lwHeatScale       -column 0 -row 1 -sticky ew
+    grid $fwHeatscale.swHeatScale       -column 0 -row 2 -sticky ew
+    grid $fwHeatscale.swFrame           -column 0 -row 3 -sticky ew
+
+    # LUT setting -----------------------------------------------------
+    tixOptionMenu $fwLUT.mwLUT \
+	-label "LUT:" \
+	-command "LayerPropertiesLUTMenuCallback"
+    set gaWidget(layerProperties,lutMenu) $fwLUT.mwLUT
+
+    tkuMakeCheckboxes $fwLUT.cbwClearZero \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Draw 0 values clear" 
+		-variable gaLayer(current,clearZero) 
+		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
+	}
+
+    grid $fwLUT.mwLUT             -column 0 -row 0 -sticky ew
+    grid $fwLUT.cbwClearZero      -column 0 -row 1 -sticky ew
+
+    # Remaining 2dMRI settings -----------------------------------------
     tkuMakeCheckboxes $fwProps2DMRI.cbwEditableROI \
 	-font [tkuNormalFont] \
 	-checkboxes { 
@@ -2145,22 +2185,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -command {Set2DMRILayerROIOpacity $gaLayer(current,id) $gaLayer(current,roiOpacity); RedrawFrame [GetMainFrameID]}}
     }
 
-
-    grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
-    grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
-    grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
-#   grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
-    grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
-    grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
-    grid $fwProps2DMRI.swLevel           -column 0 -row 6 -sticky ew
-    grid $fwProps2DMRI.swWindow          -column 0 -row 7 -sticky ew
-    grid $fwProps2DMRI.swMinMax          -column 0 -row 8 -sticky ew
-    grid $fwProps2DMRI.fwHeatScale       -column 0 -row 9 -sticky ew
-    grid $fwProps2DMRI.swFrame           -column 0 -row 10 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 11 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 12 -sticky ew
+    grid $fwProps2DMRI.tbwColorMapMethod  -column 0 -row 0 -sticky ew
+    grid $fwProps2DMRI.fwCMap             -column 0 -row 1 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI     -column 0 -row 2 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity       -column 0 -row 3 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
+    # 2DMRIS layer settings -----------------------------------------------
     # hack, necessary to init color pickers first time
     set gaLayer(current,redLineColor) 0
     set gaLayer(current,greenLineColor) 0
@@ -3016,15 +3047,29 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
 	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
 	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
-		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+		$gaLayer(current,minValue) $gaLayer(current,maxValue) \
+		[GetLayerPreferredValueIncrement $gaLayer(current,id)]
 	    tkuUpdateSlidersRange $gaWidget(layerProperties,levelSlider) \
-		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+		$gaLayer(current,minValue) $gaLayer(current,maxValue) \
+		[GetLayerPreferredValueIncrement $gaLayer(current,id)]
 	    tkuUpdateSlidersRange $gaWidget(layerProperties,windowSlider) \
-		0 [expr abs($gaLayer(current,maxValue) - $gaLayer(current,minValue))]
+		0 [expr abs($gaLayer(current,maxValue) - $gaLayer(current,minValue))] \
+		[GetLayerPreferredValueIncrement $gaLayer(current,id)]
+
+	    # The heat scale range is 0 to the highest abs of the min
+	    # and max values, since the heatcale is mirrored.
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,heatScaleSliders) \
+		0 [expr max( abs($gaLayer(current,minValue)), \
+			     abs($gaLayer(current,maxValue)) ) ] \
+		[GetLayerPreferredValueIncrement $gaLayer(current,id)]
+	    
 
 	    # Length of frame slider.
 	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames [Get2DMRILayerVolumeCollection $iLayerID]]
-	    tkuUpdateSlidersRange $gaWidget(layerProperties,frame) 0 [expr $gaLayer(current,numFrames) - 1]
+	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
+		tkuUpdateSlidersRange $gaWidget(layerProperties,$slider) \
+		    0 [expr $gaLayer(current,numFrames) - 1]
+	    }
 
 	    # Get the type specific properties.
 
@@ -3061,9 +3106,6 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerHeatScaleMid $iLayerID]
 	    set gaLayer(current,heatScaleMax) \
 		[Get2DMRILayerHeatScaleMax $iLayerID]
-	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMin)
-	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMid)
-	    tkuRefreshEntryNotify $gaWidget(layerProperties,heatScaleMax)
 	    set gaLayer(current,frame) [Get2DMRILayerCurrentFrame $iLayerID]
 
 	    # Set the LUT menu.
@@ -3113,47 +3155,30 @@ proc AdjustLayerPropertiesEnabledWidgets {} {
 
     switch $gaLayer(current,type) {
 	2DMRI { 
+
+	    catch { pack forget $gaWidget(layerProperties,grayscaleFrame) }
+	    catch { pack forget $gaWidget(layerProperties,heatscaleFrame) }
+	    catch { pack forget $gaWidget(layerProperties,lutFrame) }
+
 	    set sMethod $gaLayer(current,colorMapMethod)
 	    if { [string match $sMethod grayscale] } {
-		
-		$gaWidget(layerProperties,lutMenu) configure -state disabled
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,brightnessContrastSliders) 1
-		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 1
-		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 1
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
-
+		pack $gaWidget(layerProperties,grayscaleFrame) \
+		    -fill both -expand yes
 	    } elseif { [string match $sMethod heatScale] } {
-
-		$gaWidget(layerProperties,lutMenu) configure -state disabled
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,brightnessContrastSliders) 0
-		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 0
-		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 1
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 1
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 1
-
+		pack $gaWidget(layerProperties,heatscaleFrame) \
+		    -fill both -expand yes
 	    } elseif { [string match $sMethod lut] } {
-
-		$gaWidget(layerProperties,lutMenu) configure -state normal
-		tkuSetSlidersEnabled \
-		    $gaWidget(layerProperties,brightnessContrastSliders) 0
-		tkuSetSlidersEnabled $gaWidget(layerProperties,levelSlider) 0
-		tkuSetSlidersEnabled $gaWidget(layerProperties,windowSlider) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMin) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMid) 0
-		tkuSetEntryEnabled $gaWidget(layerProperties,heatScaleMax) 0
-
+		pack $gaWidget(layerProperties,lutFrame) \
+		    -fill both -expand yes
 	    }
 
 	    # Only enable frame slider if we have > 1 frames.
-	    if { $gaLayer(current,numFrames) > 1 } {
-		tkuSetSlidersEnabled $gaWidget(layerProperties,frame) 1
-	    } else {
-		tkuSetSlidersEnabled $gaWidget(layerProperties,frame) 0
+	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
+		if { $gaLayer(current,numFrames) > 1 } {
+		    tkuSetSlidersEnabled $gaWidget(layerProperties,$slider) 1
+		} else {
+		    tkuSetSlidersEnabled $gaWidget(layerProperties,$slider) 0
+		}
 	    }
 	}
     }
@@ -6176,7 +6201,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.208 2006/06/14 20:52:06 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.209 2006/06/15 20:31:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

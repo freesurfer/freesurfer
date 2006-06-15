@@ -289,7 +289,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
     }
   }
     
-    // Calc one tenth of the value range above 0.
+  // Calc one tenth of the value range above 0.
   float oneTenth;
   oneTenth = mVolume->GetMRIMaxValue() / 10.0;
 
@@ -742,15 +742,6 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
     int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
 			    ((iValue - mMinVisibleValue) /
 			     (mMaxVisibleValue - mMinVisibleValue)) );
-
-    if( nLUT < 0 || nLUT >= cGrayscaleLUTEntries ) {
-      cerr << "GetGrayscaleColorForValue vol " << mVolume->GetID()
-	   << " iValue " << iValue << " min/max "
-	   << mMinVisibleValue << " " << mMaxVisibleValue
-	   << " nLUT " << nLUT << endl;
-      exit( 1 );
-
-    }
 
     oColor[0] = mGrayscaleLUT[nLUT];
     oColor[1] = mGrayscaleLUT[nLUT];
@@ -2944,6 +2935,12 @@ ScubaLayer2DMRI::SetMinMaxVisibleValue ( float iMinValue, float iMaxValue ) {
  
 void
 ScubaLayer2DMRI::SetHeatScaleMinThreshold ( float iValue ) {
+  
+  // Since the threshold is mirrored, it has to be positive, and the
+  // range is up to fabs(min) or max, whichever is greater.
+  if( iValue < 0 || iValue > MAX(fabs(mVolume->GetMRIMinValue()),
+				 fabs(mVolume->GetMRIMaxValue())) )
+    return;
 
   mHeatScaleMinThreshold = iValue; 
   if( mHeatScaleMinThreshold >= mHeatScaleMidThreshold ) {
@@ -2953,6 +2950,10 @@ ScubaLayer2DMRI::SetHeatScaleMinThreshold ( float iValue ) {
 
 void
 ScubaLayer2DMRI::SetHeatScaleMidThreshold ( float iValue ) {
+
+  if( iValue < 0 || iValue > MAX(fabs(mVolume->GetMRIMinValue()),
+				 fabs(mVolume->GetMRIMaxValue())) )
+    return;
 
   mHeatScaleMidThreshold = iValue; 
   if( mHeatScaleMidThreshold <= mHeatScaleMinThreshold ) {
@@ -2965,6 +2966,10 @@ ScubaLayer2DMRI::SetHeatScaleMidThreshold ( float iValue ) {
 
 void
 ScubaLayer2DMRI::SetHeatScaleMaxThreshold ( float iValue ) {
+
+  if( iValue < 0 || iValue > MAX(fabs(mVolume->GetMRIMinValue()),
+				 fabs(mVolume->GetMRIMaxValue())) )
+    return;
 
   mHeatScaleMaxThreshold = iValue; 
   if( mHeatScaleMaxThreshold <= mHeatScaleMidThreshold ) {

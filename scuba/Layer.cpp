@@ -39,6 +39,9 @@ Layer::Layer() :
   commandMgr.AddCommand( *this, "GetLayerPreferredBrushRadiusIncrement", 1,
 			 "layerID", "Return a preferrerd brush radius "
 			 "increment based on the data." );
+  commandMgr.AddCommand( *this, "GetLayerPreferredValueIncrement", 1,
+			 "layerID", "Return a preferrerd value "
+			 "increment based on the data." );
   commandMgr.AddCommand( *this, "ProcessLayerOptionList", 2, 
 			 "layerID layerOptionList", "Process a string of "
 			 "options in the format "
@@ -188,6 +191,22 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
       sReturnFormat = "f";
       stringstream ssReturnValues;
       ssReturnValues << GetPreferredBrushRadiusIncrement();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // GetLayerPreferredValueIncrement <layerID>
+  if( 0 == strcmp( isCommand, "GetLayerPreferredValueIncrement" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetPreferredValueIncrement();
       sReturnValues = ssReturnValues.str();
     }
   }

@@ -36,7 +36,7 @@ Alternatively, you can use the '''File->Load Volume...''' menu command from with
 
 == Display Options ==
 
-Like other layer types and data collections, display options for anatomical volumes in the Layers panel, and settings for transforms are in the Data panel.
+Like other layer types and data collections, display options for anatomical volumes in the Layers panel, and settings for transforms are in the Data panel. Some settings may be disabled if they do not apply to the current mode.
 
 In the Layers panel, you can configure the following things:
 
@@ -74,11 +74,23 @@ In the Layers panel, you can configure the following things:
 
  '''Heat Scale''': The ''Min'', ''Mid'', and ''Max'' values configure the heat scale display. The heat scale is a piecewise linear threshold with two segments: the first from ''Min'' to ''Mid'' and the second from ''Mid'' to ''Max''.
 
+ '''Frame''': In a multi-frame volume, this sets the frame to be currently displayed. Disabled if there is only one frame in the volume.
+
  '''Editable ROI''': By default, ROIs belonging to this collection are editable with the ROI tools. Uncheck this option to lock the ROIs to keep them from being edited.
 
  '''ROI Opacity''': This is the translucency for the ROIs associated with the data collection the layer is drawing, which can be controlled separately from the layer opacity.
 
 You can also set display transforms and data transforms that may affect the display of the volume, from the View and Data panels, respectively.
+
+== Grayscale Display ==
+
+There are several factors that control the grayscale display. The '''Visible Min''' and '''Max''' control the lowest and highest values that are drawn. Values outside of this range are drawn with intensity 0, and will be translucent if the '''Draw Zero Values Clear''' options is on. The '''Window''' and '''Level''' control the range of values that are mapped to intensities within the Visible range. The '''Level''' defines the midpoint, and the '''Window''' defines the extent; the darkest value is {{{(Level - (Window/2))}}} and the brightest value is {{{(Level + (Window/2))}}}. Finally, the '''Brightness''' and '''Contrast''' define a sigmoid curve inside the visible range to further tweak the intensities. '''Brightness''' controls the offset of the curve, bringing it closer to the end of the range defined by the '''Level''' and '''Window'''. The '''Contrast''' defines the sharpness of the curve; a low contrast looks like a straight line, a middle '''Contrast''' looks like an S curve, and a high contrast looks more like a stepwise function.
+
+This diagram may help: 
+
+attachment:scuba_grayscale.jpg
+
+Additionally, here is the code to build the lookup table. ScubaGrayscaleCode
 
 == Voxel Editing ==
 
