@@ -145,6 +145,7 @@ typedef struct
 } GCA_MORPH_PARMS, GMP ;
 
 
+GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
