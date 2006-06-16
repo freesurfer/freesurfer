@@ -180,6 +180,8 @@
 #define Pos_Lymph 358 // 20 130 180 0
 #define Neg_Lymph 359 // 20 180 130 0
 
+#define MAX_LABEL Neg_Lymph
+
 #define   Not_Set         255
 
 
