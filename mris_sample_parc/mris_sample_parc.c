@@ -19,7 +19,7 @@
 #include "mrishash.h"
 
 static char vcid[] = 
-"$Id: mris_sample_parc.c,v 1.22 2006/06/01 22:31:53 kteich Exp $";
+"$Id: mris_sample_parc.c,v 1.23 2006/06/16 15:47:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ static int   replace_label = 0;
 static int   ntrans = 0 ;
 static int   trans_in[MAX_TRANS] ;
 static int   trans_out[MAX_TRANS] ;
-#define MAX_LABEL 1000
+//#define MAX_LABEL 1000
 static int sample_from_vol_to_surf = 0 ;
 static char  *mask_fname = NULL ;
 static int   mask_val ;
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mris_sample_parc.c,v 1.22 2006/06/01 22:31:53 kteich Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
+																 "$Id: mris_sample_parc.c,v 1.23 2006/06/16 15:47:35 fischl Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
 																	 exit (0);
   argc -= nargs;
 
