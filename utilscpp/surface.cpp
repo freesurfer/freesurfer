@@ -148,12 +148,11 @@ int Surface::WriteFile(const string s, int verbose) const
 {
 	ofstream file(s.c_str());
 
-	file << nvertices << endl;
+	file << nvertices << " " << nfaces << endl;
 	for(int n= 0 ; n < nvertices ; n++)
-		file << vertices[n].x << " " << vertices[n].y << " " << vertices[n].z << endl;
-	file << nfaces << endl; 
+		file << vertices[n].x << " " << vertices[n].y << " " << vertices[n].z << " " << 0 << endl;
 	for(int n = 0 ; n < nfaces ; n++)
-		file << faces[n].v[0] << " " << faces[n].v[1] << " " << faces[n].v[2] << endl ;
+		file << faces[n].v[0] << " " << faces[n].v[1] << " " << faces[n].v[2] << " " << 0 << endl ;
 	if(verbose) cout << endl << "surface written in " << s << " " ;
 	return 0;
 }
@@ -1152,6 +1151,10 @@ void Surface::CutLoop(Loop &loop){
 	ASSERT(nvertices <= maxvertices && nfaces <= maxfaces);
 
 	ExpandMarks(2,4);
+	for(int n = 0 ; n < nvertices ; n++)
+		if(vertices[n].vnum!=vertices[n].fnum)
+			vertices[n].marked=0;//border vertex
+
 	// finding vertices that are marked with 4
 	//int * vert = new int[2*pdisk->disk.nvertices],nvert=0;
 	int nvert=0;
