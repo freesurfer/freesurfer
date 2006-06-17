@@ -265,6 +265,7 @@ typedef struct
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
   int    group_avg_vtxarea_loaded; // average vertex area for group at each vertex
+	int    triangle_links_removed ;  // for quad surfaces
 } MRI_SURFACE, MRIS ;
 
 
