@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.19 2006/06/07 19:50:25 kteich Exp $
+# $Id: tkUtils.tcl,v 1.20 2006/06/19 19:26:57 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -441,6 +441,122 @@ proc tkuSetMenuItemGroupStatus { isGroupName ibEnable } {
     }
 }
 
+# tkuMakeLongOptionMenu
+# -entries : a list of text items to put into the menu (required)
+# -command : command to call when an item is selected. appends the item index
+# -menutext : the initial text for the menu button
+# -label : an optional label to the left of the menu
+# -labelwidth : optional width of the label
+# -labelanchor : optional anchor of the label
+# -font : optional font of the label
+proc tkuMakeLongOptionMenu { ifwTop args } {
+
+    # Set default arguments.
+    set aArgs(-menutext) "Choose:"
+    set aArgs(-label) ""
+    set aArgs(-labelwidth) 0
+    set aArgs(-labelanchor) e
+    set aArgs(-font) [tkuNormalFont]
+
+    # Set arg items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-entries -command} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuMakeLongOptionMenu: no $arg specified"
+	    return
+	}
+    }
+    
+    frame $ifwTop
+
+    if { $aArgs(-label) != "" } {
+	
+	label $ifwTop.lwLabel \
+	    -anchor $aArgs(-labelanchor) \
+	    -width $aArgs(-labelwidth) \
+	    -text $aArgs(-label) \
+	    -font $aArgs(-font)
+	
+	pack $ifwTop.lwLabel \
+		-side left \
+		-anchor e
+    }
+
+    # Create a raised frame for the button look.
+    frame $ifwTop.fwmw \
+	-relief raised \
+	-border 2
+
+    # Create the menu button that houses the menu.
+    menubutton $ifwTop.fwmw.mbw \
+	-text $aArgs(-menutext) \
+	-menu $ifwTop.fwmw.mbw.mw \
+	-indicatoron 1
+
+    # Create the menu.
+    set mw [menu $ifwTop.fwmw.mbw.mw]
+
+    # If we have more than 30 entries...
+    set lEntries $aArgs(-entries)
+    if { [llength $lEntries] > 30 } {
+
+	# For each entry...
+	set nEntry 0
+	set nSubMenu 0
+	while { $nEntry < [llength $lEntries] } {
+
+	    # Get an entry 29 items down (or < 29 if we don't have
+	    # that many items.
+	    set nTopEntry [expr $nEntry + 29]
+	    if { $nTopEntry >= [llength $lEntries] } {
+		set nTopEntry [expr [llength $lEntries] - 1]
+	    }
+
+	    # Create a submenu. Add the submenu to the main menu,
+	    # giving it a label consisting of the entry and the entry
+	    # 29 items down.
+	    menu $mw.mw$nSubMenu
+	    $mw add cascade -menu $mw.mw$nSubMenu \
+		-label "[lindex $lEntries $nEntry] -> [lindex $lEntries $nTopEntry]"
+
+	    # Look at the entry 30 items from now.
+	    incr nEntry 30
+	    incr nSubMenu
+	}
+    }
+
+    # For each entry...
+    set nEntry 0
+    foreach entry $lEntries {
+
+	# If we have more than 30, we're adding it to one of our
+	# submenus. Otherwise, we're adding to the main menu.
+	if { [llength $lEntries] > 30 } {
+	    set curMenu $mw.mw[expr $nEntry / 30]
+	} else {
+	    set curMenu $mw
+	}
+
+	# Add the item. The command sets the text of the menu button
+	# to this entry's text, and calls the user command with the
+	# entry index.
+	$curMenu add command \
+	    -command "$ifwTop.fwmw.mbw config -text [lindex $lEntries $nEntry]; $aArgs(-command) $nEntry" \
+	    -label [lindex $lEntries $nEntry]
+
+	incr nEntry
+    }
+
+    pack $ifwTop.fwmw.mbw \
+	-side left \
+	-anchor w
+    
+    pack $ifwTop.fwmw \
+	-side left \
+	-anchor w \
+	-padx 5
+    
+}
 
 # tkuMakeCheckboxes
 # -orientation : orientation of checkboxes (h, v)
