@@ -874,12 +874,12 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.9 2006/06/19 19:34:25 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.10 2006/06/19 21:06:04 segonne Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
 		fprintf(stderr,"\n\nUSAGE: mri_mc input_volume label_value output_surface [connectivity]");
-		fprintf(stderr,"\noption connectivity: 1=6+,2=18,3=6,4=26(default)\n\n");
+		fprintf(stderr,"\noption connectivity: 1=6+,2=18,3=6,4=26 (default=1)\n\n");
 		exit(-1);
 	} 
 
@@ -914,7 +914,7 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_NOMEMORY, "labels/surfaces tables\n") ;
 
 	if(argc==5) parms->connectivity=atoi(argv[4]);//connectivity;
-	else parms->connectivity=4;
+	else parms->connectivity=1;
 	
 	initTesselationParms(parms);
 
