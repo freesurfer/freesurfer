@@ -18,7 +18,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.37 2006/06/01 22:31:40 kteich Exp $";
+"$Id: mris_anatomical_stats.c,v 1.38 2006/06/19 20:26:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.37 2006/06/01 22:31:40 kteich Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.38 2006/06/19 20:26:37 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -258,8 +258,10 @@ main(int argc, char *argv[])
                   log_file_name) ;
     }
 
-  fprintf(stdout, "total white matter volume               = %2.0f mm^3\n",
-          wm_volume) ;
+#define SHOW_WHITE_MATTER_VOLUME 0
+#if SHOW_WHITE_MATTER_VOLUME
+  fprintf(stdout, "total white matter volume               = %2.0f mm^3\n",wm_volume) ;
+#endif
 
   if (annotation_name && tabular_output_flag)
     {
@@ -300,7 +302,9 @@ main(int argc, char *argv[])
     fprintf(fp,"# AnnotationFile %s\n",annotation_name);
     fprintf(fp,"# AnnotationFileTimeStamp %s\n",
             VERfileTimeStamp(annotation_name));
+#if SHOW_WHITE_MATTER_VOLUME
     fprintf(fp,"# TotalWhiteMatterVolume  %2.0f mm^3\n",wm_volume) ;
+#endif
 
     fprintf(fp,"# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
             mris->nvertices);
@@ -755,6 +759,7 @@ main(int argc, char *argv[])
     }
   if (log_fp)
     {
+#if SHOW_WHITE_MATTER_VOLUME
       if (!noheader)
         fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> "
                 "<thick mean> <thick var> <integ rect. mean curv> "
@@ -772,6 +777,24 @@ main(int argc, char *argv[])
          mean_abs_gaussian_curvature,
          fi,
          ici) ;
+#else
+      if (!noheader)
+        fprintf(log_fp, "%% %s: <surf area> <gray vol> "
+                "<thick mean> <thick var> <integ rect. mean curv> "
+                "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
+                sname) ;
+      fprintf
+        (log_fp,
+         "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+         mris->total_area,
+         gray_volume,
+         thickness_mean,
+         sqrt(thickness_var),
+         mean_abs_mean_curvature,
+         mean_abs_gaussian_curvature,
+         fi,
+         ici) ;
+#endif
       fclose(log_fp) ;
     }
   if (histo_flag)
@@ -983,17 +1006,17 @@ MRISmeasureTotalWhiteMatterVolume(MRI *mri)
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   voxel_volume = mri->xsize * mri->ysize * mri->zsize ;
   for (total_volume = 0.0, y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-        {
-          psrc = &MRIvox(mri, 0, y, z) ;
-          for (x = 0 ; x < width ; x++)
-            {
-              if (*psrc++ > 10)
-                total_volume += voxel_volume ;
-            }
-        }
-    }
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			psrc = &MRIvox(mri, 0, y, z) ;
+			for (x = 0 ; x < width ; x++)
+			{
+				if (*psrc++ > 10)
+					total_volume += voxel_volume ;
+			}
+		}
+	}
   return(total_volume) ;
 }
 
@@ -1006,26 +1029,26 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
   double    mean, var, n ;
 
   for (n = mean = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (v->curv < ignore_below || v->curv > ignore_above)
-        continue ;
-      mean += v->curv ;
-      n += 1.0 ;
-    }
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (v->curv < ignore_below || v->curv > ignore_above)
+			continue ;
+		mean += v->curv ;
+		n += 1.0 ;
+	}
 
   mean /= n ;
   for (var = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (v->curv < ignore_below || v->curv > ignore_above)
-        continue ;
-      var += (v->curv - mean) * (v->curv - mean) ;
-    }
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (v->curv < ignore_below || v->curv > ignore_above)
+			continue ;
+		var += (v->curv - mean) * (v->curv - mean) ;
+	}
 
   var /= n ;
   *pavg = mean ; *pvar = var ;
