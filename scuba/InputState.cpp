@@ -102,6 +102,9 @@ InputState::ClearEvents () {
   mbButtonDragEvent = false;
   mButton = 0;
   mDelta[0] = mDelta[1] = 0;
+  mbShiftKey   = false;
+  mbAltKey     = false;
+  mbControlKey = false;
 }
 
 void
