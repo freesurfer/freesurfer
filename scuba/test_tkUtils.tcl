@@ -94,10 +94,31 @@ set fileName /tmp/blah
 
 pack .fsw
 
+
+for {set n 0} {$n < 20} {incr n} {
+    lappend low1 $n
+}
+
+for {set n 0} {$n < 100} {incr n} {
+    lappend low2 $n
+}
+
+tkuMakeLongOptionMenu .ow1 \
+    -entries $low1 \
+    -label "No submenus" \
+    -command puts
+
+tkuMakeLongOptionMenu .ow2 \
+    -entries $low2 \
+    -labelwidth 10 \
+    -label "Submenus" \
+    -command puts
+
+pack .ow1 .ow2 -anchor w
+
 proc tbWrapper { isName iValue } {
     puts "tbWrapper: $isName = $iValue"
 }
-
 
 button .bwFile -text "Test File Dlog" -command "TestFileDlog"
 button .bwError -text "Test Error Dlog" -command "TestErrorDlog"
