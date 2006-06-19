@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.7 2005/11/30 18:12:09 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.8 2006/06/19 18:34:22 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -951,7 +951,7 @@ int main(int argc, char *argv[])
 	
 	MRISfree(&mris);
 
-	fprintf(stderr,"\nwritting out surface...");
+	fprintf(stderr,"\nwriting out surface...");
 	MRISaddCommandLine(mris_corrected, cmdline) ;
 	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
