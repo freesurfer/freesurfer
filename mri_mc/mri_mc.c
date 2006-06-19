@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.8 2006/06/19 18:34:22 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.9 2006/06/19 19:34:25 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -887,6 +887,21 @@ int main(int argc, char *argv[])
   if(!parms)
     ErrorExit(ERROR_NOMEMORY, "tesselation parms\n") ;
 	mri=MRIread(argv[1]);
+	if (mri->type != MRI_UCHAR)
+	{
+		MRI *mri_tmp ;
+		float min_val, max_val ;
+
+		MRIvalRange(mri, &min_val, &max_val) ;
+		if (min_val < 0 || max_val > 255)
+			ErrorExit(ERROR_UNSUPPORTED, "%s: input volume (val range [%2.1f %2.1f]) must be convertible to UCHAR",
+								Progname, min_val, max_val) ;
+		printf("changing type of input volume to 8 bits/voxel...\n") ;
+		mri_tmp = MRIchangeType(mri, MRI_UCHAR, 0.0, 0.999, TRUE) ;
+		MRIfree(&mri) ;
+		mri = mri_tmp ;
+	}
+
 	parms->mri=mri;
 	
 	parms->number_of_labels=1; //only one single label
@@ -909,7 +924,6 @@ int main(int argc, char *argv[])
   mris=parms->mris_table[0];
   free(parms->mris_table);
 	freeTesselationParms(&parms);
-	MRIfree(&mri);
 
 	
 	{
@@ -953,9 +967,15 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\nwriting out surface...");
 	MRISaddCommandLine(mris_corrected, cmdline) ;
+	if (mriConformed(mri) == 0)
+	{
+		printf("input volume is not conformed - using useRealRAS=1\n") ;
+		mris_corrected->useRealRAS = 1 ;
+	}
 	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
 
+	MRIfree(&mri);
 	MRISfree(&mris_corrected);
 
   return 0;
