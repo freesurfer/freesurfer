@@ -86,5 +86,6 @@ HISTOGRAM *HISTOmakePDF(HISTO *h_src, HISTO *h_dst) ;
 int HISTOcount(HISTO *h, double *samples, int nsamples);
 int HISTOvalToBin(HISTO *h, double val);
 HISTO *HISTObins(int nbins, double min, double max);
+int HISTOvalToBinDirect(HISTOGRAM *histo, float val) ;
 
 #endif
