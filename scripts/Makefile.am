@@ -83,6 +83,7 @@ mri-sph2surf \
 mris_preproc \
 mris_volsmooth \
 ms_refine_subject \
+plot_structure_stats.tcl \
 printdat \
 progressbar.tcl \
 fsr-checkxopts \
