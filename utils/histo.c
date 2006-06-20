@@ -997,11 +997,18 @@ int
 HISTOplot(HISTOGRAM *histo, char *fname)
 {
   FILE *fp ;
-  int  bin_no ;
+  int  bin_no, bmin, bmax ;
 
   fp = fopen(fname, "w") ;
 
-  for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
+	for (bmin = 0 ; bmin < histo->nbins ; bmin++)
+		if (histo->counts[bmin] > 0)
+			break ;
+	for (bmax = histo->nbins-1 ; bmax > bmin ; bmax--)
+		if (histo->counts[bmax] > 0)
+			break ;
+
+  for (bin_no = bmin ; bin_no <= bmax ; bin_no++)
     fprintf(fp, "%2.1f  %2.4f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
   return(NO_ERROR) ;
@@ -1294,6 +1301,8 @@ HISTOclearZeroBin(HISTOGRAM *h)
 {
   int b ;
 
+	if (h->bins[0] > h->bin_size)   // zero bin not in range
+		return(NO_ERROR) ;
   for (b = 0 ; b < h->nbins ; b++)
   {
     if (h->bins[b] >= 0)
@@ -1364,7 +1373,7 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 	{
 		if (h2_done[b2])
 			continue ;
-		b1 = nint(b2-b)/a ;
+		b1 = nint((b2-b)/a) ;
 		if ((b1 < 0) || (b1 > h1->nbins-1))
 			c1 = 0 ;
 		else
@@ -1385,30 +1394,30 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
   double error, sse, c1, c2;
   
   for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
-    {
-      b2 = nint(b1*a+b) ;
-      if ((b2 < 0) || (b2 > h2->nbins-1))
-	c2 = 0 ;
-      else
-	c2 = h2->counts[b2] ;
-      c1 = h1->counts[b1] ; 
-      error = c1*c2;
-      sse -= error;
-    }
+	{
+		b2 = nint(b1*a+b) ;
+		if ((b2 < 0) || (b2 > h2->nbins-1))
+			c2 = 0 ;
+		else
+			c2 = h2->counts[b2] ;
+		c1 = h1->counts[b1] ; 
+		error = c1*c2;
+		sse -= error;
+	}
   
   //	printf("sse = %g\n", sse);
   // inverse map
   for (b2 = 0 ; b2 < h2->nbins ; b2++)
-    {
-      b1 = nint(b2-b)/a ;
-      if ((b1 < 0) || (b1 > h1->nbins-1))
-	c1 = 0 ;
-      else
-	c1 = h1->counts[b1] ;
-      c2 = h2->counts[b2] ; 
-      error = c1*c2;
-      sse -= error;
-    }
+	{
+		b1 = nint((b2-b)/a) ;
+		if ((b1 < 0) || (b1 > h1->nbins-1))
+			c1 = 0 ;
+		else
+			c1 = h1->counts[b1] ;
+		c2 = h2->counts[b2] ; 
+		error = c1*c2;
+		sse -= error;
+	}
   //	printf("a= %g, b= %g, sse = %g\n", a, b, sse);
   return(sse) ;
 }
@@ -1533,3 +1542,12 @@ int HISTOvalToBin(HISTO *h, double val)
   }
   return(bin);
 }
+int
+HISTOvalToBinDirect(HISTOGRAM *histo, float val)
+{
+	int bin_no ;
+	bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
+	return(bin_no) ;
+}
+
+
