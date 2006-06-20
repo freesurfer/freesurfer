@@ -168,6 +168,7 @@ MRISSUBDIRS=label_area \
 	mris_longitudinal_surfaces \
 	mris_make_template \
 	mris_morph_stats \
+	mris_deform \
 	mris_multiscale_stats \
 	mris_niters2fwhm \
 	mris_remove_variance \
