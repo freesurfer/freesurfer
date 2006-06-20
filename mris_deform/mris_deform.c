@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 {
   char        *out_fname, **av ;
   int         ac, nargs, i ;
-  MRI         *mri_intensities, *mri_labels, *mri_kernel, *mri_smooth ;
+  MRI         *mri_intensities, *mri_labels, *mri_kernel, *mri_smooth=NULL ;
 	MRI_SURFACE *mris ;
   int         msec, minutes, seconds, n_averages ;
 	float        current_sigma ;
@@ -80,11 +80,11 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mris_deform.c,v 1.1 2006/06/20 00:08:12 fischl Exp $",
+     "$Id: mris_deform.c,v 1.2 2006/06/20 00:21:49 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.1 2006/06/20 00:08:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.2 2006/06/20 00:21:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
