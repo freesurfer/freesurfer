@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/14 16:42:49 $
-// Revision       : $Revision: 1.347 $
-char *MRI_C_VERSION = "$Revision: 1.347 $";
+// Revision Date  : $Date: 2006/06/20 16:09:00 $
+// Revision       : $Revision: 1.348 $
+char *MRI_C_VERSION = "$Revision: 1.348 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13291,7 +13291,7 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
           for (xk = -whalf ; xk <= whalf ; xk++)
             {
               xi = mri->xi[x+xk] ;
-              if (MRIvox(mri, xi, yi, zi) == label)
+              if (nint(MRIgetVoxVal(mri, xi, yi, zi,0)) == label)
                 count++;
             }
         }
