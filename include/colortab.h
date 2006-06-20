@@ -78,7 +78,7 @@ int CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len);
 
 /* Returns the special annotation format version of an index. This is
    used in surface fields as a compressed color value. The r, g, and b
-   values are shited into a single integer. */
+   values are shifted into a single integer. */
 int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot);
 int CTABfindAnnotation(COLOR_TABLE *ctab, int annotation, int *index);
 
