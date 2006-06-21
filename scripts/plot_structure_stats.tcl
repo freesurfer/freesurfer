@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.1 2006/06/20 21:48:23 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.2 2006/06/21 21:16:22 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -36,14 +36,15 @@ source $fnUtils
 #   $ID - id for this set of data
 #     bInited - data is inited for this ID
 #     lSubjects
-#     lSubjectDataLabels
-#     lStructures
-#     $structure,$subjectLabel,size
+#     lStructureSets
+#     $structureSet,lStructures
+#     $structureSet,$structure,$subject,size
 
 # gPlot
 #   $ID - id for this plot
 #     state
 #       info  - current info string
+#       sStructureSet - current structure set
 #       nStructure - current structure index
 #       hiElement - currently hilighted element
 #       subjects
@@ -67,8 +68,9 @@ proc PSS_ReadAllStatsInSubjectsDir { iID } {
 	exit
     }
 
-    set gData($iID,lStructures) {}
-    set gData($iID,lSubjectDataLabels) {}
+    set gData($iID,bInited) false
+    set gData($iID,lSubjects) {}
+    set gData($iID,lStructureSets) {}
 
     set lSubjects [exec ls $env(SUBJECTS_DIR)]
     foreach sSubject $lSubjects {
@@ -93,34 +95,12 @@ proc PSS_ReadAllStatsInSubjectsDir { iID } {
 	# For each file...
 	foreach fnStat $lStats {
 	    
-	    # Is this a volume or surface stats file? If vol, we're
-	    # going to adding subject-vol to the list of labels, if
-	    # surface, we're adding subject-lh or subject-rh.
-	    set fnTail [file tail $fnStat]
-
-	    set lParts [split $fnTail .]
-	    set sSubjectLabel $sSubject
-	    if { [string match [lindex $lParts 0] lh] } {
-		set sSubjectLabel $sSubject-lh
-	    } elseif { [string match [lindex $lParts 0] rh] } {
-		set sSubjectLabel $sSubject-rh
-	    } else {
-		set sSubjectLabel $sSubject-vol
-	    }
-
-	    # Add the label to the list of labels if it's not there
-	    # yet.
-	    if { [lsearch $gData($iID,lSubjectDataLabels) \
-		      $sSubjectLabel] == -1 } {
-		lappend gData($iID,lSubjectDataLabels) $sSubjectLabel
-	    }
-
 	    # Now parse this file, adding the structure/values we find
 	    # to our data.
-	    PSS_ReadStatsFileIntoDataTable $iID $fnStat $sSubjectLabel
+	    PSS_ReadStatsFileIntoDataTable $iID $fnStat $sSubject
 
 	    # Start out visible.
-	    set gPlot($iID,state,subjects,$sSubjectLabel,visible) 1
+	    set gPlot($iID,state,subjects,$sSubject,visible) 1
 	}
     }
     
@@ -130,39 +110,59 @@ proc PSS_ReadAllStatsInSubjectsDir { iID } {
 # Read a .stats file. For each structure line, add the structure and
 # size to our data table. Use the given subject label, or
 # subject-{l,r}h if it's a surface stat file.
-proc PSS_ReadStatsFileIntoDataTable { iID ifnStats isSubjectLabel } {
+proc PSS_ReadStatsFileIntoDataTable { iID ifnStats isSubject } {
     global gData
 
+
+    # Extract the structure set.
+    set sStructureSet [file rootname [file tail $ifnStats]]
+    
+    # Add it to the list of structure sets.
+    if { ![info exists gData($iID,lStructureSets)] ||
+	 [lsearch $gData($iID,lStructureSets) $sStructureSet] == -1 } {
+
+	lappend gData($iID,lStructureSets) $sStructureSet
+    }
+
+    
     set fStats [open $ifnStats r]
     while { ![eof $fStats] } {
 	set cRead [gets $fStats sLine]
 	if { $cRead > 0 } {
 	    # If the first char is not a pound sign...
 	    if { ![string match [string range $sLine 0 1] \#] } {
+
+		set sStructure none
+		set volume 0
+		set bGood 0
+
 		# I'd like to do this with the * symbol to discard
 		# fields, but it doesn't seem to work...
 		# Volume .stats format
 		set cScanned [scan $sLine "%d %d %d %e %s %e %e %e %e %e" \
 				  a b c volume sStructure d e f g h]
-		if { $cScanned == 10 } {
-		    if { [lsearch $gData($iID,lStructures) $sStructure] == -1 } {
-			lappend gData($iID,lStructures) $sStructure
-		    }
-		    set gData($iID,$sStructure,$isSubjectLabel,size) $volume
-		}
+		if { $cScanned == 10 } { set bGood 1 }
 
 		# Surface .stats format
-		set cScanned [scan $sLine "%s %d %d %d %e %e %e %e %e %e" \
-				  sStructure a area volume b c d e f g]
-		if { $cScanned == 10 } {
-		    if { [lsearch $gData($iID,lStructures) $sStructure] == -1 } {
-			lappend gData($iID,lStructures) $sStructure
-		    }
-		    set gData($iID,$sStructure,$isSubjectLabel,size) $volume
+		if { !$bGood } {
+		    set cScanned [scan $sLine "%s %d %d %d %e %e %e %e %e %e" \
+				      sStructure a area volume b c d e f g]
+		    if { $cScanned == 10 } { set bGood 1 }
 		}
 
+		# Still not good, skip this line.
+		if { !$bGood } {
+		    continue
+		}
 
+		if { ![info exists gData($iID,$sStructureSet,lStructures)] ||
+		     [lsearch $gData($iID,$sStructureSet,lStructures) \
+			  $sStructure] == -1 } {
+		    lappend gData($iID,$sStructureSet,lStructures) $sStructure
+		}
 
+		set gData($iID,$sStructureSet,$sStructure,$isSubject,size) \
+		    $volume
 	    }
 	}
     }
@@ -172,11 +172,11 @@ proc PSS_ReadStatsFileIntoDataTable { iID ifnStats isSubjectLabel } {
 proc PSS_BuildWindow { iID } {
     global gWidgets gData gPlot
 
-    set wwTop         .pss-$iID
-    set fwMenuBar     $wwTop.fwMenuBar
-    set gwPlot        $wwTop.gwPlot
-    set lwInfo        $wwTop.lwInfo
-    set owStructure   $wwTop.owStructure
+    set wwTop           .pss-$iID
+    set fwMenuBar       $wwTop.fwMenuBar
+    set gwPlot          $wwTop.gwPlot
+    set lwInfo          $wwTop.lwInfo
+    set fwStructureSets $wwTop.fwStructureSets
 
     # Make sure we have data for this window.
     if { ![info exists gData($iID,bInited)] ||
@@ -209,8 +209,9 @@ proc PSS_BuildWindow { iID } {
     $gwPlot legend bind all <Enter> [list PSS_CBLegendEnter $iID %W]
     $gwPlot legend bind all <Leave> [list PSS_CBLegendLeave $iID %W]
     $gwPlot legend bind all <ButtonPress-1> [list PSS_CBLegendClick $iID %W]
-    bind $gwPlot <Motion> [list PSS_CBGraphMotion $iID %W %x %y]
+    bind $gwPlot <Motion> [list PSS_CBPlotMotion $iID %W %x %y]
     bind $gwPlot <Destroy> [list PSS_CBCloseWindow $iID] 
+    bind $gwPlot <ButtonPress-1> [list PSS_CBPlotClick $iID %W %x %y]
 
     # Set the y axis label.
     $gwPlot axis configure y -title "Volume"
@@ -220,28 +221,38 @@ proc PSS_BuildWindow { iID } {
     tkuMakeActiveLabel $lwInfo \
 	-variable gPlot($iID,state,info)
 
-    # Make the structure menu.
-    tkuMakeLongOptionMenu $owStructure \
-	-command "PSS_SetStructure $iID" \
-	-label "Structure:" \
-	-entries $gData($iID,lStructures)
+    # Make the structure menus.
+    frame $fwStructureSets
+    foreach sStructureSet $gData($iID,lStructureSets) {
+
+	set sWidget [regsub -all \\. $sStructureSet -]
+
+	tkuMakeLongOptionMenu $fwStructureSets.ow-$sWidget \
+	    -command "PSS_SetStructure $iID $sStructureSet" \
+	    -label "$sStructureSet:" \
+	    -labelwidth 20 \
+	    -entries $gData($iID,$sStructureSet,lStructures)
+
+	pack $fwStructureSets.ow-$sWidget \
+	    -side top -anchor w
+
+    }
 
     # Place everythingin the window.
-    grid $fwMenuBar     -column 0 -row 0 -columnspan 2 -sticky new
-    grid $gwPlot        -column 0 -row 1 -columnspan 2 -sticky news
-    grid $lwInfo        -column 0 -row 2 -sticky nwe
-    grid $owStructure   -column 1 -row 2 -sticky se
+    grid $fwMenuBar       -column 0 -row 0 -sticky new
+    grid $gwPlot          -column 0 -row 1 -sticky news
+    grid $lwInfo          -column 0 -row 2 -sticky nwe
+    grid $fwStructureSets -column 0 -row 2 -sticky ws
     grid columnconfigure $wwTop 0 -weight 1
-    grid columnconfigure $wwTop 1 -weight 0
     grid rowconfigure $wwTop 0 -weight 0
     grid rowconfigure $wwTop 1 -weight 1
     grid rowconfigure $wwTop 2 -weight 0
 
     # Set the names in the gWidgets array.
-    set gWidgets($iID,wwTop)          $wwTop
-    set gWidgets($iID,gwPlot)         $gwPlot
-    set gWidgets($iID,lwInfo)         $lwInfo
-    set gWidgets($iID,owStructure)    $owStructure
+    set gWidgets($iID,wwTop)           $wwTop
+    set gWidgets($iID,gwPlot)          $gwPlot
+    set gWidgets($iID,lwInfo)          $lwInfo
+    set gWidgets($iID,fwStructureSets) $fwStructureSets
 
     # Create the pen for our active element.
     $gwPlot pen create activeElement \
@@ -269,9 +280,14 @@ proc PSS_PlotData { iID } {
 
     set gw $gWidgets($iID,gwPlot)
 
+    set sStructureSet $gPlot($iID,state,sStructureSet)
+    set nStructure $gPlot($iID,state,nStructure)
+    set sStructure [lindex $gData($iID,$sStructureSet,lStructures) $nStructure]
+
     # Set the x axis title to the label of the current structure.
     $gw axis configure x \
-	-title [lindex $gData($iID,lStructures) $gPlot($iID,state,nStructure)]
+	-title [lindex $gData($iID,$sStructureSet,lStructures) \
+		    $gPlot($iID,state,nStructure)]
 
     # Remove all the elements and markers from the graph.
     set lElements [$gw element names *]
@@ -283,18 +299,16 @@ proc PSS_PlotData { iID } {
 	$gw marker delete $marker
     }
     
-    set nStructure $gPlot($iID,state,nStructure)
-    set sStructure [lindex $gData($iID,lStructures) $gPlot($iID,state,nStructure)]
-
     set nSubject 0
-    foreach sSubjectLabel $gData($iID,lSubjectDataLabels) {
+    foreach sSubject $gData($iID,lSubjects) {
 
-	if { [info exists gData($iID,$sStructure,$sSubjectLabel,size)] } {
+	if { [info exists \
+		  gData($iID,$sStructureSet,$sStructure,$sSubject,size)] } {
 	    
 	    # If this is visible, set the hide flag off and the color to
 	    # blue. Otherwise set the hide flag on and color to white. It
 	    # will draw white in the legend.
-	    if { $gPlot($iID,state,subjects,$sSubjectLabel,visible) } {
+	    if { $gPlot($iID,state,subjects,$sSubject,visible) } {
 		set bHide 0
 		set color blue
 	    } else {
@@ -302,9 +316,9 @@ proc PSS_PlotData { iID } {
 		set color white
 	    }
 	    
-	    $gw element create $sSubjectLabel \
+	    $gw element create $sSubject \
 		-data [list $nSubject \
-			   $gData($iID,$sStructure,$sSubjectLabel,size)] \
+		    $gData($iID,$sStructureSet,$sStructure,$sSubject,size)] \
 		-linewidth 0 -outlinewidth 1 \
 		-hide $bHide -color $color \
 		-activepen activeElement
@@ -340,7 +354,7 @@ proc PSS_CBLegendClick { iID igw } {
 
 # When the mouse is in the graph, if we mouse over an element, focus
 # on that element.
-proc PSS_CBGraphMotion { iID igw iX iY } {
+proc PSS_CBPlotMotion { iID igw iX iY } {
     PSS_UnfocusElement $iID
     set lResult [PSS_FindMousedElement $iID $iX $iY]
     set element [lindex $lResult 0]
@@ -349,6 +363,86 @@ proc PSS_CBGraphMotion { iID igw iX iY } {
 	set x [lindex $lResult 2]
 	set y [lindex $lResult 3]
 	PSS_FocusElement $iID $element $index $x $y
+    }
+}
+
+# When you click an item in the graph, open it in tkmedit or tksurfer.
+proc PSS_CBPlotClick { iID igw iX iY } {
+    global gData gPlot env
+
+    set lResult [PSS_FindMousedElement $iID $iX $iY]
+    set element [lindex $lResult 0]
+    if { "$element" != "" } { 
+
+	# The element is the subject name.
+	set sSubject $element
+
+	# Figure out if we should open this as a surface with a
+	# parcellation or a volume with a segmentation. Note that the
+	# structure set _should_ be the same as the name of the aseg
+	# volume or parcellation if we append .mgz or .annot to it.
+
+	set sStructureSet $gPlot($iID,state,sStructureSet)
+
+	# First check if there is a .mgz or .mgh file with the same name.
+	if { [file exists [file join $env(SUBJECTS_DIR) $sSubject mri $sStructureSet.mgz]] || [file exists [file join $env(SUBJECTS_DIR) $sSubject mri $sStructureSet.mgh]]} {
+	    
+	    # The seg volume name is the structure set with .mgz or
+	    # .mgh appended.
+	    if { [file exists [file join $env(SUBJECTS_DIR) $sSubject mri $sStructureSet.mgz]] } {
+		set sSegVolume $sStructureSet.mgz
+	    } else {
+		set sSegVolume $sStructureSet.mgh
+	    }
+
+	    # Look for T1.{mgz,mgh} and orig.{mgz.mgh} for anatomical volumes.
+	    set sAnatVolume ""
+	    foreach sTestAnatVolume {T1.mgz T1.mgh orig.mgz orig.mgh} {
+		if { [file exists [file join $env(SUBJECTS_DIR) $sSubject mri $sTestAnatVolume]] } {
+		    set sAnatVolume $sTestAnatVolume
+		    break
+		}
+	    }
+	    if { [string match $sAnatVolume ""] } {
+		puts "Coulnd't find anatomical volume for $sSubject"
+		return
+	    }
+
+	    # Call tkmedit.
+	    exec tkmedit $sSubject $sAnatVolume -segmentation $sSegVolume &
+
+	} elseif { [file exists [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot]] } {
+
+	    # We need a hemi and a surface to load up the
+	    # parcellation. Scan the structure set for lh or rh for
+	    # the hemi, and then use it to look for surfaces.
+	    set sHemi ""
+	    if { [string match [string range $sStructureSet 0 1] lh] } {
+		set sHemi lh
+	    } elseif { [string match [string range $sStructureSet 0 1] rh] } {
+		set sHemi rh
+	    }
+	    if { [string match $sHemi ""] } {
+		puts "Couldn't find a hemi in the structure set."
+		return
+	    }
+	    
+	    # Look for the inflated surface.
+	    set sSurface ""
+	    if { [file exists [file join $env(SUBJECTS_DIR) $sSubject surf $sHemi.inflated]] } {
+		set sSurface inflated
+	    }
+	    if { [string match $sSurface ""] } {
+		puts "Couldn't find inflated surface."
+		return
+	    }
+
+	    # Call tksurfer
+	    exec tksurfer $sSubject $sHemi $sSurface -annotation [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot] &
+
+	} else {
+	    puts "Cannot find a seg volume or annot file to load." 
+	}
     }
 }
 
@@ -465,10 +559,11 @@ proc PSS_HideWindow { iID } {
 
 
 # Set the current structure.
-proc PSS_SetStructure { iID inStructure } {
+proc PSS_SetStructure { iID isStructureSet inStructure } {
     global gWidgets gPlot gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
 
+    set gPlot($iID,state,sStructureSet) $isStructureSet
     set gPlot($iID,state,nStructure) $inStructure
 
     PSS_PlotData $iID
