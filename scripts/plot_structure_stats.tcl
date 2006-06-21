@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.2 2006/06/21 21:16:22 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.3 2006/06/21 21:33:08 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -211,7 +211,8 @@ proc PSS_BuildWindow { iID } {
     $gwPlot legend bind all <ButtonPress-1> [list PSS_CBLegendClick $iID %W]
     bind $gwPlot <Motion> [list PSS_CBPlotMotion $iID %W %x %y]
     bind $gwPlot <Destroy> [list PSS_CBCloseWindow $iID] 
-    bind $gwPlot <ButtonPress-1> [list PSS_CBPlotClick $iID %W %x %y]
+    bind $gwPlot <Double-ButtonPress-1> [list PSS_CBPlotClick $iID %W %x %y]
+    bind all <Alt-q> PSS_Quit
 
     # Set the y axis label.
     $gwPlot axis configure y -title "Volume"
@@ -407,9 +408,22 @@ proc PSS_CBPlotClick { iID igw iX iY } {
 		puts "Coulnd't find anatomical volume for $sSubject"
 		return
 	    }
+	    
+	    # Look for norm.{mgz,mgh} for the aux volume.
+	    set sAuxVolume ""
+	    foreach sTestAuxVolume {norm.mgz norm.mgh} {
+		if { [file exists [file join $env(SUBJECTS_DIR) $sSubject mri $sTestAuxVolume]] } {
+		    set sAuxVolume $sTestAuxVolume
+		    break
+		}
+	    }
 
 	    # Call tkmedit.
-	    exec tkmedit $sSubject $sAnatVolume -segmentation $sSegVolume &
+	    if { [string match $sAuxVolume ""] } {
+		exec tkmedit $sSubject $sAnatVolume -segmentation $sSegVolume &
+	    } else {
+		exec tkmedit $sSubject $sAnatVolume -aux $sAuxVolume -segmentation $sSegVolume &
+	    }
 
 	} elseif { [file exists [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot]] } {
 
