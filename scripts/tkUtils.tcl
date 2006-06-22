@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.20 2006/06/19 19:26:57 kteich Exp $
+# $Id: tkUtils.tcl,v 1.21 2006/06/22 22:24:39 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -441,7 +441,7 @@ proc tkuSetMenuItemGroupStatus { isGroupName ibEnable } {
     }
 }
 
-# tkuMakeLongOptionMenu
+# tkuMakeOptionMenu
 # -entries : a list of text items to put into the menu (required)
 # -command : command to call when an item is selected. appends the item index
 # -menutext : the initial text for the menu button
@@ -449,7 +449,7 @@ proc tkuSetMenuItemGroupStatus { isGroupName ibEnable } {
 # -labelwidth : optional width of the label
 # -labelanchor : optional anchor of the label
 # -font : optional font of the label
-proc tkuMakeLongOptionMenu { ifwTop args } {
+proc tkuMakeOptionMenu { ifwTop args } {
 
     # Set default arguments.
     set aArgs(-menutext) "Choose:"
@@ -556,6 +556,19 @@ proc tkuMakeLongOptionMenu { ifwTop args } {
 	-anchor w \
 	-padx 5
     
+}
+
+proc tkuSetOptionMenuText { ifwTop {isText "Choose:"} } {
+
+    # Catch the error if there is one (e.g. if this is not really an
+    # option menu).
+    set err [catch {
+	$ifwTop.fwmw.mbw config -text $isText
+    } sResult]
+	
+    if { $err != 0 } {
+	puts "tkuSetOptionMenuText: Error setting text, maybe not really a menu?"
+    }
 }
 
 # tkuMakeCheckboxes
