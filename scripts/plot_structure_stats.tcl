@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.3 2006/06/21 21:33:08 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.4 2006/06/22 22:24:26 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -50,6 +50,7 @@ source $fnUtils
 #       subjects
 #         $nSubject - index into lSubjectDataLabels
 #           visible  - whether to draw this subj in the graph
+#           active  - whether to draw this subj in the graph
 
 # constant values for stuff
 set kValid(lMarkers) {square circle diamond plus cross splus scross triangle}
@@ -99,8 +100,9 @@ proc PSS_ReadAllStatsInSubjectsDir { iID } {
 	    # to our data.
 	    PSS_ReadStatsFileIntoDataTable $iID $fnStat $sSubject
 
-	    # Start out visible.
+	    # Start out visible and inactive.
 	    set gPlot($iID,state,subjects,$sSubject,visible) 1
+	    set gPlot($iID,state,subjects,$sSubject,active) 0
 	}
     }
     
@@ -228,7 +230,7 @@ proc PSS_BuildWindow { iID } {
 
 	set sWidget [regsub -all \\. $sStructureSet -]
 
-	tkuMakeLongOptionMenu $fwStructureSets.ow-$sWidget \
+	tkuMakeOptionMenu $fwStructureSets.ow-$sWidget \
 	    -command "PSS_SetStructure $iID $sStructureSet" \
 	    -label "$sStructureSet:" \
 	    -labelwidth 20 \
@@ -237,6 +239,8 @@ proc PSS_BuildWindow { iID } {
 	pack $fwStructureSets.ow-$sWidget \
 	    -side top -anchor w
 
+	# Save this widget location.
+	set gWidgets(menu,$sStructureSet) $fwStructureSets.ow-$sWidget
     }
 
     # Place everythingin the window.
@@ -311,7 +315,13 @@ proc PSS_PlotData { iID } {
 	    # will draw white in the legend.
 	    if { $gPlot($iID,state,subjects,$sSubject,visible) } {
 		set bHide 0
-		set color blue
+
+		if { $gPlot($iID,state,subjects,$sSubject,active) } {
+		    set color red
+		} else {
+		    set color blue
+		}
+		
 	    } else {
 		set bHide 1
 		set color white
@@ -420,10 +430,10 @@ proc PSS_CBPlotClick { iID igw iX iY } {
 
 	    # Call tkmedit.
 	    if { [string match $sAuxVolume ""] } {
-		exec tkmedit $sSubject $sAnatVolume -segmentation $sSegVolume &
+		PSS_RunViewerCmd $iID $sSubject "tkmedit $sSubject $sAnatVolume -segmentation $sSegVolume"
 	    } else {
-		exec tkmedit $sSubject $sAnatVolume -aux $sAuxVolume -segmentation $sSegVolume &
-	    }
+		PSS_RunViewerCmd $iID $sSubject "tkmedit $sSubject $sAnatVolume -aux $sAuxVolume -segmentation $sSegVolume"
+ 	    }
 
 	} elseif { [file exists [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot]] } {
 
@@ -452,7 +462,7 @@ proc PSS_CBPlotClick { iID igw iX iY } {
 	    }
 
 	    # Call tksurfer
-	    exec tksurfer $sSubject $sHemi $sSurface -annotation [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot] &
+	    PSS_RunViewerCmd $iID $sSubject "tksurfer $sSubject $sHemi $sSurface -annotation [file join $env(SUBJECTS_DIR) $sSubject label $sStructureSet.annot]"
 
 	} else {
 	    puts "Cannot find a seg volume or annot file to load." 
@@ -532,6 +542,40 @@ proc PSS_FindMousedElement { iID iX iY } {
     return ""
 }
 
+proc PSS_RunViewerCmd { iID isSubject isCommand } {
+    global gPlot
+
+    set gPlot($iID,state,subjects,$isSubject,active) 1
+    PSS_PlotData $iID
+
+    set fCmd [open "|$isCommand" r]
+    set commandPID [pid $fCmd]
+
+    fconfigure $fCmd -buffering line -blocking 0
+
+    fileevent $fCmd readable \
+	"PSS_PrintLog $iID $isSubject $fCmd $commandPID"
+
+}
+
+proc PSS_PrintLog { iID isSubject ifCmd iCmdPID } {
+    global gPlot
+
+    if { [eof $ifCmd] } {
+
+	close $ifCmd
+
+	set gPlot($iID,state,subjects,$isSubject,active) 0
+	PSS_PlotData $iID
+
+    } else {
+
+	gets $ifCmd line
+	puts "$isSubject: $line"
+	update idletasks
+    }
+}
+
 proc PSS_Quit {} {
     exit
 }
@@ -577,6 +621,12 @@ proc PSS_SetStructure { iID isStructureSet inStructure } {
     global gWidgets gPlot gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
 
+    # Clear the text in the current menu.
+    catch {
+	tkuSetOptionMenuText $gWidgets(menu,$gPlot($iID,state,sStructureSet))
+    }
+
+    # Save the new currents.
     set gPlot($iID,state,sStructureSet) $isStructureSet
     set gPlot($iID,state,nStructure) $inStructure
 
