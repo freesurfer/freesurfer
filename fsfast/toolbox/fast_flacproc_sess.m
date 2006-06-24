@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.10 2006/04/26 04:37:50 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.11 2006/06/24 14:04:46 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -203,22 +203,38 @@ for nthrun = 1:nruns
   tmp.vol = fast_mat2vol(beta,szvol);
   MRIwrite(tmp,stem);
 
+  % Save the baseline separately
+  blevind = flac_evindex(flac,'Baseline');
+  if(~isempty(blevind))
+    blregind = flac_evregind(flac,blevind);
+    tmp = y;
+    tmp.vol = fast_mat2vol(beta(blregind,:),szvol);
+    stem = sprintf('%s/baseline%s',outdir,flac.formatext);
+    MRIwrite(tmp,stem);
+  end
+
+  % Save residual variance and stddev
   stem = sprintf('%s/rvar%s',outdir,flac.formatext);
   tmp = y;
   tmp.vol = fast_mat2vol(rvar,szvol);
   MRIwrite(tmp,stem);
+  stem = sprintf('%s/rstd%s',outdir,flac.formatext);
+  tmp.vol = sqrt(tmp.vol);
+  MRIwrite(tmp,stem);
 
+  % Save residual ACF
   stem = sprintf('%s/racf%s',outdir,flac.formatext);
   racfmri.vol = fast_mat2vol(racfmri.vol,racfmri.volsize);
   MRIwrite(racfmri,stem);
 
+  % OK, Save residual too
   if(svres)
     stem = sprintf('%s/res%s',outdir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(r,szvol);
     MRIwrite(tmp,stem);
   end
-
+  
   fprintf('Computing contrasts   (%6.1f)\n',toc);
   ncontrasts = length(flac.con);
   for nthcon = 1:ncontrasts
@@ -273,6 +289,13 @@ for nthrun = 1:nruns
     tmp.vol = fast_mat2vol(cescvm,szvol);
     MRIwrite(tmp,stem);
 
+    if(dof1 == 1)
+      stem = sprintf('%s/gamstd%s',condir,flac.formatext);
+      tmp = y;
+      tmp.vol = fast_mat2vol(sqrt(cescvm),szvol);
+      MRIwrite(tmp,stem);
+    end
+  
   end % contrasts
 
   if(npca)
