@@ -124,6 +124,7 @@ typedef struct
   MATRIX *r_to_i__;
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
+	double outside_val ; // 0 by default, but could be something else
 } MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
