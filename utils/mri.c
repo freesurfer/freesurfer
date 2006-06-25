@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/23 20:04:14 $
-// Revision       : $Revision: 1.349 $
-char *MRI_C_VERSION = "$Revision: 1.349 $";
+// Revision Date  : $Date: 2006/06/25 18:57:13 $
+// Revision       : $Revision: 1.350 $
+char *MRI_C_VERSION = "$Revision: 1.350 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -8877,6 +8877,7 @@ MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
   Real xp1, xm1, yp1, ym1, zp1, zm1 ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
+#if 0
   if (x >= width)
     x = width - 1.0 ;
   if (y >= height)
@@ -8889,6 +8890,7 @@ MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
     y = 0.0 ;
   if (z < 0.0)
     z = 0.0 ;
+#endif
   MRIsampleVolume(mri, x+1.0, y, z, &xp1) ;
   MRIsampleVolume(mri, x-1.0, y, z, &xm1) ;
 
@@ -8916,7 +8918,7 @@ MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z,
                              Real *pdx, Real *pdy, Real *pdz, int frame)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1, xp1v, xm1v, yp1v, ym1v, zp1v, zm1v ;
+  Real xp1, xm1, yp1, ym1, zp1, zm1 ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 #if 0
@@ -8938,33 +8940,19 @@ MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z,
     frame = 0 ;
 #endif
 
-	xp1 = x+1 ; xm1 = x - 1 ;
-	yp1 = y+1 ; ym1 = y - 1 ;
-	zp1 = z+1 ; zm1 = z - 1 ;
-	if (xm1 > mri->width-1)
-		xm1 = mri->width-1 ;
-	if (xp1 < 0)
-		xp1 = 0 ;
-	if (ym1 > mri->height-1)
-		ym1 = mri->height-1 ;
-	if (yp1 < 0)
-		yp1 = 0 ;
-	if (zm1 > mri->depth-1)
-		zm1 = mri->depth-1 ;
-	if (zp1 < 0)
-		zp1 = 0 ;
-  MRIsampleVolumeFrame(mri, xp1, y, z, frame, &xp1v) ;
-  MRIsampleVolumeFrame(mri, xm1, y, z, frame, &xm1v) ;
+  MRIsampleVolumeFrame(mri, x+1.0, y, z, frame, &xp1) ;
+  MRIsampleVolumeFrame(mri, x-1.0, y, z, frame, &xm1) ;
 
-  MRIsampleVolumeFrame(mri, x, y+1.0, z, frame, &yp1v) ;
-  MRIsampleVolumeFrame(mri, x, y-1.0, z, frame, &ym1v) ;
+  MRIsampleVolumeFrame(mri, x, y+1.0, z, frame, &yp1) ;
+  MRIsampleVolumeFrame(mri, x, y-1.0, z, frame, &ym1) ;
 
-  MRIsampleVolumeFrame(mri, x, y, z+1.0, frame, &zp1v) ;
-  MRIsampleVolumeFrame(mri, x, y, z-1.0, frame, &zm1v) ;
+  MRIsampleVolumeFrame(mri, x, y, z+1.0, frame, &zp1) ;
+  MRIsampleVolumeFrame(mri, x, y, z-1.0, frame, &zm1) ;
 
-  *pdx = (xp1v-xm1v)/(2.0*mri->xsize) ;
-  *pdy = (yp1v-ym1v)/(2.0*mri->ysize) ;
-  *pdz = (zp1v-zm1v)/(2.0*mri->zsize) ;
+  *pdx = (xp1-xm1)/(2.0*mri->xsize) ;
+  *pdy = (yp1-ym1)/(2.0*mri->ysize) ;
+  *pdz = (zp1-zm1)/(2.0*mri->zsize) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
