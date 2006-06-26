@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.22 2006/06/09 17:48:27 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.23 2006/06/26 12:20:27 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -171,7 +171,7 @@ foreach subj ($subjlist)
        set cmd = ($cmd --sval-$sval $svalsurf)
     endif
     if($jac) set cmd = ($cmd --jac)
-    if($#srcfmt) set cmd = ($cmd --sfmt curv)
+    if($#srcfmt) set cmd = ($cmd --sfmt $srcfmt)
     set cmd = ($cmd --trgsubject $target --tval $tval)
     if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
     if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
@@ -829,7 +829,8 @@ using --meas. This still requires that a subject list be supplied.
 
 Specify source format when using --is. This is mainly needed when the 
 input format is not one recognized by mri_convert (eg, "curv" format
-that thickness files are in). --meas implies --srcfmt curv.
+that thickness files are in). --meas implies --srcfmt curv. Can also
+use "paint" or "w".
 
 --iv volmeasfile
 
