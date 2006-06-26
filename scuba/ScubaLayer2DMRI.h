@@ -171,6 +171,17 @@ class ScubaLayer2DMRI : public Layer {
   void SetHeatScaleMaxThreshold ( float iValue );
   float GetHeatScaleMaxThreshold () { return mHeatScaleMaxThreshold; }
 
+  void SetReverseHeatScale ( bool ib ) { mbReverseHeatScale = ib; }
+  bool GetReverseHeatScale () { return mbReverseHeatScale; }
+  void SetShowPositiveHeatScaleValues ( bool ib ) 
+    { mbShowPositiveHeatScaleValues = ib; }
+  bool GetShowPositiveHeatScaleValues () 
+    { return mbShowPositiveHeatScaleValues; }
+  void SetShowNegativeHeatScaleValues ( bool ib ) 
+    { mbShowNegativeHeatScaleValues = ib; }
+  bool GetShowNegativeHeatScaleValues () 
+    { return mbShowNegativeHeatScaleValues; }
+
   // Opacity of ROIs drawn on this layer.
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
@@ -266,6 +277,9 @@ class ScubaLayer2DMRI : public Layer {
 
   // For heatScale drawing.
   float mHeatScaleMinThreshold, mHeatScaleMidThreshold, mHeatScaleMaxThreshold;
+  bool mbReverseHeatScale;
+  bool mbShowPositiveHeatScaleValues;
+  bool mbShowNegativeHeatScaleValues;
 
   // Our look up table.
   ScubaColorLUT* mColorLUT;

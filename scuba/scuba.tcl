@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.209 2006/06/15 20:31:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.210 2006/06/26 22:21:41 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2140,7 +2140,21 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
 
     set gaWidget(layerProperties,heatScaleSliders) $fwHeatscale.swHeatScale
-
+    
+    tkuMakeCheckboxes $fwHeatscale.cbwOptions \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Reverse colors" 
+		-variable gaLayer(current,reverseHeatScale) 
+		-command {Set2DMRILayerReverseHeatScale $gaLayer(current,id) $gaLayer(current,reverseHeatScale); RedrawFrame [GetMainFrameID]} }
+	    {-type text -label "Show positive values" 
+		-variable gaLayer(current,showPositiveHeatScale) 
+		-command {Set2DMRILayerShowPositiveHeatScaleValues $gaLayer(current,id) $gaLayer(current,showPositiveHeatScale); RedrawFrame [GetMainFrameID]} }
+	    {-type text -label "Show negative values" 
+		-variable gaLayer(current,showNegativeHeatScale) 
+		-command {Set2DMRILayerShowNegativeHeatScaleValues $gaLayer(current,id) $gaLayer(current,showNegativeHeatScale); RedrawFrame [GetMainFrameID]} }
+	}
+    
     tkuMakeSliders $fwHeatscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
@@ -2151,7 +2165,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwHeatscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
     grid $fwHeatscale.lwHeatScale       -column 0 -row 1 -sticky ew
     grid $fwHeatscale.swHeatScale       -column 0 -row 2 -sticky ew
-    grid $fwHeatscale.swFrame           -column 0 -row 3 -sticky ew
+    grid $fwHeatscale.cbwOptions        -column 0 -row 3 -sticky ew
+    grid $fwHeatscale.swFrame           -column 0 -row 4 -sticky ew
 
     # LUT setting -----------------------------------------------------
     tixOptionMenu $fwLUT.mwLUT \
@@ -3106,6 +3121,12 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerHeatScaleMid $iLayerID]
 	    set gaLayer(current,heatScaleMax) \
 		[Get2DMRILayerHeatScaleMax $iLayerID]
+	    set gaLayer(current,reverseHeatScale) \
+		[Get2DMRILayerReverseHeatScale $iLayerID]
+	    set gaLayer(current,showPositiveHeatScale) \
+		[Get2DMRILayerShowPositiveHeatScaleValues $iLayerID]
+	    set gaLayer(current,showNegativeHeatScale) \
+		[Get2DMRILayerShowNegativeHeatScaleValues $iLayerID]
 	    set gaLayer(current,frame) [Get2DMRILayerCurrentFrame $iLayerID]
 
 	    # Set the LUT menu.
@@ -6201,7 +6222,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.209 2006/06/15 20:31:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.210 2006/06/26 22:21:41 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

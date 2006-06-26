@@ -42,6 +42,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mHeatScaleMinThreshold(0),
   mHeatScaleMidThreshold(0),
   mHeatScaleMaxThreshold(0),
+  mbReverseHeatScale(false),
+  mbShowPositiveHeatScaleValues(true),
+  mbShowNegativeHeatScaleValues(true),
   mColorLUT(NULL),
   mROIOpacity(0.7),
   mbEditableROI(true),
@@ -161,6 +164,24 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleMax", 2, 
 			 "layerID value", "Sets the heat scale max value "
 			 "for the layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerReverseHeatScale", 1,
+			 "layerID", "Returns whether or not the heat "
+			 "scale colors are reversed." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerReverseHeatScale", 2, 
+			 "layerID reverse", "Set whether or not the heat "
+			 "scale colors are reversed." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerShowPositiveHeatScaleValues", 1,
+			 "layerID", "Returns whether or not positive heat "
+			 "scale values are being drawn." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerShowPositiveHeatScaleValues", 2, 
+			 "layerID show", "Set whether or not positive heat "
+			 "scale values are being drawn." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerShowNegativeHeatScaleValues", 1,
+			 "layerID", "Returns whether or not negative heat "
+			 "scale values are being drawn." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerShowNegativeHeatScaleValues", 2, 
+			 "layerID show", "Set whether or not negative heat "
+			 "scale values are being drawn." );
   commandMgr.AddCommand( *this, "Set2DMRILayerROIOpacity", 2,"layerID opacity",
 			 "Sets the opacity of the ROI for a layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
@@ -762,65 +783,73 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
       (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) &&
-      (iValue >= mHeatScaleMinThreshold || iValue <= -mHeatScaleMinThreshold)){
+      (iValue >= mHeatScaleMinThreshold || iValue <= -mHeatScaleMinThreshold)&&
+      ((iValue > 0 && mbShowPositiveHeatScaleValues) ||
+       (iValue < 0 && mbShowNegativeHeatScaleValues)) ) {
     
     float minValue = mHeatScaleMinThreshold;
     float midValue = mHeatScaleMidThreshold;
     float maxValue = mHeatScaleMaxThreshold;
+
+    float fValue = iValue;
     
     float tmp;
-    if ( fabs(iValue) > minValue &&
-	 fabs(iValue) < midValue ) {
-      tmp = fabs(iValue);
+    if ( fabs(fValue) > minValue &&
+	 fabs(fValue) < midValue ) {
+      tmp = fabs(fValue);
       tmp = (1.0/(midValue-minValue)) * (tmp-minValue)*(tmp-minValue) + 
 	minValue;
-      iValue = (iValue<0) ? -tmp : tmp;
+      fValue = (fValue<0) ? -tmp : tmp;
     }
     
+    // Reverse the value if we have that flag set.
+    if( mbReverseHeatScale )
+      fValue = -fValue;
 
     float background_component;
     float br, bg, bb;
-    float red, green, blue;
-    if( iValue >= 0 ) {
+    float red = 0, green = 0, blue = 0;
+    if( fValue >= 0 ) {
 
-      /* First we calculate our background color. This will let us
-	 blend the functional overlay color appropriately, so that a
-	 value close to the minimum threshold will be a faint color
-	 instead of a flat black. background_component is 1 if the
-	 value is < min (so all the background is used), 1->0 from
-	 min->mid, and 0 if > mid. */
-      background_component = (iValue<minValue) ? 1.0 : 
-	(iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0;
+      // First we calculate our background color. This will let us
+      // blend the functional overlay color appropriately, so that a
+      // value close to the minimum threshold will be a faint color
+      // instead of a flat black. background_component is 1 if the
+      // value is < min (so all the background is used), 1->0 from
+      // min->mid, and 0 if > mid.
+      background_component = (fValue<minValue) ? 1.0 : 
+	(fValue<midValue) ? 1.0 - (fValue-minValue)/(midValue-minValue) : 0.0;
       br = ((float)iBase[0] / 255.0) * background_component;
       bg = ((float)iBase[1] / 255.0) * background_component;
       bb = ((float)iBase[2] / 255.0) * background_component;
 
-      /* Now calculate the overlay value color, which is red/yellow
-	 for positive values and green/blue for negative. */
-      red   = br + ((iValue<minValue) ? 0.0 : 
-		    (iValue<midValue) ? (iValue-minValue)/(midValue-minValue) :
+      // Now calculate the overlay value color, which is red/yellow
+      // for positive values and green/blue for negative.
+      red   = br + ((fValue<minValue) ? 0.0 : 
+		    (fValue<midValue) ? (fValue-minValue)/(midValue-minValue) :
 		    1.0);
-      green = bg + ((iValue<midValue) ? 0.0 :
-		    (iValue<maxValue) ? (iValue-midValue)/(maxValue-midValue) :
+      green = bg + ((fValue<midValue) ? 0.0 :
+		    (fValue<maxValue) ? (fValue-midValue)/(maxValue-midValue) :
 		    1.0);
-      blue  = bb; 
+      blue  = bb;
+ 
     } else {
-      iValue = -iValue;
+      fValue = -fValue;
 
-      /* Do this after reversing iValue so we can compare it to the
-	 positive threshold values. */
-      background_component = (iValue<minValue) ? 1.0 : 
-	(iValue<midValue) ? 1.0 - (iValue-minValue)/(midValue-minValue) : 0.0;
+      // Do this after reversing fValue so we can compare it to the
+      // positive threshold values.
+      background_component = (fValue<minValue) ? 1.0 : 
+	(fValue<midValue) ? 1.0 - (fValue-minValue)/(midValue-minValue) : 0.0;
       br = ((float)iBase[0] / 255.0) * background_component;
       bg = ((float)iBase[1] / 255.0) * background_component;
       bb = ((float)iBase[2] / 255.0) * background_component;
 
       red   = br;
-      green = bg + ((iValue<midValue) ? 0.0 :
-		    (iValue<maxValue) ? (iValue-midValue)/(maxValue-midValue) :
+      green = bg + ((fValue<midValue) ? 0.0 :
+		    (fValue<maxValue) ? (fValue-midValue)/(maxValue-midValue) :
 		    1.0);
-      blue  = bb + ((iValue<minValue) ? 0.0 :
-		    (iValue<midValue) ? (iValue-minValue)/(midValue-minValue) :
+      blue  = bb + ((fValue<minValue) ? 0.0 :
+		    (fValue<midValue) ? (fValue-minValue)/(midValue-minValue) :
 		    1.0);
     }
     
@@ -1625,7 +1654,142 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       SetHeatScaleMaxThreshold( value );
     }
   }
-  
+
+  // Get2DMRILayerReverseHeatScale <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerReverseHeatScale" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      bool bReverse = GetReverseHeatScale();
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( bReverse );
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerReverseHeatScale <layerID> <reverse>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerReverseHeatScale" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	bool bReverse =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetReverseHeatScale( bReverse );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad reverse \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
+  // Get2DMRILayerShowPositiveHeatScaleValues <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerShowPositiveHeatScaleValues" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      bool bShow = GetShowPositiveHeatScaleValues();
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( bShow );
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerShowPositiveHeatScaleValues <layerID> <show>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerShowPositiveHeatScaleValues" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	bool bShow =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetShowPositiveHeatScaleValues( bShow );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad show \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
+  // Get2DMRILayerShowNegativeHeatScaleValues <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerShowNegativeHeatScaleValues" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      bool bShow = GetShowNegativeHeatScaleValues();
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( bShow );
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerShowNegativeHeatScaleValues <layerID> <show>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerShowNegativeHeatScaleValues" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	bool bShow =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetShowNegativeHeatScaleValues( bShow );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad show \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
   // Get2DMRILayerROIOpacity <layerID>
   if( 0 == strcmp( isCommand, "Get2DMRILayerROIOpacity" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
