@@ -181,6 +181,8 @@
 #define Neg_Lymph 359 // 20 180 130 0
 
 #define MAX_LABEL Neg_Lymph
+#define MAX_CMA_LABEL (MAX_LABEL)
+#define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
 #define   Not_Set         255
 
@@ -214,8 +216,6 @@
 #define IS_PUTAMEN(l) (((l) == Left_Putamen) || ((l) == Right_Putamen))
 #define IS_PALLIDUM(l) (((l) == Left_Pallidum) || ((l) == Right_Pallidum))
 
-#define MAX_CMA_LABEL (Corpus_Callosum+1)
-#define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 #define LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(l) (\
    ((l) == Right_non_WM_hypointensities) || \
    ((l) == Left_non_WM_hypointensities) || \
@@ -275,6 +275,7 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_tota
 int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;
 
+#define IS_FIMBRIA(l) ((l) == Left_fimbria || (l) == Right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0
 #define GM_CLASS         1
 #define WM_CLASS         2
@@ -286,7 +287,7 @@ char *cma_label_to_name(int label) ;
 
 #define IS_WHITE_CLASS(l) (((l) == Left_Cerebral_White_Matter) || ((l) == Right_Cerebral_White_Matter))
 
-#define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle))
+#define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle) || ((l) == Left_hippocampal_fissure) || ((l) == Right_hippocampal_fissure) || ((l) == hippocampal_fissure))
 
 #define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
 #endif
