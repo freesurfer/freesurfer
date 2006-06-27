@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.4 2006/06/22 22:24:26 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.5 2006/06/27 20:52:14 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -76,6 +76,14 @@ proc PSS_ReadAllStatsInSubjectsDir { iID } {
     set lSubjects [exec ls $env(SUBJECTS_DIR)]
     foreach sSubject $lSubjects {
 
+	# If they have SUBJECTS set, look for this subject in that
+	# list. If it's not found, continue.
+	if { [info exists env(SUBJECTS)] } {
+	    if { [lsearch -exact $env(SUBJECTS) $sSubject] == -1 } {
+		continue
+	    }
+	}
+
 	set lStats {}
 	catch {
 	    set lFiles [exec ls [file join $env(SUBJECTS_DIR) $sSubject stats]]
@@ -126,7 +134,8 @@ proc PSS_ReadStatsFileIntoDataTable { iID ifnStats isSubject } {
 	lappend gData($iID,lStructureSets) $sStructureSet
     }
 
-    
+    set gData($iID,$sStructureSet,lStructures) {}
+
     set fStats [open $ifnStats r]
     while { ![eof $fStats] } {
 	set cRead [gets $fStats sLine]
