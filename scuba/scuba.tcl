@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.210 2006/06/26 22:21:41 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.211 2006/06/27 16:27:43 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -399,9 +399,10 @@ proc ExtractLabelFromFileName { ifnData } {
     } else {
 	
 	# Could still be a surface if it has lh. or rh. in the file
-	# name. Matches lh.blah or rh.blah.
-	set sTest [regexp -inline -all -- {[lr]h\.\w*} $ifnData]
+	# name. Matches lh.blah.blah or rh.blah.blah
+	set sTest [regexp -inline -all -- {[lr]h\.\S*} $ifnData]
 	if { [llength $sTest] > 0 } {
+	    set sData [file rootname [file tail $ifnData]]
 	    set sData $sTest
 	    set bFoundDataName 1
 	}
@@ -6222,7 +6223,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.210 2006/06/26 22:21:41 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.211 2006/06/27 16:27:43 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
