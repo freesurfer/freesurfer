@@ -2919,7 +2919,13 @@ ScubaLayer2DMRI::SetCurrentFrame ( int iFrame ) {
 
 void
 ScubaLayer2DMRI::SetColorMapMethod ( ColorMapMethod iMethod ) { 
-  mColorMapMethod = iMethod; 
+  mColorMapMethod = iMethod;
+
+  /* Automatically set draw zero clear to true if we're switching to
+     LUT. */
+  if( mColorMapMethod == LUT ) {
+    SetDrawZeroClear( true );
+  }
 }
 
 string
