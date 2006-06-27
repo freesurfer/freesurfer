@@ -7,7 +7,8 @@ using namespace std;
 
 ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
   mSurface( NULL ),
-  mLineWidth( 1 )
+  mLineWidth( 1 ),
+  mbDrawVertices( false )
 {
 
   maLineColor[0] = 0;
@@ -42,10 +43,15 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
 			 " of red, green, and blue integers from 0-255." );
   commandMgr.AddCommand( *this, "Set2DMRISLayerLineWidth", 2, "layerID width",
 			 "Sets the line width for this layer. width should "
-			 "be and integer." );
+			 "be an integer." );
   commandMgr.AddCommand( *this, "Get2DMRISLayerLineWidth", 1, "layerID",
 			 "Returns the line width for this layer as an "
 			 "integer." );
+  commandMgr.AddCommand( *this, "Set2DMRISLayerDrawVertices", 2, 
+			 "layerID draw", "Sets whether or not we're drawing "
+			 "vertices on the surface." );
+  commandMgr.AddCommand( *this, "Get2DMRISLayerDrawVertices", 1, "layerID",
+			 "Returns whether or not we're drawing vertices." );
   commandMgr.AddCommand( *this, "Get2DMRISRASCoordsFromVertexIndex", 2,
 			 "layerID vertexIndex", "Returns as a list of RAS "
 			 "coords the location of the vertex." );
@@ -202,11 +208,18 @@ ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
       glVertex2d( window2[0], window2[1] );
       glEnd();
 
-      glColor3ub( maVertexColor[0], maVertexColor[1], maVertexColor[2] );
-      glBegin( GL_POINTS );
-      glVertex2d( window1[0], window1[1] );
-      glVertex2d( window2[0], window2[1] );
-      glEnd();
+      // If we're drawing verts, draw a box around the location of the
+      // vertex, the size of the line width so that it will scale
+      // properly.
+      if( mbDrawVertices ) {
+	glColor3ub( maVertexColor[0], maVertexColor[1], maVertexColor[2] );
+	glBegin( GL_QUADS );
+	glVertex2d( window1[0]-mLineWidth, window1[1]-mLineWidth );
+	glVertex2d( window1[0]+mLineWidth, window1[1]-mLineWidth );
+	glVertex2d( window1[0]+mLineWidth, window1[1]+mLineWidth );
+	glVertex2d( window1[0]-mLineWidth, window1[1]+mLineWidth );
+	glEnd();
+      }
     }
   }
 }
@@ -487,6 +500,51 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
       stringstream ssReturnValues;
       ssReturnValues << mLineWidth;
       sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRISLayerDrawVertices <layerID> <draw>
+  if( 0 == strcmp( isCommand, "Set2DMRISLayerDrawVertices" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	bool bDraw =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetDrawVertices( bDraw );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad draw \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
+  // Get2DMRISLayerDrawVertices <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRISLayerDrawVertices" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      bool bDraw = GetDrawVertices();
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( bDraw );
+      sReturnFormat = "i";
     }
   }
 

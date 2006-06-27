@@ -75,6 +75,13 @@ class ScubaLayer2DMRIS : public Layer {
     return mLineWidth;
   }
 
+  void SetDrawVertices ( bool ibDrawVertices ) {
+    mbDrawVertices = ibDrawVertices;
+  }
+  bool GetDrawVertices () {
+    return mbDrawVertices;
+  }
+
   // To process command line options.
   void ProcessOption ( std::string isOption, std::string isValue );
 
@@ -84,6 +91,8 @@ class ScubaLayer2DMRIS : public Layer {
   int maLineColor[3];
   int maVertexColor[3];
   int mLineWidth;
+
+  bool mbDrawVertices;
 
   std::list<int> mCachedDrawList;
   ViewState mCachedViewState;

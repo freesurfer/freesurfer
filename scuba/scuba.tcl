@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.211 2006/06/27 16:27:43 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.212 2006/06/27 20:34:32 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2208,12 +2208,20 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # 2DMRIS layer settings -----------------------------------------------
+    frame $fwProps2DMRIS
+    tkuMakeCheckboxes $fwProps2DMRIS.cbwDrawVertices \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Draw vertices" 
+		-variable gaLayer(current,drawVertices) 
+		-command {Set2DMRISLayerDrawVertices $gaLayer(current,id) $gaLayer(current,drawVertices); RedrawFrame [GetMainFrameID]} }
+	}
+
     # hack, necessary to init color pickers first time
     set gaLayer(current,redLineColor) 0
     set gaLayer(current,greenLineColor) 0
     set gaLayer(current,blueLineColor) 0
 
-    frame $fwProps2DMRIS
     tkuMakeColorPickers $fwProps2DMRIS.cpLineColors \
 	-pickers {
 	    {-label "Line Color" -redVariable gaLayer(current,redLineColor) 
@@ -2244,6 +2252,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -command {Set2DMRISLayerLineWidth $gaLayer(current,id) $gaLayer(current,lineWidth); RedrawFrame [GetMainFrameID]}}
     }
 
+    grid $fwProps2DMRIS.cbwDrawVertices  -column 0 -row 0 -sticky ew
     grid $fwProps2DMRIS.cpLineColors     -column 0 -row 1 -sticky ew
     grid $fwProps2DMRIS.cpVertexColors   -column 0 -row 2 -sticky ew
     grid $fwProps2DMRIS.swLineWidth      -column 0 -row 3 -sticky ew
@@ -3144,6 +3153,9 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    }
 
 	    # Get the type specific properties.
+	    set gaLayer(current,drawVertices) \
+		[Get2DMRISLayerDrawVertices $iLayerID]
+
 	    set lColor [Get2DMRISLayerLineColor $iLayerID]
 	    set gaLayer(current,redLineColor) [lindex $lColor 0]
 	    set gaLayer(current,greenLineColor) [lindex $lColor 1]
@@ -6223,7 +6235,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.211 2006/06/27 16:27:43 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.212 2006/06/27 20:34:32 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
