@@ -124,6 +124,7 @@ typedef struct
   MATRIX *r_to_i__;
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
+	double outside_val ; // 0 by default, but could be something else
 } MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
@@ -644,6 +645,7 @@ extern float ic_z_vertices[]  ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+int        MRIlabelValRange(MRI *mri, MRI *mri_labeled, int label, float *pmin, float *pmax) ;
 int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
@@ -915,6 +917,7 @@ float MRIvolumeDeterminant(MRI *mri);
 
 int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
+void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
 int MRIgetVolumeName(char *string, char *name_only);
 MRI *MRIread(char *fname);
 MRI *MRIreadEx(char *fname, int nthframe);
@@ -930,6 +933,7 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
+MRI *MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, int label) ;
 MRI *MRIreadGeRoi(char *fname, int n_slices);
 
 int decompose_b_fname(char *fname_passed, char *directory, char *stem);
@@ -1053,5 +1057,7 @@ double MRImaxInLabelInRegion(MRI *mri_src,
 double MRIestimateTIV(char* theLtaFile,
                       double* theScaleFactor,
                       double* theAtlasDet);
+
+int MRInormalizeFrames(MRI *mri);
 
 #endif
