@@ -2,13 +2,13 @@
 // mri_info.c
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/03/21 20:30:42 $
-// Revision       : $Revision: 1.48.2.1 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/06/28 22:43:28 $
+// Revision       : $Revision: 1.48.2.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.48.2.1 $";
+char *MRI_INFO_VERSION = "$Revision: 1.48.2.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -40,7 +40,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.48.2.1 2006/03/21 20:30:42 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.48.2.2 2006/06/28 22:43:28 nicks Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -50,6 +50,8 @@ int PrintTE=0;
 int PrintTI=0;
 int PrintFlipAngle=0;
 int PrintCRes = 0;
+int PrintType = 0 ;
+int PrintConformed = 0 ;
 int PrintRRes = 0;
 int PrintSRes = 0;
 int PrintNCols = 0;
@@ -149,6 +151,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--ysize"))   PrintCRes = 1;
     else if (!strcasecmp(option, "--sres"))    PrintSRes = 1;
     else if (!strcasecmp(option, "--zsize"))   PrintCRes = 1;
+    else if (!strcasecmp(option, "--type"))    PrintType = 1;
+    else if (!strcasecmp(option, "--conformed")) PrintConformed = 1;
 
     else if (!strcasecmp(option, "--ncols"))     PrintNCols = 1;
     else if (!strcasecmp(option, "--width"))     PrintNCols = 1;
@@ -206,6 +210,8 @@ static void print_usage(void)
 {
   printf("USAGE: %s fname1 <fname2> <options> \n",Progname) ;
   printf("\n");
+  printf("   --conformed : print whether a volume is conformed stdout\n");
+  printf("   --type : print the voxel type (e.g. FLOAT) to stdout\n");
   printf("   --tr : print TR to stdout\n");
   printf("   --te : print TE to stdout\n");
   printf("   --ti : print TI to stdout\n");
@@ -335,6 +341,25 @@ static void do_file(char *fname)
   }
   if(PrintTE){
     fprintf(fpout,"%g\n",mri->te);
+    return;
+  }
+	if (PrintConformed){
+    fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
+    return;
+  }
+
+
+  if(PrintType){
+		switch (mri->type)
+		{
+		case MRI_UCHAR: printf("uchar\n") ; break ;
+		case MRI_FLOAT: printf("float\n") ; break ;
+		case MRI_LONG:  printf("long\n") ; break ;
+		case MRI_SHORT: printf("short\n") ; break ;
+		case MRI_INT:   printf("int\n") ; break ;
+		case MRI_TENSOR:printf("tensor\n") ; break ;
+		default: break ;
+		}
     return;
   }
   if(PrintTI){
