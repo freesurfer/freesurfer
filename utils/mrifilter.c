@@ -1,5 +1,5 @@
 /*
- *       FILE NAME:   mri.c
+ *       FILE NAME:   mrifilter.c
  *
  *       DESCRIPTION: utilities for MRI  data structure
  *
@@ -2174,7 +2174,7 @@ MRI *
 MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
   int  width, height, depth, klen, frame ;
-  MRI  *mtmp1, *mri_tmp ;
+  MRI  *mtmp1 ;
   float *kernel ;
 
   kernel = &MRIFvox(mri_gaussian, 0, 0, 0) ;
@@ -2191,11 +2191,6 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-	if (mri_dst == mri_src)
-		mri_tmp = mri_dst = MRIclone(mri_src, NULL) ;
-	else
-		mri_tmp = NULL ;
-
 	mtmp1 = NULL ;
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
   {
@@ -2210,12 +2205,6 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   MRIcopyHeader(mri_src, mri_dst) ;
 	MRIfree(&mtmp1) ;
 
-	if (mri_tmp) // src and dst are the same
-	{
-		MRIcopy(mri_tmp, mri_src) ;
-		mri_dst = mri_src ;
-		MRIfree(&mri_tmp) ;
-	}
   return(mri_dst) ;
 }
 /*---------------------------------------------------------------------
@@ -2718,8 +2707,6 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
-						if (x == Gx && y == Gy && z == Gz)
-							DiagBreak() ;
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
@@ -2764,8 +2751,6 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
-						if (Gx == x && Gy == y && Gz == z)
-							DiagBreak() ;
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
@@ -2785,9 +2770,6 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
-
-						if (x == Gx && y == Gy && z == Gz)
-							DiagBreak() ;
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * 
@@ -4457,22 +4439,10 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
                           float *pmean_gm, float *psigma_gm)
 {
   MRI     *mri_border ;
-  int     x, y, z, width, height, depth, label, border_label, ngray, nwhite, nbins, bin, peak ;
+  int     x, y, z, width, height, depth, label, border_label, ngray, nwhite ;
   double  white_min, white_max, white_mean, white_std,
           gray_min, gray_max, gray_mean, gray_std ;
   BUFTYPE *p_T1, *p_border, *p_labeled, val ;
-	HISTOGRAM *h_white, *h_gray ;
-	float     min_val, max_val, white_mode, gray_mode ;
-
-	MRIvalRange(mri_T1, &min_val, &max_val) ; min_val = 0 ;
-	nbins = ceil(max_val - min_val) + 1 ;
-	h_white = HISTOalloc(nbins) ;
-	h_gray = HISTOalloc(nbins) ;
-	for (bin = 0 ; bin < nbins ; bin++)
-	{
-		h_white->bins[bin] = min_val + bin ;
-		h_gray->bins[bin] = min_val + bin ;
-	}
 
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -4509,10 +4479,6 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
               white_min = (double)val ;
             if (val > white_max)
               white_max = val ;
-						bin = nint(val - min_val) ;
-						if (bin < 0 || bin >= h_white->nbins)
-							DiagBreak() ;
-						h_white->counts[bin]++ ;
           }
         }
         else if (border_label == MRI_NOT_WHITE)  /* gray bordering white */
@@ -4526,30 +4492,22 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
               gray_min = (double)val ;
             if (val > gray_max)
               gray_max = val ;
-						bin = nint(val - min_val) ;
-						if (bin < 0 || bin >= h_gray->nbins)
-							DiagBreak() ;
-						h_gray->counts[bin]++ ;
           }
         }
       }
     }
   }
 
-	peak = HISTOfindHighestPeakInRegion(h_white, 0, h_white->nbins) ;
-	white_mode = h_white->bins[peak] ;
-	peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins) ;
-	gray_mode = h_gray->bins[peak] ;
   gray_mean /= (double)ngray ;
   white_mean /= (double)nwhite ;
   white_std = sqrt(white_std / (double)nwhite - white_mean*white_mean) ;
   gray_std = sqrt(gray_std / (double)ngray - gray_mean*gray_mean) ;
-  fprintf(stderr, "WM (%2.1f): %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
-          white_mode, white_mean, white_std, white_min, white_max) ;
-  fprintf(stderr, "GM (%2.1f) : %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
-          gray_mode, gray_mean, gray_std, gray_min, gray_max) ;
+  fprintf(stderr, "WM: %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
+          white_mean, white_std, white_min, white_max) ;
+  fprintf(stderr, "GM: %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
+          gray_mean, gray_std, gray_min, gray_max) ;
   MRIfree(&mri_border) ;
-  *pmean_wm = white_mode ; *pmean_gm = gray_mode ;
+  *pmean_wm = white_mean ; *pmean_gm = gray_mean ;
   *psigma_wm = white_std ; *psigma_gm = gray_std ; 
   return(NO_ERROR) ;
 }
@@ -4788,6 +4746,7 @@ MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
 
   return(mri_dst) ;
 }
+
 
 MRI *
 MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, int label)
