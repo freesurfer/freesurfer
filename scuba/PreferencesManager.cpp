@@ -54,7 +54,7 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
 	stringstream ssError;
 	ssError << "Cannot find or create specified preferences file: "
 		<< fnPrefs;
-	throw( logic_error( ssError.str() ) );
+	throw runtime_error( ssError.str() );
       }
     }
   }
@@ -140,7 +140,7 @@ PreferencesManager::SetValue( std::string const isKeyName,
     mbPrefsFileDirty = true;
 
   } else {
-    throw (char const*) "Value not found.";
+    throw runtime_error( "Value not found." );
   }
 }
 
@@ -154,7 +154,7 @@ PreferencesManager::GetValue( std::string const isKeyName )  {
     return pref->msValue;
 
   } else {
-    throw (char const*) "Value not found.";
+    throw runtime_error( "Value not found." );
   }
 }
 
@@ -169,7 +169,7 @@ PreferencesManager::ReadFile() {
 
   ifstream fPrefs( mfnPrefs.c_str(), ios::in );
   if( !fPrefs || fPrefs.bad() ) {
-    //    throw logic_error("Can't open prefs file");
+    //    throw runtime_error("Can't open prefs file");
     return;
   }
 
@@ -183,7 +183,7 @@ PreferencesManager::ReadFile() {
       if( sKeyword != "end-version" ) {
 	stringstream sError;
 	sError << "Bad prefs file: expected end-version, got " << sKeyword;
-	throw( logic_error(sError.str()) );
+	throw runtime_error( sError.str() );
       }
       DebugOutput( << "Reading prefs file version " << mVersion );
 
@@ -233,7 +233,7 @@ PreferencesManager::ReadFile() {
 	  if( sKeyword != "end-name" ) {
 	    stringstream sError;
 	    sError << "Bad prefs file: expected end-name, got " << sKeyword;
-	    throw( logic_error(sError.str()) );
+	    throw runtime_error( sError.str() );
 	  }
 
 	} else if( sKeyword == "begin-value" ) {
@@ -265,7 +265,7 @@ PreferencesManager::WriteFile() {
 
   ofstream fPrefs( mfnPrefs.c_str(), ios::out );
   if( fPrefs.bad() ) {
-    throw logic_error("Can't open prefs file");
+    throw runtime_error( "Can't open prefs file" );
   }
 
   time_t curTime;
@@ -276,7 +276,7 @@ PreferencesManager::WriteFile() {
 
   fPrefs << "begin-timestamp" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.13 2005/01/06 17:51:57 kteich Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.14 2006/06/29 23:11:26 kteich Exp $" << endl;
   fPrefs << "end-timestamp" << endl << endl;
 
   fPrefs << "begin-header" << endl;

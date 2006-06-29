@@ -89,6 +89,13 @@ class ScubaLayer2DMRI : public Layer {
   int GetCurrentFrame ();
   void SetCurrentFrame ( int iFrame );
 
+  // Get and set the current time point and condition if we're using
+  // those instead of straight frame numbers.
+  int GetCurrentTimePoint ();
+  int GetCurrentCondition ();
+  void SetCurrentTimePoint ( int iTimePoint );
+  void SetCurrentCondition ( int iCondition );
+
   // Color map determines how the volume is drawn to screen, and
   // contextually, whether it's an anatomical, functional, or
   // segmenation volume.

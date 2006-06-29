@@ -88,7 +88,7 @@ class VolumeCollection : public DataCollection {
   // the set file name.
   void Save ();
   void Save ( std::string ifn );
-  
+
   // Accessors.
   float GetMRIMinValue () { return mMRIMinValue; }
   float GetMRIMaxValue () { return mMRIMaxValue; }
@@ -100,7 +100,13 @@ class VolumeCollection : public DataCollection {
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
 
+  // For multiframe volumes.
   int GetNumberOfFrames () { return mcFrames; }
+
+  // Convert a time point and condition to a frame number.
+  int ConvertConditionAndTimePointToFrame ( int iCondition, int iTimePoint );
+  int ExtractConditionFromFrame ( int iFrame );
+  int ExtractTimePointFromFrame ( int iFrame );
 
   virtual void GetDataRASBounds ( float oBounds[6] );
   void GetMRIIndexRange ( int oMRIIndexRange[3] );
@@ -275,6 +281,9 @@ protected:
   // Gets information from the MRI structure.
   void InitializeFromMRI ();
 
+  // Look for time metadata and parse it if available.
+  void TryReadingTimeMetadata ();
+
   // Update the value range.
   void UpdateMRIValueRange ();
 
@@ -322,6 +331,27 @@ protected:
 
   // Number of frames.
   int mcFrames;
+
+  // Time point and condition info if we're to use them. num time
+  // points * num conditions = num frames.
+  bool mbInterpretFramesAsTimePoints;
+  int  mcConditions;
+  int  mcTimePoints;
+
+  // These are for display purposes in a time course graph. We use the
+  // time resolution to draw the x axis as seconds, and use the num of
+  // pre stim time points to draw a stimulus marker at the right
+  // time. Only valid if mbInterpretFramesAsTimePoints is true.
+  int   mcPreStimTimePoints;
+  float mTimeResolution;
+
+  // If there was a certain kind of header information available, some
+  // conditions and time points should be interpreted as error
+  // data. We also hold a matrix of covariances, size numTimePoints *
+  // (numConditions-1) squared.
+  bool    mbDataContainsErrorValues; 
+  typedef std::map<int,std::map<int,float> > CovarianceTable;
+  CovarianceTable mCovarianceTable;
 
   // Voxel sizes.
   float mVoxelSize[3];

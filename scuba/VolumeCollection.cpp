@@ -4,6 +4,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fstream>
 extern "C" {
 #include "error.h"
 #include "ctrpoints.h"
@@ -30,6 +31,12 @@ VolumeCollection::VolumeCollection () :
   mbUseDataToIndexTransform = true;
   mbBoundsCacheDirty = true;
   mcFrames = 0;
+  mbInterpretFramesAsTimePoints = false;
+  mcConditions = 0;
+  mcTimePoints = 0;
+  mcPreStimTimePoints = 0;
+  mTimeResolution = 0;
+  mbDataContainsErrorValues = false;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -100,6 +107,21 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeStandardDeviationInROI", 2,
 			 "collectionID roiID", "Returns the standard "
 			 "deviation of the voxels in an ROI in a volume." );
+  commandMgr.AddCommand( *this, "GetVolumeInterpretFramesAsTime", 1,
+			 "collectionID", "Returns whether or not " );
+  commandMgr.AddCommand( *this, "GetVolumeNumberOfConditions", 1,
+			 "collectionID", "Returns the number of conditions "
+			 "in the volume, if available.." );
+  commandMgr.AddCommand( *this, "GetVolumeNumberOfTimePoints", 1,
+			 "collectionID", "Returns the number of time points "
+			 "in the volume, if available.." );
+  commandMgr.AddCommand( *this, "GetVolumeTimeResolution", 1,
+			 "collectionID", "Returns the time resolution of "
+			 "time points in the volume, if available.." );
+  commandMgr.AddCommand( *this, "GetVolumeNumberOfPreStimTimePoints", 1,
+			 "collectionID", "Returns the number of time points "
+			 "before the stimulus, if available." );
+
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -329,7 +351,151 @@ VolumeCollection::InitializeFromMRI () {
   
   // Save number of frames.
   mcFrames = mMRI->nframes;
+
+  // Look for time data.
+  TryReadingTimeMetadata();
 } 
+
+void
+VolumeCollection::TryReadingTimeMetadata () {
+
+  // We'll only have this data if we actually loaded from a bfloat or
+  // bshort set of files, in which case our file name will be in the
+  // format /path/to/data/stem_nnn.b{float,short} where stem is a
+  // string and nnn is a three digit number. The header file will be
+  // /path/to/data/stem.dat. So we'll extract everything up to the
+  // last underscore, append a .dat, and look for that file.
+  string::size_type nPos = mfnMRI.rfind( "_", string::npos );
+  if( nPos == string::npos ) {
+    // Underscore not found in file name, oh well.
+    mbInterpretFramesAsTimePoints = false;
+    mbDataContainsErrorValues = false;
+    return;
+  }
+
+  // This file has an underscore. Construct the metadata file name.
+  string fnMetadata = mfnMRI.substr( 0, nPos ) + string(".dat");
+  ifstream fMetadata( fnMetadata.c_str(), ios::in );
+  if( !fMetadata || fMetadata.bad() ){
+    // File not found, bail.
+    mbInterpretFramesAsTimePoints = false;
+    mbDataContainsErrorValues = false;
+    return;
+  }
+
+  // Just go through the file and look for keywords. Parse out the
+  // values when we find them.
+  string sKeyword;
+  int cConditions = -1;
+  int cTimePoints = -1;
+  float timeResolution;
+  float preStimSeconds;
+  CovarianceTable covTable;
+  while( !fMetadata.eof() ) {
+
+    fMetadata >> sKeyword;
+
+    if( sKeyword == "TER" ) {
+      
+      fMetadata >> timeResolution;
+      if( fMetadata.fail() ) {
+	cerr << "Error in time metadata file: TER is formatted badly" << endl;
+	fMetadata.clear();
+      }
+
+    } else if( sKeyword == "TPreStim" ) {
+
+      fMetadata >> preStimSeconds;
+      if( fMetadata.fail() ) {
+	cerr << "Error in time metadata file: TPreStim is "
+	     << "formatted badly" << endl;
+	fMetadata.clear();
+      }
+
+    } else if( sKeyword == "nCond" ) {
+      
+      fMetadata >> cConditions;
+      if( fMetadata.fail() ) {
+	cerr << "Error in time metadata file: nCond is "
+	     << "formatted badly" << endl;
+	fMetadata.clear();
+      }
+
+    } else if( sKeyword == "Nh" ) {
+
+      fMetadata >> cTimePoints;
+      if( fMetadata.fail() ) {
+	cerr << "Error in time metadata file: NH is "
+	     << "formatted badly" << endl;
+	fMetadata.clear();
+      }
+
+    } else if( sKeyword == "hCovMtx" ) {
+
+      // By now, the nCond and Nh should have already been stated, so
+      // we have our cTimePoints and cConditions. If not, there's a
+      // problem with the file.
+      if( cConditions == -1 || cTimePoints == -1 ) {
+	throw runtime_error( "Error in time metadata file: hCovMtx "
+			     "defined before Nh or nCond" );
+      }
+
+      int cRows = cTimePoints*(cConditions-1);
+      int cCols = cTimePoints*(cConditions-1);
+      for( int nRow = 0; nRow < cRows; nRow++ ) {
+	for( int nCol = 0; nCol < cCols; nCol++ ) {
+	  fMetadata >> covTable[nRow][nCol];
+	  if( fMetadata.fail() ) {
+	    cerr << "Error in time metadata file: hCovMtx is "
+		 << "formatted badly" << endl;
+	    fMetadata.clear();
+	  }
+	}
+      }
+    }
+  }
+
+  // Save all the data we read.
+  mbInterpretFramesAsTimePoints = true;
+  mcConditions        = cConditions;
+  mcTimePoints        = cTimePoints;
+  mTimeResolution     = timeResolution;
+  mcPreStimTimePoints = (int) floor(preStimSeconds * timeResolution);
+
+  mbDataContainsErrorValues = true;
+  mCovarianceTable          = covTable;
+}
+
+int
+VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition, 
+							int iTimePoint ) {
+  if( !mbInterpretFramesAsTimePoints ) {
+    throw runtime_error( "Volume doesn't use time points." );
+  }
+
+  if( iCondition < 0 || iCondition >= mcConditions )
+    throw runtime_error( "Invalid condition." );
+  if( iTimePoint < 0 || iTimePoint >= mcTimePoints )
+    throw runtime_error( "Invalid time point." );
+
+  if( mbDataContainsErrorValues ) {
+    return (iCondition * 2 * mcTimePoints) + iTimePoint;
+  } else {
+    return (iCondition * mcTimePoints) + iTimePoint;
+  }
+}
+
+int
+VolumeCollection::ExtractConditionFromFrame ( int iFrame ) {
+
+  return 0;
+}
+
+int
+VolumeCollection::ExtractTimePointFromFrame ( int iFrame ) {
+
+  return 0;
+}
 
 void
 VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
@@ -1149,6 +1315,90 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       }	
 
       return ok;
+    }
+  }
+
+  // GetVolumeInterpretFramesAsTime <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeInterpretFramesAsTime" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( mbInterpretFramesAsTimePoints  );
+      sReturnFormat = "i";
+    }
+  }
+
+  // GetVolumeNumberOfConditions <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeNumberOfConditions" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << mcConditions;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // GetVolumeNumberOfTimePoints <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeNumberOfTimePoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << mcTimePoints;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // GetVolumeTimeResolution <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeTimeResolution" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << mTimeResolution;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "f";
+    }
+  }
+
+  // GetVolumeNumberOfPreStimTimePoints <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeNumberOfPreStimTimePoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << mcPreStimTimePoints;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
     }
   }
 
