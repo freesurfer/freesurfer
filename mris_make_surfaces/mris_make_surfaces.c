@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "mrisurf.h"
 #include "mri.h"
+#include "cma.h"
 #include "macros.h"
 #include "mrimorph.h"
 #include "tags.h"
@@ -20,13 +21,14 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.70.2.2 2006/06/28 00:52:05 nicks Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.70.2.3 2006/06/29 14:50:41 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
+static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) ;
 static MRI *smooth_contra_hemi(MRI *mri_filled, MRI *mri_src, MRI *mri_dst, float ipsi_label, float contra_label) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -74,6 +76,8 @@ static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 
+static char *aseg_name = "aseg.mgz" ;
+static MRI *mri_aseg ;
 static int add = 0 ;
 
 static double l_tsmooth = 0.0 ;
@@ -160,10 +164,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.2 2006/06/28 00:52:05 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.3 2006/06/29 14:50:41 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.2 2006/06/28 00:52:05 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.70.2.3 2006/06/29 14:50:41 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -501,6 +505,17 @@ main(int argc, char *argv[])
     MRIfree(&mri_T1);
     mri_T1 = mri_T1_white ; // T1 and T1_white is swapped
   } 
+	if (aseg_name)
+	{
+		char fname[STRLEN] ;
+		sprintf(fname, "%s/%s/mri/%s", sdir, sname, aseg_name) ;
+		mri_aseg = MRIread(fname) ;
+		if (mri_aseg == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
+								Progname, fname) ;
+	}
+	else
+		mri_aseg = NULL ;
   current_sigma = white_sigma ;
   for (n_averages = max_white_averages, i = 0 ; 
        n_averages >= min_white_averages ; 
@@ -535,6 +550,8 @@ main(int argc, char *argv[])
                             min_gray_at_white_border, 
                             max_border_white /*max_gray*/, current_sigma, 
                             2*max_thickness, parms.fp, GRAY_WHITE) ;
+		if (mri_aseg)
+			fix_midline(mris, mri_aseg, mri_T1, hemi) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -549,6 +566,7 @@ main(int argc, char *argv[])
       }
     }
 
+		//		MRISunrip(mris) ;   bring midline back into surface
 
     /*
       there are frequently regions of gray whose intensity is fairly
@@ -916,6 +934,19 @@ get_option(int argc, char *argv[])
 		use_mode = atoi(argv[2]) ;
     printf("%susing class modes instead of means...\n", use_mode ? "" : "NOT ") ;
 		nargs = 1 ;
+  }
+  else if (!stricmp(option, "aseg"))
+  {
+		aseg_name = argv[2] ;
+    printf("using aseg volume %s to prevent surfaces crossing the midline\n",
+					 aseg_name) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "noaseg"))
+  {
+		aseg_name = NULL ;
+    printf("not using aseg volume to prevent surfaces crossing the midline\n");
+		nargs = 0 ;
   }
   else if (!stricmp(option, "T1") || !stricmp(option, "gvol"))
   {
@@ -1748,5 +1779,48 @@ smooth_contra_hemi(MRI *mri_filled, MRI *mri_src, MRI *mri_dst, float ipsi_label
 
 	MRIfree(&mri_ctrl) ;
 	return(mri_dst) ;
+}
+
+static int
+fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
+{
+	int      vno, label, contra_wm_label ;
+	VERTEX   *v ;
+	double   xv, yv, zv, val, xs, ys, zs, d ;
+
+	printf("inhibiting deformation in corpus callosum...\n") ;
+	if (stricmp(hemi, "lh") == 0)
+		contra_wm_label = Right_Cerebral_White_Matter ;
+	else
+		contra_wm_label = Left_Cerebral_White_Matter ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no )
+			DiagBreak() ;
+		for (d = 0 ; d <= 2 ; d += 0.5)
+		{
+			xs = v->x + d*v->nx ;
+			ys = v->y + d*v->ny ;
+			zs = v->z + d*v->nz ;
+			if (mris->useRealRAS)
+				MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			else
+				MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+			label = nint(val) ;
+			if (label == contra_wm_label)
+			{
+				MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+				MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+				v->val = val ; v->d = 0 ;
+				v->ripflag = 1 ;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
 }
 
