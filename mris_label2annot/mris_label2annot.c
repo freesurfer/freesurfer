@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.2 2006/06/25 20:42:24 greve Exp $
+// $Id: mris_label2annot.c,v 1.3 2006/06/29 23:41:36 greve Exp $
 
 /*
   BEGINHELP
@@ -119,7 +119,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.2 2006/06/25 20:42:24 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.3 2006/06/29 23:41:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -213,6 +213,8 @@ int main(int argc, char *argv[])
     }
     index = nthlabel;
     if(MapUnhitToUnknown) index ++;
+    ano = index_to_annotation(index);
+    printf("%2d %2d %s\n",index,ano,index_to_name(index));
 
     for(n = 0; n < label->n_points; n++){
       vtxno = label->lv[n].vno; 
@@ -225,7 +227,6 @@ int main(int argc, char *argv[])
 	printf("WARNING: vertex %d maps to multiple lables\n",vtxno);
       }
       MRIsetVoxVal(nhits,vtxno,0,0,0,MRIgetVoxVal(nhits,vtxno,0,0,0)+1);
-      ano = index_to_annotation(index);
       mris->vertices[vtxno].annotation = ano;
       //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
     } // label ponts
