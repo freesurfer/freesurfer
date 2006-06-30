@@ -27,8 +27,32 @@
 #include "mrisutils.h"
 #include "cma.h"
 
+#if 0
+static int
+check_volume(MRI *mri_save, MRI *mri_out, int target_label)
+{
+	int   x, y, z, sval, oval ;
+	
+	for (x = 0 ; x < mri_save->width ; x++)
+		for (y = 0 ; y < mri_save->height ; y++)
+			for (z = 0 ; z < mri_save->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				sval = nint(MRIgetVoxVal(mri_save, x, y, z, 0)) ;
+				oval = nint(MRIgetVoxVal(mri_out, x, y, z, 0)) ;
+				if ((oval == target_label && sval == 0) ||
+						(oval != target_label && sval > 0))
+					DiagBreak() ;
+			}
+	return(NO_ERROR) ;
+}
+#endif
+
 char *Progname;
 
+static int resegment_erased_voxels(MRI *mri_T1, MRI *mri_in, MRI *mri_out, int label) ;
+static int build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos) ;
 static MRI_TOPOLOGY_PARMS parms;
 
 static void Error(char *string);
@@ -285,10 +309,17 @@ int main(int argc, char *argv[])
 	{
 		MRI *mri_tmp ;
 
-		mri_tmp = MRIcopy(mri_seg, NULL) ;
+		// turn off all voxels that are going to be on in the output
+		MRImask(mri_seg, mri_out, mri_seg, 1, 0) ;
+		/* whatever ones are left are now incorrect and should be labeled
+			 something else
+		*/
+		resegment_erased_voxels(mri_orig, mri_seg, mri_seg, parms.labels[0]) ;
 		MRIreplaceValues(mri_out, mri_out, 1, parms.labels[0]) ;
+		mri_tmp = MRIcopy(mri_seg, NULL) ;
 		MRIcopyLabel(mri_out, mri_tmp, parms.labels[0]) ;
 		MRIfree(&mri_out) ; mri_out = mri_tmp ;
+		//		check_volume(mri_save, mri_out, parms.labels[0]) ;
 	}
   MRIwrite(mri_out,out_fname);
 
@@ -462,13 +493,104 @@ int main(int argc, char *argv[])
   return NO_ERROR;
 }
 
+/*
+	figure out what to do with voxels that were turned 'off' by the
+	topology correction. This is a hack, but for now just make them
+	the most likely of the nbr voxel labels.
+*/
+static int
+resegment_erased_voxels(MRI *mri_T1, MRI *mri_in, MRI *mri_out, int target_label)
+{
+	int       x, y, z, label_in, label_out, xi, yi, zi, xk, yk, zk, label, changed=0 ;
+	HISTOGRAM *histos[MAX_CMA_LABEL+1] ;
+	double    p, max_p, val ;
 
+	build_label_histograms(mri_in, mri_T1, histos) ;
+	for (x = 0 ; x < mri_in->width ; x++)
+	{
+		for (y = 0 ; y < mri_in->height ; y++)
+		{
+			for (z = 0 ; z < mri_in->depth ; z++)
+			{
+				label_in = nint(MRIgetVoxVal(mri_in, x, y, z, 0)) ;
+				label_out = nint(MRIgetVoxVal(mri_out, x, y, z, 0)) ;
+				if (label_in == target_label)
+				{
+					// find most likely nbr label
+					max_p = 0 ; label_out = label_in ;
+					for (xk = -1 ; xk <= 1 ; xk++)
+					{
+						xi = x + xk ;
+						if (xi < 0 || xi >= mri_in->width)
+							continue ;
+						for (yk = -1 ; yk <= 1 ; yk++)
+						{
+							yi = y + yk ;
+							if (yi < 0 || yi >= mri_in->height)
+								continue ;
+							for (zk = -1 ; zk <= 1 ; zk++)
+							{
+								zi = z + zk ;
+								if (zi < 0 || zi >= mri_in->depth)
+									continue ;
+								label = nint(MRIgetVoxVal(mri_in, xi, yi, zi, 0)) ;
+								if (label == label_in)
+									continue ;  // would be topologically incorrect
+								val = MRIgetVoxVal(mri_T1, xi, yi, zi, 0) ;
+								p = HISTOvalToCount(histos[label], val) ;
+								if (p > max_p)
+								{
+									max_p = p ; label_out = label ;
+								}
+							}
+						}
+					}
+					changed++ ;
+					MRIsetVoxVal(mri_out, x, y, z, 0, label_out) ;
+				}
+			}
+		}
+	}
+	printf("%d voxels resegmented to be ML\n", changed) ;
+	return(NO_ERROR) ;
+}
 
+static int
+build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos)
+{
+	int    labels[MAX_LABEL+1], x, y, z, l ;
+	MRI    *mri_xformed ;
+	MATRIX *m_vox2vox ;
 
+	memset(labels, 0, sizeof(labels)) ;
 
+	m_vox2vox = MRIgetVoxelToVoxelXform(mri_intensities, mri_labels) ;
+	mri_xformed = MRIclone(mri_labels, NULL) ;
+	MRIlinearTransform(mri_intensities, mri_xformed, m_vox2vox) ;
+	MatrixFree(&m_vox2vox) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_xformed, "x.mgz") ;
 
+	for (x = 0 ; x < mri_labels->width ; x++)
+		for (y = 0 ; y < mri_labels->height ; y++)
+			for (z = 0 ; z < mri_labels->depth ; z++)
+			{
+				l = nint(MRIgetVoxVal(mri_labels, x, y, z, 0)) ;
+				if (l == 0)
+					continue ;
+				if (labels[l] == 0)  // first time
+				{
+					char fname[STRLEN] ;
+					histos[l] = MRIhistogramLabel(mri_xformed, mri_labels, l, 50) ;
+					HISTOmakePDF(histos[l], histos[l]) ;
+					sprintf(fname, "label%d.plt", l) ;
+					if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+						HISTOplot(histos[l], fname) ;
+				}
+					
+				labels[l] = 1 ;
+			}
 
-
-
-
-
+	MRIfree(&mri_xformed) ;
+	return(NO_ERROR) ;
+}
