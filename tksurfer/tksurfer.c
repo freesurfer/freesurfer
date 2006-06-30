@@ -18972,7 +18972,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.183.2.9 2006/05/24 17:35:02 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.183.2.10 2006/06/30 22:00:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18981,12 +18981,16 @@ int main(int argc, char *argv[])   /* new main */
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   
-#ifdef USE_XGLUT_WINDOW
+  //#ifdef USE_XGLUT_WINDOW
+  //NJS note: glut needs to initialized, even if USE_XGLUT_WINDOW is not
+  //defined, because if freeglut is used, then glutinit needs be to called
+  //in order for certain tksurfer functions to work, like the 'Show Color 
+  //Scale Bar' button.
   /* init glut */
   DebugNote( ("Initializing glut") );
   glutInit( &argc, argv );
   glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
-#endif
+  //#endif
   
   /* begin rkt */
   undo_initialize();
