@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $
+  $Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -68,6 +68,7 @@ char *srcvolid   = NULL;
 char *srctypestring = NULL;
 int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
 char *srcregfile = NULL;
+int  regheader = 0;
 char *srcwarp    = NULL;
 int   srcoldreg  = 0;
 char *srcsubject = NULL;
@@ -118,6 +119,7 @@ MRI *SrcVol, *SurfVals, *SurfVals2, *SurfValsP;
 MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
 MRI *mritmp;
 MRI *SrcHitVol;
+MRI *TargVol;
 
 FILE *fp;
 
@@ -159,7 +161,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.29 2006/06/01 03:43:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -180,18 +182,6 @@ int main(int argc, char **argv)
   if(SUBJECTS_DIR==NULL){
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
-  }
-
-  /* Load the registration matrix */
-  err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
-          &intensity, &Dsrc, &float2int_src);
-  if(err) exit(1);
-  if(srcsubjectuse){
-    if(strcmp(srcsubject,srcsubjectuse)){
-      printf("INFO: overriding regsubject %s with %s\n",
-	     srcsubject,srcsubjectuse);
-    }
-    srcsubject = srcsubjectuse;
   }
 
   /* voxel indices conversion from float to integer */
@@ -235,6 +225,30 @@ int main(int argc, char **argv)
     MRIfree(&mritmp);
   }
 
+  if(!regheader){
+    /* Load the registration matrix */
+    err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
+			      &intensity, &Dsrc, &float2int_src);
+    if(err) exit(1);
+    if(srcsubjectuse){
+      if(strcmp(srcsubject,srcsubjectuse)){
+	printf("INFO: overriding regsubject %s with %s\n",
+	       srcsubject,srcsubjectuse);
+      }
+      srcsubject = srcsubjectuse;
+    }
+  }
+  else {
+    /* compute the registration from the header */
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,srcsubject);
+    printf("Computing registration from header.\n");
+    printf("  Using %s as target reference.\n",tmpstr);
+    TargVol = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+    if(TargVol == NULL) exit(1);
+    Dsrc = MRItkRegMtx(TargVol,SrcVol,NULL);
+    MRIfree(&TargVol);
+  }
+
   ncols_src = SrcVol->width;
   nrows_src = SrcVol->height;
   nslcs_src = SrcVol->depth;
@@ -249,7 +263,8 @@ int main(int argc, char **argv)
   }
 
   /* check that the resolution of the SrcVol is the same as in reg file */
-  if(fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01){
+  if(!regheader && 
+     (fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01)){
     printf("WARNING: the voxel resolution in the source volume (%g,%g,%g) differs \n",
 	   SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
     printf("         from that listed in the registration file (%g,%g,%g)\n",
@@ -586,7 +601,7 @@ static int parse_commandline(int argc, char **argv)
     }
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--srcvol") ||
-       !strcmp(option, "--src")){
+       !strcmp(option, "--src") || !strcmp(option, "--mov")){
       if(nargc < 1) argnerr(option,1);
       srcvolid = pargv[0];
       nargsused = 1;
@@ -613,9 +628,15 @@ static int parse_commandline(int argc, char **argv)
       srchittype = string_to_type(srchittypestring);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcreg")){
+    else if(!strcmp(option, "--reg") || !strcmp(option, "--srcreg")){
       if(nargc < 1) argnerr(option,1);
       srcregfile = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--regheader")){
+      if(nargc < 1) argnerr(option,1);
+      regheader = 1;
+      srcsubject = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--srcoldreg")){
@@ -819,9 +840,9 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --src       input volume path \n");
-  printf("   --src_type  input volume format \n");
-  printf("   --srcreg    source registration  \n");
+  printf("   --mov input volume path (or --src)\n");
+  printf("   --reg source registration  \n");
+  printf("   --regheader subject\n");
   printf("   --float2int float-to-int conversion method "
    "(<round>, tkregister )\n");
   printf("   --fixtkreg : make make registration matrix round-compatible\n");
@@ -864,6 +885,7 @@ static void print_usage(void)
   //  printf("   --interp    interpolation method (<nearest>, tli, or sinc)\n");
   printf("%s\n", vcid) ;
   printf("\n");
+  //printf("   --src_type  input volume format \n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -878,11 +900,10 @@ static void print_help(void)
 "\n"
 "OPTIONS\n"
 "\n"
-"  --src path to input volume (see below)\n"
-"  --src_type type of input volume (see below)\n"
+"  --mov path to input volume (see below). Can also use --src\n"
 "\n"
-"  --srcreg file : registration file as computed by tkregister,\n"
-"    tkmedit, mri_make_register, or spmmat2register. This file\n"
+"  --reg file : registration file as computed by tkregister,\n"
+"    tkmedit, mri_make_register, or spmregister. This file\n"
 "    has the following format:\n"
 "\n"
 "        subjectname\n"
@@ -908,6 +929,12 @@ static void print_help(void)
 "    used to register the volume, the method should be blank or 'tkregister'\n"
 "    (no quotes), otherwise it should be 'round'. This can be overridden \n"
 "    with --float2int.\n"
+"\n"
+"  --regheader subject \n"
+"\n"
+"    Compute registration from header information, ie, assume the\n"
+"    volume geometry between the mov volume and the subject/mri/orig.mgz\n"
+"    align the two volumes. This is the same as in tkregister2.\n"
 "\n"
 "  --float2int method: override float2int method in registration file.\n"
 "    See BUGS.\n"
@@ -1052,18 +1079,16 @@ static void print_help(void)
 "  1. To paint the third frame of bfloat volume sig registered with tkregister\n"
 "      onto a the left hemisphere of a surface\n"
 "\n"
-"     mri_vol2surf --src sig --src_type bfloat --srcreg register.dat \n"
-"       --hemi lh --o ./sig-lh.w --out_type paint --float2int tkregister\n"
-"       --frame 2\n"
+"     mri_vol2surf --mov sig.bhdr --reg register.dat \n"
+"       --hemi lh --o ./sig-lh.mgh \n"
 "\n"
-"     This will create sig-lh.w in the current directory, which can then\n"
+"     This will create sig-lh.mgh in the current directory, which can then\n"
 "     be loaded into tksurfer\n"
 "\n"
-"  2. To convert an analyze volume onto the sphere (right hemisphere)\n"
+"  2. To convert an analyze volume onto fsaverage (right hemisphere)\n"
 "\n"
-"     mri_vol2surf --src sig.img --src_type analyze --srcreg register.dat \n"
-"       --hemi rh --o ./sig-rh.img --out_type analyze --float2int round\n"
-"       --trgsubject ico --icoorder 7\n"
+"     mri_vol2surf --mov sig.img  --reg register.dat \n"
+"       --hemi rh --o ./sig-rh.img --trgsubject fsaverage --icoorder 7\n"
 "\n"
 "BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n"
 "  to include the version and full command-line.\n"
@@ -1128,8 +1153,8 @@ static void check_options(void)
     exit(1);
   }
 
-  if(srcregfile == NULL){
-    printf("ERROR: must specify a source registration file\n");
+  if(srcregfile == NULL && !regheader){
+    printf("ERROR: must specify a source registration file or --regheader\n");
     exit(1);
   }
 
