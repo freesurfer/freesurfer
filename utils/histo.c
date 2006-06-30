@@ -1551,3 +1551,14 @@ HISTOvalToBinDirect(HISTOGRAM *histo, float val)
 }
 
 
+float
+HISTOvalToCount(HISTOGRAM *histo, float val)
+{
+	int bin_no ;
+	if (histo == NULL)
+		return(0.0) ;
+	bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
+	if (bin_no < 0 || bin_no >= histo->nbins)
+		return(0.0) ;
+	return(histo->counts[bin_no]) ;
+}
