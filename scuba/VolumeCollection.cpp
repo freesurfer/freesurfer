@@ -469,16 +469,65 @@ VolumeCollection::TryReadingTimeMetadata () {
 int
 VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition, 
 							int iTimePoint ) {
-  if( !mbInterpretFramesAsTimePoints ) {
+  if( !mbInterpretFramesAsTimePoints )
     throw runtime_error( "Volume doesn't use time points." );
-  }
 
   if( iCondition < 0 || iCondition >= mcConditions )
     throw runtime_error( "Invalid condition." );
   if( iTimePoint < 0 || iTimePoint >= mcTimePoints )
     throw runtime_error( "Invalid time point." );
-
-  if( mbDataContainsErrorValues ) {
+  
+  // If we have error data, we have to be cognizant of the way the
+  // data is arranged.
+  //
+  //    WITHOUT ERROR DATA
+  
+  //    condition
+  //      time point
+  //        frame of displayable data
+  
+  //                        time
+  //    frame   condition   point   type
+  //      0         0         0     data
+  //      1         0         1     data
+  //      2         0         2     data
+  //      3         1         0     data
+  //      4         1         1     data
+  //      5         1         2     data
+  
+  //    WITH ERROR DATA
+  
+  //    condition 0
+  //      time point
+  //        null values (ignored)
+  //        sigma values
+  //    condition 1..n
+  //      time point
+  //        frame of displayable data
+  //        std dev (ignored)
+  
+  //                        time
+  //    frame   condition   point   type
+  //      0         0               null (ignored)
+  //      1         0               null (ignored)
+  //      2         0               null (ignored)
+  //      3         0         0     sigma
+  //      4         0         1     sigma
+  //      5         0         2     sigma
+  //      6         1         0     data
+  //      7         1         1     data
+  //      8         1         2     data
+  //      9         1               std dev (ignored)
+  //      10        1               std dev (ignored)
+  //      11        1               std dev (ignored)
+  //      12        2         0     data
+  //      13        2         1     data
+  //      14        2         2     data
+  //      15        2               std dev (ignored)
+  //      16        2               std dev (ignored)
+  //      17        2               std dev (ignored)
+  
+	  if( mbDataContainsErrorValues ) {
     return (iCondition * 2 * mcTimePoints) + iTimePoint;
   } else {
     return (iCondition * mcTimePoints) + iTimePoint;
@@ -488,13 +537,47 @@ VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition,
 int
 VolumeCollection::ExtractConditionFromFrame ( int iFrame ) {
 
-  return 0;
+  if( !mbInterpretFramesAsTimePoints )
+    throw runtime_error( "Volume doesn't use conditions." );
+
+  if( iFrame < 0 || iFrame >= mcFrames )
+    throw runtime_error( "Invalid frame." );
+
+  if( mbDataContainsErrorValues ) {
+    // Check the time point. This will throw an error if it's an
+    // invalid frame. We do this because it's easier to check for an
+    // invalid point with the mod calc rather than the div calc.
+    ExtractTimePointFromFrame( iFrame );
+
+    int condition = (int) floor( (float)iFrame / (float)(2*mcTimePoints) );
+    return condition;
+
+  } else {
+    return (int) floor( (float)iFrame / (float)mcTimePoints );
+  }
 }
 
 int
 VolumeCollection::ExtractTimePointFromFrame ( int iFrame ) {
 
-  return 0;
+  if( !mbInterpretFramesAsTimePoints )
+    throw runtime_error( "Volume doesn't use time points." );
+
+  if( iFrame < 0 || iFrame >= mcFrames )
+    throw runtime_error( "Invalid frame." );
+
+  if( mbDataContainsErrorValues ) {
+    int timePoint = iFrame % (2 * mcTimePoints);
+
+    // If this happens, we're in the std dev part of the data, which
+    // is not really valid.
+    if( timePoint > mcTimePoints )
+      throw runtime_error( "Invalid frame; in error data" );
+
+    return timePoint;
+  } else {
+    return iFrame % mcTimePoints;
+  }
 }
 
 void

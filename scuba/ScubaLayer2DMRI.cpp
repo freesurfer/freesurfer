@@ -89,6 +89,16 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 			 "Sets the current frame for this layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerCurrentFrame", 1, "layerID",
 			 "Returns the current frame for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerCurrentCondition", 2, 
+			 "layerID condition",
+			 "Sets the current condition for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerCurrentCondition", 1, "layerID",
+			 "Returns the current condition for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerCurrentTimePoint", 2, 
+			 "layerID timePoint",
+			 "Sets the current time point for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerCurrentTimePoint", 1, "layerID",
+			 "Returns the current time point for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerColorMapMethod", 2, 
 			 "layerID method",
 			 "Sets the color map method for this layer." );
@@ -1050,6 +1060,84 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 
       int frame = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       SetCurrentFrame( frame );
+      return ok;
+    }
+  }
+
+  // Get2DMRILayerCurrentCondition <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerCurrentCondition" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << GetCurrentCondition();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerCurrentCondition <layerID> <condition>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerCurrentCondition" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      int condition = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      SetCurrentCondition( condition );
+      return ok;
+    }
+  }
+
+  // Get2DMRILayerCurrentTimePoint <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerCurrentTimePoint" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << GetCurrentTimePoint();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRILayerCurrentTimePoint <layerID> <timePoint>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerCurrentTimePoint" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      int timePoint = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      SetCurrentTimePoint( timePoint );
       return ok;
     }
   }
@@ -2915,6 +3003,50 @@ ScubaLayer2DMRI::SetCurrentFrame ( int iFrame ) {
   } else {
     throw runtime_error( "Invalid frame" );
   }
+}
+
+int
+ScubaLayer2DMRI::GetCurrentTimePoint () {
+  if( NULL == mVolume ) {
+    throw runtime_error( "No volume" );
+  }
+
+  return mVolume->ExtractTimePointFromFrame( mCurrentFrame );
+}
+
+int
+ScubaLayer2DMRI::GetCurrentCondition () {
+  if( NULL == mVolume ) {
+    throw runtime_error( "No volume" );
+  }
+
+  return mVolume->ExtractConditionFromFrame( mCurrentFrame );
+}
+
+void
+ScubaLayer2DMRI::SetCurrentTimePoint ( int iTimePoint ) {
+  if( NULL == mVolume ) {
+    throw runtime_error( "No volume" );
+  }
+
+  int condition = mVolume->ExtractConditionFromFrame( mCurrentFrame );
+  int frame =
+    mVolume->ConvertConditionAndTimePointToFrame( condition, iTimePoint );
+
+  SetCurrentFrame( frame );
+}
+
+void
+ScubaLayer2DMRI::SetCurrentCondition ( int iCondition ) {
+  if( NULL == mVolume ) {
+    throw runtime_error( "No volume" );
+  }
+
+  int timePoint = mVolume->ExtractTimePointFromFrame( mCurrentFrame );
+  int frame =
+    mVolume->ConvertConditionAndTimePointToFrame( iCondition, timePoint );
+
+  SetCurrentFrame( frame );
 }
 
 void

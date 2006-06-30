@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.212 2006/06/27 20:34:32 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.213 2006/06/30 22:12:01 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2163,6 +2163,19 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,heatscaleFrameSlider) $fwHeatscale.swFrame
 
+    tkuMakeSliders $fwHeatscale.swCondition -sliders { 
+	{ -label "Condition" -variable gaLayer(current,condition)
+	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -command {Set2DMRILayerCurrentCondition $gaLayer(current,id) $gaLayer(current,condition); RedrawFrame [GetMainFrameID]} }
+    }
+    set gaWidget(layerProperties,heatscaleConditionSlider) $fwHeatscale.swCondition
+    tkuMakeSliders $fwHeatscale.swTimePoint -sliders { 
+	{ -label "Time Point" -variable gaLayer(current,timePoint)
+	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -command {Set2DMRILayerCurrentTimePoint $gaLayer(current,id) $gaLayer(current,timePoint); RedrawFrame [GetMainFrameID]} }
+    }
+    set gaWidget(layerProperties,heatscaleTimePointSlider) $fwHeatscale.swTimePoint
+
     grid $fwHeatscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
     grid $fwHeatscale.lwHeatScale       -column 0 -row 1 -sticky ew
     grid $fwHeatscale.swHeatScale       -column 0 -row 2 -sticky ew
@@ -3090,10 +3103,40 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    
 
 	    # Length of frame slider.
-	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames [Get2DMRILayerVolumeCollection $iLayerID]]
+	    set volID [Get2DMRILayerVolumeCollection $iLayerID]
+	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames $volID]
 	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
 		tkuUpdateSlidersRange $gaWidget(layerProperties,$slider) \
 		    0 [expr $gaLayer(current,numFrames) - 1]
+	    }
+
+	    # If we're using time point data, update the time point sliders.
+	    if { [GetVolumeInterpretFramesAsTime $volID] } {
+		set gaLayer(current,numConditions) \
+		    [GetVolumeNumberOfConditions $volID]
+		set gaLayer(current,numTimePoints) \
+		    [GetVolumeNumberOfTimePoints $volID]
+
+		tkuUpdateSlidersRange \
+		    $gaWidget(layerProperties,heatscaleConditionSlider) \
+		    0 [expr $gaLayer(current,numConditions) - 1] 1
+		tkuUpdateSlidersRange \
+		    $gaWidget(layerProperties,heatscaleTimePointSlider) \
+		    0 [expr $gaLayer(current,numTimePoints) - 1] 1
+
+		# Also unpack the other slider and pack this one.
+		grid forget $gaWidget(layerProperties,heatscaleFrameSlider)
+		grid $gaWidget(layerProperties,heatscaleConditionSlider) \
+		    -column 0 -row 4 -sticky ew
+		grid $gaWidget(layerProperties,heatscaleTimePointSlider) \
+		    -column 0 -row 5 -sticky ew
+	    } else {
+		# Make sure we're using the frame slider and not the
+		# tp/condition sliders.
+		grid $gaWidget(layerProperties,heatscaleFrameSlider) \
+		    -column 0 -row 4 -sticky ew
+		grid forget $gaWidget(layerProperties,heatscaleConditionSlider)
+		grid forget $gaWidget(layerProperties,heatscaleTimePointSlider)
 	    }
 
 	    # Get the type specific properties.
@@ -3204,6 +3247,19 @@ proc AdjustLayerPropertiesEnabledWidgets {} {
 	    } elseif { [string match $sMethod lut] } {
 		pack $gaWidget(layerProperties,lutFrame) \
 		    -fill both -expand yes
+	    }
+
+	    # If we're switching between views in which one is showing
+	    # the frame slider and one is showing the tp/cond sliders,
+	    # we need to sync them up.
+	    set volID [Get2DMRILayerVolumeCollection $gaLayer(current,id)]
+	    if { [GetVolumeInterpretFramesAsTime $volID] } {
+		set gaLayer(current,frame) \
+		    [Get2DMRILayerCurrentFrame $gaLayer(current,id)]
+		set gaLayer(current,condition) \
+		    [Get2DMRILayerCurrentCondition $gaLayer(current,id)]
+		set gaLayer(current,timePoint) \
+		    [Get2DMRILayerCurrentTimePoint $gaLayer(current,id)]
 	    }
 
 	    # Only enable frame slider if we have > 1 frames.
@@ -6235,7 +6291,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.212 2006/06/27 20:34:32 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.213 2006/06/30 22:12:01 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
