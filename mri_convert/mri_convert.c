@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2006/05/12 03:24:39 $
-// Revision       : $Revision: 1.125 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/07/03 22:27:40 $
+// Revision       : $Revision: 1.126 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.125 2006/05/12 03:24:39 ch Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.126 2006/07/03 22:27:40 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.125 2006/05/12 03:24:39 ch Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.126 2006/07/03 22:27:40 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1156,6 +1156,10 @@ int main(int argc, char *argv[])
 
   /* ----- copy file name (only -- strip '@' and '#') ----- */
   MRIgetVolumeName(in_name, in_name_only);
+
+  /* If input type is spm and N_Zero_Pad_Input < 0, set to 3*/
+  if(!strcmp(in_type_string,"spm") && N_Zero_Pad_Input < 0)
+    N_Zero_Pad_Input = 3;
 
   /* ----- catch unknown volume types ----- */
   if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
