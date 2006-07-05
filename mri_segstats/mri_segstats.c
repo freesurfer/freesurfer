@@ -47,7 +47,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.17 2006/06/01 22:31:31 kteich Exp $";
+"$Id: mri_segstats.c,v 1.18 2006/07/05 21:00:37 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -75,7 +75,7 @@ int DoExclSegId = 0, ExclSegId = 0;
 
 float maskthresh = 0.5;
 int   maskinvert = 0, maskframe = 0;
-char *masksign;
+char *masksign=NULL;
 int   nmaskhits;
 int   nbrainsegvoxels = 0;
 double brainsegvolume = 0;
@@ -1201,6 +1201,7 @@ static void check_options(void)
     printf("ERROR: need subject with --etiv\n");
     exit(1);
   }
+  if(masksign == NULL) masksign = "abs";
   return;
 }
 
