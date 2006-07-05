@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.5 2006/06/27 20:52:14 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.6 2006/07/05 20:40:19 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -256,7 +256,7 @@ proc PSS_BuildWindow { iID } {
     grid $fwMenuBar       -column 0 -row 0 -sticky new
     grid $gwPlot          -column 0 -row 1 -sticky news
     grid $lwInfo          -column 0 -row 2 -sticky nwe
-    grid $fwStructureSets -column 0 -row 2 -sticky ws
+    grid $fwStructureSets -column 0 -row 3 -sticky ws
     grid columnconfigure $wwTop 0 -weight 1
     grid rowconfigure $wwTop 0 -weight 0
     grid rowconfigure $wwTop 1 -weight 1
