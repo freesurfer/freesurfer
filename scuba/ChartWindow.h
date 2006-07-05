@@ -34,6 +34,14 @@ class ChartWindow : public DebugReporter,
     std::string msLabel;
   };
 
+  // How to display a group.
+  class GroupData {
+  public:
+    std::string msLabel;
+    bool mbConnected;
+    int mColorRGBi[3];
+  };
+
   // Clear the existing data.
   void ClearData ();
 
@@ -41,6 +49,16 @@ class ChartWindow : public DebugReporter,
   // for an axis, the default will be used.
   void SetPointData ( std::list<PointData>& iaData );
   void AddPointData ( PointData& iData );
+
+  // Provide a list of values if you want multiple groups. Each can
+  // have different color or drawing styles.
+  void SetPointData ( int inGroup, std::list<PointData>& iaData );
+  void AddPointData ( int inGroup, PointData& iData );
+
+  // Provide drawing style for a group.
+  void SetGroupLabel     ( int inGroup, std::string isLabel );
+  void SetGroupConnected ( int inGroup, bool ibConnected );
+  void SetGroupColor     ( int inGroup, int iColorRGBi[3] );
 
   // Set the labels in the graph.
   void SetTitle ( std::string isTitle );
@@ -63,18 +81,24 @@ class ChartWindow : public DebugReporter,
   // Output a text file. Specify the columns to generate and other
   // settings.
   void GenerateReport ( std::string ifnReport,
+			bool ibIncludeGroupColumn,
 			bool ibIncludeLabelColumn,
 			bool ibIncludeXColumn,
 			bool ibIncludeYColumn );
 
  protected:
 
+  // Init group data if needed.
+  void InitGroupDataIfNotSet ( int inGroup );
+  void SetGroupData          ( int inGroup, GroupData& iData );
+
   // Creates a new chart window. Protected so they have to use the
   // static NewChartWindow function to create a member of the proper
   // subclass.
   ChartWindow ();
 
-  std::list<PointData> mPointData;
+  std::map<int,std::list<PointData> > mPointData;
+  std::map<int,GroupData> mGroupData;
   std::string msTitle;
   std::string msXLabel;
   std::string msYLabel;

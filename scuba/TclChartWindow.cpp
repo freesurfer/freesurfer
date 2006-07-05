@@ -101,18 +101,55 @@ TclChartWindow::Draw () {
   ssCommand << "Chart_SetShowLegend " << chartID << " "
 	    << (mbShowLegend ? "true" : "false");
   manager.SendCommand( ssCommand.str() );
-
-  // Make a tcl command with all our data and send it.
-  list<PointData>::iterator tPoint;
+  
+  // Clear the existing data.
   ssCommand.str("");
-  ssCommand << "Chart_SetPointData " << chartID << " [list ";
-  for( tPoint = mPointData.begin(); tPoint != mPointData.end(); ++tPoint ) {
-    PointData& point = *tPoint;
-    ssCommand << "[list x " << point.mX << " y " << point.mY
-	      << " label \"" << point.msLabel << "\"] ";
-  }
-  ssCommand << "]";
+  ssCommand << "Chart_ClearData " << chartID;
   manager.SendCommand( ssCommand.str() );
+
+  // Make some tcl commands with all our data groups and send it.
+  map<int,list<PointData> >::iterator tGroup;
+  for( tGroup = mPointData.begin(); 
+       tGroup != mPointData.end();
+       ++tGroup ) {
+    
+      int nGroup = tGroup->first;
+      list<PointData>& lPoints = tGroup->second;
+
+      // Send the tcl commands to set the group data.
+      ssCommand.str("");
+      ssCommand << "Chart_SetGroupConnected " << chartID << " "
+		<< nGroup << " " << mGroupData[nGroup].mbConnected;
+      manager.SendCommand( ssCommand.str() );
+      
+      if( mGroupData[nGroup].msLabel != "" ) {
+	ssCommand.str("");
+	ssCommand << "Chart_SetGroupLabel " << chartID << " "
+		  << nGroup << " \"" << mGroupData[nGroup].msLabel << "\"";
+	manager.SendCommand( ssCommand.str() );
+      }
+
+      ssCommand.str("");
+      ssCommand << "Chart_SetGroupColor " << chartID << " "
+		<< nGroup << " " 
+		<< mGroupData[nGroup].mColorRGBi[0] << " "
+		<< mGroupData[nGroup].mColorRGBi[1] << " "
+		<< mGroupData[nGroup].mColorRGBi[2];
+      manager.SendCommand( ssCommand.str() );
+      
+      // Go through the point list and build the points command.
+      list<PointData>::iterator tPoint;
+      ssCommand.str("");
+      ssCommand << "Chart_SetPointData " << chartID << " " 
+		<< nGroup << " [list ";
+      for( tPoint = lPoints.begin(); tPoint != lPoints.end(); ++tPoint ) {
+	PointData& point = *tPoint;
+	ssCommand << "[list x " << point.mX << " y " << point.mY
+		  << " label \"" << point.msLabel << "\"] ";
+      }
+      ssCommand << "]";
+      manager.SendCommand( ssCommand.str() );
+  }
 
   // Make sure the window is showing.
   ssCommand.str("");
@@ -170,7 +207,7 @@ TclChartWindow::DoListenToTclCommand ( char* isCommand,
       }
 
       try {
-	GenerateReport( string(iasArgv[5]),
+	GenerateReport( string(iasArgv[5]), false,
 			bIncludeLabel, bIncludeX, bIncludeY );
       }
       catch( runtime_error& e ) {

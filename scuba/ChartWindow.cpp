@@ -45,15 +45,56 @@ ChartWindow::ClearData () {
 void
 ChartWindow::SetPointData ( list<PointData>& iaData ) {
 
-  mPointData = iaData;
+  SetPointData( 0, iaData );
 }
 
 void
 ChartWindow::AddPointData ( PointData& iData ) {
 
-  mPointData.push_back( iData );
+  AddPointData( 0, iData );
 }
 
+void
+ChartWindow::SetPointData ( int inGroup, list<PointData>& iaData ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  mPointData[inGroup] = iaData;
+}
+
+void
+ChartWindow::AddPointData ( int inGroup,PointData& iData ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  mPointData[inGroup].push_back( iData );
+}
+
+void
+ChartWindow::SetGroupLabel ( int inGroup, string isLabel ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  mGroupData[inGroup].msLabel = isLabel;
+}
+
+void
+ChartWindow::SetGroupConnected ( int inGroup, bool ibConnected ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  mGroupData[inGroup].mbConnected = ibConnected;
+}
+
+void
+ChartWindow::SetGroupColor ( int inGroup, int iColorRGBi[3] ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  mGroupData[inGroup].mColorRGBi[0] = iColorRGBi[0];
+  mGroupData[inGroup].mColorRGBi[1] = iColorRGBi[1];
+  mGroupData[inGroup].mColorRGBi[2] = iColorRGBi[2];
+}
 
 void
 ChartWindow::SetTitle ( string isTitle ) {
@@ -81,30 +122,45 @@ ChartWindow::SetInfo ( string isInfo ) {
 
 void
 ChartWindow::GenerateReport ( string ifnReport,
-			       bool ibIncludeLabelColumn,
-			       bool ibIncludeXColumn,
-			       bool ibIncludeYColumn ) {
+			      bool ibIncludeGroupColumn,
+			      bool ibIncludeLabelColumn,
+			      bool ibIncludeXColumn,
+			      bool ibIncludeYColumn ) {
 
   try {
     // Check file name first.
     ofstream fReport( ifnReport.c_str(), ios::out );
 
-    list<PointData>::iterator tPoint;
-    for( tPoint = mPointData.begin(); tPoint != mPointData.end(); ++tPoint ) {
-
-      PointData& point = *tPoint;
-
-      // Output the data they want.
-      if( ibIncludeLabelColumn ) {
-	fReport << point.msLabel << "\t";
+    map<int,list<PointData> >::iterator tGroup;
+    for( tGroup = mPointData.begin(); 
+	 tGroup != mPointData.end();
+	 ++tGroup ) {
+    
+      int nGroup = tGroup->first;
+      list<PointData>& lPoints = tGroup->second;
+      
+      list<PointData>::iterator tPoint;
+      for( tPoint = lPoints.begin(); 
+	   tPoint != lPoints.end();
+	   ++tPoint ) {
+	
+	PointData& point = (*tPoint);
+	
+	// Output the data they want.
+	if( ibIncludeGroupColumn ) {
+	  fReport << mGroupData[nGroup].msLabel << "\t";
+	}
+	if( ibIncludeLabelColumn ) {
+	  fReport << point.msLabel << "\t";
+	}
+	if( ibIncludeXColumn ) {
+	  fReport << point.mX << "\t";
+	}
+	if( ibIncludeYColumn ) {
+	  fReport << point.mY;
+	}
+	fReport << endl;
       }
-      if( ibIncludeXColumn ) {
-	fReport << point.mX << "\t";
-      }
-      if( ibIncludeYColumn ) {
-	fReport << point.mY;
-      }
-      fReport << endl;
     }
   }
   catch( exception& e ) {
@@ -115,3 +171,69 @@ ChartWindow::GenerateReport ( string ifnReport,
   }
 }
 
+void
+ChartWindow::InitGroupDataIfNotSet ( int inGroup ) {
+
+  if( mGroupData.find( inGroup ) == mGroupData.end() ) {
+    GroupData groupData;
+    groupData.mbConnected = false;
+    // Default colors
+    switch( inGroup % 8 ) {
+    case 0:
+      // Red
+      groupData.mColorRGBi[0] = 255;
+      groupData.mColorRGBi[1] = 0;
+      groupData.mColorRGBi[2] = 0;
+      break;
+    case 1:
+      // Green
+      groupData.mColorRGBi[0] = 0;
+      groupData.mColorRGBi[1] = 255;
+      groupData.mColorRGBi[2] = 0;
+      break;
+    case 2:
+      // Blue
+      groupData.mColorRGBi[0] = 0;
+      groupData.mColorRGBi[1] = 0;
+      groupData.mColorRGBi[2] = 255;
+      break;
+    case 3:
+      // Purple
+      groupData.mColorRGBi[0] = 255;
+      groupData.mColorRGBi[1] = 0;
+      groupData.mColorRGBi[2] = 255;
+      break;
+    case 4:
+      // Brown
+      groupData.mColorRGBi[0] = 181;
+      groupData.mColorRGBi[1] = 42;
+      groupData.mColorRGBi[2] = 42;
+      break;
+    case 5:
+      // Pink
+      groupData.mColorRGBi[0] = 255;
+      groupData.mColorRGBi[1] = 200;
+      groupData.mColorRGBi[2] = 200;
+      break;
+    case 6:
+      // Lightblue
+      groupData.mColorRGBi[0] = 174;
+      groupData.mColorRGBi[1] = 230;
+      groupData.mColorRGBi[2] = 240;
+      break;
+    case 7:
+      // Yellow
+      groupData.mColorRGBi[0] = 255;
+      groupData.mColorRGBi[1] = 255;
+      groupData.mColorRGBi[2] = 0;
+      break;
+    }
+    SetGroupData( inGroup, groupData );
+  }
+}
+
+void
+ChartWindow::SetGroupData ( int inGroup, GroupData& iData ) {
+
+  mGroupData[inGroup] = iData;
+}

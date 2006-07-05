@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.6 2006/05/04 19:30:32 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.7 2006/07/05 20:39:37 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -37,7 +37,14 @@ set kValid(lColors) {red blue green yellow black purple orange pink brown}
 #     xAxisLabel
 #     yAxisLabel
 #     showLegend
-#     lPoints
+#     lGroups
+#     $nGroup
+#       lPoints
+#       connected
+#       label
+#       red
+#       green
+#       blue
 
 # gChart
 #   $ID
@@ -78,8 +85,8 @@ proc Chart_BuildWindow { iID } {
     if { ![info exists gData($iID,showLegend)] } {
 	set gData($iID,showLegend) false
     }
-    if { ![info exists gData($iID,lPoints)] } {
-	set gData($iID,lPoints) {}
+    if { ![info exists gData($iID,lGroups)] } {
+	set gData($iID,lGroups) {}
     }
 
     # Make the to window and set its title.
@@ -173,22 +180,68 @@ proc Chart_PlotData { iID } {
 	$gw marker delete $marker
     }
     
-    # If we have no points, return.
-    if { ![info exists gData($iID,lPoints)] || 
-	 [llength $gData($iID,lPoints)] == 0 } {
+    # If we have no group, return.
+    if { ![info exists gData($iID,lGroups)] || 
+	 [llength $gData($iID,lGroups)] == 0 } {
 	return
     }
 
-    # Create an element for each point.
-    for { set nPoint 0 } { $nPoint < [llength $gData($iID,lPoints)] } { incr nPoint } {
+    # For each group...
+    foreach nGroup $gData($iID,lGroups) {
 	
-	array set point [lindex $gData($iID,lPoints) $nPoint]
+	set color blue
+	if { [info exists gData($iID,$nGroup,red)] } {
+	    set r $gData($iID,$nGroup,red)
+	    set g $gData($iID,$nGroup,green)
+	    set b $gData($iID,$nGroup,blue)
+	    set color [format "#%.2x%.2x%.2x" $r $g $b]
+	}
 	
-	$gw element create point$nPoint \
-	    -data [list $point(x) $point(y)] \
-	    -label $point(label) \
-	    -linewidth 0 -outlinewidth 1 \
-	    -activepen activeElement
+	# Set options based on our draw data.
+	if { [info exists gData($iID,$nGroup,connected)] &&
+	     $gData($iID,$nGroup,connected) } {
+	    
+	    set lPoints {}
+	    for { set nPoint 0 } \
+		{ $nPoint < [llength $gData($iID,$nGroup,lPoints)] } \
+		{ incr nPoint } {
+		    
+		    array set point \
+			[lindex $gData($iID,$nGroup,lPoints) $nPoint]
+
+		    lappend lPoints $point(x) $point(y)
+		}    
+
+	    set sLabel ""
+	    if { [info exists gData($iID,$nGroup,label)] } {
+		set sLabel $gData($iID,$nGroup,label)
+	    }
+
+	    $gw element create group$nGroup \
+		-data $lPoints \
+		-label $sLabel \
+		-color $color \
+		-linewidth 1 -outlinewidth 1 \
+		-activepen activeElement
+
+	} else {
+	    
+	    # Create an element for each point.
+	    for { set nPoint 0 } \
+		{ $nPoint < [llength $gData($iID,$nGroup,lPoints)] } \
+		{ incr nPoint } {
+		    
+		    array set point \
+			[lindex $gData($iID,$nGroup,lPoints) $nPoint]
+		    
+		    $gw element create group$nGroup-point$nPoint \
+			-data [list $point(x) $point(y)] \
+			-label $point(label) \
+			-color $color \
+			-linewidth 0 -outlinewidth 1 \
+			-activepen activeElement
+		}
+	}
     }
     
     # Show or hide the legend.
@@ -401,15 +454,64 @@ proc Chart_SetInfo { iID isInfo } {
     set gChart($iID,state,info) $isInfo
 }
 
+proc Chart_ClearData { iID } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+
+    foreach nGroup $gData($iID,lGroups) {
+	set gData($iID,$nGroup,lPoints) {}
+    }
+
+    set gData($iID,lGroups) {}
+}
+
 # This function expects data to come in as a list of array lists. Each
 # element in ilPoints should be a list of array label/value pairs, e.g.
 #  [list x 10.4 y 20.98 label "Hello World"]
-proc Chart_SetPointData { iID ilPoints } {
+proc Chart_SetPointData { iID inGroup ilPoints } {
     global gData
     if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
-    set gData($iID,lPoints) $ilPoints
+
+    # Add this group number to the list of groups if it's not already
+    # there.
+    if { ![info exists gData($iID,lGroups)] ||
+	 [lsearch $gData($iID,lGroups) $inGroup] == -1 } { 
+	lappend gData($iID,lGroups) $inGroup
+    }
+
+    # Set the point data.
+    set gData($iID,$inGroup,lPoints) $ilPoints
+
     Chart_PlotData $iID
 }
+
+# Set display information about the groups.
+proc Chart_SetGroupConnected { iID inGroup ibConnected } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+
+    # Set the value.
+    set gData($iID,$inGroup,connected) $ibConnected
+}
+
+proc Chart_SetGroupLabel { iID inGroup isLabel } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+
+    # Set the value.
+    set gData($iID,$inGroup,label) $isLabel
+}
+
+proc Chart_SetGroupColor { iID inGroup iRed iGreen iBlue } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+
+    # Set the values.
+    set gData($iID,$inGroup,red) $iRed
+    set gData($iID,$inGroup,green) $iGreen
+    set gData($iID,$inGroup,blue) $iBlue
+}
+
 # Save the current plot graphic to a postscript file.
 proc Chart_SaveToPostscript { iID ifnPS } {
     global gData gWidgets 

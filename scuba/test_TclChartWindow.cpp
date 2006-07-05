@@ -50,6 +50,7 @@ public:
 
   // Generate new random data for the chart.
   void NewData ();
+  void NewDataMulti ();
 
   // Tcl command callback function.
   TclCommandResult DoListenToTclCommand ( char* isCommand, 
@@ -115,6 +116,42 @@ TclChartWindowTester::NewData () {
 }
 
 void
+TclChartWindowTester::NewDataMulti () {
+
+  mChart->ClearData();
+
+  list<ChartWindow::PointData> lData;
+
+  ChartWindow::PointData data;
+  int cGroups = 10;
+  for( int nGroup = 0; nGroup < cGroups; nGroup++ ) {
+
+    lData.clear();
+    
+    int cData = 20;
+    for( int nData = 0; nData < cData; nData++ ) {
+      
+      data.mX = nData;
+      data.mY = random() % 100;
+      
+      stringstream ssLabel;
+      ssLabel << "Item " << nData;
+      data.msLabel = ssLabel.str();
+      
+      lData.push_back( data );
+    }
+
+    mChart->SetPointData( nGroup, lData );
+
+    stringstream ssLabel;
+    ssLabel << "Group " << nGroup;
+    mChart->SetGroupLabel( nGroup, ssLabel.str() );
+    mChart->SetGroupConnected( nGroup, (nGroup % 2) );
+  }
+
+}
+
+void
 TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
 
   mChart = ChartWindow::NewChartWindow();
@@ -122,6 +159,7 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "TestResult", 2, "testID pass", "" );
   commandMgr.AddCommand( *this, "NewData", 0, "", "" );
+  commandMgr.AddCommand( *this, "NewDataMulti", 0, "", "" );
   commandMgr.AddCommand( *this, "ToggleShowLegend", 0, "", "" );
 
   stringstream ssCommand;
@@ -129,8 +167,13 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
-  ssCommand << "button .f.bwNewData -text \"New Data\""
+  ssCommand << "button .f.bwNewData -text \"New 1 Data\""
 	    << " -command NewData";
+  commandMgr.SendCommand( ssCommand.str() );
+
+  ssCommand.str("");
+  ssCommand << "button .f.bwNewDataMulti -text \"New multi Data\""
+	    << " -command NewDataMulti";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
@@ -139,7 +182,7 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
-  ssCommand << "pack .f.bwNewData .f.bwToggleLegend -fill both -expand yes";
+  ssCommand << "pack .f.bwNewData .f.bwNewDataMulti .f.bwToggleLegend -fill both -expand yes";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
@@ -189,6 +232,18 @@ TclChartWindowTester::DoListenToTclCommand ( char* isCommand,
     ssLabel << "Info String " << cNew++;
 
     NewData();
+    mChart->SetInfo( ssLabel.str() );
+    mChart->Draw();
+    
+    return ok;
+
+  } else if( 0 == strcmp( isCommand, "NewDataMulti" ) ) {
+
+    static int cNew = 0;
+    stringstream ssLabel;
+    ssLabel << "Info String " << cNew++;
+
+    NewDataMulti();
     mChart->SetInfo( ssLabel.str() );
     mChart->Draw();
     
