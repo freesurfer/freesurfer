@@ -20,6 +20,7 @@ extern "C" {
 #include "TclScubaKeyCombo.h"
 #include "ScubaVolumeROIIntensityChartManager.h"
 #include "TclChartWindow.h"
+#include "ScubaMultiFrameVolumeChartManager.h"
 
 char* Progname = "scuba";
 
@@ -117,6 +118,8 @@ int main ( int argc, char** argv ) {
     ProgressDisplayManager::SetManager( new TclProgressDisplayManager );
 
     ScubaVolumeROIIntensityChartManager::GetManager();
+
+    ScubaMultiFrameVolumeChartManager::GetManager();
 
     ChartWindow::SetFactory( new TclChartWindowFactory );
 

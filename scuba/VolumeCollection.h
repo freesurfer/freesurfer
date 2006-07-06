@@ -103,6 +103,11 @@ class VolumeCollection : public DataCollection {
   // For multiframe volumes.
   int GetNumberOfFrames () { return mcFrames; }
 
+  // To see whether we should use time points and conditions.
+  bool InterpretFramesAsTimePoints () { return mbInterpretFramesAsTimePoints; }
+  int GetNumberOfConditions () { return mcConditions; }
+  int GetNumberOfTimePoints () { return mcTimePoints; } 
+
   // Convert a time point and condition to a frame number.
   int ConvertConditionAndTimePointToFrame ( int iCondition, int iTimePoint );
   int ExtractConditionFromFrame ( int iFrame );

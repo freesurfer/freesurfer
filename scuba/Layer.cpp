@@ -395,7 +395,8 @@ Layer::DoListenToMessage ( string isMessage, void* ) {
 
   if( isMessage == "dataChanged" ) {
     DataChanged ();
-    SendBroadcast( "layerChanged", NULL );
+    int id = GetID();
+    SendBroadcast( "layerChanged", (void*)&id );
   }
 }
 

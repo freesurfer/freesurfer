@@ -27,14 +27,14 @@ Broadcaster::RemoveListener ( Listener* iListener ) {
 void
 Broadcaster::SendBroadcast ( std::string iMessage, void* iData ) {
 
-  //    cerr << "Broadcaster " << msLabel << " sending message " << iMessage << endl;
+  // cerr << "Broadcaster " << msLabel << " sending message " << iMessage << endl;
 
   std::list<Listener*>::iterator tListener;
   for( tListener = mlListeners.begin(); 
        tListener != mlListeners.end(); ++tListener ) {
 
     Listener* listener = *tListener;
-    //    cerr << "\tSending to listener " << listener->GetLabel() << endl;
+    // cerr << "\tSending to listener " << listener->GetLabel() << endl;
     listener->ListenToMessage( iMessage, iData );
   }  
 }

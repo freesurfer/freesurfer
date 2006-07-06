@@ -52,7 +52,9 @@ FSDATA_SRCS= \
 	SegmentationVolumeReport.cpp SegmentationVolumeReport.h \
 	ChartWindow.cpp ChartWindow.h \
 	ScubaVolumeROIIntensityChartManager.cpp \
-	ScubaVolumeROIIntensityChartManager.h
+	ScubaVolumeROIIntensityChartManager.h \
+	ScubaMultiFrameVolumeChartManager.cpp \
+	ScubaMultiFrameVolumeChartManager.h
 
 LAYER_SRCS=ScubaLayerFactory.cpp ScubaLayerFactory.h \
 	ScubaLayer2DMRI.cpp ScubaLayer2DMRI.h \

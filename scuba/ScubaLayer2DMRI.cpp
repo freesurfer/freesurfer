@@ -3000,6 +3000,15 @@ ScubaLayer2DMRI::SetCurrentFrame ( int iFrame ) {
 
   if( iFrame >= 0 && iFrame < mVolume->GetNumberOfFrames() ) {
     mCurrentFrame = iFrame;
+
+    // Send the layerChanged message so the view will know to request
+    // info from us again, since the value under the cursor will have
+    // changed.
+    int id = GetID();
+    SendBroadcast( "layerChanged", (void*)&id );
+
+    // Draw with the new frame.
+    RequestRedisplay();
   } else {
     throw runtime_error( "Invalid frame" );
   }

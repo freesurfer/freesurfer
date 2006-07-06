@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.213 2006/06/30 22:12:01 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.214 2006/07/06 23:03:09 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -574,6 +574,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
 	{command "ROI Stats..." { DoROIStatsDlog } }
 	{command "Make New Volume ROI Intensity Chart..." { DoMakeNewVolumeROIIntensityChartDlog } }
+	{command "Make New Multi-frame Volume Chart..." { DoMakeNewMultiFrameVolumeChartDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -2103,7 +2104,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     tkuMakeSliders $fwGrayscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
-	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); RedrawFrame [GetMainFrameID]} }
+	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,grayscaleFrameSlider) $fwGrayscale.swFrame
 
@@ -2159,20 +2160,20 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     tkuMakeSliders $fwHeatscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
-	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); RedrawFrame [GetMainFrameID]} }
+	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,heatscaleFrameSlider) $fwHeatscale.swFrame
 
     tkuMakeSliders $fwHeatscale.swCondition -sliders { 
 	{ -label "Condition" -variable gaLayer(current,condition)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
-	    -command {Set2DMRILayerCurrentCondition $gaLayer(current,id) $gaLayer(current,condition); RedrawFrame [GetMainFrameID]} }
+	    -command {Set2DMRILayerCurrentCondition $gaLayer(current,id) $gaLayer(current,condition); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,heatscaleConditionSlider) $fwHeatscale.swCondition
     tkuMakeSliders $fwHeatscale.swTimePoint -sliders { 
 	{ -label "Time Point" -variable gaLayer(current,timePoint)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
-	    -command {Set2DMRILayerCurrentTimePoint $gaLayer(current,id) $gaLayer(current,timePoint); RedrawFrame [GetMainFrameID]} }
+	    -command {Set2DMRILayerCurrentTimePoint $gaLayer(current,id) $gaLayer(current,timePoint); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,heatscaleTimePointSlider) $fwHeatscale.swTimePoint
 
@@ -6291,7 +6292,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.213 2006/06/30 22:12:01 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.214 2006/07/06 23:03:09 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7739,6 +7740,7 @@ proc DoMakeNewVolumeROIIntensityChartDlog {} {
     }
 }
 
+
 proc ROIIntensityChartDlogVolCallback { iVol } {
     global gaROIIntensityChartInfo
 
@@ -7749,6 +7751,48 @@ proc ROIIntensityChartDlogVolCallback { iVol } {
 	$idList "GetROILabel %s" {} false
 }
  
+proc DoMakeNewMultiFrameVolumeChartDlog {} {
+    global gaCollection
+
+    # Build a list of volumes.
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Volume] } {
+
+	    set sLabel [GetCollectionLabel $colID]
+	    lappend lVolumes $colID
+	}
+    }
+    
+    # If no volumes, return.
+    if { [llength $lVolumes] == 0 } {
+	tkuErrorDlog "Must have a volume loaded before generating a chart."
+	return
+    }
+
+    # Create the dialog.
+    set wwDialog .wwMultiFrameVolumeChartDlog
+    if { [tkuCreateDialog $wwDialog "Multi-frame Volume Chart" {-borderwidth 10}] } {
+
+	set owVolume   $wwDialog.owVolume
+	set fwButtons  $wwDialog.fwButtons
+
+	# Option menu full of volumes..
+	tixOptionMenu $owVolume \
+	    -label "Volume: " \
+	    -variable gMultiFrameVolumeID
+	FillMenuFromList $owVolume \
+	    $lVolumes "GetCollectionLabel %s" {} false
+
+	# OK button will call the chart functin.
+	tkuMakeCancelOKButtons $fwButtons $wwDialog \
+	    -okCmd {MakeNewMultiFrameVolumeChart $gMultiFrameVolumeID}
+
+	pack $owVolume $fwButtons \
+	    -side top -expand yes -fill x
+
+    }
+}
 
   
 # MAIN =============================================================
