@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.19 2006/04/18 23:05:03 nicks Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.20 2006/07/06 19:23:20 rudolph Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -270,7 +270,7 @@ if($#epidw != 0) then
   set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`;
 
   # Split the epi into multiple volumes
-  set epipath = `pwd`/$epi
+  set epipath = $epi
   mkdir -p $tmpdir/epi-split
   pushd $tmpdir/epi-split
   set cmd = (avwsplit $epipath)
@@ -359,6 +359,14 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $epi"
         exit 1;
       endif
+    	# Make sure that $epi is an absolute dir/file spec:
+	set epidir = `dirname $epi`
+	set epifile = `basename $epi`
+	set here = `pwd`
+	cd $epidir
+	set absepidir = `pwd`
+	set epi	= $absepidir/$epifile
+	cd $here
       breaksw
 
     case "--tediff":
