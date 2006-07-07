@@ -52,6 +52,7 @@ typedef enum {
   DCM_xsize, 
   DCM_ysize, 
   DCM_ImageNumber, 
+  DCM_SeriesNumber,
   DCM_Rows, 
   DCM_Columns, 
   DCM_BitsAllocated, 
@@ -96,7 +97,8 @@ typedef struct
     Rows, 
     Columns, 
     BitsAllocated, 
-    NumberOfFrames;
+    NumberOfFrames,
+    SeriesNumber;
 
   // image position and orientation
   double ImagePosition[3], 

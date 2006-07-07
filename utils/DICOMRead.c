@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.85 2006/04/13 22:15:26 greve Exp $
+   $Id: DICOMRead.c,v 1.86 2006/07/07 03:24:20 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3364,16 +3364,21 @@ CONDITION GetDICOMInfo(char *fname,
   // image number
   tag=DCM_MAKETAG(0x20, 0x13);
   cond=GetUSFromString(object, tag, &dcminfo->ImageNumber);
-  if ((cond != DCM_NORMAL || dcminfo->ImageNumber==0) && ImageNumber!=-1)
-    {
-      dcminfo->ImageNumber=ImageNumber;
-      cond2=cond;
-#ifdef _DEBUG
-      printf("WARNING: tag ImageNumber not found\n"); 
-#endif  
-    }
-  else
-    IsTagPresent[DCM_ImageNumber]=true;
+  if ((cond != DCM_NORMAL || dcminfo->ImageNumber==0) && ImageNumber!=-1) {
+    dcminfo->ImageNumber=ImageNumber;
+    cond2=cond;
+    printf("WARNING: tag ImageNumber not found\n"); 
+  }
+  else IsTagPresent[DCM_ImageNumber]=true;
+
+  // series number
+  tag=DCM_MAKETAG(0x20, 0x11);
+  cond=GetUSFromString(object, tag, &dcminfo->SeriesNumber);
+  if(cond != DCM_NORMAL || dcminfo->SeriesNumber==0){
+    cond2=cond;
+    printf("WARNING: tag SeriesNumber not found\n"); 
+  }
+  else  IsTagPresent[DCM_SeriesNumber]=true;
 
   // rows
   tag=DCM_MAKETAG(0x28, 0x10);
@@ -4013,12 +4018,11 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
     return -1;
 
   pfn = (char **)calloc(*NumberOfFiles, sizeof(char *));
-  for (i=0; i<*NumberOfFiles; i++)
-    {
-      length=pathlength+strlen(NameList[i]->d_name)+1;
-      pfn[i]=(char *)calloc(length, sizeof(char));
-      sprintf(pfn[i], "%s%s", PathName, NameList[i]->d_name);
-    }
+  for (i=0; i<*NumberOfFiles; i++){
+    length=pathlength+strlen(NameList[i]->d_name)+1;
+    pfn[i]=(char *)calloc(length, sizeof(char));
+    sprintf(pfn[i], "%s/%s", PathName, NameList[i]->d_name);
+  }
 
   free(NameList);
   *FileNames=pfn;
