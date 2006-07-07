@@ -104,7 +104,8 @@ typedef struct
   double ImagePosition[3], 
     ImageOrientation[6],
     FirstImagePosition[3],
-    LastImagePosition[3];
+    LastImagePosition[3],
+    Vc[3],Vr[3],Vs[3];
 
   // acquisition parameters
   double EchoTime, 

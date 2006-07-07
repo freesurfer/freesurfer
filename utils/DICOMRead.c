@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.86 2006/07/07 03:24:20 greve Exp $
+   $Id: DICOMRead.c,v 1.87 2006/07/07 03:40:54 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3185,6 +3185,7 @@ CONDITION GetDICOMInfo(char *fname,
   DCM_OBJECT** object=(DCM_OBJECT**)calloc(1, sizeof(DCM_OBJECT*));
   DCM_TAG tag;
   CONDITION cond, cond2=DCM_NORMAL;
+  double xr,xa,xs,yr,ya,ys, zr,za,zs;
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
   int i;
@@ -3533,18 +3534,26 @@ CONDITION GetDICOMInfo(char *fname,
   // image orientation
   tag=DCM_MAKETAG(0x20, 0x37);
   cond=GetMultiDoubleFromString(object, tag, &tmp, 6);
-  if (cond != DCM_NORMAL) {
-    for (i=0; i<6; i++)
-      dcminfo->ImageOrientation[i]=0;
+  if (cond != DCM_NORMAL){
+    for (i=0; i<6; i++) dcminfo->ImageOrientation[i]=0;
     cond2=cond;
-#ifdef _DEBUG
     printf("WARNING: tag image orientation not found\n"); 
-#endif  
   }
   else {
     IsTagPresent[DCM_ImageOrientation]=true;
     for (i=0; i<6; i++)
       dcminfo->ImageOrientation[i]=tmp[i];
+    dcminfo->Vc[0] = dcminfo->ImageOrientation[0];
+    dcminfo->Vc[1] = dcminfo->ImageOrientation[1];
+    dcminfo->Vc[2] = dcminfo->ImageOrientation[2];
+    dcminfo->Vr[0] = dcminfo->ImageOrientation[3];
+    dcminfo->Vr[1] = dcminfo->ImageOrientation[4];
+    dcminfo->Vr[2] = dcminfo->ImageOrientation[5];
+    // First pass at computing slice direction, Assume left-handed
+    xr = dcminfo->Vc[0]; xa = dcminfo->Vc[1]; xs = dcminfo->Vc[2]; 
+    yr = dcminfo->Vr[0]; ya = dcminfo->Vr[1]; ys = dcminfo->Vr[2];
+    zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
+    dcminfo->Vs[0] = -zr; dcminfo->Vs[1] = -za; dcminfo->Vs[2] = -zs;
   }
 
   // pixel data
