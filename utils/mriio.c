@@ -1869,19 +1869,16 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
           "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')",
           fname_use));
     }
-  if(strcmp(".ima", c) == 0)
-    sprintf(ima, "ima");
-  else if(strcmp(".IMA", c) == 0)
-    sprintf(ima, "IMA");
-  else
-    {
-      errno = 0;
-      ErrorReturn
-        (NULL,
-         (ERROR_BADPARM,
-          "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')",
-          fname_use));
-    }
+  if(strcmp(".ima", c) == 0)      sprintf(ima, "ima");
+  else if(strcmp(".IMA", c) == 0)  sprintf(ima, "IMA");
+  else {
+    errno = 0;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+	"siemensRead(): bad file name %s (must end in '.ima' or '.IMA')",
+	fname_use));
+  }
 
   c2 = c;
   for(c--;isdigit((int)(*c));c--);
@@ -1896,53 +1893,56 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   file_n = atol(c);
   *c2 = '.';
 
-  if(!FileExists(fname_use))
-    {
-      errno = 0;
-      ErrorReturn
-        (NULL,
-         (ERROR_BADFILE, "siemensRead(): file %s doesn't exist", fname_use));
-    }
+  if(!FileExists(fname_use))    {
+    errno = 0;
+    ErrorReturn(NULL,
+		(ERROR_BADFILE, "siemensRead(): file %s doesn't exist", fname_use));
+  }
+
+  /* Check whether it is really a dicom file */
+  if(IsDICOM(fname_use)){
+    printf("WARNING: this looks like a dicom, not an old Siemens .ima file ");
+    printf("If this fails, run mri_convert with -it dicom\n");
+  }
 
   /* --- get the low image number --- */
   n_low = file_n - 1;
   sprintf(c, "%d.%s", n_low, ima);
-  while(FileExists(fname_use))
-    {
-      n_low--;
-      sprintf(c, "%d.%s", n_low, ima);
-    }
+  while(FileExists(fname_use))    {
+    n_low--;
+    sprintf(c, "%d.%s", n_low, ima);
+  }
   n_low++;
 
   /* --- get the high image number --- */
   n_high = file_n + 1;
   sprintf(c, "%d.%s", n_high, ima);
-  while(FileExists(fname_use))
-    {
-      n_high++;
-      sprintf(c, "%d.%s", n_high, ima);
-    }
+  while(FileExists(fname_use))    {
+    n_high++;
+    sprintf(c, "%d.%s", n_high, ima);
+  }
   n_high--;
 
   n_files = n_high - n_low + 1;
 
   sprintf(c, "%d.%s", n_low, ima);
-  if((fp = fopen(fname_use, "r")) == NULL)
-    {
-      errno = 0;
-      ErrorReturn
-        (NULL,
-         (ERROR_BADFILE,
-          "siemensRead(): can't open file %s (low = %d, this = %d, high = %d)",
-          fname_use, n_low, file_n, n_high));
-    }
+  if((fp = fopen(fname_use, "r")) == NULL)    {
+    errno = 0;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADFILE,
+	"siemensRead(): can't open file %s (low = %d, this = %d, high = %d)",
+	fname_use, n_low, file_n, n_high));
+  }
 
   fseek(fp, 4994, SEEK_SET);
   fread(&rows, 2, 1, fp);
   rows = orderShortBytes(rows);
+  printf("rows = %d\n",rows);
   fseek(fp, 4996, SEEK_SET);
   fread(&cols, 2, 1, fp);
   cols = orderShortBytes(cols);
+  printf("cols = %d\n",cols);
   fseek(fp, 4004, SEEK_SET);
   fread(&n_slices, 4, 1, fp);
   n_slices = orderIntBytes(n_slices);
