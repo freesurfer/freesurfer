@@ -598,27 +598,24 @@ static MRI *mri_read
 	{
 		mri = sdtRead(fname_copy, volume_flag);
 	}
-  else if(type == MRI_MGH_FILE)
-	{
-		mri = mghRead(fname_copy, volume_flag, -1);
-	}
-  else if(type == GDF_FILE)
-	{
-		mri = gdfRead(fname_copy, volume_flag);
-	}
-  else if(type == DICOM_FILE)
-	{
-		DICOMRead(fname_copy, &mri, volume_flag);
-	}
-  else if(type == SIEMENS_DICOM_FILE)
-	{
-		// mri_convert -nth option sets start_frame = nth.  otherwise -1
-		mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
-		start_frame = -1;
-		// in order to avoid the later processing on start_frame and end_frame
-		// read the comment later on
-		end_frame = 0;
-	}
+  else if(type == MRI_MGH_FILE)	{
+    mri = mghRead(fname_copy, volume_flag, -1);
+  }
+  else if(type == GDF_FILE){
+    mri = gdfRead(fname_copy, volume_flag);
+  }
+  else if(type == DICOM_FILE){
+    if(!UseDICOMRead2) DICOMRead(fname_copy, &mri, volume_flag);
+    else               mri = DICOMRead2(fname_copy, volume_flag);
+  }
+  else if(type == SIEMENS_DICOM_FILE){
+    // mri_convert -nth option sets start_frame = nth.  otherwise -1
+    mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
+    start_frame = -1;
+    // in order to avoid the later processing on start_frame and end_frame
+    // read the comment later on
+    end_frame = 0;
+  }
   else if (type == BRUKER_FILE)
 	{
 		mri = brukerRead(fname_copy, volume_flag);

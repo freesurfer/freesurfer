@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/03 22:27:40 $
-// Revision       : $Revision: 1.126 $
+// Revision Date  : $Date: 2006/07/07 18:00:00 $
+// Revision       : $Revision: 1.127 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.126 2006/07/03 22:27:40 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.127 2006/07/07 18:00:00 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.126 2006/07/03 22:27:40 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.127 2006/07/07 18:00:00 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -761,12 +761,12 @@ int main(int argc, char *argv[])
               exit(1);
             }
         }
-      else if(strcmp(argv[i], "-it") == 0 || strcmp(argv[i], "--in_type") == 0)
-        {
-          get_string(argc, argv, &i, in_type_string);
-          forced_in_type = string_to_type(in_type_string);
-          force_in_type_flag = TRUE;
-        }
+      else if(strcmp(argv[i], "-it") == 0 || strcmp(argv[i], "--in_type") == 0) {
+	get_string(argc, argv, &i, in_type_string);
+	forced_in_type = string_to_type(in_type_string);
+	force_in_type_flag = TRUE;
+      }
+      else if(strcmp(argv[i], "-dicomread2") == 0) UseDICOMRead2 = 1;
       else if(strcmp(argv[i], "-ot") == 0 ||
               strcmp(argv[i], "--out_type") == 0)
         {

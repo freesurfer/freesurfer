@@ -27,9 +27,11 @@ typedef unsigned short int BOOL;
 #ifdef _DICOMRead_SRC
   char *SDCMStatusFile = 0;
   char *SDCMListFile = 0;
+  int  UseDICOMRead2 = 0;
 #else
   extern char *SDCMStatusFile;
   extern char *SDCMListFile;
+  extern int  UseDICOMRead2;
 #endif
 
 typedef enum { 
