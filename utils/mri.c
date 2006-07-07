@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/25 18:57:13 $
-// Revision       : $Revision: 1.350 $
-char *MRI_C_VERSION = "$Revision: 1.350 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/07/07 17:46:33 $
+// Revision       : $Revision: 1.351 $
+char *MRI_C_VERSION = "$Revision: 1.351 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -699,6 +699,53 @@ MATRIX *MtxCRS1toCRS0(MATRIX *Q)
 
   return(Q);
 }
+/*------------------------------------------------------------------
+  MRIp0ToCRAS() - Computes and sets the c_{ras} values in an MRI
+  struct given P0 and assuming that the direction cosine and voxel
+  resolution to be correct. P0 is the RAS coordinate at the "first"
+  voxel (ie, col,row,slice=0). Typically, P0 is known from some
+  source (eg, dicom header) and the c_{ras} needs to be computed.
+  -----------------------------------------------------------------*/
+int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
+{
+  MATRIX *vox2ras,*CRScenter,*RAScenter;
+
+  // Get the vox2ras matrix. 
+  vox2ras = MRIxfmCRS2XYZ(mri, 0);
+  // The last column will be wrong because the c_{ras} has not been
+  // set properly (which is why you are calling this function).
+  // So replace the last col with the RAS at the first voxel. This
+  // makes the vox2ras correct.
+  vox2ras->rptr[1][4] = r0;
+  vox2ras->rptr[2][4] = a0;
+  vox2ras->rptr[3][4] = s0;
+  // Now set up a vector with the indices at the "center" of the
+  // volume (not quite the center though).
+  CRScenter = MatrixZero(4,1,NULL);
+  CRScenter->rptr[1][1] = mri->width/2.0;
+  CRScenter->rptr[2][1] = mri->height/2.0;
+  CRScenter->rptr[3][1] = mri->depth/2.0;
+  CRScenter->rptr[4][1] = 1;
+  // Compute the RAS at the center as vox2ras*CRScenter
+  RAScenter = MatrixMultiply(vox2ras,CRScenter,NULL);
+  // Set the values in the MRI struct.
+  mri->c_r = RAScenter->rptr[1][1];
+  mri->c_a = RAScenter->rptr[2][1];
+  mri->c_s = RAScenter->rptr[3][1];
+  // Clean up
+  MatrixFree(&vox2ras);
+  MatrixFree(&CRScenter);
+  MatrixFree(&RAScenter);
+  // Get out of town
+  return(0);
+}
+
+
+
+
+
+
+
 
 
 /*-------------------------------------------------------------------

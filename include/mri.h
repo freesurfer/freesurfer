@@ -135,6 +135,7 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat);
 MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);
 MATRIX *MtxCRS1toCRS0(MATRIX *Q);
+int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0);
 
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
