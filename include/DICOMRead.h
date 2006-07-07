@@ -198,6 +198,14 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles);
 int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFileNames);
 int DICOMRead(char *FileName, MRI **mri, int ReadImage);
 
+int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist);
+int CompareDCMFileInfo(const void *a, const void *b);
+int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist);
+MRI *DICOMRead2(char *dcmfile, int LoadVolume);
+
+
+
+
 DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 int AllocElementData(DCM_ELEMENT *e);
 int FreeElementData(DCM_ELEMENT *e);
