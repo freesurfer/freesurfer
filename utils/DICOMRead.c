@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.88 2006/07/07 17:47:12 greve Exp $
+   $Id: DICOMRead.c,v 1.89 2006/07/07 19:06:23 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1414,7 +1414,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1314);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-  sdcmfi->FlipAngle = (float) M_PI*dtmp/180.0;
+  if(cond == DCM_NORMAL)  sdcmfi->FlipAngle = (float) M_PI*dtmp/180.0;
+  else                    sdcmfi->FlipAngle = 0;
 
   tag=DCM_MAKETAG(0x18, 0x81);
   cond=GetDoubleFromString(&object, tag, &dtmp);
@@ -1422,7 +1423,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x82);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-  sdcmfi->InversionTime = (float) dtmp;
+  if(cond == DCM_NORMAL)  sdcmfi->InversionTime = (float) dtmp;
+  else                    sdcmfi->InversionTime = -1;
 
   tag=DCM_MAKETAG(0x18, 0x80);
   cond=GetDoubleFromString(&object, tag, &dtmp);
