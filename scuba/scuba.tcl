@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.214 2006/07/06 23:03:09 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.215 2006/07/07 19:04:50 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -574,7 +574,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
 	{command "ROI Stats..." { DoROIStatsDlog } }
 	{command "Make New Volume ROI Intensity Chart..." { DoMakeNewVolumeROIIntensityChartDlog } }
-	{command "Make New Multi-frame Volume Chart..." { DoMakeNewMultiFrameVolumeChartDlog } }
+	{command "Make New Time Course Window..." { DoMakeNewMultiFrameVolumeChartDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -6292,7 +6292,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.214 2006/07/06 23:03:09 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.215 2006/07/07 19:04:50 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7766,13 +7766,13 @@ proc DoMakeNewMultiFrameVolumeChartDlog {} {
     
     # If no volumes, return.
     if { [llength $lVolumes] == 0 } {
-	tkuErrorDlog "Must have a volume loaded before generating a chart."
+	tkuErrorDlog "Must have a volume loaded before making a time course window."
 	return
     }
 
     # Create the dialog.
     set wwDialog .wwMultiFrameVolumeChartDlog
-    if { [tkuCreateDialog $wwDialog "Multi-frame Volume Chart" {-borderwidth 10}] } {
+    if { [tkuCreateDialog $wwDialog "Make Time Course Window" {-borderwidth 10}] } {
 
 	set owVolume   $wwDialog.owVolume
 	set fwButtons  $wwDialog.fwButtons
