@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.24 2006/04/27 23:40:15 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.25 2006/07/08 22:02:28 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.24 2006/04/27 23:40:15 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.25 2006/07/08 22:02:28 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -750,7 +750,10 @@ end
 
 fname = sprintf('%s/rstd.mgh',outvolpath);
 MRIwrite(rstd,fname);
-
+rvar = rstd;
+rvar.vol = rstd.vol.^2;
+fname = sprintf('%s/rvar.mgh',outvolpath);
+MRIwrite(rvar,fname);
 
 % Save the .dat file %
 fname = sprintf('%s.dat',hstem);
