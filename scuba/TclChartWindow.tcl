@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.7 2006/07/05 20:39:37 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.8 2006/07/10 17:49:51 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -355,17 +355,24 @@ proc Chart_CBGraphMotion { iID igw iX iY } {
 proc Chart_DoGenerateReportDlog { iID } {
 
     tkuDoFileDlog -title "Generate Chart Report" \
-	-type1 checkbox \
-	-prompt1 "Include label column" \
+	-prompt1 "Include group label column" \
 	-defaultvalue1 1 \
-	-type2 checkbox \
-	-prompt2 "Include X value column" \
+	-type1 checkbox \
+	\
+	-prompt2 "Include point label column" \
 	-defaultvalue2 1 \
-	-type3 checkbox \
-	-prompt3 "Include Y value column" \
+	-type2 checkbox \
+	\
+	-prompt3 "Include X value column" \
 	-defaultvalue3 1 \
-	-prompt4 "Save file: " \
-	-okCmd "GenerateChartReport $iID %s1 %s2 %s3 %s4"
+	-type3 checkbox \
+	\
+	-prompt4 "Include Y value column" \
+	-defaultvalue4 1 \
+	-type4 checkbox \
+	\
+	-prompt5 "Save file: " \
+	-okCmd "GenerateChartReport $iID %s1 %s2 %s3 %s4 %s5"
 }
 
 # ============================================================ PUBLIC

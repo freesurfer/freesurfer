@@ -147,10 +147,12 @@ ChartWindow::GenerateReport ( string ifnReport,
 	PointData& point = (*tPoint);
 	
 	// Output the data they want.
-	if( ibIncludeGroupColumn ) {
+	if( ibIncludeGroupColumn && 
+	    mGroupData[nGroup].msLabel != "" ) {
 	  fReport << mGroupData[nGroup].msLabel << "\t";
 	}
-	if( ibIncludeLabelColumn ) {
+	if( ibIncludeLabelColumn &&
+	    point.msLabel != "" ) {
 	  fReport << point.msLabel << "\t";
 	}
 	if( ibIncludeXColumn ) {

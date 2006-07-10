@@ -35,8 +35,9 @@ TclChartWindow::TclChartWindow () :
   }
 
   // Add our commands.
-  commandMgr.AddCommand( *this, "GenerateChartReport", 5, 
-			 "chartID includeLabel includeX includeY fileName",
+  commandMgr.AddCommand( *this, "GenerateChartReport", 6, "chartID "
+			 "includeGroupLabel includePointLabel includeX "
+			 "includeY fileName",
 			 "Generates a text file with the requested "
 			 "information from the specified chart." );
 
@@ -162,8 +163,8 @@ TclCommandListener::TclCommandResult
 TclChartWindow::DoListenToTclCommand ( char* isCommand, 
 				       int, char** iasArgv ) {
 
-  // GenerateChartReport <chartID> <includeLabel> <includeX>
-  // <includeY> <fileName>
+  // GenerateChartReport <chartID> <includeGroupLabel> <includePointLabel> 
+  // <includeX> <includeY> <fileName>
   if( 0 == strcmp( isCommand, "GenerateChartReport" ) ) {
     int chartID;
     try {
@@ -176,39 +177,49 @@ TclChartWindow::DoListenToTclCommand ( char* isCommand,
     
     if( mID == chartID ) {
       
-      bool bIncludeLabel = false;
+      bool bIncludeGroupLabel = false;
       try {
-	bIncludeLabel =
+	bIncludeGroupLabel =
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
       }
       catch( runtime_error& e ) {
-	sResult = "bad includeLabel \"" + string(iasArgv[2]) + "\"," + e.what();
+	sResult = "bad includeGroupLabel \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+
+      bool bIncludePointLabel = false;
+      try {
+	bIncludePointLabel =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad includePointLabel \"" + string(iasArgv[3]) + "\"," + e.what();
 	return error;	
       }
 
       bool bIncludeX = false;
       try {
 	bIncludeX =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
       }
       catch( runtime_error& e ) {
-	sResult = "bad includeX \"" + string(iasArgv[3]) + "\"," + e.what();
+	sResult = "bad includeX \"" + string(iasArgv[4]) + "\"," + e.what();
 	return error;	
       }
 
       bool bIncludeY = false;
       try {
 	bIncludeY =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[5] );
       }
       catch( runtime_error& e ) {
-	sResult = "bad includeY \"" + string(iasArgv[4]) + "\"," + e.what();
+	sResult = "bad includeY \"" + string(iasArgv[5]) + "\"," + e.what();
 	return error;	
       }
 
       try {
-	GenerateReport( string(iasArgv[5]), false,
-			bIncludeLabel, bIncludeX, bIncludeY );
+	GenerateReport( string(iasArgv[6]), bIncludeGroupLabel,
+			bIncludePointLabel, bIncludeX, bIncludeY );
       }
       catch( runtime_error& e ) {
 	sResult = string("Error generating report: ") + e.what();
