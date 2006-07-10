@@ -1973,6 +1973,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   char annotation_fname[NAME_LENGTH] = "";
 
   int load_colortable = FALSE;
+  char *freesurfer_home_envptr = NULL;
   char colortable_fname[NAME_LENGTH] = "";
 
   char tcl_cmd[1024];
@@ -2417,6 +2418,19 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   if (load_annotation)
     {
       labl_import_annotation (annotation_fname);
+    }
+
+  /* If we didn't load an annotation or color table filename, load the
+     default color table. */
+  if (!load_colortable && !load_annotation)
+    {
+      freesurfer_home_envptr = getenv( "FREESURFER_HOME" );
+      if( NULL != freesurfer_home_envptr ) {
+	sprintf (colortable_fname, "%s/surface_labels.txt", 
+		 freesurfer_home_envptr);
+	fprintf( stderr, "Loading %s\n", colortable_fname );
+	labl_load_color_table( colortable_fname );
+      }
     }
 
   /* end rkt */
@@ -19108,7 +19122,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.213 2006/07/10 14:25:32 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.214 2006/07/10 17:20:07 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24353,56 +24367,51 @@ labl_send_color_table_info ()
   char* structure_label_list = NULL;
   int valid;
 
-  /* if we have a tcl interpretor... */
-  if (NULL != g_interp) 
+  /* if we have our own table, get the names from there, otherwise
+     use our external table. */
+  if (NULL != mris->ct) 
+    ctab = mris->ct;
+  else
+    ctab = labl_ctab;
+  
+  /* Find out how many valid and total entries we have. */
+  CTABgetNumberOfValidEntries (ctab, &num_valid_entries);
+  CTABgetNumberOfTotalEntries (ctab, &num_entries);
+  
+  /* allocate a string long enough for the update command and all
+     our labels. */
+  structure_label_list = (char*) 
+    malloc (256 * num_valid_entries * sizeof(char));
+  if (NULL != structure_label_list)
     {
-      /* if we have our own table, get the names from there, otherwise
-         use our external table. */
-      if (NULL != mris->ct) 
-	ctab = mris->ct;
-      else
-	ctab = labl_ctab;
-
-      /* Find out how many valid and total entries we have. */
-      CTABgetNumberOfValidEntries (ctab, &num_valid_entries);
-      CTABgetNumberOfTotalEntries (ctab, &num_entries);
+      /* build a string out of all the label names and send them to the
+	 tcl label list. */
+      strcpy (structure_label_list, "LblLst_SetStructures {");
       
-      /* allocate a string long enough for the update command and all
-	 our labels. */
-      structure_label_list = (char*) 
-	malloc (256 * num_valid_entries * sizeof(char));
-      if (NULL != structure_label_list)
+      /* Iterate over all the entries, but only get names for the
+	 valid ones. */
+      for (structure = 0; structure < num_entries; structure++ )
 	{
-	  /* build a string out of all the label names and send them to the
-	     tcl label list. */
-	  strcpy (structure_label_list, "LblLst_SetStructures {");
-
-	  /* Iterate over all the entries, but only get names for the
-	     valid ones. */
-	  for (structure = 0; structure < num_entries; structure++ )
-	    {
-	      /* If not valid, skip it. */
-	      CTABisEntryValid (ctab, structure, &valid);
-	      if (!valid)
-		continue;
-
-	      CTABcopyName (ctab, structure, 
-			    structure_label, sizeof(structure_label));
-	      sprintf (structure_label_list, "%s %d %s",
-		       structure_label_list, structure, structure_label);
-	    }
-	  sprintf (structure_label_list, "%s }", structure_label_list);
-	  send_tcl_command (structure_label_list);
+	  /* If not valid, skip it. */
+	  CTABisEntryValid (ctab, structure, &valid);
+	  if (!valid)
+	    continue;
 	  
-	  free( structure_label_list );
-	} 
-      else
-	{
-	  fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
-		   "string for %d structres\n", labl_num_structures );
-	  return (ERROR_NO_MEMORY);
+	  CTABcopyName (ctab, structure, 
+			structure_label, sizeof(structure_label));
+	  sprintf (structure_label_list, "%s %d %s",
+		   structure_label_list, structure, structure_label);
 	}
+      sprintf (structure_label_list, "%s }", structure_label_list);
+      send_tcl_command (structure_label_list);
       
+      free( structure_label_list );
+    } 
+  else
+    {
+      fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
+	       "string for %d structres\n", labl_num_structures );
+      return (ERROR_NO_MEMORY);
     }
   
   return (NO_ERROR);

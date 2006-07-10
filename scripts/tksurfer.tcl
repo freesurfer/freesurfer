@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.117 2006/06/01 22:30:34 kteich Exp $
+# $Id: tksurfer.tcl,v 1.118 2006/07/10 17:20:14 kteich Exp $
 
 package require BLT;
 
@@ -5484,12 +5484,6 @@ ShowLabel kLabel_Coords_Tal 1
 
 # make sure window is shoowing
 MoveToolWindow 0 0
-
-# try loading a default color table. catch it so it doesn't complain
-# if we fail.
-catch {
-    labl_load_color_table $env(FREESURFER_HOME)/surface_labels.txt
-}
 
 # Init the display transform
 ResetTransform
