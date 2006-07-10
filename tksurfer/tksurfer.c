@@ -7098,7 +7098,11 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
   
   sv = &mriss->vertices[min_vno] ;
 
+#if 0
   copy_edit_dat_file_name (fname, sizeof(fname));
+#else
+	sprintf(fname, "%s/%s/tmp/edit.dat", subjectsdir, subject_name) ;
+#endif
   if (DIAG_VERBOSE_ON)
     printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
@@ -19104,7 +19108,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.212 2006/06/07 21:52:46 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.213 2006/07/10 14:25:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
