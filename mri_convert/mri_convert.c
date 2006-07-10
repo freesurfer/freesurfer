@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/07 18:00:00 $
-// Revision       : $Revision: 1.127 $
+// Revision Date  : $Date: 2006/07/10 19:32:14 $
+// Revision       : $Revision: 1.128 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.127 2006/07/07 18:00:00 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.128 2006/07/10 19:32:14 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.127 2006/07/07 18:00:00 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.128 2006/07/10 19:32:14 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1283,15 +1283,13 @@ int main(int argc, char *argv[])
   else
     in_volume_type = mri_identify(in_name_only);
 
-  if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s",
-                  in_name_only);
-      if(in_like_flag)
-        MRIfree(&mri_in_like);
-      exit(1);
-    }
+  if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)    {
+    errno = 0;
+    ErrorPrintf(ERROR_BADFILE, "file not found or unknown file type for file %s",
+		in_name_only);
+    if(in_like_flag) MRIfree(&mri_in_like);
+    exit(1);
+  }
 
   if(roi_flag && in_volume_type != GENESIS_FILE)
     {
