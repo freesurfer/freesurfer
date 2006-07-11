@@ -5,10 +5,11 @@
 
 #include "mri.h"
 #include "diag.h"
+#include "tags.h"
 #include "version.h"
 #include "error.h"
 
-static char vcid[] = "$Id: mri_threshold.c,v 1.1 2004/11/15 19:18:38 fischl Exp $";
+static char vcid[] = "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -27,9 +28,12 @@ main(int argc, char *argv[])
   MRI         *mri_in, *mri_out ;
   float       thresh ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $", "$Name:  $", cmdline);
   /* rkt: check for and handle version tag */
 	Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.1 2004/11/15 19:18:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -47,11 +51,11 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 5)
+  if (argc < 4)
     usage_exit() ;
-	in_fname = argv[2] ;
-	thresh = atof(argv[3]) ;
-	out_fname = argv[4] ;
+	in_fname = argv[1] ;
+	thresh = atof(argv[2]) ;
+	out_fname = argv[3] ;
 
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
@@ -62,6 +66,7 @@ main(int argc, char *argv[])
 	mri_out = MRIthreshold(mri_in, NULL, thresh) ;
 
   printf("writing output to %s.\n", out_fname) ;
+ 	MRIaddCommandLine(mri_out, cmdline) ;
   MRIwrite(mri_out, out_fname) ;
 
   exit(0) ;
@@ -116,18 +121,15 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  printf("usage: %s [options] <TR> <alpha (deg)> <TE> <T1 volume> <PD volume> <output volume>\n",
+  printf("usage: %s [options] <in vol> <thresh> <out_vol>\n",
 				 Progname) ;
-	printf("The -w switch will use a fixed weighting in order to generate an output volume with\n"
-				 "optimal gray/white contrast\n") ;
-	
 }
 
 static void
 print_help(void)
 {
   fprintf(stderr, 
-          "\nThis program will synthesize a flash acquisition based on previously computed T1/PD maps\n");
+          "\nThis program will threshold an input volume\n") ;
   exit(1) ;
 }
 
