@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.11 2006/07/11 16:58:41 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.12 2006/07/11 17:31:41 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -887,6 +887,13 @@ int main(int argc, char *argv[])
   if(!parms)
     ErrorExit(ERROR_NOMEMORY, "tesselation parms\n") ;
 	mri=MRIread(argv[1]);
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIalloc(mri->width+2, mri->height+2, mri->depth+2, mri->type) ;
+		MRIextractInto(mri, mri_tmp, 0, 0, 0, mri->width, mri->height, mri->depth, 1, 1, 1) ;
+		MRIfree(&mri) ;
+		mri = mri_tmp ;
+	}
 	if (mri->type != MRI_UCHAR)
 	{
 		MRI *mri_tmp ;
