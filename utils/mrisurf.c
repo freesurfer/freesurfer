@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/07/11 22:00:30 $
-// Revision       : $Revision: 1.472 $
+// Revision Date  : $Date: 2006/07/11 23:32:29 $
+// Revision       : $Revision: 1.473 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -574,7 +574,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.472 2006/07/11 22:00:30 nicks Exp $"); }
+  return("$Id: mrisurf.c,v 1.473 2006/07/11 23:32:29 nicks Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -1290,6 +1290,8 @@ MRISwrite(MRI_SURFACE *mris, char *name)
     return(MRISwriteGeo(mris, fname)) ;
   else if (type == MRIS_ICO_FILE)
     return MRISwriteICO(mris, fname);
+  else if (type == MRIS_STL_FILE)
+    return MRISwriteSTL(mris, fname);
 
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
     return(MRISwriteTriangularSurface(mris, fname)) ;
@@ -17075,11 +17077,15 @@ MRISfileNameType(char *fname)
     type = MRIS_ICO_FILE ;
   else if (!strcmp(ext, "VTK"))
     type = MRIS_VTK_FILE ;
+  else if (!strcmp(ext, "STL"))
+    type = MRIS_STL_FILE ;
   else
     type = MRIS_BINARY_QUADRANGLE_FILE ;
 
   return(type) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -17119,6 +17125,8 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -17162,6 +17170,8 @@ MRISwriteVTK(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -17232,6 +17242,7 @@ MRISwriteGeo(MRI_SURFACE *mris, char *fname)
   return(NO_ERROR) ;
 }
 
+
 /*-----------------------------------------------------
   Parameters: MRI_SURFACE *mris, char *fname
 
@@ -17286,6 +17297,7 @@ MRISwriteICO(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -17360,6 +17372,59 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
+
+
+/*-----------------------------------------------------
+  Parameters: MRI_SURFACE *mris, char *fname
+
+  Returns value: int
+
+  Description: write ascii STL (stereolithography) format
+  ------------------------------------------------------*/
+int MRISwriteSTL(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE, "MRISwriteSTL: could not open file %s",fname));
+
+  fprintf(fp, "solid %s\n", fname);
+
+  // go over all faces, ignoring bad ones
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      face = &mris->faces[fno] ;
+      if (face->ripflag)
+        continue ;
+
+      fprintf(fp, "facet normal %f %f %f \n", face->nx, face->ny, face->nz);
+      fprintf(fp, "  outer loop\n");
+
+      for (vno = 0 ; vno < VERTICES_PER_FACE ; vno++)
+	{
+	  v = &mris->vertices[face->v[vno]];
+	  fprintf(fp, "    vertex %f %f %f\n", v->x, v->y, v->z);
+	}
+
+      fprintf(fp, "  endloop\n");
+      fprintf(fp, "endfacet\n");
+    }
+
+  fprintf(fp, "endsolid %s\n", fname);
+
+  fclose(fp) ;
+
+  return(NO_ERROR) ;
+}
+
+
+
 /*-----------------------------------------------------
   Parameters:
 

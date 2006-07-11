@@ -586,6 +586,7 @@ int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteVTK(MRI_SURFACE *mris, char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteICO(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteSTL(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
@@ -1218,6 +1219,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_TRIANGULAR_SURFACE        MRIS_ICO_SURFACE
 #define MRIS_ICO_FILE                  4
 #define MRIS_VTK_FILE                  5
+#define MRIS_STL_FILE                  6
 
 
 #define IS_QUADRANGULAR(mris)                   \
