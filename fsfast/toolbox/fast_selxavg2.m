@@ -1,13 +1,13 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.2 2006/07/11 05:42:03 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.3 2006/07/11 22:24:35 greve Exp $
 %
 % For compatibility with version1:
 %  DOF ignores tpexcl
 %  baseline is that of the first run
 
 tic;
-version = '$Id: fast_selxavg2.m,v 1.2 2006/07/11 05:42:03 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.3 2006/07/11 22:24:35 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'nii';
@@ -18,13 +18,28 @@ if(nargin == 0)
   return;
 end
 
+%% Make sure $FREESURFER_HOME/matlab is in the path
+if(exist('MRIread','file') ~= 2)
+  fprintf(['WARNING: it does not look like $FREESURFER_HOME/matlab is' ...
+	   ' in your matlab path, so I am going to add it.']);
+  FSH = getenv('FREESURFER_HOME');
+  fshmatlab = sprintf('%s/matlab',FSH);
+  fprintf('Adding %s\n',fshmatlab);
+  path(path,fshmatlab);
+  clear FSH fshmatlab;
+  % Should add it here
+  return;
+end
+
+
+
 %% Parse the arguments %%
 s = parse_args(varargin);
 if(isempty(s)) return; end
 s = check_params(s);
 if(isempty(s)) return; end
 
-% This may be needed 
+% Directory of the output
 outvolpath = fast_dirname(deblank(s.hvol));
 
 sxa_print_struct(s,1);
@@ -102,8 +117,7 @@ for run = 1:nruns
   condlist = unique([clrun; condlist]);
 end
 
-% Count number per condition
-
+% Count number of presentations per condition
 % Remove -1 and 0 %
 ind = find(condlist ~= -1 & condlist ~= 0);
 condlist = condlist(ind);
@@ -120,7 +134,6 @@ if(max(abs(diff(condlist))) > 1)
   fprintf('       do not appear to be contiguous.\n');
   return;
 end
-
 
 % Check for holes in the list of condition numbers %
 if(~isempty(find(diff(condlist)~=1)))
@@ -329,7 +342,7 @@ fspec = sprintf('%s/X2.mat',outvolpath);
 save(fspec,'X');
 
 %---------------------------------------------------------
-% Test condition
+% Test the design matrix condition
 c = cond(X);
 fprintf('Design matrix conditioned is %g\n',c);
 if(c > 10000)
@@ -422,10 +435,62 @@ tmp.vol = fast_mat2vol(sig,y0.volsize);
 fspec = sprintf('%s/omnibus/fsig.%s',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
+% ---------------------------------------------------------
+% Save the .dat file %
+fname = sprintf('%s2.dat',hstem);
+SumXtXTmp  = Comni*X'*X*Comni';
+hCovMtxTmp = Comni*inv(X'*X)*Comni';
+hd = fmri_hdrdatstruct;
+hd.TR  = TR;
+hd.TER = TER;
+hd.TimeWindow = TW;
+hd.TPreStim = TPS;
+hd.Nc = Nc;
+hd.Nh = Navgs_per_cond;
+hd.Nnnc = Nnnc;
+hd.DOF= DOF;
+hd.Npercond= Npercond;
+hd.Nruns = nruns;
+hd.Ntp = ntrstot;
+hd.Nrows = nrows;
+hd.Ncols = ncols;
+hd.Nskip = nskip;
+if(s.PFOrder < 0)
+  hd.DTOrder = RmBaseline+RmTrend+QTrendFit;
+else
+  hd.DTOrder = s.PFOrder + 1;
+end
+hd.RescaleFactor = RescaleFactor;
+hd.HanningRadius = 0.0;
+hd.BrainAirSeg = 0;
+hd.GammaFit = GammaFit ;
+hd.gfDelta  = gfDelta;
+hd.gfTau    = gfTau;
+if(s.spmhrf > -1) % Hack
+  hd.GammaFit = s.spmhrf + 1;
+  hd.gfDelta = -1*ones(1,s.spmhrf + 1);
+  hd.gfTau   = -1*ones(1,s.spmhrf + 1);
+end;
+%hd.gfAlpha      = gfAlpha; % This is not saved yet
+hd.NullCondId    = 0;
+hd.SumXtX        = SumXtXTmp;
+hd.nNoiseAC      = 0;
+hd.CondIdMap     = [0:Nc-1];
+hd.hCovMtx       = hCovMtxTmp;
+hd.WhitenFlag    = s.WhitenFlag;
+hd.runlist       = getrunlist(s.invollist);
+hd.funcstem      = basename(deblank(s.invollist(1,:)));
+hd.parname       = s.parname;
+if(~isempty(s.extreglist))
+  hd.extregstem  = basename(deblank(s.extreglist(1,:)));
+  hd.nextreg  = s.nextreg;
+  hd.extortho = s.extregorthog;
+end
+fmri_svdat3(fname,hd);
+
+%---------------------------------------------------------------
 fprintf(1,'fast_selxavg2 done %g\n',toc);
-
 r = 0;
-
 
 return;
 %---\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\-----%
@@ -865,7 +930,8 @@ function s = parse_args(varargin)
         s.loginput = 1;
 
       % ignore these guys %
-      case {'-monly', '-nullcondid','-umask','-sveres','-svsignal','-svsnr'},
+     case {'-monly', '-nullcondid','-umask','-sveres',...
+	   '-svsignal','-svsnr','-sxamver'},
         arg1check(flag,narg,ninputargs);
         narg = narg + 1;
 
