@@ -9,7 +9,7 @@
 #include "version.h"
 #include "error.h"
 
-static char vcid[] = "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $";
+static char vcid[] = "$Id: mri_threshold.c,v 1.3 2006/07/11 16:53:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -18,6 +18,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
+static int binarize = 0 ;
 char *Progname ;
 
 int
@@ -30,10 +31,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.3 2006/07/11 16:53:45 fischl Exp $", "$Name:  $", cmdline);
   /* rkt: check for and handle version tag */
 	Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.2 2006/07/11 16:51:00 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.3 2006/07/11 16:53:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -65,6 +66,9 @@ main(int argc, char *argv[])
 	printf("thresholding volume at %2.4f....\n", thresh) ;
 	mri_out = MRIthreshold(mri_in, NULL, thresh) ;
 
+	if (binarize > 0)
+		MRIbinarize(mri_out, mri_out, 1, 0, binarize) ;
+
   printf("writing output to %s.\n", out_fname) ;
  	MRIaddCommandLine(mri_out, cmdline) ;
   MRIwrite(mri_out, out_fname) ;
@@ -91,6 +95,11 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+	case 'B':
+		binarize = atoi(argv[2]) ;
+		printf("binarizing output volume to be [0, %d]\n", binarize) ;
+		nargs = 1 ;
+		break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
