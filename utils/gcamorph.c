@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/06/14 16:20:19 $
-// Revision       : $Revision: 1.105 $
+// Revision Date  : $Date: 2006/07/11 14:15:36 $
+// Revision       : $Revision: 1.106 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -644,7 +644,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 					}
 					else
 					{
-						if (Gdiag & DIAG_SHOW)
+						//						if (Gdiag & DIAG_SHOW)
 							printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
 						mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
 						if (parms->mri_binary)
@@ -3432,7 +3432,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 		fflush(parms->log_fp) ;
 		fflush(parms->log_fp) ;
 	}
-  if (Gdiag & DIAG_SHOW)
+	//  if (Gdiag & DIAG_SHOW)
 	{
 		printf("%04d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d",
 					 0, 0.0f, last_rms, gcam->neg, Ginvalid) ;
@@ -3607,7 +3607,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			fflush(parms->log_fp) ;
 		}
 
-		if (Gdiag & DIAG_SHOW)
+		//		if (Gdiag & DIAG_SHOW)
 		{
 			printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
 						 n+1, min_dt, rms, pct_change, gcam->neg, Ginvalid) ;

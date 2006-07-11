@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/21 00:24:25 $
-// Revision       : $Revision: 1.54 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/07/11 14:15:36 $
+// Revision       : $Revision: 1.55 $
 */
 
 /*-----------------------------------------------------
@@ -6858,10 +6858,11 @@ mriOrthonormalizeTransform(MATRIX *m_L)
     *MATRIX_RELT(m_L, i+1, 2) = c2[i] ;
     *MATRIX_RELT(m_L, i+1, 3) = c3[i] ;
   }
-
+#if 0
   /* remove translation component */
   for (i = 1 ; i <= 3 ; i++)
     *MATRIX_RELT(m_L, i, 4) = 0 ;
+#endif
   
   return(NO_ERROR) ;
 }
@@ -8243,6 +8244,8 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
          computeEMAlignmentErrorFunctional,
 	   //    void (*dfunc)(float [], float []), void (*stepfunc), parms
          computeEMAlignmentGradient, dfp_em_step_func, parms) ;
+    if (parms->rigid)
+      mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;
 		parms->start_t += iter ;
     /* read out current transform */
     m_L = parms->lta->xforms[0].m_L ;
@@ -8259,6 +8262,8 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
     m_L->rptr[4][4] = 1.;
   } while ((fold-fnew)/fold > parms->tol) ;
 
+	if (parms->rigid)
+		mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;
   return(NO_ERROR) ;
 }
 
@@ -8289,7 +8294,8 @@ MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
   vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
   vl_source->mri2 = mri_source ;
   VLSTcomputeStats(vl_source);
-  printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
   fflush(stdout);
   farid_align(vl_source, vl_target, m_L) ;
 
@@ -8466,8 +8472,8 @@ static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L
   if(minZ > 0) minZ -= 1;
   if(maxZ < depth -1) maxZ += 1;
 
-
-  printf("X:%d-%d; Y:%d-%d; Z:%d-%d\n", minX, maxX, minY, maxY, minZ, maxZ);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("X:%d-%d; Y:%d-%d; Z:%d-%d\n", minX, maxX, minY, maxY, minZ, maxZ);
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
   *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
@@ -8476,17 +8482,17 @@ static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L
     //apply current registration to target volume
     for(z = minZ; z <= maxZ; z++)
       for(y = minY; y <= maxY; y++)
-	for(x = minX; x <= maxX; x++){
-	  V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-	  MatrixMultiply(m_L, v1, v2) ;
-	  xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
-	  if (xd < 0 ||  xd >= width-1 || yd < 0 || yd >= height -1 || zd < 0 || zd >= depth -1)
-	    d2 = 0;
-	  else
-	    MRIsampleVolume(vl_target->mri, xd, yd, zd, &d2) ;
+				for(x = minX; x <= maxX; x++){
+					V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+					MatrixMultiply(m_L, v1, v2) ;
+					xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+					if (xd < 0 ||  xd >= width-1 || yd < 0 || yd >= height -1 || zd < 0 || zd >= depth -1)
+						d2 = 0;
+					else
+						MRIsampleVolume(vl_target->mri, xd, yd, zd, &d2) ;
 	  
-	  MRIsetVoxVal(vl_target->mri2, x, y, z, 0, d2);
-	} 
+					MRIsetVoxVal(vl_target->mri2, x, y, z, 0, d2);
+				} 
 
     //find the alignment between src and transformed target
     flag = ComputeStepTransform(vl_source, vl_target, cx, cy, cz, Minc);
