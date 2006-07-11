@@ -1,13 +1,13 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.1 2006/07/11 05:01:04 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.2 2006/07/11 05:42:03 greve Exp $
 %
 % For compatibility with version1:
 %  DOF ignores tpexcl
 %  baseline is that of the first run
 
 tic;
-version = '$Id: fast_selxavg2.m,v 1.1 2006/07/11 05:01:04 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.2 2006/07/11 05:42:03 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'nii';
@@ -188,7 +188,7 @@ for run = 1:nruns
     TPExcludeFile = deblank(tpxlist(run,:));
     if(~strcmp(TPExcludeFile,'noexcl')) 
       indTPExclRun = fast_ldtpexcl(TPExcludeFile,TR,ntrs,nskip);
-      indTPExcl = [indTPExcl; (indTPExclRun+n1)];
+      indTPExcl = [indTPExcl; (indTPExclRun+(n1-1))];
       if(s.debug)
 	fprintf(1,'       Excluding %d Points: ',ntpx);
 	fprintf(1,'%d ',indTPExcl);
