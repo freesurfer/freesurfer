@@ -1,0 +1,61 @@
+
+$Id: hvol.txt,v 1.1 2006/07/11 21:09:07 greve Exp $
+
+What is in the h volume created by selxavg-sess?
+
+selxavg-sess creates a directory called bold/analysis in which several
+volumes will be stored. One of these is the "h volume", ie,
+h_000.bfloat, h_001.bfloat, ..., corresponding h_000.hdr. There are
+also single h.bhdr and h.dat files.
+
+The h volume will have many frames, and the interpretation of
+these time points is quite obscure and hard to understand. But that is
+the purpose of this document.
+
+The number of frames will be equal to:
+  Nframes = 2*(Nc+1)*Na
+
+Nc is the number of conditions (argument to -nconditions in mkanalysis-sess).
+
+Na is the number of regressors per condition. This number can change
+depending upon how you are doing the analysis. 
+
+For an FIR model (ie, not using the -gammafit or -spmhrf flags), then
+Na = TimeWindow/TER, where TimeWindow is the argument of the
+-timewindow flag. TER is the argument of the -TER flag. If you have
+not specified a TER, then it defaults to the TR.
+
+When assuming a gamma function shape to the HRF (ie, -gammafit), there
+will be one regressor per condition (Na=1).
+
+When assuming an SPM HRF function shape to the HRF (ie, -spmhrf Nd), then
+Na = Nd+1 (Nd is the number of temporal derivatives).
+
+Here's what each of the frames means:
+    1 to   Na : always 0
+ Na+1 to 2*Na : all frames are the same and equal to the residual stddev
+2Na+1 to 3*Na : regression coefficients for condition 1
+4Na+1 to 5*Na : stddev of coefficients for condition 1
+5Na+1 to 6*Na : regression coefficients for condition 2
+6Na+1 to 7*Na : stddev of coefficients for condition 2
+...
+
+The stddev of a coefficient is computed first by computing the matrix
+M = inv(X'*X) * resvar, where X is the design matrix and resvar is the
+residual variance. M is the covariance of the regression coefficients. 
+d = diag(M) is a vector of the variances of the regression
+coefficient. The stddev is the sqrare root of this.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
