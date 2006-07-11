@@ -5,7 +5,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FSFAST_HOME/docs/version`;
-set VERSION = '$Id: selxavg2,v 1.6 2004/06/01 16:15:35 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.7 2006/07/11 22:25:25 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -80,6 +80,7 @@ set mask = ();
 set loginput = 0; 
 set autostimdur = 0;
 set stimdur = ();
+set sxamver = ();
 
 set usecfg = `echo $argv | egrep -e "-cfg" | wc -l`;
 if($usecfg > 0) then
@@ -181,7 +182,7 @@ echo "% $MLF"                          >> $MLF;
 echo "global QuitOnError;"             >> $MLF;
 echo "QuitOnError = $QuitOnError;"     >> $MLF;
 set c = "";
-echo -n "r = fast_selxavg("     >> $MLF;
+echo -n "r = fast_selxavg$sxamver("     >> $MLF;
 foreach arg ($inputargs)
   echo -n "$c '$arg'"      >> $MLF;
   set c = ",";
@@ -518,6 +519,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set seed  = $argv[1]; shift;
       set synth = 1;
+      breaksw
+
+    case "-sxamver":
+      if ( $#argv == 0) goto arg1err;
+      set sxamver  = $argv[1]; shift;
       breaksw
 
     case "-allvnull":
