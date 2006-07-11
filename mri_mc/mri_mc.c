@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.10 2006/06/19 21:06:04 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.11 2006/07/11 16:58:41 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -972,6 +972,7 @@ int main(int argc, char *argv[])
 		printf("input volume is not conformed - using useRealRAS=1\n") ;
 		mris_corrected->useRealRAS = 1 ;
 	}
+	//  getVolGeom(mri, &mris_corrected->vg);
 	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
 
