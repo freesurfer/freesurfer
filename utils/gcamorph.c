@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/07/11 14:15:36 $
-// Revision       : $Revision: 1.106 $
+// Revision Date  : $Date: 2006/07/11 15:14:40 $
+// Revision       : $Revision: 1.107 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -44,7 +44,7 @@
 int gcam_write_grad = 0 ;
 
 static double gcamMaxGradient(GCA_MORPH *gcam) ;
-static int gcamCheck(GCA_MORPH *gcam) ;
+static int gcamCheck(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
 static int gcamSuppressNegativeGradients(GCA_MORPH *gcam, float scale) ;
 static int gcamShowCompressed(GCA_MORPH *gcam, FILE *fp) ;
@@ -3455,7 +3455,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 	if (Gdiag & DIAG_SHOW)
 		gcamShowCompressed(gcam, stdout) ;
 
-	gcamCheck(gcam) ;
+	gcamCheck(gcam, mri) ;
   for (n = parms->start_t ; n < parms->start_t+parms->niterations ; n++)
 	{
 #if 0
@@ -3513,7 +3513,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 		GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, SAVED_POSITIONS) ;
 		gcamApplyGradient(gcam, parms) ;
 		gcamComputeMetricProperties(gcam) ;
-		gcamCheck(gcam) ;
+		gcamCheck(gcam, mri) ;
 		if (parms->constrain_jacobian)
 			gcamConstrainJacobian(gcam, mri, parms) ;
 		if (Gdiag & DIAG_SHOW)
@@ -7594,7 +7594,7 @@ gcamBinaryTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, MRI *mri_dist, double
 				MRIsampleVolumeGradientFrame(mri_smooth, gcamn->x, gcamn->y, gcamn->z, &odx, &ody, &odz, 0) ;
 #else
 				MRIsampleVolumeGradientFrame(mri_dist, gcamn->x, gcamn->y, gcamn->z, &odx, &ody, &odz, 0) ;
-				odx *= -1 ; ody *= -1 ; odz *= -1 ;
+				odx *= -1 ; ody *= -1 ; odz *= -1 ;  // because distance map gradient is neg of what we want
 #endif
 				norm = sqrt(odx*odx + ody*ody + odz*odz) ;
 				if (DZERO(norm))
@@ -10421,18 +10421,22 @@ gcamWriteDiagnostics(GCA_MORPH *gcam)
 }
 
 static int
-gcamCheck(GCA_MORPH *gcam)
+gcamCheck(GCA_MORPH *gcam, MRI *mri)
 {
-	int    y ;
-	GCA_MORPH_NODE *gcamn1, *gcamn2 ;
+	GCA_MORPH_NODE *gcamn ;
+	int            x, y, z ;
 
-	for (y = 1 ; y < gcam->height-1 ; y++)
+	for (x  = 0 ; x < gcam->width ; x++)
+		for (y = 0 ; y < gcam->height ; y++)
+			for (z = 0 ; z < gcam->depth ; z++)
 	{
-		gcamn1 = &gcam->nodes[1][y][20] ;
-		gcamn2 = &gcam->nodes[38][y][20] ;
-		if (!FEQUAL(gcamn1->area1, gcamn2->area2))
+		gcamn = &gcam->nodes[x][y][z] ;
+		if (fabs(gcamn->x-120)<1 && fabs(gcamn->y-125)<1 && fabs(gcamn->z-123)<1)
 			DiagBreak() ;
-		if (!FEQUAL(gcamn1->area2, gcamn2->area1))
+		if (gcamn->label == 0 || gcamn->status & GCAM_BINARY_ZERO)
+			continue ;
+		if (gcamn->x >= mri->width+2 || gcamn->y >= mri->height+2 || gcamn->z >= mri->depth+2
+				|| gcamn->x < -3 || gcamn->y < -3 || gcamn->z < -3)
 			DiagBreak() ;
 	} 
 	return(NO_ERROR)  ;
