@@ -37,8 +37,22 @@ class ChartWindow : public DebugReporter,
   // How to display a group.
   class GroupData {
   public:
+    GroupData() : msLabel(""), mbConnected(false) {
+      mColorRGBi[0] = mColorRGBi[1] = mColorRGBi[2] = 0;
+    }
     std::string msLabel;
     bool mbConnected;
+    int mColorRGBi[3];
+  };
+
+  // Display data for a marker.
+  class MarkerData {
+  public:
+    MarkerData() : msLabel(""), mValue(0) {
+      mColorRGBi[0] = mColorRGBi[1] = mColorRGBi[2] = 0;
+    }
+    std::string msLabel;
+    float mValue;
     int mColorRGBi[3];
   };
 
@@ -59,12 +73,17 @@ class ChartWindow : public DebugReporter,
   void SetGroupLabel     ( int inGroup, std::string isLabel );
   void SetGroupConnected ( int inGroup, bool ibConnected );
   void SetGroupColor     ( int inGroup, int iColorRGBi[3] );
+  void GetGroupColor     ( int inGroup, int oColorRGBi[3] );
 
   // Set the labels in the graph.
   void SetTitle ( std::string isTitle );
   void SetXAxisLabel ( std::string isLabel );
   void SetYAxisLabel ( std::string isLabel );
 
+  // Vertical markers.
+  void SetXAxisMarkers ( std::list<MarkerData>& iaData );
+  void AddXAxisMarker  ( MarkerData& iData );
+  
   // An info label under the graph.
   void SetInfo ( std::string isInfo );
 
@@ -99,6 +118,7 @@ class ChartWindow : public DebugReporter,
 
   std::map<int,std::list<PointData> > mPointData;
   std::map<int,GroupData> mGroupData;
+  std::list<MarkerData> mXAxisMarkerData;
   std::string msTitle;
   std::string msXLabel;
   std::string msYLabel;

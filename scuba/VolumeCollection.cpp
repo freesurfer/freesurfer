@@ -527,7 +527,7 @@ VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition,
   //      16        2               std dev (ignored)
   //      17        2               std dev (ignored)
   
-	  if( mbDataContainsErrorValues ) {
+  if( mbDataContainsErrorValues ) {
     return (iCondition * 2 * mcTimePoints) + iTimePoint;
   } else {
     return (iCondition * mcTimePoints) + iTimePoint;

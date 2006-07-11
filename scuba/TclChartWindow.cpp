@@ -49,6 +49,7 @@ TclChartWindow::TclChartWindow () :
   ssCommand << "Chart_NewWindow " << chartID;
   commandMgr.SendCommand( ssCommand.str() );
   
+
 }
 
 TclChartWindow::~TclChartWindow () {
@@ -110,9 +111,7 @@ TclChartWindow::Draw () {
 
   // Make some tcl commands with all our data groups and send it.
   map<int,list<PointData> >::iterator tGroup;
-  for( tGroup = mPointData.begin(); 
-       tGroup != mPointData.end();
-       ++tGroup ) {
+  for( tGroup = mPointData.begin(); tGroup != mPointData.end(); ++tGroup ) {
     
       int nGroup = tGroup->first;
       list<PointData>& lPoints = tGroup->second;
@@ -151,6 +150,34 @@ TclChartWindow::Draw () {
       ssCommand << "]";
       manager.SendCommand( ssCommand.str() );
   }
+
+
+  if( mXAxisMarkerData.size() > 0 ) {
+
+    ssCommand.str("");
+    ssCommand << "Chart_SetXAxisMarkers " << chartID << " " 
+	      << " [list ";
+
+    list<MarkerData>::iterator tMarker;
+    for( tMarker = mXAxisMarkerData.begin(); tMarker != mXAxisMarkerData.end();
+	 ++tMarker ) {
+      
+      MarkerData& marker = *tMarker;
+      /*
+	std::string msLabel;
+	float mValue;
+	int mColorRGBi[3];
+      */
+      ssCommand << "[list value " << marker.mValue << " label \"" 
+		<< marker.msLabel << "\" red " << marker.mColorRGBi[0]
+		<< " green " << marker.mColorRGBi[1]
+		<< " blue " << marker.mColorRGBi[2] << "] ";
+    }
+
+    ssCommand << "]";
+    manager.SendCommand( ssCommand.str() );
+  }
+
 
   // Make sure the window is showing.
   ssCommand.str("");

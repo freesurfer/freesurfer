@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.8 2006/07/10 17:49:51 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.9 2006/07/11 21:31:38 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -39,12 +39,13 @@ set kValid(lColors) {red blue green yellow black purple orange pink brown}
 #     showLegend
 #     lGroups
 #     $nGroup
-#       lPoints
+#       lPoints - list of arrays, fields are (x, y, label)
 #       connected
 #       label
 #       red
 #       green
 #       blue
+#     lXAxisMarkers - list of markers, fields are (value, label, red, green, blue)
 
 # gChart
 #   $ID
@@ -242,6 +243,33 @@ proc Chart_PlotData { iID } {
 			-activepen activeElement
 		}
 	}
+    }
+    
+    # Draw the markers.
+    if { [info exists gData($iID,lXAxisMarkers)] } {
+	for { set nMarker 0 } \
+	    { $nMarker < [llength $gData($iID,lXAxisMarkers)] } \
+	    { incr nMarker } {
+
+		array set xMarker \
+		    [lindex  $gData($iID,lXAxisMarkers) $nMarker]
+		
+		$gw marker create line \
+		    -coords [list $xMarker(value) -Inf $xMarker(value) Inf] \
+		    -name marker$nMarker \
+		    -outline [format "#%.2x%.2x%.2x" $xMarker(red) \
+				$xMarker(green) $xMarker(blue)]
+
+		$gw marker create text \
+		    -text $xMarker(label) \
+		    -background "" -fill "" \
+		    -rotate 270 \
+		    -anchor nw \
+		    -coords [list $xMarker(value) Inf] \
+		    -name textMarker$nMarker \
+		    -outline [format "#%.2x%.2x%.2x" $xMarker(red) \
+				$xMarker(green) $xMarker(blue)]
+	    }
     }
     
     # Show or hide the legend.
@@ -470,6 +498,7 @@ proc Chart_ClearData { iID } {
     }
 
     set gData($iID,lGroups) {}
+    set gData($iID,lXAxisMarkers) {}
 }
 
 # This function expects data to come in as a list of array lists. Each
@@ -488,6 +517,19 @@ proc Chart_SetPointData { iID inGroup ilPoints } {
 
     # Set the point data.
     set gData($iID,$inGroup,lPoints) $ilPoints
+
+    Chart_PlotData $iID
+}
+
+# This function expects data to come in as a list of array lists. Each
+# element in ilMarkers should be a list of array label/value pairs,
+# e.g. [list value 5.0 label "Hello" red 255 green 0 blue 128]
+proc Chart_SetXAxisMarkers { iID ilMarkers } {
+    global gData
+    if { [lsearch $gData(lID) $iID] == -1 } { puts "ID not found"; return }
+
+    # Set the marker data.
+    set gData($iID,lXAxisMarkers) $ilMarkers
 
     Chart_PlotData $iID
 }

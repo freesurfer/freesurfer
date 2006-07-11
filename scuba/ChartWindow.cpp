@@ -40,6 +40,7 @@ void
 ChartWindow::ClearData () {
 
   mPointData.clear();
+  mXAxisMarkerData.clear();
 }
 
 void
@@ -97,6 +98,16 @@ ChartWindow::SetGroupColor ( int inGroup, int iColorRGBi[3] ) {
 }
 
 void
+ChartWindow::GetGroupColor ( int inGroup, int oColorRGBi[3] ) {
+
+  InitGroupDataIfNotSet( inGroup );
+
+  oColorRGBi[0] = mGroupData[inGroup].mColorRGBi[0];
+  oColorRGBi[1] = mGroupData[inGroup].mColorRGBi[1];
+  oColorRGBi[2] = mGroupData[inGroup].mColorRGBi[2];
+}
+
+void
 ChartWindow::SetTitle ( string isTitle ) {
 
   msTitle = isTitle;
@@ -118,6 +129,18 @@ void
 ChartWindow::SetInfo ( string isInfo ) {
 
   msInfo = isInfo;
+}
+
+void
+ChartWindow::SetXAxisMarkers ( list<MarkerData>& iaData ) {
+
+  mXAxisMarkerData = iaData;
+}
+
+void
+ChartWindow::AddXAxisMarker  ( MarkerData& iData ) {
+
+  mXAxisMarkerData.push_back( iData );
 }
 
 void

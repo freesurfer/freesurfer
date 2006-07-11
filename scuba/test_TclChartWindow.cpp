@@ -112,6 +112,26 @@ TclChartWindowTester::NewData () {
   }
 
   mChart->SetPointData( lData );
+
+  list<ChartWindow::MarkerData> lMarkers;
+  ChartWindow::MarkerData marker;
+  int cMarkers = 5;
+  for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+
+    marker.mValue = random() % 100;
+
+    marker.mColorRGBi[0] = random() % 256;
+    marker.mColorRGBi[1] = random() % 256;
+    marker.mColorRGBi[2] = random() % 256;
+
+    stringstream ssLabel;
+    ssLabel << "Marker " << nMarker;
+    marker.msLabel = ssLabel.str();
+
+    lMarkers.push_back( marker );
+  }
+
+  mChart->SetXAxisMarkers( lMarkers );
   
 }
 
