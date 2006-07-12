@@ -133,7 +133,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.11 2006/05/16 23:41:08 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.12 2006/07/12 02:11:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -471,6 +471,14 @@ static int parse_commandline(int argc, char **argv)
       CheckPixVals = 0;
       CheckGeo     = 0;
     }
+    else if (!strcasecmp(option, "--pix-only")){
+      CheckPixVals = 1;
+      CheckResolution = 0;
+      CheckAcqParams = 0;
+      CheckGeo     = 0;
+      CheckPrecision = 0;
+      CheckOrientation = 0;
+    }
 
     else if (!strcasecmp(option, "--v1")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -595,6 +603,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
+  printf("   --pix-only   : only check pixel data\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
