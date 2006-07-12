@@ -684,13 +684,13 @@ void generateMCtesselation(tesselation_parms * parms)
 				
 	      ind=i+width*j;
 	      ref=0;
-	      if(MRIvox(mri,i,j,k+1))
+	      if(((k+1)<mri->depth) && MRIvox(mri,i,j,k+1))
 					ref+=16;
-	      if(MRIvox(mri,i+1,j,k+1))
+	      if(((k+1)<mri->depth) && ((i+1)<mri->width) && MRIvox(mri,i+1,j,k+1))
 					ref+=32;
-	      if(MRIvox(mri,i,j+1,k+1))
+	      if(((k+1)<mri->depth) && ((j+1)<mri->height) && MRIvox(mri,i,j+1,k+1))
 					ref+=64;
-	      if(MRIvox(mri,i+1,j+1,k+1))
+	      if(((k+1)<mri->depth) && ((j+1)<mri->height) && ((i+1)<mri->width) && MRIvox(mri,i+1,j+1,k+1))
 					ref+=128;
 				
 	      tab2[ind]=(ref/16);
@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.12 2006/07/11 17:31:41 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.13 2006/07/12 08:54:13 segonne Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
