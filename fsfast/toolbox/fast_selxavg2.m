@@ -1,6 +1,6 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.4 2006/07/12 02:43:28 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.5 2006/07/12 04:47:20 greve Exp $
 %
 % For compatibility with version 1:
 %  DOF ignores tpexcl
@@ -20,9 +20,7 @@ function r = fast_selxavg2(varargin)
 %   TER
 %
 % Still need to implement
-%   whitening
 %   save eres, signal
-%   synth
 %   slice-timing correction?
 %   vox-wise pct signal change (?)
 %
@@ -43,12 +41,11 @@ function r = fast_selxavg2(varargin)
 %   fourier
 %   change "ces" to "gamma"
 %   
-
 tic;
-version = '$Id: fast_selxavg2.m,v 1.4 2006/07/12 02:43:28 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.5 2006/07/12 04:47:20 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
-outfmt = 'nii';
+outfmt = 'bhdr';
 
 %% Print useage if there are no arguments %%
 if(nargin == 0)
@@ -69,8 +66,6 @@ if(exist('MRIread','file') ~= 2)
   return;
 end
 
-
-
 %% Parse the arguments %%
 s = parse_args(varargin);
 if(isempty(s)) return; end
@@ -79,6 +74,7 @@ if(isempty(s)) return; end
 
 % Directory of the output
 outvolpath = fast_dirname(deblank(s.hvol));
+fsd = fast_dirname(deblank(outvolpath));
 
 sxa_print_struct(s,1);
 
@@ -116,6 +112,12 @@ fomnibusstem = s.fomnibusvol;
 pomnibusstem = s.pomnibusvol;
 
 %-------------------------------------------------%
+if(s.AutoWhiten)
+  if(isempty(s.maskid))
+    s.maskid = sprintf('%s/masks/brain',fsd);
+    fprintf('INFO: whitening, but no mask specified, using %s\n',s.maskid);
+  end      
+end
 if(~isempty(s.maskid))
   fprintf('INFO: loading mask %s\n',s.maskid);
   tmp = MRIread(s.maskid);
@@ -125,7 +127,8 @@ if(~isempty(s.maskid))
   end
   mask = tmp.vol;
   clear tmp;
-  nmasktot = length(find(mask));
+  indmask = find(mask);
+  nmasktot = length(indmask);
   fprintf('INFO: mask has %d points\n',nmasktot);
 else
   mask = [];
@@ -376,8 +379,9 @@ fprintf('Excluding a  total of %d points out of %d\n',ntpx,ntrstot);
 Ntot = size(X,2);
 Nnuis = Ntot - Ntask;
 
-fspec = sprintf('%s/X2.mat',outvolpath);
-save(fspec,'X');
+fspec = sprintf('%s/X.mat',outvolpath);
+Xfinal=X;
+save(fspec,'Xfinal');
 
 %---------------------------------------------------------
 % Test the design matrix condition
@@ -396,34 +400,46 @@ BaselineRegInd = (Ntask) + [0:nruns-1]*(s.PFOrder+1) + 1;
 
 %------------------------------------------------
 % Load the data
-fprintf('Loading data\n');
-y = zeros(ntrstot,nvox);
-for run = 1:nruns
-  fprintf(1,'     Run %d/%d, t=%g \n',run,nruns,toc);
-
-  instem = deblank(instemlist(run,:));
-  tmp = MRIread(instem);
-  if(isempty(tmp))
-    fprintf('ERROR: could not load %s\n',instem);
-    return;
+if(s.SynthSeed == 0)
+  fprintf('Loading data\n');
+  y = zeros(ntrstot,nvox);
+  for run = 1:nruns
+    fprintf(1,'     Run %d/%d, t=%g \n',run,nruns,toc);
+    
+    instem = deblank(instemlist(run,:));
+    tmp = MRIread(instem);
+    if(isempty(tmp))
+      fprintf('ERROR: could not load %s\n',instem);
+      return;
+    end
+    yrun = fast_vol2mat(tmp.vol);
+    clear tmp;
+    
+    if(RescaleTarget > 0)
+      MeanValFile = sprintf('%s.meanval',instem);
+      [RescaleFactor MeanVal]=fast_rescalefactor(MeanValFile, RescaleTarget);
+      fprintf(1,'       Rescaling Global Mean %g,%g,%g\n',...
+	      MeanVal,RescaleTarget,RescaleFactor);
+      yrun = RescaleFactor * yrun;
+    end
+    
+    n1 = runframes(run,1);
+    n2 = runframes(run,2);
+    y(n1:n2,:) = yrun;
+    
+  end % runs
+  fprintf(1,'done loading data t=%g\n',toc);
+else
+  fprintf('Synthesizing data seed=%d\n',s.SynthSeed);
+  y = randn(ntrstot,nvox);
+  if(s.AutoWhiten)
+    fprintf(1,'Synthesizing with AR1=.3 t=%g\n',toc);
+    racf = .3.^[0:ntrstot-1]';
+    Far1 = chol(toeplitz(racf));
+    y = Far1*y;
   end
-  yrun = fast_vol2mat(tmp.vol);
-  clear tmp;
-
-  if(RescaleTarget > 0)
-    MeanValFile = sprintf('%s.meanval',instem);
-    [RescaleFactor MeanVal]=fast_rescalefactor(MeanValFile, RescaleTarget);
-    fprintf(1,'       Rescaling Global Mean %g,%g,%g\n',...
-            MeanVal,RescaleTarget,RescaleFactor);
-    yrun = RescaleFactor * yrun;
-  end
-
-  n1 = runframes(run,1);
-  n2 = runframes(run,2);
-  y(n1:n2,:) = yrun;
-
-end % runs
-fprintf(1,'done loading data t=%g\n',toc);
+  RescaleFactor = 1;
+end
 
 %--------------------------------------------------
 % Fit the data
@@ -433,23 +449,50 @@ DOF = vdof+ntpx;
 rvar = rvar*(vdof/DOF); % compatible with version1
 fprintf(1,'Done fitting t=%g\n',toc);
 
+
+%--------------------------------------------------
+% Whiten
+if(s.AutoWhiten)
+  fprintf(1,'Computing AR1 t=%g ... \n',toc);
+  sse = sum(res.^2);
+  indz = find(sse == 0);
+  sse(indz) = 10^10;
+  ar1 = sum(res(1:end-1,:) .* res(2:end,:)) ./ sum(res.^2);
+  tmp = y0;
+  tmp.vol = fast_mat2vol(ar1,y0.volsize);
+  fspec = sprintf('%s/ar1.%s',outvolpath,outfmt);
+  MRIwrite(tmp,fspec);
+  ar1mn = mean(ar1(indmask));
+  fprintf('AR1 mean %g\n',ar1mn);
+  racf = ar1mn.^[0:ntrstot-1]';
+  fprintf(1,'Re-fitting GLM t=%g\n',toc);
+  [beta, rvar, vdof, res] = fast_glmfitw(y,X,racf);
+  DOF = vdof+ntpx;
+  rvar = rvar*(vdof/DOF); % compatible with version1
+  fprintf(1,'Done re fitting t=%g\n',toc);
+  W = chol(inv(toeplitz(racf)));
+  %X = W*X; % This makes things work out below
+else
+  racf = [];
+end
+
 %--------------------------------------------------
 % Save betas
 tmp = y0;
 tmp.vol = fast_mat2vol(beta,y0.volsize);
-fspec = sprintf('%s/beta.%s',outvolpath,outfmt);
+fspec = sprintf('%s/beta.nii',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
 % Save rvar
 tmp = y0;
 tmp.vol = fast_mat2vol(rvar,y0.volsize);
-fspec = sprintf('%s/rvar.%s',outvolpath,outfmt);
+fspec = sprintf('%s/rvar.nii',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
 % Save rstd
 tmp = y0;
 tmp.vol = fast_mat2vol(sqrt(rvar),y0.volsize);
-fspec = sprintf('%s/rstd.%s',outvolpath,outfmt);
+fspec = sprintf('%s/rstd.nii',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
 % Compute and save mean/baseline image across all runs
@@ -457,13 +500,15 @@ MRIwrite(tmp,fspec);
 b0 = beta(BaselineRegInd(1),:); % first run (compat with version 1)
 tmp = y0;
 tmp.vol = fast_mat2vol(b0,y0.volsize);
-fspec = sprintf('%s/baseline.%s',outvolpath,outfmt);
+fspec = sprintf('%s/h-offset.%s',outvolpath,outfmt);
+MRIwrite(tmp,fspec);
+fspec = sprintf('%s/baseline.nii',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
 % Omnibus Contrast
 fprintf(1,'Computing omnibus contrast t=%g\n',toc);
 Comni = [eye(Ntask) zeros(Ntask,Nnuis)];
-[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,Comni);
+[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,Comni,racf);
 dof2 = DOF; % compatible with version 1
 qsum = sum(ces,1);
 p = FTest(dof1, dof2, F);
@@ -475,7 +520,7 @@ MRIwrite(tmp,fspec);
 
 % ---------------------------------------------------------
 % Save the .dat file %
-fname = sprintf('%s2.dat',hstem);
+fname = sprintf('%s.dat',hstem);
 SumXtXTmp  = Comni*X'*X*Comni';
 hCovMtxTmp = Comni*inv(X'*X)*Comni';
 hd = fmri_hdrdatstruct;
@@ -531,7 +576,7 @@ ntmp = Navgs_per_cond * 2 * Nc;
 hsxa = reshape(hsxa,[ntmp nvox]);
 tmp = y0;
 tmp.vol = fast_mat2vol(hsxa,y0.volsize);
-fspec = sprintf('%s/h2.%s',outvolpath,outfmt);
+fspec = sprintf('%s/h.%s',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
 
 %---------------------------------------------------------------
@@ -751,31 +796,12 @@ function s = parse_args(varargin)
         s.tpxlist = strvcat(s.tpxlist,inputargs{narg});
         narg = narg + 1;
 
-      case {'-whtnmtx'}
-        arg1check(flag,narg,ninputargs);
-        s.WhtnMtxFile = strvcat(s.WhtnMtxFile,inputargs{narg});
-        narg = narg + 1;
-
-      case {'-autowhiten'} % Arg is minimum condition for regularization
+	% Arg is max ACF delay
+      case {'-autowhiten'} 
         arg1check(flag,narg,ninputargs);
         s.TauMaxWhiten = sscanf(inputargs{narg},'%f',1);
-        if(s.TauMaxWhiten > 0)
-          s.AutoWhiten = 1;
-          s.SaveErrCovMtx = 1;
-        end
+        if(s.TauMaxWhiten > 0) s.AutoWhiten = 1; end
         narg = narg + 1;
-
-      case {'-whiten'} 
-        s.WhitenFlag = 1; 
-        % Requires that -whtnmtx be specified for each run
-        % the whtn matrix will be stored in matlab4 format
-        % in the variable named W.
-
-      case {'-noautowhiten'} % To ease recursive calls
-        s.NoAutoWhiten = 1;
-        s.AutoWhiten = 0;
-        s.TauMaxWhiten = 0;
-        s.SecondPass = 1;
 
       case {'-mask'},
         arg1check(flag,narg,ninputargs);
@@ -975,6 +1001,21 @@ function s = parse_args(varargin)
       case '-log',
         s.loginput = 1;
 
+      case {'-whtnmtx'}
+        arg1check(flag,narg,ninputargs);
+        s.WhtnMtxFile = strvcat(s.WhtnMtxFile,inputargs{narg});
+        narg = narg + 1;
+      case {'-whiten'} 
+        s.WhitenFlag = 1; 
+        % Requires that -whtnmtx be specified for each run
+        % the whtn matrix will be stored in matlab4 format
+        % in the variable named W.
+      case {'-noautowhiten'} % To ease recursive calls
+        s.NoAutoWhiten = 1;
+        s.AutoWhiten = 0;
+        s.TauMaxWhiten = 0;
+        s.SecondPass = 1;
+
       % ignore these guys %
      case {'-monly', '-nullcondid','-umask','-sveres',...
 	   '-svsignal','-svsnr','-sxamver'},
@@ -1080,29 +1121,6 @@ function s = check_params(s)
   if(size(s.hvol,1) ~= 1)
     fprintf(2,'ERROR: No output volume specified\n');
     s = []; return;
-  end
-
-  if(s.NoAutoWhiten) s.AutoWhiten = 0; end
-  if(s.AutoWhiten)
-    s.hvol = sprintf('%s0',s.hvol);
-    fprintf('INFO: chaning output volume stem to %s for first stage\n');
-  end
-  if(s.AutoWhiten & s.WhitenFlag)
-    fprintf('ERROR: cannot specify -autowhiten and -whiten\n');
-    s = []; return;
-  end
-  if(s.WhitenFlag)
-    if(size(s.WhtnMtxFile,1) ~= s.nruns)
-      fprintf('ERROR: must spec nruns whtmtx files with -whiten\n');
-      s = []; return;
-    end
-  end
-
-  if(~isempty(s.HPF))
-    if(s.HPF(1) < 0 | s.HPF(1) > 1 | s.HPF(2) < 0 | s.HPF(2) >= 1)
-      fprintf(2,'ERROR: HPF Parameters out of range\n');
-      s = []; return;
-    end
   end
 
   if(length(s.TR) == 0)
