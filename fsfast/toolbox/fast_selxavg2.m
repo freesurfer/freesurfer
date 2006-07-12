@@ -1,6 +1,6 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.5 2006/07/12 04:47:20 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.6 2006/07/12 05:01:35 greve Exp $
 %
 % For compatibility with version 1:
 %  DOF ignores tpexcl
@@ -42,7 +42,7 @@ function r = fast_selxavg2(varargin)
 %   change "ces" to "gamma"
 %   
 tic;
-version = '$Id: fast_selxavg2.m,v 1.5 2006/07/12 04:47:20 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.6 2006/07/12 05:01:35 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'bhdr';
@@ -421,6 +421,8 @@ if(s.SynthSeed == 0)
       fprintf(1,'       Rescaling Global Mean %g,%g,%g\n',...
 	      MeanVal,RescaleTarget,RescaleFactor);
       yrun = RescaleFactor * yrun;
+    else
+      RescaleFactor = 1;
     end
     
     n1 = runframes(run,1);
@@ -449,19 +451,21 @@ DOF = vdof+ntpx;
 rvar = rvar*(vdof/DOF); % compatible with version1
 fprintf(1,'Done fitting t=%g\n',toc);
 
+%--------------------------------------------------
+fprintf(1,'Computing AR1 t=%g ... \n',toc);
+sse = sum(res.^2);
+indz = find(sse == 0);
+sse(indz) = 10^10;
+ar1 = sum(res(1:end-1,:) .* res(2:end,:)) ./ sse;
+tmp = y0;
+tmp.vol = fast_mat2vol(ar1,y0.volsize);
+fspec = sprintf('%s/ar1.nii',outvolpath);
+MRIwrite(tmp,fspec);
 
 %--------------------------------------------------
 % Whiten
 if(s.AutoWhiten)
-  fprintf(1,'Computing AR1 t=%g ... \n',toc);
-  sse = sum(res.^2);
-  indz = find(sse == 0);
-  sse(indz) = 10^10;
-  ar1 = sum(res(1:end-1,:) .* res(2:end,:)) ./ sum(res.^2);
-  tmp = y0;
-  tmp.vol = fast_mat2vol(ar1,y0.volsize);
-  fspec = sprintf('%s/ar1.%s',outvolpath,outfmt);
-  MRIwrite(tmp,fspec);
+  fprintf(1,'Whitening t=%g ... \n',toc);
   ar1mn = mean(ar1(indmask));
   fprintf('AR1 mean %g\n',ar1mn);
   racf = ar1mn.^[0:ntrstot-1]';
@@ -480,19 +484,19 @@ end
 % Save betas
 tmp = y0;
 tmp.vol = fast_mat2vol(beta,y0.volsize);
-fspec = sprintf('%s/beta.nii',outvolpath,outfmt);
+fspec = sprintf('%s/beta.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
 % Save rvar
 tmp = y0;
 tmp.vol = fast_mat2vol(rvar,y0.volsize);
-fspec = sprintf('%s/rvar.nii',outvolpath,outfmt);
+fspec = sprintf('%s/rvar.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
 % Save rstd
 tmp = y0;
 tmp.vol = fast_mat2vol(sqrt(rvar),y0.volsize);
-fspec = sprintf('%s/rstd.nii',outvolpath,outfmt);
+fspec = sprintf('%s/rstd.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
 % Compute and save mean/baseline image across all runs
@@ -502,7 +506,7 @@ tmp = y0;
 tmp.vol = fast_mat2vol(b0,y0.volsize);
 fspec = sprintf('%s/h-offset.%s',outvolpath,outfmt);
 MRIwrite(tmp,fspec);
-fspec = sprintf('%s/baseline.nii',outvolpath,outfmt);
+fspec = sprintf('%s/baseline.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
 % Omnibus Contrast
