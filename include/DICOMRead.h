@@ -203,6 +203,7 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage);
 int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist);
 int CompareDCMFileInfo(const void *a, const void *b);
 int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist);
+int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist);
 MRI *DICOMRead2(char *dcmfile, int LoadVolume);
 
 

@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.90 2006/07/12 16:41:51 greve Exp $
+   $Id: DICOMRead.c,v 1.91 2006/07/12 22:00:14 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3187,7 +3187,6 @@ CONDITION GetDICOMInfo(char *fname,
   DCM_OBJECT** object=(DCM_OBJECT**)calloc(1, sizeof(DCM_OBJECT*));
   DCM_TAG tag;
   CONDITION cond, cond2=DCM_NORMAL;
-  double xr,xa,xs,yr,ya,ys, zr,za,zs;
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
   int i;
@@ -3551,11 +3550,14 @@ CONDITION GetDICOMInfo(char *fname,
     dcminfo->Vr[0] = dcminfo->ImageOrientation[3];
     dcminfo->Vr[1] = dcminfo->ImageOrientation[4];
     dcminfo->Vr[2] = dcminfo->ImageOrientation[5];
-    // First pass at computing slice direction, Assume left-handed
-    xr = dcminfo->Vc[0]; xa = dcminfo->Vc[1]; xs = dcminfo->Vc[2]; 
-    yr = dcminfo->Vr[0]; ya = dcminfo->Vr[1]; ys = dcminfo->Vr[2];
-    zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
-    dcminfo->Vs[0] = -zr; dcminfo->Vs[1] = -za; dcminfo->Vs[2] = -zs;
+    // Set slice direction to 0 for now. Do not try to set this based
+    // on cross product of Vc and Vr as the sign is still ambiguous. 
+    // Vs will be computed latter (by DCMSliceDir) based on the 
+    // direction from the first slice/file in the series to the 2nd
+    // slice. 
+    dcminfo->Vs[0] = 0; 
+    dcminfo->Vs[1] = 0; 
+    dcminfo->Vs[2] = 0;
   }
 
   // pixel data
@@ -4118,6 +4120,11 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   // Get info from the reference file
   GetDICOMInfo(dcmfile, &RefDCMInfo, FALSE, 1);
   printf("Ref Series No = %d\n",RefDCMInfo.SeriesNumber);
+  if(RefDCMInfo.BitsAllocated != 16){
+    printf("ERROR: bits = %d not supported.\n",RefDCMInfo.BitsAllocated);
+    printf("Send email to freesurfer@nmr.mgh.harvard.edu\n");
+    return(NULL);
+  }
 
   // Scan directory to get a list of all the files
   err=ScanDir(dcmdir, &FileNames, &nfiles);
@@ -4149,16 +4156,35 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
     ndcmfiles ++;
   }
 
-  printf("Sorting\n");
+  // Sort twice, 1st NOT using slice direction, 2nd using slice direction
+  // First sort will not use it because Vs=0 from GetDICOMInfo()
+  printf("First Sorting\n"); 
   SortDCMFileInfo(dcminfo, ndcmfiles);
   if(Gdiag_no > 0) {
     for(nthfile = 0; nthfile < ndcmfiles; nthfile ++){
-      printf("%d %d %s\n",nthfile,
+      printf("%d %d %6.2f %6.2f %6.2f %s\n",nthfile,
 	     dcminfo[nthfile]->ImageNumber,
+	     dcminfo[nthfile]->ImagePosition[0],
+	     dcminfo[nthfile]->ImagePosition[1],
+	     dcminfo[nthfile]->ImagePosition[2],
 	     dcminfo[nthfile]->FileName);
     }
   }
-  printf("Counting Frames\n");
+  printf("Computing Slice Direction\n");
+  DCMSliceDir(dcminfo, ndcmfiles);
+  printf("Second Sorting\n"); // Now uses slice direction
+  SortDCMFileInfo(dcminfo, ndcmfiles);
+  if(Gdiag_no > 0) {
+    for(nthfile = 0; nthfile < ndcmfiles; nthfile ++){
+      printf("%d %d %6.2f %6.2f %6.2f %s\n",nthfile,
+	     dcminfo[nthfile]->ImageNumber,
+	     dcminfo[nthfile]->ImagePosition[0],
+	     dcminfo[nthfile]->ImagePosition[1],
+	     dcminfo[nthfile]->ImagePosition[2],
+	     dcminfo[nthfile]->FileName);
+    }
+  }
+  printf("Counting frames\n");
   nframes = DCMCountFrames(dcminfo, ndcmfiles);
   printf("nframes = %d\n",nframes);
   nslices = ndcmfiles/nframes;
@@ -4168,13 +4194,10 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
 	   "not equal the number of dicom files.\n");
     return(NULL);
   }
-  if(RefDCMInfo.BitsAllocated != 16){
-    printf("ERROR: bits = %d not supported.\n",RefDCMInfo.BitsAllocated);
-    printf("Send email to freesurfer@nmr.mgh.harvard.edu\n");
-    return(NULL);
-  }
-  mritype = MRI_SHORT;
+  // update reference
+  memcpy(&RefDCMInfo,dcminfo[0],sizeof(DICOMInfo)); 
 
+  mritype = MRI_SHORT;
   if(LoadVolume)
     mri = MRIallocSequence(RefDCMInfo.Columns,RefDCMInfo.Rows,
 			   nslices,mritype,nframes);
@@ -4325,20 +4348,19 @@ int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist)
   return(0);
 }
 
-/*-----------------------------------------------------------
-  DCMCountFrames() - counts the number of frames in a dicom
-  series. The dcmfi_list must have been sored with
-  SortDCMFileInfo(). This sorts so that all the files that have the
-  same slice position are adjacent in the list, so this just
-  counts the number of files until the slice position changes
-  from that of the first file. The number of slices is then
-  the number of files/nframes.
+/*--------------------------------------------------------------------
+  DCMCountFrames() - counts the number of frames in a dicom series.
+  The dcmfi_list must have been sored with SortDCMFileInfo(). This
+  sorts so that all the files that have the same slice position are
+  adjacent in the list, so this just counts the number of files until
+  the slice position changes from that of the first file. The number
+  of slices is then the number of files/nframes.
   -----------------------------------------------------------*/
 int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist)
 {
   // Assumes they have been sorted
   int nframes, nth, c, stop;
-  double ImgPos0[3],d;
+  double ImgPos0[3],d[3];
   DICOMInfo *dcmfi;
 
   // Keep track of image position of the first file
@@ -4352,16 +4374,56 @@ int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist)
     // Compare Image Position of the first file to that
     // of the current file. Stop if they are different.
     for(c=0; c < 3; c++){
-      d = fabs(ImgPos0[c] - dcmfi->ImagePosition[c]);
-      if(d > .0001) {
-	stop=1; 
-	break;
-      }
+      d[c] = dcmfi->ImagePosition[c] - ImgPos0[c] ;
+      if(fabs(d[c]) > .0001) stop=1; 
     }
     if(stop) break;
     nframes++;
   }
   return(nframes);
+}
+
+/*--------------------------------------------------------------------
+  DCMSliceDir() - Computes slice direction such that the first slice
+  in the dicom series will sort to the first slice in the volume. For
+  EPI, this is important for slice timing correction.
+  -----------------------------------------------------------*/
+int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
+{
+  // Assumes they have been sorted
+  int nth, c, stop;
+  double ImgPos0[3],d[3],dlength;
+  DICOMInfo *dcmfi;
+
+  // Keep track of image position of the first file
+  for(c=0; c < 3; c++) 
+    ImgPos0[c] = dcmfi_list[0]->ImagePosition[c];
+
+  for(nth=0;nth < nlist; nth++){
+    // Compare Image Position of the first file to that
+    // of the current file. Stop if they are different.
+    dcmfi = dcmfi_list[nth];
+    stop=0;
+    for(c=0; c < 3; c++){
+      d[c] = dcmfi->ImagePosition[c] - ImgPos0[c] ;
+      if(fabs(d[c]) > .0001) stop=1; 
+    }
+    if(stop) break;
+  }
+  // Compute the slice direction cosine based on the first file in the
+  // series, which should preserve slice order.
+  printf("Vs: %g %g %g\n",d[0],d[1],d[2]);
+  dlength = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+  for(c=0; c < 3; c++) d[c] /= dlength;
+
+  printf("Vs: %g %g %g\n",d[0],d[1],d[2]);
+  for(nth=0;nth < nlist; nth++){
+    for(c=0; c < 3; c++){
+      dcmfi_list[nth]->Vs[c] = d[c];
+    }
+  }
+
+  return(0);
 }
 
 // End of "new" dicom reader routines.
