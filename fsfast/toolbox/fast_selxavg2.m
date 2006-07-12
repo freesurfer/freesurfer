@@ -1,13 +1,51 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.3 2006/07/11 22:24:35 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.4 2006/07/12 02:43:28 greve Exp $
 %
-% For compatibility with version1:
+% For compatibility with version 1:
 %  DOF ignores tpexcl
 %  baseline is that of the first run
+%
+% Incompatibilities:
+%   1. Error bars on FIR plots wont be exactly the same when using
+%      skip or exluding time points 
+%
+% Still need to test with:
+%   FIR
+%   spm hrf
+%   gamma with different exp
+%   nyq
+%   no ext reg
+%   time offset?
+%   TER
+%
+% Still need to implement
+%   whitening
+%   save eres, signal
+%   synth
+%   slice-timing correction?
+%   vox-wise pct signal change (?)
+%
+% Update
+%   downstream components to look for nii
+%   saving betas, h.dat. Update downstream.
+%
+% Add
+%   functional connectivity
+%   multiple external reg
+%   res fwhm
+%   new parfile format
+%   compute all contrasts?
+%
+% Redo
+%   inorm
+%   whitening
+%   fourier
+%   change "ces" to "gamma"
+%   
 
 tic;
-version = '$Id: fast_selxavg2.m,v 1.3 2006/07/11 22:24:35 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.4 2006/07/12 02:43:28 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'nii';
@@ -487,6 +525,14 @@ if(~isempty(s.extreglist))
   hd.extortho = s.extregorthog;
 end
 fmri_svdat3(fname,hd);
+
+hsxa = fast_beta2sxa(beta,rvar,Nc-1,Navgs_per_cond,X);
+ntmp = Navgs_per_cond * 2 * Nc;
+hsxa = reshape(hsxa,[ntmp nvox]);
+tmp = y0;
+tmp.vol = fast_mat2vol(hsxa,y0.volsize);
+fspec = sprintf('%s/h2.%s',outvolpath,outfmt);
+MRIwrite(tmp,fspec);
 
 %---------------------------------------------------------------
 fprintf(1,'fast_selxavg2 done %g\n',toc);
