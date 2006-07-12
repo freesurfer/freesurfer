@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.81.2.3 2006/04/13 22:16:36 greve Exp $
+   $Id: DICOMRead.c,v 1.81.2.4 2006/07/12 16:42:43 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4009,16 +4009,14 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
   /* select all directory entries, and sort them by name */
   *NumberOfFiles = scandir(PathName, &NameList, 0, alphasort);
 
-  if (*NumberOfFiles < 0)
-    return -1;
+  if(*NumberOfFiles < 0) return -1;
 
   pfn = (char **)calloc(*NumberOfFiles, sizeof(char *));
-  for (i=0; i<*NumberOfFiles; i++)
-    {
-      length=pathlength+strlen(NameList[i]->d_name)+1;
-      pfn[i]=(char *)calloc(length, sizeof(char));
-      sprintf(pfn[i], "%s%s", PathName, NameList[i]->d_name);
-    }
+  for (i=0; i<*NumberOfFiles; i++){
+    length=pathlength+strlen(NameList[i]->d_name)+2; // must be +2
+    pfn[i]=(char *)calloc(length, sizeof(char));
+    sprintf(pfn[i], "%s%s", PathName, NameList[i]->d_name);
+  }
 
   free(NameList);
   *FileNames=pfn;
