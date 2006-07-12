@@ -1,13 +1,23 @@
 #include <fstream>
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
-#include "talairachex.h"
 #include "ProgressDisplayManager.h"
 #include "Utilities.h"
 #include "Array2.h"
 #include "PathManager.h"
 #include "VectorOps.h"
 #include "ScubaView.h"
+#include "DataManager.h"
+extern "C" {
+  // Have to do this define trick here because these header files use
+  // 'this' as a variable name in the declaration, which messes up the
+  // c++ compiler.
+#define this xthis
+#include "talairachex.h"
+#include "mri2.h"
+#include "error.h"
+#undef this
+}
 
 using namespace std;
 
@@ -192,6 +202,12 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   commandMgr.AddCommand( *this, "Set2DMRILayerShowNegativeHeatScaleValues", 2, 
 			 "layerID show", "Set whether or not negative heat "
 			 "scale values are being drawn." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleUsingFDR", 3, 
+			 "layerID rate maskVolume", "Uses a false "
+			 "discovery rate algorithm to find a heat scale "
+			 "threshold for the bolume. rate should be 0-1. "
+			 "If maskVolume is not empty, will load "
+			 "a volume to use as a mask." );
   commandMgr.AddCommand( *this, "Set2DMRILayerROIOpacity", 2,"layerID opacity",
 			 "Sets the opacity of the ROI for a layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
@@ -1878,6 +1894,35 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
 
+  // Set2DMRILayerHeatScaleUsingFDR <layerID> <rate> <maskVolumeName>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerHeatScaleUsingFDR" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float rate;
+      try {
+	rate = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+        }
+      catch( runtime_error& e ) {
+	sResult = "bad rate \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    
+      // This will be an empty string if no mask.
+      string fnMaskVolume =  iasArgv[3];
+
+      SetHeatScaleThresholdUsingFDR( rate, fnMaskVolume );
+    }
+  }
+
   // Get2DMRILayerROIOpacity <layerID>
   if( 0 == strcmp( isCommand, "Get2DMRILayerROIOpacity" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -3288,6 +3333,65 @@ ScubaLayer2DMRI::SetHeatScaleMaxThreshold ( float iValue ) {
   }
 }
 
+void
+ScubaLayer2DMRI::SetHeatScaleThresholdUsingFDR ( float  iRate,
+						 string ifnMask ) {
+
+  if( NULL == mVolume ) {
+    return;
+  }
+
+  MRI* maskVol = NULL; 
+  DataManager dataMgr = DataManager::GetManager();
+  MRILoader mriLoader = dataMgr.GetMRILoader();
+
+  // If we got a mask file name, try to load it.
+  if( ifnMask != "" ) {
+    try {
+      maskVol = mriLoader.GetData( ifnMask );
+    } 
+    catch(...) {
+      // Couldn't load it, return an error.
+      throw runtime_error( "Couldn't load the mask volume." );
+    }
+  }
+
+  // Find the sign for the calculation based on our existing settings.
+  int sign = 0;
+  if( !GetShowNegativeHeatScaleValues() )
+    sign = 1;
+  if( !GetShowPositiveHeatScaleValues() )
+    sign = -1;
+  if( GetReverseHeatScale() )
+    sign = -sign;
+
+  // Run the function.
+  double newHeatScaleMin;
+  int eMRI = MRIfdr2vwth( mVolume->GetMRI(),
+			  mCurrentFrame,
+			  iRate,
+			  sign,
+			  TRUE,
+			  maskVol,
+			  &newHeatScaleMin,
+			  NULL );
+
+  // If we got a mask volume, delete it.
+  if( NULL != maskVol ) {
+    mriLoader.ReleaseData( &maskVol );
+  }
+
+  // If we got an error, return.
+  if( ERROR_NONE != eMRI ) {
+    throw runtime_error( "Error running the FDR function: check shell output for details." );
+  }
+
+  // Set our threshold. The mid is 1.5 above the min, and the max is
+  // based on a slope of 0.66 --- (0.5 / slope) + mid
+  SetHeatScaleMinThreshold( newHeatScaleMin );
+  SetHeatScaleMidThreshold( newHeatScaleMin + 1.5 );
+  SetHeatScaleMaxThreshold( (0.5 / 0.66) + newHeatScaleMin + 1.5 );
+}
  
 
 // PATHS =================================================================

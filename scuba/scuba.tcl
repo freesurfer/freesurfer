@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.215 2006/07/07 19:04:50 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.216 2006/07/12 21:25:47 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1972,6 +1972,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     global gaWidget
     global gaLayer
     global glShortcutDirs
+    global gFDRRate gbFDRUseBrainMask
 
     set fwTop        $ifwTop.fwLayerProps
     set fwProps      $fwTop.fwProps
@@ -2156,7 +2157,34 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 		-variable gaLayer(current,showNegativeHeatScale) 
 		-command {Set2DMRILayerShowNegativeHeatScaleValues $gaLayer(current,id) $gaLayer(current,showNegativeHeatScale); RedrawFrame [GetMainFrameID]} }
 	}
+
+    frame $fwHeatscale.fwFDR
+    button $fwHeatscale.fwFDR.bwFDR \
+	-text "Set Using FDR" \
+	-command { Do2DMRILayerHeatScaleUsingFDR $gaLayer(current,id) $gFDRRate $gbFDRUseBrainMask; RedrawFrame [GetMainFrameID]; SelectLayerInLayerProperties $gaLayer(current,id) }
     
+    tkuMakeEntry $fwHeatscale.fwFDR.ewRate \
+	-font [tkuNormalFont] \
+	-label "Rate: " \
+	-variable gFDRRate \
+	-width 5
+    set gFDRRate 0.05
+
+    tkuMakeCheckboxes $fwHeatscale.fwFDR.cbBrainMask \
+	-font [tkuNormalFont] \
+	-checkboxes {
+	    {-type text -label "Use brain mask"
+		-variable gbFDRUseBrainMask }
+	}
+    set gbFDRUseBrainMask false
+
+    pack $fwHeatscale.fwFDR.bwFDR $fwHeatscale.fwFDR.ewRate \
+	$fwHeatscale.fwFDR.cbBrainMask \
+	-side left \
+	-fill x \
+	-expand yes
+
+
     tkuMakeSliders $fwHeatscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
@@ -2180,8 +2208,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwHeatscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
     grid $fwHeatscale.lwHeatScale       -column 0 -row 1 -sticky ew
     grid $fwHeatscale.swHeatScale       -column 0 -row 2 -sticky ew
-    grid $fwHeatscale.cbwOptions        -column 0 -row 3 -sticky ew
-    grid $fwHeatscale.swFrame           -column 0 -row 4 -sticky ew
+    grid $fwHeatscale.fwFDR             -column 0 -row 3 -sticky ew
+    grid $fwHeatscale.cbwOptions        -column 0 -row 4 -sticky ew
+    grid $fwHeatscale.swFrame           -column 0 -row 5 -sticky ew
+    set gaWidget(layerProperties,heatscaleFrameSliderRow) 5
+    set gaWidget(layerProperties,heatscaleConditionSliderRow) 5
+    set gaWidget(layerProperties,heatscaleTimePointSliderRow) 6
+    
 
     # LUT setting -----------------------------------------------------
     tixOptionMenu $fwLUT.mwLUT \
@@ -3128,14 +3161,14 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		# Also unpack the other slider and pack this one.
 		grid forget $gaWidget(layerProperties,heatscaleFrameSlider)
 		grid $gaWidget(layerProperties,heatscaleConditionSlider) \
-		    -column 0 -row 4 -sticky ew
+		    -column 0 -row $gaWidget(layerProperties,heatscaleConditionSliderRow)  -sticky ew
 		grid $gaWidget(layerProperties,heatscaleTimePointSlider) \
-		    -column 0 -row 5 -sticky ew
+		    -column 0 -row $gaWidget(layerProperties,heatscaleTimePointSliderRow) -sticky ew
 	    } else {
 		# Make sure we're using the frame slider and not the
 		# tp/condition sliders.
 		grid $gaWidget(layerProperties,heatscaleFrameSlider) \
-		    -column 0 -row 4 -sticky ew
+		    -column 0 -row $gaWidget(layerProperties,heatscaleFrameSliderRow) -sticky ew
 		grid forget $gaWidget(layerProperties,heatscaleConditionSlider)
 		grid forget $gaWidget(layerProperties,heatscaleTimePointSlider)
 	    }
@@ -3413,6 +3446,34 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
     }
 
     RedrawFrame [GetMainFrameID]
+}
+
+proc Do2DMRILayerHeatScaleUsingFDR { iLayerID iRate ibUseMask } {
+
+    set fnMask ""
+
+    # If they want us to use the mask volume, look for the brain
+    # volume file name based on the subject name, if present.
+    if { $ibUseMask } {
+
+	set fnBase [GetSubjectDir]
+
+	set fnTest [file join $fnBase mri COR.-info]
+	if { ![file isfile $fnTest] } {
+	    set fnTest [file join $fnBase mri brain.mgh]
+	} 
+	if { ![file isfile $fnTest] } {
+	    set fnTest [file join $fnBase mri brain.mgz]
+	} 
+	if { ![file isfile $fnTest] } {
+	    tkuErrorDlog "Couldn't find a brain volume to use as a mask."
+	    return
+	}
+	set fnMask $fnTest
+    }
+
+    # Call the function.
+    Set2DMRILayerHeatScaleUsingFDR $iLayerID $iRate $fnMask
 }
 
 # VIEW PROPERTIES FUNCTIONS =============================================
@@ -6292,7 +6353,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.215 2006/07/07 19:04:50 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.216 2006/07/12 21:25:47 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

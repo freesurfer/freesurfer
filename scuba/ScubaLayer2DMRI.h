@@ -189,6 +189,11 @@ class ScubaLayer2DMRI : public Layer {
   bool GetShowNegativeHeatScaleValues () 
     { return mbShowNegativeHeatScaleValues; }
 
+  // Sets the heatscale threshold by FDR value. If asked to use a
+  // mask, this will attempt to load the given volume as a mask.
+  void SetHeatScaleThresholdUsingFDR ( float       iRate,
+				       std::string ifnMask );
+
   // Opacity of ROIs drawn on this layer.
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
