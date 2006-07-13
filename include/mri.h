@@ -352,8 +352,8 @@ MRI   *MRIcloneBySpace(MRI *mri_src, int nframes);
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold) ;
 MRI   *MRIinvert(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
-MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
-                   BUFTYPE low_val, BUFTYPE hi_val) ;
+MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold,
+                   float low_val, float hi_val) ;
 MRI   *MRIthresholdRangeInto(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE low_val, BUFTYPE hi_val) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
