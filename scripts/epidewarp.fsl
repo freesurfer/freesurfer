@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.20 2006/07/06 19:23:20 rudolph Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.21 2006/07/13 15:10:32 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -51,8 +51,13 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+# Setup the proper extensions
+if($FSLOUTPUTTYPE == ANALYZE)  set ext = img
+if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
+if($FSLOUTPUTTYPE == NIFTI_GZ) set ext = nii.gz
+
 # Create a log file
-set LF = $vsm.log
+if($#LF == 0) set LF = $vsm.log
 if(-e $LF) mv $LF $LF.bak
 echo Logfile is $LF
 date >> $LF
@@ -64,17 +69,19 @@ df -h $tmpdir  >> $LF
 df -h $outdir  >> $LF
 which prelude >> $LF
 which fugue   >> $LF
+echo "FSLOUTPUTTYPE $FSLOUTPUTTYPE" | tee -a $LF
+echo "Extension is $ext" | tee -a $LF
 
 # Some temp files
-set brain = $tmpdir/brain.img
-set head  = $tmpdir/head.img
+set brain = $tmpdir/brain.$ext
+set head  = $tmpdir/head.$ext
 
 # See if there's a .mat file to propogate
 if($#epi) then
-  set epibase = `basename $epi .img`;
+  set epibase = `basename $epi .$ext`;
   set epidir  = `dirname $epi`;
 else
-  set epibase = `basename $exf .img`;
+  set epibase = `basename $exf .$ext`;
   set epidir  = `dirname $exf`;
 endif
 set epimat = $epidir/$epibase.mat
@@ -82,7 +89,7 @@ if(! -e $epimat) set epimat = ();
 
 if($#exf == 0) then
   # Extract the middle time point for the example func (exf)
-  set exf   = $tmpdir/exf.img
+  set exf   = $tmpdir/exf.$ext
   set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`
   if($nframes == 1) then
     set nmidframe = 0;
@@ -94,7 +101,7 @@ if($#exf == 0) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  if($#epimat) cp $epimat `dirname $exf`/`basename $exf .img`.mat 
+  if($#epimat) cp $epimat `dirname $exf`/`basename $exf .$ext`.mat 
 endif
 if(! -e $exf) then
   echo "ERROR: cannot find $exf"
@@ -106,8 +113,8 @@ set cmd = (avwroi $mag $tmpdir/mag 0 1)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-set mag = $tmpdir/mag.img
-if($#epimat) cp $epimat `dirname $mag`/`basename $mag .img`.mat 
+set mag = $tmpdir/mag.$ext
+if($#epimat) cp $epimat `dirname $mag`/`basename $mag .$ext`.mat 
 
 # Create brain mask from the mag
 set cmd = (bet $mag $brain)
@@ -118,7 +125,7 @@ set cmd = (avwmaths $brain -bin $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-if($#epimat) cp $epimat `dirname $brain`/`basename $brain .img`.mat 
+if($#epimat) cp $epimat `dirname $brain`/`basename $brain .$ext`.mat 
 
 # Create head mask by dilating the brain mask 3 times
 @ nthdil = 1;
@@ -133,7 +140,7 @@ while($nthdil <= 3)
   if($status) exit 1;
   @ nthdil = $nthdil + 1;
 end
-if($#epimat) cp $epimat `dirname $head`/`basename $head .img`.mat # Copy matfile
+if($#epimat) cp $epimat `dirname $head`/`basename $head .$ext`.mat # Copy matfile
 
 # Rescale the delta phase to be between -pi and pi. Starts out
 # at 0 - 4095. Make sure the phase is float precision with _32R
@@ -142,7 +149,7 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 set dph = $tmpdir/dph
-if($#epimat) cp $epimat `dirname $dph`/`basename $dph .img`.mat # Copy matfile
+if($#epimat) cp $epimat `dirname $dph`/`basename $dph .$ext`.mat # Copy matfile
 
 # Do the phase unwrapping (-f for 3D, -v for verbose)
 set cmd = (prelude -p $dph -a $mag -o $dph -f -v -m $head);
@@ -153,13 +160,13 @@ if($status) exit 1;
 # FUGUE wants a phase image for each echo, but we only have
 # phase difference between echoes. So create an image of 0s 
 # and merging with the phase diff.
-set ph1 = $tmpdir/ph1.img
+set ph1 = $tmpdir/ph1.$ext
 set cmd = (avwmaths $dph -mul 0 $ph1)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 # Merge, baby, merge
-set ph2 = $tmpdir/ph.img
+set ph2 = $tmpdir/ph.$ext
 set cmd = (avwmerge -t $ph2 $ph1 $dph)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -169,15 +176,15 @@ if($status) exit 1;
 # input to assure that VSM is same dimension as mag. The input only affects
 # the output dimension. The content of the input has no effect
 # on the VSM. The dewarped mag volume is meaningless and will be thrown away. 
-if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.img
-set magdw = $tmpdir/magdw.img # To be thrown away
+if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.$ext
+set magdw = $tmpdir/magdw.$ext # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
     --dwell=$esp --asym=$tediff --mask=$brain --saveshift=$vsmmag);
 if($#sigmamm && $sigmamm > 0) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .img`.mat 
+if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .$ext`.mat 
 
 # Remove the mean in-brain shift from VSM
 set vsmmean = `avwstats $vsmmag -M`;
@@ -192,18 +199,18 @@ if($status) exit 1;
 
 # Forward warp the mag in order to reg with func
 # What does mask do here?
-set magfw = $tmpdir/magfw.img
+set magfw = $tmpdir/magfw.$ext
 set cmd = (fugue -i $mag -w $magfw --loadshift=$vsmmag --mask=$brain )
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .img`.mat
+if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .$ext`.mat
 
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
 if($DoMagExfReg) then 
   set cmd = (flirt -in $magfw -ref $exf \
-    -out $tmpdir/magfw-in-exf.img \
+    -out $tmpdir/magfw-in-exf.$ext \
     -omat $tmpdir/magfw-in-exf.fsl.mat \
     -bins 256 -cost corratio \
     -searchrx -10 10 \
@@ -231,20 +238,20 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 if($#epimat) then # Propogate mat file
-  set vsmbase = `basename $vsm .img`;
+  set vsmbase = `basename $vsm .$ext`;
   cp $epimat `dirname $vsm`/$vsmbase.mat
 endif
 
 # Now resample brain mask into epi space. This will take care of any 
 # differences in in-plane voxel size.
-set brainexf = $tmpdir/brainexf.img
+set brainexf = $tmpdir/brainexf.$ext
 set cmd = (flirt -in $brain -ref $exf -out $brainexf \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 if($#epimat) then # Propogate mat file
-  set base = `basename $brainexf .img`;
+  set base = `basename $brainexf .$ext`;
   cp $epimat `dirname $brainexf`/$base.mat
 endif
 
@@ -260,7 +267,7 @@ if($#exfdw != 0) then
   if($status) exit 1;
 
   if($#epimat) then # Propogate mat file
-    set exfbase = `basename $exfdw .img`;
+    set exfbase = `basename $exfdw .$ext`;
     cp $epimat `dirname $exfdw`/$exfbase.mat
   endif
 endif
@@ -282,8 +289,8 @@ if($#epidw != 0) then
   # Go through each frame
   @ nthframe = 0
   while($nthframe < $nframes)
-    set invol  = $tmpdir/epi-split/`printf vol%04d.img $nthframe`;
-    set outvol = $tmpdir/epi-split/`printf voldw%04d.img $nthframe`;
+    set invol  = $tmpdir/epi-split/`printf vol%04d.$ext $nthframe`;
+    set outvol = $tmpdir/epi-split/`printf voldw%04d.$ext $nthframe`;
     set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$brain );
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -292,13 +299,13 @@ if($#epidw != 0) then
   end
 
   # Merge them back - could they make this more convoluted???
-  set cmd = (avwmerge -t $epidw `ls $tmpdir/epi-split/voldw*img`);
+  set cmd = (avwmerge -t $epidw `ls $tmpdir/epi-split/voldw*$ext`);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 
   if($#epimat) then # Propogate mat file
-    set epidwbase = `basename $epidw .img`;
+    set epidwbase = `basename $epidw .$ext`;
     cp $epimat `dirname $epidw`/$epidwbase.mat
   endif
 
@@ -412,6 +419,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
       set cleanup = 0;
+      breaksw
+
+    case "--log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
       breaksw
 
     case "--nocleanup":
@@ -541,6 +553,7 @@ usage_exit:
   echo "  "
   echo "  --nomagexfreg : assume mag and exf are in register"
   echo "  --tmpdir dir  : save intermediate results here"
+  echo "  --log logfile : use logfile instead of default"
   echo "  --nocleanup   : do not delete tmpdir"
   echo "  --cleanup     : force deletion of tmpdir"
   echo "  --debug"
@@ -579,7 +592,10 @@ This is assumed to be two conventional GREs collected at two different
 echo times (TEs). The field map should be acquired with the same slice
 prescription, slice thickness, slice skip, voxel resolution, and
 field-of-view as the EPI. This script uses only FSL commands (ie,
-FreeSurfer not needed).
+FreeSurfer not needed). This should work with NIFTI, NIFTI_GZ, and
+ANALYZE formats, but NIFTI are NIFTI_GZ *HIGHLY* recommended. 
+Converting between ANALYZE and NIFTI in FSL can produce
+unpredictable results.
 
 For the stock Siemens field map, two field maps are required, one to
 get the phase and another to get the magnitude (this will change with
@@ -589,8 +605,9 @@ between 0 to 4095 for -pi to pi. The magnitude volumes for both TEs
 are saved, but only one is needed.
 
 All volumes are assumed to be in analyze 4D format. All volumes should
-be referred to as volid.img. If the EPI or EXF volume has a .mat file,
-this will be propagated to the outputs.
+be referred to as volid.ext (where ext is either nii, nii.gz, or
+img). If the EPI or EXF volume has a .mat file, this will be
+propagated to the outputs.
 
 ALGORITHM OVERVIEW
 
@@ -615,7 +632,8 @@ present, then only the first is used.
 --dph phasediffvolid
 
 Phase difference volume (Echo2-Echo1). These are assumed to be scaled
-between 0 to 4095 for -pi to pi. Eg, dph.img
+between 0 to 4095 for -pi to pi. Eg, dph.ext, where ext is either nii,
+nii.gz, or img.
 
 --exf examplevolid
 
