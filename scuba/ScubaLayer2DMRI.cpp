@@ -275,7 +275,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
       
       // Get the number of values to cut based on the percentage.
       int zCutValues = (int)((float)zValues * (kPercentValuesToCut/100.0));
-      
+
       // Get the index of the bin with the value zero in it. We'll skip
       // this bin because we want to ignore zeroes in our histogram.
       int nZeroBin = HISTOfindBin( histo, 0.0 );
@@ -313,6 +313,15 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 	// Just set the level window appropriately.
 	SetLevel( minValue );
 	SetWindow( 1 );
+
+	// If max < min, then it's a binary volume and we crossed each
+	// other, so just set it to the normal full range.
+      } else if( maxValue < minValue ) {
+
+	SetLevel( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue())
+		   / 2.0) +
+		  mVolume->GetMRIMinValue() );
+	SetWindow( mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue() );
 
       } else {
 	
