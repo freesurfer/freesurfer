@@ -1,6 +1,6 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.6 2006/07/12 05:01:35 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.7 2006/07/13 05:51:39 greve Exp $
 %
 % For compatibility with version 1:
 %  DOF ignores tpexcl
@@ -42,10 +42,10 @@ function r = fast_selxavg2(varargin)
 %   change "ces" to "gamma"
 %   
 tic;
-version = '$Id: fast_selxavg2.m,v 1.6 2006/07/12 05:01:35 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.7 2006/07/13 05:51:39 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
-outfmt = 'bhdr';
+outfmt = 'nii';
 
 %% Print useage if there are no arguments %%
 if(nargin == 0)
@@ -112,12 +112,10 @@ fomnibusstem = s.fomnibusvol;
 pomnibusstem = s.pomnibusvol;
 
 %-------------------------------------------------%
-if(s.AutoWhiten)
-  if(isempty(s.maskid))
-    s.maskid = sprintf('%s/masks/brain',fsd);
-    fprintf('INFO: whitening, but no mask specified, using %s\n',s.maskid);
-  end      
-end
+if(isempty(s.maskid))
+  s.maskid = sprintf('%s/masks/brain',fsd);
+  fprintf('INFO: no mask specified, using %s\n',s.maskid);
+end      
 if(~isempty(s.maskid))
   fprintf('INFO: loading mask %s\n',s.maskid);
   tmp = MRIread(s.maskid);
@@ -452,6 +450,11 @@ rvar = rvar*(vdof/DOF); % compatible with version1
 fprintf(1,'Done fitting t=%g\n',toc);
 
 %--------------------------------------------------
+% Compute mean baseline image across all runs
+b0 = mean(beta(BaselineRegInd,:));
+
+%--------------------------------------------------
+% AR1 computation
 fprintf(1,'Computing AR1 t=%g ... \n',toc);
 sse = sum(res.^2);
 indz = find(sse == 0);
@@ -459,26 +462,86 @@ sse(indz) = 10^10;
 ar1 = sum(res(1:end-1,:) .* res(2:end,:)) ./ sse;
 tmp = y0;
 tmp.vol = fast_mat2vol(ar1,y0.volsize);
-fspec = sprintf('%s/ar1.nii',outvolpath);
+fspec = sprintf('%s/rar1.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
 %--------------------------------------------------
-% Whiten
-if(s.AutoWhiten)
-  fprintf(1,'Whitening t=%g ... \n',toc);
-  ar1mn = mean(ar1(indmask));
-  fprintf('AR1 mean %g\n',ar1mn);
-  racf = ar1mn.^[0:ntrstot-1]';
-  fprintf(1,'Re-fitting GLM t=%g\n',toc);
-  [beta, rvar, vdof, res] = fast_glmfitw(y,X,racf);
-  DOF = vdof+ntpx;
-  rvar = rvar*(vdof/DOF); % compatible with version1
-  fprintf(1,'Done re fitting t=%g\n',toc);
-  W = chol(inv(toeplitz(racf)));
-  %X = W*X; % This makes things work out below
-else
-  racf = [];
+% Segment mean image
+b0mn = mean(b0(indmask));
+fprintf('Global mean = %g\n',b0mn);
+fprintf('Computing segs t=%g\n',toc);
+nsegs = 20;
+xseg = fast_histeq(b0(indmask),nsegs);
+hseg = hist(b0(indmask),xseg);
+dxseg = xseg(2)-xseg(1);
+segmap = y0;
+segmap.vol = zeros(y0.volsize);
+nperseg = zeros(nsegs,1);
+for nthseg = 1:nsegs
+  yminseg = xseg(nthseg);
+  ymaxseg = xseg(nthseg+1);
+  if(nthseg == 1)     yminseg = -inf; end
+  if(nthseg == nsegs) ymaxseg = +inf; end
+  indseg = find(yminseg < b0(indmask) & b0(indmask) <= ymaxseg);
+  nperseg(nthseg) = length(indseg);
+  segmap.vol(indmask(indseg)) = nthseg;
+  fprintf('seg %2d  %3d  %8.3f %8.3f\n',nthseg,nperseg(nthseg),yminseg,ymaxseg);
 end
+fspec = sprintf('%s/acfseg.nii',outvolpath);
+MRIwrite(segmap,fspec);
+
+%----------------------------------------------------------
+fprintf('Computing NACF   (%6.1f)\n',toc);
+R = eye(ntrstot) - X*inv(X'*X)*X';% Residual forming matrix 
+nn = [1:ntrstot]';
+clear ar1seg nacfseg;
+for nthseg = 1:nsegs
+  indseg = find(segmap.vol==nthseg);
+  rar1seg = mean(ar1(indseg));
+  racfkjw = fast_yacf_kjw([1 rar1seg]',R);
+  ar1seg(nthseg) = racfkjw(2);
+  nacfseg(:,nthseg) = ar1seg(nthseg).^(nn-1);
+  fprintf('  nthseg = %2d, rar1 = %6.3f, nar1 = %6.3f\n',...
+	  nthseg,rar1seg,ar1seg(nthseg));
+end
+fspec = sprintf('%s/acfseg.lut',outvolpath);
+fp = fopen(fspec,'w');
+fprintf(fp,'# Color LUT for Autocorrelation Function (ACF) Segmentation\n');
+fprintf(fp,'# Index  Name    R G B   Nvoxels\n');
+for nthseg = 0:nsegs
+  if(nthseg == 0)
+    fprintf(fp,' 0    NonBrain           0   0   0    0\n');
+  else
+    fprintf(fp,'%2d   Bin%02d.AR%02d   %3d %3d %3d    %5d\n',...
+	    nthseg,nthseg,round(100*ar1seg(nthseg)),...
+	    round(255*rand),round(255*rand),round(255*rand),...
+	    nperseg(nthseg));
+  end
+end
+fclose(fp);
+
+%--------------------------------------------------
+% ReFit the data with whitening
+fprintf(1,'Refitting GLM with whitening t=%g\n',toc);
+[beta, rvar, vdof, res] = fast_glmfitw(y,X,nacfseg,segmap.vol);
+DOF = vdof+ntpx;
+rvar = rvar*(vdof/DOF); % compatible with version1
+fprintf(1,'Done fitting t=%g\n',toc);
+
+%--------------------------------------------------
+% Omnibus Contrast
+fprintf(1,'Computing omnibus contrast t=%g\n',toc);
+Comni = [eye(Ntask) zeros(Ntask,Nnuis)];
+[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,Comni,nacfseg,segmap.vol);
+fprintf(1,'Done omnibus t=%g\n',toc);
+dof2 = DOF; % compatible with version 1
+qsum = sum(ces,1);
+p = FTest(dof1, dof2, F);
+sig = -sign(qsum).*log10(p);
+tmp = y0;
+tmp.vol = fast_mat2vol(sig,y0.volsize);
+fspec = sprintf('%s/omnibus/fsig.%s',outvolpath,outfmt);
+MRIwrite(tmp,fspec);
 
 %--------------------------------------------------
 % Save betas
@@ -509,18 +572,6 @@ MRIwrite(tmp,fspec);
 fspec = sprintf('%s/baseline.nii',outvolpath);
 MRIwrite(tmp,fspec);
 
-% Omnibus Contrast
-fprintf(1,'Computing omnibus contrast t=%g\n',toc);
-Comni = [eye(Ntask) zeros(Ntask,Nnuis)];
-[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,Comni,racf);
-dof2 = DOF; % compatible with version 1
-qsum = sum(ces,1);
-p = FTest(dof1, dof2, F);
-sig = -sign(qsum).*log10(p);
-tmp = y0;
-tmp.vol = fast_mat2vol(sig,y0.volsize);
-fspec = sprintf('%s/omnibus/fsig.%s',outvolpath,outfmt);
-MRIwrite(tmp,fspec);
 
 % ---------------------------------------------------------
 % Save the .dat file %
