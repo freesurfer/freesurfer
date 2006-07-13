@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.26.2.3 2006/03/06 23:04:44 greve Exp $
+  $Id: mri_surfcluster.c,v 1.26.2.4 2006/07/13 17:50:28 greve Exp $
 */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@
 #include "surfcluster.h"
 #include "transform.h"
 #include "version.h"
+#include "annotation.h"
 
 LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign);
 
@@ -47,7 +48,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.26.2.3 2006/03/06 23:04:44 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.26.2.4 2006/07/13 17:50:28 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -63,6 +64,7 @@ float thmin = -1, thmax = -1;
 char *thsign = NULL;
 int   thsignid = 0; 
 float minarea = 0;
+char *annotname = NULL;
 
 char *maskid   = NULL;
 char *maskfmt  = NULL;
@@ -145,13 +147,13 @@ int main(int argc, char **argv)
   int  n,NClusters,vtx, rt;
   FILE *fp;
   float totarea;
-  int nargs;
+  int nargs,err;
   struct utsname uts;
   char *cmdline, cwd[2000];
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26.2.3 2006/03/06 23:04:44 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.26.2.4 2006/07/13 17:50:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -206,6 +208,17 @@ int main(int argc, char **argv)
   if (!srcsurf)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
   printf("Done reading source surface\n");
+
+  if(annotname != NULL){
+    sprintf(fname,"%s/%s/label/%s.%s.annot",subjectsdir,srcsubjid,hemi,annotname);
+    printf("Reading annotation %s\n",fname);
+    err = MRISreadAnnotation(srcsurf, fname);
+    if(err){
+      printf("ERROR: reading %s\n",fname);
+      exit(1);
+    }
+    set_atable_from_ctable(srcsurf->ct);
+  }
 
   printf("Computing metric properties\n");
   MRIScomputeMetricProperties(srcsurf);
@@ -405,6 +418,7 @@ int main(int argc, char **argv)
     fprintf(fp,"# srcsubj %s\n",srcsubjid);
     fprintf(fp,"# hemi %s\n",hemi);
     fprintf(fp,"# surface %s\n",srcsurfid);
+    if(annotname) fprintf(fp,"# annot %s\n",annotname);
     fprintf(fp,"# SUBJECTS_DIR %s\n",subjectsdir);
 
     fprintf(fp,"# Minimum Threshold %g\n",thmin);  
@@ -439,15 +453,23 @@ int main(int argc, char **argv)
     fprintf(fp,"# \n");  
     fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
     if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
-    fprintf(fp,"   NVtxs\n");
+    fprintf(fp,"   NVtxs");
+    if(annotname != NULL)  fprintf(fp,"   Annot");
+    fprintf(fp,"\n");
     for(n=0; n < NClusters; n++){
       fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
        scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
-    if(csd != NULL)  
-      fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf",
-	      scs[n].pval_clusterwise,scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
-    fprintf(fp,"  %4d\n",scs[n].nmembers);
+      if(csd != NULL)  
+	fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf", scs[n].pval_clusterwise,
+		scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
+      fprintf(fp,"  %4d",scs[n].nmembers);
+      if(annotname != NULL)
+	fprintf(fp,"  %s",
+		annotation_to_name(srcsurf->vertices[scs[n].vtxmaxval].annotation,
+				   NULL));
+      fprintf(fp,"\n");
+
     }
     fclose(fp);
   }
@@ -704,6 +726,11 @@ static int parse_commandline(int argc, char **argv)
       maskfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--annot")){
+      if(nargc < 1) argnerr(option,1);
+      annotname = pargv[0];
+      nargsused = 1;
+    }
 
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
@@ -810,6 +837,7 @@ static void print_usage(void)
   printf("   --subject  subjid    : source surface subject (can be ico)\n");
   printf("   --hemi hemi          : lh or rh \n");
   printf("   --surf     surface   : get coorindates from surface (white)\n");
+  printf("   --annot    annotname : report annotation for max vertex\n");
   printf("   --frame frameno      : 0-based source frame number\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
@@ -878,6 +906,12 @@ static void print_help(void)
 "\n"
 "This is the surface to use when computing the talairach coordinagtes.\n"
 "Default is white.\n"
+"\n"
+"--annot annotationname\n"
+"\n"
+"Report the cortical annotation that the maximum in each label falls into. \n"
+"The annotation used will be SUBJECTS_DIR/subject/label/hemi.annotationname.annot.\n"
+"Eg, --annot aparc\n"
 "\n"
 "--frame frameno\n"
 "\n"
@@ -1027,7 +1061,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.26.2.3 2006/03/06 23:04:44 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.26.2.4 2006/07/13 17:50:28 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
