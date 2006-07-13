@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.195 2006/06/25 18:31:44 greve Exp $"
+# "$Id: configure.in,v 1.196 2006/07/13 19:24:01 fischl Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -124,7 +124,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
+ CFLAGS="-g -O0 -Wall -Werror $CFLAGS"
  CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
  ;;
  x86_64-*)
@@ -135,7 +135,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CFLAGS"
+ CFLAGS="-g -O0 -Wall -fno-strict-aliasing -Werror $CFLAGS"
  CXXFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CXXFLAGS"
  TEEM_32BIT=0
  ;;
@@ -1274,6 +1274,7 @@ AC_OUTPUT([Makefile
                  log/Makefile
                  matlab/Makefile
                  mkxsubjreg/Makefile
+                 mri_bias/Makefile
                  mri_add_xform_to_header/Makefile
                  mri_annotation2label/Makefile
                  mri_aparc2aseg/Makefile

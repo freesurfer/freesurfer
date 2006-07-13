@@ -18,6 +18,7 @@ MRISUBDIRS=check_siemens_dir \
 	mkxsubjreg \
 	rbftest \
 	mri_add_xform_to_header \
+	mri_bias \
 	mri_annotation2label \
 	mri_aparc2aseg \
 	mri_aparc2wmseg \
