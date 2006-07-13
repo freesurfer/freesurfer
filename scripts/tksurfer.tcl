@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.118 2006/07/10 17:20:14 kteich Exp $
+# $Id: tksurfer.tcl,v 1.119 2006/07/13 20:00:33 kteich Exp $
 
 package require BLT;
 
@@ -5501,7 +5501,17 @@ dputs "Successfully parsed tksurfer.tcl"
 # $SUBJECTS_DIR/scripts/tksurfer_init.tcl, then
 # $subject/scripts/tksurfer_init.tcl, then
 # ~/scripts/tksurfer_init.tcl.
-foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tksurfer_init.tcl $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl $home/$subject/scripts/tksurfer_init.tcl ~/tksurfer_init.tcl] {
+set lUserScripts {}
+if { [info exists env(FREESURFER_HOME)] } {
+    lappend lUserScripts $env(FREESURFER_HOME)/lib/tcl/tksurfer_init.tcl
+}
+if { [info exists env(SUBJECTS_DIR)] } {
+    lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl
+}
+lappend lUserScripts $gsSubjectDirectory/scripts/tksurfer_init.tcl
+lappend lUserScripts ~/tksurfe_init.tcl
+
+foreach fnUserScript $lUserScripts {
     if { [file exists $fnUserScript] } {
 	catch { 
 	    dputs "Reading $fnUserScript"

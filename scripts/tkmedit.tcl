@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.112 2006/06/01 22:30:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.113 2006/07/13 20:00:33 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -5147,7 +5147,17 @@ dputs "Successfully parsed tkmedit.tcl"
 # $SUBJECTS_DIR/scripts/tkmedit_init.tcl, then
 # $subject/scripts/tkmedit_init.tcl, then
 # ~/scripts/tkmedit_init.tcl.
-foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl $env(SUBJECTS_DIR)/scripts/tkmedit_init.tcl $gsSubjectDirectory/scripts/tkmedit_init.tcl ~/tkmedit_init.tcl] {
+set lUserScripts {}
+if { [info exists env(FREESURFER_HOME)] } {
+    lappend lUserScripts $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl
+}
+if { [info exists env(SUBJECTS_DIR)] } {
+    lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tkmedit_init.tcl
+}
+lappend lUserScripts $gsSubjectDirectory/scripts/tkmedit_init.tcl
+lappend lUserScripts ~/tkmedit_init.tcl
+
+foreach fnUserScript $lUserScripts {
     if { [file exists $fnUserScript] } {
 	catch { 
 	    dputs "Reading $fnUserScript"
