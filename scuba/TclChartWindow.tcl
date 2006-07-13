@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.9 2006/07/11 21:31:38 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.10 2006/07/13 17:46:18 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -72,6 +72,7 @@ proc Chart_BuildWindow { iID } {
     set lwInfo         $wwTop.lwInfo
     set fwReport       $wwTop.fwReport
     set bwReport       $fwReport.bwReport
+    set bwPicture      $fwReport.bwPicture
 
     # Fill out default values.
     if { ![info exists gData($iID,title)] } {
@@ -120,7 +121,10 @@ proc Chart_BuildWindow { iID } {
     button $bwReport \
 	-text "Generate Report" \
 	-command "Chart_DoGenerateReportDlog $iID"
-    pack $bwReport \
+    button $bwPicture \
+	-text "Save Picture" \
+	-command "Chart_SaveAsPostscript $iID"
+    pack $bwReport $bwPicture \
 	-side right
 
     # Place everything in the window.
@@ -401,6 +405,15 @@ proc Chart_DoGenerateReportDlog { iID } {
 	\
 	-prompt5 "Save file: " \
 	-okCmd "GenerateChartReport $iID %s1 %s2 %s3 %s4 %s5"
+}
+
+proc Chart_SaveAsPostscript { iID } {
+    global gWidgets
+
+    tkuDoFileDlog -title "Save Chart Picture" \
+	-prompt1 "Save Postscript Picture As: " \
+	-okCmd "$gWidgets($iID,gwChart) postscript output %s1"
+
 }
 
 # ============================================================ PUBLIC
