@@ -102,6 +102,8 @@ typedef struct tesselation_parms_
 } tesselation_parms;
 
 
+static int downsample = 0 ;
+
 /*initialization of tesselation_parms*/
 /*note that not all the fields are allocated*/
 void initTesselationParms(tesselation_parms *parms)
@@ -874,8 +876,16 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.13 2006/07/12 08:54:13 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.14 2006/07/13 16:08:19 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
+
+	if (!stricmp(argv[1], "-d"))
+	{
+		downsample = atoi(argv[2]) ;
+		argc -= 2;
+		argv += 2 ;
+		printf("downsampling input volume %d times\n", downsample) ;
+	}
 
 	if(argc < 4) {
 		fprintf(stderr,"\n\nUSAGE: mri_mc input_volume label_value output_surface [connectivity]");
@@ -887,6 +897,12 @@ int main(int argc, char *argv[])
   if(!parms)
     ErrorExit(ERROR_NOMEMORY, "tesselation parms\n") ;
 	mri=MRIread(argv[1]);
+	if (downsample > 0)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIdownsample2(mri, NULL) ;
+		MRIfree(&mri) ; mri = mri_tmp ;
+	}
 	{
 		MRI *mri_tmp ;
 		mri_tmp = MRIalloc(mri->width+2, mri->height+2, mri->depth+2, mri->type) ;
@@ -894,6 +910,7 @@ int main(int argc, char *argv[])
 		MRIfree(&mri) ;
 		mri = mri_tmp ;
 	}
+	MRIreInitCache(mri);
 	if (mri->type != MRI_UCHAR)
 	{
 		MRI *mri_tmp ;
