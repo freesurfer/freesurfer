@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/07 17:46:33 $
-// Revision       : $Revision: 1.351 $
-char *MRI_C_VERSION = "$Revision: 1.351 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/07/13 16:36:02 $
+// Revision       : $Revision: 1.352 $
+char *MRI_C_VERSION = "$Revision: 1.352 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2948,12 +2948,16 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 			}
 		}
 	}
+	mri_dst->xsize = mri_src->xsize ;
+	mri_dst->ysize = mri_src->ysize ;
+	mri_dst->zsize = mri_src->zsize ;
+	mri_dst->thick = mri_src->thick ;
+	mri_dst->ps = mri_src->ps ;
+	MRIcopyPulseParameters(mri_src, mri_dst) ;
   // calculate c_ras
   MRIcalcCRASforExtractedVolume
     (mri_src, mri_dst, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s);
-  mri_dst->c_r = c_r;
-  mri_dst->c_a = c_a;
-  mri_dst->c_s = c_s;
+  mri_dst->c_r = c_r; mri_dst->c_a = c_a; mri_dst->c_s = c_s;
   // initialize cached transform
   MRIreInitCache(mri_dst);
 
@@ -3624,18 +3628,18 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
   depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          for (x = 0 ; x < width ; x++)
-            {
-              val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-              if (val < threshold)
-                val = 0 ;
-              MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-            }
-        }
-    }
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				if (val < threshold)
+					val = 0 ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+			}
+		}
+	}
 
   return(mri_dst) ;
 }
@@ -3687,8 +3691,8 @@ MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold)
   threshold an MRI.
   ------------------------------------------------------*/
 MRI *
-MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
-            BUFTYPE hi_val)
+MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val,
+            float hi_val)
 {
   int     width, height, depth, x, y, z, f ;
   Real    val ;
@@ -3701,24 +3705,27 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
   depth = mri_src->depth ;
 
   for (f = 0 ; f < mri_src->nframes ; f++)
-    {
-      for (z = 0 ; z < depth ; z++)
-        {
-          for (y = 0 ; y < height ; y++)
-            {
-              for (x = 0 ; x < width ; x++)
-                {
-                  MRIsampleVolumeFrameType
-                    (mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
-                  if (val < threshold)
-                    val = low_val ;
-                  else
-                    val = hi_val ;
-                  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-                }
-            }
-        }
-    }
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+#if 0
+					MRIsampleVolumeFrameType
+						(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+#endif
+					if (val < threshold)
+						val = low_val ;
+					else
+						val = hi_val ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+				}
+			}
+		}
+	}
 
   return(mri_dst) ;
 }
@@ -6368,6 +6375,7 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->zsize = mri_src->zsize/2 ;
 
   mri_dst->ras_good_flag = 0;
+	MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
 }
@@ -6467,71 +6475,74 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth/2 ;
 
   if (!mri_dst)
-    {
-      mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
-      MRIcopyHeader(mri_src, mri_dst) ;
-    }
+	{
+		mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+		MRIcopyHeader(mri_src, mri_dst) ;
+	}
 
   MRIclear(mri_dst) ;
   for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          for (x = 0 ; x < width ; x++)
-            {
-              for (val = 0.0f, z1 = 2*z ; z1 <= 2*z+1 ; z1++)
-                {
-                  for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
-                    {
-                      switch (mri_src->type)
-                        {
-                        case MRI_UCHAR:
-                          psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
-                          for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-                            val += *psrc++ ;
-                          break ;
-                        case MRI_SHORT:
-                          pssrc = &MRISvox(mri_src, 2*x, y1, z1) ;
-                          for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-                            val += *pssrc++ ;
-                          break ;
-                        case MRI_FLOAT:
-                          pfsrc = &MRIFvox(mri_src, 2*x, y1, z1) ;
-                          for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-                            val += *pfsrc++ ;
-                          break ;
-                        default:
-                          ErrorReturn
-                            (NULL,
-                             (ERROR_UNSUPPORTED,
-                              "MRIdownsample2: unsupported input type %d",
-                              mri_src->type));
-                        }
-                    }
-                }
-              switch (mri_src->type)
-                {
-                case MRI_UCHAR:
-                  MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
-                  break ;
-                case MRI_FLOAT:
-                  MRIFvox(mri_dst, x, y, z) = val/8.0f ;
-                  break ;
-                case MRI_SHORT:
-                  MRISvox(mri_dst, x, y, z) = (short)nint(val/8.0f) ;
-                  break ;
-                }
-            }
-        }
-    }
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				for (val = 0.0f, z1 = 2*z ; z1 <= 2*z+1 ; z1++)
+				{
+					for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
+					{
+						switch (mri_src->type)
+						{
+						case MRI_UCHAR:
+							psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *psrc++ ;
+							break ;
+						case MRI_SHORT:
+							pssrc = &MRISvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *pssrc++ ;
+							break ;
+						case MRI_FLOAT:
+							pfsrc = &MRIFvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *pfsrc++ ;
+							break ;
+						default:
+							ErrorReturn
+								(NULL,
+								 (ERROR_UNSUPPORTED,
+									"MRIdownsample2: unsupported input type %d",
+									mri_src->type));
+						}
+					}
+				}
+				switch (mri_src->type)
+				{
+				case MRI_UCHAR:
+					MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
+					break ;
+				case MRI_FLOAT:
+					MRIFvox(mri_dst, x, y, z) = val/8.0f ;
+					break ;
+				case MRI_SHORT:
+					MRISvox(mri_dst, x, y, z) = (short)nint(val/8.0f) ;
+					break ;
+				}
+			}
+		}
+	}
 
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
   mri_dst->xsize = mri_src->xsize*2 ;
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
+	mri_dst->thick = mri_src->thick*2 ;
+	mri_dst->ps = mri_src->ps*2 ;
+	MRIreInitCache(mri_dst) ;
 
-  mri_dst->ras_good_flag = 0;
+	//  mri_dst->ras_good_flag = 0;
 
   return(mri_dst) ;
 }
