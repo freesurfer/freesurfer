@@ -4,9 +4,9 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/09 20:19:51 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/07/13 16:29:58 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -61,9 +61,12 @@ int debugvtx = 0;
 
 static int nSmoothSteps = 0;
 
+#ifdef MAX_SURFACES
+#undef MAX_SURFACES
+#endif
 #define MAX_SURFACES 200
 
-static char vcid[] = "$Id: mris_surface_stats.c,v 1.1 2006/02/09 20:19:51 xhan Exp $";
+static char vcid[] = "$Id: mris_surface_stats.c,v 1.2 2006/07/13 16:29:58 fischl Exp $";
 
 int
 main(int argc, char *argv[])
@@ -83,7 +86,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_surface_stats.c,v 1.1 2006/02/09 20:19:51 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_surface_stats.c,v 1.2 2006/07/13 16:29:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
