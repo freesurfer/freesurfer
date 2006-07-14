@@ -13,7 +13,7 @@ function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap)
 %
 % See also: fast_fratiow, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_glmfitw.m,v 1.5 2006/07/13 22:18:47 greve Exp $
+% $Id: fast_glmfitw.m,v 1.6 2006/07/14 03:30:32 greve Exp $
 
 if(nargin < 2 | nargin > 4)
   fprintf('[beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>)\n');
@@ -50,28 +50,41 @@ if(isempty(nacf))
   return;
 end
 
+usematrix = 0;
+if(usematrix) fprintf('Using matrix filtering\n');
+else          fprintf('Using fft filtering\n');
+end
+
 % Only gets here if nacf is non-empty
 if(isempty(nacfmap)) nacfmap = ones(nv,1); end
 nbins = size(nacf,2);
 beta = zeros(nbeta,nv);
 r    = zeros(nf,nv);
 rvar = zeros(1,nv);
+X_fft = fft(X,2*nf);
 for nthbin = 0:nbins
   indbin = find(nacfmap==nthbin);
+  nbin = length(indbin);
+  fprintf(' nthbin = %d, nbin = %d \n',nthbin,nbin);
   if(isempty(indbin)) continue; end
   if(nthbin ~= 0)
     nacfbin = nacf(:,nthbin);
-    if(0)
+    if(usematrix)
+      % Matrix formulation
       W = chol(inv(toeplitz(nacfbin)));
       ybin = W*y(:,indbin);
       Xbin = W*X;
     else
+      % FFT formulation
+      ybin = y(:,indbin);
       nacfbin_fft = fft(nacfbin,2*nf);
-      ybin_fft = fft(ybin,2*nf)./conj(nacfbin_fft);
+      ybin_fft = fft(ybin,2*nf)./repmat(conj(nacfbin_fft),[1 nbin]);
       ybin = real(ifft(ybin_fft));
+      ybin = ybin(1:nf,:);
       clear ybin_fft;
-      Xbin_fft = fft(X,2*nf)./conj(nacfbin_fft);
+      Xbin_fft = X_fft./repmat(conj(nacfbin_fft),[1 nbeta]);
       Xbin = real(ifft(Xbin_fft));
+      Xbin = Xbin(1:nf,:);
       clear Xbin_fft;
     end
   else
