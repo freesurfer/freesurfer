@@ -18,7 +18,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.16 2006/07/14 20:20:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int reassign = 0 ;
 static int normalize_flag = 0 ;
 static int condition_no = 0 ;
 static int stat_flag = 0 ;
@@ -56,10 +57,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.16 2006/07/14 20:20:06 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.15 2006/06/09 17:06:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.16 2006/07/14 20:20:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -144,7 +145,13 @@ main(int argc, char *argv[])
 				ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
 			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 		}
+		if (which == VERTEX_LABEL)  // read orig coords in case we need to assign vertices
+		{
+			if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
+				ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
+		}
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
+		MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
       MRISprojectOntoSphere(mris_avg, mris_avg, DEFAULT_RADIUS) ;
@@ -179,6 +186,8 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
+			if (reassign)
+				LabelUnassign(area) ;
 			LabelFillUnassignedVertices(mris, area) ;
 			if (argc-1-FIRST_SUBJECT > 1)
 				LabelSetStat(area, 1) ;
@@ -356,6 +365,11 @@ get_option(int argc, char *argv[])
   {
     orig_name = argv[2] ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "reassign"))
+  {
+		reassign = 1 ;
+		printf("recomputing label vertex assignments\n") ;
   }
   else if (!stricmp(option, "osurf"))
   {
