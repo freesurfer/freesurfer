@@ -2113,3 +2113,12 @@ LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz)
 	return(area_offset) ;
 }
 
+int
+LabelUnassign(LABEL *area)
+{
+	int i ;
+
+  for (i = 0 ; i < area->n_points ; i++)
+		area->lv[i].vno = -1 ;
+	return(NO_ERROR) ;
+}
