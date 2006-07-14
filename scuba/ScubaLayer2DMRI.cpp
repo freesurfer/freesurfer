@@ -2356,7 +2356,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  mVolume->BeginBatchChanges(); break;
 	case ScubaToolState::roiEditing:
 	  mVolume->BeginBatchROIChanges(); break;
-	default:
+	default: break;
 	}	  
 
 	list<Point3<float> > points;
@@ -2497,7 +2497,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  mVolume->EndBatchChanges(); break;
 	case ScubaToolState::roiEditing:
 	  mVolume->EndBatchROIChanges(); break;
-	default:
+	default: break;
 	}	  
       }
       

@@ -31,11 +31,8 @@ ScubaVolumeROIIntensityChart( VolumeCollection& iVolume,
 ScubaVolumeROIIntensityChart::~ScubaVolumeROIIntensityChart () {
 
   // Stop listening.
-  mChart->RemoveListener( this );
   mVolume.RemoveListener( this );
   mROI.RemoveListener( this );
-
-  delete mChart;
 }
 
 void

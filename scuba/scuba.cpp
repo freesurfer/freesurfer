@@ -20,7 +20,7 @@ extern "C" {
 #include "TclScubaKeyCombo.h"
 #include "ScubaVolumeROIIntensityChart.h"
 #include "TclChartWindow.h"
-#include "ScubaMultiFrameVolumeChartManager.h"
+#include "ScubaMultiFrameVolumeChart.h"
 
 char* Progname = "scuba";
 
@@ -119,7 +119,7 @@ int main ( int argc, char** argv ) {
 
     ScubaVolumeROIIntensityChartFactory::GetFactory();
 
-    ScubaMultiFrameVolumeChartManager::GetManager();
+    ScubaMultiFrameVolumeChartFactory::GetFactory();
 
     ChartWindow::SetFactory( new TclChartWindowFactory );
 
