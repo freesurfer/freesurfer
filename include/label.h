@@ -61,6 +61,8 @@ int     LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris) ;
 MATRIX  *LabelCovarianceMatrix(LABEL *area, MATRIX *mat) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *area_dst) ;
+
+LABEL   *LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz) ;
 LABEL   *LabelCopy(LABEL *asrc, LABEL *adst) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *adst) ;
 double  LabelArea(LABEL *area, MRI_SURFACE *mris) ;
@@ -87,6 +89,7 @@ MATRIX *LabelFitXYZ(LABEL *label, int order);
 LABEL *LabelBoundary(LABEL *label, MRIS *surf);
 int VertexIsInLabel(int vtxno, LABEL *label);
 LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
+int   LabelUnassign(LABEL *area) ;
 
 
 #include "mrishash.h"
