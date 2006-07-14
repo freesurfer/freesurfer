@@ -21,7 +21,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.75 2006/06/29 13:54:22 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) ;
 static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) ;
 static MRI *smooth_contra_hemi(MRI *mri_filled, MRI *mri_src, MRI *mri_dst, float ipsi_label, float contra_label) ;
 static int  get_option(int argc, char *argv[]) ;
+static LABEL *make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
@@ -58,6 +59,7 @@ char *Progname ;
 
 static double std_scale = 1.0;
 
+static int label_cortex = 1 ;
 static int graymid = 0 ;
 static int curvature_avgs = 10 ;
 static int create = 1 ;
@@ -164,10 +166,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.75 2006/06/29 13:54:22 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.75 2006/06/29 13:54:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -613,6 +615,18 @@ main(int argc, char *argv[])
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
+		if (mri_aseg && label_cortex)
+		{
+			LABEL *lcortex ;
+			lcortex = make_cortex_label(mris, mri_aseg) ;
+			LabelErode(lcortex, mris, 1) ;
+			LabelDilate(lcortex, mris, 1) ;
+			sprintf(fname, "%s/%s/label/%s.%s%s%s.label", sdir, sname,hemi,"cortex",
+							output_suffix,suffix);
+			printf("writing cortex label to %s...\n", fname) ;
+			LabelWrite(lcortex, fname) ;
+		}
+
 #if 0
     if (smoothwm > 0)
     {
@@ -927,6 +941,12 @@ get_option(int argc, char *argv[])
   {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "cortex"))
+  {
+		label_cortex = atoi(argv[2]) ;
+    printf("%sgenerating cortex label to subject's label/?h.cortex.label file\n", label_cortex ? "" : "not ") ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "mode"))
@@ -1788,7 +1808,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 	VERTEX   *v ;
 	double   xv, yv, zv, val, xs, ys, zs, d ;
 
-	printf("inhibiting deformation in corpus callosum...\n") ;
+	printf("inhibiting deformation at non-cortical midline structures...\n") ;
 	if (stricmp(hemi, "lh") == 0)
 		contra_wm_label = Right_Cerebral_White_Matter ;
 	else
@@ -1811,7 +1831,62 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 				MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
 			MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
 			label = nint(val) ;
-			if (label == contra_wm_label)
+			if (label == contra_wm_label || 
+					label == Left_Lateral_Ventricle ||
+					label == Right_Lateral_Ventricle ||
+					label == Left_Accumbens_area ||
+					label == Right_Accumbens_area ||
+					label == Left_Caudate ||
+					label == Right_Caudate ||
+#if 0   // putamen can be adjacent to insula in aseg
+					label == Left_Putamen ||
+					label == Right_Putamen ||
+#endif
+					label == Left_Pallidum ||
+					label == Right_Pallidum ||
+					label == Third_Ventricle ||
+					label == Right_Thalamus_Proper ||
+					label == Left_Thalamus_Proper ||
+					label == Brain_Stem ||
+					label == Left_VentralDC ||
+					label == Right_VentralDC)
+			{
+				MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+				MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+				v->val = val ; v->d = 0 ;
+				v->ripflag = 1 ;
+			}
+		}
+		for (d = 0 ; d <= 2 ; d += 0.5)
+		{
+			xs = v->x - d*v->nx ;
+			ys = v->y - d*v->ny ;
+			zs = v->z - d*v->nz ;
+			if (mris->useRealRAS)
+				MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			else
+				MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+			label = nint(val) ;
+			if (label == contra_wm_label || 
+					label == Left_Lateral_Ventricle ||
+					label == Right_Lateral_Ventricle ||
+					label == Left_Accumbens_area ||
+					label == Right_Accumbens_area ||
+					label == Left_Caudate ||
+					label == Right_Caudate ||
+#if 0
+					label == Left_Putamen ||
+					label == Right_Putamen ||
+#endif
+					label == Left_Pallidum ||
+					label == Right_Thalamus_Proper ||
+					label == Left_Thalamus_Proper ||
+					label == Right_Pallidum ||
+					label == Third_Ventricle ||
+					label == Brain_Stem ||
+					label == Left_VentralDC ||
+					label == Right_VentralDC)
 			{
 				MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
 				MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
@@ -1820,7 +1895,68 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 			}
 		}
 	}
-
+	
 	return(NO_ERROR) ;
+}
+
+static LABEL *
+make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg)
+{
+	LABEL    *lcortex ;
+	int      vno, label ;
+	VERTEX   *v ;
+	double   xv, yv, zv, val, xs, ys, zs, d ;
+
+	printf("generating cortex label...\n") ;
+	MRISsetMarks(mris, 1) ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no )
+			DiagBreak() ;
+
+		// don't sample inside here due to thin parahippocampal wm. The other interior labels
+		// will already have been ripped (and hence not marked)
+		for (d = 0 ; d <= 2 ; d += 0.5)
+		{
+			xs = v->x + d*v->nx ;
+			ys = v->y + d*v->ny ;
+			zs = v->z + d*v->nz ;
+			if (mris->useRealRAS)
+				MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			else
+				MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+			MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+			label = nint(val) ;
+			if (label == Left_Lateral_Ventricle ||
+					label == Right_Lateral_Ventricle ||
+					label == Left_Accumbens_area ||
+					label == Right_Accumbens_area ||
+					label == Left_Caudate ||
+					label == Right_Caudate ||
+#if 0   // putamen can be adjacent to insula in aseg
+					label == Left_Putamen ||
+					label == Right_Putamen ||
+#endif
+					label == Left_Pallidum ||
+					label == Right_Pallidum ||
+					IS_HIPPO(label) ||
+					IS_AMYGDALA(label) ||
+					IS_LAT_VENT(label) ||
+					label == Third_Ventricle ||
+					label == Right_Thalamus_Proper ||
+					label == Left_Thalamus_Proper ||
+					label == Brain_Stem ||
+					label == Left_VentralDC ||
+					label == Right_VentralDC)
+			{
+				v->marked = 0 ;
+			}
+		}
+	}
+	lcortex = LabelFromMarkedSurface(mris) ;
+	return(lcortex) ;
 }
 
