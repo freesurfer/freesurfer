@@ -18,7 +18,7 @@ extern "C" {
 #include "Scuba-impl.h"
 #include "SegmentationVolumeReport.h"
 #include "TclScubaKeyCombo.h"
-#include "ScubaVolumeROIIntensityChartManager.h"
+#include "ScubaVolumeROIIntensityChart.h"
 #include "TclChartWindow.h"
 #include "ScubaMultiFrameVolumeChartManager.h"
 
@@ -117,7 +117,7 @@ int main ( int argc, char** argv ) {
 
     ProgressDisplayManager::SetManager( new TclProgressDisplayManager );
 
-    ScubaVolumeROIIntensityChartManager::GetManager();
+    ScubaVolumeROIIntensityChartFactory::GetFactory();
 
     ScubaMultiFrameVolumeChartManager::GetManager();
 

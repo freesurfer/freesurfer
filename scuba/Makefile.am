@@ -51,8 +51,8 @@ FSDATA_SRCS= \
 	ScubaROIVolume.cpp ScubaROIVolume.h \
 	SegmentationVolumeReport.cpp SegmentationVolumeReport.h \
 	ChartWindow.cpp ChartWindow.h \
-	ScubaVolumeROIIntensityChartManager.cpp \
-	ScubaVolumeROIIntensityChartManager.h \
+	ScubaVolumeROIIntensityChart.cpp \
+	ScubaVolumeROIIntensityChart.h \
 	ScubaMultiFrameVolumeChartManager.cpp \
 	ScubaMultiFrameVolumeChartManager.h
 

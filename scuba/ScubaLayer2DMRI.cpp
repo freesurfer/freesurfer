@@ -2350,10 +2350,14 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	   (iInput.IsButtonDragEvent() || iInput.IsButtonUpEvent()))  ||
 	  (bLine && iInput.IsButtonUpEvent()) ) {
 
-	// If we're working on ROIs, begin batch change mode.
-	if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-	  mVolume->BeginBatchROIChanges();
-	}
+	// Begin batch change mode.
+	switch( iTool.GetMode() ) {
+	case ScubaToolState::voxelEditing:
+	  mVolume->BeginBatchChanges(); break;
+	case ScubaToolState::roiEditing:
+	  mVolume->BeginBatchROIChanges(); break;
+	default:
+	}	  
 
 	list<Point3<float> > points;
 
@@ -2487,10 +2491,14 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	
 	RequestRedisplay();
 
-	// If we're working on ROIs, end batch change mode.
-	if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-	  mVolume->EndBatchROIChanges();
-	}
+	// End batch change mode.
+	switch( iTool.GetMode() ) {
+	case ScubaToolState::voxelEditing:
+	  mVolume->EndBatchChanges(); break;
+	case ScubaToolState::roiEditing:
+	  mVolume->EndBatchROIChanges(); break;
+	default:
+	}	  
       }
       
       // If this is a mouse up event, close the undo stuff.
