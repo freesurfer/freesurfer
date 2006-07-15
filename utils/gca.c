@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/07/11 14:15:36 $
-// Revision       : $Revision: 1.198 $
+// Revision Date  : $Date: 2006/07/15 01:11:24 $
+// Revision       : $Revision: 1.199 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15259,11 +15259,11 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
   HISTOGRAM *h_mri, *h_gca ;
   int       l, nbins, i, x, y, z, xn, yn, zn, num, frame, \
     bin, j, n, computed[MAX_CMA_LABELS], b, label, k,
-    border = BORDER_SIZE, peak ;
+    border = BORDER_SIZE, gca_peak, mri_peak ;
   float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
     mean_gm_scale, mean_wm_scale, mean_csf_scale,
     label_offsets[MAX_CMA_LABELS], \
-    mean_wm_offset, mean_csf_offset, mean_gm_offset ;
+    mean_wm_offset, mean_csf_offset, mean_gm_offset, lower_thresh, upper_thresh ;
   Real      val/*, scale*/ ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
@@ -15565,23 +15565,28 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 			MRIfree(&mri_aligned) ;
 
 			h_gca = gcaGetLabelHistogram(gca, l, 0) ;
-			peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+			gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
 			HISTOmakePDF(h_gca, h_gca) ;
-			if (peak >= 0)
-				printf("gca peak = %2.5f (%2.0f)\n", h_gca->counts[peak], h_gca->bins[peak]) ;
+			if (gca_peak >= 0)
+				printf("gca peak = %2.5f (%2.0f)\n", h_gca->counts[gca_peak], h_gca->bins[gca_peak]) ;
 			fflush(stdout);
 
-			peak = HISTOfindHighestPeakInRegion(h_mri, 0, h_mri->nbins) ;
+			mri_peak = HISTOfindHighestPeakInRegion(h_mri, 0, h_mri->nbins) ;
 			HISTOfillHoles(h_mri) ;
 			HISTOmakePDF(h_mri, h_mri) ;
-			if (peak >= 0)
-				printf("mri peak = %2.5f (%2.0f)\n", h_mri->counts[peak], h_gca->bins[peak]) ;
+			if (mri_peak >= 0)
+				printf("mri peak = %2.5f (%2.0f)\n", h_mri->counts[mri_peak], h_gca->bins[mri_peak]) ;
 			fflush(stdout);
 
-			if (h_mri->counts[peak] < peak_threshold || num <= 50)
+			if (IS_CSF(l) && h_mri->bins[mri_peak] > 55)
+			{
+				printf("CSF peak too bright - rejecting\n") ;
+				continue ;
+			}
+			if (h_mri->counts[mri_peak] < peak_threshold || num <= 50)
 				/* not enough to reliably estimate density */
 			{
-				if (h_mri->counts[peak] < peak_threshold)
+				if (h_mri->counts[mri_peak] < peak_threshold)
 					printf("uniform distribution in MR - "
 								 "rejecting arbitrary fit\n") ;
 				if (m_L)
@@ -15617,6 +15622,39 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 				// 4, -125, 125, &label_scales[l], &label_offsets[l]) ;
 				HISTOfindLinearFit(h_gca, h_mri, .025, 4, 0, 0,
 													 &label_scales[l], &label_offsets[l]) ;
+
+				val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
+				switch (l)
+				{
+				case Left_Putamen:
+				case Right_Putamen:
+					lower_thresh = 60 ;
+					upper_thresh = 110 ;
+					break ;
+				case Left_Lateral_Ventricle:
+				case Right_Lateral_Ventricle:
+				case Third_Ventricle:
+				case Fourth_Ventricle:
+				case CSF:
+					lower_thresh = 0 ;
+					upper_thresh = 40 ;
+					break ;
+				case Left_Inf_Lat_Vent:
+				case Right_Inf_Lat_Vent:
+					lower_thresh = 0 ;
+					upper_thresh = 65 ;
+					break ;
+				default:
+					lower_thresh = 0 ;
+					upper_thresh = 256 ;
+					break ;
+				}
+				if (val < lower_thresh || val > upper_thresh)
+				{
+					printf("unreasonable value (%2.1f), not in range [%2.0f, %2.0f] - rejecting\n", 
+								 val, lower_thresh, upper_thresh) ;
+					continue ;
+				}
 
 				computed[l] = 1 ;
 				printf("%s (%d): linear fit = %2.2f x + %2.1f "
