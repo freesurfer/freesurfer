@@ -915,55 +915,55 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
   static VECTOR *v_tmp = NULL, *v_x = NULL ;
 
   if (v_x && ninputs != v_x->rows)
-    {
-      MatrixFree(&m_cov_inv) ; MatrixFree(&v_tmp) ;
-      VectorFree(&v_x) ;
-    }
+	{
+		MatrixFree(&m_cov_inv) ; MatrixFree(&v_tmp) ;
+		VectorFree(&v_x) ;
+	}
 
   ptotal = 0.0 ; max_p = -10000 ; best_label = 0 ;
   for (n = 0 ; n < cpn->nlabels ; n++)
-    {
-      cp = &cpn->cps[n] ;
-      gcs = getGC(gcsan, cpn->labels[n], NULL) ;
-      if (!gcs)
-        {
-          ErrorPrintf(ERROR_BADPARM, 
-                      "GCSANclassify: could not find GCS for node %d!",n) ;
-          continue ;
-        }
-      v_x = VectorCopy(gcs->v_means, v_x) ;
-      for (i = 0 ; i < ninputs ; i++)
-        VECTOR_ELT(v_x, i+1) -= v_inputs[i] ;
-      m_cov_inv = MatrixInverse(gcs->m_cov, m_cov_inv) ;
-      if (!m_cov_inv)
-        {
-          MATRIX *m_tmp ;
-          fprintf(stderr, "Singular matrix in GCSAclassify,vno=%d,n=%d:\n",
-                  Gvno,n);
-          MatrixPrint(stderr, gcs->m_cov) ;
+	{
+		cp = &cpn->cps[n] ;
+		gcs = getGC(gcsan, cpn->labels[n], NULL) ;
+		if (!gcs)
+		{
+			ErrorPrintf(ERROR_BADPARM, 
+									"GCSANclassify: could not find GCS for node %d!",n) ;
+			continue ;
+		}
+		v_x = VectorCopy(gcs->v_means, v_x) ;
+		for (i = 0 ; i < ninputs ; i++)
+			VECTOR_ELT(v_x, i+1) -= v_inputs[i] ;
+		m_cov_inv = MatrixInverse(gcs->m_cov, m_cov_inv) ;
+		if (!m_cov_inv)
+		{
+			MATRIX *m_tmp ;
+			fprintf(stderr, "Singular matrix in GCSAclassify,vno=%d,n=%d:\n",
+							Gvno,n);
+			MatrixPrint(stderr, gcs->m_cov) ;
 #if 0
-          ErrorExit(ERROR_BADPARM, "") ;
+			ErrorExit(ERROR_BADPARM, "") ;
 #else
-          m_tmp = MatrixIdentity(ninputs, NULL) ;
-          MatrixScalarMul(m_tmp, 0.1, m_tmp) ;
-          MatrixAdd(m_tmp, gcs->m_cov, m_tmp) ;
-          m_cov_inv = MatrixInverse(m_tmp, NULL) ;
-          if (!m_cov_inv)
-            {
-              ErrorExit(ERROR_BADPARM, 
-                        "GCSANclassify: could not regularize matrix");
-            }
+			m_tmp = MatrixIdentity(ninputs, NULL) ;
+			MatrixScalarMul(m_tmp, 0.1, m_tmp) ;
+			MatrixAdd(m_tmp, gcs->m_cov, m_tmp) ;
+			m_cov_inv = MatrixInverse(m_tmp, NULL) ;
+			if (!m_cov_inv)
+			{
+				ErrorExit(ERROR_BADPARM, 
+									"GCSANclassify: could not regularize matrix");
+			}
 #endif
-        }
-      v_tmp = MatrixMultiply(m_cov_inv, v_x, v_tmp) ;
-      p = VectorDot(v_x, v_tmp) ;
-      det = MatrixDeterminant(gcs->m_cov) ;
-      p = cp->prior * exp(-0.5 * p) * 1.0/(sqrt(det)) ; ptotal += p ;
-      if (p > max_p)
-        {
-          max_p = p ; best_label = cpn->labels[n] ;
-        }
-    }
+		}
+		v_tmp = MatrixMultiply(m_cov_inv, v_x, v_tmp) ;
+		p = VectorDot(v_x, v_tmp) ;
+		det = MatrixDeterminant(gcs->m_cov) ;
+		p = cp->prior * exp(-0.5 * p) * 1.0/(sqrt(det)) ; ptotal += p ;
+		if (p > max_p)
+		{
+			max_p = p ; best_label = cpn->labels[n] ;
+		}
+	}
   if (pprob)
     *pprob = max_p / ptotal ;
 
@@ -1501,45 +1501,48 @@ GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
   total = 0 ;
   annotation = mris->vertices[area->lv[0].vno].annotation ;
   do
-    {
-      nchanged = 0 ;
-      for (i = 0 ; i < area->n_points ; i++)
-        {
-          vno = area->lv[i].vno ;
-          v = &mris->vertices[vno] ;
+	{
+		nchanged = 0 ;
+		for (i = 0 ; i < area->n_points ; i++)
+		{
+			vno = area->lv[i].vno ;
+			v = &mris->vertices[vno] ;
       
-          if (vno == Gdiag_no)
-            DiagBreak() ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
 
-          if (v->ripflag || v->marked)
-            continue ;
+			if (v->ripflag || v->marked)
+				continue ;
 
-          load_inputs(v, v_inputs, gcsa->ninputs) ;
-          max_ll = 10*BIG_AND_NEGATIVE ;
-          best_label = v->annotation ;
-          for (n = 0 ; n < v->vnum ; n++)
-            {
-              vn = &mris->vertices[v->v[n]] ;
-              if (vn->annotation == annotation)
-                continue ; ;
-              ll = gcsaNbhdGibbsLogLikelihood(gcsa, mris, v_inputs, vno, 1.0,
-                                              v->annotation) ;
-              if (ll > max_ll || best_label == v->annotation)
-                {
-                  max_ll = ll ;
-                  best_label = vn->annotation ;
-                }
-            }
-          if (v->annotation != best_label)
-            {
-              v->annotation = best_label ;
-              v->marked = 1 ;
-              nchanged++ ;
-            }
-        }
-      /*    printf("nchanged = %03d\n", nchanged) ;*/
-      total += nchanged ;
-    } while (nchanged > 0) ;
+			load_inputs(v, v_inputs, gcsa->ninputs) ;
+			max_ll = 10*BIG_AND_NEGATIVE ;
+			best_label = v->annotation ;
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				if (vn->annotation == annotation)
+					continue ; ;
+				ll = gcsaNbhdGibbsLogLikelihood(gcsa, mris, v_inputs, vno, 1.0,
+																				vn->annotation) ;
+
+				// if likelihood increased, or annotation is still at its
+				// initial (v->annotation) value
+				if (ll > max_ll || best_label == v->annotation)
+				{
+					max_ll = ll ;
+					best_label = vn->annotation ;
+				}
+			}
+			if (v->annotation != best_label)
+			{
+				v->annotation = best_label ;
+				v->marked = 1 ;
+				nchanged++ ;
+			}
+		}
+		/*    printf("nchanged = %03d\n", nchanged) ;*/
+		total += nchanged ;
+	} while (nchanged > 0) ;
 
   return(total) ;
 }
