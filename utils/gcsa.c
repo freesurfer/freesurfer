@@ -1559,7 +1559,8 @@ load_inputs(VERTEX *v, double *v_inputs, int ninputs)
 static int
 fill_cpn_holes(GCSA *gcsa)
 {
-  int       min_n, vno, n, i, nholes, nfilled, x, y, z, vno_classifier ;
+  int       min_n, vno, n, i, nholes, nfilled, vno_classifier ;
+  float     x, y, z ;
   double    dist, min_dist ;
   VERTEX    *v, *vn, *v_classifier ;
   CP_NODE   *cpn, *cpn_nbr ;
@@ -1681,7 +1682,8 @@ fill_cpn_holes(GCSA *gcsa)
 static int
 fill_gcsan_holes(GCSA *gcsa)
 {
-  int        min_n, vno, n, nholes, nfilled, x, y, z ;
+  int        min_n, vno, n, nholes, nfilled;
+  float      x, y, z ;
   double     dist, min_dist ;
   VERTEX     *v, *vn ;
   GCSA_NODE  *gcsan, *gcsan_nbr ;
