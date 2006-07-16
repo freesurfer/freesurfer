@@ -1523,7 +1523,7 @@ GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
               if (vn->annotation == annotation)
                 continue ; ;
               ll = gcsaNbhdGibbsLogLikelihood(gcsa, mris, v_inputs, vno, 1.0,
-                                              v->annotation) ;
+                                              vn->annotation) ;
               if (ll > max_ll || best_label == v->annotation)
                 {
                   max_ll = ll ;
