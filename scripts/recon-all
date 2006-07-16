@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.4 2006/05/02 18:28:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.5 2006/07/16 01:56:36 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -63,7 +63,8 @@ set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
-set NoThicken = 0 # if 1, and '-thicken 0' to mri_segment
+set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
+set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -1017,8 +1018,9 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
-    set cmd = (mris_make_surfaces -mgz  \
-       -T1 brain.finalsurfs $xopts $subjid $hemi);
+    set cmd = (mris_make_surfaces)
+    if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
+    set cmd = ($cmd -mgz -T1 brain.finalsurfs $xopts $subjid $hemi);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -2103,6 +2105,10 @@ while( $#argv != 0 )
       set NoThicken = 1;
       breaksw
 
+    case "-nocortexlabel":
+      set NoCortexLabel = 1;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -2202,14 +2208,18 @@ check_params:
         cp $aseg.mgz $aseg.legacy.mgz
       else
         if(-e $aseg/COR-.info) then 
-          mri_convert $aseg $aseg.legacy.mgz
+          mri_convert $aseg $aseg.mgz
+          cp $aseg.mgz $aseg.legacy.mgz
         endif
       endif
       set wm = $subjdir/mri/wm
       if(-e $wm.mgz) then
         cp $wm.mgz $wm.legacy.mgz
       else
-        if(-e $wm/COR-.info)  mri_convert $wm $wm.legacy.mgz
+        if(-e $wm/COR-.info) then
+          mri_convert $wm $wm.mgz
+          cp $wm.mgz $wm.legacy.mgz
+        endif
       endif
       if(-e $subjdir/mri/orig) then
         pushd $subjdir/mri/orig > /dev/null
