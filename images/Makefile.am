@@ -24,6 +24,7 @@ icon_aux_volume.gif \
 icon_brush_3d.gif \
 icon_brush_circle.gif \
 icon_brush_square.gif \
+icon_camera.gif \
 icon_color_label.gif \
 icon_color_picker.gif \
 icon_color_scalebar.gif \
