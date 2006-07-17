@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.216 2006/07/12 21:25:47 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.217 2006/07/17 18:40:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6353,7 +6353,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.216 2006/07/12 21:25:47 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.217 2006/07/17 18:40:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6426,6 +6426,8 @@ proc SaveSceneScript { ifnScene } {
 		puts $f "Set2DMRILayerSampleMethod $layerID $sampleMethod"
 		puts $f "Set2DMRILayerBrightness $layerID $brightness"
 		puts $f "Set2DMRILayerContrast $layerID $contrast"
+		puts $f "Set2DMRILayerWindow $layerID $window"
+		puts $f "Set2DMRILayerLevel $layerID $level"
 		puts $f "Set2DMRILayerColorLUT $layerID $lutID"
 		puts $f "Set2DMRILayerMinVisibleValue $layerID $minVisibleValue"
 		puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
