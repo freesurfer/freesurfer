@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.113 2006/07/13 20:00:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.114 2006/07/17 19:45:50 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4482,6 +4482,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwVolumeToggles    $gfwaToolBar(main).fwVolumeToggles
     set fwSegVolume        $gfwaToolBar(main).fwSegVolume
     set fwOverlayVolume    $gfwaToolBar(main).fwOverlayVolume
+    set fwScreenShot       $gfwaToolBar(main).fwScreenShot
 
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -4636,9 +4637,12 @@ proc CreateToolBar { ifwToolBar } {
 	}
     }
     bind $fwOverlayVolume.cb0 <Control-Button-3> "DoLoadFunctionalDlog overlay"
+
+    tkm_MakeButtons $fwScreenShot { 
+	{ image icon_camera { DoFileDlog SaveTIFF } "Save TIFF" } }
     
     pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles \
-	$fwSegVolume $fwOverlayVolume \
+	$fwSegVolume $fwOverlayVolume $fwScreenShot \
 	-side left \
 	-anchor w \
 	-padx 5
@@ -4771,7 +4775,7 @@ proc CreateImages {} {
 	icon_surface_main icon_surface_original icon_surface_pial 
 	icon_snapshot_save icon_snapshot_load
 	icon_marker_crosshair icon_marker_diamond
-	icon_stopwatch } {
+	icon_stopwatch icon_camera } {
 	
   if { [catch {image create photo  $image_name -file \
     [ file join $ksImageDir $image_name.gif ]} sResult] != 0 } {

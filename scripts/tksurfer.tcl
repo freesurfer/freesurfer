@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.119 2006/07/13 20:00:33 kteich Exp $
+# $Id: tksurfer.tcl,v 1.120 2006/07/17 19:45:50 kteich Exp $
 
 package require BLT;
 
@@ -3217,6 +3217,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwOverlay          $gfwaToolBar(main).fwOverlay
     set fwLabels           $gfwaToolBar(main).fwLabels
     set fwLabelStyle       $gfwaToolBar(main).fwLabelStyle
+    set fwScreenShot       $gfwaToolBar(main).fwScreenShot
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -3307,8 +3308,12 @@ proc CreateToolBar { ifwToolBar } {
     tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb0
     tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb1
 
+    tkm_MakeButtons $fwScreenShot { 
+	{ image icon_camera { DoFileDlog SaveTIFFAs } "Save TIFF" } 
+    }
+
     pack $fwRedraw $fwPoint $fwSurfaces $fwCurv \
-	$fwOverlay $fwLabels $fwLabelStyle \
+	$fwOverlay $fwLabels $fwLabelStyle $fwScreenShot \
 	-side left \
 	-anchor w \
 	-padx 5
@@ -4934,7 +4939,7 @@ proc CreateImages {} {
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
 	icon_surface_main icon_surface_original icon_surface_pial 
 	icon_surface_white icon_surface_inflated
-	icon_home icon_redraw icon_curv } {
+	icon_home icon_redraw icon_curv icon_camera } {
 	
 	if { [catch {image create photo $image_name -file \
 	    [file join $ksImageDir $image_name.gif]} sResult] != 0 } {
