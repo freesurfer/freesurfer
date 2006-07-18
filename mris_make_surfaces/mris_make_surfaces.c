@@ -21,13 +21,14 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.77 2006/07/18 17:36:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
+int MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 static int fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) ;
 static MRI *smooth_contra_hemi(MRI *mri_filled, MRI *mri_src, MRI *mri_dst, float ipsi_label, float contra_label) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -45,6 +46,8 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
+int MRISerodeRipped(MRI_SURFACE *mris, int niter) ;
+int MRISdilateRipped(MRI_SURFACE *mris, int niter) ;
 
 static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
@@ -166,10 +169,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.77 2006/07/18 17:36:19 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.76 2006/07/14 19:07:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.77 2006/07/18 17:36:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -547,13 +550,13 @@ main(int argc, char *argv[])
 
     parms.n_averages = n_averages ; 
     MRISprintTessellationStats(mris, stderr) ;
+		if (mri_aseg)
+			fix_midline(mris, mri_aseg, mri_T1, hemi) ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border, 
                             max_border_white /*max_gray*/, current_sigma, 
                             2*max_thickness, parms.fp, GRAY_WHITE) ;
-		if (mri_aseg)
-			fix_midline(mris, mri_aseg, mri_T1, hemi) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -619,8 +622,8 @@ main(int argc, char *argv[])
 		{
 			LABEL *lcortex ;
 			lcortex = make_cortex_label(mris, mri_aseg) ;
-			LabelErode(lcortex, mris, 1) ;
-			LabelDilate(lcortex, mris, 1) ;
+			LabelErode(lcortex, mris, 3) ;
+			LabelDilate(lcortex, mris, 2) ;
 			sprintf(fname, "%s/%s/label/%s.%s%s%s.label", sdir, sname,hemi,"cortex",
 							output_suffix,suffix);
 			printf("writing cortex label to %s...\n", fname) ;
@@ -1833,6 +1836,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 			label = nint(val) ;
 			if (label == contra_wm_label || 
 					label == Left_Lateral_Ventricle ||
+					label == Third_Ventricle ||
 					label == Right_Lateral_Ventricle ||
 					label == Left_Accumbens_area ||
 					label == Right_Accumbens_area ||
@@ -1870,6 +1874,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 			label = nint(val) ;
 			if (label == contra_wm_label || 
 					label == Left_Lateral_Ventricle ||
+					label == Third_Ventricle ||
 					label == Right_Lateral_Ventricle ||
 					label == Left_Accumbens_area ||
 					label == Right_Accumbens_area ||
@@ -1895,7 +1900,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi)
 			}
 		}
 	}
-	
+
+	MRISsetAllMarks(mris, 0) ;
+	MRISdilateRipped(mris, 3) ;
+	MRISerodeRipped(mris, 3) ;
 	return(NO_ERROR) ;
 }
 
@@ -1932,6 +1940,7 @@ make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg)
 			label = nint(val) ;
 			if (label == Left_Lateral_Ventricle ||
 					label == Right_Lateral_Ventricle ||
+					label == Third_Ventricle ||
 					label == Left_Accumbens_area ||
 					label == Right_Accumbens_area ||
 					label == Left_Caudate ||
@@ -1960,3 +1969,122 @@ make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg)
 	return(lcortex) ;
 }
 
+int
+MRISdilateRipped(MRI_SURFACE *mris, int niter)
+{
+	int    vno, n, i ;
+	VERTEX *v, *vn ;
+
+	MRISsetAllMarks(mris, 0) ;
+	for (i = 0 ; i < niter ; i++)
+	{
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag == 0)
+				continue ;
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				if (vn->ripflag == 0)
+				{
+					if (v->v[n] == Gdiag_no)
+						DiagBreak() ;
+					vn->marked = 1 ;  // rip it at end of loop
+				}
+			}
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag == 0 && v->marked)
+			{
+				if (vno == Gdiag_no)
+					DiagBreak() ;
+				v->ripflag = 1 ;
+			}
+		}
+		MRISsetAllMarks(mris, 0) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			LABEL *l ;
+			char fname[STRLEN] ;
+			MRISsetMarks(mris, 1) ;
+			l = LabelFromMarkedSurface(mris) ;
+			sprintf(fname, "%s.dilate%d.label", 
+							mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+							i) ;
+			LabelWrite(l, fname) ;
+			LabelFree(&l) ;
+			MRISsetAllMarks(mris, 0) ;
+		}
+	}
+	return(NO_ERROR) ;
+}
+int
+MRISerodeRipped(MRI_SURFACE *mris, int niter)
+{
+	int    vno, n, i ;
+	VERTEX *v, *vn ;
+
+	MRISsetAllMarks(mris, 0) ;
+	for (i = 0 ; i < niter ; i++)
+	{
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			// look for nbrs that are ripped and mark them
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				if (vn->ripflag)
+				{
+					if (v->v[n] == Gdiag_no)
+						DiagBreak() ;
+					vn->marked = 1 ;  // unrip it at end of loop
+				}
+			}
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag && v->marked)
+			{
+				if (vno == Gdiag_no)
+					DiagBreak() ;
+				v->ripflag = 0 ;
+			}
+		}
+		MRISsetAllMarks(mris, 0) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			LABEL *l ;
+			char fname[STRLEN] ;
+			MRISsetMarks(mris, 1) ;
+			l = LabelFromMarkedSurface(mris) ;
+			sprintf(fname, "%s.erode%d.label", 
+							mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+							i) ;
+			LabelWrite(l, fname) ;
+			LabelFree(&l) ;
+			MRISsetAllMarks(mris, 0) ;
+		}
+	}
+	return(NO_ERROR) ;
+}
+// ignores ripflag
+int
+MRISsetAllMarks(MRI_SURFACE *mris, int mark)
+{
+	int    vno ;
+	VERTEX *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		v->marked = mark ;
+	}
+	return(NO_ERROR) ;
+}
