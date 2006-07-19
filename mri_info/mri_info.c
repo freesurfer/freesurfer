@@ -2,13 +2,13 @@
 // mri_info.c
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/26 14:48:43 $
-// Revision       : $Revision: 1.50 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/07/19 20:27:31 $
+// Revision       : $Revision: 1.51 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.50 $";
+char *MRI_INFO_VERSION = "$Revision: 1.51 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -40,7 +40,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.50 2006/06/26 14:48:43 fischl Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.51 2006/07/19 20:27:31 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -343,23 +343,21 @@ static void do_file(char *fname)
     fprintf(fpout,"%g\n",mri->te);
     return;
   }
-	if (PrintConformed){
+  if (PrintConformed){
     fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
     return;
   }
 
-
   if(PrintType){
-		switch (mri->type)
-		{
-		case MRI_UCHAR: printf("uchar\n") ; break ;
-		case MRI_FLOAT: printf("float\n") ; break ;
-		case MRI_LONG:  printf("long\n") ; break ;
-		case MRI_SHORT: printf("short\n") ; break ;
-		case MRI_INT:   printf("int\n") ; break ;
-		case MRI_TENSOR:printf("tensor\n") ; break ;
-		default: break ;
-		}
+    switch (mri->type){
+    case MRI_UCHAR: fprintf(fpout,"uchar\n") ; break ;
+    case MRI_FLOAT: fprintf(fpout,"float\n") ; break ;
+    case MRI_LONG:  fprintf(fpout,"long\n") ; break ;
+    case MRI_SHORT: fprintf(fpout,"short\n") ; break ;
+    case MRI_INT:   fprintf(fpout,"int\n") ; break ;
+    case MRI_TENSOR:fprintf(fpout,"tensor\n") ; break ;
+    default: break ;
+    }
     return;
   }
   if(PrintTI){
