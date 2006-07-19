@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.16 2006/04/26 22:58:36 greve Exp $
+% $Id: fast_ldflac.m,v 1.17 2006/07/19 04:49:05 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -26,6 +26,8 @@ if(isempty(flac))
   flac.format = '';
   flac.formatext = '';
   flac.tpexcfile = '';
+  flac.parfile = '';
+  flac.par = [];
   flac.tpexc = [];
   flac.perrun = 0;
   %flac.ev = []; % Leave commented
@@ -105,6 +107,7 @@ while(1)
    case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
+   case 'parfile',     flac.parfile     = sscanf(tline,'%*s %s',1);
    case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
