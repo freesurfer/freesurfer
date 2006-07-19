@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.12 2006/05/24 02:09:04 greve Exp $
+% $Id: flac_customize.m,v 1.13 2006/07/19 04:48:25 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -82,11 +82,31 @@ for nthev = 1:nev
   % HRF Regressors
   if(ev.ishrf)  
     % Just get the stimulus timing
-    stfpath = sprintf('%s/%s',runpath,ev.stf);
-    st = fast_ldstf(stfpath);
-    if(isempty(st)) 
-      fprintf('ERROR: reading timing file %s\n',stfpath);
-      flacnew = []; return; 
+    if(isempty(flac.parfile))
+      stfpath = sprintf('%s/%s',runpath,ev.stf);
+      st = fast_ldstf(stfpath);
+      if(isempty(st)) 
+	fprintf('ERROR: reading timing file %s\n',stfpath);
+	flacnew = []; return; 
+      end
+    else
+      parpath = sprintf('%s/%s',runpath,flac.parfile);
+      par = fmri_ldpar(parpath);
+      if(isempty(par))
+	fprintf('ERROR: loading %s \n',flac.parfile);
+	flacnew = []; return; 
+      end
+      condno = sscanf(ev.stf,'%d');
+      if(isempty(condno))
+	fprintf('ERROR: condition number %s wrong\n',ev.stf);
+	flacnew = []; return; 
+      end
+      trun = flacnew.ntp * flacnew.TR;
+      st = fast_par2st(par,condno,trun);
+      if(isempty(st))
+	fprintf('ERROR: converting par to st\n');
+	flacnew = []; return; 
+      end
     end
     st(:,1) = st(:,1) + flacnew.stimulusdelay;
     flacnew.ev(nthev).st = st;
