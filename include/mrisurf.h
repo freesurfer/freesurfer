@@ -1,6 +1,9 @@
 /* sorry about this - the includes have gotten circular, and I don't
    know how else to fix it without incurring way too much pain.
 */
+
+/* $Id : $Exp */
+
 #ifndef LABEL_INCLUDED
 #define LABEL_INCLUDED
 #include "label.h"
@@ -24,7 +27,6 @@
 #include "label.h"
 #include "colortab.h"
 #include "histo.h"
-
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -98,7 +100,7 @@ typedef struct vertex_type_
   float  whitex, whitey, whitez ;  /* white surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
   float  fx, fy, fz ;      /* flattened coordinates */
-	int    px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
+  int    px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
@@ -122,7 +124,7 @@ typedef struct vertex_type_
   uchar *n;              /* [0-3, num long] */
   uchar vnum;            /* number neighboring vertices */
   int   *v;              /* array neighboring vertex numbers, vnum long */
-	int   *e;              /* edge state for neighboring vertices */
+  int   *e;              /* edge state for neighboring vertices */
   uchar  v2num ;         /* number of 2-connected neighbors */
   uchar  v3num ;         /* number of 3-connected neighbors */
   short  vtotal ;        /* total # of neighbors, 
@@ -156,7 +158,7 @@ typedef struct vertex_type_
 #endif
   float theta, phi ;     /* parameterization */
   short  marked;         /* for a variety of uses */
-	short  marked2 ;
+  short  marked2 ;
   char   ripflag ;
   char   border;         /* flag */
   float area, origarea, group_avg_area ;
@@ -264,8 +266,8 @@ typedef struct
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
-  int    group_avg_vtxarea_loaded; // average vertex area for group at each vertex
-	int    triangle_links_removed ;  // for quad surfaces
+  int    group_avg_vtxarea_loaded; // avg vertex area for group at each vertex
+  int    triangle_links_removed ;  // for quad surfaces
 } MRI_SURFACE, MRIS ;
 
 
@@ -378,11 +380,11 @@ typedef struct
   float   l_nlarea ;          /* coefficient of nonlinear area term */
   float   l_nldist ;          /* coefficient of nonlinear distance term */
   float   l_corr ;            /* coefficient of correlation term */
-	float   l_ocorr ;           // overlay correlation weight
+  float   l_ocorr ;           // overlay correlation weight
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_scurv ;           /* coefficient of curvature term */
-	float   l_lap ;             // coefficient of laplacian term
+  float   l_lap ;             // coefficient of laplacian term
   float   l_link ;            /* coefficient of link term to keep 
                                  white and pial vertices approximately 
                                  along normal */
@@ -461,7 +463,7 @@ typedef struct
   /*    int     corrfields[MNOFIV];/\* field code (see below) *\/ */
   /*    int     frames[MNOFIV];    /\* corresponding frame in mrisp *\/  */
   /*    int     types[MNOFIV];     /\* the field type 
-     (default,distance field...) *\/ */
+	(default,distance field...) *\/ */
   /*    float   l_corrs[MNOFIV];   /\* correlation coefficient *\/ */
   /*    float   l_pcorrs[MNOFIV];  /\* polar correlation coefficient *\/ */
   /*    float   sses[MNOFIV];      /\* corresponding sse *\/ */
@@ -471,7 +473,7 @@ typedef struct
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
   MRI     *mri_dist ;         /* distance map for repulsion term */
   float   target_radius ;
-  int     ignore_energy ;     // when no valid energy functional is availabel - just integrate
+  int     ignore_energy ;     // when no valid energy func availb...integrate
   int     check_tol ;         // to avoid changing mris_make_surfaces
   char    *overlay_dir;       // subject/overlay_dir/parms->fields[n].fname
 } INTEGRATION_PARMS ;
@@ -634,11 +636,11 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 int MRISorigVertexToVoxel(MRI_SURFACE *, 
-													VERTEX *v, 
+			  VERTEX *v, 
                           MRI *mri,
                           Real *pxv, Real *pyv, Real *pzv) ;
 int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
-															 Real *pxv, Real *pyv, 
+			       Real *pxv, Real *pyv, 
                                Real *pzv) ;
 #if 0
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
@@ -883,9 +885,12 @@ int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, 
                            int nvolumes, INTEGRATION_PARMS *parms);
 
-int MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
-			    INTEGRATION_PARMS *parms, float weight30, float weight5);
-
+int MRISpositionSurface_mef(MRI_SURFACE *mris, 
+			    MRI *mri_30, 
+			    MRI *mri_5,
+			    INTEGRATION_PARMS *parms, 
+			    float weight30, 
+			    float weight5);
 
 int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                       MRI *mri_smooth, INTEGRATION_PARMS *parms);
@@ -1025,10 +1030,10 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
 /* for mris_topo_fixer */
 typedef struct
 {
-	MRIS *mris;
-	int n_vertices,n_faces; //number of vertices & faces before top. correction
-	int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
-	MRIS *mris_source;
+  MRIS *mris;
+  int n_vertices,n_faces; //number of vertices & faces before top. correction
+  int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
+  MRIS *mris_source;
 }MRI_PATCH, MRIP;
 
 /* Different verbose mode for mris_fix_topology and mris_topo_fix */
@@ -1038,39 +1043,39 @@ typedef struct
 #define VERBOSE_MODE_HIGH 4
 
 typedef struct{
-	int verbose; // verbose mode
-	int smooth;  // smoothing defect
-	int match;   // using local intensity to match surface
-	int defect_number; // the defect_number 
-	int mode; // which mode to use (not used so far) 
-	int no_self_intersections; //to prevent self-intersection
-	int write; //writing out temporary surfaces using fname  
-	char fname[STRLEN] ;
-	double nattempts_percent; 
-	int nattempts;
-	int minimal_mode;
-	int nminattempts;
-	double minimal_loop_percent;
-	int nminimal_attempts;
-	int max_face;
-	void* patchdisk; // the patching surfaces
-	// loglikelihood
-	double  l_mri ;
+  int verbose; // verbose mode
+  int smooth;  // smoothing defect
+  int match;   // using local intensity to match surface
+  int defect_number; // the defect_number 
+  int mode; // which mode to use (not used so far) 
+  int no_self_intersections; //to prevent self-intersection
+  int write; //writing out temporary surfaces using fname  
+  char fname[STRLEN] ;
+  double nattempts_percent; 
+  int nattempts;
+  int minimal_mode;
+  int nminattempts;
+  double minimal_loop_percent;
+  int nminimal_attempts;
+  int max_face;
+  void* patchdisk; // the patching surfaces
+  // loglikelihood
+  double  l_mri ;
   double  l_curv ;
   double  l_qcurv;
   double  l_unmri ;
-	int volume_resolution; /* used if l_unmri is on */
-	MRI *mri; //brain volume
-	MRI *mri_wm; //wm volume
-	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
-	MRI *mri_gray_white, *mri_k1_k2;
-	MATRIX *transformation_matrix;
-	//defect info
-	void *defect_list;
-	void   *dp; 
-	//statistics
-	float fitness,initial_fitness;
-	int ngeneratedpatches,nselfintersectingpatches;
+  int volume_resolution; /* used if l_unmri is on */
+  MRI *mri; //brain volume
+  MRI *mri_wm; //wm volume
+  HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
+  MRI *mri_gray_white, *mri_k1_k2;
+  MATRIX *transformation_matrix;
+  //defect info
+  void *defect_list;
+  void   *dp; 
+  //statistics
+  float fitness,initial_fitness;
+  int ngeneratedpatches,nselfintersectingpatches;
 } TOPOFIX_PARMS;
 
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
@@ -1083,10 +1088,12 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
 int IsMRISselfIntersecting(MRI_SURFACE *mris);
 void MRISmapOntoSphere(MRIS *mris);
 void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms);
-void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices);
-void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms,int mark);
-
-
+void MRISmarkPatchVertices(MRIS *mris, 
+			   TOPOFIX_PARMS *parms, 
+			   int ninitvertices);
+void MRISmarkBorderVertices(MRIS *mris, 
+			    TOPOFIX_PARMS *parms,
+			    int mark);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
@@ -1293,7 +1300,11 @@ int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
 MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
-MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *binmask, MRI *Targ);
+MRI *MRISsmoothMRI(MRIS *Surf, 
+		   MRI *Src, 
+		   int nSmoothSteps, 
+		   MRI *binmask, 
+		   MRI *Targ);
 int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
@@ -1345,7 +1356,8 @@ int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
-int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, 
+				   INTEGRATION_PARMS *parms) ;
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
@@ -1354,13 +1366,28 @@ int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
-int MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
-int MRIScomputeClassModes(MRI_SURFACE *mris, MRI *mri, float *pwhite_mode, float *pgray_mode, float *pcsf_mode);
-int MRISrasToVoxel(MRI_SURFACE *mris, MRI *mri, Real xs, Real ys, Real zs, Real *pxv, Real *pyv, Real *pzv) ;
+int MRIScomputeClassStatistics(MRI_SURFACE *mris, 
+			       MRI *mri, 
+			       float *pwhite_mean, 
+			       float *pwhite_std, 
+			       float *pgray_mean, 
+			       float *pgray_std) ;
+int MRIScomputeClassModes(MRI_SURFACE *mris, 
+			  MRI *mri, 
+			  float *pwhite_mode, 
+			  float *pgray_mode, 
+			  float *pcsf_mode);
+int MRISrasToVoxel(MRI_SURFACE *mris, 
+		   MRI *mri, 
+		   Real xs, Real ys, Real zs, 
+		   Real *pxv, Real *pyv, Real *pzv) ;
 int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
 int MRISripMedialWall(MRI_SURFACE *mris) ;
 int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) ;
-int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *pnx, double *pny, double *pnz) ;
+int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, 
+				  MRI *mri, 
+				  int vno, 
+				  double *pnx, double *pny, double *pnz) ;
 
 #endif
