@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/06/01 22:30:26 $
-// Revision       : $Revision: 1.289 $
-char *VERSION = "$Revision: 1.289 $";
+// Revision Date  : $Date: 2006/07/20 21:03:18 $
+// Revision       : $Revision: 1.290 $
+char *VERSION = "$Revision: 1.290 $";
 
 #define TCL
 #define TKMEDIT
@@ -476,6 +476,8 @@ void SetVolumeBrightnessAndContrast  ( tkm_tVolumeType iVolume,
                                        float        ifBrightness,
                                        float        ifContrast );
 void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume );
+
+void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume );
 
 // ========================================================= FUNCTIONAL VOLUME
 
@@ -1138,7 +1140,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.289 2006/06/01 22:30:26 kteich Exp $",
+     "$Id: tkmedit.c,v 1.290 2006/07/20 21:03:18 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -4566,6 +4568,28 @@ int TclClearSelection ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 
+int TclSetCursorToCenterOfVolume ( ClientData inClientData,
+				   Tcl_Interp* inInterp,
+				   int argc, char* argv[] ) {
+
+  int volume;
+      
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SetCursorToCenterOfVolume volume",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    volume = atoi( argv[1] );
+    if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      SetCursorToCenterOfVolume( volume );
+    }
+  }
+
+  return TCL_OK;
+}
+
 int TclSendCursor ( ClientData inClientData, Tcl_Interp* inInterp,
                     int argc, char* argv[] ) {
 
@@ -5679,7 +5703,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.289 2006/06/01 22:30:26 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.290 2006/07/20 21:03:18 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -6264,6 +6288,10 @@ int main ( int argc, char** argv ) {
   Tcl_CreateCommand ( interp, "UndoLastEdit",
                       (Tcl_CmdProc*) TclUndoLastEdit,
                       (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "SetCursorToCenterOfVolume",
+                      (Tcl_CmdProc*) TclSetCursorToCenterOfVolume,
+                      (ClientData) 1, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "SendCursor",
                       (Tcl_CmdProc*) TclSendCursor,
@@ -8836,6 +8864,49 @@ void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume ) {
                   (int)iVolume, gfaBrightness[iVolume], gfaContrast[iVolume],
                   gfaAnaColorMin[iVolume], gfaAnaColorMax[iVolume]);
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeColorScale, sTclArguments );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+}
+
+void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume ) {
+
+  xVoxel    anaIdx;
+  tkm_tErr  eResult = tkm_tErr_NoErr;
+  MWin_tErr eWindow = MWin_tErr_NoErr;
+
+  DebugEnterFunction( ("SetCursorToCenterOfVolume ( iVolume=%d )",
+                       (int)iVolume) );
+
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes),
+                     eResult, tkm_tErr_InvalidParameter );
+
+  /* Get the size of the volume and set the cursor. */
+  DebugNote( ("Sending color scale update to tcl window") );
+
+  /* Set a voxel to the center of the volume. */
+  xVoxl_Set( &anaIdx,
+	     gnAnatomicalDimensionX/2, 
+	     gnAnatomicalDimensionY/2,
+	     gnAnatomicalDimensionZ/2 );
+
+  /* Tell the window to go there. */
+  eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
+  DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  /* Zoom around new cursor. */
+  eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
+  DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  /* Zoom out. */
+  eWindow = MWin_SetZoomLevel ( gMeditWindow, -1, 1 );
+  DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
