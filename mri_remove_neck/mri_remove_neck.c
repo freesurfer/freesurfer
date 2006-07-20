@@ -50,7 +50,7 @@ main(int argc, char *argv[])
   MRI          *mri_in, *mri_out ;
   GCA          *gca ;
   int          ac, nargs ;
-  int          msec, minutes, seconds ;
+  int          msec, minutes, seconds,err ;
   struct timeb start ;
 	TRANSFORM    *transform ;
 
@@ -59,7 +59,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.3 2005/03/24 17:12:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.3.2.1 2006/07/20 17:47:25 greve Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -103,12 +103,14 @@ main(int argc, char *argv[])
 	TransformInvert(transform, mri_in) ;
 
   printf("removing structures at least %d mm from brain...\n", radius) ;
-	mri_out = MRIremoveNonBrain(mri_in, NULL, transform, gca, radius, fill_val) ;
-	printf("writing output to %s...\n", out_fname) ;
-	MRIwrite(mri_out, out_fname) ;
+  mri_out = MRIremoveNonBrain(mri_in, NULL, transform, gca, radius, fill_val) ;
+  printf("writing output to %s...\n", out_fname) ;
+  fflush(stdout) ;
+  err = MRIwrite(mri_out, out_fname) ;
+  if(err) exit(1);
 
-	GCAfree(&gca) ;
-	MRIfree(&mri_in) ; MRIfree(&mri_out)  ;
+  GCAfree(&gca) ;
+  MRIfree(&mri_in) ; MRIfree(&mri_out)  ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
