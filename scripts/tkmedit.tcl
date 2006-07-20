@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.114 2006/07/17 19:45:50 kteich Exp $
+# $Id: tkmedit.tcl,v 1.115 2006/07/20 21:04:03 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4477,7 +4477,6 @@ proc CreateToolBar { ifwToolBar } {
     # main toolbar
     set gfwaToolBar(main)  $ifwToolBar.fwMainBar
     set fwTools            $gfwaToolBar(main).fwTools
-    set fwViews            $gfwaToolBar(main).fwViews
     set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwVolumeToggles    $gfwaToolBar(main).fwVolumeToggles
     set fwSegVolume        $gfwaToolBar(main).fwSegVolume
@@ -4507,15 +4506,6 @@ proc CreateToolBar { ifwToolBar } {
 	DoBrushInfoDlog
 	DoEditSegBrushInfoDlog
     }
-    
-    tkm_MakeToolbar $fwViews \
-	1 \
-	gViewPreset \
-	UpdateViewPresetWrapper {
-	    { image 0 icon_view_single "Single View" } 
-	    { image 1 icon_view_multiple "Multiple Views" } 
-	    { image 2 icon_view_mosaic "Mosaic" } 
-	}
     
     tkm_MakeCheckboxes $fwSurfaces h {
 	{ image icon_surface_main gbDisplayFlag(flag_MainSurface)
@@ -4640,8 +4630,9 @@ proc CreateToolBar { ifwToolBar } {
 
     tkm_MakeButtons $fwScreenShot { 
 	{ image icon_camera { DoFileDlog SaveTIFF } "Save TIFF" } }
+    bind $fwScreenShot.bw0 <Control-Button> { DoFileDlog SaveRGB; break }
     
-    pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles \
+    pack $fwTools $fwSurfaces $fwVolumeToggles \
 	$fwSegVolume $fwOverlayVolume $fwScreenShot \
 	-side left \
 	-anchor w \
@@ -4650,22 +4641,67 @@ proc CreateToolBar { ifwToolBar } {
     # navigation toolbar
     set gfwaToolBar(nav)   $ifwToolBar.fwNavBar
     set fwOrientation      $gfwaToolBar(nav).fwOrientation
+    set fwViews            $gfwaToolBar(nav).fwViews
     set fwCurSlice         $gfwaToolBar(nav).fwCurSlice
     set fwZoomButtons      $gfwaToolBar(nav).fwZoomButtons
     set fwZoomLevel        $gfwaToolBar(nav).fwZoomLevel
+    set fwHome             $gfwaToolBar(nav).fwHome
     set fwPoint            $gfwaToolBar(nav).fwPoint
     set fwLinkedCursor     $gfwaToolBar(nav).fwLinkedCursor
 
     frame $gfwaToolBar(nav) -border 2 -relief raised
 
-    tkm_MakeToolbar $fwOrientation \
-      1 \
-      gOrientation \
-      UpdateOrientationWrapper { \
-      { image 0 icon_orientation_coronal "Coronal View" } \
-      { image 1 icon_orientation_horizontal "Horizontal View" } \
-      { image 2 icon_orientation_sagittal "Sagittal View" } }
+    if { 0 } {
+	tkm_MakeToolbar $fwOrientation \
+	    1 \
+	    gOrientation \
+	    UpdateOrientationWrapper {
+		{ image 0 icon_orientation_coronal "Coronal View" }
+		{ image 1 icon_orientation_horizontal "Horizontal View" }
+		{ image 2 icon_orientation_sagittal "Sagittal View" } }
+    } else {
+	menubutton $fwOrientation \
+	    -relief raised -border 2 \
+	    -image icon_orientation_coronal_pdm \
+	    -menu $fwOrientation.mw
+	menu $fwOrientation.mw
+	$fwOrientation.mw add command \
+	    -image icon_orientation_coronal \
+	    -command "SetOrientation 0; $fwOrientation config -image icon_orientation_coronal_pdm"
+	$fwOrientation.mw add command \
+	    -image icon_orientation_horizontal \
+	    -command "SetOrientation 1; $fwOrientation config -image icon_orientation_horizontal_pdm"
+	$fwOrientation.mw add command \
+	    -image icon_orientation_sagittal \
+	    -command "SetOrientation 2; $fwOrientation config -image icon_orientation_sagittal_pdm"
+    }
     
+    if { 0 } {
+	tkm_MakeToolbar $fwViews \
+	    1 \
+	    gViewPreset \
+	    UpdateViewPresetWrapper {
+		{ image 0 icon_view_single "Single View" } 
+		{ image 1 icon_view_multiple "Multiple Views" } 
+		{ image 2 icon_view_mosaic "Mosaic" } 
+	    }
+    } else {
+	menubutton $fwViews \
+	    -relief raised -border 2 \
+	    -image icon_view_single_pdm \
+	    -menu $fwViews.mw
+	menu $fwViews.mw
+	$fwViews.mw add command \
+	    -image icon_view_single \
+	    -command "SetViewPreset 0; $fwViews config -image icon_view_single_pdm"
+	$fwViews.mw add command \
+	    -image icon_view_multiple \
+	    -command "SetViewPreset 1; $fwViews config -image icon_view_multiple_pdm"
+	$fwViews.mw add command \
+	    -image icon_view_mosaic \
+	    -command "SetViewPreset 2; $fwViews config -image icon_view_mosaic_pdm"
+    }
+
     tkm_MakeEntryWithIncDecButtons $fwCurSlice "Slice" gnVolSlice \
       { SetSlice $gnVolSlice } 1
 
@@ -4678,20 +4714,23 @@ proc CreateToolBar { ifwToolBar } {
     tkm_MakeEntryWithIncDecButtons $fwZoomLevel "Zoom" gnZoomLevel \
       { SetZoomLevelWrapper } 1
     
+    tkm_MakeButtons $fwHome { \
+      { image icon_home {SetCursorToCenterOfVolume 0} "Restore View to Home" } }
+
     tkm_MakeButtons $fwPoint { \
       { image icon_cursor_save {SendCursor} "Save Point" } \
       { image icon_cursor_goto {ReadCursor} "Goto Saved Point" } }
 
     tkm_MakeCheckboxes $fwLinkedCursor h {
-  { image icon_linked_cursors gbLinkedCursor \
-    "SendLinkedCursorValue" "Link Cursors" } }
-
-    pack $fwOrientation $fwCurSlice $fwZoomButtons $fwZoomLevel \
-      $fwPoint $fwLinkedCursor \
-      -side left \
-      -anchor w \
-      -padx 5
-      
+	{ image icon_linked_cursors gbLinkedCursor \
+	      "SendLinkedCursorValue" "Link Cursors" } }
+    
+    pack $fwOrientation $fwViews $fwCurSlice $fwZoomButtons \
+	$fwZoomLevel $fwHome $fwPoint $fwLinkedCursor \
+	-side left \
+	-anchor w \
+	-padx 5
+    
     # recon toolbar
     set gfwaToolBar(recon) $ifwToolBar.fwBrushBar
     set fwShape            $gfwaToolBar(recon).fwShape
@@ -4761,6 +4800,7 @@ proc CreateImages {} {
     foreach image_name { icon_edit_label icon_edit_volume 
 	icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool
 	icon_view_single icon_view_multiple icon_view_mosaic
+	icon_view_single_pdm icon_view_multiple_pdm icon_view_mosaic_pdm
 	icon_overlay icon_color_scalebar
 	icon_cursor_goto icon_cursor_save
 	icon_main_volume icon_aux_volume icon_seg_volume icon_linked_cursors
@@ -4770,18 +4810,21 @@ proc CreateImages {} {
 	icon_arrow_shrink_x icon_arrow_shrink_y
 	icon_orientation_coronal icon_orientation_horizontal
 	icon_orientation_sagittal
+	icon_orientation_coronal_pdm icon_orientation_horizontal_pdm
+	icon_orientation_sagittal_pdm
 	icon_zoom_in icon_zoom_out
 	icon_brush_square icon_brush_circle icon_brush_3d
 	icon_surface_main icon_surface_original icon_surface_pial 
 	icon_snapshot_save icon_snapshot_load
 	icon_marker_crosshair icon_marker_diamond
-	icon_stopwatch icon_camera } {
+	icon_stopwatch icon_camera icon_home } {
 	
-  if { [catch {image create photo  $image_name -file \
-    [ file join $ksImageDir $image_name.gif ]} sResult] != 0 } {
-      dputs "Error loading $image_name:"
-      dputs $sResult
-  }
+	if { [catch {image create photo $image_name -file \
+			 [file join $ksImageDir $image_name.gif]} \
+		  sResult] != 0 } {
+	    dputs "Error loading $image_name:"
+	    dputs $sResult
+	}
     }
 }
 
@@ -4808,20 +4851,20 @@ proc UpdateBrushConfigurationWrapper { iValue } {
 proc UpdateCursorInfoWrapper { iValue ibStatus } {
     global gCursor
     if { $ibStatus == 1 } {
-  gCursor(shape) = $iValue
-  SendCursorConfiguration
+	gCursor(shape) = $iValue
+	SendCursorConfiguration
     }   
 }
 
 proc UpdateToolWrapper { iValue ibStatus } {
     if { $ibStatus == 1 } {
-  SetTool $iValue
+	SetTool $iValue
     }
 }
 
 proc UpdateViewPresetWrapper { iValue ibStatus } {
     if { $ibStatus == 1 } {
-  SetViewPreset $iValue
+	SetViewPreset $iValue
     }
 }
 
