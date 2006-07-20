@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # isxavg-fe-sess
 #
-set VERSION = '$Id: intergroupavg-sess,v 1.2 2005/08/30 17:05:21 greve Exp $'
+set VERSION = '$Id: intergroupavg-sess,v 1.2.2.1 2006/07/20 16:34:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -212,6 +212,9 @@ foreach hs ($hemi)
       echo "ERROR: there appears to have been a problem creating $volid"
       exit 1;
     endif
+    # I think this should work
+    set bhdr = $offset1.bhdr
+    if(-e $bhdr) cp $bhdr $volid.bhdr
   end
 
   # Copy the register.dat if talairach #
