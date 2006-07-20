@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.115 2006/07/20 21:04:03 kteich Exp $
+# $Id: tkmedit.tcl,v 1.116 2006/07/20 21:53:26 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3530,6 +3530,12 @@ proc MakeKeyBindings { iwTop } {
 	{SetZoomLevelWrapper [expr $gnZoomLevel / 2] }
     bind $iwTop <Control-Key-minus> \
 	{SetZoomLevelWrapper [expr $gnZoomLevel / 2] }
+    bind $iwTop <Control-q> \
+	{ AllowSaveThenQuit }
+    bind $iwTop <Control-b> \
+	{ DoVolumeColorScaleInfoDlog }
+    bind $iwTop <Control-u> \
+	{ DoSurfaceInfoDlog }
 
     bind $iwTop <Alt-Key-plus> \
 	{SetZoomLevelWrapper 32 }
@@ -3548,6 +3554,7 @@ proc MakeKeyBindings { iwTop } {
 	{SetTool $DspA_tTool_CtrlPts}
     bind $iwTop <Key-l> \
 	{SetTool $DspA_tTool_Line}
+
 }
 
 proc CreateMenuBar { ifwMenuBar } {
@@ -3772,7 +3779,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    WriteControlPointFile }
 	{ separator }
 	{ command
-	    "Quit"
+	    "Quit:Ctrl Q"
 	    AllowSaveThenQuit } 
     }
    
@@ -3905,13 +3912,13 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{ cascade "Configure..." {
 	    { command
-		"Brightness / Contrast..."
+		"Brightness / Contrast...:Ctrl B"
 		DoVolumeColorScaleInfoDlog }
 	    { command
 		"Cursor..."
 		DoCursorInfoDlog }
 	    { command
-		"Surface..."
+		"Surface...:Ctrl U"
 		DoSurfaceInfoDlog
 		tMenuGroup_SurfaceViewing }
 	    { command
