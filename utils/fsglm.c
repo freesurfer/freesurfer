@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.13 2005/11/29 00:16:19 greve Exp $
+// $Id: fsglm.c,v 1.14 2006/07/20 18:43:17 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -117,7 +117,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.13 2005/11/29 00:16:19 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.14 2006/07/20 18:43:17 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -358,7 +358,7 @@ int GLMtest(GLMMAT *glm)
 {
   int n;
   double dtmp;
-  static MATRIX *F=NULL;
+  static MATRIX *F=NULL,*mtmp=NULL;
 
   if(glm->ill_cond_flag){
     // If it's ill cond, just return F=0
@@ -381,14 +381,23 @@ int GLMtest(GLMMAT *glm)
     if(glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
     else                       dtmp = glm->rvar*glm->C[n]->rows;
 
-    glm->gamma[n]    = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
-    glm->gammat[n]   = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
-    glm->gCVM[n]     = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
-    glm->igCVM[n]    = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
-    glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
-    F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
-    glm->F[n]        = F->rptr[1][1];
-    glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
+    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
+    glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
+    mtmp           = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
+    if(mtmp != NULL){
+      glm->igCVM[n]    = mtmp;
+      glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
+      glm->F[n]        = F->rptr[1][1];
+      glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
+    }
+    else {
+      // this usually happens when the var is close to 0. But if this is
+      // happening, should probably use a mask.
+      glm->F[n]        = 0;
+      glm->p[n]        = 1;
+    }
     if(glm->ypmfflag[n])
       glm->ypmf[n] = MatrixMultiply(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
   }
