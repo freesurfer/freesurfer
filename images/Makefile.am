@@ -67,8 +67,11 @@ icon_marker_crosshair.gif \
 icon_marker_diamond.gif \
 icon_navigate.gif \
 icon_orientation_coronal.gif \
+icon_orientation_coronal_pdm.gif \
 icon_orientation_horizontal.gif \
+icon_orientation_horizontal_pdm.gif \
 icon_orientation_sagittal.gif \
+icon_orientation_sagittal_pdm.gif \
 icon_orientation_x.gif \
 icon_orientation_y.gif \
 icon_orientation_z.gif \
@@ -86,8 +89,11 @@ icon_surface_pial.gif \
 icon_surface_white.gif \
 icon_view_31.gif \
 icon_view_mosaic.gif \
+icon_view_mosaic_pdm.gif \
 icon_view_multiple.gif \
+icon_view_multiple_pdm.gif \
 icon_view_single.gif \
+icon_view_single_pdm.gif \
 icon_zoom_in.gif \
 icon_zoom_out.gif 
 
