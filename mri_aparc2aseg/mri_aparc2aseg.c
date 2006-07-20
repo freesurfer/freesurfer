@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.8 2006/06/01 22:30:53 kteich Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.9 2006/07/20 21:54:13 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -35,7 +35,7 @@ char *OutAParcFile = NULL;
 char *OutDistFile = NULL;
 int debug = 0;
 int UseRibbon = 0;
-MRI *ASeg, *mritmp;
+MRI *ASeg, *filled, *mritmp;
 MRI *AParc;
 MRI *Dist;
 MRI *lhRibbon,*rhRibbon;
@@ -55,6 +55,7 @@ char tmpstr[2000];
 char annotfile[1000];
 char *annotname = "aparc";
 int baseoffset = 0;
+float hashres = 16;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
 
   printf("\n");
   printf("Building hash of lh white\n");
-  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,16);
+  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
 
   /* ------ Load subject's lh pial surface ------ */
   sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
   }
   printf("\n");
   printf("Building hash of lh pial\n");
-  lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,16);
+  lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
 
   if(lhwhite->nvertices != lhpial->nvertices){
     printf("ERROR: lh white and pial have a different number of vertices (%d,%d)\n",
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
   }
   printf("\n");
   printf("Building hash of rh white\n");
-  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,16);
+  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
 
   /* ------ Load subject's rh surface ------ */
   sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
   }
   printf("\n");
   printf("Building hash of rh pial\n");
-  rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,16);
+  rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
 
   if(rhwhite->nvertices != rhpial->nvertices){
     printf("ERROR: rh white and pial have a different number of vertices (%d,%d)\n",
@@ -174,14 +175,24 @@ int main(int argc, char **argv)
     printf("Loading lh ribbon mask from %s\n",tmpstr);
     lhRibbon = MRIread(tmpstr);
     if(lhRibbon == NULL){
-      printf("ERROR: loading aseg %s\n",tmpstr);
+      printf("ERROR: loading %s\n",tmpstr);
       exit(1);
     }
     sprintf(tmpstr,"%s/%s/mri/rh.ribbon.mgz",SUBJECTS_DIR,subject);
     printf("Loading rh ribbon mask from %s\n",tmpstr);
     rhRibbon = MRIread(tmpstr);
     if(rhRibbon == NULL){
-      printf("ERROR: loading aseg %s\n",tmpstr);
+      printf("ERROR: loading  %s\n",tmpstr);
+      exit(1);
+    }
+  }
+
+  if(LabelHypoAsWM){
+    sprintf(tmpstr,"%s/%s/mri/filled.mgz",SUBJECTS_DIR,subject);
+    printf("Loading filled from %s\n",tmpstr);
+    filled = MRIread(tmpstr);
+    if(filled == NULL){
+      printf("ERROR: loading filled %s\n",tmpstr);
       exit(1);
     }
   }
@@ -251,7 +262,8 @@ int main(int argc, char **argv)
 	else                             IsHypo = 0;
 	if(asegid == 2 || asegid == 41)  IsWM = 1;
 	else                             IsWM = 0;
-	if(LabelHypoAsWM && IsHypo )     IsWM = 1;
+	if(IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0))
+	  IsWM = 1;
 
 	// If it's not labeled as cortex or wm in the aseg, skip
 	if(!IsCortex && !IsWM) continue;
@@ -433,6 +445,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
+    else if (!strcmp(option, "--sd")){
+      if(nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      setenv("SUBJECTS_DIR",SUBJECTS_DIR,1);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--s")){
       if(nargc < 1) argnerr(option,1);
       subject = pargv[0];
@@ -460,6 +478,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--dist")){
       if(nargc < 1) argnerr(option,1);
       OutDistFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--hashres")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&hashres);
       nargsused = 1;
     }
     else{
