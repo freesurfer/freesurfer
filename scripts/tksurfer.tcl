@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.120 2006/07/17 19:45:50 kteich Exp $
+# $Id: tksurfer.tcl,v 1.121 2006/07/21 15:29:14 kteich Exp $
 
 package require BLT;
 
@@ -5513,7 +5513,7 @@ if { [info exists env(FREESURFER_HOME)] } {
 if { [info exists env(SUBJECTS_DIR)] } {
     lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl
 }
-lappend lUserScripts $gsSubjectDirectory/scripts/tksurfer_init.tcl
+lappend lUserScripts $home/$subject/scripts/tksurfer_init.tcl
 lappend lUserScripts ~/tksurfe_init.tcl
 
 foreach fnUserScript $lUserScripts {
