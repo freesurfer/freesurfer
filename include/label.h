@@ -28,6 +28,7 @@ typedef struct
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
+  char   space[100];          /* space description of the coords */
 } LABEL ;
 
 
@@ -41,6 +42,7 @@ int     LabelWrite(LABEL *area, char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelToWhite(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
