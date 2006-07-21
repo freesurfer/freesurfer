@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.29 2006/07/16 01:55:50 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.30 2006/07/21 18:38:11 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1057,6 +1057,13 @@ foreach hemi ($hemilist)
     set cmd = (mris_inflate $xopts ../surf/$hemi.smoothwm \
                ../surf/$hemi.inflated)
     $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # create curvature files ?h.inflated.H and ?h.inflated.K
+    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
+    set cmd = (mris_curvature -n -a 5 -w -distances 10 10)
+    set cmd = ($cmd $xopts ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
