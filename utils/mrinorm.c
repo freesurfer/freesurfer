@@ -8,6 +8,8 @@
  *
  */
 
+/* $Id: mrinorm.c,v 1.73.2.2 2006/07/21 19:58:43 nicks Exp $ */
+
 /*-----------------------------------------------------
   INCLUDE FILES
   -------------------------------------------------------*/
@@ -666,8 +668,8 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
               slice,inputs[slice],outputs[slice]) ;
 
   /*
-     first find a good starting slice to anchor the checking by taking the
-     median peak value of three slices around the center of the brain.
+    first find a good starting slice to anchor the checking by taking the
+    median peak value of three slices around the center of the brain.
   */
   starting_slice = mni->windows_above_t0-STARTING_SLICE ;
   Iup = outputs[starting_slice-SLICE_OFFSET] ;
@@ -809,7 +811,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int     *pxi, *pyi, *pzi, ctrl, nctrl, nfilled, too_low, total_filled;
-  int     val0, val, n, whalf ;
+  int     val0, val, n, whalf, pass=0 ;
   BUFTYPE low_thresh, hi_thresh ;
   float   wm_val, gm_val, csf_val, mean_val, min_val, max_val;
   float   int_below_adaptive ;
@@ -836,9 +838,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #if 1
   nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
 
-  MRInormFindControlPointsInWindow(mri_src, wm_target,
-                                   1.5*intensity_above, 1.5*intensity_below,
-                                   mri_ctrl, 3.0, "", &nctrl) ;
+  pass=0 ;
+  do
+    {
+      MRInormFindControlPointsInWindow
+        (mri_src, wm_target,
+         1.5*intensity_above-pass*5, 1.5*intensity_below+pass*5,
+         mri_ctrl, 3.0, "", &nctrl) ;
+      pass++ ;
+    } while (nctrl < 10) ;
   MRInormFindControlPointsInWindow(mri_src, wm_target, intensity_above,
                                    intensity_below, mri_ctrl, 2.0, "", &n) ;
   nctrl += n ;
@@ -849,10 +857,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   */
   find_tissue_intensities(mri_src, mri_ctrl, &wm_val, &gm_val, &csf_val) ;
   MRIclear(mri_ctrl) ;
-  nctrl = 0 ;
-  MRInormFindControlPointsInWindow(mri_src, wm_target,
-                                   1.5*intensity_above, 1.5*intensity_below,
-                                   mri_ctrl, 3.0, "", &nctrl) ;
+  pass = nctrl = 0 ;
+  do
+    {
+      MRInormFindControlPointsInWindow
+        (mri_src, wm_target,
+         1.5*intensity_above+5*pass, 1.5*intensity_below+5*pass,
+         mri_ctrl, 3.0, "", &nctrl) ;
+      pass++ ;
+    } while (nctrl < 10) ;
   if (Gx >= 0)
     printf("after 7x7x7 - (%d, %d, %d) is %sa control point\n",
            Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
@@ -2097,9 +2110,9 @@ MRI3dGentleNormalize(MRI *mri_src,
           char fname[500] ;
 
           fprintf(stderr, "writing out control and bias volumes...\n") ;
-          sprintf(fname, "src%d.mgh", pass) ; MRIwrite(mri_src, fname) ;
-          sprintf(fname, "ctrl%d.mgh", pass) ; MRIwrite(mri_ctrl, fname) ;
-          sprintf(fname, "bias%d.mgh", pass) ; MRIwrite(mri_bias, fname) ;
+          sprintf(fname, "src%d.mgz", pass) ; MRIwrite(mri_src, fname) ;
+          sprintf(fname, "ctrl%d.mgz", pass) ; MRIwrite(mri_ctrl, fname) ;
+          sprintf(fname, "bias%d.mgz", pass) ; MRIwrite(mri_bias, fname) ;
           pass++ ;
         }
       MRIfree(&mri_ctrl) ;
@@ -2938,6 +2951,8 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   return(mri_dst) ;
 }
 #endif
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3015,6 +3030,8 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3095,6 +3112,7 @@ MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
   return(mri_dst) ;
 }
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -3197,6 +3215,7 @@ MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
   return(mri_dst) ;
 }
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -3378,8 +3397,9 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
     MRIwrite(mri_dst, "soap.mgh") ;
   return(mri_dst) ;
 }
-
 #endif
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3490,6 +3510,7 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   return(mri_dst) ;
 }
 
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3589,6 +3610,7 @@ mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   return(mri_dst) ;
 }
 
+
 static MRI *
 mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
                          MRI *mri_dst, int mark, int nbr_mark)
@@ -3640,6 +3662,7 @@ mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
     }
   return(mri_dst) ;
 }
+
 
 static int
 mriRemoveOutliers(MRI *mri, int min_nbrs)
@@ -3698,6 +3721,8 @@ mriRemoveOutliers(MRI *mri, int min_nbrs)
     fprintf(stderr, "%d control points deleted.\n", deleted) ;
   return(NO_ERROR) ;
 }
+
+
 #if 0
 /*-----------------------------------------------------
   Parameters:
@@ -3759,6 +3784,7 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
 }
 #endif
 
+
 int
 MRI3dUseFileControlPoints(MRI *mri, char *fname)
 {
@@ -3805,7 +3831,9 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
                     useRealRAS) ;
 
         }
-      xctrl[i] = (int) nint(xr) ; yctrl[i] = (int) nint(yr) ; zctrl[i] = (int) nint(zr) ;
+      xctrl[i] = (int) nint(xr) ;
+      yctrl[i] = (int) nint(yr) ;
+      zctrl[i] = (int) nint(zr) ;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "( %5d, %5d, %5d )\n", xctrl[i], yctrl[i], zctrl[i]);
     }
@@ -3813,18 +3841,22 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   return(NO_ERROR) ;
 }
 
+
 int
 MRI3dWriteControlPoints(char *t_control_volume_fname)
 {
   control_volume_fname = t_control_volume_fname ;
   return(NO_ERROR) ;
 }
+
+
 int
 MRI3dWriteBias(char *t_bias_volume_fname)
 {
   bias_volume_fname = t_bias_volume_fname ;
   return(NO_ERROR) ;
 }
+
 
 int
 MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
@@ -3843,6 +3875,8 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
     }
   return(nctrl) ;
 }
+
+
 #if 0
 static int
 remove_extreme_control_points(MRI *mri_orig,
@@ -4016,16 +4050,16 @@ remove_extreme_control_points(MRI *mri_orig,
                             }
                         }
                       /*
-                         if image gradient in 3x3x3 nbhd in orig
-                         volume is too big (bigger than max - min)
-                         then don't let it be a control point. Or, if an
-                         immediate nbr is below low_thresh
-                         in the orig volume and their is a control point
-                         in a 5x5x5 window then don't let it
-                         be a control point (otherwise it can creep
-                         outwards along gently decreasing gray matter
-                         intensities.
-                         or, remove it if the intensity derivative is too big
+                        if image gradient in 3x3x3 nbhd in orig
+                        volume is too big (bigger than max - min)
+                        then don't let it be a control point. Or, if an
+                        immediate nbr is below low_thresh
+                        in the orig volume and their is a control point
+                        in a 5x5x5 window then don't let it
+                        be a control point (otherwise it can creep
+                        outwards along gently decreasing gray matter
+                        intensities.
+                        or, remove it if the intensity derivative is too big
                       */
                       if ((max_val < hi_thresh && max_val >= target_val &&
                            min_val < low_thresh) ||
@@ -4064,6 +4098,7 @@ remove_extreme_control_points(MRI *mri_orig,
          "unlikely bias estimates...\n", nremoved) ;
   return(NO_ERROR) ;
 }
+
 
 static double
 mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl)
@@ -4122,6 +4157,7 @@ mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl)
 
 #define MAX_DISTANCE_TO_CSF  7
 #define MIN_DISTANCE_TO_CSF  4.5
+
 
 static int
 remove_gray_matter_control_points(MRI *mri_ctrl,
@@ -4375,6 +4411,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
   return(NO_ERROR) ;
 }
 
+
 static float
 csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf)
 {
@@ -4439,6 +4476,8 @@ csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf)
 
   return(0) ;
 }
+
+
 static float
 find_tissue_intensities(MRI *mri_src,
                         MRI *mri_ctrl,
@@ -4553,6 +4592,7 @@ find_tissue_intensities(MRI *mri_src,
                                                              it's odd */
 #define MIN_WM_SNR   20
 
+
 MRI *
 MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
 {
@@ -4643,6 +4683,7 @@ MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
   MRIfree(&mri_ratio) ; /*MRIfree(&mri_tmp) ;*/
   return(mri_ctrl) ;
 }
+
 
 MRI *
 MRInormalizeHighSignalLowStd(MRI *mri_src,
@@ -4750,6 +4791,8 @@ MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
   return(mri_out) ;
 
 }
+
+
 MRI *
 MRIapplyBiasCorrectionSameGeometry(MRI *mri_in,
                                    MRI *mri_bias,
