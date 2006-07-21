@@ -16,7 +16,7 @@ function nstats = fast_fgnoise(fmri,isepi,tpexc)
 % nstats.fgvar - measured fg var
 % nstats.fgmask0 - init fgmask mristruct (> 2*global mean)
 %
-% $Id: fast_fgnoise.m,v 1.1 2006/05/24 02:13:27 greve Exp $
+% $Id: fast_fgnoise.m,v 1.2 2006/07/21 03:11:50 greve Exp $
 
 pzthresh = .01;
 isfloored = 1;
@@ -116,7 +116,7 @@ fprintf('nbgmask = %d, bgmn=%g, bgvar=%g, bgvarexp=%g, fgvarexp=%g,  fgvar=%g\n'
 	nbgmask,bgmn,bgvar,bgvarexp,fgvarexp,fgvar);
 
 
-nstats.z = f1;
+nstats.z = fmri;
 nstats.z.vol = z;
 
 nstats.pz = nstats.z;
