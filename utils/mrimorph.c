@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/07/11 14:15:36 $
-// Revision       : $Revision: 1.55 $
+// Revision Date  : $Date: 2006/07/21 15:26:32 $
+// Revision       : $Revision: 1.56 $
 */
 
 /*-----------------------------------------------------
@@ -905,6 +905,7 @@ find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz)
   float  areas[MAX_LABELS], spinal_area, aspect, corner_dist, thick,x0,y0,z0 ;
   int    y, found, nlabels, l, spinal_l = 0 ;
   MRI_REGION bboxes[MAX_LABELS], *bbox ;
+	
 
   thick = mri_thresh->thick ;
 
@@ -8707,3 +8708,274 @@ compute_powell_label_sse(float *p)
   error = -compute_label_likelihood(Gvl_source, Gvl_target, mat) ;
   return(error) ;
 }
+double 
+MRIcomputeOptimalLinearXform
+(
+ MRI *mri_source,
+ MRI *mri_target, 
+ MATRIX *m_L,
+ float min_angle, float max_angle,
+ float min_scale, float max_scale,
+ float min_trans, float max_trans,
+ float angle_steps, float scale_steps, float trans_steps,
+ int nreductions)
+{
+  MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
+    *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL, *m_origin ;
+  double x_angle, y_angle, z_angle, x_max_rot;
+  double y_max_rot, z_max_rot, delta_rot, src_means[3];
+  double x_max_scale, y_max_scale, z_max_scale;
+  double delta_scale, x_trans, delta_trans, y_trans, z_trans;
+  double log_p, max_log_p, mean_angle, x_scale, y_scale, z_scale;
+  double mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans ;
+  int    i, found, nreduced ;
+	VOXEL_LIST *vl_source, *vl_target ;
+	float      fmin, fmax ;
+	MRI        *mri_tmp ;  
+
+  MRIcenterOfMass(mri_source, src_means, 0) ;
+  // unit matrix
+  m_origin = MatrixIdentity(4, NULL) ;
+  // set the translation  (center = 1)
+  *MATRIX_RELT(m_origin, 1, 4) = src_means[0];
+  *MATRIX_RELT(m_origin, 2, 4) = src_means[1];
+  *MATRIX_RELT(m_origin, 3, 4) = src_means[2];
+  *MATRIX_RELT(m_origin, 4, 4) = 1 ;
+
+  m_trans = MatrixIdentity(4, NULL) ;
+  m_origin_inv = MatrixCopy(m_origin, NULL) ;
+  *MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
+  *MATRIX_RELT(m_origin_inv, 2, 4) *= -1 ;
+  *MATRIX_RELT(m_origin_inv, 3, 4) *= -1 ;
+  m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = NULL ;
+  x_max_trans = y_max_trans = z_max_trans \
+    = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
+  x_max_scale = y_max_scale = z_max_scale = 1.0f ;
+  m_scale = MatrixIdentity(4, NULL) ;
+  MRIvalRange(mri_source, &fmin, &fmax) ;
+  vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
+  vl_source->mri2 = mri_source ;
+  MRIvalRange(mri_target, &fmin, &fmax) ;
+  vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,0,0);
+  mri_tmp = MRIcopy(mri_target, NULL); //store the transformed target
+  vl_target->mri2 = mri_tmp; 
+  VLSTcomputeStats(vl_source);
+	if (Gdiag & DIAG_SHOW)
+		printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
+	max_log_p = compute_likelihood(vl_source, vl_target, m_L, 1.0) ;
+	if (Gdiag & DIAG_WRITE)
+	{
+		MRI *mri_aligned = MRIlinearTransform(mri_source, NULL, m_L) ;
+		MRIwrite(mri_aligned, "init.mgz") ;
+		MRIfree(&mri_aligned) ;
+	}
+
+	found = nreduced = i = 0 ;
+	do
+	{
+		found = 0 ;
+		delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
+		delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
+		if (FZERO(delta_scale))
+			delta_scale = max_scale ;
+
+		delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
+		if (Gdiag & DIAG_SHOW)
+		{
+			printf("  scanning %2.2f degree nbhd (%2.1f)\n"
+						 "  scale %2.3f->%2.3f (step %2.3f), "
+						 "trans %2.2f->%2.2f (step %2.2f)\n",
+						 (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
+						 min_scale,max_scale, delta_scale, 
+						 min_trans, max_trans, delta_trans);
+			fflush(stdout) ;
+		}
+
+		// scale /////////////////////////////////////////////////////////////
+		for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
+		{
+			/*      printf("x_scale = %2.3f\n", x_scale) ;*/
+			*MATRIX_RELT(m_scale, 1, 1) = x_scale ;
+			for (y_scale = min_scale ; 
+					 y_scale <= max_scale ; 
+					 y_scale += delta_scale)
+			{
+				*MATRIX_RELT(m_scale, 2, 2) = y_scale ;
+				for (z_scale= min_scale ; 
+						 z_scale <= max_scale; 
+						 z_scale += delta_scale)
+				{
+					*MATRIX_RELT(m_scale, 3, 3) = z_scale ;
+
+					/* reset translation values */
+					*MATRIX_RELT(m_scale, 1, 4) = 
+						*MATRIX_RELT(m_scale, 2, 4) = 
+						*MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
+					m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
+					MatrixMultiply(m_origin, m_tmp, m_scale) ;
+
+					// angle //////////////////////////////
+					for (x_angle = min_angle ; 
+							 x_angle <= max_angle ; 
+							 x_angle += delta_rot)
+					{
+						m_x_rot = MatrixReallocRotation
+							(4, x_angle, X_ROTATION, m_x_rot) ;
+						for (y_angle = min_angle ; 
+								 y_angle <= max_angle ; 
+								 y_angle += delta_rot)
+						{
+							m_y_rot = MatrixReallocRotation
+								(4, y_angle, Y_ROTATION, m_y_rot);
+							m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
+							for (z_angle= min_angle; 
+									 z_angle <= max_angle; 
+									 z_angle += delta_rot)
+							{
+								m_z_rot = MatrixReallocRotation
+									(4, z_angle,Z_ROTATION,m_z_rot);
+								m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
+								m_tmp2 = MatrixMultiply
+									(m_rot, m_origin_inv, m_tmp2) ;
+								MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+                
+								m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
+								m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
+
+								// translation //////////
+								for (x_trans = min_trans ; 
+										 x_trans <= max_trans ; 
+										 x_trans += delta_trans)
+								{
+									*MATRIX_RELT(m_trans, 1, 4) = x_trans ;
+									for (y_trans = min_trans ; 
+											 y_trans <= max_trans ; 
+											 y_trans += delta_trans)
+									{
+										*MATRIX_RELT(m_trans, 2, 4) = y_trans ;
+										for (z_trans= min_trans ; 
+												 z_trans <= max_trans ; 
+												 z_trans += delta_trans)
+										{
+											*MATRIX_RELT(m_trans, 3, 4) = 
+												z_trans ;
+
+											m_L_tmp = MatrixMultiply
+												(m_trans, m_tmp3, m_L_tmp) ;
+											log_p = compute_likelihood(vl_source, vl_target, m_L_tmp, 1.0) ;
+                      
+											if (log_p > max_log_p)
+											{
+												found = 1 ;
+												max_log_p = log_p ;
+												x_max_scale = x_scale ; 
+												y_max_scale = y_scale ; 
+												z_max_scale = z_scale ;
+												x_max_rot = x_angle ; 
+												y_max_rot = y_angle ; 
+												z_max_rot = z_angle ;
+												x_max_trans = x_trans ; 
+												y_max_trans = y_trans ; 
+												z_max_trans = z_trans ;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+      
+		}
+
+		if (Gdiag & DIAG_SHOW)
+		{
+			printf("  max log p = %2.1f @ R=(%2.3f,%2.3f,%2.3f),"
+						 "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n", 
+						 max_log_p, DEGREES(x_max_rot), DEGREES(y_max_rot),
+						 DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
+						 x_max_trans, y_max_trans,z_max_trans) ;
+		}
+
+		/* update L to reflect new maximum and search around it */
+		*MATRIX_RELT(m_scale, 1, 4) = 
+			*MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
+		*MATRIX_RELT(m_scale,1,1) = x_max_scale ;
+		*MATRIX_RELT(m_scale,2,2) = y_max_scale ;
+		*MATRIX_RELT(m_scale,3,3) = z_max_scale ;
+		m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
+		MatrixMultiply(m_origin, m_tmp, m_scale) ;
+
+		x_max_scale = y_max_scale = z_max_scale = 1.0 ;
+
+		/* update L to reflect new maximum and search around it */
+		MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
+		MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
+		MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
+		MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
+		MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
+		m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
+		MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+
+		m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
+		m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
+
+		/* update L to reflect new maximum and search around it */
+		*MATRIX_RELT(m_trans, 1, 4) = x_max_trans ;
+		*MATRIX_RELT(m_trans, 2, 4) = y_max_trans ;
+		*MATRIX_RELT(m_trans, 3, 4) = z_max_trans ;
+		MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+
+		MatrixCopy(m_L_tmp, m_L) ;
+
+		x_max_trans = y_max_trans = z_max_trans = 0.0 ;  
+
+		/* we've translated transform by old maxs */
+		x_max_rot = y_max_rot = z_max_rot = 0.0 ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			char fname[STRLEN] ;
+			MRI *mri_aligned = MRIlinearTransform(mri_source, NULL, m_L) ;
+
+			sprintf(fname, "iter%d.mgz", i) ;
+			MRIwrite(mri_aligned, fname) ;
+			MRIfree(&mri_aligned) ;
+		}
+		if (found == 0)  // reduce scale
+		{
+			nreduced++ ;
+			if (nreduced <= nreductions)
+				printf("no new mimimum found, reduction %d of %d\n",
+							 nreduced, nreductions) ;
+			else
+				printf("terminating search\n") ;
+			mean_scale = (max_scale + min_scale) / 2 ;
+			delta_scale = (max_scale-min_scale)/4 ;
+			if (mean_scale - delta_scale < 1)
+				min_scale = mean_scale - delta_scale ;
+			if (mean_scale + delta_scale > 1)
+				max_scale = mean_scale + delta_scale ;
+
+			mean_trans = (max_trans + min_trans) / 2 ;
+			delta_trans = (max_trans-min_trans)/4 ;
+			min_trans = mean_trans - delta_trans ;
+			max_trans = mean_trans + delta_trans ;
+
+			/* we've rotated transform to old max */
+
+			mean_angle = (max_angle + min_angle) / 2 ;
+			delta_rot = (max_angle-min_angle)/4 ;
+			min_angle = mean_angle - delta_rot ;
+			max_angle = mean_angle + delta_rot ;
+		}
+		i++ ;
+	} while (nreduced <= nreductions) ;
+
+  MatrixFree(&m_x_rot) ; MatrixFree(&m_y_rot) ; MatrixFree(&m_z_rot) ;
+  MatrixFree(&m_rot) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
+  MatrixFree(&m_tmp2) ; MatrixFree(&m_trans) ; MatrixFree(&m_tmp3) ;
+
+  return(max_log_p) ;
+}
+
