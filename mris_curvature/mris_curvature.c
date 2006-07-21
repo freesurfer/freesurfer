@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.18 2003/09/05 04:45:40 kteich Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.19 2006/07/21 13:48:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.18 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.19 2006/07/21 13:48:28 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -258,11 +258,15 @@ main(int argc, char *argv[])
     if (write_flag)
     {
       MRISuseGaussianCurvature(mris) ;
+			if (normalize)
+				MRISnormalizeCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.K", path,name) ; 
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
+			if (normalize)
+				MRISnormalizeCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.H", path,name) ; 
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
