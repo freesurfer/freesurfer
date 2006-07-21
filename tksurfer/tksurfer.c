@@ -7902,7 +7902,7 @@ write_labeled_vertices(char *fname)
   
   fprintf(stderr, "writing %d labeled vertices to %s.\n",
 	  area ? area->n_points : -1, fname) ;
-  LabelToOriginal(area, mris) ;
+  LabelToWhite(area, mris) ;
   LabelWrite(area, fname) ;
   LabelFree(&area) ;
 }
@@ -7922,7 +7922,7 @@ write_labeled_vertices(char *fname)
         }
       fprintf(stderr, "writing %d labeled vertices to %s.\n",
               area ? area->n_points : -1, fname) ;
-      LabelToOriginal(area, mris) ;
+      LabelToWhite(area, mris) ;
       LabelWrite(area, fname) ;
     }
   else
@@ -7936,7 +7936,7 @@ write_labeled_vertices(char *fname)
         }
       fprintf(stderr, "writing %d labeled vertices to %s.\n",
               area ? area->n_points : -1, fname) ;
-      LabelToOriginal(area, mris) ;
+      LabelToWhite(area, mris) ;
       LabelWrite(area, fname) ;
       LabelFree(&area) ;
     }
@@ -19122,7 +19122,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.214 2006/07/10 17:20:07 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.215 2006/07/21 14:47:08 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24436,7 +24436,7 @@ int labl_load (char* fname)
   /* load the orig vertex positions if we haven't already. */
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname) ;
-  LabelToOriginal (label, mris);
+  LabelToWhite (label, mris);
   
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
@@ -24502,7 +24502,7 @@ int labl_save (int index, char* fname)
   /* write the label. */
   fprintf (stderr, "writing %d labeled vertices to %s.\n",
            label->n_points, fname) ;
-  LabelToOriginal (label, mris);
+  LabelToWhite (label, mris);
   LabelWrite (label, fname);
   
   return (ERROR_NONE);
@@ -24961,7 +24961,7 @@ int labl_new_from_marked_vertices (int *new_index_out)
   /* convert to original positions. */
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname);
-  LabelToOriginal (label, mris);
+  LabelToWhite (label, mris);
   
   /* add this label to our list. */
   labl_add (label, &new_index);
