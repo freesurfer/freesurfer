@@ -9607,26 +9607,16 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.dim_info = 0;
 
   for(t=0; t<8; t++){hdr.dim[t] = 1;hdr.pixdim[t] = 1;} // needed for afni
-  if(mri->nframes == 1){
-    hdr.dim[0] = 3;
-    hdr.dim[1] = mri->width;
-    hdr.dim[2] = mri->height;
-    hdr.dim[3] = mri->depth;
-    hdr.pixdim[1] = mri->xsize;
-    hdr.pixdim[2] = mri->ysize;
-    hdr.pixdim[3] = mri->zsize;
-  }
-  else{
-    hdr.dim[0] = 4;
-    hdr.dim[1] = mri->width;
-    hdr.dim[2] = mri->height;
-    hdr.dim[3] = mri->depth;
-    hdr.dim[4] = mri->nframes;
-    hdr.pixdim[1] = mri->xsize;
-    hdr.pixdim[2] = mri->ysize;
-    hdr.pixdim[3] = mri->zsize;
-    hdr.pixdim[4] = mri->tr/1000.0; // sec, see also xyzt_units
-  }
+  if(mri->nframes == 1) hdr.dim[0] = 3;
+  else                  hdr.dim[0] = 4;
+  hdr.dim[1] = mri->width;
+  hdr.dim[2] = mri->height;
+  hdr.dim[3] = mri->depth;
+  hdr.dim[4] = mri->nframes;
+  hdr.pixdim[1] = mri->xsize;
+  hdr.pixdim[2] = mri->ysize;
+  hdr.pixdim[3] = mri->zsize;
+  hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
 
   if(mri->type == MRI_UCHAR){
     hdr.datatype = DT_UNSIGNED_CHAR;
@@ -9932,7 +9922,7 @@ static MRI *niiRead(char *fname, int read_volume)
   mri->xsize = hdr.pixdim[1];
   mri->ysize = hdr.pixdim[2];
   mri->zsize = hdr.pixdim[3];
-  if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
+  mri->tr = hdr.pixdim[4];
 
   // Set the vox2ras matrix
   if(hdr.sform_code != 0){
@@ -9971,7 +9961,7 @@ static MRI *niiRead(char *fname, int read_volume)
   mri->c_r = mri->c_r * space_units_factor;
   mri->c_a = mri->c_a * space_units_factor;
   mri->c_s = mri->c_s * space_units_factor;
-  if(hdr.dim[0] == 4)  mri->tr = mri->tr * time_units_factor;
+  mri->tr = mri->tr * time_units_factor;
 
   if(Gdiag_no > 0){
     printf("nifti header ---------------------------------\n");
@@ -10300,26 +10290,16 @@ static int niiWrite(MRI *mri, char *fname)
   hdr.dim_info = 0;
 
   for(t=0; t<8; t++){hdr.dim[t] = 1;hdr.pixdim[t] = 1;} // for afni
-  if(mri->nframes == 1){
-    hdr.dim[0] = 3;
-    hdr.dim[1] = mri->width;
-    hdr.dim[2] = mri->height;
-    hdr.dim[3] = mri->depth;
-    hdr.pixdim[1] = mri->xsize;
-    hdr.pixdim[2] = mri->ysize;
-    hdr.pixdim[3] = mri->zsize;
-  }
-  else{
-    hdr.dim[0] = 4;
-    hdr.dim[1] = mri->width;
-    hdr.dim[2] = mri->height;
-    hdr.dim[3] = mri->depth;
-    hdr.dim[4] = mri->nframes;
-    hdr.pixdim[1] = mri->xsize;
-    hdr.pixdim[2] = mri->ysize;
-    hdr.pixdim[3] = mri->zsize;
-    hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
-  }
+  if(mri->nframes == 1) hdr.dim[0] = 3;
+  else                  hdr.dim[0] = 4;
+  hdr.dim[1] = mri->width;
+  hdr.dim[2] = mri->height;
+  hdr.dim[3] = mri->depth;
+  hdr.dim[4] = mri->nframes;
+  hdr.pixdim[1] = mri->xsize;
+  hdr.pixdim[2] = mri->ysize;
+  hdr.pixdim[3] = mri->zsize;
+  hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
 
   if(mri->type == MRI_UCHAR){
     hdr.datatype = DT_UNSIGNED_CHAR;
