@@ -142,7 +142,8 @@ LabelDump(FILE *fp, LABEL *area)
 {
   int  n ;
 
-  fprintf(fp, "label %s, from subject %s\n", area->name, area->subject_name) ;
+  fprintf(fp, "label %s, from subject %s %s\n",
+	  area->name, area->subject_name, area->space) ;
   for (n = 0 ; n < area->n_points ; n++)
     fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->lv[n].vno, area->lv[n].x, 
             area->lv[n].y, area->lv[n].z) ;
@@ -188,6 +189,7 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->cy ;
     area->lv[n].z = v->cz ;
   }
+  strncpy (area->space, "coords=canonical", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -464,8 +466,8 @@ LabelWrite(LABEL *area, char *label_name)
                                Progname, fname)) ;
 
 #if 1
-  fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg\n", 
-          area->name, area->subject_name);
+  fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n", 
+          area->name, area->subject_name, area->space);
 #endif
   fprintf(fp, "%d\n", num) ;
   for (n = 0 ; n < area->n_points ; n++)
@@ -599,6 +601,8 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
 
   if (label_name)
     strcpy(area->name, label_name) ;
+
+  strcpy(area->space, "");
 
   area->n_points = 0 ;
   area->max_points = max_points ;
@@ -1188,6 +1192,35 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->origy ;
     area->lv[n].z = v->origz ;
   }
+  strncpy (area->space, "coords=orig", sizeof(area->space));
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters: allocated LABEL, valid MRI_SURFACE
+
+        Returns value: error code
+
+        Description: For every point in the label, gets the
+                     corresponding white coords from the surface and
+                     writes them in the label.
+ ------------------------------------------------------*/
+int
+LabelToWhite(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+      continue;
+    v = &mris->vertices[vno] ;
+    area->lv[n].x = v->whitex ;
+    area->lv[n].y = v->whitex ;
+    area->lv[n].z = v->whitex ;
+  }
+  strncpy (area->space, "coords=white", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
