@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.1 2006/07/19 04:47:02 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.2 2006/07/23 23:24:21 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -9,7 +9,7 @@ if(nargin ~= 1)
   return;
 end
 
-flac.name = '';
+flac.name = dirname(anadir);
 flac.fsd = '';
 flac.runlistfile = '';
 flac.funcstem = '';
@@ -21,16 +21,19 @@ flac.stimulusdelay = 0;
 flac.whiten = 0;
 flac.fixacf = 0;
 flac.acfsegstem = '';
-flac.format = '';
-flac.formatext = '';
 flac.tpexcfile = '';
 flac.parfile = '';
 flac.par = [];
 flac.tpexc = [];
 flac.perrun = 0;
-%flac.ev = []; % Leave commented
 flac.inheritlevel = 0;
 flac.con = [];
+% format is handled diff than in fast_ldflac.m
+flac.format = getenv('FSF_OUTPUT_FORMAT');
+if(isempty(flac.format)) flac.format = 'nii'; end
+flac.formatext = sprintf('.%s',flac.format);
+%flac.ev = []; % Leave commented?
+
 
 %----------- Read in the analysis.info -------------------
 info = sprintf('%s/analysis.info',anadir);
