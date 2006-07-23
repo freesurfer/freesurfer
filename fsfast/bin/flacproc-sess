@@ -1,13 +1,14 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.19 2006/04/24 03:34:48 greve Exp $
+# $Id: flacproc-sess,v 1.20 2006/07/23 23:24:48 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.19 2006/04/24 03:34:48 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.20 2006/07/23 23:24:48 greve Exp $';
 
 set cmdargs = ($argv);
 
 set flac = ();
+set analysis = ();
 set monly     = 0;
 set nolog     = 0;
 set PrintHelp = 0;
@@ -68,6 +69,7 @@ tee -a $MLF > /dev/null <<EOF
 tic;
 
 flacfile = '$flacfile';
+analysis = '$analysis';
 sess = '$sess';
 Synth    = $Synth;
 SynthAR1 = $SynthAR1;
@@ -133,6 +135,17 @@ while( $#argv != 0 )
       endif
       set flacfile = `getfullpath $flacfile`;
       echo flacfile $flacfile $flac
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      if(! -e $analysis) then
+        echo "ERROR: cannot find $analysis"
+        exit 1;
+      endif
+      set flacfile = "";
       breaksw
 
     case "-npca":
@@ -230,6 +243,13 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+
+if($#flac && $#analysis) then
+  echo "ERROR: cannot have flac and analysis"
+  exit 1;
+endif
+
+if($#analysis)  set flac = `dirname $analysis`;
 
 goto check_params_return;
 ############--------------##################
