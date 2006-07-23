@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.11 2006/06/24 14:04:46 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.12 2006/07/23 23:23:50 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -18,7 +18,13 @@ fprintf('-----------------------------------------------------\n');
 fprintf('Session: %s \n',sess);
 fprintf('%g ',clock);fprintf('\n');
 
-flac = fast_ldflac(flacfile);
+if(~isempty(flacfile))
+  fprintf('Loading flac %s\n',flacfile);
+  flac = fast_ldflac(flacfile);
+else
+  fprintf('Loading analysis %s\n',analysis);
+  flac = fast_ldanaflac(analysis);
+end
 if(isempty(flac)) 
   if(~monly) quit; end
   return; 
@@ -122,7 +128,7 @@ for nthrun = 1:nruns
   end
 
   fprintf('Performing OLS estimation   (%6.1f)\n',toc);
-  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X,[],[],flac.tpexc);
+  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
   indrvarz = find(rvar==0);
   rvar(indrvarz) = 10e10;
 
@@ -179,7 +185,7 @@ for nthrun = 1:nruns
 
   if(flac.whiten)
     fprintf('Performing GLS estimation   (%6.1f)\n',toc);
-    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol,flac.tpexc);
+    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
   else
     fprintf('NOT Whitening   (%6.1f)\n',toc);
   end
@@ -255,10 +261,9 @@ for nthrun = 1:nruns
     C = flac.con(nthcon).C;
     if(flac.whiten)
       [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,...
-					      nacfseg,acfseg.vol,flac.tpexc);
+					      nacfseg,acfseg.vol);
     else
-      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,...
-					      [],[],flac.tpexc);
+      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C);
     end
 
     p = FTest(dof1, dof2, F);
@@ -336,12 +341,12 @@ for nthrun = 1:nruns
 end % runs
 
 if(do_ffx)
-  fprintf('Computing FFX\n');
+  fprintf('\n\n---------------Computing FFX---------------\n');
   flacffx(flac,'',1);
 end
 
 if(do_rfx & nruns > 1)
-  fprintf('Computing RFX\n');
+  fprintf('\n\n---------------Computing RFX---------------\n');
   flacrfx(flac);
 end
 
