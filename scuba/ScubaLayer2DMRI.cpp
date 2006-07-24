@@ -31,7 +31,6 @@ int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 float const kPercentValuesToCut = 0.05;
 int const zGrayscaleHistogramBins = 200;
 
-int bReported[195];
 
 
 ScubaLayer2DMRI::ScubaLayer2DMRI () :
@@ -486,8 +485,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       RAS[2] += mColIncrementRAS[window[1]][2];
     }
   }
-
-  memset( bReported, 0, sizeof(int) * 195 );
 
   delete &loc;
 
