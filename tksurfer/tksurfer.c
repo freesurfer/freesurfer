@@ -511,6 +511,7 @@ int curvim_averaged=0;
 
 static float sf=0.55;      /* initial scale factor */
 static float zf=1.0;       /* current scale */
+static int reassign = 0 ; // reassign label vertices when reading
 
 double scalebar_xpos = SCALEBAR_XPOS;
 double scalebar_ypos = SCALEBAR_YPOS;
@@ -1988,184 +1989,190 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
      work as it did historically. In other words, this is a dirty hack
      that should be rewritten. */
   for (i = 0 ; i < argc ; i++)
-    {
-      /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
-      if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) 
-        {
-          nargs = 2 ;
-          functional_fname = argv[i+1] ;
-        }
-      else if (!stricmp(argv[i], "-overlay-reg") ||
-	       !stricmp(argv[i], "-orf")) 
-        {
-          nargs = 2 ;
-          strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
-          overlay_reg_type = FunD_tRegistration_File;
-        }
-      else if (!stricmp(argv[i], "-overlay-reg-find")) 
-        {
-          nargs = 1 ;
-          overlay_reg_type = FunD_tRegistration_Find;
-        }
-      else if (!stricmp(argv[i], "-overlay-reg-identity")) 
-        {
-          nargs = 1 ;
-          overlay_reg_type = FunD_tRegistration_Identity;
-        }
-      else if (!stricmp(argv[i], "-fslope"))
-        {
-          nargs = 2 ;
-          fslope = atof(argv[i+1]) ;
-          fprintf(stderr, "setting fslope to %2.4f\n", fslope) ;
-        }
-      else if (!stricmp(argv[i], "-colscalebarflag"))
-        {
-          nargs = 2 ;
-          colscalebarflag = atoi(argv[i+1]) ;
-          fprintf(stderr, "setting colscalebarflag to %d\n", colscalebarflag) ;
-        }
-      else if (!stricmp(argv[i], "-scalebarflag"))
-        {
-          nargs = 2 ;
-          scalebarflag = atoi(argv[i+1]) ;
-          fprintf(stderr, "setting scalebarflag to %d\n", scalebarflag) ;
-        }
-      else if (!stricmp(argv[i], "-truncphaseflag"))
-        {
-          nargs = 2 ;
-          truncphaseflag = atoi(argv[i+1]) ;
-          fprintf(stderr, "setting truncphaseflag to %d\n", truncphaseflag) ;
-        }
-      else if (!stricmp(argv[i], "-revphaseflag"))
-        {
-          nargs = 2 ;
-          revphaseflag = atoi(argv[i+1]) ;
-          fprintf(stderr, "setting revphaseflag to %d\n", revphaseflag) ;
-        }
-      else if (!stricmp(argv[i], "-invphaseflag"))
-        {
-          nargs = 2 ;
-          invphaseflag = atoi(argv[i+1]) ;
-          fprintf(stderr, "setting invphaseflag to %d\n", invphaseflag) ;
-        }
-      else if (!stricmp(argv[i], "-fthresh"))
-        {
-          nargs = 2 ;
-          fthresh = atof(argv[i+1]) ;
-          fprintf(stderr, "setting fthresh to %2.4f\n", fthresh) ;
-        }
-      else if (!stricmp(argv[i], "-patch"))
-        {
-          nargs = 2 ;
-          patch_name = argv[i+1] ;
-          fprintf(stderr, "displaying patch %s...\n", patch_name) ;
-        }
-      else if (!stricmp(argv[i], "-fmid"))
-        {
-          nargs = 2 ;
-          fmid = atof(argv[i+1]) ;
-          fprintf(stderr, "setting fmid to %2.4f\n", fmid) ;
-        }
-      else if (!stricmp(argv[i], "-foffset"))
-        {
-          nargs = 2 ;
-          foffset = atof(argv[i+1]) ;
-          fprintf(stderr, "setting foffset to %2.4f\n", foffset) ;
-        }
-      else if (!stricmp(argv[i], "-offset"))
-        {
-          nargs = 2 ;
-          offset = atof(argv[i+1]) ;
-          fprintf(stderr, "setting offset to %2.4f\n", offset) ;
-        }
-      else if (!stricmp(argv[i], "-sdir"))
-        {
-          nargs = 2 ;
-          sdir = argv[i+1] ;
-          fprintf(stderr, "using SUBJECTS_DIR %s\n", sdir) ;
-        }
-      else if (!stricmp(argv[i], "-orig"))
-        {
-          nargs = 2 ;
-          orig_suffix = argv[i+1] ;
-          fprintf(stderr, "using orig suffix %s\n", orig_suffix) ;
-        }
-      /* begin rkt */
-      else if (!stricmp(argv[i], "-timecourse"))
-        {
-          nargs = 2;
-          strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
-          load_timecourse = TRUE;
-        }
-      else if (!stricmp(argv[i], "-timecourse-reg"))
-        {
-          nargs = 2;
-          strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
-          timecourse_reg_type = FunD_tRegistration_File;
-        }
-      else if (!stricmp(argv[i], "-timecourse-reg-find")) 
-        {
-          nargs = 1 ;
-          timecourse_reg_type = FunD_tRegistration_Find;
-        }
-      else if (!stricmp(argv[i], "-timecourse-reg-identity")) 
-        {
-          nargs = 1 ;
-          timecourse_reg_type = FunD_tRegistration_Identity;
-        }
-      else if (!stricmp(argv[i], "-timecourse-offset"))
-        {
-          nargs = 2;
-          strncpy (timecourse_offset_fname, argv[i+1], 
-                   sizeof(timecourse_offset_fname));
-          load_timecourse_offset = TRUE;
-        }
-      else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
-        {
-          nargs = 2;
-          strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
-          timecourse_offset_reg_type = FunD_tRegistration_File;
-        }
-      else if (!stricmp(argv[i], "-timecourse-offset-reg-find")) 
-        {
-          nargs = 1 ;
-          timecourse_offset_reg_type = FunD_tRegistration_Find;
-        }
-      else if (!stricmp(argv[i], "-timecourse-offset-reg-identity")) 
-        {
-          nargs = 1 ;
-          timecourse_offset_reg_type = FunD_tRegistration_Identity;
-        }
-      else if (!stricmp(argv[i], "-annotation") ||
-	       !stricmp(argv[i], "-annot")) 
-        {
-          nargs = 2 ;
-          strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
-	  load_annotation = TRUE;
-        }
-      else if (!stricmp(argv[i], "-colortable") ||
-	       !stricmp(argv[i], "-ctab")) 
-        {
-          nargs = 2 ;
-          strncpy (colortable_fname, argv[i+1], sizeof(colortable_fname));
-	  load_colortable = TRUE;
-        }
-      else if (!stricmp(argv[i], "-tcl"))
-        {
-          nargs = 2;
-          strncpy (script_tcl, argv[i+1], sizeof(script_tcl));
-          scriptok = TRUE;
-        }
-      /* end rkt */
-      else
-	  nargs = 0 ;
-      if (nargs > 0)
-        {
-          if (argc-(nargs+i) > 0)
-            memmove(argv+i, argv+i+nargs, (argc-(nargs+i))*sizeof(char*)) ;
-          argc -= nargs ; i-- ;
-        }
-    }
+	{
+		/*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
+		if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) 
+		{
+			nargs = 2 ;
+			functional_fname = argv[i+1] ;
+		}
+		else if (!stricmp(argv[i], "-overlay-reg") ||
+						 !stricmp(argv[i], "-orf")) 
+		{
+			nargs = 2 ;
+			strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
+			overlay_reg_type = FunD_tRegistration_File;
+		}
+		else if (!stricmp(argv[i], "-overlay-reg-find")) 
+		{
+			nargs = 1 ;
+			overlay_reg_type = FunD_tRegistration_Find;
+		}
+		else if (!stricmp(argv[i], "-overlay-reg-identity")) 
+		{
+			nargs = 1 ;
+			overlay_reg_type = FunD_tRegistration_Identity;
+		}
+		else if (!stricmp(argv[i], "-fslope"))
+		{
+			nargs = 2 ;
+			fslope = atof(argv[i+1]) ;
+			fprintf(stderr, "setting fslope to %2.4f\n", fslope) ;
+		}
+		else if (!stricmp(argv[i], "-colscalebarflag"))
+		{
+			nargs = 2 ;
+			colscalebarflag = atoi(argv[i+1]) ;
+			fprintf(stderr, "setting colscalebarflag to %d\n", colscalebarflag) ;
+		}
+		else if (!stricmp(argv[i], "-scalebarflag"))
+		{
+			nargs = 2 ;
+			scalebarflag = atoi(argv[i+1]) ;
+			fprintf(stderr, "setting scalebarflag to %d\n", scalebarflag) ;
+		}
+		else if (!stricmp(argv[i], "-truncphaseflag"))
+		{
+			nargs = 2 ;
+			truncphaseflag = atoi(argv[i+1]) ;
+			fprintf(stderr, "setting truncphaseflag to %d\n", truncphaseflag) ;
+		}
+		else if (!stricmp(argv[i], "-revphaseflag"))
+		{
+			nargs = 2 ;
+			revphaseflag = atoi(argv[i+1]) ;
+			fprintf(stderr, "setting revphaseflag to %d\n", revphaseflag) ;
+		}
+		else if (!stricmp(argv[i], "-invphaseflag"))
+		{
+			nargs = 2 ;
+			invphaseflag = atoi(argv[i+1]) ;
+			fprintf(stderr, "setting invphaseflag to %d\n", invphaseflag) ;
+		}
+		else if (!stricmp(argv[i], "-fthresh"))
+		{
+			nargs = 2 ;
+			fthresh = atof(argv[i+1]) ;
+			fprintf(stderr, "setting fthresh to %2.4f\n", fthresh) ;
+		}
+		else if (!stricmp(argv[i], "-patch"))
+		{
+			nargs = 2 ;
+			patch_name = argv[i+1] ;
+			fprintf(stderr, "displaying patch %s...\n", patch_name) ;
+		}
+		else if (!stricmp(argv[i], "-fmid"))
+		{
+			nargs = 2 ;
+			fmid = atof(argv[i+1]) ;
+			fprintf(stderr, "setting fmid to %2.4f\n", fmid) ;
+		}
+		else if (!stricmp(argv[i], "-foffset"))
+		{
+			nargs = 2 ;
+			foffset = atof(argv[i+1]) ;
+			fprintf(stderr, "setting foffset to %2.4f\n", foffset) ;
+		}
+		else if (!stricmp(argv[i], "-offset"))
+		{
+			nargs = 2 ;
+			offset = atof(argv[i+1]) ;
+			fprintf(stderr, "setting offset to %2.4f\n", offset) ;
+		}
+		else if (!stricmp(argv[i], "-sdir"))
+		{
+			nargs = 2 ;
+			sdir = argv[i+1] ;
+			fprintf(stderr, "using SUBJECTS_DIR %s\n", sdir) ;
+		}
+		else if (!stricmp(argv[i], "-reassign"))
+		{
+			reassign = 1 ;
+			nargs = 1 ;
+			fprintf(stderr, "reassigning label vertex #s\n") ;
+		}
+		else if (!stricmp(argv[i], "-orig"))
+		{
+			nargs = 2 ;
+			orig_suffix = argv[i+1] ;
+			fprintf(stderr, "using orig suffix %s\n", orig_suffix) ;
+		}
+		/* begin rkt */
+		else if (!stricmp(argv[i], "-timecourse"))
+		{
+			nargs = 2;
+			strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
+			load_timecourse = TRUE;
+		}
+		else if (!stricmp(argv[i], "-timecourse-reg"))
+		{
+			nargs = 2;
+			strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
+			timecourse_reg_type = FunD_tRegistration_File;
+		}
+		else if (!stricmp(argv[i], "-timecourse-reg-find")) 
+		{
+			nargs = 1 ;
+			timecourse_reg_type = FunD_tRegistration_Find;
+		}
+		else if (!stricmp(argv[i], "-timecourse-reg-identity")) 
+		{
+			nargs = 1 ;
+			timecourse_reg_type = FunD_tRegistration_Identity;
+		}
+		else if (!stricmp(argv[i], "-timecourse-offset"))
+		{
+			nargs = 2;
+			strncpy (timecourse_offset_fname, argv[i+1], 
+							 sizeof(timecourse_offset_fname));
+			load_timecourse_offset = TRUE;
+		}
+		else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
+		{
+			nargs = 2;
+			strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
+			timecourse_offset_reg_type = FunD_tRegistration_File;
+		}
+		else if (!stricmp(argv[i], "-timecourse-offset-reg-find")) 
+		{
+			nargs = 1 ;
+			timecourse_offset_reg_type = FunD_tRegistration_Find;
+		}
+		else if (!stricmp(argv[i], "-timecourse-offset-reg-identity")) 
+		{
+			nargs = 1 ;
+			timecourse_offset_reg_type = FunD_tRegistration_Identity;
+		}
+		else if (!stricmp(argv[i], "-annotation") ||
+						 !stricmp(argv[i], "-annot")) 
+		{
+			nargs = 2 ;
+			strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
+			load_annotation = TRUE;
+		}
+		else if (!stricmp(argv[i], "-colortable") ||
+						 !stricmp(argv[i], "-ctab")) 
+		{
+			nargs = 2 ;
+			strncpy (colortable_fname, argv[i+1], sizeof(colortable_fname));
+			load_colortable = TRUE;
+		}
+		else if (!stricmp(argv[i], "-tcl"))
+		{
+			nargs = 2;
+			strncpy (script_tcl, argv[i+1], sizeof(script_tcl));
+			scriptok = TRUE;
+		}
+		/* end rkt */
+		else
+			nargs = 0 ;
+		if (nargs > 0)
+		{
+			if (argc-(nargs+i) > 0)
+				memmove(argv+i, argv+i+nargs, (argc-(nargs+i))*sizeof(char*)) ;
+			argc -= nargs ; i-- ;
+		}
+	}
   
   /* args */
   if (argc==2)
@@ -2351,74 +2358,74 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
     ErrorExit(Gerror, "%s: could not read surface file %s.",Progname,ifname);
   
   if (read_orig_vertex_coordinates(orfname) == NO_ERROR)
-    {
-      char fname[STRLEN] ;
-      sprintf(fname, "%s.sphere.reg", fpref) ;
-      if (FileExists(fname))
-        read_canon_vertex_coordinates(fname) ;
-    }
+	{
+		char fname[STRLEN] ;
+		sprintf(fname, "%s.sphere.reg", fpref) ;
+		if (FileExists(fname))
+			read_canon_vertex_coordinates(fname) ;
+	}
   if (functional_fname)  /* -o specified on command line */
-    {
-      if (strlen(functional_fname) > 2 &&
-          strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
-        {
-          read_binary_values(functional_fname) ;
+	{
+		if (strlen(functional_fname) > 2 &&
+				strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
+		{
+			read_binary_values(functional_fname) ;
 
-          read_binary_curvature(cfname) ; 
-          val_to_stat() ;
-          overlayflag = TRUE ;
-          colscale = HEAT_SCALE ;
-        } 
-      else
-        {
+			read_binary_curvature(cfname) ; 
+			val_to_stat() ;
+			overlayflag = TRUE ;
+			colscale = HEAT_SCALE ;
+		} 
+		else
+		{
 
-          sclv_read_from_volume(functional_fname, overlay_reg_type,
-                                overlay_reg, SCLV_VAL);
+			sclv_read_from_volume(functional_fname, overlay_reg_type,
+														overlay_reg, SCLV_VAL);
           
-          read_binary_curvature(cfname) ; 
-          val_to_stat() ;
-          overlayflag = TRUE ;
-          colscale = HEAT_SCALE ;
-        }
-    }
+			read_binary_curvature(cfname) ; 
+			val_to_stat() ;
+			overlayflag = TRUE ;
+			colscale = HEAT_SCALE ;
+		}
+	}
 #if 0
   read_binary_areas(afname);
 #endif
   
   /* begin rkt */
   if (load_timecourse)
-    {
-      func_load_timecourse (timecourse_fname, 
-                            timecourse_reg_type, timecourse_reg);
+	{
+		func_load_timecourse (timecourse_fname, 
+													timecourse_reg_type, timecourse_reg);
       
-      /* send the number of conditions */
-      sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-      send_tcl_command (tcl_cmd);
+		/* send the number of conditions */
+		sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+		send_tcl_command (tcl_cmd);
       
-      /* show the graph window */
-      send_tcl_command ("Graph_ShowWindow");
-    }
+		/* show the graph window */
+		send_tcl_command ("Graph_ShowWindow");
+	}
   
   if (load_timecourse_offset)
-    {
+	{
       
-      func_load_timecourse_offset (timecourse_offset_fname, 
-                                   timecourse_offset_reg_type, 
-                                   timecourse_offset_reg);
+		func_load_timecourse_offset (timecourse_offset_fname, 
+																 timecourse_offset_reg_type, 
+																 timecourse_offset_reg);
       
-      /* turn on the offset options */
-      send_tcl_command ("Graph_ShowOffsetOptions 1");
-    }
+		/* turn on the offset options */
+		send_tcl_command ("Graph_ShowOffsetOptions 1");
+	}
 
   if (load_colortable) 
-    {
-      labl_load_color_table (colortable_fname);
-    }
+	{
+		labl_load_color_table (colortable_fname);
+	}
   
   if (load_annotation)
-    {
-      labl_import_annotation (annotation_fname);
-    }
+	{
+		labl_import_annotation (annotation_fname);
+	}
 
   /* If we didn't load an annotation or color table filename, load the
      default color table. */
@@ -2436,41 +2443,41 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   /* end rkt */
   
   if (tclscriptflag)
-    {
-      /* tksurfer tcl script */
-      /* called from tksurfer.c; do nothing (don't even open gl window) */
-      /* wait for tcl interp to start; tksurfer calls tcl script */
-    }
+	{
+		/* tksurfer tcl script */
+		/* called from tksurfer.c; do nothing (don't even open gl window) */
+		/* wait for tcl interp to start; tksurfer calls tcl script */
+	}
   else
-    { 
+	{ 
 
-      /* open window for surfer or non-script tksurfer (a few envs) */
+		/* open window for surfer or non-script tksurfer (a few envs) */
 #ifndef Linux
-      if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
-        if (MATCH("1",envptr))     doublebufferflag = TRUE;
-        if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
-      }
-      if ((envptr=getenv("renderoffscreen"))!=NULL) {
-        if (MATCH("1",envptr))     renderoffscreen = TRUE;
-        if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
-      }
+		if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
+			if (MATCH("1",envptr))     doublebufferflag = TRUE;
+			if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
+		}
+		if ((envptr=getenv("renderoffscreen"))!=NULL) {
+			if (MATCH("1",envptr))     renderoffscreen = TRUE;
+			if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
+		}
 #endif
-      open_window(pname);
-      if (stem[0]=='r'&&stem[1]=='h')
-        rotate_brain(-90.0,'y');
-      else
-        rotate_brain(90.0,'y');
-      redraw();
-    }
+		open_window(pname);
+		if (stem[0]=='r'&&stem[1]=='h')
+			rotate_brain(-90.0,'y');
+		else
+			rotate_brain(90.0,'y');
+		redraw();
+	}
   
   if (patch_name)
-    {
-      strcpy(pfname, patch_name) ;
-      read_binary_patch(patch_name) ;
-      restore_zero_position() ;
-      rotate_brain(-90.0, 'x') ;
-      redraw() ;
-    }
+	{
+		strcpy(pfname, patch_name) ;
+		read_binary_patch(patch_name) ;
+		restore_zero_position() ;
+		rotate_brain(-90.0, 'x') ;
+		redraw() ;
+	}
   
   return(0) ;
 }
@@ -7842,6 +7849,8 @@ read_labeled_vertices(char *fname)
     return ;
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname) ;
+	if (reassign)
+		LabelUnassign(area) ;
   LabelFillUnassignedVertices(mris, area) ;
   LabelMark(area, mris) ;
   surface_compiled = 0 ;
@@ -17400,6 +17409,7 @@ print_help_tksurfer(void)
    printf("Options\n");
    printf("\n");
 
+   printf("-reassign      : resample labels onto surface (set vnos=-1)\n");
    printf("-sdir <path>   : sets the subjects directory path\n");
    printf("-orig <suffix> : sets the orig suffix string\n");
    printf("\n");
@@ -19122,7 +19132,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.215 2006/07/21 14:47:08 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.216 2006/07/24 14:58:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20769,20 +20779,20 @@ mask_label(char *label_name)
   MRISclearMarks(mris) ;
   area = LabelRead(pname, label_name) ;
   if (!area)
-    {
-      fprintf(stderr, "unable to read label file %s\n", label_name) ;
-      return(NO_ERROR) ;
-    }
+	{
+		fprintf(stderr, "unable to read label file %s\n", label_name) ;
+		return(NO_ERROR) ;
+	}
   
   LabelMarkSurface(area, mris) ;  /* mark all points in label */
   
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->marked || v->ripflag)
-        continue ;
-      v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
-    }
+	{
+		v = &mris->vertices[vno] ;
+		if (v->marked || v->ripflag)
+			continue ;
+		v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
+	}
   LabelFree(&area) ;
   MRISclearMarks(mris) ;
   redraw() ;
@@ -24429,9 +24439,11 @@ int labl_load (char* fname)
   /* load label file. */
   label = LabelRead (pname, fname);
   if (NULL == label)
-    {
-      return (ERROR_NO_FILE);
-    }
+	{
+		return (ERROR_NO_FILE);
+	}
+	if (reassign)
+		LabelUnassign(label) ;
 
   /* load the orig vertex positions if we haven't already. */
   if (!origsurfloaded)
