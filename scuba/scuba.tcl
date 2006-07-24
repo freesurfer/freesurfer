@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.217 2006/07/17 18:40:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.218 2006/07/24 19:57:38 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6353,7 +6353,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.217 2006/07/17 18:40:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.218 2006/07/24 19:57:38 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7731,7 +7731,7 @@ proc DoMakeNewVolumeROIIntensityChartDlog {} {
     
     # If no volumes, return.
     if { [llength $lVolumes] == 0 } {
-	tkuErrorDlog "Must have a volume loaded before generating an ROI chart."
+       tkuErrorDlog "Must have a volume loaded before generating an ROI chart."
 	return
     }
 
@@ -7814,8 +7814,11 @@ proc ROIIntensityChartDlogVolCallback { iVol } {
 	$idList "GetROILabel %s" {} false
 }
  
+
+
 proc DoMakeNewMultiFrameVolumeChartDlog {} {
     global gaCollection
+    global gaMultiFrameVolumeChartInfo
 
     # Build a list of volumes.
     set lVolumes {}
@@ -7829,34 +7832,76 @@ proc DoMakeNewMultiFrameVolumeChartDlog {} {
     
     # If no volumes, return.
     if { [llength $lVolumes] == 0 } {
-	tkuErrorDlog "Must have a volume loaded before making a time course window."
+       tkuErrorDlog "Must have a volume loaded before generating an ROI chart."
 	return
     }
 
     # Create the dialog.
-    set wwDialog .wwMultiFrameVolumeChartDlog
-    if { [tkuCreateDialog $wwDialog "Make Time Course Window" {-borderwidth 10}] } {
+    set wwDialog .wwVolumeMultiFrameVolumeChartDlog
+    if { [tkuCreateDialog $wwDialog "Multi-frame Volume Chart" {-borderwidth 10}] } {
 
 	set owVolume   $wwDialog.owVolume
+	set owROI      $wwDialog.owROI
 	set fwButtons  $wwDialog.fwButtons
 
-	# Option menu full of volumes..
+	# Option menu full of volumes. The callback will fill the ROI
+	# menu with the ROIs from the selected volume.
 	tixOptionMenu $owVolume \
 	    -label "Volume: " \
-	    -variable gMultiFrameVolumeID
+	    -command MultiFrameVolumeChartDlogVolCallback \
+	    -variable gaMultiFrameVolumeChartInfo(volume)
 	FillMenuFromList $owVolume \
 	    $lVolumes "GetCollectionLabel %s" {} false
 
+	# Option menu for ROIs. We start out empty.
+	tixOptionMenu $owROI \
+	    -label "ROI: " \
+	    -variable gaMultiFrameVolumeChartInfo(roi)
+
+	set gaMultiFrameVolumeChartInfo(widget,ROImenu) $owROI
+
+
 	# OK button will call the chart functin.
 	tkuMakeCancelOKButtons $fwButtons $wwDialog \
-	    -okCmd {MakeNewMultiFrameVolumeChart $gMultiFrameVolumeID}
+	    -okCmd {
+		if { $gaMultiFrameVolumeChartInfo(roi) >= 0 } {
+		    MakeNewMultiFrameVolumeChartWithROI \
+			$gaMultiFrameVolumeChartInfo(volume) \
+			$gaMultiFrameVolumeChartInfo(roi)
+		} else {
+		    MakeNewMultiFrameVolumeChart \
+			$gaMultiFrameVolumeChartInfo(volume)
+		}
+	    }
 
-	pack $owVolume $fwButtons \
+	pack $owVolume $owROI $fwButtons \
 	    -side top -expand yes -fill x
+
+	# If our current collection is in the list of volumes, select
+	# it in the option menu. Otherwise select the first
+	# one. Populate the ROI list.
+	if { [lsearch $lVolumes $gaCollection(current,id)] != -1 } {
+	    set gaMultiFrameVolumeChartInfo(volume) $gaCollection(current,id)
+	} else {
+	    set gaMultiFrameVolumeChartInfo(volume) [lindex $lVolumes 0]
+	}
+	MultiFrameVolumeChartDlogVolCallback $gaMultiFrameVolumeChartInfo(volume)
 
     }
 }
 
+
+proc MultiFrameVolumeChartDlogVolCallback { iVol } {
+    global gaMultiFrameVolumeChartInfo
+
+    # Fill the list box from the ROI list for the collectoin.
+    set volID $gaMultiFrameVolumeChartInfo(volume)
+    set idList [GetROIIDListForCollection $volID]
+    FillMenuFromList $gaMultiFrameVolumeChartInfo(widget,ROImenu) \
+	$idList "GetROILabel %s" {} true
+    set gaMultiFrameVolumeChartInfo(roi) -1
+}
+ 
   
 # MAIN =============================================================
 
