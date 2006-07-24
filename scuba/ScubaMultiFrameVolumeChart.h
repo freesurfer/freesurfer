@@ -7,6 +7,7 @@
 #include "Listener.h"
 #include "TclCommandManager.h"
 #include "VolumeCollection.h"
+#include "ScubaROIVolume.h"
 
 // This allows you to create charts based on volumes that will get the
 // current cursor and draw the volume's values at that cursor over
@@ -18,6 +19,8 @@ class ScubaMultiFrameVolumeChart : public Listener, public IDTracker<ScubaMultiF
  public:
 
   ScubaMultiFrameVolumeChart( VolumeCollection& iVolume );
+  ScubaMultiFrameVolumeChart( VolumeCollection& iVolume, 
+			      ScubaROIVolume& iROI );
   ~ScubaMultiFrameVolumeChart();
 
   virtual void
@@ -30,6 +33,7 @@ class ScubaMultiFrameVolumeChart : public Listener, public IDTracker<ScubaMultiF
  private:
 
   VolumeCollection& mVolume;
+  ScubaROIVolume*   mROI;
   ChartWindow*      mChart;
 };
 
