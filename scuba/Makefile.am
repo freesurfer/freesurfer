@@ -48,13 +48,7 @@ FSDATA_SRCS= \
 	ScubaTransform.cpp ScubaTransform.h \
 	ScubaColorLUT.cpp ScubaColorLUT.h \
 	ScubaROI.cpp ScubaROI.h \
-	ScubaROIVolume.cpp ScubaROIVolume.h \
-	SegmentationVolumeReport.cpp SegmentationVolumeReport.h \
-	ChartWindow.cpp ChartWindow.h \
-	ScubaVolumeROIIntensityChart.cpp \
-	ScubaVolumeROIIntensityChart.h \
-	ScubaMultiFrameVolumeChart.cpp \
-	ScubaMultiFrameVolumeChart.h
+	ScubaROIVolume.cpp ScubaROIVolume.h
 
 LAYER_SRCS=ScubaLayerFactory.cpp ScubaLayerFactory.h \
 	ScubaLayer2DMRI.cpp ScubaLayer2DMRI.h \
@@ -72,7 +66,13 @@ GUI_SRCS= \
 	ScubaToolState.cpp ScubaToolState.h \
 	ScubaGlobalPreferences.cpp ScubaGlobalPreferences.h \
 	ProgressDisplayManager.cpp ProgressDisplayManager.h \
-	ScubaKeyCombo.cpp ScubaKeyCombo.h
+	ScubaKeyCombo.cpp ScubaKeyCombo.h \
+	SegmentationVolumeReport.cpp SegmentationVolumeReport.h \
+	ChartWindow.cpp ChartWindow.h \
+	ScubaVolumeROIIntensityChart.cpp \
+	ScubaVolumeROIIntensityChart.h \
+	ScubaMultiFrameVolumeChart.cpp \
+	ScubaMultiFrameVolumeChart.h
 
 QCONSOLE_SRCS = \
 	qconsole/src/commands.cpp qconsole/include/commands.h \
