@@ -77,6 +77,34 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
       }
     }
 
+    // Check the list.
+    list<Point3<int> > lSelected;
+    lSelected = roi.GetSelectedVoxelList();
+    list<Point3<int> >::iterator tSelected;
+    for( tSelected = lSelected.begin(); 
+	 tSelected != lSelected.end(); ++tSelected ) {
+      Point3<int> voxel = *tSelected;
+      if( !(voxel[0] % 2 && voxel[1] % 2 && voxel[2] % 2) ) {
+	stringstream ssErr;
+	ssErr << "Voxel " << voxel << " was in selected list";
+	Assert( 0, ssErr.str() );
+      }
+    }
+
+    // Unselect a voxel, then check the selected list again.
+    voxel[0] = 3; voxel[1] = 3; voxel[2] = 3;
+    roi.UnselectVoxel( voxel );
+    lSelected = roi.GetSelectedVoxelList();
+    for( tSelected = lSelected.begin(); 
+	 tSelected != lSelected.end(); ++tSelected ) {
+      Point3<int> voxel = *tSelected;
+      if( voxel[0] == 3 && voxel[1] == 3 && voxel[2] == 3 ) {
+	stringstream ssErr;
+	ssErr << "Voxel " << voxel << " was in selected list";
+	Assert( 0, ssErr.str() );
+      }
+    }
+
     try {
       voxel[0] = -1;
       roi.SelectVoxel( voxel );
@@ -90,7 +118,28 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
       throw runtime_error( "SelectVoxel with x=bounds[0] didn't throw" );
     }
     catch(...) {}
-    
+
+    // Reset bounds, select one voxel, and make sure it's in the list.
+    bounds[0] = bounds[1] = bounds[2] = 2;
+    roi.SetROIBounds( bounds );
+    voxel[0] = 1; voxel[1] = 1; voxel[2] = 1;
+    roi.SelectVoxel( voxel );
+    lSelected = roi.GetSelectedVoxelList();
+    if( lSelected.size() != 1 ) {
+      stringstream ssErr;
+      ssErr << "Selected voxel list size was " << lSelected.size();
+      Assert( 0, ssErr.str() );
+    }
+    for( tSelected = lSelected.begin(); 
+	 tSelected != lSelected.end(); ++tSelected ) {
+      Point3<int> voxel = *tSelected;
+      if( voxel[0] != 1 || voxel[1] != 1 || voxel[2] != 1 ) {
+	stringstream ssErr;
+	ssErr << "Voxel " << voxel << " was in selected list";
+	Assert( 0, ssErr.str() );
+      }
+    }
+
   }
   catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
