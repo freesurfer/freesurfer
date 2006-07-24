@@ -1918,36 +1918,36 @@ VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS,
     }
     label->n_points = cSelectedVoxels;
 
+    // Go through the selected voxels...
     int nPoint = 0;
-    int voxel[3];
-    for( voxel[2] = 0; voxel[2] < bounds[2]; voxel[2]++ ) {
-      for( voxel[1] = 0; voxel[1] < bounds[1]; voxel[1]++ ) {
-	for( voxel[0] = 0; voxel[0] < bounds[0]; voxel[0]++ ) {
-	  
-	  if( roi->IsVoxelSelected( voxel ) ) {
+    list<Point3<int> > lSelected = roi->GetSelectedVoxelList();
+    list<Point3<int> >::iterator tSelected;
+    for( tSelected = lSelected.begin(); 
+	 tSelected != lSelected.end(); ++tSelected ) {
 
-	    float ras[3];
-	    MRIIndexToRAS( voxel, ras );
-	    VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( ras );
+      Point3<int> voxel = *tSelected;
+      
+      // Convert the voxel to RAS.
+      float ras[3];
+      MRIIndexToRAS( voxel.xyz(), ras );
+      VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( ras );
 
-	    // Convert these points to TkRegRAS space if needed.
-	    if( !ibUseRealRAS ) {
-	      RASToTkRegRAS( ras, ras );
-	    }
-
-	    label->lv[nPoint].x = ras[0];
-	    label->lv[nPoint].y = ras[1];
-	    label->lv[nPoint].z = ras[2];
-	    label->lv[nPoint].stat = GetMRINearestValue( loc );
-	    label->lv[nPoint].vno = -1;
-	    label->lv[nPoint].deleted = false;
-	    
-	    nPoint++;
-
-	    delete &loc;
-	  }
-	}
+      // Convert these points to TkRegRAS space if needed.
+      if( !ibUseRealRAS ) {
+	RASToTkRegRAS( ras, ras );
       }
+
+      // Write the point to the label.
+      label->lv[nPoint].x = ras[0];
+      label->lv[nPoint].y = ras[1];
+      label->lv[nPoint].z = ras[2];
+      label->lv[nPoint].stat = GetMRINearestValue( loc );
+      label->lv[nPoint].vno = -1;
+      label->lv[nPoint].deleted = false;
+      
+      nPoint++;
+
+      delete &loc;
     }
 
     int error = LabelWrite( label, fnLabel );
@@ -2482,20 +2482,17 @@ float
 VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
   
   list<VolumeLocation> lLocs;
-  int voxel[3];
-  for( voxel[2] = 0; voxel[2] < mMRI->depth; voxel[2]++ ) {
-    for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
-      for( voxel[0] = 0; voxel[0] < mMRI->width; voxel[0]++ ) {
-	
-	if( iROI.IsVoxelSelected( voxel ) ) {
-
-	  VolumeLocation& loc = 
-	    (VolumeLocation&) MakeLocationFromIndex( voxel );
-	  lLocs.push_back( loc );
-	  delete &loc;
-	}
-      }
-    }
+  
+  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
+  list<Point3<int> >::iterator tSelected;
+  for( tSelected = lSelected.begin(); 
+       tSelected != lSelected.end(); ++tSelected ) {
+    
+    Point3<int> voxel = *tSelected;
+    VolumeLocation& loc = 
+      (VolumeLocation&) MakeLocationFromIndex( voxel.xyz() );
+    lLocs.push_back( loc );
+    delete &loc;
   }
 
   return GetAverageValue( lLocs );
@@ -2527,20 +2524,16 @@ float
 VolumeCollection::GetStandardDeviation ( ScubaROIVolume& iROI, float iMean ) {
   
   list<VolumeLocation> lLocs;
-  int voxel[3];
-  for( voxel[2] = 0; voxel[2] < mMRI->depth; voxel[2]++ ) {
-    for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
-      for( voxel[0] = 0; voxel[0] < mMRI->width; voxel[0]++ ) {
-	
-	if( iROI.IsVoxelSelected( voxel ) ) {
-	  
-	  VolumeLocation& loc = 
-	    (VolumeLocation&) MakeLocationFromIndex( voxel );
-	  lLocs.push_back( loc );
-	  delete &loc;
-	}
-      }
-    }
+  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
+  list<Point3<int> >::iterator tSelected;
+  for( tSelected = lSelected.begin(); 
+       tSelected != lSelected.end(); ++tSelected ) {
+    
+    Point3<int> voxel = *tSelected;
+    VolumeLocation& loc = 
+      (VolumeLocation&) MakeLocationFromIndex( voxel.xyz() );
+    lLocs.push_back( loc );
+    delete &loc;
   }
   
   return GetStandardDeviation( lLocs, iMean );
