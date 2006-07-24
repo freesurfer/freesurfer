@@ -27,7 +27,7 @@ typedef unsigned short int BOOL;
 #ifdef _DICOMRead_SRC
   char *SDCMStatusFile = 0;
   char *SDCMListFile = 0;
-  int  UseDICOMRead2 = 0;
+  int  UseDICOMRead2 = 1; // use new dicom reader by default
 #else
   extern char *SDCMStatusFile;
   extern char *SDCMListFile;

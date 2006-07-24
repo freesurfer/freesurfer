@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/10 19:32:14 $
-// Revision       : $Revision: 1.128 $
+// Revision Date  : $Date: 2006/07/24 20:34:55 $
+// Revision       : $Revision: 1.129 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.128 2006/07/10 19:32:14 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.129 2006/07/24 20:34:55 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.128 2006/07/10 19:32:14 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.129 2006/07/24 20:34:55 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -767,6 +767,7 @@ int main(int argc, char *argv[])
 	force_in_type_flag = TRUE;
       }
       else if(strcmp(argv[i], "-dicomread2") == 0) UseDICOMRead2 = 1;
+      else if(strcmp(argv[i], "-dicomread0") == 0) UseDICOMRead2 = 0;
       else if(strcmp(argv[i], "-ot") == 0 ||
               strcmp(argv[i], "--out_type") == 0)
         {
