@@ -53,11 +53,11 @@ static void initTopoFixerParameters(){
 	parms.minimal_mode=0;
 	parms.nminattempts = 10;
 	parms.l_mri = 0.0;
-  parms.l_curv = 1.0 ;
+  parms.l_curv = 4.0 ;
   parms.l_qcurv = 0.0;
   parms.l_unmri = 1.0; 
 	parms.volume_resolution = 3;
-	parms.nattempts_percent=0.3;
+	parms.nattempts_percent=0.15;
   parms.minimal_loop_percent = 0.4;
 	parms.no_self_intersections = 1;
 	parms.contrast = -2; //contrast ( regular == 1 ; inversion == -1 ; detect = -2 ) 
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.14 2006/07/25 20:10:05 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.15 2006/07/25 20:56:12 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.14 2006/07/25 20:10:05 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.15 2006/07/25 20:56:12 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
