@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-set ID='$Id: postprocess_targz.csh,v 1.5 2006/05/24 15:18:03 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.6 2006/07/25 16:42:37 nicks Exp $'
 
 set echo=1
 
@@ -33,6 +33,7 @@ if ($status) exit 1
 gzip $1.tar
 if ($status) exit 1
 md5sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/md5sum.txt
+sha1sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/sha1sum.txt
 mv $1.tar.gz ${SPACE_FS}/build/pub-releases/
 if ($status) exit 1
 
