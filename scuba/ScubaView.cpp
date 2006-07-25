@@ -1716,7 +1716,11 @@ void
 ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   
   if( isMessage == "transformChanged" ) {
-    RebuildOverlayDrawList(); // our overlay coords are different now
+
+    // World to view transform changed. Our overlay coords are
+    // different now. Also recalc the overall transform.
+    RebuildOverlayDrawList();
+    CalcWorldToWindowTransform();
     RequestRedisplay();
   }
 
