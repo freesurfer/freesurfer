@@ -21,6 +21,7 @@ extern "C" {
 
 int main(int argc, char *argv[]) ;
 
+static int asc = 0;
 static int noint = 1 ;
 static int sphere = 1 ;
 
@@ -33,11 +34,12 @@ char *Progname ;
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
 static char *orig_name     = "orig" ;
+static char *input_name   = "input" ;
 //static char *defect_name  = "defects" ;
 static char *sphere_name = "qsphere" ;
 static char *out_name = "orig_corrected" ;
 
-static char sdir[STRLEN] = "" ;
+static char sdir[STRLEN] = "";///space/tensor/7/users/fstest/" ;
 static TOPOFIX_PARMS parms;
 static int MGZ = 0; // set to 1 for MGZ
 
@@ -50,14 +52,15 @@ static void initTopoFixerParameters(){
 	parms.mode = 0 ;
 	parms.minimal_mode=0;
 	parms.nminattempts = 10;
-	parms.l_mri = 2.0;
+	parms.l_mri = 0.0;
   parms.l_curv = 1.0 ;
-  parms.l_qcurv = 1.0;
-  parms.l_unmri = 10.0; 
-	parms.volume_resolution = 2;
+  parms.l_qcurv = 0.0;
+  parms.l_unmri = 1.0; 
+	parms.volume_resolution = 3;
 	parms.nattempts_percent=0.3;
   parms.minimal_loop_percent = 0.4;
 	parms.no_self_intersections = 1;
+	parms.contrast = -2; //contrast ( regular == 1 ; inversion == -1 ; detect = -2 ) 
 	//does not write out information
 	parms.write = 0;
 	
@@ -127,7 +130,7 @@ int main(int argc, char *argv[])
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
 	// MRI           *mri, *mri_wm ;
-  int           msec, nvert, nfaces, nedges, eno ;
+  int           msec, nvert, nfaces, nedges, eno ,is_valid; 
   struct timeb  then ;
 
 	char cmdline[CMD_LINE_LEN] ;
@@ -135,7 +138,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.13 2006/05/17 11:03:37 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.14 2006/07/25 20:10:05 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -144,7 +147,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.13 2006/05/17 11:03:37 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.14 2006/07/25 20:10:05 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -203,15 +206,25 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
+	is_valid = MRISisSurfaceValid(mris,0,1);
+	if(is_valid == 0 ) {
+		fprintf(stderr,"The original surface is not a valid tessellated manifold!!!\n");
+		fprintf(stderr,"\nAbort !!!\n");
+		MRISfree(&mris);
+		exit(-1);
+	}else
+		fprintf(stderr,"The original surface is a valid manifold\n");
+
+
 	if(parms.no_self_intersections){
 		int self_intersect =  IsMRISselfIntersecting(mris);
 		if(self_intersect){
-			fprintf(stderr,"\nThe original surface self-intersects!!!\n");
+			fprintf(stderr,"The original surface self-intersects!!!\n");
 			fprintf(stderr,"\nAbort !!!\n");
 			MRISfree(&mris);
 			exit(-1);
 		}else
-			fprintf(stderr,"\nThe original surface does not self-intersect\n");
+			fprintf(stderr,"The original surface does not self-intersect\n");
 	}
 
 	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
@@ -224,6 +237,9 @@ int main(int argc, char *argv[])
     };
   }
 	MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
+
+	sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, input_name) ;
+	MRISwrite(mris,fname);
 
 	//number of loops 
 	int nloops = (2-eno)/2;
@@ -330,7 +346,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-
 	//checking if we have some self-intersections (should not happen) 
 	if(parms.no_self_intersections){
     int self_intersect =  IsMRISselfIntersecting(mris_corrected);
@@ -348,11 +363,14 @@ int main(int argc, char *argv[])
 	/* compute the orientation changes */
 	MRISmarkOrientationChanges(mris_corrected);
 
-	
+	if(asc){
+		sprintf(fname, "%s/%s/surf/%s.%s.asc", sdir, sname, hemi,out_name) ;
+		MRISwrite(mris_corrected,fname);
+	}else{
+		sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi,out_name) ;
+		MRISwrite(mris_corrected,fname);
+	}
 
-	sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi,out_name) ;
-	MRISwrite(mris_corrected,fname);
-	
 	fprintf(stderr,"\n\n");
 
 	msec = TimerStop(&then) ;
@@ -385,7 +403,7 @@ get_option(int argc, char *argv[])
 		Gdiag = DIAG_VERBOSE;
 	}
 	else if (!stricmp(option , "write")){
-    parms.write=1;;
+    parms.write=1;
   }
 	else if (!stricmp(option, "verbose_low"))
     {
@@ -427,7 +445,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "unmri"))
     {
       parms.l_unmri = atof(argv[2]) ;
-			parms.l_unmri = 0.0;
+			//parms.l_unmri = 0.0;
 			fprintf(stderr,"setting l_unmri = %2.2f\n", parms.l_unmri) ;
 			//      if(parms.volume_resolution<1)
 			//parms.volume_resolution = 2;
@@ -439,16 +457,36 @@ get_option(int argc, char *argv[])
       fprintf(stderr,"setting pct of attempts = %2.2f\n", parms.nattempts_percent) ;
       nargs = 1 ;
     }
+	else if (!stricmp(option, "inverted_contrast"))
+    {
+      parms.contrast = -1 ;
+      fprintf(stderr,"contrast inversion\n") ;
+		}
+	else if (!stricmp(option, "detect_contrast"))
+    {
+      parms.contrast = -2 ;
+      fprintf(stderr,"automatically detecting contrast inversion\n") ;
+     }
+	else if (!stricmp(option, "usual_contrast"))
+    {
+      parms.contrast = 1 ;
+      fprintf(stderr,"contrast in right direction\n") ;
+		}
 	else if (!stricmp(option, "nmin"))
     {
       parms.nminattempts = __MAX(1,atoi(argv[2])) ;
       fprintf(stderr,"setting minimal number of attempts = %d\n", parms.nminattempts) ;
       nargs = 1 ;
+    }else if (!stricmp(option, "asc"))
+    {
+      asc=1;
+			fprintf(stderr,"writting out surface in asci mode\n") ;
     }
 	else if (!stricmp(option, "int"))
     {
       noint = 0 ;
       nargs = 0 ;
+			parms.no_self_intersections = 0 ;
     }
 	else if (!stricmp(option, "no_intersection"))
     {

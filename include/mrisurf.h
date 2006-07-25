@@ -921,6 +921,7 @@ int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
 int   MRISripNegativeVertices(MRI_SURFACE *mris) ;
 int   MRISclearGradient(MRI_SURFACE *mris) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
+int   MRISclearFaceMarks(MRI_SURFACE *mris) ;
 int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
 int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
@@ -1043,48 +1044,55 @@ typedef struct
 #define VERBOSE_MODE_HIGH 4
 
 typedef struct{
-  int verbose; // verbose mode
-  int smooth;  // smoothing defect
-  int match;   // using local intensity to match surface
-  int defect_number; // the defect_number 
-  int mode; // which mode to use (not used so far) 
-  int no_self_intersections; //to prevent self-intersection
-  int write; //writing out temporary surfaces using fname  
-  char fname[STRLEN] ;
-  double nattempts_percent; 
-  int nattempts;
-  int minimal_mode;
-  int nminattempts;
-  double minimal_loop_percent;
-  int nminimal_attempts;
-  int max_face;
-  void* patchdisk; // the patching surfaces
-  // loglikelihood
-  double  l_mri ;
+	int verbose; // verbose mode
+	int smooth;  // smoothing defect
+	int match;   // using local intensity to match surface
+	int defect_number; // the defect_number 
+	int mode; // which mode to use (not used so far) 
+	int no_self_intersections; //to prevent self-intersection
+	int contrast; //direction of the contrast
+	int write; //writing out temporary surfaces using fname  
+	char fname[STRLEN] ;
+	double nattempts_percent; 
+	int nattempts;
+	int minimal_mode;
+	int nminattempts;
+	double minimal_loop_percent;
+	int nminimal_attempts;
+	int max_face;
+	void* patchdisk; // the patching surfaces
+	// loglikelihood
+	double  l_mri ;
   double  l_curv ;
   double  l_qcurv;
   double  l_unmri ;
-  int volume_resolution; /* used if l_unmri is on */
-  MRI *mri; //brain volume
-  MRI *mri_wm; //wm volume
-  HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
-  MRI *mri_gray_white, *mri_k1_k2;
-  MATRIX *transformation_matrix;
-  //defect info
-  void *defect_list;
-  void   *dp; 
-  //statistics
-  float fitness,initial_fitness;
-  int ngeneratedpatches,nselfintersectingpatches;
+	int volume_resolution; /* used if l_unmri is on */
+	MRI *mri; //brain volume
+	MRI *mri_wm; //wm volume
+	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
+	MRI *mri_gray_white, *mri_k1_k2;
+	MATRIX *transformation_matrix;
+	//defect info
+	MRIP *mrip;
+	MRIS *mris_defect;
+	void *defect_list;
+	void   *dp; 
+	//statistics
+	float fitness,initial_fitness;
+	int ngeneratedpatches,nselfintersectingpatches;
 } TOPOFIX_PARMS;
 
+void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms);
+void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface);
+void MRISsaveLocal(MRIS *mris,  TOPOFIX_PARMS *parms, char *name); //floflo
+int MRISisSurfaceValid(MRIS *mris, int patch,int verbose);
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms); 
 void TOPOFIXfreeDP(TOPOFIX_PARMS *parms);
 void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISprintInfo(TOPOFIX_PARMS *parms);
-double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms);
+double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose);
 int IsMRISselfIntersecting(MRI_SURFACE *mris);
 void MRISmapOntoSphere(MRIS *mris);
 void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms);
