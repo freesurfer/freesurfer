@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.218 2006/07/24 19:57:38 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.219 2006/07/25 20:02:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -29,6 +29,13 @@ DebugOutput "\$Id: scuba.tcl,v 1.218 2006/07/24 19:57:38 kteich Exp $"
 #     transformMenu - menu of transforms, value is transform ID
 #   transformProperties
 #     menu - transform menu, value is transform ID
+
+# gaCallbacks
+#   layerListChanged
+#   collectionListChanged
+#   roiListChanged
+#   transformListChanged
+#   lutListChanged
 
 # gSubject
 #   nameList - directory listing of SUBJECTS_DIR
@@ -1488,6 +1495,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     global gaCollection
     global gaROI
     global glShortcutDirs
+    global gaCallbacks
 
     set fwTop        $ifwTop.fwCollectionsProps
     set fwProps      $fwTop.fwProps
@@ -1525,7 +1533,9 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-command "CollectionPropertiesTransformMenuCallback"
     set gaWidget(collectionProperties,transformMenu) \
 	$fwPropsCommon.mwTransform
-    
+    lappend gaCallbacks(transformListChanged) \
+	BuildCollectionPropertiesTransformMenu
+
     grid $fwPropsCommon.ewID       -column 0 -row 0               -sticky nw
     grid $fwPropsCommon.ewType     -column 1 -row 0               -sticky new
     grid $fwPropsCommon.ewLabel    -column 0 -row 1 -columnspan 2 -sticky we
@@ -1581,7 +1591,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-command { SurfaceTransformVolumeMenuCallback }
     set gaWidget(collectionProperties,surfaceTransformMenu) \
 	$fwPropsSurface.owTransformVolume
-
+    lappend gaCallbacks(collectionListChanged) \
+	BuildCollectionPropertiesSurfaceTransformMenu
     
 
     grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
@@ -1615,6 +1626,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-label "LUT:" \
 	-command "ROIPropertiesLUTMenuCallback"
     set gaWidget(roiProperties,lutMenu) $fwROIs.mwLUT
+    lappend gaCallbacks(lutListChanged) \
+	BuildROIPropertiesLUTMenu
 
     tixScrolledListBox $fwROIs.lbStructure \
 	-scrollbar auto \
@@ -1683,6 +1696,7 @@ proc MakeToolsPanel { ifwTop } {
     global gaTool
     global gaView
     global glShortcutDirs
+    global gaCallbacks
 
     set fwTop        $ifwTop.fwToolsProps
     set fwProps      $fwTop.fwProps
@@ -1719,6 +1733,8 @@ proc MakeToolsPanel { ifwTop } {
 	-variable gatool(current,targetLayer) \
 	-command { ToolTargetLayerMenuCallback }
     set gaWidget(toolProperties,targetLayerMenu) $fwPropsCommon.owLayer
+    lappend gaCallbacks(layerListChanged) \
+	BuildToolPropertiesTargetLayerMenu
 
     grid $fwPropsCommon.owLayer -column 0 -row 0 -sticky ew
 
@@ -1775,7 +1791,10 @@ proc MakeToolsPanel { ifwTop } {
 	-label "Source Data:" \
 	-variable gatool(current,floodSourceCollection) \
 	-command { ToolFloodSourceCollectionMenuCallback }
-    set gaWidget(toolProperties,floodSourceCollectionMenu) $fwPropsFillSub.owSourceCollection
+    set gaWidget(toolProperties,floodSourceCollectionMenu) \
+	$fwPropsFillSub.owSourceCollection
+    lappend gaCallbacks(collectionListChanged) \
+	BuildToolPropertiesFloodSourceCollectionMenu
 
     tkuMakeCheckboxes $fwPropsFillSub.cbFillOptions \
 	-font [tkuNormalFont] \
@@ -1876,6 +1895,7 @@ proc MakeToolsPanel { ifwTop } {
 	-label "LUT:" \
 	-command "VoxelEditingLUTMenuCallback"
     set gaWidget(toolProperties,voxelLutMenu) $fwPropsVoxelEditingSub.mwLUT
+    lappend gaCallbacks(lutListChanged) BuildToolPropertiesVoxelLUTMenu
 
     tkuMakeEntry $fwPropsVoxelEditingSub.ewEraseValue \
 	-label "Erase Value" \
@@ -1973,6 +1993,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     global gaLayer
     global glShortcutDirs
     global gFDRRate gbFDRUseBrainMask
+    global gaCallbacks
 
     set fwTop        $ifwTop.fwLayerProps
     set fwProps      $fwTop.fwProps
@@ -2221,6 +2242,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	-label "LUT:" \
 	-command "LayerPropertiesLUTMenuCallback"
     set gaWidget(layerProperties,lutMenu) $fwLUT.mwLUT
+    lappend gaCallbacks(lutListChanged) BuildLayerPropertiesLUTMenu
 
     tkuMakeCheckboxes $fwLUT.cbwClearZero \
 	-font [tkuNormalFont] \
@@ -2329,6 +2351,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
     global gaWidget
     global gaView
+    global gaCallbacks
 
     set fwTop        $ifwTop.fwViewProps
     set fwProps      $fwTop.fwProps
@@ -2420,6 +2443,8 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	set gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    $fw4.mwDraw$nLevel
     }
+    lappend gaCallbacks(layerListChanged) \
+	BuildViewPropertiesDrawLevelMenus
 
     grid $fw4.lwLevel       -column 0 -row 0
     grid $fw4.lwVisible     -column 1 -row 0
@@ -2454,7 +2479,9 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	-command "ViewPropertiesTransformMenuCallback"
     set gaWidget(viewProperties,transformMenu) \
 	$fw5.mwTransform
-
+    lappend gaCallbacks(transformListChanged) \
+	BuildViewPropertiesTransformMenu
+    
     pack $fw5.mwTransform -fill x
 
     # Row 6: The copy button.    
@@ -2497,6 +2524,7 @@ proc MakeTransformsPanel { ifwTop } {
 
     global gaWidget
     global gaTransform
+    global gaCallbacks
 
     set fwTop          $ifwTop.fwTransforms
     set fwProps        $fwTop.fwProps
@@ -2565,6 +2593,8 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regSource) \
 	-command { TransformSourceRegistrationMenuCallback }
     set gaWidget(transformProperties,regSourceMenu) $fwProps.owSource
+    lappend gaCallbacks(collectionListChanged) \
+	BuildTransformPropertiesRegSourceMenu
 
     grid $fwProps.owSource -column 0 -row 9 -columnspan 4 -sticky ew
 
@@ -2573,6 +2603,8 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regDest) \
 	-command { TransformDestRegistrationMenuCallback }
     set gaWidget(transformProperties,regDestMenu) $fwProps.owDest
+    lappend gaCallbacks(collectionListChanged) \
+	BuildTransformPropertiesRegDestMenu
 
     grid $fwProps.owDest -column 0 -row 10 -columnspan 4 -sticky ew
 
@@ -2783,23 +2815,19 @@ proc UpdateCollectionList {} {
 
     global gaWidget
     global gaCollection
+    global gaCallbacks
 
     # Get the layer ID list and build the menu.
     set gaCollection(idList) [GetDataCollectionIDList]
     FillMenuFromList $gaWidget(collectionProperties,menu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
 
-    # Build source and dest menus in transforms.
-    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} true
+    # Call our callbacks.
+    if { [info exists gaCallbacks(collectionListChanged)] } {
+	foreach callback $gaCallbacks(collectionListChanged) { 
+	    eval $callback
+	}
+    }
 
     # Reselect the current collection. If it doesn't exist any more,
     # set to the first in the list and try that. If there's no list,
@@ -2863,6 +2891,45 @@ proc SetSurfaceTransformVolume {} {
     RedrawFrame [GetMainFrameID]
 }
 
+proc BuildCollectionPropertiesSurfaceTransformMenu {} {
+    global gaWidget
+    global gaCollection
+
+    # Only populate this menu with volume collections.
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Volume] } {
+	    lappend lVolumes $colID
+	}
+    }
+
+    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
+	$lVolumes "GetCollectionLabel %s" {} false
+}
+
+proc BuildToolPropertiesFloodSourceCollectionMenu {} {
+    global gaWidget
+    global gaCollection
+
+    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} true
+}
+
+proc BuildTransformPropertiesRegSourceMenu {} {
+    global gaWidget
+    global gaCollection
+
+    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+}
+
+proc BuildTransformPropertiesRegDestMenu {} {
+    global gaWidget
+    global gaCollection
+
+    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+}
 
 # ROI PROPERTIES FUNCTIONS ===============================================
 
@@ -3319,6 +3386,7 @@ proc UpdateLayerList {} {
     global gaWidget
     global gaView
     global gaTool
+    global gaCallbacks
 
     # We have two jobs here. First we need to populate the menu that
     # selects the current layer in the layer props panel. Then we need
@@ -3329,18 +3397,14 @@ proc UpdateLayerList {} {
     set gaLayer(idList) [GetLayerIDList]
     FillMenuFromList $gaWidget(layerProperties,menu) $gaLayer(idList) \
 	"GetLayerLabel %s" {} false
-    
-    # Populate the menus in the view props draw level menus.
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-	
-	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    $gaLayer(idList) "GetLayerLabel %s" {} true
+
+    # Call our callbacks.
+    if { [info exists gaCallbacks(layerListChanged)] } {
+	foreach callback $gaCallbacks(layerListChanged) { 
+	    eval $callback
+	}
     }
-    
-    # Populate layer target and source menus in tool properties.
-    FillMenuFromList $gaWidget(toolProperties,targetLayerMenu) \
-	$gaLayer(idList) "GetLayerLabel %s" {} true
-    
+
     # Reselect the current Layer. If it doesn't exist in this
     # collection, get a new roi ID from the list we got from the
     # collection. If there aren't any, clear the properties.
@@ -3474,6 +3538,24 @@ proc Do2DMRILayerHeatScaleUsingFDR { iLayerID iRate ibUseMask } {
 
     # Call the function.
     Set2DMRILayerHeatScaleUsingFDR $iLayerID $iRate $fnMask
+}
+
+proc BuildToolPropertiesTargetLayerMenu {} {
+    global gaLayer
+    global gaWidget
+
+    FillMenuFromList $gaWidget(toolProperties,targetLayerMenu) \
+	$gaLayer(idList) "GetLayerLabel %s" {} true
+}
+
+proc BuildViewPropertiesDrawLevelMenus {} {
+    global gaLayer
+    global gaWidget
+    
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    $gaLayer(idList) "GetLayerLabel %s" {} true
+    }
 }
 
 # VIEW PROPERTIES FUNCTIONS =============================================
@@ -4297,6 +4379,7 @@ proc UpdateTransformList {} {
     global gaTransform
     global gaWidget
     global gaView
+    global gaCallbacks
 
     # Get the transform ID list.
     set gaTransform(idList) [GetTransformIDList]
@@ -4305,19 +4388,18 @@ proc UpdateTransformList {} {
     FillMenuFromList $gaWidget(transformProperties,menu) $gaTransform(idList) \
 	"GetTransformLabel %s" {} false
 
+    # Call our callbacks.
+    if { [info exists gaCallbacks(transformListChanged)] } {
+	foreach callback $gaCallbacks(transformListChanged) { 
+	    eval $callback
+	}
+    }
+
     # Reselect the current transformProperties.
     if { [info exists gaTransform(current,id)] && 
 	 $gaTransform(current,id) >= 0 } {
 	SelectTransformInTransformProperties $gaTransform(current,id)
     }
-
-    # Now rebuild the transform list in the view props panel.
-    FillMenuFromList $gaWidget(viewProperties,transformMenu) \
-	$gaTransform(idList) "GetTransformLabel %s" {} false
-
-    # Now rebuild the transform list in the collection props panel.
-    FillMenuFromList $gaWidget(collectionProperties,transformMenu) \
-	$gaTransform(idList) "GetTransformLabel %s" {} false
 }
 
 proc UpdateCurrentTransformValueList {} {
@@ -4379,6 +4461,22 @@ proc SetTransformRegistration {} {
     }
 }
 
+proc BuildCollectionPropertiesTransformMenu {} {
+    global gaTransform
+    global gaWidget
+
+    FillMenuFromList $gaWidget(collectionProperties,transformMenu) \
+	$gaTransform(idList) "GetTransformLabel %s" {} false
+}
+
+proc BuildViewPropertiesTransformMenu {} {
+    global gaTransform
+    global gaWidget
+
+    FillMenuFromList $gaWidget(viewProperties,transformMenu) \
+	$gaTransform(idList) "GetTransformLabel %s" {} false
+}
+
 # COLOR LUT PROPERTIES FUNCTIONS =========================================
 
 proc LUTPropertiesMenuCallback { iLUTID } {
@@ -4419,6 +4517,7 @@ proc UpdateLUTList {} {
     global gaLUT
     global gaWidget
     global gaTool
+    global gaCallbacks
 
     # Get the lut ID list.
     set gaLUT(idList) [GetColorLUTIDList] 
@@ -4427,23 +4526,42 @@ proc UpdateLUTList {} {
     FillMenuFromList $gaWidget(lutProperties,menu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
 
+    # Call our callbacks.
+    if { [info exists gaCallbacks(lutListChanged)] } {
+	foreach callback $gaCallbacks(lutListChanged) { 
+	    eval $callback
+	}
+    }
+
     # Reselect the current lutProperties.
     if { [info exists gaLUT(current,id)] && $gaLUT(current,id) >= 0 } {
 	SelectLUTInLUTProperties $gaLUT(current,id)
     }
+}
 
-    # Now rebuild the lut list in the layer props panel.
-    FillMenuFromList $gaWidget(layerProperties,lutMenu) $gaLUT(idList) \
-	"GetColorLUTLabel %s" {} false
+proc BuildROIPropertiesLUTMenu {} {
+    global gaLUT
+    global gaWidget
 
-    # Rebuild the list in the ROI props.
     FillMenuFromList $gaWidget(roiProperties,lutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
+}
 
-    # Rebuild the list in voxel editing. Set an LUT here if we don't
-    # have one yet.
+proc BuildLayerPropertiesLUTMenu {} {
+    global gaLUT
+    global gaWidget
+
+    FillMenuFromList $gaWidget(layerProperties,lutMenu) $gaLUT(idList) \
+	"GetColorLUTLabel %s" {} false
+}
+
+proc BuildToolPropertiesVoxelLUTMenu {} {
+    global gaLUT
+    global gaWidget
+
     FillMenuFromList $gaWidget(toolProperties,voxelLutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
+    # Set an LUT here if we don't have one yet.
     if { ![info exists gaTool(current,voxelLutID)] } {
 	SelectLUTInVoxelEditingStructureListBox 0
     }
@@ -6353,7 +6471,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.218 2006/07/24 19:57:38 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.219 2006/07/25 20:02:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
