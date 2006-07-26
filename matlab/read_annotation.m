@@ -15,6 +15,12 @@ function [vertices, label, colortable] = Read_Brain_Annotation(filename)
 % calculated from r + g*2^8 + b*2^16 + flag*2^24. flag expected to be all 0.
 
 fp = fopen(filename, 'r', 'b');
+
+if(fp < 0)
+   disp('Annotation file cannot be opened');
+   return;
+end
+
 A = fread(fp, 1, 'int');
 
 tmp = fread(fp, 2*A, 'int');
@@ -32,27 +38,66 @@ end
 if(bool)
     
     %Read colortable
-    numEntries = fread(fp, 1, 'int');    
-    colortable.numEntries = numEntries;
-    
-    len = fread(fp, 1, 'int');
-    colortable.orig_tab = fread(fp, len, '*char')';
-    colortable.orig_tab = colortable.orig_tab(1:end-1);
-    
-    colortable.struct_names = cell(numEntries,1);
-    colortable.table = zeros(numEntries,5);
-    for i = 1:numEntries
-       len = fread(fp, 1, 'int');
-       colortable.struct_names{i} = fread(fp, len, '*char')';
-       colortable.struct_names{i} = colortable.struct_names{i}(1:end-1);
-       colortable.table(i,1) = fread(fp, 1, 'int');
-       colortable.table(i,2) = fread(fp, 1, 'int');
-       colortable.table(i,3) = fread(fp, 1, 'int');
-       colortable.table(i,4) = fread(fp, 1, 'int');
-       colortable.table(i,5) = colortable.table(i,1) + colortable.table(i,2)*2^8 + colortable.table(i,3)*2^16 + colortable.table(i,4)*2^24;
-    end
-    disp(['colortable with ' num2str(colortable.numEntries) ' entries read (originally ' colortable.orig_tab ')']);
-    
+    numEntries = fread(fp, 1, 'int');
+
+    if(numEntries > 0)
+        
+        disp(['Reading from Original Version']);
+        colortable.numEntries = numEntries;
+        len = fread(fp, 1, 'int');
+        colortable.orig_tab = fread(fp, len, '*char')';
+        colortable.orig_tab = colortable.orig_tab(1:end-1);
+
+        colortable.struct_names = cell(numEntries,1);
+        colortable.table = zeros(numEntries,5);
+        for i = 1:numEntries
+            len = fread(fp, 1, 'int');
+            colortable.struct_names{i} = fread(fp, len, '*char')';
+            colortable.struct_names{i} = colortable.struct_names{i}(1:end-1);
+            colortable.table(i,1) = fread(fp, 1, 'int');
+            colortable.table(i,2) = fread(fp, 1, 'int');
+            colortable.table(i,3) = fread(fp, 1, 'int');
+            colortable.table(i,4) = fread(fp, 1, 'int');
+            colortable.table(i,5) = colortable.table(i,1) + colortable.table(i,2)*2^8 + colortable.table(i,3)*2^16 + colortable.table(i,4)*2^24;
+        end
+        disp(['colortable with ' num2str(colortable.numEntries) ' entries read (originally ' colortable.orig_tab ')']);
+
+    else
+        version = -numEntries;
+        if(version~=2)    
+            disp(['Error! Does not handle version ' num2str(version)]);
+        else
+            disp(['Reading from version ' num2str(version)]);
+        end
+        numEntries = fread(fp, 1, 'int');
+        colortable.numEntries = numEntries;
+        len = fread(fp, 1, 'int');
+        colortable.orig_tab = fread(fp, len, '*char')';
+        colortable.orig_tab = colortable.orig_tab(1:end-1);
+        
+        colortable.struct_names = cell(numEntries,1);
+        colortable.table = zeros(numEntries,5);
+        
+        numEntriesToRead = fread(fp, 1, 'int');
+        for i = 1:numEntriesToRead
+            structure = fread(fp, 1, 'int')+1;
+            if (structure < 0)
+                disp(['Error! Read entry, index ' num2str(structure)]);
+            end
+            if(~isempty(colortable.struct_names{structure}))
+                disp(['Error! Duplicate Structure ' num2str(structure)]);
+            end
+            len = fread(fp, 1, 'int');
+            colortable.struct_names{structure} = fread(fp, len, '*char')';
+            colortable.struct_names{structure} = colortable.struct_names{structure}(1:end-1);
+            colortable.table(structure,1) = fread(fp, 1, 'int');
+            colortable.table(structure,2) = fread(fp, 1, 'int');
+            colortable.table(structure,3) = fread(fp, 1, 'int');
+            colortable.table(structure,4) = fread(fp, 1, 'int');
+            colortable.table(structure,5) = colortable.table(structure,1) + colortable.table(structure,2)*2^8 + colortable.table(structure,3)*2^16 + colortable.table(structure,4)*2^24;       
+        end
+        disp(['colortable with ' num2str(colortable.numEntries) ' entries read (originally ' colortable.orig_tab ')']);
+    end    
 else
     disp('Error! Should not be expecting bool = 0');    
 end
