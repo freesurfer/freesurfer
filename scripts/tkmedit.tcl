@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.116 2006/07/20 21:53:26 kteich Exp $
+# $Id: tkmedit.tcl,v 1.117 2006/07/26 20:44:51 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1276,6 +1276,28 @@ set tDlogSpecs(WriteLineLabel) [list \
   -presets1 $glShortcutDirs \
   -okCmd {WriteLineToLabel %s1; \
   SetDefaultLocation WriteLineLabel %s1} ]
+set tDlogSpecs(SaveGDFPlotToPS) [list \
+  -title "Save Group Plot" \
+  -prompt1 "Save Plot As:" \
+  -note1 "The file name of the PostScript file to create" \
+  -default1 [list GetDefaultLocation SaveGDFPlotToPS] \
+  -entry1 [list GetDefaultLocation SaveGDFPlotToPS] \
+  -presets1 $glShortcutDirs \
+  -okCmd {
+      SetDefaultLocation SaveGDFPlotToPS %s1;
+      FsgdfPlot_SaveToPostscript [GetGDFID] %s1  
+  }]
+set tDlogSpecs(SaveGDFPlotToTable) [list \
+   -title "Save Group Data" \
+   -prompt1 "Save Plot As:" \
+   -note1 "The file name of the table to create" \
+   -default1 [list GetDefaultLocation SaveGDFPlotToTable] \
+   -entry1 [list GetDefaultLocation SaveGDFPlotToTable] \
+   -presets1 $glShortcutDirs \
+   -okCmd {
+       SetDefaultLocation SaveGDFPlotToTable %s1;
+       FsgdfPlot_SaveToTable [GetGDFID] %s1  
+   }]
 
 proc DoFileDlog { which } {
     global tDlogSpecs
@@ -4337,6 +4359,14 @@ proc CreateMenuBar { ifwMenuBar } {
 		"Register Head Points..."
 		DoRegisterHeadPtsDlog
 		tMenuGroup_HeadPoints }
+	}}
+	{ cascade "Group" {
+	    { command "Save Plotted Data to Table"
+		{ DoFileDlog SaveGDFPlotToTable }
+		tMenuGroup_GDFLoaded }
+	    { command "Save Plot to Postscript File"
+		{ DoFileDlog SaveGDFPlotToPS }
+		tMenuGroup_GDFLoaded }
 	}}
 	{ command
 	    "Save RGB..."
