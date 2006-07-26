@@ -55,6 +55,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mbShowPositiveHeatScaleValues(true),
   mbShowNegativeHeatScaleValues(true),
   mColorLUT(NULL),
+  mMaskVolume(NULL),
   mROIOpacity(0.7),
   mbEditableROI(true),
   mbDrawMIP(false),
@@ -207,6 +208,13 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 			 "threshold for the bolume. rate should be 0-1. "
 			 "If maskVolume is not empty, will load "
 			 "a volume to use as a mask." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerMaskVolume", 2, 
+			 "layerID volumeID", "Sets the ID of the mask volume "
+			 "for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerMaskVolume", 1, "layerID", 
+			 "Gets the ID of the mask volume for this layer." );
+  commandMgr.AddCommand( *this, "Remove2DMRILayerMaskVolume", 1, "layerID", 
+			 "Stops using a mask volume for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerROIOpacity", 2,"layerID opacity",
 			 "Sets the opacity of the ROI for a layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
@@ -416,10 +424,15 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   iViewState.CopyUpdateRect( windowUpdateBounds );
 
   // Create a dummy location, we'll change it soon. Note to self:
-  // learn how to use C++ references properly.
+  // learn how to use C++ references properly. We'll create a location
+  // for the mask volume too, if it exists.
   RAS[0] = RAS[1] = RAS[2] = 0;
   VolumeLocation& loc =
     (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS, mCurrentFrame );
+  VolumeLocation* maskLoc = NULL;
+  if( mMaskVolume ) {
+    maskLoc = &(VolumeLocation&)(mMaskVolume->MakeLocationFromRAS( RAS, 0 ));
+  }
 
   for( window[1] = windowUpdateBounds[1];
        window[1] <= windowUpdateBounds[3]; window[1]++ ) {
@@ -440,9 +453,15 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
       // Set the location from this RAS.
       loc.SetFromRAS( RAS );
+      if( maskLoc ) maskLoc->SetFromRAS( RAS );
 
+      // If the location is in bound, and if there's a mask volume, if
+      // this value in the mask volume is not 0...
       int selectColor[3];
-      if( mVolume->IsInBounds( loc ) ) {
+      if( mVolume->IsInBounds( loc ) &&
+	  (maskLoc == NULL || 
+	   (maskLoc != NULL && mMaskVolume->IsInBounds( *maskLoc ) &&
+	    mMaskVolume->GetMRINearestValue( *maskLoc ) != 0)) ) {
 
 	switch( mSampleMethod ) {
 	case nearest:  value = mVolume->GetMRINearestValue( loc );   break;
@@ -487,6 +506,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   delete &loc;
+  if( maskLoc ) delete maskLoc;
 
 
   if( mbDrawEditingLine ) {
@@ -1926,6 +1946,79 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       string fnMaskVolume =  iasArgv[3];
 
       SetHeatScaleThresholdUsingFDR( rate, fnMaskVolume );
+    }
+  }
+
+  // Set2DMRILayerMaskVolume <layerID> <volumdID>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerMaskVolume" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      int collectionID;
+      try { 
+	collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad volumeID: ") + e.what();
+	return error;
+      }
+
+      try { 
+	DataCollection& data = DataCollection::FindByID( collectionID );
+	VolumeCollection& volume = (VolumeCollection&)data;
+	// VolumeCollection& volume = dynamic_cast<VolumeCollection&>(data);
+	
+	SetMaskVolume( volume );
+      }
+      catch(...) {
+	sResult = "bad collection ID, collection not found";
+	return error;
+      }
+    }
+  }
+
+  // Get2DMRILayerMaskVolume <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerMaskVolume" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << GetMaskVolume();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Remove2DMRILayerMaskVolume <layerID>
+  if( 0 == strcmp( isCommand, "Remove2DMRILayerMaskVolume" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      RemoveMaskVolume();
     }
   }
 
@@ -3407,6 +3500,27 @@ ScubaLayer2DMRI::SetHeatScaleThresholdUsingFDR ( float  iRate,
   SetHeatScaleMaxThreshold( (0.5 / 0.66) + newHeatScaleMin + 1.5 );
 }
  
+void
+ScubaLayer2DMRI::SetMaskVolume ( VolumeCollection& iVolume ) {
+
+  mMaskVolume = &iVolume;
+}
+
+void
+ScubaLayer2DMRI::RemoveMaskVolume () {
+
+  mMaskVolume = NULL;
+}
+
+int
+ScubaLayer2DMRI::GetMaskVolume () {
+
+  if( NULL != mMaskVolume ) {
+    return mMaskVolume->GetID();
+  } else {
+    return -1;
+  }
+}
 
 // PATHS =================================================================
 

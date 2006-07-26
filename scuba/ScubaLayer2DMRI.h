@@ -194,6 +194,11 @@ class ScubaLayer2DMRI : public Layer {
   void SetHeatScaleThresholdUsingFDR ( float       iRate,
 				       std::string ifnMask );
 
+  // Set the volume mask of this layer.
+  void SetMaskVolume ( VolumeCollection& iVolume );
+  void RemoveMaskVolume ();
+  int GetMaskVolume ();
+
   // Opacity of ROIs drawn on this layer.
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
@@ -296,6 +301,9 @@ class ScubaLayer2DMRI : public Layer {
   // Our look up table.
   ScubaColorLUT* mColorLUT;
   
+  // Optional layer mask.
+  VolumeCollection* mMaskVolume;
+
   // ROI settings.
   float mROIOpacity;
   bool mbEditableROI;
