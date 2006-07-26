@@ -29,6 +29,7 @@
 #include "registerio.h"
 #include "resample.h"
 #include "cmdargs.h"
+#include "fio.h"
 
 #include "volcluster.h"
 #include "version.h"
@@ -64,7 +65,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.22 2006/04/12 04:06:32 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.23 2006/07/26 17:38:07 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -137,6 +138,13 @@ char *voxwisesigfile=NULL;
 MRI  *voxwisesig, *clustwisesig;
 char *clustwisesigfile=NULL;
 
+char *SUBJECTS_DIR=NULL;
+char *subject=NULL;
+char *segvolfile=NULL;
+char *segvolpath=NULL;
+MRI *segvol=NULL;
+
+
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
 /*--------------------------------------------------------------*/
@@ -149,7 +157,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.22 2006/04/12 04:06:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.23 2006/07/26 17:38:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -233,6 +241,12 @@ int main(int argc, char **argv)
     MatrixPrint(stdout,CRS2FSA);
     printf("CRS2MNI: ---------------\n");
     MatrixPrint(stdout,CRS2MNI);
+  }
+
+  if(segvolpath != NULL){
+    // Only half-way thru getting this implemented. It might not be helpful. 
+    segvol = MRIread(segvolpath);
+    if(segvol == NULL) exit(1);
   }
 
   if(sizethresh == 0) sizethresh = sizethreshvox*voxsize;
@@ -533,6 +547,27 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--seg")){
+      if(nargc < 1) CMDargNErr(option,2);
+      subject = pargv[0];
+      segvolfile = pargv[1];
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+      if(SUBJECTS_DIR == NULL){
+	printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+	exit(1);
+      }
+      sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,segvolfile);
+      if(!fio_FileExistsReadable(tmpstr)){
+	printf("ERROR: cannot find %s\n",tmpstr);
+	exit(1);
+      }
+      segvolpath = strcpyalloc(tmpstr);
+      nargsused = 2;
+    }
+    else if (!strcasecmp(option, "--sd")){
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
     }
 
     /* -------- source volume inputs ------ */
