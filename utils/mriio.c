@@ -5612,44 +5612,44 @@ static dsr *ReadAnalyzeHeader(char *hdrfile, int *swap,
   fclose(fp);
 
   *swap = 0;
-  if(hdr->hk.sizeof_hdr != sizeof(dsr))
-    {
-      *swap = 1;
-      swap_analyze_header(hdr);
-    }
-
-  if(hdr->dime.datatype == DT_UNSIGNED_CHAR)
-    {
-      *mritype = MRI_UCHAR;
-      *bytes_per_voxel = 1;
-    }
-  else if(hdr->dime.datatype == DT_SIGNED_SHORT)
-    {
-      *mritype = MRI_SHORT;
-      *bytes_per_voxel = 2;
-    }
-  else if(hdr->dime.datatype == DT_SIGNED_INT)
-    {
-      *mritype = MRI_INT;
-      *bytes_per_voxel = 4;
-    }
-  else if(hdr->dime.datatype == DT_FLOAT)
-    {
-      *mritype = MRI_FLOAT;
-      *bytes_per_voxel = 4;
-    }
-  else if(hdr->dime.datatype == DT_DOUBLE)
-    {
-      *mritype = MRI_FLOAT;
-      *bytes_per_voxel = 8;
-    }
-  else
-    {
-      free(hdr);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ReadAnalyzeHeader: "
-                         "unsupported data type %d", hdr->dime.datatype));
-    }
+  if(hdr->hk.sizeof_hdr != sizeof(dsr))    {
+    *swap = 1;
+    swap_analyze_header(hdr);
+  }
+  
+  if(hdr->dime.datatype == DT_UNSIGNED_CHAR)    {
+    *mritype = MRI_UCHAR;
+    *bytes_per_voxel = 1;
+  }
+  else if(hdr->dime.datatype == DT_SIGNED_SHORT)    {
+    *mritype = MRI_SHORT;
+    *bytes_per_voxel = 2;
+  }
+  else if(hdr->dime.datatype == DT_UINT16)    {
+    // Can happen if this is nifti
+    printf("Unsigned short not supported, but trying to read it \n"
+	   "in as a signed short. Will be ok if no vals >= 32k.\n");
+    *mritype = MRI_SHORT;
+    *bytes_per_voxel = 2;
+  }
+  else if(hdr->dime.datatype == DT_SIGNED_INT)    {
+    *mritype = MRI_INT;
+    *bytes_per_voxel = 4;
+  }
+  else if(hdr->dime.datatype == DT_FLOAT)    {
+    *mritype = MRI_FLOAT;
+    *bytes_per_voxel = 4;
+  }
+  else if(hdr->dime.datatype == DT_DOUBLE)    {
+    *mritype = MRI_FLOAT;
+    *bytes_per_voxel = 8;
+  }
+  else {
+    free(hdr);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ReadAnalyzeHeader: "
+		       "unsupported data type %d", hdr->dime.datatype));
+  }
 
   return(hdr);
 }
@@ -5671,7 +5671,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   int swap, mritype, bytes_per_voxel, cantreadmatfile=0;
   int ncols, nrows, nslcs, nframes, row, slice, frame, startframe;
   MATRIX *T=NULL, *PcrsCenter, *PxyzCenter, *T1=NULL, *Q=NULL;
-  MRI *mri;
+  MRI *mri, *mritmp;
   float min, max;
   struct stat StatBuf;
   int nv,nreal;
@@ -5699,6 +5699,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     sprintf(fmt,"%s%%0%dd.%%s",stem,N_Zero_Pad_Input);
     sprintf(hdrfile,fmt,startframe,"hdr");
     sprintf(matfile,fmt,startframe,"mat");
+    sprintf(imgfile,fmt,startframe,"img");
   }
   else{
     sprintf(hdrfile,"%s.hdr",stem);
@@ -5715,11 +5716,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
       mri = nifti1Read(hdrfile, read_volume);
       return(mri);
     }
-    printf("ERROR: no support for two-file NIFTI with each frame in a different file.\n");
-    printf("       Try using mri_concat instead.\n");
-    return(NULL);
   }
-
+  // It can get here if it is a multi-frame two-file nifti in 
+  // which each frame is stored as a separate file. In this
+  // case, it reads the header with the analyze reader, but
+  // then reads in the vox2ras matrix with the nifti reader.
+  // It does not look like it makes a difference.
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
   if(hdr == NULL) return(NULL);
   if(Gdiag_no > 0)  DumpAnalyzeHeader(stdout,hdr);
@@ -5765,157 +5767,168 @@ static MRI *analyzeRead(char *fname, int read_volume)
   signY = (hdr->dime.pixdim[2] > 0) ? 1 : -1;
   signZ = (hdr->dime.pixdim[3] > 0) ? 1 : -1;
 
-  /* Read the matfile, if there */
-  if(FileExists(matfile)){
-    T1 = MatlabRead(matfile); // orientation info
-    if(T1 == NULL){
-      printf
-        ("WARNING: analyzeRead(): matfile %s exists but could not read ... \n",
-         matfile);
-      printf("  may not be matlab4 mat file ... proceeding without it.\n");
-      fflush(stdout);
-      cantreadmatfile=1;
+  // Handel the vox2ras matrix 
+  if(nifticode != 2){ // Not a nifti file
+    /* Read the matfile, if there */
+    if(FileExists(matfile)){
+      T1 = MatlabRead(matfile); // orientation info
+      if(T1 == NULL){
+	printf
+	  ("WARNING: analyzeRead(): matfile %s exists but could not read ... \n",
+	   matfile);
+	printf("  may not be matlab4 mat file ... proceeding without it.\n");
+	fflush(stdout);
+	cantreadmatfile=1;
+      }
+      else{
+	/* Convert from 1-based to 0-based */
+	Q = MtxCRS1toCRS0(Q);
+	T = MatrixMultiply(T1,Q,T);
+	//printf("------- Analyze Input Matrix (zero-based) --------\n");
+	//MatrixPrint(stdout,T);
+	//printf("-------------------------------------\n");
+	mri->ras_good_flag = 1;
+	MatrixFree(&Q);
+	MatrixFree(&T1);
+      }
     }
-    else{
-      /* Convert from 1-based to 0-based */
-      Q = MtxCRS1toCRS0(Q);
-      T = MatrixMultiply(T1,Q,T);
-      //printf("------- Analyze Input Matrix (zero-based) --------\n");
-      //MatrixPrint(stdout,T);
-      //printf("-------------------------------------\n");
-      mri->ras_good_flag = 1;
-      MatrixFree(&Q);
-      MatrixFree(&T1);
+    if(! FileExists(matfile) || cantreadmatfile){
+      /* when not found, it is a fun exercise.                      */
+      /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
+      /* for amgibuities.                                           */
+      /* I will follow his advise                                   */
+      /* hist.orient  Mayo name   Voxel[Index0, Index1, Index2] */
+      /*                          Index0  Index1  Index2              */
+      /* 0 transverse unflipped   R-L     P-A     I-S     LAS */
+      /* 3 transverse flipped     R-L     A-P     I-S     LPS */
+      /* 1 coronal unflipped      R-L     I-S     P-A     LSA */
+      /* 4 coronal flipped        R-L     S-I     P-A     LIA */
+      /* 2 sagittal unflipped     P-A     I-S     R-L     ASL */
+      /* 5 sagittal flipped       P-A     S-I     R-L     AIL */
+      //   P->A I->S L->R
+      
+      /* FLIRT distributes analyze format image which has a marked LR */
+      /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention    */
+      /* is tested with this image for hdr->hist.orient== 0.              */
+      /* note that flirt image has negative pixdim[1], but their software */
+      /* ignores the sign anyway.                                         */
+      if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
+	{
+	  strcpy(direction, "transverse unflipped (default)");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][1] =  -mri->xsize;
+	  T->rptr[2][2] =  mri->ysize;
+	  T->rptr[3][3] =  mri->zsize;
+	  T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+	  T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
+	  T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      else if (hdr->hist.orient==1) /* x = -r, y = s, z = a */
+	{
+	  strcpy(direction, "coronal unflipped");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][1] = -mri->xsize;
+	  T->rptr[2][3] =  mri->zsize;
+	  T->rptr[3][2] =  mri->ysize;
+	  T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+	  T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
+	  T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      else if (hdr->hist.orient==2) /* x = a, y = s, z = -r */
+	{
+	  strcpy(direction, "sagittal unflipped");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][3] =  -mri->zsize;
+	  T->rptr[2][1] =  mri->xsize;
+	  T->rptr[3][2] =  mri->ysize;
+	  T->rptr[1][4] = mri->zsize*(mri->depth/2.0);
+	  T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
+	  T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      else if (hdr->hist.orient==3) /* x = -r, y = -a, z = s */
+	{
+	  strcpy(direction, "transverse flipped");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][1] =  -mri->xsize;
+	  T->rptr[2][2] =  -mri->ysize;
+	  T->rptr[3][3] =  mri->zsize;
+	  T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+	  T->rptr[2][4] = mri->ysize*(mri->height/2.0);
+	  T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      else if (hdr->hist.orient==4) /* x = -r, y = -s, z = a */
+	{
+	  strcpy(direction, "coronal flipped");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][1] = -mri->xsize;
+	  T->rptr[2][3] =  mri->zsize;
+	  T->rptr[3][2] = -mri->ysize;
+	  T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
+	  T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
+	  T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      else if (hdr->hist.orient==5) /* x = a, y = -s, z = -r */
+	{
+	  strcpy(direction, "sagittal flipped");
+	  T = MatrixAlloc(4, 4, MATRIX_REAL);
+	  T->rptr[1][3] = -mri->zsize;
+	  T->rptr[2][1] =  mri->xsize;
+	  T->rptr[3][2] = -mri->ysize;
+	  T->rptr[1][4] =  mri->zsize*(mri->depth/2.0);
+	  T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
+	  T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+	  T->rptr[4][4] = 1.;
+	}
+      if (hdr->hist.orient == -1){
+	/* Unknown, so assume: x = -r, y = -a, z = s */
+	// This is incompatible with mghRead() when rasgood=0.
+	// mghRead() uses coronal dircos, not transverse.
+	// I'm not changing it because don't know what will happen.
+	strcpy(direction, "transverse flipped");
+	T = MatrixAlloc(4, 4, MATRIX_REAL);
+	T->rptr[1][1] = -mri->xsize;
+	T->rptr[2][2] = -mri->ysize;
+	T->rptr[3][3] =  mri->zsize;
+	T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
+	T->rptr[2][4] =  mri->ysize*(mri->height/2.0);
+	T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+	T->rptr[4][4] = 1.;
+	mri->ras_good_flag = 0;
+	fprintf(stderr,
+		"WARNING: could not find %s file for direction cosine info.\n"
+		"WARNING: Analyze 7.5 hdr->hist.orient value = -1, not valid.\n"
+		"WARNING: assuming %s\n",matfile, direction);
+      }
+      else{
+	// It's probably not a good idea to set this to 1, but setting it
+	// to 0 created all kinds of problems with mghRead() which will
+	// force dir cos to be Coronal if rasgood<0.
+	mri->ras_good_flag = 1;
+	fprintf
+	  (stderr,
+	   "-----------------------------------------------------------------\n"
+	   "INFO: could not find %s file for direction cosine info.\n"
+	   "INFO: use Analyze 7.5 hdr->hist.orient value: %d, %s.\n"
+	   "INFO: if not valid, please provide the information in %s file\n"
+	   "-----------------------------------------------------------------\n",
+	   matfile, hdr->hist.orient, direction, matfile
+	   );
+      }
     }
   }
-  if(! FileExists(matfile) || cantreadmatfile){
-    /* when not found, it is a fun exercise.                      */
-    /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
-    /* for amgibuities.                                           */
-    /* I will follow his advise                                   */
-    /* hist.orient  Mayo name   Voxel[Index0, Index1, Index2] */
-    /*                          Index0  Index1  Index2              */
-    /* 0 transverse unflipped   R-L     P-A     I-S     LAS */
-    /* 3 transverse flipped     R-L     A-P     I-S     LPS */
-    /* 1 coronal unflipped      R-L     I-S     P-A     LSA */
-    /* 4 coronal flipped        R-L     S-I     P-A     LIA */
-    /* 2 sagittal unflipped     P-A     I-S     R-L     ASL */
-    /* 5 sagittal flipped       P-A     S-I     R-L     AIL */
-    //   P->A I->S L->R
+  else {
+    // Just read in this one file as nifti to get vox2ras matrix
+    // What a hack.
+    mritmp = MRIreadHeader(imgfile,NIFTI1_FILE);
+    T = MRIxfmCRS2XYZ(mritmp,0);
+    MRIfree(&mritmp);
+  }
 
-    /* FLIRT distributes analyze format image which has a marked LR */
-    /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention    */
-    /* is tested with this image for hdr->hist.orient== 0.              */
-    /* note that flirt image has negative pixdim[1], but their software */
-    /* ignores the sign anyway.                                         */
-    if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
-      {
-        strcpy(direction, "transverse unflipped (default)");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][1] =  -mri->xsize;
-        T->rptr[2][2] =  mri->ysize;
-        T->rptr[3][3] =  mri->zsize;
-        T->rptr[1][4] = mri->xsize*(mri->width/2.0);
-        T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
-        T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    else if (hdr->hist.orient==1) /* x = -r, y = s, z = a */
-      {
-        strcpy(direction, "coronal unflipped");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][1] = -mri->xsize;
-        T->rptr[2][3] =  mri->zsize;
-        T->rptr[3][2] =  mri->ysize;
-        T->rptr[1][4] = mri->xsize*(mri->width/2.0);
-        T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
-        T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    else if (hdr->hist.orient==2) /* x = a, y = s, z = -r */
-      {
-        strcpy(direction, "sagittal unflipped");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][3] =  -mri->zsize;
-        T->rptr[2][1] =  mri->xsize;
-        T->rptr[3][2] =  mri->ysize;
-        T->rptr[1][4] = mri->zsize*(mri->depth/2.0);
-        T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
-        T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    else if (hdr->hist.orient==3) /* x = -r, y = -a, z = s */
-      {
-        strcpy(direction, "transverse flipped");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][1] =  -mri->xsize;
-        T->rptr[2][2] =  -mri->ysize;
-        T->rptr[3][3] =  mri->zsize;
-        T->rptr[1][4] = mri->xsize*(mri->width/2.0);
-        T->rptr[2][4] = mri->ysize*(mri->height/2.0);
-        T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    else if (hdr->hist.orient==4) /* x = -r, y = -s, z = a */
-      {
-        strcpy(direction, "coronal flipped");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][1] = -mri->xsize;
-        T->rptr[2][3] =  mri->zsize;
-        T->rptr[3][2] = -mri->ysize;
-        T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
-        T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
-        T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    else if (hdr->hist.orient==5) /* x = a, y = -s, z = -r */
-      {
-        strcpy(direction, "sagittal flipped");
-        T = MatrixAlloc(4, 4, MATRIX_REAL);
-        T->rptr[1][3] = -mri->zsize;
-        T->rptr[2][1] =  mri->xsize;
-        T->rptr[3][2] = -mri->ysize;
-        T->rptr[1][4] =  mri->zsize*(mri->depth/2.0);
-        T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
-        T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
-        T->rptr[4][4] = 1.;
-      }
-    if (hdr->hist.orient == -1){
-      /* Unknown, so assume: x = -r, y = -a, z = s */
-      // This is incompatible with mghRead() when rasgood=0.
-      // mghRead() uses coronal dircos, not transverse.
-      // I'm not changing it because don't know what will happen.
-      strcpy(direction, "transverse flipped");
-      T = MatrixAlloc(4, 4, MATRIX_REAL);
-      T->rptr[1][1] = -mri->xsize;
-      T->rptr[2][2] = -mri->ysize;
-      T->rptr[3][3] =  mri->zsize;
-      T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
-      T->rptr[2][4] =  mri->ysize*(mri->height/2.0);
-      T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
-      T->rptr[4][4] = 1.;
-      mri->ras_good_flag = 0;
-      fprintf(stderr,
-              "WARNING: could not find %s file for direction cosine info.\n"
-              "WARNING: Analyze 7.5 hdr->hist.orient value = -1, not valid.\n"
-              "WARNING: assuming %s\n",matfile, direction);
-    }
-    else{
-      // It's probably not a good idea to set this to 1, but setting it
-      // to 0 created all kinds of problems with mghRead() which will
-      // force dir cos to be Coronal if rasgood<0.
-      mri->ras_good_flag = 1;
-      fprintf
-        (stderr,
-         "-----------------------------------------------------------------\n"
-         "INFO: could not find %s file for direction cosine info.\n"
-         "INFO: use Analyze 7.5 hdr->hist.orient value: %d, %s.\n"
-         "INFO: if not valid, please provide the information in %s file\n"
-         "-----------------------------------------------------------------\n",
-         matfile, hdr->hist.orient, direction, matfile
-         );
-    }
-  }
 
   /* ---- Assign the Geometric Paramaters -----*/
   mri->x_r = T->rptr[1][1]/mri->xsize;
@@ -7781,61 +7794,53 @@ static int read_otl_file(FILE *fp,
 
         }
 
-      if(n_rows < 0)
-        {
-          errno = 0;
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM,
-                       "bad or undefined ROW_NUM in otl file %d", slice));
-        }
+      if(n_rows < 0)        {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+		     "bad or undefined ROW_NUM in otl file %d", slice));
+      }
 
-      if(n_cols != 2)
-        {
-          errno = 0;
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM,
-                       "bad or undefined COL_NUM in otl file %d", slice));
-        }
+      if(n_cols != 2)        {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+		     "bad or undefined COL_NUM in otl file %d", slice));
+      }
 
-      if(label[0] == '\0')
-        {
-          empty_label_flag = 1;
-          errno = 0;
-          ErrorPrintf
-            (ERROR_BADPARM,
-             "empty LABEL in otl file %d (outline %d)", slice, i);
-        }
+      if(label[0] == '\0')     {
+	empty_label_flag = 1;
+	errno = 0;
+	ErrorPrintf
+	  (ERROR_BADPARM,
+	   "empty LABEL in otl file %d (outline %d)", slice, i);
+      }
 
-      if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
-        {
-          errno = 0;
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM,
-                       "bad or undefined SEED in otl file %d", slice));
-        }
+      if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512) {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+		     "bad or undefined SEED in otl file %d", slice));
+      }
 
-      if(type[0] == '\0')
-        strcpy(type, global_type);
+      if(type[0] == '\0') strcpy(type, global_type);
 
       if(strcmp(type, "ascii short") == 0)
         ascii_short_flag = TRUE;
       else if(strcmp(type, "short") == 0)
         ascii_short_flag = FALSE;
-      else if(type[0] == '\0')
-        {
-          errno = 0;
-          ErrorReturn(ERROR_UNSUPPORTED,
-                      (ERROR_UNSUPPORTED,
-                       "undefined TYPE in otl file %d", slice));
-        }
-      else
-        {
-          errno = 0;
-          ErrorReturn(ERROR_UNSUPPORTED,
-                      (ERROR_UNSUPPORTED,
-                       "unsupported TYPE \"%s\" in otl file %d", type, slice));
-        }
-
+      else if(type[0] == '\0')        {
+	errno = 0;
+	ErrorReturn(ERROR_UNSUPPORTED,
+		    (ERROR_UNSUPPORTED,
+		     "undefined TYPE in otl file %d", slice));
+      }
+      else{
+	errno = 0;
+	ErrorReturn(ERROR_UNSUPPORTED,
+		    (ERROR_UNSUPPORTED,
+		     "unsupported TYPE \"%s\" in otl file %d", type, slice));
+      }
       do
         {
           fgets(line, STRLEN, fp);
