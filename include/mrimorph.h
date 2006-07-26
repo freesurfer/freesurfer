@@ -151,6 +151,17 @@ int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 
 MATRIX *
 MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L);
+double MRIcomputeOptimalLinearXform(
+																		MRI *mri_src,
+																		MRI *mri_dst, 
+																		MATRIX *m_L, 
+																		float min_angle, float max_angle,
+																		float min_scale, float max_scale,
+																		float min_trans, float max_trans,
+																		float angle_steps, float scale_steps, 
+																		float trans_steps,
+																		int nreductions) ;
+
 
 #define M3D_MAGIC  0xabcdef42
 
