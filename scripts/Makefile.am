@@ -13,6 +13,7 @@ browse-sessions \
 check_subject \
 clear_fs_env.csh \
 cor_to_minc \
+cp-dicom \
 csurf \
 dcmdir-info-mgh \
 deface_subject \
