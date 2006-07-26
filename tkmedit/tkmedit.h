@@ -160,6 +160,7 @@ typedef enum {
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
   tkm_tTclCommand_ShowSegmentationOptions,
   tkm_tTclCommand_ShowAuxSegmentationOptions,
+  tkm_tTclCommand_ShowGDFOptions,
   tkm_tTclCommand_ClearSegColorTable,
   tkm_tTclCommand_AddSegColorTableEntry,
   

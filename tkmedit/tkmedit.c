@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/07/20 21:03:18 $
-// Revision       : $Revision: 1.290 $
-char *VERSION = "$Revision: 1.290 $";
+// Revision Date  : $Date: 2006/07/26 20:44:40 $
+// Revision       : $Revision: 1.291 $
+char *VERSION = "$Revision: 1.291 $";
 
 #define TCL
 #define TKMEDIT
@@ -1140,7 +1140,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.290 2006/07/20 21:03:18 kteich Exp $",
+     "$Id: tkmedit.c,v 1.291 2006/07/26 20:44:40 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5409,6 +5409,23 @@ int TclLoadGDF ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
+int TclGetGDFID ( ClientData inClientData, Tcl_Interp* inInterp,
+		  int argc, char* argv[] ) {
+
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: GetGDFID", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+
+    /* Return the GDF ID. */
+    Tcl_SetObjResult( inInterp, Tcl_NewIntObj( gGDFID ) );
+  }
+
+  return TCL_OK;
+}
+
 int TclSmoothFunctionalOverlay ( ClientData inClientData,
                                  Tcl_Interp* inInterp,
                                  int argc, char* argv[] ) {
@@ -5703,7 +5720,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.290 2006/07/20 21:03:18 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.291 2006/07/26 20:44:40 kteich Exp $ $Name:  $\n"
       )
      );
 
@@ -5769,6 +5786,7 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxTransformLoadedOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowGDFOptions, "0" );
 
   /* init variables */
   for( volume = 0; volume < tkm_knNumVolumeTypes; volume++ ) {
@@ -6424,6 +6442,10 @@ int main ( int argc, char** argv ) {
                       (Tcl_CmdProc*) TclLoadGDF,
                       (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
 
+  Tcl_CreateCommand ( interp, "GetGDFID",
+                      (Tcl_CmdProc*) TclGetGDFID,
+                      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
                       (Tcl_CmdProc*) TclSmoothFunctionalOverlay,
                       (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
@@ -6684,6 +6706,9 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
   }
 
   MRIfree( &gdInfo );
+
+  /* Enable the menu items. */
+  tkm_SendTclCommand( tkm_tTclCommand_ShowGDFOptions, "1" );
 
   return tkm_tErr_NoErr;
 }
@@ -8894,17 +8919,17 @@ void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume ) {
 	     gnAnatomicalDimensionZ/2 );
 
   /* Tell the window to go there. */
-  eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
+  eWindow = MWin_SetCursor( gMeditWindow, -1, &anaIdx );
   DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
 
   /* Zoom around new cursor. */
-  eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
+  eWindow = MWin_SetZoomCenterToCursor( gMeditWindow, -1 );
   DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
 
   /* Zoom out. */
-  eWindow = MWin_SetZoomLevel ( gMeditWindow, -1, 1 );
+  eWindow = MWin_SetZoomLevel( gMeditWindow, -1, 1 );
   DebugAssertThrowX( (MWin_tErr_NoErr == eWindow),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
 
@@ -13051,6 +13076,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "tkm_SetEnableGroupStatus tMenuGroup_Registration",
   "tkm_SetEnableGroupStatus tMenuGroup_SegmentationOptions",
   "tkm_SetEnableGroupStatus tMenuGroup_AuxSegmentationOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_GDFLoaded",
   "ClearSegColorTable",
   "AddSegColorTableEntry",
 
