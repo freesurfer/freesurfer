@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.219 2006/07/25 20:02:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.220 2006/07/26 19:37:40 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2270,10 +2270,18 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -command {Set2DMRILayerROIOpacity $gaLayer(current,id) $gaLayer(current,roiOpacity); RedrawFrame [GetMainFrameID]}}
     }
 
+    tixOptionMenu $fwProps2DMRI.mwMask \
+	-label "Mask to:" \
+	-command "LayerPropertiesMaskMenuCallback"
+    set gaWidget(layerProperties,maskMenu) $fwProps2DMRI.mwMask
+    lappend gaCallbacks(collectionListChanged) BuildLayerPropertiesMaskMenu
+
+
     grid $fwProps2DMRI.tbwColorMapMethod  -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.fwCMap             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwEditableROI     -column 0 -row 2 -sticky ew
     grid $fwProps2DMRI.swROIOpacity       -column 0 -row 3 -sticky ew
+    grid $fwProps2DMRI.mwMask             -column 0 -row 4 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # 2DMRIS layer settings -----------------------------------------------
@@ -2874,20 +2882,28 @@ proc SurfaceTransformVolumeMenuCallback { iCollectionID } {
     UpdateCurrentCollectionInCollectionProperites
 }
 
+proc LayerPropertiesMaskMenuCallback { iCollectionID } {
+    global gaLayer
+    global gaCollection
+
+    set gaCollection(current,maskVolume) $iCollectionID
+    if { $iCollectionID >= 0 } {
+	Set2DMRILayerMaskVolume $gaLayer(current,id) $iCollectionID
+    } else {
+	Remove2DMRILayerMaskVolume $gaLayer(current,id)
+    }
+    RedrawFrame [GetMainFrameID]
+}
+
 proc SetSurfaceTransformVolume {} {
-    
     global gaCollection
 
     if { $gaCollection(current,surfaceTransformFromVolume) } {
-
 	SetSurfaceDataToSurfaceTransformFromVolume $gaCollection(current,id) \
 	    $gaCollection(current,surfaceTransformVolume)
-
     } else {
-
 	SetSurfaceDataToSurfaceTransformToDefault $gaCollection(current,id)
     }
-
     RedrawFrame [GetMainFrameID]
 }
 
@@ -2929,6 +2945,23 @@ proc BuildTransformPropertiesRegDestMenu {} {
 
     FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
+}
+
+proc BuildLayerPropertiesMaskMenu {} {
+    global gaWidget
+    global gaCollection
+    global gaLayer
+
+    # Only populate this menu with volume collections.
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Volume] } {
+	    lappend lVolumes $colID
+	}
+    }
+
+    FillMenuFromList $gaWidget(layerProperties,maskMenu) \
+	$lVolumes "GetCollectionLabel %s" {} true
 }
 
 # ROI PROPERTIES FUNCTIONS ===============================================
@@ -3288,6 +3321,14 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    $gaWidget(layerProperties,lutMenu) config \
 		-value $gaLayer(current,lutID)
 	    $gaWidget(layerProperties,lutMenu) config -disablecallback 0    
+
+	    # Get and set the mask volume.
+	    set gaLayer(current,maskVolume) [Get2DMRILayerMaskVolume $iLayerID]
+
+	    $gaWidget(layerProperties,maskMenu) config -disablecallback 1
+	    $gaWidget(layerProperties,maskMenu) config -value \
+		$gaLayer(current,maskVolume)
+	    $gaWidget(layerProperties,maskMenu) config -disablecallback 0
 	}
 	2DMRIS {
 	    # Pack the type panel if our type is different.
@@ -6471,7 +6512,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.219 2006/07/25 20:02:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.220 2006/07/26 19:37:40 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
