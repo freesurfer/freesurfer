@@ -45,7 +45,8 @@ typedef struct
 	float  label_dist ;   /* for computing label dist */
 	float  last_se ;
 	float  predicted_val ; /* weighted average of all class means in a ball around this node */
-	float  mean_uk ;       // mean of all class means in a ball around this node
+	double sum_ci_vi_ui ;
+	double sum_ci_vi ;
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
@@ -69,15 +70,15 @@ typedef struct
 
 typedef struct
 {
-	int x ;   /* node coords */
-	int y ;
-	int z ;
+	int    x ;   /* node coords */
+	int    y ;
+	int    z ;
 } NODE_BIN ;
 
 typedef struct
 {
-	int      nnodes ;
-	NODE_BIN *node_bins ;
+	int       nnodes ;
+	NODE_BIN  *node_bins ;
 } NODE_BUCKET ;
 
 typedef struct
@@ -100,6 +101,7 @@ typedef struct
   double l_area ;
   double l_jacobian ;
   double l_smoothness ;
+  double l_lsmoothness ;
   double l_distance ;
   double l_label ;
 	double l_binary ;
@@ -143,6 +145,7 @@ typedef struct
 } GCA_MORPH_PARMS, GMP ;
 
 
+GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
@@ -216,12 +219,14 @@ GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSF
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 
+#define MAX_LTT_LABELS 1000
 typedef struct
 {
 	int nlabels ;
-	int input_labels[1000] ;
-	int output_labels[1000] ;
-	double means[1000] ;
+	int input_labels[MAX_LTT_LABELS] ;
+	int output_labels[MAX_LTT_LABELS] ;
+	double means[MAX_LTT_LABELS] ;
+	double scales[MAX_LTT_LABELS] ;
 } GCAM_LABEL_TRANSLATION_TABLE ;
 MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensities,
 												GCAM_LABEL_TRANSLATION_TABLE *gcam_ltt) ;
