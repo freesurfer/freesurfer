@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/07/26 01:42:08 $
-// Revision       : $Revision: 1.201 $
+// Revision Date  : $Date: 2006/07/26 02:24:44 $
+// Revision       : $Revision: 1.202 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15265,7 +15265,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
   float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
     mean_gm_scale, mean_wm_scale, mean_csf_scale,
     label_offsets[MAX_CMA_LABELS], \
-    mean_wm_offset, mean_csf_offset, mean_gm_offset, lower_thresh, upper_thresh ;
+    mean_wm_offset, mean_csf_offset, mean_gm_offset, 
+    lower_thresh, upper_thresh ;
   Real      val/*, scale*/ ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
@@ -15274,7 +15275,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
   LTA       *lta ;
 
-  double    det = 0 ;
+  double    det = -1 ;
   float peak_threshold = 0.03;
   float overlap_threshold = 0.001;
   int equiv_class[MAX_CMA_LABELS];
