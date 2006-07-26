@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/07/11 15:14:40 $
-// Revision       : $Revision: 1.107 $
+// Revision Date  : $Date: 2006/07/26 00:55:38 $
+// Revision       : $Revision: 1.108 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3579,7 +3579,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 		}
 		else /* could check for last_pct_change == 0 here */
 			increasing = 1 ;
-		if (pct_change < 0)
+		if (pct_change <= 0)
 		{
 			if (Gdiag & DIAG_SHOW)
 				printf("rms increased - undoing step...\n") ;
@@ -3638,7 +3638,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 				rms = GCAMcomputeRMS(gcam, mri, parms) ;
 				good_step = good_step_ever = done = 0 ;
 			}
-			else if ((++nsmall >= max_small) || (pct_change < 0))
+			else if ((++nsmall >= max_small) || (pct_change <= 0))
 			{
 				if (parms->integration_type == GCAM_INTEGRATE_BOTH)
 				{
@@ -3786,8 +3786,10 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
     mri_morphed = GCAMmorphToAtlas(parms->mri_diag ? parms->mri_diag : parms->mri, gcam, NULL, -1) ;
   sprintf(base_name, "%s_%4.4d", parms->base_name, iter) ;
   sprintf(fname, "%s_intensity.mgz", base_name) ;
+#if 0
   printf("writing snapshot to %s\n", fname) ;
   MRIwrite(mri_morphed, fname) ;
+#endif
 
 	if ((parms->diag_morph_from_atlas == 0) || (parms->diag_write_snapshots))
 		MRIwriteImageViews(mri_morphed, base_name, IMAGE_SIZE) ;
@@ -8258,7 +8260,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 				}
 				else
 					label = gcamn->label ;
-				if (label == 0)
+				if (label == 0 && which ==GCAM_LABEL)
 					continue ;
 				V3_X(v1) = gcamn->x ; V3_Y(v1) = gcamn->y ; V3_Z(v1) = gcamn->z ;
 
@@ -9901,11 +9903,8 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   GCA_MORPH_NODE  *gcamn ;
 	GCA             *gca ;
-  GC1D            *gc ;
-  GCA_PRIOR       *gcap ;
-  int             x, y, z, width, height, depth, n, max_n, 
-		max_label, label, i, level, navgs ;
-  float           max_p, min_dt, orig_dt, last_rms, rms, pct_change, rms2 ;
+  int             x, y, z, width, height, depth, i, level, navgs, first=1 ;
+  float           min_dt, orig_dt, last_rms, rms, pct_change, rms2 ;
 	VECTOR          *v_src, *v_dst ;
 	MATRIX          *m_avg, *m_L ;
 
@@ -9915,10 +9914,8 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 	MatrixScalarMul(m_avg, 1.0/(float)lta->num_xforms, m_avg) ;
 
 	gca = gcam->gca ;
-	v_src = VectorAlloc(4, MATRIX_REAL) ;
-	v_dst = VectorAlloc(4, MATRIX_REAL) ;
-	VECTOR_ELT(v_src,4) = 1.0 ;
-	VECTOR_ELT(v_dst,4) = 1.0 ;
+	v_src = VectorAlloc(4, MATRIX_REAL) ; v_dst = VectorAlloc(4, MATRIX_REAL) ;
+	VECTOR_ELT(v_src,4) = 1.0 ; VECTOR_ELT(v_dst,4) = 1.0 ;
 
   // save geometry information
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
@@ -9948,58 +9945,33 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 	if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE))
 		write_snapshot(gcam, mri, parms, parms->start_t++) ;  // snap before changing initialization
   
-	// use gca information 
+	// compute target positions from polyaffine transform
 	for (x = 0 ; x < width ; x++)
 	{
 		for (y = 0 ; y < height ; y++)
 		{
 			for (z = 0 ; z < depth ; z++)
 			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 				gcamn = &gcam->nodes[x][y][z] ;
-				gcap = &gca->priors[x][y][z] ;
-				max_p = 0 ;  max_n = -1 ; max_label = 0 ;
-
-				// find the label which has the max p
-				for (n = 0 ; n < gcap->nlabels ; n++)
-				{
-					label = gcap->labels[n] ;   // get prior label
-					if (label == Gdiag_no)
-						DiagBreak() ;
-					if (label >= MAX_CMA_LABEL)
-					{
-						printf("invalid label %d at (%d, %d, %d) in prior volume\n",
-									 label, x, y, z);
-					}
-					if (gcap->priors[n] >= max_p) // update the max_p and max_label
-					{
-						max_n = n ;
-						max_p = gcap->priors[n] ;
-						max_label = gcap->labels[n] ;
-					}
-				}
-				gcamn->xn = x ; gcamn->yn = y ; gcamn->zn = z ;
 
 				// see if this label is in the LTA
 				for (i = 0 ; i < lta->num_xforms ; i++)
-					if (lta->xforms[i].label == max_label)
+					if (lta->xforms[i].label == gcamn->label)
 						break ;
 
 				// now apply this xform to the orig point
 				// here mri info is used
-
 				V3_X(v_src) = gcamn->x ; V3_Y(v_src) = gcamn->y ; V3_Z(v_src) = gcamn->z ;
 				MatrixMultiply(m_avg, v_src, v_dst) ;
-
-				gcamn->x = V3_X(v_dst) ; gcamn->y = V3_Y(v_dst) ; gcamn->z = V3_Z(v_dst) ;
 				if (i < lta->num_xforms)  // measure distance between label specific xform and avg one
 				{
 					MatrixMultiply(lta->xforms[i].m_L, v_src, v_dst) ;
 					gcamn->dx = V3_X(v_dst) - gcamn->x ;
 					gcamn->dy = V3_Y(v_dst) - gcamn->y ;
 					gcamn->dz = V3_Z(v_dst) - gcamn->z ;
-					gcamn->xs = V3_X(v_dst) ;
-					gcamn->ys = V3_Y(v_dst) ;
-					gcamn->zs = V3_Z(v_dst) ;
+					gcamn->xs = V3_X(v_dst) ; gcamn->ys = V3_Y(v_dst) ; gcamn->zs = V3_Z(v_dst) ;
 					gcamn->status |= GCAM_TARGET_DEFINED ;
 				}
 				else  // no label specific xform - don't know where it should go
@@ -10007,28 +9979,9 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 					gcamn->xs = gcamn->x ; gcamn->ys = gcamn->y ; gcamn->zs = gcamn->z ;
 				}
 
-#if 0
-				MRIsetVoxVal(mri_x, x, y, z, 0, gcamn->x) ;
-				MRIsetVoxVal(mri_y, x, y, z, 0, gcamn->y) ;
-				MRIsetVoxVal(mri_z, x, y, z, 0, gcamn->z) ;
-#endif
-				gcamn->label = max_label ;
-				gcamn->n = max_n ;
-				gcamn->prior = max_p ;
-				gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
-				// gc can be NULL
-				gcamn->gc = gc ;
 				gcamn->log_p = 0 ;
 				if (x == Gx && y == Gy && z == Gz)
-				{
 					DiagBreak() ;
-#if 0
-					printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f)\n",
-								 x, y, z, ox, oy, oz) ;
-					Gvx = nint(ox) ; Gvy = nint(oy) ; Gvz = nint(oz) ;  
-					/* for writing out image views */
-#endif
-				}
 			}
 		}
 	}
@@ -10039,64 +9992,67 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
   GCAMstoreMetricProperties(gcam) ;
 
 	orig_dt = parms->dt ;
-	rms = GCAMcomputeRMS(gcam, mri, parms) ;
-	pct_change = 100.0*(last_rms-rms)/last_rms ;
-	if (parms->log_fp)  // write out state after reinitialization
-	{
-		fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
-						parms->start_t, 0.0, rms, pct_change, gcam->neg, Ginvalid) ;
-		if (parms->l_binary > 0)
-			fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
-							Galigned, 
-							100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
-		else
-			fprintf(parms->log_fp, "\n") ;
-		fflush(parms->log_fp) ;
-	}
-	if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE))
-		write_snapshot(gcam, mri, parms, parms->start_t++) ;  // snap after re init of positions
-	last_rms = rms ;
+
 
 	m_L = NULL ;
 	for (navgs = parms->navgs*4, level = parms->levels ; level >= 0 ; level--)
 	{
 		do
 		{
-			m_L = gcamComputeOptimalTargetLinearTransform(gcam, m_L, .25) ;
-			gcamApplyLinearTransform(gcam, m_L) ;
-			rms2 = GCAMcomputeRMS(gcam, mri, parms) ;
-			printf("rms after linear xform = %2.3f (%2.3f%%)\n",
-						 rms, 100.0*(last_rms-rms2)/last_rms) ;
-			pct_change = 100.0*(last_rms-rms2)/last_rms ;
-			if (pct_change < 0)
+			do
 			{
-				MATRIX *m_inv ;
-
-				printf("rms increased - undoing step...\n") ;
-				m_inv = MatrixInverse(m_L, NULL) ;
-				gcamApplyLinearTransform(gcam, m_inv) ;
-				MatrixFree(&m_inv) ;
+				m_L = gcamComputeOptimalTargetLinearTransform(gcam, m_L, .9) ;
+				gcamApplyLinearTransform(gcam, m_L) ;
 				rms2 = GCAMcomputeRMS(gcam, mri, parms) ;
-				printf("rms after linear xform = %2.3f (%2.3f%%)\n",
-							 rms, 100.0*(last_rms-rms2)/last_rms) ;
 				pct_change = 100.0*(last_rms-rms2)/last_rms ;
-			}
-			if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE))
-				write_snapshot(gcam, mri, parms, parms->start_t) ;
-			if (parms->log_fp)
-			{
-				fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
-								parms->start_t, 0.0, rms2, pct_change, gcam->neg, Ginvalid) ;
+				if (pct_change <= 0)
+				{
+					MATRIX *m_inv ;
+					
+					printf("rms increased - undoing step...\n") ;
+					m_inv = MatrixInverse(m_L, NULL) ;
+					gcamApplyLinearTransform(gcam, m_inv) ;
+					MatrixFree(&m_inv) ;
+					rms2 = GCAMcomputeRMS(gcam, mri, parms) ;
+					//					pct_change = 100.0*(last_rms-rms2)/last_rms ;
+				}
+				if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE))
+					write_snapshot(gcam, mri, parms, parms->start_t) ;
+				if (parms->log_fp)
+				{
+					fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, LIN",
+									parms->start_t, 0.0, rms2, pct_change, gcam->neg, Ginvalid) ;
+					if (parms->l_binary > 0)
+						fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
+										Galigned, 
+										100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+					else
+						fprintf(parms->log_fp, "\n") ;
+					fflush(parms->log_fp) ;
+				}
+				printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, LIN",
+							 parms->start_t, 0.0, rms2, pct_change, gcam->neg, Ginvalid) ;
 				if (parms->l_binary > 0)
-					fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
-									Galigned, 
-									100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+					printf(", aligned = %d (%2.3f%%)\n",
+								 Galigned, 
+								 100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
 				else
-					fprintf(parms->log_fp, "\n") ;
-				fflush(parms->log_fp) ;
-			}
-			parms->start_t++ ;
+					printf("\n") ;
+				fflush(stdout) ;
+				last_rms = rms2 ;
+				parms->start_t++ ;
+				if (first) 
+				{
+					/* haven't ever taken a nonlinear step, so can update metric 
+						 properties and use this as initial conditions.	*/
+					GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+					gcamComputeMetricProperties(gcam) ;
+					GCAMstoreMetricProperties(gcam) ;
+				}
+			} while (pct_change > parms->tol*0.01) ;
+			first = 0 ;
 			gcamComputeTargetGradient(gcam) ;
+
 			gcamSmoothGradient(gcam, navgs) ;
 			parms->dt = orig_dt ;
 			min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
@@ -10113,7 +10069,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 			last_rms = rms ;
 			if (parms->log_fp)
 			{
-				fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
+				fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA,",
 								parms->start_t, min_dt, rms, pct_change, gcam->neg, Ginvalid) ;
 				if (parms->l_binary > 0)
 					fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
@@ -10126,7 +10082,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 			
 			if (Gdiag & DIAG_SHOW)
 			{
-				printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, navgs=%d",
+				printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA, navgs=%d",
 							 parms->start_t, min_dt, rms, pct_change, gcam->neg, Ginvalid, navgs) ;
 				if (parms->l_binary > 0)
 					printf(", aligned = %d (%2.3f%%)\n",
@@ -10138,7 +10094,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 			parms->start_t++ ;
 		} while (pct_change > parms->tol) ;
 		navgs /= 4 ;
-		if (navgs < 16)
+		if (navgs < 1)
 			break ;
 	}
 	parms->dt = orig_dt ;
