@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/23 15:53:27 $
-// Revision       : $Revision: 1.48 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/07/26 02:54:18 $
+// Revision       : $Revision: 1.48.2.1 $
 
 
 #include <math.h>
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
   MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
-  int          msec, minutes, seconds /*, iter*/ ;
+  int          msec, hours, minutes, seconds /*, iter*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.48 2006/02/23 15:53:27 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.48.2.1 2006/07/26 02:54:18 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -536,8 +536,6 @@ main(int argc, char *argv[])
     if (!gca_tl)
       ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
 								Progname, tl_fname) ;
-    
-    /* Is the following still right in longitudinal mode? */
     GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
     GCAMmarkNegativeNodesInvalid(gcam);
     // debugging
@@ -634,18 +632,6 @@ main(int argc, char *argv[])
   }
   GCAMmarkNegativeNodesInvalid(gcam) ;
 
-#if 0
-  {
-    GCA_SAMPLE *gcas ;
-    int  nsamples ;
-
-    gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
-    GCAtransformAndWriteSamples(gca, mri_inputs, gcas, nsamples, 
-                                "gcas_fsamples.mgz", transform) ;
-    free(gcas) ;
-  }
-#endif
-
   ///////////////////////////////////////////////////////////////////
   // -wm option (default = 0)
   if (tl_fname == NULL && register_wm_flag)
@@ -662,162 +648,170 @@ main(int argc, char *argv[])
     printf("initial white matter registration complete - full registration...\n") ;
   }
 
-  //note that transform is meaningless when -L option is used! 
-  //Note really. Now if -T is still used when -L is used, the following will
-  // still use the linear xform loaded in -T to do gca renormalization!
-  // If wanted to use the previous m3d, then don't use -T option.
-
+  //note that transform is meaningless when -L option is used! A bug! -xh
   //  if (renormalize)
   //  GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
   if (renormalize)
-    {
-      if(!xform_name || transform_loaded)
-	GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-      else
 	{
-	  TRANSFORM *trans ;
-	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-	  trans->type = TransformFileNameType(xform_name);
-	  trans->xform = (void *)gcam;
-	  GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
-	  free(trans);
+		if(!xform_name)
+			GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+		else
+		{
+			TRANSFORM *trans ;
+			trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+			trans->type = TransformFileNameType(xform_name);
+			trans->xform = (void *)gcam;
+			GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+			free(trans);
+		}
 	}
-    }
   else if (renormalize_new)
-    {
-      if(!xform_name || transform_loaded)
-	GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
-      else
 	{
-	  TRANSFORM *trans ;
-	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-	  trans->type = TransformFileNameType(xform_name);
-	  trans->xform = (void *)gcam;
-	  GCAmapRenormalizeByClass(gcam->gca, mri_inputs, trans) ;
-	  free(trans);
+		if(!xform_name)
+			GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
+		else
+		{
+			TRANSFORM *trans ;
+			trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+			trans->type = TransformFileNameType(xform_name);
+			trans->xform = (void *)gcam;
+			GCAmapRenormalizeByClass(gcam->gca, mri_inputs, trans) ;
+			free(trans);
+		}
 	}
-    }
   else if (renormalize_align)
-    {
-      LTA _lta, *lta = &_lta ;
-      
+	{
+		LTA _lta, *lta = &_lta ;
+
+		lta->num_xforms = 0 ;
 #if 0
-      sprintf(fname, "%s.gca", parms.base_name) ;
-      gca = GCAread(fname) ;
-      sprintf(fname, "%s.lta", parms.base_name) ;
-      lta = LTAread(fname) ;
+		sprintf(fname, "%s.gca", parms.base_name) ;
+		gca = GCAread(fname) ;
+		sprintf(fname, "%s.lta", parms.base_name) ;
+		lta = LTAread(fname) ;
       
-      if (Gdiag & DIAG_WRITE & transform_loaded)
-	{
-	  char fname[STRLEN] ;
-	  sprintf(fname, "%s.log", parms.base_name) ;
-	  parms.log_fp = fopen(fname, "w") ;
-	}
-      {
-	MRI *mri_seg, *mri_aligned ;
-	int l ;
-	mri_seg = MRIclone(mri_inputs, NULL) ;
-	l = lta->xforms[0].label ;
-	GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
-	mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
-	MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
-	MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
-      }
+		if (Gdiag & DIAG_WRITE)
+		{
+			char fname[STRLEN] ;
+			sprintf(fname, "%s.log", parms.base_name) ;
+			parms.log_fp = fopen(fname, "w") ;
+		}
+		{
+			MRI *mri_seg, *mri_aligned ;
+			int l ;
+			mri_seg = MRIclone(mri_inputs, NULL) ;
+			l = lta->xforms[0].label ;
+			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
+			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
+			MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
+		}
 #else
-      if (Gdiag & DIAG_WRITE)
-	{
-	  char fname[STRLEN] ;
-	  sprintf(fname, "%s.log", parms.base_name) ;
-	  parms.log_fp = fopen(fname, "w") ;
-	}
-      if (read_lta)
-	{
-	  sprintf(fname, "%s_array.lta", parms.base_name) ;
-	  lta = LTAread(fname) ;
-	}
-      else
-	lta = NULL ;
+		if (Gdiag & DIAG_WRITE)
+		{
+			char fname[STRLEN] ;
+			sprintf(fname, "%s.log", parms.base_name) ;
+			parms.log_fp = fopen(fname, "w") ;
+		}
+		if (read_lta)
+		{
+			sprintf(fname, "%s_array.lta", parms.base_name) ;
+			lta = LTAread(fname) ;
+		}
+		else
+			lta = NULL ;
+		if(!xform_name)
+		{
+			//      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+			//			if (read_lta == 0)
+			{
+				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, NULL) ;
+				printf("2nd pass renormalization with updated intensity distributions\n");
+				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
+			}
+		}
+		else
+		{
+			TRANSFORM *trans ;
+			trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+			trans->type = TransformFileNameType(xform_name);
+			trans->xform = (void *)gcam;
 
-      //again, using the linear xform loaded in -T even if xform_name != NULL
-      if(!xform_name || transform_loaded )
-	{
-	  //      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-	  GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
-	}
-      else
-	{
-	  TRANSFORM *trans ;
-	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-	  trans->type = TransformFileNameType(xform_name);
-	  trans->xform = (void *)gcam;
+			//The following inversion is necessary; but do I need to release the memory for the inverse transform after the mapRenormalize is done -xhan?
+			TransformInvert(trans, mri_inputs);
 
-	  //The following inversion is necessary; but do I need to release the memory for the inverse transform after the mapRenormalize is done -xhan?
-	  TransformInvert(trans, mri_inputs);
+			//      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, NULL) ;
+			printf("2nd pass renormalization with updated intensity distributions\n");
+			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
+			free(trans);
+		}
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			sprintf(fname, "%s.gca", parms.base_name) ;
+			printf("writing gca to %s...\n", fname) ;
+			GCAwrite(gca, fname) ;
+		}
+		if(lta && !read_lta)
+		{
+			sprintf(fname, "%s_array.lta", parms.base_name) ;
 
-	  //      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
-	  GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
-	  free(trans);
-	}
-      sprintf(fname, "%s.gca", parms.base_name) ;
-      printf("writing gca to %s...\n", fname) ;
-      //		GCAwrite(gca, fname) ;
-      if(lta){
-	sprintf(fname, "%s_array.lta", parms.base_name) ;
-	LTAwrite(lta, fname) ;
-      }
-      if (DIAG_VERBOSE_ON && transform_loaded)
-	{
-	  MRI *mri_seg, *mri_aligned ;
-	  int l ;
-	  lta = LTAread("gcam.lta") ;
-	  mri_seg = MRIclone(mri_inputs, NULL) ;
-	  l = lta->xforms[0].label ;
-	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
-	  LTAinvert(lta) ;
-	  mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
-	  MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
-	  MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
-	}
+			// should put volume geometry into file, and probably change to RAS->RAS xform
+			LTAwrite(lta, fname) ;
+		}
+		if (DIAG_VERBOSE_ON)
+		{
+			MRI *mri_seg, *mri_aligned ;
+			int l ;
+			lta = LTAread("gcam.lta") ;
+			mri_seg = MRIclone(mri_inputs, NULL) ;
+			l = lta->xforms[0].label ;
+			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+			LTAinvert(lta) ;
+			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
+			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
+			MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
+		}
 #endif
-      if (reinit && (xform_name == NULL) && (lta != NULL)){
-	printf("Reinitialize GCAM with LTA \n");
-	GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
-      }
-      if (DIAG_VERBOSE_ON)
-	{
-	  MRI *mri_seg ;
-	  int l ;
-	  l = lta->xforms[0].label ;
-	  mri_seg = MRIclone(mri_inputs, NULL) ;
-	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
-	  MRIwrite(mri_seg, "sa.mgz") ;
-	  MRIfree(&mri_seg) ;
+		if (reinit && (xform_name == NULL) && (lta != NULL))
+			GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
+		if (DIAG_VERBOSE_ON)
+		{
+			MRI *mri_seg ;
+			int l ;
+			l = lta->xforms[0].label ;
+			mri_seg = MRIclone(mri_inputs, NULL) ;
+			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+			MRIwrite(mri_seg, "sa.mgz") ;
+			MRIfree(&mri_seg) ;
+		}
+		if(lta) LTAfree(&lta) ;
 	}
-      if(lta) LTAfree(&lta) ;
-    }
   
   if (regularize_mean > 0)
     GCAregularizeConditionalDensities(gca, regularize_mean) ;
   
   if (parms.write_iterations != 0)
-    {
-      char fname[STRLEN] ;
-      MRI  *mri_gca, *mri_tmp ;
-      mri_gca = MRIclone(mri_inputs, NULL) ;
-      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-      if (mri_gca->nframes > 1)
 	{
-	  printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-	  mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-	  MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+		char fname[STRLEN] ;
+		MRI  *mri_gca /*, *mri_tmp*/ ;
+		mri_gca = MRIclone(mri_inputs, NULL) ;
+		GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+#if 0
+		if (mri_gca->nframes > 1)
+		{
+			printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+			mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+			MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+		}
+#endif
+		sprintf(fname, "%s_target", parms.base_name) ;
+		MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+		sprintf(fname, "%s_target.mgz", parms.base_name) ;
+		printf("writing target volume to %s...\n", fname) ;
+		MRIwrite(mri_gca, fname) ;
+		MRIfree(&mri_gca) ;
 	}
-      sprintf(fname, "%s_target", parms.base_name) ;
-      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgz", parms.base_name) ;
-      printf("writing target volume to %s...\n", fname) ;
-      MRIwrite(mri_gca, fname) ;
-      MRIfree(&mri_gca) ;
-    }
   
   ///////////////////////////////////////////////////////////////////
   // -reset option
@@ -878,14 +872,16 @@ main(int argc, char *argv[])
   GCAMfree(&gcam) ;
   if (mri_inputs)
     MRIfree(&mri_inputs) ;
+  if (diag_fp)
+    fclose(diag_fp) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
+  hours = minutes / (60) ;
+	minutes = minutes % 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
 				 minutes, seconds) ;
-  if (diag_fp)
-    fclose(diag_fp) ;
   exit(0) ;
   return(0) ;
 }
