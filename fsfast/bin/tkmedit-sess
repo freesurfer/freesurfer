@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.16 2006/04/13 18:46:29 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.17 2006/07/26 16:37:17 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -301,7 +301,6 @@ if(! $sessanat ) then
       echo "SUBJECTS_DIR: $SUBJECTS_DIR" |& tee -a $LF
       exit 1;
     endif
-    set anatdir = $SUBJECTS_DIR/$subject/mri/$mrivolid
     set anatoption = "$subject $mrivolid";
   else
     set tmpreg = $sess/$fsd/register.dat
@@ -324,16 +323,6 @@ else
   set anatdir = $tmp[1];
   set anatoption = "-f $anatdir";
 endif
-
-## Get the full path to the anat dir ##
-pushd $anatdir > /dev/null
-set anatdir = `$PWDCMD`;
-popd > /dev/null
-if(! -d $anatdir ) then
-  echo "ERROR: cannot find $anatdir" |& tee -a $LF
-  exit 1;
-endif
-echo "INFO: Anatomical directory set to $anatdir" |& tee -a $LF
 
 #--------- Prep the segmentation ---------------------------#
 if($#segmentation != 0) then
@@ -370,6 +359,9 @@ set cmd = ($TKMEDIT $anatoption$MGZ $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
 set cmd = ($cmd $segoption);
 if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
+if($subject == talairach || $subject == fsaverage) then
+  set set cmd = ($cmd -bc-main .65 11);
+endif
 echo "------------------------"|& tee -a $LF
 echo "SUBJECTS_DIR $SUBJECTS_DIR"|& tee -a $LF
 $PWDCMD|& tee -a $LF
