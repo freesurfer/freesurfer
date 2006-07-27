@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/27 19:36:21 $
-// Revision       : $Revision: 1.477 $
+// Revision Date  : $Date: 2006/07/27 19:37:49 $
+// Revision       : $Revision: 1.478 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.477 2006/07/27 19:36:21 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.478 2006/07/27 19:37:49 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -39896,7 +39896,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
   mris_defect=parms->mris_defect; //the defect surface
   mris_source=mrip->mris_source; //the source surface
 
-	fprintf(stderr,"INFO:{%d %d} {%d (%d) %d (%d)} \n",mris_defect->nfaces,mris_defect->nvertices,mris_source->nfaces,mris_source->max_faces,mris_source->nvertices,mris_source->max_vertices);
+	//	fprintf(stderr,"INFO:{%d %d} {%d (%d) %d (%d)} \n",mris_defect->nfaces,mris_defect->nvertices,mris_source->nfaces,mris_source->max_faces,mris_source->nvertices,mris_source->max_vertices);
 
   n_faces = mrip->n_faces;
 	n_vertices = mrip->n_vertices;
