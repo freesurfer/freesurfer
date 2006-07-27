@@ -38,7 +38,9 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
 	//making sure of a few important things before the topology correction
 	MRISclearFaceMarks(mris);
 	MRISclearMarks(mris);
-	MRIScomputeNormals(mris);
+	//	MRIScomputeNormals(mris);
+	//	MRIScomputeMetricProperties(mris);
+	MRIScomputeTriangleProperties(mris);
 
 	bool correct = MRIScorrectPatchTopology(mrip->mris,parms);
 	if(correct == false){
@@ -878,6 +880,9 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip){
 		vdst->x=vsrc->x;
 		vdst->y=vsrc->y;
 		vdst->z=vsrc->z;
+		vdst->origx = vsrc->x;
+		vdst->origy = vsrc->y;
+		vdst->origz = vsrc->z;
 	}
 	//faces
 	for(int n = 0 ; n < mris->nfaces ; n++){
