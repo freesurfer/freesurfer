@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/25 20:21:11 $
-// Revision       : $Revision: 1.475 $
+// Revision Date  : $Date: 2006/07/27 19:33:51 $
+// Revision       : $Revision: 1.476 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.475 2006/07/25 20:21:11 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.476 2006/07/27 19:33:51 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30992,7 +30992,7 @@ MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms){
   return mri;
 }
 
-//floflo
+//used for fs_topo_fixer
 void MRISsaveLocal(MRIS *mris,  TOPOFIX_PARMS *parms, char *name){
 	
 	int static n_br=0;
@@ -31002,6 +31002,8 @@ void MRISsaveLocal(MRIS *mris,  TOPOFIX_PARMS *parms, char *name){
 	MRI *mri;
 
 	mri = ((DP*)parms->dp)->mri_defect;
+
+	n_br = parms->defect_number;
 
 	MRISsaveVertexPositions(mris,TMP_VERTICES);
 	for(n = 0 ; n < mris->nvertices ; n++){
@@ -31013,14 +31015,37 @@ void MRISsaveLocal(MRIS *mris,  TOPOFIX_PARMS *parms, char *name){
 		mris->vertices[n].y=yv;
 		mris->vertices[n].z=zv;
 		mris->vertices[n].curv=mris->vertices[n].H;
-		
 	}
-	MRISwrite(mris,name);
+	sprintf(fname,"./def_%d.asc",n_br);
+	MRISwrite(mris,fname);
 	MRISrestoreVertexPositions(mris,TMP_VERTICES);
-	sprintf(fname,"mri%d.mgz",n_br);
+	sprintf(fname,"./def_o_%d.asc",n_br);
+	MRISwrite(mris,fname);
+
+	mris=parms->mrip->mris_source;
+	sprintf(fname,"./source_o_%d.asc",n_br);
+	MRISwrite(mris,fname);
+	MRISsaveVertexPositions(mris,TMP_VERTICES);
+	for(n = 0 ; n < mris->nvertices ; n++){
+		x = xVOL(mri,mris->vertices[n].x);
+		y = yVOL(mri,mris->vertices[n].y);
+		z = zVOL(mri,mris->vertices[n].z);
+		MRIvoxelToWorld(mri, x, y, z, &xv, &yv, &zv) ;
+		mris->vertices[n].x=xv;
+		mris->vertices[n].y=yv;
+		mris->vertices[n].z=zv;
+		mris->vertices[n].curv=mris->vertices[n].H;
+	}
+	sprintf(fname,"./source_%d.asc",n_br);
+	MRISwrite(mris,fname);
+	MRISrestoreVertexPositions(mris,TMP_VERTICES);
+
+	sprintf(fname,"./mri_sign_%d.mgz",n_br);
 	MRIwrite(((DP*)parms->dp)->mri_defect_sign,fname);
-	sprintf(fname,"def.curv_%d",n_br++);
-	MRISwriteCurvature(mris,fname);
+	sprintf(fname,"./mri_sign_init_%d.mgz",n_br);
+	MRIwrite(((DP*)parms->dp)->mri_defect_initial_sign,fname);
+	//	sprintf(fname,"def.curv_%d",n_br++);
+	//	MRISwriteCurvature(mris,fname);
 	
 }
 
@@ -31364,16 +31389,20 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose){
 	DP *dp;
 	TP *tp;
 
+#if 0 
+	static int now = 0;
+	static int def = -1;
+	static int when = 0;
+#endif
+
 	fitness=unmri_ll=curv_ll=0.0;
 
   MRIScomputeNormals(mris);
   MRIScomputeTriangleProperties(mris);
   MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
-
 	
 	dp=(DP*)parms->dp;
 	tp=&dp->tp;
-
 
 	dp->tp.face_ll=0.0f;
 	dp->tp.vertex_ll=0.0f;
@@ -31392,6 +31421,19 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose){
 	if(!FZERO(l_vol) && dp->mri_defect->width >= 5 && dp->mri_defect->height >= 5 && dp->mri_defect->depth >= 5){
 		/* compute the signed distance volume */
     MRIScomputeDistanceVolume(parms,2.0);
+#if 0 
+		if(def == parms->defect_number && when == 1){
+			now = 1;
+		}
+		if(def != parms->defect_number){
+			def = parms->defect_number;
+			when = 1;
+		}
+		if(now){ 
+			MRISsaveLocal(parms->mris_defect,parms,"./defect");
+			now=0;when=0;
+		}
+#endif
 		unmri_ll = computeVolumeLikelihood(dp, parms->contrast, 0) ;
 		fitness+= l_vol * unmri_ll ;
 	}
@@ -31400,12 +31442,14 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose){
 		curv_ll = computeSurfaceLikelihood(mris, dp, 0) ;
 		fitness += l_surf * curv_ll ;
 	}
+	unmri_ll=-unmri_ll;
+	curv_ll=-curv_ll;
 	dp->tp.unmri_ll = unmri_ll;
 	dp->tp.curv_ll = curv_ll;
+	dp->tp.qcurv_ll = curv_ll;
+	dp->tp.cll = curv_ll;
+	dp->tp.qcll = curv_ll;
 
-
-	//	fprintf(stderr,"FITNESS = %f\n",fitness);
-	
 	return (fitness);
 }
 
@@ -39669,7 +39713,7 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
         //MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
         //MRISwrite(mris,"rh.testdebug2");
         if(1)//verbose==VERBOSE_MODE_HIGH)
-          ErrorExit(ERROR_BADPARM, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
       }
     }
 #endif
@@ -39787,7 +39831,7 @@ static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3],int verbo
     norm[1]+=alpha*face->ny;
     norm[2]+=alpha*face->nz;
 
-  }
+	}
 }
 
 
@@ -39836,6 +39880,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
   float n_f[3],n_e0[3],n_e1[3],n_e2[3],n_v0[3],n_v1[3],n_v2[3];
   float vec[3],vec0[3],vec1[3],vec2[3],e0[3],e1[3],e2[3],n0[3],n1[3],n2[3];
   float val,valu,val0,val1,val2;
+
   
 	MRIP *mrip;
   MRIS *mris_defect,*mris_source,*mris;
@@ -39849,6 +39894,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
 	mrip=parms->mrip;
   mris_defect=parms->mris_defect; //the defect surface
   mris_source=mrip->mris_source; //the source surface
+
+	fprintf(stderr,"INFO:{%d %d} {%d (%d) %d (%d)} \n",mris_defect->nfaces,mris_defect->nvertices,mris_source->nfaces,mris_source->max_faces,mris_source->nvertices,mris_source->max_vertices);
 
   n_faces = mrip->n_faces;
 	n_vertices = mrip->n_vertices;
@@ -39874,7 +39921,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
   delta=distance_to_surface*mri_defect->xsize; 
 	delta = 3.0 ; //for now, distance_to_surface = 2 * volume_resolution 
 	scale = mri_defect->xsize;
-	
+
 	/* initialize the signed image */
   for(k=0;k<mri_distance->depth;k++)
     for(j=0;j<mri_distance->height;j++)
@@ -40071,14 +40118,14 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
         //fprintf(stderr,"%d),",vto[vn]);
 				vertexPseudoNormal(mris_source,vto[vn],mris_defect,vn,n_v0);
 			}else
-				computeVertexPseudoNormal(mris,face->v[0],n_v0,0);
+				computeVertexPseudoNormal(mris,vn,n_v0,0);
 			vn = face->v[1];
       if(mris->vertices[vn].vnum != mris->vertices[vn].num) {//border
 				//test
         if(vn >= n_vertices) fprintf(stderr,"problem with vto vn1\n");
 				//fprintf(stderr,"fo1(%d-",vn);
         //fprintf(stderr,"%d),",vto[vn]);
-        vertexPseudoNormal(mris_source,vto[vn],mris_defect,vn,n_v0);
+        vertexPseudoNormal(mris_source,vto[vn],mris_defect,vn,n_v1);
       }else
         computeVertexPseudoNormal(mris,vn,n_v1,0);
 			vn = face->v[2];
@@ -40087,11 +40134,14 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
         if(vn >= n_vertices) fprintf(stderr,"problem with vto vn2\n");
 				//fprintf(stderr,"fo2(%d-",vn);
         //fprintf(stderr,"%d),",vto[vn]);
-				vertexPseudoNormal(mris_source,vto[vn],mris_defect,vn,n_v0);
+				vertexPseudoNormal(mris_source,vto[vn],mris_defect,vn,n_v2);
       }else
         computeVertexPseudoNormal(mris,vn,n_v2,0);
 		}
-		
+		if(isnan(n_v0[0]) || isnan(n_v1[0]) || isnan(n_v2[0])) {
+			fprintf(stderr, ".%d & %d[%d(%d) %d(%d) %d(%d)][%f %f %f]\n",wsurf,fno,face->v[0],mris->vertices[face->v[0]].marked,face->v[1],mris->vertices[face->v[1]].marked,face->v[2],mris->vertices[face->v[2]].marked,n_v0[0],n_v1[0],n_v2[0]);
+			exit(-1);
+		}
 		//////////////////////////////////////////////////////////////////////////////////
 
     /* finding distance to surface */
@@ -40170,7 +40220,6 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
 					/* update distance map */
 					if(fabs(distance)<fabs(MRIFvox(mri_distance,i,j,k))){
 						MRIFvox(mri_distance,i,j,k)=distance;
-
 					}
 				}
 	}
@@ -40203,7 +40252,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
 					for( n = 0 ; n < 6 ; n++){
 						float sign;
 						sign = MRIFvox(mri_distance,i+_DX[n],j+_DY[n],k+_DZ[n]);
-						if(fabs(sign)<NPY){
+						if(fabs(sign) < NPY){
 							if(sign>0) MRIFvox(mri_distance,i,j,k)=1.0f;
 							else MRIFvox(mri_distance,i,j,k)=-1.0f;
 							found=1;
@@ -40213,9 +40262,9 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface){
 				}
 	}
 	//making sure
-	for(k=1;k<mri_distance->depth-1;k++)
-			for(j=1;j<mri_distance->height-1;j++)
-				for(i=1;i<mri_distance->width-1;i++){
+	for(k=0;k<mri_distance->depth-0;k++)
+			for(j=0;j<mri_distance->height-0;j++)
+				for(i=0;i<mri_distance->width-0;i++){
 					sign = MRIFvox(mri_distance,i,j,k);
 					if(sign > 0.0) MRIFvox(mri_distance,i,j,k)=MIN(1.0f,sign);
 					else MRIFvox(mri_distance,i,j,k)=MAX(-1.0f,sign);
