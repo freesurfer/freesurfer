@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/27 19:37:49 $
-// Revision       : $Revision: 1.478 $
+// Revision Date  : $Date: 2006/07/27 20:00:04 $
+// Revision       : $Revision: 1.479 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.478 2006/07/27 19:37:49 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.479 2006/07/27 20:00:04 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -31447,9 +31447,9 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose){
 	curv_ll=-curv_ll;
 	dp->tp.unmri_ll = unmri_ll;
 	dp->tp.curv_ll = curv_ll;
-	dp->tp.qcurv_ll = curv_ll;
+	dp->tp.qcurv_ll = 2*curv_ll;
 	dp->tp.cll = curv_ll;
-	dp->tp.qcll = curv_ll;
+	dp->tp.qcll = 2*curv_ll;
 
 	return (fitness);
 }
