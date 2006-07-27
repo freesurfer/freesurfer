@@ -43,7 +43,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.4 2006/07/11 17:53:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.5 2006/07/27 19:47:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -130,7 +130,12 @@ main(int argc, char *argv[])
 		mri_dst = NULL ;
 		for (i = 0 ; i < niter ; i++)
 		{
-			mri_dst = MRIclose(mri_src, mri_dst) ;
+			mri_dst = MRIdilate(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIerode(mri_src, mri_dst) ;
 			MRIcopy(mri_dst, mri_src) ;
 		}
 		break ;
@@ -138,7 +143,12 @@ main(int argc, char *argv[])
 		mri_dst = NULL ;
 		for (i = 0 ; i < niter ; i++)
 		{
-			mri_dst = MRIopen(mri_src, mri_dst) ;
+			mri_dst = MRIerode(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIdilate(mri_src, mri_dst) ;
 			MRIcopy(mri_dst, mri_src) ;
 		}
 		break ;
