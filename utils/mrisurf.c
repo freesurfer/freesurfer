@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/27 19:33:51 $
-// Revision       : $Revision: 1.476 $
+// Revision Date  : $Date: 2006/07/27 19:36:21 $
+// Revision       : $Revision: 1.477 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.476 2006/07/27 19:33:51 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.477 2006/07/27 19:36:21 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -31243,7 +31243,8 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms){
 void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms){
 	
 	parms->mris_defect=mris;
-  parms->initial_fitness = MRIScomputeFitness(mris,parms,0);
+	MRIScomputeFitness(mris,parms,0);
+	parms->initial_fitness = 0.0;
   //save initial sign into mri_defect_initial_sign 
   MRIcopy(((DP*)parms->dp)->mri_defect_sign,((DP*)parms->dp)->mri_defect_initial_sign);
 	//  fs_topo_fixer_test
