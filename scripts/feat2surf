@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.12 2006/05/23 22:38:47 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.13 2006/07/27 21:45:55 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -83,7 +83,7 @@ endif
 # Get a list of images to convert
 #set nonomatch # This prevents crashing due to file expansion errors
 if($CopeOnly) then
-  set imglist = (`ls $statsdir/cope*.$fslext`)
+  set imglist = (`ls $statsdir/cope*.$fslext $statsdir/varcope*.$fslext`)
   set subjectlist = ($TargetSubj)
 else
   set imglist = (`ls $statsdir/*.$fslext`)
@@ -331,7 +331,7 @@ usage_exit:
   echo " --hemi hemi : run on hemi (lh or rh) only. Default is lh and rh. "
   echo " --target subject : subject used to define common surface space (default is fsaverage)"
   echo " --surf surface : surface to resample to (default is white)"
-  echo " --cope-only : only map the copes to the common surface space"
+  echo " --cope-only : only map the copes and varcopes to the common surface space"
   echo " "
   echo " --version : print version and exit"
   echo " --help    : print help and exit"
