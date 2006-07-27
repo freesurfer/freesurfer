@@ -2415,7 +2415,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if( (bBrush || bLine) &&
 	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
-      // If this is a mouse down event, open up an undo action.
+      // If this is a mouse down event, open up an undo action and
+      // enter batch mode.
       UndoManager& undoList = UndoManager::GetManager();
 
       if( iInput.IsButtonDownEvent() ) {
@@ -2432,13 +2433,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    undoList.BeginAction( "Unselection Brush" );
 	  }
 	}
-      }
-
-      // We'll find voxels. In brush mode, it's only for button
-      // drag and up. For line, it's only on mouse up.
-      if( (bBrush && 
-	   (iInput.IsButtonDragEvent() || iInput.IsButtonUpEvent()))  ||
-	  (bLine && iInput.IsButtonUpEvent()) ) {
 
 	// Begin batch change mode.
 	switch( iTool.GetMode() ) {
@@ -2448,6 +2442,13 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  mVolume->BeginBatchROIChanges(); break;
 	default: break;
 	}	  
+      }
+
+      // We'll find voxels. In brush mode, it's only for button
+      // drag and up. For line, it's only on mouse up.
+      if( (bBrush && 
+	   (iInput.IsButtonDragEvent() || iInput.IsButtonUpEvent()))  ||
+	  (bLine && iInput.IsButtonUpEvent()) ) {
 
 	list<Point3<float> > points;
 
@@ -2581,6 +2582,13 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	
 	RequestRedisplay();
 
+      }
+      
+      // If this is a mouse up event, close the undo stuff and end
+      // batch mode.
+      if( iInput.IsButtonUpEvent() ) {
+	undoList.EndAction();
+	
 	// End batch change mode.
 	switch( iTool.GetMode() ) {
 	case ScubaToolState::voxelEditing:
@@ -2589,11 +2597,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  mVolume->EndBatchROIChanges(); break;
 	default: break;
 	}	  
-      }
-      
-      // If this is a mouse up event, close the undo stuff.
-      if( iInput.IsButtonUpEvent() ) {
-	undoList.EndAction();
       }
     }
     
