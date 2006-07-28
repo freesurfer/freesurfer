@@ -1,7 +1,10 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.17 2006/07/19 04:49:05 greve Exp $
+% Loads an fsfast flac file.
+% If no args, returns an empty flac structure.
+%
+% $Id: fast_ldflac.m,v 1.18 2006/07/28 04:33:03 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -30,7 +33,11 @@ if(isempty(flac))
   flac.par = [];
   flac.tpexc = [];
   flac.perrun = 0;
-  %flac.ev = []; % Leave commented
+  % flag indicating the presence of a variable regressor EV
+  flac.varregev = 0; % Does not actually do anything yet
+  % VarRegEVs must be nuissance!
+  %flac.ev  = []; % Leave commented for inherit
+  %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
   inherit = 0;
 else
@@ -155,31 +162,31 @@ end % while (1)
 
 fclose(fp);
 
-if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
   flac = [];
 end
-
-if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
-
 nevs = length(flac.ev);
 if(nevs == 0)
   fprintf('ERROR: no EVs specified in %s\n',flacfile);
   flac = [];
 end
 
+if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
+if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
+
+% Check each contrast
 ncon = length(flac.con);
 if(ncon == 0)
   fprintf('WARNING: no contrasts in FLAC file %s\n',flacfile);
   return;
 end
-
-% Check each contrast
 for nthcon = 1:ncon
 
   % Make sure that each EV in the contrast is an EV in the FLAC
+  % Handle variable regressor EVs too
   for nthev = 1:length(flac.con(nthcon).ev)
+    % This might not work with VarRegEV
     evindex = flac_evindex(flac,flac.con(nthcon).ev(nthev).name);
     if(isempty(evindex))
       fprintf('ERROR: in FLAC file %s, Contrast %s\n',...
@@ -191,15 +198,16 @@ for nthcon = 1:ncon
     end
   end
   
-  % Compute the contrast matrices
-  flactmp = flac_conmat(flac,nthcon);
-  if(isempty(flactmp))
-    fprintf('ERROR: with contrast %s in %s\n',...
-	    flac.con(nthcon).name,flacfile);
-    flac = [];
-    return;
+  % Compute the contrast matrices, unless variable reg EV
+  if(~flac.varregev)
+    if(isempty(flactmp))
+      fprintf('ERROR: with contrast %s in %s\n',...
+	      flac.con(nthcon).name,flacfile);
+      flac = [];
+      return;
+    end
+    flac = flactmp;
   end
-  flac = flactmp;
 end
 
 % Should do some tests here to make sure names are not rep,
@@ -210,15 +218,30 @@ end
 return;
 
 %------------------------------------------------%
+% If one per-evrw is spec, then all must be spec (why?)
+% If global evrw is spec, then per-evrw not allowed (why?)
+% If global evrw is spec, then all non-zero EVs must have same
+%  number of regressors equal to the number of weights
+% Per-EVRW is not allowed for F-tests
+% If Per-EVRW is not spec, then defaults to all ones.
+% If Global-EVRW are not spec, then defaults to all ones.
+% The number of weights in EVRW for an EV be same as nreg
+% Check for variable regressor EVs
+% Functional forms for EVRW?
+% ANOVA?
 function flac = load_contrast(fp,flac)
+  % Just loads the contrast spec, does not compute
+  % contrast matrix.
   if(~isfield(flac,'con')) ncon = 0; 
   else ncon = length(flac.con);
   end
   ncon = ncon + 1;
 
+  flac.con(ncon).name     = '';
+  flac.con(ncon).varsm    = 0;
   flac.con(ncon).sumev    = 0;
   flac.con(ncon).sumevreg = 0;
-  flac.con(ncon).varsm = 0;
+  flac.con(ncon).sumevrw  = [];
   
   nthev = 1;
   while(1)
@@ -232,22 +255,35 @@ function flac = load_contrast(fp,flac)
     key = sscanf(tline,'%s',1);
     switch(key)
      case 'NAME'
+      % Contrast Name
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).name = tmp;     
      case 'VARSM'
+      % Variance smoothing (?)
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error: VARSM\n');flac=[];return;end
       flac.con(ncon).varsm = sscanf(tmp,'%f',1);
      case 'SUMEV'
+      % SUMEV sumevflag
+      % sumevflag=0 : do not sum EVs (give each EV a separate set
+      % of rows in C)
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).sumev = sscanf(tmp,'%d',1);
      case 'SUMEVREG'
+      % SUMEVREG sumevregflag
+      % sumevregflag=0 : do not sum regressors within an EV (give
+      % each regressor a separate row in C)
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).sumevreg = sscanf(tmp,'%d',1);
      case 'EV'
+      % EV evname evweight <evreg1w evreg2w ... evregNREGw>
+      % evweight - overall weight for a regressor
+      % evregNw - weight for Nth regressor (overrides EVRW)
+      % Cannot spec weights for EV Regressors when there are a
+      % variable number of regressors in the EV
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).ev(nthev).name = tmp;
@@ -264,6 +300,12 @@ function flac = load_contrast(fp,flac)
       if(nthevrw == 0) flac.con(ncon).ev(nthev).evrw = []; end
       nthev = nthev+1;
      case 'EVRW' % Default EV Regressor Weights
+      % EVRW evreg1w evreg2w ... evregNREGw
+      % Weights to use for all EVs in contrast. 
+      % Can be overriden if EV Reg weights are specified with the EV.
+      % EVs must have nreg = NREG
+      % Cannot spec weights for EV Regressors when there are a
+      % variable number of regressors in the EV
       nthevrw = 0;
       while(1)
 	[tmp c] = sscanfitem(tline,nthevrw+2);
@@ -289,11 +331,3 @@ function flac = load_contrast(fp,flac)
 
 return
 
-% If one per-evrw is spec, then all must be spec (why?)
-% If global evrw is spec, then per-evrw not allowed (why?)
-% If global evrw is spec, then all non-zero EVs must have same
-%  number of regressors equal to the number of weights
-% Per-EVRW is not allowed for F-tests
-% If Per-EVRW is not spec, then defaults to all ones.
-% If Global-EVRW are not spec, then defaults to all ones.
-% The number of weights in EVRW for an EV be same as nreg

@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.2 2006/07/23 23:24:21 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.3 2006/07/28 04:33:03 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -9,25 +9,13 @@ if(nargin ~= 1)
   return;
 end
 
+flac = fast_ldflac; % creates empty struct
+
 flac.name = dirname(anadir);
-flac.fsd = '';
-flac.runlistfile = '';
-flac.funcstem = '';
-flac.runlistfile = '';
-flac.TR = [];
+
 flac.mask = 'brain';
-flac.inorm = [];
-flac.stimulusdelay = 0;
-flac.whiten = 0;
-flac.fixacf = 0;
-flac.acfsegstem = '';
-flac.tpexcfile = '';
-flac.parfile = '';
-flac.par = [];
-flac.tpexc = [];
-flac.perrun = 0;
-flac.inheritlevel = 0;
 flac.con = [];
+flac.ev = [];
 % format is handled diff than in fast_ldflac.m
 flac.format = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(flac.format)) flac.format = 'nii'; end
@@ -58,7 +46,7 @@ while(1)
   %fprintf('key = %s\n',key);
   
   switch(key)
-   case 'analysis',    flac.name = sscanf(tline,'%*s %s',1);
+   %case 'analysis',    flac.name = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);

@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.8 2006/05/03 23:43:56 greve Exp $
+% $Id: flac_ev_parse.m,v 1.9 2006/07/28 04:33:03 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -29,6 +29,8 @@ ev.nonparname = '';  % Name of non-parametric regressor
 ev.X          = [];  % Design matrix for this EV
 ev.nreg       = [];  % number of regressors
 ev.segstem    = '';  % used for selfregseg
+ev.varreg     = 0;   % EV has a variable number of regressors
+% VarRegEVs must be nuissance!
 if(nargin == 0)  return; end
 
 % Read in the name
