@@ -1,7 +1,7 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 # 
-# $Id: spmregister,v 1.11 2006/02/13 20:15:27 greve Exp $
-set VERSION = '$Id: spmregister,v 1.11 2006/02/13 20:15:27 greve Exp $';
+# $Id: spmregister,v 1.11.2.1 2006/07/28 00:08:30 greve Exp $
+set VERSION = '$Id: spmregister,v 1.11.2.1 2006/07/28 00:08:30 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -17,6 +17,8 @@ set PrintHelp = 0;
 set zero_center = 1; 
 set frame = 0;
 set MGZ = ();
+set nolog = 0;
+set ForceRAS = 0;
 # zero_center forces mri_convert to set the coordinate
 # of the center to zero. This allows spm to register
 # two volumes when they do not overlap in the native
@@ -25,7 +27,7 @@ set MGZ = ();
 # to be shifted, but SPM should be able to handle it.
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -46,8 +48,13 @@ set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
 mkdir -p $tmpdir
 
-set LF = $movvoldir/spmregister.log
-if(-e $LF) mv $LF $LF.old
+if(! $nolog) then
+  set LF = $movvoldir/spmregister.log
+  if(-e $LF) mv $LF $LF.old
+else
+  set LF = /dev/null
+endif
+
 echo "Log file is $LF"
 
 echo "Logfile for spmregister" >> $LF
@@ -84,6 +91,7 @@ set movvolimg  = $movvolbase.img
 set cmd = (mri_convert $movvol $movvolimg)
 if($zero_center) set cmd = ($cmd -ic 0 0 0)
 if($frame)  set cmd = ($cmd --nskip $frame)
+if($ForceRAS) set cmd = ($cmd --in_orientation RAS) # for spm tal
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -282,6 +290,10 @@ while( $#argv != 0 )
       set zero_center = 0;
       breaksw
 
+    case "--force-ras":
+      set ForceRAS = 1;
+      breaksw
+
     case "--mgz":
       set MGZ = .mgz;
       breaksw
@@ -301,6 +313,10 @@ while( $#argv != 0 )
     case "--debug":
       set verbose = 1;
       set echo = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
       breaksw
 
     case "--umask":
@@ -366,6 +382,8 @@ usage_exit:
   echo "Optional Arguments"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo "   --force-ras : force input geometry to be RAS"
+  echo ""
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version : print version and exit"
   echo "   --help    : print help and exit"
@@ -410,6 +428,15 @@ Use something other than the first frame. Eg, with FSL may want
 to use the middle frame. For SPM analyze, you should specify the
 file that corresonds to the frame you want because each file only
 has one frame.
+
+--force-ras
+
+Force input geometry to be RAS. This was designed to be used when
+registering SPM2 spatially normalized (affine) volumes. Eg, when
+data is registered to spm2/templates/EPI.mnc, SPM will not write
+a .mat file with the normalized volume (which will be RAS). But 
+without a .mat file, the assumption is that the volume will be
+LAS.
 
 NOTES:
 
