@@ -2358,40 +2358,40 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
     ErrorExit(Gerror, "%s: could not read surface file %s.",Progname,ifname);
   
   if (read_orig_vertex_coordinates(orfname) == NO_ERROR)
-	{
-		char fname[STRLEN] ;
-		sprintf(fname, "%s.sphere.reg", fpref) ;
-		if (FileExists(fname))
-			read_canon_vertex_coordinates(fname) ;
-	}
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s.sphere.reg", fpref) ;
+      if (FileExists(fname))
+	read_canon_vertex_coordinates(fname) ;
+    }
   if (functional_fname)  /* -o specified on command line */
+    {
+      if (strlen(functional_fname) > 2 &&
+	  strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
 	{
-		if (strlen(functional_fname) > 2 &&
-				strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
-		{
-			read_binary_values(functional_fname) ;
-
-			read_binary_curvature(cfname) ; 
-			val_to_stat() ;
-			overlayflag = TRUE ;
-			colscale = HEAT_SCALE ;
-		} 
-		else
-		{
-
-			sclv_read_from_volume(functional_fname, overlay_reg_type,
-														overlay_reg, SCLV_VAL);
+	  read_binary_values(functional_fname) ;
+	  
+	  read_binary_curvature(cfname) ; 
+	  val_to_stat() ;
+	  overlayflag = TRUE ;
+	  colscale = HEAT_SCALE ;
+	} 
+      else
+	{
+	  
+	  sclv_read_from_volume(functional_fname, overlay_reg_type,
+				overlay_reg, SCLV_VAL);
           
-			read_binary_curvature(cfname) ; 
-			val_to_stat() ;
-			overlayflag = TRUE ;
-			colscale = HEAT_SCALE ;
-		}
+	  read_binary_curvature(cfname) ; 
+	  val_to_stat() ;
+	  overlayflag = TRUE ;
+	  colscale = HEAT_SCALE ;
 	}
+    }
 #if 0
   read_binary_areas(afname);
 #endif
-  
+
   /* begin rkt */
   if (load_timecourse)
 	{
@@ -7153,10 +7153,17 @@ int
 read_white_vertex_coordinates(void)
 {
   fprintf(stderr, "reading white matter vertex locations...\n") ;
-  if (MRISreadOriginalProperties(mris, "white") != NO_ERROR)
+  if (MRISreadWhiteCoordinates(mris, "white") == NO_ERROR)
+    {
+      white_surf_loaded = TRUE ;
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+      vset_save_surface_vertices( VSET_WHITE );
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      enable_menu_set( MENUSET_VSET_WHITE_LOADED, 1 );
+    }
+  else
     return(Gerror) ;
-  surface_compiled = 0 ;
-  white_surf_loaded = 1 ;
   return(NO_ERROR) ;
 }
 int
@@ -7851,7 +7858,7 @@ read_labeled_vertices(char *fname)
     read_orig_vertex_coordinates(orfname) ;
 	if (reassign)
 		LabelUnassign(area) ;
-  LabelFillUnassignedVertices(mris, area) ;
+  LabelFillUnassignedVertices(mris, area, WHITE_VERTICES) ;
   LabelMark(area, mris) ;
   surface_compiled = 0 ;
   redraw() ;
@@ -19132,7 +19139,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.216 2006/07/24 14:58:22 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.217 2006/07/28 18:33:46 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20195,7 +20202,6 @@ int main(int argc, char *argv[])   /* new main */
   
   /* disable certain menu sets */
   enable_menu_set (MENUSET_VSET_INFLATED_LOADED, 0);
-  enable_menu_set (MENUSET_VSET_WHITE_LOADED, 0);
   enable_menu_set (MENUSET_VSET_PIAL_LOADED, 0);
   if (NULL == func_timecourse)
     enable_menu_set (MENUSET_TIMECOURSE_LOADED, 0);
@@ -20205,6 +20211,10 @@ int main(int argc, char *argv[])   /* new main */
   enable_menu_set (MENUSET_LABEL_LOADED, 0);
   enable_menu_set (MENUSET_FIELDSIGN_LOADED, 0);
   enable_menu_set (MENUSET_FIELDMASK_LOADED, 0);
+
+  /* Try to read the white coords. These are used to load labels. */
+  read_white_vertex_coordinates();
+
   /* end rkt */
 
   /* Update all the linked var sets with our values here in case they
@@ -24429,7 +24439,8 @@ labl_send_color_table_info ()
 
 int labl_load (char* fname) 
 {
-  LABEL* label = NULL, *lnew;
+  LABEL* label = NULL;
+  // *lnew;
   int label_index;
   char name[NAME_LENGTH];
   
@@ -24452,10 +24463,12 @@ int labl_load (char* fname)
   
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
-  LabelFillUnassignedVertices (mris, label);
+  LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
+#if 0
   lnew  = LabelFillHolesWithOrig(label, mris) ;
   LabelFree(&label) ;
   label = lnew ;
+#endif
   
   /* make a new entry in the label list. */
   labl_add (label, &label_index);
@@ -26287,7 +26300,7 @@ int path_load (char* fname)
 	}
       
       /* This will find vertex numbers for all those points. */
-      LabelFillUnassignedVertices (mris, label);
+      LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
       
       /* Copy the vertex numbers from the label into our vertices
 	 array. */
