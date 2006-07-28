@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # 
-# $Id: spmregister,v 1.14 2006/05/05 18:51:22 greve Exp $
-set VERSION = '$Id: spmregister,v 1.14 2006/05/05 18:51:22 greve Exp $';
+# $Id: spmregister,v 1.15 2006/07/28 00:07:43 greve Exp $
+set VERSION = '$Id: spmregister,v 1.15 2006/07/28 00:07:43 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -18,6 +18,7 @@ set zero_center = 1;
 set frame = 0;
 set MGZ = ();
 set nolog = 0;
+set ForceRAS = 0;
 # zero_center forces mri_convert to set the coordinate
 # of the center to zero. This allows spm to register
 # two volumes when they do not overlap in the native
@@ -90,6 +91,7 @@ set movvolimg  = $movvolbase.img
 set cmd = (mri_convert $movvol $movvolimg)
 if($zero_center) set cmd = ($cmd -ic 0 0 0)
 if($frame)  set cmd = ($cmd --nskip $frame)
+if($ForceRAS) set cmd = ($cmd --in_orientation RAS) # for spm tal
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -288,6 +290,10 @@ while( $#argv != 0 )
       set zero_center = 0;
       breaksw
 
+    case "--force-ras":
+      set ForceRAS = 1;
+      breaksw
+
     case "--mgz":
       set MGZ = .mgz;
       breaksw
@@ -376,6 +382,8 @@ usage_exit:
   echo "Optional Arguments"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo "   --force-ras : force input geometry to be RAS"
+  echo ""
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version : print version and exit"
   echo "   --help    : print help and exit"
@@ -420,6 +428,15 @@ Use something other than the first frame. Eg, with FSL may want
 to use the middle frame. For SPM analyze, you should specify the
 file that corresonds to the frame you want because each file only
 has one frame.
+
+--force-ras
+
+Force input geometry to be RAS. This was designed to be used when
+registering SPM2 spatially normalized (affine) volumes. Eg, when
+data is registered to spm2/templates/EPI.mnc, SPM will not write
+a .mat file with the normalized volume (which will be RAS). But 
+without a .mat file, the assumption is that the volume will be
+LAS.
 
 NOTES:
 
