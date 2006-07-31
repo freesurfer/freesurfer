@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/31 16:55:22 $
-// Revision       : $Revision: 1.480 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/07/31 19:39:42 $
+// Revision       : $Revision: 1.481 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.480 2006/07/31 16:55:22 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.481 2006/07/31 19:39:42 kteich Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -9472,6 +9472,25 @@ MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname)
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
 
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISreadWhiteCoordinates(MRI_SURFACE *mris, char *sname)
+{
+  if (!sname)
+    sname = "inflated" ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
+    return(Gerror) ;
+  MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -20758,6 +20777,26 @@ MRISvertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri,Real *pxv, Real *pyv, R
   Real  xw, yw, zw ;
 
   xw = v->x ; yw = v->y ; zw = v->z ;
+  if (mris->useRealRAS)
+    MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  else
+    MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords,
+		       Real *pxv, Real *pyv, Real *pzv)
+{
+  Real  xw, yw, zw ;
+
+  MRISgetCoords(v, coords, &xw, &yw, &zw);
   if (mris->useRealRAS)
     MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
   else

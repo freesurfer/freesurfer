@@ -34,7 +34,7 @@ typedef struct
 
 #include "mrisurf.h"
 
-int     LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area);
+int     LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords);
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(char *subject_name, char *label_name) ;
@@ -83,7 +83,7 @@ int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
 int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times);
 
 int   LabelSetStat(LABEL *area, float stat) ;
-LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris) ;
+LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) ;
 LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);
 

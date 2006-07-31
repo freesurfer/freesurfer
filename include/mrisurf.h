@@ -81,6 +81,7 @@ typedef struct face_type_
 #define uchar  unsigned char
 #endif
 
+
 typedef struct vertex_type_
 {
   float x,y,z;           /* curr position */
@@ -555,6 +556,7 @@ int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadWhiteCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
                                   Real *pxw, Real *pyw, Real *pzw) ;
@@ -642,6 +644,10 @@ int MRISorigVertexToVoxel(MRI_SURFACE *,
 int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
 			       Real *pxv, Real *pyv, 
                                Real *pzv) ;
+int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri, 
+				    int coord,
+				    Real *pxv, Real *pyv, 
+				    Real *pzv) ;
 #if 0
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
                                        Real xw, Real yw, Real zw,
@@ -824,7 +830,6 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define PIAL_VERTICES       7
 #define TMP2_VERTICES       8
 #define WHITE_VERTICES      9
-
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -1397,5 +1402,20 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
 				  MRI *mri, 
 				  int vno, 
 				  double *pnx, double *pny, double *pnz) ;
+
+#define MRISgetCoords(v,c,vx,vy,vz) \
+ switch(c) { \
+   case ORIGINAL_VERTICES:  (*vx) = (v)->origx;  (*vy) = (v)->origy;  (*vz) = (v)->origz; break; \
+   case TMP_VERTICES:       (*vx) = (v)->tx;     (*vy) = (v)->ty;     (*vz) = (v)->tz; break; \
+   case CANONICAL_VERTICES: (*vx) = (v)->cx;     (*vy) = (v)->cy;     (*vz) = (v)->cz; break; \
+   case CURRENT_VERTICES:   (*vx) = (v)->x;      (*vy) = (v)->y;      (*vz) = (v)->z; break; \
+   case INFLATED_VERTICES:  (*vx) = (v)->infx;   (*vy) = (v)->infy;   (*vz) = (v)->infz; break; \
+   case FLATTENED_VERTICES: (*vx) = (v)->fx;     (*vy) = (v)->fy;     (*vz) = (v)->fz; break; \
+   case PIAL_VERTICES:      (*vx) = (v)->pialx;  (*vy) = (v)->pialy;  (*vz) = (v)->pialz; break; \
+   case TMP2_VERTICES:      (*vx) = (v)->tx2;    (*vy) = (v)->ty2;    (*vz) = (v)->tz2; break; \
+   case WHITE_VERTICES:     (*vx) = (v)->whitex; (*vy) = (v)->whitey; (*vz) = (v)->whitez; break; \
+   default: break; \
+ }
+
 
 #endif

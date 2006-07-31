@@ -1293,7 +1293,7 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 ------------------------------------------------------*/
 #include "mrishash.h"
 int
-LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
+LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
 {
   int     n, i, vno, min_vno, nfilled = 0 ;
   LV      *lv ;
@@ -1303,6 +1303,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
   VERTEX  *v ;
   float   dx, dy, dz, x, y, z, dist, min_dist ;
   int     num_not_found;
+  float   vx, vy, vz;
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -1318,7 +1319,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
           i) ;
 
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
-  mht = MHTfillVertexTableRes(mris, NULL, ORIGINAL_VERTICES, 10.0) ;
+  mht = MHTfillVertexTableRes(mris, NULL, coords, 10.0) ;
   fprintf(stderr, "assigning vertex numbers to label...\n") ;
   num_not_found = 0;
   for (n = 0 ; n < area->n_points ; n++)
@@ -1340,7 +1341,13 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
         vno = bin->fno ; v = &mris->vertices[vno] ;
         if (vno == Gdiag_no)
           DiagBreak() ;
-        dx = v->origx - x ; dy = v->origy - y ; dz = v->origz - z ;
+
+	MRISgetCoords(v, coords, &vx, &vy, &vz);
+
+	dx = vx - x;
+	dy = vy - y;
+	dz = vz - z;
+
         dist = sqrt(dx*dx + dy*dy + dz*dz) ;
         if (dist < min_dist)
         {
@@ -1785,18 +1792,19 @@ LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
 }
 
 LABEL *
-LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
+LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 {
   MRI    *mri ;
   int    i, dst_index, vno ;
   Real   xw, yw, zw, xv, yv, zv ;
   VERTEX *v ;
   LABEL  *area_dst ;
+  float  vx, vy, vz;
   
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
   LabelCopy(area_src, area_dst) ;
-  LabelFillUnassignedVertices(mris, area_dst) ;
+  LabelFillUnassignedVertices(mris, area_dst, coords) ;
   LabelMarkSurface(area_dst, mris) ;
 
   for (i = 0 ; i < area_src->n_points ; i++)
@@ -1805,29 +1813,30 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
     yw = area_src->lv[i].y  ;
     zw = area_src->lv[i].z  ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
-		if (mris->useRealRAS)
-			MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
-		else
-			MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    if (mris->useRealRAS)
+      MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    else
+      MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
   }
   
   dst_index = area_dst->n_points ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag || v->marked)   /* already in label */
-      continue ;
-    MRISvertexToVoxel(mris, v, mri, &xv, &yv, &zv) ;
-    if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
     {
-      area_dst->lv[dst_index].vno = vno ;
-      area_dst->lv[dst_index].x = v->x ;
-      area_dst->lv[dst_index].y = v->y ;
-      area_dst->lv[dst_index].z = v->z ;
-      dst_index++ ; area_dst->n_points++ ;
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked)   /* already in label */
+	continue ;
+      MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
+      if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
+	{
+	  MRISgetCoords(v, coords, &vx, &vy, &vz);
+	  area_dst->lv[dst_index].vno = vno ;
+	  area_dst->lv[dst_index].x = vx ;
+	  area_dst->lv[dst_index].y = vy ;
+	  area_dst->lv[dst_index].z = vz ;
+	  dst_index++ ; area_dst->n_points++ ;
+	}
     }
-  }
   
   MRIfree(&mri) ;
   return(area_dst) ;
@@ -1844,7 +1853,7 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
   LabelCopy(area_src, area_dst) ;
-  LabelFillUnassignedVertices(mris, area_dst) ;
+  LabelFillUnassignedVertices(mris, area_dst, ORIG_VERTICES) ;
   LabelMarkSurface(area_dst, mris) ;
 
   for (i = 0 ; i < area_src->n_points ; i++)
