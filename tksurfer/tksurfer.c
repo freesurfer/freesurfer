@@ -7154,7 +7154,7 @@ int
 read_white_vertex_coordinates(void)
 {
   fprintf(stderr, "reading white matter vertex locations...\n") ;
-#if 0
+#if 1
   if (MRISreadWhiteCoordinates(mris, "white") == NO_ERROR) 
     {
       white_surf_loaded = TRUE ;
@@ -7866,8 +7866,7 @@ read_labeled_vertices(char *fname)
     read_orig_vertex_coordinates(orfname) ;
   if (reassign)
     LabelUnassign(area) ;
-  /*  LabelFillUnassignedVertices(mris, area, WHITE_VERTICES) ; */
-  LabelFillUnassignedVertices(mris, area) ;
+  LabelFillUnassignedVertices(mris, area, WHITE_VERTICES);
   LabelMark(area, mris) ;
   surface_compiled = 0 ;
   redraw() ;
@@ -19151,7 +19150,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.218 2006/07/31 13:37:40 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.219 2006/07/31 20:06:08 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24454,7 +24453,7 @@ labl_send_color_table_info ()
 int labl_load (char* fname) 
 {
   LABEL* label = NULL;
-  LABEL *lnew;
+  /* LABEL *lnew; */
   int label_index;
   char name[NAME_LENGTH];
   
@@ -24477,9 +24476,8 @@ int labl_load (char* fname)
   
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
-  /*  LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); */
-  LabelFillUnassignedVertices (mris, label);
-#if 1
+  LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); 
+#if 0
   lnew  = LabelFillHolesWithOrig(label, mris) ;
   LabelFree(&label) ;
   label = lnew ;
@@ -25742,7 +25740,7 @@ int labl_fill_holes (int index)
     return (ERROR_BADPARM);
 
   /* Fill the holes in the label. */
-#if 0
+#if 1
   filled = LabelFillHoles (labl_labels[index].label, mris, WHITE_VERTICES);
 #else
   filled = LabelFillHolesWithOrig (labl_labels[index].label, mris);
@@ -25762,7 +25760,6 @@ int labl_fill_holes (int index)
 
   return (ERROR_NONE);
 }
-
 
 int labl_print_list ()
 {
@@ -26344,8 +26341,7 @@ int path_load (char* fname)
 	}
       
       /* This will find vertex numbers for all those points. */
-      /* LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); */
-      LabelFillUnassignedVertices (mris, label);
+      LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); 
       
       /* Copy the vertex numbers from the label into our vertices
 	 array. */
