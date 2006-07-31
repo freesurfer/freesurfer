@@ -48,7 +48,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.19 2006/07/31 21:54:19 greve Exp $";
+"$Id: mri_segstats.c,v 1.20 2006/07/31 21:56:54 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1021,7 +1021,9 @@ static void print_help(void)
      "   $FREESURFER_HOME/average/RB_all_2006-02-15.gca\n"
      "This can be convenient when the seg file is that produced by\n"
      "mri_ca_label (ie, aseg.mgz) as it will only report on those \n"
-     "segmentations that were actually labeled during mri_ca_label\n"
+     "segmentations that were actually considered during mri_ca_label.\n"
+     "Note that there can still be some labels do not have any voxels \n"
+     "in the report.\n"
      "\n"
      "--id segid1 <--id segid2>\n"
      "\n"
