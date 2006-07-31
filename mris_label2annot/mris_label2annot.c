@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.3 2006/06/29 23:41:36 greve Exp $
+// $Id: mris_label2annot.c,v 1.4 2006/07/31 04:39:35 greve Exp $
 
 /*
   BEGINHELP
@@ -17,16 +17,19 @@ Hemisphere (lh or rh).
 
 File that defines the structure names, their indices, and their
 color. This must have the same format as that found in
-$FREESUFER_HOME/FreeSurferColorLUT.txt.
+$FREESUFER_HOME/FreeSurferColorLUT.txt. This can be used to generate
+the names of the label files (see --l below).
 
 --l labelfile1 <--l labelfile2 ...>
 
-List of label files. The labels should be defined on the surface (eg,
+List of label files. If no label files are specified, then the label
+file name is constructed from the list in the ctab as
+hemi.parcname.label.  The labels should be defined on the surface (eg,
 with tksurfer). The first label will be mapped to index 1 in the color
 table file. The next label will be mapped to index 2, etc. Verticies
-that are not mapped to a label are assigned index 0. If --no-unknown 
-is specified, then the first label is mapped to index 0, etc, and unhit 
-vertices are not mapped. 
+that are not mapped to a label are assigned index 0. If --no-unknown
+is specified, then the first label is mapped to index 0, etc, and
+unhit vertices are not mapped.
 
 --a annotname
 
@@ -119,7 +122,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.3 2006/06/29 23:41:36 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.4 2006/07/31 04:39:35 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -182,14 +185,6 @@ int main(int argc, char *argv[])
     exit(1);
   }
   AnnotPath = strcpyalloc(tmpstr);
-
-  // Read the color table
-  printf("Reading ctab %s\n",CTabFile);
-  ctab = CTABreadASCII(CTabFile);
-  if(ctab == NULL){
-    printf("ERROR: reading %s\n",CTabFile);
-    exit(1);
-  }
 
   // Read the surf
   sprintf(tmpstr,"%s/%s/surf/%s.orig",SUBJECTS_DIR,subject,hemi);
@@ -374,16 +369,19 @@ printf("--ctab colortablefile\n");
 printf("\n");
 printf("File that defines the structure names, their indices, and their\n");
 printf("color. This must have the same format as that found in\n");
-printf("$FREESUFER_HOME/FreeSurferColorLUT.txt.\n");
+printf("$FREESUFER_HOME/FreeSurferColorLUT.txt. This can be used to generate\n");
+printf("the names of the label files (see --l below).\n");
 printf("\n");
 printf("--l labelfile1 <--l labelfile2 ...>\n");
 printf("\n");
-printf("List of label files. The labels should be defined on the surface (eg,\n");
+printf("List of label files. If no label files are specified, then the label\n");
+printf("file name is constructed from the list in the ctab as\n");
+printf("hemi.parcname.label.  The labels should be defined on the surface (eg,\n");
 printf("with tksurfer). The first label will be mapped to index 1 in the color\n");
 printf("table file. The next label will be mapped to index 2, etc. Verticies\n");
-printf("that are not mapped to a label are assigned index 0. If --no-unknown \n");
-printf("is specified, then the first label is mapped to index 0, etc, and unhit \n");
-printf("vertices are not mapped. \n");
+printf("that are not mapped to a label are assigned index 0. If --no-unknown\n");
+printf("is specified, then the first label is mapped to index 0, etc, and\n");
+printf("unhit vertices are not mapped.\n");
 printf("\n");
 printf("--a annotname\n");
 printf("\n");
@@ -424,7 +422,6 @@ printf("tksurfer bert lh inflated -overlay nhits.mgh -fthresh 1.5\n");
 printf("\n");
 printf("Then File->Label->ImportAnnotation and select lh.myaparc.annot.\n");
 printf("\n");
-
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -436,6 +433,8 @@ static void print_version(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  int n;
+
   if(subject == NULL){
     printf("ERROR: need to specify subject\n");
     exit(1);
@@ -444,21 +443,30 @@ static void check_options(void)
     printf("ERROR: need to specify hemi\n");
     exit(1);
   }
-  if(nlabels == 0){
-    printf("ERROR: no labels specified\n");
-    exit(1);
-  }
   if(CTabFile == NULL){
     printf("ERROR: need to specify color table file\n");
     exit(1);
   }
-
   if(AnnotName == NULL){
     printf("ERROR: need to specify annotation name\n");
     exit(1);
   }
 
-
+  // Read the color table
+  printf("Reading ctab %s\n",CTabFile);
+  ctab = CTABreadASCII(CTabFile);
+  if(ctab == NULL){
+    printf("ERROR: reading %s\n",CTabFile);
+    exit(1);
+  }
+  if(nlabels == 0){
+    printf("INFO: no labels specified, generating from ctab\n");
+    nlabels = ctab->nentries;
+    for(n=0; n<nlabels; n++){
+      sprintf(tmpstr,"%s.%s.label",hemi,ctab->entries[n]->name);
+      LabelFiles[n] = strcpyalloc(tmpstr);
+    }
+  }
   return;
 }
 
