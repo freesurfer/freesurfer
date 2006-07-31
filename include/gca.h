@@ -365,4 +365,7 @@ int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
 
+COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
+
+
 #endif

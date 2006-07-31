@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/07/26 02:24:44 $
-// Revision       : $Revision: 1.202 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/07/31 21:54:19 $
+// Revision       : $Revision: 1.203 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18737,4 +18737,63 @@ initialize_ventricle_alignment(MRI *mri_seg, MRI *mri, MATRIX *m_L)
                                -10, 10,
                                3, 3, 3, 3) ;
   return(NO_ERROR) ;
+}
+
+/*-------------------------------------------------------------------------
+  GCAcolorTableCMA() - construct a color table from the unique entries in
+  the GCA.  RGBs are random. Indices that are not represented have
+  their entries in the ctab set to NULL. The names are from cma.h.
+  -------------------------------------------------------------------------*/
+COLOR_TABLE *GCAcolorTableCMA(GCA *gca)
+{
+  int nl,n,c,r,s,nmax;
+  int labelhitlist[1000];
+  COLOR_TABLE *ct;
+
+  // Init the hit
+  for(n=0; n<1000; n++) labelhitlist[n]=0;
+
+  // Go thru each node
+  for(c=0; c < gca->node_width; c++){
+    for(r=0; r < gca->node_height; r++){
+      for(s=0; s < gca->node_depth; s++){
+	nl = gca->nodes[c][r][s].nlabels;
+	// Go thru each label in the node
+	for(n=0;n<nl;n++){
+	  // Get the index (labels[n] is an index, not string)
+	  // Mark the index as represented
+	  labelhitlist[gca->nodes[c][r][s].labels[n]] = 1;
+	} //n
+      } //s
+    } //r
+  } //c
+
+  // determine the maximum index
+  nmax = 0;
+  for(n=0; n<1000; n++) if(labelhitlist[n]) nmax=n;
+
+  ct = CTABalloc(nmax+1);
+  for(n=0; n<=nmax; n++){
+    if(labelhitlist[n]){
+      // If this index is represented, then set up its
+      // entry in the color table. The name is derived
+      // from the CMA.
+      ct->entries[n]->ri = nint(randomNumber(0, 255));
+      ct->entries[n]->gi = nint(randomNumber(0, 255));
+      ct->entries[n]->bi = nint(randomNumber(0, 255));
+      ct->entries[n]->ai = 255;
+      ct->entries[n]->rf = (float)ct->entries[n]->ri / 255.0;
+      ct->entries[n]->gf = (float)ct->entries[n]->gi / 255.0;
+      ct->entries[n]->bf = (float)ct->entries[n]->bi / 255.0;
+      ct->entries[n]->af = (float)ct->entries[n]->ai / 255.0;
+      sprintf(ct->entries[n]->name, "%s", cma_label_to_name(n));
+    }
+    else {
+      // If this index is not represented, then free and NULL
+      // its entry.
+      free(ct->entries[n]);
+      ct->entries[n] = NULL;
+    }
+  }
+  return(ct);
 }

@@ -12,6 +12,7 @@
 #include "mri2.h"
 #include "version.h"
 #include "cma.h"
+#include "gca.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -47,7 +48,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.18 2006/07/05 21:00:37 greve Exp $";
+"$Id: mri_segstats.c,v 1.19 2006/07/31 21:54:19 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -72,6 +73,8 @@ int NonEmptyOnly = 0;
 int UserSegIdList[1000];
 int nUserSegIdList = 0;
 int DoExclSegId = 0, ExclSegId = 0;
+char *gcafile = NULL;
+GCA *gca;
 
 float maskthresh = 0.5;
 int   maskinvert = 0, maskframe = 0;
@@ -192,10 +195,26 @@ int main(int argc, char **argv)
     // Now create a colortable in a temp location to be read out below (hokey)
     if(mris->ct){
       sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
-              (int)floor(100*drand48()+1));
+              nint(randomNumber(0, 255)));
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
+  }
+  if(ctabfile != NULL){
+    /* Load the color table file */
+    ctab = CTABreadASCII(ctabfile);
+    if(ctab == NULL){
+      printf("ERROR: reading %s\n",ctabfile);
+      exit(1);
+    }
+  }
+  if(gcafile != NULL){
+    gca = GCAread(gcafile);
+    if(gca == NULL){
+      printf("ERROR: reading %s\n",gcafile);
+      exit(1);
+    }
+    ctab = GCAcolorTableCMA(gca);
   }
 
   /* Load the input volume */
@@ -311,7 +330,7 @@ int main(int argc, char **argv)
   printf("Generating list of segmentation ids\n");
   segidlist0 = MRIsegIdList(seg, &nsegid0,0);
 
-  if(ctabfile == NULL && nUserSegIdList == 0){
+  if(ctab == NULL && nUserSegIdList == 0){
     /* Must get list of segmentation ids from segmentation itself*/
     segidlist = segidlist0;
     nsegid = nsegid0;
@@ -322,13 +341,7 @@ int main(int argc, char **argv)
     }
   }
   else{ /* Get from user or color table */
-    if(ctabfile != NULL){
-      /* Load the color table file */
-      ctab = CTABreadASCII(ctabfile);
-      if(ctab == NULL){
-        printf("ERROR: reading %s\n",ctabfile);
-        exit(1);
-      }
+    if(ctab != NULL){
       if(nUserSegIdList == 0){
         /* User has not spec anything, so use all the ids in the color table */
 	/* We want to fill StatSumTable with all the valid entries
@@ -479,7 +492,7 @@ int main(int argc, char **argv)
     for(n=0; n < nsegid; n++){
       printf("%3d  %8d %10.1f  ", StatSumTable[n].id,StatSumTable[n].nhits,
              StatSumTable[n].vol);
-      if(ctabfile != NULL) printf("%-30s ",StatSumTable[n].name);
+      if(ctab != NULL) printf("%-30s ",StatSumTable[n].name);
       if(InVolFile != NULL)
         printf("%10.4f %10.4f %10.4f %10.4f %10.4f ",
                StatSumTable[n].min, StatSumTable[n].max,
@@ -539,6 +552,10 @@ int main(int argc, char **argv)
       fprintf(fp,"# ColorTable %s \n",ctabfile);
       fprintf(fp,"# ColorTableTimeStamp %s \n",VERfileTimeStamp(ctabfile));
     }
+    if(gcafile) {
+      fprintf(fp,"# ColorTableFromGCA %s \n",gcafile);
+      fprintf(fp,"# GCATimeStamp %s \n",VERfileTimeStamp(gcafile));
+    }
     if(MaskVolFile) {
       fprintf(fp,"# MaskVolFile  %s \n",MaskVolFile);
       fprintf(fp,"#   MaskVolFileTimeStamp  %s \n",
@@ -584,7 +601,7 @@ int main(int argc, char **argv)
       fprintf(fp,"# TableCol  4 Units     mm^2\n");
     }
     n = 5;
-    if(ctabfile) {
+    if(ctab) {
       fprintf(fp,"# TableCol %2d ColHeader StructName\n",n);
       fprintf(fp,"# TableCol %2d FieldName Structure Name\n",n);
       fprintf(fp,"# TableCol %2d Units     NA\n",n);
@@ -629,7 +646,7 @@ int main(int argc, char **argv)
     fprintf(fp,"# ColHeaders  Index SegId ");
     if(!mris) fprintf(fp,"NVoxels Volume_mm3 ");
     else      fprintf(fp,"NVertices Area_mm2 ");
-    if(ctabfile) fprintf(fp,"StructName ");
+    if(ctab) fprintf(fp,"StructName ");
     if(InVolFile) fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
                           InIntensityName,
                           InIntensityName,
@@ -641,7 +658,7 @@ int main(int argc, char **argv)
     for(n=0; n < nsegid; n++){
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
               StatSumTable[n].nhits, StatSumTable[n].vol);
-      if(ctabfile != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
+      if(ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
       if(InVolFile != NULL)
         fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
                 StatSumTable[n].mean, StatSumTable[n].std,
@@ -729,6 +746,11 @@ static int parse_commandline(int argc, char **argv)
       ctabfile = (char *) calloc(sizeof(char),1000);
       sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
       printf("Using defalt ctab %s\n",ctabfile);
+    }
+    else if ( !strcmp(option, "--ctab-gca") ) {
+      if(nargc < 1) argnerr(option,1);
+      gcafile = pargv[0];
+      nargsused = 1;
     }
     else if ( !strcmp(option, "--seg") ) {
       if(nargc < 1) argnerr(option,1);
@@ -890,6 +912,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
+  printf("   --ctab-gca gcafile: get color table from GCA (CMA)\n");
   printf("   --id segid <--id segid> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --nonempty : only report non-empty segmentations\n");
@@ -991,6 +1014,14 @@ static void print_help(void)
      "--ctab-default\n"
      "\n"
      "Same as --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt\n"
+     "\n"
+     "--ctab-gca gcafile\n"
+     "\n"
+     "Get color table from the given GCA file. Eg,\n"
+     "   $FREESURFER_HOME/average/RB_all_2006-02-15.gca\n"
+     "This can be convenient when the seg file is that produced by\n"
+     "mri_ca_label (ie, aseg.mgz) as it will only report on those \n"
+     "segmentations that were actually labeled during mri_ca_label\n"
      "\n"
      "--id segid1 <--id segid2>\n"
      "\n"
@@ -1201,6 +1232,12 @@ static void check_options(void)
     printf("ERROR: need subject with --etiv\n");
     exit(1);
   }
+  if(ctabfile != NULL && gcafile != NULL){
+    printf("ERROR: cannot specify ctab and gca\n");
+    exit(1);
+  }
+
+
   if(masksign == NULL) masksign = "abs";
   return;
 }
