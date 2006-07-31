@@ -1795,11 +1795,11 @@ LABEL *
 LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 {
   MRI    *mri ;
-  int    i, dst_index, vno ;
+  int    i, dst_index, vno, xi, yi, zi, xk, yk, zk, found, x2, y2, z2 ;
   Real   xw, yw, zw, xv, yv, zv ;
   VERTEX *v ;
   LABEL  *area_dst ;
-  float  vx, vy, vz;
+  float  vx, vy, vz, dist, dx, dy, dz;
   
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
@@ -1809,9 +1809,7 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 
   for (i = 0 ; i < area_src->n_points ; i++)
   {
-    xw = area_src->lv[i].x  ;
-    yw = area_src->lv[i].y  ;
-    zw = area_src->lv[i].z  ;
+    xw = area_src->lv[i].x  ; yw = area_src->lv[i].y  ;zw = area_src->lv[i].z ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     if (mris->useRealRAS)
       MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
@@ -1822,21 +1820,50 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
   
   dst_index = area_dst->n_points ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag || v->marked)   /* already in label */
-	continue ;
-      MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
-      if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
 	{
-	  MRISgetCoords(v, coords, &vx, &vy, &vz);
-	  area_dst->lv[dst_index].vno = vno ;
-	  area_dst->lv[dst_index].x = vx ;
-	  area_dst->lv[dst_index].y = vy ;
-	  area_dst->lv[dst_index].z = vz ;
-	  dst_index++ ; area_dst->n_points++ ;
+		v = &mris->vertices[vno] ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		if (v->ripflag || v->marked)   /* already in label */
+			continue ;
+		MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
+		xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+		if (MRIvox(mri, xi, yi, zi) == 1)
+		{
+			MRISgetCoords(v, coords, &vx, &vy, &vz);
+			area_dst->lv[dst_index].vno = vno ;
+			area_dst->lv[dst_index].x = vx ;
+			area_dst->lv[dst_index].y = vy ;
+			area_dst->lv[dst_index].z = vz ;
+			dst_index++ ; area_dst->n_points++ ;
+		}
+		if (MRIneighborsOn(mri, xi, yi, zi, 1) > 0)
+		{
+			found = 0 ;
+			for (xk = -1 ; !found && xk <= 1 ; xk++)
+				for (yk = -1 ; !found && yk <= 1 ; yk++)
+					for (zk = -1 ; !found && zk <= 1 ; zk++)
+					{
+						x2 = mri->xi[xi+xk] ; y2 = mri->xi[yi+yk] ; z2 = mri->xi[zi+zk] ;
+						if (MRIvox(mri, x2, y2, z2) == 1)
+						{
+							dx = xv-(xi+xk) ; dy = yv-(yi+yk) ; dz = zv-(zi+zk) ;
+							dist = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+							if (dist < sqrt(.5*.5+.5*.5))
+							{
+								found = 1 ;
+								MRISgetCoords(v, coords, &vx, &vy, &vz);
+								area_dst->lv[dst_index].vno = vno ;
+								area_dst->lv[dst_index].x = vx ;
+								area_dst->lv[dst_index].y = vy ;
+								area_dst->lv[dst_index].z = vz ;
+								dst_index++ ; area_dst->n_points++ ;
+								break ;
+							}
+						}
+					}
+		}
 	}
-    }
   
   MRIfree(&mri) ;
   return(area_dst) ;
