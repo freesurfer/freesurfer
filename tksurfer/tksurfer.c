@@ -1765,6 +1765,7 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
 /* morphology operations. */
 int labl_erode (int index);
 int labl_dilate (int index);
+int labl_fill_holes (int index);
 
 /* prints the label list. */
 int labl_print_list ();
@@ -7153,7 +7154,8 @@ int
 read_white_vertex_coordinates(void)
 {
   fprintf(stderr, "reading white matter vertex locations...\n") ;
-  if (MRISreadWhiteCoordinates(mris, "white") == NO_ERROR)
+#if 0
+  if (MRISreadWhiteCoordinates(mris, "white") == NO_ERROR) 
     {
       white_surf_loaded = TRUE ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -7164,9 +7166,15 @@ read_white_vertex_coordinates(void)
     }
   else
     return(Gerror) ;
+#else
+  if (MRISreadOriginalProperties(mris, "white") != NO_ERROR)
+    return(Gerror) ;
+  surface_compiled = 0 ;
+  white_surf_loaded = 1 ;
+#endif
   return(NO_ERROR) ;
 }
-int
+  int
 read_inflated_vertex_coordinates(void)
 {
   fprintf(stderr, "reading inflated vertex locations...\n") ;
@@ -7856,9 +7864,10 @@ read_labeled_vertices(char *fname)
     return ;
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname) ;
-	if (reassign)
-		LabelUnassign(area) ;
-  LabelFillUnassignedVertices(mris, area, WHITE_VERTICES) ;
+  if (reassign)
+    LabelUnassign(area) ;
+  /*  LabelFillUnassignedVertices(mris, area, WHITE_VERTICES) ; */
+  LabelFillUnassignedVertices(mris, area) ;
   LabelMark(area, mris) ;
   surface_compiled = 0 ;
   redraw() ;
@@ -18858,6 +18867,9 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      int W_labl_dilate WBEGIN
      ERR(2,"Wrong # args: labl_dilate index")
      labl_dilate (atoi(argv[1])); WEND
+     int W_labl_fill_holes WBEGIN
+     ERR(2,"Wrong # args: labl_fill_holes index")
+     labl_fill_holes (atoi(argv[1])); WEND
      int W_labl_print_list WBEGIN
      ERR(1,"Wrong # args: labl_print_list")
      labl_print_list(); WEND
@@ -19139,7 +19151,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.217 2006/07/28 18:33:46 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.218 2006/07/31 13:37:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19894,6 +19906,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_labl_erode, REND);
   Tcl_CreateCommand(interp, "labl_dilate",
                     (Tcl_CmdProc*) W_labl_dilate, REND);
+  Tcl_CreateCommand(interp, "labl_fill_holes",
+                    (Tcl_CmdProc*) W_labl_fill_holes, REND);
   Tcl_CreateCommand(interp, "labl_select_label_by_vno",
                     (Tcl_CmdProc*) W_labl_select_label_by_vno, REND);
   Tcl_CreateCommand(interp, "labl_print_list",
@@ -24440,7 +24454,7 @@ labl_send_color_table_info ()
 int labl_load (char* fname) 
 {
   LABEL* label = NULL;
-  // *lnew;
+  LABEL *lnew;
   int label_index;
   char name[NAME_LENGTH];
   
@@ -24463,8 +24477,9 @@ int labl_load (char* fname)
   
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
-  LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
-#if 0
+  /*  LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); */
+  LabelFillUnassignedVertices (mris, label);
+#if 1
   lnew  = LabelFillHolesWithOrig(label, mris) ;
   LabelFree(&label) ;
   label = lnew ;
@@ -25719,6 +25734,35 @@ int labl_dilate (int index)
   return (ERROR_NONE);
 }
 
+int labl_fill_holes (int index) 
+{
+  LABEL* filled;
+
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+
+  /* Fill the holes in the label. */
+#if 0
+  filled = LabelFillHoles (labl_labels[index].label, mris, WHITE_VERTICES);
+#else
+  filled = LabelFillHolesWithOrig (labl_labels[index].label, mris);
+#endif
+  if (NULL != filled)
+    {
+      /* Save the new label. */
+      LabelFree (&labl_labels[index].label);
+      labl_labels[index].label = filled;
+      
+      /* Label is changed. */
+      labl_changed (index, TRUE);
+    }
+
+  /* This marks verts as a byproduct, so unmark them. */
+  clear_all_vertex_marks();
+
+  return (ERROR_NONE);
+}
+
 
 int labl_print_list ()
 {
@@ -26300,7 +26344,8 @@ int path_load (char* fname)
 	}
       
       /* This will find vertex numbers for all those points. */
-      LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
+      /* LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); */
+      LabelFillUnassignedVertices (mris, label);
       
       /* Copy the vertex numbers from the label into our vertices
 	 array. */
