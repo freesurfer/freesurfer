@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/07/27 20:00:04 $
-// Revision       : $Revision: 1.479 $
+// Revision Date  : $Date: 2006/07/31 16:55:22 $
+// Revision       : $Revision: 1.480 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.479 2006/07/27 20:00:04 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.480 2006/07/31 16:55:22 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30740,13 +30740,18 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
 	FACE *fm;
 
 	//check if every vertex has the same number of vertices and faces
+	if(verbose==2) fprintf(stderr,"\nchecking for border faces...\n");
 	nvf=0;
 	for(n = 0 ; n < mris->nvertices ; n++){
 		vn=&mris->vertices[n];
-		if(vn->vnum!=vn->num) nvf++;
+		if(vn->vnum!=vn->num) {
+			nvf++;
+			if(verbose==2 && patch==0) fprintf(stderr,"vertex %d : vnum = %d num=%d\n",n,vn->vnum,vn->num);
+		}
 	}
 	
 	//check if some faces have more than 2 neighbors
+	if(verbose==2) fprintf(stderr,"\nchecking for single or multiple faces...\n");
 	nffm=nffs=0;
 	for(n = 0 ; n < mris->nvertices ; n++){
 		vn = &mris->vertices[n];
@@ -30766,10 +30771,15 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
 			} 
 			if(cf<2) nffs++;
 			if(cf>2) nffm++;
+			if(verbose==2) {
+				if(cf<2 && patch==0) fprintf(stderr,"edge %d <--> %d : single face\n",n,vnop);
+				if(cf>2)  fprintf(stderr,"edge %d <--> %d : multiple face\n",n,vnop);
+			}
 		}
 	}
 
-	//finally check the # of connected neighbors of each vertex  
+	//finally check the # of connected neighbors of each vertex
+  if(verbose==2) fprintf(stderr,"\nchecking for corner configurations...\n");
 	nvc=0;
 	for(n = 0 ; n < mris->nvertices ; n++){
     vn = &mris->vertices[n];
@@ -30811,6 +30821,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
       vnop = vn->v[p];
       if(mris->vertices[vnop].marked==0) {
 				nvc++;
+				if(verbose==2) fprintf(stderr,"vertex %d : corner configuration\n",n);
 				break;
 			}
     }
