@@ -1,0 +1,14 @@
+#!/bin/csh -f
+
+set subject = bert
+set hemi = lh
+
+mkdir -p labels
+set cmd = (mri_annotation2label --subject $subject --hemi $hemi \
+  --table $SUBJECTS_DIR/$subject/stats/aparc.annot.ctab --outdir ./labels)
+echo $cmd
+$cmd
+
+
+
+exit 0
