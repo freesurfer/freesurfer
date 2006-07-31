@@ -24,22 +24,33 @@
 #include "gca.h"
 #include "gcamorph.h"
 #include "DICOMRead.h"
+#include "cma.h"
 
 char *Progname = "dngtester";
 char *subject=NULL, *hemi=NULL, *surfname=NULL, *outsurfname=NULL;
 char *SUBJECTS_DIR = NULL;
 char tmpstr[2000];
 MRI *mri, *mri2, *template;
-int err;
+int err,nl,n,c,r,s;
 char *fsh;
 char *dcmfile, *dcmdir;
+GCA *gca;
 
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
   dcmfile = argv[1];
-  mri = DICOMRead2(dcmfile,1);
-  MRIwrite(mri,"tp1b.mgh");
+  gca = GCAread(dcmfile);
+  c=32;r=32;s=32;
+  //nl = *(gca->nodes[c][r][s].gcs->nlabels);
+  nl = gca->nodes[c][r][s].nlabels;
+  printf("%d\n",nl);
+  for(n=0;n<nl;n++){
+    //printf("%2d %s\n",n,cma_label_to_name(gca->nodes[c][r][s].gcs->labels[n]));
+    printf("%2d %s\n",n,cma_label_to_name(gca->nodes[c][r][s].labels[n]));
+  }
+  //mri = DICOMRead2(dcmfile,1);
+  //MRIwrite(mri,"tp1b.mgh");
   return(0);
 }
 
