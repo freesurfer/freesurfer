@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $
+  $Id: mri_annotation2label.c,v 1.10 2006/07/31 23:11:02 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -8,7 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #include <string.h>
 
 #include "MRIio_old.h"
@@ -31,7 +34,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.10 2006/07/31 23:11:02 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -61,20 +64,14 @@ int  nperannot[1000];
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  VERTEX *vtx;
-  int nthpoint,err,vtxno,ano,ani,vtxani,animax;
-  int annotnum;
+  int err,vtxno,ano,ani,vtxani,animax;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.10 2006/07/31 23:11:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
-
-  annotation_table_file = NULL; /* defined in annoation.h */
-
-  printf("\n");
 
   Progname = argv[0] ;
   argc --;
@@ -87,6 +84,16 @@ int main(int argc, char **argv)
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
+
+  if(outdir != NULL){
+    // Create the output directory
+    err = mkdir(outdir,(mode_t)-1);
+    if(err != 0 && errno != EEXIST){
+      printf("ERROR: creating directory %s\n",outdir);
+      perror(NULL);    
+      return(1);
+    }
+  }
 
   /*--- Get environment variables ------*/
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -121,52 +128,41 @@ int main(int argc, char **argv)
     }
     printf("OK, that worked.\n");
   }
+  if(Surf->ct == NULL){
+    printf("ERROR: cannot find embedded color table\n");
+    exit(1);
+  }
 
-  /* Loop through each vertex */
+  /* Determine which indices are present in the file by 
+     examining the index at each vertex */
   animax = -1;
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
-    vtx = &(Surf->vertices[vtxno]);
-    ano = Surf->vertices[vtxno].annotation;
-    vtxani = annotation_to_index(ano);
+    // get the annotation (rgb packed into an int)
+    ano = Surf->vertices[vtxno].annotation; 
+    // From annotation, get index into color table
+    CTABfindAnnotation(Surf->ct, ano, &vtxani);
     nperannot[vtxani] ++;    
     if(animax < vtxani) animax = vtxani;
   }
+  printf("max index = %d\n",animax);
 
-  printf("animax = %d\n",animax);
-  for(ani=0; ani < animax; ani++){
+  // Go thru each index present and save a label
+  for(ani=0; ani <= animax; ani++){
 
     if(nperannot[ani] == 0){
-      printf("%3d  %5d   --- skipping \n",ani,nperannot[ani]);
+      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
       continue;
     }
 
     if(labelbase != NULL) 
       sprintf(labelfile,"%s-%03d.label",labelbase,ani);
-    if(outdir != NULL){
-      annotnum = index_to_annotation(ani);
+    if(outdir != NULL)
       sprintf(labelfile,"%s/%s.%s.label",outdir,hemi,
-	      annotation_to_name(annotnum,NULL));
-    }
+	      Surf->ct->entries[ani]->name);
 
     printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
-
-    label = LabelAlloc(nperannot[ani],subject,labelfile);
-    label->n_points = nperannot[ani];
-
-    nthpoint = 0;
-    for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
-      vtx = &(Surf->vertices[vtxno]);
-      ano = Surf->vertices[vtxno].annotation;
-      vtxani = annotation_to_index(ano);
-      if(vtxani == ani){
-	label->lv[nthpoint].vno = vtxno;
-	label->lv[nthpoint].x = vtx->x;
-	label->lv[nthpoint].y = vtx->y;
-	label->lv[nthpoint].z = vtx->z;
-	nthpoint ++;
-      }
-    }
-
+    label = annotation2label(ani, Surf);
+    strcpy(label->subject_name,subject);
     LabelWrite(label,labelfile);
     LabelFree(&label);
   }
@@ -226,9 +222,10 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else if (!strcmp(option, "--table")){
-      if(nargc < 1) argnerr(option,1);
-      annotation_table_file = pargv[0];
-      nargsused = 1;
+      printf("ERROR: this program no long accepts --table as\n");
+      printf("an argument. The colortable is now read directly\n");
+      printf("from the annotation.\n");
+      exit(1);
     }
     else if (!strcmp(option, "--hemi")){
       if(nargc < 1) argnerr(option,1);
@@ -259,13 +256,14 @@ static void print_usage(void)
   printf("\n");
   printf("   --subject    source subject\n");
   printf("   --hemi       hemisphere (lh or rh) (with surface)\n");
-  printf("   --table      annotation table file\n");  
   printf("   --labelbase  output will be base-XXX.label \n");
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
   printf("\n");
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
   printf("   --surface    name of surface <white>\n");  
-
+  printf("\n");
+  printf("   --table : obsolete. Now gets from annotation file\n");
+  printf("\n");
   printf("   --help       display help\n");  
   printf("   --version    display version\n");  
   printf("\n");
@@ -296,7 +294,7 @@ static void print_help(void)
 "is created for each annotation index. The output file names can take\n"
 "one of two forms: (1) If --outdir dir is used, then the output will\n"
 "be dir/hemi.name.lable, where name is the corresponding name in \n"
-"the table. (2) If --labelbase is used, name of the file conforms to\n"
+"the embedded color table. (2) If --labelbase is used, name of the file conforms to\n"
 "labelbase-XXX.label, where XXX is the zero-padded 3 digit annotation\n"
 "index. If labelbase includes a directory path, that directory must\n"
 "already exist. If there are no points in the annotation file for a\n"
@@ -305,13 +303,10 @@ static void print_help(void)
 "specified surface. The default surface is 'white'. Other options\n"
 "include 'pial' and 'orig'.\n"
 "\n"
-"The human-readable names that correspond\n"
-"to the annotation indices for aparc depend upon how the annotations\n"
-"were created. They are created with the program mris_ca_label, and\n"
-"the human readable names are in the file given as the argument to \n"
-"the -t flag. Unfortunately, this information is not maintained inside\n"
-"the annotation file, and it must be supplied to mri_annotation2label \n"
-"through the --table flag.\n"
+"The human-readable names that correspond to the annotation indices for \n"
+"aparc are embedded in the annotation file itself. It is no longer\n"
+"necessary (or possible) to specify the table explicitly with the\n"
+"--table option.\n"
 " \n"
 "Bugs:\n"
 "\n"
@@ -324,7 +319,6 @@ static void print_help(void)
 "\n"
 "  mri_annotation2label --subject LW --hemi rh \n"
 "        --labelbase ./labels/aparc-rh \n"
-"        --table $FREESURFER_HOME/Simple_surface_labels2002.txt \n"
 "\n"
 "  This will get annotations from $SUBJECTS_DIR/LW/label/rh_aparc.annot\n"
 "  and then create about 94 label files: aparc-rh-001.label, \n"
@@ -335,7 +329,6 @@ static void print_help(void)
 "\n"
 "  mri_annotation2label --subject LW --hemi rh \n"
 "        --outdir ./labels \n"
-"        --table $FREESURFER_HOME/Simple_surface_labels2002.txt \n"
 "\n"
 "  This will do the same thing as above except that the output files\n"
 "  will have names of the form lh.S_occipital_anterior.label\n"
@@ -390,10 +383,6 @@ static void check_options(void)
   }
   if(hemi == NULL){
     fprintf(stderr,"ERROR: No hemisphere specified\n");
-    exit(1);
-  }
-  if(annotation_table_file == NULL){
-    fprintf(stderr,"ERROR: No annotation table specified\n");
     exit(1);
   }
   if(outdir == NULL && labelbase == NULL){
