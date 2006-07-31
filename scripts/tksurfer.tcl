@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.121 2006/07/21 15:29:14 kteich Exp $
+# $Id: tksurfer.tcl,v 1.122 2006/07/31 19:34:39 kteich Exp $
 
 package require BLT;
 
@@ -2867,6 +2867,9 @@ proc CreateMenuBar { ifwMenuBar } {
 		mg_LabelLoaded } 
 	    { command "Dilate Selected Label"
 		{ labl_dilate $gnSelectedLabel; UpdateAndRedraw }
+		mg_LabelLoaded } 
+	    { command "Fill Holes in Selected Label"
+		{ labl_fill_holes $gnSelectedLabel; UpdateAndRedraw }
 		mg_LabelLoaded } 
 	}}
 	{ cascade "Cut" {
