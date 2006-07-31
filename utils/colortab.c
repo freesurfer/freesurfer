@@ -1,3 +1,10 @@
+// colortab.c
+// An entry in a color table has:
+//   1. string name
+//   2. rgb (in both int and float)
+// An annotation is is an int packed with the int values of the 
+// rgb in the first 3 bytes of the annotation int.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +24,9 @@ static COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries);
 static COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp);
 
 
-COLOR_TABLE *
-CTABreadASCII(char *fname)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *CTABreadASCII(char *fname)
 {
   COLOR_TABLE *ct;
   char        line[STRLEN], *cp;
@@ -137,9 +145,9 @@ CTABreadASCII(char *fname)
   /* Return the new color table. */
   return(ct);
 }
-
-int
-CTABfree(COLOR_TABLE **pct)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABfree(COLOR_TABLE **pct)
 {
   int i;
   COLOR_TABLE *ct;
@@ -164,9 +172,9 @@ CTABfree(COLOR_TABLE **pct)
   
   return(NO_ERROR);
 }
-
-COLOR_TABLE*
-CTABdeepCopy(COLOR_TABLE *ct)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct)
 {
   COLOR_TABLE* copy;
   int structure;
@@ -226,8 +234,9 @@ CTABdeepCopy(COLOR_TABLE *ct)
   return copy;
 }
 
-COLOR_TABLE *
-CTABreadFromBinary(FILE *fp)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *CTABreadFromBinary(FILE *fp)
 {
   COLOR_TABLE   *ct;
   int           version;
@@ -269,9 +278,9 @@ CTABreadFromBinary(FILE *fp)
   
   return(ct);
 }
-
-int
-CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp)
 {
   int result;
   
@@ -299,8 +308,9 @@ CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp)
   return(result);
 }
 
-COLOR_TABLE *
-CTABalloc(int nentries)
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *CTABalloc(int nentries)
 {
   COLOR_TABLE        *ct;
   int                structure;
@@ -369,6 +379,8 @@ CTABalloc(int nentries)
   return(ct);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 COLOR_TABLE *
 CTABreadFromBinaryV1(FILE *fp, int nentries)
 {
@@ -463,6 +475,8 @@ CTABreadFromBinaryV1(FILE *fp, int nentries)
   return(ct);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABwriteIntoBinaryV1(COLOR_TABLE *ct, FILE *fp)
 {
@@ -508,6 +522,8 @@ CTABwriteIntoBinaryV1(COLOR_TABLE *ct, FILE *fp)
   return(NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 COLOR_TABLE *
 CTABreadFromBinaryV2(FILE *fp)
 {
@@ -619,6 +635,8 @@ CTABreadFromBinaryV2(FILE *fp)
   return(ct);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
 {
@@ -676,6 +694,8 @@ CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
   return(NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len)
 {
@@ -690,7 +710,8 @@ CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len)
 
   return(NO_ERROR);
 }
-
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int CTABgetNumberOfValidEntries(COLOR_TABLE *ct, int *num)
 {
   int valid_entries;
@@ -713,6 +734,8 @@ int CTABgetNumberOfValidEntries(COLOR_TABLE *ct, int *num)
   return (NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int CTABgetNumberOfTotalEntries(COLOR_TABLE *ct, int *num)
 {
   if (NULL==ct)
@@ -726,6 +749,8 @@ int CTABgetNumberOfTotalEntries(COLOR_TABLE *ct, int *num)
   return (NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int CTABisEntryValid(COLOR_TABLE *ct, int index, int *valid)
 {
   if (NULL==ct)
@@ -745,6 +770,8 @@ int CTABisEntryValid(COLOR_TABLE *ct, int index, int *valid)
 
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABrgbAtIndexi(COLOR_TABLE *ct, int index, int*r, int*g, int*b)
 {
@@ -768,6 +795,8 @@ CTABrgbAtIndexi(COLOR_TABLE *ct, int index, int*r, int*g, int*b)
   return(NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABrgbAtIndexf(COLOR_TABLE *ct, int index, float*r, float*g, float*b)
 {
@@ -790,7 +819,8 @@ CTABrgbAtIndexf(COLOR_TABLE *ct, int index, float*r, float*g, float*b)
   
   return(NO_ERROR);
 }
-
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 CTABrgbaAtIndexi(COLOR_TABLE *ct, int index, int*r, int*g, int*b, int*a)
 {
@@ -814,9 +844,9 @@ CTABrgbaAtIndexi(COLOR_TABLE *ct, int index, int*r, int*g, int*b, int*a)
 
   return(NO_ERROR);
 }
-
-int
-CTABrgbaAtIndexf(COLOR_TABLE *ct, int index, 
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABrgbaAtIndexf(COLOR_TABLE *ct, int index, 
 		 float*r, float*g, float*b, float*a)
 {
   if (NULL==ct)
@@ -840,8 +870,10 @@ CTABrgbaAtIndexf(COLOR_TABLE *ct, int index,
   return(NO_ERROR);
 }
 
-int
-CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len)
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len)
 {
   if (NULL==ct)
     ErrorReturn(ERROR_BADPARM,
@@ -861,8 +893,11 @@ CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len)
   return(NO_ERROR);
 }
 
-int
-CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
+/*-------------------------------------------------------------------
+  CTABannotationAtIndex() - given the index into the ctab, compute
+  the annotation from the rgb values.
+  ----------------------------------------------------------------*/
+int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
 {
   CTE *e;
   int  annotation;
@@ -888,8 +923,13 @@ CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
   return(NO_ERROR);
 }
 
-int
-CTABfindAnnotation(COLOR_TABLE *ct, int annotation, int *index)
+/*------------------------------------------------------------------
+  CTABfindAnnotation() - given the annotation of a structure, return
+  the index into the color table that matches the annotation (yes,
+  this function is named incorrectly -- it should be something like
+  CTABannot2Index).
+  -----------------------------------------------------------------*/
+int CTABfindAnnotation(COLOR_TABLE *ct, int annotation, int *index)
 {
   int r, g, b;
   int result;
@@ -911,8 +951,12 @@ CTABfindAnnotation(COLOR_TABLE *ct, int annotation, int *index)
   return (result);
 }
 
-int
-CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int *index)
+/*------------------------------------------------------------------
+  CTABfindRGBi() - given the RGB of a structure, return the
+  index into the color table that matches the RGB (yes, this function
+  is named incorrectly -- it should be something like CTABrgb2Index). 
+  -----------------------------------------------------------------*/
+int CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int *index)
 {
   int structure;
   
@@ -945,8 +989,12 @@ CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int *index)
   return (NO_ERROR);
 }
 
-int
-CTABfindName(COLOR_TABLE *ct, char *name, int *index)
+/*------------------------------------------------------------------
+  CTABfindName() - given the string name of a structure, return the
+  index into the color table that matches the name (yes, this function
+  is named incorrectly -- it should be something like CTABname2Index). 
+  -----------------------------------------------------------------*/
+int CTABfindName(COLOR_TABLE *ct, char *name, int *index)
 {
   int structure;
   
@@ -977,6 +1025,9 @@ CTABfindName(COLOR_TABLE *ct, char *name, int *index)
   return (NO_ERROR);
 }
 
+
+
+/*--------------------------------------------------------------*/
 int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
 {
   int structure;
@@ -1003,7 +1054,7 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
 
   return (ERROR_NONE);
 }
-
+/*--------------------------------------------------------------*/
 int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname)
 {
   FILE *fp;

@@ -255,8 +255,8 @@ annotation_to_name(int annotation, int *pindex)
 }
 /*------------------------------------------------------------
   annotation2label() - converts an annotation into a label
-  given the annotation identifier. If no vertices with the
-  identifier can be found, returns NULL.
+  given the index of the annotation in the color table. 
+  If no vertices with the index can be found, returns NULL.
 ------------------------------------------------------------*/
 LABEL *annotation2label(int annotid, MRIS *Surf)
 {
@@ -269,7 +269,8 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-    if (Surf->ct)
+    // Given this annotation, find its index in the ctab
+   if (Surf->ct)
       CTABfindAnnotation(Surf->ct, annot, &vtxannotid);
     else
       vtxannotid = annotation_to_index(annot);
