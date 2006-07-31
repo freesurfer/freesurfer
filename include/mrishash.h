@@ -25,8 +25,8 @@ typedef struct
 typedef struct
 {
   MRIS_HASH_BIN  *bins ;
-  short          max_bins ;
-  short          nused ;
+  int            max_bins ;
+  int            nused ;
 } MRIS_HASH_BUCKET, MHBT ;
 
 #define FIELD_OF_VIEW  400
