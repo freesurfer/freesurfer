@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.30 2006/07/21 18:38:11 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.31 2006/08/01 02:02:02 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -769,11 +769,13 @@ if($DoSegStats) then
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
-  set cmd = ($cmd --ctab-default --excludeid 0)
+  set cmd = ($cmd --excludeid 0)
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   set cmd = ($cmd --etiv --subject $subjid $xopts);
+  set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd $xopts);
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
