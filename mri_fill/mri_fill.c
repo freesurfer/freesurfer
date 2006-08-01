@@ -26,7 +26,7 @@
 #include "subroutines.h"
 
 static char vcid[] =
-"$Id: mri_fill.c,v 1.102 2006/08/01 16:55:46 segonne Exp $";
+"$Id: mri_fill.c,v 1.103 2006/08/01 19:26:02 segonne Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -769,6 +769,9 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg, MRI *mri_orig, i
 static int mri_topofix(MRI *mri_seg, MRI *mri_orig){
 
 	int i,j,k,niter=100,ntotal=0,nmodified,label,nvoxels;
+	MRI_SEGMENTATION *segmentation;
+	MRI_SEGMENT *segment;
+	int max_segment,x,y,z,p,a,b,c,val,ncpts,nlabels;
 
 	// first taking care of the right hemisphere
 	fprintf(stderr,"correcting the topological correctness of the right hemisphere\n");
@@ -808,9 +811,63 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig){
 	if(MRIvox(mri_seg,i,j,k)==label) nvoxels++;
 
   fprintf(stderr,"\nLeft hemisphere: total Number of Modified Voxels = %d (out of %d: %f)\n",
-	  ntotal,nvoxels,100.0*ntotal/nvoxels);
-    printf("\n");
-
+					ntotal,nvoxels,100.0*ntotal/nvoxels);
+	printf("\n");
+	
+	//finally, removing small connected components
+	fprintf(stderr,"removing connected components...\n");
+	ncpts=0;
+	segmentation = MRIsegment(mri_seg, 0, 0);
+	max_segment= MRIsegmentMax(segmentation);
+	for(k = 0 ; k < segmentation->max_segments ; k++){
+		if(k == max_segment) continue;
+		segment = &segmentation->segments[k];
+		if(segment->nvoxels==0) continue;
+		/* find neighboring label of segment */
+		label = 0;
+		nlabels=0;
+		for( p = 0 ; p < segment->nvoxels ; p++){
+			x=segment->voxels[p].x;
+			y=segment->voxels[p].y;
+			z=segment->voxels[p].z;
+			for(a = -1 ; a < 2 ; a++){
+				if(x+a < 0 || x+a>= mri_seg->width) continue;
+				for(b = -1 ; b < 2 ;  b++){
+					if(y+b < 0 || y+b>= mri_seg->height) continue;
+					for(c = -1 ; c < 2 ; c++){
+						if(z+c < 0 || z+c>= mri_seg->depth) continue;
+						if(abs(a)+abs(b)+abs(c)>1) continue;
+						val = MRIvox(mri_seg,x+a,y+b,z+c);
+						if(val == rh_fill_val || val == lh_fill_val){
+							if(label > 0 && val != label) nlabels=2;
+							if(label==0) {
+								label = val;
+								nlabels=1;
+							}
+						}
+					}
+				}
+			}
+			if(nlabels==2) break;
+		}
+		if(label == 0 ) fprintf(stderr,"\ncould not find neighboring label!!\n");
+		else{//filling values
+			ncpts++;
+			if(nlabels==2)
+				fprintf(stderr,"   keeping component %d, located in (%3.1f,%3.1f,%3.1f) with %d voxels\n",k,segment->cx,segment->cy,segment->cz,segment->nvoxels);
+			else{
+				fprintf(stderr,"   removing component %d, located in (%3.1f,%3.1f,%3.1f) with %d voxels\n",k,segment->cx,segment->cy,segment->cz,segment->nvoxels);
+				for( p = 0 ; !label && p < segment->nvoxels ; p++){
+					x=segment->voxels[p].x;
+					y=segment->voxels[p].y;
+					z=segment->voxels[p].z;
+					MRIvox(mri_seg,x,y,z)=label;
+				}
+			}
+		}
+	}
+	fprintf(stderr,"%d connected components were removed\n",ncpts);
+	MRIsegmentFree(&segmentation);
 	return NO_ERROR;
 }
 
@@ -995,7 +1052,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_fill.c,v 1.102 2006/08/01 16:55:46 segonne Exp $", "$Name:  $",
+     "$Id: mri_fill.c,v 1.103 2006/08/01 19:26:02 segonne Exp $", "$Name:  $",
      cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1003,7 +1060,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_fill.c,v 1.102 2006/08/01 16:55:46 segonne Exp $", "$Name:  $");
+     "$Id: mri_fill.c,v 1.103 2006/08/01 19:26:02 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
