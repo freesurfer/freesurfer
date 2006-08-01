@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/31 21:54:19 $
-// Revision       : $Revision: 1.203 $
+// Revision Date  : $Date: 2006/08/01 01:45:15 $
+// Revision       : $Revision: 1.204 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18740,15 +18740,27 @@ initialize_ventricle_alignment(MRI *mri_seg, MRI *mri, MATRIX *m_L)
 }
 
 /*-------------------------------------------------------------------------
-  GCAcolorTableCMA() - construct a color table from the unique entries in
-  the GCA.  RGBs are random. Indices that are not represented have
-  their entries in the ctab set to NULL. The names are from cma.h.
+  GCAcolorTableCMA() - construct a color table from the unique entries
+  in the GCA.  RGBs are random. Indices that are not represented have
+  their entries in the ctab set to NULL.  Note that the names in cma.h
+  do not match the names in FreeSurferLUT.txt exactly, so 
+  FreeSurferLUT.txt is loaded and the names are extracted rather than
+  using those in cma.h.
   -------------------------------------------------------------------------*/
 COLOR_TABLE *GCAcolorTableCMA(GCA *gca)
 {
   int nl,n,c,r,s,nmax;
-  int labelhitlist[1000];
-  COLOR_TABLE *ct;
+  int labelhitlist[1000]; // probably only need 256
+  COLOR_TABLE *ct,*ct0;
+  char ctabfile[2000];
+
+  sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+  printf("GCAcolorTableCMA: using ctab %s\n",ctabfile);
+  ct0 = CTABreadASCII(ctabfile);
+  if(ct0 == NULL){
+    printf("ERROR: reading %s\n",ctabfile);
+    exit(1);
+  }
 
   // Init the hit
   for(n=0; n<1000; n++) labelhitlist[n]=0;
@@ -18786,7 +18798,12 @@ COLOR_TABLE *GCAcolorTableCMA(GCA *gca)
       ct->entries[n]->gf = (float)ct->entries[n]->gi / 255.0;
       ct->entries[n]->bf = (float)ct->entries[n]->bi / 255.0;
       ct->entries[n]->af = (float)ct->entries[n]->ai / 255.0;
-      sprintf(ct->entries[n]->name, "%s", cma_label_to_name(n));
+      // There is a mismatch between the names listed in
+      // FreeSurferColorLUT.txt and the names in cma.h but the
+      // indices are the same (I hope), so we need to
+      // use the names from FreeSurferColorLUT.txt.
+      sprintf(ct->entries[n]->name, "%s", ct0->entries[n]->name);
+      // printf("%d %s %s\n", n,cma_label_to_name(n),ct->entries[n]->name);
     }
     else {
       // If this index is not represented, then free and NULL
@@ -18795,5 +18812,6 @@ COLOR_TABLE *GCAcolorTableCMA(GCA *gca)
       ct->entries[n] = NULL;
     }
   }
+  CTABfree(&ct0);
   return(ct);
 }
