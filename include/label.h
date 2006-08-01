@@ -34,6 +34,7 @@ typedef struct
 
 #include "mrisurf.h"
 
+int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords);
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;

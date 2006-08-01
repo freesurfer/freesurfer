@@ -1291,6 +1291,38 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
+int
+LabelIsCompletelyUnassigned(LABEL *area, int *unassigned)
+{
+  int i;
+
+  if (NULL == area)
+    return ERROR_BADPARM;
+  if (NULL == unassigned)
+    return ERROR_BADPARM;
+  
+  /* Go through the label. If a point vno is _not_ -1, return false,
+     because we have an assigned point. If we get through the entire
+     label without finding a vno that isn't -1, return true. */
+  for (i = 0 ; i < area->n_points ; i++)
+    {
+      if (area->lv[i].vno != -1)
+	{
+	  *unassigned = 0;
+	  return(NO_ERROR);
+	}
+    }
+  
+  *unassigned = 1;
+  return(NO_ERROR);
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #include "mrishash.h"
 int
 LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
