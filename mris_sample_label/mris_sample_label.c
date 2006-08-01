@@ -14,7 +14,7 @@
 #include "fio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_sample_label.c,v 1.1 2003/01/30 20:06:15 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_label.c,v 1.2 2006/08/01 14:31:52 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 #if 0
   LabelFillUnassignedVertices(mris, label) ;
 #else
-	label_out = LabelFillHoles(label, mris) ;
+	label_out = LabelFillHoles(label, mris, ORIGINAL_VERTICES) ;
 #endif
 	printf("writing sampled label to %s...\n", out_label_fname) ;
 	LabelWrite(label_out, out_label_fname) ;
