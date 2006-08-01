@@ -19150,7 +19150,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.219 2006/07/31 20:06:08 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.220 2006/08/01 20:13:26 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24453,9 +24453,10 @@ labl_send_color_table_info ()
 int labl_load (char* fname) 
 {
   LABEL* label = NULL;
-  /* LABEL *lnew; */
+  LABEL *lnew;
   int label_index;
   char name[NAME_LENGTH];
+  int unassigned;
   
   if (NULL == fname)
     return (ERROR_BADPARM);
@@ -24463,25 +24464,32 @@ int labl_load (char* fname)
   /* load label file. */
   label = LabelRead (pname, fname);
   if (NULL == label)
-	{
-		return (ERROR_NO_FILE);
-	}
-	if (reassign)
-		LabelUnassign(label) ;
-
+    {
+      return (ERROR_NO_FILE);
+    }
+  if (reassign)
+    LabelUnassign(label) ;
+  
   /* load the orig vertex positions if we haven't already. */
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname) ;
   LabelToWhite (label, mris);
-  
+
+  /* See if the label is completely unassigned. If it is, we'll fill
+     it after we assign the verts. */
+  LabelIsCompletelyUnassigned (label, &unassigned);
+
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
   LabelFillUnassignedVertices (mris, label, WHITE_VERTICES); 
-#if 0
-  lnew  = LabelFillHolesWithOrig(label, mris) ;
-  LabelFree(&label) ;
-  label = lnew ;
-#endif
+
+  /* If we were unassigned before, fill it now. */
+  if (unassigned)
+    {
+      lnew = LabelFillHoles(label, mris, WHITE_VERTICES) ;
+      LabelFree(&label) ;
+      label = lnew ;
+    }
   
   /* make a new entry in the label list. */
   labl_add (label, &label_index);
