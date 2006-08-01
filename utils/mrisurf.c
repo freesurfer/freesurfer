@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/07/31 19:39:42 $
-// Revision       : $Revision: 1.481 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/08/01 22:22:50 $
+// Revision       : $Revision: 1.482 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -576,7 +576,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.481 2006/07/31 19:39:42 kteich Exp $"); }
+  return("$Id: mrisurf.c,v 1.482 2006/08/01 22:22:50 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -20398,7 +20398,7 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 int
-MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z)
+MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin)
 {
   int    vno, min_v = -1 ;
   VERTEX *v ;
@@ -20418,7 +20418,7 @@ MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z)
           min_v = vno ;
         }
     }
-
+  *dmin = min_d;
   return(min_v) ;
 }
 /*-----------------------------------------------------

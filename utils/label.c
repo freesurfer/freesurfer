@@ -388,7 +388,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     {
 #if 0
       vno = 
-        MRISfindClosestVertex(mris, area->lv[n].x,area->lv[n].y,area->lv[n].z);
+        MRISfindClosestVertex(mris, area->lv[n].x,area->lv[n].y,area->lv[n].z,&dmin);
 #endif
       v = 
         MHTfindClosestVertexInTable(mht, mris, area->lv[n].x,area->lv[n].y,area->lv[n].z);

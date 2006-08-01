@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.4 2003/09/04 20:38:35 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.5 2006/08/01 22:22:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -386,6 +386,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 {
   int     n, vno ;
   VERTEX  *v ;
+  float dmin;
 
   for (n = 0 ; n < area->n_points ; n++)
   {
@@ -399,7 +400,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     }
     else    /* in canonical coordinate system - find closest vertex */
     {
-      vno = MRISfindClosestVertex(mris, area->x[n], area->y[n], area->z[n]) ;
+      vno = MRISfindClosestVertex(mris, area->x[n], area->y[n], area->z[n],&dmin) ;
       v = &mris->vertices[vno] ;
       area->vno[n] = vno ;
       area->x[n] = v->x ;

@@ -542,7 +542,7 @@ int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y,
                                    float z) ;
 int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, 
                                   float z) ;
-int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
+int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin);
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               double *ext_sse) ;
