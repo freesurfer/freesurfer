@@ -14,9 +14,10 @@
 #include "gcsa.h"
 #include "transform.h"
 #include "version.h"
+#include "label.h"
 
 static char vcid[] = 
-"$Id: mris_ca_train.c,v 1.12 2005/12/06 00:37:15 nicks Exp $";
+"$Id: mris_ca_train.c,v 1.13 2006/08/01 20:40:18 fischl Exp $";
 
 #define MAX_LABELS  1000
 #if 0
@@ -32,6 +33,7 @@ static int normalize2_flag = 0 ;
 static int normalize3_flag = 0 ;
 static int nparcs = 0 ;
 static char *ptable_fname = NULL ;
+static COLOR_TABLE *ctab = NULL ;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -43,6 +45,8 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char *orig_name = "smoothwm" ;
+static char *label_name = NULL ;
+static int label_index ;
 
 static int ninputs = 1 ;  /* curv and sulc */
 static int icno_priors = 7 ;
@@ -68,6 +72,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
+	int          unknown_index = -1 ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -84,21 +89,41 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+	{
+		nargs = get_option(argc, argv) ;
+		argc -= nargs ;
+		argv += nargs ;
+	}
 
+	if (ptable_fname)
+	{
+		ctab = CTABreadASCII(ptable_fname) ;
+		if (label_name)
+		{
+			CTABfindName(ctab, label_name, &label_index) ;
+			if (label_index < 0)
+				ErrorExit(ERROR_BADPARM, "%s: could not find index for label %s in table %s",
+									Progname, label_name, ptable_fname) ;
+			
+			CTABfindName(ctab, "unknown", &unknown_index) ;
+			if (unknown_index < 0)
+				CTABfindName(ctab, "medial wall", &unknown_index) ;
+			printf("label index = %d, unknown index = %d\n", label_index, unknown_index) ;
+		}
+	}
+	else if (label_name)
+		ErrorExit(ERROR_UNSUPPORTED, "%s: must specify colortable with -t <ctab> when specifying label",
+							Progname) ;
+	
   if (!strlen(subjects_dir)) /* hasn't been set on command line */
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, 
-                  "%s: SUBJECTS_DIR not defined in environment", 
-                  Progname);
-      strcpy(subjects_dir, cp) ;
-    }
+	{
+		cp = getenv("SUBJECTS_DIR") ;
+		if (!cp)
+			ErrorExit(ERROR_BADPARM, 
+								"%s: SUBJECTS_DIR not defined in environment", 
+								Progname);
+		strcpy(subjects_dir, cp) ;
+	}
   if (argc < 6)
     usage_exit(1) ;
 
@@ -118,118 +143,155 @@ main(int argc, char *argv[])
     input3_flags |= GCSA_NORMALIZE ;
 
   if (sulconly)
-    {
-      GCSAputInputType(gcsa, 
-                       GCSA_INPUT_CURV_FILE, 
-                       sulc_name, 
-                       0, 
-                       0,
-                       input1_flags);
-    }
+	{
+		GCSAputInputType(gcsa, 
+										 GCSA_INPUT_CURV_FILE, 
+										 sulc_name, 
+										 0, 
+										 0,
+										 input1_flags);
+	}
   else
-    {
-      GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature", 
-                       navgs, input1_flags, 0) ;
-      if (ninputs > 1)
-        GCSAputInputType(gcsa, 
-                         GCSA_INPUT_CURV_FILE, 
-                         sulc_name,
-                         0,
-                         input2_flags,
-                         1);
-      if (ninputs > 2)
-        GCSAputInputType(gcsa, 
-                         GCSA_INPUT_CURV_FILE, 
-                         thickness_name, 
-                         0, 
-                         input3_flags, 
-                         2);
-    }
+	{
+		GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature", 
+										 navgs, input1_flags, 0) ;
+		if (ninputs > 1)
+			GCSAputInputType(gcsa, 
+											 GCSA_INPUT_CURV_FILE, 
+											 sulc_name,
+											 0,
+											 input2_flags,
+											 1);
+		if (ninputs > 2)
+			GCSAputInputType(gcsa, 
+											 GCSA_INPUT_CURV_FILE, 
+											 thickness_name, 
+											 0, 
+											 input3_flags, 
+											 2);
+	}
 
   for (train_type = 0 ; train_type <= 1 ; train_type++)
-    {
-      printf("computing %s for %d subject \n",
-             train_type ? "covariances" : "means", nsubjects) ;
-      for (i = 0 ; i < nsubjects ; i++)
-        {
-          subject_name = argv[i+4] ;
-          printf("processing subject %s, %d of %d...\n", subject_name,i+1,
-                 nsubjects);
-          sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, 
-                  hemi, orig_name) ;
-          if (DIAG_VERBOSE_ON)
-            printf("reading surface from %s...\n", fname) ;
-          mris = MRISread(fname) ;
-          if (!mris)
-            ErrorExit(ERROR_NOFILE, 
-                      "%s: could not read surface file %s for %s",
-                      Progname, fname, subject_name) ;
-          MRISsetNeighborhoodSize(mris, nbrs) ;
-          MRIScomputeSecondFundamentalForm(mris) ;
-          MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-          if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
-            ErrorExit(ERROR_NOFILE, 
-                      "%s: could not read annot file %s for %s",
-                      Progname, annot_name, subject_name) ;
-          if (ptable)
-            nparcs = add_to_ptable(mris, ptable, nparcs) ;
+	{
+		printf("computing %s for %d subject \n",
+					 train_type ? "covariances" : "means", nsubjects) ;
+		for (i = 0 ; i < nsubjects ; i++)
+		{
+			subject_name = argv[i+4] ;
+			printf("processing subject %s, %d of %d...\n", subject_name,i+1,
+						 nsubjects);
+			sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, 
+							hemi, orig_name) ;
+			if (DIAG_VERBOSE_ON)
+				printf("reading surface from %s...\n", fname) ;
+			mris = MRISread(fname) ;
+			if (!mris)
+				ErrorExit(ERROR_NOFILE, 
+									"%s: could not read surface file %s for %s",
+									Progname, fname, subject_name) ;
+			MRISsetNeighborhoodSize(mris, nbrs) ;
+			MRIScomputeSecondFundamentalForm(mris) ;
+			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+			if (label_name)
+			{
+				LABEL *area ;
+				int   i ;
+				VERTEX *v ;
 
-          if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
-            ErrorExit(ERROR_NOFILE, 
-                      "%s: could not read spherical "
-                      "registration file %s for %s",
-                      Progname, canon_surf_name, subject_name) ;
-          if (ninputs > 2)
-            {
-              if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
-                ErrorExit(ERROR_NOFILE, 
-                          "%s: could not read curv file %s for %s",
-                          Progname, thickness_name, subject_name) ;
-              if (normalize3_flag)
-                MRISnormalizeCurvature(mris) ;
-              MRIScopyCurvatureToImagValues(mris) ;
-            }
-          if (ninputs > 1 || sulconly)
-            {
-              if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
-                ErrorExit(ERROR_NOFILE, 
-                          "%s: could not read curv file %s for %s",
-                          Progname, sulc_name, subject_name) ;
-              if (normalize2_flag || (sulconly && normalize1_flag))
-                MRISnormalizeCurvature(mris) ;
-              MRIScopyCurvatureToValues(mris) ;
-              MRIScopyValToVal2(mris) ;
-            }
-          if (!sulconly)
-            {
+				sprintf(fname, "%s/%s/label/%s.%s", subjects_dir, subject_name, hemi, annot_name) ;
+				area = LabelRead(subject_name, fname) ;
+				if (area == NULL)
+					ErrorExit(ERROR_NOFILE, 
+										"%s: could not read label file %s for %s",Progname, fname, subject_name) ;
+				for (i = 0 ; i < area->n_points ; i++)
+				{
+					if (area->lv[i].vno < 0)
+						continue ;
+					v = &mris->vertices[area->lv[i].vno] ;
+					if (area->lv[i].vno == Gdiag_no)
+						DiagBreak() ;
+					if (v->ripflag)
+						continue ;
+					CTABannotationAtIndex(ctab, label_index, &v->annotation) ;
+				}
+				// mark rest of surface unknown
+				for (i = 0 ; i < mris->nvertices ; i++)
+				{
+					v = &mris->vertices[i] ;
+					if (i == Gdiag_no)
+						DiagBreak() ;
+					if (v->ripflag || v->annotation)
+						continue ;
+					CTABannotationAtIndex(ctab, unknown_index, &v->annotation) ;
+				}
+				LabelFree(&area) ;
+			}
+			else
+			{
+				if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+					ErrorExit(ERROR_NOFILE, 
+										"%s: could not read annot file %s for %s",
+										Progname, annot_name, subject_name) ;
+			}
+			if (ptable)
+				nparcs = add_to_ptable(mris, ptable, nparcs) ;
+
+			if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
+				ErrorExit(ERROR_NOFILE, 
+									"%s: could not read spherical "
+									"registration file %s for %s",
+									Progname, canon_surf_name, subject_name) ;
+			if (ninputs > 2)
+			{
+				if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
+					ErrorExit(ERROR_NOFILE, 
+										"%s: could not read curv file %s for %s",
+										Progname, thickness_name, subject_name) ;
+				if (normalize3_flag)
+					MRISnormalizeCurvature(mris) ;
+				MRIScopyCurvatureToImagValues(mris) ;
+			}
+			if (ninputs > 1 || sulconly)
+			{
+				if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
+					ErrorExit(ERROR_NOFILE, 
+										"%s: could not read curv file %s for %s",
+										Progname, sulc_name, subject_name) ;
+				if (normalize2_flag || (sulconly && normalize1_flag))
+					MRISnormalizeCurvature(mris) ;
+				MRIScopyCurvatureToValues(mris) ;
+				MRIScopyValToVal2(mris) ;
+			}
+			if (!sulconly)
+			{
 #if 0
-              if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-                ErrorExit(ERROR_NOFILE, 
-                          "%s: could not read curv file %s for %s",
-                          Progname, curv_name, subject_name) ;
+				if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
+					ErrorExit(ERROR_NOFILE, 
+										"%s: could not read curv file %s for %s",
+										Progname, curv_name, subject_name) ;
 #else
-              MRISuseMeanCurvature(mris) ;
-              MRISaverageCurvatures(mris, navgs) ;
-              if (normalize1_flag)
-                MRISnormalizeCurvature(mris) ;
+				MRISuseMeanCurvature(mris) ;
+				MRISaverageCurvatures(mris, navgs) ;
+				if (normalize1_flag)
+					MRISnormalizeCurvature(mris) ;
 #endif
-              MRIScopyCurvatureToValues(mris) ;
-            }
+				MRIScopyCurvatureToValues(mris) ;
+			}
 
-          MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-          MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-          MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-          if (train_type == 0)
-            GCSAtrainMeans(gcsa, mris) ;
-          else
-            GCSAtrainCovariances(gcsa, mris) ;
-          MRISfree(&mris) ;
-        }
-      if (train_type == 0)
-        GCSAnormalizeMeans(gcsa) ;
-      else
-        GCSAnormalizeCovariances(gcsa) ;
-    }
+			MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+			MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
+			MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+			if (train_type == 0)
+				GCSAtrainMeans(gcsa, mris) ;
+			else
+				GCSAtrainCovariances(gcsa, mris) ;
+			MRISfree(&mris) ;
+		}
+		if (train_type == 0)
+			GCSAnormalizeMeans(gcsa) ;
+		else
+			GCSAnormalizeCovariances(gcsa) ;
+	}
 
 #if 0
   if (ptable)
@@ -266,79 +328,84 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "SDIR"))
-    {
-      strcpy(subjects_dir, argv[2]) ;
-      nargs = 1 ;
-      printf("using %s as subjects directory\n", subjects_dir) ;
-    }
+	{
+		strcpy(subjects_dir, argv[2]) ;
+		nargs = 1 ;
+		printf("using %s as subjects directory\n", subjects_dir) ;
+	}
   else if (!stricmp(option, "nbrs"))
-    {
-      nbrs = atoi(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-    }
+	{
+		nbrs = atoi(argv[2]) ;
+		nargs = 1 ;
+		fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+	}
   else if (!stricmp(option, "ORIG"))
-    {
-      orig_name = argv[2] ;
-      nargs = 1 ;
-      printf("using %s as original surface\n", orig_name) ;
-    }
+	{
+		orig_name = argv[2] ;
+		nargs = 1 ;
+		printf("using %s as original surface\n", orig_name) ;
+	}
   else if (!stricmp(option, "NORM1"))
-    {
-      printf("normalizing input #1 after reading...\n") ;
-      normalize1_flag = 1 ;
-    }
+	{
+		printf("normalizing input #1 after reading...\n") ;
+		normalize1_flag = 1 ;
+	}
   else if (!stricmp(option, "NORM2"))
-    {
-      printf("normalizing input #2 after reading...\n") ;
-      normalize2_flag = 1 ;
-    }
+	{
+		printf("normalizing input #2 after reading...\n") ;
+		normalize2_flag = 1 ;
+	}
   else if (!stricmp(option, "NORM3"))
-    {
-      printf("normalizing input #3 after reading...\n") ;
-      normalize3_flag = 1 ;
-    }
+	{
+		printf("normalizing input #3 after reading...\n") ;
+		normalize3_flag = 1 ;
+	}
   else if (!stricmp(option, "IC"))
-    {
-      icno_priors = atoi(argv[2]) ;
-      icno_classifiers = atoi(argv[3]) ;
-      nargs = 2 ;
-      printf("using ico # %d for classifier array, and %d for priors\n", 
-             icno_classifiers, icno_priors) ;
-    }
+	{
+		icno_priors = atoi(argv[2]) ;
+		icno_classifiers = atoi(argv[3]) ;
+		nargs = 2 ;
+		printf("using ico # %d for classifier array, and %d for priors\n", 
+					 icno_classifiers, icno_priors) ;
+	}
   else if (!stricmp(option, "SULC") || !stricmp(option, "SULCONLY"))
-    {
-      printf("using sulc as only input...\n") ;
-      sulconly = 1 ;
-    }
+	{
+		printf("using sulc as only input...\n") ;
+		sulconly = 1 ;
+	}
   else switch (toupper(*option))
-    {
-    case 'A':
-      navgs = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case 'T':
-      ptable_fname = argv[2] ;
-      nargs = 1 ;
-      ptable = (int *)calloc(MAX_LABELS, sizeof(int)) ;
-      break ;
-    case 'V':
-      Gdiag_no = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case 'N':
-      ninputs = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      usage_exit(0) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+	{
+	case 'L':
+		label_name = argv[2] ;
+		nargs = 1 ;
+		printf("interpreting inputs as label files for %s intead of annotations\n", label_name) ;
+		break ;
+	case 'A':
+		navgs = atoi(argv[2]) ;
+		nargs = 1 ;
+		break ;
+	case 'T':
+		ptable_fname = argv[2] ;
+		nargs = 1 ;
+		ptable = (int *)calloc(MAX_LABELS, sizeof(int)) ;
+		break ;
+	case 'V':
+		Gdiag_no = atoi(argv[2]) ;
+		nargs = 1 ;
+		break ;
+	case 'N':
+		ninputs = atoi(argv[2]) ;
+		nargs = 1 ;
+		break ;
+	case '?':
+	case 'U':
+		usage_exit(0) ;
+		break ;
+	default:
+		fprintf(stderr, "unknown option %s\n", argv[1]) ;
+		exit(1) ;
+		break ;
+	}
 
   return(nargs) ;
 }
