@@ -2,9 +2,9 @@
 // matfile.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/26 23:10:34 $
-// Revision       : $Revision: 1.20 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/08/01 21:10:03 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -22,6 +22,8 @@ static double **matAlloc(int rows, int ncols) ;
 static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix,
                           double **imag_matrix) ;
+static int    znzreadMatFile(char *unbuff,MATFILE *mf, double **real_matrix,
+			  double **imag_matrix) ;
 static void   swapBytes(MATFILE *mf) ;
 static char *MatProgname = "matfile" ;
 
@@ -52,8 +54,7 @@ MatlabWrite(MATRIX *mat, const char *fname, char *name)
 }
 
 
-MATRIX *
-MatlabRead(const char *fname)
+MATRIX *MatlabRead(const char *fname)
 {
   MATRIX   *mat ;
   MATFILE  mf ;
@@ -62,6 +63,9 @@ MatlabRead(const char *fname)
   double   **real_matrix, **imag_matrix ;
   int      file_type, nrows, ncols, row, col ;
   float    *fptr = NULL ;
+
+  if(getenv("USE_MATLAREAD2")!=NULL)
+    return(MatlabRead2(fname));
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: opening file %s\n",fname);
@@ -73,7 +77,7 @@ MatlabRead(const char *fname)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: reading header\n");
 
-  name = MatReadHeader(fp, &mf) ;
+  name = MatReadHeader0(fp, &mf) ;
   if(name==NULL)
     {
       ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
@@ -151,7 +155,7 @@ MatFileRead(const char *fname, int type)
     return(NULL) ;
 
   mf = (MATFILE *)calloc(1, sizeof(MATFILE)) ;
-  name = MatReadHeader(fp, mf) ;
+  name = MatReadHeader0(fp, mf) ;
 
   real_matrix = matAlloc((int)mf->mrows, (int)mf->ncols) ;
   if (mf->imagf)
@@ -475,9 +479,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
   return(type) ;
 }
 
-
-char *
-MatReadHeader(FILE *fp, MATFILE *mf)
+/*---------------------------------------------------------*/
+char *MatReadHeader0(FILE *fp, MATFILE *mf)
 {
   int   nitems ;
   char  *name ;
@@ -604,7 +607,7 @@ MLFC *ReadMatlabFileContents(const char *fname)
     if(c==EOF) break;
     else ungetc(c,fp);
 
-    name = MatReadHeader(fp, &mf) ;
+    name = MatReadHeader0(fp, &mf) ;
     if(name==NULL) break;
 
     mlfc->varname[mlfc->nvars] = name;
@@ -686,3 +689,486 @@ int MLFCfree(MLFC **ppmlfc){
   free(*ppmlfc);
   return(0) ;
 }
+
+/*-------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+static int
+znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_matrix)
+{
+  int     row, col, type, offset =0;
+  short   sval=1 ;
+  long    lval=1 ;
+  double  dval=1 ;
+  char    bval='1' ;
+  float   fval=1 ;
+  
+  type = (int)mf->type;
+    switch (type)
+      {
+      case 9:
+        type = MAT_DOUBLE ;
+        break ;
+      case 7:
+        type = MAT_FLOAT ;
+        break ;
+      case 6:     /* long signed */
+      case 5:     /* long unsigned */
+        type = MAT_INT ;
+        break ;
+      case 4:     /* short signed */
+      case 3:     /* short unsigned */
+        type = MAT_SHORT ;
+        break ;
+      case 2:     /* bytes signed */
+      case 1:     /* bytes unsigned */
+         type = MAT_BYTE ;
+        break ;
+      default:
+        ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
+		    type, type == MAT_FLOAT ? "float" : "unknown") ;
+        break ;
+      }
+            
+  for (col = 0 ; col < mf->ncols ; col++)
+    {
+      for (row = 0 ; row < mf->mrows ; row++)
+	{
+	  switch(type)
+	    {
+	    case MAT_BYTE:
+	      offset = 56 + col * (int)(mf->mrows) * sizeof(char) + row * sizeof(char);    	  
+	      memcpy(&dval, &unbuff[offset], sizeof(char));
+	      real_matrix[row][col] = (double)bval ;
+	      break ;
+	    case MAT_SHORT:
+	      offset = 56 + col * (int)(mf->mrows) * sizeof(short) + row * sizeof(short);
+	      memcpy(&dval, &unbuff[offset], sizeof(short));
+	      if (DIFFERENT_ENDIAN(mf))
+		sval = swapShort(sval) ;
+	      real_matrix[row][col] = (double)sval ;
+	      break ;
+	    case MAT_INT:   /* 32 bit integer */
+	      offset = 56 + col * (int)(mf->mrows) * sizeof(long) + row * sizeof(long);
+	      memcpy(&dval, &unbuff[offset], sizeof(long));
+	      if (DIFFERENT_ENDIAN(mf))
+		lval = swapLong32(lval) ;
+	      real_matrix[row][col] = (double)lval ;
+	      break ;
+	    case MAT_FLOAT:
+      	      offset = 56 + col * (int)(mf->mrows) * sizeof(float) + row * sizeof(float);
+	      memcpy(&dval, &unbuff[offset], sizeof(float));
+	      if (DIFFERENT_ENDIAN(mf))
+	        fval = (float)swapLong32((long32)fval) ;
+	      real_matrix[row][col] = (double)fval ;
+	      break ;
+	    case MAT_DOUBLE:
+	      offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
+	      memcpy(&dval, &unbuff[offset], sizeof(double));
+	      if (DIFFERENT_ENDIAN(mf))
+		dval = swapDouble(dval) ;
+	      real_matrix[row][col] = dval ;
+	      break ;
+	    default:
+	      break ;
+	    }
+	}
+    }
+  if (imag_matrix) for (col = 0 ; col < mf->ncols ; col++)
+    {
+      for (row = 0 ; row < mf->mrows ; row++)
+	{
+	  switch(type)
+	    {
+	    case MAT_DOUBLE:
+	      offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
+	      memcpy(&dval, &unbuff[offset], sizeof(double));
+	      break ;
+	    default:
+	      break ;
+	    }
+	  if (DIFFERENT_ENDIAN(mf))
+	    dval = swapDouble(dval) ;
+	  imag_matrix[row][col] = dval ;
+	}
+    }
+ return(0);
+}
+/*--------------------------------------------------------------*/
+MATRIX *MatlabRead2(const char *fname)
+{
+  MATRIX   *mat ;
+  MATFILE  mf ;
+  FILE     *znzfp = NULL;
+  FILE     *fp = NULL ;
+  char     *name ;
+  double   **real_matrix, **imag_matrix ;
+  int      file_type, nrows, ncols, row, col;
+  float    *fptr = NULL ;
+  long32   *dt =0;
+  long32   compressed=0;
+  char **data = NULL;
+  char *unbuff = NULL;
+  
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_SHOW, "MatlabRead: opening file %s\n",fname);
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    return(NULL) ;
+    
+  dt = &compressed;
+  name = MatReadHeader(fp, &mf, dt) ;
+ 
+  if (compressed)
+    {
+    znzfp = fopen(fname, "rb") ;
+    if (!znzfp)
+      return(NULL) ;
+    data = &unbuff;
+    name = znzMatReadHeader(znzfp, &mf, data) ;
+    }
+  
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_SHOW, "MatlabRead: reading header\n");
+
+  if(name==NULL)
+    {
+      ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
+      return(NULL);
+    }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_SHOW, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
+	       (int)mf.mrows,(int)mf.ncols);
+
+  real_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_SHOW, "MatlabRead: done real mtx alloc\n");
+
+  if (mf.imagf)
+    imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
+  else
+    imag_matrix = NULL ;
+
+  if (compressed)
+    file_type = znzreadMatFile(unbuff, &mf, real_matrix, imag_matrix);
+  else
+    file_type = readMatFile(fp, &mf, real_matrix, imag_matrix) ;
+  
+  nrows = (int)mf.mrows ;
+  ncols = (int)mf.ncols ;
+
+  mat = MatrixAlloc(nrows, ncols,
+		    mf.imagf ? MATRIX_COMPLEX : MATRIX_REAL) ;
+
+  /* matrix row pointer is 1 based in both row and column */
+  for (row = 1 ; row <= nrows ; row++)
+    {
+#if 0
+      fptr = MATRIX_PTR(mat,row,1) ;
+#else
+      if (mf.imagf)
+	{
+	  fptr = (float *)MATRIX_CELT(mat,row,1) ;
+	}
+      else
+	fptr = MATRIX_RELT(mat,row,1) ;
+#endif
+
+      for (col = 1 ; col <= ncols ; col++)
+	{
+	  *fptr++ = (float)real_matrix[row-1][col-1] ;
+	  if (mf.imagf)
+	    *fptr++ = (float)imag_matrix[row-1][col-1] ;
+	}
+    }
+
+  matFree(real_matrix, nrows, ncols) ;
+  if (mf.imagf)
+    matFree(imag_matrix, nrows, ncols) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_SHOW, "MatlabRead: done\n");
+
+  return(mat) ;
+}
+char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
+{
+  int   nitems, padding;
+  char  *name;
+  char a, b, c, d, m;
+  short namlen_temp;
+  long32 dt;
+  m = 1;
+  m = m << 4; // shifts first bit (the 1) to the 5th bit
+  
+  char endian, ctmp[4];
+  long32 tmp;
+ 
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    DiagPrintf(DIAG_VERBOSE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
+    
+  name = (char *) calloc ( 1, sizeof(char)) ;
+
+  /* Test the version of MAT-file*/
+
+  a = fgetc(fp);
+  b = fgetc(fp);
+  c = fgetc(fp);
+  d = fgetc(fp);
+  if ((a == EOF)|(b == EOF)|(c == EOF)|( d== EOF)){
+      ErrorPrintf(ERROR_BADFILE, "%s: could not detect the version of the Matfile\n",
+		  MatProgname) ;
+      /*exit(1) ;*/
+      return(NULL);
+    }
+  if (!a|!b|!c|!d)
+    mf->version = 4 ;
+  else
+    mf->version = 5 ;
+  ungetc(d,fp);
+  ungetc(c,fp); 
+  ungetc(b,fp);
+  ungetc(a,fp); 
+  
+  if (mf->version == 5){
+    fseek(fp,126,SEEK_SET) ;
+    endian = fgetc(fp) ;
+    mf->endian = endian ;
+    fseek(fp,1,SEEK_CUR);
+    fread(&dt, sizeof(long), 1, fp) ;
+    if (DIFFERENT_ENDIAN(mf))
+        dt = swapLong32(dt) ;
+    dt = dt-14;
+    if (!dt) 
+      { 
+      *compressed = 0;
+      fseek(fp,12,SEEK_CUR) ;
+      fread(&tmp, sizeof(long), 1, fp) ;
+      if (DIFFERENT_ENDIAN(mf))
+        tmp = swapLong32(tmp) ; 
+      memcpy(&ctmp, &tmp, 4) ;
+      mf->imagf = (long)(m & ctmp[3]) ;
+      fseek(fp,12,SEEK_CUR) ;
+      fread(&(mf->mrows), sizeof(long), 1, fp) ;
+      fread(&(mf->ncols), sizeof(long), 1, fp) ;
+      if (DIFFERENT_ENDIAN(mf))   
+        {
+        mf->mrows = swapLong32(mf->mrows) ;
+        mf->ncols = swapLong32(mf->ncols) ;
+	}
+      if (DIFFERENT_ENDIAN(mf))   /* TO DETECT NORMAL OR SMALL ELEMT */
+        {
+	c = fgetc(fp); 
+        d = fgetc(fp);
+        ungetc(d,fp);
+        ungetc(c,fp);
+	}
+      else
+        {;
+	a = fgetc(fp); 
+        b = fgetc(fp);   
+        c = fgetc(fp); 
+        d = fgetc(fp);
+        ungetc(d,fp);
+        ungetc(c,fp);   
+        ungetc(b,fp);
+        ungetc(a,fp);
+	}
+      if (c==0 && d==0)
+        {       /*normal element*/
+          fseek(fp,4,SEEK_CUR) ;
+	  fread(&(mf->namlen), 1, sizeof(long), fp);
+	  if (DIFFERENT_ENDIAN(mf))
+            mf->namlen = swapLong32(mf->namlen);
+	  name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+	  fread(name, (int)mf->namlen, sizeof(char), fp);
+	  padding = 8-((int)mf->namlen - (int)mf->namlen/ 8 * 8) ;
+	  fseek(fp, padding, SEEK_CUR) ;
+        }
+      else 
+        {       /*small data element*/
+	  fread(&(mf->namlen), 1, sizeof(long), fp);
+          if (DIFFERENT_ENDIAN(mf))
+            mf->namlen = swapLong32(mf->namlen);
+          memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+          mf->namlen = (long)namlen_temp;	  
+	  name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+	  fread(name, (int)mf->namlen, sizeof(char), fp);
+	  padding = 4 - (int)mf->namlen ;
+	  fseek(fp, padding, SEEK_CUR) ;
+	}
+	fread(&(mf->type), 1,sizeof(long), fp);
+	if (DIFFERENT_ENDIAN(mf))
+          mf->type = swapLong32(mf->type);
+
+	  
+	fseek(fp,4,SEEK_CUR) ;
+      }
+    else if (dt)
+      { 
+         *compressed = 1;
+	 fclose(fp);
+	 return(NULL) ;	 
+      }
+      
+    #if 1
+    DiagPrintf(DIAG_VERBOSE,
+	     "MATFILE5: %ld x %ld, imag %d, name '%s'\n",
+	     mf->mrows, mf->ncols, mf->imagf, name) ;
+
+    #endif
+  
+    return(name) ;
+       
+    }
+  
+  else {      /*     if (mf->version == 4) */
+    
+    nitems = fread(mf, 1, sizeof(MATHD), fp) ;    
+    if (nitems != sizeof(MATHD))
+      {
+	ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of header\n",
+		    MatProgname, nitems) ;
+	/*exit(1) ;*/
+	return(NULL);
+      }
+      
+    DiagPrintf(DIAG_VERBOSE, "type = %ld\n", mf->type) ;
+    if (DIFFERENT_ENDIAN(mf))
+      {
+	DiagPrintf(DIAG_VERBOSE, "mat file generated with different endian\n") ;
+	swapBytes(mf) ;
+      }
+    DiagPrintf(DIAG_VERBOSE, "after swap, type = %ld\n", mf->type) ;
+
+    DiagPrintf(DIAG_VERBOSE, "MatReadHeader: nitems = %d, namelen=%d\n",
+	       nitems,(int)mf->namlen+1);
+
+    name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
+    if (!name)
+      ErrorExit(ERROR_NO_MEMORY,
+		"matReadHeader: couldn't allocate %d bytes for name",
+		mf->namlen+1) ;
+
+    nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
+    if (nitems != mf->namlen)
+      {
+	ErrorPrintf(ERROR_BADFILE,
+		    "%s: only read %d bytes of name (%ld specified)\n",
+		    MatProgname, nitems, mf->namlen) ;
+	/*exit(1) ;*/
+	return(NULL);
+      }
+
+   #if 1
+    DiagPrintf(DIAG_VERBOSE,
+	     "MATFILE5: %ld x %ld, imag %d, name '%s'\n",
+	     mf->mrows, mf->ncols, mf->imagf, name) ;
+    #endif
+    return(name) ;
+  }
+ }
+
+
+char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) 
+{
+  char  *name = NULL;
+  char m ,c;
+  m = 1;
+  m = m << 4; // shifts first bit (the 1) to the 5th bit
+  char endian;
+  long32 miMAT, size;
+  char *buff = NULL; 
+  long *ptr_size_unbuff =NULL;
+  long size_unbuff ;
+  ptr_size_unbuff = &size_unbuff;
+  long32 tmp ;
+  char test_data[4] ;
+  int padding;
+  short namlen_temp ;
+  int isitok;
+  char *unbuff;
+  /*
+  int i; 
+  double test ;*/
+  
+  fseek(fp,126,SEEK_SET) ;
+  endian = fgetc(fp) ;
+  mf->endian = endian ;
+  fseek(fp,1,SEEK_CUR);
+  fread(&miMAT, sizeof(long), 1, fp) ;
+  fread(&size, sizeof(long), 1, fp) ;
+  if (DIFFERENT_ENDIAN(mf))
+    {
+    miMAT = swapLong32(miMAT) ;
+    size = swapLong32(size) ;		
+    }
+  buff = (char *)calloc(size, sizeof(char)) ;
+  fread(buff, sizeof(char), size, fp) ;
+  size_unbuff = 10*size;
+  unbuff = (char *)calloc(size_unbuff, sizeof(char)) ;
+  isitok = uncompress(unbuff, ptr_size_unbuff, buff, size) ;
+  if (isitok!=0)
+    ErrorPrintf(DIAG_VERBOSE," RESULT : %ld \n" , isitok) ;
+  
+  /*
+  
+  for (i=0; i<14; i++){
+    memcpy(&tmp, &unbuff[4*i], sizeof(long));
+    ErrorPrintf(DIAG_VERBOSE,"i      %ld \n", tmp) ;
+  }
+  for (i=0; i<30; i++){
+    memcpy(&test, &unbuff[56+8*i], sizeof(double));
+    ErrorPrintf(DIAG_VERBOSE,"f      %f \n", test) ;
+  }*/
+  
+  
+  memcpy(&c, &unbuff[18], sizeof(char));
+  mf->imagf = (long)(m & c) ;
+  memcpy(&(mf->mrows), &unbuff[32], sizeof(long));
+  memcpy(&(mf->ncols), &unbuff[36], sizeof(long));
+  if (DIFFERENT_ENDIAN(mf))   
+    {
+      mf->mrows = swapLong32(mf->mrows) ;
+      mf->ncols = swapLong32(mf->ncols) ;
+    }
+  memcpy(&tmp, &unbuff[40], sizeof(long));
+  if (DIFFERENT_ENDIAN(mf))   
+      tmp = swapLong32(tmp) ;
+  memcpy(&test_data, &tmp, 4);
+  
+  if (test_data[0]==0 && test_data[1]==0 ) /*normal data*/
+    {
+      memcpy(&(mf->namlen), &unbuff[44], sizeof(long));
+      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+      memcpy(name, &unbuff[48], (int)mf->namlen * sizeof(char));
+      padding = 48 + ((((int)mf->namlen -1)/ 8) +1);
+      memcpy(&(mf->type), &unbuff[padding], sizeof(long));
+      if (DIFFERENT_ENDIAN(mf))
+        mf->type = swapLong32(mf->type);     
+    }
+  else       /*small data*/
+    {
+      memcpy(&(mf->namlen), &unbuff[40], sizeof(long)); 
+      if (DIFFERENT_ENDIAN(mf))
+        mf->namlen = swapLong32(mf->namlen);
+      memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+      mf->namlen = (long)namlen_temp;
+      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+      memcpy(name, &unbuff[44], (int)mf->namlen * sizeof(char));  
+      memcpy(&(mf->type), &unbuff[48], sizeof(long));
+      if (DIFFERENT_ENDIAN(mf))
+        mf->type = swapLong32(mf->type); 
+    }
+  *data = unbuff;
+  #if 1
+    ErrorPrintf(DIAG_VERBOSE,
+	     "MATFILE5: %ld x %ld, type %ld, imagf %d, name '%s'\n",
+	       mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
+
+    #endif
+  return(name);
+}
+

@@ -1,6 +1,7 @@
 #ifndef MATFILE_H
 #define MATFILE_H
        
+#include "znzlib.h"  
 #include "matrix.h"
 #include "machine.h"
 
@@ -15,13 +16,17 @@ typedef struct
 
 typedef struct
 {
-    long32  type ;
+    /*common*/
+    long32  type;
     long32  mrows ;
     long32  ncols ;
-    long32  imagf ;
+    long32  imagf;
     long32  namlen ;
+    int     version ;
     char  *data ;
     char  *idata ;
+    /*only 5*/  
+    char endian;
 } MATFILE ;
 
 typedef struct
@@ -32,10 +37,12 @@ typedef struct
   MATRIX *varmtx[1000];
 } MATFILECONTENTS, MLFC;
 
-
-char    *MatReadHeader(FILE *fp, MATFILE *mf) ;
+char *MatReadHeader0(FILE *fp, MATFILE *mf);
+char    *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) ;
+char    *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) ;
 MATFILE *MatFileRead(const char *fname, int type) ;
 MATRIX  *MatlabRead(const char *fname) ;
+MATRIX  *MatlabRead2(const char *fname) ;
 int     MatlabWrite(MATRIX *mat, const char *fname, char *name) ;
 int     MatFileWrite(const char *fname,
                     float *data, int rows, int cols, char *name) ;
@@ -45,6 +52,7 @@ int   MLFCprint(FILE *fp, MLFC *mlfc);
 int MLFCfree(MLFC **ppmlfc);
 MATRIX *ReadMatlabFileVariable(char *fname, char *varname);
 
+
 #define MAT_BYTE     0
 #define MAT_DOUBLE   1
 #define MAT_INT      2
@@ -53,6 +61,9 @@ MATRIX *ReadMatlabFileVariable(char *fname, char *varname);
 
 #define MATFILE_PC      0000
 #define MATFILE_SPARC   1000
+
+#define MATFILE_PC5     'I' 
+#define MATFILE_SPARC5  'M' 
 
 #define MATFILE_DOUBLE  00
 #define MATFILE_FLOAT   10
