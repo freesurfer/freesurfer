@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/02/27 16:57:57 $
-// Revision       : $Revision: 1.48 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/08/02 20:51:20 $
+// Revision       : $Revision: 1.49 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.48 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.49 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +43,7 @@ extern "C" {
 #include "version.h"
 #include "mrisegment.h"
 #include "fio.h"
+#include "mri_conform.h"
 }
 
 #define SQR(x) ((x)*(x))
@@ -194,6 +195,8 @@ typedef struct
 char *Progname;
 
 static int type_changed = 0 ;
+static int conformed = 0 ;
+
 static int old_type ;
 
 #ifndef __OPTIMIZE__
@@ -691,7 +694,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.48 2006/02/27 16:57:57 segonne Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.49 2006/08/02 20:51:20 fischl Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -703,7 +706,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.48 2006/02/27 16:57:57 segonne Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.49 2006/08/02 20:51:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -750,7 +753,13 @@ int main(int argc, char *argv[])
     Error("read failed\n");
   MRIaddCommandLine(mri_with_skull, cmdline) ;
 
-  if (mri_with_skull->type!=MRI_UCHAR)
+  if (mriConformed(mri_with_skull) == 0)
+		{
+			printf("conforming input...\n") ;
+			mri_with_skull = MRIconform(mri_with_skull) ;
+			conformed = 1 ;
+		}
+	else if (mri_with_skull->type!=MRI_UCHAR)
     {
       MRI *mri_tmp ;
     
@@ -762,7 +771,7 @@ int main(int argc, char *argv[])
     }
   else
     type_changed = 0 ;
-  
+
   /* Main routine *********************/
   // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
   mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
@@ -774,7 +783,7 @@ int main(int argc, char *argv[])
       free(parms);
       return -1;
     }
-  if (type_changed)  /* make output volume the same type as input volume */
+  if ( conformed || type_changed)  /* make output volume the same type as input volume */
     {
       mri_with_skull = MRIread(in_fname) ;
       if (!mri_with_skull)
@@ -782,8 +791,7 @@ int main(int argc, char *argv[])
       mri_mask = mri_without_skull ;
       mri_without_skull = MRImask(mri_with_skull, mri_mask, NULL, 0, 0) ;
     }
-  else
-    mri_mask = mri_without_skull ;
+	mri_mask = mri_without_skull ;
 
   //-------------------------------------------------------------------
   fprintf(stderr,"\n\n******************************\nSave...");
