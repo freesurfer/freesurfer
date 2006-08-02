@@ -718,6 +718,8 @@ MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
+MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
+																int mask, float out_val) ;
 MRI *MRImaskInvert(MRI *mask, MRI *outmask);
 int MRInMask(MRI *mask);
 MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask);
