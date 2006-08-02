@@ -870,10 +870,10 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
   MRIcheckVolDims(mri_src, mri_dst);
 
   if (mri_dst == mri_src)
-    {
-      same = 1 ;
-      mri_dst = MRIclone(mri_src, NULL) ;
-    }
+	{
+		same = 1 ;
+		mri_dst = MRIclone(mri_src, NULL) ;
+	}
   else
     same = 0 ;
 
@@ -881,65 +881,67 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
   ymax = 0 ; ymin = height-1 ;
   zmax = 0 ; zmin = depth-1 ;
   for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          psrc = &MRIvox(mri_src, 0, y, z) ;
-          for (x = 0 ; x < width ; x++)
-            {
-              if (*psrc++ > 0)
-                {
-                  if (x-1 < xmin)
-                    xmin = x-1 ;
-                  if (x+1 > xmax)
-                    xmax = x+1 ;
-                  if (y-1 < ymin)
-                    ymin = y-1 ;
-                  if (y+1 > ymax)
-                    ymax = y+1 ;
-                  if (z-1 < zmin)
-                    zmin = z-1 ;
-                  if (z+1 > zmax)
-                    zmax = z+1 ;
-                }
-            }
-        }
-    }
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			psrc = &MRIvox(mri_src, 0, y, z) ;
+			for (x = 0 ; x < width ; x++)
+			{
+				if (*psrc++ > 0)
+				{
+					if (x-1 < xmin)
+						xmin = x-1 ;
+					if (x+1 > xmax)
+						xmax = x+1 ;
+					if (y-1 < ymin)
+						ymin = y-1 ;
+					if (y+1 > ymax)
+						ymax = y+1 ;
+					if (z-1 < zmin)
+						zmin = z-1 ;
+					if (z+1 > zmax)
+						zmax = z+1 ;
+				}
+			}
+		}
+	}
   xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
   ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
   zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
   for (z = zmin ; z <= zmax ; z++)
-    {
-      for (y = ymin ; y <= ymax ; y++)
-        {
-          for (x = xmin ; x <= xmax ; x++)
-            {
-              max_val = 0 ;
-              for (z0 = -1 ; z0 <= 1 ; z0++)
-                {
-                  zi = mri_src->zi[z+z0] ;
-                  for (y0 = -1 ; y0 <= 1 ; y0++)
-                    {
-                      yi = mri_src->yi[y+y0] ;
-                      for (x0 = -1 ; x0 <= 1 ; x0++)
-                        {
-                          xi = mri_src->xi[x+x0] ;
-                          val = MRIvox(mri_src, xi,yi,zi) ;
-                          if (val > max_val)
-                            max_val = val ;
-                        }
-                    }
-                }
-              MRIvox(mri_dst, x,y,z) = max_val ;
-            }
-        }
-    }
+	{
+		for (y = ymin ; y <= ymax ; y++)
+		{
+			for (x = xmin ; x <= xmax ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				max_val = 0 ;
+				for (z0 = -1 ; z0 <= 1 ; z0++)
+				{
+					zi = mri_src->zi[z+z0] ;
+					for (y0 = -1 ; y0 <= 1 ; y0++)
+					{
+						yi = mri_src->yi[y+y0] ;
+						for (x0 = -1 ; x0 <= 1 ; x0++)
+						{
+							xi = mri_src->xi[x+x0] ;
+							val = MRIvox(mri_src, xi,yi,zi) ;
+							if (val > max_val)
+								max_val = val ;
+						}
+					}
+				}
+				MRIvox(mri_dst, x,y,z) = max_val ;
+			}
+		}
+	}
   if (same)
-    {
-      MRIcopy(mri_dst, mri_src) ;
-      MRIfree(&mri_dst) ;
-      mri_dst = mri_src ;
-    }
+	{
+		MRIcopy(mri_dst, mri_src) ;
+		MRIfree(&mri_dst) ;
+		mri_dst = mri_src ;
+	}
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -1594,6 +1596,55 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
     }
   return(mri_dst) ;
 }
+MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
+																int mask, float out_val)
+{
+	MATRIX *m_vox2vox ;
+	VECTOR *v1, *v2 ;
+	int    x, y, z, xd, yd, zd, f, mask_val, val ;
+
+	v1 = VectorAlloc(4, MATRIX_REAL) ;
+	v2 = VectorAlloc(4, MATRIX_REAL) ;
+	VECTOR_ELT(v1, 4) = 1.0 ;
+	VECTOR_ELT(v2, 4) = 1.0 ;
+	m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_mask) ;
+
+  if(!mri_dst) 
+		mri_dst = MRIclone(mri_src, NULL) ;
+	for (x = 0 ; x < mri_dst->width ; x++)
+	{
+		V3_X(v1) = x ;
+		for (y = 0 ; y < mri_dst->height ; y++)
+		{
+			V3_Y(v1) = y ;
+			for (z = 0 ; z < mri_dst->depth ; z++)
+			{
+				V3_Z(v1) = z ;
+				MatrixMultiply(m_vox2vox, v1, v2) ;
+				xd = nint(V3_X(v2)) ;  yd = nint(V3_Y(v2)) ;  zd = nint(V3_Z(v2)) ; 
+				if (xd < 0 || xd >= mri_mask->width ||
+						yd < 0 || yd >= mri_mask->height ||
+						zd < 0 || zd >= mri_mask->depth )
+					mask_val = mask+1 ; // allow it through
+				else
+					mask_val = nint(MRIgetVoxVal(mri_mask, xd, yd, zd,0)) ;
+				for(f = 0; f < mri_dst->nframes; f++)
+				{
+					val = nint(MRIgetVoxVal(mri_src, x, y, z, f)) ;
+          if(mask_val == mask) 
+						val = out_val ;
+					else 
+						val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+				}
+			}
+		}
+	}
+
+	VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+	return(mri_dst) ;
+}
+
 /*--------------------------------------------------------------------------
   MRImask() - applies mask to an mri data set. If mri_mask == mask at a voxel,
   then that voxel is set to out_val. Eg, if your mask is binary (0 and 1),
@@ -1605,6 +1656,11 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
   int     width, height, depth, nframes, x, y, z, f, mask_val;
   float   val ;
+
+	if (mri_src->width != mri_mask->width ||
+			mri_src->height != mri_mask->height ||
+			mri_src->depth != mri_mask->depth)
+		return(MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst,mask,out_val));
 
   MRIcheckVolDims(mri_src, mri_mask);
 
@@ -1623,12 +1679,12 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
   for (z = 0 ; z < depth ; z++){
     for (y = 0 ; y < height ; y++){
       for (x = 0 ; x < width ; x++){
-        if (x == Gx && y == Gy && z == Gz) DiagBreak() ;
-        mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
-        for(f = 0; f < nframes; f++){
+				if (x == Gx && y == Gy && z == Gz) DiagBreak() ;
+				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+				for(f = 0; f < nframes; f++){
           if(mask_val == mask) val = out_val ;
-          else val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-          MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+					else val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
         }
       }
     }
