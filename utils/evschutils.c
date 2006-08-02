@@ -11,6 +11,9 @@
 #include "proto.h"
 #include "utils.h"
 
+#ifdef const
+#undef const
+#endif
 static int EVScompare(const void *evsch1, const void *evsch2);
 
 /*-------------------------------------------------------------*/
