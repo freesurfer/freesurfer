@@ -1,22 +1,25 @@
-//
+ //
 // matfile.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/08/01 21:10:03 $
-// Revision       : $Revision: 1.21 $
+// Revision Author: $Author: nommert $
+// Revision Date  : $Date: 2006/08/02 15:32:14 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "matfile.h"
+
 #include "matrix.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
 #include "mghendian.h"
+#include "zlib.h"
+#include "matfile.h"
+
 
 static double **matAlloc(int rows, int ncols) ;
 static void   matFree(double **matrix, int nrows, int ncols) ;
@@ -27,10 +30,16 @@ static int    znzreadMatFile(char *unbuff,MATFILE *mf, double **real_matrix,
 static void   swapBytes(MATFILE *mf) ;
 static char *MatProgname = "matfile" ;
 
+int MatFileWrite(const char *fname, float *data, int rows, int cols, char *name);
+char    *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) ;
+char    *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) ;
+MLFC *ReadMatlabFileContents(const char *fname);
+int MLFCfree(MLFC **ppmlfc);
+
 #if (BYTE_ORDER==LITTLE_ENDIAN)
-#define DIFFERENT_ENDIAN(mf)   (mf->type != MATFILE_PC)
+#define DIFFERENT_ENDIAN(mf)   ((mf->version == 5) ? (mf->endian != MATFILE_PC5) : (mf->type != MATFILE_PC) )
 #elif (BYTE_ORDER==BIG_ENDIAN)
-#define DIFFERENT_ENDIAN(mf)   (mf->type == MATFILE_PC)
+#define DIFFERENT_ENDIAN(mf)   ((mf->version == 5) ? (mf->endian == MATFILE_PC5) : (mf->type == MATFILE_PC) )
 #else
 #error 'BYTE_ORDER not set'
 #endif
@@ -941,7 +950,7 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     if (DIFFERENT_ENDIAN(mf))
         dt = swapLong32(dt) ;
     dt = dt-14;
-    if (!dt) 
+   if (!dt) 
       { 
       *compressed = 0;
       fseek(fp,12,SEEK_CUR) ;
@@ -1090,10 +1099,7 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   short namlen_temp ;
   int isitok;
   char *unbuff;
-  /*
-  int i; 
-  double test ;*/
-  
+
   fseek(fp,126,SEEK_SET) ;
   endian = fgetc(fp) ;
   mf->endian = endian ;
@@ -1107,23 +1113,12 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
     }
   buff = (char *)calloc(size, sizeof(char)) ;
   fread(buff, sizeof(char), size, fp) ;
-  size_unbuff = 10*size;
+  size_unbuff = 10000*size;
   unbuff = (char *)calloc(size_unbuff, sizeof(char)) ;
   isitok = uncompress(unbuff, ptr_size_unbuff, buff, size) ;
   if (isitok!=0)
-    ErrorPrintf(DIAG_VERBOSE," RESULT : %ld \n" , isitok) ;
-  
-  /*
-  
-  for (i=0; i<14; i++){
-    memcpy(&tmp, &unbuff[4*i], sizeof(long));
-    ErrorPrintf(DIAG_VERBOSE,"i      %ld \n", tmp) ;
-  }
-  for (i=0; i<30; i++){
-    memcpy(&test, &unbuff[56+8*i], sizeof(double));
-    ErrorPrintf(DIAG_VERBOSE,"f      %f \n", test) ;
-  }*/
-  
+    ErrorPrintf(DIAG_VERBOSE," Error in uncompression: RESULT : %c \n" , endian) ;
+
   
   memcpy(&c, &unbuff[18], sizeof(char));
   mf->imagf = (long)(m & c) ;
