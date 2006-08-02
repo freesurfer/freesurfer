@@ -400,7 +400,7 @@ ImageFReadHeader(FILE *fp, char *fname)
   {
     MATFILE mf ;
     
-    MatReadHeader(fp, &mf) ;
+    MatReadHeader0(fp, &mf) ;
     init_header(I, "matlab", "seq", 1, "today", (int)mf.mrows, (int)mf.ncols,
                mf.imagf ? PFCOMPLEX : PFFLOAT, 1, "temp") ;
   }
