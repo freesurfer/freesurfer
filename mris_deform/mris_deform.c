@@ -15,17 +15,6 @@
 #include "mrisurf.h"
 #include "histo.h"
 
-typedef struct
-{
-	double     tx, ty, tz ;   // target coords 
-	int        l_in ;         // inside label
-	int        l_out ;        // outside label
-	HISTOGRAM *h_in ;         // inside label histogram
-	HISTOGRAM *h_out ;        // inside label histogram
-	double     mag ;          // directional derivative in normal dir initially
-} VERTEX_INFO ;
-
-
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos) ;
@@ -80,11 +69,11 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mris_deform.c,v 1.2 2006/06/20 00:21:49 fischl Exp $",
+     "$Id: mris_deform.c,v 1.3 2006/08/03 17:42:54 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.2 2006/06/20 00:21:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.3 2006/08/03 17:42:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
