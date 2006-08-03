@@ -199,6 +199,7 @@ MRISSUBDIRS=label_area \
 	mris_twoclass \
 	mris_w_to_curv \
 	mris_volume \
+	mris_volmask \
 	mris_thickness_diff \
 	mris_ms_surface_CNR \
 	mris_surface_stats
