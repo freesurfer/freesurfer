@@ -476,84 +476,84 @@ GCSAnormalizeCovariances(GCSA *gcsa)
 #define MIN_VAR 0.01
 
   for (vno = 0 ; vno < gcsa->mris_classifiers->nvertices ; vno++)
-    {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      gcsan = &gcsa->gc_nodes[vno] ;
-      for (n = 0 ; n < gcsan->nlabels ; n++)
-        {
-          gcs = &gcsan->gcs[n] ;
-          if (gcs->total_training >= 2)
-            MatrixScalarMul(gcs->m_cov, 
-                            1.0/(gcs->total_training-1.0f),gcs->m_cov);
+	{
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		gcsan = &gcsa->gc_nodes[vno] ;
+		for (n = 0 ; n < gcsan->nlabels ; n++)
+		{
+			gcs = &gcsan->gcs[n] ;
+			if (gcs->total_training >= 2)
+				MatrixScalarMul(gcs->m_cov, 
+												1.0/(gcs->total_training-1.0f),gcs->m_cov);
 
-          if (gcs->total_training < 5)    /* not that many 
-                                             samples - regularize */
-            {
-              for (i = 1 ; i <= gcsa->ninputs ; i++)
-                {
-                  mean = VECTOR_ELT(gcs->v_means, i) ;
-                  min_var = (.1*mean * .1*mean) ;
-                  if (gcs->total_training > 1)
-                    min_var *= (gcs->total_training-1) ;
-                  if (min_var < MIN_VAR)
-                    min_var = MIN_VAR ;
-                  if (*MATRIX_RELT(gcs->m_cov, i, i) < min_var)
-                    *MATRIX_RELT(gcs->m_cov, i, i) = min_var ;
-                }
-            }
-          else
-            {
-              for (i = 1 ; i <= gcsa->ninputs ; i++)
-                {
-                  mean = VECTOR_ELT(gcs->v_means, i) ;
-                  min_var = mean*.1 ;
-                  if (min_var < MIN_VAR)
-                    min_var = MIN_VAR ;
-                  if (FZERO(*MATRIX_RELT(gcs->m_cov, i, i)))
-                    *MATRIX_RELT(gcs->m_cov, i, i) = min_var ;
-                }
-            }
+			if (gcs->total_training < 5)    /* not that many 
+																				 samples - regularize */
+			{
+				for (i = 1 ; i <= gcsa->ninputs ; i++)
+				{
+					mean = VECTOR_ELT(gcs->v_means, i) ;
+					min_var = (.1*mean * .1*mean) ;
+					if (gcs->total_training > 1)
+						min_var *= (gcs->total_training-1) ;
+					if (min_var < MIN_VAR)
+						min_var = MIN_VAR ;
+					if (*MATRIX_RELT(gcs->m_cov, i, i) < min_var)
+						*MATRIX_RELT(gcs->m_cov, i, i) = min_var ;
+				}
+			}
+			else
+			{
+				for (i = 1 ; i <= gcsa->ninputs ; i++)
+				{
+					mean = VECTOR_ELT(gcs->v_means, i) ;
+					min_var = mean*.1 ;
+					if (min_var < MIN_VAR)
+						min_var = MIN_VAR ;
+					if (FZERO(*MATRIX_RELT(gcs->m_cov, i, i)))
+						*MATRIX_RELT(gcs->m_cov, i, i) = min_var ;
+				}
+			}
 
-          /* check to see if covariance is singular, 
-             and if so regularize it */
-          m_inv = MatrixInverse(gcs->m_cov, NULL) ;
-          cno = MatrixConditionNumber(gcs->m_cov) ;
-          if (m_inv == NULL || (cno > 100) || (cno <= 0))
-            {
-              m_inv = MatrixIdentity(gcsa->ninputs, NULL) ;
-              MatrixScalarMul(m_inv, 0.1, m_inv) ;
-              MatrixAdd(m_inv, gcs->m_cov, gcs->m_cov) ;
-            }
-          MatrixFree(&m_inv) ;
-          m_inv = MatrixIdentity(gcsa->ninputs, NULL) ;
-          if (!m_inv)
-            {
-              fprintf(stderr, "vno %d, n = %d, m_cov is singular!\n",
-                      vno, n) ;
-            }
-          else
-            MatrixFree(&m_inv) ;
-        }
-    }
+			/* check to see if covariance is singular, 
+				 and if so regularize it */
+			m_inv = MatrixInverse(gcs->m_cov, NULL) ;
+			cno = MatrixConditionNumber(gcs->m_cov) ;
+			if (m_inv == NULL || (cno > 100) || (cno <= 0))
+			{
+				m_inv = MatrixIdentity(gcsa->ninputs, NULL) ;
+				MatrixScalarMul(m_inv, 0.1, m_inv) ;
+				MatrixAdd(m_inv, gcs->m_cov, gcs->m_cov) ;
+			}
+			MatrixFree(&m_inv) ;
+			m_inv = MatrixIdentity(gcsa->ninputs, NULL) ;
+			if (!m_inv)
+			{
+				fprintf(stderr, "vno %d, n = %d, m_cov is singular!\n",
+								vno, n) ;
+			}
+			else
+				MatrixFree(&m_inv) ;
+		}
+	}
 
   /* now normalize priors */
   for (vno = 0 ; vno < gcsa->mris_priors->nvertices ; vno++)
-    {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      cpn = &gcsa->cp_nodes[vno] ;
-      for (n = 0 ; n < cpn->nlabels ; n++)
-        {
-          cp = &cpn->cps[n] ;
-          for (i = 0 ; i < GIBBS_SURFACE_NEIGHBORS ; i++)
-            {
-              for (j = 0 ; j < cp->nlabels[i] ; j++)
-                cp->label_priors[i][j] /= (float)cp->total_nbrs[i] ;
-            }
-          cp->prior /= (float)cpn->total_training ;
-        }
-    }
+	{
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		cpn = &gcsa->cp_nodes[vno] ;
+		for (n = 0 ; n < cpn->nlabels ; n++)
+		{
+			cp = &cpn->cps[n] ;
+			for (i = 0 ; i < GIBBS_SURFACE_NEIGHBORS ; i++)
+			{
+				for (j = 0 ; j < cp->nlabels[i] ; j++)
+					cp->label_priors[i][j] /= (float)cp->total_nbrs[i] ;
+			}
+			cp->prior /= (float)cpn->total_training ;
+		}
+	}
 
   fill_cpn_holes(gcsa) ;
   fill_gcsan_holes(gcsa) ;
@@ -856,49 +856,49 @@ GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
   double     v_inputs[100], p ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      load_inputs(v, v_inputs, gcsa->ninputs) ;
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		load_inputs(v, v_inputs, gcsa->ninputs) ;
     
-      v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
-      vno_prior = v_prior - gcsa->mris_priors->vertices ;
-      if (vno_prior == Gdiag_no)
-        DiagBreak() ;
-      v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior) ;
-      vno_classifier = v_classifier - gcsa->mris_classifiers->vertices ;
-      if (vno_classifier == Gdiag_no)
-        DiagBreak() ;
-      gcsan = &gcsa->gc_nodes[vno_classifier] ;
+		v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
+		vno_prior = v_prior - gcsa->mris_priors->vertices ;
+		if (vno_prior == Gdiag_no)
+			DiagBreak() ;
+		v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior) ;
+		vno_classifier = v_classifier - gcsa->mris_classifiers->vertices ;
+		if (vno_classifier == Gdiag_no)
+			DiagBreak() ;
+		gcsan = &gcsa->gc_nodes[vno_classifier] ;
 
-      cpn = &gcsa->cp_nodes[vno_prior] ;
-      label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p) ;
-      v->annotation = label ;
-      if (vno == Gdiag_no)
-        {
-          int  n ;
-          CP     *cp ;
-          GCS    *gcs ;
+		cpn = &gcsa->cp_nodes[vno_prior] ;
+		label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p) ;
+		v->annotation = label ;
+		if (vno == Gdiag_no)
+		{
+			int  n ;
+			CP     *cp ;
+			GCS    *gcs ;
 
-          if (gcsa->ninputs == 2)
-            printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",
-                   vno, v->val, v->val2, 
-                   annotation_to_name(label, NULL), 
-                   annotation_to_index(label), label) ;
-          for (n = 0 ; n < cpn->nlabels ; n++)
-            {
-              cp = &cpn->cps[n] ;
-              gcs = getGC(gcsan, cpn->labels[n], NULL) ;
-              printf("label %s (%d) [%d], means:\n", 
-                     annotation_to_name(cpn->labels[n], NULL), 
-                     n, cpn->labels[n]) ;
-              MatrixPrint(stdout, gcs->v_means) ;
-            }
-        }
-    }
+			if (gcsa->ninputs == 2)
+				printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",
+							 vno, v->val, v->val2, 
+							 annotation_to_name(label, NULL), 
+							 annotation_to_index(label), label) ;
+			for (n = 0 ; n < cpn->nlabels ; n++)
+			{
+				cp = &cpn->cps[n] ;
+				gcs = getGC(gcsan, cpn->labels[n], NULL) ;
+				printf("label %s (%d) [%d], p=%2.4f, means:\n", 
+							 annotation_to_name(cpn->labels[n], NULL), 
+							 n, cpn->labels[n], cpn->cps[n].prior) ;
+				MatrixPrint(stdout, gcs->v_means) ;
+			}
+		}
+	}
 
   return(NO_ERROR) ;
 }
