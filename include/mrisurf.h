@@ -174,6 +174,7 @@ typedef struct vertex_type_
   float std_error ;
   unsigned int flags ;
   void *vp; /* to store user's information */
+	int   linked ;         // is this vertex linked to some others?
 } vertex_type, VERTEX ;
 
 #define VERTEX_SULCAL  0x00000001L
@@ -267,8 +268,9 @@ typedef struct
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
-  int    group_avg_vtxarea_loaded; // avg vertex area for group at each vertex
-  int    triangle_links_removed ;  // for quad surfaces
+  int    group_avg_vtxarea_loaded; // average vertex area for group at each vertex
+	int    triangle_links_removed ;  // for quad surfaces
+	void   *user_parms ;             // for whatever the user wants to hang here 
 } MRI_SURFACE, MRIS ;
 
 
@@ -282,6 +284,7 @@ typedef struct
 /* VECTORIAL_REGISTRATION*/
 #define IP_USE_MULTIFRAMES              0x0080
 #define IP_NO_SULC                      0x0100
+#define IP_USE_INFLATED                 0x0200
 /* MRIScorrectTopology : topology preserving patch deformation */
 #define IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL 0x1000 /* apply topology 
                                                       preserving gradient */
@@ -464,7 +467,7 @@ typedef struct
   /*    int     corrfields[MNOFIV];/\* field code (see below) *\/ */
   /*    int     frames[MNOFIV];    /\* corresponding frame in mrisp *\/  */
   /*    int     types[MNOFIV];     /\* the field type 
-	(default,distance field...) *\/ */
+				(default,distance field...) *\/ */
   /*    float   l_corrs[MNOFIV];   /\* correlation coefficient *\/ */
   /*    float   l_pcorrs[MNOFIV];  /\* polar correlation coefficient *\/ */
   /*    float   sses[MNOFIV];      /\* corresponding sse *\/ */
@@ -638,9 +641,13 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 int MRISorigVertexToVoxel(MRI_SURFACE *, 
-			  VERTEX *v, 
+													VERTEX *v, 
                           MRI *mri,
                           Real *pxv, Real *pyv, Real *pzv) ;
+int MRISwhiteVertexToVoxel(MRI_SURFACE *, 
+													 VERTEX *v, 
+													 MRI *mri,
+													 Real *pxv, Real *pyv, Real *pzv) ;
 int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
 			       Real *pxv, Real *pyv, 
                                Real *pzv) ;
@@ -1159,6 +1166,7 @@ int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
+int MRISsetInflatedFileName(char *inflated_name) ;
 
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
@@ -1184,6 +1192,32 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
 int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
                   float sample_period, int *vertices) ;
 
+#define MAX_SURFACES 20
+#define MAX_LINKS 10
+typedef struct
+{
+	double     tx, ty, tz ;   // target coords 
+	int        l_in ;         // inside label
+	int        l_out ;        // outside label
+	HISTOGRAM *h_in ;         // inside label histogram
+	HISTOGRAM *h_out ;        // inside label histogram
+	double     mag ;          // directional derivative in normal dir initially
+	int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
+	int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
+	int        nlinks ;
+} VERTEX_INFO ;
+
+typedef struct
+{
+	MRI_SURFACE *mris[MAX_SURFACES] ;
+	int         nsurfaces ;
+	int         nvertices ;   // sum of individual surface nvertices
+	int         nfaces ;      // sum of individual surface faces
+	int         labels[MAX_SURFACES] ;  // interior label of the structure
+	MRI_SURFACE *mris_total ;           // single surface with all other surfs in it
+	VERTEX_INFO *vi ;                   // one/vertex in mris_total
+	int         vstart[MAX_SURFACES] ;  // starting index of this surface in mris_total vertices
+} MRI_SURFACE_ARRAY, MSA ;
 #if 1
 #include "mrishash.h"
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
@@ -1281,6 +1315,10 @@ typedef struct
   int   nvertices ;
   SMALL_VERTEX *vertices ;
 } SMALL_SURFACE ;
+
+
+int   MRISpositionSurfaceArray(MRI_SURFACE_ARRAY *msa, MRI *mri_brain, 
+															 MRI *mri_smooth, INTEGRATION_PARMS *parms);
 
 #define MRISSread  MRISreadVerticesOnly
 SMALL_SURFACE *MRISreadVerticesOnly(char *fname) ;
