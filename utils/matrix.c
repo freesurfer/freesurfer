@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.83 2006/03/30 01:33:59 nicks Exp $
+// $Id: matrix.c,v 1.84 2006/08/03 13:03:50 fischl Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,6 +29,7 @@
 #include "macros.h"
 #include "nr_wrapper.h"
 #include "evschutils.h"
+
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
@@ -640,6 +641,9 @@ MatrixReadTxt(char *fname, MATRIX *mat)
 }
 
 #include "matfile.h"
+#ifdef const
+#undef const
+#endif
 MATRIX *
 MatrixRead(char *fname)
 {
