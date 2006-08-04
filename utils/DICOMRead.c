@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.91 2006/07/12 22:00:14 greve Exp $
+   $Id: DICOMRead.c,v 1.92 2006/08/04 17:53:46 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4274,7 +4274,7 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
     } // slice
   } // 16 bit
 
-  for(nthfile = 0; nthfile < ndcmfiles; nthfile ++) free(dcminfo[ndcmfiles]);
+  for(nthfile = 0; nthfile < ndcmfiles; nthfile ++) free(dcminfo[nthfile]);
   free(dcminfo);
 
   return(mri);
