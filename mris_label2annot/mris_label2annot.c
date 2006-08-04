@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.7 2006/08/04 17:25:29 greve Exp $
+// $Id: mris_label2annot.c,v 1.8 2006/08/04 23:08:15 greve Exp $
 
 /*
   BEGINHELP
@@ -127,7 +127,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.7 2006/08/04 17:25:29 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.8 2006/08/04 23:08:15 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -476,12 +476,14 @@ static void check_options(void)
     printf("ERROR: reading %s\n",CTabFile);
     exit(1);
   }
+  printf("Number of ctab entries %d\n",ctab->nentries);
   if(nlabels == 0){
     printf("INFO: no labels specified, generating from ctab\n");
     nlabels = ctab->nentries;
     for(n=0; n<nlabels; n++){
       if(labeldir == NULL) labeldir = ".";
       sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
+      printf("%2d %s\n",n,tmpstr);
       LabelFiles[n] = strcpyalloc(tmpstr);
     }
   }
