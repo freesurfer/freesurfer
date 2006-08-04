@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.5 2006/07/31 21:57:30 greve Exp $
+// $Id: mris_label2annot.c,v 1.6 2006/08/04 17:24:25 greve Exp $
 
 /*
   BEGINHELP
@@ -30,6 +30,11 @@ table file. The next label will be mapped to index 2, etc. Verticies
 that are not mapped to a label are assigned index 0. If --no-unknown
 is specified, then the first label is mapped to index 0, etc, and
 unhit vertices are not mapped.
+
+--ldir labeldir
+
+When getting label file names from the ctab, find the actual label files
+in ldir. This has no effect on the files specified by --l.
 
 --a annotname
 
@@ -122,7 +127,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.5 2006/07/31 21:57:30 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.6 2006/08/04 17:24:25 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -141,6 +146,7 @@ COLOR_TABLE *ctab = NULL;
 MRI *nhits;
 char *NHitsFile=NULL;
 int MapUnhitToUnknown=1;
+char *labeldir=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -303,6 +309,11 @@ static int parse_commandline(int argc, char **argv)
       nlabels++;
       nargsused = 1;
     }
+    else if(!strcmp(option, "--ldir")){
+      if(nargc < 1) CMDargNErr(option,1);
+      labeldir = pargv[0];
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--a") || !strcmp(option, "--annot")){
       if(nargc < 1) CMDargNErr(option,1);
       AnnotName = pargv[0];
@@ -382,6 +393,11 @@ printf("table file. The next label will be mapped to index 2, etc. Verticies\n")
 printf("that are not mapped to a label are assigned index 0. If --no-unknown\n");
 printf("is specified, then the first label is mapped to index 0, etc, and\n");
 printf("unhit vertices are not mapped.\n");
+printf("\n");
+printf("--ldir labeldir\n");
+printf("\n");
+printf("When getting label file names from the ctab, find the actual label files\n");
+printf("in ldir. This has no effect on the files specified by --l.\n");
 printf("\n");
 printf("--a annotname\n");
 printf("\n");
@@ -463,7 +479,8 @@ static void check_options(void)
     printf("INFO: no labels specified, generating from ctab\n");
     nlabels = ctab->nentries;
     for(n=0; n<nlabels; n++){
-      sprintf(tmpstr,"./%s.%s.label",hemi,ctab->entries[n]->name);
+      if(labeldir == NULL) labeldir = ".";
+      sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
       LabelFiles[n] = strcpyalloc(tmpstr);
     }
   }
