@@ -1,12 +1,12 @@
 #!/bin/csh -f
 # mkbrainmask - frontend for FSL's BET (Brain Extraction Tool)
 #
-# $Id: mkbrainmask,v 1.6 2006/04/06 05:01:10 greve Exp $
+# $Id: mkbrainmask,v 1.7 2006/08/04 18:04:56 greve Exp $
 #
 
 # Should allow user to spec frame of input to use
 
-set VERSION = '$Id: mkbrainmask,v 1.6 2006/04/06 05:01:10 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.7 2006/08/04 18:04:56 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -244,6 +244,7 @@ usage_exit:
   echo "   -nocleanup   : don't delete temporary files"
   echo "   -seqinfo seqinfofile : use this if there is no .bhdr"
   echo "   -ndil n : number of dilations to expand the mask"
+  echo "   -nerode n : number of erosions to contract the mask"
   echo ""
   echo "Other Arguments (Optional)"
   echo "   -umask umask   : set unix file permission mask"
