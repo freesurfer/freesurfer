@@ -22,6 +22,10 @@ int DEBUG_X =62;
 int DEBUG_Y =254;
 int DEBUG_Z =92;
 
+static float smooth = 0 ;
+static int erode = 0 ;
+static int open = 0 ;
+static int binarize = 0 ;
 static void usage_exit(int code) ;
 static MRI *MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors);
 int MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std) ;
@@ -61,6 +65,31 @@ static int novar = 0 ;
 
 static char subjects_dir[STRLEN];
 
+static int
+check_mri(MRI *mri)
+{
+	int error = 0, x, y, z ;
+	float val ;
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri, x, y, z, 0) ;
+				if (fabs(val) > 1e5 )
+				{
+					error = 1 ;
+					DiagBreak() ;
+				}
+			}
+		}
+	}
+
+	return(error) ;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -73,7 +102,7 @@ main(int argc, char *argv[])
   MRI *mri_tmp=0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.23 2005/12/30 16:18:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.24 2006/08/04 19:32:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -164,7 +193,8 @@ main(int argc, char *argv[])
           MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
 					LTAfree(&lta); lta = NULL;
 #endif
-          fprintf(stderr, "transform application complete.\n") ;
+					if (DIAG_VERBOSE_ON)
+						fprintf(stderr, "transform application complete.\n") ;
         }
         if (which == BUILD_PRIORS)
         {
@@ -186,7 +216,8 @@ main(int argc, char *argv[])
                         Progname) ;
           }
         
-          fprintf(stderr, "updating mean and variance estimates...\n") ;
+					if (DIAG_VERBOSE_ON)
+						fprintf(stderr, "updating mean and variance estimates...\n") ;
           if (which == ON_STATS)
           {
             MRIaccumulateMaskedMeansAndVariances(mri_T1, mri_binary, mri_dof,
@@ -261,7 +292,28 @@ main(int argc, char *argv[])
       mri_T1 = MRIread(fname) ;
       if (!mri_T1)
         ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
+			check_mri(mri_T1) ;
 
+			if (binarize)
+        MRIbinarize(mri_T1, mri_T1, binarize, 0, 1) ;
+			if (erode)
+			{
+				int i ;
+				printf("eroding input %d times\n", erode) ;
+				for (i = 0 ; i < erode ; i++)
+					MRIerode(mri_T1, mri_T1) ;
+			}
+			if (open)
+			{
+				int i ;
+				printf("opening input %d times\n", open) ;
+				for (i = 0 ; i < open ; i++)
+					MRIerode(mri_T1, mri_T1) ;
+				for (i = 0 ; i < open ; i++)
+					MRIdilate(mri_T1, mri_T1) ;
+			}
+
+			check_mri(mri_T1) ;
       if(transform_fname){
         
         sprintf(fname, "%s/%s/mri/transforms/%s", 
@@ -276,6 +328,8 @@ main(int argc, char *argv[])
 					if (transform == NULL)
 						ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",Progname, fname) ;
 					mri_tmp = TransformApply(transform, mri_T1, NULL) ;
+					if (DIAG_VERBOSE_ON)
+						MRIwrite(mri_tmp, "t1.mgz") ;
 					TransformFree(&transform) ;
 				}
 #else
@@ -295,7 +349,8 @@ main(int argc, char *argv[])
 #endif
 				MRIfree(&mri_T1);
 				mri_T1 = mri_tmp ; // reassign pointers
-        fprintf(stderr, "transform application complete.\n") ;
+				if (DIAG_VERBOSE_ON)
+					fprintf(stderr, "transform application complete.\n") ;
       }
 
       if (!mri_mean)
@@ -308,17 +363,23 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
 				// if(transform_fname == NULL){
-				printf("Copying geometry\n");
+				if (DIAG_VERBOSE_ON)
+					printf("Copying geometry\n");
 				MRIcopyHeader(mri_T1,mri_mean);
 				MRIcopyHeader(mri_T1,mri_std);
 				// }
       }
 
+			check_mri(mri_mean) ;
       if(!stats_only){
-        fprintf(stderr, "updating mean and variance estimates...\n") ;
+				if (DIAG_VERBOSE_ON)
+					fprintf(stderr, "updating mean and variance estimates...\n") ;
         MRIaccumulateMeansAndVariances(mri_T1, mri_mean, mri_std) ;
       }
 
+			check_mri(mri_mean) ;
+			if (DIAG_VERBOSE_ON)
+				MRIwrite(mri_mean, "t2.mgz") ;
       MRIfree(&mri_T1) ;
       no_transform = 0;
     } /* end loop over subjects */
@@ -369,9 +430,21 @@ main(int argc, char *argv[])
     }
 
     MRIcomputeMeansAndStds(mri_mean, mri_std, dof) ;
+		check_mri(mri_mean) ;
+		check_mri(mri_std) ;
 
     mri_mean->dof = dof ;
       
+		if (smooth)
+		{
+			MRI *mri_kernel, *mri_smooth ;
+
+			printf("applying smoothing kernel\n") ;
+			mri_kernel = MRIgaussian1d(smooth, 100) ;
+			mri_smooth = MRIconvolveGaussian(mri_mean, NULL, mri_kernel) ;
+			MRIfree(&mri_kernel) ; MRIfree(&mri_mean) ;
+			mri_mean = mri_smooth ;
+		}
     fprintf(stderr, "\nwriting T1 means with %d dof to %s...\n", mri_mean->dof, 
             out_fname) ;
     MRIwrite(mri_mean, out_fname) ;
@@ -383,15 +456,15 @@ main(int argc, char *argv[])
     }
 		if (!novar)
 		{
-			// mri_std contains the variance here
+			// mri_std contains the variance here  (does it?? I don't think so -- BRF)
 			if (!var_fname)
 			{
-				fprintf(stderr, "\nwriting T1 variances to %s...\n", out_fname);
+				fprintf(stderr, "\nwriting T1 standard deviations to %s...\n", out_fname);
 				MRIappend(mri_std, out_fname) ;
 			}
 			else
 			{
-				fprintf(stderr, "\nwriting T1 variances to %s...\n", var_fname);
+				fprintf(stderr, "\nwriting T1 standard deviations to %s...\n", var_fname);
 				MRIwrite(mri_std, var_fname) ;
 			}
 		}
@@ -423,10 +496,34 @@ get_option(int argc, char *argv[])
   {
     stats_only = 1 ;
   }
+  else if (!stricmp(option, "smooth"))
+  {
+		smooth = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("smoothing output with Gaussian sigma=%2.2f\n", smooth) ;
+  }
   else if (!stricmp(option, "sdir"))
   {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "binarize"))
+  {
+		binarize = atoi(argv[2]) ;
+		printf("binarizing input volume with thresh=%d...\n", binarize) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "erode"))
+  {
+		erode = atoi(argv[2]) ;
+		printf("eroding input volume %d times...\n", erode) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "open"))
+  {
+		open = atoi(argv[2]) ;
+		printf("opening input volume %d times...\n", open) ;
+		nargs = 1 ;
   }
   else if (!stricmp(option, "novar"))
   {
@@ -442,6 +539,7 @@ get_option(int argc, char *argv[])
            xform_mean_fname, xform_covariance_fname) ;
     nargs = 2 ;
     break ;
+	case 'S':
   case 'V':
     var_fname = argv[2] ;
     nargs = 1 ;
@@ -483,6 +581,9 @@ static void
 usage_exit(int code)
 {
   printf("usage: %s <subject> <subject> ... <output volume>\n", Progname) ;
+	printf("options are:\n") ;
+	printf("-s <std>     - write out std deviations to file <fname>\n") ;
+	printf("-t <xform>   - apply <xform> before computing stats\n") ;
   exit(code) ;
 }
 
@@ -534,10 +635,14 @@ MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof)
       {
         if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
         sum = MRIFvox(mri_mean,x,y,z) ;
         sum_sq = MRIFvox(mri_std,x,y,z) / ndof ;
         mean = MRIFvox(mri_mean,x,y,z) = sum / ndof ; 
         var = sum_sq - mean*mean; 
+				if (fabs(var) > 1e10 || fabs(mean)  > 1e10)
+					DiagBreak() ;
         MRIFvox(mri_std,x,y,z) = sqrt(var) ;
       }
     }
