@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.6 2006/08/04 17:24:25 greve Exp $
+// $Id: mris_label2annot.c,v 1.7 2006/08/04 17:25:29 greve Exp $
 
 /*
   BEGINHELP
@@ -127,7 +127,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.6 2006/08/04 17:24:25 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.7 2006/08/04 17:25:29 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -351,6 +351,7 @@ static void print_usage(void)
   printf("   --ctab ctabfile : colortable (like FreeSurferColorLUT.txt)\n");
   printf("   --l label1 <--l label 2 ...> : label file(s)\n");
   printf("   --a annotname : output annotation file (hemi.annotname.annot)\n");
+  printf("   --ldir labeldir : when not using --l\n");
   printf("   --no-unknown : do not map unhit labels to index 0\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
