@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/19 17:21:42 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2006/08/05 15:01:52 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -64,9 +64,9 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *vl_target,
 																						INTEGRATION_PARMS *parms,
 																						TRANSFORM *transform) ;
 
-static double compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L) ;
+static double compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L, float intensity_scale) ;
 
-static double (*pf_likelihood)(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L) = compute_likelihood ;
+static double (*pf_likelihood)(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L, float intensity_scale) = compute_likelihood ;
 
 static double find_optimal_translation(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, 
 																			 MATRIX *m_L, float min_trans, 
@@ -378,7 +378,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 		MatrixMultiply(m_trans, m_tmp, m_vox_xform) ;
 		printf("after aligning centroids:\n") ;
 		MatrixPrint(stdout, m_vox_xform) ;
-		max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_vox_xform) ;
+		max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_vox_xform, 1.0) ;
 		printf("initial likelihood = %2.4f...\n", max_likelihood) ;
 		
 		MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ; VectorFree(&v_cl) ; VectorFree(&v_ch) ;
@@ -459,7 +459,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 
 /* compute intersection of transformed source with target divided by union */
 static double
-compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
+compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L, float intensity_scale)
 {
 	int     x, y, z, width, height, depth,
 		      hwidth, hheight, hdepth, i ;
@@ -509,7 +509,7 @@ compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 		else if (zd >= depth-1)
 			zd = depth-1 ;
 		MRIsampleVolume(vl_target->mri2, xd, yd, zd, &d2) ;
-		error = d1-d2 ;
+		error = d1*intensity_scale-d2 ;
 		sse += error*error ;
 	}
 
@@ -535,7 +535,7 @@ compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 		else if (zd >= hdepth-1)
 			zd = hdepth-1 ;
 		MRIsampleVolume(vl_source->mri2, xd, yd, zd, &d2) ;
-		error = d1-d2 ;
+		error = d1*intensity_scale-d2 ;
 		sse += error*error ;
 	}
 
@@ -561,7 +561,7 @@ find_optimal_translation(VOXEL_LIST *vl_target,  VOXEL_LIST *vl_source,
   m_L_tmp = NULL ;
   m_trans = MatrixIdentity(4, NULL) ;
   x_max = y_max = z_max = 0.0 ;
-  max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_L) ;
+  max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_L, 1.0) ;
 
   for (i = 0 ; i <= nreductions ; i++)
   {
@@ -591,7 +591,7 @@ find_optimal_translation(VOXEL_LIST *vl_target,  VOXEL_LIST *vl_source,
 					// get the transform
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
 					// calculate the likelihood
-          likelihood = (*pf_likelihood)(vl_target, vl_source, m_L_tmp) ;
+          likelihood = (*pf_likelihood)(vl_target, vl_source, m_L_tmp, 1.0) ;
           if (likelihood > max_likelihood)
           {
             max_likelihood = likelihood ;
@@ -662,7 +662,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   x_max_trans = y_max_trans = z_max_trans = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
-  max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_L) ;
+  max_likelihood = (*pf_likelihood)(vl_target, vl_source, m_L, 1.0) ;
   for (i = 0 ; i < nreductions ; i++)
   {
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
@@ -726,7 +726,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 											*MATRIX_RELT(m_trans, 3, 4) = z_trans ;
 
 											m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
-											likelihood = (*pf_likelihood)(vl_target, vl_source, m_L_tmp) ;
+											likelihood = (*pf_likelihood)(vl_target, vl_source, m_L_tmp, 1.0) ;
 		      
 											if (likelihood > max_likelihood)
 											{
@@ -814,7 +814,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   MatrixFree(&m_tmp2) ; MatrixFree(&m_trans) ; MatrixFree(&m_tmp3) ;
   return(max_likelihood) ;
 }
-#define NPARMS (4*4)
+#define NPARMS ((3*4)+1)
 #ifdef TOL
 #undef TOL
 #endif
@@ -825,18 +825,19 @@ static VOXEL_LIST *Gvl_target, *Gvl_source ;
 static int
 powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 {
-	float *p, **xi, fret, fstart;
+	float *p, **xi, fret, fstart, intensity_scale;
 	int   i, r, c, iter, diag ;
 
 	p = vector(1, NPARMS) ;
 	xi = matrix(1, NPARMS, 1, NPARMS) ;
-	for (i = r = 1 ; r <= 4 ; r++)
+	for (i = r = 1 ; r <= 3 ; r++)
 	{
 		for (c = 1 ; c <= 4 ; c++)
 		{
 			p[i++] = *MATRIX_RELT(mat, r, c) ;
 		}
 	}
+	p[NPARMS] = 1.0 ;  // intensity scaling
 
 	Gvl_target = vl_target ; Gvl_source = vl_source ;
 	for (r = 1 ; r <= NPARMS ; r++)
@@ -862,16 +863,17 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 
 		fstart = fret ;
 		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-		for (i = r = 1 ; r <= 4 ; r++)
+		for (i = r = 1 ; r <= 3 ; r++)
 		{
 			for (c = 1 ; c <= 4 ; c++)
 			{
 				*MATRIX_RELT(mat, r, c) = p[i++] ;
 			}
 		}
+		intensity_scale = p[NPARMS] ;
 		*MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
 		*MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
-		printf("%3.3d: best alignment at after powell: %2.3f (%d steps)\n", parms.start_t,fret, iter) ;
+		printf("%3.3d: best alignment at after powell: %2.3f (%d steps, iscale=%2.3f)\n", parms.start_t,fret, iter, intensity_scale) ;
 		write_snapshot(vl_target->mri, vl_source->mri, mat, &parms, parms.start_t++,1,NULL);
 	} while (fret < fstart) ;
 
@@ -884,21 +886,22 @@ static float
 compute_powell_sse(float *p)
 {
 	static MATRIX *mat = NULL ;
-	float  error ;
+	float  error, intensity_scale ;
 	int    i, r, c ;
 
 	if (mat == NULL)
 		mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
-	for (i = r = 1 ; r <= 4 ; r++)
+	for (i = r = 1 ; r <= 3 ; r++)
 	{
 		for (c = 1 ; c <= 4 ; c++)
 		{
 			*MATRIX_RELT(mat, r, c) = p[i++] ;
 		}
 	}
+	intensity_scale = p[NPARMS] ;
 	*MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
 	*MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
-	error = -(*pf_likelihood)(Gvl_target, Gvl_source, mat) ;
+	error = -(*pf_likelihood)(Gvl_target, Gvl_source, mat, intensity_scale) ;
 	return(error) ;
 }
 
