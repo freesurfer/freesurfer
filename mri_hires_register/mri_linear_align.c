@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/05 15:01:52 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2006/08/06 20:55:50 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -48,7 +48,7 @@ static float z_vox = 0.0 ;
 static int apply_transform = 1 ;
 
 static int write_snapshot(MRI *mri_target, MRI *mri_source, 
-													MATRIX *m_vox_xform, INTEGRATION_PARMS *parms, 
+													MATRIX *m_vox_xform, MORPH_PARMS *parms, 
 													int fno, int conform, char *fname) ;
 
 static double MAX_TRANS = 30 ;
@@ -61,7 +61,7 @@ static int get_option(int argc, char *argv[]) ;
 
 static TRANSFORM *compute_optimal_transform(VOXEL_LIST *vl_target, 
 																						VOXEL_LIST *vl_source, 
-																						INTEGRATION_PARMS *parms,
+																						MORPH_PARMS *parms,
 																						TRANSFORM *transform) ;
 
 static double compute_likelihood(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L, float intensity_scale) ;
@@ -80,7 +80,8 @@ static double find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_so
 																				float min_trans, float max_trans,
 																				float angle_steps, float scale_steps, 
 																				float trans_steps,
-																				int nreductions);
+																				int nreductions,
+																				int rigid);
 char *Progname ;
 
 static int skip = 2 ;
@@ -88,7 +89,7 @@ static double distance = 1.0 ;
 
 
 
-static INTEGRATION_PARMS parms ;
+static MORPH_PARMS parms ;
 static TRANSFORM  *transform = NULL ;
 
 int
@@ -178,7 +179,12 @@ main(int argc, char *argv[])
 		VLSTfree(&vl_source) ;
 		vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, skip/4, 0) ;
 		vl_source->mri2 = mri_source ;
-		powell_minimize(vl_target, vl_source, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+		if (parms.rigid == 0)
+		{
+			powell_minimize(vl_target, vl_source, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+			if (parms.rigid)
+				MatrixOrthonormalizeTransform(((LTA *)(transform->xform))->xforms[0].m_L) ;
+		}
 		VLSTfree(&vl_source) ;
 		if (apply_transform)
 		{
@@ -305,6 +311,10 @@ get_option(int argc, char *argv[])
 		nargs = 1 ;
 		printf("setting write iterations = %d\n", parms.write_iterations) ;
 		break ;
+	case 'R':
+		parms.rigid = 1 ;
+		printf("constraining transform to be rigid...\n") ;
+		break ;
   case '?':
   case 'U':
     usage_exit(1);
@@ -327,7 +337,7 @@ usage_exit(int ecode)
 
 static TRANSFORM *
 compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, 
-													INTEGRATION_PARMS *parms, TRANSFORM *transform)
+													MORPH_PARMS *parms, TRANSFORM *transform)
 {
 	MATRIX    *m_vox_xform, *m_origin, *m_inv_origin, *m_source_vox2ras, 
 		        *m_target_ras2vox, *m_trans, *m_tmp ;
@@ -403,7 +413,8 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 	parms->start_t++ ;
 #define MIN_SCALES 3
   /////////////////////////// loop here ////////////////////////////////////////////
-  niter = 0 ; nscales = 1 ; scale = 1.0 ; good_step = 0 ; done = 0 ;
+  niter = 0 ; nscales = 1 ; scale = parms->rigid ? .25: 1.0 ; 
+	good_step = 0 ; done = 0 ;
   do
   {
     old_max_likelihood = max_likelihood ;
@@ -412,14 +423,14 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 					 niter+1, nscales);
     printf("****************************************\n");
     max_likelihood = find_optimal_linear_xform(vl_target, vl_source, 
-																						m_vox_xform, m_origin,
-																						-MAX_ANGLE*scale,
-																						MAX_ANGLE*scale,
-																						1-MAX_SCALE*scale, 
-																						1+MAX_SCALE*scale, 
-																						-scale*MAX_TRANS, 
-																						scale*MAX_TRANS,
-																						3, 3, 3, 2);
+																							 m_vox_xform, m_origin,
+																							 -MAX_ANGLE*scale,
+																							 MAX_ANGLE*scale,
+																							 1-MAX_SCALE*scale, 
+																							 1+MAX_SCALE*scale, 
+																							 -scale*MAX_TRANS, 
+																							 scale*MAX_TRANS,
+																							 3, 3, 3, 2, parms->rigid);
     
     if (parms->write_iterations != 0)
     {
@@ -639,7 +650,8 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 													float min_trans, float max_trans,
 													float angle_steps, float scale_steps, 
 													float trans_steps,
-													int nreductions)
+													int nreductions,
+													int rigid)
 {
   MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
            *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL ;
@@ -666,7 +678,13 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   for (i = 0 ; i < nreductions ; i++)
   {
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
-    delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
+		if (rigid)
+		{
+			max_scale = min_scale = 1 ;
+			delta_scale = max_scale ;
+		}
+		else
+			delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
     delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
     if (Gdiag & DIAG_SHOW)
     {
@@ -907,7 +925,7 @@ compute_powell_sse(float *p)
 
 static int
 write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform, 
-							 INTEGRATION_PARMS *parms, int fno, int conform, char *in_fname)
+							 MORPH_PARMS *parms, int fno, int conform, char *in_fname)
 {
 	MRI *mri_aligned ;
 	char fname[STRLEN] ;
