@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/07/21 15:26:32 $
-// Revision       : $Revision: 1.56 $
+// Revision Date  : $Date: 2006/08/06 20:55:19 $
+// Revision       : $Revision: 1.57 $
 */
 
 /*-----------------------------------------------------
@@ -4380,6 +4380,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
   char  fname[STRLEN], *prefix ;
   IMAGE *I ;
   float scale ;
+	int   slice_direction ;
 
   switch (view)
   {
@@ -4391,13 +4392,28 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
 
   if (slice < 0)    /* pick middle slice */
   {
-    switch (view)
-    {
-    default:
-    case MRI_CORONAL:    slice = mri->depth/2; break ;
-    case MRI_SAGITTAL:   slice = 6*mri->width/10 ; break ;
-    case MRI_HORIZONTAL: slice = mri->height/2 ; break ;
-    }
+		slice_direction = getSliceDirection(mri);
+		switch (slice_direction)
+		{
+		default:
+		case MRI_CORONAL:
+			switch (view)
+			{
+			default:
+			case MRI_CORONAL:    slice = mri->depth/2; break ;
+			case MRI_SAGITTAL:   slice = 6*mri->width/10 ; break ;
+			case MRI_HORIZONTAL: slice = mri->height/2 ; break ;
+			}
+			break ;
+		case MRI_SAGITTAL:
+			switch (view)
+			{
+			default:
+			case MRI_CORONAL:    slice = mri->width/2; break ;  //??
+			case MRI_SAGITTAL:   slice = 6*mri->depth/10 ; break ;
+			case MRI_HORIZONTAL: slice = mri->height/2 ; break ; //??
+			}
+		}
   }
   I = MRItoImageView(mri, NULL, slice, view, 0) ;
   if (!I)
