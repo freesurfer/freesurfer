@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/31 18:56:21 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2006/08/06 20:56:08 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -151,8 +151,17 @@ main(int argc, char *argv[])
 	{
 		new_transform = 1 ;
 		lta = ((LTA *)(transform->xform)) ;
-		m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
-		MatrixFree(&lta->xforms[0].m_L) ;
+		if (lta->type != LINEAR_VOX_TO_VOX)
+		{
+			printf("converting ras xform to voxel xform\n") ;
+			m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
+			MatrixFree(&lta->xforms[0].m_L) ;
+		}
+		else
+		{
+			printf("using voxel xform\n") ;
+			m_L = lta->xforms[0].m_L ;
+		}
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1, "linear_init");
 
@@ -204,7 +213,8 @@ main(int argc, char *argv[])
 	mp.diag_volume = 0 ;
 	
 	mp.mri_diag = mri_target ;
-	mp.diag_morph_from_atlas = 1 ;
+	mp.diag_morph_from_atlas = 0 ;
+	mp.diag_write_snapshots = 1 ;
 	mp.diag_volume = GCAM_MEANS ;
 
 	if (mp.write_iterations != 0)
@@ -224,6 +234,7 @@ main(int argc, char *argv[])
 			mri_gca = MRIclone(mri_source, NULL) ;
 			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
 			printf("writing target volume to %s...\n", fname) ;
+			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
 			MRIwrite(mri_gca, fname) ;
 			MRIfree(&mri_gca) ;
 		}
@@ -467,9 +478,11 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 		printf("source->target vox->vox transform:\n") ;
 		MatrixPrint(stdout, m_vox_xform) ;
 	}
-	if (conform)
+	if (conform || 1)
 	{
-		mri_aligned = MRIclone(mri_target, NULL) ;
+		mri_aligned = MRIalloc(mri_target->width, mri_target->height,
+													 mri_target->depth,mri_source->type);
+		MRIcopyHeader(mri_target, mri_aligned) ;
 		MRIlinearTransformInterp(mri_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
 	}
 	else
