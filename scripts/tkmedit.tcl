@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.117 2006/07/26 20:44:51 kteich Exp $
+# $Id: tkmedit.tcl,v 1.118 2006/08/07 19:56:42 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4688,7 +4688,7 @@ proc CreateToolBar { ifwToolBar } {
 
     frame $gfwaToolBar(nav) -border 2 -relief raised
 
-    if { 0 } {
+    if { 1 } {
 	tkm_MakeToolbar $fwOrientation \
 	    1 \
 	    gOrientation \
