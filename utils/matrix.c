@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.84 2006/08/03 13:03:50 fischl Exp $
+// $Id: matrix.c,v 1.85 2006/08/07 13:51:06 fischl Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3368,3 +3368,66 @@ MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
 	return(dist) ;
 }
 
+/* for 3d vector macros */
+#include "tritri.h"
+int
+MatrixOrthonormalizeTransform(MATRIX *m_L)
+{
+  double  dot, c1[3], c2[3], c3[3], len ;
+  int     i ;
+
+  for (i = 0 ; i < 3 ; i++)
+  {
+    c1[i] = *MATRIX_RELT(m_L, i+1, 1) ;
+    c2[i] = *MATRIX_RELT(m_L, i+1, 2) ;
+    c3[i] = *MATRIX_RELT(m_L, i+1, 3) ;
+  }
+
+  /* make 1st column vector unit length */
+  len = VLEN(c1) ;
+  if (FZERO(len))
+    len = 1.0f ;
+  SCALAR_MUL(c1, 1.0/len, c1) ;
+
+  /* project out component of 2nd vector in direction of 1st column vector */
+  dot = DOT(c1, c2) ;  
+  for (i = 0 ; i < 3 ; i++)
+    c2[i] -= dot * c1[i] ;
+
+  /* make 2nd column vector unit length */
+  len = VLEN(c2) ;
+  if (FZERO(len))
+    len = 1.0f ;
+  SCALAR_MUL(c2, 1.0/len, c2) ;
+
+  /* project out component of 3rd vector in direction of 1st column vector */
+  dot = DOT(c1, c3) ;  
+  for (i = 0 ; i < 3 ; i++)
+    c3[i] -= dot * c1[i] ;
+
+  /* project out component of 3rd vector in direction of 2nd column vector */
+  dot = DOT(c2, c3) ;  
+  for (i = 0 ; i < 3 ; i++)
+    c3[i] -= dot * c2[i] ;
+
+
+  /* make 3rd column vector unit length */
+  len = VLEN(c3) ;
+  if (FZERO(len))
+    len = 1.0f ;
+  SCALAR_MUL(c3, 1.0/len, c3) ;
+
+  for (i = 0 ; i < 3 ; i++)
+  {
+    *MATRIX_RELT(m_L, i+1, 1) = c1[i] ;
+    *MATRIX_RELT(m_L, i+1, 2) = c2[i] ;
+    *MATRIX_RELT(m_L, i+1, 3) = c3[i] ;
+  }
+#if 0
+  /* remove translation component */
+  for (i = 1 ; i <= 3 ; i++)
+    *MATRIX_RELT(m_L, i, 4) = 0 ;
+#endif
+  
+  return(NO_ERROR) ;
+}
