@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/08/07 14:53:17 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/08/07 16:28:04 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -188,6 +188,7 @@ main(int argc, char *argv[])
 							Progname, source_fname) ;
 
 	
+	mri_orig_source = MRIcopy(mri_source, NULL) ;
 	if (wm == 1)   // only doing white matter
 	{
 		MRI *mri_tmp ;
@@ -270,7 +271,6 @@ main(int argc, char *argv[])
 		MRIdilate(mri_target, mri_target) ;
 	for (i = 0 ; i < ncloses ; i++)
 		MRIerode(mri_target, mri_target) ;
-	mri_orig_source = MRIcopy(mri_source, NULL) ;
 	MRIbinarize(mri_target, mri_target, 1, 0, binary_label) ;
 	MRIbinarize(mri_source, mri_source, 1, 0, binary_label) ;
 	MRIwrite(mri_target, "target_labels.mgz") ;
@@ -326,7 +326,7 @@ main(int argc, char *argv[])
 		VLSTfree(&vl_source) ;
 		vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip/4, 0) ;
 		vl_source->mri2 = mri_dist_src ;
-		if (nopowell == 0)
+		if ((nopowell == 0) && parms.rigid == 0)
 		{
 			powell_minimize(vl_target, vl_source, ((LTA *)(transform->xform))->xforms[0].m_L, mri_orig_source, parms.rigid) ;
 			if (parms.rigid)
@@ -1430,7 +1430,9 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 	}
 	if (conform || 1)
 	{
-		mri_aligned = MRIclone(mri_target, NULL) ;
+		mri_aligned = MRIalloc(mri_target->width, mri_target->height,
+													 mri_target->depth,mri_source->type);
+		MRIcopyHeader(mri_target, mri_aligned) ;
 		MRIlinearTransformInterp(mri_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
 	}
 	else
