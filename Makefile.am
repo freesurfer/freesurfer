@@ -19,6 +19,7 @@ MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
+	mri_jacobian \
 	mri_add_xform_to_header \
 	mri_bias \
 	mri_annotation2label \
