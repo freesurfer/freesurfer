@@ -47,7 +47,7 @@ extern "C" {
 #include <string.h>
 #include <stdarg.h>
 
-#include "config.h"
+	//#include "config.h"
 
 #ifdef HAVE_ZLIB 
 #include "zlib.h"
