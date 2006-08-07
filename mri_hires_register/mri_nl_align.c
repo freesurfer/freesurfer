@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/06 20:56:08 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2006/08/07 02:25:16 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -130,6 +130,7 @@ main(int argc, char *argv[])
 	if (!mri_target)
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
+	MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 	MRIboundingBox(mri_source, 0, &box) ;
 	pad = (int)ceil(PADVOX * 
 									MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
@@ -143,7 +144,6 @@ main(int argc, char *argv[])
 	MRIfree(&mri_source) ;
 	mri_source = mri_tmp ;
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
-	MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 
 	mp.max_grad = 0.3*mri_source->xsize ;
 	
@@ -226,16 +226,18 @@ main(int argc, char *argv[])
 		if (mp.diag_morph_from_atlas)
 		{
 			printf("writing target volume to %s...\n", fname) ;
-			MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
 			MRIwrite(mri_target, fname) ;
+			sprintf(fname, "%s_target", mp.base_name) ;
+			MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
 		}
 		else
 		{
 			mri_gca = MRIclone(mri_source, NULL) ;
 			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
 			printf("writing target volume to %s...\n", fname) ;
-			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
 			MRIwrite(mri_gca, fname) ;
+			sprintf(fname, "%s_target", mp.base_name) ;
+			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
 			MRIfree(&mri_gca) ;
 		}
 	}
