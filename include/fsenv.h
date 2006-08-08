@@ -1,4 +1,4 @@
-// $Id: fsenv.h,v 1.1 2006/08/08 20:04:17 greve Exp $
+// $Id: fsenv.h,v 1.2 2006/08/08 20:12:41 greve Exp $
 // Load, set freesurfer environment variables
 
 #ifndef FSENV_INC
@@ -8,7 +8,6 @@
 #include "colortab.h"
 
 typedef struct {
-
   char *FREESURFER_HOME;
   char *SUBJECTS_DIR;
   char *user;      // current user
@@ -24,5 +23,6 @@ const char *FSENVsrcVersion(void);
 FSENV *FSENVgetenv(void);
 int FSENVprintenv(FILE *fp,FSENV *env);
 int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR);
+int FSENVfree(FSENV **ppenv);
 
 #endif //#ifndef FSENV_INC

@@ -1,4 +1,4 @@
-// $Id: fsenv.c,v 1.1 2006/08/08 20:04:17 greve Exp $
+// $Id: fsenv.c,v 1.2 2006/08/08 20:12:41 greve Exp $
 
 
 #include <stdlib.h>
@@ -17,7 +17,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *FSENVsrcVersion(void) { 
-  return("$Id: fsenv.c,v 1.1 2006/08/08 20:04:17 greve Exp $");
+  return("$Id: fsenv.c,v 1.2 2006/08/08 20:12:41 greve Exp $");
 }
 
 FSENV *FSENVgetenv(void)
@@ -43,14 +43,17 @@ FSENV *FSENVgetenv(void)
   fsenv->SUBJECTS_DIR = strcpyalloc(pc);
   fsenv->user = strcpyalloc(VERuser());
 
+  // Current working directory
   getcwd(tmpstr,2000);
   fsenv->cwd = strcpyalloc(tmpstr);
 
+  // Kernel information
   uname(&uts);
   fsenv->sysname  = strcpyalloc(uts.sysname);
   fsenv->machine  = strcpyalloc(uts.machine);
   fsenv->hostname = strcpyalloc(uts.nodename);
 
+  // Load the default color table
   sprintf(tmpstr,"%s/FreeSurferColorLUT.txt",fsenv->FREESURFER_HOME);
   fsenv->ctab = CTABreadASCII(tmpstr);
   if(fsenv->ctab == NULL){
@@ -58,10 +61,29 @@ FSENV *FSENVgetenv(void)
     return(NULL);
   }
 
+  // Get time and date at the time this function was called
   fsenv->date = VERcurTimeStamp();
 
   return(fsenv);
 }
+/*-----------------------------------------------*/
+int FSENVfree(FSENV **ppenv)
+{
+  FSENV *env = *ppenv;
+  free(env->FREESURFER_HOME);
+  free(env->SUBJECTS_DIR);
+  free(env->user);
+  free(env->date);
+  free(env->cwd);
+  free(env->hostname);
+  free(env->sysname);
+  free(env->machine);
+  CTABfree(&env->ctab);
+  free(*ppenv);
+  *ppenv = NULL;
+  return(0);
+}
+
 
 /*-----------------------------------------------*/
 int FSENVprintenv(FILE *fp,FSENV *env)
