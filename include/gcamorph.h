@@ -218,6 +218,7 @@ int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
 GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSFORM *transform);
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
+MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
 
 #define MAX_LTT_LABELS 1000
 typedef struct
@@ -260,5 +261,9 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 #define GCAM_X         13
 #define GCAM_Y         14
 #define GCAM_Z         15
+#define GCAM_JACOBIAN  16
+#define GCAM_AREA      17
+#define GCAM_ORIG_AREA 18
+
 
 #endif
