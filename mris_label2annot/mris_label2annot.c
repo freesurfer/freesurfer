@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.8 2006/08/04 23:08:15 greve Exp $
+// $Id: mris_label2annot.c,v 1.9 2006/08/08 17:26:31 greve Exp $
 
 /*
   BEGINHELP
@@ -127,7 +127,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.8 2006/08/04 23:08:15 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.9 2006/08/08 17:26:31 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -147,6 +147,7 @@ MRI *nhits;
 char *NHitsFile=NULL;
 int MapUnhitToUnknown=1;
 char *labeldir=NULL;
+int labeldirdefault=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -170,12 +171,6 @@ int main(int argc, char *argv[])
   check_options();
   if(checkoptsonly) return(0);
   dump_options(stdout);
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
 
   // Make sure subject exists
   sprintf(tmpstr,"%s/%s",SUBJECTS_DIR,subject);
@@ -279,6 +274,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcmp(option, "--no-unknown")) MapUnhitToUnknown = 0;
+    else if(!strcmp(option, "--ldir-default")) labeldirdefault = 1;
 
     else if(!strcmp(option, "--s") || !strcmp(option, "--subject")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -352,6 +348,7 @@ static void print_usage(void)
   printf("   --l label1 <--l label 2 ...> : label file(s)\n");
   printf("   --a annotname : output annotation file (hemi.annotname.annot)\n");
   printf("   --ldir labeldir : when not using --l\n");
+  printf("   --ldir-default : use subject/labels as labeldir\n");
   printf("   --no-unknown : do not map unhit labels to index 0\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
@@ -469,6 +466,12 @@ static void check_options(void)
     exit(1);
   }
 
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR == NULL){
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
+  }
+
   // Read the color table
   printf("Reading ctab %s\n",CTabFile);
   ctab = CTABreadASCII(CTabFile);
@@ -479,9 +482,13 @@ static void check_options(void)
   printf("Number of ctab entries %d\n",ctab->nentries);
   if(nlabels == 0){
     printf("INFO: no labels specified, generating from ctab\n");
+    if(labeldir == NULL) labeldir = ".";
+    if(labeldirdefault) {
+      sprintf(tmpstr,"%s/%s/label",SUBJECTS_DIR,subject);
+      labeldir = strcpyalloc(tmpstr);
+    }
     nlabels = ctab->nentries;
     for(n=0; n<nlabels; n++){
-      if(labeldir == NULL) labeldir = ".";
       sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
       printf("%2d %s\n",n,tmpstr);
       LabelFiles[n] = strcpyalloc(tmpstr);
