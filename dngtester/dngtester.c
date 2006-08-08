@@ -24,209 +24,193 @@
 #include "gca.h"
 #include "gcamorph.h"
 #include "DICOMRead.h"
-#include "cma.h"
+#include "fsenv.h"
+#include "fsgdf.h"
 
-/*
-  mri_surfmask 
-    --m mask.mgz --lh lh.mask.mgz --rh rh.mask.mgz --d dist.mgz
-    --s subject 
-    --t template.mgz  --r register.dat
-    --thresh distthresh
+/* This should be in ctype.h, but the compiler complains */
+#ifndef Darwin
+#ifndef isblank
+int isblank (int c);
+#endif
+#endif
 
-  tkregister2 --reg register.dat --t template.mgz
-
-*/
-
-void convert_surf_to_vox(MRI_SURFACE* mris, MRI* vol);
+int striplessthan(char *item);
+char *gdfGetNthItem(char *line, int nth);
+int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p);
 
 char *Progname = "dngtester";
-char *subject=NULL, *hemi=NULL, *surfname=NULL, *outsurfname=NULL;
-char *SUBJECTS_DIR = NULL;
-char tmpstr[2000];
-
-int err,nl,n,c,r,s;
-char *fsh;
-MRI *TempVol=NULL,*TempVol2=NULL;
-char *tempvolpath;
-MRIS *lhwhite, *rhwhite;
-MRIS *lhpial, *rhpial;
-VERTEX vtx;
-MRI_REGION *region;
-int isleft,isright;
-double dw,dp;
-MRI *lhwhitedist,*lhpialdist,*rhwhitedist,*rhpialdist;
-MRI *MaskVol,*LMaskVol,*RMaskVol;
 
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
-  tempvolpath = argv[1];
-  subject = argv[2];
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-
-  /* Read in the template volume header */
-  // Use orig.mgz if not specified
-  TempVol = MRIreadHeader(tempvolpath,MRI_VOLUME_TYPE_UNKNOWN);
-  if(TempVol == NULL){
-    printf("ERROR: reading %s header\n",tempvolpath);
-    exit(1);
-  }
-  /* ------ Load subject's lh white surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-  printf("\nReading lh white surface \n %s\n",tmpstr);
-  lhwhite = MRISread(tmpstr);
-  if(lhwhite == NULL){
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  printf("\n");
-  /* ------ Load subject's lh thickness ------ */
-  sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
-  printf("Reading thickness %s\n",tmpstr);
-  err = MRISreadCurvatureFile(lhwhite, tmpstr);
-  if(err) exit(1);
-  /* ------ Load subject's lh pial surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
-  printf("\nReading lh pial surface \n %s\n",tmpstr);
-  lhpial = MRISread(tmpstr);
-  if(lhpial == NULL){
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  printf("\n");
-  /* Check that they have the same number of vertices */
-  if(lhwhite->nvertices != lhpial->nvertices){
-    printf("ERROR: lh white and pial have a different number of vertices (%d,%d)\n",
-	   lhwhite->nvertices,lhpial->nvertices);
-    exit(1);
-  }
-
-  /* ------ Load subject's rh white surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-  printf("\nReading rh white surface \n %s\n",tmpstr);
-  rhwhite = MRISread(tmpstr);
-  if(rhwhite == NULL){
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  printf("\n");
-  /* ------ Load subject's rh thickness ------ */
-  sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-  printf("Reading thickness %s\n",tmpstr);
-  err = MRISreadCurvatureFile(rhwhite, tmpstr);
-  if(err) exit(1);
-  /* ------ Load subject's rh pial surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
-  printf("\nReading rh pial surface \n %s\n",tmpstr);
-  rhpial = MRISread(tmpstr);
-  if(rhpial == NULL){
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  printf("\n");
-  /* Check that they have the same number of vertices */
-  if(rhwhite->nvertices != rhpial->nvertices){
-    printf("ERROR: rh white and pial have a different number of vertices (%d,%d)\n",
-	   rhwhite->nvertices,rhpial->nvertices);
-    exit(1);
-  }
-
-  convert_surf_to_vox(lhpial, TempVol);
-  convert_surf_to_vox(lhwhite,TempVol);
-  MRIScomputeMetricProperties(lhpial);
-  MRIScomputeMetricProperties(lhwhite);
-  MRISsaveVertexPositions(lhwhite,ORIGINAL_VERTICES);
-  MRISsaveVertexPositions(lhpial,ORIGINAL_VERTICES);
-
-  convert_surf_to_vox(rhpial, TempVol);
-  convert_surf_to_vox(rhwhite,TempVol);
-  MRIScomputeMetricProperties(rhpial);
-  MRIScomputeMetricProperties(rhwhite);
-  MRISsaveVertexPositions(rhwhite,ORIGINAL_VERTICES);
-  MRISsaveVertexPositions(rhpial,ORIGINAL_VERTICES);
-
-  region = REGIONalloc();
-  region->x = 0;
-  region->y = 0;
-  region->z = 0;
-  region->dx = TempVol->width;
-  region->dy = TempVol->height;
-  region->dz = TempVol->depth;
-
-  lhwhitedist = MRISbinarizeVolume(lhwhite,region,1.0,5.0);
-  lhpialdist  = MRISbinarizeVolume(lhpial,region,1.0,5.0);
-  rhwhitedist = MRISbinarizeVolume(rhwhite,region,1.0,5.0);
-  rhpialdist  = MRISbinarizeVolume(rhpial,region,1.0,5.0);
-  MRIwrite(lhwhitedist,"lh.dwhite.mgh");
-  MRIwrite(lhpialdist,"lh.dpial.mgh");
-  MRIwrite(rhwhitedist,"rh.dwhite.mgh");
-  MRIwrite(rhpialdist,"rh.dpial.mgh");
-
-  MaskVol = MRIallocSequence(TempVol->width,TempVol->height,TempVol->depth,MRI_INT,1);
-  MRIcopyHeader(TempVol,MaskVol);
-  LMaskVol = MRIallocSequence(TempVol->width,TempVol->height,TempVol->depth,MRI_INT,1);
-  MRIcopyHeader(TempVol,LMaskVol);
-  RMaskVol = MRIallocSequence(TempVol->width,TempVol->height,TempVol->depth,MRI_INT,1);
-  MRIcopyHeader(TempVol,RMaskVol);
-
-  for(c=0; c < TempVol->width; ++c){
-    printf("%3d ",c); fflush(stdout);
-    if(c%20 == 19) printf("\n");
-    for(r=0; r < TempVol->height; ++r){
-      for(s=0; s < TempVol->depth; ++s){
-
-	dw = MRIgetVoxVal(lhwhitedist,c,r,s,0);
-	dp = MRIgetVoxVal(lhpialdist, c,r,s,0);
-	if(dw*dp < 0 && dw != 1000 && dp != 1000) isleft = 1;
-	else                                      isleft = 0;
-
-	dw = MRIgetVoxVal(rhwhitedist,c,r,s,0);
-	dp = MRIgetVoxVal(rhpialdist, c,r,s,0);
-	if(dw*dp < 0 && dw != 1000 && dp != 1000) isright = 1;
-	else                                      isright = 0;
-
-	if(isleft){
-	  MRIsetVoxVal(MaskVol,c,r,s,0,1);
-	  MRIsetVoxVal(LMaskVol,c,r,s,0,1);
-	}
-	if(isright){
-	  MRIsetVoxVal(MaskVol,c,r,s,0,1);
-	  MRIsetVoxVal(LMaskVol,c,r,s,0,1);
-	}
-      }
-    }
-  }
-  printf("\n");
-
-  MRIwrite(MaskVol,"mask.mgh");
-  MRIwrite(LMaskVol,"lh.mask.mgh");
-  MRIwrite(RMaskVol,"rh.mask.mgh");
-
+  int *lutindex;
+  double *log10p;
+  LoadDavidsTable(argv[1], &lutindex, &log10p);
   return(0);
   exit(0);
 }
 
-/*-----------------------------------------------------
-  convert_surf_to_vox() - replace surface xyz with 
-  values in volume index space.
-  -----------------------------------------------------*/
-void convert_surf_to_vox(MRI_SURFACE* mris, MRI* vol)
+/*---------------------------------------------------------*/
+char *gdfGetNthItem(char *line, int nth)
 {
- double cx, cy, cz;
- Real vx, vy, vz;
- VERTEX* pvtx = &( mris->vertices[0] );
- unsigned int nvertices = (unsigned int)mris->nvertices;
- unsigned int ui;
+  char *item;
+  int nitems,n;
+  static char fmt[2000], tmpstr[2000];
+  
+  memset(fmt,'\0',2000);
+  memset(tmpstr,'\0',2000);
 
- for(ui=0;ui < nvertices; ++ui, ++pvtx ) {
-   cx = pvtx->x;
-   cy = pvtx->y;
-   cz = pvtx->z;
-   MRIsurfaceRASToVoxel(vol, cx, cy, cz, &vx, &vy, &vz);
-   pvtx->x = vx;
-   pvtx->y = vy;
-   pvtx->z = vz;
- } // next ui, pvtx
- return;
+  nitems = gdfCountItemsInString(line);
+  if(nth < 0) nth = nitems-1;
+  if(nth >= nitems){
+    printf("ERROR: asking for item %d, only %d items in string\n",nth,nitems);
+    printf("%s\n",line);
+    return(NULL);
+  }
+
+  for(n=0; n < nth; n++) sprintf(fmt,"%s %%*s",fmt);
+  sprintf(fmt,"%s %%s",fmt);
+  //printf("fmt %s\n",fmt);
+  sscanf(line,fmt,tmpstr);
+
+  item = strcpyalloc(tmpstr);
+  return(item);
+}
+/*--------------------------------------------------*/
+int striplessthan(char *item)
+{
+  int n;
+
+  for(n=0; n < strlen(item); n++)
+    if(item[n] == '<') item[n] = '0';
+  return(0);
+}
+
+
+/*--------------------------------------------------
+  gdfCountItemsInString() returns the number of items
+  in the given string, where an item is defined as
+  one or more contiguous non-blank characters.
+  --------------------------------------------------*/
+int gdfCountItemsInString(char *str)
+{
+  int len, n, nhits;
+
+  len = strlen(str);
+
+  nhits = 0;
+  n = 0;
+  while(n < len){
+    while(isblank(str[n])) n++;
+    if(n >= len) break;
+    if(str[n] == '\0' || str[n] == '\n' || str[n] == '\r') break;
+    while(!isblank(str[n])) n++;
+    nhits++;
+  }
+
+  //printf("nhits %d\n",nhits);
+
+  return(nhits);
+}
+
+/*---------------------------------------------------------------------
+  1. Looks for a line where the first string is "Unpaired". 
+  2. Gets the last string from this line.
+  3. Removes the last 4 chars from this string to get the
+     segmentation name (this could be a prob?)
+  4. Finds the segmentation name in the color table to get the index
+     This is returned in pplutindex.
+  5. Scrolls thru the file until it finds a line where the first
+     string is "Mean".
+  6. Goes one more line
+  7. Loads the last value from this line (this is the p-value)
+  8. Removes any less-than signs (ie, "<")
+  9. Computes -log10 of this value (returns in pplog10p)
+
+  Example:
+
+   Unpaired t-test for Left-Inf-Lat-Vent_vol
+   Grouping Variable: Dx
+   Hypothesized Difference = 0
+   Inclusion criteria: AGE > 60 from wmparc_vals_hypotest_log (imported)
+           Mean Diff.      DF      t-Value P-Value
+   Dementia, Nondemented   505.029 164     4.136   <.0001
+
+  The segmentation name would be: Left-Inf-Lat-Vent, the p value
+  would be .0001 (the -log10 of which would be 4.0).
+
+  ---------------------------------------------------------------------*/
+
+int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p)
+{
+  FSENV *fsenv;
+  int err,tmpindex[1000];
+  double tmpp[1000];
+  char tmpstr[2000],tmpstr2[2000],segname[2000];
+  FILE *fp;
+  double p;
+  int n,segindex,nitems;
+  char *item;
+
+  fsenv = FSENVgetenv();
+  fp = fopen(fname,"r");
+  if(fp == NULL) {
+    printf("ERROR: could not open%s\n",fname);
+    exit(1);
+  }
+
+  nitems = 0;
+  while(1){
+    if(fgets(tmpstr,2000-1,fp) == NULL) break;
+    memset(tmpstr2,'\0',2000);
+    sscanf(tmpstr,"%s",tmpstr2);
+    if(strcmp(tmpstr2,"Unpaired") == 0){
+      item = gdfGetNthItem(tmpstr,-1); // get last item
+      sscanf(item,"%s",segname);
+      free(item);
+      // strip off _vol
+      for(n=strlen(segname)-4;n<strlen(segname);n++) segname[n]='\0';
+      err = CTABfindName(fsenv->ctab, segname, &segindex);
+      if(segindex < 0){
+	printf("ERROR: reading %s, cannot find %s in color table\n",
+	       fname,segname);
+	printf("%s",tmpstr);
+	printf("item = %s\n",item);
+	exit(1);
+      }
+      n=0;
+      while(1){
+	fgets(tmpstr,2000-1,fp);
+	sscanf(tmpstr,"%s",tmpstr2);
+	if(strcmp(tmpstr2,"Mean") == 0) break;
+	n++;
+	if(n > 1000){
+	  printf("There seems to be an error finding key string 'Mean'\n");
+	  exit(1);
+	}
+      }
+      fgets(tmpstr,2000-1,fp);
+      item = gdfGetNthItem(tmpstr,-1);
+      striplessthan(item);
+      sscanf(item,"%lf",&p);
+      printf("%2d %2d %s %lf  %lf\n",nitems,segindex,segname,p,-log10(p));
+      tmpindex[nitems] = segindex;
+      tmpp[nitems] = p;
+      nitems++;
+      free(item);
+    }
+  }
+
+  *pplutindex =    (int *) calloc(nitems,sizeof(int));
+  *pplog10p   = (double *) calloc(nitems,sizeof(double));
+
+  for(n=0; n < nitems; n++){
+    (*pplutindex)[n] = tmpindex[n];
+    (*pplog10p)[n]   = -log10(tmpp[n]);
+  }
+
+
+  FSENVfree(&fsenv);
+  return(nitems);
 }
 
