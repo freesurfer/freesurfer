@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/07/13 16:36:02 $
-// Revision       : $Revision: 1.352 $
-char *MRI_C_VERSION = "$Revision: 1.352 $";
+// Revision Date  : $Date: 2006/08/08 20:58:34 $
+// Revision       : $Revision: 1.353 $
+char *MRI_C_VERSION = "$Revision: 1.353 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -5912,6 +5912,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     mri->type == MRI_FLOAT ? PFFLOAT :
     mri->type == MRI_SHORT ? PFFLOAT : PFBYTE ;
 #else
+  format = (mri->type == MRI_UCHAR) ? PFBYTE : PFFLOAT ;
   format = PFBYTE ;
 #endif
 
@@ -6076,7 +6077,10 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
             }
           MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
           yp = h - (y+1) ;   /* hips coordinate system is inverted */
-          *IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
+					if (format == PFBYTE)
+						*IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
+					else
+						*IMAGEFpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
         }
     }
 
@@ -11540,12 +11544,12 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
   if(outmri==NULL){
     outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth,
                               MRI_FLOAT, inmri->nframes);
-    MRIcopyHeader(inmri,outmri);
 
     if(outmri==NULL){
       printf("ERROR: fMRIlog10: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(inmri,outmri);
   }
   else{
     if(inmri->width   != outmri->width  ||
@@ -11959,28 +11963,28 @@ MRImaxInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
   double max = 0.0 ;
 
   for (x = x0-whalf ; x <= x0+whalf ; x++)
-    {
-      if (x < 0 || x >= mri_src->width)
-        continue ;
-      for (y = y0-whalf ; y <= y0+whalf ; y++)
-        {
-          if (y < 0 || y >= mri_src->height)
-            continue ;
-          for (z = z0-whalf ; z <= z0+whalf ; z++)
-            {
-              if (z < 0 || z >= mri_src->depth)
-                continue ;
-              l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
-              if (l == label)
-                {
-                  val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-                  if (val > max)
-                    max = val ;
-                  nvox++ ;
-                }
-            }
-        }
-    }
+	{
+		if (x < 0 || x >= mri_src->width)
+			continue ;
+		for (y = y0-whalf ; y <= y0+whalf ; y++)
+		{
+			if (y < 0 || y >= mri_src->height)
+				continue ;
+			for (z = z0-whalf ; z <= z0+whalf ; z++)
+			{
+				if (z < 0 || z >= mri_src->depth)
+					continue ;
+				l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+				if (l == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					if (val > max)
+						max = val ;
+					nvox++ ;
+				}
+			}
+		}
+	}
   if (!nvox)
     nvox = 1 ;
   return(max) ;
@@ -13453,3 +13457,36 @@ int MRInormalizeFrames(MRI *mri)
 
   return(ERROR_NONE);
 }
+MRI *
+MRIzeroMean(MRI *mri_src, MRI *mri_dst)
+{
+	int     x, y, z ;
+	double  mean ;
+
+	if (mri_dst == NULL)
+		mri_dst = MRIcopy(mri_src, NULL) ;
+
+	for (mean = 0.0, x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->height ; z++)
+			{
+				mean += MRIgetVoxVal(mri_src, x, y, z, 0) ;
+			}
+		}
+	}
+	mean /= (mri_src->width*mri_src->height*mri_src->depth) ;
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->height ; z++)
+			{
+				MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0)-mean) ;
+			}
+		}
+	}
+	return(mri_dst) ;
+}
+

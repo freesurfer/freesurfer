@@ -973,6 +973,7 @@ MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
 
+MRI *MRIzeroMean(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag);
 MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
               float avg, float stddev, MRI *mri);
