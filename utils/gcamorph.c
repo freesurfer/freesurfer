@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/07/26 00:55:38 $
-// Revision       : $Revision: 1.108 $
+// Revision Date  : $Date: 2006/08/08 13:12:26 $
+// Revision       : $Revision: 1.109 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -69,7 +69,6 @@ static int gcamMLElabelAtLocation(GCA_MORPH *gcam, int x, int y, int z, float *v
 #endif
 static int is_temporal_wm(GCA_MORPH *gcam, MRI *mri, GCA_NODE *gcan, \
                           float x, float y, float z, int ninputs) ;
-static MRI *gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
 static int gcamClearMomentum(GCA_MORPH *gcam) ;
 static int gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 static int gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, float compression_ratio) ;
@@ -4277,7 +4276,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
 		MRI *mri_grad ;
 
 #if 0    
-		mri_grad = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
+		mri_grad = GCAMwriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
 #else
 		mri_grad = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_Y_GRAD, 0, 0);
 #endif
@@ -4295,13 +4294,13 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
 		char fname[STRLEN] ;
 		MRI *mri ;
 		printf("writing gradients...\n") ;
-		mri = gcamWriteMRI(gcam, NULL, GCAM_X_GRAD) ;
+		mri = GCAMwriteMRI(gcam, NULL, GCAM_X_GRAD) ;
 		sprintf(fname, "%s_dxb_%4.4d.mgz", parms->base_name, i) ;
 		MRIwrite(mri, fname) ;
 		sprintf(fname, "%s_dyb_%4.4d.mgz", parms->base_name, i) ;
-		gcamWriteMRI(gcam, mri, GCAM_Y_GRAD) ; MRIwrite(mri, fname);
+		GCAMwriteMRI(gcam, mri, GCAM_Y_GRAD) ; MRIwrite(mri, fname);
 		sprintf(fname, "%s_dzb_%4.4d.mgz", parms->base_name, i) ;
-		gcamWriteMRI(gcam, mri, GCAM_Z_GRAD) ; MRIwrite(mri, fname) ;
+		GCAMwriteMRI(gcam, mri, GCAM_Z_GRAD) ; MRIwrite(mri, fname) ;
 		MRIfree(&mri) ;
 		if (i == 0)
 			MRIwrite(mri_smooth, "s.mgz") ;
@@ -4313,7 +4312,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
 		MRI *mri_grad ;
 
 #if 0    
-		mri_grad = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
+		mri_grad = GCAMwriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
 #else
 		mri_grad = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_Y_GRAD, 0, 0);
 #endif
@@ -4329,13 +4328,13 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
 	{
 		MRI *mri ;
 		char fname[STRLEN] ;
-		mri = gcamWriteMRI(gcam, NULL, GCAM_X_GRAD) ;
+		mri = GCAMwriteMRI(gcam, NULL, GCAM_X_GRAD) ;
 		sprintf(fname, "%s_dx_%4.4d.mgz", parms->base_name, i) ;
 		MRIwrite(mri, fname) ;
 		sprintf(fname, "%s_dy_%4.4d.mgz", parms->base_name, i) ;
-		gcamWriteMRI(gcam, mri, GCAM_Y_GRAD) ; MRIwrite(mri, fname) ;
+		GCAMwriteMRI(gcam, mri, GCAM_Y_GRAD) ; MRIwrite(mri, fname) ;
 		sprintf(fname, "%s_dz_%4.4d.mgz", parms->base_name, i) ;
-		gcamWriteMRI(gcam, mri, GCAM_Z_GRAD) ; MRIwrite(mri, fname) ;
+		GCAMwriteMRI(gcam, mri, GCAM_Z_GRAD) ; MRIwrite(mri, fname) ;
 		MRIfree(&mri) ;
 	}
   i++ ;  /* for debugging */
@@ -5601,8 +5600,8 @@ gcamReadMRI(GCA_MORPH *gcam, MRI *mri, int which)
   return(NO_ERROR) ;
 }
 
-static MRI *
-gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
+MRI *
+GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
 {
   int            x, y, z ;
   float          d ;
@@ -5621,26 +5620,34 @@ gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
-        {
-          gcamn = &gcam->nodes[x][y][z] ;
-          switch (which)
-            {
-            default:
-              ErrorExit(ERROR_BADPARM, "gcamWriteMRI(%d): unknown which parameter", which) ;
-              d = 0 ;
-              break ;
-            case GCAM_X_GRAD: d = gcamn->dx ; break ;
-            case GCAM_Y_GRAD: d = gcamn->dy ; break ;
-            case GCAM_Z_GRAD: d = gcamn->dz ; break ;
-						case GCAM_X:      d = gcamn->x ; break ;
-						case GCAM_Y:      d = gcamn->y ; break ;
-						case GCAM_Z:      d = gcamn->z ; break ;
-						case GCAM_ORIGX:  d = gcamn->origx ; break ;
-						case GCAM_ORIGY:  d = gcamn->origy ; break ;
-						case GCAM_ORIGZ:  d = gcamn->origz ; break ;
-            }
-          MRIFvox(mri, x, y, z) = d ;
-        }
+			{
+				gcamn = &gcam->nodes[x][y][z] ;
+
+				switch (which)
+				{
+				default:
+					ErrorExit(ERROR_BADPARM, "GCAMwriteMRI(%d): unknown which parameter", which) ;
+					d = 0 ;
+					break ;
+				case GCAM_X_GRAD:   d = gcamn->dx ; break ;
+				case GCAM_Y_GRAD:   d = gcamn->dy ; break ;
+				case GCAM_Z_GRAD:   d = gcamn->dz ; break ;
+				case GCAM_JACOBIAN: d = FZERO(gcamn->orig_area) ? 1.0 : gcamn->area / gcamn->orig_area ; break ;
+				case GCAM_AREA:     d = gcamn->area ; break ;
+				case GCAM_ORIG_AREA:d = gcamn->orig_area ; break ;
+				case GCAM_X:        d = gcamn->x ; break ;
+				case GCAM_Y:        d = gcamn->y ; break ;
+				case GCAM_Z:        d = gcamn->z ; break ;
+				case GCAM_ORIGX:    d = gcamn->origx ; break ;
+				case GCAM_ORIGY:    d = gcamn->origy ; break ;
+				case GCAM_ORIGZ:    d = gcamn->origz ; break ;
+				case GCAM_LABEL:    d = gcamn->label ; break ;
+				case GCAM_MEANS:    d = gcamn->gc ? gcamn->gc->means[0] : 0;
+				}
+				if (gcamn->invalid)
+					d  = 0 ;
+				MRIFvox(mri, x, y, z) = d ;
+			}
   return(mri) ;
 }
 
@@ -5668,7 +5675,7 @@ gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
   for (i = GCAM_X_GRAD ; i <= GCAM_Z_GRAD ; i++)
 	{
 		char fname[STRLEN] ;
-		mri_tmp = gcamWriteMRI(gcam, mri_tmp, i) ;
+		mri_tmp = GCAMwriteMRI(gcam, mri_tmp, i) ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 		{
 			sprintf(fname, "grad%d_before.mgz", i) ;
@@ -8200,6 +8207,9 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 	case GCAM_X_GRAD:
 	case GCAM_Y_GRAD:
 	case GCAM_Z_GRAD:
+	case GCAM_JACOBIAN:
+	case GCAM_AREA:
+	case GCAM_ORIG_AREA:
 		type = MRI_FLOAT ;
 		break ;
 	case GCAM_MEANS:
@@ -8484,6 +8494,18 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 					case GCAM_Z_GRAD:
 						MRIFvox(mri_morphed, xd, yd,zd) = gcamn->dz ;
 						break ;
+					case GCAM_JACOBIAN:
+						if (!FZERO(gcamn->orig_area))
+							MRIFvox(mri_morphed, xd, yd,zd) = gcamn->area / gcamn->orig_area ;
+						else
+							MRIFvox(mri_morphed, xd, yd,zd) = 1.0 ;
+						break ;
+					case GCAM_AREA:
+						MRIFvox(mri_morphed, xd, yd,zd) = gcamn->area ;
+						break ;
+					case GCAM_ORIG_AREA:
+						MRIFvox(mri_morphed, xd, yd,zd) = gcamn->orig_area ;
+						break ;
 					case GCAM_COVARS:
 						if (gcamn->gc != NULL)
 							for (i = 0 ; i < mri_morphed->nframes ; i++)
@@ -8576,7 +8598,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 
   /* now go through morphed volume and sample back into gcam */
 	if (which == GCAM_ORIGX || which == GCAM_ORIGY || which == GCAM_ORIGZ)
-		mri_tmp = gcamWriteMRI(gcam, NULL, which) ;
+		mri_tmp = GCAMwriteMRI(gcam, NULL, which) ;
 	else
 		mri_tmp = NULL ;
   for (x = 0 ; x < mri_morphed->width ; x++)
@@ -8631,6 +8653,18 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 						break ;
 					case GCAM_Z_GRAD:
 						MRIFvox(mri_morphed, x, y,z) = gcamn->dz ;
+						break ;
+					case GCAM_JACOBIAN:
+						if (!FZERO(gcamn->orig_area))
+							MRIFvox(mri_morphed, x, y,z) = gcamn->area / gcamn->orig_area ;
+						else
+							MRIFvox(mri_morphed, x, y,z) = 1.0 ;
+						break ;
+					case GCAM_AREA:
+						MRIFvox(mri_morphed, x, y,z) = gcamn->area ;
+						break ;
+					case GCAM_ORIG_AREA:
+						MRIFvox(mri_morphed, x, y,z) = gcamn->orig_area ;
 						break ;
 					case GCAM_ORIGX:
 						MRIFvox(mri_morphed, x, y,z) = val ;
@@ -10406,12 +10440,12 @@ GCAMupsample2(GCA_MORPH *gcam)
 	Real           xd, yd, zd ;
 	MRI            *mri_origx, *mri_origy, *mri_origz, *mri_x, *mri_y, *mri_z ;
 
-	mri_origx = gcamWriteMRI(gcam, NULL, GCAM_ORIGX) ;
-	mri_origy = gcamWriteMRI(gcam, NULL, GCAM_ORIGY) ;
-	mri_origz = gcamWriteMRI(gcam, NULL, GCAM_ORIGZ) ;
-	mri_x = gcamWriteMRI(gcam, NULL, GCAM_X) ;
-	mri_y = gcamWriteMRI(gcam, NULL, GCAM_Y) ;
-	mri_z = gcamWriteMRI(gcam, NULL, GCAM_Z) ;
+	mri_origx = GCAMwriteMRI(gcam, NULL, GCAM_ORIGX) ;
+	mri_origy = GCAMwriteMRI(gcam, NULL, GCAM_ORIGY) ;
+	mri_origz = GCAMwriteMRI(gcam, NULL, GCAM_ORIGZ) ;
+	mri_x = GCAMwriteMRI(gcam, NULL, GCAM_X) ;
+	mri_y = GCAMwriteMRI(gcam, NULL, GCAM_Y) ;
+	mri_z = GCAMwriteMRI(gcam, NULL, GCAM_Z) ;
 
 	gcam_new = GCAMalloc(2*gcam->width, 2*gcam->height, 2*gcam->depth) ;
 	*(&gcam_new->image) = *(&gcam->image) ;
