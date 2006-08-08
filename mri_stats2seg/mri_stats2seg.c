@@ -51,6 +51,9 @@ double round(double x);
 #include "matfile.h"
 #include "volcluster.h"
 #include "surfcluster.h"
+#include "fsenv.h"
+
+int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -61,7 +64,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.4 2006/05/11 21:57:35 nicks Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.5 2006/08/08 22:33:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -72,29 +75,21 @@ char *TempVolFile=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 
 char *statfile=NULL;
-MRI *statmri;
 char *segfile=NULL;
 MRI *seg;
 
 char *outfile=NULL;
 MRI *out;
+int nitems=0;
+int *lutindex;
+double *log10p;
 
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs,r,c,s,f,segid;
-  MRIS *mris;
-  MRI *mri;
+  int nargs,r,c,s,n,segid;
   double val;
-
-  if(0){
-  mris = MRISread("/space/greve/1/users/greve/subjects/fsr-tst/surf/lh.white");
-  MRISreadAnnotation(mris,"/space/greve/1/users/greve/subjects/fsr-tst/label/lh.aparc.annot");
-  mri = MRISannotIndex2Seg(mris);
-  MRIwrite(mri,"lh.aparc.mgh");
-  exit(1);
-  }
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -123,28 +118,36 @@ int main(int argc, char *argv[])
   seg = MRIread(segfile);
   if(seg == NULL) exit(1);
 
-  statmri = MRIread(statfile);
-  if(statmri == NULL) exit(1);
+  nitems = LoadDavidsTable(statfile, &lutindex, &log10p);
+  if(nitems == 0){
+    printf("ERROR: could not find any items in %s\n",statfile);
+    exit(1);
+  }
 
-  out = MRIcloneBySpace(seg,statmri->nframes);
-  if(out == NULL) exit(1);
+  out = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_FLOAT,1);
+  MRIcopyHeader(seg,out);
 
   for(c=0; c < seg->width; c++){
+    printf("%3d ",c); 
+    if(c%20 == 19) printf("\n");
+    fflush(stdout);
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	segid = MRIgetVoxVal(seg,c,r,s,0);
-	//if(segid == 0) continue; 
-	if(segid >= statmri->width){
-	  printf("ERROR: %d %d %d segid=%d >= %d\n",c,r,s,segid,statmri->width);
-	  exit(1);
+	val = 0;
+	if(segid != 0){
+	  for(n=0; n < nitems; n++){
+	    if(lutindex[n] == segid){
+	      val = log10p[n];
+	      break;
+	    }
+	  }
 	}
-	for(f=0; f < statmri->nframes; f++){
-	  val = MRIgetVoxVal(statmri,segid,0,0,f);;
-	  MRIsetVoxVal(out,c,r,s,f,val);
-	}
+	MRIsetVoxVal(out,c,r,s,0,val);
       }
     }
   }
+  printf("\n");
   MRIwrite(out,outfile);
 
   printf("mri_stats2seg done\n");
@@ -270,4 +273,107 @@ static void dump_options(FILE *fp)
   fprintf(fp,"user     %s\n",VERuser());
 
   return;
+}
+
+/*---------------------------------------------------------------------
+  Reads in data created by Statview.
+  1. Looks for a line where the first string is "Unpaired". 
+  2. Gets the last string from this line.
+  3. Removes the last 4 chars from this string to get the
+     segmentation name (this could be a prob?)
+  4. Finds the segmentation name in the color table to get the index
+     This is returned in pplutindex.
+  5. Scrolls thru the file until it finds a line where the first
+     string is "Mean".
+  6. Goes one more line
+  7. Loads the last value from this line (this is the p-value)
+  8. Removes any less-than signs (ie, "<")
+  9. Computes -log10 of this value (returns in pplog10p)
+
+  Example:
+
+   Unpaired t-test for Left-Inf-Lat-Vent_vol
+   Grouping Variable: Dx
+   Hypothesized Difference = 0
+   Inclusion criteria: AGE > 60 from wmparc_vals_hypotest_log (imported)
+           Mean Diff.      DF      t-Value P-Value
+   Dementia, Nondemented   505.029 164     4.136   <.0001
+
+  The segmentation name would be: Left-Inf-Lat-Vent, the p value
+  would be .0001 (the -log10 of which would be 4.0).
+
+  ---------------------------------------------------------------------*/
+
+int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p)
+{
+  FSENV *fsenv;
+  int err,tmpindex[1000];
+  double tmpp[1000];
+  char tmpstr[2000],tmpstr2[2000],segname[2000];
+  FILE *fp;
+  double p;
+  int n,segindex,nitems;
+  char *item;
+
+  fsenv = FSENVgetenv();
+  fp = fopen(fname,"r");
+  if(fp == NULL) {
+    printf("ERROR: could not open%s\n",fname);
+    exit(1);
+  }
+
+  nitems = 0;
+  while(1){
+    if(fgets(tmpstr,2000-1,fp) == NULL) break;
+    memset(tmpstr2,'\0',2000);
+    sscanf(tmpstr,"%s",tmpstr2);
+    if(strcmp(tmpstr2,"Unpaired") == 0){
+      item = gdfGetNthItemFromString(tmpstr,-1); // get last item
+      sscanf(item,"%s",segname);
+      free(item);
+      // strip off _vol
+      for(n=strlen(segname)-4;n<strlen(segname);n++) segname[n]='\0';
+      err = CTABfindName(fsenv->ctab, segname, &segindex);
+      if(segindex < 0){
+	printf("ERROR: reading %s, cannot find %s in color table\n",
+	       fname,segname);
+	printf("%s",tmpstr);
+	printf("item = %s\n",item);
+	exit(1);
+      }
+      n=0;
+      while(1){
+	fgets(tmpstr,2000-1,fp);
+	sscanf(tmpstr,"%s",tmpstr2);
+	if(strcmp(tmpstr2,"Mean") == 0) break;
+	n++;
+	if(n > 1000){
+	  printf("There seems to be an error finding key string 'Mean'\n");
+	  exit(1);
+	}
+      }
+      fgets(tmpstr,2000-1,fp);
+      item = gdfGetNthItemFromString(tmpstr,-1);
+      // remove less-than signs
+      for(n=0; n < strlen(item); n++) if(item[n] == '<') item[n] = '0';
+      sscanf(item,"%lf",&p);
+      printf("%2d %2d %s %lf  %lf\n",nitems,segindex,segname,p,-log10(p));
+      tmpindex[nitems] = segindex;
+      tmpp[nitems] = p;
+      nitems++;
+      free(item);
+    }
+  }
+
+  *pplutindex =    (int *) calloc(nitems,sizeof(int));
+  *pplog10p   = (double *) calloc(nitems,sizeof(double));
+
+  for(n=0; n < nitems; n++){
+    (*pplutindex)[n] = tmpindex[n];
+    (*pplog10p)[n]   = -log10(tmpp[n]);
+  }
+
+
+  FSENVfree(&fsenv);
+  return(nitems);
 }
