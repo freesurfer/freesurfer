@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.30 2006/05/10 15:12:37 kteich Exp $
+  $Id: fsgdf.c,v 1.31 2006/08/08 21:53:25 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -554,6 +554,37 @@ int gdfCountItemsInString(char *str)
   //printf("nhits %d\n",nhits);
 
   return(nhits);
+}
+/*-------------------------------------------------------------------
+  gdfGetNthItemFromString() - extracts the nth item from a string.
+  An item is defined as one or more non-white space chars. If nth
+  is -1, then it returns the last item. item is a string that 
+  must be freed by the caller.
+  ------------------------------------------------------------------*/
+char *gdfGetNthItemFromString(char *str, int nth)
+{
+  char *item;
+  int nitems,n;
+  static char fmt[2000], tmpstr[2000];
+  
+  memset(fmt,'\0',2000);
+  memset(tmpstr,'\0',2000);
+
+  nitems = gdfCountItemsInString(str);
+  if(nth < 0) nth = nitems-1;
+  if(nth >= nitems){
+    printf("ERROR: asking for item %d, only %d items in string\n",nth,nitems);
+    printf("%s\n",str);
+    return(NULL);
+  }
+
+  for(n=0; n < nth; n++) sprintf(fmt,"%s %%*s",fmt);
+  sprintf(fmt,"%s %%s",fmt);
+  //printf("fmt %s\n",fmt);
+  sscanf(str,fmt,tmpstr);
+
+  item = strcpyalloc(tmpstr);
+  return(item);
 }
 /*--------------------------------------------------
   gdfCountItemsOnLine() returns the number of items
