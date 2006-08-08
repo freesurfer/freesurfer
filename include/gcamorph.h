@@ -219,6 +219,7 @@ GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSF
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
+int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) ;
 
 #define MAX_LTT_LABELS 1000
 typedef struct

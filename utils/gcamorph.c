@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/08/08 13:12:26 $
-// Revision       : $Revision: 1.109 $
+// Revision Date  : $Date: 2006/08/08 20:59:17 $
+// Revision       : $Revision: 1.110 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -5610,8 +5610,9 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   if (!mri)
 	{
 		mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
-		MRIsetResolution(mri, gcam->spacing, gcam->spacing, gcam->spacing) ;
 		MRIcopyVolGeomToMRI(mri, &gcam->atlas) ;
+		MRIsetResolution(mri, gcam->spacing, gcam->spacing, gcam->spacing) ;
+		MRIreInitCache(mri) ;
 	}
   if (!mri)
     ErrorExit(ERROR_NOMEMORY, "gcamWrite: could not allocate %dx%dx%d MRI\n",
@@ -5622,6 +5623,8 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
       for (z = 0 ; z < gcam->depth ; z++)
 			{
 				gcamn = &gcam->nodes[x][y][z] ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 
 				switch (which)
 				{
@@ -5644,8 +5647,6 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
 				case GCAM_LABEL:    d = gcamn->label ; break ;
 				case GCAM_MEANS:    d = gcamn->gc ? gcamn->gc->means[0] : 0;
 				}
-				if (gcamn->invalid)
-					d  = 0 ;
 				MRIFvox(mri, x, y, z) = d ;
 			}
   return(mri) ;
@@ -10517,3 +10518,28 @@ GCAMupsample2(GCA_MORPH *gcam)
 	return(NO_ERROR) ;
 }
 
+int
+GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) 
+{
+	int             x, y, z ;
+	Real            val ;
+  GCA_MORPH_NODE  *gcamn ;
+
+	for (x = 0 ; x < gcam->width ; x++)
+	{
+		for (y = 0 ; y < gcam->height ; y++)
+		{
+			for (z = 0 ; z < gcam->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				gcamn = &gcam->nodes[x][y][z] ;
+				MRIsampleVolume(mri_target, gcamn->x, gcamn->y, gcamn->z, &val) ;
+				if (gcamn->gc == NULL || FZERO(gcamn->gc->means[0]) || FZERO(val))
+					gcamn->status = gcamn->status | GCAM_NEVER_USE_LIKELIHOOD;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
