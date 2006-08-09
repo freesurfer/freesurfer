@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.200 2006/08/07 21:03:23 fischl Exp $"
+# "$Id: configure.in,v 1.201 2006/08/09 01:40:53 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -115,6 +115,9 @@ echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
 TEEM_ENDIAN=$BYTEORDER
 
+# Support for files >2GB (Large File Support)
+LFS_CFLAGS="-D_FILE_OFFSET_BITS=64"
+
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
@@ -124,8 +127,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall -Werror $CFLAGS"
- CXXFLAGS="-g -O2 -Wall -Werror $CXXFLAGS"
+ CFLAGS="-g -O2 -Wall -Werror $LFS_CFLAGS $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror $LFS_CFLAGS $CXXFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -147,10 +150,10 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="-g -O2 -Wall -Werror -Wno-long-double $CFLAGS"
+ CFLAGS="-g -O2 -Wall -Werror -Wno-long-double $LFS_CFLAGS $CFLAGS"
 # -Wno-non-virtual-dtor suppresses valid scuba warning:
 # "has virtual functions but non-virtual destructor"
- CXXFLAGS="-g -O2 -Wall -Werror -Wno-non-virtual-dtor $CXXFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror -Wno-non-virtual-dtor $LFS_CFLAGS $CXXFLAGS"
  ;;
  i*86-*-solaris*)
  OS=SunOS

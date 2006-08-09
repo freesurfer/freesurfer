@@ -235,9 +235,9 @@ SUBDIRS=include \
 	utils \
 	utilscpp \
 	log \
+	$(FSGDF) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
-	$(FSGDF) \
 	$(FSLUTILS) \
 	$(STATSDIRS) \
 	$(MISCDIRS) \
