@@ -2,9 +2,9 @@
 // matfile.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/09 16:44:11 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/08/09 21:59:34 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -813,7 +813,6 @@ MATRIX *MatlabRead2(const char *fname)
   double   **real_matrix, **imag_matrix ;
   int      file_type, nrows, ncols, row, col;
   float    *fptr = NULL ;
-  long32   *dt =0;
   long32   compressed=0;
   char **data = NULL;
   char *unbuff = NULL;
@@ -825,8 +824,7 @@ MATRIX *MatlabRead2(const char *fname)
   if (!fp)
     return(NULL) ;
     
-  dt = &compressed;
-  name = MatReadHeader(fp, &mf, dt) ;
+  name = MatReadHeader(fp, &mf, &compressed) ;
  
   if (compressed)
     {
@@ -902,6 +900,11 @@ MATRIX *MatlabRead2(const char *fname)
 
   return(mat) ;
 }
+/*-------------------------------------------------------------------
+  MatReadHeader() - Reads file header. mf is header for a data
+  element.  compressed indicates whether the file is compressed or
+  not. Versions 4 and 5.
+  -------------------------------------------------------------------*/
 char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
 {
   int   nitems, padding;
@@ -909,20 +912,22 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
   char a, b, c, d, m;
   short namlen_temp;
   long32 dt;
-  m = 1;
-  m = m << 4; // shifts first bit (the 1) to the 5th bit
-  
-  char endian, ctmp[4];
+  char ctmp[4];
   long32 tmp;
- 
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_VERBOSE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     
-  name = (char *) calloc ( 1, sizeof(char)) ;
+  name = NULL; // shut up the compiler
 
+  m = 1;
+  m = m << 4; // shifts first bit (the 1) to the 5th bit
+  
+ 
   /* Test the version of MAT-file*/
-
-  a = fgetc(fp);
+  // First 4 chars indicate the version. If any are 0, it's version 4, 
+  // otherwise version 5. 
+  a = fgetc(fp); 
   b = fgetc(fp);
   c = fgetc(fp);
   d = fgetc(fp);
@@ -931,92 +936,90 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
 		  MatProgname) ;
       /*exit(1) ;*/
       return(NULL);
-    }
-  if (!a|!b|!c|!d)
-    mf->version = 4 ;
-  else
-    mf->version = 5 ;
+  }
+  if (!a|!b|!c|!d)  mf->version = 4 ;
+  else              mf->version = 5 ;
   ungetc(d,fp);
   ungetc(c,fp); 
   ungetc(b,fp);
   ungetc(a,fp); 
   
-  if (mf->version == 5){
+  if(mf->version == 5){
     fseek(fp,126,SEEK_SET) ;
-    endian = fgetc(fp) ;
-    mf->endian = endian ;
+    mf->endian = fgetc(fp) ;
     fseek(fp,1,SEEK_CUR);
     fread(&dt, sizeof(long), 1, fp) ;
-    if (DIFFERENT_ENDIAN(mf))
-        dt = swapLong32(dt) ;
-    dt = dt-14;
-   if (!dt) 
-      { 
-      *compressed = 0;
+    if(DIFFERENT_ENDIAN(mf)) dt = swapLong32(dt) ;
+    // dt is:
+    //   14 if matrix
+    //   15 if the element is compressed (cannot tell what type data is)
+    //   Can assume other values if not a matrix
+    if(dt==15) *compressed = 1;
+    else       *compressed = 0;
+    if(! *compressed){ 
+      // Not compressed
       fseek(fp,12,SEEK_CUR) ;
       fread(&tmp, sizeof(long), 1, fp) ;
-      if (DIFFERENT_ENDIAN(mf))
-        tmp = swapLong32(tmp) ; 
-      memcpy(&ctmp, &tmp, 4) ;
-      mf->imagf = (long)(m & ctmp[3]) ;
+      if(DIFFERENT_ENDIAN(mf)) tmp = swapLong32(tmp) ; 
+      memcpy(&ctmp, &tmp, 4); // tmp is long, ctmp is char
+      mf->imagf = (long)(m & ctmp[3]);
       fseek(fp,12,SEEK_CUR) ;
       fread(&(mf->mrows), sizeof(long), 1, fp) ;
       fread(&(mf->ncols), sizeof(long), 1, fp) ;
-      if (DIFFERENT_ENDIAN(mf))   
-        {
-        mf->mrows = swapLong32(mf->mrows) ;
-        mf->ncols = swapLong32(mf->ncols) ;
-	}
-      if (DIFFERENT_ENDIAN(mf))   /* TO DETECT NORMAL OR SMALL ELEMT */
-        {
-	c = fgetc(fp); 
-        d = fgetc(fp);
-        ungetc(d,fp);
-        ungetc(c,fp);
-	}
-      else
-        {;
-	a = fgetc(fp); 
-        b = fgetc(fp);   
-        c = fgetc(fp); 
-        d = fgetc(fp);
-        ungetc(d,fp);
-        ungetc(c,fp);   
-        ungetc(b,fp);
-        ungetc(a,fp);
-	}
-      if (c==0 && d==0)
-        {       /*normal element*/
-          fseek(fp,4,SEEK_CUR) ;
-	  fread(&(mf->namlen), 1, sizeof(long), fp);
-	  if (DIFFERENT_ENDIAN(mf))
-            mf->namlen = swapLong32(mf->namlen);
-	  name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-	  fread(name, (int)mf->namlen, sizeof(char), fp);
-	  padding = 8-((int)mf->namlen - (int)mf->namlen/ 8 * 8) ;
-	  fseek(fp, padding, SEEK_CUR) ;
-        }
-      else 
-        {       /*small data element*/
-	  fread(&(mf->namlen), 1, sizeof(long), fp);
-          if (DIFFERENT_ENDIAN(mf))
-            mf->namlen = swapLong32(mf->namlen);
-          memcpy(&namlen_temp, &mf->namlen, sizeof(short));
-          mf->namlen = (long)namlen_temp;	  
-	  name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-	  fread(name, (int)mf->namlen, sizeof(char), fp);
-	  padding = 4 - (int)mf->namlen ;
-	  fseek(fp, padding, SEEK_CUR) ;
-	}
-	fread(&(mf->type), 1,sizeof(long), fp);
-	if (DIFFERENT_ENDIAN(mf))
-          mf->type = swapLong32(mf->type);
-
-	  
-	fseek(fp,4,SEEK_CUR) ;
+      if(DIFFERENT_ENDIAN(mf))        {
+	mf->mrows = swapLong32(mf->mrows) ;
+	mf->ncols = swapLong32(mf->ncols) ;
       }
-    else if (dt)
-      { 
+      // Matlab stores the name in two different ways,
+      // depending on the length of the name.
+      // Normal - for long names (> 4 chars)
+      // Small - for < chars
+      // This is determined by the next bytes 3 and 4
+      // (or next 1 and 2 if diff endian).
+      if(DIFFERENT_ENDIAN(mf)){   
+	c = fgetc(fp); 
+	d = fgetc(fp);
+	ungetc(d,fp);
+	ungetc(c,fp);
+      }
+      else{
+	a = fgetc(fp); 
+	b = fgetc(fp);   
+	c = fgetc(fp); 
+	d = fgetc(fp);
+	ungetc(d,fp);
+	ungetc(c,fp);   
+	ungetc(b,fp);
+	ungetc(a,fp);
+      }
+      if(c==0 && d==0){       /*normal element*/
+	fseek(fp,4,SEEK_CUR) ;
+	fread(&(mf->namlen), 1, sizeof(long), fp);
+	if(DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
+	name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+	fread(name, (int)mf->namlen, sizeof(char), fp);
+	// If name does not fill up an 8 byte segment, read past the filler
+	padding = 8-((int)mf->namlen - (int)mf->namlen/ 8 * 8) ;
+	fseek(fp, padding, SEEK_CUR) ;
+      }
+      else {       /*small data element*/
+	fread(&(mf->namlen), 1, sizeof(long), fp);
+	if (DIFFERENT_ENDIAN(mf))  mf->namlen = swapLong32(mf->namlen);
+	memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+	mf->namlen = (long)namlen_temp;	  
+	name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+	fread(name, (int)mf->namlen, sizeof(char), fp);
+	padding = 4 - (int)mf->namlen ;
+	fseek(fp, padding, SEEK_CUR) ;
+      }
+
+      // Read in precision type (int, float, etc)
+      fread(&(mf->type), 1,sizeof(long), fp);
+      if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
+      
+      fseek(fp,4,SEEK_CUR) ;
+    }
+    else if (dt) { 
          *compressed = 1;
 	 fclose(fp);
 	 return(NULL) ;	 
