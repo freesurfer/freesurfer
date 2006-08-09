@@ -1336,6 +1336,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   float   dx, dy, dz, x, y, z, dist, min_dist ;
   int     num_not_found;
   float   vx, vy, vz;
+  vx = vy = vz = -1;
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -1832,7 +1833,8 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
   VERTEX *v ;
   LABEL  *area_dst ;
   float  vx, vy, vz, dist, dx, dy, dz;
-  
+
+  vx = vy = vz = -1;  
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
   LabelCopy(area_src, area_dst) ;

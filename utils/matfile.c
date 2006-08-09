@@ -2,9 +2,9 @@
 // matfile.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nommert $
-// Revision Date  : $Date: 2006/08/02 15:32:14 $
-// Revision       : $Revision: 1.22 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/09 16:44:11 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -1115,7 +1115,11 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   fread(buff, sizeof(char), size, fp) ;
   size_unbuff = 10000*size;
   unbuff = (char *)calloc(size_unbuff, sizeof(char)) ;
-  isitok = uncompress(unbuff, ptr_size_unbuff, buff, size) ;
+  isitok = uncompress(
+	(Bytef *)unbuff, 
+	(uLongf *)ptr_size_unbuff, 
+	(const Bytef *)buff, 
+	size) ;
   if (isitok!=0)
     ErrorPrintf(DIAG_VERBOSE," Error in uncompression: RESULT : %c \n" , endian) ;
 
