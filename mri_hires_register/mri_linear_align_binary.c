@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/07 16:28:04 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2006/08/09 20:45:58 $
+// Revision       : $Revision: 1.7 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -40,7 +40,7 @@ static double MAX_SCALE = 0.25 ;
 #define PAD       2
 
 static int ncloses = 0 ;
-static int binarize = 0 ;
+static float binarize = 0 ;
 
 static int conform = 0 ;
 
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
 	for (i = 0 ; i < ncloses ; i++)
 		MRIerode(mri_source, mri_source) ;
 
-	if (binarize == 0)
+	if (FZERO(binarize))
 	{
 		MRIboundingBox(mri_source, 0, &box) ;
 		box.x -= PAD ; box.y -= PAD ; box.z -= PAD ; 
@@ -508,8 +508,8 @@ get_option(int argc, char *argv[])
 	else switch (*option)
 	{
 	case 'B':
-		binarize = atoi(argv[2]) ;
-		printf("binarizing image with thresh = %d\n", binarize) ;
+		binarize = atof(argv[2]) ;
+		printf("binarizing image with thresh = %2.3f\n", binarize) ;
 		nargs = 1 ;
 		break ;
 	case 'C':
