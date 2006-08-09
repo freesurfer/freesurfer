@@ -11460,6 +11460,10 @@ mghRead(char *fname, int read_volume, int frame)
 #else
       strcpy(command, "zcat ");
 #endif
+      if(!fio_FileExistsReadable(fname)){
+	printf("ERROR: cannot find %s\n",fname);
+	return(NULL);
+      }
       strcat(command, fname);
 
       errno = 0;
