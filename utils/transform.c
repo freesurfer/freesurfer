@@ -1400,11 +1400,11 @@ LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
   int    i ;
 
   for (i = 0 ; i < lta->num_xforms ; i++)
-    {
-      m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
-      MatrixFree(&lta->xforms[0].m_L) ;
-      lta->xforms[0].m_L = m_L ;
-    }  
+	{
+		m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+		MatrixFree(&lta->xforms[i].m_L) ;
+		lta->xforms[i].m_L = m_L ;
+	}  
 
   lta->type = LINEAR_RAS_TO_RAS ;
   return(NO_ERROR) ;
@@ -1611,37 +1611,37 @@ TRANSFORM *
 TransformRead(char *fname)
 {
   TRANSFORM *trans ;
-  GCA_MORPH *gcam ;
+  GCA_MORPH *gcam = NULL ;
 
   trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
 
   trans->type = TransformFileNameType(fname) ;
   switch (trans->type)
-    {
-    case MNI_TRANSFORM_TYPE:
-    case LINEAR_VOX_TO_VOX:
-    case FSLREG_TYPE:
-    case LINEAR_RAS_TO_RAS:
-    case TRANSFORM_ARRAY_TYPE:
-    default:
-      trans->xform = (void *)LTAreadEx(fname) ;
-      if (!trans->xform)
-        {
-          free(trans) ;
-          return(NULL) ;
-        }
-      trans->type = ((LTA *)trans->xform)->type ;
-      break ;
-    case MORPH_3D_TYPE:
-      gcam = GCAMread(fname) ;
-      if (!gcam)
-        {
-          free(trans) ;
-          return(NULL) ;
-        }
-      trans->xform = (void *)gcam ;
-      break ;
-    }
+	{
+	case MNI_TRANSFORM_TYPE:
+	case LINEAR_VOX_TO_VOX:
+	case FSLREG_TYPE:
+	case LINEAR_RAS_TO_RAS:
+	case TRANSFORM_ARRAY_TYPE:
+	default:
+		trans->xform = (void *)LTAreadEx(fname) ;
+		if (!trans->xform)
+		{
+			free(trans) ;
+			return(NULL) ;
+		}
+		trans->type = ((LTA *)trans->xform)->type ;
+		break ;
+	case MORPH_3D_TYPE:
+		gcam = GCAMread(fname) ;
+		if (!gcam)
+		{
+			free(trans) ;
+			return(NULL) ;
+		}
+		trans->xform = (void *)gcam ;
+		break ;
+	}
   return(trans) ;
 }
 
