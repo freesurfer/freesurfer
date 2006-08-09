@@ -1,6 +1,10 @@
 #ifndef MATFILE_H
 #define MATFILE_H
        
+#ifdef Darwin
+typedef unsigned char  Byte;
+#endif
+
 #include "znzlib.h"  
 #include "matrix.h"
 #include "machine.h"
