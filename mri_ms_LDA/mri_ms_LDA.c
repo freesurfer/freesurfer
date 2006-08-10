@@ -4,9 +4,9 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/16 23:31:31 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/10 21:22:40 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr_wrapper.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -112,7 +111,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.1 2006/02/16 23:31:31 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.2 2006/08/10 21:22:40 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

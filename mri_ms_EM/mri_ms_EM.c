@@ -9,11 +9,12 @@
 //  2. Is it more robust if I ignore correlation terms in covariance matrix?
 //  3. Should I incorporae PVE model as mmfast?
 // 1-31-05: added regularization for covariance matrix according to
-// C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
+// C. Archambeau et al Flexible and Robust Bayesian Classification 
+//   by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/02/01 22:00:21 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/10 21:22:40 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -21,7 +22,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr_wrapper.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -193,7 +193,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.1 2006/02/01 22:00:21 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.2 2006/08/10 21:22:40 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
