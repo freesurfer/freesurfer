@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/13 17:02:14 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/10 20:52:10 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,6 @@
 #include "cma.h"
 #include "version.h"
 #include "transform.h"
-#include "nr_wrapper.h"
 #include "fastmarching.h"
 #include "voxlist.h"
 
