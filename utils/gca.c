@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/07/26 02:49:25 $
-// Revision       : $Revision: 1.187.2.1 $
+// Revision Date  : $Date: 2006/08/10 23:45:16 $
+// Revision       : $Revision: 1.187.2.2 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15256,7 +15256,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                                TRANSFORM *transform,
                                FILE *logfp,
                                char *base_name,
-                               LTA **plta)
+                               LTA **plta,
+			       int handle_expanded_ventricles)
 {
   HISTOGRAM *h_mri, *h_gca ;
   int       l, nbins, i, x, y, z, xn, yn, zn, num, frame, \
@@ -15425,7 +15426,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                   // m_L, &scale_factor, NULL) ;
                   if ((l == Left_Lateral_Ventricle ||
                        l == Right_Lateral_Ventricle) &&
-                      (transform->type != MORPH_3D_TYPE))
+                      (transform->type != MORPH_3D_TYPE) &&
+		      (handle_expanded_ventricles == 1))
                     initialize_ventricle_alignment(mri_seg, mri, m_L) ;
                   MRIfaridAlignImages(mri_seg, mri,  m_L) ;
                 }else{
@@ -18731,6 +18733,9 @@ GCAlabelWMandWMSAs(GCA *gca,
 static int
 initialize_ventricle_alignment(MRI *mri_seg, MRI *mri, MATRIX *m_L)
 {
+  printf("Handling expanded ventricles... "
+	 "(gca::initialize_ventricle_alignment)\n");
+
   MRIcomputeOptimalLinearXform(mri_seg, mri, m_L,
                                -RADIANS(5), RADIANS(5),
                                .9, 2.0,  // allow for ventriular expansion
