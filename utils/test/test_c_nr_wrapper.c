@@ -6,9 +6,8 @@
 int main(int argc, char *argv[]) {
   // just trying to make sure that we can call the functions from c
   long seed = -1L * (long)( abs( (int)time(NULL) ) );  
-  OpenRan1( &seed );
   
-  
+  printf("random number: %f\n", OpenRan1( &seed ));
   
   return 0;  
 }
