@@ -31,6 +31,8 @@ static int map_to_flash = 0 ;
 
 static int wmsa = 0 ;
 
+static int handle_expanded_ventricles = 0;
+
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
@@ -137,13 +139,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.72 2006/05/09 21:02:22 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.73 2006/08/10 23:45:43 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.72 2006/05/09 21:02:22 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.73 2006/08/10 23:45:43 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -584,9 +586,11 @@ main(int argc, char *argv[])
 
 				// run it twice so that the histograms overlap on the 2nd run
 				GCAmapRenormalizeWithAlignment
-					(gca, mri_inputs, transform, logfp, base_name, NULL) ;
+					(gca, mri_inputs, transform, 
+					 logfp, base_name, NULL, handle_expanded_ventricles) ;
 				GCAmapRenormalizeWithAlignment
-					(gca, mri_inputs, transform, logfp, base_name, NULL) ;
+					(gca, mri_inputs, transform, 
+					 logfp, base_name, NULL, handle_expanded_ventricles) ;
 				if (regularize_mean > 0)
 					GCAregularizeConditionalDensities(gca, regularize_mean) ;
 				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
@@ -845,6 +849,11 @@ get_option(int argc, char *argv[])
 		norm_PD = TRUE ;
 		printf("normalizing PD image (2nd input) to GCA means[1]\n") ;
 	}
+  else if (!stricmp(option, "bigventricles"))
+    {
+      handle_expanded_ventricles = 1 ;
+      printf("handling expanded ventricles...\n") ;
+    }
   else if (!stricmp(option, "write_probs"))
 	{
 		G_write_probs = argv[2] ;
