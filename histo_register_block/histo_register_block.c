@@ -18,7 +18,7 @@
 
 #define RGB_SIZE 500
  
-static char vcid[] = "$Id: histo_register_block.c,v 1.4 2006/08/10 21:39:25 nicks Exp $";
+static char vcid[] = "$Id: histo_register_block.c,v 1.5 2006/08/10 23:03:28 nicks Exp $";
 
 static int    powell_minimize(MRI *mri_block, MRI *mri_histo, MRI *mri_seg, DENSITY *pdf, MATRIX *mat, int cost_type) ;
 static double compute_overlap(MRI *mri_src, MRI *mri_dst, MATRIX *m_total) ;
@@ -102,7 +102,7 @@ main(int argc, char *argv[])
 	
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_register_block.c,v 1.4 2006/08/10 21:39:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: histo_register_block.c,v 1.5 2006/08/10 23:03:28 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1303,7 +1303,7 @@ powell_minimize(MRI *mri_block, MRI *mri_histo, MRI *mri_seg, DENSITY *pdf, MATR
 		}
 	}
 
-	powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 	do
 	{
 		for (r = 1 ; r <= NPARMS ; r++)
@@ -1315,7 +1315,7 @@ powell_minimize(MRI *mri_block, MRI *mri_histo, MRI *mri_seg, DENSITY *pdf, MATR
 		}
 
 		fstart = fret ;
-		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+		OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 		for (i = r = 1 ; r <= 3 ; r++)
 		{
 			for (c = 1 ; c <= 3 ; c++)
