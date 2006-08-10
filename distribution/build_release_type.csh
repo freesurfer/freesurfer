@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.63 2006/07/25 16:40:04 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.64 2006/08/10 23:42:07 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -76,6 +76,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/5.0.0
+  set VXLDIR=/usr/pubsw/packages/vxl/1.4.0
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
   setenv QTDIR  /usr/pubsw/packages/qt/3.3.5
   unsetenv FSLDIR
@@ -91,6 +92,7 @@ else
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
+  set VXLDIR=/usr/pubsw/packages/vxl/current
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv QTDIR  /usr/pubsw/packages/qt/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
@@ -340,6 +342,7 @@ set cnfgr=($cnfgr $ENAB_NMR)
 set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
 set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
+set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 set cnfgr=($cnfgr --with-qt-dir=${QTDIR})
@@ -481,6 +484,7 @@ symlinks:
   rm -f ${DEST_DIR}/lib/gsl
   rm -f ${DEST_DIR}/lib/qt
   rm -f ${DEST_DIR}/lib/vtk
+  rm -f ${DEST_DIR}/lib/vxl
   rm -f ${DEST_DIR}/lib/misc
   # then setup for proper installation
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
@@ -489,8 +493,9 @@ symlinks:
   set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
   set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
   set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
+  set cmd7=(ln -s ${VXLDIR} ${DEST_DIR}/lib/vxl)
   if ("$OSTYPE" == "Darwin") then
-      set cmd7=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
+      set cmd8=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
   endif
   # execute the commands
   echo "$cmd1" >>& $OUTPUTF
@@ -505,9 +510,11 @@ symlinks:
   $cmd5
   echo "$cmd6" >>& $OUTPUTF
   $cmd6
+  echo "$cmd7" >>& $OUTPUTF
+  $cmd7
   if ("$OSTYPE" == "Darwin") then
-    echo "$cmd7" >>& $OUTPUTF
-    $cmd7
+    echo "$cmd8" >>& $OUTPUTF
+    $cmd8
   endif
   # also setup sample subject:
   rm -f ${DEST_DIR}/subjects/bert
