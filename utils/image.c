@@ -3065,7 +3065,8 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
 
            Description:
 ----------------------------------------------------------------------*/
-#include "eigen.h"
+#include "nr_wrapper_open_source.h"
+// TODO: #include "eigen.h"
 #include "matfile.h"
 
 static int compare_evalues(const void *l1, const void *l2)  ;
@@ -3138,8 +3139,10 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
   pcImage = ImageAlloc(image->rows, image->cols, PFFLOAT, nterms+2) ;
   rows = pcImage->rows ;
   cols = pcImage->cols ;
-  
-  EigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
+
+// TODO:  
+  OpenEigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
+//  EigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
 #if 0
   MatFileWrite("evectors.mat", evectors, cimage->rows, cimage->rows,
                "evectors") ;

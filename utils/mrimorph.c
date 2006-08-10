@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/06 20:55:19 $
-// Revision       : $Revision: 1.57 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2006/08/10 19:51:18 $
+// Revision       : $Revision: 1.58 $
 */
 
 /*-----------------------------------------------------
@@ -38,7 +38,9 @@
 #include "mrisurf.h"
 #include "icosahedron.h"
 #include "mrishash.h"
-#include "nr_wrapper.h"
+
+#include "nr_wrapper_open_source.h"
+
 #include "voxlist.h"
 #include "matrix.h"
 
@@ -7054,9 +7056,11 @@ mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
       fprintf(stderr,"pass %d through quasi-newton minimization...\n",steps);
     fold = fnew ;
     dfp_step_func(0, fnew, parms, p) ;
-    dfpmin(p, 12, parms->tol, &iter, &fnew, 
+         
+    OpenDFPMin(p, 12, parms->tol, &iter, &fnew, 
          computeRigidAlignmentErrorFunctional,
-         computeRigidAlignmentGradient, dfp_step_func, parms) ;
+         computeRigidAlignmentGradient, dfp_step_func, parms, NULL) ;
+         
 		parms->start_t += iter ;
 
     /* read out current transform */
@@ -8134,9 +8138,9 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float
 #endif
 
 	if (pscale_factor)
-		powell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
+		OpenPowell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
 	else
-		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+		OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 	scale_factor = p[i] ; 
 	do
 	{
@@ -8162,9 +8166,9 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float
 		}
 		fstart = fret ;
 		if (pscale_factor)
-			powell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
+			OpenPowell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
 		else
-			powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+			OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 		
 		*MATRIX_RELT(mat, 1, 4) = p[i=1] ;
 		*MATRIX_RELT(mat, 2, 4) = p[i++] ; 
@@ -8256,11 +8260,15 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
     fold = fnew ;
     dfp_em_step_func(0, fnew, parms, p) ;
     //        n    ftol       *iter  *fret
-    dfpmin(p, 12, parms->tol, &iter, &fnew,
+
+
+    OpenDFPMin(p, 12, parms->tol, &iter, &fnew,
 	   //    void (*func)(float [])
          computeEMAlignmentErrorFunctional,
 	   //    void (*dfunc)(float [], float []), void (*stepfunc), parms
-         computeEMAlignmentGradient, dfp_em_step_func, parms) ;
+         computeEMAlignmentGradient, dfp_em_step_func, parms,
+         user_call_func ) ;
+
     if (parms->rigid)
       mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;
 		parms->start_t += iter ;
@@ -8659,7 +8667,7 @@ powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
 	}
     }
   
-  powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
+  OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
 
   do
     {
@@ -8674,7 +8682,7 @@ powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
       
 
       fstart = fret ;
-      powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
+      OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
 		
       *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
       *MATRIX_RELT(mat, 2, 4) = p[i++] ; 

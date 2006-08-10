@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.85 2006/08/07 13:51:06 fischl Exp $
+// $Id: matrix.c,v 1.86 2006/08/10 19:51:18 dsjen Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,9 +25,8 @@
 #include "error.h"
 #include "utils.h"
 #include "diag.h"
-#include "eigen.h"
 #include "macros.h"
-#include "nr_wrapper.h"
+#include "nr_wrapper_open_source.h"
 #include "evschutils.h"
 
 
@@ -143,7 +142,7 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
     a = mTmp->rptr ;
     y = mOut->rptr ;
 
-    isError = lu_matrix_inverse(a, y, rows);
+    isError = OpenLUMatrixInverse(mTmp, mOut);
     
     if( isError < 0 ) {
       MatrixFree(&mTmp);
@@ -1204,31 +1203,8 @@ MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut)
 float
 MatrixDeterminant(MATRIX *mIn)
 {
-  float  d, **in ;
-  int    j,*index, rows, columns ;
-  MATRIX *mSrc ;
-
-  rows = mIn->rows ;
-  columns = mIn->cols;
-
-  if( rows == columns ) {    
-    mSrc = MatrixCopy(mIn, NULL) ;
-    in = mSrc->rptr ;
-    index = (int *)calloc(rows+1, sizeof(int)) ;
-    if (ludcmp(in, rows, index, &d) < 0)
-      return(0.0f) ;
-  
-    for (j = 1 ; j <= rows ; j++) 
-      d *= in[j][j];
-  
-    free(index) ;
-    MatrixFree(&mSrc) ;
-  } else {
-    // the matrix isn't square, so we're returning 0
-    d = 0.0f;
-  }  
-  return d;
-}
+  return OpenMatrixDeterminant( mIn );
+}  
 
 /* return the eigenvalues and eigenvectors of the symmetric matrix m in
    evalues and m_dst (columns are vectors) respectively. Note that
@@ -1268,7 +1244,7 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
     m_evectors = MatrixAlloc(m->rows, m->cols, MATRIX_REAL) ;
 
   mTmp = MatrixAlloc(m->rows, m->cols, MATRIX_REAL) ;
-  if (EigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR)
+  if (OpenEigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR)
     return(NULL) ;
 
 /* 
@@ -1333,7 +1309,7 @@ MatrixSVDEigenValues(MATRIX *m, float *evalues)
   memset(evalues, 0, nevalues*sizeof(evalues[0])) ;
   
   /* calculate condition # of matrix */
-  if (svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) != NO_ERROR)
+  if (OpenSvdcmp(m_U, v_w, m_V) != NO_ERROR)
     return(Gerror) ;
 
   eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
@@ -1389,7 +1365,7 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
   m_w = MatrixAlloc(cols, cols, MATRIX_REAL) ;
 
-  if (svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) != NO_ERROR)
+  if (OpenSvdcmp(m_U, v_w, m_V) != NO_ERROR)
   {
     MatrixFree(&m_U) ;
     VectorFree(&v_w) ;
@@ -2294,7 +2270,7 @@ MatrixSingular(MATRIX *m)
   m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
 
   /* calculate condition # of matrix */
-  if (svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) != NO_ERROR)
+  if (OpenSvdcmp(m_U, v_w, m_V) != NO_ERROR)
     return(Gerror) ;
 
   wmax = 0.0f ;
@@ -2338,7 +2314,7 @@ float MatrixConditionNumber(MATRIX *m)
   m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
 
   /* calculate condition # of matrix */
-  svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) ;
+  OpenSvdcmp(m_U, v_w, m_V) ;
   wmax = 0.0f ;
   wmin = wmax = RVECTOR_ELT(v_w,1) ;
   for (row = 2 ; row <= rows ; row++)

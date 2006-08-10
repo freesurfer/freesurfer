@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.201 2006/08/09 01:40:53 nicks Exp $"
+# "$Id: configure.in,v 1.202 2006/08/10 19:51:18 dsjen Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -39,6 +39,10 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
+
+# links with g++ rather than gcc, I think
+CCLD=g++
+AC_SUBST(CCLD)
 
 # two programs used for compress/decompress files
 # cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so
@@ -689,7 +693,7 @@ AC_MSG_CHECKING(VXL directory)
 
 AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR       where the root of VXL is installed.],
-  [  ac_vxl_includes="$withval/include/core $withval/include/vcl"
+  [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
      ac_vxl_libraries="$withval"/lib
      ac_vxl_dir="$withval"
   ])
@@ -1128,7 +1132,7 @@ CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS \
 LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS $CPPUNIT_LIBS \
         $VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
-LIBS=" -lgsl -lgslcblas $LIBS"
+LIBS=" -lgsl -lgslcblas -lvnl_algo -lvnl -lnetlib $LIBS"
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)

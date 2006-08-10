@@ -8,7 +8,7 @@
  *
  */
 
-/* $Id: mrinorm.c,v 1.77 2006/07/21 19:55:38 nicks Exp $ */
+/* $Id: mrinorm.c,v 1.78 2006/08/10 19:51:18 dsjen Exp $ */
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -31,7 +31,8 @@
 #include "mrinorm.h"
 #include "talairachex.h"
 #include "ctrpoints.h"
-#include "nr_wrapper.h"
+
+#include "nr_wrapper_open_source.h"
 
 /*-----------------------------------------------------
   MACROS AND CONSTANTS
@@ -133,7 +134,9 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
 
   if (npoints > MAX_SPLINE_POINTS)
     npoints = MAX_SPLINE_POINTS ;
-  spline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
+
+  OpenSpline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
+
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
@@ -145,7 +148,7 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
     {
       if (pmri_field)
         pfield = &MRIvox(mri_field, 0, y, 0) ;
-      splint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
+      OpenSplint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
       if (pmri_field)
         for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
           *pfield++ = nint(110.0f/frac) ;
@@ -196,7 +199,7 @@ mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
 
   if (npoints > MAX_SPLINE_POINTS)
     npoints = MAX_SPLINE_POINTS ;
-  spline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
+  OpenSpline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
@@ -208,7 +211,7 @@ mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
     {
       if (pmri_field)
         pfield = (char*)&MRIvox(mri_field, 0, y, 0) ;
-      splint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
+      OpenSplint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
       if (pmri_field)
         for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
           *pfield++ = nint(110.0f/frac) ;

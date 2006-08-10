@@ -12,9 +12,9 @@
   Description: miscellaneous utility functions
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
-  // Revision Author: $Author: nicks $
-  // Revision Date  : $Date: 2006/03/25 22:09:38 $
-  // Revision       : $Revision: 1.53 $
+  // Revision Author: $Author: dsjen $
+  // Revision Date  : $Date: 2006/08/10 19:51:18 $
+  // Revision       : $Revision: 1.54 $
 
   ------------------------------------------------------------------------*/
 
@@ -44,7 +44,7 @@
 #include "image.h"
 #include "macros.h"
 #include "mghendian.h"
-#include "nr_wrapper.h"
+#include "nr_wrapper_open_source.h"
 
 /*------------------------------------------------------------------------
   CONSTANTS
@@ -88,7 +88,8 @@ setRandomSeed(long seed)
   srandom(seed);
 
   // reset numerical recipes ran1 state storage
-  reset_ran1();
+// I'm not sure that we need to explicitly reset this generator.  It's 
+// reset automatically when given a new seed
 
   return(NO_ERROR) ;
 }
@@ -109,7 +110,7 @@ randomNumber(double low, double hi)
     idum = -1L * (long)(abs((int)time(NULL))) ;
 
   range = hi - low ;
-  val = ran1(&idum) * range + low ;
+  val = OpenRan1(&idum) * range + low ;
 
   if ((val < low) || (val > hi))
     ErrorPrintf(ERROR_BADPARM, "randomNumber(%2.1f, %2.1f) - %2.1f\n",

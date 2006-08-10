@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/06 20:55:50 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2006/08/10 19:51:18 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,7 @@
 #include "cma.h"
 #include "version.h"
 #include "transform.h"
-#include "nr_wrapper.h"
+#include "nr_wrapper_open_source.h"
 #include "fastmarching.h"
 #include "voxlist.h"
 
@@ -867,7 +867,7 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 	}
 
 	diag = Gdiag ; Gdiag |= DIAG_VERBOSE ;
-	powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 	Gdiag = diag ;
 	do
 	{
@@ -880,7 +880,7 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 		}
 
 		fstart = fret ;
-		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+    OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 		for (i = r = 1 ; r <= 3 ; r++)
 		{
 			for (c = 1 ; c <= 4 ; c++)

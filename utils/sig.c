@@ -8,8 +8,8 @@
 #include "diag.h"
 #include "macros.h"
 #include "proto.h"
-#include "nr_wrapper.h"
 
+#include "nr_wrapper_open_source.h"
 
 /*---------------------------------------------------------------
   fdr2vwth() - returns the voxel-wise threshold given the
@@ -95,7 +95,7 @@ double sigt(double t,int df)
   if (df==0)
     sig = 1;
   else if (df < MAXDOF && fabs(t) < MAXT)
-    sig = betai(0.5*df,0.5,df/(df+t*t));
+    sig = OpenBetaIncomplete(0.5*df,0.5,df/(df+t*t));
 
   if(df>MAXDOF || sig < DBL_MIN){
     sig1 = erfc(fabs(t)/sqrt(2.0));
@@ -130,6 +130,6 @@ sigchisq(double chisq, int df)
 
   if (FZERO(chisq) || df == 0)
     return(1.0f) ;
-  p = gammp((float)df/2, (float)chisq/2.0) ;
+  p = OpenGammaIncomplete((float)df/2, (float)chisq/2.0) ;
   return(1-p) ;
 }

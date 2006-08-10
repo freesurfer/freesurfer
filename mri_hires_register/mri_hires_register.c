@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:21 $
-// Revision       : $Revision: 1.9 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2006/08/10 19:51:18 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,8 @@
 #include "cma.h"
 #include "version.h"
 #include "transform.h"
-#include "nr_wrapper.h"
+// TODO: #include "nr_wrapper.h"
+#include "nr_wrapper_open_source.h"
 #include "fastmarching.h"
 #include "voxlist.h"
 
@@ -1439,7 +1440,7 @@ powell_minimize(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *mat)
 		}
 	}
 
-	powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 	do
 	{
 		for (r = 1 ; r <= NPARMS ; r++)
@@ -1451,7 +1452,7 @@ powell_minimize(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *mat)
 		}
 
 		fstart = fret ;
-		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+		OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 		for (i = r = 1 ; r <= 4 ; r++)
 		{
 			for (c = 1 ; c <= 4 ; c++)

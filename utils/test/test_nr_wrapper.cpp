@@ -818,7 +818,9 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   
   // this will become the new svdcmp
   if( IS_USING_VNL ) {
-    isError = OpenSvdcmp( u, w, v );
+//    isError = OpenSvdcmp( u, w, v );
+    isError = OpenSvdcmp( u->rptr, numberOfRows, numberOfColumns, 
+                          w->rptr[1], v->rptr );
   } else {
 /* TODO:
     isError = svdcmp( u->rptr, numberOfRows, numberOfColumns, 
