@@ -1,16 +1,8 @@
 #!/bin/csh -f
 # fMRI selective frequency combining of averages (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqcomb,v 1.4 2005/05/10 15:31:08 greve Exp $';
-set cmdargv = "$argv";
-
-set n = `echo $argv | grep version | wc -l` 
-if($n != 0) then
-  echo $VERSION
-  exit 0;
-endif
-
-if($#argv == 0) goto usage_exit;
+set VERSION = '$Id: selfreqcomb,v 1.4.2.1 2006/08/11 18:34:48 greve Exp $';
+set cmdargv = ($argv);
 
 set instems = ();
 set outstem = ();
@@ -20,12 +12,23 @@ set dofmax = 1000;
 set firstslice = ();
 set nslices = ();
 
+set n = `echo $argv | grep -e version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+if($#argv == 0) goto usage_exit;
 goto parse_args;
 parse_args_return:
-
-
 goto check_params;
 check_params_return:
+
+echo "------------------------------------------------"
+date
+pwd
+echo $0 $cmdargv
+echo setenv SUBJECTS_DIR $SUBJECTS_DIR
+echo FREESURFER_HOME $FREESURFER_HOME
 
 if($#firstslice == 0) then
   set firstslice = `getfirstsliceno $instems[1]`;
@@ -37,16 +40,13 @@ if($#nslices == 0) then
   if($status) exit 1;
 endif
 
-set MATLAB = `getmatlab`;
-if($status) exit 1;
-
 if ($monly) then
   set QuitOnError = 0;
   set TARGET = "tee $mfile"
   rm -f $mfile;
 else
   set QuitOnError = 1;
-  set TARGET =  "$MATLAB -display iconic"
+  set TARGET =  "matlab -display iconic"
 endif  
 
 set outdir = `dirname $outstem`;
@@ -70,9 +70,9 @@ $TARGET <<EOF
 
   %% Get the dimensions from the bfile %%
   [nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
-  if(ntp ~= 13) 
-    msg = sprintf('Input file %s has wrong number of planes (%d/%d)', ...
-                  instems(1,:),ntp,13);
+  if(ntp ~= 13 & ntp ~= 14) 
+    msg = sprintf('Input file %s has wrong number of frames (%d)', ...
+                  instems(1,:),ntp);
     qoe(msg); error(msg);
   end
   if(isempty(firstslice)) firstslice = fs; end
