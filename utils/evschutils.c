@@ -245,7 +245,7 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
 -----------------------------------------------------------------*/
 EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer, 
 			 float tRes, float tMax, float tPreScan,
-			 int nCB1Search, float tNullMax)
+			 int nCB1Search, float tNullMin, float tNullMax)
 {
   int id,m,n,nevents, nSlotsNull,nSlotsTot, *EvSeq, nNullMax;
   float tStimTot,t,tScanTot, tNullTot;
@@ -256,7 +256,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   nevents = 0;
   for(n=0;n<nEvTypes;n++){
     nevents += nPer[n];
-    tStimTot += (nPer[n]*tPer[n]);
+    tStimTot += (nPer[n]*tPer[n] + tNullMin);
   }
 
   /* Compute the total amount of scan time and compare to stim time */
@@ -274,7 +274,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
 
   /* The code  below is for synthesizing the timing */
   /* Compute the total amount of null time */
-  tNullTot = tScanTot-tStimTot;
+  tNullTot = tScanTot-tStimTot-nevents*tNullMin;;
 
   /* Comute number of slots allocated for null */
   nSlotsNull = (int)floor(tNullTot/tRes);
@@ -305,6 +305,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
       id = EvSch->eventid[m];
       EvSch->tevent[m] = t;
       t += tPer[id-1];
+      t += tNullMin;
       m++;
     }
     else t += tRes;

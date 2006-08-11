@@ -49,7 +49,7 @@ int EVSmaxId(EVSCH *EvSch);
 
 EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer, 
 			 float tRes, float tMax, float tPreScan,
-			 int nCB1Search, float tNullMax);
+			 int nCB1Search, float tNullMin, float tNullMax);
 
 EVENT_SCHEDULE *RandEvSch(int nevents, int ntypes, float dtmin, 
 			  float dtnullavg, int randweights);
