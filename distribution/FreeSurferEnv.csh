@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.49 2006/05/04 21:48:49 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.50 2006/08/13 14:02:44 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.49 2006/05/04 21:48:49 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.50 2006/08/13 14:02:44 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -31,7 +31,9 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
-    echo "       GSL__DIR"
+    echo "       GSL_DIR"
+    echo "       VTK_DIR"
+    echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
@@ -436,6 +438,30 @@ if ( $?VTK_DIR ) then
 endif
 if( $output && $?VTK_DIR ) then
     echo "VTK_DIR         $VTK_DIR"
+endif
+
+
+### -------------- VXL ------------- ###
+if ( -e $FREESURFER_HOME/lib/vxl) then
+    setenv VXL_DIR    $FREESURFER_HOME/lib/vxl
+else if ( -e /usr/pubsw/packages/vxl/current) then
+    setenv VXL_DIR    /usr/pubsw/packages/vxl/current
+endif
+if ( $?VXL_DIR ) then
+    setenv PATH     $VXL_DIR/bin:$PATH
+    if (! $?LD_LIBRARY_PATH) then
+        setenv LD_LIBRARY_PATH  $VXL_DIR/lib
+    else
+        setenv LD_LIBRARY_PATH  "$VXL_DIR/lib":"$LD_LIBRARY_PATH"
+    endif
+    if (! $?DYLD_LIBRARY_PATH) then
+        setenv DYLD_LIBRARY_PATH  $VXL_DIR/lib
+    else
+        setenv DYLD_LIBRARY_PATH  "$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
+    endif
+endif
+if( $output && $?VXL_DIR ) then
+    echo "VXL_DIR         $VXL_DIR"
 endif
 
 

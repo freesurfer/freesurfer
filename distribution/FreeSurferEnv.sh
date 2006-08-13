@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.17 2006/05/04 21:48:49 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.18 2006/08/13 14:02:44 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.17 2006/05/04 21:48:49 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.18 2006/08/13 14:02:44 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -34,6 +34,8 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
+    echo "       VTK_DIR"
+    echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
@@ -419,9 +421,38 @@ if [ -n "$VTK_DIR" ]; then
     else
         export LD_LIBRARY_PATH="$VTK_DIR/lib":"$LD_LIBRARY_PATH"
     fi
+    if [ -z "$DYLD_LIBRARY_PATH" ]; then
+        export DYLD_LIBRARY_PATH=$VTK_DIR/lib
+    else
+        export DYLD_LIBRARY_PATH="$VTK_DIR/lib":"$DYLD_LIBRARY_PATH"
+    fi
 fi
 if [[ $output == 1 && -n "$VTK_DIR" ]]; then
     echo "VTK_DIR         $VTK_DIR"
+fi
+
+
+### ------ VXL  ------- ####
+if [ -d $FREESURFER_HOME/lib/vxl ]; then
+    export VXL_DIR=$FREESURFER_HOME/lib/vxl
+elif [ -d /usr/pubsw/packages/vxl/current ]; then
+    export VXL_DIR=/usr/pubsw/packages/vxl/current
+fi
+if [ -n "$VXL_DIR" ]; then
+    export PATH=$VXL_DIR/bin:$PATH
+    if [ -z "$LD_LIBRARY_PATH" ]; then
+        export LD_LIBRARY_PATH=$VXL_DIR/lib
+    else
+        export LD_LIBRARY_PATH="$VXL_DIR/lib":"$LD_LIBRARY_PATH"
+    fi
+    if [ -z "$DYLD_LIBRARY_PATH" ]; then
+        export DYLD_LIBRARY_PATH=$VXL_DIR/lib
+    else
+        export DYLD_LIBRARY_PATH="$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
+    fi
+fi
+if [[ $output == 1 && -n "$VXL_DIR" ]]; then
+    echo "VXL_DIR         $VXL_DIR"
 fi
 
 
