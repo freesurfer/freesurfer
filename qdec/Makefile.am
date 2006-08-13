@@ -19,7 +19,9 @@ SRCMOC   = .moc/moc_mainform.cpp
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
-bin_PROGRAMS=qdec ${QDEC_BUNDLE_TARGET}
+#don't build Qt-based apps
+bin_PROGRAMS=
+#bin_PROGRAMS=qdec ${QDEC_BUNDLE_TARGET}
 EXTRA_PROGRAMS=
 
 qdec_SOURCES=\

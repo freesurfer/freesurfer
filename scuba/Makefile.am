@@ -142,7 +142,9 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
-bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
+#don't build Qt-based apps
+bin_PROGRAMS=scuba
+#bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
 EXTRA_PROGRAMS=
 scuba_SOURCES=$(UTILITIES_SRCS) \
 	$(BASIC_SRCS) \
