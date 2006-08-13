@@ -148,10 +148,10 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
-if DISABLE_QT_APPS
-bin_PROGRAMS=scuba
-else
+if ENABLE_QT_APPS
 bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
+else
+bin_PROGRAMS=scuba
 endif
 EXTRA_PROGRAMS=
 scuba_SOURCES=$(UTILITIES_SRCS) \
