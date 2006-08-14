@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.203 2006/08/13 00:31:16 nicks Exp $"
+# "$Id: configure.in,v 1.204 2006/08/14 21:34:19 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -120,7 +120,7 @@ AC_SUBST(BYTEORDER)
 TEEM_ENDIAN=$BYTEORDER
 
 # Support for files >2GB (Large File Support)
-LFS_CFLAGS="-D_FILE_OFFSET_BITS=64"
+LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
