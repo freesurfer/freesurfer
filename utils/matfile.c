@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/08/09 21:59:34 $
-// Revision       : $Revision: 1.24 $
+// Revision Date  : $Date: 2006/08/14 21:20:59 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -73,8 +73,9 @@ MATRIX *MatlabRead(const char *fname)
   int      file_type, nrows, ncols, row, col ;
   float    *fptr = NULL ;
 
-  if(getenv("USE_MATLAREAD2")!=NULL)
-    return(MatlabRead2(fname));
+  printf("Using MatlabRead2()\n");
+  return(MatlabRead2(fname));
+  // Should never get here
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: opening file %s\n",fname);
@@ -348,6 +349,185 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
   double  dval ;
   char    bval ;
   float   fval ;
+  
+  if (mf->version == 5) { 
+    type = (int)mf->type;
+    switch (type)
+      {
+      case 9:
+	type = MAT_DOUBLE ;
+	break ;
+      case 7:
+	type = MAT_FLOAT ;
+	break ;
+      case 6:     /* long signed */
+      case 5:     /* long unsigned */
+	type = MAT_INT ;
+	break ;
+      case 4:     /* short signed */
+      case 3:     /* short unsigned */
+	type = MAT_SHORT ;
+	break ;
+      case 2:     /* bytes signed */
+      case 1:     /* bytes unsigned */
+	type = MAT_BYTE ;
+	break ;
+      default:
+	ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
+		    type, type == MAT_FLOAT ? "float" : "unknown") ;
+	break ;
+      }
+  }
+  else{   /* if (mf.version == 4) */
+    type = (int)mf->type - ((int)mf->type / 1000) * 1000 ;   /* remove 1000s */
+    type = type - type / 100 * 100 ;               /* remove 100s from type */
+    type = type / 10 * 10 ;       /* 10s digit specifies data type */
+    switch (type)
+      {
+      case 0:
+	type = MAT_DOUBLE ;
+	break ;
+      case 10:
+	type = MAT_FLOAT ;
+	break ;
+      case 20:
+	type = MAT_INT ;
+	break ;
+      case 30:  /* signed */
+      case 40:  /* unsigned */
+	type = MAT_SHORT ;
+	break ;
+      case 50:     /* bytes */
+	type = MAT_BYTE ;
+	break ;
+      default:
+	ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
+		    type, type == MAT_FLOAT ? "float" : "unknown") ;
+	break ;
+      }
+  }
+  /* data is stored column by column, real first then imag (if any) */
+  for (col = 0 ; col < mf->ncols ; col++)
+    {
+      for (row = 0 ; row < mf->mrows ; row++)
+	{
+	  switch(type)
+	    {
+	    case MAT_BYTE:	     
+	      nitems = fread(&bval, 1, sizeof(char), fp); 	  
+	      if (nitems != sizeof(char))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file\n",
+		     MatProgname, row, col) ;
+		  /*exit(4)*/return(-1) ;
+		}
+	      real_matrix[row][col] = (double)bval ;
+	      break ;
+	    case MAT_SHORT:
+	      nitems = fread(&sval, 1, sizeof(short), fp) ;
+	      if (nitems != sizeof(char))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file\n",
+		     MatProgname, row, col) ;
+		  /*exit(4)*/return(-1) ;
+		}
+	      if (DIFFERENT_ENDIAN(mf))
+		sval = swapShort(sval) ;
+	      real_matrix[row][col] = (double)sval ;
+	      break ;
+	    case MAT_INT:   /* 32 bit integer */
+	      nitems = fread(&lval, 1, sizeof(long), fp) ;
+	      if (nitems != sizeof(long))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file\n",
+		     MatProgname, row, col) ;
+		  /*exit(4)*/return(-1) ;
+		}
+
+	      if (DIFFERENT_ENDIAN(mf))
+		lval = swapLong32(lval) ;
+	      real_matrix[row][col] = (double)lval ;
+	      break ;
+	    case MAT_FLOAT:
+	      nitems = fread(&fval, 1, sizeof(float), fp) ;
+	      if (nitems != sizeof(float))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file\n",
+		     MatProgname, row, col) ;
+		  /*exit(4)*/return(-1) ;
+		}
+	      if (DIFFERENT_ENDIAN(mf))
+		fval = (float)swapLong32((long32)fval) ;
+	      real_matrix[row][col] = (double)fval ;
+	      break ;
+	    case MAT_DOUBLE:
+	    nitems = fread(&dval, 1, sizeof(double), fp) ;
+	      if (nitems != sizeof(double))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file\n",
+		     MatProgname, row, col) ;
+		  /*exit(4)*/return(-1) ;
+		}
+	      if (DIFFERENT_ENDIAN(mf))
+		dval = swapDouble(dval) ;
+	      real_matrix[row][col] = dval ;
+	      break ;
+	    default:
+	      break ;
+	    }
+	}
+    }
+
+  if (imag_matrix) for (col = 0 ; col < mf->ncols ; col++)
+    {
+      for (row = 0 ; row < mf->mrows ; row++)
+	{
+	  switch(type)
+	    {
+	    case MAT_DOUBLE:
+	      nitems = fread(&dval, 1, sizeof(double), fp) ;
+	      if (nitems != sizeof(double))
+		{
+		  ErrorPrintf
+		    (ERROR_BADFILE,
+		     "%s: could not read val[%d, %d] from .mat file - imag\n",
+		     MatProgname, row, col) ;
+		  /*exit(4) ;*/
+		  return(-1);
+		}
+	      break ;
+	    default:
+	      break ;
+	    }
+	  if (DIFFERENT_ENDIAN(mf))
+	    dval = swapDouble(dval) ;
+	  imag_matrix[row][col] = dval ;
+	}
+    }
+
+  return(type) ;
+}
+
+#if 0
+static int
+readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
+{
+  int     row, col, type, nitems ;
+  short   sval ;
+  long    lval ;
+  double  dval ;
+  char    bval ;
+  float   fval ;
 
   type = (int)mf->type - ((int)mf->type / 1000) * 1000 ;   /* remove 1000s */
   type = type - type / 100 * 100 ;               /* remove 100s from type */
@@ -487,6 +667,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
 
   return(type) ;
 }
+#endif
 
 /*---------------------------------------------------------*/
 char *MatReadHeader0(FILE *fp, MATFILE *mf)
@@ -699,107 +880,108 @@ int MLFCfree(MLFC **ppmlfc){
   return(0) ;
 }
 
-/*-------------------------------------------------------*/
-/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------------
+  znzreadMatFile() - loads data from a buffer into an array. There is
+  no actual decompression that happens here, but this function is run
+  as part of reading in data from a file with compressed elements.
+  Handles swapping of data. The arrays must have been allocated. If
+  the caller wants to read in an imaginary part, then imag_matrix
+  should not be NULL (but does not check that there is an imaginary
+  part to read in).
+  --------------------------------------------------------------*/
 static int
 znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_matrix)
 {
-  int     row, col, type, offset =0;
+  int     row, col, type, offset=0;
   short   sval=1 ;
   long    lval=1 ;
   double  dval=1 ;
   char    bval='1' ;
   float   fval=1 ;
-  
+
   type = (int)mf->type;
-    switch (type)
-      {
-      case 9:
-        type = MAT_DOUBLE ;
-        break ;
-      case 7:
-        type = MAT_FLOAT ;
-        break ;
-      case 6:     /* long signed */
-      case 5:     /* long unsigned */
-        type = MAT_INT ;
-        break ;
-      case 4:     /* short signed */
-      case 3:     /* short unsigned */
-        type = MAT_SHORT ;
-        break ;
-      case 2:     /* bytes signed */
-      case 1:     /* bytes unsigned */
-         type = MAT_BYTE ;
-        break ;
+  switch (type){
+  case 9:
+    type = MAT_DOUBLE ;
+    break ;
+  case 7:
+    type = MAT_FLOAT ;
+    break ;
+  case 6:     /* long signed */
+  case 5:     /* long unsigned */
+    type = MAT_INT ;
+    break ;
+  case 4:     /* short signed */
+  case 3:     /* short unsigned */
+    type = MAT_SHORT ;
+    break ;
+  case 2:     /* bytes signed */
+  case 1:     /* bytes unsigned */
+    type = MAT_BYTE ;
+    break ;
+  default:
+    ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
+		type, type == MAT_FLOAT ? "float" : "unknown") ;
+    break ;
+  }
+
+  // unbuff has header and data in it. The header is 56 bytes long, 
+  // so need to skip past it. May not always be 56 (if elment name
+  // is small or normal). Could be a bug.
+  for (col = 0 ; col < mf->ncols ; col++)    {
+    for (row = 0 ; row < mf->mrows ; row++)	{
+      switch(type){
+      case MAT_BYTE:
+	offset = 56 + col * (int)(mf->mrows) * sizeof(char) + row * sizeof(char);    	  
+	memcpy(&bval, &unbuff[offset], sizeof(char));
+	real_matrix[row][col] = (double)bval ;
+	break ;
+      case MAT_SHORT:
+	offset = 56 + col * (int)(mf->mrows) * sizeof(short) + row * sizeof(short);
+	memcpy(&sval, &unbuff[offset], sizeof(short));
+	if(DIFFERENT_ENDIAN(mf)) sval = swapShort(sval) ;
+	real_matrix[row][col] = (double)sval ;
+	break ;
+      case MAT_INT:   /* 32 bit integer */
+	offset = 56 + col * (int)(mf->mrows) * sizeof(long) + row * sizeof(long);
+	memcpy(&lval, &unbuff[offset], sizeof(long));
+	if (DIFFERENT_ENDIAN(mf)) lval = swapLong32(lval) ;
+	real_matrix[row][col] = (double)lval ;
+	break ;
+      case MAT_FLOAT:
+	offset = 56 + col * (int)(mf->mrows) * sizeof(float) + row * sizeof(float);
+	memcpy(&fval, &unbuff[offset], sizeof(float));
+	if (DIFFERENT_ENDIAN(mf)) fval = (float)swapLong32((long32)fval) ;
+	real_matrix[row][col] = (double)fval ;
+	break ;
+      case MAT_DOUBLE:
+	offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
+	memcpy(&dval, &unbuff[offset], sizeof(double));
+	if (DIFFERENT_ENDIAN(mf))  dval = swapDouble(dval) ;
+	real_matrix[row][col] = dval ;
+	break ;
       default:
-        ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
-		    type, type == MAT_FLOAT ? "float" : "unknown") ;
-        break ;
+	break ;
       }
-            
-  for (col = 0 ; col < mf->ncols ; col++)
-    {
-      for (row = 0 ; row < mf->mrows ; row++)
-	{
-	  switch(type)
-	    {
-	    case MAT_BYTE:
-	      offset = 56 + col * (int)(mf->mrows) * sizeof(char) + row * sizeof(char);    	  
-	      memcpy(&dval, &unbuff[offset], sizeof(char));
-	      real_matrix[row][col] = (double)bval ;
-	      break ;
-	    case MAT_SHORT:
-	      offset = 56 + col * (int)(mf->mrows) * sizeof(short) + row * sizeof(short);
-	      memcpy(&dval, &unbuff[offset], sizeof(short));
-	      if (DIFFERENT_ENDIAN(mf))
-		sval = swapShort(sval) ;
-	      real_matrix[row][col] = (double)sval ;
-	      break ;
-	    case MAT_INT:   /* 32 bit integer */
-	      offset = 56 + col * (int)(mf->mrows) * sizeof(long) + row * sizeof(long);
-	      memcpy(&dval, &unbuff[offset], sizeof(long));
-	      if (DIFFERENT_ENDIAN(mf))
-		lval = swapLong32(lval) ;
-	      real_matrix[row][col] = (double)lval ;
-	      break ;
-	    case MAT_FLOAT:
-      	      offset = 56 + col * (int)(mf->mrows) * sizeof(float) + row * sizeof(float);
-	      memcpy(&dval, &unbuff[offset], sizeof(float));
-	      if (DIFFERENT_ENDIAN(mf))
-	        fval = (float)swapLong32((long32)fval) ;
-	      real_matrix[row][col] = (double)fval ;
-	      break ;
-	    case MAT_DOUBLE:
-	      offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
-	      memcpy(&dval, &unbuff[offset], sizeof(double));
-	      if (DIFFERENT_ENDIAN(mf))
-		dval = swapDouble(dval) ;
-	      real_matrix[row][col] = dval ;
-	      break ;
-	    default:
-	      break ;
-	    }
-	}
     }
-  if (imag_matrix) for (col = 0 ; col < mf->ncols ; col++)
-    {
-      for (row = 0 ; row < mf->mrows ; row++)
-	{
-	  switch(type)
-	    {
-	    case MAT_DOUBLE:
-	      offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
-	      memcpy(&dval, &unbuff[offset], sizeof(double));
-	      break ;
-	    default:
-	      break ;
-	    }
-	  if (DIFFERENT_ENDIAN(mf))
-	    dval = swapDouble(dval) ;
-	  imag_matrix[row][col] = dval ;
+  }
+  if(imag_matrix){
+    for (col = 0 ; col < mf->ncols ; col++)    {
+      for (row = 0 ; row < mf->mrows ; row++){
+	switch(type) {
+	case MAT_DOUBLE:
+	  offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
+	  offset += (mf->mrows * mf->ncols * sizeof(double)); // get past real part
+	  memcpy(&dval, &unbuff[offset], sizeof(double));
+	  break ;
+	default:
+	  break ;
 	}
+	if(DIFFERENT_ENDIAN(mf))  dval = swapDouble(dval) ;
+	imag_matrix[row][col] = dval ;
+      }
     }
+  }
  return(0);
 }
 /*--------------------------------------------------------------*/
@@ -814,35 +996,34 @@ MATRIX *MatlabRead2(const char *fname)
   int      file_type, nrows, ncols, row, col;
   float    *fptr = NULL ;
   long32   compressed=0;
-  char **data = NULL;
   char *unbuff = NULL;
   
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: opening file %s\n",fname);
 
   fp = fopen(fname, "rb") ;
-  if (!fp)
-    return(NULL) ;
+  if(!fp)    return(NULL) ;
     
+  // Get the name of first data element and the MATFILE struct and
+  // whether it is compressed or not. If compressed name and mf
+  // will be meaningless.
   name = MatReadHeader(fp, &mf, &compressed) ;
  
-  if (compressed)
-    {
+  if(compressed){
+    // Read in valid name and mf struct. Decompresses the data
+    // and returns it in unbuff.
     znzfp = fopen(fname, "rb") ;
-    if (!znzfp)
-      return(NULL) ;
-    data = &unbuff;
-    name = znzMatReadHeader(znzfp, &mf, data) ;
-    }
+    if(!znzfp) return(NULL) ;
+    name = znzMatReadHeader(znzfp, &mf, &unbuff) ;
+  }
   
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: reading header\n");
 
-  if(name==NULL)
-    {
-      ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
-      return(NULL);
-    }
+  if(name==NULL){
+    ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
+    return(NULL);
+  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
@@ -853,10 +1034,8 @@ MATRIX *MatlabRead2(const char *fname)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     DiagPrintf(DIAG_SHOW, "MatlabRead: done real mtx alloc\n");
 
-  if (mf.imagf)
-    imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
-  else
-    imag_matrix = NULL ;
+  if (mf.imagf) imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
+  else          imag_matrix = NULL ;
 
   if (compressed)
     file_type = znzreadMatFile(unbuff, &mf, real_matrix, imag_matrix);
@@ -901,9 +1080,12 @@ MATRIX *MatlabRead2(const char *fname)
   return(mat) ;
 }
 /*-------------------------------------------------------------------
-  MatReadHeader() - Reads file header. mf is header for a data
-  element.  compressed indicates whether the file is compressed or
-  not. Versions 4 and 5.
+  MatReadHeader() - Reads header for next data element. mf is header
+  for a data element.  compressed indicates whether the file is
+  compressed or not. Versions 4 and 5. Does not actually read in data,
+  just fills the header for the data element. Returns the name of the
+  element.  If it has elements that are compressed, then it does not
+  read anything. Returns NULL if something fails or if compressed.
   -------------------------------------------------------------------*/
 char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
 {
@@ -922,7 +1104,6 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
 
   m = 1;
   m = m << 4; // shifts first bit (the 1) to the 5th bit
-  
  
   /* Test the version of MAT-file*/
   // First 4 chars indicate the version. If any are 0, it's version 4, 
@@ -946,7 +1127,9 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
   
   if(mf->version == 5){
     fseek(fp,126,SEEK_SET) ;
+
     mf->endian = fgetc(fp) ;
+
     fseek(fp,1,SEEK_CUR);
     fread(&dt, sizeof(long), 1, fp) ;
     if(DIFFERENT_ENDIAN(mf)) dt = swapLong32(dt) ;
@@ -954,144 +1137,151 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     //   14 if matrix
     //   15 if the element is compressed (cannot tell what type data is)
     //   Can assume other values if not a matrix
+    if(dt != 14 && dt != 15){
+      printf("WARNING: matlab elment type is %d, which is not a matrix.\n",dt);
+      fflush(stdout);
+    }
     if(dt==15) *compressed = 1;
     else       *compressed = 0;
-    if(! *compressed){ 
-      // Not compressed
-      fseek(fp,12,SEEK_CUR) ;
-      fread(&tmp, sizeof(long), 1, fp) ;
-      if(DIFFERENT_ENDIAN(mf)) tmp = swapLong32(tmp) ; 
-      memcpy(&ctmp, &tmp, 4); // tmp is long, ctmp is char
-      mf->imagf = (long)(m & ctmp[3]);
-      fseek(fp,12,SEEK_CUR) ;
-      fread(&(mf->mrows), sizeof(long), 1, fp) ;
-      fread(&(mf->ncols), sizeof(long), 1, fp) ;
-      if(DIFFERENT_ENDIAN(mf))        {
-	mf->mrows = swapLong32(mf->mrows) ;
-	mf->ncols = swapLong32(mf->ncols) ;
-      }
-      // Matlab stores the name in two different ways,
-      // depending on the length of the name.
-      // Normal - for long names (> 4 chars)
-      // Small - for < chars
-      // This is determined by the next bytes 3 and 4
-      // (or next 1 and 2 if diff endian).
-      if(DIFFERENT_ENDIAN(mf)){   
-	c = fgetc(fp); 
-	d = fgetc(fp);
-	ungetc(d,fp);
-	ungetc(c,fp);
-      }
-      else{
-	a = fgetc(fp); 
-	b = fgetc(fp);   
-	c = fgetc(fp); 
-	d = fgetc(fp);
-	ungetc(d,fp);
-	ungetc(c,fp);   
-	ungetc(b,fp);
-	ungetc(a,fp);
-      }
-      if(c==0 && d==0){       /*normal element*/
-	fseek(fp,4,SEEK_CUR) ;
-	fread(&(mf->namlen), 1, sizeof(long), fp);
-	if(DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
-	name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-	fread(name, (int)mf->namlen, sizeof(char), fp);
-	// If name does not fill up an 8 byte segment, read past the filler
-	padding = 8-((int)mf->namlen - (int)mf->namlen/ 8 * 8) ;
-	fseek(fp, padding, SEEK_CUR) ;
-      }
-      else {       /*small data element*/
-	fread(&(mf->namlen), 1, sizeof(long), fp);
-	if (DIFFERENT_ENDIAN(mf))  mf->namlen = swapLong32(mf->namlen);
-	memcpy(&namlen_temp, &mf->namlen, sizeof(short));
-	mf->namlen = (long)namlen_temp;	  
-	name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-	fread(name, (int)mf->namlen, sizeof(char), fp);
-	padding = 4 - (int)mf->namlen ;
-	fseek(fp, padding, SEEK_CUR) ;
-      }
 
-      // Read in precision type (int, float, etc)
-      fread(&(mf->type), 1,sizeof(long), fp);
-      if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
-      
+    if(*compressed){
+      // data in file are compressed, use a different function
+      fclose(fp);
+      return(NULL) ;	 
+    }
+
+    // Not compressed
+    fseek(fp,12,SEEK_CUR) ;
+    fread(&tmp, sizeof(long), 1, fp) ;
+    if(DIFFERENT_ENDIAN(mf)) tmp = swapLong32(tmp) ; 
+    memcpy(&ctmp, &tmp, 4); // tmp is long, ctmp is char
+
+    mf->imagf = (long)(m & ctmp[3]); //0=real, 1=imag
+    fseek(fp,12,SEEK_CUR) ;
+    fread(&(mf->mrows), sizeof(long), 1, fp) ;
+    fread(&(mf->ncols), sizeof(long), 1, fp) ;
+    if(DIFFERENT_ENDIAN(mf))        {
+      mf->mrows = swapLong32(mf->mrows) ;
+      mf->ncols = swapLong32(mf->ncols) ;
+    }
+
+    // Matlab stores the name of variable in two different ways,
+    // depending on the length of the name.
+    // Normal - for long names (> 4 chars)
+    // Small - for < 4 chars
+    // This is determined by the next bytes 3 and 4
+    // (or next 1 and 2 if diff endian).
+    if(DIFFERENT_ENDIAN(mf)){   
+      c = fgetc(fp); 
+      d = fgetc(fp);
+      ungetc(d,fp);
+      ungetc(c,fp);
+    }
+    else{
+      a = fgetc(fp); 
+      b = fgetc(fp);   
+      c = fgetc(fp); 
+      d = fgetc(fp);
+      ungetc(d,fp);
+      ungetc(c,fp);   
+      ungetc(b,fp);
+      ungetc(a,fp);
+    }
+    if(c==0 && d==0){       /*normal element*/
       fseek(fp,4,SEEK_CUR) ;
+      fread(&(mf->namlen), 1, sizeof(long), fp);
+      if(DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
+      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+      fread(name, (int)mf->namlen, sizeof(char), fp);
+      // If name does not fill up an 8 byte segment, read past the filler
+      padding = 8-((int)mf->namlen - (int)mf->namlen/ 8 * 8) ;
+      fseek(fp, padding, SEEK_CUR) ;
     }
-    else if (dt) { 
-         *compressed = 1;
-	 fclose(fp);
-	 return(NULL) ;	 
-      }
-      
-    #if 1
-    DiagPrintf(DIAG_VERBOSE,
-	     "MATFILE5: %ld x %ld, imag %d, name '%s'\n",
-	     mf->mrows, mf->ncols, mf->imagf, name) ;
+    else {       /*small data element*/
+      fread(&(mf->namlen), 1, sizeof(long), fp);
+      if (DIFFERENT_ENDIAN(mf))  mf->namlen = swapLong32(mf->namlen);
+      memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+      mf->namlen = (long)namlen_temp;	  
+      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+      fread(name, (int)mf->namlen, sizeof(char), fp);
+      // If name does not fill up an 4 byte segment, read past the filler
+      padding = 4 - (int)mf->namlen ;
+      fseek(fp, padding, SEEK_CUR) ;
+    }
 
-    #endif
-  
-    return(name) ;
-       
-    }
-  
-  else {      /*     if (mf->version == 4) */
+    // Read in precision type (int, float, etc)
+    fread(&(mf->type), 1,sizeof(long), fp);
+    if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
+      
+    // Jump past the next 4 bytes
+    fseek(fp,4,SEEK_CUR) ;
     
-    nitems = fread(mf, 1, sizeof(MATHD), fp) ;    
-    if (nitems != sizeof(MATHD))
-      {
-	ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of header\n",
-		    MatProgname, nitems) ;
-	/*exit(1) ;*/
-	return(NULL);
-      }
       
-    DiagPrintf(DIAG_VERBOSE, "type = %ld\n", mf->type) ;
-    if (DIFFERENT_ENDIAN(mf))
-      {
-	DiagPrintf(DIAG_VERBOSE, "mat file generated with different endian\n") ;
-	swapBytes(mf) ;
-      }
-    DiagPrintf(DIAG_VERBOSE, "after swap, type = %ld\n", mf->type) ;
-
-    DiagPrintf(DIAG_VERBOSE, "MatReadHeader: nitems = %d, namelen=%d\n",
-	       nitems,(int)mf->namlen+1);
-
-    name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
-    if (!name)
-      ErrorExit(ERROR_NO_MEMORY,
-		"matReadHeader: couldn't allocate %d bytes for name",
-		mf->namlen+1) ;
-
-    nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
-    if (nitems != mf->namlen)
-      {
-	ErrorPrintf(ERROR_BADFILE,
-		    "%s: only read %d bytes of name (%ld specified)\n",
-		    MatProgname, nitems, mf->namlen) ;
-	/*exit(1) ;*/
-	return(NULL);
-      }
-
-   #if 1
+#if 1
     DiagPrintf(DIAG_VERBOSE,
 	     "MATFILE5: %ld x %ld, imag %d, name '%s'\n",
 	     mf->mrows, mf->ncols, mf->imagf, name) ;
+
     #endif
+  
     return(name) ;
+    // end version 5   
+  } 
+
+  // Only gets here if Version 4
+    
+  nitems = fread(mf, 1, sizeof(MATHD), fp) ;    
+  if (nitems != sizeof(MATHD))      {
+    ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of header\n",
+		MatProgname, nitems) ;
+    /*exit(1) ;*/
+    return(NULL);
   }
- }
+      
+  DiagPrintf(DIAG_VERBOSE, "type = %ld\n", mf->type) ;
+  if(DIFFERENT_ENDIAN(mf)){
+    DiagPrintf(DIAG_VERBOSE, "mat file generated with different endian\n") ;
+    swapBytes(mf) ;
+  }
+  DiagPrintf(DIAG_VERBOSE, "after swap, type = %ld\n", mf->type) ;
 
+  DiagPrintf(DIAG_VERBOSE, "MatReadHeader: nitems = %d, namelen=%d\n",
+	     nitems,(int)mf->namlen+1);
 
+  name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
+  if (!name)
+    ErrorExit(ERROR_NO_MEMORY,
+	      "matReadHeader: couldn't allocate %d bytes for name",
+	      mf->namlen+1) ;
+
+  nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
+  if (nitems != mf->namlen)      {
+    ErrorPrintf(ERROR_BADFILE,
+		"%s: only read %d bytes of name (%ld specified)\n",
+		MatProgname, nitems, mf->namlen) ;
+    /*exit(1) ;*/
+    return(NULL);
+  }
+
+#if 1
+  DiagPrintf(DIAG_VERBOSE,
+	     "MATFILE5: %ld x %ld, imag %d, name '%s'\n",
+	     mf->mrows, mf->ncols, mf->imagf, name) ;
+#endif
+  return(name) ;
+}
+
+/*----------------------------------------------------------------
+  znzMatReadHeader() - used to read element header and data buffer for
+  a compressed element. Does not actually interpret the data as a
+  matrix, just uncompresses it into a buffer.
+  ----------------------------------------------------------------*/
 char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) 
 {
   char  *name = NULL;
   char m ,c;
-  m = 1;
-  m = m << 4; // shifts first bit (the 1) to the 5th bit
   char endian;
-  long32 miMAT, size;
+  long32 dt, size;
   char *buff = NULL; 
   long *ptr_size_unbuff =NULL;
   long size_unbuff ;
@@ -1103,74 +1293,93 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   int isitok;
   char *unbuff;
 
+  m = 1;
+  m = m << 4; // shifts first bit (the 1) to the 5th bit
+
   fseek(fp,126,SEEK_SET) ;
   endian = fgetc(fp) ;
   mf->endian = endian ;
   fseek(fp,1,SEEK_CUR);
-  fread(&miMAT, sizeof(long), 1, fp) ;
+
+  // dt indicates type of data
+  //   14 if matrix
+  //   15 if the element is compressed 
+  // Must be 15 to get here
+  fread(&dt, sizeof(long), 1, fp); 
+  if(DIFFERENT_ENDIAN(mf))dt = swapLong32(dt) ;
+
+  // size = size(elementheader) + size(compresseddata)
   fread(&size, sizeof(long), 1, fp) ;
-  if (DIFFERENT_ENDIAN(mf))
-    {
-    miMAT = swapLong32(miMAT) ;
-    size = swapLong32(size) ;		
-    }
+  if(DIFFERENT_ENDIAN(mf)) size = swapLong32(size) ;
+
+  // buff holds the compressed data
   buff = (char *)calloc(size, sizeof(char)) ;
   fread(buff, sizeof(char), size, fp) ;
-  size_unbuff = 10000*size;
+
+  // dont know the size of the data after it has been uncompressed, 
+  // so just assume that it is no more than a factor of 100 larger
+  size_unbuff = 100*size;
   unbuff = (char *)calloc(size_unbuff, sizeof(char)) ;
   isitok = uncompress(
 	(Bytef *)unbuff, 
 	(uLongf *)ptr_size_unbuff, 
 	(const Bytef *)buff, 
 	size) ;
-  if (isitok!=0)
-    ErrorPrintf(DIAG_VERBOSE," Error in uncompression: RESULT : %c \n" , endian) ;
+  if(isitok != Z_OK){
+    printf("ERROR: in uncompressing\n");
+    if(isitok == Z_MEM_ERROR)
+      ErrorPrintf(DIAG_VERBOSE,"   not enough memory.\n");
+    if(isitok == Z_BUF_ERROR)
+      ErrorPrintf(DIAG_VERBOSE,"    not enough memory in buffer\n");
+  }
 
-  
+  // Now unbuff has some of the header and all of the data for this
+  // element.  To extract header info, need to address into unbuff the
+  // same way that we addressed into the file.
+
+  // 18 is whether there is an imaginary part or not
   memcpy(&c, &unbuff[18], sizeof(char));
   mf->imagf = (long)(m & c) ;
+
   memcpy(&(mf->mrows), &unbuff[32], sizeof(long));
   memcpy(&(mf->ncols), &unbuff[36], sizeof(long));
-  if (DIFFERENT_ENDIAN(mf))   
-    {
-      mf->mrows = swapLong32(mf->mrows) ;
-      mf->ncols = swapLong32(mf->ncols) ;
-    }
+  if (DIFFERENT_ENDIAN(mf))       {
+    mf->mrows = swapLong32(mf->mrows) ;
+    mf->ncols = swapLong32(mf->ncols) ;
+  }
+
+  // Get the name of the varible. See MatReadHeader() for docs.
   memcpy(&tmp, &unbuff[40], sizeof(long));
-  if (DIFFERENT_ENDIAN(mf))   
-      tmp = swapLong32(tmp) ;
+  if (DIFFERENT_ENDIAN(mf))  tmp = swapLong32(tmp) ;
   memcpy(&test_data, &tmp, 4);
-  
-  if (test_data[0]==0 && test_data[1]==0 ) /*normal data*/
-    {
-      memcpy(&(mf->namlen), &unbuff[44], sizeof(long));
-      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-      memcpy(name, &unbuff[48], (int)mf->namlen * sizeof(char));
-      padding = 48 + ((((int)mf->namlen -1)/ 8) +1);
-      memcpy(&(mf->type), &unbuff[padding], sizeof(long));
-      if (DIFFERENT_ENDIAN(mf))
-        mf->type = swapLong32(mf->type);     
-    }
-  else       /*small data*/
-    {
-      memcpy(&(mf->namlen), &unbuff[40], sizeof(long)); 
-      if (DIFFERENT_ENDIAN(mf))
-        mf->namlen = swapLong32(mf->namlen);
-      memcpy(&namlen_temp, &mf->namlen, sizeof(short));
-      mf->namlen = (long)namlen_temp;
-      name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-      memcpy(name, &unbuff[44], (int)mf->namlen * sizeof(char));  
-      memcpy(&(mf->type), &unbuff[48], sizeof(long));
-      if (DIFFERENT_ENDIAN(mf))
-        mf->type = swapLong32(mf->type); 
-    }
+  if (test_data[0]==0 && test_data[1]==0 ){ 
+    /*normal data*/
+    memcpy(&(mf->namlen), &unbuff[44], sizeof(long));
+    name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+    memcpy(name, &unbuff[48], (int)mf->namlen * sizeof(char));
+    padding = 48 + ((((int)mf->namlen -1)/ 8) +1);
+    memcpy(&(mf->type), &unbuff[padding], sizeof(long));
+    if (DIFFERENT_ENDIAN(mf))  mf->type = swapLong32(mf->type);     
+  }
+  else{
+    /*small data*/
+    memcpy(&(mf->namlen), &unbuff[40], sizeof(long)); 
+    if (DIFFERENT_ENDIAN(mf))
+      mf->namlen = swapLong32(mf->namlen);
+    memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+    mf->namlen = (long)namlen_temp;
+    name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
+    memcpy(name, &unbuff[44], (int)mf->namlen * sizeof(char));  
+    memcpy(&(mf->type), &unbuff[48], sizeof(long));
+    if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type); 
+  }
   *data = unbuff;
   #if 1
     ErrorPrintf(DIAG_VERBOSE,
 	     "MATFILE5: %ld x %ld, type %ld, imagf %d, name '%s'\n",
 	       mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
 
-    #endif
+  #endif
   return(name);
 }
 
