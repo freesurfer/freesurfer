@@ -295,6 +295,15 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
     printf("ERROR: could not enforce tNullMax\n");
     return(NULL);
   }
+  // Assure that first event is non-null. Swap with first non-null
+  if(EvSeq[0] != 1){
+    for(n=0;n < nSlotsTot; n++){
+      if(EvSeq[n]) {
+	EvSeq[0] = 1;
+	EvSeq[n] = 0;
+      }
+    }
+  }
 
   /* Compute the the timing */
   m = 0;
