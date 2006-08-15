@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.23 2006/06/26 12:20:27 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.24 2006/08/15 23:46:45 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -407,6 +407,7 @@ while( $#argv != 0 )
       set SessFile = $argv[1]; shift;
       breaksw
 
+    case "--df":
     case "--sd":
       if ( $#argv == 0) goto arg1err;
       set SessDirFile = $argv[1]; shift;
