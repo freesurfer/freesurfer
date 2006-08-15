@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/08 20:58:34 $
-// Revision       : $Revision: 1.353 $
-char *MRI_C_VERSION = "$Revision: 1.353 $";
+// Revision Date  : $Date: 2006/08/15 23:47:19 $
+// Revision       : $Revision: 1.354 $
+char *MRI_C_VERSION = "$Revision: 1.354 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12204,7 +12204,10 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
   float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
 
   if (mri_dst == NULL)
+	{
     mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+		MRIcopyHeader(mri, mri_dst) ;
+	}
 
   /* first find border voxels */
   mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
