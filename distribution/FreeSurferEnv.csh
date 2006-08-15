@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.51 2006/08/15 20:20:34 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.52 2006/08/15 20:25:57 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.51 2006/08/15 20:20:34 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.52 2006/08/15 20:25:57 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -373,7 +373,7 @@ if ( -e $FREESURFER_HOME/lib/qt) then
 else if ( -e /usr/pubsw/packages/qt/current) then
 #    setenv QTDIR    /usr/pubsw/packages/qt/current
 endif
-if ( $?QTDIR ) then
+if ( $?QTDIR_XXX ) then
     setenv PATH     $QTDIR/bin:$PATH
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $QTDIR/lib
@@ -386,7 +386,7 @@ if ( $?QTDIR ) then
         setenv DYLD_LIBRARY_PATH  "$QTDIR/lib":"$DYLD_LIBRARY_PATH"
     endif
 endif
-if( $output && $?QTDIR ) then
+if( $output && $?QTDIR_XXX ) then
     echo "QTDIR           $QTDIR"
 endif
 

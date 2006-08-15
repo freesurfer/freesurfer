@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.19 2006/08/15 20:20:34 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.20 2006/08/15 20:25:57 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.19 2006/08/15 20:20:34 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.20 2006/08/15 20:25:57 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -371,7 +371,7 @@ if [ -d $FREESURFER_HOME/lib/qt ]; then
 elif [ -d /usr/pubsw/packages/qt/current ]; then
 #    export QTDIR=/usr/pubsw/packages/qt/current
 fi
-if [ -n "$QTDIR" ]; then
+if [ -n "$QTDIR_XXX" ]; then
     export PATH=$QTDIR/bin:$PATH
     if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$QTDIR/lib
@@ -379,7 +379,7 @@ if [ -n "$QTDIR" ]; then
         export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
     fi
 fi
-if [[ $output == 1 && -n "$QTDIR" ]]; then
+if [[ $output == 1 && -n "$QTDIR_XXX" ]]; then
     echo "QTDIR           $QTDIR"
 fi
 
