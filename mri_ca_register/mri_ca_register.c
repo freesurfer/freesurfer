@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/10 23:45:43 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/08/15 23:43:55 $
+// Revision       : $Revision: 1.53 $
 
 
 #include <math.h>
@@ -140,6 +140,7 @@ main(int argc, char *argv[])
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
   parms.exp_k = 20 ;
+	parms.min_avgs = 0 ;
   parms.navgs = 256 ;
   parms.noneg = True ;
 	parms.log_fp = NULL ;
@@ -153,7 +154,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.52 2006/08/10 23:45:43 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.53 2006/08/15 23:43:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,6 +190,7 @@ main(int argc, char *argv[])
     printf("  -optimal\n");
     printf("  -noneg noneg\n");
     printf("  -wm\n");
+    printf("  -min_avgs <n>\n");
     printf("  -tl\n");
     printf("  -relabel relable\n");
     printf("  -relabel_avgs relable_avgs\n");
@@ -728,9 +730,15 @@ main(int argc, char *argv[])
 			//      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 			//			if (read_lta == 0)
 			{
+				int old_diag ;
+				old_diag = Gdiag ;
+				if (parms.write_iterations == 0)
+					Gdiag &= ~DIAG_WRITE ;
+					
 				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles) ;
 				printf("2nd pass renormalization with updated intensity distributions\n");
 				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles) ;
+				Gdiag = old_diag ;
 			}
 		}
 		else
@@ -914,6 +922,12 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "MIN_AVGS"))
+  {
+    parms.min_avgs = atoi(argv[2]) ;
+    printf("setting min # of averages to %d\n", parms.min_avgs) ;
 		nargs = 1 ;
   }
   else if (!stricmp(option, "REGULARIZE_MEAN"))
