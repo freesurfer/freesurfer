@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/08/08 20:59:17 $
-// Revision       : $Revision: 1.110 $
+// Revision Date  : $Date: 2006/08/15 23:46:41 $
+// Revision       : $Revision: 1.111 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -129,6 +129,8 @@ static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
 static int check_gcam(GCAM *gcam) ;
+static MATRIX *gcamComputeOptimalLinearTransformInRegion(GCA_MORPH *gcam, MRI *mri_mask, MATRIX *m_L, 
+																												 int x0, int y0, int z0, int whalf);
 #define DEFAULT_PYRAMID_LEVELS 3
 #define MAX_PYRAMID_LEVELS     20
 #define MAX_EXP          200
@@ -752,6 +754,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 			parms->l_distance /= 4 ;
 			l_smooth /= 4 ;
 		}
+		if (parms->navgs < parms->min_avgs)
+			break ;
 	}
 
   if (mri_smooth)
@@ -7084,12 +7088,21 @@ gcamCreateJacobianImage(GCA_MORPH *gcam)
 MRI *
 GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int target_label, MRI *mri_out)
 {
-  int    x, y, z ;
-  float  xa, ya, za, volume ;
+  int    whalf, x, y, z /*, xv, yv, zv*/ ;
+	//  float  xa, ya, za ;
   MRI    *mri_density ;
+	Real   volume, det ;
+	GCA_MORPH_NODE *gcamn ;
+	MATRIX *m_L = NULL ;
 
+	whalf = 1 ;
   if (mri_out == NULL)
-    mri_out = MRIalloc(mri_seg->width, mri_seg->height, mri_seg->depth, MRI_FLOAT) ;
+	{
+		mri_out = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
+		MRIcopyVolGeomToMRI(mri_out, &gcam->atlas) ;
+		MRIsetResolution(mri_out, gcam->spacing, gcam->spacing, gcam->spacing) ;
+		MRIreInitCache(mri_out) ;
+	}
   if (mri_out->type != MRI_FLOAT)
     ErrorReturn(NULL, (ERROR_BADPARM, \
                        "GCAMextract_density_map: output volume type must be MRI_FLOAT (%d)",
@@ -7105,36 +7118,73 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
   mri_density = MRImakeDensityMap(mri_seg, mri_intensity, target_label, NULL) ;
   if (Gx >= 0)
     printf("density at (%d, %d, %d) = %2.3f\n", Gx, Gy, Gz, MRIgetVoxVal(mri_density, Gx, Gy, Gz, 0)) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_density, "density.mgz") ;
 
+#if 0
   GCAMinvert(gcam, mri_seg) ;
   for (x = 0  ; x < mri_seg->width ; x++)
-    {
-      for (y = 0  ; y < mri_seg->height ; y++)
-        {
-          for (z = 0  ; z < mri_seg->width ; z++)
-            {
-              if (x == Gx && y == Gy && z == Gz)
-                DiagBreak() ;
+	{
+		for (y = 0  ; y < mri_seg->height ; y++)
+		{
+			for (z = 0  ; z < mri_seg->width ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 
-              volume = MRIgetVoxVal(mri_density, x, y, z, 0) ;
-              GCAMsample(gcam, x, y, z, &xa, &ya, &za) ; /* convert to atlas coordinates */
-              if (!finitep(volume))
-                DiagBreak() ;
-              MRIinterpolateIntoVolume(mri_out, (Real)xa, (Real)ya, (Real)za, (Real)volume) ;
-            }
-        }
-    }
-  for (x = 0  ; x < mri_seg->width ; x++)
-    {
-      for (y = 0  ; y < mri_seg->height ; y++)
-        {
-          for (z = 0  ; z < mri_seg->width ; z++)
-            {
-              if (!finitep(MRIFvox(mri_out, x, y, z)))
-                DiagBreak() ;
-            }
-        }
-    }
+				volume = MRIgetVoxVal(mri_density, x, y, z, 0) ;
+				GCAMsample(gcam, x, y, z, &xa, &ya, &za) ; /* convert to atlas coordinates */
+				if (!finitep(volume))
+					DiagBreak() ;
+				if (x == Gx && y == Gy && z == Gz)
+					printf("voxel(%d, %d, %d) maps to atlas (%2.1f, %2.1f, %2.1f)\n",
+								 x, y, z, xa, ya, za) ;
+#if 0
+				MRIinterpolateIntoVolume(mri_out, (Real)xa, (Real)ya, (Real)za, (Real)volume) ;
+#else
+				xv = nint(xa) ; yv = nint(ya) ; zv = nint(za) ;
+				if (xv == Gx && yv == Gy && zv == Gz)
+					DiagBreak() ;
+				MRIsetVoxVal(mri_out, xv, yv, zv,0, MRIgetVoxVal(mri_out,xv,yv,zv,0)+volume) ;
+#endif
+			}
+		}
+	}
+#else
+  for (x = 0  ; x < mri_out->width ; x++)
+	{
+		for (y = 0  ; y < mri_out->height ; y++)
+		{
+			for (z = 0  ; z < mri_out->width ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				if (!finitep(MRIFvox(mri_out, x, y, z)))
+					DiagBreak() ;
+				gcamn = &gcam->nodes[x][y][z] ;
+				MRIsampleVolume(mri_density, gcamn->x, gcamn->y, gcamn->z, &volume) ;
+				if (volume > 0)
+				{
+					m_L = gcamComputeOptimalLinearTransformInRegion(gcam, mri_density, m_L, x, y, z, whalf);
+					det = MatrixDeterminant(m_L) ;
+					volume *= det ;
+				}
+				MRIsetVoxVal(mri_out, x, y, z, 0, volume) ;
+			}
+		}
+	}
+#endif
+  for (x = 0  ; x < mri_out->width ; x++)
+	{
+		for (y = 0  ; y < mri_out->height ; y++)
+		{
+			for (z = 0  ; z < mri_out->width ; z++)
+			{
+				if (!finitep(MRIFvox(mri_out, x, y, z)))
+					DiagBreak() ;
+			}
+		}
+	}
 
   MRIfree(&mri_density) ;
   return(mri_out) ;
@@ -7143,8 +7193,10 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
 int
 GCAMsample(GCA_MORPH *gcam, float xv, float yv, float zv, float *px, float *py, float *pz)
 {
-  float           xt, yt, zt ;
+  Real            xt, yt, zt ;
+#if 0
   int             xi, yi, zi ;
+#endif
   if (!gcam->mri_xind)
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, "TransformSample: gcam has not been inverted!")) ;
@@ -7163,10 +7215,16 @@ GCAMsample(GCA_MORPH *gcam, float xv, float yv, float zv, float *px, float *py, 
   if (zv >= gcam->mri_zind->depth)
     zv = gcam->mri_zind->depth-1 ;
 
+#if 0
   xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
   xt = MRIFvox(gcam->mri_xind, xi, yi, zi)*gcam->spacing ;
   yt = MRIFvox(gcam->mri_yind, xi, yi, zi)*gcam->spacing ;
   zt = MRIFvox(gcam->mri_zind, xi, yi, zi)*gcam->spacing ;
+#else
+	MRIsampleVolume(gcam->mri_xind, xv, yv, zv, &xt) ;
+	MRIsampleVolume(gcam->mri_yind, xv, yv, zv, &yt) ;
+	MRIsampleVolume(gcam->mri_zind, xv, yv, zv, &zt) ;
+#endif
   *px = xt ; *py = yt ; *pz = zt ;
   return(NO_ERROR) ;
 }
@@ -10542,4 +10600,150 @@ GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target)
 	}
 
 	return(NO_ERROR) ;
+}
+static MATRIX *
+gcamComputeOptimalLinearTransformInRegion(GCA_MORPH *gcam, MRI *mri_mask, MATRIX *m_L, int x0, int y0, int z0, int whalf)
+{
+	int            ncols, col, xi, yi, zi, xk, yk, zk ;
+	GCA_MORPH_NODE *gcamn ;
+	MATRIX         *m_U, *m_V, *m_Uinv ;
+	Real            mask ;
+
+
+	ncols = 0 ;    // first count the # of measurements
+	for (xk = -whalf ; xk <= whalf ; xk++)
+	{
+		xi = x0+xk ;
+		if (xi < 0 || xi >= gcam->width)
+			continue ;
+		for (yk = -whalf ; yk <= whalf ; yk++)
+		{
+			yi = y0+yk ;
+			if (yi < 0 || yi >= gcam->height)
+				continue ;
+			for (zk = -whalf ; zk <= whalf ; zk++)
+			{
+				zi = z0+zk ;
+				if (zi < 0 || zi >= gcam->depth)
+					continue ;
+				gcamn = &gcam->nodes[xi][yi][zi] ;
+				MRIsampleVolume(mri_mask, gcamn->x, gcamn->y, gcamn->z, &mask) ;
+				if (!FZERO(mask) && mask > 0)
+					ncols++ ;
+			}
+		}
+	}
+
+	m_U = MatrixAlloc(4, ncols, MATRIX_REAL) ;
+	m_V = MatrixAlloc(4, ncols, MATRIX_REAL) ;
+	for (col = 0, xk = -whalf ; xk <= whalf ; xk++)
+	{
+		xi = x0+xk ;
+		if (xi < 0 || xi >= gcam->width)
+			continue ;
+		for (yk = -whalf ; yk <= whalf ; yk++)
+		{
+			yi = y0+yk ;
+			if (yi < 0 || yi >= gcam->height)
+				continue ;
+			for (zk = -whalf ; zk <= whalf ; zk++)
+			{
+				zi = z0+zk ;
+				if (zi < 0 || zi >= gcam->depth)
+					continue ;
+				gcamn = &gcam->nodes[xi][yi][zi] ;
+				MRIsampleVolume(mri_mask, gcamn->x, gcamn->y, gcamn->z, &mask) ;
+				if (!FZERO(mask) && mask > 0)
+				{
+					col++ ;
+					*MATRIX_RELT(m_U,1,col) = xi ;
+					*MATRIX_RELT(m_U,2,col) = yi ;
+					*MATRIX_RELT(m_U,3,col) = zi ;
+					*MATRIX_RELT(m_U,4,col) = 1.0 ; 
+
+					*MATRIX_RELT(m_V,1,col) = gcamn->x ; 
+					*MATRIX_RELT(m_V,2,col) = gcamn->y ; 
+					*MATRIX_RELT(m_V,3,col) = gcamn->z ; 
+					*MATRIX_RELT(m_V,4,col) = 1.0 ; 
+				}
+			}
+		}
+	}
+
+	//	m_Uinv = MatrixPseudoInverse(m_U, NULL) ;
+	m_Uinv = MatrixSVDPseudoInverse(m_U, NULL) ;
+	//	MatrixPrint(stdout, m_Uinv) ;
+	m_L = MatrixMultiply(m_V, m_Uinv, m_L) ;
+	*MATRIX_RELT(m_L, 4, 1) = 0.0 ;
+	*MATRIX_RELT(m_L, 4, 2) = 0.0 ;
+	*MATRIX_RELT(m_L, 4, 3) = 0.0 ;
+	*MATRIX_RELT(m_L, 4, 4) = 1.0 ;
+
+	if (DIAG_VERBOSE_ON)
+	{
+		MATRIX *m_tmp ;
+		int    i ;
+		printf("m_L:\n") ;
+		MatrixPrint(stdout, m_L) ;
+		m_tmp = MatrixMultiply(m_L, m_U, NULL) ;
+
+		i = m_tmp->cols ;
+
+		printf("U:\n") ;
+		m_U->cols = 10 ;
+		MatrixPrint(stdout, m_U) ;
+		m_U->cols = i ;
+		
+		printf("V:\n") ;
+		m_V->cols = 10 ;
+		MatrixPrint(stdout, m_V) ;
+		m_V->cols = i ;
+
+		printf("Vhat:\n") ;
+		m_tmp->cols = 10 ;
+		MatrixPrint(stdout, m_tmp) ;
+		m_tmp->cols = i ;
+
+
+		MatrixFree(&m_tmp) ;
+	}
+
+#if 0
+	// regularize it
+	m_I = MatrixIdentity(m_L->rows, NULL) ;
+	MatrixScalarMul(m_I, reg, m_I) ;
+	MatrixScalarMul(m_L, 1-reg, m_L) ;
+	MatrixAdd(m_I, m_L, m_L) ;
+	MatrixFree(&m_I) ;
+#endif
+
+	if (DIAG_VERBOSE_ON)
+	{
+		MATRIX *m_tmp ;
+		int    i ;
+		m_tmp = MatrixMultiply(m_L, m_U, NULL) ;
+
+		i = m_tmp->cols ;
+
+		printf("U:\n") ;
+		m_U->cols = 10 ;
+		MatrixPrint(stdout, m_U) ;
+		m_U->cols = i ;
+		
+		printf("V:\n") ;
+		m_V->cols = 10 ;
+		MatrixPrint(stdout, m_V) ;
+		m_V->cols = i ;
+
+		printf("Vhat:\n") ;
+		m_tmp->cols = 10 ;
+		MatrixPrint(stdout, m_tmp) ;
+		m_tmp->cols = i ;
+
+
+		MatrixFree(&m_tmp) ;
+	}
+
+	MatrixFree(&m_U) ; MatrixFree(&m_V) ; MatrixFree(&m_Uinv) ;
+	return(m_L) ;
 }
