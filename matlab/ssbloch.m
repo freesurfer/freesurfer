@@ -1,5 +1,5 @@
-function [s,fa] = ssbloch(tr,te,fa,t1,t2s,p)
-% [s fa] = ssbloch(tr,te,fa,t1,t2s,<p>)
+function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
+% [s fa] = ssbloch(tr,te,fa,t1,t2s,<pd>)
 %
 % Steady-state Bloch Equation
 %
@@ -8,7 +8,7 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,p)
 % fa = flip angle (radians)
 % t1 = T1
 % t2s = T2 star
-% p = proton density (def = 1)
+% pd = proton density (default = 1)
 %
 % Time units don't matter as long as they are consitent
 %
@@ -20,8 +20,19 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,p)
 %  Gray:  T1 = 1331ms, T2* = 42-52 ms
 %  White: T1 =  832ms, T2* = 45-48 ms
 %   
+% $Id: ssbloch.m,v 1.2 2006/08/15 03:20:40 greve Exp $
 
-% $Id: ssbloch.m,v 1.1 2006/07/06 05:14:52 greve Exp $
+% This is something from Gary G. Mildly related.  Using IR, collect
+% data with TR >> expected_T1, e.g. 5s, and with TIs of 100 200 500
+% 1000 3000 ms.  Fit to
+% 
+% S(n) = So*(1-2*(1+eps)*exp(-TI(n)/T1) for every voxel,
+% 
+% where So is proton density, and eps is an error term that accounts
+% for inaccuracies in flip angle.  I have a program that gives me the
+% three images (T1, So, eps).  eps is usually < 0.05, but depends on
+% coil and Bo.
+
 
 s = [];
 if(nargin < 5 | nargin > 6)
@@ -29,12 +40,11 @@ if(nargin < 5 | nargin > 6)
   return;
 end
 
-
-if(~exist('p','var')) p = 1; end
+if(~exist('pd','var')) pd = 1; end
 if(isempty(fa)) fa = acos(exp(-tr./t1)); end
 
 etrt1 = exp(-tr./t1);
-s = p .* sin(fa) .* (1-etrt1) .* exp(-te./t2s) ./ (1-cos(fa).*etrt1);
+s = pd .* sin(fa) .* (1-etrt1) .* exp(-te./t2s) ./ (1-cos(fa).*etrt1);
 
 return;
 
