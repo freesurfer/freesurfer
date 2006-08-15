@@ -142,6 +142,7 @@ typedef struct
 	int    diag_write_snapshots ;
 	int    scale_smoothness ;     // scale down smoothness coef at larger gradient smoothing scales
 	int    target_label ;
+	int    min_avgs ;
 } GCA_MORPH_PARMS, GMP ;
 
 
