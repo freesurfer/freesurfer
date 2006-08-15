@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.50 2006/08/13 14:02:44 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.51 2006/08/15 20:20:34 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.50 2006/08/13 14:02:44 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.51 2006/08/15 20:20:34 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -32,7 +32,7 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
-    echo "       VTK_DIR"
+#    echo "       VTK_DIR"
     echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
@@ -366,10 +366,12 @@ endif
 
 ### ------- Qt (scuba2 and qdec support libraries) ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
+# NJS: QT is no longer included in the lib search path, 
+# as having too many files to search slows the operation of any command.
 if ( -e $FREESURFER_HOME/lib/qt) then
-    setenv QTDIR    $FREESURFER_HOME/lib/qt
+#    setenv QTDIR    $FREESURFER_HOME/lib/qt
 else if ( -e /usr/pubsw/packages/qt/current) then
-    setenv QTDIR    /usr/pubsw/packages/qt/current
+#    setenv QTDIR    /usr/pubsw/packages/qt/current
 endif
 if ( $?QTDIR ) then
     setenv PATH     $QTDIR/bin:$PATH
@@ -418,10 +420,12 @@ endif
 
 
 ### -------------- VTK ------------- ###
+# NJS: VTK is no longer included in the lib search path, 
+# as having too many files to search slows the operation of any command.
 if ( -e $FREESURFER_HOME/lib/vtk) then
-    setenv VTK_DIR    $FREESURFER_HOME/lib/vtk
+#    setenv VTK_DIR    $FREESURFER_HOME/lib/vtk
 else if ( -e /usr/pubsw/packages/vtk/current) then
-    setenv VTK_DIR    /usr/pubsw/packages/vtk/current
+#    setenv VTK_DIR    /usr/pubsw/packages/vtk/current
 endif
 if ( $?VTK_DIR ) then
     setenv PATH     $VTK_DIR/bin:$PATH

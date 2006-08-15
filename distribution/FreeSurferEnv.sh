@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.18 2006/08/13 14:02:44 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.19 2006/08/15 20:20:34 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.18 2006/08/13 14:02:44 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.19 2006/08/15 20:20:34 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -34,7 +34,7 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
-    echo "       VTK_DIR"
+#    echo "       VTK_DIR"
     echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
@@ -364,10 +364,12 @@ fi
 
 ### ------ Qt (scuba2 and qdec support libraries)  ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
+# NJS: QT is no longer included in the lib search path, 
+# as having too many files to search slows the operation of any command.
 if [ -d $FREESURFER_HOME/lib/qt ]; then
-    export QTDIR=$FREESURFER_HOME/lib/qt
+#    export QTDIR=$FREESURFER_HOME/lib/qt
 elif [ -d /usr/pubsw/packages/qt/current ]; then
-    export QTDIR=/usr/pubsw/packages/qt/current
+#    export QTDIR=/usr/pubsw/packages/qt/current
 fi
 if [ -n "$QTDIR" ]; then
     export PATH=$QTDIR/bin:$PATH
@@ -409,10 +411,12 @@ fi
 
 
 ### ------ VTK  ------- ####
+# NJS: VTK is no longer included in the lib search path, 
+# as having too many files to search slows the operation of any command.
 if [ -d $FREESURFER_HOME/lib/vtk ]; then
-    export VTK_DIR=$FREESURFER_HOME/lib/vtk
+#    export VTK_DIR=$FREESURFER_HOME/lib/vtk
 elif [ -d /usr/pubsw/packages/vtk/current ]; then
-    export VTK_DIR=/usr/pubsw/packages/vtk/current
+#    export VTK_DIR=/usr/pubsw/packages/vtk/current
 fi
 if [ -n "$VTK_DIR" ]; then
     export PATH=$VTK_DIR/bin:$PATH
