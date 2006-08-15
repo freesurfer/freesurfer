@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.22 2006/08/15 20:36:37 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.23 2006/08/15 21:14:07 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.22 2006/08/15 20:36:37 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.23 2006/08/15 21:14:07 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -365,22 +365,22 @@ fi
 # look for Qt in common NMR locations, overriding any prior setting
 # NJS: QT is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
-if [ -d $FREESURFER_HOME/lib/qt ]; then
+#if [ -d $FREESURFER_HOME/lib/qt ]; then
 #    export QTDIR=$FREESURFER_HOME/lib/qt
-elif [ -d /usr/pubsw/packages/qt/current ]; then
+#elif [ -d /usr/pubsw/packages/qt/current ]; then
 #    export QTDIR=/usr/pubsw/packages/qt/current
-fi
-if [ -n "$QTDIR_XXX" ]; then
-    export PATH=$QTDIR/bin:$PATH
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$QTDIR/lib
-    else
-        export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
-    fi
-fi
-if [[ $output == 1 && -n "$QTDIR_XXX" ]]; then
-    echo "QTDIR           $QTDIR"
-fi
+#fi
+#if [ -n "$QTDIR" ]; then
+#    export PATH=$QTDIR/bin:$PATH
+#    if [ -z "$LD_LIBRARY_PATH" ]; then
+#        export LD_LIBRARY_PATH=$QTDIR/lib
+#    else
+#        export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
+#    fi
+#fi
+#if [[ $output == 1 && -n "$QTDIR" ]]; then
+#    echo "QTDIR           $QTDIR"
+#fi
 
 
 ### ----------- Tcl/Tk/Tix/BLT  ------------ ####
@@ -412,11 +412,11 @@ fi
 ### ------ VTK  ------- ####
 # NJS: VTK is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
-if [ -d $FREESURFER_HOME/lib/vtk ]; then
+#if [ -d $FREESURFER_HOME/lib/vtk ]; then
 #    export VTK_DIR=$FREESURFER_HOME/lib/vtk
-elif [ -d /usr/pubsw/packages/vtk/current ]; then
+#elif [ -d /usr/pubsw/packages/vtk/current ]; then
 #    export VTK_DIR=/usr/pubsw/packages/vtk/current
-fi
+#fi
 if [ -n "$VTK_DIR" ]; then
     export PATH=$VTK_DIR/bin:$PATH
     if [ -z "$LD_LIBRARY_PATH" ]; then

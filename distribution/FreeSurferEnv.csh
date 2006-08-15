@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.54 2006/08/15 20:36:37 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.55 2006/08/15 21:14:07 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.54 2006/08/15 20:36:37 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.55 2006/08/15 21:14:07 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -367,27 +367,27 @@ endif
 # look for Qt in common NMR locations, overriding any prior setting
 # NJS: QT is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
-if ( -e $FREESURFER_HOME/lib/qt) then
+#if ( -e $FREESURFER_HOME/lib/qt) then
 #    setenv QTDIR    $FREESURFER_HOME/lib/qt
-else if ( -e /usr/pubsw/packages/qt/current) then
+#else if ( -e /usr/pubsw/packages/qt/current) then
 #    setenv QTDIR    /usr/pubsw/packages/qt/current
-endif
-if ( $?QTDIR_XXX ) then
-    setenv PATH     $QTDIR/bin:$PATH
-    if (! $?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH  $QTDIR/lib
-    else
-        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
-    endif
-    if (! $?DYLD_LIBRARY_PATH) then
-        setenv DYLD_LIBRARY_PATH  $QTDIR/lib
-    else
-        setenv DYLD_LIBRARY_PATH  "$QTDIR/lib":"$DYLD_LIBRARY_PATH"
-    endif
-endif
-if( $output && $?QTDIR_XXX ) then
-    echo "QTDIR           $QTDIR"
-endif
+#endif
+#if ( $?QTDIR ) then
+#    setenv PATH     $QTDIR/bin:$PATH
+#    if (! $?LD_LIBRARY_PATH) then
+#        setenv LD_LIBRARY_PATH  $QTDIR/lib
+#    else
+#        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
+#    endif
+#    if (! $?DYLD_LIBRARY_PATH) then
+#        setenv DYLD_LIBRARY_PATH  $QTDIR/lib
+#    else
+#        setenv DYLD_LIBRARY_PATH  "$QTDIR/lib":"$DYLD_LIBRARY_PATH"
+#    endif
+#endif
+#if( $output && $?QTDIR ) then
+#    echo "QTDIR           $QTDIR"
+#endif
 
 
 ### ----------- Tcl/Tk/Tix/BLT  ------------ ####
@@ -421,11 +421,11 @@ endif
 ### -------------- VTK ------------- ###
 # NJS: VTK is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
-if ( -e $FREESURFER_HOME/lib/vtk) then
+#if ( -e $FREESURFER_HOME/lib/vtk) then
 #    setenv VTK_DIR    $FREESURFER_HOME/lib/vtk
-else if ( -e /usr/pubsw/packages/vtk/current) then
+#else if ( -e /usr/pubsw/packages/vtk/current) then
 #    setenv VTK_DIR    /usr/pubsw/packages/vtk/current
-endif
+#endif
 if ( $?VTK_DIR ) then
     setenv PATH     $VTK_DIR/bin:$PATH
     if (! $?LD_LIBRARY_PATH) then
