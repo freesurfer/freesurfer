@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.53 2006/08/15 20:33:16 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.54 2006/08/15 20:36:37 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.53 2006/08/15 20:33:16 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.54 2006/08/15 20:36:37 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -347,7 +347,6 @@ else if ( -e /usr/pubsw/packages/gsl/current) then
     setenv GSL_DIR    /usr/pubsw/packages/gsl/current
 endif
 if ( $?GSL_DIR ) then
-    setenv PATH     $GSL_DIR/bin:$PATH
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $GSL_DIR/lib
     else
@@ -452,7 +451,6 @@ else if ( -e /usr/pubsw/packages/vxl/current) then
     setenv VXL_DIR    /usr/pubsw/packages/vxl/current
 endif
 if ( $?VXL_DIR ) then
-    setenv PATH     $VXL_DIR/bin:$PATH
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $VXL_DIR/lib
     else

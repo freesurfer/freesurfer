@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.21 2006/08/15 20:33:16 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.22 2006/08/15 20:36:37 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.21 2006/08/15 20:33:16 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.22 2006/08/15 20:36:37 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -345,7 +345,6 @@ elif [ -d /usr/pubsw/packages/gsl/current ]; then
     export GSL_DIR=/usr/pubsw/packages/gsl/current
 fi
 if [ -n "$GSL_DIR" ]; then
-    export PATH=$GSL_DIR/bin:$PATH
     if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$GSL_DIR/lib
     else
@@ -443,7 +442,6 @@ elif [ -d /usr/pubsw/packages/vxl/current ]; then
     export VXL_DIR=/usr/pubsw/packages/vxl/current
 fi
 if [ -n "$VXL_DIR" ]; then
-    export PATH=$VXL_DIR/bin:$PATH
     if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$VXL_DIR/lib
     else
