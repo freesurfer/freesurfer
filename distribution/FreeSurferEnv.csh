@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.5 2006/03/03 23:04:05 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.6 2006/08/15 20:50:14 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.5 2006/03/03 23:04:05 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.6 2006/08/15 20:50:14 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -342,7 +342,6 @@ else if ( -e /usr/pubsw/packages/gsl/current) then
     setenv GSL_DIR    /usr/pubsw/packages/gsl/current
 endif
 if ( $?GSL_DIR ) then
-    setenv PATH     $GSL_DIR/bin:$PATH
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $GSL_DIR/lib
     else
@@ -460,22 +459,9 @@ endif
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
 set path = ( $FSFAST_HOME/bin     \
-             $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
              $path \
             )
-
-## Add path to OS-specific static and dynamic libraries.
-if(! $?LD_LIBRARY_PATH ) then
-    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
-if(! $?DYLD_LIBRARY_PATH ) then
-    setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
 
 # cause OS to build new bin path cache:
 rehash;

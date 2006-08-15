@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.10.2.6 2006/03/03 23:04:05 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10.2.7 2006/08/15 20:50:15 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.6 2006/03/03 23:04:05 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.7 2006/08/15 20:50:15 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -340,7 +340,6 @@ elif [ -d /usr/pubsw/packages/gsl/current ]; then
     export GSL_DIR=/usr/pubsw/packages/gsl/current
 fi
 if [ -n "$GSL_DIR" ]; then
-    export PATH=$GSL_DIR/bin:$PATH
     if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$GSL_DIR/lib
     else
@@ -448,19 +447,7 @@ fi
 
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
-export PATH=$FSFAST_HOME/bin:$FREESURFER_HOME/bin/noarch:$FREESURFER_HOME/bin:$PATH
-
-## Add path to OS-specific static and dynamic libraries.
-if [ -z "$LD_LIBRARY_PATH" ]; then
-    export LD_LIBRARY_PATH=$FREESURFER_HOME/lib/
-else
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-fi
-if [ -z "$DYLD_LIBRARY_PATH" ]; then
-    export DYLD_LIBRARY_PATH=$FREESURFER_HOME/lib/
-else
-    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-fi
+export PATH=$FSFAST_HOME/bin:$FREESURFER_HOME/bin:$PATH
 
 # cause OS to build new bin path cache:
 #rehash;  # not needed for bash!
