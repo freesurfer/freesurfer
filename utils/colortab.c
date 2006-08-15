@@ -389,9 +389,6 @@ CTABreadFromBinaryV1(FILE *fp, int nentries)
   char               *name;
   int                t;
   
-  if (NULL==ct)
-    ErrorReturn(NULL,
-		(ERROR_BADPARM, "CTABreadFromBinaryV1: ct was NULL"));
   if (nentries < 0)
     ErrorReturn(NULL,
 	  (ERROR_BADPARM, "CTABreadFromBinaryV1: nentries was %d", nentries));
@@ -533,10 +530,6 @@ CTABreadFromBinaryV2(FILE *fp)
   char               *name;
   int                t;
   
-  if (NULL==ct)
-    ErrorReturn(NULL,
-		(ERROR_BADPARM, "CTABreadFromBinaryV2: ct was NULL"));
-
   /* Read the number of entries from the stream. Note that this is
      really the max structure index; some of these entries could be
      blank. */
