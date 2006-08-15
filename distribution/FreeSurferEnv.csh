@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.52 2006/08/15 20:25:57 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.53 2006/08/15 20:33:16 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.52 2006/08/15 20:25:57 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.53 2006/08/15 20:33:16 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -84,7 +84,7 @@ endif
 
 if( $output ) then
     if (-e $FREESURFER_HOME/build-stamp.txt) then
-	echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
+        echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     endif
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if (("$1" == "--version") || \
@@ -366,7 +366,7 @@ endif
 
 ### ------- Qt (scuba2 and qdec support libraries) ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
-# NJS: QT is no longer included in the lib search path, 
+# NJS: QT is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
 if ( -e $FREESURFER_HOME/lib/qt) then
 #    setenv QTDIR    $FREESURFER_HOME/lib/qt
@@ -420,7 +420,7 @@ endif
 
 
 ### -------------- VTK ------------- ###
-# NJS: VTK is no longer included in the lib search path, 
+# NJS: VTK is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
 if ( -e $FREESURFER_HOME/lib/vtk) then
 #    setenv VTK_DIR    $FREESURFER_HOME/lib/vtk
@@ -516,23 +516,10 @@ endif
 
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
-set path = ( $FSFAST_HOME/bin     \
-             $FREESURFER_HOME/bin/noarch      \
-             $FREESURFER_HOME/bin/         \
+set path = ( $FREESURFER_HOME/bin/ \
+             $FSFAST_HOME/bin \
              $path \
             )
-
-## Add path to OS-specific static and dynamic libraries.
-if(! $?LD_LIBRARY_PATH ) then
-    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
-if(! $?DYLD_LIBRARY_PATH ) then
-    setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
 
 # cause OS to build new bin path cache:
 rehash;

@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.20 2006/08/15 20:25:57 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.21 2006/08/15 20:33:16 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.20 2006/08/15 20:25:57 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.21 2006/08/15 20:33:16 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -86,8 +86,8 @@ if [ ! -d $FREESURFER_HOME ]; then
 fi
 
 if [ $output == 1 ]; then
-    if [ -e $FREESURFER_HOME/build-stamp.txt ]; then 
-	echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
+    if [ -e $FREESURFER_HOME/build-stamp.txt ]; then
+        echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     fi
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if [[ "$1" == "--version" || \
@@ -364,7 +364,7 @@ fi
 
 ### ------ Qt (scuba2 and qdec support libraries)  ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
-# NJS: QT is no longer included in the lib search path, 
+# NJS: QT is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
 if [ -d $FREESURFER_HOME/lib/qt ]; then
 #    export QTDIR=$FREESURFER_HOME/lib/qt
@@ -411,7 +411,7 @@ fi
 
 
 ### ------ VTK  ------- ####
-# NJS: VTK is no longer included in the lib search path, 
+# NJS: VTK is no longer included in the lib search path,
 # as having too many files to search slows the operation of any command.
 if [ -d $FREESURFER_HOME/lib/vtk ]; then
 #    export VTK_DIR=$FREESURFER_HOME/lib/vtk
@@ -505,19 +505,7 @@ fi
 
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
-export PATH=$FSFAST_HOME/bin:$FREESURFER_HOME/bin/noarch:$FREESURFER_HOME/bin:$PATH
-
-## Add path to OS-specific static and dynamic libraries.
-if [ -z "$LD_LIBRARY_PATH" ]; then
-    export LD_LIBRARY_PATH=$FREESURFER_HOME/lib/
-else
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-fi
-if [ -z "$DYLD_LIBRARY_PATH" ]; then
-    export DYLD_LIBRARY_PATH=$FREESURFER_HOME/lib/
-else
-    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-fi
+export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 
 # cause OS to build new bin path cache:
 #rehash;  # not needed for bash!
