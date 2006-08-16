@@ -25,7 +25,7 @@ function ll = llbmm(nn,pA,pI,lambda,M)
 %
 % See the bottom of this file for testing code.
 %
-% $Id: llbmm.m,v 1.1 2006/08/15 23:37:44 greve Exp $
+% $Id: llbmm.m,v 1.2 2006/08/16 03:17:52 greve Exp $
 
 ll = [];
 if(nargin < 4 | nargin > 5)
@@ -47,7 +47,8 @@ if(M ~= length(nn)-1)
   % Pad nn with zeros
   nn = [nn; zeros(M-length(nn),1)];
 end
-k = [0:M]';       % All possible outcomes
+
+k = [0:M]'; % All possible outcomes
 
 a = lambda .* (pA.^k) .* ((1-pA).^(M-k)) ;
 b = (1-lambda) .* (pI.^k) .* ((1-pI).^(M-k)) ;
@@ -59,28 +60,25 @@ return;
 %-------------------------------------------------------------------%
 % Below is code to test that this function does produce a maximum at
 % the expected parameter set.
-% Note: test code requires stats toolbox.
 
-Na =  100;  % Number of active voxels
-Ni = 1000;  % Number of inactive voxels
+Na =   100;  % Number of active voxels
+Ni = 10000;  % Number of inactive voxels
 N = Na+Ni; % Total number of voxels
 lambda = Na/N; % ratio of active to total
 
-pA = .8; % Probability that a truly active vox is detected (TPR)
-pI = .01; % Probability that a truly inactive vox is detected (FPR)
+pA = .2; % Probability that a truly active vox is detected (TPR)
+pI = .1; % Probability that a truly inactive vox is detected (FPR)
 % Note: pA+pI != 1
 
-M = 20; % Number of trials
+M = 40; % Number of trials
 
 % Number of trials each of the Na voxels was delcared active. This
 % will be a list of Na numbers, each number between 0 and M.
-% Note: binornd() requires stats toolbox
-A = binornd(M,pA,Na,1); 
+A = randb(pA,M,Na);
 
 % Number of trials each of the Ni voxels was delcared active. This
 % will be a list of Ni numbers, each number between 0 and M.
-% Note: binornd() requires stats toolbox
-I = binornd(M,pI,Ni,1);
+I = randb(pI,M,Ni);
 
 % This is the synthesized "data", ie, all active and inactive voxels
 % mixed together, which the value at each voxel is the number of times
@@ -93,10 +91,8 @@ h0 = hist(D,x); % Count
 h = h0/N; % Probability
 
 % Construct ideal PDF of the mixture under these conditions
-% Note: binopdf() requires stats toolbox
-% Could also use binomialpdf().
-pdfA = binopdf(x,M,pA); 
-pdfI = binopdf(x,M,pI);
+pdfA = binomialpdf(x,M,pA);
+pdfI = binomialpdf(x,M,pI);
 pdf = lambda*pdfA + (1-lambda)*pdfI;
 
 % Plot the ideal vs the actual
@@ -147,9 +143,6 @@ initparams = [.5 .1 .5];
 [optparams cost] = fminsearch('bmmcost',initparams,[],h0);
 [initparams;params0;optparams]
 
-
-
-
-
-
+[fpr,tpr,auc,fpr] = bmmroc(pA,pI,lambda,M);
+plot(fpr,tpr)
 
