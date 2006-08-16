@@ -10,7 +10,7 @@ function fx = binomialpdf(x,ntrials,theta)
 %
 % See also binomialcdf and binomialconf
 %
-% $Id: binomialpdf.m,v 1.2 2004/06/11 17:20:45 greve Exp $
+% $Id: binomialpdf.m,v 1.3 2006/08/16 02:27:00 greve Exp $
 
 fx = [];
 
@@ -27,10 +27,10 @@ if(m ~= 0)
   return;
 end
 
-% check for all x < ntrials %
-nover = length(find(x >= ntrials));
+% check for all x <= ntrials %
+nover = length(find(x > ntrials));
 if(nover > 0)
-  fprintf('ERROR: all x must be < ntrials\n');
+  fprintf('ERROR: all x must be <= ntrials\n');
   return;
 end
 

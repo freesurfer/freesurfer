@@ -11,7 +11,7 @@ function Fx = binomialcdf(x,ntrials,theta)
 %
 % See also binomialpdf and binomialconf
 %
-% $Id: binomialcdf.m,v 1.1 2004/06/11 17:18:38 greve Exp $
+% $Id: binomialcdf.m,v 1.2 2006/08/16 02:27:00 greve Exp $
 
 Fx = [];
 
@@ -29,9 +29,11 @@ if(m ~= 0)
 end
 
 % check for all x < n %
-nover = length(find(x >= ntrials));
+nover = length(find(x > ntrials));
 if(nover > 0)
-  fprintf('ERROR: all x must be < ntrials\n');
+  fprintf('ERROR: all x must be <= ntrials\n');
+  ntrials
+  x
   return;
 end
 
@@ -42,12 +44,12 @@ if(theta <= 0 | theta >= 1)
 end
 
 xmax = max(x);
-xpdf = [1:xmax];
+xpdf = [0:xmax];
 pdf = binomialpdf(xpdf,ntrials,theta);
 
 % Use cumsum because distribution is discrete
 cdf = cumsum(pdf);
 
-Fx = cdf(x);
+Fx = cdf(x+1);
 
 return;

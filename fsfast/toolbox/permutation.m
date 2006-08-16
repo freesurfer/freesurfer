@@ -10,7 +10,7 @@ function p = permutation(n,x)
 %
 % Uses logarithms to avoid overflow.
 %
-% $Id: permutation.m,v 1.1 2003/08/27 03:55:00 greve Exp $
+% $Id: permutation.m,v 1.2 2006/08/16 02:27:00 greve Exp $
 
 p = [];
 if(nargin ~= 2)
@@ -28,13 +28,13 @@ if(round(x) ~= x)
   return;
 end
 
-if(n <= 0)
-  fprintf('ERROR: n = %d, must be > 0\n',n);
+if(n < 0)
+  fprintf('ERROR: n = %d, must be >= 0\n',n);
   return;
 end
 
-if(x <= 0 | x >= n)
-  fprintf('ERROR: x = %d, must be > 0 and < n\n',x);
+if(x < 0 | x > n)
+  fprintf('ERROR: x = %d, must be >= 0 and <= n\n',x);
   return;
 end
 
