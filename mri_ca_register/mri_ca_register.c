@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/15 23:43:55 $
-// Revision       : $Revision: 1.53 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/16 00:16:20 $
+// Revision       : $Revision: 1.54 $
 
 
 #include <math.h>
@@ -94,7 +94,7 @@ static char *vf_fname = NULL ;
 
 static double blur_sigma = 0.0f ;
 
-static int handle_expanded_ventricles = 0;
+static int handle_expanded_ventricles = 1;
 
 /* 
    command line consists of three inputs:
@@ -154,7 +154,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.53 2006/08/15 23:43:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.54 2006/08/16 00:16:20 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -200,7 +200,7 @@ main(int argc, char *argv[])
     printf("  -tr tr\n");
     printf("  -te te\n");
     printf("  -example T1 seg\n");
-    printf("  -bigventricles\n");
+    printf("  -nobigventricles\n");
     printf("\n");
     printf("\n");
     exit(1);
@@ -950,10 +950,10 @@ get_option(int argc, char *argv[])
     remove_bright = 1 ;
     printf("removing bright non-brain structures...\n") ;
   }
-  else if (!stricmp(option, "bigventricles"))
+  else if (!stricmp(option, "nobigventricles"))
   {
-    handle_expanded_ventricles = 1 ;
-    printf("handling expanded ventricles...\n") ;
+    handle_expanded_ventricles = 0 ;
+    printf("not handling expanded ventricles...\n") ;
   }
   else if (!stricmp(option, "renormalize"))
   {
