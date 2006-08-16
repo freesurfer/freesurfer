@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.15 2006/07/25 20:56:12 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.16 2006/08/16 18:24:32 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.15 2006/07/25 20:56:12 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.16 2006/08/16 18:24:32 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 	}else
 		MRISmapOntoSphere(mris);
 	
-	fprintf(stderr,"smoothing spherical vertices...\n");
+	//fprintf(stderr,"smoothing spherical vertices...\n");
 	//MRISsmoothOnSphere(mris,300);
 	//MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 	/* centering the surface using CANONICAL_VERTICES */
