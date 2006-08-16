@@ -14,7 +14,7 @@ function [fpr,tpr,auc,fdr,nthresh] = bmmroc(pA,pI,lambda,ntrials,nthresh)
 % auc - area under the [ROC] curv
 % fdr - false dicovery rate as a function of threshold
 %
-% $Id: bmmroc.m,v 1.2 2006/08/16 03:17:13 greve Exp $
+% $Id: bmmroc.m,v 1.3 2006/08/16 04:16:38 greve Exp $
 
 if(nargin < 4 | nargin > 5)
   fprintf('[fpr tpr auc] = bmmroc(pA,pI,lambda,ntrials,<nthresh>)\n');
@@ -26,6 +26,16 @@ if(isempty(nthresh)) nthresh = [0:ntrials]; end
 
 fpr = 1-binomialcdf(nthresh,ntrials,pI);
 tpr = 1-binomialcdf(nthresh,ntrials,pA);
+
+% This is a bit of a hack to account for the fact that the cdf
+% gives the probability of nhits below or *at* a given threshold
+% (since the threshold is discrete). So when the threshold is 0,
+% the probability is non-zero which means that the fpr is not
+% 1. This adjusts it.
+fpr(2:end) = fpr(1:end-1);
+fpr(1) = 1;
+tpr(2:end) = tpr(1:end-1);
+tpr(1) = 1;
 
 % Area under the ROC curve
 auc = abs(trapz(fpr,tpr)); % needs abs for reversal
