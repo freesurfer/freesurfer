@@ -29,7 +29,7 @@ static int avgs = 0 ;
 static int norm_PD = 0;
 static int map_to_flash = 0 ;
 
-static int handle_expanded_ventricles = 0;
+static int handle_expanded_ventricles = 1;
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -132,13 +132,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.68.2.1 2006/08/10 23:45:18 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.68.2.2 2006/08/16 00:18:42 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.68.2.1 2006/08/10 23:45:18 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.68.2.2 2006/08/16 00:18:42 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -988,10 +988,10 @@ get_option(int argc, char *argv[])
       map_to_flash = 1 ;
       printf("using FLASH forward model to predict intensity values...\n") ;
     }
-  else if (!stricmp(option, "bigventricles"))
+  else if (!stricmp(option, "nobigventricles"))
     {
-      handle_expanded_ventricles = 1 ;
-      printf("handling expanded ventricles...\n") ;
+      handle_expanded_ventricles = 0 ;
+      printf("not handling expanded ventricles...\n") ;
     }
   else if (!stricmp(option, "FLASH_PARMS"))
     {
