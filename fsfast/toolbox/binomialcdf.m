@@ -11,7 +11,7 @@ function Fx = binomialcdf(x,ntrials,theta)
 %
 % See also binomialpdf and binomialconf
 %
-% $Id: binomialcdf.m,v 1.2 2006/08/16 02:27:00 greve Exp $
+% $Id: binomialcdf.m,v 1.3 2006/08/16 03:13:57 greve Exp $
 
 Fx = [];
 
@@ -51,5 +51,9 @@ pdf = binomialpdf(xpdf,ntrials,theta);
 cdf = cumsum(pdf);
 
 Fx = cdf(x+1);
+
+% Can be > 1 because of round off
+ind = find(Fx > 1);
+Fx(ind) = 1;
 
 return;
