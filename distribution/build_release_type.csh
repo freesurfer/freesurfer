@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.64 2006/08/10 23:42:07 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.65 2006/08/17 16:19:33 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -106,8 +106,8 @@ if ("$OSTYPE" == "Darwin") then
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
-setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
-setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
+setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}":"${VXLDIR}/lib"
+setenv DYLD_LIBRARY_PATH "${LD_LIBRARY_PATH}"
 
 
 #
@@ -345,7 +345,9 @@ set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
-set cnfgr=($cnfgr --with-qt-dir=${QTDIR})
+#Qt-based apps are no longer built by default. use --enable-qt-apps 
+#set cnfgr=($cnfgr --enable-qt-apps)
+#set cnfgr=($cnfgr --with-qt-dir=${QTDIR})
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
 if ($status != 0) then
