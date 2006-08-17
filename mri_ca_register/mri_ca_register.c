@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/17 00:25:33 $
-// Revision       : $Revision: 1.55 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/08/17 12:54:31 $
+// Revision       : $Revision: 1.56 $
 
 
 #include <math.h>
@@ -52,6 +52,7 @@ static int renormalize_align = 0 ;
 static char *long_reg_fname = NULL ;
 //static int inverted_xform = 0 ;
 
+static char *write_gca_fname = NULL ;
 static float regularize = 0 ;
 static float regularize_mean = 0 ;
 static char *example_T1 = NULL ;
@@ -156,7 +157,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.55 2006/08/17 00:25:33 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.56 2006/08/17 12:54:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -728,7 +729,7 @@ main(int argc, char *argv[])
 		}
 		else
 			lta = NULL ;
-		if(!xform_name)
+		if(!xform_name)  // normal (cross-sectional) processing
 		{
 			//      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 			//			if (read_lta == 0)
@@ -761,9 +762,14 @@ main(int argc, char *argv[])
 				   handle_expanded_ventricles) ;
 
 				Gdiag = old_diag ;
+				if (write_gca_fname)
+				{
+					printf("writing normalized gca to %s...\n", write_gca_fname) ;
+					GCAwrite(gcam->gca, write_gca_fname) ;
+				}
 			}
 		}
-		else
+		else  // for longitudinal processing
 		{
 			TRANSFORM *trans ;
 			trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
@@ -964,6 +970,12 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "write_gca"))
+  {
+		write_gca_fname = argv[2] ;
+		printf("writing gca to file name %s\n", write_gca_fname) ;
 		nargs = 1 ;
   }
   else if (!stricmp(option, "MIN_AVGS"))
