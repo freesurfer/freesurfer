@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.25 2006/08/17 16:55:08 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.26 2006/08/17 16:57:31 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -623,6 +623,10 @@ if($#outpath == 0 && ! $CacheOutOnly) then
 endif
 if($#target == 0) then
   echo "ERROR: no target subject specified"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$target) then
+  echo "ERROR: cannot find $target in $SUBJECTS_DIR"
   exit 1;
 endif
 if($srcsurf == 0 && $srcvol == 0 && $#sval == 0) then
