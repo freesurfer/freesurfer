@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.16 2006/08/16 18:24:32 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.17 2006/08/17 15:31:08 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.16 2006/08/16 18:24:32 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.17 2006/08/17 15:31:08 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -344,6 +344,20 @@ int main(int argc, char *argv[])
 				exit(-1);
 			}
 		}
+		//check if the surface is still a valid one!
+		if(parms.verbose >= VERBOSE_MODE_MEDIUM)
+			is_valid = MRISisSurfaceValid(mris_corrected,0,1);
+		else 
+			is_valid = MRISisSurfaceValid(mris_corrected,0,0);
+		if(is_valid == 0 ) {
+			if(parms.verbose < VERBOSE_MODE_MEDIUM)
+				MRISisSurfaceValid(mris_corrected,0,1);
+			fprintf(stderr,"The original surface is not a valid tessellated manifold anymore!!!\\n");
+			fprintf(stderr,"\nAbort !!!\n");
+			MRISfree(&mris_corrected);
+			ErrorExit(ERROR_BADPARM,
+								"Defect #%d: The topology correction generated an invalid surface\n", def) ;
+		};
 	}
 	
 	//checking if we have some self-intersections (should not happen) 

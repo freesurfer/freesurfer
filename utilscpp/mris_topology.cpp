@@ -11,7 +11,7 @@ bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms){
 
   int euler = MRISgetEuler(mris, defect_number);
-	fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nCorrecting Topology of defect %d with euler number %d\n",parms.defect_number,euler);
+	fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nCorrecting Topology of defect %d with euler number %d (%d loops) \n",parms.defect_number,euler,(1-euler)/2);
 
   if(euler == 1) {
     fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",parms.defect_number);
