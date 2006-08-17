@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/03 15:09:50 $
-// Revision       : $Revision: 1.483 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/08/17 15:36:00 $
+// Revision       : $Revision: 1.484 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -580,7 +580,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.483 2006/08/03 15:09:50 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.484 2006/08/17 15:36:00 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30855,7 +30855,7 @@ static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) ;
 int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
 	int n,m,p,q,vnop,nfound,mark;
 	VERTEX *vn;
-	int nvf,nffm,nffs,cf,nvc;
+	int euler,nedges,nvf,nffm,nffs,cf,nvc;
 	FACE *fm;
 
 	//check if every vertex has the same number of vertices and faces
@@ -30872,8 +30872,10 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
 	//check if some faces have more than 2 neighbors
 	if(verbose==2) fprintf(stderr,"\nchecking for single or multiple faces...\n");
 	nffm=nffs=0;
+	nedges=0;
 	for(n = 0 ; n < mris->nvertices ; n++){
 		vn = &mris->vertices[n];
+		nedges += vn->vnum; 
 		for(p = 0 ; p < vn->vnum ; p++){
 			vnop=vn->v[p];
 			/* counts the # of faces that contain the edge n<-->vnop */
@@ -30896,6 +30898,8 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
 			}
 		}
 	}
+	nedges /= 2;
+	euler = mris->nvertices-nedges+mris->nfaces;
 
 	//finally check the # of connected neighbors of each vertex
   if(verbose==2) fprintf(stderr,"\nchecking for corner configurations...\n");
@@ -30946,10 +30950,11 @@ int MRISisSurfaceValid(MRIS *mris, int patch,int verbose){
     }
 	}
 	if(verbose) fprintf(stderr,"Surface Diagnostics:       \n"
+											       "   eno=%d (nv=%d, nf=%d, ne=%d)\n"
 											       "   # of border vertices [ #v ~ #f ]     %d \n"
 											       "   # of edges with single face          %d \n"
 											       "   # of edges with more than 2 faces    %d \n"
-											       "   # of corner configurations           %d\n",nvf,nffs,nffm,nvc);
+											       "   # of corner configurations           %d\n",euler,mris->nvertices,mris->nfaces,nedges,nvf,nffs,nffm,nvc);
 
 	if(patch && (nffm || nvc)) return 0; 
 	else if(nvf || nffs || nffm || nvc) return 0;
