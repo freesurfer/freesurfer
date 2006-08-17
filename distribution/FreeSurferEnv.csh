@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.7 2006/08/17 00:04:11 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.8 2006/08/17 17:05:17 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.7 2006/08/17 00:04:11 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.8 2006/08/17 17:05:17 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -82,7 +82,7 @@ endif
 
 if( $output ) then
     if (-e $FREESURFER_HOME/build-stamp.txt) then
-	echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
+        echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     endif
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if (("$1" == "--version") || \
@@ -391,10 +391,14 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
 endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     setenv TCL_LIB_DIR  $FREESURFER_HOME/lib/tcltktixblt/lib
-    setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
-    setenv TK_LIBRARY  $TCL_LIB_DIR/tk8.4
-    setenv TIX_LIBRARY $TCL_LIB_DIR/tix8.1
-    setenv BLT_LIBRARY $TCL_LIB_DIR/blt2.4
+    if ( $?SET_TCL_VARS ) then
+        # set these to override native installation of libs
+        setenv TCLLIBPATH  $TCL_LIB_DIR
+        setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
+        setenv TK_LIBRARY  $TCL_LIB_DIR/tk8.4
+        setenv TIX_LIBRARY $TCL_LIB_DIR/tix8.1
+        setenv BLT_LIBRARY $TCL_LIB_DIR/blt2.4
+    endif
     if(! $?LD_LIBRARY_PATH ) then
         setenv LD_LIBRARY_PATH $TCL_LIB_DIR
     else
