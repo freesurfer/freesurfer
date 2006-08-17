@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.17 2006/08/17 15:31:08 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.18 2006/08/17 20:35:49 segonne Exp $",
      "$Name:  $",
      cmdline);
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-		 "$Id: mris_topo_fixer.cpp,v 1.17 2006/08/17 15:31:08 segonne Exp $",
+		 "$Id: mris_topo_fixer.cpp,v 1.18 2006/08/17 20:35:49 segonne Exp $",
      "$Name:  $");
 
 	if (nargs && argc - nargs == 1)
@@ -312,6 +312,7 @@ int main(int argc, char *argv[])
 	
 
 	mris_corrected=MRISduplicateOver(mris);
+	mris_corrected->type=MRIS_TRIANGULAR_SURFACE;
 	//mris becomes useless!
 	MRISfree(&mris) ;
 
