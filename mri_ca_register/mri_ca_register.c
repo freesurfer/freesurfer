@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/16 00:18:42 $
-// Revision       : $Revision: 1.48.2.3 $
+// Revision Date  : $Date: 2006/08/17 00:24:47 $
+// Revision       : $Revision: 1.48.2.4 $
 
 
 #include <math.h>
@@ -96,6 +96,8 @@ static double blur_sigma = 0.0f ;
 
 static int handle_expanded_ventricles = 1;
 
+static int do_secondpass_renorm = 1;
+
 /* 
    command line consists of three inputs:
 
@@ -153,7 +155,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.48.2.3 2006/08/16 00:18:42 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.48.2.4 2006/08/17 00:24:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -199,6 +201,7 @@ main(int argc, char *argv[])
     printf("  -te te\n");
     printf("  -example T1 seg\n");
     printf("  -nobigventricles\n");
+    printf("  -nosecondpassrenorm\n");
     printf("\n");
     printf("\n");
     exit(1);
@@ -728,9 +731,27 @@ main(int argc, char *argv[])
 			//      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 			//			if (read_lta == 0)
 			{
-				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles) ;
-				printf("2nd pass renormalization with updated intensity distributions\n");
-				GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles) ;
+			        if (do_secondpass_renorm)
+			        {
+				  GCAmapRenormalizeWithAlignment
+				    (gcam->gca, 
+				     mri_inputs, 
+				     transform, 
+				     parms.log_fp, 
+				     parms.base_name, 
+				     NULL, 
+				     handle_expanded_ventricles) ;
+				  printf("2nd pass renormalization with "
+					 "updated intensity distributions\n");
+				}
+				GCAmapRenormalizeWithAlignment
+				  (gcam->gca, 
+				   mri_inputs, 
+				   transform, 
+				   parms.log_fp, 
+				   parms.base_name, 
+				   &lta, 
+				   handle_expanded_ventricles) ;
 			}
 		}
 		else
@@ -740,13 +761,33 @@ main(int argc, char *argv[])
 			trans->type = TransformFileNameType(xform_name);
 			trans->xform = (void *)gcam;
 
-			//The following inversion is necessary; but do I need to release the memory for the inverse transform after the mapRenormalize is done -xhan?
+			/*The following inversion is necessary; 
+			  but do I need to release the memory for 
+			  the inverse transform after the mapRenormalize is done -xhan?*/
 			TransformInvert(trans, mri_inputs);
 
-			//      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
-			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles) ;
-			printf("2nd pass renormalization with updated intensity distributions\n");
-			GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles) ;
+			if (do_secondpass_renorm)
+                        {
+			  GCAmapRenormalizeWithAlignment
+			    (gcam->gca, 
+			     mri_inputs, 
+			     trans, 
+			     parms.log_fp, 
+			     parms.base_name, 
+			     NULL, 
+			     handle_expanded_ventricles) ;
+			  printf("2nd pass renormalization with "
+				 "updated intensity distributions\n");
+			}
+			GCAmapRenormalizeWithAlignment
+			  (gcam->gca, 
+			   mri_inputs, 
+			   trans, 
+			   parms.log_fp, 
+			   parms.base_name, 
+			   &lta, 
+			   handle_expanded_ventricles) ;
+
 			free(trans);
 		}
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -941,6 +982,11 @@ get_option(int argc, char *argv[])
   {
     handle_expanded_ventricles = 0 ;
     printf("not handling expanded ventricles...\n") ;
+  }
+  else if (!stricmp(option, "nosecondpassrenorm"))
+  {
+    do_secondpass_renorm = 0 ;
+    printf("not performing 2nd-pass renormalization...\n") ;
   }
   else if (!stricmp(option, "renormalize"))
   {
