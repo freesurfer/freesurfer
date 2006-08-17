@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.24 2006/08/17 00:05:49 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.25 2006/08/17 17:00:14 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.24 2006/08/17 00:05:49 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.25 2006/08/17 17:00:14 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -34,7 +34,6 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
-#    echo "       VTK_DIR"
     echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
@@ -389,10 +388,14 @@ if [ -d $FREESURFER_HOME/lib/tcltktixblt/bin ]; then
 fi
 if [ -d $FREESURFER_HOME/lib/tcltktixblt/lib ]; then
     export TCL_LIB_DIR=$FREESURFER_HOME/lib/tcltktixblt/lib
-    export TCL_LIBRARY=$TCL_LIB_DIR/tcl8.4
-    export TK_LIBRARY=$TCL_LIB_DIR/tk8.4
-    export TIX_LIBRARY=$TCL_LIB_DIR/tix8.1
-    export BLT_LIBRARY=$TCL_LIB_DIR/blt2.4
+    if [ -z "$SET_TCL_VARS" ]; then
+        # setting these forces override of native installed libs
+        export TCLLIBPATH=$TCL_LIB_DIR
+        export TCL_LIBRARY=$TCL_LIB_DIR/tcl8.4
+        export TK_LIBRARY=$TCL_LIB_DIR/tk8.4
+        export TIX_LIBRARY=$TCL_LIB_DIR/tix8.1
+        export BLT_LIBRARY=$TCL_LIB_DIR/blt2.4
+    fi
     if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$TCL_LIB_DIR
     else

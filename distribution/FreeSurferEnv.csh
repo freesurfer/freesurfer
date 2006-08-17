@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.56 2006/08/17 00:05:49 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.57 2006/08/17 17:00:13 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.56 2006/08/17 00:05:49 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.57 2006/08/17 17:00:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -32,7 +32,6 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
-#    echo "       VTK_DIR"
     echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
@@ -398,10 +397,13 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
 endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     setenv TCL_LIB_DIR  $FREESURFER_HOME/lib/tcltktixblt/lib
-    setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
-    setenv TK_LIBRARY  $TCL_LIB_DIR/tk8.4
-    setenv TIX_LIBRARY $TCL_LIB_DIR/tix8.1
-    setenv BLT_LIBRARY $TCL_LIB_DIR/blt2.4
+    if ( $?SET_TCL_VARS ) then
+        setenv TCLLIBPATH  $TCL_LIB_DIR
+        setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
+        setenv TK_LIBRARY  $TCL_LIB_DIR/tk8.4
+        setenv TIX_LIBRARY $TCL_LIB_DIR/tix8.1
+        setenv BLT_LIBRARY $TCL_LIB_DIR/blt2.4
+    endif
     if(! $?LD_LIBRARY_PATH ) then
         setenv LD_LIBRARY_PATH $TCL_LIB_DIR
     else
