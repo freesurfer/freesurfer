@@ -1,6 +1,8 @@
 function mcvect = bmm_mcvect(v1,v2)
 % mcvect = bmm_mcvect(v1,v2)
 %
+% Not tested yet!
+%
 % Construct a modified count vector (mcv). Used in the dependence
 % model in binomial mixture modeling.
 %
@@ -20,11 +22,11 @@ function mcvect = bmm_mcvect(v1,v2)
 % described above. The sum over this dimension will be constant 
 % across all voxels and equal to number of replicants.
 %
-% % Based on appendix of Genovese, et al, 1997. Estimating Test-Retest
+% Based on appendix of Genovese, et al, 1997. Estimating Test-Retest
 % Reliability in Functional MR Imaging I: Statistical Methodology.
 % MRM 38:497-507.
 %
-% $Id: bmm_mcvect.m,v 1.1 2006/08/17 03:53:45 greve Exp $
+% $Id: bmm_mcvect.m,v 1.2 2006/08/17 05:22:19 greve Exp $
 
 mcvect = [];
 if(nargin ~= 2)
