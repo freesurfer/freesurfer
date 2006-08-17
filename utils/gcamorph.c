@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/08/15 23:46:41 $
-// Revision       : $Revision: 1.111 $
+// Revision Date  : $Date: 2006/08/17 14:13:37 $
+// Revision       : $Revision: 1.112 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -9997,7 +9997,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
   GCA_MORPH_NODE  *gcamn ;
 	GCA             *gca ;
   int             x, y, z, width, height, depth, i, level, navgs, first=1 ;
-  float           min_dt, orig_dt, last_rms, rms, pct_change, rms2 ;
+  float           min_dt, orig_dt, last_rms, rms, pct_change ;
 	VECTOR          *v_src, *v_dst ;
 	MATRIX          *m_avg, *m_L ;
 
@@ -10096,8 +10096,8 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 			{
 				m_L = gcamComputeOptimalTargetLinearTransform(gcam, m_L, .9) ;
 				gcamApplyLinearTransform(gcam, m_L) ;
-				rms2 = GCAMcomputeRMS(gcam, mri, parms) ;
-				pct_change = 100.0*(last_rms-rms2)/last_rms ;
+				rms = GCAMcomputeRMS(gcam, mri, parms) ;
+				pct_change = 100.0*(last_rms-rms)/last_rms ;
 				if (pct_change <= 0)
 				{
 					MATRIX *m_inv ;
@@ -10106,15 +10106,15 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 					m_inv = MatrixInverse(m_L, NULL) ;
 					gcamApplyLinearTransform(gcam, m_inv) ;
 					MatrixFree(&m_inv) ;
-					rms2 = GCAMcomputeRMS(gcam, mri, parms) ;
-					//					pct_change = 100.0*(last_rms-rms2)/last_rms ;
+					rms = GCAMcomputeRMS(gcam, mri, parms) ;
+					//					pct_change = 100.0*(last_rms-rms)/last_rms ;
 				}
 				if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE))
 					write_snapshot(gcam, mri, parms, parms->start_t) ;
 				if (parms->log_fp)
 				{
 					fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, LIN",
-									parms->start_t, 0.0, rms2, pct_change, gcam->neg, Ginvalid) ;
+									parms->start_t, 0.0, rms, pct_change, gcam->neg, Ginvalid) ;
 					if (parms->l_binary > 0)
 						fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
 										Galigned, 
@@ -10124,7 +10124,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 					fflush(parms->log_fp) ;
 				}
 				printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, LIN",
-							 parms->start_t, 0.0, rms2, pct_change, gcam->neg, Ginvalid) ;
+							 parms->start_t, 0.0, rms, pct_change, gcam->neg, Ginvalid) ;
 				if (parms->l_binary > 0)
 					printf(", aligned = %d (%2.3f%%)\n",
 								 Galigned, 
@@ -10132,7 +10132,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
 				else
 					printf("\n") ;
 				fflush(stdout) ;
-				last_rms = rms2 ;
+				last_rms = rms ;
 				parms->start_t++ ;
 				if (first) 
 				{
