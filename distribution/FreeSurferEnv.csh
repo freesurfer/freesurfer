@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.55 2006/08/15 21:14:07 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.56 2006/08/17 00:05:49 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.55 2006/08/15 21:14:07 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.56 2006/08/17 00:05:49 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -397,24 +397,24 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
                 )
 endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
-    setenv TCLLIBPATH  $FREESURFER_HOME/lib/tcltktixblt/lib
-    setenv TCL_LIBRARY $TCLLIBPATH/tcl8.4
-    setenv TK_LIBRARY  $TCLLIBPATH/tk8.4
-    setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
-    setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
+    setenv TCL_LIB_DIR  $FREESURFER_HOME/lib/tcltktixblt/lib
+    setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
+    setenv TK_LIBRARY  $TCL_LIB_DIR/tk8.4
+    setenv TIX_LIBRARY $TCL_LIB_DIR/tix8.1
+    setenv BLT_LIBRARY $TCL_LIB_DIR/blt2.4
     if(! $?LD_LIBRARY_PATH ) then
-        setenv LD_LIBRARY_PATH $TCLLIBPATH
+        setenv LD_LIBRARY_PATH $TCL_LIB_DIR
     else
-        setenv LD_LIBRARY_PATH "$TCLLIBPATH":"$LD_LIBRARY_PATH"
+        setenv LD_LIBRARY_PATH "$TCL_LIB_DIR":"$LD_LIBRARY_PATH"
     endif
     if(! $?DYLD_LIBRARY_PATH ) then
-        setenv DYLD_LIBRARY_PATH $TCLLIBPATH
+        setenv DYLD_LIBRARY_PATH $TCL_LIB_DIR
     else
-        setenv DYLD_LIBRARY_PATH "$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
+        setenv DYLD_LIBRARY_PATH "$TCL_LIB_DIR":"$DYLD_LIBRARY_PATH"
     endif
 endif
-if( $output && $?TCLLIBPATH ) then
-    echo "TCLLIBPATH      $TCLLIBPATH"
+if( $output && $?TCL_LIB_DIR ) then
+    echo "TCL_LIB_DIR     $TCL_LIB_DIR"
 endif
 
 
