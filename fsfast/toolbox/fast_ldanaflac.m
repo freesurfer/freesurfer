@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.3 2006/07/28 04:33:03 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.4 2006/08/18 22:39:08 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -15,7 +15,6 @@ flac.name = dirname(anadir);
 
 flac.mask = 'brain';
 flac.con = [];
-flac.ev = [];
 % format is handled diff than in fast_ldflac.m
 flac.format = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(flac.format)) flac.format = 'nii'; end
