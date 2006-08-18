@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/17 12:54:31 $
-// Revision       : $Revision: 1.56 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/08/18 20:21:02 $
+// Revision       : $Revision: 1.57 $
 
 
 #include <math.h>
@@ -97,7 +97,7 @@ static double blur_sigma = 0.0f ;
 
 static int handle_expanded_ventricles = 1;
 
-static int do_secondpass_renorm = 1;
+static int do_secondpass_renorm = 0;
 
 /* 
    command line consists of three inputs:
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.56 2006/08/17 12:54:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.57 2006/08/18 20:21:02 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -204,7 +204,7 @@ main(int argc, char *argv[])
     printf("  -te te\n");
     printf("  -example T1 seg\n");
     printf("  -nobigventricles\n");
-    printf("  -nosecondpassrenorm\n");
+    printf("  -secondpassrenorm\n");
     printf("\n");
     printf("\n");
     exit(1);
@@ -1009,10 +1009,10 @@ get_option(int argc, char *argv[])
     handle_expanded_ventricles = 0 ;
     printf("not handling expanded ventricles...\n") ;
   }
-  else if (!stricmp(option, "nosecondpassrenorm"))
+  else if (!stricmp(option, "secondpassrenorm"))
   {
-    do_secondpass_renorm = 0 ;
-    printf("not performing 2nd-pass renormalization...\n") ;
+    do_secondpass_renorm = 1 ;
+    printf("performing 2nd-pass renormalization...\n") ;
   }
   else if (!stricmp(option, "renormalize"))
   {
