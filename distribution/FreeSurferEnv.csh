@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.8 2006/08/17 17:05:17 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.9 2006/08/18 21:23:54 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.8 2006/08/17 17:05:17 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.9 2006/08/18 21:23:54 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -391,7 +391,8 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
 endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     setenv TCL_LIB_DIR  $FREESURFER_HOME/lib/tcltktixblt/lib
-    if ( $?SET_TCL_VARS ) then
+    setenv SET_TCL_VARS 1
+    if ( "$SET_TCL_VARS" == "1" ) then
         # set these to override native installation of libs
         setenv TCLLIBPATH  $TCL_LIB_DIR
         setenv TCL_LIBRARY $TCL_LIB_DIR/tcl8.4
