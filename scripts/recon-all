@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.31 2006/08/01 02:02:02 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.32 2006/08/18 22:13:33 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -65,6 +65,8 @@ set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
+set NoBigVentricles = 0 # if 1, add -nobigventricles to mri_ca_label and reg.
+set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -223,6 +225,9 @@ echo "subjid $subjid" >> $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
 echo "Actual FREESURFER_HOME $freesurfer_home_true" >> $LF
+if (-e $FREESURFER_HOME/build-stamp.txt) then
+  echo "build-stamp.txt: `cat $FREESURFER_HOME/build-stamp.txt`" >> $LF
+endif
 uname -a | tee -a $LF
 limit >> $LF
 
@@ -660,7 +665,11 @@ if($DoCAReg) then
   $PWD |& tee -a $LF
 
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
-  set cmd = (mri_ca_register $UseCAAlign -mask brainmask.mgz \
+  set cmd = (mri_ca_register)
+  set cmd = ($cmd $UseCAAlign)
+  if($NoBigVentricles) set cmd = ($cmd -nobigventricles)
+  if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
+  set cmd = ($cmd -mask brainmask.mgz \
              -T transforms/talairach.lta $xopts norm.mgz \
              $FREESURFER_HOME/average/$GCA transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -741,7 +750,10 @@ if($DoCALabel) then
   echo $ASegDiff
 
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
-  set cmd = (mri_ca_label $UseCAAlign $xopts norm.mgz \
+  set cmd = (mri_ca_label)
+  set cmd = ($cmd $UseCAAlign)
+  if($NoBigVentricles) set cmd = ($cmd -nobigventricles)
+  set cmd = ($cmd $xopts norm.mgz \
     transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
     aseg.auto.mgz);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2116,6 +2128,14 @@ while( $#argv != 0 )
 
     case "-nocortexlabel":
       set NoCortexLabel = 1;
+      breaksw
+
+    case "-nobigventricles":
+      set NoBigVentricles = 1;
+      breaksw
+
+    case "-secondpassrenorm":
+      set DoSecondPassRenorm = 1;
       breaksw
 
     default:
