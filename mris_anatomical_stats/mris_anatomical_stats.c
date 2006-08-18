@@ -18,7 +18,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.38 2006/06/19 20:26:37 fischl Exp $";
+"$Id: mris_anatomical_stats.c,v 1.39 2006/08/18 18:18:45 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.38 2006/06/19 20:26:37 fischl Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.39 2006/08/18 18:18:45 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -131,7 +131,7 @@ main(int argc, char *argv[])
   if (sigma > 0.0)
     mri_kernel = MRIgaussian1d(sigma, 100) ;
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  if(MGZ) sprintf(fname, "%s.mgz",fname);
+  if(MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
   if (histo_flag)
     {
       sprintf(fname, "%s/%s/mri/%s", sdir, sname, mri_name) ;
-      if(MGZ) sprintf(fname, "%s.mgz",fname);
+      if(MGZ) strcat(fname, ".mgz");
       fprintf(stderr, "reading volume %s...\n", fname) ;
       mri_orig = MRIread(fname) ;
       if (!mri_orig)
