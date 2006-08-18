@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.8 2006/08/17 00:59:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.9 2006/08/18 20:26:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -66,7 +66,7 @@ set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
 set NoBigVentricles = 0 # if 1, add -nobigventricles to mri_ca_label and reg.
-set NoSecondPassRenorm = 0 # if 1, add -nosecondpassrenorm to mri_ca_register
+set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -668,7 +668,7 @@ if($DoCAReg) then
   set cmd = (mri_ca_register)
   set cmd = ($cmd $UseCAAlign)
   if($NoBigVentricles) set cmd = ($cmd -nobigventricles)
-  if($NoSecondPassRenorm) set cmd = ($cmd -nosecondpassrenorm)
+  if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
   set cmd = ($cmd -mask brainmask.mgz \
              -T transforms/talairach.lta $xopts norm.mgz \
              $FREESURFER_HOME/average/$GCA transforms/talairach.m3z)
@@ -2125,8 +2125,8 @@ while( $#argv != 0 )
       set NoBigVentricles = 1;
       breaksw
 
-    case "-nosecondpassrenorm":
-      set NoSecondPassRenorm = 1;
+    case "-secondpassrenorm":
+      set DoSecondPassRenorm = 1;
       breaksw
 
     default:
