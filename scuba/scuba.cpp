@@ -67,6 +67,10 @@ char* Progname = "scuba";
 int main ( int argc, char** argv ) {
 
   try {
+    // Nick requested this. This is here to keep installations that
+    // use freeglut from crashing.
+    glutInit( &argc, argv );
+
     Tcl_Interp* interp = Tcl_CreateInterp();
     if( NULL == interp ) {
       throw runtime_error( "Tcl_CreateInterp returned null" );
