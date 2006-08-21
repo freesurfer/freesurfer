@@ -368,7 +368,10 @@ Layer::ProcessOption ( string isOption, string isValue ) {
   char sValue[1024];
   strcpy( sValue, isValue.c_str() );
 
-  if( 0 == isOption.compare( "opacity" ) ) {
+  if( 0 == isOption.compare( "label" ) ) {
+    SetLabel( sValue );
+
+  } else if( 0 == isOption.compare( "opacity" ) ) {
     float opacity = (float) strtod( sValue, (char**)NULL );
     if( ERANGE == errno ) {
       throw runtime_error( "Bad opacity value" );

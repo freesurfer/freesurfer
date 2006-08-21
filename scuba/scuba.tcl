@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.220 2006/07/26 19:37:40 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.221 2006/08/21 21:04:42 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6512,7 +6512,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.220 2006/07/26 19:37:40 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.221 2006/08/21 21:04:42 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6729,7 +6729,7 @@ proc UpdateFrame { iFrameID } {
 proc MakeHistogramFillWindow {} {
     global gaLayer
     global gaROI
-
+    
     # Build a list of non-seg volumes for the source layer list.
     set lSourceLayers {}
     foreach layerID $gaLayer(idList) {
@@ -6740,7 +6740,7 @@ proc MakeHistogramFillWindow {} {
 	    }
 	}
     }
-
+    
     if { [llength $lSourceLayers] == 0 } {
 	tkuFormattedErrorDlog "Couldn't Make Histogram" \
 	    "No anatomical volume layer available as a source." \
@@ -8362,6 +8362,7 @@ SelectToolInToolProperties [GetPreferencesValue SelectedTool]
 if { $gaLayer(current,id) >= 0 } {
     SelectLayerInLayerProperties $gaLayer(current,id)
 }
+UpdateLayerList
 
 # Updates the target layer menu.
 SelectToolInToolProperties [GetPreferencesValue SelectedTool]
