@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.123 2006/08/22 15:38:02 kteich Exp $
+# $Id: tksurfer.tcl,v 1.124 2006/08/22 19:05:46 kteich Exp $
 
 package require BLT;
 
@@ -134,6 +134,9 @@ set FunD_tRegistration(noneNeeded) 3
 # set some default histogram data
 set gaHistogramData(zoomed) 0
 set gaHistogramData(threshMode) linear
+set gaHistogramData(autoRange) 1
+set gaHistogramData(minXRange) -1
+set gaHistogramData(maxXRange) -1
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
@@ -148,6 +151,8 @@ set gaFillAction(remove_from_label) 3
 set gaFuncGraphAvgMode(single) 0
 set gaFuncGraphAvgMode(marked) 1
 set gaFuncGraphAvgMode(label) 2
+
+set gFDRRate 0.05
 
 # ====================================================== LINKED VAR MANAGEMENT
 
@@ -833,6 +838,11 @@ proc UpdateHistogramData { iMin iMax iIncrement iNum ilData } {
     set gaHistogramData(increment) $iIncrement
     set gaHistogramData(numBars) $iNum
     set gaHistogramData(data) $ilData
+    if { $gaHistogramData(minXRange) == -1 && 
+	 $gaHistogramData(maxXRange) == -1 } {
+	set gaHistogramData(minXRange) $iMin
+	set gaHistogramData(maxXRange) $iMax
+    }
 }
 
 proc DoConfigOverlayDisplayDlog {} {
@@ -843,7 +853,7 @@ proc DoConfigOverlayDisplayDlog {} {
     global gaHistoWidget
     global gsHistoValue
     global gFDRRate
-    
+
     set wwDialog .wwConfigOverlayDisplayDlog
     
     UpdateLinkedVarGroup overlay
@@ -991,6 +1001,7 @@ proc DoConfigOverlayDisplayDlog {} {
 
 	set lwHisto   $fwHisto.lwHisto
 	set gaHistoWidget(graph)  $fwHisto.bwHisto
+	set fwRange   $fwHisto.fwRange
 	set fwThresh  $fwHisto.fwThresh
 	set ewMin     $fwThresh.ewMin
 	set ewMid     $fwThresh.ewMid
@@ -1062,6 +1073,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	    } 
 	}
 		
+
 	# make the entries for the threshold values.
 	frame $fwThresh
 	
@@ -1143,6 +1155,51 @@ proc DoConfigOverlayDisplayDlog {} {
 	    {text "Piecewise" piecewise {UpdateOverlayDlogInfo} "" }
 	}
 
+	# Label frame for the x axis range.
+	tixLabelFrame $fwRange \
+	    -label "X Axis Range" \
+	    -labelside acrosstop
+	
+	# Sub widgets.
+	set fwRangeSub     [$fwRange subwidget frame]
+	set rbwRangeAuto   $fwRangeSub.rbwRangeAuto
+	set fwRangeManual  $fwRangeSub.fwRangeManual
+	set rbwRangeManual $fwRangeManual.rbwRangeManual
+	set ewRangeXMin    $fwRangeManual.ewRangeXMin
+	set ewRangeXMax    $fwRangeManual.ewRangeXMax
+	set ewXMin         $fwRangeSub.ewXMin
+	set ewXMax         $fwRangeSub.ewXMax
+
+	# Automatic rbw.
+	radiobutton $rbwRangeAuto \
+	    -text "Automatic" \
+	    -command UpdateOverlayDlogInfo \
+	    -variable gaHistogramData(autoRange) \
+	    -value 1 \
+	    -font [tkm_GetNormalFont]
+
+	# Manual rbw is in a frame with the entries.
+	frame $fwRangeManual
+	radiobutton $rbwRangeManual \
+	    -text "Manual" \
+	    -command UpdateOverlayDlogInfo \
+	    -variable gaHistogramData(autoRange) \
+	    -value 0 \
+	    -font [tkm_GetNormalFont]
+	tkm_MakeEntry $ewRangeXMin "Min" gaHistogramData(minXRange) 6 \
+	    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
+	tkm_MakeEntry $ewRangeXMax "Max" gaHistogramData(maxXRange) 6 \
+	    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
+
+	# Pack manual frame.
+	pack $rbwRangeManual $ewRangeXMin $ewRangeXMax -side left
+
+	# Space the auto and manual frame as far apart as possible.
+	grid $rbwRangeAuto  -column 0 -row 0 -sticky w
+	grid $fwRangeManual -column 1 -row 0 -sticky e
+	grid columnconfigure $fwRangeSub 0 -weight 1
+	grid columnconfigure $fwRangeSub 1 -weight 0
+
 	# make the button and menu that the user can use to copy the
 	# threshold settings to another layer.
 	frame $fwCopy
@@ -1192,6 +1249,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $fwValueOffset -side top -expand yes -fill x
 	pack $cbwIgnoreZeroes -side top -expand yes -fill x
 	pack $fwThreshMode -side top -expand yes -fill x
+	pack $fwRange -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
 	pack $fwFDR  -side top  -expand yes -fill x
 
@@ -1339,8 +1397,14 @@ proc UpdateOverlayDlogInfo {} {
 	    $gaHistoWidget(graph) axis config x \
 	      -min $gaHistogramData(zoomedmin) -max $gaHistogramData(zoomedmax)
 	} else {
-	    $gaHistoWidget(graph) axis config x \
-		-min $gaHistogramData(min) -max $gaHistogramData(max)
+	    if { $gaHistogramData(autoRange) } {
+		$gaHistoWidget(graph) axis config x \
+		    -min $gaHistogramData(min) -max $gaHistogramData(max)
+	    } else {
+		$gaHistoWidget(graph) axis config x \
+		    -min $gaHistogramData(minXRange) \
+		    -max $gaHistogramData(maxXRange)
+	    }
 	}	
 
 	# set the lines in the histogram
@@ -3853,10 +3917,10 @@ proc Graph_SaveToPS { isFileName } {
 proc Graph_UpdateSize { } {
     global gbAutoRangeGraph gwGraph gnFixedAxesSize
     if { $gbAutoRangeGraph == 0 } {
-  set gnFixedAxesSize(y1) [lindex [$gwGraph(graph) axis limits y] 0]
-  set gnFixedAxesSize(y2) [lindex [$gwGraph(graph) axis limits y] 1]
+	set gnFixedAxesSize(y1) [lindex [$gwGraph(graph) axis limits y] 0]
+	set gnFixedAxesSize(y2) [lindex [$gwGraph(graph) axis limits y] 1]
     } else {
-  $gwGraph(graph) axis configure x y -min {} -max {}
+	$gwGraph(graph) axis configure x y -min {} -max {}
     }
 }
 
