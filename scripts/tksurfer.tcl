@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.122 2006/07/31 19:34:39 kteich Exp $
+# $Id: tksurfer.tcl,v 1.123 2006/08/22 15:38:02 kteich Exp $
 
 package require BLT;
 
@@ -5152,9 +5152,13 @@ set tDlogSpecs(LoadLabel) \
 	 -default1 [list GetDefaultLocation LoadLabel] \
 	 -entry1 [list GetDefaultLocation LoadLabel] \
 	 -presets1 $glShortcutDirs \
-	 -note1 "The file name of the label data" \
+	 -note1 "The file name of the label or annotation data" \
 	 -okCmd {
-	     labl_load [ExpandFileName %s1 kFileName_Label];
+	     if { [string match [file extension %s1] .annot] } {
+		 labl_import_annotation [ExpandFileName %s1 kFileName_Label];
+	     } else {
+		 labl_load [ExpandFileName %s1 kFileName_Label];
+	     }
 	     SetDefaultLocation LoadLabel %s1;
 	     UpdateAndRedraw;  }]
 set tDlogSpecs(SaveLabelAs) \
