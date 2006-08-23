@@ -51,6 +51,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
   mHeatScaleMinThreshold(0),
   mHeatScaleMidThreshold(0),
   mHeatScaleMaxThreshold(0),
+  mHeatScaleOffset(0),
   mbReverseHeatScale(false),
   mbShowPositiveHeatScaleValues(true),
   mbShowNegativeHeatScaleValues(true),
@@ -183,6 +184,11 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 			 "Returns the heat scale max value for the layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleMax", 2, 
 			 "layerID value", "Sets the heat scale max value "
+			 "for the layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerHeatScaleOffset", 1, "layerID",
+			 "Returns the heat scale offset for the layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleOffset", 2, 
+			 "layerID value", "Sets the heat scale offset "
 			 "for the layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerReverseHeatScale", 1,
 			 "layerID", "Returns whether or not the heat "
@@ -361,6 +367,8 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
   SetHeatScaleMidThreshold( mVolume->GetMRIMaxValue() / 2.0 );
   SetHeatScaleMinThreshold( oneTenth );
+
+  SetHeatScaleOffset( 0 );
 
   // Save these min/max values.
   mOldMinValue = mVolume->GetMRIMinValue();
@@ -831,6 +839,9 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
 void
 ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
+
+  // Apply the offset.
+  iValue -= mHeatScaleOffset;
 
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
@@ -1782,6 +1793,42 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       }
       
       SetHeatScaleMaxThreshold( value );
+    }
+  }
+
+  // Get2DMRILayerHeatScaleOffset <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerHeatScaleOffset" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetHeatScaleOffset();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRILayerHeatScaleOffset <layerID> <value>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerHeatScaleOffset" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad value";
+	return error;
+      }
+      
+      SetHeatScaleOffset( value );
     }
   }
 
@@ -3097,6 +3144,13 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     }
     SetHeatScaleMaxThreshold( max );
 
+  } else if( 0 == isOption.compare( "heatscaleoffset" ) ) {
+    float offset = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad heat scale offset" );
+    }
+    SetHeatScaleOffset( offset );
+
   } else if( 0 == isOption.compare( "heatscale" ) ) {
     // Value will be "min,mid,max" so we need to separate out the
     // three values.
@@ -3441,6 +3495,12 @@ ScubaLayer2DMRI::SetHeatScaleMaxThreshold ( float iValue ) {
   if( mHeatScaleMaxThreshold <= mHeatScaleMidThreshold ) {
     mHeatScaleMaxThreshold = mHeatScaleMidThreshold + 0.0001;
   }
+}
+
+void
+ScubaLayer2DMRI::SetHeatScaleOffset ( float iValue ) {
+
+  mHeatScaleOffset = iValue; 
 }
 
 void

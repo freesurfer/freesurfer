@@ -177,6 +177,8 @@ class ScubaLayer2DMRI : public Layer {
   float GetHeatScaleMidThreshold () { return mHeatScaleMidThreshold; }
   void SetHeatScaleMaxThreshold ( float iValue );
   float GetHeatScaleMaxThreshold () { return mHeatScaleMaxThreshold; }
+  void SetHeatScaleOffset ( float iValue );
+  float GetHeatScaleOffset () { return mHeatScaleOffset; }
 
   void SetReverseHeatScale ( bool ib ) { mbReverseHeatScale = ib; }
   bool GetReverseHeatScale () { return mbReverseHeatScale; }
@@ -294,6 +296,7 @@ class ScubaLayer2DMRI : public Layer {
 
   // For heatScale drawing.
   float mHeatScaleMinThreshold, mHeatScaleMidThreshold, mHeatScaleMaxThreshold;
+  float mHeatScaleOffset;
   bool mbReverseHeatScale;
   bool mbShowPositiveHeatScaleValues;
   bool mbShowNegativeHeatScaleValues;

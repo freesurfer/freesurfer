@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.223 2006/08/23 17:41:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.224 2006/08/23 20:00:04 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2165,6 +2165,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -command {Set2DMRILayerHeatScaleMax $gaLayer(current,id) $gaLayer(current,heatScaleMax) ; set gaLayer(current,heatScaleMax) [Get2DMRILayerHeatScaleMax $gaLayer(current,id)]; RedrawFrame [GetMainFrameID]} }
     }
 
+    tkuMakeEntry $fwHeatscale.ewOffset \
+	-font [tkuNormalFont] \
+	-label "Offset: " \
+	-variable gaLayer(current,heatScaleOffset) \
+	-command { Set2DMRILayerHeatScaleOffset $gaLayer(current,id) $gaLayer(current,heatScaleOffset); set gaLayer(current,heatScaleOffset) [Get2DMRILayerHeatScaleOffset $gaLayer(current,id)]; RedrawFrame [GetMainFrameID] } \
+	-width 5
+
     set gaWidget(layerProperties,heatScaleSliders) $fwHeatscale.swHeatScale
     
     tkuMakeCheckboxes $fwHeatscale.cbwOptions \
@@ -2231,12 +2238,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwHeatscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
     grid $fwHeatscale.lwHeatScale       -column 0 -row 1 -sticky ew
     grid $fwHeatscale.swHeatScale       -column 0 -row 2 -sticky ew
-    grid $fwHeatscale.fwFDR             -column 0 -row 3 -sticky ew
-    grid $fwHeatscale.cbwOptions        -column 0 -row 4 -sticky ew
-    grid $fwHeatscale.swFrame           -column 0 -row 5 -sticky ew
-    set gaWidget(layerProperties,heatscaleFrameSliderRow) 5
-    set gaWidget(layerProperties,heatscaleConditionSliderRow) 5
-    set gaWidget(layerProperties,heatscaleTimePointSliderRow) 6
+    grid $fwHeatscale.ewOffset          -column 0 -row 3 -sticky ew
+    grid $fwHeatscale.fwFDR             -column 0 -row 4 -sticky ew
+    grid $fwHeatscale.cbwOptions        -column 0 -row 5 -sticky ew
+    grid $fwHeatscale.swFrame           -column 0 -row 6 -sticky ew
+    set gaWidget(layerProperties,heatscaleFrameSliderRow) 6
+    set gaWidget(layerProperties,heatscaleConditionSliderRow) 6
+    set gaWidget(layerProperties,heatscaleTimePointSliderRow) 7
     
 
     # LUT setting -----------------------------------------------------
@@ -3310,6 +3318,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerHeatScaleMid $iLayerID]
 	    set gaLayer(current,heatScaleMax) \
 		[Get2DMRILayerHeatScaleMax $iLayerID]
+	    set gaLayer(current,heatScaleOffset) \
+		[Get2DMRILayerHeatScaleOffset $iLayerID]
 	    set gaLayer(current,reverseHeatScale) \
 		[Get2DMRILayerReverseHeatScale $iLayerID]
 	    set gaLayer(current,showPositiveHeatScale) \
@@ -3541,6 +3551,8 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			     [Get2DMRILayerHeatScaleMid $iLayerID]
 			Set2DMRILayerHeatScaleMax $layerID \
 			     [Get2DMRILayerHeatScaleMax $iLayerID]
+			Set2DMRILayerHeatScaleOffset $layerID \
+			     [Get2DMRILayerHeatScaleOffset $iLayerID]
 		    }
 		    2DMRIS {
 			set color [Get2DMRISLayerLineColor $iLayerID]
@@ -6519,7 +6531,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.223 2006/08/23 17:41:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.224 2006/08/23 20:00:04 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
