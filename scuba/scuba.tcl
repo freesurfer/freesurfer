@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.222 2006/08/23 16:26:36 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.223 2006/08/23 17:41:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -452,7 +452,7 @@ proc LoadImages {} {
 	icon_surface_main icon_surface_original icon_surface_pial 
 	icon_snapshot_save icon_snapshot_load 
 	icon_marker_crosshair icon_marker_diamond 
-	icon_stopwatch } {
+	icon_stopwatch icon_camera } {
 
 	set fnImage [file join $ksImageDir $sImageName.gif]
 	if { [catch {image create photo $sImageName -file $fnImage} \
@@ -729,10 +729,12 @@ proc MakeToolBar { ifwTop } {
 
     set gCoordsInput(system) ras
 
+    button $fwToolBar.bwScreenShot -image icon_camera \
+	-command { DoSaveTIFFDlog }
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
 	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn $fwToolBar.fwLabelAreaMode \
-	$fwToolBar.fwCoordsInput \
+	$fwToolBar.fwCoordsInput $fwToolBar.bwScreenShot \
 	-side left
 
     return $fwToolBar
@@ -6517,7 +6519,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.222 2006/08/23 16:26:36 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.223 2006/08/23 17:41:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
