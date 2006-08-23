@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.221 2006/08/21 21:04:42 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.222 2006/08/23 16:26:36 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3502,8 +3502,13 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 		# Copy all the settings into it.
 		switch $thisType {
 		    2DMRI {
-			Set2DMRILayerColorMapMethod $layerID \
-			     [Get2DMRILayerColorMapMethod $iLayerID]
+			
+			# Only copy the settings if the colormap
+			# method is the same.
+			if { ![string match [Get2DMRILayerColorMapMethod $iLayerID] [Get2DMRILayerColorMapMethod $layerID]] } {
+			    continue
+			}
+
 			Set2DMRILayerDrawZeroClear $layerID \
 			     [Get2DMRILayerDrawZeroClear $iLayerID]
 			Set2DMRILayerDrawMIP $layerID \
@@ -6512,7 +6517,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.221 2006/08/21 21:04:42 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.222 2006/08/23 16:26:36 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
