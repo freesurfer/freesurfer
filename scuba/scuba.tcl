@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.224 2006/08/23 20:00:04 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.225 2006/08/23 20:20:28 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -544,6 +544,8 @@ proc MakeMenuBar { ifwTop } {
 	    {TurnOnVisibilityInTopmostInvisibleLayer $gaView(current,id)}}
 	{command "Turn Off Visibility in Topmost Visible Layer"
 	    {TurnOffVisibilityInTopmostVisibleLayer $gaView(current,id)}}
+	{command "Toggle Visibility in Topmost Layer"
+	    {ToggleVisibilityInTopmostLayer $gaView(current,id)}}
 	{command "Toggle Visibility in Topmost Unlocked Layer"
 	    {ToggleVisibilityInTopmostUnlockedLayer $gaView(current,id)}}
 	{separator}
@@ -1053,6 +1055,12 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
     }
 
     if { [string match $sKeyCombo \
+	  $gaPrefs(KeyToggleVisibilityInTopmostLayer)] } {
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	ToggleVisibilityInTopmostLayer $viewID
+    }
+
+    if { [string match $sKeyCombo \
 	  $gaPrefs(KeyToggleVisibilityInTopmostUnlockedLayer)] } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	ToggleVisibilityInTopmostUnlockedLayer $viewID
@@ -1161,6 +1169,7 @@ proc GetPreferences {} {
 	KeyShuffleLayers
 	KeyTurnOnVisibilityInTopInvisibleLayer
 	KeyTurnOffVisibilityInTopVisibleLayer
+	KeyToggleVisibilityInTopmostLayer
 	KeyToggleVisibilityInTopmostUnlockedLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
@@ -1198,6 +1207,7 @@ proc SetPreferences {} {
 	KeyShuffleLayers
 	KeyTurnOnVisibilityInTopInvisibleLayer
 	KeyTurnOffVisibilityInTopVisibleLayer
+	KeyToggleVisibilityInTopmostLayer
 	KeyToggleVisibilityInTopmostUnlockedLayer
 	KeyMoveViewLeft
 	KeyMoveViewRight
@@ -5061,6 +5071,8 @@ proc DoPrefsDlog {} {
 	    "Turn on visibility in topmost invisible layer"
 	    KeyTurnOffVisibilityInTopVisibleLayer
 	    "Turn off visibility in topmost visible layer"
+	    KeyToggleVisibilityInTopmostLayer
+	    "Toggle visibility in topmost layer"
 	    KeyToggleVisibilityInTopmostUnlockedLayer
 	    "Toggle visibility in topmost unlocked layer"
 	} {
@@ -5659,6 +5671,33 @@ proc TurnOnVisibilityInTopmostInvisibleLayer { iViewID } {
     
     # Turn the visibility off.
     SetLevelVisibilityInView $iViewID $nHighestLevel 1
+    
+    SelectViewInViewProperties $iViewID
+}
+
+proc ToggleVisibilityInTopmostLayer { iViewID } {
+    global gaView
+
+    # Find the highest level.
+    set nHighestLevel -1
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	if { $curLayer($nLevel) != -1 } {
+	    set nHighestLevel $nLevel
+	}
+    }
+
+    # If we didn't find anything, return.
+    if { $nHighestLevel == -1 } {
+	return
+    }
+    
+    # Toggle the visibility.
+    if { [GetLevelVisibilityInView $iViewID $nHighestLevel] } {
+	SetLevelVisibilityInView $iViewID $nHighestLevel 0
+    } else {
+	SetLevelVisibilityInView $iViewID $nHighestLevel 1	
+    }
     
     SelectViewInViewProperties $iViewID
 }
@@ -6531,7 +6570,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.224 2006/08/23 20:00:04 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.225 2006/08/23 20:20:28 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

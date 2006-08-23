@@ -27,6 +27,7 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 		 KeyMouseButtonOne, KeyMouseButtonTwo, KeyMouseButtonThree,
 		 KeyTurnOffVisibilityInTopVisibleLayer,
 		 KeyTurnOnVisibilityInTopInvisibleLayer,
+		 KeyToggleVisibilityInTopmostLayer,
 		 KeyToggleVisibilityInTopmostUnlockedLayer,
 		 DrawCoordinateOverlay, DrawPlaneIntersections, DrawMarkers,
 		 DrawPaths, SelectedTool, LockOnCursor,
