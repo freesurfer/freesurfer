@@ -19150,7 +19150,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.220 2006/08/01 20:13:26 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.221 2006/08/23 15:54:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20446,15 +20446,42 @@ curv_to_val(void)
 {
   int    vno ;
   VERTEX *v ;
+  char   label[1024];
+  double min, max;
   
-  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+  /* Initialize our field. */
+  strncpy (label, "From curv", sizeof(label));
+  sclv_new_empty (SCLV_VAL, label);
+
+  /* Copy the data in. */
+  min = 1000000000;
+  max = -min;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
-      v->val = v->curv ;
+      sclv_set_value (v, SCLV_VAL, v->curv);
+
+      /* Update the min and max. */
+      if (v->curv < min)
+	min = v->curv;
+      if (v->curv > max)
+	max = v->curv;
     }
+
+  /* Set the min and max. */
+  sclv_field_info[SCLV_VAL].min_value = min;
+  sclv_field_info[SCLV_VAL].max_value = max;
+
+  /* Calc the frquencies */
+  sclv_calc_frequencies (SCLV_VAL);
+  
+  /* Request a redraw. Turn on the overlay flag and select this value
+     set. */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (SCLV_VAL);
 }
 int
 read_parcellation(char *parc_name, char *lut_name)
@@ -24460,7 +24487,7 @@ int labl_load (char* fname)
   
   if (NULL == fname)
     return (ERROR_BADPARM);
-  
+
   /* load label file. */
   label = LabelRead (pname, fname);
   if (NULL == label)
