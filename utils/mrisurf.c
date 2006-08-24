@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/08/24 03:16:53 $
-// Revision       : $Revision: 1.485 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/08/24 15:14:59 $
+// Revision       : $Revision: 1.486 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -580,7 +580,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.485 2006/08/24 03:16:53 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.486 2006/08/24 15:14:59 segonne Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -53213,6 +53213,8 @@ MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+
+/* assume that the mark is 1 */
 int
 MRISexpandMarked(MRI_SURFACE *mris)
 {
@@ -53222,7 +53224,7 @@ MRISexpandMarked(MRI_SURFACE *mris)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->marked)
+			if (v->marked==1)
         {
           for (n = 0 ; n < v->vnum ; n++)
             {
@@ -53231,7 +53233,7 @@ MRISexpandMarked(MRI_SURFACE *mris)
                 vn->marked = 2 ;
             }
         }
-    }
+		}
   for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
