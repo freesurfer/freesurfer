@@ -26,7 +26,7 @@
 #include "subroutines.h"
 
 static char vcid[] =
-"$Id: mri_fill.c,v 1.104 2006/08/24 18:29:10 segonne Exp $";
+"$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -467,6 +467,7 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg, MRI *mri_orig, int label,i
 		}
 	  maxdist=dist[refp];
 	  for(p = refp+1 ; p < 6 ; p++){
+			if(forbidden_path[p]) continue;
 	    if(maxdist<dist[p]){
 	      maxdist=dist[p];
 	      refp=p;
@@ -568,6 +569,7 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg, MRI *mri_orig, int label,i
     }
     maxdist=dist[refp];
     for(p = refp+1 ; p < 6 ; p++){
+			if(forbidden_path[p]) continue;
       if(maxdist<dist[p]){
         maxdist=dist[p];
         refp=p;
@@ -672,6 +674,7 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg, MRI *mri_orig, int label,i
     }
     maxdist=dist[refp];
     for(p = refp+1 ; p < 6 ; p++){
+			if(forbidden_path[p]) continue;
       if(maxdist<dist[p]){
         maxdist=dist[p];
         refp=p;
@@ -772,6 +775,7 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg, MRI *mri_orig, int label,i
     }
     maxdist=dist[refp];
     for(p = refp+1 ; p < 6 ; p++){
+			if(forbidden_path[p]) continue;
       if(maxdist<dist[p]){
         maxdist=dist[p];
         refp=p;
@@ -978,6 +982,7 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig){
 	label = rh_fill_val;
 	forbidden_label = lh_fill_val;
 	edge_pbm = fcorner_pbm = bcorner_pbm = 0;
+	niter=100;
 	while(niter--){
     nmodified=0;
 		
@@ -1012,6 +1017,7 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig){
 	label = lh_fill_val;
 	forbidden_label = rh_fill_val;
 	edge_pbm = fcorner_pbm = bcorner_pbm = 0;
+	niter=100;
 	while(niter--){
     nmodified=0;
     
@@ -1284,7 +1290,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_fill.c,v 1.104 2006/08/24 18:29:10 segonne Exp $", "$Name:  $",
+     "$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $", "$Name:  $",
      cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1292,7 +1298,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_fill.c,v 1.104 2006/08/24 18:29:10 segonne Exp $", "$Name:  $");
+     "$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
