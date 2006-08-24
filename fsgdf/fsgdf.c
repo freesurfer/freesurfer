@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.32 2006/08/24 03:18:57 greve Exp $
+  $Id: fsgdf.c,v 1.33 2006/08/24 22:53:08 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -182,7 +182,9 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
   }
 
   for(n=0; n < gd->nvarsfromfile; n++)
-    fprintf(fp,"# VariableFromASeg %s\n",gd->varfield[n]);
+    fprintf(fp,"# VariableFromFile %s %s %d %d\n",
+	    gd->tablefile[n],gd->varfield[n],
+	    gd->fieldcol[n],gd->datacol[n]);
       
   if(gd->nvariables > 0){
     fprintf(fp,"Variables ");
@@ -436,6 +438,19 @@ static FSGD *gdfReadV1(char *gdfname)
 	goto formaterror;
       }
       continue;
+    }
+    /*----------------- VariableFromFile Line ---------------------*/
+    if(!strcasecmp(tag,"VariableFromFile")){
+      // Eg, VariableFromFile stats/aseg.stats Left-Hippocampus 5 4
+      // 5 = field name column
+      // 4 = data column
+      m = gd->nvarsfromfile;
+      fscanf(fp,"%s",tmpstr);
+      gd->tablefile[m] = strcpyalloc(tmpstr);
+      fscanf(fp,"%s",tmpstr);
+      gd->varfield[m] = strcpyalloc(tmpstr);
+      fscanf(fp,"%d %d",&gd->fieldcol[m],&gd->datacol[m]);
+      gd->nvarsfromfile ++;
     }
     /*----------------- VariableFromASeg Line ---------------------*/
     if(!strcasecmp(tag,"VariableFromASeg")){
