@@ -13,8 +13,8 @@ AM_LDFLAGS=$(LDFLAGS_TCL)
 
 bin_PROGRAMS = tksurfer
 tksurfer_SOURCES=tksurfer.c $(top_srcdir)/fsgdf/fsgdf_wrap.c
-tksurfer_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(top_srcdir)/fsgdf/libfsgdf.a \
+tksurfer_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
+  $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS) -lGL
 tksurfer_LDFLAGS=
