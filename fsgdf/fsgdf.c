@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.31 2006/08/08 21:53:25 greve Exp $
+  $Id: fsgdf.c,v 1.32 2006/08/24 03:18:57 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -55,6 +55,7 @@
 #include "fio.h"
 #include "matfile.h"
 #include "stats.h"
+#include "fsenv.h"
 
 #define FSGDF_SRC
 #include "fsgdf.h"
@@ -96,12 +97,34 @@ FSGD *gdfAlloc(int version)
 int gdfFree(FSGD **ppgd)
 {
   FSGD *gd;
+  int n;
   gd = *ppgd;
   if(gd->data)  MRIfree(&gd->data);
+  if(gd->X) MatrixFree(&gd->X);
+  if(gd->T) MatrixFree(&gd->T);
+  for(n=0; n < gd->nvarsfromfile; n++){
+    free(gd->tablefile[n]);
+    free(gd->varfield[n]);
+  }
   free(gd);
   *ppgd = NULL;
   return(0);
 }
+/*--------------------------------------------------*/
+int gdfWrite(char *gdfname, FSGD *gd)
+{
+  FILE *fp;
+
+  fp = fopen(gdfname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for writing\n",gdfname);
+    return(1);
+  }
+  gdfPrintHeader(fp,gd);
+  fclose(fp);
+  return(0);
+}
+
 /*--------------------------------------------------*/
 int gdfPrintHeader(FILE *fp, FSGD *gd)
 {
@@ -157,6 +180,9 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
       fprintf(fp,"\n");
     }
   }
+
+  for(n=0; n < gd->nvarsfromfile; n++)
+    fprintf(fp,"# VariableFromASeg %s\n",gd->varfield[n]);
       
   if(gd->nvariables > 0){
     fprintf(fp,"Variables ");
@@ -294,11 +320,15 @@ FSGD *gdfRead(char *gdfname, int LoadData)
 static FSGD *gdfReadV1(char *gdfname)
 {
   FSGD *gd;
+  FSENV *env;
   FILE *fp;
   char tag[1000];
   char tmpstr[1000];
   char class_name[100];
-  int version,r,n,m;
+  int version,r,n,m,err;
+  double d;
+
+  env = FSENVgetenv();
 
   fp = fopen(gdfname,"r");
   if(fp==NULL){
@@ -319,6 +349,7 @@ static FSGD *gdfReadV1(char *gdfname)
   }    
 
   gd = gdfAlloc(1);
+  gd->nvarsfromfile = 0;
 
   /*------- begin input loop --------------*/
   while(1){
@@ -355,25 +386,25 @@ static FSGD *gdfReadV1(char *gdfname)
       if(r==EOF) goto formaterror;
       continue;
     }
-
+    /*----------------- DesignMat Line ---------------------*/
     if(!strcasecmp(tag,"DesignMatFile")){
       r = fscanf(fp,"%s %s",gd->DesignMatFile,gd->DesignMatMethod);
       if(r==EOF) goto formaterror;
       continue;
     }
-
+    /*----------------- ResidualFWHM Line ---------------------*/
     if(!strcasecmp(tag,"ResidualFWHM")){
       r = fscanf(fp,"%*s %lf",&gd->ResFWHM);
       if(r==EOF) goto formaterror;
       continue;
     }
-
+    /*----------------- DefaultVariable Line ---------------------*/
     if(!strcasecmp(tag,"DefaultVariable")){
       r = fscanf(fp,"%s",gd->defvarlabel);
       if(r==EOF) goto formaterror;
       continue;
     }
-
+    /*----------------- Class Line ---------------------*/
     if(!strcasecmp(tag,"Class")){
       r = fscanf(fp,"%s",gd->classlabel[gd->nclasses]);
       if(r==EOF) goto formaterror;
@@ -385,7 +416,7 @@ static FSGD *gdfReadV1(char *gdfname)
       gd->nclasses ++;
       continue;
     }
-
+    /*----------------- Variables Line ---------------------*/
     if(!strcasecmp(tag,"Variables")){
       if(gd->nvariables != 0){
 	printf("ERROR: gdfReadV1: multiple 'Variables' lines found\n");
@@ -406,7 +437,17 @@ static FSGD *gdfReadV1(char *gdfname)
       }
       continue;
     }
-
+    /*----------------- VariableFromASeg Line ---------------------*/
+    if(!strcasecmp(tag,"VariableFromASeg")){
+      m = gd->nvarsfromfile;
+      gd->tablefile[m] = strcpyalloc("stats/aseg.stats");
+      fscanf(fp,"%s",tmpstr);
+      gd->varfield[m] = strcpyalloc(tmpstr);
+      gd->fieldcol[m] = 5;
+      gd->datacol[m]  = 4;
+      gd->nvarsfromfile ++;
+    }
+    /*----------------- Input Line ---------------------*/
     if(!strcasecmp(tag,"Input")){
       if(gd->ninputs > FSGDF_NINPUTS_MAX){
 	printf("ERROR: gdfReadV1: the number of inputs in FSGD file exceeds the maximum allowed %d\n",
@@ -438,8 +479,16 @@ static FSGD *gdfReadV1(char *gdfname)
 	//printf("%s\n",tmpstr);
 	goto formaterror;
       }
-      for(m=0; m < gd->nvariables; m++)
-	fscanf(fp,"%f",&gd->varvals[n][m]);
+      for(m=0; m < gd->nvariables; m++)	fscanf(fp,"%f",&gd->varvals[n][m]);
+      for(m=0; m < gd->nvarsfromfile; m++){
+	sprintf(tmpstr,"%s/%s/%s",env->SUBJECTS_DIR,gd->subjid[n],gd->tablefile[m]);
+	err = gdfGetDDataFromTable(tmpstr,gd->varfield[m],gd->fieldcol[m],gd->datacol[m],&d);
+	if(err) {
+	  gdfFree(&gd);
+	  return(NULL);
+	}
+	gd->varvals[n][m+gd->nvariables] = d;
+      }
 
       gd->ninputs ++;
       continue;
@@ -449,6 +498,10 @@ static FSGD *gdfReadV1(char *gdfname)
     fgets(tmpstr,1000,fp);
 
   }/*------- End loop over tags ----------------*/
+
+  for(m=0; m < gd->nvarsfromfile; m++)
+    sprintf(gd->varlabel[m+gd->nvariables],"%s",gd->varfield[m]);
+  gd->nvariables += gd->nvarsfromfile;
 
   r = gdfCheckClassRep(gd);
   if(r != -1){
@@ -481,8 +534,8 @@ static FSGD *gdfReadV1(char *gdfname)
   formaterror:
   printf("FSGDF Format Error: file = %s, tag=%s\n",gdfname,tag);
   gdfFree(&gd);
+  FSENVfree(&env);
   return(NULL);
-
 }
 
 /*--------------------------------------------------
@@ -1401,4 +1454,79 @@ MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar)
   }
 
   return(C);
+}
+
+/*-------------------------------------------------------------------------
+  gdfGetSDataFromTable() - gets a cell from a table and returns as a string.
+  The data is obtained from column datacol (1-based). The row is determined
+  by matching the string found in fieldcol (1-based) against the field. Any 
+  line in the table that begins with # is skipped. Returns NULL if an error
+  or if it could not find a match.
+  ------------------------------------------------------------------------*/
+char *gdfGetSDataFromTable(char *tablefile, char *field, 
+			int fieldcol, int datacol)
+{
+  FILE *fp;
+  int ncols;
+  char *pc, line[2000];
+  char *sfield, *sdata;
+
+  fp = fopen(tablefile,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",tablefile);
+    return(NULL);
+  }
+
+  while(1){
+    pc = fgets(line,2000,fp);
+    if(pc == NULL) {
+      printf("ERROR: Could not find a match for %s in table file %s col %d\n",
+	 field,tablefile,fieldcol);
+      fclose(fp);
+      return(NULL);
+    }
+    if(line[0] == '#') continue;
+    ncols = gdfCountItemsInString(line);
+    if(fieldcol > ncols){
+      printf("ERROR: table %s has %d cols, but field col %d reqested\n",
+	     tablefile,ncols,fieldcol); 
+      fclose(fp);
+      return(NULL);
+    }
+    if(datacol > ncols){
+      printf("ERROR: table %s has %d cols, but data col %d reqested\n",
+	     tablefile,ncols,datacol); 
+      fclose(fp);
+      return(NULL);
+    }
+    sfield = gdfGetNthItemFromString(line, fieldcol-1);
+    if(stricmp(sfield,field) == 0){
+      sdata = gdfGetNthItemFromString(line, datacol-1);
+      free(sfield);
+      fclose(fp);
+      return(sdata);
+    }
+    free(sfield);
+  }
+  // should never get here
+  fclose(fp);
+  printf("Could not find a match for %s in table file %s col %d\n",
+	 field,tablefile,fieldcol);
+  return(NULL);
+}
+
+/*-------------------------------------------------------------------------
+  gdfGetDDataFromTable() - same as gdfGetSDataFromTable() but converts
+  string to double. If an error is encountered, returns 1. Otherwise
+  returns 0.
+  ------------------------------------------------------------------------*/
+int gdfGetDDataFromTable(char *tablefile, char *field, 
+		      int fieldcol, int datacol, double *data)
+{
+  char *s;
+  s = gdfGetSDataFromTable(tablefile, field, fieldcol, datacol);
+  if(s == NULL) return(1);
+  sscanf(s,"%lf",data);
+  free(s);
+  return(0);
 }

@@ -19,9 +19,9 @@ extern int fsgdf_AllowSubjRep;
 #endif
 
 
-#define FSGDF_NCLASSES_MAX 100
-#define FSGDF_NVARS_MAX    100
-#define FSGDF_NINPUTS_MAX  500
+#define FSGDF_NCLASSES_MAX  128
+#define FSGDF_NVARS_MAX     128
+#define FSGDF_NINPUTS_MAX  2000
 
 typedef struct {
   int version;
@@ -37,6 +37,13 @@ typedef struct {
   int  nvariables;
   char varlabel[FSGDF_NVARS_MAX][50]; /* [class][length]*/
   char defvarlabel[50]; /* default variable */
+
+  int  nvarsfromfile;
+  char *tablefile[100];
+  char *varfield[100];
+  int  fieldcol[100];
+  int  datacol[100];
+
   int  ninputs;
   char subjid[FSGDF_NINPUTS_MAX][100];
   int  subjclassno[FSGDF_NINPUTS_MAX];
@@ -51,6 +58,7 @@ typedef struct {
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
 FSGD   *gdfRead(char *gdfname, int LoadData);
+int     gdfWrite(char *gdfname, FSGD *gd); 
 MRI    *gdfReadDataInfo(char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
 int     gdfCheckMatrixMethod(char *gd2mtx_method);
@@ -94,6 +102,11 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
 		int nVars, char **VarList);
 char **gdfCopySubjIdppc(FSGD *fsgd);
+char *gdfGetSDataFromTable(char *tablefile, char *field, 
+			   int fieldcol, int datacol);
+int gdfGetDDataFromTable(char *tablefile, char *field, 
+			 int fieldcol, int datacol, double *data);
+
 
 #endif //#ifndef FSGDF_INC
 
