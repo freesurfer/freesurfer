@@ -1477,8 +1477,13 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
     else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
   }
 
-  gstd = InterVertexDistAvg/sqrt(-4*log(ar1));
-  fwhm = gstd*sqrt(log(256.0));
+  if(ar1 > 0.0){
+    gstd = InterVertexDistAvg/sqrt(-4*log(ar1));
+    fwhm = gstd*sqrt(log(256.0));
+  } else {
+    printf("WARNING: ar1 = %g <= 0. Setting fwhm to 0.\n",ar1);    
+    fwhm = 0.0;
+  }
 
   return(fwhm);
 }
