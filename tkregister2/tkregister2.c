@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $";
+"$Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -106,6 +106,7 @@ void read_reg(char fname[]);
 void  read_fslreg(char *fname);
 void write_reg(char fname[]);
 void write_fslreg(char *fname);
+void write_xfmreg(char *fname);
 void make_backup(char fname[]);
 void save_rgb(char fname[]);
 void scrsave_to_rgb(char fname[]);
@@ -339,6 +340,7 @@ MATRIX *Tscreen, *Qtarg, *Qmov;
 
 char *fslregfname;
 char *fslregoutfname;
+char *xfmoutfname=NULL;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat; 
 MATRIX *Mtc, *invMtc, *Vt2s,*Ttargcor, *invTtargcor; 
 MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
@@ -1076,6 +1078,11 @@ static int parse_commandline(int argc, char **argv)
       fslregoutfname = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--xfmout")){
+      if(nargc < 1) argnerr(option,1);
+      xfmoutfname = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--float2int")){
       if(nargc < 1) argnerr(option,1);
       float2int_use = float2int_code(pargv[0]);
@@ -1162,6 +1169,7 @@ static void print_usage(void)
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
+  printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --fslregout file : FSL-Style registration output matrix\n");
   printf("   --feat featdir : check example_func2standard registration\n");
@@ -3041,6 +3049,7 @@ void write_reg(char *fname)
                                                 fclose(fp);
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
 
   return;
 }
@@ -3070,6 +3079,55 @@ void write_fslreg(char *fname)
   }
   fclose(fp);
   
+  return;
+}
+/*-----------------------------------------------------*/
+void write_xfmreg(char *fname)
+{
+  extern MRI *mov_vol, *targ_vol0;
+  extern MATRIX *RegMat;
+  int i,j;
+  FILE *fp;
+  MATRIX *Mxfm=NULL,*SA,*SB,*TA,*TB, *iTB, *iSA;
+
+  SA = MRIxfmCRS2XYZ(targ_vol0, 0);
+  SB = MRIxfmCRS2XYZ(mov_vol, 0);
+  TA = MRIxfmCRS2XYZtkreg(targ_vol0);
+  TB = MRIxfmCRS2XYZtkreg(mov_vol);
+  iSA = MatrixInverse(SA,NULL);
+  iTB = MatrixInverse(TB,NULL);
+
+  Mxfm = MatrixMultiply(SB,iTB,Mxfm);
+  Mxfm = MatrixMultiply(Mxfm,RegMat,Mxfm);
+  Mxfm = MatrixMultiply(Mxfm,TA,Mxfm);
+  Mxfm = MatrixMultiply(Mxfm,iSA,Mxfm);
+
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s for writing\n",fname);
+    return;
+  }
+  fprintf(fp,"MNI Transform File\n");
+  fprintf(fp,"%% tkregister2\n");
+  fprintf(fp,"\n");
+  fprintf(fp,"Transform_Type = Linear;\n");
+  fprintf(fp,"Linear_Transform =\n");
+  for (i=0;i<3;i++) {
+    for (j=0;j<4;j++)
+      fprintf(fp,"%13.8f ",Mxfm->rptr[i+1][j+1]);
+    if(i != 2) fprintf(fp,"\n");
+    else       fprintf(fp,";\n");
+  }
+  fclose(fp);
+
+  MatrixFree(&SA);
+  MatrixFree(&TA);
+  MatrixFree(&SB);
+  MatrixFree(&TB);
+  MatrixFree(&iTB);
+  MatrixFree(&iSA);
+  MatrixFree(&Mxfm);
+
   return;
 }
 /*-----------------------------------------------------*/
@@ -4053,7 +4111,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.58 2006/05/18 20:09:57 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
