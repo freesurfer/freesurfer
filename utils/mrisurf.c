@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/08/17 15:36:00 $
-// Revision       : $Revision: 1.484 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/08/24 03:16:53 $
+// Revision       : $Revision: 1.485 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -580,7 +580,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.484 2006/08/17 15:36:00 segonne Exp $"); }
+  return("$Id: mrisurf.c,v 1.485 2006/08/24 03:16:53 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -50851,7 +50851,8 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1)
       nnbrs_actual ++;
     }/* end loop over neighbor */
 
-    MRIFseq_vox(ar1,c,r,s,0) = (ar1sum/nnbrs_actual);
+    if(nnbrs_actual != 0) //bug fix
+      MRIFseq_vox(ar1,c,r,s,0) = (ar1sum/nnbrs_actual);
   } /* end loop over vertex */
 
   MRIScrsLUTFree(crslut);
