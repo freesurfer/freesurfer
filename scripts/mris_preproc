@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.18.2.3 2006/08/15 23:47:33 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.18.2.4 2006/08/25 20:51:21 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -530,7 +530,7 @@ if($#SessFile) then
 
   # Get the paths to the sessions
   set cmd = (getsesspath -sf $SessFile);
-  if($#SessDirFile) set cmd = (getsesspath -df $SessDirFile);
+  if($#SessDirFile) set cmd = ($cmd -df $SessDirFile);
   set SessList = (`$cmd`)
   if($status || $#SessList == 0) then
     echo $cmd
