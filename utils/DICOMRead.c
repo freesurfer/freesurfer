@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.81.2.4 2006/07/12 16:42:43 greve Exp $
+   $Id: DICOMRead.c,v 1.81.2.5 2006/08/27 23:09:37 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2724,6 +2724,8 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
     trarev = 1;
     free(strtmp);
   }
+
+  if(!sagrev && !correv && !trarev) return(0);
 
   //printf("Vs = %g %g %g\n",sdfi->Vs[0],sdfi->Vs[1],sdfi->Vs[2]);
   //printf("%d %d %d\n",sagrev,correv,trarev);
