@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.92 2006/08/04 17:53:46 greve Exp $
+   $Id: DICOMRead.c,v 1.93 2006/08/27 23:05:35 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2727,6 +2727,8 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
     free(strtmp);
   }
 
+  if(!sagrev && !correv && !trarev) return(0);
+
   //printf("Vs = %g %g %g\n",sdfi->Vs[0],sdfi->Vs[1],sdfi->Vs[2]);
   //printf("%d %d %d\n",sagrev,correv,trarev);
 
@@ -3912,11 +3914,10 @@ int IsDICOM(char *fname)
   // use the cached value if the fname is the same as privious one
   if (!strcmp(fname, file)) // used before
     return yes;
-  else
-    {
-      yes = 0;                // initialize
-      strcpy(file, fname);    // save the current filename
-    }
+  else    {
+    yes = 0;                // initialize
+    strcpy(file, fname);    // save the current filename
+  }
 
   d = 0;
 
