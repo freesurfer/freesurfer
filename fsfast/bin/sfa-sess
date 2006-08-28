@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # sfa-sess
 #
-# $Id: sfa-sess,v 1.3 2005/08/30 17:16:59 greve Exp $
-set VERSION = '$Id: sfa-sess,v 1.3 2005/08/30 17:16:59 greve Exp $'
+# $Id: sfa-sess,v 1.4 2006/08/28 17:55:21 greve Exp $
+set VERSION = '$Id: sfa-sess,v 1.4 2006/08/28 17:55:21 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -164,20 +164,29 @@ foreach sess ($SessList)
       echo "ERROR: selfreqavg failed" |& tee -a $LF
       exit 1;
     endif
+    mkdir -p $analysis/avb
     # Create the sig map #
-    bfileconvert -i $sfastem -o $analysis/avb/sig -fp 0 -np 1 |& tee -a $LF
-    if($status) then
-      echo "ERROR: bfileconvert for sig map failed" |& tee -a $LF
-      exit 1;
-    endif
-
+    #bfileconvert -i $sfastem -o $analysis/avb/sig -fp 0 -np 1 |& tee -a $LF
+    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/sig.bhdr --frame 0)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
     # Create the mean T2 image in the analysis directory #
-    bfileconvert -i $sfastem -o $analysis/h-offset -fp 10 -np 1 |& tee -a $LF
-    if($status) then
-      echo "ERROR: bfileconvert for mean image failed" |& tee -a $LF
-      exit 1;
-    endif
-
+    # bfileconvert -i $sfastem -o $analysis/h-offset -fp 10 -np 1 |& tee -a $LF
+    set cmd = (mri_convert $sfastem.bhdr -o $analysis/h-offset.bhdr --frame 10)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Create the mag map #
+    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/mag.bhdr --frame 12)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Create the phase map #
+    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/phase.bhdr --frame  9)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
   else
     ##### ------------ Retinotopy ----------------- #####
     set eccenstems = ();
