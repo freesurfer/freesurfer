@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.8 2005/05/10 15:23:07 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.9 2006/08/28 17:54:53 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -185,7 +185,7 @@ $TARGET <<EOF
   fprintf('Slice ');
   for slice = firstslice:lastslice
     fprintf('%3d ',slice);
-    if(rem(slice,20)==19) fprintf('\n'); end
+    if(rem(slice,5)==19) fprintf('\n'); end
 
     sum_real_signal = 0;
     sum_imag_signal = 0;
