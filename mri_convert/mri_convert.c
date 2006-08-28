@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/02/22 05:39:36 $
-// Revision       : $Revision: 1.121 $
+// Revision Date  : $Date: 2006/08/28 18:00:04 $
+// Revision       : $Revision: 1.121.2.1 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.121.2.1 2006/08/28 18:00:04 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.121 2006/02/22 05:39:36 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.121.2.1 2006/08/28 18:00:04 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2145,6 +2145,11 @@ int main(int argc, char *argv[])
   /* ----- catch the out stats flag ----- */
   if(out_stats_flag) MRIprintStats(mri, stdout);
 
+  if(frame_flag == TRUE){
+    nskip = frame;
+    ndrop = mri->nframes - (frame+1);
+  }
+
   /* ----- drop the last ndrop frames (drop before skip) ------ */
   if(ndrop > 0){
     printf("Dropping last %d frames\n",ndrop);
@@ -2558,7 +2563,7 @@ void usage(FILE *stream)
   printf("  -sn, --subject_name\n");
   printf("  -rl, --reslice_like\n");
   printf("  -tt, --template_type <type> (see above)\n");
-  printf("  -f,  --frame\n");
+  printf("  -f,  --frame : keep only 0-based frame number\n");
   printf("  -sc, --scale <scale factor>\n") ;
   printf("  -il, --in_like\n");
   printf("  -roi\n");
