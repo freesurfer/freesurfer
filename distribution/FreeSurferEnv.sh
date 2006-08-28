@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.10.2.10 2006/08/18 21:23:54 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10.2.11 2006/08/28 20:38:20 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.10 2006/08/18 21:23:54 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.11 2006/08/28 20:38:20 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -381,29 +381,29 @@ if [ -d $FREESURFER_HOME/lib/tcltktixblt/bin ]; then
     PATH=$FREESURFER_HOME/lib/tcltktixblt/bin:$PATH
 fi
 if [ -d $FREESURFER_HOME/lib/tcltktixblt/lib ]; then
-    export TCL_LIB_DIR=$FREESURFER_HOME/lib/tcltktixblt/lib
+    export FS_TCL_LIB_DIR=$FREESURFER_HOME/lib/tcltktixblt/lib
     export SET_TCL_VARS=1
     if [ "$SET_TCL_VARS" == "1" ]; then
         # set these to override native installation of libs
         export TCLLIBPATH=$TCL_LIB_PATH
-        export TCL_LIBRARY=$TCL_LIB_DIR/tcl8.4
-        export TK_LIBRARY=$TCL_LIB_DIR/tk8.4
-        export TIX_LIBRARY=$TCL_LIB_DIR/tix8.1
-        export BLT_LIBRARY=$TCL_LIB_DIR/blt2.4
+        export TCL_LIBRARY=$FS_TCL_LIB_DIR/tcl8.4
+        export TK_LIBRARY=$FS_TCL_LIB_DIR/tk8.4
+        export TIX_LIBRARY=$FS_TCL_LIB_DIR/tix8.1
+        export BLT_LIBRARY=$FS_TCL_LIB_DIR/blt2.4
     fi
     if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$TCL_LIB_DIR
+        export LD_LIBRARY_PATH=$FS_TCL_LIB_DIR
     else
-        export LD_LIBRARY_PATH="$TCL_LIB_DIR":"$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="$FS_TCL_LIB_DIR":"$LD_LIBRARY_PATH"
     fi
     if [ -z "$DYLD_LIBRARY_PATH" ]; then
-        export DYLD_LIBRARY_PATH=$TCL_LIB_DIR
+        export DYLD_LIBRARY_PATH=$FS_TCL_LIB_DIR
     else
-        export DYLD_LIBRARY_PATH="$TCL_LIB_DIR":"$DYLD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$FS_TCL_LIB_DIR":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output == 1 && -n "$TCL_LIB_DIR" ]]; then
-    echo "TCL_LIB_DIR     $TCL_LIB_DIR"
+if [[ $output == 1 && -n "$FS_TCL_LIB_DIR" ]]; then
+    echo "FS_TCL_LIB_DIR  $FS_TCL_LIB_DIR"
 fi
 
 
