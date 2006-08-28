@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.93 2006/08/27 23:05:35 greve Exp $
+   $Id: DICOMRead.c,v 1.94 2006/08/28 18:49:20 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1108,9 +1108,12 @@ int dcmImageDirCos(char *dcmfile,
   FreeElementData(e); 
   free(e);
 
-  e = GetElementFromFile(dcmfile, 0x20, 0x20);
-  if (e==NULL) return (1);
-  s = e->d.string;
+  // Not sure why I had this here to begin with. 
+  // This tag should indicate HFS (for example).  
+  // 0020 0020 CS REL Patient Orientation
+  // e = GetElementFromFile(dcmfile, 0x20, 0x20);
+  // if (e==NULL) return (1);
+  // s = e->d.string;
   
   FreeElementData(e);
   free(e);
