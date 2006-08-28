@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.86 2006/08/10 19:51:18 dsjen Exp $
+// $Id: matrix.c,v 1.87 2006/08/28 21:12:32 dsjen Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +28,10 @@
 #include "macros.h"
 #include "nr_wrapper_open_source.h"
 #include "evschutils.h"
+
+// private
+MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues, 
+  MATRIX *m_evectors, int isSymmetric );
 
 
 MATRIX *
@@ -1232,7 +1236,8 @@ compare_evalues(const void *l1, const void *l2)
 }
 
 MATRIX *
-MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues, 
+  MATRIX *m_evectors, int isSymmetric )
 {
   int     col, i, nevalues, row ;
   EVALUE  *eigen_values ;
@@ -1244,8 +1249,15 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
     m_evectors = MatrixAlloc(m->rows, m->cols, MATRIX_REAL) ;
 
   mTmp = MatrixAlloc(m->rows, m->cols, MATRIX_REAL) ;
-  if (OpenEigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR)
-    return(NULL) ;
+  
+  if (isSymmetric) {
+    if (OpenEigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR)
+      return(NULL) ;
+  } else {
+    if (OpenNonSymmetricEigenSystem(m->data, m->rows, evalues, mTmp->data) 
+        != NO_ERROR)
+      return(NULL) ;
+  }
 
 /* 
   sort eigenvalues in order of decreasing absolute value. The
@@ -1273,7 +1285,21 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
   return(m_evectors) ;
 }
 
+MATRIX *
+MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+{
+  int isSymmetric = 1;
+  return MatrixCalculateEigenSystemHelper( m, evalues, m_evectors, 
+                                           isSymmetric );
+}
 
+MATRIX *
+MatrixNonSymmetricEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+{
+  int isSymmetric = 0;
+  return MatrixCalculateEigenSystemHelper( m, evalues, m_evectors, 
+                                           isSymmetric );
+}
 
 void identity_matrix(float **I,int n) ;
 void svd(float **A, float **V, float *z, int m, int n) ;
