@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.28 2006/08/29 03:49:42 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.29 2006/08/29 19:43:35 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -208,10 +208,15 @@ foreach subj ($subjlist)
       if($RunIt) $cmd |& tee -a $LF
       if($status) exit 1;
       echo "\n\n" | tee -a $LF
+    else
+      # Does this work?
+      set cmd = (cp $tval $subjpath/surf/$hemi.$CacheOutFile.mgh)
+      echo "-----------------------"| tee -a $LF
+      echo $cmd | tee -a $LF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) exit 1;
+      echo "\n\n" | tee -a $LF
     endif
-  else
-    # Does this work?
-    cp $tval $subjpath/surf/$hemi.$CacheOutFile
   endif
 
   # Prepare to concatenate them
