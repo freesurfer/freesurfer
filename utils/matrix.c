@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.87 2006/08/28 21:12:32 dsjen Exp $
+// $Id: matrix.c,v 1.88 2006/08/29 16:40:57 dsjen Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,10 +29,14 @@
 #include "nr_wrapper_open_source.h"
 #include "evschutils.h"
 
-// private
+// private functions
 MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues, 
   MATRIX *m_evectors, int isSymmetric );
 
+/**
+ * Returns true if the matrix is symmetric (should be square too).
+ */  
+int MatrixIsSymmetric( MATRIX *matrix );
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
@@ -1285,18 +1289,29 @@ MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues,
   return(m_evectors) ;
 }
 
-MATRIX *
-MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+int
+MatrixIsSymmetric( MATRIX *matrix )
 {
+  int row;
+  int col;
   int isSymmetric = 1;
-  return MatrixCalculateEigenSystemHelper( m, evalues, m_evectors, 
-                                           isSymmetric );
+  
+  for( row=1; row<=matrix->rows; row++ ) {
+    for( col=1; col<=matrix->cols; col++ ) {
+      if( matrix->rptr[ row ][ col ] != matrix->rptr[ col ][ row ] ) {
+        isSymmetric = 0;
+      }
+    }
+  }
+  
+  return isSymmetric;
 }
 
 MATRIX *
-MatrixNonSymmetricEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
 {
-  int isSymmetric = 0;
+  int isSymmetric = MatrixIsSymmetric( m );
+
   return MatrixCalculateEigenSystemHelper( m, evalues, m_evectors, 
                                            isSymmetric );
 }

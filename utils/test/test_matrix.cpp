@@ -24,7 +24,6 @@ class MatrixTest : public CppUnit::TestFixture {
 //    CPPUNIT_TEST( TestNRMatrixDeterminant );
 //    CPPUNIT_TEST( TestOpenMatrixDeterminant );
     CPPUNIT_TEST( TestMatrixEigenSystem );
-    CPPUNIT_TEST( TestMatrixNonSymmetricEigenSystem );
   CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -54,12 +53,12 @@ private:
   
   MATRIX* mTransformMatrix;
 
-  MATRIX* mBruceMatrix;
+  MATRIX* mNonSymmetricMatrix;
   
   bool AreMatricesEqual(MATRIX *m1, MATRIX *m2, float tolerance);
   bool AreInversesEqual(MATRIX *matrix, const std::string inverseFile);
   void DeleteMatrix(MATRIX *m);
-  int DoesCreateValidEigenSystem( MATRIX* matrix, bool isSymmetric );
+  int DoesCreateValidEigenSystem( MATRIX* matrix );
   
 public:  
   static const std::string TESTING_DIR;
@@ -93,7 +92,7 @@ public:
   static const std::string TRANSFORM_INVERSE;
 
 // TODO: tmp
-  static const std::string BRUCE_MATRIX;
+  static const std::string NON_SYMMETRIC_MATRIX;
   
   // setUp is called automatically before each test
   void setUp();
@@ -143,8 +142,8 @@ const std::string MatrixTest::TRANSFORM_MATRIX =
 const std::string MatrixTest::TRANSFORM_INVERSE = 
   TESTING_DIR + "TransformMatrixInverse.mat";
 
-// TODO: tmp
-const std::string MatrixTest::BRUCE_MATRIX = TESTING_DIR + "BruceMatrix.mat";
+const std::string MatrixTest::NON_SYMMETRIC_MATRIX = 
+  TESTING_DIR + "NonSymmetricMatrix.mat";
 
 void
 MatrixTest::setUp() {
@@ -157,9 +156,7 @@ MatrixTest::setUp() {
   mOneMatrix =       MatrixRead( (char*) ( ONE_MATRIX.c_str() ) );
   mOneSmallMatrix =  MatrixRead( (char*) ( ONE_SMALL_MATRIX.c_str() ) );
   mTransformMatrix =  MatrixRead( (char*) ( TRANSFORM_MATRIX.c_str() ) );
-  
-  // TODO: tmp
-  mBruceMatrix =  MatrixRead( (char*) ( BRUCE_MATRIX.c_str() ) );
+  mNonSymmetricMatrix =  MatrixRead( (char*) ( NON_SYMMETRIC_MATRIX.c_str() ) );
 }
 
 void
@@ -347,7 +344,7 @@ MatrixTest::TestOpenMatrixDeterminant() {
 }
 
 int
-MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix, bool isSymmetric ) {
+MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
   const float TOLERANCE = 1e-5;
 
   int eigenSystemState = EIGENSYSTEM_INVALID;
@@ -357,11 +354,7 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix, bool isSymmetric ) {
   float *eigenValues = new float[ size ];
   MATRIX *eigenVectors = MatrixAlloc( size, size, MATRIX_REAL );
 
-  if( isSymmetric ) {
-    MatrixEigenSystem( matrix, eigenValues, eigenVectors );
-  } else {
-    MatrixNonSymmetricEigenSystem( matrix, eigenValues, eigenVectors );
-  }
+  MatrixEigenSystem( matrix, eigenValues, eigenVectors );
   
   bool isInDecendingOrder = true;
   for( int i=1; i<size; i++ ) {
@@ -400,41 +393,36 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix, bool isSymmetric ) {
 
 void
 MatrixTest::TestMatrixEigenSystem() {
-  const bool isSymmetric = false;
 
   CPPUNIT_ASSERT( 
     DoesCreateValidEigenSystem( 
-      mPascalMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
+      mPascalMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mBuckyMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
+    mBuckyMatrix ) == EIGENSYSTEM_VALID );
  
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mZeroesMatrix, isSymmetric ) == EIGENSYSTEM_VALID);
+    mZeroesMatrix ) == EIGENSYSTEM_VALID);
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mIdentityMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
+    mIdentityMatrix ) == EIGENSYSTEM_VALID );
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mSingularMatrix, isSymmetric ) == EIGENSYSTEM_VALID);
+    mSingularMatrix ) == EIGENSYSTEM_VALID);
   
 // TODO: should this gracefully exit with a non-square matrix rather than seg 
 //       fault?
 //  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
 
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mOneMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
+    mOneMatrix ) == EIGENSYSTEM_VALID );
   
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
-    mOneSmallMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
-}
+    mOneSmallMatrix ) == EIGENSYSTEM_VALID );
 
-void
-MatrixTest::TestMatrixNonSymmetricEigenSystem() {
-  const bool isSymmetric = false;
-  
-  CPPUNIT_ASSERT( DoesCreateValidEigenSystem(
-    mBruceMatrix, isSymmetric ) == EIGENSYSTEM_VALID );
+  CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
+    mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
+    
 }
 
 int main ( int argc, char** argv ) {

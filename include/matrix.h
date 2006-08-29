@@ -93,9 +93,6 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type);
 float  MatrixDeterminant(MATRIX *m) ;
 MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
 
-MATRIX *MatrixNonSymmetricEigenSystem(MATRIX *m, float *evalues, 
-                                      MATRIX *m_evectors);
-
 MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV) ;
 MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) ;
 float  MatrixNSConditionNumber(MATRIX *m);
