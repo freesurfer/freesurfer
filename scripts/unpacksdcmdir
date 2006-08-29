@@ -13,7 +13,7 @@ proc PrintUsage { } {
   puts ""
   puts "  -fsfast  : unpack to fsfast  directory structure"
   puts "  -generic : unpack to generic directory structure"
-  puts "  -infodump : create infodump file (done automatically with -fsfast)"
+  puts "  -noinfodump : do not create infodump file"
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
@@ -349,7 +349,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.12 2006/01/24 18:04:33 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.13 2006/08/29 17:24:30 greve Exp $}
 
 exit 1;
 
@@ -417,12 +417,13 @@ proc ParseCommandLine { argc argv } {
         incr ntharg 1
       }
 
-      -fsfast    { set sortmethod fsfast; }
-      -generic   { set sortmethod generic; }
-      -infodump  { set DoInfoDump 1; }
-      -unpackerr { set unpackerr 1; }
-      -noexec    { set noexec 1; }
-      -help      { HelpExit;} 
+      -fsfast     { set sortmethod fsfast; }
+      -generic    { set sortmethod generic; }
+      -infodump   { set DoInfoDump 1; }
+      -noinfodump { set DoInfoDump 0; }
+      -unpackerr  { set unpackerr 1; }
+      -noexec     { set noexec 1; }
+      -help       { HelpExit;} 
 
       default { 
         puts "ERROR: $option unrecognized";
@@ -776,7 +777,7 @@ set noexec 0
 set scanonly 0
 set nspmzeropad 3
 set unpackerr 0
-set DoInfoDump 0
+set DoInfoDump 1
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 
@@ -823,7 +824,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.12 2006/01/24 18:04:33 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.13 2006/08/29 17:24:30 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -846,8 +847,10 @@ puts $LF "INFO: summary file is $sumfile"
 puts     "INFO: summary file is $sumfile"
 puts $LF "INFO: status file is $statfile"
 puts     "INFO: status file is $statfile"
+puts     "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
+puts $LF "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
 set ParsePipeId [open \
- "| mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile 2>@ stdout" r];
+"|mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile 2>@ stdout" r];
 fconfigure $ParsePipeId -blocking 0
 
 # Wait until the statfile is created (or timeout after 20)
