@@ -111,6 +111,8 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms){
 	return true;
 }
 
+#define WS 0
+
 
 extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
   int nattempts=parms.nattempts;
@@ -163,6 +165,7 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		fprintf(WHICH_OUTPUT,"AFTER %d (%d,%d)\n",surface->GetEuler(),surface->nvertices,surface->nfaces);
 #endif
 		
+
 		//transfer data into MRIS structure
     MRIS *mris_work = SurfaceToMRIS(surface,NULL);
 		delete surface;
@@ -184,6 +187,12 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		
 		// we have a correct surface : evaluate if valid
 		MRISinitDefectPatch(mris_work,&parms);
+
+#if WS
+		sprintf(fname,"./defect_%d_%d.asc",parms.defect_number,s_nbr++);
+		//fprintf(stderr,"%s!\n",fname);
+		MRISwrite(mris_work,fname);
+#endif
 		
 		//first check if the patch self-intersects
 		bool selfintersect = doesMRISselfIntersect(mris_work,parms);
@@ -207,8 +216,14 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 					fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
 					MRISprintInfo(&parms);
 				}
+#if WS
+				sprintf(fname,"./best_%d_%d.asc",parms.defect_number,s_nbr);
+				//fprintf(stderr,"%s!\n",fname);
+				MRISwrite(mris_work,fname);
+#endif
 				if(parms.write){
 					sprintf(fname,"./defect_%d_%d.asc",parms.defect_number,s_nbr++);
+					//fprintf(stderr,"%s!\n",fname);
 					MRISwrite(mris_work,fname);
 				}
 			}
@@ -222,10 +237,23 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 		//now try to use local intensities to improve fitness
 		//first mark vertices
 		MRISmarkPatchVertices(mris_work,&parms,mris->nvertices);
-		for(int n = 0 ; n < 4 ; n++) MRISexpandMarked(mris_work);
+		for(int n = 0 ; n < 3 ; n++) MRISexpandMarked(mris_work);
 		MRISmarkBorderVertices(mris_work,&parms,0);
 		MRISdefectMatch(mris_work,&parms);
 		npatches++;
+
+#if WS
+		sprintf(fname,"./defect_%d_%d.asc",parms.defect_number,s_nbr++);
+		//fprintf(stderr,"%s!\n",fname);
+		MRISwrite(mris_work,fname);
+		sprintf(fname,"./curv_%d_%d.asc",parms.defect_number,s_nbr);
+		//fprintf(stderr,"%s!\n",fname);
+		for(int p =0; p < mris_work->nvertices;p++)
+			mris_work->vertices[p].curv=mris_work->vertices[p].marked;
+		MRISwriteCurvature(mris_work,fname);
+
+#endif
+
 		//if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (m)is %3.5f \n",fitness);
 		//check if the surface self-intersects
 		selfintersect = doesMRISselfIntersect(mris_work,parms);
@@ -247,8 +275,14 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms){
 				fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (M) is %3.5f \n",best_fitness);
 				MRISprintInfo(&parms);
 			}
+#if WS
+		sprintf(fname,"./best_%d_%d.asc",parms.defect_number,s_nbr);
+		//fprintf(stderr,"%s!\n",fname);
+		MRISwrite(mris_work,fname);
+#endif
 			if(parms.write){
 				sprintf(fname,"./defect_%d_%d.asc" , parms.defect_number,s_nbr++);
+				//fprintf(stderr,"%s!\n",fname);
 				MRISwrite(mris_work,fname);
 			}
 		}else{

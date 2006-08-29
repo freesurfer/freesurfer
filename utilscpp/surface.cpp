@@ -818,9 +818,9 @@ void Surface::CutLoop(Loop &loop){
 
 	//which patch should we use ?
 	int wd = 0 ; 
-	if(loop.npoints < 6 ) wd = 0;
-	else if (loop.npoints < 10 ) wd = 1;
-	else if (loop.npoints <  14) wd = 2;
+	if(loop.npoints < 10 ) wd = 0;//6
+	else if (loop.npoints < 14 ) wd = 1;//10
+	else if (loop.npoints <  20) wd = 2;//14
 	else wd = 3;
 	PatchDisk *pdisk = &disk[wd];
 #if PRINT_ERROR_MODE	
