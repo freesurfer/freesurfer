@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.95 2006/08/29 17:15:34 greve Exp $
+   $Id: DICOMRead.c,v 1.96 2006/08/29 18:01:28 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2742,6 +2742,8 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
 
   if((fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[0])) &&
      (fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[1])) && trarev) return(1);
+  
+  printf("sagrev = %d, correv =%d, trarev = %d\n",sagrev,correv,trarev);
 
   printf("\n\nWARNING: Proper slice order not detected! "
          "Suggestion: use -siemens_dicom flag instead of -dicom\n\n");
