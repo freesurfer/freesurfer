@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.27 2006/08/25 20:50:22 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.28 2006/08/29 03:49:42 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -29,10 +29,6 @@ set srcvol  = 0;
 set tmpdir = ();
 set cleanup = 1;
 set RunIt = 1;
-set SessFile = ();
-set SessDirFile = ();
-set FSFAnalysis = ();
-set FSFContrast = ();
 set LF = ();
 set reshape = 0;
 set sval = ();
@@ -44,9 +40,15 @@ set CacheOutUpdate = 0;
 set CacheIn = 0;
 set MeasIn  = 0;
 set outdir = ();
+set SurfReg = sphere.reg
+
+set SessFile = ();
+set SessDirFile = ();
+set FSFAnalysis = ();
+set FSFContrast = ();
+set FSFMap = ces
 set DoFSFCVar = 0;
 set DoFSFOffset = 0;
-set SurfReg = sphere.reg
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
@@ -432,12 +434,19 @@ while( $#argv != 0 )
       set FSFContrast = $argv[1]; shift;
       breaksw
 
+    case "--map":
+      if ( $#argv == 0) goto arg1err;
+      set FSFMap = $argv[1]; shift;
+      breaksw
+
     case "--offset":
       set DoFSFOffset=1;
+      set FSFMap = h-offset
       breaksw
 
     case "--cvar":
       set DoFSFCVar=1;
+      set FSFMap = cesvar
       breaksw
 
     case "--cache-out":
@@ -531,8 +540,12 @@ if($#SessFile) then
     echo "ERROR: need to specify --analysis with --sf"
     exit 1;
   endif
-  if($#FSFContrast == 0) then
-    echo "ERROR: need to specify --contrast with --sf"
+  if($DoFSFOffset && $#FSFContrast != 0) then
+    echo "ERROR: cannot specify both --offset and --contrast"
+    exit 1;
+  endif
+  if(! $DoFSFOffset && $#FSFContrast == 0) then
+    echo "ERROR: need to specify --contrast or --offset with --sf"
     exit 1;
   endif
 
@@ -561,9 +574,7 @@ if($#SessFile) then
   set irplist = ();
   foreach sess ($SessList)
     set anadir = $sess/$fsd/$FSFAnalysis
-    set map = $anadir/$FSFContrast/ces.bhdr
-    if($DoFSFCVar)   set map = $anadir/$FSFContrast/cesvar.bhdr
-    if($DoFSFOffset) set map = $anadir/h-offset.bhdr
+    set map = $anadir/$FSFContrast/$FSFMap.bhdr
     if(! -e $map) then
       echo "ERROR: cannot find $map"
       exit 1;
@@ -750,6 +761,7 @@ usage_exit:
   echo "  --contrast constrast : fsfast contrast"
   echo "  --cvar               : use fsfast contrast variance (cesvar)"
   echo "  --offset             : use fsfast mean offset (h-offset)"
+  echo "  --map mapname        : use fsfast contrast/map"
   echo ""
   echo "  --fwhm fwhm : smooth by fwhm mm on the target surface"
   echo "  --fwhm-src fwhmsrc : smooth by fwhm mm on the source surface"
@@ -974,6 +986,23 @@ Do not delete temporary directory and files.
 --cleanup
 
 DO delete temporary directory and files.  Done by default.
+
+
+FreeSurfer Functional Analysis Stream (FS-FAST) OPTIONS:
+
+When running mris_preproc in conjunction with FS-FAST, you only need
+to run the first level anlaysis (selxavg-sess) and the first level
+contrast (stxgrinder-sess). It is not necessary to sample onto the
+surface (this will be done by this script).  As with the other FS-FAST
+commands, you specify the sessions with --sf and --df (note the two
+dashes). Specify the analysis with --analysis (or just --a) and the
+contrast with --contrast (or just --c). By default, the volume
+resampled onto the surface will be analysis/contrast/ces.bhdr (ie, the
+contrast effect size).  This can be changed in several ways. First,
+with --cvar, in which case it will use cesvar.bhdr instead. Second,
+with --offset, then a contrast is not used; rather it samples
+analysis/h-offset.bhdr onto the surface. Third, with --map mapname, in 
+which case it uses analysis/contrast/mapname.bhdr. 
 
 
 EXAMPLES
