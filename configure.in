@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.207 2006/08/30 23:16:16 nicks Exp $"
+# "$Id: configure.in,v 1.208 2006/08/30 23:31:34 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1145,7 +1145,7 @@ if test ! "$ac_gsl_libraries" = "NO"; then
    LDFLAGS="$LDFLAGS $GSL_LIBS"
 fi
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
-LIBS="-lvnl_algo -lvnl -lvcl -lgsl -lgslcblas -lnetlib $LIBS"
+LIBS="-lvnl_algo -lvnl -lvcl -lnetlib $LIBS"
 if test ! "$ac_gsl_libraries" = "NO"; then
    LIBS="-lgsl -lgslcblas $LIBS"
 fi
