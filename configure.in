@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.205 2006/08/30 21:12:52 czanner Exp $"
+# "$Id: configure.in,v 1.206 2006/08/30 21:36:38 czanner Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1012,7 +1012,7 @@ Set LDFLAGS or --with-mni-dir.])] )
 # GNU scientific library
 AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
   [AC_MSG_ERROR([FATAL: gsl lib not found. \
-#Please install gsl header files and libs.])] )
+Please install gsl header files and libs.])] )
 
 ################## Tcl
 # check tcl8.4
