@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.31 2006/08/30 03:20:36 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.32 2006/08/30 03:32:46 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -145,7 +145,7 @@ foreach subj ($subjlist)
 
   if($CacheIn) then
     # Input has been cached
-    set tval = $subjpath/surf/$hemi.$CacheOutFile.mgh)
+    set tval = $subjpath/surf/$hemi.$meas.mgh
     if(! -e $tval) then
       echo "ERROR: cannot find cahed file $tval"
       exit 1;
@@ -174,7 +174,6 @@ foreach subj ($subjlist)
         set srcsurfpath = $isplist[$nthsubj];
       endif
     endif
-
     # Now srcsurfpath file exists, convert it to the target subject
     set tval = $tmpdir/$subj.mgh
     set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --surfreg $SurfReg)
@@ -701,7 +700,8 @@ foreach subj ($subjlist)
     exit 1;
   endif
   if($#meas) then
-    set measpath = $subjpath/surf/$hemi.$meas
+    if(! $CacheIn) set measpath = $subjpath/surf/$hemi.$meas
+    if($CacheIn) set measpath = $subjpath/surf/$hemi.$meas.mgh
     if(! -e $measpath) then
       echo "ERROR: cannot find $measpath"
       exit 1;
