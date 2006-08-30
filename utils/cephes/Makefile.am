@@ -6,7 +6,11 @@ AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
 	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
 
+if USE_SC_GSL_REPLACEMENT
 noinst_LIBRARIES= libcephes.a
+else
+noinst_LIBRARIES=
+endif
 libcephes_a_SOURCES = \
 bdtr.c \
 chdtr.c \

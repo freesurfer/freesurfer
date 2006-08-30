@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.206 2006/08/30 21:36:38 czanner Exp $"
+# "$Id: configure.in,v 1.207 2006/08/30 23:16:16 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -596,7 +596,7 @@ if test ! "$ac_gsl_includes" = "NO"; then
   AC_MSG_RESULT(GSL directory is $withval)
   GSL_CFLAGS=-I$ac_gsl_includes
 else
-  AC_MSG_RESULT(GSL directory is not supplied)
+  AC_MSG_RESULT(GSL will not be used)
 fi
 if test ! "$ac_gsl_libraries" = "NO"; then
   GSL_LIBS=-L$ac_gsl_libraries
@@ -604,6 +604,8 @@ fi
 
 AC_SUBST(GSL_CFLAGS)
 AC_SUBST(GSL_LIBS)
+AM_CONDITIONAL(USE_SC_GSL_REPLACEMENT, test "$ac_gsl_libraries" = "NO")
+
 
 ################################################################
 # Qt
@@ -981,8 +983,14 @@ ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
+if test ! "$ac_gsl_includes" = "NO"; then
+   CPPFLAGS="$CPPFLAGS $GSL_CFLAGS"
+fi
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
 $GL_LIBS $GLU_LIBS $GLUT_LIBS"
+if test ! "$ac_gsl_libraries" = "NO"; then
+   LDFLAGS="$LDFLAGS $GSL_LIBS"
+fi
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1009,11 +1017,12 @@ Set LDFLAGS or --with-mni-dir.])] )
 AC_CHECK_LIB([volume_io], [transform_point],[],
   [AC_MSG_ERROR([FATAL: volume_io lib not found. \
 Set LDFLAGS or --with-mni-dir.])] )
-# GNU scientific library
-AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
-  [AC_MSG_ERROR([FATAL: gsl lib not found. \
-Please install gsl header files and libs.])] )
-
+# if using GNU scientific library
+if test ! "$ac_gsl_libraries" = "NO"; then
+   AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
+   [AC_MSG_ERROR([FATAL: gsl lib not found. \
+   Please specify gsl header files and libs with --with-gsl-dir.])] )
+fi
 ################## Tcl
 # check tcl8.4
 AC_CHECK_LIB([tcl8.4],[Tcl_Init],
@@ -1126,12 +1135,20 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS \
-        $CPPUNIT_CFLAGS $VXL_CFLAGS "
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS \
-        $VXL_LIBS"
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS \
+$JPEG_CFLAGS $TIFF_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS"
+if test ! "$ac_gsl_includes" = "NO"; then
+   CPPFLAGS="$CPPFLAGS $GSL_CFLAGS"
+fi
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS $VXL_LIBS"
+if test ! "$ac_gsl_libraries" = "NO"; then
+   LDFLAGS="$LDFLAGS $GSL_LIBS"
+fi
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS="-lvnl_algo -lvnl -lvcl -lgsl -lgslcblas -lnetlib $LIBS"
+if test ! "$ac_gsl_libraries" = "NO"; then
+   LIBS="-lgsl -lgslcblas $LIBS"
+fi
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
