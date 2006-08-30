@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # sfa-sess
 #
-# $Id: sfa-sess,v 1.4 2006/08/28 17:55:21 greve Exp $
-set VERSION = '$Id: sfa-sess,v 1.4 2006/08/28 17:55:21 greve Exp $'
+# $Id: sfa-sess,v 1.5 2006/08/30 22:16:04 greve Exp $
+set VERSION = '$Id: sfa-sess,v 1.5 2006/08/30 22:16:04 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -11,6 +11,7 @@ set analysis  = ();
 set debugopt  = ();
 set nolog     = 0;
 set SynthSeed = 0;
+set outdir    = ();
 
 if($#argv == 0) then
   goto usage_exit;
@@ -148,6 +149,7 @@ foreach sess ($SessList)
       set instems = ($instems -i $instem);
     end
     set sfastem = $analysis/h;
+    if($#outdir) set sfastem = $outdir/$analysis/h;
 
     # Build command line (need to do same for rtopy below)
     set cmd = (selfreqavg)
@@ -167,23 +169,23 @@ foreach sess ($SessList)
     mkdir -p $analysis/avb
     # Create the sig map #
     #bfileconvert -i $sfastem -o $analysis/avb/sig -fp 0 -np 1 |& tee -a $LF
-    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/sig.bhdr --frame 0)
+    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/sig.bhdr --frame 0)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the mean T2 image in the analysis directory #
     # bfileconvert -i $sfastem -o $analysis/h-offset -fp 10 -np 1 |& tee -a $LF
-    set cmd = (mri_convert $sfastem.bhdr -o $analysis/h-offset.bhdr --frame 10)
+    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/h-offset.bhdr --frame 10)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the mag map #
-    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/mag.bhdr --frame 12)
+    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/mag.bhdr --frame 12)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the phase map #
-    set cmd = (mri_convert $sfastem.bhdr -o $analysis/avb/phase.bhdr --frame  9)
+    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/phase.bhdr --frame  9)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -227,7 +229,7 @@ foreach sess ($SessList)
         if($#polarstems == 0) continue;
         set instems = ($polarstems);
       endif
-      set sfastem = $analysis/$type/h;
+      set sfastem = $outdir$analysis/$type/h;
 
       # Build command line (need to do same for abblocked above)
       set cmd = (selfreqavg)
@@ -245,18 +247,16 @@ foreach sess ($SessList)
       endif
 
       # Create the mean T2 images in the eccen/polar directory #
-      bfileconvert -i $sfastem -o $sfastem-offset -fp 10 -np 1 |& tee -a $LF
-      if($status) then
-        echo "ERROR: bfileconvert for mean image failed" |& tee -a $LF
-        exit 1;
-      endif
-
+      set cmd = (mri_convert $sfastem.bhdr -o $sfastem-offset.bhdr --frame 10)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
     end
 
     # Create mean T2 in analysis directory #
-    set cmd = (meanimg -i $analysis/eccen/h-offset \
-                       -i $analysis/polar/h-offset \
-                       -o $analysis/h-offset)
+    set cmd = (meanimg -i $outdir$analysis/eccen/h-offset \
+                       -i $outdir$analysis/polar/h-offset \
+                       -o $outdir$analysis/h-offset)
     $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: meanimg for mean image failed" |& tee -a $LF
@@ -295,6 +295,16 @@ while( $#argv != 0 )
     case "-synth":
       if ( $#argv == 0) goto arg1err;
       set SynthSeed = $argv[1]; shift;
+      breaksw
+
+    case "-outdir":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      mkdir -p $outdir
+      pushd $outdir > /dev/null
+      set outdir = `pwd`;
+      popd > /dev/null
+      set outdir = "$outdir/"
       breaksw
 
     case "-umask":
