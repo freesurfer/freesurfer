@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.30 2006/05/31 22:11:02 greve Exp $
+   $Id: fmriutils.c,v 1.31 2006/08/30 20:57:03 czanner Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -17,8 +17,12 @@ double round(double x);
 #include "sig.h"
 #include "fmriutils.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 
+#if USE_SC_GSL_REPLACEMENT
+  #include <gsl_wrapper.h>
+#else
+  #include "gsl/gsl_cdf.h"
+#endif
 #ifdef X
 #undef X
 #endif
@@ -26,7 +30,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.30 2006/05/31 22:11:02 greve Exp $");
+  return("$Id: fmriutils.c,v 1.31 2006/08/30 20:57:03 czanner Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -397,6 +401,50 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
 // DOF1 = dof of den (same as t DOF)
 // DOF2 = dof of num (number of rows in C)
 // Note: order is rev relative to fsfast's FTest.m
+#if USE_SC_GSL_REPLACEMENT
+MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
+{
+  int c, r, s, f;
+  float Fval, sigFval;
+
+  if(sig==NULL){
+    sig = MRIallocSequence(F->width, F->height, F->depth, 
+			   MRI_FLOAT, F->nframes);
+    if(sig==NULL){
+      printf("ERROR: fMRIsigF: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(F,sig);
+  }
+  else{
+    if(F->width   != sig->width  || 
+       F->height  != sig->height || 
+       F->depth   != sig->depth  ||
+       F->nframes != sig->nframes){
+      printf("ERROR: fMRIsigF: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(sig->type != MRI_FLOAT){
+      printf("ERROR: fMRIsigF: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < F->width; c++){
+    for(r=0; r < F->height; r++){
+      for(s=0; s < F->depth; s++){
+	for(f=0; f < F->nframes; f++){
+	  Fval = MRIFseq_vox(F,c,r,s,f);
+	  sigFval = sc_cdf_fdist_Q(Fval,DOFNum,DOFDen);
+	  MRIFseq_vox(sig,c,r,s,f) = sigFval;
+	}
+      }
+    }
+  }
+
+  return(sig);
+}
+#else
 MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
 {
   int c, r, s, f;
@@ -439,7 +487,7 @@ MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
 
   return(sig);
 }
-
+#endif
 /*--------------------------------------------------------
   fMRInskip() - skip the first nskip frames
   --------------------------------------------------------*/

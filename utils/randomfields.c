@@ -4,10 +4,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <float.h>
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-
+#if USE_SC_GSL_REPLACEMENT
+#else
+  #include <gsl/gsl_cdf.h>
+  #include <gsl/gsl_rng.h>
+  #include <gsl/gsl_randist.h>
+#endif
 #include "randomfields.h"
 #include "utils.h"
 #include "mri.h"
@@ -19,7 +21,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) { 
-  return("$Id: randomfields.c,v 1.3 2006/02/17 02:30:55 greve Exp $"); 
+  return("$Id: randomfields.c,v 1.4 2006/08/30 20:55:08 czanner Exp $"); 
 }
 
 /*-------------------------------------------------------------------*/
@@ -50,6 +52,23 @@ const char *RFcode2Name(RFS *rfs)
 }
 
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype)
+{
+  RFS *rfs;  
+  const sc_rng_type *sc_rng_intern_type = &intern_rng_type;
+ 
+  rfs = (RFS*)calloc(sizeof(RFS),1);
+ 
+  /* Sc: only one type of rng is supported at this moment (ranlux389) */
+  rfs->rngtype = sc_rng_intern_type;
+ 
+  rfs->rng = sc_rng_alloc(rfs->rngtype);
+ 
+  RFspecSetSeed(rfs,seed);
+  return(rfs);
+}
+#else
 RFS *RFspecInit(unsigned long int seed, gsl_rng_type *rngtype)
 {
   RFS *rfs;
@@ -63,7 +82,18 @@ RFS *RFspecInit(unsigned long int seed, gsl_rng_type *rngtype)
   RFspecSetSeed(rfs,seed);
   return(rfs);
 }
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFspecFree(RFS **prfs)
+{
+  sc_rng_free((*prfs)->rng);
+  free((*prfs)->name);
+  free(*prfs);
+  *prfs =NULL;
+  return(0);
+}
+#else
 int RFspecFree(RFS **prfs)
 {
   gsl_rng_free((*prfs)->rng);
@@ -72,7 +102,17 @@ int RFspecFree(RFS **prfs)
   *prfs =NULL;
   return(0);
 }
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFspecSetSeed(RFS *rfs,unsigned long int seed)
+{
+  if(seed == 0) rfs->seed = PDFtodSeed();
+  else          rfs->seed = seed;
+  sc_rng_set(rfs->rng, rfs->seed);
+  return(0);
+}
+#else
 int RFspecSetSeed(RFS *rfs,unsigned long int seed)
 {
   if(seed == 0) rfs->seed = PDFtodSeed();
@@ -80,6 +120,7 @@ int RFspecSetSeed(RFS *rfs,unsigned long int seed)
   gsl_rng_set(rfs->rng, rfs->seed);
   return(0);
 }
+#endif
 /*-------------------------------------------------------------------*/
 int RFprint(FILE *fp, RFS *rfs)
 {
@@ -282,6 +323,39 @@ int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double 
 }
 
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+double RFdrawVal(RFS *rfs)
+{
+  if(!strcmp(rfs->name,"uniform")){
+    //params[0] = min
+    //params[1] = max
+    return(sc_ran_flat(rfs->rng,rfs->params[0],rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"gaussian")){
+    //params[0] = mean
+    //params[1] = std
+    return(sc_ran_gaussian(rfs->rng,rfs->params[1]) + rfs->params[0]);
+  }
+  if(!strcmp(rfs->name,"z")){
+    //nparams=0, gaussian with mean=0, std=1
+    return(sc_ran_gaussian(rfs->rng,1));
+  }
+  if(!strcmp(rfs->name,"t")){
+    //params[0] = dof
+    return(sc_ran_tdist(rfs->rng,rfs->params[0]));
+  }
+  if(!strcmp(rfs->name,"F")){
+    //params[0] = numerator dof (rows in C)
+    //params[1] = denominator dof
+    return(sc_ran_fdist(rfs->rng,rfs->params[0],rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(sc_ran_chisq(rfs->rng,rfs->params[0]));
+  }
+  printf("ERROR: RFdrawVal(): field type %s unknown\n",rfs->name);
+  return(10000000000.0);
+#else
 double RFdrawVal(RFS *rfs)
 {
   if(!strcmp(rfs->name,"uniform")){
@@ -314,11 +388,46 @@ double RFdrawVal(RFS *rfs)
   printf("ERROR: RFdrawVal(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
 }
+#endif
 /*-------------------------------------------------------------------
   RFtestVal() - returns the probability of getting a value of v or
   greater from a random draw from the given distribution. Note:
   this is a one-sided test (where sidedness makes sense).
   -------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+double RFstat2PVal(RFS *rfs, double stat)
+{
+  if(!strcmp(rfs->name,"uniform")){
+    //params[0] = min
+    //params[1] = max
+    return(sc_cdf_flat_Q(stat, rfs->params[0], rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"gaussian")){
+    //params[0] = mean
+    //params[1] = std
+    return(sc_cdf_gaussian_Q(stat-rfs->params[0],rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"z")){
+    //nparams=0, gaussian with mean=0, std=1
+    return(sc_cdf_gaussian_Q(stat,1));
+  }
+  if(!strcmp(rfs->name,"t")){
+    //params[0] = dof
+    return(sc_cdf_tdist_Q(stat,rfs->params[0]));
+  }
+  if(!strcmp(rfs->name,"F")){
+    //params[0] = numerator dof (rows in C)
+    //params[1] = denominator dof
+    return(sc_cdf_fdist_Q(stat,rfs->params[0],rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(sc_cdf_chisq_Q(stat,rfs->params[0]));
+  }
+  printf("ERROR: RFstat2PVal(): field type %s unknown\n",rfs->name);
+  return(10000000000.0);
+}
+#else
 double RFstat2PVal(RFS *rfs, double stat)
 {
   if(!strcmp(rfs->name,"uniform")){
@@ -351,10 +460,46 @@ double RFstat2PVal(RFS *rfs, double stat)
   printf("ERROR: RFstat2PVal(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
 }
-
+#endif
 /*-------------------------------------------------------------------
   RFp2StatVal() -
   -------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+double RFp2StatVal(RFS *rfs, double p)
+{
+  if(!strcmp(rfs->name,"uniform")){
+    //params[0] = min
+    //params[1] = max
+    return(sc_cdf_flat_Qinv(p, rfs->params[0], rfs->params[1]));
+  }
+  if(!strcmp(rfs->name,"gaussian")){
+    //params[0] = mean
+    //params[1] = std
+    return(sc_cdf_gaussian_Qinv(p,rfs->params[1])+rfs->params[0]);
+  }
+  if(!strcmp(rfs->name,"z")){
+    //nparams=0, gaussian with mean=0, std=1
+    return(sc_cdf_gaussian_Qinv(p,1));
+  }
+  if(!strcmp(rfs->name,"t")){
+    //params[0] = dof
+    return(sc_cdf_tdist_Qinv(p,rfs->params[0]));
+  }
+  if(!strcmp(rfs->name,"F")){
+    //params[0] = numerator dof (rows in C)
+    //params[1] = denominator dof
+    // GSL does not have the Qinv for F :<.
+    printf("ERROR: RFp2StatVal(): cannot invert RF field\n");
+    return(10000000000.0);
+  }
+  if(!strcmp(rfs->name,"chi2")){
+    //params[0] = dof
+    return(sc_cdf_chisq_Qinv(p,rfs->params[0]));
+  }
+  printf("ERROR: RFp2v(): field type %s unknown\n",rfs->name);
+  return(10000000000.0);
+}
+#else
 double RFp2StatVal(RFS *rfs, double p)
 {
   if(!strcmp(rfs->name,"uniform")){
@@ -389,7 +534,7 @@ double RFp2StatVal(RFS *rfs, double p)
   printf("ERROR: RFp2v(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
 }
-
+#endif
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevUniform(RFS *rfs)
@@ -491,6 +636,32 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
   return(1);
 }
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
+{
+  int c,r,s,f=0,m;
+  double v,min,max;
+
+  min = rfs->params[0];
+  max = rfs->params[1];
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = sc_ran_flat(rfs->rng,min,max);
+	  MRIsetVoxVal(rf,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
+}
+#else
 int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
 {
   int c,r,s,f=0,m;
@@ -515,9 +686,35 @@ int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
-
+#endif
 
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
+{
+  int c,r,s,f=0,m;
+  double v,mean,std;
+
+  mean = rfs->params[0];
+  std  = rfs->params[1];
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = sc_ran_gaussian(rfs->rng,std) + mean;
+	  MRIsetVoxVal(rf,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
+}
+#else
 int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
 {
   int c,r,s,f=0,m;
@@ -542,8 +739,33 @@ int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
-
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
+{
+  int c,r,s,f=0,m;
+  double v,dof;
+
+  dof = rfs->params[0];
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = sc_ran_tdist(rfs->rng,dof);
+	  MRIsetVoxVal(rf,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
+}
+#else
 int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
 {
   int c,r,s,f=0,m;
@@ -567,8 +789,34 @@ int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
-
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
+{
+  int c,r,s,f,m;
+  double v,ndof,ddof;
+
+  ndof = rfs->params[0]; // numerator dof (rows in C)
+  ddof = rfs->params[1]; // dof
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = sc_ran_fdist(rfs->rng,ndof,ddof);
+	  MRIsetVoxVal(rf,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
+}
+#else
 int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
 {
   int c,r,s,f,m;
@@ -593,7 +841,37 @@ int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
+{
+  int c,r,s,f=0,m;
+  double v,pval,mean,std;
+
+  mean = rfs->params[0];
+  std  = rfs->params[1];
+
+  p = MRIclone(rf,p);
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = MRIgetVoxVal(rf,c,r,s,f);
+	  pval = sc_cdf_gaussian_Q(v-mean,std);
+	  MRIsetVoxVal(p,c,r,s,f,pval);
+	}
+      }
+    }
+  }
+  return(p);
+}
+#else
 RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
 {
   int c,r,s,f=0,m;
@@ -621,8 +899,33 @@ RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
   }
   return(p);
 }
-
+#endif
 /*-------------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
+{
+  int c,r,s,f,m;
+  double v,pval,dof;
+
+  dof = rfs->params[0];
+
+  for(c=0; c < rf->width; c++){
+    for(r=0; r < rf->height; r++){
+      for(s=0; s < rf->depth; s++){
+	if(binmask != NULL){
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if(!m) continue;
+	}
+	for(f=0; f < rf->nframes; f++){
+	  v = sc_ran_tdist(rfs->rng,dof);
+	  MRIsetVoxVal(rf,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
+}
+#else
 int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
 {
   int c,r,s,f,m;
@@ -646,6 +949,6 @@ int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
-
+#endif
 
 #endif

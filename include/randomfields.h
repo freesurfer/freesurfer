@@ -1,11 +1,16 @@
-// $Id: randomfields.h,v 1.3 2006/02/17 02:30:55 greve Exp $
+// $Id: randomfields.h,v 1.4 2006/08/30 20:54:39 czanner Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
 
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+#if USE_SC_GSL_REPLACEMENT
+  #include <gsl_wrapper.h>
+#else
+  #include <gsl/gsl_cdf.h>
+  #include <gsl/gsl_rng.h>
+  #include <gsl/gsl_randist.h>
+#endif
+
 #include "mri.h"
 
 #define RF_UNIFORM  1
@@ -21,14 +26,23 @@ typedef struct {
   int nparams;
   double params[20];
   double mean, stddev;
+#if USE_SC_GSL_REPLACEMENT
+  sc_rng *rng;
+  const sc_rng_type *rngtype;
+#else
   gsl_rng *rng;
   const gsl_rng_type *rngtype;
+#endif
   unsigned long int seed;
 } RANDOM_FIELD_SPEC, RFS;
 
 
 const char *RFSrcVersion(void);
-RFS *RFspecInit(unsigned long int seed, gsl_rng_type *rngtype);
+#if USE_SC_GSL_REPLACEMENT
+  RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype);
+#else
+  RFS *RFspecInit(unsigned long int seed, gsl_rng_type *rngtype);
+#endif
 int RFspecFree(RFS **prfs);
 int RFname2Code(RFS *rfs);
 const char *RFcode2Name(RFS *rfs);

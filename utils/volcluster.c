@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <gsl/gsl_randist.h>
-
+#if USE_SC_GSL_REPLACEMENT
+  #include <gsl_wrapper.h>
+#else
+  #include <gsl/gsl_randist.h>
+#endif
 #include "diag.h"
 #include "mri.h"
 #include "resample.h"
@@ -1514,6 +1517,52 @@ int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
   no item from the simulation is larger than ClusterSize, then
   it is assumed that 1 item is so that things dont break.
   --------------------------------------------------------------*/
+#if USE_SC_GSL_REPLACEMENT
+double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
+			double ciPct, double *pvalLow, double *pvalHi)
+{
+  int nthrep,nover, k, nlow, nhi;
+  double pval,psum, pcilow, pcihi;
+
+  // First, count the number of MaxClusters whose size is greater than
+  // the one under test
+  nover = 0;
+  for(nthrep = 0; nthrep < csd->nreps; nthrep++)
+    if(csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
+
+  // If none is over, then set nover = 1 so that things don't beak
+  if(nover == 0) nover = 1;
+
+  // Compute the nomial pvalue
+  pval = (double)nover/csd->nreps;
+
+  // Ranges for confidence interval
+  pcihi  = ciPct/100;
+  pcilow = 1-pcihi;
+
+  // Loop thru all possible outcomes (k), computing the CDF of the 
+  // binomial distribution, until the upper conf interval is reached.
+  nlow = -1;
+  k = 0;
+  psum = sc_ran_binomial_pdf(k,pval,csd->nreps);
+  while(psum < pcihi && k <= csd->nreps){
+    //printf("%3d %lf\n",k,psum);
+    if(nlow < 0 && psum > pcilow) nlow = k;
+    k++;
+    psum += sc_ran_binomial_pdf(k,pval,csd->nreps);
+  }
+  nhi = k;
+
+  // Compute the pvalues at the lower and upper confidence intervals
+  *pvalLow = (double)nlow/csd->nreps;
+  *pvalHi  = (double)nhi/csd->nreps;
+
+  //printf("csize=%lf  p=%lf  ci=%lf  nLow=%d pLow=%lf nHi=%d pHi=%lf\n",
+  //	 ClusterSize,pval,ciPct,nlow,*pvalLow,nhi,*pvalHi);
+
+  return(pval);
+}
+#else
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 			double ciPct, double *pvalLow, double *pvalHi)
 {
@@ -1558,6 +1607,7 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 
   return(pval);
 }
+#endif
 /*------------------------------------------------------------------------------
   CSDpvalMaxSig() - computes the emperical probability of getting a MaxSig 
   greater than the given value (taking into account the sign).

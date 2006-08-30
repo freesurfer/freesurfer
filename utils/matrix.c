@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.88 2006/08/29 16:40:57 dsjen Exp $
+// $Id: matrix.c,v 1.89 2006/08/30 20:55:45 czanner Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3205,9 +3205,30 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
 
   return(G);
 }
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_linalg.h>
 
+#if USE_SC_GSL_REPLACEMENT
+  #include <gsl_wrapper.h>
+#else
+  #include <gsl/gsl_matrix.h>
+  #include <gsl/gsl_linalg.h>
+#endif
+
+#if USE_SC_GSL_REPLACEMENT
+sc_matrix *
+MatrixToGSL(MATRIX *m, sc_matrix *gm)
+{
+	int  rows, cols, r, c ;
+
+  cols = m->cols ;
+  rows = m->rows ;
+	if (gm == NULL)
+		gm = sc_matrix_alloc(rows, cols) ;
+	for (r = 0 ; r < rows ; r++)
+		for (c = 0 ;c < cols ; c++)
+			sc_matrix_set(gm, r, c, *MATRIX_RELT(m, r+1, c+1)) ;
+	return(gm) ;
+}
+#else
 gsl_matrix *
 MatrixToGSL(MATRIX *m, gsl_matrix *gm)
 {
@@ -3222,7 +3243,24 @@ MatrixToGSL(MATRIX *m, gsl_matrix *gm)
 			gsl_matrix_set(gm, r, c, *MATRIX_RELT(m, r+1, c+1)) ;
 	return(gm) ;
 }
+#endif
 
+#if USE_SC_GSL_REPLACEMENT
+MATRIX *
+MatrixFromGSL(sc_matrix *gm, MATRIX *m)
+{
+	int  rows, cols, r, c ;
+
+  rows = gm->size1 ;
+  cols = gm->size2 ;
+	if (m == NULL)
+		m = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+	for (r = 0 ; r < rows ; r++)
+		for (c = 0 ;c < cols ; c++)
+			*MATRIX_RELT(m, r+1, c+1) = sc_matrix_get(gm, r, c) ;
+	return(m) ;
+}
+#else
 MATRIX *
 MatrixFromGSL(gsl_matrix *gm, MATRIX *m)
 {
@@ -3237,6 +3275,22 @@ MatrixFromGSL(gsl_matrix *gm, MATRIX *m)
 			*MATRIX_RELT(m, r+1, c+1) = gsl_matrix_get(gm, r, c) ;
 	return(m) ;
 }
+#endif
+
+#if USE_SC_GSL_REPLACEMENT
+VECTOR *
+VectorFromGSL(sc_vector *gv, VECTOR  *v)
+{
+	int  rows, r ;
+
+  rows = gv->size ;
+	if (v == NULL)
+		v = VectorAlloc(rows, MATRIX_REAL) ;
+	for (r = 0 ; r < rows ; r++)
+		VECTOR_ELT(v, r+1) = sc_vector_get(gv, r);
+	return(v) ;
+}
+#else
 VECTOR *
 VectorFromGSL(gsl_vector *gv, VECTOR  *v)
 {
@@ -3249,7 +3303,68 @@ VectorFromGSL(gsl_vector *gv, VECTOR  *v)
 		VECTOR_ELT(v, r+1) = gsl_vector_get(gv, r);
 	return(v) ;
 }
+#endif
 
+#if USE_SC_GSL_REPLACEMENT
+MATRIX *
+MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
+	gsl_matrix  *U, *V ;
+	gsl_vector  *work, *S ;
+	int     cols, rows ;
+	MATRIX  *m_U, *m_V, *mT, *m_Ur, *m_Vr, *m_Sr, *m_tmp, *m_S ;
+	VECTOR  *v_S ;
+
+  cols = m->cols ;
+  rows = m->rows ;
+	if (m->rows < m->cols)
+	{
+		mT = MatrixTranspose(m, NULL) ;
+		m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
+		MatrixFree(&mT) ;
+		mT = m_pseudo_inv ;
+		m_pseudo_inv = MatrixTranspose(mT, NULL) ;
+	}
+	else
+	{
+		int r,c ;
+
+		U = MatrixToGSL(m, NULL) ;
+		V = sc_matrix_alloc(cols, cols) ;
+		work = sc_vector_alloc(cols) ;
+		S = sc_vector_alloc(cols) ;
+		sc_linalg_SV_decomp(U, V, S, work) ;
+		m_U = MatrixFromGSL(U, NULL) ;
+		v_S = VectorFromGSL(S, NULL) ;
+		m_V = MatrixFromGSL(V, NULL) ;
+		sc_vector_free(work) ;
+		sc_vector_free(S) ;
+		sc_matrix_free(U) ;
+		sc_matrix_free(V) ;
+		for (r = 1 ; r <= v_S->rows ; r++)
+			if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
+				break ;
+		r-- ; // previous one was last non-zero
+		m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
+		m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
+		m_S = MatrixDiag(v_S, NULL) ;
+		m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
+		for (c = 1 ; c <= m_Sr->rows ; c++)
+			*MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
+		m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
+		m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
+		m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+		MatrixFree(&m_tmp) ;
+		MatrixFree(&m_Ur) ;
+		MatrixFree(&m_Sr) ;
+		MatrixFree(&m_S) ;
+		MatrixFree(&m_Vr) ;
+		VectorFree(&v_S) ;
+	 }
+
+	return(m_pseudo_inv) ;
+}
+#else
 MATRIX *
 MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 {
@@ -3308,6 +3423,7 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 
 	return(m_pseudo_inv) ;
 }
+#endif
 
 
 /*-----------------------------------------------------------------
