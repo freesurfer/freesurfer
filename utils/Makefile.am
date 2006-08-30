@@ -3,6 +3,7 @@
 #
 
 NrrdIO_dir = NrrdIO
+cephes_dir = cephes
 
 AM_CPPFLAGS=$(X_CFLAGS) \
 	-I$(top_srcdir)/include \
@@ -61,8 +62,21 @@ am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
 	$(NrrdIO_dir)/formatPNG.o \
 	$(NrrdIO_dir)/formatPNM.o \
 	$(NrrdIO_dir)/formatText.o \
-	$(NrrdIO_dir)/formatVTK.o
-
+	$(NrrdIO_dir)/formatVTK.o \
+	$(cephes_dir)/bdtr.o \
+	$(cephes_dir)/chdtr.o \
+	$(cephes_dir)/const.o \
+	$(cephes_dir)/fdtr.o \
+	$(cephes_dir)/gamma.o \
+	$(cephes_dir)/igam.o \
+	$(cephes_dir)/igami.o \
+	$(cephes_dir)/incbet.o \
+	$(cephes_dir)/incbi.o \
+	$(cephes_dir)/mtherr.o \
+	$(cephes_dir)/ndtr.o \
+	$(cephes_dir)/ndtri.o \
+	$(cephes_dir)/polevl.o \
+	$(cephes_dir)/stdtr.o 
 
 # mrisurf must be compiled w/o optimization enabled, in order 
 # to mask a segfault appearing on the Mac when running mris_fix_topology
