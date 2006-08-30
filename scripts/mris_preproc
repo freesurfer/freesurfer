@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.30 2006/08/30 03:07:36 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.31 2006/08/30 03:20:36 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -145,7 +145,11 @@ foreach subj ($subjlist)
 
   if($CacheIn) then
     # Input has been cached
-    set tval = $subjpath/surf/$hemi.$meas.mgh
+    set tval = $subjpath/surf/$hemi.$CacheOutFile.mgh)
+    if(! -e $tval) then
+      echo "ERROR: cannot find cahed file $tval"
+      exit 1;
+    endif
   else
     # Input has NOT been cached, create
     if($srcvol) then
