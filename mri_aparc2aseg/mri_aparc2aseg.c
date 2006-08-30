@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.9 2006/07/20 21:54:13 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.10 2006/08/30 21:35:34 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -50,6 +50,7 @@ float dlhw, dlhp, drhw, drhp;
 float dminctx = 5.0;
 int LabelWM=0;
 int LabelHypoAsWM=0;
+int RipUnknown = 0;
 
 char tmpstr[2000];
 char annotfile[1000];
@@ -60,7 +61,7 @@ float hashres = 16;
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs, err, asegid, c, r, s, nctx, annot;
+  int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
@@ -195,6 +196,32 @@ int main(int argc, char **argv)
       printf("ERROR: loading filled %s\n",tmpstr);
       exit(1);
     }
+  }
+
+  if(RipUnknown){
+    printf("Ripping vertices labeled as unkown\n");
+    nripped = 0;
+    for(vtxno = 0; vtxno < lhwhite->nvertices; vtxno++){
+      annot = lhwhite->vertices[vtxno].annotation;
+      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+      if(annotid == 0){
+	lhwhite->vertices[vtxno].ripflag = 1;
+	lhpial->vertices[vtxno].ripflag = 1;
+	nripped++;
+      }
+    }
+    printf("Ripped %d vertices from left hemi\n",nripped);
+    nripped = 0;
+    for(vtxno = 0; vtxno < rhwhite->nvertices; vtxno++){
+      annot = rhwhite->vertices[vtxno].annotation;
+      CTABfindAnnotation(rhwhite->ct, annot, &annotid);
+      if(annotid == 0){
+	rhwhite->vertices[vtxno].ripflag = 1;
+	rhpial->vertices[vtxno].ripflag = 1;
+	nripped++;
+      }
+    }
+    printf("Ripped %d vertices from right hemi\n",nripped);
   }
 
   /* ------ Load ASeg ------ */
@@ -445,6 +472,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
+    else if (!strcasecmp(option, "--rip-unknown"))  RipUnknown = 1;
     else if (!strcmp(option, "--sd")){
       if(nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
@@ -625,6 +653,7 @@ static void dump_options(FILE *fp)
     printf("labeling wm\n");
     if(LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
   }
+  fprintf(fp,"RipUnknown %d\n",RipUnknown);
   return;
 }
 /*---------------------------------------------------------------*/
