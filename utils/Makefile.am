@@ -100,7 +100,7 @@ mrisurf.o: mrisurf.c
 	$(CCDEPMODE) $(depcomp) \
 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
-SUBDIRS=$(NrrdIO_dir) test
+SUBDIRS=$(NrrdIO_dir) $(cephes_dir) test
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
