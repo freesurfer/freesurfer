@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include "volcluster.h"
-#include "gsl/gsl_randist.h"
+
+#if USE_SC_GSL_REPLACEMENT
+  #include <gsl_wrapper.h>
+#else
+  #include "gsl/gsl_randist.h"
+#endif
 
 char *Progname = "mri_cht2p";
 int n;
@@ -14,7 +19,11 @@ int main(int argc, char **argv)
 {
   double p;
 
+#if USE_SC_GSL_REPLACEMENT
+  p = sc_ran_binomial_pdf (5, .7, 20) ;
+#else
   p = gsl_ran_binomial_pdf (5, .7, 20) ;
+#endif
   printf("p = %lf\n",p);
   exit(1);
 

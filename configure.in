@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.204 2006/08/14 21:34:19 nicks Exp $"
+# "$Id: configure.in,v 1.205 2006/08/30 21:12:52 czanner Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -450,7 +450,7 @@ AC_SUBST(pkgs_libraries)
 
 
 AC_MSG_NOTICE([Checking directories for MNI, BLT, Tiff, \
-Jpeg, Qt, GSL, CppUnit, and VXL])
+Jpeg, Qt, CppUnit, and VXL])
 
 #############################################################
 # MNI
@@ -716,7 +716,6 @@ fi
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
 
-
 #####################################################
 # OpenGL
 #####################################################
@@ -980,9 +979,9 @@ ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
-$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
+$MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
-LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $GSL_LIBS $TCL_LIBS \
+LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
 $GL_LIBS $GLU_LIBS $GLUT_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
@@ -1013,7 +1012,7 @@ Set LDFLAGS or --with-mni-dir.])] )
 # GNU scientific library
 AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
   [AC_MSG_ERROR([FATAL: gsl lib not found. \
-Please install gsl header files and libs.])] )
+#Please install gsl header files and libs.])] )
 
 ################## Tcl
 # check tcl8.4
@@ -1127,12 +1126,12 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS \
-        $CPPUNIT_CFLAGS $VXL_CFLAGS"
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS $CPPUNIT_LIBS \
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS \
+        $CPPUNIT_CFLAGS $VXL_CFLAGS "
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS \
         $VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
-LIBS=" -lgsl -lgslcblas -lvnl_algo -lvnl -lnetlib $LIBS"
+LIBS="-lvnl_algo -lvnl -lvcl -lgsl -lgslcblas -lnetlib $LIBS"
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
@@ -1497,6 +1496,7 @@ AC_OUTPUT([Makefile
                  tksurfer/Makefile
                  tridec/Makefile
                  unix/Makefile
+		 utils/cephes/Makefile
                  utils/Makefile
                  utils/NrrdIO/Makefile
                  utils/test/Makefile
