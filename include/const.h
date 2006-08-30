@@ -16,9 +16,6 @@
 #define False 0
 #endif
 
-#define USE_SC_GSL_REPLACEMENT 1
-
-
 #define FSMALL          0.00001f
 #define MAX_LINE_LEN    4096
 #define UNDEFINED       255
