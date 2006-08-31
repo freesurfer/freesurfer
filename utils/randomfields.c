@@ -6,9 +6,9 @@
 #include <float.h>
 #if USE_SC_GSL_REPLACEMENT
 #else
-  #include <gsl/gsl_cdf.h>
-  #include <gsl/gsl_rng.h>
-  #include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 #endif
 #include "randomfields.h"
 #include "utils.h"
@@ -20,8 +20,8 @@
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
-const char *RFSrcVersion(void) { 
-  return("$Id: randomfields.c,v 1.4 2006/08/30 20:55:08 czanner Exp $"); 
+const char *RFSrcVersion(void) {
+  return("$Id: randomfields.c,v 1.5 2006/08/31 00:21:26 nicks Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -55,16 +55,16 @@ const char *RFcode2Name(RFS *rfs)
 #if USE_SC_GSL_REPLACEMENT
 RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype)
 {
-  RFS *rfs;  
+  RFS *rfs;
   const sc_rng_type *sc_rng_intern_type = &intern_rng_type;
- 
+
   rfs = (RFS*)calloc(sizeof(RFS),1);
- 
+
   /* Sc: only one type of rng is supported at this moment (ranlux389) */
   rfs->rngtype = sc_rng_intern_type;
- 
+
   rfs->rng = sc_rng_alloc(rfs->rngtype);
- 
+
   RFspecSetSeed(rfs,seed);
   return(rfs);
 }
@@ -83,6 +83,7 @@ RFS *RFspecInit(unsigned long int seed, gsl_rng_type *rngtype)
   return(rfs);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFspecFree(RFS **prfs)
@@ -103,6 +104,7 @@ int RFspecFree(RFS **prfs)
   return(0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFspecSetSeed(RFS *rfs,unsigned long int seed)
@@ -121,6 +123,7 @@ int RFspecSetSeed(RFS *rfs,unsigned long int seed)
   return(0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 int RFprint(FILE *fp, RFS *rfs)
 {
@@ -135,6 +138,7 @@ int RFprint(FILE *fp, RFS *rfs)
   fprintf(fp,"seed   %ld\n",rfs->seed);
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 int RFnparams(RFS *rfs)
 {
@@ -150,6 +154,7 @@ int RFnparams(RFS *rfs)
   rfs->nparams = nparams;
   return(nparams);
 }
+
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddev(RFS *rfs)
 {
@@ -166,6 +171,7 @@ int RFexpectedMeanStddev(RFS *rfs)
   printf("ERROR: RFexpectedMeanStddev(): field type %s unknown\n",rfs->name);
   return(1);
 }
+
 /*-------------------------------------------------------------------*/
 int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
 {
@@ -177,19 +183,20 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = MRIgetVoxVal(binmask,c,r,s,0);
-	  if(m < 0.5) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = RFdrawVal(rfs);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = MRIgetVoxVal(binmask,c,r,s,0);
+          if(m < 0.5) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = RFdrawVal(rfs);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
 {
@@ -202,20 +209,21 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = MRIgetVoxVal(rf,c,r,s,f);
-	  pval = RFstat2PVal(rfs,v);
-	  MRIsetVoxVal(p,c,r,s,f,pval);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = MRIgetVoxVal(rf,c,r,s,f);
+          pval = RFstat2PVal(rfs,v);
+          MRIsetVoxVal(p,c,r,s,f,pval);
+        }
       }
     }
   }
   return(p);
 }
+
 /*-------------------------------------------------------------------*/
 MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf)
 {
@@ -228,20 +236,21 @@ MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  pval = MRIgetVoxVal(p,c,r,s,f);
-	  v = RFp2StatVal(rfs,pval);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          pval = MRIgetVoxVal(p,c,r,s,f);
+          v = RFp2StatVal(rfs,pval);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
   return(rf);
 }
+
 /*--------------------------------------------------------------------------*/
 MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout)
 {
@@ -263,7 +272,7 @@ MRI *RFrescale(MRI *rf, RFS *rfs, MRI *binmask, MRI *rfout)
   double v, gmean, gstddev, gmax;
 
   if(RFname2Code(rfs) == -1) return(NULL);
-  RFexpectedMeanStddev(rfs); // expected 
+  RFexpectedMeanStddev(rfs); // expected
   RFglobalStats(rf, binmask, &gmean, &gstddev, &gmax); //actual
 
   rfout = MRIclone(rf,rfout);
@@ -271,24 +280,24 @@ MRI *RFrescale(MRI *rf, RFS *rfs, MRI *binmask, MRI *rfout)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = MRIgetVoxVal(rf,c,r,s,f);
-	  v = (v - gmean)*(rfs->stddev/gstddev) + rfs->mean;
-	  MRIsetVoxVal(rfout,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = MRIgetVoxVal(rf,c,r,s,f);
+          v = (v - gmean)*(rfs->stddev/gstddev) + rfs->mean;
+          MRIsetVoxVal(rfout,c,r,s,f,v);
+        }
       }
     }
   }
   return(rfout);
 }
 
-
 /*-------------------------------------------------------------------*/
-int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double *max)
+int RFglobalStats(MRI *rf, MRI *binmask,
+                  double *gmean, double *gstddev, double *max)
 {
   int c,r,s,f,m;
   double v;
@@ -302,17 +311,17 @@ int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double 
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = MRIgetVoxVal(rf,c,r,s,f);
-	  sum += v;
-	  sumsq += (v*v);
-	  nv++;
-	  if(*max < v) *max = v;
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = MRIgetVoxVal(rf,c,r,s,f);
+          sum += v;
+          sumsq += (v*v);
+          nv++;
+          if(*max < v) *max = v;
+        }
       }
     }
   }
@@ -355,6 +364,7 @@ double RFdrawVal(RFS *rfs)
   }
   printf("ERROR: RFdrawVal(): field type %s unknown\n",rfs->name);
   return(10000000000.0);
+}
 #else
 double RFdrawVal(RFS *rfs)
 {
@@ -389,6 +399,7 @@ double RFdrawVal(RFS *rfs)
   return(10000000000.0);
 }
 #endif
+
 /*-------------------------------------------------------------------
   RFtestVal() - returns the probability of getting a value of v or
   greater from a random draw from the given distribution. Note:
@@ -461,6 +472,7 @@ double RFstat2PVal(RFS *rfs, double stat)
   return(10000000000.0);
 }
 #endif
+
 /*-------------------------------------------------------------------
   RFp2StatVal() -
   -------------------------------------------------------------------*/
@@ -535,6 +547,7 @@ double RFp2StatVal(RFS *rfs, double p)
   return(10000000000.0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevUniform(RFS *rfs)
@@ -547,6 +560,7 @@ int RFexpectedMeanStddevUniform(RFS *rfs)
   rfs->stddev = sqrt((d*d)/12.0);
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevGaussian(RFS *rfs)
@@ -555,6 +569,7 @@ int RFexpectedMeanStddevGaussian(RFS *rfs)
   rfs->stddev  = rfs->params[1];
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevt(RFS *rfs)
@@ -565,6 +580,7 @@ int RFexpectedMeanStddevt(RFS *rfs)
   rfs->stddev  = sqrt(dof/(dof-2));
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevF(RFS *rfs)
@@ -573,9 +589,11 @@ int RFexpectedMeanStddevF(RFS *rfs)
   ndof = rfs->params[0]; // numerator dof (rows in C)
   ddof = rfs->params[1]; // dof
   rfs->mean = ddof/(ddof-2);
-  rfs->stddev  = 2*(ddof*ddof)*(ndof+ddof-2)/(ndof*((ddof-2)*(ddof-2))*(ddof-4));
+  rfs->stddev  = 2*(ddof*ddof)*(ndof+ddof-2)/
+    (ndof*((ddof-2)*(ddof-2))*(ddof-4));
   return(0);
 }
+
 /*-------------------------------------------------------------------*/
 int RFexpectedMeanStddevChi2(RFS *rfs)
 {
@@ -600,6 +618,7 @@ double RFar1ToGStd(double ar1, double d)
   gstd = d/sqrt(-4*log(ar1));
   return(gstd);
 }
+
 /*---------------------------------------------------------------------
   RFar1ToFWHM() - converts AR1 value to equivalent FWHM.  Ie, if white
   Gaussian noise where filtered with a gaussian kernel with FWHM, it
@@ -635,6 +654,7 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
   printf("ERROR: RFsynth(): field type %s unknown\n",rfs->name);
   return(1);
 }
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
@@ -648,14 +668,14 @@ int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = sc_ran_flat(rfs->rng,min,max);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = sc_ran_flat(rfs->rng,min,max);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -673,14 +693,14 @@ int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = gsl_ran_flat(rfs->rng,min,max);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = gsl_ran_flat(rfs->rng,min,max);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -701,14 +721,14 @@ int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = sc_ran_gaussian(rfs->rng,std) + mean;
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = sc_ran_gaussian(rfs->rng,std) + mean;
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -726,20 +746,21 @@ int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = gsl_ran_gaussian(rfs->rng,std) + mean;
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = gsl_ran_gaussian(rfs->rng,std) + mean;
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
   return(0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
@@ -752,14 +773,14 @@ int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = sc_ran_tdist(rfs->rng,dof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = sc_ran_tdist(rfs->rng,dof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -776,20 +797,21 @@ int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = gsl_ran_tdist(rfs->rng,dof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = gsl_ran_tdist(rfs->rng,dof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
   return(0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
@@ -803,14 +825,14 @@ int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = sc_ran_fdist(rfs->rng,ndof,ddof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = sc_ran_fdist(rfs->rng,ndof,ddof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -828,20 +850,21 @@ int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = gsl_ran_fdist(rfs->rng,ndof,ddof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = gsl_ran_fdist(rfs->rng,ndof,ddof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
   return(0);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
@@ -857,15 +880,15 @@ RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = MRIgetVoxVal(rf,c,r,s,f);
-	  pval = sc_cdf_gaussian_Q(v-mean,std);
-	  MRIsetVoxVal(p,c,r,s,f,pval);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = MRIgetVoxVal(rf,c,r,s,f);
+          pval = sc_cdf_gaussian_Q(v-mean,std);
+          MRIsetVoxVal(p,c,r,s,f,pval);
+        }
       }
     }
   }
@@ -885,21 +908,22 @@ RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = MRIgetVoxVal(rf,c,r,s,f);
-	  pval = gsl_cdf_gaussian_Q(v-mean,std);
-	  MRIsetVoxVal(p,c,r,s,f,pval);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = MRIgetVoxVal(rf,c,r,s,f);
+          pval = gsl_cdf_gaussian_Q(v-mean,std);
+          MRIsetVoxVal(p,c,r,s,f,pval);
+        }
       }
     }
   }
   return(p);
 }
 #endif
+
 /*-------------------------------------------------------------------*/
 #if USE_SC_GSL_REPLACEMENT
 int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
@@ -912,14 +936,14 @@ int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = sc_ran_tdist(rfs->rng,dof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = sc_ran_tdist(rfs->rng,dof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }
@@ -936,14 +960,14 @@ int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
   for(c=0; c < rf->width; c++){
     for(r=0; r < rf->height; r++){
       for(s=0; s < rf->depth; s++){
-	if(binmask != NULL){
-	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-	  if(!m) continue;
-	}
-	for(f=0; f < rf->nframes; f++){
-	  v = gsl_ran_tdist(rfs->rng,dof);
-	  MRIsetVoxVal(rf,c,r,s,f,v);
-	}
+        if(binmask != NULL){
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if(!m) continue;
+        }
+        for(f=0; f < rf->nframes; f++){
+          v = gsl_ran_tdist(rfs->rng,dof);
+          MRIsetVoxVal(rf,c,r,s,f,v);
+        }
       }
     }
   }

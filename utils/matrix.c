@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.89 2006/08/30 20:55:45 czanner Exp $
+// $Id: matrix.c,v 1.90 2006/08/31 00:21:26 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3309,8 +3309,8 @@ VectorFromGSL(gsl_vector *gv, VECTOR  *v)
 MATRIX *
 MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 {
-	gsl_matrix  *U, *V ;
-	gsl_vector  *work, *S ;
+	sc_matrix  *U, *V ;
+	sc_vector  *work, *S ;
 	int     cols, rows ;
 	MATRIX  *m_U, *m_V, *mT, *m_Ur, *m_Vr, *m_Sr, *m_tmp, *m_S ;
 	VECTOR  *v_S ;
