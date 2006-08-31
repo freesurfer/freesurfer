@@ -1,4 +1,4 @@
-// $Id: mris_seg2annot.c,v 1.5 2006/06/05 19:11:41 greve Exp $
+// $Id: mris_seg2annot.c,v 1.6 2006/08/31 00:50:35 nicks Exp $
 
 /*
   BEGINHELP
@@ -72,7 +72,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -89,7 +88,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.5 2006/06/05 19:11:41 greve Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.6 2006/08/31 00:50:35 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
