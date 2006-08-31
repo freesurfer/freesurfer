@@ -1656,6 +1656,7 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
     bin = &(bucket->bins[i]);
     vtxno = bin->fno;
     vdst = &mris->vertices[vtxno] ;
+    if(vdst->ripflag) continue;
     dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
     if (dist < *min_dist) {
       vtxno_min = vtxno;
