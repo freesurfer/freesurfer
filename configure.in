@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.208 2006/08/30 23:31:34 nicks Exp $"
+# "$Id: configure.in,v 1.209 2006/08/31 00:22:12 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -597,6 +597,7 @@ if test ! "$ac_gsl_includes" = "NO"; then
   GSL_CFLAGS=-I$ac_gsl_includes
 else
   AC_MSG_RESULT(GSL will not be used)
+  GSL_CFLAGS=-DUSE_SC_GSL_REPLACEMENT=1
 fi
 if test ! "$ac_gsl_libraries" = "NO"; then
   GSL_LIBS=-L$ac_gsl_libraries
