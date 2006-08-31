@@ -1,4 +1,4 @@
-// $Id: mri_binarize.c,v 1.5 2006/05/31 23:17:31 greve Exp $
+// $Id: mri_binarize.c,v 1.6 2006/08/31 00:32:47 nicks Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -102,7 +101,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.5 2006/05/31 23:17:31 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.6 2006/08/31 00:32:47 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
