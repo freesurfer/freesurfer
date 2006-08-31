@@ -1,4 +1,4 @@
-// $Id: mris_label2annot.c,v 1.9 2006/08/08 17:26:31 greve Exp $
+// $Id: mris_label2annot.c,v 1.10 2006/08/31 00:47:48 nicks Exp $
 
 /*
   BEGINHELP
@@ -109,7 +109,6 @@ double round(double x);
 #include "fmriutils.h"
 #include "cmdargs.h"
 #include "fsglm.h"
-#include "gsl/gsl_cdf.h"
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
@@ -127,7 +126,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.9 2006/08/08 17:26:31 greve Exp $";
+static char vcid[] = "$Id: mris_label2annot.c,v 1.10 2006/08/31 00:47:48 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
