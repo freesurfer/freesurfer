@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.59 2006/08/28 20:35:35 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.60 2006/09/01 21:20:25 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.59 2006/08/28 20:35:35 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.60 2006/09/01 21:20:25 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -418,32 +418,6 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
 endif
 if( $output && $?FS_TCL_LIB_DIR ) then
     echo "FS_TCL_LIB_DIR  $FS_TCL_LIB_DIR"
-endif
-
-
-### -------------- VTK ------------- ###
-# NJS: VTK is no longer included in the lib search path,
-# as having too many files to search slows the operation of any command.
-#if ( -e $FREESURFER_HOME/lib/vtk) then
-#    setenv VTK_DIR    $FREESURFER_HOME/lib/vtk
-#else if ( -e /usr/pubsw/packages/vtk/current) then
-#    setenv VTK_DIR    /usr/pubsw/packages/vtk/current
-#endif
-if ( $?VTK_DIR ) then
-    setenv PATH     $VTK_DIR/bin:$PATH
-    if (! $?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH  $VTK_DIR/lib
-    else
-        setenv LD_LIBRARY_PATH  "$VTK_DIR/lib":"$LD_LIBRARY_PATH"
-    endif
-    if (! $?DYLD_LIBRARY_PATH) then
-        setenv DYLD_LIBRARY_PATH  $VTK_DIR/lib
-    else
-        setenv DYLD_LIBRARY_PATH  "$VTK_DIR/lib":"$DYLD_LIBRARY_PATH"
-    endif
-endif
-if( $output && $?VTK_DIR ) then
-    echo "VTK_DIR         $VTK_DIR"
 endif
 
 
