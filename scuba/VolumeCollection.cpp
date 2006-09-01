@@ -2119,6 +2119,15 @@ VolumeCollection::CalcWorldToIndexTransform () {
     Transform44 tmp = mDataToIndexTransform * worldToData;
     mWorldToIndexTransform = tmp;
 
+#if 0
+    cerr << "mDataToWorldTransform-1" << endl
+	 << mDataToWorldTransform->Inverse().GetMainMatrix() << endl
+	 << "mDataToIndex" << endl
+	 << mDataToIndexTransform.GetMainMatrix() << endl
+	 << "mWorldToIndexTransform" << endl
+	 << mWorldToIndexTransform.GetMainMatrix() << endl;
+#endif
+
   } else {
 
     Transform44 center;
