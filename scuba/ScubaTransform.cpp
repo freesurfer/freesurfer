@@ -65,9 +65,12 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
   // SetTransformLabel <transformID> <label>
   if( 0 == strcmp( isCommand, "SetTransformLabel" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
@@ -80,9 +83,12 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
   // GetTransformLabel <transformID>
   if( 0 == strcmp( isCommand, "GetTransformLabel" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
@@ -96,9 +102,12 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
   // SetTransformValues <transformID> <listOfValues>
   if( 0 == strcmp( isCommand, "SetTransformValues" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
@@ -122,9 +131,12 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
   // GetTransformValues <transformID>
   if( 0 == strcmp( isCommand, "GetTransformValues" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
@@ -145,9 +157,12 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
   // LoadTransformFromLTAFile <transformID> <fileName>
   if( 0 == strcmp( isCommand, "LoadTransformFromLTAFile" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
@@ -168,6 +183,23 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     }
   }
   
+  // InvertTransform <transformID>
+  if( 0 == strcmp( isCommand, "InvertTransform" ) ) {
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      Transform44 inverse = this->Inverse();
+      SetMainTransform( inverse );
+    }
+  }
+
   // TreatTransformAsRegistration <transformID> <sourceVolumeID> <destVolumeID>
   if( 0 == strcmp( isCommand, "TreatTransformAsRegistration" ) ) {
 
