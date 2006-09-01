@@ -4,7 +4,6 @@
 # licence files should be copied over to the install directory
 foodir=$(prefix)/docs
 foo_DATA=license.freesurfer \
-	citation.minc \
 	copywrite.minc \
 	license.minc \
 	license.fsl \
