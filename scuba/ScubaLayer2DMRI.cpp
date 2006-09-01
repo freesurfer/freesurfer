@@ -358,14 +358,17 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
     }
   }
     
-  // Calc one tenth of the value range above 0.
+  // Calc one tenth of the abs range.
   float oneTenth;
-  oneTenth = mVolume->GetMRIMaxValue() / 10.0;
+  float highestAbsValue;
+  highestAbsValue = 
+    max( fabs(mVolume->GetMRIMinValue()), fabs(mVolume->GetMRIMaxValue()) );
+  oneTenth = highestAbsValue / 10.0;
 
   // Min heat goes to 1/10 above 0, max goes to 1/10 below the
-  // max, and mid is in the middle.
-  SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
-  SetHeatScaleMidThreshold( mVolume->GetMRIMaxValue() / 2.0 );
+  // highestAbsValue, and mid is in the middle.
+  SetHeatScaleMaxThreshold( highestAbsValue - oneTenth );
+  SetHeatScaleMidThreshold( highestAbsValue / 2.0 );
   SetHeatScaleMinThreshold( oneTenth );
 
   SetHeatScaleOffset( 0 );
