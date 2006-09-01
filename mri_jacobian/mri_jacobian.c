@@ -26,10 +26,14 @@ static float sigma = 0 ;
 static int write_areas = 0 ;
 static int init = 1 ;
 static int atlas = 0 ;
+static int zero_mean = 0 ;
+static LTA *lta = NULL ;
 
 static void usage_exit(int code) ;
 static int find_debug_node(GCA_MORPH *gcam, int origx, int origy, int origz) ;
 static int init_gcam_areas(GCA_MORPH *gcam) ;
+static int 	mask_invalid(GCA_MORPH *gcam,  MRI *mri) ;
+
 int
 main(int argc, char *argv[])
 {
@@ -41,7 +45,7 @@ main(int argc, char *argv[])
 	MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.2 2006/08/08 13:12:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.3 2006/09/01 18:49:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -68,25 +72,40 @@ main(int argc, char *argv[])
 	gcam = GCAMread(argv[1]) ;
 	if (gcam == NULL)
 		ErrorExit(ERROR_BADPARM, "%s: could not read input morph %s\n", Progname,argv[1]);
-	if (Gx >= 0)
+	if (Gx >= 0 && atlas == 0)
 		find_debug_node(gcam, Gx, Gy, Gz) ;
 
-	if (init)
-		init_gcam_areas(gcam) ;
 	mri = MRIread(argv[2]) ;
 	if (gcam == NULL)
 		ErrorExit(ERROR_BADPARM, "%s: could not read template volume %s\n", Progname,argv[2]);
 
+	GCAMrasToVox(gcam, mri) ;
+	if (init)
+		init_gcam_areas(gcam) ;
 	if (atlas)
 	{
 		mri_area = GCAMwriteMRI(gcam, NULL, GCAM_AREA);
 		mri_orig_area = GCAMwriteMRI(gcam, NULL, GCAM_ORIG_AREA);
+		
 	}
 	else
 	{
 		mri_area = GCAMmorphFieldFromAtlas(gcam, mri, GCAM_AREA, 0, 0);
 		mri_orig_area = GCAMmorphFieldFromAtlas(gcam, mri, GCAM_ORIG_AREA, 0, 0);
 	}
+	if (Gx > 0)
+		printf("area = %2.3f, orig = %2.3f\n", 
+					 MRIgetVoxVal(mri_area, Gx, Gy, Gz,0),MRIgetVoxVal(mri_orig_area,Gx,Gy,Gz,0)) ;
+	if (lta)
+	{
+		double det ;
+		if  (lta->type == LINEAR_RAS_TO_RAS)
+			LTArasToVoxelXform(lta, mri, mri) ;
+		det = MatrixDeterminant(lta->xforms[0].m_L) ;
+		printf("correcting transform with det=%2.3f\n", det) ;
+		MRIscalarMul(mri_orig_area, mri_orig_area, 1/det) ;
+	}
+
 	if (FZERO(sigma) == 0)
 	{
 		MRI *mri_kernel, *mri_smooth ;
@@ -98,9 +117,22 @@ main(int argc, char *argv[])
 
 		MRIfree(&mri_kernel) ; 
 	}
-	mri_jacobian = MRIdivide(mri_area, mri_orig_area, mri_jacobian) ;
+	if (Gx > 0)
+		printf("after smoothing area = %2.3f, orig = %2.3f\n", 
+					 MRIgetVoxVal(mri_area, Gx, Gy, Gz,0),MRIgetVoxVal(mri_orig_area,Gx,Gy,Gz,0)) ;
+	mri_jacobian = MRIdivide(mri_area, mri_orig_area, NULL) ;
+	if (Gx > 0)
+		printf("jacobian = %2.3f\n", MRIgetVoxVal(mri_jacobian, Gx, Gy, Gz,0)) ;
+	if (atlas)
+		mask_invalid(gcam, mri_jacobian) ;
 	if (use_log)
+	{
 		MRIlog10(mri_jacobian, mri_jacobian, 0) ;
+		if (zero_mean)
+			MRIzeroMean(mri_jacobian, mri_jacobian) ;
+		if (Gx > 0)
+			printf("log jacobian = %2.3f\n", MRIgetVoxVal(mri_jacobian, Gx, Gy, Gz,0)) ;
+	}
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_jacobian, out_fname) ;
   MRIfree(&mri_jacobian) ;
@@ -149,6 +181,14 @@ get_option(int argc, char *argv[])
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
+	else if (!stricmp(option, "remove"))
+	{
+		lta = LTAread(argv[2]) ;
+		if (lta == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s\n", Progname, argv[2]) ;
+		printf("removing determinant of transform %s\n", argv[2]) ;
+		nargs = 1 ;
+	}
   else switch (toupper(*option))
   {
 	case 'A':
@@ -167,6 +207,11 @@ get_option(int argc, char *argv[])
 		sigma = atof(argv[2]) ;
 		printf("smoothing jacobian volume with sigma=%2.2f\n", sigma) ;
 		nargs = 1 ;
+		break ;
+	case 'Z':
+		zero_mean = 1 ;
+		use_log = 1 ;
+		printf("making log jacobian zero mean\n") ;
 		break ;
   case '?':
   case 'U':
@@ -245,3 +290,23 @@ init_gcam_areas(GCA_MORPH *gcam)
 	return(NO_ERROR) ;
 }
 
+static int
+mask_invalid(GCA_MORPH *gcam,  MRI *mri)
+{
+	int            x, y, z ;
+	GCA_MORPH_NODE *gcamn ;
+
+	for (x = 0 ; x < gcam->width ; x++)
+	{
+		for (y = 0 ; y < gcam->height ; y++)
+		{	
+			for (z = 0 ; z < gcam->depth ; z++)
+			{
+				gcamn = &gcam->nodes[x][y][z] ;
+				if (gcamn->invalid || gcamn->area <= 0)
+					MRIsetVoxVal(mri, x, y, z, 0, 1) ;
+			}
+		}
+	}
+	return(NO_ERROR) ;
+}
