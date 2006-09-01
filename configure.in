@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.209 2006/08/31 00:22:12 nicks Exp $"
+# "$Id: configure.in,v 1.210 2006/09/01 19:29:18 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1018,6 +1018,13 @@ Set LDFLAGS or --with-mni-dir.])] )
 AC_CHECK_LIB([volume_io], [transform_point],[],
   [AC_MSG_ERROR([FATAL: volume_io lib not found. \
 Set LDFLAGS or --with-mni-dir.])] )
+# VXL check
+AC_CHECK_LIB([vnl], [main],[],
+  [AC_MSG_ERROR([FATAL: vnl lib not found. \
+Set LDFLAGS or --with-vxl-dir.])] )
+AC_CHECK_LIB([vnl_algo], [main],[],
+  [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
+Set LDFLAGS or --with-vxl-dir.])] )
 # if using GNU scientific library
 if test ! "$ac_gsl_libraries" = "NO"; then
    AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
