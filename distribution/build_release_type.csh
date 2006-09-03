@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.65 2006/08/17 16:19:33 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.66 2006/09/03 22:15:10 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -87,8 +87,9 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   endif
 else
   # dev build uses most current
+  # note: GSL is no longer used, so its not defined
   set MNIDIR=/usr/pubsw/packages/mni/current
-  set GSLDIR=/usr/pubsw/packages/gsl/current
+  unsetenv GSLDIR
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
@@ -341,7 +342,9 @@ set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
 set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
-set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
+if ($?GSLDIR) then
+    set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
+endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
@@ -492,7 +495,9 @@ symlinks:
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
   set cmd2=(ln -s ${FSLDIR} ${DEST_DIR}/fsl)
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
-  set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
+  if ($?GSLDIR) then
+    set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
+  endif
   set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
   set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
   set cmd7=(ln -s ${VXLDIR} ${DEST_DIR}/lib/vxl)
