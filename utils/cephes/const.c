@@ -55,8 +55,8 @@
 /*                                                      const.c */
 
 /*
-Cephes Math Library Release 2.3:  March, 1995
-Copyright 1984, 1995 by Stephen L. Moshier
+  Cephes Math Library Release 2.3:  March, 1995
+  Copyright 1984, 1995 by Stephen L. Moshier
 */
 
 #include "mconf.h"
@@ -106,22 +106,22 @@ double NEGZERO = 0.0;
 #endif
 
 #ifdef IBMPC
-                       /* 2**-53 =  1.11022302462515654042E-16 */
+/* 2**-53 =  1.11022302462515654042E-16 */
 unsigned short MACHEP[4] = {0x0000,0x0000,0x0000,0x3ca0};
 unsigned short UFLOWTHRESH[4] = {0x0000,0x0000,0x0000,0x0010};
 #ifdef DENORMAL
-                       /* log(MAXNUM) =  7.09782712893383996732224E2 */
+/* log(MAXNUM) =  7.09782712893383996732224E2 */
 unsigned short MAXLOG[4] = {0x39ef,0xfefa,0x2e42,0x4086};
-                       /* log(2**-1074) = - -7.44440071921381262314E2 */
+/* log(2**-1074) = - -7.44440071921381262314E2 */
 /*unsigned short MINLOG[4] = {0x71c3,0x446d,0x4385,0xc087};*/
 unsigned short MINLOG[4] = {0x3052,0xd52d,0x4910,0xc087};
 #else
-                       /* log(2**1022) =   7.08396418532264106224E2 */
+/* log(2**1022) =   7.08396418532264106224E2 */
 unsigned short MAXLOG[4] = {0xbcd2,0xdd7a,0x232b,0x4086};
-                       /* log(2**-1022) = - 7.08396418532264106224E2 */
+/* log(2**-1022) = - 7.08396418532264106224E2 */
 unsigned short MINLOG[4] = {0xbcd2,0xdd7a,0x232b,0xc086};
 #endif
-                       /* 2**1024*(1-MACHEP) =  1.7976931348623158E308 */
+/* 2**1024*(1-MACHEP) =  1.7976931348623158E308 */
 unsigned short MAXNUM[4] = {0xffff,0xffff,0xffff,0x7fef};
 unsigned short PI[4]     = {0x2d18,0x5444,0x21fb,0x4009};
 unsigned short PIO2[4]   = {0x2d18,0x5444,0x21fb,0x3ff9};
@@ -152,22 +152,22 @@ unsigned short NEGZERO[4] = {0x0000,0x0000,0x0000,0x0000};
 #endif
 
 #ifdef MIEEE
-                       /* 2**-53 =  1.11022302462515654042E-16 */
+/* 2**-53 =  1.11022302462515654042E-16 */
 unsigned short MACHEP[4] = {0x3ca0,0x0000,0x0000,0x0000};
 unsigned short UFLOWTHRESH[4] = {0x0010,0x0000,0x0000,0x0000};
 #ifdef DENORMAL
-                       /* log(2**1024) =   7.09782712893383996843E2 */
+/* log(2**1024) =   7.09782712893383996843E2 */
 unsigned short MAXLOG[4] = {0x4086,0x2e42,0xfefa,0x39ef};
-                       /* log(2**-1074) = - -7.44440071921381262314E2 */
+/* log(2**-1074) = - -7.44440071921381262314E2 */
 /* unsigned short MINLOG[4] = {0xc087,0x4385,0x446d,0x71c3}; */
 unsigned short MINLOG[4] = {0xc087,0x4910,0xd52d,0x3052};
 #else
-                       /* log(2**1022) =  7.08396418532264106224E2 */
+/* log(2**1022) =  7.08396418532264106224E2 */
 unsigned short MAXLOG[4] = {0x4086,0x232b,0xdd7a,0xbcd2};
-                       /* log(2**-1022) = - 7.08396418532264106224E2 */
+/* log(2**-1022) = - 7.08396418532264106224E2 */
 unsigned short MINLOG[4] = {0xc086,0x232b,0xdd7a,0xbcd2};
 #endif
-                       /* 2**1024*(1-MACHEP) =  1.7976931348623158E308 */
+/* 2**1024*(1-MACHEP) =  1.7976931348623158E308 */
 unsigned short MAXNUM[4] = {0x7fef,0xffff,0xffff,0xffff};
 unsigned short PI[4]     = {0x4009,0x21fb,0x5444,0x2d18};
 unsigned short PIO2[4]   = {0x3ff9,0x21fb,0x5444,0x2d18};
@@ -198,14 +198,14 @@ unsigned short NEGZERO[4] = {0x0000,0x0000,0x0000,0x0000};
 #endif
 
 #ifdef DEC
-                       /* 2**-56 =  1.38777878078144567553E-17 */
+/* 2**-56 =  1.38777878078144567553E-17 */
 unsigned short MACHEP[4] = {0022200,0000000,0000000,0000000};
 unsigned short UFLOWTHRESH[4] = {0x0080,0x0000,0x0000,0x0000};
-                       /* log 2**127 = 88.029691931113054295988 */
+/* log 2**127 = 88.029691931113054295988 */
 unsigned short MAXLOG[4] = {041660,007463,0143742,025733,};
-                       /* log 2**-128 = -88.72283911167299960540 */
+/* log 2**-128 = -88.72283911167299960540 */
 unsigned short MINLOG[4] = {0141661,071027,0173721,0147572,};
-                       /* 2**127 = 1.701411834604692317316873e38 */
+/* 2**127 = 1.701411834604692317316873e38 */
 unsigned short MAXNUM[4] = {077777,0177777,0177777,0177777,};
 unsigned short PI[4]     = {040511,007732,0121041,064302,};
 unsigned short PIO2[4]   = {040311,007732,0121041,064302,};
