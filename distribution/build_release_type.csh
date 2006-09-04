@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.66 2006/09/03 22:15:10 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.67 2006/09/04 13:50:12 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -497,6 +497,8 @@ symlinks:
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
   if ($?GSLDIR) then
     set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
+  else
+    set cmd4=
   endif
   set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
   set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
