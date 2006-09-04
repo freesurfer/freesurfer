@@ -44,11 +44,16 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
   fs_lbfgs();
   fs_lbfgs(vnl_cost_function& f);
 
-  void set_step_function( void ( *step_function )
-    ( int itno, float sse, void *parms, float *p ), void *params );
+  void set_step_function
+    (
+     void ( *step_function )
+      ( int itno, float sse, void *parms, float *p ),
+     void *params );
 
-  void fs_lbfgs::set_user_callback_function( 
-    void (*userCallbackFunction)(float []) );
+  void fs_lbfgs::set_user_callback_function
+    (
+     void (*userCallbackFunction)(float [])
+     );
 
   bool minimize(vnl_vector<double>& x);
 
@@ -83,7 +88,7 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
 
   void ( *mUserCallbackFunction )( float []) ;
 
-//  vnl_lbfgs() {} // default constructor makes no sense
+  //  vnl_lbfgs() {} // default constructor makes no sense
   // does too.  Can set values for parameters.
 };
 

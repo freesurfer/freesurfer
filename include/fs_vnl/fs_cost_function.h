@@ -5,34 +5,35 @@
 #include <vnl/vnl_vector.h>
 
 class fs_cost_function : public vnl_cost_function {
-  
-  private:
-    float (*mFunction)(float []);
-    void (*mFunctionGradient)(float [], float []);
-    
-    void copyFromVNLToFloat( float *floatVector, 
+
+ private:
+  float (*mFunction)(float []);
+  void (*mFunctionGradient)(float [], float []);
+
+  void copyFromVNLToFloat
+    ( float *floatVector,
       const vnl_vector< double > vnlVector, int numberOfParameters);
-    
-  
-  public:
-  
-    fs_cost_function( float (*function)(float []) );
 
-    fs_cost_function( float (*function)(float []),
-      void (*functionGradient)(float [], float []), 
-      int numberOfUnknowns );
-      
-    virtual ~fs_cost_function();
-  
-    void SetFunction( float (*function)(float []) );
 
-    void SetFunctionGradient( void (*functionGradient)(float [], float []) );
-  
-    virtual double f(const vnl_vector<double> & x);
+ public:
 
-    virtual void gradf(const vnl_vector<double> & x, 
-      vnl_vector<double>& gradient);
-        
+  fs_cost_function( float (*function)(float []) );
+
+  fs_cost_function( float (*function)(float []),
+                    void (*functionGradient)(float [], float []),
+                    int numberOfUnknowns );
+
+  virtual ~fs_cost_function();
+
+  void SetFunction( float (*function)(float []) );
+
+  void SetFunctionGradient( void (*functionGradient)(float [], float []) );
+
+  virtual double f(const vnl_vector<double> & x);
+
+  virtual void gradf(const vnl_vector<double> & x,
+                     vnl_vector<double>& gradient);
+
 };
 
 #endif /*FS_COST_FUNCTION_H_*/

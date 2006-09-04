@@ -28,8 +28,8 @@ class fs_powell : public vnl_nonlinear_minimizer
 
   //: Initialize a powell with the given cost function
   fs_powell(fs_cost_function* functor)
-    : functor_(functor), linmin_xtol_(1e-4), initial_step_(1.0), 
-      is_contrained_(false) {}
+    : functor_(functor), linmin_xtol_(1e-4), initial_step_(1.0),
+    is_contrained_(false) {}
 
   //: Run minimization, place result in x.
   ReturnCodes minimize(vnl_vector<double>& x, vnl_matrix<double>* xi);
@@ -53,7 +53,7 @@ class fs_powell : public vnl_nonlinear_minimizer
 
   //: Initial step when bracketting minima along a line
   double initial_step_;
-  
+
  private:
   bool is_contrained_;
 };
