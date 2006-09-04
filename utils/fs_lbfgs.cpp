@@ -13,12 +13,12 @@
 #include <vcl_cmath.h>
 #include <vcl_iostream.h>
 #include <vcl_iomanip.h> // for setw (replaces cout.form())
-
 #include <vnl/algo/vnl_netlib.h> // lbfgs_()
 
 extern "C" {
 #include <lbfgs.h> // from netlib, for lb3_ data struct
 }
+
 
 //: Default constructor.
 // memory is set to 5, line_search_accuracy to 0.9.
@@ -29,6 +29,7 @@ fs_lbfgs::fs_lbfgs():
   init_parameters();
 }
 
+
 //: Constructor. f is the cost function to be minimized.
 // Calls init_parameters
 fs_lbfgs::fs_lbfgs(vnl_cost_function& f):
@@ -36,6 +37,7 @@ fs_lbfgs::fs_lbfgs(vnl_cost_function& f):
 {
   init_parameters();
 }
+
 
 //: Called by constructors.
 // Memory is set to 5, line_search_accuracy to 0.9, default_step_length to 1.
@@ -49,18 +51,22 @@ void fs_lbfgs::init_parameters()
   mUserCallbackFunction = NULL;
 }
 
-void fs_lbfgs::set_step_function( void ( *step_function )( int itno, float sse, void *parms, float *p ), void *parms)
+
+void fs_lbfgs::set_step_function
+( void ( *step_function )
+  ( int itno, float sse, void *parms, float *p ), void *parms)
 {
   this->step_function_ = step_function;
   this->step_function_parms_ = parms;
 }
 
-void fs_lbfgs::set_user_callback_function( 
-  void (*userCallbackFunction)(float []) ) {
-    
+
+void fs_lbfgs::set_user_callback_function
+( void (*userCallbackFunction)(float []) )
+{
   mUserCallbackFunction = userCallbackFunction;
-  
 }
+
 
 bool fs_lbfgs::minimize(vnl_vector<double>& x)
 {
@@ -79,14 +85,24 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   vnl_vector<double> w(n * (2*m+1)+2*m);
 
   if (verbose_)
-    vcl_cerr << "fs_lbfgs: n = "<< n <<", memory = "<< m <<", Workspace = "
-             << w.size() << "[ "<< ( w.size() / 128.0 / 1024.0) <<" MB], ErrorScale = "
-             << f_->reported_error(1) <<", xnorm = "<< x.magnitude() << vcl_endl;
+    vcl_cerr << "ERROR fs_lbfgs: n = "
+             << n
+             <<", memory = "
+             << m
+             <<", Workspace = "
+             << w.size()
+             << "[ "
+             << ( w.size() / 128.0 / 1024.0)
+             <<" MB], ErrorScale = "
+             << f_->reported_error(1)
+             <<", xnorm = "
+             << x.magnitude()
+             << vcl_endl;
 
   bool we_trace = (verbose_ && !trace);
 
   if (we_trace)
-    vcl_cerr << "fs_lbfgs: ";
+    vcl_cerr << "ERROR fs_lbfgs: ";
 
   double best_f = 0;
   vnl_vector<double> best_x;
@@ -97,9 +113,9 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   int iflag = 0;
   while (true) {
 
-// TODO: addition
+    // TODO: addition
     if( mUserCallbackFunction != NULL ) {
-      
+
       float *currentX = new float[n+1];
       for(int i=0; i<n; i++) {
         // TODO: legacy one indexing
@@ -108,14 +124,16 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       ( *mUserCallbackFunction )( currentX );
       delete[] currentX;
     }
-    
-    // We do not wish to provide the diagonal matrices Hk0, and therefore set DIAGCO to FALSE.
+
+    // We do not wish to provide the diagonal
+    // matrices Hk0, and therefore set DIAGCO to FALSE.
     logical diagco = false;
 
     // Set these every iter in case user changes them to bail out
     double eps = gtol; // Gradient tolerance
     double local_xtol = 1e-16;
-    lb3_.gtol = line_search_accuracy; // set to 0.1 for huge problems or cheap functions
+    lb3_.gtol = line_search_accuracy; // set to 0.1 for huge
+                                      //problems or cheap functions
     lb3_.stpawf = default_step_length;
 
     // Call function
@@ -133,35 +151,43 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
            <<vcl_setw(20)<<b<<' '<<vcl_setw(20)<<c<<' '<<vcl_setw(20)<<d<<'\n'
 
     if (check_derivatives_)
-    {
-      vcl_cerr << "fs_lbfgs: f = " << f_->reported_error(f) << ", computing FD gradient\n";
-      vnl_vector<double> fdg = f_->fdgradf(x);
-      if (verbose_)
       {
-        int l = n;
-        int limit = 100;
-        int limit_tail = 10;
-        if (l > limit + limit_tail) {
-          vcl_cerr << " [ Showing only first " <<limit<< " components ]\n";
-          l = limit;
-        }
-        print_("i","x","g","fdg","dg");
-        print_("-","-","-","---","--");
-        for (int i = 0; i < l; ++i)
-          print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
-        if (n > limit) {
-          vcl_cerr << "   ...\n";
-          for (int i = n - limit_tail; i < n; ++i)
-            print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
-        }
+        vcl_cerr << "ERROR fs_lbfgs: f = "
+                 << f_->reported_error(f)
+                 << ", computing FD gradient\n";
+        vnl_vector<double> fdg = f_->fdgradf(x);
+        if (verbose_)
+          {
+            int l = n;
+            int limit = 100;
+            int limit_tail = 10;
+            if (l > limit + limit_tail) {
+              vcl_cerr << " [ Showing only first "
+                       <<limit
+                       << " components ]\n";
+              l = limit;
+            }
+            print_("i","x","g","fdg","dg");
+            print_("-","-","-","---","--");
+            for (int i = 0; i < l; ++i)
+              print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
+            if (n > limit) {
+              vcl_cerr << "   ...\n";
+              for (int i = n - limit_tail; i < n; ++i)
+                print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
+            }
+          }
+        vcl_cerr << "   ERROR = "
+                 << (fdg - g).squared_magnitude() / vcl_sqrt(double(n))
+                 << "\n";
       }
-      vcl_cerr << "   ERROR = " << (fdg - g).squared_magnitude() / vcl_sqrt(double(n)) << "\n";
-    }
 
     iprint[0] = trace ? 1 : -1; // -1 no o/p, 0 start and end, 1 every iter.
     iprint[1] = 0; // 1 prints X and G
-    
-    lbfgs_(&n, &m, x.data_block(), &f, g.data_block(), &diagco, diag.data_block(),
+
+    lbfgs_(&n, &m, x.data_block(),
+           &f, g.data_block(),
+           &diagco, diag.data_block(),
            iprint, &eps, &local_xtol, w.data_block(), &iflag);
 
     ++this->num_iterations_;
@@ -173,8 +199,9 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       // Successful return
       this->end_error_ = f;
       ok = true;
-      
-      // TODO: this is an DJ addition for when the best_x is not initialized yet
+
+      // TODO: this is an DJ addition for when the
+      // best_x is not initialized yet
       if( best_x.size() != 0 ) {
         x = best_x;
       }
@@ -183,15 +210,16 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
     if (iflag < 0) {
       // Eeek.
-      vcl_cerr << "fs_lbfgs: ** EEEK **\n";
+      vcl_cerr << "fs_lbfgs: ** ERROR ** (iflag < 0)\n";
       ok = false;
 
-      // TODO: this is an DJ addition for when the best_x is not initialized yet
+      // TODO: this is an DJ addition for when
+      // the best_x is not initialized yet
       if( best_x.size() != 0 ) {
         this->end_error_ = f;
         x = best_x;
       }
-      
+
       break;
     }
 
@@ -199,7 +227,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       failure_code_ = FAILED_TOO_MANY_ITERATIONS;
       ok = false;
 
-      // TODO: this is an DJ addition for when the best_x is not initialized yet
+      // TODO: this is an DJ addition for when the
+      // best_x is not initialized yet
       if( best_x.size() != 0 ) {
         this->end_error_ = f;
         x = best_x;
@@ -210,7 +239,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
     // step function addition
     if (step_function_ != NULL) {
-            
+
       // TODO: this could potentially be very expensive
       // TODO: legacy one indexing
       float *currentX = new float[n+1];
@@ -218,7 +247,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
         // TODO: legacy one indexing
         currentX[ i+1 ] = static_cast<float>(x(i));
       }
-      (*step_function_)(this->num_iterations_, static_cast<float>(f), 
+      (*step_function_)(this->num_iterations_, static_cast<float>(f),
                         step_function_parms_, currentX);
       for(int i=0; i<n; i++) {
         // TODO: legacy one indexing
@@ -231,3 +260,4 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
   return ok;
 }
+
