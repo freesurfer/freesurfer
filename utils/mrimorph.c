@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: dsjen $
-// Revision Date  : $Date: 2006/08/10 19:51:18 $
-// Revision       : $Revision: 1.58 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/09/04 22:33:34 $
+// Revision       : $Revision: 1.59 $
 */
 
 /*-----------------------------------------------------
@@ -7534,8 +7534,12 @@ computeEMAlignmentGradient(float *p, float *g)
 	else
 		det_total = 0 ;
   MatrixScalarMul(m_dL, parms->dt*parms->l_intensity/(double)(det_total*gca->ninputs*parms->nsamples), m_dL);
-  MatrixFree(&m_dI_X_T) ; MatrixFree(&v_X) ; MatrixFree(&m_inv_cov) ;
-  MatrixFree(&m_tmp1) ; MatrixFree(&m_tmp2) ; MatrixFree(&v_X_T) ;
+  MatrixFree(&m_dI_X_T) ; 
+  MatrixFree(&v_X) ; 
+  MatrixFree(&m_inv_cov) ;
+  if (m_tmp1) MatrixFree(&m_tmp1) ; 
+  if (m_tmp2) MatrixFree(&m_tmp2) ; 
+  MatrixFree(&v_X_T) ;
 
   for (i = row = 1 ; row <= 3 ; row++)
   {
