@@ -194,12 +194,24 @@ double bdtr( k, n, p )
 {
   double dk, dn;
 
-  if( (p < 0.0) || (p > 1.0) )
-    goto domerr;
-  if( (k < 0) || (n < k) )
+  if( (p < 0.0) )
     {
-    domerr:
-      mtherr( "bdtr", DOMAIN );
+      mtherr( "bdtr (p < 0.0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (p > 1.0) )
+    {
+      mtherr( "bdtr (p > 1.0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (k < 0) )
+    {
+      mtherr( "bdtr (k < 0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (n < k) )
+    {
+      mtherr( "bdtr (n < k)", DOMAIN );
       return( 0.0 );
     }
 
@@ -226,12 +238,24 @@ double bdtri( k, n, y )
 {
   double dk, dn, p;
 
-  if( (y < 0.0) || (y > 1.0) )
-    goto domerr;
-  if( (k < 0) || (n <= k) )
+  if( (y < 0.0) )
     {
-    domerr:
-      mtherr( "bdtri", DOMAIN );
+      mtherr( "bdtri (y < 0.0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (y > 1.0) )
+    {
+      mtherr( "bdtri (y > 1.0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (k < 0) )
+    {
+      mtherr( "bdtri (k < 0)", DOMAIN );
+      return( 0.0 );
+    }
+  if( (n <= k) )
+    {
+      mtherr( "bdtri (n <= k)", DOMAIN );
       return( 0.0 );
     }
 
