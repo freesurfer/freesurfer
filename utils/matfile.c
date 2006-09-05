@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/08/14 21:20:59 $
-// Revision       : $Revision: 1.25 $
+// Revision Date  : $Date: 2006/09/05 19:38:52 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -73,7 +73,7 @@ MATRIX *MatlabRead(const char *fname)
   int      file_type, nrows, ncols, row, col ;
   float    *fptr = NULL ;
 
-  printf("Using MatlabRead2()\n");
+  if(Gdiag_no > 0) printf("Using MatlabRead2()\n");
   return(MatlabRead2(fname));
   // Should never get here
 
