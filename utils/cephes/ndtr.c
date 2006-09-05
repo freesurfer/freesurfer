@@ -144,7 +144,6 @@
   Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
 
-
 #include "mconf.h"
 
 extern double SQRTH;
@@ -419,7 +418,6 @@ double erfc(a)
 {
   double p,q,x,y,z;
 
-
   if( a < 0.0 )
     x = -a;
   else
@@ -433,7 +431,6 @@ double erfc(a)
   if( z < -MAXLOG )
     {
     under:
-      mtherr( "erfc", UNDERFLOW );
       if( a < 0 )
         return( 2.0 );
       else
