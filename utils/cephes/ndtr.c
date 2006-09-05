@@ -150,7 +150,7 @@
 extern double SQRTH;
 extern double MAXLOG;
 
-
+#ifndef Darwin
 #ifdef UNK
 static double P[] = {
   2.46196981473530512524E-10,
@@ -209,6 +209,7 @@ static double U[] = {
 
 #define UTHRESH 37.519379347
 #endif
+#endif // Darwin
 
 #ifdef DEC
 static unsigned short P[] = {
@@ -383,7 +384,11 @@ static unsigned short U[] = {
 
 #ifndef ANSIPROT
 double polevl(), p1evl(), exp(), log(), fabs();
+#ifdef Darwin
+extern double erf(), erfc();
+#else 
 double erf(), erfc();
+#endif
 #endif
 
 double ndtr(a)
@@ -408,7 +413,7 @@ double ndtr(a)
   return(y);
 }
 
-
+#ifndef Darwin
 double erfc(a)
      double a;
 {
@@ -457,9 +462,9 @@ double erfc(a)
 
   return(y);
 }
+#endif // Darwin
 
-
-
+#ifndef Darwin
 double erf(x)
      double x;
 {
@@ -472,3 +477,4 @@ double erf(x)
   return( y );
 
 }
+#endif // Darwin

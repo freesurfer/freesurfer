@@ -107,7 +107,9 @@
 
 #include "mconf.h"
 
+
 #ifdef UNK
+#ifndef Darwin // Mac OS has gamma in its libm
 static double P[] = {
   1.60119522476751861407E-4,
   1.19135147006586384913E-3,
@@ -128,6 +130,7 @@ static double Q[] = {
   1.00000000000000000320E0
 };
 #define MAXGAM 171.624376956302725
+#endif
 static double LOGPI = 1.14472988584940017414;
 #endif
 
@@ -213,6 +216,7 @@ static unsigned short LPI[4] = {
 #endif
 
 /* Stirling's formula for the gamma function */
+#ifndef Darwin // Mac OS has gamma in its libm
 #if UNK
 static double STIR[5] = {
   7.87311395793093628397E-4,
@@ -223,6 +227,7 @@ static double STIR[5] = {
 };
 #define MAXSTIR 143.01608
 static double SQTPI = 2.50662827463100050242E0;
+#endif
 #endif
 #if DEC
 static unsigned short STIR[20] = {
@@ -273,6 +278,8 @@ extern double MAXLOG, MAXNUM, PI;
 #ifndef ANSIPROT
 double pow(), log(), exp(), sin(), polevl(), p1evl(), floor(), fabs();
 #endif
+
+#ifndef Darwin // Mac OS has gamma in its libm
 
 /* Gamma function computed by Stirling's formula.
  * The polynomial STIR is valid for 33 <= x <= 172.
@@ -383,6 +390,7 @@ double gamma(x)
     return( z/((1.0 + 0.5772156649015329 * x) * x) );
 }
 
+#endif // !defined(Darwin) // Mac OS has gamma in its libm
 
 
 /* A[]: Stirling's formula expansion of log gamma
@@ -601,3 +609,4 @@ double lgam(x)
     q += polevl( p, A, 4 ) / x;
   return( q );
 }
+
