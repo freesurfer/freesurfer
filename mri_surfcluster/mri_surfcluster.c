@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.30 2006/07/13 17:49:30 greve Exp $
+  $Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $
 */
 
 #include <stdio.h>
@@ -30,6 +30,7 @@
 #include "transform.h"
 #include "version.h"
 #include "annotation.h"
+#include "fsenv.h"
 
 LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign);
 
@@ -48,7 +49,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.30 2006/07/13 17:49:30 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -153,7 +154,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.30 2006/07/13 17:49:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -802,6 +803,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--sd") || !strcmp(option, "--subjectsdir")){
       if(nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0];
+      FSENVsetSUBJECTS_DIR(subjectsdir);
       nargsused = 1;
     }
     else{
@@ -1061,7 +1063,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.30 2006/07/13 17:49:30 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
