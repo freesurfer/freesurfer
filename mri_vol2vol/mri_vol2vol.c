@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.18 2006/04/04 18:05:03 greve Exp $
+  $Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $
 
 */
 
@@ -381,7 +381,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.18 2006/04/04 18:05:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -439,12 +439,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.18 2006/04/04 18:05:03 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.18 2006/04/04 18:05:03 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -644,6 +644,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--inv"))      invert = 1;
     else if (!strcasecmp(option, "--fstarg"))   fstarg = 1;
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
+    else if (!strcasecmp(option, "--regheader")) regheader = 1;
 
     else if(istringnmatch(option, "--mov",0)){
       if(nargc < 1) argnerr(option,1);
