@@ -1,8 +1,8 @@
 #!/bin/tcsh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.8 2006/04/18 23:05:03 nicks Exp $'
+# '$Id: dcmdir-info-mgh,v 1.9 2006/09/06 03:34:03 greve Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.8 2006/04/18 23:05:03 nicks Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.9 2006/09/06 03:34:03 greve Exp $';
 
 if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"
@@ -67,7 +67,14 @@ else
 endif
 
 pushd $dcmdir > /dev/null
-set serlist = `ls *.dcm | sed 's/-/ /g' | awk '{a=NF-1;print $a}' | sort -n | uniq`;
+
+# Get a list of the series numbers
+# grep -- hopefully only get files that end in .dcm (cannot do ls *.dcm)
+# sed  -- replace dashes with spaces
+# awk  -- print the 2nd to last field, should be series number
+# sort -- sort series numbers numerically
+# uniq -- keep only unique series numbers
+set serlist = (`ls | grep .dcm | sed 's/-/ /g' | awk '{a=NF-1;print $a}' | sort -n | uniq`);
 
 set series = $serlist[1];
 set flist = `ls *-$series-*.dcm`
