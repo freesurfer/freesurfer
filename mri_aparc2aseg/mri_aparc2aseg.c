@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.10 2006/08/30 21:35:34 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.11 2006/09/06 17:55:15 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -392,7 +392,11 @@ int main(int argc, char **argv)
 	if(OutDistFile != NULL) MRIsetVoxVal(Dist,c,r,s,0,dmin);
 
 	if(debug || annotid == -1){
+	  // Gets here when there is no label at the found vertex.
+	  // This is different than having a vertex labeled as "unknown"
+	  if(!debug) continue;
 	  printf("\n");
+	  printf("Found closest vertex, but it has no label.\n");
 	  printf("aseg id = %d\n",asegid);
 	  printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 		 c,r,s,vtx.x,vtx.y,vtx.z);
@@ -418,7 +422,7 @@ int main(int argc, char **argv)
 		 rhpial->vertices[rhpvtx].z);
 	  printf("annot = %d, annotid = %d\n",annot,annotid);
 	  CTABprintASCII(lhwhite->ct,stdout);
-	  exit(1);
+	  continue;
 	}
 
 	nctx++;
