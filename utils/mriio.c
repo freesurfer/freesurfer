@@ -941,7 +941,7 @@ MRI *MRIreadHeader(char *fname, int type)
       {
         // just check again
         if (stat(fname, &stat_buf) < 0)
-          printf("ERROR: cound not find volume %s.  Does it exist?\n", fname);
+          printf("ERROR: could not find volume %s.  Does it exist?\n", fname);
         else
           printf("ERROR: could not determine type of %s\n",fname);
         return(NULL);
