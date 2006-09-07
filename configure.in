@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.211 2006/09/07 20:18:22 nicks Exp $"
+# "$Id: configure.in,v 1.212 2006/09/07 21:06:17 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -725,6 +725,7 @@ AC_SUBST(VXL_LIBS)
 ac_vtk_includes="NO"
 ac_vtk_libraries="NO"
 ac_vtk_dir="NO"
+VTK_CFLAGS=""
 VTK_CXXFLAGS=""
 VTK_LIBS=""
 AC_MSG_CHECKING(VTK directory)
@@ -739,6 +740,7 @@ AC_ARG_WITH(vtk-dir,
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(vtk directory is $withval)
   for item in $ac_vtk_includes; do
+        VTK_CFLAGS="${VTK_CFLAGS} -I${item}"
         VTK_CXXFLAGS="${VTK_CXXFLAGS} -I${item}"
   done
   VTK_DIR=$ac_vtk_dir
@@ -751,6 +753,7 @@ if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
 fi
 
+AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
 
