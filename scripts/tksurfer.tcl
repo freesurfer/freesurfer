@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.124 2006/08/22 19:05:46 kteich Exp $
+# $Id: tksurfer.tcl,v 1.125 2006/09/07 16:17:06 kteich Exp $
 
 package require BLT;
 
@@ -4539,20 +4539,23 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
     # Delete all entries
     $mw delete 0 end
 
+    # Make a sorted list of label names.
+    set lSortedLabels [lsort $glLabelNames]
+    
     # If we have more than 30 entries, we're going to create some
     # submenus. For every 30 entries, get item 0 and 29, make a string
     # consisting of their names, and add a submenu with those labels.
-    if { [llength $glLabelNames] > 30 } {
+    if { [llength $lSortedLabels] > 30 } {
 	set nEntry 0
 	set nSubMenu 0
-	while { $nEntry < [llength $glLabelNames] } {
+	while { $nEntry < [llength $lSortedLabels] } {
 	    set nTopEntry [expr $nEntry + 20]
-	    if { $nTopEntry >= [llength $glLabelNames] } {
-		set nTopEntry [expr [llength $glLabelNames] - 1]
+	    if { $nTopEntry >= [llength $lSortedLabels] } {
+		set nTopEntry [expr [llength $lSortedLabels] - 1]
 	    }
 	    menu $mw.mw$nSubMenu
 	    $mw add cascade -menu $mw.mw$nSubMenu \
-		-label "[lindex $glLabelNames $nEntry] -> [lindex $glLabelNames $nTopEntry]"
+		-label "[lindex $lSortedLabels $nEntry] -> [lindex $lSortedLabels $nTopEntry]"
 	    incr nEntry 30
 	    incr nSubMenu
 	}
@@ -4561,17 +4564,21 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
 
     # For each value...
     set nValueIndex 0
-    foreach nLabel $glLabelNames {
+    foreach nLabel $lSortedLabels {
 
 	# If we have more than 30, calc a submenu and add it to
 	# that. Otherwise just add it to the main menu.
 	set curMenu $mw
-	if { [llength $glLabelNames] > 30 } {
+	if { [llength $lSortedLabels] > 30 } {
 	    set curMenu $mw.mw[expr $nValueIndex / 30]
 	}
 
+	# The command involves the index of the label in the original
+	# list, so we find the index of the current label name in that
+	# list.
+	set nRealLabel [lsearch $glLabelNames $nLabel]
 	$curMenu add command \
-	    -command "set gFillParms(argument) $nValueIndex; $iowList config -text \"$nLabel\"" \
+	    -command "set gFillParms(argument) $nRealLabel; $iowList config -text \"$nLabel\"" \
 	    -label $nLabel
 	incr nValueIndex
     }
