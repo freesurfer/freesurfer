@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $";
+"$Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -601,10 +601,6 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     }
     MRIfree(&mov_vol);
     mov_vol = mritmp;
-    if(tagmov){
-      printf("Tagging mov volume\n");
-      MRItagVol(mov_vol, 10000);
-    }
   }
   if(!fstal || !fixxfm) Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
   else                  Tmov = MRIxfmCRS2XYZ(mov_vol,0);
@@ -880,6 +876,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     scale_brain(1.0/mov_scale,'y');
     scale_brain(1.0/mov_scale,'z');
   }
+  if(tagmov){
+    printf("Tagging mov volume\n");
+    MRItagVol(mov_vol, 10000);
+  }
+
   updateflag = TRUE;
 
   return GL_FALSE;
@@ -4111,7 +4112,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.59 2006/08/24 20:34:32 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
