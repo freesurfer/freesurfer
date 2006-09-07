@@ -83,6 +83,7 @@
   Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
 
+#include <stdio.h>
 #include "mconf.h"
 #ifndef ANSIPROT
 double lgam(), exp(), log(), fabs(), igam(), igamc();
@@ -97,6 +98,7 @@ double igamc( a, x )
 {
   double ans, ax, c, yc, r, t, y, z;
   double pk, pkm1, pkm2, qk, qkm1, qkm2;
+  //char msg[100];
 
   if( (x <= 0) || ( a <= 0) )
     return( 1.0 );
@@ -107,7 +109,9 @@ double igamc( a, x )
   ax = a * log(x) - x - lgam(a);
   if( ax < -MAXLOG )
     {
-      mtherr( "igamc", UNDERFLOW );
+      //warning message not necessary. proper answer is 0
+      //sprintf(msg,"igamc(%f,%f)",a,x);
+      //mtherr( msg, UNDERFLOW );
       return( 0.0 );
     }
   ax = exp(ax);
@@ -171,6 +175,7 @@ double igam( a, x )
      double a, x;
 {
   double ans, ax, c, r;
+  //char msg[100];
 
   if( (x <= 0) || ( a <= 0) )
     return( 0.0 );
@@ -182,7 +187,9 @@ double igam( a, x )
   ax = a * log(x) - x - lgam(a);
   if( ax < -MAXLOG )
     {
-      mtherr( "igam", UNDERFLOW );
+      //no warning needed, zero is the correct answer
+      //sprintf(msg,"igam(%f,%f)",a,x);
+      //mtherr( msg, UNDERFLOW );
       return( 0.0 );
     }
   ax = exp(ax);
