@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.21 2006/05/05 18:52:20 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.22 2006/09/07 21:54:33 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -318,6 +318,7 @@ endif
 
 # Now recompute the anat2std
 set cmd = ($TKR \
+            --s $subject \
             --targ $refvolcor \
             --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
             --reg $anat2std_regdat \
