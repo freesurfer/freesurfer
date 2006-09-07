@@ -95,9 +95,11 @@ int mtherr( name, code )
   if( (code <= 0) || (code >= 7) )
     code = 0;
   printf( "%s error\n***\n", ermsg[code] );
+  fflush(stdout);
 
   /* Exit calling
    * program
    */
-  exit( 1 );
+  //  exit( 1 );
+  return code;
 }
