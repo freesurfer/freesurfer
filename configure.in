@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.210 2006/09/01 19:29:18 nicks Exp $"
+# "$Id: configure.in,v 1.211 2006/09/07 20:18:22 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -718,6 +718,41 @@ fi
 
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
+
+################################################################
+# VTK
+################################################################
+ac_vtk_includes="NO"
+ac_vtk_libraries="NO"
+ac_vtk_dir="NO"
+VTK_CXXFLAGS=""
+VTK_LIBS=""
+AC_MSG_CHECKING(VTK directory)
+
+AC_ARG_WITH(vtk-dir,
+  [  --with-vtk-dir=DIR      where the root of VTK is installed.],
+  [  ac_vtk_includes="$withval/include"
+     ac_vtk_libraries="$withval"/lib
+     ac_vtk_dir="$withval"
+  ])
+
+if test ! "$ac_vtk_includes" = "NO"; then
+  AC_MSG_RESULT(vtk directory is $withval)
+  for item in $ac_vtk_includes; do
+        VTK_CXXFLAGS="${VTK_CXXFLAGS} -I${item}"
+  done
+  VTK_DIR=$ac_vtk_dir
+  AC_SUBST(VTK_DIR)
+else
+  AC_MSG_RESULT(vtk directory is not supplied)
+fi
+
+if test ! "$ac_vtk_libraries" = "NO"; then
+  VTK_LIBS=-L$ac_vtk_libraries
+fi
+
+AC_SUBST(VTK_CXXFLAGS)
+AC_SUBST(VTK_LIBS)
 
 #####################################################
 # OpenGL
