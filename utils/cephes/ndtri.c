@@ -51,6 +51,8 @@
   Copyright 1984, 1987, 1989 by Stephen L. Moshier
   Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
+
+#include <math.h> // log sqrt
 #include <stdio.h>
 #include "mconf.h"
 extern double MAXNUM;
@@ -370,21 +372,21 @@ double ndtri(y0)
 {
   double x, y, z, y2, x0, x1;
   int code;
-  char msg[100];
+  //char msg[100];
 
   //printf("ndtri(%f)\n",y0);
 
   if( y0 <= 0.0 )
     {
-      sprintf(msg,"ndtri(%f)",y0);
-      mtherr( msg, DOMAIN );
+      //sprintf(msg,"ndtri(%f)",y0);
+      //mtherr( msg, DOMAIN );
       //printf("ndtri return( -%f )\n",MAXNUM);
       return( -MAXNUM );
     }
   if( y0 >= 1.0 )
     {
-      sprintf(msg,"ndtri(%f)",y0);
-      mtherr( msg, DOMAIN );
+      //sprintf(msg,"ndtri(%f)",y0);
+      //mtherr( msg, DOMAIN );
       //printf("ndtri return( %f )\n",MAXNUM);
       return( MAXNUM );
     }

@@ -105,6 +105,7 @@
 */
 
 
+#include <math.h> // log fabs pow exp
 #include "mconf.h"
 
 
@@ -134,87 +135,6 @@ static double Q[] = {
 static double LOGPI = 1.14472988584940017414;
 #endif
 
-#ifdef DEC
-static unsigned short P[] = {
-  0035047,0162701,0146301,0005234,
-  0035634,0023437,0032065,0176530,
-  0036452,0137157,0047330,0122574,
-  0037103,0017310,0143041,0017232,
-  0037524,0066516,0162563,0164605,
-  0037775,0004671,0146237,0014222,
-  0040200,0000000,0000000,0000000
-};
-static unsigned short Q[] = {
-  0134302,0041724,0020006,0116565,
-  0035415,0072121,0044251,0025634,
-  0136222,0003447,0035205,0121114,
-  0036501,0107552,0154335,0104271,
-  0037022,0135717,0014776,0171471,
-  0137560,0034324,0165024,0037021,
-  0037222,0045046,0047151,0161213,
-  0040200,0000000,0000000,0000000
-};
-#define MAXGAM 34.84425627277176174
-static unsigned short LPI[4] = {
-  0040222,0103202,0043475,0006750,
-};
-#define LOGPI *(double *)LPI
-#endif
-
-#ifdef IBMPC
-static unsigned short P[] = {
-  0x2153,0x3998,0xfcb8,0x3f24,
-  0xbfab,0xe686,0x84e3,0x3f53,
-  0x14b0,0xe9db,0x57cd,0x3f85,
-  0x23d3,0x18c4,0x63d9,0x3fa8,
-  0x7d31,0xdcae,0x8da9,0x3fca,
-  0xe312,0x3993,0xa137,0x3fdf,
-  0x0000,0x0000,0x0000,0x3ff0
-};
-static unsigned short Q[] = {
-  0xd3af,0x8400,0x487a,0xbef8,
-  0x2573,0x2915,0xae8a,0x3f41,
-  0xb44a,0xe750,0x40e4,0xbf72,
-  0xb117,0x5b1b,0x31ed,0x3f88,
-  0xde67,0xe33f,0x5779,0x3fa2,
-  0x87c2,0x9d42,0x071a,0xbfce,
-  0x3c51,0xc9cd,0x4944,0x3fb2,
-  0x0000,0x0000,0x0000,0x3ff0
-};
-#define MAXGAM 171.624376956302725
-static unsigned short LPI[4] = {
-  0xa1bd,0x48e7,0x50d0,0x3ff2,
-};
-#define LOGPI *(double *)LPI
-#endif
-
-#ifdef MIEEE
-static unsigned short P[] = {
-  0x3f24,0xfcb8,0x3998,0x2153,
-  0x3f53,0x84e3,0xe686,0xbfab,
-  0x3f85,0x57cd,0xe9db,0x14b0,
-  0x3fa8,0x63d9,0x18c4,0x23d3,
-  0x3fca,0x8da9,0xdcae,0x7d31,
-  0x3fdf,0xa137,0x3993,0xe312,
-  0x3ff0,0x0000,0x0000,0x0000
-};
-static unsigned short Q[] = {
-  0xbef8,0x487a,0x8400,0xd3af,
-  0x3f41,0xae8a,0x2915,0x2573,
-  0xbf72,0x40e4,0xe750,0xb44a,
-  0x3f88,0x31ed,0x5b1b,0xb117,
-  0x3fa2,0x5779,0xe33f,0xde67,
-  0xbfce,0x071a,0x9d42,0x87c2,
-  0x3fb2,0x4944,0xc9cd,0x3c51,
-  0x3ff0,0x0000,0x0000,0x0000
-};
-#define MAXGAM 171.624376956302725
-static unsigned short LPI[4] = {
-  0x3ff2,0x50d0,0x48e7,0xa1bd,
-};
-#define LOGPI *(double *)LPI
-#endif
-
 /* Stirling's formula for the gamma function */
 #ifndef Darwin // Mac OS has gamma in its libm
 #if UNK
@@ -229,48 +149,7 @@ static double STIR[5] = {
 static double SQTPI = 2.50662827463100050242E0;
 #endif
 #endif
-#if DEC
-static unsigned short STIR[20] = {
-  0035516,0061622,0144553,0112224,
-  0135160,0131531,0037460,0165740,
-  0136057,0134460,0037242,0077270,
-  0036143,0107070,0156306,0027751,
-  0037252,0125252,0125252,0146064,
-};
-#define MAXSTIR 26.77
-static unsigned short SQT[4] = {
-  0040440,0066230,0177661,0034055,
-};
-#define SQTPI *(double *)SQT
-#endif
-#if IBMPC
-static unsigned short STIR[20] = {
-  0x7293,0x592d,0xcc72,0x3f49,
-  0x1d7c,0x27e6,0x166b,0xbf2e,
-  0x4fd7,0x07d4,0xf726,0xbf65,
-  0xc5fd,0x1b98,0x71c7,0x3f6c,
-  0x5986,0x5555,0x5555,0x3fb5,
-};
-#define MAXSTIR 143.01608
-static unsigned short SQT[4] = {
-  0x2706,0x1ff6,0x0d93,0x4004,
-};
-#define SQTPI *(double *)SQT
-#endif
-#if MIEEE
-static unsigned short STIR[20] = {
-  0x3f49,0xcc72,0x592d,0x7293,
-  0xbf2e,0x166b,0x27e6,0x1d7c,
-  0xbf65,0xf726,0x07d4,0x4fd7,
-  0x3f6c,0x71c7,0x1b98,0xc5fd,
-  0x3fb5,0x5555,0x5555,0x5986,
-};
-#define MAXSTIR 143.01608
-static unsigned short SQT[4] = {
-  0x4004,0x0d93,0x1ff6,0x2706,
-};
-#define SQTPI *(double *)SQT
-#endif
+
 
 int sgngam = 0;
 extern int sgngam;

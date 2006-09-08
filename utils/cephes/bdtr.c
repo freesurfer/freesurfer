@@ -146,6 +146,7 @@
   Copyright 1984, 1987, 1995 by Stephen L. Moshier
 */
 
+#include <math.h>  // pow
 #include "mconf.h"
 #ifndef ANSIPROT
 double incbet(), incbi(), pow(), log1p(), expm1();

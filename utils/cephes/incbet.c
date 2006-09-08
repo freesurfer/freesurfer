@@ -59,6 +59,7 @@
   Copyright 1984, 1995 by Stephen L. Moshier
 */
 
+#include <math.h> // log fabs pow exp
 #include "mconf.h"
 
 #ifdef DEC

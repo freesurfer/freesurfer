@@ -83,6 +83,7 @@
   Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
 
+#include <math.h> // log fabs exp
 #include <stdio.h>
 #include "mconf.h"
 #ifndef ANSIPROT
@@ -93,12 +94,26 @@ extern double MACHEP, MAXLOG;
 static double big = 4.503599627370496e15;
 static double biginv =  2.22044604925031308085e-16;
 
+/*
+int _isinf (const double x)
+{
+  double y = x - x;
+  int s = (y != y);
+
+  if (s && x > 0)
+    return +1;
+  else if (s && x < 0)
+    return -1;
+  else
+    return 0;
+}
+*/
 double igamc( a, x )
      double a, x;
 {
   double ans, ax, c, yc, r, t, y, z;
   double pk, pkm1, pkm2, qk, qkm1, qkm2;
-  //char msg[100];
+  char msg[100];
 
   if( (x <= 0) || ( a <= 0) )
     return( 1.0 );
@@ -106,6 +121,14 @@ double igamc( a, x )
   if( (x < 1.0) || (x < a) )
     return( 1.0 - igam(a,x) );
 
+  /*
+  if( _isinf(x) )
+    {
+      sprintf(msg,"igamc(%f,%f): x is inf",a,x);
+      mtherr( msg, TLOSS );
+      return( 0.0 );
+    }
+  */
   ax = a * log(x) - x - lgam(a);
   if( ax < -MAXLOG )
     {
@@ -114,6 +137,13 @@ double igamc( a, x )
       //mtherr( msg, UNDERFLOW );
       return( 0.0 );
     }
+  if( ax != ax ) // check if result is nan
+    {
+      sprintf(msg,"igamc(%f,%f): NAN",a,x);
+      mtherr( msg, TLOSS );
+      return( 0.0 );
+    }
+
   ax = exp(ax);
 
   /* continued fraction */

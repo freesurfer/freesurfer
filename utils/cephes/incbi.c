@@ -44,6 +44,7 @@
   Copyright 1984, 1996 by Stephen L. Moshier
 */
 
+#include <math.h> // log fabs pow exp
 #include "mconf.h"
 
 extern double MACHEP, MAXNUM, MAXLOG, MINLOG;
