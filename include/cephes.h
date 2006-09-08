@@ -12,7 +12,6 @@ extern double btdtr ( double a, double b, double x );
 extern double chdtrc ( double df, double x );
 extern double chdtr ( double df, double x );
 extern double chdtri ( double df, double y );
-extern int drand ( double *a );
 extern double fdtrc ( double ia, double ib, double x );
 extern double fdtr ( double ia, double ib, double x );
 extern double fdtri ( double ia, double ib, double y );
