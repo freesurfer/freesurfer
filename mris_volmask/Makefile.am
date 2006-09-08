@@ -27,12 +27,12 @@
 #########################################################################
 # from ------------------------------------------------
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom $(VTK_CXXFLAGS)/vtk-5.0 -Wno-deprecated
 
 bin_PROGRAMS = mris_volmask
-mris_volmask_SOURCES=mris_volmask.c
-mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-mris_volmask_LDFLAGS=$(OS_LDFLAGS)
+mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
+mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) -lvtkFiltering -lvtkHybrid -lvtkRendering -lvtkGraphics -lvtkImaging -lvtkftgl -lvtkfreetype -lGL -lXt -lSM -lICE -lSM -lICE -lX11 -lXext -lX11 -lXext -lvtkIO -lvtkFiltering -lvtkCommon -lpthread -lm -lvtkDICOMParser -lvtkpng -lvtktiff -lvtkzlib -lvtkjpeg -lvtkexpat -lvtksys -ldl -lvtkMPEG2Encode -lvtkexoIIc -lvtkNetCDF
+mris_volmask_LDFLAGS=$(OS_LDFLAGS) $(VTK_LIBS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
