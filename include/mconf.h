@@ -126,7 +126,11 @@ typedef struct
 #define UNK 1
 
 /* If you define UNK, then be sure to set BIGENDIAN properly. */
-#define BIGENDIAN 0
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  #define BIGENDIAN 0
+#else
+  #define BIGENDIAN 1
+#endif
 
 /* Define this `volatile' if your compiler thinks
  * that floating point arithmetic obeys the associative
@@ -170,7 +174,7 @@ typedef struct
 /* Get ANSI function prototypes, if you want them. */
 #ifdef __STDC__
 #define ANSIPROT
-#include "protos.h"
+#include "cephes.h"
 #else
 int mtherr();
 #endif
