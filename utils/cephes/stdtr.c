@@ -84,6 +84,8 @@
   Copyright 1984, 1987, 1995 by Stephen L. Moshier
 */
 
+#include <stdio.h>
+#include <math.h> // define HUGE_VAL
 #include "mconf.h"
 
 extern double PI, MACHEP, MAXNUM;
@@ -92,11 +94,13 @@ double sqrt(), atan(), incbet(), incbi(), fabs();
 #endif
 
 double stdtr( k, t )
-     int k;
+     double k;
      double t;
 {
   double x, rk, z, f, tz, p, xsqk;
   int j;
+
+  //printf("stdtr(%d,%f)\n",k,t);
 
   if( k <= 0 )
     {
@@ -126,7 +130,7 @@ double stdtr( k, t )
   z = 1.0 + ( x * x )/rk;
 
   /* test if k is odd or even */
-  if( (k & 1) != 0)
+  if( ((int)k & 1) != 0)
     {
 
       /*      computation for odd k   */
@@ -179,16 +183,32 @@ double stdtr( k, t )
 }
 
 double stdtri( k, p )
-     int k;
+     double k;
      double p;
 {
   double t, rk, z;
   int rflg;
+  char msg[100];
 
-  if( k <= 0 || p <= 0.0 || p >= 1.0 )
+  if( k <= 0 )
     {
-      mtherr( "stdtri", DOMAIN );
+      sprintf(msg,"stdtri(%f,%f)",k,p);
+      mtherr( msg, DOMAIN );
       return(0.0);
+    }
+
+  if( p <= 0.0 )
+    {
+      //sprintf(msg,"stdtri(%d,%f)",k,p);
+      //mtherr( msg, DOMAIN );
+      return(-HUGE_VAL);
+    }
+
+  if( p >= 1.0 )
+    {
+      //sprintf(msg,"stdtri(%d,%f)",k,p);
+      //mtherr( msg, DOMAIN );
+      return(HUGE_VAL);
     }
 
   rk = k;

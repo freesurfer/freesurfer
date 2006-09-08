@@ -159,17 +159,19 @@
   Copyright 1984, 1987, 1995 by Stephen L. Moshier
 */
 
-
+#include <stdio.h>
 #include "mconf.h"
 #ifndef ANSIPROT
 double incbet(), incbi();
 #endif
 
 double fdtrc( ia, ib, x )
-     int ia, ib;
+     double ia, ib;
      double x;
 {
   double a, b, w;
+
+  //printf("fdtrc(%f,%f,%f)\n",ia,ib,x);
 
   if( (ia < 1) || (ib < 1) || (x < 0.0) )
     {
@@ -184,7 +186,7 @@ double fdtrc( ia, ib, x )
 
 
 double fdtr( ia, ib, x )
-     int ia, ib;
+     double ia, ib;
      double x;
 {
   double a, b, w;
@@ -203,7 +205,7 @@ double fdtr( ia, ib, x )
 
 
 double fdtri( ia, ib, y )
-     int ia, ib;
+     double ia, ib;
      double y;
 {
   double a, b, w, x;
