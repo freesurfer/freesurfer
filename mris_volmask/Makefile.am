@@ -6,12 +6,16 @@ AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom \
 $(VTK_CXXFLAGS)/vtk-5.0 -Wno-deprecated
 
+if ENABLE_VTK_APPS
 bin_PROGRAMS = mris_volmask
+else
+bin_PROGRAMS =
+endif
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 $(X_LIBS) $(GL_LIBS) \
--ldl \
 $(VTK_LIBS) \
+-ldl -lpthread \
 -lvtkFiltering -lvtkHybrid -lvtkRendering -lvtkGraphics \
 -lvtkImaging -lvtkftgl -lvtkfreetype \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
