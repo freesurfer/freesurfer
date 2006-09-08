@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $";
+"$Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -3090,6 +3090,9 @@ void write_xfmreg(char *fname)
   int i,j;
   FILE *fp;
   MATRIX *Mxfm=NULL,*SA,*SB,*TA,*TB, *iTB, *iSA;
+  MATRIX *RegMatTmp=NULL;
+
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
 
   SA = MRIxfmCRS2XYZ(targ_vol0, 0);
   SB = MRIxfmCRS2XYZ(mov_vol, 0);
@@ -3099,7 +3102,7 @@ void write_xfmreg(char *fname)
   iTB = MatrixInverse(TB,NULL);
 
   Mxfm = MatrixMultiply(SB,iTB,Mxfm);
-  Mxfm = MatrixMultiply(Mxfm,RegMat,Mxfm);
+  Mxfm = MatrixMultiply(Mxfm,RegMatTmp,Mxfm);
   Mxfm = MatrixMultiply(Mxfm,TA,Mxfm);
   Mxfm = MatrixMultiply(Mxfm,iSA,Mxfm);
 
@@ -3128,6 +3131,7 @@ void write_xfmreg(char *fname)
   MatrixFree(&iTB);
   MatrixFree(&iSA);
   MatrixFree(&Mxfm);
+  MatrixFree(&RegMatTmp);
 
   return;
 }
@@ -4112,7 +4116,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.60 2006/09/07 19:21:13 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
