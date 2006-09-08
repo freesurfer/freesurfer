@@ -1,8 +1,8 @@
 #!/bin/tcsh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.16 2006/04/18 23:05:04 nicks Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.16 2006/04/18 23:05:04 nicks Exp $';
+# $Id: fsl_rigid_register,v 1.17 2006/09/08 20:31:41 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.17 2006/09/08 20:31:41 greve Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -178,32 +178,21 @@ if($#applyxfm == 0) then
     # Convert to register.dat or xfm #
     set tmpregdat = $tmpdir/reg.dat
     set cmd = (tkregister2 --targ $refvol --mov $invol)
-   # set cmd = (tkregister2 --targ $invol --mov $refvol)
     set cmd = ($cmd --reg $tmpregdat)
     set cmd = ($cmd --fslreg $fslmatfile)
     set cmd = ($cmd --noedit);
+    if($#xfmmatfile)  set cmd = ($cmd --xfmout $xfmmatfile);
     echo "--------------------------------------"
     pwd
     echo $cmd
     $cmd
     if($status) exit 1;
     if($#regmatfile) cp $tmpregdat $regmatfile
-    if($#xfmmatfile) then
-      rm -f $xfmmatfile
-      echo "MNI Transform File" >> $xfmmatfile
-      echo "% This file was created by fsl_rigid_register" >> $xfmmatfile
-      echo "Transform_Type = Linear;" >> $xfmmatfile
-      echo "Linear_Transform =" >> $xfmmatfile
-      cat $tmpregdat | tail -5 | head -n 2  >> $xfmmatfile
-      set l3 = `cat $tmpregdat | tail -3 | head -n 1`
-      echo "$l3;"   >> $xfmmatfile
-    endif
-
   endif
 
   if($#ltamatfile) then
-      rm -f $ltamatfile
-      mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
+    rm -f $ltamatfile
+    mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
   endif
 
 endif
