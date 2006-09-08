@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.96 2006/08/29 18:01:28 greve Exp $
+   $Id: DICOMRead.c,v 1.97 2006/09/08 21:59:39 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -847,7 +847,9 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
   LenBeginStr = strlen(BeginStr);
   TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
 
-  if(!IsSiemensDICOM(dcmfile)) return(NULL);
+  //Don't require it to be a dicom file -- could be an info dump output
+  //from mri_probedicom.
+  //if(!IsSiemensDICOM(dcmfile)) return(NULL);
 
   fp = fopen(dcmfile,"r");
   if(fp == NULL){
