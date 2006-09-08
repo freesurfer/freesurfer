@@ -149,10 +149,15 @@ MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
 if ENABLE_QT_APPS
-bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
+  bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
 else
-bin_PROGRAMS=scuba
+if ENABLE_TCLTK_APPS
+  bin_PROGRAMS=scuba
+else
+	bin_PROGRAMS=
 endif
+endif
+
 EXTRA_PROGRAMS=
 scuba_SOURCES=$(UTILITIES_SRCS) \
 	$(BASIC_SRCS) \

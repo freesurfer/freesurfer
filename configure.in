@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.213 2006/09/08 22:30:43 nicks Exp $"
+# "$Id: configure.in,v 1.214 2006/09/08 23:57:02 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -58,47 +58,6 @@ if test ! "$HAS_GZIP" = "1"; then
   AC_MSG_ERROR([FATAL: gzip is required in creating mgz etc. \
 Put it in the path.])
 fi
-
-##################################################################
-# allow user to specify tixwish
-AC_ARG_WITH(tixwish,
-[  --with-tixwish=TIXWISH  where you specify the file for tixwish],
-  [TIXWISH=$withval],[])
-# if TIXWISH has been set, then it does not do anything
-AC_PATH_PROG([TIXWISH],[tixwish],[])
-if test "x$TIXWISH" = "x"; then
-  AC_PATH_PROG([TIXWISH],[tixwish8.1.8.3],[])
-  if test "x$TIXWISH" = "x"; then
-    AC_PATH_PROG([TIXWISH],[tixwish8.1.8.4],[])
-  fi
-fi
-# well check
-if test "x$TIXWISH" = "x"; then
-  AC_MSG_ERROR([FATAL: tixwish needed for csurf not found. \
-Use --with-tixwish=... to specify])
-fi
-
-AC_SUBST(TIXWISH)
-
-#################################################################
-# If on a Mac, make scuba, qdec, and plotter bundles (Qt apps)
-SCUBA_BUNDLE_TARGET=""
-if test "x$target_vendor" = "xapple" ; then
-  SCUBA_BUNDLE_TARGET="scuba_bundle"
-fi
-AC_SUBST(SCUBA_BUNDLE_TARGET)
-
-QDEC_BUNDLE_TARGET=""
-if test "x$target_vendor" = "xapple" ; then
-  QDEC_BUNDLE_TARGET="qdec_bundle"
-fi
-AC_SUBST(QDEC_BUNDLE_TARGET)
-
-PLOTTER_BUNDLE_TARGET=""
-if test "x$target_vendor" = "xapple" ; then
-  PLOTTER_BUNDLE_TARGET="plotter_bundle"
-fi
-AC_SUBST(PLOTTER_BUNDLE_TARGET)
 
 ################################################################
 # set platform related variable defaults for (Teem) NrrdIO
@@ -403,9 +362,7 @@ AC_SUBST(X_LIBS)
 
 ##############################################################
 # allow user to specify root of multi-package directory,
-# such as one containing all freesurfer dependencies:
-# jpeg, tiff, gsl, tcl, tk, tix, blt, MNI (netcdf, minc,
-# mni-perlib, EBTKS, N3)...
+# such as one containing all freesurfer dependencies.
 ##############################################################
 ac_pkgs_includes="NO"
 ac_pkgs_libraries="NO"
@@ -434,6 +391,7 @@ AC_SUBST(pkgs_libraries)
 
 
 AC_MSG_NOTICE([Checking directories for necesary 3rd-party libraries...])
+
 
 #############################################################
 # MNI
@@ -464,6 +422,121 @@ fi
 
 AC_SUBST(MNI_CFLAGS)
 AC_SUBST(MNI_LIBS)
+
+
+################################################################
+# VXL
+################################################################
+ac_vxl_includes="NO"
+ac_vxl_libraries="NO"
+ac_vxl_dir="NO"
+VXL_CFLAGS=""
+VXL_LIBS=""
+AC_MSG_CHECKING(VXL directory)
+
+AC_ARG_WITH(vxl-dir,
+  [  --with-vxl-dir=DIR      where the root of VXL is installed.],
+  [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
+     ac_vxl_libraries="$withval"/lib
+     ac_vxl_dir="$withval"
+  ])
+
+if test ! "$ac_vxl_includes" = "NO"; then
+  AC_MSG_RESULT(vxl directory is $withval)
+  for item in $ac_vxl_includes; do
+        VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
+  done
+  VXL_DIR=$ac_vxl_dir
+  AC_SUBST(VXL_DIR)
+else
+  AC_MSG_RESULT(vxl directory is not supplied)
+fi
+
+if test ! "$ac_vxl_libraries" = "NO"; then
+  VXL_LIBS=-L$ac_vxl_libraries
+fi
+
+AC_SUBST(VXL_CFLAGS)
+AC_SUBST(VXL_LIBS)
+
+
+#####################################################
+# Tcl/Tk
+####################################################
+AC_MSG_NOTICE(Tcl/Tk directory)
+ac_enable_tcltk_apps=false
+################# apple
+AC_ARG_WITH([apple-tcl-framework],
+      [AC_HELP_STRING([--with-apple-tcl-framework])])
+if test "X$with_apple_tcl_framework" = "Xyes"; then
+  AC_MSG_ERROR([FATAL: tkmedit/tksurfer needs BLT. \
+No Aqua version of BLT exists yet.])
+#  AC_MSG_NOTICE([Apple framework way...])
+#  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
+#            [Use the Apple Tcl framework,])
+#  TCL_CFLAGS="-framework Tcl -framework Tk"
+#  TCL_LIBS="-L/Library/Tcl/Tix8.4"
+#  LIBS_TCL="-lTix8.4"
+else
+################## other cases
+# here are uni*es
+  ac_tcl_includes="NO"
+  ac_tcl_libraries="NO"
+  ac_tcl_bindir="NO"
+  TCL_CFLAGS=""
+  TCL_LIBS=""
+
+  AC_ARG_WITH(tcl-dir,
+[  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
+    [  ac_tcl_includes="$withval"/include
+       ac_tcl_libraries="$withval"/lib
+       ac_tcl_bindir="$withval"/bin
+       ac_enable_tcltk_apps=true
+    ])
+
+  if test ! "$ac_tcl_includes" = "NO"; then
+    AC_MSG_RESULT([Tcl directory is $withval])
+    TCL_CFLAGS=-I$ac_tcl_includes
+  else
+    AC_MSG_RESULT([Tcl directory is not supplied])
+  fi
+
+  if test ! "$ac_tcl_libraries" = "NO"; then
+    TCL_LIBS=-L$ac_tcl_libraries
+  fi
+
+  TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
+fi
+###### end of uni*es
+
+AM_CONDITIONAL(ENABLE_TCLTK_APPS, test "x$ac_enable_tcltk_apps" = "xtrue")
+
+AC_SUBST(TCL_CFLAGS)
+AC_SUBST(TCL_LIBS)
+AC_SUBST(LIBS_TCL)
+
+
+##################################################################
+# allow user to specify tixwish
+AC_ARG_WITH(tixwish,
+[  --with-tixwish=TIXWISH  where you specify the file for tixwish],
+  [TIXWISH=$withval],[])
+# if TIXWISH has been set, then it does not do anything
+AC_PATH_PROG([TIXWISH],[tixwish],[])
+if test "x$TIXWISH" = "x"; then
+  AC_PATH_PROG([TIXWISH],[tixwish8.1.8.3],[])
+  if test "x$TIXWISH" = "x"; then
+    AC_PATH_PROG([TIXWISH],[tixwish8.1.8.4],[])
+  fi
+fi
+# well check
+if test "x$TIXWISH" = "x"; then
+  AC_MSG_ERROR([FATAL: tixwish needed for csurf not found. \
+Use --with-tixwish=... to specify])
+fi
+
+AC_SUBST(TIXWISH)
+
 
 ################################################################
 # BLT
@@ -498,6 +571,7 @@ fi
 AC_SUBST(BLT_CFLAGS)
 AC_SUBST(BLT_LIBS)
 
+
 ################################################################
 # tiff
 ################################################################
@@ -527,6 +601,7 @@ fi
 
 AC_SUBST(TIFF_CFLAGS)
 AC_SUBST(TIFF_LIBS)
+
 
 ################################################################
 # jpeg
@@ -558,8 +633,9 @@ fi
 AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
 
+
 ################################################################
-# GSL
+# GSL (no longer used in Freesurfer)
 ################################################################
 ac_gsl_includes="NO"
 ac_gsl_libraries="NO"
@@ -632,6 +708,26 @@ AM_CONDITIONAL(ENABLE_QT_APPS, test ! "x$ac_qt_libraries" = "xNO")
 AC_SUBST(QT_CFLAGS)
 AC_SUBST(QT_LIBS)
 
+#################################################################
+# If on a Mac, make scuba, qdec, and plotter bundles (Qt apps)
+SCUBA_BUNDLE_TARGET=""
+if test "x$target_vendor" = "xapple" ; then
+  SCUBA_BUNDLE_TARGET="scuba_bundle"
+fi
+AC_SUBST(SCUBA_BUNDLE_TARGET)
+
+QDEC_BUNDLE_TARGET=""
+if test "x$target_vendor" = "xapple" ; then
+  QDEC_BUNDLE_TARGET="qdec_bundle"
+fi
+AC_SUBST(QDEC_BUNDLE_TARGET)
+
+PLOTTER_BUNDLE_TARGET=""
+if test "x$target_vendor" = "xapple" ; then
+  PLOTTER_BUNDLE_TARGET="plotter_bundle"
+fi
+AC_SUBST(PLOTTER_BUNDLE_TARGET)
+
 
 ################################################################
 # CPPUNIT
@@ -667,43 +763,6 @@ fi
 
 AC_SUBST(CPPUNIT_CFLAGS)
 AC_SUBST(CPPUNIT_LIBS)
-
-
-################################################################
-# VXL
-################################################################
-ac_vxl_includes="NO"
-ac_vxl_libraries="NO"
-ac_vxl_dir="NO"
-VXL_CFLAGS=""
-VXL_LIBS=""
-AC_MSG_CHECKING(VXL directory)
-
-AC_ARG_WITH(vxl-dir,
-  [  --with-vxl-dir=DIR      where the root of VXL is installed.],
-  [  ac_vxl_includes="$withval/include/core 
-$withval/include/vcl $withval/include/v3p/netlib"
-     ac_vxl_libraries="$withval"/lib
-     ac_vxl_dir="$withval"
-  ])
-
-if test ! "$ac_vxl_includes" = "NO"; then
-  AC_MSG_RESULT(vxl directory is $withval)
-  for item in $ac_vxl_includes; do
-        VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
-  done
-  VXL_DIR=$ac_vxl_dir
-  AC_SUBST(VXL_DIR)
-else
-  AC_MSG_RESULT(vxl directory is not supplied)
-fi
-
-if test ! "$ac_vxl_libraries" = "NO"; then
-  VXL_LIBS=-L$ac_vxl_libraries
-fi
-
-AC_SUBST(VXL_CFLAGS)
-AC_SUBST(VXL_LIBS)
 
 
 ################################################################
@@ -904,59 +963,6 @@ CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
 
 
-#####################################################
-# Tcl/Tk
-####################################################
-AC_MSG_NOTICE(Tcl/Tk directory)
-################# apple
-AC_ARG_WITH([apple-tcl-framework],
-      [AC_HELP_STRING([--with-apple-tcl-framework])])
-if test "X$with_apple_tcl_framework" = "Xyes"; then
-  AC_MSG_ERROR([FATAL: tkmedit/tksurfer needs BLT. \
-No Aqua version of BLT exists yet.])
-#  AC_MSG_NOTICE([Apple framework way...])
-#  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
-#            [Use the Apple Tcl framework,])
-#  TCL_CFLAGS="-framework Tcl -framework Tk"
-#  TCL_LIBS="-L/Library/Tcl/Tix8.4"
-#  LIBS_TCL="-lTix8.4"
-else
-################## other cases
-# here are uni*es
-  AC_MSG_NOTICE([unix style...])
-  ac_tcl_includes="NO"
-  ac_tcl_libraries="NO"
-  ac_tcl_bindir="NO"
-  TCL_CFLAGS=""
-  TCL_LIBS=""
-
-  AC_ARG_WITH(tcl-dir,
-[  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
-    [  ac_tcl_includes="$withval"/include
-       ac_tcl_libraries="$withval"/lib
-       ac_tcl_bindir="$withval"/bin
-    ])
-
-  if test ! "$ac_tcl_includes" = "NO"; then
-    AC_MSG_RESULT([Tcl directory is $withval])
-    TCL_CFLAGS=-I$ac_tcl_includes
-  else
-    AC_MSG_RESULT([Tcl directory is not supplied])
-  fi
-
-  if test ! "$ac_tcl_libraries" = "NO"; then
-    TCL_LIBS=-L$ac_tcl_libraries
-  fi
-
-  TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
-fi
-###### end of uni*es
-
-AC_SUBST(TCL_CFLAGS)
-AC_SUBST(TCL_LIBS)
-AC_SUBST(LIBS_TCL)
-
-
 ###################################################################
 # Install NMR Martinos Center files (not included in distribution)
 ###################################################################
@@ -1059,83 +1065,87 @@ if test ! "$ac_gsl_libraries" = "NO"; then
    [AC_MSG_ERROR([FATAL: gsl lib not found. \
    Please specify gsl header files and libs with --with-gsl-dir.])] )
 fi
-################## Tcl
-# check tcl8.4
-AC_CHECK_LIB([tcl8.4],[Tcl_Init],
-  [LIB_TCL=-ltcl8.4],
-# check tcl8.3
-  [
-    AC_CHECK_LIB([tcl8.3],[Tcl_Init],
-    [LIB_TCL=-ltcl8.3],
-# check tcl
-    [ AC_CHECK_LIB([tcl],[Tcl_Init],
-      [LIB_TCL=-ltcl],
-# check tclstub
-      [ AC_CHECK_LIB([tclstub],[Tcl_Init],
-        [LIB_TCL=-ltclstub],
-        [AC_MSG_ERROR([FATAL: libtcl not found. \
+
+# check tcl/tk/tix/blt only if tcl/tk apps are enabled
+if test "x$ac_enable_tcltk_apps" = "xtrue"; then
+  ################## Tcl
+  # check tcl8.4
+  AC_CHECK_LIB([tcl8.4],[Tcl_Init],
+    [LIB_TCL=-ltcl8.4],
+  # check tcl8.3
+    [
+      AC_CHECK_LIB([tcl8.3],[Tcl_Init],
+      [LIB_TCL=-ltcl8.3],
+  # check tcl
+      [ AC_CHECK_LIB([tcl],[Tcl_Init],
+        [LIB_TCL=-ltcl],
+  # check tclstub
+        [ AC_CHECK_LIB([tclstub],[Tcl_Init],
+          [LIB_TCL=-ltclstub],
+          [AC_MSG_ERROR([FATAL: libtcl not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
+        ])
       ])
     ])
-  ])
-#################### Tk needs X11 (or Aqua)
-LIBS="-lX11 $LIBS"
-CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
-LDFLAGS="$X_LIBS $LDFLAGS"
-# check tk8.4
-AC_CHECK_LIB([tk8.4],[Tk_Init],
-  [LIB_TK=-ltk8.4],
-# check tk8.3
-  [
-    AC_CHECK_LIB([tk8.3],[Tk_Init],
-    [LIB_TK=-ltk8.3],
-# check tk
+  #################### Tk needs X11 (or Aqua)
+  LIBS="-lX11 $LIBS"
+  CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
+  LDFLAGS="$X_LIBS $LDFLAGS"
+  # check tk8.4
+  AC_CHECK_LIB([tk8.4],[Tk_Init],
+    [LIB_TK=-ltk8.4],
+  # check tk8.3
     [
-      AC_CHECK_LIB([tk],[Tk_Init],
-      [LIB_TK=-ltk],
-      [AC_MSG_ERROR([FATAL: libtk not found. \
+      AC_CHECK_LIB([tk8.3],[Tk_Init],
+      [LIB_TK=-ltk8.3],
+  # check tk
+      [
+        AC_CHECK_LIB([tk],[Tk_Init],
+        [LIB_TK=-ltk],
+        [AC_MSG_ERROR([FATAL: libtk not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+        ])
       ])
     ])
-  ])
 
-##################### Tix
-LIBS="$LIB_TK $LIB_TCL $LIBS"
-AC_CHECK_LIB([tix],[Tix_Init],
-  [LIB_TIX=-ltix],
-  [
-# check tix8.1.8.4
-    AC_CHECK_LIB([tix8.1.8.4], [Tix_Init],
-    [LIB_TIX=-ltix8.1.8.4],
+  ##################### Tix
+  LIBS="$LIB_TK $LIB_TCL $LIBS"
+  AC_CHECK_LIB([tix],[Tix_Init],
+    [LIB_TIX=-ltix],
     [
-# check tix8.1.8.3
-      AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
-      [LIB_TIX=-ltix8.1.8.3],
-      [AC_MSG_ERROR([FATAL: libtix not found. \
+  # check tix8.1.8.4
+      AC_CHECK_LIB([tix8.1.8.4], [Tix_Init],
+      [LIB_TIX=-ltix8.1.8.4],
+      [
+  # check tix8.1.8.3
+        AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
+        [LIB_TIX=-ltix8.1.8.3],
+        [AC_MSG_ERROR([FATAL: libtix not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+        ])
       ])
     ])
-  ])
-# if test "X$with_apple_tcl_framework" = "Xyes"; then
-#   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
-#              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
+  # if test "X$with_apple_tcl_framework" = "Xyes"; then
+  #   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
+  #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
 
-##################### BLT (we cannot build BLT in Aqua) must use X11
-AC_CHECK_LIB([BLT],[Blt_Init],
-  [LIB_BLT=-lBLT],
-# check BLT.2 (MacOSX)
-  [
-    AC_CHECK_LIB([BLT.2],[Blt_Init],
-    [LIB_BLT=-lBLT.2],
+  ##################### BLT (we cannot build BLT in Aqua) must use X11
+  AC_CHECK_LIB([BLT],[Blt_Init],
+    [LIB_BLT=-lBLT],
+  # check BLT.2 (MacOSX)
     [
-# check BLT24 (Fedora)
-      AC_CHECK_LIB([BLT24],[Blt_Init],
-      [LIB_BLT=-lBLT24],
-          [AC_MSG_ERROR([FATAL: libBLT not found. \
+      AC_CHECK_LIB([BLT.2],[Blt_Init],
+      [LIB_BLT=-lBLT.2],
+      [
+  # check BLT24 (Fedora)
+        AC_CHECK_LIB([BLT24],[Blt_Init],
+        [LIB_BLT=-lBLT24],
+            [AC_MSG_ERROR([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
+        ])
       ])
     ])
-  ])
+fi 
 
 #
 # recover previous settings, from prior to checks.
@@ -1193,8 +1203,10 @@ AC_SUBST(LIBS)
 
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
-if ! test "$LIB_TCL" = "-ltcl8.4"; then
-  AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+if test "x$ac_enable_tcltk_apps" = "xtrue"; then
+  if ! test "$LIB_TCL" = "-ltcl8.4"; then
+    AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+  fi
 fi
 
 
@@ -1551,7 +1563,7 @@ AC_OUTPUT([Makefile
                  tksurfer/Makefile
                  tridec/Makefile
                  unix/Makefile
-		 utils/cephes/Makefile
+                 utils/cephes/Makefile
                  utils/Makefile
                  utils/NrrdIO/Makefile
                  utils/test/Makefile

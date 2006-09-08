@@ -11,7 +11,11 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 
 AM_LDFLAGS=$(LDFLAGS_TCL)
 
-bin_PROGRAMS = tksurfer
+if ENABLE_TCLTK_APPS
+	bin_PROGRAMS = tksurfer
+else
+	bin_PROGRAMS = tksurfer
+endif
 tksurfer_SOURCES=tksurfer.c $(top_srcdir)/fsgdf/fsgdf_wrap.c
 tksurfer_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
