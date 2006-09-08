@@ -48,6 +48,8 @@
   Copyright 1984, 1987, 1995 by Stephen L. Moshier
 */
 
+#include <stdio.h>
+#include <math.h> // define HUGE_VAL
 #include "mconf.h"
 
 extern double MACHEP, MAXNUM, MAXLOG, MINLOG;
@@ -60,6 +62,10 @@ double igami( a, y0 )
 {
   double x0, x1, x, yl, yh, y, d, lgm, dithresh;
   int i, dir;
+
+  //printf("igami(%f,%f)\n",a,y0);
+
+  if(y0 == 0) return HUGE_VAL;
 
   /* bound the solution */
   x0 = MAXNUM;
