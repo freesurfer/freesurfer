@@ -420,6 +420,7 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 #include "randomfields.h"
+#include "dti.h"
 
 typedef struct {
   char *measure;
@@ -444,7 +445,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.85 2006/05/18 06:11:59 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.86 2006/09/09 04:04:59 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -536,6 +537,9 @@ int OneSamplePerm=0;
 int OneSampleGroupMean=0;
 struct timeb  mytimer;
 int ReallyUseAverage7 = 0;
+DTI *dti;
+int usedti = 0;
+int log10flag = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -636,10 +640,17 @@ int main(int argc, char **argv)
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
   if(XFile != NULL){  
-    mriglm->Xg = MatrixReadTxt(XFile, NULL);
-    if(mriglm->Xg==NULL){
-      printf("ERROR: loading X %s\n",XFile);
-      exit(1);
+    if(usedti == 0){
+      mriglm->Xg = MatrixReadTxt(XFile, NULL);
+      if(mriglm->Xg==NULL){
+	printf("ERROR: loading X %s\n",XFile);
+	exit(1);
+      }
+    } else {
+      printf("Using DTI\n");
+      dti = DTIstructFromSiemensAscii(XFile);
+      if(dti==NULL) exit(1);
+      mriglm->Xg = MatrixCopy(dti->B,NULL);
     }
   }
   if(fsgd != NULL){
@@ -925,6 +936,10 @@ int main(int argc, char **argv)
     MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
 	     0,1,mriglm->y);
   }
+  if(log10flag){
+    printf("Computing natural log of input\n");
+    MRIlog(mriglm->y,mriglm->y,0);
+  }
   if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
     printf("Smoothing input by fwhm %lf \n",FWHM);
     SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
@@ -999,13 +1014,15 @@ int main(int argc, char **argv)
     TimerStart(&mytimer) ;
     for(nthsim=0; nthsim < nsim; nthsim++){
       msecFitTime = TimerStop(&mytimer) ;
-      printf("%d/%d t=%g ----------------------------------------------------\n",
+      printf("%d/%d t=%g ------------------------------------------------\n",
 	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(FWHM > 0) SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
+	if(log10flag) MRIlog(mriglm->y,mriglm->y,0);
+	if(FWHM > 0) 
+	  SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
       if(!strcmp(csd->simtype,"perm")){
 	if(!OneSamplePerm) MatrixRandPermRows(mriglm->Xg);
@@ -1497,6 +1514,13 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--X")){
       if(nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--dti")){
+      if(nargc < 1) CMDargNErr(option,1);
+      XFile = pargv[0];
+      usedti=1;
+      log10flag = 1;
       nargsused = 1;
     }
     else if (!strcmp(option, "--pvr")){
@@ -2065,6 +2089,7 @@ static void dump_options(FILE *fp)
 
   fprintf(fp,"y    %s\n",yFile);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
+  fprintf(fp,"usedit  %d\n",usedti);
   if(fsgdfile)  fprintf(fp,"FSGD %s\n",fsgdfile);
   if(labelFile) fprintf(fp,"labelmask  %s\n",labelFile);
   if(maskFile)  fprintf(fp,"mask %s\n",maskFile);
