@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/08/15 23:47:19 $
-// Revision       : $Revision: 1.354 $
-char *MRI_C_VERSION = "$Revision: 1.354 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/09/09 04:05:44 $
+// Revision       : $Revision: 1.355 $
+char *MRI_C_VERSION = "$Revision: 1.355 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11588,6 +11588,23 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
 
   return(outmri);
 }
+/*-------------------------------------------------------------------
+  MRIlog() - computes the natural log of the values at each voxel and
+  frame. If a value is zero, the result is set to 10000000000.0. If
+  the negflag is set, then -log is computed. The result is stored
+  in outmri. If outmri is NULL, the output MRI is alloced and its
+  pointer returned. Just runs MRIlog10() and then mult by log(10).
+  ------------------------------------------------------------------*/
+MRI *MRIlog(MRI *inmri, MRI *outmri, int negflag)
+{
+  double scale;
+  outmri = MRIlog10(inmri,outmri,negflag);
+  if(outmri == NULL) return(NULL);
+  scale = log(10.0);
+  outmri = MRIscalarMul(inmri,outmri,scale);
+  return(outmri);
+}
+
 /*---------------------------------------------------------------------
   MRIrandn() - fills an MRI structure with values sampled from a
   normal distribution with mean avg and standard devation stddev.
