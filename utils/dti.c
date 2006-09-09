@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.2 2006/09/08 23:10:42 greve Exp $
+// $Id: dti.c,v 1.3 2006/09/09 03:09:11 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.2 2006/09/08 23:10:42 greve Exp $");
+  return("$Id: dti.c,v 1.3 2006/09/09 03:09:11 greve Exp $");
 }
 
 
@@ -57,7 +57,8 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,
     return(1);
   }
   sscanf(pc, "%d", nAcq);
-  printf("nAcq = %d\n",*nAcq);
+  *nAcq = 12;
+  printf("nAcq = %d (HARDCODED!!!!!!!!)\n",*nAcq);
   free(pc);
 
   tag = "sDiffusion.lDiffDirections";
@@ -193,24 +194,28 @@ int DTInormGradDir(DTI *dti)
 /*--------------------------------------------------------*/
 int DTIdesignMatrix(DTI *dti)
 {
-  int r;
+  int r,xr,nthacq;
   MATRIX *g;
 
   dti->B = MatrixAlloc((dti->nDir+1)*dti->nAcq,7,MATRIX_REAL);
   g = dti->GradDirNorm;
 
-  for(r=1; r <= dti->nDir+1; r ++){
+  xr = 1;
+  for(nthacq=0; nthacq < dti->nAcq; nthacq++){
+    for(r=1; r <= dti->nDir+1; r ++){
 
-    dti->B->rptr[r][1] = dti->bValue * pow(g->rptr[r][1],2.0);
-    dti->B->rptr[r][2] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][2];
-    dti->B->rptr[r][3] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][3];
-
-    dti->B->rptr[r][4] = dti->bValue * pow(g->rptr[r][2],2.0);
-    dti->B->rptr[r][5] = 2 * dti->bValue * g->rptr[r][2]*g->rptr[r][3];
-
-    dti->B->rptr[r][6] = dti->bValue * pow(g->rptr[r][3],2.0);
-
-    dti->B->rptr[r][7] = 1;
+      dti->B->rptr[xr][1] = dti->bValue * pow(g->rptr[r][1],2.0);
+      dti->B->rptr[xr][2] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][2];
+      dti->B->rptr[xr][3] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][3];
+      
+      dti->B->rptr[xr][4] = dti->bValue * pow(g->rptr[r][2],2.0);
+      dti->B->rptr[xr][5] = 2 * dti->bValue * g->rptr[r][2]*g->rptr[r][3];
+      
+      dti->B->rptr[xr][6] = dti->bValue * pow(g->rptr[r][3],2.0);
+      
+      dti->B->rptr[xr][7] = 1;
+      xr++;
+    }
 
   }
 
