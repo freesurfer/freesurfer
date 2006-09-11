@@ -2,7 +2,7 @@
 # mkanalysis-sess -- sets up post-processing environment for 
 # functional analysis
 
-set VERSION = '$Id: mkanalysis-sess,v 1.2 2005/01/06 23:12:19 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.3 2006/09/11 19:40:22 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -128,7 +128,7 @@ if($designtype == "event-related" || $designtype == "blocked") then
   if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
   if($WhitenFlag != 0)  echo "-whiten" >> $sxacfg
 else if($designtype == "retinotopy" || $designtype == "abblocked") then
-  echo "-ncycles $ncycles" >> $sxacfg
+  if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   echo "-delay   0" >> $sxacfg
 endif
 
@@ -824,13 +824,13 @@ check_params:
     exit 1;
   endif
 
-  if($abblocked && ! $#ncycles) then
-    echo "ERROR: must specify -ncycles with -abblocked"
+  if($abblocked && ! $#ncycles && $#parname == 0) then
+    echo "ERROR: must specify either ncycles or parname with -abblocked"
     exit 1;
   endif
 
-  if($retinotopy && ! $#ncycles) then
-    echo "ERROR: must specify -ncycles with -retinotopy"
+  if($retinotopy && ! $#ncycles && $#parname == 0) then
+    echo "ERROR: must specify either ncycles or parname with -retinotopy"
     exit 1;
   endif
 
