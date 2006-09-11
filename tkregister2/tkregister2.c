@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $";
+"$Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -613,6 +613,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("mkheaderreg = %d, float2int = %d\n",mkheaderreg,float2int);
   if(mkheaderreg){
     /* Compute Reg from Header Info */
+    printf("Computing reg from header\n");
     RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
   }
   else if(fslregfname != NULL){
@@ -3089,22 +3090,10 @@ void write_xfmreg(char *fname)
   extern MATRIX *RegMat;
   int i,j;
   FILE *fp;
-  MATRIX *Mxfm=NULL,*SA,*SB,*TA,*TB, *iTB, *iSA;
-  MATRIX *RegMatTmp=NULL;
+  MATRIX *Mxfm=NULL, *RegMatTmp=NULL;
 
-  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
-
-  SA = MRIxfmCRS2XYZ(targ_vol0, 0);
-  SB = MRIxfmCRS2XYZ(mov_vol, 0);
-  TA = MRIxfmCRS2XYZtkreg(targ_vol0);
-  TB = MRIxfmCRS2XYZtkreg(mov_vol);
-  iSA = MatrixInverse(SA,NULL);
-  iTB = MatrixInverse(TB,NULL);
-
-  Mxfm = MatrixMultiply(SB,iTB,Mxfm);
-  Mxfm = MatrixMultiply(Mxfm,RegMatTmp,Mxfm);
-  Mxfm = MatrixMultiply(Mxfm,TA,Mxfm);
-  Mxfm = MatrixMultiply(Mxfm,iSA,Mxfm);
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,NULL);
+  Mxfm = MRItkReg2Native(targ_vol0, mov_vol, RegMatTmp);
 
   fp = fopen(fname,"w");
   if(fp == NULL){
@@ -3124,12 +3113,6 @@ void write_xfmreg(char *fname)
   }
   fclose(fp);
 
-  MatrixFree(&SA);
-  MatrixFree(&TA);
-  MatrixFree(&SB);
-  MatrixFree(&TB);
-  MatrixFree(&iTB);
-  MatrixFree(&iSA);
   MatrixFree(&Mxfm);
   MatrixFree(&RegMatTmp);
 
@@ -4116,7 +4099,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.61 2006/09/08 20:30:08 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
