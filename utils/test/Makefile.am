@@ -4,6 +4,7 @@
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO 
+LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mghxform inftest difftool mri_compute_stats \

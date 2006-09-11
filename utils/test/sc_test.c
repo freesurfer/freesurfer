@@ -511,112 +511,112 @@ test_auto_fdist (void)
 void
 test_auto_gaussian (void)
 {
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+10,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+09,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+08,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+07,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+06,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+05,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+04,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+03,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+02,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+01,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (7.2252292279265077e-15,1.0), 7.692307692307691, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e+00,1.0), 0.158655253931457046, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (2.2087816371245972e-01,1.0), 0.7692307692307e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000001e-01,1.0), 4.601721627222e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (4.6934236960338749e-01,1.0), 0.0769230769230768996, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e-02,1.0), 4.960106436853e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (4.9693124349158196e-01,1.0), 0.7692307692307e-02, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e-03,1.0), 4.996010577860e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (4.9969312135303229e-01,1.0), 0.7692307692307e-03, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e-04,1.0), 0.49996010577202632, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000001e-05,1.0), 0.499996010577196059, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (9.9999999999999995e-07,1.0), 0.499999601057719623, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (9.9999999999999995e-08,1.0), 0.499999960105771968, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e-08,1.0), 0.499999996010577208, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000001e-09,1.0), 4.999999996931e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (1.0000000000000000e-10,1.0), 4.999999999693e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (0.0000000000000000e+00,1.0), 5.000000000000e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (5.0000000000000000e-01,1.0), 0.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e-10,1.0), 5.000000000307e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000001e-09,1.0), 5.000000003069e-01, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e-08,1.0), 0.500000003989422792, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-9.9999999999999995e-08,1.0), 0.500000039894228032, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-9.9999999999999995e-07,1.0), 0.500000398942280433, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000001e-05,1.0), 0.500003989422803996, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e-04,1.0), 0.50003989422797368, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e-03,1.0), 0.500398942213911013, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (5.0030687864696777e-01,1.0), -0.00076923076923092709, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e-02,1.0), 0.503989356314631598, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (5.0306875650841798e-01,1.0), -0.00769230769230770488, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000001e-01,1.0), 0.539827837277028988, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (5.3065763039661251e-01,1.0), -0.0769230769230768996, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+00,1.0), 0.841344746068542926, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Qinv, 
-         (7.7912183628754028e-01,1.0), -0.769230769230769051, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+01,1.0), 1.000000000000e-00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+02,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+03,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+04,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+05,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+06,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+07,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+08,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+09,1.0), 1.000000000000e+00, TEST_TOL6);
-    TEST(sc_cdf_gaussian_Q, 
-         (-1.0000000000000000e+10,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+10,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+09,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+08,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+07,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+06,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+05,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+04,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+03,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+02,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+01,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (7.2252292279265077e-15,1.0), 7.692307692307691, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e+00,1.0), 0.158655253931457046, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (2.2087816371245972e-01,1.0), 0.7692307692307e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000001e-01,1.0), 4.601721627222e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (4.6934236960338749e-01,1.0), 0.0769230769230768996, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e-02,1.0), 4.960106436853e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (4.9693124349158196e-01,1.0), 0.7692307692307e-02, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e-03,1.0), 4.996010577860e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (4.9969312135303229e-01,1.0), 0.7692307692307e-03, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e-04,1.0), 0.49996010577202632, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000001e-05,1.0), 0.499996010577196059, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (9.9999999999999995e-07,1.0), 0.499999601057719623, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (9.9999999999999995e-08,1.0), 0.499999960105771968, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e-08,1.0), 0.499999996010577208, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000001e-09,1.0), 4.999999996931e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (1.0000000000000000e-10,1.0), 4.999999999693e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (0.0000000000000000e+00,1.0), 5.000000000000e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (5.0000000000000000e-01,1.0), 0.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e-10,1.0), 5.000000000307e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000001e-09,1.0), 5.000000003069e-01, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e-08,1.0), 0.500000003989422792, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-9.9999999999999995e-08,1.0), 0.500000039894228032, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-9.9999999999999995e-07,1.0), 0.500000398942280433, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000001e-05,1.0), 0.500003989422803996, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e-04,1.0), 0.50003989422797368, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e-03,1.0), 0.500398942213911013, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (5.0030687864696777e-01,1.0), -0.00076923076923092709, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e-02,1.0), 0.503989356314631598, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (5.0306875650841798e-01,1.0), -0.00769230769230770488, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000001e-01,1.0), 0.539827837277028988, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (5.3065763039661251e-01,1.0), -0.0769230769230768996, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+00,1.0), 0.841344746068542926, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Qinv, 
+       (7.7912183628754028e-01,1.0), -0.769230769230769051, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+01,1.0), 1.000000000000e-00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+02,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+03,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+04,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+05,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+06,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+07,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+08,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+09,1.0), 1.000000000000e+00, TEST_TOL6);
+  TEST(sc_cdf_gaussian_Q, 
+       (-1.0000000000000000e+10,1.0), 1.000000000000e+00, TEST_TOL6);
 }
 
 
@@ -1356,10 +1356,54 @@ void test_tdistinv (void)
 }
 
 
+#define FUNC(x)  test_ ## x,                     "test sc_ran_" #x
+#define FUNC2(x) test_ ## x, test_ ## x ## _pdf, "test sc_ran_" #x
+#define N 100000
 
+static sc_rng *r_global;
+
+static double test_ugaussian(void)
+{
+  return sc_ran_gaussian(r_global, 1.0);
+}
+
+
+void
+testMoments (double (*f) (void), const char *name,
+             double a, double b, double p)
+{
+  int i;
+  double count = 0, expected, sigma;
+  int status;
+
+  for (i = 0; i < N; i++)
+    {
+      double r = f ();
+      if (r < b && r > a)
+        count++;
+    }
+
+  expected = p * N;
+  sigma = fabs (count - expected) / sqrt (expected);
+
+  status = (sigma > 3);
+
+  sc_test (status, "%s [%g,%g] (%g observed vs %g expected)",
+           name, a, b, count / N, p);
+}
+
+void test_ran_gaussian(void)
+{
+  r_global = sc_rng_alloc (&intern_rng_type);
+  testMoments (FUNC (ugaussian), 0.0, 100.0, 0.5);
+  testMoments (FUNC (ugaussian), -1.0, 1.0, 0.67971);
+  testMoments (FUNC (ugaussian), 3.0, 3.5, 0.0012);
+}
 
 int main(int argc, char *argv[])
 {
+  test_ran_gaussian ();
+
   test_tdist ();
   test_fdist ();
   test_chisq ();
@@ -1371,7 +1415,7 @@ int main(int argc, char *argv[])
   test_auto_fdist ();
   test_auto_flat ();
   test_auto_chisq ();
-  
+
   //this fails because implementation is inaccurate for 
   //continuous-valued degree-of-freedom input arg (it passes for discrete
   //values, ie. test_tdist)
