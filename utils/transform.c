@@ -1499,18 +1499,19 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
 }
 /*-----------------------------------------------------------------
   DevolveXFM() - change a tranformation matrix to work with tkreg RAS
-  coordinates (ie, c_ras = 0). Assumes that the transformation matrix
-  was computed with the orig-volume native vox2ras transform (or any
-  volume with the same geometry). The XFM maps from native orig RAS to
-  a native target RAS. Note: this has no effect when the orig volume
-  has c_ras = 0. If XFM is empty, then xfmname is read from the
-  subject's transforms directory.  If xfmname is empty, then
-  talairach.xfm is used.  
+  coordinates (ie, c_ras = 0). For example, when used on a surface
+  xyz, will produce talairach coords. Assumes that the transformation
+  matrix was computed with the orig-volume native/scanner vox2ras
+  transform.  The XFM maps from native orig RAS to a native target
+  RAS. Note: this has no effect when the orig volume has c_ras = 0. If
+  XFM is empty, then xfmname is read from the subject's transforms
+  directory.  If xfmname is empty, then talairach.xfm is used.
+
   Note: uses LTAvoxelTransformToCoronalRasTransform(). 
   -----------------------------------------------------------------*/
 MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
 {
-	return(DevolveXFMWithSubjectsDir(subjid,  XFM, xfmname, NULL)) ;
+  return(DevolveXFMWithSubjectsDir(subjid,  XFM, xfmname, NULL)) ;
 }
 
 MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char *sdir)
@@ -1521,16 +1522,14 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char
   FILE *fp;
   LTA    *lta;
 
-	if (sdir)
-		sd = sdir ;
-	else
-	{
-		sd = getenv("SUBJECTS_DIR") ;
-		if(sd==NULL){
-			printf("ERROR: SUBJECTS_DIR not defined\n");
-			return(NULL);
-		}
-	}
+  if(sdir) sd = sdir ;
+  else {
+    sd = getenv("SUBJECTS_DIR") ;
+    if(sd==NULL){
+      printf("ERROR: SUBJECTS_DIR not defined\n");
+      return(NULL);
+    }
+  }
 
   /* Check that the subject exists */
   sprintf(dirname,"%s/%s",sd,subjid);
@@ -1541,12 +1540,12 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char
 
   /* Load the orig header for the subject */
   sprintf(dirname,"%s/%s/mri/orig.mgz",sd,subjid);
-	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-		printf("Trying %s\n",dirname);
-  if (fio_FileExistsReadable(dirname)) {
+  if(Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Trying %s\n",dirname);
+  if(fio_FileExistsReadable(dirname))
     mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
-  }
   else mriorig = NULL;
+
   if(mriorig == NULL){
     sprintf(dirname,"%s/%s/mri/orig.mgh",sd,subjid);
 		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -1590,8 +1589,8 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char
     LTAfree(&lta);
   }
 
-  /* Mfix = inv(Torig_tkreg)*Torig_native */
-  /* X2 = Mfix*X */
+  /* Mfix = Torig_native*inv(Torig_tkreg) */
+  /* X2 = X*Mfix */
   Torig_tkreg  = MRIxfmCRS2XYZtkreg(mriorig);
   Torig_native = MRIxfmCRS2XYZ(mriorig,0);
   invTorig_tkreg = MatrixInverse(Torig_tkreg,NULL);
