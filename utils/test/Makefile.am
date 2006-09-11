@@ -52,8 +52,6 @@ test_mriio_SOURCES=test_mriio.cpp
 #test_matrix_SOURCES=../nr_wrapper_open_source.cpp test_matrix.cpp
 sc_test_SOURCES=sc_test.c
 
-#LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
-
 #mris_thickness_diff_LDFLAGS=$(OS_LDFLAGS)
 
 #mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib

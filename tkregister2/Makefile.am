@@ -10,9 +10,9 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
 AM_LDFLAGS= $(LDFLAGS_TCL)
 
 if ENABLE_TCLTK_APPS
-	bin_PROGRAMS = tkregister2
+bin_PROGRAMS = tkregister2
 else
-	bin_PROGRAMS =
+bin_PROGRAMS =
 endif
 tkregister2_SOURCES=tkregister2.c
 tkregister2_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \

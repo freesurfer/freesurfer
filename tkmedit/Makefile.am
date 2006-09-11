@@ -9,9 +9,9 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
 AM_LDFLAGS=$(LDFLAGS_TCL)
 
 if ENABLE_TCLTK_APPS
-  bin_PROGRAMS = tkmedit
+bin_PROGRAMS=tkmedit
 else
-  bin_PROGRAMS = 
+bin_PROGRAMS=
 endif
 tkmedit_SOURCES=tkmedit.c \
 	tkmDisplayArea.c \
