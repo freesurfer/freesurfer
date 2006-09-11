@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.14 2006/05/17 23:01:00 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.15 2006/09/11 00:32:25 nicks Exp $'
 
 set inputargs = ($argv);
 
@@ -372,9 +372,9 @@ if(! $flat ) then
   endif
 else
   if(! $rtopy) then
-    set tclcmd0 = twocond-flat.tcl
+    set tclcmd0 = $FREESURFER_HOME/lib/tcl/twocond-flat.tcl
   else
-    set tclcmd0 = $rtopymode-flat.tcl
+    set tclcmd0 = $FREESURFER_HOME/lib/tcl/$rtopymode-flat.tcl
   endif
   if($#usertcl != 0) then
     set tclcmd = /tmp/surf-sess-$$.tcl
