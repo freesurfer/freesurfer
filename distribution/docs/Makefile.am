@@ -4,18 +4,14 @@
 # licence files should be copied over to the install directory
 foodir=$(prefix)/docs
 foo_DATA=license.freesurfer \
-	citation.minc \
 	copywrite.minc \
 	license.minc \
-	registration.notes \
-	license.mesa \
 	license.fsl \
-	license.gnu \
 	license.tcltk \
-	license.html_lib \
 	license.tix \
-	license.afni \
-	license.slicer
+	license.slicer \
+	license.swig \
+	license.vxl
 
 EXTRA_DIST=$(foo_DATA)
 
