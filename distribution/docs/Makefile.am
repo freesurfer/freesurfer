@@ -9,8 +9,7 @@ foo_DATA=license.freesurfer \
 	license.tcltk \
 	license.tix \
 	license.slicer \
-	license.swig \
-	license.vxl
+	license.swig
 
 EXTRA_DIST=$(foo_DATA)
 
