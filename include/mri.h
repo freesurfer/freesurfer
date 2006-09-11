@@ -127,15 +127,18 @@ typedef struct
 	double outside_val ; // 0 by default, but could be something else
 } MRI_IMAGE, MRI ;
 
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
-MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
-MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R);
-MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);
-MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
-MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat);
-MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);
+MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); // Native Vox2RAS Matrix (scanner and xfm too)
+MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);      // TkReg  Vox2RAS Matrix
+
+MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R); // tkreg2native (scanner and xfm too)
+MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);     // native2tkreg (scanner and xfm too)
+
+MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat); // fsl2tkreg
+MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);  // tkreg2fsl
+
 MATRIX *MtxCRS1toCRS0(MATRIX *Q);
 int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0);
+MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
