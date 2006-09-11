@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.214 2006/09/08 23:57:02 nicks Exp $"
+# "$Id: configure.in,v 1.215 2006/09/11 00:03:14 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -390,15 +390,13 @@ AC_SUBST(pkgs_includes)
 AC_SUBST(pkgs_libraries)
 
 
-AC_MSG_NOTICE([Checking directories for necesary 3rd-party libraries...])
-
+AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 
 #############################################################
 # MNI
 #############################################################
 ac_mni_includes=NO
 ac_mni_libraries=NO
-ac_mni_bindir=NO
 MNI_CFLAGS=""
 MNI_LIBS=""
 AC_MSG_CHECKING(MNI directory)
@@ -407,7 +405,6 @@ AC_ARG_WITH(mni-dir,
 [  --with-mni-dir=DIR      where the root of MNI is installed.],
   [  ac_mni_includes="$withval"/include
      ac_mni_libraries="$withval"/lib
-     ac_mni_bindir="$withval"/bin
   ])
 
 if test ! "$ac_mni_includes" = "NO"; then
@@ -416,6 +413,7 @@ if test ! "$ac_mni_includes" = "NO"; then
 else
   AC_MSG_RESULT(MNI directory is not supplied)
 fi
+
 if test ! "$ac_mni_libraries" = "NO"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
@@ -442,14 +440,14 @@ AC_ARG_WITH(vxl-dir,
   ])
 
 if test ! "$ac_vxl_includes" = "NO"; then
-  AC_MSG_RESULT(vxl directory is $withval)
+  AC_MSG_RESULT(VXL directory is $withval)
   for item in $ac_vxl_includes; do
         VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
   done
   VXL_DIR=$ac_vxl_dir
   AC_SUBST(VXL_DIR)
 else
-  AC_MSG_RESULT(vxl directory is not supplied)
+  AC_MSG_RESULT(VXL directory is not supplied)
 fi
 
 if test ! "$ac_vxl_libraries" = "NO"; then
@@ -463,53 +461,30 @@ AC_SUBST(VXL_LIBS)
 #####################################################
 # Tcl/Tk
 ####################################################
-AC_MSG_NOTICE(Tcl/Tk directory)
-ac_enable_tcltk_apps=false
-################# apple
-AC_ARG_WITH([apple-tcl-framework],
-      [AC_HELP_STRING([--with-apple-tcl-framework])])
-if test "X$with_apple_tcl_framework" = "Xyes"; then
-  AC_MSG_ERROR([FATAL: tkmedit/tksurfer needs BLT. \
-No Aqua version of BLT exists yet.])
-#  AC_MSG_NOTICE([Apple framework way...])
-#  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
-#            [Use the Apple Tcl framework,])
-#  TCL_CFLAGS="-framework Tcl -framework Tk"
-#  TCL_LIBS="-L/Library/Tcl/Tix8.4"
-#  LIBS_TCL="-lTix8.4"
-else
-################## other cases
-# here are uni*es
-  ac_tcl_includes="NO"
-  ac_tcl_libraries="NO"
-  ac_tcl_bindir="NO"
-  TCL_CFLAGS=""
-  TCL_LIBS=""
+ac_tcl_includes="NO"
+ac_tcl_libraries="NO"
+TCL_CFLAGS=""
+TCL_LIBS=""
 
-  AC_ARG_WITH(tcl-dir,
+AC_MSG_CHECKING(Tcl/Tk directory)
+AC_ARG_WITH(tcl-dir,
 [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
-    [  ac_tcl_includes="$withval"/include
-       ac_tcl_libraries="$withval"/lib
-       ac_tcl_bindir="$withval"/bin
-       ac_enable_tcltk_apps=true
-    ])
+  [  ac_tcl_includes="$withval"/include
+     ac_tcl_libraries="$withval"/lib
+  ])
 
-  if test ! "$ac_tcl_includes" = "NO"; then
-    AC_MSG_RESULT([Tcl directory is $withval])
-    TCL_CFLAGS=-I$ac_tcl_includes
-  else
-    AC_MSG_RESULT([Tcl directory is not supplied])
-  fi
-
-  if test ! "$ac_tcl_libraries" = "NO"; then
-    TCL_LIBS=-L$ac_tcl_libraries
-  fi
-
-  TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
+if test ! "$ac_tcl_includes" = "NO"; then
+  AC_MSG_RESULT([Tcl directory is $withval])
+  TCL_CFLAGS=-I$ac_tcl_includes
+else
+  AC_MSG_RESULT([Tcl directory is not supplied. Not building Tcl/Tk apps.])
 fi
-###### end of uni*es
 
-AM_CONDITIONAL(ENABLE_TCLTK_APPS, test "x$ac_enable_tcltk_apps" = "xtrue")
+if test ! "$ac_tcl_libraries" = "NO"; then
+  TCL_LIBS=-L$ac_tcl_libraries
+fi
+
+AM_CONDITIONAL(ENABLE_TCLTK_APPS, test ! "x$ac_tcl_libraries" = "xNO")
 
 AC_SUBST(TCL_CFLAGS)
 AC_SUBST(TCL_LIBS)
@@ -568,6 +543,8 @@ if test ! "$ac_blt_libraries" = "NO"; then
   BLT_LIBS=-L$ac_blt_libraries
 fi
 
+TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
+AC_SUBST(TCL_CFLAGS)
 AC_SUBST(BLT_CFLAGS)
 AC_SUBST(BLT_LIBS)
 
@@ -673,7 +650,6 @@ AM_CONDITIONAL(USE_SC_GSL_REPLACEMENT, test "x$ac_gsl_libraries" = "xNO")
 ################################################################
 ac_qt_includes="NO"
 ac_qt_libraries="NO"
-ac_qt_bindir="NO"
 ac_qt_dir="NO"
 QT_CFLAGS=""
 QT_LIBS=""
@@ -684,7 +660,6 @@ AC_ARG_WITH(qt-dir,
   [  --with-qt-dir=DIR       where the root of Qt is installed.],
   [  ac_qt_includes="$withval"/include
      ac_qt_libraries="$withval"/lib
-     ac_qt_bindir="$withval"/bin
      ac_qt_dir="$withval"
   ])
 
@@ -694,7 +669,7 @@ if test ! "$ac_qt_includes" = "NO"; then
   QTDIR=$ac_qt_dir
   AC_SUBST(QTDIR)
 else
-  AC_MSG_RESULT(Qt directory is not supplied)
+  AC_MSG_RESULT(Qt directory is not supplied. Not building Qt apps.)
 fi
 if test ! "$ac_qt_libraries" = "NO"; then
   QT_LIBS=-L$ac_qt_libraries
@@ -784,7 +759,7 @@ AC_ARG_WITH(vtk-dir,
   ])
 
 if test ! "$ac_vtk_includes" = "NO"; then
-  AC_MSG_RESULT(vtk directory is $withval)
+  AC_MSG_RESULT(VTK directory is $withval)
   for item in $ac_vtk_includes; do
         VTK_CFLAGS="${VTK_CFLAGS} -I${item}"
         VTK_CXXFLAGS="${VTK_CXXFLAGS} -I${item}"
@@ -792,7 +767,7 @@ if test ! "$ac_vtk_includes" = "NO"; then
   VTK_DIR=$ac_vtk_dir
   AC_SUBST(VTK_DIR)
 else
-  AC_MSG_RESULT(vtk directory is not supplied)
+  AC_MSG_RESULT(VTK directory is not supplied. Not building VTK apps.)
 fi
 
 if test ! "$ac_vtk_libraries" = "NO"; then
@@ -1067,7 +1042,7 @@ if test ! "$ac_gsl_libraries" = "NO"; then
 fi
 
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
-if test "x$ac_enable_tcltk_apps" = "xtrue"; then
+if test ! "x$ac_tcl_libraries" = "xNO"; then
   ################## Tcl
   # check tcl8.4
   AC_CHECK_LIB([tcl8.4],[Tcl_Init],
@@ -1203,7 +1178,7 @@ AC_SUBST(LIBS)
 
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
-if test "x$ac_enable_tcltk_apps" = "xtrue"; then
+if test ! "x$ac_tcl_libraries" = "xNO"; then
   if ! test "$LIB_TCL" = "-ltcl8.4"; then
     AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
   fi
