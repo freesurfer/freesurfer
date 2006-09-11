@@ -58,6 +58,7 @@ map_all_labels-lh \
 map_central_sulcus \
 minc2seqinfo \
 mkfsdist \
+mkheadsurf \
 mkima_index.tcl \
 mkmnc_index.tcl \
 mksubjdirs \
