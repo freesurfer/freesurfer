@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/09 04:05:44 $
-// Revision       : $Revision: 1.355 $
-char *MRI_C_VERSION = "$Revision: 1.355 $";
+// Revision Date  : $Date: 2006/09/11 22:40:08 $
+// Revision       : $Revision: 1.356 $
+char *MRI_C_VERSION = "$Revision: 1.356 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -67,7 +67,8 @@ static long mris_alloced = 0 ;
 /*----------------------------------------------------------
   MRIxfmCRS2XYZ() - computes the matrix needed to compute the
   XYZ of the center of a voxel at a given Col, Row, and Slice
-  from the native geometry of the volume
+  from the native geometry of the volume (ie, native or scanner 
+  Vox2RAS matrix).
 
   x         col
   y  = T *  row
@@ -233,15 +234,16 @@ MATRIX *extract_r_to_i(MRI *mri)
   return(m_ras_to_voxel) ;
 }
 /*-------------------------------------------------------------
-  MRIxfmCRS2XYZtkreg() - computes the linear transform between the
-  column, row, and slice of a voxel and the x, y, z of that voxel as
-  expected by tkregister (or for when using a tkregister compatible
-  matrix). For tkregister, the column DC points in the "x" direction,
-  the row DC points in the "z" direction, and the slice DC points in
-  the "y" direction. The center of the coordinates is set to the
-  center of the FOV. These definitions are arbitrary (and more than a
-  little confusing). Since they are arbitrary, they must be applied
-  consistently. See also: surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
+  MRIxfmCRS2XYZtkreg() - computes the TkReg vox2ras, ie, linear
+  transform between the column, row, and slice of a voxel and the x,
+  y, z of that voxel as expected by tkregister (or for when using a
+  tkregister compatible matrix). For tkregister, the column DC points
+  in the "x" direction, the row DC points in the "z" direction, and
+  the slice DC points in the "y" direction. The center of the
+  coordinates is set to the center of the FOV. These definitions are
+  arbitrary (and more than a little confusing). Since they are
+  arbitrary, they must be applied consistently. See also:
+  surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
 {
@@ -268,15 +270,13 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   return(K);
 }
 /*-------------------------------------------------------------------
-  MRItkReg2Native() - converts a tkregister-compatible registration matrix
-  R to one that works with the geometry native to the two volumes. The
-  matrix R maps tkXYZ of the ref volume to tkXYZ of the mov volume. In
-  a typical application, ref is the anatomical volume and mov is the
-  functional volume. The purpose of this function is to be able to use
-  registration matrices computed by (or compatible with) tkregister
-  without losing the geometries native to the volumes. If R is null,
-  it is assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
-  Ref is the Anatomical Reference, and Mov is the functional.
+  MRItkReg2Native() - converts a tkregister-compatible registration
+  matrix R to one that works with the native/scanner/xfm geometry. Use
+  this function to convert from a MINC XFM to a TkReg. Note that there
+  is a reversal in direction here as the tkreg R maps from Ref RAS to
+  the Mov RAS, whereas the native D goes from Mov to Ref.  If R is
+  null, it is assumed to be the identity.  In a typical application,
+  ref is the anatomical volume and mov is the functional volume.
 
   See also: MRItkRegMtx, MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
   -------------------------------------------------------------------*/
@@ -286,13 +286,14 @@ MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
   MATRIX *Tref, *Tmov, *D;
   MATRIX *invKmov, *invTref;
 
-  Tref = MRIxfmCRS2XYZ(ref,0);
-  Tmov = MRIxfmCRS2XYZ(mov,0);
+  Tref = MRIxfmCRS2XYZ(ref,0); // Ref Native Vox2RAS
+  Tmov = MRIxfmCRS2XYZ(mov,0); // Mov Native Vox2RAS
 
-  Kref = MRIxfmCRS2XYZtkreg(ref);
-  Kmov = MRIxfmCRS2XYZtkreg(mov);
+  Kref = MRIxfmCRS2XYZtkreg(ref); // Ref TkReg Vox2RAS
+  Kmov = MRIxfmCRS2XYZtkreg(mov); // Mov TkReg Vox2RAS
 
-  /* D = Tmov * inv(Kmov) * R * Kref *inv(Tref) */
+  // D = Tref * inv(Kref) * inv(R) * Kmov * inv(Tmov)
+  //   = inv( Tmov * inv(Kmov) * R * Kref * inv(Tref) )
   invKmov = MatrixInverse(Kmov,NULL);
   invTref = MatrixInverse(Tref,NULL);
 
@@ -300,6 +301,7 @@ MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
   if(R!=NULL) MatrixMultiply(D,R,D);
   MatrixMultiply(D,Kref,D);
   MatrixMultiply(D,invTref,D);
+  MatrixInverse(D,D);
 
   if(0) {
     printf("MRITkReg2Native -----------------------------\n");
@@ -325,33 +327,40 @@ MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
 }
 /*----------------------------------------------------------------
   MRItkRegMtx() - creates a tkregsiter-compatible matrix from the
-  matrix D that aligns the two volumes assuming the native geometry.
-  This is the counterpart to MRITkReg2Native(). If D is null, it is
-  assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
-  Ref is the Anatomical Reference, and Mov is the functional.
-  Use this function with D=NULL when the two volumes have been
-  aligned with SPM.
+  matrix D that aligns the two volumes assuming the native/scanner/xfm
+  geometry.  Use this function to convert from a TkReg to a MINC XFM.
+  Note that there is a reversal in direction here as the tkreg R maps
+  from Ref RAS to the Mov RAS, whereas the native D goes from Mov to
+  Ref.  If D was created from running minc_tracc, then Ref should be
+  the target volume and Mov should be the source volume. This is the
+  counterpart to MRITkReg2Native(). If D is null, it is assumed to be
+  the identity. This function could have been called
+  MRInative2TkReg().
   ---------------------------------------------------------------*/
 MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
 {
   MATRIX *Kref, *Kmov;
   MATRIX *Tref, *Tmov, *R;
-  MATRIX *invTmov, *invKref;
+  MATRIX *invTmov, *invKref, *invD;
 
   /* Native Goemetry */
-  Tref = MRIxfmCRS2XYZ(ref,0);
-  Tmov = MRIxfmCRS2XYZ(mov,0);
+  Tref = MRIxfmCRS2XYZ(ref,0);  // Ref Native/Scanner/XFM vox2ras
+  Tmov = MRIxfmCRS2XYZ(mov,0);  // Mov Native/Scanner/XFM vox2ras
 
   /* TkReg Goemetry */
-  Kref = MRIxfmCRS2XYZtkreg(ref);
-  Kmov = MRIxfmCRS2XYZtkreg(mov);
+  Kref = MRIxfmCRS2XYZtkreg(ref); // Ref TkReg vox2ras
+  Kmov = MRIxfmCRS2XYZtkreg(mov); // Mov TkReg vox2ras
 
   invTmov = MatrixInverse(Tmov,NULL);
   invKref = MatrixInverse(Kref,NULL);
 
-  /* R = Kmov * inv(Tmov) * D * Tref *inv(Kref) */
+  // R = Kmov * inv(Tmov) * inv(D) * Tref * inv(Kref)
   R = MatrixMultiply(Kmov,invTmov,NULL);
-  if(D != NULL) MatrixMultiply(R,D,R);
+  if(D != NULL) {
+    invD = MatrixInverse(D,NULL);
+    MatrixMultiply(R,invD,R);
+    MatrixFree(&invD);
+  }
   MatrixMultiply(R,Tref,R);
   MatrixMultiply(R,invKref,R);
 
@@ -583,8 +592,9 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
   MATRIX *Qmov,*Qref;
   char *FSLOUTPUTTYPE=NULL;
 
-  /* R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) */
-  /* Mfsl =  inv( Dmov * inv(Tmov) * R * Tref * inv(Dref)) */
+  // R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) 
+  // Mfsl = Dref * inv(Tref) * inv(R) * Tmov * inv(Dmov) 
+  //      = inv( Dmov * inv(Tmov) * R * Tref * inv(Dref) )
   Dmov = MatrixAlloc(4,4,MATRIX_REAL);
   Dmov->rptr[1][1] = mov->xsize;
   Dmov->rptr[2][2] = mov->ysize;
