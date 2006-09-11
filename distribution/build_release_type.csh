@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.67 2006/09/04 13:50:12 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.68 2006/09/11 22:40:30 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -397,6 +397,35 @@ if ($status != 0) then
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
+endif
+
+
+#
+# make check (run available unit tests)
+######################################################################
+#
+if ("${RELEASE_TYPE}" == "dev") then
+  echo "########################################################" >>& $OUTPUTF
+  echo "Make check $DEV_DIR" >>& $OUTPUTF
+  echo "" >>& $OUTPUTF
+  echo "CMD: make check" >>& $OUTPUTF
+  make check >>& $OUTPUTF
+  if ($status != 0) then
+    # note: /usr/local/freesurfer/dev/bin/ dirs have not 
+    # been modified (bin/ gets written after make install)
+    set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
+    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    touch ${FAILED_FILE}
+    chmod g+w ${FAILED_FILE}
+    # set group write bit on files changed by make tools:
+    echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
+    chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
+    echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
+    chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+    chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+    exit 1  
+  endif
 endif
 
 
