@@ -8,8 +8,10 @@
  * 
  */
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[])
 {
   printf("just a sample program.\n");
+  exit(0);
 }
