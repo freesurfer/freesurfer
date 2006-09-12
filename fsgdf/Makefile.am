@@ -9,7 +9,8 @@ libfsgdf_a_SOURCES = fsgdf.c
 
 check_PROGRAMS=test
 test_SOURCES=test.c fsgdf_wrap.c
-test_LDADD=-ltcl libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+test_LDFLAGS=$(LDFLAGS_TCL)
+test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
 TESTS=test
 
 
