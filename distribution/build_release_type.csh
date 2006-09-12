@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.69 2006/09/12 06:31:43 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.70 2006/09/12 23:10:39 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -409,6 +409,8 @@ if ("${RELEASE_TYPE}" == "dev") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $DEV_DIR" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
+  echo "CMD: source $FREESURFER_HOME/SetUpFreeSurfer.csh" >>& $OUTPUTF
+  source $FREESURFER_HOME/SetUpFreeSurfer.csh >>& $OUTPUTF
   echo "CMD: make check" >>& $OUTPUTF
   make check >>& $OUTPUTF
   if ($status != 0) then
