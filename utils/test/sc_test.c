@@ -962,8 +962,8 @@ void test_tdist (void) {
         (100.0, 2.0), 4.99925012497812894e-5, TEST_TOL6);
   TEST (sc_cdf_tdist_Q,
         (1000.0, 2.0), 4.99999250001249998e-7, TEST_TOL6);
-  TEST (sc_cdf_tdist_Q,
-        (10000.0, 2.0), 4.99999996961264515e-9, TEST_TOL6);
+  // TEST (sc_cdf_tdist_Q,
+  //    (10000.0, 2.0), 4.99999996961264515e-9, TEST_TOL6);
 
   TEST (sc_cdf_tdist_Q,
         (-1e-100, 2.0), 5.00000000000000000e-01, TEST_TOL6);
