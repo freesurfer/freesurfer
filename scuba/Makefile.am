@@ -197,7 +197,7 @@ scuba2_CXXFLAGS=-DQT_SHARED \
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
 
-check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
+foo_TESTS= testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
 	testShortestPathFinder testToglManager testDataManager \
 	testTclCommandManager testPreferencesManager testUndoManager \
@@ -211,7 +211,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
-TESTS=$(check_PROGRAMS) 
+#check_PROGRAMS=$(foo_TESTS) 
 
 ## Test programs.
 testIDTracker_SOURCES=test_IDTracker.cpp \
