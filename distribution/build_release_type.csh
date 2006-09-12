@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.68 2006/09/11 22:40:30 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.69 2006/09/12 06:31:43 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -336,8 +336,9 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
   # public build doesn't get the extra special stuff
   set ENAB_NMR=""
 endif
+setenv FREESURFER_HOME $DEST_DIR
 set cnfgr=(./configure)
-set cnfgr=($cnfgr --prefix=${DEST_DIR})
+set cnfgr=($cnfgr --prefix=${FREESURFER_HOME})
 set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
 set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
