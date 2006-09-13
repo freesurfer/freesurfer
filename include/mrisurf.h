@@ -412,6 +412,9 @@ typedef struct
   float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
   float   l_expandwrap ;      /* move out */
   float   l_unfold ;          /* move inwards along normal */
+  float   l_dura ;            // move away from dura
+  double  dura_thresh ;
+  MRI     *mri_dura ;         // ratio of early to late echo - dura shows up bright
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -819,7 +822,9 @@ int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
 int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
 
-int          MRISwriteArea(MRI_SURFACE *mris, char *mris_fname) ;
+int          MRISwriteArea(MRI_SURFACE *mris, char *sname) ;
+int          MRISwriteMarked(MRI_SURFACE *mris, char *sname) ;
+int          MRISmarkedToCurv(MRI_SURFACE *mris) ;
 
 #include "label.h"
 double       MRISParea(MRI_SP *mrisp) ;
@@ -1004,12 +1009,14 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               double sigma,
                               float max_dist,
                               FILE *log_fp,
-                              int white);
+                              int white,
+                              MRI *mri_mask, double thresh);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                   MRI *mri_smooth, float gray_surface);
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
+int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
 int  MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname) ;
 int  MRISripFaces(MRI_SURFACE *mris) ;
@@ -1205,6 +1212,7 @@ typedef struct
 	int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
 	int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
 	int        nlinks ;
+	double     p ;            // p-value for user to fill in
 } VERTEX_INFO ;
 
 typedef struct
@@ -1417,6 +1425,12 @@ int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
+
+int MRISopenMarked(MRI_SURFACE *mris, int order) ;
+int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
+int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
+int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+
 int MRIScomputeClassStatistics(MRI_SURFACE *mris, 
 			       MRI *mri, 
 			       float *pwhite_mean, 
@@ -1435,6 +1449,8 @@ int MRISrasToVoxel(MRI_SURFACE *mris,
 int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
 int MRISripMedialWall(MRI_SURFACE *mris) ;
+int MRISripMarked(MRI_SURFACE *mris) ;
+int MRISripUnmarked(MRI_SURFACE *mris) ;
 int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) ;
 int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, 
 				  MRI *mri, 
