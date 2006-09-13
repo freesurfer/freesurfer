@@ -2081,11 +2081,6 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
 
-  // Don't set if we're already using this one.
-  if( NULL != mDataToWorldTransform &&
-      iTransformID == mDataToWorldTransform->GetID() )
-    return;
-
   DataCollection::SetDataToWorldTransform( iTransformID );
   CalcWorldToIndexTransform();
 }
@@ -2480,7 +2475,7 @@ VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
   for( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
        ++tLocation ) {
 
-    VolumeLocation loc = *tLocation;
+    VolumeLocation& loc = *tLocation;
     sumValue += GetMRINearestValue( loc );
   }
 
@@ -2520,7 +2515,7 @@ VolumeCollection::GetStandardDeviation ( list<VolumeLocation>& ilLocations,
   for( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
        ++tLocation ) {
 
-    VolumeLocation loc = *tLocation;
+    VolumeLocation& loc = *tLocation;
     float value = GetMRINearestValue( loc );
     float deviation = (value - iMean) * (value - iMean);
     sumDeviation += deviation;
