@@ -351,7 +351,7 @@ MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, M
 GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
 int free_gcs(GC1D *gcs, int nlabels, int ninputs) ;
 int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform) ;
-extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label ;
+extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label, Gxp, Gyp, Gzp ;
 extern char *G_write_probs ;
 MRI *GCAmarkImpossible(GCA *gca, MRI *mri_labeled, MRI *mri_dst, TRANSFORM *transform) ;
 int GCAclassMode(GCA *gca, int class, float *modes) ;
