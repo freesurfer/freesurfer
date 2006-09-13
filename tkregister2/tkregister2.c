@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $";
+"$Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -932,6 +932,10 @@ static int parse_commandline(int argc, char **argv)
       sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
       targ_vol_id = strcpyalloc(tmpstr);
     }
+    else if (stringmatch(option, "--fsl-targ-lr")){
+      sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked.img",getenv("FSLDIR"));
+      targ_vol_id = strcpyalloc(tmpstr);
+    }
     else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ; 
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ; 
     else if (stringmatch(option, "--targ")){
@@ -1157,6 +1161,7 @@ static void print_usage(void)
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
+  printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
   printf("   --mov  movable volume  <fmt> \n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --movbright  f : brightness of movable volume\n");
@@ -4099,7 +4104,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.62 2006/09/11 22:47:59 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
