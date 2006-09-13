@@ -17,12 +17,18 @@ typedef struct
   Real   origx ;      //  mri original src voxel position (using lta)
   Real   origy ;
   Real   origz ;
+  Real   saved_origx ;      //  mri original src voxel position (using lta)
+  Real   saved_origy ;
+  Real   saved_origz ;
   Real   x ;          //  updated original src voxel position
   Real   y ;
   Real   z ;
   Real   xs ;         //  not saved
   Real   ys ;
   Real   zs ;
+  Real   xs2 ;         //  more tmp storage
+  Real   ys2 ;
+  Real   zs2 ;
   int    xn ;         /* node coordinates */
   int    yn ;         //  prior voxel position
   int    zn ;
@@ -66,6 +72,8 @@ typedef struct
 	int     type ;  
 	int     status ;
   VOL_GEOM src;
+  MATRIX   *m_affine ;         // affine transform to initialize with
+  double   det ;               // determinant of affine transform
 } GCA_MORPH, GCAM ;
 
 typedef struct
@@ -93,6 +101,7 @@ typedef struct
 {
   int    write_iterations ;
   double dt ;
+  double orig_dt ;
   float  momentum ;
   int    niterations ;
   char   base_name[STRLEN] ;
@@ -103,11 +112,13 @@ typedef struct
   double l_smoothness ;
   double l_lsmoothness ;
   double l_distance ;
+  double l_expansion ;
   double l_label ;
 	double l_binary ;
   double l_map ;
 	double l_area_intensity;
 	double l_spring ;
+  double l_area_smoothness;
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -221,6 +232,8 @@ int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
 int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) ;
+int GCAMmatchVentricles(GCA_MORPH *gcam, MRI *mri_inputs) ;
+int GCAMdeformVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 
 #define MAX_LTT_LABELS 1000
 typedef struct
@@ -233,10 +246,13 @@ typedef struct
 } GCAM_LABEL_TRANSLATION_TABLE ;
 MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensities,
 												GCAM_LABEL_TRANSLATION_TABLE *gcam_ltt) ;
-#define ORIGINAL_POSITIONS  0
-#define ORIG_POSITIONS      ORIGINAL_POSITIONS
-#define SAVED_POSITIONS     1
-#define CURRENT_POSITIONS   2
+#define ORIGINAL_POSITIONS        0
+#define ORIG_POSITIONS            ORIGINAL_POSITIONS
+#define SAVED_POSITIONS           1
+#define CURRENT_POSITIONS         2
+#define SAVED_ORIGINAL_POSITIONS  3
+#define SAVED_ORIG_POSITIONS      SAVED_ORIGINAL_POSITIONS
+#define SAVED2_POSITIONS          4
 
 #define GCAM_INTEGRATE_OPTIMAL 0
 #define GCAM_INTEGRATE_FIXED   1
