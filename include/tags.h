@@ -18,6 +18,8 @@
 #define TAG_MGH_XFORM               31
 #define TAG_GROUP_AVG_SURFACE_AREA  32
 
+#define TAG_SCALAR_DOUBLE           40
+
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
 int TAGwriteEnd(FILE *fp, long long there) ;
