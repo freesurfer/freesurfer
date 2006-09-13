@@ -1517,7 +1517,8 @@ static MRI *corRead(char *fname, int read_volume)
     printf("%g, %g, %g\n", z_r, z_a, z_s);
   */
   if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 \
-     && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0)
+     && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0 &&
+     Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     {
       fprintf(stderr,
               "----------------------------------------------------\n"
@@ -4019,14 +4020,15 @@ static MRI *get_b_info
     }
   else{ 
     /* ----- get defaults ----- */
-    fprintf
-      (stderr,
-       "-----------------------------------------------------------------\n"
-       "Could not find the direction cosine information.\n"
-       "Will use the CORONAL orientation.\n"
-       "If not suitable, please provide the information in %s file\n"
-       "-----------------------------------------------------------------\n",
-       bhdr_name);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf
+        (stderr,
+         "-----------------------------------------------------------------\n"
+         "Could not find the direction cosine information.\n"
+         "Will use the CORONAL orientation.\n"
+         "If not suitable, please provide the information in %s file\n"
+         "-----------------------------------------------------------------\n",
+         bhdr_name);
     sprintf(fname, "%s/%s_000.hdr", directory, stem);
     if((fp = fopen(fname, "r")) == NULL){
       MRIfree(&mri);
@@ -11461,8 +11463,8 @@ mghRead(char *fname, int read_volume, int frame)
       strcpy(command, "zcat ");
 #endif
       if(!fio_FileExistsReadable(fname)){
-	printf("ERROR: cannot find %s\n",fname);
-	return(NULL);
+        printf("ERROR: cannot find %s\n",fname);
+        return(NULL);
       }
       strcat(command, fname);
 
@@ -11488,23 +11490,23 @@ mghRead(char *fname, int read_volume, int frame)
       myclose = fclose; // assign function pointer for closing
       fp = fopen(fname, "rb") ;
       if (!fp)
-        {
-          errno = 0;
-          ErrorReturn
-            (NULL,
-             (ERROR_BADPARM,
-	      "mghRead(%s, %d): could not open file",
-              fname, frame)) ;
-        }
+      {
+        errno = 0;
+        ErrorReturn
+          (NULL,
+           (ERROR_BADPARM,
+            "mghRead(%s, %d): could not open file",
+            fname, frame)) ;
+      }
     }
   }
 
   // sanity-check that a file was actually opened
   if (!fp)
     ErrorReturn(NULL,(ERROR_BADPARM,
-		      "mghRead(%s, %d): could not open file.\n"
-		      "Filename extension must be .mgh, .mgh.gz or .mgz",
-		      fname, frame));
+                      "mghRead(%s, %d): could not open file.\n"
+                      "Filename extension must be .mgh, .mgh.gz or .mgz",
+                      fname, frame));
 
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
@@ -11602,48 +11604,48 @@ mghRead(char *fname, int read_volume, int frame)
               fname, bytes, z)) ;
         }
         switch (type)
+        {
+        case MRI_INT:
+          for (i = y = 0 ; y < height ; y++)
           {
-          case MRI_INT:
-            for (i = y = 0 ; y < height ; y++)
-              {
-                for (x = 0 ; x < width ; x++, i++)
-                  {
-                    ival = orderIntBytes(((int *)buf)[i]) ;
-                    MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
-                  }
-              }
-            break ;
-          case MRI_SHORT:
-            for (i = y = 0 ; y < height ; y++)
-              {
-                for (x = 0 ; x < width ; x++, i++)
-                  {
-                    sval = orderShortBytes(((short *)buf)[i]) ;
-                    MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
-                  }
-              }
-            break ;
-          case MRI_TENSOR:
-          case MRI_FLOAT:
-            for (i = y = 0 ; y < height ; y++)
-              {
-                for (x = 0 ; x < width ; x++, i++)
-                  {
-                    fval = orderFloatBytes(((float *)buf)[i]) ;
-                    MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
-                  }
-              }
-            break ;
-          case MRI_UCHAR:
-            local_buffer_to_image(buf, mri, z, frame-start_frame) ;
-            break ;
-          default:
-            errno = 0;
-            ErrorReturn(NULL,
-                        (ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
-                         mri->type)) ;
-            break ;
+            for (x = 0 ; x < width ; x++, i++)
+            {
+              ival = orderIntBytes(((int *)buf)[i]) ;
+              MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
+            }
           }
+          break ;
+        case MRI_SHORT:
+          for (i = y = 0 ; y < height ; y++)
+          {
+            for (x = 0 ; x < width ; x++, i++)
+            {
+              sval = orderShortBytes(((short *)buf)[i]) ;
+              MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
+            }
+          }
+          break ;
+        case MRI_TENSOR:
+        case MRI_FLOAT:
+          for (i = y = 0 ; y < height ; y++)
+          {
+            for (x = 0 ; x < width ; x++, i++)
+            {
+              fval = orderFloatBytes(((float *)buf)[i]) ;
+              MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
+            }
+          }
+          break ;
+        case MRI_UCHAR:
+          local_buffer_to_image(buf, mri, z, frame-start_frame) ;
+          break ;
+        default:
+          errno = 0;
+          ErrorReturn(NULL,
+                      (ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
+                       mri->type)) ;
+          break ;
+        }
       }
     }
     if (buf) free(buf) ;
@@ -11673,28 +11675,29 @@ mghRead(char *fname, int read_volume, int frame)
       mri->ras_good_flag = 1 ;
   }
   else{
-    fprintf
-      (stderr,
-       "-----------------------------------------------------------------\n"
-       "Could not find the direction cosine information.\n"
-       "Will use the CORONAL orientation.\n"
-       "If not suitable, please provide the information in %s.\n"
-       "-----------------------------------------------------------------\n",
-       fname
-       );
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf
+        (stderr,
+         "-----------------------------------------------------------------\n"
+         "Could not find the direction cosine information.\n"
+         "Will use the CORONAL orientation.\n"
+         "If not suitable, please provide the information in %s.\n"
+         "-----------------------------------------------------------------\n",
+         fname
+         );
     setDirectionCosine(mri, MRI_CORONAL);
   }
   // read TR, Flip, TE, TI, FOV
   if (freadFloatEx(&(mri->tr), fp)){
     if (freadFloatEx(&fval, fp))
-      {
-        mri->flip_angle = fval;
-        // flip_angle is double. I cannot use the same trick.
-        if (freadFloatEx(&(mri->te), fp))
-          if (freadFloatEx(&(mri->ti), fp))
-            if (freadFloatEx(&(mri->fov), fp))
-              ;
-      }
+    {
+      mri->flip_angle = fval;
+      // flip_angle is double. I cannot use the same trick.
+      if (freadFloatEx(&(mri->te), fp))
+        if (freadFloatEx(&(mri->ti), fp))
+          if (freadFloatEx(&(mri->fov), fp))
+            ;
+    }
   }
   // tag reading
   {
@@ -11707,8 +11710,8 @@ mghRead(char *fname, int read_volume, int frame)
       case TAG_OLD_MGH_XFORM:
       case TAG_MGH_XFORM:
 
-	// First, try a path relative to fname (not the abs path)
-	fnamedir = fio_dirname(fname);
+        // First, try a path relative to fname (not the abs path)
+        fnamedir = fio_dirname(fname);
         sprintf(tmpstr,"%s/transforms/talairach.xfm",fnamedir);
         fgets(mri->transform_fname, len+1, fp);
         // If this file exists, copy it to transform_fname
@@ -11742,7 +11745,7 @@ mghRead(char *fname, int read_volume, int frame)
                   "Can't find the talairach xform '%s'\n",
                   mri->transform_fname);
           fprintf(stderr, "Transform is not loaded into mri\n");
-	  // should we do something to transform_fname?
+          // should we do something to transform_fname?
         }
         break ;
 
