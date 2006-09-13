@@ -31,13 +31,14 @@ static char *mlog_fname = NULL ; //mean of individual dice
 static char *slog_fname = NULL ; //std of individual dice
 static char *olog_fname = NULL ; //overall dice for subcortical structures
 
-static int num_labels  = 24;
-static int labels_of_interest[24] = {2, 41, 3, 42,
+static const int num_labels  = 24;
+static const int labels_of_interest[24] = {2, 41, 3, 42,
                                      4, 43, 17, 53,
                                      10, 49, 11, 50,
                                      12, 51, 13, 52,
                                      18, 54, 26, 58,
                                      14, 15, 5, 44};
+
 /* maximum number of classes */
 #define MAX_CLASSES 256
 
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.2 2006/08/24 18:22:01 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.3 2006/09/13 23:26:00 nicks Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
@@ -127,6 +128,10 @@ int main(int argc, char *argv[])
           v2 = (int) MRIgetVoxVal(mri_seg2,x,y,z,f);
 
           if(v1 > 255 || v1 <= 0 || v2 > 255 || v2 <= 0) continue;
+
+          /* do not include these in the coefficient calculations:
+             Left/Right-Cerebral-Cortex (labels 3 and 42), 
+             Left/Right-Accumbens-area (labels 26 and 58) */
 
           if(v1 == v2){
             if((v1>=4 && v1 <= 5) ||
