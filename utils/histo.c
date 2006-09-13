@@ -1009,7 +1009,7 @@ HISTOplot(HISTOGRAM *histo, char *fname)
 			break ;
 
   for (bin_no = bmin ; bin_no <= bmax ; bin_no++)
-    fprintf(fp, "%2.1f  %2.4f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
+    fprintf(fp, "%f  %f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
