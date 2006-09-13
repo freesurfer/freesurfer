@@ -168,6 +168,14 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
                  V3_X(vc) = V3_X(va)+V3_X(vb), \
                  V3_Y(vc) = V3_Y(va)+V3_Y(vb), \
                  V3_Z(vc) = V3_Z(va)+V3_Z(vb) ;
+#define V3_NORM(v) \
+         { double len ; \
+             len = V3_LEN(v) ; \
+             if (FZERO(len)) len = 1; \
+             V3_X(v)/=len ;\
+             V3_Y(v)/=len ;\
+             V3_Z(v)/=len ;}
+                             
 #define V3_SUBTRACT(va,vb,vc) \
                  V3_X(vc) = V3_X(va)-V3_X(vb), \
                  V3_Y(vc) = V3_Y(va)-V3_Y(vb), \
