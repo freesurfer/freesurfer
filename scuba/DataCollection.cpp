@@ -380,12 +380,19 @@ void
 DataCollection::SetDataToWorldTransform ( int iTransformID ) {
 
   try {
-    mDataToWorldTransform->RemoveListener( this );
-    mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
-    mDataToWorldTransform->AddListener( this );
+    if( mDataToWorldTransform ) {
+      mDataToWorldTransform->RemoveListener( this );
+    }
+    if( iTransformID == -1 ) {
+      mDataToWorldTransform = NULL;
+    } else {
+      mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
+      mDataToWorldTransform->AddListener( this );
+    }
   }
   catch(...) {
     DebugOutput( << "Couldn't find transform " << iTransformID );
+    mDataToWorldTransform = NULL;
   }
 }
 
