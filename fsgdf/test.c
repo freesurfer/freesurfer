@@ -40,7 +40,7 @@ int main (int argc, char** argv)
       }
     else
       {
-        strcpy(fnTestPath, "/space/lyon/1/fsdev/test_data");
+        strcpy(fnTestPath, "./test_data");
       }
     sprintf(fnTest, "%s/fsgdf/y-lh.fsgd", fnTestPath);
   }

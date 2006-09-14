@@ -5,7 +5,7 @@ set fnTestDataDir ""
 if { [info exists env(FSDEV_TEST_DATA)] } {
     set fnTestDataDir $env(FSDEV_TEST_DATA)
 } else {
-    set fnTestDataDir /space/lyon/1/fsdev/test_data
+    set fnTestDataDir ./test_data
 }
 
 set glID {}

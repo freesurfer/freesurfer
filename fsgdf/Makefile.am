@@ -1,18 +1,24 @@
 #
 # Makefile for fsgdf - specify in addition to the standard
 #
+
+if ENABLE_TCLTK_APPS
+AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS)
+else
 AM_CPPFLAGS=-I$(top_srcdir)/include
+endif
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libfsgdf.a
 libfsgdf_a_SOURCES = fsgdf.c
 
+if ENABLE_TCLTK_APPS
 check_PROGRAMS=test
 test_SOURCES=test.c fsgdf_wrap.c
 test_LDFLAGS=$(LDFLAGS_TCL)
 test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
 TESTS=test
-
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
