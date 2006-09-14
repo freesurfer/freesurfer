@@ -205,13 +205,14 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
 	testShortestPathFinder testToglManager testDataManager \
 	testTclCommandManager testPreferencesManager testUndoManager \
-	testDataCollection testScubaDataCollections testVolumeCollection \
+	testDataCollection testScubaDataCollections \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
-	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
-	testTclChartWindow
+	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo 
+
+#	testVolumeCollection testTclChartWindow
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
