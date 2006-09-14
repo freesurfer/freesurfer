@@ -32,11 +32,11 @@ int main ( int argc, char** argv ) {
     string fnVol;
     
     if( NULL != sTestDataDir ) {
-      fnVol = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      fnVol = string(sTestDataDir) + "anatomical/bert/mri/T1.mgz";
       ifstream fVol( fnVol.c_str(), ios::in );
       if( !fVol ) {
 	if( NULL != sSubjectsDir ) {
-	  fnVol = string(sSubjectsDir) + "/bert/mri/T1";
+	  fnVol = string(sSubjectsDir) + "/bert/mri/T1.mgz";
 	  ifstream fVol( fnVol.c_str(), ios::in );
 	  if( !fVol ) {
 	    throw runtime_error( "Couldn't find necessary test data" );
