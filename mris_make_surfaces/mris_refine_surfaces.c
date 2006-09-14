@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/03/25 18:55:59 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2006/09/14 19:14:49 $
+// Revision       : $Revision: 1.10 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.9 2006/03/25 18:55:59 fischl Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.10 2006/09/14 19:14:49 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.9 2006/03/25 18:55:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.10 2006/09/14 19:14:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -587,7 +587,7 @@ main(int argc, char *argv[])
 			      max_white, max_border_white, min_border_white,
 			      min_gray_at_white_border, 
 			      max_border_white /*max_gray*/, current_sigma, 
-			      2*max_thickness, parms.fp, GRAY_WHITE) ;
+			      2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -770,7 +770,7 @@ main(int argc, char *argv[])
 				max_gray_at_csf_border, min_gray_at_csf_border,
 				min_csf,(max_csf+max_gray_at_csf_border)/2,
 				current_sigma, 2*max_thickness, parms.fp,
-				GRAY_CSF) ;
+				GRAY_CSF, NULL, 0) ;
       if (vavgs)
       {
         fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
