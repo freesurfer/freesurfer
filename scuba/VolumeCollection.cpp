@@ -3205,7 +3205,7 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 }
 
 VolumeLocation::VolumeLocation ( const VolumeLocation& iLoc )
-  : DataLocation(iLoc), mVolume(iLoc.GetVolume()) {
+  : DataLocation(iLoc), mVolume(iLoc.GetVolume()), mFrame( 0 ) {
   
   mIdxi[0] = iLoc.Index(0);
   mIdxi[1] = iLoc.Index(1);
