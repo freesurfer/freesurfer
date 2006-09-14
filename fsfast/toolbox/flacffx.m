@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.6 2006/09/14 02:02:54 greve Exp $
+% $Id: flacffx.m,v 1.7 2006/09/14 03:13:52 greve Exp $
 %
 
 Fsig = [];
@@ -182,17 +182,22 @@ for nthcon = conind
   C = flac.con(nthcon).C;
   J = size(C,1);
   F = gam(nthcon);
-  F.vol = zeros(size(gam(nthcon).vol(1,:)));
+  nvox = size(gam(nthcon).vol,1);
+  F.vol = zeros(1,nvox);
+  cescvm = gam(nthcon);
+  cescvm.vol = zeros(J*J,nvox);
   for nthseg = 1:nseg+1
     indseg = find(flacproc.acfseg.vol == nthseg-1);
     cixtxct = flac.con(nthcon).cixtxct(:,:,nthseg);
-    tmp = (gam(nthcon).vol(:,indseg)' * inv(cixtxct))';
+    inv_cixtxct = inv(cixtxct);
+    tmp = (gam(nthcon).vol(:,indseg)' * inv_cixtxct)';
     if(J > 1)
       tmp = sum(tmp .* gam(nthcon).vol(:,indseg));
     else
       tmp = tmp .* gam(nthcon).vol(:,indseg);
     end      
     F.vol(indseg) = tmp./(J*rvar.vol(indseg)');
+    cescvm.vol(:,indseg) = reshape1d(inv_cixtxct) * rvar.vol(indseg)'; %outerproduct 
   end % seg
   p = F;
   p.vol = FTest(J, dof, F.vol);
@@ -214,11 +219,23 @@ for nthcon = conind
     condir = sprintf('%s/%s',flaffxdir,flac.con(nthcon).name);
     mkdirpcmd = sprintf('mkdir -p %s',condir);
     unix(mkdirpcmd);
+
     outfspec = sprintf('%s/f.%s',condir,flac.format);
     MRIwrite(F,outfspec);
   
     outfspec = sprintf('%s/fsig.%s',condir,flac.format);
     MRIwrite(Fsig,outfspec);
+  
+    outfspec = sprintf('%s/gamma.%s',condir,flac.format);
+    tmp = gam(nthcon);
+    tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
+    MRIwrite(tmp,outfspec);
+  
+    outfspec = sprintf('%s/gamcvm.%s',condir,flac.format);
+    tmp = cescvm;
+    tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
+    MRIwrite(tmp,outfspec);
+  
   end
 
 end % con
