@@ -21,7 +21,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.78 2006/09/13 18:44:34 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.79 2006/09/14 11:12:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -169,16 +169,16 @@ main(int argc, char *argv[])
                 *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
-  double        l_intensity, current_sigma, thresh ;
+  double        l_intensity, current_sigma, thresh = 0;
   struct timeb  then ;
   M3D           *m3d ;
 
   char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.78 2006/09/13 18:44:34 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.79 2006/09/14 11:12:09 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.78 2006/09/13 18:44:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.79 2006/09/14 11:12:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -596,7 +596,6 @@ main(int argc, char *argv[])
          n_averages >= min_pial_averages ; 
          n_averages /= 2, current_sigma /= 2, i++)
     {
-      double thresh ;
       parms.sigma = current_sigma ;
       thresh = mark_dura(mris, mri_ratio, mri_T1, current_sigma) ;
       if (mri_aseg)
