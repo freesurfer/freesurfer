@@ -54,6 +54,8 @@ double round(double x);
 #include "fsenv.h"
 
 int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p);
+int LoadSuesTable(char *fname, int col, int log10flag,
+		  int **pplutindex, double **pplog10p);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -64,7 +66,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.5 2006/08/08 22:33:28 greve Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.6 2006/09/14 00:18:38 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -84,11 +86,18 @@ int nitems=0;
 int *lutindex;
 double *log10p;
 
+char *annot=NULL;
+char *subject=NULL;
+char *hemi=NULL;
+MRIS *mris;
+char tmpstr[2000];
+int DoSue, DoDavid, log10flag, datcol1;
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs,r,c,s,n,segid;
+  int nargs,r,c,s,n,segid,err;
   double val;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -115,27 +124,51 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  seg = MRIread(segfile);
-  if(seg == NULL) exit(1);
-
-  nitems = LoadDavidsTable(statfile, &lutindex, &log10p);
+  if(DoDavid){
+    printf("Loading David's stat file\n");
+    nitems = LoadDavidsTable(statfile, &lutindex, &log10p);
+  }
+  if(DoSue){
+    printf("Loading Sue's stat file\n");
+    nitems = LoadSuesTable(statfile, datcol1, log10flag, &lutindex, &log10p);
+  }
   if(nitems == 0){
     printf("ERROR: could not find any items in %s\n",statfile);
     exit(1);
+  }
+
+  if(annot == NULL){
+    seg = MRIread(segfile);
+    if(seg == NULL) exit(1);
+  }
+  else {
+    printf("Constructing seg from annotation\n");
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
+    err = MRISreadAnnotation(mris, tmpstr);
+    if(err) exit(1);
+    seg = MRISannotIndex2Seg(mris);
   }
 
   out = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_FLOAT,1);
   MRIcopyHeader(seg,out);
 
   for(c=0; c < seg->width; c++){
-    printf("%3d ",c); 
-    if(c%20 == 19) printf("\n");
+    //printf("%3d ",c); 
+    //if(c%20 == 19) printf("\n");
     fflush(stdout);
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	segid = MRIgetVoxVal(seg,c,r,s,0);
 	val = 0;
 	if(segid != 0){
+	  if(annot != NULL){
+	    if(strcmp(hemi,"lh")==0) segid = segid + 1000;
+	    if(strcmp(hemi,"rh")==0) segid = segid + 2000;
+	    MRIsetVoxVal(seg,c,r,s,0,segid);
+	  }
 	  for(n=0; n < nitems; n++){
 	    if(lutindex[n] == segid){
 	      val = log10p[n];
@@ -149,6 +182,7 @@ int main(int argc, char *argv[])
   }
   printf("\n");
   MRIwrite(out,outfile);
+  MRIwrite(seg,"segtmp.mgh");
 
   printf("mri_stats2seg done\n");
   return 0;
@@ -177,16 +211,33 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--no-log10")) log10flag = 0;
 
     else if (!strcasecmp(option, "--stat")){
       if(nargc < 1) CMDargNErr(option,1);
       statfile = pargv[0];
+      DoDavid = 1;
       nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sue")){
+      if(nargc < 2) CMDargNErr(option,2);
+      statfile = pargv[0];
+      sscanf(pargv[1],"%d",&datcol1);
+      log10flag = 1;
+      DoSue = 1;
+      nargsused = 2;
     }
     else if (!strcasecmp(option, "--seg")){
       if(nargc < 1) CMDargNErr(option,1);
       segfile = pargv[0];
       nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--annot")){
+      if(nargc < 3) CMDargNErr(option,3);
+      annot   = pargv[0];
+      subject = pargv[1];
+      hemi    = pargv[2];
+      nargsused = 3;
     }
     else if (!strcasecmp(option, "--o")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -249,8 +300,8 @@ static void check_options(void)
     printf("ERROR: need to specify a stat file\n");
     exit(1);
   }
-  if(segfile == NULL){
-    printf("ERROR: need to specify a seg file\n");
+  if(segfile == NULL && annot == NULL){
+    printf("ERROR: need to specify either a seg file or annot\n");
     exit(1);
   }
   if(outfile == NULL){
@@ -303,7 +354,6 @@ static void dump_options(FILE *fp)
   would be .0001 (the -log10 of which would be 4.0).
 
   ---------------------------------------------------------------------*/
-
 int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p)
 {
   FSENV *fsenv;
@@ -377,3 +427,69 @@ int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p)
   FSENVfree(&fsenv);
   return(nitems);
 }
+/*-----------------------------------------------------------------*/
+int LoadSuesTable(char *fname, int col1, int log10flag,
+		  int **pplutindex, double **pplog10p)
+{
+  FSENV *fsenv;
+  char tmpstr[2000], tmpstr2[2000], segname[2000], hemi[3];
+  FILE *fp;
+  int nitems, segindex;
+  char *item;
+  double v;
+
+  memset(hemi,'\0',3);
+
+  fsenv = FSENVgetenv();
+  fp = fopen(fname,"r");
+  if(fp == NULL) {
+    printf("ERROR: could not open%s\n",fname);
+    exit(1);
+  }
+
+  // Count the number of items
+  nitems = 0;
+  while(1){
+    if(fgets(tmpstr,2000-1,fp) == NULL) break;
+    nitems++;
+  }
+  fclose(fp);
+  printf("nitems %d\n",nitems);
+
+  *pplutindex =    (int *) calloc(nitems,sizeof(int));
+  *pplog10p   = (double *) calloc(nitems,sizeof(double));
+
+  fp = fopen(fname,"r");
+  nitems = 0;
+  while(1){
+    if(fgets(tmpstr,2000-1,fp) == NULL) break;
+    memset(tmpstr2,'\0',2000);
+    sscanf(tmpstr,"%s",tmpstr2);
+    memcpy(hemi,tmpstr2,2);
+    sprintf(segname,"ctx-%2s-%s",hemi,&(tmpstr2[3]));
+    CTABfindName(fsenv->ctab, segname, &segindex);
+    if(segindex < 0){
+      printf("ERROR: reading %s, cannot find %s in color table\n",
+	     fname,segname);
+      printf("%s",tmpstr);
+      exit(1);
+    }
+    item = gdfGetNthItemFromString(tmpstr,col1-1);
+    if(item == NULL){
+      printf("ERROR: reading col %d from %s\n",col1,fname);
+      exit(1);
+    }
+    sscanf(item,"%lf",&v);
+    if(log10flag) v = -SIGN(v)*log10(fabs(v));
+    printf("%2d %4d %20s %6.4lf\n",nitems+1,segindex,segname,v);
+    (*pplutindex)[nitems] = segindex;
+    (*pplog10p)[nitems] = v;
+    nitems++;
+    free(item);
+  }
+  fclose(fp);
+
+  FSENVfree(&fsenv);
+  return(nitems);
+}
+
