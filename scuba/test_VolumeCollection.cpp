@@ -48,24 +48,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
   
   try {
   
-    char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
-
-    string fnMRI;
-    if( NULL != sTestDataDir ) {
-      fnMRI = string(sTestDataDir) + "anatomical/bert.mgz";
-      ifstream fMRI( fnMRI.c_str(), ios::in );
-      if( !fMRI ) {
-	if( NULL != sSubjectsDir ) {
-	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1.mgz";
-	  ifstream fMRI( fnMRI.c_str(), ios::in );
-	  if( !fMRI ) {
-	    throw runtime_error("Couldn't find necessary test data.");
-	  }
-	}
-      }
-    }
-
+    string fnMRI = "test_data/bertT1.mgz";
     VolumeCollection* vol = new VolumeCollection();
     vol->SetFileName( fnMRI );
     MRI* mri = vol->GetMRI();
@@ -283,8 +266,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     {
       // This is a 5cubed volume whose values are set to the x
       // coordinate. So for x=3,y=0..4,z=0..4, value = 3. 
-      string fnVol = sTestDataDir +
-	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
+      string fnVol = "/test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
       ifstream fVol( fnMRI.c_str(), ios::in );
       if( !fVol ) {
 	throw runtime_error("Couldn't find necessary test data.");
@@ -340,8 +322,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     // GetAverageValue
     {
       // We'll use the same volume as with GetVoxelsWithValue.
-      string fnVol = sTestDataDir +
-	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
+      string fnVol = "/test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
       ifstream fVol( fnMRI.c_str(), ios::in );
       if( !fVol ) {
 	throw runtime_error("Couldn't find necessary test data.");

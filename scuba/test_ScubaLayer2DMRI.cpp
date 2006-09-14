@@ -36,11 +36,7 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
 
   try {
 
-    string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1.mgz";
-    char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    if( NULL != sSubjectsDir ) {
-      fnMRI = string(sSubjectsDir) + "/bert/mri/T1.mgz";
-    }
+    string fnMRI = "test_data/bertT1.mgz";
     VolumeCollection vol;
     vol.SetFileName( fnMRI );
     vol.GetMRI();

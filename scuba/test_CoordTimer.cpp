@@ -26,26 +26,7 @@ int main ( int argc, char** argv ) {
 
   try {
 
-    char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
-    
-    string fnVol;
-    
-    if( NULL != sTestDataDir ) {
-      fnVol = string(sTestDataDir) + "anatomical/bert/mri/T1.mgz";
-      ifstream fVol( fnVol.c_str(), ios::in );
-      if( !fVol ) {
-	if( NULL != sSubjectsDir ) {
-	  fnVol = string(sSubjectsDir) + "/bert/mri/T1.mgz";
-	  ifstream fVol( fnVol.c_str(), ios::in );
-	  if( !fVol ) {
-	    throw runtime_error( "Couldn't find necessary test data" );
-	  }
-	}
-      }
-      fVol.close();
-    }
-
+    string fnVol = "test_data/bertT1.mgz";
     VolumeCollection col;
     col.SetFileName( fnVol );
     col.GetMRI();

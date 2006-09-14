@@ -12,12 +12,12 @@ extern "C" {
 
 // Uses test files
 //
-// test_data/anatomica/testSEgmentationVolumeReportData-Seg.mgz
+// test_data/testSEgmentationVolumeReportData-Seg.mgz
 //   This is a 25 cubed volume with 1s mm voxels. On slice s=-11, all
 //   values are on. On s=-10, all are 2, etc, up to s=13 with all
 //   values 25.
 
-// test_data/anatomica/testSEgmentationVolumeReportData-Int.mgz
+// test_data/testSEgmentationVolumeReportData-Int.mgz
 //   Same size as the seg volume, except the intensity for each
 //   corresponding segmentation area is 2x the segmentation value.
 
@@ -57,25 +57,15 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
   try {
 
     
-    char* testDataPath = getenv("FSDEV_TEST_DATA");
-    if( NULL == testDataPath ) {
-      throw
-	runtime_error("Couldn't load test data: FSDEV_TEST_DATA not defined" );
-    }
-    string fnTestDataPath( testDataPath );
-    
-    
     // Load our seg volume.
-    string fnSegVolume = fnTestDataPath + "/anatomical/" + 
-      "testSegmentationVolumeReportData-Seg.mgz";
+    string fnSegVolume = "test_data/testSegmentationVolumeReportData-Seg.mgz";
     VolumeCollection seg;
     seg.SetFileName( fnSegVolume );
     seg.LoadVolume();
     seg.SetLabel( "Seg" );
 
     // Load our intensity volume.
-    string fnIntVolume = fnTestDataPath + "/anatomical/" + 
-      "testSegmentationVolumeReportData-Int.mgz";
+    string fnIntVolume = "test_data/testSegmentationVolumeReportData-Int.mgz";
     VolumeCollection vol;
     vol.SetFileName( fnIntVolume );
     vol.LoadVolume();
@@ -83,7 +73,7 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
 
 
     // Load our LUT.
-    string fnLUT = fnTestDataPath + "/lut/TestLUT.txt";
+    string fnLUT = "test_data/TestLUT.txt";
     ScubaColorLUT lut;
     lut.UseFile( fnLUT );
 

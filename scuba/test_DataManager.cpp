@@ -108,56 +108,11 @@ int main ( int argc, char** argv ) {
     DataManager& dataMgr = DataManager::GetManager();
     dataMgr.SetOutputStreamToCerr();
     
-    char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
-    
-    string fnMRI;
-    
-    bool bFound = true;
-    if( NULL != sTestDataDir ) {
-      fnMRI = string(sTestDataDir) + "anatomical/bert.mgz";
-      ifstream fMRI( fnMRI.c_str(), ios::in );
-      if( !fMRI ) {
-	if( NULL != sSubjectsDir ) {
-	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1.mgz";
-	  ifstream fMRI( fnMRI.c_str(), ios::in );
-	  if( !fMRI ) {
-	    cerr << "WARNING: File " + fnMRI + 
-	      " not found, test skipped." << endl;
-	    bFound = false;
-	  }
-	}
-      }
-      fMRI.close();
-    }
+    string fnMRI = "test_data/bertT1.mgz";
+    TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
 
-    if( bFound ) {
-      TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
-    }
-
-    string fnMRIS;
-
-    bFound = true;
-    if( NULL != sTestDataDir ) {
-      fnMRIS = string(sTestDataDir) + "anatomical/bert/surf/lh.white";
-      ifstream fMRIS( fnMRIS.c_str(), ios::in );
-      if( !fMRIS ) {
-	if( NULL != sSubjectsDir ) {
-	  fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
-	  ifstream fMRIS( fnMRIS.c_str(), ios::in );
-	  if( !fMRIS ) {
-	    cerr << "WARNING: File " + fnMRIS + 
-	      " not found, test skipped." << endl;
-	    bFound = false;
-	  }
-	}
-      }
-      fMRIS.close();
-    }
-
-    if( bFound ) {
-      TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
-    }
+    string fnMRIS = "test_data/lh.white";
+    TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
 
   }
   catch( exception& e ) {

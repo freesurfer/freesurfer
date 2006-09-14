@@ -145,7 +145,7 @@ int main ( int argc, char** argv ) {
 				 0,      0,      0,      1 );
 #endif
 
-    string fnMRI = "/home/kteich/subjects/bert/mri/T1.mgz";
+    string fnMRI = "test_data/bertT1.mgz";
     if( argc > 1 ) {
       fnMRI = argv[1];
     }

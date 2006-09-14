@@ -24,26 +24,7 @@ int main ( int argc, char** argv ) {
 
   try {
 
-    char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
-    
-    string fnMRIS;
-    
-    if( NULL != sTestDataDir ) {
-      fnMRIS = string(sTestDataDir) + "anatomical/bert/surf/lh.white";
-      ifstream fMRIS( fnMRIS.c_str(), ios::in );
-      if( !fMRIS ) {
-	if( NULL != sSubjectsDir ) {
-	  fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
-	  ifstream fMRIS( fnMRIS.c_str(), ios::in );
-	  if( !fMRIS ) {
-	    throw runtime_error( "Couldn't find necessary data." );
-	  }
-	}
-      }
-      fMRIS.close();
-    }
-
+    string fnMRIS = "test_data/lh.white";
     SurfaceCollection surf;
     surf.SetSurfaceFileName( fnMRIS );
     MRIS* mris = surf.GetMRIS();
