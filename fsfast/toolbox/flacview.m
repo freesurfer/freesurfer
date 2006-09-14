@@ -1,7 +1,7 @@
 function r = flacview(varargin)
 % r = flacview(varargin)
 
-version = '$Id: flacview.m,v 1.2 2005/01/23 17:11:05 greve Exp $';
+version = '$Id: flacview.m,v 1.3 2006/09/14 02:02:54 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -515,7 +515,7 @@ fprintf('Loading nthrun = %d\n',s.flac.nthrun);
 
   % Load beta
   fprintf('  Loading beta\n');
-  bstem = sprintf('%s/%s/fla/%s/%s/beta',s.flac.sess,s.flac.fsd,s.flac.name,...
+  bstem = sprintf('%s/%s/%s/%s/beta',s.flac.sess,s.flac.fsd,s.flac.name,...
 		  s.flac.runlist(s.flac.nthrun,:));
   s.beta = MRIread(bstem);
   if(isempty(s.beta)) s = []; return; end
@@ -524,7 +524,7 @@ fprintf('Loading nthrun = %d\n',s.flac.nthrun);
   ncon = length(s.flac.con);
   for nthcon = 1:ncon
     fprintf('  Loading contrast %s\n',s.flac.con(nthcon).name);
-    cstem = sprintf('%s/%s/fla/%s/%s/%s/fsig',s.flac.sess,s.flac.fsd,...
+    cstem = sprintf('%s/%s/%s/%s/%s/fsig',s.flac.sess,s.flac.fsd,...
 		    s.flac.name,s.flac.runlist(s.flac.nthrun,:),...
 		    s.flac.con(nthcon).name);
     s.con(nthcon).fsig = MRIread(cstem);

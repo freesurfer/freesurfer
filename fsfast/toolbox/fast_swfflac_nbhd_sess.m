@@ -27,7 +27,7 @@ tic;
 
 
 
-fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.4 2005/03/19 00:16:44 greve Exp $';
+fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.5 2006/09/14 02:02:54 greve Exp $';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 
@@ -138,15 +138,15 @@ drill.brain = mask;
 drill.refmask = MRIread('~/links/sg1/xval/dng/bold/masks/samc-rsyn-mask.mgh');
 drill.indref = find(drill.refmask.vol);
 drill.nref = length(drill.indref);
-drill.betaref = MRIread('~/links/sg1/xval/dng/bold/fla/samc/ffx/beta.mgh');
+drill.betaref = MRIread('~/links/sg1/xval/dng/bold/samc/ffx/beta.mgh');
 drill.betaref.vol = fast_vol2mat(drill.betaref.vol);
 drill.gamref = drill.betaref;
 drill.gamref.vol = C*drill.betaref.vol;
-drill.F0    = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn/ffx/omnibus/f.mgh');
-drill.Fsig0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn/ffx/omnibus/fsig.mgh');
-drill.Fsnc0    = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/f.mgh');
-drill.Fsigsnc0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/fsig.mgh');
-drill.rdgamssesnc0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/rdgamsse.mgh');
+drill.F0    = MRIread('~/links/sg1/xval/dng/bold/samc-rsyn/ffx/omnibus/f.mgh');
+drill.Fsig0 = MRIread('~/links/sg1/xval/dng/bold/samc-rsyn/ffx/omnibus/fsig.mgh');
+drill.Fsnc0    = MRIread('~/links/sg1/xval/dng/bold/samc-rsyn-snc-00-gn/ffx/omnibus/f.mgh');
+drill.Fsigsnc0 = MRIread('~/links/sg1/xval/dng/bold/samc-rsyn-snc-00-gn/ffx/omnibus/fsig.mgh');
+drill.rdgamssesnc0 = MRIread('~/links/sg1/xval/dng/bold/samc-rsyn-snc-00-gn/ffx/omnibus/rdgamsse.mgh');
 end
 
 ntp = flac.ntp;
@@ -185,7 +185,7 @@ for jthrun = 1:nruns
 
     % Load the residuals
     fprintf('      Loading residuals (%6.1f)\n',toc);
-    rstem = sprintf('%s/%s/fla/%s/%s/res',flac.sess,flac.fsd,flac.name,...
+    rstem = sprintf('%s/%s/%s/%s/res',flac.sess,flac.fsd,flac.name,...
 		    flac.runlist(kflac.nthrun,:));
     rrun = MRIread(rstem);
     if(isempty(rrun)) return; end
@@ -197,7 +197,7 @@ for jthrun = 1:nruns
     % Load the betas
     if(~useffxbeta)
       fprintf('      Loading betas (%6.1f)\n',toc);
-      bstem = sprintf('%s/%s/fla/%s/%s/beta',flac.sess,flac.fsd,...
+      bstem = sprintf('%s/%s/%s/%s/beta',flac.sess,flac.fsd,...
 		    flac.name,flac.runlist(kflac.nthrun,:));
       beta = MRIread(bstem);
     else

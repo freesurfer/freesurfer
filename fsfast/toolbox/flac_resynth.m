@@ -1,6 +1,6 @@
 % flac_resynth.m
 
-flac_resynth_version = '$Id: flac_resynth.m,v 1.5 2005/03/19 00:17:23 greve Exp $';
+flac_resynth_version = '$Id: flac_resynth.m,v 1.6 2006/09/14 02:02:55 greve Exp $';
 
 flac_resynth_version_no = sscanf(flac_resynth_version,'%*s %*s %s',1);
 
@@ -133,7 +133,7 @@ if(~isempty(conmaskname))
     % Make mask the intersection of each run
     conmask.vol = zeros(size(conmask.vol));
     for nthrun = 1:nruns
-      confspec = sprintf('%s/%s/fla/%s/%s/%s/%s',flac.sess,flac.fsd,...
+      confspec = sprintf('%s/%s/%s/%s/%s/%s',flac.sess,flac.fsd,...
 			 flac.name,flac.runlist(nthrun,:),...
 			 flac.con(conindex).name,conmap);
       con = MRIread(confspec);
@@ -145,7 +145,7 @@ if(~isempty(conmaskname))
     end
   else
     % Make mask from FFX
-    confspec = sprintf('%s/%s/fla/%s/ffx/%s/%s',flac.sess,flac.fsd,...
+    confspec = sprintf('%s/%s/%s/ffx/%s/%s',flac.sess,flac.fsd,...
 		       flac.name,flac.con(conindex).name,conmap);
     con = MRIread(confspec);
     if(isempty(con)) 
@@ -173,7 +173,7 @@ end
 
 if(rvarnorm)
   % Load the fixed-effects variance
-  rvarfspec = sprintf('%s/fla/%s/ffx/rvar.mgh',fsdpath,...
+  rvarfspec = sprintf('%s/%s/ffx/rvar.mgh',fsdpath,...
 			 flac.name);
   rvar = MRIread(rvarfspec);
   if(isempty(rvar)) 
@@ -215,7 +215,7 @@ for nthrun = 1:nruns
     % Spatially correlated noise
     if(noisespatcor)
       % Load the resdiual
-      resfspec = sprintf('%s/%s/fla/%s/%s/res',...
+      resfspec = sprintf('%s/%s/%s/%s/res',...
 			 flac.sess,flac.fsd,flac.name,flac.runlist(nthrun,:));
       res = MRIread(resfspec);
       if(isempty(res)) 
@@ -245,7 +245,7 @@ for nthrun = 1:nruns
     % Temporally correlated noise
     if(noisetempcor)
       
-      matfile = sprintf('%s/%s/fla/%s/%s/flac.mat',...
+      matfile = sprintf('%s/%s/%s/%s/flac.mat',...
 			flac.sess,flac.fsd,flac.name,flac.runlist(nthrun,:));
       flacproc = load(matfile);
       
@@ -260,7 +260,7 @@ for nthrun = 1:nruns
     end
     
     % Rescale so that the variance is the same as the original
-    rvarfspec = sprintf('%s/%s/fla/%s/%s/rvar',...
+    rvarfspec = sprintf('%s/%s/%s/%s/rvar',...
 			flac.sess,flac.fsd,flac.name,flac.runlist(nthrun,:));
     rvar = MRIread(rvarfspec);
     if(isempty(rvar)) 
@@ -278,10 +278,10 @@ for nthrun = 1:nruns
 
   % ----------- Create the signal -------------------%
   if(usebetaffx)
-    betafspec = sprintf('%s/%s/fla/%s/ffx/beta',...
+    betafspec = sprintf('%s/%s/%s/ffx/beta',...
 			flac.sess,flac.fsd,flac.name);
   else
-    betafspec = sprintf('%s/%s/fla/%s/%s/beta',...
+    betafspec = sprintf('%s/%s/%s/%s/beta',...
 			flac.sess,flac.fsd,flac.name,flac.runlist(nthrun,:));
   end
   beta = MRIread(betafspec);

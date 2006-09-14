@@ -4,7 +4,7 @@ function flac = fast_ldflac(flacfile,flac)
 % Loads an fsfast flac file.
 % If no args, returns an empty flac structure.
 %
-% $Id: fast_ldflac.m,v 1.19 2006/07/31 22:02:16 greve Exp $
+% $Id: fast_ldflac.m,v 1.20 2006/09/14 02:02:54 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -200,7 +200,7 @@ for nthcon = 1:ncon
   
   % Compute the contrast matrices, unless variable reg EV
   if(~flac.varregev)
-    flactmp = flac_conmat(flac,nthcon)
+    flactmp = flac_conmat(flac,nthcon);
     if(isempty(flactmp))
       fprintf('ERROR: with contrast %s in %s\n',...
 	      flac.con(nthcon).name,flacfile);

@@ -3,7 +3,7 @@
 % fast_swfflac_sess.m, and, they should really be combined,
 % but it was easier to do it this way.
 %
-% $Id: fast_nswfflac_sess.m,v 1.2 2005/01/23 17:09:33 greve Exp $
+% $Id: fast_nswfflac_sess.m,v 1.3 2006/09/14 02:02:55 greve Exp $
 % 
 tic;
 
@@ -116,7 +116,7 @@ for jthrun = 1:nruns
 
     % Load the residuals
     fprintf('      Loading residuals (%6.1f)\n',toc);
-    rstem = sprintf('%s/%s/fla/%s/%s/res',flac.sess,flac.fsd,flac.name,...
+    rstem = sprintf('%s/%s/%s/%s/res',flac.sess,flac.fsd,flac.name,...
 		    flac.runlist(kflac.nthrun,:));
     rrun = MRIread(rstem);
     if(isempty(rrun)) return; end
@@ -127,7 +127,7 @@ for jthrun = 1:nruns
 
     % Load the betas
     fprintf('      Loading betas (%6.1f)\n',toc);
-    bstem = sprintf('%s/%s/fla/%s/%s/beta',flac.sess,flac.fsd,flac.name,...
+    bstem = sprintf('%s/%s/%s/%s/beta',flac.sess,flac.fsd,flac.name,...
 		    flac.runlist(kflac.nthrun,:));
     beta = MRIread(bstem);
     if(isempty(beta)) return; end
@@ -141,7 +141,7 @@ for jthrun = 1:nruns
     sjk = [sjk; srun];
     clear srun beta;
     
-    confspec = sprintf('%s/%s/fla/%s/%s/%s/fsig',kflac.sess,kflac.fsd,...
+    confspec = sprintf('%s/%s/%s/%s/%s/fsig',kflac.sess,kflac.fsd,...
 		       kflac.name,kflac.runlist(kflac.nthrun,:),...
 		       kflac.con(contrastind).name);
     con = MRIread(confspec);

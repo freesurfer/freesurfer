@@ -1,5 +1,5 @@
 function ok = flacrfx(flac,contrast)
-% ok = flacffx(flac,<contrast>)
+% ok = flacrfx(flac,<contrast>)
 %
 % Random effects averaging of the first-level analysis. Uses
 % weighted least squares. Algorithm is correct even when 
@@ -10,7 +10,7 @@ function ok = flacrfx(flac,contrast)
 %
 % Saves results to flac/rfx.
 %
-% $Id: flacrfx.m,v 1.2 2005/01/24 20:22:29 greve Exp $
+% $Id: flacrfx.m,v 1.3 2006/09/14 02:02:54 greve Exp $
 %
 
 ok = 0;
@@ -41,12 +41,12 @@ else
   end
 end
 
-flarfxdir = sprintf('%s/%s/fla/%s/rfx',flac.sess,flac.fsd, ...
+flarfxdir = sprintf('%s/%s/%s/rfx',flac.sess,flac.fsd, ...
 		    flac.name);
 mkdirpcmd = sprintf('mkdir -p %s',flarfxdir);
 unix(mkdirpcmd);
 
-matfile = sprintf('%s/%s/fla/%s/%s/flac.mat',flac.sess,flac.fsd, ...
+matfile = sprintf('%s/%s/%s/%s/flac.mat',flac.sess,flac.fsd, ...
 		    flac.name,flac.runlist(1,:));
 flac.mat = load(matfile);
 nseg = size(flac.mat.nacfseg,2);

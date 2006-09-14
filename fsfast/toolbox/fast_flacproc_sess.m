@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.12 2006/07/23 23:23:50 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.13 2006/09/14 02:02:55 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -132,7 +132,7 @@ for nthrun = 1:nruns
   indrvarz = find(rvar==0);
   rvar(indrvarz) = 10e10;
 
-  outdir = sprintf('%s/%s/fla/%s/%s',flac.sess,flac.fsd,...
+  outdir = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
                     flac.name,flac.runlist(flac.nthrun,:));
   mkdirp(outdir);
 

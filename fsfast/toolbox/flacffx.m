@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.5 2005/10/05 19:22:51 greve Exp $
+% $Id: flacffx.m,v 1.6 2006/09/14 02:02:54 greve Exp $
 %
 
 Fsig = [];
@@ -54,9 +54,9 @@ else
 end
 
 if(saveresults)
-  flaffxdir = sprintf('%s/%s/fla/%s/ffx',flac.sess,flac.fsd,flac.name);
+  flaffxdir = sprintf('%s/%s/%s',flac.sess,flac.fsd,flac.name);
   if(jknthrun ~= 0)
-    flaffxdir = sprintf('%s-%s',flaffxdir,flac.runlist(jknthrun,:));
+    flaffxdir = sprintf('%s/jk%s',flaffxdir,flac.runlist(jknthrun,:));
   end
   mkdirpcmd = sprintf('mkdir -p %s',flaffxdir);
   unix(mkdirpcmd);
@@ -78,7 +78,6 @@ for nthrun = 1:nruns
   %fprintf('  nthrun = %d/%d\n',nthrun,nruns);
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
-  %flac = flac_desmat(flac);
 
   dofrun = size(flac.X,1) - size(flac.X,2);
   dof = dof + dofrun;
@@ -111,7 +110,7 @@ for nthrun = 1:nruns
   ssr.vol = ssr.vol + ssrrun;
 
   % Load the matfile to get info about the temporal cor
-  fladir = sprintf('%s/%s/fla/%s/%s',...
+  fladir = sprintf('%s/%s/%s/%s',...
 		   flac.sess,flac.fsd,flac.name,flac.runlist(nthrun,:));
   matfile = sprintf('%s/flac.mat',fladir);
   flacproc = load(matfile);
@@ -159,6 +158,22 @@ if(saveresults)
   MRIwrite(betamn,outfspec);
   outfspec = sprintf('%s/rvar.%s',flaffxdir,flac.format);
   MRIwrite(rvar,outfspec);
+  rstd = rvar;
+  rstd.vol = sqrt(rvar.vol);
+  outfspec = sprintf('%s/rstd.%s',flaffxdir,flac.format);
+  MRIwrite(rstd,outfspec);
+
+  % Save the baseline separately
+  blevind = flac_evindex(flac,'Baseline');
+  if(~isempty(blevind))
+    fprintf('Saving baseline\n');
+    blregind = flac_evregind(flac,blevind);
+    tmp = rvar;
+    tmp.vol = betamn.vol(:,:,:,blregind);
+    stem = sprintf('%s/baseline%s',flaffxdir,flac.formatext);
+    MRIwrite(tmp,stem);
+  end
+
 end
 
 % Now go through each contrast and compute the significances
