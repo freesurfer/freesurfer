@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.13 2006/09/14 02:02:55 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.14 2006/09/14 03:12:45 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -10,7 +10,10 @@
 % svres  = $svres;
 % svres0 = $svres0;
 % svrvar0 = $svrvar0;
+% do_fit = $do_fit;
+% do_fla = $do_fla;
 % do_rfx = $do_rfx;
+% do_ffx = $do_ffx;
 % monly = $monly;
 tic;
 
@@ -38,16 +41,23 @@ if(isempty(flac))
   return; 
 end
 
-nruns = size(flac.runlist,1);
 if(~flac.perrun)
   mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
   acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,flac.acfsegstem);
 end
 
+nruns = size(flac.runlist,1);
+if(~do_fla) nruns=0; end
+
+if(~do_fit) fprintf('Not fitting\n'); end
+
 for nthrun = 1:nruns
   fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
           nthrun,nruns,flac.runlist(nthrun,:),toc);
   fprintf('FLAC: %s, %s\n',flac.name,flac.sess);
+  outdir = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
+		   flac.name,flac.runlist(flac.nthrun,:));
+  mkdirp(outdir);
 
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
@@ -95,151 +105,169 @@ for nthrun = 1:nruns
     fprintf('ERROR: design matrix ill-conditioned\n');
     return;
   end
-
-  fprintf('Loading functional data (%6.1f)\n',toc);
   ystem = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
-            flac.runlist(flac.nthrun,:),flac.funcstem);
+		  flac.runlist(flac.nthrun,:),flac.funcstem);
   %fprintf('ystem = %s\n',ystem);
-  %fprintf('yspec = %s\n',yspec);
-  y = MRIread(ystem);
-  if(isempty(y)) 
-    if(~monly) quit;  end
-    return; 
-  end
-  szvol = size(y.vol);
-  szvol = szvol(1:end-1);
-  Nv = prod(szvol);
-  y.vol = fast_vol2mat(y.vol);
 
-  if(flac.inorm > 0)
-    ygmn = mean(reshape1d(y.vol(:,indmask)));
-    fprintf('Inorming, ygmn = %g \n',ygmn);
-    y.vol = y.vol * (flac.inorm/ygmn);
-  end
+  if(do_fit) %-------------------------------------------------
+    fprintf('Loading functional data (%6.1f)\n',toc);
+    y = MRIread(ystem);
+    if(isempty(y)) 
+      if(~monly) quit;  end
+      return; 
+    end
+    szvol = size(y.vol);
+    szvol = szvol(1:end-1);
+    Nv = prod(szvol);
+    y.vol = fast_vol2mat(y.vol);
+    
+    if(flac.inorm > 0)
+      ygmn = mean(reshape1d(y.vol(:,indmask)));
+      fprintf('Inorming, ygmn = %g \n',ygmn);
+      y.vol = y.vol * (flac.inorm/ygmn);
+    end
   
-  if(Synth)
-    fprintf('Synthesizing input, AR1 = %g \n',SynthAR1);
-    y.vol = randn(size(y.vol));
-    if(SynthAR1 ~= 0)
+    if(Synth)
+      fprintf('Synthesizing input, AR1 = %g \n',SynthAR1);
+      y.vol = randn(size(y.vol));
+      if(SynthAR1 ~= 0)
 	acfsynth = SynthAR1.^[0:flac.ntp-1]';
 	Facfsynth = chol(toeplitz(acfsynth))';
 	y.vol = Facfsynth*y.vol;
+      end
     end
-  end
+    
+    fprintf('Performing OLS estimation   (%6.1f)\n',toc);
+    [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
+    indrvarz = find(rvar==0);
+    rvar(indrvarz) = 10e10;
 
-  fprintf('Performing OLS estimation   (%6.1f)\n',toc);
-  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
-  indrvarz = find(rvar==0);
-  rvar(indrvarz) = 10e10;
+    if(svres0)
+      stem = sprintf('%s/res0%s',outdir,flac.formatext);
+      tmp = y;
+      tmp.vol = fast_mat2vol(r,szvol);
+      MRIwrite(tmp,stem);
+    end
+    
+    if(svrvar0)
+      stem = sprintf('%s/rvar0%s',outdir,flac.formatext);
+      tmp = y;
+      tmp.vol = fast_mat2vol(rvar,szvol);
+      MRIwrite(tmp,stem);
+    end
+    
+    if(svar1)
+      % Save unwhitened ar1
+      stem = sprintf('%s/ar1%s',outdir,flac.formatext);
+      ar1 = sum(r(1:end-1,:).*r(2:end,:))./sum(r.*r);
+      tmp = y;
+      tmp.vol = fast_mat2vol(ar1,szvol);
+      MRIwrite(tmp,stem);
+    end
 
-  outdir = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
-                    flac.name,flac.runlist(flac.nthrun,:));
-  mkdirp(outdir);
+    racfmri = mask;
+    racfmri.vol = zeros(10,Nv);
 
-  if(svres0)
-    stem = sprintf('%s/res0%s',outdir,flac.formatext);
+    fprintf('Computing NACF   (%6.1f)\n',toc);
+    % Residual forming matrix 
+    R = eye(flac.ntp) - flac.X*inv(flac.X'*flac.X)*flac.X';
+    nn = [1:flac.ntp]';
+    clear racfseg nacfseg;
+    for nthseg = 1:nacfsegs
+      %indseg = find(acfseg.vol(indacfmask)==nthseg);
+      indseg = find(acfseg.vol==nthseg);
+      nperseg(nthseg) = length(indseg);
+      racf = fast_acorr(r(:,indseg),[],[],flac.tpexc);
+      racfmri.vol(:,indseg) = racf(1:10,:);
+      %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
+      racfseg(:,nthseg)  = mean(racf,2);
+      racfkjw = fast_yacf_kjw(racfseg(1:2,nthseg),R);
+      ar1(nthseg) = racfkjw(2);
+      nacfseg(:,nthseg) = ar1(nthseg).^(nn-1);
+      fprintf('  nthseg = %2d, %5d, rar1 = %6.3f, nar1 = %6.3f\n',...
+	      nthseg,nperseg(nthseg),racfseg(2,nthseg),ar1(nthseg));
+    end
+    clear racf;
+    
+    if(flac.whiten)
+      fprintf('Performing GLS estimation   (%6.1f)\n',toc);
+      [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
+    else
+      fprintf('NOT Whitening   (%6.1f)\n',toc);
+    end
+    
+    % Replace the zeros with means. The exact value does not really
+    % matter, but this allows images to still look ok
+    indrvarz = find(rvar==0);
+    indrvarnz = find(rvar~=0);
+    rvar(indrvarz) = mean(rvar(indrvarnz));
+
+    fprintf('Saving estimation   (%6.1f)\n',toc);
+    flacmat = sprintf('%s/flac.mat',outdir);  
+    if(str2num(version('-release')) < 14)
+      save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
+    else
+      save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1','-v6');
+    end
+
+    stem = sprintf('%s/beta%s',outdir,flac.formatext);
     tmp = y;
-    tmp.vol = fast_mat2vol(r,szvol);
+    tmp.vol = fast_mat2vol(beta,szvol);
     MRIwrite(tmp,stem);
-  end
 
-  if(svrvar0)
-    stem = sprintf('%s/rvar0%s',outdir,flac.formatext);
+    % Save the baseline separately
+    blevind = flac_evindex(flac,'Baseline');
+    if(~isempty(blevind))
+      blregind = flac_evregind(flac,blevind);
+      tmp = y;
+      tmp.vol = fast_mat2vol(beta(blregind,:),szvol);
+      stem = sprintf('%s/baseline%s',outdir,flac.formatext);
+      MRIwrite(tmp,stem);
+    end
+    
+    % Save residual variance and stddev
+    stem = sprintf('%s/rvar%s',outdir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(rvar,szvol);
     MRIwrite(tmp,stem);
-  end
-
-  if(svar1)
-    % Save unwhitened ar1
-    stem = sprintf('%s/ar1%s',outdir,flac.formatext);
-    ar1 = sum(r(1:end-1,:).*r(2:end,:))./sum(r.*r);
-    tmp = y;
-    tmp.vol = fast_mat2vol(ar1,szvol);
+    stem = sprintf('%s/rstd%s',outdir,flac.formatext);
+    tmp.vol = sqrt(tmp.vol);
     MRIwrite(tmp,stem);
-  end
 
-  racfmri = mask;
-  racfmri.vol = zeros(10,Nv);
+    % Save residual ACF
+    stem = sprintf('%s/racf%s',outdir,flac.formatext);
+    racfmri.vol = fast_mat2vol(racfmri.vol,racfmri.volsize);
+    MRIwrite(racfmri,stem);
 
-  fprintf('Computing NACF   (%6.1f)\n',toc);
-  % Residual forming matrix 
-  R = eye(flac.ntp) - flac.X*inv(flac.X'*flac.X)*flac.X';
-  nn = [1:flac.ntp]';
-  clear racfseg nacfseg;
-  for nthseg = 1:nacfsegs
-    %indseg = find(acfseg.vol(indacfmask)==nthseg);
-    indseg = find(acfseg.vol==nthseg);
-    nperseg(nthseg) = length(indseg);
-    racf = fast_acorr(r(:,indseg),[],[],flac.tpexc);
-    racfmri.vol(:,indseg) = racf(1:10,:);
-    %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
-    racfseg(:,nthseg)  = mean(racf,2);
-    racfkjw = fast_yacf_kjw(racfseg(1:2,nthseg),R);
-    ar1(nthseg) = racfkjw(2);
-    nacfseg(:,nthseg) = ar1(nthseg).^(nn-1);
-    fprintf('  nthseg = %2d, %5d, rar1 = %6.3f, nar1 = %6.3f\n',...
-            nthseg,nperseg(nthseg),racfseg(2,nthseg),ar1(nthseg));
-  end
-  clear racf;
+    % OK, Save residual too
+    if(svres)
+      stem = sprintf('%s/res%s',outdir,flac.formatext);
+      tmp = y;
+      tmp.vol = fast_mat2vol(r,szvol);
+      MRIwrite(tmp,stem);
+    end
+    %------ do_fit -----------------------------------------
+  else 
+    fprintf('  Not fitting\n');
+    y = MRIread(ystem,1);
+	
+    flacmat = sprintf('%s/flac.mat',outdir);  
+    tmp = load(flacmat);
+    racfseg = tmp.racfseg;
+    ar1 = tmp.ar1;
+    acfseg = tmp.acfseg;
+    nacfseg = tmp.nacfseg;
 
-  if(flac.whiten)
-    fprintf('Performing GLS estimation   (%6.1f)\n',toc);
-    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
-  else
-    fprintf('NOT Whitening   (%6.1f)\n',toc);
-  end
+    stem = sprintf('%s/beta%s',outdir,flac.formatext);
+    tmp = MRIread(stem);
+    beta = fast_vol2mat(tmp.vol);
 
-  % Replace the zeros with means. The exact value does not really
-  % matter, but this allows images to still look ok
-  indrvarz = find(rvar==0);
-  indrvarnz = find(rvar~=0);
-  rvar(indrvarz) = mean(rvar(indrvarnz));
-
-  fprintf('Saving estimation   (%6.1f)\n',toc);
-  flacmat = sprintf('%s/flac.mat',outdir);  
-  if(str2num(version('-release')) < 14)
-    save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
-  else
-    save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1','-v6');
-  end
-
-  stem = sprintf('%s/beta%s',outdir,flac.formatext);
-  tmp = y;
-  tmp.vol = fast_mat2vol(beta,szvol);
-  MRIwrite(tmp,stem);
-
-  % Save the baseline separately
-  blevind = flac_evindex(flac,'Baseline');
-  if(~isempty(blevind))
-    blregind = flac_evregind(flac,blevind);
-    tmp = y;
-    tmp.vol = fast_mat2vol(beta(blregind,:),szvol);
-    stem = sprintf('%s/baseline%s',outdir,flac.formatext);
-    MRIwrite(tmp,stem);
-  end
-
-  % Save residual variance and stddev
-  stem = sprintf('%s/rvar%s',outdir,flac.formatext);
-  tmp = y;
-  tmp.vol = fast_mat2vol(rvar,szvol);
-  MRIwrite(tmp,stem);
-  stem = sprintf('%s/rstd%s',outdir,flac.formatext);
-  tmp.vol = sqrt(tmp.vol);
-  MRIwrite(tmp,stem);
-
-  % Save residual ACF
-  stem = sprintf('%s/racf%s',outdir,flac.formatext);
-  racfmri.vol = fast_mat2vol(racfmri.vol,racfmri.volsize);
-  MRIwrite(racfmri,stem);
-
-  % OK, Save residual too
-  if(svres)
-    stem = sprintf('%s/res%s',outdir,flac.formatext);
-    tmp = y;
-    tmp.vol = fast_mat2vol(r,szvol);
-    MRIwrite(tmp,stem);
-  end
+    stem = sprintf('%s/rvar%s',outdir,flac.formatext);
+    tmp = MRIread(stem);
+    rvar = fast_vol2mat(tmp.vol);
+  
+    szvol = size(tmp.vol);
+  end 
   
   fprintf('Computing contrasts   (%6.1f)\n',toc);
   ncontrasts = length(flac.con);
@@ -284,7 +312,7 @@ for nthrun = 1:nruns
     tmp.vol = fast_mat2vol(tmp.vol,szvol);
     MRIwrite(tmp,stem);
 
-    stem = sprintf('%s/gam%s',condir,flac.formatext);
+    stem = sprintf('%s/gamma%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(ces,szvol);
     MRIwrite(tmp,stem);
