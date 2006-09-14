@@ -11,7 +11,7 @@
 #define AssertTclOK(x,s) \
     if( TCL_OK != (x) ) { \
       fprintf (stderr, "Tcl_Eval returned not TCL_OK:\n"  \
-	       "Trying: %s\nResult: %s\n", s, interp->result ); \
+         "Trying: %s\nResult: %s\n", s, interp->result ); \
     } \
 
 
@@ -36,15 +36,15 @@ int main (int argc, char** argv)
     env = getenv("FSDEV_TEST_DATA");
     if(NULL != env)
       {
-	strcpy(fnTestPath, env);
+        strcpy(fnTestPath, env);
       }
-    else 
+    else
       {
-	strcpy(fnTestPath, "/space/lyon/1/fsdev/test_data");
+        strcpy(fnTestPath, "/space/lyon/1/fsdev/test_data");
       }
     sprintf(fnTest, "%s/fsgdf/y-lh.fsgd", fnTestPath);
   }
- 
+
   /* Just test the read function, first without reading the data and
      then with. */
   gd = gdfRead(fnTest,0);
@@ -67,10 +67,10 @@ int main (int argc, char** argv)
 
   Tcl_Interp* interp = Tcl_CreateInterp();
   Assert( NULL != interp, "Tcl_CreateInterp returned null" );
-  
+
   rTcl = Tcl_Init( interp );
   AssertTclOK( rTcl, "Tcl_Init returned not TCL_OK" );
-  
+
   /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
   rTcl = Fsgdf_Init( interp );
   AssertTclOK( rTcl, "Fsgdf_Init failed" );
