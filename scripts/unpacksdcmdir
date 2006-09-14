@@ -17,7 +17,7 @@ proc PrintUsage { } {
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
-  puts "  -unpackerr     : try to unpack runs with errors"
+  puts "  -no-unpackerr     : do not try to unpack runs with errors"
   puts ""
   puts "  -help : print out information about how to run this program"
   puts ""
@@ -93,10 +93,9 @@ puts "     the error status of each run. It is not necessary to specify "
 puts "     unpacking rules (though source and target directories are still"
 puts "     necessary)."
 puts ""
-puts "  -unpackerr"
+puts "  -no-unpackerr"
 puts ""
-puts "     Try to unpack a run even if the error flag is set. This "
-puts "     may be possible if the run was simply truncated."
+puts "     Do not try to unpack a run if the error flag is set."
 puts ""
 puts ""
 puts "SPECIFYING UNPACKING RULES:"
@@ -131,7 +130,7 @@ file. Each row in the file must contain the following four pieces of
 information: protocol/sequence name, subdirectory, format, name.  The
 protocol name is that stored in DICOM tag 0x18 0x1030. If a protocol
 in the source directory does not match one in the configuration file,
-the unpacking process aborts.  If generic sorting is used, then the
+the protocol is skipped.  If generic sorting is used, then the
 three digit run number is inserted between the name and
 extension. This method is convenient when unpacking many different
 sessions where the sequences are all the same but the run on which
@@ -349,7 +348,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.13 2006/08/29 17:24:30 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.14 2006/09/14 22:52:09 greve Exp $}
 
 exit 1;
 
@@ -421,7 +420,8 @@ proc ParseCommandLine { argc argv } {
       -generic    { set sortmethod generic; }
       -infodump   { set DoInfoDump 1; }
       -noinfodump { set DoInfoDump 0; }
-      -unpackerr  { set unpackerr 1; }
+      -unpackerr    { set unpackerr 1; }
+      -no-unpackerr { set unpackerr 0; }
       -noexec     { set noexec 1; }
       -help       { HelpExit;} 
 
@@ -530,8 +530,9 @@ proc GetSeqUnpackCfg { TargSeq SeqCfgList } {
        return $SeqCfg;
     }
   }
-  puts "ERROR: cannot find a match for $TargSeq in Sequence Config";
-  exit 1;
+  puts "INFO: cannot find a match for $TargSeq in Sequence Config, skipping";
+  return "skip";
+  #exit 1;
 }
 #------------------------------------------------------------------#
 proc ArgNError { option n } {
@@ -630,6 +631,7 @@ proc CheckUnpackCfgFormat { unpackcfg } {
     incr nthRun;
     set RunNo [lindex $runcfg 0];
     set Fmt0  [lindex $runcfg 2];
+    if { [string compare $Fmt0 skip] == 0} {continue;}
     set Fmt [string tolower $Fmt0];
 
     if { [string compare $Fmt bshort]  != 0 && \
@@ -643,7 +645,9 @@ proc CheckUnpackCfgFormat { unpackcfg } {
          [string compare $Fmt mgz]     != 0 && \
          [string compare $Fmt mgh]     != 0 } {
       puts "ERROR: Run $RunNo has an invalid format ($Fmt0)"
+      puts "       $runcfg"
       puts $LF "ERROR: Run $RunNo has an invalid format ($Fmt0)"
+      puts $LF "       $runcfg"
       exit 1;
     }
 
@@ -767,7 +771,7 @@ proc ReadParsePipe { ParsePipe } {
 }
 
 #------------------------------------------------------------------#
-#--------------------- Main ---------------------------------------#
+#--------------------- main ---------------------------------------#
 #------------------------------------------------------------------#
 
 #global dicomdir targdir sortmethod cfgfile unpackcfg noexec;
@@ -776,7 +780,7 @@ set sortmethod fsfast
 set noexec 0
 set scanonly 0
 set nspmzeropad 3
-set unpackerr 0
+set unpackerr 1
 set DoInfoDump 1
 
 if { $argc == 0 } { PrintUsage; exit 1;}
@@ -824,11 +828,13 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.13 2006/08/29 17:24:30 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.14 2006/09/14 22:52:09 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
 puts $LF "$argv"
+
+puts [pwd];
 
 puts $LF "dicomdir $dicomdir"
 
@@ -847,6 +853,7 @@ puts $LF "INFO: summary file is $sumfile"
 puts     "INFO: summary file is $sumfile"
 puts $LF "INFO: status file is $statfile"
 puts     "INFO: status file is $statfile"
+puts "Scanning directory [exec date]"
 puts     "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
 puts $LF "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
 set ParsePipeId [open \
@@ -885,6 +892,7 @@ while { ! $ParsePipeDone } {
    flush stdout
 }
 puts ""
+flush stdout
 foreach line  $ParsePipeContents {
   puts $LF $line 
 }
@@ -897,6 +905,7 @@ if { $err } {
 file delete -force $statfile
 puts $LF "Done scanning [exec date]"
 puts "Done scanning [exec date]"
+flush stdout
 #------------------------------------------------------------------#
 
 if { $scanonly } {
@@ -1016,26 +1025,33 @@ if { [info exists SeqCfgList] } {
     set RunNo    [lindex $Series  2];
     set Protocol [lindex $Series 12];
 
-    set SeqUnpackCfg [GetSeqUnpackCfg $Protocol $SeqCfgList]
-    set dirid      [lindex $SeqUnpackCfg 1];
-    set unpackfmt  [lindex $SeqUnpackCfg 2];
-    set basename   [lindex $SeqUnpackCfg 3];
-
-    set unpackname $basename
-    if { [string compare $sortmethod "generic"] == 0} {
-      switch -exact -- [string tolower $unpackfmt] {
-        spm     {set unpackname [format "%s%03d" $basename $RunNo]}
-        analyze {set unpackname [format "%s%03d" $basename $RunNo]}
-        minc    {set unpackname [format "%s%03d" $basename $RunNo]}
-        mgh     {set unpackname [format "%s%03d" $basename $RunNo]}
-        bshort  {set unpackname [format "%s%03d"     $basename $RunNo]}
-        bfloat  {set unpackname [format "%s%03d"     $basename $RunNo]}
-        cor     {set unpackname [format "%03d"       $RunNo]}
+    set SeqUnpackCfg [GetSeqUnpackCfg $Protocol $SeqCfgList];
+    puts "SeqUnpackCfg $SeqUnpackCfg"
+    if { [string compare $SeqUnpackCfg skip] != 0 } {
+      set dirid      [lindex $SeqUnpackCfg 1];
+      set unpackfmt  [lindex $SeqUnpackCfg 2];
+      set basename   [lindex $SeqUnpackCfg 3];
+      set unpackname $basename
+      if { [string compare $sortmethod "generic"] == 0} {
+        switch -exact -- [string tolower $unpackfmt] {
+          spm     {set unpackname [format "%s%03d" $basename $RunNo]}
+          analyze {set unpackname [format "%s%03d" $basename $RunNo]}
+          minc    {set unpackname [format "%s%03d" $basename $RunNo]}
+          mgh     {set unpackname [format "%s%03d" $basename $RunNo]}
+          bshort  {set unpackname [format "%s%03d" $basename $RunNo]}
+          bfloat  {set unpackname [format "%s%03d" $basename $RunNo]}
+          cor     {set unpackname [format "%03d"   $RunNo]}
+        }
       }
+      puts "$RunNo $Protocol $dirid $unpackfmt $unpackname"
+    } else {
+      set dirid       skip;
+      set unpackfmt   skip;
+      set basename    skip;
+      set unpackfmt   skip;
+      set unpackname  skip;
     }
-
-    set cfg [list $RunNo $dirid $unpackfmt $unpackname]
-    puts "$RunNo $Protocol $dirid $unpackfmt $unpackname"
+    set cfg [list $RunNo $dirid $unpackfmt $unpackname];
     lappend unpackcfg $cfg;
   }
 }
@@ -1061,6 +1077,7 @@ foreach runcfg $unpackcfg {
   set SubDir [lindex $runcfg 1];
   set Fmt    [lindex $runcfg 2];
   set Name   [lindex $runcfg 3];
+  if { [string compare $Fmt skip ] == 0} {continue;}
   set nthRun [GetSeriesIndex $RunNo $SeriesLeaders];
 
   puts $LF "---------------------------------------------------------"
@@ -1194,6 +1211,8 @@ foreach runcfg $unpackcfg {
     puts $LF "-----------------------"
 
     if { ! $noexec } {
+      puts "$mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
+      puts $LF "$mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom"
       set err [catch {exec -keepnewline \
           $mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt \
                       --nspmzeropad $nspmzeropad --in_type siemens_dicom\
