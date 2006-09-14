@@ -32,6 +32,7 @@ public:
 
 class TestListener : public Listener {
 public:
+  TestListener() : Listener( "TestListener" ) {}
   void Clear () { bGotMessage = false; bGotData = false; }
   virtual void DoListenToMessage ( string iMessage, void* iData );
   bool GotMessage () { return bGotMessage; }
@@ -62,7 +63,7 @@ BroadcasterTester::Test () {
 
   try {
 
-    Broadcaster broadcaster;
+    Broadcaster broadcaster("test");
     TestListener listenerListening;
     TestListener listenerNotListening;
 

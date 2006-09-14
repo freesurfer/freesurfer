@@ -238,8 +238,8 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
     ssID2 >> transformID;
     Assert( (col1.GetDataToWorldTransform() == t2.GetID()), 
 	    "tcl GetDataTransform didn't match transform's ID" );
-    
-    
+
+    col1.SetDataToWorldTransform( 0 );
   }
   catch( exception& e ) {
     cerr << "failed: " << e.what() << endl;

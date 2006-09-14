@@ -53,11 +53,11 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     string fnMRI;
     if( NULL != sTestDataDir ) {
-      fnMRI = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      fnMRI = string(sTestDataDir) + "anatomical/bert.mgz";
       ifstream fMRI( fnMRI.c_str(), ios::in );
       if( !fMRI ) {
 	if( NULL != sSubjectsDir ) {
-	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1.mgz";
 	  ifstream fMRI( fnMRI.c_str(), ios::in );
 	  if( !fMRI ) {
 	    throw runtime_error("Couldn't find necessary test data.");
@@ -66,11 +66,11 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       }
     }
 
-    VolumeCollection vol;
-    vol.SetFileName( fnMRI );
-    MRI* mri = vol.GetMRI();
+    VolumeCollection* vol = new VolumeCollection();
+    vol->SetFileName( fnMRI );
+    MRI* mri = vol->GetMRI();
 
-    Assert( (vol.GetTypeDescription() == "Volume"),
+    Assert( (vol->GetTypeDescription() == "Volume"),
 	     "GetTypeDescription didn't return Volume" );
 
     DataManager dataMgr = DataManager::GetManager();
@@ -90,18 +90,18 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     // Save it in /tmp, load it, and match it again.
     string fnSave( "/tmp/test.mgz" );
-    vol.Save( fnSave );
+    vol->Save( fnSave );
     
-    VolumeCollection testVol;
-    testVol.SetFileName( fnSave );
-    MRI* testMri = testVol.GetMRI();
+    VolumeCollection* testVol = new VolumeCollection();
+    testVol->SetFileName( fnSave );
+    MRI* testMri = testVol->GetMRI();
     Assert( (MRImatch( testMri, mri )), "MRImatch failed for load after save");
 
 
 
     // Make an ROI and make sure it's a volume ROI.
     try {
-      int roiID = vol.NewROI();
+      int roiID = vol->NewROI();
       ScubaROIVolume* roi = 
 	dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( roiID ));
       roi = NULL;
@@ -116,7 +116,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     Point3<float> data;
     Point3<int> index;
     world.Set( -50, 0, -80 );
-    vol.RASToMRIIndex( world.xyz(), index.xyz() );
+    vol->RASToMRIIndex( world.xyz(), index.xyz() );
     {
       stringstream ssError;
       ssError << "RASToMRIIndex failed. world " 
@@ -131,10 +131,10 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 2, 0, 0,
 				    0, 0, 2, 0,
 				    0, 0, 0, 1 );
-    vol.SetDataToWorldTransform( dataTransform.GetID() );
+    vol->SetDataToWorldTransform( dataTransform.GetID() );
 
     world.Set( -50, 0, -80 );
-    vol.RASToDataRAS( world.xyz(), data.xyz() );
+    vol->RASToDataRAS( world.xyz(), data.xyz() );
     {
       stringstream ssError;
       ssError << "RASToDataRAS failed. world " 
@@ -145,7 +145,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	      ssError.str() );
     } 
     
-    vol.RASToMRIIndex( world.xyz(), index.xyz() );
+    vol->RASToMRIIndex( world.xyz(), index.xyz() );
 
     if( index.x() != 158 || index.y() != 168 || index.z() != 110 ) {
       cerr << "RASToMRIIndex with data transform failed. world " 
@@ -156,16 +156,16 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     world.Set( -50, 0, -80 );
     VolumeLocation& loc = 
-      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
-    if( !vol.IsInBounds( loc ) ) {
+      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    if( !vol->IsInBounds( loc ) ) {
       stringstream ssError;
       ssError << "IsInBounds failed. world " << world;
       throw( runtime_error( ssError.str() ) );
     }
     world.Set( -1000, 0, 0 );
     VolumeLocation& loc2 =
-      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
-    if( vol.IsInBounds( loc2 ) ) {
+      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    if( vol->IsInBounds( loc2 ) ) {
       stringstream ssError;
       ssError << "IsInBounds failed. world " << world;
       throw( runtime_error( ssError.str() ) );
@@ -176,13 +176,13 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 2, 0, 0,
 				    0, 0, 2, 0,
 				    0, 0, 0, 1 );
-    vol.SetDataToWorldTransform( dataTransform.GetID() );
+    vol->SetDataToWorldTransform( dataTransform.GetID() );
     world.Set( 0, -1000, -254 );
     VolumeLocation& loc3 =
-      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
-    if( vol.IsInBounds( loc3 ) ) {
+      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    if( vol->IsInBounds( loc3 ) ) {
       stringstream ssError;
-      vol.RASToMRIIndex( world.xyz(), index.xyz() );
+      vol->RASToMRIIndex( world.xyz(), index.xyz() );
       ssError << "IsRASInMRIBounds failed. world " << world 
 	      << " index " << index;
       throw( runtime_error( ssError.str() ) );
@@ -190,11 +190,11 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
 
     // Create a new one from template.
-    VolumeCollection vol2;
-    vol2.MakeUsingTemplate( vol.GetID() );
-    Assert( (vol.mVoxelSize[0] == vol2.mVoxelSize[0] &&
-	     vol.mVoxelSize[1] == vol2.mVoxelSize[1] &&
-	     vol.mVoxelSize[2] == vol2.mVoxelSize[2]),
+    VolumeCollection* vol2 = new VolumeCollection();
+    vol2->MakeUsingTemplate( vol->GetID() );
+    Assert( (vol->mVoxelSize[0] == vol2->mVoxelSize[0] &&
+	     vol->mVoxelSize[1] == vol2->mVoxelSize[1] &&
+	     vol->mVoxelSize[2] == vol2->mVoxelSize[2]),
 	    "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
 
 
@@ -203,7 +203,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 1, 0, 0,
 				    0, 0, 1, 0,
 				    0, 0, 0, 1 );
-    vol.SetDataToWorldTransform( dataTransform.GetID() );
+    vol->SetDataToWorldTransform( dataTransform.GetID() );
 
     // FindRASPointsInSquare
     {
@@ -214,7 +214,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       sqRAS[3].Set( 0, -3, 67 );
       cRAS.Set( 0, -1, 69 );
       list<Point3<float> > points;
-      vol.FindRASPointsInSquare( cRAS.xyz(),
+      vol->FindRASPointsInSquare( cRAS.xyz(),
 				 sqRAS[0].xyz(), sqRAS[1].xyz(), 
 				 sqRAS[2].xyz(), sqRAS[3].xyz(),
 				 0, points );
@@ -250,7 +250,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	segIdxB.Set( aSegments[nSegment+1] );
 	
 	VectorOps::IntersectionResult rInt =
-	  vol.VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
+	  vol->VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
 	
 	if( VectorOps::intersect != rInt ) {
 	  cerr << "Failed VoxelIntersectsSegment test: idx " << idx 
@@ -263,7 +263,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       segIdxA.Set( 0, 5.5, 5.5 );
       segIdxB.Set( 4, 5.5, 5.5 );
       VectorOps::IntersectionResult rInt = 
-	vol.VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
+	vol->VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
       
       if( VectorOps::dontIntersect != rInt ) {
 	cerr << "Failed VoxelIntersectsSegment test: idx " << idx 
@@ -291,15 +291,15 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       }
       fVol.close();
 
-      VolumeCollection vol;
-      vol.SetFileName( fnVol );
-      vol.LoadVolume();
+      VolumeCollection* vol = new VolumeCollection();
+      vol->SetFileName( fnVol );
+      vol->LoadVolume();
 
       // Get the values 0-4 and make sure we got the right voxels.
       for( int nStructure = 0; nStructure < 5; nStructure++ ) {
 
 	list<VolumeLocation> lLocations;
-	vol.GetVoxelsWithValue( nStructure, lLocations );
+	vol->GetVoxelsWithValue( nStructure, lLocations );
 
 	Volume3<bool> bGot( 5, 5, 5, false );
 	list<VolumeLocation>::iterator tLocation;
@@ -333,6 +333,8 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	  }
 	}
       }
+
+      delete vol;
     }
 
     // GetAverageValue
@@ -346,9 +348,9 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       }
       fVol.close();
 
-      VolumeCollection vol;
-      vol.SetFileName( fnVol );
-      vol.LoadVolume();
+      VolumeCollection* vol = new VolumeCollection();
+      vol->SetFileName( fnVol );
+      vol->LoadVolume();
       
       // Get values of all voxels in plane x=3 and make sure it's 3.
       list<VolumeLocation> lVoxels;
@@ -356,11 +358,11 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	for( int nY = 0; nY < 5; nY++ ) {
 	  int index[3] = { 3, nY, nZ };
 	  VolumeLocation& loc = 
-	    (VolumeLocation&) vol.MakeLocationFromIndex( index );
+	    (VolumeLocation&) vol->MakeLocationFromIndex( index );
 	  lVoxels.push_back( loc );
 	}
       }
-      float average = vol.GetAverageValue( lVoxels );
+      float average = vol->GetAverageValue( lVoxels );
       if( average != 3.0 ) {
 	stringstream ssErr;
 	ssErr << "Failed GetAverageValue: Getting all voxels in x=3, "
@@ -374,10 +376,10 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       for( int nX = 0; nX < 5; nX++ ) {
 	int index[3] = { nX, 3, 3 };
 	VolumeLocation& loc = 
-	    (VolumeLocation&) vol.MakeLocationFromIndex( index );
+	    (VolumeLocation&) vol->MakeLocationFromIndex( index );
 	lVoxels.push_back( loc );
       }
-      average = vol.GetAverageValue( lVoxels );
+      average = vol->GetAverageValue( lVoxels );
       if( average != 2.0 ) {
 	stringstream ssErr;
 	ssErr << "Failed GetAverageValue: Getting voxels in different planes, "
@@ -389,7 +391,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       lVoxels.clear();
       bool bDidntThrow = false;
       try {
-	average = vol.GetAverageValue( lVoxels );
+	average = vol->GetAverageValue( lVoxels );
 	bDidntThrow = true;
       }
       catch( exception& e ) {
@@ -399,6 +401,8 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	ssErr << "Failed GetAverageValue: Didn't throw with empty list";
 	throw runtime_error( ssErr.str() );
       }
+
+      delete vol;
     }
 
 
@@ -406,15 +410,19 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     char sCommand[1024];
     int rTcl;
 
-    int id = vol.GetID();
+    int id = vol->GetID();
     string fnTest = "test-name";
     sprintf( sCommand, "SetVolumeCollectionFileName %d test-name", id );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    
-    Assert( (vol.mfnMRI == fnTest), 
+    Assert( (vol->mfnMRI == fnTest), 
 	    "Setting file name via tcl didn't work" );
 
+    vol->SetDataToWorldTransform( 0 );
+
+    delete vol;
+    delete vol2;
+    delete testVol;
   }
   catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;

@@ -278,7 +278,6 @@ public:
     
     // Delete all the listeners and then make sure the the manager's
     // command lists are empty.
-    TclCommandManager::Command* cmd = commandMgr.mlCommands.front();
     for( int nListener = 0; nListener < kzListeners; nListener++ ) {
       delete aListener[nListener];
     }

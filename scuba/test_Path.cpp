@@ -24,7 +24,7 @@ public:
 
 class PathListener : public Listener {
 public:
-  PathListener() {
+  PathListener() : Listener("PathListener") {
     mPathID = -1;
     mbPathChanged = false;
     mbPathVertexAdded = false; 

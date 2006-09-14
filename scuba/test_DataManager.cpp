@@ -115,11 +115,11 @@ int main ( int argc, char** argv ) {
     
     bool bFound = true;
     if( NULL != sTestDataDir ) {
-      fnMRI = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      fnMRI = string(sTestDataDir) + "anatomical/bert.mgz";
       ifstream fMRI( fnMRI.c_str(), ios::in );
       if( !fMRI ) {
 	if( NULL != sSubjectsDir ) {
-	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1.mgz";
 	  ifstream fMRI( fnMRI.c_str(), ios::in );
 	  if( !fMRI ) {
 	    cerr << "WARNING: File " + fnMRI + 

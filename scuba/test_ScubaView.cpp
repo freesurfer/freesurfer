@@ -71,25 +71,34 @@ public:
   virtual void DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
 			       ViewState& iViewState,
 			       ScubaWindowToRASTranslator& iTranslator );
+  virtual void DrawIntoGL    ( ViewState& iViewState,
+  		               ScubaWindowToRASTranslator& iTranslator );
   virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
 			    std::map<std::string,std::string>& iLabelValues );
   virtual string GetTypeDescription() { return "TestLayer"; }
-  bool WasDrawn() const { return mbWasDrawn; }
+  bool WasDrawn() const { return (mbBufferWasDrawn && mbGLWasDrawn); }
   int GetWidth() const { return mWidth; }
   int GetHeight() const { return mHeight; }
 protected:
-  bool mbWasDrawn;
+  bool mbBufferWasDrawn;
+  bool mbGLWasDrawn;
 };
 
 TestLayer::TestLayer() {
-  mbWasDrawn = false;
+  mbBufferWasDrawn = false;
+  mbGLWasDrawn = false;
 }
 
 void
 TestLayer::DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
 			   ViewState& iViewState,
 			   ScubaWindowToRASTranslator& iTranslator ) {
-  mbWasDrawn = true;
+  mbBufferWasDrawn = true;
+}
+
+void
+TestLayer::DrawIntoGL( ViewState&, ScubaWindowToRASTranslator& ) {
+  mbGLWasDrawn = true;
 }
 
 void 

@@ -31,7 +31,6 @@ int main ( int argc, char** argv ) {
     
     string fnVol;
     
-    bool bFound = true;
     if( NULL != sTestDataDir ) {
       fnVol = string(sTestDataDir) + "anatomical/bert/mri/T1";
       ifstream fVol( fnVol.c_str(), ios::in );

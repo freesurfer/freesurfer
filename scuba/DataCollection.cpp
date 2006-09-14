@@ -74,8 +74,8 @@ DataCollection::~DataCollection() {
   }
 
   // Stop listening to whoever is still around.
-  if( mDataToWorldTransform )
-    mDataToWorldTransform->RemoveListener( this );
+  cerr << "DataCollection::~DataCollection ID " << GetID() << " mDataToWorldTransform has ID " << mDataToWorldTransform->GetID() << endl;
+  mDataToWorldTransform->RemoveListener( this );
 }
 
 DataLocation&
@@ -379,16 +379,15 @@ DataCollection::DoNewROI () {
 void
 DataCollection::SetDataToWorldTransform ( int iTransformID ) {
 
+  // Don't set if we're already using this one.
+  if( NULL != mDataToWorldTransform &&
+      iTransformID == mDataToWorldTransform->GetID() )
+    return;
+
   try {
-    if( mDataToWorldTransform ) {
-      mDataToWorldTransform->RemoveListener( this );
-    }
-    if( iTransformID == -1 ) {
-      mDataToWorldTransform = NULL;
-    } else {
-      mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
-      mDataToWorldTransform->AddListener( this );
-    }
+    mDataToWorldTransform->RemoveListener( this );
+    mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
+    mDataToWorldTransform->AddListener( this );
   }
   catch(...) {
     DebugOutput( << "Couldn't find transform " << iTransformID );

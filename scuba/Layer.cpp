@@ -70,7 +70,6 @@ Layer::DrawIntoBuffer( GLubyte*, int, int,
 void
 Layer::DrawIntoGL ( ViewState& iViewState,
 		    ScubaWindowToRASTranslator& iTranslator ) {
-
   cerr << "Layer " << msLabel << " is drawing into GL" << endl;
 }
 
