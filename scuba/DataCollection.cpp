@@ -74,7 +74,6 @@ DataCollection::~DataCollection() {
   }
 
   // Stop listening to whoever is still around.
-  cerr << "DataCollection::~DataCollection ID " << GetID() << " mDataToWorldTransform has ID " << mDataToWorldTransform->GetID() << endl;
   mDataToWorldTransform->RemoveListener( this );
 }
 
