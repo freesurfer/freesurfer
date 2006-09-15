@@ -207,12 +207,12 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testTclCommandManager testPreferencesManager testUndoManager \
 	testDataCollection testScubaDataCollections \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
-	testScubaView testScubaFrame \
+	testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo 
 
-#	testVolumeCollection testTclChartWindow
+#	testVolumeCollection testTclChartWindow testScubaView
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
@@ -339,10 +339,10 @@ testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
 testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-testScubaView_SOURCES=test_ScubaView.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
-testScubaView_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+#testScubaView_SOURCES=test_ScubaView.cpp \
+#	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
+#testScubaView_LDADD=$(LIBS_TCL_OPENGL) \
+#	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(X_LIBS)
 
 testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
