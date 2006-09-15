@@ -309,10 +309,10 @@ testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+#testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
+#	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+#testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
+#	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
@@ -374,10 +374,10 @@ testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
-testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+#testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
+#	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
+#testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
+#	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
 .ui/mainwindow.h: mainwindow.ui
