@@ -5,9 +5,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 23:57:38 $
-// Revision       : $Revision: 1.3 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/09/15 14:43:49 $
+// Revision       : $Revision: 1.4 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -34,7 +34,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.3 2005/11/01 23:57:38 nicks Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.4 2006/09/15 14:43:49 fischl Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -95,7 +95,7 @@ double findMinSize(MRI *mri)
 int 
 main(int argc, char *argv[]) 
 { 
-	char        ifname[200], ofname[200],  data_dir[400], *cp ; 
+	char        ifname[STRLEN], ofname[STRLEN],  data_dir[STRLEN], *cp ; 
 	int         nargs, msec; 
 	int         y, z, xi, yi_low=256, yi_high=0, zi_low=256, zi_high=0, temp;
 	int         volume[5], i, j, k;           
@@ -111,8 +111,6 @@ main(int argc, char *argv[])
 	DiagInit(NULL, NULL, NULL) ; 
 	ErrorInit(NULL, NULL, NULL) ; 
 
-	print("cosine = %f", cos(3.14/4));
-	
 	for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) 
 	{ 
 		nargs = get_option(argc, argv) ; 
@@ -155,7 +153,7 @@ main(int argc, char *argv[])
   {
     MRIreplaceValues(mri_wm, mri_wm, labels[i], 0) ;
   }
-	sprintf(ofname,"%s/%s/mri/wmpeng.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/wmpeng.mgz",cp,argv[1]) ; 
 	fprintf(stderr, "writing wm volume to %s...\n", ofname) ; 
 	MRIwrite(mri_wm, ofname) ;
 
@@ -172,7 +170,7 @@ main(int argc, char *argv[])
   // binalize the talairach volume (mri_tal)
   MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
 
-	sprintf(ofname,"%s/%s/mri/wm_tal.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/wm_tal.mgz",cp,argv[1]) ; 
 	fprintf(stderr, "writing talairach volume to %s...\n", ofname) ; 
 	MRIwrite(mri_tal, ofname) ; 
 
@@ -247,14 +245,14 @@ main(int argc, char *argv[])
 	mri_wm->c_r = 0;
 	mri_wm->c_a = 0;
 	mri_wm->c_s = 0;  
-	mri_wm = LTAtransform(mri_tal, mri_wm, lta);
+	mri_wm = LTAtransformInterp(mri_tal, mri_wm, lta, SAMPLE_NEAREST);
 #endif
-	sprintf(ofname,"%s/%s/mri/cc.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc.mgz",cp,argv[1]) ; 
 	fprintf(stderr, "writing output to %s...\n", ofname) ; 
 	MRIwrite(mri_wm, ofname) ;
  
 	//MRItoTalairachEx(mri_wm,mri_tal,lta);
-	sprintf(ofname,"%s/%s/mri/cc_tal.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc_tal.mgz",cp,argv[1]) ; 
 	fprintf(stderr, "writing output to %s...\n", ofname) ; 
 	MRIwrite(mri_tal, ofname) ;
 
@@ -426,9 +424,9 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
 
     if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "cc_slice%d.mgh", slice);
+      sprintf(fname, "cc_slice%d.mgz", slice);
       MRIwrite(mri_slice, fname) ;
-      sprintf(fname, "cc_filled%d.mgh", slice);
+      sprintf(fname, "cc_filled%d.mgz", slice);
       MRIwrite(mri_filled, fname) ;
     }
 		MRIfillPlane(mri_filled, mri_cc_tal, MRI_SAGITTAL, xv, CC_VAL);
