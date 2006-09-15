@@ -94,7 +94,7 @@ int main ( int argc, char** argv ) {
 
     B* b0 = new B();
     list<int> bList;
-    list<int>::iterator tID;
+    //    list<int>::iterator tID;
     bList.clear();
     B::GetIDList( bList );
     if( bList.size() != 1 ) {
