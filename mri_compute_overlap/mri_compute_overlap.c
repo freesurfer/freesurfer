@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compute_overlap.c,v 1.11 2006/09/15 23:02:22 nicks Exp $",
+     "$Id: mri_compute_overlap.c,v 1.12 2006/09/15 23:25:59 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -283,10 +283,14 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume 1> <volume 2>\n", Progname) ;
+  printf("usage: %s [options] <volume 1> <volume 2> [label numbers]\n", 
+         Progname) ;
   printf(
-         "\ta           - compute overlap of all lables\n"
-         "\ts           - show label name for segmentation \n"
+         "\t-a           - compute overlap of all lables\n"
+         "\t             if -a is not specified, then the label numbers\n"
+         "\t             to check should be listed at the end of cmd line\n"
+         "\t-s           - show label name for segmentation \n"
+         "\t-l <file>    - filename to write results\n"
          );
   exit(code) ;
 }
