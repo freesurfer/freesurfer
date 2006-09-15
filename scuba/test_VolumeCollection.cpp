@@ -104,7 +104,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       stringstream ssError;
       ssError << "RASToMRIIndex failed. world " 
 	      << world << " index " << index;
-      Assert( (index.x() == 183 && index.y() == 208 && index.z() == 110),
+      Assert( (index.x() == 178 && index.y() == 208 && index.z() == 128),
 	      ssError.str() );
     } 
 
@@ -130,7 +130,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     
     vol->RASToMRIIndex( world.xyz(), index.xyz() );
 
-    if( index.x() != 158 || index.y() != 168 || index.z() != 110 ) {
+    if( index.x() != 153 || index.y() != 168 || index.z() != 128 ) {
       cerr << "RASToMRIIndex with data transform failed. world " 
 	   << world << " index " << index << endl;
       throw( runtime_error( "failed" ) );
@@ -208,9 +208,9 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	stringstream ssMsg;
 	ssMsg << "Failed: " << pRAS << " outside of square";
 	
-	Assert( ( pRAS[0] != 0 || 
-		  pRAS[1] < -3 || pRAS[1] > 1 ||
-		  pRAS[2] < 67 || pRAS[2] > 71 ),
+	Assert( ( pRAS[0] == 0 && 
+		  (pRAS[1] >= -3 && pRAS[1] <= 1) &&
+		  (pRAS[2] >= 67 && pRAS[2] <= 71) ),
 		ssMsg.str() );
       }
     }
@@ -266,7 +266,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     {
       // This is a 5cubed volume whose values are set to the x
       // coordinate. So for x=3,y=0..4,z=0..4, value = 3. 
-      string fnVol = "/test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
+      string fnVol = "test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
       ifstream fVol( fnMRI.c_str(), ios::in );
       if( !fVol ) {
 	throw runtime_error("Couldn't find necessary test data.");
@@ -322,7 +322,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     // GetAverageValue
     {
       // We'll use the same volume as with GetVoxelsWithValue.
-      string fnVol = "/test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
+      string fnVol = "test_data/testVolumeCollection-GetVoxelsWithValue.mgh";
       ifstream fVol( fnMRI.c_str(), ios::in );
       if( !fVol ) {
 	throw runtime_error("Couldn't find necessary test data.");

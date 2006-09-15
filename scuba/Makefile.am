@@ -210,13 +210,24 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
+	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
+	testVolumeCollection testTclChartWindow
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo 
 
-#	testVolumeCollection testTclChartWindow testScubaView
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
-TESTS=$(check_PROGRAMS)
+TESTS=testIDTracker testBroadcaster testUtilities \
+	testMatrix44 testTransform44 testVolume3 testPath \
+	testShortestPathFinder testToglManager testDataManager \
+	testTclCommandManager testPreferencesManager testUndoManager \
+	testDataCollection testScubaDataCollections \
+	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
+	testScubaView testScubaFrame \
+	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
+	testVectorOps testRASToVoxel testCoordTimer \
+	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
+	testVolumeCollection
 
 ## Test programs.
 testIDTracker_SOURCES=test_IDTracker.cpp \
@@ -309,10 +320,10 @@ testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-#testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
-#	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-#testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
-#	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
@@ -374,10 +385,10 @@ testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-#testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
-#	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
-#testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
-#	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
+testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
 .ui/mainwindow.h: mainwindow.ui
