@@ -12,9 +12,9 @@
   Description: miscellaneous utility functions
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
-  // Revision Author: $Author: dsjen $
-  // Revision Date  : $Date: 2006/08/10 19:51:18 $
-  // Revision       : $Revision: 1.54 $
+  // Revision Author: $Author: nicks $
+  // Revision Date  : $Date: 2006/09/15 21:04:13 $
+  // Revision       : $Revision: 1.55 $
 
   ------------------------------------------------------------------------*/
 
@@ -87,9 +87,8 @@ setRandomSeed(long seed)
   srand(seed);
   srandom(seed);
 
-  // reset numerical recipes ran1 state storage
-// I'm not sure that we need to explicitly reset this generator.  It's 
-// reset automatically when given a new seed
+  // seed vnl_random thingy
+  OpenRan1(&idum);
 
   return(NO_ERROR) ;
 }
