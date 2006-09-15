@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.90 2006/08/31 00:21:26 nicks Exp $
+// $Id: matrix.c,v 1.91 2006/09/15 21:18:47 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,13 +11,13 @@
 #include <sys/mman.h>
 #endif
 #ifdef Darwin
-  #include <float.h>  // defines FLT_MIN
+#include <float.h>  // defines FLT_MIN
 #else
-  #ifdef SunOS
-    #include <limits.h> // defines FLT_MIN
-  #else
-    #include <values.h> // defines FLT_MIN
-  #endif
+#ifdef SunOS
+#include <limits.h> // defines FLT_MIN
+#else
+#include <values.h> // defines FLT_MIN
+#endif
 #endif
 
 #include "matrix.h"
@@ -30,8 +30,10 @@
 #include "evschutils.h"
 
 // private functions
-MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues, 
-  MATRIX *m_evectors, int isSymmetric );
+MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m, 
+                                          float *evalues, 
+                                          MATRIX *m_evectors, 
+                                          int isSymmetric );
 
 /**
  * Returns true if the matrix is symmetric (should be square too).
@@ -44,14 +46,14 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
   int row, rows, cols ;
 
   if(mIn == NULL)
-  {
-    if (mOut)
     {
-      MatrixFree(&mOut);
-      mOut = NULL; 
+      if (mOut)
+        {
+          MatrixFree(&mOut);
+          mOut = NULL; 
+        }
+      return(NULL);
     }
-    return(NULL);
-  }
   rows = mIn->rows ;
   cols = mIn->cols ;
 
@@ -59,9 +61,8 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
     mOut = MatrixAlloc(rows, cols, mIn->type) ;
 
   if (!mOut)
-    ErrorReturn(NULL,
-		(ERROR_NO_MEMORY,
-		 "MatrixCopy: couldn't allocate mOut")) ;
+    ErrorExit(ERROR_NO_MEMORY,
+              "MatrixCopy: couldn't allocate mOut") ;
 
   for (row = 1 ; row <= rows ; row++)
     memcpy((char *)(mOut->rptr[row]), (char *)mIn->rptr[row], 
@@ -69,6 +70,7 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
 
   return(mOut) ;
 }
+
 
 MATRIX * 
 MatrixInverse(MATRIX *mIn, MATRIX *mOut)
@@ -87,109 +89,109 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
   cols = mIn->cols ;
 
   if (!mOut)
-  {
-    alloced = 1 ;
-    mOut = MatrixAlloc(rows, cols, mIn->type) ;
-  }
+    {
+      alloced = 1 ;
+      mOut = MatrixAlloc(rows, cols, mIn->type) ;
+    }
     
   /* allocate temp matrix so as not to destory contents of mIn */
   if (mIn->type == MATRIX_COMPLEX)
-  {
-    MATRIX *mQuad, *mInv, *mReal, *mImag ;
+    {
+      MATRIX *mQuad, *mInv, *mReal, *mImag ;
 
-    mTmp = MatrixAlloc(2*rows, 2*cols, MATRIX_REAL) ;
+      mTmp = MatrixAlloc(2*rows, 2*cols, MATRIX_REAL) ;
 
+      /*
+        form square matrix of the form
 
-/*
-   form square matrix of the form
+        A  -C
+        C  A
 
-   A  -C
-   C  A
-
-   where A and C are the real and imaginary components of the input
-   matrix respectively.
-*/
-    MatrixCopyRealRegion(mIn, mTmp, 1, 1, rows, cols, 1, 1) ;
-    MatrixCopyRealRegion(mIn, mTmp, 1, 1, rows, cols, rows+1, cols+1) ;
-    mQuad = MatrixAlloc(rows,cols,MATRIX_REAL) ;
-    MatrixCopyImagRegion(mIn, mQuad, 1, 1, rows, cols, 1, 1) ;
-    MatrixScalarMul(mQuad, -1.0f, mQuad) ;
-    MatrixCopyRegion(mQuad, mTmp, 1, 1, rows, cols, 1, cols+1) ;
-    MatrixCopyImagRegion(mIn, mTmp, 1, 1, rows, cols, cols+1, 1) ;
-
-#if 0
-    DiagPrintf(DIAG_MATRIX, "\nextraction\n") ;
-    MatrixPrint(stdout, mTmp) ;
-#endif
-
-    mReal = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-    mImag = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-    mInv = MatrixInverse(mTmp, NULL) ;
-
-    MatrixCopyRegion(mInv, mReal, 1, 1, rows, cols, 1, 1) ;
-    MatrixCopyRegion(mInv, mImag, rows+1, 1, rows, cols, 1, 1) ;
-    MatrixRealToComplex(mReal, mImag, mOut) ;
+        where A and C are the real and imaginary components of the input
+        matrix respectively.
+      */
+      MatrixCopyRealRegion(mIn, mTmp, 1, 1, rows, cols, 1, 1) ;
+      MatrixCopyRealRegion(mIn, mTmp, 1, 1, rows, cols, rows+1, cols+1) ;
+      mQuad = MatrixAlloc(rows,cols,MATRIX_REAL) ;
+      MatrixCopyImagRegion(mIn, mQuad, 1, 1, rows, cols, 1, 1) ;
+      MatrixScalarMul(mQuad, -1.0f, mQuad) ;
+      MatrixCopyRegion(mQuad, mTmp, 1, 1, rows, cols, 1, cols+1) ;
+      MatrixCopyImagRegion(mIn, mTmp, 1, 1, rows, cols, cols+1, 1) ;
 
 #if 0
-    DiagPrintf(DIAG_MATRIX, "\ninverse of extraction\n") ;
-    MatrixPrint(stderr, mInv) ;
-    DiagPrintf(DIAG_MATRIX, "\ninverse:\n") ;
-    MatrixPrint(stderr, mOut) ;
-    DiagPrintf(DIAG_MATRIX, "real + imag = \n") ;
-    MatrixPrint(stderr, mReal) ;
-    MatrixPrint(stderr, mImag) ;
+      DiagPrintf(DIAG_MATRIX, "\nextraction\n") ;
+      MatrixPrint(stdout, mTmp) ;
 #endif
-    MatrixFree(&mQuad) ;
-    MatrixFree(&mReal) ;
-    MatrixFree(&mImag) ;
-  }
-  else
-  {
-    mTmp = MatrixCopy(mIn, NULL) ;   
 
-    a = mTmp->rptr ;
-    y = mOut->rptr ;
+      mReal = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+      mImag = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+      mInv = MatrixInverse(mTmp, NULL) ;
 
-    isError = OpenLUMatrixInverse(mTmp, mOut);
-    
-    if( isError < 0 ) {
-      MatrixFree(&mTmp);
-      if (alloced) {
-        MatrixFree(&mOut);
-      }
-      return(NULL) ;
+      MatrixCopyRegion(mInv, mReal, 1, 1, rows, cols, 1, 1) ;
+      MatrixCopyRegion(mInv, mImag, rows+1, 1, rows, cols, 1, 1) ;
+      MatrixRealToComplex(mReal, mImag, mOut) ;
+
+#if 0
+      DiagPrintf(DIAG_MATRIX, "\ninverse of extraction\n") ;
+      MatrixPrint(stderr, mInv) ;
+      DiagPrintf(DIAG_MATRIX, "\ninverse:\n") ;
+      MatrixPrint(stderr, mOut) ;
+      DiagPrintf(DIAG_MATRIX, "real + imag = \n") ;
+      MatrixPrint(stderr, mReal) ;
+      MatrixPrint(stderr, mImag) ;
+#endif
+      MatrixFree(&mQuad) ;
+      MatrixFree(&mReal) ;
+      MatrixFree(&mImag) ;
     }
-  }
+  else
+    {
+      mTmp = MatrixCopy(mIn, NULL) ;   
+
+      a = mTmp->rptr ;
+      y = mOut->rptr ;
+
+      isError = OpenLUMatrixInverse(mTmp, mOut);
+    
+      if( isError < 0 ) {
+        MatrixFree(&mTmp);
+        if (alloced) {
+          MatrixFree(&mOut);
+        }
+        return(NULL) ;
+      }
+    }
 
   MatrixFree(&mTmp) ;
 
   for (j = 1 ; j <= rows ; j++)
-  {
-    for (i = 1 ; i <= rows ; i++)
-      switch (mOut->type)
-      {
-      case MATRIX_REAL:
-        if (!finite(*MATRIX_RELT(mOut, i, j)))
-        {
-          if (alloced)
-            MatrixFree(&mOut) ;
-          return(NULL) ;   /* was singular */
-        }
-        break ;
-      case MATRIX_COMPLEX:
-        if (!finite(MATRIX_CELT_REAL(mOut, i, j)) ||
-             !finite(MATRIX_CELT_IMAG(mOut, i, j)))
-        {
-          if (alloced)
-            MatrixFree(&mOut) ;
-          return(NULL) ;   /* was singular */
-        }
-        break ;
-      }
-  }
+    {
+      for (i = 1 ; i <= rows ; i++)
+        switch (mOut->type)
+          {
+          case MATRIX_REAL:
+            if (!finite(*MATRIX_RELT(mOut, i, j)))
+              {
+                if (alloced)
+                  MatrixFree(&mOut) ;
+                return(NULL) ;   /* was singular */
+              }
+            break ;
+          case MATRIX_COMPLEX:
+            if (!finite(MATRIX_CELT_REAL(mOut, i, j)) ||
+                !finite(MATRIX_CELT_IMAG(mOut, i, j)))
+              {
+                if (alloced)
+                  MatrixFree(&mOut) ;
+                return(NULL) ;   /* was singular */
+              }
+            break ;
+          }
+    }
 
   return(mOut) ;
 }
+
 
 MATRIX *
 MatrixAlloc(int rows, int cols, int type)
@@ -211,96 +213,98 @@ MatrixAlloc(int rows, int cols, int type)
   mat->cols = cols ;
   mat->type = type ;
 
-/*
-  allocate a single array the size of the matrix, then initialize
-  row pointers to the proper locations.
-*/
+  /*
+    allocate a single array the size of the matrix, then initialize
+    row pointers to the proper locations.
+  */
 
   nelts = rows*cols ;
   if (type == MATRIX_COMPLEX)
     nelts *= 2 ;
 
-/*
-  because NRC is one-based, we must leave room for a few unused
-  (but valid) addresses before the start of the actual data so
-  that mat->rptr[0][0] is a valid address even though it wont
-  be used.
-*/
+  /*
+    because NRC is one-based, we must leave room for a few unused
+    (but valid) addresses before the start of the actual data so
+    that mat->rptr[0][0] is a valid address even though it wont
+    be used.
+  */
   mat->data = (float *)calloc(nelts+2, sizeof(float)) ;
-
 
   mat->mmapfile = NULL;
   
 #ifdef _POSIX_MAPPED_FILES
   if (!mat->data) /* First try to allocate a mmap'd tmpfile */
-  {
-    printf("MatrixAlloc(%d, %d): Using mmap'd tmpfile\n",
-           rows, cols) ;
-    if((mat->mmapfile = tmpfile()))
     {
-      /* This maintains identical behavior with calloc */
-      f = 0;
-      for(i = 0; i < nelts+2; ++i) {
-        if(!(fwrite(&f, sizeof(float), 1, mat->mmapfile))) {
-          printf("MatrixAlloc(%d, %d): fwrite failed", rows, cols) ;
-          exit(1) ;
-        }
-      }
-      /* This seems to matter with some implementations of mmap */
-      fseek(mat->mmapfile, 0, 0) ;
-      /* lseek(fileno(mat->mapfile), (nelts+2) * sizeof(float), 0) ;*/
-      fflush(mat->mmapfile) ;
+      printf("MatrixAlloc(%d, %d): Using mmap'd tmpfile\n",
+             rows, cols) ;
+      if((mat->mmapfile = tmpfile()))
+        {
+          /* This maintains identical behavior with calloc */
+          f = 0;
+          for(i = 0; i < nelts+2; ++i) {
+            if(!(fwrite(&f, sizeof(float), 1, mat->mmapfile))) {
+              printf("MatrixAlloc(%d, %d): fwrite failed", rows, cols) ;
+              exit(1) ;
+            }
+          }
+          /* This seems to matter with some implementations of mmap */
+          fseek(mat->mmapfile, 0, 0) ;
+          /* lseek(fileno(mat->mapfile), (nelts+2) * sizeof(float), 0) ;*/
+          fflush(mat->mmapfile) ;
       
-      mat->data = (float *)mmap(0, (nelts+2) * sizeof(float),
-                                PROT_READ | PROT_WRITE, MAP_SHARED,
-                                fileno(mat->mmapfile), 0) ;
+          mat->data = (float *)mmap(0, (nelts+2) * sizeof(float),
+                                    PROT_READ | PROT_WRITE, MAP_SHARED,
+                                    fileno(mat->mmapfile), 0) ;
 
-      if(mat->data == MAP_FAILED) {
-        mat->data = 0 ;
-      }
+          if(mat->data == MAP_FAILED) {
+            mat->data = 0 ;
+          }
+        }
     }
-  }
 #endif
   
   if (!mat->data) /* we _still_ couldn't get it! */
-  {
-    fprintf(stderr, "MatrixAlloc(%d, %d): allocation failed\n",
-      rows, cols) ;
-    exit(1) ;
-  }
+    {
+      fprintf(stderr, "MatrixAlloc(%d, %d): allocation failed\n",
+              rows, cols) ;
+      exit(1) ;
+    }
   mat->data += 2 ;  
 
-/* 
-  silly numerical recipes in C requires 1-based stuff. The full
-  data array is zero based, point the first row to the zeroth
-  element, and so on.
-*/
+  /* 
+     silly numerical recipes in C requires 1-based stuff. The full
+     data array is zero based, point the first row to the zeroth
+     element, and so on.
+  */
   mat->rptr = (float **)calloc(rows+1, sizeof(float *)) ;
   if (!mat->rptr)
-  {
-    free(mat->data) ;
-    free(mat) ;
-    ErrorExit(ERROR_NO_MEMORY, "MatrixAlloc(%d, %d): could not allocate rptr",
-              rows, cols) ;
-  }
-  for (row = 1 ; row <= rows ; row++)
-  {
-    switch (type)
     {
-      case MATRIX_REAL:
-        mat->rptr[row] = mat->data + (row-1)*cols - 1 ;
-        break ;
-      case MATRIX_COMPLEX:
-        mat->rptr[row] = (float *)(((CPTR)mat->data) + 
-            (row-1)*cols - 1) ;
-        break ; 
-      default:
-        ErrorReturn(NULL,
-                    (ERROR_BADPARM, "MatrixAlloc: unknown type %d\n",type)) ;
+      free(mat->data) ;
+      free(mat) ;
+      ErrorExit
+        (ERROR_NO_MEMORY, 
+         "MatrixAlloc(%d, %d): could not allocate rptr",
+         rows, cols) ;
     }
-  }
+  for (row = 1 ; row <= rows ; row++)
+    {
+      switch (type)
+        {
+        case MATRIX_REAL:
+          mat->rptr[row] = mat->data + (row-1)*cols - 1 ;
+          break ;
+        case MATRIX_COMPLEX:
+          mat->rptr[row] = (float *)(((CPTR)mat->data) + 
+                                     (row-1)*cols - 1) ;
+          break ; 
+        default:
+          ErrorReturn(NULL,
+                      (ERROR_BADPARM, "MatrixAlloc: unknown type %d\n",type)) ;
+        }
+    }
   return(mat) ;
 }
+
 
 int
 MatrixFree(MATRIX **pmat)
@@ -316,18 +320,18 @@ MatrixFree(MATRIX **pmat)
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2 ;
   if (mat->mmapfile)
-  {
-    int nelts ;
+    {
+      int nelts ;
 
-    nelts = mat->rows*mat->cols ;
-    if (mat->type == MATRIX_COMPLEX)
-      nelts *= 2 ;
+      nelts = mat->rows*mat->cols ;
+      if (mat->type == MATRIX_COMPLEX)
+        nelts *= 2 ;
 
 #ifdef _POSIX_MAPPED_FILES
-    munmap((void *) mat->data, (nelts+2) * sizeof(float)) ;
+      munmap((void *) mat->data, (nelts+2) * sizeof(float)) ;
 #endif
-    fclose(mat->mmapfile) ;
-  }
+      fclose(mat->mmapfile) ;
+    }
   else{
     free(mat->data) ;
   }
@@ -337,6 +341,7 @@ MatrixFree(MATRIX **pmat)
 
   return(0) ;
 }
+
 
 MATRIX *
 MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
@@ -349,19 +354,19 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
   if (m1->cols != m2->rows)
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
-                "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
-                m1->cols, m2->rows)) ;
+                 "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
+                 m1->cols, m2->rows)) ;
 
   if (!m3)
-  {
-    /* twitzel also did something here */
-    if((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX)) 
-      m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
-    else
-      m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
-    if (!m3)
-      return(NULL) ;
-  }
+    {
+      /* twitzel also did something here */
+      if((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX)) 
+        m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
+      else
+        m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
+      if (!m3)
+        return(NULL) ;
+    }
   else if ((m3->rows != m1->rows) || (m3->cols != m2->cols))
     ErrorReturn(NULL,
                 (ERROR_BADPARM, 
@@ -369,15 +374,15 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
                  m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
 
   if (m3 == m2)
-  {
-    m_tmp1 = MatrixCopy(m2, NULL) ;
-    m2 = m_tmp1 ;
-  }
+    {
+      m_tmp1 = MatrixCopy(m2, NULL) ;
+      m2 = m_tmp1 ;
+    }
   if (m3 == m1)
-  {
-    m_tmp2 = MatrixCopy(m1, NULL) ;
-    m1 = m_tmp2 ;
-  }
+    {
+      m_tmp2 = MatrixCopy(m1, NULL) ;
+      m1 = m_tmp2 ;
+    }
   /*  MatrixClear(m3) ;*/
   cols = m3->cols ;
   rows = m3->rows ;
@@ -385,64 +390,64 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
 
   /* twitzel modified here */
   if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_REAL))
-  {
-    for (row = 1 ; row <= rows ; row++)
     {
-      r3 = &m3->rptr[row][1] ;
-      for (col = 1 ; col <= cols ; col++)
-      {
-        val = 0.0 ;
-        r1 = &m1->rptr[row][1] ;
-        r2 = &m2->rptr[1][col] ;
-        for (i = 1 ; i <= m1_cols ; i++, r2 += cols)
+      for (row = 1 ; row <= rows ; row++)
         {
+          r3 = &m3->rptr[row][1] ;
+          for (col = 1 ; col <= cols ; col++)
+            {
+              val = 0.0 ;
+              r1 = &m1->rptr[row][1] ;
+              r2 = &m2->rptr[1][col] ;
+              for (i = 1 ; i <= m1_cols ; i++, r2 += cols)
+                {
 #if 0
-          m3->rptr[row][col] +=
-            m1->rptr[row][i] * m2->rptr[i][col] ;
+                  m3->rptr[row][col] +=
+                    m1->rptr[row][i] * m2->rptr[i][col] ;
 #else
-          val += *r1++ * *r2 ;
+                  val += *r1++ * *r2 ;
 #endif
+                }
+              *r3++ = val ;
+            }
         }
-        *r3++ = val ;
-      }
-    }
-  } else if((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
- 
-    for (row = 1 ; row <= rows ; row++)
-      {
-  for (col = 1 ; col <= cols ; col++)
-    {
-      for (i = 1 ; i <= m1->cols ; i++)
+    } else if((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
+        
+      for (row = 1 ; row <= rows ; row++)
         {
-    float a, b, c, d ;  /* a + ib and c + id */
+          for (col = 1 ; col <= cols ; col++)
+            {
+              for (i = 1 ; i <= m1->cols ; i++)
+                {
+                  float a, b, c, d ;  /* a + ib and c + id */
     
-    a = MATRIX_CELT_REAL(m1,row,i) ;
-    b = MATRIX_CELT_IMAG(m1,row,i) ;
-    c = MATRIX_CELT_REAL(m2,i,col) ;
-    d = MATRIX_CELT_IMAG(m2,i,col) ;
-    MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
-    MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
+                  a = MATRIX_CELT_REAL(m1,row,i) ;
+                  b = MATRIX_CELT_IMAG(m1,row,i) ;
+                  c = MATRIX_CELT_REAL(m2,i,col) ;
+                  d = MATRIX_CELT_IMAG(m2,i,col) ;
+                  MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
+                  MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
+                }
+            }
         }
-    }
-      }
-  } else if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
-    for (row = 1 ; row <= rows ; row++)
-      {
-  for (col = 1 ; col <= cols ; col++)
-    {
-      for (i = 1 ; i <= m1->cols ; i++)
+    } else if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
+      for (row = 1 ; row <= rows ; row++)
         {
-    float a, c, d ;  /* a + ib and c + id and b=0 here*/
+          for (col = 1 ; col <= cols ; col++)
+            {
+              for (i = 1 ; i <= m1->cols ; i++)
+                {
+                  float a, c, d ;  /* a + ib and c + id and b=0 here*/
     
-    a = *MATRIX_RELT(m1,row,i);
-    c = MATRIX_CELT_REAL(m2,i,col);
-    d = MATRIX_CELT_IMAG(m2,i,col);
-    MATRIX_CELT_REAL(m3,row,col) += a*c;
-    MATRIX_CELT_IMAG(m3,row,col) += a*d;
+                  a = *MATRIX_RELT(m1,row,i);
+                  c = MATRIX_CELT_REAL(m2,i,col);
+                  d = MATRIX_CELT_IMAG(m2,i,col);
+                  MATRIX_CELT_REAL(m3,row,col) += a*c;
+                  MATRIX_CELT_IMAG(m3,row,col) += a*d;
+                }
+            }
         }
     }
-      }
-  }
   if (m_tmp1)
     MatrixFree(&m_tmp1) ;
   if (m_tmp2)
@@ -450,16 +455,17 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
   return(m3) ;
 }
 
+
 int
 MatrixPrint(FILE *fp, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
   if (fp == NULL)
-  {
-    fp = stdout ; 
-    ErrorPrintf(ERROR_BADPARM, "MatrixPrint: fp = NULL!") ;
-  }
+    {
+      fp = stdout ; 
+      ErrorPrintf(ERROR_BADPARM, "MatrixPrint: fp = NULL!") ;
+    }
   if (mat == NULL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: mat = NULL!")) ;
 
@@ -467,36 +473,38 @@ MatrixPrint(FILE *fp, MATRIX *mat)
   cols = mat->cols ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      switch (mat->type)
-      {
-        case MATRIX_REAL:
-          fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
-          break ;
-        case MATRIX_COMPLEX:
-          fprintf(fp, "% 2.3f + % 2.3f i", 
-            MATRIX_CELT_REAL(mat,row,col), 
-            MATRIX_CELT_IMAG(mat, row, col)) ;
-          break ;
-        default:
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM, 
-                       "MatrixPrint: unknown type %d\n",mat->type)) ;
-      }
+      for (col = 1 ; col <= cols ; col++)
+        {
+          switch (mat->type)
+            {
+            case MATRIX_REAL:
+              fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+              break ;
+            case MATRIX_COMPLEX:
+              fprintf(fp, "% 2.3f + % 2.3f i", 
+                      MATRIX_CELT_REAL(mat,row,col), 
+                      MATRIX_CELT_IMAG(mat, row, col)) ;
+              break ;
+            default:
+              ErrorReturn(ERROR_BADPARM,
+                          (ERROR_BADPARM, 
+                           "MatrixPrint: unknown type %d\n",mat->type)) ;
+            }
 #if 0
-      if (col < cols)
-        fprintf(fp, " | ") ;
+          if (col < cols)
+            fprintf(fp, " | ") ;
 #else
-      if (col < cols)
-        fprintf(fp, "  ") ;
+          if (col < cols)
+            fprintf(fp, "  ") ;
 #endif
+        }
+      fprintf(fp, ";\n") ;
     }
-    fprintf(fp, ";\n") ;
-  }
   return(NO_ERROR) ;
 }
+
+
 int
 MatrixPrintOneLine(FILE *fp, MATRIX *mat)
 {
@@ -506,36 +514,38 @@ MatrixPrintOneLine(FILE *fp, MATRIX *mat)
   cols = mat->cols ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      switch (mat->type)
-      {
-        case MATRIX_REAL:
-          fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
-          break ;
-        case MATRIX_COMPLEX:
-          fprintf(fp, "% 2.3f + % 2.3f i", 
-            MATRIX_CELT_REAL(mat,row,col), 
-            MATRIX_CELT_IMAG(mat, row, col)) ;
-          break ;
-        default:
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM, 
-                       "MatrixPrint: unknown type %d\n",mat->type)) ;
-      }
+      for (col = 1 ; col <= cols ; col++)
+        {
+          switch (mat->type)
+            {
+            case MATRIX_REAL:
+              fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+              break ;
+            case MATRIX_COMPLEX:
+              fprintf(fp, "% 2.3f + % 2.3f i", 
+                      MATRIX_CELT_REAL(mat,row,col), 
+                      MATRIX_CELT_IMAG(mat, row, col)) ;
+              break ;
+            default:
+              ErrorReturn(ERROR_BADPARM,
+                          (ERROR_BADPARM, 
+                           "MatrixPrint: unknown type %d\n",mat->type)) ;
+            }
 #if 0
-      if (col < cols)
-        fprintf(fp, " | ") ;
+          if (col < cols)
+            fprintf(fp, " | ") ;
 #else
-      if (col < cols)
-        fprintf(fp, " ") ;
+          if (col < cols)
+            fprintf(fp, " ") ;
 #endif
+        }
+      fprintf(fp, ";   ") ;
     }
-    fprintf(fp, ";   ") ;
-  }
   return(NO_ERROR) ;
 }
+
+
 int
 MatrixPrintTranspose(FILE *fp, MATRIX *mat)
 {
@@ -545,36 +555,37 @@ MatrixPrintTranspose(FILE *fp, MATRIX *mat)
   cols = mat->cols ;
 
   for (col = 1 ; col <= cols ; col++)
-  {
-    for (row = 1 ; row <= rows ; row++)
     {
-      switch (mat->type)
-      {
-        case MATRIX_REAL:
-          fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
-          break ;
-        case MATRIX_COMPLEX:
-          fprintf(fp, "% 2.3f + % 2.3f i", 
-            MATRIX_CELT_REAL(mat,row,col), 
-            MATRIX_CELT_IMAG(mat, row, col)) ;
-          break ;
-        default:
-          ErrorReturn(ERROR_BADPARM,
-                      (ERROR_BADPARM, 
-                       "MatrixPrint: unknown type %d\n",mat->type)) ;
-      }
+      for (row = 1 ; row <= rows ; row++)
+        {
+          switch (mat->type)
+            {
+            case MATRIX_REAL:
+              fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+              break ;
+            case MATRIX_COMPLEX:
+              fprintf(fp, "% 2.3f + % 2.3f i", 
+                      MATRIX_CELT_REAL(mat,row,col), 
+                      MATRIX_CELT_IMAG(mat, row, col)) ;
+              break ;
+            default:
+              ErrorReturn(ERROR_BADPARM,
+                          (ERROR_BADPARM, 
+                           "MatrixPrint: unknown type %d\n",mat->type)) ;
+            }
 #if 0
-      if (row < rows)
-        fprintf(fp, " | ") ;
+          if (row < rows)
+            fprintf(fp, " | ") ;
 #else
-      if (row < rows)
-        fprintf(fp, "  ") ;
+          if (row < rows)
+            fprintf(fp, "  ") ;
 #endif
+        }
+      fprintf(fp, "\n") ;
     }
-    fprintf(fp, "\n") ;
-  }
   return(NO_ERROR) ;
 }
+
 
 MATRIX *
 MatrixReadTxt(char *fname, MATRIX *mat)
@@ -589,7 +600,6 @@ MatrixReadTxt(char *fname, MATRIX *mat)
   if (!fp)
     ErrorReturn(NULL,
                 (ERROR_NO_FILE, "MatrixRead(%s) - file open failed\n", fname));
-
 
   // Read in the first line, including the newline
   if(!fgets(line, nlinemax, fp))
@@ -616,8 +626,8 @@ MatrixReadTxt(char *fname, MATRIX *mat)
       if(nread != 1){
         MatrixFree(&mat) ;
         ErrorReturn(NULL,(ERROR_BADPARM, 
-			  "MatrixReadTxT: could not scan value [%d][%d]\n", 
-			  row, col));
+                          "MatrixReadTxT: could not scan value [%d][%d]\n", 
+                          row, col));
       }
     }
   }
@@ -626,26 +636,28 @@ MatrixReadTxt(char *fname, MATRIX *mat)
 
 #if 0
   for (row = 1 ; fgets(line, 399, fp) ; row++)
-  {
-    for (col = 1, cp = strtok(line, " \t,") ;
-          cp ;
-          cp = strtok(NULL, " \t,"),
-          col++)
     {
-      if (sscanf(cp, "%f", &mat->rptr[row][col]) != 1)
-      {
-        MatrixFree(&mat) ;
-        ErrorReturn(NULL,
-                    (ERROR_BADPARM, 
-                     "MatrixRead: could not scan value [%d][%d]\n", row, col));
-      }
+      for (col = 1, cp = strtok(line, " \t,") ;
+           cp ;
+           cp = strtok(NULL, " \t,"),
+             col++)
+        {
+          if (sscanf(cp, "%f", &mat->rptr[row][col]) != 1)
+            {
+              MatrixFree(&mat) ;
+              ErrorReturn
+                (NULL,
+                 (ERROR_BADPARM, 
+                  "MatrixRead: could not scan value [%d][%d]\n", row, col));
+            }
+        }
     }
-  }
 
   fclose(fp) ;
   return(mat) ;
 #endif
 }
+
 
 #include "matfile.h"
 #ifdef const
@@ -657,6 +669,7 @@ MatrixRead(char *fname)
   return(MatlabRead(fname)) ;
 }
 
+
 int
 MatrixWrite(MATRIX *mat, char *fname, char *name)
 {
@@ -664,6 +677,7 @@ MatrixWrite(MATRIX *mat, char *fname, char *name)
     name = fname ;  /* name of matrix in .mat file */
   return(MatlabWrite(mat, fname, name)) ;
 }
+
 
 MATRIX *
 MatrixIdentity(int n, MATRIX *mat)
@@ -681,29 +695,31 @@ MatrixIdentity(int n, MATRIX *mat)
   return(mat) ;
 }
 
+
 MATRIX  *
 MatrixTranspose(MATRIX *mIn, MATRIX *mOut)
 {
   int  row, col, rows, cols ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(mIn->cols, mIn->rows, mIn->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(mIn->cols, mIn->rows, mIn->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   rows = mIn->rows ;
   cols = mIn->cols ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
-      mOut->rptr[col][row] = mIn->rptr[row][col] ;
-  }
+    {
+      for (col = 1 ; col <= cols ; col++)
+        mOut->rptr[col][row] = mIn->rptr[row][col] ;
+    }
 
   return(mOut) ;
 }
+
 
 MATRIX  *
 MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
@@ -720,11 +736,11 @@ MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
                  rows, cols, m2->rows, m2->cols)) ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(rows, cols, m1->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(rows, cols, m1->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   if ((rows != mOut->rows) || (cols != mOut->cols))
     ErrorReturn(NULL,
@@ -733,15 +749,16 @@ MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
                  rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      mOut->rptr[row][col] = m1->rptr[row][col] + m2->rptr[row][col] ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          mOut->rptr[row][col] = m1->rptr[row][col] + m2->rptr[row][col] ;
+        }
     }
-  }
 
   return(mOut) ;
 }
+
 
 MATRIX  *
 MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
@@ -758,11 +775,11 @@ MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
                  rows, cols, m2->rows, m2->cols)) ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(rows, cols, m1->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(rows, cols, m1->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   if ((rows != mOut->rows) || (cols != mOut->cols))
     ErrorReturn(NULL,
@@ -771,10 +788,10 @@ MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
                  rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
-      mOut->rptr[row][col] = m1->rptr[row][col] - m2->rptr[row][col] ;
-  }
+    {
+      for (col = 1 ; col <= cols ; col++)
+        mOut->rptr[row][col] = m1->rptr[row][col] - m2->rptr[row][col] ;
+    }
 
   return(mOut) ;
 }
@@ -786,11 +803,11 @@ MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut)
   int  row, col, rows, cols ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   rows = mIn->rows ;
   cols = mIn->cols ;
@@ -802,12 +819,13 @@ MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut)
                  rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
-      mOut->rptr[row][col] = mIn->rptr[row][col] * val ;
-  }
+    {
+      for (col = 1 ; col <= cols ; col++)
+        mOut->rptr[row][col] = mIn->rptr[row][col] * val ;
+    }
   return(mOut) ;
 }
+
 
 MATRIX  *
 MatrixClear(MATRIX *mat)
@@ -822,6 +840,7 @@ MatrixClear(MATRIX *mat)
   return(mat) ;
 }
 
+
 MATRIX *
 MatrixSquareElts(MATRIX *mIn, MATRIX *mOut)
 {
@@ -829,30 +848,30 @@ MatrixSquareElts(MATRIX *mIn, MATRIX *mOut)
   float  val ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   rows = mIn->rows ;
   cols = mIn->cols ;
 
   if ((rows != mOut->rows) || (cols != mOut->cols))
-    ErrorReturn(NULL,
-              (ERROR_BADPARM,
-               "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
-               rows, cols, mOut->rows, mOut->cols)) ;
-
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
+        rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      val = mIn->rptr[row][col] ;
-      mOut->rptr[row][col] = val * val ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          val = mIn->rptr[row][col] ;
+          mOut->rptr[row][col] = val * val ;
+        }
     }
-  }
   return(mOut) ;
 }
 
@@ -864,32 +883,33 @@ MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut)
   float  val ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   rows = mIn->rows ;
   cols = mIn->cols ;
 
   if ((rows != mOut->rows) || (cols != mOut->cols))
-    ErrorReturn(NULL,
-              (ERROR_BADPARM,
-               "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
-               rows, cols, mOut->rows, mOut->cols)) ;
-
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
+        rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      val = mIn->rptr[row][col] ;
-      mOut->rptr[row][col] = sqrt(val) ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          val = mIn->rptr[row][col] ;
+          mOut->rptr[row][col] = sqrt(val) ;
+        }
     }
-  }
   return(mOut) ;
 }
+
 
 MATRIX *
 MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut)
@@ -898,32 +918,33 @@ MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut)
   float  val ;
 
   if (!mOut)
-  {
-    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
+    {
+      mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+      if (!mOut)
+        return(NULL) ;
+    }
 
   rows = mIn->rows ;
   cols = mIn->cols ;
 
   if ((rows != mOut->rows) || (cols != mOut->cols))
-    ErrorReturn(NULL,
-              (ERROR_BADPARM,
-               "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
-               rows, cols, mOut->rows, mOut->cols)) ;
-
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
+        rows, cols, mOut->rows, mOut->cols)) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      val = mIn->rptr[row][col] ;
-      mOut->rptr[row][col] = val * val * (val < 0) ? -1 : 1 ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          val = mIn->rptr[row][col] ;
+          mOut->rptr[row][col] = val * val * (val < 0) ? -1 : 1 ;
+        }
     }
-  }
   return(mOut) ;
 }
+
 
 MATRIX *
 MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst)
@@ -937,17 +958,18 @@ MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst)
   cols = mSrc->cols ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      if (row == col)
-        mDst->rptr[row][col] = mSrc->rptr[row][col] ;
-      else
-        mDst->rptr[row][col] = 0.0f ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          if (row == col)
+            mDst->rptr[row][col] = mSrc->rptr[row][col] ;
+          else
+            mDst->rptr[row][col] = 0.0f ;
+        }
     }
-  }
   return(mDst) ;
 }
+
 
 /*
   mDiag is a column vector.
@@ -987,6 +1009,8 @@ MatrixDiag(MATRIX *mDiag, MATRIX *mOut)
     
   return(mOut) ;
 }
+
+
 MATRIX *
 MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
                  int rows, int cols, int dest_row, int dest_col)
@@ -1015,32 +1039,36 @@ MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   drows = mDst->rows ;
   dcols = mDst->cols ;
   if ((rows > drows) || (cols > dcols))
-    ErrorReturn(NULL,
-            (ERROR_BADPARM, 
-           "MatrixCopyRegion: destination matrix not large enough (%dx%d)\n",
-            rows, cols)) ;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM, 
+        "MatrixCopyRegion: destination matrix not large enough (%dx%d)\n",
+        rows, cols)) ;
 
   for (drow = dest_row, srow = start_row ; srow <= end_row ; srow++, drow++)
-  {
-    for (dcol = dest_col, scol = start_col ; scol <= end_col ; scol++, dcol++)
     {
-      switch (mDst->type)
-      {
-      case MATRIX_REAL:
-        *MATRIX_RELT(mDst, drow, dcol) = *MATRIX_RELT(mSrc, srow, scol) ;
-        break ;
-      case MATRIX_COMPLEX:
-        *MATRIX_CELT(mDst, drow, dcol) = *MATRIX_CELT(mSrc,srow,scol);
-        break ;
-      }
+      for (dcol = dest_col, scol = start_col ; 
+           scol <= end_col ; 
+           scol++, dcol++)
+        {
+          switch (mDst->type)
+            {
+            case MATRIX_REAL:
+              *MATRIX_RELT(mDst, drow, dcol) = *MATRIX_RELT(mSrc, srow, scol) ;
+              break ;
+            case MATRIX_COMPLEX:
+              *MATRIX_CELT(mDst, drow, dcol) = *MATRIX_CELT(mSrc,srow,scol);
+              break ;
+            }
+        }
     }
-  }
   return(mDst) ;
 }
 
+
 MATRIX *
 MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
-                 int rows, int cols, int dest_row, int dest_col)
+                     int rows, int cols, int dest_row, int dest_col)
 {
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col ;
 
@@ -1056,10 +1084,11 @@ MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   end_col = start_col + cols - 1 ;
   if ((start_row < 1) || (start_row > srows) || (start_col < 1) ||
       (start_col > scols) || (end_row > srows) || (end_col > scols))
-    ErrorReturn(NULL,
-            (ERROR_BADPARM,
-             "MatrixCopyRealRegion: bad source region (%d,%d) --> (%d,%d)\n",
-             start_row, start_col, end_row, end_col)) ;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "MatrixCopyRealRegion: bad source region (%d,%d) --> (%d,%d)\n",
+        start_row, start_col, end_row, end_col)) ;
 
   if (!mDst)
     mDst = MatrixAlloc(rows, cols, mSrc->type) ;
@@ -1067,33 +1096,38 @@ MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   drows = mDst->rows ;
   dcols = mDst->cols ;
   if ((rows > drows) || (cols > dcols))
-    ErrorReturn(NULL,
-          (ERROR_BADPARM, 
-         "MatrixCopyRealRegion: destination matrix not large enough (%dx%d)\n",
-           rows, cols)) ;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM, 
+        "MatrixCopyRealRegion: destination matrix not large enough (%dx%d)\n",
+        rows, cols)) ;
 
   for (drow = dest_row, srow = start_row ; srow <= end_row ; srow++, drow++)
-  {
-    for (dcol = dest_col, scol = start_col ; scol <= end_col ; scol++, dcol++)
     {
-      switch (mDst->type)
-      {
-      case MATRIX_REAL:
-        *MATRIX_RELT(mDst, drow, dcol) = MATRIX_CELT_REAL(mSrc, srow, scol) ;
-        break ;
-      case MATRIX_COMPLEX:
-        MATRIX_CELT_IMAG(mDst, drow, dcol) = MATRIX_CELT_IMAG(mSrc,srow,scol);
-        break ;
-      }
+      for (dcol = dest_col, scol = start_col ; 
+           scol <= end_col ; 
+           scol++, dcol++)
+        {
+          switch (mDst->type)
+            {
+            case MATRIX_REAL:
+              *MATRIX_RELT(mDst, drow, dcol) = 
+                MATRIX_CELT_REAL(mSrc, srow, scol) ;
+              break ;
+            case MATRIX_COMPLEX:
+              MATRIX_CELT_IMAG(mDst, drow, dcol) = 
+                MATRIX_CELT_IMAG(mSrc,srow,scol);
+              break ;
+            }
+        }
     }
-  }
   return(mDst) ;
 }
 
 
 MATRIX *
 MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
-                 int rows, int cols, int dest_row, int dest_col)
+                     int rows, int cols, int dest_row, int dest_col)
 {
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col ;
 
@@ -1109,10 +1143,11 @@ MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   end_col = start_col + cols - 1 ;
   if ((start_row < 1) || (start_row > srows) || (start_col < 1) ||
       (start_col > scols) || (end_row > srows) || (end_col > scols))
-    ErrorReturn(NULL,
-              (ERROR_BADPARM,
-               "MatrixCopyImagRegion: bad source region (%d,%d) --> (%d,%d)\n",
-               start_row, start_col, end_row, end_col)) ;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "MatrixCopyImagRegion: bad source region (%d,%d) --> (%d,%d)\n",
+        start_row, start_col, end_row, end_col)) ;
 
   if (!mDst)
     mDst = MatrixAlloc(rows, cols, mSrc->type) ;
@@ -1120,31 +1155,38 @@ MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   drows = mDst->rows ;
   dcols = mDst->cols ;
   if ((rows > drows) || (cols > dcols))
-    ErrorReturn(NULL,
-          (ERROR_BADPARM, 
-         "MatrixCopyImagRegion: destination matrix not large enough (%dx%d)\n",
-           rows, cols)) ;
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM, 
+        "MatrixCopyImagRegion: destination matrix not large enough (%dx%d)\n",
+        rows, cols)) ;
 
   for (drow = dest_row, srow = start_row ; srow <= end_row ; srow++, drow++)
-  {
-    for (dcol = dest_col, scol = start_col ; scol <= end_col ; scol++, dcol++)
     {
-      switch (mDst->type)
-      {
-      case MATRIX_REAL:
-        *MATRIX_RELT(mDst, drow, dcol) = MATRIX_CELT_IMAG(mSrc, srow, scol) ;
-        break ;
-      case MATRIX_COMPLEX:
-        MATRIX_CELT_IMAG(mDst, drow, dcol) = MATRIX_CELT_IMAG(mSrc,srow,scol);
-        break ;
-      }
+      for (dcol = dest_col, scol = start_col ; 
+           scol <= end_col ; 
+           scol++, dcol++)
+        {
+          switch (mDst->type)
+            {
+            case MATRIX_REAL:
+              *MATRIX_RELT(mDst, drow, dcol) = 
+                MATRIX_CELT_IMAG(mSrc, srow, scol) ;
+              break ;
+            case MATRIX_COMPLEX:
+              MATRIX_CELT_IMAG(mDst, drow, dcol) = 
+                MATRIX_CELT_IMAG(mSrc,srow,scol);
+              break ;
+            }
+        }
     }
-  }
   return(mDst) ;
 }
+
+
 /*--------------------------------------------------------------------*/
 MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
-			 int start_col, int rows, int cols, float val)
+                         int start_col, int rows, int cols, float val)
 {
   int r, c, end_row, end_col;
 
@@ -1185,6 +1227,8 @@ MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
 
   return(mDst);
 }
+
+
 /*--------------------------------------------------------------------*/
 MATRIX *
 MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut)
@@ -1197,16 +1241,17 @@ MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut)
     mOut = MatrixAlloc(mReal->rows, mReal->cols, MATRIX_COMPLEX) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      MATRIX_CELT_REAL(mOut,row,col) = *MATRIX_RELT(mReal, row, col) ;
-      MATRIX_CELT_IMAG(mOut,row,col) = *MATRIX_RELT(mImag, row, col) ;
+      for (col = 1 ; col <= cols ; col++)
+        {
+          MATRIX_CELT_REAL(mOut,row,col) = *MATRIX_RELT(mReal, row, col) ;
+          MATRIX_CELT_IMAG(mOut,row,col) = *MATRIX_RELT(mImag, row, col) ;
+        }
     }
-  }
 
   return(mOut) ;
 }
+
 
 float
 MatrixDeterminant(MATRIX *mIn)
@@ -1220,8 +1265,8 @@ MatrixDeterminant(MATRIX *mIn)
    eigenvalue size.
 */
 
-static int compare_evalues(const void *l1, const void *l2)  ;
 
+static int compare_evalues(const void *l1, const void *l2)  ;
 
 typedef struct
 {
@@ -1239,9 +1284,10 @@ compare_evalues(const void *l1, const void *l2)
   return(fabs(e1->evalue) < fabs(e2->evalue) ? 1 : -1) ;
 }
 
+
 MATRIX *
 MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues, 
-  MATRIX *m_evectors, int isSymmetric )
+                                  MATRIX *m_evectors, int isSymmetric )
 {
   int     col, i, nevalues, row ;
   EVALUE  *eigen_values ;
@@ -1263,31 +1309,33 @@ MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues,
       return(NULL) ;
   }
 
-/* 
-  sort eigenvalues in order of decreasing absolute value. The
-  EIGEN_VALUE structure is needed to record final order of eigenvalue so 
-  we can also sort the eigenvectors.
-*/
+  /* 
+     sort eigenvalues in order of decreasing absolute value. The
+     EIGEN_VALUE structure is needed to record final order of eigenvalue so 
+     we can also sort the eigenvectors.
+  */
   for (i = 0 ; i < nevalues ; i++)
-  {
-    eigen_values[i].eno = i ;
-    eigen_values[i].evalue = evalues[i] ;
-  }
+    {
+      eigen_values[i].eno = i ;
+      eigen_values[i].evalue = evalues[i] ;
+    }
   qsort((char *)eigen_values, nevalues, sizeof(EVALUE), compare_evalues) ;
   for (i = 0 ; i < nevalues ; i++)
     evalues[i] = eigen_values[i].evalue ;
 
   /* now sort the eigenvectors */
   for (col = 0 ; col < mTmp->cols ; col++)
-  {
-    for (row = 1 ; row <= mTmp->rows ; row++)
-      m_evectors->rptr[row][col+1] = mTmp->rptr[row][eigen_values[col].eno+1] ;
-  }
+    {
+      for (row = 1 ; row <= mTmp->rows ; row++)
+        m_evectors->rptr[row][col+1] = 
+          mTmp->rptr[row][eigen_values[col].eno+1] ;
+    }
 
   free(eigen_values) ;
   MatrixFree(&mTmp) ;
   return(m_evectors) ;
 }
+
 
 int
 MatrixIsSymmetric( MATRIX *matrix )
@@ -1307,6 +1355,7 @@ MatrixIsSymmetric( MATRIX *matrix )
   return isSymmetric;
 }
 
+
 MATRIX *
 MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
 {
@@ -1315,6 +1364,7 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
   return MatrixCalculateEigenSystemHelper( m, evalues, m_evectors, 
                                            isSymmetric );
 }
+
 
 void identity_matrix(float **I,int n) ;
 void svd(float **A, float **V, float *z, int m, int n) ;
@@ -1331,6 +1381,7 @@ MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
   svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
   return(mV) ;
 }
+
 float
 MatrixSVDEigenValues(MATRIX *m, float *evalues)
 {
@@ -1355,10 +1406,10 @@ MatrixSVDEigenValues(MATRIX *m, float *evalues)
 
   eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
   for (i = 0 ; i < nevalues ; i++)
-  {
-    eigen_values[i].eno = i ;
-    eigen_values[i].evalue = RVECTOR_ELT(v_w, i+1) ;
-  }
+    {
+      eigen_values[i].eno = i ;
+      eigen_values[i].evalue = RVECTOR_ELT(v_w, i+1) ;
+    }
   qsort((char *)eigen_values, nevalues, sizeof(EVALUE), compare_evalues) ;
   for (i = 0 ; i < nevalues ; i++)
     evalues[i] = eigen_values[i].evalue ;
@@ -1366,13 +1417,13 @@ MatrixSVDEigenValues(MATRIX *m, float *evalues)
   wmax = 0.0f ;
   wmin = wmax = RVECTOR_ELT(v_w,1) ;
   for (row = 2 ; row <= rows ; row++)
-  {
-    wi = fabs(RVECTOR_ELT(v_w,row)) ;
-    if (wi > wmax)
-      wmax = wi ;
-    if (wi < wmin)
-      wmin = wi ;
-  }
+    {
+      wi = fabs(RVECTOR_ELT(v_w,row)) ;
+      if (wi > wmax)
+        wmax = wi ;
+      if (wi < wmin)
+        wmin = wi ;
+    }
 
   if (FZERO(wmin))
     cond = 1e8 ;  /* something big */
@@ -1385,9 +1436,11 @@ MatrixSVDEigenValues(MATRIX *m, float *evalues)
   MatrixFree(&m_V) ;
   return(cond) ;
 }
+
+
 /*
-   use SVD to find the inverse of m, usually useful if m is 
-   ill-conditioned or singular.
+  use SVD to find the inverse of m, usually useful if m is 
+  ill-conditioned or singular.
 */
 #define TOO_SMALL   1e-4
 
@@ -1407,13 +1460,13 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   m_w = MatrixAlloc(cols, cols, MATRIX_REAL) ;
 
   if (OpenSvdcmp(m_U, v_w, m_V) != NO_ERROR)
-  {
-    MatrixFree(&m_U) ;
-    VectorFree(&v_w) ;
-    MatrixFree(&m_V) ;
-    MatrixFree(&m_w) ;
-    return(NULL) ;
-  }
+    {
+      MatrixFree(&m_U) ;
+      VectorFree(&v_w) ;
+      MatrixFree(&m_V) ;
+      MatrixFree(&m_w) ;
+      return(NULL) ;
+    }
 
   wmax = 0.0f ;
   for (row = 1 ; row <= rows ; row++)
@@ -1421,12 +1474,12 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
       wmax = fabs(RVECTOR_ELT(v_w,row)) ;
   wmin = TOO_SMALL * wmax ;
   for (row = 1 ; row <= rows ; row++)
-  {
-    if (fabs(RVECTOR_ELT(v_w, row)) < wmin)
-      m_w->rptr[row][row] = 0.0f ;
-    else
-      m_w->rptr[row][row] = 1.0f / RVECTOR_ELT(v_w,row) ;
-  }
+    {
+      if (fabs(RVECTOR_ELT(v_w, row)) < wmin)
+        m_w->rptr[row][row] = 0.0f ;
+      else
+        m_w->rptr[row][row] = 1.0f / RVECTOR_ELT(v_w,row) ;
+    }
 
   m_Ut = MatrixTranspose(m_U, NULL) ;
   m_tmp = MatrixMultiply(m_w, m_Ut, NULL) ;
@@ -1453,60 +1506,60 @@ svd(float **A, float **V, float *z, int m, int n)
 
   identity_matrix(V,n);
   for (count=n*(n-1)/2;count>0;)
-  {
-    count=n*(n-1)/2;
-    for (j=1;j<=n;j++)
     {
-      for (k=j+1;k<=n;k++)
-      {
-        p=q=r=0;
-        for (i=1;i<=m;i++)
+      count=n*(n-1)/2;
+      for (j=1;j<=n;j++)
         {
-          p += A[i][j]*A[i][k];
-          q += A[i][j]*A[i][j];
-          r += A[i][k]*A[i][k];
+          for (k=j+1;k<=n;k++)
+            {
+              p=q=r=0;
+              for (i=1;i<=m;i++)
+                {
+                  p += A[i][j]*A[i][k];
+                  q += A[i][j]*A[i][j];
+                  r += A[i][k]*A[i][k];
+                }
+              if ((q*r==0)||(p*p/(q*r)<toll)) count--;
+              if (q<r)
+                {
+                  c=0;
+                  s=1;
+                } else
+                  {
+                    q = q-r;
+                    v = (float)sqrt((double)(4.0f*p*p+q*q));
+                    c = (float)sqrt((double)((v+q)/(2.0f*v)));
+                    s = p/(v*c);
+                  }
+              for (i=1;i<=m;i++)
+                {
+                  r = A[i][j];
+                  A[i][j] = r*c+A[i][k]*s;
+                  A[i][k] = -r*s+A[i][k]*c;
+                }
+              for (i=1;i<=n;i++)
+                {
+                  r = V[i][j];
+                  V[i][j] = r*c+V[i][k]*s;
+                  V[i][k] = -r*s+V[i][k]*c;
+                }
+            }
         }
-        if ((q*r==0)||(p*p/(q*r)<toll)) count--;
-        if (q<r)
-        {
-          c=0;
-          s=1;
-        } else
-        {
-          q = q-r;
-          v = (float)sqrt((double)(4.0f*p*p+q*q));
-          c = (float)sqrt((double)((v+q)/(2.0f*v)));
-          s = p/(v*c);
-        }
-        for (i=1;i<=m;i++)
-        {
-          r = A[i][j];
-          A[i][j] = r*c+A[i][k]*s;
-          A[i][k] = -r*s+A[i][k]*c;
-        }
-        for (i=1;i<=n;i++)
-        {
-          r = V[i][j];
-          V[i][j] = r*c+V[i][k]*s;
-          V[i][k] = -r*s+V[i][k]*c;
-        }
-      }
-    }
 #if 0
-    printf("count=%d\n",count);
-    print_matrix(A,m,n);
+      printf("count=%d\n",count);
+      print_matrix(A,m,n);
 #endif
-  }
+    }
   for (j=1;j<=n;j++)
-  {
-    q = 0;
-    for (i=1;i<=m;i++) q += A[i][j]*A[i][j];
-    q = sqrt(q);
-    z[j-1] = q;
+    {
+      q = 0;
+      for (i=1;i<=m;i++) q += A[i][j]*A[i][j];
+      q = sqrt(q);
+      z[j-1] = q;
 
-    for (i=1;i<=m;i++) A[i][j] /= q;
+      for (i=1;i<=m;i++) A[i][j] /= q;
 
-  }
+    }
 }
 
 
@@ -1533,8 +1586,8 @@ static float maxarg1,maxarg2;
 #endif
 
 svdcmp(a,w,v,m,n)
-float **a,*w,**v;
-int m,n;
+     float **a,*w,**v;
+     int m,n;
 {
   int flag,i,its,j,jj,k,l,nm;
   float c,f,h,s,x,y,z;
@@ -1545,220 +1598,220 @@ int m,n;
     ErrorExit(ERROR_BADPARM, "Singular Value Decomp: too few rows in A");
   rv1=vector(n);
   for (i=0;i<n;i++)
-  {
-    l=i+1;
-    rv1[i]=scale*g;
-    g=s=scale=0.0;
-    if (i<m)
     {
-      for (k=i;k<m;k++) scale += fabs(a[k][i]);
-      if (scale)
-      {
-        for (k=i;k<m;k++)
+      l=i+1;
+      rv1[i]=scale*g;
+      g=s=scale=0.0;
+      if (i<m)
         {
-          a[k][i] /= scale;
-          s += a[k][i]*a[k][i];
-        }       
-        f=a[i][i];
-        g = -SIGN(sqrt(s),f);
-        h=f*g-s;
-        a[i][i]=f-g;
-        if (i != n-1)
-        {
-          for (j=l;j<n;j++)
-          {
-            for (s=0.0,k=i;k<m;k++) s += a[k][i]*a[k][j];
-            f=s/h;
-            for (k=i;k<m;k++) a[k][j] += f*a[k][i];
-          }
+          for (k=i;k<m;k++) scale += fabs(a[k][i]);
+          if (scale)
+            {
+              for (k=i;k<m;k++)
+                {
+                  a[k][i] /= scale;
+                  s += a[k][i]*a[k][i];
+                }       
+              f=a[i][i];
+              g = -SIGN(sqrt(s),f);
+              h=f*g-s;
+              a[i][i]=f-g;
+              if (i != n-1)
+                {
+                  for (j=l;j<n;j++)
+                    {
+                      for (s=0.0,k=i;k<m;k++) s += a[k][i]*a[k][j];
+                      f=s/h;
+                      for (k=i;k<m;k++) a[k][j] += f*a[k][i];
+                    }
+                }
+              for (k=i;k<m;k++) a[k][i] *= scale;
+            }
         }
-        for (k=i;k<m;k++) a[k][i] *= scale;
-      }
+      w[i]=scale*g;
+      g=s=scale=0.0;
+      if (i < m && i != n-1)
+        {
+          for (k=l;k<n;k++) scale += fabs(a[i][k]);
+          if (scale)
+            {
+              for (k=l;k<n;k++)
+                {
+                  a[i][k] /= scale;
+                  s += a[i][k]*a[i][k];
+                }
+              f=a[i][l];
+              g = -SIGN(sqrt(s),f);
+              h=f*g-s;
+              a[i][l]=f-g;
+              for (k=l;k<n;k++) rv1[k]=a[i][k]/h;
+              if (i != m-1)
+                {
+                  for (j=l;j<m;j++)
+                    {
+                      for (s=0.0,k=l;k<n;k++) s += a[j][k]*a[i][k];
+                      for (k=l;k<n;k++) a[j][k] += s*rv1[k];
+                    }
+                }
+              for (k=l;k<n;k++) a[i][k] *= scale;
+            }
+        }
+      anorm=MAX(anorm,(fabs(w[i])+fabs(rv1[i])));
     }
-    w[i]=scale*g;
-    g=s=scale=0.0;
-    if (i < m && i != n-1)
-    {
-      for (k=l;k<n;k++) scale += fabs(a[i][k]);
-      if (scale)
-      {
-        for (k=l;k<n;k++)
-        {
-          a[i][k] /= scale;
-          s += a[i][k]*a[i][k];
-        }
-        f=a[i][l];
-        g = -SIGN(sqrt(s),f);
-        h=f*g-s;
-        a[i][l]=f-g;
-        for (k=l;k<n;k++) rv1[k]=a[i][k]/h;
-        if (i != m-1)
-        {
-          for (j=l;j<m;j++)
-          {
-            for (s=0.0,k=l;k<n;k++) s += a[j][k]*a[i][k];
-            for (k=l;k<n;k++) a[j][k] += s*rv1[k];
-          }
-        }
-        for (k=l;k<n;k++) a[i][k] *= scale;
-      }
-    }
-    anorm=MAX(anorm,(fabs(w[i])+fabs(rv1[i])));
-  }
 
   for (i=n-1;i>=0;i--) 
-  {
-    if (i < n-1)
     {
+      if (i < n-1)
+        {
+          if (g)
+            {
+              for (j=l;j<n;j++) v[j][i]=(a[i][j]/a[i][l])/g;
+              for (j=l;j<n;j++)
+                {
+                  for (s=0.0,k=l;k<n;k++) s += a[i][k]*v[k][j];
+                  for (k=l;k<n;k++) v[k][j] += s*v[k][i];
+                }
+            }
+          for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
+        }
+      v[i][i]=1.0;
+      g=rv1[i];
+      l=i;
+    }
+
+  for (i=n-1;i>=0;i--) 
+    {
+      l=i+1;
+      g=w[i];
+      if (i < n-1)
+        for (j=l;j<n;j++) a[i][j]=0.0;
       if (g)
-      {
-        for (j=l;j<n;j++) v[j][i]=(a[i][j]/a[i][l])/g;
-        for (j=l;j<n;j++)
         {
-          for (s=0.0,k=l;k<n;k++) s += a[i][k]*v[k][j];
-          for (k=l;k<n;k++) v[k][j] += s*v[k][i];
-        }
-      }
-      for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
+          g=1.0/g;
+          if (i != n-1)
+            {
+              for (j=l;j<n;j++)
+                {
+                  for (s=0.0,k=l;k<m;k++) s += a[k][i]*a[k][j];
+                  f=(s/a[i][i])*g;
+                  for (k=i;k<m;k++) a[k][j] += f*a[k][i];
+                }
+            }
+          for (j=i;j<m;j++) a[j][i] *= g;
+        } else
+          {
+            for (j=i;j<m;j++) a[j][i]=0.0;
+          }
+      ++a[i][i];
     }
-    v[i][i]=1.0;
-    g=rv1[i];
-    l=i;
-  }
-
-  for (i=n-1;i>=0;i--) 
-  {
-    l=i+1;
-    g=w[i];
-    if (i < n-1)
-      for (j=l;j<n;j++) a[i][j]=0.0;
-    if (g)
-    {
-      g=1.0/g;
-      if (i != n-1)
-      {
-        for (j=l;j<n;j++)
-        {
-          for (s=0.0,k=l;k<m;k++) s += a[k][i]*a[k][j];
-          f=(s/a[i][i])*g;
-          for (k=i;k<m;k++) a[k][j] += f*a[k][i];
-        }
-      }
-      for (j=i;j<m;j++) a[j][i] *= g;
-    } else
-    {
-      for (j=i;j<m;j++) a[j][i]=0.0;
-    }
-    ++a[i][i];
-  }
 
   for (k=n-1;k>=0;k--)
-  {
-    for (its=1;its<=30;its++)
     {
-      flag=1;
-      for (l=k;l>=0;l--)
-      {
-        nm=l-1;
-        if ((float)(fabs(rv1[l])+anorm) == anorm)
+      for (its=1;its<=30;its++)
         {
-          flag=0;
-          break;
-        }
-        if ((float)(fabs(w[nm])+anorm) == anorm) break;
-      }
-      if (flag)
-      {
-        c=0.0;
-        s=1.0;
-        for (i=l;i<=k;i++)
-        {
-          f=s*rv1[i];
-          rv1[i]=c*rv1[i];
-          if ((float)(fabs(f)+anorm) == anorm) break;
-          g=w[i];
-          h=PYTHAG(f,g);
-          w[i]=h;
-          h=1.0/h;
-          c=g*h;
-          s=(-f*h);
-          for (j=0;j<m;j++)
-          {
-            y=a[j][nm];
-            z=a[j][i];
-            a[j][nm]=y*c+z*s;
-            a[j][i]=z*c-y*s;
-          }
-        }
-      }
-      z=w[k];
-      if (l==k)
-      {
-        if (z < 0.0)
-        {
-          w[k] = -z;
-          for (j=0;j<n;j++) v[j][k]=(-v[j][k]);
-        }
-        break;
-      }
-      if (its==30) 
-        return(Gerror = ERROR_BADPARMS) ;
+          flag=1;
+          for (l=k;l>=0;l--)
+            {
+              nm=l-1;
+              if ((float)(fabs(rv1[l])+anorm) == anorm)
+                {
+                  flag=0;
+                  break;
+                }
+              if ((float)(fabs(w[nm])+anorm) == anorm) break;
+            }
+          if (flag)
+            {
+              c=0.0;
+              s=1.0;
+              for (i=l;i<=k;i++)
+                {
+                  f=s*rv1[i];
+                  rv1[i]=c*rv1[i];
+                  if ((float)(fabs(f)+anorm) == anorm) break;
+                  g=w[i];
+                  h=PYTHAG(f,g);
+                  w[i]=h;
+                  h=1.0/h;
+                  c=g*h;
+                  s=(-f*h);
+                  for (j=0;j<m;j++)
+                    {
+                      y=a[j][nm];
+                      z=a[j][i];
+                      a[j][nm]=y*c+z*s;
+                      a[j][i]=z*c-y*s;
+                    }
+                }
+            }
+          z=w[k];
+          if (l==k)
+            {
+              if (z < 0.0)
+                {
+                  w[k] = -z;
+                  for (j=0;j<n;j++) v[j][k]=(-v[j][k]);
+                }
+              break;
+            }
+          if (its==30) 
+            return(Gerror = ERROR_BADPARMS) ;
 
-      x=w[l];
-      nm=k-1;
-      y=w[nm];
-      g=rv1[nm];
-      h=rv1[k];
-      f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
-      g=PYTHAG(f,1.0);
-      f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
+          x=w[l];
+          nm=k-1;
+          y=w[nm];
+          g=rv1[nm];
+          h=rv1[k];
+          f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
+          g=PYTHAG(f,1.0);
+          f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
 
-      c=s=1.0;
-      for (j=l;j<=nm;j++)
-      {
-        i=j+1;
-        g=rv1[i];
-        y=w[i];
-        h=s*g;
-        g=c*g;
-        z=PYTHAG(f,h);
-        rv1[j]=z;
-        c=f/z;
-        s=h/z;
-        f=x*c+g*s;
-        g=g*c-x*s;
-        h=y*s;
-        y=y*c;
-        for (jj=0;jj<n;jj++)
-        {
-          x=v[jj][j];
-          z=v[jj][i];
-          v[jj][j]=x*c+z*s;
-          v[jj][i]=z*c-x*s;
+          c=s=1.0;
+          for (j=l;j<=nm;j++)
+            {
+              i=j+1;
+              g=rv1[i];
+              y=w[i];
+              h=s*g;
+              g=c*g;
+              z=PYTHAG(f,h);
+              rv1[j]=z;
+              c=f/z;
+              s=h/z;
+              f=x*c+g*s;
+              g=g*c-x*s;
+              h=y*s;
+              y=y*c;
+              for (jj=0;jj<n;jj++)
+                {
+                  x=v[jj][j];
+                  z=v[jj][i];
+                  v[jj][j]=x*c+z*s;
+                  v[jj][i]=z*c-x*s;
+                }
+              z=PYTHAG(f,h);
+              w[j]=z;
+              if (z)
+                {
+                  z=1.0/z;
+                  c=f*z;
+                  s=h*z;
+                }
+              f=(c*g)+(s*y);
+              x=(c*y)-(s*g);
+              for (jj=0;jj<m;jj++)
+                {
+                  y=a[jj][j];
+                  z=a[jj][i];
+                  a[jj][j]=y*c+z*s;
+                  a[jj][i]=z*c-y*s;
+                }
+            }
+          rv1[l]=0.0;
+          rv1[k]=f;
+          w[k]=x;
         }
-        z=PYTHAG(f,h);
-        w[j]=z;
-        if (z)
-        {
-          z=1.0/z;
-          c=f*z;
-          s=h*z;
-        }
-        f=(c*g)+(s*y);
-        x=(c*y)-(s*g);
-        for (jj=0;jj<m;jj++)
-        {
-          y=a[jj][j];
-          z=a[jj][i];
-          a[jj][j]=y*c+z*s;
-          a[jj][i]=z*c-y*s;
-        }
-      }
-      rv1[l]=0.0;
-      rv1[k]=f;
-      w[k]=x;
     }
-  }
   free(rv1);
 }
 #endif
@@ -1773,6 +1826,7 @@ MatrixAllocTranslation(int n, double *trans)
   return(mat) ;
 }
 
+
 MATRIX *
 MatrixReallocRotation(int n, float angle, int which, MATRIX *m)
 {
@@ -1784,34 +1838,37 @@ MatrixReallocRotation(int n, float angle, int which, MATRIX *m)
   c = cos(angle) ;
   s = sin(angle) ;
   switch (which)
-  {
-  case X_ROTATION:
-    m->rptr[2][2] = c ;
-    m->rptr[2][3] = s ;
-    m->rptr[3][2] = -s ;
-    m->rptr[3][3] = c ;
-    break ;
-  case Y_ROTATION:
-    m->rptr[1][1] = c ;
-    m->rptr[1][3] = -s ;
-    m->rptr[3][1] = s ;
-    m->rptr[3][3] = c ;
-    break ;
-  case Z_ROTATION:
-    m->rptr[1][1] = c ;
-    m->rptr[1][2] = s ;
-    m->rptr[2][1] = -s ;
-    m->rptr[2][2] = c ;
-    break ;
-  }
+    {
+    case X_ROTATION:
+      m->rptr[2][2] = c ;
+      m->rptr[2][3] = s ;
+      m->rptr[3][2] = -s ;
+      m->rptr[3][3] = c ;
+      break ;
+    case Y_ROTATION:
+      m->rptr[1][1] = c ;
+      m->rptr[1][3] = -s ;
+      m->rptr[3][1] = s ;
+      m->rptr[3][3] = c ;
+      break ;
+    case Z_ROTATION:
+      m->rptr[1][1] = c ;
+      m->rptr[1][2] = s ;
+      m->rptr[2][1] = -s ;
+      m->rptr[2][2] = c ;
+      break ;
+    }
 
   return(m) ;
 }
+
+
 MATRIX *
 MatrixAllocRotation(int n, float angle, int which)
 {
   return(MatrixReallocRotation(n, angle, which, NULL)) ;
 }
+
 
 MATRIX *
 MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans)
@@ -1823,11 +1880,11 @@ MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans)
   nvars = mInputs->cols ;   /* number of variables */
 
   if (!ninputs)
-  {
-    if (!mCov)
-      mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
-    return(mCov) ;
-  }
+    {
+      if (!mCov)
+        mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
+      return(mCov) ;
+    }
 
   if (!nvars)
     ErrorReturn(NULL,
@@ -1852,40 +1909,41 @@ MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans)
     means = mMeans->data ;
 
   for (var = 0 ; var < nvars ; var++)
-  {
-    means[var] = 0.0f ;
-    for (input = 0 ; input < ninputs ; input++)
-      means[var] += mInputs->rptr[input+1][var+1] ;
-    means[var] /= ninputs ;
-  }
+    {
+      means[var] = 0.0f ;
+      for (input = 0 ; input < ninputs ; input++)
+        means[var] += mInputs->rptr[input+1][var+1] ;
+      means[var] /= ninputs ;
+    }
 
   for (var = 0 ; var < nvars ; var++)
-  {
-    for (var2 = 0 ; var2 < nvars ; var2++)
     {
-      covariance = 0.0f ;
-      for (input = 0 ; input < ninputs ; input++)
-      {
-        obs1 = mInputs->rptr[input+1][var+1] ;
-        obs2 = mInputs->rptr[input+1][var2+1] ;
-        covariance += (obs1-means[var]) * (obs2 - means[var2]) ;
-      }
-      covariance /= ninputs ;
-      mCov->rptr[var+1][var2+1]= 
-        mCov->rptr[var2+1][var+1] = covariance ;
+      for (var2 = 0 ; var2 < nvars ; var2++)
+        {
+          covariance = 0.0f ;
+          for (input = 0 ; input < ninputs ; input++)
+            {
+              obs1 = mInputs->rptr[input+1][var+1] ;
+              obs2 = mInputs->rptr[input+1][var2+1] ;
+              covariance += (obs1-means[var]) * (obs2 - means[var2]) ;
+            }
+          covariance /= ninputs ;
+          mCov->rptr[var+1][var2+1]= 
+            mCov->rptr[var2+1][var+1] = covariance ;
+        }
     }
-  }
 
   if (!mMeans)
     free(means) ;
   return(mCov) ;
 }
 
+
 /*
   update the values of a covariance matrix. Note that MatrixFinalCovariance 
   must be called with the means and total # of inputs before the covariance
   matrix is valid.
-  */
+*/
 MATRIX *
 MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans)
 {
@@ -1902,11 +1960,11 @@ MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans)
                  mMeans->rows, mMeans->cols)) ;
 
   if (!ninputs)
-  {
-    if (!mCov)
-      mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
-    return(mCov) ;
-  }
+    {
+      if (!mCov)
+        mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
+      return(mCov) ;
+    }
 
   if (!nvars)
     ErrorReturn(NULL,
@@ -1928,26 +1986,27 @@ MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans)
                  "dimensions"));
 
   for (var = 0 ; var < nvars ; var++)
-  {
-    mean1 = mMeans->rptr[var+1][1] ;
-    for (var2 = 0 ; var2 < nvars ; var2++)
     {
-      mean2 = mMeans->rptr[var2+1][1] ;
-      covariance = 0.0f ;
-      for (input = 0 ; input < ninputs ; input++)
-      {
-        obs1 = mInputs->rptr[input+1][var+1] ;
-        obs2 = mInputs->rptr[input+1][var2+1] ;
-        covariance += (obs1-mean1) * (obs2 - mean2) ;
-      }
+      mean1 = mMeans->rptr[var+1][1] ;
+      for (var2 = 0 ; var2 < nvars ; var2++)
+        {
+          mean2 = mMeans->rptr[var2+1][1] ;
+          covariance = 0.0f ;
+          for (input = 0 ; input < ninputs ; input++)
+            {
+              obs1 = mInputs->rptr[input+1][var+1] ;
+              obs2 = mInputs->rptr[input+1][var2+1] ;
+              covariance += (obs1-mean1) * (obs2 - mean2) ;
+            }
 
-      mCov->rptr[var+1][var2+1]= 
-        mCov->rptr[var2+1][var+1] = covariance ;
+          mCov->rptr[var+1][var2+1]= 
+            mCov->rptr[var2+1][var+1] = covariance ;
+        }
     }
-  }
 
   return(mCov) ;
 }
+
 
 /*
   update the means based on a new set of observation vectors. Notet that
@@ -1965,13 +2024,15 @@ MatrixUpdateMeans(MATRIX *mInputs, MATRIX *mMeans, VECTOR *mNobs)
     mMeans = VectorAlloc(nvars, MATRIX_REAL) ;
   means = mMeans->data ;
   for (var = 0 ; var < nvars ; var++)
-  {
-    mNobs->rptr[var+1][1] += ninputs ;
-    for (input = 0 ; input < ninputs ; input++)
-      means[var] += mInputs->rptr[input+1][var+1] ;
-  }
+    {
+      mNobs->rptr[var+1][1] += ninputs ;
+      for (input = 0 ; input < ninputs ; input++)
+        means[var] += mInputs->rptr[input+1][var+1] ;
+    }
   return(mMeans) ;
 }
+
+
 /*
   compute the final mean vector previously generated by
   MatrixUpdateMeans. The user must supply a vector containing
@@ -1986,15 +2047,16 @@ MatrixFinalMeans(VECTOR *mMeans, VECTOR *mNobs)
   nvars = mMeans->rows ;     /* number of variables */
   means = mMeans->data ;
   for (var = 0 ; var < nvars ; var++)
-  {
-    n = mNobs->rptr[var+1][1] ;
-    if (!n)
-      means[var] = 0.0f ;
-    else
-      means[var] /= (float)n ;
-  }
+    {
+      n = mNobs->rptr[var+1][1] ;
+      if (!n)
+        means[var] = 0.0f ;
+      else
+        means[var] /= (float)n ;
+    }
   return(mMeans) ;
 }
+
 
 /*
   compute the final covariance matrix previously generated by 
@@ -2011,11 +2073,11 @@ MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
   nvars = mInputs->cols ;   /* number of variables */
 
   if (!ninputs)
-  {
-    if (!mCov)
-      mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
-    return(mCov) ;
-  }
+    {
+      if (!mCov)
+        mCov = MatrixAlloc(nvars, nvars, MATRIX_REAL) ;
+      return(mCov) ;
+    }
 
   if (!nvars)
     ErrorReturn(NULL,
@@ -2035,22 +2097,24 @@ MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
                  "MatrixCovariance: incorrect covariance matrix dimensions"));
 
   for (var = 0 ; var < nvars ; var++)
-  {
-    ninputs = mCov->rptr[var+1][1] ;
-    for (var2 = 0 ; var2 < nvars ; var2++)
     {
-      covariance = mCov->rptr[var+1][var2+1] ;
-      if (ninputs)
-        covariance /= ninputs ;
-      else
-        covariance = 0.0f ;
-      mCov->rptr[var+1][var2+1] = 
-        mCov->rptr[var2+1][var+1] = covariance ;
+      ninputs = mCov->rptr[var+1][1] ;
+      for (var2 = 0 ; var2 < nvars ; var2++)
+        {
+          covariance = mCov->rptr[var+1][var2+1] ;
+          if (ninputs)
+            covariance /= ninputs ;
+          else
+            covariance = 0.0f ;
+          mCov->rptr[var+1][var2+1] = 
+            mCov->rptr[var2+1][var+1] = covariance ;
+        }
     }
-  }
 
   return(mCov) ;
 }
+
+
 int
 MatrixAsciiWrite(char *fname, MATRIX *m)
 {
@@ -2067,6 +2131,7 @@ MatrixAsciiWrite(char *fname, MATRIX *m)
   return(ret) ;
 }
 
+
 MATRIX *
 MatrixAsciiRead(char *fname, MATRIX *m)
 {
@@ -2082,6 +2147,7 @@ MatrixAsciiRead(char *fname, MATRIX *m)
   return(m) ;
 }
 
+
 int
 MatrixAsciiWriteInto(FILE *fp, MATRIX *m)
 {
@@ -2089,19 +2155,21 @@ MatrixAsciiWriteInto(FILE *fp, MATRIX *m)
 
   fprintf(fp, "%d %d %d\n", m->type, m->rows, m->cols) ;
   for (row = 1 ; row <= m->rows ; row++)
-  {
-    for (col = 1 ; col <= m->cols ; col++)
     {
-      if (m->type == MATRIX_COMPLEX)
-        fprintf(fp, "%+f %+f   ", 
-                MATRIX_CELT_REAL(m,row,col), MATRIX_CELT_IMAG(m,row,col));
-      else
-        fprintf(fp, "%+f  ", m->rptr[row][col]) ;
+      for (col = 1 ; col <= m->cols ; col++)
+        {
+          if (m->type == MATRIX_COMPLEX)
+            fprintf(fp, "%+f %+f   ", 
+                    MATRIX_CELT_REAL(m,row,col), MATRIX_CELT_IMAG(m,row,col));
+          else
+            fprintf(fp, "%+f  ", m->rptr[row][col]) ;
+        }
+      fprintf(fp, "\n") ;
     }
-    fprintf(fp, "\n") ;
-  }
   return(NO_ERROR) ;
 }
+
+
 MATRIX *
 MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
 {
@@ -2111,52 +2179,57 @@ MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
   cp = fgetl(line, 199, fp) ;
   if (!cp)
     ErrorReturn(NULL,
-              (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scanf parms"));
+                (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scanf parms"));
   if (sscanf(cp, "%d %d %d\n", &type, &rows, &cols) != 3)
     ErrorReturn(NULL,
-              (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scanf parms"));
+                (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scanf parms"));
 
   if (!m)
-  {
-    m = MatrixAlloc(rows, cols, type) ;
-    if (!m)
-      ErrorReturn(NULL,
-                  (ERROR_BADFILE, 
-                   "MatrixAsciiReadFrom: could not allocate matrix")) ;
-  }
-  else
-  {
-    if (m->rows != rows || m->cols != cols || m->type != type)
-      ErrorReturn(m,
-                (ERROR_BADFILE, 
-               "MatrixAsciiReadFrom: specified matrix does not match file"));
-  }
-  for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
     {
-      if (m->type == MATRIX_COMPLEX)
-      {
-        if (fscanf(fp, "%f %f   ", &MATRIX_CELT_REAL(m,row,col), 
-                   &MATRIX_CELT_IMAG(m,row,col)) != 2)
-          ErrorReturn(NULL,
-                      (ERROR_BADFILE, 
-                      "MatrixAsciiReadFrom: could not scan element (%d, %d)",
-                       row, col)) ;     
-      }
-      else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
+      m = MatrixAlloc(rows, cols, type) ;
+      if (!m)
         ErrorReturn(NULL,
                     (ERROR_BADFILE, 
-                     "MatrixAsciiReadFrom: could not scan element (%d, %d)",
-                     row, col)) ;
+                     "MatrixAsciiReadFrom: could not allocate matrix")) ;
     }
-    fscanf(fp, "\n") ;
-  }
+  else
+    {
+      if (m->rows != rows || m->cols != cols || m->type != type)
+        ErrorReturn
+          (m,
+           (ERROR_BADFILE, 
+            "MatrixAsciiReadFrom: specified matrix does not match file"));
+    }
+  for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+        {
+          if (m->type == MATRIX_COMPLEX)
+            {
+              if (fscanf(fp, "%f %f   ", &MATRIX_CELT_REAL(m,row,col), 
+                         &MATRIX_CELT_IMAG(m,row,col)) != 2)
+                ErrorReturn
+                  (NULL,
+                   (ERROR_BADFILE, 
+                    "MatrixAsciiReadFrom: could not scan element (%d, %d)",
+                    row, col)) ;     
+            }
+          else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
+            ErrorReturn
+              (NULL,
+               (ERROR_BADFILE, 
+                "MatrixAsciiReadFrom: could not scan element (%d, %d)",
+                row, col)) ;
+        }
+      fscanf(fp, "\n") ;
+    }
 
   return(m) ;
 }
+
+
 /*
-   calculate and return the Euclidean norm of the vector v.
+  calculate and return the Euclidean norm of the vector v.
 */
 float
 VectorLen(VECTOR *v)
@@ -2165,13 +2238,14 @@ VectorLen(VECTOR *v)
   float len, vi ;
 
   for (len = 0.0f, i = 1 ; i <= v->rows ; i++)
-  {
-    vi = v->rptr[i][1] ;
-    len += vi*vi ;
-  }
+    {
+      vi = v->rptr[i][1] ;
+      len += vi*vi ;
+    }
   len = sqrt(len) ;
   return(len) ;
 }
+
 
 /*  compute the dot product of 2 vectors */
 float
@@ -2185,6 +2259,8 @@ VectorDot(VECTOR *v1, VECTOR *v2)
 
   return(dot) ;
 }
+
+
 /*  compute the dot product of 2 vectors */
 float
 VectorNormalizedDot(VECTOR *v1, VECTOR *v2)
@@ -2200,9 +2276,10 @@ VectorNormalizedDot(VECTOR *v1, VECTOR *v2)
   return(dot / (l1 * l2)) ;
 }
 
+
 /*
-   extract a column of the matrix m and return it in the
-   vector v.
+  extract a column of the matrix m and return it in the
+  vector v.
 */
 VECTOR *
 MatrixColumn(MATRIX *m, VECTOR *v, int col)
@@ -2217,6 +2294,7 @@ MatrixColumn(MATRIX *m, VECTOR *v, int col)
   return(v) ;
 }
 
+
 /* calcuate and return the Euclidean distance between two vectors */
 float
 VectorDistance(VECTOR *v1, VECTOR *v2)
@@ -2225,17 +2303,18 @@ VectorDistance(VECTOR *v1, VECTOR *v2)
   float dist, d ;
 
   for (dist = 0.0f,row = 1 ; row <= v1->rows ; row++)
-  {
-    d = VECTOR_ELT(v1,row) - VECTOR_ELT(v2,row) ;
-    dist += (d*d) ;
-  }
+    {
+      d = VECTOR_ELT(v1,row) - VECTOR_ELT(v2,row) ;
+      dist += (d*d) ;
+    }
 
   return(dist) ;
 }
 
+
 /*
   compute the outer product of the vectors v1 and v2.
-  */
+*/
 MATRIX *
 VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m)
 {
@@ -2254,18 +2333,19 @@ VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m)
     m = MatrixAlloc(rows, cols, MATRIX_REAL) ;
 
   for (row = 1 ; row <= rows ; row++)
-  {
-    r = VECTOR_ELT(v1,row) ;
-    for (col = 1 ; col <= cols ; col++)
-      m->rptr[row][col] = r * VECTOR_ELT(v2,col) ;
-  }
+    {
+      r = VECTOR_ELT(v1,row) ;
+      for (col = 1 ; col <= cols ; col++)
+        m->rptr[row][col] = r * VECTOR_ELT(v2,col) ;
+    }
 
   return(m) ;
 }
 
+
 /*
-   Add a small random diagonal matrix to mIn to make it
-   non-singular.
+  Add a small random diagonal matrix to mIn to make it
+  non-singular.
 */
 #define SMALL 1e-4
 MATRIX *
@@ -2294,6 +2374,7 @@ MatrixRegularize(MATRIX *mIn, MATRIX *mOut)
   return(mOut) ;
 }
 
+
 /* see if a matrix is singular */
 int    
 MatrixSingular(MATRIX *m)
@@ -2317,13 +2398,13 @@ MatrixSingular(MATRIX *m)
   wmax = 0.0f ;
   wmin = wmax = RVECTOR_ELT(v_w,1) ;
   for (row = 2 ; row <= rows ; row++)
-  {
-    wi = fabs(RVECTOR_ELT(v_w,row)) ;
-    if (wi > wmax)
-      wmax = wi ;
-    if (wi < wmin)
-      wmin = wi ;
-  }
+    {
+      wi = fabs(RVECTOR_ELT(v_w,row)) ;
+      if (wi > wmax)
+        wmax = wi ;
+      if (wi < wmin)
+        wmin = wi ;
+    }
 
   MatrixFree(&m_U) ;
   VectorFree(&v_w) ;
@@ -2337,8 +2418,9 @@ MatrixSingular(MATRIX *m)
 #endif
 }
 
+
 /*
-   calcluate the condition # of a matrix using svd
+  calcluate the condition # of a matrix using svd
 */
 float MatrixConditionNumber(MATRIX *m)
 {
@@ -2359,13 +2441,13 @@ float MatrixConditionNumber(MATRIX *m)
   wmax = 0.0f ;
   wmin = wmax = RVECTOR_ELT(v_w,1) ;
   for (row = 2 ; row <= rows ; row++)
-  {
-    wi = fabs(RVECTOR_ELT(v_w,row)) ;
-    if (wi > wmax)
-      wmax = wi ;
-    if (wi < wmin)
-      wmin = wi ;
-  }
+    {
+      wi = fabs(RVECTOR_ELT(v_w,row)) ;
+      if (wi > wmax)
+        wmax = wi ;
+      if (wi < wmin)
+        wmin = wi ;
+    }
 
   if (FZERO(wmin))
     cond = 1e8 ;   /* something big */
@@ -2377,10 +2459,12 @@ float MatrixConditionNumber(MATRIX *m)
   MatrixFree(&m_V) ;
   return(cond) ;
 }
+
+
 /*-----------------------------------------------------------
   MatrixNSConditionNumber() - condition of a non-square matrix.
   Works for square matrices as well.
------------------------------------------------------------*/
+  -----------------------------------------------------------*/
 float MatrixNSConditionNumber(MATRIX *m)
 {
   float cond ;
@@ -2404,10 +2488,11 @@ float MatrixNSConditionNumber(MATRIX *m)
   return(cond);
 }
 
+
 /*
   calculate the cross product of two vectors and return the result
   in vdst, allocating it if necessary.
-  */
+*/
 VECTOR *
 VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst)
 {
@@ -2428,9 +2513,10 @@ VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst)
   return(vdst) ;
 }
 
+
 /*
   compute the triple scalar product v1 x v2 . v3
-  */
+*/
 float
 VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3)
 {
@@ -2449,6 +2535,7 @@ VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3)
   return(total) ;
 }
 
+
 VECTOR *
 VectorNormalize(VECTOR *vin, VECTOR *vout)
 {
@@ -2464,12 +2551,14 @@ VectorNormalize(VECTOR *vin, VECTOR *vout)
 
   rows = vin->rows ; cols = vin->cols ;
   for (row = 1 ; row <= rows ; row++)
-  {
-    for (col = 1 ; col <= cols ; col++)
-      vout->rptr[row][col] = vin->rptr[row][col] / len ;
-  }
+    {
+      for (col = 1 ; col <= cols ; col++)
+        vout->rptr[row][col] = vin->rptr[row][col] / len ;
+    }
   return(vout) ;
 }
+
+
 float
 VectorAngle(VECTOR *v1, VECTOR *v2)
 {
@@ -2487,6 +2576,7 @@ VectorAngle(VECTOR *v1, VECTOR *v2)
     angle = acos(dot / norm) ;
   return(angle) ;
 }
+
 
 double
 Vector3Angle(VECTOR *v1, VECTOR *v2)
@@ -2506,6 +2596,7 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
   return(angle) ;
 }
 
+
 int
 MatrixWriteTxt(char *fname, MATRIX *mat)
 {
@@ -2518,17 +2609,17 @@ MatrixWriteTxt(char *fname, MATRIX *mat)
                 (ERROR_NO_FILE, "MatrixWriteTxt(%s) - file open failed\n", 
                  fname));
 
-
   for (row = 1 ; row <= mat->rows ; row++)
-  {
-    for (col = 1 ; col <= mat->cols ; col++)
-      fprintf(fp, "%+4.5f ", mat->rptr[row][col]) ;
-    fprintf(fp, "\n") ;
-  }
+    {
+      for (col = 1 ; col <= mat->cols ; col++)
+        fprintf(fp, "%+4.5f ", mat->rptr[row][col]) ;
+      fprintf(fp, "\n") ;
+    }
 
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
 
 MATRIX *
 MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
@@ -2540,15 +2631,16 @@ MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   mTm = MatrixMultiply(mT, m, NULL) ;
   mTm_inv = MatrixInverse(mTm, NULL) ;
   if (!mTm_inv)
-  {
-    MatrixFree(&mT) ; MatrixFree(&mTm) ;
-    return(NULL) ;
-  }
+    {
+      MatrixFree(&mT) ; MatrixFree(&mTm) ;
+      return(NULL) ;
+    }
   m_pseudo_inv = MatrixMultiply(mTm_inv, mT, m_pseudo_inv) ;
 
   MatrixFree(&mT) ; MatrixFree(&mTm) ; MatrixFree(&mTm_inv) ; 
   return(m_pseudo_inv) ;
 }
+
 
 MATRIX *
 MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
@@ -2560,15 +2652,16 @@ MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   mmT = MatrixMultiply(m, mT, NULL) ;
   mmT_inv = MatrixInverse(mmT, NULL) ;
   if (!mmT_inv)
-  {
-    MatrixFree(&mT) ; MatrixFree(&mmT) ;
-    return(NULL) ;
-  }
+    {
+      MatrixFree(&mT) ; MatrixFree(&mmT) ;
+      return(NULL) ;
+    }
   m_pseudo_inv = MatrixMultiply(mT, mmT_inv, m_pseudo_inv) ;
 
   MatrixFree(&mT) ; MatrixFree(&mmT) ; MatrixFree(&mmT_inv) ; 
   return(m_pseudo_inv) ;
 }
+
 
 int
 MatrixCheck(MATRIX *m)
@@ -2577,15 +2670,16 @@ MatrixCheck(MATRIX *m)
 
   rows = m->rows ; cols = m->cols ;
   for (r = 1 ; r <= rows ; r++)
-  {
-    for (c = 1 ; c <= cols ; c++)
     {
-      if (!finite(*MATRIX_RELT(m, r, c)))
-        return(ERROR_BADPARM) ;
+      for (c = 1 ; c <= cols ; c++)
+        {
+          if (!finite(*MATRIX_RELT(m, r, c)))
+            return(ERROR_BADPARM) ;
+        }
     }
-  }
   return(NO_ERROR) ;
 }
+
 
 MATRIX  *
 MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
@@ -2593,9 +2687,9 @@ MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
   int   r1, c1, r2, c2 ;
 
   if (m_dst)
-  {
-    rows = m_dst->rows ; cols = m_dst->cols ;
-  }
+    {
+      rows = m_dst->rows ; cols = m_dst->cols ;
+    }
 
 #if 0
   if (rows*cols > m_src->rows*m_src->cols)
@@ -2607,24 +2701,22 @@ MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
     m_dst = MatrixAlloc(rows, cols, m_src->type) ;
 
   for (r2 = c2 = r1 = 1 ; r1 <= m_src->rows ; r1++)
-  {
-    for (c1 = 1 ; c1 <= m_src->cols ; c1++)
     {
-      *MATRIX_RELT(m_dst, r2, c2) = *MATRIX_RELT(m_src, r1, c1) ;
-      if (++c2 > m_dst->cols)
-      {
-        c2 = 1 ;
-        r2++ ;
-      }
-      if (r2 > rows)  /* only extract first rowsxcols elements */
+      for (c1 = 1 ; c1 <= m_src->cols ; c1++)
+        {
+          *MATRIX_RELT(m_dst, r2, c2) = *MATRIX_RELT(m_src, r1, c1) ;
+          if (++c2 > m_dst->cols)
+            {
+              c2 = 1 ;
+              r2++ ;
+            }
+          if (r2 > rows)  /* only extract first rowsxcols elements */
+            break ;
+        }
+      if (r2 > rows)
         break ;
     }
-    if (r2 > rows)
-      break ;
-  }
 
-
-  
   return(m_dst) ;
 }
 
@@ -2643,6 +2735,8 @@ float MatrixTrace(MATRIX *M)
 
   return(trace);
 }
+
+
 /*------------------------------------------------------------------
   MatrixHorCat() - horizontally concatenate matrices m1 and m2, store
   the result in mcat. If mcat is NULL, a new matrix is allocated. A
@@ -2670,7 +2764,7 @@ MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
 
   if(m1->rows != m2->rows){
     printf("ERROR: MatrixHorCat: rows of m1 (%d) not equal to m2 (%d)\n",
-     m1->rows, m2->rows);
+           m1->rows, m2->rows);
     return(NULL);
   }
 
@@ -2679,12 +2773,13 @@ MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
   else{
     if(mcat->rows != m1->rows){
       printf("ERROR: MatrixHorCat: rows of m1 (%d) not equal to mcat (%d)\n",
-       m1->rows, mcat->rows);
+             m1->rows, mcat->rows);
       return(NULL);
     }
     if(mcat->cols != (m1->cols+m2->cols)){
-      printf("ERROR: MatrixHorCat: cols of mcat (%d) do not equal to m1+m2 (%d)\n",
-       mcat->cols, m1->cols+m2->cols);
+      printf
+        ("ERROR: MatrixHorCat: cols of mcat (%d) do not equal to m1+m2 (%d)\n",
+         mcat->cols, m1->cols+m2->cols);
       return(NULL);
     }
   }
@@ -2704,6 +2799,8 @@ MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
   
   return(mcat);
 }
+
+
 /*------------------------------------------------------------------
   MatrixVertCat() - vertically concatenate matrices m1 and m2, store
   the result in mcat. If mcat is NULL, a new matrix is allocated. A
@@ -2731,7 +2828,7 @@ MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
 
   if(m1->cols != m2->cols){
     printf("ERROR: MatrixVertCat: cols of m1 (%d) not equal to m2 (%d)\n",
-     m1->cols, m2->cols);
+           m1->cols, m2->cols);
     return(NULL);
   }
 
@@ -2740,12 +2837,14 @@ MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
   else{
     if(mcat->cols != m1->cols){
       printf("ERROR: MatrixVertCat: cols of m1 (%d) not equal to mcat (%d)\n",
-       m1->cols, mcat->cols);
+             m1->cols, mcat->cols);
       return(NULL);
     }
     if(mcat->rows != (m1->rows+m2->rows)){
-      printf("ERROR: MatrixVertCat: rows of mcat (%d) do not equal to m1+m2 (%d)\n",
-       mcat->rows, m1->rows+m2->rows);
+      printf
+        ("ERROR: MatrixVertCat: rows of mcat (%d) "
+         "do not equal to m1+m2 (%d)\n",
+         mcat->rows, m1->rows+m2->rows);
       return(NULL);
     }
   }
@@ -2766,6 +2865,8 @@ MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
   
   return(mcat);
 }
+
+
 /*-------------------------------------------------------------
   MatrixConstVal() - sets all the elements to the given value.
   If X is NULL, then a matrix rows-by-cols is alloced. If X
@@ -2785,6 +2886,8 @@ MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X)
 
   return(X);
 }
+
+
 /*--------------------------------------------------------------------
   MatrixZero() - sets all the elements to zero.  If X is NULL, then a
   matrix rows-by-cols is alloced. If X is non-NULL, then rows and cols
@@ -2795,6 +2898,8 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X)
   X = MatrixConstVal(0,rows,cols,X);
   return(X);
 }
+
+
 /*----------------------------------------------------------------*/
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
 {
@@ -2821,8 +2926,8 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
   if( (dim ==1 && m->rows > 1) || (dim == 2 && m->cols > 1) ){
     for(r=1; r <= m->rows; r++){
       for(c=1; c <= m->cols; c++){
-	if(dim==1) msum->rptr[1][c] += m->rptr[r][c];
-	else       msum->rptr[r][1] += m->rptr[r][c];
+        if(dim==1) msum->rptr[1][c] += m->rptr[r][c];
+        else       msum->rptr[r][1] += m->rptr[r][c];
       }
     }
   }
@@ -2835,6 +2940,8 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
 
   return(msum);
 }
+
+
 /*----------------------------------------------------------------*/
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
 {
@@ -2856,6 +2963,8 @@ double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
 
   return(max-min);
 }
+
+
 /*----------------------------------------------------------------*/
 double VectorSum(MATRIX *v)
 {
@@ -2868,6 +2977,8 @@ double VectorSum(MATRIX *v)
       sum += (v->rptr[r][c]);
   return(sum);
 }
+
+
 /*----------------------------------------------------------------*/
 double VectorMean(MATRIX *v)
 {
@@ -2878,6 +2989,7 @@ double VectorMean(MATRIX *v)
 
   return(mean);
 }
+
 
 /*----------------------------------------------------------------*/
 double VectorVar(MATRIX *v, double *pMean)
@@ -2901,6 +3013,7 @@ double VectorVar(MATRIX *v, double *pMean)
   return(var);
 }
 
+
 /*----------------------------------------------------------------*/
 double VectorStdDev(MATRIX *v, double *pMean)
 {
@@ -2908,6 +3021,7 @@ double VectorStdDev(MATRIX *v, double *pMean)
   var = VectorVar(v,pMean);
   return(sqrt(var));
 }
+
 
 /*----------------------------------------------------------------*/
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
@@ -2925,6 +3039,8 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
 
   return(m);
 }
+
+
 /*--------------------------------------------------------------------
   MatrixFactorSqrSVD() - factors a square matrix M into D such that M
   = D'D. This is like a cholesky factorization, except that D will be
@@ -3020,6 +3136,8 @@ MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D)
   Mcols = M->cols;
   return(D);
 }
+
+
 /*-------------------------------------------------------------
   MatrixToeplitz() - creates a toeplitz matrix T (ie, a matrix
   where all the elements on a diagonal have the same value.
@@ -3053,13 +3171,13 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
   for(r = 1; r <= T->rows; r++){
     for(c = 1; c <= T->cols; c++){
       if(r==c){
-	T->rptr[r][c] = v->rptr[1][1];
-	continue;
+        T->rptr[r][c] = v->rptr[1][1];
+        continue;
       }
       if( (r > c && Type == MATRIX_UPPER) || 
-	  (r < c && Type == MATRIX_LOWER)){
-	T->rptr[r][c] = 0.0;
-	continue;
+          (r < c && Type == MATRIX_LOWER)){
+        T->rptr[r][c] = 0.0;
+        continue;
       }
       T->rptr[r][c] = v->rptr[abs(r-c)+1][1];
     }
@@ -3067,6 +3185,8 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
 
   return(T);
 }
+
+
 /*----------------------------------------------------------*/
 MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
 {
@@ -3096,10 +3216,10 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
     v = sqrt(sum2);
     if(v != 0)
       for(r=1; r <= m->rows; r++) 
-	mcnorm->rptr[r][c] = (m->rptr[r][c])/v;
+        mcnorm->rptr[r][c] = (m->rptr[r][c])/v;
     else
       for(r=1; r <= m->rows; r++) 
-	mcnorm->rptr[r][c] = 0.0;
+        mcnorm->rptr[r][c] = 0.0;
 
   }
 
@@ -3110,6 +3230,8 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
   
   return(mcnorm);
 }
+
+
 MATRIX *
 MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst)
 {
@@ -3122,13 +3244,14 @@ MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst)
 	return(m_dst) ;
 }
 
+
 /*---------------------------------------------------------------
   GaussianVector() - creates a vector with len rows. The gaussian
   curve is centered at the meanth row and has std. The mean can
   be non-integer. If norm == 1, then the sum is adjusted to be 1.
----------------------------------------------------------------*/
+  ---------------------------------------------------------------*/
 MATRIX *GaussianVector(int len, float mean, float std, int norm,
-		       MATRIX *g)
+                       MATRIX *g)
 {
   int n;
   float v,sum,var,f;
@@ -3158,6 +3281,8 @@ MATRIX *GaussianVector(int len, float mean, float std, int norm,
 
   return(g);
 }
+
+
 /*---------------------------------------------------------------
   GaussianMatrix() - creates a gaussian convolution matrix. Each row
   is a gaussian waveform with centered at the diagonal with standard
@@ -3207,27 +3332,14 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
 }
 
 #if USE_SC_GSL_REPLACEMENT
-  #include <gsl_wrapper.h>
+#include <gsl_wrapper.h>
 #else
-  #include <gsl/gsl_matrix.h>
-  #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
 #endif
 
-#if USE_SC_GSL_REPLACEMENT
-sc_matrix *
-MatrixToGSL(MATRIX *m, sc_matrix *gm)
-{
-	int  rows, cols, r, c ;
 
-  cols = m->cols ;
-  rows = m->rows ;
-	if (gm == NULL)
-		gm = sc_matrix_alloc(rows, cols) ;
-	for (r = 0 ; r < rows ; r++)
-		for (c = 0 ;c < cols ; c++)
-			sc_matrix_set(gm, r, c, *MATRIX_RELT(m, r+1, c+1)) ;
-	return(gm) ;
-}
+#if USE_SC_GSL_REPLACEMENT
 #else
 gsl_matrix *
 MatrixToGSL(MATRIX *m, gsl_matrix *gm)
@@ -3246,20 +3358,6 @@ MatrixToGSL(MATRIX *m, gsl_matrix *gm)
 #endif
 
 #if USE_SC_GSL_REPLACEMENT
-MATRIX *
-MatrixFromGSL(sc_matrix *gm, MATRIX *m)
-{
-	int  rows, cols, r, c ;
-
-  rows = gm->size1 ;
-  cols = gm->size2 ;
-	if (m == NULL)
-		m = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-	for (r = 0 ; r < rows ; r++)
-		for (c = 0 ;c < cols ; c++)
-			*MATRIX_RELT(m, r+1, c+1) = sc_matrix_get(gm, r, c) ;
-	return(m) ;
-}
 #else
 MATRIX *
 MatrixFromGSL(gsl_matrix *gm, MATRIX *m)
@@ -3278,18 +3376,6 @@ MatrixFromGSL(gsl_matrix *gm, MATRIX *m)
 #endif
 
 #if USE_SC_GSL_REPLACEMENT
-VECTOR *
-VectorFromGSL(sc_vector *gv, VECTOR  *v)
-{
-	int  rows, r ;
-
-  rows = gv->size ;
-	if (v == NULL)
-		v = VectorAlloc(rows, MATRIX_REAL) ;
-	for (r = 0 ; r < rows ; r++)
-		VECTOR_ELT(v, r+1) = sc_vector_get(gv, r);
-	return(v) ;
-}
 #else
 VECTOR *
 VectorFromGSL(gsl_vector *gv, VECTOR  *v)
@@ -3309,8 +3395,6 @@ VectorFromGSL(gsl_vector *gv, VECTOR  *v)
 MATRIX *
 MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 {
-	sc_matrix  *U, *V ;
-	sc_vector  *work, *S ;
 	int     cols, rows ;
 	MATRIX  *m_U, *m_V, *mT, *m_Ur, *m_Vr, *m_Sr, *m_tmp, *m_S ;
 	VECTOR  *v_S ;
@@ -3318,49 +3402,41 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   cols = m->cols ;
   rows = m->rows ;
 	if (m->rows < m->cols)
-	{
-		mT = MatrixTranspose(m, NULL) ;
-		m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
-		MatrixFree(&mT) ;
-		mT = m_pseudo_inv ;
-		m_pseudo_inv = MatrixTranspose(mT, NULL) ;
-	}
+    {
+      mT = MatrixTranspose(m, NULL) ;
+      m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
+      MatrixFree(&mT) ;
+      mT = m_pseudo_inv ;
+      m_pseudo_inv = MatrixTranspose(mT, NULL) ;
+    }
 	else
-	{
-		int r,c ;
+    {
+      int r,c ;
 
-		U = MatrixToGSL(m, NULL) ;
-		V = sc_matrix_alloc(cols, cols) ;
-		work = sc_vector_alloc(cols) ;
-		S = sc_vector_alloc(cols) ;
-		sc_linalg_SV_decomp(U, V, S, work) ;
-		m_U = MatrixFromGSL(U, NULL) ;
-		v_S = VectorFromGSL(S, NULL) ;
-		m_V = MatrixFromGSL(V, NULL) ;
-		sc_vector_free(work) ;
-		sc_vector_free(S) ;
-		sc_matrix_free(U) ;
-		sc_matrix_free(V) ;
-		for (r = 1 ; r <= v_S->rows ; r++)
-			if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
-				break ;
-		r-- ; // previous one was last non-zero
-		m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
-		m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
-		m_S = MatrixDiag(v_S, NULL) ;
-		m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
-		for (c = 1 ; c <= m_Sr->rows ; c++)
-			*MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
-		m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
-		m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
-		m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
-		MatrixFree(&m_tmp) ;
-		MatrixFree(&m_Ur) ;
-		MatrixFree(&m_Sr) ;
-		MatrixFree(&m_S) ;
-		MatrixFree(&m_Vr) ;
-		VectorFree(&v_S) ;
-	 }
+      m_U = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+      m_V = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+      v_S = VectorAlloc(rows, MATRIX_REAL) ;
+      sc_linalg_SV_decomp(m_U, m_V, v_S) ;
+      for (r = 1 ; r <= v_S->rows ; r++)
+        if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
+          break ;
+      r-- ; // previous one was last non-zero
+      m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
+      m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
+      m_S = MatrixDiag(v_S, NULL) ;
+      m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
+      for (c = 1 ; c <= m_Sr->rows ; c++)
+        *MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
+      m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
+      m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
+      m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+      MatrixFree(&m_tmp) ;
+      MatrixFree(&m_Ur) ;
+      MatrixFree(&m_Sr) ;
+      MatrixFree(&m_S) ;
+      MatrixFree(&m_Vr) ;
+      VectorFree(&v_S) ;
+    }
 
 	return(m_pseudo_inv) ;
 }
@@ -3377,49 +3453,49 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   cols = m->cols ;
   rows = m->rows ;
 	if (m->rows < m->cols)
-	{
-		mT = MatrixTranspose(m, NULL) ;
-		m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
-		MatrixFree(&mT) ;
-		mT = m_pseudo_inv ;
-		m_pseudo_inv = MatrixTranspose(mT, NULL) ;
-	}
+    {
+      mT = MatrixTranspose(m, NULL) ;
+      m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
+      MatrixFree(&mT) ;
+      mT = m_pseudo_inv ;
+      m_pseudo_inv = MatrixTranspose(mT, NULL) ;
+    }
 	else
-	{
-		int r,c ;
+    {
+      int r,c ;
 
-		U = MatrixToGSL(m, NULL) ;
-		V = gsl_matrix_alloc(cols, cols) ;
-		work = gsl_vector_alloc(cols) ;
-		S = gsl_vector_alloc(cols) ;
-		gsl_linalg_SV_decomp(U, V, S, work) ;
-		m_U = MatrixFromGSL(U, NULL) ;
-		v_S = VectorFromGSL(S, NULL) ;
-		m_V = MatrixFromGSL(V, NULL) ;
-		gsl_vector_free(work) ;
-		gsl_vector_free(S) ;
-		gsl_matrix_free(U) ;
-		gsl_matrix_free(V) ;
-		for (r = 1 ; r <= v_S->rows ; r++)
-			if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
-				break ;
-		r-- ; // previous one was last non-zero
-		m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
-		m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
-		m_S = MatrixDiag(v_S, NULL) ;
-		m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
-		for (c = 1 ; c <= m_Sr->rows ; c++)
-			*MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
-		m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
-		m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
-		m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
-		MatrixFree(&m_tmp) ;
-		MatrixFree(&m_Ur) ;
-		MatrixFree(&m_Sr) ;
-		MatrixFree(&m_S) ;
-		MatrixFree(&m_Vr) ;
-		VectorFree(&v_S) ;
-	 }
+      U = MatrixToGSL(m, NULL) ;
+      V = gsl_matrix_alloc(cols, cols) ;
+      work = gsl_vector_alloc(cols) ;
+      S = gsl_vector_alloc(cols) ;
+      gsl_linalg_SV_decomp(U, V, S, work) ;
+      m_U = MatrixFromGSL(U, NULL) ;
+      v_S = VectorFromGSL(S, NULL) ;
+      m_V = MatrixFromGSL(V, NULL) ;
+      gsl_vector_free(work) ;
+      gsl_vector_free(S) ;
+      gsl_matrix_free(U) ;
+      gsl_matrix_free(V) ;
+      for (r = 1 ; r <= v_S->rows ; r++)
+        if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
+          break ;
+      r-- ; // previous one was last non-zero
+      m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
+      m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
+      m_S = MatrixDiag(v_S, NULL) ;
+      m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
+      for (c = 1 ; c <= m_Sr->rows ; c++)
+        *MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
+      m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
+      m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
+      m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+      MatrixFree(&m_tmp) ;
+      MatrixFree(&m_Ur) ;
+      MatrixFree(&m_Sr) ;
+      MatrixFree(&m_S) ;
+      MatrixFree(&m_Vr) ;
+      VectorFree(&v_S) ;
+    }
 
 	return(m_pseudo_inv) ;
 }
@@ -3446,6 +3522,7 @@ MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO)
   return(XRO);
 }
 
+
 /*-----------------------------------------------------------------
   MatrixRandPermRows() - randomly reorders the rows of the input
   matrix.
@@ -3462,6 +3539,8 @@ int MatrixRandPermRows(MATRIX *X)
   MatrixFree(&X0);
   return(0);
 }
+
+
 /*--------------------------------------------------------------------
   MatrixColsAreNotOrthog() - returns 1 if matrix columns are not
   orthogonal. Computes X'*X and examines the off diagonals. If any
@@ -3479,14 +3558,16 @@ int MatrixColsAreNotOrthog(MATRIX *X)
     for(c=r+1; c <= XtX->cols; c++){
       // only upper triangle
       if(XtX->rptr[r][c] > 2*FLT_MIN){
-	MatrixFree(&XtX);
-	return(1);
+        MatrixFree(&XtX);
+        return(1);
       }
     }
   }
   MatrixFree(&XtX);
   return(0);
 }
+
+
 double
 MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
 {
@@ -3501,6 +3582,7 @@ MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
 	return(dist) ;
 }
 
+
 /* for 3d vector macros */
 #include "tritri.h"
 int
@@ -3510,11 +3592,11 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
   int     i ;
 
   for (i = 0 ; i < 3 ; i++)
-  {
-    c1[i] = *MATRIX_RELT(m_L, i+1, 1) ;
-    c2[i] = *MATRIX_RELT(m_L, i+1, 2) ;
-    c3[i] = *MATRIX_RELT(m_L, i+1, 3) ;
-  }
+    {
+      c1[i] = *MATRIX_RELT(m_L, i+1, 1) ;
+      c2[i] = *MATRIX_RELT(m_L, i+1, 2) ;
+      c3[i] = *MATRIX_RELT(m_L, i+1, 3) ;
+    }
 
   /* make 1st column vector unit length */
   len = VLEN(c1) ;
@@ -3551,11 +3633,11 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
   SCALAR_MUL(c3, 1.0/len, c3) ;
 
   for (i = 0 ; i < 3 ; i++)
-  {
-    *MATRIX_RELT(m_L, i+1, 1) = c1[i] ;
-    *MATRIX_RELT(m_L, i+1, 2) = c2[i] ;
-    *MATRIX_RELT(m_L, i+1, 3) = c3[i] ;
-  }
+    {
+      *MATRIX_RELT(m_L, i+1, 1) = c1[i] ;
+      *MATRIX_RELT(m_L, i+1, 2) = c2[i] ;
+      *MATRIX_RELT(m_L, i+1, 3) = c3[i] ;
+    }
 #if 0
   /* remove translation component */
   for (i = 1 ; i <= 3 ; i++)
@@ -3564,3 +3646,4 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
   
   return(NO_ERROR) ;
 }
+

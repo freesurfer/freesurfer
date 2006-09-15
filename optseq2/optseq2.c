@@ -52,7 +52,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.9 2006/08/31 00:53:43 nicks Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.10 2006/09/15 21:19:27 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.9 2006/08/31 00:53:43 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.10 2006/09/15 21:19:27 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1645,8 +1645,8 @@ static MATRIX * AR1WhitenMatrix(double rho, int N)
 {
   int m,n,d;
   double v;
-  sc_matrix *G;
   MATRIX *W,*M;
+  MATRIX *G=NULL;
 
   // First create AR1 covariance matrix M
   M = MatrixAlloc(N,N,MATRIX_REAL);
@@ -1663,13 +1663,7 @@ static MATRIX * AR1WhitenMatrix(double rho, int N)
   M = MatrixInverse(M,M);
 
   // Copy to matrix
-  G = sc_matrix_calloc(N,N);
-  for(m=0;m<N;m++){
-    for(n=0;n<N;n++){
-      v = M->rptr[m+1][n+1];
-      sc_matrix_set(G,m,n,v);
-    }
-  }
+  G = MatrixCopy(M,G);
 
   // Perform cholesky decomposition
   // M = G*G'; Note: in matlab: M = G'*G;
@@ -1677,13 +1671,13 @@ static MATRIX * AR1WhitenMatrix(double rho, int N)
 
   // Keep the upper triangular part
   W = MatrixAlloc(N,N,MATRIX_REAL);
-  for(m=0;m<N;m++){
-    for(n=0;n<N;n++){
-      if(m<=n) W->rptr[m+1][n+1] = sc_matrix_get(G,m,n);
+  for(m=1;m<=N;m++){
+    for(n=1;n<=N;n++){
+      if(m<=n) W->rptr[m][n] = G->rptr[m][n];
     }
   }
 
-  sc_matrix_free(G);
+  MatrixFree(&G);
   MatrixFree(&M);
 
   return(W);
