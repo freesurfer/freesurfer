@@ -3164,17 +3164,17 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
     }
 
     // Covert each to a float.
-    float min = strtol( lResults[0].c_str(), (char**)NULL, 10 );
+    float min = strtod( lResults[0].c_str(), (char**)NULL );
     if( ERANGE == errno ) {
       throw runtime_error( "Couldn't convert first value" );
     }
     
-    float mid = strtol( lResults[1].c_str(), (char**)NULL, 10 );
+    float mid = strtod( lResults[1].c_str(), (char**)NULL );
     if( ERANGE == errno ) {
       throw runtime_error( "Couldn't convert second value" );
     }
 
-    float max = strtol( lResults[2].c_str(), (char**)NULL, 10 );
+    float max = strtod( lResults[2].c_str(), (char**)NULL );
     if( ERANGE == errno ) {
       throw runtime_error( "Couldn't convert third value" );
     }
