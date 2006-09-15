@@ -6,11 +6,12 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/22 13:17:17 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2006/09/15 14:43:30 $
+// Revision       : $Revision: 1.7 $
 
 
 #include "talairachex.h"
+#include "diag.h"
 #include "error.h"
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -43,10 +44,13 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 	else
 	{
 	  // use average_305 value
-	  fprintf(stderr, 
-		  "INFO: Modifying talairach volume c_(r,a,s) based on average_305.\n");
-	  fprintf(stderr,
-		  "INFO: If not preferred, set environmental varible NO_AVERAGE305 true.\n");
+    if (DIAG_VERBOSE_ON)
+    {
+      fprintf(stderr, 
+              "INFO: Modifying talairach volume c_(r,a,s) based on average_305.\n");
+      fprintf(stderr,
+              "INFO: If not preferred, set environmental varible NO_AVERAGE305 true.\n");
+    }
 	  mri_tal->c_r = -0.095;
 	  mri_tal->c_a = -16.51;
 	  mri_tal->c_s =   9.75;
@@ -67,8 +71,9 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
     else
     {
       // use average_305 value
-      fprintf(stderr, 
-	      "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
+      if (DIAG_VERBOSE_ON)
+        fprintf(stderr, 
+                "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
       mri_tal->c_r = -0.095;
       mri_tal->c_a = -16.51;
       mri_tal->c_s =   9.75;
