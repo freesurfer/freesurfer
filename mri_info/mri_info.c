@@ -3,12 +3,12 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/07/19 20:27:31 $
-// Revision       : $Revision: 1.51 $
+// Revision Date  : $Date: 2006/09/15 15:11:14 $
+// Revision       : $Revision: 1.52 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.51 $";
+char *MRI_INFO_VERSION = "$Revision: 1.52 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -40,7 +40,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.51 2006/07/19 20:27:31 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.52 2006/09/15 15:11:14 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -76,6 +76,9 @@ FILE *fpout;
 int PrintToFile = 0;
 char *outfile = NULL;
 int debug = 0;
+int intype=MRI_VOLUME_TYPE_UNKNOWN;
+char *intypestr=NULL;
+
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
@@ -182,6 +185,12 @@ static int parse_commandline(int argc, char **argv)
       nargc --;
       pargv ++;
     }
+    else if (!strcasecmp(option, "-it") || !strcasecmp(option, "--in_type")){
+      intypestr = pargv[0];
+      intype = string_to_type(intypestr);
+      nargc --;
+      pargv ++;
+    }
     else if (!strcasecmp(option, "--voxel")){
       if(nargc < 3){
 	CMDargNErr(option, 3);
@@ -237,6 +246,7 @@ static void print_usage(void)
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("   --voxel c r s : dump voxel value from col row slice (0-based, all frames)\n");
   printf("   --o file : print flagged results to file \n");
+  printf("   --in_type type : explicitly specify file type (see mri_convert) \n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -331,7 +341,7 @@ static void do_file(char *fname)
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  if(!PrintVoxel)  mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  if(!PrintVoxel)  mri = MRIreadHeader(fname, intype) ;
   else             mri = MRIread(fname);
   if(!mri) return;
 
