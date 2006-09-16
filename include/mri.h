@@ -140,6 +140,8 @@ MATRIX *MtxCRS1toCRS0(MATRIX *Q);
 int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0);
 MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 
+int MRIhfs2Sphinx(MRI *mri);
+
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 

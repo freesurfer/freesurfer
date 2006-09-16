@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/11 22:40:08 $
-// Revision       : $Revision: 1.356 $
-char *MRI_C_VERSION = "$Revision: 1.356 $";
+// Revision Date  : $Date: 2006/09/16 22:20:13 $
+// Revision       : $Revision: 1.357 $
+char *MRI_C_VERSION = "$Revision: 1.357 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -749,14 +749,42 @@ int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
   // Get out of town
   return(0);
 }
+/*---------------------------------------------------------------
+  MRIhfs2Sphinx() - reorient to sphinx the position. This function is
+  applicable when the input geometry information is correct but the
+  subject was in the scanner in the "sphinx" position (ie, AP in line
+  with the bore) instead of head-first-supine (HFS). This is often the
+  case with monkeys.
+  ---------------------------------------------------------------*/
+int MRIhfs2Sphinx(MRI *mri)
+{
+  double tmpxa,tmpya,tmpza,tmpca;
+
+  // Negate right to make it left
+  mri->x_r *= -1.0;
+  mri->y_r *= -1.0;
+  mri->z_r *= -1.0;
+  mri->c_r *= -1.0;
 
 
+  // Swap ant and sup
+  tmpxa = mri->x_a;
+  tmpya = mri->y_a;
+  tmpza = mri->z_a;
+  tmpca = mri->c_a;
 
+  mri->x_a = mri->x_s;
+  mri->y_a = mri->y_s;
+  mri->z_a = mri->z_s;
+  mri->c_a = mri->c_s;
 
+  mri->x_s = tmpxa;
+  mri->y_s = tmpya;
+  mri->z_s = tmpza;
+  mri->c_s = tmpca;
 
-
-
-
+  return(0);
+}
 
 /*-------------------------------------------------------------------
   MRIgetVoxVal() - returns voxel value as a float regardless of

@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/08/28 17:48:34 $
-// Revision       : $Revision: 1.130 $
+// Revision Date  : $Date: 2006/09/16 22:20:13 $
+// Revision       : $Revision: 1.131 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,13 +144,14 @@ int main(int argc, char *argv[])
   int nthframe=-1;
   float fwhm, gstd;
   char cmdline[STRLEN] ;
+  int sphinx_flag = FALSE;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.130 2006/08/28 17:48:34 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.131 2006/09/16 22:20:13 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -250,7 +251,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.130 2006/08/28 17:48:34 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.131 2006/09/16 22:20:13 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -277,6 +278,8 @@ int main(int argc, char *argv[])
       else if (strcmp(argv[i], "-c") == 0 ||
                strcmp(argv[i], "--conform") == 0)
         conform_flag = TRUE;
+      else if (strcmp(argv[i], "--sphinx") == 0 )
+        sphinx_flag = TRUE;
       else if (strcmp(argv[i], "-nc") == 0 ||
                strcmp(argv[i], "--nochange") == 0)
         nochange_flag = TRUE;
@@ -2204,6 +2207,11 @@ int main(int argc, char *argv[])
     MRIscalarMul(mri, mri, out_scale_factor) ;
   }
 
+  if(sphinx_flag){
+    printf("Changing orientation information to Sphinx\n");
+    MRIhfs2Sphinx(mri);
+  }
+
   /*------ Finally, write the output -----*/
   if(!no_write_flag){
     printf("writing to %s...\n", out_name);
@@ -2372,11 +2380,12 @@ void usage(FILE *stream)
   fprintf(stream, "  -ikd, --in_k_direction "
           "<R direction> <A direction> <S direction>\n");
   fprintf(stream, "  --in_orientation orientation-string "
-          ": see SETTING ORIENTATION\n");
+          ": see SPECIFYING THE ORIENTATION\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -ic, --in_center "
           "<R coordinate> <A coordinate> <S coordinate>\n");
   fprintf(stream, "\n");
+  fprintf(stream, "  --sphinx : change orientation info to sphinx");
   fprintf(stream, "  -oni, -oic, --out_i_count <count>\n");
   fprintf(stream, "  -onj, -ojc, --out_j_count <count>\n");
   fprintf(stream, "  -onk, -okc, --out_k_count <count>\n");
@@ -2668,6 +2677,16 @@ void usage(FILE *stream)
          "and the program exits. Case-insensitive.\n"
          "  Note: you can use tkregister2 to help determine "
          "the correct orientation string.\n"
+	 "\n"
+	 "--sphinx\n"
+	 "\n"
+	 "reorient to sphinx the position. This function is applicable when \n"
+	 "the input geometry information is correct but the  subject was in the \n"
+	 "scanner in the 'sphinx' position (ie, AP in line with the bore) instead \n"
+	 "of head-first-supine (HFS). This is often the  case with monkeys.\n"
+	 "Note that the assumption is that the geometry information in the input\n"
+	 "file is otherwise accurate.\n"
+	 "\n"
          );
 
   printf("\n");
