@@ -221,12 +221,13 @@ TESTS=testIDTracker testBroadcaster testUtilities \
 	testShortestPathFinder testToglManager testDataManager \
 	testTclCommandManager testPreferencesManager testUndoManager \
 	testDataCollection testScubaDataCollections \
+	testVolumeCollection \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
-	testVolumeCollection
+	testCleanup.csh
 
 ## Test programs.
 testIDTracker_SOURCES=test_IDTracker.cpp \
