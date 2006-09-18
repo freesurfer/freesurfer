@@ -5,9 +5,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2006/09/17 20:25:26 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/09/18 00:45:05 $
+// Revision       : $Revision: 1.6 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -35,7 +35,7 @@
 #include "matrix.h"
 #include "mriTransform.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.5 2006/09/17 20:25:26 pengyu Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.6 2006/09/18 00:45:05 fischl Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -174,9 +174,12 @@ main(int argc, char *argv[])
   // binalize the talairach volume (mri_tal)
   MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
 
-	sprintf(ofname,"%s/%s/mri/wm_tal.mgh",cp,argv[1]) ; 
-	fprintf(stdout, "writing talairach transformed white matter volume to %s...\n", ofname) ; 
-	MRIwrite(mri_tal, ofname) ; 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    sprintf(ofname,"%s/%s/mri/wm_tal.mgz",cp,argv[1]) ; 
+    fprintf(stdout, "writing talairach transformed white matter volume to %s...\n", ofname) ; 
+    MRIwrite(mri_tal, ofname) ; 
+  }
 
 	//find the transform matrix
 	mtrans = MatrixAlloc(4, 4, MATRIX_REAL) ;
@@ -201,9 +204,13 @@ main(int argc, char *argv[])
 	MRItoTalairachEx(mri_wm, mri_cc, lta2); 
   // binalize the rotated wm  volume (mri_cc)
   MRIbinarize(mri_cc, mri_cc, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
-	sprintf(ofname,"%s/%s/mri/wm.mgh",cp,argv[1]) ; 
-	fprintf(stdout, "writing rotated white matter volume to %s...\n", ofname) ; 
-	MRIwrite(mri_cc, ofname) ;
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    sprintf(ofname,"%s/%s/mri/wm.mgz",cp,argv[1]) ; 
+    fprintf(stdout, "writing rotated white matter volume to %s...\n", ofname) ; 
+    MRIwrite(mri_cc, ofname) ;
+  }
 
 	//now start cc segmentation in talairach space
  	mri_cc_tal = MRIcopy(mri_tal, NULL) ;	
@@ -212,9 +219,12 @@ main(int argc, char *argv[])
 
 	//most of the work is done in find_corpus_callosum function
 	find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta);
-	sprintf(ofname,"%s/%s/mri/cc_tal.mgh",cp,argv[1]) ; 
-	fprintf(stdout, "writing output to %s...\n", ofname) ; 
-	MRIwrite(mri_cc_tal, ofname) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    sprintf(ofname,"%s/%s/mri/cc_tal.mgz",cp,argv[1]) ; 
+    fprintf(stdout, "writing output to %s...\n", ofname) ; 
+    MRIwrite(mri_cc_tal, ofname) ;
+  }
 
 	//starting the volume measurement
 	volume[0] = 0.0; volume[1] = 0.0; volume[2] = 0.0;
@@ -224,7 +234,7 @@ main(int argc, char *argv[])
 	MRIfromTalairachEx(mri_cc_tal, mri_wm, lta);
  // binalize the rotated cc volume (mri_wm)
   MRIbinarize(mri_wm, mri_wm, CC_VAL/2-1, 0, 100) ;
-	sprintf(ofname,"%s/%s/mri/cc_org.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc_org.mgz",cp,argv[1]) ; 
 	fprintf(stdout, "writing corpus callosum in original space to %s...\n", ofname) ; 
 	MRIwrite(mri_wm, ofname) ;
 
@@ -289,7 +299,7 @@ main(int argc, char *argv[])
 	fprintf(fp, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
 	fprintf(stdout, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
 
-	sprintf(ofname,"%s/%s/mri/cc.mgh",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc.mgz",cp,argv[1]) ; 
 	fprintf(stdout, "writing corpus callosum output to %s...\n", ofname) ; 
 	MRIwrite(mri_cc, ofname) ;
 
@@ -480,9 +490,9 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
 		
     if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "cc_slice%d.mgh", slice);
+      sprintf(fname, "cc_slice%d.mgz", slice);
       MRIwrite(mri_slice, fname) ;
-      sprintf(fname, "cc_filled%d.mgh", slice);
+      sprintf(fname, "cc_filled%d.mgz", slice);
       MRIwrite(mri_filled, fname) ;
     }
 		MRIfillPlane(mri_filled, mri_cc_tal, MRI_SAGITTAL, xv, CC_VAL);
@@ -613,10 +623,10 @@ cc_slice_correction(MRI *mri_filled, int xv, int yv, int zv)
 		}
 	}
 
-	sprintf(fname, "/space/neo/2/recon/buckner/001015_vc5442/mri/cc_dilation.mgh");
+	sprintf(fname, "/space/neo/2/recon/buckner/001015_vc5442/mri/cc_dilation.mgz");
 	//MRIwrite(mri_temp1, fname) ;
 	mri_filled=MRIcopy(mri_temp2,NULL);
-	sprintf(fname, "/space/neo/2/recon/buckner/001015_vc5442/mri/cc_filled.mgh");
+	sprintf(fname, "/space/neo/2/recon/buckner/001015_vc5442/mri/cc_filled.mgz");
 	//MRIwrite(mri_temp2, fname) ;
 
 	/*find the first edge of the spike */
@@ -731,8 +741,11 @@ cc_slice_correction(MRI *mri_filled, int xv, int yv, int zv)
 		}
 	}
 
-	sprintf(fname, "/space/neo/2/recon/buckner/010601_vc6977/mri/cc_cut.mgh");
-	//MRIwrite(mri_filled, fname) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    sprintf(fname, "/space/neo/2/recon/buckner/010601_vc6977/mri/cc_cut.mgz");
+    MRIwrite(mri_filled, fname) ;
+  }
 	MRIfree(&mri_temp1);
 	MRIfree(&mri_temp2);	
 	return(mri_filled) ;
