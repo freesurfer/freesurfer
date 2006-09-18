@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.215 2006/09/11 00:03:14 nicks Exp $"
+# "$Id: configure.in,v 1.216 2006/09/18 18:52:28 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1030,10 +1030,10 @@ Set LDFLAGS or --with-mni-dir.])] )
 # VXL check
 AC_CHECK_LIB([vnl], [main],[],
   [AC_MSG_ERROR([FATAL: vnl lib not found. \
-Set LDFLAGS or --with-vxl-dir.])] )
+Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
-Set LDFLAGS or --with-vxl-dir.])] )
+Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
 # if using GNU scientific library
 if test ! "$ac_gsl_libraries" = "NO"; then
    AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
