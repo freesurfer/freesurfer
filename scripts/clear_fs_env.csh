@@ -1,3 +1,4 @@
+#!/bin/tcsh -ef
 unsetenv FREESURFER_HOME
 unsetenv FSFAST_HOME
 unsetenv SUBJECTS_DIR
@@ -8,8 +9,14 @@ unsetenv MNI_DATAPATH
 unsetenv MNI_PERL5LIB
 unsetenv PERL5LIB
 unsetenv GSL_DIR
+unsetenv VXL_DIR
 unsetenv QTDIR
+unsetenv FS_TCL_LIB_DIR
 unsetenv TCLLIBPATH
+unsetenv TCL_LIBRARY
+unsetenv TK_LIBRARY
+unsetenv TIX_LIBRARY
+unsetenv BLT_LIBRARY
 unsetenv MISC_LIB
 unsetenv FSL_DIR
 unsetenv FSLDIR
