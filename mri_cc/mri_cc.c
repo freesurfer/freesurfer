@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/18 00:45:05 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2006/09/18 14:22:35 $
+// Revision       : $Revision: 1.7 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -35,7 +35,7 @@
 #include "matrix.h"
 #include "mriTransform.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.6 2006/09/18 00:45:05 fischl Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.7 2006/09/18 14:22:35 fischl Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -51,9 +51,9 @@ static Real cc_tal_x = 0.0 ;
 static Real cc_tal_y = 0.0 ;
 static Real cc_tal_z = 27.0 ;
 static LTA *lta = 0;
-static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) ;
-static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz, const LTA *lta) ;
-static MRI *cc_slice_correction(MRI *mri_filled, int xv, int yv, int zv);
+static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz, const LTA *lta, MRI *mri_tal_cc) ;
+static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz, const LTA *lta, MRI *mri_tal_cc) ;
+static MRI *remove_fornix(MRI *mri_filled, int xv, int yv, int zv);
 static int edge_detection(MRI *mri_temp, int edge_count,int signal);
 static int labels[] =   
 { THICKEN_FILL, NBHD_FILL, VENTRICLE_FILL, DIAGONAL_FILL, DEGENERATE_FILL };
@@ -72,6 +72,7 @@ static int labels[] =
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.75
 
+static char sdir[STRLEN] = "" ;
 
 double findMinSize(MRI *mri)
 {
@@ -101,7 +102,7 @@ double findMinSize(MRI *mri)
 int 
 main(int argc, char *argv[]) 
 { 
-	char        ifname[200], ofname[200],  data_dir[400], *cp ; 
+	char        ifname[STRLEN], ofname[STRLEN],  data_dir[STRLEN], *cp ; 
 	int         nargs, msec; 
 	int         y, z, xi, yi_low=256, yi_high=0, zi_low=256, zi_high=0, temp;
 	Real        xc,yc,zc;
@@ -131,13 +132,15 @@ main(int argc, char *argv[])
 	
 	TimerStart(&then) ; 
 
-	cp = getenv("SUBJECTS_DIR");
-  if (cp==NULL)
+  if (!strlen(sdir))
   {
-	printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
-	exit(1);
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
   }
-	strcpy(data_dir, cp) ;
+  strcpy(data_dir, sdir) ;
 	
 	sprintf(ifname,"%s/cc_volume_%d.txt",data_dir,dxi) ;  
 	if((fp = fopen(ifname, "a")) == NULL)
@@ -176,7 +179,7 @@ main(int argc, char *argv[])
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(ofname,"%s/%s/mri/wm_tal.mgz",cp,argv[1]) ; 
+    sprintf(ofname,"%s/%s/mri/wm_tal.mgz",data_dir,argv[1]) ; 
     fprintf(stdout, "writing talairach transformed white matter volume to %s...\n", ofname) ; 
     MRIwrite(mri_tal, ofname) ; 
   }
@@ -207,7 +210,7 @@ main(int argc, char *argv[])
   
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(ofname,"%s/%s/mri/wm.mgz",cp,argv[1]) ; 
+    sprintf(ofname,"%s/%s/mri/wm.mgz",data_dir,argv[1]) ; 
     fprintf(stdout, "writing rotated white matter volume to %s...\n", ofname) ; 
     MRIwrite(mri_cc, ofname) ;
   }
@@ -218,10 +221,10 @@ main(int argc, char *argv[])
 	MRIvalueFill(mri_cc_tal, 0) ;
 
 	//most of the work is done in find_corpus_callosum function
-	find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta);
+	find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta, mri_cc_tal);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(ofname,"%s/%s/mri/cc_tal.mgz",cp,argv[1]) ; 
+    sprintf(ofname,"%s/%s/mri/cc_tal.mgz",data_dir,argv[1]) ; 
     fprintf(stdout, "writing output to %s...\n", ofname) ; 
     MRIwrite(mri_cc_tal, ofname) ;
   }
@@ -234,7 +237,7 @@ main(int argc, char *argv[])
 	MRIfromTalairachEx(mri_cc_tal, mri_wm, lta);
  // binalize the rotated cc volume (mri_wm)
   MRIbinarize(mri_wm, mri_wm, CC_VAL/2-1, 0, 100) ;
-	sprintf(ofname,"%s/%s/mri/cc_org.mgz",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc_org.mgz",data_dir,argv[1]) ; 
 	fprintf(stdout, "writing corpus callosum in original space to %s...\n", ofname) ; 
 	MRIwrite(mri_wm, ofname) ;
 
@@ -299,7 +302,7 @@ main(int argc, char *argv[])
 	fprintf(fp, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
 	fprintf(stdout, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
 
-	sprintf(ofname,"%s/%s/mri/cc.mgz",cp,argv[1]) ; 
+	sprintf(ofname,"%s/%s/mri/cc.mgz",data_dir,argv[1]) ; 
 	fprintf(stdout, "writing corpus callosum output to %s...\n", ofname) ; 
 	MRIwrite(mri_cc, ofname) ;
 
@@ -323,7 +326,7 @@ main(int argc, char *argv[])
 #define MAX_THICKNESS   20
 
 static int
-find_corpus_callosum(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
+find_corpus_callosum(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta, MRI *mri_cc_tal)
 {
   int         xv, yv, zv, max_y, max_thick=0, thickness=0, y1, xcc, ycc, x, y,x0, extension=50 ;
 	int         flag=0, counts=0;
@@ -411,14 +414,14 @@ find_corpus_callosum(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA
   MRIvoxelToWorld(mri_tal, xcc, ycc, zv, pccx, pccy, pccz) ;
 	fprintf(stdout, "%d, %d, %d\n", xcc, ycc, zv);
 
-  find_cc_slice(mri_tal, pccx, pccy, pccz, lta) ;
+  find_cc_slice(mri_tal, pccx, pccy, pccz, lta, mri_cc_tal) ;
 
   return(NO_ERROR) ;
 }
 
 
 static int
-find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
+find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta, MRI *mri_cc_tal)
 {
   // here we can handle only up to .5 mm voxel size
   int         area[MAX_SLICES*2], flag[MAX_SLICES*2], min_area, min_slice, slice, offset,xv,yv,zv,
@@ -464,7 +467,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
 
 		if ( !(area[slice]>1100&&(nint(y)-region.y>11)) || region.dy>=3.5*(y-region.y) )
 		{	
-			mri_filled = cc_slice_correction(mri_filled,xv,yv,zv);    
+			mri_filled = remove_fornix(mri_filled,xv,yv,zv);    
 			
 			area[slice] = 0;
 			flag[slice] = 0;
@@ -559,7 +562,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
 
 
 static MRI *
-cc_slice_correction(MRI *mri_filled, int xv, int yv, int zv)
+remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
 {
 	int    x, y, xi_low=255, xi_high=0, yi_low=255, yi_high=0, edge_count = 0, length=0;
 	int    temp=0, temp2=0, old_temp =0;
