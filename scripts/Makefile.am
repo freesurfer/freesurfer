@@ -14,7 +14,6 @@ check_subject \
 clear_fs_env.csh \
 cor_to_minc \
 cp-dicom \
-csurf \
 dcmdir-info-mgh \
 deface_subject \
 epidewarp.fsl\
@@ -180,7 +179,7 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
-EXTRA_DIST = csurf.in $(tcl_SCRIPTS)
+EXTRA_DIST = $(tcl_SCRIPTS)
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
@@ -188,15 +187,6 @@ EXTRA_DIST = csurf.in $(tcl_SCRIPTS)
 # recon-all-dev is the 'development' version of recon-all, which,
 #               when changes are tested, get merged into recon-all.
 
-# use , as the separator so that the directory path / can be passed
-SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
-	   -e 's,xPREFIXx,$(prefix),g' \
-	   -e 's,xTIXWISHx,$(TIXWISH),g'
-
-csurf: csurf.in
-	rm -f $@
-	sed < $< $(SEDFLAGS) > $@
-	chmod +x $@
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
