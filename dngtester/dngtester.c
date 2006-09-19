@@ -30,6 +30,14 @@
 #include "dti.h"
 #include "registerio.h"
 
+// setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
+// /autofs/space/greve_001/users/greve/dev/trunk/dngtester
+// ./dngtester register.dat func.mgz func-in-m3z.mgh
+// ./dngtester identity.dat ~/subjects/fbirn-anat-101/mri/orig.mgz orig-in-m3z.mgh
+// tkregister2 --targ orig-in-m3z.mgh --mov func-in-m3z.mgh --regheader --reg tmp.reg
+// Atlas: $SUBJECTS_DIR/avgtst/mri/T1MLV.mgz
+
+
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
 
 char *Progname = "dngtester";
