@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $
+  $Id: mri_annotation2label.c,v 1.9.8.1 2006/09/19 17:15:08 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -31,7 +31,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.9.8.1 2006/09/19 17:15:08 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.9 2003/09/05 04:45:31 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.9.8.1 2006/09/19 17:15:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
   }
 
   printf("animax = %d\n",animax);
-  for(ani=0; ani < animax; ani++){
+  for(ani=0; ani <= animax; ani++){
 
     if(nperannot[ani] == 0){
       printf("%3d  %5d   --- skipping \n",ani,nperannot[ani]);
