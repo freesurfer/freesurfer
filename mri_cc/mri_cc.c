@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/18 14:22:35 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2006/09/19 11:16:30 $
+// Revision       : $Revision: 1.8 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -35,7 +35,7 @@
 #include "matrix.h"
 #include "mriTransform.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.7 2006/09/18 14:22:35 fischl Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.8 2006/09/19 11:16:30 fischl Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -443,6 +443,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta, 
 
   x_tal = *pccx ; y_tal = *pccy ; z_tal = *pccz ;
   offset = 0 ;
+  xv = yv = zv = 0 ;
   xo = yo = (slice_size-1)/2 ;  /* center point of the slice */
   for (slice = 0 ; slice < max_slices ; slice++)
   {
