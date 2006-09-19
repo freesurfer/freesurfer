@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/10 20:52:10 $
-// Revision       : $Revision: 1.6 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/09/19 16:29:00 $
+// Revision       : $Revision: 1.7 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -54,10 +54,13 @@ char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;
+static int nozero = 1 ;
 
 
 static TRANSFORM  *transform = NULL ;
 static GCA_MORPH_PARMS mp ;
+
+static int renormalize = 1 ;
 
 int
 main(int argc, char *argv[])
@@ -134,10 +137,10 @@ main(int argc, char *argv[])
 	pad = (int)ceil(PADVOX * 
 									MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
 									MIN(mri_source->xsize,MIN(mri_source->ysize,mri_source->zsize))); 
-	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
-	printf("padding source with %d voxels...\n", pad) ;
 	if (pad < 1)
 		pad = 1 ;
+	printf("padding source with %d voxels...\n", pad) ;
+	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
 	if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
 		MRIwrite(mri_tmp, "t.mgz") ;
 	MRIfree(&mri_source) ;
@@ -161,33 +164,27 @@ main(int argc, char *argv[])
 			printf("using voxel xform\n") ;
 			m_L = lta->xforms[0].m_L ;
 		}
+#if 0
+    if (Gsx >= 0)   // update debugging coords
+    {
+      VECTOR *v1, *v2 ;
+
+      v1 = VectorAlloc(4, MATRIX_REAL) ;
+      Gsx -= (box.x-pad) ;
+      Gsy -= (box.y-pad) ;
+      Gsz -= (box.z-pad) ;
+      V3_X(v1) = Gsx ; V3_Y(v1) = Gsy ; V3_Z(v1) = Gsz ;
+      VECTOR_ELT(v1,4) = 1.0 ;
+      v2 = MatrixMultiply(m_L, v1, NULL) ;
+      
+      Gsx = nint(V3_X(v2)) ; Gsy = nint(V3_Y(v2)) ; Gsz = nint(V3_Z(v2)) ;
+      MatrixFree(&v2) ; MatrixFree(&v1) ;
+      printf("mapping by transform (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
+             Gx, Gy, Gz, Gsx, Gsy, Gsz) ;
+    }
+#endif
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1, "linear_init");
-
-#if 0		
-		// transform RAS xform of both source to incorporate xform
-		printf("voxel xform:\n") ;
-		MatrixPrint(stdout, m_L) ;
-		mri_tmp = MRITransformedCenteredMatrix(mri_source, mri_target, m_L) ;
-		MRIfree(&mri_source) ;
-		mri_source = mri_tmp ;
-		
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-		{
-			MRIwrite(mri_source, "s1.mgz") ;
-		}
-		m_I = MatrixIdentity(4, NULL) ;
-		MRIrasXformToVoxelXform(mri_source, mri_target, m_I, m_L);
-		MatrixFree(&m_I) ;
-		
-		/* make sure none of the labels are on the border */
-		MRIboundingBox(mri_source, 0, &box) ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE)
-			mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
-		MRIfree(&mri_source) ; mri_source = mri_tmp ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRIwrite(mri_source, "source_xformed.mgz") ;
-#endif
 
 		lta->xforms[0].m_L = m_L ;
 		printf("initializing GCAM with vox->vox matrix:\n") ;
@@ -216,6 +213,8 @@ main(int argc, char *argv[])
 	mp.diag_write_snapshots = 1 ;
 	mp.diag_volume = GCAM_MEANS ;
 
+  if (renormalize)
+    GCAMnormalizeIntensities(gcam, mri_target) ;
 	if (mp.write_iterations != 0)
 	{
 		char fname[STRLEN] ;
@@ -241,9 +240,15 @@ main(int argc, char *argv[])
 		}
 	}
 
+	if (nozero)
+	{
+		printf("disabling zero nodes\n") ;
+		GCAMignoreZero(gcam, mri_source, mri_target) ;
+	}
 	mp.mri = mri_target ;
 	if (mp.regrid == True && new_transform == 0)
 		GCAMregrid(gcam, mri_target, PAD, &mp, &mri_source) ;
+
 	GCAMregister(gcam, mri_target, &mp) ; // atlas is source, morph target into register with it
 	if (apply_transform)
 	{
@@ -282,9 +287,9 @@ get_option(int argc, char *argv[])
   StrUpper(option) ;
   if (!stricmp(option, "debug_voxel"))
 	{
-		Gx = atoi(argv[2]) ;
-		Gy = atoi(argv[3]) ;
-		Gz = atoi(argv[4]) ;
+		Gsx = Gx = atoi(argv[2]) ;
+		Gsy = Gy = atoi(argv[3]) ;
+		Gsz = Gz = atoi(argv[4]) ;
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
@@ -336,6 +341,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("levels = %d\n", mp.levels) ;
   }
+  else if (!stricmp(option, "area_smoothness") || !stricmp(option, "asmooth"))
+  {
+    mp.l_area_smoothness = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_area_smoothness=%2.3f\n", mp.l_area_smoothness) ;
+  }
   else if (!stricmp(option, "area"))
   {
     mp.l_area = atof(argv[2]) ;
@@ -363,6 +374,7 @@ get_option(int argc, char *argv[])
 	else if (!stricmp(option, "rthresh"))
   {
 		mp.ratio_thresh = atof(argv[2]) ;
+    mp.uncompress = 1 ;
     nargs = 1 ;
     printf("using compression ratio threshold = %2.3f...\n", mp.ratio_thresh) ;
   }
@@ -395,6 +407,11 @@ get_option(int argc, char *argv[])
     mp.momentum = atof(argv[2]) ;
     nargs = 1 ;
     printf("momentum = %2.2f\n", mp.momentum) ;
+    break ;
+  case 'R':
+    renormalize = atoi(argv[2]) ;
+    printf("%srenormalizing intensities\n", renormalize ? "" : "not ") ;
+    nargs = 1 ;
     break ;
 	case 'N':
 		mp.niterations = atoi(argv[2]) ;
