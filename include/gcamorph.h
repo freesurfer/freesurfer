@@ -234,6 +234,7 @@ MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
 int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) ;
 int GCAMmatchVentricles(GCA_MORPH *gcam, MRI *mri_inputs) ;
 int GCAMdeformVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
+int GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mr_target) ;
 
 #define MAX_LTT_LABELS 1000
 typedef struct
