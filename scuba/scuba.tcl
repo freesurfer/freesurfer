@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.225 2006/08/23 20:20:28 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.226 2006/09/19 19:09:23 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2640,7 +2640,12 @@ proc MakeTransformsPanel { ifwTop } {
     button $fwCommands.bwMakeTransform -text "Make New Transform" \
 	-command { set transformID [MakeNewTransform]; SetTransformLabel $transformID "New Transform"; UpdateTransformList; SelectTransformInTransformProperties $transformID }
 
-    pack $fwCommands.bwMakeTransform -expand yes -side top -fill x
+    button $fwCommands.bwMakeInverseTransform \
+	-text "Make New Inverse Transform" \
+	-command { set transformID [MakeNewTransform]; SetTransformToInverseOfTransform $transformID $gaTransform(current,id); UpdateTransformList; SelectTransformInTransformProperties $transformID }
+
+    pack $fwCommands.bwMakeTransform $fwCommands.bwMakeInverseTransform \
+	-expand yes -side top -fill x
 
     grid $fwProps    -column 0 -row 0 -sticky news
     grid $fwCommands -column 0 -row 1 -sticky news
@@ -6570,7 +6575,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.225 2006/08/23 20:20:28 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.226 2006/09/19 19:09:23 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

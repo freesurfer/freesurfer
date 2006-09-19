@@ -33,6 +33,10 @@ ScubaTransform::ScubaTransform() :
 			 "file into an existing transform." );
   commandMgr.AddCommand( *this, "InvertTransform", 1, "transformID",
 			 "Inverts a transform." );
+  commandMgr.AddCommand( *this, "SetTransformToInverseOfTransform", 2, 
+			 "transformID inverseTransformID",
+			 "Sets a transform to be the inverse of another "
+			 "transform. Also sets its label appropriately." );
   commandMgr.AddCommand( *this, "TreatTransformAsRegistration", 3, 
 			 "transformID sourceVolumeID destVolumeID",
 			 "Treats a transform as a tkregistration between "
@@ -197,6 +201,38 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     if( mID == transformID ) {
       Transform44 inverse = this->Inverse();
       SetMainTransform( inverse );
+    }
+  }
+
+  // SetTransformToInverseOfTransform <transformID> <inverseTransformID>
+  if( 0 == strcmp( isCommand, "SetTransformToInverseOfTransform" ) ) {
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error& e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+
+      int inverseTransformID;
+      try { 
+	inverseTransformID =
+	  TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad inverseTransformID: ") + e.what();
+	return error;
+      }
+
+      ScubaTransform& invertMe = 
+	ScubaTransform::FindByID( inverseTransformID );
+
+      Transform44 inverse = invertMe.Inverse();
+      SetMainTransform( inverse );
+      SetLabel( string(invertMe.GetLabel()) + " -1" );
     }
   }
 
