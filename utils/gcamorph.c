@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/09/19 16:29:28 $
-// Revision       : $Revision: 1.113 $
+// Revision Date  : $Date: 2006/09/19 20:46:42 $
+// Revision       : $Revision: 1.114 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -28,6 +28,7 @@
 #include "mri.h"
 #include "tags.h"
 #include "utils.h"
+#include "fio.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -797,128 +798,122 @@ GCAMread(char *fname)
   float           version ;
   int             tag;
 
-  if (strstr(fname, ".m3z"))
-	{
-		char command[STRLEN];
+  if(!fio_FileExistsReadable(fname)){
+    printf("ERROR: cannot find or read %s\n",fname);
+    return(NULL);
+  }
+
+  if(strstr(fname, ".m3z")){
+    char command[STRLEN];
 #if defined(Darwin) || defined(SunOS)
-		// zcat on Max OS always appends and assumes a .Z extention,
-		// whereas we want .m3z
-		strcpy(command, "gunzip -c ");
+    // zcat on Max OS always appends and assumes a .Z extention,
+    // whereas we want .m3z
+    strcpy(command, "gunzip -c ");
 #else
-		strcpy(command, "zcat ");
+    strcpy(command, "zcat ");
 #endif
-		strcat(command, fname);
-		myclose=pclose;
-		errno = 0;
-		fp = popen(command, "r");
-		if (errno)
-		{
-			pclose(fp);
-			errno = 0;
-			ErrorReturn(NULL, (ERROR_BADPARM, 
-												 "GCAMread: encountered error executing: '%s'",
-												 command)) ;
-		}
-	}
-  else
-	{
-		myclose=fclose;
-		fp = fopen(fname, "rb") ;
-	}
-  if (!fp)
+    strcat(command, fname);
+    myclose=pclose;
+    errno = 0;
+    printf("%s\n",command);
+    fp = popen(command, "r");
+    if(errno) {
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, 
+			 "GCAMread: encountered error executing: '%s'",
+			 command)) ;
+    }
+  }
+  else    {
+    myclose=fclose;
+    fp = fopen(fname, "rb") ;
+  }
+  if(!fp)
     ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
                        fname)) ;
 
   version = freadFloat(fp) ;
-  if (version != GCAM_VERSION)
-	{
-		// fclose(fp) ;
-		myclose(fp);
-		ErrorReturn(NULL, 
-								(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
-	}
+  if(version != GCAM_VERSION){
+    // fclose(fp) ;
+    myclose(fp);
+    ErrorReturn(NULL, 
+		(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
+  }
   width = freadInt(fp) ; height = freadInt(fp) ; depth = freadInt(fp) ;
   gcam = GCAMalloc(width, height, depth) ;
   
   gcam->spacing = freadInt(fp) ;
   gcam->exp_k = freadFloat(fp) ;
 
-  for (x = 0 ; x < width ; x++)
-	{
-		for (y = 0 ; y < height ; y++)
-		{
-			for (z = 0 ; z < depth ; z++)
-			{
-				gcamn = &gcam->nodes[x][y][z] ;
-				gcamn->origx = freadFloat(fp) ;
-				gcamn->origy = freadFloat(fp) ;
-				gcamn->origz = freadFloat(fp) ;
+  for (x = 0 ; x < width ; x++)	{
+    for (y = 0 ; y < height ; y++)		{
+      for (z = 0 ; z < depth ; z++)			{
+	gcamn = &gcam->nodes[x][y][z] ;
+	gcamn->origx = freadFloat(fp) ;
+	gcamn->origy = freadFloat(fp) ;
+	gcamn->origz = freadFloat(fp) ;
+				
+	gcamn->x = freadFloat(fp) ;
+	gcamn->y = freadFloat(fp) ;
+	gcamn->z = freadFloat(fp) ;
 
-				gcamn->x = freadFloat(fp) ;
-				gcamn->y = freadFloat(fp) ;
-				gcamn->z = freadFloat(fp) ;
+	gcamn->xn = freadInt(fp) ;
+	gcamn->yn = freadInt(fp) ;
+	gcamn->zn = freadInt(fp) ;
 
-				gcamn->xn = freadInt(fp) ;
-				gcamn->yn = freadInt(fp) ;
-				gcamn->zn = freadInt(fp) ;
-
-				// if all the positions are zero, then this is not a valid point
-				// mark invalid = 1
-				if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
-						&& FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
-					gcamn->invalid = GCAM_POSITION_INVALID ;
-				else
-					gcamn->invalid = GCAM_VALID ;
-			}
-		}
-	}
+	// if all the positions are zero, then this is not a valid point
+	// mark invalid = 1
+	if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
+	    && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
+	  gcamn->invalid = GCAM_POSITION_INVALID ;
+	else
+	  gcamn->invalid = GCAM_VALID ;
+      }
+    }
+  }
   gcam->det = 1 ;
   gcam->image.valid = 0; // make src invalid
   gcam->atlas.valid = 0; // makd dst invalid
-  while (freadIntEx(&tag, fp))
-	{
-		switch (tag)
-		{
-		case TAG_GCAMORPH_LABELS:
+  while (freadIntEx(&tag, fp))	{
+    switch (tag)		{
+    case TAG_GCAMORPH_LABELS:
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         printf("reading labels out of gcam file...\n") ;
-			gcam->status = GCAM_LABELED ;
-			for (x = 0 ; x < width ; x++)
-			{
-				for (y = 0 ; y < height ; y++)
-				{
-					for (z = 0 ; z < depth ; z++)
-					{
-						gcamn = &gcam->nodes[x][y][z] ;
-						gcamn->label = freadInt(fp) ;
-						if (gcamn->label != 0)
-							DiagBreak() ;
-					}
-				}
-			}
-			break ;
-		case TAG_GCAMORPH_GEOM:
-			GCAMreadGeom(gcam, fp);
-			if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-			{
-				fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
-				fprintf(stderr, "src geometry:\n");
-				writeVolGeom(stderr, &gcam->image);
-				fprintf(stderr, "dst geometry:\n");
-				writeVolGeom(stderr, &gcam->atlas);
-			}
-			break ;
-		case TAG_GCAMORPH_TYPE:
-			gcam->type = freadInt(fp) ;
+      gcam->status = GCAM_LABELED ;
+      for (x = 0 ; x < width ; x++)			{
+	for (y = 0 ; y < height ; y++)				{
+	  for (z = 0 ; z < depth ; z++)		{
+	    gcamn = &gcam->nodes[x][y][z] ;
+	    gcamn->label = freadInt(fp) ;
+	    if (gcamn->label != 0)
+	      DiagBreak() ;
+	  }
+	}
+      }
+      break ;
+    case TAG_GCAMORPH_GEOM:
+      GCAMreadGeom(gcam, fp);
+      if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+	{
+	  fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
+	  fprintf(stderr, "src geometry:\n");
+	  writeVolGeom(stderr, &gcam->image);
+	  fprintf(stderr, "dst geometry:\n");
+	  writeVolGeom(stderr, &gcam->atlas);
+	}
+      break ;
+    case TAG_GCAMORPH_TYPE:
+      gcam->type = freadInt(fp) ;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
-			break ;
+      break ;
     case TAG_MGH_XFORM:
       gcam->m_affine = MatrixAsciiReadFrom(fp, NULL) ;
       gcam->det = MatrixDeterminant(gcam->m_affine) ;
       break ;
-		}
-	}
+    }
+  }
   // fclose(fp) ;
   myclose(fp);
 
