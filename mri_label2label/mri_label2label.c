@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $
+  $Id: mri_label2label.c,v 1.23.2.1 2006/09/20 20:42:55 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -66,7 +66,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.23.2.1 2006/09/20 20:42:55 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.23 2006/02/19 17:55:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.23.2.1 2006/09/20 20:42:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -350,8 +350,13 @@ int main(int argc, char **argv)
       /* vertex number of the source label */
       srcvtxno = srclabel->lv[n].vno;
       if(srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices){
-	fprintf(stderr,"ERROR: label %d: vno = %d, max = %d\n",n,
-		srcvtxno, SrcSurfReg->nvertices);
+	printf("ERROR: there is a vertex in the label that cannot be \n");
+	printf("matched to the surface. This usually occurs when\n");
+	printf("the label and surface are from different subjects or \n");
+	printf("hemispheres or the surface has been changed since\n");
+	printf("the label was created.\n");
+	printf("Label point %d: vno = %d, max = %d\n",
+		n,srcvtxno, SrcSurfReg->nvertices);
 	exit(1);
       }
       
