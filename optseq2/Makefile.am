@@ -9,6 +9,7 @@ optseq2_SOURCES=optseq2.c
 optseq2_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 optseq2_LDFLAGS=$(OS_LDFLAGS)
 
+TESTS=test_optseq2.csh
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
