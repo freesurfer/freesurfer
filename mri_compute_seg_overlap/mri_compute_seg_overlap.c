@@ -1,5 +1,5 @@
 /* This is a simple program to compare two segmentation volumes to compute
- * the DICE and Jaccard coefficients. It only considers 12 major structures
+ * the Dice and Jaccard coefficients. It only considers 10 major structures.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,11 +17,7 @@
 #include "fio.h"
 #include "version.h"
 
-#define CREAT_CSF 1
-#define CHOICE 1
-
-void usage(int exit_val);
-MRI *fliplr(MRI *src);
+static void usage(int exit_val);
 static int  get_option(int argc, char *argv[]) ;
 
 char *Progname;
@@ -32,43 +28,49 @@ static char *slog_fname = NULL ; //std of individual dice
 static char *olog_fname = NULL ; //overall dice for subcortical structures
 
 static const int num_labels  = 24;
-static const int labels_of_interest[24] = {2, 41, 3, 42,
-                                     4, 43, 17, 53,
-                                     10, 49, 11, 50,
-                                     12, 51, 13, 52,
-                                     18, 54, 26, 58,
-                                     14, 15, 5, 44};
+static const int labels_of_interest[24] = 
+  {2, 41, 3, 42,
+   4, 43, 17, 53,
+   10, 49, 11, 50,
+   12, 51, 13, 52,
+   18, 54, 26, 58,
+   14, 15, 5, 44};  /* Note: these are not included in the 
+                       'overall subcortical Dice coefficient' calculations:
+                       Left/Right-Cerebral-White-Matter (labels 2 and 41), 
+                       Left/Right-Cerebral-Cortex (labels 3 and 42), 
+                       Left/Right-Accumbens-area (labels 26 and 58) */
 
 /* maximum number of classes */
 #define MAX_CLASSES 256
+#define MAX_CLASS_NUM 255
 
 int main(int argc, char *argv[])
 {
   MRI *mri_seg1, *mri_seg2;
   int nargs, ac;
   char **av;
-  int width, height, depth, x, y, z, f,nframes ;
+  int width, height, depth, x, y, z, f, nframes;
   int v1, v2;
   int i;
   FILE *log_fp;
 
-  int Volume_union[256];
-  int Volume_from1[256];
-  int Volume_from2[256];
-  int Volume_overlap[256];
+  int Volume_union[MAX_CLASSES];
+  int Volume_from1[MAX_CLASSES];
+  int Volume_from2[MAX_CLASSES];
+  int Volume_overlap[MAX_CLASSES];
   int subcorvolume1, subcorvolume2;
   int subcorvolume_overlap;
 
   double mean1, std1, mean2, std2;
 
-  float correct_ratio[256];
-  float correct_ratio2[256];
+  float correct_ratio[MAX_CLASSES];
+  float correct_ratio2[MAX_CLASSES];
 
   Progname = argv[0];
 
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.3 2006/09/13 23:26:00 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.4 2006/09/20 00:15:40 nicks Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
@@ -127,11 +129,16 @@ int main(int argc, char *argv[])
           v1 = (int) MRIgetVoxVal(mri_seg1,x,y,z,f);
           v2 = (int) MRIgetVoxVal(mri_seg2,x,y,z,f);
 
-          if(v1 > 255 || v1 <= 0 || v2 > 255 || v2 <= 0) continue;
+          if(v1 > MAX_CLASS_NUM || 
+             v1 <= 0 || 
+             v2 > MAX_CLASS_NUM || 
+             v2 <= 0) continue;
 
-          /* do not include these in the coefficient calculations:
+          /* do not include these in the overall Dice coefficient calculations:
+             Left/Right-Cerebral-White-Matter (labels 2 and 41), 
              Left/Right-Cerebral-Cortex (labels 3 and 42), 
-             Left/Right-Accumbens-area (labels 26 and 58) */
+             Left/Right-Accumbens-area (labels 26 and 58) 
+             Notice that these labels are not included in the 'if' checks: */
 
           if(v1 == v2){
             if((v1>=4 && v1 <= 5) ||
@@ -257,7 +264,7 @@ int main(int argc, char *argv[])
 }  /*  end main()  */
 
 
-void usage(int exit_val)
+static void usage(int exit_val)
 {
   FILE *fout;
 
@@ -265,20 +272,19 @@ void usage(int exit_val)
 
   fprintf(fout, "usage: %s <seg vol1> <seg vol2>\n", Progname);
   fprintf(fout, "This program compares two segmentation volumes and \n"
-          "computes the DICE and Jaccard Coefficients. \n"
-          "It considers only 12 major structures. \n") ;
+          "computes the Dice and Jaccard Coefficients. \n"
+          "It considers only 10 major structures. \n") ;
   fprintf(fout, "Options:\n");
-  fprintf(fout, "   -log %%s   log_file for individual DICE \n");
-  fprintf(fout, "   -mlog %%s  log_file for mean DICE \n");
-  fprintf(fout, "   -slog %%s  log_file for std DICE \n");
-  fprintf(fout, "   -olog %%s  log_file for overall DICE \n");
+  fprintf(fout, "   -log %%s   log_file for individual Dice \n");
+  fprintf(fout, "   -mlog %%s  log_file for mean Dice \n");
+  fprintf(fout, "   -slog %%s  log_file for std Dice \n");
+  fprintf(fout, "   -olog %%s  log_file for overall Dice \n");
   exit(exit_val);
 
 }  /*  end usage()  */
 
 
-static int
-get_option(int argc, char *argv[])
+static int get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
@@ -286,34 +292,29 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     usage(0) ;
-  else if (!stricmp(option, "mlog")
-           )
+  else if (!stricmp(option, "mlog"))
     {
       mlog_fname = argv[2];
       nargs = 1;
-      fprintf(stderr, "logging mean-dice to %s\n", mlog_fname) ;
+      fprintf(stderr, "logging mean Dice to %s\n", mlog_fname) ;
     }
-  else if (!stricmp(option, "log") ||
-           !stricmp(option, "L")
-           )
+  else if (!stricmp(option, "log") || !stricmp(option, "L"))
     {
       log_fname = argv[2];
       nargs = 1;
-      fprintf(stderr, "logging individual dice to %s\n", log_fname) ;
+      fprintf(stderr, "logging individual Dice to %s\n", log_fname) ;
     }
-  else if (!stricmp(option, "slog")
-           )
+  else if (!stricmp(option, "slog"))
     {
       slog_fname = argv[2];
       nargs = 1;
-      fprintf(stderr, "logging std-dice to %s\n", slog_fname) ;
+      fprintf(stderr, "logging std Dice to %s\n", slog_fname) ;
     }
-  else if (!stricmp(option, "olog")
-           )
+  else if (!stricmp(option, "olog"))
     {
       olog_fname = argv[2];
       nargs = 1;
-      fprintf(stderr, "logging overall-dice to %s\n", olog_fname) ;
+      fprintf(stderr, "logging overall Dice to %s\n", olog_fname) ;
     }
   else{
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
