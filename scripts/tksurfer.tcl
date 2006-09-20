@@ -1,6 +1,6 @@
-#! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.109 2006/02/17 22:47:35 kteich Exp $
+
+# $Id: tksurfer.tcl,v 1.109.2.1 2006/09/20 15:43:15 kteich Exp $
 
 package require BLT;
 
@@ -2832,11 +2832,13 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ cascade "Time Course" {
 	    { command "Graph Marked Vertices Avg"
-		{ func_select_marked_vertices
+		{ func_clear_selection
+		    func_select_marked_vertices
 		    func_graph_timecourse_selection}
 		mg_TimeCourseLoaded }
 	    { command "Graph Label Avg"
-		{ func_select_label
+		{ func_clear_selection
+		    func_select_label
 		    func_graph_timecourse_selection }
 		mg_TimeCourseLoaded }
 	    { command "Write Summary of Marked Vertices..."
