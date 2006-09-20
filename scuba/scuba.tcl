@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.226 2006/09/19 19:09:23 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.227 2006/09/20 16:05:24 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -922,28 +922,28 @@ proc MakeScubaFrameBindings { iFrameID } {
     global gaPrefs
 
     # Number keys set the brush radius.
-    bind all <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
-    bind all <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-4> {set gaTool(current,radius) 4; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-5> {set gaTool(current,radius) 5; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-    bind all <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
+    bind $gaWidget(window) <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-4> {set gaTool(current,radius) 4; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-5> {set gaTool(current,radius) 5; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 
     # These are keys for setting the current tool.
-    bind all <Key-n> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation };
-    bind all <Key-p> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) plane };
-    bind all <Key-m> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) marker };
-    bind all <Key-e> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) voxelEditing };
-    bind all <Key-r> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) roiEditing };
-    bind all <Key-s> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) straightPath };
-    bind all <Key-g> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) edgePath };
+    bind $gaWidget(window) <Key-n> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation };
+    bind $gaWidget(window) <Key-p> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) plane };
+    bind $gaWidget(window) <Key-m> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) marker };
+    bind $gaWidget(window) <Key-e> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) voxelEditing };
+    bind $gaWidget(window) <Key-r> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) roiEditing };
+    bind $gaWidget(window) <Key-s> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) straightPath };
+    bind $gaWidget(window) <Key-g> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) edgePath };
 
     # Menu command shortcuts.
-    bind all <Alt-Key-q> "Quit"
-    bind all <Alt-Key-n> {
+    bind $gaWidget(window) <Alt-Key-q> "Quit"
+    bind $gaWidget(window) <Alt-Key-n> {
 	if { $gaView(tkcon,visible) } {
 	    set gaView(tkcon,visible) 0
 	} else {
@@ -6575,7 +6575,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.226 2006/09/19 19:09:23 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.227 2006/09/20 16:05:24 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
