@@ -1,22 +1,31 @@
 #!/bin/tcsh -ef
 
-set echo=1
-
 # For a new dev/ environment, before running configure, 
 # and anytime after a Makefile.am file has changed, 
 # the following commands must be executed within the 
 # dev/ directory:
 
-rm -rf autom4te.cache
-aclocal
+set cmd1=(rm -rf autom4te.cache)
+set cmd2=(aclocal)
 if ( "`uname -s`" == "Darwin" ) then 
-    glibtoolize --force
+    set cmd3=(glibtoolize --force)
 else
-    libtoolize --force
+    set cmd3=(libtoolize --force)
 endif
-autoreconf --force
+set cmd4=(autoreconf --force)
 #automake Note: autoreconf --force runs automake
-autoconf
+set cmd5=(autoconf)
+
+echo $cmd1
+$cmd1
+echo $cmd2
+$cmd2
+echo $cmd3
+$cmd3
+echo $cmd4
+$cmd4
+echo $cmd5
+$cmd5
 
 # The first three commands create the platform specific 
 # tools needed by configure (use glibtoolize on the Mac 
