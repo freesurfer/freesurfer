@@ -149,6 +149,8 @@
 #define Right_subiculum 199 //			128	96	64	0
 #define Right_fimbria 200 //			0	50	128	0
 
+#define Fornix        250
+
 // vascular and lymph labels (from Alex G)
 #define Aorta 331 // 255 0 0 0
 #define Left_Common_IliacA 332 // 255 80 0 0
