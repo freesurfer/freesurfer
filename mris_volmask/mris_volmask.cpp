@@ -323,6 +323,8 @@ IoParams::IoParams()
   capValue = 3;
   bSaveDistance = false;
   bSaveRibbon = false;
+
+  outRoot = "ribbon";
 }
 
 void
