@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.26 2006/09/20 18:42:21 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.27 2006/09/21 15:52:39 fischl Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -183,7 +183,12 @@
 224 fMRI_Background                 10  10   10     0   
 225 Ectorhinal                      197   150  250     0 
 
-250 Fornix                          255 0 0 0 0
+250 Fornix                           255 0 0 0 0
+251 CC_Posterior                     0 0 64 0
+252 CC_Mid_Posterior                 0 0 112 0
+253 CC_Central                       0 0 160 0
+254 CC_Mid_Anterior                  0 0  208 0
+255 CC_Anterior                      0 0 255 0
 
 # lymph node and vascular labels
 331 Aorta 255 0 0 0
