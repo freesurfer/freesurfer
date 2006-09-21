@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/09/04 22:33:34 $
-// Revision       : $Revision: 1.59 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/09/21 11:13:35 $
+// Revision       : $Revision: 1.60 $
 */
 
 /*-----------------------------------------------------
@@ -4343,24 +4343,34 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
 int
 MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
 {
+  int slice_direction = getSliceDirection(mri), x, y, z;
+
+  switch (slice_direction)
+  {
+  default:
+  case MRI_CORONAL:    x = Gsx ; y = Gsy ; z = Gsz ; break ;
+  case MRI_SAGITTAL:   x = Gsz ; y = Gsy ; z = Gsx ; break ; 
+  case MRI_HORIZONTAL: x = Gsz ; y = Gsy ; z = Gsx ; break ; // not sure this works???
+  }
+  
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing image views to ???_%s.rgb...\n", base_name) ;
 	if (Gsz >= 0 && Gsz < mri->depth)
-    mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, Gsz) ; 
+    mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, z) ; 
   else if (Gvz >= 0 && Gvz < mri->depth)
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, Gvz) ; 
   else
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, -1) ; 
 
   if (Gsx >= 0 && Gsx < mri->width)
-    mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, Gsx) ;
+    mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, x) ;
   else if (Gvx >= 0 && Gvx < mri->width)
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, Gvx) ;
   else
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, -1) ;
 
   if (Gsy >= 0 && Gsy < mri->height)
-    mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, Gsy) ; 
+    mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, y) ; 
   else if (Gvy >= 0 && Gvy < mri->height)
     mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, Gvy) ; 
   else
@@ -8347,20 +8357,24 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
   Real fx, fy, fz, ft, ck;
   MATRIX *sumCC, *invCC;
   VECTOR *sumCk;
-  float Mvec[14];
+#ifdef NPARMS
+#undef NPARMS
+#endif
+#define NPARMS 13 // remove offset at 14
+  float Mvec[NPARMS];
   
   //  float  evalues[4] ;
   // MATRIX *m_evectors ;
 
-  double c[14];
+  double c[NPARMS];
   
-  sumCC = MatrixAlloc(14, 14, MATRIX_REAL);
+  sumCC = MatrixAlloc(NPARMS, NPARMS, MATRIX_REAL);
 
-  sumCk = VectorAlloc(14, MATRIX_REAL);
+  sumCk = VectorAlloc(NPARMS, MATRIX_REAL);
   
-  for(j = 1; j <= 14; j++){
+  for(j = 1; j <= NPARMS; j++){
     VECTOR_ELT(sumCk, j) = 0;
-    for(k=1; k<=14; k++){
+    for(k=1; k<=NPARMS; k++){
       sumCC->rptr[j][k] = 0.0;
     }
   }
@@ -8373,8 +8387,8 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
     ft = d1 - d2; 
 
     /*    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 1, 0, 0, &fx, 0.5);
-    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 1, 0, &fy, 0.5);
-    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 0, 1, &fz, 0.5);
+					MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 1, 0, &fy, 0.5);
+					MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 0, 1, &fz, 0.5);
     */
     fx = (MRIgetVoxVal(vl_source->mri2, x+1, y, z, 0) -  MRIgetVoxVal(vl_source->mri2, x-1, y, z, 0))*0.5;
     fy = (MRIgetVoxVal(vl_source->mri2, x, y+1, z, 0) -  MRIgetVoxVal(vl_source->mri2, x, y-1, z, 0))*0.5;
@@ -8386,27 +8400,27 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
     c[3] = x1*fy; c[4] = y1*fy; c[5] = z1*fy;
     c[6] = x1*fz; c[7] = y1*fz; c[8] = z1*fz;
     c[9] = fx; c[10] = fy; c[11] = fz;
-    c[12] = -d1;  c[13] = -1.0;
+    c[12] = -d1;  //c[13] = -1.0;
     ck = ft - d1 + x1*fx + y1*fy + z1*fz;
 
-    for(j = 1; j <= 14; j++){
+    for(j = 1; j <= NPARMS; j++){
       VECTOR_ELT(sumCk, j) += c[j-1]*ck;
-      for(k=1; k<=14; k++){
-	sumCC->rptr[j][k] += c[j-1]*c[k-1];
+      for(k=1; k<=NPARMS; k++){
+				sumCC->rptr[j][k] += c[j-1]*c[k-1];
       }
     }
   }
 
-  for(j = 1; j <= 14; j++){
+  for(j = 1; j <= NPARMS; j++){
     VECTOR_ELT(sumCk, j) /= (float)vl_source->nvox;
-    for(k=1; k<=14; k++){
+    for(k=1; k<=NPARMS; k++){
       sumCC->rptr[j][k] /= (float)vl_source->nvox;
     }
   }
 
   invCC = MatrixInverse(sumCC, NULL);
 
-  for(i=0; i < 14; i++)
+  for(i=0; i < NPARMS; i++)
     Mvec[i] = 0;
 
   if(!invCC){
@@ -8415,9 +8429,9 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
     
   }
   else{
-    for(i=1; i <= 14; i++)
-      for(j=1;j<=14;j++)
-	Mvec[i-1] += invCC->rptr[i][j]*VECTOR_ELT(sumCk, j);
+    for(i=1; i <= NPARMS; i++)
+      for(j=1;j<=NPARMS;j++)
+				Mvec[i-1] += invCC->rptr[i][j]*VECTOR_ELT(sumCk, j);
   }
 
   if(!Minc){
@@ -8448,7 +8462,14 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
 
   d2 = (x1 - width)*(x1-width) + (y1-height)*(y1-height) + (z1 - depth)*(z1-depth);
 
-  if(d2 < 0.01) return 1; //converged
+  if(d2 < 0.01) 
+	{
+		if (NPARMS == 14)
+			printf("final contrast scaling = %2.2f + %2.2f\n", Mvec[12], Mvec[13]) ;
+		else
+			printf("final contrast scaling = %2.2f\n", Mvec[12]) ;
+		return 1; //converged
+	}
   else return 0;
   
 }
@@ -8746,7 +8767,8 @@ MRIcomputeOptimalLinearXform
  float min_scale, float max_scale,
  float min_trans, float max_trans,
  float angle_steps, float scale_steps, float trans_steps,
- int nreductions)
+ int nreductions,
+ char *base_name)
 {
   MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
     *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL, *m_origin ;
@@ -8793,8 +8815,11 @@ MRIcomputeOptimalLinearXform
 	max_log_p = compute_likelihood(vl_source, vl_target, m_L, 1.0) ;
 	if (Gdiag & DIAG_WRITE)
 	{
+		char fname[STRLEN] ;
 		MRI *mri_aligned = MRIlinearTransform(mri_source, NULL, m_L) ;
-		MRIwrite(mri_aligned, "init.mgz") ;
+		sprintf(fname, "%s_init.mgz", base_name) ;
+		printf("writing snapshot to %s\n", fname) ;
+		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
 	}
 
@@ -8914,7 +8939,6 @@ MRIcomputeOptimalLinearXform
 					}
 				}
 			}
-      
 		}
 
 		if (Gdiag & DIAG_SHOW)
@@ -8961,12 +8985,13 @@ MRIcomputeOptimalLinearXform
 
 		/* we've translated transform by old maxs */
 		x_max_rot = y_max_rot = z_max_rot = 0.0 ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		if (Gdiag & DIAG_WRITE/* && found*/)
 		{
 			char fname[STRLEN] ;
 			MRI *mri_aligned = MRIlinearTransform(mri_source, NULL, m_L) ;
 
-			sprintf(fname, "iter%d.mgz", i) ;
+			sprintf(fname, "%s_iter%d.mgz", base_name, i) ;
+			printf("writing snapshot to %s\n", fname) ;
 			MRIwrite(mri_aligned, fname) ;
 			MRIfree(&mri_aligned) ;
 		}

@@ -160,7 +160,7 @@ double MRIcomputeOptimalLinearXform(
 																		float min_trans, float max_trans,
 																		float angle_steps, float scale_steps, 
 																		float trans_steps,
-																		int nreductions) ;
+																		int nreductions, char *base_name) ;
 
 
 #define M3D_MAGIC  0xabcdef42
