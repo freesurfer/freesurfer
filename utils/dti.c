@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.3 2006/09/09 03:09:11 greve Exp $
+// $Id: dti.c,v 1.4 2006/09/21 04:15:08 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.3 2006/09/09 03:09:11 greve Exp $");
+  return("$Id: dti.c,v 1.4 2006/09/21 04:15:08 greve Exp $");
 }
 
 
@@ -31,7 +31,7 @@ const char *DTIsrcVersion(void) {
   siemens dicom file. 
   -----------------------------------------------------------------*/
 int DTIparamsFromSiemensAscii(char *fname, float *bValue, 
-			      int *nAcq, int *nDir, int *DiffMode)
+			      int *nAcq, int *nDir, int *nB0)
 {
   char *tag, *pc;
 
@@ -56,9 +56,8 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
     return(1);
   }
-  sscanf(pc, "%d", nAcq);
-  *nAcq = 12;
-  printf("nAcq = %d (HARDCODED!!!!!!!!)\n",*nAcq);
+  sscanf(pc, "%d", nB0);
+  printf("nB0 = %d\n",*nB0);
   free(pc);
 
   tag = "sDiffusion.lDiffDirections";
@@ -71,15 +70,8 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,
   printf("nDir = %d\n",*nDir);
   free(pc);
 
-  tag = "sWiPMemBlock.alFree[1]";
-  pc = SiemensAsciiTag(fname,tag);
-  if(pc == NULL){
-    printf("ERROR: cannot extract %s from %s\n",tag,fname);
-    return(1);
-  }
-  sscanf(pc, "%d", DiffMode);
-  printf("DiffMode = %d\n",*DiffMode);
-  free(pc);
+  *nAcq = 1;
+  printf("nAcq = %d (HARDWIRED)\n",*nAcq);
 
   return(0);
 }
@@ -94,34 +86,29 @@ int DTIloadGradients(DTI *dti, char *GradFile)
   fsenv = FSENVgetenv();
 
   if(GradFile) dti->GradFile = strcpyalloc(GradFile);
-
   if(dti->GradFile == NULL){
-    switch(dti->DiffMode){
-    case 3:
-      sprintf(tmpstr,"%s/diffusion/graddir/6-cube-mghnew.txt",
-	      fsenv->FREESURFER_HOME);
-      dti->GradFile = strcpyalloc(tmpstr);
-      break;
-    default:
-      printf("ERROR: diffusion mode %d unrecoginzed\n",dti->DiffMode);
-      return(1);
-    }
+    sprintf(tmpstr,"%s/diffusion/graddir/gradient_mgh_dti%02d.gdt",
+	    fsenv->FREESURFER_HOME,dti->nDir);
+    dti->GradFile = strcpyalloc(tmpstr);
+    printf("GradFile %s\n",dti->GradFile);
   }
-
+  
   fp = fopen(dti->GradFile,"r");
   if(fp == NULL){
     printf("ERROR: cannot open %s\n",dti->GradFile);
     return(1);
   }
 
-  dti->GradDir = MatrixAlloc(dti->nDir+1,3,MATRIX_REAL);
+  dti->GradDir = MatrixAlloc(dti->nDir+dti->nB0,3,MATRIX_REAL);
 
-  // Set the first row to be all 0s (no gradients)
-  dti->GradDir->rptr[1][1] = 0;
-  dti->GradDir->rptr[1][2] = 0;
-  dti->GradDir->rptr[1][3] = 0;
+  // Set the first nB0 rows to be all 0s (no gradients)
+  for(r=1; r < dti->nB0+1; r++){
+    dti->GradDir->rptr[r][1] = 0;
+    dti->GradDir->rptr[r][2] = 0;
+    dti->GradDir->rptr[r][3] = 0;
+  }
 
-  for(r=2; r <= dti->nDir+1; r++){
+  for(r=dti->nB0+1; r <= dti->GradDir->rows; r++){
     for(c=1; c <= 3; c++){
       n = fscanf(fp,"%f",&(dti->GradDir->rptr[r][c]));
       if(n != 1){
@@ -147,7 +134,7 @@ DTI *DTIstructFromSiemensAscii(char *fname)
   dti = (DTI *) calloc(sizeof(DTI),1);
 
   err = DTIparamsFromSiemensAscii(fname, &dti->bValue, &dti->nAcq, 
-				  &dti->nDir, &dti->DiffMode);
+				  &dti->nDir, &dti->nB0);
   if(err){
     free(dti);
     dti = NULL;
@@ -197,12 +184,12 @@ int DTIdesignMatrix(DTI *dti)
   int r,xr,nthacq;
   MATRIX *g;
 
-  dti->B = MatrixAlloc((dti->nDir+1)*dti->nAcq,7,MATRIX_REAL);
   g = dti->GradDirNorm;
+  dti->B = MatrixAlloc((g->rows)*dti->nAcq,7,MATRIX_REAL);
 
   xr = 1;
   for(nthacq=0; nthacq < dti->nAcq; nthacq++){
-    for(r=1; r <= dti->nDir+1; r ++){
+    for(r=1; r <= g->rows; r ++){
 
       dti->B->rptr[xr][1] = dti->bValue * pow(g->rptr[r][1],2.0);
       dti->B->rptr[xr][2] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][2];
@@ -218,6 +205,9 @@ int DTIdesignMatrix(DTI *dti)
     }
 
   }
+  //MatrixWriteTxt("G.dat",dti->GradDirNorm);
+  //MatrixWriteTxt("B.dat",dti->B);
+  
 
   return(0);
 }
