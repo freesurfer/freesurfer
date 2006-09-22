@@ -122,7 +122,6 @@ talairach \
 talairach2 \
 talairach_mgh \
 tal_compare \
-tkmedit_wrapper \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
