@@ -1,5 +1,5 @@
 ## 
-# Makefile.am - specify in addition to the standard
+# Makefile.am
 ##
 
 AM_CPPFLAGS=$(GLUT_CFLAGS) \
@@ -23,6 +23,12 @@ tksurfer_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(X_LIBS) $(GLUT_LIBS) -lGL
 tksurfer_LDFLAGS=
 
+install-exec-hook:
+	mv $(bindir)/tksurfer $(bindir)/tksurfer.bin
+	cp tksurfer_wrapper $(bindir)/tksurfer
+	chmod a+x $(bindir)/tksurfer
+
+EXTRA_DIST="tksurfer_wrapper"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

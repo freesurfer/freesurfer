@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.28 2006/09/01 21:20:25 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.29 2006/09/22 20:25:41 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.28 2006/09/01 21:20:25 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.29 2006/09/22 20:25:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -33,7 +33,6 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
-    echo "       GSL_DIR"
     echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
@@ -334,82 +333,6 @@ if [ -z "$NO_MINC" ]; then
     if [ -n "$MINC_BIN_DIR" ]; then
         PATH=$MINC_BIN_DIR:$PATH
     fi
-fi
-
-
-### ----------- GSL (Gnu Scientific Library)  ------------ ####
-if [ -d $FREESURFER_HOME/lib/gsl ]; then
-    export GSL_DIR=$FREESURFER_HOME/lib/gsl
-elif [ -d /usr/pubsw/packages/gsl/current ]; then
-    export GSL_DIR=/usr/pubsw/packages/gsl/current
-fi
-if [ -n "$GSL_DIR" ]; then
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$GSL_DIR/lib
-    else
-        export LD_LIBRARY_PATH="$GSL_DIR/lib":"$LD_LIBRARY_PATH"
-    fi
-    if [ -z "$DYLD_LIBRARY_PATH" ]; then
-        export DYLD_LIBRARY_PATH=$GSL_DIR/lib
-    else
-        export DYLD_LIBRARY_PATH="$GSL_DIR/lib":"$DYLD_LIBRARY_PATH"
-    fi
-fi
-if [[ $output == 1 && -n "$GSL_DIR" ]]; then
-    echo "GSL_DIR         $GSL_DIR"
-fi
-
-
-### ------ Qt (scuba2 and qdec support libraries)  ------- ####
-# look for Qt in common NMR locations, overriding any prior setting
-# NJS: QT is no longer included in the lib search path,
-# as having too many files to search slows the operation of any command.
-#if [ -d $FREESURFER_HOME/lib/qt ]; then
-#    export QTDIR=$FREESURFER_HOME/lib/qt
-#elif [ -d /usr/pubsw/packages/qt/current ]; then
-#    export QTDIR=/usr/pubsw/packages/qt/current
-#fi
-#if [ -n "$QTDIR" ]; then
-#    export PATH=$QTDIR/bin:$PATH
-#    if [ -z "$LD_LIBRARY_PATH" ]; then
-#        export LD_LIBRARY_PATH=$QTDIR/lib
-#    else
-#        export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
-#    fi
-#fi
-#if [[ $output == 1 && -n "$QTDIR" ]]; then
-#    echo "QTDIR           $QTDIR"
-#fi
-
-
-### ----------- Tcl/Tk/Tix/BLT  ------------ ####
-if [ -d $FREESURFER_HOME/lib/tcltktixblt/bin ]; then
-    PATH=$FREESURFER_HOME/lib/tcltktixblt/bin:$PATH
-fi
-if [ -d $FREESURFER_HOME/lib/tcltktixblt/lib ]; then
-    export FS_TCL_LIB_DIR=$FREESURFER_HOME/lib/tcltktixblt/lib
-    export SET_TCL_VARS=1
-    if [ "$SET_TCL_VARS" == "1" ]; then
-        # setting these forces override of native installed libs
-        export TCLLIBPATH=$FS_TCL_LIB_DIR
-        export TCL_LIBRARY=$FS_TCL_LIB_DIR/tcl8.4
-        export TK_LIBRARY=$FS_TCL_LIB_DIR/tk8.4
-        export TIX_LIBRARY=$FS_TCL_LIB_DIR/tix8.1
-        export BLT_LIBRARY=$FS_TCL_LIB_DIR/blt2.4
-    fi
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$FS_TCL_LIB_DIR
-    else
-        export LD_LIBRARY_PATH="$FS_TCL_LIB_DIR":"$LD_LIBRARY_PATH"
-    fi
-    if [ -z "$DYLD_LIBRARY_PATH" ]; then
-        export DYLD_LIBRARY_PATH=$FS_TCL_LIB_DIR
-    else
-        export DYLD_LIBRARY_PATH="$FS_TCL_LIB_DIR":"$DYLD_LIBRARY_PATH"
-    fi
-fi
-if [[ $output == 1 && -n "$FS_TCL_LIB_DIR" ]]; then
-    echo "FS_TCL_LIB_DIR  $FS_TCL_LIB_DIR"
 fi
 
 
