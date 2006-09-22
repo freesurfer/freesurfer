@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.2 2006/09/22 17:18:38 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.3 2006/09/22 17:31:29 nicks Exp $'
 
 umask 002
 
@@ -24,13 +24,14 @@ set WD=$PWD
 set EXPECTED=$WD/test_data
 cd $EXPECTED
 if (-e emot.sum) rm -Rf emot*
-if ("`uname -p`" == "powerpc") then
-  set cmd=(tar zxvf $EXPECTED/powerpc-emot.tar.gz)
-else
-  set cmd=(tar zxvf $EXPECTED/i386-emot.tar.gz)
-endif
+set PROC=`uname -p`
+set cmd=(tar zxvf $EXPECTED/$PROC-emot.tar.gz)
 echo $cmd
 $cmd
+if ($status != 0) then
+  echo "Unable to extract architecture-specific test data!"
+  exit 1
+endif
 chmod 666 emot*
 
 set ACTUAL=/tmp/optseq2
