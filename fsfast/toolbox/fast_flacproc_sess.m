@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.14 2006/09/14 03:12:45 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.15 2006/09/22 04:16:43 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -312,18 +312,18 @@ for nthrun = 1:nruns
     tmp.vol = fast_mat2vol(tmp.vol,szvol);
     MRIwrite(tmp,stem);
 
-    stem = sprintf('%s/gamma%s',condir,flac.formatext);
+    stem = sprintf('%s/ces%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(ces,szvol);
     MRIwrite(tmp,stem);
 
-    stem = sprintf('%s/gamcvm%s',condir,flac.formatext);
+    stem = sprintf('%s/cesvar%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(cescvm,szvol);
     MRIwrite(tmp,stem);
 
     if(dof1 == 1)
-      stem = sprintf('%s/gamstd%s',condir,flac.formatext);
+      stem = sprintf('%s/cesstd%s',condir,flac.formatext);
       tmp = y;
       tmp.vol = fast_mat2vol(sqrt(cescvm),szvol);
       MRIwrite(tmp,stem);

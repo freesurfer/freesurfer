@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.7 2006/09/14 03:13:52 greve Exp $
+% $Id: flacffx.m,v 1.8 2006/09/22 04:16:43 greve Exp $
 %
 
 Fsig = [];
@@ -170,7 +170,7 @@ if(saveresults)
     blregind = flac_evregind(flac,blevind);
     tmp = rvar;
     tmp.vol = betamn.vol(:,:,:,blregind);
-    stem = sprintf('%s/baseline%s',flaffxdir,flac.formatext);
+    stem = sprintf('%s/h-offset%s',flaffxdir,flac.formatext);
     MRIwrite(tmp,stem);
   end
 
@@ -223,15 +223,15 @@ for nthcon = conind
     outfspec = sprintf('%s/f.%s',condir,flac.format);
     MRIwrite(F,outfspec);
   
-    outfspec = sprintf('%s/fsig.%s',condir,flac.format);
+    outfspec = sprintf('%s/sig.%s',condir,flac.format);
     MRIwrite(Fsig,outfspec);
   
-    outfspec = sprintf('%s/gamma.%s',condir,flac.format);
+    outfspec = sprintf('%s/ces.%s',condir,flac.format);
     tmp = gam(nthcon);
     tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
     MRIwrite(tmp,outfspec);
   
-    outfspec = sprintf('%s/gamcvm.%s',condir,flac.format);
+    outfspec = sprintf('%s/cesvar.%s',condir,flac.format);
     tmp = cescvm;
     tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
     MRIwrite(tmp,outfspec);
