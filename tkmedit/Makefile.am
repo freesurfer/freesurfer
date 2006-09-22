@@ -1,5 +1,5 @@
 ## 
-# Makefile.am - specify in addition to the standard
+# Makefile.am
 ##
 
 AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
@@ -22,6 +22,12 @@ tkmedit_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(X_LIBS) $(GLUT_LIBS)
 tkmedit_LDFLAGS=
 
+install-exec-hook:
+        mv $(bindir)/tkmedit $(bindir)/tkmedit.bin
+        cp tkmedit_wrapper $(bindir)/tkmedit
+        chmod a+x $(bindir)/tkmedit
+
+EXTRA_DIST="tkmedit_wrapper"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
