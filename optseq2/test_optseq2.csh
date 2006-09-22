@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.3 2006/09/22 17:31:29 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.4 2006/09/22 18:15:20 nicks Exp $'
 
 umask 002
 
@@ -62,8 +62,15 @@ chmod -R 777 $ACTUAL
 # compare expected results with actual (produced) results
 #
 
-set TEST_FILES=( emot-001.par emot-002.par emot-003.par emot-004.par emot.sum emot.log )
+set TEST_FILES=( emot-001.par emot-002.par emot-003.par emot-004.par emot.sum )
+set filter=($WD/test_data/filter_optseq2_data.csh)
 foreach tstfile ($TEST_FILES)
+  # first remove irrelevant lines of data that may change from run-to-run
+  set cmd=($filter $EXPECTED/$tstfile)
+  $cmd
+  set cmd=($filter $ACTUAL/$tstfile)
+  $cmd
+  # now compare expected with observed data
   set cmd=(diff $EXPECTED/$tstfile $ACTUAL/$tstfile);
   echo $cmd
   $cmd
