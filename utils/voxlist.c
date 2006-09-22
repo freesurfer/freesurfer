@@ -6,6 +6,72 @@
 #include "error.h"
 #include "voxlist.h"
 
+VOXEL_LIST  *
+VLSTcreateInRegion(MRI *mri, float low_val, float hi_val , 
+                   VOXEL_LIST *vl, int skip, int border_only, 
+                   MRI_REGION *box)
+{
+  int   x, y, z, nvox, i, width, height, depth ;
+  Real  val ;
+
+  skip++ ;  /* next voxel + amount to skip */
+  width = box->x+box->dx ; height = box->y+box->dy ; depth = box->z+box->dz ;
+  for (nvox = 0, x = box->x ; x < width ; x+=skip)
+	{
+		for (y = box->y ; y < height ; y+=skip)
+		{
+			for (z = box->z ; z < depth ; z+=skip)
+	    {
+	      if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+	      val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	      if (val > 0)
+					DiagBreak() ;
+	      if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+	      if (val >= low_val && val <= hi_val)
+					nvox++ ;
+	    }
+		}
+	}
+
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("allocating %d voxel indices...\n", nvox) ;
+  if (vl == NULL)
+	{
+		vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
+		vl->nvox = nvox ;
+		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
+		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
+		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
+		if (!vl || !vl->xi || !vl->yi || !vl->zi)
+			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
+								Progname, nvox) ;
+	}
+  for (nvox = 0, x = box->x ; x < width ; x+=skip)
+	{
+		for (y = box->y ; y < height ; y+=skip)
+		{
+			for (z = box->z ; z < depth ; z+=skip)
+	    {
+	      val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	      if (val >= low_val && val <= hi_val)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					if ((border_only == 0) || 
+							(MRIneighbors(mri, x, y, z, 0) > 0))
+					{
+						i = nvox++ ;
+						vl->xi[i] = x ; vl->yi[i] = y ; vl->zi[i] = z ;
+					}
+				}
+	    }
+		}
+	}
+  vl->mri = mri ;
+  return(vl) ;
+}
 VOXEL_LIST *
 VLSTcreate(MRI *mri, 
 	   float low_val, 
