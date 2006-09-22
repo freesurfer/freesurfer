@@ -42,7 +42,7 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
   else if (vl->nvox < nvox)
   {
     free(vl->xi) ; free(vl->yi) ; free(vl->zi) ;
-    vl->xi = vl->yi = zl->zi = NULL ;
+    vl->xi = vl->yi = vl->zi = NULL ;
   }
   if (vl->xi == NULL)
   {
@@ -116,7 +116,7 @@ VLSTcreate(MRI *mri,
   else if (vl->nvox < nvox)
   {
     free(vl->xi) ; free(vl->yi) ; free(vl->zi) ;
-    vl->xi = vl->yi = zl->zi = NULL ;
+    vl->xi = vl->yi = vl->zi = NULL ;
   }
   if (vl->xi == NULL)
   {
