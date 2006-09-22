@@ -38,16 +38,22 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
 	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 		printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
-	{
 		vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-		vl->nvox = nvox ;
+  else if (vl->nvox < nvox)
+  {
+    free(vl->xi) ; free(vl->yi) ; free(vl->zi) ;
+    vl->xi = vl->yi = zl->zi = NULL ;
+  }
+  if (vl->xi == NULL)
+  {
 		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
-		if (!vl || !vl->xi || !vl->yi || !vl->zi)
-			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
-								Progname, nvox) ;
-	}
+  }
+  if (!vl || !vl->xi || !vl->yi || !vl->zi)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
+              Progname, nvox) ;
+  vl->nvox = nvox ;
   for (nvox = 0, x = box->x ; x < width ; x+=skip)
 	{
 		for (y = box->y ; y < height ; y+=skip)
@@ -106,16 +112,22 @@ VLSTcreate(MRI *mri,
 	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 		printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
-	{
 		vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-		vl->nvox = nvox ;
+  else if (vl->nvox < nvox)
+  {
+    free(vl->xi) ; free(vl->yi) ; free(vl->zi) ;
+    vl->xi = vl->yi = zl->zi = NULL ;
+  }
+  if (vl->xi == NULL)
+  {
 		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
-		if (!vl || !vl->xi || !vl->yi || !vl->zi)
-			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
-								Progname, nvox) ;
-	}
+  }
+  if (!vl || !vl->xi || !vl->yi || !vl->zi)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
+              Progname, nvox) ;
+  vl->nvox = nvox ;
   for (nvox = x = 0 ; x < mri->width ; x+=skip)
 	{
 		for (y = 0 ; y < mri->height ; y+=skip)
