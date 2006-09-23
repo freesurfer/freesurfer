@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.70 2006/09/12 23:10:39 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.71 2006/09/23 00:13:28 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -78,7 +78,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VTKDIR=/usr/pubsw/packages/vtk/5.0.0
   set VXLDIR=/usr/pubsw/packages/vxl/1.4.0
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
-  setenv QTDIR  /usr/pubsw/packages/qt/3.3.5
+  unsetenv QTDIR
   unsetenv FSLDIR
   if (-e /usr/pubsw/packages/fsl/3.2b) then
     setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
@@ -87,7 +87,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   endif
 else
   # dev build uses most current
-  # note: GSL is no longer used, so its not defined
+  # note: GSL and Qt are no longer used, so they're not defined
   set MNIDIR=/usr/pubsw/packages/mni/current
   unsetenv GSLDIR
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
@@ -95,7 +95,7 @@ else
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set VXLDIR=/usr/pubsw/packages/vxl/current
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
-  setenv QTDIR  /usr/pubsw/packages/qt/current
+  unsetenv QTDIR
   setenv FSLDIR /usr/pubsw/packages/fsl/current
 endif
 
@@ -107,7 +107,7 @@ if ("$OSTYPE" == "Darwin") then
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
-setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}":"${VXLDIR}/lib"
+setenv LD_LIBRARY_PATH "${GLUT_DYLIB_DIR}":"${VXLDIR}/lib"
 setenv DYLD_LIBRARY_PATH "${LD_LIBRARY_PATH}"
 
 
@@ -169,7 +169,6 @@ echo "Settings" >>& $OUTPUTF
 echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
-echo "QTDIR $QTDIR" >>& $OUTPUTF
 echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" >>& $OUTPUTF
 echo "DYLD_LIBRARY_PATH $DYLD_LIBRARY_PATH" >>& $OUTPUTF
 echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
@@ -349,9 +348,6 @@ endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
-#Qt-based apps are no longer built by default. use --enable-qt-apps 
-#set cnfgr=($cnfgr --enable-qt-apps)
-#set cnfgr=($cnfgr --with-qt-dir=${QTDIR})
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
 if ($status != 0) then
@@ -532,7 +528,7 @@ symlinks:
   else
     set cmd4=
   endif
-  set cmd5=(ln -s ${QTDIR}  ${DEST_DIR}/lib/qt)
+  set cmd5=
   set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
   set cmd7=(ln -s ${VXLDIR} ${DEST_DIR}/lib/vxl)
   if ("$OSTYPE" == "Darwin") then
@@ -562,24 +558,6 @@ symlinks:
   set cmd=(ln -s ${SPACE_FS}/subjects/bert ${DEST_DIR}/subjects/bert)
   echo "$cmd" >>& $OUTPUTF
   $cmd
-
-
-#
-# Qt fixup
-######################################################################
-# On the Mac, for the Qt apps to work, the binary in the bin directory
-# cannot be called directly.  The 'real' binary is found in the directory
-# (qtapp).app/Contents/MacOS/.  So replace the bad binary with a script.
-#
-if ("$OSTYPE" == "Darwin") then
-  set QT_APPS=(scuba2 qdec plotter)
-  foreach qtapp ($QT_APPS)
-    rm -f ${DEST_DIR}/bin/$qtapp
-    echo "${DEST_DIR}/bin/$qtapp.app/Contents/MacOS/$qtapp" \
-      > ${DEST_DIR}/bin/$qtapp
-    chmod a+x ${DEST_DIR}/bin/$qtapp
-  end
-endif
 
 
 #
