@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.29 2006/09/22 20:25:41 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.30 2006/09/23 04:35:13 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.29 2006/09/22 20:25:41 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.30 2006/09/23 04:35:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -285,16 +285,6 @@ if [ -z "$NO_MINC" ]; then
             echo "         Some Freesurfer utilities rely on the"
             echo "         MINC toolkit libraries."
             echo "         Set NO_MINC to suppress this warning."
-        fi
-    fi
-    ## Set Load library path ##
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        if [ -n "$MINC_LIB_DIR" ]; then
-            export LD_LIBRARY_PATH=$MINC_LIB_DIR
-        fi
-    else
-        if [ -n "$MINC_LIB_DIR" ]; then
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
         fi
     fi
     ## nu_correct and other MINC tools require a path to perl

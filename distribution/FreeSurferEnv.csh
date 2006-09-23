@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.61 2006/09/22 20:25:41 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.62 2006/09/23 04:35:13 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.61 2006/09/22 20:25:41 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.62 2006/09/23 04:35:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -280,16 +280,6 @@ if(! $?NO_MINC) then
             echo "         Some Freesurfer utilities rely on the"
             echo "         MINC toolkit libraries."
             echo "         Set NO_MINC to suppress this warning."
-        endif
-    endif
-    ## Set Load library path ##
-    if(! $?LD_LIBRARY_PATH ) then
-        if ( $?MINC_LIB_DIR) then
-            setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
-        endif
-    else
-        if ( $?MINC_LIB_DIR) then
-            setenv LD_LIBRARY_PATH "$MINC_LIB_DIR":"$LD_LIBRARY_PATH"
         endif
     endif
     ## nu_correct and other MINC tools require a path to mni perl scripts
