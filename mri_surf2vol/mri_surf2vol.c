@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $
+  $Id: mri_surf2vol.c,v 1.18 2006/09/23 18:47:13 greve Exp $
 */
 
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include "resample.h"
 #include "version.h"
 #include "fio.h"
+#include "fsenv.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -44,7 +45,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $";
+"$Id: mri_surf2vol.c,v 1.18 2006/09/23 18:47:13 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -92,6 +93,9 @@ MATRIX *Qa2v;
 float reshapefactor;
 int mksurfmask = 0;
 int UseVolRegIdentity = 0;
+FSENV *fsenv;
+int fstalres;
+char tmpstr[2000];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -105,7 +109,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.17 2006/04/23 17:02:19 nicks Exp $",
+     "$Id: mri_surf2vol.c,v 1.18 2006/09/23 18:47:13 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -118,6 +122,8 @@ int main(int argc, char **argv)
   DiagInit(NULL, NULL, NULL) ;
 
   if(argc == 0) usage_exit();
+
+  fsenv = FSENVgetenv();
 
   parse_commandline(argc, argv);
   printf("gdiagno = %d\n",gdiagno);
@@ -402,6 +408,18 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       volregfile = pargv[0]; nargsused = 1;
     }
+    else if (istringnmatch(option, "--fstal",7)){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&fstalres); 
+      sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.reg",
+	      fsenv->FREESURFER_HOME,fstalres);
+      volregfile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.mgz",
+	      fsenv->FREESURFER_HOME,fstalres);
+      tempvolpath = strcpyalloc(tmpstr);
+
+      nargsused = 1;
+    }
     else if (istringnmatch(option, "--outvol",0)){
       if(nargc < 1) argnerr(option,1);
       outvolpath = pargv[0]; nargsused = 1;
@@ -497,6 +515,9 @@ static void print_usage(void)
   printf("  --volregidentity subjid : use identity "
          "(must supply subject name)\n");
   printf("  --template vol : output like this volume\n");
+  printf("  \n");
+  printf("  --fstal res : use fs talairach registration\n");
+  printf("  \n");
   printf("  --merge vol : merge with this vol (becomes template)\n");
   printf("  \n");
   printf("  --outvol <fmt>  output volume path id\n");
@@ -581,6 +602,12 @@ static void print_help(void)
      "volume in terms of the field-of-view, geometry, and precision. If the\n"
      "format is not included, the format will be inferred from the path\n"
      "name. Not needed with --merge. See FORMATS below.\n"
+     "\n"
+     "--fstal res\n"
+     "\n"
+     "sets volreg to $FREESURFER_HOME/average/mni305.cor.subfov$res.reg \n"
+     "and template to $FREESURFER_HOME/average/mni305.cor.subfov$res.mgz\n"
+     "res can be 1 or 2.\n"
      "\n"
      "--merge mergevolume\n"
      "\n"
