@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/07/26 20:44:40 $
-// Revision       : $Revision: 1.291 $
-char *VERSION = "$Revision: 1.291 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/09/23 19:33:03 $
+// Revision       : $Revision: 1.292 $
+char *VERSION = "$Revision: 1.292 $";
 
 #define TCL
 #define TKMEDIT
@@ -33,6 +33,7 @@ char *VERSION = "$Revision: 1.291 $";
 #include "version.h"
 #include "ctrpoints.h"
 #include "tiffio.h"
+#include "fio.h"
 #include "tkmedit.h"
 #include "fsgdf_wrap.h"
 #include "fsgdf.h"
@@ -1140,7 +1141,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.291 2006/07/26 20:44:40 kteich Exp $",
+     "$Id: tkmedit.c,v 1.292 2006/09/23 19:33:03 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1191,6 +1192,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("\n");
     printf("-bc-main <brightness> <contrast> : brightness and contrast "
            "for main volume\n");
+    printf("-bc-main-fsavg use .58 and 14 for main volume (good for fsaverage)\n");
     printf("-mm-main <min> <max>             : color scale min and "
            "max for main volume\n");
     printf("-bc-aux <brightness> <contrast>  : brightness and "
@@ -1327,6 +1329,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
+      } else if (MATCH(sArg, "-bc-main-fsavg"  ) ) {
+	DebugNote( ("Parsing -bc-main-fsavg option") );
+	fBrightnessMain = .58;
+	fContrastMain = 14;
+	bBrightContrastMain = TRUE;
+	nCurrentArg ++ ;
       } else if (MATCH(sArg, "-scaleup"  ) ) {
 
         /* set our flag */
@@ -1521,6 +1529,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                           sizeof(sTimeCourseFileName),
                           "%s/%s",
                           argv[nCurrentArg], argv[nCurrentArg+1] );
+	  if(!fio_FileExistsReadable(sTimeCourseFileName)){
+	    printf("ERROR: cannot find time course %s\n",sTimeCourseFileName);
+	    exit(1);
+	  }
           bLoadingTimeCourse = TRUE;
           nCurrentArg += 2;
         }
@@ -1535,6 +1547,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           DebugNote( ("Parsing -overlay option") );
           xUtil_strncpy( sOverlayFileName, argv[nCurrentArg+1],
                          sizeof(sOverlayFileName) );
+	  if(!fio_FileExistsReadable(sOverlayFileName)){
+	    printf("ERROR: cannot find overlay %s\n",sOverlayFileName);
+	    exit(1);
+	  }
           bLoadingOverlay = TRUE;
           nCurrentArg += 2;
 
@@ -1558,6 +1574,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           DebugNote( ("Parsing -overlay-reg option") );
           xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
                          sizeof(sOverlayRegistration) );
+	  if(!fio_FileExistsReadable(sOverlayRegistration)){
+	    printf("ERROR: cannot find overlay reg %s\n",sOverlayRegistration);
+	    exit(1);
+	  }
           overlayRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
 
@@ -1638,6 +1658,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           DebugNote( ("Parsing -timecourse-reg option") );
           xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
                          sizeof(sTimeCourseRegistration) );
+	  if(!fio_FileExistsReadable(sTimeCourseRegistration)){
+	    printf("ERROR: cannot find timecourse reg %s\n",sTimeCourseRegistration);
+	    exit(1);
+	  }
           timecourseRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
 
@@ -5720,7 +5744,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.291 2006/07/26 20:44:40 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.292 2006/09/23 19:33:03 greve Exp $ $Name:  $\n"
       )
      );
 
