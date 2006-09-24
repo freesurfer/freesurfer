@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.5 2006/09/23 15:38:19 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.6 2006/09/24 00:37:48 nicks Exp $'
 
 umask 002
 
@@ -23,13 +23,19 @@ set WD=$PWD
 
 set EXPECTED=$WD/test_data
 cd $EXPECTED
-if (-e emot.sum) rm -Rf emot*
 set PROC=`uname -p`
-set cmd=(tar zxvf $EXPECTED/$PROC-emot.tar.gz)
+set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
+if (! -e $TEST_DATA) then
+  echo "Architecture-specific test data file $TEST_DATA does not exist"
+  # status 77 means test result is ignored
+  exit 77
+endif
+if (-e emot.sum) rm -Rf emot*
+set cmd=(tar zxvf $TEST_DATA)
 echo $cmd
 $cmd
 if ($status != 0) then
-  echo "Unable to extract architecture-specific test data!"
+  echo "Failure extracting architecture-specific test data."
   exit 1
 endif
 chmod 666 emot*
