@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.43.2.12 2006/09/23 04:37:30 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.43.2.13 2006/09/24 00:29:31 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.12 2006/09/23 04:37:30 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.43.2.13 2006/09/24 00:29:31 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -127,12 +127,16 @@ if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit binaries
     if ( $?MNI_INSTALL_DIR) then
         setenv MINC_BIN_DIR $MNI_INSTALL_DIR/bin
+        setenv MNI_DIR $MNI_INSTALL_DIR
     else if ( -e $FREESURFER_HOME/mni/bin) then
         setenv MINC_BIN_DIR $FREESURFER_HOME/mni/bin
+        setenv MNI_DIR $FREESURFER_HOME/mni
     else if ( -e /usr/pubsw/packages/mni/current/bin) then
         setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
+        setenv MNI_DIR /usr/pubsw/packages/mni/current
     else if ( -e /usr/local/mni/bin) then
         setenv MINC_BIN_DIR /usr/local/mni/bin
+        setenv MNI_DIR /usr/local/mni
     endif
 endif
 if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
@@ -247,12 +251,15 @@ if( ! $?NO_FSFAST) then
 endif
 
 ### ----------- MINC Stuff -------------- ####
-if( $output && $?MINC_BIN_DIR ) then
-    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+if( $output && $?MNI_DIR ) then
+    echo "MNI_DIR         $MNI_DIR"
 endif
-if( $output && $?MINC_LIB_DIR ) then
-    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
-endif
+#if( $output && $?MINC_BIN_DIR ) then
+#    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+#endif
+#if( $output && $?MINC_LIB_DIR ) then
+#    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
+#endif
 if(! $?NO_MINC) then
     if( $?MINC_BIN_DIR) then
         if (! -d $MINC_BIN_DIR) then
@@ -314,9 +321,9 @@ if(! $?NO_MINC) then
     else if ( "$PERL5LIB" != "$MNI_PERL5LIB" ) then
         setenv PERL5LIB      "$MNI_PERL5LIB":"$PERL5LIB"
     endif
-    if( $output && $?PERL5LIB ) then
-        echo "PERL5LIB        $PERL5LIB"
-    endif
+    #if( $output && $?PERL5LIB ) then
+    #    echo "PERL5LIB        $PERL5LIB"
+    #endif
 endif
 if(! $?NO_MINC) then
     if ( $?MINC_BIN_DIR) then
@@ -345,31 +352,6 @@ if ( $?GSL_DIR ) then
 endif
 if( $output && $?GSL_DIR ) then
     echo "GSL_DIR         $GSL_DIR"
-endif
-
-
-### ------- Qt (scuba2 and qdec support libraries) ------- ####
-# look for Qt in common NMR locations, overriding any prior setting
-if ( -e $FREESURFER_HOME/lib/qt) then
-    setenv QTDIR    $FREESURFER_HOME/lib/qt
-else if ( -e /usr/pubsw/packages/qt/current) then
-    setenv QTDIR    /usr/pubsw/packages/qt/current
-endif
-if ( $?QTDIR ) then
-    setenv PATH     $QTDIR/bin:$PATH
-    if (! $?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH  $QTDIR/lib
-    else
-        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
-    endif
-    if (! $?DYLD_LIBRARY_PATH) then
-        setenv DYLD_LIBRARY_PATH  $QTDIR/lib
-    else
-        setenv DYLD_LIBRARY_PATH  "$QTDIR/lib":"$DYLD_LIBRARY_PATH"
-    endif
-endif
-if( $output && $?QTDIR ) then
-    echo "QTDIR           $QTDIR"
 endif
 
 

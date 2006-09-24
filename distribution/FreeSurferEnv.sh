@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.10.2.13 2006/09/23 04:37:29 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10.2.14 2006/09/24 00:29:31 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.13 2006/09/23 04:37:29 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.14 2006/09/24 00:29:31 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -130,12 +130,16 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit binaries
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_BIN_DIR=$MNI_INSTALL_DIR/bin
+        export MNI_DIR=$MNI_INSTALL_DIR
     elif [ -e $FREESURFER_HOME/mni/bin ]; then
         export MINC_BIN_DIR=$FREESURFER_HOME/mni/bin
+        export MNI_DIR=$FREESURFER_HOME/mni
     elif [ -e /usr/pubsw/packages/mni/current/bin ]; then
         export MINC_BIN_DIR=/usr/pubsw/packages/mni/current/bin
+        export MNI_DIR=/usr/pubsw/packages/mni/current
     elif [ -e /usr/local/mni/bin ]; then
         export MINC_BIN_DIR=/usr/local/mni/bin
+        export MNI_DIR=/usr/local/mni
     fi
 fi
 
@@ -252,12 +256,15 @@ if [[ -z "$NO_FSFAST" ]]; then
 fi
 
 ### ----------- MINC Stuff -------------- ####
-if [[ $output == 1 && -n "$MINC_BIN_DIR" ]]; then
-    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+if [[ $output == 1 && -n "$MNI_DIR" ]]; then
+    echo "MNI_DIR         $MNI_DIR"
 fi
-if [[ $output == 1 && -n "$MINC_LIB_DIR" ]]; then
-    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
-fi
+#if [[ $output == 1 && -n "$MINC_BIN_DIR" ]]; then
+#    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+#fi
+#if [[ $output == 1 && -n "$MINC_LIB_DIR" ]]; then
+#    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
+#fi
 if [ -z "$NO_MINC" ]; then
     if [ -n "$MINC_BIN_DIR" ]; then
         if [ ! -d $MINC_BIN_DIR ]; then
@@ -312,9 +319,9 @@ if [ -z "$NO_MINC" ]; then
             export PERL5LIB="$MINC_LIB_DIR/5.6.0"
         fi
     fi
-    if [[ $output == 1 && -n "$PERL5LIB" ]]; then
-        echo "PERL5LIB        $PERL5LIB"
-    fi
+    #if [[ $output == 1 && -n "$PERL5LIB" ]]; then
+    #    echo "PERL5LIB        $PERL5LIB"
+    #fi
 fi
 if [ -z "$NO_MINC" ]; then
     if [ -n "$MINC_BIN_DIR" ]; then
@@ -343,26 +350,6 @@ if [ -n "$GSL_DIR" ]; then
 fi
 if [[ $output == 1 && -n "$GSL_DIR" ]]; then
     echo "GSL_DIR         $GSL_DIR"
-fi
-
-
-### ------ Qt (scuba2 and qdec support libraries)  ------- ####
-# look for Qt in common NMR locations, overriding any prior setting
-if [ -d $FREESURFER_HOME/lib/qt ]; then
-    export QTDIR=$FREESURFER_HOME/lib/qt
-elif [ -d /usr/pubsw/packages/qt/current ]; then
-    export QTDIR=/usr/pubsw/packages/qt/current
-fi
-if [ -n "$QTDIR" ]; then
-    export PATH=$QTDIR/bin:$PATH
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$QTDIR/lib
-    else
-        export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
-    fi
-fi
-if [[ $output == 1 && -n "$QTDIR" ]]; then
-    echo "QTDIR           $QTDIR"
 fi
 
 
