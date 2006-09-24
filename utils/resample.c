@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.20 2006/08/01 22:22:51 greve Exp $
+  $Id: resample.c,v 1.21 2006/09/24 18:11:57 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -641,16 +641,13 @@ MRI *vol2surf_linear(MRI *SrcVol,
   MATRIX *Scrs, *Txyz;
   MRI *TrgVol;
   int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
+  float frow_src, fcol_src, fslc_src; /* float row, col, slc in source */
   float srcval, Tx, Ty, Tz;
   int frm;
   int vtx,nhits;
+  float *valvect;
+  Real rval;
   
-  if(InterpMethod != INTERP_NEAREST){
-    fprintf(stderr,"vol2surf_linear(): only support for nearest "
-      "interpolation\n");
-    return(NULL);
-  }
-
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
   if(Gdiag_no > 0){
@@ -674,6 +671,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
 	     1,0,SrcHitVol);
   }
 
+  srcval = 0;
+  valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
   nhits = 0;
   /*--- loop through each vertex ---*/
   for(vtx = 0; vtx < TrgSurf->nvertices; vtx++){
@@ -696,27 +695,30 @@ MRI *vol2surf_linear(MRI *SrcVol,
 
     /* Compute the corresponding Source col-row-slc vector */
     MatrixMultiply(QFWDsrc,Txyz,Scrs);
+    fcol_src = Scrs->rptr[1][1];
+    frow_src = Scrs->rptr[2][1];
+    fslc_src = Scrs->rptr[3][1];
 
     /* nearest neighbor */
     switch(float2int){
     case FLT2INT_ROUND:
-      icol_src = nint(Scrs->rptr[0+1][0+1]);
-      irow_src = nint(Scrs->rptr[1+1][0+1]);
-      islc_src = nint(Scrs->rptr[2+1][0+1]);
+      icol_src = nint(fcol_src);
+      irow_src = nint(frow_src);
+      islc_src = nint(fslc_src);
       break;
     case FLT2INT_FLOOR:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      icol_src = (int)floor(fcol_src);
+      irow_src = (int)floor(frow_src);
+      islc_src = (int)floor(fslc_src);
       break;
     case FLT2INT_TKREG:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      icol_src = (int)floor(fcol_src);
+      irow_src = (int) ceil(frow_src);
+      islc_src = (int)floor(fslc_src);
       break;
     default:
       fprintf(stderr,"vol2surf_linear(): unrecoginized float2int code %d\n",
-        float2int);
+	      float2int);
       MRIfree(&TrgVol);
       return(NULL);
       break;
@@ -731,7 +733,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
       printf("diag -----------------------------\n");
       printf("vtx = %d  %g %g %g\n",vtx,Tx,Ty,Tz);
       printf("fCRS  %g %g %g\n",Scrs->rptr[1][1],
-       Scrs->rptr[2][1],Scrs->rptr[3][1]);
+	     Scrs->rptr[2][1],Scrs->rptr[3][1]);
       printf("CRS  %d %d %d\n",icol_src,irow_src,islc_src);
     }
 
@@ -739,10 +741,28 @@ MRI *vol2surf_linear(MRI *SrcVol,
     /* only gets here if it is in bounds */
     nhits ++;
     
-    for(frm = 0; frm < SrcVol->nframes; frm++){
-      srcval = MRIFseq_vox(SrcVol,icol_src,irow_src,islc_src,frm);
-      MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
-    }
+    /* Assign output volume values */
+    if(InterpMethod == SAMPLE_TRILINEAR){
+      MRIsampleSeqVolume(SrcVol, fcol_src, frow_src, fslc_src, 
+			 valvect, 0, SrcVol->nframes-1) ;
+      for(frm = 0; frm < SrcVol->nframes; frm++)
+	MRIFseq_vox(TrgVol,vtx,0,0,frm) = valvect[frm];
+    }else{
+      for(frm = 0; frm < SrcVol->nframes; frm++){
+	switch(InterpMethod){
+	case SAMPLE_NEAREST:
+	  srcval = MRIgetVoxVal(SrcVol,icol_src,irow_src,islc_src,frm);
+	  break ;
+	  srcval = MRIgetVoxVal(SrcVol,icol_src,irow_src,islc_src,frm);
+	  break ;
+	case SAMPLE_SINC:      /* no multi-frame */
+	  MRIsincSampleVolume(SrcVol, fcol_src, frow_src, fslc_src, 5, &rval) ;
+	  srcval = rval;
+	  break ;
+	} //switch
+	MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
+      } // for
+    }// else
     if(SrcHitVol != NULL)
       MRIFseq_vox(SrcHitVol,icol_src,irow_src,islc_src,0)++;
   }
@@ -750,7 +770,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   MatrixFree(&QFWDsrc);
   MatrixFree(&Scrs);
   MatrixFree(&Txyz);
-
+  free(valvect);
 
   printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 

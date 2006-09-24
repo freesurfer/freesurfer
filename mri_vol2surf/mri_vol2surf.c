@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $
+  $Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.30 2006/06/30 20:31:52 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1144,12 +1144,6 @@ static void check_options(void)
   if(interpmethod == -1){
     fprintf(stderr,"ERROR: interpmethod = %s\n",interpmethod_string);
     fprintf(stderr,"  must be either nearest, tli, or sinc\n");
-    exit(1);
-  }
-
-  if(interpmethod != INTERP_NEAREST){
-    fprintf(stderr,"ERROR: currently only nearest interpolation "
-      "is supported\n");
     exit(1);
   }
 
