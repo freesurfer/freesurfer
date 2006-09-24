@@ -178,7 +178,7 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
-EXTRA_DIST = $(tcl_SCRIPTS)
+EXTRA_DIST = $(tcl_SCRIPTS) tcltktixblt_wrapper
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.

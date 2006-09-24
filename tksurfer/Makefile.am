@@ -25,10 +25,9 @@ tksurfer_LDFLAGS=
 
 install-exec-hook:
 	mv $(bindir)/tksurfer $(bindir)/tksurfer.bin
-	cp tksurfer_wrapper $(bindir)/tksurfer
+	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/tksurfer
+	echo "tksurfer.bin \$$argv" >> $(bindir)/tksurfer
 	chmod a+x $(bindir)/tksurfer
-
-EXTRA_DIST="tksurfer_wrapper"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

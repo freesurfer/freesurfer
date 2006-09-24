@@ -22,10 +22,9 @@ tkregister2_LDFLAGS=
 
 install-exec-hook:
 	mv $(bindir)/tkregister2 $(bindir)/tkregister2.bin
-	cp tkregister_wrapper $(bindir)/tkregister2
+	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/tkregister2
+	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
 	chmod a+x $(bindir)/tkregister2
-
-EXTRA_DIST="tkregister_wrapper"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

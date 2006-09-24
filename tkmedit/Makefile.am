@@ -21,19 +21,19 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmDisplayArea.h \
 	tkmFunctionalVolume.h \
 	tkmMeditWindow.h \
-	 $(top_srcdir)/fsgdf/fsgdf_wrap.c
+	$(top_srcdir)/fsgdf/fsgdf_wrap.c
 tkmedit_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)
 tkmedit_LDFLAGS=
 
+# put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
 	mv $(bindir)/tkmedit $(bindir)/tkmedit.bin
-	cp tkmedit_wrapper $(bindir)/tkmedit
+	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/tkmedit
+	echo "tkmedit.bin \$$argv" >> $(bindir)/tkmedit
 	chmod a+x $(bindir)/tkmedit
-
-EXTRA_DIST="tkmedit_wrapper"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
