@@ -993,6 +993,7 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
   /* get the new time res. */
   eVolume = FunD_GetTimeResolution( this->mpTimeCourseVolume,
 				    &nTimeRes );
+  printf("nTimeRes = %g\n",nTimeRes);
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
@@ -1168,6 +1169,9 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   if( NULL == this->mpOverlayVolume )
     goto cleanup;
   
+  if(inTimePoint >= this->mpOverlayVolume->mpData->nframes) inTimePoint = 0;
+  if(inTimePoint < 0) inTimePoint = this->mpOverlayVolume->mpData->nframes-1;
+
   /* if it's valid, set it */
   eVolume = FunD_VerifyTimePoint( this->mpOverlayVolume, inTimePoint );
   if( FunD_tErr_NoError == eVolume ) {
