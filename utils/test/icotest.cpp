@@ -25,12 +25,7 @@ using namespace std;
 int main()
 {
   MRIS *mris;
-  char *mri_dir = getenv("FREESURFER_HOME");
-  if (mri_dir==0)
-  {
-    cerr << "FREESURFER_HOME not set.  I cannot find .tri files" << endl;
-    return -1;
-  }
+  char *mri_dir = "../../distribution";
   for (int index=0; index < 8; ++index)
   {
     ostringstream infile, outfile;
