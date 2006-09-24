@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.6 2006/09/24 00:37:48 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.7 2006/09/24 18:10:51 nicks Exp $'
 
 umask 002
 
@@ -47,6 +47,7 @@ if (! -e $ACTUAL) then
     echo "test_optseq2 FAILED to create directory $ACTUAL"
     exit 1
 endif
+chgrp -R fsdev $ACTUAL
 
 #
 # run optseq2 using typical input args (and the same as those used
