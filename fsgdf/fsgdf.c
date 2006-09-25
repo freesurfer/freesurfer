@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.34 2006/09/25 18:02:43 greve Exp $
+  $Id: fsgdf.c,v 1.35 2006/09/25 19:31:21 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -313,6 +313,11 @@ FSGD *gdfRead(char *gdfname, int LoadData)
       MRIfree(&gd->data);
       gd->data = mritmp;
     }
+  }
+
+  if(gd->LogY){
+    printf("gdfRead(): Computing log of input\n");
+    MRIlog(gd->data,gd->data,0);
   }
 
   if(NULL != dirname) free(dirname);
