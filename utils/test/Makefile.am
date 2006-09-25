@@ -14,15 +14,21 @@ check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
 	mri_extract mri_ms_gca_EM checkanalyze \
 	test_mri_identify test_mriio test_c_nr_wrapper \
-	sc_test
+	sc_test \
+	i2rtest_nolic icotest_nolic mghxform_nolic checkanalyze_nolic
 #test_nr_wrapper test_matrix 
 
 TESTS=sc_test \
-	mnitest i2rtest icotest extest mghxform \
-	inftest checkanalyze test_mri_identify \
+	mnitest \
+	extest \
+	inftest \
+	i2rtest_nolic \
+	icotest_nolic \
+	mghxform_nolic \
+	checkanalyze_nolic \
+	test_mri_identify \
 	test_c_nr_wrapper
 #test_mriio test_matrix
-
 
 mri_edit_wm_SOURCE=mri_edit_wm.c
 mri_apply_EM_mask_SOURCE=mri_apply_EM_mask.c
@@ -68,6 +74,28 @@ sc_test_SOURCES=sc_test.c
 
 test_c_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
   -lvnl_algo -lvnl -lnetlib
+
+i2rtest_nolic:
+	cp bypasslic i2rtest_nolic
+	echo "./i2rtest \$$argv" >> i2rtest_nolic
+	chmod a+x i2rtest_nolic
+
+icotest_nolic:
+	cp bypasslic icotest_nolic
+	echo "./icotest \$$argv" >> icotest_nolic
+	chmod a+x icotest_nolic
+
+mghxform_nolic:
+	cp bypasslic mghxform_nolic
+	echo "./mghxform \$$argv" >> mghxform_nolic
+	chmod a+x mghxform_nolic
+
+checkanalyze_nolic:
+	cp bypasslic checkanalyze_nolic
+	echo "./checkanalyze \$$argv" >> checkanalyze_nolic
+	chmod a+x checkanalyze_nolic
+
+EXTRA_DIST="bypasslic"
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
