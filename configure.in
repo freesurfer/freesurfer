@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.216 2006/09/18 18:52:28 nicks Exp $"
+# "$Id: configure.in,v 1.217 2006/09/25 21:46:14 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -430,6 +430,7 @@ ac_vxl_libraries="NO"
 ac_vxl_dir="NO"
 VXL_CFLAGS=""
 VXL_LIBS=""
+VXL_LIB=""
 AC_MSG_CHECKING(VXL directory)
 
 AC_ARG_WITH(vxl-dir,
@@ -444,7 +445,6 @@ if test ! "$ac_vxl_includes" = "NO"; then
   for item in $ac_vxl_includes; do
         VXL_CFLAGS="${VXL_CFLAGS} -I${item}"
   done
-  VXL_DIR=$ac_vxl_dir
   AC_SUBST(VXL_DIR)
 else
   AC_MSG_RESULT(VXL directory is not supplied)
@@ -452,10 +452,12 @@ fi
 
 if test ! "$ac_vxl_libraries" = "NO"; then
   VXL_LIBS=-L$ac_vxl_libraries
+  VXL_LIB=$ac_vxl_libraries
 fi
 
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
+AC_SUBST(VXL_LIB)
 
 
 #####################################################
@@ -465,12 +467,14 @@ ac_tcl_includes="NO"
 ac_tcl_libraries="NO"
 TCL_CFLAGS=""
 TCL_LIBS=""
+TCL_LIB=""
 
 AC_MSG_CHECKING(Tcl/Tk directory)
 AC_ARG_WITH(tcl-dir,
 [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
   [  ac_tcl_includes="$withval"/include
      ac_tcl_libraries="$withval"/lib
+     ac_tcl_dir="$withval"
   ])
 
 if test ! "$ac_tcl_includes" = "NO"; then
@@ -482,12 +486,14 @@ fi
 
 if test ! "$ac_tcl_libraries" = "NO"; then
   TCL_LIBS=-L$ac_tcl_libraries
+  TCL_LIB=$ac_tcl_libraries
 fi
 
 AM_CONDITIONAL(ENABLE_TCLTK_APPS, test ! "x$ac_tcl_libraries" = "xNO")
 
 AC_SUBST(TCL_CFLAGS)
 AC_SUBST(TCL_LIBS)
+AC_SUBST(TCL_LIB)
 AC_SUBST(LIBS_TCL)
 
 
@@ -1280,6 +1286,17 @@ AC_CHECK_FUNCS([\
   strstr \
   strtol \
   uname])
+
+#########################################################################
+# 'make check' environment setup
+#########################################################################
+#
+# When 'make check' is run, the tests specified in TESTS will inherit
+# these environment variable.  The first one bypasses the need for a 
+# license in FREESURFER_HOME, the others specify necessary libs.
+#
+TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VXL_LIB"
+AC_SUBST(TESTS_ENVIRONMENT)
 
 #########################################################################
 # output

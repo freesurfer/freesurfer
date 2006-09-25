@@ -13,16 +13,11 @@ noinst_LIBRARIES= libfsgdf.a
 libfsgdf_a_SOURCES = fsgdf.c
 
 if ENABLE_TCLTK_APPS
-check_PROGRAMS=test test_wrapper
+check_PROGRAMS=test
 test_SOURCES=test.c fsgdf_wrap.c
 test_LDFLAGS=$(LDFLAGS_TCL)
 test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
-TESTS=test_wrapper
-test_wrapper:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper test_wrapper
-	echo "setenv SURFER_FRONTDOOR" >> test_wrapper
-	echo "./test \$$argv" >> test_wrapper
-	chmod a+x test_wrapper
+TESTS=test
 endif
 
 # Our release target. Include files to be excluded here. They will be

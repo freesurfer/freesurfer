@@ -213,37 +213,22 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
 	testVolumeCollection testTclChartWindow
 
-check_SCRIPTS=testIDTracker_wrap testBroadcaster_wrap testUtilities_wrap \
-	testMatrix44_wrap testTransform44_wrap testVolume3_wrap testPath_wrap \
-	testShortestPathFinder_wrap testToglManager_wrap testDataManager_wrap \
-	testTclCommandManager_wrap testPreferencesManager_wrap \
-	testUndoManager_wrap \
-	testDataCollection_wrap testScubaDataCollections_wrap \
-	testVolumeCollection_wrap \
-	testSurfaceCollection_wrap testScubaLayers_wrap testScubaLayer2DMRI_wrap \
-	testScubaFrame_wrap \
-	testScubaTransform_wrap testScubaColorLUT_wrap testScubaROI_wrap \
-	testScubaROIVolume_wrap \
-	testVectorOps_wrap testRASToVoxel_wrap testCoordTimer_wrap \
-	testSegmentationVolumeReport_wrap testScubaKeyCombo_wrap \
-	testTclScubaKeyCombo_wrap
-
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
-TESTS=testIDTracker_wrap testBroadcaster_wrap testUtilities_wrap \
-	testMatrix44_wrap testTransform44_wrap testVolume3_wrap testPath_wrap \
-	testShortestPathFinder_wrap testToglManager_wrap testDataManager_wrap \
-	testTclCommandManager_wrap testPreferencesManager_wrap \
-	testUndoManager_wrap \
-	testDataCollection_wrap testScubaDataCollections_wrap \
-	testVolumeCollection_wrap \
-	testSurfaceCollection_wrap testScubaLayers_wrap testScubaLayer2DMRI_wrap \
-	testScubaFrame_wrap \
-	testScubaTransform_wrap testScubaColorLUT_wrap testScubaROI_wrap \
-	testScubaROIVolume_wrap \
-	testVectorOps_wrap testRASToVoxel_wrap testCoordTimer_wrap \
-	testSegmentationVolumeReport_wrap testScubaKeyCombo_wrap \
-	testTclScubaKeyCombo_wrap \
+TESTS=testIDTracker testBroadcaster testUtilities \
+	testMatrix44 testTransform44 testVolume3 testPath \
+	testShortestPathFinder testToglManager testDataManager \
+	testTclCommandManager testPreferencesManager \
+	testUndoManager \
+	testDataCollection testScubaDataCollections \
+	testVolumeCollection \
+	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
+	testScubaFrame \
+	testScubaTransform testScubaColorLUT testScubaROI \
+	testScubaROIVolume \
+	testVectorOps testRASToVoxel testCoordTimer \
+	testSegmentationVolumeReport testScubaKeyCombo \
+	testTclScubaKeyCombo \
 	testCleanup.csh
 
 ## Test programs.
@@ -251,223 +236,121 @@ testIDTracker_SOURCES=test_IDTracker.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testIDTracker_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testIDTracker_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testIDTracker_wrap
-	echo "./testIDTracker \$$argv" >> testIDTracker_wrap
-	chmod a+x testIDTracker_wrap
 
 testBroadcaster_SOURCES=test_Broadcaster.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testBroadcaster_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testBroadcaster_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testBroadcaster_wrap
-	echo "./testBroadcaster \$$argv" >> testBroadcaster_wrap
-	chmod a+x testBroadcaster_wrap
 
 testUtilities_SOURCES=test_Utilities.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testUtilities_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testUtilities_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testUtilities_wrap
-	echo "./testUtilities \$$argv" >> testUtilities_wrap
-	chmod a+x testUtilities_wrap
 
 testMatrix44_SOURCES=test_Matrix44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testMatrix44_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testMatrix44_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testMatrix44_wrap
-	echo "./testMatrix44 \$$argv" >> testMatrix44_wrap
-	chmod a+x testMatrix44_wrap
 
 testTransform44_SOURCES=test_Transform44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testTransform44_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testTransform44_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testTransform44_wrap
-	echo "./testTransform44 \$$argv" >> testTransform44_wrap
-	chmod a+x testTransform44_wrap
 
 testVolume3_SOURCES=test_Volume3.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testVolume3_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testVolume3_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testVolume3_wrap
-	echo "./testVolume3 \$$argv" >> testVolume3_wrap
-	chmod a+x testVolume3_wrap
 
 testPath_SOURCES=test_Path.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testPath_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testPath_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testPath_wrap
-	echo "./testPath \$$argv" >> testPath_wrap
-	chmod a+x testPath_wrap
 
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testShortestPathFinder_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testShortestPathFinder_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testShortestPathFinder_wrap
-	echo "./testShortestPathFinder \$$argv" >> testShortestPathFinder_wrap
-	chmod a+x testShortestPathFinder_wrap
 
 testVectorOps_SOURCES=test_VectorOps.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testVectorOps_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testVectorOps_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testVectorOps_wrap
-	echo "./testVectorOps \$$argv" >> testVectorOps_wrap
-	chmod a+x testVectorOps_wrap
 
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testRASToVoxel_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper  testRASToVoxel_wrap
-	echo "setenv SURFER_FRONTDOOR" >>  testRASToVoxel_wrap
-	echo "./testRASToVoxel \$$argv" >>  testRASToVoxel_wrap
-	chmod a+x  testRASToVoxel_wrap
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
 testToglManager_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(GLUT_LIBS)
-testToglManager_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testToglManager_wrap
-	echo "./testToglManager \$$argv" >> testToglManager_wrap
-	chmod a+x testToglManager_wrap
 
 testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testDataManager_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testDataManager_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testDataManager_wrap
-	echo "setenv SURFER_FRONTDOOR" >> testDataManager_wrap
-	echo "./testDataManager \$$argv" >> testDataManager_wrap
-	chmod a+x testDataManager_wrap
 
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testTclCommandManager_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testTclCommandManager_wrap
-	echo "./testTclCommandManager \$$argv" >> testTclCommandManager_wrap
-	chmod a+x testTclCommandManager_wrap
 
 testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testPreferencesManager_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testPreferencesManager_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testPreferencesManager_wrap
-	echo "./testPreferencesManager \$$argv" >> testPreferencesManager_wrap
-	chmod a+x testPreferencesManager_wrap
 
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testUndoManager_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testUndoManager_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testUndoManager_wrap
-	echo "./testUndoManager \$$argv" >> testUndoManager_wrap
-	chmod a+x testUndoManager_wrap
 
 testCoordTimer_SOURCES= test_CoordTimer.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testCoordTimer_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testCoordTimer_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper  testCoordTimer_wrap
-	echo "setenv SURFER_FRONTDOOR" >>  testCoordTimer_wrap
-	echo "./testCoordTimer \$$argv" >>  testCoordTimer_wrap
-	chmod a+x  testCoordTimer_wrap
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testDataCollection_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testDataCollection_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testDataCollection_wrap
-	echo "./testDataCollection \$$argv" >> testDataCollection_wrap
-	chmod a+x testDataCollection_wrap
 
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaDataCollections_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaDataCollections_wrap
-	echo "./testScubaDataCollections \$$argv" >> testScubaDataCollections_wrap
-	chmod a+x testScubaDataCollections_wrap
 
 testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testVolumeCollection_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testVolumeCollection_wrap
-	echo "setenv SURFER_FRONTDOOR" >> testVolumeCollection_wrap
-	echo "./testVolumeCollection \$$argv" >> testVolumeCollection_wrap
-	chmod a+x testVolumeCollection_wrap
 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testSurfaceCollection_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper  testSurfaceCollection_wrap
-	echo "setenv SURFER_FRONTDOOR" >>  testSurfaceCollection_wrap
-	echo "./testSurfaceCollection \$$argv" >>  testSurfaceCollection_wrap
-	chmod a+x  testSurfaceCollection_wrap
 
 testScubaKeyCombo_SOURCES=test_ScubaKeyCombo.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaKeyCombo_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaKeyCombo_wrap
-	echo "./testScubaKeyCombo \$$argv" >> testScubaKeyCombo_wrap
-	chmod a+x testScubaKeyCombo_wrap
 
 testTclScubaKeyCombo_SOURCES=test_TclScubaKeyCombo.cpp TclScubaKeyCombo.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testTclScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testTclScubaKeyCombo_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testTclScubaKeyCombo_wrap
-	echo "./testTclScubaKeyCombo \$$argv" >> testTclScubaKeyCombo_wrap
-	chmod a+x testTclScubaKeyCombo_wrap
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayers_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaLayers_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaLayers_wrap
-	echo "./testScubaLayers \$$argv" >> testScubaLayers_wrap
-	chmod a+x testScubaLayers_wrap
 
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaLayer2DMRI_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaLayer2DMRI_wrap
-	echo "setenv SURFER_FRONTDOOR" >> testScubaLayer2DMRI_wrap
-	echo "./testScubaLayer2DMRI \$$argv" >> testScubaLayer2DMRI_wrap
-	chmod a+x testScubaLayer2DMRI_wrap
 
 testScubaView_SOURCES=test_ScubaView.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
@@ -478,56 +361,31 @@ testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaFrame_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaFrame_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaFrame_wrap
-	echo "./testScubaFrame \$$argv" >> testScubaFrame_wrap
-	chmod a+x testScubaFrame_wrap
 
 testScubaTransform_SOURCES=test_ScubaTransform.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaTransform_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaTransform_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaTransform_wrap
-	echo "./testScubaTransform \$$argv" >> testScubaTransform_wrap
-	chmod a+x testScubaTransform_wrap
 
 testScubaColorLUT_SOURCES=test_ScubaColorLUT.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaColorLUT_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaColorLUT_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaColorLUT_wrap
-	echo "./testScubaColorLUT \$$argv" >> testScubaColorLUT_wrap
-	chmod a+x testScubaColorLUT_wrap
 
 testScubaROI_SOURCES=test_ScubaROI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaROI_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaROI_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaROI_wrap
-	echo "./testScubaROI \$$argv" >> testScubaROI_wrap
-	chmod a+x testScubaROI_wrap
 
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testScubaROIVolume_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testScubaROIVolume_wrap
-	echo "./testScubaROIVolume \$$argv" >> testScubaROIVolume_wrap
-	chmod a+x testScubaROIVolume_wrap
 
 testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-testSegmentationVolumeReport_wrap:
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper testSegmentationVolumeReport_wrap
-	echo "setenv SURFER_FRONTDOOR" >> testSegmentationVolumeReport_wrap
-	echo "./testSegmentationVolumeReport \$$argv" >> testSegmentationVolumeReport_wrap
-	chmod a+x testSegmentationVolumeReport_wrap
 
 testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
