@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.33 2006/08/24 22:53:08 greve Exp $
+  $Id: fsgdf.c,v 1.34 2006/09/25 18:02:43 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -91,6 +91,7 @@ FSGD *gdfAlloc(int version)
   gd = (FSGD *) calloc(sizeof(FSGD),1);
   gd->version = version;
   gd->ResFWHM = -1;
+  gd->LogY = 0;
   return(gd);
 }
 /*--------------------------------------------------*/
@@ -168,6 +169,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
   if(strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
   fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
+  fprintf(fp,"LogY %d\n",gd->LogY);
   if(strlen(gd->defvarlabel) > 0)
     fprintf(fp,"DefaultVariable %s\n",gd->defvarlabel);
   if(gd->nclasses > 0){
@@ -397,6 +399,12 @@ static FSGD *gdfReadV1(char *gdfname)
     /*----------------- ResidualFWHM Line ---------------------*/
     if(!strcasecmp(tag,"ResidualFWHM")){
       r = fscanf(fp,"%*s %lf",&gd->ResFWHM);
+      if(r==EOF) goto formaterror;
+      continue;
+    }
+    /*----------------- LogY Line ---------------------*/
+    if(!strcasecmp(tag,"LogY")){
+      r = fscanf(fp,"%*s %d",&gd->LogY);
       if(r==EOF) goto formaterror;
       continue;
     }
@@ -990,6 +998,14 @@ double gdfGetFWHM(FSGD *gd)
 {
   if(NULL == gd)  return(-1);
   return(gd->ResFWHM);
+}
+/*------------------------------------------------------------
+  gdfGetLogY() - returns LogY flag
+  ------------------------------------------------------------*/
+int gdfGetlogY(FSGD *gd)
+{
+  if(NULL == gd)  return(-1);
+  return(gd->LogY);
 }
 /*------------------------------------------------------------
   gdfGetSubjectName() - copies the subject name into the 

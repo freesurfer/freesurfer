@@ -29,6 +29,7 @@ USAGE: ./mri_glmfit
    --mask-inv : invert mask
    --prune : remove voxels that do not have a non-zero value at each frame
    --no-prune : do not prune
+   --logy : compute natural log of y prior to analysis
 
    --surf subject hemi : needed for some flags (uses white by default)
 
@@ -445,7 +446,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.86 2006/09/09 04:04:59 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.87 2006/09/25 18:02:43 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -539,7 +540,7 @@ struct timeb  mytimer;
 int ReallyUseAverage7 = 0;
 DTI *dti;
 int usedti = 0;
-int log10flag = 0;
+int logflag = 0; // natural log
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -936,7 +937,7 @@ int main(int argc, char **argv)
     MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
 	     0,1,mriglm->y);
   }
-  if(log10flag){
+  if(logflag){
     printf("Computing natural log of input\n");
     MRIlog(mriglm->y,mriglm->y,0);
   }
@@ -1020,7 +1021,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(log10flag) MRIlog(mriglm->y,mriglm->y,0);
+	if(logflag) MRIlog(mriglm->y,mriglm->y,0);
 	if(FWHM > 0) 
 	  SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
@@ -1276,6 +1277,7 @@ int main(int argc, char **argv)
     sprintf(fsgd->DesignMatFile,"fsgd.X.mat");
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
     fsgd->ResFWHM = eresfwhm;
+    fsgd->LogY = logflag;
 
     fp = fopen(tmpstr,"w");
     gdfPrintHeader(fp,fsgd);
@@ -1359,6 +1361,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--osgm"))   OneSampleGroupMean = 1;
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
+    else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")){
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -1520,7 +1523,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
       usedti=1;
-      log10flag = 1;
+      logflag = 1;
       nargsused = 1;
     }
     else if (!strcmp(option, "--pvr")){
@@ -1626,6 +1629,7 @@ printf("   --label labelfile : use label as mask, surfaces only\n");
 printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame\n");
 printf("   --no-prune : do not prune\n");
+printf("   --logy : compute natural log of y prior to analysis\n");
 printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -2088,6 +2092,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"OneSampleGroupMean %d\n",OneSampleGroupMean);
 
   fprintf(fp,"y    %s\n",yFile);
+  fprintf(fp,"logyflag %d\n",logflag);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
   fprintf(fp,"usedit  %d\n",usedti);
   if(fsgdfile)  fprintf(fp,"FSGD %s\n",fsgdfile);

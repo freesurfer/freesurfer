@@ -53,6 +53,7 @@ typedef struct {
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
   MRI *data;
   double ResFWHM;
+  int LogY; // indicates whether nat log of y was used
 } GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
@@ -82,6 +83,7 @@ int gdfGetTitle(FSGD *gd, char *title);
 int gdfGetMeasurementName(FSGD *gd, char *name);
 int gdfGetSubjectName(FSGD *gd, char *name);
 double gdfGetFWHM(FSGD *gd);
+int    gdfGetLogY(FSGD *gd);
 int gdfGetDataFileName(FSGD *gd, char *filename);
 int gdfGetNumClasses(FSGD *gd, int *nclasses);
 int gdfGetNthClassLabel(FSGD *gd, int nclass, char *label);
