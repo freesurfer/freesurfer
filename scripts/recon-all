@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.9 2006/08/18 20:26:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.10 2006/09/25 18:38:47 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2814,7 +2814,7 @@ tkmedit and record the Volume Index values (NOT the XYZ coordinates).
 
 Specify the full path to the gaussian classifier array (GCA) file
 to be used with GCA registration and automatic subcortical
-segmentation. Default is RB40_talairach_2005-12-30.gca located in
+segmentation. Default is RB_all_2006-02-15.gca located in
 FREESURFER_HOME/average. This has no effect unless the GCA registration
 or subcortical segmentation stages are to be performed.
 
@@ -2822,7 +2822,7 @@ or subcortical segmentation stages are to be performed.
 
 Specify the full path to the gaussian classifier array (GCA) file
 to be used with registration with skull. Default is
-RB40_talairach_with_skull_2005-12-30.gca located in
+RB_all_withskull_2006-02-15.gca located in
 FREESURFER_HOME/average.
 
 -nuiterations
