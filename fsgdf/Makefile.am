@@ -1,5 +1,5 @@
 #
-# Makefile for fsgdf - specify in addition to the standard
+# Makefile for fsgdf
 #
 
 if ENABLE_TCLTK_APPS
@@ -20,7 +20,8 @@ test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
 TESTS=test_wrapper
 test_wrapper:
 	cp $(top_srcdir)/scripts/tcltktixblt_wrapper test_wrapper
-	echo "./test" >> test_wrapper
+	echo "setenv SURFER_FRONTDOOR" >> test_wrapper
+	echo "./test \$$argv" >> test_wrapper
 	chmod a+x test_wrapper
 endif
 
