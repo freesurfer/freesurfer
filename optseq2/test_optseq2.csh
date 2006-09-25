@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.7 2006/09/24 18:10:51 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.8 2006/09/25 21:00:26 nicks Exp $'
 
 umask 002
 
@@ -88,8 +88,9 @@ foreach tstfile ($TEST_FILES)
   endif
 end
 
+# cleanup for the next run
 chgrp -R fsdev $EXPECTED
-chgrp -R fsdev $ACTUAL
+rm -Rf $ACTUAL
 
 echo "test_optseq2 passed all tests"
 exit 0
