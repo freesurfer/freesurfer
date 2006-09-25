@@ -570,9 +570,9 @@ int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
 
 #include "image.h"
 
-IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
-MRI *ImageToMRI(IMAGE *I);
-IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
+IMAGE *MRItoImage(MRI *mri, IMAGE *image, int slice) ;
+MRI *ImageToMRI(IMAGE *image);
+IMAGE *MRItoImageView(MRI *mri, IMAGE *image, int slice, int view, int frame) ;
 
 /* bitmap image access macros */
 #define MRIset_bit(mri,x,y,z)    MRIvox(mri,(x)/8,y,z) |= (0x001 << ((x)%8))

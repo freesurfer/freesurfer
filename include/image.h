@@ -28,7 +28,7 @@ typedef struct header IMAGE ;
 /* allocation */
 IMAGE   *ImageAlloc(int rows, int cols, int format, int nframes) ;
 IMAGE   *ImageAllocHeader(int rows, int cols, int format, int nframes) ;
-int     ImageAllocBuffer(IMAGE *I) ;
+int     ImageAllocBuffer(IMAGE *image) ;
 int     ImageFree(IMAGE **pI) ;
 
 /* resizing */
@@ -59,11 +59,11 @@ IMAGE   *ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag) ;
 IMAGE   *ImageShrink(IMAGE *Isrc, IMAGE *Idst) ;
 
 /* writing */
-int     ImageWrite(IMAGE *I, char *fname) ;
-int     ImageFWrite(IMAGE *I, FILE *fp, char *fname) ;
+int     ImageWrite(IMAGE *image, char *fname) ;
+int     ImageFWrite(IMAGE *image, FILE *fp, char *fname) ;
 int      ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes) ;
-int      ImageAppend(IMAGE *I, char *fname) ;
-int      ImageUpdateHeader(IMAGE *I, char *fname) ;
+int      ImageAppend(IMAGE *image, char *fname) ;
+int      ImageUpdateHeader(IMAGE *image, char *fname) ;
 
 /* morphology */
 IMAGE   *ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which) ;
@@ -83,9 +83,9 @@ IMAGE   *ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
 IMAGE   *ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zpad,IMAGE *Icorr) ;
 IMAGE   *ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
             int drow, int dcol, int rows, int cols) ;
-int     ImageClearArea(IMAGE *I, int row, int col, int rows, int cols,
+int     ImageClearArea(IMAGE *image, int row, int col, int rows, int cols,
           float val, int frame) ;
-float   ImageFindPeak(IMAGE *I, int *prow, int *pcol, float *pval) ;
+float   ImageFindPeak(IMAGE *image, int *prow, int *pcol, float *pval) ;
 IMAGE   *ImagePowerSpectrum(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE   *ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE   *ImageConjugate(IMAGE *Isrc, IMAGE *Idst) ;
@@ -180,16 +180,18 @@ int      ImageSobelY(IMAGE *inImage, IMAGE *yImage) ;
 int      ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage) ;
 IMAGE    *ImageXDerivative(IMAGE *inImage, IMAGE *xImage) ;
 IMAGE    *ImageYDerivative(IMAGE *inImage, IMAGE *yImage) ;
-void    ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, 
+void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J, float k[], int len, 
                                 int axis) ;
-void    ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
-void    ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
+void    ImageConvolve1d(IMAGE *imageI, IMAGE *J, 
+                        float k[], int len, int axis) ;
+void    ImageConvolve1dByte(IMAGE *imageI, IMAGE *J, 
+                            float k[], int len, int axis) ;
 IMAGE   *ImageGaussian(float xsigma, float ysigma) ;
 IMAGE   *ImageGaussian1d(float sigma, int max_len) ;
 IMAGE   *ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, 
                               int dst_frameno) ;
-void    ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, 
-                                int axis) ;
+void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J, 
+                                float k[], int len, int axis) ;
 IMAGE   *ImageConvolveGaussianByte(IMAGE *inImage, IMAGE *gImage, 
                                   IMAGE *outImage, int dst_frameno) ;
 IMAGE   *ImageConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
@@ -201,14 +203,12 @@ IMAGE   *ImageConvolveGaussianFrames(IMAGE *inImage, IMAGE *gImage,
 IMAGE   *ImageLaplacian(IMAGE *inImage, IMAGE *outImage) ;
 IMAGE   *ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst) ;
 
-
-
 IMAGE   *ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, 
                             int y0, int dx, int dy, int xdst, int ydst) ;
 IMAGE   *ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, 
                        int y0,int dx,int dy) ;
 IMAGE   *ImageReduce(IMAGE *inImage, IMAGE *outImage) ;
-void   ImageReduce1d(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
+void   ImageReduce1d(IMAGE *imageI, IMAGE *J, float k[], int len, int axis) ;
 IMAGE   *ImageCovarMatrix(IMAGE *image, float **pmeans) ;
 IMAGE   *ImagePrincipalComponents(IMAGE *image, int nterms,
                                      IMAGE **pcoefImage) ;
@@ -217,7 +217,7 @@ IMAGE   *ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage,
 IMAGE  *ImageZeroMean(IMAGE *inImage, IMAGE *outImage) ;
 IMAGE  *ImageNormalizeComplex(IMAGE *Isrc, IMAGE *Idst, float thresh) ;
 int    ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage) ;
-int    ImageSetSize(IMAGE *I, int rows, int cols) ;
+int    ImageSetSize(IMAGE *image, int rows, int cols) ;
 IMAGE  *ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxstep) ;
 IMAGE  *ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize) ;
 IMAGE  *ImageApplyOffset(IMAGE *Isrc, IMAGE *offsetImage, IMAGE *Idst) ;
@@ -226,13 +226,13 @@ IMAGE  *ImageHistoEqualize(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageConvertToByte(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageCorrelateRegion(IMAGE *Isrc,IMAGE *Ikernel,IMAGE *Idst,
                                  int row0, int col0, int wsize);
-int    ImageStatistics(IMAGE *I, float *pmean, float *pvar) ;
+int    ImageStatistics(IMAGE *image, float *pmean, float *pvar) ;
 IMAGE  *ImageZeroPad(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols) ;
 
-int    ImageValid(IMAGE *I) ;
+int    ImageValid(IMAGE *image) ;
 
-double ImageEntropy(IMAGE *I, int pairflag) ;
+double ImageEntropy(IMAGE *image, int pairflag) ;
 
 IMAGE  *ImageDownsample2Horizontal(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageDownsample2(IMAGE *Isrc, IMAGE *Idst) ;
