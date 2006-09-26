@@ -20,10 +20,11 @@ class MatrixTest : public CppUnit::TestFixture {
 
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( MatrixTest );  
-//    CPPUNIT_TEST( TestMatrixInverse );    
+    CPPUNIT_TEST( TestMatrixInverse );    
 //    CPPUNIT_TEST( TestNRMatrixDeterminant );
-//    CPPUNIT_TEST( TestOpenMatrixDeterminant );
+    CPPUNIT_TEST( TestOpenMatrixDeterminant );
     CPPUNIT_TEST( TestMatrixEigenSystem );
+    CPPUNIT_TEST( TestMatrixSVDPseudoInverse );
   CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -67,7 +68,6 @@ public:
   static const int EIGENSYSTEM_INVALID;
   static const int EIGENSYSTEM_NOT_DESCENDING;
 
-
   static const std::string PASCAL_MATRIX;
   static const std::string PASCAL_INVERSE;
 
@@ -81,6 +81,7 @@ public:
   static const std::string SINGULAR_MATRIX;
   
   static const std::string NON_SQUARE_MATRIX;
+  static const std::string NON_SQUARE_MATRIX_PSEUDO_INVERSE;
 
   static const std::string ONE_MATRIX;
   static const std::string ONE_INVERSE;
@@ -108,6 +109,8 @@ public:
   void TestMatrixEigenSystem();
 
   void TestMatrixNonSymmetricEigenSystem();
+  
+  void TestMatrixSVDPseudoInverse();
 };
 
 const int MatrixTest::EIGENSYSTEM_VALID = 0;
@@ -129,6 +132,8 @@ const std::string MatrixTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 const std::string MatrixTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 
 const std::string MatrixTest::NON_SQUARE_MATRIX = TESTING_DIR + "NonSquare.mat";
+const std::string MatrixTest::NON_SQUARE_MATRIX_PSEUDO_INVERSE = 
+  TESTING_DIR + "NonSquarePseudoInverse.mat";
 
 const std::string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const std::string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
@@ -423,6 +428,19 @@ MatrixTest::TestMatrixEigenSystem() {
   CPPUNIT_ASSERT( DoesCreateValidEigenSystem( 
     mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
     
+}
+
+void
+MatrixTest::TestMatrixSVDPseudoInverse() {
+
+  MATRIX *actualInverse = MatrixSVDPseudoInverse( mNonSquareMatrix, NULL );
+
+  MATRIX *expectedInverse =  
+    MatrixRead( (char*) ( NON_SQUARE_MATRIX_PSEUDO_INVERSE.c_str() ) );
+
+  CPPUNIT_ASSERT( AreMatricesEqual( actualInverse, expectedInverse ) );
+  
+  delete expectedInverse;
 }
 
 int main ( int argc, char** argv ) {
