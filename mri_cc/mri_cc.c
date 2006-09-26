@@ -5,9 +5,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/25 12:49:07 $
-// Revision       : $Revision: 1.10 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/09/26 17:46:50 $
+// Revision       : $Revision: 1.11 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -38,7 +38,7 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.10 2006/09/25 12:49:07 fischl Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.11 2006/09/26 17:46:50 nicks Exp $";
 
 
 static int use_aseg = 1 ;
@@ -124,10 +124,11 @@ main(int argc, char *argv[])
 	struct timeb  then ;
 	MRI         *mri_tal=NULL, *mri_talheader=NULL, *mri_header=NULL, *mri_cc;
 	Real        xv, yv, zv;
-	FILE        *fp;
+	FILE        *fp=NULL;
 	LTA         *lta2 = 0;	
 	float       volume[MAX_CC_DIVISIONS];
-  MRI         *mri_wm = NULL, *mri_cc_tal = NULL, *mri_fornix = NULL, *mri_aseg ; 
+  MRI         *mri_wm = NULL, *mri_cc_tal = NULL;
+  MRI         *mri_fornix = NULL, *mri_aseg = NULL; 
 
 	Progname = argv[0] ; 
 	DiagInit(NULL, NULL, NULL) ; 
