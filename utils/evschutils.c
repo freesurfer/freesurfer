@@ -290,9 +290,9 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   EvSeq = (int *) calloc(sizeof(int),nSlotsTot);
   for(n=0;n < nevents; n++) EvSeq[n] = 1;
   /* Randomize the sequence of nulls and non-nulls*/
-  m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,100);
+  m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,100000);
   if(m < 0) {
-    printf("ERROR: could not enforce tNullMax\n");
+    printf("ERROR: could not enforce tNullMax (ntries=100000)\n");
     return(NULL);
   }
   // Assure that first event is non-null. Swap with first non-null
