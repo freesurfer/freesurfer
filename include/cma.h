@@ -1,192 +1,199 @@
 #ifndef CMA_H
 #define CMA_H
 
-#define    Unknown   0 /*                                 0    0    0     0*/
-#define    Left_Cerebral_Exterior  1/*              205   62   78     0 */
-#define    Left_Cerebral_White_Matter  2/*          225  225  225     0 */
-#define    Left_Cerebral_Cortex  3/*                205   62   78     0 */
-#define    Left_Lateral_Ventricle  4/*              120   18  134     0 */
-#define    Left_Inf_Lat_Vent  5/*                    196   58  250     0 */
-#define    Left_Cerebellum_Exterior  6/*               0  148    0     0 */
-#define    Left_Cerebellum_White_Matter  7/*         220  248  164     0 */
-#define    Left_Cerebellum_Cortex  8/*               230  148   34     0 */
-#define    Left_Thalamus  9/*                          0  118   14     0 */
-#define   Left_Thalamus_Proper  10/*                   0  118   14     0 */
-#define   Left_Caudate  11/*                         122  186  220    0  */
-#define   Left_Putamen  12/*                         236   13  176    0  */
-#define   Left_Pallidum  13/*                         12   48  255    0  */
-#define   Third_Ventricle  14/*                        204  182  142    0  */
-#define   Fourth_Ventricle  15/*                         42  204  164    0  */
-#define   Brain_Stem  16/*                           119  159  176    0  */
-#define   Left_Hippocampus  17/*                     220  216   20     0 */
-#define   Left_Amygdala  18/*                        103  255  255    0  */
-#define   Left_Insula  19/*                           80  196   98     0 */
-#define   Left_Operculum  20/*                        60   58  210    0  */
-#define   Line_1  21/*                                60   58  210    0  */
-#define   Line_2  22/*                                60   58  210    0  */
-#define   Line_3  23/*                                60   58  210    0  */
-#define   CSF  24/*                                   60   60   60     0 */
-#define   Left_Lesion  25/*                          255  165    0    0  */
-#define   Left_Accumbens_area  26/*                  255  165    0    0  */
-#define   Left_Substancia_Nigra  27/*                  0  255  127    0  */
-#define   Left_VentralDC  28/*                       165   42   42    0  */
-#define   Left_undetermined  29/*                    135  206  235    0  */
-#define   Left_vessel  30/*                          160   32  240    0  */
-#define   Left_choroid_plexus  31/*                    0  255  255    0  */
-#define   Left_F3orb  32/*                           100   50  100    0  */
-#define   Left_lOg  33/*                             135   50   74     0 */
-#define   Left_aOg  34/*                             122  135   50     0 */
-#define   Left_mOg  35/*                              51   50  135    0  */
-#define   Left_pOg  36/*                              74  155   60     0 */
-#define   Left_Stellate  37/*                        120   62   43    0  */
-#define   Left_Porg  38/*                             74  155   60     0 */
-#define   Left_Aorg  39/*                            122  135   50      0 */
-#define   Right_Cerebral_Exterior  40/*              205   62   78      0 */
-#define   Right_Cerebral_White_Matter  41/*            0  225    0     0  */
-#define   Right_Cerebral_Cortex  42/*                205   62   78      0  */
-#define   Right_Lateral_Ventricle  43/*              120   18  134     0  */
-#define   Right_Inf_Lat_Vent  44/*                   196   58  250     0   */
-#define   Right_Cerebellum_Exterior  45/*              0  148    0     0 */
-#define   Right_Cerebellum_White_Matter  46/*        220  248  164     0  */
-#define   Right_Cerebellum_Cortex  47/*              230  148   34      0  */
-#define   Right_Thalamus  48/*                         0  118   14      0  */
-#define   Right_Thalamus_Proper  49/*                  0  118   14      0  */
-#define   Right_Caudate  50/*                        122  186  220     0  */
-#define   Right_Putamen  51/*                        236   13  176     0  */
-#define   Right_Pallidum  52/*                       255   48  255     0   */
-#define   Right_Hippocampus  53/*                    220  216   20      0  */
-#define   Right_Amygdala  54/*                       103  255  255     0   */
-#define   Right_Insula  55/*                          80  196   98      0  */
-#define   Right_Operculum  56/*                       60   58  210     0   */
-#define   Right_Lesion  57/*                         255  165    0     0   */
-#define   Right_Accumbens_area  58/*                 255  165    0     0   */
-#define   Right_Substancia_Nigra  59/*                 0  255  127     0   */
-#define   Right_VentralDC  60/*                      165   42   42     0   */
-#define   Right_undetermined  61/*                   135  206  235     0   */
-#define   Right_vessel  62/*                         160   32  240     0   */
-#define   Right_choroid_plexus  63/*                   0  255  255     0   */
-#define   Right_F3orb  64/*                          100   50  100     0   */
-#define   Right_lOg  65/*                            135   50   74     0   */
-#define   Right_aOg  66/*                            122  135   50     0   */
-#define   Right_mOg  67/*                             51   50  135     0   */
-#define   Right_pOg  68/*                             74  155   60     0   */
-#define   Right_Stellate  69/*                       120   62   43     0   */
-#define   Right_Porg  70/*                            74  155   60     0   */
-#define   Right_Aorg  71/*                          122  135   50     0*/
-#define   Fifth_Ventricle 72/*                        156   25  250    0 */
-#define   Left_Interior 73  /*                       122  135   50    0*/
-#define   Right_Interior 74  /*                      122  135   50    0*/
-#define   Left_Lateral_Ventricles 75  /*             120   18  134    0*/
-#define   Right_Lateral_Ventricles 76  /*            120   18  134    0*/
-#define   WM_hypointensities 77  /*                  124  140  178    0*/
-#define   Left_WM_hypointensities 78  /*             124  140  178    0*/
-#define   Right_WM_hypointensities 79  /*            124  140  178    0*/
-#define   non_WM_hypointensities 80  /*              164  108  226    0*/
-#define   Left_non_WM_hypointensities 81  /*         164  108  226    0*/
-#define   Right_non_WM_hypointensities 82  /*        164  108  226    0*/
-#define   Left_F1 83  /*                             255  218  185    0*/
-#define   Right_F1 84  /*                            255  218  185    0*/
-#define   Optic_Chiasm   85  /*                        234  169   30    0*/
-#define   Left_Amygdala_Anterior  96 /*              205   10  125    0*/
-#define   Right_Amygdala_Anterior 97 /*              205   10  125    0*/
+/*
+ * colors for these labels defined in distribution/FreeSurferColorLUT.txt
+ */
 
-/* no brain labels after this please unless you fix the IS_BRAIN macro */
-#define   Dura           98
-#define   Epidermis      118
-#define   Conn_Tissue    119
-#define   SC_FAT_MUSCLE  120
-#define   Cranium        121
-#define   CSF_SA         122
-#define   Muscle         123
-#define   Ear            124
-#define   Fatty_Tissue   125
-#define   Spinal_Cord    126
-#define   Soft_Tissue    127
-#define   Nerve          128
-#define   Bone           129                            
-#define   Air            130
-#define   Orbit          131
-#define   Tongue         132
-#define   Nasal_Structures 133
-#define   Globe          134
-#define   Teeth          135
+#define Unknown                        0
+#define Left_Cerebral_Exterior         1
+#define Left_Cerebral_White_Matter     2
+#define Left_Cerebral_Cortex           3
+#define Left_Lateral_Ventricle         4
+#define Left_Inf_Lat_Vent              5
+#define Left_Cerebellum_Exterior       6
+#define Left_Cerebellum_White_Matter   7
+#define Left_Cerebellum_Cortex         8
+#define Left_Thalamus                  9
+#define Left_Thalamus_Proper          10
+#define Left_Caudate                  11
+#define Left_Putamen                  12
+#define Left_Pallidum                 13
+#define Third_Ventricle               14
+#define Fourth_Ventricle              15
+#define Brain_Stem                    16
+#define Left_Hippocampus              17
+#define Left_Amygdala                 18
+#define Left_Insula                   19
+#define Left_Operculum                20
+#define Line_1                        21
+#define Line_2                        22
+#define Line_3                        23
+#define CSF                           24
+#define Left_Lesion                   25
+#define Left_Accumbens_area           26
+#define Left_Substancia_Nigra         27
+#define Left_VentralDC                28
+#define Left_undetermined             29
+#define Left_vessel                   30
+#define Left_choroid_plexus           31
+#define Left_F3orb                    32
+#define Left_lOg                      33
+#define Left_aOg                      34
+#define Left_mOg                      35
+#define Left_pOg                      36
+#define Left_Stellate                 37
+#define Left_Porg                     38
+#define Left_Aorg                     39
+#define Right_Cerebral_Exterior       40
+#define Right_Cerebral_White_Matter   41
+#define Right_Cerebral_Cortex         42
+#define Right_Lateral_Ventricle       43
+#define Right_Inf_Lat_Vent            44
+#define Right_Cerebellum_Exterior     45
+#define Right_Cerebellum_White_Matter 46
+#define Right_Cerebellum_Cortex       47
+#define Right_Thalamus                48
+#define Right_Thalamus_Proper         49
+#define Right_Caudate                 50
+#define Right_Putamen                 51
+#define Right_Pallidum                52
+#define Right_Hippocampus             53
+#define Right_Amygdala                54
+#define Right_Insula                  55
+#define Right_Operculum               56
+#define Right_Lesion                  57
+#define Right_Accumbens_area          58
+#define Right_Substancia_Nigra        59
+#define Right_VentralDC               60
+#define Right_undetermined            61
+#define Right_vessel                  62
+#define Right_choroid_plexus          63
+#define Right_F3orb                   64
+#define Right_lOg                     65
+#define Right_aOg                     66
+#define Right_mOg                     67
+#define Right_pOg                     68
+#define Right_Stellate                69
+#define Right_Porg                    70
+#define Right_Aorg                    71
+#define Fifth_Ventricle               72
+#define Left_Interior                 73
+#define Right_Interior                74
+#define Left_Lateral_Ventricles       75
+#define Right_Lateral_Ventricles      76
+#define WM_hypointensities            77
+#define Left_WM_hypointensities       78
+#define Right_WM_hypointensities      79
+#define non_WM_hypointensities        80
+#define Left_non_WM_hypointensities   81
+#define Right_non_WM_hypointensities  82
+#define Left_F1                       83
+#define Right_F1                      84
+#define Optic_Chiasm                  85
+#define Left_Amygdala_Anterior        96
+#define Right_Amygdala_Anterior       97
 
-#define   Right_Temporal_Cerebral_White_Matter  186      /*  240  240  240     0 */
-#define   Left_Temporal_Cerebral_White_Matter  187       /* 240  240  240     0 */
-#define   Fat         189 /*  255 255 255 0 */
-#define   Bright_Unknown  190   /* 100 240 240 0 */
-#define   Dark_Unknown    191   /* 20  100  100     0  */
-#define   Corpus_Callosum 192   /* 255 255 255 */
+/* 
+ * no brain labels after this please unless you fix the IS_BRAIN macro
+ */
 
-#define  alveus                   201 /*                    254	254	254	0*/
-#define  perforant_pathway	      202 /*	 255	128	128	0*/
-#define  parasubiculum	          203 /*	 255	255	0	0*/
-#define  presubiculum		          204 /*	 64	0	64	0*/
-#define  subiculum		            205 /*	 0	0	255	0*/
-#define  CA1			                206 /*	 255	0	0	0*/
-#define  CA2			                207 /*	 128	128	255	0*/
-#define  CA3			                208 /*	 0	128	0	0*/
-#define  CA4			                209 /*	 196	160	128	0*/
-#define GC_DG		                  210 /*	 255	128	255	0*/
-#define HATA			                211 /*	 128	255	128	0*/
-#define fimbria                   212 /*	 0	0	0	0*/
-#define lateral_ventricle	        213 /*	 255	0	255	0*/
-#define molecular_layer_HP        214 /*  128    0       0       0*/
-#define hippocampal_fissure       215 /*  64	255	196	0*/
-#define entorhinal_cortex         216 /*  255	204	102	0*/
-#define molecular_layer_subiculum 217 /*  0 0 0 0 */
-#define Amygdala                  218 /*  103  255  255    0    */
-#define Cerebral_White_Matter     219 /*  0  225    0     0   */
-#define Cerebral_Cortex           220 /*	 205   62   78     0 */
-#define Inf_Lat_Vent              221 /*  196   58  250     0 */
+#define Dura              98
+#define Epidermis        118
+#define Conn_Tissue      119
+#define SC_FAT_MUSCLE    120
+#define Cranium          121
+#define CSF_SA           122
+#define Muscle           123
+#define Ear              124
+#define Fatty_Tissue     125
+#define Spinal_Cord      126
+#define Soft_Tissue      127
+#define Nerve            128
+#define Bone             129
+#define Air              130
+#define Orbit            131
+#define Tongue           132
+#define Nasal_Structures 133
+#define Globe            134
+#define Teeth            135
 
-#define Left_hippocampal_fissure 193 //		0	196	255	0
-#define Left_CADG_head 194 //			255	164	164	0
-#define Left_subiculum 195 //			196	196	0	0
-#define Left_fimbria 196 //			0	100	255	0
-#define Right_hippocampal_fissure 197 //		128	196	164	0
-#define Right_CADG_head 198 //			0	196	0	0
-#define Right_subiculum 199 //			128	96	64	0
-#define Right_fimbria 200 //			0	50	128	0
+#define Right_Temporal_Cerebral_White_Matter 186
+#define Left_Temporal_Cerebral_White_Matter  187
+#define Fat              189
+#define Bright_Unknown   190
+#define Dark_Unknown     191
+#define Corpus_Callosum  192
 
-#define Fornix        250
+#define alveus                    201
+#define perforant_pathway         202
+#define parasubiculum             203
+#define presubiculum              204
+#define subiculum                 205
+#define CA1                       206
+#define CA2                       207
+#define CA3                       208
+#define CA4                       209
+#define GC_DG                     210
+#define HATA                      211
+#define fimbria                   212
+#define lateral_ventricle         213
+#define molecular_layer_HP        214
+#define hippocampal_fissure       215
+#define entorhinal_cortex         216
+#define molecular_layer_subiculum 217
+#define Amygdala                  218
+#define Cerebral_White_Matter     219
+#define Cerebral_Cortex           220
+#define Inf_Lat_Vent              221
+
+#define Left_hippocampal_fissure  193
+#define Left_CADG_head            194
+#define Left_subiculum            195
+#define Left_fimbria              196
+#define Right_hippocampal_fissure 197
+#define Right_CADG_head           198
+#define Right_subiculum           199
+#define Right_fimbria             200
+
+#define Fornix                    250
 
 // vascular and lymph labels (from Alex G)
-#define Aorta 331 // 255 0 0 0
-#define Left_Common_IliacA 332 // 255 80 0 0
-#define Right_Common_IliacA 333 // 255 160 0 0
-#define Left_External_IliacA 334 // 255 255 0 0
-#define Right_External_IliacA 335 // 0 255 0 0
-#define Left_Internal_IliacA 336 // 255 0 160 0
-#define Right_Internal_IliacA 337 // 255 0 255 0
-#define Left_Lateral_SacralA 338 // 255 50 80 0
-#define Right_Lateral_SacralA 339 // 80 255 50 0
-#define Left_ObturatorA 340 // 160 255 50 0
-#define Right_ObturatorA 341 // 160 200 255 0
-#define Left_Internal_PudendalA 342 // 0 255 160 0
-#define Right_Internal_PudendalA 343 // 0 0 255 0
-#define Left_UmbilicalA 344 // 80 50 255 0
-#define Right_UmbilicalA 345 // 160 0 255 0
-#define Left_Inf_RectalA 346 // 255 210 0 0
-#define Right_Inf_RectalA 347 // 0 160 255 0
-#define Left_Common_IliacV 348 // 255 200 80 0
-#define Right_Common_IliacV 349 // 255 200 160 0
-#define Left_External_IliacV 350 // 255 80 200 0
-#define Right_External_IliacV 351 // 255 160 200 0
-#define Left_Internal_IliacV 352 // 30 255 80 0
-#define Right_Internal_IliacV 353 // 80 200 255 0
-#define Left_ObturatorV 354 // 80 255 200 0
-#define Right_ObturatorV 355 // 195 255 200 0
-#define Left_Internal_PudendalV 356 // 120 200 20 0
-#define Right_Internal_PudendalV 357 // 170 10 200 0
-#define Pos_Lymph 358 // 20 130 180 0
-#define Neg_Lymph 359 // 20 180 130 0
+#define Aorta                    331
+#define Left_Common_IliacA       332
+#define Right_Common_IliacA      333
+#define Left_External_IliacA     334
+#define Right_External_IliacA    335
+#define Left_Internal_IliacA     336
+#define Right_Internal_IliacA    337
+#define Left_Lateral_SacralA     338
+#define Right_Lateral_SacralA    339
+#define Left_ObturatorA          340
+#define Right_ObturatorA         341
+#define Left_Internal_PudendalA  342
+#define Right_Internal_PudendalA 343
+#define Left_UmbilicalA          344
+#define Right_UmbilicalA         345
+#define Left_Inf_RectalA         346
+#define Right_Inf_RectalA        347
+#define Left_Common_IliacV       348
+#define Right_Common_IliacV      349
+#define Left_External_IliacV     350
+#define Right_External_IliacV    351
+#define Left_Internal_IliacV     352
+#define Right_Internal_IliacV    353
+#define Left_ObturatorV          354
+#define Right_ObturatorV         355
+#define Left_Internal_PudendalV  356
+#define Right_Internal_PudendalV 357
+#define Pos_Lymph                358
+#define Neg_Lymph                359
 
 #define MAX_LABEL Neg_Lymph
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
-#define   Not_Set         255
+#define Not_Set         255
 
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
@@ -260,7 +267,9 @@ int CMAfreeOutlineField(CMAoutlineField **of);
 int CMAclearFillField(CMAoutlineField *field);
 int CMAfill(CMAoutlineField *field, short seed_x, short seed_y);
 
-int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_points, short seed_x, short seed_y);
+int CMAclaimPoints(CMAoutlineField *field,
+                   short label, short *points,
+                   int n_points, short seed_x, short seed_y);
 int CMAassignLabels(CMAoutlineField *field);
 
 int CMAvalueClaims(CMAoutlineClaim *claim);
@@ -272,7 +281,8 @@ int CMAvalueAllClaims(CMAoutlineField *field);
 #define OTL_CLAIM_WEIGHT_DIAGONAL 0.707
 
 short CMAtotalClaims(CMAoutlineField *field, int x, int y);
-int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals);
+int CMAaddWeightedTotals(CMAoutlineClaim *claim,
+                         float weight, float *claim_totals);
 
 int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;

@@ -16,6 +16,7 @@
 #include "proto.h"
 #include "fio.h"
 #include "version.h"
+#include "cma.h"
 
 static void usage(int exit_val);
 static int  get_option(int argc, char *argv[]) ;
@@ -27,18 +28,51 @@ static char *mlog_fname = NULL ; //mean of individual dice
 static char *slog_fname = NULL ; //std of individual dice
 static char *olog_fname = NULL ; //overall dice for subcortical structures
 
-static const int num_labels  = 24;
+static const int num_labels       = 24;
 static const int labels_of_interest[24] = 
-  {2, 41, 3, 42,
-   4, 43, 17, 53,
-   10, 49, 11, 50,
-   12, 51, 13, 52,
-   18, 54, 26, 58,
-   14, 15, 5, 44};  /* Note: these are not included in the 
-                       'overall subcortical Dice coefficient' calculations:
-                       Left/Right-Cerebral-White-Matter (labels 2 and 41), 
-                       Left/Right-Cerebral-Cortex (labels 3 and 42), 
-                       Left/Right-Accumbens-area (labels 26 and 58) */
+{
+  Left_Cerebral_White_Matter, Right_Cerebral_White_Matter,
+  Left_Cerebral_Cortex, Right_Cerebral_Cortex,
+  Left_Lateral_Ventricle, Right_Lateral_Ventricle,
+  Left_Hippocampus, Right_Hippocampus,
+  Left_Thalamus_Proper, Right_Thalamus_Proper,
+  Left_Caudate, Right_Caudate,
+  Left_Putamen, Right_Putamen,
+  Left_Pallidum,Right_Pallidum,
+  Left_Amygdala, Right_Amygdala,
+  Left_Accumbens_area, Right_Accumbens_area,
+  Third_Ventricle, Fourth_Ventricle,
+  Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
+};
+
+/* Note: these are the labels not included in the 
+     'overall subcortical Dice coefficient' calculations.
+     It excludes:
+     Left/Right-Cerebral-White-Matter (labels 2 and 41), 
+     Left/Right-Cerebral-Cortex (labels 3 and 42), 
+     Left/Right-Accumbens-area (labels 26 and 58) */
+static const int num_labels_overall_Dice = 18;
+static const int labels_overall_Dice[18] = 
+{
+  Left_Lateral_Ventricle, Right_Lateral_Ventricle,
+  Left_Hippocampus, Right_Hippocampus,
+  Left_Thalamus_Proper, Right_Thalamus_Proper,
+  Left_Caudate, Right_Caudate,
+  Left_Putamen, Right_Putamen,
+  Left_Pallidum,Right_Pallidum,
+  Left_Amygdala, Right_Amygdala,
+  Third_Ventricle, Fourth_Ventricle,
+  Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
+};
+// returns 1 if volVal is one of the labels to include in overall Dice calc
+static int isOverallDiceLabel(int volVal)
+{
+  int i;
+  for (i=0; i < num_labels_overall_Dice; i++) {
+    if (volVal == labels_overall_Dice[i]) return 1;
+  }
+  return 0;
+}
 
 /* maximum number of classes */
 #define MAX_CLASSES 256
@@ -70,7 +104,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.4 2006/09/20 00:15:40 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.5 2006/09/26 00:34:28 nicks Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
@@ -141,27 +175,11 @@ int main(int argc, char *argv[])
              Notice that these labels are not included in the 'if' checks: */
 
           if(v1 == v2){
-            if((v1>=4 && v1 <= 5) ||
-               (v1 >= 10 && v1 <= 15) ||
-               (v1 >= 17 && v1 <= 18) ||
-               (v1>=43 && v1 <= 44) ||
-               (v1 >= 49 && v1 <= 54 ))
-              subcorvolume_overlap++;
+            if(isOverallDiceLabel(v1)) subcorvolume_overlap++;
           }
 
-          if((v1>=4 && v1 <= 5) ||
-             (v1 >= 10 && v1 <= 15) ||
-             (v1 >= 17 && v1 <= 18) ||
-             (v1>=43 && v1 <= 44) ||
-             (v1 >= 49 && v1 <= 54 ))
-            subcorvolume1++;
-
-          if((v2>=4 && v2 <= 5) ||
-             (v2 >= 10 && v2 <= 15) ||
-             (v2 >= 17 && v2 <= 18) ||
-             (v2>=43 && v2 <= 44) ||
-             (v2 >= 49 && v2 <= 54 ) )
-            subcorvolume2++;
+          if(isOverallDiceLabel(v1)) subcorvolume1++;
+          if(isOverallDiceLabel(v2)) subcorvolume2++;
 
           Volume_from1[v1]++;
           Volume_from2[v2]++;
