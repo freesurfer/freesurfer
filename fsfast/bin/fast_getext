@@ -1,18 +1,18 @@
 #!/bin/csh -f
 #
 # Get's the extension of the stem by trying the following
-# extensions nii nii.gz mgh bhdr
+# extensions nii nii.gz mgh mgz bhdr minc
 #
 
 if($#argv != 1) then
   echo "fast_getext stem"
-  echo '$Id: fast_getext,v 1.1 2006/09/26 04:36:26 greve Exp $'
+  echo '$Id: fast_getext,v 1.2 2006/09/26 04:44:20 greve Exp $'
   exit 1;
 endif
 
 set stem = $argv[1];
 
-foreach ext (nii nii.gz mgh bhdr)
+foreach ext (nii nii.gz mgh mgz bhdr minc)
   set fname = $stem.$ext
   # echo Tyring $fname
   if(-e $fname) then
