@@ -225,6 +225,10 @@ tSigCor = tTest(s.ntp-2,tCor);
 
 %------------- print meanval file -----------------%
 fid = fopen(s.meanvalfile,'w');
+if(fid == -1)
+  fprintf('ERROR: could not open %s for writing\n',s.meanvalfile);
+  return;
+end
 fprintf(fid,'%f\n',glb_twf_over_mean);
 fclose(fid);
 
