@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/16 22:20:13 $
-// Revision       : $Revision: 1.357 $
-char *MRI_C_VERSION = "$Revision: 1.357 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/09/26 17:39:21 $
+// Revision       : $Revision: 1.358 $
+char *MRI_C_VERSION = "$Revision: 1.358 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9437,9 +9437,6 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    printf("MRIlinearTransformInterp: Applying transform\n");
-
   v_Y->rptr[4][1] = 1.0f ;
   for (y3 = 0 ; y3 < depth ; y3++)
     {
@@ -9500,16 +9497,6 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   MatrixFree(&v_Y) ;
 
   mri_dst->ras_good_flag = 1;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    {
-      printf("MRIlinearTransform: done\n");
-      printf("mri_dst:\n");
-      printf(" vox res: %g %g %g\n",
-             mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
-      printf(" vox dim: %d %d %d\n",
-             mri_dst->width,mri_dst->height,mri_dst->depth);
-    }
 
   return(mri_dst) ;
 }
@@ -13424,6 +13411,44 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
             }
         }
     }
+  return(count) ;
+}
+
+int
+MRIlabelsInPlanarNbhd(MRI *mri, int x, int y, int z, int whalf, int label, int which)
+{
+  int xi, yi, zi, xk, yk, zk, count ;
+
+  switch (which)
+  {
+  case MRI_SAGITTAL:
+    for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
+    {
+      zi = mri->zi[z+zk] ;
+      for (yk = -whalf ; yk <= whalf ; yk++)
+      {
+        yi = mri->yi[y+yk] ;
+        if (nint(MRIgetVoxVal(mri, x, yi, zi,0)) == label)
+          count++;
+      }
+    }
+    break ;
+  case MRI_CORONAL:
+    for (count = 0, xk = -whalf ; xk <= whalf ; xk++)
+    {
+      xi = mri->xi[x+xk] ;
+      for (yk = -whalf ; yk <= whalf ; yk++)
+      {
+        yi = mri->yi[y+yk] ;
+        if (nint(MRIgetVoxVal(mri, xi, yi, z,0)) == label)
+          count++;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(0, (ERROR_UNSUPPORTED, "MRIlabelsInPlanarNbhd: which=%d not supported yet", which)) ;
+    break ;
+  }
   return(count) ;
 }
 
