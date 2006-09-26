@@ -157,6 +157,11 @@
 #define Right_fimbria             200
 
 #define Fornix                    250
+#define CC_Posterior      251
+#define CC_Mid_Posterior  252
+#define CC_Central        253
+#define CC_Mid_Anterior   254
+#define CC_Anterior       255
 
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331
