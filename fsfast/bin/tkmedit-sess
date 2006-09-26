@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.17 2006/07/26 16:37:17 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.18 2006/09/26 04:47:50 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -50,11 +50,11 @@ set spacedir = ();
 set segmentation = ();
 set segcolor = ();
 set segopacity = .3;
-set mriread = "_000.bfloat";
+set ext = ();
 set usestatic = 0;
 
 set talreg = 0; # show on tal using register.tal
-set MGZ = ();
+set MGZ = .mgz;
 
 set nolog = 0;
 
@@ -137,24 +137,33 @@ else
   set nosig = 1;
 endif
 
+if($#isxavgmethod == 0) then
+  if($space == native) then
+    set spacesubdir = ();
+  else
+    set spacesubdir = $spacedir
+  endif
+else
+  if($isxavgmethod == fixed) then
+    set spacesubdir = $spacedir-ffx
+  else
+    set spacesubdir = $spacedir-rfx
+  endif
+endif
+
+set hdrdir = $sess/$fsd/$analysis$anapend/$spacesubdir
+if($#ext == 0) then
+  set hstem = $hdrdir/h-offset
+  set ext = `fast_getext $hstem`
+  if($status) then
+    echo $ext
+    exit 1;
+  endif
+endif
+
 #----------------------------------------------------#
 if(! $nohdr) then
 
-  if($#isxavgmethod == 0) then
-    if($space == native) then
-      set spacesubdir = ();
-    else
-      set spacesubdir = $spacedir
-    endif
-  else
-    if($isxavgmethod == fixed) then
-      set spacesubdir = $spacedir-ffx
-    else
-      set spacesubdir = $spacedir-rfx
-    endif
-  endif
-
-  set hdrdir = $sess/$fsd/$analysis$anapend/$spacesubdir
   if(! -e $hdrdir) then
     echo "ERROR: cannot find $hdrdir"
     exit 1;
@@ -245,6 +254,12 @@ echo "INFO: subject is $subject"
 
 if($subject != talairach && $space == tal) set mrivolid = talairach
 
+if(-e $SUBJECTS_DIR/$subject/mri/$mrivolid.mgz) then
+  set MGZ = ".mgz";
+else
+  set MGZ = ();
+endif
+
 if($#auxvolid) then
   if(! -e $SUBJECTS_DIR/$subject/mri/$auxvolid) then
     echo "ERROR: $auxvolid does not exist for subject $subject"
@@ -259,11 +274,11 @@ set hdroption  = ""
 set offsetoption = ""
 
 ## Get the full path to the hdr dir ##
-if(! $nohdr ) then
-  pushd $hdrdir > /dev/null
-  set hdrdir = `$PWDCMD`;
-  popd  > /dev/null
+pushd $hdrdir > /dev/null
+set hdrdir = `$PWDCMD`;
+popd  > /dev/null
 
+if(! $nohdr ) then
   ## make sure that dat file exists
   set hdrdat = $analysis$anapend/h.dat
   if(! -e $hdrdat ) then
@@ -275,9 +290,9 @@ if(! $nohdr ) then
   set tmp = `grep Nh $hdrdat`;
   @ Nh = $tmp[2];
   if($Nh != 1 && ! $nohdr) then
-    set hdroption  = (-timecourse $hdrdir/h$mriread )
+    set hdroption  = (-timecourse $hdrdir/h.$ext )
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
-    set offsetoption = (-timecourse-offset $hdrdir/h-offset$mriread)
+    set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
   endif
 endif
 
@@ -286,7 +301,7 @@ if($#mapdir != 0) then
   pushd $mapdir > /dev/null
   set mapdir = `$PWDCMD`;
   popd  > /dev/null
-  set mapoption = (-overlay $mapdir/$map$mriread )
+  set mapoption = (-overlay $mapdir/$map.$ext )
   set mapoption = ($mapoption -overlay-reg $mapregfile)
 else
   set mapoption = ""
@@ -618,22 +633,6 @@ while( $#argv != 0 )
       set sessanat = 1;
       breaksw
 
-    case "-oldread":
-      set mriread = "";
-      breaksw
-
-    case "-mriread":
-      set mriread = "_000.bfloat";
-      breaksw
-
-    case "-mriread-bs":
-      set mriread = "_000.bshort";
-      breaksw
-
-    case "-mriread-bf":
-      set mriread = "_000.bfloat";
-      breaksw
-
     case "-nohdr":
       set nohdr = 1;
       breaksw
@@ -657,6 +656,10 @@ while( $#argv != 0 )
 
     case "-mgz":
       set MGZ = ".mgz";
+      breaksw
+
+    case "-cor":
+      set MGZ = "";
       breaksw
 
     case "-umask":
