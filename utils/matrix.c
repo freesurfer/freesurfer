@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.91 2006/09/15 21:18:47 nicks Exp $
+// $Id: matrix.c,v 1.92 2006/09/26 20:26:38 dsjen Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3412,10 +3412,11 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 	else
     {
       int r,c ;
-
+      
       m_U = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-      m_V = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-      v_S = VectorAlloc(rows, MATRIX_REAL) ;
+      m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
+      v_S = VectorAlloc(cols, MATRIX_REAL) ;
+      
       sc_linalg_SV_decomp(m_U, m_V, v_S) ;
       for (r = 1 ; r <= v_S->rows ; r++)
         if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
