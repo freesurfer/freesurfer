@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.4 2006/09/21 04:15:08 greve Exp $
+// $Id: dti.c,v 1.5 2006/09/26 19:03:37 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.4 2006/09/21 04:15:08 greve Exp $");
+  return("$Id: dti.c,v 1.5 2006/09/26 19:03:37 greve Exp $");
 }
 
 
@@ -87,8 +87,10 @@ int DTIloadGradients(DTI *dti, char *GradFile)
 
   if(GradFile) dti->GradFile = strcpyalloc(GradFile);
   if(dti->GradFile == NULL){
-    sprintf(tmpstr,"%s/diffusion/graddir/gradient_mgh_dti%02d.gdt",
-	    fsenv->FREESURFER_HOME,dti->nDir);
+    //sprintf(tmpstr,"%s/diffusion/graddir/gradient_mgh_dti%02d.gdt",
+    //fsenv->FREESURFER_HOME,dti->nDir);
+    sprintf(tmpstr,"%s/gradient_mgh_dti%02d.gdt",
+	    getenv("FS_DIFF_GRAD_DIR"),dti->nDir);
     dti->GradFile = strcpyalloc(tmpstr);
     printf("GradFile %s\n",dti->GradFile);
   }
