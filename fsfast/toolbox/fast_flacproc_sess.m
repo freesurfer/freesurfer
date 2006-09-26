@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.15 2006/09/22 04:16:43 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.16 2006/09/26 05:04:43 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -52,6 +52,9 @@ if(~do_fla) nruns=0; end
 if(~do_fit) fprintf('Not fitting\n'); end
 
 for nthrun = 1:nruns
+  flac.nthrun = nthrun;
+
+  fprintf('---------------------------------------------------\n');
   fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
           nthrun,nruns,flac.runlist(nthrun,:),toc);
   fprintf('FLAC: %s, %s\n',flac.name,flac.sess);
@@ -59,7 +62,6 @@ for nthrun = 1:nruns
 		   flac.name,flac.runlist(flac.nthrun,:));
   mkdirp(outdir);
 
-  flac.nthrun = nthrun;
   flac = flac_customize(flac);
   if(isempty(flac)) 
     if(~monly) quit;  end
@@ -213,6 +215,7 @@ for nthrun = 1:nruns
     stem = sprintf('%s/beta%s',outdir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(beta,szvol);
+    fprintf('Saving beta to %s\n',stem);
     MRIwrite(tmp,stem);
 
     % Save the baseline separately
