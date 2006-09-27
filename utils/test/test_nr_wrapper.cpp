@@ -13,7 +13,6 @@
 #include "nr_wrapper_open_source.h"
 
 extern "C" {
-  #include "nr_wrapper.h"
   #include "matrix.h"
   #include "error.h"
 }
@@ -22,12 +21,6 @@ class NRWrapperTest : public CppUnit::TestFixture {
 
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( NRWrapperTest );
-
-// TODO:    CPPUNIT_TEST( TestNRLUMatrixInverse );
-// TODO:    CPPUNIT_TEST( TestNRDFPMin );
-// TODO:    CPPUNIT_TEST( TestNRSplineAndSplInt );
-// TODO:    CPPUNIT_TEST( TestNRBetaIncomplete );
-// TODO:    CPPUNIT_TEST( TestNRGammaIncomplete );
 
     CPPUNIT_TEST( TestOpenBetaIncomplete );
     CPPUNIT_TEST( TestOpenGammaIncomplete );
@@ -163,23 +156,18 @@ public:
   bool TestGammaIncompleteHelper( const float a,
     std::string resultFileName, const bool isOpenTest );
 
-  void TestNRBetaIncomplete();
   void TestOpenBetaIncomplete();
 
-  void TestNRGammaIncomplete();
   void TestOpenGammaIncomplete();
 
   void TestOpenLUMatrixInverse();
-  void TestNRLUMatrixInverse();
 
-  void TestNRDFPMin();
   void TestOpenDFPMin();
 
   void TestPowell();
   void TestSVDcmp();
   void TestRan1();
 
-  void TestNRSplineAndSplInt();
   void TestOpenSplineAndSplInt();
   
   void TestOpenEigenSystem();
@@ -384,36 +372,6 @@ bool NRWrapperTest::TestBetaIncompleteHelper( const float a, const float b,
  * samples for each test case.
  */
 void 
-NRWrapperTest::TestNRBetaIncomplete() {
-/*  
-  const bool isOpenTest = false;
-  
-  float a;
-  float b;
-
-  a = 0.5;
-  b = 0.5;
-  CPPUNIT_ASSERT( TestBetaIncompleteHelper( a, b, BETA_INCOMPLETE_05_05, 
-                                            isOpenTest ) );
-  
-  a = 0.5;
-  b = 2.0;
-  CPPUNIT_ASSERT( TestBetaIncompleteHelper( a, b, BETA_INCOMPLETE_05_2, 
-                                            isOpenTest ) );
-
-  a = 2.0;
-  b = 0.5;
-  CPPUNIT_ASSERT( TestBetaIncompleteHelper( a, b, BETA_INCOMPLETE_2_05, 
-                                            isOpenTest ) );
-  
-  a = 2.0;
-  b = 2.0;
-  CPPUNIT_ASSERT( TestBetaIncompleteHelper( a, b, BETA_INCOMPLETE_2_2, 
-                                            isOpenTest ) );
- */     
-}
-
-void 
 NRWrapperTest::TestOpenBetaIncomplete() {  
   const bool isOpenTest = true;
   
@@ -475,28 +433,6 @@ bool NRWrapperTest::TestGammaIncompleteHelper( const float a,
   }
   
   return true;
-}
-
-void 
-NRWrapperTest::TestNRGammaIncomplete() {
-  /*
-  const bool isOpenTest = false;
-  
-  float a;
-
-  a = 0.5;
-  CPPUNIT_ASSERT( TestGammaIncompleteHelper( a, GAMMA_INCOMPLETE_05, 
-                                             isOpenTest ) );
-
-  a = 10;
-  CPPUNIT_ASSERT( TestGammaIncompleteHelper( a, GAMMA_INCOMPLETE_10,
-                                             isOpenTest ) );
-
-  a = 1;
-  CPPUNIT_ASSERT( TestGammaIncompleteHelper( a, GAMMA_INCOMPLETE_1, 
-                                             isOpenTest ) );
-                                             
- */
 }
 
 void
@@ -616,30 +552,6 @@ NRWrapperTest::TestOpenDFPMin() {
   delete isCalled;
   
   TearDownMinimizationTestResults();
-}
-
-void 
-NRWrapperTest::TestNRDFPMin() {
-/*  
-  SetUpMinimizationTestResults();
-  
-  bool isSuccess = TestDFPMinHelper( mFunction1Size, mExpectedFret1, 
-    mExpectedP1, TestFunction1, TestFunction1Gradient, NULL, NULL );
-  CPPUNIT_ASSERT( isSuccess );
-
-  isSuccess = TestDFPMinHelper( mFunction2Size, mExpectedFret2, mExpectedP2, 
-    TestFunction2, TestFunction2Gradient, NULL, NULL );
-  CPPUNIT_ASSERT( isSuccess );
-
-  bool* isCalled = new bool[1];
-  isSuccess = TestDFPMinHelper( mFunction2Size, mExpectedFret2, mExpectedP2, 
-    TestFunction2, TestFunction2Gradient, StepFunction, isCalled );
-  CPPUNIT_ASSERT( *isCalled );
-  CPPUNIT_ASSERT( isSuccess );
-  delete isCalled;
-  
-  TearDownMinimizationTestResults();
-  */
 }
 
 // static
@@ -818,9 +730,7 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   
   // this will become the new svdcmp
   if( IS_USING_VNL ) {
-//    isError = OpenSvdcmp( u, w, v );
-    isError = OpenSvdcmp( u->rptr, numberOfRows, numberOfColumns, 
-                          w->rptr[1], v->rptr );
+    isError = OpenSvdcmp( u, w, v );
   } else {
 /* TODO:
     isError = svdcmp( u->rptr, numberOfRows, numberOfColumns, 
@@ -830,8 +740,9 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
   
   if( isError == NO_ERROR ) {
 
-    MATRIX* result = ReconstructFromSVD( u, w, v );    
-    bool areEqual = AreMatricesEqual( x, result, EPSILON, 
+    const double tolerance = 1e-2;
+    MATRIX* result = ReconstructFromSVD( u, w, v );
+    bool areEqual = AreMatricesEqual( x, result, tolerance, 
       numberOfRows, numberOfColumns );
                 
     if( areEqual ) {
@@ -874,11 +785,6 @@ NRWrapperTest::TestSVDcmp() {
   status = TestSVDcmpHelper( ONE_SMALL_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
-// TODO: using vxl, this test case will fail--meaning the matrix is valid, which
-// is a feature actually...
-// TODO: with more columns than rows, this used to fail, but will now return
-// a u of 5x11, rather than 5x5.  We should make a note of this.  I believe that
-// the way that svdcmp has been used is to copy the 5x11 matrix into u initially
   status = TestSVDcmpHelper( RANDOM_5_11 );
   CPPUNIT_ASSERT_EQUAL( MATRICES_ERROR, status );
   
@@ -1044,42 +950,6 @@ NRWrapperTest::TestOpenSplineAndSplInt() {
   MatrixFree( &xxFine );
 }
 
-void 
-NRWrapperTest::TestNRSplineAndSplInt() {
-/*
-  const bool isOpen = false;
-  
-  MATRIX* x = MatrixRead( (char*) ( SINE_X.c_str() ) );
-  MATRIX* y = MatrixRead( (char*) ( SINE_Y.c_str() ) );
-
-  MATRIX* xxCourse = MatrixRead( (char*) ( SINE_XX_COURSE.c_str() ) );
-  MATRIX* xxFine = MatrixRead( (char*) ( SINE_XX_FINE.c_str() ) );
-
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxCourse, SINE_SPLINE_YY_0_0_COURSE,
-    0.0, 0.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxCourse, SINE_SPLINE_YY_5_5_COURSE,
-    5.0, 5.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxCourse, SINE_SPLINE_YY_0_17_COURSE,
-    0.0, 17.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxCourse, SINE_SPLINE_YY_19_2_COURSE,
-    19.0, 2.0, isOpen) );
-    
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxFine, SINE_SPLINE_YY_0_0_FINE,
-    0.0, 0.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxFine, SINE_SPLINE_YY_5_5_FINE,
-    5.0, 5.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxFine, SINE_SPLINE_YY_0_17_FINE,
-    0.0, 17.0, isOpen) );
-  CPPUNIT_ASSERT( AreSplinesEqual(x, y, xxFine, SINE_SPLINE_YY_19_2_FINE,
-    19.0, 2.0, isOpen) );
-    
-  MatrixFree( &x );
-  MatrixFree( &y ); 
-  MatrixFree( &xxCourse );
-  MatrixFree( &xxFine );
-*/  
-}
-
 bool
 NRWrapperTest::TestLUMatrixInverseHelper( std::string matrixFile, 
     std::string expectedInverseFile, const bool isOpen ) {
@@ -1143,29 +1013,6 @@ NRWrapperTest::TestOpenLUMatrixInverse() {
 
   CPPUNIT_ASSERT( 
     TestLUMatrixInverseHelper( ZEROES_MATRIX, ZEROES_MATRIX, isOpen ) == false );  
-}
-
-void 
-NRWrapperTest::TestNRLUMatrixInverse() {
-/*
-  bool isOpen = false;
-  
-  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( PASCAL_MATRIX, PASCAL_INVERSE, isOpen ) );
-
-  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( 
-    IDENTITY_MATRIX, IDENTITY_MATRIX, isOpen) );
-
-  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( 
-    ONE_SMALL_MATRIX, ONE_SMALL_INVERSE, isOpen) );
-  
-  CPPUNIT_ASSERT( TestLUMatrixInverseHelper( ONE_MATRIX, ONE_INVERSE, isOpen) );
-  
-  CPPUNIT_ASSERT( 
-    TestLUMatrixInverseHelper( SINGULAR_MATRIX, SINGULAR_MATRIX, isOpen ) == false );
-
-  CPPUNIT_ASSERT( 
-    TestLUMatrixInverseHelper( ZEROES_MATRIX, ZEROES_MATRIX, isOpen ) == false );  
-*/
 }
 
 bool
