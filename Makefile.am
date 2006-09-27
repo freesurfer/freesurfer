@@ -223,7 +223,6 @@ MISCDIRS=histo_compute_joint_density \
 	dngtester \
 	test_makevol \
 	scripts \
-	image \
 	images \
 	distribution \
 	dummy \
@@ -247,9 +246,7 @@ SUBDIRS=include \
 	$(DTISUBDIRS) \
 	fsfast \
 	matlab \
-	scuba \
-	qdec \
-	plotter
+	scuba
 
 install-data-hook:
 	echo "$(PACKAGE)-$(OS)-$(target_vendor)-$(target_cpu)-$(PACKAGE_VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
