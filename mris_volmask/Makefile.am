@@ -8,8 +8,10 @@ $(VTK_CXXFLAGS)/vtk-5.0 -Wno-deprecated
 
 if ENABLE_VTK_APPS
 bin_PROGRAMS = mris_volmask
+EXTRA_DIST = cmd_line_interface.h
 else
 bin_PROGRAMS =
+EXTRA_DIST = 
 endif
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
