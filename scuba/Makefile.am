@@ -2,7 +2,9 @@
 # Makefile.am for scuba
 #
 
-SUBDIRS=images
+if ENABLE_QT_APPS
+	SUBDIRS=images
+endif
 
 AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	$(GL_FLAGS) \
