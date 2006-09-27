@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.219 2006/09/27 17:44:08 nicks Exp $"
+# "$Id: configure.in,v 1.220 2006/09/27 17:52:39 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1335,7 +1335,7 @@ AC_OUTPUT([Makefile
                  include/pixrect/Makefile
                  include/sys/Makefile
                  include/xview/Makefile
-                 include/topologyMakefile
+                 include/topology/Makefile
                  include/fs_vnl/Makefile
                  label_area/Makefile
                  log/Makefile
