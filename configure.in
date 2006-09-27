@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.220 2006/09/27 17:52:39 nicks Exp $"
+# "$Id: configure.in,v 1.221 2006/09/27 19:37:24 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -719,6 +719,8 @@ ac_cppunit_bindir="NO"
 ac_cppunit_dir="NO"
 CPPUNIT_CFLAGS=""
 CPPUNIT_LIBS=""
+CPPUNIT_LIB=""
+CPPUNIT_DIR=""
 AC_MSG_CHECKING(CppUnit directory)
 
 AC_ARG_WITH(cppunit-dir,
@@ -733,17 +735,21 @@ if test ! "$ac_cppunit_includes" = "NO"; then
   AC_MSG_RESULT(CppUnit directory is $withval)
   CPPUNIT_CFLAGS=-I$ac_cppunit_includes
   CPPUNIT_DIR=$ac_cppunit_dir
-  AC_SUBST(CPPUNIT_DIR)
 else
   AC_MSG_RESULT(CppUnit directory is not supplied)
 fi
 
 if test ! "$ac_cppunit_libraries" = "NO"; then
+  CPPUNIT_LIB=$ac_cppunit_libraries
   CPPUNIT_LIBS=-L$ac_cppunit_libraries
 fi
 
 AC_SUBST(CPPUNIT_CFLAGS)
 AC_SUBST(CPPUNIT_LIBS)
+AC_SUBST(CPPUNIT_LIB)
+AC_SUBST(CPPUNIT_DIR)
+
+AM_CONDITIONAL(HAVE_CPPUNIT, ! test "x$ac_cppunit_dir" = "xNO")
 
 
 ################################################################
@@ -1134,15 +1140,12 @@ fi
 # MNI_CFLAGS, MNI_LIBS
 # JPEG_CFLAGS, JPEG_LIBS
 # TIFF_CFLAGS, TIFF_LIBS
-# GSL_CFLAGS, GSL_LIBS
 # TCL_CFLAGS, TCL_LIBS, LIB_TCL
 # TK_CFLAGS, TK_LIBS, LIB_TK, LIB_TIX
 # BLT_CFLAGS, BLT_LIBS, LIB_BLT
 # GL_CFLAGS, GL_LIBS
 # GLU_CFLAGS, GLU_LIBS
 # GLUT_CFLAGS, GLUT_LIBS
-# QT_CFLAGS, QT_LIBS, QTDIR, ENABLE_QT_APPS
-# CPPUNIT_CFLAGS, CPPUNIT_LIBS, CPPUNIT_DIR
 # VXL_CFLAGS, VXL_LIBS
 # VTK_CFLAGS, VTK_LIBS, ENABLE_VTK_APPS
 #
@@ -1296,6 +1299,9 @@ AC_CHECK_FUNCS([\
 # license in FREESURFER_HOME, the others specify necessary libs.
 #
 TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VXL_LIB"
+if (! test "x$ac_cppunit_dir" = "xNO"); then
+  TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
+fi
 AC_SUBST(TESTS_ENVIRONMENT)
 
 #########################################################################
