@@ -1,0 +1,54 @@
+# $Id: ASegStatsLUT.txt,v 1.1 2006/09/27 22:38:06 greve Exp $
+# This is a subset of the labels found in FreeSurferColorLUT.txt. This
+# is the set that will be reported in the stats/aseg.stats file.
+#
+
+  0  Unknown                            	   0    0    0     0
+  2  Left-Cerebral-White-Matter         	 245  245  245     0 
+  3  Left-Cerebral-Cortex               	 205   62   78     0 
+  4  Left-Lateral-Ventricle             	 120   18  134     0 
+  5  Left-Inf-Lat-Vent                      196   58  250     0 
+  7  Left-Cerebellum-White-Matter           220  248  164     0    
+  8  Left-Cerebellum-Cortex                 230  148   34     0             
+  10  Left-Thalamus-Proper                     0  118   14     0          
+ 11  Left-Caudate                           122  186  220    0          
+ 12  Left-Putamen                           236   13  176    0          
+ 13  Left-Pallidum                           12   48  255    0          
+ 14  3rd-Ventricle                          204  182  142    0    
+ 15  4th-Ventricle                           42  204  164    0    
+ 16  Brain-Stem                             119  159  176    0    
+ 17  Left-Hippocampus                       220  216   20     0    
+ 18  Left-Amygdala                          103  255  255    0    
+ 24  CSF                                     60   60   60     0    
+ 26  Left-Accumbens-area                    255  165    0    0          
+ 28  Left-VentralDC                         165   42   42    0        
+ 30  Left-vessel                            160   32  240    0      
+ 31  Left-choroid-plexus                      0  200  200    0        
+ 41  Right-Cerebral-White-Matter              0  225    0     0   
+ 42  Right-Cerebral-Cortex                  205   62   78      0   
+ 43  Right-Lateral-Ventricle                120   18  134     0   
+ 44  Right-Inf-Lat-Vent                     196   58  250     0   
+ 46  Right-Cerebellum-White-Matter          220  248  164     0   
+ 47  Right-Cerebellum-Cortex                230  148   34      0   
+ 49  Right-Thalamus-Proper                    0  118   14      0   
+ 50  Right-Caudate                          122  186  220     0   
+ 51  Right-Putamen                          236   13  176     0   
+ 52  Right-Pallidum                          13   48  255    0          
+ 53  Right-Hippocampus                      220  216   20      0   
+ 54  Right-Amygdala                         103  255  255     0   
+ 58  Right-Accumbens-area                   255  165    0     0   
+ 60  Right-VentralDC                        165   42   42     0   
+ 62  Right-vessel                           160   32  240     0   
+ 72  5th-Ventricle                          120  190  150     0
+ 77  WM-hypointensities                   200   70  255    0
+ 78  Left-WM-hypointensities              255  148  10    0
+ 79  Right-WM-hypointensities             255  148  10    0
+ 80  non-WM-hypointensities               164  108  226    0
+ 81  Left-non-WM-hypointensities          164  108  226    0
+ 82  Right-non-WM-hypointensities         164  108  226    0
+ 85  Optic-Chiasm                         234  169   30    0
+251 CC_Posterior                     0 0 64 0
+252 CC_Mid_Posterior                 0 0 112 0
+253 CC_Central                       0 0 160 0
+254 CC_Mid_Anterior                  0 0  208 0
+255 CC_Anterior                      0 0 255 0
