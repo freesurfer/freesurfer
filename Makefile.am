@@ -223,6 +223,7 @@ MISCDIRS=histo_compute_joint_density \
 	dngtester \
 	test_makevol \
 	scripts \
+	image \
 	images \
 	distribution \
 	dummy \
