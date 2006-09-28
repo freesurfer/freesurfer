@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.8 2006/09/25 21:00:26 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.9 2006/09/28 06:34:05 nicks Exp $'
 
 umask 002
 
@@ -54,7 +54,7 @@ chgrp -R fsdev $ACTUAL
 # to produce the expected results)
 #
 
-set cmd=($WD/test_data/create_optseq2_data.csh)
+set cmd=($WD/test_data/create_optseq2_data.csh $WD/optseq2)
 cd $ACTUAL
 echo $cmd
 $cmd
