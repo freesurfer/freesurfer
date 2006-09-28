@@ -24,8 +24,6 @@ uninstall-local:
 	fi; \
 	done
  
-include exclude_files.sh
-
 #release:
 #	$(MAKE) install
 #	@list=$(BIN_REMOVE_LIST); for p in $$list ; do \
