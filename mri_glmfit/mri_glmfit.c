@@ -446,7 +446,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.87 2006/09/25 18:02:43 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.88 2006/09/28 04:30:18 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -541,6 +541,7 @@ int ReallyUseAverage7 = 0;
 DTI *dti;
 int usedti = 0;
 int logflag = 0; // natural log
+MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3, *fa;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -635,6 +636,16 @@ int main(int argc, char **argv)
   if(mriglm->y == NULL){
     printf("ERROR: loading y %s\n",yFile);
     exit(1);
+  }
+  if(mriglm->y->type != MRI_FLOAT){
+    printf("INFO: changing y type to float\n");
+    mritmp = MRIchangeType(mriglm->y,MRI_FLOAT,0,0,0);
+    if(mritmp == NULL){
+      printf("ERROR: could change type\n");
+      exit(1);
+    }
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
   }
   nvoxels = mriglm->y->width*mriglm->y->height*mriglm->y->depth;
 
@@ -1263,6 +1274,40 @@ int main(int argc, char **argv)
     fclose(fp);
     
     MRIfree(&sig);
+  }
+
+  if(usedti){
+    printf("Saving DTI Analysis\n");
+    lowb = DTIbeta2LowB(mriglm->beta, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/lowb.mgh",GLMDir);
+    MRIwrite(lowb,tmpstr);
+
+    tensor = DTIbeta2Tensor(mriglm->beta, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/tensor.mgh",GLMDir);
+    MRIwrite(tensor,tmpstr);
+
+    evals=NULL;evec1=NULL;evec2=NULL;evec3=NULL;
+    DTItensor2Eig(tensor, mriglm->mask, &evals, &evec1, &evec2, &evec3);
+    sprintf(tmpstr,"%s/eigval.mgh",GLMDir);
+    MRIwrite(evals,tmpstr);
+    sprintf(tmpstr,"%s/eigvec1.mgh",GLMDir);
+    MRIwrite(evec1,tmpstr);
+    sprintf(tmpstr,"%s/eigvec2.mgh",GLMDir);
+    MRIwrite(evec2,tmpstr);
+    sprintf(tmpstr,"%s/eigvec3.mgh",GLMDir);
+    MRIwrite(evec3,tmpstr);
+
+    fa = DTIeigvals2FA(evals, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/fa.mgh",GLMDir);
+    MRIwrite(fa,tmpstr);
+
+    MRIfree(&lowb);
+    MRIfree(&tensor);
+    MRIfree(&evals);
+    MRIfree(&evec1);
+    MRIfree(&evec2);
+    MRIfree(&evec3);
+    MRIfree(&fa);
   }
 
   // --------- Save FSGDF stuff --------------------------------
@@ -2011,7 +2056,7 @@ static void check_options(void)
     printf("ERROR: cannot specify --C with --osgm\n");
     exit(1);
   } 
-  if(nContrasts == 0 && !OneSampleGroupMean){
+  if(nContrasts == 0 && !OneSampleGroupMean && !usedti){
     printf("ERROR: no contrasts specified\n");
     exit(1);
   }
