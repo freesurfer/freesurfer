@@ -847,21 +847,16 @@ NRWrapperTest::TestRan1() {
     bins[i] = 0;
   }
 
-  const int numberOfRuns = 1000;
+  const int numberOfRuns = 1000000;
   long seed = -1L * (long)( abs( (int)time(NULL) ) );
 
   float randomNumber;
 
   for(int i=0; i<numberOfRuns; i++) {
-    // TODO: done
-    if( IS_USING_VNL ) {
-      randomNumber = OpenRan1( &seed );
-    } else {
-      // TODO:      randomNumber = ran1( &seed );
-    }
+    randomNumber = OpenRan1( &seed );
 
     CPPUNIT_ASSERT( IsBetween0And1( randomNumber ) );
-
+  
     int bin = (int)floor(randomNumber * numberOfBins);
     bins[bin]++;
   }
