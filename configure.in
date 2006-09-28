@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.221 2006/09/27 19:37:24 nicks Exp $"
+# "$Id: configure.in,v 1.222 2006/09/28 02:07:25 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -625,6 +625,7 @@ ac_gsl_libraries="NO"
 ac_gsl_bindir="NO"
 GSL_CFLAGS=""
 GSL_LIBS=""
+GSL_LIB=""
 AC_MSG_CHECKING(GSL directory)
 
 AC_ARG_WITH(gsl-dir,
@@ -642,11 +643,13 @@ else
   GSL_CFLAGS=-DUSE_SC_GSL_REPLACEMENT=1
 fi
 if test ! "$ac_gsl_libraries" = "NO"; then
+  GSL_LIB=$ac_gsl_libraries
   GSL_LIBS=-L$ac_gsl_libraries
 fi
 
 AC_SUBST(GSL_CFLAGS)
 AC_SUBST(GSL_LIBS)
+AC_SUBST(GSL_LIB)
 
 AM_CONDITIONAL(USE_SC_GSL_REPLACEMENT, test "x$ac_gsl_libraries" = "xNO")
 
@@ -1301,6 +1304,9 @@ AC_CHECK_FUNCS([\
 TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VXL_LIB"
 if (! test "x$ac_cppunit_dir" = "xNO"); then
   TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
+fi
+if test ! "$ac_gsl_includes" = "NO"; then
+  TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$GSL_LIB"
 fi
 AC_SUBST(TESTS_ENVIRONMENT)
 
