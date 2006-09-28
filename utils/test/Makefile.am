@@ -22,7 +22,7 @@ BROKEN=difftool mri_compute_stats \
 
 if HAVE_CPPUNIT
 CPPUNIT_CHECKS=test_nr_wrapper test_matrix
-check_PROGRAMS=$(CPPUNIT_CHECKS)
+check_PROGRAMS=$(CHECKS) $(CPPUNIT_CHECKS)
 else
 CPPUNIT_CHECKS=
 check_PROGRAMS=$(CHECKS)
