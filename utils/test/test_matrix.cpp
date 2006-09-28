@@ -14,6 +14,7 @@
 
 extern "C" {
 #include "matrix.h"
+#include "gsl_wrapper.h"
 }
 
 class MatrixTest : public CppUnit::TestFixture {
@@ -45,6 +46,9 @@ private:
 
   /** non-square matrix */
   MATRIX* mNonSquareMatrix;
+
+  /** square matrix */
+  MATRIX* mSquareMatrix;
 
   /** 1x1 matrix of a 5 */
   MATRIX* mOneMatrix;
@@ -83,6 +87,9 @@ public:
   static const std::string NON_SQUARE_MATRIX;
   static const std::string NON_SQUARE_MATRIX_PSEUDO_INVERSE;
 
+  static const std::string SQUARE_MATRIX;
+  static const std::string SQUARE_MATRIX_PSEUDO_INVERSE;
+
   static const std::string ONE_MATRIX;
   static const std::string ONE_INVERSE;
 
@@ -93,6 +100,10 @@ public:
   static const std::string TRANSFORM_INVERSE;
 
   static const std::string NON_SYMMETRIC_MATRIX;
+
+  static const std::string SVD_U_MATRIX;
+  static const std::string SVD_V_MATRIX;
+  static const std::string SVD_S_VECTOR;
 
   // setUp is called automatically before each test
   void setUp();
@@ -137,6 +148,10 @@ TESTING_DIR + "NonSquare.mat";
 const std::string MatrixTest::NON_SQUARE_MATRIX_PSEUDO_INVERSE =
 TESTING_DIR + "NonSquarePseudoInverse.mat";
 
+const std::string MatrixTest::SQUARE_MATRIX = TESTING_DIR + "Square.mat";
+const std::string MatrixTest::SQUARE_MATRIX_PSEUDO_INVERSE =
+TESTING_DIR + "SvdPseudoInverse.mat";
+
 const std::string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const std::string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
 
@@ -152,6 +167,10 @@ TESTING_DIR + "TransformMatrixInverse.mat";
 const std::string MatrixTest::NON_SYMMETRIC_MATRIX =
 TESTING_DIR + "NonSymmetricMatrix.mat";
 
+const std::string MatrixTest::SVD_U_MATRIX = TESTING_DIR + "SVD_U.mat";
+const std::string MatrixTest::SVD_V_MATRIX = TESTING_DIR + "SVD_V.mat";
+const std::string MatrixTest::SVD_S_VECTOR = TESTING_DIR + "SVD_S.mat";
+
 void
 MatrixTest::setUp() {
   mPascalMatrix =    MatrixRead( (char*) ( PASCAL_MATRIX.c_str() ) );
@@ -160,9 +179,10 @@ MatrixTest::setUp() {
   mIdentityMatrix =  MatrixRead( (char*) ( IDENTITY_MATRIX.c_str() ) );
   mSingularMatrix =  MatrixRead( (char*) ( SINGULAR_MATRIX.c_str() ) );
   mNonSquareMatrix = MatrixRead( (char*) ( NON_SQUARE_MATRIX.c_str() ) );
+  mSquareMatrix =    MatrixRead( (char*) ( SQUARE_MATRIX.c_str() ) );
   mOneMatrix =       MatrixRead( (char*) ( ONE_MATRIX.c_str() ) );
   mOneSmallMatrix =  MatrixRead( (char*) ( ONE_SMALL_MATRIX.c_str() ) );
-  mTransformMatrix =  MatrixRead( (char*) ( TRANSFORM_MATRIX.c_str() ) );
+  mTransformMatrix = MatrixRead( (char*) ( TRANSFORM_MATRIX.c_str() ) );
   mNonSymmetricMatrix = MatrixRead( (char*) ( NON_SYMMETRIC_MATRIX.c_str() ) );
 }
 
@@ -198,10 +218,14 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
           areEqual = false;
           std::cerr << "MatrixTest::AreMatricesEqual() not equal: (" <<
             m1->data[ index ] << ", " << m2->data[ index ] << ")\n";
+          std::cerr.flush();
         }
       }
     }
   } else {
+    std::cerr << "MatrixTest::AreMatricesEqual() not equal: m1: (" <<
+      m1->rows << ", " << m1->cols << "), m2: (" << 
+      m2->rows << ", " << m2->cols << ")\n"; 
     areEqual = false;
   }
   return areEqual;
@@ -357,16 +381,20 @@ MatrixTest::TestOpenMatrixDeterminant() {
 
 int
 MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
-  const float TOLERANCE = 1e-5;
+  const float TOLERANCE = 2e-5;
 
   int eigenSystemState = EIGENSYSTEM_INVALID;
 
   int size = matrix->rows;
+  int cols = matrix->cols;
 
   float *eigenValues = new float[ size ];
-  MATRIX *eigenVectors = MatrixAlloc( size, size, MATRIX_REAL );
+  MATRIX *eigenVectors = MatrixAlloc( size, cols, MATRIX_REAL );
 
-  MatrixEigenSystem( matrix, eigenValues, eigenVectors );
+  MATRIX *eigenSystem = MatrixEigenSystem( matrix, eigenValues, eigenVectors );
+  if (eigenSystem == NULL) {
+    return EIGENSYSTEM_INVALID;
+  }
 
   bool isInDecendingOrder = true;
   for( int i=1; i<size; i++ ) {
@@ -423,10 +451,8 @@ MatrixTest::TestMatrixEigenSystem() {
   CPPUNIT_ASSERT
     ( DoesCreateValidEigenSystem( mSingularMatrix ) == EIGENSYSTEM_VALID);
 
-  // TODO: should this gracefully exit with a non-square matrix rather than seg
-  //       fault?
-  //  CPPUNIT_ASSERT
-  //  ( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
+  CPPUNIT_ASSERT
+    ( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
 
   CPPUNIT_ASSERT
     ( DoesCreateValidEigenSystem( mOneMatrix ) == EIGENSYSTEM_VALID );
@@ -434,24 +460,49 @@ MatrixTest::TestMatrixEigenSystem() {
   CPPUNIT_ASSERT
     ( DoesCreateValidEigenSystem( mOneSmallMatrix ) == EIGENSYSTEM_VALID );
 
-  // TODO: don't know why this fails
-  //CPPUNIT_ASSERT
-  //( DoesCreateValidEigenSystem( mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
+  CPPUNIT_ASSERT
+    ( DoesCreateValidEigenSystem( mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
 }
 
 void
 MatrixTest::TestMatrixSVDPseudoInverse() {
+  float tolerance = 1e-4;
 
   std::cout << "\rMatrixTest::TestMatrixSVDPseudoInverse()\n";
 
-  MATRIX *actualInverse = MatrixSVDPseudoInverse( mNonSquareMatrix, NULL );
+  // check the low-level routine first
+  MATRIX *Ux = MatrixRead( (char*) ( SVD_U_MATRIX.c_str() ) );
+  MATRIX *Vx = MatrixRead( (char*) ( SVD_V_MATRIX.c_str() ) );
+  VECTOR *Sx = MatrixRead( (char*) ( SVD_S_VECTOR.c_str() ) );
+  CPPUNIT_ASSERT (Ux != NULL);
+  CPPUNIT_ASSERT (Vx != NULL);
+  CPPUNIT_ASSERT (Sx != NULL);
 
+  MATRIX *U=MatrixCopy(mSquareMatrix,NULL);
+  MATRIX *V=MatrixAlloc(U->cols, U->cols, MATRIX_REAL) ;
+  VECTOR *S=VectorAlloc(U->cols, MATRIX_REAL) ;
+  sc_linalg_SV_decomp( U, V, S ) ;
+  CPPUNIT_ASSERT (U != NULL);
+  CPPUNIT_ASSERT (V != NULL);
+  CPPUNIT_ASSERT (S != NULL);
+  CPPUNIT_ASSERT ( AreMatricesEqual( U, Ux, tolerance ) );
+  CPPUNIT_ASSERT ( AreMatricesEqual( V, Vx, tolerance ) );
+  CPPUNIT_ASSERT ( AreMatricesEqual( S, Sx, tolerance ) );
+
+  // now check MatrixSVDPseudoInverse, which uses sc_linalg_SV_decomp
+
+  tolerance = 1e-6;
+
+  MATRIX *actualInverse = MatrixSVDPseudoInverse( mNonSquareMatrix, NULL );
   MATRIX *expectedInverse =
     MatrixRead( (char*) ( NON_SQUARE_MATRIX_PSEUDO_INVERSE.c_str() ) );
-
   CPPUNIT_ASSERT( AreMatricesEqual( actualInverse, expectedInverse ) );
 
-  delete expectedInverse;
+  actualInverse = MatrixSVDPseudoInverse( mSquareMatrix, NULL );
+  expectedInverse =
+    MatrixRead( (char*) ( SQUARE_MATRIX_PSEUDO_INVERSE.c_str() ) );
+  CPPUNIT_ASSERT
+    ( AreMatricesEqual( actualInverse, expectedInverse, tolerance ) );
 }
 
 int main ( int argc, char** argv ) {
