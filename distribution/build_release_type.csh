@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.72 2006/09/28 16:51:48 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.73 2006/09/28 16:55:38 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -352,7 +352,7 @@ set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
-    set cnfgr=($cnfgr --with-cppunit-dir=${GSLDIR})
+    set cnfgr=($cnfgr --with-cppunit-dir=${CPPUNITDIR})
 endif
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
