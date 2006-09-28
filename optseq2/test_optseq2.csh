@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.9 2006/09/28 06:34:05 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.10 2006/09/28 19:42:03 nicks Exp $'
 
 umask 002
 
@@ -40,7 +40,7 @@ if ($status != 0) then
 endif
 chmod 666 emot*
 
-set ACTUAL=/tmp/optseq2
+set ACTUAL=$WD/tmp
 if (-e $ACTUAL) rm -Rf $ACTUAL
 mkdir -p $ACTUAL
 if (! -e $ACTUAL) then
