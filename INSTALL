@@ -251,7 +251,7 @@ to let it find where some libraries are installed. Freesurfer builds
 against the following set of open-sourced libraries, thus, these must
 be installed prior to building:
 
-      GSL
+      VXL
       JPEG
       TIFF
       Tcl (8.4 recommended)
@@ -259,7 +259,6 @@ be installed prior to building:
       Tix (8.4 recommended)
       BLT (2.4 recommended)
       GLut
-      Qt 3.3.4
 
 Most modern Linux installations probably have most of these libraries
 installed already. 
@@ -281,12 +280,13 @@ Alternatively, a special bundle of the source code for the packages
 required by Freesurfer has been assembled at MGH and is available from
 the download site:
 
-  https://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs
+  http://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/src
 
 Look for mni.srcbuild.tar.gz, and mni.srcbuild.README.txt describes
-the build process.  Also look for tcltktixblt.tar.gz, gsl-1.6.tar.gz
-and tiffjpegglut.tar.gz.  Each contains a build script, handling the
-idiosyncracies of making each library work with Freesurfer.
+the build process.  Also look for tcltktixblt.tar.gz, vxl-1.4.tar.gz
+and tiffjpegglut.tar.gz (necessary for the Mac OS).  Each contains a 
+build script (VXL requires cmake), handling the idiosyncracies of making 
+each library work with Freesurfer.
 
 Normally, the MINC toolkit is installed into /usr/local/mni, although
 your site may have a different system of sharing
@@ -298,13 +298,23 @@ just be:
 
   --with-mni-dir=/usr/local/mni
 
+A typical configure command, assuming that the necessary 3rd-party
+packages have been installed in a directory called /usr/pubsw/packages,
+would be:
+
+  ./configure --prefix=/usr/local/freesurfer \
+    --with-mni-dir=/usr/pubsw/packages/mni/current \
+    --with-vxl-dir=/usr/pubsw/packages/vxl/current \
+    --with-tcl-dir=/usr/pubsw/packages/tcltktixblt/current \
+    --with-tixwish=/usr/pubsw/packages/tcltktixblt/current/bin/tixwish8.1.8.4 
+
 Please note that currently we have limited support for users trying to
 compile their own source code. If you are running into trouble, please
 make sure you are familiar with how autoconf installations are
 supposed to work in general. Also see the wiki for notes on compiling,
 although it is mainly written for in-house developers:
 
-  https://surfer.nmr.mgh.harvard.edu/fswiki/DevelopersGuide
+  http://surfer.nmr.mgh.harvard.edu/fswiki/DevelopersGuide
 
 We welcome all helpful contributions to our documentation, so please
 feel free to make suggestions.
