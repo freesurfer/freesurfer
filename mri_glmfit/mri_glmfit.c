@@ -446,7 +446,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.88 2006/09/28 04:30:18 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.89 2006/09/28 05:34:54 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -542,6 +542,8 @@ DTI *dti;
 int usedti = 0;
 int logflag = 0; // natural log
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3, *fa;
+
+char *format = "mgh";
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -639,7 +641,7 @@ int main(int argc, char **argv)
   }
   if(mriglm->y->type != MRI_FLOAT){
     printf("INFO: changing y type to float\n");
-    mritmp = MRIchangeType(mriglm->y,MRI_FLOAT,0,0,0);
+    mritmp = MRISeqchangeType(mriglm->y,MRI_FLOAT,0,0,0);
     if(mritmp == NULL){
       printf("ERROR: could change type\n");
       exit(1);
@@ -732,7 +734,7 @@ int main(int argc, char **argv)
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
     if(!DontSave){
-      sprintf(tmpstr,"%s/mask.mgh",GLMDir);
+      sprintf(tmpstr,"%s/mask.%s",GLMDir,format);
       printf("Saving mask to %s\n",tmpstr);
       MRIwrite(mriglm->mask,tmpstr);
     }
@@ -777,7 +779,7 @@ int main(int argc, char **argv)
 			    mriglm->mask, mriglm->w);
     if(mritmp==NULL) exit(1);
     if(weightsqrt || weightinv){
-      sprintf(tmpstr,"%s/wn.mgh",GLMDir);
+      sprintf(tmpstr,"%s/wn.%s",GLMDir,format);
       if(!DontSave) MRIwrite(mriglm->w,tmpstr);
     }
   }
@@ -1158,7 +1160,7 @@ int main(int argc, char **argv)
 	fclose(fp);
 
 	if(DiagCluster){
-	  sprintf(tmpstr,"./%s-sig.mgh",mriglm->glm->Cname[n]);
+	  sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
 	  printf("Saving sig into %s and exiting ... \n",tmpstr);
 	  MRIwrite(sig,tmpstr);
 	  exit(1);
@@ -1192,7 +1194,7 @@ int main(int argc, char **argv)
   if(surf != NULL){
     printf("Computing spatial AR1 on surface\n");
     ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/ar1.mgh",GLMDir);
+    sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
     MRIwrite(ar1,tmpstr);
     RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
     eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
@@ -1219,7 +1221,7 @@ int main(int argc, char **argv)
   MRIwrite(mriglm->rvar,rvarFile);
 
   rstd = MRIsqrt(mriglm->rvar,NULL);
-  sprintf(tmpstr,"%s/rstd.mgh",GLMDir);
+  sprintf(tmpstr,"%s/rstd.%s",GLMDir,format);
   MRIwrite(rstd,tmpstr);
 
   if(mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
@@ -1242,11 +1244,11 @@ int main(int argc, char **argv)
     MatrixWriteTxt(tmpstr, mriglm->glm->C[n]);
 
     // Save gamma 
-    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->glm->Cname[n]);
+    sprintf(tmpstr,"%s/%s/gamma.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(mriglm->gamma[n],tmpstr);
 
     // Save F
-    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,mriglm->glm->Cname[n]);
+    sprintf(tmpstr,"%s/%s/F.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(mriglm->F[n],tmpstr);
     
     // Compute and Save -log10 p-values
@@ -1258,7 +1260,7 @@ int main(int argc, char **argv)
     if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
 
     // Write out the sig
-    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,mriglm->glm->Cname[n]);
+    sprintf(tmpstr,"%s/%s/sig.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(sig,tmpstr);
 
     // Find and save the max sig
@@ -1279,26 +1281,26 @@ int main(int argc, char **argv)
   if(usedti){
     printf("Saving DTI Analysis\n");
     lowb = DTIbeta2LowB(mriglm->beta, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/lowb.mgh",GLMDir);
+    sprintf(tmpstr,"%s/lowb.%s",GLMDir,format);
     MRIwrite(lowb,tmpstr);
 
     tensor = DTIbeta2Tensor(mriglm->beta, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/tensor.mgh",GLMDir);
+    sprintf(tmpstr,"%s/tensor.%s",GLMDir,format);
     MRIwrite(tensor,tmpstr);
 
     evals=NULL;evec1=NULL;evec2=NULL;evec3=NULL;
     DTItensor2Eig(tensor, mriglm->mask, &evals, &evec1, &evec2, &evec3);
-    sprintf(tmpstr,"%s/eigval.mgh",GLMDir);
+    sprintf(tmpstr,"%s/eigval.%s",GLMDir,format);
     MRIwrite(evals,tmpstr);
-    sprintf(tmpstr,"%s/eigvec1.mgh",GLMDir);
+    sprintf(tmpstr,"%s/eigvec1.%s",GLMDir,format);
     MRIwrite(evec1,tmpstr);
-    sprintf(tmpstr,"%s/eigvec2.mgh",GLMDir);
+    sprintf(tmpstr,"%s/eigvec2.%s",GLMDir,format);
     MRIwrite(evec2,tmpstr);
-    sprintf(tmpstr,"%s/eigvec3.mgh",GLMDir);
+    sprintf(tmpstr,"%s/eigvec3.%s",GLMDir,format);
     MRIwrite(evec3,tmpstr);
 
     fa = DTIeigvals2FA(evals, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/fa.mgh",GLMDir);
+    sprintf(tmpstr,"%s/fa.%s",GLMDir,format);
     MRIwrite(fa,tmpstr);
 
     MRIfree(&lowb);
@@ -1339,7 +1341,7 @@ int main(int argc, char **argv)
     mkdir(tmpstr,(mode_t)-1);
     err=MRIpca(mriglm->eres, &Upca, &Spca, &Vpca, mriglm->mask);
     if(err) exit(1);
-    sprintf(tmpstr,"%s/pca-eres/v.mgh",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/v.%s",GLMDir,format);
     MRIwrite(Vpca,tmpstr);
     sprintf(tmpstr,"%s/pca-eres/u.mat",GLMDir);
     MatrixWriteTxt(tmpstr, Upca);
@@ -1569,6 +1571,7 @@ static int parse_commandline(int argc, char **argv)
       XFile = pargv[0];
       usedti=1;
       logflag = 1;
+      format = "nii";
       nargsused = 1;
     }
     else if (!strcmp(option, "--pvr")){
