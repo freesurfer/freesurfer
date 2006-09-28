@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.5 2006/09/26 19:03:37 greve Exp $
+// $Id: dti.c,v 1.6 2006/09/28 02:29:04 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.5 2006/09/26 19:03:37 greve Exp $");
+  return("$Id: dti.c,v 1.6 2006/09/28 02:29:04 greve Exp $");
 }
 
 
@@ -209,9 +209,140 @@ int DTIdesignMatrix(DTI *dti)
   }
   //MatrixWriteTxt("G.dat",dti->GradDirNorm);
   //MatrixWriteTxt("B.dat",dti->B);
-  
 
   return(0);
 }
 
 
+/*---------------------------------------------------------*/
+MRI *DTIbeta2Tensor(MRI *beta, MRI *mask, MRI *tensor)
+{
+  int c,r,s;
+  double m,v;
+
+  if(beta->nframes < 6){
+    printf("ERROR: beta must have at least 6 frames\n");
+    return(NULL);
+  }
+  if(tensor == NULL){
+    tensor = MRIcloneBySpace(beta, 9); // 9 = 3x3
+    if(!tensor) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < beta->width; c++){
+    for(r=0; r < beta->height; r++){
+      for(s=0; s < beta->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
+	// 0 -> 0
+	v = MRIgetVoxVal(beta,c,r,s,0);
+	MRIsetVoxVal(tensor,c,r,s,0,v);
+
+	// 1 -> 1, 3
+	v = MRIgetVoxVal(beta,c,r,s,1);
+	MRIsetVoxVal(tensor,c,r,s,1,v);
+	MRIsetVoxVal(tensor,c,r,s,3,v);
+
+	// 2 -> 2, 6
+	v = MRIgetVoxVal(beta,c,r,s,2);
+	MRIsetVoxVal(tensor,c,r,s,2,v);
+	MRIsetVoxVal(tensor,c,r,s,6,v);
+
+	// 3 -> 4
+	v = MRIgetVoxVal(beta,c,r,s,3);
+	MRIsetVoxVal(tensor,c,r,s,4,v);
+
+	// 4 -> 5, 7
+	v = MRIgetVoxVal(beta,c,r,s,4);
+	MRIsetVoxVal(tensor,c,r,s,5,v);
+	MRIsetVoxVal(tensor,c,r,s,7,v);
+
+	// 5 -> 8
+	v = MRIgetVoxVal(beta,c,r,s,5);
+	MRIsetVoxVal(tensor,c,r,s,8,v);
+
+      }
+    }
+  }
+
+  return(tensor);
+}
+/*---------------------------------------------------------*/
+MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb)
+{
+  int c,r,s;
+  double m,v;
+
+  if(beta->nframes < 7){
+    printf("ERROR: beta must have at least 7 frames\n");
+    return(NULL);
+  }
+  if(lowb == NULL){
+    lowb = MRIcloneBySpace(beta, 1);
+    if(!lowb) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < beta->width; c++){
+    for(r=0; r < beta->height; r++){
+      for(s=0; s < beta->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v = MRIgetVoxVal(beta,c,r,s,6);
+	MRIsetVoxVal(lowb,c,r,s,0,v);
+      }
+    }
+  }
+
+  return(lowb);
+}
+/*---------------------------------------------------------*/
+int DTItensor2eig(MRI *tensor, MRI *mask, MRI *evals, 
+		  MRI *evec1, MRI *evec2, MRI *evec3)
+{
+  int c,r,s;
+  double m,v;
+
+  if(tensor->nframes != 9){
+    printf("ERROR: tensor must have 9 frames\n");
+    return(1);
+  }
+  if(evals == NULL){
+    evals = MRIcloneBySpace(tensor, 3);
+    if(!evals) return(1);
+  }
+  if(evec1 == NULL){
+    evec1 = MRIcloneBySpace(tensor, 3);
+    if(!evec1) return(1);
+  }
+  if(evec2 == NULL){
+    evec2 = MRIcloneBySpace(tensor, 3);
+    if(!evec2) return(1);
+  }
+  if(evec3 == NULL){
+    evec3 = MRIcloneBySpace(tensor, 3);
+    if(!evec3) return(1);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < tensor->width; c++){
+    for(r=0; r < tensor->height; r++){
+      for(s=0; s < tensor->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v = MRIgetVoxVal(tensor,c,r,s,6);
+	MRIsetVoxVal(evals,c,r,s,0,v);
+      }
+    }
+  }
+
+  return(0);
+}
