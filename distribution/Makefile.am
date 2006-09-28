@@ -7,13 +7,14 @@ foodir=$(prefix)
 foo_DATA=surface_labels.txt \
 	tkmeditParcColorsCMA \
 	Simple_surface_labels2002.txt \
-        Simple_surface_labels2005.txt	\
+	Simple_surface_labels2005.txt	\
 	FreeSurferEnv.csh \
 	SetUpFreeSurfer.csh \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh \
 	FreeSurferColorLUT.txt \
-	numaris4-protocols.unpackcfg
+	numaris4-protocols.unpackcfg \
+	ASegStatsLUT.txt
 
 EXTRA_DIST=$(foo_DATA) SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
 
@@ -28,5 +29,5 @@ SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=".license .xdebug_tk* error.log surfer.log csurf.log Simple_surface_labels2002.txt Simple_surface_labels2005.txt"
+EXCLUDE_FILES=".license .xdebug_tk* error.log surfer.log csurf.log"
 include $(top_srcdir)/Makefile.extra
