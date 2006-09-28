@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.71 2006/09/23 00:13:28 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.72 2006/09/28 16:51:48 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -85,18 +85,21 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   else if (-e /usr/pubsw/packages/fsl/3.2) then
     setenv FSLDIR /usr/pubsw/packages/fsl/3.2
   endif
+  unset CPPUNITDIR
 else
   # dev build uses most current
-  # note: GSL and Qt are no longer used, so they're not defined
   set MNIDIR=/usr/pubsw/packages/mni/current
-  unsetenv GSLDIR
+  set VXLDIR=/usr/pubsw/packages/vxl/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
-  set VXLDIR=/usr/pubsw/packages/vxl/current
   set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
-  unsetenv QTDIR
   setenv FSLDIR /usr/pubsw/packages/fsl/current
+  set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
+  if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
+  # GSL and Qt are no longer used, so they're not defined
+  unsetenv QTDIR
+  unsetenv GSLDIR
 endif
 
 # on Mac OS X Tiger, glut is not automatically in lib path.
@@ -189,7 +192,7 @@ if( $?LDFLAGS ) then
 endif
 echo "" >>& $OUTPUTF
 
-# in case a new dev dir needed to be created, and the old one cant
+# in case a new dev dir needed to be created, and the old one cannot
 # be deleted because of permissions, then name that old dir 'devold',
 # and it will get deleted here:
 set DEVOLD=${BUILD_DIR}/trunk/devold
@@ -348,6 +351,9 @@ endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
+if ($?CPPUNITDIR) then
+    set cnfgr=($cnfgr --with-cppunit-dir=${GSLDIR})
+endif
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
 if ($status != 0) then
@@ -405,8 +411,8 @@ if ("${RELEASE_TYPE}" == "dev") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $DEV_DIR" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
-  echo "CMD: source $FREESURFER_HOME/SetUpFreeSurfer.csh" >>& $OUTPUTF
-  source $FREESURFER_HOME/SetUpFreeSurfer.csh >>& $OUTPUTF
+#  echo "CMD: source $FREESURFER_HOME/SetUpFreeSurfer.csh" >>& $OUTPUTF
+#  source $FREESURFER_HOME/SetUpFreeSurfer.csh >>& $OUTPUTF
   echo "CMD: make check" >>& $OUTPUTF
   make check >>& $OUTPUTF
   if ($status != 0) then
