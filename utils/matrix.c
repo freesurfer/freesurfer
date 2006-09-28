@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.93 2006/09/27 23:25:24 nicks Exp $
+// $Id: matrix.c,v 1.94 2006/09/28 02:06:13 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -1293,6 +1293,9 @@ MatrixCalculateEigenSystemHelper( MATRIX *m, float *evalues,
   EVALUE  *eigen_values ;
   MATRIX  *mTmp ;
 
+  // sanity-check: input must be n-by-n
+  if (m->rows != m->cols) return NULL;
+
   nevalues = m->rows ;
   eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
   if (!m_evectors)
@@ -1344,6 +1347,8 @@ MatrixIsSymmetric( MATRIX *matrix )
   int col;
   int isSymmetric = 1;
   
+  if (matrix->rows != matrix->cols) return 0; // non-square, so not symmetric
+
   for( row=1; row<=matrix->rows; row++ ) {
     for( col=1; col<=matrix->cols; col++ ) {
       if( matrix->rptr[ row ][ col ] != matrix->rptr[ col ][ row ] ) {
