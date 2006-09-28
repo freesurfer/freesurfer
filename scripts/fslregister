@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 # 
-set VERSION = '$Id: fslregister,v 1.6 2006/04/18 23:05:04 nicks Exp $';
+set VERSION = '$Id: fslregister,v 1.7 2006/09/28 04:28:41 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -40,7 +40,7 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-setenv FSLOUTPUTTYPE ANALYZE
+setenv FSLOUTPUTTYPE NIFTI
 
 set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
@@ -63,13 +63,17 @@ set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
 
 # Convert reference to analyze
-set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
 if(! -e $refvol) then
-  echo "ERROR: $refvol not found"
-  exit 1;
+  # Might be COR,
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+  if(! -e $refvol/COR-.info) then
+    echo "ERROR: $refvol not found"
+    exit 1;
+  endif
 endif
 set refvolbase = $tmpdir/refvol.fslregister
-set refvolimg  = $refvolbase.img
+set refvolimg  = $refvolbase.nii
 set cmd = (mri_convert $refvol $refvolimg)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -79,8 +83,8 @@ if($status) exit 1;
 
 # Convert input to analyze #
 set movvolbase = $tmpdir/movvol.fslregister
-set movvolimg  = $movvolbase.img
-set cmd = (mri_convert $movvol $movvolimg)
+set movvolimg  = $movvolbase.nii
+set cmd = (mri_convert $movvol $movvolimg --frame 0)
 if($frame)  set cmd = ($cmd --nskip $frame)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -148,7 +152,7 @@ set cmd = ($cmd  -searchrz -$maxangle $maxangle);
 if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
-  set outvolimg  = $outvolbase.img
+  set outvolimg  = $outvolbase.nii
   set cmd = ($cmd -o $outvolimg);
 endif
 date | tee -a $LF 
@@ -447,7 +451,7 @@ lined up. All this matrix needs to do is to get the functional and
 the anatomical in the same orientation. To see whether your initial
 matrix gets you in the right orientation, run something like:
 
-  tkregister2  --mov func.img --s subjid --surf brain \
+  tkregister2  --mov func.nii --s subjid --surf brain \
        --fslreg fsl.init.mat --tag --reg /tmp/reg.blah.234 
 
 Flipping back and forth between the anatomical and the functional
