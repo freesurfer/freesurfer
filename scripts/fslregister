@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 # 
-set VERSION = '$Id: fslregister,v 1.7 2006/09/28 04:28:41 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.8 2006/09/28 04:32:15 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -84,8 +84,7 @@ if($status) exit 1;
 # Convert input to analyze #
 set movvolbase = $tmpdir/movvol.fslregister
 set movvolimg  = $movvolbase.nii
-set cmd = (mri_convert $movvol $movvolimg --frame 0)
-if($frame)  set cmd = ($cmd --nskip $frame)
+set cmd = (mri_convert $movvol $movvolimg --frame $frame)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
