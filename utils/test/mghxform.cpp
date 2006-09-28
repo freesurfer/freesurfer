@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
   if (!mriCOR)
   {
     cerr << "could not read orig volume" << endl;
+    exit(1);
     return -1;
   }
   printLinearTransform(mriCOR);
@@ -58,10 +59,13 @@ int main(int argc, char *argv[])
     MRIfree(&mriMGH);
 
     cerr << "wrong filename for the transform" << endl;
+    exit(1);
     return -1;
   }
   MRIfree(&mriMGH);
+  system("rm -Rf ./orig/");
   system("rm ./testxfm.mgh");
+  exit(0);
   return 0;
 }
 

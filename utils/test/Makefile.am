@@ -69,8 +69,14 @@ test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 endif
 
+EXTRA_DIST=test_nr_wrapper_data/$(wildcard *.mat) \
+	test_mriio_data/$(wildcard *.nrrd) \
+	test_mri_identify_data/$(wildcard nrrd*) \
+	test_matrix_data/$(wildcard *.mat) \
+	orig.tar.gz
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES="sc_test.c"
+EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
