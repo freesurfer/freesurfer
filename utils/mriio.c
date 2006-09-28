@@ -13914,7 +13914,7 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 {
   Nrrd *nrrd = nrrdNew();
   MRI *mri = NULL;
-  int mriDataType = MRI_UCHAR; //so compiler won't complain about initialization
+  int mriDataType = MRI_UCHAR;
   size_t nFrames;
 
   unsigned int rangeAxisNum, rangeAxisIdx[NRRD_DIM_MAX];
@@ -13923,7 +13923,11 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   char errorString[50];
 
   //just give an error until read function is complete and tested
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mriNrrdRead(): Nrrd input not yet supported"));
+  /*
+  ErrorReturn(NULL, 
+              (ERROR_UNSUPPORTED, 
+               "mriNrrdRead(): Nrrd input not yet supported"));
+  */
 
   //from errno.h?
   errno = 0; //is this neccesary because of error.c:ErrorPrintf's use of errno?
@@ -13931,13 +13935,15 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   if (nrrdLoad(nrrd, fname, NULL) != 0)
     {
       char *err = biffGetDone(NRRD);
-      ErrorPrintf(ERROR_BADFILE, "mriNrrdRead(): error opening file %s:\n%s", fname, err);
+      ErrorPrintf(ERROR_BADFILE, 
+                  "mriNrrdRead(): error opening file %s:\n%s", fname, err);
       free(err);
       return NULL;
     }
 
   if ((nrrd->dim != 3) && (nrrd->dim != 4)) {
-    ErrorPrintf(ERROR_UNSUPPORTED, "mriNrrdRead(): %hd dimensions in %s; unspported",
+    ErrorPrintf(ERROR_UNSUPPORTED, 
+                "mriNrrdRead(): %hd dimensions in %s; unspported",
 		nrrd->dim, fname);
     nrrdNuke(nrrd);
     return NULL;
@@ -14010,7 +14016,8 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   if (rangeAxisNum > 1) {
     nrrdNuke(nrrd);
     ErrorPrintf(ERROR_UNSUPPORTED,
-		"mriNrrdRead(): handling more than one non-scalar axis not currently supported");
+		"mriNrrdRead(): handling more than one non-scalar "
+                "axis not currently supported");
     return NULL;
   }
 
@@ -14043,7 +14050,6 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
     nrrdNuke(ntmp);
   }
 
-    
   //data in nrrd have been permuted so first 3 axes are spatial
   //and next if present is non-spatial
   if (nrrd->dim == 4) nFrames = nrrd->axis[3].size;
@@ -14066,7 +14072,8 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 /*   if (nrrdTypeBlock == nrrd->type) */
 /*     { */
 /*       ErrorReturn */
-/* 	(NULL, (ERROR_BADFILE, "nrrdRead(): cannot currently handle nrrdTypeBlock")); */
+/* 	(NULL, (ERROR_BADFILE, 
+    "nrrdRead(): cannot currently handle nrrdTypeBlock")); */
 /*     } */
 
 /*   if (nio->endian == airEndianLittle) */
@@ -14097,7 +14104,9 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
 static int mriNrrdWrite(MRI *mri, char *fname)
 {
   //just give an error until write function is complete and tested
-  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
+  ErrorReturn
+    (ERROR_UNSUPPORTED, 
+     (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
 }
 
 /*------------------------------------------------------------------
