@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.7 2006/09/28 04:29:38 greve Exp $
+// $Id: dti.c,v 1.8 2006/09/28 05:35:40 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.7 2006/09/28 04:29:38 greve Exp $");
+  return("$Id: dti.c,v 1.8 2006/09/28 05:35:40 greve Exp $");
 }
 
 
@@ -376,7 +376,7 @@ int DTItensor2Eig(MRI *tensor, MRI *mask,   MRI **evals,
 MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
 {
   int c,r,s;
-  double m,v1,v2,v3,vmean,v;
+  double m,v1,v2,v3,vmean,vsse,vnorm,v;
 
   if(evals->nframes != 3){
     printf("ERROR: evals must have 3 frames\n");
@@ -399,7 +399,9 @@ MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
 	v2 = MRIgetVoxVal(evals,c,r,s,1);
 	v3 = MRIgetVoxVal(evals,c,r,s,2);
 	vmean = (v1+v2+v3)/3.0;
-	v = sqrt(pow(v1-vmean,2.0) + pow(v2-vmean,2.0) + pow(v3-vmean,2.0));
+	vnorm = v1*v1 + v2*v2 + v3*v3;
+	vsse = pow(v1-vmean,2.0) + pow(v2-vmean,2.0) + pow(v3-vmean,2.0);
+	v = sqrt(vsse/vnorm);
 	MRIsetVoxVal(FA,c,r,s,0,v);
       }
     }
