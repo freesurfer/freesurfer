@@ -489,7 +489,7 @@ MatrixTest::TestMatrixSVDPseudoInverse() {
   MATRIX *U=MatrixCopy(mSquareMatrix,NULL);
   MATRIX *V=MatrixAlloc(U->cols, U->cols, MATRIX_REAL) ;
   VECTOR *S=VectorAlloc(U->cols, MATRIX_REAL) ;
-  sc_linalg_SV_decomp( U, V, S ) ;
+  OpenSvdcmp( U, S, V ) ;
   CPPUNIT_ASSERT (U != NULL);
   CPPUNIT_ASSERT (V != NULL);
   CPPUNIT_ASSERT (S != NULL);
