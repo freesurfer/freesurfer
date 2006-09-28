@@ -251,6 +251,8 @@ SUBDIRS=include \
 install-data-hook:
 	echo "$(PACKAGE)-$(OS)-$(target_vendor)-$(target_cpu)-$(PACKAGE_VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
 
+EXTRA_DIST=setup_configure
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
