@@ -228,6 +228,14 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
       m2->rows << ", " << m2->cols << ")\n"; 
     areEqual = false;
   }
+
+  if (! areEqual) {
+    std::cerr << "actual:\n";
+    MatrixPrint(stderr, m1);
+    std::cerr << "expected:\n";
+    MatrixPrint(stderr, m2);
+  }
+
   return areEqual;
 }
 
@@ -466,7 +474,7 @@ MatrixTest::TestMatrixEigenSystem() {
 
 void
 MatrixTest::TestMatrixSVDPseudoInverse() {
-  float tolerance = 1e-4;
+  float tolerance = 1e-5;
 
   std::cout << "\rMatrixTest::TestMatrixSVDPseudoInverse()\n";
 
