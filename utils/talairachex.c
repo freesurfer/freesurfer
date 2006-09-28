@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/15 14:43:30 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2006/09/28 20:23:22 $
+// Revision       : $Revision: 1.8 $
 
 
 #include "talairachex.h"
@@ -34,7 +34,8 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 	tran = &lta->xforms[0];
 	if (tran->dst.valid == 1) // transform dst is valid
 	{
-	  printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
 	  mri_tal->c_r = tran->dst.c_r;
 	  mri_tal->c_a = tran->dst.c_a;
 	  mri_tal->c_s = tran->dst.c_s;
