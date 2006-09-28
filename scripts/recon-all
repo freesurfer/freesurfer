@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.34 2006/09/25 18:35:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.35 2006/09/28 00:21:10 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -67,6 +67,13 @@ set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
 set NoBigVentricles = 0 # if 1, add -nobigventricles to mri_ca_label and reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
+set UseOldTopoFix = 0 # if 1, use mris_fix_topology instead of mris_topo_fixer
+set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
+                     # ensure consistency in surface creation. otherwise, the
+                     # default is to seed with current time and date, 
+                     # resulting in slightly different surfaces each run. 
+                     # affects: mris_smooth, mris_sphere, mris_topology_fixer,
+                     # mris_topo_fixer, mris_ca_label 
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -241,21 +248,23 @@ nu_correct -version >> $LF
 mri_normalize -all-info >> $LF
 mri_watershed -all-info >> $LF
 mri_segment -all-info >> $LF
+mri_label2label -all-info >> $LF
+mri_em_register -all-info >> $LF
+mri_ca_normalize -all-info >> $LF
+mri_ca_register -all-info >> $LF
+mri_ca_label -all-info >> $LF
 mri_fill -all-info >> $LF
 mri_tessellate -all-info >> $LF
 mris_smooth -all-info >> $LF
 mris_inflate -all-info >> $LF
 mris_sphere -all-info >> $LF
 mris_fix_topology -all-info >> $LF
+mris_topo_fixer -all-info >> $LF
+mris_ca_label -all-info >> $LF
 mris_euler_number -all-info >> $LF
 mris_make_surfaces -all-info >> $LF
 mris_register -all-info >> $LF
 mrisp_paint -all-info >> $LF
-mri_label2label -all-info >> $LF
-mri_em_register -all-info >> $LF
-mri_ca_normalize -all-info >> $LF
-mri_ca_register -all-info >> $LF
-mri_ca_label -all-info >> $LF
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
 echo "GCASkull $GCASkull" >> $LF
@@ -786,7 +795,8 @@ if($DoSegStats) then
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   set cmd = ($cmd --etiv --subject $subjid $xopts);
-  set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
+  #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd $xopts);
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -895,6 +905,7 @@ if($DoFill) then
   set cmd = (mri_fill -a ../scripts/ponscc.cut.log $seedopts)
   if(-e transforms/talairach.lta) set cmd = ($cmd  -xform transforms/talairach.lta)
   if($UseAseg)      set cmd = ($cmd -segmentation aseg.mgz);
+  if(! $UseOldTopoFix) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -939,8 +950,10 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_smooth $XOptsFile`;
     # -nw prevents it from writing curv and area
-    set cmd = (mris_smooth -nw $xopts \
-       ../surf/$hemi.orig.nofix ../surf/$hemi.smoothwm.nofix)
+    set cmd = (mris_smooth -nw)
+    if ($NoRandomness) set cmd = ($cmd -seed 1234)
+    set cmd = ($cmd $xopts \
+        ../surf/$hemi.orig.nofix ../surf/$hemi.smoothwm.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     $PWD |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -973,6 +986,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
+    if($NoRandomness) set cmd = ($cmd -seed 1234)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
@@ -997,9 +1011,23 @@ foreach hemi ($hemilist)
     set cmd = (cp ../surf/$hemi.inflated.nofix ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
+    if(! $UseOldTopoFix) then
+      set cmd = (cp ../surf/$hemi.qsphere.nofix ../surf/$hemi.qsphere)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      set cmd = (cp ../surf/$hemi.smoothwm.nofix ../surf/$hemi.smoothwm)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+    endif
     # Now can run fixer
-    set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
-    set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix)
+    if($UseOldTopoFix) then
+      set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
+      set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix)
+    else
+      set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
+      set cmd = (mris_topo_fixer -mgz -warnings)
+    endif
+    if($NoRandomness) set cmd = ($cmd -seed 1234)
     if($FixWithGA) set cmd = ($cmd -ga)
     if($FixDiagOnly) set cmd = ($cmd -diagonly)
     set cmd = ($cmd $xopts $subjid $hemi)
@@ -1019,6 +1047,12 @@ foreach hemi ($hemilist)
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd
+    if(! $UseOldTopoFix) then
+      # Copy *h.orig_corrected to *h.orig
+      set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd
+    endif
     echo $cmd > $touchdir/$hemi.topofix.touch
   endif
 
@@ -1051,7 +1085,9 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_smooth $XOptsFile`;
     # Use -nw to keep from writing out curv and area
     # Default number of iterations is 10, but use 3 here
-    set cmd = (mris_smooth -n 3 -nw $xopts)
+    set cmd = (mris_smooth -n 3 -nw)
+    if ($NoRandomness) set cmd = ($cmd -seed 1234)
+    set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.white ../surf/$hemi.smoothwm)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     $PWD |& tee -a $LF
@@ -1111,6 +1147,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere)
+    if($NoRandomness) set cmd = ($cmd -seed 1234)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated ../surf/$hemi.sphere)
@@ -1211,7 +1248,9 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
     set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
-    set cmd = (mris_ca_label $xopts $subjid $hemi \
+    set cmd = (mris_ca_label)
+    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    set cmd = ($cmd $xopts $subjid $hemi \
                ../surf/$hemi.sphere.reg $CPAtlas $annot)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -1250,7 +1289,9 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
     set CPAtlas = $FREESURFER_HOME/average/$hemi.atlas2005_simple.gcs
     set annot = ../label/$hemi.aparc.a2005s.annot
-    set cmd = (mris_ca_label $xopts $subjid $hemi \
+    set cmd = (mris_ca_label)
+    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    set cmd = ($cmd $xopts $subjid $hemi \
                ../surf/$hemi.sphere.reg $CPAtlas $annot)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -1726,6 +1767,14 @@ while( $#argv != 0 )
       set DoFix = 1;
       set FixWithGA = 1;
       set FixDiagOnly = 1;
+      breaksw
+
+    case "-use-old-fixer":
+      set UseOldTopoFix = 1;
+      breaksw
+
+    case "-norandomness":
+      set NoRandomness = 1;
       breaksw
 
     case "-smooth2":
@@ -2876,6 +2925,10 @@ segmentation, such as baby brains, or non-human primates.
 
 Does not use aseg.mgz for the second mri_normalize step.
 
+-norandomness
+
+The random number generator used by certain binaries is seeded with the
+same number, thus producing identical results from run to run. 
 
 EXPERT OPTIONS FILE
 
@@ -2889,10 +2942,10 @@ it on rest of the line will be passed as the extra options.  For example,
 if a file called expert.opts is created containing these lines:
 
   mri_em_register -p .5
-  mris_fix_topology -s 100
+  mris_topo_fixer -asc
 
-then the option "-p .5" will be passed to mri_em_register, and "-s 100"
-will be passed to mris_fix_topology.  The name of the expert options file
+then the option "-p .5" will be passed to mri_em_register, and "-asc"
+will be passed to mris_topo_fixer.  The name of the expert options file
 is passed to recon-all with the -expert flag, eg. 
 
   recon-all -expert expert.opts
@@ -2924,6 +2977,7 @@ The following FreeSurfer binaries will accept an expert option:
   mris_inflate
   mris_sphere
   mris_fix_topology
+  mris_topo_fixer
   mris_remove_intersection
   mris_make_surfaces
   mris_surf2vol
@@ -3151,7 +3205,7 @@ Finds topological defects (ie, holes in a filled hemisphere) using
 surf/?h.qsphere.nofix, and changes the orig surface (surf/?h.orig.nofix)
 to remove the defects. Changes the number of vertices.  All the defects
 will be removed, but the user should check the orig surface in the volume
-to make sure that it looks appropriate. Calls mris_fix_topology.
+to make sure that it looks appropriate. Calls mris_topo_fixer.
 Creates surf/?h.orig (by iteratively fixing surf/?h.orig.nofix).
 
 Final Surfaces (-<no>finalsurfs)
