@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.6 2006/09/28 02:29:04 greve Exp $
+// $Id: dti.c,v 1.7 2006/09/28 04:29:38 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.6 2006/09/28 02:29:04 greve Exp $");
+  return("$Id: dti.c,v 1.7 2006/09/28 04:29:38 greve Exp $");
 }
 
 
@@ -303,33 +303,38 @@ MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb)
   return(lowb);
 }
 /*---------------------------------------------------------*/
-int DTItensor2eig(MRI *tensor, MRI *mask, MRI *evals, 
-		  MRI *evec1, MRI *evec2, MRI *evec3)
+int DTItensor2Eig(MRI *tensor, MRI *mask,   MRI **evals, 
+		  MRI **evec1, MRI **evec2, MRI **evec3)
 {
-  int c,r,s;
-  double m,v;
+  int c,r,s,a,b,n;
+  double m;
+  MATRIX *T,*Evec;
+  float eval[3];
 
   if(tensor->nframes != 9){
     printf("ERROR: tensor must have 9 frames\n");
     return(1);
   }
-  if(evals == NULL){
-    evals = MRIcloneBySpace(tensor, 3);
-    if(!evals) return(1);
+  if(*evals == NULL){
+    *evals = MRIcloneBySpace(tensor, 3);
+    if(!*evals) return(1);
   }
-  if(evec1 == NULL){
-    evec1 = MRIcloneBySpace(tensor, 3);
-    if(!evec1) return(1);
+  if(*evec1 == NULL){
+    *evec1 = MRIcloneBySpace(tensor, 3);
+    if(!*evec1) return(1);
   }
-  if(evec2 == NULL){
-    evec2 = MRIcloneBySpace(tensor, 3);
-    if(!evec2) return(1);
+  if(*evec2 == NULL){
+    *evec2 = MRIcloneBySpace(tensor, 3);
+    if(!*evec2) return(1);
   }
-  if(evec3 == NULL){
-    evec3 = MRIcloneBySpace(tensor, 3);
-    if(!evec3) return(1);
+  if(*evec3 == NULL){
+    *evec3 = MRIcloneBySpace(tensor, 3);
+    if(!*evec3) return(1);
   }
   // should check consistency with spatial
+
+  T = MatrixAlloc(3,3,MATRIX_REAL);
+  Evec = MatrixAlloc(3, 3, MATRIX_REAL);
 
   for(c=0; c < tensor->width; c++){
     for(r=0; r < tensor->height; r++){
@@ -338,11 +343,67 @@ int DTItensor2eig(MRI *tensor, MRI *mask, MRI *evals,
 	  m = MRIgetVoxVal(mask,c,r,s,0);
 	  if(m < 0.5) continue;
 	}
-	v = MRIgetVoxVal(tensor,c,r,s,6);
-	MRIsetVoxVal(evals,c,r,s,0,v);
+
+	// Load up the tensor into a matrix struct
+	n = 0;
+	for(b=1; b <= 3; b++){
+	  for(a=1; a <= 3; a++){
+	    T->rptr[a][b] = MRIgetVoxVal(tensor,c,r,s,n);
+	    n++;
+	  }
+	}
+
+	/* Do eigen-decomposition */
+	MatrixEigenSystem(T, eval, Evec);
+
+	for(a=0; a<3; a++){
+	  MRIsetVoxVal(*evals,c,r,s,a,eval[a]);
+	  MRIsetVoxVal(*evec1,c,r,s,a,Evec->rptr[a+1][1]);
+	  MRIsetVoxVal(*evec2,c,r,s,a,Evec->rptr[a+1][2]);
+	  MRIsetVoxVal(*evec3,c,r,s,a,Evec->rptr[a+1][3]);
+	}
+
+      } // slice
+    } // row
+  } // col
+
+  MatrixFree(&T);
+  MatrixFree(&Evec);
+
+  return(0);
+}
+/*------------------------------------------------------------*/
+MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
+{
+  int c,r,s;
+  double m,v1,v2,v3,vmean,v;
+
+  if(evals->nframes != 3){
+    printf("ERROR: evals must have 3 frames\n");
+    return(NULL);
+  }
+  if(FA == NULL){
+    FA = MRIcloneBySpace(evals, 1);
+    if(!FA) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < evals->width; c++){
+    for(r=0; r < evals->height; r++){
+      for(s=0; s < evals->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v1 = MRIgetVoxVal(evals,c,r,s,0);
+	v2 = MRIgetVoxVal(evals,c,r,s,1);
+	v3 = MRIgetVoxVal(evals,c,r,s,2);
+	vmean = (v1+v2+v3)/3.0;
+	v = sqrt(pow(v1-vmean,2.0) + pow(v2-vmean,2.0) + pow(v3-vmean,2.0));
+	MRIsetVoxVal(FA,c,r,s,0,v);
       }
     }
   }
 
-  return(0);
+  return(FA);
 }
