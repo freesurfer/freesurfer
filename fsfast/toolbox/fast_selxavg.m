@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.22.2.1 2006/04/06 22:31:16 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.22.2.2 2006/09/29 21:54:40 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.22.2.1 2006/04/06 22:31:16 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.22.2.2 2006/09/29 21:54:40 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -1031,6 +1031,7 @@ function argscfg = parse_cfg(args)
       argscfg{nargs} = s;
       [s n] = fscanf(fid,'%s',1);
     end
+    fclose(fid);
   end
 
 return
