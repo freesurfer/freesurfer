@@ -30,6 +30,7 @@ USAGE: ./mri_glmfit
    --prune : remove voxels that do not have a non-zero value at each frame
    --no-prune : do not prune
    --logy : compute natural log of y prior to analysis
+   --no-logy : compute natural log of y prior to analysis
 
    --surf subject hemi : needed for some flags (uses white by default)
 
@@ -446,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.89 2006/09/28 05:34:54 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.90 2006/09/29 04:13:26 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -663,6 +664,10 @@ int main(int argc, char **argv)
     } else {
       printf("Using DTI\n");
       dti = DTIstructFromSiemensAscii(XFile);
+      sprintf(tmpstr,"%s/bvals.dat",GLMDir);
+      DTIfslBValFile(dti,tmpstr);
+      sprintf(tmpstr,"%s/bvecs.dat",GLMDir);
+      DTIfslBVecFile(dti,tmpstr);
       if(dti==NULL) exit(1);
       mriglm->Xg = MatrixCopy(dti->B,NULL);
     }
@@ -952,7 +957,7 @@ int main(int argc, char **argv)
   }
   if(logflag){
     printf("Computing natural log of input\n");
-    MRIlog(mriglm->y,mriglm->y,0);
+    MRIlog(mriglm->y,mriglm->y,1);
   }
   if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
     printf("Smoothing input by fwhm %lf \n",FWHM);
@@ -1034,7 +1039,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(logflag) MRIlog(mriglm->y,mriglm->y,0);
+	if(logflag) MRIlog(mriglm->y,mriglm->y,1);
 	if(FWHM > 0) 
 	  SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
@@ -1190,29 +1195,31 @@ int main(int argc, char **argv)
 
   if(DontSave) exit(0);
 
-  // Compute fwhm of residual
-  if(surf != NULL){
-    printf("Computing spatial AR1 on surface\n");
-    ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
-    MRIwrite(ar1,tmpstr);
-    RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
-    eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
-    eresfwhm = eresgstd*sqrt(log(256.0));
-    printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
-	   ar1mn,ar1std,eresgstd,eresfwhm);
-    //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
-    //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);
-  }
-  else{
-    printf("Computing spatial AR1 in volume.\n");
-    fMRIspatialAR1Mean(mriglm->eres, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
-    cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
-    rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
-    sfwhm = RFar1ToFWHM(sar1mn, mriglm->eres->zsize);
-    eresfwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
-    printf("Residual: ar1mn = (%lf,%lf,%lf) fwhm = (%lf,%lf,%lf) %lf\n",
-	   car1mn,rar1mn,sar1mn,cfwhm,rfwhm,sfwhm,eresfwhm);
+  if(!usedti){
+    // Compute fwhm of residual
+    if(surf != NULL){
+      printf("Computing spatial AR1 on surface\n");
+      ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
+      sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
+      MRIwrite(ar1,tmpstr);
+      RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
+      eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
+      eresfwhm = eresgstd*sqrt(log(256.0));
+      printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
+	     ar1mn,ar1std,eresgstd,eresfwhm);
+      //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
+      //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);
+    }
+    else{
+      printf("Computing spatial AR1 in volume.\n");
+      fMRIspatialAR1Mean(mriglm->eres, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
+      cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
+      rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
+      sfwhm = RFar1ToFWHM(sar1mn, mriglm->eres->zsize);
+      eresfwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
+      printf("Residual: ar1mn = (%lf,%lf,%lf) fwhm = (%lf,%lf,%lf) %lf\n",
+	     car1mn,rar1mn,sar1mn,cfwhm,rfwhm,sfwhm,eresfwhm);
+    }
   }
 
   // Save estimation results
@@ -1290,7 +1297,7 @@ int main(int argc, char **argv)
 
     evals=NULL;evec1=NULL;evec2=NULL;evec3=NULL;
     DTItensor2Eig(tensor, mriglm->mask, &evals, &evec1, &evec2, &evec3);
-    sprintf(tmpstr,"%s/eigval.%s",GLMDir,format);
+    sprintf(tmpstr,"%s/eigvals.%s",GLMDir,format);
     MRIwrite(evals,tmpstr);
     sprintf(tmpstr,"%s/eigvec1.%s",GLMDir,format);
     MRIwrite(evec1,tmpstr);
@@ -1310,6 +1317,7 @@ int main(int argc, char **argv)
     MRIfree(&evec2);
     MRIfree(&evec3);
     MRIfree(&fa);
+
   }
 
   // --------- Save FSGDF stuff --------------------------------
@@ -1409,6 +1417,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
+    else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcmp(option, "--no-fix-vertex-area")){
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -2142,7 +2151,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"y    %s\n",yFile);
   fprintf(fp,"logyflag %d\n",logflag);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
-  fprintf(fp,"usedit  %d\n",usedti);
+  fprintf(fp,"usedti  %d\n",usedti);
   if(fsgdfile)  fprintf(fp,"FSGD %s\n",fsgdfile);
   if(labelFile) fprintf(fp,"labelmask  %s\n",labelFile);
   if(maskFile)  fprintf(fp,"mask %s\n",maskFile);
