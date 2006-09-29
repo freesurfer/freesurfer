@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.95 2006/09/28 18:48:00 nicks Exp $
+// $Id: matrix.c,v 1.96 2006/09/29 20:44:22 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -412,7 +412,6 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
             }
         }
     } else if((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
-        
       for (row = 1 ; row <= rows ; row++)
         {
           for (col = 1 ; col <= cols ; col++)
@@ -447,7 +446,24 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
                 }
             }
         }
-    }
+    } else if((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL)) {
+      for (row = 1 ; row <= rows ; row++)
+        {
+          for (col = 1 ; col <= cols ; col++)
+            {
+              for (i = 1 ; i <= m1->cols ; i++)
+                {
+                  float a, b, c ;  /* a + ib and c + id and d=0 here*/
+
+                  a = MATRIX_CELT_REAL(m1,row,i);
+                  b = MATRIX_CELT_IMAG(m1,row,i);
+                  c = *MATRIX_RELT(m2,i,col);
+                  MATRIX_CELT_REAL(m3,row,col) += a*c;
+                  MATRIX_CELT_IMAG(m3,row,col) += b*c;
+                }
+            }
+        }
+  }
   if (m_tmp1)
     MatrixFree(&m_tmp1) ;
   if (m_tmp2)
