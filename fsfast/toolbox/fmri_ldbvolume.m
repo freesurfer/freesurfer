@@ -6,7 +6,7 @@ function [vol, ext, endian] = fmri_ldbvolume(stem,ext)
 % counts the number of slices and determines the extension 
 % (unless extension is specified).
 %
-% '$Id: fmri_ldbvolume.m,v 1.1 2003/03/04 20:47:39 greve Exp $'
+% '$Id: fmri_ldbvolume.m,v 1.2 2006/09/29 21:43:30 greve Exp $'
 
 vol = [];
 ext = [];
@@ -69,6 +69,7 @@ if(nargin == 1)
       qoe(msg); error(msg);
     end
   end
+  fclose(fid);
 end
   
 vol = zeros(nslices,Nrows,Ncols,Ndepth);
