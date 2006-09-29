@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.90 2006/09/29 04:13:26 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.91 2006/09/29 09:20:09 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -2077,18 +2077,18 @@ static void check_options(void)
     exit(1);
   }
   if(GLMDir != NULL){
-    sprintf(tmpstr,"%s/beta.mgh",GLMDir);
+    sprintf(tmpstr,"%s/beta.%s",GLMDir,format);
     betaFile = strcpyalloc(tmpstr);
-    sprintf(tmpstr,"%s/rvar.mgh",GLMDir);
+    sprintf(tmpstr,"%s/rvar.%s",GLMDir,format);
     rvarFile = strcpyalloc(tmpstr);
-    sprintf(tmpstr,"%s/eres.mgh",GLMDir);
+    sprintf(tmpstr,"%s/eres.%s",GLMDir,format);
     eresFile = strcpyalloc(tmpstr);
     if(yhatSave){
-      sprintf(tmpstr,"%s/yhat.mgh",GLMDir);
+      sprintf(tmpstr,"%s/yhat.%s",GLMDir,format);
       yhatFile = strcpyalloc(tmpstr);
     }
     if(condSave){
-      sprintf(tmpstr,"%s/cond.mgh",GLMDir);
+      sprintf(tmpstr,"%s/cond.%s",GLMDir,format);
       condFile = strcpyalloc(tmpstr);
     }
   }
