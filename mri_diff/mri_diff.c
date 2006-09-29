@@ -133,7 +133,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.12 2006/07/12 02:11:39 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.13 2006/09/29 03:58:56 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -145,6 +145,7 @@ char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
+int DiffAbs=0;
 
 MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL;
 char *DiffVolFile=NULL;
@@ -371,7 +372,8 @@ int main(int argc, char *argv[])
           for(f=0; f < InVol1->nframes; f++){
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-            diff = fabs(val1-val2);
+            if(! DiffAbs) diff = fabs(val1-val2);
+            else diff = fabs(fabs(val1)-fabs(val2));
             if(DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
             if(maxdiff < diff){
               maxdiff = diff;
@@ -467,6 +469,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--notallow-prec")) CheckPrecision = 0;
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
+    else if (!strcasecmp(option, "--diffabs"))  DiffAbs = 1;
     else if (!strcasecmp(option, "--qa")){
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -581,6 +584,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"checkgeo  %d\n",CheckGeo);
   fprintf(fp,"checkori  %d\n",CheckOrientation);
   fprintf(fp,"checkprec %d\n",CheckPrecision);
+  fprintf(fp,"diffabs   %d\n",DiffAbs);
   fprintf(fp,"logfile   %s\n",DiffFile);
   //fprintf(fp,"resthresh %lf\n",pixthresh);
   return;
@@ -604,6 +608,7 @@ static void print_usage(void)
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
   printf("   --pix-only   : only check pixel data\n");
+  printf("   --diffabs    : take abs before computing diff\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
