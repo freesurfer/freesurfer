@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.35 2006/09/28 00:21:10 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.36 2006/09/29 20:21:41 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1023,13 +1023,13 @@ foreach hemi ($hemilist)
     if($UseOldTopoFix) then
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
       set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix)
+      if($FixWithGA) set cmd = ($cmd -ga)
+      if($FixDiagOnly) set cmd = ($cmd -diagonly)
     else
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
     endif
     if($NoRandomness) set cmd = ($cmd -seed 1234)
-    if($FixWithGA) set cmd = ($cmd -ga)
-    if($FixDiagOnly) set cmd = ($cmd -diagonly)
     set cmd = ($cmd $xopts $subjid $hemi)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
