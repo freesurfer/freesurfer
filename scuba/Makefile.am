@@ -92,6 +92,7 @@ SCUBA1_SRCS= \
 	togl.c \
 	TclScubaKeyCombo.cpp TclScubaKeyCombo.h
 
+if ENABLE_QT_APPS
 SCUBA2_SRCS= \
 	QTScubaWidget.cpp QTScubaWidget.h \
 	QtProgressDisplayManager.cpp QtProgressDisplayManager.h \
@@ -152,6 +153,9 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
 
+# endif ENABLE_QT_APPS:
+endif
+
 if ENABLE_TCLTK_APPS
   SCUBA_TCLTK=scuba
 endif
@@ -173,6 +177,7 @@ scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
 scuba_LDFLAGS=
 
+if ENABLE_QT_APPS
 scuba2_SOURCES=$(UTILITIES_SRCS) \
 	$(BASIC_SRCS) \
 	$(FSDATA_SRCS) \
@@ -198,7 +203,7 @@ scuba2_CXXFLAGS=-DQT_SHARED \
 	-DQT_THREAD_SUPPORT \
 	-I$(QTDIR)/include \
 	-I.ui/
-
+endif
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
@@ -394,6 +399,7 @@ testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
 testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
+if ENABLE_QT_APPS
 # All the scuba2 stuff.
 .ui/mainwindow.h: mainwindow.ui
 	$(UIC) mainwindow.ui -o $@
@@ -669,7 +675,11 @@ scuba_bundle: scuba2
 	@echo "$(FREESURFER_HOME)/bin/scuba2.app/Contents/MacOS/scuba2" > $(DESTDIR)$(bindir)/scuba2
 	@chmod a+x $(DESTDIR)$(bindir)/scuba2
 
+# endif ENABLE_QT_APPS:
+endif
+
 .PHONY: scuba_bundle
+
 
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
