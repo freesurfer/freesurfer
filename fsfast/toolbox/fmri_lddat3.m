@@ -5,7 +5,7 @@ function hdrdat = fmri_lddat3(datfile)
 % 
 % datfile - (string) name of data file
 %
-% $Id: fmri_lddat3.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_lddat3.m,v 1.2 2006/09/29 17:21:57 greve Exp $
 
 if(nargin ~= 1)
   msg = 'Usage: hdrdat = fmri_lddat3(datfile)'
@@ -35,6 +35,7 @@ if(isempty(hdrdat.Version))
   hdrdat.Version = 0;
   hdrdat.TER     = hdrdat.TR;
   hdrdat.DOF     = [];
+  fclose(fid);
   return;
 end
 hdrdat.Version = fscanf2(fid,'%d');
