@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/30 03:59:36 $
-// Revision       : $Revision: 1.359 $
-char *MRI_C_VERSION = "$Revision: 1.359 $";
+// Revision Date  : $Date: 2006/09/30 04:20:25 $
+// Revision       : $Revision: 1.360 $
+char *MRI_C_VERSION = "$Revision: 1.360 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11615,22 +11615,24 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
 }
 /*-------------------------------------------------------
   MRIlog() - computes natural log: out = a*log(abs(b*in)). 
-  If a=0, then  it is ignored. 
-  If b=0, then it is ignored. 
+  If a=0, then it is ignored (ie, set to 1). 
+  If b=0, then it is ignored (ie, set to 1).  
+  If in=0, then EPSILON is used.
   If mask is non-NULL, then sets vox=0 where mask < 0.5
-  Note: 3 to 8 times faster than using MRIgetVoxVal().
+  Input can be any data type.
+  Output is float.
+  Can be run in-place.
+  Note: 3 to 8 times faster than using MRIgetVoxVal(), which
+  is important because this is run on raw data (dti).
   -------------------------------------------------------*/
 MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
 {
   int c, r, s, f, n, ncols, nrows, nslices,nframes;
   float m;
-  BUFTYPE *pmri=NULL;
-  short   *psmri=NULL;
-  int     *pimri=NULL;
-  long    *plmri=NULL;
-  float   *pfmri=NULL;
   float   *pout=NULL;
+  void    *pin=NULL;
   double  v, aa, bb;
+  int sz;
 
   if(a == 0) aa = 1;
   else       aa = a;
@@ -11661,43 +11663,47 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
     return(NULL);
   }
 
+  // Number of bytes in the input data type
+  sz = 0;
+  switch(in->type){
+  case MRI_UCHAR: sz = sizeof(char);  break;
+  case MRI_SHORT: sz = sizeof(short); break;
+  case MRI_INT:   sz = sizeof(int);   break;
+  case MRI_LONG:  sz = sizeof(long);  break;
+  case MRI_FLOAT: sz = sizeof(float); break;
+  }
+
   n = 0;
   for(f=0; f<nframes; f++){
     for(s=0; s<nslices; s++){
       for(r=0; r<nrows; r++){
+	// Pointers to the start of the column
+	pin  = (void *)  in->slices[n][r];
 	pout = (float *) out->slices[n][r]; 
-        switch(in->type){
-        case MRI_UCHAR: pmri  =           in->slices[n][r]; break;
-        case MRI_SHORT: psmri = (short *) in->slices[n][r]; break;
-        case MRI_INT:   pimri = (int *)   in->slices[n][r]; break;
-        case MRI_LONG:  plmri = (long *)  in->slices[n][r]; break;
-        case MRI_FLOAT: pfmri = (float *) in->slices[n][r]; break;
-        }
         for(c=0; c<ncols; c++) {
 	  if(mask){
 	    m = MRIgetVoxVal(mask,c,r,s,0);
 	    if(m < 0.5){
 	      // must increment pointers
 	      *pout++ = 0.0;
-	      switch(in->type){
-	      case MRI_UCHAR: pmri++; break;
-	      case MRI_SHORT: psmri++; break;
-	      case MRI_INT:   pimri++; break;
-	      case MRI_LONG:  plmri++; break;
-	      case MRI_FLOAT: pfmri++; break;
-	      }
+	      pin += sz;
 	      continue;
 	    }
 	  }
+	  // Get input value
 	  switch(in->type){
-	  case MRI_UCHAR: v = (float)(*pmri++); break;
-	  case MRI_SHORT: v = (float)(*psmri++); break;
-	  case MRI_INT:   v = (float)(*pimri++); break;
-	  case MRI_LONG:  v = (float)(*plmri++); break;
-	  case MRI_FLOAT: v = (float)(*pfmri++); break;
+	  case MRI_UCHAR: v = (double)(*((char *)pin)); break;
+	  case MRI_SHORT: v = (double)(*((short*)pin)); break;
+	  case MRI_INT:   v = (double)(*((int  *)pin)); break;
+	  case MRI_LONG:  v = (double)(*((long *)pin)); break;
+	  case MRI_FLOAT: v = (double)(*((float*)pin)); break;
 	  }
 	  if(v==0) v = EPSILON;
-	  *pout++ = aa*log(fabs(bb*v));
+	  // Compute and set output
+	  *pout = aa*log(fabs(bb*v));
+	  // Increment
+	  pout ++;
+	  pin += sz;
         } // cols
       } // rows
       n++;
