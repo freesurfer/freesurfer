@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/26 17:39:21 $
-// Revision       : $Revision: 1.358 $
-char *MRI_C_VERSION = "$Revision: 1.358 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/09/30 03:59:36 $
+// Revision       : $Revision: 1.359 $
+char *MRI_C_VERSION = "$Revision: 1.359 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11613,21 +11613,97 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
 
   return(outmri);
 }
-/*-------------------------------------------------------------------
-  MRIlog() - computes the natural log of the values at each voxel and
-  frame. If a value is zero, the result is set to 10000000000.0. If
-  the negflag is set, then -log is computed. The result is stored
-  in outmri. If outmri is NULL, the output MRI is alloced and its
-  pointer returned. Just runs MRIlog10() and then mult by log(10).
-  ------------------------------------------------------------------*/
-MRI *MRIlog(MRI *inmri, MRI *outmri, int negflag)
+/*-------------------------------------------------------
+  MRIlog() - computes natural log: out = a*log(abs(b*in)). 
+  If a=0, then  it is ignored. 
+  If b=0, then it is ignored. 
+  If mask is non-NULL, then sets vox=0 where mask < 0.5
+  Note: 3 to 8 times faster than using MRIgetVoxVal().
+  -------------------------------------------------------*/
+MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
 {
-  double scale;
-  outmri = MRIlog10(inmri,outmri,negflag);
-  if(outmri == NULL) return(NULL);
-  scale = log(10.0);
-  outmri = MRIscalarMul(inmri,outmri,scale);
-  return(outmri);
+  int c, r, s, f, n, ncols, nrows, nslices,nframes;
+  float m;
+  BUFTYPE *pmri=NULL;
+  short   *psmri=NULL;
+  int     *pimri=NULL;
+  long    *plmri=NULL;
+  float   *pfmri=NULL;
+  float   *pout=NULL;
+  double  v, aa, bb;
+
+  if(a == 0) aa = 1;
+  else       aa = a;
+  if(b == 0) bb = 1;
+  else       bb = b;
+  v = 0.0;
+
+  ncols = in->width;
+  nrows = in->height;
+  nslices = in->depth;
+  nframes = in->nframes;
+
+  if(out==NULL){
+    out = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(out==NULL){
+      printf("ERROR: MRIlog: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(in,out); // ordinarily would need to change nframes
+  }
+  if(out->type != MRI_FLOAT){
+    printf("ERROR: MRIlog: output must be of type float\n");
+    return(NULL);
+  }
+  if(out->width != ncols   || out->height != nrows ||
+     out->depth != nslices || out->nframes != nframes){
+    printf("ERROR: MRIlog: dimension mismatch\n");
+    return(NULL);
+  }
+
+  n = 0;
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	pout = (float *) out->slices[n][r]; 
+        switch(in->type){
+        case MRI_UCHAR: pmri  =           in->slices[n][r]; break;
+        case MRI_SHORT: psmri = (short *) in->slices[n][r]; break;
+        case MRI_INT:   pimri = (int *)   in->slices[n][r]; break;
+        case MRI_LONG:  plmri = (long *)  in->slices[n][r]; break;
+        case MRI_FLOAT: pfmri = (float *) in->slices[n][r]; break;
+        }
+        for(c=0; c<ncols; c++) {
+	  if(mask){
+	    m = MRIgetVoxVal(mask,c,r,s,0);
+	    if(m < 0.5){
+	      // must increment pointers
+	      *pout++ = 0.0;
+	      switch(in->type){
+	      case MRI_UCHAR: pmri++; break;
+	      case MRI_SHORT: psmri++; break;
+	      case MRI_INT:   pimri++; break;
+	      case MRI_LONG:  plmri++; break;
+	      case MRI_FLOAT: pfmri++; break;
+	      }
+	      continue;
+	    }
+	  }
+	  switch(in->type){
+	  case MRI_UCHAR: v = (float)(*pmri++); break;
+	  case MRI_SHORT: v = (float)(*psmri++); break;
+	  case MRI_INT:   v = (float)(*pimri++); break;
+	  case MRI_LONG:  v = (float)(*plmri++); break;
+	  case MRI_FLOAT: v = (float)(*pfmri++); break;
+	  }
+	  if(v==0) v = EPSILON;
+	  *pout++ = aa*log(fabs(bb*v));
+        } // cols
+      } // rows
+      n++;
+    } // slices
+  } // frames
+  return(out);
 }
 
 /*---------------------------------------------------------------------

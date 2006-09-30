@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.91 2006/09/29 09:20:09 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.92 2006/09/30 03:59:37 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -957,7 +957,7 @@ int main(int argc, char **argv)
   }
   if(logflag){
     printf("Computing natural log of input\n");
-    MRIlog(mriglm->y,mriglm->y,1);
+    MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
   }
   if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
     printf("Smoothing input by fwhm %lf \n",FWHM);
@@ -1039,7 +1039,7 @@ int main(int argc, char **argv)
       if(!strcmp(csd->simtype,"mc-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(logflag) MRIlog(mriglm->y,mriglm->y,1);
+	if(logflag) MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
 	if(FWHM > 0) 
 	  SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }

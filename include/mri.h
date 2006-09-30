@@ -981,7 +981,7 @@ int MRIeraseBorderPlanes(MRI *mri) ;
 
 MRI *MRIzeroMean(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag);
-MRI *MRIlog(MRI *inmri, MRI *outmri, int negflag);
+MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out);
 MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
               float avg, float stddev, MRI *mri);
 MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
