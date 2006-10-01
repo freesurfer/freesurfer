@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.94 2006/10/01 05:45:39 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.95 2006/10/01 16:54:31 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -790,6 +790,21 @@ int main(int argc, char **argv)
   }
   else mriglm->w = NULL;
 
+  if(synth){
+    printf("Replacing input data with synthetic white noise\n");
+    MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
+	     0,1,mriglm->y);
+  }
+  if(logflag){
+    printf("Computing natural log of input\n");
+    MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
+  }
+  if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
+    printf("Smoothing input by fwhm %lf \n",FWHM);
+    SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
+    printf("   ... done\n");
+  }
+
   // Handle self-regressors
   if(nSelfReg > 0){
     if(DoSim && !strcmp(csd->simtype,"perm")){
@@ -931,20 +946,6 @@ int main(int argc, char **argv)
     }
   }
 
-  if(synth){
-    printf("Replacing input data with synthetic white noise\n");
-    MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
-	     0,1,mriglm->y);
-  }
-  if(logflag){
-    printf("Computing natural log of input\n");
-    MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
-  }
-  if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
-    printf("Smoothing input by fwhm %lf \n",FWHM);
-    SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
-    printf("   ... done\n");
-  }
   // Dump a voxel
   if(voxdumpflag){
     sprintf(voxdumpdir,"%s/voxdump-%d-%d-%d",GLMDir,
