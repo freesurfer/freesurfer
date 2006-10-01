@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.15 2006/08/30 20:56:35 czanner Exp $
+// $Id: fsglm.c,v 1.16 2006/10/01 05:05:52 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -121,7 +121,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.15 2006/08/30 20:56:35 czanner Exp $"); 
+  return("$Id: fsglm.c,v 1.16 2006/10/01 05:05:52 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -358,94 +358,50 @@ int GLMfit(GLMMAT *glm)
   GLMtest() - tests all the contrasts for the given GLM. Must have already
   run GLMcMatrices(), GLMxMatrices(), and GLMfit().
   ------------------------------------------------------------------------*/
+int GLMtest(GLMMAT *glm)
+{
+  int n;
+  double dtmp;
+  static MATRIX *F=NULL,*mtmp=NULL;
+
+  if(glm->ill_cond_flag){
+    // If it's ill cond, just return F=0
+    for(n = 0; n < glm->ncontrasts; n++){
+      glm->F[n] = 0;
+      glm->p[n] = 1;
+    }
+    return(0);
+  }
+
+  for(n = 0; n < glm->ncontrasts; n++){
+    // gamma = C*beta
+    // gCVM  = rvar*J*C*inv(X'*X)*C'
+    // F     = gamma' * inv(gCVM) * gamma;
+    // CiXtX and CiXtXCt are now computed by GLMxMatrices().
+    //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
+    //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
+
+    if(glm->igCVM[n]==NULL) 
+      glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
+
+    // Error trap for when rvar==0
+    if(glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
+    else                       dtmp = glm->rvar*glm->C[n]->rows;
+
+    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
+    glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
+    mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
+    if(mtmp != NULL){
+      glm->igCVM[n]    = MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
+      glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
+      glm->F[n]        = F->rptr[1][1];
 #if USE_SC_GSL_REPLACEMENT
-int GLMtest(GLMMAT *glm)
-{
-  int n;
-  double dtmp;
-  static MATRIX *F=NULL,*mtmp=NULL;
-
-  if(glm->ill_cond_flag){
-    // If it's ill cond, just return F=0
-    for(n = 0; n < glm->ncontrasts; n++){
-      glm->F[n] = 0;
-      glm->p[n] = 1;
-    }
-    return(0);
-  }
-
-  for(n = 0; n < glm->ncontrasts; n++){
-    // gamma = C*beta
-    // gCVM  = rvar*J*C*inv(X'*X)*C'
-    // F     = gamma' * inv(gCVM) * gamma;
-    // CiXtX and CiXtXCt are now computed by GLMxMatrices().
-    //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
-    //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
-
-    // Error trap for when rvar==0
-    if(glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
-    else                       dtmp = glm->rvar*glm->C[n]->rows;
-
-    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
-    glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
-    glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
-    mtmp           = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
-    if(mtmp != NULL){
-      glm->igCVM[n]    = mtmp;
-      glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
-      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
-      glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
-    }
-    else {
-      // this usually happens when the var is close to 0. But if this is
-      // happening, should probably use a mask.
-      glm->F[n]        = 0;
-      glm->p[n]        = 1;
-    }
-    if(glm->ypmfflag[n])
-      glm->ypmf[n] = MatrixMultiply(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
-  }
-  return(0);
-}
 #else
-int GLMtest(GLMMAT *glm)
-{
-  int n;
-  double dtmp;
-  static MATRIX *F=NULL,*mtmp=NULL;
-
-  if(glm->ill_cond_flag){
-    // If it's ill cond, just return F=0
-    for(n = 0; n < glm->ncontrasts; n++){
-      glm->F[n] = 0;
-      glm->p[n] = 1;
-    }
-    return(0);
-  }
-
-  for(n = 0; n < glm->ncontrasts; n++){
-    // gamma = C*beta
-    // gCVM  = rvar*J*C*inv(X'*X)*C'
-    // F     = gamma' * inv(gCVM) * gamma;
-    // CiXtX and CiXtXCt are now computed by GLMxMatrices().
-    //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
-    //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
-
-    // Error trap for when rvar==0
-    if(glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
-    else                       dtmp = glm->rvar*glm->C[n]->rows;
-
-    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
-    glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
-    glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
-    mtmp           = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
-    if(mtmp != NULL){
-      glm->igCVM[n]    = mtmp;
-      glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
-      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
-      glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
+#endif
     }
     else {
       // this usually happens when the var is close to 0. But if this is
@@ -458,7 +414,6 @@ int GLMtest(GLMMAT *glm)
   }
   return(0);
 }
-#endif
 /*-----------------------------------------------------------
   GLMprofile() - this can be used as both a profile and
   a memory leak tester. Design matrix is nrows-by-ncols
