@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.92 2006/09/30 03:59:37 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.93 2006/10/01 05:04:47 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -923,25 +923,6 @@ int main(int argc, char **argv)
   // Compute Contrast-related matrices
   GLMcMatrices(mriglm->glm);
 
-  // Dump a voxel
-  if(voxdumpflag){
-    sprintf(voxdumpdir,"%s/voxdump-%d-%d-%d",GLMDir,
-	    voxdump[0],voxdump[1],voxdump[2]);
-    printf("Dumping voxel %d %d %d to %s\n",
-	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
-    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2],0);
-    GLMxMatrices(mriglm->glm);
-    GLMfit(mriglm->glm);
-    GLMtest(mriglm->glm);
-    GLMdump(voxdumpdir,mriglm->glm);
-    if(mriglm->w){
-      wvect = MRItoVector(mriglm->w,voxdump[0],voxdump[1],voxdump[2],NULL);
-      sprintf(tmpstr,"%s/w.dat",voxdumpdir);
-      MatrixWriteTxt(tmpstr,wvect);
-    }
-    exit(0);
-  }
-
   if(pcaSave){
     if(npca < 0) npca = mriglm->y->nframes;
     if(npca > mriglm->y->nframes){
@@ -964,6 +945,25 @@ int main(int argc, char **argv)
     SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
     printf("   ... done\n");
   }
+  // Dump a voxel
+  if(voxdumpflag){
+    sprintf(voxdumpdir,"%s/voxdump-%d-%d-%d",GLMDir,
+	    voxdump[0],voxdump[1],voxdump[2]);
+    printf("Dumping voxel %d %d %d to %s\n",
+	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
+    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2],0);
+    GLMxMatrices(mriglm->glm);
+    GLMfit(mriglm->glm);
+    GLMtest(mriglm->glm);
+    GLMdump(voxdumpdir,mriglm->glm);
+    if(mriglm->w){
+      wvect = MRItoVector(mriglm->w,voxdump[0],voxdump[1],voxdump[2],NULL);
+      sprintf(tmpstr,"%s/w.dat",voxdumpdir);
+      MatrixWriteTxt(tmpstr,wvect);
+    }
+    exit(0);
+  }
+
 
   // Don't do sim --------------------------------------------------------
   if(!DoSim){
