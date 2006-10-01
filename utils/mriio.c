@@ -13923,11 +13923,9 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
   char errorString[50];
 
   //just give an error until read function is complete and tested
-  /*
   ErrorReturn(NULL, 
               (ERROR_UNSUPPORTED, 
                "mriNrrdRead(): Nrrd input not yet supported"));
-  */
 
   //from errno.h?
   errno = 0; //is this neccesary because of error.c:ErrorPrintf's use of errno?

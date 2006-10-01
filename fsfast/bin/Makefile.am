@@ -1,44 +1,15 @@
 #
-# Makefile.am for bin
+# Makefile.am for fsfast/bin
 #
 
-install-exec-local:
-	$(mkinstalldirs) $(DESTDIR)$(prefix)/fsfast/bin; \
-	d="$(DESTDIR)$(prefix)/fsfast/bin/"; \
-	for p in *; do \
-	val=`file $$p | grep script`;\
-	if test "$$val" != "" ; then \
-	  echo " $(INSTALL_SCRIPT) $$p $$d$$p"; \
-	    $(INSTALL_SCRIPT) $$p $$d$$p; \
-	fi; \
-	done
+foodir=$(prefix)/fsfast/bin
+foo_SCRIPTS=$(wildcard *)
 
-uninstall-local:
-	$(mkinstalldirs) $(DESTDIR)$(prefix)/fsfast/bin; \
-	d="$(DESTDIR)$(prefix)/fsfast/bin/"; \
-	for p in *; do \
-	val=`file $$p | grep script`;\
-	if test "$$val" != "" ; then \
-	  echo " rm -f $$d$$p"; \
-	  rm -f $$d$$p; \
-	fi; \
-	done
- 
-#release:
-#	$(MAKE) install
-#	@list=$(BIN_REMOVE_LIST); for p in $$list ; do \
-#	  d="$(DESTDIR)$(prefix)/fsfast/bin/"; \
-#	  if test -x $$d$$p; then \
-#	  echo "rm -f $$d$$p"; \
-#	  rm -f $$d$$p; \
-#	  fi; \
-#	done
-
-#uninstall-release:
-#	$(MAKE) uninstall
+EXTRA_DIST=$(foo_SCRIPTS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+TDR_FILES=$(wildcard tdr-*)
+EXCLUDE_FILES=$(TDR_FILES)
 include $(top_srcdir)/Makefile.extra

@@ -17,11 +17,12 @@ check_PROGRAMS=test
 test_SOURCES=test.c fsgdf_wrap.c
 test_LDFLAGS=$(LDFLAGS_TCL)
 test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
-TESTS=test
+TESTS=setup_test_data test
+EXTRA_DIST=setup_test_data test_data.tar.gz
 endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

@@ -5,23 +5,11 @@
 foodir=$(prefix)/fsfast/toolbox
 foo_DATA= $(wildcard *.m)
 
-include exclude_files.sh
-
-#release:
-#	$(MAKE) install
-#	@list=$(REMOVE_LIST); for p in $$list ; do \
-#	  d="$(DESTDIR)$(prefix)/fsfast/toolbox/"; \
-#	  if test -r $$d$$p; then \
-#	  echo "rm -f $$d$$p"; \
-#	  rm -f $$d$$p; \
-#	  fi; \
-#	done
-
-#uninstall-release:
-#	$(MAKE) uninstall
+EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+TDR_FILES=$(wildcard tdr_*.m)
+EXCLUDE_FILES=$(TDR_FILES)
 include $(top_srcdir)/Makefile.extra

@@ -10,14 +10,19 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.10 2006/09/28 19:42:03 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.11 2006/10/01 23:39:46 nicks Exp $'
 
 umask 002
 
 set WD=$PWD
 
 #
-# gunzip arch-specific expected results and 
+# extract testing data
+#
+tar zxvf test_data.tar.gz
+
+#
+# extract arch-specific expected results and 
 # set location where test data is to be created
 #
 
@@ -38,7 +43,6 @@ if ($status != 0) then
   echo "Failure extracting architecture-specific test data."
   exit 1
 endif
-chmod 666 emot*
 
 set ACTUAL=$WD/tmp
 if (-e $ACTUAL) rm -Rf $ACTUAL
@@ -47,7 +51,6 @@ if (! -e $ACTUAL) then
     echo "test_optseq2 FAILED to create directory $ACTUAL"
     exit 1
 endif
-chgrp -R fsdev $ACTUAL
 
 #
 # run optseq2 using typical input args (and the same as those used
@@ -60,10 +63,8 @@ echo $cmd
 $cmd
 if ($status != 0) then
   echo "create_optseq2_data FAILED"
-  chmod -R 777 $ACTUAL
   exit 1
 endif
-chmod -R 777 $ACTUAL
 
 #
 # compare expected results with actual (produced) results
@@ -87,10 +88,6 @@ foreach tstfile ($TEST_FILES)
     exit 1
   endif
 end
-
-# cleanup for the next run
-chgrp -R fsdev $EXPECTED
-rm -Rf $ACTUAL
 
 echo "test_optseq2 passed all tests"
 exit 0

@@ -11,12 +11,8 @@ mri_ms_EM_SOURCES=mri_ms_EM.c myutils.c myutil.h \
 mri_ms_EM_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_ms_EM_LDFLAGS=$(OS_LDFLAGS)
 
-#check_PROGRAMS=myown
-#myown_SOURCES=myown.c
-#myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES="myutil.h myutils.c PoissonSolver.c PoissonSolver.h"
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

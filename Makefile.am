@@ -248,10 +248,11 @@ SUBDIRS=include \
 	matlab \
 	scuba
 
+# build stamp
 install-data-hook:
 	echo "$(PACKAGE)-$(OS)-$(target_vendor)-$(target_cpu)-$(PACKAGE_VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
 
-EXTRA_DIST=setup_configure Makefile.extra
+EXTRA_DIST=setup_configure Makefile.extra x86cpucaps
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

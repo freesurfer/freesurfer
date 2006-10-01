@@ -28,7 +28,7 @@ CPPUNIT_CHECKS=
 check_PROGRAMS=$(CHECKS)
 endif
 
-TESTS=$(check_PROGRAMS)
+TESTS=setup_test_data $(check_PROGRAMS)
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
@@ -69,11 +69,7 @@ test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 endif
 
-EXTRA_DIST=test_nr_wrapper_data/$(wildcard *.mat) \
-	test_mriio_data/$(wildcard *.nrrd) \
-	test_mri_identify_data/$(wildcard nrrd*) \
-	test_matrix_data/$(wildcard *.mat) \
-	orig.tar.gz
+EXTRA_DIST=setup_test_data test_data.tar.gz
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

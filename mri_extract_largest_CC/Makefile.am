@@ -17,5 +17,5 @@ mri_extract_largest_CC_LDFLAGS=$(OS_LDFLAGS)
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES="myutils.c subroutines.c myutil.h subroutines.h"
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

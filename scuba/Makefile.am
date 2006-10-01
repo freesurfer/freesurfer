@@ -220,9 +220,14 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
 	testVolumeCollection testTclChartWindow
 
-EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
+EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl) \
+	testSetup.csh testCleanup.csh test_data.tar.gz \
+	testSegmentationVolumeReport-correct.txt \
+	testSegmentationVolumeReportIntReport-correct.txt \
+	testLUT.lut
 
-TESTS=testIDTracker testBroadcaster testUtilities \
+TESTS=testSetup.csh \
+	testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
 	testShortestPathFinder testToglManager testDataManager \
 	testTclCommandManager testPreferencesManager \
@@ -691,5 +696,5 @@ install-exec-hook:
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

@@ -3,11 +3,20 @@
 
 # A rule for making the release. It just removes files in an exclude list.
 release: install
-	  @list=$(EXCLUDE_FILES); for p in $$list; do \
-	    find $(prefix) -follow -name $$p -exec rm {} \;; \
-	  done; \
-	  list='$(SUBDIRS)'; for subdir in $$list; do \
-	    echo "Making release in $$subdir"; \
-            (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) release) \
-             || exit 1; \
-          done;
+  @list=( $(EXCLUDE_FILES) ); for p in $$list; do \
+	  find $(prefix) -follow -name $$p -exec rm {} \;; \
+  done; \
+  @list='$(SUBDIRS)'; for subdir in $$list; do \
+    echo "Making release in $$subdir"; \
+		(cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) release) \
+		|| exit 1; \
+	done;
+
+# A rule for making the source tarball.	 It removes files declared in a 
+# Makefile.am's EXCLUDE_FILES list (stuff that should not go outside the
+# NMR Center).
+dist-hook:
+	list=( $(EXCLUDE_FILES) ); for p in $$list; do \
+		find $(distdir) -follow -name $$p -exec rm {} \;; \
+	done; \
+  extra_dist=( $(EXTRA_DIST) );
