@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.9 2006/09/29 04:11:14 greve Exp $
+// $Id: dti.c,v 1.10 2006/10/01 05:45:39 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.9 2006/09/29 04:11:14 greve Exp $");
+  return("$Id: dti.c,v 1.10 2006/10/01 05:45:39 greve Exp $");
 }
 
 
@@ -472,6 +472,43 @@ MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb)
 
   return(lowb);
 }
+/*---------------------------------------------------------
+  DTItensor2ADC() - computes apparent diffusion coefficient
+  as the trace/3.
+  ---------------------------------------------------------*/
+MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc)
+{
+  int c,r,s;
+  double m,v1,v2,v3,vadc;
+
+  if(tensor->nframes != 9){
+    printf("ERROR: tensor must have at least 9 frames\n");
+    return(NULL);
+  }
+  if(adc == NULL){
+    adc = MRIcloneBySpace(tensor, 1);
+    if(!adc) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < tensor->width; c++){
+    for(r=0; r < tensor->height; r++){
+      for(s=0; s < tensor->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v1 = MRIgetVoxVal(tensor,c,r,s,0);
+	v2 = MRIgetVoxVal(tensor,c,r,s,4);
+	v3 = MRIgetVoxVal(tensor,c,r,s,8);
+	vadc = (v1+v2+v3)/3;
+	MRIsetVoxVal(adc,c,r,s,0,vadc);
+      }
+    }
+  }
+
+  return(adc);
+}
 /*------------------------------------------------------------*/
 MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
 {
@@ -508,6 +545,86 @@ MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
   }
 
   return(FA);
+}
+/*------------------------------------------------------------
+  DTIeigvals2RA() - relative anisotropy
+  ------------------------------------------------------------*/
+MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA)
+{
+  int c,r,s;
+  double m,v1,v2,v3,vmean,vsse,v;
+
+  if(evals->nframes != 3){
+    printf("ERROR: evals must have 3 frames\n");
+    return(NULL);
+  }
+  if(RA == NULL){
+    RA = MRIcloneBySpace(evals, 1);
+    if(!RA) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < evals->width; c++){
+    for(r=0; r < evals->height; r++){
+      for(s=0; s < evals->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v1 = MRIgetVoxVal(evals,c,r,s,0);
+	v2 = MRIgetVoxVal(evals,c,r,s,1);
+	v3 = MRIgetVoxVal(evals,c,r,s,2);
+	vmean = (v1+v2+v3)/3.0;
+	if(vmean != 0){
+	  vsse  = pow(v1-vmean,2.0) + pow(v2-vmean,2.0) + pow(v3-vmean,2.0);
+	  v = sqrt(vsse/(3.0*vmean));
+	}
+	else v = 0;
+	MRIsetVoxVal(RA,c,r,s,0,v);
+      }
+    }
+  }
+
+  return(RA);
+}
+/*------------------------------------------------------------
+  DTIeigvals2VR() - volume ratio measure of anisotropy. Actually,
+  1-VR is used so that it increases with anisotropy.
+  ------------------------------------------------------------*/
+MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR)
+{
+  int c,r,s;
+  double m,v1,v2,v3,vmean,v;
+
+  if(evals->nframes != 3){
+    printf("ERROR: evals must have 3 frames\n");
+    return(NULL);
+  }
+  if(VR == NULL){
+    VR = MRIcloneBySpace(evals, 1);
+    if(!VR) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for(c=0; c < evals->width; c++){
+    for(r=0; r < evals->height; r++){
+      for(s=0; s < evals->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v1 = MRIgetVoxVal(evals,c,r,s,0);
+	v2 = MRIgetVoxVal(evals,c,r,s,1);
+	v3 = MRIgetVoxVal(evals,c,r,s,2);
+	vmean = (v1+v2+v3)/3.0;
+	if(vmean != 0)	v = 1-(v1*v2*v3)/pow(vmean,3.0);
+	else            v = 0.0;
+	MRIsetVoxVal(VR,c,r,s,0,v);
+      }
+    }
+  }
+
+  return(VR);
 }
 /*----------------------------------------------------------------
   DTIfslBValFile() -- saves bvalues in a format that can be

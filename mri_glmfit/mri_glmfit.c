@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.93 2006/10/01 05:04:47 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.94 2006/10/01 05:45:39 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -542,7 +542,7 @@ int ReallyUseAverage7 = 0;
 DTI *dti;
 int usedti = 0;
 int logflag = 0; // natural log
-MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3, *fa;
+MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3, *fa, *ra, *vr, *adc;
 
 char *format = "mgh";
 
@@ -1310,6 +1310,18 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/fa.%s",GLMDir,format);
     MRIwrite(fa,tmpstr);
 
+    ra = DTIeigvals2RA(evals, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/ra.%s",GLMDir,format);
+    MRIwrite(ra,tmpstr);
+
+    vr = DTIeigvals2VR(evals, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/vr.%s",GLMDir,format);
+    MRIwrite(vr,tmpstr);
+
+    adc = DTItensor2ADC(tensor, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/adc.%s",GLMDir,format);
+    MRIwrite(adc,tmpstr);
+
     MRIfree(&lowb);
     MRIfree(&tensor);
     MRIfree(&evals);
@@ -1317,6 +1329,9 @@ int main(int argc, char **argv)
     MRIfree(&evec2);
     MRIfree(&evec3);
     MRIfree(&fa);
+    MRIfree(&ra);
+    MRIfree(&vr);
+    MRIfree(&adc);
 
   }
 
