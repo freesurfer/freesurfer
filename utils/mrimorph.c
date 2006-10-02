@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/21 11:13:35 $
-// Revision       : $Revision: 1.60 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/10/02 16:44:59 $
+// Revision       : $Revision: 1.61 $
 */
 
 /*-----------------------------------------------------
@@ -38,9 +38,7 @@
 #include "mrisurf.h"
 #include "icosahedron.h"
 #include "mrishash.h"
-
-#include "nr_wrapper_open_source.h"
-
+#include "numerics.h"
 #include "voxlist.h"
 #include "matrix.h"
 

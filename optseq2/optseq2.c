@@ -12,12 +12,8 @@
 #include "matfile.h"
 #include "evschutils.h"
 #include "version.h"
-#if USE_SC_GSL_REPLACEMENT
-  #include <gsl_wrapper.h>
-#else
-  #include "gsl/gsl_matrix.h"
-  #include "gsl/gsl_linalg.h"
-#endif
+#include "numerics.h"
+
 /* Things to do:
    1. Automatically compute Ntp such that Null has as much time 
       as the average of the non-null stimuli, or, automatically
@@ -52,7 +48,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.10 2006/09/15 21:19:27 nicks Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.11 2006/10/02 16:44:58 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -157,7 +153,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.10 2006/09/15 21:19:27 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.11 2006/10/02 16:44:58 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1640,7 +1636,6 @@ static MATRIX * ContrastMatrix(float *EVContrast,
   return(C);
 }
 /*------------------------------------------------------------*/
-#if USE_SC_GSL_REPLACEMENT
 static MATRIX * AR1WhitenMatrix(double rho, int N)
 {
   int m,n,d;
@@ -1682,55 +1677,3 @@ static MATRIX * AR1WhitenMatrix(double rho, int N)
 
   return(W);
 }
-#else
-static MATRIX * AR1WhitenMatrix(double rho, int N)
-{
-  int m,n,d;
-  double v;
-  gsl_matrix *G;
-  MATRIX *W,*M;
-
-  // First create AR1 covariance matrix M
-  M = MatrixAlloc(N,N,MATRIX_REAL);
-  for(m=0;m<N;m++){
-    for(n=0;n<N;n++){
-      d = abs(m-n);
-      v = pow(rho,(double)d);
-      M->rptr[m+1][n+1] = v;      
-      //gsl_matrix_set(M,m,n,v);
-    }
-  }
-
-  // Invert
-  M = MatrixInverse(M,M);
-
-  // Copy to GSL matrix
-  G = gsl_matrix_calloc(N,N);
-  for(m=0;m<N;m++){
-    for(n=0;n<N;n++){
-      v = M->rptr[m+1][n+1];
-      gsl_matrix_set(G,m,n,v);
-    }
-  }
-
-  // Perform cholesky decomposition
-  // M = G*G'; Note: in matlab: M = G'*G;
-  gsl_linalg_cholesky_decomp(G);
-
-  // Keep the upper triangular part
-  W = MatrixAlloc(N,N,MATRIX_REAL);
-  for(m=0;m<N;m++){
-    for(n=0;n<N;n++){
-      if(m<=n) W->rptr[m+1][n+1] = gsl_matrix_get(G,m,n);
-    }
-  }
-
-  gsl_matrix_free(G);
-  MatrixFree(&M);
-
-  return(W);
-}
-#endif
-
-
-

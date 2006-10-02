@@ -9,9 +9,9 @@ AM_CPPFLAGS=$(X_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
-	$(GSL_CFLAGS) -DHAVE_ZLIB
+	-DHAVE_ZLIB
 
-AM_LDFLAGS=$(GSL_LIBS)
+AM_LDFLAGS=
 
 #lib_LTLIBRARIES = libutils.la
 #libutils_la_SOURCES = $(wildcard *.c)

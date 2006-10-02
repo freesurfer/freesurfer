@@ -4,7 +4,7 @@
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	-I$(top_srcdir)/include/NrrdIO $(GSL_CFLAGS)
+	-I$(top_srcdir)/include/NrrdIO
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 CHECKS=mnitest i2rtest icotest extest \

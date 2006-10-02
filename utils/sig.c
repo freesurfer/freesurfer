@@ -8,8 +8,7 @@
 #include "diag.h"
 #include "macros.h"
 #include "proto.h"
-
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 
 /*---------------------------------------------------------------
   fdr2vwth() - returns the voxel-wise threshold given the

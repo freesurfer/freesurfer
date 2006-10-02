@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.222 2006/09/28 02:07:25 nicks Exp $"
+# "$Id: configure.in,v 1.223 2006/10/02 16:44:56 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -618,43 +618,6 @@ AC_SUBST(JPEG_LIBS)
 
 
 ################################################################
-# GSL (no longer used in Freesurfer)
-################################################################
-ac_gsl_includes="NO"
-ac_gsl_libraries="NO"
-ac_gsl_bindir="NO"
-GSL_CFLAGS=""
-GSL_LIBS=""
-GSL_LIB=""
-AC_MSG_CHECKING(GSL directory)
-
-AC_ARG_WITH(gsl-dir,
-  [  --with-gsl-dir=DIR      where the root of GSL is installed.],
-  [  ac_gsl_includes="$withval"/include
-     ac_gsl_libraries="$withval"/lib
-     ac_gsl_bindir="$withval"/bin
-  ])
-
-if test ! "$ac_gsl_includes" = "NO"; then
-  AC_MSG_RESULT(GSL directory is $withval)
-  GSL_CFLAGS=-I$ac_gsl_includes
-else
-  AC_MSG_RESULT(GSL will not be used)
-  GSL_CFLAGS=-DUSE_SC_GSL_REPLACEMENT=1
-fi
-if test ! "$ac_gsl_libraries" = "NO"; then
-  GSL_LIB=$ac_gsl_libraries
-  GSL_LIBS=-L$ac_gsl_libraries
-fi
-
-AC_SUBST(GSL_CFLAGS)
-AC_SUBST(GSL_LIBS)
-AC_SUBST(GSL_LIB)
-
-AM_CONDITIONAL(USE_SC_GSL_REPLACEMENT, test "x$ac_gsl_libraries" = "xNO")
-
-
-################################################################
 # Qt
 ################################################################
 ac_qt_includes="NO"
@@ -1008,14 +971,8 @@ ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
-if test ! "$ac_gsl_includes" = "NO"; then
-   CPPFLAGS="$CPPFLAGS $GSL_CFLAGS"
-fi
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
 $GL_LIBS $GLU_LIBS $GLUT_LIBS"
-if test ! "$ac_gsl_libraries" = "NO"; then
-   LDFLAGS="$LDFLAGS $GSL_LIBS"
-fi
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1049,12 +1006,6 @@ Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
 Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
-# if using GNU scientific library
-if test ! "$ac_gsl_libraries" = "NO"; then
-   AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
-   [AC_MSG_ERROR([FATAL: gsl lib not found. \
-   Please specify gsl header files and libs with --with-gsl-dir.])] )
-fi
 
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 if test ! "x$ac_tcl_libraries" = "xNO"; then
@@ -1172,18 +1123,10 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS \
 $JPEG_CFLAGS $TIFF_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS"
-if test ! "$ac_gsl_includes" = "NO"; then
-   CPPFLAGS="$CPPFLAGS $GSL_CFLAGS"
-fi
 LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS $VXL_LIBS"
-if test ! "$ac_gsl_libraries" = "NO"; then
-   LDFLAGS="$LDFLAGS $GSL_LIBS"
-fi
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS="-lvnl_algo -lvnl -lvcl -lnetlib $LIBS"
-if test ! "$ac_gsl_libraries" = "NO"; then
-   LIBS="-lgsl -lgslcblas $LIBS"
-fi
+
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
@@ -1304,9 +1247,6 @@ AC_CHECK_FUNCS([\
 TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VXL_LIB"
 if (! test "x$ac_cppunit_dir" = "xNO"); then
   TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
-fi
-if test ! "$ac_gsl_includes" = "NO"; then
-  TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$GSL_LIB"
 fi
 AC_SUBST(TESTS_ENVIRONMENT)
 

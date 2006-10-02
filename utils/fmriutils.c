@@ -1,15 +1,16 @@
 /*
-   fmriutils.c
-   $Id: fmriutils.c,v 1.32 2006/09/06 20:29:26 nicks Exp $
+  fmriutils.c
+  $Id: fmriutils.c,v 1.33 2006/10/02 16:44:59 nicks Exp $
 
-   Things to do:
-   1. Add flag to turn use of weight on and off
+  Things to do:
+  1. Add flag to turn use of weight on and off
 
 
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
 double round(double x);
 #include "matrix.h"
 #include "mri.h"
@@ -17,12 +18,8 @@ double round(double x);
 #include "sig.h"
 #include "fmriutils.h"
 #include "fsglm.h"
+#include "numerics.h"
 
-#if USE_SC_GSL_REPLACEMENT
-#include <gsl_wrapper.h>
-#else
-#include "gsl/gsl_cdf.h"
-#endif
 #ifdef X
 #undef X
 #endif
@@ -30,8 +27,10 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) {
-  return("$Id: fmriutils.c,v 1.32 2006/09/06 20:29:26 nicks Exp $");
+  return("$Id: fmriutils.c,v 1.33 2006/10/02 16:44:59 nicks Exp $");
 }
+
+
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
 {
@@ -96,6 +95,8 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
 
   return(outmri);
 }
+
+
 /*--------------------------------------------------------*/
 MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
 {
@@ -145,6 +146,8 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
 
   return(var);
 }
+
+
 /*--------------------------------------------------------
   fMRIsumSquare() - computes the sum of the squares over the
   frames. If the Update flag is set, then the sum of the
@@ -197,6 +200,8 @@ MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr)
 
   return(sumsqr);
 }
+
+
 /*--------------------------------------------------------------------*/
 MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
 {
@@ -269,6 +274,8 @@ MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
 
   return(t);
 }
+
+
 /*--------------------------------------------------------*/
 MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
 {
@@ -313,6 +320,8 @@ MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
 
   return(sig);
 }
+
+
 /*--------------------------------------------------------------------*/
 MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
 {
@@ -397,11 +406,11 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
   return(F);
 }
 
+
 /*--------------------------------------------------------*/
 // DOF1 = dof of den (same as t DOF)
 // DOF2 = dof of num (number of rows in C)
 // Note: order is rev relative to fsfast's FTest.m
-#if USE_SC_GSL_REPLACEMENT
 MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
 {
   int c, r, s, f;
@@ -444,50 +453,8 @@ MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
 
   return(sig);
 }
-#else
-MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
-{
-  int c, r, s, f;
-  float Fval, sigFval;
 
-  if(sig==NULL){
-    sig = MRIallocSequence(F->width, F->height, F->depth,
-                           MRI_FLOAT, F->nframes);
-    if(sig==NULL){
-      printf("ERROR: fMRIsigF: could not alloc\n");
-      return(NULL);
-    }
-    MRIcopyHeader(F,sig);
-  }
-  else{
-    if(F->width   != sig->width  ||
-       F->height  != sig->height ||
-       F->depth   != sig->depth  ||
-       F->nframes != sig->nframes){
-      printf("ERROR: fMRIsigF: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(sig->type != MRI_FLOAT){
-      printf("ERROR: fMRIsigF: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
 
-  for(c=0; c < F->width; c++){
-    for(r=0; r < F->height; r++){
-      for(s=0; s < F->depth; s++){
-        for(f=0; f < F->nframes; f++){
-          Fval = MRIFseq_vox(F,c,r,s,f);
-          sigFval = gsl_cdf_fdist_Q(Fval,DOFNum,DOFDen);
-          MRIFseq_vox(sig,c,r,s,f) = sigFval;
-        }
-      }
-    }
-  }
-
-  return(sig);
-}
-#endif
 /*--------------------------------------------------------
   fMRInskip() - skip the first nskip frames
   --------------------------------------------------------*/
@@ -542,6 +509,7 @@ MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri)
   return(outmri);
 }
 
+
 /*--------------------------------------------------------
   fMRIndrop() - drop the last ndrop frames
   --------------------------------------------------------*/
@@ -595,6 +563,8 @@ MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri)
 
   return(outmri);
 }
+
+
 /*---------------------------------------------------------------*/
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
                     int Mrows, int Mcols, MATRIX *M)
@@ -625,6 +595,7 @@ MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
   return(M);
 }
 
+
 /*---------------------------------------------------------------*/
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 {
@@ -654,6 +625,7 @@ MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
   return(M);
 }
 
+
 /*---------------------------------------------------------------*/
 int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 {
@@ -675,6 +647,7 @@ int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
   }
   return(0);
 }
+
 
 /*---------------------------------------------------------------*/
 int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
@@ -698,6 +671,7 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
   }
   return(0);
 }
+
 
 /*------------------------------------------------------------------------
   MRInormWeights() - rescales each voxel so that the sum across all
@@ -765,6 +739,8 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
 
   return(wn);
 }
+
+
 /*---------------------------------------------------------------------
   MRIglmFitAndTest() - fits and tests glm on a voxel-by-voxel basis.
   There are also two other related functions, MRIglmFit() and
@@ -899,6 +875,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   return(0);
 }
 
+
 /*---------------------------------------------------------------------
   MRIglmFit() - fits glm (beta and rvar) on a voxel-by-voxel basis.
   Made to be followed by MRIglmTest(). See notes on MRIglmFitandTest()
@@ -1003,6 +980,8 @@ int MRIglmFit(MRIGLM *mriglm)
   //printf("n_ill_cond = %d\n",mriglm->n_ill_cond);
   return(0);
 }
+
+
 /*---------------------------------------------------------------------
   MRIglmTest() - tests glm contrasts on a voxel-by-voxel basis.
   Made to be preceded by MRIglmFit(). See notes on MRIglmFitandTest()
@@ -1177,6 +1156,7 @@ VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v)
   return(v);
 }
 
+
 /*---------------------------------------------------------------
   MRIsetSign() - sets the sign of the invol based on the sign of the
   nth frame of the signvol. The values of the input are changed.  All
@@ -1207,6 +1187,7 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame)
   }
   return(0);
 }
+
 
 /*----------------------------------------------------------------
   MRI *MRIvolMax(MRI *vol, MRI *out) - the value at each voxel
@@ -1241,6 +1222,7 @@ MRI *MRIvolMax(MRI *invol, MRI *out)
   }
   return(out);
 }
+
 
 /*---------------------------------------------------------------
   MRIframeMax() - finds the maximum in the given frame. The max is
@@ -1312,6 +1294,8 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int signflag,
   }//s
   return(vmax);
 }
+
+
 /*---------------------------------------------------------------
   MRIframeMean() - computes mean over frames of each voxel.
   --------------------------------------------------------------*/
@@ -1337,6 +1321,8 @@ MRI *MRIframeMean(MRI *vol, MRI *volmn)
   }//s
   return(volmn);
 }
+
+
 /*---------------------------------------------------------------
   fMRIdetrend() - returns (I-inv(X'*X)*X')*y
   ---------------------------------------------------------------*/
@@ -1372,6 +1358,8 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X)
 
   return(res);
 }
+
+
 /*-------------------------------------------------------
   fMRIspatialAR1() - computes spatial AR1, ie, the
   correlation between the time course at one voxel
@@ -1515,6 +1503,8 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   if(freetmp) MRIfree(&srctmp);
   return(ar1);
 }
+
+
 /*----------------------------------------------------------
   fMRIspatialAR1Mean() - computes gobal mean of spatial AR1
   for col, row, and slice separately.

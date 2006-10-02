@@ -8,7 +8,7 @@
  *
  */
 
-/* $Id: mrinorm.c,v 1.78 2006/08/10 19:51:18 dsjen Exp $ */
+/* $Id: mrinorm.c,v 1.79 2006/10/02 16:44:59 nicks Exp $ */
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -31,8 +31,7 @@
 #include "mrinorm.h"
 #include "talairachex.h"
 #include "ctrpoints.h"
-
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 
 /*-----------------------------------------------------
   MACROS AND CONSTANTS

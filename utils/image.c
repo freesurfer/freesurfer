@@ -3065,8 +3065,7 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
 
            Description:
 ----------------------------------------------------------------------*/
-#include "nr_wrapper_open_source.h"
-// TODO: #include "eigen.h"
+#include "numerics.h"
 #include "matfile.h"
 
 static int compare_evalues(const void *l1, const void *l2)  ;
