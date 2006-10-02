@@ -9,10 +9,10 @@ LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 CHECKS=mnitest i2rtest icotest extest \
 	mghxform inftest checkanalyze \
-	test_mri_identify test_mriio test_c_nr_wrapper \
+	test_mri_identify test_c_nr_wrapper \
 	sc_test
 
-BROKEN=difftool mri_compute_stats \
+BROKEN=difftool test_mriio mri_compute_stats \
   surftest mri_ms_LDA \
 	mri_fslmat_to_lta mri_concatenate_lta \
 	mri_transform_to_COR mri_compute_all_CNR \
@@ -38,9 +38,9 @@ mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp
 checkanalyze_SOURCES=checkanalyze.cpp
 test_mri_identify_SOURCES=test_mri_identify.cpp
-test_mriio_SOURCES=test_mriio.cpp
 test_c_nr_wrapper_SOURCES=test_c_nr_wrapper.c
 sc_test_SOURCES=sc_test.c
+#test_mriio_SOURCES=test_mriio.cpp
 #surftest_SOURCES=surftest.cpp
 #difftool_SOURCES=difftool.cpp
 #mris_compute_thickness_SOURCES=mris_compute_thickness.cpp
