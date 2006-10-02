@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.223 2006/10/02 16:44:56 nicks Exp $"
+# "$Id: configure.in,v 1.224 2006/10/02 19:28:19 kteich Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -757,6 +757,47 @@ AM_CONDITIONAL(ENABLE_VTK_APPS, test ! "x$ac_vtk_libraries" = "xNO")
 AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
+
+
+################################################################
+# KWWidgets
+################################################################
+ac_kwwidgets_includes="NO"
+ac_kwwidgets_libraries="NO"
+ac_kwwidgets_dir="NO"
+KWWIDGETS_CFLAGS=""
+KWWIDGETS_CXXFLAGS=""
+KWWIDGETS_LIBS=""
+AC_MSG_CHECKING(KWWidgets directory)
+
+AC_ARG_WITH(kwwidgets-dir,
+  [  --with-kwwidgets-dir=DIR      where the root of KWWidgets is installed.],
+  [  ac_kwwidgets_includes="$withval/include"
+     ac_kwwidgets_libraries="$withval"/lib
+     ac_kwwidgets_dir="$withval"
+  ])
+
+if test ! "$ac_kwwidgets_includes" = "NO"; then
+  AC_MSG_RESULT(KWWidgets directory is $withval)
+  for item in $ac_kwwidgets_includes; do
+        KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
+        KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
+  done
+  KWWIDGETS_DIR=$ac_kwwidgets_dir
+  AC_SUBST(KWWIDGETS_DIR)
+else
+  AC_MSG_RESULT(KWWidgets directory is not supplied. Not building KWWidgets apps.)
+fi
+
+if test ! "$ac_kwwidgets_libraries" = "NO"; then
+  KWWIDGETS_LIBS=-L$ac_kwwidges_libraries
+fi
+
+AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test ! "x$ac_kwwidgets_libraries" = "xNO")
+
+AC_SUBST(KWWIDGETS_CFLAGS)
+AC_SUBST(KWWIDGETS_CXXFLAGS)
+AC_SUBST(KWWIDGETS_LIBS)
 
 
 #####################################################
