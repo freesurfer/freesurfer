@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.31 2006/09/24 00:17:50 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.32 2006/10/02 22:14:41 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.31 2006/09/24 00:17:50 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.32 2006/10/02 22:14:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -334,26 +334,26 @@ fi
 
 
 ### ------ VXL  ------- ####
-if [ -d $FREESURFER_HOME/lib/vxl ]; then
-    export VXL_DIR=$FREESURFER_HOME/lib/vxl
-elif [ -d /usr/pubsw/packages/vxl/current ]; then
-    export VXL_DIR=/usr/pubsw/packages/vxl/current
-fi
-if [ -n "$VXL_DIR" ]; then
-    if [ -z "$LD_LIBRARY_PATH" ]; then
-        export LD_LIBRARY_PATH=$VXL_DIR/lib
-    else
-        export LD_LIBRARY_PATH="$VXL_DIR/lib":"$LD_LIBRARY_PATH"
-    fi
-    if [ -z "$DYLD_LIBRARY_PATH" ]; then
-        export DYLD_LIBRARY_PATH=$VXL_DIR/lib
-    else
-        export DYLD_LIBRARY_PATH="$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
-    fi
-fi
-if [[ $output == 1 && -n "$VXL_DIR" ]]; then
-    echo "VXL_DIR         $VXL_DIR"
-fi
+#if [ -d $FREESURFER_HOME/lib/vxl ]; then
+#    export VXL_DIR=$FREESURFER_HOME/lib/vxl
+#elif [ -d /usr/pubsw/packages/vxl/current ]; then
+#    export VXL_DIR=/usr/pubsw/packages/vxl/current
+#fi
+#if [ -n "$VXL_DIR" ]; then
+#    if [ -z "$LD_LIBRARY_PATH" ]; then
+#        export LD_LIBRARY_PATH=$VXL_DIR/lib
+#    else
+#        export LD_LIBRARY_PATH="$VXL_DIR/lib":"$LD_LIBRARY_PATH"
+#    fi
+#    if [ -z "$DYLD_LIBRARY_PATH" ]; then
+#        export DYLD_LIBRARY_PATH=$VXL_DIR/lib
+#    else
+#        export DYLD_LIBRARY_PATH="$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
+#    fi
+#fi
+#if [[ $output == 1 && -n "$VXL_DIR" ]]; then
+#    echo "VXL_DIR         $VXL_DIR"
+#fi
 
 
 ### - Miscellaneous support libraries TIFF/JPG/GLUT (MacOS only) - ####

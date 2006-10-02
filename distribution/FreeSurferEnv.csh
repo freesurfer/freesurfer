@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.63 2006/09/24 00:17:50 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.64 2006/10/02 22:14:41 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.63 2006/09/24 00:17:50 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.64 2006/10/02 22:14:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -336,26 +336,26 @@ endif
 
 
 ### -------------- VXL ------------- ###
-if ( -e $FREESURFER_HOME/lib/vxl) then
-    setenv VXL_DIR    $FREESURFER_HOME/lib/vxl
-else if ( -e /usr/pubsw/packages/vxl/current) then
-    setenv VXL_DIR    /usr/pubsw/packages/vxl/current
-endif
-if ( $?VXL_DIR ) then
-    if (! $?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH  $VXL_DIR/lib
-    else
-        setenv LD_LIBRARY_PATH  "$VXL_DIR/lib":"$LD_LIBRARY_PATH"
-    endif
-    if (! $?DYLD_LIBRARY_PATH) then
-        setenv DYLD_LIBRARY_PATH  $VXL_DIR/lib
-    else
-        setenv DYLD_LIBRARY_PATH  "$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
-    endif
-endif
-if( $output && $?VXL_DIR ) then
-    echo "VXL_DIR         $VXL_DIR"
-endif
+#if ( -e $FREESURFER_HOME/lib/vxl) then
+#    setenv VXL_DIR    $FREESURFER_HOME/lib/vxl
+#else if ( -e /usr/pubsw/packages/vxl/current) then
+#    setenv VXL_DIR    /usr/pubsw/packages/vxl/current
+#endif
+#if ( $?VXL_DIR ) then
+#    if (! $?LD_LIBRARY_PATH) then
+#        setenv LD_LIBRARY_PATH  $VXL_DIR/lib
+#    else
+#        setenv LD_LIBRARY_PATH  "$VXL_DIR/lib":"$LD_LIBRARY_PATH"
+#    endif
+#    if (! $?DYLD_LIBRARY_PATH) then
+#        setenv DYLD_LIBRARY_PATH  $VXL_DIR/lib
+#    else
+#        setenv DYLD_LIBRARY_PATH  "$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
+#    endif
+#endif
+#if( $output && $?VXL_DIR ) then
+#    echo "VXL_DIR         $VXL_DIR"
+#endif
 
 
 ### - Miscellaneous support libraries (tiff/jpg/glut - Mac OS only) - ###
