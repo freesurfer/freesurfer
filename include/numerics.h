@@ -116,8 +116,6 @@ extern "C" {
 
   //##################### FUNCTION PROTOTYPES ########################
 
-  void sc_err_msg(char *msg);
-
   int sc_linalg_cholesky_decomp(MATRIX *U);
 
 
@@ -160,4 +158,4 @@ extern "C" {
 }
 #endif
 
-#endif /*NR_WRAPPER_OPEN_SOURCE_H_*/
+#endif /*NUMERICS_H_*/
