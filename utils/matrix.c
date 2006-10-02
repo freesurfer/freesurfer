@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.97 2006/10/02 16:44:59 nicks Exp $
+// $Id: matrix.c,v 1.98 2006/10/02 20:13:09 nicks Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1387,8 +1387,81 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
 }
 
 
-void identity_matrix(float **I,int n) ;
-void svd(float **A, float **V, float *z, int m, int n) ;
+#if 0
+/* m is rows, and n is cols */
+static void svd(float **A, float **V, float *z, int m, int n)
+{
+  int i,j,k,count;
+  float c,s,p,q,r,v,toll=0.1,pqrtoll=1;
+
+  // identity_matrix(V,n):
+  for (i = 1 ; i <= n ; i++) for (j=1 ; j <= n ; j++)
+    V[i][j] = (i==j) ? 1.0 : 0.0 ;
+
+  for (count=n*(n-1)/2;count>0;)
+    {
+      count=n*(n-1)/2;
+      for (j=1;j<=n;j++)
+        {
+          for (k=j+1;k<=n;k++)
+            {
+              p=q=r=0;
+              for (i=1;i<=m;i++)
+                {
+                  p += A[i][j]*A[i][k];
+                  q += A[i][j]*A[i][j];
+                  r += A[i][k]*A[i][k];
+                }
+              if ((p==0) && (q==0) && (r==0)) break;
+              pqrtoll=p*p/(q*r);
+              if (pqrtoll==0) break;
+              //printf("pqrtoll=%f,p=%f,q=%f,r=%f\n",pqrtoll,p,q,r);
+              if ((q*r==0)||(pqrtoll<toll)) count--;
+              if (q<r)
+                {
+                  c=0;
+                  s=1;
+                } 
+              else
+                {
+                  q = q-r;
+                  v = (float)sqrt((double)(4.0f*p*p+q*q));
+                  c = (float)sqrt((double)((v+q)/(2.0f*v)));
+                  s = p/(v*c);
+                }
+              for (i=1;i<=m;i++)
+                {
+                  r = A[i][j];
+                  A[i][j] = r*c+A[i][k]*s;
+                  A[i][k] = -r*s+A[i][k]*c;
+                }
+              for (i=1;i<=n;i++)
+                {
+                  r = V[i][j];
+                  V[i][j] = r*c+V[i][k]*s;
+                  V[i][k] = -r*s+V[i][k]*c;
+                }
+            }
+          if ((p==0) && (q==0) && (r==0)) break;
+          if (pqrtoll==0) break;
+        }
+      if ((p==0) && (q==0) && (r==0)) break;
+      if (pqrtoll==0) break;
+      //printf("count=%d\n",count);
+    }
+  for (j=1;j<=n;j++)
+    {
+      q = 0;
+      for (i=1;i<=m;i++) q += A[i][j]*A[i][j];
+      q = sqrt(q);
+      z[j-1] = q;
+
+      for (i=1;i<=m;i++) A[i][j] /= q;
+
+    }
+}
+#endif
+
 
 /* z is an m->cols dimensional vector, mV is an cols x cols dimensional
    identity matrix. Note that all the matrices are (as usual) one based.
@@ -1397,10 +1470,12 @@ void svd(float **A, float **V, float *z, int m, int n) ;
    v = mV, and s = diag(v_z) */
 MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
 {
-  mV = MatrixIdentity(mA->rows, mV) ;
-
-  svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
-  return(mV) ;
+  //mV = MatrixIdentity(mA->rows, mV) ;
+  //svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
+  
+  OpenSvdcmp ( mA, v_z, mV ) ;
+  
+  return ( mV ) ;
 }
 
 
@@ -1515,83 +1590,6 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   MatrixFree(&m_Ut) ;
   MatrixFree(&m_tmp) ;
   return(m_inverse) ;
-}
-
-
-
-/* m is rows, and n is cols */
-void
-svd(float **A, float **V, float *z, int m, int n)
-{
-  int i,j,k,count;
-  float c,s,p,q,r,v,toll=0.1;
-
-  identity_matrix(V,n);
-  for (count=n*(n-1)/2;count>0;)
-    {
-      count=n*(n-1)/2;
-      for (j=1;j<=n;j++)
-        {
-          for (k=j+1;k<=n;k++)
-            {
-              p=q=r=0;
-              for (i=1;i<=m;i++)
-                {
-                  p += A[i][j]*A[i][k];
-                  q += A[i][j]*A[i][j];
-                  r += A[i][k]*A[i][k];
-                }
-              if ((q*r==0)||(p*p/(q*r)<toll)) count--;
-              if (q<r)
-                {
-                  c=0;
-                  s=1;
-                } else
-                  {
-                    q = q-r;
-                    v = (float)sqrt((double)(4.0f*p*p+q*q));
-                    c = (float)sqrt((double)((v+q)/(2.0f*v)));
-                    s = p/(v*c);
-                  }
-              for (i=1;i<=m;i++)
-                {
-                  r = A[i][j];
-                  A[i][j] = r*c+A[i][k]*s;
-                  A[i][k] = -r*s+A[i][k]*c;
-                }
-              for (i=1;i<=n;i++)
-                {
-                  r = V[i][j];
-                  V[i][j] = r*c+V[i][k]*s;
-                  V[i][k] = -r*s+V[i][k]*c;
-                }
-            }
-        }
-#if 0
-      printf("count=%d\n",count);
-      print_matrix(A,m,n);
-#endif
-    }
-  for (j=1;j<=n;j++)
-    {
-      q = 0;
-      for (i=1;i<=m;i++) q += A[i][j]*A[i][j];
-      q = sqrt(q);
-      z[j-1] = q;
-
-      for (i=1;i<=m;i++) A[i][j] /= q;
-
-    }
-}
-
-
-void
-identity_matrix(float **I,int n)
-{
-  int i,j;
-
-  for (i = 1 ; i <= n ; i++) for (j=1 ; j <= n ; j++)
-    I[i][j] = (i==j) ? 1.0 : 0.0 ;
 }
 
 

@@ -45,7 +45,6 @@ private:
   void TearDownMinimizationTestResults();
 
 public:
-  static const bool IS_USING_VNL;
 
   static const int MATRICES_NOT_EQUAL;
   static const int MATRICES_EQUAL;
@@ -176,8 +175,6 @@ public:
 };
 
 const float NRWrapperTest::EPSILON = 5e-5;
-
-const bool NRWrapperTest::IS_USING_VNL = true;
 
 const int NRWrapperTest::MATRICES_NOT_EQUAL = 0;
 const int NRWrapperTest::MATRICES_EQUAL = 1;
@@ -328,7 +325,6 @@ NRWrapperTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance,
         if( difference > tolerance ) {
           areEqual = false;
         }
-
         /*
         if( !areEqual ) {
           std::cerr << "matrix1: \n";
@@ -744,15 +740,9 @@ NRWrapperTest::TestSVDcmpHelper( std::string matrixFile,
 
   int isError = NO_ERROR;
 
-  // this will become the new svdcmp
-  if( IS_USING_VNL ) {
-    isError = OpenSvdcmp( u, w, v );
-  } else {
-    /* TODO:
-       isError = svdcmp( u->rptr, numberOfRows, numberOfColumns,
-       w->rptr[1], v->rptr );
-    */
-  }
+  //isError = OpenSvdcmp( u, w, v );
+  // MatrixSVD wraps OpenSvdcmp, but doesnt return the error code
+  v = MatrixSVD( u, w, v );
 
   if( isError == NO_ERROR ) {
     const double tolerance = 1e-2;
@@ -784,27 +774,35 @@ NRWrapperTest::TestSVDcmp() {
 
   std::cout << "\rNRWrapperTest::TestSVDcmp()\n";
 
+  //  std::cout << "\tPASCAL_MATRIX\n";
   status = TestSVDcmpHelper( PASCAL_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tZEROES_MATRIX\n";
   status = TestSVDcmpHelper( ZEROES_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tIDENTITY_MATRIX\n";
   status = TestSVDcmpHelper( IDENTITY_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tSINGULAR_MATRIX\n";
   status = TestSVDcmpHelper( SINGULAR_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tONE_MATRIX\n";
   status = TestSVDcmpHelper( ONE_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tONE_SMALL_MATRIX\n";
   status = TestSVDcmpHelper( ONE_SMALL_MATRIX );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 
+  //  std::cout << "\tRANDOM_5_11\n";
   status = TestSVDcmpHelper( RANDOM_5_11 );
-  CPPUNIT_ASSERT_EQUAL( MATRICES_ERROR, status );
+  CPPUNIT_ASSERT_EQUAL( MATRICES_NOT_EQUAL, status );
 
+  //  std::cout << "\tRANDOM_61_61, 61, 61\n";
   status = TestSVDcmpHelper( RANDOM_61_61, 61, 61 );
   CPPUNIT_ASSERT_EQUAL( MATRICES_EQUAL, status );
 }
