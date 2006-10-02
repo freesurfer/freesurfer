@@ -5,9 +5,8 @@
 //
 #include <stdio.h>
 #include <math.h>
-#define NRANSI
-#include "nr.h"
-#include "nrutil.h"
+
+#include "numerics.h"
 
 #define NP 10
 #define TINY 1.0e-6
@@ -64,4 +63,3 @@ int main(void)
   free_vector(d,1,NP);
   return 0;
 }
-#undef NRANSI

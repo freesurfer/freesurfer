@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/09/06 23:43:01 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/10/02 17:32:15 $
+// Revision       : $Revision: 1.9 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -69,7 +69,8 @@ static int conform = 0 ;
 static int whole_volume = 0;
 static int have_weight = 0; /* read in weights */
 static int just_test = 0; /* if 1, try SW = Identity */
-static int compute_m_distance = 0; /* if 1, compute distance in original space */
+static int compute_m_distance = 0; /* if 1, compute distance 
+                                      in original space */
 
 /* LDA is performed only within ROI */
 static char *mask_fname = NULL; /* filename for ROI mask */
@@ -83,9 +84,15 @@ void input_weights_to_file(float *weights, char *weight_fname, int VN);
 
 void output_weights_to_file(float *weights, char *weight_fname, int VN);
 
-void  update_LDAmeans(MRI **mri_flash, MRI *mri_label, MRI *mri_mask, float *LDAmean1, float *LDAmean2, int nvolumes_total, int classID1, int classID2);
+void  update_LDAmeans(MRI **mri_flash, 
+                      MRI *mri_label, 
+                      MRI *mri_mask, 
+                      float *LDAmean1, float *LDAmean2, 
+                      int nvolumes_total, int classID1, int classID2);
 
-void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, MRI *mri_mask, float *LDAmean1, float *LDAmean2, int nvolumes_total, int classID1, int classID2);
+void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, 
+                       MRI *mri_mask, float *LDAmean1, float *LDAmean2, 
+                       int nvolumes_total, int classID1, int classID2);
 
 static int class1 = 0; /* to be used for LDA */ 
 static int class2 = 0; /* to be used for LDA */ 
@@ -112,7 +119,9 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.8 2006/09/06 23:43:01 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_ms_LDA.c,v 1.9 2006/10/02 17:32:15 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

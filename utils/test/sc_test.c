@@ -11,12 +11,9 @@
 #include <stdarg.h>
 #include <math.h>
 
-#define USE_SC_GSL_REPLACEMENT 1
 #define HAVE_VPRINTF 1
 
-#include "gsl_wrapper.h"
-
-#ifdef USE_SC_GSL_REPLACEMENT
+#include "numerics.h"
 
 #define TEST(func, args, value, tol) \
 { double res = func args ; sc_test_rel (res, value, tol, #func #args); } ;
@@ -1420,6 +1417,3 @@ int main(int argc, char *argv[])
 
   exit (sc_test_summary ());
 }
-
-#endif // #ifdef USE_SC_REPLACEMENT_CODE
-

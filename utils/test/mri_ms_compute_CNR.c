@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/09/06 23:43:01 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2006/10/02 17:32:15 $
+// Revision       : $Revision: 1.8 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.7 2006/09/06 23:43:01 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.8 2006/10/02 17:32:15 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

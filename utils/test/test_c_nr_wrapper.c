@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 
 int main(int argc, char *argv[]) {
   // just trying to make sure that we can call the functions from c

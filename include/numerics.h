@@ -7,9 +7,9 @@ extern "C" {
 
 #include "matrix.h"
 
-  static const int SPLINE_USE_QUADRATIC = 0;
-  static const int SPLINE_USE_FIRST_DERIVATIVE = 1;
-  static const int SPLINE_USE_SECOND_DERIVATIVE = 2;
+#define SPLINE_USE_QUADRATIC         0
+#define SPLINE_USE_FIRST_DERIVATIVE  1
+#define SPLINE_USE_SECOND_DERIVATIVE 2
 
   float OpenBetaIncomplete(float a, float b, float x);
 
@@ -65,11 +65,11 @@ extern "C" {
 
   float *d3_np_fs ( int n, float a[], float b[] );
 
-  // we'll need to include these when we remove the old nr stuff
   float *vector(long nl, long nh);
   float **matrix(long nrl, long nrh, long ncl, long nch);
   void free_vector(float *v, long nl, long nh);
   void free_matrix(float **m, long nrl, long nrh, long ncl, long nch);
+
 
 
 #ifdef INFINITY

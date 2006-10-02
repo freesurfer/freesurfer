@@ -4,17 +4,21 @@
 // original author: Xiao Han
 //
 // intended for gca guided 
-// 1.Find xn, yn, zn for each voxel once and store them, instead of have to constantly do the transform
+// 1.Find xn, yn, zn for each voxel once and store them, 
+// instead of have to constantly do the transform
 //
 // Thinsg to do:
-// 1. Need to postprocessing with fixed class stats but ignoring atlas prior, since atlas is really way-off at some places (or should I ignore voxel-wise prior from the beginning, just fix class-prior from atlas??
+// 1. Need to postprocessing with fixed class stats but ignoring 
+// atlas prior, since atlas is really way-off at some places (or 
+// should I ignore voxel-wise prior from the beginning, just fix 
+// class-prior from atlas??
 // 2. May need MRF prior to make sure segmentation is smooth
 // 3. PVE model may be needed; better try on mri_ms_EM first
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/09/06 23:43:01 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2006/10/02 17:32:15 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -22,7 +26,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 #include "mri.h"
 #include "matrix.h"
 #include "macros.h"
@@ -156,7 +160,7 @@ main(int argc, char *argv[])
   double max_prior;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.5 2006/09/06 23:43:01 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.6 2006/10/02 17:32:15 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

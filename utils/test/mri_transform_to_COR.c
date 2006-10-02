@@ -26,7 +26,8 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.5 2005/12/05 22:24:08 xhan Exp $";
+static char vcid[] = 
+"$Id: mri_transform_to_COR.c,v 1.6 2006/10/02 17:32:16 nicks Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -74,7 +75,7 @@ int  SamplesToCoefficients
  );
 
 MRI *MRIlinearTransformInterpBSpline(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
-				     int splinedegree);
+                                     int splinedegree);
 
 int
 main(int argc, char *argv[])
@@ -96,7 +97,7 @@ main(int argc, char *argv[])
   //  MATRIX *i_to_r, *r_to_i;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.5 2005/12/05 22:24:08 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.6 2006/10/02 17:32:16 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -146,12 +147,12 @@ main(int argc, char *argv[])
   for(z=0; z < mri_in->depth; z++)
     for(y=0; y< mri_in->height; y++)
       for(x=0; x < mri_in->width; x++)
-	{
-	  if(MRIFvox(mri_in, x, y, z) > maxV )
-	    maxV = MRIFvox(mri_in, x, y,z) ;
-	  if(MRIFvox(mri_in, x, y, z) < minV )
-	    minV = MRIFvox(mri_in, x, y,z) ;
-	}
+        {
+          if(MRIFvox(mri_in, x, y, z) > maxV )
+            maxV = MRIFvox(mri_in, x, y,z) ;
+          if(MRIFvox(mri_in, x, y, z) < minV )
+            minV = MRIFvox(mri_in, x, y,z) ;
+        }
   
   printf("Input volume has max = %g, min =%g\n", maxV, minV);
   
@@ -161,13 +162,13 @@ main(int argc, char *argv[])
   for(z=0; z < mri_in->depth; z++)
     for(y=0; y< mri_in->height; y++)
       for(x=0; x < mri_in->width; x++)
-	{
-	  MRIFvox(mri_in, x, y, z) *= scale;
-	  if(MRIFvox(mri_in, x, y, z) > maxV )
-	    maxV = MRIFvox(mri_in, x, y,z) ;
-	  if(MRIFvox(mri_in, x, y, z) < minV )
-	    minV = MRIFvox(mri_in, x, y,z) ;
-	}
+        {
+          MRIFvox(mri_in, x, y, z) *= scale;
+          if(MRIFvox(mri_in, x, y, z) > maxV )
+            maxV = MRIFvox(mri_in, x, y,z) ;
+          if(MRIFvox(mri_in, x, y, z) < minV )
+            minV = MRIFvox(mri_in, x, y,z) ;
+        }
   
   printf("Input volume after scaling has max = %g, min =%g\n", maxV, minV);
 
@@ -180,7 +181,7 @@ main(int argc, char *argv[])
     int transform_type;
     
     printf("INFO: Applying transformation from file %s...\n", 
-	   transform_fname);
+           transform_fname);
     transform_type =  TransformFileNameType(transform_fname);
     
     /* Read in LTA transform file name */
@@ -194,114 +195,114 @@ main(int argc, char *argv[])
       lta = LTAreadEx(transform_fname) ;
       
       if (!lta)
-	ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-		  Progname, transform_fname) ;
+        ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+                  Progname, transform_fname) ;
       
       if (transform_type == FSLREG_TYPE){
-	if(lta_src == 0 || lta_dst == 0){
-	  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
-	  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos for the registration\n");
-	}
+        if(lta_src == 0 || lta_dst == 0){
+          fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+          fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos for the registration\n");
+        }
 	
 	
-	LTAmodifySrcDstGeom(lta, lta_src, lta_dst); // add src and dst information
-	//The following is necessary to interpret FSLMAT correctly!!!
-	LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+        LTAmodifySrcDstGeom(lta, lta_src, lta_dst); // add src and dst information
+        //The following is necessary to interpret FSLMAT correctly!!!
+        LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       }
       if (lta->xforms[0].src.valid == 0){
-	if(lta_src == 0){
-	  fprintf(stderr, "The transform does not have the valid src volume info.\n");
-	  fprintf(stderr, "Either you give src volume info by option -src or\n");
-	  fprintf(stderr, "make the transform to have the valid src info.\n");
-	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-	}else{
-	  LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
-	}
+        if(lta_src == 0){
+          fprintf(stderr, "The transform does not have the valid src volume info.\n");
+          fprintf(stderr, "Either you give src volume info by option -src or\n");
+          fprintf(stderr, "make the transform to have the valid src info.\n");
+          ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+        }else{
+          LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
+        }
       }
       if (lta->xforms[0].dst.valid == 0){
-	if(lta_dst == 0){
-	  fprintf(stderr, "The transform does not have the valid dst volume info.\n");
-	  fprintf(stderr, "Either you give src volume info by option -dst or\n");
-	  fprintf(stderr, "make the transform to have the valid dst info.\n");
-	  fprintf(stderr, "If the dst was average_305, then you can set\n");
-	  fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
-	  fprintf(stderr, "instead.\n");
-	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-	}else{
-	  LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
-	}
+        if(lta_dst == 0){
+          fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+          fprintf(stderr, "Either you give src volume info by option -dst or\n");
+          fprintf(stderr, "make the transform to have the valid dst info.\n");
+          fprintf(stderr, "If the dst was average_305, then you can set\n");
+          fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+          fprintf(stderr, "instead.\n");
+          ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+        }else{
+          LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
+        }
       }
       
       
       // The following procedure aims to apply an LTA computed from COR format to a volume in non-COR format, or vice versa, as long as they share the same RAS
       // first change to LINEAR RAS_TO_RAS using old info
       if(lta->type != LINEAR_RAS_TO_RAS){
-	LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+        LTAchangeType(lta, LINEAR_RAS_TO_RAS);
       }
       
       // now possiblly reset the src and dst
       if(lta_src != NULL){
-	//always trust the user
-	LTAmodifySrcDstGeom(lta, lta_src, NULL);
+        //always trust the user
+        LTAmodifySrcDstGeom(lta, lta_src, NULL);
       }
       if(lta_dst != NULL){
-	//always trust the user
-	LTAmodifySrcDstGeom(lta, NULL, lta_dst);
+        //always trust the user
+        LTAmodifySrcDstGeom(lta, NULL, lta_dst);
       }
 
       if(lta->type == LINEAR_RAS_TO_RAS){
-	/* Convert it to VOX_TO_VOX */
-	/* VOXELsrc_to_VOXELdst = R2Vdst*R2Rlta*V2Rsrc */
-	/* Note whether the input should be identical to src or dst here depends
-	 * on whether the LTA here is the direct or inverse transform
-	 */
-	i_to_r_src = vg_i_to_r(&lta->xforms[0].src);
-	r_to_i_dst = vg_r_to_i(&lta->xforms[0].dst);
+        /* Convert it to VOX_TO_VOX */
+        /* VOXELsrc_to_VOXELdst = R2Vdst*R2Rlta*V2Rsrc */
+        /* Note whether the input should be identical to src or dst here depends
+         * on whether the LTA here is the direct or inverse transform
+         */
+        i_to_r_src = vg_i_to_r(&lta->xforms[0].src);
+        r_to_i_dst = vg_r_to_i(&lta->xforms[0].dst);
 	
-	if(!r_to_i_dst || !i_to_r_src)
-	  ErrorExit(ERROR_BADFILE, "%s: failed to extract volume geometries from input LTA file",Progname);
-	m_tmp = MatrixMultiply(lta->xforms[0].m_L, i_to_r_src, NULL);
-	V_to_V = MatrixMultiply(r_to_i_dst, m_tmp, NULL);
-	MatrixFree(&m_tmp);
+        if(!r_to_i_dst || !i_to_r_src)
+          ErrorExit(ERROR_BADFILE, "%s: failed to extract volume geometries from input LTA file",Progname);
+        m_tmp = MatrixMultiply(lta->xforms[0].m_L, i_to_r_src, NULL);
+        V_to_V = MatrixMultiply(r_to_i_dst, m_tmp, NULL);
+        MatrixFree(&m_tmp);
 	
-	MatrixFree(&i_to_r_src);
-	MatrixFree(&r_to_i_dst);
+        MatrixFree(&i_to_r_src);
+        MatrixFree(&r_to_i_dst);
       }
     }
     else
       {
-	fprintf(stderr, "unknown transform type in file %s\n", 
-		transform_fname);
-	exit(1);
+        fprintf(stderr, "unknown transform type in file %s\n", 
+                transform_fname);
+        exit(1);
       }
     
     if(invert_flag){
       /* Geometry of input volume should match that of the dst of the LTA */
       if(MYvg_isEqual(&lta->xforms[0].dst, &vgm_in) == 0){
-	ErrorExit(ERROR_BADFILE, "%s: dst volume of lta doesn't match that of input volume",Progname);
+        ErrorExit(ERROR_BADFILE, "%s: dst volume of lta doesn't match that of input volume",Progname);
       }
       
       i_to_r_reg = vg_i_to_r(&lta->xforms[0].src);
       
       if(!i_to_r_reg)
-	ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
+        ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
       
       m_tmp =  MatrixInverse(V_to_V, NULL);
       if(!m_tmp)
-	ErrorExit(ERROR_BADPARM, "%s: transform is singular!", Progname);
+        ErrorExit(ERROR_BADPARM, "%s: transform is singular!", Progname);
       
       MatrixFree(&V_to_V); 
       V_to_V = m_tmp;
     }else{
       /* Geometry of input volume should match that of the src of the LTA */
       if(MYvg_isEqual(&lta->xforms[0].src, &vgm_in) == 0){
-	ErrorExit(ERROR_BADFILE, "%s: src volume of lta doesn't match that of input volume",Progname);
+        ErrorExit(ERROR_BADFILE, "%s: src volume of lta doesn't match that of input volume",Progname);
       }
       
       i_to_r_reg = vg_i_to_r(&lta->xforms[0].dst);
       
       if(!i_to_r_reg)
-	ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
+        ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
     }
     
   }else{
@@ -324,7 +325,7 @@ main(int argc, char *argv[])
     {
       mri_tmp = MRIread(out_like_fname) ;
       if (!mri_tmp)
-	ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
+        ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
       
       /* out_type = mri_tmp->type; */
       
@@ -372,20 +373,20 @@ main(int argc, char *argv[])
        * just change format, the target volume is the input itself!!
        */
       if(transform_flag){
-	if(invert_flag){
-	  mri_out->c_r = lta->xforms[0].src.c_r;
-	  mri_out->c_a = lta->xforms[0].src.c_a;
-	  mri_out->c_s = lta->xforms[0].src.c_s;
+        if(invert_flag){
+          mri_out->c_r = lta->xforms[0].src.c_r;
+          mri_out->c_a = lta->xforms[0].src.c_a;
+          mri_out->c_s = lta->xforms[0].src.c_s;
 	  
-	}else{
-	  mri_out->c_r = lta->xforms[0].dst.c_r;
-	  mri_out->c_a = lta->xforms[0].dst.c_a;
-	  mri_out->c_s = lta->xforms[0].dst.c_s;
-	}
+        }else{
+          mri_out->c_r = lta->xforms[0].dst.c_r;
+          mri_out->c_a = lta->xforms[0].dst.c_a;
+          mri_out->c_s = lta->xforms[0].dst.c_s;
+        }
       }else{
-	mri_out->c_r = mri_in->c_r;
-	mri_out->c_a = mri_in->c_a;
-	mri_out->c_s = mri_in->c_s;
+        mri_out->c_r = mri_in->c_r;
+        mri_out->c_a = mri_in->c_a;
+        mri_out->c_s = mri_in->c_s;
       }
       
       mri_out->ras_good_flag=1; /* What does this flag mean ? */
@@ -410,7 +411,7 @@ main(int argc, char *argv[])
   /* mri_out = MyMRIlinearTransformInterp(mri_in, mri_out, V_to_V, InterpMethod); */
   if(InterpMethod == SAMPLE_BSPLINE)
     mri_out = MRIlinearTransformInterpBSpline(mri_in, mri_out, V_to_V,
-					      SplineDegree);
+                                              SplineDegree);
   else
     mri_out = MRIlinearTransformInterp(mri_in, mri_out, V_to_V, InterpMethod);
   
@@ -418,12 +419,12 @@ main(int argc, char *argv[])
   for(z=0; z < mri_out->depth; z++)
     for(y=0; y< mri_out->height; y++)
       for(x=0; x < mri_out->width; x++)
-	{
-	  if(MRIFvox(mri_out, x, y, z) > maxV )
-	    maxV = MRIFvox(mri_out, x, y,z) ;
-	  if(MRIFvox(mri_out, x, y, z) < minV )
-	    minV = MRIFvox(mri_out, x, y,z) ;
-	}
+        {
+          if(MRIFvox(mri_out, x, y, z) > maxV )
+            maxV = MRIFvox(mri_out, x, y,z) ;
+          if(MRIFvox(mri_out, x, y, z) < minV )
+            minV = MRIFvox(mri_out, x, y,z) ;
+        }
 
   if(autoscale){
     noscale = 1;
@@ -445,19 +446,19 @@ main(int argc, char *argv[])
     
     for(z=0; z < mri_out->depth; z++)
       for(y=0; y< mri_out->height; y++)
-	for(x=0; x < mri_out->width; x++)
-	  {
-	    val = MRIFvox(mri_out, x, y, z);
-	    if(val <= 0) continue;
+        for(x=0; x < mri_out->width; x++)
+          {
+            val = MRIFvox(mri_out, x, y, z);
+            if(val <= 0) continue;
 	    
-	    bin = nint((val - fmin)/h->bin_size);
-	    if(bin >= h->nbins)
-	      bin = h->nbins-1;
-	    else if (bin < 0)
-	      bin = 0;
+            bin = nint((val - fmin)/h->bin_size);
+            if(bin >= h->nbins)
+              bin = h->nbins-1;
+            else if (bin < 0)
+              bin = 0;
 	    
-	    h->counts[bin] += 1.0;
-	  }
+            h->counts[bin] += 1.0;
+          }
     HISTOfillHoles(h) ;
     HISTOsmooth(h, hsmooth, 5)  ;
     peak = 
@@ -465,28 +466,28 @@ main(int argc, char *argv[])
     //   smooth_peak = 
     //  hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins)] ;
 
-   smooth_peak = 
-     hsmooth->bins[HISTOfindLastPeak(hsmooth, 5, 0.8)] ;
+    smooth_peak = 
+      hsmooth->bins[HISTOfindLastPeak(hsmooth, 5, 0.8)] ;
     
-   /*
-     bin = nint((smooth_peak - fmin)/hsmooth->bin_size) ;
+    /*
+      bin = nint((smooth_peak - fmin)/hsmooth->bin_size) ;
      
-     printf("Highest peak has count = %d\n", (int)hsmooth->counts[bin]);
+      printf("Highest peak has count = %d\n", (int)hsmooth->counts[bin]);
      
-     bin = nint((420 - fmin)/hsmooth->bin_size) ;
+      bin = nint((420 - fmin)/hsmooth->bin_size) ;
      
-     printf("bin at 420 has count = %d\n", (int)hsmooth->counts[bin]);
-   */
+      printf("bin at 420 has count = %d\n", (int)hsmooth->counts[bin]);
+    */
    
-   scale =  110.0/smooth_peak;
-   printf("peak of output volume is %g, smooth-peak is %g, multiply by %g to scale it to 110\n", peak, smooth_peak, scale);
+    scale =  110.0/smooth_peak;
+    printf("peak of output volume is %g, smooth-peak is %g, multiply by %g to scale it to 110\n", peak, smooth_peak, scale);
     for(z=0; z < mri_out->depth; z++)
       for(y=0; y< mri_out->height; y++)
-	for(x=0; x < mri_out->width; x++)
-	  {
-	    val = MRIFvox(mri_out, x, y, z);
-	    MRIFvox(mri_out, x, y, z) = val*scale;
-	  }
+        for(x=0; x < mri_out->width; x++)
+          {
+            val = MRIFvox(mri_out, x, y, z);
+            MRIFvox(mri_out, x, y, z) = val*scale;
+          }
 
   }
 
@@ -507,14 +508,14 @@ main(int argc, char *argv[])
       //convert data to UCHAR
       mri_tmp = MRIalloc(mri_out->width, mri_out->height, mri_out->depth, out_type) ;
       MRIcopyHeader(mri_out, mri_tmp);
-       for(z=0; z < mri_out->depth; z++)
-	 for(y=0; y< mri_out->height; y++)
-	   for(x=0; x < mri_out->width; x++){
-	     value = floor(MRIgetVoxVal(mri_out, x, y, z, 0) + 0.5);
-	     if(value < 0 ) value = 0;
-	     if(value > 255) value = 255;
-	     MRIvox(mri_tmp,x,y,z) = (unsigned char)value;
-	   }
+      for(z=0; z < mri_out->depth; z++)
+        for(y=0; y< mri_out->height; y++)
+          for(x=0; x < mri_out->width; x++){
+            value = floor(MRIgetVoxVal(mri_out, x, y, z, 0) + 0.5);
+            if(value < 0 ) value = 0;
+            if(value > 255) value = 255;
+            MRIvox(mri_tmp,x,y,z) = (unsigned char)value;
+          }
     }
     else
       mri_tmp = MRIchangeType(mri_out, out_type, thred_low, thred_high, noscale);
@@ -600,14 +601,14 @@ get_option(int argc, char *argv[])
       printf("Output type is %d\n", out_type);
     }
   else if (!stricmp(option, "out_like") || 
-	   !stricmp(option, "like"))
+           !stricmp(option, "like"))
     {
       out_like_fname = argv[2];
       nargs = 1;
       printf("Shape the output like the volume in file %s\n", out_like_fname);
     }
   else if (!stricmp(option, "transform") || 
-	   !stricmp(option, "at"))
+           !stricmp(option, "at"))
     {
       transform_fname = argv[2];
       transform_flag = 1;
@@ -615,8 +616,8 @@ get_option(int argc, char *argv[])
       printf("Apply transformation specified by file %s\n", transform_fname);
     }
   else if (!stricmp(option, "lta_src") ||
-	   !stricmp(option, "src")
-	   ){
+           !stricmp(option, "src")
+           ){
     fprintf(stderr, "src volume for the given transform (given by -xform) is %s\n",argv[2]); 
     fprintf(stderr, "Reading the src volume...\n");
     lta_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
@@ -626,8 +627,8 @@ get_option(int argc, char *argv[])
     nargs = 1;
   }
   else if (!stricmp(option, "lta_dst") ||
-	   !stricmp(option, "dst")
-	   ){
+           !stricmp(option, "dst")
+           ){
     fprintf(stderr, "dst volume for the transform (given by -xform) is %s\n",argv[2]); 
     fprintf(stderr, "Reading the dst volume...\n");
     
@@ -639,7 +640,7 @@ get_option(int argc, char *argv[])
     nargs = 1;
   }
   else if (!stricmp(option, "invert_transform") ||
-	   !stricmp(option, "ait"))
+           !stricmp(option, "ait"))
     { 	   
       transform_fname = argv[2];
       transform_flag = 1;
@@ -654,41 +655,41 @@ get_option(int argc, char *argv[])
     doesn't.  */
 
   else if (!stricmp(option, "st") ||
-	   !stricmp(option, "sample") ||
-	   !stricmp(option, "sample_type") ||
-	   !stricmp(option, "interp"))
+           !stricmp(option, "sample") ||
+           !stricmp(option, "sample_type") ||
+           !stricmp(option, "interp"))
     {
       nargs = 1;
 
       if(!stricmp(argv[2], "bspline"))
-	InterpMethod = SAMPLE_BSPLINE;
+        InterpMethod = SAMPLE_BSPLINE;
       else
-	InterpMethod = MRIinterpCode(argv[2]) ;
+        InterpMethod = MRIinterpCode(argv[2]) ;
       
       if (InterpMethod==SAMPLE_SINC)
-	{
-	  if ((argc<4) || !strncmp(argv[3],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
-	    {
-	      printf("using sinc interpolation (default windowwidth is 6)\n");
-	    }
-	  else
-	    {
-	      sinchalfwindow = atoi(argv[3]);
-	      nargs = 2;
-	      printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
-	    }
-	}
+        {
+          if ((argc<4) || !strncmp(argv[3],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
+            {
+              printf("using sinc interpolation (default windowwidth is 6)\n");
+            }
+          else
+            {
+              sinchalfwindow = atoi(argv[3]);
+              nargs = 2;
+              printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+            }
+        }
       else if(InterpMethod == SAMPLE_BSPLINE){
-	if ((argc<4) || !strncmp(argv[3],"-",1)) /* i.e. no spline-degree value supplied */
-	  {
-	    printf("using BSPline interpolation (default Bspline degree is 3)\n");
-	  }
-	else
-	  {
-	    SplineDegree = atoi(argv[3]);
-	    nargs = 2;
-	    printf("using BSpline interpolation with degree of %d\n", SplineDegree);
-	  }
+        if ((argc<4) || !strncmp(argv[3],"-",1)) /* i.e. no spline-degree value supplied */
+          {
+            printf("using BSPline interpolation (default Bspline degree is 3)\n");
+          }
+        else
+          {
+            SplineDegree = atoi(argv[3]);
+            nargs = 2;
+            printf("using BSpline interpolation with degree of %d\n", SplineDegree);
+          }
 	
       }
     }
@@ -696,32 +697,32 @@ get_option(int argc, char *argv[])
     {
       InterpMethod = SAMPLE_SINC;
       if ((argc<3) || !strncmp(argv[2],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
-	{
-	  printf("using sinc interpolation (default windowwidth is 6)\n");
-	}
+        {
+          printf("using sinc interpolation (default windowwidth is 6)\n");
+        }
       else
-	{
-	  sinchalfwindow = atoi(argv[2]);
-	  nargs = 1;
-	  printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
-	}
+        {
+          sinchalfwindow = atoi(argv[2]);
+          nargs = 1;
+          printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+        }
     }
   else if (!stricmp(option, "bspline"))
     {
       InterpMethod = SAMPLE_BSPLINE;
       if ((argc<3) || !strncmp(argv[2],"-",1)) /*E* i.e. no spline degree supplied */
-	{
-	  printf("using cubic-bspline interpolation \n");
-	}
+        {
+          printf("using cubic-bspline interpolation \n");
+        }
       else
-	{
-	  SplineDegree = atoi(argv[2]);
-	  nargs = 1;
-	  printf("using B-spline interpolation with degree of %d\n", SplineDegree);
-	}
+        {
+          SplineDegree = atoi(argv[2]);
+          nargs = 1;
+          printf("using B-spline interpolation with degree of %d\n", SplineDegree);
+        }
     }
   else if (!stricmp(option, "sinchalfwindow") ||
-	   !stricmp(option, "hw"))
+           !stricmp(option, "hw"))
     {
       InterpMethod = SAMPLE_SINC;
       sinchalfwindow = atoi(argv[2]);
@@ -739,10 +740,10 @@ get_option(int argc, char *argv[])
       printf("using cubic interpolation\n");
     }
   else if (!stricmp(option, "nearest"))
-  {
+    {
       InterpMethod = SAMPLE_NEAREST;
       printf("using nearest-neighbor interpolation\n");
-  }
+    }
   else switch (toupper(*option))
     {
     case '?':
@@ -796,7 +797,7 @@ print_version(void)
  * What I need to modify is the MRIchangeType function!
  */
 MRI *MRIlinearTransformInterpBSpline(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
-			 int splinedegree)
+                                     int splinedegree)
 {
   int    y1, y2, y3, width, height, depth ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
@@ -831,50 +832,50 @@ MRI *MRIlinearTransformInterpBSpline(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   v_Y->rptr[4][1] = 1.0f ;
   for (y3 = 0 ; y3 < mri_dst->depth ; y3++)
-  {
-    V3_Z(v_Y) = y3 ;
-    for (y2 = 0 ; y2 < mri_dst->height ; y2++)
     {
-      V3_Y(v_Y) = y2 ;
-      for (y1 = 0 ; y1 < mri_dst->width ; y1++)
-      {
-        V3_X(v_Y) = y1 ;
-        MatrixMultiply(mAinv, v_Y, v_X) ;
-        
-        x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
-
-	if(x1 <= -0.5 || x1 >= (width - 0.5) || x2 <= -0.5 ||
-	    x2 >= (height - 0.5) || x3 <= -0.5 || x3 >= (depth-0.5))
-	  val = 0.0;
-	else
-	  val = InterpolatedValue(mri_Bcoeff, x1, x2, x3, splinedegree);
-
-        switch (mri_dst->type)
+      V3_Z(v_Y) = y3 ;
+      for (y2 = 0 ; y2 < mri_dst->height ; y2++)
         {
-        case MRI_UCHAR:
-	  if(val <-0.5) val = -0.5;
-	  if(val > 254.5) val = 254.5;
-          MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val+0.5) ;
-          break ;
-        case MRI_SHORT:
-          MRISvox(mri_dst,y1,y2,y3) = (short)nint(val+0.5) ;
-          break ;
-        case MRI_FLOAT:
-          MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
-          break ;
-        case MRI_INT:
-          MRIIvox(mri_dst,y1,y2,y3) = nint(val+0.5) ;
-          break ;
-        default:
-          ErrorReturn(NULL, 
-                      (ERROR_UNSUPPORTED, 
-                       "MRIlinearTransformBSpline: unsupported dst type %d",
-                       mri_dst->type)) ;
-          break ;
+          V3_Y(v_Y) = y2 ;
+          for (y1 = 0 ; y1 < mri_dst->width ; y1++)
+            {
+              V3_X(v_Y) = y1 ;
+              MatrixMultiply(mAinv, v_Y, v_X) ;
+        
+              x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
+
+              if(x1 <= -0.5 || x1 >= (width - 0.5) || x2 <= -0.5 ||
+                 x2 >= (height - 0.5) || x3 <= -0.5 || x3 >= (depth-0.5))
+                val = 0.0;
+              else
+                val = InterpolatedValue(mri_Bcoeff, x1, x2, x3, splinedegree);
+
+              switch (mri_dst->type)
+                {
+                case MRI_UCHAR:
+                  if(val <-0.5) val = -0.5;
+                  if(val > 254.5) val = 254.5;
+                  MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val+0.5) ;
+                  break ;
+                case MRI_SHORT:
+                  MRISvox(mri_dst,y1,y2,y3) = (short)nint(val+0.5) ;
+                  break ;
+                case MRI_FLOAT:
+                  MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
+                  break ;
+                case MRI_INT:
+                  MRIIvox(mri_dst,y1,y2,y3) = nint(val+0.5) ;
+                  break ;
+                default:
+                  ErrorReturn(NULL, 
+                              (ERROR_UNSUPPORTED, 
+                               "MRIlinearTransformBSpline: unsupported dst type %d",
+                               mri_dst->type)) ;
+                  break ;
+                }
+            }
         }
-      }
     }
-  }
 
   MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
@@ -898,36 +899,36 @@ LTA *ltaReadFileEx(const char *fname)
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
   cp = fgetl(line, 199, fp) ; 
   if (cp == NULL)
-  {
-    fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",fname));
-  }
+    {
+      fclose(fp) ;
+      ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",fname));
+    }
   sscanf(cp, "type      = %d\n", &type) ;
   cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
   for (i = 0 ; i < lta->num_xforms ; i++)
-  {
-    lt = &lta->xforms[i] ;
-    fscanf(fp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
-    fscanf(fp, "sigma     = %f\n", &lt->sigma) ;
-    MatrixAsciiReadFrom(fp, lt->m_L) ;
-  }
+    {
+      lt = &lta->xforms[i] ;
+      fscanf(fp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
+      fscanf(fp, "sigma     = %f\n", &lt->sigma) ;
+      MatrixAsciiReadFrom(fp, lt->m_L) ;
+    }
   // oh, well this is the added part
   for (i=0; i < lta->num_xforms; i++)
-  {
-    if (fgets(line, 199, fp))
     {
-      if (strncmp(line, "src volume info", 15)==0)
-      {
-	char *p;
-	readVolGeom(fp, &lta->xforms[i].src);
-	p = fgets(line, 199, fp);
-	if (strncmp(line, "dst volume info", 15)==0)
-	  readVolGeom(fp, &lta->xforms[i].dst);
-      }
+      if (fgets(line, 199, fp))
+        {
+          if (strncmp(line, "src volume info", 15)==0)
+            {
+              char *p;
+              readVolGeom(fp, &lta->xforms[i].src);
+              p = fgets(line, 199, fp);
+              if (strncmp(line, "dst volume info", 15)==0)
+                readVolGeom(fp, &lta->xforms[i].dst);
+            }
+        }
     }
-  }
   fclose(fp) ;
   return(lta) ;
 }
@@ -937,23 +938,23 @@ int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
   if (vg1->valid == vg2->valid)
     if (vg1->width == vg2->width)
       if (vg1->height == vg2->height)
-	if (vg1->depth == vg2->depth)
-	  if (MYFZERO(vg1->xsize - vg2->xsize))
-	    if (MYFZERO(vg1->ysize - vg2->ysize))
-	      if (MYFZERO(vg1->zsize - vg2->zsize))
-		if (MYFZERO(vg1->x_r - vg2->x_r))
-		  if (MYFZERO(vg1->x_a - vg2->x_a))
-		    if (MYFZERO(vg1->x_s - vg2->x_s))
-		      if (MYFZERO(vg1->y_r - vg2->y_r))
-			if (MYFZERO(vg1->y_a - vg2->y_a))
-			  if (MYFZERO(vg1->y_s - vg2->y_s))
-			    if (MYFZERO(vg1->z_r - vg2->z_r))
-			      if (MYFZERO(vg1->z_a - vg2->z_a))
-				if (MYFZERO(vg1->z_s - vg2->z_s))
-				  if (MYFZERO(vg1->c_r - vg2->c_r))
-				    if (MYFZERO(vg1->c_a - vg2->c_a))
-				      if (MYFZERO(vg1->c_s - vg2->c_s))
-					return 1;
+        if (vg1->depth == vg2->depth)
+          if (MYFZERO(vg1->xsize - vg2->xsize))
+            if (MYFZERO(vg1->ysize - vg2->ysize))
+              if (MYFZERO(vg1->zsize - vg2->zsize))
+                if (MYFZERO(vg1->x_r - vg2->x_r))
+                  if (MYFZERO(vg1->x_a - vg2->x_a))
+                    if (MYFZERO(vg1->x_s - vg2->x_s))
+                      if (MYFZERO(vg1->y_r - vg2->y_r))
+                        if (MYFZERO(vg1->y_a - vg2->y_a))
+                          if (MYFZERO(vg1->y_s - vg2->y_s))
+                            if (MYFZERO(vg1->z_r - vg2->z_r))
+                              if (MYFZERO(vg1->z_a - vg2->z_a))
+                                if (MYFZERO(vg1->z_s - vg2->z_s))
+                                  if (MYFZERO(vg1->c_r - vg2->c_r))
+                                    if (MYFZERO(vg1->c_a - vg2->c_a))
+                                      if (MYFZERO(vg1->c_s - vg2->c_s))
+                                        return 1;
   return 0;
 }
 
@@ -1498,8 +1499,8 @@ double InterpolatedValue
     for (j = 0L; j <= SplineDegree; j++) {
       w = 0.0; cy = yIndex[j];
       for (i = 0L; i <= SplineDegree; i++) {
-	cx = xIndex[i];
-	w += xWeight[i] * MRIgetVoxVal(Bcoeff, cx, cy, cz, 0);
+        cx = xIndex[i];
+        w += xWeight[i] * MRIgetVoxVal(Bcoeff, cx, cy, cz, 0);
       }
       t += yWeight[j] * w;
     }

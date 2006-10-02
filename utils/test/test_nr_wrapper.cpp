@@ -10,7 +10,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "nr_wrapper_open_source.h"
+#include "numerics.h"
 
 extern "C" {
 #include "matrix.h"
