@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/03 04:56:12 $
-// Revision       : $Revision: 1.361 $
-char *MRI_C_VERSION = "$Revision: 1.361 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/10/03 18:43:04 $
+// Revision       : $Revision: 1.362 $
+char *MRI_C_VERSION = "$Revision: 1.362 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13672,7 +13672,7 @@ MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted)
   if(sorted==NULL){
     sorted = MRIallocSequence(ncols, nrows, nslices, in->type, nframes);
     if(sorted==NULL){
-      printf("ERROR: MRIlog: could not alloc\n");
+      printf("ERROR: MRIsort: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(in,sorted); // ordinarily would need to change nframes
@@ -13684,6 +13684,10 @@ MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted)
   }
 
   vf = (double *) calloc(in->nframes,sizeof(double));
+  if(vf==NULL){
+    printf("ERROR: MRIsort: could not alloc vf of size %d\n",in->nframes);
+    return(NULL);
+  }
 
   for(s=0; s<nslices; s++){
     for(r=0; r<nrows; r++){
