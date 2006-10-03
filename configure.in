@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.225 2006/10/03 00:07:33 nicks Exp $"
+# "$Id: configure.in,v 1.226 2006/10/03 01:55:48 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -436,7 +436,7 @@ AC_MSG_CHECKING(VXL directory)
 AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR      where the root of VXL is installed.],
   [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
-     ac_vxl_libraries="$withval"/lib
+     ac_vxl_libraries="$withval"/lib/static
      ac_vxl_dir="$withval"
   ])
 
