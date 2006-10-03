@@ -28,7 +28,7 @@ CPPUNIT_CHECKS=
 check_PROGRAMS=$(CHECKS)
 endif
 
-TESTS=setup_test_data $(check_PROGRAMS)
+TESTS=setup_test_data $(check_PROGRAMS) cleanup_test_data
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
