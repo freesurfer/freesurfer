@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.64 2006/10/02 22:14:41 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.65 2006/10/03 21:14:24 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.64 2006/10/02 22:14:41 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.65 2006/10/03 21:14:24 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -28,7 +28,6 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "   set to default locations:"
     echo "       FSFAST_HOME"
     echo "       SUBJECTS_DIR"
-    echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       VXL_DIR"
@@ -119,10 +118,6 @@ if(! $?SUBJECTS_DIR  || $FS_OVERRIDE) then
     setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
 endif
 
-if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
-    setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
-endif
-
 if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit binaries
     if ( $?MNI_INSTALL_DIR) then
@@ -194,9 +189,6 @@ if( $output ) then
     echo "FREESURFER_HOME $FREESURFER_HOME"
     echo "FSFAST_HOME     $FSFAST_HOME"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
-endif
-if( $output && $?FUNCTIONALS_DIR ) then
-    echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 endif
 
 
