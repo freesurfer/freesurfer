@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.98 2006/10/02 20:13:09 nicks Exp $
+// $Id: matrix.c,v 1.99 2006/10/03 17:16:26 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -627,6 +627,10 @@ MatrixReadTxt(char *fname, MATRIX *mat)
   //  cols++ ;
 
   cols = ItemsInString(line);
+  if(cols < 1){
+    // Return quitely in case try to use another format.
+    return(NULL);
+  }
 
   // Count the number of lines, start at row=1 because
   // a line was read above.
