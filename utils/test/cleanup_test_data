@@ -1,0 +1,8 @@
+rm -Rf test_matrix_data test_mriio_data test_mri_identify_data test_nr_wrapper_data
+rm -f test*.img test*.hdr
+rm -f *.xfm
+rm -f *.mgh
+rm -f orig.tar.gz
+rm -f vltest.dat
+rm -f extest.out
+
