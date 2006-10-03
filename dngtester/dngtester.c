@@ -70,8 +70,8 @@ double a,b;
 int main(int argc, char **argv)
 {
 
-  mri = MRIread(argv[1]);
-  //mask = MRIread(argv[2]);
+  mri  = MRIread(argv[1]);
+  mask = MRIread(argv[2]);
   mri2 = MRIvote(mri, mask, NULL);
   MRIwrite(mri2,"vote.mgh");
 
@@ -87,7 +87,7 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
 {
   int c, r, s, f, f0, ncols, nrows, nslices,nframes;
   float m;
-  double vmax,v,vprev;
+  double vmax,v,v0;
   int runlen, runlenmax;
   MRI *sorted;
 
@@ -124,6 +124,8 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
     return(NULL);
   }
 
+  vmax = 0;
+  runlenmax = 0;
   for(s=0; s<nslices; s++){
     for(r=0; r<nrows; r++){
       for(c=0; c<ncols; c++) {
@@ -131,24 +133,34 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
 	  m = MRIgetVoxVal(mask,c,r,s,0);
 	  if(m < 0.5) continue;
 	}
-	vmax = 0;
-	runlenmax = 0;
-	vprev = MRIgetVoxVal(sorted,c,r,s,0);
-	f0 = 0;
+	v0 = MRIgetVoxVal(sorted,c,r,s,0); // value at start of run
+	f0 = 0;                            // frame at start of run
 	f = 1;
 	while(f < nframes){
 	  v = MRIgetVoxVal(sorted,c,r,s,f);
-	  if(vprev != v){
-	    runlen = f - f0;
+	  if(v0 != v){
+	    // new value is different than that of run start
+	    runlen = f - f0; // runlength for v0
 	    if(runlenmax < runlen){
 	      runlenmax = runlen;
-	      vmax = v;
+	      vmax = v0;
+	      v0 = v;
 	      f0 = f;
 	    }
 	  }
 	  f++;
 	}
+	// Need to do this one more time in case last value
+	// has the longest run
+	runlen = f - f0;
+	if(runlenmax < runlen){
+	  runlenmax = runlen;
+	  vmax = v0;
+	  v0 = v;
+	  f0 = f;
+	}
 	MRIsetVoxVal(vote,c,r,s,0,vmax);
+	// Should probably keep track of max run length
       } // cols
     } // rows
   } // slices
