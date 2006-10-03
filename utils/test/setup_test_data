@@ -1,3 +1,3 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -f
 tar zxvf test_data.tar.gz
 
