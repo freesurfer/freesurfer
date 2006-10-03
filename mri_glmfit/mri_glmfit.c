@@ -176,8 +176,8 @@ you, you will have to specify the design matrix manually (with --X).
 
 --X design matrix file
 
-Specify the design matrix in matlab4 format. Within matlab, you can
-save a matrix with save('X.mat','X','-v4');
+Explicitly specify the design matrix. Can be in simple text or in matlab4 
+format. If matlab4, you can save a matrix with save('X.mat','X','-v4');
 
 --C contrast1.mat <--C contrast2.mat ...>
 
@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.95 2006/10/01 16:54:31 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.96 2006/10/03 17:16:43 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -657,8 +657,10 @@ int main(int argc, char **argv)
   if(XFile != NULL){  
     if(usedti == 0){
       mriglm->Xg = MatrixReadTxt(XFile, NULL);
+      if(mriglm->Xg==NULL) mriglm->Xg = MatlabRead(XFile);
       if(mriglm->Xg==NULL){
 	printf("ERROR: loading X %s\n",XFile);
+	printf("Could not load as text or matlab4");
 	exit(1);
       }
     } else {
@@ -1850,8 +1852,8 @@ printf("you, you will have to specify the design matrix manually (with --X).\n")
 printf("\n");
 printf("--X design matrix file\n");
 printf("\n");
-printf("Specify the design matrix in matlab4 format. Within matlab, you can\n");
-printf("save a matrix with save('X.mat','X','-v4');\n");
+printf("Explicitly specify the design matrix. Can be in simple text or in matlab4 \n");
+printf("format. If matlab4, you can save a matrix with save('X.mat','X','-v4');\n");
 printf("\n");
 printf("--C contrast1.mat <--C contrast2.mat ...>\n");
 printf("\n");
@@ -2046,7 +2048,6 @@ printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to \n
 printf("perform a one-tailed test. In this case, the contrast matrix can\n");
 printf("only have one row.\n");
 printf("\n");
-
   exit(1) ;
 }
 /* ------------------------------------------------------ */
