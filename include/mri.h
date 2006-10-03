@@ -1070,5 +1070,7 @@ double MRIestimateTIV(char* theLtaFile,
                       double* theAtlasDet);
 
 int MRInormalizeFrames(MRI *mri);
+MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
+int CompareDoubles(const void *a, const void *b);
 
 #endif

@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/30 04:20:25 $
-// Revision       : $Revision: 1.360 $
-char *MRI_C_VERSION = "$Revision: 1.360 $";
+// Revision Date  : $Date: 2006/10/03 04:56:12 $
+// Revision       : $Revision: 1.361 $
+char *MRI_C_VERSION = "$Revision: 1.361 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13655,3 +13655,68 @@ MRIzeroMean(MRI *mri_src, MRI *mri_dst)
 	return(mri_dst) ;
 }
 
+/*---------------------------------------------------------------
+  MRIsort() - sorts the frames of each voxel in ascending order.
+  ---------------------------------------------------------------*/
+MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted)
+{
+  int c, r, s, f, ncols, nrows, nslices,nframes;
+  float m;
+  double  *vf;
+
+  ncols   = in->width;
+  nrows   = in->height;
+  nslices = in->depth;
+  nframes = in->nframes;
+
+  if(sorted==NULL){
+    sorted = MRIallocSequence(ncols, nrows, nslices, in->type, nframes);
+    if(sorted==NULL){
+      printf("ERROR: MRIlog: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(in,sorted); // ordinarily would need to change nframes
+  }
+  if(sorted->width != ncols   || sorted->height  != nrows ||
+     sorted->depth != nslices || sorted->nframes != nframes){
+    printf("ERROR: MRIsort: dimension mismatch\n");
+    return(NULL);
+  }
+
+  vf = (double *) calloc(in->nframes,sizeof(double));
+
+  for(s=0; s<nslices; s++){
+    for(r=0; r<nrows; r++){
+      for(c=0; c<ncols; c++) {
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	for(f=0; f<nframes; f++) 
+	  vf[f] = MRIgetVoxVal(in,c,r,s,f);
+	qsort(vf,nframes,sizeof(double),CompareDoubles);
+	for(f=0; f<nframes; f++) 
+	  MRIsetVoxVal(sorted,c,r,s,f,vf[f]);
+      } // cols
+    } // rows
+  } // slices
+
+  return(sorted);
+}
+
+
+/*------------------------------------------------
+  CompareDoubles() - simply compares two doubles in a 
+  way compatible with qsort.
+  ------------------------------------------------*/
+int CompareDoubles(const void *a, const void *b)
+{
+  double ad, bd;
+
+  ad = *((double *)a);
+  bd = *((double *)b);
+
+  if(ad < bd) return(-1);
+  if(ad > bd) return(+1);
+  return(0);
+}
