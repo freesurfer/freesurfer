@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.10.2.14 2006/09/24 00:29:31 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.10.2.15 2006/10/03 21:15:18 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.14 2006/09/24 00:29:31 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.10.2.15 2006/10/03 21:15:18 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -30,7 +30,6 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "   set to default locations:"
     echo "       FSFAST_HOME"
     echo "       SUBJECTS_DIR"
-    echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
     echo "       GSL_DIR"
@@ -122,10 +121,6 @@ if [[ -z "$SUBJECTS_DIR" || $FS_OVERRIDE != 0 ]]; then
     export SUBJECTS_DIR=$FREESURFER_HOME/subjects
 fi
 
-if [[ -z "$FUNCTIONALS_DIR" || $FS_OVERRIDE != 0 ]]; then
-    export FUNCTIONALS_DIR=$FREESURFER_HOME/sessions
-fi
-
 if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit binaries
     if [ -n "$MNI_INSTALL_DIR" ]; then
@@ -199,9 +194,6 @@ if [ $output == 1 ]; then
     echo "FREESURFER_HOME $FREESURFER_HOME"
     echo "FSFAST_HOME     $FSFAST_HOME"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
-fi
-if [[ $output == 1 && -n "$FUNCTIONALS_DIR" ]]; then
-    echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 fi
 
 
