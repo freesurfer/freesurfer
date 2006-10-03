@@ -29,6 +29,7 @@
 #include "qdecutils.h"
 #include "dti.h"
 #include "registerio.h"
+#include "timer.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -37,9 +38,10 @@
 // tkregister2 --targ orig-in-m3z.mgh --mov func-in-m3z.mgh --regheader --reg tmp.reg
 // Atlas: $SUBJECTS_DIR/avgtst/mri/T1MLV.mgz
 
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
+
 
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
-
 char *Progname = "dngtester";
 
 char *outvolfile=NULL;
@@ -54,74 +56,115 @@ GCAM      *gcam;
 MRI       *mri_source;
 MRI       *mri_dst; 
 MRI       *mri_targ; 
+MRI *mri, *mri2, *mask=NULL;
 MATRIX *V, *W, *m_tmp;
 float ipr, bpr, intensity;
 MATRIX *R;
 int float2int;
+int err;
+struct timeb  mytimer;
+int msecFitTime;
+double a,b;
 
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
-  int err;
-    
-  if(argc != 4){
-    printf("USAGE: dngtester regfile sourcevol outvol\n");
-    exit(1);
-  }
 
-  regfile = argv[1];
-  sourcefile = argv[2];
-  outvolfile = argv[3];
-  
-  // 2) LOAD IN TALAIRACH.M3Z AND READ IN AS A GCAM STRUCTURE 
-  fsenv = FSENVgetenv(); 
-
-  printf("Reading in source %s \n",sourcefile);
-  mri_source = MRIread(sourcefile);
-  if(!mri_source) exit(1);
-
-  printf("Reading in reg \n");
-  err = regio_read_register(regfile, &subject, &ipr, &bpr, 
-				&intensity, &R, &float2int);
-  if(err) exit(1);
-
-  sprintf(gcamfile,"%s/%s/mri/transforms/talairach.m3z",fsenv->SUBJECTS_DIR,subject);
-  printf("Reading GCAM %s\n",gcamfile);
-  gcam = GCAMread(gcamfile);
- if(gcam == NULL) exit(1);
-  printf("Done Reading GCAM\n");
-
-  sprintf(origfile,"%s/%s/mri/orig.mgz",fsenv->SUBJECTS_DIR,subject);
-  printf("Reading orig %s\n",origfile);
-  mri_targ = MRIread(origfile);
-  if(mri_targ == NULL) exit(1);
-  printf("Done Reading orig\n");
-
-  printf("Converting to LTA \n");
-  Rtransform = (TRANSFORM *)calloc(sizeof(TRANSFORM),1);
-  Rtransform->xform = (void *)TransformRegDat2LTA(mri_targ, mri_source, R);
-
-  printf("Applying linear transform to gcam\n");
-  GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
-  printf("Done applying transform\n");
- 
-  // 4) RESAMPLING USING THE FUNCTIONAL IMAGE AS
-  //    THE SOURCE OF THE TRANSFORMATION
-  // classical functional - precise address ??
-   //GCAMrasToVox(gcam, atlas);	// no more useful...
-  // because GCAMmorphToAtlas assumes gcam is a Vox2Vox transformation :
-  printf("Applying 3d transform to source\n");
-  mri_dst = GCAMmorphToAtlas(mri_source, gcam, NULL, -1);
-  printf("Done 3d transform to func\n");
-
-  MRIwrite(mri_dst,outvolfile);
-  
-  
-  printf("Finished\n");
+  mri = MRIread(argv[1]);
+  //mask = MRIread(argv[2]);
+  mri2 = MRIvote(mri, mask, NULL);
+  MRIwrite(mri2,"vote.mgh");
 
   return(0);
   exit(0);
 }
+
+/*---------------------------------------------------------------
+  MRIvote() - select the most frequently occuring value measured
+  across frames in each voxel. NOT TESTED YET!
+  ---------------------------------------------------------------*/
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
+{
+  int c, r, s, f, f0, ncols, nrows, nslices,nframes;
+  float m;
+  double vmax,v,vprev;
+  int runlen, runlenmax;
+  MRI *sorted;
+
+  if(0 && in->type != MRI_INT && in->type != MRI_SHORT && 
+     in->type != MRI_LONG && in->type != MRI_UCHAR){
+    printf("ERROR: MRIvote(): input is not of integer class\n");
+    return(NULL);
+  }
+
+  sorted = MRIsort(in,mask,NULL);
+  if(sorted == NULL) return(NULL);
+
+  ncols   = in->width;
+  nrows   = in->height;
+  nslices = in->depth;
+  nframes = in->nframes;
+
+  if(vote==NULL){
+    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 1);
+    if(vote==NULL){
+      printf("ERROR: MRIvote: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(in,vote);
+    vote->nframes = 1;
+  }
+  if(in->type != vote->type){
+    printf("ERROR: MRIvote: type mismatch\n");
+    return(NULL);
+  }
+  if(vote->width != ncols   || vote->height  != nrows ||
+     vote->depth != nslices || vote->nframes != 1){
+    printf("ERROR: MRIvote: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for(s=0; s<nslices; s++){
+    for(r=0; r<nrows; r++){
+      for(c=0; c<ncols; c++) {
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	vmax = 0;
+	runlenmax = 0;
+	vprev = MRIgetVoxVal(sorted,c,r,s,0);
+	f0 = 0;
+	f = 1;
+	while(f < nframes){
+	  v = MRIgetVoxVal(sorted,c,r,s,f);
+	  if(vprev != v){
+	    runlen = f - f0;
+	    if(runlenmax < runlen){
+	      runlenmax = runlen;
+	      vmax = v;
+	      f0 = f;
+	    }
+	  }
+	  f++;
+	}
+	MRIsetVoxVal(vote,c,r,s,0,vmax);
+      } // cols
+    } // rows
+  } // slices
+
+  MRIfree(&sorted);
+  return(vote);
+}
+
+
+
+
+
+
+
+
+
 
 /*---------------------------------------------------------------*/
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
