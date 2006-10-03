@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.224 2006/10/02 19:28:19 kteich Exp $"
+# "$Id: configure.in,v 1.225 2006/10/03 00:07:33 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1285,7 +1285,7 @@ AC_CHECK_FUNCS([\
 # these environment variable.  The first one bypasses the need for a 
 # license in FREESURFER_HOME, the others specify necessary libs.
 #
-TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VXL_LIB"
+TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB"
 if (! test "x$ac_cppunit_dir" = "xNO"); then
   TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
 fi
