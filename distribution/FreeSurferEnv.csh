@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.65 2006/10/03 21:14:24 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.66 2006/10/04 18:48:34 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.65 2006/10/03 21:14:24 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.66 2006/10/04 18:48:34 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -30,7 +30,6 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       SUBJECTS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
-    echo "       VXL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
@@ -325,29 +324,6 @@ if(! $?NO_MINC) then
         set path = ( $MINC_BIN_DIR $path )
     endif
 endif
-
-
-### -------------- VXL ------------- ###
-#if ( -e $FREESURFER_HOME/lib/vxl) then
-#    setenv VXL_DIR    $FREESURFER_HOME/lib/vxl
-#else if ( -e /usr/pubsw/packages/vxl/current) then
-#    setenv VXL_DIR    /usr/pubsw/packages/vxl/current
-#endif
-#if ( $?VXL_DIR ) then
-#    if (! $?LD_LIBRARY_PATH) then
-#        setenv LD_LIBRARY_PATH  $VXL_DIR/lib
-#    else
-#        setenv LD_LIBRARY_PATH  "$VXL_DIR/lib":"$LD_LIBRARY_PATH"
-#    endif
-#    if (! $?DYLD_LIBRARY_PATH) then
-#        setenv DYLD_LIBRARY_PATH  $VXL_DIR/lib
-#    else
-#        setenv DYLD_LIBRARY_PATH  "$VXL_DIR/lib":"$DYLD_LIBRARY_PATH"
-#    endif
-#endif
-#if( $output && $?VXL_DIR ) then
-#    echo "VXL_DIR         $VXL_DIR"
-#endif
 
 
 ### - Miscellaneous support libraries (tiff/jpg/glut - Mac OS only) - ###
