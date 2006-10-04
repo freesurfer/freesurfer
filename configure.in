@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.226 2006/10/03 01:55:48 nicks Exp $"
+# "$Id: configure.in,v 1.227 2006/10/04 22:51:32 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -436,7 +436,7 @@ AC_MSG_CHECKING(VXL directory)
 AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR      where the root of VXL is installed.],
   [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
-     ac_vxl_libraries="$withval"/lib/static
+     ac_vxl_libraries="$withval"/lib
      ac_vxl_dir="$withval"
   ])
 
@@ -656,7 +656,7 @@ AC_SUBST(QT_CFLAGS)
 AC_SUBST(QT_LIBS)
 
 #################################################################
-# If on a Mac, make scuba, qdec, and plotter bundles (Qt apps)
+# If on a Mac, make scuba and qdec, bundles (Qt apps)
 SCUBA_BUNDLE_TARGET=""
 if test "x$target_vendor" = "xapple" ; then
   SCUBA_BUNDLE_TARGET="scuba_bundle"
@@ -668,12 +668,6 @@ if test "x$target_vendor" = "xapple" ; then
   QDEC_BUNDLE_TARGET="qdec_bundle"
 fi
 AC_SUBST(QDEC_BUNDLE_TARGET)
-
-PLOTTER_BUNDLE_TARGET=""
-if test "x$target_vendor" = "xapple" ; then
-  PLOTTER_BUNDLE_TARGET="plotter_bundle"
-fi
-AC_SUBST(PLOTTER_BUNDLE_TARGET)
 
 
 ################################################################
@@ -1043,10 +1037,10 @@ Set LDFLAGS or --with-mni-dir.])] )
 # VXL check
 AC_CHECK_LIB([vnl], [main],[],
   [AC_MSG_ERROR([FATAL: vnl lib not found. \
-Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
+Set LDFLAGS or --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
-Set LD_LIBRARY_PATH and --with-vxl-dir.])] )
+Set LDFLAGS or --with-vxl-dir.])] )
 
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 if test ! "x$ac_tcl_libraries" = "xNO"; then
