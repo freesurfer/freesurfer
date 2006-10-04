@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $
+  $Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -281,7 +281,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -310,6 +310,7 @@ MATRIX *XFM=NULL;
 #define SURF_SRC_RIP     5 // rip flag
 #define SURF_SRC_ANNOT   6 // surface annotation
 int UseSurfTarg=0; // Put Src XYZ into a target surface
+int ApplyReg=0;
 char *AnnotFile = NULL;
 
 char *trgsubject = NULL;
@@ -375,7 +376,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.41 2006/06/06 18:57:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -475,6 +476,11 @@ int main(int argc, char **argv)
 	XFM = DevolveXFM(srcsubject, NULL, NULL);
 	if(XFM == NULL) exit(1);
 	printf("Applying MNI305 talairach transform\n");
+	MatrixPrint(stdout,XFM);
+	MRISmatrixMultiply(SurfSrc,XFM);
+      }
+      if(ApplyReg){
+	printf("Applying registration transform\n");
 	MatrixPrint(stdout,XFM);
 	MRISmatrixMultiply(SurfSrc,XFM);
       }
@@ -763,6 +769,9 @@ static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
   char **pargv, *option ;
+  float ipr, bpr, intensity;
+  int float2int,err;
+  char *regsubject;
 
   if(argc < 1) usage_exit();
 
@@ -830,6 +839,23 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       SurfSrcName = pargv[0];
       UseSurfSrc = SURF_SRC_TAL_XYZ;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--reg")){
+      if(nargc < 1) argnerr(option,1);
+      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr, 
+				&intensity, &XFM, &float2int);
+      if(err) exit(1);
+      ApplyReg = 1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--reg-inv")){
+      if(nargc < 1) argnerr(option,1);
+      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr, 
+				&intensity, &XFM, &float2int);
+      if(err) exit(1);
+      XFM = MatrixInverse(XFM,NULL);
+      ApplyReg = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--sval-area")){
@@ -1025,37 +1051,39 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stdout, "USAGE: %s \n",Progname) ;
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --srcsubject source subject\n");
-  fprintf(stdout, "   --sval path of file with input values \n");
-  fprintf(stdout, "   --sval-xyz  surfname : use xyz of surfname as input \n");
-  fprintf(stdout, "   --sval-tal-xyz  surfname : use tal xyz of surfname as input \n");
-  fprintf(stdout, "   --sval-area surfname : use vertex area of surfname as input \n");
-  fprintf(stdout, "   --sval-annot annotfile : map annotation \n");
-  fprintf(stdout, "   --sval-nxyz surfname : use surface normals of surfname as input \n");
-  fprintf(stdout, "   --sfmt   source format\n");
-  fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
-  fprintf(stdout, "   --trgsubject target subject\n");
-  fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
-  fprintf(stdout, "   --tval path of file in which to store output values\n");
-  fprintf(stdout, "   --tval-xyz : save as surface with source xyz \n");
-  fprintf(stdout, "   --tfmt target format\n");
-  fprintf(stdout, "   --s subject : use subject as src and target\n");
-  fprintf(stdout, "   --hemi       hemisphere (lh or rh) \n");
-  fprintf(stdout, "   --surfreg    surface registration (sphere.reg)  \n");
-  fprintf(stdout, "   --mapmethod  nnfr or nnf\n");
-  fprintf(stdout, "   --frame      save only nth frame (with --trg_type paint)\n");
-  fprintf(stdout, "   --fwhm-src fwhmsrc: smooth the source to fwhmsrc\n");  
-  fprintf(stdout, "   --fwhm-trg fwhmtrg: smooth the target to fwhmtrg\n");  
-  fprintf(stdout, "   --nsmooth-in N  : smooth the input\n");  
-  fprintf(stdout, "   --nsmooth-out N : smooth the output\n");  
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --srcsubject source subject\n");
+  printf("   --sval path of file with input values \n");
+  printf("   --sval-xyz  surfname : use xyz of surfname as input \n");
+  printf("   --sval-tal-xyz  surfname : use tal xyz of surfname as input \n");
+  printf("   --sval-area surfname : use vertex area of surfname as input \n");
+  printf("   --sval-annot annotfile : map annotation \n");
+  printf("   --sval-nxyz surfname : use surface normals of surfname as input \n");
+  printf("   --sfmt   source format\n");
+  printf("   --reg register.dat     : apply register.dat to sval-xyz\n");
+  printf("   --reg-inv register.dat : apply inv(register.dat) to sval-xyz\n");
+  printf("   --srcicoorder when srcsubject=ico and src is .w\n");
+  printf("   --trgsubject target subject\n");
+  printf("   --trgicoorder when trgsubject=ico\n");
+  printf("   --tval path of file in which to store output values\n");
+  printf("   --tval-xyz : save as surface with source xyz \n");
+  printf("   --tfmt target format\n");
+  printf("   --s subject : use subject as src and target\n");
+  printf("   --hemi       hemisphere (lh or rh) \n");
+  printf("   --surfreg    surface registration (sphere.reg)  \n");
+  printf("   --mapmethod  nnfr or nnf\n");
+  printf("   --frame      save only nth frame (with --trg_type paint)\n");
+  printf("   --fwhm-src fwhmsrc: smooth the source to fwhmsrc\n");  
+  printf("   --fwhm-trg fwhmtrg: smooth the target to fwhmtrg\n");  
+  printf("   --nsmooth-in N  : smooth the input\n");  
+  printf("   --nsmooth-out N : smooth the output\n");  
 
-  fprintf(stdout, "   --noreshape  do not reshape output to multiple 'slices'\n");  
-  fprintf(stdout, "   --synth : replace input with WGN\n");  
-  fprintf(stdout, "   --seed seed : seed for synth (default is auto)\n");  
+  printf("   --noreshape  do not reshape output to multiple 'slices'\n");  
+  printf("   --synth : replace input with WGN\n");  
+  printf("   --seed seed : seed for synth (default is auto)\n");  
 
-  fprintf(stdout, "\n");
+  printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
 
@@ -1290,7 +1318,7 @@ static void dump_options(FILE *fp)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
