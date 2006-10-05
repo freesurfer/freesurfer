@@ -16,6 +16,7 @@ cor_to_minc \
 cp-dicom \
 dcmdir-info-mgh \
 deface_subject \
+dicom-rename \
 epidewarp.fsl\
 feat2surf \
 findsession \
