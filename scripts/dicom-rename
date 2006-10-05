@@ -1,0 +1,173 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: dicom-rename,v 1.1 2006/10/05 20:00:52 greve Exp $';
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+set OutBase = ();
+set InFileList = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set OutDir = `dirname $OutBase`;
+mkdir -p $OutDir
+if($status) then
+  echo "ERROR: creating $OutDir"
+  exit 1;
+endif
+
+@ ndicoms = 0;
+foreach InFile ($InFileList)
+
+  set filetype = `mri_probedicom --i $InFile --d filetype`;
+  if($status) then
+    echo "ERROR: $filetype"
+    exit 1;
+  endif
+  if($filetype == "notdicom") continue;
+  @ ndicoms = $ndicoms + 1;
+
+  set seriesno = `mri_probedicom --i $InFile --t 20 11`;
+  if($status) then
+    echo "ERROR: $seriesno"
+    exit 1;
+  endif
+
+  set imageno = `mri_probedicom --i $InFile --t 20 13`;
+  if($status) then
+    echo "ERROR: $imageno"
+    exit 1;
+  endif
+
+  set seriesnopad = `printf "%03d" $seriesno`
+  set imagenopad  = `printf "%05d" $imageno`
+
+  set OutFile = $OutBase-$seriesnopad-$imagenopad.dcm
+
+  echo $ndicoms $InFile $OutFile
+  cp $InFile $OutFile
+
+end
+
+echo "Copied $ndicoms dicom files"
+echo "dicom-rename done"
+
+exit 0
+
+#------------------------------------------------#
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutBase = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set InFileList = ($InFileList $flag)
+      shift;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#OutBase == 0) then
+    echo "ERROR: must spec an output base"
+    exit 1;
+  endif
+
+  if($#InFileList == 0) then
+    echo "ERROR: no input files specified"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: dicom-rename"
+  echo ""
+  echo "Copies dicom file(s) to new path with more meaningful names"
+  echo ""
+  echo " --o outbase"
+  echo ""
+  echo "   --version    : print version and exit"
+  echo "   --help       : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Renames (actually copies) input dicom files to a new name that 
+takes the form outbase-SSS-IIIII.dcm. The output can be used
+with dcmdir-info-mgh.
+
+Example:
+
+dicom-rename dicomdir/* --o mydicoms/bert
+
+This will find all the dicoms in dicomdir/*, and rename them to
+mydicoms/bert-SSS-IIIII.dcm, where SSS is the series number (dicom tag
+20,11) and IIIII is the image number (dicom tag 20,13). The series
+number and image number are padded with zeros to make them 3 or 5
+digits long. Note: does not actually rename the dicom file; it just
+copies it to a new name (ie, it will not delete the input file(s)).
+
+It is ok if input files are not dicom. The script will only use the 
+files in the list that are dicom.
+
+This script is especially useful when copying data from a Siemens CD
+where the file names are often uninterpretable.
+
+
+See also cp-dicom, dcmdir-info-mgh, mri_probedicom, unpacksdcmdir
