@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: dicom-rename,v 1.1 2006/10/05 20:00:52 greve Exp $';
+set VERSION = '$Id: dicom-rename,v 1.2 2006/10/05 21:11:20 greve Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
@@ -30,6 +30,8 @@ if($status) then
   echo "ERROR: creating $OutDir"
   exit 1;
 endif
+
+echo "Checking $#InFileList files"
 
 @ ndicoms = 0;
 foreach InFile ($InFileList)
@@ -91,7 +93,6 @@ while( $#argv != 0 )
 
     default:
       set InFileList = ($InFileList $flag)
-      shift;
       breaksw
   endsw
 
