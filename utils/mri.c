@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/10/03 18:43:04 $
-// Revision       : $Revision: 1.362 $
-char *MRI_C_VERSION = "$Revision: 1.362 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/10/05 00:35:08 $
+// Revision       : $Revision: 1.363 $
+char *MRI_C_VERSION = "$Revision: 1.363 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13503,6 +13503,18 @@ MRIlabelsInPlanarNbhd(MRI *mri, int x, int y, int z, int whalf, int label, int w
 
   switch (which)
   {
+  case MRI_HORIZONTAL:
+    for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
+    {
+      zi = mri->zi[z+zk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (nint(MRIgetVoxVal(mri, xi, y, zi,0)) == label)
+          count++;
+      }
+    }
+    break ;
   case MRI_SAGITTAL:
     for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
     {
