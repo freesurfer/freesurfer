@@ -1,4 +1,13 @@
-// $Id: dummy.c,v 1.5 2006/08/31 00:54:58 nicks Exp $
+
+/*! 
+\file dummy.c
+\brief Example c file that can be used as a template.
+\author Douglas Greve
+
+*/
+
+
+// $Id: dummy.c,v 1.6 2006/10/05 18:47:26 greve Exp $
 
 /*
   BEGINHELP
@@ -45,7 +54,6 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -55,7 +63,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: dummy.c,v 1.5 2006/08/31 00:54:58 nicks Exp $";
+static char vcid[] = "$Id: dummy.c,v 1.6 2006/10/05 18:47:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -96,7 +104,14 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-/* --------------------------------------------- */
+/* ------ Doxygen markup starts on the line below ---- */
+/*! 
+\fn int parse_commandline(int argc, char **argv)
+\brief Parses the command-line arguments
+\param argc - number of command line arguments
+\param argv - pointer to a character pointer
+*/
+/* ------ Doxygen markup ends on the line above ---- */
 static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
@@ -137,13 +152,23 @@ static int parse_commandline(int argc, char **argv)
   }
   return(0);
 }
-/* ------------------------------------------------------ */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void usage_exit(void)
+\brief Prints usage and exits
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void usage_exit(void)
 {
   print_usage() ;
   exit(1) ;
 }
-/* --------------------------------------------- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void print_usage(void)
+\brief Prints usage and returns (does not exit)
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
@@ -158,26 +183,47 @@ static void print_usage(void)
   printf("%s\n", vcid) ;
   printf("\n");
 }
-/* --------------------------------------------- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void print_help(void)
+\brief Prints help and exits
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void print_help(void)
 {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
-/* --------------------------------------------- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void print_version(void)
+\brief Prints version and exits
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void print_version(void)
 {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
-/* --------------------------------------------- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void check_options(void)
+\brief Checks command-line options
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void check_options(void)
 {
   return;
 }
 
-/* --------------------------------------------- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
+/*! 
+\fn static void dump_options(FILE *fp)
+\brief Prints command-line options to the given file pointer
+\param FILE *fp - file pointer
+*/
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void dump_options(FILE *fp)
 {
   fprintf(fp,"\n");
