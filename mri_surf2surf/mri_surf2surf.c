@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $
+  $Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -95,10 +95,10 @@ OPTIONS
 
   --tfmt typestring
 
-    Format type string. Can be paint or w (for FreeSurfer paint files) or anything
-    accepted by mri_convert. NOTE: output cannot be stored in curv format
-    If no type string  is given, then the type is determined from the sourcefile
-    (if possible). If using paint or w, see also --frame.
+    Format type string. Can be paint or w (for FreeSurfer paint files) or curv
+    or anything accepted by mri_convert. If no type string  is given, then the type 
+    is determined from the sourcefile (if possible). If using paint, w, or curv, 
+    see also --frame.
 
   --hemi hemifield (lh or rh)
 
@@ -281,7 +281,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.42 2006/10/04 20:01:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -730,6 +730,10 @@ int main(int argc, char **argv)
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "val");
     MRISwriteValues(TrgSurfReg,trgvalfile);
   }
+  if(!strcmp(trgtypestring,"curv")){
+    MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "curv");
+    MRISwriteCurvature(TrgSurfReg,trgvalfile);
+  }
   else if(UseSurfTarg){
     MRIScopyMRI(TrgSurfReg,TrgVals,0,"x");
     MRIScopyMRI(TrgSurfReg,TrgVals,1,"y");
@@ -957,10 +961,6 @@ static int parse_commandline(int argc, char **argv)
        !strcmp(option, "--trg_type")){
       if(nargc < 1) argnerr(option,1);
       trgtypestring = pargv[0];
-      if(!strcmp(trgtypestring,"curv")){
-  fprintf(stderr,"ERROR: Cannot select curv as target format\n");
-  exit(1);
-      }
       trgtype = string_to_type(trgtypestring);
       nargsused = 1;
     }
@@ -1177,10 +1177,10 @@ printf("    trgsubject/surf/targetfile unless targetfile has a path.\n");
 printf("\n");
 printf("  --tfmt typestring\n");
 printf("\n");
-printf("    Format type string. Can be paint or w (for FreeSurfer paint files) or anything\n");
-printf("    accepted by mri_convert. NOTE: output cannot be stored in curv format\n");
-printf("    If no type string  is given, then the type is determined from the sourcefile\n");
-printf("    (if possible). If using paint or w, see also --frame.\n");
+printf("    Format type string. Can be paint or w (for FreeSurfer paint files) or curv\n");
+printf("    or anything accepted by mri_convert. If no type string  is given, then the type \n");
+printf("    is determined from the sourcefile (if possible). If using paint, w, or curv, \n");
+printf("    see also --frame.\n");
 printf("\n");
 printf("  --hemi hemifield (lh or rh)\n");
 printf("\n");
