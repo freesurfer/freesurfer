@@ -133,6 +133,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_normalize_tp2 \
 	mri_ms_LDA \
 	mri_transform_to_COR \
+	mri_log_likelihood \
 	mri_apply_inu_correction
 
 MRISSUBDIRS=label_area \

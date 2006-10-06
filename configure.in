@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.227 2006/10/04 22:51:32 nicks Exp $"
+# "$Id: configure.in,v 1.228 2006/10/06 15:58:59 fischl Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1329,6 +1329,7 @@ AC_OUTPUT([Makefile
                  matlab/Makefile
                  mkxsubjreg/Makefile
                  mri_bias/Makefile
+                 mri_log_likelihood/Makefile
                  mri_add_xform_to_header/Makefile
                  mri_annotation2label/Makefile
                  mri_aparc2aseg/Makefile
