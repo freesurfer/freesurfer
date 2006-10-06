@@ -170,6 +170,7 @@ int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
                     int *pyv, int *pzv) ;
 int  GCApriorToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                     int *pyv, int *pzv) ;
+double GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform) ;
 float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                     TRANSFORM *transform) ;
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
