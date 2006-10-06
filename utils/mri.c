@@ -1,3 +1,8 @@
+/*! 
+\file mri.c
+\brief utilities for MRI  data structure.
+ */
+
 /*
  *       FILE NAME:   mri.c
  *
@@ -8,10 +13,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/05 00:35:08 $
-// Revision       : $Revision: 1.363 $
-char *MRI_C_VERSION = "$Revision: 1.363 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/10/06 19:24:23 $
+// Revision       : $Revision: 1.364 $
+char *MRI_C_VERSION = "$Revision: 1.364 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -785,12 +790,81 @@ int MRIhfs2Sphinx(MRI *mri)
 
   return(0);
 }
+/*------------------------------------------------------*/
+/*!
+ \fn size_t MRIsizeof(int mritype)
+ \brief Returns the sizeof() the MRI data type
+*/
+size_t MRIsizeof(int mritype)
+{
+  switch(mritype){
+  case MRI_UCHAR: return(sizeof(char));  break;
+  case MRI_SHORT: return(sizeof(short)); break;
+  case MRI_INT:   return(sizeof(int));   break;
+  case MRI_LONG:  return(sizeof(long));  break;
+  case MRI_FLOAT: return(sizeof(float)); break;
+  }
+  // should never get here
+  return(-1);
+}
 
-/*-------------------------------------------------------------------
-  MRIgetVoxVal() - returns voxel value as a float regardless of
-  the underlying data type.
+/*--------------------------------------------------------*/
+/*!
+ \fn double MRIptr2dbl(void *pmric, int mritype)
+ \brief Derefences the pointer to a double.
+ \param pmric - pointer to a column (eg, mri->slices[n][r])
+ \param mritype - mri->type
+ This is somewhat like MRIgetVoxVal(). It uses the pointer
+ to the pixel data (instead of an MRI struct), which makes
+ it several times faster but less general.
+*/
+inline double MRIptr2dbl(void *pmric, int mritype)
+{
+  double v=0;
+  switch(mritype){
+  case MRI_UCHAR: v = (double)(*((char *)pmric)); break;
+  case MRI_SHORT: v = (double)(*((short*)pmric)); break;
+  case MRI_INT:   v = (double)(*((int  *)pmric)); break;
+  case MRI_LONG:  v = (double)(*((long *)pmric)); break;
+  case MRI_FLOAT: v = (double)(*((float*)pmric)); break;
+  }
+  return(v);
+}
+/*--------------------------------------------------------*/
+/*!
+ \fn void MRIdbl2ptr(double v, void *pmric, int mritype)
+ \brief Sets the derefenced pointer to the double.
+ \param v - double value to use
+ \param pmric - pointer to a column (eg, mri->slices[n][r])
+ \param mritype - mri->type
+ This is somewhat like MRIsetVoxVal(). It uses the pointer
+ to the pixel data (instead of an MRI struct), which makes
+ it several times faster but less general.
+*/
+inline void MRIdbl2ptr(double v, void *pmric, int mritype)
+{
+  switch(mritype){
+  case MRI_UCHAR: *((char*)pmric)  = v; break;
+  case MRI_SHORT: *((short*)pmric) = v; break;
+  case MRI_INT:   *((int*)pmric)   = v; break;
+  case MRI_LONG:  *((long*)pmric)  = v; break;
+  case MRI_FLOAT: *((float*)pmric) = v; break;
+  }
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+  \fn float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
+  \brief Returns voxel value as a float regardless of the underlying data type.
+  \param MRI *mri - input MRI
+  \param int c - column
+  \param int r - row
+  \param int s - slice
+  \param int f - frame
+  \return float value at the given col, row, slice, frame
+  This function is general but slow. See also MRIptr2dbl().
   -------------------------------------------------------------------*/
-float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
+inline float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
 {
   switch(mri->type){
   case MRI_UCHAR: return( (float) MRIseq_vox(mri,c,r,s,f)); break;
@@ -801,13 +875,19 @@ float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
   }
   return(-10000000000.9);
 }
-/*-------------------------------------------------------------------
-  MRIsetVoxVal() - sets voxel value to that passed as the float
-  voxval, regardless of the underlying data type. If the underlying
-  type is integer-based, then it is rounded to the nearest integer. No
-  attempt is made to prevent overflows.
+/*-------------------------------------------------------------------*/
+/*!
+  \fn int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+  \brief Sets a voxel value regardless of the underlying data type.
+  \param MRI *mri - input MRI
+  \param int c - column
+  \param int r - row
+  \param int s - slice
+  \param int f - frame
+  \return int - 0 if ok, 1 if mri->type is unrecognized.
+  This function is general but slow. See also MRIdbl2ptr().
   -------------------------------------------------------------------*/
-int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   switch(mri->type){
   case MRI_UCHAR: MRIseq_vox(mri,c,r,s,f)  = nint(voxval); break;
