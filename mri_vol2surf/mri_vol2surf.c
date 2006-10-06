@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $
+  $Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -142,6 +142,7 @@ long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
 
 double scale = 0;
+int GetProjMax = 0;
 
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.31 2006/09/24 18:11:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -361,11 +362,14 @@ int main(int argc, char **argv)
       exit(1);
     }
     if(nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
-    else           MRIadd(SurfVals,SurfValsP,SurfVals);
+    else{
+      if(!GetProjMax) MRIadd(SurfVals,SurfValsP,SurfVals);
+      else            MRImax(SurfVals,SurfValsP,SurfVals);
+    }
     MRIfree(&SurfValsP);
     nproj ++;
   }
-  MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
+  if(!GetProjMax) MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
 
   printf("Done mapping volume to surface\n");
   fflush(stdout);
@@ -710,6 +714,15 @@ static int parse_commandline(int argc, char **argv)
       ProjFrac = 0.5; // just make it non-zero
       nargsused = 3;
     }
+    else if(!strcmp(option, "--projfrac-max")){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%f",&ProjFracMin);
+      sscanf(pargv[1],"%f",&ProjFracMax);
+      sscanf(pargv[2],"%f",&ProjFracDelta);
+      ProjFrac = 0.5; // just make it non-zero
+      GetProjMax = 1;
+      nargsused = 3;
+    }
     else if (!strcmp(option, "--projdist")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&ProjFrac);
@@ -727,6 +740,16 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[2],"%f",&ProjFracDelta);
       ProjFrac = 0.5; // just make it non-zero
       ProjDistFlag = 1;
+      nargsused = 3;
+    }
+    else if(!strcmp(option, "--projdist-max")){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%f",&ProjFracMin);
+      sscanf(pargv[1],"%f",&ProjFracMax);
+      sscanf(pargv[2],"%f",&ProjFracDelta);
+      ProjFrac = 0.5; // just make it non-zero
+      ProjDistFlag = 1;
+      GetProjMax = 1;
       nargsused = 3;
     }
     else if(!strcmp(option, "--scale")){
@@ -861,8 +884,10 @@ static void print_usage(void)
   printf(" Options for projecting along the surface normal:\n");
   printf("   --projfrac frac : (0->1)fractional projection along normal \n");  
   printf("   --projfrac-avg min max del : average along normal\n");  
+  printf("   --projfrac-max min max del : max along normal\n");  
   printf("   --projdist mmdist : distance projection along normal \n");  
   printf("   --projdist-avg min max del : average along normal\n");  
+  printf("   --projdist-max min max del : max along normal\n");  
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
@@ -1267,6 +1292,7 @@ static void dump_options(FILE *fp)
 
   fprintf(fp,"interp = %s\n",interpmethod_string);
   fprintf(fp,"float2int = %s\n",float2int_string);
+  fprintf(fp,"GetProjMax = %d\n",GetProjMax);
 
   return;
 }
