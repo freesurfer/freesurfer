@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.165.2.8 2006/05/01 16:15:00 nicks Exp $"
+# "$Id: configure.in,v 1.165.2.9 2006/10/06 18:36:13 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, stable3, freesurfer@nmr.mgh.harvard.edu)
@@ -115,6 +115,9 @@ echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
 TEEM_ENDIAN=$BYTEORDER
 
+# Support for files >2GB (Large File Support)
+LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
+
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
@@ -124,8 +127,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="-g -O2 -Wall -Werror $LFS_CFLAGS $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -Werror $LFS_CFLAGS $CXXFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -135,8 +138,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall -fno-strict-aliasing -Werror $CXXFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -147,10 +150,20 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror -Wno-long-double"
+ CFLAGS="-g -O2 -Wall -Werror -Wno-long-double $LFS_CFLAGS $CFLAGS"
 # -Wno-non-virtual-dtor suppresses valid scuba warning:
 # "has virtual functions but non-virtual destructor"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror -Wno-non-virtual-dtor"
+ CXXFLAGS="-g -O2 -Wall -Werror -Wno-non-virtual-dtor $LFS_CFLAGS $CXXFLAGS"
+ ;;
+ i*86-*-solaris*)
+ OS=SunOS
+ OS_CPPFLAGS=
+ OS_LDFLAGS=
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC "
+ SHARED_LDFLAGS="-shared "
+ CFLAGS="-g -O2 -Wall $CFLAGS"
+ CXXFLAGS="-g -O2 -Wall $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
