@@ -27,6 +27,7 @@ int PrintPCAStats(FILE *fp, MATRIX *Spca);
 MRI *MRIsqrt(MRI *invol, MRI *outvol);
 double MRImaxAbsDiff(MRI *vol1, MRI *vol2, 
 		     int *cmax, int *rmax, int *smax, int *fmax);
+MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 
 #define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */

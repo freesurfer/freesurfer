@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.24 2006/05/16 21:17:17 kteich Exp $
+  $Id: mri2.c,v 1.25 2006/10/06 19:24:40 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1113,6 +1113,78 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol)
 
   return(outvol);
 }
+/*------------------------------------------------------*/
+/*!
+ \fn MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out)
+ \brief Computes the voxel-by-voxel max between the input MRIs.
+ \param MRI *mri1 - first input
+ \param MRI *mri2 - second input
+ \param MRI *out  - output (can be NULL)
+ \return MRI * - pointer to output MRI
+ Both inputs must be of the same size, but they can be of
+ different data types. If the output is not specified, then
+ it gets the data type of mri1. If it is specified, it can
+ be any data type.
+*/
+MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out)
+{
+  int c, r, s, f, n, ncols, nrows, nslices,nframes;
+  void   *pmri1=NULL,*pmri2=NULL, *pout=NULL;
+  double  v1=0,v2=0,v;
+  int sz1, sz2,szout;
+
+  ncols   = mri1->width;
+  nrows   = mri1->height;
+  nslices = mri1->depth;
+  nframes = mri1->nframes;
+
+  if(out==NULL){
+    out = MRIallocSequence(ncols, nrows, nslices, mri1->type, nframes);
+    if(out==NULL){
+      printf("ERROR: MRImax: could not alloc output\n");
+      return(NULL);
+    }
+    MRIcopyHeader(mri1,out); // ordinarily would need to change nframes
+  }
+  if(out->width != ncols   || out->height != nrows ||
+     out->depth != nslices || out->nframes != nframes){
+    printf("ERROR: MRImax: dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Number of bytes in the mri data types
+  sz1   = MRIsizeof(mri1->type);
+  sz2   = MRIsizeof(mri2->type);
+  szout = MRIsizeof(out->type);
+
+  n = 0;
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	// Pointers to the start of the column
+	pmri1  = (void *) mri1->slices[n][r];
+	pmri2  = (void *) mri2->slices[n][r];
+	pout   = (void *) out->slices[n][r];
+        for(c=0; c<ncols; c++) {
+
+	  v1 = MRIptr2dbl(pmri1, mri1->type);
+	  v2 = MRIptr2dbl(pmri2, mri2->type);
+	  if(v1 > v2) v = v1;
+	  else        v = v2;
+	  MRIdbl2ptr(v, pout, out->type);
+
+	  pmri1 += sz1;
+	  pmri2 += sz2;
+	  pout  += szout;
+        } // cols
+      } // rows
+      n++;
+    } // slices
+  } // frames
+
+  return(out);
+}
+
 
 /*---------------------------------------------------------------
   MRImaxAbsDiff() - finds the voxel where the two volumes differ 
