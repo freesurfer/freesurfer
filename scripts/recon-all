@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.17.2.10 2006/09/25 18:38:47 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.17.2.11 2006/10/06 21:52:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1359,22 +1359,22 @@ while( $#argv != 0 )
 
     case "-i"
       if( $#argv < 1) goto arg1err;
-      set InputVol = $argv[1]; shift;
-      if(! -e $InputVol) then
+      set InputVol = "$argv[1]"; shift;
+      if(! -e "$InputVol") then
         echo "ERROR: cannot find $InputVol"
         exit 1;
       endif
-      if(! -r $InputVol) then
+      if(! -r "$InputVol") then
         echo "ERROR: $InputVol exists but is not readable"
         exit 1;
       endif
-      set InVolDir  = `dirname  $InputVol`;
-      set InVolBase = `basename $InputVol`;
+      set InVolDir  = `dirname  "$InputVol"`;
+      set InVolBase = `basename "$InputVol"`;
       pushd $InVolDir > /dev/null
       set InVolDir = `pwd`;
       popd > /dev/null
-      set InputVol = $InVolDir/$InVolBase;
-      set InputList = ($InputList $InputVol);
+      set InputVol = "$InVolDir/$InVolBase";
+      set InputList = ($InputList "$InputVol");
       set DoConvertInput = 1;
       breaksw
 
