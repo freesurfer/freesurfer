@@ -1680,24 +1680,37 @@ extern "C" {
 
 
 //########### VNL ###################################################
-
+/*! 
+  \fn int sc_linalg_cholesky_decomp(MATRIX *U)
+  \params MATRIX *U - input and output matrix
+  Computes cholesky decomposition C of U in-place.
+  U = C'*C. C is upper triangular (same as matlab)
+  Note: when using as a temporal filter, want lower tri.
+  Returns 0 on success and nonzero otherwise (eg,
+  when U is non-positive def).
+ */
 extern "C" int sc_linalg_cholesky_decomp(MATRIX *U)
 {
-  int i, j;
+  int i, j, err;
 
   vnl_matrix<double> P(U->rows,U->cols);
+  vnl_matrix<double> C(U->rows,U->cols);
 
   for(i=0; i<U->rows; i++)
     for(j=0; j<U->cols; j++)
       P(i,j)=*MATRIX_RELT(U, i+1, j+1);
 
   vnl_cholesky chol(P);
+  err = chol.rank_deficiency();
+  if(err) return(err);
+
+  C = chol.upper_triangle();
 
   for(i=0; i<U->rows; i++)
     for(j=0; j<U->cols; j++)
-      *MATRIX_RELT(U, i+1, j+1) = P(i,j);
+      *MATRIX_RELT(U, i+1, j+1) = C(i,j);
 
-  return(1);
+  return(0);
 }
 
 
