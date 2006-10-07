@@ -142,10 +142,10 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 
 int MRIhfs2Sphinx(MRI *mri);
 
-inline float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
-inline int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
-inline void MRIdbl2ptr(double v, void *pmric, int mritype);
-inline double MRIptr2dbl(void *pmric, int mritype);
+float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
+int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
+void MRIdbl2ptr(double v, void *pmric, int mritype);
+double MRIptr2dbl(void *pmric, int mritype);
 size_t MRIsizeof(int mritype);
 
 char * MRIprecisionString(int PrecisionCode);
