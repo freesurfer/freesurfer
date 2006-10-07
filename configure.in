@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.228 2006/10/06 15:58:59 fischl Exp $"
+# "$Id: configure.in,v 1.229 2006/10/07 23:09:42 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -938,7 +938,7 @@ else
     GLUT_LIBS="$glut_libs"
     #Also, we use these as catch-all, for GL and GLU:
     GLUT_CFLAGS="$GLU_CFLAGS $GLUT_CFLAGS"
-    GLUT_LIBS="$GLUT_LIBS $GLU_LIBS"
+    GLUT_LIBS="$GLUT_LIBS $GLU_LIBS $X_LIBS"
     AC_SUBST([GLUT_CFLAGS])
     AC_SUBST([GLUT_LIBS])
   fi
@@ -1064,7 +1064,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
       ])
     ])
   #################### Tk needs X11 (or Aqua)
-  LIBS="-lX11 $LIBS"
+  LIBS="$X_LIBS $LIBS"
   CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.4
