@@ -121,6 +121,7 @@ extern int gca_write_iterations ;
 
 //static int expand_flag = TRUE ;
 static int expand_flag = FALSE ;
+static int expand_ventricle_flag = FALSE ;
 static int conform_flag = FALSE ;
 
 int
@@ -139,13 +140,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.74 2006/08/16 00:16:20 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.75 2006/10/08 21:02:20 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.74 2006/08/16 00:16:20 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.75 2006/10/08 21:02:20 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -738,9 +739,9 @@ main(int argc, char *argv[])
 		}
 	}
 
-  if (read_fname == NULL)
+  if (read_fname == NULL && 0)
 		GCAmaxLikelihoodBorders(gca, mri_inputs, mri_labeled, mri_labeled,transform,mle_niter, 5.0);
-  if (expand_flag){
+  if (expand_ventricle_flag){
     GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                        Left_Lateral_Ventricle) ;
     GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,
@@ -751,6 +752,8 @@ main(int argc, char *argv[])
     GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                        Right_Inf_Lat_Vent) ;
 #endif
+  }
+  if (expand_flag){
     GCAexpandCortex(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
   }
 
@@ -893,6 +896,11 @@ get_option(int argc, char *argv[])
 		TR = atof(argv[2]) ;
 		nargs = 1 ;
 		printf("using TR=%2.1f msec\n", TR) ;
+	}
+  else if (!stricmp(option, "expand"))
+	{
+    expand_ventricle_flag = TRUE ;
+		printf("expanding ventricles in postprocessing...\n") ;
 	}
   else if (!stricmp(option, "EXAMPLE"))
 	{
