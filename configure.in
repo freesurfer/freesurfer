@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.229 2006/10/07 23:09:42 nicks Exp $"
+# "$Id: configure.in,v 1.230 2006/10/09 00:23:43 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -732,10 +732,15 @@ AC_ARG_WITH(vtk-dir,
 
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
-  for item in $ac_vtk_includes; do
-        VTK_CFLAGS="${VTK_CFLAGS} -I${item}"
-        VTK_CXXFLAGS="${VTK_CXXFLAGS} -I${item}"
-  done
+  if test -e $ac_vtk_includes/vtk-5.1 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.1"
+  elif test -e $ac_vtk_includes/vtk-5.0 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.0"
+  elif test -e $ac_vtk_includes/vtk ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk"
+  fi
+  VTK_CFLAGS="${VTK_CFLAGS} -I$ac_vtk_includes"
+  VTK_CXXFLAGS="${VTK_CXXFLAGS} -I$ac_vtk_includes"
   VTK_DIR=$ac_vtk_dir
   AC_SUBST(VTK_DIR)
 else
@@ -774,8 +779,8 @@ AC_ARG_WITH(kwwidgets-dir,
 if test ! "$ac_kwwidgets_includes" = "NO"; then
   AC_MSG_RESULT(KWWidgets directory is $withval)
   for item in $ac_kwwidgets_includes; do
-        KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
-        KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
+    KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
+    KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
   done
   KWWIDGETS_DIR=$ac_kwwidgets_dir
   AC_SUBST(KWWIDGETS_DIR)
