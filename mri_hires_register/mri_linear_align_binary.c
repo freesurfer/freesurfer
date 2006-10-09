@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/02 16:44:58 $
-// Revision       : $Revision: 1.9 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/10/09 13:49:20 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -49,6 +49,7 @@ static int binary_label = 128 ;
 static int nopowell = 0 ;
 static int nfilter = 0 ;
 static int apply_transform = 1 ;
+static int use_target_label = 1 ;
 
 static int write_snapshot(MRI *mri_target, MRI *mri_source,
                           MATRIX *m_vox_xform, MORPH_PARMS *parms,
@@ -195,132 +196,142 @@ main(int argc, char *argv[])
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
-  mri_source = MRIread(source_fname) ;
-  if (!mri_source)
-    ErrorExit(ERROR_NOFILE, "%s: could not read source label volume %s",
-              Progname, source_fname) ;
+	mri_source = MRIread(source_fname) ;
+	if (!mri_source)
+		ErrorExit(ERROR_NOFILE, "%s: could not read source label volume %s",
+							Progname, source_fname) ;
 
+	
+	mri_orig_source = MRIcopy(mri_source, NULL) ;
+	if (wm == 1)   // only doing white matter
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_source, NULL) ;
+		MRIcopyLabel(mri_source, mri_tmp, Left_Cerebral_White_Matter) ;
+		MRIcopyLabel(mri_source, mri_tmp, Right_Cerebral_White_Matter) ;
+		MRIcopyLabel(mri_source, mri_tmp, Left_Cerebellum_White_Matter) ;
+		MRIcopyLabel(mri_source, mri_tmp, Right_Cerebellum_White_Matter) ;
+		MRIcopyLabel(mri_source, mri_tmp, Brain_Stem) ;
+		MRIfree(&mri_source) ; mri_source = mri_tmp ;
+		MRIeraseBorders(mri_source, 1) ;
+	}
+	else if (binarize >0)
+		MRIbinarize(mri_source, mri_source, binarize, 0, binary_label) ;
+	else if (!filled)
+	{
+		if (use_target_label)  // just copy this label out of volume
+		{
+			MRI *mri_tmp ;
+			mri_tmp = MRIclone(mri_source, NULL) ;
+			MRIcopyLabel(mri_source, mri_tmp, target_label) ;
+			MRIfree(&mri_source) ; mri_source = mri_tmp ;
+		}
+		else
+		{
+			for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
+			{
+				label = non_artery_labels[i] ;
+				MRIreplaceValues(mri_source, mri_source, label, 0) ;
+			}
+			for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+			{
+				label = non_hippo_labels[i] ;
+				MRIreplaceValues(mri_source, mri_source, label, 0) ;
+			}
+		}
+	}
 
-  mri_orig_source = MRIcopy(mri_source, NULL) ;
-  if (wm == 1)   // only doing white matter
-    {
-      MRI *mri_tmp ;
-      mri_tmp = MRIclone(mri_source, NULL) ;
-      MRIcopyLabel(mri_source, mri_tmp, Left_Cerebral_White_Matter) ;
-      MRIcopyLabel(mri_source, mri_tmp, Right_Cerebral_White_Matter) ;
-      MRIcopyLabel(mri_source, mri_tmp, Left_Cerebellum_White_Matter) ;
-      MRIcopyLabel(mri_source, mri_tmp, Right_Cerebellum_White_Matter) ;
-      MRIcopyLabel(mri_source, mri_tmp, Brain_Stem) ;
-      MRIfree(&mri_source) ; mri_source = mri_tmp ;
-      MRIeraseBorders(mri_source, 1) ;
-    }
-  else if (binarize >0)
-    MRIbinarize(mri_source, mri_source, binarize, 0, binary_label) ;
-  else if (!filled)
-    {
-      for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
-        {
-          label = non_artery_labels[i] ;
-          MRIreplaceValues(mri_source, mri_source, label, 0) ;
-        }
-      for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
-        {
-          label = non_hippo_labels[i] ;
-          MRIreplaceValues(mri_source, mri_source, label, 0) ;
-        }
-    }
+	for (i = 0 ; i < ncloses ; i++)
+		MRIdilate(mri_source, mri_source) ;
+	for (i = 0 ; i < ncloses ; i++)
+		MRIerode(mri_source, mri_source) ;
 
-  for (i = 0 ; i < ncloses ; i++)
-    MRIdilate(mri_source, mri_source) ;
-  for (i = 0 ; i < ncloses ; i++)
-    MRIerode(mri_source, mri_source) ;
+	if (FZERO(binarize)/* && !use_target_label*/)
+	{
+		MRIboundingBox(mri_source, 0, &box) ;
+		box.x -= PAD ; box.y -= PAD ; box.z -= PAD ; 
+		box.dx += 2*PAD ; box.dy += 2*PAD ; box.dz += 2*PAD ; 
+		MRIcropBoundingBox(mri_source, &box) ;
+		mri_tmp = MRIextractRegion(mri_source, NULL, &box) ;
+		MRIfree(&mri_source) ;
+		mri_source = mri_tmp ;
 
-  if (FZERO(binarize))
-    {
-      MRIboundingBox(mri_source, 0, &box) ;
-      box.x -= PAD ; box.y -= PAD ; box.z -= PAD ;
-      box.dx += 2*PAD ; box.dy += 2*PAD ; box.dz += 2*PAD ;
-      MRIcropBoundingBox(mri_source, &box) ;
-      mri_tmp = MRIextractRegion(mri_source, NULL, &box) ;
-      MRIfree(&mri_source) ;
-      mri_source = mri_tmp ;
-    }
+		mri_tmp = MRIextractRegion(mri_orig_source, NULL, &box) ;
+		MRIfree(&mri_orig_source) ;
+		mri_orig_source = mri_tmp ;
+	}
 
-  mri_target = MRIread(target_fname) ;
-  if (!mri_target)
-    ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
-              Progname, target_fname) ;
+	mri_target = MRIread(target_fname) ;
+	if (!mri_target)
+		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
+							Progname, target_fname) ;
 
-  if (wm == 1)   // only doing white matter
-    {
-      MRI *mri_tmp ;
-      mri_tmp = MRIclone(mri_target, NULL) ;
-      MRIcopyLabel(mri_target, mri_tmp, Left_Cerebral_White_Matter) ;
-      MRIcopyLabel(mri_target, mri_tmp, Right_Cerebral_White_Matter) ;
-      MRIcopyLabel(mri_target, mri_tmp, Left_Cerebellum_White_Matter) ;
-      MRIcopyLabel(mri_target, mri_tmp, Right_Cerebellum_White_Matter) ;
-      MRIcopyLabel(mri_target, mri_tmp, Brain_Stem) ;
-      MRIfree(&mri_target) ; mri_target = mri_tmp ;
-      MRIeraseBorders(mri_target, 1) ;
-    }
-  else if (binarize > 0)
-    MRIbinarize(mri_target, mri_target, binarize, 0, binary_label) ;
-  if (target_label >= 0 && !binarize)
-    {
-      MRI *mri_tmp ;
-      mri_tmp = MRIclone(mri_target, NULL) ;
-      MRIcopyLabel(mri_target, mri_tmp, target_label) ;
-      MRIfree(&mri_target) ; mri_target = mri_tmp ;
-    }
+	if (wm == 1)   // only doing white matter
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_target, NULL) ;
+		MRIcopyLabel(mri_target, mri_tmp, Left_Cerebral_White_Matter) ;
+		MRIcopyLabel(mri_target, mri_tmp, Right_Cerebral_White_Matter) ;
+		MRIcopyLabel(mri_target, mri_tmp, Left_Cerebellum_White_Matter) ;
+		MRIcopyLabel(mri_target, mri_tmp, Right_Cerebellum_White_Matter) ;
+		MRIcopyLabel(mri_target, mri_tmp, Brain_Stem) ;
+		MRIfree(&mri_target) ; mri_target = mri_tmp ;
+		MRIeraseBorders(mri_target, 1) ;
+	}
+	else if (binarize > 0)
+		MRIbinarize(mri_target, mri_target, binarize, 0, binary_label) ;
+	if (target_label >= 0 && !binarize)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_target, NULL) ;
+		MRIcopyLabel(mri_target, mri_tmp, target_label) ;
+		MRIfree(&mri_target) ; mri_target = mri_tmp ; 
+	}
 
-  if (filled)
-    {
-      MRI *mri_tmp ;
-      mri_tmp = MRIclone(mri_source, NULL) ;
-      MRIcopyLabel(mri_source, mri_tmp, target_label) ;
-      MRIfree(&mri_source) ; mri_source = mri_tmp ;
-    }
-  for (i = 0 ; i < ncloses ; i++)
-    MRIdilate(mri_target, mri_target) ;
-  for (i = 0 ; i < ncloses ; i++)
-    MRIerode(mri_target, mri_target) ;
-  MRIbinarize(mri_target, mri_target, 1, 0, binary_label) ;
-  MRIbinarize(mri_source, mri_source, 1, 0, binary_label) ;
-  MRIwrite(mri_target, "target_labels.mgz") ;
-  MRIwrite(mri_source, "src_labels.mgz") ;
-  if (mri_target->type != MRI_UCHAR)
-    {
-      mri_tmp = MRIchangeType(mri_target, MRI_UCHAR, 0, 255, 1) ;
-      MRIfree(&mri_target) ;
-      mri_target = mri_tmp ;
-    }
-  if (mri_source->type != MRI_UCHAR)
-    {
-      mri_tmp = MRIchangeType(mri_source, MRI_UCHAR, 0, 255, 1) ;
-      MRIfree(&mri_source) ;
-      mri_source = mri_tmp ;
-    }
+	if (filled)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_source, NULL) ;
+		MRIcopyLabel(mri_source, mri_tmp, target_label) ;
+		MRIfree(&mri_source) ; mri_source = mri_tmp ; 
+	}
+	for (i = 0 ; i < ncloses ; i++)
+		MRIdilate(mri_target, mri_target) ;
+	for (i = 0 ; i < ncloses ; i++)
+		MRIerode(mri_target, mri_target) ;
+	MRIbinarize(mri_target, mri_target, 1, 0, binary_label) ;
+	MRIbinarize(mri_source, mri_source, 1, 0, binary_label) ;
+	MRIwrite(mri_target, "target_labels.mgz") ;
+	MRIwrite(mri_source, "src_labels.mgz") ;
+	if (mri_target->type != MRI_UCHAR)
+	{
+		mri_tmp = MRIchangeType(mri_target, MRI_UCHAR, 0, 255, 1) ;
+		MRIfree(&mri_target) ;
+		mri_target = mri_tmp ;
+	}
+	if (mri_source->type != MRI_UCHAR)
+	{
+		mri_tmp = MRIchangeType(mri_source, MRI_UCHAR, 0, 255, 1) ;
+		MRIfree(&mri_source) ;
+		mri_source = mri_tmp ;
+	}
 
-  if (wm)   // debugging
-    {
-      mri_orig_source = mri_source ;
-    }
-  if (pf_overlap == compute_distance_transform_sse)
-    {
-      printf("creating distance transforms...\n") ;
-      mri_dist_src =
-        MRIdistanceTransform
-        (mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
-      mri_dist_dst =
-        MRIdistanceTransform
-        (mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        {
-          MRIwrite(mri_dist_src, "dist_src.mgz") ;
-          MRIwrite(mri_dist_dst, "dist_dst.mgz") ;
-        }
-    }
-
+	if (wm || use_target_label)   // debugging
+	{
+		mri_orig_source = mri_source ; 
+	}
+	if (pf_overlap == compute_distance_transform_sse)
+	{
+		printf("creating distance transforms...\n") ;
+		mri_dist_src = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
+		mri_dist_dst = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		{
+			MRIwrite(mri_dist_src, "dist_src.mgz") ;
+			MRIwrite(mri_dist_dst, "dist_dst.mgz") ;
+		}
+	}
+	
   if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
     {
       sprintf(fname, "%s_target", parms.base_name) ;
@@ -526,61 +537,66 @@ get_option(int argc, char *argv[])
              DEGREES(MAX_ANGLE)) ;
     }
   else if (!stricmp(option, "max_scale"))
-    {
-      MAX_SCALE = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("setting max scale for search to %2.1f --> %2.1f\n",
-             1-MAX_SCALE, 1+MAX_SCALE) ;
-    }
-  else if (!stricmp(option, "skip"))
-    {
-      skip = atoi(argv[2]);
-      printf("skipping %d voxels in source data...\n", skip) ;
-      nargs = 1 ;
-    }
-  else switch (*option)
-    {
-    case 'B':
-      binarize = atof(argv[2]) ;
-      printf("binarizing image with thresh = %2.3f\n", binarize) ;
-      nargs = 1 ;
-      break ;
-    case 'C':
-      ncloses = atoi(argv[2]) ;
-      printf("performing %dth order close on image\n", ncloses) ;
-      nargs = 1 ;
-      break ;
-    case 'N':
-      npasses = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("using npasses=%d\n", npasses) ;
-      break ;
-    case 'W':
-      parms.write_iterations = atoi(argv[2]) ;
-      Gdiag |= DIAG_WRITE ;
-      nargs = 1 ;
-      printf("setting write iterations = %d\n", parms.write_iterations) ;
-      break ;
-    case 'R':
-      parms.rigid = 1 ;
-      printf("constraining transform to be rigid...\n") ;
-      break ;
-    case 'F':
-      nfilter = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("applying %d mode filters before writing out final volume\n",
-             nfilter);
-      break ;
-    case '?':
-    case 'U':
-      usage_exit(1);
-      break ;
-    default:
-      printf("unknown option %s\n", argv[1]) ;
-      usage_exit(1) ;
-      break ;
-    }
-  return(nargs) ;
+  {
+		MAX_SCALE = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max scale for search to %2.1f --> %2.1f\n", 
+					 1-MAX_SCALE, 1+MAX_SCALE) ;
+  }
+	else if (!stricmp(option, "skip"))
+	{
+		skip = atoi(argv[2]);
+		printf("skipping %d voxels in source data...\n", skip) ;
+		nargs = 1 ;
+	}
+	else switch (*option)
+	{
+	case 'L':
+		target_label = atoi(argv[2]) ;
+		printf("using %s %d as target label from source and destination\n", cma_label_to_name(target_label),target_label) ;
+		use_target_label = 1 ;
+		nargs = 1 ;
+		break ;
+	case 'B':
+		binarize = atof(argv[2]) ;
+		printf("binarizing image with thresh = %2.3f\n", binarize) ;
+		nargs = 1 ;
+		break ;
+	case 'C':
+		ncloses = atoi(argv[2]) ;
+		printf("performing %dth order close on image\n", ncloses) ;
+		nargs = 1 ;
+		break ;
+	case 'N':
+		npasses = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("using npasses=%d\n", npasses) ;
+		break ;
+	case 'W':
+		parms.write_iterations = atoi(argv[2]) ;
+		Gdiag |= DIAG_WRITE ;
+		nargs = 1 ;
+		printf("setting write iterations = %d\n", parms.write_iterations) ;
+		break ;
+	case 'R':
+		parms.rigid = 1 ;
+		printf("constraining transform to be rigid...\n") ;
+		break ;
+	case 'F':
+		nfilter = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("applying %d mode filters before writing out final volume\n",nfilter);
+		break ;
+  case '?':
+  case 'U':
+    usage_exit(1);
+    break ;
+	default:
+    printf("unknown option %s\n", argv[1]) ;
+		usage_exit(1) ;
+    break ;
+	}
+	return(nargs) ;
 }
 
 static void
@@ -1068,32 +1084,32 @@ compute_distance_transform_sse(VOXEL_LIST *vl_target,
       sse += error*error ;
     }
 
-#if 0
-  /* now count target voxels that weren't mapped to in union */
-  for (i = 0 ; i < vl_target->nvox ; i++)
-    {
-      x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-      MatrixMultiply(m_L_inv, v1, v2) ;
-      d1 = MRIgetVoxVal(vl_target->mri2, x, y, z, 0) ;
+#if 1
+	/* now count target voxels that weren't mapped to in union */
+	for (i = 0 ; i < vl_target->nvox ; i++)
+	{
+		x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ; 
+		V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+		MatrixMultiply(m_L_inv, v1, v2) ;
+		d1 = MRIgetVoxVal(vl_target->mri2, x, y, z, 0) ;
 
-      xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
-      if (xd < 0)
-        xd = 0 ;
-      else if (xd >= hwidth-1)
-        xd = hwidth-1 ;
-      if (yd < 0)
-        yd = 0 ;
-      else if (yd >= hheight-1)
-        yd = hheight-1 ;
-      if (zd < 0)
-        zd = 0 ;
-      else if (zd >= hdepth-1)
-        zd = hdepth-1 ;
-      MRIsampleVolume(vl_source->mri2, xd, yd, zd, &d2) ;
-      error = d1-d2 ;
-      sse += error*error ;
-    }
+		xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ; 
+		if (xd < 0)
+			xd = 0 ;
+		else if (xd >= hwidth-1)
+			xd = hwidth-1 ;
+		if (yd < 0)
+			yd = 0 ;
+		else if (yd >= hheight-1)
+			yd = hheight-1 ;
+		if (zd < 0)
+			zd = 0 ;
+		else if (zd >= hdepth-1)
+			zd = hdepth-1 ;
+		MRIsampleVolume(vl_source->mri2, xd, yd, zd, &d2) ;
+		error = d1-d2 ;
+		sse += error*error ;
+	}
 #endif
 
   VectorFree(&v1) ; VectorFree(&v2) ;
