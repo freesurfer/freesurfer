@@ -251,7 +251,7 @@ SUBDIRS=include \
 
 # build stamp
 install-data-hook:
-	echo "$(PACKAGE)-$(OS)-$(target_vendor)-$(target_cpu)-$(PACKAGE_VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
+	echo "$(PACKAGE)-$(target_triplet)-$(PACKAGE_VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps
 

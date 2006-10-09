@@ -3,11 +3,11 @@
 
 # A rule for making the release. It just removes files in an exclude list.
 release: install
-  @list=( $(EXCLUDE_FILES) ); for p in $$list; do \
-	  find $(prefix) -follow -name $$p -exec rm {} \;; \
-  done; \
-  @list='$(SUBDIRS)'; for subdir in $$list; do \
-    echo "Making release in $$subdir"; \
+	@list=( $(EXCLUDE_FILES) ); for p in $$list; do \
+		find $(prefix) -follow -name $$p -exec rm {} \;; \
+	done; \
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+		echo "Making release in $$subdir"; \
 		(cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) release) \
 		|| exit 1; \
 	done;
@@ -19,4 +19,4 @@ dist-hook:
 	list=( $(EXCLUDE_FILES) ); for p in $$list; do \
 		find $(distdir) -follow -name $$p -exec rm {} \;; \
 	done; \
-  extra_dist=( $(EXTRA_DIST) );
+	extra_dist=( $(EXTRA_DIST) );
