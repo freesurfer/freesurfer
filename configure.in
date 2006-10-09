@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.230 2006/10/09 00:23:43 nicks Exp $"
+# "$Id: configure.in,v 1.231 2006/10/09 02:10:25 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -468,6 +468,7 @@ ac_tcl_libraries="NO"
 TCL_CFLAGS=""
 TCL_LIBS=""
 TCL_LIB=""
+TCL_DIR=""
 
 AC_MSG_CHECKING(Tcl/Tk directory)
 AC_ARG_WITH(tcl-dir,
@@ -487,6 +488,7 @@ fi
 if test ! "$ac_tcl_libraries" = "NO"; then
   TCL_LIBS=-L$ac_tcl_libraries
   TCL_LIB=$ac_tcl_libraries
+  TCL_DIR=$ac_tcl_dir
 fi
 
 AM_CONDITIONAL(ENABLE_TCLTK_APPS, test ! "x$ac_tcl_libraries" = "xNO")
@@ -495,6 +497,7 @@ AC_SUBST(TCL_CFLAGS)
 AC_SUBST(TCL_LIBS)
 AC_SUBST(TCL_LIB)
 AC_SUBST(LIBS_TCL)
+AC_SUBST(TCL_DIR)
 
 
 ##################################################################

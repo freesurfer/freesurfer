@@ -249,9 +249,21 @@ SUBDIRS=include \
 	matlab \
 	scuba
 
-# build stamp
+# build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
-	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt
+	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt ;
+	if test -e $(MNI_DIR) ; then \
+		rm -f $(prefix)/mni ; \
+		ln -s $(MNI_DIR) $(prefix)/mni ; \
+	fi;
+	if test -e $(FSLDIR) ; then \
+		rm -f $(prefix)/fsl ; \
+		ln -s $(FSLDIR) $(prefix)/fsl ; \
+	fi;
+	if test -e $(TCL_DIR) ; then \
+		rm -f $(prefix)/lib/tcltktixblt ; \
+		ln -s $(TCL_DIR) $(prefix)/lib/tcltktixblt ; \
+	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps
 
