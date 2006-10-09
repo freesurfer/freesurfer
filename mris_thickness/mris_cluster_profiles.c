@@ -23,8 +23,11 @@ typedef struct
 	int    vno ;
 } CLUSTER ;
 
-static char vcid[] = "$Id: mris_cluster_profiles.c,v 1.1 2006/03/24 19:58:56 fischl Exp $";
+static char vcid[] = "$Id: mris_cluster_profiles.c,v 1.2 2006/10/09 18:56:21 fischl Exp $";
 
+//int MRISfindClosestVertex(MRI_SURFACE *mris1, MRI_SURFACE *mris2, int vno1) ;
+static int clusters_connected(MRI_SURFACE *mris, int vno1, int vno2, int n) ;
+static int okay_to_swap(MRI_SURFACE *mris, int vno, int c1, int c2);
 static int rip_bad_vertices(MRI_SURFACE *mris, MRI *mri_profiles) ;
 static int remove_vertex_from_cluster(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int c, int vno) ;
 static int add_vertex_to_cluster(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int c, int vno) ;
@@ -32,14 +35,14 @@ static int find_most_likely_unmarked_vertex(MRI_SURFACE *mris, MRI *mri_profiles
 static int load_vals(MRI *mri_profile, VECTOR *v, int vno) ;
 static int find_most_likely_vertex_to_swap(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k, int *pcluster_no) ;
 static CLUSTER *MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, 
-																				 int k, char *start_fname) ;
+																				 int k, char *start_fname, MRI_SURFACE *mris_ico) ;
 static int rip_vertices_out_of_fov(MRI_SURFACE *mris, MRI *mri_profiles) ;
 int main(int argc, char *argv[]) ;
 
 static int mark_clusters(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k) ;
 static int compute_cluster_statistics(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k) ;
 CLUSTER *MRISclusterKMeans(MRI_SURFACE *mris, MRI *mri_profiles, int k,
-											char *start_fname);
+											char *start_fname, MRI_SURFACE *mris_ico);
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -47,9 +50,10 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int initialize_kmeans_centers(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k) ;
 static int initialize_cluster_centers(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k) ;
+static int initialize_cluster_centers_with_ico(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, MRI_SURFACE *mris_ico) ;
 
 CLUSTER *MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type, 
-										 int k, char *start_fname) ;
+										 int k, char *start_fname, MRI_SURFACE *mris_ico) ;
 
 char *start_fname = NULL ;
 
@@ -71,13 +75,14 @@ static int write_iters = 500 ;
 static int cluster_type = AGGLOMERATIVE ;
 static int k = 50 ;
 
+static char *ico_fname = NULL ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *surf_fname, *profile_fname, *seg_fname;
+  char          **av, *surf_fname, *profile_fname, *seg_fname ;
   int           ac, nargs ;
-  MRI_SURFACE   *mris ;
+  MRI_SURFACE   *mris, *mris_ico = NULL ;
 	//	LABEL         *label = NULL ;
 	MRI           *mri_profiles ;
 	CLUSTER       *ct ;
@@ -85,7 +90,7 @@ main(int argc, char *argv[])
 	setRandomSeed(10L) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_cluster_profiles.c,v 1.1 2006/03/24 19:58:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_cluster_profiles.c,v 1.2 2006/10/09 18:56:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -165,8 +170,13 @@ main(int argc, char *argv[])
 		printf("smoothing profiles %d times\n", navgs) ;
 		MRISsmoothFrames(mris, mri_profiles, navgs) ;
 	}
-
-	ct = MRIScluster(mris, mri_profiles, cluster_type, k, start_fname) ;
+	if (ico_fname)
+	{
+		mris_ico = MRISread(ico_fname) ;
+		if (mris_ico == NULL)
+			ErrorExit(ERROR_BADPARM, "%s: could not read icosahedron from %s...\n", Progname, ico_fname) ;
+	}
+	ct = MRIScluster(mris, mri_profiles, cluster_type, k, start_fname, mris_ico) ;
 	printf("writing cortical intensity clusters to %s...\n", seg_fname) ;
 	MRISwriteAnnotation(mris, seg_fname) ;
 	{
@@ -225,6 +235,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "sdir"))
   {
 		sdir = argv[2] ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "ic"))
+  {
+		ico_fname = argv[2] ;
+		printf("using icosahedral surface %s to initialize clusters\n", ico_fname) ;
 		nargs = 1 ;
   }
   else if (!stricmp(option, "start"))
@@ -322,7 +338,7 @@ print_version(void)
 #define MAX_CLUSTERS 10000
 CLUSTER *
 MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type, int k, 
-						char *start_fname)
+						char *start_fname, MRI_SURFACE *mris_ico)
 {
 	CLUSTER  *cluster_table ;
 
@@ -330,10 +346,10 @@ MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type, int k,
 	{
 	default:
 	case K_MEANS:
-		MRISclusterKMeans(mris, mri_profiles, k, start_fname) ;
+		cluster_table = MRISclusterKMeans(mris, mri_profiles, k, start_fname, mris_ico) ;
 		break ;
 	case AGGLOMERATIVE:
-		cluster_table = MRISclusterAgglomerative(mris, mri_profiles, k, start_fname) ;
+		cluster_table = MRISclusterAgglomerative(mris, mri_profiles, k, start_fname, mris_ico) ;
 		break ;
 	}
 	
@@ -341,7 +357,7 @@ MRIScluster(MRI_SURFACE *mris, MRI *mri_profiles, int cluster_type, int k,
 }
 static CLUSTER *
 MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, int k,
-												 char *start_fname)
+												 char *start_fname, MRI_SURFACE *mris_ico)
 {
 	int    i, nsamples, iter, done, vno, cluster ;
 	char   fname[STRLEN] ;
@@ -363,7 +379,7 @@ MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, int k,
 				v->ripflag = 1;
 				continue ;
 			}
-			cluster = CTABannotationToIndex(mris->ct, v->annotation);
+			CTABfindAnnotation(mris->ct, v->annotation, &cluster);
 			if (cluster >= k)
 				k = cluster+1 ;
 			v->curv = cluster ;
@@ -389,6 +405,8 @@ MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, int k,
 	}
 	else
 	{
+		if (mris_ico)
+			k = mris_ico->nvertices ;
 		ct = calloc(k, sizeof(CLUSTER)) ;
 		if (!ct)
 			ErrorExit(ERROR_BADPARM, "%s: could not allocate %d clusters", Progname, k) ;
@@ -401,7 +419,10 @@ MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, int k,
 		}
 		
 		MRISsetCurvature(mris, -1) ;
-		initialize_cluster_centers(mris, mri_profiles, ct, k) ;
+		if (mris_ico)
+			initialize_cluster_centers_with_ico(mris, mri_profiles, ct, mris_ico) ;
+		else
+			initialize_cluster_centers(mris, mri_profiles, ct, k) ;
 
 		done = iter = 0 ;
 		do
@@ -452,7 +473,7 @@ MRISclusterAgglomerative(MRI_SURFACE *mris, MRI *mri_profiles, int k,
 	return(ct);
 }
 CLUSTER *
-MRISclusterKMeans(MRI_SURFACE *mris, MRI *mri_profiles, int k, char *start_fname)
+MRISclusterKMeans(MRI_SURFACE *mris, MRI *mri_profiles, int k, char *start_fname, MRI_SURFACE *mris_ico)
 {
 	int    i, nsamples, iter, done, nchanged ;
 	char   fname[STRLEN] ;
@@ -530,7 +551,7 @@ initialize_kmeans_centers(MRI_SURFACE *mris,  MRI *mri_profiles, CLUSTER *ct, in
 	for (i = 0 ; i < k ; i++)
 	{
 		mris->vertices[vnos[i]].curv = i ;
-		CTABindexToAnnotation(mris->ct, i, &mris->vertices[vnos[i]].annotation) ;
+		CTABannotationAtIndex(mris->ct, i, &mris->vertices[vnos[i]].annotation) ;
 	}
 	return(NO_ERROR) ;
 }
@@ -570,7 +591,7 @@ mark_clusters(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k)
 				min_i = i ;
 			}
 		}
-		CTABindexToAnnotation(mris->ct, min_i, &v->annotation) ;
+		CTABannotationAtIndex(mris->ct, min_i, &v->annotation) ;
 		if (v->curv != min_i)
 			nchanged++ ;
 		v->curv = min_i ;
@@ -771,7 +792,7 @@ static int
 find_most_likely_unmarked_vertex(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k, int *pcluster_no)
 {
 	double   dist, min_dist ;
-	int      vno, c, min_cluster, min_vno, n ;
+	int      vno, c, min_cluster, min_vno, n, okay ;
 	VECTOR   *v_vals ;
 	VERTEX   *v, *vn ;
 
@@ -798,9 +819,22 @@ find_most_likely_unmarked_vertex(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *
 			dist = MatrixMahalanobisDistance(ct[c].v_mean, ct[c].m_cov, v_vals);
 			if (min_vno < 0 || dist < min_dist)
 			{
-				min_cluster = c ;
-				min_dist = dist ;
-				min_vno = v->v[n] ;
+				if (ct[c].npoints == 1)
+					okay = 1 ;
+				else // check to make sure it has at least 2 nbrs of the right class
+				{
+					int n2, nc ;
+					for (n2 = nc = 0 ; n2 < vn->vnum ; n2++)
+						if (mris->vertices[vn->v[n2]].curv == c)
+							nc++ ;
+					okay = nc > 1 ;
+				}
+				if (okay)
+				{
+					min_cluster = c ;
+					min_dist = dist ;
+					min_vno = v->v[n] ;
+				}
 			}
 		}
 	}
@@ -850,9 +884,12 @@ find_most_likely_vertex_to_swap(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *c
 			dist_dec = (dist_current-dist_changed) ;
 			if (min_vno < 0 || dist_dec > max_dist_dec)
 			{
-				min_cluster = c2 ;  // change it to new cluster
-				max_dist_dec = dist_dec ;
-				min_vno = vno ;
+				if (okay_to_swap(mris, vno, c1, c2))
+				{
+					min_cluster = c2 ;  // change it to new cluster
+					max_dist_dec = dist_dec ;
+					min_vno = vno ;
+				}
 			}
 		}
 	}
@@ -907,7 +944,7 @@ add_vertex_to_cluster(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int c, 
 	if (ct[c].npoints == 0)
 		ct[c].vno = vno ;
 	mris->vertices[vno].curv = c ;
-	CTABindexToAnnotation(mris->ct, c, &mris->vertices[vno].annotation);
+	CTABannotationAtIndex(mris->ct, c, &mris->vertices[vno].annotation);
 	if (v_vals == NULL)
 		v_vals = VectorAlloc(nsamples, MATRIX_REAL) ;
 
@@ -920,6 +957,46 @@ add_vertex_to_cluster(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int c, 
 	return(NO_ERROR) ;
 }
 
+static int 
+initialize_cluster_centers_with_ico(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, MRI_SURFACE *mris_ico)
+{
+	int             i, j, vno, nsamples, vnos[MAX_CLUSTERS], k ;
+	double          r1, r2, res ;
+  float           fmin ;
+	MRIS_HASH_TABLE *mht ;
+	VERTEX          *vico ;
+
+	k = mris_ico->nvertices ;
+	MRISstoreRipFlags(mris) ;
+	MRISunrip(mris) ;
+  r1 = MRISaverageRadius(mris) ;
+  r2 = MRISaverageRadius(mris_ico) ;
+  MRISscaleBrain(mris_ico,mris_ico, r1/r2);
+
+	res = sqrt(mris->total_area/mris->nvertices) ;
+	mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*res) ;
+	nsamples = mri_profiles->nframes ;
+	for (i = 0 ; i < mris_ico->nvertices ; i++)
+	{
+		vico = &mris_ico->vertices[i] ;
+		vno = MRISfindClosestVertex(mris, vico->x, vico->y, vico->z, &fmin) ;
+		if (vno < 0)
+			continue ;
+		vnos[i] = vno ;
+		for (j = 0 ; j < nsamples ; j++)
+			VECTOR_ELT(ct[i].v_mean, j+1) = MRIgetVoxVal(mri_profiles, vno, 0, 0, j) ;
+	}
+	mris->ct = CTABalloc(k) ;
+	for (i = 0 ; i < k ; i++)
+	{
+		mris->vertices[vnos[i]].curv = i ;
+		ct[i].npoints++ ;
+		ct[i].vno = vnos[i] ;
+		CTABannotationAtIndex(mris->ct, i, &mris->vertices[vnos[i]].annotation) ;
+	}
+	MRISrestoreRipFlags(mris) ;
+	return(NO_ERROR) ;
+}
 static int
 initialize_cluster_centers(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, int k)
 {
@@ -967,17 +1044,17 @@ initialize_cluster_centers(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTER *ct, in
 		mris->vertices[vnos[i]].curv = i ;
 		ct[i].npoints++ ;
 		ct[i].vno = vnos[i] ;
-		CTABindexToAnnotation(mris->ct, i, &mris->vertices[vnos[i]].annotation) ;
+		CTABannotationAtIndex(mris->ct, i, &mris->vertices[vnos[i]].annotation) ;
 	}
 	return(NO_ERROR) ;
 }
 static int
 rip_bad_vertices(MRI_SURFACE *mris, MRI *mri_profiles)
 {
-	int    unknown_index, bad, i, vno ;
+	int    unknown_index, bad, i, vno, index ;
 	VERTEX *v ;
 
-	unknown_index = CTABnameToIndex(mris->ct, "Unknown") ;
+	CTABfindName(mris->ct, "Unknown", &unknown_index) ;
 	printf("unknown index = %d\n", unknown_index) ;
 	for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -987,7 +1064,8 @@ rip_bad_vertices(MRI_SURFACE *mris, MRI *mri_profiles)
 		if (v->ripflag)
 			continue ;
 
-		if (CTABannotationToIndex(mris->ct, v->annotation) == unknown_index)
+		CTABfindAnnotation(mris->ct, v->annotation, &index);
+		if (index == unknown_index)
 		{
 			v->annotation = 0 ;
 			v->ripflag = 1 ;
@@ -1012,3 +1090,108 @@ rip_bad_vertices(MRI_SURFACE *mris, MRI *mri_profiles)
 	MRIScomputeMetricProperties(mris) ;
 	return(NO_ERROR) ;
 }
+static int
+okay_to_swap(MRI_SURFACE *mris, int vno, int c1, int c2)
+{
+	int    n, nc1, nc2, n2, okay ;
+	VERTEX *v, *vn, *vn2 ;
+	float  old_curv ;
+
+	okay = 0 ;
+	v = &mris->vertices[vno] ;
+	for (nc1 = nc2 = n = 0 ; n < v->vnum ; n++)
+	{
+		vn = &mris->vertices[v->v[n]] ;
+		if (vn->curv == c1)
+			nc1++ ;
+		else if (vn->curv == c2)
+			nc2++ ;
+	}
+	if (nc2 > 1) // could be okay, check connectivity.
+	{
+		// check to make sure the c1 vertices are still connected
+		old_curv = v->curv ;
+		v->curv = -1 ;  // don't use this for connectivity of c1
+		okay = 1 ;
+		for (n = 0 ; okay && n < v->vnum ; n++)
+		{
+			vn = &mris->vertices[v->v[n]] ;
+			if (vn->curv == c1)
+			{
+				for (n2 = 0 ; n2 < n ; n2++)
+				{
+					vn2 = &mris->vertices[v->v[n2]] ;
+					if (vn2->curv != c1)
+						continue ;
+					if (clusters_connected(mris, v->v[n], v->v[n2], 3) == 0)
+					{
+						okay = 0 ;
+						break ;
+					}
+				}
+			}
+		}
+		v->curv = old_curv ;
+	}
+	return(okay) ;
+}
+
+static int
+clusters_connected(MRI_SURFACE *mris, int vno1, int vno2, int num)
+{
+	int    n, n2, n3, connected ;
+	VERTEX *v, *vn, *vn2, *vn3 ;
+
+	v = &mris->vertices[vno1] ;
+	for (connected = n = 0 ; !connected && n < v->vnum ; n++)
+	{
+		vn = &mris->vertices[v->v[n]] ;
+		if (v->v[n] == vno2)
+			connected = 1 ;
+		else if (vn->curv == v->curv)  // in same cluster - search its nbhd
+		{
+			for (n2 = 0 ; !connected && n2 < vn->vnum ; n2++)
+			{
+				vn2 = &mris->vertices[vn->v[n2]] ;
+				if (vn->v[n2] == vno2)
+					connected = 1 ;
+				else if (vn2->curv == v->curv)  // in same cluster - search it's nbhd
+				{
+					for (n3 = 0 ; !connected && n3 < vn2->vnum ; n3++)
+					{
+						vn3 = &mris->vertices[vn2->v[n3]] ;
+						if (vn2->v[n3] == vno2)
+							connected = 1 ;
+					}
+				}
+			}
+		}
+	}
+	return(connected) ;
+}
+
+#if 0
+int
+MRISfindClosestVertex(MRI_SURFACE *mris1, MRI_SURFACE *mris2, int vno1)
+{
+	int    vno, min_vno ;
+	double dist, min_dist ;
+	VERTEX *v1, *v2 ;
+
+	v1 = &mris1->vertices[vno1] ;
+	v2 = &mris2->vertices[0] ;
+	min_dist = SQR(v1->x-v2->x)+SQR(v1->y-v2->y)+SQR(v1->z-v2->z);
+	min_vno = 0 ;
+	for (vno = 1 ; vno < mris2->nvertices ; vno++)
+	{
+		v2 = &mris2->vertices[vno] ;
+		dist = SQR(v1->x-v2->x)+SQR(v1->y-v2->y)+SQR(v1->z-v2->z);
+		if (dist < min_dist)
+		{
+			min_dist = dist ;
+			min_vno = vno ;
+		}
+	}
+	return(min_vno) ;
+}
+#endif
