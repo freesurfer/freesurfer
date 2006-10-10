@@ -111,7 +111,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_vol2roi \
 	mri_vol2vol \
 	mri_segstats \
-  mri_stats2seg \
+	mri_stats2seg \
 	mri_vol2surf \
 	mri_watershed \
 	mri_wmfilter \
@@ -252,17 +252,23 @@ SUBDIRS=include \
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
 	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" > $(prefix)/build-stamp.txt ;
-	if test -e $(MNI_DIR) ; then \
-		rm -f $(prefix)/mni ; \
-		ln -s $(MNI_DIR) $(prefix)/mni ; \
+	if test ! "x$(MNI_DIR)" = "x" ; then \
+		if test -e $(MNI_DIR) ; then \
+			rm -f $(prefix)/mni ; \
+			ln -s $(MNI_DIR) $(prefix)/mni ; \
+		fi; \
 	fi;
-	if test -e $(FSLDIR) ; then \
-		rm -f $(prefix)/fsl ; \
-		ln -s $(FSLDIR) $(prefix)/fsl ; \
+	if test ! "x$(FSLDIR)" = "x" ; then \
+		if test -e $(FSLDIR) ; then \
+			rm -f $(prefix)/fsl ; \
+			ln -s $(FSLDIR) $(prefix)/fsl ; \
+		fi; \
 	fi;
-	if test -e $(TCL_DIR) ; then \
-		rm -f $(prefix)/lib/tcltktixblt ; \
-		ln -s $(TCL_DIR) $(prefix)/lib/tcltktixblt ; \
+	if test ! "x$(TCL_DIR)" = "x" ; then \
+		if test -e $(TCL_DIR) ; then \
+			rm -f $(prefix)/lib/tcltktixblt ; \
+			ln -s $(TCL_DIR) $(prefix)/lib/tcltktixblt ; \
+		fi; \
 	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps
