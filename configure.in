@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.231 2006/10/09 02:10:25 nicks Exp $"
+# "$Id: configure.in,v 1.232 2006/10/10 19:55:17 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -399,12 +399,14 @@ ac_mni_includes=NO
 ac_mni_libraries=NO
 MNI_CFLAGS=""
 MNI_LIBS=""
+MNI_DIR=""
 AC_MSG_CHECKING(MNI directory)
 
 AC_ARG_WITH(mni-dir,
 [  --with-mni-dir=DIR      where the root of MNI is installed.],
   [  ac_mni_includes="$withval"/include
      ac_mni_libraries="$withval"/lib
+     MNI_DIR="$withval"
   ])
 
 if test ! "$ac_mni_includes" = "NO"; then
@@ -420,6 +422,7 @@ fi
 
 AC_SUBST(MNI_CFLAGS)
 AC_SUBST(MNI_LIBS)
+AC_SUBST(MNI_DIR)
 
 
 ################################################################
