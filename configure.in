@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.232 2006/10/10 19:55:17 nicks Exp $"
+# "$Id: configure.in,v 1.233 2006/10/10 20:33:42 kteich Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -777,8 +777,8 @@ AC_MSG_CHECKING(KWWidgets directory)
 
 AC_ARG_WITH(kwwidgets-dir,
   [  --with-kwwidgets-dir=DIR      where the root of KWWidgets is installed.],
-  [  ac_kwwidgets_includes="$withval/include"
-     ac_kwwidgets_libraries="$withval"/lib
+  [  ac_kwwidgets_includes="$withval"/include/KWWidgets
+     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
      ac_kwwidgets_dir="$withval"
   ])
 
@@ -795,7 +795,11 @@ else
 fi
 
 if test ! "$ac_kwwidgets_libraries" = "NO"; then
-  KWWIDGETS_LIBS=-L$ac_kwwidges_libraries
+  for item in $ac_kwwidgets_libraries; do
+    KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -L${item}"
+  done
+  KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -lKWWidgets"
+  AC_SUBST(KWWIDGETS_DIR)
 fi
 
 AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test ! "x$ac_kwwidgets_libraries" = "xNO")
@@ -1531,6 +1535,7 @@ AC_OUTPUT([Makefile
                  mris_longitudinal_surfaces/Makefile
                  nmovie/Makefile
                  optseq2/Makefile
+		 orient_mri/Makefile
                  rbftest/Makefile
                  regdat2xfm/Makefile
                  repair_siemens_file/Makefile
