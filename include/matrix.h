@@ -112,6 +112,7 @@ int    MatrixAsciiWriteInto(FILE *fp, MATRIX *m) ;
 MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 int    MatrixAsciiWrite(char *fname, MATRIX *m) ;
 MATRIX *MatrixAsciiRead(char *fname, MATRIX *m) ;
+MATRIX *MatrixAsciiReadRaw(char *fname, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define RVectorAlloc(n, type)      MatrixAlloc(1, n, type)
