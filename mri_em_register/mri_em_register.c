@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/11 21:01:40 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/10/10 21:27:29 $
+// Revision       : $Revision: 1.53 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -37,6 +37,7 @@ static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
 static int skull = 0 ;  /* if 1, aligning to image with skull */
+static int rigid = 0 ;
 
 /*
   allowable distance from an unknown sample to one in brain. Default
@@ -161,7 +162,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: mri_em_register.c,v 1.52 2006/01/11 21:01:40 greve Exp $", 
+     "$Id: mri_em_register.c,v 1.53 2006/10/10 21:27:29 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -209,6 +210,7 @@ main(int argc, char *argv[])
   strcpy(parms.base_name, fname) ;
   Gdiag |= DIAG_WRITE ;
   printf("logging results to %s.log\n", parms.base_name) ;
+	parms.rigid = rigid ;
 
   TimerStart(&start) ;
   ///////////  read GCA //////////////////////////////////////////////////
@@ -576,7 +578,7 @@ main(int argc, char *argv[])
   printf(" Computing final MAP estimate using %d samples. \n", nsamples) ;
   printf("**************************************************\n");
   parms.mri_in = mri_in ;  /* for diagnostics */
-  MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
+	MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
     
   printf("final transform:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
@@ -1303,7 +1305,7 @@ static void printUsage(void)
 {
   // there are so many options. 
   printf("usage: mri_em_register [<options>] "
-         "<in volume> <template volume> <output transform>\n") ;
+         "<in volume> <atlas> <output transform>\n") ;
   printf("\n");
   printf("Options\n");
   printf("\n");
@@ -1400,6 +1402,11 @@ get_option(int argc, char *argv[])
              "setting unknown_nbr_spacing = %d\n",
              unknown_nbr_spacing) ;
       skull = 1 ;
+    }
+  else if (!strcmp(option, "RIGID"))
+    {
+			rigid = 1 ;
+			printf("constraining transform to be rigid\n") ;
     }
   else if (!strcmp(option, "UNS"))
     {
@@ -1795,6 +1802,9 @@ find_optimal_linear_xform
   double mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans ;
   int    i ;
 
+	if (rigid)
+		min_scale = max_scale = 1.0 ;
+
   m_trans = MatrixIdentity(4, NULL) ;
   m_origin_inv = MatrixCopy(m_origin, NULL) ;
   *MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
@@ -1811,6 +1821,9 @@ find_optimal_linear_xform
     {
       delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
       delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
+			if (FZERO(delta_scale) || rigid)
+				delta_scale = max_scale ;
+
       delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
       if (Gdiag & DIAG_SHOW)
         {
