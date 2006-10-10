@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/14 22:52:05 $
-// Revision       : $Revision: 1.35 $
+// Revision Date  : $Date: 2006/10/10 21:29:11 $
+// Revision       : $Revision: 1.36 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -28,6 +28,7 @@
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
+
 
 char *Progname ;
 
@@ -121,13 +122,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.35 2006/04/14 22:52:05 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.36 2006/10/10 21:29:11 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.35 2006/04/14 22:52:05 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.36 2006/10/10 21:29:11 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -148,7 +149,7 @@ main(int argc, char *argv[])
 		argv += nargs ;
 	}
 
-  if (argc < 4)
+  if (argc < 5)
     ErrorExit
       (ERROR_BADPARM,
        "usage: %s [<options>] <inbrain1> <inbrain2> ... "
@@ -1190,27 +1191,61 @@ normalize_from_segmentation_volume
 (MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs)
 {
   MRI *mri_bin, *mri_tmp ;
-  int i ;
+  int i, x, y, z, label, ctrl ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
   mri_tmp = MRIclone(mri_seg, NULL) ;
   mri_bin = MRIclone(mri_seg, NULL) ;
   for (i = 0 ; i < nstructs ; i++)
-    {
-      MRIcopyLabel(mri_seg, mri_tmp, structs[i]) ;
-      MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
-      MRIerode(mri_tmp, mri_tmp) ;
-      MRIadd(mri_tmp, mri_bin, mri_bin) ;
-    }
+  {
+    MRIcopyLabel(mri_seg, mri_tmp, structs[i]) ;
+    MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+    MRIerode(mri_tmp, mri_tmp) ;
+    MRIerode(mri_tmp, mri_tmp) ;
+    MRIadd(mri_tmp, mri_bin, mri_bin) ;
+    MRIclear(mri_tmp) ;
+  }
 
+  MRIopen(mri_bin, mri_bin) ;
   //  mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;
   //normalize each channel separately
 
   for(i=0; i < mri_src->nframes; i++){
     mri_dst = normalizeChannelFromLabel(mri_src, mri_dst, mri_bin, fas, i);
   }
+  
+  MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin) ;
+  // remove control points that don't agree with the seg
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        ctrl = (int)nint(MRIgetVoxVal(mri_bin, x, y, z, 0)) ;
+        if (ctrl == 0)
+          continue ;
+        label = (int)nint(MRIgetVoxVal(mri_seg, x, y, z, 0)) ;
+        switch (label)
+        {
+        default:
+          MRIsetVoxVal(mri_bin, x, y, z, 0, 0) ;
+          break ;
+        case Left_Cerebral_White_Matter:
+        case Right_Cerebral_White_Matter:
+        case Left_Cerebellum_White_Matter:
+        case Right_Cerebellum_White_Matter:
+        case Brain_Stem:
+        case Left_VentralDC:
+        case Right_VentralDC:
+          break ;   // these are ok
+        }
+      }
 
+          
+
+  for(i=0; i < mri_src->nframes; i++){
+    normalizeChannelFromLabel(mri_dst, mri_dst, mri_bin, fas, i);
+  }
 
   MRIfree(&mri_bin) ; MRIfree(&mri_tmp) ;
   return(mri_dst) ;
@@ -1246,9 +1281,7 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
        mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
-#define MAX_BIAS 1250
 #define NO_BIAS  1000
-#define MIN_BIAS  750
 
   /* use all non-zero locations in mri_seg as control points */
   MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
@@ -1421,9 +1454,7 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
        mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
-#define MAX_BIAS 1250
 #define NO_BIAS  1000
-#define MIN_BIAS  750
 
   /* use all non-zero locations in mri_seg as control points */
   MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
@@ -1488,7 +1519,7 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
                 {
                   bias = (double)MRISvox(mri_bias, x, y, z) ;
                   total++ ;
-                  if (fabs(bias-mean) > 4*sigma)
+                  if (fabs(bias-mean) > 2*sigma)
                     {
                       MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
                       num++ ;
