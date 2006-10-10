@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.99 2006/10/03 17:16:26 greve Exp $
+// $Id: matrix.c,v 1.100 2006/10/10 20:30:33 fischl Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3305,5 +3305,48 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
 #endif
 
   return(NO_ERROR) ;
+}
+
+MATRIX *
+MatrixAsciiReadRaw(char *fname, MATRIX *m)
+{
+  FILE   *fp ;
+  int    rows, cols, row, col ;
+  char   line[10*STRLEN], *cp ;
+
+  fp = fopen(fname, "r") ;
+  if (fp == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "MatrixAsciiReadRaw: could not open %s\n", fname)) ;
+
+  cp = fgetl(line, 10*STRLEN-1, fp) ;
+  for (cols = rows = 0 ; cp != NULL ; rows++)
+  {
+    if (rows == 0)  // count cols in first row
+    {
+      cp = strtok(line, " ") ;
+      for (cols = 0 ; cp != NULL ; cols++)
+      {
+        cp = strtok(NULL, " ") ;
+      }
+    }
+    cp = fgetl(line, 10*STRLEN-1, fp) ;
+  }
+  m = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+
+  rewind(fp) ;
+  cp = fgetl(line, 10*STRLEN-1, fp) ;
+  for (row = 1 ; row <= rows ; row++)
+  {
+    cp = strtok(line, " ") ;
+    for (col = 1 ; col <= cols ; col++)
+    {
+      sscanf(cp, "%f", MATRIX_RELT(m, row, col)) ;
+      cp = strtok(NULL, " ") ;
+    }
+    cp = fgetl(line, 10*STRLEN-1, fp) ;
+  }
+
+  fclose(fp) ;
+  return(m) ;
 }
 
