@@ -13,7 +13,8 @@ GLSUBDIRS=mris2rgb \
 	tkmedit \
 	tkregister2 \
 	tksurfer \
-	mri_probedicom
+	mri_probedicom \
+	orient_mri
 
 MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
