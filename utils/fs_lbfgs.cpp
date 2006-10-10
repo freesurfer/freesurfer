@@ -210,7 +210,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
     if (iflag < 0) {
       // Eeek.
-      vcl_cerr << "\nfs_lbfgs: WARN: (iflag < 0)\n";
+      //vcl_cerr << "\nfs_lbfgs: WARN: (iflag < 0)\n";
       ok = false;
 
       // TODO: this is an DJ addition for when
