@@ -12,12 +12,20 @@ orient_mri_SOURCES= \
 	vtkKWOrientMRIView.cxx vtkKWOrientMRIView.h vtkKWOrientMRIViewTcl.cxx \
 	vtkFSVolumeSource.cxx vtkFSVolumeSource.h \
 	OrientMRILibInit.cxx
-orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
-	$(VTK_LIBS) -lvtkWidgetsTCL -lvtkWidgets -lvtkHybridTCL \
-	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRenderingTCL \
-	-lvtkVolumeRendering -lvtkRenderingTCL -lvtkRendering -lvtkftgl \
-	-lvtkfreetype  -L/tmp $(KWWIDGETS_LIBS) -L/tmp
-orient_mri_LDFLAGS=$(OS_LDFLAGS)
+orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+	$(VTK_LIBS) -lvtkWidgets -lvtkGraphics -lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-lvtkfreetype -lvtkIO \
+  -lvtkDICOMParser -lvtkzlib -lvtkpng -lvtktiff \
+	-lvtkjpeg -lvtkexpat -lvtkMPEG2Encode \
+	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
+	-lvtkFilteringTCL -lvtkWidgetsTCL \
+	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
+	-lvtkCommonTCL \
+	-L/tmp $(KWWIDGETS_LIBS)
+orient_mri_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 vtkKWOrientMRIAppTcl.cxx: vtkKWOrientMRIApp.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIApp.h \
@@ -33,6 +41,16 @@ vtkKWOrientMRIViewTcl.cxx: vtkKWOrientMRIView.h
 
 OrientMRILibInit.cxx: OrientMRILibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit OrientMRILibInit.data OrientMRILibInit.cxx
+
+# put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
+install-exec-hook:orient_mri
+	mv $(bindir)/orient_mri $(bindir)/orient_mri.bin
+	echo "#!/bin/tcsh -ef" > $(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" >> $(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/kww_setup" >> $(bindir)/orient_mri
+	echo "orient_mri.bin \$$argv" >> $(bindir)/orient_mri
+	chmod a+x $(bindir)/orient_mri
 
 else
 bin_PROGRAMS = 

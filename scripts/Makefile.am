@@ -44,6 +44,7 @@ inflate_subject-rh \
 inflate_subject_sc \
 isanalyze \
 isnifti \
+kww_setup \
 label_child \
 label_elderly_subject \
 label_subject \
@@ -128,6 +129,7 @@ talairach \
 talairach2 \
 talairach_mgh \
 tal_compare \
+tcl_setup \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
@@ -135,6 +137,7 @@ unpack_ima.tcl \
 unpackmincdir \
 unpack_mnc.tcl \
 unpacksdcmdir \
+vtk_setup \
 wfilemask \
 xsanatreg
 
@@ -179,7 +182,7 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
-EXTRA_DIST = $(tcl_SCRIPTS) tcltktixblt_wrapper
+EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.

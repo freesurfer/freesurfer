@@ -685,11 +685,11 @@ endif
 
 .PHONY: scuba_bundle
 
-
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
 	mv $(bindir)/scuba $(bindir)/scuba.bin
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/scuba
+	echo "#!/bin/tcsh -ef" > $(bindir)/scuba
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(bindir)/scuba
 	chmod a+x $(bindir)/scuba
 

@@ -9,9 +9,6 @@ AM_LDFLAGS=$(LDFLAGS_TCL)
 
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tkmedit
-else
-bin_PROGRAMS=
-endif
 tkmedit_SOURCES=tkmedit.c \
 	tkmDisplayArea.c \
 	tkmFunctionalVolume.c \
@@ -26,13 +23,19 @@ tkmedit_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)
 tkmedit_LDFLAGS=
+else
+bin_PROGRAMS=
+endif
 
+if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
 	mv $(bindir)/tkmedit $(bindir)/tkmedit.bin
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/tkmedit
+	echo "#!/bin/tcsh -ef" > $(bindir)/tkmedit
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkmedit
 	echo "tkmedit.bin \$$argv" >> $(bindir)/tkmedit
 	chmod a+x $(bindir)/tkmedit
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

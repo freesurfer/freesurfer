@@ -11,23 +11,26 @@ AM_LDFLAGS= $(LDFLAGS_TCL)
 
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS = tkregister2
-else
-bin_PROGRAMS =
-endif
 tkregister2_SOURCES=tkregister2.c
 tkregister2_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS) -lGL
 tkregister2_LDFLAGS=
+else
+bin_PROGRAMS =
+endif
 
+if ENABLE_TCLTK_APPS
 install-exec-hook:
 	mv $(bindir)/tkregister2 $(bindir)/tkregister2.bin
-	cp $(top_srcdir)/scripts/tcltktixblt_wrapper $(bindir)/tkregister2
+	echo "#!/bin/tcsh -ef" > $(bindir)/tkregister2
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
 	chmod a+x $(bindir)/tkregister2
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

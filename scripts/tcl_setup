@@ -1,0 +1,46 @@
+#!/bin/tcsh -ef
+
+#
+# Setup for apps using Tcl/Tk/Tix/BLT package included with Freesurfer
+#
+
+# '$Id: tcl_setup,v 1.1 2006/10/11 17:00:32 nicks Exp $'
+
+### --	use NMR Center Tcl/Tk/Tix/BLT package -- ####
+
+if ( $?FREESURFER_HOME ) then
+	if ( -e $FREESURFER_HOME/lib/tcltktixblt ) then
+		set FS_TCL_HOME=$FREESURFER_HOME/lib/tcltktixblt
+	else if ( -e /usr/pubsw/packages/tcltktixblt/current ) then
+		set FS_TCL_HOME=/usr/pubsw/packages/tcltktixblt/current
+	endif
+else if ( -e /usr/pubsw/packages/tcltktixblt/current ) then
+	set FS_TCL_HOME=/usr/pubsw/packages/tcltktixblt/current
+endif
+
+if ( $?FS_TCL_HOME ) then
+
+	if ( -e $FS_TCL_HOME/bin ) then
+		setenv PATH "$FS_TCL_HOME/bin":" $PATH"
+	endif
+
+	if ( -e $FS_TCL_HOME/lib ) then
+		setenv TCLLIBPATH $FS_TCL_HOME/lib
+		setenv TCL_LIBRARY $TCLLIBPATH/tcl8.4
+		setenv TK_LIBRARY	 $TCLLIBPATH/tk8.4
+		setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
+		setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
+		if(! $?LD_LIBRARY_PATH ) then
+			setenv LD_LIBRARY_PATH $TCLLIBPATH
+		else
+			setenv LD_LIBRARY_PATH "$TCLLIBPATH":"$LD_LIBRARY_PATH"
+		endif
+		if(! $?DYLD_LIBRARY_PATH ) then
+			setenv DYLD_LIBRARY_PATH $TCLLIBPATH
+		else
+			setenv DYLD_LIBRARY_PATH "$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
+		endif
+	endif
+
+	# default: assume platform has Tcl/Tk/Tix/BLT libs installed somewhere
+endif
