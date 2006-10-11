@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.73 2006/09/28 16:55:38 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.74 2006/10/11 17:10:32 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -17,7 +17,8 @@ set STABLE_VER_NUM="v3.0.4"
 set STABLE_PUB_VER_NUM="v3.0.4"
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
@@ -75,9 +76,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set GSLDIR=/usr/pubsw/packages/gsl/1.6
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/5.0.0
   set VXLDIR=/usr/pubsw/packages/vxl/1.4.0
-  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/1.0
   unsetenv QTDIR
   unsetenv FSLDIR
   if (-e /usr/pubsw/packages/fsl/3.2b) then
@@ -93,7 +92,7 @@ else
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
-  set MISCDIR=/usr/pubsw/packages/tiffjpegglut/current
+  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -102,16 +101,11 @@ else
   unsetenv GSLDIR
 endif
 
-# on Mac OS X Tiger, glut is not automatically in lib path.
-# also, need /sw/bin (Fink) to get latex and dvips.
-setenv GLUT_DYLIB_DIR ""
+# on Mac OS X Tiger, need /sw/bin (Fink) to get latex and dvips.
 if ("$OSTYPE" == "Darwin") then
-  set GLUT_DYLIB_DIR=${MISCDIR}/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
 endif
-setenv LD_LIBRARY_PATH "${GLUT_DYLIB_DIR}":"${VXLDIR}/lib"
-setenv DYLD_LIBRARY_PATH "${LD_LIBRARY_PATH}"
 
 
 #
@@ -172,8 +166,6 @@ echo "Settings" >>& $OUTPUTF
 echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
-echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" >>& $OUTPUTF
-echo "DYLD_LIBRARY_PATH $DYLD_LIBRARY_PATH" >>& $OUTPUTF
 echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
 echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
 echo "DEV_DIR $DEV_DIR" >>& $OUTPUTF
@@ -297,8 +289,8 @@ if ($status != 0 && ! -e ${FAILED_FILE} ) then
 endif
 
 # assume failure (file removed only after successful build)
+rm -f ${FAILED_FILE}
 touch ${FAILED_FILE}
-chmod g+w ${FAILED_FILE}
 
 echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
 cat $CVSUPDATEF >>& $OUTPUTF
@@ -354,6 +346,12 @@ set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
     set cnfgr=($cnfgr --with-cppunit-dir=${CPPUNITDIR})
 endif
+if ($?VTKDIR) then
+    set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
+endif
+if ($?KWWDIR) then
+    set cnfgr=($cnfgr --with-kwwidgets-dir=${GSLDIR})
+endif
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
 if ($status != 0) then
@@ -363,8 +361,8 @@ if ($status != 0) then
   cat ${DEV_DIR}/config.log >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after configure"
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
-  chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
   echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
   chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
@@ -390,8 +388,8 @@ if ($status != 0) then
   # been modified (bin/ gets written after make install)
   set msg="$HOSTNAME $RELEASE_TYPE build (make) FAILED"
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
-  chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
   echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
   chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
@@ -420,8 +418,8 @@ if ("${RELEASE_TYPE}" == "dev") then
     # been modified (bin/ gets written after make install)
     set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
     mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
-    chmod g+w ${FAILED_FILE}
     # set group write bit on files changed by make tools:
     echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
     chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
@@ -454,8 +452,8 @@ $make_cmd >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
   mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
-  chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
   echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
   chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
@@ -536,10 +534,8 @@ symlinks:
   endif
   set cmd5=
   set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
-  set cmd7=(ln -s ${VXLDIR} ${DEST_DIR}/lib/vxl)
-  if ("$OSTYPE" == "Darwin") then
-      set cmd8=(ln -s ${MISCDIR} ${DEST_DIR}/lib/misc)
-  endif
+  set cmd7=
+  set cmd8=
   # execute the commands
   echo "$cmd1" >>& $OUTPUTF
   $cmd1
@@ -555,10 +551,8 @@ symlinks:
   $cmd6
   echo "$cmd7" >>& $OUTPUTF
   $cmd7
-  if ("$OSTYPE" == "Darwin") then
-    echo "$cmd8" >>& $OUTPUTF
-    $cmd8
-  endif
+  echo "$cmd8" >>& $OUTPUTF
+  $cmd8
   # also setup sample subject:
   rm -f ${DEST_DIR}/subjects/bert
   set cmd=(ln -s ${SPACE_FS}/subjects/bert ${DEST_DIR}/subjects/bert)
