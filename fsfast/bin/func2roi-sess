@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # func2roi-sess 
 
-set VERSION = '$Id: func2roi-sess,v 1.9 2006/09/26 19:24:02 greve Exp $';
+set VERSION = '$Id: func2roi-sess,v 1.10 2006/10/12 20:43:35 nicks Exp $';
 
 set inputargs = ($argv);
 
@@ -300,7 +300,6 @@ foreach sess ($SessList)
       exit 1;
     endif
 
-    set V2R = ~greve/sg1/build/mri_vol2roi/mri_vol2roi
     set V2R = mri_vol2roi
     set outstem = $outdir/h
     set cmd = ($V2R --srcvol $srcstem --roiavg $outstem $v2rargs);
