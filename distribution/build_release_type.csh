@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.74 2006/10/11 17:10:32 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.75 2006/10/12 19:25:13 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -91,8 +91,6 @@ else
   set VXLDIR=/usr/pubsw/packages/vxl/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/current
-  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -346,12 +344,6 @@ set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
     set cnfgr=($cnfgr --with-cppunit-dir=${CPPUNITDIR})
 endif
-if ($?VTKDIR) then
-    set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
-endif
-if ($?KWWDIR) then
-    set cnfgr=($cnfgr --with-kwwidgets-dir=${GSLDIR})
-endif
 echo "$cnfgr" >>& $OUTPUTF
 $cnfgr >>& $OUTPUTF
 if ($status != 0) then
@@ -533,7 +525,7 @@ symlinks:
     set cmd4=
   endif
   set cmd5=
-  set cmd6=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
+  set cmd6=
   set cmd7=
   set cmd8=
   # execute the commands
