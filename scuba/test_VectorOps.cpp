@@ -59,11 +59,16 @@ VectorOpsTester::Test () {
     Point3<float> plane( 0, 0, 2 );
     Point3<float> n( 0, 0, 1 );
     Point3<float> x;
+
     VectorOps::IntersectionResult rIntersect =
       VectorOps::SegmentIntersectsPlane( p, q, plane, n, x );
     Assert( (VectorOps::intersect == rIntersect),
 	    "SegmentIntersectsPlane failed, incorrect result" );
-    Assert( (x[0] == 0, x[1] == 0, x[2] == 2),
+    Assert( (x[0] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[1] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[2] == 2),
 	    "SegmentIntersectsPlane failed, x was wrong" );
     
     p.Set( 0, 0, 0 );        q.Set( 0, 0, 3 );
@@ -71,7 +76,11 @@ VectorOpsTester::Test () {
     rIntersect = VectorOps::SegmentIntersectsPlane( p, q, plane, n, x );
     Assert( (VectorOps::dontIntersect == rIntersect),
 	    "SegmentIntersectsPlane failed, incorrect result" );
-    Assert( (x[0] == 0, x[1] == 0, x[2] == 2),
+    Assert( (x[0] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[1] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[2] == 2),
 	    "SegmentIntersectsPlane failed, x was wrong" );
     
     p.Set( 0, 0, 0 );        q.Set( 0, 0, 1 );
@@ -79,7 +88,11 @@ VectorOpsTester::Test () {
     rIntersect = VectorOps::SegmentIntersectsPlane( p, q, plane, n, x );
     Assert( (VectorOps::segmentInPlane == rIntersect),
 	    "SegmentIntersectsPlane failed, incorrect result" );
-    Assert( (x[0] == 0, x[1] == 0, x[2] == 2),
+    Assert( (x[0] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[1] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[2] == 2),
 	    "SegmentIntersectsPlane failed, x was wrong" );
     
     p.Set( 0, 0, 0 );        q.Set( 0, 0, 1 );
@@ -87,11 +100,13 @@ VectorOpsTester::Test () {
     rIntersect = VectorOps::SegmentIntersectsPlane( p, q, plane, n, x );
     Assert( (VectorOps::segmentParallelToPlane == rIntersect),
 	    "SegmentIntersectsPlane failed, incorrect result" );
-    Assert( (x[0] == 0, x[1] == 0, x[2] == 2),
+    Assert( (x[0] == 0),
 	    "SegmentIntersectsPlane failed, x was wrong" );
-    
-
-
+    Assert( (x[1] == 0),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+    Assert( (x[2] == 2),
+	    "SegmentIntersectsPlane failed, x was wrong" );
+ 
     p.Set( 1, 0, 0 );
     q.Set( 0, 1, 0 );
     double rads = VectorOps::RadsBetweenVectors( p, q );
