@@ -31,6 +31,7 @@ install-exec-hook:
 else
 bin_PROGRAMS =
 EXTRA_DIST = 
+install-exec-hook:
 endif
 
 # Our release target. Include files to be excluded here. They will be
