@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.9 2006/07/28 04:33:03 greve Exp $
+% $Id: flac_ev_parse.m,v 1.10 2006/10/15 21:12:49 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -132,6 +132,38 @@ switch (ev.model)
   [item c] = sscanfitem(tline,8);
   if(c ~= 1) fprintf('Format error: %s: alpha\n',ev.model); ev=[]; return; end
   ev.params(3) = sscanf(item,'%f',1); % alpha
+
+  [item c] = sscanfitem(tline,9);
+  if(c ~= 1) fprintf('Format error: %s: nderiv\n',ev.model); ev=[]; return; end
+  ev.params(4) = sscanf(item,'%f',1); % nderiv
+
+  [item c] = sscanfitem(tline,10);
+  if(c ~= 1) fprintf('Format error: %s: dpsd\n',ev.model); ev=[]; return; end
+  ev.params(5) = sscanf(item,'%f',1); % dpsd (sec)
+
+  ev.psdwin = [0 40 ev.params(5)];
+  ev.npsd = round((ev.psdwin(2)-ev.psdwin(1))/ev.psdwin(3));
+  ev.ishrf = 1;  
+  ev.nreg = 1+ev.params(4); % 1+nderiv
+  
+ %--------------------------------------------
+ case {'fslgamma'} % FSL Gamma HRF regressor
+  % 5 parameters: phase std meanlag nderiv dpsd
+  % EV Probe fslgamma task stfile 0 3 6 0 .1
+  [ev.stf c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: stf\n',ev.model); ev=[]; return; end
+
+  [item c] = sscanfitem(tline,6);
+  if(c ~= 1) fprintf('Format error: %s: phase\n',ev.model); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%f',1); % phase (sec)
+
+  [item c] = sscanfitem(tline,7);
+  if(c ~= 1) fprintf('Format error: %s: stddev\n',ev.model); ev=[]; return; end
+  ev.params(2) = sscanf(item,'%d',1); % stddev (sec)
+
+  [item c] = sscanfitem(tline,8);
+  if(c ~= 1) fprintf('Format error: %s: meanlag\n',ev.model); ev=[]; return; end
+  ev.params(3) = sscanf(item,'%f',1); % meanlag
 
   [item c] = sscanfitem(tline,9);
   if(c ~= 1) fprintf('Format error: %s: nderiv\n',ev.model); ev=[]; return; end

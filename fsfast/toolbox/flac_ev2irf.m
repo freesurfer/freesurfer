@@ -1,7 +1,7 @@
 function Xirf = flac_ev2irf(flac,nthev)
 % Xirf = flac_ev2irf(flac,nthev)
 %
-% $Id: flac_ev2irf.m,v 1.2 2006/03/31 02:18:00 greve Exp $
+% $Id: flac_ev2irf.m,v 1.3 2006/10/15 21:12:49 greve Exp $
 
 Xirf = [];
 if(nargin ~= 2)
@@ -41,6 +41,25 @@ switch(ev.model)
   dpsd   = ev.params(5);
   t = dpsd*[0:ev.npsd-1]';
   Xirf = fmri_hemodyn(t,delay,tau,alpha);
+  dh_hrf = Xirf;
+  for n = 1:nderiv
+    % Divide by TER for gradient.
+    % Multiply by 2.6 to bring 1st deriv to amp of 1
+    dh_hrf = 2.6*gradient(dh_hrf)/dpsd;
+    Xirf = [Xirf dh_hrf];
+  end  
+
+ case {'fslgamma'}
+  phase   = ev.params(1); % Not used yet
+  sigma   = ev.params(2);
+  meanlag = ev.params(3);
+  a = (meanlag/sigma)^2;
+  b = meanlag/(sigma^2);
+  nderiv  = ev.params(4);
+  dpsd    = ev.params(5);
+  t = dpsd*[0:ev.npsd-1]' + flac.TR/2;
+  Xirf = pdf_gamma(t,a,b);  
+  Xirf = Xirf/sum(Xirf);
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
