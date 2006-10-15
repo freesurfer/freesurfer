@@ -16,7 +16,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) {
-  return("$Id: randomfields.c,v 1.6 2006/10/02 16:44:59 nicks Exp $");
+  return("$Id: randomfields.c,v 1.7 2006/10/15 21:23:40 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -484,184 +484,104 @@ double RFar1ToFWHM(double ar1, double d)
   return(fwhm);
 }
 
-
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
-
-#if 0
-
-/*-------------------------------------------------------------------*/
-int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
+/*!
+ \fn double RFprobZCluster(double clustersize, double vthresh, 
+		double fwhm, double searchsize, int dim)
+ \brief Probability of a cluster in a z-field being >= clustersize
+ \param clustersize - in physical units
+ \param vzthresh - voxel-wise z threshold
+ \param fwhm - of the z field in physical units
+ \param searchsize - in physical units
+ \param dim - dimension of the z field
+ Roughly based on Friston, et al, 1995.
+ */
+double RFprobZCluster(double clustersize, double vzthresh, 
+		      double fwhm, double searchsize, int dim)
 {
-  if(!strcmp(rfs->name,"uniform"))
-    return(RFsynthUniform(rf,rfs,binmask));
-  if(!strcmp(rfs->name,"gaussian"))
-    return(RFsynthGaussian(rf,rfs,binmask));
-  if(!strcmp(rfs->name,"t"))
-    return(RFsyntht(rf,rfs,binmask));
-  if(!strcmp(rfs->name,"F"))
-    return(RFsyntht(rf,rfs,binmask));
-  printf("ERROR: RFsynth(): field type %s unknown\n",rfs->name);
-  return(1);
+  double pcluster,W,dLh,Em,beta,pvzthresh,Pnk;
+
+  W = fwhm/sqrt(4.0*log(2.0));
+  dLh = pow(W,-dim);
+
+  Em = searchsize * pow(2*M_PI,-(dim+1)/2.0) * dLh * 
+    (pow(vzthresh,dim-1.0) - 1) *  exp(-pow(vzthresh,2)/2); 
+
+  pvzthresh = 1.0-sc_cdf_gaussian_Q(-vzthresh,1);
+
+  beta = pow( (gamma(dim/2.0+1)*Em) / (searchsize*pvzthresh),2.0/dim );
+
+  // Prob than n >= k, ie, the number of voxels in a cluster >= csize
+  Pnk = exp(-beta * pow(clustersize,2.0/dim));
+  pcluster = 1 - exp(-Em*Pnk);
+
+  #if 0
+  printf("csize = %lf\n",clustersize);
+  printf("vzthresh = %lf\n",vzthresh);
+  printf("fwhm = %lf\n",fwhm);
+  printf("searchsize = %lf\n",searchsize);
+  printf("dim = %d\n",dim);
+  printf("W = %lf dLh %lf\n",W,dLh);
+  printf("Em = %lf\n",Em);
+  printf("pvzthresh = %lf\n",pvzthresh);
+  printf("beta = %lf\n",beta);
+  printf("Pnk = %lf\n",Pnk);
+  printf("pcluster = %lf\n",pcluster);
+  #endif
+
+  return(pcluster);
 }
 
-/*-------------------------------------------------------------------*/
-int RFsynthUniform(MRI *rf, RFS *rfs, MRI *binmask)
+/*!
+ \fn double RFprobZClusterPThresh(double clustersize, 
+		double vpthresh, double fwhm, double searchsize, int dim)
+ \brief Probability of a cluster in a z-field being >= clustersize
+ \param clustersize - in physical units
+ \param vpthresh - voxel-wise p-threshold (instead of z)
+ \param fwhm - of the z field in physical units
+ \param searchsize - in physical units
+ \param dim - dimension of the z field
+ Same as RFprobZCluster() but takes the p-value threshold used
+ to threshold a p-field created from a z-field. This function
+ just computes the equivalenet z-threshold and calls 
+ RFprobZCluster(). Note that the cluster are the set of voxels
+ *below* the pvthresh.
+ */
+double RFprobZClusterPThresh(double clustersize, double vpthresh, 
+		      double fwhm, double searchsize, int dim)
 {
-  int c,r,s,f=0,m;
-  double v,min,max;
-
-  min = rfs->params[0];
-  max = rfs->params[1];
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = sc_ran_flat(rfs->rng,min,max);
-          MRIsetVoxVal(rf,c,r,s,f,v);
-        }
-      }
-    }
-  }
-  return(0);
+  double vzthresh,pcluster;
+  vzthresh = sc_cdf_gaussian_Qinv(vpthresh,1.0);
+  pcluster = RFprobZCluster(clustersize, vzthresh, 
+			    fwhm, searchsize, dim);
+  return(pcluster);
 }
 
-/*-------------------------------------------------------------------*/
-int RFsynthGaussian(MRI *rf, RFS *rfs, MRI *binmask)
+/*!
+ \fn double RFprobZClusterSigThresh(double clustersize, 
+		double vsigthresh, double fwhm, double searchsize, int dim)
+ \brief Probability of a cluster in a z-field being >= clustersize
+ \param clustersize - in physical units
+ \param vpthresh - voxel-wise sig-threshold (-log10(p))
+ \param fwhm - of the z field in physical units
+ \param searchsize - in physical units
+ \param dim - dimension of the z field
+ Same as RFprobZCluster() but takes the significance (ie, -log10(p))
+ value threshold used to threshold a p-field created from a
+ z-field. This function just computes the equivalenet z-threshold and
+ calls RFprobZCluster().
+ */
+double RFprobZClusterSigThresh(double clustersize, double vsigthresh, 
+			       double fwhm, double searchsize, int dim)
 {
-  int c,r,s,f=0,m;
-  double v,mean,std;
-
-  mean = rfs->params[0];
-  std  = rfs->params[1];
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = sc_ran_gaussian(rfs->rng,std) + mean;
-          MRIsetVoxVal(rf,c,r,s,f,v);
-        }
-      }
-    }
-  }
-  return(0);
+  double vzthresh,pcluster,vpthresh;
+  vpthresh = pow(10.0,-fabs(vsigthresh));
+  vzthresh = sc_cdf_gaussian_Qinv(vpthresh,1.0);
+  pcluster = RFprobZCluster(clustersize, vzthresh, 
+			    fwhm, searchsize, dim);
+  return(pcluster);
 }
 
-/*-------------------------------------------------------------------*/
-int RFsyntht(MRI *rf, RFS *rfs, MRI *binmask)
-{
-  int c,r,s,f=0,m;
-  double v,dof;
-
-  dof = rfs->params[0];
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = sc_ran_tdist(rfs->rng,dof);
-          MRIsetVoxVal(rf,c,r,s,f,v);
-        }
-      }
-    }
-  }
-  return(0);
-}
 
 /*-------------------------------------------------------------------*/
-int RFsynthF(MRI *rf, RFS *rfs, MRI *binmask)
-{
-  int c,r,s,f,m;
-  double v,ndof,ddof;
-
-  ndof = rfs->params[0]; // numerator dof (rows in C)
-  ddof = rfs->params[1]; // dof
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = sc_ran_fdist(rfs->rng,ndof,ddof);
-          MRIsetVoxVal(rf,c,r,s,f,v);
-        }
-      }
-    }
-  }
-  return(0);
-}
-
 /*-------------------------------------------------------------------*/
-RFtestGaussian(MRI *rf, MRI *binmask, MRI *p)
-{
-  int c,r,s,f=0,m;
-  double v,pval,mean,std;
-
-  mean = rfs->params[0];
-  std  = rfs->params[1];
-
-  p = MRIclone(rf,p);
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = MRIgetVoxVal(rf,c,r,s,f);
-          pval = sc_cdf_gaussian_Q(v-mean,std);
-          MRIsetVoxVal(p,c,r,s,f,pval);
-        }
-      }
-    }
-  }
-  return(p);
-}
-
 /*-------------------------------------------------------------------*/
-int RFtestt(MRI *rf, RFS *rfs, MRI *binmask)
-{
-  int c,r,s,f,m;
-  double v,pval,dof;
-
-  dof = rfs->params[0];
-
-  for(c=0; c < rf->width; c++){
-    for(r=0; r < rf->height; r++){
-      for(s=0; s < rf->depth; s++){
-        if(binmask != NULL){
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if(!m) continue;
-        }
-        for(f=0; f < rf->nframes; f++){
-          v = sc_ran_tdist(rfs->rng,dof);
-          MRIsetVoxVal(rf,c,r,s,f,v);
-        }
-      }
-    }
-  }
-  return(0);
-}
-
-// #end if 0:
-#endif

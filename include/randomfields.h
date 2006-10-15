@@ -1,4 +1,4 @@
-// $Id: randomfields.h,v 1.5 2006/10/02 16:44:57 nicks Exp $
+// $Id: randomfields.h,v 1.6 2006/10/15 21:23:40 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -54,6 +54,13 @@ int RFexpectedMeanStddevChi2(RFS *rfs);
 
 double RFar1ToGStd(double ar1, double d);
 double RFar1ToFWHM(double ar1, double d);
+
+double RFprobZCluster(double clustersize, double vthresh, 
+		      double fwhm, double searchsize, int dim);
+double RFprobZClusterPThresh(double clustersize, double vpthresh, 
+			     double fwhm, double searchsize, int dim);
+double RFprobZClusterSigThresh(double clustersize, double vsigthresh, 
+			       double fwhm, double searchsize, int dim);
 
 #endif
 
