@@ -54,6 +54,7 @@ install-exec-hook:orient_mri
 
 else
 bin_PROGRAMS = 
+install-exec-hook:
 endif
 
 # Our release target. Include files to be excluded here. They will be
