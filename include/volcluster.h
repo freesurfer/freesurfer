@@ -21,6 +21,13 @@ typedef struct {
   double pval_clusterwise_hi;
 } VOLCLUSTER;
 
+#ifdef VOLCLUSTER_SRC
+int VolClustFixMNI = 0;
+#else
+extern int VolClustFixMNI;
+#endif
+
+
 VOLCLUSTER *clustAllocCluster(int nmembers);
 int clustFreeCluster(VOLCLUSTER **ppvc);
 VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc);

@@ -9,6 +9,7 @@
 #include "resample.h"
 #include "transform.h"
 #include "matrix.h"
+#define VOLCLUSTER_SRC
 #include "volcluster.h"
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -633,8 +634,9 @@ int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI)
   for(n=0; n < vc->nmembers; n++){
     ConvertCRS2XYZ(vc->col[n],vc->row[n],vc->slc[n], CRS2MNI,
                    &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
-    FixMNITal(  vc->x[n],    vc->y[n],   vc->z[n],
-                &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
+    if(VolClustFixMNI)
+      FixMNITal(  vc->x[n],    vc->y[n],    vc->z[n],
+	        &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
   }
 
   return(0);
