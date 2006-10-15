@@ -33,6 +33,7 @@
 
 #include "volcluster.h"
 #include "version.h"
+#include "randomfields.h"
 
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
         int nslices, MATRIX **ppCRS2FSA,
@@ -50,7 +51,7 @@ static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices,
            int nframes, MRI *tvol);
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax, 
         char *thsign, int invert, 
-        int lowval, int highval, MRI *binvol);
+        int lowval, int highval, int *nhits, MRI *binvol);
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -65,7 +66,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.23 2006/07/26 17:38:07 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.24 2006/10/15 23:31:49 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -144,6 +145,10 @@ char *segvolfile=NULL;
 char *segvolpath=NULL;
 MRI *segvol=NULL;
 
+double fwhm = -1;
+int nmask;
+double searchspace;
+int FixMNI = 1;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -157,7 +162,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.23 2006/07/26 17:38:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.24 2006/10/15 23:31:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -172,6 +177,8 @@ int main(int argc, char **argv)
 
   parse_commandline(argc, argv);
   check_options();
+
+  if(FixMNI) VolClustFixMNI = 1;
 
   if(debug) dump_options(stdout);
 
@@ -211,13 +218,17 @@ int main(int argc, char **argv)
     }
 
     binmask = MRIbinarize01(maskvol, maskthresh, -1, masksignstring, 
-			    maskinvert, 0, 1, NULL);
+			    maskinvert, 0, 1, &nmask, NULL);
     if(binmask == NULL) exit(1);
 
     if(outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
     MRIfree(&maskvol);
+    printf("Found %d voxels in mask\n",nmask);
   }
-  else binmask = NULL;
+  else{
+    binmask = NULL;
+    nmask = vol->width  * vol->height * vol->depth;
+  }
 
   /* Load the resolution and geometry information from the register.dat */
   if(regfile != NULL)
@@ -242,6 +253,8 @@ int main(int argc, char **argv)
     printf("CRS2MNI: ---------------\n");
     MatrixPrint(stdout,CRS2MNI);
   }
+  searchspace = nmask * voxsize;
+  printf("Search Space = %g mm3\n",searchspace);
 
   if(segvolpath != NULL){
     // Only half-way thru getting this implemented. It might not be helpful. 
@@ -363,6 +376,15 @@ int main(int argc, char **argv)
       ClusterList[n]->pval_clusterwise_hi  = pvalHi;
     }
   }
+  if(fwhm > 0){
+    for(n=0; n < nclusters; n++){
+      ClusterSize = ClusterList[n]->nmembers * voxsize;
+      pval = RFprobZClusterSigThresh(ClusterSize, threshmin, fwhm, searchspace, 3);
+      ClusterList[n]->pval_clusterwise     = pval;
+      ClusterList[n]->pval_clusterwise_low = pvalLow;
+      ClusterList[n]->pval_clusterwise_hi  = pvalHi;
+    }
+  }
 
   /* Open the Summary File (or set its pointer to stdout) */
   if(sumfile != NULL){
@@ -412,14 +434,26 @@ int main(int argc, char **argv)
     fprintf(fpsum,"CSD contrast %s\n",csd->contrast);      
     fprintf(fpsum,"CSD confint  %lf\n",ciPct);      
   }
+  if(fwhm > 0) fprintf(fpsum,"FWHM        %lf\n",fwhm);    
 
   fprintf(fpsum,"\n");  
-  if(regfile)
-    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max");
-  else
-    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)        X      Y       Z              Max");
+  if(regfile){
+    if(FixMNI){
+      fprintf(fpsum,"Reporting Coordinates in Talairach Space\n");
+      fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max");
+    }
+    else{
+      fprintf(fpsum,"Reporting Coordinates in MNI305 Space\n");      
+      fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     MNIX   MNIY    MNIZ              Max");
+    }
+  }
+  else{
+    fprintf(fpsum,"Reporting Coordinates in Voxel Indices\n");      
+    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)       VoxX   VoxY    VoxZ              Max");
+  }
 
   if(csd != NULL)  fprintf(fpsum,"   CWP    CWPLow    CWPHi\n");
+  else if(fwhm > 0) fprintf(fpsum,"   CWP\n");
   else fprintf(fpsum,"\n");
 
   for(n = 0; n < nclusters; n++){
@@ -443,6 +477,8 @@ int main(int argc, char **argv)
 	      ClusterList[n]->pval_clusterwise,
 	      ClusterList[n]->pval_clusterwise_low,
 	      ClusterList[n]->pval_clusterwise_hi);
+    else if(fwhm > 0)  
+      fprintf(fpsum,"  %7.5lf\n",ClusterList[n]->pval_clusterwise);
     else fprintf(fpsum,"\n");
   }
   if(sumfile != NULL) fclose(fpsum);
@@ -542,6 +578,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--nofixtkreg"))    fixtkreg = 0;
     else if (!strcmp(option, "--fixtkreg"))      fixtkreg = 1;
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
+    else if (!strcasecmp(option, "--no-fixmni"))  FixMNI = 0;
+    else if (!strcasecmp(option, "--fixmni"))     FixMNI = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -597,8 +635,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&maskframe);
       if(maskframe < 0){
-  fprintf(stderr,"ERROR: negative frame number: frame = %d\n",maskframe);
-  exit(1);
+	printf("ERROR: negative frame number: frame = %d\n",maskframe);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -611,9 +649,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&maskthresh);
       if(maskthresh < 0.0){
-  fprintf(stderr,"ERROR: negative mask threshold not"
-    "allowed (use -masksign)\n");
-  exit(1);
+	printf("ERROR: negative mask threshold not"
+	       "allowed (use -masksign)\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -771,10 +809,15 @@ static int parse_commandline(int argc, char **argv)
       regfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--fwhm")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm);
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -1233,6 +1276,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"sign     %s\n",signstring);
   fprintf(fp,"sizethresh  %g\n",sizethresh);
   fprintf(fp,"distthresh  %g\n",distthresh);
+  fprintf(fp,"fixmni  %d\n",FixMNI);
 }
 
 /* ------------------------------------------------------------------
@@ -1439,11 +1483,11 @@ static double Gaussian01PDF(void)
   ---------------------------------------------------------------*/
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax, 
         char *thsign, int invert, 
-        int lowval, int highval, MRI *binvol)
+        int lowval, int highval, int *nhits, MRI *binvol)
 {
   int ncols, nrows, nslices, nframes;
   int col, row, slice, frame;
-  int ithsign, nhits;
+  int ithsign;
   short r;
   float val=0.0;
 
@@ -1480,7 +1524,7 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
     }
   }
 
-  nhits = 0;
+  *nhits = 0;
   for(col = 0; col < vol->width; col++){
     for(row = 0; row < vol->height; row++){
       for(slice = 0; slice < vol->depth; slice++){
@@ -1520,14 +1564,14 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
 	  if(r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
 	  else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
 
-	  if(r) nhits ++;
+	  if(r) *nhits ++;
 
 	}
       }
     }
   }
   
-  printf("INFO: MRIbinarize01(): nhits = %d\n",nhits);
+  printf("INFO: MRIbinarize01(): nhits = %d\n",*nhits);
 
   return(binvol);
 }
