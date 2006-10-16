@@ -1,0 +1,79 @@
+#!/bin/csh -f
+#
+# getformat_from_stem - determines format from a stem by appending
+# various format extensions and checking whether the file exists.
+# For this reason, the actual format returned will depend upon
+# whether the sequences of formats tried if multiple formats for 
+# the same stem are present.
+#
+# Return: format extension and exit 0. If fails, then exits 1.
+#
+# As a convenience, you can spec the format to try as the 2nd arg.
+# If the stem.fmt does not exist, then exit 1. Otherwise exit 0
+# and echoes the given fmt to the terminal. This just helps to
+# cut out a few lines of code from the calling program.
+#
+# $Id: getformat_from_stem,v 1.2.2.1 2006/10/16 17:15:24 nicks Exp $
+
+if($#argv < 1 || $#argv > 2) then
+  echo "getformat_from_stem stem <fmt>"
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+if($#argv == 2) then
+  # Format has been specified
+  set fmt = $argv[2];
+else
+  # Format has been not specified
+  set fmt = ();
+endif
+
+if($#fmt) then
+  # Format has been specified, check that file exists
+  if(! -e $stem.$fmt) then
+    echo "ERROR: cannot find $stem.$fmt"
+    exit 1;
+  endif
+  echo $fmt
+  exit 0;
+endif
+
+# Only gets here when autodetecting
+
+if(-e $stem.nii.gz) then
+  echo nii.gz
+  exit 0
+endif
+
+if(-e $stem.nii) then
+  echo nii
+  exit 0
+endif
+
+if(-e $stem.mgh) then
+  echo mgh
+  exit 0
+endif
+
+if(-e $stem.mgz) then
+  echo mgz
+  exit 0
+endif
+
+if(-e $stem.bhdr) then
+  echo bhdr
+  exit 0
+endif
+
+if(-e $stem.img) then
+  echo img
+  exit 0
+endif
+
+echo "ERROR: cannot determine format for stem $stem"
+
+exit 1
+
+2
