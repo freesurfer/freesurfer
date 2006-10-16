@@ -68,7 +68,9 @@ icon_main_volume.gif  \
 icon_marked_to_label.gif \
 icon_marker_crosshair.gif \
 icon_marker_diamond.gif \
+icon_matrix_erase.gif \
 icon_matrix_erase.tif \
+icon_matrix_write.gif \
 icon_matrix_write.tif \
 icon_navigate.gif \
 icon_orientation_coronal.gif \
