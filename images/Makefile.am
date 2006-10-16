@@ -39,6 +39,8 @@ icon_cut_line.gif  \
 icon_cut_plane.gif \
 icon_disk.gif \
 icon_disk.tif \
+icon_disk_new_name.gif \
+icon_disk_new_name.tif \
 icon_draw_line_closed.gif \
 icon_draw_line.gif \
 icon_edit_ctrlpts.gif \
