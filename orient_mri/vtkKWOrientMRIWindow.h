@@ -21,6 +21,7 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
   void LoadVolume ( const char* ifnVolume );
 
   void SaveVolumeWithConfirm ();
+  void SaveVolumeAsFromDlog ();
 
   void RevertToSavedTransform ();
 
@@ -48,6 +49,7 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
   //BTX
   enum Command { CmdLoadVolume = 0,
 		 CmdSaveVolume,
+		 CmdSaveVolumeAs,
 		 CmdTransformVolume,
 		 CmdRevertVolume, 
 		 CmdRestoreView,

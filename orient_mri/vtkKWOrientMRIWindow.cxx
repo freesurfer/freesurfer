@@ -12,7 +12,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.3 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   vtkKWWindow(),
@@ -83,8 +83,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdLoadVolume]->
     SetImageToPredefinedIcon( vtkKWIcon::IconFileOpen );
   maPushButtons[CmdLoadVolume]->SetCommand( this, "LoadVolumeFromDlog" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdLoadVolume],
-					   OrientMRICustomIcons::IconFolder );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdLoadVolume],
+					OrientMRICustomIcons::IconFolder );
+  }
+  catch(...) {}
 
   // Save Volume
   maPushButtons[CmdSaveVolume]->SetText( "Save Volume" );
@@ -92,8 +95,23 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdSaveVolume]->
     SetImageToPredefinedIcon( vtkKWIcon::IconFloppy );
   maPushButtons[CmdSaveVolume]->SetCommand( this, "SaveVolumeWithConfirm" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdSaveVolume],
-					   OrientMRICustomIcons::IconDisk );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdSaveVolume],
+					     OrientMRICustomIcons::IconDisk );
+  }
+  catch(...) {}
+
+  // Save Volume
+  maPushButtons[CmdSaveVolumeAs]->SetText( "Save Volume As..." );
+  maPushButtons[CmdSaveVolumeAs]->SetBalloonHelpString( "Save Volume As..." );
+  maPushButtons[CmdSaveVolumeAs]->
+    SetImageToPredefinedIcon( vtkKWIcon::IconFloppy );
+  maPushButtons[CmdSaveVolumeAs]->SetCommand( this, "SaveVolumeAsFromDlog" );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdSaveVolumeAs],
+				   OrientMRICustomIcons::IconDiskNewName );
+  }
+  catch(...) {}
 
   // Transform Volume
   maPushButtons[CmdTransformVolume]->SetText( "Transform Volume" );
@@ -101,8 +119,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdTransformVolume]->
     SetImageToPredefinedIcon( vtkKWIcon::IconGridLinear );
   maPushButtons[CmdTransformVolume]->SetCommand( this, "TransformVolume" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdTransformVolume],
-				 OrientMRICustomIcons::IconMatrixWrite );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdTransformVolume],
+				   OrientMRICustomIcons::IconMatrixWrite );
+  }
+  catch(...) {}
   
   // Revert.
   maPushButtons[CmdRevertVolume]->SetText( "Revert Volume" );
@@ -110,8 +131,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdRevertVolume]->
     SetImageToPredefinedIcon( vtkKWIcon::IconBrowserBack );
   maPushButtons[CmdRevertVolume]->SetCommand( this, "RevertToSavedTransform" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdRevertVolume],
-				 OrientMRICustomIcons::IconMatrixErase );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdRevertVolume],
+				    OrientMRICustomIcons::IconMatrixErase );
+  }
+  catch(...) {}
 
   // Restore View
   maPushButtons[CmdRestoreView]->SetText( "Restore View" );
@@ -119,8 +143,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdRestoreView]->
     SetImageToPredefinedIcon( vtkKWIcon::IconReload );
   maPushButtons[CmdRestoreView]->SetCommand( this, "RestoreView" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdRestoreView],
-					   OrientMRICustomIcons::IconHome );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdRestoreView],
+					     OrientMRICustomIcons::IconHome );
+  }
+  catch(...) {}
 
   // Zoom Out
   maPushButtons[CmdZoomOut]->SetText( "Zoom Out" );
@@ -128,8 +155,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdZoomOut]->
     SetImageToPredefinedIcon( vtkKWIcon::IconMagGlass );
   maPushButtons[CmdZoomOut]->SetCommand( this, "ZoomOut" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdZoomOut],
-					   OrientMRICustomIcons::IconZoomOut );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdZoomOut],
+				       OrientMRICustomIcons::IconZoomOut );
+  }
+  catch(...) {}
 
   // Zoom In
   maPushButtons[CmdZoomIn]->SetText( "Zoom In" );
@@ -137,8 +167,11 @@ vtkKWOrientMRIWindow::Create () {
   maPushButtons[CmdZoomIn]->
     SetImageToPredefinedIcon( vtkKWIcon::IconMagGlass );
   maPushButtons[CmdZoomIn]->SetCommand( this, "ZoomIn" );
-  OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdZoomIn],
-					   OrientMRICustomIcons::IconZoomIn );
+  try {
+    OrientMRICustomIcons::SetPushButtonIcon( maPushButtons[CmdZoomIn],
+					OrientMRICustomIcons::IconZoomIn );
+  }
+  catch(...) {}
   
   // Build the menus. File menu.
   // Load Volume.
@@ -146,8 +179,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nFilePos, "L&oad Volume...", this, "LoadVolumeFromDlog" );
   GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
   GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+O" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetFileMenu(), nFilePos, 
-					 OrientMRICustomIcons::IconFolder );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetFileMenu(), nFilePos, 
+					   OrientMRICustomIcons::IconFolder );
+  }
+  catch(...) {}
   maMenuItems[CmdLoadVolume].menu = GetFileMenu();
   maMenuItems[CmdLoadVolume].nItem = nFilePos;
   nFilePos++;
@@ -159,10 +195,26 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nFilePos, "&Save Volume", this, "SaveVolumeWithConfirm" );
   GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
   GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+S" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetFileMenu(), nFilePos, 
-					 OrientMRICustomIcons::IconDisk );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetFileMenu(), nFilePos, 
+					   OrientMRICustomIcons::IconDisk );
+  }
+  catch(...) {}
   maMenuItems[CmdSaveVolume].menu = GetFileMenu();
   maMenuItems[CmdSaveVolume].nItem = nFilePos;
+  nFilePos++;
+
+  // Save Volume As.
+  GetFileMenu()->
+    InsertCommand( nFilePos, "Save Volume As...", this,"SaveVolumeAsFromDlog");
+  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetFileMenu(), nFilePos, 
+				   OrientMRICustomIcons::IconDiskNewName );
+  }
+  catch(...) {}
+  maMenuItems[CmdSaveVolumeAs].menu = GetFileMenu();
+  maMenuItems[CmdSaveVolumeAs].nItem = nFilePos;
   nFilePos++;
 
   GetFileMenu()->InsertSeparator( nFilePos++ );
@@ -177,8 +229,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nEditPos, "Trans&form Volume", this, "TransformVolume" );
   GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
   GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+F" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetEditMenu(), nEditPos, 
-				    OrientMRICustomIcons::IconMatrixWrite );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetEditMenu(), nEditPos, 
+				  OrientMRICustomIcons::IconMatrixWrite );
+  }
+  catch(...) {}
   maMenuItems[CmdTransformVolume].menu = GetEditMenu();
   maMenuItems[CmdTransformVolume].nItem = nEditPos;
   nEditPos++;
@@ -190,8 +245,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nEditPos, "&Revert Volume", this, "RevertToSavedTransform");
   GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
   GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+R" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetEditMenu(), nEditPos, 
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetEditMenu(), nEditPos, 
 				    OrientMRICustomIcons::IconMatrixErase );
+  }
+  catch(...) {}
   maMenuItems[CmdRevertVolume].menu = GetEditMenu();
   maMenuItems[CmdRevertVolume].nItem = nEditPos;
   nEditPos++;
@@ -202,8 +260,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nViewPos, "Restore &View", this, "RestoreView");
   GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
   GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+V" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
-					 OrientMRICustomIcons::IconHome );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
+					   OrientMRICustomIcons::IconHome );
+  }
+  catch(...) {}
   maMenuItems[CmdRestoreView].menu = GetViewMenu();
   maMenuItems[CmdRestoreView].nItem = nViewPos;
   nViewPos++;
@@ -215,8 +276,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nViewPos, "Zoom Out", this, "ZoomOut");
   GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
   //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Minus" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
-					 OrientMRICustomIcons::IconZoomOut );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
+					   OrientMRICustomIcons::IconZoomOut );
+  }
+  catch(...) {}
   maMenuItems[CmdZoomOut].menu = GetViewMenu();
   maMenuItems[CmdZoomOut].nItem = nViewPos;
   nViewPos++;
@@ -226,8 +290,11 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nViewPos, "Zoom In", this, "ZoomIn");
   GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
   //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Plus" );
-  OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
-					 OrientMRICustomIcons::IconZoomIn );
+  try {
+    OrientMRICustomIcons::SetMenuItemIcon( GetViewMenu(), nViewPos, 
+					   OrientMRICustomIcons::IconZoomIn );
+  }
+  catch(...) {}
   maMenuItems[CmdZoomIn].menu = GetViewMenu();
   maMenuItems[CmdZoomIn].nItem = nViewPos;
   nViewPos++;
@@ -292,6 +359,23 @@ vtkKWOrientMRIWindow::SaveVolumeWithConfirm () {
 
   // Update our menu and buttons.
   UpdateCommandStatus();
+}
+
+void
+vtkKWOrientMRIWindow::SaveVolumeAsFromDlog () {
+
+  vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
+  dialog->SaveDialogOn();
+  dialog->SetApplication( GetApplication() );
+  dialog->Create();
+  dialog->SetFileTypes( "{MGH {.mgh .mgz}} {Binary {.bshort .bfloat}} {All {*}}" );
+  dialog->RetrieveLastPathFromRegistry( "LoadVolume" );
+  dialog->SetDefaultExtension( ".mgz" );
+  if( dialog->Invoke() ) {
+    dialog->SaveLastPathToRegistry( "LoadVolume" );
+    string fnVolume( dialog->GetFileName() );
+    mView->SaveVolume( fnVolume.c_str() );
+  }
 }
 
 
@@ -361,6 +445,7 @@ vtkKWOrientMRIWindow::UpdateCommandStatus () {
   
   maCommandEnabled[CmdLoadVolume] = true;
   maCommandEnabled[CmdSaveVolume] = (mView != NULL && mView->IsVolumeDirty());
+  maCommandEnabled[CmdSaveVolumeAs] = (mView != NULL && mView->IsVolumeDirty());
   maCommandEnabled[CmdTransformVolume] = (mView != NULL && mView->IsVolumeLoaded());
   maCommandEnabled[CmdRevertVolume] = (mView != NULL && mView->IsVolumeDirty());
   maCommandEnabled[CmdRestoreView] = true;
