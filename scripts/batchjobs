@@ -1,0 +1,75 @@
+#!/bin/bash -f
+#
+# NAME
+#  
+#  batchjobs
+#
+# SYNOPSIS
+#
+#  batchjobs logfile cmdfile1 [cmdfile2 ...]
+#
+# DESCRIPTION
+#
+#  batchjobs is a worker-bee for the recon-all script, to
+#  support running multiple instances of a binary (ie running 
+#  in parallel).  The main hurdles to running recon-all binaries
+#  in parallel is making sure to get the return code, and to
+#  buffer the log files (otherwise, if the output of parallel jobs
+#  are simultaneously sent to the log file, then the log file
+#  becomes an interleaved mess).
+#
+#  batchjobs takes at least two arguments.  The first is the
+#  filename to which command output should be appended when the
+#  command (job) is finished.
+#  The next argument(s) are files containing the command string
+#  to execute.
+#
+# $Id: batchjobs,v 1.1 2006/10/16 22:41:04 nicks Exp $
+#
+
+if [ $# -lt 3 ] ; then
+  echo "Usage: batchjobs logfile cmdfile1 [cmdfile2 ...]"
+  exit 1
+fi
+
+MAIN_LOG_FILE=$1
+
+# launch jobs found in command files (shift past first logfile arg).
+# job output goes to a logfile named after the command file, which
+# later gets appended to MAIN_LOG_FILE
+PIDS=()
+LOGS=()
+shift
+for cmd in $*; do
+  JOB=`cat $cmd`
+  LOG=$cmd.log
+  exec $JOB >& $LOG &
+  PIDS=(${PIDS[@]} $!)
+  LOGS=(${LOGS[@]} $LOG)
+  rm -f $cmd
+done
+
+# wait till all processes have finished
+PIDS_STATUS=()
+for pid in "${PIDS[@]}"; do
+  echo "Waiting for PID $pid of (${PIDS[@]}) to complete..."
+  wait $pid
+  PIDS_STATUS=(${PIDS_STATUS[@]} $?)
+done
+
+# now append their logs to the main log file
+for log in "${LOGS[@]}"
+do
+  cat $log >> $MAIN_LOG_FILE
+  rm -f $log
+done
+
+# and check for failures
+for pid_status in "${PIDS_STATUS[@]}"
+do
+  if [ $pid_status != 0 ] ; then 
+      exit 1
+  fi
+done
+
+exit 0
