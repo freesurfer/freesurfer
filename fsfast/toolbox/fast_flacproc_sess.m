@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.16 2006/09/26 05:04:43 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.17 2006/10/16 03:01:30 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -290,6 +290,7 @@ for nthrun = 1:nruns
     end
 
     C = flac.con(nthcon).C;
+    J = size(C,1);
     if(flac.whiten)
       [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,...
 					      nacfseg,acfseg.vol);
@@ -300,6 +301,9 @@ for nthrun = 1:nruns
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
 
+    % If a t-test, then sign it based on the ces
+    if(J==1) sig = sig.*sign(ces(1,:)); end
+
     condir = sprintf('%s/%s',outdir,flac.con(nthcon).name);
     mkdirp(condir);
 
@@ -307,7 +311,14 @@ for nthrun = 1:nruns
     tmp = y;
     tmp.vol = fast_mat2vol(F,szvol);
     MRIwrite(tmp,stem);
-
+    if(J==1)
+      % For t-test, save as signed t as well as F
+      stem = sprintf('%s/t%s',condir,flac.formatext);
+      tmp.vol = fast_mat2vol(sqrt(F).*sign(ces(1,:)),szvol);
+      MRIwrite(tmp,stem);
+    end
+    
+    
     stem = sprintf('%s/fsig%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = sig;
