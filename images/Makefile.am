@@ -38,6 +38,7 @@ icon_cut_closed_line.gif \
 icon_cut_line.gif  \
 icon_cut_plane.gif \
 icon_disk.gif \
+icon_disk.tif \
 icon_draw_line_closed.gif \
 icon_draw_line.gif \
 icon_edit_ctrlpts.gif \
@@ -52,7 +53,9 @@ icon_fill_label.gif \
 icon_fill_volume.gif \
 icon_fill_roi.gif \
 icon_folder.gif \
+icon_folder.tif \
 icon_home.gif \
+icon_home.tif \
 icon_label_filled.gif \
 icon_label_off.gif \
 icon_label_outline.gif \
@@ -65,6 +68,8 @@ icon_main_volume.gif  \
 icon_marked_to_label.gif \
 icon_marker_crosshair.gif \
 icon_marker_diamond.gif \
+icon_matrix_erase.tif \
+icon_matrix_write.tif \
 icon_navigate.gif \
 icon_orientation_coronal.gif \
 icon_orientation_coronal_pdm.gif \
@@ -95,7 +100,9 @@ icon_view_multiple_pdm.gif \
 icon_view_single.gif \
 icon_view_single_pdm.gif \
 icon_zoom_in.gif \
-icon_zoom_out.gif 
+icon_zoom_in.tif \
+icon_zoom_out.gif \
+icon_zoom_out.tif 
 
 EXTRA_DIST = $(images_SCRIPTS)
 
