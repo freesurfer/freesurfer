@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.97 2006/09/08 21:59:39 greve Exp $
+   $Id: DICOMRead.c,v 1.98 2006/10/16 18:55:11 nicks Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4115,7 +4115,7 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   double r0, a0,  s0;
   MRI *mri;
   
-  printf("Staring DICOMRead2()\n");
+  printf("Starting DICOMRead2()\n");
 
   dcmdir = fio_dirname(dcmfile);
   printf("dcmfile = %s\n",dcmfile);
