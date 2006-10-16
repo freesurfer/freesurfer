@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/02 16:44:59 $
-// Revision       : $Revision: 1.61 $
+// Revision Date  : $Date: 2006/10/16 22:39:51 $
+// Revision       : $Revision: 1.62 $
 */
 
 /*-----------------------------------------------------
@@ -303,7 +303,7 @@ MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   total_on = MRIcountAboveThreshold(mri_src, 1) ;
-  /*  fprintf(stderr, "labeling %d voxels.\n", total_on) ;*/
+  /*  fprintf(stdout, "labeling %d voxels.\n", total_on) ;*/
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ; 
   total_labeled = 0 ;
@@ -364,9 +364,9 @@ MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels)
         }
       }
     } while (labeled > 0) ;
-    /*    fprintf(stderr, "\r%d labels found     ", l) ;*/
+    /*    fprintf(stdout, "\r%d labels found     ", l) ;*/
   }
-  /*  fprintf(stderr, "\n") ;*/
+  /*  fprintf(stdout, "\n") ;*/
   *pnlabels = l ;
   return(mri_dst) ;
 }
@@ -622,7 +622,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
                 (ERROR_BADPARM,"MRIfindNeck: could not find spinal chord"));
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"spinal label %d, area = %2.0f, "
+    fprintf(stdout,"spinal label %d, area = %2.0f, "
             "box = (%d, %d) --> (%d, %d)\n",
             spinal_label, areas[spinal_label],
             bboxes[spinal_label].x, bboxes[spinal_label].y,
@@ -696,11 +696,11 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
   {
     char fname[STRLEN] ;
     sprintf(fname, "unerased%d.mgh", callno) ;
-    fprintf(stderr, "writing volume before erasure to %s\n", fname) ;
+    fprintf(stdout, "writing volume before erasure to %s\n", fname) ;
     MRIwrite(mri_dst, fname) ;
   }
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, 
+    fprintf(stdout, 
             "erasing neck around (%2.1f, %2.1f, %2.1f), "
             "n = (%2.2f,%2.2f, %2.2f)\n",
             thick*x0, thick*y0, thick*z0, 0.0f, avg_dy, avg_dz) ;
@@ -722,7 +722,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
     {
       char fname[STRLEN] ;
       sprintf(fname, "erased%d.mgh", callno) ;
-      fprintf(stderr, "writing volume after erasure to %s\n", fname) ;
+      fprintf(stdout, "writing volume after erasure to %s\n", fname) ;
       MRIwrite(mri_dst, fname) ;
     }
 
@@ -772,7 +772,7 @@ find_midline(MRI *mri_src, MRI *mri_thresh, float *px)
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       char fname[STRLEN] ; 
-      fprintf(stderr, "%d: count = %d (min=%d @ %d)\n", x, 
+      fprintf(stdout, "%d: count = %d (min=%d @ %d)\n", x, 
               count, min_count, xmid) ;
       sprintf(fname, "mid%d.mgh", x) ;
       MRIwrite(mri_dst, fname) ;
@@ -783,7 +783,7 @@ find_midline(MRI *mri_src, MRI *mri_thresh, float *px)
     {
       min_count = count ;
       xmid = x ;
-      /*      fprintf(stderr, "new min %d found at %d\n", min_count, xmid) ;*/
+      /*      fprintf(stdout, "new min %d found at %d\n", min_count, xmid) ;*/
     }
   }
 
@@ -958,7 +958,7 @@ find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz)
     {
 #if 0
       for (l = 1 ; l < nlabels ; l++)
-        fprintf(stderr, "slice %d, areas[%d] = %2.1f\n", y, l, areas[l]) ;
+        fprintf(stdout, "slice %d, areas[%d] = %2.1f\n", y, l, areas[l]) ;
 #endif
       for (found = l = 1 ; found && l < nlabels ; l++)
       {
@@ -991,7 +991,7 @@ find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz)
   *py = (float)y ;
   *pz = (float)(bbox->y + bbox->dy/2) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "spinal fusion found at slice %d (%2.0f,%2.0f,%2.0f)\n", 
+    fprintf(stdout, "spinal fusion found at slice %d (%2.0f,%2.0f,%2.0f)\n", 
             y, *px, *py, *pz) ;
   return(y) ;
 }
@@ -1017,11 +1017,11 @@ MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   dz = (double)(ref_means[2] - in_means[2]) * mri_in->thick ;
   if (Gdiag & DIAG_SHOW)
   {
-    fprintf(stderr, "centering template around (%d,%d,%d) and input around"
+    fprintf(stdout, "centering template around (%d,%d,%d) and input around"
             " (%d,%d,%d)\n", 
             (int)ref_means[0], (int)ref_means[1], (int)ref_means[2],
             (int)in_means[0], (int)in_means[1], (int)in_means[2]) ;
-    fprintf(stderr, "initial translation = (%2.0f, %2.0f, %2.0f).\n",dx,dy,dz);
+    fprintf(stdout, "initial translation = (%2.0f, %2.0f, %2.0f).\n",dx,dy,dz);
   }
   *MATRIX_RELT(m_translation, 1, 4) = dx ;
   *MATRIX_RELT(m_translation, 2, 4) = dy ;
@@ -1076,7 +1076,7 @@ MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   if (sz < MIN_DZ)
     sz = MIN_DZ ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "initial scaling: (%2.2f, %2.2f, %2.2f) <-- "
+    fprintf(stdout, "initial scaling: (%2.2f, %2.2f, %2.2f) <-- "
             "(%d/%d,%d/%d,%d/%d)\n", 
             sx,sy,sz, ref_bbox.dx, in_bbox.dx, ref_bbox.dy, in_bbox.dy, 
             ref_bbox.dz, in_bbox.dz) ;
@@ -1121,7 +1121,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
   if (parms->disable_neck)
   {
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "disabling neck discounting...\n") ;
+      fprintf(stdout, "disabling neck discounting...\n") ;
     parms->ref_np.neck_x0 = parms->ref_np.neck_y0 =parms->ref_np.neck_z0 =1000;
     parms->ref_np.neck_dx = parms->ref_np.neck_dy = parms->ref_np.neck_dz = 1 ;
     parms->in_np.neck_x0 = parms->in_np.neck_y0 = parms->in_np.neck_z0 = 1000;
@@ -1141,7 +1141,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     if (Gdiag & DIAG_SHOW /*&& DIAG_VERBOSE_ON*/)
     {
       rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np);
-      fprintf(stderr, "before initial alignment rms = %2.3f\n", rms) ;
+      fprintf(stdout, "before initial alignment rms = %2.3f\n", rms) ;
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
@@ -1166,7 +1166,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     if (Gdiag & DIAG_SHOW /*&& DIAG_VERBOSE_ON*/)
     {
       rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np);
-      fprintf(stderr, "after initial alignment  rms = %2.3f\n", rms) ;
+      fprintf(stdout, "after initial alignment  rms = %2.3f\n", rms) ;
     }
   }
 
@@ -1184,11 +1184,11 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     if (sigma > 0.0f)
     {
       mri_kernel = MRIgaussian1d(sigma, 17) ;
-      fprintf(stderr, "blurring volumes with sigma = %2.1f...", sigma) ;
+      fprintf(stdout, "blurring volumes with sigma = %2.1f...", sigma) ;
       mri_in_blur = MRIconvolveGaussian(mri_in, mri_in_blur, mri_kernel) ;
       mri_ref_blur = 
         MRIconvolveGaussianMeanAndStdByte(mri_ref, mri_ref_blur, mri_kernel) ;
-      fprintf(stderr, "done.\n") ;
+      fprintf(stdout, "done.\n") ;
       MRIfree(&mri_kernel) ;
       mriLinearAlignPyramidLevel(mri_in_blur, mri_ref_blur, parms) ;
     }
@@ -1219,7 +1219,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
   {
     for (tmul = 1 ; tmul >= .5 ; tmul /= 10)
     {
-      fprintf(stderr, "aligning pyramid level %d.\n", i) ;
+      fprintf(stdout, "aligning pyramid level %d.\n", i) ;
       if ((Gdiag & DIAG_WRITE) && parms->log_fp)
         fprintf(parms->log_fp, "aligning pyramid level %d.\n", i) ;
       parms->trans_mul = tmul ;
@@ -1370,7 +1370,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
   else
     mri_ref->mean = 1.0 ;
-  fprintf(stderr, "mean std = %2.2f\n", mri_ref->mean) ;
+  fprintf(stdout, "mean std = %2.2f\n", mri_ref->mean) ;
   if (DZERO(mri_ref->mean))
     mri_ref->mean = 1 ;
 
@@ -1393,7 +1393,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   m_L = parms->lta->xforms[0].m_L ;
   old_rms = rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, 
                                   &parms->in_np) ;
-  fprintf(stderr, 
+  fprintf(stdout, 
           "000: rms = %2.3f, t = [%2.2f, %2.2f, %2.2f], dt = %2.2e, "
           "thick=%2.0f, mul=%2.2f\n", 
           rms, m_L->rptr[1][4], m_L->rptr[2][4], m_L->rptr[3][4], dt,
@@ -1413,12 +1413,12 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     {
 #if 0
       sprintf(fname, "%sref.mgh", base_name) ;
-      fprintf(stderr, "writing reference volume to %s...\n", fname) ;
+      fprintf(stdout, "writing reference volume to %s...\n", fname) ;
       MRIwrite(parms->mri_ref, fname) ;
 #endif
 #if USE_INVERSE == 0
       sprintf(fname, "%sref", base_name) ;
-      fprintf(stderr, "writing reference views to %s...\n", fname) ;
+      fprintf(stdout, "writing reference views to %s...\n", fname) ;
       MRIwriteImageViews(parms->mri_ref, fname, IMAGE_SIZE) ;
 #endif
     }
@@ -1430,7 +1430,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     if (parms->rigid)
       mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;
     rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np) ;
-    fprintf(stderr, "%3.3d: rms = %2.3f, t = [%2.2f, %2.2f, %2.2f], "
+    fprintf(stdout, "%3.3d: rms = %2.3f, t = [%2.2f, %2.2f, %2.2f], "
             "dt=%2.2e\n", 
             n+1, rms, m_L->rptr[1][4], m_L->rptr[2][4], m_L->rptr[3][4],dt) ;
 
@@ -1450,7 +1450,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       break ;
     old_rms = rms ;
   }
-  fprintf(stderr, "\n") ;
+  fprintf(stdout, "\n") ;
 
   if ((Gdiag & DIAG_WRITE) && parms->log_fp)
     fprintf(parms->log_fp, "\n") ;
@@ -1579,7 +1579,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   {
     sprintf(fname, "%s%3.3d.mgh", parms->base_name, n) ;
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "writing snapshot to %s...\n", fname) ;
+      fprintf(stdout, "writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_tmp, fname) ;
   }
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
@@ -1707,10 +1707,10 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
 #if 0
           if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           {
-            fprintf(stderr, "m_tmp ") ;
-            MatrixAsciiWriteInto(stderr, m_tmp) ;
-            fprintf(stderr, "m_dL ") ;
-            MatrixAsciiWriteInto(stderr, m_dL) ;
+            fprintf(stdout, "m_tmp ") ;
+            MatrixAsciiWriteInto(stdout, m_tmp) ;
+            fprintf(stdout, "m_dL ") ;
+            MatrixAsciiWriteInto(stdout, m_dL) ;
           }
 #endif
           n++ ;
@@ -1766,10 +1766,10 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
       MatrixCheck(lt->m_L) ;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       {
-        fprintf(stderr, "dL:\n") ;
-        MatrixPrintHires(stderr, lt->m_dL) ;
-        fprintf(stderr, "L:\n") ;
-        MatrixPrintHires(stderr, lt->m_L) ;
+        fprintf(stdout, "dL:\n") ;
+        MatrixPrintHires(stdout, lt->m_dL) ;
+        fprintf(stdout, "L:\n") ;
+        MatrixPrintHires(stdout, lt->m_L) ;
       }
     }
   }
@@ -1826,23 +1826,23 @@ openLogFile(MORPH_PARMS *parms)
       fprintf(parms->log_fp, "exp k   = %2.1f\n", parms->exp_k) ;
     fflush(parms->log_fp) ;
   }
-  fprintf(stderr, "dt = %2.2e, momentum=%2.2f, tol=%2.2e\n",
+  fprintf(stdout, "dt = %2.2e, momentum=%2.2f, tol=%2.2e\n",
           parms->dt, parms->momentum, parms->tol) ;
   if (!FZERO(parms->l_intensity))
-    fprintf(stderr, "l_intensity = %2.4f\n", parms->l_intensity) ;
+    fprintf(stdout, "l_intensity = %2.4f\n", parms->l_intensity) ;
   if (!FZERO(parms->l_dist))
-    fprintf(stderr, "l_compression = %2.4f\n", parms->l_compression);
+    fprintf(stdout, "l_compression = %2.4f\n", parms->l_compression);
   if (!FZERO(parms->l_dist))
-    fprintf(stderr, "l_dist = %2.4f\n", parms->l_dist) ;
+    fprintf(stdout, "l_dist = %2.4f\n", parms->l_dist) ;
   if (!FZERO(parms->l_area))
-    fprintf(stderr, "l_area = %2.4f\n", parms->l_area) ;
+    fprintf(stdout, "l_area = %2.4f\n", parms->l_area) ;
   if (!FZERO(parms->l_nlarea))
-    fprintf(stderr, "l_nlarea = %2.4f\n", parms->l_nlarea) ;
+    fprintf(stdout, "l_nlarea = %2.4f\n", parms->l_nlarea) ;
   if (!FZERO(parms->l_nldist))
-    fprintf(stderr, "l_nldist = %2.4f\n", parms->l_nldist) ;
+    fprintf(stdout, "l_nldist = %2.4f\n", parms->l_nldist) ;
   if (!FZERO(parms->sigma))
-    fprintf(stderr, "sigma   = %2.4f\n", parms->sigma) ;
-  fflush(stderr) ;
+    fprintf(stdout, "sigma   = %2.4f\n", parms->sigma) ;
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -2164,7 +2164,7 @@ m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
         {
           ratio = 1 ;
 #if 0
-          fprintf(stderr, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k) ;
+          fprintf(stdout, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k) ;
 #endif
         }
         exponent = -parms->exp_k*ratio ;
@@ -2534,7 +2534,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 
   {
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "disabling neck discounting...\n") ;
+      fprintf(stdout, "disabling neck discounting...\n") ;
     parms->ref_np.neck_x0 = parms->ref_np.neck_y0 =parms->ref_np.neck_z0 =1000;
     parms->ref_np.neck_dx = parms->ref_np.neck_dy = parms->ref_np.neck_dz = 1 ;
     parms->in_np.neck_x0 = parms->in_np.neck_y0 = parms->in_np.neck_z0 = 1000;
@@ -2542,7 +2542,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   }
   else
   {
-    fprintf(stderr, "moving spinal estimate from (%2.0f,%2.0f,%2.0f) to ",
+    fprintf(stdout, "moving spinal estimate from (%2.0f,%2.0f,%2.0f) to ",
             parms->in_np.neck_x0, parms->in_np.neck_y0, parms->in_np.neck_z0) ;
     parms->in_np.neck_x0 +=parms->in_np.neck_dx *DISTANCE_BELOW_SPINAL_FUSION ;
     parms->in_np.neck_y0 +=parms->in_np.neck_dy *DISTANCE_BELOW_SPINAL_FUSION ;
@@ -2550,7 +2550,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     parms->ref_np.neck_x0 +=parms->ref_np.neck_dx*DISTANCE_BELOW_SPINAL_FUSION;
     parms->ref_np.neck_y0 +=parms->ref_np.neck_dy*DISTANCE_BELOW_SPINAL_FUSION;
     parms->ref_np.neck_z0 +=parms->ref_np.neck_dz*DISTANCE_BELOW_SPINAL_FUSION;
-    fprintf(stderr, "(%2.0f,%2.0f,%2.0f)\n",
+    fprintf(stdout, "(%2.0f,%2.0f,%2.0f)\n",
             parms->in_np.neck_x0, parms->in_np.neck_y0, parms->in_np.neck_z0) ;
 #if 0
     MRIeraseNeck(parms->mri_in, &parms->in_np) ;
@@ -2563,7 +2563,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 
   /* build Gaussian pyramid */
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "building Gaussian pyramid...\n") ;
+    fprintf(stdout, "building Gaussian pyramid...\n") ;
   mri_in_pyramid[0] = mri_in ; mri_ref_pyramid[0] = mri_ref ;
   for (nlevels = 1 ; nlevels < max_levels ; nlevels++)
   {
@@ -2574,7 +2574,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       MRIreduceMeanAndStdByte(mri_ref_pyramid[nlevels-1], NULL);
   }
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "morphing pyramid levels from coarse to fine...\n") ;
+    fprintf(stdout, "morphing pyramid levels from coarse to fine...\n") ;
 
   /* now morph each level, and use the resulting morph as the input to
      the next (finer) level.
@@ -2621,7 +2621,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     if (Gdiag & DIAG_WRITE)
       MRIwriteImageViews(mri_tmp, "ref_erased", IMAGE_SIZE) ;
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "building representations of the inner skull...\n") ;
+      fprintf(stdout, "building representations of the inner skull...\n") ;
     mris_ref_skull = MRISshrinkWrapSkull(mri_tmp, parms) ;
     MRIfree(&mri_tmp) ;
 
@@ -2637,27 +2637,27 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     dz = mris_ref_skull->zctr-mris_in_skull->zctr ; 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      fprintf(stderr, "writing out representations of inner scalp\n") ;
+      fprintf(stdout, "writing out representations of inner scalp\n") ;
       MRISwrite(mris_ref_skull, "ref_skull.geo") ;
       MRISwrite(mris_in_skull, "in_skull_postlinear.geo") ;
     }
     
-    fprintf(stderr, "translating surface and morph by (%2.2f, %2.2f, %2.2f)\n",
+    fprintf(stdout, "translating surface and morph by (%2.2f, %2.2f, %2.2f)\n",
             dx, dy, dz) ;
     MRIStranslate(mris_in_skull, dx, dy, dz) ;
     m3dTranslate(m3d, dx, dy, dz) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      fprintf(stderr, "writing out in translated \n") ;
+      fprintf(stdout, "writing out in translated \n") ;
       MRISwrite(mris_in_skull, "in_skull_posttrans.geo") ;
     }
     
-    fprintf(stderr, "morphing skull shapes into register...\n") ;
+    fprintf(stdout, "morphing skull shapes into register...\n") ;
     if (Gdiag & DIAG_WRITE)
     {
       MRI *mri_tmp ;
       
-      fprintf(stderr, "writing pre skull-normalized volumes...\n") ;
+      fprintf(stdout, "writing pre skull-normalized volumes...\n") ;
       MRIwriteImageViews(mri_in, "input", IMAGE_SIZE) ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
       MRIwriteImageViews(mri_tmp, "pre_skull_morph", IMAGE_SIZE) ;
@@ -2668,13 +2668,13 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     {
       MRI *mri_tmp ;
       
-      fprintf(stderr, "writing post skull-normalized images...\n") ;
+      fprintf(stdout, "writing post skull-normalized images...\n") ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
       MRIwriteImageViews(mri_tmp, "post_skull_morph", IMAGE_SIZE) ;
       MRIfree(&mri_tmp) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
-        fprintf(stderr,
+        fprintf(stdout,
                 "writing post skull morphing surface and image views...\n");
         MRISwrite(mris_in_skull, "post_skull_morph.geo") ;
       }
@@ -2689,14 +2689,14 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
     {
       MRI *mri_tmp ;
-      fprintf(stderr, "writing volume after skull morphing...\n") ;
+      fprintf(stdout, "writing volume after skull morphing...\n") ;
       mri_tmp = MRIapply3DMorph(parms->mri_in, m3d, NULL) ;
       MRIwrite(mri_tmp, "in_skull_morphed.mgh") ;
       MRIfree(&mri_tmp) ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
       MRIwriteImageViews(mri_tmp, "postformed", IMAGE_SIZE) ;
       MRIfree(&mri_tmp) ;
-      fprintf(stderr, "writing out skull-normalized volumes...\n") ;
+      fprintf(stdout, "writing out skull-normalized volumes...\n") ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
       MRIwrite(mri_ref, "in.mgh") ;
       MRIwrite(mri_tmp, "xformed.mgh") ;
@@ -2742,7 +2742,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       {
         double tol = parms->tol ;
         parms->tol = 0 ;   /* only until negative nodes are fixed */
-        fprintf(stderr, 
+        fprintf(stdout, 
                 "unfolding lattice, dt=%2.3f, l_int=%2.2f, tol=%2.2f\n", 
                 parms->dt, parms->l_intensity,parms->tol) ;
         if ((Gdiag & DIAG_WRITE) && parms->log_fp)
@@ -2754,7 +2754,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
                              mri_ref_pyramid[i], parms, m3d) ;
         parms->tol = tol ;
       }
-      fprintf(stderr, 
+      fprintf(stdout, 
               "aligning pyramid level %d, dt=%2.3f, sigma=%2.2f, l_int=%2.2f,"
               "tol=%2.2f, neg=%d\n", i, parms->dt, sigma, parms->l_intensity,
               parms->tol, m3d->neg) ;
@@ -2786,7 +2786,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
   sprintf(parms->base_name, "%s_level", base_name) ;
   sprintf(parms->base_name, "%s_", base_name) ;
-  fprintf(stderr, "aligning base level.\n") ;
+  fprintf(stdout, "aligning base level.\n") ;
   if ((Gdiag & DIAG_WRITE) && parms->log_fp)
     fprintf(parms->log_fp, "aligning base level.\n") ;
   parms->l_compression *= 10.0 ;
@@ -2813,7 +2813,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   {
     MRI *mri_tmp ;
 
-    fprintf(stderr,
+    fprintf(stdout,
             "writing final morphed volume image views...\n");
     mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
     MRIwriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
@@ -3659,7 +3659,7 @@ m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k,
        quasi-rigid fashion by applying strong distance term.
     */
     DiagBreak() ;
-    fprintf(stderr, "node (%d,%d,%d) has no areal term!\n", i, j, k) ;
+    fprintf(stdout, "node (%d,%d,%d) has no areal term!\n", i, j, k) ;
     /*    return(m3dDistanceTerm(m3d, 10*l_area, i, j, k, pdx, pdy, pdz)) ;*/
   }
   if (!finite(*pdx) || !finite(*pdy) || !finite(*pdz))
@@ -3805,7 +3805,7 @@ m3dNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k,
     else
     {
       ratio = 1 ;
-      /*      fprintf(stderr, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k);*/
+      /*      fprintf(stdout, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k);*/
     }
     if (mnp->area < 0)
       DiagBreak() ;
@@ -3918,7 +3918,7 @@ m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
     {
       parms->l_nlarea = parms->l_dist = parms->l_intensity = 0 ;
       parms->l_area = 1.0f ;
-      fprintf(stderr, "resetting everything but area to 0...\n") ;
+      fprintf(stdout, "resetting everything but area to 0...\n") ;
     }
 #endif
         
@@ -3949,7 +3949,7 @@ m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
         fprintf(parms->log_fp, 
                 "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
                 last_avg, current_avg, (last_avg - current_avg)/current_avg);
-      fprintf(stderr, "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
+      fprintf(stdout, "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
               last_avg, current_avg, (last_avg - current_avg) / current_avg);
       if ((((last_avg - current_avg) / current_avg < parms->tol) ||
            FZERO(parms->tol)) && (last_neg <= m3d->neg)) 
@@ -4153,7 +4153,7 @@ m3dInitDistances(MORPH_3D *m3d)
   if (Gdiag & DIAG_SHOW)
   {
     avg_dist /= (double)ndists ;
-    fprintf(stderr, "average node spacing = %2.3f\n", avg_dist) ;
+    fprintf(stdout, "average node spacing = %2.3f\n", avg_dist) ;
   }
   return(NO_ERROR) ;
 }
@@ -4235,7 +4235,7 @@ m3dInitAreas(MORPH_3D *m3d)
   if (Gdiag & DIAG_SHOW)
   {
     avg_area /= (double)total_num ;
-    fprintf(stderr, 
+    fprintf(stdout, 
             "average node area    = %2.3f [%2.3f --> %2.3f] (%d zero)\n", 
             avg_area, min_area, max_area, num_zero) ;
   }
@@ -4256,12 +4256,12 @@ log3DIntegration(MORPH_PARMS *parms, MORPH_3D *m3d,int n,double dt,double rms,
 {
   if (Gdiag & DIAG_SHOW)
 #if USE_ITERATIVE_AVERAGING
-    fprintf(stderr, "%3.3d: dt = %2.4f, "
+    fprintf(stdout, "%3.3d: dt = %2.4f, "
             "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, avgs=%d\n", 
             n, dt, rms,
             intensity_rms, distance_rms, area_rms, m3d->neg, parms->navgs) ;
 #else
-    fprintf(stderr, "%3.3d: dt = %2.4f, "
+    fprintf(stdout, "%3.3d: dt = %2.4f, "
             "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, sigma=%2.1f\n", 
             n, dt, rms,
             intensity_rms, distance_rms, area_rms, m3d->neg, parms->sigma) ;
@@ -4310,7 +4310,7 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
     MRIwriteImageViews(mri_in, fname, IMAGE_SIZE) ;
 #if 0
     sprintf(fname, "in_%s.mgh", parms->base_name) ;
-    fprintf(stderr, "writing volume to %s...\n", fname) ;
+    fprintf(stdout, "writing volume to %s...\n", fname) ;
     MRIwrite(mri_in, fname) ;
 #endif
   }
@@ -4322,7 +4322,7 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
   if (((n) % (10*parms->write_iterations)) == 0)
   {
     sprintf(fname, "%s%3.3d.mgh", parms->base_name, n) ;
-    fprintf(stderr, "writing volume to %s...\n", fname) ;
+    fprintf(stdout, "writing volume to %s...\n", fname) ;
     MRIwrite(mri_tmp, fname) ;
   }
 #endif
@@ -4352,7 +4352,7 @@ MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
   }
   
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing image views to ???_%s.rgb...\n", base_name) ;
+    fprintf(stdout, "writing image views to ???_%s.rgb...\n", base_name) ;
 	if (Gsz >= 0 && Gsz < mri->depth)
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, z) ; 
   else if (Gvz >= 0 && Gvz < mri->depth)
@@ -4635,7 +4635,7 @@ m3dscaleDeltaT(MORPH_3D *m3d, double dt, double max_len, MORPH_PARMS *parms)
   }
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"max delta %2.3f at (%d,%d,%d), ratio=%2.1f/%2.1f=%2.2f\n",
+    fprintf(stdout,"max delta %2.3f at (%d,%d,%d), ratio=%2.1f/%2.1f=%2.2f\n",
             max_delta,maxi,maxj,maxk, max_current, max_orig,
             FZERO(max_orig) ? 0.0 : max_current / max_orig);
   if (Gdiag & DIAG_WRITE && parms->log_fp)
@@ -5670,18 +5670,18 @@ MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
   max_radius = mriMaxRadius(mri, 120, 255,&x0, &y0,&z0);
   radius = MRISaverageRadius(mris) ;
   scale = (max_radius+1.0f) / radius ;
-  fprintf(stderr, "origin = (%2.1f, %2.1f, %2.1f), max radius = %2.1f.\n",
+  fprintf(stdout, "origin = (%2.1f, %2.1f, %2.1f), max radius = %2.1f.\n",
           x0, y0, z0, max_radius);
   MRISsetVals(mris, 150) ;
   /*  MRISscaleBrain(mris, mris, scale) ;*/
   MRIboundingBox(mri, 80, &bbox) ;
-  fprintf(stderr, "bounding box size (%d, %d, %d)\n",bbox.dx,bbox.dy,bbox.dz);
+  fprintf(stdout, "bounding box size (%d, %d, %d)\n",bbox.dx,bbox.dy,bbox.dz);
 
   /* convert from MRI to surface coordinate system (y<-->z) */
   sx = bbox.dx*thick * .7 / radius ;   /* ear to ear */
   sy = bbox.dy*thick * .7 / radius ;   /* inferior->superior */
   sz = bbox.dz*thick * .65 / radius ;   /* anterior->posterior */
-  fprintf(stderr, "scaling by (%2.1f, %2.1f, %2.1f)\n",sx,sy,sz) ;
+  fprintf(stdout, "scaling by (%2.1f, %2.1f, %2.1f)\n",sx,sy,sz) ;
   MRISanisotropicScale(mris, sx, sz, sy) ;
   MRISmoveOrigin(mris, x0, y0, z0) ;
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
@@ -6479,7 +6479,7 @@ m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref,
   MRIeraseNeck(mri_in, &parms->ref_np) ;
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,
+    fprintf(stdout,
             "recomputing translation values based on skull morph...\n");
   mri_in_xformed = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
   if (Gdiag & DIAG_WRITE)
@@ -6490,7 +6490,7 @@ m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref,
   dy = (double)(ref_means[1] - in_means[1]) * mri_in->thick ;
   dz = (double)(ref_means[2] - in_means[2]) * mri_in->thick ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "translating morph by (%2.1f,%2.1f,%2.1f)\n",dx,dy,dz);
+    fprintf(stdout, "translating morph by (%2.1f,%2.1f,%2.1f)\n",dx,dy,dz);
   m3dTranslate(m3d, dx, dy, dz) ;
   MRIfree(&mri_in_xformed) ; 
   if (Gdiag & DIAG_WRITE)
@@ -6593,7 +6593,7 @@ m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull,
         {
           scale = 1.0 ;
 #if 1
-          fprintf(stderr, "warning: node (%d,%d,%d) has zero in dist\n",
+          fprintf(stdout, "warning: node (%d,%d,%d) has zero in dist\n",
                   i, j, k) ;
 #endif
         }
@@ -6609,7 +6609,7 @@ m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull,
 
   /* set unassigned values to mean of assigned ones */
   mean_scale /= (double)n ;
-  fprintf(stderr, "mean brain scaling = %2.1f\n", mean_scale) ;
+  fprintf(stdout, "mean brain scaling = %2.1f\n", mean_scale) ;
 
   for (i = 0 ; i < width ; i++)
   {
@@ -6707,7 +6707,7 @@ MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
     double rms ;
 
     rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np);
-    fprintf(stderr, "before initial alignment rms = %2.3f\n", rms) ;
+    fprintf(stdout, "before initial alignment rms = %2.3f\n", rms) ;
   }
   MRIinitTranslation(mri_in, mri_ref, parms->lta->xforms[0].m_L) ;
   if (Gdiag & DIAG_SHOW /*&& DIAG_VERBOSE_ON*/)
@@ -6715,7 +6715,7 @@ MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
     double rms ;
 
     rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np);
-    fprintf(stderr, "after initial alignment  rms = %2.3f\n", rms) ;
+    fprintf(stdout, "after initial alignment  rms = %2.3f\n", rms) ;
   }
 #endif
 
@@ -6786,7 +6786,7 @@ MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
       MatrixPrintHires(stdout, parms->lta->xforms[0].m_L) ;
     }
 
-    fprintf(stderr, "aligning pyramid level %d.\n", i) ;
+    fprintf(stdout, "aligning pyramid level %d.\n", i) ;
     if ((Gdiag & DIAG_WRITE) && parms->log_fp)
       fprintf(parms->log_fp, "aligning pyramid level %d.\n", i) ;
 #if 0
@@ -6963,11 +6963,11 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
     intensity_rms = computeRigidAlignmentErrorFunctional(p) ;
     parms->m_xform_mean = m_save ;
     intensity_rms = sqrt(intensity_rms) ;
-    fprintf(stderr, "%03d: %2.3f (intensity=%2.3f)\n", parms->start_t+itno,rms,intensity_rms);
+    fprintf(stdout, "%03d: %2.3f (intensity=%2.3f)\n", parms->start_t+itno,rms,intensity_rms);
   }
   else
   {
-    fprintf(stderr, "%03d: %2.3f\n", parms->start_t+itno, rms) ;
+    fprintf(stdout, "%03d: %2.3f\n", parms->start_t+itno, rms) ;
   }
 
   /* read out current transform */
@@ -7016,7 +7016,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
   parms->lta->xforms[0].m_L->rptr[4][2] = 0.;
   parms->lta->xforms[0].m_L->rptr[4][3] = 0.;
   parms->lta->xforms[0].m_L->rptr[4][4] = 1.;
-  MatrixPrintHires(stderr, parms->lta->xforms[0].m_L);
+  MatrixPrintHires(stdout, parms->lta->xforms[0].m_L);
 #endif
   ///////////////////////////////////////////////////////////
   if ((parms->write_iterations > 0) && 
@@ -7061,7 +7061,7 @@ mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
     if (steps++ > 5)
       break ;
     if (steps > 1)
-      fprintf(stderr,"pass %d through quasi-newton minimization...\n",steps);
+      fprintf(stdout,"pass %d through quasi-newton minimization...\n",steps);
     fold = fnew ;
     dfp_step_func(0, fnew, parms, p) ;
          
@@ -7466,7 +7466,7 @@ computeEMAlignmentGradient(float *p, float *g)
 #if 0
   printf("g_mri_in c_(r,a,s) = (%.3f, %.3f, %.3f)\n", mri_in->c_r, mri_in->c_a, mri_in->c_s);
   printf("Transform in EMAlignmentGradient\n");
-  MatrixPrintHires(stderr, m_L);
+  MatrixPrintHires(stdout, m_L);
 #endif
 #endif
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
@@ -7590,7 +7590,7 @@ computeEMAlignmentErrorFunctional(float *p)
 #ifndef __OPTIMIZE__
 #if 0
   printf("Transform at EMAlignmentErrorFunctional:\n");
-  MatrixPrintHires(stderr, m_L);
+  MatrixPrintHires(stdout, m_L);
 #endif
 #endif
   old_lta = (LTA *)parms->transform->xform ;
@@ -7637,7 +7637,7 @@ mriLevenbergMarquardtLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
   {
     chisq_old = chisq_new ;
     rms = sqrt(chisq_old/(float)npix) ;
-    fprintf(stderr,"%03d: %2.3f, lambda=%2.2e\n",steps,rms,lambda);
+    fprintf(stdout,"%03d: %2.3f, lambda=%2.2e\n",steps,rms,lambda);
     logIntegration(parms, steps++, (double)rms) ;
     mrqmin((float *)mri_in->slices, (float *)mri_ref->slices, NULL, npix, p, 
            fitted_flags, NPARMS, covar, alpha, &chisq_new, 
@@ -7824,7 +7824,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   // check transform
   if (parms->transform->type != LINEAR_VOX_TO_VOX)
   {
-    fprintf(stderr, "parms->transform->type is %d\n", parms->transform->type);
+    fprintf(stdout, "parms->transform->type is %d\n", parms->transform->type);
     ErrorExit(-1, "MRIemAlign: transform type must be LINEAR_VOX_TO_VOX");
   }
 
@@ -7847,13 +7847,13 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
     MatrixPrintHires(stdout, parms->lta->xforms[0].m_L) ;
   }
 
-  fprintf(stderr, "Aligning input volume to GCA...\n") ;
+  fprintf(stdout, "Aligning input volume to GCA...\n") ;
   if ((Gdiag & DIAG_WRITE) && parms->log_fp)
     fprintf(parms->log_fp, "aligning input volume to GCA.\n") ;
 
-  fprintf(stderr, "Transform matrix\n");
-  MatrixPrintHires(stderr, parms->lta->xforms[0].m_L);
-  fprintf(stderr, "nsamples %d\n", parms->nsamples);
+  fprintf(stdout, "Transform matrix\n");
+  MatrixPrintHires(stdout, parms->lta->xforms[0].m_L);
+  fprintf(stdout, "nsamples %d\n", parms->nsamples);
   /* E step */
   pcurrent = 
     -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
@@ -8244,8 +8244,8 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
 
   user_call_func = showTran;
 
-  fprintf(stderr, "Quasinewton: input matrix\n");
-  MatrixPrintHires(stderr, parms->lta->xforms[0].m_L);
+  fprintf(stdout, "Quasinewton: input matrix\n");
+  MatrixPrintHires(stdout, parms->lta->xforms[0].m_L);
 
   /*  user_call_func = integration_step ;*/
   // copy transform into an array
@@ -8268,7 +8268,7 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
     if (steps++ > 5)
       break ;
     if (steps > 1)
-      fprintf(stderr,"pass %d through quasi-newton minimization...\n",steps);
+      fprintf(stdout,"pass %d through quasi-newton minimization...\n",steps);
     fold = fnew ;
     dfp_em_step_func(0, fnew, parms, p) ;
     //        n    ftol       *iter  *fret
@@ -8321,7 +8321,7 @@ MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
   vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,0,0);
   mri_tmp = MRIcopy(mri_target, NULL); //store the transformed target
   if(mri_tmp == NULL){
-    fprintf(stderr, "Unable to allocate memory for linear alignment. Exit.\n");
+    fprintf(stdout, "Unable to allocate memory for linear alignment. Exit.\n");
     exit(0);
   }
   vl_target->mri = mri_target; 

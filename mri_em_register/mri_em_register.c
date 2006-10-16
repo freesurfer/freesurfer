@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/10 21:27:29 $
-// Revision       : $Revision: 1.53 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/10/16 22:39:50 $
+// Revision       : $Revision: 1.54 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: mri_em_register.c,v 1.53 2006/10/10 21:27:29 fischl Exp $", 
+     "$Id: mri_em_register.c,v 1.54 2006/10/16 22:39:50 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -851,7 +851,7 @@ register_mri
   m_L = MatrixCopy(parms->lta->xforms[0].m_L, NULL) ;
 
   ////////////////////////////////////////////////////////////////////////
-  fprintf(stderr, "register_mri: find_optimal_transform\n");
+  fprintf(stdout, "register_mri: find_optimal_transform\n");
   find_optimal_transform(mri_in, gca, parms->gcas, parms->nsamples,m_L,passno,
                          parms->write_iterations, spacing);
 
@@ -937,7 +937,7 @@ find_optimal_transform
   HISTOGRAM *h_mri, *h_smooth ;
 #endif
 
-  fprintf(stderr, 
+  fprintf(stdout, 
           "find_optimal_transform: nsamples %d, passno %d, spacing %d\n",
           nsamples, passno, spacing);
 
@@ -1091,14 +1091,14 @@ find_optimal_transform
       printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
              dx,dy,dz, max_log_p) ;
 #else ///////////////this is executed  ////////////////////////////////////
-      fprintf(stderr, "************************************************\n");
-      fprintf(stderr, "First Search limited to translation only.\n");
-      fprintf(stderr, "************************************************\n");
+      fprintf(stdout, "************************************************\n");
+      fprintf(stdout, "First Search limited to translation only.\n");
+      fprintf(stdout, "************************************************\n");
       max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
                                            -100, 100, 11, 5) ;
       max_log_p = local_GCAcomputeLogSampleProbability
         (gca, gcas, mri, m_L,nsamples) ;
-      fprintf(stderr, 
+      fprintf(stdout, 
               "Found translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
               *MATRIX_RELT(m_L, 1, 4),
               *MATRIX_RELT(m_L, 2, 4), 
@@ -1175,11 +1175,11 @@ find_optimal_transform
 
           MRIfree(&mri_aligned) ;
         }
-      fprintf(stderr, 
+      fprintf(stdout, 
               "Result so far: scale %2.3f: max_log_p=%2.1f, "
               "old_max_log_p =%2.1f (thresh=%2.1f)\n",
               scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
-      MatrixPrint(stderr, m_L);
+      MatrixPrint(stdout, m_L);
       /* search a finer nbhd (if do-while continues) */
       if ((max_log_p < old_max-tol*old_max)) /* couldn't take a step */
         {
@@ -1698,7 +1698,7 @@ get_option(int argc, char *argv[])
       printf("using previously computed transform %s\n", argv[2]) ;
       if (parms.lta->type != LINEAR_VOX_TO_VOX)
         {
-          fprintf(stderr, 
+          fprintf(stdout, 
                   "ERROR: must use LINEAR_VOX_TO_VOX (=0) transform. "
                   "The type was %d.\n",
                   parms.lta->type);

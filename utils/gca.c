@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/06 18:16:02 $
-// Revision       : $Revision: 1.208 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/10/16 22:39:51 $
+// Revision       : $Revision: 1.209 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -336,9 +336,9 @@ void GCAsetup(GCA *gca)
   // thus xsize etc must be set correctly
   GCAcopyDCToMRI(gca, gca->mri_node__);
 
-  // fprintf(stderr, "node voxelToRAS\n");
+  // fprintf(stdout, "node voxelToRAS\n");
   // MATRIX *mnode = extract_i_to_r(gca->mri_node__);
-  // MatrixPrint(stderr, mnode);
+  // MatrixPrint(stdout, mnode);
   // MatrixFree(&mnode);
 
   // setup prior part //////////////////////////////////////
@@ -359,9 +359,9 @@ void GCAsetup(GCA *gca)
 
   GCAcopyDCToMRI(gca, gca->mri_prior__);
 
-  // fprintf(stderr, "prior voxelToRAS\n");
+  // fprintf(stdout, "prior voxelToRAS\n");
   // MATRIX *mprior = extract_i_to_r(gca->mri_prior__);
-  // MatrixPrint(stderr, mprior);
+  // MatrixPrint(stdout, mprior);
   // MatrixFree(&mprior);
 
   // set up the default talairach volume ////////////////
@@ -379,9 +379,9 @@ void GCAsetup(GCA *gca)
 
   GCAcopyDCToMRI(gca, gca->mri_tal__);
 
-  //fprintf(stderr, "tal voxelToRAS\n");
+  //fprintf(stdout, "tal voxelToRAS\n");
   //mtal = extract_i_to_r(gca->mri_tal__);
-  // MatrixPrint(stderr, mtal);
+  // MatrixPrint(stdout, mtal);
   // MatrixFree(&mtal);
   if (gca->node_i_to_r__)
     {  MatrixFree(&(gca->node_i_to_r__)); gca->node_i_to_r__ = 0;}
@@ -427,24 +427,24 @@ void GCAreinit(MRI *mri, GCA *gca)
 
   // modify width height depth
   if (gca->width != mri->width)
-    fprintf(stderr, "gca width modified from %d to %d\n",
+    fprintf(stdout, "gca width modified from %d to %d\n",
             gca->width, mri->width);
   if (gca->height != mri->height)
-    fprintf(stderr, "gca height modified from %d to %d\n",
+    fprintf(stdout, "gca height modified from %d to %d\n",
             gca->height, mri->height);
   if (gca->depth != mri->depth)
-    fprintf(stderr, "gca depth modified from %d to %d\n",
+    fprintf(stdout, "gca depth modified from %d to %d\n",
             gca->depth, mri->depth);
   gca->width = mri->width; gca->height = mri->height; gca->depth = mri->depth;
 
   if (gca->xsize != mri->xsize)
-    fprintf(stderr, "gca xsize modified from %.3f to %.3f\n",
+    fprintf(stdout, "gca xsize modified from %.3f to %.3f\n",
             gca->xsize, mri->xsize);
   if (gca->ysize != mri->ysize)
-    fprintf(stderr, "gca ysize modified from %.3f to %.3f\n",
+    fprintf(stdout, "gca ysize modified from %.3f to %.3f\n",
             gca->ysize, mri->ysize);
   if (gca->zsize != mri->zsize)
-    fprintf(stderr, "gca zsize modified from %.3f to %.3f\n",
+    fprintf(stdout, "gca zsize modified from %.3f to %.3f\n",
             gca->zsize, mri->zsize);
   gca->xsize = mri->xsize; gca->ysize = mri->ysize; gca->zsize = mri->zsize;
   // then must modify node width etc.
@@ -1019,7 +1019,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
       TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
     }
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
-    fprintf(stderr, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
+    fprintf(stdout, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
             xv, yv, zv, xt, yt, zt);
   // get the position in node from the talairach position
   return GCAvoxelToNode(gca, gca->mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
@@ -1405,30 +1405,30 @@ void PrintInfoOnLabels(GCA *gca, int label, int xn, int yn, int zn,
   if (gc)
     {
       gcan = &gca->nodes[xn][yn][zn];
-      fprintf(stderr,
+      fprintf(stdout,
               "\n Node (%3d, %3d, %3d) pos (%3d, %3d, %3d) label=%d, labels:",
               xn, yn, zn, x, y, z, label);
       for (i=0; i < gcan->nlabels; ++i)
-        fprintf(stderr, "%4d ", gcan->labels[i]);
-      fprintf(stderr, "\n");
+        fprintf(stdout, "%4d ", gcan->labels[i]);
+      fprintf(stdout, "\n");
       gcap = &gca->priors[xp][yp][zp];
       if (gcap==NULL)
         return;
-      fprintf(stderr,
+      fprintf(stdout,
               "Prior (%3d, %3d, %3d) pos (%3d, %3d, %3d) label=%d\n",
               xp, yp, zp, x, y, z, label);
-      fprintf(stderr, "prior label histogram  (label):");
+      fprintf(stdout, "prior label histogram  (label):");
       for (i=0; i < gcap->nlabels; ++i)
-        fprintf(stderr, "%4d ", gcap->labels[i]);
-      fprintf(stderr, "\n");
-      fprintf(stderr, "                     :(counts):");
+        fprintf(stdout, "%4d ", gcap->labels[i]);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "                     :(counts):");
       for (i=0; i < gcap->nlabels; ++i)
-        fprintf(stderr, "%4.f ", gcap->priors[i]);
-      fprintf(stderr, "\n");
-      fprintf(stderr, "mean: ");
+        fprintf(stdout, "%4.f ", gcap->priors[i]);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "mean: ");
       for (i = 0 ; i < gca->ninputs ; i++)
-        fprintf(stderr, "%2.1f ", gc->means[i] / gc->ntraining) ;
-      fprintf(stderr, "\n");
+        fprintf(stdout, "%2.1f ", gc->means[i] / gc->ntraining) ;
+      fprintf(stdout, "\n");
     }
 }
 
@@ -1493,7 +1493,7 @@ GCAtrainCovariances(GCA *gca,
             //////////////debug code ////////////////////////////
             if (xn == Gxn && yn == Gyn && zn == Gzn)
             {
-              fprintf(stderr, "Train Covariance\n");
+              fprintf(stdout, "Train Covariance\n");
               PrintInfoOnLabels(gca, label,
                                 xn,yn,zn,
                                 xp,yp,zp,
@@ -3438,7 +3438,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
             }
         }
       T = T * 0.99 ;
-      fprintf(stderr, "%03d: T = %2.2f, nchanged %d, nbad = %d, ll=%2.2f\n",
+      fprintf(stdout, "%03d: T = %2.2f, nchanged %d, nbad = %d, ll=%2.2f\n",
               iter, T, nchanged, nbad, total_likelihood/(double)nindices) ;
       if (!nchanged)
         break ;
@@ -3826,7 +3826,7 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
 
             if (!check_finite("1", total_log_p))
               {
-                fprintf(stderr,
+                fprintf(stdout,
                         "total log p not finite at (%d, %d, %d)\n", x, y, z) ;
                 DiagBreak();
               }
@@ -3885,7 +3885,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
 
           if (!check_finite("2", total_log_p))
             {
-              fprintf(stderr,
+              fprintf(stdout,
                       "total log p not finite at (%d, %d, %d)\n",
                       x, y, z) ;
               DiagBreak() ;
@@ -3905,7 +3905,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
 #ifndef __OPTIMIZE__
 #if 0
   if (nsamples > 3000)
-    fprintf(stderr, "good samples %d (outside %d) log_p = %.1f "
+    fprintf(stdout, "good samples %d (outside %d) log_p = %.1f "
             "(outside %.1f)\n",
             nsamples-countOutside, countOutside, total_log_p, outside_log_p);
 #endif
@@ -3951,7 +3951,7 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
           if (!check_finite("3", total_log_p))
             {
               DiagBreak() ;
-              fprintf(stderr,
+              fprintf(stdout,
                       "total log p not finite at (%d, %d, %d)\n", x, y, z) ;
             }
         }
@@ -4030,7 +4030,7 @@ GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                       if (!check_finite("4", total_log_p))
                         {
                           DiagBreak() ;
-                          fprintf(stderr,
+                          fprintf(stdout,
                                   "total log p not finite at (%d, %d, %d)"
                                   " n = %d,\n", x, y, z, n) ;
                         }
@@ -4189,7 +4189,7 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
         }
       if (max_p < 0)
         {
-          fprintf(stderr, "WARNING: label %d not found at (%d,%d,%d)\n",
+          fprintf(stdout, "WARNING: label %d not found at (%d,%d,%d)\n",
                   label, gcas[i].xp, gcas[i].yp, gcas[i].zp) ;
           DiagBreak() ;
         }
@@ -4203,7 +4203,7 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
     }
 
   i = min_y_i ;
-  fprintf(stderr, "min_y = (%d, %d, %d) at i=%d, label=%d\n",
+  fprintf(stdout, "min_y = (%d, %d, %d) at i=%d, label=%d\n",
           gcas[i].xp, gcas[i].yp, gcas[i].zp, i, gcas[i].label) ;
   MRIfree(&mri_found) ;
   return(NO_ERROR) ;
@@ -4326,13 +4326,13 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
   for (max_class = MAX_DIFFERENT_LABELS ; max_class >= 0 ; max_class--)
     if (histo[max_class] > 0)
       break ;
-  fprintf(stderr, "max class = %d\n", max_class) ;
+  fprintf(stdout, "max class = %d\n", max_class) ;
 
   /* count total # of samples */
   for (total = 0, n = 1 ; n <= max_class ; n++)
     total += histo[n] ;
 
-  fprintf(stderr, "%d total training samples found\n", total) ;
+  fprintf(stdout, "%d total training samples found\n", total) ;
 
   /* turn histogram into samples/class */
   for (n = 1 ; n <= max_class ; n++)
@@ -4762,7 +4762,7 @@ GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
         }
     }
 
-  fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n",
+  fprintf(stdout, "total sample mean = %2.1f (%d zeros)\n",
           total_mean/((float)nfound-nzeros), nzeros) ;
 
   {
@@ -4980,7 +4980,7 @@ GCAfindStableSamples(GCA *gca,
     }
 
 
-  fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n",
+  fprintf(stdout, "total sample mean = %2.1f (%d zeros)\n",
           total_means[0]/((float)nfound-nzeros), nzeros) ;
 
   if (getenv("GCA_WRITE_CLASS"))
@@ -5651,7 +5651,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
           //////////////////////////////////////////////
         }
     }
-  fprintf(stderr, "writing samples to %s...\n", fname) ;
+  fprintf(stdout, "writing samples to %s...\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;
 
@@ -5956,7 +5956,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
             lcma = gcaGibbsImageLogLikelihood(gca, mri_cma, mri_inputs, lta) ;
             lcma /= (double)(width*depth*height) ;
             ll /= (double)(width*depth*height) ;
-            fprintf(stderr, "image ll: %2.3f (CMA=%2.3f)\n", ll, lcma) ;
+            fprintf(stdout, "image ll: %2.3f (CMA=%2.3f)\n", ll, lcma) ;
             MRIfree(&mri_cma) ;
           }
       }
@@ -6207,7 +6207,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
             lcma = gcaGibbsImageLogLikelihood(gca, mri_cma,
                                               mri_inputs, transform) ;
             lcma /= (double)(width*depth*height) ;
-            fprintf(stderr, "image ll: %2.3f (CMA=%2.3f)\n", old_ll, lcma) ;
+            fprintf(stdout, "image ll: %2.3f (CMA=%2.3f)\n", old_ll, lcma) ;
             MRIfree(&mri_cma) ;
           }
       }
@@ -6342,7 +6342,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     if (cp)
       {
         strcpy(cp+1, "anneal") ;
-        fprintf(stderr, "writing results of annealing to %s...\n", fname) ;
+        fprintf(stdout, "writing results of annealing to %s...\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
   }
@@ -6421,7 +6421,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
             lcma = gcaGibbsImageLogLikelihood(gca, mri_cma,
                                               mri_inputs, transform) ;
             lcma /= (double)(width*depth*height) ;
-            fprintf(stderr, "image ll: %2.3f (CMA=%2.3f)\n", old_ll, lcma) ;
+            fprintf(stdout, "image ll: %2.3f (CMA=%2.3f)\n", old_ll, lcma) ;
             MRIfree(&mri_cma) ;
           }
       }
@@ -6533,7 +6533,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
                   if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
                       (label == Ggca_label || old_label ==
                        Ggca_label || Ggca_label < 0))
-                    fprintf(stderr,
+                    fprintf(stdout,
                             "NbhdGibbsLogLikelihood at (%d, %d, %d):"
                             " old = %d (ll=%.2f) new = %d (ll=%.2f)\n",
                             x, y, z, old_label, max_ll,
@@ -6706,7 +6706,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
             {
               strcpy(cp+1, "zero") ;
               nvox = MRIvoxelsInLabel(mri_zero, 255) ;
-              fprintf(stderr, "writing %d low probability points to %s...\n",
+              fprintf(stdout, "writing %d low probability points to %s...\n",
                       nvox, fname) ;
               MRIwrite(mri_zero, fname) ;
               MRIfree(&mri_zero) ;
@@ -6743,7 +6743,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
             {
               PRIOR_FACTOR *= 2 ;
               if (PRIOR_FACTOR < MAX_PRIOR_FACTOR)
-                fprintf(stderr, "setting PRIOR_FACTOR to %2.4f\n",
+                fprintf(stdout, "setting PRIOR_FACTOR to %2.4f\n",
                         PRIOR_FACTOR) ;
             }
           if (gca_write_iterations > 0)
@@ -12468,9 +12468,9 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list,
     }
   if (badcount > 0)
     {
-      fprintf(stderr, "**************************************\n");
-      fprintf(stderr, "those with gc cannot be found = %d\n", badcount);
-      fprintf(stderr, "**************************************\n");
+      fprintf(stdout, "**************************************\n");
+      fprintf(stdout, "those with gc cannot be found = %d\n", badcount);
+      fprintf(stdout, "**************************************\n");
     }
   *pnsamples = nsamples ;
   return(gcas) ;
@@ -12738,10 +12738,10 @@ GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
     {
       LTA *lta;
       lta = (LTA *) transform->xform;
-      fprintf(stderr, "INFO: compute sample coordinates transform\n");
-      MatrixPrint(stderr, lta->xforms[0].m_L);
+      fprintf(stdout, "INFO: compute sample coordinates transform\n");
+      MatrixPrint(stdout, lta->xforms[0].m_L);
     }
-  fprintf(stderr, "INFO: transform used\n");
+  fprintf(stdout, "INFO: transform used\n");
 
   for (n = 0 ; n < nsamples ; n++)
     {
@@ -15074,7 +15074,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           fclose(fp) ;
         }
       num = 0 ; mean_gm_scale = 0 ; mean_gm_offset = 0 ;
-      fprintf(stderr, "not using caudate to estimate GM means\n") ;
+      fprintf(stdout, "not using caudate to estimate GM means\n") ;
       for (k = 0 ; k < NGM_LABELS ; k++)
         {
           label = gm_labels[k] ;
@@ -16011,7 +16011,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 				fclose(fp) ;
 			}
 		}
-		fprintf(stderr, "not using caudate to estimate GM means\n") ;
+		fprintf(stdout, "not using caudate to estimate GM means\n") ;
 		for (k = 0 ; k < NHEMI_LABELS ; k++)
 		{
 			int lhl, rhl ;
@@ -16021,7 +16021,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 				label_scales[rhl] = label_scales[lhl] ;
 				label_offsets[rhl] = label_offsets[lhl] ;
 				computed[rhl] = 1;
-				fprintf(stderr, "setting label %s based on %s = %2.2f x + %2.0f\n",
+				fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f\n",
 								cma_label_to_name(lhl), cma_label_to_name(rhl),
 								label_scales[rhl], label_offsets[rhl]) ;
 			}
@@ -16031,7 +16031,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 				label_scales[lhl] = label_scales[rhl] ;
 				label_offsets[lhl] = label_offsets[rhl] ;
 				computed[lhl] = 1;
-				fprintf(stderr, "setting label %s based on %s = %2.2f x + %2.0f\n",
+				fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f\n",
 								cma_label_to_name(rhl), cma_label_to_name(lhl),
 								label_scales[lhl], label_offsets[lhl]) ;
 			}
@@ -19190,7 +19190,7 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
             if (!check_finite("4", total_log_p))
             {
               DiagBreak() ;
-              fprintf(stderr,
+              fprintf(stdout,
                       "total log p not finite at (%d, %d, %d)"
                       " n = %d,\n", x, y, z, n) ;
             }
