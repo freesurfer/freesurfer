@@ -11,6 +11,7 @@ orient_mri_SOURCES= \
 	vtkKWOrientMRIWindow.cxx vtkKWOrientMRIWindow.h vtkKWOrientMRIWindowTcl.cxx \
 	vtkKWOrientMRIView.cxx vtkKWOrientMRIView.h vtkKWOrientMRIViewTcl.cxx \
 	vtkFSVolumeSource.cxx vtkFSVolumeSource.h \
+	OrientMRICustomIcons.cxx OrientMRICustomIcons.h \
 	OrientMRILibInit.cxx
 orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) -lvtkWidgets -lvtkGraphics -lvtkImaging -lvtkFiltering \
@@ -18,13 +19,13 @@ orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkfreetype -lvtkIO \
-  -lvtkDICOMParser -lvtkzlib -lvtkpng -lvtktiff \
+	-lvtkDICOMParser -lvtkzlib -lvtkpng \
 	-lvtkjpeg -lvtkexpat -lvtkMPEG2Encode \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
 	-lvtkFilteringTCL -lvtkWidgetsTCL \
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
 	-lvtkCommonTCL \
-	-L/tmp $(KWWIDGETS_LIBS)
+	$(KWWIDGETS_LIBS)
 orient_mri_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 vtkKWOrientMRIAppTcl.cxx: vtkKWOrientMRIApp.h

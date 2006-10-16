@@ -8,7 +8,7 @@ const char* vtkKWOrientMRIApp::sMainWindowWidthRegKey = "MainWindowWidth";
 const char* vtkKWOrientMRIApp::sMainWindowHeightRegKey = "MainWindowHeight";
 
 vtkStandardNewMacro( vtkKWOrientMRIApp );
-vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.2 $" );
 
 vtkKWOrientMRIApp::vtkKWOrientMRIApp () : 
   vtkKWApplication(),
@@ -17,15 +17,6 @@ vtkKWOrientMRIApp::vtkKWOrientMRIApp () :
   mMainWindowHeight( 600 )
 {
 
-  // Create the main window.
-  mWindow = vtkKWOrientMRIWindow::New();
-  mWindow->SetApplication( this );
-  this->AddWindow( mWindow );
-  mWindow->Create();
-  mWindow->SetSize( mMainWindowWidth, mMainWindowHeight );
-
-  SetName( "orient_mri" );
-  RestoreApplicationSettingsFromRegistry();
 }
 
 vtkKWOrientMRIApp::~vtkKWOrientMRIApp () {
@@ -35,6 +26,19 @@ vtkKWOrientMRIApp::~vtkKWOrientMRIApp () {
 
 void
 vtkKWOrientMRIApp::Start ( int argc, char* argv[] ) {
+
+  // Create the main window.
+  mWindow = vtkKWOrientMRIWindow::New();
+  mWindow->SetApplication( this );
+  this->AddWindow( mWindow );
+  mWindow->Create();
+
+  SetName( "orient_mri" );
+  RestoreApplicationSettingsFromRegistry();
+
+  mWindow->SetSize( mMainWindowWidth, mMainWindowHeight );
+
+  SetHelpDialogStartingPage("https://surfer.nmr.mgh.harvard.edu/fswiki/orient_5fmri");  
 
   mWindow->Display();
 

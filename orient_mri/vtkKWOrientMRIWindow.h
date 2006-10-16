@@ -64,6 +64,10 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
 
   // The toolbar button associated with each command.
   vtkKWPushButton* maPushButtons[kcCommands];
+
+  // The icons to associate with our commands.
+  vtkKWIcon* maIcons[kcCommands];
+
   //ETX
 };
   

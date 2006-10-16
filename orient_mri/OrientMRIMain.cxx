@@ -3,6 +3,7 @@
 #include <vtksys/CommandLineArguments.hxx>
 
 #include "vtkKWOrientMRIApp.h"
+#include "OrientMRICustomIcons.h"
 
 extern "C" {
 
@@ -26,13 +27,20 @@ int main ( int argc, char** argv ) {
   // Init our Tcl wrapping code.
   Orientmrilib_SafeInit( interp );
 
-  // Create and run the app.
+  // Create the app.
   vtkKWOrientMRIApp* app = vtkKWOrientMRIApp::New();
+
+  // Init the custom icons lib.
+  OrientMRICustomIcons::Initialize( app );
+
+  // Run the app.
   app->Start( argc, argv );
   int rApp = app->GetExitStatus();
 
   // Delete.
   app->Delete();
+
+  OrientMRICustomIcons::ShutDown();
 
   return rApp;
 }
