@@ -30,6 +30,11 @@
 #include "dti.h"
 #include "registerio.h"
 #include "timer.h"
+#include "evschutils.h"
+#include "numerics.h"
+#include "matrix.h"
+#include "matfile.h"
+#include "randomfields.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -38,6 +43,7 @@
 // tkregister2 --targ orig-in-m3z.mgh --mov func-in-m3z.mgh --regheader --reg tmp.reg
 // Atlas: $SUBJECTS_DIR/avgtst/mri/T1MLV.mgz
 
+MRI *MRIsetSliceNo(MRI *mri, MRI *out);
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
 
 
@@ -61,16 +67,31 @@ MATRIX *V, *W, *m_tmp;
 float ipr, bpr, intensity;
 MATRIX *R;
 int float2int;
-int err;
+int err,n;
 struct timeb  mytimer;
 int msecFitTime;
-double a,b;
+double a,b,zthresh,pthresh;
 
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
+  R = MatlabRead(argv[1]);
+  V = NULL;
 
+  TimerStart(&mytimer) ;
+  for(n=0; n < 10000; n++){
+    V = MatrixCopy(R,V);
+    sc_linalg_cholesky_decomp(V);
+  }
+  msecFitTime = TimerStop(&mytimer) ;
+  printf("%d %d  %g\n",n,msecFitTime,msecFitTime/(double)n);
+
+  return(0);
   mri  = MRIread(argv[1]);
+  mri2 = MRIsetSliceNo(mri,NULL);
+  MRIwrite(mri2,"s.mgh");
+  return(0);
+
   mask = MRIread(argv[2]);
   mri2 = MRIvote(mri, mask, NULL);
   MRIwrite(mri2,"vote.mgh");
@@ -208,3 +229,89 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
   return(lta);
 }
 
+/*---------------------------------------------------------------*/
+MRI *MRIsetSliceNo(MRI *mri, MRI *out)
+{
+  int c, r, s, f, n, ncols, nrows, nslices,nframes;
+  void   *pmri=NULL, *pout=NULL;
+  int sz, szout;
+
+  ncols   = mri->width;
+  nrows   = mri->height;
+  nslices = mri->depth;
+  nframes = mri->nframes;
+
+  if(out==NULL){
+    out = MRIallocSequence(ncols, nrows, nslices, mri->type, nframes);
+    if(out==NULL){
+      printf("ERROR: MRIsetSliceNo: could not alloc output\n");
+      return(NULL);
+    }
+    MRIcopyHeader(mri,out); // ordinarily would need to change nframes
+  }
+  if(out->width != ncols   || out->height != nrows ||
+     out->depth != nslices || out->nframes != nframes){
+    printf("ERROR: MRIsetSliceNo: dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Number of bytes in the mri data types
+  sz   = MRIsizeof(mri->type);
+  szout = MRIsizeof(out->type);
+
+  n = 0;
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	// Pointers to the start of the column
+	pmri  = (void *) mri->slices[n][r];
+	pout  = (void *) out->slices[n][r];
+        for(c=0; c<ncols; c++) {
+	  MRIdbl2ptr(s, pout, out->type);
+	  pmri += sz;
+	  pout  += szout;
+        } // cols
+      } // rows
+      n++;
+    } // slices
+  } // frames
+
+  return(out);
+}
+
+/*--------------------------------------------------------*/
+double pcluster(double clustersize, double vthresh, double fwhm, 
+		double searchsize, int dim)
+{
+  double p,W,dLh,Em,beta,pvthresh,Pnk;
+
+  W = fwhm/sqrt(4.0*log(2.0));
+  dLh = pow(W,-dim);
+
+  Em = searchsize * pow(2*M_PI,-(dim+1)/2.0) * dLh * 
+    (pow(vthresh,dim-1.0) - 1) *  exp(-pow(vthresh,2)/2); 
+
+  pvthresh = 1.0-sc_cdf_gaussian_Q(-vthresh,1);
+
+  beta = pow( (gamma(dim/2.0+1)*Em) / (searchsize*pvthresh),2.0/dim );
+
+  // Prob than n >= k, ie, the number of voxels in a cluster >= csize
+  Pnk = exp(-beta * pow(clustersize,2.0/dim));
+  p = 1 - exp(-Em*Pnk);
+
+  #if 0
+  printf("csize = %lf\n",clustersize);
+  printf("vthresh = %lf\n",vthresh);
+  printf("fwhm = %lf\n",fwhm);
+  printf("searchsize = %lf\n",searchsize);
+  printf("dim = %d\n",dim);
+  printf("W = %lf dLh %lf\n",W,dLh);
+  printf("Em = %lf\n",Em);
+  printf("pvthresh = %lf\n",pvthresh);
+  printf("beta = %lf\n",beta);
+  printf("Pnk = %lf\n",Pnk);
+  printf("p = %lf\n",p);
+  #endif
+
+  return(p);
+}
