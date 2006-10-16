@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/18 20:21:02 $
-// Revision       : $Revision: 1.57 $
+// Revision Date  : $Date: 2006/10/16 18:47:17 $
+// Revision       : $Revision: 1.58 $
 
 
 #include <math.h>
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.57 2006/08/18 20:21:02 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.58 2006/10/16 18:47:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -939,8 +939,8 @@ main(int argc, char *argv[])
   hours = minutes / (60) ;
 	minutes = minutes % 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d minutes and %d seconds.\n", 
-				 minutes, seconds) ;
+  printf("registration took %d hours, %d minutes and %d seconds.\n", 
+				 hours, minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
