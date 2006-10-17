@@ -11,5 +11,5 @@ EXTRA_DIST=$(foo_SCRIPTS)
 # found and removed after 'make install' is run during the 'make
 # release' target.
 TDR_FILES=$(wildcard tdr-*)
-EXCLUDE_FILES=$(TDR_FILES)
+EXCLUDE_FILES=$(TDR_FILES) CVS
 include $(top_srcdir)/Makefile.extra
