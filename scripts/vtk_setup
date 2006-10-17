@@ -4,39 +4,39 @@
 # Setup VTK for apps using the VTK package included with Freesurfer
 #
 
-# '$Id: vtk_setup,v 1.1 2006/10/11 17:00:32 nicks Exp $'
+# '$Id: vtk_setup,v 1.2 2006/10/17 18:47:55 nicks Exp $'
 
-### --	use NMR Center VTK package -- ####
+### --  use NMR Center VTK package -- ####
 
 if ( $?FREESURFER_HOME ) then
-	if ( -e $FREESURFER_HOME/lib/vtk ) then
-		set FS_VTK_HOME=$FREESURFER_HOME/lib/vtk
-	else if ( -e /usr/pubsw/packages/vtk/current ) then
-		set FS_VTK_HOME=/usr/pubsw/packages/vtk/current
-	endif
+  if ( -e $FREESURFER_HOME/lib/vtk ) then
+    set FS_VTK_HOME=$FREESURFER_HOME/lib/vtk
+  else if ( -e /usr/pubsw/packages/vtk/current ) then
+    set FS_VTK_HOME=/usr/pubsw/packages/vtk/current
+  endif
 else if ( -e /usr/pubsw/packages/vtk/current ) then
-	set FS_VTK_HOME=/usr/pubsw/packages/vtk/current
+  set FS_VTK_HOME=/usr/pubsw/packages/vtk/current
 endif
 
 if ( $?FS_VTK_HOME ) then
 
-	if ( -e $FS_VTK_HOME/bin ) then
-		setenv PATH "$FS_VTK_HOME/bin":"$PATH"
-	endif
+  if ( -e $FS_VTK_HOME/bin ) then
+    setenv PATH "$FS_VTK_HOME/bin":"$PATH"
+  endif
 
-	if ( -e $FS_VTK_HOME/lib ) then
-		setenv VTKLIBPATH $FS_VTK_HOME/lib
-		if(! $?LD_LIBRARY_PATH ) then
-			setenv LD_LIBRARY_PATH $VTKLIBPATH
-		else
-			setenv LD_LIBRARY_PATH "$VTKLIBPATH":"$LD_LIBRARY_PATH"
-		endif
-		if(! $?DYLD_LIBRARY_PATH ) then
-			setenv DYLD_LIBRARY_PATH $VTKLIBPATH
-		else
-			setenv DYLD_LIBRARY_PATH "$VTKLIBPATH":"$DYLD_LIBRARY_PATH"
-		endif
-	endif
+  if ( -e $FS_VTK_HOME/lib ) then
+    setenv VTKLIBPATH $FS_VTK_HOME/lib
+    if(! $?LD_LIBRARY_PATH ) then
+      setenv LD_LIBRARY_PATH $VTKLIBPATH
+    else
+      setenv LD_LIBRARY_PATH "$VTKLIBPATH":"$LD_LIBRARY_PATH"
+    endif
+    if(! $?DYLD_LIBRARY_PATH ) then
+      setenv DYLD_LIBRARY_PATH $VTKLIBPATH
+    else
+      setenv DYLD_LIBRARY_PATH "$VTKLIBPATH":"$DYLD_LIBRARY_PATH"
+    endif
+  endif
 
-	# default: assume platform has VTK libs installed somewhere
+  # default: assume platform has VTK libs installed somewhere
 endif
