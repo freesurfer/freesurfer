@@ -6,7 +6,7 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 if ENABLE_KWWIDGETS_APPS
 bin_PROGRAMS = orient_mri
 orient_mri_SOURCES= \
-	OrientMRIMain.cxx OrientMRIMain.h \
+	OrientMRIMain.cxx \
 	vtkKWOrientMRIApp.cxx vtkKWOrientMRIApp.h vtkKWOrientMRIAppTcl.cxx \
 	vtkKWOrientMRIWindow.cxx vtkKWOrientMRIWindow.h vtkKWOrientMRIWindowTcl.cxx \
 	vtkKWOrientMRIView.cxx vtkKWOrientMRIView.h vtkKWOrientMRIViewTcl.cxx \
@@ -57,6 +57,8 @@ else
 bin_PROGRAMS = 
 install-exec-hook:
 endif
+
+EXTRA_DIST=$(wildcard *.h) $(wildcard *.data)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
