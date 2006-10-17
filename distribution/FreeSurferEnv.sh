@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.34 2006/10/04 18:48:34 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.35 2006/10/17 22:06:08 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.34 2006/10/04 18:48:34 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.35 2006/10/17 22:06:08 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -308,6 +308,9 @@ if [ -z "$NO_MINC" ]; then
         elif [ -e $MINC_LIB_DIR/5.6.0 ]; then
             # Linux RH7 and RH9:
             export PERL5LIB="$MINC_LIB_DIR/5.6.0"
+        elif [ -e $MINC_LIB_DIR/perl5/5.8 ]; then
+            # Cygwin:
+            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8"
         elif [ -e $MINC_LIB_DIR/MNI ]; then
             # Solaris:
             export PERL5LIB="$MINC_LIB_DIR"
