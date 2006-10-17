@@ -7,6 +7,7 @@ aparc2feat \
 aseg2feat \
 aparcstats2table \
 asegstats2table \
+batchjobs \
 bblabel \
 browse-minc-header.tcl \
 browse-sessions \
@@ -194,5 +195,5 @@ EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
