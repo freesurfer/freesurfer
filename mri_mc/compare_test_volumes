@@ -1,0 +1,8 @@
+#!/bin/tcsh -ef
+rm -f test_volume.mgz
+./build_test_volume
+set cmd=(mri_diff test_volume.mgz test_volume_reference.mgz)
+echo $cmd
+$cmd
+
+
