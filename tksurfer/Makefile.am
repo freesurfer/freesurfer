@@ -25,7 +25,7 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	mv $(bindir)/tksurfer $(bindir)/tksurfer.bin
+	mv $(srcdir)/tksurfer $(bindir)/tksurfer.bin
 	echo "#!/bin/tcsh -ef" > $(bindir)/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tksurfer
 	echo "tksurfer.bin \$$argv" >> $(bindir)/tksurfer

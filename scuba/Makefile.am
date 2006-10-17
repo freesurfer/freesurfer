@@ -224,7 +224,7 @@ EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl) \
 	testSetup.csh testCleanup.csh test_data.tar.gz \
 	testSegmentationVolumeReport-correct.txt \
 	testSegmentationVolumeReportIntReport-correct.txt \
-	testLUT.lut
+	testLUT.lut .ui .moc
 
 TESTS=testSetup.csh \
 	testIDTracker testBroadcaster testUtilities \
@@ -687,7 +687,7 @@ endif
 
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	mv $(bindir)/scuba $(bindir)/scuba.bin
+	mv $(srcdir)/scuba $(bindir)/scuba.bin
 	echo "#!/bin/tcsh -ef" > $(bindir)/scuba
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(bindir)/scuba

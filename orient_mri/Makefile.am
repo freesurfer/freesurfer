@@ -45,7 +45,7 @@ OrientMRILibInit.cxx: OrientMRILibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:orient_mri
-	mv $(bindir)/orient_mri $(bindir)/orient_mri.bin
+	mv $(srcdir)/orient_mri $(bindir)/orient_mri.bin
 	echo "#!/bin/tcsh -ef" > $(bindir)/orient_mri
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/orient_mri
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" >> $(bindir)/orient_mri

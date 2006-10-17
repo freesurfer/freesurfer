@@ -22,7 +22,7 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	mv $(bindir)/tkregister2 $(bindir)/tkregister2.bin
+	mv $(srcdir)/tkregister2 $(bindir)/tkregister2.bin
 	echo "#!/bin/tcsh -ef" > $(bindir)/tkregister2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
