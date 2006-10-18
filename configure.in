@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.234 2006/10/17 20:09:13 nicks Exp $"
+# "$Id: configure.in,v 1.235 2006/10/18 15:59:02 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1113,8 +1113,8 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
         [LIB_TIX=-ltix8.1.8.3],
         [
   # check tix8.4
-          AC_CHECK_LIB([tix8.4], [Tix_Init],
-          [LIB_TIX=-ltix8.4],
+          AC_CHECK_LIB([Tix8.4], [Tix_Init],
+          [LIB_TIX=-lTix8.4],
           [AC_MSG_ERROR([FATAL: libtix not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
