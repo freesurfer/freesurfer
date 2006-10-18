@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # preproc-sess - runs preprocessing (mc, spatsmooth, mkbrainmask, inorm)
 
-set VERSION = '$Id: preproc-sess,v 1.6 2006/04/19 23:02:52 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.7 2006/10/18 21:21:08 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -23,6 +23,7 @@ set DoMC     = 1;
 set DoSmooth = 1;
 set DoInorm  = 1;
 set DoMask   = 1;
+set nolog = 0;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -55,14 +56,18 @@ check_params_return:
 set umask = `umask`;
 
 ##### Create a log file ######
-set logdir = log;
-mkdir -p $logdir
-if(! -e $logdir) then
-  echo "WARNING: could not create $logdir"
+if($nolog) then 
   set LF = /dev/null
 else
-  set LF = $logdir/preproc-sess.log
-  if(-e $LF) mv $LF $LF.old
+  set logdir = log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/preproc-sess.log
+    if(-e $LF) mv $LF $LF.old
+  endif
 endif
 echo "--------------------------------------------------------------"
 echo "preproc-sess logfile is $LF"
@@ -110,6 +115,7 @@ foreach sess ($SessList)
     if($#mcnthrun) set cmd = ($cmd -targnthrun $mcnthrun)
     if($#mcrun)    set cmd = ($cmd -targrun    $mcrun)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid MC -----------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -127,6 +133,7 @@ foreach sess ($SessList)
     set cmd = ($cmd  -fsd $fsd -umask $umask);
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Smooth ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -144,6 +151,7 @@ foreach sess ($SessList)
     set cmd = ($cmd  -fsd $fsd -umask $umask);
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -160,6 +168,7 @@ foreach sess ($SessList)
     set cmd = (mkbrainmask-sess -maskstem $maskstem)
     set cmd = ($cmd -fsd $fsd -umask $umask);
     set cmd = ($cmd -s $sessid -d $sessparent)
+    if($nolog) set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -272,6 +281,10 @@ while( $#argv != 0 )
 
     case "-nomask":
       set DoMask = 0;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     case "-verbose":
