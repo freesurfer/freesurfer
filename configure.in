@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.235 2006/10/18 15:59:02 nicks Exp $"
+# "$Id: configure.in,v 1.236 2006/10/18 16:47:23 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -430,7 +430,6 @@ AC_SUBST(MNI_DIR)
 ################################################################
 ac_vxl_includes="NO"
 ac_vxl_libraries="NO"
-ac_vxl_dir="NO"
 VXL_CFLAGS=""
 VXL_LIBS=""
 VXL_LIB=""
@@ -440,7 +439,16 @@ AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR      where the root of VXL is installed.],
   [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
      ac_vxl_libraries="$withval"/lib
-     ac_vxl_dir="$withval"
+  ])
+
+AC_ARG_WITH(vxl-include,
+  [  --with-vxl-include=DIR      root of VXL include directory.],
+  [  ac_vxl_includes="$withval/core $withval/vcl $withval/v3p/netlib"
+  ])
+
+AC_ARG_WITH(vxl-libraries,
+  [  --with-vxl-libraries=DIR    root of VXL lib directory.],
+  [  ac_vxl_libraries="$withval"
   ])
 
 if test ! "$ac_vxl_includes" = "NO"; then
@@ -776,7 +784,7 @@ KWWIDGETS_LIBS=""
 AC_MSG_CHECKING(KWWidgets directory)
 
 AC_ARG_WITH(kwwidgets-dir,
-  [  --with-kwwidgets-dir=DIR      where the root of KWWidgets is installed.],
+  [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
   [  ac_kwwidgets_includes="$withval"/include/KWWidgets
      ac_kwwidgets_libraries="$withval"/lib/KWWidgets
      ac_kwwidgets_dir="$withval"
