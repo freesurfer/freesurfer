@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $
+  $Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $
 
 */
 
@@ -381,7 +381,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -439,12 +439,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.19 2006/09/05 16:39:47 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -605,8 +605,13 @@ int main(int argc, char **argv)
 
   printf("To check registration, run:\n");
   printf("\n");
-  printf("  tkregister2 --mov %s --targ %s --reg %s \n",
+  if(!fstal) {
+    printf("  tkregister2 --mov %s --targ %s --reg %s \n",
 	   outvolfile,tempvolfile,regfile);
+  }  else {
+    printf("  tkregister2 --s %s --surf white --reg %s --mov %s \n",
+	   subject_outreg,regfile,outvolfile);
+  }
 
   printf("\n");
   printf("mri_vol2vol done\n");
