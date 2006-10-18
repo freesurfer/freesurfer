@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/16 22:39:51 $
-// Revision       : $Revision: 1.209 $
+// Revision Date  : $Date: 2006/10/18 02:14:20 $
+// Revision       : $Revision: 1.210 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -456,6 +456,7 @@ void GCAreinit(MRI *mri, GCA *gca)
   gca->prior_depth = (int)(((float)gca->depth/gca->prior_spacing)+.99) ;
   //
   GCAsetup(gca);
+  fflush(stdout) ;
 }
 
 GCA_PRIOR *
@@ -1021,6 +1022,8 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
     fprintf(stdout, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
             xv, yv, zv, xt, yt, zt);
+  fflush(stdout) ;
+
   // get the position in node from the talairach position
   return GCAvoxelToNode(gca, gca->mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
 }
@@ -1430,6 +1433,7 @@ void PrintInfoOnLabels(GCA *gca, int label, int xn, int yn, int zn,
         fprintf(stdout, "%2.1f ", gc->means[i] / gc->ntraining) ;
       fprintf(stdout, "\n");
     }
+  fflush(stdout) ;
 }
 
 int
@@ -1543,6 +1547,7 @@ GCAtrainCovariances(GCA *gca,
     }
   }
 
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 #include <unistd.h>
@@ -2846,6 +2851,7 @@ GCAcompleteCovarianceTraining(GCA *gca)
                       m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
                       MatrixPrint(stdout, m) ;
                       MatrixFree(&m) ;
+                      fflush(stdout) ;
                     }
                 }
             }
@@ -3445,6 +3451,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
     } while (iter++ < max_iter) ;
 
   free(x_indices) ; free(y_indices) ; free(z_indices) ;
+  fflush(stdout) ;
   return(mri_dst) ;
 }
 
@@ -3832,6 +3839,7 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
               }
           }
     }
+  fflush(stdout) ;
   return((float)total_log_p) ;
 }
 
@@ -3910,6 +3918,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
             nsamples-countOutside, countOutside, total_log_p, outside_log_p);
 #endif
 #endif
+  fflush(stdout) ;
 
   return((float)total_log_p) ;
 }
@@ -3962,6 +3971,7 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
           gcas[i].log_p = log_p;
         }
     }
+  fflush(stdout) ;
 
   return((float)total_log_p) ;
 }
@@ -4039,6 +4049,7 @@ GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
             }
         }
     }
+  fflush(stdout) ;
 
   return((float)total_log_p) ;
 }
@@ -4206,6 +4217,7 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
   fprintf(stdout, "min_y = (%d, %d, %d) at i=%d, label=%d\n",
           gcas[i].xp, gcas[i].yp, gcas[i].zp, i, gcas[i].label) ;
   MRIfree(&mri_found) ;
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 
@@ -4333,6 +4345,7 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
     total += histo[n] ;
 
   fprintf(stdout, "%d total training samples found\n", total) ;
+  fflush(stdout) ;
 
   /* turn histogram into samples/class */
   for (n = 1 ; n <= max_class ; n++)
@@ -4777,6 +4790,7 @@ GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
   }
 
   *pnsamples = nfound ;
+  fflush(stdout) ;
 
   return(gcas) ;
 #else
@@ -4999,6 +5013,7 @@ GCAfindStableSamples(GCA *gca,
     }
 
   *pnsamples = nfound ;
+  fflush(stdout) ;
 
   MRIfree(&mri_filled) ;
   return(gcas) ;
@@ -5654,6 +5669,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   fprintf(stdout, "writing samples to %s...\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;
+  fflush(stdout) ;
 
   return(NO_ERROR) ;
 }
@@ -5962,6 +5978,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       }
   }
 #endif
+  fflush(stdout) ;
 
   do
     {
@@ -6213,6 +6230,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
       }
   }
 #endif
+  fflush(stdout) ;
 
   do
     {

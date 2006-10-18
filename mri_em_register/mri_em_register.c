@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/16 22:39:50 $
-// Revision       : $Revision: 1.54 $
+// Revision Date  : $Date: 2006/10/18 02:14:20 $
+// Revision       : $Revision: 1.55 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: mri_em_register.c,v 1.54 2006/10/16 22:39:50 nicks Exp $", 
+     "$Id: mri_em_register.c,v 1.55 2006/10/18 02:14:20 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -388,8 +388,10 @@ main(int argc, char *argv[])
   
   parms.vgca = (void *)gca ;
   printf("freeing gibbs priors...") ;
+  fflush(stdout);
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
+  fflush(stdout);
   //////////////////////////// -example option ////////////////////////
   if (example_T1)
     {
@@ -408,6 +410,7 @@ main(int argc, char *argv[])
            "%s: could not read example T1 from %s",
            Progname, example_T1) ;
       printf("scaling atlas intensities using specified examples...\n") ;
+      fflush(stdout);
       MRIeraseBorderPlanes(mri_seg) ;
       GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
@@ -426,6 +429,7 @@ main(int argc, char *argv[])
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s_target.mgz", parms.base_name) ;
       printf("writing target volume to %s...\n", fname) ;
+      fflush(stdout);
       MRIwrite(mri_gca, fname) ; MRIfree(&mri_gca) ;
     }
   ////////////////////////// -fsample option //////////////////////////
@@ -526,6 +530,7 @@ main(int argc, char *argv[])
       printf("spacing=%d, using %d sample points, tol=%2.2e...\n", 
              spacing, nsamples, parms.tol) ;
       printf("************************************************\n");
+      fflush(stdout);
       parms.nsamples = nsamples ;
       if (sample_fname)
         {
@@ -577,6 +582,7 @@ main(int argc, char *argv[])
   printf(" EM alignment process ...\n");
   printf(" Computing final MAP estimate using %d samples. \n", nsamples) ;
   printf("**************************************************\n");
+  fflush(stdout);
   parms.mri_in = mri_in ;  /* for diagnostics */
 	MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
     
@@ -599,6 +605,7 @@ main(int argc, char *argv[])
     }
   /////////////////////////////////////////////////////////////////////
   printf("writing output transformation to %s...\n", out_fname) ;
+  fflush(stdout);
   // writing transform section here
   // create gca volume for outputting dirction cosines and c_(ras)
   mri_dst = MRIallocHeader(gca->width, gca->height, gca->depth, mri_in->type);
@@ -608,12 +615,14 @@ main(int argc, char *argv[])
     {
       printf("converting xform to RAS...\n") ; 
       printf("initial:\n") ;
+      fflush(stdout);
       MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
       MRIvoxelXformToRasXform
         (mri_in, mri_dst, parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
       printf("final:\n") ;
       MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
       parms.lta->type = LINEAR_RAS_TO_RAS ;
+      fflush(stdout);
     }
   else
     parms.lta->type = LINEAR_VOX_TO_VOX ;
@@ -627,6 +636,7 @@ main(int argc, char *argv[])
   if (parms.lta->type == LINEAR_RAS_TO_RAS)  /* convert back to voxel */
     {
       printf("converting xform back to voxel...\n") ;
+      fflush(stdout);
       MRIrasXformToVoxelXform
         (mri_in, mri_dst, parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
       parms.lta->type = LINEAR_VOX_TO_VOX ;
@@ -637,9 +647,11 @@ main(int argc, char *argv[])
     {
       printf("writing transformed samples to %s...\n", 
              transformed_sample_fname) ;
+      fflush(stdout);
       GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
                                   transformed_sample_fname, transform) ;
       printf("samples written\n") ;
+      fflush(stdout);
     }
   ///////////////////////////////////////////////////////////////////////
   if (norm_fname)
@@ -810,6 +822,7 @@ main(int argc, char *argv[])
           mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
                                          transform, ctl_point_fname) ;
           printf("writing normalized volume to %s...\n", norm_fname) ;
+          fflush(stdout);
           if (MRIwrite(mri_norm, norm_fname)  != NO_ERROR)
             ErrorExit
               (ERROR_BADFILE, 
@@ -880,6 +893,7 @@ register_mri
   printf("***********************************************\n");
   printf("Computing MAP estimate using %d samples...\n", parms->nsamples) ;
   printf("***********************************************\n");
+  fflush(stdout);
   parms->mri_in = mri_in ;  /* for diagnostics */
   //////////////// calling MRIemAlign() //////////////////////////
   MRIemAlign(mri_in, gca, parms, m_L) ;
@@ -984,6 +998,7 @@ find_optimal_transform
           mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
           sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
           printf("writing snapshot to %s...\n", fname) ;
+          fflush(stdout);
           MRIwrite(mri_aligned, fname) ;
           MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
           MRIfree(&mri_aligned) ;
@@ -998,6 +1013,7 @@ find_optimal_transform
       
           sprintf(fname, "%s_before_intensity.mgz", parms.base_name) ;
           printf("writing snapshot to %s...\n", fname) ;
+          fflush(stdout);
           MRIwrite(mri, fname) ;
           /*    MRIwriteImageViews(mri, "before_intensity", IMAGE_SIZE) ;*/
         }
@@ -1028,6 +1044,7 @@ find_optimal_transform
           printf("writing gca volume to %s...\n", gca_mean_fname) ;
           MRIwrite(mri_gca, gca_mean_fname) ;
           printf("done\n") ;
+          fflush(stdout);
         }
     
       printf("initial log_p = %2.1f\n", max_log_p) ;
@@ -1117,6 +1134,7 @@ find_optimal_transform
           MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
           sprintf(fname, "%s_after_centering.mgz", parms.base_name) ;
           printf("writing image after centering to %s...\n", fname) ;
+          fflush(stdout);
 #if 0
           MRIwrite(mri_aligned, fname) ;
 #else
@@ -1144,6 +1162,7 @@ find_optimal_transform
       printf("Nine parameter search.  iteration %d nscales = %d ...\n", 
              niter, nscales);
       printf("****************************************\n");
+      fflush(stdout);
       max_log_p = find_optimal_linear_xform
         (gca, gcas, mri, nsamples, 
          m_L, m_origin,
@@ -1152,7 +1171,8 @@ find_optimal_transform
          1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale, 
          -scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
          scale_samples, 3, 3, 2);
-    
+      fflush(stdout);
+
       if (write_iterations != 0)
         {
           char fname[STRLEN] ;
@@ -1180,6 +1200,7 @@ find_optimal_transform
               "old_max_log_p =%2.1f (thresh=%2.1f)\n",
               scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
       MatrixPrint(stdout, m_L);
+      fflush(stdout);
       /* search a finer nbhd (if do-while continues) */
       if ((max_log_p < old_max-tol*old_max)) /* couldn't take a step */
         {
@@ -1760,6 +1781,7 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
+  fflush(stdout);
 
   return(nargs) ;
 }

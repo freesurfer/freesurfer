@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/16 22:39:51 $
-// Revision       : $Revision: 1.62 $
+// Revision Date  : $Date: 2006/10/18 02:14:20 $
+// Revision       : $Revision: 1.63 $
 */
 
 /*-----------------------------------------------------
@@ -171,6 +171,8 @@ MatrixPrintHires(FILE *fp, MATRIX *mat)
     }
     fprintf(fp, ";\n") ;
   }
+  fflush(stdout) ;
+
   return(NO_ERROR) ;
 }
 
@@ -740,6 +742,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
   VectorFree(&v) ;
   MRIfree(&mri_label) ; MRIfree(&mri_thresh) ; MRIfree(&mri_rot) ;
   MatrixFree(&m_inv) ;
+  fflush(stdout) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -789,6 +792,7 @@ find_midline(MRI *mri_src, MRI *mri_thresh, float *px)
 
   MRIextractPlane(mri_thresh, mri_dst, MRI_SAGITTAL, xmid) ;
   *px = (float)xmid ;
+  fflush(stdout) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -1028,6 +1032,7 @@ MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   *MATRIX_RELT(m_translation, 3, 4) = dz ;
   MatrixMultiply(m_translation, m_L, m_L) ;
   MatrixFree(&m_translation) ;
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1090,6 +1095,7 @@ MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   *MATRIX_RELT(m_L, 3, 4) = dz ;
 #endif
   MatrixMultiply(m_scaling, m_L, m_L) ;
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1185,10 +1191,12 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     {
       mri_kernel = MRIgaussian1d(sigma, 17) ;
       fprintf(stdout, "blurring volumes with sigma = %2.1f...", sigma) ;
+      fflush(stdout) ;
       mri_in_blur = MRIconvolveGaussian(mri_in, mri_in_blur, mri_kernel) ;
       mri_ref_blur = 
         MRIconvolveGaussianMeanAndStdByte(mri_ref, mri_ref_blur, mri_kernel) ;
       fprintf(stdout, "done.\n") ;
+      fflush(stdout) ;
       MRIfree(&mri_kernel) ;
       mriLinearAlignPyramidLevel(mri_in_blur, mri_ref_blur, parms) ;
     }
@@ -1220,6 +1228,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     for (tmul = 1 ; tmul >= .5 ; tmul /= 10)
     {
       fprintf(stdout, "aligning pyramid level %d.\n", i) ;
+      fflush(stdout) ;
       if ((Gdiag & DIAG_WRITE) && parms->log_fp)
         fprintf(parms->log_fp, "aligning pyramid level %d.\n", i) ;
       parms->trans_mul = tmul ;
@@ -1398,6 +1407,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
           "thick=%2.0f, mul=%2.2f\n", 
           rms, m_L->rptr[1][4], m_L->rptr[2][4], m_L->rptr[3][4], dt,
           mri_in->thick, parms->trans_mul) ;
+  fflush(stdout) ;
 
   if ((Gdiag & DIAG_WRITE) && parms->log_fp)
   {
@@ -1433,6 +1443,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     fprintf(stdout, "%3.3d: rms = %2.3f, t = [%2.2f, %2.2f, %2.2f], "
             "dt=%2.2e\n", 
             n+1, rms, m_L->rptr[1][4], m_L->rptr[2][4], m_L->rptr[3][4],dt) ;
+    fflush(stdout) ;
 
     if ((Gdiag & DIAG_WRITE) &&
         (parms->write_iterations > 0) && 
@@ -1455,6 +1466,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   if ((Gdiag & DIAG_WRITE) && parms->log_fp)
     fprintf(parms->log_fp, "\n") ;
   strcpy(parms->base_name, base_name) ;
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1592,6 +1604,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
 	transform.type = LINEAR_VOX_TO_VOX ;
 	GCAtransformAndWriteSamples((GCA *)parms->vgca, mri, parms->gcas, parms->nsamples, fname, 
 															parms->transform) ;
+  fflush(stdout) ;
 
   return(NO_ERROR) ;
 }
@@ -1779,6 +1792,7 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
   MatrixFree(&v_X_T) ;
   MatrixFree(&v_dT) ;
   MatrixFree(&m_tmp) ;
+  fflush(stdout) ;
   return(dt) ;
 }
 /*-----------------------------------------------------
@@ -6952,6 +6966,7 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
   printf("transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[1], p[2], p[3], p[4]);
   printf("transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[5], p[6], p[7], p[8]);
   printf("transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[9], p[10], p[11], p[12]);
+  fflush(stdout) ;
   rms = sqrt(sse) ;
   if (parms->l_priors > 0)
   {
@@ -6993,6 +7008,7 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
     parms->lta->xforms[0].m_L = m_save ;
   }
   logIntegration(parms, parms->start_t+itno, (double)rms) ;
+  fflush(stdout) ;
 }
 
 static void 
@@ -7002,6 +7018,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
   int    i, row, col ;
 
   printf("dfp_em_step_func: %03d: -log(p) = %2.1f\n", parms->start_t+itno, sse) ;
+  fflush(stdout) ;
   /* read out current transform */
   for (i = row = 1 ; row <= 3 ; row++)  // used to be 4 here ... tosa
   {
@@ -7034,6 +7051,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
     parms->lta->xforms[0].m_L = m_save ;
   }
   logIntegration(parms, parms->start_t+itno, (double)sse) ;
+  fflush(stdout) ;
 }
 
 static int
@@ -7089,6 +7107,7 @@ mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
 
   } while ((fold-fnew)/fold > parms->tol) ;
 
+  fflush(stdout) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------

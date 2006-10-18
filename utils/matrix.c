@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.100 2006/10/10 20:30:33 fischl Exp $
+// $Id: matrix.c,v 1.101 2006/10/18 02:14:20 nicks Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -517,6 +517,7 @@ MatrixPrint(FILE *fp, MATRIX *mat)
         }
       fprintf(fp, ";\n") ;
     }
+  fflush(stdout);
   return(NO_ERROR) ;
 }
 
@@ -599,6 +600,7 @@ MatrixPrintTranspose(FILE *fp, MATRIX *mat)
         }
       fprintf(fp, "\n") ;
     }
+  fflush(stdout);
   return(NO_ERROR) ;
 }
 
