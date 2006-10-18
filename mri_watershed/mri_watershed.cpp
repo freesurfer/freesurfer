@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/16 22:39:51 $
-// Revision       : $Revision: 1.50 $
+// Revision Date  : $Date: 2006/10/18 01:53:47 $
+// Revision       : $Revision: 1.51 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.50 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.51 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -401,6 +401,7 @@ void usageHelp()
           "NewWithEditsVol\n");
   fprintf(stdout, "\n\n--help               : show this usage message");
   fprintf(stdout, "\n--version            : show the current version\n\n");
+  fflush(stdout);
 }
 
 /*-----------------------------------------------------
@@ -654,6 +655,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       usageHelp();
       exit(1) ;
     }
+  fflush(stdout);
   return(nargs) ;
 }
 
@@ -694,7 +696,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.50 2006/10/16 22:39:51 nicks Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.51 2006/10/18 01:53:47 nicks Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -706,7 +708,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.50 2006/10/16 22:39:51 nicks Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.51 2006/10/18 01:53:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -772,6 +774,8 @@ int main(int argc, char *argv[])
   else
     type_changed = 0 ;
 
+  fflush(stdout);
+
   /* Main routine *********************/
   // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
   mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
@@ -795,6 +799,7 @@ int main(int argc, char *argv[])
 
   //-------------------------------------------------------------------
   fprintf(stdout,"\n\n******************************\nSave...");
+  fflush(stdout);
   MRIwrite(mri_without_skull,out_fname);
 
   //-------------------------------------------------------------------
@@ -1194,7 +1199,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
 
 static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var)
 {
-
+  fflush(stdout);
   fprintf(stdout,
           "\n*************************WATERSHED**************************");
 
@@ -1219,6 +1224,7 @@ static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var)
   fprintf(stdout,"\nPostAnalyze...");
   PostAnalyze(parms,MRI_var);
   fprintf(stdout,"done\n");
+  fflush(stdout);
 
   return 0;
 }
@@ -1274,6 +1280,7 @@ static void AnalyzeT1Volume(STRIP_PARMS *parms,MRI_variables *MRI_var)
         }
       FindMainWmComponent(MRI_var);
     }
+  fflush(stdout);
 }
 
 static void FindMainWmComponent(MRI_variables *MRI_var)
@@ -1290,6 +1297,7 @@ static void FindMainWmComponent(MRI_variables *MRI_var)
         if (MRIvox(MRI_var->mri_orig, i, j, k) == WM_CONST)
           wmcount++;
   fprintf(stdout," %d\n", wmcount);
+  fflush(stdout);
 
   fprintf(stdout,"\n      Find the largest 110-component...");
   mri_segmentation=MRImaxsegment(MRI_var->mri_orig,WM_CONST,WM_CONST);
@@ -1323,6 +1331,7 @@ static void FindMainWmComponent(MRI_variables *MRI_var)
   fprintf(stdout,"\n      Main component: %ld voxels",maxarea);
   if(MRIsegmentFree(&mri_segmentation)!=NO_ERROR)
     Error("\nCouldn't free the memory allocated during MRI_segmentation");
+  fflush(stdout);
 }
 
 
@@ -1363,6 +1372,7 @@ static void Allocation(MRI_variables *MRI_var)
       MRI_var->intbasin[k]=k;
       MRI_var->gmnumber[k]=0;
     }
+  fflush(stdout);
 }
 
 //
@@ -1613,6 +1623,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     //    Error("\n main radius too high");
   }
 
+  fflush(stdout);
   /*allocate the Cube memory: mean intensity, variance, mean variance */
 
   // now the r is the brain radius
@@ -2044,6 +2055,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   free(var_val);
   free(mean_var);
 
+  fflush(stdout);
+
   if (retVal == -1)
     return -1;
   else
@@ -2185,6 +2198,7 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
 
       MRI_var->WM_MIN=int(MAX(0.,-b/a));
     }
+  fflush(stdout);
 }
 
 
@@ -2401,6 +2415,7 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
            parms->seed_coord[n][2])
       =parms->seed_coord[n][3];
 
+  fflush(stdout);
 
   return 0;
 }
@@ -3214,6 +3229,7 @@ static int PostAnalyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
         AddVoxel(MRI_var);
     }
 
+  fflush(stdout);
   return 0;
 }
 
@@ -3274,6 +3290,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
   int brainsize;
 #endif
   fprintf(stdout,"\n****************TEMPLATE DEFORMATION****************\n");
+  fflush(stdout);
 
   read_geometry(0,MRI_var,NULL);
   brain_params(MRI_var);
@@ -3402,9 +3419,11 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
               "\n\n********FINAL ITERATIVE TEMPLATE DEFORMATION********");
       /*Compute local intensity values*/
       fprintf(stdout,"\nCompute Local values csf/gray");
+      fflush(stdout);
       MRISComputeLocalValues(MRI_var);
       /*refine the segmentation based on these local values*/
       fprintf(stdout,"\nFine Segmentation...");
+      fflush(stdout);
 
       ////////////////////////////////////////////////////////////////////
       MRISFineSegmentation(MRI_var);
@@ -3425,6 +3444,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
       if (parms->surf_dbg)
         write_image(MRI_var);
     }
+  fflush(stdout);
 }
 
 /*load a geometry from a file into mris*/
@@ -4060,6 +4080,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
               MRI_var->GM_intensity,
               MRI_var->GM_MIN);
     }
+  fflush(stdout);
 }
 
 // coming in is the histogram of possible CSF values
@@ -4171,6 +4192,8 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
     CSF_percent[k]*= (long unsigned int) (a*k+b);
   for(;k<256;k++)
     CSF_percent[k]=0;
+
+  fflush(stdout);
 }
 
 static void analyseGM(unsigned long *CSF_percent,
@@ -4323,6 +4346,8 @@ static void analyseGM(unsigned long *CSF_percent,
             "interpolation in GM_MIN calculation.");
   else
     MRI_var->GM_MIN=int(MAX(0,-b/a));
+
+  fflush(stdout);
 }
 
 /* smooth the 256-tab curve*/
@@ -5440,6 +5465,7 @@ static void label_voxels(STRIP_PARMS *parms,
               MRIvox(MRI_var->mri_src,i,j,k)=6;
           };
 
+  fflush(stdout);
 }
 
 #if 0
@@ -5723,6 +5749,7 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
   MRISfree(&mris_dCOG);
   MRISfree(&mris_curv);
 
+  fflush(stdout);
   return validation;
 }
 
@@ -6063,6 +6090,7 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
               (float)DEGREES(degrees),
               min_sse, (float)DEGREES(mina), (float)DEGREES(minb),
               (float)DEGREES(ming)) ;
+      fflush(stdout);
 #endif
 
       if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
@@ -6347,6 +6375,7 @@ static void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
       MRIScomputeSecondFundamentalForm(mris_src) ;
       MRISuseMeanCurvature(mris_src) ;
     }
+  fflush(stdout);
 }
 
 #if NO_SELF_INTERSECTION
@@ -6813,6 +6842,7 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
 #endif
 
   MRIScomputeNormals(mris);
+  fflush(stdout);
 }
 
 /*compute local values and store them into mrisphere*/
@@ -7231,6 +7261,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
     }
+  fflush(stdout);
 }
 
 static double estimateNRG(MRI_variables *MRI_var,
@@ -7382,6 +7413,7 @@ static int computeCOG(MRI_variables *MRI_var,
 
     break;
   }
+  fflush(stdout);
   return NO_ERROR;
 }
 
@@ -7517,6 +7549,7 @@ static MRI* generateFinalMRI(MRI_variables *MRI_var){
   }
 #endif
   fprintf(stdout,"done\n");
+  fflush(stdout);
   return mri;
 }
 
@@ -8062,6 +8095,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
               fprintf(stdout,"\n      The shape of the surface was incorrect,"
                       "\n      hence we rigidly realign the "
                       "surface with the template");
+              fflush(stdout);
               MRI_var->validation=ValidationSurfaceShape(MRI_var);
               /*the sphere surface was freed and realocated*/
               mrisphere=MRI_var->mrisphere;
@@ -8095,6 +8129,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 
     }
   fprintf(stdout,"%d iterations\n",iter);
+  fflush(stdout);
 
 #if WRITE_SURFACES
   sprintf(fname,"./rh.finedeformation%d",iter);
@@ -8120,6 +8155,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     }
   free(dist);
 
+  fflush(stdout);
 }
 
 static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
@@ -8295,6 +8331,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
     }
   // note that this has no criteria of convergence niter=10 only
   MRIScomputeNormals(mris);
+  fflush(stdout);
 }
 
 #ifndef __OPTIMIZE__
@@ -8426,6 +8463,7 @@ static int calcBrainSize(const MRI* mri_src, const MRIS *mris)
             brainsize++;
         }
   MRIfree(&mri_buff);
+  fflush(stdout);
   return brainsize;
 }
 #endif
@@ -8956,6 +8994,7 @@ static void FitShape(MRI_variables *MRI_var,
       free(dist[it]);
     }
   free(dist);
+  fflush(stdout);
 }
 
 template <typename T> void DebugCurve(const T *percent,
