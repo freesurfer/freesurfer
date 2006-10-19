@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.5 2006/08/18 22:40:58 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.6 2006/10/19 03:21:03 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -181,30 +181,54 @@ if(~isempty(extreg))
 end
 
 %-------------- contrasts --------------------------
-if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
-  nthcon = 1;
-  flac.con(nthcon).name = 'omnibus';
-  flac.con(nthcon).sumev    = 0;
-  flac.con(nthcon).sumevreg = 0;
-  flac.con(nthcon).evrw     = [];
+tmpstr = sprintf('%s/*.mat',anadir);
+clist = dir(tmpstr);
+ncontrasts = length(clist);
+for nthcon = 1:ncontrasts
+  tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
+  cspec = load(tmpstr);
+  flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
   flac.con(nthcon).varsm    = 0;
-  for n=1:nconditions
-    flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
-    flac.con(nthcon).ev(n).evw  = 1;
-    flac.con(nthcon).ev(n).evrw = [];
+  flac.con(nthcon).sumev    = cspec.sumconds;
+  flac.con(nthcon).sumevreg = cspec.sumdelays;
+  flac.con(nthcon).sumevrw  = [];
+  con_nthev = 0;
+  for nthcondition = 1:cspec.NCond
+    if(cspec.WCond(nthcondition)==0) continue; end
+    con_nthev = con_nthev + 1;
+    flac.con(nthcon).ev(con_nthev).name = sprintf('Condition%02d',nthcondition);
+    flac.con(nthcon).ev(con_nthev).evw  = cspec.WCond(nthcondition);
+    flac.con(nthcon).ev(con_nthev).evrw = cspec.WDelay;
   end
-  nthcon = nthcon+1;
-  flac.con(nthcon).name = 'allvfix';
-  flac.con(nthcon).sumev    = 1;
-  flac.con(nthcon).sumevreg = 1;
-  flac.con(nthcon).evrw     = [];
-  flac.con(nthcon).varsm    = 0;
-  for n=1:nconditions
-    flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
-    flac.con(nthcon).ev(n).evw  = 1;
-    flac.con(nthcon).ev(n).evrw = [];
+end
+
+if(ncontrasts == 0)
+  % No contrasts specified, so use omnibus and allvres
+  if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
+    nthcon = 1;
+    flac.con(nthcon).name = 'omnibus';
+    flac.con(nthcon).sumev    = 0;
+    flac.con(nthcon).sumevreg = 0;
+    flac.con(nthcon).evrw     = [];
+    flac.con(nthcon).varsm    = 0;
+    for n=1:nconditions
+      flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
+      flac.con(nthcon).ev(n).evw  = 1;
+      flac.con(nthcon).ev(n).evrw = [];
+    end
+    nthcon = nthcon+1;
+    flac.con(nthcon).name = 'allvfix';
+    flac.con(nthcon).sumev    = 1;
+    flac.con(nthcon).sumevreg = 1;
+    flac.con(nthcon).evrw     = [];
+    flac.con(nthcon).varsm    = 0;
+    for n=1:nconditions
+      flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
+      flac.con(nthcon).ev(n).evw  = 1;
+      flac.con(nthcon).ev(n).evrw = [];
+    end
+    ncontrasts = nthcon;
   end
-  ncontrasts = nthcon;
 end
 
 % Check each contrast
