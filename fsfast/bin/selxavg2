@@ -4,7 +4,7 @@
 ############################################################
 
 set inputargs = ($argv);
-set VERSION = '$Id: selxavg2,v 1.8 2006/09/29 17:13:06 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.9 2006/10/19 03:56:22 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -55,6 +55,7 @@ set WhtnMtx = ();
 set mincond = 1;
 set seed  = -1;
 set cfgfile = ();
+set UseMRIread = 0;
 
 set instems  = ();
 set parfiles = ();
@@ -528,6 +529,10 @@ while( $#argv != 0 )
     case "-allvnull":
     case "-avf":
       set allvnull = 1;
+      breaksw
+
+    case "-mriread":
+      set UseMRIread = 1; 
       breaksw
 
     case "-log":

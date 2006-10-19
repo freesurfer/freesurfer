@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.26 2006/09/29 21:43:30 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.27 2006/10/19 03:56:22 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.26 2006/09/29 21:43:30 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.27 2006/10/19 03:56:22 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -252,7 +252,14 @@ for slice = firstslice:lastslice
       instem = deblank(instemlist(run,:));
 
       % Get number of TRs in this run %
-      [nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+      if(~s.UseMRIread)
+	[nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+      else
+	mri = MRIread(instem,1);
+	if(~isempty(mri)) ntrs = mri.nframes;
+	else              ntrs = 0;
+	end
+      end
       if(ntrs == 0)
 	fprintf('ERROR: with %s\n',instem);
 	return;
@@ -398,7 +405,15 @@ for slice = firstslice:lastslice
       % Load or synthsize data %
       if(SynthSeed == 0)
         % Load the data for this slice %
-        [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(instem);
+	if(~s.UseMRIread)
+	  [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(instem);
+	else
+	  mri = MRIread(instem,1);
+	  nrows = mri.volsize(2);
+	  ncols = mri.volsize(1);
+	  ntp = mri.nframes;
+	  ns = mri.volsize(3);
+	end
 	if(~isempty(s.TauMaxWhiten) & s.TauMaxWhiten ~= 0)
 	  if(run == 1) ntprun = ntp;
 	  else
@@ -411,8 +426,13 @@ for slice = firstslice:lastslice
 	    end
 	  end
 	end
-	fname = sprintf('%s_%03d.%s',instem,slice,bext);
-        y = fmri_ldbfile(fname);
+	if(~s.UseMRIread)
+	  fname = sprintf('%s_%03d.%s',instem,slice,bext);
+	  y = fmri_ldbfile(fname);
+	else
+	  mri = MRIread(instem);
+	  y = squeeze(mri.vol(:,:,slice+1,:));
+	end
       else
         %fprintf(1,'       Synthesizing Data for Slice %d \n',slice);
         y = randn(ntrs, nrows, ncols);
@@ -669,6 +689,9 @@ for slice = firstslice:lastslice
         fprintf('INFO: performing FTest on omnibus\n');
         fprintf('      NOTE: if this hangs, try running selxavg-sess\n');
         fprintf('      with the -noomnibus flag.\n');
+	if(s.UseMRIread)
+	  fprintf('Using MRIread(), which can slow things down.\n');
+	end
       end
       p = sign(F) .* FTest(NTaskAvgs,DOF,abs(F));
       indz = find(p==0);
@@ -1007,6 +1030,7 @@ function s = sxa_struct
   s.loginput = 0;
   s.funcstem = '';
   s.nyqreg = 0; % nyquist regressor
+  s.UseMRIread = 0;
 return;
 
 %--------------------------------------------------%
@@ -1117,21 +1141,8 @@ function s = parse_args(varargin)
         s.TauMaxWhiten = sscanf(inputargs{narg},'%f',1);
         if(s.TauMaxWhiten > 0)
           s.AutoWhiten = 1;
-          s.SaveErrCovMtx = 1;
         end
         narg = narg + 1;
-
-      case {'-whiten'} 
-        s.WhitenFlag = 1; 
-        % Requires that -whtnmtx be specified for each run
-        % the whtn matrix will be stored in matlab4 format
-        % in the variable named W.
-
-      case {'-noautowhiten'} % To ease recursive calls
-        s.NoAutoWhiten = 1;
-        s.AutoWhiten = 0;
-        s.TauMaxWhiten = 0;
-        s.SecondPass = 1;
 
       case {'-mask'},
         arg1check(flag,narg,ninputargs);
@@ -1328,6 +1339,10 @@ function s = parse_args(varargin)
       case '-verbose',
         s.verbose = 1;
 
+      case {'-mriread'}
+        s.UseMRIread = 1;
+	fprintf('Using MRIread()\n');
+  
       case '-log',
         s.loginput = 1;
 
@@ -1386,11 +1401,19 @@ function s = check_params(s)
 
   if(s.nslices < 0)
     instem = deblank(s.invollist(1,:));
-    [s.nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+    if(~s.UseMRIread)
+      [s.nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+    else
+      mri = MRIread(instem,1);
+      if(~isempty(mri)) s.nslices = mri.volsize(3);
+      else              s.nslices = 0;
+      end
+    end
     if(s.nslices == 0) 
       fprintf(2,'ERROR: Volume %s does not exist\n',instem);
       s=[]; return;
     end      
+    fprintf('nslices = %d\n',s.nslices);
   end
 
   if(npars ~= 0 & ~isempty(s.parname) ) 

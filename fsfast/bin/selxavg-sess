@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.16 2006/07/11 22:25:25 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.16 2006/07/11 22:25:25 greve Exp $';
+# $Id: selxavg-sess,v 1.17 2006/10/19 03:56:22 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.17 2006/10/19 03:56:22 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -26,6 +26,7 @@ set nolog = 0;
 set monly = 0;
 set MLF = ();
 set sxamver = ();
+set UseMRIread = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -280,6 +281,7 @@ foreach sess ($SessList)
   if($loginput)    set cmd = ($cmd -log)
   if($monly)       set cmd = ($cmd -monly $MLF)
   if($#sxamver)    set cmd = ($cmd -sxamver $sxamver)
+  if($UseMRIread)  set cmd = ($cmd -mriread)
 
   set cmd = ($cmd $whtnmtx)
   echo "--------------------------------------------------------" |& tee -a $LF
@@ -428,6 +430,10 @@ while( $#argv != 0 )
 
     case "-log":
       set loginput = 1;
+      breaksw
+
+    case "-mriread":
+      set UseMRIread = 1; 
       breaksw
 
     case "-verbose":
