@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.6 2006/10/19 03:21:03 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.7 2006/10/19 04:51:25 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -73,6 +73,7 @@ nskip = 0;
 ncycles = 0;
 delay = 0;
 nspmhrfderiv = -1;
+gammafit = 0;
 spmhrffit = 0;
 cfg  = sprintf('%s/analysis.cfg',anadir);
 fp = fopen(cfg,'r');
@@ -102,7 +103,6 @@ while(1)
    case '-spmhrf',     
     nspmhrfderiv = sscanf(tline,'%*s %d',1);
     spmhrffit = 1;
-    gammafit = 0;
    case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
    case '-TER',        TER         = sscanf(tline,'%*s %f',1);
    case '-autowhiten', flac.whiten = 1;
@@ -145,7 +145,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
 		      n,n,nspmhrfderiv,TER);
     else
       tline = sprintf('EV Condition%02d fir task %d %g %g %g %g',...
-		      n,n,prestim,timewindow-prestim,TER);
+		      n,n,-prestim,timewindow-prestim,TER);
       
     end
     flac.ev(nthev) = flac_ev_parse(tline);
@@ -185,6 +185,7 @@ tmpstr = sprintf('%s/*.mat',anadir);
 clist = dir(tmpstr);
 ncontrasts = length(clist);
 for nthcon = 1:ncontrasts
+  fprintf('%2d %s\n',nthcon,clist(nthcon).name);
   tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
   cspec = load(tmpstr);
   flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
@@ -250,8 +251,9 @@ for nthcon = 1:ncontrasts
   % a variable number of regressors
   flactmp = flac_conmat(flac,nthcon);
   if(isempty(flactmp))
-    fprintf('ERROR: with contrast %s in %s\n',...
-	    flac.con(nthcon).name,flacfile);
+    fprintf('ERROR: with contrast %s in anadir %s\n',...
+	    flac.con(nthcon).name,anadir);
+    keyboard
     flac = [];
     return;
   end
