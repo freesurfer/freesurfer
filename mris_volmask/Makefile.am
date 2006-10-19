@@ -31,6 +31,9 @@ install-exec-hook:
 else
 bin_PROGRAMS =
 EXTRA_DIST = 
+all:
+	@echo "Building VTK apps not enabled."
+	@echo "Run configure with either --enable-vtk-apps or --with-vtk-dir=DIR"
 install-exec-hook:
 endif
 

@@ -31,6 +31,9 @@ install-exec-hook:
 	echo "tksurfer.bin \$$argv" >> $(bindir)/tksurfer
 	chmod a+x $(bindir)/tksurfer
 else
+all:
+	@echo "Building Tcl/Tk apps not enabled."
+	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 install-exec-hook:
 endif
 

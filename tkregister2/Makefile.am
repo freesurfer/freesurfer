@@ -28,6 +28,9 @@ install-exec-hook:
 	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
 	chmod a+x $(bindir)/tkregister2
 else
+all:
+	@echo "Building Tcl/Tk apps not enabled."
+	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 install-exec-hook:
 endif
 

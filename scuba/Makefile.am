@@ -158,6 +158,10 @@ endif
 
 if ENABLE_TCLTK_APPS
   SCUBA_TCLTK=scuba
+else
+all:
+	@echo "Building Tcl/Tk apps not enabled."
+	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 endif
 if ENABLE_QT_APPS
   SCUBA_QT=scuba2 ${SCUBA_BUNDLE_TARGET}

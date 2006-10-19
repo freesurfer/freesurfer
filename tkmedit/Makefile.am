@@ -36,6 +36,9 @@ install-exec-hook:
 	echo "tkmedit.bin \$$argv" >> $(bindir)/tkmedit
 	chmod a+x $(bindir)/tkmedit
 else
+all:
+	@echo "Building Tcl/Tk apps not enabled."
+	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 install-exec-hook:
 endif
 

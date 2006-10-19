@@ -55,6 +55,9 @@ install-exec-hook:orient_mri
 
 else
 bin_PROGRAMS = 
+all:
+	@echo "Building KWWidgets apps not enabled."
+	@echo "Run configure with either --enable-kww-apps or --with-KWWidgets-dir=DIR"
 install-exec-hook:
 endif
 
