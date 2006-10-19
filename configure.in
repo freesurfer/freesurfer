@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.238 2006/10/19 17:22:06 nicks Exp $"
+# "$Id: configure.in,v 1.239 2006/10/19 18:15:30 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -480,9 +480,10 @@ TCL_CFLAGS=""
 TCL_LIBS=""
 TCL_LIB=""
 TCL_DIR=""
-tcltk_apps=NO
+tcltk_apps="NO"
 
-AC_MSG_CHECKING(Tcl/Tk directory)
+AC_MSG_CHECKING(Tcl/Tk config)
+
 AC_ARG_WITH(tcl-dir,
 [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
   [  ac_tcl_includes="$withval"/include
@@ -499,12 +500,12 @@ if test ! "$ac_tcl_libraries" = "NO"; then
   TCL_LIBS=-L$ac_tcl_libraries
   TCL_LIB=$ac_tcl_libraries
   TCL_DIR=$ac_tcl_dir
-  tcltk_apps=yes
+  tcltk_apps="yes"
 fi
 
 AC_ARG_ENABLE(tcltk-apps,
  [  --enable-tcltk-apps     enable building Tcl/Tk-based apps],
- [ tcltk_apps=yes
+ [ tcltk_apps="yes"
  ])
 
 if test "$tcltk_apps" = "yes"; then
@@ -746,7 +747,9 @@ ac_vtk_dir="NO"
 VTK_CFLAGS=""
 VTK_CXXFLAGS=""
 VTK_LIBS=""
-AC_MSG_CHECKING(VTK directory)
+vtk_apps="NO"
+
+AC_MSG_CHECKING(VTK config)
 
 AC_ARG_WITH(vtk-dir,
   [  --with-vtk-dir=DIR      where the root of VTK is installed.],
@@ -767,16 +770,26 @@ if test ! "$ac_vtk_includes" = "NO"; then
   VTK_CFLAGS="${VTK_CFLAGS} -I$ac_vtk_includes"
   VTK_CXXFLAGS="${VTK_CXXFLAGS} -I$ac_vtk_includes"
   VTK_DIR=$ac_vtk_dir
+  vtk_apps="yes"
   AC_SUBST(VTK_DIR)
-else
-  AC_MSG_RESULT(VTK directory is not supplied. Not building VTK apps.)
 fi
 
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
 fi
 
-AM_CONDITIONAL(ENABLE_VTK_APPS, test ! "x$ac_vtk_libraries" = "xNO")
+AC_ARG_ENABLE(vtk-apps,
+ [  --enable-vtk-apps       enable building VTK-based apps],
+ [ vtk_apps="yes"
+ ])
+
+if test "$vtk_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of VTK apps.])
+else
+  AC_MSG_RESULT([Not building VTK apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_VTK_APPS, test "$vtk_apps" = "yes")
 
 AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
@@ -792,7 +805,9 @@ ac_kwwidgets_dir="NO"
 KWWIDGETS_CFLAGS=""
 KWWIDGETS_CXXFLAGS=""
 KWWIDGETS_LIBS=""
-AC_MSG_CHECKING(KWWidgets directory)
+kww_apps="NO"
+
+AC_MSG_CHECKING(KWWidgets config)
 
 AC_ARG_WITH(kwwidgets-dir,
   [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
@@ -809,8 +824,7 @@ if test ! "$ac_kwwidgets_includes" = "NO"; then
   done
   KWWIDGETS_DIR=$ac_kwwidgets_dir
   AC_SUBST(KWWIDGETS_DIR)
-else
-  AC_MSG_RESULT(KWWidgets directory is not supplied. Not building KWWidgets apps.)
+  kww_apps="yes"
 fi
 
 if test ! "$ac_kwwidgets_libraries" = "NO"; then
@@ -821,7 +835,18 @@ if test ! "$ac_kwwidgets_libraries" = "NO"; then
   AC_SUBST(KWWIDGETS_DIR)
 fi
 
-AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test ! "x$ac_kwwidgets_libraries" = "xNO")
+AC_ARG_ENABLE(kww-apps,
+ [  --enable-kww-apps       enable building KWWidgets-based apps],
+ [ kww_apps="yes"
+ ])
+
+if test "$kww_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of KWWidgets apps.])
+else
+  AC_MSG_RESULT([Not building KWWidgets apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
 
 AC_SUBST(KWWIDGETS_CFLAGS)
 AC_SUBST(KWWIDGETS_CXXFLAGS)
