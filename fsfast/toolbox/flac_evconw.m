@@ -4,7 +4,7 @@ function [evw, evrw, hit] = flac_evconw(flac,nthev,nthcon)
 % Retuns the weights of the nth EV as found in the nth contrast. If
 % the EV is not specified in the contrast, hit = 0;
 %
-% $Id: flac_evconw.m,v 1.1 2004/10/18 05:51:50 greve Exp $
+% $Id: flac_evconw.m,v 1.2 2006/10/19 04:49:30 greve Exp $
 
 evw = [];
 evrw = [];
@@ -37,8 +37,10 @@ for nthconev = 1:nevscon
       evrw = ones(1,flac.ev(nthev).nreg);
     end
     if(length(evrw) ~= flac.ev(nthev).nreg)
-      fprintf('ERROR: flac_evconw: %s, %s evrw dim mismatch\n',...
+      fprintf('ERROR: flac_evconw(): %s, %s evrw dim mismatch\n',...
 	      con.name,flac.ev(nthev).name);
+      fprintf('This condition has %d regressors, but evrm has %d\n',...
+	      flac.ev(nthev).nreg,length(evrw));
       evw = []; evrw = [];
       return;
     end
