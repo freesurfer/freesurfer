@@ -133,7 +133,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.13 2006/09/29 03:58:56 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.14 2006/10/19 06:36:09 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -190,11 +190,11 @@ int main(int argc, char *argv[])
 
   if(debug) dump_options(stdout);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
+  //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  //  if(SUBJECTS_DIR == NULL){
+  //    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+  //    exit(1);
+  //  }
   if(DiffFile){
     if(fio_FileExistsReadable(DiffFile)) unlink(DiffFile);
     if(fio_FileExistsReadable(DiffFile)){
