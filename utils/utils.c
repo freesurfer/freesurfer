@@ -12,9 +12,9 @@
   Description: miscellaneous utility functions
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
-  // Revision Author: $Author: nicks $
-  // Revision Date  : $Date: 2006/10/02 16:44:59 $
-  // Revision       : $Revision: 1.56 $
+  // Revision Author: $Author: greve $
+  // Revision Date  : $Date: 2006/10/19 17:19:10 $
+  // Revision       : $Revision: 1.57 $
 
   ------------------------------------------------------------------------*/
 
@@ -1133,7 +1133,9 @@ char *strcpyalloc(char *str)
 int ItemsInString(char *str)
 {
   int items, nthchar, len;
+
   len = strlen(str);
+  if(len == 0) return(-1);
 
   items = 0;
   nthchar = 0;
