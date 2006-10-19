@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # inorm-sess - 
 #
-# $Id: inorm-sess,v 1.4 2006/04/19 23:02:51 greve Exp $
-set VERSION = '$Id: inorm-sess,v 1.4 2006/04/19 23:02:51 greve Exp $'
+# $Id: inorm-sess,v 1.5 2006/10/19 18:01:42 greve Exp $
+set VERSION = '$Id: inorm-sess,v 1.5 2006/10/19 18:01:42 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -127,11 +127,10 @@ foreach sess ($SessList)
 
   #### Prepare the script #####
   if(! -d scripts) mkdir scripts
-  set SF = scripts/run-inorm
+  set SF = /tmp/run-inorm.$$
   rm -f $SF
   touch $SF
   echo "#\!/bin/csh -f" >> $SF
-  echo "cd .."  >> $SF
 
   #### Add all the commands to the script ####
   foreach run ($RunList)  
@@ -167,8 +166,7 @@ foreach sess ($SessList)
 
   ###### Now, run the script if desired ######
   if(! $ScriptOnly) then
-    cd scripts
-    ./run-inorm |& tee -a $LF
+    $SF |& tee -a $LF
     if($status || $#RunList == 0) then
       echo "ERROR: inorm failed"  |& tee -a $LF
       exit 1;
