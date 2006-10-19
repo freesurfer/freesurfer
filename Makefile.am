@@ -117,6 +117,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_watershed \
 	mri_wmfilter \
 	mri_xvolavg \
+	mri_z2p \
 	mri_threshold \
 	mri_edit_wm_with_aseg \
 	mri_bc_sc_bias_correct \
