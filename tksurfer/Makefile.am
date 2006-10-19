@@ -30,6 +30,8 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tksurfer
 	echo "tksurfer.bin \$$argv" >> $(bindir)/tksurfer
 	chmod a+x $(bindir)/tksurfer
+else
+install-exec-hook:
 endif
 
 # Our release target. Include files to be excluded here. They will be

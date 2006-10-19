@@ -685,6 +685,7 @@ endif
 
 .PHONY: scuba_bundle
 
+if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
 	mv $(srcdir)/scuba $(bindir)/scuba.bin
@@ -692,6 +693,9 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(bindir)/scuba
 	chmod a+x $(bindir)/scuba
+else
+install-exec-hook:
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

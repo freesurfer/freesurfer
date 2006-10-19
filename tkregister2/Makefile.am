@@ -27,6 +27,8 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
 	chmod a+x $(bindir)/tkregister2
+else
+install-exec-hook:
 endif
 
 # Our release target. Include files to be excluded here. They will be

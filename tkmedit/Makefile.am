@@ -35,6 +35,8 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkmedit
 	echo "tkmedit.bin \$$argv" >> $(bindir)/tkmedit
 	chmod a+x $(bindir)/tkmedit
+else
+install-exec-hook:
 endif
 
 # Our release target. Include files to be excluded here. They will be
