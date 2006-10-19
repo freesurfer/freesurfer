@@ -57,7 +57,7 @@ else
 bin_PROGRAMS = 
 all:
 	@echo "Building KWWidgets apps not enabled."
-	@echo "Run configure with either --enable-kww-apps or --with-KWWidgets-dir=DIR"
+	@echo "Run configure with either --enable-kww-apps or --with-kwwidgets-dir=DIR"
 install-exec-hook:
 endif
 
