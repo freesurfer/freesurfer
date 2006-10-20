@@ -1,7 +1,7 @@
 function Xirf = flac_ev2irf(flac,nthev)
 % Xirf = flac_ev2irf(flac,nthev)
 %
-% $Id: flac_ev2irf.m,v 1.3 2006/10/15 21:12:49 greve Exp $
+% $Id: flac_ev2irf.m,v 1.4 2006/10/20 03:39:58 greve Exp $
 
 Xirf = [];
 if(nargin ~= 2)
@@ -41,6 +41,7 @@ switch(ev.model)
   dpsd   = ev.params(5);
   t = dpsd*[0:ev.npsd-1]';
   Xirf = fmri_hemodyn(t,delay,tau,alpha);
+  Xirf = Xirf/max(Xirf); % consistent with selxavg
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
