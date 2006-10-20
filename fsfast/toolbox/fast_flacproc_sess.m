@@ -1,5 +1,10 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.17 2006/10/16 03:01:30 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.18 2006/10/20 05:23:01 greve Exp $
+
+% Things to fix:
+% 1. FIR - does not work for prestim != 0
+% 2. FFX computation of gamma covarmtx not correct
+% 3. Saving in sxa format
 
 % flacfile = '$flacfile';
 % sess = '$sess';
