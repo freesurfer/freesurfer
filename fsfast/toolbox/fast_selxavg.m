@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.27 2006/10/19 03:56:22 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.28 2006/10/20 03:38:41 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.27 2006/10/19 03:56:22 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.28 2006/10/20 03:38:41 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -156,7 +156,24 @@ SubSampRate = round(TR/TER);
 % Get basic info from the first run %
 instem = deblank(instemlist(1,:));
 [nslices nrows ncols ntrs] = fmri_bvoldim(instem);
-mristruct = fast_ldbhdr(instem);
+if(~s.UseMRIread)  
+  mristruct = fast_ldbhdr(instem);
+else
+  mri = MRIread(instem,1);
+  mristruct.te = mri.te;
+  mristruct.tr = mri.tr;
+  mristruct.ti = mri.ti;
+  mristruct.flip_angle = mri.flip_angle;
+  mristruct.voldim = [size(mri.vol,1) size(mri.vol,2) size(mri.vol,3)];
+  mristruct.nframes = size(mri.vol,4);
+  mristruct.T = mri.vox2ras0;
+  % Recompute voxel size based on vox2ras, to assure that
+  % things only depend upon vox2ras0.
+  xsize = sqrt(sum(mri.vox2ras0(:,1).^2)); 
+  ysize = sqrt(sum(mri.vox2ras0(:,2).^2));
+  zsize = sqrt(sum(mri.vox2ras0(:,3).^2));
+  mristruct.volres = [mri.xsize mri.ysize mri.zsize];
+end
 rstd = MRIread(instem,1);
 rstd.vol = zeros(rstd.volsize);
 
@@ -430,8 +447,11 @@ for slice = firstslice:lastslice
 	  fname = sprintf('%s_%03d.%s',instem,slice,bext);
 	  y = fmri_ldbfile(fname);
 	else
-	  mri = MRIread(instem);
-	  y = squeeze(mri.vol(:,:,slice+1,:));
+	  if(slice == 0 & Pass == 1)  
+	    fprintf('       Loading %s\n',instem);
+	    ymri(run) = MRIread(instem); 
+	  end
+	  y = squeeze(ymri(run).vol(:,:,slice+1,:));
 	end
       else
         %fprintf(1,'       Synthesizing Data for Slice %d \n',slice);
