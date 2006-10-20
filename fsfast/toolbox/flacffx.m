@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.8 2006/09/22 04:16:43 greve Exp $
+% $Id: flacffx.m,v 1.9 2006/10/20 04:31:31 greve Exp $
 %
 
 Fsig = [];
@@ -102,6 +102,8 @@ for nthrun = 1:nruns
   
   % Load the residual variances
   rvarrun = MRIread(flac.rvarfspec);
+
+  % Compute and accumulate sum of squares
   ssrrun = dofrun*rvarrun.vol;
   if(jthrun == 1)
     ssr = rvarrun;
