@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.10 2006/10/15 21:12:49 greve Exp $
+% $Id: flac_ev_parse.m,v 1.11 2006/10/20 03:34:48 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -127,7 +127,7 @@ switch (ev.model)
 
   [item c] = sscanfitem(tline,7);
   if(c ~= 1) fprintf('Format error: %s: dispersion\n',ev.model); ev=[]; return; end
-  ev.params(2) = sscanf(item,'%d',1); % dispersion (sec)
+  ev.params(2) = sscanf(item,'%f',1); % dispersion (sec)
 
   [item c] = sscanfitem(tline,8);
   if(c ~= 1) fprintf('Format error: %s: alpha\n',ev.model); ev=[]; return; end
@@ -159,7 +159,7 @@ switch (ev.model)
 
   [item c] = sscanfitem(tline,7);
   if(c ~= 1) fprintf('Format error: %s: stddev\n',ev.model); ev=[]; return; end
-  ev.params(2) = sscanf(item,'%d',1); % stddev (sec)
+  ev.params(2) = sscanf(item,'%f',1); % stddev (sec)
 
   [item c] = sscanfitem(tline,8);
   if(c ~= 1) fprintf('Format error: %s: meanlag\n',ev.model); ev=[]; return; end
