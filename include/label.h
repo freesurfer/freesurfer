@@ -5,8 +5,8 @@
 #ifndef LABEL_H
 #define LABEL_H
 
+#include "minc_volume_io.h"
 #include "matrix.h"
-#include "volume_io.h"
 
 typedef struct
 {

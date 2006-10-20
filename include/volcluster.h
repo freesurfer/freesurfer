@@ -5,6 +5,9 @@
 #include "mri.h"
 #include "label.h"
 
+#undef SIGN
+#define SIGN(x) (((x)>0)? 1.0 : -1.0 )
+
 typedef struct {
   int nmembers;
   int *col;

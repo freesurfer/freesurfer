@@ -6,6 +6,9 @@
 #include "mrisurf.h"
 #include "label.h"
 
+#undef SIGN
+#define SIGN(x) (((x)>0)? 1.0 : -1.0 )
+
 /* Surface Cluster Summary */
 typedef struct {
   int   clusterno;

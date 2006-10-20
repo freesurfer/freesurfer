@@ -1,8 +1,5 @@
-/* sorry about this - the includes have gotten circular, and I don't
-   know how else to fix it without incurring way too much pain.
-*/
 
-/* $Id : $Exp */
+/* $Id: mrisurf.h,v 1.265 2006/10/20 22:16:52 nicks Exp $ */
 
 #ifndef LABEL_INCLUDED
 #define LABEL_INCLUDED
@@ -17,9 +14,9 @@
 #ifndef MRISURF_H
 #define MRISURF_H
 
+#include "minc_volume_io.h"
 #include "macros.h"
 #include "mri.h"
-#include "volume_io.h"
 #include "image.h"
 #include "matrix.h"
 #include "transform.h"

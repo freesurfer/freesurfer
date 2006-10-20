@@ -1,14 +1,12 @@
 #ifndef mriVolume_h
 #define mriVolume_h
 
-#include "volume_io.h"
 #include "mri.h"
 #include "xTypes.h"
 #include "xVoxel.h"
 #include "mriTypes.h"
 #include "mriTransform.h"
 #include "transform.h"
-
 
 /* Enable this to turn macros on, see details below. */
 #define VOLM_USE_MACROS

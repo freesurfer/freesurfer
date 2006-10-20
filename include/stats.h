@@ -3,10 +3,7 @@
 
 #include "matrix.h"
 #include "mri.h"
-
-//These are included below
-//#include "mrisurf.h"
-//#include "resample.h"
+#include "minc_volume_io.h"
 
 typedef struct
 {

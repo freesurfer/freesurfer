@@ -3,7 +3,6 @@
 
 #include "gclass.h"
 #include "mri.h"
-#include "volume_io.h"
 
 /*
   the classifiers are spaced so that there is scale/2 padding at each
