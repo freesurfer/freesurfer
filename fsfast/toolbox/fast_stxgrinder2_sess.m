@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.5 2003/12/16 18:12:18 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.6 2006/10/20 05:21:48 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -77,6 +77,15 @@ for nthsess = 1:nsess
       C = tmp.ContrastMtx_0;
       J = size(C,1);
 
+      % Compute variance reduction factor
+      slice = 0;
+      hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
+      [beta rvar hd] = fast_ldsxabfile(hAvgFile);
+      Ch = hd.hCovMtx;
+      concvm = C*Ch*C';
+      convrf = 1/mean(diag(concvm));
+      fprintf('     VRF: %g\n',convrf);
+	  
       % Loop over each slice separately %
       fprintf('     slice ');
       for slice = 0:nslices-1
