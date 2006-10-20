@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.9 2006/10/20 04:31:31 greve Exp $
+% $Id: flacffx.m,v 1.10 2006/10/20 05:20:48 greve Exp $
 %
 
 Fsig = [];
@@ -129,9 +129,10 @@ for nthrun = 1:nruns
       gam(nthcon) = betarun; 
       gam(nthcon).vol = 0;
     end
+    % Accumulate (need to divide by nruns)
     gam(nthcon).vol = gam(nthcon).vol + gamrun;
-    
-    % Commpute the variance reduction factor or matrix
+
+    % Compute the variance reduction factor or matrix
     for nthseg = 1:nseg+1
       if(nthseg == 1) S = eye(flac.ntp);
       else
@@ -142,6 +143,7 @@ for nthrun = 1:nruns
       if(jthrun == 1) % jk
 	flac.con(nthcon).cixtxct(:,:,nthseg) = zeros(J); 
       end
+    % Accumulate (need to divide by nruns)
       flac.con(nthcon).cixtxct(:,:,nthseg) = ...
 	  flac.con(nthcon).cixtxct(:,:,nthseg) + cixtxctrun;
     end % seg
@@ -150,10 +152,14 @@ for nthrun = 1:nruns
   
 end % run
 
-betamn.vol  = betamn.vol/nruns_use;
-
+% Divide by number of runs
 rvar = ssr;
 rvar.vol = ssr.vol/dof;
+betamn.vol  = betamn.vol/nruns_use;
+for nthcon = conind
+  gam(nthcon).vol = gam(nthcon).vol/nruns_use;
+  flac.con(nthcon).cixtxct = flac.con(nthcon).cixtxct/(nruns_use.^2);
+end
 
 if(saveresults)
   outfspec = sprintf('%s/beta.%s',flaffxdir,flac.format);
@@ -199,7 +205,7 @@ for nthcon = conind
       tmp = tmp .* gam(nthcon).vol(:,indseg);
     end      
     F.vol(indseg) = tmp./(J*rvar.vol(indseg)');
-    cescvm.vol(:,indseg) = reshape1d(inv_cixtxct) * rvar.vol(indseg)'; %outerproduct 
+    cescvm.vol(:,indseg) = reshape1d(cixtxct) * rvar.vol(indseg)'; %outerproduct 
   end % seg
   p = F;
   p.vol = FTest(J, dof, F.vol);
