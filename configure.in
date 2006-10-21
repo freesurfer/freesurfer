@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.240 2006/10/20 00:04:01 nicks Exp $"
+# "$Id: configure.in,v 1.241 2006/10/21 16:47:16 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -448,13 +448,13 @@ AC_MSG_CHECKING(VXL directory)
 
 AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR      where the root of VXL is installed.],
-  [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib"
+  [  ac_vxl_includes="$withval/include/core $withval/include/vcl $withval/include/v3p/netlib $withval/include/v3p/netlib/opt"
      ac_vxl_libraries="$withval"/lib
   ])
 
 AC_ARG_WITH(vxl-include,
   [  --with-vxl-include=DIR      root of VXL include directory.],
-  [  ac_vxl_includes="$withval/core $withval/vcl $withval/v3p/netlib"
+  [  ac_vxl_includes="$withval/core $withval/vcl $withval/v3p/netlib $withval/v3p/netlib/opt"
   ])
 
 AC_ARG_WITH(vxl-libraries,
@@ -1231,8 +1231,7 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS \
-$JPEG_CFLAGS $TIFF_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS $VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS="-lvnl_algo -lvnl -lvcl -lnetlib $LIBS"
