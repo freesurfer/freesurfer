@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $";
+"$Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -22,20 +22,6 @@ static char vcid[] =
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#include "error.h"
-#include "diag.h"
-#include "utils.h"
-#include "const.h"
-#include "machine.h"
-#include "MRIio_old.h"
-#include "mri.h"
-#include "mrisurf.h"
-#include "mri_identify.h"
-#include "registerio.h"
-#include "version.h"
-#include "fio.h"
-#include "pdf.h"
 
 #define TCL8
 
@@ -91,6 +77,20 @@ static char vcid[] =
 #  include <gl.h>
 #  include <device.h>
 #endif
+
+#include "error.h"
+#include "diag.h"
+#include "utils.h"
+#include "const.h"
+#include "machine.h"
+#include "MRIio_old.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "mri_identify.h"
+#include "registerio.h"
+#include "version.h"
+#include "fio.h"
+#include "pdf.h"
 
 /* Prototypes */
 
@@ -4104,7 +4104,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.63 2006/09/13 18:02:37 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
