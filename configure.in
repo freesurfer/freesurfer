@@ -5,7 +5,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.241 2006/10/21 16:47:16 nicks Exp $"
+# "$Id: configure.in,v 1.242 2006/10/21 20:44:13 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -500,6 +500,16 @@ AC_ARG_WITH(tcl-dir,
   [  ac_tcl_includes="$withval"/include
      ac_tcl_libraries="$withval"/lib
      ac_tcl_dir="$withval"
+  ])
+
+AC_ARG_WITH(tcl-include,
+  [  --with-tcl-include=DIR      root of Tcl/Tk include directory.],
+  [  ac_tcl_includes="$withval"
+  ])
+
+AC_ARG_WITH(tcl-libraries,
+  [  --with-tcl-libraries=DIR    root of Tcl/Tk lib directory.],
+  [  ac_tcl_libraries="$withval"
   ])
 
 if test ! "$ac_tcl_includes" = "NO"; then
@@ -1232,7 +1242,7 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # some common flags and libs
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $CPPUNIT_LIBS $VXL_LIBS"
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $VXL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS="-lvnl_algo -lvnl -lvcl -lnetlib $LIBS"
 
