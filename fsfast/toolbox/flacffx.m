@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.10 2006/10/20 05:20:48 greve Exp $
+% $Id: flacffx.m,v 1.11 2006/10/22 04:23:19 greve Exp $
 %
 
 Fsig = [];
@@ -118,48 +118,84 @@ for nthrun = 1:nruns
   flacproc = load(matfile);
   nseg = size(flacproc.nacfseg,2);
   
-  % Go through each contrast
+  % Go through each contrast -------------------------
   for nthcon = conind
-    C = flac.con(nthcon).C;
-    J = size(C,1);
-
-    % Compute gamma
-    gamrun = C*betarun.vol;
+    % Load gamma and gamma covar mtx for this run
+    gamrun = MRIread(flac.con(nthcon).gamfspec);
+    gamcvmrun = MRIread(flac.con(nthcon).gamcvmfspec);
     if(jthrun == 1) % jk
-      gam(nthcon) = betarun; 
+      gam(nthcon) = gamrun;  % copy struct
       gam(nthcon).vol = 0;
+      gamcvm(nthcon) = gamcvmrun; % copy struct
+      gamcvm(nthcon).vol = 0;
     end
-    % Accumulate (need to divide by nruns)
-    gam(nthcon).vol = gam(nthcon).vol + gamrun;
-
-    % Compute the variance reduction factor or matrix
-    for nthseg = 1:nseg+1
-      if(nthseg == 1) S = eye(flac.ntp);
-      else
-	nacf = flacproc.nacfseg(:,nthseg-1);
-	S = toeplitz(nacf);
-      end
-      cixtxctrun = C*inv(flac.X'*inv(S)*flac.X)*C';
-      if(jthrun == 1) % jk
-	flac.con(nthcon).cixtxct(:,:,nthseg) = zeros(J); 
-      end
-    % Accumulate (need to divide by nruns)
-      flac.con(nthcon).cixtxct(:,:,nthseg) = ...
-	  flac.con(nthcon).cixtxct(:,:,nthseg) + cixtxctrun;
-    end % seg
-  
+    % Accumulate (will need to divide by nruns or nruns^2)
+    gam(nthcon).vol    = gam(nthcon).vol    + gamrun.vol;
+    gamcvm(nthcon).vol = gamcvm(nthcon).vol + gamcvmrun.vol;
   end % con
   
 end % run
 
-% Divide by number of runs
+% Divide by number of runs (or nruns^2)
 rvar = ssr;
 rvar.vol = ssr.vol/dof;
 betamn.vol  = betamn.vol/nruns_use;
 for nthcon = conind
   gam(nthcon).vol = gam(nthcon).vol/nruns_use;
-  flac.con(nthcon).cixtxct = flac.con(nthcon).cixtxct/(nruns_use.^2);
+  gamcvm(nthcon).vol = gamcvm(nthcon).vol/(nruns_use.^2);
 end
+
+mask = MRIread(flac.maskfspec);
+indmask = find(mask.vol);
+nmask = length(indmask);
+fprintf('nmask = %d\n',nmask);
+F = mask; % copy struct
+
+for nthcon = conind
+  C = flac.con(nthcon).C;
+  J = size(C,1);
+  g = fast_vol2mat(gam(nthcon).vol);
+  gamcovarmtx = fast_vol2mat(gamcvm(nthcon).vol);
+  F.vol = zeros(F.volsize);
+  % F = gam'*inv(gamcvm)*gam/J
+  for ind = indmask'
+    gcvm = reshape(gamcovarmtx(:,ind),[J J]);
+    invgcvm = inv(gcvm);
+    F.vol(ind) = g(:,ind)' * invgcvm * g(:,ind);
+  end
+  
+  p = F;
+  p.vol = FTest(J, dof, F.vol);
+  ind0 = find(p.vol == 0);
+  p.vol(ind0) = eps;
+  Fsig = p;
+  Fsig.vol = -log10(p.vol);
+
+  if(J == 1)
+    F.vol    = F.vol    .* sign(gam(nthcon).vol);
+    Fsig.vol = Fsig.vol .* sign(gam(nthcon).vol);
+  end
+
+  if(saveresults)
+    condir = sprintf('%s/%s',flaffxdir,flac.con(nthcon).name);
+    mkdirpcmd = sprintf('mkdir -p %s',condir);
+    unix(mkdirpcmd);
+
+    outfspec = sprintf('%s/f.%s',condir,flac.format);
+    MRIwrite(F,outfspec);
+  
+    outfspec = sprintf('%s/sig.%s',condir,flac.format);
+    MRIwrite(Fsig,outfspec);
+  
+    outfspec = sprintf('%s/ces.%s',condir,flac.format);
+    MRIwrite(gam(nthcon),outfspec);
+  
+    outfspec = sprintf('%s/cesvar.%s',condir,flac.format);
+    MRIwrite(gamcvm(nthcon),outfspec);
+  
+  end
+end
+
 
 if(saveresults)
   outfspec = sprintf('%s/beta.%s',flaffxdir,flac.format);
@@ -184,71 +220,7 @@ if(saveresults)
 
 end
 
-% Now go through each contrast and compute the significances
-for nthcon = conind
-  %fprintf('  contrast %s %d/%d\n',flac.con(nthcon).name,nthcon,ncon);
-  C = flac.con(nthcon).C;
-  J = size(C,1);
-  F = gam(nthcon);
-  nvox = size(gam(nthcon).vol,1);
-  F.vol = zeros(1,nvox);
-  cescvm = gam(nthcon);
-  cescvm.vol = zeros(J*J,nvox);
-  for nthseg = 1:nseg+1
-    indseg = find(flacproc.acfseg.vol == nthseg-1);
-    cixtxct = flac.con(nthcon).cixtxct(:,:,nthseg);
-    inv_cixtxct = inv(cixtxct);
-    tmp = (gam(nthcon).vol(:,indseg)' * inv_cixtxct)';
-    if(J > 1)
-      tmp = sum(tmp .* gam(nthcon).vol(:,indseg));
-    else
-      tmp = tmp .* gam(nthcon).vol(:,indseg);
-    end      
-    F.vol(indseg) = tmp./(J*rvar.vol(indseg)');
-    cescvm.vol(:,indseg) = reshape1d(cixtxct) * rvar.vol(indseg)'; %outerproduct 
-  end % seg
-  p = F;
-  p.vol = FTest(J, dof, F.vol);
-  ind = find(p.vol == 0);
-  p.vol(ind) = eps;
-  Fsig = p;
-  Fsig.vol = -log10(p.vol);
-
-  if(J == 1)
-    F.vol    = F.vol    .* sign(gam(nthcon).vol);
-    Fsig.vol = Fsig.vol .* sign(gam(nthcon).vol);
-  end
-
-  F.vol    = fast_mat2vol(F.vol,F.volsize);
-  p.vol    = fast_mat2vol(p.vol,p.volsize);
-  Fsig.vol = fast_mat2vol(Fsig.vol,Fsig.volsize);
-      
-  if(saveresults)
-    condir = sprintf('%s/%s',flaffxdir,flac.con(nthcon).name);
-    mkdirpcmd = sprintf('mkdir -p %s',condir);
-    unix(mkdirpcmd);
-
-    outfspec = sprintf('%s/f.%s',condir,flac.format);
-    MRIwrite(F,outfspec);
-  
-    outfspec = sprintf('%s/sig.%s',condir,flac.format);
-    MRIwrite(Fsig,outfspec);
-  
-    outfspec = sprintf('%s/ces.%s',condir,flac.format);
-    tmp = gam(nthcon);
-    tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
-    MRIwrite(tmp,outfspec);
-  
-    outfspec = sprintf('%s/cesvar.%s',condir,flac.format);
-    tmp = cescvm;
-    tmp.vol = fast_mat2vol(tmp.vol,tmp.volsize);
-    MRIwrite(tmp,outfspec);
-  
-  end
-
-end % con
-
-%fprintf('  flacffx done\n');
+fprintf('  flacffx done\n');
 
 
 
