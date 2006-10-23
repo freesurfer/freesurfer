@@ -111,18 +111,23 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   this->num_evaluations_ = 0;
   this->num_iterations_ = 0;
   int iflag = 0;
+  
+  bool hasOptimalUpdated = true;
+  
   while (true) {
 
     // TODO: addition
-    if( mUserCallbackFunction != NULL ) {
+    if( hasOptimalUpdated && mUserCallbackFunction != NULL ) {
 
-      float *currentX = new float[n+1];
+      float currentX[n+1];
       for(int i=0; i<n; i++) {
         // TODO: legacy one indexing
         currentX[ i+1 ] = static_cast< float >( x(i) );
       }
       ( *mUserCallbackFunction )( currentX );
-      delete[] currentX;
+      
+      // reset
+      hasOptimalUpdated = false;
     }
 
     // We do not wish to provide the diagonal
@@ -142,9 +147,11 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
     if (this->num_evaluations_ == 0) {
       this->start_error_ = f;
       best_f = f;
+      hasOptimalUpdated = true;      
     } else if (f < best_f) {
       best_x = x;
       best_f = f;
+      hasOptimalUpdated = true;      
     }
 
 #define print_(i,a,b,c,d) vcl_cerr<<vcl_setw(6)<<i<<' '<<vcl_setw(20)<<a<<' '\
@@ -238,11 +245,11 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
     }
 
     // step function addition
-    if (step_function_ != NULL) {
+    if (hasOptimalUpdated && step_function_ != NULL) {
 
       // TODO: this could potentially be very expensive
       // TODO: legacy one indexing
-      float *currentX = new float[n+1];
+      float currentX[n+1];
       for(int i=0; i<n; i++) {
         // TODO: legacy one indexing
         currentX[ i+1 ] = static_cast<float>(x(i));
@@ -253,7 +260,6 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
         // TODO: legacy one indexing
         x(i) = static_cast<double>(currentX[ i+1 ]);
       }
-      delete []currentX;
     }
   }
   if (we_trace) vcl_cerr << "done\n";

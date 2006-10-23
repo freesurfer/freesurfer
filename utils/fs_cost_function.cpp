@@ -48,15 +48,13 @@ fs_cost_function::f( const vnl_vector<double> & x )
 {
   int numberOfParameters = x.size();
 
-  float *p = new float[ numberOfParameters + 1 ];
+  float p[ numberOfParameters + 1 ];
 
   // TODO: can't do x.copy_out( p ) because x is
   // of type double and p is float
   copyFromVNLToFloat( p, x, numberOfParameters );
 
   double value = static_cast< double >( ( *mFunction )( p ) );
-
-  delete[] p;
 
   return value;
 }
@@ -68,8 +66,8 @@ fs_cost_function::gradf( vnl_vector<double> const& x,
 {
   int numberOfParameters = static_cast< int >( x.size() );
 
-  float *p = new float[ numberOfParameters + 1 ];
-  float *result = new float[ numberOfParameters + 1 ];
+  float p[ numberOfParameters + 1 ];
+  float result[ numberOfParameters + 1 ];
 
   copyFromVNLToFloat( p, x, numberOfParameters);
 
@@ -78,9 +76,6 @@ fs_cost_function::gradf( vnl_vector<double> const& x,
   for( int i=0; i<numberOfParameters; i++ ) {
     gradient( i ) = static_cast< double >( result[ i+1 ] );
   }
-
-  delete[] p;
-  delete[] result;
 }
 
 
