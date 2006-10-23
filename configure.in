@@ -5,7 +5,7 @@
 #                        -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.245 2006/10/23 21:08:30 nicks Exp $"
+# "$Id: configure.in,v 1.246 2006/10/23 22:42:56 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -1233,6 +1233,31 @@ if test ! "x$vtk_apps" = "xNO"; then
   AC_CHECK_LIB([vtkCommon], [main],[],
     [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
   Set LDFLAGS or --with-vtk-dir.])] )
+
+  # some systems, like Debian, do not include certain VTK libs which are
+  # normally found elsewhere (from their official sources).  so here,
+  # first we declare the commonly found lib, and override if vtk has its
+  # own version installed.
+  VTK_FREETYPE_LIB="-lfreetype"
+  VTK_PNG_LIB="-lpng"
+  VTK_TIFF_LIB="-ltiff"
+  VTK_JPEG_LIB="-ljpeg"
+  VTK_Z_LIB="-lz"
+  VTK_EXPAT_LIB="-lexpat"
+
+  AC_CHECK_LIB([vtkfreetype], [main], [VTK_FREETYPE_LIB="-lvtkfreetype"], [])
+  AC_CHECK_LIB([vtkpng], [main], [VTK_PNG_LIB="-lvtkpng"], [])
+  AC_CHECK_LIB([vtktiff], [main], [VTK_TIFF_LIB="-lvtktiff"], [])
+  AC_CHECK_LIB([vtkjpeg], [main], [VTK_JPEG_LIB="-lvtkjpeg"], [])
+  AC_CHECK_LIB([vtkzlib], [main], [VTK_Z_LIB="-lvtkzlib"], [])
+  AC_CHECK_LIB([vtkexpat], [main], [VTK_EXPAT_LIB="-lvtkexpat"], [])
+
+  AC_SUBST(VTK_FREETYPE_LIB)
+  AC_SUBST(VTK_PNG_LIB)
+  AC_SUBST(VTK_TIFF_LIB)
+  AC_SUBST(VTK_JPEG_LIB)
+  AC_SUBST(VTK_Z_LIB)
+  AC_SUBST(VTK_EXPAT_LIB)
 fi
 
 # check for KWWidget libs only if kww app building is enabled

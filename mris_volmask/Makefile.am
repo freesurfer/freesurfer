@@ -11,12 +11,15 @@ bin_PROGRAMS = mris_volmask
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 $(X_LIBS) $(GL_LIBS) \
-$(VTK_LIBS) \
 -ldl -lpthread \
+$(VTK_LIBS) \
+$(VTK_FREETYPE_LIB) $(VTK_PNG_LIB) \
+$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+$(VTK_Z_LIB) $(VTK_EXPAT_LIB) \
 -lvtkFiltering -lvtkHybrid -lvtkRendering -lvtkGraphics \
--lvtkImaging -lvtkftgl -lvtkfreetype \
+-lvtkImaging -lvtkftgl \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
--lvtkpng -lvtktiff -lvtkzlib -lvtkjpeg -lvtkexpat -lvtksys \
+-lvtksys \
 -lvtkMPEG2Encode -lvtkexoIIc -lvtkNetCDF
 
 # put a wrapper around the bin, used to setup VTK enviro vars
