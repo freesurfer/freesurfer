@@ -50,7 +50,7 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
       ( int itno, float sse, void *parms, float *p ),
      void *params );
 
-  void fs_lbfgs::set_user_callback_function
+  void set_user_callback_function
     (
      void (*userCallbackFunction)(float [])
      );

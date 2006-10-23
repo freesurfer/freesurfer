@@ -7,7 +7,6 @@ AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
 if ENABLE_VTK_APPS
 bin_PROGRAMS = mris_volmask
-EXTRA_DIST = cmd_line_interface.h
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
@@ -30,12 +29,13 @@ install-exec-hook:
 
 else
 bin_PROGRAMS =
-EXTRA_DIST = 
 all:
 	@echo "Building VTK apps not enabled."
 	@echo "Run configure with either --enable-vtk-apps or --with-vtk-dir=DIR"
 install-exec-hook:
 endif
+
+EXTRA_DIST=cmd_line_interface.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
