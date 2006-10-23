@@ -692,11 +692,11 @@ endif
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	mv $(srcdir)/scuba $(bindir)/scuba.bin
-	echo "#!/bin/tcsh -ef" > $(bindir)/scuba
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/scuba
-	echo "scuba.bin \$$argv" >> $(bindir)/scuba
-	chmod a+x $(bindir)/scuba
+	mv $(srcdir)/scuba $(DESTDIR)$(bindir)/scuba.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/scuba
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/scuba
+	echo "scuba.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba
+	chmod a+x $(DESTDIR)$(bindir)/scuba
 else
 install-exec-hook:
 endif

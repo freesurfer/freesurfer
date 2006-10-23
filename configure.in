@@ -5,7 +5,7 @@
 #                        -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.243 2006/10/23 03:43:39 nicks Exp $"
+# "$Id: configure.in,v 1.244 2006/10/23 19:32:45 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -86,6 +86,13 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 # these warnings appear with gcc 4.#
 NNVD="-Wno-non-virtual-dtor"
 
+# some freesurfer code operates on pointers such that this  warning message
+# is issued with gcc 4.1:
+# "warning: dereferencing type-punned pointer will break strict-aliasing rules"
+# the -fno-strict-aliasing flag disables optimizations that would otherwise
+# require the code to comply with the strict aliasing rules
+NSALIASING="-fno-strict-aliasing"
+
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
@@ -95,8 +102,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall -Werror $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 -Wall -Werror $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING -Wall -Werror $LFS_CFLAGS $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING -Wall -Werror $NNVD $LFS_CFLAGS $CXXFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -106,8 +113,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 -fno-strict-aliasing -Wall -Werror $CFLAGS"
- CXXFLAGS="-g -O2 -fno-strict-aliasing -Wall -Werror $NNVD $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING -Wall -Werror $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING -Wall -Werror $NNVD $CXXFLAGS"
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -117,8 +124,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 -fno-strict-aliasing $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 -fno-strict-aliasing $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING $LFS_CFLAGS $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING $NNVD $LFS_CFLAGS $CXXFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -129,8 +136,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="-g -O2 -Wall -Werror -Wno-long-double $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 -Wall -Werror $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING -Wall -Werror -Wno-long-double $LFS_CFLAGS $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING -Wall -Werror $NNVD $LFS_CFLAGS $CXXFLAGS"
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -139,8 +146,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 -Wall $CFLAGS"
- CXXFLAGS="-g -O2 -Wall $NNVD $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING -Wall $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING -Wall $NNVD $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)

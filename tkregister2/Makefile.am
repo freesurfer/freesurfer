@@ -22,11 +22,12 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	mv $(srcdir)/tkregister2 $(bindir)/tkregister2.bin
-	echo "#!/bin/tcsh -ef" > $(bindir)/tkregister2
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkregister2
-	echo "tkregister2.bin \$$argv" >> $(bindir)/tkregister2
-	chmod a+x $(bindir)/tkregister2
+	mv $(srcdir)/tkregister2 $(DESTDIR)$(bindir)/tkregister2.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkregister2
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/tkregister2
+	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(bindir)/tkregister2
+	chmod a+x $(DESTDIR)$(bindir)/tkregister2
 else
 all:
 	@echo "Building Tcl/Tk apps not enabled."

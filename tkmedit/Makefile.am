@@ -30,11 +30,11 @@ endif
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	mv $(srcdir)/tkmedit $(bindir)/tkmedit.bin
-	echo "#!/bin/tcsh -ef" > $(bindir)/tkmedit
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/tkmedit
-	echo "tkmedit.bin \$$argv" >> $(bindir)/tkmedit
-	chmod a+x $(bindir)/tkmedit
+	mv $(srcdir)/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkmedit
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
+	echo "tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
+	chmod a+x $(DESTDIR)$(bindir)/tkmedit
 else
 all:
 	@echo "Building Tcl/Tk apps not enabled."

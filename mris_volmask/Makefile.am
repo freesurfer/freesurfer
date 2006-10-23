@@ -21,11 +21,12 @@ $(VTK_LIBS) \
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
-	mv $(srcdir)/mris_volmask $(bindir)/mris_volmask.bin
-	echo "#!/bin/tcsh -ef" > $(bindir)/mris_volmask
-	echo "source \$$FREESURFER_HOME/bin/vtk_setup" >> $(bindir)/mris_volmask
-	echo "mris_volmask.bin \$$argv" >> $(bindir)/mris_volmask
-	chmod a+x $(bindir)/mris_volmask
+	mv $(srcdir)/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_volmask
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/mris_volmask
+	echo "mris_volmask.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_volmask
+	chmod a+x $(DESTDIR)$(bindir)/mris_volmask
 
 else
 bin_PROGRAMS =

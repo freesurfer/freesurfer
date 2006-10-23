@@ -254,28 +254,28 @@ SUBDIRS=include \
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
 	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
-		> $(prefix)/build-stamp.txt ;
+		> $(DESTDIR)$(prefix)/build-stamp.txt ;
 	if test ! "x$(MNI_DIR)" = "x" ; then \
-		if test ! "$(MNI_DIR)" = "$(prefix)/mni" ; then \
+		if test ! "$(MNI_DIR)" = "$(DESTDIR)$(prefix)/mni" ; then \
 			if test -e $(MNI_DIR) ; then \
-				rm -f $(prefix)/mni ; \
-				ln -s $(MNI_DIR) $(prefix)/mni ; \
+				rm -f $(DESTDIR)$(prefix)/mni ; \
+				ln -s $(MNI_DIR) $(DESTDIR)$(prefix)/mni ; \
 			fi; \
 		fi; \
 	fi;
 	if test ! "x$(FSLDIR)" = "x" ; then \
-		if test ! "$(FSLDIR)" = "$(prefix)/fsl" ; then \
+		if test ! "$(FSLDIR)" = "$(DESTDIR)$(prefix)/fsl" ; then \
 			if test -e $(FSLDIR) ; then \
-				rm -f $(prefix)/fsl ; \
-				ln -s $(FSLDIR) $(prefix)/fsl ; \
+				rm -f $(DESTDIR)$(prefix)/fsl ; \
+				ln -s $(FSLDIR) $(DESTDIR)$(prefix)/fsl ; \
 			fi; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
-		if test ! "$(TCL_DIR)" = "$(prefix)/lib/tcltktixblt" ; then \
+		if test ! "$(TCL_DIR)" = "$(DESTDIR)$(prefix)/lib/tcltktixblt" ; then \
 			if test -e $(TCL_DIR) ; then \
-				rm -f $(prefix)/lib/tcltktixblt ; \
-				ln -s $(TCL_DIR) $(prefix)/lib/tcltktixblt ; \
+				rm -f $(DESTDIR)$(prefix)/lib/tcltktixblt ; \
+				ln -s $(TCL_DIR) $(DESTDIR)$(prefix)/lib/tcltktixblt ; \
 			fi; \
 		fi; \
 	fi;

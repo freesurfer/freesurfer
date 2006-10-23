@@ -45,13 +45,16 @@ OrientMRILibInit.cxx: OrientMRILibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:orient_mri
-	mv $(srcdir)/orient_mri $(bindir)/orient_mri.bin
-	echo "#!/bin/tcsh -ef" > $(bindir)/orient_mri
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(bindir)/orient_mri
-	echo "source \$$FREESURFER_HOME/bin/vtk_setup" >> $(bindir)/orient_mri
-	echo "source \$$FREESURFER_HOME/bin/kww_setup" >> $(bindir)/orient_mri
-	echo "orient_mri.bin \$$argv" >> $(bindir)/orient_mri
-	chmod a+x $(bindir)/orient_mri
+	mv $(srcdir)/orient_mri $(DESTDIR)$(bindir)/orient_mri.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/orient_mri
+	echo "source \$$FREESURFER_HOME/bin/kww_setup" \
+		>> $(DESTDIR)$(bindir)/orient_mri
+	echo "orient_mri.bin \$$argv" >> $(DESTDIR)$(bindir)/orient_mri
+	chmod a+x $(DESTDIR)$(bindir)/orient_mri
 
 else
 bin_PROGRAMS = 
