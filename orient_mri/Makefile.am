@@ -25,7 +25,7 @@ orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	-lvtkFilteringTCL -lvtkWidgetsTCL \
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
 	-lvtkCommonTCL \
-	$(KWWIDGETS_LIBS)
+	$(KWWIDGETS_LIBS) -lKWWidgets
 orient_mri_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 vtkKWOrientMRIAppTcl.cxx: vtkKWOrientMRIApp.h

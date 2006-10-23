@@ -5,7 +5,7 @@
 #                        -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.244 2006/10/23 19:32:45 nicks Exp $"
+# "$Id: configure.in,v 1.245 2006/10/23 21:08:30 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -492,7 +492,21 @@ AC_SUBST(VXL_LIBS)
 AC_SUBST(VXL_LIB)
 
 
-#####################################################
+####################################################
+# Catch-all flag to enable Tcl/Tk, VTK and KWW apps
+####################################################
+tcltk_apps="NO"
+kww_apps="NO"
+vtk_apps="NO"
+AC_ARG_ENABLE(all-apps,
+ [  --enable-all-apps       enable building Tcl/Tk,KWW,VTK-based apps],
+ [ tcltk_apps="yes"
+   kww_apps="yes"
+   vtk_apps="yes"
+ ])
+
+
+####################################################
 # Tcl/Tk
 ####################################################
 ac_tcl_includes="NO"
@@ -501,7 +515,6 @@ TCL_CFLAGS=""
 TCL_LIBS=""
 TCL_LIB=""
 TCL_DIR=""
-tcltk_apps="NO"
 
 AC_MSG_CHECKING(Tcl/Tk config)
 
@@ -610,6 +623,62 @@ TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
 AC_SUBST(TCL_CFLAGS)
 AC_SUBST(BLT_CFLAGS)
 AC_SUBST(BLT_LIBS)
+
+
+################################################################
+# KWWidgets
+################################################################
+ac_kwwidgets_includes="NO"
+ac_kwwidgets_libraries="NO"
+ac_kwwidgets_dir="NO"
+KWWIDGETS_CFLAGS=""
+KWWIDGETS_CXXFLAGS=""
+KWWIDGETS_LIBS=""
+
+AC_MSG_CHECKING(KWWidgets config)
+
+AC_ARG_WITH(kwwidgets-dir,
+  [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
+  [  ac_kwwidgets_includes="$withval"/include/KWWidgets
+     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
+     ac_kwwidgets_dir="$withval"
+  ])
+
+if test ! "$ac_kwwidgets_includes" = "NO"; then
+  AC_MSG_RESULT(KWWidgets directory is $withval)
+  for item in $ac_kwwidgets_includes; do
+    KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
+    KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
+  done
+  KWWIDGETS_DIR=$ac_kwwidgets_dir
+  AC_SUBST(KWWIDGETS_DIR)
+  kww_apps="yes"
+fi
+
+if test ! "$ac_kwwidgets_libraries" = "NO"; then
+  for item in $ac_kwwidgets_libraries; do
+    KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -L${item}"
+  done
+  KWWIDGETS_LIBS="${KWWIDGETS_LIBS}"
+  AC_SUBST(KWWIDGETS_DIR)
+fi
+
+AC_ARG_ENABLE(kww-apps,
+ [  --enable-kww-apps       enable building KWWidgets-based apps],
+ [ kww_apps="yes"
+ ])
+
+if test "$kww_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of KWWidgets apps.])
+else
+  AC_MSG_RESULT([Not building KWWidgets apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
+
+AC_SUBST(KWWIDGETS_CFLAGS)
+AC_SUBST(KWWIDGETS_CXXFLAGS)
+AC_SUBST(KWWIDGETS_LIBS)
 
 
 ################################################################
@@ -778,7 +847,6 @@ ac_vtk_dir="NO"
 VTK_CFLAGS=""
 VTK_CXXFLAGS=""
 VTK_LIBS=""
-vtk_apps="NO"
 
 AC_MSG_CHECKING(VTK config)
 
@@ -825,63 +893,6 @@ AM_CONDITIONAL(ENABLE_VTK_APPS, test "$vtk_apps" = "yes")
 AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
-
-
-################################################################
-# KWWidgets
-################################################################
-ac_kwwidgets_includes="NO"
-ac_kwwidgets_libraries="NO"
-ac_kwwidgets_dir="NO"
-KWWIDGETS_CFLAGS=""
-KWWIDGETS_CXXFLAGS=""
-KWWIDGETS_LIBS=""
-kww_apps="NO"
-
-AC_MSG_CHECKING(KWWidgets config)
-
-AC_ARG_WITH(kwwidgets-dir,
-  [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
-  [  ac_kwwidgets_includes="$withval"/include/KWWidgets
-     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
-     ac_kwwidgets_dir="$withval"
-  ])
-
-if test ! "$ac_kwwidgets_includes" = "NO"; then
-  AC_MSG_RESULT(KWWidgets directory is $withval)
-  for item in $ac_kwwidgets_includes; do
-    KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
-    KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
-  done
-  KWWIDGETS_DIR=$ac_kwwidgets_dir
-  AC_SUBST(KWWIDGETS_DIR)
-  kww_apps="yes"
-fi
-
-if test ! "$ac_kwwidgets_libraries" = "NO"; then
-  for item in $ac_kwwidgets_libraries; do
-    KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -L${item}"
-  done
-  KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -lKWWidgets"
-  AC_SUBST(KWWIDGETS_DIR)
-fi
-
-AC_ARG_ENABLE(kww-apps,
- [  --enable-kww-apps       enable building KWWidgets-based apps],
- [ kww_apps="yes"
- ])
-
-if test "$kww_apps" = "yes"; then
-  AC_MSG_RESULT([Enabled building of KWWidgets apps.])
-else
-  AC_MSG_RESULT([Not building KWWidgets apps.])
-fi
-
-AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
-
-AC_SUBST(KWWIDGETS_CFLAGS)
-AC_SUBST(KWWIDGETS_CXXFLAGS)
-AC_SUBST(KWWIDGETS_LIBS)
 
 
 #####################################################
@@ -1095,9 +1106,9 @@ ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
-$GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS"
+$GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$GL_LIBS $GLU_LIBS $GLUT_LIBS"
+$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1173,7 +1184,6 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
         ])
       ])
     ])
-
   ##################### Tix
   LIBS="$LIB_TK $LIB_TCL $LIBS"
   AC_CHECK_LIB([tix],[Tix_Init],
@@ -1218,13 +1228,28 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
     ])
 fi 
 
+# check for VTK libs only if vtk app building is enabled
+if test ! "x$vtk_apps" = "xNO"; then
+  AC_CHECK_LIB([vtkCommon], [main],[],
+    [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
+  Set LDFLAGS or --with-vtk-dir.])] )
+fi
+
+# check for KWWidget libs only if kww app building is enabled
+if test ! "x$kww_apps" = "xNO"; then
+  LDFLAGS="$LDFLAGS $LIB_TCL"
+  AC_CHECK_LIB([KWWidgets], [main],[],
+    [AC_MSG_ERROR([FATAL: KWWidgets lib not found. \
+  Set LDFLAGS or --with-KWWidgets-dir.])] )
+fi
+
 #
 # recover previous settings, from prior to checks.
 # let each Makefile.am set as appropriate, choose from:
 # MNI_CFLAGS, MNI_LIBS
 # JPEG_CFLAGS, JPEG_LIBS
 # TIFF_CFLAGS, TIFF_LIBS
-# TCL_CFLAGS, TCL_LIBS, LIB_TCL
+# TCL_CFLAGS, TCL_LIBS, LIB_TCL, ENABLE_TCLTK_APPS
 # TK_CFLAGS, TK_LIBS, LIB_TK, LIB_TIX
 # BLT_CFLAGS, BLT_LIBS, LIB_BLT
 # GL_CFLAGS, GL_LIBS
@@ -1232,6 +1257,7 @@ fi
 # GLUT_CFLAGS, GLUT_LIBS
 # VXL_CFLAGS, VXL_LIBS
 # VTK_CFLAGS, VTK_LIBS, ENABLE_VTK_APPS
+# KWWIDGETS_CFLAGS, KWWIDGETS_LIBS, ENABLE_KWWIDGETS_APPS
 #
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
