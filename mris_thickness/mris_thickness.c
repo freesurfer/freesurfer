@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.9 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.10 2006/10/23 15:16:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,6 +26,7 @@ static void print_version(void) ;
 
 char *Progname ;
 static char pial_name[100] = "pial" ;
+static char white_name[100] = WHITE_MATTER_NAME ;
 static int write_vertices = 0 ;
 
 static int nbhd_size = 2 ;
@@ -39,7 +40,7 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.9 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.10 2006/10/23 15:16:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -83,7 +84,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  if (MRISreadOriginalProperties(mris, WHITE_MATTER_NAME) != NO_ERROR)
+  if (MRISreadOriginalProperties(mris, white_name) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
@@ -128,6 +129,12 @@ get_option(int argc, char *argv[])
   {
     strcpy(pial_name, argv[2]) ;
     fprintf(stderr,  "reading pial surface from file named %s\n", pial_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "white"))
+  {
+    strcpy(white_name, argv[2]) ;
+    fprintf(stderr,  "reading white matter surface from file named %s\n", white_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "max"))
