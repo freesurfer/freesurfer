@@ -52,6 +52,10 @@ void fs_lbfgs::init_parameters()
 }
 
 
+int fs_lbfgs::get_num_optimal_updates() {
+  return num_optimal_updates_;
+}
+
 void fs_lbfgs::set_step_function
 ( void ( *step_function )
   ( int itno, float sse, void *parms, float *p ), void *parms)
@@ -65,6 +69,15 @@ void fs_lbfgs::set_user_callback_function
 ( void (*userCallbackFunction)(float []) )
 {
   mUserCallbackFunction = userCallbackFunction;
+}
+
+void fs_lbfgs::copy_vnl_to_float( const vnl_vector<double>& input, 
+  float* output, const int n)
+{
+  for(int i=0; i<n; i++) {
+    // legacy one indexing
+    output[ i+1 ] = static_cast<float>(input(i));
+  }
 }
 
 
@@ -100,7 +113,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
              << vcl_endl;
 
   bool we_trace = (verbose_ && !trace);
-
+  
   if (we_trace)
     vcl_cerr << "ERROR fs_lbfgs: ";
 
@@ -110,25 +123,13 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   bool ok;
   this->num_evaluations_ = 0;
   this->num_iterations_ = 0;
+  this->num_optimal_updates_ = 0;
   int iflag = 0;
   
-  bool hasOptimalUpdated = true;
+  const bool hasStepFunction = ( step_function_ != NULL );
+  const bool hasUserCallbackFunction = ( mUserCallbackFunction != NULL );
   
   while (true) {
-
-    // TODO: addition
-    if( hasOptimalUpdated && mUserCallbackFunction != NULL ) {
-
-      float currentX[n+1];
-      for(int i=0; i<n; i++) {
-        // TODO: legacy one indexing
-        currentX[ i+1 ] = static_cast< float >( x(i) );
-      }
-      ( *mUserCallbackFunction )( currentX );
-      
-      // reset
-      hasOptimalUpdated = false;
-    }
 
     // We do not wish to provide the diagonal
     // matrices Hk0, and therefore set DIAGCO to FALSE.
@@ -146,12 +147,31 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
     f_->compute(x, &f, &g);
     if (this->num_evaluations_ == 0) {
       this->start_error_ = f;
-      best_f = f;
-      hasOptimalUpdated = true;      
+      best_f = f;      
     } else if (f < best_f) {
+      
       best_x = x;
       best_f = f;
-      hasOptimalUpdated = true;      
+      
+      if( hasStepFunction || hasUserCallbackFunction ) {
+
+        // legacy one indexing
+        float currentX[n+1];
+        copy_vnl_to_float( best_x, currentX, n );
+      
+        if( hasStepFunction ) {  
+          (*step_function_)(this->num_optimal_updates_, static_cast<float>(f),
+                            step_function_parms_, currentX);  
+        }
+        
+        if( hasUserCallbackFunction ) {  
+          ( *mUserCallbackFunction )( currentX );
+        }
+        
+      }
+      
+      this->num_optimal_updates_++;
+      
     }
 
 #define print_(i,a,b,c,d) vcl_cerr<<vcl_setw(6)<<i<<' '<<vcl_setw(20)<<a<<' '\
@@ -207,8 +227,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       this->end_error_ = f;
       ok = true;
 
-      // TODO: this is an DJ addition for when the
-      // best_x is not initialized yet
+      // this is an DJ addition for when the best_x is not initialized yet
       if( best_x.size() != 0 ) {
         x = best_x;
       }
@@ -220,8 +239,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       //vcl_cerr << "\nfs_lbfgs: WARN: (iflag < 0)\n";
       ok = false;
 
-      // TODO: this is an DJ addition for when
-      // the best_x is not initialized yet
+      // this is an DJ addition for when the best_x is not initialized yet
       if( best_x.size() != 0 ) {
         this->end_error_ = f;
         x = best_x;
@@ -234,8 +252,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       failure_code_ = FAILED_TOO_MANY_ITERATIONS;
       ok = false;
 
-      // TODO: this is an DJ addition for when the
-      // best_x is not initialized yet
+      // this is an DJ addition for when the best_x is not initialized yet
       if( best_x.size() != 0 ) {
         this->end_error_ = f;
         x = best_x;
@@ -244,23 +261,6 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       break;
     }
 
-    // step function addition
-    if (hasOptimalUpdated && step_function_ != NULL) {
-
-      // TODO: this could potentially be very expensive
-      // TODO: legacy one indexing
-      float currentX[n+1];
-      for(int i=0; i<n; i++) {
-        // TODO: legacy one indexing
-        currentX[ i+1 ] = static_cast<float>(x(i));
-      }
-      (*step_function_)(this->num_iterations_, static_cast<float>(f),
-                        step_function_parms_, currentX);
-      for(int i=0; i<n; i++) {
-        // TODO: legacy one indexing
-        x(i) = static_cast<double>(currentX[ i+1 ]);
-      }
-    }
   }
   if (we_trace) vcl_cerr << "done\n";
 

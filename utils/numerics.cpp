@@ -933,7 +933,7 @@ extern "C" void OpenDFPMin
 
   if( isSuccess ) {
     // success
-    *oIterations = minimizer.get_num_iterations();
+    *oIterations = minimizer.get_num_optimal_updates();
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat( finalParameters, p, n );
   } else {
@@ -941,7 +941,7 @@ extern "C" void OpenDFPMin
     int returnCode = minimizer.get_failure_code();
 
     if( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE ) {
-      *oIterations = minimizer.get_num_iterations();
+      *oIterations = minimizer.get_num_optimal_updates();
       *oFinalFunctionReturn = minimizer.get_end_error();
 
       ConvertFromVNLDoubleToFloat( finalParameters, p, n );

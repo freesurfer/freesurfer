@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/18 02:14:20 $
-// Revision       : $Revision: 1.63 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2006/10/23 16:36:45 $
+// Revision       : $Revision: 1.64 $
 */
 
 /*-----------------------------------------------------
@@ -8289,9 +8289,6 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
     if (steps > 1)
       fprintf(stdout,"pass %d through quasi-newton minimization...\n",steps);
     fold = fnew ;
-    dfp_em_step_func(0, fnew, parms, p) ;
-    //        n    ftol       *iter  *fret
-
 
     OpenDFPMin(p, 12, parms->tol, &iter, &fnew,
 	   //    void (*func)(float [])

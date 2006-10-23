@@ -56,6 +56,8 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
      );
 
   bool minimize(vnl_vector<double>& x);
+  
+  int get_num_optimal_updates();  
 
   //: Step accuracy/speed tradeoff.
   // Effectively the number of correction vectors to the diagonal approximation
@@ -77,16 +79,22 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
   // higher value to see how far along the gradient the minimum typically is.
   // Then set this to a number just below that to get maximally far with the
   // single evaluation.
-  double default_step_length;
+  double default_step_length;  
 
  private:
   void init_parameters();
   vnl_cost_function* f_;
 
+  // number of times the optimal value is updated during the minimization  
+  int num_optimal_updates_;
+
   void ( *step_function_ )( int itno, float sse, void *parms, float *p );
   void *step_function_parms_;
 
   void ( *mUserCallbackFunction )( float []) ;
+  
+  void copy_vnl_to_float( const vnl_vector<double>& input, float* output, 
+    const int n);
 
   //  vnl_lbfgs() {} // default constructor makes no sense
   // does too.  Can set values for parameters.
