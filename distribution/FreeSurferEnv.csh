@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.67 2006/10/17 22:06:08 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.68 2006/10/24 17:43:44 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.67 2006/10/17 22:06:08 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.68 2006/10/24 17:43:44 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -350,6 +350,24 @@ if ( -e $FREESURFER_HOME/lib/misc/lib ) then
 endif
 if( $output && $?MISC_LIB ) then
     echo "MISC_LIB        $MISC_LIB"
+endif
+
+
+### ----------- VXL (shared lib support)  ------------ ####
+if ( $?VXL_LIB ) then
+    if(! $?LD_LIBRARY_PATH ) then
+        setenv LD_LIBRARY_PATH $VXL_LIB
+    else
+        setenv LD_LIBRARY_PATH "$VXL_LIB":"$LD_LIBRARY_PATH"
+    endif
+    if(! $?DYLD_LIBRARY_PATH ) then
+        setenv DYLD_LIBRARY_PATH $VXL_LIB
+    else
+        setenv DYLD_LIBRARY_PATH "$VXL_LIB":"$DYLD_LIBRARY_PATH"
+    endif
+endif
+if( $output && $?VXL_LIB ) then
+    echo "VXL_LIB         $VXL_LIB"
 endif
 
 
