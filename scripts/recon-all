@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.37 2006/10/06 21:49:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.38 2006/10/24 01:43:02 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -65,7 +65,7 @@ set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
-set NoBigVentricles = 0 # if 1, add -nobigventricles to mri_ca_label and reg.
+set NoBigVentricles = 1 # if 1, add -nobigventricles to mri_ca_label and reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 0 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
@@ -2195,6 +2195,10 @@ while( $#argv != 0 )
 
     case "-nocortexlabel":
       set NoCortexLabel = 1;
+      breaksw
+
+    case "-bigventricles":
+      set NoBigVentricles = 0;
       breaksw
 
     case "-nobigventricles":
