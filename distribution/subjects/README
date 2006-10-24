@@ -6,3 +6,34 @@ statement in your .cshrc file.
 
 Use the -i and -s flags in recon-all (see recon-all --help) to
 import subject data and automatically create a new subject directory.
+
+Two example input files are included, called sample-001.mgz and
+sample-002.mgz.  Example usage of these files, to create a new subject,
+called 'ernie', and to run the first stage (averaging, intensity 
+normalization and skull-strip) would be:
+
+  recon-all -s ernie \
+    -i $SUBJECTS_DIR/sample-001.mgz \
+    -i $SUBJECTS_DIR/sample-002.mgz \
+    -autorecon1
+
+Upon completion, you will find files in $SUBJECTS_DIR/ernie/mri:
+
+  orig/001.mgz  - output of 'mri_convert sample-001.mgz 001.mgz' *
+  orig/002.mgz  - output of 'mri_convert sample-002.mgz 002.mgz' *
+  rawavg.mgz    - average of 001.mgz and 002.mgz
+  orig.mgz      - rawavg.mgz conformed to 1^3mm dims by 256^3 voxels
+  nu.mgz        - MNI's nu_correct intensity normalization
+  T1.mgz        - Freesurfer's intensity normalization
+  brainmask.mgz - skull-stripped T1.mgz
+
+* Note that the input files can be Dicom, or Analyze, or many other
+formats (see mri_convert --help).
+
+The -i flags are no longer necessary after this first run.  They
+are used only to 'pull' your input data from wherever it is kept.
+
+For more info, see:
+
+  http://surfer.nmr.mgh.harvard.edu/fswiki/ReconAllDevTable
+
