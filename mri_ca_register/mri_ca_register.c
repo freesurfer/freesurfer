@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/16 18:47:17 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2006/10/24 01:49:31 $
+// Revision       : $Revision: 1.59 $
 
 
 #include <math.h>
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
   parms.niterations = 500 ;
   parms.levels = 6 ;
 	parms.scale_smoothness = 1 ;
-	parms.uncompress = 1 ;
+	parms.uncompress = 0 ;
 	parms.npasses = 1 ;
 	parms.diag_write_snapshots = 1 ;
   parms.relabel_avgs = -1 ;  /* never relabel, was 1 */
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.58 2006/10/16 18:47:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.59 2006/10/24 01:49:31 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
