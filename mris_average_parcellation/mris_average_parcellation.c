@@ -33,10 +33,13 @@ main(int argc, char *argv[])
   struct timeb start ;
   VERTEX       *v ;
 
+  counts=NULL;
+  nvertices=0;
+
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_average_parcellation.c,v 1.1 2006/10/25 01:27:56 fischl Exp $", 
+     "$Id: mris_average_parcellation.c,v 1.2 2006/10/25 06:53:32 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
