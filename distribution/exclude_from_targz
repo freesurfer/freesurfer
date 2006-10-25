@@ -18,6 +18,7 @@ freesurfer/bin-old
 freesurfer/bin-old-old
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
+freesurfer/bin/recon-all-long
 freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
 freesurfer/bin/dngtester
