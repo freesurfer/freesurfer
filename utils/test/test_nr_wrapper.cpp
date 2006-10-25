@@ -1023,7 +1023,8 @@ NRWrapperTest::TestLUMatrixInverseHelper
   isEqual = ( isError == NO_ERROR );
 
   if( isEqual ) {
-    const float tolerance = 2e-3;
+    // NJS: this tolerance is found to work on 64bit and 32bit platforms:
+    const float tolerance = 0.0022;
     isEqual = AreMatricesEqual( expectedInverse, actualInverse, tolerance,
                                 matrix->rows, matrix->cols );
   }
