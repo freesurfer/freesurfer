@@ -224,5 +224,9 @@ MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
 int MatrixColsAreNotOrthog(MATRIX *X);
 int MatrixOrthonormalizeTransform(MATRIX *m_L) ;
+int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, 
+                            double *pxt, double *pyt, double *pzt);
+MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, 
+                                  double xt, double yt, double zt);
 
 #endif
