@@ -21,6 +21,8 @@
 #include <vnl/vnl_cost_function.h>
 #include <vnl/vnl_nonlinear_minimizer.h>
 
+#include "fs_vnl/fs_lbfgs_subject.h"
+
 //: Limited memory Broyden Fletcher Goldfarb Shannon minimization
 // Considered to be the best optimisation algorithm for functions
 // which are well behaved (i.e. locally smooth
@@ -38,26 +40,13 @@
 // version of BFGS only maintains a certain number of vector corrections
 // to a diagonal estimate of the inverse Hessian estimate.
 
-class fs_lbfgs : public vnl_nonlinear_minimizer
+class fs_lbfgs : public vnl_nonlinear_minimizer, public fs_lbfgs_subject
 {
  public:
   fs_lbfgs();
   fs_lbfgs(vnl_cost_function& f);
 
-  void set_step_function
-    (
-     void ( *step_function )
-      ( int itno, float sse, void *parms, float *p ),
-     void *params );
-
-  void set_user_callback_function
-    (
-     void (*userCallbackFunction)(float [])
-     );
-
   bool minimize(vnl_vector<double>& x);
-  
-  int get_num_optimal_updates();  
 
   //: Step accuracy/speed tradeoff.
   // Effectively the number of correction vectors to the diagonal approximation
@@ -79,23 +68,11 @@ class fs_lbfgs : public vnl_nonlinear_minimizer
   // higher value to see how far along the gradient the minimum typically is.
   // Then set this to a number just below that to get maximally far with the
   // single evaluation.
-  double default_step_length;  
+  double default_step_length;
 
  private:
   void init_parameters();
   vnl_cost_function* f_;
-
-  // number of times the optimal value is updated during the minimization  
-  int num_optimal_updates_;
-
-  void ( *step_function_ )( int itno, float sse, void *parms, float *p );
-  void *step_function_parms_;
-
-  void ( *mUserCallbackFunction )( float []) ;
-  
-  void copy_vnl_to_float( const vnl_vector<double>& input, float* output, 
-    const int n);
-
   //  vnl_lbfgs() {} // default constructor makes no sense
   // does too.  Can set values for parameters.
 };
