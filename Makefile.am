@@ -194,6 +194,7 @@ MRISSUBDIRS=label_area \
 	mris_smooth \
 	mris_sphere \
 	mris_spherical_average \
+	mris_average_parcellation \
 	mris_surface_to_vol_distances \
 	mrisp_paint \
 	mris_talairach \
