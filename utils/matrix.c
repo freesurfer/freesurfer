@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.101 2006/10/18 02:14:20 nicks Exp $
+// $Id: matrix.c,v 1.102 2006/10/25 14:17:05 fischl Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3349,6 +3349,47 @@ MatrixAsciiReadRaw(char *fname, MATRIX *m)
   }
 
   fclose(fp) ;
+  return(m) ;
+}
+
+int
+MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, 
+                        double *pxt, double *pyt, double *pzt)
+{
+  // M = Mx * My * Mz
+  *pxr = atan2(*MATRIX_RELT(m, 2, 3), *MATRIX_RELT(m, 3, 3)) ;
+  *pyr = asin(-*MATRIX_RELT(m, 1, 3)) ;
+  *pzr = atan2(*MATRIX_RELT(m, 1, 2), *MATRIX_RELT(m, 1, 1)) ;
+  *pxt = *MATRIX_RELT(m, 1, 4) ;
+  *pyt = *MATRIX_RELT(m, 2, 4) ;
+  *pzt = *MATRIX_RELT(m, 3, 4) ;
+  return(NO_ERROR) ;
+}
+MATRIX *
+MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, 
+                          double xt, double yt, double zt)
+{
+  if (m == NULL)
+    m = MatrixAlloc(4, 4, MATRIX_REAL) ;
+
+  *MATRIX_RELT(m, 1, 1) = cos(yr) * cos(zr) ;
+  *MATRIX_RELT(m, 1, 2) = cos(yr) * sin(zr) ;
+  *MATRIX_RELT(m, 1, 3) = -sin(yr) ;
+
+  *MATRIX_RELT(m, 2, 1) = sin(xr)*sin(yr)*cos(zr)-cos(xr)*sin(zr) ;
+  *MATRIX_RELT(m, 2, 2) = sin(xr)*sin(yr)*sin(zr)+cos(xr)*cos(zr) ;
+  *MATRIX_RELT(m, 2, 3) = sin(xr)*cos(yr) ;
+
+  *MATRIX_RELT(m, 3, 1) = cos(xr)*sin(yr)*cos(zr)+sin(xr)*sin(zr) ;
+  *MATRIX_RELT(m, 3, 2) = cos(xr)*sin(yr)*sin(zr) - sin(xr)*cos(zr) ;
+  *MATRIX_RELT(m, 3, 3) = cos(xr)*cos(yr) ;
+
+  *MATRIX_RELT(m, 1, 4) = xt ;
+  *MATRIX_RELT(m, 2, 4) = yt ;
+  *MATRIX_RELT(m, 3, 4) = zt ;
+  *MATRIX_RELT(m, 4, 4) = 1.0 ;
+
+
   return(m) ;
 }
 
