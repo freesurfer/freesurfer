@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.39 2006/10/25 01:19:48 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.40 2006/10/25 20:29:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1072,6 +1072,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
     set cmd = (mris_make_surfaces)
+    if ( ! UseAseg) set cmd = ($cmd -noaseg)
     if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs $xopts $subjid $hemi);
     $PWD |& tee -a $LF
