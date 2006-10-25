@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/23 19:33:03 $
-// Revision       : $Revision: 1.292 $
-char *VERSION = "$Revision: 1.292 $";
+// Revision Date  : $Date: 2006/10/25 01:04:06 $
+// Revision       : $Revision: 1.293 $
+char *VERSION = "$Revision: 1.293 $";
 
 #define TCL
 #define TKMEDIT
@@ -1141,7 +1141,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.292 2006/09/23 19:33:03 greve Exp $",
+     "$Id: tkmedit.c,v 1.293 2006/10/25 01:04:06 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2313,6 +2313,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         /* unrecognized option, build an error message and ignore it. */
         xUtil_snprintf( sError, sizeof(sError),
                         "Option %s not recognized", sArg );
+	if(getenv("TKM_EXIT_ON_ERROR")!=NULL){
+	  printf( "\nParsing command line options %s.\n"
+		  "This option was not recognized.\n", sError);
+	  exit(1);
+
+	}
         tkm_DisplayError( "Parsing command line options",
                           sError,
                           "This option was not recognized and ignored." );
@@ -5744,7 +5750,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.292 2006/09/23 19:33:03 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.293 2006/10/25 01:04:06 greve Exp $ $Name:  $\n"
       )
      );
 
