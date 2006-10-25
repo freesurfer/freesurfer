@@ -52,10 +52,10 @@ mris_average_parcellation_LDFLAGS=$(OS_LDFLAGS)
 # 
 # Please don't remove myown.c from this mris_average_parcellation directory.
 ########################################################################
-check_PROGRAMS=myown
+#check_PROGRAMS=myown
 
-myown_SOURCES=myown.c
-myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+#myown_SOURCES=myown.c
+#myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 
 # Our release target. Include files to be excluded here. They will be
