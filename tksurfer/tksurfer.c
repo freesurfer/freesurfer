@@ -1744,6 +1744,10 @@ int labl_add (LABEL* label, int* new_index);
    extent, finds the borders, all that stuff. */
 int labl_changed (int new_index, int vertices_were_removed);
 
+/* Call when the vertex set has changed, as all label coords have
+   changed. */
+int labl_all_changed ();
+
 /* removes and deletes the label and bumps down all other labels in
    the list. */
 int labl_remove (int index);
@@ -1824,6 +1828,10 @@ int path_remove_selected_path ();
 /* Creates and removes paths from the path_path array. */
 int path_add (int num_vertices, int* vertices, int* new_index);
 int path_remove (int index);
+
+/* Update the bounding cube of all paths, necesssary when the vertex
+   set swithces as the path now lies on different coords. */
+int path_update_bounding_boxes ();
 
 /* Mark the path as selected. If this changes the selected path, cause
    a redraw event. */
@@ -19150,7 +19158,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.222 2006/10/19 18:13:40 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.223 2006/10/25 20:44:09 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21887,6 +21895,13 @@ vset_set_current_set(int set)
   vset_current_set = set;
   vertex_array_dirty = 1;
   compute_normals();
+
+  /* Find the path bounding boxes again. */
+  path_update_bounding_boxes();
+
+  /* Find the label bounding boxes again. */
+  labl_all_changed();
+
   return(NO_ERROR);
 }
 
@@ -25567,6 +25582,18 @@ int labl_changed (int index, int vertices_were_removed)
   return (ERROR_NONE);
 }  
 
+int labl_all_changed () {
+
+  int label;
+
+  for( label = 0; label < labl_num_labels; label++ )
+    {
+      labl_changed( label, 0 );
+    }
+
+  return (ERROR_NONE);
+}
+
 int labl_remove (int index) 
 {
   int next;
@@ -26103,6 +26130,54 @@ int path_remove (int index)
      same path is still selected. */
   else if (path_selected_path > index)
     path_selected_path--;
+  
+  return (ERROR_NONE);
+}
+
+int path_update_bounding_boxes () {
+  
+  VERTEX* v;
+  int path, path_vno;
+  float min_x, min_y, min_z;
+  float max_x, max_y, max_z;
+
+  /* For every path... */
+  for (path = 0; path < path_num_paths; path++)
+    {
+      
+      /* Go through the path and find the bounds of the vertices. */
+      min_x = min_y = min_z = 500;
+      max_x = max_y = max_z = -500;
+      for (path_vno = 0; 
+           path_vno < path_paths[path].num_vertices; 
+           path_vno++ )
+        {
+	  
+	  v = &(mris->vertices[ path_paths[path].vertices[path_vno] ]);
+	  
+	  if (v->x < min_x)
+	    min_x = v->x;
+	  if (v->y < min_y)
+	    min_y = v->y;
+	  if (v->z < min_z)
+	    min_z = v->z;
+	  if (v->x > max_x)
+	    max_x = v->x;
+	  if (v->y > max_y)
+	    max_y = v->y;
+	  if (v->z > max_z)
+	    max_z = v->z;
+	}
+      
+      /* Set the bounds in the path, modifying it by the fudge value. */
+      path_paths[path].min_x = min_x - PATH_FUDGE;
+      path_paths[path].min_y = min_y - PATH_FUDGE;
+      path_paths[path].min_z = min_z - PATH_FUDGE;
+      path_paths[path].max_x = max_x + PATH_FUDGE;
+      path_paths[path].max_y = max_y + PATH_FUDGE;
+      path_paths[path].max_z = max_z + PATH_FUDGE;
+      
+    }
   
   return (ERROR_NONE);
 }
