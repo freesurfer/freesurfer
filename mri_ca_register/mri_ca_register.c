@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/24 01:49:31 $
-// Revision       : $Revision: 1.59 $
+// Revision Date  : $Date: 2006/10/25 01:19:47 $
+// Revision       : $Revision: 1.60 $
 
 
 #include <math.h>
@@ -95,7 +95,7 @@ static char *vf_fname = NULL ;
 
 static double blur_sigma = 0.0f ;
 
-static int handle_expanded_ventricles = 1;
+static int handle_expanded_ventricles = 0;
 
 static int do_secondpass_renorm = 0;
 
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.59 2006/10/24 01:49:31 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.60 2006/10/25 01:19:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -203,7 +203,8 @@ main(int argc, char *argv[])
     printf("  -tr tr\n");
     printf("  -te te\n");
     printf("  -example T1 seg\n");
-    printf("  -nobigventricles\n");
+    printf("  -<no>bigventricles\n");
+    printf("  -uncompress\n");
     printf("  -secondpassrenorm\n");
     printf("\n");
     printf("\n");
@@ -263,8 +264,11 @@ main(int argc, char *argv[])
       mri_tmp->te = TE ;
     if (input == 0)
     {
-      mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																		mri_tmp->type, ninputs+extra) ;
+      mri_inputs = MRIallocSequence(mri_tmp->width, 
+                                    mri_tmp->height, 
+                                    mri_tmp->depth,
+																		mri_tmp->type, 
+                                    ninputs+extra) ;
       // first one's header is copied
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
@@ -286,12 +290,15 @@ main(int argc, char *argv[])
   {
     GCA *gca_tmp ;
     
-    printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
+    printf("mapping GCA into %d-dimensional FLASH space...\n", 
+           mri_inputs->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA
+      (gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
-      ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+      ErrorExit(ERROR_BADPARM, 
+                "%s: must specify %d inputs, not %d for this atlas\n",
 								Progname, gca->ninputs, ninputs) ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
     if (novar)
@@ -315,9 +322,11 @@ main(int argc, char *argv[])
     }
     
     if(need_map_flag){
-      printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n", gca->ninputs, ninputs) ;
+      printf("mapping %d-dimensional flash atlas into %d-dimensional "
+             "input space\n", gca->ninputs, ninputs) ;
       
-      gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+      gca_tmp = GCAcreateFlashGCAfromFlashGCA
+        (gca, TRs, fas, TEs, mri_inputs->nframes) ;
       GCAfree(&gca) ;
       gca = gca_tmp ;
     }
@@ -333,7 +342,8 @@ main(int argc, char *argv[])
     extra += ninputs ;
   
   if ((ninputs+extra) != gca->ninputs)
-    ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+    ErrorExit(ERROR_BADPARM, 
+              "%s: must specify %d inputs, not %d for this atlas\n",
 							Progname, gca->ninputs, ninputs) ;
   
   /////////////////////////////////////////////////////////////////
@@ -342,7 +352,6 @@ main(int argc, char *argv[])
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-  
   //////////////////////////////////////////////////////////////
   // -renorm fname option 
   if (renormalization_fname)
@@ -498,7 +507,8 @@ main(int argc, char *argv[])
     
     TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
     Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
-    printf("mapping by transform (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
+    printf("mapping by transform (%d, %d, %d) --> "
+           "(%d, %d, %d) for rgb writing\n",
 					 Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
   }
   
@@ -513,14 +523,17 @@ main(int argc, char *argv[])
   {
     gcam = GCAMread(xform_name) ;
     if (!gcam)
-      ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not read transform from %s", Progname, xform_name) ;
     if (long_reg_fname)
     {
       TRANSFORM *transform_long ;
 
       transform_long = TransformRead(long_reg_fname) ;
       if (transform_long == NULL)
-				ErrorExit(ERROR_NOFILE, "%s: could not read longitudinal registration file %s", Progname, long_reg_fname) ;
+				ErrorExit(ERROR_NOFILE, 
+                  "%s: could not read longitudinal registration file %s", 
+                  Progname, long_reg_fname) ;
 
       //      if (inverted_xform)
       //	{
@@ -568,14 +581,16 @@ main(int argc, char *argv[])
       MRIfree(&mri_gca) ;
     }
     GCAMregister(gcam, mri_inputs, &parms) ;
-    printf("temporal lobe registration complete - registering whole brain...\n") ;
+    printf("temporal lobe registration complete - "
+           "registering whole brain...\n") ;
     GCAfree(&gca_tl) ;
   }
   
   //////////////////////////////////////////////////////////////////
   // GCM initialization
   if (!xform_name)  /* only if the transform wasn't previously created */
-    GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
+    GCAMinit(gcam, mri_inputs, gca, transform, 
+             parms.relabel_avgs >= parms.navgs) ;
   else
   {
     // added by xhan
@@ -646,15 +661,16 @@ main(int argc, char *argv[])
   if (tl_fname == NULL && register_wm_flag)
   {
     GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
-    GCAMsetLabelStatus(gcam, Left_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
-    GCAMsetLabelStatus(gcam, Right_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
-    GCAMsetLabelStatus(gcam, Left_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
-    GCAMsetLabelStatus(gcam, Right_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
+    GCAMsetLabelStatus(gcam,Left_Cerebral_White_Matter,GCAM_USE_LIKELIHOOD);
+    GCAMsetLabelStatus(gcam,Right_Cerebral_White_Matter,GCAM_USE_LIKELIHOOD);
+    GCAMsetLabelStatus(gcam,Left_Cerebellum_White_Matter,GCAM_USE_LIKELIHOOD);
+    GCAMsetLabelStatus(gcam,Right_Cerebellum_White_Matter,GCAM_USE_LIKELIHOOD);
     
     printf("initial white matter registration...\n") ;
     GCAMregister(gcam, mri_inputs, &parms) ;
     GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
-    printf("initial white matter registration complete - full registration...\n") ;
+    printf("initial white matter registration complete - "
+           "full registration...\n") ;
   }
 
   //note that transform is meaningless when -L option is used! A bug! -xh
@@ -710,7 +726,7 @@ main(int argc, char *argv[])
 			int l ;
 			mri_seg = MRIclone(mri_inputs, NULL) ;
 			l = lta->xforms[0].label ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL);
 			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
 			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
 			MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
@@ -749,7 +765,8 @@ main(int argc, char *argv[])
 				     parms.base_name, 
 				     NULL, 
 				     handle_expanded_ventricles) ;
-				  printf("2nd pass renormalization with updated intensity distributions\n");
+				  printf("2nd pass renormalization with updated "
+                 "intensity distributions\n");
 				}
 
 				GCAmapRenormalizeWithAlignment
@@ -791,7 +808,8 @@ main(int argc, char *argv[])
 			     parms.base_name, 
 			     NULL, 
 			     handle_expanded_ventricles) ;
-			  printf("2nd pass renormalization with updated intensity distributions\n");
+			  printf("2nd pass renormalization with updated "
+               "intensity distributions\n");
 			}
 
 			GCAmapRenormalizeWithAlignment
@@ -815,7 +833,8 @@ main(int argc, char *argv[])
 		{
 			sprintf(fname, "%s_array.lta", parms.base_name) ;
 
-			// should put volume geometry into file, and probably change to RAS->RAS xform
+			// should put volume geometry into file, 
+      // and probably change to RAS->RAS xform
 			LTAwrite(lta, fname) ;
 		}
 		if (DIAG_VERBOSE_ON)
@@ -825,7 +844,8 @@ main(int argc, char *argv[])
 			lta = LTAread("gcam.lta") ;
 			mri_seg = MRIclone(mri_inputs, NULL) ;
 			l = lta->xforms[0].label ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+			GCAbuildMostLikelyVolumeForStructure
+        (gca, mri_seg, l, 0, transform, NULL) ;
 			LTAinvert(lta) ;
 			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
 			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
@@ -840,7 +860,8 @@ main(int argc, char *argv[])
 			int l ;
 			l = lta->xforms[0].label ;
 			mri_seg = MRIclone(mri_inputs, NULL) ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+			GCAbuildMostLikelyVolumeForStructure
+        (gca, mri_seg, l, 0, transform,NULL) ;
 			MRIwrite(mri_seg, "sa.mgz") ;
 			MRIfree(&mri_seg) ;
 		}
@@ -885,14 +906,16 @@ main(int argc, char *argv[])
 
   if (parms.l_label > 0)
   {
-    GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max prior labels again */
+    GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max 
+                                          prior labels again */
     if (reset)
     {
       GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
       GCAMstoreMetricProperties(gcam) ;
     }
     parms.l_label = 0 ;
-    printf("***************** morphing with label term set to 0 *******************************\n") ;
+    printf("***************** morphing with label term set to 0 "
+           "*******************************\n") ;
     GCAMregister(gcam, mri_inputs, &parms) ;
   }
 
@@ -995,7 +1018,8 @@ get_option(int argc, char *argv[])
   {
 		parms.scale_smoothness = atoi(argv[2]) ;
 		parms.npasses = 2 ;
-    printf("%sscaling smooothness coefficient (default=1), and setting npasses=%d\n",
+    printf("%sscaling smooothness coefficient (default=1), "
+           "and setting npasses=%d\n",
 					 parms.scale_smoothness ? "" : "not ", parms.npasses) ;
 		nargs = 1 ;
   }
@@ -1004,10 +1028,20 @@ get_option(int argc, char *argv[])
     remove_bright = 1 ;
     printf("removing bright non-brain structures...\n") ;
   }
+  else if (!stricmp(option, "bigventricles"))
+  {
+    handle_expanded_ventricles = 1 ;
+    printf("handling expanded ventricles...\n") ;
+  }
   else if (!stricmp(option, "nobigventricles"))
   {
     handle_expanded_ventricles = 0 ;
     printf("not handling expanded ventricles...\n") ;
+  }
+  else if (!stricmp(option, "uncompress"))
+  {
+    parms.uncompress = 1 ;
+    printf("parms.uncompress=1...\n") ;
   }
   else if (!stricmp(option, "secondpassrenorm"))
   {
@@ -1088,7 +1122,8 @@ get_option(int argc, char *argv[])
   {
     parms.relabel_avgs = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("relabeling nodes with MAP estimates at avgs=%d\n", parms.relabel_avgs) ;
+    printf("relabeling nodes with MAP estimates at avgs=%d\n", 
+           parms.relabel_avgs) ;
   }
   else if (!stricmp(option, "RESET_AVGS"))
   {
@@ -1304,17 +1339,22 @@ get_option(int argc, char *argv[])
   {
 		avgs = atoi(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "applying mean filter %d times to conditional densities...\n", avgs) ;
+    fprintf(stderr, 
+            "applying mean filter %d times to conditional densities...\n", 
+            avgs) ;
   }
-  else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
+  else if (!stricmp(option, "cross-sequence") || 
+           !stricmp(option, "cross_sequence"))
   {
     regularize = .5 ;
 		avgs = 2 ;
 		renormalize = 1 ;
     printf("registering sequences, equivalent to:\n") ;
-		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
+		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",
+           avgs, regularize) ;
   } 
-  else if (!stricmp(option, "align-cross-sequence") || !stricmp(option, "align"))
+  else if (!stricmp(option, "align-cross-sequence") || 
+           !stricmp(option, "align"))
   {
     regularize = .5 ;
     reinit = 1 ;
@@ -1322,19 +1362,24 @@ get_option(int argc, char *argv[])
     parms.ratio_thresh = 0.000001 ;
     //		avgs = 2 ;   not used anymore
     renormalize_align = 1 ;
-    printf("renormalizing sequences with structure alignment, equivalent to:\n") ;
-		printf("\t-renormalize\n\t-regularize_mean %2.3f\n\t-regularize %2.3f\n",regularize_mean, regularize) ;
+    printf("renormalizing sequences with structure "
+           "alignment, equivalent to:\n") ;
+		printf("\t-renormalize\n\t-regularize_mean %2.3f\n\t-regularize %2.3f\n",
+           regularize_mean, regularize) ;
   } 
-  else if (!stricmp(option, "no-re-init") || !stricmp(option, "no-reinit") || !stricmp(option, "no_re_init") ){
+  else if (!stricmp(option, "no-re-init") || 
+           !stricmp(option, "no-reinit") || !stricmp(option, "no_re_init") ){
     reinit = 0; //donot reinitialize GCAM with the multiple linear registration
   }
-  else if (!stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence_new"))
+  else if (!stricmp(option, "cross-sequence-new") || 
+           !stricmp(option, "cross_sequence_new"))
   {
     regularize = .5 ;
 		avgs = 2 ;
 		renormalize_new = 1 ;
     printf("registering sequences, equivalent to:\n") ;
-		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
+		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",
+           avgs, regularize) ;
   } 
   else if (!stricmp(option, "area"))
   {
@@ -1346,7 +1391,8 @@ get_option(int argc, char *argv[])
   {
 		parms.ratio_thresh = atof(argv[2]) ;
     nargs = 1 ;
-    printf("using compression ratio threshold = %2.3f...\n", parms.ratio_thresh) ;
+    printf("using compression ratio threshold = %2.3f...\n", 
+           parms.ratio_thresh) ;
   }
  else if (!stricmp(option, "invert-and-save"))
   {
@@ -1362,7 +1408,8 @@ get_option(int argc, char *argv[])
 	  //	  inverted_xform = 1 ;
 	  long_reg_fname = argv[3] ;
 	  nargs = 2 ;
-	  printf("reading previously computed atlas xform %s and applying inverse registration %s\n",
+	  printf("reading previously computed atlas xform %s "
+           "and applying inverse registration %s\n",
 		 xform_name, long_reg_fname) ;
 	  break ;
   case 'J':
@@ -1378,7 +1425,8 @@ get_option(int argc, char *argv[])
   case 'F':
     ctl_point_fname = argv[2] ;
     nargs = 1 ;
-    printf("reading manually defined control points from %s\n", ctl_point_fname) ;
+    printf("reading manually defined control points from %s\n", 
+           ctl_point_fname) ;
     break ;
   case 'X':
     xform_name = argv[2] ;
@@ -1397,7 +1445,8 @@ get_option(int argc, char *argv[])
       ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",
                 Progname, argv[2]) ;
     if (transform->type == LINEAR_RAS_TO_RAS)
-      ErrorExit(ERROR_BADPARM, "%s: transform %s is RAS to RAS, cannot be used\n",
+      ErrorExit(ERROR_BADPARM, 
+                "%s: transform %s is RAS to RAS, cannot be used\n",
 								Progname, argv[2]);
     nargs = 1 ;
     printf("using previously computed transform %s\n", argv[2]) ;
@@ -1454,6 +1503,7 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+
 static int
 write_vector_field(MRI *mri, GCA_MORPH *gcam, char *vf_fname)
 {
@@ -1464,22 +1514,22 @@ write_vector_field(MRI *mri, GCA_MORPH *gcam, char *vf_fname)
   fp = fopen(vf_fname, "w") ;
 
   for (x = 0 ; x < gcam->width ; x++)
-  {
-    for (y = 0 ; y < gcam->height ; y++)
     {
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        gcamn = &gcam->nodes[x][y][z] ;
-        fprintf(fp, "%f %f %f %f\n", 
-                gcamn->x-gcamn->origx,
-                gcamn->y-gcamn->origy,
-                gcamn->z-gcamn->origz, 
-                gcamn->gc ? gcamn->gc->means[0] : 0.0) ;
-      }
+      for (y = 0 ; y < gcam->height ; y++)
+        {
+          for (z = 0 ; z < gcam->depth ; z++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              gcamn = &gcam->nodes[x][y][z] ;
+              fprintf(fp, "%f %f %f %f\n", 
+                      gcamn->x-gcamn->origx,
+                      gcamn->y-gcamn->origy,
+                      gcamn->z-gcamn->origz, 
+                      gcamn->gc ? gcamn->gc->means[0] : 0.0) ;
+            }
+        }
     }
-  }
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -1488,7 +1538,8 @@ static int
 remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
 {
   HISTO            *h, *hs ;
-  int              peak, num, end, x, y, z, xi, yi, zi, xk, yk, zk, i, n, erase, five_mm ;
+  int              peak, num, end, x, y, z, xi, yi, zi, 
+    xk, yk, zk, i, n, erase, five_mm ;
   float            thresh ;
   Real             val, new_val ;
   MRI              *mri_tmp, *mri_nonbrain, *mri_tmp2 ;
@@ -1497,37 +1548,37 @@ remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
   MRI_SEGMENT      *mseg ;
   MSV              *msv ;
   
-  
   if (gca->ninputs > 1)
     return(NO_ERROR) ;
   
   mri_tmp = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
   mri_nonbrain = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
   for (x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->height ; y++)
     {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
-	gcap = getGCAP(gca, mri, transform, x, y, z) ;
-	if (gcap->nlabels == 0 || (gcap->nlabels == 1 && IS_UNKNOWN(gcap->labels[0])))
-	  MRIvox(mri_nonbrain, x, y, z) = 1 ;
-	else
-	{
-	  MRIsampleVolume(mri, x, y, z, &val) ;
-	  if (FZERO(val))
-	    MRIvox(mri_nonbrain, x, y, z) = 128 ;
-	}
-      }
+      for (y = 0 ; y < mri->height ; y++)
+        {
+          for (z = 0 ; z < mri->depth ; z++)
+            {
+              gcap = getGCAP(gca, mri, transform, x, y, z) ;
+              if (gcap->nlabels == 0 || 
+                  (gcap->nlabels == 1 && IS_UNKNOWN(gcap->labels[0])))
+                MRIvox(mri_nonbrain, x, y, z) = 1 ;
+              else
+                {
+                  MRIsampleVolume(mri, x, y, z, &val) ;
+                  if (FZERO(val))
+                    MRIvox(mri_nonbrain, x, y, z) = 128 ;
+                }
+            }
+        }
     }
-  }
   /* dilate it by 0.5 cm */
   five_mm = nint(5.0*pow(mri->xsize*mri->ysize*mri->zsize, 1.0f/3.0f)) ;
   for (i = 0 ; i < five_mm ; i++)
-  {
-    MRIdilate(mri_nonbrain, mri_tmp) ;
-    MRIcopy(mri_tmp, mri_nonbrain) ;
-  }
+    {
+      MRIdilate(mri_nonbrain, mri_tmp) ;
+      MRIcopy(mri_tmp, mri_nonbrain) ;
+    }
   
   MRIclear(mri_tmp) ;
   h = MRIhistogram(mri, 0) ;
@@ -1542,23 +1593,23 @@ remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
   printf("removing voxels brighter than %2.1f\n", thresh) ;
   
   for (num = x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->height ; y++)
     {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
-	if (x == Gvx && y == Gvy && z == Gvz)
-	  DiagBreak() ;
-	MRIsampleVolume(mri, x, y, z, &val) ;
-	if (val > thresh)
-	{
-	  num++ ;
-	  MRIvox(mri_tmp, x, y, z) = 128 ;
-	  /*					MRIsetVoxVal(mri, x, y, z, 0, (float)new_val) ;*/
-	}
-      }
+      for (y = 0 ; y < mri->height ; y++)
+        {
+          for (z = 0 ; z < mri->depth ; z++)
+            {
+              if (x == Gvx && y == Gvy && z == Gvz)
+                DiagBreak() ;
+              MRIsampleVolume(mri, x, y, z, &val) ;
+              if (val > thresh)
+                {
+                  num++ ;
+                  MRIvox(mri_tmp, x, y, z) = 128 ;
+                  /*	MRIsetVoxVal(mri, x, y, z, 0, (float)new_val) ;*/
+                }
+            }
+        }
     }
-  }
   
   
   /* relax threshold somewhat, and reduce voxels that are above this thresh
@@ -1568,74 +1619,76 @@ remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
   thresh = hs->bins[end] ;
   mri_tmp2 = MRIcopy(mri_tmp, NULL) ;
   for (x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->height ; y++)
     {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
-	if (MRIvox(mri_tmp2, x, y, z) == 0)
-	  continue ;
-	for (xk = -1 ; xk <= 1 ; xk++)
-	{
-	  xi = mri_tmp->xi[x+xk] ;
-	  for (yk = -1 ; yk <= 1 ; yk++)
-	  {
-	    yi = mri_tmp->yi[y+yk] ;
-	    for (zk = -1 ; zk <= 1 ; zk++)
-	    {
-	      zi = mri_tmp->zi[z+zk] ;
-	      if (xi == Gvx && yi == Gvy && zi == Gvz)
-		DiagBreak() ;
-	      MRIsampleVolume(mri, xi, yi, zi, &val) ;
-	      if (val > thresh)
-	      {
-		num++ ;
-		MRIvox(mri_tmp, xi, yi, zi) = 128 ;
-		/*								MRIsetVoxVal(mri, xi, yi, zi, 0, (float)new_val) ;*/
-	      }
-	    }
-	  }
-	}
-      }
+      for (y = 0 ; y < mri->height ; y++)
+        {
+          for (z = 0 ; z < mri->depth ; z++)
+            {
+              if (MRIvox(mri_tmp2, x, y, z) == 0)
+                continue ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  xi = mri_tmp->xi[x+xk] ;
+                  for (yk = -1 ; yk <= 1 ; yk++)
+                    {
+                      yi = mri_tmp->yi[y+yk] ;
+                      for (zk = -1 ; zk <= 1 ; zk++)
+                        {
+                          zi = mri_tmp->zi[z+zk] ;
+                          if (xi == Gvx && yi == Gvy && zi == Gvz)
+                            DiagBreak() ;
+                          MRIsampleVolume(mri, xi, yi, zi, &val) ;
+                          if (val > thresh)
+                            {
+                              num++ ;
+                              MRIvox(mri_tmp, xi, yi, zi) = 128 ;
+                              /* MRIsetVoxVal
+                                 (mri, xi, yi, zi, 0, (float)new_val) ;*/
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-  }
   
   MRIfree(&mri_tmp2) ;
   mriseg = MRIsegment(mri_tmp, 1, 255) ;
   printf("%d bright voxels found - %d segments\n", num, mriseg->nsegments) ;
   
-  
   for (num = i = 0 ; i < mriseg->nsegments ; i++)
-  {
-    /* check to see that at least one voxel in segment is in nonbrain mask (i.e. it is within 1cm of
-       nonbrain */
-    mseg = &mriseg->segments[i] ;
-    for (erase = 0, n = 0 ; n < mseg->nvoxels ; n++)
     {
-      msv = &mseg->voxels[n] ;
-      if (msv->x == Gvx && msv->y == Gvy && msv->z == Gvz)
-	DiagBreak() ;
-      if (MRIvox(mri_nonbrain, msv->x, msv->y, msv->z) > 0)
-      {
-	erase = 1 ;
-	break ;
-      }
+      /* check to see that at least one voxel in 
+         segment is in nonbrain mask (i.e. it is within 1cm of
+         nonbrain */
+      mseg = &mriseg->segments[i] ;
+      for (erase = 0, n = 0 ; n < mseg->nvoxels ; n++)
+        {
+          msv = &mseg->voxels[n] ;
+          if (msv->x == Gvx && msv->y == Gvy && msv->z == Gvz)
+            DiagBreak() ;
+          if (MRIvox(mri_nonbrain, msv->x, msv->y, msv->z) > 0)
+            {
+              erase = 1 ;
+              break ;
+            }
+        }
+      if (erase)
+        {
+          if (DIAG_VERBOSE_ON)
+            printf("erasing segment %d (%d voxels) with centroid "
+                   "at (%2.0f, %2.0f, %2.0f)\n",
+                   i, mseg->nvoxels, mseg->cx, mseg->cy, mseg->cz) ;
+          for (n = 0 ; n < mseg->nvoxels ; n++)
+            {
+              msv = &mseg->voxels[n] ;
+              if (msv->x == Gx && msv->y == Gy && msv->z == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri, msv->x, msv->y, msv->z, 0, 0.0f) ;
+              num++ ;
+            }
+        }
     }
-    if (erase)
-    {
-      if (DIAG_VERBOSE_ON)
-	printf("erasing segment %d (%d voxels) with centroid at (%2.0f, %2.0f, %2.0f)\n",
-	       i, mseg->nvoxels, mseg->cx, mseg->cy, mseg->cz) ;
-      for (n = 0 ; n < mseg->nvoxels ; n++)
-      {
-	msv = &mseg->voxels[n] ;
-	if (msv->x == Gx && msv->y == Gy && msv->z == Gz)
-	  DiagBreak() ;
-	MRIsetVoxVal(mri, msv->x, msv->y, msv->z, 0, 0.0f) ;
-	num++ ;
-      }
-    }
-  }
   
   printf("%d bright voxels erased\n", num) ;
   HISTOfree(&h) ; HISTOfree(&hs) ; MRIfree(&mri_tmp) ; MRIfree(&mri_nonbrain) ;

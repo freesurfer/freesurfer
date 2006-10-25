@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.38 2006/10/24 01:43:02 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.39 2006/10/25 01:19:48 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -65,8 +65,10 @@ set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
-set NoBigVentricles = 1 # if 1, add -nobigventricles to mri_ca_label and reg.
-set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
+set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_register
+set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.,
+                      # else, add '-nobigventricles'
+set DoSecondPassRenorm = 0 # if 1, add '-secondpassrenorm' to mri_ca_register
 set UseOldTopoFix = 0 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
@@ -676,7 +678,9 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
   set cmd = ($cmd $UseCAAlign)
-  if($NoBigVentricles) set cmd = ($cmd -nobigventricles)
+  if($UnCompress) set cmd = ($cmd -uncompress)
+  if($BigVentricles) set cmd = ($cmd -bigventricles)
+  if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
   set cmd = ($cmd -mask brainmask.mgz \
              -T transforms/talairach.lta $xopts norm.mgz \
@@ -761,7 +765,8 @@ if($DoCALabel) then
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label)
   set cmd = ($cmd $UseCAAlign)
-  if($NoBigVentricles) set cmd = ($cmd -nobigventricles)
+  if($BigVentricles) set cmd = ($cmd -bigventricles)
+  if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   set cmd = ($cmd $xopts norm.mgz \
     transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
     aseg.auto.mgz);
@@ -2198,11 +2203,15 @@ while( $#argv != 0 )
       breaksw
 
     case "-bigventricles":
-      set NoBigVentricles = 0;
+      set BigVentricles = 1;
       breaksw
 
     case "-nobigventricles":
-      set NoBigVentricles = 1;
+      set BigVentricles = 0;
+      breaksw
+
+    case "-uncompress":
+      set UnCompress = 1;
       breaksw
 
     case "-secondpassrenorm":

@@ -31,7 +31,7 @@ static int map_to_flash = 0 ;
 
 static int wmsa = 0 ;
 
-static int handle_expanded_ventricles = 1;
+static int handle_expanded_ventricles = 0;
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -140,13 +140,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.75 2006/10/08 21:02:20 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.76 2006/10/25 01:19:47 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.75 2006/10/08 21:02:20 fischl Exp $",
+     "$Id: mri_ca_label.c,v 1.76 2006/10/25 01:19:47 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -852,6 +852,11 @@ get_option(int argc, char *argv[])
 		norm_PD = TRUE ;
 		printf("normalizing PD image (2nd input) to GCA means[1]\n") ;
 	}
+  else if (!stricmp(option, "bigventricles"))
+    {
+      handle_expanded_ventricles = 1 ;
+      printf("handling expanded ventricles...\n") ;
+    }
   else if (!stricmp(option, "nobigventricles"))
     {
       handle_expanded_ventricles = 0 ;
