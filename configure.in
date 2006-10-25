@@ -5,7 +5,7 @@
 #                        -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.248 2006/10/25 01:27:26 fischl Exp $"
+# "$Id: configure.in,v 1.249 2006/10/25 18:20:04 dsjen Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -492,7 +492,7 @@ if test ! "$ac_vxl_libraries" = "NO"; then
 fi
 
 # these are the VXL libs used by freesurfer:
-LIBS_VXL="-lvnl_algo -lvnl -lvcl -lnetlib"
+LIBS_VXL="-lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib"
 
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
