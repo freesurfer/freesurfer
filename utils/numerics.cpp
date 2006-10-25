@@ -914,8 +914,12 @@ extern "C" void OpenDFPMin
   ConvertFromFloatToVNLDouble( p, finalParameters, n );
 
   fs_lbfgs minimizer( costFunction );
-  minimizer.set_step_function( iStepFunction, iStepFunctionParams );
-  minimizer.set_user_callback_function( iUserCallBackFunction );
+
+  fs_lbfgs_observer observer;
+  observer.setStepFunction( iStepFunction, iStepFunctionParams );
+  observer.setUserCallbackFunction( iUserCallBackFunction );
+  
+  minimizer.setObserver( &observer );
 
   minimizer.memory = 7;
 
@@ -928,12 +932,12 @@ extern "C" void OpenDFPMin
   //       it refused to converge on the second test -- this  impacts the
   //       convergence!
   minimizer.set_g_tolerance( static_cast< double >( iTolerance ) );
-
+  
   bool isSuccess = minimizer.minimize( finalParameters );
 
   if( isSuccess ) {
     // success
-    *oIterations = minimizer.get_num_optimal_updates();
+    *oIterations = observer.getNumberOfOptimalUpdates();
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat( finalParameters, p, n );
   } else {
@@ -941,7 +945,7 @@ extern "C" void OpenDFPMin
     int returnCode = minimizer.get_failure_code();
 
     if( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE ) {
-      *oIterations = minimizer.get_num_optimal_updates();
+      *oIterations = observer.getNumberOfOptimalUpdates();
       *oFinalFunctionReturn = minimizer.get_end_error();
 
       ConvertFromVNLDoubleToFloat( finalParameters, p, n );

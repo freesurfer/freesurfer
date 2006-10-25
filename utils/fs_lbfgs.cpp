@@ -24,7 +24,7 @@ extern "C" {
 // memory is set to 5, line_search_accuracy to 0.9.
 // Calls init_parameters
 fs_lbfgs::fs_lbfgs():
-  f_(0)
+  fs_lbfgs_subject(), f_(0)
 {
   init_parameters();
 }
@@ -33,7 +33,7 @@ fs_lbfgs::fs_lbfgs():
 //: Constructor. f is the cost function to be minimized.
 // Calls init_parameters
 fs_lbfgs::fs_lbfgs(vnl_cost_function& f):
-  f_(&f)
+  fs_lbfgs_subject(), f_(&f)
 {
   init_parameters();
 }
@@ -46,40 +46,7 @@ void fs_lbfgs::init_parameters()
   memory = 5;
   line_search_accuracy = 0.9;
   default_step_length = 1.0;
-  step_function_ = NULL;
-  step_function_parms_ = NULL;
-  mUserCallbackFunction = NULL;
 }
-
-
-int fs_lbfgs::get_num_optimal_updates() {
-  return num_optimal_updates_;
-}
-
-void fs_lbfgs::set_step_function
-( void ( *step_function )
-  ( int itno, float sse, void *parms, float *p ), void *parms)
-{
-  this->step_function_ = step_function;
-  this->step_function_parms_ = parms;
-}
-
-
-void fs_lbfgs::set_user_callback_function
-( void (*userCallbackFunction)(float []) )
-{
-  mUserCallbackFunction = userCallbackFunction;
-}
-
-void fs_lbfgs::copy_vnl_to_float( const vnl_vector<double>& input, 
-  float* output, const int n)
-{
-  for(int i=0; i<n; i++) {
-    // legacy one indexing
-    output[ i+1 ] = static_cast<float>(input(i));
-  }
-}
-
 
 bool fs_lbfgs::minimize(vnl_vector<double>& x)
 {
@@ -123,11 +90,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   bool ok;
   this->num_evaluations_ = 0;
   this->num_iterations_ = 0;
-  this->num_optimal_updates_ = 0;
   int iflag = 0;
-  
-  const bool hasStepFunction = ( step_function_ != NULL );
-  const bool hasUserCallbackFunction = ( mUserCallbackFunction != NULL );
   
   while (true) {
 
@@ -152,26 +115,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       
       best_x = x;
       best_f = f;
-      
-      if( hasStepFunction || hasUserCallbackFunction ) {
-
-        // legacy one indexing
-        float currentX[n+1];
-        copy_vnl_to_float( best_x, currentX, n );
-      
-        if( hasStepFunction ) {  
-          (*step_function_)(this->num_optimal_updates_, static_cast<float>(f),
-                            step_function_parms_, currentX);  
-        }
-        
-        if( hasUserCallbackFunction ) {  
-          ( *mUserCallbackFunction )( currentX );
-        }
-        
-      }
-      
-      this->num_optimal_updates_++;
-      
+            
+      this->notify( best_f, &best_x );      
     }
 
 #define print_(i,a,b,c,d) vcl_cerr<<vcl_setw(6)<<i<<' '<<vcl_setw(20)<<a<<' '\
@@ -266,4 +211,3 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
   return ok;
 }
-
