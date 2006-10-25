@@ -1,16 +1,19 @@
 #
 # Makefile.am - specify in addition to the standard
 #
+
 AM_CPPFLAGS=$(X_CFLAGS) \
 	$(GL_CFLAGS) \
 	$(GLUT_CFLAGS) \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/dicom
+	-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libunix.a
 libunix_a_SOURCES = $(wildcard *.c) $(wildcard *.h)
 am_libunix_a_OBJECTS = $(libunix_a_SOURCES:%.c=%.o)
+
+#lib_LTLIBRARIES= libunix.la
+#libunix_la_SOURCES = $(wildcard *.c) $(wildcard *.h)
 
 .c.o:
 	source='$<' object='$@' libtool=no \
@@ -18,9 +21,8 @@ am_libunix_a_OBJECTS = $(libunix_a_SOURCES:%.c=%.o)
 	$(CCDEPMODE) $(depcomp) \
 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
-
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

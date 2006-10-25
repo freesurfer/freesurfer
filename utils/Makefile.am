@@ -22,6 +22,9 @@ am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
   $(wildcard $(cephes_dir)/*.o) \
 	$(wildcard $(NrrdIO_dir)/*.o)
 
+#lib_LTLIBRARIES= libutils.la
+#libutils_la_SOURCES = $(wildcard *.c) $(wildcard *.h)
+
 # mrisurf must be compiled w/o optimization enabled, in order 
 # to mask a segfault appearing on the Mac when running mris_fix_topology
 mrisurf.o: mrisurf.c

@@ -5,7 +5,7 @@
 #                        -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.246 2006/10/23 22:42:56 nicks Exp $"
+# "$Id: configure.in,v 1.247 2006/10/25 00:01:46 nicks Exp $"
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
@@ -441,9 +441,13 @@ if test ! "$ac_mni_libraries" = "NO"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
+# these are the libs used by freesurfer:
+LIBS_MNI="-lnetcdf -lvolume_io -lminc"
+
 AC_SUBST(MNI_CFLAGS)
 AC_SUBST(MNI_LIBS)
 AC_SUBST(MNI_DIR)
+AC_SUBST(LIBS_MNI)
 
 
 ################################################################
@@ -487,9 +491,13 @@ if test ! "$ac_vxl_libraries" = "NO"; then
   VXL_LIB=$ac_vxl_libraries
 fi
 
+# these are the VXL libs used by freesurfer:
+LIBS_VXL="-lvnl_algo -lvnl -lvcl -lnetlib"
+
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
 AC_SUBST(VXL_LIB)
+AC_SUBST(LIBS_VXL)
 
 
 ####################################################
@@ -1299,18 +1307,22 @@ AC_SUBST(LDFLAGS_TCL)
 AC_SUBST(LIBS_TCL)
 AC_SUBST(LIBS_TCL_OPENGL)
 
+
 ###########################################################
 # some common flags and libs
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $VXL_LIBS"
-LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
-LIBS="-lvnl_algo -lvnl -lvcl -lnetlib $LIBS"
+LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS"
+LIBS="-ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
+LIBS="$LIBS $LIBS_MNI"
+LIBS="$LIBS $LIBS_VXL"
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
 
+
+##############################################################################
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
 if test ! "x$tcltk_apps" = "xNO"; then
