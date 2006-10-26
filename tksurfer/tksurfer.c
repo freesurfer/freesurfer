@@ -1887,6 +1887,20 @@ int fill_flood_from_seed (int vno, FILL_PARAMETERS* params);
 
 /* ---------------------------------------------------------------------- */
 
+/* ------------------------------------------------------- vertex editing */
+
+#define VEDIT_NO_ACTION           0
+#define VEDIT_ACTION_NEW_LABEL    1
+#define VEDIT_ACTION_ADD_LABEL    2
+#define VEDIT_ACTION_REMOVE_LABEL 3
+#define VEDIT_ACTION_CLEAR_LABELS 4
+#define NUM_VEDIT_ACTIONS         5
+
+int edit_vertex_at_cursor ( int action, int argument );
+int edit_vertex ( int vno, int action, int argument );
+
+/* ---------------------------------------------------------------------- */
+
 /* --------------------------------------------------------- path finding */
 
 /* Takes a list of vnos and a message to display to the shell, then
@@ -16603,7 +16617,10 @@ mark_vertex(int vindex, int onoroff)
   VERTEX *v ;
   
   mris->vertices[vindex].marked = onoroff;
-  for (i=0; i < nmarked && marked[i] != vindex; i++);
+  
+  /* Find the index in marked[] of vindex. */
+     for (i=0; i < nmarked && marked[i] != vindex; i++);
+
   v = &mris->vertices[vindex] ;
   if ((onoroff==FALSE)&&(i<nmarked))
     {
@@ -16632,8 +16649,7 @@ mark_vertex(int vindex, int onoroff)
       v = &mris->vertices[vindex] ;
       v->marked = onoroff ;
     }
-  PR
-    }
+}
 
 void 
 mark_annotation(int vno_annot)
@@ -18898,6 +18914,9 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      int W_path_load WBEGIN
      ERR(2,"Wrong # args: path_load fname")
      path_load(argv[1]); WEND
+     int W_edit_vertex_at_cursor WBEGIN
+     ERR(3,"Wrong # args: edit_vertex_at_cursor action argument")
+     edit_vertex_at_cursor(atoi(argv[1]), atoi(argv[2])); WEND
      
 int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
                               int argc,char *argv[])
@@ -19158,7 +19177,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.223 2006/10/25 20:44:09 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.224 2006/10/26 22:01:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19936,6 +19955,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "fill_flood_from_cursor",
                     (Tcl_CmdProc*) W_fill_flood_from_cursor, REND);
   
+  Tcl_CreateCommand(interp, "edit_vertex_at_cursor",
+                    (Tcl_CmdProc*) W_edit_vertex_at_cursor, REND);
+
   Tcl_CreateCommand(interp, "draw_curvature_line",
                     (Tcl_CmdProc*) W_draw_curvature_line, REND);
 
@@ -25060,6 +25082,7 @@ int labl_new_from_marked_vertices (int *new_index_out)
   int label_vno;
   VERTEX* v = NULL;
   int new_index;
+  char tcl_command[NAME_LENGTH + 50];
   
   /* count the number of marked vertices. */
   num_marked_verts = 0;
@@ -25117,11 +25140,20 @@ int labl_new_from_marked_vertices (int *new_index_out)
   if (NULL != new_index_out)
     *new_index_out = new_index;
 
+  /* if the fill dlog is open, this will update it. */
+  sprintf (tcl_command, "LabelsChanged");
+  send_tcl_command (tcl_command);
+  
   return (ERROR_NONE);
 }
 
 int labl_add_marked_vertices_to_label (int index) 
 {
+  int* vnos_to_add;
+  int* found_labels;
+  int in_label;
+  int num_found;
+  int found_label;
   LABEL* curlabel = NULL;
   LABEL* newlabel = NULL;
   int num_marked_verts;
@@ -25131,20 +25163,50 @@ int labl_add_marked_vertices_to_label (int index)
   int newlabel_vno;
   int vno;
   VERTEX* v = NULL;
-  
+
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   
-  /* count the number of marked vertices. */
+  /* Look at all the marked verts and find the ones that aren't
+     already in this label. Make a list of them. */
+  vnos_to_add = (int*) calloc (mris->nvertices, sizeof(int));
+  if (NULL == vnos_to_add)
+    {
+      return (ERROR_NO_MEMORY);
+    }
+  found_labels = (int*) calloc (LABL_MAX_LABELS, sizeof(int));
+  if (NULL == found_labels)
+    {
+      free (vnos_to_add);
+      return (ERROR_NO_MEMORY);
+    }
   num_marked_verts = 0;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    if (mris->vertices[vno].marked)
-      num_marked_verts++;
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      v = &mris->vertices[vno];
+      if (v->marked)
+	{
+	  labl_find_label_by_vno (vno, 0, found_labels,
+				  sizeof(found_labels), &num_found);
+
+	  in_label = FALSE;
+	  if (num_found > 0)
+	    for (found_label = 0; found_label < num_found; found_label++)
+	      if (found_labels[found_label] == index)
+		in_label = TRUE;
+	  
+	  if (!in_label)
+	    vnos_to_add[num_marked_verts++] = vno;
+	  
+	}
+    }
+  free (found_labels);
   
   /* if we didn't get any, return. */
   if (0 == num_marked_verts) 
     {
-      printf ("surfer: no marked vertices");
+      free (vnos_to_add);
+      printf ("surfer: no marked vertices (that aren't already in the label)");
       return (ERROR_NONE);
     }
 
@@ -25157,6 +25219,7 @@ int labl_add_marked_vertices_to_label (int index)
   newlabel = LabelAlloc (num_new_verts, NULL, NULL);
   if (NULL == newlabel)
     {
+      free (vnos_to_add);
       return (ERROR_NO_MEMORY);
     }
 
@@ -25175,17 +25238,14 @@ int labl_add_marked_vertices_to_label (int index)
     }
 
   /* add the marked verts */
-  for (vno = 0; vno < mris->nvertices; vno++)
+  for (vno = 0; vno < num_marked_verts; vno++)
     {
-      v = &mris->vertices[vno];
-      if (v->marked)
-        {
-          newlabel->lv[newlabel_vno].x = v->x;
-          newlabel->lv[newlabel_vno].y = v->y;
-          newlabel->lv[newlabel_vno].z = v->z;
-          newlabel->lv[newlabel_vno].vno = vno;
-          newlabel_vno++;
-        }
+      v = &mris->vertices[vnos_to_add[vno]];
+      newlabel->lv[newlabel_vno].x = v->x;
+      newlabel->lv[newlabel_vno].y = v->y;
+      newlabel->lv[newlabel_vno].z = v->z;
+      newlabel->lv[newlabel_vno].vno = vnos_to_add[vno];
+      newlabel_vno++;
     }
   newlabel->n_points = num_new_verts;
   
@@ -25197,6 +25257,8 @@ int labl_add_marked_vertices_to_label (int index)
 
   /* update this label. */
   labl_changed (index, FALSE);
+
+  free (vnos_to_add);
   
   return (ERROR_NONE);
 }
@@ -25212,10 +25274,10 @@ int labl_remove_marked_vertices_from_label (int index)
   int curlabel_vno;
   int newlabel_vno;
   int vno;
-  
+
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
-  
+
   /* count the number of marked vertices. */
   num_marked_verts = 0;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -25264,7 +25326,7 @@ int labl_remove_marked_vertices_from_label (int index)
       return (ERROR_NO_MEMORY);
     }
 
-  strncpy( newlabel->subject_name, pname, 100 );
+  strncpy (newlabel->subject_name, pname, 100);
 
   /* for each of the labels verts, add it to the new label if the
      corresponding surface vert is not marked. */
@@ -25468,7 +25530,7 @@ int labl_send_info (int index)
   send_tcl_command (tcl_command);
   
   /* if the fill dlog is open, this will update it. */
-  sprintf (tcl_command, "UpdateCustomFillDlog");
+  sprintf (tcl_command, "LabelsChanged");
   send_tcl_command (tcl_command);
   
   return (ERROR_NONE);
@@ -25514,7 +25576,7 @@ int labl_add (LABEL* label, int* new_index)
   send_tcl_command (tcl_command);
   
   /* if the fill dlog is open, this will update it. */
-  sprintf (tcl_command, "UpdateCustomFillDlog");
+  sprintf (tcl_command, "LabelsChanged");
   send_tcl_command (tcl_command);
   
   /* enable our label menu items. */
@@ -25627,7 +25689,7 @@ int labl_remove (int index)
   send_tcl_command (tcl_command);
   
   /* if the fill dlog is open, this will update it. */
-  sprintf (tcl_command, "UpdateCustomFillDlog");
+  sprintf (tcl_command, "LabelsChanged");
   send_tcl_command (tcl_command);
   
   /* if this was our selected label, select nothing. */
@@ -26773,6 +26835,74 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 
   return (ERROR_NONE);
 }
+/* ---------------------------------------------------------------------- */
+
+int edit_vertex_at_cursor ( int action, int argument ) 
+{
+  return edit_vertex (selection, action, argument);
+}
+
+int edit_vertex ( int vno, int action, int argument ) 
+{
+  int i;
+  int* saved_marks;
+  int saved_nmarked;
+  int found_labels[LABL_MAX_LABELS];
+  int num_found;
+  int label;
+  
+  if (vno < 0 || vno > mris->nvertices)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "edit_vertex_at_cursor: vno is oob: %d)", vno));
+
+  if (action < 0 || action >= NUM_VEDIT_ACTIONS)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "edit_vertex_at_cursor: action was invalid: %d)", action));
+
+  /* Save the old marks. */
+  saved_marks = (int*) calloc (mris->nvertices, sizeof(int));
+  memcpy (saved_marks, marked, sizeof(int) * mris->nvertices);
+  saved_nmarked = nmarked;
+  
+  /* Clear marks. */
+  clear_all_vertex_marks ();
+
+  /* Mark this vertex. */
+  mark_vertex (vno, TRUE);
+
+  /* Work on stuff based on this one marked vertex. */
+  switch (action)
+    {
+    case VEDIT_ACTION_NEW_LABEL:
+      labl_new_from_marked_vertices (NULL);
+      break;
+    case VEDIT_ACTION_ADD_LABEL:
+      labl_add_marked_vertices_to_label (argument);
+      break;
+    case VEDIT_ACTION_REMOVE_LABEL:
+      labl_remove_marked_vertices_from_label (argument);
+      break;
+    case VEDIT_ACTION_CLEAR_LABELS:
+      labl_find_label_by_vno (vno, 0, found_labels, 
+			      sizeof(found_labels), &num_found);
+      for (label = 0; label < num_found; label++)
+	labl_remove_marked_vertices_from_label (found_labels[label]);
+      break;
+    default:
+      break;
+    }
+
+  /* Restore the marks. */
+  memcpy (marked, saved_marks, sizeof(int) * mris->nvertices);
+  for (i = 0; i < mris->nvertices; i++)
+    mris->vertices[i].marked = saved_marks[i];
+  nmarked = saved_nmarked;
+  
+  return (ERROR_NONE);
+}
+
 /* ---------------------------------------------------------------------- */
 
 int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
