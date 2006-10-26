@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.125 2006/09/07 16:17:06 kteich Exp $
+# $Id: tksurfer.tcl,v 1.126 2006/10/26 22:01:51 kteich Exp $
 
 package require BLT;
 
@@ -146,6 +146,13 @@ set gaFillAction(no_action) 0
 set gaFillAction(new_label) 1
 set gaFillAction(add_to_label) 2
 set gaFillAction(remove_from_label) 3
+
+# edit vertex constants
+set gaEditVertexAction(no_action) 0
+set gaEditVertexAction(new_label) 1
+set gaEditVertexAction(add_to_label) 2
+set gaEditVertexAction(remove_from_label) 3
+set gaEditVertexAction(clear_labels) 4
 
 # func graph avg mode constants
 set gaFuncGraphAvgMode(single) 0
@@ -2192,7 +2199,7 @@ proc DoCustomFillDlog {} {
 	set fwMain             $wwDialog.fwMain
 	set lfwFill            $wwDialog.lwFill
 	set rbwSeed            $wwDialog.cbwSeed
-	set lfwAction          $wwDialog.lwAction
+	set lfwAction          $wwDialog.lfwAction
 	set fwButtons          $wwDialog.fwButtons
 	
 	frame $fwMain
@@ -2297,11 +2304,112 @@ proc DoCustomFillDlog {} {
     }
 }
 
-proc UpdateCustomFillDlog {} {
-    # rebuild the target menu. this will just error out of the window
-    # isn't open.
+proc DoEditVertexDlog {} {
+
+    global gDialog
+    global gEditVertexParms
+    global gaEditVertexAction
+
+    set wwDialog .wwEditVertexDlog
+    if { [Dialog_Create $wwDialog "Edit Vertex" {-borderwidth 10}] } {
+	
+	set fwMain             $wwDialog.fwMain
+
+	set lfwAction          $wwDialog.lfwAction
+	set fwButtons          $wwDialog.fwButtons
+	
+	frame $fwMain
+	
+	# action text
+	tixLabelFrame $lfwAction \
+	    -label "Action:" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+
+	set fwAction            [$lfwAction subwidget frame]
+
+	# rbs for flags
+	set gEditVertexParms(action) $gaEditVertexAction(add_to_label)
+	set gEditVertexParms(argument) 0
+	label $fwAction.lwNew \
+	    -font [tkm_GetNormalFont] \
+	    -text "Create new label"
+	radiobutton $fwAction.rbwNew \
+	    -font [tkm_GetNormalFont] -relief flat\
+	    -variable gEditVertexParms(action) \
+	    -value $gaEditVertexAction(new_label)
+	label $fwAction.lwAdd \
+	    -font [tkm_GetNormalFont] \
+	    -text "Add to existing label"
+	radiobutton $fwAction.rbwAdd \
+	    -font [tkm_GetNormalFont] -relief flat\
+	    -variable gEditVertexParms(action) \
+	    -value $gaEditVertexAction(add_to_label)
+	label $fwAction.lwRemove \
+	    -font [tkm_GetNormalFont] \
+	    -text "Remove from label"
+	radiobutton $fwAction.rbwRemove \
+	    -font [tkm_GetNormalFont] -relief flat\
+	    -variable gEditVertexParms(action) \
+	    -value $gaEditVertexAction(remove_from_label)
+	label $fwAction.lwClear \
+	    -font [tkm_GetNormalFont] \
+	    -text "Clear labels"
+	radiobutton $fwAction.rbwClear \
+	    -font [tkm_GetNormalFont] -relief flat\
+	    -variable gEditVertexParms(action) \
+	    -value $gaEditVertexAction(clear_labels)
+
+	menubutton $fwAction.owTarget \
+	    -menu $fwAction.owTarget.mw \
+	    -indicatoron 1
+	menu $fwAction.owTarget.mw
+	FillEditVertexLabelListMenu $fwAction.owTarget 1
+	grid $fwAction.rbwNew         -column 0 -row 0 -sticky w
+	grid $fwAction.lwNew          -column 1 -row 0 -sticky w
+	grid $fwAction.rbwAdd         -column 0 -row 1 -sticky w
+	grid $fwAction.lwAdd          -column 1 -row 1 -sticky w
+	grid $fwAction.rbwRemove      -column 0 -row 2 -sticky w
+	grid $fwAction.lwRemove       -column 1 -row 2 -sticky w
+	grid $fwAction.rbwClear       -column 0 -row 3 -sticky w
+	grid $fwAction.lwClear        -column 1 -row 3 -sticky w
+	grid $fwAction.owTarget       -column 1 -row 4 -sticky w
+	grid columnconfigure $fwAction 0 -weight 0
+	grid columnconfigure $fwAction 1 -weight 1
+	
+	# buttons.
+	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+		     [list Apply { edit_vertex_at_cursor \
+				       $gEditVertexParms(action) \
+				       $gEditVertexParms(argument);
+			 UpdateAndRedraw } \
+			  "Apply"] \
+		     [list Close {}] \
+						       ]
+	
+	pack $fwMain $lfwAction $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+proc LabelsChanged {} { 
+
+    # This is called when labels are changed on the C side. We'll
+    # rebuild our target menu in the Custom Fill dlog. this will just
+    # error out of the window isn't open.
     catch {
-	LblLst_FillListMenu .wwCustomFillDlog.fwAction.owTarget 1
+	LblLst_FillListMenu \
+	    [.wwCustomFillDlog.lfwAction subwidget frame].owTarget 1
+    }
+
+    # Same with Edit Vertex dialog.
+    catch {
+	FillEditVertexLabelListMenu \
+	    [.wwEditVertexDlog.lfwAction subwidget frame].owTarget 1
     }
 }
 
@@ -2907,6 +3015,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command 
 	    "Run Script..."
 	    { DoFileDlog RunScript } }
+	{ command "Edit Vertex at Cursor..."
+	    { DoEditVertexDlog } }
 	{ separator }
 	{ cascade "Labels" {
 	    { command "New Label from Marked Vertices"
@@ -3572,6 +3682,9 @@ proc SelectVertex { ivno } {
     global gState
     set gState(lSelectedVnos) [list $ivno]
     GDF_SendCurrentPoints
+
+    # Update our Edit Vertex dialog.
+    
 }
 
 proc OverlayLayerChanged {} {
@@ -4585,6 +4698,66 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
     
     # Set up with initial label.
     set gFillParms(argument) $gnSelectedLabel
+    $iowList config -text [lindex $glLabelNames $gnSelectedLabel]
+}
+
+proc FillEditVertexLabelListMenu { iowList {ibSelectCurrentLabel 0} } {
+    global glLabelNames
+    global gnSelectedLabel
+    global gEditVertexParms
+
+    # Get the menu.
+    set mw $iowList.mw
+
+    # Delete all entries
+    $mw delete 0 end
+
+    # Make a sorted list of label names.
+    set lSortedLabels [lsort $glLabelNames]
+    
+    # If we have more than 30 entries, we're going to create some
+    # submenus. For every 30 entries, get item 0 and 29, make a string
+    # consisting of their names, and add a submenu with those labels.
+    if { [llength $lSortedLabels] > 30 } {
+	set nEntry 0
+	set nSubMenu 0
+	while { $nEntry < [llength $lSortedLabels] } {
+	    set nTopEntry [expr $nEntry + 20]
+	    if { $nTopEntry >= [llength $lSortedLabels] } {
+		set nTopEntry [expr [llength $lSortedLabels] - 1]
+	    }
+	    menu $mw.mw$nSubMenu
+	    $mw add cascade -menu $mw.mw$nSubMenu \
+		-label "[lindex $lSortedLabels $nEntry] -> [lindex $lSortedLabels $nTopEntry]"
+	    incr nEntry 30
+	    incr nSubMenu
+	}
+    }
+
+
+    # For each value...
+    set nValueIndex 0
+    foreach nLabel $lSortedLabels {
+
+	# If we have more than 30, calc a submenu and add it to
+	# that. Otherwise just add it to the main menu.
+	set curMenu $mw
+	if { [llength $lSortedLabels] > 30 } {
+	    set curMenu $mw.mw[expr $nValueIndex / 30]
+	}
+
+	# The command involves the index of the label in the original
+	# list, so we find the index of the current label name in that
+	# list.
+	set nRealLabel [lsearch $glLabelNames $nLabel]
+	$curMenu add command \
+	    -command "set gEditVertexParms(argument) $nRealLabel; $iowList config -text \"$nLabel\"" \
+	    -label $nLabel
+	incr nValueIndex
+    }
+    
+    # Set up with initial label.
+    set gEditVertexParms(argument) $gnSelectedLabel
     $iowList config -text [lindex $glLabelNames $gnSelectedLabel]
 }
 
