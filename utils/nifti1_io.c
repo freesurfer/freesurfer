@@ -1,3 +1,5 @@
+#ifndef HAVE_NIFTI_LIBS
+
 #define _NIFTI1_IO_C_
 
 #ifdef Darwin
@@ -4985,3 +4987,5 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read )
 
    return nim ;
 }
+
+#endif //  HAVE_NIFTI_LIBS

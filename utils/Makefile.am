@@ -5,11 +5,17 @@
 NrrdIO_dir = NrrdIO
 cephes_dir = cephes
 
+if HAVE_NIFTI_LIBS
+NIFTI_THINGS="$(NIFTI_CFLAGS) -DHAVE_NIFTI_LIBS"
+else
+NIFTI_THINGS=""
+endif
+
 AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
-	-DHAVE_ZLIB
+	$(NIFTI_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 
@@ -19,7 +25,7 @@ libutils_a_SOURCES = $(wildcard *.c) $(wildcard *.cpp)
 
 am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
 	$(libutils_a_SOURCES:%.cpp=%.o) \
-  $(wildcard $(cephes_dir)/*.o) \
+	$(wildcard $(cephes_dir)/*.o) \
 	$(wildcard $(NrrdIO_dir)/*.o)
 
 #lib_LTLIBRARIES= libutils.la

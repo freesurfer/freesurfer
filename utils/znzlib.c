@@ -1,3 +1,5 @@
+#ifndef HAVE_NIFTI_LIBS
+
 /** \file znzlib.c
     \brief Low level i/o interface to compressed and noncompressed files.
     Written by Mark Jenkinson, FMRIB
@@ -268,3 +270,4 @@ int znzprintf(znzFile stream, const char *format, ...)
 
 #endif
 
+#endif // HAVE_NIFTI_LIBS

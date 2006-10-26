@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.251 2006/10/26 00:25:04 nicks Exp $"
+# "$Id: configure.in,v 1.252 2006/10/26 05:28:34 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -468,6 +468,50 @@ AC_SUBST(LIBS_MNI)
 
 
 ################################################################
+# NIfTI
+################################################################
+ac_nifti_includes="NO"
+ac_nifti_libraries="NO"
+ac_nifti_bindir="NO"
+ac_nifti_dir="NO"
+NIFTI_CFLAGS=""
+NIFTI_LIBS=""
+NIFTI_LIB=""
+NIFTI_DIR=""
+LIBS_NIFTI=""
+
+AC_MSG_CHECKING(NIfTI directory)
+
+AC_ARG_WITH(nifti-dir,
+  [  --with-nifti-dir=DIR    where the root of NIfTI is installed.],
+  [  ac_nifti_includes="$withval"/include
+     ac_nifti_libraries="$withval"/lib
+     ac_nifti_bindir="$withval"/bin
+     ac_nifti_dir="$withval"
+  ])
+
+if test ! "$ac_nifti_includes" = "NO"; then
+  AC_MSG_RESULT(NIfTI directory is $withval)
+  NIFTI_CFLAGS=-I$ac_nifti_includes
+  NIFTI_DIR=$ac_nifti_dir
+else
+  AC_MSG_RESULT(NIfTI directory is not supplied)
+fi
+
+if test ! "$ac_nifti_libraries" = "NO"; then
+  NIFTI_LIB=$ac_nifti_libraries
+  NIFTI_LIBS=-L$ac_nifti_libraries
+fi
+
+AC_SUBST(NIFTI_CFLAGS)
+AC_SUBST(NIFTI_LIBS)
+AC_SUBST(NIFTI_LIB)
+AC_SUBST(NIFTI_DIR)
+
+AM_CONDITIONAL(HAVE_NIFTI_LIBS, ! test "x$ac_nifti_dir" = "xNO")
+
+
+################################################################
 # VXL
 ################################################################
 ac_vxl_includes="NO"
@@ -832,6 +876,7 @@ CPPUNIT_CFLAGS=""
 CPPUNIT_LIBS=""
 CPPUNIT_LIB=""
 CPPUNIT_DIR=""
+
 AC_MSG_CHECKING(CppUnit directory)
 
 AC_ARG_WITH(cppunit-dir,
@@ -1130,10 +1175,10 @@ ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
-$MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS \
+$MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS"
+$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS $NIFTI_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1145,11 +1190,13 @@ if test "$OS" = "Darwin"; then
   LIB_CRYPT=""
 fi
 AC_SUBST(LIB_CRYPT)
+
 AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
   [AC_MSG_ERROR([FATAL: tiff lib not found. \
 Please install tiff header files and libs.])] )
 AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
   [AC_MSG_ERROR([FATAL: jpeg lib not found. Please install jpeg lib.])] )
+
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
   [AC_MSG_ERROR([FATAL: netcdf lib not found. \
@@ -1160,6 +1207,7 @@ Set LDFLAGS or --with-mni-dir.])] )
 AC_CHECK_LIB([volume_io], [transform_point],[],
   [AC_MSG_ERROR([FATAL: volume_io lib not found. \
 Set LDFLAGS or --with-mni-dir.])] )
+
 # VXL check
 AC_CHECK_LIB([vnl], [main],[],
   [AC_MSG_ERROR([FATAL: vnl lib not found. \
@@ -1167,6 +1215,25 @@ Set LDFLAGS or --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
 Set LDFLAGS or --with-vxl-dir.])] )
+
+# NIfTI check
+if test ! "x$ac_nifti_dir" = "xNO"; then
+  # if --with-nifti-dir was used, make sure necessary libs exist
+  AC_CHECK_LIB([znz], [znzread],[],
+    [AC_MSG_ERROR([FATAL: NIfTI znz lib not found. \
+  Set LDFLAGS or --with-nifti-dir.])] )
+  AC_CHECK_LIB([niftiio -lznz], [is_nifti_file],[],
+    [AC_MSG_ERROR([FATAL: niftiio lib not found. \
+  Set LDFLAGS or --with-nifti-dir.])] )
+  LIBS_NIFTI="-lznz -lniftiio"
+else
+  # check if libs installed natively somewhere
+  AC_CHECK_LIB([znz], [znzread], 
+    [AC_CHECK_LIB([niftiio -lznz], [is_nifti_file],
+      [AM_CONDITIONAL(HAVE_NIFTI_LIBS, test "1" = "1")
+       LIBS_NIFTI="-lznz -lniftiio"],[])], [])
+fi
+AC_SUBST(LIBS_NIFTI)
 
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 if test ! "x$tcltk_apps" = "xNO"; then
@@ -1329,10 +1396,11 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # some common flags and libs
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
-LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS"
+LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS $NIFTI_LIBS"
 LIBS="-ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
+LIBS="$LIBS $LIBS_NIFTI"
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
