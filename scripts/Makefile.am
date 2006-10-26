@@ -92,6 +92,7 @@ printdat \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+rebuild_gca_atlas.csh \
 recon-all \
 recon-all-dev \
 recon-all-long \
