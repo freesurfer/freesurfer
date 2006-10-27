@@ -1217,8 +1217,8 @@ LabelToWhite(LABEL *area, MRI_SURFACE *mris)
       continue;
     v = &mris->vertices[vno] ;
     area->lv[n].x = v->whitex ;
-    area->lv[n].y = v->whitex ;
-    area->lv[n].z = v->whitex ;
+    area->lv[n].y = v->whitey ;
+    area->lv[n].z = v->whitez ;
   }
   strncpy (area->space, "coords=white", sizeof(area->space));
   return(NO_ERROR) ;
