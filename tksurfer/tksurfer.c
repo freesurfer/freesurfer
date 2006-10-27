@@ -19177,7 +19177,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.224 2006/10/26 22:01:37 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.225 2006/10/27 17:25:45 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24638,9 +24638,9 @@ int labl_save (int index, char* fname)
     return (ERROR_BADPARM);
   if (NULL == fname)
     return (ERROR_BADPARM);
-  
-  /* get our label. */
-  label = labl_labels[index].label;
+
+  /* Get a copy of our label. */
+  label = LabelCopy (labl_labels[index].label, NULL);
   if (NULL == label)
     return (ERROR_BADPARM);
   
@@ -24666,6 +24666,9 @@ int labl_save (int index, char* fname)
   LabelToWhite (label, mris);
   LabelWrite (label, fname);
   
+  /* Delete the label. */
+  LabelFree (&label);
+
   return (ERROR_NONE);
 }
 
