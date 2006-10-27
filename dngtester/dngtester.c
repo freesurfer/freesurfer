@@ -31,7 +31,6 @@
 #include "registerio.h"
 #include "timer.h"
 #include "evschutils.h"
-#include "numerics.h"
 #include "matrix.h"
 #include "matfile.h"
 #include "randomfields.h"
@@ -59,9 +58,6 @@ char gcamfile[1000];
 char origfile[1000];
 char *sourcefile;
 GCAM      *gcam;
-MRI       *mri_source;
-MRI       *mri_dst; 
-MRI       *mri_targ; 
 MRI *mri, *mri2, *mask=NULL;
 MATRIX *V, *W, *m_tmp;
 float ipr, bpr, intensity;
@@ -72,32 +68,110 @@ struct timeb  mytimer;
 int msecFitTime;
 double a,b,zthresh,pthresh;
 
+MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
+
 /*----------------------------------------*/
 int main(int argc, char **argv)
 {
-  R = MatlabRead(argv[1]);
-  V = NULL;
 
+  printf("Reading\n");
+  mri = MRIread(argv[1]);
+  printf("chunck %d\n",mri->ischunked);
+
+  mri2 = fMRIvariance(mri, -1, 1, NULL);
+
+  printf("Var1 --------\n");
   TimerStart(&mytimer) ;
-  for(n=0; n < 10000; n++){
-    V = MatrixCopy(R,V);
-    sc_linalg_cholesky_decomp(V);
-  }
+  for(n=0; n < 1; n++)  fMRIvariance(mri, -1, 1, mri2);
   msecFitTime = TimerStop(&mytimer) ;
-  printf("%d %d  %g\n",n,msecFitTime,msecFitTime/(double)n);
+  printf("t = %lf\n",(double)msecFitTime/n);
+  MRIwrite(mri2,"var1.mgh");
 
-  return(0);
-  mri  = MRIread(argv[1]);
-  mri2 = MRIsetSliceNo(mri,NULL);
-  MRIwrite(mri2,"s.mgh");
-  return(0);
+  printf("Var2 --------\n");
+  TimerStart(&mytimer) ;
+  for(n=0; n < 1; n++)  fMRIvariance2(mri, -1, 1, mri2);
+  msecFitTime = TimerStop(&mytimer) ;
+  printf("t = %lf\n",(double)msecFitTime/n);
+  MRIwrite(mri2,"var2.mgh");
 
-  mask = MRIread(argv[2]);
+  printf("Done\n");
+
+  exit(0);
+
+
   mri2 = MRIvote(mri, mask, NULL);
   MRIwrite(mri2,"vote.mgh");
 
   return(0);
   exit(0);
+}
+
+/*--------------------------------------------------------*/
+MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var)
+{
+  int c, r, s, f;
+  double val,sumsqval, sumval;
+  int nvox_per_row, nvox_per_slice, bytes_per_vol;
+  void *p;
+  val = 0;
+
+  if(DOF < 0) DOF = fmri->nframes;
+
+  if(var==NULL){
+    var = MRIallocSequence(fmri->width, fmri->height, fmri->depth,
+                           MRI_FLOAT, 1);
+    if(var==NULL){
+      printf("ERROR: fMRIvariance: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(fmri,var);
+  }
+  else{
+    if(var->width  != fmri->width ||
+       var->height != fmri->height ||
+       var->depth  != fmri->depth){
+      printf("ERROR: fMRIvariance: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(var->type != MRI_FLOAT){
+      printf("ERROR: fMRIvariance: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  nvox_per_row = fmri->width;
+  nvox_per_slice = fmri->width * fmri->height;
+  bytes_per_vol = fmri->width * fmri->height * fmri->depth * fmri->bytes_per_vox;
+  for(c=0; c < fmri->width; c++){
+    for(r=0; r < fmri->height; r++){
+      for(s=0; s < fmri->depth; s++){
+        sumval = 0;
+        sumsqval = 0;
+	p = fmri->chunk + (c + r*nvox_per_row + s*nvox_per_slice)*fmri->bytes_per_vox;
+        for(f=0; f < fmri->nframes; f++){
+	  if(fmri->ischunked){
+	    switch(fmri->type){
+	    case MRI_UCHAR: val = (double)(*((char *)p)); break;
+	    case MRI_SHORT: val = (double)(*((short*)p)); break;
+	    case MRI_INT:   val = (double)(*((int  *)p)); break;
+	    case MRI_LONG:  val = (double)(*((long *)p)); break;
+	    case MRI_FLOAT: val = (double)(*((float*)p)); break;
+	    }
+	  } 
+	  else val = MRIgetVoxVal(fmri, c, r, s, f);
+	  //printf("%d  %lu   %g  %g\n",f,(long int)p,val,MRIgetVoxVal(fmri,c,r,s,f));
+          sumsqval += (val*val);
+          if(RmMean) sumval += val;
+	  p += bytes_per_vol;
+        }
+        MRIFseq_vox(var,c,r,s,0) = sumsqval/DOF;
+        if(RmMean)
+          MRIFseq_vox(var,c,r,s,0) -= ((sumval/DOF)*(sumval/DOF));
+      }
+    }
+  }
+
+  return(var);
 }
 
 /*---------------------------------------------------------------
