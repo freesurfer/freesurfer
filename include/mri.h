@@ -110,7 +110,18 @@ typedef struct
   MATRIX *r_to_i__;
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
-	double outside_val ; // 0 by default, but could be something else
+  double outside_val ; // 0 by default, but could be something else
+
+  // "Chunking" memory management. "Chunking" is where the entire 4D 
+  // volume is allocated one big buffer.
+  int    ischunked; // 1 means alloc is one big chunk
+  void   *chunk; // pointer to the one big chunk of buffer
+  int    bytes_per_vox; // # bytes per voxels
+  int    bytes_per_row; // # bytes per row
+  int    bytes_per_slice; // # bytes per slice
+  int    bytes_per_vol; // # bytes per volume/timepoint
+  int    bytes_total; // # total number of pixel bytes in the struct
+
 } MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); // Native Vox2RAS Matrix (scanner and xfm too)
@@ -194,6 +205,8 @@ MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
+MRI * MRIallocChunk(int width, int height, int depth, int type, int nframes);
+int   MRIchunk(MRI **pmri);
 
 
 /* correlation routines */
