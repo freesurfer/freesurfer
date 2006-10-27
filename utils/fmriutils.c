@@ -1,6 +1,6 @@
 /*
   fmriutils.c
-  $Id: fmriutils.c,v 1.33 2006/10/02 16:44:59 nicks Exp $
+  $Id: fmriutils.c,v 1.34 2006/10/27 20:29:40 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -27,7 +27,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) {
-  return("$Id: fmriutils.c,v 1.33 2006/10/02 16:44:59 nicks Exp $");
+  return("$Id: fmriutils.c,v 1.34 2006/10/27 20:29:40 greve Exp $");
 }
 
 
@@ -101,7 +101,7 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
 MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
 {
   int c, r, s, f;
-  float val,sumsqval, sumval;
+  double val,sumsqval, sumval;
 
   if(DOF < 0) DOF = fmri->nframes;
 
