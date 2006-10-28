@@ -48,7 +48,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.3 2006/10/28 19:19:36 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.4 2006/10/28 19:23:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -191,6 +191,9 @@ static void print_usage(void)
   printf("\n");
   printf("   --z zvolfile : z volume \n");
   printf("   --p pvolfile : p volume \n");
+  printf("   --log10p sigvolfile : sig volume \n");
+  printf("\n");
+  printf("   --mask maskfile : mask volume \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
