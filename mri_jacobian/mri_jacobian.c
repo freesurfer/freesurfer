@@ -45,7 +45,7 @@ main(int argc, char *argv[])
 	MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.3 2006/09/01 18:49:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.4 2006/10/28 23:48:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -127,7 +127,7 @@ main(int argc, char *argv[])
 		mask_invalid(gcam, mri_jacobian) ;
 	if (use_log)
 	{
-		MRIlog10(mri_jacobian, mri_jacobian, 0) ;
+		MRIlog10(mri_jacobian, NULL, mri_jacobian, 0) ;
 		if (zero_mean)
 			MRIzeroMean(mri_jacobian, mri_jacobian) ;
 		if (Gx > 0)
