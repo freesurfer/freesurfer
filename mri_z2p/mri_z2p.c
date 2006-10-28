@@ -48,7 +48,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.2 2006/10/28 18:41:46 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.3 2006/10/28 19:19:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -57,10 +57,10 @@ struct utsname uts;
 
 char *ZVolFile=NULL;
 char *PVolFile=NULL;
-char *MaskFile=NULL;
+char *Log10PVolFile=NULL;
+char *MaskVolFile=NULL;
 
 MRI *z,*p,*sig,*mask=NULL;
-RFS *rfs;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -88,17 +88,22 @@ int main(int argc, char *argv[])
   z = MRIread(ZVolFile);
   if(z==NULL) exit(1);
 
-  rfs = RFspecInit(0,NULL);
-  rfs->name = strcpyalloc("gaussian");
-  rfs->params[0] = 0;
-  rfs->params[1] = 1;
-  p = RFstat2P(z,rfs,mask,NULL);
-  sig  = MRIlog10(p,sig,1);
-  MRIwrite(p,"myp.mgh");
-  MRIwrite(sig,PVolFile);
+  if(MaskVolFile){
+    printf("Reading mask %s\n",MaskVolFile);
+    mask = MRIread(MaskVolFile);
+    if(mask==NULL) exit(1);
+  }
 
+  p = RFz2p(z, mask, NULL);
 
-  return 0;
+  if(PVolFile) MRIwrite(p,PVolFile);
+
+  if(Log10PVolFile == NULL) return(0);
+
+  sig  = MRIlog10(p,mask,sig,1);
+  MRIwrite(sig,Log10PVolFile);
+
+  return(0);
 }
 /* ------ Doxygen markup starts on the line below ---- */
 /*! 
@@ -140,6 +145,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--p")){
       if(nargc < 1) CMDargNErr(option,1);
       PVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--log10p")){
+      if(nargc < 1) CMDargNErr(option,1);
+      Log10PVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      MaskVolFile = pargv[0];
       nargsused = 1;
     }
     else{
@@ -220,8 +235,8 @@ static void check_options(void)
     printf("ERROR: need zvol\n");
     exit(1);
   }
-  if(PVolFile == NULL){
-    printf("ERROR: need pvol\n");
+  if(PVolFile == NULL && Log10PVolFile == NULL){
+    printf("ERROR: need output vol (either --p or --log10p\n");
     exit(1);
   }
 
