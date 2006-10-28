@@ -16,7 +16,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) {
-  return("$Id: randomfields.c,v 1.7 2006/10/15 21:23:40 greve Exp $");
+  return("$Id: randomfields.c,v 1.8 2006/10/28 19:18:44 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -181,6 +181,21 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
   }
   return(p);
 }
+/*!
+  \fn MRI *RFz2p(MRI *z, MRI *mask, MRI *p)
+  \brief Converts z to p (single-sided).
+*/
+MRI *RFz2p(MRI *z, MRI *mask, MRI *p)
+{
+  RFS *rfs;
+  rfs = RFspecInit(0,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+  p = RFstat2P(z,rfs,mask,p);
+  return(p);
+}
+
 
 /*-------------------------------------------------------------------*/
 MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf)

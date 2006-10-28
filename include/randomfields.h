@@ -1,4 +1,4 @@
-// $Id: randomfields.h,v 1.6 2006/10/15 21:23:40 greve Exp $
+// $Id: randomfields.h,v 1.7 2006/10/28 19:18:44 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -36,6 +36,7 @@ int RFnparams(RFS *rfs);
 int RFexpectedMeanStddev(RFS *rfs);
 int RFsynth(MRI *rf, RFS *rfs, MRI *binmask);
 MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p);
+MRI *RFz2p(MRI *z, MRI *mask, MRI *p);
 MRI *RFp2Stat(MRI *rf, RFS *rfs, MRI *binmask, MRI *p);
 MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout);
 int RFglobalStats(MRI *rf, MRI *binmask,
