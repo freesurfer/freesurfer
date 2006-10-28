@@ -14,9 +14,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/27 20:31:54 $
-// Revision       : $Revision: 1.365 $
-char *MRI_C_VERSION = "$Revision: 1.365 $";
+// Revision Date  : $Date: 2006/10/28 06:58:22 $
+// Revision       : $Revision: 1.366 $
+char *MRI_C_VERSION = "$Revision: 1.366 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -8504,6 +8504,67 @@ int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
   }/* end loop over frames */
 
   return(NO_ERROR) ;
+}
+/*---------------------------------------------------------------------*/
+/*!
+  \fn double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
+  \brief Computes the kernel used for trilinear interpolation
+  \param mri - used to get volume dimensions
+  \param c - column (continuous)
+  \param r - row (continuous)
+  \param s - slice (continuous)
+  \param kernel - array of length 8. Can be NULL.
+  \return kernel - array of length 8.
+  \description Computes the kernel used for trilinear interpolation. See 
+  also MRIsampleSeqVolume().
+ */
+double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
+{
+  int  OutOfBounds;
+  int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
+  double xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+
+  if(kernel == NULL) kernel = (double *) calloc(8,sizeof(double));
+
+  OutOfBounds = MRIindexNotInVolume(mri, c, r, s);
+  if(OutOfBounds == 1){
+    /* unambiguously out of bounds */
+    for(f=0; f < 8; f++) kernel[f] = 0;
+    return(kernel) ;
+  }
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  if(c >= width)   c = width - 1.0 ;
+  if(r >= height)  r = height - 1.0 ;
+  if(s >= depth)   s = depth - 1.0 ;
+  if(c < 0.0)      c = 0.0 ;
+  if(r < 0.0)      r = 0.0 ;
+  if(s < 0.0)      s = 0.0 ;
+
+  xm = MAX((int)c, 0) ;
+  xp = MIN(width-1, xm+1) ;
+  ym = MAX((int)r, 0) ;
+  yp = MIN(height-1, ym+1) ;
+  zm = MAX((int)s, 0) ;
+  zp = MIN(depth-1, zm+1) ;
+
+  xmd = c - (double)xm ;
+  ymd = r - (double)ym ;
+  zmd = s - (double)zm ;
+  xpd = (1.0 - xmd) ;
+  ypd = (1.0 - ymd) ;
+  zpd = (1.0 - zmd) ;
+
+  kernel[0] = xpd * ypd * zpd; // xm ym zm
+  kernel[1] = xpd * ypd * zmd; // xm ym zp
+  kernel[2] = xpd * ymd * zpd; // xm yp zm
+  kernel[3] = xpd * ymd * zmd; // xm yp zp
+  kernel[4] = xmd * ypd * zpd; // xp ym zm
+  kernel[5] = xmd * ypd * zmd; // xp ym zp
+  kernel[6] = xmd * ymd * zpd; // xp yp zm
+  kernel[7] = xmd * ymd * zmd; // xp yp zp
+
+  return(kernel) ;
 }
 
 /*-----------------------------------------------------

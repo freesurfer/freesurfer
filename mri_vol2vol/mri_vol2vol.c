@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $
+  $Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $
 
 */
 
@@ -30,6 +30,7 @@ mri_vol2vol
   --fstarg            : use orig.mgz from subject in --reg as target
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --precision precisionid : output precision (def is float)
+  --kernel            : save the trilinear interpolation kernel instead
 
   --no-resample : do not resample, just change vox2ras matrix
 
@@ -148,6 +149,11 @@ trilin aand nearest. trilin is the default.
 
 Set output precision to precisionid. Legal values are uchar, short,
 int, long, and float. Default is float.
+
+--kernel
+
+Save the trilinear interpolation kernel at each voxel instead of the 
+interpolated image.
 
 --help 
 
@@ -381,7 +387,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -429,6 +435,7 @@ float minrescale = 0.0, maxrescale = 255.0;
 
 float ipr, bpr, intensity;
 int float2int,err, nargs;
+int DoKernel=0;
 
 char tmpstr[2000];
 
@@ -439,12 +446,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.20 2006/10/18 21:05:56 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -581,10 +588,15 @@ int main(int argc, char **argv)
 
   // Allocate the output
   template->type = precisioncode;
-  out = MRIcloneBySpace(template,in->nframes);
-
-  printf("Resampling\n");
-  MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
+  if(!DoKernel){
+    out = MRIcloneBySpace(template,in->nframes);
+    printf("Resampling\n");
+    MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
+  } else {
+    out = MRIcloneBySpace(template,8);
+    printf("Computing Trilinear Kernel\n");
+    MRIvol2VolTLKernel(in,out,vox2vox);
+  }
   
   MRIwrite(out,outvolfile);
 
@@ -650,6 +662,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fstarg"))   fstarg = 1;
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
+    else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
 
     else if(istringnmatch(option, "--mov",0)){
       if(nargc < 1) argnerr(option,1);

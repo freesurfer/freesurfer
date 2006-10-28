@@ -524,6 +524,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel);
 int   MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val) ;
 int   MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval,
                            int slice_direction) ;

@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.25 2006/10/06 19:24:40 greve Exp $
+  $Id: mri2.c,v 1.26 2006/10/28 06:58:22 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -673,6 +673,78 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   } /* target slice */
 
   free(valvect);
+  if(FreeMats){
+    MatrixFree(&V2Rsrc);
+    MatrixFree(&invV2Rsrc);
+    MatrixFree(&V2Rtarg);
+    MatrixFree(&Vt2s);
+  }
+
+  return(0);
+}
+/*-----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
+  \brief Computes the trilinear interpolation kernel at each voxel.
+  \param src - source volume
+  \param targ - target volume
+  \param Vt2s - vox2vox transform from target to source (can be NULL)
+ */
+MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
+{
+  int   ct,  rt,  st,  f;
+  int   ics, irs, iss;
+  float fcs, frs, fss;
+  double *kvect=NULL;
+  MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
+  int FreeMats=0;
+  MRI *kernel;
+
+  kernel = MRIallocSequence(targ->width, targ->height, targ->depth, 
+			    MRI_FLOAT, 8);
+  if(kernel == NULL) return(NULL);
+  MRIcopyHeader(targ,kernel);
+
+  // Compute vox2vox matrix based on vox2ras of src and target. 
+  // Assumes that src and targ have same RAS space.
+  if(Vt2s == NULL){
+    V2Rsrc = MRIxfmCRS2XYZ(src,0);
+    invV2Rsrc = MatrixInverse(V2Rsrc,NULL);
+    V2Rtarg = MRIxfmCRS2XYZ(targ,0);
+    Vt2s = MatrixMultiply(invV2Rsrc,V2Rtarg,NULL);
+    FreeMats = 1;
+  }
+
+  for(ct=0; ct < targ->width; ct++){
+    for(rt=0; rt < targ->height; rt++){
+      for(st=0; st < targ->depth; st++){
+	
+	/* Column in source corresponding to CRS in Target */
+	fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt +
+	      Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4] ;
+	ics = nint(fcs);
+	if(ics < 0 || ics >= src->width) continue;
+
+	/* Row in source corresponding to CRS in Target */
+	frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt +
+	      Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4] ;
+	irs = nint(frs);
+	if(irs < 0 || irs >= src->height) continue;
+
+	/* Slice in source corresponding to CRS in Target */
+	fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt +
+	      Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4] ;
+	iss = nint(fss);
+	if(iss < 0 || iss >= src->depth) continue;
+
+	kvect = MRItrilinKernel(src, fcs, frs, fss, kvect);
+	for(f=0; f < 8 ; f++) MRIsetVoxVal(targ,ct,rt,st,f,kvect[f]);
+
+      } /* target col */
+    } /* target row */
+  } /* target slice */
+
+  free(kvect);
   if(FreeMats){
     MatrixFree(&V2Rsrc);
     MatrixFree(&invV2Rsrc);
