@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/13 18:43:51 $
-// Revision       : $Revision: 1.487 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/10/28 18:24:03 $
+// Revision       : $Revision: 1.488 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -583,7 +583,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.487 2006/09/13 18:43:51 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.488 2006/10/28 18:24:03 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -51049,7 +51049,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1)
   }
 
   if(ar1 == NULL) {
-    ar1 = MRIcloneBySpace(src, 1);
+    ar1 = MRIcloneBySpace(src, MRI_FLOAT, 1);
     if(ar1 == NULL){
       printf("ERROR: could not alloc\n");
       return(NULL);

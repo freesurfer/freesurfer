@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.96 2006/10/03 17:16:43 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.97 2006/10/28 18:24:04 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1011,15 +1011,15 @@ int main(int argc, char **argv)
       rfs->params[0] = 0;
       rfs->params[1] = 1;
       //z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
-      z = MRIcloneBySpace(mriglm->y,1);
-      zabs = MRIcloneBySpace(mriglm->y,1);
+      z = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+      zabs = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
     }
     if(!strcmp(csd->simtype,"mc-t")){
       rfs = RFspecInit(SynthSeed,NULL);
       rfs->name = strcpyalloc("t");
       rfs->params[0] = mriglm->glm->dof;
-      z = MRIcloneBySpace(mriglm->y,1);
-      zabs = MRIcloneBySpace(mriglm->y,1);
+      z = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+      zabs = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
     }
     if(csd->threshsign == 0) {
       absflag = 1;

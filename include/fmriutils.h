@@ -74,6 +74,6 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X);
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1);
 int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn, 
 		       double *rar1mn,double *sar1mn);
-
+MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out);
 
 #endif

@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $
+  $Id: mri_vol2vol.c,v 1.22 2006/10/28 18:24:05 greve Exp $
 
 */
 
@@ -387,7 +387,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.22 2006/10/28 18:24:05 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -446,12 +446,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.22 2006/10/28 18:24:05 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.21 2006/10/28 06:58:22 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.22 2006/10/28 18:24:05 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -589,11 +589,11 @@ int main(int argc, char **argv)
   // Allocate the output
   template->type = precisioncode;
   if(!DoKernel){
-    out = MRIcloneBySpace(template,in->nframes);
+    out = MRIcloneBySpace(template,-1,in->nframes);
     printf("Resampling\n");
     MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
   } else {
-    out = MRIcloneBySpace(template,8);
+    out = MRIcloneBySpace(template,MRI_FLOAT,8);
     printf("Computing Trilinear Kernel\n");
     MRIvol2VolTLKernel(in,out,vox2vox);
   }

@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.26 2006/10/28 06:58:22 greve Exp $
+  $Id: mri2.c,v 1.27 2006/10/28 18:24:03 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1330,7 +1330,7 @@ MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
 
   premask = 1;
   if(!mask){
-    mask = MRIcloneBySpace(mri,1);
+    mask = MRIcloneBySpace(mri,MRI_FLOAT,1);
     MRIclear(mask);
     premask = 0;
   }

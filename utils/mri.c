@@ -14,9 +14,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/28 06:58:22 $
-// Revision       : $Revision: 1.366 $
-char *MRI_C_VERSION = "$Revision: 1.366 $";
+// Revision Date  : $Date: 2006/10/28 18:24:02 $
+// Revision       : $Revision: 1.367 $
+char *MRI_C_VERSION = "$Revision: 1.367 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4456,16 +4456,23 @@ MRI *MRIclone(MRI *mri_src, MRI *mri_dst)
   MRIcopyHeader(mri_src, mri_dst) ;
   return(mri_dst) ;
 }
-/*---------------------------------------------------------------------
-  MRIcloneSpace() - create a copy of an mri struct but allows user to
-  set nframes (ie, all the spatial stuff is copied). Copies header
-  info and allocs the pixel space (but does not copy pixel data).
-  -------------------------------------------------------------------*/
-MRI *MRIcloneBySpace(MRI *mri_src, int nframes)
+/*!
+  \fn MRI *MRIcloneBySpace(MRI *mri_src, int type, int nframes)
+  \brief Copies mri struct, allocs but not copy pixels (type,nframes)
+  \param mri_src - source MRI struct
+  \param type - clone will be of this type (-1 to use source)
+  \param nframes - clone will have this many frames  (-1 to use source)
+  \return New MRI struct.
+  
+  Does not copy pixel data.
+*/
+MRI *MRIcloneBySpace(MRI *mri_src, int type, int nframes)
 {
   MRI *mri_dst;
-  mri_dst = MRIallocSequence(mri_src->width, mri_src->height,mri_src->depth,
-                             mri_src->type, nframes);
+  if(type < 0) type = mri_src->type;
+  if(nframes < 0) nframes = mri_src->nframes;
+  mri_dst = MRIallocSequence(mri_src->width, mri_src->height,
+			     mri_src->depth, type, nframes);
   MRIcopyHeader(mri_src, mri_dst) ;
   mri_dst->nframes = nframes;
   return(mri_dst) ;

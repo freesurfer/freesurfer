@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.10 2006/05/31 22:11:57 greve Exp $
+// $Id: mri_concat.c,v 1.11 2006/10/28 18:24:04 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.10 2006/05/31 22:11:57 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.11 2006/10/28 18:24:04 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
   if(DoPairedDiff){
     printf("Performing paired difference\n");
-    mritmp = MRIcloneBySpace(mriout,mriout->nframes/2);
+    mritmp = MRIcloneBySpace(mriout,-1,mriout->nframes/2);
     for(c=0; c < nc; c++){
       for(r=0; r < nr; r++){
 	for(s=0; s < ns; s++){

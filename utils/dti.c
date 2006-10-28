@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.10 2006/10/01 05:45:39 greve Exp $
+// $Id: dti.c,v 1.11 2006/10/28 18:24:02 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.10 2006/10/01 05:45:39 greve Exp $");
+  return("$Id: dti.c,v 1.11 2006/10/28 18:24:02 greve Exp $");
 }
 
 
@@ -225,7 +225,7 @@ MRI *DTIbeta2Tensor(MRI *beta, MRI *mask, MRI *tensor)
     return(NULL);
   }
   if(tensor == NULL){
-    tensor = MRIcloneBySpace(beta, 9); // 9 = 3x3
+    tensor = MRIcloneBySpace(beta, MRI_FLOAT, 9); // 9 = 3x3
     if(!tensor) return(NULL);
   }
   // should check consistency with spatial
@@ -289,19 +289,19 @@ int DTItensor2Eig(MRI *tensor, MRI *mask,   MRI **evals,
     return(1);
   }
   if(*evals == NULL){
-    *evals = MRIcloneBySpace(tensor, 3);
+    *evals = MRIcloneBySpace(tensor, MRI_FLOAT,3);
     if(!*evals) return(1);
   }
   if(*evec1 == NULL){
-    *evec1 = MRIcloneBySpace(tensor, 3);
+    *evec1 = MRIcloneBySpace(tensor, MRI_FLOAT,3);
     if(!*evec1) return(1);
   }
   if(*evec2 == NULL){
-    *evec2 = MRIcloneBySpace(tensor, 3);
+    *evec2 = MRIcloneBySpace(tensor, MRI_FLOAT,3);
     if(!*evec2) return(1);
   }
   if(*evec3 == NULL){
-    *evec3 = MRIcloneBySpace(tensor, 3);
+    *evec3 = MRIcloneBySpace(tensor, MRI_FLOAT,3);
     if(!*evec3) return(1);
   }
   // should check consistency with spatial
@@ -452,7 +452,7 @@ MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb)
     return(NULL);
   }
   if(lowb == NULL){
-    lowb = MRIcloneBySpace(beta, 1);
+    lowb = MRIcloneBySpace(beta, MRI_FLOAT, 1);
     if(!lowb) return(NULL);
   }
   // should check consistency with spatial
@@ -486,7 +486,7 @@ MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc)
     return(NULL);
   }
   if(adc == NULL){
-    adc = MRIcloneBySpace(tensor, 1);
+    adc = MRIcloneBySpace(tensor, MRI_FLOAT, 1);
     if(!adc) return(NULL);
   }
   // should check consistency with spatial
@@ -520,7 +520,7 @@ MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
     return(NULL);
   }
   if(FA == NULL){
-    FA = MRIcloneBySpace(evals, 1);
+    FA = MRIcloneBySpace(evals, MRI_FLOAT, 1);
     if(!FA) return(NULL);
   }
   // should check consistency with spatial
@@ -559,7 +559,7 @@ MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA)
     return(NULL);
   }
   if(RA == NULL){
-    RA = MRIcloneBySpace(evals, 1);
+    RA = MRIcloneBySpace(evals, MRI_FLOAT, 1);
     if(!RA) return(NULL);
   }
   // should check consistency with spatial
@@ -601,7 +601,7 @@ MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR)
     return(NULL);
   }
   if(VR == NULL){
-    VR = MRIcloneBySpace(evals, 1);
+    VR = MRIcloneBySpace(evals, MRI_FLOAT, 1);
     if(!VR) return(NULL);
   }
   // should check consistency with spatial

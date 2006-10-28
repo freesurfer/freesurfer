@@ -1,10 +1,11 @@
-/*
-  fmriutils.c
-  $Id: fmriutils.c,v 1.34 2006/10/27 20:29:40 greve Exp $
+/*!
+  \file fmriutils.c
+  \brief Multi-frame utilities
+
+  $Id: fmriutils.c,v 1.35 2006/10/28 18:24:02 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
-
 
 */
 #include <stdio.h>
@@ -14,6 +15,7 @@
 double round(double x);
 #include "matrix.h"
 #include "mri.h"
+#include "mri2.h"
 #include "MRIio_old.h"
 #include "sig.h"
 #include "fmriutils.h"
@@ -27,7 +29,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) {
-  return("$Id: fmriutils.c,v 1.34 2006/10/27 20:29:40 greve Exp $");
+  return("$Id: fmriutils.c,v 1.35 2006/10/28 18:24:02 greve Exp $");
 }
 
 
@@ -1388,7 +1390,7 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
 
   // alloc vol with 3 frames
   if(ar1 == NULL) {
-    ar1 = MRIcloneBySpace(src, 6);
+    ar1 = MRIcloneBySpace(src, MRI_FLOAT, 6);
     if(ar1 == NULL){
       printf("ERROR: could not alloc\n");
       return(NULL);
@@ -1552,3 +1554,50 @@ int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn,
   return(0);
 }
 
+/*!
+  \fn MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out)
+  \brief Add voxel-wise offset to input.
+  \param in - input volume
+  \param offset - offset volume (first frame used)
+  \param mask - add offset only in mask (otherwise set to input)
+  \param out - prealloced output (or NULL)
+  \return out
+*/
+MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out)
+{
+  int c,r,s,f;
+  double val0,val,m;
+
+  if(MRIdimMismatch(in, offset, 0)){
+    printf("ERROR: fMRIaddOffset: input/offset dim mismatch\n");
+    return(NULL);
+  }
+
+  if(out == NULL){
+    out = MRIcloneBySpace(in,MRI_FLOAT,-1);
+    if(out == NULL) return(NULL);
+  } else {
+    if(MRIdimMismatch(in, out, 1)){
+      printf("ERROR: fMRIaddOffset: input/output dim mismatch\n");
+      return(NULL);
+    }
+  }
+  if(in != out) MRIcopy(in,out);
+
+  for(c=0; c < in->width; c++){
+    for(r=0; r < in->height; r++){
+      for(s=0; s < in->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	val0 = MRIgetVoxVal(offset,c,r,s,0);
+	for(f=0; f < in->nframes; f++){
+	  val = MRIgetVoxVal(in,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,s,f,val + val0);
+	}
+      }
+    }
+  }
+  return(out);
+}
