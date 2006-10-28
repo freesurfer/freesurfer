@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.97 2006/10/28 18:24:04 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.98 2006/10/28 23:46:31 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1078,7 +1078,7 @@ int main(int argc, char **argv)
       // Go through each contrast
       for(n=0; n < mriglm->glm->ncontrasts; n++){
 	if(!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")){
-	  sig  = MRIlog10(mriglm->p[n],sig,1);
+	  sig  = MRIlog10(mriglm->p[n],NULL,sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
@@ -1104,7 +1104,7 @@ int main(int argc, char **argv)
 	  // Next, mult pvals by 2 to get two-sided bet 0 and 1
 	  MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
 	  // sig = -log10(p)
-	  sig = MRIlog10(mriglm->p[n],sig,1);
+	  sig = MRIlog10(mriglm->p[n],NULL,sig,1);
 	  // Now sign the sigs
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
 
@@ -1184,7 +1184,7 @@ int main(int argc, char **argv)
 
   if(MaxVoxBase != NULL){
     for(n=0; n < mriglm->glm->ncontrasts; n++){
-      sig    = MRIlog10(mriglm->p[n],sig,1);
+      sig    = MRIlog10(mriglm->p[n],NULL,sig,1);
       sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);
       Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
       sprintf(tmpstr,"%s-%s",MaxVoxBase,mriglm->glm->Cname[n]);
@@ -1262,7 +1262,7 @@ int main(int argc, char **argv)
     MRIwrite(mriglm->F[n],tmpstr);
     
     // Compute and Save -log10 p-values
-    sig=MRIlog10(mriglm->p[n],sig,1);
+    sig=MRIlog10(mriglm->p[n],NULL,sig,1);
     if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
 
