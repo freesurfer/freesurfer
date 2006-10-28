@@ -6,7 +6,6 @@
 */
 
 
-
 /*
   BEGINHELP
 
@@ -30,7 +29,6 @@
 
 #include "macros.h"
 #include "utils.h"
-#include "mrisurf.h"
 #include "mrisutils.h"
 #include "error.h"
 #include "diag.h"
@@ -38,18 +36,8 @@
 #include "mri2.h"
 #include "fio.h"
 #include "version.h"
-#include "label.h"
-#include "matrix.h"
-#include "annotation.h"
-#include "fmriutils.h"
 #include "cmdargs.h"
-#include "fsglm.h"
-#include "pdf.h"
-#include "fsgdf.h"
-#include "timer.h"
-#include "matfile.h"
-#include "volcluster.h"
-#include "surfcluster.h"
+#include "randomfields.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -60,15 +48,19 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.1 2006/10/19 16:59:43 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.2 2006/10/28 18:41:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-char *TempVolFile=NULL;
-char *subject, *hemi, *SUBJECTS_DIR;
+char *ZVolFile=NULL;
+char *PVolFile=NULL;
+char *MaskFile=NULL;
+
+MRI *z,*p,*sig,*mask=NULL;
+RFS *rfs;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -93,11 +85,18 @@ int main(int argc, char *argv[])
   if(checkoptsonly) return(0);
   dump_options(stdout);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
+  z = MRIread(ZVolFile);
+  if(z==NULL) exit(1);
+
+  rfs = RFspecInit(0,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+  p = RFstat2P(z,rfs,mask,NULL);
+  sig  = MRIlog10(p,sig,1);
+  MRIwrite(p,"myp.mgh");
+  MRIwrite(sig,PVolFile);
+
 
   return 0;
 }
@@ -133,9 +132,14 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--temp-vol")){
+    else if (!strcasecmp(option, "--z")){
       if(nargc < 1) CMDargNErr(option,1);
-      TempVolFile = pargv[0];
+      ZVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--p")){
+      if(nargc < 1) CMDargNErr(option,1);
+      PVolFile = pargv[0];
       nargsused = 1;
     }
     else{
@@ -170,7 +174,8 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --temp-vol volfile : template volume \n");
+  printf("   --z zvolfile : z volume \n");
+  printf("   --p pvolfile : p volume \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -211,6 +216,15 @@ static void print_version(void)
 /* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void check_options(void)
 {
+  if(ZVolFile == NULL){
+    printf("ERROR: need zvol\n");
+    exit(1);
+  }
+  if(PVolFile == NULL){
+    printf("ERROR: need pvol\n");
+    exit(1);
+  }
+
   return;
 }
 
