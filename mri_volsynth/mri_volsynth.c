@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.16 2006/03/03 06:23:41 greve Exp $
+  $Id: mri_volsynth.c,v 1.17 2006/10/28 18:29:43 greve Exp $
 */
 
 #include <stdio.h>
@@ -21,6 +21,8 @@
 #include "mri_identify.h"
 #include "matrix.h"
 #include "mri.h"
+#include "mri2.h"
+#include "fmriutils.h"
 #include "MRIio_old.h"
 #include "randomfields.h"
 
@@ -43,7 +45,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.16 2006/03/03 06:23:41 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.17 2006/10/28 18:29:43 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -77,6 +79,8 @@ RFS *rfs;
 int rescale = 0;
 int numdof =  2;
 int dendof = 20;
+int AddOffset=0;
+MRI *offset;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -267,6 +271,13 @@ int main(int argc, char **argv)
     }
   }
 
+  if(AddOffset){
+    printf("Adding offset\n");
+    offset = MRIread(tempid);
+    if(offset == NULL) exit(1);
+    fMRIaddOffset(mri, offset, NULL, mri);
+  }
+
   printf("Saving\n");
   MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
   //if(volfmtid == NULL) MRIwrite(mri,volid);
@@ -299,6 +310,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
     else if (!strcasecmp(option, "--rescale")) rescale=1;
     else if (!strcasecmp(option, "--norescale")) rescale=0;
+    else if (!strcasecmp(option, "--offset")) AddOffset=1;
 
     else if (!strcmp(option, "--vol")){
       if(nargc < 1) argnerr(option,1);
@@ -447,6 +459,7 @@ static void print_usage(void)
   printf(" Get geometry from template\n");
   printf("   --temp templateid <fmt>\n");
   printf("   --nframes nframes : override template\n");  
+  printf("   --offset : use template as intensity offset\n");  
   printf("\n");
   printf(" Specify geometry explicitly\n");
   printf("   --dim nc nr ns nf  (required)\n");
