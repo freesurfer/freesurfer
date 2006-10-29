@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.252 2006/10/26 05:28:34 nicks Exp $"
+# "$Id: configure.in,v 1.253 2006/10/29 22:25:57 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1324,7 +1324,7 @@ fi
 if test ! "x$vtk_apps" = "xNO"; then
   AC_CHECK_LIB([vtkCommon], [main],[],
     [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
-  Set LDFLAGS or --with-vtk-dir.])] )
+  Try setting LDFLAGS, LD_LIBRARY_PATH and/or --with-vtk-dir.])] )
 
   # some systems, like Debian, do not include certain VTK libs which are
   # normally found elsewhere (from their official sources).  so here,
