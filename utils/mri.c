@@ -14,9 +14,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/28 18:24:02 $
-// Revision       : $Revision: 1.367 $
-char *MRI_C_VERSION = "$Revision: 1.367 $";
+// Revision Date  : $Date: 2006/10/29 23:21:10 $
+// Revision       : $Revision: 1.368 $
+char *MRI_C_VERSION = "$Revision: 1.368 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11789,16 +11789,17 @@ MRItoTalairach(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-------------------------------------------------------------------
-  MRIlog10() - computes the log10 of the values at each voxel and
+  MRIlog10() - computes the log10 of the abs value at each voxel and
   frame. If a value is zero, the result is set to 10000000000.0. If
-  the negflag is set, then -log10 is computed. The result is stored
+  the negflag is set, then -log10 is computed. If a mask is specified,
+  voxels outside of the mask are 0'ed. The result is stored
   in outmri. If outmri is NULL, the output MRI is alloced and its
   pointer returned.
   ------------------------------------------------------------------*/
-MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
+MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag)
 {
   int c, r, s, f;
-  float val;
+  double val,m;
 
   if(outmri==NULL){
     outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth,
@@ -11827,6 +11828,14 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
   for(c=0; c < inmri->width; c++){
     for(r=0; r < inmri->height; r++){
       for(s=0; s < inmri->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5){
+	    for(f=0; f < inmri->nframes; f++)
+	      MRIsetVoxVal(outmri,c,r,s,f,0);
+	    continue;
+	  }
+	}
         for(f=0; f < inmri->nframes; f++){
           val = MRIgetVoxVal(inmri, c, r, s, f);
           if(val == 0)     MRIFseq_vox(outmri,c,r,s,f) = 10000000000.0;
