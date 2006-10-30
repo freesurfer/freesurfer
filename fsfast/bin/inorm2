@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # inorm2
 #
-# $Id: inorm2,v 1.3 2006/04/19 23:02:22 greve Exp $
+# $Id: inorm2,v 1.4 2006/10/30 21:46:30 greve Exp $
 
-set VERSION = '$Id: inorm2,v 1.3 2006/04/19 23:02:22 greve Exp $';
+set VERSION = '$Id: inorm2,v 1.4 2006/10/30 21:46:30 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -11,6 +11,7 @@ set instem = ();
 set meanvalfile = ();
 set maskstem = ();
 set rthresh = .75;
+set nskip = 0;
 
 set monly     = 0;
 set MLF       = ();
@@ -44,13 +45,30 @@ maskstem = '$maskstem';
 rthresh = $rthresh;
 meanvalfile = '$meanvalfile';
 monly = $monly;
+nskip = $nskip;
 
+fprintf('\n\n');
+fprintf('------------------------------\n');
+fprintf('%s\n',instem);
 f = MRIread(instem);
 if(isempty(f))
   fprintf('ERROR: reading %s\n',instem);
   if(~monly) quit; end
   return;
 end
+
+if(nskip > 0)
+  if(nskip >= f.nframes)
+    fprintf('ERROR: nskip=%d but only have %d frames\n',...
+            nskip,f.nframes);
+    if(~monly) quit; end
+    return;
+  end
+  fprintf('INFO: skipping first %d frames\n',nskip);
+  f.vol = f.vol(:,:,:,nskip+1:end);
+end
+f.nframes = size(f.vol,4);
+fprintf('nframes = %d\n',f.nframes);
 
 fmn = mean(f.vol,4);
 if(~isempty(maskstem))
@@ -130,6 +148,11 @@ while( $#argv != 0 )
       set meanvalfile = $argv[1]; shift;
       breaksw
 
+    case "-nskip":
+      if($#argv < 1) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
     case "-synth":
       set Synth = 1;
       breaksw
@@ -183,6 +206,8 @@ usage_exit:
   echo ""
   echo "   -m maskstem "
   echo "   -meanval meanvalfile : default is instem.meanval "
+  echo "   "
+  echo "   -nskip N : do not use first N TRs in computing meanval"
   echo "   "
   echo "   -debug"
   echo "   -version        : print version and exit"

@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # preproc-sess - runs preprocessing (mc, spatsmooth, mkbrainmask, inorm)
 
-set VERSION = '$Id: preproc-sess,v 1.7 2006/10/18 21:21:08 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.8 2006/10/30 21:46:30 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -23,6 +23,7 @@ set DoMC     = 1;
 set DoSmooth = 1;
 set DoInorm  = 1;
 set DoMask   = 1;
+set nskip = 0; # for inorm
 set nolog = 0;
 
 set PrintHelp = 0;
@@ -150,6 +151,7 @@ foreach sess ($SessList)
     set cmd = (inorm-sess -funcstem $inormstem )
     set cmd = ($cmd  -fsd $fsd -umask $umask);
     set cmd = ($cmd -s $sessid -d $sessparent)
+    set cmd = ($cmd -nskip $nskip)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
     if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
@@ -251,6 +253,11 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
       breaksw
 
     case "-fsd":
@@ -399,6 +406,7 @@ usage_exit:
   echo "  -inorm  inormstem   : <smoutstem | mcoutstem | mcinstem>"
   echo "  -mask   maskstem    : <brain>"
   echo "  -fwhm   fwhm (mm)"
+  echo "  -nskip N            : do not use first N TRs when inorming"
   echo "  -fsd    fsd <bold>"
   echo "  -rlf    rlf  : run list file (default all runs)"
   echo "  -mcperrun : perform motion correction on all runs separately"

@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # inorm-sess - 
 #
-# $Id: inorm-sess,v 1.5 2006/10/19 18:01:42 greve Exp $
-set VERSION = '$Id: inorm-sess,v 1.5 2006/10/19 18:01:42 greve Exp $'
+# $Id: inorm-sess,v 1.6 2006/10/30 21:46:30 greve Exp $
+set VERSION = '$Id: inorm-sess,v 1.6 2006/10/30 21:46:30 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -15,6 +15,7 @@ set RunListFile = ();
 set nolog = 0;
 set UseMask = 0;
 set use_new_inorm = 1;
+set nskip = 0;
 
 set StartTime = `date`;
 
@@ -140,7 +141,7 @@ foreach sess ($SessList)
                  -TR $TR -ipr $inplaneres -bpr $betplaneres \
                  -seqname $seqname);
     else
-      set cmd = (inorm2 -i $instem)
+      set cmd = (inorm2 -i $instem -nskip $nskip)
     endif
     if($UseMask) then
       set maskstem = masks/brain
@@ -260,6 +261,11 @@ while( $#argv != 0 )
       set INormArgs = ($INormArgs -monly $argv[1]); shift;
       breaksw
 
+    case "-nskip":
+      if($#argv < 1) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -349,8 +355,7 @@ usage_exit:
   echo "   -motioncor         : inorm the motion corrected volumes"
   echo "   -funcstem stem     : stem of functional volume (default: f or fmc)"
   echo "   -rlf runlistfile   : "
-  echo "   -umask umask       : set unix file permission mask"
-  echo "   -version           : print version and exit"
+  echo "   -nskip N : do not use first N TRs in computing meanval"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
@@ -359,4 +364,6 @@ usage_exit:
   echo "   -d  srchdir     "
   echo "   -fsd fsdir      (optional)"
   echo ""
+  echo "   -version : print version and exit"
+  echo "   -debug"
 exit 1;
