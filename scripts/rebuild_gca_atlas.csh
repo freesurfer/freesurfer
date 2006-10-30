@@ -22,7 +22,7 @@
 # Original author: Xiao Han
 #
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.4 2006/10/30 06:06:24 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.5 2006/10/30 18:48:22 nicks Exp $';
 
 #set echo=1
 
@@ -146,7 +146,7 @@ foreach subject (${SUBJECTS})
     set TEST = 0
     if ($RunIt) set TEST = 1
     while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL} set TEST = 0
+        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) set TEST = 0
         sleep 30
     end
     echo "\t...finished $canorm on subject $subject" >>& $LF
