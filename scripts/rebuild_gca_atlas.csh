@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -f
 
 #
 # rebuild_gca_atlas.csh
@@ -22,7 +22,7 @@
 # Original author: Xiao Han
 #
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.3 2006/10/27 04:48:10 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.4 2006/10/30 06:06:24 nicks Exp $';
 
 #set echo=1
 
