@@ -22,7 +22,7 @@
 # Original author: Xiao Han
 #
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.5 2006/10/30 18:48:22 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.6 2006/10/30 19:25:41 nicks Exp $';
 
 #set echo=1
 
@@ -146,8 +146,11 @@ foreach subject (${SUBJECTS})
     set TEST = 0
     if ($RunIt) set TEST = 1
     while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) set TEST = 0
-        sleep 30
+        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) then
+            set TEST = 0
+        else
+            sleep 30
+        endif
     end
     echo "\t...finished $canorm on subject $subject" >>& $LF
 end
@@ -178,8 +181,8 @@ echo "\n\n" >>& $LF
 set TEST = 0
 if ($RunIt) set TEST = 1
 while($TEST)
-   if(-e ${GCA_ONE}) set TEST = 0
-   sleep 30
+    if(-e ${GCA_ONE}) set TEST = 0
+    sleep 30
 end
 echo "\t...finished $train, produced $GCA_ONE" >>& $LF
 ##########################################################################
@@ -210,8 +213,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${LTA_ONE}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $emreg on subject $subject" >>& $LF
 end
@@ -242,8 +246,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $canorm on subject $subject" >>& $LF
 end
@@ -274,8 +279,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${M3D_ONE}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $careg on subject $subject" >>& $LF
 end
@@ -309,9 +315,7 @@ echo "\n\n" >>& $LF
 set TEST = 0
 if ($RunIt) set TEST = 1
 while($TEST)
-    if(-e ${GCA}) then
-        set TEST = 0
-    endif
+    if(-e ${GCA}) set TEST = 0
     sleep 30
 end
 echo "\t...finished $train, produced ${GCA}" >>& $LF
@@ -344,8 +348,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${LTA}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $emreg on subject $subject" >>& $LF
 end
@@ -376,8 +381,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $canorm on subject $subject" >>& $LF
 end
@@ -408,8 +414,9 @@ foreach subject (${SUBJECTS})
     while($TEST)
         if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${M3D}) then
             set TEST = 0
+        else
+            sleep 30
         endif
-        sleep 30
     end
     echo "\t...finished $careg on subject $subject" >>& $LF
 end
@@ -434,9 +441,7 @@ echo "\n\n" >>& $LF
 set TEST = 0
 if ($RunIt) set TEST = 1
 while($TEST)
-    if(-e ${GCA}) then
-        set TEST = 0
-    endif
+    if(-e ${GCA}) set TEST = 0
     sleep 30
 end
 echo "\t...finished $train, produced final $GCA" >>& $LF
@@ -454,9 +459,7 @@ echo "\n\n" >>& $LF
 set TEST = 0
 if ($RunIt) set TEST = 1
 while($TEST)
-    if(-e ${GCA_SKULL}) then
-        set TEST = 0
-    endif
+    if(-e ${GCA_SKULL}) set TEST = 0
     sleep 30
 end
 echo "\t...finished $train, produced final $GCA_SKULL" >>& $LF
@@ -496,8 +499,11 @@ foreach subject (${SUBJECTS})
     set TEST = 0
     if ($RunIt) set TEST = 1
     while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/orig.mgz) set TEST = 0
-        sleep 1
+        if(-e ${SUBJECTS_DIR}/$subject/mri/orig.mgz) then
+            set TEST = 0
+        else
+            sleep 1
+        endif
     end
     echo "\t...subject $subject has orig.mgz"
 end
@@ -517,8 +523,11 @@ foreach subject (${SUBJECTS})
     set TEST = 0
     if ($RunIt) set TEST = 1
     while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/brain.mgz) set TEST = 0
-        sleep 30
+        if(-e ${SUBJECTS_DIR}/$subject/mri/brain.mgz) then
+            set TEST = 0
+        else
+            sleep 30
+        endif
     end
     echo "\t...finished subject $subject"
 end
