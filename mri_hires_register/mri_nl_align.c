@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/30 13:52:20 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/10/30 20:52:44 $
+// Revision       : $Revision: 1.9 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -313,7 +313,7 @@ get_option(int argc, char *argv[])
   {
     mp.l_log_likelihood = atof(argv[2]) ;
 		nargs = 1 ;
-    printf("setting l_log_likelihood = %2.3\n", mp.l_log_likelihood );
+    printf("setting l_log_likelihood = %2.3f\n", mp.l_log_likelihood );
   }
   else if (!stricmp(option, "noregrid"))
   {
