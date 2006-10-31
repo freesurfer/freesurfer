@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/28 18:24:03 $
-// Revision       : $Revision: 1.488 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/10/31 18:57:18 $
+// Revision       : $Revision: 1.489 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -583,7 +583,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.488 2006/10/28 18:24:03 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.489 2006/10/31 18:57:18 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -15020,7 +15020,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (mris->patch)
     scale = 1.0f ;
   else
-    if (mris->status == MRIS_PARAMETERIZED_SPHERE)
+    if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_SPHERE)
       scale = sqrt(mris->orig_area / mris->total_area) ;
     else
       scale = mris->neg_area < mris->total_area ?
@@ -15054,7 +15054,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           vn = &mris->vertices[v->v[n]] ;
           if (vn->ripflag)
             continue ;
-          d0 = v->dist_orig[n] ; dt = scale * v->dist[n] ; delta = dt - d0 ;
+          d0 = v->dist_orig[n]/scale ; dt = v->dist[n] ; delta = dt - d0 ;
           if (fabs(delta) > max_del)
             {
               max_del = delta ;
@@ -16924,7 +16924,8 @@ MRIScomputeMetricProperties(MRI_SURFACE *mris)
   mrisOrientSurface(mris);
   // See also MRISrescaleMetricProperties()
   if (mris->status == MRIS_PARAMETERIZED_SPHERE ||
-      mris->status == MRIS_RIGID_BODY){
+      mris->status == MRIS_RIGID_BODY ||
+      mris->status == MRIS_SPHERE){
     double old_area ;
     old_area = mris->total_area ;
     mris->total_area = M_PI * mris->radius * mris->radius * 4.0 ;
@@ -28467,13 +28468,16 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
   before applying the linear transform
   See also MRISmatrixMultiply().
   ------------------------------------------------------*/
+#include "gcamorph.h"
 int
-MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
+MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
 {
+  LTA *lta ;
   int    vno ;
   VERTEX *v ;
   Real   xw, yw, zw ;
   MATRIX *m=0;
+
   // for ras-to-ras transform
   MATRIX *RASFromSurfaceRAS = 0;
   MATRIX *surfaceRASFromRAS = 0;
@@ -28485,145 +28489,203 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   LT *lt = 0;
   int srcPresent = 1;
   int dstPresent = 1;
-  int error = 0;
+  int error = NO_ERROR;
   char errMsg[256];
   int dstNotGiven=0;
 
-  if (!mri_dst)
-    dstNotGiven = 1;
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    GCA_MORPH *gcam ;
+    Real        xs, ys, zs, xv, yv, zv ;
+    float       xv2, yv2, zv2 ;
+    MATRIX      *m_atlas_ras2vox, *m_surf_vox2ras, *m_surf_ras_to_atlas_ras ;
+    VECTOR      *v1, *v2 ;
 
-  // depend on the type of transform you have to handle differently
-  //
-  //       orig              ------>      RAS   c_(ras) != 0
-  //        |                              |
-  //        |                              | identity
-  //        V                              V
-  //    conformed vol        ------>      RAS   c_(ras) != 0
-  //        |                              |
-  //        | identity                     | surfaceRASFromRAS
-  //        V                              V
-  //    conformed vol        ------>   surfaceRAS  c_(ras) = 0
-  //
-  // given a volume transform you have to create a surfaceRAS transform
-  //
-  // Note that vertices are given by surfaceRAS coordinates
-  //
-  // RAS-to-RAS transform
-  //                  orig                 dst
-  //    surfaceRAS--->RAS --(ras-to-ras)-->RAS -->surfaceRAS
-  //
-  // VOX-to-Vox transform
-  //
-  //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
-  //
-  //
-  if (lta->num_xforms > 1)
-    ErrorExit(ERROR_BADPARM, "we cannot handle multiple transforms\n");
-  if (lta->num_xforms == 0)
-    ErrorExit(ERROR_BADPARM, "transform does not have transform ;-) \n");
+    /*
+      transform point from surface (ras) coords to the source (atlas) volume
+      that was used for the gcam: 
+    */
 
-  // if volumes are not given, then try to get them from transform
-  lt = &lta->xforms[0];
+    gcam = (GCA_MORPH *)(transform->xform) ;
+    GCAMrasToVox(gcam, mri_dst) ;
 
-  /////////////////////////////////////////////////////////////////////
-  // The following rather fragile treatment about volume info is
-  // that lta may or may not store the valid src and dst info
-  // when the transform was created
-  // Another problem is due to the convention of conformed volume
-  ////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////
-  // check the c_ras values for mri side
-  if (lta->type == LINEAR_RAS_TO_RAS) {
-    if (mri && lt->src.valid == 1){
-      if (!(FZERO(lt->src.c_r - lt->src.c_r)
-            && FZERO(lt->src.c_a - lt->src.c_a)
-            && FZERO(lt->src.c_s - lt->src.c_s)))
+    v1 = VectorAlloc(4, MATRIX_REAL) ; VECTOR_ELT(v1, 4) = 1.0 ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ; VECTOR_ELT(v2, 4) = 1.0 ;
+    voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
+    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
+    m_surf_vox2ras = MRIgetVoxelToRasXform(mri) ;  // from "surface" volume to ras
+    m_atlas_ras2vox = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0) ;  // from "surface" volume to ras
+    // from surface ras to atlas ras
+    m_surf_ras_to_atlas_ras = MatrixMultiply(m_surf_vox2ras, voxelFromSurfaceRAS, NULL) ;
+    MatrixMultiply(m_atlas_ras2vox, m_surf_ras_to_atlas_ras, voxelFromSurfaceRAS) ;
+
+    // now apply the transform
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+
+      // transform vertex point to actual voxel point
+      V3_X(v1) = v->x ; V3_Y(v1) = v->y ; V3_Z(v1) = v->z ;
+      MatrixMultiply(voxelFromSurfaceRAS, v1, v2) ;
+      xv = V3_X(v2) ; yv = V3_Y(v2) ; zv = V3_Z(v2) ; 
+#if 0
+      TransformSampleInverse(transform, (float)xv, (float)yv, (float)zv, &xv2, &yv2, &zv2) ;
+#else
+      GCAMsampleMorph(gcam, xv, yv, zv, &xv2, &yv2, &zv2) ;
+#endif
+      if (mris->useRealRAS)
+        MRIvoxelToWorld(mri_dst, xv2, yv2, zv2, &xs, &ys, &zs) ;
+      else
+        MRIvoxelToSurfaceRAS(mri_dst, xv2, yv2, zv2, &xs, &ys, &zs) ;
+      v->x = xs ; v->y = ys ; v->z = zs ;
+    }
+    mrisComputeSurfaceDimensions(mris) ;
+    // save the volume information from dst
+    getVolGeom(mri_dst, &mris->vg);
+    VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&voxelFromSurfaceRAS) ;
+    MatrixFree(&surfaceRASFromVoxel) ; MatrixFree(&m_surf_vox2ras) ; MatrixFree(&m_atlas_ras2vox) ;
+    MatrixFree(&m_surf_ras_to_atlas_ras) ;
+  }
+  else
+  {
+    lta = (LTA *)(transform->xform) ;
+    if (!mri_dst)
+      dstNotGiven = 1;
+
+    // depend on the type of transform you have to handle differently
+    //
+    //       orig              ------>      RAS   c_(ras) != 0
+    //        |                              |
+    //        |                              | identity
+    //        V                              V
+    //    conformed vol        ------>      RAS   c_(ras) != 0
+    //        |                              |
+    //        | identity                     | surfaceRASFromRAS
+    //        V                              V
+    //    conformed vol        ------>   surfaceRAS  c_(ras) = 0
+    //
+    // given a volume transform you have to create a surfaceRAS transform
+    //
+    // Note that vertices are given by surfaceRAS coordinates
+    //
+    // RAS-to-RAS transform
+    //                  orig                 dst
+    //    surfaceRAS--->RAS --(ras-to-ras)-->RAS -->surfaceRAS
+    //
+    // VOX-to-Vox transform
+    //
+    //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
+    //
+    //
+    if (lta->num_xforms > 1)
+      ErrorExit(ERROR_BADPARM, "we cannot handle multiple transforms\n");
+    if (lta->num_xforms == 0)
+      ErrorExit(ERROR_BADPARM, "transform does not have transform ;-) \n");
+
+    // if volumes are not given, then try to get them from transform
+    lt = &lta->xforms[0];
+
+    /////////////////////////////////////////////////////////////////////
+    // The following rather fragile treatment about volume info is
+    // that lta may or may not store the valid src and dst info
+    // when the transform was created
+    // Another problem is due to the convention of conformed volume
+    ////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    // check the c_ras values for mri side
+    if (lta->type == LINEAR_RAS_TO_RAS) {
+      if (mri && lt->src.valid == 1){
+        if (!(FZERO(lt->src.c_r - lt->src.c_r)
+              && FZERO(lt->src.c_a - lt->src.c_a)
+              && FZERO(lt->src.c_s - lt->src.c_s)))
         {
           fprintf(stderr, "WARNING:*********************************************************\n");
           fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the transform src.\n");
           fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
           fprintf(stderr, "WARNING:*********************************************************\n");
         }
-    }
-    if (mri && mris->vg.valid == 1){
-      if (!(FZERO(mris->vg.c_r - mris->vg.c_r)
-            && FZERO(mris->vg.c_a - mris->vg.c_a)
-            && FZERO(mris->vg.c_s - mris->vg.c_s))){
-        fprintf(stderr, "WARNING:*********************************************************\n");
-        fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the surface stored volume.\n");
-        fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
-        fprintf(stderr, "WARNING:*********************************************************\n");
+      }
+      if (mri && mris->vg.valid == 1){
+        if (!(FZERO(mris->vg.c_r - mris->vg.c_r)
+              && FZERO(mris->vg.c_a - mris->vg.c_a)
+              && FZERO(mris->vg.c_s - mris->vg.c_s))){
+          fprintf(stderr, "WARNING:*********************************************************\n");
+          fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the surface stored volume.\n");
+          fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
+          fprintf(stderr, "WARNING:*********************************************************\n");
+        }
       }
     }
-  }
 
-  // if mri is not given, then use the one stored in the transform
-  if (!mri && lt->src.valid == 1){
-    srcPresent = 0;
-    fprintf(stderr, "INFO:try to get src info from transform.\n");
-    mri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
-    mri->x_r = lt->src.x_r; mri->y_r = lt->src.y_r; mri->z_r = lt->src.z_r; mri->c_r = lt->src.c_r;
-    mri->x_a = lt->src.x_a; mri->y_a = lt->src.y_a; mri->z_a = lt->src.z_a; mri->c_a = lt->src.c_a;
-    mri->x_s = lt->src.x_s; mri->y_s = lt->src.y_s; mri->z_s = lt->src.z_s; mri->c_s = lt->src.c_s;
-    mri->xsize = lt->src.xsize; mri->ysize = lt->src.ysize; mri->zsize = lt->src.zsize;
-    mri->ras_good_flag = 1;
-    MRIreInitCache(mri);
-  }
-  // if mri is not given and transform does not have it, get it from the surface
-  else if (!mri && mris->vg.valid == 1){
-    fprintf(stderr, "INFO:try to get src info from the surface.\n");
-    mri = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR);
-    mri->x_r = mris->vg.x_r; mri->y_r = mris->vg.y_r; mri->z_r = mris->vg.z_r; mri->c_r = mris->vg.c_r;
-    mri->x_a = mris->vg.x_a; mri->y_a = mris->vg.y_a; mri->z_a = mris->vg.z_a; mri->c_a = mris->vg.c_a;
-    mri->x_s = mris->vg.x_s; mri->y_s = mris->vg.y_s; mri->z_s = mris->vg.z_s; mri->c_s = mris->vg.c_s;
-    mri->xsize = mris->vg.xsize; mri->ysize = mris->vg.ysize; mri->zsize = mris->vg.zsize;
-    mri->ras_good_flag = 1;
-    MRIreInitCache(mri);
-  }
-  else if (!mri){
-    error = 1;
-    strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
-    goto mristransform_cleanup;
-  }
-  ///////////////////////////////////////////////////////////////////////////
-  // mri_dst side
-  // Note: if mri_dst is not given, override the one stored in the transform
-  if (!mri_dst && lt->dst.valid == 1){
-    dstPresent = 0;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "INFO: Get dst info from transform.\n");
-    lt = &lta->xforms[0];
-    mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
-    mri_dst->x_r = lt->dst.x_r; mri_dst->y_r = lt->dst.y_r; mri_dst->z_r = lt->dst.z_r;
-    mri_dst->c_r = lt->dst.c_r;
-    mri_dst->x_a = lt->dst.x_a; mri_dst->y_a = lt->dst.y_a; mri_dst->z_a = lt->dst.z_a;
-    mri_dst->c_a = lt->dst.c_a;
-    mri_dst->x_s = lt->dst.x_s; mri_dst->y_s = lt->dst.y_s; mri_dst->z_s = lt->dst.z_s;
-    mri_dst->c_s = lt->dst.c_s;
-    mri_dst->xsize = lt->dst.xsize; mri_dst->ysize = lt->dst.ysize; mri_dst->zsize = lt->dst.zsize;
-    mri_dst->ras_good_flag = 1;
-  }
-  else if (!mri_dst){
-    fprintf(stderr, "WARNING:*********************************************************\n");
-    fprintf(stderr, "WARNING: transform does not have valid destination volume.       \n");
-    fprintf(stderr, "WARNING: The standard CORONAL volume with c_(ras) = 0 is assumed.\n");
-    fprintf(stderr, "WARNING:*********************************************************\n");
-    mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
-    mri_dst->x_r = -1; mri_dst->y_r = 0; mri_dst->z_r = 0;
-    mri_dst->c_r = 0;
-    mri_dst->x_a = 0; mri_dst->y_a =  0; mri_dst->z_a = 1;
-    mri_dst->c_a = 0;
-    mri_dst->x_s = 0; mri_dst->y_s = -1; mri_dst->z_s = 0;
-    mri_dst->c_s = 0;
-    mri_dst->xsize = 1; mri_dst->ysize = 1; mri_dst->zsize = 1;
-    mri_dst->ras_good_flag = 1;
-  }
-  // WATCH /////////////////////////////////////////////////////////////////////////
-  // When dst is not given, our convention is that the dst is conformed and thus we need
-  // to modify mri_dst to be coronal conformed volume (even though transform target was not,
-  // as in the case of MNI average_305 being non-coronal, non-conformed
-  //////////////////////////////////////////////////////////////////////////////////
-  if (dstNotGiven)
+    // if mri is not given, then use the one stored in the transform
+    if (!mri && lt->src.valid == 1){
+      srcPresent = 0;
+      fprintf(stderr, "INFO:try to get src info from transform.\n");
+      mri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
+      mri->x_r = lt->src.x_r; mri->y_r = lt->src.y_r; mri->z_r = lt->src.z_r; mri->c_r = lt->src.c_r;
+      mri->x_a = lt->src.x_a; mri->y_a = lt->src.y_a; mri->z_a = lt->src.z_a; mri->c_a = lt->src.c_a;
+      mri->x_s = lt->src.x_s; mri->y_s = lt->src.y_s; mri->z_s = lt->src.z_s; mri->c_s = lt->src.c_s;
+      mri->xsize = lt->src.xsize; mri->ysize = lt->src.ysize; mri->zsize = lt->src.zsize;
+      mri->ras_good_flag = 1;
+      MRIreInitCache(mri);
+    }
+    // if mri is not given and transform does not have it, get it from the surface
+    else if (!mri && mris->vg.valid == 1){
+      fprintf(stderr, "INFO:try to get src info from the surface.\n");
+      mri = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR);
+      mri->x_r = mris->vg.x_r; mri->y_r = mris->vg.y_r; mri->z_r = mris->vg.z_r; mri->c_r = mris->vg.c_r;
+      mri->x_a = mris->vg.x_a; mri->y_a = mris->vg.y_a; mri->z_a = mris->vg.z_a; mri->c_a = mris->vg.c_a;
+      mri->x_s = mris->vg.x_s; mri->y_s = mris->vg.y_s; mri->z_s = mris->vg.z_s; mri->c_s = mris->vg.c_s;
+      mri->xsize = mris->vg.xsize; mri->ysize = mris->vg.ysize; mri->zsize = mris->vg.zsize;
+      mri->ras_good_flag = 1;
+      MRIreInitCache(mri);
+    }
+    else if (!mri){
+      error = 1;
+      strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
+      goto mristransform_cleanup;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    // mri_dst side
+    // Note: if mri_dst is not given, override the one stored in the transform
+    if (!mri_dst && lt->dst.valid == 1){
+      dstPresent = 0;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "INFO: Get dst info from transform.\n");
+      lt = &lta->xforms[0];
+      mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+      mri_dst->x_r = lt->dst.x_r; mri_dst->y_r = lt->dst.y_r; mri_dst->z_r = lt->dst.z_r;
+      mri_dst->c_r = lt->dst.c_r;
+      mri_dst->x_a = lt->dst.x_a; mri_dst->y_a = lt->dst.y_a; mri_dst->z_a = lt->dst.z_a;
+      mri_dst->c_a = lt->dst.c_a;
+      mri_dst->x_s = lt->dst.x_s; mri_dst->y_s = lt->dst.y_s; mri_dst->z_s = lt->dst.z_s;
+      mri_dst->c_s = lt->dst.c_s;
+      mri_dst->xsize = lt->dst.xsize; mri_dst->ysize = lt->dst.ysize; mri_dst->zsize = lt->dst.zsize;
+      mri_dst->ras_good_flag = 1;
+    }
+    else if (!mri_dst){
+      fprintf(stderr, "WARNING:*********************************************************\n");
+      fprintf(stderr, "WARNING: transform does not have valid destination volume.       \n");
+      fprintf(stderr, "WARNING: The standard CORONAL volume with c_(ras) = 0 is assumed.\n");
+      fprintf(stderr, "WARNING:*********************************************************\n");
+      mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+      mri_dst->x_r = -1; mri_dst->y_r = 0; mri_dst->z_r = 0;
+      mri_dst->c_r = 0;
+      mri_dst->x_a = 0; mri_dst->y_a =  0; mri_dst->z_a = 1;
+      mri_dst->c_a = 0;
+      mri_dst->x_s = 0; mri_dst->y_s = -1; mri_dst->z_s = 0;
+      mri_dst->c_s = 0;
+      mri_dst->xsize = 1; mri_dst->ysize = 1; mri_dst->zsize = 1;
+      mri_dst->ras_good_flag = 1;
+    }
+    // WATCH /////////////////////////////////////////////////////////////////////////
+    // When dst is not given, our convention is that the dst is conformed and thus we need
+    // to modify mri_dst to be coronal conformed volume (even though transform target was not,
+    // as in the case of MNI average_305 being non-coronal, non-conformed
+    //////////////////////////////////////////////////////////////////////////////////
+    if (dstNotGiven)
     {
       // assuming mri is conformed
       mri_dst->width =mri->width; mri_dst->height =mri->height; mri_dst->depth =mri->depth;
@@ -28633,14 +28695,14 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
       mri_dst->x_s = 0;  mri_dst->y_s = -1; mri_dst->z_s = 0;
       // this means that we only retain c_ras info
     }
-  // you must reinitialise cache
-  MRIreInitCache(mri_dst);
+    // you must reinitialise cache
+    MRIreInitCache(mri_dst);
 
-  //  MatrixPrint(stderr, mri_dst->i_to_r__);
+    //  MatrixPrint(stderr, mri_dst->i_to_r__);
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Now we can calculate
-  if (lta->type == LINEAR_RAS_TO_RAS)
+    /////////////////////////////////////////////////////////////////////////////
+    // Now we can calculate
+    if (lta->type == LINEAR_RAS_TO_RAS)
     {
       //  we follow the right hand side of the map
       //
@@ -28661,27 +28723,27 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
       m = MatrixMultiply(lta->xforms[0].m_L, RASFromSurfaceRAS, NULL);
       surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromRAS, m, NULL);
     }
-  else if (lta->type == LINEAR_VOX_TO_VOX)
+    else if (lta->type == LINEAR_VOX_TO_VOX)
     {
       if (mri->width != mri_dst->width
           || mri->height != mri_dst->height
           || mri->depth != mri_dst->depth)
-        {
-          fprintf(stderr, "WARNING:********************************************************\n");
-          fprintf(stderr, "WARNING:voxel-to-voxel transform must have the same volume sizes.\n");
-          fprintf(stderr, "WARNING:You gave src (%d, %dm, %d) vs. dst (%d, %d, %d).\n",
-                  mri->width, mri->height, mri->depth, mri_dst->width, mri_dst->height, mri_dst->depth);
-          fprintf(stderr, "WARNING:The result of this transform is most likely wrong.\n");
-          fprintf(stderr, "WARNING:********************************************************\n");
-        }
+      {
+        fprintf(stderr, "WARNING:********************************************************\n");
+        fprintf(stderr, "WARNING:voxel-to-voxel transform must have the same volume sizes.\n");
+        fprintf(stderr, "WARNING:You gave src (%d, %dm, %d) vs. dst (%d, %d, %d).\n",
+                mri->width, mri->height, mri->depth, mri_dst->width, mri_dst->height, mri_dst->depth);
+        fprintf(stderr, "WARNING:The result of this transform is most likely wrong.\n");
+        fprintf(stderr, "WARNING:********************************************************\n");
+      }
       voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
       surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
       //    MatrixPrint(stderr,  surfaceRASFromVoxel);
       m = MatrixMultiply(lta->xforms[0].m_L, voxelFromSurfaceRAS, NULL);
       surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromVoxel, m, NULL);
     }
-  // now apply the transform
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    // now apply the transform
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
@@ -28690,34 +28752,35 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
       TransformWithMatrix(surfaceRASFromSurfaceRAS, v->x, v->y, v->z, &xw, &yw, &zw);
       v->x = xw ; v->y = yw ; v->z = zw ;
     }
-  mrisComputeSurfaceDimensions(mris) ;
-  // save the volume information from dst
-  getVolGeom(mri_dst, &mris->vg);
+    mrisComputeSurfaceDimensions(mris) ;
+    // save the volume information from dst
+    getVolGeom(mri_dst, &mris->vg);
 
- mristransform_cleanup:
-  // free memory //////////////////////////////
-  if (RASFromSurfaceRAS)
-    MatrixFree(&RASFromSurfaceRAS);
-  if (surfaceRASFromRAS)
-    MatrixFree(&surfaceRASFromRAS);
-  if (m)
-    MatrixFree(&m);
-  if (voxelFromSurfaceRAS)
-    MatrixFree(&voxelFromSurfaceRAS);
-  if (surfaceRASFromVoxel)
-    MatrixFree(&surfaceRASFromVoxel);
-  if (surfaceRASFromSurfaceRAS)
-    MatrixFree(&surfaceRASFromSurfaceRAS);
-  if (!srcPresent && mri)
-    MRIfree(&mri);
-  if (!dstPresent && mri_dst)
-    MRIfree(&mri_dst);
+  mristransform_cleanup:
+    // free memory //////////////////////////////
+    if (RASFromSurfaceRAS)
+      MatrixFree(&RASFromSurfaceRAS);
+    if (surfaceRASFromRAS)
+      MatrixFree(&surfaceRASFromRAS);
+    if (m)
+      MatrixFree(&m);
+    if (voxelFromSurfaceRAS)
+      MatrixFree(&voxelFromSurfaceRAS);
+    if (surfaceRASFromVoxel)
+      MatrixFree(&surfaceRASFromVoxel);
+    if (surfaceRASFromSurfaceRAS)
+      MatrixFree(&surfaceRASFromSurfaceRAS);
+    if (!srcPresent && mri)
+      MRIfree(&mri);
+    if (!dstPresent && mri_dst)
+      MRIfree(&mri_dst);
+  }
 
   if (error)
-    {
-      ErrorExit(ERROR_BADPARM, errMsg);
-      return -1; // just to satisfy compiler
-    }
+  {
+    ErrorExit(ERROR_BADPARM, errMsg);
+    return -1; // just to satisfy compiler
+  }
   else
     return(NO_ERROR) ;
 }
@@ -30916,7 +30979,7 @@ mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
   if(nadded)
     fprintf
       (stderr,
-       "   total of %d vertices has been added to the surface\n",nadded);
+       "   total of %d vertices have been added to the surface\n",nadded);
 
   return(dl) ;
 }
@@ -38023,7 +38086,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
   if(nadded)
     fprintf
       (stderr,
-       "   total of %d vertices has been added to the surface\n",nadded);
+       "   total of %d vertices have been added to the surface\n",nadded);
   //if (Gdiag & DIAG_SHOW) fprintf(WHICH_OUTPUT, "\n") ;
   if (Gdiag & DIAG_WRITE && fp)
     fclose(fp) ;
