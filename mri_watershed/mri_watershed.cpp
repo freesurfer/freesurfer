@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/10/18 01:53:47 $
-// Revision       : $Revision: 1.51 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2006/10/31 14:29:13 $
+// Revision       : $Revision: 1.52 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.51 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.52 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -696,7 +696,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.51 2006/10/18 01:53:47 nicks Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.52 2006/10/31 14:29:13 segonne Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -708,7 +708,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.51 2006/10/18 01:53:47 nicks Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.52 2006/10/31 14:29:13 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -7818,13 +7818,16 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
           if (nc)
             {
               r= (nc>0) ? nc : -nc;
-              r=SQR(sd)/(2*r);
+              r += 0.00001;
+							r=SQR(sd)/(2*r);
               force1=(1+tanh(F*(1/r-E)))/2;
             }
-          else
-            Error("\n Problem with normal component being 0");
-
-
+          else{
+						//Error("\n Problem with normal component being 0");
+						r = 0.00001;
+						r=SQR(sd)/(2*r);
+						force1=(1+tanh(F*(1/r-E)))/2;
+					}
 
           /******************************/
           if(!MRIGRADIENT)
