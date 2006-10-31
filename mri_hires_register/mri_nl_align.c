@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/30 20:52:44 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2006/10/31 19:42:37 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -444,6 +444,11 @@ get_option(int argc, char *argv[])
     mp.l_jacobian = atof(argv[2]) ;
     nargs = 1 ;
     printf("using l_jacobian=%2.3f\n", mp.l_jacobian) ;
+    break ;
+  case 'Z':
+    nozero = (atoi(argv[2]) == 0) ;
+    printf("%sdisabling zero image locations\n", nozero ? "" : "not ") ;
+    nargs = 1 ;
     break ;
   case 'A':
 		mp.navgs = atoi(argv[2]) ;
