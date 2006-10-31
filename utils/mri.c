@@ -13,10 +13,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/29 23:21:10 $
-// Revision       : $Revision: 1.368 $
-char *MRI_C_VERSION = "$Revision: 1.368 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/10/31 18:59:27 $
+// Revision       : $Revision: 1.369 $
+char *MRI_C_VERSION = "$Revision: 1.369 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9858,6 +9858,7 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   Returns value:
 
   Description
+   compute the mean in a frame of all values 
   ------------------------------------------------------*/
 double
 MRImeanFrame(MRI *mri, int frame)
@@ -9875,17 +9876,57 @@ MRImeanFrame(MRI *mri, int frame)
                      frame, mri->nframes));
 
   for (mean = 0.0, z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
     {
-      for (y = 0 ; y < height ; y++)
-        {
-          for (x = 0 ; x < width ; x++)
-            {
-              MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
-              mean += (double)val ;
-            }
-        }
+      for (x = 0 ; x < width ; x++)
+      {
+        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
+        mean += (double)val ;
+      }
     }
+  }
   mean /= (double)(width*height*depth) ;
+  return(mean) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+   compute the mean in a frame of all values above thresh
+  ------------------------------------------------------*/
+double
+MRImeanFrameThresh(MRI *mri, int frame, float thresh)
+{
+  int       width, height, depth, x, y, z, num ;
+  double    mean ;
+  Real      val ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+  if (mri->nframes <= frame)
+    ErrorReturn(0.0,(ERROR_BADPARM,
+                     "MRImeanFrame: frame %d out of bounds (%d)",
+                     frame, mri->nframes));
+
+  for (mean = 0.0, num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
+        if (val < thresh)
+          continue ;
+        mean += (double)val ;
+        num++ ;
+      }
+    }
+  }
+  mean /= (double)(num) ;
   return(mean) ;
 }
 
@@ -13565,6 +13606,31 @@ MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
   mri->c_s = vg->c_s;
   return(NO_ERROR) ;
 }
+/*-------------------------------------------------------------------
+  MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
+  structure.
+  -------------------------------------------------------------------*/
+int
+MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
+{
+  vg->xsize = mri->xsize ;
+  vg->ysize = mri->ysize ;
+  vg->zsize = mri->zsize ;
+  vg->x_r = mri->x_r ;
+  vg->y_r = mri->y_r ;
+  vg->z_r = mri->z_r ;
+  vg->c_r = mri->c_r ;
+  vg->x_a = mri->x_a ;
+  vg->y_a = mri->y_a ;
+  vg->z_a = mri->z_a ;
+  vg->c_a = mri->c_a ;
+  vg->x_s = mri->x_s ;
+  vg->y_s = mri->y_s ;
+  vg->z_s = mri->z_s ;
+  vg->c_s = mri->c_s ;
+  strcpy(vg->fname, mri->fname) ;
+  return(NO_ERROR) ;
+}
 
 #define NDIRS 3
 static int dirs[NDIRS][3] =
@@ -13796,8 +13862,8 @@ MRImatchMeanIntensity(MRI *mri_source, MRI *mri_target, MRI *mri_source_scaled)
 
   mri_source_scaled = MRIcopy(mri_source, mri_source_scaled) ;
 
-  mean_source = MRImeanFrame(mri_source, 0) ;
-  mean_target = MRImeanFrame(mri_target, 0) ;
+  mean_source = MRImeanFrameThresh(mri_source, 0, 1) ;
+  mean_target = MRImeanFrameThresh(mri_target, 0, 1) ;
   scale = mean_target / mean_source ;
   printf("source mean = %2.1f, target mean = %2.1f, scaling by %2.3f\n",
          mean_source, mean_target, scale) ;
