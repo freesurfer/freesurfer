@@ -6,6 +6,7 @@ function [roivar, nroi, roivar0, radlist] = fast_weiskopf(fslice,radlist,porder,
 % fslice - functional data [nr nc nf] = size(fslice);
 % radlist - list of "radii"
 % porder - detrend with polynomial of given order (def is no detrending)
+%   Note that the mean is always removed.
 % seed - center radius as [r0 c0] = seed. Default center of slice.
 %
 % roivar - temporal variance average averaging all the time courses
@@ -17,7 +18,7 @@ function [roivar, nroi, roivar0, radlist] = fast_weiskopf(fslice,radlist,porder,
 % same: loglog(nroi,roivar,nroi,1./nroi), ie, in log-log space, the
 % slope should be -1.
 %
-% $Id: fast_weiskopf.m,v 1.3 2005/08/31 21:22:52 greve Exp $
+% $Id: fast_weiskopf.m,v 1.4 2006/10/31 22:28:52 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 
