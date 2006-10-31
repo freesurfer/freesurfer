@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.265 2006/10/20 22:16:52 nicks Exp $ */
+/* $Id: mrisurf.h,v 1.266 2006/10/31 19:02:43 fischl Exp $ */
 
 #ifndef LABEL_INCLUDED
 #define LABEL_INCLUDED
@@ -1026,7 +1026,7 @@ int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterZeroVals(MRI_SURFACE *mris) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
-int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst) ;
+int  MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst) ;
 int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
