@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_transform.c,v 1.5 2004/01/29 14:54:51 tosa Exp $";
+static char vcid[] = "$Id: mris_transform.c,v 1.6 2006/10/31 18:57:39 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,9 +37,10 @@ main(int argc, char *argv[])
   int          ac, nargs ;
   LTA          *lta=0 ;
   int          transform_type;
+  TRANSFORM    *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.5 2004/01/29 14:54:51 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.6 2006/10/31 18:57:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -71,14 +72,15 @@ main(int argc, char *argv[])
 
   // read transform
   transform_type =  TransformFileNameType(xform_fname);
-  if(transform_type == MNI_TRANSFORM_TYPE || 
-     transform_type == TRANSFORM_ARRAY_TYPE ||
-     transform_type == REGISTER_DAT)
+  transform = TransformRead(xform_fname) ;
+  if (!transform)
+    ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+                Progname, xform_fname) ;
+  if(transform->type == MNI_TRANSFORM_TYPE || 
+     transform->type == TRANSFORM_ARRAY_TYPE ||
+     transform->type  == REGISTER_DAT)
   {
-    lta = LTAreadEx(xform_fname) ;
-    if (!lta)
-      ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-		Progname, xform_fname) ;
+    lta = (LTA *)(transform->xform) ;
     
     if (mri == 0 && lta->xforms[0].src.valid == 0)
     {
@@ -123,31 +125,35 @@ main(int argc, char *argv[])
     //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
     //
     //
+    if (invert)
+    {
+      VOL_GEOM vgtmp;
+      LT *lt;
+      MATRIX *m_tmp = lta->xforms[0].m_L ;
+      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+      MatrixFree(&m_tmp) ;
+      lt = &lta->xforms[0];
+      if (lt->dst.valid == 0 || lt->src.valid == 0)
+      {
+        fprintf(stderr, "WARNING:***************************************************************\n");
+        fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
+        fprintf(stderr, "WARNING:***************************************************************\n");
+      }
+      copyVolGeom(&lt->dst, &vgtmp);
+      copyVolGeom(&lt->src, &lt->dst);
+      copyVolGeom(&vgtmp, &lt->src);
+    }
   }
   else
   {
-    ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat type");
+    TransformInvert(transform, mri_dst) ;
+    if (invert)
+    {
+    }
+    //    ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat type");
   }
   //
-  if (invert)
-  {
-    VOL_GEOM vgtmp;
-    LT *lt;
-    MATRIX *m_tmp = lta->xforms[0].m_L ;
-    lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
-    MatrixFree(&m_tmp) ;
-    lt = &lta->xforms[0];
-    if (lt->dst.valid == 0 || lt->src.valid == 0)
-    {
-      fprintf(stderr, "WARNING:***************************************************************\n");
-      fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
-      fprintf(stderr, "WARNING:***************************************************************\n");
-    }
-    copyVolGeom(&lt->dst, &vgtmp);
-    copyVolGeom(&lt->src, &lt->dst);
-    copyVolGeom(&vgtmp, &lt->src);
-  }
-  MRIStransform(mris, mri, lta, mri_dst) ;
+  MRIStransform(mris, mri, transform, mri_dst) ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing surface to %s\n", out_fname) ;
