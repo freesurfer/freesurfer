@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # func2roi-sess 
 
-set VERSION = '$Id: func2roi-sess,v 1.10 2006/10/12 20:43:35 nicks Exp $';
+set VERSION = '$Id: func2roi-sess,v 1.11 2006/10/31 00:18:48 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -123,14 +123,16 @@ endif
 
 # If a mask session was specified, get the full stem to the mask map
 # and it's registration file #
-if($#masksessid != 0) then
+if($#maskanalysis) then
   set infofile = $maskanalysis/analysis.info
   if(! -e $infofile) then
     echo "ERROR: cannot find $infofile"
     exit 1;
   endif
   set maskfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+endif
 
+if($#masksessid != 0) then
   set maskstem = `$PWDCMD`/$masksessid/$maskfsd/$maskanalysis/$maskspacedir/$maskcontrast/$maskmap;
   if($volcheck) then
     bfvcheck $maskstem;
