@@ -1838,55 +1838,55 @@ TransformSampleInverse(TRANSFORM *transform,
   int errCode = NO_ERROR;
 
   if (transform->type == MORPH_3D_TYPE)
-    {
-      gcam = (GCA_MORPH *)transform->xform ;
-      xn = nint(xv/gcam->spacing) ; 
-      yn = nint(yv/gcam->spacing) ; 
-      zn = nint(zv/gcam->spacing) ;
+  {
+    gcam = (GCA_MORPH *)transform->xform ;
+    xn = nint(xv/gcam->spacing) ; 
+    yn = nint(yv/gcam->spacing) ; 
+    zn = nint(zv/gcam->spacing) ;
 
-      if (xn >= gcam->width)
-        xn = gcam->width-1 ;
-      if (yn >= gcam->height)
-        yn = gcam->height-1 ;
-      if (zn >= gcam->depth)
-        zn = gcam->depth-1 ;
+    if (xn >= gcam->width)
+      xn = gcam->width-1 ;
+    if (yn >= gcam->height)
+      yn = gcam->height-1 ;
+    if (zn >= gcam->depth)
+      zn = gcam->depth-1 ;
 
-      gcamn = &gcam->nodes[xn][yn][zn] ;
-      xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ;
-      // if marked invalid, then return error
-      if (gcamn->invalid)
-        errCode=ERROR_BADPARM;
-    }
+    gcamn = &gcam->nodes[xn][yn][zn] ;
+    xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ;
+    // if marked invalid, then return error
+    if (gcamn->invalid)
+      errCode=ERROR_BADPARM;
+  }
   else
+  {
+    lta = (LTA *)transform->xform ;
+    if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+      ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+    
+    if (!v_canon)
     {
-      lta = (LTA *)transform->xform ;
-      if (lta->type != LINEAR_VOXEL_TO_VOXEL)
-        ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
-    
-      if (!v_canon)
-        {
-          v_input = VectorAlloc(4, MATRIX_REAL) ;
-          v_canon = VectorAlloc(4, MATRIX_REAL) ;
-          *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
-          *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
-          m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
-        }
-    
-      V3_X(v_canon) = 
-        (float)xv; V3_Y(v_canon) = 
-                     (float)yv; V3_Z(v_canon) = 
-                                  (float)zv;
-#if 0
-      MatrixInverse(lta->xforms[0].m_L, m_L_inv) ;
-      MatrixMultiply(m_L_inv, v_canon, v_input) ;
-#else
-      MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input) ;
-#endif
-      xt = V3_X(v_input) ; yt = V3_Y(v_input) ; zt = V3_Z(v_input) ; 
-      // here I cannot get access to width, height, depth values
-      // thus I cannot judge the point is good or bad
-      // errCode remains to be valid
+      v_input = VectorAlloc(4, MATRIX_REAL) ;
+      v_canon = VectorAlloc(4, MATRIX_REAL) ;
+      *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+      *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+      m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
     }
+    
+    V3_X(v_canon) = 
+      (float)xv; V3_Y(v_canon) = 
+                   (float)yv; V3_Z(v_canon) = 
+                                (float)zv;
+#if 0
+    MatrixInverse(lta->xforms[0].m_L, m_L_inv) ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+#else
+    MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input) ;
+#endif
+    xt = V3_X(v_input) ; yt = V3_Y(v_input) ; zt = V3_Z(v_input) ; 
+    // here I cannot get access to width, height, depth values
+    // thus I cannot judge the point is good or bad
+    // errCode remains to be valid
+  }
   *px = xt ; *py = yt ; *pz = zt ;
 
   return errCode ;
@@ -3205,8 +3205,135 @@ int LTAdump(FILE *fp, LTA *lta)
   return(0);
 }
 
+int
+LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst)
+{
+  int i ;
 
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    MRIcopyVolGeomFromMRI(mri_src, &lta->xforms[i].src) ;
+    MRIcopyVolGeomFromMRI(mri_dst, &lta->xforms[i].dst) ;
+  }
+  return(NO_ERROR) ;
+}
 
+/*----------------------------------------------------------
+  MRIxfmCRS2XYZ() - computes the matrix needed to compute the
+  XYZ of the center of a voxel at a given Col, Row, and Slice
+  from the native geometry of the volume (ie, native or scanner 
+  Vox2RAS matrix).
 
+  x         col
+  y  = T *  row
+  z        slice
+  1          1
 
+  T = [Mdc*D Pxyz0]
+  [0 0 0   1  ]
 
+  Mdc = [Vcol Vrow Vslice]
+  V<dim> = the direction cosine pointing from the center of one voxel
+  to the center of an adjacent voxel in the next dim, where
+  dim is either colum, row, or slice. Vcol = [x_r x_a x_s],
+  Vrow = [y_r y_a y_s], Vslice = [z_r z_a z_s]. Vcol can also
+  be described as the vector normal to the plane formed by
+  the rows and slices of a given column (ie, the column normal).
+
+  D = diag([colres rowres sliceres])
+  dimres = the distance between adjacent dim, where colres = mri->xsize,
+  rowres = mri->ysize, and sliceres = mri->zsize.
+
+  Pxyz0 = the XYZ location at CRS=0. This number is not part of the
+  mri structure, so it is computed here according to the formula:
+  Pxyz0 = PxyzCenter - Mdc*D*PcrsCenter
+
+  PcrsCenter = the col, row, and slice at the center of the volume,
+  = [ ncols/2 nrows/2 nslices/2 ]
+
+  PxyzCenter = the X, Y, and Z at the center of the volume and does
+  exist in the header as mri->c_r, mri->c_a, and mri->c_s,
+  respectively.
+
+  Note: to compute the matrix with respect to the first voxel being
+  at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is
+  necessary with SPM matrices.
+
+  See also: MRIxfmCRS2XYZtkreg, MRItkReg2Native, extract_i_to_r().
+  surfaceRASFromVoxel_(MRI *mri), voxelFromSurfaceRAS_().
+
+  Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
+  ----------------------------------------------------------------*/
+MATRIX *
+VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base)
+{
+  MATRIX *PxyzOffset, *Pcrs ;
+
+  if (m == NULL)
+    m = MatrixAlloc(4, 4, MATRIX_REAL) ;
+
+  /* direction cosine between columns scaled by
+     distance between colums */
+  *MATRIX_RELT(m, 1, 1) = vg->x_r * vg->xsize;
+  *MATRIX_RELT(m, 2, 1) = vg->x_a * vg->xsize;
+  *MATRIX_RELT(m, 3, 1) = vg->x_s * vg->xsize;
+
+  /* direction cosine between rows scaled by
+     distance between rows */
+  *MATRIX_RELT(m, 1, 2) = vg->y_r * vg->ysize;
+  *MATRIX_RELT(m, 2, 2) = vg->y_a * vg->ysize;
+  *MATRIX_RELT(m, 3, 2) = vg->y_s * vg->ysize;
+
+  /* direction cosine between slices scaled by
+     distance between slices */
+  *MATRIX_RELT(m, 1, 3) = vg->z_r * vg->zsize;
+  *MATRIX_RELT(m, 2, 3) = vg->z_a * vg->zsize;
+  *MATRIX_RELT(m, 3, 3) = vg->z_s * vg->zsize;
+
+  /* Preset the offsets to 0 */
+  *MATRIX_RELT(m, 1, 4) = 0.0;
+  *MATRIX_RELT(m, 2, 4) = 0.0;
+  *MATRIX_RELT(m, 3, 4) = 0.0;
+
+  /* Last row of matrix */
+  *MATRIX_RELT(m, 4, 1) = 0.0;
+  *MATRIX_RELT(m, 4, 2) = 0.0;
+  *MATRIX_RELT(m, 4, 3) = 0.0;
+  *MATRIX_RELT(m, 4, 4) = 1.0;
+
+  /* At this point, m = Mdc * D */
+
+  /* Col, Row, Slice at the Center of the Volume */
+  Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
+  *MATRIX_RELT(Pcrs, 1, 1) = vg->width/2.0  + base;
+  *MATRIX_RELT(Pcrs, 2, 1) = vg->height/2.0 + base;
+  *MATRIX_RELT(Pcrs, 3, 1) = vg->depth/2.0  + base;
+  *MATRIX_RELT(Pcrs, 4, 1) = 1.0;
+
+  /* XYZ offset the first Col, Row, and Slice from Center */
+  /* PxyzOffset = Mdc*D*PcrsCenter */
+  PxyzOffset = MatrixMultiply(m,Pcrs,NULL);
+
+  /* XYZ at the Center of the Volume is vg->c_r, c_a, c_s  */
+
+  /* The location of the center of the voxel at CRS = (0,0,0)*/
+  *MATRIX_RELT(m, 1, 4) = vg->c_r - PxyzOffset->rptr[1][1];
+  *MATRIX_RELT(m, 2, 4) = vg->c_a - PxyzOffset->rptr[2][1];
+  *MATRIX_RELT(m, 3, 4) = vg->c_s - PxyzOffset->rptr[3][1];
+
+  MatrixFree(&Pcrs);
+  MatrixFree(&PxyzOffset);
+
+  return(m) ;
+}
+
+MATRIX *
+VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
+{
+  MATRIX *m_inv ;
+
+  m_inv = VGgetRasToVoxelXform(vg, NULL, base) ;
+  m = MatrixInverse(m_inv, m) ;
+  MatrixFree(&m_inv) ;
+  return(m) ;
+}
