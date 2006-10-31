@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following three lines. CVS maintains them. */
-/* Revision Author: $Author: greve $                                  */
-/* Revision Date  : $Date: 2006/01/25 21:41:36 $                       */
-/* Revision       : $Revision: 1.50 $                                  */
+/* Revision Author: $Author: fischl $                                  */
+/* Revision Date  : $Date: 2006/10/31 18:52:22 $                       */
+/* Revision       : $Revision: 1.51 $                                  */
 /*                                                                     */
 /***********************************************************************/
 
@@ -12,6 +12,7 @@
 #define MGH_TRANSFORM_H
 
 #include "matrix.h"
+#include "const.h"
 
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 
@@ -29,7 +30,7 @@ typedef struct
   float         y_r, y_a, y_s;
   float         z_r, z_a, z_s;
   float         c_r, c_a, c_s;
-  char          fname[512];  // volume filename
+  char          fname[STRLEN];  // volume filename
 } VOL_GEOM, VG;
 
 typedef struct
@@ -200,5 +201,8 @@ int TransformSampleReal(TRANSFORM *transform,
 const char *LTAtransformTypeName(int ltatype);
 int LTAdump(FILE *fp, LTA *lta);
 int LTAdumpLinearTransform(FILE *fp, LT *lt);
+int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
+MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
+MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 
 #endif
