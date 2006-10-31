@@ -46,6 +46,11 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
   }
   if (vl->xi == NULL)
   {
+		vl->xd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->yd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->zd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->vsrc = (float *)calloc(nvox, sizeof(float)) ;
+		vl->vdst = (float *)calloc(nvox, sizeof(float)) ;
 		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
@@ -70,6 +75,7 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
 					{
 						i = nvox++ ;
 						vl->xi[i] = x ; vl->yi[i] = y ; vl->zi[i] = z ;
+            vl->vsrc[i] = val ;
 					}
 				}
 	    }
@@ -120,6 +126,11 @@ VLSTcreate(MRI *mri,
   }
   if (vl->xi == NULL)
   {
+		vl->xd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->yd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->zd = (float *)calloc(nvox, sizeof(float)) ;
+		vl->vsrc = (float *)calloc(nvox, sizeof(float)) ;
+		vl->vdst = (float *)calloc(nvox, sizeof(float)) ;
 		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
 		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
@@ -144,6 +155,7 @@ VLSTcreate(MRI *mri,
 					{
 						i = nvox++ ;
 						vl->xi[i] = x ; vl->yi[i] = y ; vl->zi[i] = z ;
+            vl->vsrc[i] = val ;
 					}
 				}
 	    }
@@ -350,3 +362,44 @@ void VLSTcomputeStats(VOXEL_LIST *vl)
   
   return;
 }
+int
+VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
+{
+  Real   val, xd, yd, zd ;
+  int    i, x, y, z ;
+  static VECTOR *v1 = NULL, *v2 ;
+
+  if (v1 == NULL)
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  }
+
+  for (i = 0 ; i < vl->nvox ; i++)
+  {
+    x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m, v1, v2) ;
+    val = MRIgetVoxVal(vl->mri, x, y, z, 0) ;
+    vl->vsrc[i] = val ;
+    xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+    if (xd < 0)
+      xd = 0 ;
+    else if (xd >= mri->width-1)
+      xd = mri->width-1 ;
+    if (yd < 0)
+      yd = 0 ;
+    else if (yd >= mri->height-1)
+      yd = mri->height-1 ;
+    if (zd < 0)
+      zd = 0 ;
+    else if (zd >= mri->depth-1)
+      zd = mri->depth-1 ;
+    vl->xd[i] = xd ; vl->yd[i] = yd ;  vl->zd[i] = zd ; 
+    MRIsampleVolumeType(mri, xd, yd, zd, &val, sample_type) ;
+    vl->vdst[i] = val ;
+  }
+  return(NO_ERROR) ;
+}
+
