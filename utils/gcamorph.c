@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/09/19 20:46:42 $
-// Revision       : $Revision: 1.114 $
+// Revision Date  : $Date: 2006/10/31 19:38:03 $
+// Revision       : $Revision: 1.115 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -821,8 +821,8 @@ GCAMread(char *fname)
       pclose(fp);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, 
-			 "GCAMread: encountered error executing: '%s'",
-			 command)) ;
+                         "GCAMread: encountered error executing: '%s'",
+                         command)) ;
     }
   }
   else    {
@@ -838,7 +838,7 @@ GCAMread(char *fname)
     // fclose(fp) ;
     myclose(fp);
     ErrorReturn(NULL, 
-		(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
+                (ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
   }
   width = freadInt(fp) ; height = freadInt(fp) ; depth = freadInt(fp) ;
   gcam = GCAMalloc(width, height, depth) ;
@@ -849,26 +849,26 @@ GCAMread(char *fname)
   for (x = 0 ; x < width ; x++)	{
     for (y = 0 ; y < height ; y++)		{
       for (z = 0 ; z < depth ; z++)			{
-	gcamn = &gcam->nodes[x][y][z] ;
-	gcamn->origx = freadFloat(fp) ;
-	gcamn->origy = freadFloat(fp) ;
-	gcamn->origz = freadFloat(fp) ;
+        gcamn = &gcam->nodes[x][y][z] ;
+        gcamn->origx = freadFloat(fp) ;
+        gcamn->origy = freadFloat(fp) ;
+        gcamn->origz = freadFloat(fp) ;
 				
-	gcamn->x = freadFloat(fp) ;
-	gcamn->y = freadFloat(fp) ;
-	gcamn->z = freadFloat(fp) ;
+        gcamn->x = freadFloat(fp) ;
+        gcamn->y = freadFloat(fp) ;
+        gcamn->z = freadFloat(fp) ;
 
-	gcamn->xn = freadInt(fp) ;
-	gcamn->yn = freadInt(fp) ;
-	gcamn->zn = freadInt(fp) ;
+        gcamn->xn = freadInt(fp) ;
+        gcamn->yn = freadInt(fp) ;
+        gcamn->zn = freadInt(fp) ;
 
-	// if all the positions are zero, then this is not a valid point
-	// mark invalid = 1
-	if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
-	    && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
-	  gcamn->invalid = GCAM_POSITION_INVALID ;
-	else
-	  gcamn->invalid = GCAM_VALID ;
+        // if all the positions are zero, then this is not a valid point
+        // mark invalid = 1
+        if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
+            && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
+          gcamn->invalid = GCAM_POSITION_INVALID ;
+        else
+          gcamn->invalid = GCAM_VALID ;
       }
     }
   }
@@ -882,26 +882,26 @@ GCAMread(char *fname)
         printf("reading labels out of gcam file...\n") ;
       gcam->status = GCAM_LABELED ;
       for (x = 0 ; x < width ; x++)			{
-	for (y = 0 ; y < height ; y++)				{
-	  for (z = 0 ; z < depth ; z++)		{
-	    gcamn = &gcam->nodes[x][y][z] ;
-	    gcamn->label = freadInt(fp) ;
-	    if (gcamn->label != 0)
-	      DiagBreak() ;
-	  }
-	}
+        for (y = 0 ; y < height ; y++)				{
+          for (z = 0 ; z < depth ; z++)		{
+            gcamn = &gcam->nodes[x][y][z] ;
+            gcamn->label = freadInt(fp) ;
+            if (gcamn->label != 0)
+              DiagBreak() ;
+          }
+        }
       }
       break ;
     case TAG_GCAMORPH_GEOM:
       GCAMreadGeom(gcam, fp);
       if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-	{
-	  fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
-	  fprintf(stderr, "src geometry:\n");
-	  writeVolGeom(stderr, &gcam->image);
-	  fprintf(stderr, "dst geometry:\n");
-	  writeVolGeom(stderr, &gcam->atlas);
-	}
+      {
+        fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
+        fprintf(stderr, "src geometry:\n");
+        writeVolGeom(stderr, &gcam->image);
+        fprintf(stderr, "dst geometry:\n");
+        writeVolGeom(stderr, &gcam->atlas);
+      }
       break ;
     case TAG_GCAMORPH_TYPE:
       gcam->type = freadInt(fp) ;
@@ -7017,7 +7017,9 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 	if (parms->log_fp)
 	{
 		fprintf(parms->log_fp, "ending %d: ", i) ;
-		gcamShowCompressed(gcam, parms->log_fp) ;
+		if (gcamShowCompressed(gcam, parms->log_fp) == 0)
+      fprintf(parms->log_fp, "\n") ;
+    fflush(parms->log_fp) ;
 	}
   *parms = *(&saved_parms) ;
   return(NO_ERROR) ;
@@ -10692,31 +10694,45 @@ static int
 gcamCheck(GCA_MORPH *gcam, MRI *mri)
 {
 	GCA_MORPH_NODE *gcamn ;
-	int            x, y, z, first = 1 ;
+	int            x, y, z, first = 1, num ;
+  float          orig_area, dif1, dif2 ;
   
   if (getenv("GCAM_NOCHECK"))
     return(NO_ERROR) ;
 
   GCAMcomputeOriginalProperties(gcam) ;
-	for (x  = 0 ; x < gcam->width ; x++)
+
+  // compute mean orig area
+	for (num = 0, orig_area = 0.0, x  = 0 ; x < gcam->width ; x++)
 		for (y = 0 ; y < gcam->height ; y++)
 			for (z = 0 ; z < gcam->depth ; z++)
 	{
 		gcamn = &gcam->nodes[x][y][z] ;
 		if (fabs(gcamn->x-120)<1 && fabs(gcamn->y-125)<1 && fabs(gcamn->z-123)<1)
 			DiagBreak() ;
+		if (gcamn->label == 0 || gcamn->status & GCAM_BINARY_ZERO || gcamn->invalid == GCAM_AREA_INVALID)
+			continue ;
+    num += 2;
+    orig_area += (gcamn->orig_area1 + gcamn->orig_area2) ;
+	} 
+  if (num == 0)
+    return(NO_ERROR) ;
+  orig_area /= (float)num ;
+	for (x  = 0 ; x < gcam->width ; x++)
+		for (y = 0 ; y < gcam->height ; y++)
+			for (z = 0 ; z < gcam->depth ; z++)
+	{
+		gcamn = &gcam->nodes[x][y][z] ;
 		if (gcamn->label == 0 || gcamn->status & GCAM_BINARY_ZERO)
 			continue ;
-		if (gcamn->x >= mri->width+2 || gcamn->y >= mri->height+2 || gcamn->z >= mri->depth+2
-				|| gcamn->x < -3 || gcamn->y < -3 || gcamn->z < -3)
-			DiagBreak() ;
-    if ((gcamn->orig_area1 < 6 || gcamn->orig_area2 < 6 || gcamn->orig_area < 6) ||
-        (gcamn->orig_area1 > 7 || gcamn->orig_area2 > 7 || gcamn->orig_area > 7))
+    dif1 = fabs(gcamn->orig_area1-orig_area) ;
+    dif2 = fabs(gcamn->orig_area2-orig_area) ;
+    if ((dif1 > (0.01*orig_area)) || (dif2 > (0.01*orig_area)))
     {
       if (first)
       {
-        printf("node(%d, %d, %d): orig areas (%2.1f, %2.1f, %2.1f)\n",
-               x, y, z, gcamn->orig_area1, gcamn->orig_area2, gcamn->orig_area) ;
+        printf("node(%d, %d, %d): orig areas (%2.3f, %2.3f, %2.3f), should be %2.3f\n",
+               x, y, z, gcamn->orig_area1, gcamn->orig_area2, gcamn->orig_area, orig_area) ;
         first = 0 ;
       }
       DiagBreak() ;
