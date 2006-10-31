@@ -265,6 +265,8 @@ int   GCAaccumulateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
 int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
                                    MRI *mri_parc, TRANSFORM *transform, char *fname) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
+int   GCArenormalizeWithEntropyMinimization(GCA *gca_affine, MRI *mri, TRANSFORM *transform, FILE *logfp) ;
+double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles) ;
@@ -362,6 +364,7 @@ double GCAgibbsImpossibleConfiguration(GCA *gca,
 																			 int x, int y, int z, 
 																			 TRANSFORM *transform) ;
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform);
+double GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform) ;
 int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
