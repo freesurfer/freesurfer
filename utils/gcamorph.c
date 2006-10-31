@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/10/31 19:38:03 $
-// Revision       : $Revision: 1.115 $
+// Revision Date  : $Date: 2006/10/31 19:39:10 $
+// Revision       : $Revision: 1.116 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -10697,7 +10697,7 @@ gcamCheck(GCA_MORPH *gcam, MRI *mri)
 	int            x, y, z, first = 1, num ;
   float          orig_area, dif1, dif2 ;
   
-  if (getenv("GCAM_NOCHECK"))
+  if (getenv("GCAM_CHECK") == NULL)
     return(NO_ERROR) ;
 
   GCAMcomputeOriginalProperties(gcam) ;
