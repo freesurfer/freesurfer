@@ -5,14 +5,19 @@
 
 typedef struct
 {
-  int *xi ;
-  int *yi ;
-  int *zi ;
-  MRI *mri ;
-  MRI *mri2;
-  int nvox ;
-  double mean;
-  double std;
+  int     *xi ;
+  int     *yi ;
+  int     *zi ;
+  float   *xd ;  // transformed parameters
+  float   *yd ;
+  float   *zd ;
+  float   *vsrc ;
+  float   *vdst ;
+  MRI     *mri ;
+  MRI     *mri2;
+  int     nvox ;
+  double  mean;
+  double  std;
 } VOXEL_LIST ;
 
 MRI         *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) ;
@@ -21,6 +26,7 @@ VOXEL_LIST  *VLSTcreate(MRI *mri, float low_val, float hi_val ,
 			VOXEL_LIST *vl, int skip, int border_only) ;
 VOXEL_LIST  *VLSTcreateInRegion(MRI *mri, float low_val, float hi_val , 
 			VOXEL_LIST *vl, int skip, int border_only, MRI_REGION *box) ;
+int         VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type) ;
 
 MRI         *VLSTcreateMri(VOXEL_LIST *vl, int val) ;
 MRI         *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val) ;
