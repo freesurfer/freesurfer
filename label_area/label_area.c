@@ -40,7 +40,7 @@ main(int argc, char *argv[])
   float        area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.5 2003/09/04 20:38:49 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.6 2006/10/31 13:55:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,6 +84,13 @@ main(int argc, char *argv[])
     if (verbose > 3)  /* never */
       fprintf(stderr, "reading area %s\n", area_name) ;
     area = compute_label_area(mris, subject_name, area_name) ;
+    if (mris->group_avg_surface_area > 0)
+    {
+      MRIScomputeMetricProperties(mris) ;
+      printf("adjusting for group surface area %2.2f (%2.0f / %2.0f)\n",
+             mris->group_avg_surface_area/mris->total_area, mris->group_avg_surface_area,mris->total_area);
+      area *= mris->group_avg_surface_area/mris->total_area ;
+    }
     fprintf(stderr, "%s:  %s - %2.3f square mm\n", 
             subject_name, area_name, area) ;
   }
