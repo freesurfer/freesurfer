@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/09 13:49:20 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2006/10/31 19:21:29 $
+// Revision       : $Revision: 1.11 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -57,12 +57,16 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source,
 
 static double MAX_TRANS = 30 ;
 
+static float compute_powell_rigid_sse(float *p) ;
 static float compute_powell_sse(float *p) ;
 static int    powell_minimize(VOXEL_LIST *vl_target,
                               VOXEL_LIST *vl_source,
                               MATRIX *mat,
-                              MRI *mri_orig_source,
-                              int rigid);
+                              MRI *mri_orig_source) ;
+static int powell_minimize_rigid(VOXEL_LIST *vl_target,
+                                 VOXEL_LIST *vl_source,
+                                 MATRIX *mat);
+
 
 static void  usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
@@ -181,11 +185,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (argc < 4)
     usage_exit(1) ;
@@ -333,79 +337,88 @@ main(int argc, char *argv[])
 	}
 	
   if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
-    {
-      sprintf(fname, "%s_target", parms.base_name) ;
-      MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgz", parms.base_name) ;
-      MRIwrite(mri_target, fname) ;
-    }
+  {
+    sprintf(fname, "%s_target", parms.base_name) ;
+    MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target.mgz", parms.base_name) ;
+    MRIwrite(mri_target, fname) ;
+  }
 
 
   /* compute optimal linear transform */
   vl_target =
-    VLSTcreate(mri_target,binary_label,binary_label,NULL,0,0);
+    VLSTcreate(mri_target,binary_label,binary_label,NULL,skip,0);
   // skip=0 for target!
   vl_target->mri2 = mri_dist_dst ;
   for (i = 0 ; i < npasses ; i++)
+  {
+    printf("------------- outer loop iteration %d ---------------\n",i) ;
+    vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip, 0) ;
+    vl_source->mri2 = mri_dist_src ;
+
+    transform = compute_optimal_transform
+      (vl_target, vl_source, &parms,transform) ;
+    VLSTfree(&vl_source) ;
+    vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip/4, 0) ;
+    vl_source->mri2 = mri_dist_src ;
+    if ((nopowell == 0) && parms.rigid == 0)
     {
-      printf("------------- outer loop iteration %d ---------------\n",i) ;
-      vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip, 0) ;
-      vl_source->mri2 = mri_dist_src ;
-
-      transform = compute_optimal_transform
-        (vl_target, vl_source, &parms,transform) ;
-      VLSTfree(&vl_source) ;
-      vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip/4, 0) ;
-      vl_source->mri2 = mri_dist_src ;
-      if ((nopowell == 0) && parms.rigid == 0)
-        {
-          powell_minimize
-            (vl_target, vl_source,
-             ((LTA *)(transform->xform))->xforms[0].m_L,
-             mri_orig_source, parms.rigid) ;
-          if (parms.rigid)
-            MatrixOrthonormalizeTransform
-              (((LTA *)(transform->xform))->xforms[0].m_L) ;
-        }
-      VLSTfree(&vl_source) ;
-      if (apply_transform)
-        {
-          MRI *mri_aligned ;
-          MATRIX *m_vox_xform ;
-          char   fname[STRLEN] ;
-
-          FileNameRemoveExtension(out_fname, fname) ;
-          strcat(fname, ".mgz") ;
-          m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
-          if (binarize >0)
-            {
-              mri_aligned = MRIclone(mri_target, NULL) ;
-              MRIlinearTransformInterp
-                (mri_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
-              MRIbinarize(mri_aligned, mri_aligned, 1, 0, 1) ;
-            }
-          else
-            {
-#if 0
-              mri_aligned = MRIclone(mri_target, NULL) ;
-              MRIlinearTransformInterp
-                (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
-#else
-              mri_aligned =
-                MRITransformedCenteredMatrix
-                (mri_orig_source, mri_target, m_vox_xform) ;
-            }
-#endif
-          printf("writing transformed output volume to %s...\n", fname) ;
-          MRIwrite(mri_aligned, fname) ;
-          MRIfree(&mri_aligned) ;
-
-        }
-      LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
-      TransformWrite(transform, out_fname) ;
-      LTArasToVoxelXform((LTA *)(transform->xform), mri_source, mri_target) ;
-      skip /= 2 ;
+      powell_minimize(vl_target, vl_source,((LTA *)(transform->xform))->xforms[0].m_L,mri_orig_source) ;
     }
+    else if (parms.rigid)
+    {
+      powell_minimize_rigid(vl_target, vl_source,((LTA *)(transform->xform))->xforms[0].m_L) ;
+#if 0
+      pf_likelihood = compute_trimmed_likelihood ;
+      ignore_pct = 0.01 ;
+      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+      powell_minimize_rigid(vl_target, vl_source,
+                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
+      ignore_pct = 0.05 ;
+      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+      powell_minimize_rigid(vl_target, vl_source,
+                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
+#endif
+    }
+    VLSTfree(&vl_source) ;
+    if (apply_transform)
+    {
+      MRI *mri_aligned ;
+      MATRIX *m_vox_xform ;
+      char   fname[STRLEN] ;
+
+      FileNameRemoveExtension(out_fname, fname) ;
+      strcat(fname, ".mgz") ;
+      m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+      if (binarize >0)
+      {
+        mri_aligned = MRIclone(mri_target, NULL) ;
+        MRIlinearTransformInterp
+          (mri_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+        MRIbinarize(mri_aligned, mri_aligned, 1, 0, 1) ;
+      }
+      else
+      {
+#if 0
+        mri_aligned = MRIclone(mri_target, NULL) ;
+        MRIlinearTransformInterp
+          (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+#else
+        mri_aligned =
+          MRITransformedCenteredMatrix
+          (mri_orig_source, mri_target, m_vox_xform) ;
+      }
+#endif
+      printf("writing transformed output volume to %s...\n", fname) ;
+      MRIwrite(mri_aligned, fname) ;
+      MRIfree(&mri_aligned) ;
+
+    }
+    LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
+    TransformWrite(transform, out_fname) ;
+    LTArasToVoxelXform((LTA *)(transform->xform), mri_source, mri_target) ;
+    skip /= 2 ;
+  }
   VLSTfree(&vl_target) ;
 
   printf("final vox2vox matrix:\n") ;
@@ -423,32 +436,32 @@ main(int argc, char *argv[])
     MRIwrite(mri_aligned, fname) ;
 
     for (i = 1 ; i <= nfilter ; i++)
-      {
-        sprintf(fname, "%sfiltered%d.mgz", parms.base_name, i) ;
-        mri_filtered = MRImodeFilter(mri_aligned, NULL, i) ;
-        printf("writing filtered image to %s\n", fname) ;
-        MRIwrite(mri_filtered, fname) ;
-        MRIfree(&mri_filtered) ;
-      }
+    {
+      sprintf(fname, "%sfiltered%d.mgz", parms.base_name, i) ;
+      mri_filtered = MRImodeFilter(mri_aligned, NULL, i) ;
+      printf("writing filtered image to %s\n", fname) ;
+      MRIwrite(mri_filtered, fname) ;
+      MRIfree(&mri_filtered) ;
+    }
     MRIfree(&mri_aligned) ;
   }
 
   if (apply_transform)
-    {
-      MRI *mri_aligned ;
-      MATRIX *m_vox_xform ;
-      char   fname[STRLEN] ;
+  {
+    MRI *mri_aligned ;
+    MATRIX *m_vox_xform ;
+    char   fname[STRLEN] ;
 
-      FileNameRemoveExtension(out_fname, fname) ;
-      strcat(fname, ".mgz") ;
-      m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
-      mri_aligned = MRIclone(mri_target, NULL) ;
-      MRIlinearTransformInterp
-        (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
-      printf("writing transformed output volume to %s...\n", fname) ;
-      MRIwrite(mri_aligned, fname) ;
-      MRIfree(&mri_aligned) ;
-    }
+    FileNameRemoveExtension(out_fname, fname) ;
+    strcat(fname, ".mgz") ;
+    m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+    mri_aligned = MRIclone(mri_target, NULL) ;
+    MRIlinearTransformInterp
+      (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+    printf("writing transformed output volume to %s...\n", fname) ;
+    MRIwrite(mri_aligned, fname) ;
+    MRIfree(&mri_aligned) ;
+  }
   LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
   TransformWrite(transform, out_fname) ;
 
@@ -471,71 +484,71 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
   if (!stricmp(option, "debug_voxel"))
-    {
-      Gx = atoi(argv[2]) ;
-      Gy = atoi(argv[3]) ;
-      Gz = atoi(argv[4]) ;
-      nargs = 3 ;
-      printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-    }
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
   else if (!stricmp(option, "angio"))
-    {
-      pf_overlap = compute_distance_transform_sse ;
-      printf("using distance transform to align angiograms\n") ;
-    }
+  {
+    pf_overlap = compute_distance_transform_sse ;
+    printf("using distance transform to align angiograms\n") ;
+  }
   else if (!stricmp(option, "nopowell"))
-    {
-      nopowell = 1 ;
-      printf("not applying powell search\n") ;
-    }
+  {
+    nopowell = 1 ;
+    printf("not applying powell search\n") ;
+  }
   else if (!stricmp(option, "view"))
-    {
-      Gsx = atoi(argv[2]) ;
-      Gsy = atoi(argv[3]) ;
-      Gsz = atoi(argv[4]) ;
-      nargs = 3 ;
-      printf("viewing voxel (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
-    }
+  {
+    Gsx = atoi(argv[2]) ;
+    Gsy = atoi(argv[3]) ;
+    Gsz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("viewing voxel (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
+  }
   else if (!stricmp(option, "wm"))
-    {
-      wm = 1 ;
-      pf_overlap = compute_distance_transform_sse ;
-      target_label = -1 ;
-      printf("aligning wm labels...\n") ;
-    }
+  {
+    wm = 1 ;
+    pf_overlap = compute_distance_transform_sse ;
+    target_label = -1 ;
+    printf("aligning wm labels...\n") ;
+  }
   else if (!stricmp(option, "target"))
-    {
-      target_label = atoi(argv[2]) ;
-      pf_overlap = compute_distance_transform_sse ;
-      printf("aligning label %d...\n", target_label) ;
-      nargs = 1 ;
-    }
+  {
+    target_label = atoi(argv[2]) ;
+    pf_overlap = compute_distance_transform_sse ;
+    printf("aligning label %d...\n", target_label) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "filled"))
-    {
-      filled = 1 ;
-      target_label = atoi(argv[2]) ;
-      pf_overlap = compute_distance_transform_sse ;
-      printf("aligning label %d...\n", target_label) ;
-      nargs = 1 ;
-    }
+  {
+    filled = 1 ;
+    target_label = atoi(argv[2]) ;
+    pf_overlap = compute_distance_transform_sse ;
+    printf("aligning label %d...\n", target_label) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "distance"))
-    {
-      pf_overlap = compute_distance_transform_sse ;
-      printf("using distance transform for SSE\n") ;
-    }
+  {
+    pf_overlap = compute_distance_transform_sse ;
+    printf("using distance transform for SSE\n") ;
+  }
   else if (!stricmp(option, "trans"))
-    {
-      MAX_TRANS = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("setting MAX_TRANS = %2.1f\n", MAX_TRANS) ;
-    }
+  {
+    MAX_TRANS = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting MAX_TRANS = %2.1f\n", MAX_TRANS) ;
+  }
   else if (!stricmp(option, "max_angle"))
-    {
-      MAX_ANGLE = RADIANS(atof(argv[2])) ;
-      nargs = 1 ;
-      printf("setting max angle for search to %2.1f degrees\n",
-             DEGREES(MAX_ANGLE)) ;
-    }
+  {
+    MAX_ANGLE = RADIANS(atof(argv[2])) ;
+    nargs = 1 ;
+    printf("setting max angle for search to %2.1f degrees\n",
+           DEGREES(MAX_ANGLE)) ;
+  }
   else if (!stricmp(option, "max_scale"))
   {
 		MAX_SCALE = atof(argv[2]) ;
@@ -622,8 +635,10 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 
   mri_target = vl_target->mri ; mri_source = vl_source->mri ;
 
-#define MIN_SEARCH_SCALE 0.01
-  min_search_scale = MIN_SEARCH_SCALE ;
+#define MIN_LINEAR_SEARCH_SCALE 0.01
+#define MIN_RIGID_SEARCH_SCALE  0.001
+  min_search_scale = 
+    parms->rigid ? MIN_RIGID_SEARCH_SCALE : MIN_LINEAR_SEARCH_SCALE;
   m_origin = MatrixIdentity(4, NULL) ;
   MRIcenterOfMass(mri_source, source_cent, 0) ;
   MRIcenterOfMass(mri_target, target_cent, 0) ;
@@ -633,67 +648,71 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   *MATRIX_RELT(m_origin, 4, 4) = 1 ;
   m_inv_origin = MatrixInverse(m_origin, NULL) ;
   if (transform == NULL)
-    {
-      transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-      m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
-
-      m_target_ras2vox = MRIgetRasToVoxelXform(mri_target) ;
-      m_source_vox2ras = MRIgetVoxelToRasXform(mri_source) ;
-      MatrixMultiply(m_target_ras2vox, m_source_vox2ras, m_vox_xform) ;
-      printf("initial transform from direction cosines:\n") ;
-      MatrixPrint(stdout, m_vox_xform) ;
-      MatrixFree(&m_target_ras2vox) ; MatrixFree(&m_source_vox2ras) ;
-      old_max_overlap = max_overlap =
-        (*pf_overlap)(vl_target, vl_source, m_vox_xform) ;
-      printf("initial overlap = %2.4f...\n", max_overlap) ;
-
-      dx = target_cent[0] - source_cent[0] ;
-      dy = target_cent[1] - source_cent[1]  ;
-      dz = target_cent[2] - source_cent[2] ;
-
-      v_cl = VectorAlloc(4, MATRIX_REAL) ;
-      v_ch = VectorAlloc(4, MATRIX_REAL) ;
-      *MATRIX_RELT(v_cl,4,1) = 1.0 ;
-      *MATRIX_RELT(v_ch,4,1) = 1.0 ;
-      V3_X(v_ch) = source_cent[0] ;
-      V3_Y(v_ch) = source_cent[1] ;
-      V3_Z(v_ch) = source_cent[2] ;
-      MatrixMultiply(m_vox_xform, v_ch, v_cl) ;
-      dx = V3_X(v_cl) - target_cent[0] ;
-      dy = V3_Y(v_cl) - target_cent[1] ;
-      dz = V3_Z(v_cl) - target_cent[2] ;
-      m_trans = MatrixIdentity(4, NULL) ;
-      *MATRIX_RELT(m_trans, 1, 4) = -dx ;
-      *MATRIX_RELT(m_trans, 2, 4) = -dy ;
-      *MATRIX_RELT(m_trans, 3, 4) = -dz ;
-
-      m_tmp = MatrixCopy(m_vox_xform, NULL) ;
-      MatrixMultiply(m_trans, m_tmp, m_vox_xform) ;
-      MatrixPrint(stdout, m_vox_xform) ;
-      max_overlap = (*pf_overlap)(vl_target, vl_source, m_vox_xform) ;
-      printf("after aligning centroids overlap = %2.4f...\n", max_overlap) ;
-      if (max_overlap < old_max_overlap)
-        {
-          printf("resetting transform to initial one...\n") ;
-          MatrixCopy(m_tmp, m_vox_xform) ;
-          max_overlap = old_max_overlap ;
-        }
-
-      MatrixFree(&m_trans) ;
-      MatrixFree(&m_tmp) ;
-      VectorFree(&v_cl) ;
-      VectorFree(&v_ch) ;
-      if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-        {
-          write_snapshot
-            (mri_target,
-             mri_orig_source,
-             m_vox_xform, parms, parms->start_t,conform,NULL);
-        }
-      parms->start_t++ ;
-    }
-  else
+  {
+    scale = 1 ;
+    transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
     m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+
+    m_target_ras2vox = MRIgetRasToVoxelXform(mri_target) ;
+    m_source_vox2ras = MRIgetVoxelToRasXform(mri_source) ;
+    MatrixMultiply(m_target_ras2vox, m_source_vox2ras, m_vox_xform) ;
+    printf("initial transform from direction cosines:\n") ;
+    MatrixPrint(stdout, m_vox_xform) ;
+    MatrixFree(&m_target_ras2vox) ; MatrixFree(&m_source_vox2ras) ;
+    old_max_overlap = max_overlap =
+      (*pf_overlap)(vl_target, vl_source, m_vox_xform) ;
+    printf("initial overlap = %2.4f...\n", max_overlap) ;
+
+    dx = target_cent[0] - source_cent[0] ;
+    dy = target_cent[1] - source_cent[1]  ;
+    dz = target_cent[2] - source_cent[2] ;
+
+    v_cl = VectorAlloc(4, MATRIX_REAL) ;
+    v_ch = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v_cl,4,1) = 1.0 ;
+    *MATRIX_RELT(v_ch,4,1) = 1.0 ;
+    V3_X(v_ch) = source_cent[0] ;
+    V3_Y(v_ch) = source_cent[1] ;
+    V3_Z(v_ch) = source_cent[2] ;
+    MatrixMultiply(m_vox_xform, v_ch, v_cl) ;
+    dx = V3_X(v_cl) - target_cent[0] ;
+    dy = V3_Y(v_cl) - target_cent[1] ;
+    dz = V3_Z(v_cl) - target_cent[2] ;
+    m_trans = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_trans, 1, 4) = -dx ;
+    *MATRIX_RELT(m_trans, 2, 4) = -dy ;
+    *MATRIX_RELT(m_trans, 3, 4) = -dz ;
+
+    m_tmp = MatrixCopy(m_vox_xform, NULL) ;
+    MatrixMultiply(m_trans, m_tmp, m_vox_xform) ;
+    MatrixPrint(stdout, m_vox_xform) ;
+    max_overlap = (*pf_overlap)(vl_target, vl_source, m_vox_xform) ;
+    printf("after aligning centroids overlap = %2.4f...\n", max_overlap) ;
+    if (max_overlap < old_max_overlap)
+    {
+      printf("resetting transform to initial one...\n") ;
+      MatrixCopy(m_tmp, m_vox_xform) ;
+      max_overlap = old_max_overlap ;
+    }
+
+    MatrixFree(&m_trans) ;
+    MatrixFree(&m_tmp) ;
+    VectorFree(&v_cl) ;
+    VectorFree(&v_ch) ;
+    if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+    {
+      write_snapshot
+        (mri_target,
+         mri_orig_source,
+         m_vox_xform, parms, parms->start_t,conform,NULL);
+    }
+    parms->start_t++ ;
+  }
+  else
+  {
+    scale = 0.1 ;   // only search fine scales the 2nd and subsequent times
+    m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+  }
 
 
   trans = MAX(MAX_TRANS,
@@ -704,65 +723,65 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 
   MatrixPrint(stdout, m_vox_xform) ;
   if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-    {
-      write_snapshot(mri_target, mri_orig_source,
-                     m_vox_xform, parms, parms->start_t,conform,NULL);
-    }
+  {
+    write_snapshot(mri_target, mri_orig_source,
+                   m_vox_xform, parms, parms->start_t,conform,NULL);
+  }
   parms->start_t++ ;
 #define MIN_SCALES 3
   /////////////////////////// loop here //////////
-  niter = 0 ; nscales = 1 ; scale = 1.0 ; good_step = 0 ; done = 0 ;
+  niter = 0 ; nscales = 1 ; scale *= parms->rigid ? .25: 1.0 ;
   do
-    {
-      old_max_overlap = max_overlap ;
-      printf("****************************************\n");
-      printf("Nine parameter search.  iteration %d nscales = %d ...\n",
-             niter+1, nscales);
-      printf("****************************************\n");
-      max_overlap = find_optimal_linear_xform(vl_target, vl_source,
-                                              m_vox_xform, m_origin,
-                                              -MAX_ANGLE*scale,
-                                              MAX_ANGLE*scale,
-                                              1-MAX_SCALE*scale,
-                                              1+MAX_SCALE*scale,
-                                              -scale*MAX_TRANS,
-                                              scale*MAX_TRANS,
-                                              3, 3, 3, 2, parms->rigid);
+  {
+    old_max_overlap = max_overlap ;
+    printf("****************************************\n");
+    printf("%s parameter search.  iteration %d nscales = %d ...\n",
+           parms->rigid ? "Six" : "Nine", niter+1, nscales);
+    printf("****************************************\n");
+    max_overlap = find_optimal_linear_xform(vl_target, vl_source,
+                                            m_vox_xform, m_origin,
+                                            -MAX_ANGLE*scale,
+                                            MAX_ANGLE*scale,
+                                            1-MAX_SCALE*scale,
+                                            1+MAX_SCALE*scale,
+                                            -scale*MAX_TRANS,
+                                            scale*MAX_TRANS,
+                                            3, 3, 3, 2, parms->rigid);
 #if 0
-      trans = MAX(MAX_TRANS,
-                  MAX(MAX(mri_source->width,mri_source->height),
-                      mri_source->depth)/(16*scale)) ;
-      max_overlap = find_optimal_translation
-        (vl_target, vl_source, m_vox_xform, -trans, trans, 5, 4) ;
+    trans = MAX(MAX_TRANS,
+                MAX(MAX(mri_source->width,mri_source->height),
+                    mri_source->depth)/(16*scale)) ;
+    max_overlap = find_optimal_translation
+      (vl_target, vl_source, m_vox_xform, -trans, trans, 5, 4) ;
 #endif
 
-      if (parms->write_iterations != 0)
-        {
-          write_snapshot(mri_target, mri_orig_source,
-                         ((LTA *)(transform->xform))->xforms[0].m_L,
-                         parms, parms->start_t+niter, conform, NULL) ;
+    if (parms->write_iterations != 0)
+    {
+      write_snapshot(mri_target, mri_orig_source,
+                     ((LTA *)(transform->xform))->xforms[0].m_L,
+                     parms, parms->start_t+niter, conform, NULL) ;
 
-        }
-      printf("Result so far: scale %2.3f: max overlap = %2.4f, "
-             "old max overlap=%2.4f\n",
-             scale,max_overlap, old_max_overlap) ;
-      MatrixPrint(stderr, m_vox_xform);
-      /* search a finer nbhd (if do-while continues) */
-      if ((max_overlap <= old_max_overlap)) /* couldn't take a step */
-        {
-          scale *= 0.25 ;
-          if (scale < min_search_scale)
-            break ;
-          good_step = 0 ;
-          printf("reducing scale to %2.4f\n", scale) ;
-          nscales++ ;
-          done = (good_step == 0) ;
-        }
-      else
-        good_step = 1 ; /* took at least one good step at this scale */
+    }
+    printf("Result so far: scale %2.3f: max overlap = %2.4f, "
+           "old max overlap=%2.4f\n",
+           scale,max_overlap, old_max_overlap) ;
+    MatrixPrint(stderr, m_vox_xform);
+    /* search a finer nbhd (if do-while continues) */
+    if ((max_overlap <= old_max_overlap)) /* couldn't take a step */
+    {
+      scale *= 0.25 ;
+      if (scale < min_search_scale)
+        break ;
+      good_step = 0 ;
+      printf("reducing scale to %2.4f\n", scale) ;
+      nscales++ ;
+      done = (good_step == 0) ;
+    }
+    else
+      good_step = 1 ; /* took at least one good step at this scale */
 
-      niter++ ;
-    } while (nscales < MIN_SCALES || (done == FALSE)) ;
+    niter++ ;
+  } while (nscales < (MIN_SCALES+2*parms->rigid) || (done == FALSE)) ; // allow extra scales for rigid
 
   /*  m_vox_xform = compute_pca(mri_source, mri_target) ;*/
   parms->start_t += niter ;
@@ -1243,189 +1262,201 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   m_scale = MatrixIdentity(4, NULL) ;
   max_overlap = (*pf_overlap)(vl_target, vl_source, m_L) ;
   for (i = 0 ; i < nreductions ; i++)
+  {
+    delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
+    if (rigid)
     {
-      delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
-      if (rigid)
-        {
-          max_scale = min_scale = 1 ;
-          delta_scale = max_scale ;
-        }
-      else
-        delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
-      delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
-      if (Gdiag & DIAG_SHOW)
-        {
-          printf("  scanning %2.2f degree nbhd (%2.1f)\n"
-                 "  scale %2.3f->%2.3f (step %2.3f), "
-                 "trans %2.2f->%2.2f (step %2.2f)\n",
-                 (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
-                 min_scale,max_scale, delta_scale,
-                 min_trans, max_trans, delta_trans);
-          fflush(stdout) ;
-        }
-
-      // scale /////////////////////////////////////////////////////////////
-      for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
-        {
-          /*      printf("x_scale = %2.3f\n", x_scale) ;*/
-          *MATRIX_RELT(m_scale, 1, 1) = x_scale ;
-          for (y_scale = min_scale ;
-               y_scale <= max_scale ;
-               y_scale += delta_scale)
-            {
-              *MATRIX_RELT(m_scale, 2, 2) = y_scale ;
-              for (z_scale= min_scale ;
-                   z_scale <= max_scale;
-                   z_scale += delta_scale)
-                {
-                  *MATRIX_RELT(m_scale, 3, 3) = z_scale ;
-
-                  /* reset translation values */
-                  *MATRIX_RELT(m_scale, 1, 4) =
-                    *MATRIX_RELT(m_scale, 2, 4) =
-                    *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-                  m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-                  MatrixMultiply(m_origin, m_tmp, m_scale) ;
-
-                  // angle ///////////////////////////
-                  for (x_angle = min_angle ;
-                       x_angle <= max_angle ;
-                       x_angle += delta_rot)
-                    {
-                      m_x_rot = MatrixReallocRotation
-                        (4, x_angle, X_ROTATION, m_x_rot) ;
-                      for (y_angle = min_angle ;
-                           y_angle <= max_angle ;
-                           y_angle += delta_rot)
-                        {
-                          m_y_rot = MatrixReallocRotation
-                            (4, y_angle, Y_ROTATION, m_y_rot);
-                          m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-                          for (z_angle= min_angle;
-                               z_angle <= max_angle;
-                               z_angle += delta_rot)
-                            {
-                              m_z_rot = MatrixReallocRotation
-                                (4, z_angle,Z_ROTATION,m_z_rot);
-                              m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-                              m_tmp2 = MatrixMultiply
-                                (m_rot, m_origin_inv, m_tmp2) ;
-                              MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-
-                              m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
-                              m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
-
-                              // translation ////////
-                              for (x_trans = min_trans ;
-                                   x_trans <= max_trans ;
-                                   x_trans += delta_trans)
-                                {
-                                  *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
-                                  for (y_trans = min_trans ;
-                                       y_trans <= max_trans ;
-                                       y_trans += delta_trans)
-                                    {
-                                      *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
-                                      for (z_trans= min_trans ;
-                                           z_trans <= max_trans ;
-                                           z_trans += delta_trans)
-                                        {
-                                          *MATRIX_RELT(m_trans, 3, 4) =
-                                            z_trans ;
-
-                                          m_L_tmp = MatrixMultiply
-                                            (m_trans, m_tmp3, m_L_tmp) ;
-                                          overlap = (*pf_overlap)(vl_target,
-                                                                  vl_source,
-                                                                  m_L_tmp) ;
-
-                                          if (overlap > max_overlap)
-                                            {
-                                              max_overlap = overlap ;
-                                              x_max_scale = x_scale ;
-                                              y_max_scale = y_scale ;
-                                              z_max_scale = z_scale ;
-
-                                              x_max_rot = x_angle ;
-                                              y_max_rot = y_angle ;
-                                              z_max_rot = z_angle ;
-
-                                              x_max_trans = x_trans ;
-                                              y_max_trans = y_trans ;
-                                              z_max_trans = z_trans ;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-      if (Gdiag & DIAG_SHOW)
-        {
-          printf("  max overlap = %2.4f @ R=(%2.3f,%2.3f,%2.3f),"
-                 "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n",
-                 max_overlap, DEGREES(x_max_rot), DEGREES(y_max_rot),
-                 DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
-                 x_max_trans, y_max_trans,z_max_trans) ;
-        }
-
-      /* update L to reflect new maximum and search around it */
-      *MATRIX_RELT(m_scale, 1, 4) =
-        *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-      *MATRIX_RELT(m_scale,1,1) = x_max_scale ;
-      *MATRIX_RELT(m_scale,2,2) = y_max_scale ;
-      *MATRIX_RELT(m_scale,3,3) = z_max_scale ;
-      m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-      MatrixMultiply(m_origin, m_tmp, m_scale) ;
-
-
-      x_max_scale = y_max_scale = z_max_scale = 1.0 ;
-
-      mean_scale = (max_scale + min_scale) / 2 ;
-      delta_scale = (max_scale-min_scale)/4 ;
-      min_scale = mean_scale - delta_scale ;
-      max_scale = mean_scale + delta_scale ;
-
-      /* update L to reflect new maximum and search around it */
-      MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
-      MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
-      MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
-      MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-      MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-      m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-      MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-
-      m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
-      m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
-
-      /* update L to reflect new maximum and search around it */
-      *MATRIX_RELT(m_trans, 1, 4) = x_max_trans ;
-      *MATRIX_RELT(m_trans, 2, 4) = y_max_trans ;
-      *MATRIX_RELT(m_trans, 3, 4) = z_max_trans ;
-      MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
-
-      MatrixCopy(m_L_tmp, m_L) ;
-
-      x_max_trans =
-        y_max_trans =
-        z_max_trans = 0.0 ;  /* we've translated transform by old maxs */
-      mean_trans = (max_trans + min_trans) / 2 ;
-      delta_trans = (max_trans-min_trans)/4 ;
-      min_trans = mean_trans - delta_trans ;
-      max_trans = mean_trans + delta_trans ;
-
-      /* we've rotated transform to old max */
-      x_max_rot = y_max_rot = z_max_rot = 0.0 ;
-
-      mean_angle = (max_angle + min_angle) / 2 ;
-      delta_rot = (max_angle-min_angle)/4 ;
-      min_angle = mean_angle - delta_rot ;
-      max_angle = mean_angle + delta_rot ;
+      max_scale = min_scale = 1 ;
+      delta_scale = max_scale ;
     }
+    else
+      delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
+    delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
+    if (Gdiag & DIAG_SHOW)
+    {
+      if (rigid)
+        printf("  scanning %2.4f degree nbhd (%2.4f)\n"
+               "trans %2.2f->%2.2f (step %2.2f)\n",
+               (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
+               min_trans, max_trans, delta_trans);
+      else
+        printf("  scanning %2.2f degree nbhd (%2.1f)\n"
+               "  scale %2.3f->%2.3f (step %2.3f), "
+               "trans %2.2f->%2.2f (step %2.2f)\n",
+               (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
+               min_scale,max_scale, delta_scale,
+               min_trans, max_trans, delta_trans);
+      fflush(stdout) ;
+    }
+
+    // scale /////////////////////////////////////////////////////////////
+    for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
+    {
+      /*      printf("x_scale = %2.3f\n", x_scale) ;*/
+      *MATRIX_RELT(m_scale, 1, 1) = x_scale ;
+      for (y_scale = min_scale ;
+           y_scale <= max_scale ;
+           y_scale += delta_scale)
+      {
+        *MATRIX_RELT(m_scale, 2, 2) = y_scale ;
+        for (z_scale= min_scale ;
+             z_scale <= max_scale;
+             z_scale += delta_scale)
+        {
+          *MATRIX_RELT(m_scale, 3, 3) = z_scale ;
+
+          /* reset translation values */
+          *MATRIX_RELT(m_scale, 1, 4) =
+            *MATRIX_RELT(m_scale, 2, 4) =
+            *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
+          m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
+          MatrixMultiply(m_origin, m_tmp, m_scale) ;
+
+          // angle ///////////////////////////
+          for (x_angle = min_angle ;
+               x_angle <= max_angle ;
+               x_angle += delta_rot)
+          {
+            m_x_rot = MatrixReallocRotation
+              (4, x_angle, X_ROTATION, m_x_rot) ;
+            for (y_angle = min_angle ;
+                 y_angle <= max_angle ;
+                 y_angle += delta_rot)
+            {
+              m_y_rot = MatrixReallocRotation
+                (4, y_angle, Y_ROTATION, m_y_rot);
+              m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
+              for (z_angle= min_angle;
+                   z_angle <= max_angle;
+                   z_angle += delta_rot)
+              {
+                m_z_rot = MatrixReallocRotation
+                  (4, z_angle,Z_ROTATION,m_z_rot);
+                m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
+                m_tmp2 = MatrixMultiply
+                  (m_rot, m_origin_inv, m_tmp2) ;
+                MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+
+                m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
+                m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
+
+                // translation ////////
+                for (x_trans = min_trans ;
+                     x_trans <= max_trans ;
+                     x_trans += delta_trans)
+                {
+                  *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
+                  for (y_trans = min_trans ;
+                       y_trans <= max_trans ;
+                       y_trans += delta_trans)
+                  {
+                    *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
+                    for (z_trans= min_trans ;
+                         z_trans <= max_trans ;
+                         z_trans += delta_trans)
+                    {
+                      *MATRIX_RELT(m_trans, 3, 4) =
+                        z_trans ;
+
+                      m_L_tmp = MatrixMultiply
+                        (m_trans, m_tmp3, m_L_tmp) ;
+                      overlap = (*pf_overlap)(vl_target,
+                                              vl_source,
+                                              m_L_tmp) ;
+
+                      if (overlap > max_overlap)
+                      {
+                        max_overlap = overlap ;
+                        x_max_scale = x_scale ;
+                        y_max_scale = y_scale ;
+                        z_max_scale = z_scale ;
+
+                        x_max_rot = x_angle ;
+                        y_max_rot = y_angle ;
+                        z_max_rot = z_angle ;
+
+                        x_max_trans = x_trans ;
+                        y_max_trans = y_trans ;
+                        z_max_trans = z_trans ;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (Gdiag & DIAG_SHOW)
+    {
+      if (rigid)
+        printf("  max overlap = %2.4f @ R=(%2.5f,%2.5f,%2.5f),"
+               "T=(%2.3f,%2.3f,%2.3f)\n",
+               max_overlap, DEGREES(x_max_rot), DEGREES(y_max_rot),
+               DEGREES(z_max_rot), x_max_trans, y_max_trans,z_max_trans) ;
+      else
+        printf("  max overlap = %2.4f @ R=(%2.3f,%2.3f,%2.3f),"
+               "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n",
+               max_overlap, DEGREES(x_max_rot), DEGREES(y_max_rot),
+               DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
+               x_max_trans, y_max_trans,z_max_trans) ;
+    }
+
+    /* update L to reflect new maximum and search around it */
+    *MATRIX_RELT(m_scale, 1, 4) =
+      *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
+    *MATRIX_RELT(m_scale,1,1) = x_max_scale ;
+    *MATRIX_RELT(m_scale,2,2) = y_max_scale ;
+    *MATRIX_RELT(m_scale,3,3) = z_max_scale ;
+    m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
+    MatrixMultiply(m_origin, m_tmp, m_scale) ;
+
+
+    x_max_scale = y_max_scale = z_max_scale = 1.0 ;
+
+    mean_scale = (max_scale + min_scale) / 2 ;
+    delta_scale = (max_scale-min_scale)/4 ;
+    min_scale = mean_scale - delta_scale ;
+    max_scale = mean_scale + delta_scale ;
+
+    /* update L to reflect new maximum and search around it */
+    MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
+    MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
+    MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
+    MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
+    MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
+    m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
+    MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+
+    m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
+    m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
+
+    /* update L to reflect new maximum and search around it */
+    *MATRIX_RELT(m_trans, 1, 4) = x_max_trans ;
+    *MATRIX_RELT(m_trans, 2, 4) = y_max_trans ;
+    *MATRIX_RELT(m_trans, 3, 4) = z_max_trans ;
+    MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+
+    MatrixCopy(m_L_tmp, m_L) ;
+
+    x_max_trans =
+      y_max_trans =
+      z_max_trans = 0.0 ;  /* we've translated transform by old maxs */
+    mean_trans = (max_trans + min_trans) / 2 ;
+    delta_trans = (max_trans-min_trans)/4 ;
+    min_trans = mean_trans - delta_trans ;
+    max_trans = mean_trans + delta_trans ;
+
+    /* we've rotated transform to old max */
+    x_max_rot = y_max_rot = z_max_rot = 0.0 ;
+
+    mean_angle = (max_angle + min_angle) / 2 ;
+    delta_rot = (max_angle-min_angle)/4 ;
+    min_angle = mean_angle - delta_rot ;
+    max_angle = mean_angle + delta_rot ;
+  }
   MatrixFree(&m_x_rot) ; MatrixFree(&m_y_rot) ; MatrixFree(&m_z_rot) ;
   MatrixFree(&m_rot) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
   MatrixFree(&m_tmp2) ; MatrixFree(&m_trans) ; MatrixFree(&m_tmp3) ;
@@ -1443,8 +1474,7 @@ static int
 powell_minimize(VOXEL_LIST *vl_target,
                 VOXEL_LIST *vl_source,
                 MATRIX *mat,
-                MRI *mri_orig_source,
-                int rigid)
+                MRI *mri_orig_source)
 {
   float *p, **xi, fret, fstart;
   int   i, r, c, iter ;
@@ -1452,82 +1482,51 @@ powell_minimize(VOXEL_LIST *vl_target,
   p = vector(1, NPARMS) ;
   xi = matrix(1, NPARMS, 1, NPARMS) ;
   for (i = r = 1 ; r <= 4 ; r++)
+  {
+    for (c = 1 ; c <= 4 ; c++)
     {
-      for (c = 1 ; c <= 4 ; c++)
-        {
-          p[i++] = *MATRIX_RELT(mat, r, c) ;
-        }
+      p[i++] = *MATRIX_RELT(mat, r, c) ;
     }
+  }
 
   Gvl_target = vl_target ; Gvl_source = vl_source ;
   for (r = 1 ; r <= NPARMS ; r++)
+  {
+    for (c = 1 ; c <= NPARMS ; c++)
     {
-      for (c = 1 ; c <= NPARMS ; c++)
-        {
-          xi[r][c] = r == c ? 1 : 0 ;
-        }
+      xi[r][c] = r == c ? 1 : 0 ;
     }
+  }
 
   // TODO:  powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
   OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-  if (rigid)
-    {
-      for (i = r = 1 ; r <= 4 ; r++)
-        {
-          for (c = 1 ; c <= 4 ; c++)
-            {
-              *MATRIX_RELT(mat, r, c) = p[i++] ;
-            }
-        }
-      MatrixOrthonormalizeTransform
-        (((LTA *)(transform->xform))->xforms[0].m_L) ;
-      for (i = r = 1 ; r <= 4 ; r++)
-        {
-          for (c = 1 ; c <= 4 ; c++)
-            {
-              p[i++] = *MATRIX_RELT(mat, r, c) ;
-            }
-        }
-    }
   do
+  {
+    for (r = 1 ; r <= NPARMS ; r++)
     {
-      for (r = 1 ; r <= NPARMS ; r++)
-        {
-          for (c = 1 ; c <= NPARMS ; c++)
-            {
-              xi[r][c] = r == c ? 1 : 0 ;
-            }
-        }
+      for (c = 1 ; c <= NPARMS ; c++)
+      {
+        xi[r][c] = r == c ? 1 : 0 ;
+      }
+    }
 
-      fstart = fret ;
-      // TODO:    powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-      OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-      for (i = r = 1 ; r <= 4 ; r++)
-        {
-          for (c = 1 ; c <= 4 ; c++)
-            {
-              *MATRIX_RELT(mat, r, c) = p[i++] ;
-            }
-        }
-      *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
-      *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
-      if (rigid)
-        {
-          MatrixOrthonormalizeTransform
-            (((LTA *)(transform->xform))->xforms[0].m_L) ;
-          for (i = r = 1 ; r <= 4 ; r++)
-            {
-              for (c = 1 ; c <= 4 ; c++)
-                {
-                  p[i++] = *MATRIX_RELT(mat, r, c) ;
-                }
-            }
-        }
-      printf("%3.3d: best alignment after powell: %2.3f (%d steps)\n",
-             parms.start_t,fret, iter) ;
-      write_snapshot(vl_target->mri, mri_orig_source,
-                     mat, &parms, parms.start_t++,conform,NULL);
-    } while (fret < fstart) ;
+    fstart = fret ;
+    // TODO:    powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+    OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+    for (i = r = 1 ; r <= 4 ; r++)
+    {
+      for (c = 1 ; c <= 4 ; c++)
+      {
+        *MATRIX_RELT(mat, r, c) = p[i++] ;
+      }
+    }
+    *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
+    *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
+    printf("%3.3d: best alignment after powell: %2.3f (%d steps)\n",
+           parms.start_t,fret, iter) ;
+    write_snapshot(vl_target->mri, mri_orig_source,
+                   mat, &parms, parms.start_t++,conform,NULL);
+  } while (fret < fstart) ;
 
   free_matrix(xi, 1, NPARMS, 1, NPARMS) ;
   free_vector(p, 1, NPARMS) ;
@@ -1544,17 +1543,100 @@ compute_powell_sse(float *p)
   if (mat == NULL)
     mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
   for (i = r = 1 ; r <= 4 ; r++)
+  {
+    for (c = 1 ; c <= 4 ; c++)
     {
-      for (c = 1 ; c <= 4 ; c++)
-        {
-          *MATRIX_RELT(mat, r, c) = p[i++] ;
-        }
+      *MATRIX_RELT(mat, r, c) = p[i++] ;
     }
+  }
   *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
   *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
   error = -(*pf_overlap)(Gvl_target, Gvl_source, mat) ;
   if (-error > best)
     DiagBreak() ;
+  return(error) ;
+}
+
+#define NPARMS_RIGID (6)
+static int
+powell_minimize_rigid(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
+{
+  float *p, **xi, fret, fstart ;
+  int    r, c, iter, diag ;
+  double xr, yr, zr, xt, yt, zt;
+
+  // extract rigid body parameters from matrix
+  MatrixToRigidParameters(mat, &xr, &yr, &zr, &xt, &yt, &zt) ;
+  printf("initial rigid body parameters = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+         DEGREES(xr), DEGREES(yr), DEGREES(zr), xt, yt, zt) ;
+  p = vector(1, NPARMS_RIGID) ;
+  xi = matrix(1, NPARMS_RIGID, 1, NPARMS_RIGID) ;
+  p[1] = xr ; p[2] = yr ; p[3] = zr ; p[4] = xt ; p[5] = yt ; p[6] = zt ;
+
+  Gvl_target = vl_target ; Gvl_source = vl_source ;
+  for (r = 1 ; r <= NPARMS_RIGID ; r++)
+  {
+    for (c = 1 ; c <= NPARMS_RIGID ; c++)
+    {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+
+  diag = Gdiag ; Gdiag |= DIAG_VERBOSE ;
+  OpenPowell(p, xi, NPARMS_RIGID, TOL, &iter, &fret, compute_powell_rigid_sse);
+  MatrixFromRigidParameters(mat, p[1],p[2],p[3],p[4],p[5],p[6]) ;
+  printf("%3.3d: best alignment at after powell: "
+         "%2.5f (%d steps)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+         parms.start_t,fret, iter,
+         DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
+  write_snapshot(vl_target->mri, vl_source->mri,
+                 mat, &parms, parms.start_t++,1,NULL);
+  Gdiag = diag ;
+  do
+  {
+    for (r = 1 ; r <= NPARMS_RIGID ; r++)
+    {
+      for (c = 1 ; c <= NPARMS_RIGID ; c++)
+      {
+        xi[r][c] = r == c ? 1 : 0 ;
+      }
+    }
+
+    fstart = fret ;
+    OpenPowell(p, xi, NPARMS_RIGID, TOL, &iter, &fret, compute_powell_rigid_sse);
+    MatrixFromRigidParameters(mat, p[1],p[2],p[3],p[4],p[5],p[6]) ;
+#if 0
+  *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
+  *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
+#endif
+    printf("%3.3d: best alignment at after powell: "
+           "%2.5f (%d steps)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+           parms.start_t,fret, iter,
+           DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
+    write_snapshot(vl_target->mri, vl_source->mri,
+                   mat, &parms, parms.start_t++,1,NULL);
+  } while (fret < fstart) ;
+
+  free_matrix(xi, 1, NPARMS_RIGID, 1, NPARMS_RIGID) ;
+  free_vector(p, 1, NPARMS_RIGID) ;
+  return(NO_ERROR) ;
+}
+
+static float
+compute_powell_rigid_sse(float *p)
+{
+  static MATRIX *mat = NULL ;
+  float  error ;
+
+  if (mat == NULL)
+    mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  
+  MatrixFromRigidParameters(mat, p[1],p[2],p[3],p[4],p[5],p[6]) ;
+#if 0
+  *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
+  *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
+#endif
+  error = -(*pf_overlap)(Gvl_target, Gvl_source, mat) ;
   return(error) ;
 }
 
