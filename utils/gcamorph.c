@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/11/01 20:17:53 $
-// Revision       : $Revision: 1.117 $
+// Revision Date  : $Date: 2006/11/01 20:24:52 $
+// Revision       : $Revision: 1.118 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -20,6 +20,7 @@
 #include "gca.h"
 #include "gcamorph.h"
 #include "transform.h"
+#include "macros.h"
 #include "proto.h"
 #include "mrimorph.h"
 #include "mrinorm.h"
