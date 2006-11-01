@@ -58,13 +58,33 @@ install-exec-hook:orient_mri
 
 else
 bin_PROGRAMS = 
+
 all:
 	@echo "Building KWWidgets apps not enabled."
 	@echo "Run configure with either --enable-kww-apps or --with-kwwidgets-dir=DIR"
+
 install-exec-hook:
+
+# these are created on-th-fly (see above), but make dist complains if they
+# don't exist, so create some empty files for packaging purposes:
+dist-exec-hook:
+	@touch vtkKWOrientMRIAppTcl.cxx
+	@touch vtkKWOrientMRIWindowTcl.cxx
+	@touch vtkKWOrientMRIViewTcl.cxx
+	@touch OrientMRILibInit.cxx
+	@sleep 2
+	@touch vtkKWOrientMRIApp.h
+	@touch vtkKWOrientMRIWindow.h
+	@touch vtkKWOrientMRIView.h
+	@touch OrientMRILibInit.data
+
+vtkKWOrientMRIAppTcl.cxx:
+vtkKWOrientMRIWindowTcl.cxx:
+vtkKWOrientMRIViewTcl.cxx:
+OrientMRILibInit.cxx:
 endif
 
-EXTRA_DIST=$(wildcard *.h) $(wildcard *.data)
+EXTRA_DIST=$(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
