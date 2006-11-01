@@ -17,7 +17,7 @@
 #include "proto.h"
 #include "fio.h"
 #include "version.h"
-
+#include "transform.h"
 
 void usage(int exit_val);
 
@@ -28,7 +28,8 @@ char *Progname;
 static char *tp1_T1_fname = NULL;
 static char *tp1_ctrl_fname  = NULL;
 
-/* The following specifies the src and dst volumes of the input FSL/LTA transform */
+/* The following specifies the src and dst volumes 
+   of the input FSL/LTA transform */
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
 static int invert = 0 ;
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize_tp2.c,v 1.2 2006/02/17 15:46:27 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize_tp2.c,v 1.3 2006/11/01 20:17:48 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   
   ac = argc ;

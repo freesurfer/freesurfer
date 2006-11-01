@@ -3,7 +3,7 @@
 #include "error.h"
 #include "diag.h"
 #include "icosahedron.h"
-
+#include "utils.h" // fgetl
 
 #define ICO_NVERTICES 163842
 #define ICO_NFACES  327680

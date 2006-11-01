@@ -17,7 +17,7 @@
 
 extern "C" {
 #include "mri.h"
-
+#include "macros.h"
   char *Progname="fsl_label2voxel";
 }
 

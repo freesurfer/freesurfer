@@ -3,6 +3,7 @@
 #include "icosahedron.h"
 #include "error.h"
 #include "diag.h"
+#include "utils.h" //fgetl
 
 static ICOSOHEDRON *read_icosahedron(char *fname) ;
 

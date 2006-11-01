@@ -1,5 +1,6 @@
 #include "mris_topology.h"
 #include "topology/patchdisk.h"
+#include "proto.h"
 
 #define __PRINT_MODE 0
 #define WHICH_OUTPUT stderr

@@ -5,15 +5,17 @@
 // date       12/17/2003
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/09/28 20:23:22 $
-// Revision       : $Revision: 1.8 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:55 $
+// Revision       : $Revision: 1.9 $
 
 
 #include "talairachex.h"
 #include "diag.h"
 #include "error.h"
-///////////////////////////////////////////////////////////////////////////////////////
+#include "proto.h"
+
+////////////////////////////////////////////////////////////////////
 
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;

@@ -27,6 +27,7 @@
 #include "box.h"
 #include "region.h"
 #include "mrinorm.h"
+#include "label.h"
 
 /*-----------------------------------------------------
   MACROS AND CONSTANTS

@@ -1,7 +1,7 @@
 #ifndef MRISHASH_H
 #define MRISHASH_H
 
-#include "mrisurf.h"
+#include "mrisurf.h" // MRI_SURFACE
 
 #if 0
 /* BF - should be defined in mrisurf.h */
@@ -49,26 +49,37 @@ typedef struct
 
 MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
 MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE *mris,
-            MRIS_HASH_TABLE *mht,
-            int which, float res) ;
-MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
+                                          MRIS_HASH_TABLE *mht,
+                                          int which, float res) ;
+MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE *mris,
+                                    MRIS_HASH_TABLE *mht,
                                     int which) ;
-MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
-                                    int which, float res) ;
+MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE *mris,
+                                       MRIS_HASH_TABLE *mht,
+                                       int which, 
+                                       float res) ;
 int             MHTfree(MRIS_HASH_TABLE **pmht) ;
 int             MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
 int             MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
-int             MHTisFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno,
-                           float xw, float yw, float zw);
-int             MHTisVoxelFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
-                                 int vno, int xv, int yv, int zv) ;
-int             MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
-                                  int vno, float dx, float dy, float dz) ;
-int             MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
+int             MHTisFilled(MRIS_HASH_TABLE *mht, 
+                            MRI_SURFACE *mris, int fno,
+                            float xw, float yw, float zw);
+int             MHTisVoxelFilled(MRIS_HASH_TABLE *mht, 
+                                 MRI_SURFACE *mris, 
+                                 int vno, 
+                                 int xv, int yv, int zv) ;
+int             MHTisVectorFilled(MRIS_HASH_TABLE *mht, 
+                                  MRI_SURFACE *mris, 
+                                  int vno, 
+                                  float dx, float dy, float dz) ;
+int             MHTaddAllFaces(MRIS_HASH_TABLE *mht, 
+                               MRI_SURFACE *mris, 
                                VERTEX *v) ;
-int             MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
+int             MHTremoveAllFaces(MRIS_HASH_TABLE *mht, 
+                                  MRI_SURFACE *mris,
                                   VERTEX *v) ;
-MHBT *MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z) ;
+MHBT            *MHTgetBucket(MRIS_HASH_TABLE *mht, 
+                              float x, float y, float z) ;
 
 VERTEX          *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
                                      MRI_SURFACE *mris, VERTEX *v) ;
@@ -78,9 +89,13 @@ int             *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht,
                                                 MRI_SURFACE *mris, 
                                                 int vno, float max_dist, 
                                                 int *pvnum);
-int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
-         VERTEX *v, float *min_dist);
-VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, float y, float z) ;
+int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
+                           MRI_SURFACE *mris, 
+                           VERTEX *v, 
+                           float *min_dist);
+VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
+                                    MRI_SURFACE *mris, 
+                                    float x, float y, float z) ;
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno);
 
 

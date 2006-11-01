@@ -1,6 +1,3 @@
-
-
-
 #ifndef RESAMPLE_H_INC
 #define RESAMPLE_H_INC
 
@@ -20,7 +17,6 @@
 
 #define IND2CRS
 #define CRS2IND
-
 
 #ifdef RESAMPLE_SOURCE_CODE_FILE
   char *ResampleVtxMapFile;
@@ -46,7 +42,6 @@ MATRIX * FOVQuantMatrix(int ncols, int nrows, int nslcs,
 MATRIX * FOVDeQuantMatrix(int ncols, int nrows, int nslcs, 
         float colres, float rowres, float slcres  );
 
-
 int XYZAnat2CRSFunc_TkReg(int *col, int *row, int *slc,
         int npixels, float pixsize,
         int nslcs,   float slcthick,
@@ -59,9 +54,7 @@ int float2int_TkReg(int *col, int *row, int *slc,
 MATRIX * FOVQuantMtx_TkReg(int npixels, float pixsize, 
          int nslcs,   float slcthick);
 
-
 MATRIX *ComputeQFWD(MATRIX *Q, MATRIX *F, MATRIX *W, MATRIX *D, MATRIX *QFWD);
-
 
 MATRIX * CorXYZ_to_VolCRS_Matrix(MATRIX * R, MATRIX * Qv);
 int ind2crs(int *c, int *r, int *s, int ind, int ncols, int nrows, int nslcs);
@@ -72,7 +65,6 @@ MRI *vol2vol_linear(MRI *SrcVol,
         MATRIX *Qtrg, MATRIX *Ftrg, MATRIX *Wtrg, MATRIX *Dtrg, 
         int   nrows_trg, int   ncols_trg, int   nslcs_trg,
         MATRIX *Msrc2trg, int InterpMethod, int float2int);
-
 
 MRI *vol2roi_linear(MRI *SrcVol, 
         MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
@@ -111,12 +103,4 @@ int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp, 
 		 int nhitsthresh, MRI **pvolhit);
 
-
 #endif /* #ifndef RESAMPLE_H_INC */
-
-
-#if 0
-MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
-        MRI_SURFACE *TrgSurfReg, MRI **SrcHits,
-        MRI **TrgHits, int UseHash);
-#endif

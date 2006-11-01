@@ -1,11 +1,11 @@
-#include "mri_identify.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>
-#include <volume_io.h> // from MNI
+#include "minc_volume_io.h"
 #include "mri.h"
 #include "proto.h"
 #include "analyze.h"
@@ -14,6 +14,8 @@
 #include "fio.h"
 #include "DICOMRead.h"
 #include "Bruker.h"
+#include "mri_identify.h"
+#include "mrisurf.h"
 
 extern int errno;
 

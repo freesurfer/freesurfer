@@ -4,6 +4,8 @@
 #include "resample.h"
 #include "registerio.h"
 #include "fio.h"
+#include "macros.h" // FEQUAL
+#include "proto.h" // nint
 
 
 /* ----------------------------------------------------------

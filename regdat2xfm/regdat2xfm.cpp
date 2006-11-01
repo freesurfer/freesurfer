@@ -14,7 +14,7 @@ extern "C" {
 #include "mri.h"
 #include "transform.h"
 #include "talairachex.h"
-
+#include "utils.h"
   char *Progname="regdat2xfm";
 }
 

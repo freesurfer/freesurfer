@@ -13,10 +13,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/31 18:59:27 $
-// Revision       : $Revision: 1.369 $
-char *MRI_C_VERSION = "$Revision: 1.369 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:53 $
+// Revision       : $Revision: 1.370 $
+char *MRI_C_VERSION = "$Revision: 1.370 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11909,6 +11909,7 @@ MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag)
   Note: 3 to 8 times faster than using MRIgetVoxVal(), which
   is important because this is run on raw data (dti).
   -------------------------------------------------------*/
+#define EPSILON 0.25
 MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
 {
   int c, r, s, f, n, ncols, nrows, nslices,nframes;

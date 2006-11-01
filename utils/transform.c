@@ -29,6 +29,7 @@
 #include "proto.h"
 #include "matrix.h"
 #include "transform.h"
+#include "mri_circulars.h"
 
 #define MAX_TRANSFORMS (1024*4)
 

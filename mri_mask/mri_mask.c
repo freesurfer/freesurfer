@@ -13,8 +13,9 @@
 #include "proto.h"
 #include "fio.h"
 #include "version.h"
+#include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.7 2005/10/18 19:20:31 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.8 2006/11/01 20:17:48 nicks Exp $";
 
 void usage(int exit_val);
 
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_mask.c,v 1.7 2005/10/18 19:20:31 nicks Exp $", "$Name:  $"
+     "$Id: mri_mask.c,v 1.8 2006/11/01 20:17:48 nicks Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);

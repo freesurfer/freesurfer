@@ -24,9 +24,10 @@
 #include "transform.h"
 #include "talairachex.h"
 #include "subroutines.h"
+#include "mrisegment.h"
 
 static char vcid[] =
-"$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $";
+"$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1290,7 +1291,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $", "$Name:  $",
+     "$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $", "$Name:  $",
      cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1298,7 +1299,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_fill.c,v 1.105 2006/08/24 19:04:11 segonne Exp $", "$Name:  $");
+     "$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

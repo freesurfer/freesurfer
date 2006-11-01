@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $   */
+/*   $Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $";
+"$Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -91,6 +91,7 @@ static char vcid[] =
 #include "version.h"
 #include "fio.h"
 #include "pdf.h"
+#include "resample.h"
 
 /* Prototypes */
 
@@ -4104,7 +4105,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.64 2006/10/21 06:49:18 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

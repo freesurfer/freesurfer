@@ -2,13 +2,13 @@
 // mri_info.c
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/15 15:11:14 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:47 $
+// Revision       : $Revision: 1.53 $
 //
 ////////////////////////////////////////////////////////////////////
 
-char *MRI_INFO_VERSION = "$Revision: 1.52 $";
+char *MRI_INFO_VERSION = "$Revision: 1.53 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -31,6 +31,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.52 $";
 #include "mghendian.h"
 #include "fio.h"
 #include "cmdargs.h"
+#include "macros.h"
 
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
@@ -40,7 +41,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.52 2006/09/15 15:11:14 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.53 2006/11/01 20:17:47 nicks Exp $";
 
 char *Progname ;
 char *inputlist[100];

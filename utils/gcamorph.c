@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/10/31 19:39:10 $
-// Revision       : $Revision: 1.116 $
+// Revision Date  : $Date: 2006/11/01 20:17:53 $
+// Revision       : $Revision: 1.117 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,7 @@
 #include "tags.h"
 #include "utils.h"
 #include "fio.h"
+#include "mri_circulars.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>

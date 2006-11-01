@@ -60,7 +60,13 @@ typedef struct{
 
 int InitFieldLabel(FIELD_LABEL *label);
 
-int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr, int navgs);
+int SetFieldLabel(FIELD_LABEL *label,
+                  int field,
+                  int frame,
+                  float l_corr,
+                  float l_pcorr, 
+                  int navgs);
+
 int SetFieldName(FIELD_LABEL *label, char *name) ;
 
 #endif

@@ -15,13 +15,22 @@
 #include "matrix.h"
 #include "density.h"
 #include "mrisegment.h"
+#include "mri_circulars.h"
 
 #define RGB_SIZE 500
  
-static char vcid[] = "$Id: histo_register_block.c,v 1.6 2006/10/02 16:44:56 nicks Exp $";
+static char vcid[] = 
+"$Id: histo_register_block.c,v 1.7 2006/11/01 20:17:45 nicks Exp $";
 
-static int    powell_minimize(MRI *mri_block, MRI *mri_histo, MRI *mri_seg, DENSITY *pdf, MATRIX *mat, int cost_type) ;
-static double compute_overlap(MRI *mri_src, MRI *mri_dst, MATRIX *m_total) ;
+static int    powell_minimize(MRI *mri_block, 
+                              MRI *mri_histo, 
+                              MRI *mri_seg, 
+                              DENSITY *pdf, 
+                              MATRIX *mat, 
+                              int cost_type) ;
+static double compute_overlap(MRI *mri_src, 
+                              MRI *mri_dst, 
+                              MATRIX *m_total) ;
 
 static double min_overlap = 0.8 ;
 
@@ -102,7 +111,7 @@ main(int argc, char *argv[])
 	
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_register_block.c,v 1.6 2006/10/02 16:44:56 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: histo_register_block.c,v 1.7 2006/11/01 20:17:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

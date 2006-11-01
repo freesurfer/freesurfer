@@ -61,6 +61,7 @@
 #include "nifti1_io.h"
 #include "znzlib.h"
 #include "NrrdIO.h"
+#include "mri_circulars.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 

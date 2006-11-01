@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: dsjen $
-// Revision Date  : $Date: 2006/10/23 16:36:45 $
-// Revision       : $Revision: 1.64 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:54 $
+// Revision       : $Revision: 1.65 $
 */
 
 /*-----------------------------------------------------
@@ -41,6 +41,7 @@
 #include "numerics.h"
 #include "voxlist.h"
 #include "matrix.h"
+#include "mri_circulars.h"
 
 #define MN_SUB(mns1, mns2, v)     \
     V3_LOAD(v, mns1->x - mns2->x, mns1->y - mns2->y, mns1->z - mns2->z)

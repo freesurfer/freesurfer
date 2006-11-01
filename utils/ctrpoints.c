@@ -4,9 +4,9 @@
 // originally written by y.tosa
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/16 19:27:43 $
-// Revision       : $Revision: 1.3 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:52 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -15,6 +15,7 @@
 #include "diag.h"
 #include "error.h"
 #include "mri.h"
+#include "utils.h" //  fgetl
 #include "ctrpoints.h"
 extern char *cuserid(char *);
 

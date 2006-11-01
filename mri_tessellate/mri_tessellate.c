@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/06/13 17:48:55 $
-// Revision       : $Revision: 1.29 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:48 $
+// Revision       : $Revision: 1.30 $
 //
 //
 // How it works.
@@ -46,7 +46,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.29 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.30 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,9 +67,10 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.29 $";
 #include "transform.h"
 #include "cma.h"
 #include "diag.h"
+#include "mrisurf.h"
 
 static char vcid[] =
-"$Id: mri_tessellate.c,v 1.29 2006/06/13 17:48:55 fischl Exp $";
+"$Id: mri_tessellate.c,v 1.30 2006/11/01 20:17:48 nicks Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -136,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_tessellate.c,v 1.29 2006/06/13 17:48:55 fischl Exp $",
+     "$Id: mri_tessellate.c,v 1.30 2006/11/01 20:17:48 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_tessellate.c,v 1.29 2006/06/13 17:48:55 fischl Exp $",
+     "$Id: mri_tessellate.c,v 1.30 2006/11/01 20:17:48 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

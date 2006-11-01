@@ -18,7 +18,7 @@
 #define UCHAR  unsigned char
 #endif
 
-#include <hipl_format.h>
+#include "hipl_format.h"
 
 typedef struct header IMAGE ;
 

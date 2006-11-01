@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2006/10/31 14:29:13 $
-// Revision       : $Revision: 1.52 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:49 $
+// Revision       : $Revision: 1.53 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.52 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.53 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,8 +45,6 @@ extern "C" {
 #include "fio.h"
 #include "mri_conform.h"
 }
-
-#define SQR(x) ((x)*(x))
 
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */
@@ -696,7 +694,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.52 2006/10/31 14:29:13 segonne Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.53 2006/11/01 20:17:49 nicks Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -708,7 +706,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.52 2006/10/31 14:29:13 segonne Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.53 2006/11/01 20:17:49 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

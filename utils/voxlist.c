@@ -5,6 +5,8 @@
 #include "diag.h"
 #include "error.h"
 #include "voxlist.h"
+#include "macros.h"
+#include "proto.h"
 
 VOXEL_LIST  *
 VLSTcreateInRegion(MRI *mri, float low_val, float hi_val , 

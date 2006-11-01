@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/09/16 22:20:13 $
-// Revision       : $Revision: 1.131 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:47 $
+// Revision       : $Revision: 1.132 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +21,8 @@
 #include "DICOMRead.h"
 #include "unwarpGradientNonlinearity.h"
 #include "version.h"
+#include "utils.h"
+#include "macros.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -151,7 +153,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.131 2006/09/16 22:20:13 greve Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.132 2006/11/01 20:17:47 nicks Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -251,7 +253,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.131 2006/09/16 22:20:13 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.132 2006/11/01 20:17:47 nicks Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);

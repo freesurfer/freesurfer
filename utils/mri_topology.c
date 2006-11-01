@@ -3,6 +3,8 @@
 #include "gca.h"
 #include "mri_tess.h"
 #include "mrisutils.h"
+#include "mrisegment.h"
+#include "proto.h" // nint
 
 #define TMP    100
 #define MAX_COMP 10 //maximum number of components in a Nbh

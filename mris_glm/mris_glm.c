@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.47 2006/10/28 23:48:56 greve Exp $
+  $Id: mris_glm.c,v 1.48 2006/11/01 20:17:49 nicks Exp $
 
 Things to do:
   0. Documentation.
@@ -26,7 +26,7 @@ MC Sim:
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-
+#include "resample.h"
 #include "icosahedron.h"
 #include "matrix.h"
 #include "matfile.h"
@@ -42,6 +42,7 @@ MC Sim:
 #include "pdf.h"
 #include "fsgdf.h"
 #include "fio.h"
+#include "mri_circulars.h"
 
 #ifdef X
 #undef X
@@ -75,7 +76,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.47 2006/10/28 23:48:56 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.48 2006/11/01 20:17:49 nicks Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -203,7 +204,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.47 2006/10/28 23:48:56 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.48 2006/11/01 20:17:49 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

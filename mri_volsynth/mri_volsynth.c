@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.17 2006/10/28 18:29:43 greve Exp $
+  $Id: mri_volsynth.c,v 1.18 2006/11/01 20:17:49 nicks Exp $
 */
 
 #include <stdio.h>
@@ -25,6 +25,7 @@
 #include "fmriutils.h"
 #include "MRIio_old.h"
 #include "randomfields.h"
+#include "mri_circulars.h"
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
 
@@ -45,7 +46,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.17 2006/10/28 18:29:43 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.18 2006/11/01 20:17:49 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0;

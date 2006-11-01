@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/31 19:36:34 $
-// Revision       : $Revision: 1.211 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:53 $
+// Revision       : $Revision: 1.212 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@
 #include "mrimorph.h"
 #include "intensity_eig.h"
 #include "numerics.h"
+#include "mrisegment.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>

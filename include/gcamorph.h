@@ -186,8 +186,6 @@ int GCAMsampleMorphRAS(GCA_MORPH *gcam, float xMorph, float yMorph, float zMorph
 		       float  *xAnat,  float  *yAnat,  float  *zAnat);
 int GCAMsampleInverseMorphRAS(GCA_MORPH *gcam, float xAnat, float yAnat, float zAnat, 
 			      float *xMorph, float *yMorph, float *zMorph);
-int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
-
 
 int       GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam) ;
 MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
@@ -284,5 +282,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 #define GCAM_AREA      17
 #define GCAM_ORIG_AREA 18
 
+#include "mrisurf.h"
+int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
 
 #endif

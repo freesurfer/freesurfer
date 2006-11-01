@@ -15,8 +15,11 @@
 #include "image.h"
 #include "density.h"
 #include "mrisegment.h"
+#include "proto.h"
+#include "macros.h"
 
-static char vcid[] = "$Id: histo_compute_joint_density.c,v 1.1 2004/08/04 20:38:53 fischl Exp $";
+static char vcid[] = 
+"$Id: histo_compute_joint_density.c,v 1.2 2006/11/01 20:17:45 nicks Exp $";
 char *Progname ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -51,7 +54,7 @@ main(int argc, char *argv[])
 	MRI         *mri1_pyramid[MAX_LEVELS], *mri2_pyramid[MAX_LEVELS];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_compute_joint_density.c,v 1.1 2004/08/04 20:38:53 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: histo_compute_joint_density.c,v 1.2 2006/11/01 20:17:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

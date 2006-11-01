@@ -9,6 +9,7 @@
 #include "DataManager.h"
 extern "C" {
 #include "mri.h"
+#include "macros.h" // FEQUAL
 }
 #include "Scuba-impl.h"
 

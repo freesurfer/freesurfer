@@ -1,30 +1,11 @@
 
-/* $Id: mrisurf.h,v 1.267 2006/10/31 19:43:11 nicks Exp $ */
-
-#ifndef LABEL_INCLUDED
-#define LABEL_INCLUDED
-#include "label.h"
-#endif
-
-#ifndef STATS_INCLUDED
-#define STATS_INCLUDED
-#include "stats.h"
-#endif
+/* $Id: mrisurf.h,v 1.268 2006/11/01 20:17:46 nicks Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
 
 #include "minc_volume_io.h"
-#include "macros.h"
-#include "mri.h"
-#include "image.h"
-#include "matrix.h"
-#include "transform.h"
 #include "const.h"
-#include "label.h"
-#include "colortab.h"
-#include "histo.h"
-#include "transform.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -79,6 +60,7 @@ typedef struct face_type_
 #define uchar  unsigned char
 #endif
 
+#include "colortab.h" // 'COLOR_TABLE'
 
 typedef struct vertex_type_
 {
@@ -183,6 +165,8 @@ typedef struct
   unsigned int *vertex_indices;
 } STRIP;
 
+#include "transform.h" // TRANSFORM, LTA
+
 typedef struct
 {
   int          nvertices ;      /* # of vertices on surface */
@@ -266,11 +250,11 @@ typedef struct
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
-  int    group_avg_vtxarea_loaded; // average vertex area for group at each vertex
+  int    group_avg_vtxarea_loaded; /* average vertex area for group 
+                                      at each vertex */
 	int    triangle_links_removed ;  // for quad surfaces
 	void   *user_parms ;             // for whatever the user wants to hang here 
 } MRI_SURFACE, MRIS ;
-
 
 #define IPFLAG_HVARIABLE                0x0001 /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST         0x0002
@@ -337,6 +321,7 @@ typedef struct
 #define THETA_MAX_INDEX(mrisp)    (Y_DIM(mrisp)-1)
 #define V_MAX_INDEX(mrisp)        (THETA_MAX_INDEX(mrisp))
 
+#include "image.h" // IMAGE
 typedef struct
 {
   MRI_SURFACE  *mris ;        /* surface it came from (if any) */
@@ -369,9 +354,7 @@ typedef struct
 #define DELTA_T              0.1
 
 /* VECTORIAL_REGISTRATION */
-#ifndef FIELD_CODE_INCLUDED
 #include "field_code.h" 
-#endif
 
 typedef struct
 {
@@ -412,7 +395,8 @@ typedef struct
   float   l_unfold ;          /* move inwards along normal */
   float   l_dura ;            // move away from dura
   double  dura_thresh ;
-  MRI     *mri_dura ;         // ratio of early to late echo - dura shows up bright
+  MRI     *mri_dura ;         /* ratio of early to late echo - 
+                                 dura shows up bright */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -538,15 +522,13 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
                         float resolution, 
                         float distance_from_surface);
 
-/* can't include this before structure, as stats.h includes this file. */
-/*#include "stats.h"*/
-#include "label.h"
-
 int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
                                    float z) ;
 int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, 
                                   float z) ;
-int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin);
+int MRISfindClosestVertex(MRI_SURFACE *mris, 
+                          float x, float y, float z, 
+                          float *dmin);
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               double *ext_sse) ;
@@ -824,8 +806,9 @@ int          MRISwriteArea(MRI_SURFACE *mris, char *sname) ;
 int          MRISwriteMarked(MRI_SURFACE *mris, char *sname) ;
 int          MRISmarkedToCurv(MRI_SURFACE *mris) ;
 
-#include "label.h"
 double       MRISParea(MRI_SP *mrisp) ;
+
+#include "label.h" // LABEL
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 
@@ -1061,6 +1044,8 @@ typedef struct
 #define VERBOSE_MODE_MEDIUM 3
 #define VERBOSE_MODE_HIGH 4
 
+#include "histo.h" // HISTOGRAM
+
 typedef struct{
 	int verbose; // verbose mode
 	int smooth;  // smoothing defect
@@ -1101,8 +1086,9 @@ typedef struct{
 } TOPOFIX_PARMS;
 
 void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms);
-void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface);
-void MRISsaveLocal(MRIS *mris,  TOPOFIX_PARMS *parms, char *name); //floflo
+void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, 
+                               float distance_to_surface);
+void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name); //floflo
 int MRISisSurfaceValid(MRIS *mris, int patch,int verbose);
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms); 
@@ -1221,9 +1207,10 @@ typedef struct
 	int         nvertices ;   // sum of individual surface nvertices
 	int         nfaces ;      // sum of individual surface faces
 	int         labels[MAX_SURFACES] ;  // interior label of the structure
-	MRI_SURFACE *mris_total ;           // single surface with all other surfs in it
+	MRI_SURFACE *mris_total ; // single surface with all other surfs in it
 	VERTEX_INFO *vi ;                   // one/vertex in mris_total
-	int         vstart[MAX_SURFACES] ;  // starting index of this surface in mris_total vertices
+	int         vstart[MAX_SURFACES] ;  /* starting index of this 
+                                         surface in mris_total vertices */
 } MRI_SURFACE_ARRAY, MSA ;
 #if 1
 #include "mrishash.h"

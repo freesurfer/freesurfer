@@ -7,7 +7,7 @@
 #include "error.h"
 #include "signa.h"
 #include "mghendian.h"
-/*#include "idbm_hdr_def.h"*/
+#include "macros.h"
 
 static int orderShortBuffer(short *sbuf, int nbytes) ;
 

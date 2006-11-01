@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $
+  $Id: mri_vol2roi.c,v 1.23 2006/11/01 20:17:48 nicks Exp $
 */
 
 #include <stdio.h>
@@ -31,6 +31,7 @@
 #include "mri2.h"
 #include "fio.h"
 #include "version.h"
+#include "mri_circulars.h"
 
 LABEL   *LabelReadFile(char *labelfile);
 
@@ -54,7 +55,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.23 2006/11/01 20:17:48 nicks Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -130,7 +131,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.22 2006/02/15 22:46:03 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.23 2006/11/01 20:17:48 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

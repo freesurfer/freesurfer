@@ -30,7 +30,7 @@
 #include "resample.h"
 #include "cmdargs.h"
 #include "fio.h"
-
+#include "utils.h"
 #include "volcluster.h"
 #include "version.h"
 #include "randomfields.h"
@@ -67,7 +67,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volcluster.c,v 1.25 2006/10/23 03:43:40 nicks Exp $";
+"$Id: mri_volcluster.c,v 1.26 2006/11/01 20:17:49 nicks Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.25 2006/10/23 03:43:40 nicks Exp $",
+     "$Id: mri_volcluster.c,v 1.26 2006/11/01 20:17:49 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

@@ -25,6 +25,7 @@
 #include "diag.h"
 #include "histo.h"
 #include "utils.h"
+#include "mri_circulars.h"
 
 /*----------------------------------------------------------------------
                            CONSTANTS

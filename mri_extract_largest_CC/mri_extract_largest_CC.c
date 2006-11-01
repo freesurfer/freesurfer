@@ -16,6 +16,7 @@
 #include "fio.h"
 #include "version.h"
 #include "subroutines.h"
+#include "mrisurf.h"
 
 static int lh_label = LH_LABEL ;
 static int rh_label = RH_LABEL ;
@@ -41,7 +42,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.3 2006/02/07 20:35:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.4 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);

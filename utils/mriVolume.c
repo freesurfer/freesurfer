@@ -6,8 +6,9 @@
 #include "mri_conform.h"
 #include "mriTransform.h"
 #include "xList.h"
+#include "macros.h" // FEQUAL
+#include "proto.h" // nint
 
-//#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 // should be in transform.h if they aren't already
 
 char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {

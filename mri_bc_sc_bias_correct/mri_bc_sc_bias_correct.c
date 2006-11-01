@@ -9,8 +9,11 @@
 #include "error.h"
 #include "mrisegment.h"
 #include "mrinorm.h"
+#include "proto.h"
+#include "macros.h"
 
-static char vcid[] = "$Id: mri_bc_sc_bias_correct.c,v 1.2 2005/08/10 19:38:22 fischl Exp $";
+static char vcid[] = 
+"$Id: mri_bc_sc_bias_correct.c,v 1.3 2006/11/01 20:17:47 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -36,7 +39,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
 	Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_bc_sc_bias_correct.c,v 1.2 2005/08/10 19:38:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_bc_sc_bias_correct.c,v 1.3 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

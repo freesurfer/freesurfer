@@ -2,9 +2,9 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/06/01 22:30:25 $
-// Revision       : $Revision: 1.133 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:51 $
+// Revision       : $Revision: 1.134 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -13,6 +13,7 @@
 #include "cma.h"
 #include "utils.h"
 #include "error.h"
+#include "proto.h" //  nint
 
 /* i'm not sure what to do about these y flips. it seems that whenever we're
    using a point that's going to go into the buffer to be drawn to the screen,

@@ -14,6 +14,7 @@
 #include "const.h"
 #include "icosahedron.h"
 #include "version.h"
+#include "MRIio_old.h" // lcalloc
 
 /* prototypes */
 /* static void read_datfile(char *fname) ; */
@@ -28,9 +29,6 @@ static void read_geometry(char *fname) ;
 static void read_images(char *fpref) ;
 static void read_image_info(char *fpref) ;
 static void estimate_thickness(int niter);
-/* static void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize) ;
-static void file_name(char *fpref, char *fname, int num, char *form) ;
-static char *lcalloc(size_t nmemb, size_t size); */
 
 #if 0
 static void write_datfile(char *fname) ;
@@ -161,7 +159,7 @@ main(int argc,char *argv[])
     int nargs;
     
     /* rkt: check for and handle version tag */
-    nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.9 2005/11/02 22:22:43 nicks Exp $", "$Name:  $");
+    nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.10 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
     if (nargs && argc - nargs == 1)
       exit (0);
     argc -= nargs;

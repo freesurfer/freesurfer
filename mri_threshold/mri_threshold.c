@@ -8,8 +8,11 @@
 #include "tags.h"
 #include "version.h"
 #include "error.h"
+#include "proto.h"
+#include "macros.h"
 
-static char vcid[] = "$Id: mri_threshold.c,v 1.4 2006/07/13 16:07:44 fischl Exp $";
+static char vcid[] = 
+"$Id: mri_threshold.c,v 1.5 2006/11/01 20:17:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -31,10 +34,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.4 2006/07/13 16:07:44 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.5 2006/11/01 20:17:48 nicks Exp $", "$Name:  $", cmdline);
   /* rkt: check for and handle version tag */
 	Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.4 2006/07/13 16:07:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.5 2006/11/01 20:17:48 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

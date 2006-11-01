@@ -1,9 +1,9 @@
 #ifndef STATS_H
 #define STATS_H
 
+#include "minc_volume_io.h"
 #include "matrix.h"
 #include "mri.h"
-#include "minc_volume_io.h"
 
 typedef struct
 {
@@ -15,11 +15,9 @@ typedef struct
   char    name[100] ;            /* subject's name */
 } fMRI_REGISTRATION, fMRI_REG ;
 
-
 #define STAT_VOLUMES   2  /* avg, std, dof for avg, dof for std */
 
 #define DEFAULT_RESOLUTION  16
-
 
 /*
   on disk in .bfloat files, the volumes are stored with each slice
@@ -32,11 +30,9 @@ typedef struct
 #define ALLOC_STDS         0x0002
 #define ALLOC_DOFS         0x0004
 
-
 #define MAX_EVENTS       100
 
 #define mri_pvals        mri_avgs
-
 
 typedef struct
 {
@@ -87,24 +83,37 @@ typedef struct
   extern int  stats_fixxfm;
 #endif
 
-
 SV        *StatReadVolume(char *prefix);
-SV        *StatReadTalairachVolume(char *prefix, char *xform_fname,
+SV        *StatReadTalairachVolume(char *prefix, 
+                                   char *xform_fname,
                                    char *subject_name) ;
 fMRI_REG  *StatReadRegistration(char *fname) ;
-fMRI_REG  *StatReadTalairachRegistration(char *fname, char *subject_name) ;
-int       StatWriteVolume(SV *sv, char *prefix) ;
-int       StatWriteRegistration(fMRI_REG *reg, char *fname) ;
-
+fMRI_REG  *StatReadTalairachRegistration(char *fname, 
+                                         char *subject_name) ;
+int       StatWriteVolume(SV *sv, 
+                          char *prefix) ;
+int       StatWriteRegistration(fMRI_REG *reg, 
+                                char *fname) ;
 int       StatFreeRegistration(fMRI_REG **preg) ;
 int       StatFree(SV **psv) ;
-SV        *StatAllocVolume(SV *sv, int nevents, int width, int height,
-                           int nslices, int time_points, int which) ;
-SV        *StatAllocStructuralVolume(SV *sv, float fov, float resolution,
+SV        *StatAllocVolume(SV *sv, 
+                           int nevents, 
+                           int width, 
+                           int height,
+                           int nslices, 
+                           int time_points, 
+                           int which) ;
+SV        *StatAllocStructuralVolume(SV *sv, 
+                                     float fov, 
+                                     float resolution,
                                      char *name) ;
-int       StatAccumulateTalairachVolume(SV *sv_tal, SV *sv) ;
-int       StatAccumulateSurfaceVolume(SV *sv_tal, SV *sv, MRI_SURFACE *mris) ;
-int       StatReadTransform(STAT_VOLUME *sv, char *name) ;
+int       StatAccumulateTalairachVolume(SV *sv_tal, 
+                                        SV *sv) ;
+int       StatAccumulateSurfaceVolume(SV *sv_tal, 
+                                      SV *sv, 
+                                      MRI_SURFACE *mris) ;
+int       StatReadTransform(STAT_VOLUME *sv, 
+                            char *name) ;
 int       StatVolumeExists(char *prefix) ;
 
 #endif

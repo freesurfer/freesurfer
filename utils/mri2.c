@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.27 2006/10/28 18:24:03 greve Exp $
+  $Id: mri2.c,v 1.28 2006/11/01 20:17:53 nicks Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -15,10 +15,9 @@
 #include "mri.h"
 #include "fio.h"
 #include "stats.h"
-
 #include "corio.h"
 #include "bfileio.h"
-
+#include "proto.h"
 #include "mri2.h"
 #include "sig.h"
 

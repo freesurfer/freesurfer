@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.21 2006/09/24 18:11:57 greve Exp $
+  $Id: resample.c,v 1.22 2006/11/01 20:17:54 nicks Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -60,6 +60,8 @@
 #include "resample.h"
 #include "bfileio.h"
 #include "corio.h"
+#include "proto.h" // nint
+
 /*-------------------------------------------------------------------*/
 double round(double); // why is this never defined?!?
 /*-------------------------------------------------------------------*/

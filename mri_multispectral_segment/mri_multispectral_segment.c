@@ -10,8 +10,6 @@
 #define DEBUG_MODE 0
 #define OUTPUT_SURFACES 0
 
-#define SQR(x) ((x)*(x))
-
 #define MAXVERTICES 25000
 #define MAXFACES 25000
 
@@ -39,18 +37,14 @@ int nvertices,nfaces;
 double xCOG,yCOG,zCOG,rad_Brain;
 double txCOG,tyCOG,tzCOG;
 
-
-
 int width,height,depth;
 
 int WM_INTENSITY,WM_VARIANCE,WM_HALF_MAX,WM_HALF_MIN,WM_MAX,WM_MIN;
 int CSF_intensity,CSF_HALF_MAX,CSF_MAX,CSF_MIN;
 int GM_MIN, GM_INTENSITY,TRANSITION_INTENSITY;
 
-
 int skull_type=0;
 int surf_out=0;
-
 
 /*new variables*/
 int SKULL_PD;
@@ -59,7 +53,8 @@ int MRI_correction=0;
 
 MRI *mri_T1,*mri_PD,*mri_Err,*mri_dst,*mri_test,*mri_CSF;
 int mriT1=0, mriPD=0, mriErr=0,mriCSF=0,mriOut=0,mriSURF=0;
-char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,*CSF_fname,surf_fname[512];
+char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,
+  *CSF_fname,surf_fname[512];
 
 #if 0
 static void shrink_Brain(void);
@@ -103,9 +98,6 @@ static void write_surface(char *fname);
 static void GenerateMRI(void);
 static void label_voxel(void);
 static void intensity_correction(void);
-
-
-
 
 
 unsigned long Compteur[2000][5000];

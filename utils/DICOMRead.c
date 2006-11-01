@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.98 2006/10/16 18:55:11 nicks Exp $
+   $Id: DICOMRead.c,v 1.99 2006/11/01 20:17:52 nicks Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -28,6 +28,7 @@ void *malloc(size_t size);
 #include "fio.h"
 #include "mosaic.h"
 #include "diag.h"
+#include "macros.h" // DEGREES
 
 #define _DICOMRead_SRC
 #include "DICOMRead.h"

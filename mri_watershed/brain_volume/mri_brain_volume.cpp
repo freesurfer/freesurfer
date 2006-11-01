@@ -4,12 +4,12 @@
 // modified mri_watershed.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/25 21:53:45 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 20:17:49 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.5 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.6 $";
 
 using namespace std;
 
@@ -50,8 +50,6 @@ extern "C" {
 }
 #endif
 ////////////////////////////////////////////////////////////////////////
-
-#define SQR(x) ((x)*(x))
 
 #define WM_CONST 110 /* not used anymore */
 #define MAX_INT 100 /*100% is a good value for the watershed algo */

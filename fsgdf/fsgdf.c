@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.36 2006/09/30 18:04:03 greve Exp $
+  $Id: fsgdf.c,v 1.37 2006/11/01 20:17:45 nicks Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -56,6 +56,8 @@
 #include "matfile.h"
 #include "stats.h"
 #include "fsenv.h"
+#include "utils.h"
+#include "proto.h"
 
 #define FSGDF_SRC
 #include "fsgdf.h"
