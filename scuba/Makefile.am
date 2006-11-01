@@ -111,6 +111,13 @@ FORMS = mainwindow.ui \
 		prefsdlog.ui \
 		editdatdlog.ui \
 		findsurfacevertexdlog.ui
+
+MOC      = $(QTDIR)/bin/moc
+UIC      = $(QTDIR)/bin/uic
+
+# endif ENABLE_QT_APPS:
+endif
+
 UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
 		.ui/viewlayersdlog.h viewlayersdlog.ui.h \
 		.ui/toolsettingsdlog.h toolsettingsdlog.ui.h \
@@ -126,6 +133,7 @@ UICIMPLS = .ui/mainwindow.cpp \
 		.ui/prefsdlog.cpp \
 		.ui/editdatdlog.cpp \
 		.ui/findsurfacevertexdlog.cpp
+
 SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_QTScubaWidget.cpp \
 		.moc/moc_QtScubaLabelValueArea.cpp \
@@ -149,12 +157,6 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 #		moc_viewlayersdlog.$(OBJEXT) \
 #		moc_toolsettingsdlog.$(OBJEXT) \
 #		moc_roisettingsdlog.$(OBJEXT)
-
-MOC      = $(QTDIR)/bin/moc
-UIC      = $(QTDIR)/bin/uic
-
-# endif ENABLE_QT_APPS:
-endif
 
 if ENABLE_TCLTK_APPS
   SCUBA_TCLTK=scuba
@@ -684,6 +686,13 @@ scuba_bundle: scuba2
 	@echo "$(FREESURFER_HOME)/bin/scuba2.app/Contents/MacOS/scuba2" > $(DESTDIR)$(bindir)/scuba2
 	@chmod a+x $(DESTDIR)$(bindir)/scuba2
 
+else
+# make dist complains about not having these, but they are created
+# on-the-fly, so create empties here to allow tarball creation
+dist-exec-hook:
+	list=( $(UICDECLS) $(UICIMPLS) $(SRCMOC) ); for f in $${list[@]}; do \
+		touch $$f \;; \
+	done;
 # endif ENABLE_QT_APPS:
 endif
 
