@@ -1,8 +1,8 @@
 #
 # Makefile.am
 #
-SUBDIRS=average lib docs grad_unwarp_tables fsafd \
-        subjects sessions
+
+SUBDIRS=average lib docs grad_unwarp_tables fsafd subjects sessions
 
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
@@ -17,7 +17,8 @@ foo_DATA=surface_labels.txt \
 	numaris4-protocols.unpackcfg \
 	ASegStatsLUT.txt
 
-EXTRA_DIST=$(foo_DATA) SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
+EXTRA_DIST=$(foo_DATA) \
+	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh test_recon-all.csh
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
 	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@
@@ -30,5 +31,5 @@ SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=".license .xdebug_tk* error.log surfer.log csurf.log"
+EXCLUDE_FILES=.license .xdebug_tk* error.log surfer.log csurf.log
 include $(top_srcdir)/Makefile.extra
