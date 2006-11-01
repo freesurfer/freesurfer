@@ -48,7 +48,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-"$Id: mris_thickness_diff.c,v 1.5 2006/06/01 22:32:31 kteich Exp $";
+"$Id: mris_thickness_diff.c,v 1.6 2006/11/01 01:49:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_thickness_diff.c,v 1.5 2006/06/01 22:32:31 kteich Exp $",
+     "$Id: mris_thickness_diff.c,v 1.6 2006/11/01 01:49:10 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -384,7 +384,13 @@ int main(int argc, char *argv[])
 
     /* save the original cooridnates into orig */
     MRISsaveVertexPositions(Surf1, ORIGINAL_VERTICES);
-    MRIStransform(Surf1, mri, lta, mri_dst) ;
+    {
+      TRANSFORM transform ;
+      
+      transform.type = lta->type ;
+      transform.xform = (void *)lta ;
+      MRIStransform(Surf1, mri, &transform, mri_dst) ;
+    }
 
     if (mri)
       MRIfree(&mri);
