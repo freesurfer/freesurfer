@@ -1,7 +1,8 @@
 #
 # Makefile.am
 #
-SUBDIRS=average lib docs grad_unwarp_tables fsafd subjects sessions
+SUBDIRS=average lib docs grad_unwarp_tables fsafd \
+        subjects sessions diffusion
 
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
