@@ -1,23 +1,27 @@
-/** 
- * @file  <filename>
- * @brief <short description>
+/**
+ * @file  [filename]
+ * @brief [short description]
  *
- * <long description or reference>
+ * [long description or reference]
  */
 /*
  * Original Author: 
- * Revision Info: 
+ * Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/11/01 01:22:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2006/11/01 21:57:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2006,
  * CorTechs Labs Inc. and The General Hospital Corporation.
  * All Rights Reserved.
  *
- * This software is distributed under the terms found in the License Agreement:
- * <src>/distribution/docs/license.freesurfer_opensource, and duplicated here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
