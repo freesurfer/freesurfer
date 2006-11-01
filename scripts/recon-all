@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.41 2006/10/31 17:55:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.42 2006/11/01 22:05:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -58,7 +58,7 @@ set WMSeg_ghi = ();
 set FixWithGA = 1;   # for topology fixer
 set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
-set UseCAAlign = (-align); # not sure
+set UseCAAlign = (-align-after); # flag added to mri_ca_register
 set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
