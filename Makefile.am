@@ -3,7 +3,7 @@
 ##
 
 foodir=$(prefix)
-foo_DATA=README COPYING
+foo_DATA=README COPYING NEWS AUTHORS
 
 DTISUBDIRS=dti_tensoreig
 
@@ -281,7 +281,7 @@ install-data-hook:
 		fi; \
 	fi;
 
-EXTRA_DIST=setup_configure Makefile.extra x86cpucaps
+EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
