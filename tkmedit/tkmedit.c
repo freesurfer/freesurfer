@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/10/25 01:10:15 $
-// Revision       : $Revision: 1.294 $
-char *VERSION = "$Revision: 1.294 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/11/01 12:19:55 $
+// Revision       : $Revision: 1.295 $
+char *VERSION = "$Revision: 1.295 $";
 
 #define TCL
 #define TKMEDIT
@@ -29,6 +29,7 @@ char *VERSION = "$Revision: 1.294 $";
 #include "diag.h"
 #include "utils.h"
 #include "const.h"
+#include "mrisurf.h"
 #include "transform.h"
 #include "version.h"
 #include "ctrpoints.h"
@@ -224,6 +225,9 @@ void MakeFileName ( char*         isInput,
    false if -f is used on the command line. */
 tBoolean gEnableFileNameGuessing = TRUE;
 tBoolean gbGuessWarningSent = FALSE;
+
+static  tBoolean     bExit         = FALSE;
+
 
 // ==========================================================================
 
@@ -1141,7 +1145,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.294 2006/10/25 01:10:15 greve Exp $",
+     "$Id: tkmedit.c,v 1.295 2006/11/01 12:19:55 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1257,6 +1261,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-interface script    : specify interface script "
            "(default is tkmedit.tcl)\n");
     printf("\n");
+    printf("-exit                : exit after rendering\n");
     printf("--version            : print version of tkmedit\n");
     exit(1);
   }
@@ -2195,8 +2200,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           bLoadingHeadPts = TRUE;
           nCurrentArg += 3;
 
+				} else if( MATCH( sArg, "-exit" ) ) {
+          bExit = TRUE;
+          nCurrentArg += 1;
+					
         } else {
-
+					
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -headpts option",
                             "Expected one or two arguments",
@@ -2205,7 +2214,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                             "file name of the transform to use." );
           nCurrentArg += 1;
         }
-
+					
       } else if( MATCH( sArg, "-overlaycache" ) ) {
 
         /* check for the value following the switch */
@@ -5750,7 +5759,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.294 2006/10/25 01:10:15 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.295 2006/11/01 12:19:55 fischl Exp $ $Name:  $\n"
       )
      );
 
@@ -6607,6 +6616,11 @@ int main ( int argc, char** argv ) {
   }
 
   /* never returns */
+	if (bExit)
+	{
+		DebugNote( ("exiting as user requests") );
+		exit(0) ;
+	}
   DebugNote( ("Entering main loop") );
   glutMainLoop ();
 
