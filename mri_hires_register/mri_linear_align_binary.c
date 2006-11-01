@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/31 19:21:29 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/01 04:09:22 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -633,6 +633,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   double    old_max_overlap, max_overlap ;
   MRI       *mri_target, *mri_source ;
 
+  done = FALSE;
   mri_target = vl_target->mri ; mri_source = vl_source->mri ;
 
 #define MIN_LINEAR_SEARCH_SCALE 0.01
