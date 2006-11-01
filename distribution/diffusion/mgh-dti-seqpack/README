@@ -1,0 +1,61 @@
+
+$Id: README,v 1.1 2006/11/01 21:54:34 greve Exp $
+
+These are diffusion gradient direction files that describe some of the
+protocols distributed by Siemens though the MGH DTI Sequence Package.
+These are used at the Massachusetts General Hosptial (MGH) Martinos
+Center for Biomedical Imaging as supplied by Thomas Benner. The
+sequence names usually start with "ep_b". If you do not have or are
+not using the MGH DTI Sequence Package, then these files will not be
+of use to you.
+
+DISCLAIMER: THERE IS NO GUARUNTEE THAT THESE ARE THE GRADIENTS THAT
+WERE USED IN YOUR ACQUISITION. MAKE SURE YOU KNOW WHAT YOU ARE
+DOING!!! 
+
+IF YOU ARE USING VB13 OR HIGHER, THEN THE TABLES FOR THESE NUMBER OF
+DIRECTINOS WILL BE INVALID: 6, 10, 12, 20, 30, 64, 256. Siemens uses
+their own internal tables tables for these numbers. VB13 is supposed
+to include the gradient directions in the header (but I have not been
+able to find them yet).
+
+The files are named according to the following format:
+
+   gradient_mgh_dtiNN.gdt
+
+where NN is the two-digit, zero-padded number of directions (eg, 06
+for 6 directions or 72 for 72 directions). 
+
+Each file will have three columns with the number of rows equal to the
+number of directions. Each row is a gradient direction of unit length.
+
+The file does not indicate the bvalue or the number of acquisitions
+for which the bvalue is 0. These can be obtained in one of two ways:
+
+1. From a private field the Siemens dicom file (or an "infodump" file
+created by unpacksdcmdir or mri_probedicom).
+
+The relevant fields are:
+
+sDiffusion.alBValue[1] = 700 [Indicates the bvalue]
+sDiffusion.lDiffDirections = 60 [Number of diffusion gradients]
+sWiPMemBlock.alFree[6] = 60 [Number of diffusion gradients, redundant]
+sWiPMemBlock.alFree[8] = 10 [Number of images in which bvalue=0]
+
+These can be found by running the unix 'strings' program on the dicom
+file. Note that all the relevant information can be obtained from one
+dicom file. It will usually be assumed that the bvalue=0 images will 
+be acquired first.
+
+2. Examining the pulse sequence name in each dicom file. This is
+stored in the (non-private) dicom tag (18,24). The sequence name will
+have the following format:
+
+  ep_bX#N
+    X = bvalue
+    N = nth acq for that bvalue
+
+Note that all the dicom files in the series need to be queried in
+order to obtain all the relevant information.
+
+
