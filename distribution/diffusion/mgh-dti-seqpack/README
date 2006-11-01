@@ -1,5 +1,5 @@
 
-$Id: README,v 1.1 2006/11/01 21:54:34 greve Exp $
+$Id: README,v 1.2 2006/11/01 23:35:08 nicks Exp $
 
 These are diffusion gradient direction files that describe some of the
 protocols distributed by Siemens though the MGH DTI Sequence Package.
@@ -9,12 +9,12 @@ sequence names usually start with "ep_b". If you do not have or are
 not using the MGH DTI Sequence Package, then these files will not be
 of use to you.
 
-DISCLAIMER: THERE IS NO GUARUNTEE THAT THESE ARE THE GRADIENTS THAT
+DISCLAIMER: THERE IS NO GUARANTEE THAT THESE ARE THE GRADIENTS THAT
 WERE USED IN YOUR ACQUISITION. MAKE SURE YOU KNOW WHAT YOU ARE
 DOING!!! 
 
 IF YOU ARE USING VB13 OR HIGHER, THEN THE TABLES FOR THESE NUMBER OF
-DIRECTINOS WILL BE INVALID: 6, 10, 12, 20, 30, 64, 256. Siemens uses
+DIRECTIONS WILL BE INVALID: 6, 10, 12, 20, 30, 64, 256. Siemens uses
 their own internal tables tables for these numbers. VB13 is supposed
 to include the gradient directions in the header (but I have not been
 able to find them yet).
@@ -57,5 +57,4 @@ have the following format:
 
 Note that all the dicom files in the series need to be queried in
 order to obtain all the relevant information.
-
 
