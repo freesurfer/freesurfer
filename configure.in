@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.255 2006/11/01 21:55:45 greve Exp $"
+# "$Id: configure.in,v 1.256 2006/11/02 04:06:37 greve Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1547,6 +1547,7 @@ AC_OUTPUT([Makefile
                  distribution/average/Makefile
                  distribution/average/surf/Makefile
                  distribution/docs/Makefile
+                 distribution/diffusion/Makefile
                  distribution/diffusion/mgh-dti-seqpack/Makefile
                  distribution/fsafd/Makefile
                  distribution/grad_unwarp_tables/Makefile
