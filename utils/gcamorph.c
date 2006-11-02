@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/11/01 20:24:52 $
-// Revision       : $Revision: 1.118 $
+// Revision Date  : $Date: 2006/11/02 23:02:56 $
+// Revision       : $Revision: 1.119 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3156,91 +3156,91 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
   if (frame >= 0 && frame < mri_src->nframes)
     start_frame = end_frame = frame ;
   else
-	{
-		start_frame = 0 ; end_frame = mri_src->nframes-1 ;
-	}
+    {
+      start_frame = 0 ; end_frame = mri_src->nframes-1 ;
+    }
 
 #if 0
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
 #else
   width = gcam->width*gcam->spacing ; 
-	height = gcam->height*gcam->spacing ; 
-	depth = gcam->depth*gcam->spacing ; 
+  height = gcam->height*gcam->spacing ; 
+  depth = gcam->depth*gcam->spacing ; 
 #endif
 	
 
   // GCAM is a non-linear voxel-to-voxel transform
   // it also assumes that the uniform voxel size
   if (mri_morphed)
+    {
+      if ( (mri_src->xsize != mri_src->ysize)
+	   || (mri_src->xsize != mri_src->zsize)
+	   || (mri_src->ysize != mri_src->zsize))
 	{
-		if ( (mri_src->xsize != mri_src->ysize)
-				 || (mri_src->xsize != mri_src->zsize)
-				 || (mri_src->ysize != mri_src->zsize))
-		{
-			ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
-		}
+	  ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
 	}
+    }
   if (!mri_morphed)
-	{
-		mri_morphed = \
-			MRIallocSequence(width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
-		MRIcopyHeader(mri_src, mri_morphed) ;
-	}
+    {
+      mri_morphed = \
+	MRIallocSequence(width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
+      MRIcopyHeader(mri_src, mri_morphed) ;
+    }
 
-	if (getenv("MGH_TAL"))
-	{
-		xoff = -7.42 ;
-		yoff = 24.88 ;
-		zoff = -18.85 ;
-		printf("INFO: adding MGH tal offset (%2.1f, %2.1f, %2.1f) to xform\n", xoff, yoff, zoff) ;
-	}
-	else
-		xoff = yoff = zoff = 0 ;
+  if (getenv("MGH_TAL"))
+    {
+      xoff = -7.42 ;
+      yoff = 24.88 ;
+      zoff = -18.85 ;
+      printf("INFO: adding MGH tal offset (%2.1f, %2.1f, %2.1f) to xform\n", xoff, yoff, zoff) ;
+    }
+  else
+    xoff = yoff = zoff = 0 ;
 
   for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
 	{
-		for (y = 0 ; y < height ; y++)
-		{
-			for (z = 0 ; z < depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
+	  for (z = 0 ; z < depth ; z++)
+	    {
+	      if (x == Gx && y == Gy && z == Gz)
+		DiagBreak() ;
 
-				if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
-														 (float)y*mri_src->thick, (float)z*mri_src->thick, 
-														 &xd, &yd, &zd))
-				{
-					xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
-					xd += xoff ; yd += yoff ; zd += zoff ;
-					for (frame = start_frame ; frame <= end_frame ; frame++)
-					{
-						if (xd > -1 && yd > -1 && zd > 0 &&
-								xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth)
-							MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
-						else
-							val = 0.0 ;
-						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
-					}
-				}
-			}
+	      if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
+				   (float)y*mri_src->thick, (float)z*mri_src->thick, 
+				   &xd, &yd, &zd))
+		{
+		  xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+		  xd += xoff ; yd += yoff ; zd += zoff ;
+		  for (frame = start_frame ; frame <= end_frame ; frame++)
+		    {
+		      if (xd > -1 && yd > -1 && zd > 0 &&
+			  xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth)
+			MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
+		      else
+			val = 0.0 ;
+		      MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
+		    }
 		}
+	    }
 	}
+    }
 
   // copy the gcam dst information to the morphed volume
-	if (getenv("USE_AVERAGE305"))
-	{
-		fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
-		fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
-		mri_morphed->c_r = -0.0950;
-		mri_morphed->c_a = -16.5100;
-		mri_morphed->c_s = 9.7500;
-		mri_morphed->ras_good_flag = 1;
-		// now we cache transform and thus we have to do the following whenever
-		// we change direction cosines
-		MRIreInitCache(mri_morphed);
-	}
-	else
-		useVolGeomToMRI(&gcam->atlas, mri_morphed);
+  if (getenv("USE_AVERAGE305"))
+    {
+      fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
+      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+      mri_morphed->c_r = -0.0950;
+      mri_morphed->c_a = -16.5100;
+      mri_morphed->c_s = 9.7500;
+      mri_morphed->ras_good_flag = 1;
+      // now we cache transform and thus we have to do the following whenever
+      // we change direction cosines
+      MRIreInitCache(mri_morphed);
+    }
+  else
+    useVolGeomToMRI(&gcam->atlas, mri_morphed);
 
   return(mri_morphed) ;
 }
