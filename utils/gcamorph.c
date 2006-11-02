@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/11/02 23:07:34 $
-// Revision       : $Revision: 1.120 $
+// Revision Date  : $Date: 2006/11/02 23:41:04 $
+// Revision       : $Revision: 1.121 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3150,6 +3150,7 @@ MRI *
 GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
 {
   int        width, height, depth, x, y, z, start_frame, end_frame ;
+  int        out_of_gcam;
   float      xd, yd, zd ;
   Real       val, xoff, yoff, zoff ;
 
@@ -3162,6 +3163,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
 #if 0
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
 #else
+  // should be 256^3
   width  = gcam->width*gcam->spacing ; 
   height = gcam->height*gcam->spacing ; 
   depth  = gcam->depth*gcam->spacing ; 
@@ -3179,8 +3181,9 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
       }
   }
   if(!mri_morphed) {
+    // alloc with FOV same as gcam
     mri_morphed = \
-      MRIallocSequence(width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
+      MRIallocSequence(width, height, depth, MRI_FLOAT, frame < 0 ? mri_src->nframes : 1) ;
     MRIcopyHeader(mri_src, mri_morphed) ;
   }
 
@@ -3192,16 +3195,25 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
   }
   else  xoff = yoff = zoff = 0 ;
 
+  // x, y, z are the col, row, and slice (and xyz) in the gcam/target volume
   for (x = 0 ; x < width ; x++) {
     for (y = 0 ; y < height ; y++)	{
       for (z = 0 ; z < depth ; z++)	    {
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
 	
-	if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
-			     (float)y*mri_src->thick, (float)z*mri_src->thick, 
-			     &xd, &yd, &zd)){
-	  xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+	// Should not divide by src thick
+	//out_of_gcam = GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
+	//			(float)y*mri_src->thick, 
+	//			(float)z*mri_src->thick, 
+	//			&xd, &yd, &zd);
+
+	// Convert target-crs to input-crs
+	out_of_gcam = GCAMsampleMorph(gcam, (float)x, (float)y, (float)z, &xd, &yd, &zd);
+	if(!out_of_gcam){
+	  // Should not divide by src thick. If anything, divide by target thick, 
+	  // but its always 1 here anyway
+	  //xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
 	  xd += xoff ; yd += yoff ; zd += zoff ;
 	  for (frame = start_frame ; frame <= end_frame ; frame++) {
 	    if (xd > -1 && yd > -1 && zd > 0 &&
