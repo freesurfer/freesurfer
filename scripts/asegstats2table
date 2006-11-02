@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.5 2006/05/18 18:33:38 greve Exp $
+# $Id: asegstats2table,v 1.6 2006/11/02 17:14:06 greve Exp $
 import sys;
 import os;
 import string;
@@ -153,10 +153,11 @@ def check_args():
     print "ERROR: no tablefile specified";
     sys.exit(1);
   #endif    
-  if(meas != 'volume' and meas != 'mean'):
+  if(meas != 'volume' and meas != 'vol' and meas != 'mean'):
     print "ERROR: meas = %s, must be volume or mean" % (meas);
     sys.exit(1);
-  #endif    
+  #endif
+  if(meas == 'vol'): meas = 'volume';
   if(len(SUBJECTS) == 0):
     # Does not work to look in env
     if(os.environ.get('SUBJECTS',0) == 0):
@@ -175,7 +176,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.5 2006/05/18 18:33:38 greve Exp $';
+Version = '$Id: asegstats2table,v 1.6 2006/11/02 17:14:06 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
