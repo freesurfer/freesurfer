@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.23 2006/11/02 22:14:51 greve Exp $
+  $Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $
 
 */
 
@@ -363,6 +363,7 @@ ENDHELP --------------------------------------------------------------
 #include "resample.h"
 #include "gca.h"
 #include "gcamorph.h"
+#include "fio.h"
 
 #ifdef X
 #undef X
@@ -389,7 +390,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.23 2006/11/02 22:14:51 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -453,12 +454,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.23 2006/11/02 22:14:51 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.23 2006/11/02 22:14:51 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1162,6 +1163,8 @@ static void check_options(void)
   }
   if(fstarg){
     sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    if(!fio_FileExistsReadable(tmpstr))
+      sprintf(tmpstr,"%s/%s/mri/orig",SUBJECTS_DIR,subject);
     targvolfile = strcpyalloc(tmpstr);
     printf("Using %s as targ volume\n",targvolfile);
   }
