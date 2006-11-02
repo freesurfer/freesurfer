@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/01 12:19:55 $
-// Revision       : $Revision: 1.295 $
-char *VERSION = "$Revision: 1.295 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/11/02 20:29:52 $
+// Revision       : $Revision: 1.296 $
+char *VERSION = "$Revision: 1.296 $";
 
 #define TCL
 #define TKMEDIT
@@ -1083,6 +1083,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   FunV_tFunctionalValue mid                  = 0;
   tBoolean              bSlope               = FALSE;
   FunV_tFunctionalValue slope                = 0;
+  tBoolean              bMax                 = FALSE;
+  FunV_tFunctionalValue max                  = 0;
+
   tBoolean              bSmooth              = FALSE;
   float                 smoothSigma          = 0;
   tBoolean              bRevPhaseFlag        = FALSE;
@@ -1145,7 +1148,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.295 2006/11/01 12:19:55 fischl Exp $",
+     "$Id: tkmedit.c,v 1.296 2006/11/02 20:29:52 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1904,15 +1907,31 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         /* check for the value following the switch */
         if( argc > nCurrentArg + 1 &&
             '-' != argv[nCurrentArg+1][0] ) {
-
           /* get the value */
           DebugNote( ("Parsing -fthresh option") );
           min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
           bThresh = TRUE;
           nCurrentArg +=2 ;
-
         } else {
+          /* misuse of that switch */
+          tkm_DisplayError( "Parsing -fthresh option",
+                            "Expected an argument",
+                            "This option needs an argument: the threshold "
+                            "value to use." );
+          nCurrentArg += 1;
+        }
 
+      } else if( MATCH( sArg, "-fmax" ) ) {
+
+        /* check for the value following the switch */
+        if( argc > nCurrentArg + 1 &&
+            '-' != argv[nCurrentArg+1][0] ) {
+          /* get the value */
+          DebugNote( ("Parsing -fmax option") );
+          max = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
+          bMax = TRUE;
+          nCurrentArg +=2 ;
+        } else {
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fthresh option",
                             "Expected an argument",
@@ -2663,6 +2682,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                               FunD_tConversionMethod_Round );
   }
 
+  if( bThresh && bMax && !bSlope && !bMid ) {
+    mid = min + (max-min)/2;
+    bMid = 1;
+    slope = 1/(max-min);
+    bSlope = 1;
+  }
 
   /* set functional color scale stuff */
   if( bThresh || bMid || bSlope ) {
@@ -5759,7 +5784,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.295 2006/11/01 12:19:55 fischl Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.296 2006/11/02 20:29:52 greve Exp $ $Name:  $\n"
       )
      );
 
