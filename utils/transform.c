@@ -3338,3 +3338,35 @@ VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
   MatrixFree(&m_inv) ;
   return(m) ;
 }
+/*!
+  \fn LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
+  \brief Converts a tkregister-style registration matrix to LTA
+*/
+LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
+{
+  LTA *lta;
+  MATRIX *vox2vox; // Targ->Mov
+  MATRIX *Ttarg, *Tmov, *invTmov;
+
+  Ttarg = MRIxfmCRS2XYZtkreg(targ);
+  Tmov  = MRIxfmCRS2XYZtkreg(mov);
+  invTmov = MatrixInverse(Tmov,NULL);
+
+  // vox2vox = invTmov * R * Ttarg
+  vox2vox = MatrixMultiply(invTmov,R,NULL);
+  MatrixMultiply(vox2vox,Ttarg,vox2vox);
+
+  lta = LTAalloc(1,NULL);
+  lta->type = LINEAR_VOX_TO_VOX;
+  lta->xforms[0].type = LINEAR_VOX_TO_VOX;
+  getVolGeom(targ,&lta->xforms[0].src);
+  getVolGeom(mov,&lta->xforms[0].dst);
+  lta->xforms[0].m_L = MatrixCopy(vox2vox,NULL);
+
+  MatrixFree(&Ttarg);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTmov);
+  MatrixFree(&vox2vox);
+
+  return(lta);
+}

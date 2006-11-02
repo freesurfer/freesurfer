@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following three lines. CVS maintains them. */
-/* Revision Author: $Author: fischl $                                  */
-/* Revision Date  : $Date: 2006/10/31 18:52:22 $                       */
-/* Revision       : $Revision: 1.51 $                                  */
+/* Revision Author: $Author: greve $                                  */
+/* Revision Date  : $Date: 2006/11/02 22:14:37 $                       */
+/* Revision       : $Revision: 1.52 $                                  */
 /*                                                                     */
 /***********************************************************************/
 
@@ -204,5 +204,6 @@ int LTAdumpLinearTransform(FILE *fp, LT *lt);
 int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
+LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
 
 #endif
