@@ -282,7 +282,7 @@ install-data-hook:
 	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
-	doxy-file-header Doxygen
+	doxy-file-header Doxyfile
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
