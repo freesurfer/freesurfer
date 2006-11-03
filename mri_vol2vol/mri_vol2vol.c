@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $
+  $Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $
 
 */
 
@@ -390,7 +390,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -438,6 +438,7 @@ float minrescale = 0.0, maxrescale = 255.0;
 
 float ipr, bpr, intensity;
 int float2int,err, nargs;
+int SaveReg=1;
 int DoKernel=0;
 
 char tmpstr[2000];
@@ -455,12 +456,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -648,8 +649,10 @@ int main(int argc, char **argv)
     else                subject_outreg = "subject-unknown";
     printf("Output registration matrix is identity\n");
   }
-  regio_write_register(regfile,subject_outreg,out->xsize,
-		       out->zsize,1,R,FLT2INT_ROUND);
+
+  if(SaveReg)
+    regio_write_register(regfile,subject_outreg,out->xsize,
+			 out->zsize,1,R,FLT2INT_ROUND);
 
   printf("To check registration, run:\n");
   printf("\n");
@@ -699,6 +702,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
+    else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--morph")){
       DoMorph = 1;
       fstarg = 1;
