@@ -31,6 +31,7 @@ MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
+MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out);
 
 #define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */
 #define VOX2VOXREGTYPE_FIND 1 /* Look for register.dat in movable MRI dir */

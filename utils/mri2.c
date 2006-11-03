@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.29 2006/11/03 05:18:48 greve Exp $
+  $Id: mri2.c,v 1.30 2006/11/03 05:40:22 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1394,6 +1394,58 @@ MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out)
 	for(f=0; f < mri->nframes; f++){
 	  val = MRIgetVoxVal(mri,c,r,s,f);
 	  valout = a*exp(b*val);
+	  MRIsetVoxVal(out,c,r,s,f,valout);
+	}
+      }
+    }
+  }
+  return(out);
+}
+
+/*!
+  \fn MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
+  \brief Computes a*mri1 + b*mri2. If a mask is supplied, then values
+         outside the mask (ie, mask < 0.5) are set to 0 (if out=NULL)
+         or the previous value of out.
+ */
+MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
+{
+  int c, r, s, f;
+  double val1, val2, valout, m;
+  int err;
+
+  err = MRIdimMismatch(mri1, mri2, 1);
+  if(err){
+    printf("ERROR: MRIsum(): input dimension mismatch (%d)\n",err);
+    return(NULL);
+  }
+
+  if(out==NULL){
+    out = MRIcloneBySpace(mri1,MRI_FLOAT, -1);
+    if(out==NULL){
+      printf("ERROR: MRIsum: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    err = MRIdimMismatch(mri1, out, 1);
+    if(err){
+      printf("ERROR: MRIsum(): output dimension mismatch (%d)\n",err);
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < mri1->width; c++){
+    for(r=0; r < mri1->height; r++){
+      for(s=0; s < mri1->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	for(f=0; f < mri1->nframes; f++){
+	  val1 = MRIgetVoxVal(mri1,c,r,s,f);
+	  val2 = MRIgetVoxVal(mri2,c,r,s,f);
+	  valout = a*val1 + b*val2;
 	  MRIsetVoxVal(out,c,r,s,f,valout);
 	}
       }
