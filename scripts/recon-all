@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.42 2006/11/01 22:05:08 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.43 2006/11/03 20:00:15 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -522,8 +522,9 @@ if($DoNuIntensityCor) then
   echo "#@# Nu Intensity Correction `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
   set cmd = (mri_nu_correct.mni  --i orig.mgz \
-     --o nu.mgz --n $NuIterations)
+     --o nu.mgz --n $NuIterations $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
