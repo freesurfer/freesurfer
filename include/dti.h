@@ -1,4 +1,4 @@
-// $Id: dti.h,v 1.7 2006/11/03 05:41:12 greve Exp $
+// $Id: dti.h,v 1.8 2006/11/03 23:57:47 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -35,5 +35,6 @@ MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc);
 int DTIsortEV(float *EigVals, MATRIX *EigVecs);
 int DTIfslBValFile(DTI *dti, char *bvalfname);
 int DTIfslBVecFile(DTI *dti, char *bvecfname);
+MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc);
 
 #endif //#ifndef FSENV_INC

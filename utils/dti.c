@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.13 2006/11/03 05:41:13 greve Exp $
+// $Id: dti.c,v 1.14 2006/11/03 23:57:48 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.13 2006/11/03 05:41:13 greve Exp $");
+  return("$Id: dti.c,v 1.14 2006/11/03 23:57:48 greve Exp $");
 }
 
 
@@ -687,4 +687,75 @@ MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth)
   if(synth == NULL) return(NULL);
   synth = MRIexp(synth,1,-1,NULL,synth);
   return(synth);
+}
+/*----------------------------------------------------------*/
+/*!/
+  \fn MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
+  \brief Computes intervoxel coherence (does not work yet)
+*/
+MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
+{
+  int c, r, s, f, dc, dr, ds, err;
+  double v1, v2, vsum, angle, anglesum, m;
+  int nhits;
+
+  if(ivc==NULL){
+    ivc = MRIcloneBySpace(evec,MRI_FLOAT,1);
+    if(ivc==NULL){
+      printf("ERROR: DTIivc: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(evec,ivc);
+  }
+  else{
+    err = MRIdimMismatch(evec, ivc, 0);
+    if(err){
+      printf("ERROR: DTIivc(): output dimension mismatch (%d)\n",err);
+      return(NULL);
+    }
+    if(ivc->type != MRI_FLOAT){
+      printf("ERROR: DTIivc(): structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=1; c < ivc->width-1; c++){
+    for(r=1; r < ivc->height-1; r++){
+      for(s=1; s < ivc->depth-1; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	anglesum = 0;
+	nhits = 0;
+	for(dc = -1; dc < 2; dc++){
+	  for(dr = -1; dr < 2; dr++){
+	    for(ds = -1; ds < 2; ds++){
+	      if(dc==0 && dr==0 && ds==0) continue;
+	      // skip corners?
+	      if(mask){
+		m = MRIgetVoxVal(mask,c+dc,r+dr,s+ds,0);
+		if(m < 0.5) continue;
+	      }
+	      vsum = 0;
+	      for(f=0; f<3; f++){
+		v1 = MRIgetVoxVal(evec,c,r,s,f);
+		v2 = MRIgetVoxVal(evec,c+dc,r+dr,s+ds,f);
+		vsum += v1*v2;
+	      }
+	      if(fabs(vsum)>1) vsum = 1; 
+	      angle = acos(fabs(vsum));
+	      anglesum += angle;
+	      //printf("%7.4lf %7.4lf  %7.4lf\n",vsum,angle,anglesum);
+	      nhits ++;
+	    } // ds
+	  } // dr
+	} // ds
+	if(nhits > 0) MRIsetVoxVal(ivc,c,r,s,0,(anglesum/nhits)/(M_PI/2));
+	//exit(1);
+      }
+    }
+  }
+
+  return(ivc);
 }

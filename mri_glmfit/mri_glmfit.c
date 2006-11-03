@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.99 2006/11/03 06:05:01 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.100 2006/11/03 23:57:48 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -539,11 +539,13 @@ int OneSamplePerm=0;
 int OneSampleGroupMean=0;
 struct timeb  mytimer;
 int ReallyUseAverage7 = 0;
+int logflag = 0; // natural log
+
 DTI *dti;
 int usedti = 0;
-int logflag = 0; // natural log
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
+MRI  *ivc;
 
 char *format = "mgh";
 
@@ -1311,30 +1313,42 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/eigvec3.%s",GLMDir,format);
     MRIwrite(evec3,tmpstr);
 
+    printf("Computing fa\n");
     fa = DTIeigvals2FA(evals, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/fa.%s",GLMDir,format);
     MRIwrite(fa,tmpstr);
 
+    printf("Computing ra\n");
     ra = DTIeigvals2RA(evals, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/ra.%s",GLMDir,format);
     MRIwrite(ra,tmpstr);
 
+    printf("Computing vr\n");
     vr = DTIeigvals2VR(evals, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/vr.%s",GLMDir,format);
     MRIwrite(vr,tmpstr);
 
+    printf("Computing adc\n");
     adc = DTItensor2ADC(tensor, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/adc.%s",GLMDir,format);
     MRIwrite(adc,tmpstr);
 
+    printf("Computing ivc\n");
+    ivc = DTIivc(evec1, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/ivc.%s",GLMDir,format);
+    MRIwrite(ivc,tmpstr);
+
+    printf("Computing dwisynth\n");
     dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
     MRIwrite(dwisynth,tmpstr);
 
+    printf("Computing dwires\n");
     dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
     MRIwrite(dwires,tmpstr);
 
+    printf("Computing dwi rvar\n");
     dwirvar = fMRIvariance(dwires, mriglm->glm->dof, 0, NULL);
     sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
     MRIwrite(dwirvar,tmpstr);
