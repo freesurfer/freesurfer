@@ -1,12 +1,14 @@
 #!/bin/tcsh -f
 # mri_nu_correct.mni
 # 
-set VERSION = '$Id: mri_nu_correct.mni,v 1.4 2006/04/17 20:29:26 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.5 2006/11/03 19:59:55 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
 set nIters = 4; # default in recon-all
 set HiRes = ();
+set nProtoIters = ();
+set StopThresh = ();
 set LF = ();
 
 set debug = 0;
@@ -71,6 +73,8 @@ while($nthIter <= $nIters)
   echo "Iteration $nthIter `date`" |& tee -a $LF 
   @ m = $nthIter - 1
   set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
+  if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
+  if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
   echo $cmd |& tee -a $LF 
   $cmd |& tee -a $LF 
   if($status) then
@@ -127,6 +131,16 @@ while( $#argv != 0 )
     case "--n":
       if ( $#argv == 0) goto arg1err;
       set nIters = $argv[1]; shift;
+      breaksw
+
+    case "--proto-iters":
+      if ( $#argv == 0) goto arg1err;
+      set nProtoIters = $argv[1]; shift;
+      breaksw
+
+    case "--stop":
+      if ( $#argv == 0) goto arg1err;
+      set StopThresh = $argv[1]; shift;
       breaksw
 
     case "--cm":
@@ -187,6 +201,9 @@ usage_exit:
   echo " --i  invol  : input volume"
   echo " --o  outvol : output volume"
   echo " --n  niters : number of iterations, default is $nIters"
+  echo " --proto-iters Np : number of protocol iterations "
+  echo " --stop thresh    : N3 option"
+  echo ""
   echo " --cm        : conform COR volumes to the min voxel size "
   echo ""
   echo "Optional flags and arguments:"
@@ -220,7 +237,23 @@ format is COR, then the directory must exist.
 
 --n niters
 
-Number of iterations to run nu_correct. Default is 4.
+Number of iterations to run nu_correct. Default is 4. This is the number
+of times that nu_correct is run recursively (ie, using the output from
+the previous run as the input for the next). This is differeent than
+the -iterations option to nu_correct.
+
+--proto-iters Np
+
+Passes Np as argument of the -iterations flag of nu_correct. This is
+different than the --n flag above. Default is not to pass nu_correct
+the -iterations flag.
+
+--stop thresh
+
+Passes thresh as argument of the -stop flag of nu_correct. According
+to the nu_correct documentation, this threshold is the "CV of change
+in field estimate below which iteration stops (suggest 0.01 to
+0.0001)".  Default is not to pass nu_correct the -stop flag.
 
 --cm
 
