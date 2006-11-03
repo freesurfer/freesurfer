@@ -1,4 +1,4 @@
-// $Id: dti.c,v 1.12 2006/11/02 04:53:35 greve Exp $
+// $Id: dti.c,v 1.13 2006/11/03 05:41:13 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,13 +14,15 @@
 #include "version.h"
 #include "fio.h"
 #include "mri.h"
+#include "mri2.h"
+#include "fmriutils.h"
 #include "DICOMRead.h"
 #include "dti.h"
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { 
-  return("$Id: dti.c,v 1.12 2006/11/02 04:53:35 greve Exp $");
+  return("$Id: dti.c,v 1.13 2006/11/03 05:41:13 greve Exp $");
 }
 
 
@@ -674,4 +676,15 @@ int DTIfslBVecFile(DTI *dti, char *bvecfname)
   fclose(fp);
 
   return(0);
+}
+/*!/
+  \fn MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth);
+  \brief Computes exp(-X*beta). Currently mask has no effect.
+*/
+MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth)
+{
+  synth = fMRImatrixMultiply(beta, X, synth);
+  if(synth == NULL) return(NULL);
+  synth = MRIexp(synth,1,-1,NULL,synth);
+  return(synth);
 }
