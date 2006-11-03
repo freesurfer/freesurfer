@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $
+  $Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $
 
 */
 
@@ -390,7 +390,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -456,12 +456,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.26 2006/11/03 19:01:32 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -650,18 +650,18 @@ int main(int argc, char **argv)
     printf("Output registration matrix is identity\n");
   }
 
-  if(SaveReg)
+  if(SaveReg){
     regio_write_register(regfile,subject_outreg,out->xsize,
 			 out->zsize,1,R,FLT2INT_ROUND);
-
-  printf("To check registration, run:\n");
-  printf("\n");
-  if(!fstal) {
-    printf("  tkregister2 --mov %s --targ %s --reg %s \n",
-	   outvolfile,tempvolfile,regfile);
-  }  else {
-    printf("  tkregister2 --s %s --surf white --reg %s --mov %s \n",
-	   subject_outreg,regfile,outvolfile);
+    printf("To check registration, run:\n");
+    printf("\n");
+    if(!fstal) {
+      printf("  tkregister2 --mov %s --targ %s --reg %s \n",
+	     outvolfile,tempvolfile,regfile);
+    }  else {
+      printf("  tkregister2 --s %s --surf white --reg %s --mov %s \n",
+	     subject_outreg,regfile,outvolfile);
+    }
   }
 
   printf("\n");
