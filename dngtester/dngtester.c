@@ -274,6 +274,7 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
 
 
 /*---------------------------------------------------------------*/
+/*
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
 {
   LTA *lta;
@@ -302,6 +303,7 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
 
   return(lta);
 }
+*/
 
 /*---------------------------------------------------------------*/
 MRI *MRIsetSliceNo(MRI *mri, MRI *out)
