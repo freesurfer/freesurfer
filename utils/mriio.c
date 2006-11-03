@@ -9124,21 +9124,17 @@ static MRI *nifti1Read(char *fname, int read_volume)
     else time_units_factor = 0;
   }
 
-  /*
-    nifti1.h says: slice_code = If this is nonzero, AND
-    if slice_dim is nonzero, AND
-    if slice_duration is positive, indicates the timing
-    pattern of the slice acquisition.
-    not yet supported here
-  */
-
-  if(hdr.slice_code != 0 &&
-     DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 &&
-     hdr.slice_duration > 0.0)
-    ErrorReturn
-      (NULL,
-       (ERROR_UNSUPPORTED,
-        "nifti1Read(): unsupported timing pattern in %s", hdr_fname));
+  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 &&
+     hdr.slice_duration > 0.0){
+    if(hdr.slice_code != NIFTI_SLICE_SEQ_INC &&
+       hdr.slice_code != NIFTI_SLICE_SEQ_DEC &&
+       hdr.slice_code != NIFTI_SLICE_ALT_INC &&
+       hdr.slice_code != NIFTI_SLICE_ALT_DEC){
+      ErrorReturn(NULL,(ERROR_UNSUPPORTED,
+        "nifti1Read(): unsupported slice timing pattern %d in %s", 
+			hdr.slice_code, hdr_fname));
+    }
+  }
 
   if(hdr.dim[0] == 3) nslices = 1;
   else                nslices = hdr.dim[4];
@@ -9851,19 +9847,16 @@ static MRI *niiRead(char *fname, int read_volume)
   //printf("hdr.xyzt_units = %d, time_units = %d, %g, %g\n",
   // hdr.xyzt_units,time_units,hdr.pixdim[4],time_units_factor);
 
-  /*
-    nifti1.h says: slice_code = If this is nonzero, AND
-    if slice_dim is nonzero, AND
-    if slice_duration is positive, indicates the timing
-    pattern of the slice acquisition.
-    not yet supported here
-  */
-
-  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0
-     && hdr.slice_duration > 0.0){
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED,
-                 "niiRead(): unsupported timing pattern in %s", fname));
+  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 &&
+     hdr.slice_duration > 0.0){
+    if(hdr.slice_code != NIFTI_SLICE_SEQ_INC &&
+       hdr.slice_code != NIFTI_SLICE_SEQ_DEC &&
+       hdr.slice_code != NIFTI_SLICE_ALT_INC &&
+       hdr.slice_code != NIFTI_SLICE_ALT_DEC){
+      ErrorReturn(NULL,(ERROR_UNSUPPORTED,
+        "nifti1Read(): unsupported slice timing pattern %d in %s", 
+			hdr.slice_code, fname));
+    }
   }
 
   if(hdr.dim[0] == 3) nslices = 1;
