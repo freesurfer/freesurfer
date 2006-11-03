@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.28 2006/11/01 20:17:53 nicks Exp $
+  $Id: mri2.c,v 1.29 2006/11/03 05:18:48 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1352,6 +1352,54 @@ MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
     }
   }
   return(mask);
+}
+/*!
+  \fn MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out)
+  \brief Computes a*exp(b*mri). If a mask is supplied, then values
+         outside the mask (ie, mask < 0.5) are set to 0 (if out=NULL)
+         or the previous value of out.
+ */
+MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out)
+{
+  int c, r, s, f;
+  double val, valout, m;
+  int err;
+
+  if(out==NULL){
+    out = MRIcloneBySpace(mri,MRI_FLOAT, -1);
+    if(out==NULL){
+      printf("ERROR: MRIexp: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    err = MRIdimMismatch(mri, out, 1);
+    if(err){
+      printf("ERROR: MRIexp(): output dimension mismatch (%d)\n",err);
+      return(NULL);
+    }
+    if(out->type != MRI_FLOAT){
+      printf("ERROR: MRIexp(): structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	for(f=0; f < mri->nframes; f++){
+	  val = MRIgetVoxVal(mri,c,r,s,f);
+	  valout = a*exp(b*val);
+	  MRIsetVoxVal(out,c,r,s,f,valout);
+	}
+      }
+    }
+  }
+  return(out);
 }
 
 /* MRImakeVox2VoxReg() - takes a target volume, a movable volume, a
