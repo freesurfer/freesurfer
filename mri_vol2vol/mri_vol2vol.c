@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $
+  $Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $
 
 */
 
@@ -390,7 +390,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -446,6 +446,7 @@ int DoMorph = 0;
 TRANSFORM *Rtransform;  //types : M3D, M3Z, LTA, FSLMAT, DAT, OCT(TA), XFM
 GCAM      *gcam;
 char gcamfile[1000];
+MRI_REGION region;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -454,12 +455,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.24 2006/11/02 22:50:46 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.25 2006/11/03 01:46:31 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -620,6 +621,17 @@ int main(int argc, char **argv)
 
     printf("Applying morph to input\n");
     out = GCAMmorphToAtlas(in, gcam, NULL, -1);
+
+    printf("Extracting region\n");
+    region.x = 51;
+    region.y = 0;
+    region.z = 11;
+    region.dx = 156;
+    region.dy = 216;
+    region.dz = 240;
+    tmpmri = MRIextractRegion(out, NULL, &region) ;
+    MRIfree(&out);
+    out = tmpmri;
   }
   
   MRIwrite(out,outvolfile);
