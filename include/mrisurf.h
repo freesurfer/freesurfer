@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.268 2006/11/01 20:17:46 nicks Exp $ */
+/* $Id: mrisurf.h,v 1.269 2006/11/03 21:01:34 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -682,7 +682,7 @@ int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                          float alpha, float beta, float gamma) ;
 
-MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri) ;
+MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int type) ;
 MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
 
 
@@ -1332,6 +1332,10 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_CURVATURE   VERTEX_CURV
 #define VERTEX_LABEL       4
 #define VERTEX_ANNOTATION  5
+#define VERTEX_DX          6
+#define VERTEX_DY          7
+#define VERTEX_DZ          8
+
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
 int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
