@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.256 2006/11/02 04:06:37 greve Exp $"
+# "$Id: configure.in,v 1.257 2006/11/03 23:13:00 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1109,6 +1109,15 @@ ac_save_ldflags=$LDFLAGS
 CFLAGS="$glut_cflags $GL_CFLAGS $GLU_CFLAGS $CFLAGS"
 LDFLAGS="$glut_libs $GL_LIBS $GLU_LIBS $LDFLAGS"
 AX_CHECK_GLUT
+if test "X$no_glut" = "Xyes"; then
+  # AX_CHECK_GLUT wants GL/glut.h, but Debian doesnt have that,
+  # so try a simpler test
+  AC_CHECK_LIB([glut],[glutMainLoop],
+  [ no_glut=no 
+    GLUT_LIBS=-lglut
+  ],
+  [no_glut=yes])
+fi
 if test "X$no_glut" = "Xyes"; then
   AC_MSG_RESULT([GLut not found])
 else
