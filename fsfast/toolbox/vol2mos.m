@@ -2,7 +2,7 @@ function [mos, tszmos] = vol2mos(vol, tszmos)
 % [mos tszmos] = vol2mos(vol, tszmos)
 %
 % Given a volume (rows, cols, slices, planes), produces a mosaic
-% (rows, cols, planes).
+% (rows, cols, planes). vol can be an mristruct.
 %
 % tszmos - size (rows, cols) of the mosaic measured in tiles (optional).
 % If tszmos is not specified, a default one will be computed using
@@ -16,12 +16,14 @@ function [mos, tszmos] = vol2mos(vol, tszmos)
 % See also: mos2vol vol2mos mosind2volind mossub2volsub 
 %           volind2mosind volsub2mossub defmossize
 %
-% $Id: vol2mos.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+% $Id: vol2mos.m,v 1.2 2006/11/03 06:15:38 greve Exp $
 
 if(nargin ~= 1 & nargin ~= 2)
   msg = 'USAGE: [mos tszmos] = vol2mos(vol, <tszmos>)';
   error(msg);
 end
+
+if(isfield(vol,'vol'))  vol = vol.vol(:,:,:,1); end
 
 % Get the dimensions of the volume %
 Nvr = size(vol,1);
