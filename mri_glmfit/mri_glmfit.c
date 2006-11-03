@@ -447,7 +447,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.98 2006/10/28 23:46:31 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.99 2006/11/03 06:05:01 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -542,7 +542,8 @@ int ReallyUseAverage7 = 0;
 DTI *dti;
 int usedti = 0;
 int logflag = 0; // natural log
-MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3, *fa, *ra, *vr, *adc;
+MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
+MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
 
 char *format = "mgh";
 
@@ -799,6 +800,7 @@ int main(int argc, char **argv)
   }
   if(logflag){
     printf("Computing natural log of input\n");
+    if(usedti) dwi = MRIcopy(mriglm->y,NULL);
     MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
   }
   if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
@@ -1325,6 +1327,18 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/adc.%s",GLMDir,format);
     MRIwrite(adc,tmpstr);
 
+    dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
+    MRIwrite(dwisynth,tmpstr);
+
+    dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
+    MRIwrite(dwires,tmpstr);
+
+    dwirvar = fMRIvariance(dwires, mriglm->glm->dof, 0, NULL);
+    sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
+    MRIwrite(dwirvar,tmpstr);
+
     MRIfree(&lowb);
     MRIfree(&tensor);
     MRIfree(&evals);
@@ -1335,6 +1349,7 @@ int main(int argc, char **argv)
     MRIfree(&ra);
     MRIfree(&vr);
     MRIfree(&adc);
+    MRIfree(&dwisynth);
 
   }
 
