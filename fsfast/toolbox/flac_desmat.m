@@ -7,7 +7,7 @@ function flacnew = flac_desmat(flac)
 % done by flac_customize but could be done in some other way (allows
 % for optseq-type optimization).
 %
-% $Id: flac_desmat.m,v 1.7 2006/06/24 14:06:44 greve Exp $
+% $Id: flac_desmat.m,v 1.8 2006/11/04 22:33:31 greve Exp $
 
 flacnew = [];
 
@@ -25,7 +25,8 @@ for nthev = 1:nev
   
   if(ev.ishrf)  
     % HRF Regressors
-    flacnew.ev(nthev).Xfir = fast_st2fir(ev.st,flac.ntp,flac.TR,ev.psdwin,1);
+    st = ev.st - flac.stimulusdelay;
+    flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1);
     if(isempty(flacnew.ev(nthev).Xfir)) 
       fprintf('ERROR: creating FIR design matrix for %s\n',...
 	      flacnew.ev(nthev).name);
