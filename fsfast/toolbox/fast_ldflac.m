@@ -4,7 +4,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Loads an fsfast flac file.
 % If no args, returns an empty flac structure.
 %
-% $Id: fast_ldflac.m,v 1.20 2006/09/14 02:02:54 greve Exp $
+% $Id: fast_ldflac.m,v 1.21 2006/11/04 22:20:07 greve Exp $
+%
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -176,6 +177,7 @@ if(isempty(flac.fsd)) flac.fsd = 'bold'; end
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
 % Check each contrast
+if(~isfield(flac,'con')) flac.con = []; end
 ncon = length(flac.con);
 if(ncon == 0)
   fprintf('WARNING: no contrasts in FLAC file %s\n',flacfile);
