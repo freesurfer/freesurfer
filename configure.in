@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.257 2006/11/03 23:13:00 nicks Exp $"
+# "$Id: configure.in,v 1.258 2006/11/04 00:14:28 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1140,6 +1140,7 @@ fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
 
+AM_CONDITIONAL(HAVE_GLUT_LIBS, ! test "X$no_glut" = "Xyes")
 
 ###################################################################
 # Install NMR Martinos Center files (not included in distribution)
