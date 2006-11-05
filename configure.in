@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.259 2006/11/05 23:08:50 nicks Exp $"
+# "$Id: configure.in,v 1.260 2006/11/05 23:58:36 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -665,8 +665,7 @@ if test "x$TIXWISH" = "x"; then
 fi
 # well check
 if test "x$TIXWISH" = "x"; then
-  AC_MSG_ERROR([FATAL: tixwish needed for csurf not found. \
-Use --with-tixwish=... to specify])
+  AC_MSG_ERROR([FATAL: tixwish not found. Use --with-tixwish=... to specify])
 fi
 
 AC_SUBST(TIXWISH)
