@@ -165,7 +165,6 @@ real-flat.tcl \
 real-views.tcl \
 saveflat.tcl \
 saveviews.tcl \
-segment_subject \
 setdefpatchview.tcl \
 solmovie-flat.tcl \
 tkanalyse.tcl \
