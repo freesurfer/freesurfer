@@ -5,6 +5,11 @@
 foodir=$(prefix)/fsfast/bin
 foo_SCRIPTS=$(wildcard *)
 
+# foo_SCRIPTS has all-files wildcard, but lets not install Makefile stuff.
+# note: install-exec-hook is already defined in Makefile.extra
+install-data-hook:
+	rm -f $(DESTDIR)$(foodir)/Makefile*
+
 EXTRA_DIST=$(foo_SCRIPTS)
 
 # Our release target. Include files to be excluded here. They will be
