@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.258 2006/11/04 00:14:28 nicks Exp $"
+# "$Id: configure.in,v 1.259 2006/11/05 23:08:50 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -42,6 +42,10 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
+
+# Most of our scripts use /bin/tcsh, so make sure it exists
+AC_CHECK_FILE(/bin/tcsh,[],
+  [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
 # links with g++ rather than gcc, I think
 CCLD=g++
