@@ -1,6 +1,6 @@
-#! /usr/pubsw/bin/tixwish
+#! /usr/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.10 2006/07/13 17:46:18 kteich Exp $
+# $Id: TclChartWindow.tcl,v 1.11 2006/11/05 23:38:07 nicks Exp $
 
 package require Tix;
 package require BLT;
