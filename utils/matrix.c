@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.102 2006/10/25 14:17:05 fischl Exp $
+// $Id: matrix.c,v 1.103 2006/11/06 14:40:48 fischl Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2371,6 +2371,8 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
   if (FZERO(norm))
     return(0.0f) ;
   dot = V3_DOT(v1, v2) ;
+  if (fabs(dot) > fabs(norm))
+    norm = fabs(dot) ;
   if (dot > norm)
     angle = acos(1.0) ;
   else
@@ -3393,3 +3395,19 @@ MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr,
   return(m) ;
 }
 
+int
+MatrixCheckFinite(MATRIX *m)
+{
+  int r, c, retval = NO_ERROR ;
+
+  for (r = 1 ; r < m->rows ; r++)
+    for (c = 1 ; c < m->cols ; c++)
+    {
+      if (!finite(*MATRIX_RELT(m, r, c)))
+      {
+        DiagBreak() ;
+        retval = ERROR_BADPARM ;
+      }
+    }
+  return(retval) ;
+}
