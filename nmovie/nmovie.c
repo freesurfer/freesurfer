@@ -1,12 +1,12 @@
 // nmovie.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/28 22:57:52 $
-// Revision       : $Revision: 1.26 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2006/11/06 22:09:30 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.26 $";
+char *NMOVIE_VERSION = "$Revision: 1.27 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -23,9 +23,21 @@ char *NMOVIE_VERSION = "$Revision: 1.26 $";
 #include <X11/StringDefs.h>
 #include <X11/Shell.h>
 
+// this is to fix a problem on KDE where this application's window will never
+// get the focus
+#ifdef HAVE_XAWPLUS
+
+#include <X11/XawPlus/Form.h>
+#include <X11/XawPlus/Command.h>
+#include <X11/XawPlus/Simple.h>
+
+#else
+
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/Command.h>
 #include <X11/Xaw/Simple.h>
+
+#endif
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -626,7 +638,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: nmovie.c,v 1.26 2006/08/28 22:57:52 nicks Exp $", 
+     "$Id: nmovie.c,v 1.27 2006/11/06 22:09:30 dsjen Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
