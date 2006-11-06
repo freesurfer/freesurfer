@@ -1,8 +1,8 @@
 #
 # Makefile.am
 #
-# Makefile.am specify i addtion to the standard
-AM_CPPFLAGS=$(X_CFLAGS) $(GLUT_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+
+AM_CPPFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 noinst_LIBRARIES= liblog.a
@@ -15,10 +15,8 @@ am_liblog_a_OBJECTS = $(liblog_a_SOURCES:%.c=%.o)
 	$(CCDEPMODE) $(depcomp) \
 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
-
-
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

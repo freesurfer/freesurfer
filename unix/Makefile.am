@@ -1,11 +1,8 @@
 #
-# Makefile.am - specify in addition to the standard
+# Makefile.am
 #
 
-AM_CPPFLAGS=$(X_CFLAGS) \
-	$(GL_CFLAGS) \
-	$(GLUT_CFLAGS) \
-	-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libunix.a
