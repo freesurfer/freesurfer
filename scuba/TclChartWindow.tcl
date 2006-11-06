@@ -1,10 +1,8 @@
-#! /usr/bin/tixwish
 
-# $Id: TclChartWindow.tcl,v 1.11 2006/11/05 23:38:07 nicks Exp $
+# $Id: TclChartWindow.tcl,v 1.12 2006/11/06 18:53:06 nicks Exp $
 
 package require Tix;
 package require BLT;
-
 
 # Look for tkUtils.tcl.
 set sDefaultScriptsDir ""

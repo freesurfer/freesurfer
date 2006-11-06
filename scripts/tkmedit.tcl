@@ -1,7 +1,5 @@
-#! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.119 2006/11/05 23:36:27 nicks Exp $
-
+# $Id: tkmedit.tcl,v 1.120 2006/11/06 18:51:20 nicks Exp $
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 

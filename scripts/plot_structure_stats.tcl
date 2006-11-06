@@ -1,6 +1,5 @@
-#! /usr/bin/tixwish
 
-# $Id: plot_structure_stats.tcl,v 1.7 2006/07/12 20:55:04 kteich Exp $
+# $Id: plot_structure_stats.tcl,v 1.8 2006/11/06 18:51:20 nicks Exp $
 
 if { $argc > 0 } {
 
