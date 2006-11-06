@@ -7,7 +7,7 @@ function flacnew = flac_desmat(flac)
 % done by flac_customize but could be done in some other way (allows
 % for optseq-type optimization).
 %
-% $Id: flac_desmat.m,v 1.8 2006/11/04 22:33:31 greve Exp $
+% $Id: flac_desmat.m,v 1.9 2006/11/06 06:02:29 greve Exp $
 
 flacnew = [];
 
@@ -71,10 +71,12 @@ for nthev = 1:nev
       return;
     end
   end
+%keyboard
   
   flacnew.X = [flacnew.X flacnew.ev(nthev).X];
   
-end
+end % for ev
+
 
 return;
 
