@@ -229,4 +229,6 @@ int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr,
 MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, 
                                   double xt, double yt, double zt);
 
+int MatrixCheckFinite(MATRIX *m);
+
 #endif
