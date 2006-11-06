@@ -19,7 +19,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
 %
-% $Id: fast_st2fir.m,v 1.5 2006/04/18 19:51:16 greve Exp $
+% $Id: fast_st2fir.m,v 1.6 2006/11/06 06:04:52 greve Exp $
 
 Xfir = [];
 
@@ -99,9 +99,8 @@ for nthpres = 1:npres
 
     % Compute the indicies in the design matrix
     ind = sub2ind(size(Xfir),r,c);
-
     % Set the components in the design matrix to the weight
-    Xfir(ind) = weight;
+    Xfir(ind) = Xfir(ind) + weight;
   end
   
 end
