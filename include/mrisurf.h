@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.269 2006/11/03 21:01:34 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.270 2006/11/06 15:09:51 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -7,6 +7,7 @@
 #include "minc_volume_io.h"
 #include "const.h"
 
+#define MAX_SURFACES 20
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
 #define ELLIPSOID_COORDS     2
@@ -808,9 +809,6 @@ int          MRISmarkedToCurv(MRI_SURFACE *mris) ;
 
 double       MRISParea(MRI_SP *mrisp) ;
 
-#include "label.h" // LABEL
-MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
-MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 
 #define ORIGINAL_VERTICES   0
 #define ORIG_VERTICES       ORIGINAL_VERTICES
@@ -949,12 +947,6 @@ int   MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof,
                                             int new_dof);
 int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, 
                                             int total_dof,int new_dof);
-int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, 
-                                              LABEL *area,
-                                              float *pdx,
-                                              float *pdy,
-                                              float *pdz);
-
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
@@ -1167,24 +1159,12 @@ int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
-int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
-int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
-int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
-int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
-int MRISsegmentMarked(MRI_SURFACE *mris, 
-                      LABEL ***plabel_array,
-                      int *pnlabels,
-                      float min_label_area) ;
-int MRISsegmentAnnotated(MRI_SURFACE *mris,
-                         LABEL ***plabel_array,
-                         int *pnlabels,
-                         float min_label_area) ;
+
 
 /* multi-timepoint (or stc) files */
 int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
                   float sample_period, int *vertices) ;
 
-#define MAX_SURFACES 20
 #define MAX_LINKS 10
 typedef struct
 {
@@ -1410,7 +1390,6 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris,
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
@@ -1461,5 +1440,27 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
    default: break; \
  }
 
+#include "label.h" // LABEL
+MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
+MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
+int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, 
+                                              LABEL *area,
+                                              float *pdx,
+                                              float *pdy,
+                                              float *pdz);
+
+int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISsegmentMarked(MRI_SURFACE *mris, 
+                      LABEL ***plabel_array,
+                      int *pnlabels,
+                      float min_label_area) ;
+int MRISsegmentAnnotated(MRI_SURFACE *mris,
+                         LABEL ***plabel_array,
+                         int *pnlabels,
+                         float min_label_area) ;
 
 #endif
