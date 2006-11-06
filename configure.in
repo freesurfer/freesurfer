@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.260 2006/11/05 23:58:36 nicks Exp $"
+# "$Id: configure.in,v 1.261 2006/11/06 00:53:28 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -586,6 +586,7 @@ AC_ARG_ENABLE(all-apps,
  [ tcltk_apps="yes"
    kww_apps="yes"
    vtk_apps="yes"
+   need_opengl="yes"
  ])
 
 
@@ -637,6 +638,8 @@ AC_ARG_ENABLE(tcltk-apps,
 
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
+  # enable testing for OpenGL libs:
+  need_opengl=yes
 else
   AC_MSG_RESULT([Not building Tcl/Tk apps.])
 fi
@@ -752,6 +755,8 @@ AC_ARG_ENABLE(kww-apps,
 
 if test "$kww_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of KWWidgets apps.])
+  # enable testing for OpenGL libs:
+  need_opengl=yes
 else
   AC_MSG_RESULT([Not building KWWidgets apps.])
 fi
@@ -849,10 +854,13 @@ if test ! "$ac_qt_includes" = "NO"; then
   QTDIR=$ac_qt_dir
   AC_SUBST(QTDIR)
 else
-  AC_MSG_RESULT(Qt directory is not supplied. Not building Qt apps.)
+  AC_MSG_RESULT(Qt directory is not supplied. \
+Not building unsupported Qt apps.)
 fi
 if test ! "$ac_qt_libraries" = "NO"; then
   QT_LIBS=-L$ac_qt_libraries
+  # enable testing for OpenGL libs:
+  need_opengl=yes
 else
   QTDIR=""
   AC_SUBST(QTDIR)
@@ -967,6 +975,8 @@ AC_ARG_ENABLE(vtk-apps,
 
 if test "$vtk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of VTK apps.])
+  # enable testing for OpenGL libs:
+  need_opengl=yes
 else
   AC_MSG_RESULT([Not building VTK apps.])
 fi
@@ -1079,7 +1089,11 @@ CFLAGS="$gl_cflags $CFLAGS"
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
-  AC_MSG_RESULT([GL not found])
+  if test "X$need_opengl" = "Xyes"; then
+    AC_MSG_ERROR([FATAL: GL not found. Use --with-gl-dir=... to specify])
+  else
+    AC_MSG_RESULT([GL not found])
+  fi
 else
   AC_MSG_RESULT([GL found:
 Setting GL_CFLAGS='$GL_CFLAGS'
@@ -1096,7 +1110,11 @@ CFLAGS="$gl_cflags $CFLAGS"
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GLU
 if test "X$no_glu" = "Xyes"; then
-  AC_MSG_RESULT([GLu not found])
+  if test "X$need_opengl" = "Xyes"; then
+    AC_MSG_ERROR([FATAL: GLu not found. Use --with-gl-dir=... to specify])
+  else
+    AC_MSG_RESULT([GLu not found])
+  fi
 else
   AC_MSG_RESULT([GLu found:
 Setting GLU_CFLAGS='$GLU_CFLAGS'
@@ -1122,7 +1140,11 @@ if test "X$no_glut" = "Xyes"; then
   [no_glut=yes])
 fi
 if test "X$no_glut" = "Xyes"; then
-  AC_MSG_RESULT([GLut not found])
+  if test "X$need_opengl" = "Xyes"; then
+    AC_MSG_ERROR([FATAL: GLut not found. Use --with-glut-dir=... to specify])
+  else
+    AC_MSG_RESULT([GLut not found])
+  fi
 else
   if test "$OS" = "Darwin"; then
     #AX_CHECK_GLUT really fudges these,
