@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.262 2006/11/06 21:32:06 nicks Exp $"
+# "$Id: configure.in,v 1.263 2006/11/06 23:29:03 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1287,7 +1287,8 @@ CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS $NIFTI_LIBS"
+$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS \
+$NIFTI_LIBS $XAWPLUS_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 #AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -1469,9 +1470,9 @@ if test ! "x$kww_apps" = "xNO"; then
   Set LDFLAGS or --with-KWWidgets-dir.])] )
 fi
 
-# check for XawPlus libs only if xawplus app building is enabled
+# check for XawPlus lib only if xawplus app building is enabled
 if test ! "x$xawplus_apps" = "xNO"; then
-  AC_CHECK_LIB([XawPlus], [main],[],
+  AC_CHECK_LIB([X11 -lXt -lXpm -lXawPlus], [XawInitializeWidgetSet],[],
     [AC_MSG_ERROR([FATAL: XawPlus lib not found. \
   Set LDFLAGS or --with-xawplus-dir.])] )
 fi
