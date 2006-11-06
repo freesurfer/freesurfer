@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.15 2006/10/22 04:23:19 greve Exp $
+% $Id: flac_customize.m,v 1.16 2006/11/06 06:03:25 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -227,8 +227,9 @@ for nthcon = 1:ncon
 	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
   C = flacnew.con(nthcon).C;
   eff = 1/trace(C*inv(flacnew.X'*flacnew.X)*C');
+  vrf = 1/mean(diag(C*inv(flacnew.X'*flacnew.X)*C'));
   flacnew.con(nthcon).eff = eff;
-  fprintf('%2d %s eff=%g\n',nthcon,flacnew.con(nthcon).name,eff);
+  fprintf('%2d %s eff=%g, vrf=%g\n',nthcon,flacnew.con(nthcon).name,eff,vrf);
 end
 
 
