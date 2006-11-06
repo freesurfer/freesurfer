@@ -12,7 +12,7 @@ function pdfx = pdf_gamma(x,a,b)
 %   b = tm/(sigma^2)
 % where sigma = "Stddev" and tm = "Mean lag"
 %
-% $Id: pdf_gamma.m,v 1.2 2006/03/29 23:22:38 greve Exp $
+% $Id: pdf_gamma.m,v 1.3 2006/11/06 06:01:27 greve Exp $
 
 pdfx = [];
 
@@ -21,7 +21,10 @@ if(nargin ~= 3)
   return;
 end
 
-pdfx = (b.^2) .* (x.^(a-1)) .* exp(-b.*x) ./ gamma(a);
+nx = length(x);
+pdfx = zeros(nx,1);
+ind = find(x>0);
+pdfx(ind) = (b.^2) .* (x(ind).^(a-1)) .* exp(-b.*x(ind)) ./ gamma(a);
 
 return;
 
