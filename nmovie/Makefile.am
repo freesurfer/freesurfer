@@ -2,17 +2,28 @@
 # Makefile.am
 ##
 
+if ENABLE_XAWPLUS_APPS
+AM_CPPFLAGS=$(GLUT_CFLAGS) \
+	-DHAVE_XAWPLUS $(XAWPLUS_CFLAGS) \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/unix 
+else
 AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/unix
+	-I$(top_srcdir)/unix 
+endif
 AM_LDFLAGS= 
 
 if HAVE_GLUT_LIBS
 bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
+if ENABLE_XAWPLUS_APPS
 nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(GLUT_LIBS) \
-	-lXt -lXext -lXaw
+	$(GLUT_LIBS) -lXt -lXext -lXaw $(XAWPLUS_LIBS) -lXawPlus
+else
+nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+	$(GLUT_LIBS) -lXt -lXext -lXaw
+endif
 nmovie_LDFLAGS=$(X_LIBS)
 else
 bin_PROGRAMS=
