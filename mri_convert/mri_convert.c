@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/01 20:17:47 $
-// Revision       : $Revision: 1.132 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/11/07 00:19:26 $
+// Revision       : $Revision: 1.133 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
   char template_type_string[STRLEN];
   char reslice_like_name[STRLEN];
   int reslice_like_flag;
-  int frame_flag;
+  int frame_flag, mid_frame_flag;
   int frame;
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.132 2006/11/01 20:17:47 nicks Exp $", "$Name:  $",
+     "$Id: mri_convert.c,v 1.133 2006/11/07 00:19:26 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
   subject_name[0] = '\0';
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
+  mid_frame_flag = FALSE;
   transform_flag = FALSE;
   smooth_parcellation_flag = FALSE;
   in_like_flag = FALSE;
@@ -253,7 +254,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
      argc, argv,
-     "$Id: mri_convert.c,v 1.132 2006/11/01 20:17:47 nicks Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.133 2006/11/07 00:19:26 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -816,6 +817,10 @@ int main(int argc, char *argv[])
           get_ints(argc, argv, &i, &frame, 1);
           frame_flag = TRUE;
         }
+      else if(strcmp(argv[i], "--mid-frame") == 0)        {
+	frame_flag = TRUE;
+	mid_frame_flag = TRUE;
+      }
       else if(strcmp(argv[i], "-il") == 0 || strcmp(argv[i], "--in_like") == 0)
         {
           get_string(argc, argv, &i, in_like_name);
@@ -2158,6 +2163,8 @@ int main(int argc, char *argv[])
   if(out_stats_flag) MRIprintStats(mri, stdout);
 
   if(frame_flag == TRUE){
+    if(mid_frame_flag == TRUE) frame = nint(mri->nframes/2);
+    printf("keeping frame %d\n",frame);
     nskip = frame;
     ndrop = mri->nframes - (frame+1);
   }
@@ -2395,8 +2402,6 @@ void usage(FILE *stream)
   fprintf(stream, "  -ois, --out_i_size <size>\n");
   fprintf(stream, "  -ojs, --out_j_size <size>\n");
   fprintf(stream, "  -oks, --out_k_size <size>\n");
-  fprintf(stream, " --nskip n : skip the first n frames\n");
-  fprintf(stream, " --ndrop n : drop the last n frames\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -oid, --out_i_direction "
           "<R direction> <A direction> <S direction>\n");
@@ -2585,7 +2590,10 @@ void usage(FILE *stream)
   printf("  -sn, --subject_name\n");
   printf("  -rl, --reslice_like\n");
   printf("  -tt, --template_type <type> (see above)\n");
-  printf("  -f,  --frame : keep only 0-based frame number\n");
+  printf("  -f,  --frame frameno : keep only 0-based frame number\n");
+  printf("  --mid-frame : keep only the middle frame\n");
+  printf("  --nskip n : skip the first n frames\n");
+  printf("  --ndrop n : drop the last n frames\n");
   printf("  -sc, --scale factor : input intensity scale factor\n") ;
   printf("  -osc, --out-scale factor : output intensity scale factor\n") ;
   printf("  -il, --in_like\n");
