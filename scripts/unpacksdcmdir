@@ -16,6 +16,7 @@ proc PrintUsage { } {
   puts "  -noinfodump : do not create infodump file"
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
+  puts "  -log file : explicilty set log file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
   puts "  -no-unpackerr     : do not try to unpack runs with errors"
   puts ""
@@ -92,6 +93,10 @@ puts "     can be useful for specifying the unpacking rules and for checking"
 puts "     the error status of each run. It is not necessary to specify "
 puts "     unpacking rules (though source and target directories are still"
 puts "     necessary)."
+puts ""
+puts "  -log logfile"
+puts ""
+puts "     Explicitly set log file"
 puts ""
 puts "  -no-unpackerr"
 puts ""
@@ -348,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.14 2006/09/14 22:52:09 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.15 2006/11/07 05:12:18 greve Exp $}
 
 exit 1;
 
@@ -358,6 +363,7 @@ exit 1;
 proc ParseCommandLine { argc argv } {
   global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
   global scanfile nspmzeropad seqcfgfile unpackerr DoInfoDump;
+  global LogFile;
 
   set ntharg 0
   while  { $ntharg < $argc } {
@@ -400,6 +406,12 @@ proc ParseCommandLine { argc argv } {
       -seqcfg {
         if { $nargrem < 1 } { ArgNError $option 1 }
         set seqcfgfile [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -log {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set LogFile [lindex $argv $ntharg];
         incr ntharg 1
       }
 
@@ -782,6 +794,7 @@ set scanonly 0
 set nspmzeropad 3
 set unpackerr 1
 set DoInfoDump 1
+set LogFile ""
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 
@@ -821,14 +834,17 @@ set StartTime [exec date];
 puts $StartTime;
 
 # Create a Log File #
-set LogFile "$targdir/unpack.log"
+if { [llength $LogFile] == 0 } {
+  set LogFile "$targdir/unpack.log"
+}
+puts "Log File is $LogFile";
 if [catch {open $LogFile w} LF] {
   puts "Cannot open $LogFile";
   exit 1;
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.14 2006/09/14 22:52:09 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.15 2006/11/07 05:12:18 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
