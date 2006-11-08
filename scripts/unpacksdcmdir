@@ -353,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.17 2006/11/08 07:12:13 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.18 2006/11/08 07:35:42 greve Exp $}
 
 exit 1;
 
@@ -847,11 +847,13 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.17 2006/11/08 07:12:13 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.18 2006/11/08 07:35:42 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
 puts $LF "$argv"
+puts $LF "SkipMoCo $SkipMoCo";
+puts "SkipMoCo $SkipMoCo";
 
 puts [pwd];
 
@@ -1152,8 +1154,16 @@ foreach runcfg $unpackcfg {
   }
 
   set DCMFile  [lindex $Series  1];
+  set DCMSource [format "%s/%s" $dicomdir $DCMFile];
+  if { ! [file exists $DCMSource ] } {
+    puts "ERROR: cannot find $DCMSource"
+    exit 1;
+  }
+
   if { $SkipMoCo } {
-    set err [catch {exec mri_probedicom --i $DCMFile --t 8 103e} SeriesDescription];
+    set err [catch {exec mri_probedicom --i $DCMSource --t 8 103e} SeriesDescription];
+    puts $LF "Series Description $SeriesDescription";
+    puts "Series Description $SeriesDescription";
     if { ! $err } {
         if { ! [string compare $SeriesDescription MoCoSeries ] } {
 	    puts $LF "INFO: this run is MoCo, skipping";
@@ -1173,12 +1183,6 @@ foreach runcfg $unpackcfg {
   puts $LF "Files In Run: ---------------"
   puts $LF $FilesInRun;
   puts $LF "-----------------------------"
-
-  set DCMSource [format "%s/%s" $dicomdir $DCMFile];
-  if { ! [file exists $DCMSource ] } {
-    puts "ERROR: cannot find $DCMSource"
-    exit 1;
-  }
 
   set VolRes [GetVolRes $DCMSource];
 
