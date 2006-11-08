@@ -33,7 +33,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.11 2005/06/16 19:40:45 nicks Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.12 2006/11/08 01:46:38 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -89,6 +89,8 @@ int ImageWidth;
 int ImageHeight;
 GLubyte *ImageBuff;
 
+int DoPatientName = 1;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -102,7 +104,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.11 2005/06/16 19:40:45 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.12 2006/11/08 01:46:38 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -265,6 +267,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
+    else if (!strcasecmp(option, "--no-name")) DoPatientName = 0;
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i")){
@@ -360,6 +363,7 @@ static void print_usage(void)
   fprintf(stdout, "   --i dicomfile     : path to dicom file \n");
   fprintf(stdout, "   --t group element : dicom group and element\n");
   fprintf(stdout, "   --d directive     : <val> filetype, tag, desc, mult, rep \n");
+  fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
   fprintf(stdout, "   --o file          : dump binary pixel data into file  \n");
   fprintf(stdout, "   --ob stem         : dump binary pixel data into bshort  \n");
@@ -416,6 +420,10 @@ static void print_help(void)
 "        desc - description of the item.\n"
 "        mult - multiplicity\n"
 "        rep  - representation\n"
+"\n"
+"  --no-name\n"
+"\n"
+"Do not do not print patient name (10,10) with the basic set of information.\n"
 "\n"
 "  --view\n"
 "\n"
@@ -706,6 +714,13 @@ int PartialDump(char *dicomfile, FILE *fp)
   FreeElementData(e); free(e);
   }
 
+  // This should be "MoCoSeries" for on-scanner motion cor
+  e = GetElementFromFile(dicomfile, 0x8, 0x103e);
+  if(e != NULL){
+  fprintf(fp,"SeriesDescription %s\n",e->d.string);
+  FreeElementData(e); free(e);
+  }
+
   e = GetElementFromFile(dicomfile, 0x20, 0xd);
   if(e != NULL){
   fprintf(fp,"StudyUID %s\n",e->d.string);
@@ -724,10 +739,12 @@ int PartialDump(char *dicomfile, FILE *fp)
   FreeElementData(e); free(e);
   }
 
-  e = GetElementFromFile(dicomfile, 0x10, 0x10);
-  if(e != NULL){
-  fprintf(fp,"PatientName %s\n",e->d.string);
-  FreeElementData(e); free(e);
+  if(DoPatientName){
+    e = GetElementFromFile(dicomfile, 0x10, 0x10);
+    if(e != NULL){
+      fprintf(fp,"PatientName %s\n",e->d.string);
+      FreeElementData(e); free(e);
+    }
   }
 
   e = GetElementFromFile(dicomfile, 0x20, 0x11);
