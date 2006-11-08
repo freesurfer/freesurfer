@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.28 2006/10/20 03:38:41 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.29 2006/11/08 01:32:07 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.28 2006/10/20 03:38:41 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.29 2006/11/08 01:32:07 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -636,7 +636,8 @@ for slice = firstslice:lastslice
     fprintf(1,'  Saving data to %s \n',fname);
   end
   fmri_svbfile(tmp,fname);
-
+  if(s.UseMRIread) fast_svbhdr(mristruct,hstem,1); end
+    
   % Save the mean image %
   if(RmBaseline)
     hoffset = reshape(hhat(NTaskAvgs+1,:), [nrows ncols]); % From 1st Run
@@ -647,6 +648,8 @@ for slice = firstslice:lastslice
       fprintf(1,'  Saving offset to %s \n',fname);
     end
     fmri_svbfile(hoffset,fname);
+    stem = sprintf('%s-offset',hstem);
+    if(s.UseMRIread) fast_svbhdr(mristruct,stem,1); end
   end
 
   % Save Percent Signal Chanage %
@@ -703,6 +706,7 @@ for slice = firstslice:lastslice
       fname = sprintf('%s_%03d.bfloat',fomnibusstem,slice);
       tmp = reshape(F,[nrows ncols]);
       fmri_svbfile(tmp,fname);
+      if(s.UseMRIread) fast_svbhdr(mristruct,fomnibusstem,1); end
     end
     if(~isempty(pomnibusstem))
       if(slice == firstslice | s.debug)
@@ -720,6 +724,7 @@ for slice = firstslice:lastslice
       tmp = reshape(p,[nrows ncols]);
       fname = sprintf('%s_%03d.bfloat',pomnibusstem,slice);
       fmri_svbfile(tmp,fname);
+      if(s.UseMRIread) fast_svbhdr(mristruct,pomnibusstem,1); end
     end
   end
 
