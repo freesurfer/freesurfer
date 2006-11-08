@@ -353,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.16 2006/11/08 02:05:13 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.17 2006/11/08 07:12:13 greve Exp $}
 
 exit 1;
 
@@ -847,7 +847,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.16 2006/11/08 02:05:13 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.17 2006/11/08 07:12:13 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1187,6 +1187,13 @@ foreach runcfg $unpackcfg {
   set SliceRes [lindex $VolRes 2];
   puts $LF "VolRes: $ColRes $RowRes $SliceRes";
 
+  # OK, now make output directory
+  set err [catch {file mkdir $OutDir}];
+  if { $err } {
+    puts "ERROR: could not make $OutDir"
+    exit 1;
+  }
+
   # Create the seq.info file if using FS-FAST sorting #
   if { ! [string compare $sortmethod fsfast ] } {
     set SeqInfo [format "%s/%s/seq.info" $targdir $SubDir];
@@ -1205,13 +1212,6 @@ foreach runcfg $unpackcfg {
       puts $SeqInfoId "ntrs $NFrames";
       puts $SeqInfoId "TR   $TR";
     }
-  }
-
-  # OK, now make output directory
-  set err [catch {file mkdir $OutDir}];
-  if { $err } {
-    puts "ERROR: could not make $OutDir"
-    exit 1;
   }
 
   if { $DoInfoDump } {
