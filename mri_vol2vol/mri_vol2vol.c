@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $
+  $Id: mri_vol2vol.c,v 1.28 2006/11/08 22:16:48 greve Exp $
 
 */
 
@@ -21,6 +21,7 @@ mri_vol2vol
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
   --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
+  --s subject         : set matrix = identity and use subject for any templates
 
   --inv               : sample from targ to mov
 
@@ -390,7 +391,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.28 2006/11/08 22:16:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -456,12 +457,12 @@ int main(int argc, char **argv)
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv, 
-			  "$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $", 
+			  "$Id: mri_vol2vol.c,v 1.28 2006/11/08 22:16:48 greve Exp $", 
 			  "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv, 
-				"$Id: mri_vol2vol.c,v 1.27 2006/11/03 19:02:31 greve Exp $",
+				"$Id: mri_vol2vol.c,v 1.28 2006/11/08 22:16:48 greve Exp $",
 				"$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -724,6 +725,12 @@ static int parse_commandline(int argc, char **argv)
       err = regio_read_register(regfile, &subject, &ipr, &bpr, 
 				&intensity, &R, &float2int);
       if(err) exit(1);
+      nargsused = 1;
+    }
+    else if(istringnmatch(option, "--s",0)){
+      if(nargc < 1) argnerr(option,1);
+      subject = pargv[0]; 
+      R = MatrixIdentity(4,NULL);
       nargsused = 1;
     }
     else if(istringnmatch(option, "--fsl",0) ||
@@ -1173,7 +1180,7 @@ static void check_options(void)
     printf("ERROR: cannot specify both --regheader and --reg.\n");
     exit(1);
   }
-  if(fstarg && regfile == NULL){
+  if(fstarg && regfile == NULL && subject == NULL){
     printf("ERROR: Need --reg with --fstarg.\n");
     exit(1);
   }
