@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.29 2006/11/08 01:32:07 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.30 2006/11/08 07:15:01 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.29 2006/11/08 01:32:07 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.30 2006/11/08 07:15:01 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -44,6 +44,10 @@ TimeOffset = s.TimeOffset;
 HanRadius = s.HanRad;
 AcqOrder = s.AcqOrder;
 SynthSeed = s.SynthSeed;
+
+% This only applys when using MRIread
+ext = getenv('FSF_OUTPUT_FORMAT');
+if(isempty(ext)) ext = 'mgh'; end
 
 parfilelist = s.parlist;
 
@@ -180,6 +184,10 @@ rstd.vol = zeros(rstd.volsize);
 %-----------------------------------------------------------------%
 %--------------- Beginning of Slice Loop -------------------------%
 %-----------------------------------------------------------------%
+hmri = mri;
+hoffsetmri = mri;
+Fmri = mri;
+pmri = mri;
 SumESSMtxRun = zeros(ntrs,ntrs,nruns);
 NBrainVoxsRun = zeros(nruns);
 SumESSMtx = 0;
@@ -631,12 +639,16 @@ for slice = firstslice:lastslice
   tmp = permute(tmp,[2 3 1]);
 
   % Save in selxavg format %
-  fname = sprintf('%s_%03d.bfloat',hstem,slice);
-  if(slice == firstslice | s.debug)
-    fprintf(1,'  Saving data to %s \n',fname);
+  if(~s.UseMRIread)
+    fname = sprintf('%s_%03d.bfloat',hstem,slice);
+    if(slice == firstslice | s.debug)
+      fprintf(1,'  Saving data to %s \n',fname);
+    end
+    fmri_svbfile(tmp,fname);
+    %if(s.UseMRIread) fast_svbhdr(mristruct,hstem,1); end
+  else
+    hmri.vol(:,:,slice+1,:) = tmp;
   end
-  fmri_svbfile(tmp,fname);
-  if(s.UseMRIread) fast_svbhdr(mristruct,hstem,1); end
     
   % Save the mean image %
   if(RmBaseline)
@@ -647,9 +659,13 @@ for slice = firstslice:lastslice
     if(slice == firstslice | s.debug)
       fprintf(1,'  Saving offset to %s \n',fname);
     end
-    fmri_svbfile(hoffset,fname);
-    stem = sprintf('%s-offset',hstem);
-    if(s.UseMRIread) fast_svbhdr(mristruct,stem,1); end
+    if(~s.UseMRIread)
+      fmri_svbfile(hoffset,fname);
+      stem = sprintf('%s-offset',hstem);
+      %if(s.UseMRIread) fast_svbhdr(mristruct,stem,1); end
+    else
+      hoffsetmri.vol(:,:,slice+1) = hoffset;
+    end
   end
 
   % Save Percent Signal Chanage %
@@ -705,8 +721,12 @@ for slice = firstslice:lastslice
     if(~isempty(fomnibusstem))
       fname = sprintf('%s_%03d.bfloat',fomnibusstem,slice);
       tmp = reshape(F,[nrows ncols]);
-      fmri_svbfile(tmp,fname);
-      if(s.UseMRIread) fast_svbhdr(mristruct,fomnibusstem,1); end
+      if(~s.UseMRIread) 
+	fmri_svbfile(tmp,fname);
+	%if(s.UseMRIread) fast_svbhdr(mristruct,fomnibusstem,1); end
+      else
+	Fmri.vol(:,:,slice+1) = tmp;
+      end
     end
     if(~isempty(pomnibusstem))
       if(slice == firstslice | s.debug)
@@ -722,9 +742,13 @@ for slice = firstslice:lastslice
       p(indz) = 1;
       p = sign(p).*(-log10(abs(p)));
       tmp = reshape(p,[nrows ncols]);
-      fname = sprintf('%s_%03d.bfloat',pomnibusstem,slice);
-      fmri_svbfile(tmp,fname);
-      if(s.UseMRIread) fast_svbhdr(mristruct,pomnibusstem,1); end
+      if(~s.UseMRIread) 
+	fname = sprintf('%s_%03d.bfloat',pomnibusstem,slice);
+	fmri_svbfile(tmp,fname);
+	%if(s.UseMRIread) fast_svbhdr(mristruct,pomnibusstem,1); end
+      else
+	pmri.vol(:,:,slice+1) = tmp;
+      end
     end
   end
 
@@ -762,6 +786,16 @@ for slice = firstslice:lastslice
 end % Loop over slices 
 %------------------------------------------------------------%
 
+if(s.UseMRIread)
+  fname = sprintf('%s.%s',hstem,ext);
+  MRIwrite(hmri,fname);
+  fname = sprintf('%s-offset.%s',hstem,ext);
+  MRIwrite(hoffsetmri,fname);
+  fname = sprintf('%s.%s',pomnibusstem,ext);
+  MRIwrite(pmri,fname);
+  fname = sprintf('%s.%s',fomnibusstem,ext);
+  MRIwrite(Fmri,fname);
+end
 
 outvolpath = fast_dirname(deblank(s.hvol));
 xfile = sprintf('%s/X.mat',outvolpath);
@@ -796,11 +830,11 @@ if(~isempty(s.ErrCovMtxStem))
   fmri_svbfile(ErrCovMtx,fname);
 end
 
-fname = sprintf('%s/rstd.mgh',outvolpath);
+fname = sprintf('%s/rstd.%s',outvolpath,ext);
 MRIwrite(rstd,fname);
 rvar = rstd;
 rvar.vol = rstd.vol.^2;
-fname = sprintf('%s/rvar.mgh',outvolpath);
+fname = sprintf('%s/rvar.%s',outvolpath,ext);
 MRIwrite(rvar,fname);
 
 % Save the .dat file %
