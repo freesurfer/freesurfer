@@ -353,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.15 2006/11/07 05:12:18 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.16 2006/11/08 02:05:13 greve Exp $}
 
 exit 1;
 
@@ -363,7 +363,7 @@ exit 1;
 proc ParseCommandLine { argc argv } {
   global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
   global scanfile nspmzeropad seqcfgfile unpackerr DoInfoDump;
-  global LogFile;
+  global LogFile, SkipMoCo;
 
   set ntharg 0
   while  { $ntharg < $argc } {
@@ -432,6 +432,8 @@ proc ParseCommandLine { argc argv } {
       -generic    { set sortmethod generic; }
       -infodump   { set DoInfoDump 1; }
       -noinfodump { set DoInfoDump 0; }
+      -skip-moco     { set SkipMoCo 1; }
+      -no-skip-moco  { set SkipMoCo 0; }
       -unpackerr    { set unpackerr 1; }
       -no-unpackerr { set unpackerr 0; }
       -noexec     { set noexec 1; }
@@ -794,6 +796,7 @@ set scanonly 0
 set nspmzeropad 3
 set unpackerr 1
 set DoInfoDump 1
+set SkipMoCo 0
 set LogFile ""
 
 if { $argc == 0 } { PrintUsage; exit 1;}
@@ -844,7 +847,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.15 2006/11/07 05:12:18 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.16 2006/11/08 02:05:13 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1110,11 +1113,6 @@ foreach runcfg $unpackcfg {
   } else {
     set OutDir [format "%s/%s" $targdir $SubDir];
   }
-  set err [catch {file mkdir $OutDir}];
-  if { $err } {
-    puts "ERROR: could not make $OutDir"
-    exit 1;
-  }
 
   set OutType {}
   set Fmt [string tolower $Fmt];
@@ -1154,6 +1152,16 @@ foreach runcfg $unpackcfg {
   }
 
   set DCMFile  [lindex $Series  1];
+  if { $SkipMoCo } {
+    set err [catch {exec mri_probedicom --i $DCMFile --t 8 103e} SeriesDescription];
+    if { ! $err } {
+        if { ! [string compare $SeriesDescription MoCoSeries ] } {
+	    puts $LF "INFO: this run is MoCo, skipping";
+	    puts "INFO: this run is MoCo, skipping";
+	    continue; 
+        }
+    }
+  }
   set NRows    [lindex $Series  6];
   set NCols    [lindex $Series  7];
   set NSlices  [lindex $Series  8];
@@ -1198,6 +1206,14 @@ foreach runcfg $unpackcfg {
       puts $SeqInfoId "TR   $TR";
     }
   }
+
+  # OK, now make output directory
+  set err [catch {file mkdir $OutDir}];
+  if { $err } {
+    puts "ERROR: could not make $OutDir"
+    exit 1;
+  }
+
   if { $DoInfoDump } {
     # Create an info dumpfile #
     set DumpFile "$OutDir/$Name-infodump.dat"
