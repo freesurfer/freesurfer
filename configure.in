@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.263 2006/11/06 23:29:03 nicks Exp $"
+# "$Id: configure.in,v 1.264 2006/11/09 02:31:03 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1822,6 +1822,7 @@ AC_OUTPUT([Makefile
                  mris_classify_thickness/Makefile
                  mris_compute_acorr/Makefile
                  mris_compute_overlap/Makefile
+                 mris_compute_parc_overlap/Makefile
                  mris_convert/Makefile
                  mris_curvature/Makefile
                  mris_curvature_stats/Makefile

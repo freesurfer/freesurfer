@@ -153,6 +153,7 @@ MRISSUBDIRS=label_area \
 	mris_classify_thickness \
 	mris_compute_acorr \
 	mris_compute_overlap \
+	mris_compute_parc_overlap \
 	mris_convert \
 	mris_curvature \
 	mris_curvature_stats \
