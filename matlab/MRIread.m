@@ -27,7 +27,7 @@ function mri = MRIread(fstring,headeronly)
 % If the input is NIFTI, then mri.niftihdr is the nifti header
 % If the input is ANALYZE, then mri.analyzehdr is the analyze header
 %
-% $Id: MRIread.m,v 1.13 2006/04/06 05:23:07 greve Exp $
+% $Id: MRIread.m,v 1.14 2006/11/09 00:24:21 greve Exp $
 
 mri = [];
 
@@ -45,6 +45,7 @@ end
 
 mri.srcbext = '';    % empty be default
 mri.analyzehdr = []; % empty be default
+mri.bhdr = []; % empty be default
 
 %-------------- MGH ------------------------%
 switch(fmt)
@@ -94,6 +95,7 @@ switch(fmt)
   flip_angle = bmri.flip_angle;
   te = bmri.te;
   ti = bmri.ti;
+  mri.bhdr = bmri;
 %------- analyze -------------------------------------   
  case {'img'}
   hdr = load_analyze(fspec,headeronly);
