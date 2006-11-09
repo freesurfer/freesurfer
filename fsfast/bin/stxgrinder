@@ -5,7 +5,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set STXGRINDER_VER = '\$Id: stxgrinder,v 1.2 2003/07/28 13:24:45 greve Exp $';
+set STXGRINDER_VER = '\$Id: stxgrinder,v 1.3 2006/11/09 20:45:34 greve Exp $';
 
 # Set Default Values #
 set firstslice = ();
@@ -314,17 +314,19 @@ end
 
 if(! $monly ) then
   rm -f $MLF
-  set inbhdr = $instem.bhdr
-  if(-e $inbhdr) then
-    if($#outstem != 0)   cp $inbhdr $outstem.bhdr
-    if($#pminstem != 0)  cp $inbhdr $pminstem.bhdr
-    if($#ipminstem != 0) cp $inbhdr $ipminstem.bhdr
-    if($#statstem != 0)  cp $inbhdr $statstem.bhdr
-    if($#fstatstem != 0) cp $inbhdr $fstatstem.bhdr
-    if($#fsigstem != 0)  cp $inbhdr $fsigstem.bhdr
-    if($#cesstem != 0)   then
-      cp $inbhdr $cesstem.bhdr
-      cp $inbhdr $cesstem"pct".bhdr
+  if(! $UseMRIread) then  
+    set inbhdr = $instem.bhdr
+    if(-e $inbhdr) then
+      if($#outstem != 0)   cp $inbhdr $outstem.bhdr
+      if($#pminstem != 0)  cp $inbhdr $pminstem.bhdr
+      if($#ipminstem != 0) cp $inbhdr $ipminstem.bhdr
+      if($#statstem != 0)  cp $inbhdr $statstem.bhdr
+      if($#fstatstem != 0) cp $inbhdr $fstatstem.bhdr
+      if($#fsigstem != 0)  cp $inbhdr $fsigstem.bhdr
+      if($#cesstem != 0)   then
+        cp $inbhdr $cesstem.bhdr
+        cp $inbhdr $cesstem"pct".bhdr
+      endif
     endif
   endif
 endif
