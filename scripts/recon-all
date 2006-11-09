@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.44 2006/11/09 17:14:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.45 2006/11/09 17:34:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -58,8 +58,8 @@ set WMSeg_ghi = ();
 set FixWithGA = 1;   # for topology fixer
 set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
-set UseCAAlign = (-align); # flag added to mri_ca_register
-set UseCAAlignAfter = (-align-after); # flag added to mri_ca_label
+set UseCAAlign = (-align); # flag added to mri_ca_label
+set UseCAAlignAfter = (-align-after); # flag added to mri_ca_register
 set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
@@ -679,7 +679,7 @@ if($DoCAReg) then
 
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
-  set cmd = ($cmd $UseCAAlign)
+  set cmd = ($cmd $UseCAAlignAfter)
   if($UnCompress) set cmd = ($cmd -uncompress)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
@@ -766,7 +766,7 @@ if($DoCALabel) then
 
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label)
-  set cmd = ($cmd $UseCAAlignAfter)
+  set cmd = ($cmd $UseCAAlign)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   set cmd = ($cmd $xopts norm.mgz \
@@ -2660,7 +2660,8 @@ usage_exit:
   echo "  -seg-wlo wlo : set wlo value for mri_segment"
   echo "  -seg-ghi ghi : set ghi value for mri_segment"
   echo "  -nothicken   : pass '-thicken 0' to mri_segment"
-  echo "  -no-ca-align : turn off -align with mri_ca_{register,label}. "
+  echo "  -no-ca-align-after : turn off -align-after with mri_ca_register"
+  echo "  -no-ca-align : turn off -align with mri_ca_label"
   echo "  -deface      : deface subject, written to orig_defaced.mgz"
   echo ""
   echo "  -expert file     : read-in expert options file"
