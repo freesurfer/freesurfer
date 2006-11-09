@@ -140,13 +140,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.76 2006/10/25 01:19:47 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.77 2006/11/09 14:08:48 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.76 2006/10/25 01:19:47 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.77 2006/11/09 14:08:48 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -960,7 +960,8 @@ get_option(int argc, char *argv[])
 		nargs = 1 ;
 	}
   else if (!stricmp(option, "align-cross-sequence") ||
-           !stricmp(option, "align"))
+           !stricmp(option, "align") ||
+           !stricmp(option, "align-after"))
 	{
 		regularize = .5 ;
 		regularize_mean = 0.5 ;
