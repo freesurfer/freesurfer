@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.8 2006/11/09 20:45:05 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.9 2006/11/09 20:56:29 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -23,9 +23,16 @@ ncontrasts = size(contrasts,1);
 
 fprintf('\n\n');
 if(~exist('UseMRIread')) UseMRIread=0; end
-fprintf('UseMRIread = %d\n',UseMRIread);
+
+% Get the output extension
 ext = getenv('FSF_OUTPUT_FORMAT');
-if(isempty(ext)) ext = 'mgh'; end
+if(~isempty(ext)) 
+  UseMRIread = 1;
+else
+  ext = 'bhdr'; 
+end
+fprintf('UseMRIread = %d, ext = %s\n',UseMRIread,ext);
+
 
 for nthsess = 1:nsess
   sessdir = deblank(SessList(nthsess,:));

@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.31 2006/11/09 20:27:46 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.32 2006/11/09 20:56:29 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.31 2006/11/09 20:27:46 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.32 2006/11/09 20:56:29 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -15,6 +15,16 @@ end
 %% Parse the arguments %%
 s = parse_args(varargin);
 if(isempty(s)) return; end
+
+% Get the output extension
+ext = getenv('FSF_OUTPUT_FORMAT');
+if(~isempty(ext)) 
+  s.UseMRIread = 1;
+else
+  ext = 'bhdr'; 
+end
+fprintf('UseMRIread = %d, ext = %s\n',s.UseMRIread,ext);
+
 s = check_params(s);
 if(isempty(s)) return; end
 
@@ -45,9 +55,6 @@ HanRadius = s.HanRad;
 AcqOrder = s.AcqOrder;
 SynthSeed = s.SynthSeed;
 
-% This only applys when using MRIread
-ext = getenv('FSF_OUTPUT_FORMAT');
-if(isempty(ext)) ext = 'mgh'; end
 
 parfilelist = s.parlist;
 
