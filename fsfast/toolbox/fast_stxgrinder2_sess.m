@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.6 2006/10/20 05:21:48 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.7 2006/11/09 00:53:22 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -22,6 +22,10 @@ nhemi = size(hemi,1);
 ncontrasts = size(contrasts,1);
 
 fprintf('\n\n');
+if(~exist('UseMRIread')) UseMRIread=0; end
+fprintf('UseMRIread = %d\n',UseMRIread);
+ext = getenv('FSF_OUTPUT_FORMAT');
+if(isempty(ext)) ext = 'mgh'; end
 
 for nthsess = 1:nsess
   sessdir = deblank(SessList(nthsess,:));
@@ -47,14 +51,23 @@ for nthsess = 1:nsess
     hstem = sprintf('%s/h%s',sessanadir,hemicode);
     h0stem = sprintf('%s/h%s-offset',sessanadir,hemicode);
 
-    % get the dim
-    [nrows ncols nframes fs nslices endian bext] = fmri_bfiledim(hstem);
-    if(isempty(nrows))
-      fprintf('ERROR: loading %s\n',hstem);
-      return;
-    end
 
-    mristruct = fast_ldbhdr(hstem);
+    % get the dim
+    if(~UseMRIread)
+      [nrows ncols nframes fs nslices endian bext] = fmri_bfiledim(hstem);
+      if(isempty(nrows))
+	fprintf('ERROR: loading %s\n',hstem);
+	return;
+      end
+      mristruct = fast_ldbhdr(hstem);
+    else
+      hmri = MRIread(hstem,1);
+      nrows = hmri.volsize(1);
+      ncols = hmri.volsize(2);
+      nslices = hmri.volsize(3);
+      nframes = hmri.nframes;
+      mristruct = hmri.bhdr;
+    end
 
     % Contrast Loop
     for c = 1:ncontrasts
@@ -81,12 +94,26 @@ for nthsess = 1:nsess
       slice = 0;
       hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
       [beta rvar hd] = fast_ldsxabfile(hAvgFile);
+
       Ch = hd.hCovMtx;
       concvm = C*Ch*C';
       convrf = 1/mean(diag(concvm));
       fprintf('     VRF: %g\n',convrf);
 	  
-      % Loop over each slice separately %
+      if(UseMRIread)
+	cesmri = hmri;
+	cespctmri  = hmri;
+	cesvarmri  = hmri;
+	tmri       = hmri;
+	sigmri     = hmri;
+	minsigmri  = hmri;
+	iminsigmri = hmri;
+	Fmri       = hmri;
+	Fsigmri    = hmri;
+      end
+      
+      
+      % ------ Loop over each slice separately ------- %
       fprintf('     slice ');
       for slice = 0:nslices-1
         fprintf('%d ',slice);
@@ -94,11 +121,20 @@ for nthsess = 1:nsess
 
         % Load beta %
 	if(~UseBetaVol)
-	  hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
-	  [beta rvar hd] = fast_ldsxabfile(hAvgFile);
-	  if(isempty(beta))
-	    fprintf('ERROR: loading %s\n',hAvgFile);
-	    return;
+	  if(~UseMRIread)
+	    hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
+	    [beta rvar hd] = fast_ldsxabfile(hAvgFile);
+	    if(isempty(beta))
+	      fprintf('ERROR: loading %s\n',hAvgFile);
+	      return;
+	    end
+	  else
+	    if(slice == 0) 
+	      [hvol rvarvol hd] = fast_ldsxavol(hstem); 
+	      if(isempty(hvol)) return; end
+	    end
+	    beta = squeeze(hvol.vol(:,:,slice+1,:));
+	    rvar = squeeze(rvarvol.vol(:,:,slice+1));
 	  end
 	  Ch = hd.hCovMtx;
 	  DOF = hd.DOF;
@@ -127,11 +163,19 @@ for nthsess = 1:nsess
         rvar(ind) = 10e10;
 
         % Load mean offset %
-        h0 = fast_ldbslice(h0stem,slice);
-        if(isempty(h0))
-          fprintf('ERROR: loading %s\n',h0stem);
-          return;
-        end
+	if(~UseMRIread)
+	  h0 = fast_ldbslice(h0stem,slice);
+	  if(isempty(h0))
+	    fprintf('ERROR: loading %s\n',h0stem);
+	    return;
+	  end
+	else
+	  if(slice == 0) 
+	    hoffsetvol = MRIread(h0stem);
+	    if(isempty(hoffsetvol)) return; end
+	  end
+	  h0 = squeeze(hoffsetvol.vol(:,:,slice+1,:));
+	end
         ind = find(h0==0);
         h0(ind) = 10e10;
         h0 = reshape(h0,[nv 1])';
@@ -173,26 +217,46 @@ for nthsess = 1:nsess
 	   ~strcmp(contrast,'zomnibus'))
           cesstem = sprintf('%s/ces%s',condir,hemicode);
           tmp = reshape(ces', [nrows ncols J]);
-          fast_svbslice(tmp,cesstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,cesstem,slice,'',mristruct);
+	  else
+	    cesmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           cespctstem = sprintf('%s/cespct%s',condir,hemicode);
           tmp = 100*(ces./repmat(h0,[J 1]));
           tmp = reshape(tmp', [nrows ncols J]);
-          fast_svbslice(tmp,cespctstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,cespctstem,slice,'',mristruct);
+	  else
+	    cespctmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           cesvarstem = sprintf('%s/cesvar%s',condir,hemicode);
           tmp = reshape(cesvar', [nrows ncols J]);
-          fast_svbslice(tmp,cesvarstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,cesvarstem,slice,'',mristruct);
+	  else
+	    cesvarmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           tstem = sprintf('%s/t%s',condir,hemicode);
           tmp = reshape(t', [nrows ncols J]);
-          fast_svbslice(tmp,tstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,tstem,slice,'',mristruct);
+	  else
+	    tmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           pstem = sprintf('%s/sig%s',condir,hemicode);
 	  tmp = p; indz = find(p==0); tmp(indz) = 1;
           tmp = -sign(tmp) .* log10(abs(tmp));
           tmp = reshape(tmp', [nrows ncols J]);
-          fast_svbslice(tmp,pstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,pstem,slice,'',mristruct);
+	  else
+	    sigmri.vol(:,:,slice+1,:) = tmp;
+	  end
         end
 
         % Handle multiple rows in C %
@@ -206,11 +270,19 @@ for nthsess = 1:nsess
 	  tmp = pmin; indz = find(pmin==0); tmp(indz) = 1;
           tmp = -sign(tmp) .* log10(abs(tmp));
           tmp = reshape(tmp', [nrows ncols 1]);
-          fast_svbslice(tmp,pminstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,pminstem,slice,'',mristruct);
+	  else
+	    minsigmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           iminstem = sprintf('%s/iminsig%s',condir,hemicode);
           tmp = reshape(imin', [nrows ncols 1]);
-          fast_svbslice(tmp,iminstem,slice,'bshort',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,iminstem,slice,'bshort',mristruct);
+	  else
+	    iminsigmri.vol(:,:,slice+1,:) = tmp;
+	  end
         end % Handle multiple rows in C
 
         % F-test
@@ -223,17 +295,53 @@ for nthsess = 1:nsess
 
           Fstem = sprintf('%s/f%s',condir,hemicode);
           tmp = reshape(F', [nrows ncols 1]);
-          fast_svbslice(tmp,Fstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,Fstem,slice,'',mristruct);
+	  else
+	    Fmri.vol(:,:,slice+1,:) = tmp;
+	  end
 
           Fsigstem = sprintf('%s/fsig%s',condir,hemicode);
 	  tmp = Fsig; indz = find(Fsig==0); tmp(indz) = 1;
           tmp = -log10(abs(tmp)); % dont adjust sign
           tmp = reshape(tmp', [nrows ncols 1]);
-          fast_svbslice(tmp,Fsigstem,slice,'',mristruct);
+	  if(~UseMRIread)
+	    fast_svbslice(tmp,Fsigstem,slice,'',mristruct);
+	  else
+	    Fsigmri.vol(:,:,slice+1,:) = tmp;
+	  end
         end % FTest
       end % slice
       fprintf('\n');
 
+      if(UseMRIread)
+        if(tTestSave & ~strcmp(contrast,'omnibus') & ...
+	   ~strcmp(contrast,'zomnibus'))
+	  fname = sprintf('%s/ces%s.%s',condir,hemicode,ext);
+	  MRIwrite(cesmri,fname);
+	  fname = sprintf('%s/cespct%s.%s',condir,hemicode,ext);
+	  MRIwrite(cespctmri,fname);
+	  fname = sprintf('%s/cesvar%s.%s',condir,hemicode,ext);
+	  MRIwrite(cesvarmri,fname);
+	  fname = sprintf('%s/t%s.%s',condir,hemicode,ext);
+	  MRIwrite(tmri,fname);
+	  fname = sprintf('%s/sig%s.%s',condir,hemicode,ext);
+	  MRIwrite(sigmri,fname);
+	end
+	if(J > 1)
+	  fname = sprintf('%s/minsig%s.%s',condir,hemicode,ext);
+	  MRIwrite(minsigmri,fname);
+	  fname = sprintf('%s/iminsig%s.%s',condir,hemicode,ext);
+	  MRIwrite(iminsigmri,fname);
+	end
+        if(DoFTest)
+	  fname = sprintf('%s/f%s.%s',condir,hemicode,ext);
+	  MRIwrite(Fmri,fname);
+	  fname = sprintf('%s/fsig%s.%s',condir,hemicode,ext);
+	  MRIwrite(Fsigmri,fname);
+	end
+      end
+      
     end % loop over contrasts      
 
   end % hemi
