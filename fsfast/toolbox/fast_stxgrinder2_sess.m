@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.7 2006/11/09 00:53:22 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.8 2006/11/09 20:45:05 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -91,15 +91,14 @@ for nthsess = 1:nsess
       J = size(C,1);
 
       % Compute variance reduction factor
-      slice = 0;
-      hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
-      [beta rvar hd] = fast_ldsxabfile(hAvgFile);
-
+      datfile = sprintf('%s.dat',hstem);
+      hd = fmri_lddat3(datfile);
+      if(isempty(hd)) return; end
       Ch = hd.hCovMtx;
       concvm = C*Ch*C';
       convrf = 1/mean(diag(concvm));
       fprintf('     VRF: %g\n',convrf);
-	  
+
       if(UseMRIread)
 	cesmri = hmri;
 	cespctmri  = hmri;
