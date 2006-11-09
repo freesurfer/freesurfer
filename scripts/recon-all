@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.43 2006/11/03 20:00:15 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.44 2006/11/09 17:14:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -58,7 +58,8 @@ set WMSeg_ghi = ();
 set FixWithGA = 1;   # for topology fixer
 set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
-set UseCAAlign = (-align-after); # flag added to mri_ca_register
+set UseCAAlign = (-align); # flag added to mri_ca_register
+set UseCAAlignAfter = (-align-after); # flag added to mri_ca_label
 set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
                      # is not used during the 2nd mri_normalize step
@@ -765,7 +766,7 @@ if($DoCALabel) then
 
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label)
-  set cmd = ($cmd $UseCAAlign)
+  set cmd = ($cmd $UseCAAlignAfter)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   set cmd = ($cmd $xopts norm.mgz \
@@ -1710,6 +1711,13 @@ while( $#argv != 0 )
       breaksw
     case "-no-ca-align":
       set UseCAAlign = ();
+      breaksw
+
+    case "-ca-align-after":
+      set UseCAAlignAfter = (-align-after);
+      breaksw
+    case "-no-ca-align-after":
+      set UseCAAlignAfter = ();
       breaksw
 
     case "-tessellate":
