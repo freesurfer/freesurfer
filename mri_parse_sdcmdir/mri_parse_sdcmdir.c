@@ -30,7 +30,7 @@ extern int isblank(int c);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.15 2006/05/15 21:35:29 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.16 2006/11/10 19:41:58 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -136,9 +136,11 @@ int main(int argc, char **argv)
   /* Assign run numbers to each file (count number of runs)*/
   if(sortbyrun){
     fprintf(stderr,"Assigning Run Numbers\n");
+    fflush(stderr);
     NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
     if(NRuns == 0){
       fprintf(stderr,"ERROR: sorting runs\n");
+      fflush(stderr);
       exit(1);
     }
   }
@@ -197,6 +199,8 @@ int main(int argc, char **argv)
 
   if(outfile != NULL) fclose(outstream);
 
+  fflush(stdout);fflush(stderr);
+  exit(0);
   return(0);
 }
 /*---------------------------------------------------------------*/
@@ -212,7 +216,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.15 2006/05/15 21:35:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.16 2006/11/10 19:41:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
