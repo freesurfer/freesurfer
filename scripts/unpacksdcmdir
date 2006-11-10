@@ -353,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.18 2006/11/08 07:35:42 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.19 2006/11/10 19:44:16 greve Exp $}
 
 exit 1;
 
@@ -847,7 +847,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.18 2006/11/08 07:35:42 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.19 2006/11/10 19:44:16 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -898,7 +898,7 @@ set ParsePipeDone 0
 set pct -1
 while { ! $ParsePipeDone } {
 
-   after 1000; # Give status every one second
+   after 10; # Give status every 10 milisecond
 
    set ParsePipeDone [ReadParsePipe $ParsePipeId];
 
