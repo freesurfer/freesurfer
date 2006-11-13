@@ -25,7 +25,6 @@
 #ifndef APIENTRY
 #define APIENTRY
 #endif
-//include "GL/osmesa.h"
 #endif
 
 #include "rgb_image.h"
@@ -42,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.33 2005/06/08 19:45:07 nicks Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.34 2006/11/13 17:50:22 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -190,7 +189,7 @@ main(int argc, char *argv[])
   unsigned char   *rgb=NULL;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.33 2005/06/08 19:45:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.34 2006/11/13 17:50:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
