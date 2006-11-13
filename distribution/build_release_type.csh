@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.75 2006/10/12 19:25:13 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.76 2006/11/13 18:13:50 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -17,8 +17,8 @@ set STABLE_VER_NUM="v3.0.4"
 set STABLE_PUB_VER_NUM="v3.0.4"
 
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
@@ -76,7 +76,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set GSLDIR=/usr/pubsw/packages/gsl/1.6
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.4.0
+  set VXLDIR=/usr/pubsw/packages/vxl/1.6.0
   unsetenv QTDIR
   unsetenv FSLDIR
   if (-e /usr/pubsw/packages/fsl/3.2b) then

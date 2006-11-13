@@ -1,6 +1,6 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.16 2006/07/25 16:41:54 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.17 2006/11/13 18:13:50 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -46,6 +46,11 @@ else if ("$PLATFORM" == "tiger") then
         echo "must run on machine storm"
         exit 1
     endif
+else if ("$PLATFORM" == "tiger-i686") then
+    if ("${HOSTNAME}" != "sleet" ) then
+        echo "must run on machine sleet"
+        exit 1
+    endif
 else if ("$PLATFORM" == "panther") then
     if ("${HOSTNAME}" != "rain" ) then
         echo "must run on machine rain"
@@ -54,7 +59,7 @@ else if ("$PLATFORM" == "panther") then
 else
     echo "Usage:"
     echo "$0 <platform> <release_type>"
-    echo "where <platform> is rh7.3, rh9, centos4, centos4_x86_64, tiger or panther"
+    echo "where <platform> is rh7.3, rh9, centos4, centos4_x86_64, tiger, tiger-i686 or panther"
     echo "and <release_type> is either dev, or stable-pub"
     exit 1
 endif
@@ -67,7 +72,7 @@ endif
 echo "cd ${LOCAL_FS}"
 cd ${LOCAL_FS}
 
-if ( ("$PLATFORM" == "tiger") || ( "$PLATFORM" == "panther") ) then
+if ( ("$PLATFORM" == "tiger") || ("$PLATFORM" == "tiger-i686") || ( "$PLATFORM" == "panther") ) then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
   echo "cp -r $RELEASE_TYPE /Users/Shared/tmp"
