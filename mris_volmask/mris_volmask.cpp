@@ -104,10 +104,9 @@ struct IoParams
   StringType  subject;
 
   StringType  templateMri;
-  StringType  surfLeftWhite;
-  StringType  surfLeftPial;
-  StringType  surfRightWhite;
-  StringType  surfRightPial;
+  StringType  surfWhiteRoot;
+  StringType  surfPialRoot;
+
   StringType  outRoot;
 
   unsigned char labelLeftWhite;
@@ -325,6 +324,8 @@ IoParams::IoParams()
   bSaveRibbon = false;
 
   outRoot = "ribbon";
+  surfWhiteRoot = "white";
+  surfPialRoot = "pial";
 }
 
 void
@@ -350,22 +351,14 @@ IoParams::parse(int ac, char* av[])
 
  
   interface.AddOptionBool( "help", &showHelp, " display help message");
-  interface.AddOptionString( "subject", &subject,
-			     " target subject - if present, this option will automatically select the concerned files");
-  interface.AddOptionString( (ssurf+sl+sw).c_str(), &surfLeftWhite,
+  interface.AddOptionString( (ssurf+sw).c_str(), &surfWhiteRoot,
 			     (strUse + " - default value is $subject/surf/lh.white").c_str() 
 			     );
-  interface.AddOptionString( (ssurf+sl+"pial").c_str(), &surfLeftPial,
+  interface.AddOptionString( (ssurf+"pial").c_str(), &surfPialRoot,
 			     (strUse + " - default value is $subject/surf/lh.pial").c_str() 
 			     );
-  interface.AddOptionString( (ssurf+sr+sw).c_str(), &surfRightWhite,
-			     (strUse + " - default value is $subject/surf/rh.white").c_str()
-			     );
-  interface.AddOptionString( (ssurf+sr+"pial").c_str(), &surfRightPial,
-			     (strUse + " - default value is $subject/surf/rh.pial").c_str()
-			     );
   interface.AddOptionString( "out_root", &outRoot,
-			     " default value is ribbon - output will then be mri/ribbon.mgz , mri/lh.ribbon.mgz and mri/rh.ribbon.mgz"
+			     " default value is ribbon - output will then be mri/ribbon.mgz and  mri/lh.ribbon.mgz and mri/rh.ribbon.mgz (last 2 if -save_ribbon is used)"
 			     );
   interface.AddOptionInt( (slbl+"background").c_str(), &iBackground,
 			  " override default value for background label value (0)"
@@ -391,11 +384,11 @@ IoParams::parse(int ac, char* av[])
   interface.AddOptionBool( "save_ribbon", &bSaveRibbon,
 			   " option to save just the ribbon for the hemispheres - in the format ?h.outRoot.mgz"
 			   );
+  interface.AddIoItem(&subject, " subject");
 
   interface.Parse(ac,av);
   if ( showHelp )
     {
-      interface.PrintHelp();
       exit(0);
     }
 
@@ -403,8 +396,8 @@ IoParams::parse(int ac, char* av[])
   labelLeftRibbon = (unsigned char)(iLeftRibbon);
   labelRightWhite = (unsigned char)(iRightWhite);
   labelRightRibbon = (unsigned char)(iRightRibbon);
-  labelBackground = (unsigned char)(iBackground);
-
+  labelBackground = (unsigned char)(iBackground);	 
+  
 }
 
 
@@ -440,17 +433,6 @@ LoadInputFiles(const IoParams& params,
       pathMriInput = subjDir / "mri" / "orig.mgz";
 
       pathOutput = subjDir / "mri";
-    }
-  else // application is in "advanced" mode, i.e. all files are specified manually
-    {
-      std::string initial( fsenv->cwd );
-      pathSurfLeftWhite  = initial / params.surfLeftWhite;
-      pathSurfLeftPial   = initial / params.surfLeftPial;
-      pathSurfRightWhite = initial / params.surfRightWhite;
-      pathSurfRightPial  = initial / params.surfRightPial;
-      pathMriInput       = initial / params.templateMri;
-
-      pathOutput = initial;
     }
 
   FSENVfree(&fsenv);
