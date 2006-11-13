@@ -1,7 +1,6 @@
 #
 # Makefile.am
 #
-# license files should be copied over to the install directory
 
 foodir=$(prefix)/docs
 foo_DATA=license.freesurfer \
@@ -12,6 +11,7 @@ foo_DATA=license.freesurfer \
 	license.tix \
 	license.slicer \
 	license.swig \
+	license.togl \
 	license.vxl
 
 EXTRA_DIST=$(foo_DATA)
