@@ -62,6 +62,8 @@ freesurfer/fsl/lib/tkConfig.sh
 freesurfer/fsl/lib/tcl8.4
 freesurfer/fsl/lib/tix8.1
 freesurfer/fsl/lib/tk8.4
+freesurfer/fsl/lib/fslview
+freesurfer/fsl/bin/fslview
 freesurfer/grad_unwarp_tables
 freesurfer/average/HPMarch022005_ras.mgz
 freesurfer/average/RB40_talairach_2005_12_30.gca
