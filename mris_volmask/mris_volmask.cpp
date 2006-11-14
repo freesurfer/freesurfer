@@ -345,17 +345,17 @@ IoParams::parse(int ac, char* av[])
     iBackground(labelBackground);
 
 
-  std::string strUse =  " useless if the subject option is present";
+  std::string strUse =  " surface root name (i.e. <subject>/surf/$hemi.<NAME>";
   CCmdLineInterface interface(av[0]);
   bool showHelp(false);
 
  
   interface.AddOptionBool( "help", &showHelp, " display help message");
   interface.AddOptionString( (ssurf+sw).c_str(), &surfWhiteRoot,
-			     (strUse + " - default value is $subject/surf/lh.white").c_str() 
+			     (strUse + " - default value is white").c_str() 
 			     );
   interface.AddOptionString( (ssurf+"pial").c_str(), &surfPialRoot,
-			     (strUse + " - default value is $subject/surf/lh.pial").c_str() 
+			     (strUse + " - default value is pial").c_str() 
 			     );
   interface.AddOptionString( "out_root", &outRoot,
 			     " default value is ribbon - output will then be mri/ribbon.mgz and  mri/lh.ribbon.mgz and mri/rh.ribbon.mgz (last 2 if -save_ribbon is used)"
@@ -385,6 +385,18 @@ IoParams::parse(int ac, char* av[])
 			   " option to save just the ribbon for the hemispheres - in the format ?h.outRoot.mgz"
 			   );
   interface.AddIoItem(&subject, " subject");
+
+  // if ac == 0, then print complete help
+  if ( ac == 1 )
+    {
+      std::cout << " Summary Description : \n\n"
+		<< " Computes a volume mask, at the same resolution as the <subject>/mri/brain.mgz.\n"
+		<< " The volume mask contains 4 values: LH_WM (default 10), LH_GM (default 100), RH_WM (default 20), RH_GM(default 200)\n"
+		<< " The algorithm uses the 4 surfaces situated in <subject>/surf/[lh|rh].[white|pial].surf and labels voxels based on the signed-distance function from the surface.\n";
+      interface.PrintHelp();
+      exit(0);
+    }
+
 
   interface.Parse(ac,av);
   if ( showHelp )

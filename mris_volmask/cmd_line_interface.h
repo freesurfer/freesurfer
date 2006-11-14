@@ -110,7 +110,7 @@ class CCmdLineOption
   {
     char chBuf[10];
     sprintf(chBuf, "%d", m_iPars);
-    std::string strBuf = m_strOption + "\t pars = " + chBuf + "\t" + m_strHelp;
+    std::string strBuf = std::string("--") + m_strOption + "\t pars = " + chBuf + "\t" + m_strHelp;
     return strBuf;
   }
 
@@ -159,7 +159,7 @@ public:
   {
     char chBuf[10];
     sprintf(chBuf, "%d", m_iPars);
-    std::string strBuf = m_strOption + "\t" + m_strHelp;
+    std::string strBuf = std::string("--") + m_strOption + "\t" + m_strHelp;
     return strBuf;
   }
     

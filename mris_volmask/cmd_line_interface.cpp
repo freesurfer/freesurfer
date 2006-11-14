@@ -116,10 +116,10 @@ CCmdLineInterface::Parse(int argc, char *argv[])
   argc--; // one arguments too many
   
   // parsing of the options
-  for ( ; argc > 0 && std::string(argv[1])[0]=='-'; argc--, argv++ )
+  for ( ; argc > 0 && std::string(argv[1]).substr(0,2)=="--"; argc--, argv++ )
     {
       int nargs = 0;
-      cpOption = argv[1]+1;
+      cpOption = argv[1]+2;
       
       list<CCmdLineOptionInt>::iterator cit_int = m_lstIntOption.begin();
       list<CCmdLineOptionFloat>::iterator cit_float = m_lstFloatOption.begin();
@@ -229,7 +229,8 @@ CCmdLineInterface::Parse(int argc, char *argv[])
 void 
 CCmdLineInterface::PrintHelp() const
 {
-  cout << "\n --------- \n PrintHelp for " << m_strProgName << "\n";
+  cout << "\n --------- \n PrintHelp for " << m_strProgName << "\n"
+       << " General syntax : " << m_strProgName << " <options> <io> " << std::endl;
 
   cout << " \n Options : \n";
   // start by printing the help messages that were entered for each of the options
