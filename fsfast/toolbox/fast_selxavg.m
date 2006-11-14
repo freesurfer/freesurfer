@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.33 2006/11/14 08:59:17 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.34 2006/11/14 09:11:47 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.33 2006/11/14 08:59:17 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.34 2006/11/14 09:11:47 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -275,9 +275,11 @@ for slice = firstslice:lastslice
       if(~s.UseMRIread)
 	[nslices nrows ncols ntrs] = fmri_bvoldim(instem);
       else
-	mri = MRIread(instem,1);
-	if(~isempty(mri)) ntrs = mri.nframes;
-	else              ntrs = 0;
+	if(slice == firstslice)
+	  mri = MRIread(instem,1);
+	  if(~isempty(mri)) ntrs = mri.nframes;
+	  else              ntrs = 0;
+	  end
 	end
       end
       if(ntrs == 0)
@@ -428,7 +430,9 @@ for slice = firstslice:lastslice
 	if(~s.UseMRIread)
 	  [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(instem);
 	else
-	  mri = MRIread(instem,1);
+	  if(slice == firstslice)
+	    mri = MRIread(instem,1);
+	  end
 	  nrows = mri.volsize(2);
 	  ncols = mri.volsize(1);
 	  ntp = mri.nframes;
