@@ -1,5 +1,5 @@
 % fast_stxgrinder3_sess
-% $Id: fast_stxgrinder3_sess.m,v 1.1 2006/11/14 06:44:28 greve Exp $
+% $Id: fast_stxgrinder3_sess.m,v 1.2 2006/11/14 06:57:37 greve Exp $
 %
 % Creates anadir/contrast
 %     Univariate:       sig,t,ces,cesvar; sig has same sign as ces
@@ -152,15 +152,21 @@ for nthsess = 1:nsess
 	sig.vol = -log10(p.vol);
 	fname = sprintf('%s/sig%s.%s',condir,hemicode,ext);
 	MRIwrite(sig,fname);
-	minp = sig;
-	iminsig = sig;
-	[minp.vol iminsig.vol] = min(p.vol,[],4);
-	minsig = minp;
-	minsig.vol = -log10(minp.vol);
+	
+	pmin  = sig;
+	ipmin = sig;
+	[pmin.volmat ipmin.volmat] = min(p.volmat);
+	pmin.volmat = pmin.volmat*J; % Bonf
+	indpmin = sub2ind(size(p.volmat),ipmin.volmat,1:nvox);
+	cespmin = ces.volmat(indpmin);
+	minsig = sig;
+	minsig.volmat = -log10(pmin.volmat) .* sign(cespmin);
+	minsig.vol = fast_mat2vol(minsig);
 	fname = sprintf('%s/minsig%s.%s',condir,hemicode,ext);
 	MRIwrite(minsig,fname); % Need to sign minsig
 	fname = sprintf('%s/iminsig%s.%s',condir,hemicode,ext);
-	MRIwrite(iminsig,fname);
+	ipmin.vol = fast_mat2vol(ipmin);
+	MRIwrite(ipmin,fname);
       else
 	% T-test
 	fname = sprintf('%s/ces%s.%s',condir,hemicode,ext);
