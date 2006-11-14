@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.6 2006/11/02 17:14:06 greve Exp $
+# $Id: asegstats2table,v 1.7 2006/11/14 21:24:00 greve Exp $
 import sys;
 import os;
 import string;
@@ -176,7 +176,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.6 2006/11/02 17:14:06 greve Exp $';
+Version = '$Id: asegstats2table,v 1.7 2006/11/14 21:24:00 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -218,7 +218,7 @@ for subject in SUBJECTS:
   # print first line as list of anat structures 
   if(nthsubj == 1):
     # First Col, First Row is the name of the measure
-    fptbl.write('%s ' % (meas));
+    fptbl.write('%s' % (meas));
     fp = open(statsfile,'r');
     segid = [];
     for line in fp:
@@ -268,7 +268,7 @@ for subject in SUBJECTS:
       if(meas == 'volume'):  val = string.atof(tmp[3]);
       if(meas == 'mean'):    val = string.atof(tmp[5]);
       if(debug): print "%d %s %g %g" % (nthseg,segid,val)
-      fptbl.write(' %g ' % (val) );
+      fptbl.write(' %g' % (val) );
       nthseg = nthseg + 1;
     #endif
   #end  for line
