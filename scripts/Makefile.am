@@ -11,6 +11,7 @@ batchjobs \
 bblabel \
 browse-minc-header.tcl \
 browse-sessions \
+bugr \
 check_subject \
 clear_fs_env.csh \
 cor_to_minc \
