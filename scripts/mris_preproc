@@ -2,7 +2,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.32 2006/08/30 03:32:46 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.33 2006/11/14 21:30:50 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -1059,5 +1059,16 @@ mris_preproc --fsgd abc.fsgd  --target fsaverage --hemi lh \
   --ivp abc03-func/bold/main/nvr/ces.bhdr abc03-func/bold/register.dat \
   --ivp abc04-func/bold/main/nvr/ces.bhdr abc04-func/bold/register.dat
 
+7. Prepare functional analysis from FS-FAST for surface-based group analysis
+
+mris_preproc --sf sessid --analysis edp --contrast probe --hemi lh \
+  --out edp-probe-lh.mgh --fsgd abc.fsgd  
+
+This will find the ces volume from inside the session/analysis/contrast
+directory, resample it to the common space, and concatenate all the
+subjects together into edp-probe-lh.mgh. The fsgd file is optional. This
+can then be analyzed with something like:
+
+mri_glmfit --y edp-probe-lh.mgh --surf fsaverage lh --osgm --glmdir glm-edp-probe-lh
 
 
