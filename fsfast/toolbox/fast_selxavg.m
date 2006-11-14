@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.32 2006/11/09 20:56:29 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.33 2006/11/14 08:59:17 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.32 2006/11/09 20:56:29 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.33 2006/11/14 08:59:17 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -71,11 +71,12 @@ pomnibusstem = s.pomnibusvol;
 
 if(~isempty(s.maskid))
   fprintf('INFO: loading mask %s\n',s.maskid);
-  mask = fmri_ldbvolume(s.maskid);
+  mask = MRIread(s.maskid);
   if(isempty(mask))
     fprintf('ERROR: could not load %s\n',s.maskid);
     return;
   end
+  mask = mask.vol;
   nmasktot = length(find(mask));
   fprintf('INFO: mask has %d points\n',nmasktot);
 else
@@ -179,6 +180,8 @@ Fmri = mri;
 pmri = mri;
 rstd = mri;
 rstd.vol = zeros(rstd.volsize);
+ar1 = mri;
+ar1.vol = zeros([ar1.volsize nruns]);
 
 SumESSMtxRun = zeros(ntrs,ntrs,nruns);
 NBrainVoxsRun = zeros(nruns);
@@ -571,6 +574,18 @@ for slice = firstslice:lastslice
   	  fmri_svbfile(tmp,fname);
         end
 
+	if(s.NewWhitenFlag)
+	  fprintf('  Run %d, Computing ar1\n',run);
+	  indBrain = find(mask(:,:,slice+1));
+	  if(~isempty(indBrain))
+	    ar1mask = sum(eres(1:end-1,indBrain).*eres(2:end,indBrain))./...
+		sum(eres(:,indBrain).^2);
+	    ar1slice = zeros([nrows ncols]);
+	    ar1slice(indBrain) = ar1mask;
+	    ar1.vol(:,:,slice+1,run) = ar1slice;
+	  end
+	end
+	
         if(~isempty(s.ErrCovMtxStem))
  	  if(s.SegBrainAir)
 	    if(isempty(mask))
@@ -578,14 +593,15 @@ for slice = firstslice:lastslice
               [tmp MeanVal] = fast_rescalefactor(MeanValFile,101);
    	      indBrain = find( y(FF,:) > .75*MeanVal );
             else
-              indBrain = find(mask(slice+1,:,:));
+              indBrain = find(mask(:,:,slice+1));
             end
           else
   	    indBrain = [1 nvoxs];
           end
           NBrainVoxs = length(indBrain);
           if(run==1) fprintf(1,' NBrainVoxs = %d\n',NBrainVoxs);end
-          if(NBrainVoxs > 0)
+
+	  if(NBrainVoxs > 0)
     	    %fprintf(1,'       Computing Err SS Matrix\n');
             ESSMtx = eres(:,indBrain) * eres(:,indBrain)'; % '
             SumESSMtx = SumESSMtx + ESSMtx;
@@ -593,13 +609,15 @@ for slice = firstslice:lastslice
             SumESSMtxRun(:,:,run) = SumESSMtxRun(:,:,run) + ESSMtx;
             NBrainVoxsRun(run) = NBrainVoxsRun(run) + NBrainVoxs;
           end
-        end
+        end % isempty(ECVMStem)
 
-      end
+      end % if(Pass == 2)
 
     end % Loop over runs %
   end % Loop over Pass %
 
+  
+  
   % Total Number of Averages Computed %
   Navgs_tot = size(SumXtX,1);
 
@@ -789,7 +807,30 @@ if(s.UseMRIread)
   MRIwrite(Fmri,fname);
 end
 
-outvolpath = fast_dirname(deblank(s.hvol));
+if(s.NewWhitenFlag)
+  % Load the offest back in
+  fname = sprintf('%s-offset',hstem);
+  hoffset = MRIread(fname);
+
+  outvolpath = fast_dirname(deblank(s.hvol));
+  fname = sprintf('%s/ar1.mgh',outvolpath);
+  MRIwrite(ar1,fname);
+  ar1mn = mean(ar1.vol,4);
+
+  acfseg = mri;
+  acfseg.vol = fast_acfseg(hoffset.vol,10,mask);
+  fname = sprintf('%s/acfseg.nii',outvolpath);
+  MRIwrite(acfseg,fname);
+  segunique = unique(sort(acfseg.vol(:)));
+  nunique = length(segunique);
+  for nth = 0:nunique-1
+    indk = find(acfseg.vol == nth);
+    ar1seg(nth+1) = mean(ar1mn(indk));
+  end
+  acffile = sprintf('%s/acf.mat',outvolpath);
+  save(acffile,'ar1seg','acfseg','ar1');
+end
+
 xfile = sprintf('%s/X.mat',outvolpath);
 pfOrder = s.PFOrder;
 nExtReg = 0; if(s.nextreg > 0) nExtReg = s.nextreg; end
@@ -1039,6 +1080,7 @@ function s = sxa_struct
   s.LPFFlag        = 0;
   s.HPF            = [];
   s.WhitenFlag     = 0;
+  s.NewWhitenFlag  = 0;
   s.maskid         = []; % for whitening only
   s.hvol           = '';
   s.betavol        = '';
