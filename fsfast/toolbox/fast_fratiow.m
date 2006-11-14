@@ -17,7 +17,7 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 %
 % See also: fast_glmfitw, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_fratiow.m,v 1.6 2006/07/14 03:29:51 greve Exp $
+% $Id: fast_fratiow.m,v 1.7 2006/11/14 08:58:44 greve Exp $
 
 if(nargin < 4 | nargin > 6)
   fprintf('[F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>)\n');
@@ -57,9 +57,9 @@ nnz = length(indnz);
 ces = C*beta;
 usematrix = 0;
 
-if(usematrix) fprintf('Using matrix filtering\n');
-else          fprintf('Using fft filtering\n');
-end
+%if(usematrix) fprintf('Using matrix filtering\n');
+%else          fprintf('Using fft filtering\n');
+%end
 X_fft = fft(X,2*nf);
 if(isempty(nacf))
   % Covariance matrix of contrast effect size
