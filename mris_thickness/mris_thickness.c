@@ -14,10 +14,11 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.10 2006/10/23 15:16:24 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.11 2006/11/14 21:25:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+int  MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -31,16 +32,18 @@ static int write_vertices = 0 ;
 
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
+static char *osurf_fname = NULL ;
+static char sdir[STRLEN] = "" ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *out_fname, *sname, sdir[400], *cp, fname[500], *hemi ;
+  char          **av, *out_fname, *sname, *cp, fname[STRLEN], *hemi ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.10 2006/10/23 15:16:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.11 2006/11/14 21:25:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -64,11 +67,15 @@ main(int argc, char *argv[])
   sname = argv[1] ;
   hemi = argv[2] ;
   out_fname = argv[3] ;
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, 
-              "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-  strcpy(sdir, cp) ;
+  if (!strlen(sdir))
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM,
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
+
   
 #if 0
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
@@ -83,6 +90,18 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+
+  if (osurf_fname)
+  {
+    MRI_SURFACE *mris2 ;
+    mris2 = MRISread(osurf_fname) ;
+    if (mris2 == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read 2nd surface from %s", Progname, osurf_fname) ;
+    MRISmeasureDistanceBetweenSurfaces(mris, mris2) ;
+    fprintf(stderr, "writing surface distance to curvature file %s...\n", out_fname) ;
+    MRISwriteCurvature(mris, out_fname) ;
+    exit(0) ;
+  }
 
   if (MRISreadOriginalProperties(mris, white_name) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
@@ -131,6 +150,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "reading pial surface from file named %s\n", pial_name) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "SDIR"))
+  {
+    strcpy(sdir, argv[2]) ;
+    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "white"))
   {
     strcpy(white_name, argv[2]) ;
@@ -142,6 +167,12 @@ get_option(int argc, char *argv[])
     max_thick = atof(argv[2]) ;
     fprintf(stderr,  "limiting maximum cortical thickness to %2.2f mm.\n",
             max_thick) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "osurf"))
+  {
+    osurf_fname = argv[2] ;
+    fprintf(stderr,  "measuring distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
   }
   else switch (toupper(*option))
@@ -203,5 +234,36 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+#include "mrishash.h"
+#define MAX_DIST 10
+int
+MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2)
+{
+  int    vno ;
+  VERTEX *v1, *v2 ;
+  MRIS_HASH_TABLE *mht ;
+  double           dx, dy, dz ;
+
+  mht = MHTfillVertexTableRes(mris2, NULL, CURRENT_VERTICES, MAX_DIST) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v1 = &mris->vertices[vno] ;
+    if (v1->ripflag)
+      continue ;
+    v2 = MHTfindClosestVertex(mht, mris2, v1) ;
+    if (v2 == NULL)
+    {
+      v1->curv = MAX_DIST ;
+      continue ;
+    }
+    dx = v1->x-v2->x ; dy = v1->y-v2->y ; dz = v1->z-v2->z ;
+    v1->curv = sqrt(dx*dx + dy*dy + dz*dz) ;
+  }
+
+  MHTfree(&mht) ;
+  return(NO_ERROR) ;
 }
 
