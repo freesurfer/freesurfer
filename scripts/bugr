@@ -1,0 +1,74 @@
+#! /bin/tcsh -f
+
+#
+# Generates the info needed to adequately address 
+# a Freesurfer bug report or question.
+#
+
+set VERSION = '$Id: bugr,v 1.1 2006/11/14 18:21:10 nicks Exp $';
+
+echo ""
+echo "Cut-and-paste the following info into your FreeSurfer problem report:"
+echo "---------------------------------------------------------------------"
+echo ""
+
+echo "FREESURFER_HOME: $FREESURFER_HOME"
+echo ""
+
+if ( -e $FREESURFER_HOME/build-stamp.txt) then
+
+  echo "Build stamp: `cat $FREESURFER_HOME/build-stamp.txt`"
+  echo ""
+
+else
+
+  echo "'build-stamp.txt file does not exist!"
+  echo "This appears to be a very old version of FreeSurfer!"
+  echo ""
+
+endif
+
+if ( -e /etc/redhat-release) then
+  
+  echo "RedHat release: `cat /etc/redhat-release`"
+  echo ""
+
+endif
+
+if ( -e /etc/debian_version) then
+  
+  echo "Debian version: `cat /etc/debian_version`"
+  echo ""
+
+endif
+
+echo "Kernel info: `uname -rms`"
+echo ""
+
+if ( -e /space/freesurfer) then
+
+  echo "NMR Center info (/space/freesurfer exists):"
+  echo ""
+
+  echo "  machine: `uname -n`"
+  echo ""
+
+  echo "  SUBJECTS_DIR: $SUBJECTS_DIR"
+  echo ""
+
+  echo "  PWD: $PWD"
+  echo ""
+
+endif
+
+echo "---------------------------------------------------------------------"
+echo "Please include the following additional information in your report:"
+echo ""
+
+echo "  1) subject name"
+echo "  2) the entire command-line executed"
+echo "  3) the error message generated"
+echo "  4) optionally include the subject's /script/recon-all.log"
+echo ""
+echo "See also: http://surfer.nmr.mgh.harvard.edu/fswiki/BugReporting"
+echo ""
