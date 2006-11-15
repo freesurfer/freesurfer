@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/31 19:21:20 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2006/11/15 19:51:11 $
+// Revision       : $Revision: 1.9 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -386,6 +386,12 @@ get_option(int argc, char *argv[])
     printf("skipping %d voxels in source data...\n", skip) ;
     nargs = 1 ;
   }
+	else if (!stricmp(option, "apply"))
+	{
+    apply_transform = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%sapplying transform after registration\n", apply_transform ? "" : "not ") ;
+  }
   else switch (*option)
   {
   case 'W':
@@ -537,7 +543,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
                                                scale*MAX_TRANS,
                                                3, 3, 3, 2, parms->rigid);
 
-    if (parms->write_iterations != 0)
+    if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
     {
       write_snapshot
         (mri_target, mri_source,
@@ -555,10 +561,10 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
       scale *= 0.25 ;
       if (scale < min_search_scale)
         break ;
-      good_step = 0 ;
       printf("reducing scale to %2.4f\n", scale) ;
       nscales++ ;
-      //      done = (good_step == 0) ;
+      done = (good_step == 0) ;
+      good_step = 0 ;
     }
     else
       good_step = 1 ; /* took at least one good step at this scale */
@@ -1171,8 +1177,10 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
   printf("%3.3d: best alignment after powell: "
          "%2.5f (%d steps, iscale=%2.3f)\n",
          parms.start_t,fret, iter, intensity_scale) ;
-  write_snapshot(vl_target->mri, vl_source->mri,
-                 mat, &parms, parms.start_t++,1,NULL);
+  if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
+    write_snapshot(vl_target->mri, vl_source->mri,
+                   mat, &parms, parms.start_t,1,NULL);
+  parms.start_t++ ;
   Gdiag = diag ;
   if (iter != 0) do
   {
@@ -1201,8 +1209,10 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
     printf("%3.3d: best alignment after powell: "
            "%2.5f (%d steps, iscale=%2.3f)\n",
            parms.start_t,fret, iter, intensity_scale) ;
-    write_snapshot(vl_target->mri, vl_source->mri,
-                   mat, &parms, parms.start_t++,1,NULL);
+    if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
+      write_snapshot(vl_target->mri, vl_source->mri,
+                     mat, &parms, parms.start_t,1,NULL);
+    parms.start_t++ ;
   } while (fret < fstart) ;
 
   free_matrix(xi, 1, NPARMS, 1, NPARMS) ;
@@ -1267,8 +1277,10 @@ powell_minimize_rigid(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
          "%2.5f (%d steps, iscale=%2.3f)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
          parms.start_t,fret, iter, intensity_scale,
          DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
-  write_snapshot(vl_target->mri, vl_source->mri,
-                 mat, &parms, parms.start_t++,1,NULL);
+  if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
+    write_snapshot(vl_target->mri, vl_source->mri,
+                   mat, &parms, parms.start_t,1,NULL);
+  parms.start_t++ ;
   Gdiag = diag ;
   do
   {
@@ -1292,8 +1304,10 @@ powell_minimize_rigid(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
            "%2.5f (%d steps, iscale=%2.3f)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
            parms.start_t,fret, iter, intensity_scale,
            DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
-    write_snapshot(vl_target->mri, vl_source->mri,
-                   mat, &parms, parms.start_t++,1,NULL);
+    if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
+      write_snapshot(vl_target->mri, vl_source->mri,
+                     mat, &parms, parms.start_t,1,NULL);
+    parms.start_t++ ;
   } while (fret < fstart) ;
 
   free_matrix(xi, 1, NPARMS_RIGID, 1, NPARMS_RIGID) ;

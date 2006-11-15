@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/01 04:09:22 $
-// Revision       : $Revision: 1.12 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/11/15 19:51:12 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -37,6 +37,7 @@
 static double MAX_ANGLE = DEFAULT_MAX_ANGLE ;
 static double MAX_SCALE = 0.25 ;
 
+static int hires_hippo = 0 ;
 #define PAD       2
 
 static int ncloses = 0 ;
@@ -109,7 +110,8 @@ static int target_label = Right_Hippocampus ;
 
 static int wm = 0 ;
 static int filled = 0 ;
-static int skip = 2 ;
+static int target_skip = 2 ;
+static int source_skip = 2 ;
 static int npasses = 3 ;
 
 static int non_artery_labels[] =
@@ -166,11 +168,12 @@ main(int argc, char *argv[])
   char       **av, *source_fname, *target_fname, *out_fname, fname[STRLEN] ;
   int        ac, nargs, i ;
   MRI        *mri_target, *mri_source, *mri_tmp, *mri_dist_src = NULL,
-    *mri_dist_dst = NULL ;
+    *mri_dist_target = NULL ;
   VOXEL_LIST *vl_target, *vl_source ;
   MRI_REGION  box ;
   struct timeb start ;
   int          msec, minutes, seconds, label ;
+	MATRIX       *m_L ;
 
   parms.write_iterations = 0 ;
   parms.start_t = 0 ;
@@ -328,11 +331,11 @@ main(int argc, char *argv[])
 	{
 		printf("creating distance transforms...\n") ;
 		mri_dist_src = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
-		mri_dist_dst = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
+		mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 		{
 			MRIwrite(mri_dist_src, "dist_src.mgz") ;
-			MRIwrite(mri_dist_dst, "dist_dst.mgz") ;
+			MRIwrite(mri_dist_target, "dist_target.mgz") ;
 		}
 	}
 	
@@ -346,69 +349,49 @@ main(int argc, char *argv[])
 
 
   /* compute optimal linear transform */
-  vl_target =
-    VLSTcreate(mri_target,binary_label,binary_label,NULL,skip,0);
-  // skip=0 for target!
-  vl_target->mri2 = mri_dist_dst ;
+  m_L = NULL ;  // to avoid compiler warning. npasses will never be 0
   for (i = 0 ; i < npasses ; i++)
   {
-    printf("------------- outer loop iteration %d ---------------\n",i) ;
-    vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip, 0) ;
+    printf("------------- outer loop iteration %d of %d - skip %d, %d ---------------\n",
+           i+1, npasses,source_skip, target_skip) ;
+
+		vl_target = VLSTcreate(mri_target,binary_label,binary_label,NULL,target_skip,0);
+		// skip=0 for target!
+		printf("%d voxels in target list\n", vl_target->nvox) ;
+		vl_target->mri2 = mri_dist_target ;
+
+    vl_source = VLSTcreate(mri_source, 1, 255, NULL, source_skip, 0) ;
+		printf("%d voxels in source list\n", vl_source->nvox) ;
     vl_source->mri2 = mri_dist_src ;
 
-    transform = compute_optimal_transform
-      (vl_target, vl_source, &parms,transform) ;
+    transform = compute_optimal_transform(vl_target, vl_source, &parms,transform) ;
+		m_L = ((LTA *)(transform->xform))->xforms[0].m_L ;
     VLSTfree(&vl_source) ;
-    vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip/4, 0) ;
+    vl_source = VLSTcreate(mri_source, 1, 255, NULL, source_skip/4, 0) ;
     vl_source->mri2 = mri_dist_src ;
+    printf("calling powell minimization...\n") ;
     if ((nopowell == 0) && parms.rigid == 0)
-    {
-      powell_minimize(vl_target, vl_source,((LTA *)(transform->xform))->xforms[0].m_L,mri_orig_source) ;
-    }
+      powell_minimize(vl_target, vl_source, m_L, mri_orig_source) ;
     else if (parms.rigid)
-    {
-      powell_minimize_rigid(vl_target, vl_source,((LTA *)(transform->xform))->xforms[0].m_L) ;
-#if 0
-      pf_likelihood = compute_trimmed_likelihood ;
-      ignore_pct = 0.01 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-      ignore_pct = 0.05 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-#endif
-    }
-    VLSTfree(&vl_source) ;
+      powell_minimize_rigid(vl_target, vl_source, m_L) ;
+
     if (apply_transform)
     {
       MRI *mri_aligned ;
-      MATRIX *m_vox_xform ;
       char   fname[STRLEN] ;
 
       FileNameRemoveExtension(out_fname, fname) ;
       strcat(fname, ".mgz") ;
-      m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
-      if (binarize >0)
+      if (binarize > 0)
       {
         mri_aligned = MRIclone(mri_target, NULL) ;
-        MRIlinearTransformInterp
-          (mri_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+        MRIlinearTransformInterp(mri_source, mri_aligned, m_L, SAMPLE_NEAREST);
         MRIbinarize(mri_aligned, mri_aligned, 1, 0, 1) ;
       }
       else
       {
-#if 0
-        mri_aligned = MRIclone(mri_target, NULL) ;
-        MRIlinearTransformInterp
-          (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
-#else
-        mri_aligned =
-          MRITransformedCenteredMatrix
-          (mri_orig_source, mri_target, m_vox_xform) ;
+        mri_aligned = MRITransformedCenteredMatrix(mri_orig_source, mri_target, m_L) ;
       }
-#endif
       printf("writing transformed output volume to %s...\n", fname) ;
       MRIwrite(mri_aligned, fname) ;
       MRIfree(&mri_aligned) ;
@@ -417,21 +400,20 @@ main(int argc, char *argv[])
     LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
     TransformWrite(transform, out_fname) ;
     LTArasToVoxelXform((LTA *)(transform->xform), mri_source, mri_target) ;
-    skip /= 2 ;
+    source_skip /= 2 ;
+    target_skip /= 2 ;
+		VLSTfree(&vl_target) ;
+    VLSTfree(&vl_source) ;
   }
-  VLSTfree(&vl_target) ;
 
   printf("final vox2vox matrix:\n") ;
-  MatrixPrint(stdout, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+  MatrixPrint(stdout, m_L) ;
   {
     MRI *mri_aligned, *mri_filtered ;
     char fname[STRLEN] ;
     int  i ;
 
-    mri_aligned =
-      MRITransformedCenteredMatrix
-      (mri_orig_source, mri_target,
-       ((LTA *)(transform->xform))->xforms[0].m_L) ;
+    mri_aligned = MRITransformedCenteredMatrix(mri_orig_source, mri_target, m_L) ;
     sprintf(fname, "%sfinal.mgz", parms.base_name) ;
     MRIwrite(mri_aligned, fname) ;
 
@@ -449,20 +431,18 @@ main(int argc, char *argv[])
   if (apply_transform)
   {
     MRI *mri_aligned ;
-    MATRIX *m_vox_xform ;
     char   fname[STRLEN] ;
 
     FileNameRemoveExtension(out_fname, fname) ;
     strcat(fname, ".mgz") ;
-    m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
     mri_aligned = MRIclone(mri_target, NULL) ;
-    MRIlinearTransformInterp
-      (mri_orig_source, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+    MRIlinearTransformInterp(mri_orig_source, mri_aligned, m_L, SAMPLE_NEAREST);
     printf("writing transformed output volume to %s...\n", fname) ;
     MRIwrite(mri_aligned, fname) ;
     MRIfree(&mri_aligned) ;
   }
   LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
+  LTAsetVolGeom((LTA *)(transform->xform), mri_orig_source, mri_target) ;
   TransformWrite(transform, out_fname) ;
 
   msec = TimerStop(&start) ;
@@ -558,12 +538,33 @@ get_option(int argc, char *argv[])
   }
 	else if (!stricmp(option, "skip"))
 	{
-		skip = atoi(argv[2]);
-		printf("skipping %d voxels in source data...\n", skip) ;
+		source_skip = target_skip = atoi(argv[2]);
+		printf("skipping %d voxels in both source and target...\n", source_skip) ;
+		nargs = 1 ;
+	}
+	else if (!stricmp(option, "source_skip"))
+	{
+		source_skip = atoi(argv[2]);
+		printf("skipping %d voxels in source...\n", source_skip) ;
+		nargs = 1 ;
+	}
+	else if (!stricmp(option, "target_skip"))
+	{
+		target_skip = atoi(argv[2]);
+		printf("skipping %d voxels in target...\n", target_skip) ;
 		nargs = 1 ;
 	}
 	else switch (*option)
 	{
+  case 'H':
+		hires_hippo = 1 ;
+    //    pf_overlap = compute_distance_transform_sse ;
+    use_target_label = 0 ;
+    target_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("assuming source is hires hippo volume, and target is %s\n",
+           cma_label_to_name(target_label)) ;
+    break ;
 	case 'L':
 		target_label = atoi(argv[2]) ;
 		printf("using %s %d as target label from source and destination\n", cma_label_to_name(target_label),target_label) ;
@@ -616,6 +617,8 @@ static void
 usage_exit(int ecode)
 {
   printf("usage: %s <source> <target> <output xform>\n",Progname) ;
+  printf("\t where options are:\n") ;
+  printf("\t-h <target label>  -  assume source is hires hippocampal labeling\n");
   exit(ecode) ;
 }
 
@@ -648,6 +651,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   *MATRIX_RELT(m_origin, 3, 4) = target_cent[2] ;
   *MATRIX_RELT(m_origin, 4, 4) = 1 ;
   m_inv_origin = MatrixInverse(m_origin, NULL) ;
+  nscales = 1 ;  // will get incremented if not 1st call
   if (transform == NULL)
   {
     scale = 1 ;
@@ -711,7 +715,8 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   }
   else
   {
-    scale = 0.1 ;   // only search fine scales the 2nd and subsequent times
+    scale = .25 ;   // only search fine scales the 2nd and subsequent times
+    nscales++ ;
     m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
   }
 
@@ -731,7 +736,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   parms->start_t++ ;
 #define MIN_SCALES 3
   /////////////////////////// loop here //////////
-  niter = 0 ; nscales = 1 ; scale *= parms->rigid ? .25: 1.0 ;
+  niter = 0 ; scale *= parms->rigid ? .25: 1.0 ; good_step = 0 ;
   do
   {
     old_max_overlap = max_overlap ;
@@ -773,10 +778,10 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
       scale *= 0.25 ;
       if (scale < min_search_scale)
         break ;
-      good_step = 0 ;
       printf("reducing scale to %2.4f\n", scale) ;
       nscales++ ;
       done = (good_step == 0) ;
+      good_step = 0 ;
     }
     else
       good_step = 1 ; /* took at least one good step at this scale */
@@ -795,123 +800,66 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 static double best ;
 
 /* compute intersection of transformed source with target divided by union */
-#if 0
+#if 1
 static double
 compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 {
-  int     x, y, z, width, height, depth, xd, yd, zd,
-    hwidth, hheight, hdepth, i, debug=0, intersecting ;
-  VECTOR  *v1, *v2 ;
+  int     x, y, z, width, height, depth, hwidth, hheight, hdepth, i ;
   MRI     *mri_target, *mri_source ;
-  static MRI *mri_overlap1 = NULL, *mri_overlap2 = NULL ;
-  double  val, intersection, xr, yr, zr,
-    Union, source_vsize, target_vsize, volume, min_val=10, overlap,
-    source_volume, target_volume ;
+  double  val, source_vox, target_vox, xr, yr, zr, overlap ;
+  static VECTOR  *v1 = NULL, *v2 ;
+  static MATRIX  *m_L_inv = NULL ;
+
+  m_L_inv = MatrixInverse(m_L,m_L_inv) ;
 
   mri_target = vl_target->mri ; mri_source = vl_source->mri ;
 
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  if (v1 == NULL)
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  }
 
-  width = mri_target->width ;
-  height = mri_target->height;
-  depth = mri_target->depth;
-  hwidth = mri_source->width ;
-  hheight = mri_source->height ;
-  hdepth = mri_source->depth;
+  width = mri_target->width ; height = mri_target->height;
+  depth = mri_target->depth; hdepth = mri_source->depth;
+  hwidth = mri_source->width ; hheight = mri_source->height ;
 
-  // relative sizes of voxels
-  source_vsize = MatrixDeterminant(m_L) ;
-  target_vsize = 1;
-
-  // set Union to total of both, then subtract out overlap
-  source_volume = vl_source->nvox * source_vsize ;
-  target_volume = vl_target->nvox * target_vsize ;
-  Union =  source_volume + target_volume ;
+  /* first go through target volume and for every voxel that is on in it,
+     map it to the source, and if the source is on, add one to the overlap
+  */
 
   /* go  through source volume and for every voxel that is on in it,
      map it to the target, and if the target hasn't been counted yet, count it.
   */
-  if (mri_overlap1 == NULL)
-    {
-      mri_overlap1 =
-        MRIalloc(mri_target->width, mri_target->height,
-                 mri_target->depth, MRI_FLOAT) ;
-      MRIcopyHeader(mri_target, mri_overlap1) ;
-    }
-  else
-    {
-      if (debug)
-        MRIclear(mri_overlap1) ;
-    }
-  for (intersecting = 0, intersection = 0.0, i = 0 ; i < vl_source->nvox ; i++)
-    {
-      x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+  for (source_vox = 0.0, i = 0 ; i < vl_source->nvox ; i++)
+  {
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
 
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-      if (x == Gx && y == Gy && z == Gz)
-        DiagBreak() ;
-      MatrixMultiply(m_L, v1, v2) ;
-      xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
-      xd = nint(xr) ; yd = nint(yr) ; zd = nint(zr) ;
-      if (xd == Gx && yd == Gy && zd == Gz)
-        DiagBreak() ;
-      if (xd >= 0 && xd < width &&
-          yd >= 0 && yd < height &&
-          zd >= 0 && zd < depth)
-        {
-          // the amount that is on is already
-          // counted in Union as part of source volume
-          //      MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
-          val = MRIgetVoxVal(mri_target, xd, yd, zd, 0) ;
-          if (val > 0)
-            intersecting++ ;
-          if (val < 64)
-            DiagBreak() ;
-          if (val < min_val)
-            DiagBreak() ;
-          volume = source_vsize * (double)val/binary_label ;
-          Union -= volume ;
-          intersection += volume ;
-          if (debug)
-            {
-              MRIFvox(mri_overlap1, xd, yd, zd) =  volume ;
-              if (mri_overlap2 &&
-                  (MRIFvox(mri_overlap2,xd,yd,zd) <
-                   MRIFvox(mri_overlap1,xd,yd,zd)))
-                {
-                  double val1, val2 ;
-                  val1 = MRIFvox(mri_overlap1,x,y,z) ;
-                  val2 = MRIFvox(mri_overlap2,x,y,z) ;
-                  DiagBreak() ;
-                }
-            }
-        }
-      else
-        DiagBreak() ;
-    }
-
-  if (debug)
-    {
-      MRIwrite(mri_overlap1, "o1.mgz") ;
-      if (mri_overlap2)
-        MRIwrite(mri_overlap2, "o2.mgz") ;
-    }
-  if (debug || mri_overlap2 == NULL)
-    mri_overlap2 = MRIcopy(mri_overlap1, mri_overlap2) ;
-  VectorFree(&v1) ; VectorFree(&v2) ;
-  overlap = intersection/Union ;
-  source_volume = (double)intersecting*source_vsize ;
-  // volume of source mapped to intersecting target
-  overlap *= (1.0-fabs(source_volume-target_volume)/target_volume) ;
-  if (overlap > 1.0)
-    DiagBreak() ;
-  if (overlap > best)
-    {
-      best = overlap ;
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    if (x == Gx && y == Gy && z == Gz)
       DiagBreak() ;
-    }
+    MatrixMultiply(m_L, v1, v2) ;
+    xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
+    MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
+    source_vox += (val/binary_label) ; // # of src vox mapped into target
+  }
+
+  for (target_vox = 0.0, i = 0 ; i < vl_target->nvox ; i++)
+  {
+    x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
+
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    if (x == Gx && y == Gy && z == Gz)
+      DiagBreak() ;
+    MatrixMultiply(m_L_inv, v1, v2) ;
+    xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
+    MRIsampleVolume(mri_source, xr, yr, zr, &val) ;
+    target_vox += (val/binary_label) ; // # of target vox mapped into source
+  }
+
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_L_inv) ;
+  overlap = 0.5 * (source_vox / vl_source->nvox + target_vox / vl_target->nvox);
   return(overlap) ;
 }
 #else
@@ -923,7 +871,7 @@ compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source ;
   static MRI *mri_intersection = NULL;
-  double  val, intersection, xr, yr, zr, Union ;
+  double  val, intersection, xr, yr, zr, Union, src_weight, target_weight ;
 
   mri_target = vl_target->mri ; mri_source = vl_source->mri ;
 
@@ -931,15 +879,13 @@ compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
   v2 = VectorAlloc(4, MATRIX_REAL) ;
   *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
 
-  width = mri_target->width ;
-  height = mri_target->height;
-  depth = mri_target->depth;
-  hwidth = mri_source->width ;
-  hheight = mri_source->height ;
-  hdepth = mri_source->depth;
+  width = mri_target->width ; height = mri_target->height;
+  depth = mri_target->depth; hdepth = mri_source->depth;
+  hwidth = mri_source->width ; hheight = mri_source->height ;
+  src_weight = 1.0 / (double)vl_source->nvox ;
+  target_weight= 1.0 / (double)vl_target->nvox ;
 
-  //  if (mri_intersection)
-  //    MRIclear(mri_intersection) ;
+  // write the target voxel values into the intersection volume
   mri_intersection = VLSTtoMri(vl_target, mri_intersection) ;
 
   /* first go through target volume and for every voxel that is on in it,
@@ -953,86 +899,85 @@ compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 #define IN_UNION        254
 
   for (intersection = Union = 0.0, i = 0 ; i < vl_source->nvox ; i++)
-    {
-      x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+  {
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
 
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-      if (x == Gx && y == Gy && z == Gz)
-        DiagBreak() ;
-      MatrixMultiply(m_L, v1, v2) ;
-      xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
-      xd = nint(xr) ; yd = nint(yr) ; zd = nint(zr) ;
-      if (xd == Gx && yd == Gy && zd == Gz)
-        DiagBreak() ;
-      if (xd >= 0 && xd < width &&
-          yd >= 0 && yd < height &&
-          zd >= 0 && zd < depth)
-        {
-          label = MRIgetVoxVal(mri_intersection, xd, yd, zd, 0) ;
-          switch (label)
-            {
-            case 0:  // source mapping outside of target label
-              // MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
-              val = MRIgetVoxVal(mri_target, xd, yd, zd, 0) ;
-              MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
-              Union += (1-(val/(float)binary_label)) ;
-              MRIsetVoxVal(mri_intersection, xd, yd, zd,0, IN_UNION) ;
-              break ;
-            case IN_UNION:             /* already processed one way
-                                          or the other */
-            case IN_INTERSECTION:
-              break ;
-            default:                   /* not processed yet -
-                                          source mapping into target label */
-              //        MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
-              val = MRIgetVoxVal(mri_target, xd, yd, zd, 0) ;
-              intersection += (val/(float)binary_label) ;
-              Union++ ;
-              MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, IN_INTERSECTION) ;
-              break ;
-            }
-        }
-      else
-        Union++ ; /* penalize for mapping out of FOV */
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    if (x == Gx && y == Gy && z == Gz)
+      DiagBreak() ;
+    MatrixMultiply(m_L, v1, v2) ;
+    xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
+    xd = nint(xr) ; yd = nint(yr) ; zd = nint(zr) ;
+    if (xd == Gx && yd == Gy && zd == Gz)
+      DiagBreak() ;
+    if (xd >= 0 && xd < width &&
+        yd >= 0 && yd < height &&
+        zd >= 0 && zd < depth)
+    {
+      label = MRIgetVoxVal(mri_intersection, xd, yd, zd, 0) ;
+      switch (label)
+      {
+      case 0:  // source mapping outside of target label
+        // val = MRIgetVoxVal(mri_target, xd, yd, zd, 0) ;
+        MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
+        Union += (1-(val/(float)binary_label)) ;
+        MRIsetVoxVal(mri_intersection, xd, yd, zd,0, IN_UNION) ;
+        break ;
+      case IN_UNION:             /* already processed one way
+                                    or the other */
+      case IN_INTERSECTION:
+        break ;
+      default:                   /* not processed yet - target was on
+                                    source mapping into target label */
+        // val = MRIgetVoxVal(mri_target, xd, yd, zd, 0) ;
+        MRIsampleVolume(mri_target, xr, yr, zr, &val) ;
+        intersection += (val/(float)binary_label) ;
+        Union++ ;
+        MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, IN_INTERSECTION) ;
+        break ;
+      }
     }
+    else
+      Union++ ; /* penalize for mapping out of FOV */
+  }
 
   /* now count target voxels that weren't mapped to in union */
   for (i = 0 ; i < vl_target->nvox ; i++)
+  {
+    x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
+    label = MRIgetVoxVal(mri_intersection, x, y, z, 0) ;
+    switch (label)
     {
-      x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
-      label = MRIgetVoxVal(mri_intersection, x, y, z, 0) ;
-      switch (label)
-        {
-        case 0:  /* source mapping outside of target label*/
-        case IN_UNION:             /* already processed one way or the other */
-        case IN_INTERSECTION:
-          break ;
-        default:                   // target label that was never mapped
-          Union++ ;
-          break ;
-        }
+    case 0:  /* source mapping outside of target label*/
+    case IN_UNION:             /* already processed one way or the other */
+    case IN_INTERSECTION:
+      break ;
+    default:                   // target label that was never mapped
+      Union++ ;
+      break ;
     }
+  }
 
   /* reset intersection volume */
   for (i = 0 ; i < vl_source->nvox ; i++)
-    {
-      x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+  {
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
 
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-      MatrixMultiply(m_L, v1, v2) ;
-      xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ;
-      if (xd >= 0 && xd < width &&
-          yd >= 0 && yd < height &&
-          zd >= 0 && zd < depth)
-        {
-          MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, 0) ;
-        }
-    }
-  for (i = 0 ; i < vl_target->nvox ; i++)
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m_L, v1, v2) ;
+    xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ;
+    if (xd >= 0 && xd < width &&
+        yd >= 0 && yd < height &&
+        zd >= 0 && zd < depth)
     {
-      x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
-      MRIsetVoxVal(mri_intersection, x, y, z, 0, 0) ;
+      MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, 0) ;
     }
+  }
+  for (i = 0 ; i < vl_target->nvox ; i++)
+  {
+    x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
+    MRIsetVoxVal(mri_intersection, x, y, z, 0, 0) ;
+  }
 
   VectorFree(&v1) ; VectorFree(&v2) ;
   if ((double)intersection/(double)Union > best)
@@ -1080,29 +1025,29 @@ compute_distance_transform_sse(VOXEL_LIST *vl_target,
 
   sse = 0.0 ;
   for (i = 0 ; i < vl_source->nvox ; i++)
-    {
-      x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+	{
+		x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
 
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-      MatrixMultiply(m_L, v1, v2) ;
-      d1 = MRIgetVoxVal(vl_source->mri2, x, y, z, 0) ;
-      xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
-      if (xd < 0)
-        xd = 0 ;
-      else if (xd >= width-1)
-        xd = width-1 ;
-      if (yd < 0)
-        yd = 0 ;
-      else if (yd >= height-1)
-        yd = height-1 ;
-      if (zd < 0)
-        zd = 0 ;
-      else if (zd >= depth-1)
-        zd = depth-1 ;
-      MRIsampleVolume(vl_target->mri2, xd, yd, zd, &d2) ;
-      error = d1-d2 ;
-      sse += error*error ;
-    }
+		V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+		MatrixMultiply(m_L, v1, v2) ;
+		d1 = MRIgetVoxVal(vl_source->mri2, x, y, z, 0) ;
+		xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+		if (xd < 0)
+			xd = 0 ;
+		else if (xd >= width-1)
+			xd = width-1 ;
+		if (yd < 0)
+			yd = 0 ;
+		else if (yd >= height-1)
+			yd = height-1 ;
+		if (zd < 0)
+			zd = 0 ;
+		else if (zd >= depth-1)
+			zd = depth-1 ;
+		MRIsampleVolume(vl_target->mri2, xd, yd, zd, &d2) ;
+		error = d1-d2 ;
+		sse += error*error ;
+	}
 
 #if 1
 	/* now count target voxels that weren't mapped to in union */
@@ -1157,71 +1102,71 @@ find_optimal_translation(VOXEL_LIST *vl_target,  VOXEL_LIST *vl_source,
   max_overlap = (*pf_overlap)(vl_target, vl_source, m_L) ;
 
   for (i = 0 ; i <= nreductions ; i++)
+  {
+    delta = (max_trans-min_trans) / trans_steps ;
+    if (FZERO(delta))
+      return(max_overlap) ;
+    if (Gdiag & DIAG_SHOW)
     {
-      delta = (max_trans-min_trans) / trans_steps ;
-      if (FZERO(delta))
-        return(max_overlap) ;
-      if (Gdiag & DIAG_SHOW)
-        {
-          printf(
-                 "scanning translations %2.2f->%2.2f (step %2.1f) ",
-                 min_trans,max_trans, delta) ;
-          fflush(stdout) ;
-        }
-      for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
-        {
-          *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
-          for (y_trans = min_trans ; y_trans <= max_trans ; y_trans += delta)
-            {
-              *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
-              for (z_trans= min_trans ;
-                   z_trans <= max_trans ;
-                   z_trans += delta)
-                {
-                  *MATRIX_RELT(m_trans, 3, 4) = z_trans ;
-                  if (nint((x_trans)) == -9 && nint((y_trans)) == -5 &&
-                      nint((z_trans)) == -7)
-                    DiagBreak() ;
-
-                  // get the transform
-                  m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
-                  // calculate the overlap
-                  overlap = (*pf_overlap)(vl_target, vl_source, m_L_tmp) ;
-                  if (overlap > max_overlap)
-                    {
-                      max_overlap = overlap ;
-                      x_max = x_trans ; y_max = y_trans ; z_max = z_trans ;
-#if 1
-                      printf("new max overlap %2.4f found at "
-                             "(%2.2f, %2.2f, %2.2f)\n",
-                             max_overlap, x_trans, y_trans, z_trans) ;
-#endif
-                    }
-                }
-            }
-
-        }
-
-      if (Gdiag & DIAG_SHOW)
-        printf(
-               "max overlap = %2.4f @ (%2.2f, %2.2f, %2.2f)\n",
-               max_overlap, x_max, y_max, z_max) ;
-
-      /* update L to reflect new maximum and search around it */
-      *MATRIX_RELT(m_trans, 1, 4) = x_max ;
-      *MATRIX_RELT(m_trans, 2, 4) = y_max ;
-      *MATRIX_RELT(m_trans, 3, 4) = z_max ;
-      // create a new transform by multiplying the previous one.
-      MatrixMultiply(m_trans, m_L, m_L_tmp) ;
-      MatrixCopy(m_L_tmp, m_L) ;
-      x_max = y_max = z_max = 0.0 ;  /* we've translated
-                                        transform by old maxs */
-
-      mean_trans = (max_trans + min_trans) / 2 ;
-      delta = (max_trans-min_trans)/4 ;
-      min_trans = mean_trans - delta ;
-      max_trans = mean_trans + delta ;
+      printf(
+             "scanning translations %2.2f->%2.2f (step %2.1f) ",
+             min_trans,max_trans, delta) ;
+      fflush(stdout) ;
     }
+    for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
+    {
+      *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
+      for (y_trans = min_trans ; y_trans <= max_trans ; y_trans += delta)
+      {
+        *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
+        for (z_trans= min_trans ;
+             z_trans <= max_trans ;
+             z_trans += delta)
+        {
+          *MATRIX_RELT(m_trans, 3, 4) = z_trans ;
+          if (nint((x_trans)) == -9 && nint((y_trans)) == -5 &&
+              nint((z_trans)) == -7)
+            DiagBreak() ;
+
+          // get the transform
+          m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
+          // calculate the overlap
+          overlap = (*pf_overlap)(vl_target, vl_source, m_L_tmp) ;
+          if (overlap > max_overlap)
+          {
+            max_overlap = overlap ;
+            x_max = x_trans ; y_max = y_trans ; z_max = z_trans ;
+#if 1
+            printf("new max overlap %2.4f found at "
+                   "(%2.2f, %2.2f, %2.2f)\n",
+                   max_overlap, x_trans, y_trans, z_trans) ;
+#endif
+          }
+        }
+      }
+
+    }
+
+    if (Gdiag & DIAG_SHOW)
+      printf(
+             "max overlap = %2.4f @ (%2.2f, %2.2f, %2.2f)\n",
+             max_overlap, x_max, y_max, z_max) ;
+
+    /* update L to reflect new maximum and search around it */
+    *MATRIX_RELT(m_trans, 1, 4) = x_max ;
+    *MATRIX_RELT(m_trans, 2, 4) = y_max ;
+    *MATRIX_RELT(m_trans, 3, 4) = z_max ;
+    // create a new transform by multiplying the previous one.
+    MatrixMultiply(m_trans, m_L, m_L_tmp) ;
+    MatrixCopy(m_L_tmp, m_L) ;
+    x_max = y_max = z_max = 0.0 ;  /* we've translated
+                                      transform by old maxs */
+
+    mean_trans = (max_trans + min_trans) / 2 ;
+    delta = (max_trans-min_trans)/4 ;
+    min_trans = mean_trans - delta ;
+    max_trans = mean_trans + delta ;
+  }
 
   printf("\n") ;
 
@@ -1463,7 +1408,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   MatrixFree(&m_tmp2) ; MatrixFree(&m_trans) ; MatrixFree(&m_tmp3) ;
   return(max_overlap) ;
 }
-#define NPARMS (4*4)
+#define NPARMS (4*3)
 #ifdef TOL
 #undef TOL
 #endif
@@ -1482,47 +1427,30 @@ powell_minimize(VOXEL_LIST *vl_target,
 
   p = vector(1, NPARMS) ;
   xi = matrix(1, NPARMS, 1, NPARMS) ;
-  for (i = r = 1 ; r <= 4 ; r++)
-  {
+  for (i = r = 1 ; r <= 3 ; r++)
     for (c = 1 ; c <= 4 ; c++)
-    {
       p[i++] = *MATRIX_RELT(mat, r, c) ;
-    }
-  }
 
   Gvl_target = vl_target ; Gvl_source = vl_source ;
   for (r = 1 ; r <= NPARMS ; r++)
-  {
     for (c = 1 ; c <= NPARMS ; c++)
-    {
       xi[r][c] = r == c ? 1 : 0 ;
-    }
-  }
 
   // TODO:  powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
   OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
   do
   {
     for (r = 1 ; r <= NPARMS ; r++)
-    {
       for (c = 1 ; c <= NPARMS ; c++)
-      {
         xi[r][c] = r == c ? 1 : 0 ;
-      }
-    }
 
     fstart = fret ;
     // TODO:    powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
     OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-    for (i = r = 1 ; r <= 4 ; r++)
-    {
+    for (i = r = 1 ; r <= 3 ; r++)
       for (c = 1 ; c <= 4 ; c++)
-      {
         *MATRIX_RELT(mat, r, c) = p[i++] ;
-      }
-    }
-    *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
-    *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
+
     printf("%3.3d: best alignment after powell: %2.3f (%d steps)\n",
            parms.start_t,fret, iter) ;
     write_snapshot(vl_target->mri, mri_orig_source,
@@ -1542,16 +1470,11 @@ compute_powell_sse(float *p)
   int    i, r, c ;
 
   if (mat == NULL)
-    mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  for (i = r = 1 ; r <= 4 ; r++)
-  {
+    mat = MatrixIdentity(4, NULL) ;
+  for (i = r = 1 ; r <= 3 ; r++)
     for (c = 1 ; c <= 4 ; c++)
-    {
       *MATRIX_RELT(mat, r, c) = p[i++] ;
-    }
-  }
-  *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ;
-  *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ;
+
   error = -(*pf_overlap)(Gvl_target, Gvl_source, mat) ;
   if (-error > best)
     DiagBreak() ;
