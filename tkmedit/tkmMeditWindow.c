@@ -2514,6 +2514,14 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
       goto cleanup;
     }
 
+    /* Ctrl-q quits. */
+    if( xGWin_tEventType_KeyDown == ipEvent->mType
+        && 'q' == ipEvent->mKey
+	&& TRUE == ipEvent->mbCtrlKey ) {
+      tkm_Quit();
+      goto cleanup;
+    }
+
     /* look for tab. if so, change focus. */
     if( xGWin_tEventType_KeyDown == ipEvent->mType
         && xGWin_tKey_Tab == ipEvent->mKey ) {

@@ -1,5 +1,5 @@
 
-# $Id: tksurfer.tcl,v 1.128 2006/11/06 18:51:20 nicks Exp $
+# $Id: tksurfer.tcl,v 1.129 2006/11/15 19:54:14 kteich Exp $
 
 package require BLT;
 
@@ -5218,6 +5218,7 @@ proc SetKeyBindings {} {
     bind . <Alt-braceright>   { scale_brain 1.25; UpdateAndRedraw }
     bind . <Alt-bracketleft>  { scale_brain 0.95; UpdateAndRedraw }
     bind . <Alt-bracketright> { scale_brain 1.05; UpdateAndRedraw }
+    bind . <Control-q> { exit }
 }
 
 set tDlogSpecs(LoadSurface) \
