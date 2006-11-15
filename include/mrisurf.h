@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.270 2006/11/06 15:09:51 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.271 2006/11/15 19:56:12 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -185,6 +185,9 @@ typedef struct
   float        xhi ;
   float        yhi ;
   float        zhi ;
+  float        x0 ;   // center of spherical expansion
+  float        y0 ; 
+  float        z0 ;
   VERTEX       *v_temporal_pole ;
   VERTEX       *v_frontal_pole ;
   VERTEX       *v_occipital_pole ;
@@ -1462,5 +1465,6 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          LABEL ***plabel_array,
                          int *pnlabels,
                          float min_label_area) ;
+int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 
 #endif
