@@ -3,7 +3,7 @@
 # Passing "-old" as an argument will invoke the old func2sphere-sess (now called
 # func2sphere-sess-vss).
 
-set VERSION = '$Id: func2sph-sess,v 1.6 2006/01/20 03:45:41 greve Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.7 2006/11/15 00:28:40 greve Exp $';
 
 set inputargs = ($argv);
 set analysis    = ();
@@ -23,6 +23,7 @@ set SurfaceReg = "sphere.reg"
 set Float2Int = ();
 set MapMethod = nnfr; # for surf2surf
 set TrgSubject = ico
+set Interp = "nearest";
 
 set synth = 0;
 set fwhm  = ();
@@ -210,6 +211,7 @@ foreach sess ($SessList)
       set cmd = ($cmd --mapmethod $MapMethod)
       set cmd = ($cmd --hemi $hemi --surf $Surface --surfreg $SurfaceReg)
       set cmd = ($cmd --out $sphstem --out_type bfloat --float2int $Float2Int)
+      set cmd = ($cmd --interp $Interp)
       if($#fwhm != 0) set cmd = ($cmd --fwhm $fwhm)
       if($synth != 0) set cmd = ($cmd --srcsynth -1)
       if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac)
@@ -350,6 +352,11 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-interp":
+      if ( $#argv == 0) goto arg1err;
+      set Interp = $argv[1]; shift;
       breaksw
 
     case "-synth":
