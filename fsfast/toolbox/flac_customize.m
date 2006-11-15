@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.16 2006/11/06 06:03:25 greve Exp $
+% $Id: flac_customize.m,v 1.17 2006/11/15 23:12:42 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -82,10 +82,13 @@ for nthev = 1:nev
   % HRF Regressors
   if(ev.ishrf)  
     % Just get the stimulus timing
+    % It is possible that this is empty if the condition is not
+    % reprsented for this run. This will cause a bailout unless
+    % flac.AllowMissingCond is set.
     if(isempty(flac.parfile))
       stfpath = sprintf('%s/%s',runpath,ev.stf);
       st = fast_ldstf(stfpath);
-      if(isempty(st)) 
+      if(isempty(st) & ~flac.AllowMissingCond)
 	fprintf('ERROR: reading timing file %s\n',stfpath);
 	flacnew = []; return; 
       end
@@ -96,19 +99,21 @@ for nthev = 1:nev
 	fprintf('ERROR: loading %s \n',flac.parfile);
 	flacnew = []; return; 
       end
-      condno = sscanf(ev.stf,'%d');
+      condno = sscanf(ev.stf,'%d'); % stf is interpreted as cond no
       if(isempty(condno))
 	fprintf('ERROR: condition number %s wrong\n',ev.stf);
 	flacnew = []; return; 
       end
       trun = flacnew.ntp * flacnew.TR;
       st = fast_par2st(par,condno,trun);
-      if(isempty(st))
+      if(isempty(st) & ~flac.AllowMissingCond)
 	fprintf('ERROR: converting par to st\n');
 	flacnew = []; return; 
       end
     end
-    st(:,1) = st(:,1) + flacnew.stimulusdelay;
+    if(~isempty(st))
+      st(:,1) = st(:,1) + flacnew.stimulusdelay;
+    end
     flacnew.ev(nthev).st = st;
     continue;
   end  
@@ -187,7 +192,8 @@ for nthev = 1:nev
 
 end
 
-
+% Now create the full design matrix. This will also create the
+% matrices for the HRF-related EVs.
 flacnew = flac_desmat(flacnew);
 flacnew.indtask = flac_taskregind(flacnew);			    
 flacnew.indnuis = flac_nuisregind(flacnew);			    
@@ -225,11 +231,12 @@ for nthcon = 1:ncon
   flacnew.con(nthcon).gamcvmfspec = ...
       sprintf('%s/%s/%s/%s/%s/cesvar',flacnew.sess,flacnew.fsd,flacnew.name,...
 	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
-  C = flacnew.con(nthcon).C;
-  eff = 1/trace(C*inv(flacnew.X'*flacnew.X)*C');
-  vrf = 1/mean(diag(C*inv(flacnew.X'*flacnew.X)*C'));
-  flacnew.con(nthcon).eff = eff;
-  fprintf('%2d %s eff=%g, vrf=%g\n',nthcon,flacnew.con(nthcon).name,eff,vrf);
+  % Dont print out efficiency here
+  % C = flacnew.con(nthcon).C;
+  % eff = 1/trace(C*inv(flacnew.X'*flacnew.X)*C');
+  % vrf = 1/mean(diag(C*inv(flacnew.X'*flacnew.X)*C'));
+  % flacnew.con(nthcon).eff = eff;
+  % fprintf('%2d %s eff=%g, vrf=%g\n',nthcon,flacnew.con(nthcon).name,eff,vrf);
 end
 
 
