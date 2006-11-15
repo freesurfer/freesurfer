@@ -19,7 +19,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
 %
-% $Id: fast_st2fir.m,v 1.6 2006/11/06 06:04:52 greve Exp $
+% $Id: fast_st2fir.m,v 1.7 2006/11/15 23:08:00 greve Exp $
 
 Xfir = [];
 
@@ -30,14 +30,23 @@ end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
 
-% If weights are not specified, set them to 1
-if(size(st,2) < 3 | ~usew) st(:,3) = 1; end
-
-npres   = size(st,1); % number of presentations
 psdmin  = psdwin(1);  % start of PSD window
 psdmax  = psdwin(2);  % end of PSD window
 dpsd    = psdwin(3);  % increment of PSD window
 npsdwin = round((psdmax-psdmin)/dpsd);
+
+% Empty st means that the condition is not present. This
+% can only happen when the user has specified
+% flac.AllowMissingCond. Return matrix of all 0s
+if(isempty(st))
+  Xfir = zeros(ntp,npsdwin);
+  return;
+end
+
+% If weights are not specified, set them to 1
+if(size(st,2) < 3 | ~usew) st(:,3) = 1; end
+
+npres   = size(st,1); % number of presentations
 
 % The following two pieces of code prevent the case where stimuli
 % of the same type are presented in a overlapping manner. It is,
