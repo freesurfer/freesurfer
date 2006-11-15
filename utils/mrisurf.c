@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/03 21:01:05 $
-// Revision       : $Revision: 1.490 $
+// Revision Date  : $Date: 2006/11/15 19:53:57 $
+// Revision       : $Revision: 1.491 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -337,7 +337,6 @@ static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                float *parea_rms, float *pangle_rms,
                                float *pcurv_rms, float *pdist_rms,
                                float *pcorr_rms);
-static int   mrisAverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 static int   mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                   int n_avgs);
 static int   mrisRemoveNegativeArea(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,
@@ -583,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.490 2006/11/03 21:01:05 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.491 2006/11/15 19:53:57 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2108,6 +2107,31 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 		}
 	}
 
+  // make sure distances are symmetric
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      for (i = 0 ; i < vn->vtotal ; i++)
+      {
+        if (vn->v[i] == vno) // distance in both lists - make it the average
+        {
+          double dist ;
+          dist = (vn->dist_orig[i] + v->dist_orig[n]) / 2 ;
+          vn->dist_orig[i] = dist ;
+          v->dist_orig[n] = dist ;
+          break ;
+        }
+      }
+    }
+  }
+
   /* check reasonableness of distances */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -2121,6 +2145,21 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 								vno, n, v->v[n]) ;
 		}
 	}
+
+  if (Gdiag_no >= 0)
+  {
+    FILE *fp ;
+    char fname[STRLEN] ;
+    VERTEX *v ;
+    int    i ;
+
+    sprintf(fname, "v%d.log", Gdiag_no) ;
+    fp = fopen(fname, "w") ;
+    v = &mris->vertices[Gdiag_no] ;
+    for (i = 0 ; i < v->vtotal ; i++)
+      fprintf(fp, "%d: %d, %f\n", i, v->v[i], v->dist_orig[i]) ;
+    fclose(fp) ;
+  }
 
   mris->avg_nbrs = (float)total_nbrs / (float)mrisValidVertices(mris) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -6481,7 +6520,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 																	mht_v_current);
 
 		mrisComputeLaplacianTerm(mris, parms->l_lap) ;
-		mrisAverageGradients(mris, n_averages) ;
+		MRISaverageGradients(mris, n_averages) ;
 		mrisComputeSpringTerm(mris, parms->l_spring) ;
 		mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
 		mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
@@ -7232,8 +7271,8 @@ MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-static int
-mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
+int
+MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
   float  dx, dy, dz, num, sigma ;
@@ -12277,7 +12316,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 			mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
 			mrisComputeExpansionTerm(mris, parms->l_expand) ;
 
-			mrisAverageGradients(mris, n_averages) ;
+			MRISaverageGradients(mris, n_averages) ;
 			mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
 			mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
 			mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
@@ -12448,7 +12487,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   for (n_averages = base_averages ; n_averages >= 0 ; n_averages /= 4)
 	{
 		parms->n_averages = n_averages ;
-		/*    parms->dt = (sqrt((float)n_averages)+1)*base_dt ;*/
+    parms->dt = (sqrt((float)n_averages)+1)*base_dt ;
 		for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
 		{
 			if (!FZERO(parms->l_repulse_ratio))
@@ -12463,7 +12502,8 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 			mrisComputeConvexityTerm(mris, parms->l_convex) ;
 
 			mrisComputeLaplacianTerm(mris, parms->l_lap) ;
-			mrisAverageGradients(mris, n_averages) ;
+      mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+			MRISaverageGradients(mris, n_averages) ;
 			mrisComputeSpringTerm(mris, parms->l_spring) ;
 			mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
 			switch (parms->integration_type)
@@ -12514,6 +12554,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 		parms->start_t = n ;
 		if (!n_averages || (100.0*rms_radial_error/parms->a < parms->tol))
 			break ;
+    printf("reducing # of averages to %d\n", n_averages/4) ;
 	}
 
   fprintf(stdout, "\nspherical inflation complete.\n") ;
@@ -13671,49 +13712,49 @@ mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
     return(NO_ERROR) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    nx = vertex->nx ; ny = vertex->ny ; nz = vertex->nz ;
+    x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < vertex->vnum ; m++)
     {
-      vertex = &mris->vertices[vno] ;
-      if (vertex->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-
-      nx = vertex->nx ; ny = vertex->ny ; nz = vertex->nz ;
-      x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
-
-      sx = sy = sz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < vertex->vnum ; m++)
-        {
-          vn = &mris->vertices[vertex->v[m]] ;
-          if (!vn->ripflag)
-            {
-              sx += vn->x - x;
-              sy += vn->y - y;
-              sz += vn->z - z;
-              n++;
-            }
-        }
-      if (n>0)
-        {
-          sx = sx/n;
-          sy = sy/n;
-          sz = sz/n;
-        }
-      nc = sx*nx+sy*ny+sz*nz;   /* projection onto normal */
-      if (nc < 0)
-        nc = 0 ;
-      sx = nc*nx ;              /* move in normal direction */
-      sy = nc*ny ;
-      sz = nc*nz;
-
-      vertex->dx += l_convex * sx ;
-      vertex->dy += l_convex * sy ;
-      vertex->dz += l_convex * sz ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d convexity term: (%2.3f, %2.3f, %2.3f)\n",
-                vno, vertex->dx, vertex->dy, vertex->dz) ;
+      vn = &mris->vertices[vertex->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
     }
+    if (n>0)
+    {
+      sx = sx/n;
+      sy = sy/n;
+      sz = sz/n;
+    }
+    nc = sx*nx+sy*ny+sz*nz;   /* projection onto normal */
+    if (nc < 0)
+      nc = 0 ;
+    sx = nc*nx ;              /* move in normal direction */
+    sy = nc*ny ;
+    sz = nc*nz;
+
+    vertex->dx += l_convex * sx ;
+    vertex->dy += l_convex * sy ;
+    vertex->dz += l_convex * sz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d convexity term: (%2.3f, %2.3f, %2.3f)\n",
+              vno, l_convex*sx, l_convex*sy, l_convex*sz) ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -13853,8 +13894,8 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
       v->dy += sy ;
       v->dz += sz ;
       if (vno == Gdiag_no)
-        fprintf(stdout, "v %d spring tangent term: (%2.3f, %2.3f, %2.3f)\n",
-                vno, sx, sy, sz) ;
+        printf("v %d spring tangent term: (%2.3f, %2.3f, %2.3f)\n",
+               vno, sx, sy, sz) ;
     }
 
 
@@ -14577,37 +14618,88 @@ mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius)
   if (FZERO(l_sphere))
     return(0.0f) ;
 
-#if 0
-#if 0
-  radius = MRISaverageRadius(mris) ;
-#else
-  radius = MRISmaxRadius(mris) ;
-#endif
-  fprintf(stdout, "max radius = %2.1f\n", radius) ;
-#endif
+#if 1
   x0 = (mris->xlo+mris->xhi)/2.0f ;
   y0 = (mris->ylo+mris->yhi)/2.0f ;
   z0 = (mris->zlo+mris->zhi)/2.0f ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+#else
+  x0 = mris->x0 ;
+  y0 = mris->y0 ;
+  z0 = mris->z0 ;
+#endif
+
+#if 0
+  // make sure center is inside surface, otherwise move it
+  {
+    float dot, dx, dy, dz ;
+    static int iter = 0 ;
+
+    vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+    v = &mris->vertices[vno] ;
+    dx = x0-v->x ; dy = y0-v->y ; dz = z0-v->z ;
+    dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+    if (iter < 20 && dot > 0) // outside surface!
+    {
+      if (iter > 500)
+        DiagBreak() ;
+      printf("centroid (%2.1f, %2.1f, %2.1f) outside surface (dot = %2.1f, v %d = (%2.1f, %2.1f, %2.1f) n = (%2.1f, %2.1f, %2.1f)\n",
+             x0, y0, z0, dot, vno, v->x, v->y, v->z, v->nx, v->ny, v->nz) ;
+      x0 = v->x-0.5*v->nx ; y0 = v->y-(0.5*v->ny) ; z0 = v->z-(0.5*v->nz) ;
+      mris->x0 = x0 ; mris->y0 = y0 ; mris->z0 = z0 ;
+      print("moving centroid to (%2.1f, %2.1f, %2.1f)\n", x0, y0, z0) ;
+      vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+      v = &mris->vertices[vno] ;
+      dx = x0-v->x ; dy = y0-v->y ; dz = z0-v->z ;
+      dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+      if (dot > 0)
+        printf("still outside!!!!!\n") ;
+    }
+      iter++ ;
+  }
+#endif
+
+  if (radius < 0)
+  {
+    radius = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
       if (vno == Gdiag_no)
         DiagBreak() ;
-
+      
       x = v->x-x0 ; y = v->y-y0 ; z = v->z-z0 ;
       r = sqrt(x*x+y*y+z*z) ;
-      x /= r ; y /= r ; z /= r ;  /* normal direction */
-      r = (radius - r) / radius ;
-      v->dx += r*l_sphere * x ;
-      v->dy += r*l_sphere * y ;
-      v->dz += r*l_sphere * z ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d sphere   "
-                " term: (%2.3f, %2.3f, %2.3f), r=%2.2f\n",
-                vno, v->dx, v->dy, v->dz, r) ;
+    if (r > radius)
+      radius = r ;
     }
+    radius++ ;
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = v->x-x0 ; y = v->y-y0 ; z = v->z-z0 ;
+    r = sqrt(x*x+y*y+z*z) ;
+    x /= r ; y /= r ; z /= r ;  /* normal direction */
+    //    x = v->nx ; y = v->ny ; z = v->nz ;
+    r = (radius - r) / radius ;
+    if (vno == Gdiag_no && (r*l_sphere * x*v->nx + r*l_sphere * y*v->ny + r*l_sphere * z*v->nz < 0))
+      DiagBreak() ;
+    v->dx += r*l_sphere * x ;
+    v->dy += r*l_sphere * y ;
+    v->dz += r*l_sphere * z ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d sphere   "
+              " term: (%2.3f, %2.3f, %2.3f), r=%2.2f\n",
+              vno, v->dx, v->dy, v->dz, r) ;
+  }
 
 
   return(NO_ERROR) ;
@@ -14632,17 +14724,20 @@ mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand)
     return(0.0f) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
 
-      v->dx += l_expand * v->nx ;
-      v->dy += l_expand * v->ny ;
-      v->dz += l_expand * v->nz ;
-    }
+    v->dx += l_expand * v->nx ;
+    v->dy += l_expand * v->ny ;
+    v->dz += l_expand * v->nz ;
+    if (vno == Gdiag_no)
+      printf("v %d expansion term: (%2.3f, %2.3f, %2.3f)\n",
+             vno, l_expand*v->nx, l_expand*v->ny, l_expand*v->nz) ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -14969,61 +15064,61 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
   dot_total = 0.0 ;
   num = (double)mrisValidVertices(mris) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = v->x ;      y = v->y ;     z = v->z ;
+    nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < v->vnum ; m++)
     {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-
-      x = v->x ;      y = v->y ;     z = v->z ;
-      nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
-
-      sx = sy = sz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < v->vnum ; m++)
-        {
-          vn = &mris->vertices[v->v[m]] ;
-          if (!vn->ripflag)
-            {
-              dx = vn->x - x;
-              dy = vn->y - y;
-              dz = vn->z - z;
-              sx += dx ;
-              sy += dy ;
-              sz += dz ;
-              n++;
-            }
-        }
-      if (n>0)
-        {
-          sx = dist_scale*sx/n;
-          sy = dist_scale*sy/n;
-          sz = dist_scale*sz/n;
-        }
-
-      dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
-      v->dx += l_spring * sx ;
-      v->dy += l_spring * sy ;
-      v->dz += l_spring * sz ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
-                vno, v->dx, v->dy, v->dz) ;
+      vn = &mris->vertices[v->v[m]] ;
+      if (!vn->ripflag)
+      {
+        dx = vn->x - x;
+        dy = vn->y - y;
+        dz = vn->z - z;
+        sx += dx ;
+        sy += dy ;
+        sz += dz ;
+        n++;
+      }
     }
+    if (n>0)
+    {
+      sx = dist_scale*sx/n;
+      sy = dist_scale*sy/n;
+      sz = dist_scale*sz/n;
+    }
+
+    dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
+    v->dx += l_spring * sx ;
+    v->dy += l_spring * sy ;
+    v->dz += l_spring * sz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
+              vno, l_spring*sx, l_spring*sy, l_spring*sz) ;
+  }
   dot_total /= num ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
 
-      v->dx -= dot_total * nx ;
-      v->dy -= dot_total * ny ;
-      v->dz -= dot_total * nz ;
-    }
+    v->dx -= dot_total * nx ;
+    v->dy -= dot_total * ny ;
+    v->dz -= dot_total * nz ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -15183,6 +15278,21 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 		if (vno == Gdiag_no || vno == diag_vno1 || vno == diag_vno1)
 			fprintf(stdout, "v %d, distance term: (%2.3f, %2.3f, %2.3f)\n",
 							vno, v->dx, v->dy, v->dz) ;
+    if (Gdiag_no == vno)
+    {
+      FILE *fp ;
+      char fname[STRLEN] ;
+      VERTEX *v ;
+      int    i ;
+      static int iter = 0 ;
+
+      sprintf(fname, "v%d_dist_%04d.log", Gdiag_no, iter++) ;
+      fp = fopen(fname, "w") ;
+      v = &mris->vertices[Gdiag_no] ;
+      for (i = 0 ; i < v->vtotal ; i++)
+        fprintf(fp, "%03d: %05d, %f   %f   %f\n", i, v->v[i], v->dist_orig[i], v->dist[i], v->dist[i]-v->dist_orig[i]/scale);
+      fclose(fp) ;
+    }
 	}
 
   VectorFree(&v_n) ;
@@ -28382,139 +28492,143 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, i
   double dist, dx, dy, dz ;
 
   if (parms == NULL)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          v->x += distance*v->nx ;
-          v->y += distance*v->ny ;
-          v->z += distance*v->nz ;
-        }
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->x += distance*v->nx ;
+      v->y += distance*v->ny ;
+      v->z += distance*v->nz ;
     }
+  }
   else
+  {
+    if (use_thick)
     {
-      if (use_thick)
-        {
-          mht_white = MHTfillVertexTableRes(mris, NULL, WHITE_VERTICES,3.0) ;
-          mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES,3.0) ;
-        }
-      if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
-        mrisWriteSnapshot(mris, parms, 0) ;
-      mrisClearMomentum(mris) ;
-      if (use_thick)  // distance is a % of the total thickness
-        niter = 3*nint(distance*3.5 / MAX_EXP_MM) ;
-      else
-        niter = 3*nint(distance / MAX_EXP_MM) ;
-      MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      avgs = parms->n_averages ;
-      if (Gdiag_no >= 0)
-        {
-          v = &mris->vertices[Gdiag_no] ;
-          printf("v %d: thickness=%2.2f, moving outwards %2.2fmm\n",
-                 Gdiag_no, v->curv, v->curv*distance) ;
-        }
-      for (n = parms->start_t ; n < parms->start_t+niter ; n++)
-        {
-          printf("\rstep %d of %d     ", n+1, parms->start_t+niter) ;
-          fflush(stdout) ;
-          MRIScomputeMetricProperties(mris) ;
-          if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
-            mht = MHTfillTable(mris, mht) ;
-          for (vno = 0 ; vno < mris->nvertices ; vno++)
-            {
-              v = &mris->vertices[vno] ;
-              if (v->ripflag)
-                continue ;
-              if (vno == Gdiag_no)
-                DiagBreak() ;
-              done = 0 ;
-              if (use_thick)
-                {
-#if 1
-                  double dwhite, dpial, d ;
-                  VERTEX *v_white, *v_pial ;
-
-                  v_white = MHTfindClosestVertexSet(mht_white, mris, v, WHITE_VERTICES) ;
-                  v_pial = MHTfindClosestVertexSet(mht_pial, mris, v, PIAL_VERTICES) ;
-                  if (v_white != NULL && v_pial != NULL)
-                    {
-                      dx = v_pial->pialx-v->x ; dy = v_pial->pialy-v->y ; dz = v_pial->pialz-v->z ;
-                      dpial = sqrt(dx*dx + dy*dy + dz*dz) ;
-                      dx = v_white->whitex-v->x ; dy = v_white->whitey-v->y ; dz = v_white->whitez-v->z ;
-                      dwhite = sqrt(dx*dx + dy*dy + dz*dz) ;
-                      if (n == 0)
-                        v->curv = dpial ;
-                      d = dwhite+dpial ;
-                      d = ((v->curv*distance-dwhite) + (dpial-(1-distance)*v->curv))/2 ;
-                      if (vno == Gdiag_no)
-                        printf("v %d: dwhite = %2.2f, dpial = %2.2f, target=%2.2f\n",
-                               vno, dwhite, dpial, d) ;
-                      if (fabs(d) > 1)
-                        d /= fabs(d) ;  // move at constant speed when far away
-                      dx = d*v->nx ;
-                      dy = d*v->ny ;
-                      dz = d*v->nz ;
-                    }
-#else
-                  double nx, ny, nz ;
-
-                  nx = v->pialx-v->whitex ; ny = v->pialy-v->whitey ; nz = v->pialz-v->whitez ;
-                  dist = sqrt(nx*nx + ny*ny + nz*nz) ;
-                  if (FZERO(dist))
-                    dist=1;
-                  nx /= dist ; ny /= dist ; nz /= dist ;
-                  dx = (v->x-v->whitex)*nx ; dy = (v->y-v->whitey)*ny ; dz = (v->z-v->whitez)*nz ;
-                  dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
-                  if (dist > v->curv*distance)
-                    done = 1 ;
-#endif
-                }
-              else
-                {
-                  dx = (v->x-v->origx)*v->nx ; dy = (v->y-v->origy)*v->ny ;
-                  dz = (v->z-v->origz)*v->nz ;
-                  dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
-                  dist = distance-dist ;  // how far still to go
-                  dx = v->nx*dist ;
-                  dy = v->ny*dist ;
-                  dz = v->nz*dist ;
-                }
-
-              v->dx = dx ;
-              v->dy = dy ;
-              v->dz = dz ;
-            }
-          mrisComputeSpringTerm(mris, parms->l_spring) ;
-          mrisComputeLaplacianTerm(mris, parms->l_lap) ;
-          mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-          mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
-          mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
-          mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
-          if (use_thick)
-            {
-              mrisComputeWhichSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_white,
-                                                   WHITE_VERTICES, .2);
-#if 1
-              mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_surf_repulse, mht_pial,
-                                                   PIAL_VERTICES,.2);
-#endif
-            }
-
-          mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
-          mrisAverageGradients(mris, avgs) ;
-          mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,MAX_EXP_MM) ;
-
-          if ((parms->write_iterations > 0) &&
-              !((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
-            mrisWriteSnapshot(mris, parms, n+1) ;
-        }
-      parms->start_t += n ;
-      printf("\n") ;
-      MHTfree(&mht_white) ;
-      MHTfree(&mht_pial) ;
+      mht_white = MHTfillVertexTableRes(mris, NULL, WHITE_VERTICES,3.0) ;
+      mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES,3.0) ;
     }
+    if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
+      mrisWriteSnapshot(mris, parms, 0) ;
+    mrisClearMomentum(mris) ;
+    if (use_thick)  // distance is a % of the total thickness
+      niter = 3*nint(distance*3.5 / MAX_EXP_MM) ;
+    else
+      niter = 3*nint(distance / MAX_EXP_MM) ;
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    avgs = parms->n_averages ;
+    if (Gdiag_no >= 0)
+    {
+      v = &mris->vertices[Gdiag_no] ;
+      printf("v %d: thickness=%2.2f, moving outwards %2.2fmm\n",
+             Gdiag_no, v->curv, v->curv*distance) ;
+    }
+    for (n = parms->start_t ; n < parms->start_t+niter ; n++)
+    {
+      printf("\rstep %d of %d     ", n+1, parms->start_t+niter) ;
+      fflush(stdout) ;
+      MRIScomputeMetricProperties(mris) ;
+      if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+        mht = MHTfillTable(mris, mht) ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+        done = 0 ;
+        if (use_thick)
+        {
+#if 1
+          double dwhite, dpial, d ;
+          VERTEX *v_white, *v_pial ;
+
+          v_white = MHTfindClosestVertexSet(mht_white, mris, v, WHITE_VERTICES) ;
+          v_pial = MHTfindClosestVertexSet(mht_pial, mris, v, PIAL_VERTICES) ;
+          if (v_white != NULL && v_pial != NULL)
+          {
+            dx = v_pial->pialx-v->x ; dy = v_pial->pialy-v->y ; dz = v_pial->pialz-v->z ;
+            dpial = sqrt(dx*dx + dy*dy + dz*dz) ;
+            dx = v_white->whitex-v->x ; dy = v_white->whitey-v->y ; dz = v_white->whitez-v->z ;
+            dwhite = sqrt(dx*dx + dy*dy + dz*dz) ;
+            if (n == 0)
+              v->curv = dpial ;
+            d = dwhite+dpial ;
+            d = ((v->curv*distance-dwhite) + (dpial-(1-distance)*v->curv))/2 ;
+            if (vno == Gdiag_no)
+              printf("v %d: dwhite = %2.2f, dpial = %2.2f, target=%2.2f\n",
+                     vno, dwhite, dpial, d) ;
+            if (fabs(d) > 1)
+              d /= fabs(d) ;  // move at constant speed when far away
+            dx = d*v->nx ;
+            dy = d*v->ny ;
+            dz = d*v->nz ;
+          }
+#else
+          double nx, ny, nz ;
+
+          nx = v->pialx-v->whitex ; ny = v->pialy-v->whitey ; nz = v->pialz-v->whitez ;
+          dist = sqrt(nx*nx + ny*ny + nz*nz) ;
+          if (FZERO(dist))
+            dist=1;
+          nx /= dist ; ny /= dist ; nz /= dist ;
+          dx = (v->x-v->whitex)*nx ; dy = (v->y-v->whitey)*ny ; dz = (v->z-v->whitez)*nz ;
+          dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
+          if (dist > v->curv*distance)
+            done = 1 ;
+#endif
+        }
+        else
+        {
+          dx = (v->x-v->origx)*v->nx ; dy = (v->y-v->origy)*v->ny ;
+          dz = (v->z-v->origz)*v->nz ;
+          dist = sqrt(dx*dx+dy*dy+dz*dz) ;  // distance traveled in normal direction
+          dist = distance-dist ;  // how far still to go
+          dist /= (niter-n) ;
+          dx = v->nx*dist ;
+          dy = v->ny*dist ;
+          dz = v->nz*dist ;
+        }
+
+        v->dx = dx ;
+        v->dy = dy ;
+        v->dz = dz ;
+      }
+      mrisComputeSpringTerm(mris, parms->l_spring) ;
+			mrisComputeConvexityTerm(mris, parms->l_convex) ;
+      mrisComputeLaplacianTerm(mris, parms->l_lap) ;
+      mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
+      mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
+      mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
+      mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+      if (use_thick)
+      {
+        mrisComputeWhichSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_white,
+                                             WHITE_VERTICES, .2);
+#if 1
+        mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_surf_repulse, mht_pial,
+                                             PIAL_VERTICES,.2);
+#endif
+      }
+
+      mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+      MRISaverageGradients(mris, avgs) ;
+      mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,MAX_EXP_MM) ;
+
+      if ((parms->write_iterations > 0) &&
+          !((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
+        mrisWriteSnapshot(mris, parms, n+1) ;
+    }
+    parms->start_t += n ;
+    printf("\n") ;
+    if (mht_white)
+      MHTfree(&mht_white) ;
+    if (mht_pial)
+      MHTfree(&mht_pial) ;
+  }
   if (mht)
     MHTfree(&mht) ;
   return(NO_ERROR) ;
@@ -50706,7 +50820,7 @@ mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
 
   mrisComputeLaplacianTerm(mris, parms->l_lap) ;
-  mrisAverageGradients(mris, avgs) ;
+  MRISaverageGradients(mris, avgs) ;
 
   /* smoothness terms */
   mrisComputeSpringTerm(mris, parms->l_spring) ;
@@ -52138,49 +52252,51 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
     return(NO_ERROR) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < vertex->vnum ; m++)
     {
-      vertex = &mris->vertices[vno] ;
-      if (vertex->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-
-      x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
-
-      sx = sy = sz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < vertex->vnum ; m++)
-        {
-          vn = &mris->vertices[vertex->v[m]] ;
-          if (!vn->ripflag)
-            {
-              sx += vn->x - x;
-              sy += vn->y - y;
-              sz += vn->z - z;
-              n++;
-            }
-        }
-      if (n>0)
-        {
-          sx = sx/n;
-          sy = sy/n;
-          sz = sz/n;
-        }
-      scale = pow(vertex->K, gaussian_norm) ;
-      if (scale > 1)
-        scale = 1 ;
-      scale *= l_spring ;
-      sx *= scale ;              /* move in normal direction */
-      sy *= scale ;
-      sz *= scale ;
-
-      vertex->dx += sx ;
-      vertex->dy += sy ;
-      vertex->dz += sz ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d spring normal term:  (%2.3f, %2.3f, %2.3f)\n",
-                vno, sx, sy, sz) ;
+      vn = &mris->vertices[vertex->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
     }
+    if (n>0)
+    {
+      sx = sx/n;
+      sy = sy/n;
+      sz = sz/n;
+    }
+    scale = pow(fabs(vertex->K), gaussian_norm) ;
+    if (!finite(scale))
+      scale = 0 ;;
+    if (scale > 1)
+      scale = 1 ;
+    scale *= l_spring ;
+    sx *= scale ;              /* move in normal direction */
+    sy *= scale ;
+    sz *= scale ;
+
+    vertex->dx += sx ;
+    vertex->dy += sy ;
+    vertex->dz += sz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d Gaussian normal term:  (%2.3f, %2.3f, %2.3f)\n",
+              vno, sx, sy, sz) ;
+  }
 
   return(NO_ERROR) ;
 }
