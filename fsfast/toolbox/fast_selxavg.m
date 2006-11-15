@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.34 2006/11/14 09:11:47 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.35 2006/11/15 00:29:28 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.34 2006/11/14 09:11:47 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.35 2006/11/15 00:29:28 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -1238,6 +1238,7 @@ function s = parse_args(varargin)
         s.TauMaxWhiten = sscanf(inputargs{narg},'%f',1);
         if(s.TauMaxWhiten > 0)
           s.AutoWhiten = 1;
+          s.SaveErrCovMtx = 1;
         end
         narg = narg + 1;
 
