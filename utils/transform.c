@@ -1402,7 +1402,19 @@ LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
 
   for (i = 0 ; i < lta->num_xforms ; i++)
 	{
-		m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+    if (mri_src == NULL)
+    {
+      MATRIX *m_source_r2v, *m_dst_v2r, *m_tmp ;
+      m_source_r2v = VGgetRasToVoxelXform(&lta->xforms[i].src, NULL, 0) ;
+      m_dst_v2r = VGgetVoxelToRasXform(&lta->xforms[i].dst, NULL, 0) ;
+      m_tmp = MatrixMultiply(lta->xforms[i].m_L, m_source_r2v, NULL) ;
+      m_L = MatrixMultiply(m_dst_v2r, m_tmp, NULL) ;
+      MatrixFree(&m_tmp) ; MatrixFree(&m_dst_v2r) ; MatrixFree(&m_source_r2v) ;
+    }
+    else
+    {
+      m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+    }
 		MatrixFree(&lta->xforms[i].m_L) ;
 		lta->xforms[i].m_L = m_L ;
 	}  
