@@ -5,9 +5,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/09/26 17:46:50 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/11/15 19:47:16 $
+// Revision       : $Revision: 1.12 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -38,7 +38,7 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.11 2006/09/26 17:46:50 nicks Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.12 2006/11/15 19:47:16 fischl Exp $";
 
 
 static int use_aseg = 1 ;
@@ -54,6 +54,7 @@ static Real cc_tal_x = 0.0 ;
 static Real cc_tal_y = 0.0 ;
 static Real cc_tal_z = 27.0 ;
 static int fornix = 0 ;
+static int skip = 0 ;
 static LTA *lta = 0;
 static MRI *remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited) ;
 static int cc_cutting_plane_correct(MRI *mri_aseg, double x0, double y0, double z0, 
@@ -116,19 +117,17 @@ int
 main(int argc, char *argv[]) 
 { 
 	char        ifname[STRLEN], ofname[STRLEN],  data_dir[STRLEN], *cp ; 
-	int         nargs, msec; 
-	int         y, z, xi, yi_low=256, yi_high=0, zi_low=256, zi_high=0, temp;
-	Real        xc,yc,zc;
+	int         nargs, msec, y, z, xi, temp, i, j, k ;
+	Real        xc,yc,zc, xv, yv, zv;
 	MATRIX      *mrot = NULL, *mtrans = NULL;
-	int         i, j, k;           
 	struct timeb  then ;
 	MRI         *mri_tal=NULL, *mri_talheader=NULL, *mri_header=NULL, *mri_cc;
-	Real        xv, yv, zv;
 	FILE        *fp=NULL;
 	LTA         *lta2 = 0;	
-	float       volume[MAX_CC_DIVISIONS];
-  MRI         *mri_wm = NULL, *mri_cc_tal = NULL;
-  MRI         *mri_fornix = NULL, *mri_aseg = NULL; 
+  MRI         *mri_wm = NULL, *mri_cc_tal = NULL, *mri_fornix = NULL, *mri_aseg = NULL ; 
+  double      means[3] ;
+	float       volume[MAX_CC_DIVISIONS], evalues[3], ez_x, ez_y, ez_z, zf, zf_low=256, zf_high=0;
+  MATRIX      *m_evectors ;
 
 	Progname = argv[0] ; 
 	DiagInit(NULL, NULL, NULL) ; 
@@ -299,6 +298,28 @@ main(int argc, char *argv[])
 	xi=nint(xc);
 	fprintf(stdout,"cc center is found at %d %d %d\n",xi, nint(yc),nint(zc));
 
+	//count the number if equally segmented five parts	
+  m_evectors = MatrixAlloc(3, 3, MATRIX_REAL) ;
+  MRIprincipleComponents(mri_cc, m_evectors, evalues, means, 1) ;
+  printf("eigenvectors:\n") ; MatrixPrint(Gstdout, m_evectors) ;
+  ez_x = *MATRIX_RELT(m_evectors, 1, 1) ;
+  ez_y = *MATRIX_RELT(m_evectors, 2, 1) ;
+  ez_z = *MATRIX_RELT(m_evectors, 3, 1) ;
+  for (i = 2 ; i <= 3 ; i++)  // find eigenvector that is closest to z axis
+  {
+    if (fabs(*MATRIX_RELT(m_evectors, 3, i)) > fabs(ez_z))
+    {
+      ez_x = *MATRIX_RELT(m_evectors, 1, i) ;
+      ez_y = *MATRIX_RELT(m_evectors, 2, i) ;
+      ez_z = *MATRIX_RELT(m_evectors, 3, i) ;
+    }
+  }
+  if (ez_z  < 0) // orient it anterior/posterior
+  {
+    ez_x *= -1 ; ez_y *= -1 ; ez_z *= -1 ; 
+  }
+  MatrixFree(&m_evectors) ;
+
 	//find the bounding box
 	for (y = 0 ; y < mri_cc->height ; y++) 
 	{ 
@@ -306,34 +327,35 @@ main(int argc, char *argv[])
 		{ 	 
 			if ( MRIvox(mri_cc, xi, y, z) )
 			{
-				if (y < yi_low)
-					yi_low = y ;
-				if (z < zi_low)
-					zi_low = z ;
-				if (y > yi_high )
-					yi_high = y ;
-				if (z > zi_high)
-					zi_high = z ;
+        zf = (xi-means[0])*ez_x + (y-means[1])*ez_y + (z-means[2])*ez_z ;
+				if (zf < zf_low)
+					zf_low = zf ;
+				if (zf > zf_high)
+					zf_high = zf ;
 			} 	
 		} 
 	} 
 
-	//count the number if equally segmented five parts	
-	volume[0] = 0.0; volume[1] = 0.0; volume[2] = 0.0;
-	volume[3] = 0.0; volume[4] = 0.0;
+
+  for (i = 0 ; i < cc_divisions ; i++)
+    volume[i] = 0.0 ;
+
 	for (i = xi-dxi ; i <= xi+dxi ; i++) 
 	{		
-		for ( j = 0 ; j <= 255 ; j++) 
+		for ( j = 0 ; j < mri_cc->height ; j++) 
 		{ 
-			for ( k = 0 ; k <= 255 ; k++) 
+			for ( k = 0 ; k < mri_cc->depth ; k++) 
 			{
 				if ( MRIvox(mri_cc, i, j, k)>0) 
 				{
-					if ( k>=zi_low-10 )
+          zf = (i-means[0])*ez_x + (j-means[1])*ez_y + (k-means[2])*ez_z ;
+					if ( zf>=zf_low-10 )
 					{
-						temp = floor((k-zi_low)/((zi_high-zi_low+1)/5));
-						if (temp < 0) temp = 0;
-						if (temp >= 5) temp = 4;
+						temp = floor((zf-zf_low)/((zf_high-zf_low+1)/cc_divisions));
+						if (temp < 0) 
+              temp = 0;
+						if (temp >= cc_divisions) 
+              temp = cc_divisions-1;
 						volume[temp] +=1 ;
 						MRIvox(mri_cc, i, j, k)=(temp+1)*20+10;
           }
@@ -360,22 +382,21 @@ main(int argc, char *argv[])
         {
           if ( MRIvox(mri_cc, i, j, k)>0) 
           {
-            if ( k>=zi_low-10 )
+            temp = ((MRIvox(mri_cc, i, j, k)-10)/20) - 1 ;
+            if (temp < 0)
+              temp = 0 ;
+            else if (temp >= cc_divisions)
+              temp = cc_divisions-1 ; 
+           switch (temp)
             {
-              temp = floor((k-zi_low)/((zi_high-zi_low+1)/5));
-              if (temp < 0) temp = 0;
-              if (temp >= 5) temp = 4;
-              switch (temp)
-              {
-              default:
-              case 0: label = CC_Posterior ;     break ;
-              case 1: label = CC_Mid_Posterior ; break ;
-              case 2: label = CC_Central ;       break ;
-              case 3: label = CC_Mid_Anterior ;  break ;
-              case 4: label = CC_Anterior ;      break ;
-              }
-              MRIsetVoxVal(mri_aseg, i, j, k, 0, label) ;
+            default:
+            case 0: label = CC_Posterior ;     break ;
+            case 1: label = CC_Mid_Posterior ; break ;
+            case 2: label = CC_Central ;       break ;
+            case 3: label = CC_Mid_Anterior ;  break ;
+            case 4: label = CC_Anterior ;      break ;
             }
+            MRIsetVoxVal(mri_aseg, i, j, k, 0, label) ;
           }
           else if (MRIvox(mri_fornix, i, j, k) > 0 && fornix)
             MRIsetVoxVal(mri_aseg, i, j, k, 0, Fornix) ;
@@ -462,8 +483,8 @@ main(int argc, char *argv[])
 
 	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    fprintf(fp, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
-    fprintf(stdout, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]), yi_low, yi_high, zi_low, zi_high);
+    fprintf(fp, "%s %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]));
+    fprintf(stdout, "%s %d %d %d %d %d \n", argv[1], nint(volume[4]), nint(volume[3]),nint(volume[2]), nint(volume[1]),nint(volume[0]));
   }
 
   sprintf(ofname,"%s/%s/mri/cc.mgz",data_dir,argv[1]) ; 
@@ -1048,6 +1069,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("subdividing the cc into %d compartments\n", cc_divisions) ;
     break ;
+  case 'S':
+    skip = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("skipping %d voxels in rotational alignment\n", skip) ;
+    break ;
   case 'A':
     use_aseg = atoi(argv[2]) ;
     printf("%susing aseg as input instead of wm volume\n",
@@ -1114,7 +1140,11 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
             label == Left_Cerebral_Cortex )
         {
           if (x0 < xleft_min)
+          {
+            if (x0 <= 116)
+              DiagBreak() ;
             xleft_min = x0 ;
+          }
         }
         else if (label == Right_Cerebral_White_Matter ||
                  label == Right_Cerebral_Cortex)
@@ -1131,12 +1161,12 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   xmin = MIN(xleft_min, xright_max)-1 ;
   xmax = MAX(xleft_min, xright_max)+1 ;
   box.y = box.z = 0 ; box.dy = mri_aseg->height ; box.dz = mri_aseg->depth ;
-  box.x = xmin-2 ; box.dx = (xmax-xmin)+4 ;
+  box.x = xmin-1 ; box.dx = (xmax-xmin)+2 ;
 
   vl_left = VLSTcreateInRegion(mri_aseg, Left_Cerebral_White_Matter,
-                          Left_Cerebral_Cortex, NULL, 0, 0, &box) ;
+                          Left_Cerebral_Cortex, NULL, skip, 0, &box) ;
   vl_right = VLSTcreateInRegion(mri_aseg, Right_Cerebral_White_Matter,
-                           Right_Cerebral_Cortex, NULL, 0, 0, &box) ;
+                           Right_Cerebral_Cortex, NULL, skip, 0, &box) ;
 
   printf("%d voxels in left wm, %d in right wm, xrange [%d, %d]\n", vl_left->nvox,
          vl_right->nvox, xmin, xmax) ;
@@ -1146,8 +1176,8 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   max_correct = -1 ;
 
   m = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  m_yrot = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  m_zrot = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  m_yrot = MatrixIdentity(4, NULL) ;
+  m_zrot = MatrixIdentity(4, NULL) ;
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
   VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
