@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.4 2006/05/15 18:33:23 greve Exp $
+# $Id: aparcstats2table,v 1.5 2006/11/15 18:50:19 greve Exp $
 import sys;
 import os;
 import string;
@@ -196,7 +196,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.4 2006/05/15 18:33:23 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.5 2006/11/15 18:50:19 greve Exp $';
 tablefile = ();
 parc = 'aparc';
 hemi = [];
@@ -250,7 +250,7 @@ for subject in SUBJECTS:
       else:
         tmp = string.split(line);
         parcid = tmp[0];
-        fptbl.write(' %s' % (parcid) );
+        fptbl.write('%s ' % (parcid) );
       #endif
     #end # line
     fp.close();
@@ -274,7 +274,7 @@ for subject in SUBJECTS:
       if(meas == 'thickness'): val = string.atof(tmp[4]);
       if(meas == 'meancurv'):  val = string.atof(tmp[6]);
       if(debug): print "%d %s %g %g" % (nthparc,parcid,val)
-      fptbl.write(' %g ' % (val) );
+      fptbl.write(' %g' % (val) );
       nthparc = nthparc + 1;
     #endif
   #end  for line
