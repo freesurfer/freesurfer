@@ -2773,6 +2773,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         if (altkeypressed) 
           send_tcl_command ("UpdateAndRedraw"); 
         break;
+
+      case XK_q: 
+        if (ctrlkeypressed) 
+          exit (0);
+        break;
         /* end rkt */
         
         /* others */
@@ -19184,7 +19189,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.226 2006/11/02 20:35:09 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.227 2006/11/15 19:59:26 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21465,6 +21470,12 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
           if (event->mbAltKey && g_interp) 
             {
               send_tcl_command("UpdateAndRedraw"); 
+            }
+          break;
+        case 'q':
+          if (event->mbCtrlKey) 
+            {
+	      exit (0);
             }
           break;
         case xGWin_tKey_UpArrow:
