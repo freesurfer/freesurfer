@@ -6,7 +6,9 @@ function st = fast_ldstf(stf)
 % Col 2: stimulus duration (sec)
 % Col 3: stimulus weight
 %
-% $Id: fast_ldstf.m,v 1.2 2004/10/22 22:01:14 greve Exp $
+% Quitely returns an empty if file does not exist.
+%
+% $Id: fast_ldstf.m,v 1.3 2006/11/15 22:50:44 greve Exp $
 
 st = [];
 
@@ -17,7 +19,9 @@ end
 
 fp = fopen(stf,'r');
 if(fp == -1)
-  fprintf('ERROR: could not open %s\n',stf);
+  %fprintf('ERROR: could not open %s\n',stf);
+  % Don't print an error here, in case allowing some conditions to 
+  % not exist in some runs. Just return an empty.
   return;
 end
 
