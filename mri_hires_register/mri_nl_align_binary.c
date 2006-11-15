@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/08/10 20:52:10 $
-// Revision       : $Revision: 1.6 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/11/15 20:20:39 $
+// Revision       : $Revision: 1.7 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -123,7 +123,7 @@ static int non_hippo_labels[] =
 } ;
 
 #define NUM_NON_HIPPO_LABELS  (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
-static int target_hippo_label = Right_Hippocampus ;
+static int target_aseg_label = Right_Hippocampus ;
 
 static TRANSFORM  *transform = NULL ;
 static GCA_MORPH_PARMS mp ;
@@ -132,6 +132,7 @@ static GCA_MORPH_PARMS mp ;
 #define ANGIO 1
 #define HIPPO 2
 #define WM    3
+#define LABEL 4
 
 static int which = ANGIO ;
 
@@ -229,6 +230,13 @@ main(int argc, char *argv[])
 		MRIfree(&mri_source) ; mri_source = mri_tmp ;
 		MRIeraseBorders(mri_source, 1) ;
 	}
+	else if (which == LABEL)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_source, NULL) ;
+		MRIcopyLabel(mri_source, mri_tmp, target_aseg_label) ;
+		MRIfree(&mri_source) ; mri_source = mri_tmp ;
+	}
 	MRIboundingBox(mri_source, 0, &box) ;
 	pad = PADVOX ;
 	printf("padding source with %d voxels...\n", pad) ;
@@ -239,12 +247,12 @@ main(int argc, char *argv[])
 		MRIwrite(mri_source, "s.mgz") ;
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
 
-	if (which == HIPPO) // just copy the hippo out of the target 
+	if (which == HIPPO || which == LABEL) // just copy label out of the target 
 	{
 		mri_tmp = MRIclone(mri_target, NULL) ; 
-		MRIcopyLabel(mri_target, mri_tmp, target_hippo_label) ;
+		MRIcopyLabel(mri_target, mri_tmp, target_aseg_label) ;
 		MRIfree(&mri_target) ; mri_target = mri_tmp ;
-		mp.target_label = target_label = target_hippo_label ;
+		mp.target_label = target_label = target_aseg_label ;
 	}
 	else if (which == ANGIO)
 	{
@@ -356,14 +364,17 @@ main(int argc, char *argv[])
 
 	if (transform->type != MORPH_3D_TYPE)  // initializing m3d from a linear transform
 	{
+    double det ;
 		new_transform = 1 ;
 		lta = ((LTA *)(transform->xform)) ;
+    det = MatrixDeterminant( lta->xforms[0].m_L) ;
 		m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
 		MatrixFree(&lta->xforms[0].m_L) ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1,"linear_init");
 
 		lta->xforms[0].m_L = m_L ;
+    det = MatrixDeterminant( lta->xforms[0].m_L) ;
 		printf("initializing GCAM with vox->vox matrix:\n") ;
 		MatrixPrint(stdout, m_L) ;
 #if 1
@@ -436,7 +447,7 @@ main(int argc, char *argv[])
 	if (gcam->width != mri_source->width ||
 			gcam->height != mri_source->height ||
 			gcam->depth != mri_source->depth)
-		ErrorExit(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match source vol (%d, %d, %d)",
+		ErrorPrintf(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match source vol (%d, %d, %d)",
 							Progname, gcam->width, gcam->height, gcam->depth,
 							mri_source->width, mri_source->height, mri_source->depth) ;
 
@@ -496,6 +507,16 @@ main(int argc, char *argv[])
 	mp.mri = mri_target ;
 	if (mp.regrid == True && new_transform == 0)
 		GCAMregrid(gcam, mri_target, PAD, &mp, &mri_source) ;
+	if (upsample > 0)
+	{
+		MRI *mri_morphed ;
+		char fname[STRLEN] ;
+
+    mri_morphed = GCAMmorphFieldFromAtlas(gcam, mp.mri_diag, mp.diag_volume,0, mp.diag_mode_filter) ;
+		sprintf(fname, "%s_orig.mgz", mp.base_name) ;
+		MRIwrite(mri_morphed, fname) ;
+	}
+		
 	for (i = 0 ; i < upsample ; i++)
 		GCAMupsample2(gcam) ;
 #if NONMAX
@@ -646,7 +667,6 @@ get_option(int argc, char *argv[])
   {
 		regrid = atoi(argv[2]) ;
 		mp.regrid = True ;
-		nargs = 1 ;
     printf("enabling regridding...\n") ;
   }
   else if (!stricmp(option, "view"))
@@ -719,6 +739,13 @@ get_option(int argc, char *argv[])
 	{
 		which = HIPPO ;
 		printf("assuming source is hires hippo and dst is aseg volume\n") ;
+    mp.l_binary = 0.5 ;
+    mp.l_smoothness = 0.1 ;
+    mp.dt = 0.005 ;
+    mp.levels = 7 ;
+    mp.navgs = 1024 ;
+    mp.sigma = 0 ;
+    mp.l_distance = 0 ;
 	}
 	else if (!stricmp(option, "wm"))
 	{
@@ -764,9 +791,10 @@ get_option(int argc, char *argv[])
 		printf("using l_smoothness = %2.3f\n", mp.l_smoothness) ;
 		break ;
 	case 'L':
-		mp.l_lsmoothness = atof(argv[2]) ;
+		which = LABEL ;
+		target_aseg_label = atoi(argv[2]) ;
+		printf("using %s %d as target label from source and destination\n", cma_label_to_name(target_aseg_label),target_aseg_label) ;
 		nargs = 1 ;
-		printf("using l_lsmoothness = %2.3f\n", mp.l_lsmoothness) ;
 		break ;
 	case 'T':
 		printf("reading transform from %s...\n", argv[2]) ;
@@ -1011,7 +1039,7 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = hippocampal_fissure ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
-	//	if (fix_intensity)
+	if (fix_intensity)
 		gcam_ltt.means[gcam_ltt.nlabels] = 525 ;
 	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
