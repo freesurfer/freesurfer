@@ -31,6 +31,7 @@ freesurfer/bin/plotter.app
 freesurfer/bin/paint
 freesurfer/bin/tkregister
 freesurfer/bin/csurf
+freesurfer/bin/archive-pull
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share
 freesurfer/lib/tcltktixblt/lib/tk8.4/demos
@@ -38,7 +39,7 @@ freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
 freesurfer/lib/gsl
 freesurfer/lib/qt
-freesurfer/lib/vtk
+freesurfer/lib/vtk/src
 freesurfer/lib/dev
 freesurfer/include
 freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
