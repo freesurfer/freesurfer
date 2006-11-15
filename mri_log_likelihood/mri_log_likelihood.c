@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/10/06 15:59:15 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2006/11/15 19:55:43 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -34,6 +34,7 @@ char *Progname ;
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
 
+static char *orig_fname = NULL ;
 
 /*
    command line consists of three inputs:
@@ -48,7 +49,7 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, **av, *xform_fname ;
-  MRI          *mri_in, *mri_tmp ;
+  MRI          *mri_in, *mri_tmp, *mri_orig = NULL ;
   GCA          *gca ;
   int          ac, nargs, input, ninputs ;
   TRANSFORM    *transform = NULL ;
@@ -57,13 +58,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_log_likelihood.c,v 1.1 2006/10/06 15:59:15 fischl Exp $",
+     "$Id: mri_log_likelihood.c,v 1.2 2006/11/15 19:55:43 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_log_likelihood.c,v 1.1 2006/10/06 15:59:15 fischl Exp $",
+     "$Id: mri_log_likelihood.c,v 1.2 2006/11/15 19:55:43 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -137,8 +138,16 @@ main(int argc, char *argv[])
 	}
   MRIaddCommandLine(mri_in, cmdline) ;
 
-  ll = GCAimageLogLikelihood(gca, mri_in, transform) ;
-  printf("%2.0f\n", ll) ;
+  TransformInvert(transform, mri_in) ;
+
+  if (orig_fname)
+  {
+    mri_orig = MRIread(orig_fname) ;
+    if (mri_orig == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read orig volume from %s", Progname, orig_fname) ;
+  }
+  ll = GCAimageLogLikelihood(gca, mri_in, transform, 1, mri_orig) ;
+  printf("%2.0f\n", 10000*ll) ;
 
   MRIfree(&mri_in) ;
 
@@ -164,24 +173,34 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!strcmp(option, "FSAMPLES"))
-    {
-    }
+  if (!strcmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
+  else if (!stricmp(option, "orig"))
+  {
+    orig_fname = argv[2] ;
+    nargs = 1 ;
+  }
   else switch (*option)
-    {
-    case 'V':
-      Gdiag_no = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      usage_exit(0) ;
-      break ;
-    default:
-      printf("unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  {
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    usage_exit(0) ;
+    break ;
+  default:
+    printf("unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
