@@ -4,7 +4,7 @@ function flac = fast_ldflac(flacfile,flac)
 % Loads an fsfast flac file.
 % If no args, returns an empty flac structure.
 %
-% $Id: fast_ldflac.m,v 1.21 2006/11/04 22:20:07 greve Exp $
+% $Id: fast_ldflac.m,v 1.22 2006/11/15 23:11:06 greve Exp $
 %
 
 if(nargin < 0 | nargin > 2)
@@ -34,6 +34,7 @@ if(isempty(flac))
   flac.par = [];
   flac.tpexc = [];
   flac.perrun = 0;
+  flac.AllowMissingCond = 0;
   % flag indicating the presence of a variable regressor EV
   flac.varregev = 0; % Does not actually do anything yet
   % VarRegEVs must be nuissance!
