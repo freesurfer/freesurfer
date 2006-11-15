@@ -140,7 +140,7 @@ PreferencesManager::SetValue( std::string const isKeyName,
     mbPrefsFileDirty = true;
 
   } else {
-    throw runtime_error( "Value not found." );
+    throw runtime_error( isKeyName + ": Value not found." );
   }
 }
 
@@ -154,7 +154,7 @@ PreferencesManager::GetValue( std::string const isKeyName )  {
     return pref->msValue;
 
   } else {
-    throw runtime_error( "Value not found." );
+    throw runtime_error( isKeyName + ": Value not found." );
   }
 }
 
@@ -276,7 +276,7 @@ PreferencesManager::WriteFile() {
 
   fPrefs << "begin-timestamp" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.14 2006/06/29 23:11:26 kteich Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.15 2006/11/15 21:38:55 kteich Exp $" << endl;
   fPrefs << "end-timestamp" << endl << endl;
 
   fPrefs << "begin-header" << endl;

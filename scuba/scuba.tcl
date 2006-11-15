@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.227 2006/09/20 16:05:24 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.228 2006/11/15 21:38:55 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -616,6 +616,7 @@ proc MakeToolBar { ifwTop } {
     global gaWidget
     global gCoordsInput
     global gaLabelArea
+    global gaPrefs
 
     set fwToolBar     $ifwTop.fwToolBar
 
@@ -933,13 +934,20 @@ proc MakeScubaFrameBindings { iFrameID } {
     bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 
     # These are keys for setting the current tool.
-    bind $gaWidget(window) <Key-n> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation };
-    bind $gaWidget(window) <Key-p> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) plane };
-    bind $gaWidget(window) <Key-m> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) marker };
-    bind $gaWidget(window) <Key-e> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) voxelEditing };
-    bind $gaWidget(window) <Key-r> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) roiEditing };
-    bind $gaWidget(window) <Key-s> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) straightPath };
-    bind $gaWidget(window) <Key-g> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) edgePath };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolNavigate)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolPlane)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) plane };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolMarker)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) marker };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolEditVoxel)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) voxelEditing };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolEditROI)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) roiEditing };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolStraightPath)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) straightPath };
+    bind $gaWidget(window) <Key-$gaPrefs(KeyToolEdgePath)> \
+	{ set gaTool($gaFrame([GetMainFrameID],toolID),mode) edgePath };
 
     # Menu command shortcuts.
     bind $gaWidget(window) <Alt-Key-q> "Quit"
@@ -1179,6 +1187,13 @@ proc GetPreferences {} {
 	KeyMoveViewOut
 	KeyZoomViewIn 
 	KeyZoomViewOut
+	KeyToolNavigate
+	KeyToolPlane
+	KeyToolMarker
+	KeyToolEditVoxel
+	KeyToolEditROI
+	KeyToolStraightPath
+	KeyToolEdgePath
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
@@ -1217,6 +1232,13 @@ proc SetPreferences {} {
 	KeyMoveViewOut
 	KeyZoomViewIn 
 	KeyZoomViewOut
+	KeyToolNavigate
+	KeyToolPlane
+	KeyToolMarker
+	KeyToolEditVoxel
+	KeyToolEditROI
+	KeyToolStraightPath
+	KeyToolEdgePath
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
@@ -5065,6 +5087,13 @@ proc DoPrefsDlog {} {
 	    KeyMoveViewOut    "Move View Out"
 	    KeyZoomViewIn     "Zoom View In"
 	    KeyZoomViewOut    "Zoom View Out"
+	    KeyToolNavigate   "Navigate Tool"
+	    KeyToolPlane      "Plane Tool"
+	    KeyToolMarker     "Marker Tool"
+	    KeyToolEditVoxel  "Edit Voxel Tool"
+	    KeyToolEditROI    "Edit ROI Tool"
+	    KeyToolStraightPath "Straight Path Tool"
+	    KeyToolEdgePath   "Edge Path Tool"
 	    KeyMouseButtonOne "Mouse Click (button one)"
 	    KeyMouseButtonTwo "Mouse Click (button two)"
 	    KeyMouseButtonThree "Mouse Click (button three)"
@@ -6575,7 +6604,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.227 2006/09/20 16:05:24 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.228 2006/11/15 21:38:55 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

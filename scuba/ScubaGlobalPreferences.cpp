@@ -75,7 +75,14 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMoveViewIn ) ||
 	sKey == GetStringForKey( KeyMoveViewOut ) ||
 	sKey == GetStringForKey( KeyZoomViewIn ) ||
-	sKey == GetStringForKey( KeyZoomViewOut )
+	sKey == GetStringForKey( KeyZoomViewOut ) ||
+	sKey == GetStringForKey( KeyToolNavigate ) ||
+	sKey == GetStringForKey( KeyToolPlane ) ||
+	sKey == GetStringForKey( KeyToolMarker ) ||
+	sKey == GetStringForKey( KeyToolEditVoxel  ) ||
+	sKey == GetStringForKey( KeyToolEditROI ) ||
+	sKey == GetStringForKey( KeyToolStraightPath ) ||
+	sKey == GetStringForKey( KeyToolEdgePath )
 	) {
       
       string sValue = prefsMgr.GetValue( sKey );
@@ -186,7 +193,14 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( KeyMoveViewUp ) ||
 	       sKey == GetStringForKey( KeyMoveViewDown ) ||
 	       sKey == GetStringForKey( SelectedTool ) ||
-	       sKey == GetStringForKey( UserStructureList ) ) {
+	       sKey == GetStringForKey( UserStructureList ) ||
+	       sKey == GetStringForKey( KeyToolNavigate ) ||
+	       sKey == GetStringForKey( KeyToolPlane ) ||
+	       sKey == GetStringForKey( KeyToolMarker ) ||
+	       sKey == GetStringForKey( KeyToolEditVoxel  ) ||
+	       sKey == GetStringForKey( KeyToolEditROI ) ||
+	       sKey == GetStringForKey( KeyToolStraightPath ) ||
+	       sKey == GetStringForKey( KeyToolEdgePath ) ) {
       
       string sValue = iasArgv[2];
       
@@ -259,6 +273,13 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, string isValue ) {
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
       iKey == KeyZoomViewOut ||
+      iKey == KeyToolNavigate ||
+      iKey == KeyToolPlane ||
+      iKey == KeyToolMarker ||
+      iKey == KeyToolEditVoxel ||
+      iKey == KeyToolEditROI ||
+      iKey == KeyToolStraightPath ||
+      iKey == KeyToolEdgePath ||
       iKey == SelectedTool ||
       iKey == UserStructureList ) {
     
@@ -328,7 +349,14 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyMoveViewIn ||
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
-      iKey == KeyZoomViewOut ) {
+      iKey == KeyZoomViewOut ||
+      iKey == KeyToolNavigate ||
+      iKey == KeyToolPlane ||
+      iKey == KeyToolMarker ||
+      iKey == KeyToolEditVoxel ||
+      iKey == KeyToolEditROI ||
+      iKey == KeyToolStraightPath ||
+      iKey == KeyToolEdgePath ) {
     
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -396,6 +424,13 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyMoveViewOut:             return "KeyMoveViewOut";              break;
   case KeyZoomViewIn:              return "KeyZoomViewIn";               break;
   case KeyZoomViewOut:             return "KeyZoomViewOut";              break;
+  case KeyToolNavigate:            return "KeyToolNavigate";             break;
+  case KeyToolPlane:               return "KeyToolPlane";                break;
+  case KeyToolMarker:              return "KeyToolMarker";               break;
+  case KeyToolEditVoxel:           return "KeyToolEditVoxel";            break;
+  case KeyToolEditROI:             return "KeyToolEditROI";              break;
+  case KeyToolStraightPath:        return "KeyToolStraightPath";         break;
+  case KeyToolEdgePath:            return "KeyToolEdgePath";             break;
   case SelectedTool:               return "SelectedTool";                break;
   case UserStructureList:          return "UserStructureList";           break;
   case LockOnCursor:               return "LockOnCursor";                break;
@@ -591,6 +626,48 @@ ScubaGlobalPreferences::ReadPreferences () {
   prefsMgr.RegisterValue( "KeyZoomViewOut", 
 			  "Key to zoom the view out in plane.",
 			  zoomViewOut );
+
+  keyCombo->SetFromString( "n" );
+  PreferencesManager::StringPrefValue toolNavigate( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolNavigate", 
+			  "Shortcut for the Navigate tool.",
+			  toolNavigate );
+
+  keyCombo->SetFromString( "p" );
+  PreferencesManager::StringPrefValue toolPlane( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolPlane", 
+			  "Shortcut for the Plane tool.",
+			  toolPlane );
+
+  keyCombo->SetFromString( "m" );
+  PreferencesManager::StringPrefValue toolMarker( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolMarker", 
+			  "Shortcut for the Marker tool.",
+			  toolMarker );
+
+  keyCombo->SetFromString( "e" );
+  PreferencesManager::StringPrefValue toolEditVoxel( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolEditVoxel", 
+			  "Shortcut for the Edit Voxels tool.",
+			  toolEditVoxel );
+
+  keyCombo->SetFromString( "r" );
+  PreferencesManager::StringPrefValue toolEditROI( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolEditROI", 
+			  "Shortcut for the Edit ROI tool.",
+			  toolEditROI );
+
+  keyCombo->SetFromString( "s" );
+  PreferencesManager::StringPrefValue toolStraightPath( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolStraightPath", 
+			  "Shortcut for the Straigh Path tool.",
+			  toolStraightPath );
+
+  keyCombo->SetFromString( "g" );
+  PreferencesManager::StringPrefValue toolEdgePath( keyCombo->ToString() );
+  prefsMgr.RegisterValue( "KeyToolEdgePath", 
+			  "Shortcut for the Edge Path tool.",
+			  toolEdgePath );
   
   PreferencesManager::IntPrefValue showFPS( false );
   prefsMgr.RegisterValue( "ShowFPS", 
