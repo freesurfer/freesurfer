@@ -1,5 +1,5 @@
 % fast_stxgrinder3_sess
-% $Id: fast_stxgrinder3_sess.m,v 1.2 2006/11/14 06:57:37 greve Exp $
+% $Id: fast_stxgrinder3_sess.m,v 1.3 2006/11/15 05:55:36 greve Exp $
 %
 % Creates anadir/contrast
 %     Univariate:       sig,t,ces,cesvar; sig has same sign as ces
@@ -64,7 +64,7 @@ for nthsess = 1:nsess
     nTask = XX.Navgs_per_cond * XX.Nnnc;
     nNuis = size(X,2) - nTask;
     fprintf('nTask = %d, nNuis = %d\n',nTask,nNuis);
-    
+
     hstem = sprintf('%s/h%s',sessanadir,hemicode);
     h0stem = sprintf('%s/h%s-offset',sessanadir,hemicode);
 
@@ -77,6 +77,26 @@ for nthsess = 1:nsess
     beta.volmat = fast_vol2mat(beta.vol);
     [nbeta nvox] = size(beta.volmat);
     beta.volmat = [beta.volmat; zeros(nNuis,nvox)]; % Add 0s for nuis
+
+    acfmatfile = sprintf('%s/acf.mat',sessanadir);
+    if(fast_fileexists(acfmatfile))
+      fprintf('Loading ACF/AR1\n');
+      acfmat = load(acfmatfile);
+      if(isempty(acfmat))
+	fprintf('ERROR: Loading %s\n',acfmatfile);
+	return;
+      end
+      nacf = length(acfmat.ar1seg);
+      nX = size(X,1);
+      nn = repmat([1:nX]',[1 nacf]);
+      rho = repmat(acfmat.ar1seg,[nX 1]);
+      acf = rho.^(nn-1);
+      acfseg = acfmat.acfseg.vol;
+    else
+      fprintf('Not Loading ACF/AR1\n');
+      acf = [];
+      acfseg = [];
+    end
     
     % Initialize
     ces     = beta;
@@ -128,7 +148,7 @@ for nthsess = 1:nsess
       C = [C zeros(J,nNuis)]; % Add 0s for nuis
 
       [F.volmat dof1 dof2 ces.volmat cesvar.volmat] = ...
-	  fast_fratiow(beta.volmat,X,rvar.volmat,C);
+	  fast_fratiow(beta.volmat,X,rvar.volmat,C,acf,acfseg);
       p.volmat = FTest(dof1, dof2, F.volmat);
       sig.vol = -log10(fast_mat2vol(p));
       if(J > 1)
