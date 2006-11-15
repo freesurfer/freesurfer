@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.76 2006/11/13 18:13:50 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.77 2006/11/15 00:24:06 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -89,6 +89,7 @@ else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
   set VXLDIR=/usr/pubsw/packages/vxl/current
+  set VTKDIR=/usr/pubsw/packages/vtk/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   setenv FSLDIR /usr/pubsw/packages/fsl/current
@@ -339,6 +340,9 @@ if ($?GSLDIR) then
     set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
 endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
+if ($?VTKDIR) then
+    set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
+endif
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
@@ -524,7 +528,11 @@ symlinks:
   else
     set cmd4=
   endif
-  set cmd5=
+  if ($?VTKDIR) then
+    set cmd5=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
+  else
+    set cmd5=
+  endif
   set cmd6=
   set cmd7=
   set cmd8=
