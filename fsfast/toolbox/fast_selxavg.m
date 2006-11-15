@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.35 2006/11/15 00:29:28 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.36 2006/11/15 05:54:39 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.35 2006/11/15 00:29:28 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.36 2006/11/15 05:54:39 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -167,9 +167,12 @@ SubSampRate = round(TR/TER);
 
 % Get basic info from the first run %
 instem = deblank(instemlist(1,:));
-[nslices nrows ncols ntrs] = fmri_bvoldim(instem);
 mri = MRIread(instem,1);
 mristruct = mri.bhdr;
+nrows = mri.volsize(1);
+ncols = mri.volsize(2);
+nslices = mri.volsize(3);
+ntrs = mri.nframes;
 
 %-----------------------------------------------------------------%
 %--------------- Beginning of Slice Loop -------------------------%
@@ -502,11 +505,7 @@ for slice = firstslice:lastslice
       % Load per-run whitening matrix here, mult by Xi and y
       if(s.WhitenFlag)
         fname = deblank(s.WhtnMtxFile(run,:));
-        %fprintf('INFO: loading whtn matrix %s\n',fname);        
         WW = load(fname);
-        %Wrun = WW.W;
-        %y  = Wrun*y;
-        %Xi = Wrun*Xi;
         WhtnMtx = WW.W;
         WhtnMtxSq = WhtnMtx'*WhtnMtx; %'
       else
@@ -526,7 +525,6 @@ for slice = firstslice:lastslice
 
       if(Pass == 1)
         % Accumulate XtX and XtWY %
-        %fprintf(1,'       Accumulating XtWX and XtWY\n');
         SumXtX  = SumXtX  + Xi'*Xi; %'
         SumXtWX = SumXtWX + Xi'*WhtnMtxSq*Xi; %'
         SumXtWY = SumXtWY + (Xi'*WhtnMtxSq)*y;  %'
@@ -544,7 +542,6 @@ for slice = firstslice:lastslice
         end
 
         % Accumulate Sum of Squares of  Residual Error %
-        %fprintf(1,'       Accumlating SumSquares Residual Error\n');
         eres_ss = eres_ss + sum(eres.^2);
         
         if(~isempty(sigestdir))
@@ -1241,8 +1238,17 @@ function s = parse_args(varargin)
           s.SaveErrCovMtx = 1;
         end
         narg = narg + 1;
+     
+     case {'-noautowhiten'} % To ease recursive calls
+        s.NoAutoWhiten = 1;
+        s.AutoWhiten = 0;
+        s.TauMaxWhiten = 0;
+        s.SecondPass = 1;
 
-      case {'-mask'},
+     case {'-acfseg'} % New Whiten
+        s.NewWhitenFlag  = 1;
+     
+     case {'-mask'},
         arg1check(flag,narg,ninputargs);
         s.maskid = inputargs{narg};
         narg = narg + 1;
