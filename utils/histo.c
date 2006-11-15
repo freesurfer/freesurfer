@@ -1000,6 +1000,8 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   int  bin_no, bmin, bmax ;
 
   fp = fopen(fname, "w") ;
+  if (fp == NULL)
+    return(ERROR_NOFILE);
 
 	for (bmin = 0 ; bmin < histo->nbins ; bmin++)
 		if (histo->counts[bmin] > 0)
