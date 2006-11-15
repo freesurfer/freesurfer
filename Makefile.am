@@ -281,6 +281,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(VTK_DIR)" = "x" ; then \
+		if test ! "$(VTK_DIR)" = "$(DESTDIR)$(prefix)/lib/vtk" ; then \
+			if test -e $(VTK_DIR) ; then \
+				rm -f $(DESTDIR)$(prefix)/lib/vtk ; \
+				ln -s $(VTK_DIR) $(DESTDIR)$(prefix)/lib/vtk ; \
+			fi; \
+		fi; \
+	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 	doxy-file-header Doxyfile

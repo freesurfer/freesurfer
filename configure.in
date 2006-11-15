@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.265 2006/11/14 21:59:17 nicks Exp $"
+# "$Id: configure.in,v 1.266 2006/11/15 01:11:47 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1013,6 +1013,7 @@ AC_ARG_WITH(vtk-dir,
   [  ac_vtk_includes="$withval/include"
      ac_vtk_libraries="$withval"/lib
      ac_vtk_dir="$withval"
+     VTK_DIR=$ac_vtk_dir
   ])
 
 if test ! "$ac_vtk_includes" = "NO"; then
@@ -1026,9 +1027,7 @@ if test ! "$ac_vtk_includes" = "NO"; then
   fi
   VTK_CFLAGS="${VTK_CFLAGS} -I$ac_vtk_includes"
   VTK_CXXFLAGS="${VTK_CXXFLAGS} -I$ac_vtk_includes"
-  VTK_DIR=$ac_vtk_dir
   vtk_apps="yes"
-  AC_SUBST(VTK_DIR)
 fi
 
 if test ! "$ac_vtk_libraries" = "NO"; then
@@ -1055,6 +1054,7 @@ AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
+AC_SUBST(VTK_DIR)
 
 
 #####################################################
