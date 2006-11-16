@@ -1,11 +1,8 @@
-function [edge, bincenter, binmap] = fast_histeq(y,nbins,r)
-% [edge, bincenter, binmap] = fast_histeq(y,nbins,<r>)
+function [edge, bincenter, binmap] = fast_histeq(y,nbins)
+% [edge, bincenter, binmap] = fast_histeq(y,nbins)
 %
 % computes the bin edges that will result in an equal number of
-% samples of y in each bin. The first step in the algorithm is to
-% compute a histogram of y; the number of bins is nbins*r. If r is
-% unspecfied, it defaults to 20. The larger r is, the better the final
-% result, but the more data needed.
+% samples of y in each bin. 
 %
 % The size of edge will be nbins+1, where the first bin will be
 % between edge(1) and edge(2), etc.
@@ -18,14 +15,38 @@ function [edge, bincenter, binmap] = fast_histeq(y,nbins,r)
 % plot(nk(1:end-1));
 % plot should have approx 1000 = 10000/nbins at each entry
 %
-% $Id: fast_histeq.m,v 1.3 2004/06/11 17:21:24 greve Exp $
+% $Id: fast_histeq.m,v 1.4 2006/11/16 05:13:30 greve Exp $
 
 edge = [];
 
 if(nargin ~= 2 & nargin ~= 3)
-  fprintf('edge = fast_histeq(y,nbins,<r>)\n');
+  fprintf('[edge bincenter binmap] = fast_histeq(y,nbins)\n');
   return;
 end
+
+y = y(:);
+ysorted = sort(y);
+ny = length(y);
+nperbin = round(ny/nbins);
+indedge = [1:nperbin:ny];
+if(indedge(end) ~= ny) indedge = [indedge ny]; end
+edge = ysorted(indedge)';
+bincenter = (edge(1:end-1)+edge(2:end))/2;
+binmap = zeros(ny,1);
+for nthbin = 1:nbins
+  if(nthbin == 1)
+    ind = find(y < edge(nthbin+1));
+  elseif(nthbin == nbins)
+    ind = find(y >= edge(nthbin));
+  else
+    ind = find(y >= edge(nthbin) & y < edge(nthbin+1));
+  end
+  binmap(ind) = nthbin;
+end
+
+return;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This stuff was not robust 
 
 if(exist('r') ~= 1) r = []; end
 if(isempty(r)) r = 20; end
