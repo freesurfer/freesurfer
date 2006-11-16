@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/15 19:54:50 $
-// Revision       : $Revision: 1.213 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/16 06:27:35 $
+// Revision       : $Revision: 1.214 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19393,7 +19393,7 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
   int        x, y, z, xn, yn, zn, label, xp, yp, zp, num,nz,nout, n ;
   GCA_PRIOR  *gcap ;
   GC1D       *gc ;
-  double     total_log_p, log_p, prior, min_log_p ;
+  double     total_log_p, log_p=0, prior, min_log_p ;
   float      vals[MAX_GCA_INPUTS], fmin, fmax ;
   MRI        *mri_ll ;
 
