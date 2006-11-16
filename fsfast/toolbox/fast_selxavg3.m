@@ -1,5 +1,11 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.2 2006/11/16 05:57:33 greve Exp $
+% $Id: fast_selxavg3.m,v 1.3 2006/11/16 06:47:35 greve Exp $
+
+% Rescale
+% Save contrasts
+% If ana, convert beta to sxa, save hdsxa
+% Else, save betas
+% Save final flac.
 
 % analysis
 % sessdir
@@ -31,7 +37,7 @@ end
 indmask = find(mask.vol);
 nmask = length(indmask);
 nvox = prod(mask.volsize);
-fprintf('Found %d/%d (%g) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
 mri = mask; % save as template
 
 nruns = size(flac0.runlist,1);
@@ -84,6 +90,8 @@ nTask = size(Xt,2);
 nNuis = size(Xn,2);
 nX = size(X,2);
 ntptot = size(X,1);
+
+Ctask = [eye(nTask) zeros(nTask,nNuis)];
 
 % Load in the raw data
 tic;
@@ -172,7 +180,50 @@ for nthcon = 1:ncontrasts
   sig(:,:,:,nthcon) = -log10(fast_mat2vol(p,mri.volsize));
 end
 
-% Save contrasts
-% Convert beta to sxa, save
 
-
+evtaskind = flac_evtaskind(flac0);
+evtask1 = flac0.ev(evtaskind(1));
+hd = fmri_hdrdatstruct;
+hd.TR = flac0.TR;
+hd.TER = evtask1.psdwin(3);
+hd.TimeWindow = evtask1.psdwin(2);
+hd.TPreStim   = evtask1.psdwin(1);
+hd.Nc = length(evtaskind)+1;
+hd.Nnnc = hd.Nc - 1;
+hd.Nh = nTask/hd.Nnnc;
+hd.DOF = dof2;
+hd.Npercond = 0; % N presentations per cond, who cares?
+hd.Nruns = nruns;
+hd.Ntp = ntptot;
+hd.Nrows = mri.volsize(1);
+hd.Ncols = mri.volsize(2);
+hd.Nskip = 0; % Who cares?
+tmp = flac_evindex(flac0,'Poly');
+if(~isempty(tmp))
+  hd.DTOrder = flac0.ev(tmp).params(1);
+else
+  hd.DTOrder = 1;
+end
+hd.RescaleFactor = 0; % Who cares?
+hd.HanningRadius = 0.0;
+hd.BrainAirSeg = 0;
+hd.NullCondId    = 0;
+hd.SumXtX        = zeros(nTask);
+hd.nNoiseAC      = 0;
+hd.CondIdMap     = [0:hd.Nc-1];
+hCovMtxTmp       = inv(Ctask*inv(X'*X)*Ctask');
+hd.hCovMtx       = hCovMtxTmp;
+hd.WhitenFlag    = 0;
+hd.runlist       = [1:nruns];
+hd.funcstem      = flac0.funcstem;
+hd.parname       = flac0.parfile;
+hd.GammaFit = 0; %?
+hd.gfDelta  = [];%?
+hd.gfTau    = [];%?
+%if(s.spmhrf > -1) % Hack
+%  hd.GammaFit = s.spmhrf + 1;
+%  hd.gfDelta = -1*ones(1,s.spmhrf + 1);
+%  hd.gfTau   = -1*ones(1,s.spmhrf + 1);
+%end;
+% fmri_svdat3('sxa.dat',hd);
+% hd2 = fmri_lddat3('sxa.dat');
