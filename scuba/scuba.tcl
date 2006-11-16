@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.228 2006/11/15 21:38:55 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.229 2006/11/16 18:10:16 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2124,6 +2124,14 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	}
     }
 
+    tkuMakeCheckboxes $fwGrayscale.cbwClearZero \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Draw 0 values clear" 
+		-variable gaLayer(current,clearZero) 
+		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
+	}
+
     tkuMakeSliders $fwGrayscale.swBC -sliders {
 	{-label "Brightness" -variable gaLayer(current,brightness) 
 	    -min 1 -max 0 -resolution 0.01 -entry 1
@@ -2165,11 +2173,12 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,grayscaleFrameSlider) $fwGrayscale.swFrame
 
     grid $fwGrayscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
-    grid $fwGrayscale.swBC              -column 0 -row 1 -sticky ew
-    grid $fwGrayscale.swLevel           -column 0 -row 2 -sticky ew
-    grid $fwGrayscale.swWindow          -column 0 -row 3 -sticky ew
-    grid $fwGrayscale.swMinMax          -column 0 -row 4 -sticky ew
-    grid $fwGrayscale.swFrame           -column 0 -row 5 -sticky ew
+    grid $fwGrayscale.cbwClearZero      -column 0 -row 1 -sticky ew
+    grid $fwGrayscale.swBC              -column 0 -row 2 -sticky ew
+    grid $fwGrayscale.swLevel           -column 0 -row 3 -sticky ew
+    grid $fwGrayscale.swWindow          -column 0 -row 4 -sticky ew
+    grid $fwGrayscale.swMinMax          -column 0 -row 5 -sticky ew
+    grid $fwGrayscale.swFrame           -column 0 -row 6 -sticky ew
 
     # Heatscale setting -------------------------------------------------
     tkuMakeToolbar $fwHeatscale.tbwSampleMethod \
@@ -6604,7 +6613,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.228 2006/11/15 21:38:55 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.229 2006/11/16 18:10:16 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
