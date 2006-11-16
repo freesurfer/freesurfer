@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.8 2006/11/15 23:11:06 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.9 2006/11/16 05:59:08 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -10,8 +10,9 @@ if(nargin ~= 1)
 end
 
 flac = fast_ldflac; % creates empty struct
-flac.AllowMissingCond = 1;
 flac.name = basename(anadir);
+flac.AllowMissingCond = 1;
+flac.autostimdur = 0;
 
 flac.mask = 'brain';
 flac.con = [];
@@ -45,7 +46,7 @@ while(1)
   %fprintf('key = %s\n',key);
   
   switch(key)
-   %case 'analysis',    flac.name = sscanf(tline,'%*s %s',1);
+   case 'analysis',    analysis         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
@@ -106,6 +107,7 @@ while(1)
    case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
    case '-TER',        TER         = sscanf(tline,'%*s %f',1);
    case '-autowhiten', flac.whiten = 1;
+   case '-autostimdir',flac.autostimdur = 1;
    case '-extreg',     extreg      = sscanf(tline,'%*s %s',1);
    case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
    case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);

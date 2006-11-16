@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.17 2006/11/15 23:12:42 greve Exp $
+% $Id: flac_customize.m,v 1.18 2006/11/16 05:59:08 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -105,7 +105,11 @@ for nthev = 1:nev
 	flacnew = []; return; 
       end
       trun = flacnew.ntp * flacnew.TR;
-      st = fast_par2st(par,condno,trun);
+      if(flac.autostimdur)
+	st = fast_par2st(par,condno,trun);
+      else
+	st = fast_par2st(par,condno,trun,flac.TR);
+      end
       if(isempty(st) & ~flac.AllowMissingCond)
 	fprintf('ERROR: converting par to st\n');
 	flacnew = []; return; 
