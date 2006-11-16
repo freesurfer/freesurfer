@@ -17737,6 +17737,7 @@ int W_plot_all_time_courses PARM;
 int W_read_plot_list  PARM;
 int W_read_vertex_list  PARM;
 int W_draw_cursor  PARM;
+int W_draw_marked_vertices  PARM;
 int W_mark_vertex  PARM;
 int W_draw_all_cursor  PARM;
 int W_draw_all_vertex_cursor  PARM;
@@ -18604,6 +18605,10 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(3,"Wrong # args: draw_cursor <vertex_number> <on_or_off>")
      draw_cursor(atoi(argv[1]),atoi(argv[2]));  WEND
      
+     int                  W_draw_marked_vertices  WBEGIN
+     ERR(1,"Wrong # args: draw_marked_vertices")
+     draw_marked_vertices();  WEND
+     
      int                  W_mark_vertex  WBEGIN
      ERR(3,"Wrong # args: mark_vertex <vertex_number> <on_or_off>")
      mark_vertex(atoi(argv[1]),atoi(argv[2]));  WEND
@@ -19189,7 +19194,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.227 2006/11/15 19:59:26 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.228 2006/11/16 16:15:33 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19816,6 +19821,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_read_vertex_list, REND);
   Tcl_CreateCommand(interp, "draw_cursor",
                     (Tcl_CmdProc*) W_draw_cursor, REND);
+  Tcl_CreateCommand(interp, "draw_marked_vertices",
+                    (Tcl_CmdProc*) W_draw_marked_vertices, REND);
   Tcl_CreateCommand(interp, "mark_vertex",
                     (Tcl_CmdProc*) W_mark_vertex, REND);
   Tcl_CreateCommand(interp, "draw_all_cursor",
