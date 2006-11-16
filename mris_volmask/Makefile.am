@@ -5,7 +5,6 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
-if ENABLE_VTK_APPS
 bin_PROGRAMS = mris_volmask
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
@@ -30,14 +29,6 @@ install-exec-hook:
 		>> $(DESTDIR)$(bindir)/mris_volmask
 	echo "mris_volmask.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_volmask
 	chmod a+x $(DESTDIR)$(bindir)/mris_volmask
-
-else
-bin_PROGRAMS =
-all:
-	@echo "Building VTK apps not enabled."
-	@echo "Run configure with either --enable-vtk-apps or --with-vtk-dir=DIR"
-install-exec-hook:
-endif
 
 EXTRA_DIST=cmd_line_interface.h
 
