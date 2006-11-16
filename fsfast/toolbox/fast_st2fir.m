@@ -19,7 +19,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
 %
-% $Id: fast_st2fir.m,v 1.7 2006/11/15 23:08:00 greve Exp $
+% $Id: fast_st2fir.m,v 1.8 2006/11/16 23:56:09 greve Exp $
 
 Xfir = [];
 
@@ -80,8 +80,8 @@ for nthpres = 1:npres
   tonset0  = st(nthpres,1);
   duration = st(nthpres,2);
   weight   = st(nthpres,3);
-  if(duration ==0) nduration = 1;
-  else             nduration = duration/dpsd;
+  if(duration == 0) nduration = 1;
+  else              nduration = duration/dpsd;
   end
 
   % Go through each increment in the duration
@@ -94,7 +94,7 @@ for nthpres = 1:npres
     r = r1:r2;
     
     % Columns in the design matrix (0-based)
-    c = round((TR*r-tonset)/dpsd);
+    c = round((TR*r-(tonset+psdmin))/dpsd);
     
     % Convert to 1-based
     r = r + 1;
