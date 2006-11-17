@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.267 2006/11/16 06:29:02 nicks Exp $"
+# "$Id: configure.in,v 1.268 2006/11/17 21:57:42 kteich Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1893,6 +1893,7 @@ AC_OUTPUT([Makefile
            stim/Makefile
            stim_polar/Makefile
            test_makevol/Makefile
+           test_tiff/Makefile
            test_window_env/Makefile
            tkmedit/Makefile
            tkregister2/Makefile
