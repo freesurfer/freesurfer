@@ -27,7 +27,7 @@ function mri = MRIread(fstring,headeronly)
 % If the input is NIFTI, then mri.niftihdr is the nifti header
 % If the input is ANALYZE, then mri.analyzehdr is the analyze header
 %
-% $Id: MRIread.m,v 1.14 2006/11/09 00:24:21 greve Exp $
+% $Id: MRIread.m,v 1.15 2006/11/17 22:13:35 greve Exp $
 
 mri = [];
 
@@ -107,11 +107,11 @@ switch(fmt)
   volsz = hdr.dime.dim(2:end);
   indnz = find(volsz~=0);
   volsz = volsz(indnz);
-  if(~headeronly)
-    mri.vol = permute(hdr.vol,[2 1 3 4]);
-  else
-    mri.vol = [];
+  volsz = volsz(:)'; % just make sure it's a row vect  
+  if(~headeronly) mri.vol = permute(hdr.vol,[2 1 3 4]);
+  else            mri.vol = [];
   end
+  volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
   tr = 1000*hdr.dime.pixdim(5);
   flip_angle = 0;
   te = 0;
@@ -131,11 +131,10 @@ switch(fmt)
   indnz = find(volsz~=0);
   volsz = volsz(indnz);
   volsz = volsz(:)'; % just make sure it's a row vect
-  if(~headeronly)
-    mri.vol = permute(hdr.vol,[2 1 3 4]);
-  else
-    mri.vol = [];
+  if(~headeronly) mri.vol = permute(hdr.vol,[2 1 3 4]);
+  else            mri.vol = [];
   end
+  volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
   tr = hdr.pixdim(5); % already msec
   flip_angle = 0;
   te = 0;
