@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.11 2006/10/20 03:34:48 greve Exp $
+% $Id: flac_ev_parse.m,v 1.12 2006/11/17 23:17:53 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -117,9 +117,14 @@ switch (ev.model)
  %--------------------------------------------
  case {'gamma'} % Gamma HRF regressor
   % 5 parameters: delay dispersion alpha nderiv dpsd
-  % EV Probe gamma task 2.25 1.25 1 0 .1
+  % EV Probe gamma task 2.25 1.25 2 0 .1
   [ev.stf c] = sscanfitem(tline,5);
-  if(c ~= 1) fprintf('Format error: %s: stf\n',ev.model); ev=[]; return; end
+  if(c ~= 1) 
+    fprintf('Format error: %s: stf\n',ev.model); 
+    fprintf('Expected something like: EV Probe gamma task  2.25 1.25 2  0 .1\n');
+    ev=[]; 
+    return; 
+  end
 
   [item c] = sscanfitem(tline,6);
   if(c ~= 1) fprintf('Format error: %s: delay\n',ev.model); ev=[]; return; end
