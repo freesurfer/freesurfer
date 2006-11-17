@@ -50,7 +50,7 @@ ScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
 			    "Shift Alt ", "Shift Meta ",
 			    "Alt Meta ",
 			    "Ctrl Shift Alt ", "Shift Alt Meta " };
-    string asUnits[] = {"Escape", "Tab", "Backtab", "Backspace", "Return", "Enter", "Insert", "Delete", "Pause", "Print", "SysReq", "Clear", "Home", "End", "Left", "Up", "Right", "Down", "PageUp", "PageDown", "CapsLock", "NumLock", "ScrollLock", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24", "F25", "F26", "F27", "F28", "F29", "F30", "F31", "F32", "F33", "F34", "F35", "Super_L", "Super_R", "Menu", "Hyper_L", "Hyper_R", "Help", "Direction_L", "Direction_R", "Space", "Exclam", "QuoteDbl", "NumberSign", "Dollar", "Percent", "Ampersand", "Apostrophe", "ParenLeft", "ParenRight", "Asterisk", "Plus", "Comma", "Minus", "Period", "Slash", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Colon", "Semicolon", "Less", "Equal", "Greater", "Question", "At", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "BracketLeft", "Backslash", "BracketRight", "AsciiCircum", "Underscore", "QuoteLeft", "BraceLeft", "Bar", "BraceRight", "AsciiTilde" };
+    string asUnits[] = {"Escape", "Tab", "Backtab", "Backspace", "Return", "Enter", "Insert", "Delete", "Pause", "Print", "SysReq", "Clear", "Home", "End", "Left", "Up", "Right", "Down", "PageUp", "PageDown", "CapsLock", "NumLock", "ScrollLock", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24", "F25", "F26", "F27", "F28", "F29", "F30", "F31", "F32", "F33", "F34", "F35", "Super_L", "Super_R", "Menu", "Hyper_L", "Hyper_R", "Help", "Direction_L", "Direction_R", "Space", "Exclam", "QuoteDbl", "NumberSign", "Dollar", "Percent", "Ampersand", "Apostrophe", "ParenLeft", "ParenRight", "Asterisk", "Plus", "Comma", "Minus", "Period", "Slash", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Colon", "Semicolon", "Less", "Equal", "Greater", "Question", "At", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "BracketLeft", "Backslash", "BracketRight", "AsciiCircum", "Underscore", "QuoteLeft", "BraceLeft", "Bar", "BraceRight", "AsciiTilde" };
 
     vector<string> vsKey;
     for( int nModifier = 0; nModifier < 12; nModifier++ ) {
@@ -75,11 +75,11 @@ ScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
     }
 
     ScubaKeyCombo* a = ScubaKeyCombo::MakeKeyCombo();
-    a->SetFromString( "Ctrl A" );
+    a->SetFromString( "Ctrl a" );
     ScubaKeyCombo* a2 = ScubaKeyCombo::MakeKeyCombo();
-    a2->SetFromString( "Ctrl A" );
+    a2->SetFromString( "Ctrl a" );
     ScubaKeyCombo* b = ScubaKeyCombo::MakeKeyCombo();
-    b->SetFromString( "Ctrl B" );
+    b->SetFromString( "Ctrl b" );
     {
       stringstream ssError;
       ssError << "Failed IsSameAs " << *a << ", " << *b;
