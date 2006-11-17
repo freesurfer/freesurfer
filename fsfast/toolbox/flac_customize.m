@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.18 2006/11/16 05:59:08 greve Exp $
+% $Id: flac_customize.m,v 1.19 2006/11/17 02:01:11 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -219,8 +219,8 @@ flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
 flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 		      flacnew.fsd,flacnew.acfsegstem);
 
-fprintf('\n');
-fprintf('run %d ---------------------- \n',flacnew.nthrun);
+%fprintf('\n');
+%fprintf('run %d ---------------------- \n',flacnew.nthrun);
 ncon = length(flacnew.con);
 for nthcon = 1:ncon
   flacnew.con(nthcon).ffspec = ...
