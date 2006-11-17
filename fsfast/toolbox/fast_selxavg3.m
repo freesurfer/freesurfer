@@ -1,5 +1,5 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.5 2006/11/17 06:28:45 greve Exp $
+% $Id: fast_selxavg3.m,v 1.6 2006/11/17 06:36:57 greve Exp $
 
 % Save ACF Seg Means
 % Break-out contrasts?
@@ -27,7 +27,8 @@ analysis = '';
 %outtop = '/space/greve/1/users/greve/kd';
 
 sessname = basename(sess);
-outtop = dirname(sess);
+%outtop = dirname(sess);
+outtop = '/space/greve/1/users/greve/workmem-ana';
 
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
@@ -52,7 +53,7 @@ if(isempty(flac0))
   return; 
 end
 
-outanadir = sprintf('%s/%s/%s/%s-new',outtop,sessname,flac0.fsd,analysis);
+outanadir = sprintf('%s/%s/%s/%s-new',outtop,sessname,flac0.fsd,flac0.name);
 mkdirp(outanadir);
 
 % Load the brain mask
