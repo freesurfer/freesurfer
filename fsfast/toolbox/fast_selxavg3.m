@@ -1,12 +1,11 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.4 2006/11/17 02:01:33 greve Exp $
+% $Id: fast_selxavg3.m,v 1.5 2006/11/17 06:28:45 greve Exp $
 
 % Save ACF Seg Means
 % Break-out contrasts?
 % Save X.mat
 % Allow turning off whitening
 
-% Handle simple flac-based? Ie, no ana
 % Save final flac.
 % JK?
 % Per-run?
@@ -14,23 +13,32 @@
 
 % analysis
 % sessdir
-
 monly = 1;
+
+sess  = 'tl20000621';
+
+flacname = 'flac/edpnomc.flac';
+analysis = '';
 %analysis = 'edp2';
 %analysis = 'main3-fir';
-%sess  = 'tl20000621';
 
-sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
-analysis = 'subj27_color';
+%sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
+%analysis = 'subj27_color';
+%outtop = '/space/greve/1/users/greve/kd';
 
 sessname = basename(sess);
-outtop = '/space/greve/1/users/greve/kd';
+outtop = dirname(sess);
 
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
 fprintf('Extension format = %s\n',ext);
 
-flac0 = fast_ldanaflac(analysis);
+if(~isempty(analysis))
+  flac0 = fast_ldanaflac(analysis);
+else
+  flac0 = fast_ldflac(flacname);
+end
+  
 if(isempty(flac0))
   if(~monly) quit; end
   return; 
@@ -53,10 +61,10 @@ if(isempty(mask))
   fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
   %return;
 end
-fname = sprintf('%s/bold/005/f.bhdr',sess);
-mri = MRIread(fname);
-mask = mri;
-mask.vol = ones(144,194,26);
+%fname = sprintf('%s/bold/005/f.bhdr',sess);
+%mri = MRIread(fname);
+%mask = mri;
+%mask.vol = ones(144,194,26);
 indmask = find(mask.vol);
 nmask = length(indmask);
 nslices = mask.volsize(3);
@@ -297,7 +305,7 @@ MRIwrite(rstd,fname);
 
 % The contrast matrices were originally computed assuming
 % only a single run's worth of nuisance regressors. Recompute.
-% And compute the contrasts.
+% And compute the contrasts. Need to handle nuisance contrasts.
 fprintf('Computing contrasts  ');
 ncontrasts = length(flac0.con);
 for nthcon = 1:ncontrasts
@@ -353,9 +361,10 @@ for nthcon = 1:ncontrasts
   
 end
 
+if(isempty(analysis)) return; end
+
 % Construct selxavg-style h.dat strucutre for backwards compat
 SumXtX = Ctask*X'*X*Ctask';
-Navgs_per_cond = hd.Nh;
 Nc = hd.Nc;
 NTaskAvgs = nTask;
 eres_std = sqrt(rvarmat);
@@ -369,6 +378,7 @@ hd.TPreStim   = -evtask1.psdwin(1);
 hd.Nc = length(evtaskind)+1;
 hd.Nnnc = hd.Nc - 1;
 hd.Nh = nTask/hd.Nnnc;
+Navgs_per_cond = hd.Nh;
 hd.DOF = dof2;
 hd.Npercond = 0; % N presentations per cond, who cares?
 hd.Nruns = nruns;
