@@ -6325,6 +6325,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
         "analyzeWriteFrame(): error writing to file %s", hdr_fname));
   }
   fclose(fp);
+  if(Gdiag_no > 0)  DumpAnalyzeHeader(stdout,&hdr);
 
   /* ----- open the data file ----- */
   if((fp = fopen(fname, "w")) == NULL){
@@ -6582,6 +6583,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
           hdr_fname));
     }
   fclose(fp);
+  if(Gdiag_no > 0)  DumpAnalyzeHeader(stdout,&hdr);
 
   /* ----- write the data ----- */
   if((fp = fopen(fname, "w")) == NULL)
