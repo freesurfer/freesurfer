@@ -13,7 +13,7 @@ function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap)
 %
 % See also: fast_fratiow, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_glmfitw.m,v 1.6 2006/07/14 03:30:32 greve Exp $
+% $Id: fast_glmfitw.m,v 1.7 2006/11/17 02:00:52 greve Exp $
 
 if(nargin < 2 | nargin > 4)
   fprintf('[beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>)\n');
@@ -51,21 +51,22 @@ if(isempty(nacf))
 end
 
 usematrix = 0;
-if(usematrix) fprintf('Using matrix filtering\n');
-else          fprintf('Using fft filtering\n');
-end
+%if(usematrix) fprintf('Using matrix filtering\n');
+%else          fprintf('Using fft filtering\n');
+%end
 
 % Only gets here if nacf is non-empty
 if(isempty(nacfmap)) nacfmap = ones(nv,1); end
 nbins = size(nacf,2);
 beta = zeros(nbeta,nv);
-r    = zeros(nf,nv);
+if(nargout == 4) r = zeros(nf,nv); end
 rvar = zeros(1,nv);
+rsse = zeros(1,nv);
 X_fft = fft(X,2*nf);
 for nthbin = 0:nbins
   indbin = find(nacfmap==nthbin);
   nbin = length(indbin);
-  fprintf(' nthbin = %d, nbin = %d \n',nthbin,nbin);
+  %fprintf(' nthbin = %d, nbin = %d \n',nthbin,nbin);
   if(isempty(indbin)) continue; end
   if(nthbin ~= 0)
     nacfbin = nacf(:,nthbin);
@@ -87,15 +88,19 @@ for nthbin = 0:nbins
       Xbin = Xbin(1:nf,:);
       clear Xbin_fft;
     end
+    beta(:,indbin) = (inv(Xbin'*Xbin)*Xbin')*ybin;
+    rbin = ybin - Xbin*beta(:,indbin);
   else
-    ybin = y(:,indbin);
     Xbin = X;
+    beta(:,indbin) = (inv(Xbin'*Xbin)*Xbin')*y(:,indbin);
+    rbin = y(:,indbin) - Xbin*beta(:,indbin);
   end
-  beta(:,indbin) = (inv(Xbin'*Xbin)*Xbin')*ybin;
-  r(:,indbin) = ybin - Xbin*beta(:,indbin);
+  if(nargout == 4) r(:,indbin) = rbin; end
+  rsse(indbin) = sum(rbin.^2);
+  clear rbin;
 end
 
-rvar = sum(r.^2)/vdof;
+rvar = rsse/vdof;
 
 return;  
   
