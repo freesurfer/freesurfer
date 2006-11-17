@@ -1,5 +1,5 @@
 
-# $Id: tkmedit.tcl,v 1.120 2006/11/06 18:51:20 nicks Exp $
+# $Id: tkmedit.tcl,v 1.121 2006/11/17 17:45:52 kteich Exp $
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 
@@ -720,11 +720,17 @@ proc UpdateSegmentationColorTable { isColorTable } {
 
 proc UpdateVolumeIsConformed { ibIsConformed } {
     global gfwaToolBar
+    global gControlPointsMenuCommand
 
+    # Enable or diable the controlpoints tool button and menu item.
     if { $ibIsConformed } {
 	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state normal
+	$gControlPointsMenuCommand(menu) entryconfigure \
+	    $gControlPointsMenuCommand(entry) -state normal
     } else {
 	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state disabled
+	$gControlPointsMenuCommand(menu) entryconfigure \
+	    $gControlPointsMenuCommand(entry) -state disabled
     }
 }
 
@@ -3588,7 +3594,8 @@ proc CreateMenuBar { ifwMenuBar } {
     global gTool
     global gbShowToolBar gbShowLabel
     global glDisplayFlag gbDisplayFlag
-    
+    global gControlPointsMenuCommand
+
     set mbwFile   $ifwMenuBar.mbwFile
     set mbwEdit   $ifwMenuBar.mbwEdit
     set mbwView   $ifwMenuBar.mbwView
@@ -4138,7 +4145,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "SendDisplayFlagValue flag_UndoVolume"
 	    gbDisplayFlag(flag_UndoVolume) }
     }
-	
+
     # tools menu
     tkm_MakeMenu $mbwTools "Tools" {
 	{ radio
@@ -4380,6 +4387,10 @@ proc CreateMenuBar { ifwMenuBar } {
 	    DoSaveTIFFSeriesDlog }
     }
 
+    # Save the location of the Control Points tool menu item.
+    set gControlPointsMenuCommand(menu) $mbwTools.mw
+    set gControlPointsMenuCommand(entry) 5
+	
     pack $mbwFile $mbwEdit $mbwView $mbwTools \
       -side left
 }
