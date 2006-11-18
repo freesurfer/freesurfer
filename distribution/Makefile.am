@@ -18,7 +18,7 @@ foo_DATA=surface_labels.txt \
 	ASegStatsLUT.txt
 
 EXTRA_DIST=$(foo_DATA) \
-	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh test_recon-all.csh
+	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
 	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@

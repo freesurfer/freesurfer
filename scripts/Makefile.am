@@ -134,6 +134,7 @@ talairach2 \
 talairach_mgh \
 tal_compare \
 tcl_setup \
+test-recon_all.csh \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
