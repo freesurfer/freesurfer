@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.99 2006/11/01 20:17:52 nicks Exp $
+   $Id: DICOMRead.c,v 1.100 2006/11/18 22:40:22 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1257,6 +1257,14 @@ int sdcmIsMosaic(char *dcmfile,
   char *tmpstr;
 
   if(! IsSiemensDICOM(dcmfile) ) return(0);
+
+  tmpstr = getenv("SDCM_ISMOSAIC_OVERRIDE");
+  if(tmpstr != NULL){
+    sscanf(tmpstr,"%d",&IsMosaic);
+    printf("Env Override: IsMosaic = %d\n",IsMosaic);
+    return(IsMosaic);
+  }
+
 
   IsMosaic = 0;
 
