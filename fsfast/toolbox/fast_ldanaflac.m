@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.10 2006/11/16 17:49:56 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.11 2006/11/18 22:58:46 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -13,6 +13,7 @@ flac = fast_ldflac; % creates empty struct
 flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
 flac.autostimdur = 0;
+flac.acfbins = 20;  
 
 flac.mask = 'brain';
 flac.con = [];

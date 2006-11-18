@@ -4,7 +4,7 @@ function flac = fast_ldflac(flacfile,flac)
 % Loads an fsfast flac file.
 % If no args, returns an empty flac structure.
 %
-% $Id: fast_ldflac.m,v 1.23 2006/11/16 05:59:08 greve Exp $
+% $Id: fast_ldflac.m,v 1.24 2006/11/18 22:58:46 greve Exp $
 %
 
 if(nargin < 0 | nargin > 2)
@@ -42,6 +42,7 @@ if(isempty(flac))
   %flac.ev  = []; % Leave commented for inherit
   %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
+  flac.acfbins = 0;  
   inherit = 0;
 else
   flac.inheritlevel = flac.inheritlevel + 1;
