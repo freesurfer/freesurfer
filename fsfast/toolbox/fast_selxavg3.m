@@ -1,5 +1,5 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.7 2006/11/18 00:12:19 greve Exp $
+% $Id: fast_selxavg3.m,v 1.8 2006/11/18 23:25:46 greve Exp $
 
 % Save ACF Seg Means
 % Allow turning off whitening
@@ -15,9 +15,8 @@
 % sessdir
 
 monly = 1;
-DoGLMFit    = 1;
-DoContrasts = 0;
-nacfsegs = 3;
+DoGLMFit    = 0;
+DoContrasts = 1;
 analysis = '';
 flacname = '';
 
@@ -59,6 +58,7 @@ if(isempty(flac0))
 end
 outanadir = sprintf('%s/%s/%s/%s-new',outtop,sessname,flac0.fsd,flac0.name);
 xfile = sprintf('%s/X.mat',outanadir);
+outresdir = sprintf('%s/res',outanadir);
 
 nruns = size(flac0.runlist,1);
 %nruns = 2;
@@ -137,6 +137,7 @@ ntptot = size(X,1);
 DOF = ntptot - nX;
 B0 = inv(X'*X)*X';
 Ctask = [eye(nTask) zeros(nTask,nNuis)];
+nn = [1:ntptot]';
 
 %---------------------------------------------%
 % The contrast matrices were originally computed assuming
@@ -166,12 +167,16 @@ for nthcon = 1:ncontrasts
 end
 
 if(DoGLMFit)
+  % Make the output dirs
+  mkdirp(outanadir);
+  mkdirp(outresdir);      
+
   % First pass thru the data to compute beta
   fprintf('OLS Beta Pass \n');
   tic;
-  beta0 = zeros(nX,nvox);
+  betamat0 = zeros(nX,nvox);
   for nthrun = 1:nruns
-    fprintf('  run %d    %g\n',nthrun,toc);
+    fprintf('  run %d    t=%g\n',nthrun,toc);
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
@@ -183,15 +188,15 @@ if(DoGLMFit)
     end
     indrun = find(tpindrun == nthrun);
     Brun = B0(:,indrun);
-    beta0 = beta0 + Brun*yrun;
+    betamat0 = betamat0 + Brun*yrun;
     clear yrun;
     pack;
   end
   
   % Compute baseline (not sure why I need this)
-  betamn0 = mean(beta0(ind0,:));
-  baseline0 = mri;
-  baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
+  % betamn0 = mean(betamat0(ind0,:));
+  % baseline0 = mri;
+  % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   
   % Compute Rescale Factor
   if(~isempty(flac0.inorm))
@@ -208,27 +213,30 @@ if(DoGLMFit)
   rsse = 0;
   ar1 = mri;
   for nthrun = 1:nruns
-    fprintf('  run %d    %g\n',nthrun,toc);
+    fprintf('  run %d    t=%g\n',nthrun,toc);
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
     yrun = MRIread(flac.funcfspec);
     indrun = find(tpindrun == nthrun);
     Xrun = X(indrun,:);
-    yhatrun = Xrun*beta0;
+    yhatrun = Xrun*betamat0;
     rrun = fast_vol2mat(yrun) - yhatrun;
     rsserun = sum(rrun.^2);
     rsse = rsse + rsserun;
     ar1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     ar1.vol(:,:,:,nthrun) = fast_mat2vol(ar1run,ar1.volsize);
+    if(flac0.acfbins == 0)
+      fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
+      rrunmri = mri;
+      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+      MRIwrite(rrunmri,fname);
+    end
     clear yrun rrun;
     pack;
   end
   % Residual variance
-  rvar0 = rsse/DOF;
-  
-  % Make the output dir
-  mkdirp(outanadir);
+  rvarmat0 = rsse/DOF;
   
   % Save input mask
   fname = sprintf('%s/mask.%s',outanadir,ext);
@@ -242,96 +250,109 @@ if(DoGLMFit)
   fname = sprintf('%s/ar1mn.%s',outanadir,ext);
   MRIwrite(ar1mn,fname);
 
+  % ---------------------------------------------------
   % Segment based on autocorrelation AR1
-  [edge bincenter binmap] = fast_histeq(ar1mn.vol(indmask),nacfsegs);
-  acfseg = mri;
-  acfseg.vol = zeros(acfseg.volsize);
-  acfseg.vol(indmask) = binmap;
-  fname = sprintf('%s/acfseg.%s',outanadir,ext);
-  MRIwrite(acfseg,fname);
+  acfseg.vol = [];
+  acfseg = [];
+  acfsegmn = [];
+  ar1segmn = [];
+  if(flac0.acfbins > 0)
+    fprintf('Whitening\n');
+    clear rvarmat0 betamat0;
+    [edge bincenter binmap] = fast_histeq(ar1mn.vol(indmask), flac0.acfbins);
+    acfseg = mri;
+    acfseg.vol = zeros(acfseg.volsize);
+    acfseg.vol(indmask) = binmap;
+    fname = sprintf('%s/acfseg.%s',outanadir,ext);
+    MRIwrite(acfseg,fname);
+    
+    % Compute average ar1 in each seg and corresponding acf
+    fprintf('Computing whitening matrices\n');
+    tic;
+    clear ar1segmn acfsegmn S Sinv W;
+    for nthseg = 1:flac0.acfbins
+      indseg = find(acfseg.vol==nthseg);
+      ar1segmn(nthseg) = mean(ar1mn.vol(indseg));
+      %ar1segmn(nthseg) = 0; % No whitening
+      fprintf('  seg  %2d  ar1 = %g  (t=%g)\n',....
+	      nthseg,ar1segmn(nthseg),toc);
+      acfsegmn(:,nthseg) = ar1segmn(nthseg).^(nn-1);
+      S(:,:,nthseg) = toeplitz(acfsegmn(:,nthseg));
+      Sinv(:,:,nthseg) = inv(S(:,:,nthseg));
+      W(:,:,nthseg) = inv(chol(S(:,:,nthseg))');
+    end
 
-  % Compute average ar1 in each seg and corresponding acf
-  fprintf('Computing whitening matrices\n');
-  tic;
-  nn = [1:ntptot]';
-  clear ar1segmn acfsegmn S Sinv W;
-  for nthseg = 1:nacfsegs
-    indseg = find(acfseg.vol==nthseg);
-    ar1segmn(nthseg) = mean(ar1mn.vol(indseg));
-    %ar1segmn(nthseg) = 0; % No whitening
-    fprintf('  seg  %2d  ar1 = %g  (%g)\n',....
-	    nthseg,ar1segmn(nthseg),toc);
-    acfsegmn(:,nthseg) = ar1segmn(nthseg).^(nn-1);
-    S(:,:,nthseg) = toeplitz(acfsegmn(:,nthseg));
-    Sinv(:,:,nthseg) = inv(S(:,:,nthseg));
-    W(:,:,nthseg) = inv(chol(S(:,:,nthseg))');
-  end
+    % First pass thru the data to compute beta
+    fprintf('GLS Beta Pass \n');
+    tic;
+    betamat = zeros(nX,nvox);
+    for nthrun = 1:nruns
+      fprintf('  run %d    t=%g\n',nthrun,toc);
+      flac = flac0;
+      flac.nthrun = nthrun;
+      flac = flac_customize(flac);
+      yrun = MRIread(flac.funcfspec);
+      yrun = RescaleFactor*fast_vol2mat(yrun);  
+      indrun = find(tpindrun == nthrun);
+      for nthseg = 0:  flac0.acfbins
+	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
+	indseg = find(acfseg.vol==nthseg);
+	if(nthseg == 0)  B = B0;
+	else      B = inv(X'*Sinv(:,:,nthseg)*X)*X'*Sinv(:,:,nthseg);
+	end
+	Brun = B(:,indrun);
+	betamat(:,indseg) = betamat(:,indseg) + Brun*yrun(:,indseg);
+      end
+      clear yrun;
+      pack;
+    end
+    
+    % Second pass thru the data to compute beta
+    fprintf('GLS Residual Pass \n');
+    mkdirp(outresdir);
+    tic;
+    rsse = 0;
+    for nthrun = 1:nruns
+      fprintf('  run %d    t=%g\n',nthrun,toc);
+      flac = flac0;
+      flac.nthrun = nthrun;
+      flac = flac_customize(flac);
+      yrun = MRIread(flac.funcfspec);
+      yrun = RescaleFactor*fast_vol2mat(yrun);
+      indrun = find(tpindrun == nthrun);
+      Xrun = X(indrun,:);
+      yhatrun = Xrun*betamat;
+      rrun = yrun - yhatrun;
+      for nthseg = 1:flac0.acfbins % ok to skip 0
+	indseg = find(acfseg.vol==nthseg);
+	acfrun = ar1segmn(nthseg).^([0:flac.ntp-1]');
+	Wseg = inv(chol(toeplitz(acfrun))');
+	rrun(:,indseg) = Wseg*rrun(:,indseg);
+      end
+      rsserun = sum(rrun.^2);
+      rsse = rsse + rsserun;
+      
+      fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
+      rrunmri = mri;
+      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+      MRIwrite(rrunmri,fname);
+      
+      clear yrun rrun rrunmri;
+      pack;
+    end
+    rvarmat = rsse/DOF;
+  else
+    fprintf('Not Whitening\n');
+    rvarmat = rvarmat0;
+    betamat = betamat0;
+    clear rvarmat0 betamat0;
+  end % acfbins > 0
 
   save(xfile,'X','flac0','RescaleFactor',...
-       'acfseg','acfsegmn','ar1segmn','nacfseg');
+       'acfseg','acfsegmn','ar1segmn');
 
 
-  % First pass thru the data to compute beta
-  fprintf('GLS Beta Pass \n');
-  tic;
-  betamat = zeros(nX,nvox);
-  for nthrun = 1:nruns
-    fprintf('  run %d    %g\n',nthrun,toc);
-    flac = flac0;
-    flac.nthrun = nthrun;
-    flac = flac_customize(flac);
-    yrun = MRIread(flac.funcfspec);
-    yrun = RescaleFactor*fast_vol2mat(yrun);  
-    indrun = find(tpindrun == nthrun);
-    for nthseg = 0:nacfsegs
-      %fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
-      indseg = find(acfseg.vol==nthseg);
-      if(nthseg == 0)  B = B0;
-      else      B = inv(X'*Sinv(:,:,nthseg)*X)*X'*Sinv(:,:,nthseg);
-      end
-      Brun = B(:,indrun);
-      betamat(:,indseg) = betamat(:,indseg) + Brun*yrun(:,indseg);
-    end
-    clear yrun;
-    pack;
-  end
-
-  % Second pass thru the data to compute beta
-  fprintf('GLS Residual Pass \n');
-  outresdir = sprintf('%s/res',outanadir);
-  mkdirp(outresdir);
-  tic;
-  rsse = 0;
-  for nthrun = 1:nruns
-    fprintf('  run %d    %g\n',nthrun,toc);
-    flac = flac0;
-    flac.nthrun = nthrun;
-    flac = flac_customize(flac);
-    yrun = MRIread(flac.funcfspec);
-    yrun = RescaleFactor*fast_vol2mat(yrun);
-    indrun = find(tpindrun == nthrun);
-    Xrun = X(indrun,:);
-    yhatrun = Xrun*betamat;
-    rrun = yrun - yhatrun;
-    for nthseg = 1:nacfsegs % ok to skip 0
-      indseg = find(acfseg.vol==nthseg);
-      acfrun = ar1segmn(nthseg).^([0:flac.ntp-1]');
-      Wseg = inv(chol(toeplitz(acfrun))');
-      rrun(:,indseg) = Wseg*rrun(:,indseg);
-    end
-    rsserun = sum(rrun.^2);
-    rsse = rsse + rsserun;
-    
-    fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
-    rrunmri = mri;
-    rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
-    MRIwrite(rrunmri,fname);
-
-    clear yrun rrun rrunmri;
-    pack;
-  end
-  rvarmat = rsse/DOF;
-
+  
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:)),mri.volsize);
   fname = sprintf('%s/h-offset.%s',outanadir,ext);
@@ -357,7 +378,7 @@ if(DoContrasts)
   
   if(~DoGLMFit)
     load(xfile);
-    
+  
     fname = sprintf('%s/h-offset',outanadir);
     baseline = MRIread(fname);
     if(isempty(baseline)) return; end
@@ -373,6 +394,8 @@ if(DoContrasts)
     if(isempty(rvar)) return; end
     rvarmat = fast_vol2mat(rvar.vol);
     clear rvar.vol;
+    
+    if(flac0.acfbins == 0) acfseg.vol = []; end
   end
 
   %---------------------------------------------------------------%
