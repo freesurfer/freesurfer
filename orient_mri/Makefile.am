@@ -18,9 +18,10 @@ orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkfreetype -lvtkIO \
-	-lvtkDICOMParser -lvtkzlib -lvtkpng \
-	-lvtkjpeg -lvtkexpat -lvtkMPEG2Encode -lvtktiff \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+  $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+	-lvtkIO	-lvtkDICOMParser -lvtkMPEG2Encode \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
 	-lvtkFilteringTCL -lvtkWidgetsTCL \
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \

@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.268 2006/11/17 21:57:42 kteich Exp $"
+# "$Id: configure.in,v 1.269 2006/11/20 20:59:51 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1436,28 +1436,28 @@ Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 
 # some systems, like Debian, do not include certain VTK libs which are
 # normally found elsewhere (from their official sources).  so here,
-# first we declare the commonly found lib, and override if vtk has its
-# own version installed.
+# first we declare the commonly found lib, and override with vtk versions 
+# only if the locally installed versions are not found.
+VTK_EXPAT_LIB="-lexpat"
 VTK_FREETYPE_LIB="-lfreetype"
-VTK_PNG_LIB="-lpng"
 VTK_TIFF_LIB="-ltiff"
 VTK_JPEG_LIB="-ljpeg"
+VTK_PNG_LIB="-lpng"
 VTK_Z_LIB="-lz"
-VTK_EXPAT_LIB="-lexpat"
 
-AC_CHECK_LIB([vtkfreetype], [main], [VTK_FREETYPE_LIB="-lvtkfreetype"], [])
-AC_CHECK_LIB([vtkpng], [main], [VTK_PNG_LIB="-lvtkpng"], [])
-AC_CHECK_LIB([vtktiff], [main], [VTK_TIFF_LIB="-lvtktiff"], [])
-AC_CHECK_LIB([vtkjpeg], [main], [VTK_JPEG_LIB="-lvtkjpeg"], [])
-AC_CHECK_LIB([vtkzlib], [main], [VTK_Z_LIB="-lvtkzlib"], [])
-AC_CHECK_LIB([vtkexpat], [main], [VTK_EXPAT_LIB="-lvtkexpat"], [])
+AC_CHECK_LIB([expat], [main], [], [VTK_EXPAT_LIB="-lvtkexpat"])
+AC_CHECK_LIB([freetype], [main], [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
+AC_CHECK_LIB([tiff], [main], [], [VTK_TIFF_LIB="-lvtktiff"])
+AC_CHECK_LIB([jpeg], [main], [], [VTK_JPEG_LIB="-lvtkjpeg"])
+AC_CHECK_LIB([png], [main], [], [VTK_PNG_LIB="-lvtkpng"])
+AC_CHECK_LIB([z], [main], [], [VTK_Z_LIB="-lvtkzlib"])
 
+AC_SUBST(VTK_EXPAT_LIB)
 AC_SUBST(VTK_FREETYPE_LIB)
-AC_SUBST(VTK_PNG_LIB)
 AC_SUBST(VTK_TIFF_LIB)
 AC_SUBST(VTK_JPEG_LIB)
+AC_SUBST(VTK_PNG_LIB)
 AC_SUBST(VTK_Z_LIB)
-AC_SUBST(VTK_EXPAT_LIB)
 
 # check for KWWidget libs only if kww app building is enabled
 if test ! "x$kww_apps" = "xNO"; then
