@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[]=
-"$Id: mris_sphere.c,v 1.40 2006/11/01 01:38:59 fischl Exp $";
+"$Id: mris_sphere.c,v 1.41 2006/11/20 20:55:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,8 +45,11 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int quick = 0 ;
 static int load = 0 ;
 static float inflate_area  = 0.0f ;
+static float inflate_dt = 0.9 ;
 static float inflate_tol  = 1.0f ;
 static float inflate_nlarea  = 0.0f ;
+static float inflate_spring  = 0.0f ;
+static float inflate_tspring = 0 ;
 
 static float ralpha = 0.0 ;
 static float rbeta = 0.0 ;
@@ -63,6 +66,7 @@ static float l_sphere = 0.25 ;
 static int   inflate_avgs = 0 ;
 static int   inflate_iterations = 1000 ;
 static float l_convex = 1.0 ;
+static float l_expand = 0.0 ;
 static float l_spring_norm = 1.0 ;
 static float l_sphere = 0.025 ;
 #endif
@@ -88,13 +92,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mris_sphere.c,v 1.40 2006/11/01 01:38:59 fischl Exp $",
+     "$Id: mris_sphere.c,v 1.41 2006/11/20 20:55:21 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_sphere.c,v 1.40 2006/11/01 01:38:59 fischl Exp $",
+     "$Id: mris_sphere.c,v 1.41 2006/11/20 20:55:21 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -241,18 +245,23 @@ main(int argc, char *argv[])
     target_radius = sqrt(mris->total_area / (4*M_PI)) ;
     printf("setting target radius to be %2.3f to match surface areas\n", target_radius) ;
   }
+  //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
   if (!load && inflate)
 	{
 		INTEGRATION_PARMS inflation_parms ;
 
+    MRIScenter(mris, mris) ;
 		memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
 		strcpy(inflation_parms.base_name, parms.base_name) ;
 		inflation_parms.write_iterations = parms.write_iterations ;
 		inflation_parms.niterations = inflate_iterations ;
 		inflation_parms.l_spring_norm = l_spring_norm ;
+		inflation_parms.l_spring = inflate_spring ;
 		inflation_parms.l_nlarea = inflate_nlarea ;
 		inflation_parms.l_area = inflate_area ;
 		inflation_parms.n_averages = inflate_avgs ;
+		inflation_parms.l_expand = l_expand ;
+		inflation_parms.l_tspring = inflate_tspring ;
 		inflation_parms.l_sphere = l_sphere ;
 		inflation_parms.l_convex = l_convex ;
 #define SCALE_UP 2
@@ -260,19 +269,31 @@ main(int argc, char *argv[])
 		inflation_parms.tol = inflate_tol ;
 		inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
 		inflation_parms.momentum = 0.9 ;
-		inflation_parms.dt = 0.9 ;
+		inflation_parms.dt = inflate_dt ;
 
 		/* store the inflated positions in the v->c? field so that they can
 			 be used in the repulsive term.
 		*/
 		/*    inflation_parms.l_repulse_ratio = .1 ;*/
 		MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    //    MRISexpandSurface(mris, 3, &inflation_parms, 0) ;
+    MRIScenter(mris, mris) ;
+    mris->x0 = mris->xctr ; mris->y0 = mris->yctr ; mris->z0 = mris->zctr ;
 		MRISinflateToSphere(mris, &inflation_parms) ;
+    if (inflation_parms.l_expand > 0)
+    {
+      inflation_parms.l_expand = 0 ;
+      inflation_parms.niterations += (inflate_iterations*.1) ;
+      MRISinflateToSphere(mris, &inflation_parms) ;
+    }
 		MRISscaleBrain(mris, mris, target_radius/(DEFAULT_RADIUS*SCALE_UP)) ;
 		parms.start_t = inflation_parms.start_t ;
+    MRISresetNeighborhoodSize(mris, nbrs) ;
 	}
   
+  MRISwrite(mris, "before") ;
   MRISprojectOntoSphere(mris, mris, target_radius) ;
+  MRISwrite(mris, "after") ;
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
   if (quick)
@@ -410,6 +431,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "inflation iterations = %d\n", inflate_iterations) ;
   }
+  else if (!stricmp(option, "idt"))
+  {
+    inflate_dt = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation dt = %f\n", inflate_dt) ;
+  }
   else if (!stricmp(option, "iavgs"))
   {
     inflate_avgs = atoi(argv[2]) ;
@@ -421,6 +448,12 @@ get_option(int argc, char *argv[])
     inflate_nlarea = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "inflation l_nlarea = %2.3f\n", inflate_nlarea) ;
+  }
+  else if (!stricmp(option, "ispring"))
+  {
+    inflate_spring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation l_spring = %2.3f\n", inflate_spring) ;
   }
   else if (!stricmp(option, "adaptive"))
   {
@@ -439,11 +472,29 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
   }
+  else if (!stricmp(option, "tspring"))
+  {
+    sscanf(argv[2], "%f", &parms.l_tspring) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_tspring = %2.3f\n", parms.l_tspring) ;
+  }
+  else if (!stricmp(option, "itspring"))
+  {
+    sscanf(argv[2], "%f", &inflate_tspring) ;
+    nargs = 1 ;
+    fprintf(stderr, "using inflation l_tspring = %2.3f\n", inflate_tspring) ;
+  }
   else if (!stricmp(option, "convex"))
   {
     sscanf(argv[2], "%f", &l_convex) ;
     nargs = 1 ;
     fprintf(stderr, "using l_convex = %2.3f\n", l_convex) ;
+  }
+  else if (!stricmp(option, "expand"))
+  {
+    sscanf(argv[2], "%f", &l_expand) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_expand = %2.3f\n", l_expand) ;
   }
   else if (!stricmp(option, "spring_norm"))
   {
@@ -564,6 +615,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'Q':
+    remove_negative = 0 ;
     quick = 1 ;
     inflate = 1 ;
     inflate_iterations = 300 ;
