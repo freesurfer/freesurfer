@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/15 19:53:57 $
-// Revision       : $Revision: 1.491 $
+// Revision Date  : $Date: 2006/11/20 20:55:45 $
+// Revision       : $Revision: 1.492 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.491 2006/11/15 19:53:57 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.492 2006/11/20 20:55:45 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -1605,7 +1605,7 @@ MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 #define MAX_3_NEIGHBORS     70
 #define MAX_2_NEIGHBORS     20
 #define MAX_1_NEIGHBORS     8
-#define MAX_NEIGHBORS       (400)
+#define MAX_NEIGHBORS       (1000)
 static int
 mrisFindNeighbors(MRI_SURFACE *mris)
 {
