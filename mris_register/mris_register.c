@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.37 2006/08/03 15:10:08 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,25 @@ static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 
+static char *surface_names[] = 
+  {
+    "inflated",
+    "smoothwm",
+    "smoothwm"
+  } ;
+static char *curvature_names[] = 
+  {
+		"inflated.H",
+    "sulc",
+    NULL
+  } ;
+
+#define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
+#define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
+#define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
+
+static int navgs = 0 ;
+static int single_surf = 0 ;
 static char *annot_name = NULL ;
 static int atlas_size=3;
 static int max_passes = 4 ;
@@ -79,10 +98,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.37 2006/08/03 15:10:08 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.37 2006/08/03 15:10:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,12 +194,67 @@ main(int argc, char *argv[])
     fprintf(stderr, "reading source curvature from %s\n",curvature_fname) ;
     MRISreadCurvatureFile(mris, curvature_fname) ;
   }
-  fprintf(stderr, "reading template parameterization from %s...\n",
-          template_fname) ;
-  mrisp_template = MRISPread(template_fname) ;
-  if (!mrisp_template)
-    ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
+  if (single_surf)
+  {
+    char        fname[STRLEN], *cp, surf_dir[STRLEN], hemi[10]  ;
+    MRI_SURFACE *mris_template ;
+    int         sno, tnbrs=3 ;
+    
+    FileNamePath(template_fname, surf_dir) ;
+    cp = strrchr(template_fname, '/') ;
+    if (cp == NULL) // no path - start from beginning of file name
+      cp = template_fname ;
+    cp = strchr(cp, '.') ;
+    if (cp == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could no scan hemi from %s", Progname, template_fname) ;
+    strncpy(hemi, cp-2, 2) ; hemi[2] = 0 ;
+    mrisp_template = MRISPalloc(scale, PARAM_IMAGES); 
+		fprintf(stderr, "reading spherical surface %s...\n", template_fname) ;
+		mris_template = MRISread(template_fname) ;
+		MRISsaveVertexPositions(mris_template, CANONICAL_VERTICES) ;
+		MRIScomputeMetricProperties(mris_template) ; 
+		MRISstoreMetricProperties(mris_template) ;
+
+    for (sno = 0; sno < SURFACES ; sno++)
+    {
+      if (curvature_names[sno])  /* read in precomputed curvature file */
+      {
+        sprintf(fname, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ;
+        if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
+          ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",Progname, fname) ;
+
+        /* the two next lines were not in the original code */
+        MRISaverageCurvatures(mris_template, navgs) ;
+        MRISnormalizeCurvature(mris_template) ;
+      }
+      else                       /* compute curvature of surface */
+      {
+        sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
+        if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
+          ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, fname) ;
+					
+					if (tnbrs > 1)
+						MRISsetNeighborhoodSize(mris_template, tnbrs) ;
+					MRIScomputeMetricProperties(mris_template) ;
+					MRIScomputeSecondFundamentalForm(mris_template) ;
+					MRISuseMeanCurvature(mris_template) ;
+					MRISaverageCurvatures(mris_template, navgs) ;
+					MRISrestoreVertexPositions(mris_template, CANONICAL_VERTICES) ;
+					MRISnormalizeCurvature(mris_template) ;
+      }
+      fprintf(stderr, "computing parameterization for surface %s...\n", fname);
+      MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
+    }
+  }
+  else
+  {
+    fprintf(stderr, "reading template parameterization from %s...\n",
+            template_fname) ;
+    mrisp_template = MRISPread(template_fname) ;
+    if (!mrisp_template)
+      ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
                 Progname, template_fname) ;
+  }
   if (use_defaults)
   {
     if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
@@ -596,6 +670,10 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
     break ;
+  case '1':
+    single_surf = True ;
+    printf("treating target as a single subject's surface...\n") ;
+    break ;
   case 'S':
     scale = atof(argv[2]) ;
     fprintf(stderr, "scaling distances by %2.2f\n", scale) ;
@@ -660,6 +738,7 @@ print_usage(void)
   printf(" -addframe which_field where_in_atlas l_corr l_pcorr\n");
   printf(" -overlay surfvals : subject/labels/hemi.surfvals\n");
   printf(" -overlay-dir  dir : subject/dir/hemi.surfvals\n");
+  printf(" -1                : target specifies a subject's surface, not a template file\n") ;
 }
 
 static void
