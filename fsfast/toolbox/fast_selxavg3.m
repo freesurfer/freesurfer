@@ -1,8 +1,6 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.9 2006/11/20 18:06:50 greve Exp $
+% $Id: fast_selxavg3.m,v 1.10 2006/11/21 06:28:29 greve Exp $
 
-% Save ACF Seg Means
-% Allow turning off whitening
 % Synth
 % MultiVar t
 % Why does analysis polyfit have too hi an order?
@@ -17,6 +15,9 @@
 monly = 1;
 DoGLMFit    = 1;
 DoContrasts = 1;
+DoSynth = 0;
+SynthSeed = -1;
+
 analysis = '';
 flacname = '';
 
@@ -66,6 +67,13 @@ nruns = size(flac0.runlist,1);
 %nruns = 2;
 fprintf('nruns = %d\n',nruns);
 ncontrasts = length(flac0.con);
+
+if(DoSynth)
+  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
+  fprintf('SynthSeed = %10d\n',SynthSeed);
+end
+yrun_randn = [];
+
 
 % Load the brain mask
 mask = MRIread(flac0.maskfspec);
@@ -188,8 +196,14 @@ if(DoGLMFit)
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
-    yrun = MRIread(flac.funcfspec);
-    yrun = fast_vol2mat(yrun);
+    if(~DoSynth)
+      yrun = MRIread(flac.funcfspec);
+      yrun = fast_vol2mat(yrun);
+    else
+      yrun_randn(nthrun) = randn('state');
+      yrun = MRIread(flac.funcfspec,1);
+      yrun = randn(yrun.nframes,nvox);
+    end
     if(isempty(yrun))
       fprintf('ERROR: loading %s\n',funcfspec);
       return;
@@ -226,18 +240,26 @@ if(DoGLMFit)
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
-    yrun = MRIread(flac.funcfspec);
+    if(~DoSynth)
+      yrun = MRIread(flac.funcfspec);
+      yrun = fast_vol2mat(yrun);
+    else
+      randn('state',yrun_randn(nthrun))
+      yrun = MRIread(flac.funcfspec,1);
+      yrun = randn(yrun.nframes,nvox);
+    end
     indrun = find(tpindrun == nthrun);
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
-    rrun = fast_vol2mat(yrun) - yhatrun;
+    rrun = yrun - yhatrun;
     rsserun = sum(rrun.^2);
     rsse = rsse + rsserun;
-    rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun + rho1fix;
-    rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun + rho2fix;
+    rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize);
-    rho2.vol(:,:,:,nthrun) = fast_mat2vol(rho2run,rho2.volsize);
+    %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun + rho2fix;
+    %rho2.vol(:,:,:,nthrun) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
+      fprintf('WARNING: unwhitened residuals are not intensity norm\n');
       fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
       rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
@@ -262,18 +284,17 @@ if(DoGLMFit)
   MRIwrite(rho1mn,fname);
 
   % Save AR2 maps
-  fname = sprintf('%s/rho2.%s',outanadir,ext);
-  MRIwrite(rho2,fname);
-  rho2mn = mri;
-  rho2mn.vol = mean(rho2.vol,4);
-  fname = sprintf('%s/rho2mn.%s',outanadir,ext);
-  MRIwrite(rho2mn,fname);
-
-  nrho = rho2mn.vol./rho1mn.vol;
-  nalpha = rho1mn.vol./nrho;
-  indtmp = find(nrho > 1);
-  nrho(indtmp) = 0;
-  nalpha(indtmp) = 0;
+  %fname = sprintf('%s/rho2.%s',outanadir,ext);
+  %MRIwrite(rho2,fname);
+  %rho2mn = mri;
+  %rho2mn.vol = mean(rho2.vol,4);
+  %fname = sprintf('%s/rho2mn.%s',outanadir,ext);
+  %MRIwrite(rho2mn,fname);
+  %nrho = rho2mn.vol./rho1mn.vol;
+  %nalpha = rho1mn.vol./nrho;
+  %indtmp = find(nrho > 1);
+  %nrho(indtmp) = 0;
+  %nalpha(indtmp) = 0;
   
   % ---------------------------------------------------
   % Segment based on autocorrelation AR1
@@ -311,12 +332,12 @@ if(DoGLMFit)
     clear nrho1segmn nrho2segmn nalphasegmn acfsegmn S Sinv W;
     for nthseg = 1:flac0.acfbins
       indseg = find(acfseg.vol==nthseg);
-      nrho1segmn(nthseg) = mean(rho1.vol(indseg));
-      nrho2segmn(nthseg) = mean(rho2.vol(indseg));
-      nalphasegmn(nthseg) = mean(nalpha(indseg));
+      nrho1segmn(nthseg) = mean(rho1.vol(indseg)) + rho1fix;
+      %nrho2segmn(nthseg) = mean(rho2.vol(indseg));
+      %nalphasegmn(nthseg) = mean(nalpha(indseg));
       %nrho1segmn(nthseg) = 0; % No whitening
-      fprintf('  seg  %2d  nrho1 = %5.3f nrho2 = %5.3f nalpha = %5.3f (t=%4.1f)\n',....
-	      nthseg,nrho1segmn(nthseg),nrho2segmn(nthseg),nalphasegmn(nthseg),toc);
+      fprintf('  seg  %2d  nrho1 = %5.3f (t=%4.1f)\n',....
+	      nthseg,nrho1segmn(nthseg),toc);
       acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
       %acfsegmn(:,nthseg) = ...
       %	  fast_ar1w_acf(1-nalphasegmn(nthseg),nrho1segmn(nthseg),ntptot);
@@ -386,14 +407,14 @@ if(DoGLMFit)
     rvarmat = rsse/DOF;
   else
     fprintf('Not Whitening\n');
-    rvarmat = rvarmat0;
-    betamat = betamat0;
+    rvarmat = rvarmat0*(RescaleFactor.^2);
+    betamat = betamat0*RescaleFactor;
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
   save(xfile,'X','flac0','RescaleFactor',...
-       'acfseg','acfsegmn','nrho1segmn','nalphasegmn',...
-       'rho1fix','rho2fix');
+       'acfseg','acfsegmn','nrho1segmn',...
+       'rho1fix','rho2fix','DoSynth','SynthSeed','yrun_randn');
   
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:)),mri.volsize);
