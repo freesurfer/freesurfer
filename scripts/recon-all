@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.45 2006/11/09 17:34:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.46 2006/11/21 01:55:28 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -994,7 +994,7 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
     if($NoRandomness) set cmd = ($cmd -seed 1234)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    if($UseNoNeg) set cmd = ($cmd)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
     $PWD |& tee -a $LF
@@ -2625,7 +2625,7 @@ usage_exit:
   echo "    23. Inflate2"
   echo "    24. Cortical Ribbon Mask"
   echo ""
-  echo "    25. Spherical Morph"
+  echo "    25. Spherical Mapping"
   echo "    26. Spherical Registration "
   echo "    27. Spherical Registration, Contralater hemisphere"
   echo "    28. Map average curvature to subject"
@@ -3218,9 +3218,9 @@ is the step just after topology fixing. Calls mris_inflate. Creates
 
 QSphere (-<no>qsphere)
 
-This is the initial step of automatic topology fixing. It is a "quick"
-spherical morph of the inflated surface designed to make the
-topological defects show up clearly to the automatic topology fixer.
+This is the initial step of automatic topology fixing. It is a 
+quasi-homeomorphic spherical transformation of the inflated surface designed 
+to localize topological defects for the subsequent automatic topology fixer.
 Calls mris_sphere. Creates surf/?h.qsphere.nofix.
 
 Automatic Topology Fixer (-<no>fix)
