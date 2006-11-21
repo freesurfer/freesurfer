@@ -1,11 +1,13 @@
-function mkdirp(path)
-% mkdirp(path)
+function err = mkdirp(path)
+% err = mkdirp(path)
 % 
 % This is an attempt to recreate the unix "mkdir -p" command
 % in matlab.  It has some problems (following links?).
 % Now I just use a unix() command
 %
-% $Id: mkdirp.m,v 1.4 2004/12/14 22:12:06 greve Exp $
+% $Id: mkdirp.m,v 1.5 2006/11/21 17:24:48 greve Exp $
+
+err = 1;
 
 if(nargin ~= 1)
   msg = 'USAGE: mkdirp(path)';
@@ -14,8 +16,8 @@ if(nargin ~= 1)
 end
 
 cmd = sprintf('mkdir -p %s',path);
-s = unix(cmd);
-if(s) fprintf('ERROR: %s\n',cmd); end
+err = unix(cmd);
+if(err) fprintf('ERROR: %s\n',cmd); end
 return;
 
 %---------------------------------------------------------%
