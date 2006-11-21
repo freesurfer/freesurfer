@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.269 2006/11/20 20:59:51 nicks Exp $"
+# "$Id: configure.in,v 1.270 2006/11/21 23:46:58 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1438,6 +1438,8 @@ Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 # normally found elsewhere (from their official sources).  so here,
 # first we declare the commonly found lib, and override with vtk versions 
 # only if the locally installed versions are not found.
+# note: older freetype libs dont have FTC_Manager_LookupSize, so that func
+# is checked explicitly (for instance, Linux rh9 doesnt have this).
 VTK_EXPAT_LIB="-lexpat"
 VTK_FREETYPE_LIB="-lfreetype"
 VTK_TIFF_LIB="-ltiff"
@@ -1446,7 +1448,8 @@ VTK_PNG_LIB="-lpng"
 VTK_Z_LIB="-lz"
 
 AC_CHECK_LIB([expat], [main], [], [VTK_EXPAT_LIB="-lvtkexpat"])
-AC_CHECK_LIB([freetype], [main], [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
+AC_CHECK_LIB([freetype], [FTC_Manager_LookupSize], 
+                         [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
 AC_CHECK_LIB([tiff], [main], [], [VTK_TIFF_LIB="-lvtktiff"])
 AC_CHECK_LIB([jpeg], [main], [], [VTK_JPEG_LIB="-lvtkjpeg"])
 AC_CHECK_LIB([png], [main], [], [VTK_PNG_LIB="-lvtkpng"])
