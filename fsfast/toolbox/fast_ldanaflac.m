@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.12 2006/11/20 18:08:43 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.13 2006/11/21 18:14:36 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -108,7 +108,9 @@ while(1)
    case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
    case '-TER',        TER         = sscanf(tline,'%*s %f',1);
    case '-autowhiten', flac.whiten = 1;
+   case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
    case '-autostimdur',flac.autostimdur = 1;
+   case '-noautostimdur',flac.autostimdur = 0;
    case '-extreg',     extreg      = sscanf(tline,'%*s %s',1);
    case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
    case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);
