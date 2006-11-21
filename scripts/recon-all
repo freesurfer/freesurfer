@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.46 2006/11/21 01:55:28 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.47 2006/11/21 02:40:29 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -994,7 +994,6 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
     if($NoRandomness) set cmd = ($cmd -seed 1234)
-    if($UseNoNeg) set cmd = ($cmd)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
     $PWD |& tee -a $LF
