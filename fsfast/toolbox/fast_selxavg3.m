@@ -1,9 +1,13 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.10 2006/11/21 06:28:29 greve Exp $
+% $Id: fast_selxavg3.m,v 1.11 2006/11/22 00:15:01 greve Exp $
 
-% Synth
+% Synth - noise and signal
 % MultiVar t
 % Why does analysis polyfit have too hi an order?
+% Inorming residual when not whitening?
+% Force choice autostim/noautostim 
+% Force choice on whitening or not
+% Force choice of mask
 
 % JK?
 % Per-run?
@@ -12,31 +16,32 @@
 % analysis
 % sessdir
 
-monly = 1;
+monly       = 1;
 DoGLMFit    = 1;
 DoContrasts = 1;
-DoSynth = 0;
-SynthSeed = -1;
+DoSynth     = 0;
+SynthSeed   = -1;
 
 analysis = '';
 flacname = '';
+outtop = '';
 
 %sess  = 'tl20000621';
-sess  = 'dng';
-
-flacname = 'flac/rest.flac';
 %flacname = 'flac/edp.flac';
 %analysis = 'edp2';
 %analysis = 'main3-fir';
+% outtop = '/space/greve/1/users/greve/workmem-ana';
+
+sess  = 'dng';
+flacname = 'flac/rest.flac';
 
 %sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
 %analysis = 'subj27_color';
 %outtop = '/space/greve/1/users/greve/kd';
 
 sessname = basename(sess);
-outtop = dirname(sess);
+%outtop = dirname(sess);
 if(isempty(outtop)) outtop = '.'; end
-%outtop = '/space/greve/1/users/greve/workmem-ana';
 
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
@@ -81,10 +86,12 @@ if(isempty(mask))
   fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
   %return;
 end
-%fname = sprintf('%s/bold/005/f.bhdr',sess);
-%mri = MRIread(fname);
-%mask = mri;
-%mask.vol = ones(mri.volsize);
+if(0)
+fname = sprintf('%s/bold/005/f.bhdr',sess);
+mri = MRIread(fname);
+mask = mri;
+mask.vol = ones(mri.volsize);
+end
 
 indmask = find(mask.vol);
 nmask = length(indmask);
@@ -149,11 +156,10 @@ B0 = inv(X'*X)*X';
 Ctask = [eye(nTask) zeros(nTask,nNuis)];
 nn = [1:ntptot]';
 R = eye(ntptot) - X*inv(X'*X)*X';
-rho0fix = mean(diag(R,0));
-rho1fix = -mean(diag(R,1))/rho0fix;
-rho2fix = -mean(diag(R,2))/rho0fix;
-fprintf('rho1fix = %g\n',rho1fix);
-fprintf('rho2fix = %g\n',rho2fix);
+
+fprintf('Computing compensation for resdual AR1 bias\n');
+[rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
+fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
 
 %---------------------------------------------%
 % The contrast matrices were originally computed assuming
@@ -184,8 +190,10 @@ end
 
 if(DoGLMFit)
   % Make the output dirs
-  mkdirp(outanadir);
-  mkdirp(outresdir);      
+  err = mkdirp(outanadir);
+  if(err) return; end
+  err = mkdirp(outresdir);      
+  if(err) return; end
 
   % First pass thru the data to compute beta
   fprintf('OLS Beta Pass \n');
@@ -200,7 +208,7 @@ if(DoGLMFit)
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
     else
-      yrun_randn(nthrun) = randn('state');
+      yrun_randn(:,nthrun) = randn('state'); % save state
       yrun = MRIread(flac.funcfspec,1);
       yrun = randn(yrun.nframes,nvox);
     end
@@ -227,6 +235,7 @@ if(DoGLMFit)
   else
     RescaleFactor = 1;
   end
+  if(DoSynth) RescaleFactor = 1; end
   fprintf('RescaleFactor = %g\n',RescaleFactor);
   
   % Second pass thru the data to compute residual
@@ -244,7 +253,7 @@ if(DoGLMFit)
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
     else
-      randn('state',yrun_randn(nthrun))
+      randn('state',yrun_randn(:,nthrun))
       yrun = MRIread(flac.funcfspec,1);
       yrun = randn(yrun.nframes,nvox);
     end
@@ -256,7 +265,7 @@ if(DoGLMFit)
     rsse = rsse + rsserun;
     rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize);
-    %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun + rho2fix;
+    %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
     %rho2.vol(:,:,:,nthrun) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
       fprintf('WARNING: unwhitened residuals are not intensity norm\n');
@@ -283,6 +292,11 @@ if(DoGLMFit)
   fname = sprintf('%s/rho1mn.%s',outanadir,ext);
   MRIwrite(rho1mn,fname);
 
+  % Apply bias correction
+  nrho1mn = mri;
+  nrho1mn.vol = rfm.M(1) + rfm.M(2)*rho1mn.vol;
+  clear rho1 rho1mn;
+
   % Save AR2 maps
   %fname = sprintf('%s/rho2.%s',outanadir,ext);
   %MRIwrite(rho2,fname);
@@ -301,24 +315,25 @@ if(DoGLMFit)
   acfseg = [];
   acfseg.vol = [];
   acfsegmn = [];
-  rho1segmn = [];
+  nrho1segmn = [];
   if(flac0.acfbins > 0)
     fprintf('Whitening\n');
 
     acfseg = mri;
     acfseg.vol = zeros(acfseg.volsize);
-    if(0)
+    if(1)
       a = betamn0(indmask);
       a = a/std(a);
       b = rvarmat0(indmask);
       b = b/std(b);
-      c = rho1mn.vol(indmask)';
+      c = nrho1mn.vol(indmask)';
       ykm = [a; b; c];
       kmeans0 = rand(3,flac0.acfbins);
       [kmeans kmap] = fast_kmeans(ykm,flac0.acfbins,kmeans0);
       acfseg.vol(indmask) = kmap;
     else
-      [edge bincenter binmap] = fast_histeq(rho1mn.vol(indmask), flac0.acfbins);
+      [edge bincenter binmap] = fast_histeq(nrho1mn.vol(indmask), flac0.acfbins);
+      %[edge bincenter binmap] = fast_histeq(betamn0(indmask), flac0.acfbins);
       acfseg.vol(indmask) = binmap;
     end
     fname = sprintf('%s/acfseg.%s',outanadir,ext);
@@ -329,18 +344,15 @@ if(DoGLMFit)
     % Compute average ar1 in each seg and corresponding acf
     fprintf('Computing whitening matrices\n');
     tic;
-    clear nrho1segmn nrho2segmn nalphasegmn acfsegmn S Sinv W;
+    clear rho1segmn nrho2segmn nalphasegmn acfsegmn S Sinv W;
     for nthseg = 1:flac0.acfbins
       indseg = find(acfseg.vol==nthseg);
-      nrho1segmn(nthseg) = mean(rho1.vol(indseg)) + rho1fix;
-      %nrho2segmn(nthseg) = mean(rho2.vol(indseg));
-      %nalphasegmn(nthseg) = mean(nalpha(indseg));
+      nsegvox = length(indseg);
+      nrho1segmn(nthseg) = mean(nrho1mn.vol(indseg));
       %nrho1segmn(nthseg) = 0; % No whitening
-      fprintf('  seg  %2d  nrho1 = %5.3f (t=%4.1f)\n',....
-	      nthseg,nrho1segmn(nthseg),toc);
+      fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
+	      nthseg,nsegvox,nrho1segmn(nthseg),toc);
       acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
-      %acfsegmn(:,nthseg) = ...
-      %	  fast_ar1w_acf(1-nalphasegmn(nthseg),nrho1segmn(nthseg),ntptot);
       S(:,:,nthseg) = toeplitz(acfsegmn(:,nthseg));
       Sinv(:,:,nthseg) = inv(S(:,:,nthseg));
       W(:,:,nthseg) = inv(chol(S(:,:,nthseg))');
@@ -355,8 +367,15 @@ if(DoGLMFit)
       flac = flac0;
       flac.nthrun = nthrun;
       flac = flac_customize(flac);
-      yrun = MRIread(flac.funcfspec);
-      yrun = RescaleFactor*fast_vol2mat(yrun);  
+      if(~DoSynth)
+	yrun = MRIread(flac.funcfspec);
+	yrun = fast_vol2mat(yrun);
+      else
+	randn('state',yrun_randn(:,nthrun))
+	yrun = MRIread(flac.funcfspec,1);
+	yrun = randn(yrun.nframes,nvox);
+      end
+      yrun = RescaleFactor*yrun;  
       indrun = find(tpindrun == nthrun);
       for nthseg = 0:  flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
@@ -373,7 +392,8 @@ if(DoGLMFit)
     
     % Second pass thru the data to compute beta
     fprintf('GLS Residual Pass \n');
-    mkdirp(outresdir);
+    err = mkdirp(outresdir);
+    if(err) return; end
     tic;
     rsse = 0;
     for nthrun = 1:nruns
@@ -381,8 +401,15 @@ if(DoGLMFit)
       flac = flac0;
       flac.nthrun = nthrun;
       flac = flac_customize(flac);
-      yrun = MRIread(flac.funcfspec);
-      yrun = RescaleFactor*fast_vol2mat(yrun);
+      if(~DoSynth)
+	yrun = MRIread(flac.funcfspec);
+	yrun = fast_vol2mat(yrun);
+      else
+	randn('state',yrun_randn(:,nthrun))
+	yrun = MRIread(flac.funcfspec,1);
+	yrun = randn(yrun.nframes,nvox);
+      end
+      yrun = RescaleFactor*yrun;
       indrun = find(tpindrun == nthrun);
       Xrun = X(indrun,:);
       yhatrun = Xrun*betamat;
@@ -413,8 +440,8 @@ if(DoGLMFit)
   end % acfbins > 0
 
   save(xfile,'X','flac0','RescaleFactor',...
-       'acfseg','acfsegmn','nrho1segmn',...
-       'rho1fix','rho2fix','DoSynth','SynthSeed','yrun_randn');
+       'rfm','acfseg','acfsegmn','nrho1segmn',...
+       'DoSynth','SynthSeed','yrun_randn');
   
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:)),mri.volsize);
@@ -478,8 +505,9 @@ if(DoContrasts)
     fsigmat = -log10(pmat);
     
     outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
-    mkdirp(outcondir);
-    
+    err = mkdirp(outcondir);
+    if(err) return; end
+
     ces = mri;
     ces.vol = fast_mat2vol(cesmat,mri.volsize);
     fname = sprintf('%s/ces.%s',outcondir,ext);
