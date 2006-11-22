@@ -1,12 +1,15 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: ghostdet,v 1.5 2004/05/06 22:44:14 greve Exp $';
+set VERSION = '$Id: ghostdet,v 1.6 2006/11/22 00:27:24 greve Exp $';
 set inputargs = ($argv);
 
+setenv FSLOUTPUTTYPE NIFTI
 set instem    = ();
 set tmpdir    = ();
 set sumfile   = ();
 set cleanup   = 1;
+set monly     = 0;
+set MLF       = ();
 
 set headthresh   = 0.05;
 set nheaddilate  = 3;
@@ -42,6 +45,7 @@ echo "ghostdet logfile is $LF"
 echo "--------------------------------------------------------------"
 
 echo "ghostdet log file" >> $LF
+date          | tee -a $LF
 echo $VERSION | tee -a $LF
 pwd           | tee -a $LF
 echo $0       | tee -a $LF
@@ -52,11 +56,11 @@ date          >> $LF
 set StartTime = `date`;
 
 # Compute the mean functional image and use as template
-set fmnstem = $tmpdir/fmn
-set cmd = (meanimg -i $instem -o $fmnstem)
+set fmnstem = $tmpdir/fmn.nii
+set cmd = (mri_concat $instem --o $fmnstem --mean)
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) exit 1;
 
 # Make the head mask
@@ -64,7 +68,7 @@ set cmd = (mkbrainmask -i $fmnstem -o $headstem \
            -thresh $headthresh -ndil $nheaddilate)
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) exit 1;
 
 # Make the brain mask
@@ -72,10 +76,10 @@ set cmd = (mkbrainmask -i $fmnstem -o $brainstem \
            -thresh $brainthresh -nerode $nbrainerode)
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) exit 1;
 
-set headghoststem = $tmpdir/headghost
+set headghoststem = $tmpdir/headghost.nii
 
 # Go into matlab to create the initial air mask
 set MLF = $tmpdir/mkairmasktmp.m
@@ -87,27 +91,31 @@ fmnstem  = '$fmnstem';
 airstem  = '$airstem';
 headghoststem  = '$headghoststem';
 
-[head mristruct] = fast_ldbslice(headstem);
+head = MRIread(headstem);
 if(isempty(head)) return; end
 
-fmn = fast_ldbslice(fmnstem);
+fmn = MRIread(fmnstem);
 if(isempty(fmn)) return; end
 
 % For this, compute the ghost of the head
-headghost = fast_ghostmask(head);
-air = ~(head | headghost);
-indair = find(air);
+headghost = head;
+headghost.vol = fast_ghostmask(head.vol);
+air = head;
+air.vol = ~(head.vol | headghost.vol);
+indair = find(air.vol);
 
 % Exclude air voxels that are identical to 0
-indnz = find(fmn(air) ~=0 );
+indnz = find(fmn.vol(indair) ~=0 );
 indair = indair(indnz);
 
-air = zeros(size(fmn));
-air(indair) = 1;
+air.vol = zeros(fmn.volsize);
+air.vol(indair) = 1;
 
-fast_svbslice(air,[airstem '0'],-1,'bshort',mristruct);
-fast_svbslice(air,airstem,-1,'bshort',mristruct);
-fast_svbslice(headghost,headghoststem,-1,'bshort',mristruct);
+airstem
+
+MRIwrite(air,airstem);
+MRIwrite(headghost,headghoststem);
+
 fprintf('matlab: finished creating init air mask\n');
 EOF
 #---------#
@@ -115,27 +123,22 @@ cat $MLF >> $LF
 cat $MLF | matlab -display iconic |& tee -a $LF
 
 # Erode the air mask
-set cmd = (mri_convert $airstem"_000.bshort" $airstem.img)
-pwd | tee -a $LF
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
-
-set cmd = (avwmaths $airstem.img -ero $airstem.img)
+echo "Eroding the air mask $nairerode" | tee -a $LF
+date | tee -a $LF
+set cmd = (avwmaths $airstem -ero $airstem)
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
 @ n = 1;
 while($n < $nairerode)
-  $cmd | tee -a $LF
+  echo "------- $n ------------" |& tee -a $LF
+  ls $tmpdir |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
   if($status) exit 1;
   @ n = $n + 1;
 end
-
-set cmd = (mri_convert $airstem.img $airstem"_000.bshort")
-pwd | tee -a $LF
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+echo "Done eroding the air mask" | tee -a $LF
+date | tee -a $LF
 
 # Go back into matlab to do the final processing
 set MLF = $tmpdir/ghostdettmp.m
@@ -149,17 +152,25 @@ fmnstem    = '$fmnstem';
 ghoststem  = '$ghoststem';
 sumfile    = '$sumfile';
 
-[head mristruct] = fast_ldbslice(headstem);
+%[head mristruct] = fast_ldbslice(headstem);
+head = MRIread(headstem);
 if(isempty(head)) return; end
+head = head.vol;
 
-[brain mristruct] = fast_ldbslice(brainstem);
+%[brain mristruct] = fast_ldbslice(brainstem);
+brain = MRIread(brainstem);
 if(isempty(brain)) return; end
+brain = brain.vol;
 
-[air mristruct] = fast_ldbslice(airstem);
+%[air mristruct] = fast_ldbslice(airstem);
+air = MRIread(airstem);
 if(isempty(air)) return; end
+air = air.vol;
 
-fmn = fast_ldbslice(fmnstem);
+%fmn = fast_ldbslice(fmnstem);
+fmn = MRIread(fmnstem);
 if(isempty(fmn)) return; end
+fmn = fmn.vol;
 
 indair = find(air);
 indbrain = find(brain);
@@ -220,15 +231,14 @@ fprintf(fp,'n_air_erode   %d\n',$nairerode);
 
 fclose(fp);
 
-fast_svbslice(brain,brainstem,-1,'bshort',mristruct);
-fast_svbslice(ghost,ghoststem,-1,'bshort',mristruct);
+%fast_svbslice(brain,brainstem,-1,'bshort',mristruct);
+%fast_svbslice(ghost,ghoststem,-1,'bshort',mristruct);
 
 fprintf('matlab: finished computing ghost measures\n');
 EOF
 #---------#
 cat $MLF >> $LF
-cat $MLF | matlab -display iconic |& tee -a $LF
-
+cat $MLF |& matlab -display iconic |& tee -a $LF
 
 echo "Started at $StartTime" |& tee -a $LF
 echo "Ended   at `date`"     |& tee -a $LF
@@ -268,6 +278,13 @@ while( $#argv != 0 )
       set pedim = $argv[1]; shift;
       breaksw
 
+    case "--monly":
+      echo "ERROR: cannot do monly"
+      exit 1;
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      breaksw
+
     case "--synth":
       set synth = 1;
       breaksw
@@ -305,19 +322,18 @@ check_params:
     exit 1;
   endif
 
-  set tmp = $instem.bhdr
-  if(! -e $tmp) then
-    echo "ERROR: cannot find $tmp"
+  if(! -e $instem) then
+    echo "ERROR: cannot find $instem"
     exit 1;
   endif
 
   if($#tmpdir == 0) set tmpdir = /tmp/ghostdet.tmp.$$
   mkdir -p $tmpdir
-  set maskstem  = $tmpdir/mask
-  set headstem  = $tmpdir/head
-  set brainstem = $tmpdir/brain
-  set ghoststem = $tmpdir/ghost
-  set airstem   = $tmpdir/air
+  set maskstem  = $tmpdir/mask.nii
+  set headstem  = $tmpdir/head.nii
+  set brainstem = $tmpdir/brain.nii
+  set ghoststem = $tmpdir/ghost.nii
+  set airstem   = $tmpdir/air.nii
 
   if($#sumfile == 0) then
     set sumfile = $instem.ghost.sum
@@ -340,7 +356,7 @@ usage_exit:
   echo ""
   echo "USAGE: ghostdet"
   echo ""
-  echo "  --i instem "
+  echo "  --i invol "
   echo ""
   echo "  --s sumfile  : default is instem.ghost.sum"
   echo "  --tmp tmpdir : turns cleanup off "
