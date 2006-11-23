@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.18 2006/11/01 20:17:49 nicks Exp $
+  $Id: mri_volsynth.c,v 1.19 2006/11/23 01:51:05 nicks Exp $
 */
 
 #include <stdio.h>
@@ -17,7 +17,7 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-
+#include "utils.h"
 #include "mri_identify.h"
 #include "matrix.h"
 #include "mri.h"
@@ -46,7 +46,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.18 2006/11/01 20:17:49 nicks Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.19 2006/11/23 01:51:05 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0;

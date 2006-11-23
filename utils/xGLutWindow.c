@@ -1,3 +1,5 @@
+#ifdef HAVE_GLUT_LIBS
+
 #include <stdlib.h>
 #include "xGLutWindow.h"
 #include "xDebug.h"
@@ -752,3 +754,5 @@ void xGWin_DebugPrintEvent ( xGWin_tEventRef this ) {
     ) );
   DebugPrint( ("\n" ) );
 }
+
+#endif // #ifdef HAVE_GLUT_LIBS

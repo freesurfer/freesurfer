@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $
+  $Id: mri_surfcluster.c,v 1.32 2006/11/23 01:51:00 nicks Exp $
 */
 
 #include <stdio.h>
@@ -17,7 +17,7 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-
+#include "utils.h"
 #include "matrix.h"
 #include "mri.h"
 #include "mri2.h"
@@ -49,7 +49,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.32 2006/11/23 01:51:00 nicks Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.32 2006/11/23 01:51:00 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1063,7 +1063,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.31 2006/09/05 17:35:50 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.32 2006/11/23 01:51:00 nicks Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

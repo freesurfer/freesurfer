@@ -86,23 +86,14 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2006/04/19 22:47:08 $
+** Last Update:   $Author: nicks $, $Date: 2006/11/23 01:50:11 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.25 $
+** Revision:    $Revision: 1.26 $
 ** Status:    $State: Exp $
 */
 
 #include <sys/fcntl.h>
 #include <ctype.h>
-
-#include "ctn_os.h"
-
-#include "dicom.h"
-#include "condition.h"
-#include "lst.h"
-#include "dicom_uids.h"
-#include "dicom_objects.h"
-#include "dcmprivate.h"
 
 #ifdef SunOS
   #include <sys/types.h>
@@ -130,6 +121,14 @@
 #define LITTLE_ORDER  BYTEORDER_SAME
 #define BIG_ORDER BYTEORDER_REVERSE
 #endif
+
+#include "ctn_os.h"
+#include "dicom.h"
+#include "condition.h"
+#include "lst.h"
+#include "dicom_uids.h"
+#include "dicom_objects.h"
+#include "dcmprivate.h"
 
 static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
 

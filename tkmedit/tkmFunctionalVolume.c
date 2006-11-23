@@ -6,6 +6,8 @@
 #include "mri.h"
 #include "error.h"
 
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
+
 /* about the script */
 #define ksEnvVariable_UseLocalDirectoryForScript "DONT_USE_LOCAL_TKMFUNCTIONAL_TCL"
 #define ksFileName_InterfaceScript "tkm_functional.tcl"

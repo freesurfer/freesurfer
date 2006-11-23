@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.270 2006/11/21 23:46:58 nicks Exp $"
+# "$Id: configure.in,v 1.271 2006/11/23 01:49:16 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -93,6 +93,10 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 # these warnings appear with gcc 4.#
 NNVD="-Wno-non-virtual-dtor"
 
+# -Wno-unknown-pragmas suppresses warnings about unknown gcc pragmas,
+# like pragma indent
+NUPRAG="-Wno-unknown-pragmas"
+
 # some freesurfer code operates on pointers such that this  warning message
 # is issued with gcc 4.1:
 # "warning: dereferencing type-punned pointer will break strict-aliasing rules"
@@ -167,8 +171,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $CXXFLAGS"
+ CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NUPRAG $CFLAGS"
+ CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $NUPRAG $CXXFLAGS"
  ;;
 esac
 AC_SUBST(OS)
@@ -1197,7 +1201,14 @@ if test "X$no_glut" = "Xyes"; then
     AC_MSG_RESULT([GLut not found])
   fi
 else
+  glut_fixup=no
   if test "$OS" = "Darwin"; then
+    glut_fixup=yes
+  fi
+  if test "$OS" = "SunOS"; then
+    glut_fixup=yes
+  fi
+  if test "$glut_fixup" = "yes"; then
     #AX_CHECK_GLUT really fudges these,
     #so use proper settings (from above)
     GLUT_CFLAGS="$glut_cflags"
@@ -1430,7 +1441,7 @@ AC_CHECK_FILE($VTK_LIB/libvtkCommon.so,
    else
      export LD_LIBRARY_PATH="$VTK_LIB":"$LD_LIBRARY_PATH"
    fi],[])
-AC_CHECK_LIB([vtkCommon], [main],[],
+AC_CHECK_LIB([vtkCommon -lstdc++], [main],[],
   [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
 Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 

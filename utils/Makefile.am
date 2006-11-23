@@ -11,11 +11,17 @@ else
 NIFTI_THINGS=
 endif
 
+if HAVE_GLUT_LIBS
+GLUT_THINGS=$(GLUT_CFLAGS) -DHAVE_GLUT_LIBS
+else
+GLUT_THINGS=
+endif
+
 AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
-	$(NIFTI_THINGS) -DHAVE_ZLIB
+	$(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 

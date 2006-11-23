@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>
+#include "utils.h"
 #include "minc_volume_io.h"
 #include "mri.h"
 #include "proto.h"

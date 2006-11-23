@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/11/02 20:29:52 $
-// Revision       : $Revision: 1.296 $
-char *VERSION = "$Revision: 1.296 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/23 01:51:09 $
+// Revision       : $Revision: 1.297 $
+char *VERSION = "$Revision: 1.297 $";
 
 #define TCL
 #define TKMEDIT
@@ -1148,7 +1148,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.296 2006/11/02 20:29:52 greve Exp $",
+     "$Id: tkmedit.c,v 1.297 2006/11/23 01:51:09 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5784,7 +5784,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.296 2006/11/02 20:29:52 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.297 2006/11/23 01:51:09 nicks Exp $ $Name:  $\n"
       )
      );
 
@@ -10656,7 +10656,7 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   GetSegLabel( iVolume, iMRIIdx, &nIndex, NULL );
 
   /* If 0, just use the base color */
-  if( 0 == index ) {
+  if( 0 == nIndex ) {
     *oColor = *iBaseColor;
     goto cleanup;
   }
