@@ -32,6 +32,8 @@
 #include "mri2.h"
 #include "path.h"
 
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
+
 //////////////////////////////////////////////////////
 
 static void resize_brain(float surface_area) ;
@@ -19194,7 +19196,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.228 2006/11/16 16:15:33 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.229 2006/11/23 05:36:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
