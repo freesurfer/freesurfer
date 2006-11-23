@@ -1,5 +1,5 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.11 2006/11/22 00:15:01 greve Exp $
+% $Id: fast_selxavg3.m,v 1.12 2006/11/23 05:17:15 greve Exp $
 
 % Synth - noise and signal
 % MultiVar t
@@ -19,21 +19,21 @@
 monly       = 1;
 DoGLMFit    = 1;
 DoContrasts = 1;
-DoSynth     = 0;
+DoSynth     = 1;
 SynthSeed   = -1;
 
 analysis = '';
 flacname = '';
 outtop = '';
 
-%sess  = 'tl20000621';
-%flacname = 'flac/edp.flac';
+sess  = 'tl20000621';
+flacname = 'flac/edp.flac';
 %analysis = 'edp2';
 %analysis = 'main3-fir';
 % outtop = '/space/greve/1/users/greve/workmem-ana';
 
-sess  = 'dng';
-flacname = 'flac/rest.flac';
+%sess  = 'dng';
+%flacname = 'flac/rest.flac';
 
 %sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
 %analysis = 'subj27_color';
@@ -109,6 +109,7 @@ fprintf('Creating Design Matrix\n');
 Xt = [];
 Xn = [];
 tpindrun = [];
+clear runflac;
 tic;
 for nthrun = 1:nruns
   flac = flac0;
@@ -118,6 +119,7 @@ for nthrun = 1:nruns
     if(~monly) quit;  end
     return; 
   end
+  runflac(nthrun).flac = flac;
 
   indtask = flac_taskregind(flac);
   Xtr = flac.X(:,indtask);
@@ -164,6 +166,7 @@ fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
 %---------------------------------------------%
 % The contrast matrices were originally computed assuming
 % only a single run's worth of nuisance regressors. Recompute.
+fprintf('Computing contrast matrices\n');
 flacC = flac0;
 for nthcon = 1:ncontrasts
   indtask = flac_taskregind(flac0);
@@ -345,17 +348,28 @@ if(DoGLMFit)
     fprintf('Computing whitening matrices\n');
     tic;
     clear rho1segmn nrho2segmn nalphasegmn acfsegmn S Sinv W;
+    S    = zeros(ntptot,ntptot,flac0.acfbins);
+    Sinv = zeros(ntptot,ntptot,flac0.acfbins);
+    W    = zeros(ntptot,ntptot,flac0.acfbins);
     for nthseg = 1:flac0.acfbins
       indseg = find(acfseg.vol==nthseg);
       nsegvox = length(indseg);
       nrho1segmn(nthseg) = mean(nrho1mn.vol(indseg));
       %nrho1segmn(nthseg) = 0; % No whitening
+      acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
       fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
 	      nthseg,nsegvox,nrho1segmn(nthseg),toc);
-      acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
-      S(:,:,nthseg) = toeplitz(acfsegmn(:,nthseg));
-      Sinv(:,:,nthseg) = inv(S(:,:,nthseg));
-      W(:,:,nthseg) = inv(chol(S(:,:,nthseg))');
+      for nthrun = 1:nruns
+	indrun = find(tpindrun == nthrun);
+	nnrun = 1:runflac(nthrun).flac.ntp;
+	acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
+	Srun = toeplitz(acfsegrun);
+	Sruninv = inv(Srun);
+	Wrun = inv(chol(Sruninv)');
+	S(indrun,indrun,nthseg) = Srun;
+	Sinv(indrun,indrun,nthseg) = Sruninv;
+	W(indrun,indrun,nthseg) = Wrun;
+      end
     end
 
     % First pass thru the data to compute beta
@@ -439,8 +453,8 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
-  save(xfile,'X','flac0','RescaleFactor',...
-       'rfm','acfseg','acfsegmn','nrho1segmn',...
+  save(xfile,'X','flac0','runflac','RescaleFactor',...
+       'rfm','acfseg','nrho1segmn','acfsegmn',...
        'DoSynth','SynthSeed','yrun_randn');
   
   baseline = mri;
@@ -462,6 +476,15 @@ if(DoGLMFit)
   rstd.vol = sqrt(rvar.vol);
   fname = sprintf('%s/rstd.%s',outanadir,ext);
   MRIwrite(rstd,fname);
+  
+  if(DoSynth)
+    bmn  = mean(betamat(1:nTask,indmask),2);
+    bstd = std(betamat(1:nTask,indmask),[],2);
+    bvar = bstd.^2;
+    fprintf('  Beta Mean Std Var\n');
+    fprintf('  %7.4f  %7.4f  %7.4f\n',[bmn bstd bvar]');
+  end
+    
 end % DoGLMFit
 
 if(DoContrasts)
@@ -503,6 +526,23 @@ if(DoContrasts)
     pmat = FTest(dof1, dof2, Fmat);
     ind = find(pmat == 0); pmat(ind) = 1;
     fsigmat = -log10(pmat);
+
+    if(DoSynth)
+      fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
+      nover = length(find(pmat(indmask) < .01));
+      pover = nover/nmask;
+      [noverlow noverhi] = binomialconf(nmask,.01,90);
+      fprintf('  Prob(p < .01) = %g\n',pover);
+      fprintf('  nover = %d, conf %d %d  ',nover,noverlow,noverhi);
+      if(nover > noverlow & nover < noverhi) fprintf('PASS\n');
+      else	                             fprintf('FAIL\n');
+      end
+      cmn  = mean(cesmat(:,indmask),2);
+      cstd = std(cesmat(:,indmask),[],2);
+      cvar = cstd.^2;
+      fprintf('  CES Mean Std Var (%g)\n',1/flacC.con(nthcon).vrf);
+      fprintf('  %7.4f  %7.4f  %7.4f\n',[cmn cstd cvar]');
+    end
     
     outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
     err = mkdirp(outcondir);
