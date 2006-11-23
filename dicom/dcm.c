@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2006/11/23 01:50:11 $
+** Last Update:   $Author: nicks $, $Date: 2006/11/23 02:17:43 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.26 $
+** Revision:    $Revision: 1.27 $
 ** Status:    $State: Exp $
 */
 
@@ -100,6 +100,9 @@
   #include <sys/stat.h>
   #include <fcntl.h>
   #include "config.h"
+  #ifndef BYTEORDER
+    #error BYTEORDER not defined!
+  #endif
   #if BYTEORDER == 1234
     #define LITTLE_ENDIAN_ARCHITECTURE BYTE_ORDER
   #endif
@@ -112,11 +115,11 @@
 #define BYTEORDER_REVERSE   2
 #define NATIVE_ORDER      BYTEORDER_SAME
 
+#include "dicom_platform.h"
 #ifdef BIG_ENDIAN_ARCHITECTURE
 #define LITTLE_ORDER  BYTEORDER_REVERSE
 #define BIG_ORDER BYTEORDER_SAME
 #endif
-
 #ifdef LITTLE_ENDIAN_ARCHITECTURE
 #define LITTLE_ORDER  BYTEORDER_SAME
 #define BIG_ORDER BYTEORDER_REVERSE
