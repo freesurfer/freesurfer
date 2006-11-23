@@ -10,7 +10,7 @@ function fx = binomialpdf(x,ntrials,theta)
 %
 % See also binomialcdf and binomialconf
 %
-% $Id: binomialpdf.m,v 1.3 2006/08/16 02:27:00 greve Exp $
+% $Id: binomialpdf.m,v 1.4 2006/11/23 05:16:45 greve Exp $
 
 fx = [];
 
@@ -40,15 +40,18 @@ if(theta <= 0 | theta >= 1)
   return;
 end
 
-% compute permuation for each x %
+% compute log of permuation for each x %
 for nthx = 1:nx
   xx = x(nthx);
   %p(nthx) = factorial(n) / (factorial(xx) * factorial(n-xx) );
-  p(nthx) = permutation(ntrials,xx);
+  %p(nthx) = permutation(ntrials,xx)
+  lp(nthx) = permutation(ntrials,xx,1);
 end
 
 % finally compute pdf %
-fx = p .* (theta.^x) .* ((1-theta).^(ntrials-x));
+%fx = p .* (theta.^x) .* ((1-theta).^(ntrials-x));
+lfx = lp + x.*log(theta) + (ntrials-x)*log(1-theta);
+fx = exp(lfx);
 
 return;
 
