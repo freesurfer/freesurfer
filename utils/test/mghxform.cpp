@@ -34,7 +34,7 @@ void printLinearTransform(MRI *mri)
 int main(int argc, char *argv[])
 {
   cout << "expanding the test data" << endl;
-  system("tar zxvf orig.tar.gz > /dev/null");
+  system("gunzip -c orig.tar.gz | tar xvf - > /dev/null");
   // now we have talairach.xfm and orig cor files
   cout << "reading COR" << endl;
   MRI *mriCOR=MRIread("./orig");

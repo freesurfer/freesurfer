@@ -214,6 +214,7 @@ endif
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
 
+if ENABLE_TCLTK_APPS
 check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
 	testShortestPathFinder testToglManager testDataManager \
@@ -225,6 +226,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testVectorOps testRASToVoxel testCoordTimer \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo \
 	testVolumeCollection testTclChartWindow
+endif
 
 EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl) \
 	testSetup.csh testCleanup.csh test_data.tar.gz \
@@ -232,6 +234,7 @@ EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl) \
 	testSegmentationVolumeReportIntReport-correct.txt \
 	testLUT.lut .ui .moc
 
+if ENABLE_TCLTK_APPS
 TESTS=testSetup.csh \
 	testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
@@ -409,6 +412,7 @@ testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
 testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+endif
 
 if ENABLE_QT_APPS
 # All the scuba2 stuff.

@@ -10,16 +10,22 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.12 2006/10/03 17:56:08 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.13 2006/11/23 04:17:19 nicks Exp $'
 
 umask 002
+
+set OS=`uname -s`
+if ("$OS" == "SunOS") then
+  # HACK, dont bother for now
+  exit 77
+endif
 
 set WD=$PWD
 
 #
 # extract testing data
 #
-tar zxvf test_data.tar.gz
+gunzip -c test_data.tar.gz | tar xvf -
 
 #
 # extract arch-specific expected results and 
@@ -36,9 +42,7 @@ if (! -e $TEST_DATA) then
   exit 77
 endif
 if (-e emot.sum) rm -Rf emot*
-set cmd=(tar zxvf $TEST_DATA)
-echo $cmd
-$cmd
+gunzip -c $TEST_DATA | tar xvf -
 if ($status != 0) then
   echo "Failure extracting architecture-specific test data."
   exit 1

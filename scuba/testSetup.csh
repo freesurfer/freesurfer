@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-tar zxvf test_data.tar.gz
+gunzip -c test_data.tar.gz | tar xvf -
 # ignore warning about 'cannot utime'
 exit 0
 

@@ -1,4 +1,4 @@
 #!/bin/tcsh -ef
 if ( -e test_data ) rm -Rf test_data
-tar zxvf test_data.tar.gz
+gunzip -c test_data.tar.gz | tar xvf -
 
