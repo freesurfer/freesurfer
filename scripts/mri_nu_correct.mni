@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mri_nu_correct.mni
 # 
-set VERSION = '$Id: mri_nu_correct.mni,v 1.5 2006/11/03 19:59:55 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.6 2006/11/24 20:15:34 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -238,8 +238,8 @@ format is COR, then the directory must exist.
 --n niters
 
 Number of iterations to run nu_correct. Default is 4. This is the number
-of times that nu_correct is run recursively (ie, using the output from
-the previous run as the input for the next). This is differeent than
+of times that nu_correct is repeated (ie, using the output from
+the previous run as the input for the next). This is different than
 the -iterations option to nu_correct.
 
 --proto-iters Np
