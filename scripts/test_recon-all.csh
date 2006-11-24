@@ -20,7 +20,7 @@
 #
 ##############################################################################
 
-set VERSION='$Id: test_recon-all.csh,v 1.1 2006/11/18 17:20:53 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.2 2006/11/24 21:47:56 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -108,9 +108,9 @@ set OUTPUTF=$LOG_DIR/test_recon-all.txt
 set RECON_LOG=$SUBJECTS_DIR/$TEST_SUBJ/scripts/recon-all.log
 echo "$PROC recon-all test for $TEST_SUBJ" >& $OUTPUTF
 set BEGIN_TIME=`date`
+echo "Version: $VERSION" >>& $OUTPUTF
+if ($#argv) echo "args: $argv" >>& $OUTPUTF
 echo "Start: $BEGIN_TIME" >>& $OUTPUTF
-echo $VERSION >>& $OUTPUTF
-echo "args: $argv" >>& $OUTPUTF
 
 #setenv FREESURFER_HOME /usr/local/freesurfer/dev
 setenv FREESURFER_HOME /usr/local/freesurfer/stable
@@ -158,14 +158,14 @@ if ($RunIt) then
   # recon-all: this will take some 30 hours to run...
   $cmd
   if ($status != 0) then
-    echo "$PROC recon-all -all FAILED"  >>& $OUTPUTF
+    echo "***FAILED :: $PROC recon-all -all"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
     cp $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
   else
     set CURRENT_TIME=`date`
-    echo "   recon-all -all success at $CURRENT_TIME" >>& $OUTPUTF
+    echo "   pass :: recon-all -all (Finish: $CURRENT_TIME)" >>& $OUTPUTF
     cp $RECON_LOG $LOG_DIR/
   endif
 endif # ($RunIt)
