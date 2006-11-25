@@ -19,7 +19,7 @@ while (strcmp(tok, 'Linear_Transform') ~= 1)
 end
 
 
-M = ones(4,4) ;
+M = zeros(4,4) ; M(4,4) = 1;
 for row=1:3
 	tline = fgetl(fid) ;  % one row of matrix
 	tmp = sscanf(tline, '%f');
