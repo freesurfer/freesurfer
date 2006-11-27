@@ -1,0 +1,224 @@
+#!/bin/csh -f
+set VERSION = '$Id: isxconcat-sess,v 1.1 2006/11/27 19:12:56 greve Exp $'
+
+set inputargs = ($argv);
+
+set analysis = ();
+set contrast = ();
+set hemi = ();
+set outvol = ();
+set DoPct = 0;
+set DoMorph = 0;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+##### Create a log file ######
+set LF = $outvol.log
+if(-e $LF) mv $LF $LF.old
+
+echo "isxconcat-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions" |& tee -a $LF
+  echo "       $SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  set sessinfo = $sess/session.info
+  if(-e $sessinfo) then
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+  else
+    set IsGroup = 0;
+  endif
+  if($IsGroup) then
+    echo "ERROR: session `basename $sess` is a group analysis."
+    echo "You must specify a space (tal or sph)."
+    exit 1;
+  endif
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: analysis $analysis does not exist for $sess"
+    exit 1;
+  endif
+end # Loop over sessions
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -nojvm -nosplash -display iconic
+  rm -f $MLF
+endif
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "isxconcat-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-nopct":
+      set DoPct = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    set errs = 1;
+  endif
+
+  if($#contrast == 0) then
+    echo "ERROR: no contrast specified"
+    set errs = 1;
+  endif
+
+  if($#outvol == 0) then
+    echo "ERROR: no output  specified"
+    set errs = 1;
+  endif
+
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: isxconcat-sess"
+  echo ""
+  echo "   -a analysisname : session-level functional analysis name"
+  echo "   -c  contrast : contrasts"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -o outvol"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -version       : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
