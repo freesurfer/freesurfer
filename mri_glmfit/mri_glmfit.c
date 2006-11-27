@@ -27,7 +27,7 @@ USAGE: ./mri_glmfit
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
    --mask-inv : invert mask
-   --prune : remove voxels that do not have a non-zero value at each frame
+   --prune : remove voxels that do not have a non-zero value at each frame (def)
    --no-prune : do not prune
    --logy : compute natural log of y prior to analysis
    --no-logy : compute natural log of y prior to analysis
@@ -250,8 +250,10 @@ and clusters will only be searched for in the mask. The final binary
 mask will automatically be saved in glmdir/mask.mgh
 
 --prune
+--no-prune
 
-Remove voxels from the analysis if the ALL the frames at that voxel
+This now happens by default. Use --no-prune to turn it off. Remove voxels 
+from the analysis if the ALL the frames at that voxel 
 do not have an absolute value that exceeds zero (actually FLT_MIN).
 This helps to prevent the situation where some frames are 0 and
 others are not. If no mask is supplied, a mask is created and saved.
@@ -447,7 +449,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.100 2006/11/03 23:57:48 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.101 2006/11/27 18:22:56 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -465,7 +467,7 @@ LABEL *clabel=NULL;
 int   maskinv = 0;
 int   nmask, nvoxels;
 float maskfraction, voxelsize;
-int   prunemask = 0;
+int   prunemask = 1;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
 
@@ -1731,9 +1733,10 @@ printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
 printf("   --mask-inv : invert mask\n");
-printf("   --prune : remove voxels that do not have a non-zero value at each frame\n");
+printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
 printf("   --logy : compute natural log of y prior to analysis\n");
+printf("   --no-logy : compute natural log of y prior to analysis\n");
 printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -1955,8 +1958,10 @@ printf("and clusters will only be searched for in the mask. The final binary\n")
 printf("mask will automatically be saved in glmdir/mask.mgh\n");
 printf("\n");
 printf("--prune\n");
+printf("--no-prune\n");
 printf("\n");
-printf("Remove voxels from the analysis if the ALL the frames at that voxel\n");
+printf("This now happens by default. Use --no-prune to turn it off. Remove voxels \n");
+printf("from the analysis if the ALL the frames at that voxel \n");
 printf("do not have an absolute value that exceeds zero (actually FLT_MIN).\n");
 printf("This helps to prevent the situation where some frames are 0 and\n");
 printf("others are not. If no mask is supplied, a mask is created and saved.\n");
