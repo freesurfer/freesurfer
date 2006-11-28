@@ -7296,7 +7296,7 @@ void tetgenmesh::tetalldihedral(point pa, point pb, point pc, point pd,
   REAL* cosdd, REAL* cosmaxd, REAL* cosmind)
 {
   REAL N[4][3], cosd, len;
-  int f1, f2, i, j;
+  int f1=0, f2=0, i, j;
 
   // Get four normals of faces of the tet.
   tetallnormal(pa, pb, pc, pd, N, NULL);
@@ -13538,7 +13538,7 @@ void tetgenmesh::bowatinsertsite(point bp,face* splitseg,int n,list** sublists,
   triface oldtet, newtet, newface, rotface, neightet; 
   face oldsh, newsh, newedge, checksh;
   face spinsh, casingin, casingout;
-  face *apsegshs, *pbsegshs;
+  face *apsegshs=NULL, *pbsegshs=NULL;
   face apseg, pbseg, checkseg;
   point pa, pb, pc;
   REAL attrib, volume;
@@ -26596,9 +26596,9 @@ void tetgenmesh::tallbadtetrahedrons()
 
 void tetgenmesh::repairencsegs(bool chkencsub, bool chkbadtet)
 {
-  list **tetlists, **ceillists;
-  list **sublists, **subceillists;
-  list *tetlist, *sublist, *verlist;
+  list **tetlists=NULL, **ceillists=NULL;
+  list **sublists=NULL, **subceillists=NULL;
+  list *tetlist=NULL, *sublist=NULL, *verlist;
   queue *flipque;
   badface *encloop;
   face splitseg, symsplitseg;
