@@ -1,5 +1,5 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.13 2006/11/28 00:53:48 greve Exp $
+% $Id: fast_selxavg3.m,v 1.14 2006/11/28 05:53:32 greve Exp $
 
 % MultiVar t
 % Inorming residual when not whitening?
@@ -192,8 +192,8 @@ for nthcon = 1:ncontrasts
   flacC.con(nthcon).M = M;
   flacC.con(nthcon).eff = eff;
   flacC.con(nthcon).vrf = vrf;
-  fprintf('%2d %-10s   eff = %6.1f   vrf = %6.1f\n',...
-	  nthcon,flac0.con(nthcon).name,eff,vrf);
+  fprintf('%2d %-10s J=%d  eff = %6.1f   vrf = %6.1f\n',...
+	  nthcon,flac0.con(nthcon).name,J,eff,vrf);
 end
 
 if(DoGLMFit)
