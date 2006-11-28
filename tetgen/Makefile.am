@@ -12,10 +12,13 @@ bin_PROGRAMS = tetgen
 tetgen_SOURCES = predicates.cxx tetgen.cxx
 tetgen_CXXFLAGS = -DSELF_CHECK
 
+check_PROGRAMS = tetgen
+
 TESTS = test_tetgen
 
 EXTRA_DIST = test_tetgen example.poly \
-test_example.1.face test_example.1.ele test_example.1.node
+test_example.1.face test_example.1.ele test_example.1.node \
+README LICENSE README-MGH
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
