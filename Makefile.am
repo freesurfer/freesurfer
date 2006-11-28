@@ -242,6 +242,7 @@ SUBDIRS=include \
 	utils \
 	utilscpp \
 	log \
+	tetgen \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \

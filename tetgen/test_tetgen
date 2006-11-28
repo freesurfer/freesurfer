@@ -1,0 +1,18 @@
+#! /bin/tcsh -ef
+
+set echo=1
+
+# remove old output
+if (-e example.1.face) rm -f example.1.face
+if (-e example.1.ele) rm -f example.1.ele
+if (-e example.1.node) rm -f example.1.node
+
+# create new output from sample input
+./tetgen example.poly
+
+# compare against known-good output
+diff test_example.1.face example.1.face
+diff test_example.1.ele example.1.ele
+diff test_example.1.node example.1.node
+
+# note: the -e flag of /bin/tcsh will cause exit 1 if diff fails
