@@ -2,23 +2,32 @@
 # mask
 # cesvar, cespct
 # 
-set VERSION = '$Id: isxconcat-sess,v 1.2 2006/11/28 06:33:12 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.3 2006/11/28 21:48:13 greve Exp $'
 
 set inputargs = ($argv);
 
+set outvol = ();
 set analysis = ();
 set contrast = ();
-set hemi = ();
-set outvol = ();
-set tmpdir = ();
-set subject = fsaverage;
-
-set fwhm = 0;
-set projfrac = 0;
+set mapname = ces
+set interp = trilin
+set fwhm = ();
 set paireddiff = 0;
-set DoPct = 0;
+set ToVol = 0;
+set ToSurf = 0;
+set Force = 0;
+
+# for volume-based only
+set talres = 2;
 set DoMorph = 0;
 
+# for surface-based only
+set hemi = ();
+set projfrac = 0
+set subject = fsaverage; 
+
+set tmpdir = ();
+set cleanup = 1;
 set PrintHelp = 0;
 
 if($#argv == 0)  goto usage_exit;
@@ -69,7 +78,7 @@ uname -a      >> $LF
 date          >> $LF
 
 set StartTime = `date`;
-set ceslist = ();
+set maplist = ();
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   set sessinfo = $sess/session.info
@@ -96,40 +105,60 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set cesstem = $condir/ces
-  set ext = `fast_getext $cesstem`
+  set mapstem = $condir/$mapname
+  set ext = `fast_getext $mapstem`
   if($status) then
     echo "$ext"|& tee -a $LF
     exit 1;
   endif
-  set ces = $cesstem.$ext
+  set map = $mapstem.$ext
 
   if($#hemi != 0) then
-    set cesout = $tmpdir/$sessid-$hemi-$analysis-$contrast.mgh
-    set cmd = (mri_vol2surf --mov $ces --reg $reg --trgsubject $subject)
-    set cmd = ($cmd --hemi $hemi --projfrac 0 --interp tli --noreshape)
-    set cmd = ($cmd --o $cesout)
+    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
+    set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $subject)
+    set cmd = ($cmd --hemi $hemi --projfrac 0 --interp $interp --noreshape)
+    set cmd = ($cmd --o $mapout)
   else
-    set cesout = $tmpdir/$sessid-tal-$analysis-$contrast.mgh
-    set cmd = (mri_vol2vol --mov $ces --reg $reg --tal --talres 2)
-    set cmd = ($cmd --o $cesout --no-save-reg)
-    #set cmd = ($cmd --morph)
+    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
+    set cmd = (mri_vol2vol --mov $map --reg $reg)
+    set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
+    if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
+    if($DoMorph)   set cmd = ($cmd --morph)
   endif
   echo "------------------------------------" |& tee -a $LF
   pwd |& tee -a $LF
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  set ceslist = ($ceslist $cesout);
+  set maplist = ($maplist $mapout);
 
 end # Loop over sessions
 
 echo "------------------------------------" |& tee -a $LF
-set cmd = (mri_concat $ceslist --o $outvol)
+set cmd = (mri_concat $maplist --o $outvol)
+if($paireddiff) set cmd = ($cmd --paired-diff)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+
+if($cleanup) rm -r $tmpdir
+
+# Smooth
+if($#fwhm) then
+  if($ToVol) then
+    set cmd = (mri_fwhm --i $outvol --o $outvol --fwhm $fwhm --smooth-only)
+  endif
+  if($ToSurf) then
+    set cmd = (mris_fwhm --i $outvol --o $outvol --fwhm $fwhm \
+      --subject $subject --hemi $hemi)
+  endif
+  echo "------------------------------------" |& tee -a $LF
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 
 echo "" | tee -a $LF
@@ -157,11 +186,6 @@ while( $#argv != 0 )
       set outvol = $argv[1]; shift;
       breaksw
 
-    case "-hemi":
-      if ( $#argv == 0) goto arg1err;
-      set hemi = ($hemi $argv[1]); shift;
-      breaksw
-
     case "-a":
     case "-analysis":
       if ( $#argv == 0) goto arg1err;
@@ -174,13 +198,64 @@ while( $#argv != 0 )
       set contrast = $argv[1]; shift;
       breaksw
 
+    case "-m":
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set mapname = $argv[1]; shift;
+      breaksw
+
+    case "-interp":
+      if ( $#argv == 0) goto arg1err;
+      set interp = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-talres":
+      if ( $#argv == 0) goto arg1err;
+      set talres = $argv[1]; shift;
+      set ToVol = 1;
+      breaksw
+
+    case "-morph":
+      set DoMorph = 1;
+      set ToVol = 1;
+      breaksw
+
+    case "-hemi":
+    case "-h":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      set ToSurf = 1;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      set ToSurf = 1;
+      breaksw
+
+    case "-subject":
+      if( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      set ToSurf = 1;
+      breaksw
+
     case "-tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
       breaksw
 
-    case "-nopct":
-      set DoPct = 0;
+    case "-force":
+      set Force = 1;
+      breaksw
+
+    case "-paired-diff"
+      set paireddiff = 1;
       breaksw
 
     case "-debug":
@@ -215,14 +290,12 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  set errs = 0;
-
   if($#analysis == 0) then
     echo "ERROR: no analysis specified"
     exit 1;
   endif
 
-  if($#contrast == 0) then
+  if(0 & $#contrast == 0) then
     echo "ERROR: no contrast specified"
     exit 1;
   endif
@@ -230,6 +303,37 @@ check_params:
   if($#outvol == 0) then
     echo "ERROR: no output  specified"
     exit 1;
+  endif
+
+  if($Force) rm -f $outvol
+
+  if(-e $outvol) then
+    echo "ERROR: output $outvol exists, delete or rename or -force"
+    exit 1;
+  endif
+
+  if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
+
+  if($ToSurf && $ToVol) then
+    echo "ERROR: cannot convert to surface and volume"
+    exit 1;
+  endif
+
+  if("$interp" != "trilin" && "$interp" != "nearest") then
+    echo "ERROR: interp is $interp, must be trilinear or nearest"
+    exit 1;
+  endif
+
+  if($talres != 1 && $talres != 2) then
+    echo "ERROR: talres = $talres, must be 1 or 2"
+    exit 1;
+  endif
+
+  if($#hemi) then
+    if($hemi != lh && $hemi != rh) then
+      echo "ERROR: hemi = $hemi, must be rh or lh"
+      exit 1;
+    endif
   endif
 
   set outdir = `dirname $outvol`;
@@ -257,10 +361,22 @@ usage_exit:
   echo " "
   echo "USAGE: isxconcat-sess"
   echo ""
-  echo "   -a analysisname : session-level functional analysis name"
-  echo "   -c  contrast : contrasts"
-  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -a analysisname  : session-level functional analysis name"
+  echo "   -c contrast     : contrast (optional)"
+  echo "   -m mapname      : stem (def is ces)"
   echo "   -o outvol"
+  echo ""
+  echo "   -interp method  : trilinear (def) or nearest"
+  echo "   -fwhm fwhm      : smooth by fwhm"
+  echo "   -paired-diff    : compute 1-2, 3-4, etc"
+  echo ""
+  echo "  Volume-based options:"
+  echo "   -talres res     : 1 or 2 mm"
+  echo ""
+  echo "  Surface-based options:"
+  echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
+  echo "   -projfrac frac   : sample frac into surface"
+  echo "   -subject subject : sample to subject's surface (def fsaverage)"
   echo ""
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
@@ -268,6 +384,10 @@ usage_exit:
   echo "   -d  srchdir     ..."
   echo ""
   echo "   -help"
+  echo "   -debug"
+  echo "   -force         : overwrite output (if it exists)"
+  echo "   -tmpdir dir    : use this dir for temporary storage (implies -nocleanup)"
+  echo "   -nocleanup     : do not delete tmpdir"
   echo "   -version       : print version and exit"
   echo " "
 
@@ -282,4 +402,9 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+Resamples a group of FS-FAST first-level analyses into a common space,
+either volume- or surface-based, and concatenates all the sessions
+together into one multi-frame file suitable for use with
+mri_glmfit. This script is partially redundant with mris_preproc.
 
