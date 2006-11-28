@@ -133,7 +133,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.14 2006/10/19 06:36:09 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.15 2006/11/28 20:22:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -239,14 +239,18 @@ int main(int argc, char *argv[])
   
   //---------------------------------------------------
   if(CheckResolution){
-    if(InVol1->xsize   != InVol2->xsize  ||
-       InVol1->ysize   != InVol2->ysize ||
-       InVol1->zsize   != InVol2->zsize){
+    if(fabs(InVol1->xsize - InVol2->xsize) > resthresh  ||
+       fabs(InVol1->ysize - InVol2->ysize) > resthresh  ||
+       fabs(InVol1->zsize - InVol2->zsize) > resthresh){
       printf("Volumes differ in resolution\n");
       printf("v1res %f %f %f\n",
              InVol1->xsize,InVol1->ysize,InVol1->zsize);
       printf("v2res %f %f %f\n",
              InVol2->xsize,InVol2->ysize,InVol2->zsize);
+      printf("diff %f %f %f\n",
+             InVol1->xsize-InVol2->xsize,
+             InVol1->ysize-InVol2->ysize,
+             InVol1->zsize-InVol2->zsize);
       if(DiffFile){
         fp = fopen(DiffFile,"w");
         if(fp==NULL){
@@ -586,7 +590,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"checkprec %d\n",CheckPrecision);
   fprintf(fp,"diffabs   %d\n",DiffAbs);
   fprintf(fp,"logfile   %s\n",DiffFile);
-  //fprintf(fp,"resthresh %lf\n",pixthresh);
   return;
 }
 /* --------------------------------------------- */
