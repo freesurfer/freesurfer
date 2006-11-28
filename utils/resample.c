@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.22 2006/11/01 20:17:54 nicks Exp $
+  $Id: resample.c,v 1.23 2006/11/28 21:39:44 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -88,16 +88,7 @@ static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost);
   ---------------------------------------------------------*/
 int interpolation_code(char *interpolation_string)
 {
-  if(!strcasecmp(interpolation_string,"nearest"))
-    return(INTERP_NEAREST);
-
-  if(!strcasecmp(interpolation_string,"tli"))
-    return(INTERP_TLI); /* Tri-linear interp */
-
-  if(!strcasecmp(interpolation_string,"sinc"))
-    return(INTERP_SINC);
-
-  return(-1);
+  return(MRIinterpCode(interpolation_string));
 }
 /*---------------------------------------------------------
   float2int_code(): gets a code that controls the floating

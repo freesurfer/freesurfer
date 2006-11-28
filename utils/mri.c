@@ -13,10 +13,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/01 20:17:53 $
-// Revision       : $Revision: 1.370 $
-char *MRI_C_VERSION = "$Revision: 1.370 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/11/28 21:39:43 $
+// Revision       : $Revision: 1.371 $
+char *MRI_C_VERSION = "$Revision: 1.371 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -936,6 +936,8 @@ int MRIinterpCode(char *InterpString)
   if(!strncasecmp(InterpString,"nearest",3))
     return(SAMPLE_NEAREST);
   if(!strncasecmp(InterpString,"trilinear",3))
+    return(SAMPLE_TRILINEAR);
+  if(!strncasecmp(InterpString,"tli",3))
     return(SAMPLE_TRILINEAR);
   if(!strncasecmp(InterpString,"sinc",3))
     return(SAMPLE_SINC);
