@@ -1,9 +1,7 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.12 2006/11/23 05:17:15 greve Exp $
+% $Id: fast_selxavg3.m,v 1.13 2006/11/28 00:53:48 greve Exp $
 
-% Synth - noise and signal
 % MultiVar t
-% Why does analysis polyfit have too hi an order?
 % Inorming residual when not whitening?
 % Force choice autostim/noautostim 
 % Force choice on whitening or not
@@ -19,7 +17,11 @@
 monly       = 1;
 DoGLMFit    = 1;
 DoContrasts = 1;
+
 DoSynth     = 1;
+DoSynthNoise  = 1;
+DoSynthSignal = 1;
+SynthNoiseAR1 = 0.3;
 SynthSeed   = -1;
 
 analysis = '';
@@ -28,7 +30,7 @@ outtop = '';
 
 sess  = 'tl20000621';
 flacname = 'flac/edp.flac';
-%analysis = 'edp2';
+%analysis = 'edp';
 %analysis = 'main3-fir';
 % outtop = '/space/greve/1/users/greve/workmem-ana';
 
@@ -75,7 +77,10 @@ ncontrasts = length(flac0.con);
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
-  fprintf('SynthSeed = %10d\n',SynthSeed);
+  fprintf('SynthSeed     = %10d\n',SynthSeed);
+  fprintf('DoSynthNoise    = %d\n',DoSynthNoise);
+  fprintf('SynthNoiseAR1   = %g\n',SynthNoiseAR1);
+  fprintf('DoSynthSignal   = %d\n',DoSynthSignal);
 end
 yrun_randn = [];
 
@@ -207,21 +212,36 @@ if(DoGLMFit)
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
+    indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
     else
       yrun_randn(:,nthrun) = randn('state'); % save state
-      yrun = MRIread(flac.funcfspec,1);
-      yrun = randn(yrun.nframes,nvox);
+      ynoise  = 0;
+      ysignal = 0;
+      if(DoSynthNoise)
+	ynoise = randn(flac.ntp,nvox);
+	if(SynthNoiseAR1 ~= 0)
+	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
+	  Ssynth = toeplitz(acfsynth);
+	  Fsynth = chol(Ssynth)';
+	  ynoise = Fsynth*ynoise;
+	end % AR1
+      end % Synth Noise
+      if(DoSynthSignal)
+	Xrun = X(indrun,:);
+	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
+      end
+      yrun = ynoise + ysignal;
     end
     if(isempty(yrun))
       fprintf('ERROR: loading %s\n',funcfspec);
       return;
     end
-    indrun = find(tpindrun == nthrun);
     Brun = B0(:,indrun);
     betamat0 = betamat0 + Brun*yrun;
+
     clear yrun;
     pack;
   end
@@ -230,7 +250,6 @@ if(DoGLMFit)
   betamn0 = mean(betamat0(ind0,:));
   % baseline0 = mri;
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
-  
   % Compute Rescale Factor
   if(~isempty(flac0.inorm))
     gmean = mean(betamn0(indmask));
@@ -252,15 +271,29 @@ if(DoGLMFit)
     flac = flac0;
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
+    indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
     else
       randn('state',yrun_randn(:,nthrun))
-      yrun = MRIread(flac.funcfspec,1);
-      yrun = randn(yrun.nframes,nvox);
+      ynoise  = 0;
+      ysignal = 0;
+      if(DoSynthNoise)
+	ynoise = randn(flac.ntp,nvox);
+	if(SynthNoiseAR1 ~= 0)
+	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
+	  Ssynth = toeplitz(acfsynth);
+	  Fsynth = chol(Ssynth)';
+	  ynoise = Fsynth*ynoise;
+	end % AR1
+      end % Synth Noise
+      if(DoSynthSignal)
+	Xrun = X(indrun,:);
+	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
+      end
+      yrun = ynoise + ysignal;
     end
-    indrun = find(tpindrun == nthrun);
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
@@ -298,8 +331,8 @@ if(DoGLMFit)
   % Apply bias correction
   nrho1mn = mri;
   nrho1mn.vol = rfm.M(1) + rfm.M(2)*rho1mn.vol;
-  clear rho1 rho1mn;
 
+  clear rho1 rho1mn;
   % Save AR2 maps
   %fname = sprintf('%s/rho2.%s',outanadir,ext);
   %MRIwrite(rho2,fname);
@@ -381,16 +414,30 @@ if(DoGLMFit)
       flac = flac0;
       flac.nthrun = nthrun;
       flac = flac_customize(flac);
+      indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
 	yrun = fast_vol2mat(yrun);
       else
 	randn('state',yrun_randn(:,nthrun))
-	yrun = MRIread(flac.funcfspec,1);
-	yrun = randn(yrun.nframes,nvox);
+	ynoise  = 0;
+	ysignal = 0;
+	if(DoSynthNoise)
+	  ynoise = randn(flac.ntp,nvox);
+	  if(SynthNoiseAR1 ~= 0)
+	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
+	    Ssynth = toeplitz(acfsynth);
+	    Fsynth = chol(Ssynth)';
+	    ynoise = Fsynth*ynoise;
+	  end % AR1
+	end % Synth Noise
+	if(DoSynthSignal)
+	  Xrun = X(indrun,:);
+	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
+	end
+	yrun = ynoise + ysignal;
       end
       yrun = RescaleFactor*yrun;  
-      indrun = find(tpindrun == nthrun);
       for nthseg = 0:  flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
 	indseg = find(acfseg.vol==nthseg);
@@ -415,16 +462,30 @@ if(DoGLMFit)
       flac = flac0;
       flac.nthrun = nthrun;
       flac = flac_customize(flac);
+      indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
 	yrun = fast_vol2mat(yrun);
       else
 	randn('state',yrun_randn(:,nthrun))
-	yrun = MRIread(flac.funcfspec,1);
-	yrun = randn(yrun.nframes,nvox);
+	ynoise  = 0;
+	ysignal = 0;
+	if(DoSynthNoise)
+	  ynoise = randn(flac.ntp,nvox);
+	  if(SynthNoiseAR1 ~= 0)
+	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
+	    Ssynth = toeplitz(acfsynth);
+	    Fsynth = chol(Ssynth)';
+	    ynoise = Fsynth*ynoise;
+	  end % AR1
+	end % Synth Noise
+	if(DoSynthSignal)
+	  Xrun = X(indrun,:);
+	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
+	end
+	yrun = ynoise + ysignal;
       end
       yrun = RescaleFactor*yrun;
-      indrun = find(tpindrun == nthrun);
       Xrun = X(indrun,:);
       yhatrun = Xrun*betamat;
       rrun = yrun - yhatrun;
@@ -529,19 +590,21 @@ if(DoContrasts)
 
     if(DoSynth)
       fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
-      nover = length(find(pmat(indmask) < .01));
-      pover = nover/nmask;
-      [noverlow noverhi] = binomialconf(nmask,.01,90);
-      fprintf('  Prob(p < .01) = %g\n',pover);
-      fprintf('  nover = %d, conf %d %d  ',nover,noverlow,noverhi);
-      if(nover > noverlow & nover < noverhi) fprintf('PASS\n');
-      else	                             fprintf('FAIL\n');
-      end
       cmn  = mean(cesmat(:,indmask),2);
       cstd = std(cesmat(:,indmask),[],2);
       cvar = cstd.^2;
       fprintf('  CES Mean Std Var (%g)\n',1/flacC.con(nthcon).vrf);
       fprintf('  %7.4f  %7.4f  %7.4f\n',[cmn cstd cvar]');
+      if(~DoSynthSignal)
+	nover = length(find(pmat(indmask) < .01));
+	pover = nover/nmask;
+	[noverlow noverhi] = binomialconf(nmask,.01,90);
+	fprintf('  Prob(p < .01) = %g\n',pover);
+	fprintf('  nover = %d, conf %d %d  ',nover,noverlow,noverhi);
+	if(nover > noverlow & nover < noverhi) fprintf('PASS\n');
+	else	                             fprintf('FAIL\n');
+	end
+      end
     end
     
     outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
