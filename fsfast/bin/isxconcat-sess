@@ -1,5 +1,8 @@
 #!/bin/csh -f
-set VERSION = '$Id: isxconcat-sess,v 1.1 2006/11/27 19:12:56 greve Exp $'
+# mask
+# cesvar, cespct
+# 
+set VERSION = '$Id: isxconcat-sess,v 1.2 2006/11/28 06:33:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -7,8 +10,15 @@ set analysis = ();
 set contrast = ();
 set hemi = ();
 set outvol = ();
+set tmpdir = ();
+set subject = fsaverage;
+
+set fwhm = 0;
+set projfrac = 0;
+set paireddiff = 0;
 set DoPct = 0;
 set DoMorph = 0;
+
 set PrintHelp = 0;
 
 if($#argv == 0)  goto usage_exit;
@@ -23,23 +33,10 @@ if($n != 0) then
   goto usage_exit;
 endif
 
-##### Create a log file ######
-set LF = $outvol.log
-if(-e $LF) mv $LF $LF.old
-
-echo "isxconcat-sess log file" >> $LF
-echo $VERSION >> $LF
-id            >> $LF
-pwd           >> $LF
-echo $0     >> $LF
-echo $inputargs  >> $LF
-uname -a      >> $LF
-date          >> $LF
-
 set SessList = `getsesspath $inputargs`;
 if($status || $#SessList == 0) then
-  echo "ERROR: finding sessions" |& tee -a $LF
-  echo "       $SessList" |& tee -a $LF
+  echo "ERROR: finding sessions"
+  echo "       $SessList" 
   exit 1;
 endif
 
@@ -52,11 +49,27 @@ check_params_return:
 ## Get functional subdirectory from the info file ##
 set infofile = $analysis/analysis.info
 if(! -e $infofile) then
-  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  echo "ERROR: cannot find $infofile" 
   exit 1;
 endif
 set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
 
+##### Create a log file ######
+set LF = $outvol.log
+if(-e $LF) mv $LF $LF.old
+echo $LF
+
+echo "isxconcat-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+set ceslist = ();
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   set sessinfo = $sess/session.info
@@ -66,23 +79,58 @@ foreach sess ($SessList)
     set IsGroup = 0;
   endif
   if($IsGroup) then
-    echo "ERROR: session `basename $sess` is a group analysis."
-    echo "You must specify a space (tal or sph)."
+    echo "ERROR: session `basename $sess` is a group analysis."|& tee -a $LF
+    echo "This is not allowed with isxconcat-sess."|& tee -a $LF
     exit 1;
   endif
 
-  set anadir = $sess/$fsd/$analysis
-  if(! -e $anadir) then
-    echo "ERROR: analysis $analysis does not exist for $sess"
+  set reg = $sess/$fsd/register.dat
+  if(! -e $reg) then
+    echo "ERROR: cannot find $reg"|& tee -a $LF
     exit 1;
   endif
+
+  set condir = $sess/$fsd/$analysis/$contrast
+  if(! -e $condir) then
+    echo "ERROR: cannot find $condir"|& tee -a $LF
+    exit 1;
+  endif
+
+  set cesstem = $condir/ces
+  set ext = `fast_getext $cesstem`
+  if($status) then
+    echo "$ext"|& tee -a $LF
+    exit 1;
+  endif
+  set ces = $cesstem.$ext
+
+  if($#hemi != 0) then
+    set cesout = $tmpdir/$sessid-$hemi-$analysis-$contrast.mgh
+    set cmd = (mri_vol2surf --mov $ces --reg $reg --trgsubject $subject)
+    set cmd = ($cmd --hemi $hemi --projfrac 0 --interp tli --noreshape)
+    set cmd = ($cmd --o $cesout)
+  else
+    set cesout = $tmpdir/$sessid-tal-$analysis-$contrast.mgh
+    set cmd = (mri_vol2vol --mov $ces --reg $reg --tal --talres 2)
+    set cmd = ($cmd --o $cesout --no-save-reg)
+    #set cmd = ($cmd --morph)
+  endif
+  echo "------------------------------------" |& tee -a $LF
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set ceslist = ($ceslist $cesout);
+
 end # Loop over sessions
 
-set StartTime = `date`;
-if(! $monly) then
-  cat $MLF | matlab -nojvm -nosplash -display iconic
-  rm -f $MLF
-endif
+echo "------------------------------------" |& tee -a $LF
+set cmd = (mri_concat $ceslist --o $outvol)
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -104,6 +152,11 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "-o":
+      if($#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
     case "-hemi":
       if ( $#argv == 0) goto arg1err;
       set hemi = ($hemi $argv[1]); shift;
@@ -121,9 +174,9 @@ while( $#argv != 0 )
       set contrast = $argv[1]; shift;
       breaksw
 
-    case "-o":
+    case "-tmpdir":
       if ( $#argv == 0) goto arg1err;
-      set outvol = $argv[1]; shift;
+      set tmpdir = $argv[1]; shift;
       breaksw
 
     case "-nopct":
@@ -166,21 +219,29 @@ check_params:
 
   if($#analysis == 0) then
     echo "ERROR: no analysis specified"
-    set errs = 1;
+    exit 1;
   endif
 
   if($#contrast == 0) then
     echo "ERROR: no contrast specified"
-    set errs = 1;
+    exit 1;
   endif
 
   if($#outvol == 0) then
     echo "ERROR: no output  specified"
-    set errs = 1;
+    exit 1;
   endif
 
+  set outdir = `dirname $outvol`;
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir";
+    exit 1;
+  endif
 
-  if($errs) exit 1;
+  if($#tmpdir == 0) set tmpdir = $outdir/tmp-isxconcat-sess
+  mkdir -p $tmpdir
+
 
 goto check_params_return;
 ############--------------##################
