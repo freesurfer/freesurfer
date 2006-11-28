@@ -1,0 +1,182 @@
+#!/bin/csh -f
+############################################################
+# Name:    mkprestimcon
+# Purpose: make a contrast matrix with pre-stim subtraction
+############################################################
+
+set VERSION = '$Id: mkprestimcon,v 1.1 2006/11/28 22:42:02 greve Exp $';
+
+set monly = 0;
+set MLF = ();
+set contrast = ();
+set analysis  = 0;
+set wcond = ();
+
+if( $#argv == 0 ) then
+  echo "USAGE: mkprestimcon ";
+  echo ""
+  echo "   -nconds  nconds       : number of conditions (excl fix)"
+  echo "   -wcond  cw1 cw2 ...   : weight of each condition"
+  echo "   -analysis name            "
+  echo "   -contrast name"
+  echo ""
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set hdatfile = $analysis/h.dat
+if(! -e $hdatfile) then
+  echo "ERROR: cannot find $hdatfile"
+  exit 1;
+endif
+
+set cmtxfile = $analysis/$contrast.mat
+if($#MLF == 0) set MLF = /tmp/mkprestimcon.$$.m
+
+#---------------------------------------------------------------#
+tee $MLF <<EOF
+
+  hdatfile = '$hdatfile';
+  cmtxfile = '$cmtxfile';
+  WCond    = [$wcond];
+
+  if( ~ $monly ) QuitOnError = 1; 
+  else           QuitOnError = 0; 
+  end
+
+  sxa = fmri_lddat3(hdatfile);
+  if(isempty(sxa)) return; end
+  NCond = length(WCond);
+  WDelay = [];
+  CNorm = 0;
+  TER = sxa.TER;
+  TimeWindow = sxa.TimeWindow;
+  TPreStim = sxa.TPreStim;
+  RmPreStim = 1;
+  sumconds = 1;
+  sumdelays = 0;
+  nircorr = 0;
+  rdelta = 0;
+  rtau = 0;
+
+  ContrastMtx_0 = mkprestimcon(sxa,WCond);
+  if(isempty(ContrastMtx_0)) return; end
+
+  save('$cmtxfile','ContrastMtx_0','NCond','WCond','WDelay','CNorm','TER',...
+    'TimeWindow','TPreStim','RmPreStim','sumconds','sumdelays',...
+    'nircorr','rdelta','rtau','-V4');
+
+  fprintf('mkprestimcon: done with matlab\n');
+
+  return;
+  if(QuitOnError)  quit; end
+  
+EOF
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic 
+endif
+
+echo "mkprestimcon done"
+
+exit 0;
+#-------------------------------------------------------------#
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-nconds":
+      if( $#argv == 0) goto arg1err;
+      set nconds = $argv[1]; shift;
+      breaksw
+
+    case "-wcond":
+      if( $#argv < $nconds) then
+        echo "ERROR: need at least $nconds weights for -wcond";
+        exit 1;
+      endif
+      set wcond = ();
+      @ c = 0;
+      while($c < $nconds)
+        set wcond = ($wcond $argv[1]); shift;
+        @ c = $c + 1;
+      end
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set MLF  = $argv[1]; shift;
+      set monly  = 1; 
+      breaksw
+
+    case "-debug":
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#analysis == 0) then
+     echo "ERROR: must specify an analysis";
+     exit 1
+  endif
+
+  if($#contrast == 0) then
+     echo "ERROR: must specify a contrast";
+     exit 1
+  endif
+
+  if($nconds < 1) then
+     echo "ERROR: must specify the number of conditions"
+     exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+dump_params:
+goto dump_params_return;
+############--------------##################
+
