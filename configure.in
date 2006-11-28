@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.272 2006/11/28 19:07:22 nicks Exp $"
+# "$Id: configure.in,v 1.273 2006/11/28 23:41:52 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -88,11 +88,6 @@ TEEM_ENDIAN=$BYTEORDER
 # Support for files >2GB (Large File Support)
 LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 
-# -Wno-non-virtual-dtor suppresses valid scuba and cppunit warnings:
-# "has virtual functions but non-virtual destructor"
-# these warnings appear with gcc 4.#
-NNVD="-Wno-non-virtual-dtor"
-
 # -Wno-unknown-pragmas suppresses warnings about unknown gcc pragmas,
 # like pragma indent
 NUPRAG="-Wno-unknown-pragmas"
@@ -127,8 +122,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -138,8 +132,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $CXXFLAGS"
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR"
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -149,8 +142,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -161,8 +153,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR -Wno-long-double $LFS_CFLAGS $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $LFS_CFLAGS $CXXFLAGS"
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR -Wno-long-double $LFS_CFLAGS"
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -171,8 +162,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NUPRAG $CFLAGS"
- CXXFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NNVD $NUPRAG $CXXFLAGS"
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NUPRAG"
  ;;
 esac
 AC_SUBST(OS)
@@ -1929,8 +1919,8 @@ FreeSurfer is now configured for ${host}
   Source directory:  ${srcdir}
   Install directory: ${prefix}
 
-  C compiler:        ${CC} ${CPPFLAGS} ${CFLAGS}
-  C++ compiler:      ${CXX} ${CPPFLAGS} ${CXXFLAGS}
-  Linker:            ${LD} ${LDFLAGS}
-  Libs:              ${LIBS}
+  C compiler:   ${CC} ${CPPFLAGS} ${CFLAGS}
+  C++ compiler: ${CXX} ${CPPFLAGS} ${CXXFLAGS}
+  Linker:       ${LD} ${LDFLAGS}
+  Libs:         ${LIBS}
 ])

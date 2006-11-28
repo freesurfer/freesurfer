@@ -2,15 +2,18 @@
 # Makefile.am for TetGen
 #
 
+# need -O0 flag, as 'tetgen example.poly' will coredump on 32bit platfomrs 
+# (but not 64bit!) if compiled with optimization enabled
+
 # build library...
 noinst_LIBRARIES= libtetgen.a
 libtetgen_a_SOURCES = predicates.cxx tetgen.cxx
-libtetgen_a_CXXFLAGS = -DSELF_CHECK -DTETLIBRARY
+libtetgen_a_CXXFLAGS = -DSELF_CHECK -DTETLIBRARY -O0
 
 # and binary:
 bin_PROGRAMS = tetgen
 tetgen_SOURCES = predicates.cxx tetgen.cxx
-tetgen_CXXFLAGS = -DSELF_CHECK
+tetgen_CXXFLAGS = -DSELF_CHECK -O0
 
 check_PROGRAMS = tetgen
 

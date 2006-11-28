@@ -58,13 +58,18 @@ sc_test_SOURCES=sc_test.c
 #mri_extract_SOURCE=mri_extract.c
 
 if HAVE_CPPUNIT
+
+# -Wno-non-virtual-dtor suppresses valid scuba and cppunit warnings:
+# "has virtual functions but non-virtual destructor"
+# these warnings appear with gcc 4.#
+
 test_nr_wrapper_SOURCES=test_nr_wrapper.cpp
-test_nr_wrapper_CXXFLAGS=$(CPPUNIT_CFLAGS)
+test_nr_wrapper_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
 test_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 
 test_matrix_SOURCES=test_matrix.cpp
-test_matrix_CXXFLAGS=$(CPPUNIT_CFLAGS)
+test_matrix_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
 test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 endif

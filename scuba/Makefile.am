@@ -16,6 +16,11 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	-I/opt/intel/mkl70/include \
 	-Iqconsole -Iqconsole/include
 
+# -Wno-non-virtual-dtor suppresses valid scuba and cppunit warnings:
+# "has virtual functions but non-virtual destructor"
+# these warnings appear with gcc 4.#
+AM_CXXFLAGS=-Wno-non-virtual-dtor
+
 AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
 
 UTILITIES_SRCS=Volume3.cpp Volume3.h \
