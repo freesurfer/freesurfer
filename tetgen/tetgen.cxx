@@ -15399,7 +15399,6 @@ void tetgenmesh::insertsubseg(face* tri)
 
 bool tetgenmesh::scoutsegmentsub(face* searchsh, point tend)
 {
-  face newsubseg;
   face crosssub, crosssubseg;
   point leftpoint, rightpoint;
   enum finddirectionresult collinear;
@@ -15756,7 +15755,7 @@ void tetgenmesh::plaguesub(memorypool* viri)
 
 void tetgenmesh::carveholessub(int holes, REAL* holelist, memorypool *viri)
 {
-  face searchtri, triangleloop;
+  face searchtri;
   shellface **holetri;
   enum locateresult intersect;
   int i;
@@ -17518,7 +17517,7 @@ void tetgenmesh::perturbrepairencsubs(list* cavsublist, queue* flipqueue)
   tetrahedron encodedtet;
   triface splittet;
   face splitsub, symsplitsub;
-  face checkseg, symsplitseg;
+  face checkseg;
   point newpoint, sympoint;
   point pa, pb, pc, pd;
   enum insertsiteresult success;
@@ -18832,8 +18831,7 @@ void tetgenmesh::delaunizesegments()
 bool tetgenmesh::insertsubface(face* insertsh, triface* searchtet)
 {
   triface spintet, symtet;
-  face testsh, testseg;
-  face spinsh, casin, casout;
+  face testsh;
   point tapex, checkpoint;
   enum finddirectionresult collinear;
   int hitbdry;
@@ -20000,7 +19998,7 @@ void tetgenmesh::rearrangesubfaces(list* missingshlist, list* boundedgelist,
 {
   link *boundedgelink;
   link *newshlink;
-  triface starttet, spintet, neightet, worktet;
+  triface starttet, spintet, neightet;
   face shloop, newsh, neighsh, spinsh, worksh;
   face workseg, casingin, casingout;
   point torg, tdest, workpt;
@@ -20458,7 +20456,7 @@ void tetgenmesh::formcavity(list* missingshlist, list* crossedgelist,
   list* belowptlist, list* aboveptlist, queue* missingshqueue, int* worklist)
 {
   triface starttet, spintet, neightet, worktet;
-  face startsh, neighsh, worksh, workseg;
+  face startsh, worksh;
   point torg, tdest, tapex, workpt[3];
   REAL checksign, orgori, destori;
   bool crossflag, inlistflag;
@@ -23600,7 +23598,7 @@ bool tetgenmesh::suppressvolpoint(point suppt, list* frontlist,
   list *oldtetlist, *newtetlist;
   list *newshlist; // a dummy list.
   tetrahedron tetptr;
-  triface oldtet, newtet;
+  triface oldtet;
   bool success;
   int j;
 
@@ -23696,7 +23694,7 @@ bool tetgenmesh::collapseedgepoint(point colpt, list *oldtetlist,
   list* deadtetlist, list *ptlist)
 {
   tetrahedron tetptr;
-  triface oldtet, newtet;
+  triface oldtet;
   point conpt;
   bool success;
 
@@ -23977,7 +23975,7 @@ long tetgenmesh::reconstructmesh()
 {
   tetrahedron **tetsperverlist;
   shellface **facesperverlist;
-  triface tetloop, neightet, neineightet, spintet;
+  triface tetloop, neightet, neineightet;
   face subloop, neighsh, neineighsh, subseg;
   face sface1, sface2;
   point *idx2verlist;
@@ -28289,7 +28287,7 @@ void tetgenmesh::jettisonnodes()
 void tetgenmesh::highorder()
 {
   triface tetloop, worktet;
-  triface spintet, adjtet;
+  triface spintet;
   point torg, tdest, tapex;
   point *extralist, *adjextralist;
   point newpoint;
@@ -29022,7 +29020,6 @@ void tetgenmesh::outhullfaces(tetgenio* out)
   int *elist;
   int index;
   triface tface, tsymface;
-  face checkmark;
   point torg, tdest, tapex;
   int firstindex, shift;
   int facenumber;
@@ -29778,7 +29775,7 @@ void tetgenmesh::outmesh2medit(char* mfilename)
   char mefilename[FILENAMESIZE];
   tetrahedron* tetptr;
   triface tface, tsymface;
-  face segloop, checkmark;
+  face segloop;
   point pointloop, p1, p2, p3, p4;
   long faces;
   int pointnumber;
