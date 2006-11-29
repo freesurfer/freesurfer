@@ -2,16 +2,6 @@
 
 set echo=1
 
-set PROC=`uname -m`
-if ("$PROC" == "i686") then
-  # known architecture
-else if  ("$PROC" == "x86_64") then
-  # known architecture
-else
-  echo "Known-good results not available for this architecture."
-  exit 77
-endif
-
 # remove old output
 if (-e example.1.face) rm -f example.1.face
 if (-e example.1.ele) rm -f example.1.ele
@@ -19,6 +9,19 @@ if (-e example.1.node) rm -f example.1.node
 
 # create new output from sample input
 ./tetgen example.poly
+
+set PROC=`uname -m`
+if ("$PROC" == "i686") then
+  # known architecture
+else if  ("$PROC" == "x86_64") then
+  # known architecture
+else if  ("`uname -ms`" == "Darwin i386") then
+  # Intel Mac produces the same results as x86_64
+  set PROC=x86_64
+else
+  echo "Known-good results not available for this architecture."
+  exit 77
+endif
 
 # compare against known-good output for this architecture
 diff ${PROC}-example.1.face example.1.face
