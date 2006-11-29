@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.274 2006/11/29 17:35:52 nicks Exp $"
+# "$Id: configure.in,v 1.275 2006/11/29 19:20:36 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -367,8 +367,9 @@ fi
 echo "CPUFLAGS=$CPUFLAGS" > cpuflags.mak
 
 CFLAGS=$ac_save_CFLAGS
-CFLAGS="$CPUFLAGS $CFLAGS"
-CXXFLAGS="$CPUFLAGS $CXXFLAGS"
+
+# append these CPUFLAGS to our existing CPPFLAGS
+CPPFLAGS="$CPPFLAGS $CPUFLAGS"
 
 #####
 else
