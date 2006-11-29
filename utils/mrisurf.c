@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/29 18:12:16 $
-// Revision       : $Revision: 1.493 $
+// Revision Date  : $Date: 2006/11/29 20:51:26 $
+// Revision       : $Revision: 1.494 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.493 2006/11/29 18:12:16 nicks Exp $"); }
+  return("$Id: mrisurf.c,v 1.494 2006/11/29 20:51:26 nicks Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -4797,7 +4797,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              int max_passes, float min_degrees, float max_degrees, int nangles)
 {
   float   sigma, target_sigma, dof ;
-  int     i, /*steps,*/ done, sno, ino, msec, min_averages ;
+  int     i, /*steps,*/ done, sno, ino, msec, min_averages=0 ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
   double  base_dt ;
@@ -18246,7 +18246,7 @@ static MRI_SURFACE * mrisReadSTLfile(char *fname)
   char    line[STRLEN], *cp ;
   int     nfaces, fno, vno, fvno, n2;
   VERTEX  *v ;
-  FACE    *face ;
+  FACE    *face = NULL;
   FILE    *fp ;
 
   fp = fopen(fname, "r") ;
@@ -21193,7 +21193,7 @@ int
 MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords,
 		       Real *pxv, Real *pyv, Real *pzv)
 {
-  Real  xw, yw, zw ;
+  Real  xw=0., yw=0., zw =0.;
 
   MRISgetCoords(v, coords, &xw, &yw, &zw);
   if (mris->useRealRAS)
@@ -28489,7 +28489,7 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, i
   int    vno, n, niter, avgs, done ;
   VERTEX *v ;
   MHT    *mht = NULL, *mht_white = NULL, *mht_pial = NULL ;
-  double dist, dx, dy, dz ;
+  double dist, dx=0., dy=0., dz=0. ;
 
   if (parms == NULL)
   {

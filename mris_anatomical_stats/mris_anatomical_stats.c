@@ -18,7 +18,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.40 2006/11/03 18:29:31 fischl Exp $";
+"$Id: mris_anatomical_stats.c,v 1.41 2006/11/29 20:51:21 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -73,7 +73,8 @@ main(int argc, char *argv[])
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
-  double        gray_volume, wm_volume, thickness_mean, thickness_var,
+  double        gray_volume, wm_volume, thickness_mean=0., 
+    thickness_var=0.,
     mean_abs_mean_curvature, mean_abs_gaussian_curvature, ici, fi ;
   int           annotation = 0 ;
   FILE          *log_fp = NULL ;
@@ -88,7 +89,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.40 2006/11/03 18:29:31 fischl Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.41 2006/11/29 20:51:21 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

@@ -2,9 +2,9 @@
 // afni.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/07 16:56:03 $
-// Revision       : $Revision: 1.6 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/29 20:51:24 $
+// Revision       : $Revision: 1.7 $
 //
 // moved out from mriio.c
 //
@@ -641,8 +641,8 @@ MRI *afniRead(char *fname, int read_volume)
   float xfov, yfov, zfov;
   float fMin = 0.;
   float fMax = 0.;
-  float flMin;
-  float flMax;
+  float flMin = 0.;
+  float flMax = 0.;
   int initialized = 0;
   int frame;
   int bytes;

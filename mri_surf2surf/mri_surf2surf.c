@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $
+  $Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -281,7 +281,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.43 2006/10/05 02:20:55 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1720,7 +1720,7 @@ int MRIScommonNeighbors(MRIS *surf, int vtxno1, int vtxno2,
   ----------------------------------------------------------------------*/
 double MRISdiffusionEdgeWeight(MRIS *surf, int vtxno0, int vtxnonbr)
 {
-  int cvtxno1, cvtxno2;
+  int cvtxno1=0, cvtxno2=0;
   VERTEX *v0, *vnbr, *cv1, *cv2;
   double a0, a1, btmp, ctmp, w;
 

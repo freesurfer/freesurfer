@@ -244,9 +244,8 @@ ScubaColorLUT::IsEntryValid ( int inIndex ) {
 
   if( inIndex >= 0 && inIndex <= mHighestItemNo ) {
     return mEntries[inIndex].mbValid;
-  } else  {
-    return false;
   }
+  return false;
 }
 
 string 

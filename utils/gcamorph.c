@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/11/02 23:41:04 $
-// Revision       : $Revision: 1.121 $
+// Revision Date  : $Date: 2006/11/29 20:51:24 $
+// Revision       : $Revision: 1.122 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -4203,7 +4203,7 @@ int GCAMsampleInverseMorphRAS(GCA_MORPH *gcam, float xAnat, float yAnat, float z
 {
   static int init_needed = 1, err;
   static MATRIX *ras=NULL, *crs=NULL, *vox2ras=NULL, *ras2vox=NULL;
-  float  cMorph, rMorph, sMorph;
+  float  cMorph=0., rMorph=0., sMorph=0.;
   float  cAnat, rAnat, sAnat;
 
   if(init_needed){

@@ -14364,7 +14364,7 @@ void tetgenmesh::incrflipdelaunay(triface* oldtet, point* insertarray,
   triface newtet, searchtet;
   point swappt, lastpt;
   enum locateresult loc;
-  REAL det, n[3];
+  REAL det=0., n[3];
   REAL attrib, volume;
   int i, j;
 
@@ -26783,7 +26783,7 @@ void tetgenmesh::repairencsubs(bool chkbadtet)
   enum locateresult loc, symloc;
   bool reject;
   long oldptnum;
-  int quenumber, n, i;
+  int quenumber=0, n, i;
 
   n = 0;
   sublist = (list *) NULL;

@@ -3792,7 +3792,7 @@ ImageStatistics(IMAGE *Isrc, float *pmean, float *pvar)
 {
   long   npix ;
   float  *pix, total, dif, mean ;
-  IMAGE  *I ;
+  IMAGE  *I=NULL;
 
   if (Isrc->pixel_format != PFFLOAT)
   {

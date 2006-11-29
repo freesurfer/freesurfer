@@ -910,6 +910,7 @@ float Surf_GetVertexCoord ( vertex_type*      iVertex,
   default:
     return -1;
   }
+  return -1;
 }
 
 Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
@@ -1243,7 +1244,7 @@ void Surf_GetClosestVertex ( mriSurfaceRef   this,
     currentVertex = &(this->mSurface->vertices[nVertex]);
     
     /* calc distance */
-    dx = xVoxl_GetFloatX( iSurfaceVoxel ) - 
+    dx = xVoxl_GetFloatX( iSurfaceVoxel ) -
       Surf_GetVertexCoord( currentVertex, iSet, Surf_tOrientation_X );
     dy = xVoxl_GetFloatY( iSurfaceVoxel ) - 
       Surf_GetVertexCoord( currentVertex, iSet, Surf_tOrientation_Y );

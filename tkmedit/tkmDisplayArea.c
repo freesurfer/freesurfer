@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/01 20:17:51 $
-// Revision       : $Revision: 1.134 $
+// Revision Date  : $Date: 2006/11/29 20:51:23 $
+// Revision       : $Revision: 1.135 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1169,6 +1169,9 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   xPoint2f              planePt;
   xVoxel                MRIIdx;
   
+  planePt.mfX=0;
+  planePt.mfY=0;
+
   /* verify us. */
   eResult = DspA_Verify( this );
   if( DspA_tErr_NoErr != eResult )
@@ -2949,6 +2952,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   xVoxel          lineRAS1;
   xVoxel          lineRAS2;
   
+  lineVox.mfX=0;
+  lineVox.mfY=0;
+
   xVoxl_New( &pVolumeVox );
   
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
@@ -6225,6 +6231,13 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
   int                 annotationGreen;
   int                 annotationBlue;
   
+  normAnaVertex.mfX=0;
+  normAnaVertex.mfY=0;
+  normAnaVertex.mfZ=0;
+  normAnaNeighborVertex.mfX=0;
+  normAnaNeighborVertex.mfY=0;
+  normAnaNeighborVertex.mfZ=0;
+
   /* get the current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
   
@@ -6488,6 +6501,11 @@ DspA_tErr DspA_DrawVector_ ( tkmDisplayAreaRef this,
   xVoxel    voxelEnd;
   xPoint2f  bufferEnd;
   
+  bufferStart.mfX=0;
+  bufferStart.mfY=0;
+  bufferEnd.mfX=0;
+  bufferEnd.mfY=0;
+
   DspA_ConvertVolumeToBufferf_ ( this, ipVoxelStart, &bufferStart );
   xVoxl_SetFloatX( &voxelEnd, 
 		   xVoxl_GetFloatX( ipVoxelStart ) +
@@ -6884,6 +6902,9 @@ DspA_tErr DspA_BuildLineToolVoxelList_( tkmDisplayAreaRef this ) {
   xVoxel     anaIdx;
   xVoxel     lineVox;
   int px, qx, tx, py, qy, ty;
+
+  lineVox.mfX=0;
+  lineVox.mfY=0;
 
   px = this->mLineVertex1.mnX;
   py = this->mLineVertex1.mnY;
