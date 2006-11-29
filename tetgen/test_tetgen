@@ -13,6 +13,9 @@ if (-e example.1.node) rm -f example.1.node
 set PROC=`uname -m`
 if ("$PROC" == "i686") then
   # known architecture
+else if ("$PROC" == "i86pc") then
+  # Solaris PC produces same results as Linux 32bit PC
+  set PROC=i686
 else if  ("$PROC" == "x86_64") then
   # known architecture
 else if  ("$PROC" == "Power Macintosh") then
