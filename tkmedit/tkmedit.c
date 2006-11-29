@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/23 01:51:09 $
-// Revision       : $Revision: 1.297 $
-char *VERSION = "$Revision: 1.297 $";
+// Revision Date  : $Date: 2006/11/29 21:21:05 $
+// Revision       : $Revision: 1.298 $
+char *VERSION = "$Revision: 1.298 $";
 
 #define TCL
 #define TKMEDIT
@@ -1148,7 +1148,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.297 2006/11/23 01:51:09 nicks Exp $",
+     "$Id: tkmedit.c,v 1.298 2006/11/29 21:21:05 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5784,7 +5784,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
      (
-      "$Id: tkmedit.c,v 1.297 2006/11/23 01:51:09 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.298 2006/11/29 21:21:05 nicks Exp $ $Name:  $\n"
       )
      );
 
@@ -8159,7 +8159,7 @@ char* SendTCLCommand ( char * inCommand ) {
   if ( NULL != theInterp ) {
 
     rTcl = Tcl_Eval( theInterp, inCommand );
-    sTclResult = Tcl_GetStringResult( theInterp );
+    sTclResult = (char *)Tcl_GetStringResult( theInterp );
 
     // print any error msgs.
     if ( TCL_OK != rTcl ) {
