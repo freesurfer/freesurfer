@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/20 20:55:45 $
-// Revision       : $Revision: 1.492 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/11/29 18:12:16 $
+// Revision       : $Revision: 1.493 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.492 2006/11/20 20:55:45 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.493 2006/11/29 18:12:16 nicks Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -8681,7 +8681,7 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
 {
 	int    vno  ;
 	VERTEX *v ;
-	float  val ;
+	float  val=0;
 
 	if (mri == NULL)
 		mri = MRIalloc(1, 1, mris->nvertices, MRI_FLOAT) ;
