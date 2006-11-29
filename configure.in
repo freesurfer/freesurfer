@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.273 2006/11/28 23:41:52 nicks Exp $"
+# "$Id: configure.in,v 1.274 2006/11/29 17:35:52 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -208,6 +208,9 @@ if test "$CPUTYPE" = "NO"; then
       ppc970)
       CPUTYPE=G5
       ;;
+      i486)
+      CPUTYPE=intel-mac
+      ;;
       *)
       CPUTYPE="NO"
       echo "unknown mac cpu $maccpu"
@@ -282,17 +285,20 @@ case "$CPUTYPE" in
      CPUFLAGS="-m64"
      ;;
   G4)
-     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
+     CPUFLAGS="-fast -mtune=G4 -mcpu=G4 -faltivec"
      ;;
   G5)
      # maintain G4 backwards compatibility
-     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
+     CPUFLAGS="-fast -mtune=G4 -mcpu=G4 -faltivec"
      ;;
   power4)
      CPUFLAGS="-mtune=power4 -mcpu=power4"
      ;;
   power5)
      CPUFLAGS="-mtune=power5 -mcpu=power5"
+     ;;
+  intel-mac)
+     CPUFLAGS="-fast"
      ;;
   *)
      echo "cpu optimization not set"
