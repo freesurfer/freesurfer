@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.277 2006/11/29 23:21:33 nicks Exp $"
+# "$Id: configure.in,v 1.278 2006/11/30 17:50:55 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -686,10 +686,10 @@ AC_SUBST(LIBS_VXL)
 ################################################################
 # PETSc
 ################################################################
-ac_nifti_includes="NO"
-ac_nifti_libraries="NO"
-ac_nifti_bindir="NO"
-ac_nifti_dir="NO"
+ac_petsc_includes="NO"
+ac_petsc_libraries="NO"
+ac_petsc_bindir="NO"
+ac_petsc_dir="NO"
 PETSC_CFLAGS=""
 PETSC_LIBS=""
 PETSC_LIB=""
