@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/11/29 20:51:24 $
-// Revision       : $Revision: 1.122 $
+// Revision Date  : $Date: 2006/11/30 14:53:18 $
+// Revision       : $Revision: 1.123 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -11633,36 +11633,37 @@ gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h)
 int
 GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
 {
-	int             x, y, z, num ;
-	Real            val, mean, std, low_thresh, hi_thresh ;
+  int             x, y, z, num ;
+  Real            val, mean, std, low_thresh, hi_thresh ;
   GCA_MORPH_NODE  *gcamn ;
 
   std = mean = 0.0 ; num = 0 ;
-	for (x = 0 ; x < gcam->width ; x++)
+  for (x = 0 ; x < gcam->width ; x++)
+    {
+      for (y = 0 ; y < gcam->height ; y++)
 	{
-		for (y = 0 ; y < gcam->height ; y++)
-		{
-			for (z = 0 ; z < gcam->depth ; z++)
-			{
-        gcamn = &gcam->nodes[x][y][z] ;
-        if (gcamn->gc == NULL || FZERO(gcamn->gc->means[0]))
-          continue ;
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        MRIsampleVolume(mri_target, gcamn->x, gcamn->y, gcamn->z, &val) ;
-        if (FZERO(val))
-          continue ;
-        if (MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y), 
-                            nint(gcamn->z),1, 0) > 0)
-          continue ;  // stay away from skull stripped areas
-        val /= gcamn->gc->means[0] ;
-        mean += val ; 
-        std += val*val ;
-        num++ ;
-      }
+	  for (z = 0 ; z < gcam->depth ; z++)
+	    {
+	      gcamn = &gcam->nodes[x][y][z] ;
+	      if (gcamn->gc == NULL || FZERO(gcamn->gc->means[0]))
+		continue ;
+	      if (x == Gx && y == Gy && z == Gz)
+		DiagBreak() ;
+	      MRIsampleVolume(mri_target, gcamn->x, gcamn->y, gcamn->z, &val) ;
+	      if (FZERO(val))
+		continue ;
+	      if (MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y), 
+				  nint(gcamn->z),1, 0) > 0)
+		continue ;  // stay away from skull stripped areas
+	      val /= gcamn->gc->means[0] ;
+	      mean += val ; 
+	      std += val*val ;
+	      num++ ;
+	    }
+	}
     }
-  }
 
+  if ( !num )  printf(" GCAMnormalizeIntensities - no valid gc->means information found.\n");
   mean /= (float)num ;
   std = sqrt(std / (float)num - mean*mean) ;
   low_thresh = mean-2*std ; hi_thresh = mean+2*std ;
