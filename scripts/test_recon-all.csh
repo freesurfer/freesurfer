@@ -6,21 +6,31 @@
 # Purpose: runs recon-all on a reference subject, then checks results
 # Usage:
 #
-#   test_recon-all.csh [reference subj source dir] \
-#                      [reference subjid] \
-#                      [test subject dest dir] \
-#                      [test subjid]
+#   test_recon-all.csh [-rsd <reference subj source dir>] \
+#                      [-rd <reference subjid>] \
+#                      [-tsd <test subject dest dir>] \
+#                      [-ts <test subjid>] \
+#                      [-fshome <FREESURFER_HOME>]
 #
-#   if params are not specified,
-#   then the defaults are:
-#     [reference subj source dir] = /space/freesurfer/test/subjects/`uname -p`
-#     [reference subjid] = bert
-#     [test subject dest dir] = /tmp
-#     [test subjid] bert
+#   the defaults are:
+#     <reference subj source dir> = /space/freesurfer/test/subjects/`uname -p`
+#     <reference subjid> = bert
+#     <test subject dest dir> = /tmp
+#     <test subjid> = bert
+#     <FREESURFER_HOME> = /usr/local/freesurfer/stable
+#
+#   the utilities run by this script include:
+#     recon-all
+#     mri_diff
+#     mri_compute_seg_overlap
+#     mris_diff
+#     mri_surf2surf
+#     mris_compute_parc_overlap
+#     diff
 #
 ##############################################################################
 
-set VERSION='$Id: test_recon-all.csh,v 1.2 2006/11/24 21:47:56 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.3 2006/12/01 23:25:29 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -37,32 +47,68 @@ unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
 #
-# setup reference subject: per machine processor type
+# setup defaults:
 set PROC=`uname -p`
-if ("$1" == "") then
-  set SUBJ_REF_DIR=/space/freesurfer/test/subjects/$PROC
-else
-  set SUBJ_REF_DIR=$1
-endif
+# reference subject: per machine processor type
+set SUBJ_REF_DIR=/space/freesurfer/test/subjects/$PROC
 # name of reference subject:
-if ("$2" == "") then
-  set REF_SUBJ=bert
-else
-  set REF_SUBJ=$2
-endif
+set REF_SUBJ=bert
 # this is where the recon-all results will go (the test subject):
-if ("$3" == "") then
-  setenv SUBJECTS_DIR /tmp
-else
-  setenv SUBJECTS_DIR $3
-endif
+setenv SUBJECTS_DIR /tmp
 # name to give to test subject:
-if ("$4" == "") then
-  set TEST_SUBJ=bert
-else
-  set TEST_SUBJ=$4
-endif
+set TEST_SUBJ=bert
+# freesurfer enviro to use
+setenv FREESURFER_HOME /usr/local/freesurfer/stable
 
+#
+# override defaults via command-line args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "-rsd":
+      if ( $#argv < 1) goto arg1err;
+      set SUBJ_REF_DIR=$argv[1]; shift;
+      breaksw
+
+    case "-rs":
+      if ( $#argv < 1) goto arg1err;
+      set REF_SUBJ=$argv[1]; shift;
+      set REF_SUBJ=`basename $REF_SUBJ`; # removes trailing /
+      breaksw
+
+    case "-tsd":
+      if ( $#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-ts":
+      if ( $#argv < 1) goto arg1err;
+      set TEST_SUBJ=$argv[1]; shift;
+      set TEST_SUBJ=`basename $TEST_SUBJ`; # removes trailing /
+      breaksw
+
+    case "-fshome":
+      if ( $#argv < 1) goto arg1err;
+      setenv FREESURFER_HOME $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+echo "SUBJ_REF_DIR:    $SUBJ_REF_DIR"
+echo "REF_SUBJ:        $REF_SUBJ"
+echo "SUBJECTS_DIR:    $SUBJECTS_DIR"
+echo "TEST_SUBJ:       $TEST_SUBJ"
+echo "FREESURFER_HOME: $FREESURFER_HOME"
 
 #
 # first check if the prior test run failed, in which case don't bother
@@ -112,8 +158,6 @@ echo "Version: $VERSION" >>& $OUTPUTF
 if ($#argv) echo "args: $argv" >>& $OUTPUTF
 echo "Start: $BEGIN_TIME" >>& $OUTPUTF
 
-#setenv FREESURFER_HOME /usr/local/freesurfer/dev
-setenv FREESURFER_HOME /usr/local/freesurfer/stable
 source $FREESURFER_HOME/SetUpFreeSurfer.csh
 
 # there are a couple utilities that are not yet in stable, so use this path:
