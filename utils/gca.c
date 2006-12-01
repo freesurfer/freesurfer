@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/16 06:27:35 $
-// Revision       : $Revision: 1.214 $
+// Revision Date  : $Date: 2006/12/01 21:42:09 $
+// Revision       : $Revision: 1.215 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7601,7 +7601,7 @@ MRI *
 GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
                           TRANSFORM *transform)
 {
-  int              i, j, nvox /*, x, y, z, width, height, depth*/ ;
+  int              i, j, nvox; /*, x, y, z, width, height, depth*/ ;
   MRI_SEGMENTATION *mriseg ;
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;

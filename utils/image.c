@@ -535,7 +535,7 @@ ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
 {
   int    ecode ;
   IMAGE  *Iout ;
-  float  fmin, fmax ;
+  float  fmin=0., fmax=0. ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
@@ -3714,7 +3714,7 @@ ImageHistoEqualize(IMAGE *Isrc, IMAGE *Idst)
   IMAGE     *Iin, *Iout ;
   struct hips_histo histogram ;
   int       ecode, count ;
-  float     fmin, fmax ;
+  float     fmin=0., fmax=0. ;
   Pixelval  crap ;
   byte      map[256] ;
 

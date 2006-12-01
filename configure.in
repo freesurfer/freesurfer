@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.278 2006/11/30 17:50:55 nicks Exp $"
+# "$Id: configure.in,v 1.279 2006/12/01 21:42:06 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -391,11 +391,11 @@ case "$CPUTYPE" in
      CPUFLAGS="-m64"
      ;;
   G4)
-     CPUFLAGS="-fast -mtune=G4 -mcpu=G4 -faltivec"
+     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
      ;;
   G5)
      # maintain G4 backwards compatibility
-     CPUFLAGS="-fast -mtune=G4 -mcpu=G4 -faltivec"
+     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
      ;;
   power4)
      CPUFLAGS="-mtune=power4 -mcpu=power4"
@@ -404,7 +404,7 @@ case "$CPUTYPE" in
      CPUFLAGS="-mtune=power5 -mcpu=power5"
      ;;
   intel-mac)
-     CPUFLAGS="-fast"
+     CPUFLAGS="-m64"
      ;;
   *)
      echo "cpu optimization not set"
