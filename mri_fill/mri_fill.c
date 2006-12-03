@@ -27,7 +27,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-"$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $";
+"$Id: mri_fill.c,v 1.107 2006/12/03 02:43:32 fischl Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -73,7 +73,7 @@ static char vcid[] =
 /* min # of holes filled before quitting */
 #define MIN_FILLED      0     /* was 100 */
 
-#define FILLED_PRIORS_FNAME  "talairach_hemi_filled.mgh"
+#define FILLED_PRIORS_FNAME  "talairach_hemi_filled.mgz"
 
 /*-------------------------------------------------------------------
   GLOBAL DATA
@@ -1291,7 +1291,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $", "$Name:  $",
+     "$Id: mri_fill.c,v 1.107 2006/12/03 02:43:32 fischl Exp $", "$Name:  $",
      cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1299,7 +1299,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_fill.c,v 1.106 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
+     "$Id: mri_fill.c,v 1.107 2006/12/03 02:43:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1408,11 +1408,11 @@ main(int argc, char *argv[])
       mri_p_wm =
         mriReadBinaryProbabilities(atlas_name, "wm", m3d, sname, NULL);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_p_wm, "p_wm.mgh") ;
+        MRIwrite(mri_p_wm, "p_wm.mgz") ;
 
       MRIprobabilityThresholdNeighborhoodOff(mri_im, mri_p_wm, mri_im, 0.0, 3);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_im, "wm_thresh.mgh") ;
+        MRIwrite(mri_im, "wm_thresh.mgz") ;
 
 #if 0
       fprintf(stderr, "filling high probability white matter...\n") ;
@@ -1817,8 +1817,8 @@ main(int argc, char *argv[])
               MRImask(mri_labels, mri_mask, mri_labels, 255, 0);
               if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
                 {
-                  MRIwrite(mri_tmp, "./erased.mgh") ;  // src volume space
-                  MRIwrite(mri_mask, "./mask.mgh") ;   // src volume space
+                  MRIwrite(mri_tmp, "./erased.mgz") ;  // src volume space
+                  MRIwrite(mri_mask, "./mask.mgz") ;   // src volume space
                 }
             }
           else
@@ -1835,7 +1835,7 @@ main(int argc, char *argv[])
           MRIcopyHeader(mri_talheader, mri_tal);
           MRItoTalairachEx(mri_tmp, mri_tal, lta);//erased volume to tal space
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-            MRIwrite(mri_tal, "./talponsearch.mgh");
+            MRIwrite(mri_tal, "./talponsearch.mgz");
 
           // binarize
           MRIbinarize(mri_tal, mri_tal,
@@ -1879,8 +1879,8 @@ main(int argc, char *argv[])
               MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
               if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
                 {
-                  MRIwrite(mri_tmp, "./planA-erased.mgh") ;
-                  MRIwrite(mri_mask, "./planA-mask.mgh") ;
+                  MRIwrite(mri_tmp, "./planA-erased.mgz") ;
+                  MRIwrite(mri_mask, "./planA-mask.mgz") ;
                 }
             }
           else
@@ -1942,7 +1942,7 @@ main(int argc, char *argv[])
         mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
         if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           // talairached volume pons cutting plane
-          MRIwrite(mri_pons, "./ponstal.mgh");
+          MRIwrite(mri_pons, "./ponstal.mgz");
         MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
         MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
         MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
@@ -1980,8 +1980,8 @@ main(int argc, char *argv[])
   if (fill_val)
     {
       fprintf(stderr,
-              "writing out image with cutting planes to 'planes.mgh'.\n");
-      MRIwrite(mri_im, "planes.mgh") ;
+              "writing out image with cutting planes to 'planes.mgz'.\n");
+      MRIwrite(mri_im, "planes.mgz") ;
       fprintf(stderr, "done.\n") ;
       exit(0) ;
     }
@@ -2229,7 +2229,7 @@ main(int argc, char *argv[])
       mri_rh_im = MRIcopy(mri_im, NULL) ;
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_im, "fill0.mgh") ;
+        MRIwrite(mri_im, "fill0.mgz") ;
       fprintf(stderr, "filling left hemisphere...\n") ;
       MRIfillVolume
         (mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
@@ -2276,8 +2276,8 @@ main(int argc, char *argv[])
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         {
-          MRIwrite(mri_lh_fill, "./lh_fill.mgh");
-          MRIwrite(mri_rh_fill, "./rh_fill.mgh");
+          MRIwrite(mri_lh_fill, "./lh_fill.mgz");
+          MRIwrite(mri_rh_fill, "./rh_fill.mgz");
         }
 
       MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
@@ -2315,7 +2315,7 @@ main(int argc, char *argv[])
         mriReadBinaryProbabilities
         (atlas_name, "left_ventricle",m3d,sname,NULL);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_p_ventricle, "p_left_ventricle.mgh") ;
+        MRIwrite(mri_p_ventricle, "p_left_ventricle.mgz") ;
 
       sprintf(fname, "%s/%s/mri/T1", subjects_dir,sname) ;
       mri_T1 = MRIread(fname) ;
@@ -2335,7 +2335,7 @@ main(int argc, char *argv[])
         MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f,
                          lh_fill_val, nint(xr), mri_fill->width-1) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_ventricle, "left_ventricle.mgh") ;
+        MRIwrite(mri_ventricle, "left_ventricle.mgz") ;
       MRIdilate(mri_ventricle, mri_ventricle) ;
       MRIdilate(mri_ventricle, mri_ventricle) ;
       MRIunion(mri_fill, mri_ventricle, mri_fill) ;
@@ -2348,7 +2348,7 @@ main(int argc, char *argv[])
         mriReadBinaryProbabilities
         (atlas_name,"right_ventricle",m3d,sname,NULL);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_p_ventricle, "p_right_ventricle.mgh") ;
+        MRIwrite(mri_p_ventricle, "p_right_ventricle.mgz") ;
 #if 0
       MRIprobabilityThreshold(mri_fill, mri_p_ventricle, mri_fill, 50.0,
                               TMP_FILL_VAL);
@@ -2360,7 +2360,7 @@ main(int argc, char *argv[])
       mri_ventricle =
         MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f,
                          rh_fill_val, 0, nint(xr)) ;
-      MRIwrite(mri_ventricle, "right_ventricle.mgh") ;
+      MRIwrite(mri_ventricle, "right_ventricle.mgz") ;
       MRIdilate(mri_ventricle, mri_ventricle) ;
       MRIdilate(mri_ventricle, mri_ventricle) ;
       MRIunion(mri_fill, mri_ventricle, mri_fill) ;
@@ -2991,11 +2991,11 @@ find_cutting_plane
     {
       // this works fine
       sprintf(fname,
-              "cutting_plane_%s_slice0.mgh",
+              "cutting_plane_%s_slice0.mgz",
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[0], fname) ;
       sprintf(fname,
-              "cutting_plane_%s_filled0.mgh",
+              "cutting_plane_%s_filled0.mgz",
               orientation==MRI_SAGITTAL?"cc":"pons");
       MRIwrite(mri_filled[0], fname) ;
     }
@@ -3060,10 +3060,10 @@ find_cutting_plane
       xv = *pxv ; yv = *pyv ; zv = *pzv ; //talairach voxel index position
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         {
-          sprintf(fname, "%s_filled.mgh",
+          sprintf(fname, "%s_filled.mgz",
                   orientation == MRI_SAGITTAL ? "cc":"pons");
           MRIwrite(mri_slices[0], fname) ;
-          sprintf(fname, "%s_cut.mgh",
+          sprintf(fname, "%s_cut.mgz",
                   orientation == MRI_SAGITTAL ? "cc":"pons");
           MRIwrite(mri_cut, fname) ;
         }
@@ -3164,10 +3164,10 @@ find_cutting_plane
 
                   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
                     {
-                      sprintf(fname, "%s_seed.mgh",
+                      sprintf(fname, "%s_seed.mgz",
                               orientation == MRI_SAGITTAL ? "cc":"pons");
                       MRIwrite(mri_slices[0], fname) ;
-                      sprintf(fname, "%s_seed_fill.mgh",
+                      sprintf(fname, "%s_seed_fill.mgz",
                               orientation == MRI_SAGITTAL ? "cc":"pons");
                       MRIwrite(mri_filled[0], fname) ;
                     }
@@ -3308,10 +3308,10 @@ find_cutting_plane
 
           if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
             {
-              sprintf(fname, "cutting_plane_%s_slice%d.mgh",
+              sprintf(fname, "cutting_plane_%s_slice%d.mgz",
                       orientation == MRI_SAGITTAL ? "cc":"pons", slice);
               MRIwrite(mri_slices[slice], fname) ;
-              sprintf(fname, "cutting_plane_%s_filled%d.mgh",
+              sprintf(fname, "cutting_plane_%s_filled%d.mgz",
                       orientation == MRI_SAGITTAL ? "cc":"pons", slice);
               MRIwrite(mri_filled[slice], fname) ;
             }
@@ -3406,10 +3406,10 @@ find_cutting_plane
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         {
-          sprintf(fname, "cutting_plane_%s_minslice.mgh",
+          sprintf(fname, "cutting_plane_%s_minslice.mgz",
                   orientation == MRI_SAGITTAL ? "cc":"pons");
           MRIwrite(mri_slices[min_slice], fname) ;
-          sprintf(fname, "cutting_plane_%s_minfilled.mgh",
+          sprintf(fname, "cutting_plane_%s_minfilled.mgz",
                   orientation == MRI_SAGITTAL ? "cc":"pons");
           MRIwrite(mri_filled[min_slice], fname) ;
         }
@@ -3676,7 +3676,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   /* (xv,yv,zv) are the coordinates of the center of the slice */
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_slice, "brainstem_slice.mgh") ;
+    MRIwrite(mri_slice, "brainstem_slice.mgz") ;
 
   // first time method = 0 (default)
   switch (method)
@@ -3684,7 +3684,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
     case 1:
       mri_closed = MRIclose(mri_slice, NULL) ;  /* remove small holes */
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_closed, "brainstem_closed.mgh") ;
+        MRIwrite(mri_closed, "brainstem_closed.mgz") ;
 
       /*
         search from the front of the head at the bottom of a sagittal slice
@@ -3774,7 +3774,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
             y, xstart, xstart-thickness+1, area) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_filled, "brainstem_filled.mgh") ;
+    MRIwrite(mri_filled, "brainstem_filled.mgz") ;
   // working up to here
   /*
      now, starting from that slice, proceed upwards until we find a
@@ -3868,46 +3868,46 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
   offset = 0 ;
   xo = yo = (slice_size-1)/2 ;  /* center point of the slice */
   for (slice = 0 ; slice < max_slices ; slice++)
+  {
+    offset = slice - half_slices ;
+    x = x_tal + offset ; y = y_tal ; z = z_tal ;
+    MRIworldToVoxel(mri_tal, x, y,  z, &x, &y, &z) ;
+    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+    mri_slice = MRIextractPlane(mri_tal, NULL, MRI_SAGITTAL, xv);
+    mri_filled =
+      MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,127,&area[slice]);
+    MRIboundingBox(mri_filled, 1, &region) ;
+    aspect = (Real)region.dy / (Real)region.dx ;
+
+    /* don't trust slices that extend to the border of the image */
+    if (!region.x || !region.y || region.x+region.dx >= slice_size -1 ||
+        region.y+region.dy >= slice_size-1)
+      area[slice] = 0 ;
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n",
+              slice, xv, yv, zv, area[slice]) ;
+
+    if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
     {
-      offset = slice - half_slices ;
-      x = x_tal + offset ; y = y_tal ; z = z_tal ;
-      MRIworldToVoxel(mri_tal, x, y,  z, &x, &y, &z) ;
-      xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
-      mri_slice = MRIextractPlane(mri_tal, NULL, MRI_SAGITTAL, xv);
-      mri_filled =
-        MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,127,&area[slice]);
-      MRIboundingBox(mri_filled, 1, &region) ;
-      aspect = (Real)region.dy / (Real)region.dx ;
-
-      /* don't trust slices that extend to the border of the image */
-      if (!region.x || !region.y || region.x+region.dx >= slice_size -1 ||
-          region.y+region.dy >= slice_size-1)
-        area[slice] = 0 ;
-
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-        fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n",
-                slice, xv, yv, zv, area[slice]) ;
-
-      if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
-        {
-          sprintf(fname, "cc_slice%d.mgh", slice);
-          MRIwrite(mri_slice, fname) ;
-          sprintf(fname, "cc_filled%d.mgh", slice);
-          MRIwrite(mri_filled, fname) ;
-        }
-      MRIfree(&mri_filled) ; MRIfree(&mri_slice) ;
+      sprintf(fname, "cc_slice%d.mgz", slice);
+      MRIwrite(mri_slice, fname) ;
+      sprintf(fname, "cc_filled%d.mgz", slice);
+      MRIwrite(mri_filled, fname) ;
     }
+    MRIfree(&mri_filled) ; MRIfree(&mri_slice) ;
+  }
 
   min_area = 10000 ; min_slice = -1 ;
   for (slice = 1 ; slice < max_slices-1 ; slice++)
+  {
+    if (area[slice] < min_area &&
+        (area[slice] >= min_cc_area && area[slice] <= max_cc_area))
     {
-      if (area[slice] < min_area &&
-          (area[slice] >= min_cc_area && area[slice] <= max_cc_area))
-        {
-          min_area = area[slice] ;
-          min_slice = slice ;
-        }
+      min_area = area[slice] ;
+      min_slice = slice ;
     }
+  }
 
   /* couldn't find a good slice - don't update estimate */
   if (min_slice < 0)
@@ -3921,19 +3921,19 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
   // just for debugging
   MRIworldToVoxel(mri_tal, x, y,  z, &xvv, &yvv, &zvv) ;
   if (Gdiag & DIAG_SHOW)
-    {
-      // Real xv, yv, zv ;
-      // you cannot call this function without knowing the src volume
-      // MRItalairachVoxelToVoxelEx(mri_tal, x, y, z, &xv, &yv, &zv, lta) ;
-      // fprintf(stderr,
-      //         "updating initial cc seed to (%d, %d, %d)\n",
-      //         nint(xv), nint(yv), nint(zv)) ;
-      fprintf
-        (stderr,
-         "updating initial cc seed to Tal vol "
-         "(%.2f, %.2f, %.2f) TAL (%.2f, %.2f, %.2f)\n",
-         xvv, yvv, zvv, x, y, z);
-    }
+  {
+    // Real xv, yv, zv ;
+    // you cannot call this function without knowing the src volume
+    // MRItalairachVoxelToVoxelEx(mri_tal, x, y, z, &xv, &yv, &zv, lta) ;
+    // fprintf(stderr,
+    //         "updating initial cc seed to (%d, %d, %d)\n",
+    //         nint(xv), nint(yv), nint(zv)) ;
+    fprintf
+      (stderr,
+       "updating initial cc seed to Tal vol "
+       "(%.2f, %.2f, %.2f) TAL (%.2f, %.2f, %.2f)\n",
+       xvv, yvv, zvv, x, y, z);
+  }
   return(NO_ERROR) ;
 }
 
@@ -4197,8 +4197,8 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         {
-          fprintf(stderr, "writing ambiguous voxel image to amb.mgh\n") ;
-          MRIwrite(mri_dst, "amb.mgh") ;
+          fprintf(stderr, "writing ambiguous voxel image to amb.mgz\n") ;
+          MRIwrite(mri_dst, "amb.mgz") ;
         }
       mri_tmp = MRIcopy(mri_dst, mri_tmp) ;
       do
@@ -4294,7 +4294,7 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
     mri_dst = MRIclone(mri_T1, NULL) ;
 
   /* read and transform the mean volume */
-  sprintf(fname, "%s/average/%s_%s.mgh#%d",
+  sprintf(fname, "%s/average/%s_%s.mgz#%d",
           mri_dir, atlas_name, suffix, offset) ;
   fprintf(stderr, "reading atlas means from %s...\n", fname) ;
   mri_mean = MRIread(fname) ;
@@ -4308,7 +4308,7 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
     }
 
   /* read and transform the standard deviation volume */
-  sprintf(fname, "%s/average/%s_%s.mgh#%d",
+  sprintf(fname, "%s/average/%s_%s.mgz#%d",
           mri_dir, atlas_name, suffix, offset+1) ;
   fprintf(stderr, "reading atlas sigmas from %s...\n", fname) ;
   mri_std = MRIread(fname) ;
@@ -4353,7 +4353,7 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
               Progname, fname) ;
 
   /* read and transform the standard deviation volume */
-  sprintf(fname, "%s/average/%s_%s.mgh#0", mri_dir, atlas_name, suffix) ;
+  sprintf(fname, "%s/average/%s_%s.mgz#0", mri_dir, atlas_name, suffix) ;
   fprintf(stderr, "reading atlas priors from %s offset 0...\n", fname) ;
   mri_priors = MRIread(fname) ;
   if (!mri_priors)
@@ -4508,9 +4508,9 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
           zmin += BUFFER ; zmax -= BUFFER ;
 #if 1
           if (out_label == lh_fill_val)
-            MRIwrite(mri_dst, "left_ventricle_p_fill.mgh") ;
+            MRIwrite(mri_dst, "left_ventricle_p_fill.mgz") ;
           else
-            MRIwrite(mri_dst, "right_ventricle_p_fill.mgh") ;
+            MRIwrite(mri_dst, "right_ventricle_p_fill.mgz") ;
 #endif
         }
 
