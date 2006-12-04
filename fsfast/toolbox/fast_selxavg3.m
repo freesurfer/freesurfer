@@ -1,8 +1,11 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.14 2006/11/28 05:53:32 greve Exp $
+% $Id: fast_selxavg3.m,v 1.15 2006/12/04 21:44:01 greve Exp $
 
 % MultiVar t
 % Inorming residual when not whitening?
+% Computing fwhm from residual (and don't save by def)
+% Creating default contrasts (omni, zomin, allvres, zallvres)
+
 % Force choice autostim/noautostim 
 % Force choice on whitening or not
 % Force choice of mask
@@ -14,32 +17,32 @@
 % analysis
 % sessdir
 
-monly       = 1;
-DoGLMFit    = 1;
-DoContrasts = 1;
-
-DoSynth     = 1;
-DoSynthNoise  = 1;
-DoSynthSignal = 1;
-SynthNoiseAR1 = 0.3;
-SynthSeed   = -1;
-
-analysis = '';
-flacname = '';
-outtop = '';
-
-sess  = 'tl20000621';
-flacname = 'flac/edp.flac';
-%analysis = 'edp';
-%analysis = 'main3-fir';
-% outtop = '/space/greve/1/users/greve/workmem-ana';
-
-%sess  = 'dng';
-%flacname = 'flac/rest.flac';
-
-%sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
-%analysis = 'subj27_color';
-%outtop = '/space/greve/1/users/greve/kd';
+if(0)
+  monly       = 1;
+  DoGLMFit    = 1;
+  DoContrasts = 1;
+  DoSynth     = 1;
+  SynthNoiseAmp  = 1;
+  SynthSignalAmp = 1;
+  SynthNoiseAR1 = 0.3;
+  SynthSeed   = -1;
+  analysis = '';
+  flacname = '';
+  outtop = '';
+  
+  %sess  = 'tl20000621';
+  %flacname = 'flac/edp.flac';
+  %analysis = 'edp';
+  %analysis = 'main3-fir';
+  % outtop = '/space/greve/1/users/greve/workmem-ana';
+  
+  %sess  = 'dng';
+  %flacname = 'flac/rest.flac';
+  
+  %sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
+  %analysis = 'subj27_color';
+  %outtop = '/space/greve/1/users/greve/kd';
+end
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -71,16 +74,15 @@ xfile = sprintf('%s/X.mat',outanadir);
 outresdir = sprintf('%s/res',outanadir);
 
 nruns = size(flac0.runlist,1);
-%nruns = 2;
 fprintf('nruns = %d\n',nruns);
 ncontrasts = length(flac0.con);
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
   fprintf('SynthSeed     = %10d\n',SynthSeed);
-  fprintf('DoSynthNoise    = %d\n',DoSynthNoise);
+  fprintf('SynthNoiseAmp    = %d\n',SynthNoiseAmp);
   fprintf('SynthNoiseAR1   = %g\n',SynthNoiseAR1);
-  fprintf('DoSynthSignal   = %d\n',DoSynthSignal);
+  fprintf('SynthSignalAmp   = %d\n',SynthSignalAmp);
 end
 yrun_randn = [];
 
@@ -220,7 +222,7 @@ if(DoGLMFit)
       yrun_randn(:,nthrun) = randn('state'); % save state
       ynoise  = 0;
       ysignal = 0;
-      if(DoSynthNoise)
+      if(SynthNoiseAmp > 0)
 	ynoise = randn(flac.ntp,nvox);
 	if(SynthNoiseAR1 ~= 0)
 	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
@@ -229,7 +231,7 @@ if(DoGLMFit)
 	  ynoise = Fsynth*ynoise;
 	end % AR1
       end % Synth Noise
-      if(DoSynthSignal)
+      if(SynthSignalAmp ~= 0)
 	Xrun = X(indrun,:);
 	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
       end
@@ -279,7 +281,7 @@ if(DoGLMFit)
       randn('state',yrun_randn(:,nthrun))
       ynoise  = 0;
       ysignal = 0;
-      if(DoSynthNoise)
+      if(SynthNoiseAmp > 0)
 	ynoise = randn(flac.ntp,nvox);
 	if(SynthNoiseAR1 ~= 0)
 	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
@@ -288,7 +290,7 @@ if(DoGLMFit)
 	  ynoise = Fsynth*ynoise;
 	end % AR1
       end % Synth Noise
-      if(DoSynthSignal)
+      if(SynthSignalAmp ~= 0)
 	Xrun = X(indrun,:);
 	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
       end
@@ -422,7 +424,7 @@ if(DoGLMFit)
 	randn('state',yrun_randn(:,nthrun))
 	ynoise  = 0;
 	ysignal = 0;
-	if(DoSynthNoise)
+	if(SynthNoiseAmp > 0)
 	  ynoise = randn(flac.ntp,nvox);
 	  if(SynthNoiseAR1 ~= 0)
 	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
@@ -431,7 +433,7 @@ if(DoGLMFit)
 	    ynoise = Fsynth*ynoise;
 	  end % AR1
 	end % Synth Noise
-	if(DoSynthSignal)
+	if(SynthSignalAmp ~= 0)
 	  Xrun = X(indrun,:);
 	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
 	end
@@ -470,7 +472,7 @@ if(DoGLMFit)
 	randn('state',yrun_randn(:,nthrun))
 	ynoise  = 0;
 	ysignal = 0;
-	if(DoSynthNoise)
+	if(SynthNoiseAmp > 0)
 	  ynoise = randn(flac.ntp,nvox);
 	  if(SynthNoiseAR1 ~= 0)
 	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
@@ -479,7 +481,7 @@ if(DoGLMFit)
 	    ynoise = Fsynth*ynoise;
 	  end % AR1
 	end % Synth Noise
-	if(DoSynthSignal)
+	if(SynthSignalAmp ~= 0)
 	  Xrun = X(indrun,:);
 	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
 	end
@@ -595,7 +597,7 @@ if(DoContrasts)
       cvar = cstd.^2;
       fprintf('  CES Mean Std Var (%g)\n',1/flacC.con(nthcon).vrf);
       fprintf('  %7.4f  %7.4f  %7.4f\n',[cmn cstd cvar]');
-      if(~DoSynthSignal)
+      if(SynthSignalAmp == 0)
 	nover = length(find(pmat(indmask) < .01));
 	pover = nover/nmask;
 	[noverlow noverhi] = binomialconf(nmask,.01,90);
