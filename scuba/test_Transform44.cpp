@@ -66,27 +66,19 @@ Transform44Tester::Test () {
            "Inv scale mult check failed");
 
     // Try loading an LTA.
-    char* testDataPath = getenv("FSDEV_TEST_DATA");
-    if( NULL != testDataPath ) {
-
-      string fnLTA = string(testDataPath) +
-        "/transform/testTransform44.lta";
-      ifstream fLTA( fnLTA.c_str(), ios::in );
-      if( !fLTA ) {
-        cerr << "WARNING: File " + fnLTA + " not found, test skipped." << endl;
-      } else {
-
-        Transform44 l;
-        l.LoadFromLTAFile( fnLTA );
-        Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
-                l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
-                l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
-                l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
-               "LTA didn't load properly.");
-      }
+    string fnLTA = "test_data/testTransform44.lta";
+    ifstream fLTA( fnLTA.c_str(), ios::in );
+    if( !fLTA ) {
+      cerr << "WARNING: File " + fnLTA + " not found, test skipped." << endl;
     } else {
-      cerr << "WARNING: FSDEV_TEST_DATA not defined, "
-           << "couldn't perform some tests." << endl;
+      
+      Transform44 l;
+      l.LoadFromLTAFile( fnLTA );
+      Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
+              l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
+              l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
+              l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
+             "LTA didn't load properly.");
     }
   }
   catch( runtime_error& e ) {
