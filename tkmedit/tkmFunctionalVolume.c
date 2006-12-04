@@ -3351,7 +3351,11 @@ tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
     break;
   case FunV_tFindStatsComp_GTEThresholdMin:
     if( this->mThresholdSlope > 0 ) {
-      ebGood = (funcValue >= this->mThresholdMin);
+      if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_ReversePhase] ) {
+	ebGood = (funcValue <= -this->mThresholdMin);
+      } else {
+	ebGood = (funcValue >= this->mThresholdMin);
+      }
     } else {
       ebGood = (funcValue <= this->mThresholdMin);
     }
