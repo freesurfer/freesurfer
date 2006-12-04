@@ -15,7 +15,7 @@ function par = fmri_ldpar(varargin)
 %  
 % par dimensionality: nPresentations x 2 x nRuns
 %
-% $Id: fmri_ldpar.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_ldpar.m,v 1.2 2006/12/04 22:05:22 greve Exp $
 
 par = [];
 
@@ -44,6 +44,7 @@ for r=1:nRuns,
   if fid == -1 
     fprintf('%s\n',msg);
     fprintf('%s\n',pwd);
+    return;
     msg = sprintf('Could not open %s',ParFile(r,:)); 
     qoe(msg) ; error(msg);
   end
