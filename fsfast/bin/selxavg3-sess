@@ -1,0 +1,293 @@
+#!/bin/csh -f
+# selxavg3-sess
+#
+# $Id: selxavg3-sess,v 1.1 2006/12/04 21:43:25 greve Exp $
+set VERSION = '$Id: selxavg3-sess,v 1.1 2006/12/04 21:43:25 greve Exp $'
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+
+set analysis = ();
+set flacfile = ();
+set fsd = bold
+
+set OutParent = ();
+set nolog = 0;
+set monly = 0;
+set MLF = ();
+
+set DoGLMFit = 1;
+set DoContrasts = 1;
+set DoSynth = 0;
+set SynthNoiseAmp = 1;
+set SynthSignalAmp = 0;
+set SynthSeed = -1;
+
+if($#argv == 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StudyDir = `pwd`;
+
+if($#analysis) then
+  # get full path for cfg and info files #
+  pushd $analysis > /dev/null;
+  set analysisdir = `pwd`;
+  popd > /dev/null;
+  set cfgfile  = $analysisdir/analysis.cfg
+  set infofile = $analysisdir/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile"
+    exit 1;
+  endif
+  set fsd  = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+endif
+
+##### Create a log file ######
+if($nolog) then
+  set LF = /dev/null
+else
+  if($#OutParent == 0) then
+    set logdir = `pwd`/log;
+  else
+    set logdir = $OutParent/log;
+  endif
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+endif
+echo "--------------------------------------------------------------"
+echo "selxavg3-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "selxavg3-sess log file" >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
+rm -f $MLF
+
+### Go through each session ###
+@ nthsess = 1;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  set sessdir  = `dirname  $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  echo "monly          = $monly;"       >> $MLF
+  echo "DoGLMFit       = $DoGLMFit;"    >> $MLF
+  echo "DoContrasts    = $DoContrasts;" >> $MLF
+  echo "DoSynth        = $DoSynth;"        >> $MLF
+  echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
+  echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
+  echo "SynthSeed      = $SynthSeed;"      >> $MLF
+  echo "sess           = '$sess';"         >> $MLF
+  echo "analysis = '$analysis';" >> $MLF
+  echo "flac     = '$flacfile';" >> $MLF
+  if($#OutParent == 0) echo "outtop = '$OutParent';" >> $MLF
+  echo "fast_selxavg3;" >> $MLF
+  if($nthsess > 1 && ! $monly)  then
+    echo "clear all;" >> $MLF
+    echo "pack;" >> $MLF
+  endif
+
+  @ nthsess = $nthsess + 1;
+end # Loop over sessions #
+
+set okfile = /tmp/selxavg3-sess-$$.ok
+rm -f $okfile
+echo "okfile is $okfile"
+echo "fmri_touch('$okfile');" >> $MLF;
+
+echo "------------------------------------------" >> $LF
+cat $MLF >> $LF
+echo "------------------------------------------" >> $LF
+
+if(! $monly) then
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | matlab -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_selxavg() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+if($#analysis) then
+  set sxadat = $sess/$fsd/$analysis/h.dat
+  cp $sxadat $analysis
+endif
+
+echo "Started at $StartTime"
+echo "Ended   at `date`"
+
+echo " "
+echo "selxavg3-sess completed"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-flac":
+      if ( $#argv == 0) goto arg1err;
+      set flacfile = $argv[1]; shift;
+      breaksw
+
+    case "-outparent":
+    case "-op":
+      if ( $#argv == 0) goto arg1err;
+      set OutParent = $1; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF =  $1; shift;
+      set monly = 1;
+      breaksw
+
+    case "-contrasts-only":
+      set DoGLMFit = 0;
+      set DoContrasts = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-synth":
+      set DoSynth = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"
+    exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: selxavg3-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo ""
+  echo "Optional Arguments:";
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other args"
+  echo "   -version       : print version and exit"
+  echo "   -debug"
+  echo ""
+exit 1;
