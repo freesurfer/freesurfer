@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg3-sess
 #
-# $Id: selxavg3-sess,v 1.1 2006/12/04 21:43:25 greve Exp $
-set VERSION = '$Id: selxavg3-sess,v 1.1 2006/12/04 21:43:25 greve Exp $'
+# $Id: selxavg3-sess,v 1.2 2006/12/05 03:54:28 greve Exp $
+set VERSION = '$Id: selxavg3-sess,v 1.2 2006/12/05 03:54:28 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -151,6 +151,9 @@ if(! $monly) then
   endif
   rm -f $okfile
 endif
+
+# Should now go through each session and compute fwhm
+
 
 if($#analysis) then
   set sxadat = $sess/$fsd/$analysis/h.dat
