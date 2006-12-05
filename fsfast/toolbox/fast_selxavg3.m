@@ -1,14 +1,14 @@
 % fast_selxavg3.m
-% $Id: fast_selxavg3.m,v 1.15 2006/12/04 21:44:01 greve Exp $
+% $Id: fast_selxavg3.m,v 1.16 2006/12/05 03:53:01 greve Exp $
 
 % MultiVar t
+% Automatically creating mask?
 % Inorming residual when not whitening?
-% Computing fwhm from residual (and don't save by def)
-% Creating default contrasts (omni, zomin, allvres, zallvres)
 
 % Force choice autostim/noautostim 
 % Force choice on whitening or not
 % Force choice of mask
+% How to check that analyses are not being mixed?
 
 % JK?
 % Per-run?
@@ -256,11 +256,16 @@ if(DoGLMFit)
   if(~isempty(flac0.inorm))
     gmean = mean(betamn0(indmask));
     RescaleFactor = flac0.inorm/gmean;
+    fprintf('Global In-Mask Mean = %g\n',gmean);
+    fprintf('Rescale Target = %g\n',flac0.inorm);
   else
     RescaleFactor = 1;
   end
   if(DoSynth) RescaleFactor = 1; end
   fprintf('RescaleFactor = %g\n',RescaleFactor);
+
+  betamn0  = RescaleFactor*betamn0;
+  betamat0 = RescaleFactor*betamat0;
   
   % Second pass thru the data to compute residual
   fprintf('OLS Residual Pass \n');
@@ -296,6 +301,7 @@ if(DoGLMFit)
       end
       yrun = ynoise + ysignal;
     end
+    yrun = RescaleFactor*yrun;
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
@@ -306,7 +312,7 @@ if(DoGLMFit)
     %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
     %rho2.vol(:,:,:,nthrun) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
-      fprintf('WARNING: unwhitened residuals are not intensity norm\n');
+      %fprintf('WARNING: unwhitened residuals are not intensity norm\n');
       fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
       rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
@@ -511,8 +517,8 @@ if(DoGLMFit)
     rvarmat = rsse/DOF;
   else
     fprintf('Not Whitening\n');
-    rvarmat = rvarmat0*(RescaleFactor.^2);
-    betamat = betamat0*RescaleFactor;
+    rvarmat = rvarmat0;
+    betamat = betamat0;
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
