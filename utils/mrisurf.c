@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/29 20:51:26 $
-// Revision       : $Revision: 1.494 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/12/05 01:26:54 $
+// Revision       : $Revision: 1.495 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.494 2006/11/29 20:51:26 nicks Exp $"); }
+  return("$Id: mrisurf.c,v 1.495 2006/12/05 01:26:54 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -4568,18 +4568,18 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     min_neg_pct = 0.0f ;
 
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
-    {
-      char fname[STRLEN] ;
+  {
+    char fname[STRLEN] ;
 
-      sprintf
-        (fname, "%s.%s.out",
-         mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
-      parms->fp = fopen(fname, "w") ;
-      if (!parms->fp)
-        ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-                  Progname, fname) ;
-      mrisLogIntegrationParms(parms->fp, mris, parms) ;
-    }
+    sprintf
+      (fname, "%s.%s.out",
+       mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
+    parms->fp = fopen(fname, "w") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+                Progname, fname) ;
+    mrisLogIntegrationParms(parms->fp, mris, parms) ;
+  }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
 
@@ -4602,88 +4602,88 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   for (t = 0 ;
        (t < niterations) && (neg > min_neg) && (pct_neg_area > min_neg_pct) ;
        t++)
+  {
+    if (pct_neg_area < 0.001)  /* hack!!, but it speeds things up */
     {
-      if (pct_neg_area < 0.001)  /* hack!!, but it speeds things up */
-        {
-          parms->l_dist *= 1.1 ;
-          if (parms->l_dist > 10*l_dist)
-            parms->l_dist = 10*l_dist ;
-          if (parms->l_dist > 1.0)
-            parms->l_dist = 1.0 ;
-        }
-      if (pct_neg_area < 0.001)  /* another hack!!, but it speeds things up */
-        {
-          static int first = 1 ;
-          /* don't want big steps or momentum for fine-scale stuff */
-          parms->momentum = 0.0f ;
-          parms->dt = 0.1 ;
-          if (Gdiag & DIAG_SHOW && first)
-            fprintf(stdout, "setting momentum=%2.1f, dt=%2.1f, l_dist=%2.2f\n",
-                    parms->momentum, parms->dt, parms->l_dist) ;
-          first = 0 ;
-        }
-
-      if (mris->patch)  /* area is constant so spring force doesn't decrease */
-        {
-          scale = sqrt(mris->orig_area / (mris->total_area+mris->neg_area)) ;
-          MRISscaleBrain(mris, mris, scale) ;
-          MRIScomputeMetricProperties(mris) ;
-        }
-      else
-        mrisComputeVertexDistances(mris) ;
-      MRISclearGradient(mris) ;
-      mrisComputeSpringTerm(mris, parms->l_spring) ;
-      mrisComputeLaplacianTerm(mris, parms->l_lap) ;
-      mrisComputeDistanceTerm(mris, parms) ;
-      mrisComputeAngleAreaTerms(mris, parms) ;
-      /*    mrisAverageGradient(mris, parms->n_averages) ;*/
-
-      switch (parms->integration_type)
-        {
-        case INTEGRATE_LM_SEARCH:
-          delta_t = mrisLineMinimizeSearch(mris, parms) ;
-          break ;
-        default:
-        case INTEGRATE_LINE_MINIMIZE:
-          delta_t = mrisLineMinimize(mris, parms) ;
-          break ;
-        case INTEGRATE_MOMENTUM:
-          delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt,
-                                         parms->tol, parms->n_averages) ;
-          break ;
-        case INTEGRATE_ADAPTIVE:
-          delta_t = mrisAdaptiveTimeStep(mris, parms);
-          break ;
-        }
-      mrisProjectSurface(mris) ;
-      MRIScomputeMetricProperties(mris) ;
-      neg = mrisCountNegativeVertices(mris) ;
-      pct_neg = (float)neg / (float)total_vertices ;
-      pct_neg_area =
-        (float)mris->neg_area / (float)(mris->total_area+mris->neg_area) ;
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stdout,
-                "%3.3d: count: %d (%2.2f%%), area: %2.2f (%2.2f%%)   \n",
-                t, neg, 100.0f*pct_neg, mris->neg_area, 100.0f*pct_neg_area) ;
-      if ((write_iterations > 0) &&
-          !((t+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
-        mrisWriteSnapshot(mris, parms, t+1) ;
-      if (parms->n_averages == 0)
-        parms->n_averages = base_avgs ;
-      else
-        parms->n_averages /= 2 ;
+      parms->l_dist *= 1.1 ;
+      if (parms->l_dist > 10*l_dist)
+        parms->l_dist = 10*l_dist ;
+      if (parms->l_dist > 1.0)
+        parms->l_dist = 1.0 ;
     }
+    if (pct_neg_area < 0.001)  /* another hack!!, but it speeds things up */
+    {
+      static int first = 1 ;
+      /* don't want big steps or momentum for fine-scale stuff */
+      parms->momentum = 0.0f ;
+      parms->dt = 0.1 ;
+      if (Gdiag & DIAG_SHOW && first)
+        fprintf(stdout, "setting momentum=%2.1f, dt=%2.1f, l_dist=%2.2f\n",
+                parms->momentum, parms->dt, parms->l_dist) ;
+      first = 0 ;
+    }
+
+    if (mris->patch)  /* area is constant so spring force doesn't decrease */
+    {
+      scale = sqrt(mris->orig_area / (mris->total_area+mris->neg_area)) ;
+      MRISscaleBrain(mris, mris, scale) ;
+      MRIScomputeMetricProperties(mris) ;
+    }
+    else
+      mrisComputeVertexDistances(mris) ;
+    MRISclearGradient(mris) ;
+    mrisComputeSpringTerm(mris, parms->l_spring) ;
+    mrisComputeLaplacianTerm(mris, parms->l_lap) ;
+    mrisComputeDistanceTerm(mris, parms) ;
+    mrisComputeAngleAreaTerms(mris, parms) ;
+    /*    mrisAverageGradient(mris, parms->n_averages) ;*/
+
+    switch (parms->integration_type)
+    {
+    case INTEGRATE_LM_SEARCH:
+      delta_t = mrisLineMinimizeSearch(mris, parms) ;
+      break ;
+    default:
+    case INTEGRATE_LINE_MINIMIZE:
+      delta_t = mrisLineMinimize(mris, parms) ;
+      break ;
+    case INTEGRATE_MOMENTUM:
+      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt,
+                                     parms->tol, parms->n_averages) ;
+      break ;
+    case INTEGRATE_ADAPTIVE:
+      delta_t = mrisAdaptiveTimeStep(mris, parms);
+      break ;
+    }
+    mrisProjectSurface(mris) ;
+    MRIScomputeMetricProperties(mris) ;
+    neg = mrisCountNegativeVertices(mris) ;
+    pct_neg = (float)neg / (float)total_vertices ;
+    pct_neg_area =
+      (float)mris->neg_area / (float)(mris->total_area+mris->neg_area) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stdout,
+              "%3.3d: count: %d (%2.2f%%), area: %2.2f (%2.2f%%)   \n",
+              t, neg, 100.0f*pct_neg, mris->neg_area, 100.0f*pct_neg_area) ;
+    if ((write_iterations > 0) &&
+        !((t+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+      mrisWriteSnapshot(mris, parms, t+1) ;
+    if (parms->n_averages == 0)
+      parms->n_averages = base_avgs ;
+    else
+      parms->n_averages /= 2 ;
+  }
 
   parms->n_averages = base_avgs ;
   if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stdout, "\n") ;
+    if (Gdiag & DIAG_WRITE)
     {
-      fprintf(stdout, "\n") ;
-      if (Gdiag & DIAG_WRITE)
-        {
-          fclose(parms->fp) ;
-          parms->fp = NULL ;
-        }
+      fclose(parms->fp) ;
+      parms->fp = NULL ;
     }
+  }
   mrisProjectSurface(mris) ;
   return(mris) ;
 }
@@ -35575,24 +35575,24 @@ mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 
   /* first compute min and max */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
 
-      nx = v->nx ; ny = v->ny ; nz = v->nz ;
-      x = v->x ;    y = v->y ;   z = v->z ;
-      for (n = 0 ; n < v->vnum ; n++)
-        {
-          vn = &mris->vertices[v->v[n]] ;
-          dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ;
-          dot = dx*nx + dy*ny * dz*nz ;
-          if (dot < min_dot)
-            min_dot = dot ;
-          if (dot > max_dot)
-            max_dot = dot ;
-        }
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
+    x = v->x ;    y = v->y ;   z = v->z ;
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ;
+      dot = dx*nx + dy*ny * dz*nz ;
+      if (dot < min_dot)
+        min_dot = dot ;
+      if (dot > max_dot)
+        max_dot = dot ;
     }
+  }
 
   /* add one bin at either end for almost zero probability events */
   bin_size = (max_dot - min_dot) / (h_dot->nbins-2) ;
@@ -35604,44 +35604,44 @@ mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 
   /* now fill in distribution */
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
+    x = v->x ;    y = v->y ;   z = v->z ;
+    for (n = 0 ; n < v->vnum ; n++)
     {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
+      num++ ;
+      vn = &mris->vertices[v->v[n]] ;
+      dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ;
+      dot = dx*nx + dy*ny * dz*nz ;
+      bin = (int)((dot - min_dot) / bin_size) ;
+      if (bin == 0)
+        DiagBreak() ;
 
-      nx = v->nx ; ny = v->ny ; nz = v->nz ;
-      x = v->x ;    y = v->y ;   z = v->z ;
-      for (n = 0 ; n < v->vnum ; n++)
-        {
-          num++ ;
-          vn = &mris->vertices[v->v[n]] ;
-          dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ;
-          dot = dx*nx + dy*ny * dz*nz ;
-          bin = (int)((dot - min_dot) / bin_size) ;
-          if (bin == 0)
-            DiagBreak() ;
-
-          bin=MIN(h_dot->nbins,MAX(0,bin));
-          h_dot->counts[bin]++ ;
-        }
+      bin=MIN(h_dot->nbins,MAX(0,bin));
+      h_dot->counts[bin]++ ;
     }
+  }
 
   for (bin = 0 ; bin < h_dot->nbins ; bin++)
-    {
-      if (h_dot->counts[bin] == 0)
-        h_dot->counts[bin] = 0.01 ;
-      h_dot->counts[bin] /= (float)num ;
-    }
+  {
+    if (h_dot->counts[bin] == 0)
+      h_dot->counts[bin] = 0.01 ;
+    h_dot->counts[bin] /= (float)num ;
+  }
   h_raw = HISTOcopy(h_dot, NULL) ;
   //to correct the bug in HISTOcopy..
   h_raw->bin_size=h_dot->bin_size;
   HISTOsmooth(h_raw, h_dot, 2.0) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      HISTOplot(h_dot, "ndot.plt") ;
-      HISTOplot(h_raw, "rdot.plt") ;
-    }
+  {
+    HISTOplot(h_dot, "ndot.plt") ;
+    HISTOplot(h_raw, "rdot.plt") ;
+  }
   HISTOfree(&h_raw) ;
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
@@ -35662,19 +35662,19 @@ mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, H
   min_k1 = min_k2 = 100000 ;
   max_k1 = max_k2 = -100000 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (v->k1 < min_k1)
-        min_k1 = v->k1 ;
-      if (v->k2 < min_k2)
-        min_k2 = v->k2 ;
-      if (v->k1 > max_k1)
-        max_k1 = v->k1 ;
-      if (v->k2 > max_k2)
-        max_k2 = v->k2 ;
-    }
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->k1 < min_k1)
+      min_k1 = v->k1 ;
+    if (v->k2 < min_k2)
+      min_k2 = v->k2 ;
+    if (v->k1 > max_k1)
+      max_k1 = v->k1 ;
+    if (v->k2 > max_k2)
+      max_k2 = v->k2 ;
+  }
 
   //    fprintf(stderr,"     k1: (min,max)=(%f,%f)\n",min_k1,max_k1);
   //    fprintf(stderr,"     k2: (min,max)=(%f,%f)\n",min_k2,max_k2);
@@ -35704,44 +35704,44 @@ mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, H
 
   nvertices=0;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      nvertices++;
-      bin = MIN(h_k1->nbins-1,MAX(0,(int)((v->k1 - min_k1) / k1_bin_size))) ;
-      h_k1->counts[bin]++ ;
-      bin = MIN(h_k2->nbins-1,MAX(0,(int)((v->k2 - min_k2) / k2_bin_size))) ;
-      h_k2->counts[bin]++ ;
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nvertices++;
+    bin = MIN(h_k1->nbins-1,MAX(0,(int)((v->k1 - min_k1) / k1_bin_size))) ;
+    h_k1->counts[bin]++ ;
+    bin = MIN(h_k2->nbins-1,MAX(0,(int)((v->k2 - min_k2) / k2_bin_size))) ;
+    h_k2->counts[bin]++ ;
 
-      bink1=MIN(mri_k1_k2->width-1,MAX(0,(int)((v->k1 - mri_k1_k2->xstart) / mri_k1_k2->xsize))) ;
+    bink1=MIN(mri_k1_k2->width-1,MAX(0,(int)((v->k1 - mri_k1_k2->xstart) / mri_k1_k2->xsize))) ;
 
-      bink2=MIN(mri_k1_k2->height-1,MAX(0,(int)((v->k2 - mri_k1_k2->ystart) / mri_k1_k2->ysize))) ;
+    bink2=MIN(mri_k1_k2->height-1,MAX(0,(int)((v->k2 - mri_k1_k2->ystart) / mri_k1_k2->ysize))) ;
 
-      MRIFvox(mri_k1_k2,bink1,bink2,0) += 1.0f;
-    }
+    MRIFvox(mri_k1_k2,bink1,bink2,0) += 1.0f;
+  }
 
   for (bin = 0 ; bin < h_k1->nbins ; bin++)
-    {
-      if (h_k1->counts[bin] == 0)
-        h_k1->counts[bin] = 0.01 ;
-      h_k1->counts[bin] /= (float)nvertices ; ;
-    }
+  {
+    if (h_k1->counts[bin] == 0)
+      h_k1->counts[bin] = 0.01 ;
+    h_k1->counts[bin] /= (float)nvertices ; ;
+  }
   for (bin = 0 ; bin < h_k2->nbins ; bin++)
-    {
-      if (h_k2->counts[bin] == 0)
-        h_k2->counts[bin] = 0.01 ;
-      h_k2->counts[bin] /= (float)nvertices ; ;
-    }
+  {
+    if (h_k2->counts[bin] == 0)
+      h_k2->counts[bin] = 0.01 ;
+    h_k2->counts[bin] /= (float)nvertices ; ;
+  }
 
   for (x = 0 ; x < 100; x++)
     for (y = 0 ; y < 100 ; y++)
+    {
+      if (FZERO(MRIFvox(mri_k1_k2, x, y, 0)))
       {
-        if (FZERO(MRIFvox(mri_k1_k2, x, y, 0)))
-          {
-            MRIFvox(mri_k1_k2, x, y, 0) = 0.1 ;
-          }
+        MRIFvox(mri_k1_k2, x, y, 0) = 0.1 ;
       }
+    }
   for (norm = 0.0, x = 0 ; x < 100 ; x++)
     for (y = 0 ; y < 100 ; y++){
       norm += MRIFvox(mri_k1_k2, x, y, 0) ;
@@ -35765,11 +35765,11 @@ mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris, HISTOGRAM *h_k1, H
 #endif
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      HISTOplot(h_k1, "k1.plt") ;
-      HISTOplot(h_k2, "k2.plt") ;
-      MRIwrite(mri_k1_k2,"mri_k1_k2.mgh");
-    }
+  {
+    HISTOplot(h_k1, "k1.plt") ;
+    HISTOplot(h_k2, "k2.plt") ;
+    MRIwrite(mri_k1_k2,"mri_k1_k2.mgh");
+  }
   return(NO_ERROR) ;
 }
 
@@ -50346,25 +50346,25 @@ mrisComputeGrayWhiteBorderDistributions
   min_grad = 100000 ; max_grad = -min_grad ;
 
   for (nvertices = i = 0 ; i < defect->nchull  ; i++)
+  {
+    vno = defect->chull[i] ;
+    v = &mris->vertices[vno] ;
+    for (n = 0 ; n < v->vtotal ; n++)
     {
-      vno = defect->chull[i] ;
-      v = &mris->vertices[vno] ;
-      for (n = 0 ; n < v->vtotal ; n++)
-        {
-          vn = &mris->vertices[v->v[n]] ;
-          for (n2 = 0 ; n2 < vn->vtotal ; n2++)
-            {
-              vn2 = &mris->vertices[vn->v[n2]] ;
-              if (vn2->marked)  /* already processed */
-                continue ;
-              grad = vn2->val2 - vn2->val2bak ;
-              if (grad < min_grad)
-                min_grad = grad ;
-              if (grad > max_grad)
-                max_grad = grad ;
-            }
-        }
+      vn = &mris->vertices[v->v[n]] ;
+      for (n2 = 0 ; n2 < vn->vtotal ; n2++)
+      {
+        vn2 = &mris->vertices[vn->v[n2]] ;
+        if (vn2->marked)  /* already processed */
+          continue ;
+        grad = vn2->val2 - vn2->val2bak ;
+        if (grad < min_grad)
+          min_grad = grad ;
+        if (grad > max_grad)
+          max_grad = grad ;
+      }
     }
+  }
 
 
   /* add one bin at either end for almost zero probability events */
@@ -50378,71 +50378,71 @@ mrisComputeGrayWhiteBorderDistributions
   min_grad = h_grad->bins[0] ;
 
   for (nvertices = i = 0 ; i < defect->nchull  ; i++)
+  {
+    vno = defect->chull[i] ;
+    v = &mris->vertices[vno] ;
+    for (n = 0 ; n < v->vtotal ; n++)
     {
-      vno = defect->chull[i] ;
-      v = &mris->vertices[vno] ;
-      for (n = 0 ; n < v->vtotal ; n++)
-        {
-          vn = &mris->vertices[v->v[n]] ;
-          for (n2 = 0 ; n2 < vn->vtotal ; n2++)
-            {
-              vn2 = &mris->vertices[vn->v[n2]] ;
-              if (vn2->marked)  /* already processed */
-                continue ;
-              nvertices++ ;
+      vn = &mris->vertices[v->v[n]] ;
+      for (n2 = 0 ; n2 < vn->vtotal ; n2++)
+      {
+        vn2 = &mris->vertices[vn->v[n2]] ;
+        if (vn2->marked)  /* already processed */
+          continue ;
+        nvertices++ ;
 
-              if (vn2->val2bak < 70)
-                DiagBreak() ;
+        if (vn2->val2bak < 70)
+          DiagBreak() ;
 
-              bin = nint(vn2->val2) ;
-              bin=MIN(h_white->nbins,MAX(0,bin));
-              h_white->counts[bin]++ ;     /* wm value */
-              bin = nint(vn2->val2bak) ;
-              bin=MIN(h_gray->nbins,MAX(0,bin));
-              h_gray->counts[bin]++ ;      /* gray value */
-              bin = nint(vn2->val) ;
-              bin=MIN(h_border->nbins,MAX(0,bin));
-              h_border->counts[bin]++ ;      /* border value */
-              grad = vn2->val2 - vn2->val2bak ;
-              bin = (int)((grad - min_grad) / bin_size) ;
-              bin=MIN(h_grad->nbins,MAX(0,bin)); h_grad->counts[bin]++ ;
+        bin = nint(vn2->val2) ;
+        bin=MIN(h_white->nbins,MAX(0,bin));
+        h_white->counts[bin]++ ;     /* wm value */
+        bin = nint(vn2->val2bak) ;
+        bin=MIN(h_gray->nbins,MAX(0,bin));
+        h_gray->counts[bin]++ ;      /* gray value */
+        bin = nint(vn2->val) ;
+        bin=MIN(h_border->nbins,MAX(0,bin));
+        h_border->counts[bin]++ ;      /* border value */
+        grad = vn2->val2 - vn2->val2bak ;
+        bin = (int)((grad - min_grad) / bin_size) ;
+        bin=MIN(h_grad->nbins,MAX(0,bin)); h_grad->counts[bin]++ ;
 
-              vn2->marked = 1 ;   /* don't process it twice */
-            }
-        }
+        vn2->marked = 1 ;   /* don't process it twice */
+      }
     }
+  }
 
   /* unmark them all */
   for (i = 0 ; i < defect->nchull  ; i++)
+  {
+    vno = defect->chull[i] ;
+    v = &mris->vertices[vno] ;
+    for (n = 0 ; n < v->vtotal ; n++)
     {
-      vno = defect->chull[i] ;
-      v = &mris->vertices[vno] ;
-      for (n = 0 ; n < v->vtotal ; n++)
-        {
-          vn = &mris->vertices[v->v[n]] ;
-          for (n2 = 0 ; n2 < vn->vtotal ; n2++)
-            {
-              vn2 = &mris->vertices[vn->v[n2]] ;
-              vn2->marked = 0 ;
-            }
-        }
+      vn = &mris->vertices[v->v[n]] ;
+      for (n2 = 0 ; n2 < vn->vtotal ; n2++)
+      {
+        vn2 = &mris->vertices[vn->v[n2]] ;
+        vn2->marked = 0 ;
+      }
     }
+  }
 
   for (bin = 0 ; bin < h_gray->nbins ; bin++)
-    {
-      if (h_gray->counts[bin] == 0)
-        h_gray->counts[bin] = 0.1 ;
-      if (h_white->counts[bin] == 0)
-        h_white->counts[bin] = 0.1 ;
-      if (h_border->counts[bin] == 0)
-        h_border->counts[bin] = 0.1 ;
-      if (h_grad->counts[bin] == 0)
-        h_grad->counts[bin] = 0.1 ;
-      h_grad->counts[bin] /= (float)nvertices ;
-      h_gray->counts[bin] /= (float)nvertices ;
-      h_white->counts[bin] /= (float)nvertices ;
-      h_border->counts[bin] /= (float)nvertices ;
-    }
+  {
+    if (h_gray->counts[bin] == 0)
+      h_gray->counts[bin] = 0.1 ;
+    if (h_white->counts[bin] == 0)
+      h_white->counts[bin] = 0.1 ;
+    if (h_border->counts[bin] == 0)
+      h_border->counts[bin] = 0.1 ;
+    if (h_grad->counts[bin] == 0)
+      h_grad->counts[bin] = 0.1 ;
+    h_grad->counts[bin] /= (float)nvertices ;
+    h_gray->counts[bin] /= (float)nvertices ;
+    h_white->counts[bin] /= (float)nvertices ;
+    h_border->counts[bin] /= (float)nvertices ;
+  }
 
   h_grad_raw = HISTOcopy(h_grad, NULL) ;
   h_gray_raw = HISTOcopy(h_gray, NULL) ;
@@ -50461,16 +50461,16 @@ mrisComputeGrayWhiteBorderDistributions
   HISTOsmooth(h_border_raw, h_border, 2) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      HISTOplot(h_gray, "g.plt") ;
-      HISTOplot(h_white, "w.plt") ;
-      HISTOplot(h_border, "b.plt") ;
-      HISTOplot(h_gray_raw, "gr.plt") ;
-      HISTOplot(h_white_raw, "wr.plt") ;
-      HISTOplot(h_border_raw, "br.plt") ;
-      HISTOplot(h_grad, "d.plt") ;
-      HISTOplot(h_grad_raw, "dr.plt") ;
-    }
+  {
+    HISTOplot(h_gray, "g.plt") ;
+    HISTOplot(h_white, "w.plt") ;
+    HISTOplot(h_border, "b.plt") ;
+    HISTOplot(h_gray_raw, "gr.plt") ;
+    HISTOplot(h_white_raw, "wr.plt") ;
+    HISTOplot(h_border_raw, "br.plt") ;
+    HISTOplot(h_grad, "d.plt") ;
+    HISTOplot(h_grad_raw, "dr.plt") ;
+  }
   mrisMarkDefect(mris, defect, 0);
   HISTOfree(&h_gray_raw) ;
   HISTOfree(&h_white_raw) ;
@@ -53334,70 +53334,74 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int    negative, old_neg, same = 0, min_neg, min_neg_iter, last_expand ;
 
-  parms->dt = 1 ;
+  parms->dt = .1 ;
   parms->max_nbrs = 0 ;
   min_neg = negative = MRIScountNegativeTriangles(mris) ; min_neg_iter = 0 ;
   last_expand = 0 ;
   while (negative > 0)
+  {
+    old_neg = negative ;
+    printf("%03d: %d negative triangles\n", parms->t++, negative) ;
+    mrisSmoothingTimeStep(mris, parms) ;
+    mrisProjectSurface(mris) ;
+    MRIScomputeMetricProperties(mris) ;
+    negative = MRIScountNegativeTriangles(mris) ;
+    if (negative < min_neg)
     {
-      old_neg = negative ;
-      printf("%03d: %d negative triangles\n", parms->t++, negative) ;
-      mrisSmoothingTimeStep(mris, parms) ;
-      mrisProjectSurface(mris) ;
-      MRIScomputeMetricProperties(mris) ;
-      negative = MRIScountNegativeTriangles(mris) ;
-      if (negative < min_neg)
-        {
-          min_neg = negative ;
-          min_neg_iter = parms->t ;
-        }
-      else if ((parms->t > min_neg_iter+100) && parms->t > last_expand+50)
-        {
-          parms->max_nbrs++ ;
-          printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-          last_expand = parms->t ;
-          same = 0 ;
-        }
-      if (parms->t > min_neg_iter+1000)
-        {
-          printf("terminating loop due to lack of progress\n") ;
-          break ;
-        }
-      if (old_neg == negative)
-        {
-          if (same++ > 5)
-            {
-              parms->max_nbrs++ ;
-              printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-              last_expand = parms->t ;
-              same = 0 ;
-            }
-        }
-      else
-        same = 0 ;
-      if (parms->t == parms->niterations/4)
-        {
-          parms->max_nbrs++ ;
-          last_expand = parms->t ;
-          printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-        }
-      if (parms->t == parms->niterations/2)
-        {
-          parms->max_nbrs++ ;
-          last_expand = parms->t ;
-          printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-        }
-
-      if (parms->t == 3*parms->niterations/4)
-        {
-          last_expand = parms->t ;
-          parms->max_nbrs++ ;
-          printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-        }
-
-      if (parms->t > parms->niterations)
-        break ;
+      min_neg = negative ;
+      min_neg_iter = parms->t ;
     }
+    else if ((parms->t > min_neg_iter+100) && parms->t > last_expand+50)
+    {
+      parms->max_nbrs++ ;
+      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+      last_expand = parms->t ;
+      same = 0 ;
+    }
+    if (parms->t > min_neg_iter+1000)
+    {
+      printf("terminating loop due to lack of progress\n") ;
+      break ;
+    }
+    if (old_neg == negative)
+    {
+      if (same++ > 5)
+      {
+        parms->max_nbrs++ ;
+        printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+        last_expand = parms->t ;
+        parms->dt /= 2 ;
+        same = 0 ;
+      }
+    }
+    else
+      same = 0 ;
+    if (parms->t == parms->niterations/4)
+    {
+      parms->max_nbrs++ ;
+      parms->dt /= 2 ;
+      last_expand = parms->t ;
+      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+    }
+    if (parms->t == parms->niterations/2)
+    {
+      parms->max_nbrs++ ;
+      parms->dt /= 2 ;
+      last_expand = parms->t ;
+      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+    }
+
+    if (parms->t == 3*parms->niterations/4)
+    {
+      last_expand = parms->t ;
+      parms->dt /= 2 ;
+      parms->max_nbrs++ ;
+      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+    }
+
+    if (parms->t > parms->niterations)
+      break ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -53882,17 +53886,50 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
   h_gray = HISTOalloc(nbins) ;
 
   for (b = 0 ; b < nbins ; b++)
-    {
-      h_white->bins[b] = min_val + b ;
-      h_csf->bins[b] = min_val + b ;
-      h_gray->bins[b] = min_val + b ;
-    }
+  {
+    h_white->bins[b] = min_val + b ;
+    h_csf->bins[b] = min_val + b ;
+    h_gray->bins[b] = min_val + b ;
+  }
 
   // use g/w boundary to compute gray and white histograms
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+#define WM_SAMPLE_DIST 1.0
+    x = v->x-WM_SAMPLE_DIST*v->nx ;
+    y = v->y-WM_SAMPLE_DIST*v->ny ;
+    z = v->z-WM_SAMPLE_DIST*v->nz ;
+    MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri, xw, yw, zw, &val) ;
+    bin = nint(val - min_val) ;
+    if (bin < 0 || bin >= h_white->nbins)
+      DiagBreak() ;
+    h_white->counts[bin]++ ;
+
+    x = v->x+1.0*v->nx ; y = v->y+1.0*v->ny ; z = v->z+1.0*v->nz ;
+    MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri, xw, yw, zw, &val) ;
+    bin = nint(val - min_val) ;
+    if (bin < 0 || bin >= h_gray->nbins)
+      DiagBreak() ;
+    h_gray->counts[bin]++ ;
+
+  }
+
+  if (pcsf_mode)
+  {
+    MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
@@ -53900,18 +53937,7 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
       if (vno == Gdiag_no)
         DiagBreak() ;
 
-#define WM_SAMPLE_DIST 1.0
-      x = v->x-WM_SAMPLE_DIST*v->nx ;
-      y = v->y-WM_SAMPLE_DIST*v->ny ;
-      z = v->z-WM_SAMPLE_DIST*v->nz ;
-      MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-      MRIsampleVolume(mri, xw, yw, zw, &val) ;
-      bin = nint(val - min_val) ;
-      if (bin < 0 || bin >= h_white->nbins)
-        DiagBreak() ;
-      h_white->counts[bin]++ ;
-
-      x = v->x+1.0*v->nx ; y = v->y+1.0*v->ny ; z = v->z+1.0*v->nz ;
+      x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
       MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
       MRIsampleVolume(mri, xw, yw, zw, &val) ;
       bin = nint(val - min_val) ;
@@ -53919,42 +53945,20 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
         DiagBreak() ;
       h_gray->counts[bin]++ ;
 
+      x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
+      MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+      MRIsampleVolume(mri, xw, yw, zw, &val) ;
+      bin = nint(val - min_val) ;
+      if (bin < 0 || bin >= h_gray->nbins)
+        DiagBreak() ;
+      h_csf->counts[bin]++ ;
     }
-
-  if (pcsf_mode)
-    {
-      MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
-      MRIScomputeMetricProperties(mris) ;
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
-
-          x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
-          MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-          MRIsampleVolume(mri, xw, yw, zw, &val) ;
-          bin = nint(val - min_val) ;
-          if (bin < 0 || bin >= h_gray->nbins)
-            DiagBreak() ;
-          h_gray->counts[bin]++ ;
-
-          x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
-          MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-          MRIsampleVolume(mri, xw, yw, zw, &val) ;
-          bin = nint(val - min_val) ;
-          if (bin < 0 || bin >= h_gray->nbins)
-            DiagBreak() ;
-          h_csf->counts[bin]++ ;
-        }
-      HISTOclearZeroBin(h_csf) ;
-      csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins) ;
-      *pcsf_mode = h_csf->bins[csf_peak] ;
-      if (Gdiag & DIAG_WRITE)
-        HISTOplot(h_csf, "csf.plt") ;
-    }
+    HISTOclearZeroBin(h_csf) ;
+    csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins) ;
+    *pcsf_mode = h_csf->bins[csf_peak] ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_csf, "csf.plt") ;
+  }
 
   HISTOclearZeroBin(h_white) ;
   HISTOclearZeroBin(h_gray) ;
@@ -53968,10 +53972,10 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
   else
     printf("intensity peaks found at WM=%d,    GM=%d\n",
            nint(*pwhite_mode), nint(*pgray_mode)) ;
-  if (Gdiag & DIAG_WRITE)
-    {
-      HISTOplot(h_white, "wm.plt") ; HISTOplot(h_gray, "gm.plt") ;
-    }
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(h_white, "wm.plt") ; HISTOplot(h_gray, "gm.plt") ;
+  }
   HISTOfree(&h_white) ;HISTOfree(&h_csf) ;HISTOfree(&h_gray) ;
 
   // back to initial state
