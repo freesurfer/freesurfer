@@ -1,7 +1,7 @@
 function flac = fast_ldanaflac(anadir)
 % flac = fast_ldanaflac(anadir)
 %
-% $Id: fast_ldanaflac.m,v 1.13 2006/11/21 18:14:36 greve Exp $
+% $Id: fast_ldanaflac.m,v 1.14 2006/12/05 03:52:23 greve Exp $
 
 if(nargin ~= 1)
   fprintf('flac = fast_ldanaflac(anadir)\n');
@@ -12,10 +12,10 @@ end
 flac = fast_ldflac; % creates empty struct
 flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
-flac.autostimdur = 0;
-flac.acfbins = 0;  
+flac.autostimdur = [];
+flac.acfbins = [];  
 
-flac.mask = 'brain';
+flac.mask = '';
 flac.con = [];
 % format is handled diff than in fast_ldflac.m
 flac.format = getenv('FSF_OUTPUT_FORMAT');
@@ -127,11 +127,26 @@ while(1)
 end % while (1)
 fclose(fp);
 
-if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
+if(isempty(flac.autostimdur)) 
+  fprintf('ERROR: autostimdur is neither turned ON nor OFF\n');
+  flac = [];
+  return;
+end
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
   flac = [];
+  return;
 end
+
+if(isempty(flac.acfbins)) 
+  flac.acfbins = 10;
+  fprintf('INFO: acfbins is not set, setting to 10\n');
+end
+if(isempty(flac.mask)) 
+  flac.mask = 'brain';
+  fprintf('INFO: mask is not set, setting to brain\n');
+end
+if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
