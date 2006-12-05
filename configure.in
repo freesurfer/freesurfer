@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.280 2006/12/01 22:27:57 nicks Exp $"
+# "$Id: configure.in,v 1.281 2006/12/05 23:48:08 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1475,7 +1475,7 @@ AC_CHECK_LIB([volume_io], [transform_point],[],
 Set LDFLAGS or --with-mni-dir.])] )
 
 # VXL check
-AC_CHECK_FILE($VXL_LIB/libvnl.so,
+AC_CHECK_FILE($VXL_LIB/libvnl$DYNAMIC_LIB_EXT,
   [if test "x$LD_LIBRARY_PATH" = "x"; then
      export LD_LIBRARY_PATH=$VXL_LIB
    else
@@ -1601,7 +1601,7 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
 fi 
 
 # check for VTK libs
-AC_CHECK_FILE($VTK_LIB/libvtkCommon.so,
+AC_CHECK_FILE($VTK_LIB/libvtkCommon$DYNAMIC_LIB_EXT,
   [if test "x$LD_LIBRARY_PATH" = "x"; then
      export LD_LIBRARY_PATH=$VTK_LIB
    else
