@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.47 2006/11/21 02:40:29 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.48 2006/12/05 18:50:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -76,7 +76,10 @@ set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
                      # default is to seed with current time and date, 
                      # resulting in slightly different surfaces each run. 
                      # affects: mris_smooth, mris_sphere, mris_topology_fixer,
-                     # mris_topo_fixer, mris_ca_label 
+                     # mris_topo_fixer, mris_ca_label
+set RngSeed = 1234   # seed for random number generator, used only when
+                     # -norandomness flag is used, and can be overriden by
+                     # the flag -rng-seed <seed>
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -958,7 +961,7 @@ foreach hemi ($hemilist)
     set xopts = `fsr-getxopts mris_smooth $XOptsFile`;
     # -nw prevents it from writing curv and area
     set cmd = (mris_smooth -nw)
-    if ($NoRandomness) set cmd = ($cmd -seed 1234)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts \
         ../surf/$hemi.orig.nofix ../surf/$hemi.smoothwm.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -993,7 +996,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
-    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
     $PWD |& tee -a $LF
@@ -1035,7 +1038,7 @@ foreach hemi ($hemilist)
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
     endif
-    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts $subjid $hemi)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1093,7 +1096,7 @@ foreach hemi ($hemilist)
     # Use -nw to keep from writing out curv and area
     # Default number of iterations is 10, but use 3 here
     set cmd = (mris_smooth -n 3 -nw)
-    if ($NoRandomness) set cmd = ($cmd -seed 1234)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.white ../surf/$hemi.smoothwm)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1154,7 +1157,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere)
-    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated ../surf/$hemi.sphere)
@@ -1256,7 +1259,7 @@ foreach hemi ($hemilist)
     set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
-    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts $subjid $hemi \
                ../surf/$hemi.sphere.reg $CPAtlas $annot)
     $PWD |& tee -a $LF
@@ -1297,7 +1300,7 @@ foreach hemi ($hemilist)
     set CPAtlas = $FREESURFER_HOME/average/$hemi.atlas2005_simple.gcs
     set annot = ../label/$hemi.aparc.a2005s.annot
     set cmd = (mris_ca_label)
-    if($NoRandomness) set cmd = ($cmd -seed 1234)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts $subjid $hemi \
                ../surf/$hemi.sphere.reg $CPAtlas $annot)
     $PWD |& tee -a $LF
@@ -1789,6 +1792,11 @@ while( $#argv != 0 )
 
     case "-norandomness":
       set NoRandomness = 1;
+      breaksw
+
+    case "-rng-seed":
+      set NoRandomness = 1;
+      set RngSeed = $argv[1]; shift;
       breaksw
 
     case "-smooth2":
