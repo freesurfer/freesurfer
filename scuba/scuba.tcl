@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.229 2006/11/16 18:10:16 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.230 2006/12/05 21:23:57 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6613,7 +6613,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.229 2006/11/16 18:10:16 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.230 2006/12/05 21:23:57 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6731,15 +6731,17 @@ proc SaveSceneScript { ifnScene } {
 	puts $f "SetViewLockOnCursor $viewID $lockedCursor"
 	puts $f "SetViewTransform $viewID $transformID"
 	puts $f "SetViewInPlane $viewID $inPlane"
-	puts $f "SetViewThroughPlaneIncrement $viewID x $thPlaneIncX"
-	puts $f "SetViewThroughPlaneIncrement $viewID y $thPlaneIncY"
-	puts $f "SetViewThroughPlaneIncrement $viewID z $thPlaneIncZ"
 	puts $f "SetViewRASCenter $viewID $rasCenter"
 	puts $f "SetViewZoomLevel $viewID $zoomLevel"
 	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	    set layerID [GetLayerInViewAtLevel $viewID $nLevel]
 	    puts $f "SetLayerInViewAtLevel $viewID $layerID $nLevel"
 	}
+	# These go last so they can overwrite the automatic settings
+	# from SetLayerInViewAtLevel.
+	puts $f "SetViewThroughPlaneIncrement $viewID x $thPlaneIncX"
+	puts $f "SetViewThroughPlaneIncrement $viewID y $thPlaneIncY"
+	puts $f "SetViewThroughPlaneIncrement $viewID z $thPlaneIncZ"
 	puts $f ""
     }
 
