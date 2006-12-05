@@ -4,7 +4,7 @@
 ############################################################
 
 set inputargs = ($argv);
-set VERSION = '$Id: selxavg2,v 1.10 2006/11/09 20:45:34 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.11 2006/12/05 03:50:51 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -602,8 +602,17 @@ while( $#argv != 0 )
       set stimdur = $argv[1]; shift;
       breaksw
 
+    case "-acfbins":
+      if ( $#argv == 0) goto arg1err;
+      shift; # Just ignore
+      breaksw
+
     case "-autostimdur":
       set autostimdur = 1;
+      breaksw
+
+    case "-noautostimdur":
+      set autostimdur = 0;
       breaksw
 
     case "-mail":
@@ -716,7 +725,8 @@ check_params:
   endif
 
   if($#mask != 0) then
-    set tmp = $mask"_000.hdr"
+    set maskext = `fast_getext $mask`;
+    set tmp = $mask.$maskext
     if(! -e $tmp) then
       echo "ERROR: cannot find $tmp"
       exit 1;

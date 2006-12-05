@@ -2,7 +2,7 @@
 # mkanalysis-sess -- sets up post-processing environment for 
 # functional analysis
 
-set VERSION = '$Id: mkanalysis-sess,v 1.4 2006/09/14 21:00:58 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.5 2006/12/05 03:50:51 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -30,6 +30,7 @@ set TR  = ();
 set TER = ();
 set TauMax = 0;
 set WhitenFlag = 0;
+set acfbins = 10;
 set gammafit = 0;
 set spmhrf   = -1;
 set gDelta  = ();
@@ -48,7 +49,7 @@ set extreg = ();
 set nextreg = ();
 set extregorthog = 0;
 set maskstem = ();
-set autostimdur = 0;
+set autostimdur = ();
 set stimdur = ();
 set PrintHelp = 0;
 
@@ -131,6 +132,7 @@ else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   echo "-delay   0" >> $sxacfg
 endif
+if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
 
 echo "-nskip $nskip" >> $sxacfg
 if($hanrad != 0) then
@@ -150,7 +152,9 @@ echo "" >> $sxacfg
 echo $sveres >> $sxacfg
 echo $svsignal >> $sxacfg
 
-if($autostimdur) echo "-autostimdur" >> $sxacfg
+if($autostimdur)   echo "-autostimdur" >> $sxacfg
+if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
+
 if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
 
 ##---- Create the analysis info file ------#
@@ -418,6 +422,7 @@ while( $#argv != 0 )
   if($#TauMax == 0) set TauMax = 0;
   set WhitenFlag = `cat $cacfg | awk '{if($1 == "-whiten") print $1}'`;
   if($#WhitenFlag == 0) set WhitenFlag = 0;
+  set acfbins = `cat $cacfg | awk '{if($1 == "-acfbins") print $2}'`;
   set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
   set fwhm  = `cat $cacfg | awk '{if($1 == "-fwhm") print $2}'`;
   if($#fwhm == 0) set fwhm = 0;
@@ -437,7 +442,9 @@ while( $#argv != 0 )
   set svsignal = `cat $cacfg | awk '{if($1 == "-svsignal") print $1}'`;
 
   set tmp  = `cat $cacfg | awk '{if($1 == "-autostimdur") print 1}'`;
-  if($#tmp == 0) set autostimdur = 0;
+  if($#tmp != 0) set autostimdur = 1;
+  set tmp  = `cat $cacfg | awk '{if($1 == "-noautostimdur") print 1}'`;
+  if($#tmp != 0) set autostimdur = 0;
   set stimdur = `cat $cacfg | awk '{if($1 == "-stimdur") print $1}'`;
 
       #goto getclone;
@@ -517,6 +524,11 @@ while( $#argv != 0 )
     case "-taumax":
       if ( $#argv == 0) goto arg1err;
       set TauMax = $argv[1]; shift;
+      breaksw
+
+    case "-acfbins":
+      if ( $#argv == 0) goto arg1err;
+      set acfbins = $argv[1]; shift;
       breaksw
 
     case "-whiten":
@@ -773,7 +785,7 @@ check_params:
     exit 1;
   endif
 
-  if($#fsd   == 0)  set fsd = bold
+  if($#fsd == 0)  set fsd = bold
 
   if($#funcstem == 0) then
     if($motioncor) then
@@ -854,6 +866,10 @@ check_params:
   endif
 
   if($eventrelated || $blocked) then
+    if($#autostimdur == 0) then
+      echo "ERROR: auotstimdur flag not set. See -help for -autostimdur"
+      exit 1;
+    endif
     if($gammafit == 0 && $#IdealTW == 0) then
       echo "ERROR: must set a timewindow if not fitting a gamma function"
       exit 1;
@@ -912,6 +928,8 @@ usage_exit:
   echo "   -mcextreg              : use motion parameters as external regressors"
   echo ""
   echo "Event-Related and Blocked Arguments "
+  echo "   -autostimdur         : automatically compute stimulus duration"
+  echo "   -noautostimdur       : do not automatically compute stimulus duration (default)"
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
   echo "   -timewindow  TW      : event time window (sec)"
   echo "   -prestim     PS      : event prestimulus window (sec)"
@@ -920,8 +938,9 @@ usage_exit:
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
   echo "   -taumax      TauMax  : maximum lag for noise autocor and whitening (sec)"
-  echo "   -mask  maskid : use masks/maskid to compute autocor and whitening"
   echo "   -timeoffset  toffset : time offset (sec) to add to each paradigm file"
+  echo "   -mask  maskid : use masks/maskid to compute autocor and whitening"
+  echo "   -acfbins nbins : spatially segment autocorrelation into nbins"
   echo ""
   echo "Retinotopy and AB Blocked Arguments (Required)"
   echo "   -ncycles     N       : number of cycles in each run"
@@ -1063,6 +1082,19 @@ if no TPEF is found, no time points are excluded.
 Drift removal. Fit and remove polynomial of order N. Default is 1
 (ie, 0=mean, 1=linear, and 2=quadradic). 
 
+-autostimdur (-no-autostimdur)
+
+Automatically compute the duration of each stimulus based on the time
+between stimuli in the paradigm file. This allows for stimuli to be of
+different lengths. It requires that all stimuli be accounted for in
+the paradigm file (eg, fixation). It also requires that no stimuli
+overlap.  -no-autostimdur tells the program NOT to compute the
+stimulus duration from the paradigm file, in which case it assumes
+that the stimuli duration has a length equal to the TR (or TER). This
+used to be the default (pre 12/4/06). Now you must specify what you
+are going to use. This only applies to event-related and abblocked
+paradigms.
+
 -nconditions Nc (Shortcut: -nc) 
  
 (For blocked and event-related designs). This is the number of 
@@ -1143,6 +1175,12 @@ blocked and event-related designs.
 to estimate and correct for global autocorrelation in the noise. It 
 will assume that the autocorrelation function is zero beyond a delay 
 of TauMax seconds. 
+
+-acfbins nbins 
+
+Spatially segment the brain into nbins within the mask for the
+purposes of computing separate autocorrelation/whitening functions. 
+Default is 10. This only affects to selxavg3-sess.
 
 -mask maskid
 

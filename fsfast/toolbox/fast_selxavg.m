@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.36 2006/11/15 05:54:39 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.37 2006/12/05 03:50:49 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.36 2006/11/15 05:54:39 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.37 2006/12/05 03:50:49 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -1220,6 +1220,9 @@ function s = parse_args(varargin)
       case {'-autostimdur'},
         s.autostimdur = 1;
 
+      case {'-noautostimdur'},
+        s.autostimdur = 0;
+
       case {'-tpx','-tpexclfile'}
         arg1check(flag,narg,ninputargs);
         s.tpxlist = strvcat(s.tpxlist,inputargs{narg});
@@ -1451,7 +1454,7 @@ function s = parse_args(varargin)
         s.loginput = 1;
 
       % ignore these guys %
-      case {'-monly', '-nullcondid','-umask','-sveres','-svsignal','-svsnr'},
+      case {'-monly', '-nullcondid','-umask','-sveres','-svsignal','-svsnr','-acfbins'},
         arg1check(flag,narg,ninputargs);
         narg = narg + 1;
 
