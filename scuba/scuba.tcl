@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.230 2006/12/05 21:23:57 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.231 2006/12/05 22:02:07 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6613,7 +6613,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.230 2006/12/05 21:23:57 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.231 2006/12/05 22:02:07 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6688,11 +6688,31 @@ proc SaveSceneScript { ifnScene } {
 		puts $f "Set2DMRILayerContrast $layerID $contrast"
 		puts $f "Set2DMRILayerWindow $layerID $window"
 		puts $f "Set2DMRILayerLevel $layerID $level"
-		puts $f "Set2DMRILayerColorLUT $layerID $lutID"
 		puts $f "Set2DMRILayerMinVisibleValue $layerID $minVisibleValue"
 		puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
 		puts $f "Set2DMRILayerEditableROI $layerID $editableROI"
 		puts $f "Set2DMRILayerROIOpacity $layerID $roiOpacity"
+
+		# We have to write a bit of script that will go
+		# through all the loaded LUTs and search for the one
+		# we want. If we can't find it, we'll load it.
+		set fnLUT [GetColorLUTFileName $lutID]
+
+		puts $f "set lutID -1"
+		puts $f "foreach curLUTID \[GetColorLUTIDList\] {"
+		puts $f "    set fn \[GetColorLUTFileName \$curLUTID\]"
+		puts $f "    if { \[string match \$fn $fnLUT\] } {"
+		puts $f "	set lutID \$curLUTID"
+		puts $f "    }"
+		puts $f "}"
+		puts $f "if { \$lutID == -1 } {"
+		puts $f "    set lutID \[MakeNewColorLUT\]"
+		puts $f "    SetColorLUTLabel \$lutID \"[GetColorLUTLabel $lutID]\""
+		puts $f "    SetColorLUTFileName \$lutID $fnLUT"
+		puts $f "    UpdateLUTList"
+		puts $f "}"
+		puts $f "Set2DMRILayerColorLUT $layerID $lutID"
+
 		puts $f ""
 	    }
 	    2DMRIS {
