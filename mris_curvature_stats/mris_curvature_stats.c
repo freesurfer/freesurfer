@@ -52,7 +52,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.22 2006/05/30 20:37:11 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.23 2006/12/06 19:07:42 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -242,7 +242,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.22 2006/05/30 20:37:11 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.23 2006/12/06 19:07:42 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -341,11 +341,16 @@ main(int argc, char *argv[])
 	if(Gpch_normCurv) MRISwriteCurvature(mris, Gpch_normCurv);
     }
 
+    MRIScomputeMetricProperties(mris);
     MRISaverageCurvatures(mris, navgs) ;
     Gf_mean = MRIScomputeAverageCurvature(mris, &Gf_sigma) ;
-    sprintf(pch_text, "Raw Curvature (using '%s.%s'):", hemi, curv_fname);
+    sprintf(pch_text, "Raw Curvature     (using '%s.%s'):", hemi, curv_fname);
     fprintf(stdout, "%-50s", pch_text);
     fprintf(stdout, "%20.4f +- %2.4f\n", Gf_mean, Gf_sigma) ;
+    sprintf(pch_text, "Vertex statistics (using '%s.%s'):", hemi, surf_name);
+    fprintf(stdout, "%-50s", pch_text);
+    fprintf(stdout, "%20.4f +- %2.4f\n", 
+		mris->avg_vertex_dist, mris->std_vertex_dist);
     if(GpFILE_log) 
 	fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", Gf_mean, Gf_sigma);
 
