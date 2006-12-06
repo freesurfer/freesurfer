@@ -13,10 +13,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/11/28 21:39:43 $
-// Revision       : $Revision: 1.371 $
-char *MRI_C_VERSION = "$Revision: 1.371 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/12/06 17:52:02 $
+// Revision       : $Revision: 1.372 $
+char *MRI_C_VERSION = "$Revision: 1.372 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12626,74 +12626,74 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
     MRIwrite(mri_border, "b.mgz") ;
   vox_vol = mri->xsize*mri->ysize*mri->zsize ;
   for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
     {
-      for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
+        border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
+        if ((vox_label != label) && (border == 0))
+          continue ;
+
+        volume = vox_vol ;
+        if (border == 0)
+          volume = vox_vol ;
+        else  /* compute partial volume */
         {
-          for (z = 0 ; z < mri->depth ; z++)
+          MRIcomputeLabelNbhd
+            (mri, mri_vals, x, y, z,
+             nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+          MRIcomputeLabelNbhd
+            (mri, mri_vals, x, y, z,
+             label_counts, label_means, 7, MAX_CMA_LABELS) ;
+          val =
+            MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial
+                                                     volume based on
+                                                     intensity */
+          mean_label = label_means[vox_label] ;
+          nbr_label = -1 ; max_count = 0 ;
+          /* look for a label that is a nbr and is
+             on the other side of val from the label mean */
+          for (this_label = 0 ;
+               this_label < MAX_CMA_LABELS ;
+               this_label++)
+          {
+            if (this_label == vox_label)
+              continue ;
+            if (nbr_label_counts[this_label] == 0)   /* not a nbr */
+              continue ;
+
+            if ((label_counts[this_label] > max_count) &&
+                ((label_means[this_label] - val) *
+                 (mean_label - val) < 0))
             {
-              if (x == Gx && y == Gy && z == Gz)
-                DiagBreak() ;
-              vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
-              border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
-              if ((vox_label != label) && (border == 0))
-                continue ;
-
-              volume = vox_vol ;
-              if (border == 0)
-                volume = vox_vol ;
-              else  /* compute partial volume */
-                {
-                  MRIcomputeLabelNbhd
-                    (mri, mri_vals, x, y, z,
-                     nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
-                  MRIcomputeLabelNbhd
-                    (mri, mri_vals, x, y, z,
-                     label_counts, label_means, 7, MAX_CMA_LABELS) ;
-                  val =
-                    MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial
-                                                             volume based on
-                                                             intensity */
-                  mean_label = label_means[vox_label] ;
-                  nbr_label = -1 ; max_count = 0 ;
-                  /* look for a label that is a nbr and is
-                     on the other side of val from the label mean */
-                  for (this_label = 0 ;
-                       this_label < MAX_CMA_LABELS ;
-                       this_label++)
-                    {
-                      if (this_label == vox_label)
-                        continue ;
-                      if (nbr_label_counts[this_label] == 0)   /* not a nbr */
-                        continue ;
-
-                      if ((label_counts[this_label] > max_count) &&
-                          ((label_means[this_label] - val) *
-                           (mean_label - val) < 0))
-                        {
-                          max_count = label_means[this_label] ;
-                          nbr_label = this_label ;
-                        }
-                    }
-                  if (vox_label != label &&
-                      nbr_label != label)  /* this struct not in voxel */
-                    continue ;
-
-                  if (max_count > 0)  /* compute partial volume pct */
-                    {
-                      mean_nbr = label_means[nbr_label] ;
-                      pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
-                      if (vox_label == label)
-                        volume = pv*vox_vol ;
-                      else
-                        volume = vox_vol * (1-pv) ;
-                      if (pv < 0 || pv > 1)
-                        DiagBreak() ;
-                    }
-                }
-              MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
+              max_count = label_means[this_label] ;
+              nbr_label = this_label ;
             }
+          }
+          if (vox_label != label &&
+              nbr_label != label)  /* this struct not in voxel */
+            continue ;
+
+          if (max_count > 0)  /* compute partial volume pct */
+          {
+            mean_nbr = label_means[nbr_label] ;
+            pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+            if (vox_label == label)
+              volume = pv*vox_vol ;
+            else
+              volume = vox_vol * (1-pv) ;
+            if (pv < 0 || pv > 1)
+              DiagBreak() ;
+          }
         }
+        MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
+      }
     }
+  }
 
   MRIfree(&mri_border) ;
   return(mri_dst) ;
