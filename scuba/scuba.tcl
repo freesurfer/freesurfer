@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.231 2006/12/05 22:02:07 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.232 2006/12/06 18:22:10 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -513,6 +513,9 @@ proc MakeMenuBar { ifwTop } {
 	{command "Save TIFF Capture..." { DoSaveTIFFDlog } }
 	{separator}
 	{command "Save Scene Setup Script..." { DoSaveSceneSetupScriptDlog } }
+	{separator}
+	{command "Load Layer Setup Script..." { DoLoadLayerSetupScriptDlog } }
+	{command "Save Layer Setup Script..." { DoSaveLayerSetupScriptDlog } }
 	{separator}
 	{command "Quit:Alt Q" { Quit } }
     }
@@ -6599,6 +6602,92 @@ proc DoSaveSceneSetupScriptDlog {} {
 	}
 }
 
+proc DoSaveLayerSetupScriptDlog {} {
+    dputs "DoSaveLayerSetupScriptDlog  "
+
+    global gaLayer
+    global glShortcutDirs
+
+     if { [info exists gaLayer(current,id)] &&
+	  $gaLayer(current,id) >= -1 } {
+	 
+	 # Build a list of layer labels.
+	 set lLayers {}
+	 set nDefaultLayer -1
+	 set nItem 1
+	 foreach layerID $gaLayer(idList) {
+	     set sLabel [GetLayerLabel $layerID]
+	     lappend lLayers [list $layerID "$sLabel"]
+	     if { $layerID == $gaLayer(current,id) } {
+		 set nDefaultLayer $nItem
+	     }
+	     incr nItem
+	 }
+	 
+	 tkuDoFileDlog -title "Save Layer Setup Script" \
+	     -prompt1 "Save Script: " \
+	     -defaultdir1 [GetDefaultFileLocation Scene] \
+	     -defaultvalue1 [GetDefaultFileLocation Scene] \
+	     -prompt2 "For Layer: " \
+	     -type2 menu \
+	     -menu2 $lLayers \
+	     -defaultitem2 $nDefaultLayer \
+	     -shortcutdirs [list $glShortcutDirs] \
+	     -okCmd { 
+		 SaveLayerSettingsScript %s1 %s2
+	     }
+     } else {
+
+	tkuFormattedErrorDlog "No Layers" \
+	    "No layers exist." \
+	    "There are no layers whose settings can be saved."
+	return;
+     }
+}
+
+proc DoLoadLayerSetupScriptDlog {} {
+    dputs "DoLoadLayerSetupScriptDlog  "
+
+    global gaLayer
+    global glShortcutDirs
+
+     if { [info exists gaLayer(current,id)] &&
+	  $gaLayer(current,id) >= -1 } {
+	 
+	 # Build a list of layer labels.
+	 set lLayers {}
+	 set nDefaultLayer -1
+	 set nItem 1
+	 foreach layerID $gaLayer(idList) {
+	     set sLabel [GetLayerLabel $layerID]
+	     lappend lLayers [list $layerID "$sLabel"]
+	     if { $layerID == $gaLayer(current,id) } {
+		 set nDefaultLayer $nItem
+	     }
+	     incr nItem
+	 }
+	 
+	 tkuDoFileDlog -title "Load Layer Setup Script" \
+	     -prompt1 "Load Script: " \
+	     -defaultdir1 [GetDefaultFileLocation Scene] \
+	     -defaultvalue1 [GetDefaultFileLocation Scene] \
+	     -prompt2 "Into Layer: " \
+	     -type2 menu \
+	     -menu2 $lLayers \
+	     -defaultitem2 $nDefaultLayer \
+	     -shortcutdirs [list $glShortcutDirs] \
+	     -okCmd { 
+		 LoadLayerSettingsScript %s1 %s2
+	     }
+     } else {
+
+	tkuFormattedErrorDlog "No Layers" \
+	    "No layers exist." \
+	    "There are no layers whose settings can be loaded."
+	return;
+     }
+}
+
 proc SaveSceneScript { ifnScene } {
 
     global gSubject
@@ -6610,10 +6699,16 @@ proc SaveSceneScript { ifnScene } {
     global gaTransform
 
     # Open the file
-    set f [open $ifnScene w]
+    if { [catch { set f [open $ifnScene w] } sResult] != 0 } {
+
+	tkuFormattedErrorDlog "Error Creating File" \
+	    "Couldn't create file." \
+	    "Couldn't create the file: $ifn"
+	return;
+    }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.231 2006/12/05 22:02:07 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.232 2006/12/06 18:22:10 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6688,8 +6783,8 @@ proc SaveSceneScript { ifnScene } {
 		puts $f "Set2DMRILayerContrast $layerID $contrast"
 		puts $f "Set2DMRILayerWindow $layerID $window"
 		puts $f "Set2DMRILayerLevel $layerID $level"
-		puts $f "Set2DMRILayerMinVisibleValue $layerID $minVisibleValue"
-		puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
+	       puts $f "Set2DMRILayerMinVisibleValue $layerID $minVisibleValue"
+	       puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
 		puts $f "Set2DMRILayerEditableROI $layerID $editableROI"
 		puts $f "Set2DMRILayerROIOpacity $layerID $roiOpacity"
 
@@ -6697,7 +6792,6 @@ proc SaveSceneScript { ifnScene } {
 		# through all the loaded LUTs and search for the one
 		# we want. If we can't find it, we'll load it.
 		set fnLUT [GetColorLUTFileName $lutID]
-
 		puts $f "set lutID -1"
 		puts $f "foreach curLUTID \[GetColorLUTIDList\] {"
 		puts $f "    set fn \[GetColorLUTFileName \$curLUTID\]"
@@ -6707,12 +6801,11 @@ proc SaveSceneScript { ifnScene } {
 		puts $f "}"
 		puts $f "if { \$lutID == -1 } {"
 		puts $f "    set lutID \[MakeNewColorLUT\]"
-		puts $f "    SetColorLUTLabel \$lutID \"[GetColorLUTLabel $lutID]\""
+	   puts $f "    SetColorLUTLabel \$lutID \"[GetColorLUTLabel $lutID]\""
 		puts $f "    SetColorLUTFileName \$lutID $fnLUT"
 		puts $f "    UpdateLUTList"
 		puts $f "}"
 		puts $f "Set2DMRILayerColorLUT $layerID $lutID"
-
 		puts $f ""
 	    }
 	    2DMRIS {
@@ -6720,9 +6813,9 @@ proc SaveSceneScript { ifnScene } {
 		set lVertexColor [Get2DMRISLayerVertexColor $layerID]
 		set width [Get2DMRISLayerLineWidth $layerID]
 
-		puts $f "Set2DMRISLayerLineColor \$layerID $lLineColor"
-		puts $f "Set2DMRISLayerVertexColor \$layerID $lVertexColor"
-		puts $f "Set2DMRISLayerLineWidth \$layerID $width"
+		puts $f "Set2DMRISLayerLineColor $layerID $lLineColor"
+		puts $f "Set2DMRISLayerVertexColor $layerID $lVertexColor"
+		puts $f "Set2DMRISLayerLineWidth $layerID $width"
 		puts $f ""
 	    }
 	}
@@ -6834,6 +6927,139 @@ proc SaveSceneScript { ifnScene } {
     close $f
 
     SetStatusBarText "Saved $ifnScene."
+}
+
+# Similar to the scene script, but only saves stuff for one layer. It
+# also works on an argument layerID instead of a fixed one, so you can
+# define layerID and source the script to work on that layer.
+proc SaveLayerSettingsScript { ifn iLayerID } {
+
+    # Open the file
+    if { [catch { set f [open $ifn w] } sResult] != 0 } {
+
+	tkuFormattedErrorDlog "Error Creating File" \
+	    "Couldn't create file." \
+	    "Couldn't create the file: $ifn"
+	return;
+    }
+
+    set type [GetLayerType $iLayerID]
+    set sLabel [GetLayerLabel $iLayerID]
+    set opacity [GetLayerOpacity $iLayerID]
+    set info [GetLayerReportInfo $iLayerID]
+    
+    # If we source this with the layerID in scope, it will affect that
+    # layerID, otherwise it will just work on ID 0.
+    puts $f "if { !\[info exists layerID\] } { "
+    puts $f "  set layerID 0"
+    puts $f "}"
+
+    # Put in a check that the layer type matches.
+    puts $f "if { !\[string match \[GetLayerType \$layerID\] $type\] } {"
+    puts $f "	tkuFormattedErrorDlog \"Mismatched Layer Type\" \\"
+    puts $f "	    \"Mismatched Layer Type.\" \\"
+    puts $f "	    \"The settings in this layer script are for a layer of type $type, but you're trying to load them into a layer of type \[GetLayerType \$layerID\].\""
+    puts $f "	return;"
+    puts $f "}"
+
+    puts $f "SetLayerLabel \$layerID \"$sLabel\""
+    puts $f "SetLayerOpacity \$layerID $opacity"
+    puts $f "SetLayerReportInfo \$layerID $info"
+    switch $type {
+	2DMRI {
+	    set colorMapMethod [Get2DMRILayerColorMapMethod $iLayerID]
+	    set clearZero [Get2DMRILayerDrawZeroClear $iLayerID]
+	    set MIP [Get2DMRILayerDrawMIP $iLayerID]
+	    set sampleMethod [Get2DMRILayerSampleMethod $iLayerID]
+	    set brightness [Get2DMRILayerBrightness $iLayerID]
+	    set contrast [Get2DMRILayerContrast $iLayerID]
+	    set window [Get2DMRILayerWindow $iLayerID]
+	    set level [Get2DMRILayerLevel $iLayerID]
+	    set lutID [Get2DMRILayerColorLUT $iLayerID]
+	    set minVisibleValue [Get2DMRILayerMinVisibleValue $iLayerID]
+	    set maxVisibleValue [Get2DMRILayerMaxVisibleValue $iLayerID]
+	    set editableROI [Get2DMRILayerEditableROI $iLayerID]
+	    set roiOpacity [Get2DMRILayerROIOpacity $iLayerID]
+	    puts $f "Set2DMRILayerColorMapMethod \$layerID $colorMapMethod"
+	    puts $f "Set2DMRILayerDrawZeroClear \$layerID $clearZero"
+	    puts $f "Set2DMRILayerDrawMIP \$layerID $MIP"
+	    puts $f "Set2DMRILayerSampleMethod \$layerID $sampleMethod"
+	    puts $f "Set2DMRILayerBrightness \$layerID $brightness"
+	    puts $f "Set2DMRILayerContrast \$layerID $contrast"
+	    puts $f "Set2DMRILayerWindow \$layerID $window"
+	    puts $f "Set2DMRILayerLevel \$layerID $level"
+	    puts $f "Set2DMRILayerMinVisibleValue \$layerID $minVisibleValue"
+	    puts $f "Set2DMRILayerMaxVisibleValue \$layerID $maxVisibleValue"
+	    puts $f "Set2DMRILayerEditableROI \$layerID $editableROI"
+	    puts $f "Set2DMRILayerROIOpacity \$layerID $roiOpacity"
+
+	    # We have to write a bit of script that will go
+	    # through all the loaded LUTs and search for the one
+	    # we want. If we can't find it, we'll load it.
+	    set fnLUT [GetColorLUTFileName $lutID]
+	    puts $f "set lutID -1"
+	    puts $f "foreach curLUTID \[GetColorLUTIDList\] {"
+	    puts $f "    set fn \[GetColorLUTFileName \$curLUTID\]"
+	    puts $f "    if { \[string match \$fn $fnLUT\] } {"
+	    puts $f "	set lutID \$curLUTID"
+	    puts $f "    }"
+	    puts $f "}"
+	    puts $f "if { \$lutID == -1 } {"
+	    puts $f "    set lutID \[MakeNewColorLUT\]"
+	  puts $f "    SetColorLUTLabel \$lutID \"[GetColorLUTLabel $lutID]\""
+	    puts $f "    SetColorLUTFileName \$lutID $fnLUT"
+	    puts $f "    UpdateLUTList"
+	    puts $f "}"
+	    puts $f "Set2DMRILayerColorLUT \$layerID $lutID"
+	    puts $f ""
+	    }
+	2DMRIS {
+	    set lLineColor [Get2DMRISLayerLineColor $iLayerID]
+	    set lVertexColor [Get2DMRISLayerVertexColor $iLayerID]
+	    set width [Get2DMRISLayerLineWidth $iLayerID]
+	    
+	    puts $f "Set2DMRISLayerLineColor \$layerID $lLineColor"
+	    puts $f "Set2DMRISLayerVertexColor \$layerID $lVertexColor"
+	    puts $f "Set2DMRISLayerLineWidth \$layerID $width"
+	    puts $f ""
+	}
+    }
+    
+    puts $f "UpdateLayerList"
+    puts $f "SelectLayerInLayerProperties \$layerID"
+    puts $f "RedrawFrame [GetMainFrameID]"
+
+    close $f
+
+    SetStatusBarText "Saved layer settings in $ifn."
+}
+
+proc LoadLayerSettingsScriptForLayer { ifn iLayerID } {
+
+    # This var will be used by the script to work on the given layer.
+    set layerID $iLayerID
+
+    # Try to source the script.
+    if { ![file readable $ifn] } {
+	
+	tkuFormattedErrorDlog "Error Loading Layer Settings" \
+	    "Invalid file." \
+	    "Couldn't load the file: $ifn"
+	return;
+
+    } else {
+
+	if { [catch { source $ifn } sResult] != 0 } {
+
+	    tkuFormattedErrorDlog "Error Reading Layer Settings" \
+		"Invalid file." \
+		"Got a tcl error while reading the file: $ifn"
+	    return;
+	    
+	} else {
+	    SetStatusBarText "Read layer settings $ifn."
+	}
+    }
 }
 
 # A little hack to use when you want the screen to update from a
