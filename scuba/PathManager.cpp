@@ -32,6 +32,10 @@ PathManager::ManagePath ( Path<float>& iPath ) {
 
   iPath.AddListener( this );
   mPaths.push_back( &iPath );
+
+  // Notify listeners of changee.
+  int pathID = iPath.GetID();
+  SendBroadcast( "pathChanged", (void*)&pathID );
 }
 
 void
