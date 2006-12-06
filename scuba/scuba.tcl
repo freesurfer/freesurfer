@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.232 2006/12/06 18:22:10 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.233 2006/12/06 20:15:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -713,7 +713,7 @@ proc MakeToolBar { ifwTop } {
 	-width 16
     set gCoordsInput(entry) "Enter RAS Coords"
     set gaWidget(coordsEntry) $fwToolBar.fwCoordsInput.ew.ewEntry
-    bind $gaWidget(coordsEntry) <Button> "after idle {$gaWidget(coordsEntry) selection range 0 end}"
+    bind $gaWidget(coordsEntry) <Button-1> "after idle {$gaWidget(coordsEntry) selection range 0 end}"
     menubutton $fwToolBar.fwCoordsInput.bw \
 	-text "V" \
 	-menu $fwToolBar.fwCoordsInput.bw.menu
@@ -4831,8 +4831,8 @@ proc DrawLabelArea {} {
 
 	    # Tried to call this function to resize the columns to a
 	    # good width but I can't get this to work.
-#	    bind $f.gwGrid <Visibility> "ResizeLabelArea"
-#	    bind $f.gwGrid <Expose> "ResizeLabelArea"
+# 	    bind $f.gwGrid <Visibility> "ResizeLabelArea"
+# 	    bind $f.gwGrid <Expose> "ResizeLabelArea"
 	}
 
 	# Get pointer to the grid.
@@ -5041,7 +5041,7 @@ proc ResizeLabelArea {} {
 
 	set cCols [$grid cget -width]
 	if { $cCols == 2 } {
-	    $grid size column 2 -size 50
+	    $grid size column 1 -size auto
 	}
     }
 }
@@ -6708,7 +6708,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.232 2006/12/06 18:22:10 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.233 2006/12/06 20:15:13 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
