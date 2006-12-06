@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.49 2006/12/06 17:03:31 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.50 2006/12/06 17:14:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -27,6 +27,7 @@ set Force = 0;
 set DoCleanTal   = 0;
 set DoCleanCP    = 0;
 set DoCleanSeed  = 0;
+set DoCleanPFH   = 0;
 set DoCleanBM    = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
@@ -61,25 +62,28 @@ set RmNeckRadius = 25;  # used by mri_remove_neck
 set UseCAAlign = (-align); # flag added to mri_ca_label
 set UseCAAlignAfter = (-align-after); # flag added to mri_ca_register
 set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
-set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz 
+set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
-set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_register
-set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.,
+set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_reg
+set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.
                       # else, add '-nobigventricles'
-set DoSecondPassRenorm = 0 # if 1, add '-secondpassrenorm' to mri_ca_register
+set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 0 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
-                     # default is to seed with current time and date, 
-                     # resulting in slightly different surfaces each run. 
+                     # default is to seed with current time and date,
+                     # resulting in slightly different surfaces each run.
                      # affects: mris_smooth, mris_sphere, mris_topology_fixer,
                      # mris_topo_fixer, mris_ca_label
 set RngSeed = 1234   # seed for random number generator, used only when
                      # -norandomness flag is used, and can be overriden by
                      # the flag -rng-seed <seed>
+set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
+                     # mri_em_register are run in order to determine the best
+                     # skull-strip
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -348,6 +352,14 @@ if($DoCleanTal) then
    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
    if($RunIt) $cmd  |& tee -a $LF
 endif
+if($DoCleanPFH) then
+   set cmd = (mv -f $subjdir/mri/optimal_preflood_height $subjdir/trash)
+   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+   if($RunIt) $cmd  |& tee -a $LF
+   set cmd = (mv -f $subjdir/mri/optimal_skullstrip_invol $subjdir/trash)
+   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+   if($RunIt) $cmd  |& tee -a $LF
+endif
 if($DoCleanBM) then
    set cmd = (mv -f $subjdir/mri/brainmask.mgz $subjdir/trash)
    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -526,9 +538,8 @@ if($DoNuIntensityCor) then
   echo "#@# Nu Intensity Correction `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
   set cmd = (mri_nu_correct.mni  --i orig.mgz \
-     --o nu.mgz --n $NuIterations $xopts)
+     --o nu.mgz --n $NuIterations)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -556,6 +567,7 @@ if($DoTalairach) then
     if($RunIt) then
       sleep 1; # Sleep here to assure that they have diff time stamps
       $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
   endif
   echo $cmd > $touchdir/talairach.touch
@@ -599,6 +611,7 @@ endif
 
 #----------- Skull Stripping ------------------#
 if($DoSkullStrip) then
+skullstrip:
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# Skull Stripping `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -613,17 +626,173 @@ if($DoSkullStrip) then
   if($WSLess) set opts = ($opts -less);
   if($WSMore) set opts = ($opts -more);
   if($WSAtlas) set opts = ($opts -atlas);
-  if($#WSPctPreFlood != 0) set opts = ($opts -h $WSPctPreFlood);
-  if($#WSSeedPoint != 0)   set opts = ($opts -s $WSSeedPoint);
+  if($#WSSeedPoint != 0) set opts = ($opts -s $WSSeedPoint);
+  if($#WSPctPreFlood != 0) then
+    set opts = ($opts -h $WSPctPreFlood);
+    set DoMultiStrip = 0
+  else if( -e optimal_preflood_height) then
+    set WSPctPreFlood = `cat optimal_preflood_height`
+    set opts = ($opts -h $WSPctPreFlood);
+    set DoMultiStrip = 0
+    echo "Using optimal preflood height of $WSPctPreFlood" |& tee -a $LF
+  endif
 
-  set BMA = brainmask.auto.mgz
-  set BM  = brainmask.mgz
   set cmd = (mri_watershed)
-  if(-e $BMA && -e $BM && ! $DoCleanBM) set cmd = ($cmd -keep $BMA $BM $BM)
-  set cmd = ($cmd $opts $xopts T1.mgz $BMA)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set BM  = brainmask.mgz
+
+  if($DoMultiStrip) then
+
+    # when DoMultiStrip is enabled, multiple instances of mri_watershed are
+    # run each using the following preflood height parameters
+    if ( $?WATERSHED_PREFLOOD_HEIGHTS ) then
+      # externally specified in the environment
+      set PREFLOOD_HEIGHTS = ( $WATERSHED_PREFLOOD_HEIGHTS )
+    else
+      # defaults:
+      set PREFLOOD_HEIGHTS = ( 5 10 20 30 )
+    endif
+    set SS_VOLUMES = ( orig T1 )
+    if ( $?GOTO_LL_CALC ) goto ll_calc
+
+    # create command files, one job for each volume type and preflood height...
+    set CMDFS = ()
+    foreach vol ( $SS_VOLUMES )
+      foreach pfh ( $PREFLOOD_HEIGHTS )
+        set cmd = (mri_watershed)
+        set BMA_OLD = brainmask.auto.mgz
+        if(-e $BMA_OLD && -e $BM && ! $DoCleanBM) then
+          set cmd = ($cmd -keep $BMA_OLD $BM $BM)
+        endif
+        set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
+        set cmd = ($cmd $opts -h ${pfh} $xopts ${vol}.mgz $BMA)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        set CMDF = mri_watershed_${vol}_PFH${pfh}.cmd
+        echo "$cmd" > $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      end
+    end
+
+    # and launch parallel jobs and wait for completion.
+    # the batchjobs script will append each job output to $LF
+    if($RunIt) then
+      batchjobs $LF $CMDFS
+      if($status) goto error_exit;
+    endif
+
+    # brainmask volumes actually need to be T1 volumes, because while
+    # mri_watershed may run best in some cases using orig.mgz as input,
+    # we really want the brainmask to be from T1.mgz (post normalization)
+    set CMDFS = ()
+    foreach pfh ( $PREFLOOD_HEIGHTS )
+      set BMA_ORIG = brainmask_orig_PFH${pfh}.auto.mgz
+      if ( -e $BMA_ORIG ) then
+        set cmd = (mri_mask T1.mgz $BMA_ORIG $BMA_ORIG)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        set CMDF = mri_mask_PFH${pfh}.cmd
+        echo "$cmd" > $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      endif
+    end
+
+    # and launch parallel jobs and wait for completion.
+    # the batchjobs script will append each job output to $LF
+    if($RunIt) then
+      if($#CMDFS != 0) then
+        batchjobs $LF $CMDFS
+        if($status) goto error_exit;
+      endif
+    endif
+    echo $cmd > $touchdir/skull_strip.touch
+
+    # now GCA registration (mri_em_register) is run to align to an atlas
+    # with a skull
+    set cmd = (mri_em_register)
+    set cmd = ($cmd -skull)
+    set cmd = ($cmd $xopts nu.mgz $FREESURFER_HOME/average/$GCASkull)
+    set cmd = ($cmd transforms/talairach_nu_skull.lta)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/em_register.touch
+
+    # calculate a measure of skull-strip performance (mri_log_likelihood):
+    ll_calc:
+    set max_ll = -9999999999;
+    set best_pfh = 0;
+    set best_vol = ();
+    set xopts = `fsr-getxopts mri_log_likelihood $XOptsFile`;
+    foreach vol ( $SS_VOLUMES )
+      foreach pfh ( $PREFLOOD_HEIGHTS )
+        set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
+        set LTA = transforms/talairach_nu_skull.lta
+        set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
+        set cmd = ($cmd $xopts $FREESURFER_HOME/average/$GCA $LTA)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) then
+          $cmd |& tee -a $LF |& tee -a ll_tmp
+          # extract the last line of output, containing the result
+          set ll = `tail --lines 1 ll_tmp`
+          rm -f ll_tmp
+        endif
+        if($status) goto error_exit;
+        # and make the best result the brainmask.auto.mgz
+        if($RunIt) then
+          echo "$BMA log_likelihood= $ll" |& tee -a $LF
+          if ("$ll" == "nan") continue
+          if ($ll > $max_ll) then
+            set max_ll = $ll;
+            set best_pfh = $pfh;
+            set best_vol = $vol;
+            rm -f brainmask.auto.mgz
+            cp $BMA brainmask.auto.mgz
+            if($status) goto error_exit;
+          endif
+        endif
+      end
+    end
+    if($RunIt) then
+      if ($best_pfh == 0) then
+        echo "ERROR: failure in calculating best preflood height param." \
+          |& tee -a $LF
+        goto error_exit;
+      endif
+      echo ""
+      echo "Optimal input vol: $best_vol, pre-flood height= $best_pfh, results in log_likelihood= $max_ll" \
+        |& tee -a $LF
+      #rm -f *_PFH*.auto.*
+      #rm -f *_PFH*.*
+      rm -f transforms/*_PFH*.*
+      # save this result, so that it is used next time, negating the need
+      # to run mulitstrip (parallel jobs) again
+      echo "$best_vol" > optimal_skullstrip_invol
+      echo "$best_pfh" > optimal_preflood_height
+    endif
+    echo $cmd > $touchdir/log_likelihood.touch
+    # make sure this is set properly:
+    set BMA = brainmask.auto.mgz
+
+  else
+
+    # single-job skull-strip
+    set BMA = brainmask.auto.mgz
+    if(-e $BMA && -e $BM && ! $DoCleanBM) set cmd = ($cmd -keep $BMA $BM $BM)
+    set INVOL = T1
+    if( -e optimal_skullstrip_invol) set INVOL = `cat optimal_skullstrip_invol`
+    set cmd = ($cmd $opts $xopts $INVOL.mgz $BMA)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if("$INVOL" == "orig") then
+      # while mri_watershed may run best in some cases using orig.mgz as input,
+      # we really want the brainmask to be from T1.mgz (post normalization)
+      set cmd = (mri_mask T1.mgz $BMA $BMA)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/skull_strip.touch
+
+  endif
 
   goto handle_legacy_brain_mask;
   handle_legacy_brain_mask_return:
@@ -634,9 +803,10 @@ if($DoSkullStrip) then
     if($RunIt) then
       sleep 1; # Sleep here to assure that they have diff time stamps
       $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
   endif
-  echo $cmd > $touchdir/skull_strip.touch
+
 endif
 
 #-------------- GCA Registration  -------------------------#
@@ -646,8 +816,8 @@ if($DoGCAReg) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
-  set cmd = (mri_em_register -mask brainmask.mgz )
-  set cmd = ($cmd $xopts nu.mgz $FREESURFER_HOME/average/$GCA \
+  set cmd = (mri_em_register -mask brainmask.mgz \
+              $xopts nu.mgz $FREESURFER_HOME/average/$GCA \
               transforms/talairach.lta)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
@@ -785,6 +955,7 @@ if($DoCALabel) then
     if($RunIt) then
       sleep 1; # Sleep here to assure that they have diff time stamps
       $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
   endif
   echo $cmd > $touchdir/ca_label.touch
@@ -1017,16 +1188,20 @@ foreach hemi ($hemilist)
     set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.orig)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
     set cmd = (cp ../surf/$hemi.inflated.nofix ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
     if(! $UseOldTopoFix) then
       set cmd = (cp ../surf/$hemi.qsphere.nofix ../surf/$hemi.qsphere)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
       set cmd = (cp ../surf/$hemi.smoothwm.nofix ../surf/$hemi.smoothwm)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
     # Now can run fixer
     if($UseOldTopoFix) then
@@ -1061,6 +1236,7 @@ foreach hemi ($hemilist)
       set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd
+      if($status) goto error_exit;
     endif
     echo $cmd > $touchdir/$hemi.topofix.touch
   endif
@@ -1422,11 +1598,11 @@ while( $#argv != 0 )
       set InputVol = "$argv[1]"; shift;
       if(! -e "$InputVol") then
         echo "ERROR: cannot find $InputVol"
-        exit 1;
+        goto error_exit;
       endif
       if(! -r "$InputVol") then
         echo "ERROR: $InputVol exists but is not readable"
-        exit 1;
+        goto error_exit;
       endif
       set InVolDir  = `dirname  "$InputVol"`;
       set InVolBase = `basename "$InputVol"`;
@@ -1443,7 +1619,7 @@ while( $#argv != 0 )
       set hemilist = $argv[1]; shift;
       if($hemilist != lh && $hemilist != rh) then
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
-        exit 1;
+        goto error_exit;
       endif
       breaksw
 
@@ -1525,6 +1701,14 @@ while( $#argv != 0 )
       breaksw
     case "-noskullstrip":
       set DoSkullStrip = 0;
+      breaksw
+
+    case "-multistrip":
+      set DoMultiStrip = 1;
+      set DoSkullStrip = 1;
+      breaksw
+    case "-nomultistrip":
+      set DoMultiStrip = 0;
       breaksw
 
     case "-segmentation":
@@ -1676,7 +1860,7 @@ while( $#argv != 0 )
           echo "ERROR: -watershed argument $argv[1] unrecognized."
           echo "Valid arguments are: atlas, nowatershed, normal, watershedonly,"
           echo "and watershedtemplate."
-          exit 1;
+          goto error_exit;
         breaksw;
       endsw
       shift;
@@ -1908,7 +2092,7 @@ while( $#argv != 0 )
       if( $#argv < 1) goto arg1err;
       set XOptsFile = $argv[1]; shift;
       fsr-checkxopts $XOptsFile
-      if($status) exit 1;
+      if($status) goto error_exit;
       set XOptsFile = `getfullpath $XOptsFile`
       breaksw
 
@@ -1935,6 +2119,7 @@ while( $#argv != 0 )
       set DoCleanTal   = 1;
       set DoCleanCP    = 1;
       set DoCleanSeed  = 1;
+      set DoCleanPFH   = 1;
       set DoCleanBM    = 1;
       set DoCleanASeg  = 1;
       set DoCleanWM    = 1;
@@ -1960,6 +2145,10 @@ while( $#argv != 0 )
 
     case "-clean-tal":
       set DoCleanTal   = 1;
+      breaksw
+
+    case "-clean-pfh":
+      set DoCleanPFH   = 1;
       breaksw
 
     case "-clean-bm":
@@ -2164,7 +2353,7 @@ while( $#argv != 0 )
       setenv FREESURFER_HOME $argv[1]; shift;
       if(! -e $FREESURFER_HOME) then
         echo "ERROR: cannot find $FREESURFER_HOME"
-        exit 1;
+        goto error_exit;
       endif
       pushd $FREESURFER_HOME > /dev/null
       setenv FREESURFER_HOME `pwd`;
@@ -2210,7 +2399,7 @@ while( $#argv != 0 )
       set curgrp = `id -gn`;
       if($grp != $curgrp) then
         echo "ERROR: current group ($curgrp) does not equal specified group $grp"
-        exit 1;
+        goto error_exit;
       endif
       breaksw
 
@@ -2231,16 +2420,16 @@ while( $#argv != 0 )
       set NoCortexLabel = 1;
       breaksw
 
+    case "-uncompress":
+      set UnCompress = 1;
+      breaksw
+
     case "-bigventricles":
       set BigVentricles = 1;
       breaksw
 
     case "-nobigventricles":
       set BigVentricles = 0;
-      breaksw
-
-    case "-uncompress":
-      set UnCompress = 1;
       breaksw
 
     case "-secondpassrenorm":
@@ -2250,7 +2439,7 @@ while( $#argv != 0 )
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
-      exit 1
+      goto error_exit;
       breaksw
   endsw
 end
@@ -2334,29 +2523,39 @@ check_params:
       set brainlegacy = $subjdir/mri/brain.legacy
       if(-e $brain.mgz) then
         cp $brain.mgz $brainmask.mgz
+        if($status) goto error_exit;
         cp $brainmask.mgz $brainlegacy.mgz
+        if($status) goto error_exit;
       else
         if(-e $brain/COR-.info) then
           mri_convert $brain $brainmask.mgz
+          if($status) goto error_exit;
           cp $brainmask.mgz $brainlegacy.mgz
+          if($status) goto error_exit;
         endif
       endif
       set aseg = $subjdir/mri/aseg
       if(-e $aseg.mgz) then
         cp $aseg.mgz $aseg.legacy.mgz
+        if($status) goto error_exit;
       else
-        if(-e $aseg/COR-.info) then 
+        if(-e $aseg/COR-.info) then
           mri_convert $aseg $aseg.mgz
+          if($status) goto error_exit;
           cp $aseg.mgz $aseg.legacy.mgz
+          if($status) goto error_exit;
         endif
       endif
       set wm = $subjdir/mri/wm
       if(-e $wm.mgz) then
         cp $wm.mgz $wm.legacy.mgz
+        if($status) goto error_exit;
       else
         if(-e $wm/COR-.info) then
           mri_convert $wm $wm.mgz
+          if($status) goto error_exit;
           cp $wm.mgz $wm.legacy.mgz
+          if($status) goto error_exit;
         endif
       endif
       if(-e $subjdir/mri/orig) then
@@ -2471,7 +2670,7 @@ check_params:
       endif
       if($XOptsClean == 1) then
         rm -f $XOptsPreExist
-        set XOptsFile = (); 
+        set XOptsFile = ();
       endif
       if($XOptsUse == 1) then
         set XOptsFile = $XOptsPreExist;
@@ -2480,7 +2679,7 @@ check_params:
       # XOpts was passed on cmd line, but pre-existing xopts file
       if(! $XOptsOverwrite) then
         echo "ERROR: there is a pre-existing expert options file and"
-        echo "you have specified an expert options file on the command-line." 
+        echo "you have specified an expert options file on the command-line."
         echo "If you want to use the file specified on the command-line,"
         echo "you must run with -xopts-overwrite."
         exit(1);
@@ -2488,12 +2687,14 @@ check_params:
       # If it gets here, then overwrite
       rm -f $XOptsPreExist
       cp $XOptsFile $XOptsPreExist
+      if($status) goto error_exit;
     endif
   else
     # No pre-existing file
     if($#XOptsFile != 0) then
       # Expert options file specified on cmd line, make copy
       cp $XOptsFile $XOptsPreExist
+      if($status) goto error_exit;
     endif
   endif
 
@@ -2521,7 +2722,7 @@ check_params:
      ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv &&\
      ! $DoMotionCor && ! $DoTalairach && ! $DoNormalization  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
-     ! $DoVersionsOnly && ! $DoDeface && \
+     ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
      ! $DoFill && ! $DoTessellate && ! $DoAParc2ASeg && \
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
@@ -2737,7 +2938,7 @@ Basic usages:
 Creates analysis directory $SUBJECTS_DIR/subjectname, converts one or
 more input volumes to MGZ format in subjectname/mri/orig, and runs
 all processing steps. If subjectname exists, then an error is returned
-when -i is used; but this can be overridden with -force (in which 
+when -i is used; but this can be overridden with -force (in which
 case any pre-existing source volumes are deleted).
 
 2. Manual conversion into mgz:
@@ -2947,7 +3148,7 @@ FREESURFER_HOME/average.
 
 -nuiterations
 
-Number of iterations in the non-uniform intensity correction. 
+Number of iterations in the non-uniform intensity correction.
 Default is 2.
 
 -norm3diters niters
@@ -2972,7 +3173,7 @@ Does not use aseg.mgz for the second mri_normalize step.
 -norandomness
 
 The random number generator used by certain binaries is seeded with the
-same number, thus producing identical results from run to run. 
+same number, thus producing identical results from run to run.
 
 EXPERT OPTIONS FILE
 
@@ -2990,7 +3191,7 @@ if a file called expert.opts is created containing these lines:
 
 then the option "-p .5" will be passed to mri_em_register, and "-asc"
 will be passed to mris_topo_fixer.  The name of the expert options file
-is passed to recon-all with the -expert flag, eg. 
+is passed to recon-all with the -expert flag, eg.
 
   recon-all -expert expert.opts
 
@@ -3238,8 +3439,8 @@ is the step just after topology fixing. Calls mris_inflate. Creates
 
 QSphere (-<no>qsphere)
 
-This is the initial step of automatic topology fixing. It is a 
-quasi-homeomorphic spherical transformation of the inflated surface designed 
+This is the initial step of automatic topology fixing. It is a
+quasi-homeomorphic spherical transformation of the inflated surface designed
 to localize topological defects for the subsequent automatic topology fixer.
 Calls mris_sphere. Creates surf/?h.qsphere.nofix.
 
