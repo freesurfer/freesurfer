@@ -326,7 +326,7 @@ MatrixTest::TestMatrixDeterminant() {
 
   // the tolerance had to be increased for this test case to pass.
   // The determinant is much larger in this case.
-  const double buckyTolerance = 3;
+  const double buckyTolerance = 4;
   CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)MatrixDeterminant(mBuckyMatrix),
                                 2985984.0,
                                 buckyTolerance );
