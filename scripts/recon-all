@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.48 2006/12/05 18:50:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.49 2006/12/06 17:03:31 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2041,6 +2041,18 @@ while( $#argv != 0 )
       set DoCortRibbonVolMask = 1;
       breaksw
 
+    case "-autorecon2-perhemi":
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      breaksw
+
     case "-autorecon2-inflate1":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
@@ -2601,6 +2613,7 @@ usage_exit:
   echo "  -autorecon2-cp : process stages 12-24 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
   echo "  -autorecon2-wm : process stages 15-24"
   echo "  -autorecon2-inflate1 : 6-18"
+  echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
   echo "  -autorecon3    : process stages 25-31"
   echo "  -hemi ?h       : just do lh or rh (default is to do both)"
   echo ""
