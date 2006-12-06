@@ -591,10 +591,14 @@ VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
       mRASBounds[1] = mRASBounds[3] = mRASBounds[5] = -999999;
 
       int index[3];
+      int cornerFactor[3];
       float RAS[3];
-      for( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
-	for( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
-	  for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+      for( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ ) {
+	index[2] = cornerFactor[2] * mMRI->width;
+	for( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ ) {
+	  index[1] = cornerFactor[1] * mMRI->width;
+	  for( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ ) {
+	    index[0] = cornerFactor[0] * mMRI->width;
 	    
 	    MRIIndexToRAS( index, RAS );
 
