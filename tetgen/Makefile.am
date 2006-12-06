@@ -19,7 +19,7 @@ check_PROGRAMS = tetgen
 
 TESTS = test_tetgen
 
-EXTRA_DIST = test_tetgen example.poly \
+EXTRA_DIST = tetgen.h test_tetgen example.poly \
 i686-example.1.face i686-example.1.ele i686-example.1.node \
 x86_64-example.1.face x86_64-example.1.ele x86_64-example.1.node \
 README LICENSE README-MGH
