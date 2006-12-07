@@ -12,7 +12,7 @@ mri_parse_sdcmdir_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mri_parse_sdcmdir
 
-EXTRA_DIST=test_mri_parse_sdcmdir 556000-3-1.dcm test_dicomdir.sumfile 
+EXTRA_DIST=test_mri_parse_sdcmdir 98915109 test_dicomdir.sumfile 
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
