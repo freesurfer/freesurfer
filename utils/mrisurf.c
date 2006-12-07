@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/05 01:26:54 $
-// Revision       : $Revision: 1.495 $
+// Revision Date  : $Date: 2006/12/07 19:11:26 $
+// Revision       : $Revision: 1.496 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.495 2006/12/05 01:26:54 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.496 2006/12/07 19:11:26 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -7630,75 +7630,77 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
   mris->total_area = 0.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    if (fno == Gx)
+      DiagBreak() ;
+    v0 = &mris->vertices[face->v[0]] ;
+    v1 = &mris->vertices[face->v[1]] ;
+    v2 = &mris->vertices[face->v[2]] ;
+    VERTEX_EDGE(v_a, v0, v1) ;
+    VERTEX_EDGE(v_b, v0, v2) ;
+
+    /* compute metric properties of first triangle */
+    V3_CROSS_PRODUCT(v_a, v_b, v_n) ;
+    area = V3_LEN(v_n) * 0.5f ;
+    dot = V3_DOT(v_a, v_b) ;
+    face->area = area ;
+    V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
+    face->nx = V3_X(v_n); face->ny = V3_Y(v_n); face->nz = V3_Z(v_n);
+    if (!devFinite(area) || !devFinite(mris->total_area))
+      DiagBreak() ;
+    mris->total_area += area ;
+
+    /* now compute angles */
+    VECTOR_LOAD(v_n, face->nx, face->ny, face->nz) ;
+    if ((V3_X(v_n) < V3_Y(v_n)) && (V3_X(v_n) < V3_Z(v_n)))
+      dz = fabs(V3_X(v_n)) ;
+    else if (V3_Y(v_n) < V3_Z(v_n))
+      dz = fabs(V3_Y(v_n)) ;
+    else
+      dz = fabs(V3_Z(v_n)) ;
+    for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
     {
-      face = &mris->faces[fno] ;
-      if (face->ripflag)
-        continue ;
-      if (fno == Gx)
-        DiagBreak() ;
-      v0 = &mris->vertices[face->v[0]] ;
-      v1 = &mris->vertices[face->v[1]] ;
-      v2 = &mris->vertices[face->v[2]] ;
-      VERTEX_EDGE(v_a, v0, v1) ;
-      VERTEX_EDGE(v_b, v0, v2) ;
+      switch (ano)   /* vertices for triangle 1 */
+      {
+      default:
+      case 0: vo = v0 ; va = v2 ; vb = v1 ; break ;
+      case 1: vo = v1 ; va = v0 ; vb = v2 ; break ;
+      case 2: vo = v2 ; va = v1 ; vb = v0 ; break ;
+      }
 
-      /* compute metric properties of first triangle */
-      V3_CROSS_PRODUCT(v_a, v_b, v_n) ;
-      area = V3_LEN(v_n) * 0.5f ;
+      VERTEX_EDGE(v_a, vo, va) ;VERTEX_EDGE(v_b, vo, vb) ;
+      cross = VectorTripleProduct(v_b, v_a, v_n) ;
       dot = V3_DOT(v_a, v_b) ;
-      face->area = area ;
-      V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
-      face->nx = V3_X(v_n); face->ny = V3_Y(v_n); face->nz = V3_Z(v_n);
-      mris->total_area += area ;
-
-      /* now compute angles */
-      VECTOR_LOAD(v_n, face->nx, face->ny, face->nz) ;
-      if ((V3_X(v_n) < V3_Y(v_n)) && (V3_X(v_n) < V3_Z(v_n)))
-        dz = fabs(V3_X(v_n)) ;
-      else if (V3_Y(v_n) < V3_Z(v_n))
-        dz = fabs(V3_Y(v_n)) ;
-      else
-        dz = fabs(V3_Z(v_n)) ;
-      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-        {
-          switch (ano)   /* vertices for triangle 1 */
-            {
-            default:
-            case 0: vo = v0 ; va = v2 ; vb = v1 ; break ;
-            case 1: vo = v1 ; va = v0 ; vb = v2 ; break ;
-            case 2: vo = v2 ; va = v1 ; vb = v0 ; break ;
-            }
-
-          VERTEX_EDGE(v_a, vo, va) ;VERTEX_EDGE(v_b, vo, vb) ;
-          cross = VectorTripleProduct(v_b, v_a, v_n) ;
-          dot = V3_DOT(v_a, v_b) ;
-          angle = atan2(cross, dot) ;
-          face->angle[ano] = angle ;
+      angle = atan2(cross, dot) ;
+      face->angle[ano] = angle ;
 
 #if 0
-          if (angle < 0.0f || angle >= M_PI)
-            fprintf(stdout, "angle [%d][%d] = %2.1f\n",
-                    fno,ano,(float)DEGREES(angle)) ;
+      if (angle < 0.0f || angle >= M_PI)
+        fprintf(stdout, "angle [%d][%d] = %2.1f\n",
+                fno,ano,(float)DEGREES(angle)) ;
 #endif
-        }
     }
+  }
 
   /* calculate the "area" of the vertices */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->area = 0.0 ;
+    for (fno = 0 ; fno < v->num ; fno++)
     {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      v->area = 0.0 ;
-      for (fno = 0 ; fno < v->num ; fno++)
-        {
-          face = &mris->faces[v->f[fno]] ;
-          if (face->ripflag == 0)
-            v->area += face->area ;
-        }
-      if(fix_vertex_area) v->area /= 3.0 ;
-      else                v->area /= 2.0 ;
+      face = &mris->faces[v->f[fno]] ;
+      if (face->ripflag == 0)
+        v->area += face->area ;
     }
+    if(fix_vertex_area) v->area /= 3.0 ;
+    else                v->area /= 2.0 ;
+  }
 
   VectorFree(&v_a) ;
   VectorFree(&v_b) ;
@@ -14687,6 +14689,8 @@ mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius)
 
     x = v->x-x0 ; y = v->y-y0 ; z = v->z-z0 ;
     r = sqrt(x*x+y*y+z*z) ;
+    if (FZERO(r))
+      continue ;
     x /= r ; y /= r ; z /= r ;  /* normal direction */
     //    x = v->nx ; y = v->ny ; z = v->nz ;
     r = (radius - r) / radius ;
@@ -53338,10 +53342,12 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   parms->max_nbrs = 0 ;
   min_neg = negative = MRIScountNegativeTriangles(mris) ; min_neg_iter = 0 ;
   last_expand = 0 ;
+  parms->t -= parms->start_t ;
   while (negative > 0)
   {
     old_neg = negative ;
-    printf("%03d: %d negative triangles\n", parms->t++, negative) ;
+    printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
+           negative) ;
     mrisSmoothingTimeStep(mris, parms) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
@@ -53351,10 +53357,15 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       min_neg = negative ;
       min_neg_iter = parms->t ;
     }
+    else if ((((parms->t-min_neg_iter) % 10) == 0) && parms->t > min_neg_iter)
+    {
+      parms->dt *= 0.95 ;
+    }
     else if ((parms->t > min_neg_iter+100) && parms->t > last_expand+50)
     {
       parms->max_nbrs++ ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+      parms->dt /= 2 ;
       last_expand = parms->t ;
       same = 0 ;
     }
@@ -53403,6 +53414,8 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       break ;
   }
 
+  parms->t += parms->start_t ;
+  parms->start_t = parms->t ;
   return(NO_ERROR) ;
 }
 
@@ -53417,91 +53430,91 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRIScomputeMetricProperties(mris) ;
   MRISclearMarks(mris) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->area < 0)
     {
-      face = &mris->faces[fno] ;
-      if (face->area < 0)
-        {
-          for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-            {
-              v = &mris->vertices[face->v[n]] ;
-              v->area = -1 ;
-              v->marked = 1 ;
-            }
-        }
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      {
+        v = &mris->vertices[face->v[n]] ;
+        v->area = -1 ;
+        v->marked = 1 ;
+      }
     }
+  }
 
   for (m = 0 ; m < parms->max_nbrs ; m++)
-    {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag || v->area <  0 || v->marked == 1)
-            continue ;
-
-          // check to see if it has a nbr that is marked
-          for (n = 0 ; n < v->vnum ; n++)
-            {
-              vn = &mris->vertices[v->v[n]] ;
-              if (vn->marked == 1)
-                {
-                  v->marked = 2 ;
-                  break ;
-                }
-            }
-        }
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->marked == 2)
-            v->marked = 1 ;
-        }
-    }
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->marked == 0)
+      if (v->ripflag || v->area <  0 || v->marked == 1)
         continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      x = v->x ;    y = v->y ;   z = v->z ;
 
-      dx = dy = dz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < v->vnum ; m++)
+      // check to see if it has a nbr that is marked
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->marked == 1)
         {
-          vn = &mris->vertices[v->v[m]] ;
-          if (!vn->ripflag)
-            {
-              dx += vn->x - x;
-              dy += vn->y - y;
-              dz += vn->z - z;
-              n++;
-            }
+          v->marked = 2 ;
+          break ;
         }
-      if (n>0)
-        {
-          dx = dx/n;
-          dy = dy/n;
-          dz = dz/n;
-        }
-
-      v->dx = dx ; v->dy = dy ; v->dz = dz ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n",
-                vno, dx, dy, dz) ;
+      }
     }
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag || v->area > 0)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      v->x += v->dx * parms->dt ;
-      v->y += v->dy * parms->dt ;
-      v->z += v->dz * parms->dt ;
+      if (v->marked == 2)
+        v->marked = 1 ;
     }
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked == 0)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    x = v->x ;    y = v->y ;   z = v->z ;
+
+    dx = dy = dz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < v->vnum ; m++)
+    {
+      vn = &mris->vertices[v->v[m]] ;
+      if (!vn->ripflag)
+      {
+        dx += vn->x - x;
+        dy += vn->y - y;
+        dz += vn->z - z;
+        n++;
+      }
+    }
+    if (n>0)
+    {
+      dx = dx/n;
+      dy = dy/n;
+      dz = dz/n;
+    }
+
+    v->dx = dx ; v->dy = dy ; v->dz = dz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n",
+              vno, dx, dy, dz) ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->area > 0)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v->x += v->dx * parms->dt ;
+    v->y += v->dy * parms->dt ;
+    v->z += v->dz * parms->dt ;
+  }
   MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
