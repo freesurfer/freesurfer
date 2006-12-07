@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.271 2006/11/15 19:56:12 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.272 2006/12/07 20:51:53 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -469,6 +469,7 @@ typedef struct
   int     ignore_energy ;     // when no valid energy func availb...integrate
   int     check_tol ;         // to avoid changing mris_make_surfaces
   char    *overlay_dir;       // subject/overlay_dir/parms->fields[n].fname
+  int     nsurfaces ;         // if 0 use default
 } INTEGRATION_PARMS ;
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, 
