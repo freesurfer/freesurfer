@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.39 2006/12/07 20:51:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -98,10 +98,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.39 2006/12/07 20:51:36 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.38 2006/11/20 20:56:03 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.39 2006/12/07 20:51:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -476,11 +476,22 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "using inflated surface for initial alignment\n") ;
     parms.flags |= IP_USE_INFLATED ;
   }
+  else if (!stricmp(option, "nsurfaces"))
+  {
+    parms.nsurfaces = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using %d surfaces/curvatures for alignment\n", parms.nsurfaces) ;
+  }
   else if (!stricmp(option, "infname"))
   {
+    char fname[STRLEN] ;
 		inflated_name = argv[2] ;
+		surface_names[0] = argv[2] ;
 		nargs = 1 ;
 		printf("using %s as inflated surface name, and using it for initial alignment\n", inflated_name) ;
+    sprintf(fname, "%s.H", argv[2]) ;
+    curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
+    strcpy(curvature_names[0], fname) ;
     parms.flags |= IP_USE_INFLATED ;
   }
 	else if (!stricmp(option, "nosulc"))
