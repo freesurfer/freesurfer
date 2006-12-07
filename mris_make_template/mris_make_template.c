@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.18 2006/08/03 15:11:01 fischl Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.19 2006/12/07 19:11:04 fischl Exp $";
  
 int main(int argc, char *argv[]) ;
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.18 2006/08/03 15:11:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.19 2006/12/07 19:11:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -541,9 +541,13 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 	}
   else if (!stricmp(option, "infname"))
 	{
+    char fname[STRLEN] ;
 		surface_names[0] = argv[2] ;
 		nargs = 1 ;
 		printf("using %s instead of inflated\n", argv[2]) ;
+    sprintf(fname, "%s.H", argv[2]) ;
+    curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
+    strcpy(curvature_names[0], fname) ;
 	}
   else if (!stricmp(option, "norot"))
 	{
