@@ -48,6 +48,9 @@ typedef struct {
   char subjid[FSGDF_NINPUTS_MAX][100];
   int  subjclassno[FSGDF_NINPUTS_MAX];
   float varvals[FSGDF_NINPUTS_MAX][FSGDF_NVARS_MAX];
+  double NPerClass[FSGDF_NCLASSES_MAX];
+  double VarMeans[FSGDF_NVARS_MAX];
+  double ClassVarMeans[FSGDF_NCLASSES_MAX][FSGDF_NVARS_MAX];
   char DesignMatFile[1000]; /* actual matlab4 mat file */
   char DesignMatMethod[100]; /* creation method */
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
@@ -109,7 +112,8 @@ char *gdfGetSDataFromTable(char *tablefile, char *field,
 			   int fieldcol, int datacol);
 int gdfGetDDataFromTable(char *tablefile, char *field, 
 			 int fieldcol, int datacol, double *data);
-int gdfDeMean(FSGD *gd, MATRIX *X);
+int gdfVarMeans(FSGD *gd);
+int gdfClassVarMeans(FSGD *gd);
 
 #endif //#ifndef FSGDF_INC
 

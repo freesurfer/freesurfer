@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.38 2006/12/07 22:21:46 greve Exp $
+  $Id: fsgdf.c,v 1.39 2006/12/07 23:22:00 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -573,8 +573,13 @@ static FSGD *gdfReadV1(char *gdfname)
   if(gd->DeMean == -1 && gd->nvariables > 0){
     printf("INFO: DeMeanFlag keyword not found, DeMeaning will NOT be done.\n");
     gd->DeMean = 0;
+  } else {
+    if(gd->DeMean) printf("INFO: demeaning continous variables\n");
+    else           printf("INFO: NOT demeaning continous variables\n");
   }
-    
+
+  gdfVarMeans(gd);    
+  gdfClassVarMeans(gd);    
 
   return(gd);
 
@@ -811,7 +816,71 @@ int gdfGetVarLabelNo(FSGD *gd, char *LabelName)
 	return(n);
   return(-1);
 }
+/*--------------------------------------------------------*/
+int gdfVarMeans(FSGD *gd)
+{
+  int vno, n;
 
+  // Init
+  for(vno = 0; vno < gd->nvariables; vno++) 
+    gd->VarMeans[vno] = 0;
+
+  // Sum over all inputs regardless of class
+  for(n=0; n < gd->ninputs; n++){
+    for(vno = 0; vno < gd->nvariables; vno++){
+      gd->VarMeans[vno] += gd->varvals[n][vno];
+    }
+  }
+
+  // Divide by ninputs
+  for(vno = 0; vno < gd->nvariables; vno++) 
+    gd->VarMeans[vno] /= gd->ninputs;
+
+  printf("Continuous Variable Means (all subjects)\n");
+  for(vno = 0; vno < gd->nvariables; vno++)
+    printf("%d %s %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno]);
+  
+  return(0);
+}
+
+
+/*--------------------------------------------------------*/
+int gdfClassVarMeans(FSGD *gd)
+{
+  int cno, vno, n;
+
+  // Init
+  for(cno = 0; cno < gd->nclasses; cno++){
+    gd->NPerClass[cno] = 0;
+    for(vno = 0; vno < gd->nvariables; vno++)
+      gd->ClassVarMeans[cno][vno] = 0;
+  }
+
+  // Sum and count nper class
+  for(n=0; n < gd->ninputs; n++){
+    cno = gd->subjclassno[n];
+    gd->NPerClass[cno] ++;
+    for(vno = 0; vno < gd->nvariables; vno++){
+      gd->ClassVarMeans[cno][vno] += gd->varvals[n][vno];
+    }
+  }
+
+  // Divide by nper class
+  for(cno = 0; cno < gd->nclasses; cno++){
+    for(vno = 0; vno < gd->nvariables; vno++)
+      gd->ClassVarMeans[cno][vno] /= gd->NPerClass[cno];
+  }
+
+  printf("Class Means of each Continuous Variable\n");
+  for(cno = 0; cno < gd->nclasses; cno++){
+    printf("%d %s",cno+1,gd->classlabel[cno]);
+    for(vno = 0; vno < gd->nvariables; vno++)
+      printf("%8.4f ",gd->ClassVarMeans[cno][vno]);
+    printf("\n");
+  }
+
+  return(0);
+}
 
 /*--------------------------------------------------------
   gdfMatrixDOSS() - creates a design matrix that models each
@@ -821,6 +890,7 @@ int gdfGetVarLabelNo(FSGD *gd, char *LabelName)
 MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X)
 {
   int nrows, ncols, r,v,c;
+  double mn;
 
   nrows = gd->ninputs;
   ncols = gd->nclasses + gd->nvariables;
@@ -834,8 +904,10 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X)
     X->rptr[r+1][c+1] = 1;
     
     for(v = 0; v < gd->nvariables; v++){
+      if(gd->DeMean) mn = gd->VarMeans[v];
+      else           mn = 0;
       c = v + gd->nclasses;
-      X->rptr[r+1][c+1] = gd->varvals[r][v];
+      X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
     }
   }
 
@@ -853,6 +925,7 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X)
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
 {
   int nrows, ncols, n,r,v,c;
+  double mn;
 
   nrows = gd->ninputs;
   ncols = gd->nclasses * ( gd->nvariables + 1);
@@ -862,13 +935,15 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
 
   for(r=0; r < nrows; r++){
 
-    n = gd->subjclassno[r];
+    n = gd->subjclassno[r]; // 0-based class number
     c = n;
     X->rptr[r+1][c+1] = 1;
     
     for(v = 0; v < gd->nvariables; v++){
+      if(gd->DeMean) mn = gd->ClassVarMeans[n][v];
+      else           mn = 0;
       c += gd->nclasses;
-      X->rptr[r+1][c+1] = gd->varvals[r][v];
+      X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
     }
   }
 
@@ -901,36 +976,9 @@ MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X)
   if(strcmp(gd2mtx_method,"dods") == 0)
     X = gdfMatrixDODS(gd,X);
 
-  if(gd->DeMean) gdfDeMean(gd,X);
-
   gd->X = X;
 
   return(X);
-}
-/*---------------------------------------------------------------*/
-/*!/
-  \fn int gdfDeMean(FSGD *gd, MATRIX *X)
-  \brief Removes the mean from the continuous variables.
-*/
-int gdfDeMean(FSGD *gd, MATRIX *X)
-{
-  int r,c;
-  double sum, mean;
-
-  printf("Demeaning continuous variables\n");
-
-  if(gd->nvariables == 0){
-    printf("ERROR: no continuous variables to demean \n");
-    exit(1);
-  }
-
-  for(c = gd->nclasses+1; c <= X->cols; c++){
-    sum = 0;
-    for(r=1; r <= X->rows; r++) sum += X->rptr[r][c];
-    mean = sum/X->rows;
-    for(r=1; r <= X->rows; r++) X->rptr[r][c] -= mean;
-  }
-  return(0);
 }
 
 /*------------------------------------------------------------
