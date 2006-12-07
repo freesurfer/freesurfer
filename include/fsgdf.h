@@ -54,6 +54,7 @@ typedef struct {
   MRI *data;
   double ResFWHM;
   int LogY; // indicates whether nat log of y was used
+  int DeMean; // remove mean from continuous variables
 } GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
@@ -108,7 +109,7 @@ char *gdfGetSDataFromTable(char *tablefile, char *field,
 			   int fieldcol, int datacol);
 int gdfGetDDataFromTable(char *tablefile, char *field, 
 			 int fieldcol, int datacol, double *data);
-
+int gdfDeMean(FSGD *gd, MATRIX *X);
 
 #endif //#ifndef FSGDF_INC
 

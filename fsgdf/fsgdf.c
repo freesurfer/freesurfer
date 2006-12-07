@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.37 2006/11/01 20:17:45 nicks Exp $
+  $Id: fsgdf.c,v 1.38 2006/12/07 22:21:46 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -58,6 +58,7 @@
 #include "fsenv.h"
 #include "utils.h"
 #include "proto.h"
+#include "diag.h"
 
 #define FSGDF_SRC
 #include "fsgdf.h"
@@ -170,6 +171,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
     fprintf(fp,"PlotFile %s\n",gd->datafile);
   if(strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
+  fprintf(fp,"DeMeanFlag %d\n",gd->DeMean);
   fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
   fprintf(fp,"LogY %d\n",gd->LogY);
   if(strlen(gd->defvarlabel) > 0)
@@ -361,12 +363,15 @@ static FSGD *gdfReadV1(char *gdfname)
 
   gd = gdfAlloc(1);
   gd->nvarsfromfile = 0;
+  gd->DeMean = -1; 
 
   /*------- begin input loop --------------*/
   while(1){
 
     r = fscanf(fp,"%s",tag);
     if(r==EOF) break;
+
+    if(Gdiag_no > 0) printf("fsgd tag: %s\n",tag);
 
     if(!strcasecmp(tag,"Title")){
       r = fscanf(fp,"%s",gd->title);
@@ -405,13 +410,19 @@ static FSGD *gdfReadV1(char *gdfname)
     }
     /*----------------- ResidualFWHM Line ---------------------*/
     if(!strcasecmp(tag,"ResidualFWHM")){
-      r = fscanf(fp,"%*s %lf",&gd->ResFWHM);
+      r = fscanf(fp,"%lf",&gd->ResFWHM);
       if(r==EOF) goto formaterror;
       continue;
     }
     /*----------------- LogY Line ---------------------*/
     if(!strcasecmp(tag,"LogY")){
-      r = fscanf(fp,"%*s %d",&gd->LogY);
+      r = fscanf(fp,"%d",&gd->LogY);
+      if(r==EOF) goto formaterror;
+      continue;
+    }
+    /*----------------- DeMeanFlag ---------------------*/
+    if(!strcasecmp(tag,"DeMeanFlag")){
+      r = fscanf(fp,"%d",&gd->DeMean);
       if(r==EOF) goto formaterror;
       continue;
     }
@@ -558,6 +569,12 @@ static FSGD *gdfReadV1(char *gdfname)
     sprintf(tag,"DefaultVariable");
     goto formaterror;
   }
+
+  if(gd->DeMean == -1 && gd->nvariables > 0){
+    printf("INFO: DeMeanFlag keyword not found, DeMeaning will NOT be done.\n");
+    gd->DeMean = 0;
+  }
+    
 
   return(gd);
 
@@ -857,7 +874,6 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
 
   return(X);
 }
-
 /*---------------------------------------------------*/
 int gdfCheckMatrixMethod(char *gd2mtx_method)
 {
@@ -885,10 +901,38 @@ MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X)
   if(strcmp(gd2mtx_method,"dods") == 0)
     X = gdfMatrixDODS(gd,X);
 
+  if(gd->DeMean) gdfDeMean(gd,X);
+
   gd->X = X;
 
   return(X);
 }
+/*---------------------------------------------------------------*/
+/*!/
+  \fn int gdfDeMean(FSGD *gd, MATRIX *X)
+  \brief Removes the mean from the continuous variables.
+*/
+int gdfDeMean(FSGD *gd, MATRIX *X)
+{
+  int r,c;
+  double sum, mean;
+
+  printf("Demeaning continuous variables\n");
+
+  if(gd->nvariables == 0){
+    printf("ERROR: no continuous variables to demean \n");
+    exit(1);
+  }
+
+  for(c = gd->nclasses+1; c <= X->cols; c++){
+    sum = 0;
+    for(r=1; r <= X->rows; r++) sum += X->rptr[r][c];
+    mean = sum/X->rows;
+    for(r=1; r <= X->rows; r++) X->rptr[r][c] -= mean;
+  }
+  return(0);
+}
+
 /*------------------------------------------------------------
   gdfOffsetSlope() - computes the offset and slope regression 
   parameters for the given class and variable numbers of
