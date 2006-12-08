@@ -186,6 +186,13 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
+install-exec-hook:
+	cp $(srcdir)/unpacksdcmdir $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/unpacksdcmdir
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/unpacksdcmdir
+	echo "unpacksdcmdir.tcl \$$argv" >> $(DESTDIR)$(bindir)/unpacksdcmdir
+	chmod a+x $(DESTDIR)$(bindir)/unpacksdcmdir
+
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup
 
 # notes: 
