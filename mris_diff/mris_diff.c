@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.12 2006/05/16 21:39:54 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.13 2006/12/08 18:27:27 fischl Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -97,6 +97,7 @@ static char *subject1=NULL, *subject2=NULL, *hemi=NULL;
 static char *SUBJECTS_DIR=NULL, *SUBJECTS_DIR1=NULL, *SUBJECTS_DIR2=NULL;
 static char *curvname=NULL, *aparcname=NULL,*surfname=NULL;
 static char *surf1path=NULL, *surf2path=NULL;
+static char *out_fname ;
 static char tmpstr[2000];
 
 static MRIS *surf1, *surf2;
@@ -104,6 +105,7 @@ static MRIS *surf1, *surf2;
 static int CheckSurf=0;
 static int CheckXYZ=1;
 static int CheckNXYZ=1;
+static int ComputeNormalDist=0;
 static int CheckCurv=0;
 static int CheckAParc=0;
 static double thresh=0;
@@ -196,6 +198,29 @@ int main(int argc, char *argv[])
   //surf1->faces[10000].area = 100;
   //surf1->vertices[10000].x = 100;
 
+  if (ComputeNormalDist)
+  {
+    double dist, dx, dy, dz, dot ;
+    MRI    *mri_dist ;
+    
+    mri_dist = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;
+    MRIScomputeMetricProperties(surf1) ;
+    MRIScomputeMetricProperties(surf2) ;
+    for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++)
+    {
+      vtx1 = &(surf1->vertices[nthvtx]);
+      vtx2 = &(surf2->vertices[nthvtx]);
+      dx = vtx2->x-vtx1->x ; dy = vtx2->y-vtx1->y ; dz = vtx2->z-vtx1->z ;
+      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dot = dx*vtx1->nx + dy*vtx1->ny + dz*vtx1->nz ;
+      dist = dist * dot / fabs(dot) ;
+      MRIsetVoxVal(mri_dist, nthvtx, 0, 0, 0, dist) ;
+    }
+    MRIwrite(mri_dist, out_fname) ;
+    MRIfree(&mri_dist) ;
+    exit(0);
+  }
+
   maxdiff=0;
 
   //------------------------------------------------------------
@@ -213,50 +238,50 @@ int main(int argc, char *argv[])
         if(++error_count>=MAX_NUM_ERRORS) break;
       }
       if(CheckXYZ){
-	diff=fabs(vtx1->x - vtx2->x);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in x %g %g\t(%g)\n",
-		 nthvtx,vtx1->x,vtx2->x,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(vtx1->y - vtx2->y);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in y %g %g\t(%g)\n",
-		 nthvtx,vtx1->y,vtx2->y,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(vtx1->z - vtx2->z);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in z %g %g\t(%g)\n",
-		 nthvtx,vtx1->z,vtx2->z,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
+        diff=fabs(vtx1->x - vtx2->x);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in x %g %g\t(%g)\n",
+                 nthvtx,vtx1->x,vtx2->x,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(vtx1->y - vtx2->y);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in y %g %g\t(%g)\n",
+                 nthvtx,vtx1->y,vtx2->y,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(vtx1->z - vtx2->z);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in z %g %g\t(%g)\n",
+                 nthvtx,vtx1->z,vtx2->z,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
       }
       if(CheckNXYZ){
-	diff=fabs(vtx1->nx - vtx2->nx);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in nx %g %g\t(%g)\n",
-		 nthvtx,vtx1->nx,vtx2->nx,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(vtx1->ny - vtx2->ny);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in ny %g %g\t(%g)\n",
-		 nthvtx,vtx1->ny,vtx2->ny,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(vtx1->nz - vtx2->nz);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Vertex %d differs in nz %g %g\t(%g)\n",
-		 nthvtx,vtx1->nz,vtx2->nz,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
+        diff=fabs(vtx1->nx - vtx2->nx);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in nx %g %g\t(%g)\n",
+                 nthvtx,vtx1->nx,vtx2->nx,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(vtx1->ny - vtx2->ny);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in ny %g %g\t(%g)\n",
+                 nthvtx,vtx1->ny,vtx2->ny,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(vtx1->nz - vtx2->nz);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Vertex %d differs in nz %g %g\t(%g)\n",
+                 nthvtx,vtx1->nz,vtx2->nz,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
@@ -280,7 +305,7 @@ int main(int argc, char *argv[])
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
-	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+        printf("Exceeded MAX_NUM_ERRORS loop guard\n");
       } 
       exit(103);
     }
@@ -291,27 +316,27 @@ int main(int argc, char *argv[])
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
       if(CheckNXYZ){
-	diff=fabs(face1->nx - face2->nx);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Face %d differs in nx %g %g\t(%g)\n",
-		 nthface,face1->nx,face2->nx,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(face1->ny - face2->ny);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Face %d differs in ny %g %g\t(%g)\n",
-		 nthface,face1->ny,face2->ny,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
-	diff=fabs(face1->nz - face2->nz);
-	if(diff>maxdiff) maxdiff=diff;
-	if(diff>thresh){
-	  printf("Face %d differs in nz %g %g\t(%g)\n",
-		 nthface,face1->nz,face2->nz,diff);
-	  if(++error_count>=MAX_NUM_ERRORS) break;
-	}
+        diff=fabs(face1->nx - face2->nx);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Face %d differs in nx %g %g\t(%g)\n",
+                 nthface,face1->nx,face2->nx,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(face1->ny - face2->ny);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Face %d differs in ny %g %g\t(%g)\n",
+                 nthface,face1->ny,face2->ny,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
+        diff=fabs(face1->nz - face2->nz);
+        if(diff>maxdiff) maxdiff=diff;
+        if(diff>thresh){
+          printf("Face %d differs in nz %g %g\t(%g)\n",
+                 nthface,face1->nz,face2->nz,diff);
+          if(++error_count>=MAX_NUM_ERRORS) break;
+        }
       }
       diff=fabs(face1->area - face2->area);
       if(diff>maxdiff) maxdiff=diff;
@@ -338,7 +363,7 @@ int main(int argc, char *argv[])
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
-	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+        printf("Exceeded MAX_NUM_ERRORS loop guard\n");
       } 
       exit(103);
     }
@@ -378,7 +403,7 @@ int main(int argc, char *argv[])
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
-	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+        printf("Exceeded MAX_NUM_ERRORS loop guard\n");
       } 
       exit(103);
     }
@@ -416,7 +441,7 @@ int main(int argc, char *argv[])
     if(error_count > 0){
       printf("Exiting after finding %d errors\n",error_count);
       if(error_count>=MAX_NUM_ERRORS){
-	printf("Exceeded MAX_NUM_ERRORS loop guard\n");
+        printf("Exceeded MAX_NUM_ERRORS loop guard\n");
       } 
       exit(103);
     }
@@ -454,6 +479,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--no-check-xyz")) CheckXYZ = 0;
     else if (!strcasecmp(option, "--no-check-nxyz")) CheckNXYZ = 0;
+    else if (!strcasecmp(option, "--ndist")) 
+    {
+      ComputeNormalDist = 1;
+      out_fname = pargv[0];
+      nargsused = 1;
+    }
 
     else if (!strcasecmp(option, "--s1")){
       if(nargc < 1) CMDargNErr(option,1);
