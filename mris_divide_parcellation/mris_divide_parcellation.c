@@ -5,7 +5,7 @@
 */
 
 
-// $Id: mris_divide_parcellation.c,v 1.1 2006/12/11 21:03:56 fischl Exp $
+// $Id: mris_divide_parcellation.c,v 1.2 2006/12/11 21:08:23 fischl Exp $
 
 
 
@@ -35,7 +35,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.1 2006/12/11 21:03:56 fischl Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.2 2006/12/11 21:08:23 fischl Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
@@ -150,7 +150,7 @@ print_usage(void)
   printf("%s [options] <subject> <hemi> <input annot> <area> <output annot>\n",Progname) ;
   printf("\n");
   printf("options\n");
-  printf("  -l <label name>  only process the label <label name\n");
+  printf("  -l <label name>  only process the label <label name> (not implemented yet)\n");
 }
 
 static void
