@@ -149,6 +149,7 @@ MRISSUBDIRS=label_area \
 	mris_annot_to_segmentation \
 	mris_average_curvature \
 	mris_ca_label \
+	mris_divide_parcellation \
 	mris_ca_train \
 	mris_classify_thickness \
 	mris_compute_acorr \
