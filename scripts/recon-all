@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.50 2006/12/06 17:14:08 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.51 2006/12/12 19:42:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -16,8 +16,11 @@ set WaitSleep =  1m;
 set NotifyFile = ();
 set PrintHelp = 0;
 set LF = ();
+set LF_DEFAULT_NAME = recon-all.log;
 set SF = ();
+set SF_DEFAULT_NAME = recon-all-status.log;
 set CF = ();
+set CF_DEFAULT_NAME = recon-all.cmd;
 set AppendLog    = 1;
 set AppendStatus = 1;
 set DoLegacy = 0;
@@ -185,7 +188,7 @@ set touchdir = $subjdir/touch
 
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then
-  set CF = $subjdir/scripts/recon-all.cmd
+  set CF = ($subjdir/scripts/$CF_DEFAULT_NAME)
   rm -f $CF
   # Create a separate file for the env
   set ENVF = $subjdir/scripts/recon-all.env
@@ -215,7 +218,7 @@ endif
 
 # ------------ Create the log file --------------- #
 if($#LF == 0) then
-  set LF = ($subjdir/scripts/recon-all.log)
+  set LF = ($subjdir/scripts/$LF_DEFAULT_NAME)
   if(-e $LF) then
     ls -l $LF
     if(! $AppendLog) then
@@ -301,7 +304,7 @@ endif
 
 # --------------- Create the status file ---------------- #
 if($#SF == 0) then
-  set SF = $subjdir/scripts/recon-all-status.log
+  set SF = ($subjdir/scripts/$SF_DEFAULT_NAME)
   if(-e $SF) then
     if(! $AppendStatus) then
        mv $SF $SF.old
@@ -538,8 +541,9 @@ if($DoNuIntensityCor) then
   echo "#@# Nu Intensity Correction `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
   set cmd = (mri_nu_correct.mni  --i orig.mgz \
-     --o nu.mgz --n $NuIterations)
+     --o nu.mgz --n $NuIterations $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -2208,7 +2212,7 @@ while( $#argv != 0 )
 
     case "-autorecon2":
       set DoGCAReg         = 1;
-      set DoCARegInv      = 1;
+      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -2228,6 +2232,21 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
+      breaksw
+
+    case "-autorecon2-volonly":
+      set DoGCAReg         = 1;
+      set DoCARegInv       = 1;
+      set DoRemoveNeck     = 1;
+      set DoSkullLTA       = 1;
+      set DoCANormalize    = 1;
+      set DoCAReg          = 1;
+      set DoCALabel        = 1;
+      set DoSegStats       = 1;
+      set DoNormalization2 = 1;
+      set DoMaskBFS        = 1;
+      set DoSegmentation   = 1;
+      set DoFill           = 1;
       breaksw
 
     case "-autorecon2-perhemi":
@@ -2310,6 +2329,35 @@ while( $#argv != 0 )
       set DoAParc2ASeg     = 1;
       breaksw
 
+    case "-autorecon-hemi":
+      if ( $#argv < 1) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if($hemilist != lh && $hemilist != rh) then
+        echo "ERROR: hemi = $hemilist, must be either lh or rh"
+        goto error_exit;
+      endif
+      set LF_DEFAULT_NAME = "recon-all-${hemilist}.log"
+      set SF_DEFAULT_NAME = "recon-all-status-${hemilist}.log"
+      set CF_DEFAULT_NAME = "recon-all-${hemilist}.cmd"
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      set DoSphere         = 1;
+      set DoSurfReg        = 1;
+      set DoContraSurfReg  = 0;
+      set DoAvgCurv        = 1;
+      set DoCortParc       = 1;
+      set DoParcStats      = 1;
+      set DoCortParc2      = 1;
+      set DoParcStats2     = 1;
+      set DoAParc2ASeg     = 1;
+      breaksw
 
     case "-waitfor":
       if ( $#argv < 1) goto arg1err;
