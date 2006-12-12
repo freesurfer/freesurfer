@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $
+  $Id: mri_vol2surf.c,v 1.33 2006/12/12 23:54:55 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -40,6 +40,7 @@
 #include "mri_identify.h"
 #include "mri2.h"
 #include "prime.h"
+#include "fsenv.h"
 
 //#include "bfileio.h"
 #include "registerio.h"
@@ -58,7 +59,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.33 2006/12/12 23:54:55 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -162,7 +163,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.32 2006/10/06 19:44:37 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.33 2006/12/12 23:54:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -597,6 +598,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
     else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
     
+    else if ( !strcmp(option, "--sd") ) {
+      if(nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      FSENVsetSUBJECTS_DIR(SUBJECTS_DIR);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--default_type") ) {
       if(nargc < 1) argnerr(option,1);
       defaulttypestring = pargv[0];
@@ -904,6 +911,7 @@ static void print_usage(void)
   printf("   --scale scale : multiply all intensities by scale.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --seedfile fname : save synth seed to fname\n");
+  printf("   --sd SUBJECTS_DIR \n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
