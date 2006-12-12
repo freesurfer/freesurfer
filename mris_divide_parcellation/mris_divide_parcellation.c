@@ -5,7 +5,7 @@
 */
 
 
-// $Id: mris_divide_parcellation.c,v 1.2 2006/12/11 21:08:23 fischl Exp $
+// $Id: mris_divide_parcellation.c,v 1.3 2006/12/12 12:20:58 fischl Exp $
 
 
 
@@ -35,7 +35,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.2 2006/12/11 21:08:23 fischl Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.3 2006/12/12 12:20:58 fischl Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
@@ -305,7 +305,7 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, float area_thresh, int annot)
   printf("dividing %2.0f mm parcellation into %d units\n",area, nunits) ;
 
   // find vertex in annotation closest to centroid
-  min_dist = 100000 ; min_vno = -1 ;
+  min_dist = 100000 ; min_vno = -1 ; vc = NULL ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
