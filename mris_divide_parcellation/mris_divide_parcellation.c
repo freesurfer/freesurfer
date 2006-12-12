@@ -5,7 +5,7 @@
 */
 
 
-// $Id: mris_divide_parcellation.c,v 1.4 2006/12/12 14:08:38 fischl Exp $
+// $Id: mris_divide_parcellation.c,v 1.5 2006/12/12 14:19:36 fischl Exp $
 
 
 
@@ -35,11 +35,12 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.4 2006/12/12 14:08:38 fischl Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.5 2006/12/12 14:19:36 fischl Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
 
+static int rgb_scale = 30 ;
 int  MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int  MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;
 
@@ -178,6 +179,12 @@ get_option(int argc, char *argv[])
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "scale"))
+  {
+    rgb_scale = atoi(argv[2]) ;
+    printf("scaling rgb values by %d\n", rgb_scale) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
   case '?':
@@ -201,22 +208,19 @@ print_usage(void)
   printf("%s [options] <subject> <hemi> <input annot> <area> <output annot>\n",Progname) ;
   printf("\n");
   printf("options\n");
-  printf("  -l <label name>  only process the label <label name> (not implemented yet)\n");
+  printf( "  -scale <scale>   specify offset scaling for rgb values (default=20)\n");
+  printf( "  -l     <label name>  only process the label <label name> (not implemented yet)\n");
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr,
-          "\nThis divides a parcellation either into a specified # of units\n"
-          " or until all units are below an area threshold\n") ;
-  fprintf(stderr, "If <area thresh> is non-numeric, it is interpreted as a file name.\n"
-          "The file is parsed for <name> <num> pairs that specify how many divisions each parcellation "
-          "unit should be split into (only units that should be split need be specified.\n") ;
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr,
-          "-a <avgs>   average curvature values <avgs> times (default=10)\n");
+  printf("\nThis program divides a parcellation either into a specified #\n"
+          "of units or until all units are below an area threshold\n") ;
+  printf("If <area thresh> is non-numeric, it is interpreted as a file name.\n"
+          "The file is parsed for <name> <num> pairs that specify how many\ndivisions each parcellation "
+          "unit should be split into \n(only units that should be split need be specified.\n") ;
   exit(1) ;
 }
 
@@ -281,10 +285,9 @@ MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
       offset = j ; found = 0 ;
       do
       {
-#define RGB_SCALE 30
-        ri = (ct->entries[i]->ri+RGB_SCALE*offset) % 256 ; 
-        gi = (ct->entries[i]->gi+RGB_SCALE*offset) % 256 ; 
-        bi = (ct->entries[i]->bi+RGB_SCALE*offset) % 256 ;
+        ri = (ct->entries[i]->ri+rgb_scale*offset) % 256 ; 
+        gi = (ct->entries[i]->gi+rgb_scale*offset) % 256 ; 
+        bi = (ct->entries[i]->bi+rgb_scale*offset) % 256 ;
         CTABfindRGBi(ct, ri, gi, bi, &new_index) ;
         if (new_index < 0)  // couldn't find this r,g,b set - can use it for new entry
         {
