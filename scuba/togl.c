@@ -1,4 +1,4 @@
-/* $Id: togl.c,v 1.4 2006/11/13 19:15:03 nicks Exp $ */
+/* $Id: togl.c,v 1.5 2006/12/13 22:47:48 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -1375,7 +1375,8 @@ static int Togl_Cmd(ClientData clientData, Tcl_Interp *interp,
   }
   else
 #endif
-  {                                  /* use private API */
+  /* use private API */
+  {                                  
     /*
        We need to set these fields in the Tk_FakeWin structure:
        dummy17 = classProcsPtr
