@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.37 2006/12/05 03:50:49 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.38 2006/12/13 00:23:18 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.37 2006/12/05 03:50:49 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.38 2006/12/13 00:23:18 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -581,7 +581,7 @@ for slice = firstslice:lastslice
 	  if(~isempty(indBrain))
 	    ar1mask = sum(eres(1:end-1,indBrain).*eres(2:end,indBrain))./...
 		sum(eres(:,indBrain).^2);
-	    ar1slice = zeros([nrows ncols]);
+	    ar1slice = zeros([ncols nrows]);
 	    ar1slice(indBrain) = ar1mask;
 	    ar1.vol(:,:,slice+1,run) = ar1slice;
 	  end
@@ -663,7 +663,7 @@ for slice = firstslice:lastslice
     
   % Save the mean image %
   if(RmBaseline)
-    hoffset = reshape(hhat(NTaskAvgs+1,:), [nrows ncols]); % From 1st Run
+    hoffset = reshape(hhat(NTaskAvgs+1,:), [ncols nrows]); % From 1st Run
     indz = find(hoffset==0);
     hoffset(indz) = 1;
     fname = sprintf('%s-offset_%03d.bfloat',hstem,slice);
@@ -708,7 +708,7 @@ for slice = firstslice:lastslice
   end
     
   tmp = eres_var;
-  tmp = reshape(tmp',[nrows ncols]);
+  tmp = reshape(tmp',[ncols nrows]);
   rstd.vol(:,:,slice+1) = sqrt(tmp);
 
   % Omnibus Significance Test %
@@ -731,7 +731,7 @@ for slice = firstslice:lastslice
     F = sign(qsum) .* Fnum ./ Fden;
     if(~isempty(fomnibusstem))
       fname = sprintf('%s_%03d.bfloat',fomnibusstem,slice);
-      tmp = reshape(F,[nrows ncols]);
+      tmp = reshape(F,[ncols nrows]);
       if(~s.UseMRIread) 
 	fmri_svbfile(tmp,fname);
 	%if(s.UseMRIread) fast_svbhdr(mristruct,fomnibusstem,1); end
@@ -752,7 +752,7 @@ for slice = firstslice:lastslice
       indz = find(p==0);
       p(indz) = 1;
       p = sign(p).*(-log10(abs(p)));
-      tmp = reshape(p,[nrows ncols]);
+      tmp = reshape(p,[ncols nrows]);
       if(~s.UseMRIread) 
 	fname = sprintf('%s_%03d.bfloat',pomnibusstem,slice);
 	fmri_svbfile(tmp,fname);
@@ -769,13 +769,13 @@ for slice = firstslice:lastslice
     P = diag(p);
     sigvar = sum(hhat .* ((P'*SumXtX*P) * hhat))/(ntrstot);  %'
 
-    sigvar = reshape(sigvar,[nrows ncols]);
+    sigvar = reshape(sigvar,[ncols nrows]);
     fname = sprintf('%s/sigvar_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(sigvar,fname);
     fname = sprintf('%s/sigstd_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(sqrt(sigvar),fname);
     
-    resvar = reshape(eres_std.^2,[nrows ncols]);
+    resvar = reshape(eres_std.^2,[ncols nrows]);
     fname = sprintf('%s/resvar_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(resvar,fname);
     fname = sprintf('%s/resstd_%03d.bfloat',s.snrdir,slice);
