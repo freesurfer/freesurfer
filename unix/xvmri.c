@@ -398,8 +398,8 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
     case 't':
       talairach = 0 ;
       break ;
-    case 'h':
 #if 0
+    case 'h':
       {
         HISTOGRAM *histo ;
         float     fmin, fmax ;
@@ -412,6 +412,8 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
         xv_main_loop(xvnew->frame);
         HISTOfree(&histo) ;
       }
+#else
+    case 'h':
 #endif
       break ;
     }
