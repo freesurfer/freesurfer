@@ -4,9 +4,13 @@
 
 SUBDIRS=images
 
-AM_CPPFLAGS=-I$(top_srcdir)/include
-
+# -Wno-non-virtual-dtor suppresses valid scuba and cppunit warnings:
+# "has virtual functions but non-virtual destructor"
+# these warnings appear with gcc 4.#
+AM_CXXFLAGS=-Wno-non-virtual-dtor
+AM_CPPFLAGS=-I$(top_srcdir)/include -Wno-non-virtual-dtor
 AM_LDFLAGS=
+
 
 FORMS = mainform.ui
 
