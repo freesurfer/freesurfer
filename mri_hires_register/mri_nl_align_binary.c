@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/15 20:20:39 $
-// Revision       : $Revision: 1.7 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/13 23:31:13 $
+// Revision       : $Revision: 1.8 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -399,10 +399,8 @@ main(int argc, char *argv[])
 #endif
 		GCAMinitLabels(gcam, mri_orig_source) ;
 #if 0
-		{
 			GCAMvoxToRas(gcam) ;
 			GCAMrasToVox(gcam, mri_target) ;
-		}
 #endif
 	}
 	else  /* use a previously create morph and integrate it some more */
