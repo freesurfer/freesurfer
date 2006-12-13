@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/15 19:51:11 $
-// Revision       : $Revision: 1.9 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/13 22:24:43 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -1377,6 +1377,7 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
   MRIfree(&mri_aligned) ;
 
 #if 0
+  if (0)
   {
 #if 0
     mri_aligned =
