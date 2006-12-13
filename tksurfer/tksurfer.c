@@ -10873,11 +10873,14 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
                 force += tanh((nc-anc)*0.2);
               }
             else
-#endif
               {
                 anc = 0;
                 force += tanh((nc-anc)*0.5);
               }
+#else
+            anc = 0;
+            force += tanh((nc-anc)*0.5);
+#endif
             dx = sx*0.5 + v->nx*force;
             dy = sy*0.5 + v->ny*force;
             dz = sz*0.5 + v->nz*force;
@@ -19196,7 +19199,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.229 2006/11/23 05:36:06 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.230 2006/12/13 22:41:14 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
