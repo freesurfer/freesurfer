@@ -1,4 +1,4 @@
-/* $Id: togl.c,v 1.5 2006/12/13 22:47:48 nicks Exp $ */
+/* $Id: togl.c,v 1.6 2006/12/13 23:54:38 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -2225,11 +2225,10 @@ static void ToglCmdDeletedProc( ClientData clientData )
  * Gets called when an Togl widget is destroyed.
  */
 #if (TK_MAJOR_VERSION * 100 + TK_MINOR_VERSION) >= 401
-static void Togl_Destroy( char *clientData )
+static void Togl_Destroy( char *clientData ) {
 #else
-  static void Togl_Destroy( ClientData clientData )
+  static void Togl_Destroy( ClientData clientData ) {
 #endif
-{
   struct Togl *togl = (struct Togl *)clientData;
 
   Tk_FreeOptions(configSpecs, (char *)togl, togl->display, 0);
