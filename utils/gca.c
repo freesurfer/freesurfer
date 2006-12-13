@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/05 01:26:54 $
-// Revision       : $Revision: 1.216 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/13 21:36:04 $
+// Revision       : $Revision: 1.217 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6454,7 +6454,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     }
   else
     old_ll = 0 ;
+
 #if 0
+  if (0)
   {
     MRI   *mri_cma ;
     char  fname[STRLEN], *cp ;
