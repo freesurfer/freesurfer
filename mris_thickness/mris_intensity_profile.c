@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.9 2006/06/01 22:32:22 kteich Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.10 2006/12/13 23:41:06 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
   LTA           *lta ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.9 2006/06/01 22:32:22 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.10 2006/12/13 23:41:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -767,6 +767,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 		}
 	      else
 #endif
+    // otherwise...
 		{
 		  x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
 		  MRISrasToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;

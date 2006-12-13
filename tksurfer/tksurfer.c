@@ -16725,6 +16725,7 @@ mark_face(int fno)
     set_color(0.0,0.0,GREEN_RED_CURV);
   else
 #endif
+    // (onoroff==TRUE)
     {
       if (blackcursorflag)  RGBcolor(0,0,0);
       else                  RGBcolor(0,255,255);
@@ -19199,7 +19200,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.230 2006/12/13 22:41:14 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.231 2006/12/13 23:45:37 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
