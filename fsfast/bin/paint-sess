@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # paint-sess
 #
-set VERSION = '$Id: paint-sess,v 1.12 2006/12/13 00:00:30 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.13 2006/12/14 16:57:50 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -26,7 +26,8 @@ set isxavgmethod = ();
 set IsGroup = 0;
 set getsubjfromreg = 0;
 set Float2Int = ();
-set ProjFrac = 0;
+set ProjFrac = ();
+set ProjFracAvg = (); # This should be three items: min max del
 set srcsubject = ();
 set code = (); # a way to uniquely id a paint, used in surf-sess too
 set noretinotopy = 0;
@@ -295,7 +296,9 @@ foreach hs ($hemi)
         set v2s = mri_vol2surf
         set cmd = ($v2s --srcvol $inmapstem --src_type bfloat )
         set cmd = ($cmd --srcreg $regfile)
-        set cmd = ($cmd --surf $Surface --hemi $hs --projfrac $ProjFrac)
+        set cmd = ($cmd --surf $Surface --hemi $hs);
+        if($#ProjFrac)    set cmd = ($cmd  --projfrac $ProjFrac)
+        if($#ProjFracAvg) set cmd = ($cmd  --projfrac-avg $ProjFracAvg)
         set cmd = ($cmd --frame $offset --out_type paint)
         set cmd = ($cmd --float2int $Float2Int --mapmethod nnf)
         if($subject != $srcsubject) then
@@ -435,6 +438,12 @@ while( $#argv != 0 )
     case "-projfrac"
       if ( $#argv == 0) goto arg1err;
       set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac-avg"
+      if ( $#argv < 3) goto arg3err;
+      set ProjFracAvg = ($argv[1-3]); 
+      shift;shift;shift;
       breaksw
 
     case "-surfreg"
@@ -594,6 +603,11 @@ check_params:
     exit 1;
   endif
 
+  if($#ProjFrac && $#ProjFracAvg) then
+    echo "ERROR: cannot use -projfrac AND -projfrac-avg"
+    exit 1;
+  endif
+
   ## Individual Contingencies ##
   if(! $IsGroup) then
     if($space == native) then
@@ -646,6 +660,12 @@ arg1err:
 ############--------------##################
 
 ############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
 usage_exit:
   echo "USAGE: paint-sess"
   echo "Options:";
@@ -661,6 +681,7 @@ usage_exit:
   echo "   -surf     surface      : surface on which to paint (white)"
   echo "   -reg      regfile      : use regfile instead of register.dat"
   echo "   -projfrac frac         : projection fraction"
+  echo "   -projfrac-avg min max delta  : average over projection fraction"
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
