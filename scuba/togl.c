@@ -1,4 +1,4 @@
-/* $Id: togl.c,v 1.6 2006/12/13 23:54:38 nicks Exp $ */
+/* $Id: togl.c,v 1.7 2006/12/14 00:22:01 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -2616,6 +2616,7 @@ unsigned long Togl_AllocColor( const struct Togl *togl,
   }
 
 #if defined(X11)
+  /* for EPS output */
   {
     XColor xcol;
     int exact;
@@ -2626,7 +2627,6 @@ unsigned long Togl_AllocColor( const struct Togl *togl,
 
     noFaultXAllocColor( Tk_Display(togl->TkWin), Tk_Colormap(togl->TkWin),
                         Tk_Visual(togl->TkWin)->map_entries, &xcol, &exact );
-    /* for EPS output */
     togl->EpsRedMap[ xcol.pixel] = (float) xcol.red / 65535.0;
     togl->EpsGreenMap[ xcol.pixel] = (float) xcol.green / 65535.0;
     togl->EpsBlueMap[ xcol.pixel] = (float) xcol.blue / 65535.0;
@@ -2682,6 +2682,7 @@ void Togl_SetColor( const struct Togl *togl,
   }
 
 #if defined(X11)
+  /* for EPS output */
   {
     XColor xcol;
     xcol.pixel = index;
@@ -2692,7 +2693,6 @@ void Togl_SetColor( const struct Togl *togl,
 
     XStoreColor( Tk_Display(togl->TkWin), Tk_Colormap(togl->TkWin), &xcol );
 
-    /* for EPS output */
     togl->EpsRedMap[ xcol.pixel] = (float) xcol.red / 65535.0;
     togl->EpsGreenMap[ xcol.pixel] = (float) xcol.green / 65535.0;
     togl->EpsBlueMap[ xcol.pixel] = (float) xcol.blue / 65535.0;
