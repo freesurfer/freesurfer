@@ -1,4 +1,4 @@
-
+o
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,10 +16,11 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_smooth.c,v 1.15 2006/11/15 19:57:16 fischl Exp $";
+"$Id: mris_smooth.c,v 1.16 2006/12/17 21:41:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int count_big_curvatures(MRI_SURFACE *mris, double thresh) ;
 static int  get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static void print_help(void) ;
@@ -37,31 +38,34 @@ static int niterations = 10 ;
 static int rescale = 0 ;
 static int write_iterations = 0 ;
 static double l_spring = 1.0 ;
-static float momentum = 0.5 ;
+static float momentum = 0.0 ;
 static int no_write = 0 ;
 
 // -g 20 8 works well for hippo
 static double gaussian_norm = 0 ;
 static int gaussian_avgs = 0 ;
+int MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct) ;
+int MRISthresholdPrincipalCurvatures(MRI_SURFACE *mris, double thresh) ;
+int MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, double hi_thresh);
 
 int
 main(int argc, char *argv[])
 {
   char               **av, *in_fname, *out_fname, fname[STRLEN], path[STRLEN] ;
-  int                ac, nargs ;
+  int                ac, nargs, start_t, pass ;
   MRI_SURFACE        *mris ;
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mris_smooth.c,v 1.15 2006/11/15 19:57:16 fischl Exp $",
+     "$Id: mris_smooth.c,v 1.16 2006/12/17 21:41:50 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_smooth.c,v 1.15 2006/11/15 19:57:16 fischl Exp $",
+     "$Id: mris_smooth.c,v 1.16 2006/12/17 21:41:50 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -100,41 +104,146 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
+#define DT 0.5
   if (gaussian_norm > 0)
   {
-    int i ;
+    int i, done, start_avgs = gaussian_avgs, j ;
 
-    for (i = 0 ; i < niterations+5 ; i++)
+    start_t = 0 ;
+    pass = 0 ;
+    do
     {
-      if (i < niterations)
+      for (i = start_t ; i < niterations+start_t ; i++)
       {
+        MRIScomputeMetricProperties(mris) ;
+        MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+        for (j = 0 ; j < 5 ; j++)
+        {
+          MRISaverageVertexPositions(mris, 2) ; // turn flat spikes into tubular ones
+          MRIScomputeMetricProperties(mris) ;
+          MRIScomputeSecondFundamentalForm(mris) ;
+          MRIShistoThresholdGaussianCurvatureToMarked(mris, (float)(mris->nvertices-20)/mris->nvertices) ;
+        }
+        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+        MRIScomputeMetricProperties(mris) ;
+        MRISsmoothSurfaceNormals(mris, gaussian_avgs) ;
+        MRISclearMarks(mris) ;
+        MRISthresholdGaussianCurvatureToMarked(mris, 10, 50);
         MRIScomputeSecondFundamentalForm(mris) ;
-        MRISspringTermWithGaussianCurvature
-          (mris, gaussian_norm, l_spring) ;
-        MRISaverageGradients(mris, gaussian_avgs) ;
-        MRISmomentumTimeStep(mris, momentum, 1, 1, 0) ;
-        MRISclearGradient(mris) ;
-        if ((write_iterations > 0) && (((i+1) % write_iterations) == 0))
+        MRIShistoThresholdGaussianCurvatureToMarked(mris, (float)(mris->nvertices-20)/mris->nvertices) ;
+        MRISthresholdGaussianCurvatureToMarked(mris, 10, 50);
+        if ((write_iterations > 0) && ((i % write_iterations) == 0))
         {
           char fname[STRLEN] ;
-          sprintf(fname, "%s%04d", out_fname, i+1) ;
+
+          sprintf(fname, "%s%04d", out_fname, i) ;
           printf("writing snapshot to %s...\n", fname) ;
           MRISwrite(mris, fname) ;
+          if (Gdiag & DIAG_WRITE)
+          {
+            MRISuseGaussianCurvature(mris) ;
+            sprintf(fname, "%s_K%04d", out_fname, i) ;
+            printf("writing curvature to %s...\n", fname) ;
+            MRISwriteCurvature(mris, fname) ;
+            sprintf(fname, "%s_marked%04d", out_fname, i) ;
+            printf("writing marks to %s...\n", fname) ;
+            MRISwriteMarked(mris, fname) ;
+          }
+        }
+        for (j = 0 ; j <= 5*nint(1/DT) ; j++)
+        {
+          MRISmarkedSpringTerm(mris, l_spring) ;
+          MRISaverageGradients(mris, gaussian_avgs) ;
+          MRISmomentumTimeStep(mris, momentum, DT, 1, gaussian_avgs) ;
+          MRISclearGradient(mris) ;
+          MRIScomputeMetricProperties(mris) ;
+          MRISsmoothSurfaceNormals(mris, gaussian_avgs) ;
+          {
+            int vno ;
+            VERTEX *v ;
+
+            for (vno = 0 ; vno < mris->nvertices ; vno++)
+            {
+              v = &mris->vertices[vno] ;
+              if (v->marked > 0)
+                v->K = 1.0/(v->marked) ;
+              else
+                v->K = 0 ;
+            }
+          }
+        }
+      }
+      MRISclearGradient(mris) ;
+      if (gaussian_avgs == 2)
+      {
+        if (pass++ > 4)
+          done = 1 ;
+        else
+        {
+          int num = count_big_curvatures(mris, 2) ;
+          printf("------------------------------------------------------\n") ;
+          printf("------------------------------------------------------\n") ;
+          printf("------------------ pass %d (num=%d) ------------------\n", 
+                 pass, num) ;
+          printf("------------------------------------------------------\n") ;
+          printf("------------------------------------------------------\n") ;
+          gaussian_avgs = start_avgs ;
         }
       }
       else
       {
-        MRISaverageVertexPositions(mris, 1) ;
-        if (write_iterations > 0)
+        gaussian_avgs /= 2 ;
+        if (done ==0)
+          printf("----------------- setting avgs to %d -----------------\n", gaussian_avgs) ;
+      }
+      start_t = i ;
+    } while (!done) ;
+
+#if 0
+    // more smoothing with principal curvatures
+    gaussian_avgs = start_avgs ;
+    printf("--------------------------------------------------------------------------\n") ;
+    printf("--------------------------------------------------------------------------\n") ;
+    printf("---------------------- starting threshold smoothing ----------------------\n") ;
+    printf("--------------------------------------------------------------------------\n") ;
+    printf("--------------------------------------------------------------------------\n") ;
+    do
+    {
+      for (i = start_t ; i < niterations+start_t ; i++)
+      {
+        MRIScomputeMetricProperties(mris) ;
+        MRIScomputeSecondFundamentalForm(mris) ;
+        MRISsmoothSurfaceNormals(mris, 16) ;
+#define KTHRESH 1.5  // everything with kmin less than this will not move
+        MRISthresholdPrincipalCurvatures(mris, KTHRESH) ;
+        MRISspringTermWithGaussianCurvature(mris, gaussian_norm, l_spring) ;
+        MRISaverageGradients(mris, gaussian_avgs) ;
+        MRISmomentumTimeStep(mris, 0, 0.1, 1, gaussian_avgs) ;
+        MRISclearGradient(mris) ;
+        if ((write_iterations > 0) && (((i+1) % write_iterations) == 0))
         {
           char fname[STRLEN] ;
+
           sprintf(fname, "%s%04d", out_fname, i+1) ;
           printf("writing snapshot to %s...\n", fname) ;
           MRISwrite(mris, fname) ;
+          if (Gdiag & DIAG_WRITE/* && DIAG_VERBOSE_ON*/)
+          {
+            MRISuseGaussianCurvature(mris) ;
+            sprintf(fname, "%s_K%04d", out_fname, i+1) ;
+            printf("writing curvature to %s...\n", fname) ;
+            MRISwriteCurvature(mris, fname) ;
+          }
         }
       }
-
-    }
+      MRISclearGradient(mris) ;
+      done = (gaussian_avgs == 2) ;
+      gaussian_avgs /= 2 ;
+      if (done ==0)
+        printf("---------------------- setting avgs to %d ----------------------\n", gaussian_avgs) ;
+      start_t = i ;
+    } while (!done) ;
+#endif
   }
   else
     MRISaverageVertexPositions(mris, niterations) ;
@@ -227,6 +336,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'W':
+    Gdiag |= DIAG_WRITE ;
     write_iterations = atoi(argv[2]) ;
     printf("writing out snapshots every %d iterations\n", write_iterations) ;
     nargs = 1 ;
@@ -291,5 +401,289 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+#define NBINS 256
+int
+MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
+{
+  HISTOGRAM  *h ;
+  double     min_curv, max_curv, K, bin_size, total, mode, mode_peak, mean, std, dmean,
+             dmin, dmax, dsigma ;
+  int        vno, num, b, bin_no, bin_thresh, vno_min, vno_max, skipped, nvertices ;
+  VERTEX     *v ;
+
+  dmean = MRIScomputeVertexSpacingStats(mris, &dsigma,&dmin, &dmax, &vno_min, &vno_max);
+  min_curv = 1e8 ; max_curv = -min_curv ;
+
+  // compute mean nbr spacing for each vertex so we can ignore tangles
+  for (dmean = 0.0, num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int    n ;
+
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    for (v->d = 0.0, n = 0 ; n < v->vtotal ; n++)
+      v->d += v->dist[n] ;
+    v->d /= v->vtotal ;
+    dmean += v->d ;
+    num++ ;
+  }
+
+  dmean /= num ;
+  mean = std = 0.0 ;
+  for (skipped = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->d < 0.01*dmean)
+    {
+      skipped++ ;
+      continue ;
+    }
+    K = MIN(fabs(v->k1), fabs(v->k2)) ;
+    K = fabs(v->K) ;
+    if (K < min_curv)
+      min_curv = K ;
+    if (K > max_curv)
+      max_curv = K ;
+    mean += K ;
+    std += K*K ;
+  }
+
+  nvertices = mris->nvertices - skipped ;
+  max_curv = MIN(max_curv, 1000) ;
+  mean /= (float)nvertices ;
+  std = sqrt(std/(float)nvertices - mean*mean) ;
+  bin_size = (max_curv - min_curv + 1) / NBINS ;
+  h = HISTOalloc(NBINS) ;
+  h->bin_size = bin_size ;
+  for (b = 0 ; b < NBINS ; b++)
+    h->bins[b] = (float)b*bin_size + min_curv ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->d < 0.01*dmean)
+      continue ;
+    K = MIN(fabs(v->k1), fabs(v->k2)) ;
+    K = fabs(v->K) ;
+    bin_no = (int)((float)(K - min_curv) / (float)bin_size) ;
+    if (bin_no > NBINS-1 || bin_no < 0)
+      bin_no = NBINS-1 ;
+    h->counts[bin_no]++ ;
+  }
+
+  mode_peak = 0 ;
+  for (total = 0, b = 0 ; b < NBINS-1 ; b++)
+  {
+    if (h->counts[b] > mode_peak) 
+    {
+      mode_peak = h->counts[b];
+      mode = h->bins[b] ;
+    }
+    total += h->counts[b] ;
+    if (total/nvertices >= pct)
+    {
+      bin_thresh = b+1 ;
+      break ;
+    }
+#if 0
+    if (h->bins[b] > mean+10*std)
+    {
+      printf("setting threshold based on mean %2.2f + 4 * std %2.2f\n", 
+             mean, std) ;
+      bin_thresh = b ;
+      break ;
+    }
+#endif
+  }
+
+#if 0
+  {
+    int b1, b2, prev_count, next_count, bthresh ;
+
+#define BWIN 3
+    for (b = BWIN ; b < NBINS ; b++)
+    {
+      prev_count = next_count = 0 ;
+      // if sum of previous BWIN bins is <= sum of next BWIN bins, set thresh here
+      for (b1 = MAX(b-BWIN,0) ; b1 < b ; b1++)
+        prev_count += h->counts[b1] ;
+      for (b2 = b+1 ; b2 < MIN(NBINS, b+BWIN) ; b2++)
+        next_count += h->counts[b2] ;
+      if (prev_count-3 <= next_count)
+      {
+        bthresh = b ;
+        break ;
+      }
+    }
+    if (bthresh > bin_thresh)
+      bin_thresh = bthresh ; // use more conservature of the two
+  }
+#endif
+
+  if (bin_thresh == 0)
+    return(0) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("mode at %2.2f, max %2.2f\n", mode, max_curv) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    K = MIN(fabs(v->k1), fabs(v->k2)) ;
+    K = fabs(v->K) ;
+    bin_no = (int)((float)(K - min_curv) / (float)bin_size) ;
+    if (bin_no >= bin_thresh)
+    {
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      v->marked = 1 ;
+    }
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->marked == 1)
+    {
+      int    n ;
+      VERTEX *vn ;
+
+      for (n = 0 ; n < v->vtotal ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (v->v[n] == Gdiag_no)
+          DiagBreak() ;
+        if (vn->marked == 0)
+          vn->marked = 2 ;
+      }
+    }
+  }
+  
+  HISTOfree(&h) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISthresholdPrincipalCurvatures(MRI_SURFACE *mris, double thresh)
+{
+  int     vno, num ;
+  VERTEX  *v ;
+  double  K ;
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    K = fabs(v->K) ;
+    if (fabs(v->k1) < thresh || fabs(v->k2) < thresh || (v->k1 > 0 && v->k2 > 0))
+      v->K = 0 ;
+    else
+      num++ ;
+
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->K >= thresh)
+    {
+      int n ;
+      
+      v->marked = 1 ;
+      for (n = 0 ; n < v->vtotal ; n++)
+      {
+        mris->vertices[v->v[n]].marked = 2 ;
+        mris->vertices[v->v[n]].K = 0.5 ;
+      }
+    }
+  }
+
+  printf("%d vertices over threshold\n", num) ;
+  return(NO_ERROR) ;
+}
+
+static int
+count_big_curvatures(MRI_SURFACE *mris, double thresh)
+{
+  int    num, vno ;
+  VERTEX *v ;
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (fabs(v->k1) > thresh && fabs(v->k2) > thresh)
+      num++ ;
+  }
+  return(num) ;
+}
+
+
+  
+int
+MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, double hi_thresh)
+{
+  int    vno ;
+  VERTEX *v, *vn ;
+  double K ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag || v->marked == 2) // ignore if it was the nbr of one
+      continue ;
+    K = fabs(v->k1 * v->k2) ;
+    if (K < low_thresh)
+    {
+      int n ;
+      v->marked = 0 ;
+
+      for (n = 0 ; n < v->vtotal ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->marked == 2)
+        {
+          vn->marked = 0 ;
+        }
+      }
+    }
+    else if (K > hi_thresh)
+      v->marked = 1 ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->marked == 1)
+    {
+      int n ;
+
+      for (n = 0 ; n < v->vtotal ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (v->v[n] == Gdiag_no)
+          DiagBreak() ;
+        if (vn->marked == 0)
+          vn->marked = 2 ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
 }
 
