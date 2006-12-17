@@ -14,11 +14,11 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.11 2006/11/14 21:25:10 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.12 2006/12/17 21:41:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
-int  MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2) ;
+int  MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -33,6 +33,7 @@ static int write_vertices = 0 ;
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
 static char *osurf_fname = NULL ;
+static int signed_dist = 0 ;
 static char sdir[STRLEN] = "" ;
 
 int
@@ -43,7 +44,7 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.11 2006/11/14 21:25:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.12 2006/12/17 21:41:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -97,7 +98,7 @@ main(int argc, char *argv[])
     mris2 = MRISread(osurf_fname) ;
     if (mris2 == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read 2nd surface from %s", Progname, osurf_fname) ;
-    MRISmeasureDistanceBetweenSurfaces(mris, mris2) ;
+    MRISmeasureDistanceBetweenSurfaces(mris, mris2, signed_dist) ;
     fprintf(stderr, "writing surface distance to curvature file %s...\n", out_fname) ;
     MRISwriteCurvature(mris, out_fname) ;
     exit(0) ;
@@ -172,7 +173,15 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "osurf"))
   {
     osurf_fname = argv[2] ;
-    fprintf(stderr,  "measuring distance between input surface and %s\n", osurf_fname) ;
+    signed_dist = 0 ;
+fprintf(stderr,  "measuring distance between input surface and %s\n", osurf_fname) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "nsurf"))
+  {
+    osurf_fname = argv[2] ;
+    signed_dist = 1 ;
+    fprintf(stderr,  "measuring signed distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
   }
   else switch (toupper(*option))
@@ -239,7 +248,7 @@ print_version(void)
 #include "mrishash.h"
 #define MAX_DIST 10
 int
-MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2)
+MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist)
 {
   int    vno ;
   VERTEX *v1, *v2 ;
@@ -261,6 +270,14 @@ MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2)
     }
     dx = v1->x-v2->x ; dy = v1->y-v2->y ; dz = v1->z-v2->z ;
     v1->curv = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (signed_dist)
+    {
+      double dot ;
+
+      dot = dx*v1->nx + dy*v1->ny + dz*v1->nz ;
+      if (dot < 0)
+        v1->curv *= -1 ;
+    }
   }
 
   MHTfree(&mht) ;
