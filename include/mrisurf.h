@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.272 2006/12/07 20:51:53 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.273 2006/12/17 21:43:51 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -755,6 +755,7 @@ int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
 int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, 
                                                  double gaussian_norm, 
                                                  double l_spring) ;
+int          MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 double       MRISmomentumTimeStep(MRI_SURFACE *mris, 
                                   float momentum, 
                                   float dt, 
@@ -1467,5 +1468,7 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          int *pnlabels,
                          float min_label_area) ;
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
+int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
+int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) ;
 
 #endif
