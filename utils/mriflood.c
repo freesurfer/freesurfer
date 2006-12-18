@@ -5,17 +5,18 @@
 // originally written by Andre van der Kouwe
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/09 20:32:26 $
-// Revision       : $Revision: 1.17 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/12/18 18:42:31 $
+// Revision       : $Revision: 1.18 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.17 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.18 $";
 
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "diag.h"
 #include "mri.h"
 #include "mrisurf.h"
 #include "macros.h"
@@ -168,7 +169,7 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
   height = mri_src->height;
   depth = mri_src->depth;
   if (!mri_dst) {
-/*    printf("MRISshell: Creating new (_dst)MRI...\n");*/
+    /*    printf("MRISshell: Creating new (_dst)MRI...\n");*/
     mri_dst = MRIalloc(width, height, depth, mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
   }
@@ -194,9 +195,9 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
     z2 = v_2->z;
 
     /* Calculate triangle side lengths */
-    d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0));
-    d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
-    d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
+    d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0))/mri_dst->xsize;
+    d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1))/mri_dst->ysize;
+    d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2))/mri_dst->zsize;
     /* Divide space between sides into numv parallel lines */
     dmax = (d0>=d1&&d0>=d2)?d0:(d1>=d0&&d1>=d2)?d1:d2;
     numu = ceil(2*d0);
@@ -215,14 +216,16 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         py = py0 + (py1-py0)*(float)u/(float)numu;
         pz = pz0 + (pz1-pz0)*(float)u/(float)numu;
         /* Note mapping (x,y,z)<->(i,j,k) */
-//        imnr = (int)((py-yy0)/st+1.5-imnr0);
-//        i = (int)((xx1-px)/ps+0.5);
-//        j = (int)((zz1-pz)/ps+1.0);
-	// MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
-	MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
-	i=nint(fi); j=nint(fj); imnr=nint(fimnr);
-        if (i>=0 && i<IMGSIZE && j>=0 && j<IMGSIZE && imnr>=0 && imnr<depth)
-          MRIvox(mri_dst,i,j,imnr)=255;
+        //        imnr = (int)((py-yy0)/st+1.5-imnr0);
+        //        i = (int)((xx1-px)/ps+0.5);
+        //        j = (int)((zz1-pz)/ps+1.0);
+        if (mris->useRealRAS)
+          MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+        else
+          MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+        i=nint(fi); j=nint(fj); imnr=nint(fimnr);
+        if (i>=0 && i<mri_dst->width && j>=0 && j<mri_dst->height && imnr>=0 && imnr<depth)
+          MRIsetVoxVal(mri_dst,i,j,imnr,0,255);
       }
     }
   }
@@ -233,45 +236,47 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
 /* Floods MRI volume from outermost corners inward */
 /* Fill with 1, boundary is anything but 0 and 1 */
 // mri_src is just a dummy
-MRI *MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
+MRI *
+MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
 {
   int newfilled,width,height,depth,i,j,k;
-
+  
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+  
   /* Set MRI size */
-  width=mri_src->width;
-  height=mri_src->height;
-  depth=mri_src->depth;
-
+  width=mri_src->width;  height=mri_src->height; depth=mri_src->depth;
+  
   /* Set seed voxel in corner of box */
-/*  MRIvox(mri_dst,1,1,1)=1;
-
+  /*  MRIvox(mri_dst,1,1,1)=1;
+      
   newfilled=1;
-  while (newfilled>0) {
-    newfilled=0;
+  while (newfilled>0) 
+  {
+  newfilled=0;
 
-    for (i=1;i<width-1;i++)
-      for (j=1;j<height-1;j++)
-        for (k=1;k<depth-1;k++)
-          if (MRIvox(mri_dst,i,j,k)==0)
-            if (MRIvox(mri_dst,i,j,k-1)==1||
-                MRIvox(mri_dst,i-1,j,k)==1||
-                MRIvox(mri_dst,i,j-1,k)==1) {
-                  MRIvox(mri_dst,i,j,k)=1;
-                  newfilled++;
-            }
-    for (i=width-2;i>=1;i--)
-      for (j=height-2;j>=1;j--)
-        for (k=depth-2;k>=1;k--)
-          if (MRIvox(mri_dst,i,j,k)==0)
-            if (MRIvox(mri_dst,i,j,k+1)==1||
-                MRIvox(mri_dst,i+1,j,k)==1||
-                MRIvox(mri_dst,i,j+1,k)==1) {
-                  MRIvox(mri_dst,i,j,k)=1;
-                  newfilled++;
-            }
+  for (i=1;i<width-1;i++)
+  for (j=1;j<height-1;j++)
+  for (k=1;k<depth-1;k++)
+  if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+  if ((int)MRIgetVoxVal(mri_dst,i,j,k-1,0)==1||
+  (int)MRIgetVoxVal(mri_dst,i-1,j,k,0)==1||
+  (int)MRIgetVoxVal(mri_dst,i,j-1,k)==1) {
+  (int)MRIgetVoxVal(mri_dst,i,j,k,0)=1;
+  newfilled++;
+  }
+  for (i=width-2;i>=1;i--)
+  for (j=height-2;j>=1;j--)
+  for (k=depth-2;k>=1;k--)
+  if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+  if ((int)MRIgetVoxVal(mri_dst,i,j,k+1,0)==1||
+  (int)MRIgetVoxVal(mri_dst,i+1,j,k,0)==1||
+  (int)MRIgetVoxVal(mri_dst,i,j+1,k,0)==1) {
+  (int)MRIgetVoxVal(mri_dst,i,j,k,0)=1;
+  newfilled++;
+  }
   }*/
 
-  MRIvox(mri_dst,0,0,0)=1;
+  MRIsetVoxVal(mri_dst,0,0,0,0,1) ;
 
   newfilled=1;
   while (newfilled>0) 
@@ -282,28 +287,28 @@ MRI *MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
       for (j=0;j<height;j++)
         for (k=0;k<depth;k++)
         {
-	  if (MRIvox(mri_dst,i,j,k)==0)
-            if (MRIvox(mri_dst,i,j,k-1+((k==0)? 1:0))==1||
-                MRIvox(mri_dst,i-1+((i==0)?1:0),j,k)==1||
-                MRIvox(mri_dst,i,j-1+((j==0)?1:0),k)==1) 
-	    {
-	      MRIvox(mri_dst,i,j,k)=1;
-	      newfilled++;
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+            if ((int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0)==1||
+                (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0)==1||
+                (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0)==1) 
+            {
+              MRIsetVoxVal(mri_dst,i,j,k,0,1);
+              newfilled++;
             }
-	}
+        }
     for (i=width-1;i>=0;i--)
       for (j=height-1;j>=0;j--)
         for (k=depth-1;k>=0;k--)
         {
-	  if (MRIvox(mri_dst,i,j,k)==0)
-            if (MRIvox(mri_dst,i,j,k+1-((k==width-1)?1:0))==1||
-                MRIvox(mri_dst,i+1-((i==width-1)?1:0),j,k)==1||
-                MRIvox(mri_dst,i,j+1-((j==width-1)?1:0),k)==1) 
-	    {
-	      MRIvox(mri_dst,i,j,k)=1;
-	      newfilled++;
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+            if ((int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==width-1)?1:0),0)==1||
+                (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0)==1||
+                (int)MRIgetVoxVal(mri_dst,i,j+1-((j==width-1)?1:0),k,0)==1) 
+            {
+              MRIsetVoxVal(mri_dst,i,j,k,0,1);
+              newfilled++;
             }
-	}
+        }
   }
 
   return mri_dst;
@@ -1248,3 +1253,50 @@ void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst)
   printf("After hippocampus check\n");
   printf("\tcortex became white : %8d\n",hippocount);
 }
+MRI *
+MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
+{
+  int    width, height, depth, x, y, z, val ;
+  MATRIX *m_vox2ras ;
+  MRI    *mri_shell, *mri_outside ;
+
+  MRIScomputeMetricProperties(mris) ;
+
+  width = ceil((mris->xhi - mris->xlo)/resolution) ;
+  height = ceil((mris->yhi - mris->ylo)/resolution) ;
+  depth = ceil((mris->zhi - mris->zlo)/resolution) ;
+
+  mri_shell = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIsetResolution(mri_shell, resolution, resolution, resolution) ;
+
+  m_vox2ras = MatrixIdentity(4, NULL) ;
+  *MATRIX_RELT(m_vox2ras, 1, 1) = resolution ;
+  *MATRIX_RELT(m_vox2ras, 2, 2) = resolution ;
+  *MATRIX_RELT(m_vox2ras, 3, 3) = resolution ;
+
+  *MATRIX_RELT(m_vox2ras, 1, 4) = mris->xlo ;
+  *MATRIX_RELT(m_vox2ras, 2, 4) = mris->ylo ;
+  *MATRIX_RELT(m_vox2ras, 3, 4) = mris->zlo ;
+
+  MRIsetVoxelToRasXform(mri_shell, m_vox2ras) ;
+  MRISshell(mri_shell, mris, mri_shell, 1) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_shell, "shell.mgz") ;
+
+  mri_outside = MRISfloodoutside(mri_shell, NULL) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_outside, "out.mgz") ;
+  mri_interior = MRIclone(mri_shell, NULL) ;
+  for (x = 0 ; x < mri_interior->width ; x++)
+    for (y = 0 ; y < mri_interior->height ; y++)
+      for (z = 0 ; z < mri_interior->depth ; z++)
+      {
+        val = (int)MRIgetVoxVal(mri_outside, x, y, z, 0) ;
+        MRIsetVoxVal(mri_interior, x, y, z, 0, val == 1 ? 0 : 1) ;
+      }
+
+  MRIfree(&mri_outside) ; MRIfree(&mri_shell) ;
+  MatrixFree(&m_vox2ras) ;
+  return(mri_interior) ;
+}
+
