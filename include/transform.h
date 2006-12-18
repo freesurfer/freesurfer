@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following three lines. CVS maintains them. */
 /* Revision Author: $Author: greve $                                  */
-/* Revision Date  : $Date: 2006/11/02 22:14:37 $                       */
-/* Revision       : $Revision: 1.52 $                                  */
+/* Revision Date  : $Date: 2006/12/18 01:06:59 $                       */
+/* Revision       : $Revision: 1.53 $                                  */
 /*                                                                     */
 /***********************************************************************/
 
@@ -205,5 +205,6 @@ int LTAsetVolGeom(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
+MATRIX *TransformLTA2RegDat(LTA *lta);
 
 #endif

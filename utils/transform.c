@@ -3382,3 +3382,59 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
 
   return(lta);
 }
+/*!
+  \fn LTA *TransformLTARegDat(LTA *lta)
+  \brief Converts the first xform from LTA to a tkregister-style 
+         registration matrix. Assumes LTA is vox2vox.
+*/
+MATRIX *TransformLTA2RegDat(LTA *lta)
+{
+  MATRIX *vox2vox; // Targ->Mov
+  MATRIX *R,*Ttarg, *Tmov, *invTtarg;
+
+  vox2vox = MatrixCopy(lta->xforms[0].m_L,NULL);
+
+  // Reverse Targ and Source because that is how tkreg mat is defined.
+  Ttarg = vg_i_to_r(&(lta->xforms[0].src));
+  if(Ttarg == NULL){
+    printf("ERROR: constructing vox2ras from src/targ vol geom\n");
+    vg_print(&lta->xforms[0].src);
+    exit(1);
+  }
+  Tmov  = vg_i_to_r(&lta->xforms[0].dst);
+  if(Tmov == NULL){
+    printf("ERROR: constructing vox2ras from dst/mov vol geom\n");
+    vg_print(&lta->xforms[0].dst);
+    exit(1);
+  }
+  invTtarg = MatrixInverse(Ttarg,NULL);
+
+  // vox2vox = invTmov * R * Ttarg
+  // R = Tmov * vox2vox * invTtarg
+  R = MatrixMultiply(Tmov,vox2vox,NULL);
+  R = MatrixMultiply(R,invTtarg,R);
+
+  if(Gdiag_no > 0){
+    printf("TransformLTA2RegDat() -----------");
+    printf("src/targ Vol Geom");
+    vg_print(&lta->xforms[0].src);
+    printf("dst/mov  Vol Geom");
+    vg_print(&lta->xforms[0].dst);
+    printf("Vox2Vox---------------------------\n");
+    MatrixPrint(stdout,vox2vox);
+    printf("Tmov ---------------------------\n");
+    MatrixPrint(stdout,Tmov);
+    printf("invTtarg ---------------------------\n");
+    MatrixPrint(stdout,Tmov);
+    printf("---------------------------\n");
+    MatrixPrint(stdout,R);
+    printf("---------------------------\n");
+  }
+
+  MatrixFree(&Ttarg);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTtarg);
+  MatrixFree(&vox2vox);
+
+  return(R);
+}
