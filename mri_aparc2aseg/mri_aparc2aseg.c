@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.11 2006/09/06 17:55:15 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.12 2006/12/18 03:04:10 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -35,15 +35,16 @@ char *OutAParcFile = NULL;
 char *OutDistFile = NULL;
 int debug = 0;
 int UseRibbon = 0;
+int UseNewRibbon = 0;
 MRI *ASeg, *filled, *mritmp;
 MRI *AParc;
 MRI *Dist;
-MRI *lhRibbon,*rhRibbon;
+MRI *lhRibbon,*rhRibbon,*RibbonSeg;
 MRIS *lhwhite, *rhwhite;
 MRIS *lhpial, *rhpial;
 MHT *lhwhite_hash, *rhwhite_hash;
 MHT *lhpial_hash, *rhpial_hash;
-VERTEX vtx;
+VERTEX vtx, *pvtx;
 int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, dlhp, drhw, drhp;
@@ -63,7 +64,7 @@ int main(int argc, char **argv)
 {
   int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
-  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
+  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0, RibbonVal;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -188,6 +189,16 @@ int main(int argc, char **argv)
     }
   }
 
+  if(UseNewRibbon){
+    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
+    printf("Loading ribbon segmentation from %s\n",tmpstr);
+    RibbonSeg = MRIread(tmpstr);
+    if(RibbonSeg == NULL){
+      printf("ERROR: loading %s\n",tmpstr);
+      exit(1);
+    }
+  }
+
   if(LabelHypoAsWM){
     sprintf(tmpstr,"%s/%s/mri/filled.mgz",SUBJECTS_DIR,subject);
     printf("Loading filled from %s\n",tmpstr);
@@ -223,6 +234,12 @@ int main(int argc, char **argv)
     }
     printf("Ripped %d vertices from right hemi\n",nripped);
   }
+
+  pvtx = &rhpial->vertices[83583];
+  pvtx->ripflag = 1;
+  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, pvtx,&drhp);
+  printf("vtx %d %d\n",83583,rhpvtx);
+  //exit(10);
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
@@ -312,6 +329,17 @@ int main(int argc, char **argv)
 	    }
 	  }
 	}
+	if(UseNewRibbon){
+	  RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
+	  if(IsCortex){ // ASeg says it's in cortex
+	    if(RibbonVal < 0.5){
+	      // but it is not part of the ribbon,
+	      // so set it to unknown (0) and go to the next voxel.
+	      MRIsetVoxVal(ASeg,c,r,s,0,0);
+	      continue;
+	    }
+	  }
+	}
 
 	// Convert the CRS to RAS
 	CRS->rptr[1][1] = c;
@@ -377,6 +405,13 @@ int main(int argc, char **argv)
 	  else
 	    annotid = annotation_to_index(annot);
 	  dmin = drhp;
+	}
+	if(annotid == 0){
+	  printf("%d %d %d %d\n",
+		 lhwhite->vertices[lhwvtx].ripflag,
+		 lhpial->vertices[lhpvtx].ripflag,
+		 rhwhite->vertices[rhwvtx].ripflag,
+		 rhpial->vertices[rhpvtx].ripflag);
 	}
 
 	if( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;
@@ -473,6 +508,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
+    else if (!strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
@@ -642,6 +678,11 @@ static void check_options(void)
     sprintf(tmpstr,"%s/%s/mri/%s+aseg.mgz",SUBJECTS_DIR,subject,annotname);
     OutASegFile = strcpyalloc(tmpstr);
   }
+  if(UseRibbon && UseNewRibbon){
+    printf("ERROR: cannot --ribbon and --new-ribbon\n");
+    exit(1);
+  }
+
   return;
 }
 
