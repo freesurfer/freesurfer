@@ -1,9 +1,9 @@
 #!/bin/tcsh -f
-# recon-all-dev - script to run all of the reconstruction routines
+# recon-all script to run all of the reconstruction routines
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.52 2006/12/16 04:45:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.53 2006/12/18 23:27:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -550,22 +550,29 @@ endif # Motion Correction
 
 #--- Longitudinal: compute linear registration from tp1 to current subj ---#
 if ($longitudinal) then
-   echo "---------------------------------------------"|& tee -a $LF
-   echo "#@# Longitudinal: Linear Registration `date`" \
+  echo "---------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Longitudinal: 1st Registration (linear) `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
-   set cmd = (fsl_rigid_register -cost corratio \
+  set cmd = (fsl_rigid_register -cost corratio \
         -i $tp1dir/mri/orig.mgz \
         -r $subjdir/mri/orig.mgz \
         -o $subjdir/mri/orig_${tp1id}_to_${subjid}.mgz \
         -dof 6 \
         -ltamat $tp1dir/mri/transforms/$regfile)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if( ($RunIt) && (! -e $tp1dir/mri/transforms/$regfile) ) then
-    echo "ERROR: FLIRT registration failed " |& tee -a $LF
-    goto error_exit;
+  if($RunIt) then
+    if( -e $tp1dir/mri/transforms/$regfile) then
+      rm -f $tp1dir/mri/transforms/$regfile
+    endif
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if( ! -e $tp1dir/mri/transforms/$regfile) then
+      echo "ERROR: FLIRT registration failed " |& tee -a $LF
+      goto error_exit;
+    endif
+    rm -f $subjdir/mri/*.fslmat
   endif
-  if($RunIt) rm -f $subjdir/mri/*.fslmat
 endif
 
 #----------- Nu Intensity Correction ------------------#
@@ -670,7 +677,7 @@ if($DoNormalization) then
   else
     # longitudinal processing stream:
     if(! -e $tp1dir/mri/ctrl_vol.mgz) then
-      echo "Recompute intensity normalization for $tp1id to create the control-point volume" \
+      echo "Recompute intensity normalization to create $tp1id ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize \
         -mask $tp1dir/mri/brain.mgz
@@ -688,7 +695,8 @@ if($DoNormalization) then
       rm -f $tp1dir/mri/bias_vol.mgz
       rm -f $tp1dir/mri/T1_tmp.mgz
     endif
-    set cmd = (mri_normalize_tp2 -T1 $tp1dir/mri/nu.mgz \
+    set cmd = (mri_normalize_tp2 \
+      -T1 $tp1dir/mri/nu.mgz \
       -ctrl $tp1dir/mri/ctrl_vol.mgz \
       -mask1 $tp1dir/mri/brain.mgz \
       -xform $tp1dir/mri/transforms/$regfile \
@@ -962,9 +970,10 @@ endif
 
 #--- Longitudinal: Second registration from tp1 to current subj ---#
 if ($longitudinal) then
-  echo "---------------------------------------------" |& tee -a $LF
-  echo "#@# Longitudinal: SECOND Registration `date`" \
-     |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  echo "---------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Longitudinal: 2nd  Registration  `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
   echo "REG_METHOD    = $REG_METHOD" |& tee -a $LF
   echo "REG_COST      = $REG_COST" |& tee -a $LF
@@ -988,7 +997,12 @@ if ($longitudinal) then
   endif
 
   if ( $REG_METHOD == nonlinear_align ) then
-    set cmd = (mri_nl_align -apply 0 -z 1 -passes 2 -tol 0.2 -levels 2 \
+    set cmd = (mri_nl_align \
+        -apply 0 \
+        -z 1 \
+        -passes 2 \
+        -tol 0.2 \
+        -levels 2 \
         -intensity 0.01 \
         -T $tp1dir/mri/transforms/$regfile \
         $tp1dir/mri/${REG_FILE_TYPE}.mgz \
@@ -997,21 +1011,22 @@ if ($longitudinal) then
   endif
 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  if( ($RunIt) && (! -e $tp1dir/mri/transforms/$regfile) ) then
-    echo "ERROR: SECOND registration: $REG_METHOD  failed " |& tee -a $LF
-    goto error_exit;
-  endif
-
-  if ( $REG_METHOD == fsl_rigid ) then
-    if($RunIt) then
+  if($RunIt) then
+    if( -e $tp1dir/mri/transforms/$regfile) then
+      rm -f $tp1dir/mri/transforms/$regfile
+    endif
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if( ! -e $tp1dir/mri/transforms/$regfile ) then
+      echo "ERROR: SECOND registration: $REG_METHOD failed " |& tee -a $LF
+      goto error_exit;
+    endif
+    if ( $REG_METHOD == fsl_rigid ) then
       set cmd = (rm -f $subjdir/mri/*.fslmat)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       $cmd |& tee -a $LF
-      if($status) goto error_exit;
     endif
   endif
+
 endif
 
 #------------ Canonical Registration --------------#
@@ -3941,15 +3956,15 @@ Enables longitudinal processing. The 'time point one' subject must be
 specified by the -tp1id option, along with the current subject (a scan of
 the same subject at a later time point).
 
--tp1id subjid
 -tp1 subjid
+-tp1id subjid
 
 Specifies the subject id of the first 'time point' in a longitudinal study.
 This subject should have been fully processed by the default processing
 stream, ie 'recon-all -all'.
 
--sid subjid
 -s subjid
+-sid subjid
 
 Specifies the subject id of a later 'time point' scan in a longitudinal
 study.  This subject is processed in a different manner from the default
@@ -3959,31 +3974,32 @@ processing stream, as described above.
 -regfile registration_file
 
 Optionally specify the registration matrix aligning the currently specified
-subject with the 'time point one' subject.
-The default is ${tp1id}_to_${subjid}.lta, and is computed automatically
-when -long is specified.  This option is useful for instances when a manual
-registration was performed (using a tool such as tkregister2).
+subject with the 'time point one' subject.  The default is
+${tp1id}_to_${subjid}.lta, and is computed automatically when -long is
+specified.
 
 -reg-method registration_method_type
 
-Optionally specify the registration method: fsl_rigid, linear_align, or
-nonlinear_align. The default is fsl_rigid.
+Optionally specify the registration method used in the second registration
+step : fsl_rigid, linear_align, or nonlinear_align. The default is fsl_rigid.
 
 -reg-cost cost_function_for_fsl_rigid
 
 Optionally specify the cost function used by the FSL rigid registration
-method: mutualinfo, corratio, normcorr, normmi, or leastsq.
-The default is corratio.
+method if fsl_rigid is the reg-method selected for the second registration
+step.  The cost functions are: mutualinfo, corratio, normcorr, normmi,
+or leastsq.  The default is corratio.
 
 -reg-dof degree_of_freedom_for_fsl_rigid
 
-Optionally specify the DOF used by the FSL rigid registration method: 6 or 12.
-The default is 6.
+Optionally specify the DOF used by the FSL rigid registration method if
+fsl_rigid is the reg-method selected for the second registration step. The
+DOF options are: 6 or 12.  The default is 6.
 
 -reg-file-type file_type
 
-Optionally specify the Freesurfer file-type to use in registration: orig,
-brainmask, or norm.  The default is orig.
+Optionally specify the Freesurfer file-type to use in the second registration
+step: orig, brainmask, or norm.  The default is orig.
 
 -no-orig-pial
 
