@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $   */
+/*   $Id: tkregister2.c,v 1.66 2006/12/18 01:07:28 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $";
+"$Id: tkregister2.c,v 1.66 2006/12/18 01:07:28 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -363,6 +363,12 @@ float int_ipr, int_bpr, int_fscale;
 int int_float2int,err;
 char *xfmfileinfo=NULL;
 
+TRANSFORM *FSXform = NULL;
+LTA *lta = NULL;
+LT  *linxfm = NULL;
+char *ltafname;
+
+
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 {
@@ -393,7 +399,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 
   /* read the registration here to get subjectid */
   if(!mkheaderreg && fslregfname == NULL && !fstal && 
-     int_vol_id == NULL && !identityreg) 
+     int_vol_id == NULL && !identityreg && ltafname == NULL) 
     read_reg(regfname);
   // Just use identity
   if(identityreg) RegMat = MatrixIdentity(4,NULL);
@@ -671,7 +677,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       tm[i][j] = RegMat->rptr[i+1][j+1];
     }
   }
-  if(mkheaderreg || fslregfname != NULL || identityreg){
+  if(mkheaderreg || fslregfname || identityreg || ltafname){
     printf("---- Input registration matrix (computed) --------\n");
     MatrixPrint(stdout,RegMat);
     printf("---------------------------------------\n");
@@ -1078,6 +1084,16 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--lta")){
+      if(nargc < 1) argnerr(option,1);
+      ltafname = pargv[0];
+      FSXform = TransformRead(ltafname);
+      if(FSXform == NULL) exit(1);
+      lta = (LTA*) FSXform->xform;
+      linxfm = &(lta->xforms[0]);
+      RegMat = TransformLTA2RegDat(lta);
       nargsused = 1;
     }
     else if (!strcmp(option, "--fslregout")){
@@ -4105,7 +4121,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.65 2006/11/01 20:17:52 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.66 2006/12/18 01:07:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
