@@ -144,6 +144,7 @@ MRISSUBDIRS=label_area \
 	stim_polar \
 	tridec \
 	mris_shrinkwrap \
+	mris_density \
 	mris_add_template \
 	mris_anatomical_stats \
 	mris_annot_to_segmentation \

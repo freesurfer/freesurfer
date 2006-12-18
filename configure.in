@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.283 2006/12/11 21:03:29 fischl Exp $"
+# "$Id: configure.in,v 1.284 2006/12/18 18:43:25 fischl Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1907,6 +1907,7 @@ AC_OUTPUT([Makefile
            mri_multispectral_segment/Makefile
            mris2rgb/Makefile
            mris_add_template/Makefile
+           mris_density/Makefile
            mris_anatomical_stats/Makefile
            mris_annot_to_segmentation/Makefile
            mris_average_curvature/Makefile
