@@ -1,5 +1,5 @@
 
-/* $Id: mrisurf.h,v 1.273 2006/12/17 21:43:51 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.274 2006/12/18 18:42:41 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -1217,6 +1217,7 @@ MRI   *MRISaccentuate(MRI *mri_src,
                       MRI *mri_dst,
                       int lo_thresh,
                       int hi_thresh);
+MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior) ;
 MRI   *MRISshell(MRI *mri_src,
                  MRI_SURFACE *mris,
                  MRI *mri_dst,
@@ -1470,5 +1471,6 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
 int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) ;
+int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius) ;
 
 #endif
