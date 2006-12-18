@@ -16,7 +16,7 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_smooth.c,v 1.17 2006/12/18 12:25:31 fischl Exp $";
+"$Id: mris_smooth.c,v 1.18 2006/12/18 17:31:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -59,13 +59,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mris_smooth.c,v 1.17 2006/12/18 12:25:31 fischl Exp $",
+     "$Id: mris_smooth.c,v 1.18 2006/12/18 17:31:37 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_smooth.c,v 1.17 2006/12/18 12:25:31 fischl Exp $",
+     "$Id: mris_smooth.c,v 1.18 2006/12/18 17:31:37 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -408,9 +408,9 @@ int
 MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
 {
   HISTOGRAM  *h ;
-  double     min_curv, max_curv, K, bin_size, total, mode, mode_peak, mean, std, dmean,
+  double     min_curv, max_curv, K, bin_size, total, mode = 0.0, mode_peak, mean, std, dmean,
              dmin, dmax, dsigma ;
-  int        vno, num, b, bin_no, bin_thresh, vno_min, vno_max, skipped, nvertices ;
+  int        vno, num, b, bin_no, bin_thresh = 0, vno_min, vno_max, skipped, nvertices ;
   VERTEX     *v ;
 
   dmean = MRIScomputeVertexSpacingStats(mris, &dsigma,&dmin, &dmax, &vno_min, &vno_max);
