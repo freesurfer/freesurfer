@@ -461,6 +461,7 @@ char *vrfname;     /* $home/name/surf/rh.smoothwm.wrl */
 char *xffname;     /* $home/name/mri/transforms/TALAIRACH_FNAME */
 char *orig_suffix = "orig" ;
 char *white_suffix = "white" ;
+char *sphere_reg_suffix = "sphere.reg" ;
 
 FILE *fpvalfile;              /* mult frames */
 int openvalfileflag = FALSE;
@@ -2123,6 +2124,12 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 			orig_suffix = argv[i+1] ;
 			fprintf(stderr, "using orig suffix %s\n", orig_suffix) ;
 		}
+		else if (!stricmp(argv[i], "-sphere"))
+		{
+			nargs = 2 ;
+			sphere_reg_suffix = argv[i+1] ;
+			fprintf(stderr, "using sphere_reg suffix %s\n", sphere_reg_suffix) ;
+		}
 		else if (!stricmp(argv[i], "-white"))
 		{
 			nargs = 2 ;
@@ -2392,7 +2399,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   if (read_orig_vertex_coordinates(orfname) == NO_ERROR)
 	{
 		char fname[STRLEN] ;
-		sprintf(fname, "%s.sphere.reg", fpref) ;
+		sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
 		if (FileExists(fname))
 			read_canon_vertex_coordinates(fname) ;
 	}
@@ -7459,7 +7466,7 @@ find_orig_vertex_coordinates(int vindex)
   
   if (canonsurfloaded == FALSE)
     {
-      sprintf(fname, "%s.sphere.reg", fpref) ;
+      sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
       if (FileExists(fname))
         {
           printf("surfer: reading canonical coordinates from\n");
@@ -17404,7 +17411,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   tf2name = (char *)malloc(NAME_LENGTH*sizeof(char));
   
   /* make default names */
-  strcpy(sphere_reg, "sphere.reg") ;
+  strcpy(sphere_reg, sphere_reg_suffix) ;
   strcpy(subjectsdir,lsubjectsdir);
   strcpy(srname,lsrname);
   strcpy(pname,lpname);
@@ -17469,6 +17476,7 @@ print_help_tksurfer(void)
    printf("-reassign      : resample labels onto surface (set vnos=-1)\n");
    printf("-sdir <path>   : sets the subjects directory path\n");
    printf("-orig <suffix> : sets the orig suffix string\n");
+   printf("-sphere <suffix>:sets the sphere.reg suffix string\n");
    printf("\n");
 
    printf("-patch <filename> : load a patch\n");
@@ -19200,7 +19208,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.231 2006/12/13 23:45:37 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.232 2006/12/19 14:18:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21301,7 +21309,7 @@ update_labels(int label_set, int vno, float dmin)
   /* if a canon surface isn't loaded, make a name and see if it exists. */
   if (canonsurfloaded == FALSE && canonsurffailed == FALSE)
     {
-      sprintf(fname, "%s.sphere.reg", fpref) ;
+      sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
       if (FileExists(fname))
         {
           printf("surfer: reading canonical coordinates from\n");
