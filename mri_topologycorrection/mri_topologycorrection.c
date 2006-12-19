@@ -576,8 +576,8 @@ build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos
 			for (z = 0 ; z < mri_labels->depth ; z++)
 			{
 				l = nint(MRIgetVoxVal(mri_labels, x, y, z, 0)) ;
-				if (l == 0)
-					continue ;
+        //				if (l == 0)
+        //					continue ;
 				if (labels[l] == 0)  // first time
 				{
 					char fname[STRLEN] ;
