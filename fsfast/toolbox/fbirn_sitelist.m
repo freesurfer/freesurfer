@@ -1,5 +1,5 @@
-function sitelist = fbirn_sitelist
-% sitelist = fbirn_sitelist
+function [sitelist, ind15T, ind3T, ind4T] = fbirn_sitelist
+% [sitelist, ind15T, ind3T, ind4T] = fbirn_sitelist
 % changed order on 12/19/06
 
 sitelist = '';
@@ -15,6 +15,11 @@ sitelist = strvcat(sitelist,'uci');     % 9
 sitelist = strvcat(sitelist,'ucsd');    % 10
 sitelist = strvcat(sitelist,'mgh-te20'); % 11
 sitelist = strvcat(sitelist,'mgh-te50'); % 12
+
+ind15T = [2 4 7 9 10];
+ind3T = [1 5 6 8 11 12];
+ind4T = [3];
+
 
 return
 
