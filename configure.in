@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.284 2006/12/18 18:43:25 fischl Exp $"
+# "$Id: configure.in,v 1.285 2006/12/19 20:52:16 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -749,14 +749,16 @@ AM_CONDITIONAL(HAVE_PETSC_LIBS, ! test "x$ac_petsc_dir" = "xNO")
 
 
 ##########################################################
-# Catch-all flag to enable GLut, Tcl/Tk, VTK and KWW apps
+# Catch-all flag to enable GLut, Tcl/Tk, ITK and KWW apps
 ##########################################################
 tcltk_apps="NO"
+itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk,KWW, and GLut-based apps],
+ [  --enable-all-apps       enable building Tcl/Tk, ITK, KWW, and GLut-based apps],
  [ glut_apps="yes"
    tcltk_apps="yes"
+   itk_apps="yes"
    kww_apps="yes"
    need_opengl="yes"
  ])
@@ -1186,6 +1188,17 @@ AC_ARG_WITH(vtk-dir,
      VTK_DIR=$ac_vtk_dir
   ])
 
+AC_ARG_WITH(vtk-include,
+  [  --with-vtk-include=DIR      root of VTK include directory.],
+  [  vtk_i="$withval/include"
+     ac_vtk_includes="$vtk_i"
+  ])
+
+AC_ARG_WITH(vtk-libraries,
+  [  --with-vtk-libraries=DIR    root of VTK lib directory.],
+  [  ac_vtk_libraries="$withval"
+  ])
+
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
   if test -e $ac_vtk_includes/vtk-5.1 ; then
@@ -1209,6 +1222,71 @@ AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
 AC_SUBST(VTK_DIR)
+
+
+################################################################
+# ITK
+################################################################
+ac_itk_includes="NO"
+ac_itk_libraries="NO"
+ITK_CFLAGS=""
+ITK_LIBS=""
+ITK_LIB=""
+LIBS_ITK=""
+AC_MSG_CHECKING(ITK directory)
+
+AC_ARG_WITH(itk-dir,
+  [  --with-itk-dir=DIR      where the root of ITK is installed.],
+  [  itk_i="$withval/include"
+     ac_itk_includes="$itk_i"
+     ac_itk_libraries="$withval"/lib/InsightToolkit
+     ITK_DIR="$withval"
+     itk_apps="yes"
+     AC_SUBST(ITK_DIR)
+  ])
+
+AC_ARG_WITH(itk-include,
+  [  --with-itk-include=DIR      root of ITK include directory.],
+  [  itk_i="$withval"
+     ac_itk_includes="$itk_i"
+     itk_apps="yes"
+  ])
+
+AC_ARG_WITH(itk-libraries,
+  [  --with-itk-libraries=DIR    root of ITK lib directory.],
+  [  ac_itk_libraries="$withval/InsightToolkit"
+     itk_apps="yes"
+  ])
+
+if test ! "$ac_itk_includes" = "NO"; then
+  AC_MSG_RESULT(ITK directory is $withval)
+  for item in $ac_itk_includes; do
+      ITK_CFLAGS="${ITK_CFLAGS} -I${item}"
+  done
+fi
+
+if test ! "$ac_itk_libraries" = "NO"; then
+  ITK_LIBS=-L$ac_itk_libraries
+  ITK_LIB=$ac_itk_libraries
+fi
+
+AC_ARG_ENABLE(itk-apps,
+ [  --enable-itk-apps       enable building ITK-based apps],
+ [ itk_apps="yes"
+ ])
+
+if test "$itk_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of ITK apps.])
+else
+  AC_MSG_RESULT([Not building ITK apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
+
+AC_SUBST(ITK_CFLAGS)
+AC_SUBST(ITK_LIBS)
+AC_SUBST(ITK_LIB)
+AC_SUBST(LIBS_ITK)
 
 
 #####################################################
@@ -1450,11 +1528,11 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS $PETSC_CFLAGS \
+CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS $PETSC_CFLAGS $ITK_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $KWWIDGETS_LIBS \
+$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
 $PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
