@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/19 12:16:55 $
-// Revision       : $Revision: 1.498 $
+// Revision Date  : $Date: 2006/12/19 21:10:50 $
+// Revision       : $Revision: 1.499 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.498 2006/12/19 12:16:55 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.499 2006/12/19 21:10:50 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -8618,7 +8618,8 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
     fprintf(stdout, "writing curvature file %s\n", fname) ;
 
   mritype = mri_identify(sname);
-  if(mritype != MRI_VOLUME_TYPE_UNKNOWN){
+  //  if(mritype != MRI_VOLUME_TYPE_UNKNOWN){
+  if(mritype == MRI_MGH_FILE){
     int  vno;
     MRI *TempMRI ;
     VERTEX *v ;
@@ -54525,7 +54526,7 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius)
         }
       }
     }
-    v->curv = num*volume/sphere_volume ;
+    v->curv = num*volume / sphere_volume ;
   }
 
   return(NO_ERROR) ;
