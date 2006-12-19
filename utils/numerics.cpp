@@ -471,7 +471,7 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
   double cx;
   int i;
   int it;
-  int it_max = 1000;
+  int it_max = 5000;
   bool indx;
   int ns;
   double pp;
@@ -560,7 +560,11 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
           std::cout << "BETA_INC - Fatal error!\n";
           std::cout << "  Maximum number of iterations exceeded!\n";
           std::cout << "  IT_MAX = " << it_max << "\n";
+#if 0
           exit ( 1 );
+#else 
+          return value ;
+#endif
         }
 
       term = term * temp * rx / ( pp + ( double ) ( i ) );
