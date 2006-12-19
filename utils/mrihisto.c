@@ -875,11 +875,19 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           bin_no = nint((float)(val - bmin) / (float)bin_size) ;
 					if (bin_no == 0)
 						DiagBreak() ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          else if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_SHORT:
           val = MRISvox(mri, x, y, z) ;
           bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          else if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_FLOAT:
@@ -887,6 +895,10 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           bin_no = nint((fval - fmin) / (float)bin_size);
 					if (bin_no < 0 || bin_no >= histo->nbins)
 						DiagBreak() ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          else if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++;
           break;
           
