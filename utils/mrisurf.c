@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/17 21:43:09 $
-// Revision       : $Revision: 1.497 $
+// Revision Date  : $Date: 2006/12/19 12:16:55 $
+// Revision       : $Revision: 1.498 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.497 2006/12/17 21:43:09 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.498 2006/12/19 12:16:55 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -54482,4 +54482,51 @@ MRISsetAllMarks(MRI_SURFACE *mris, int mark)
 		v->marked = mark ;
 	}
 	return(NO_ERROR) ;
+}
+#include "diag.h"
+int
+MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius)
+{
+  MRI           *mri_interior ;
+  int           x, y, z, vno, num ;
+  VERTEX        *v ;
+  double        volume, dist, dx, dy, dz, sphere_volume ;
+  Real          xf, yf, zf ;
+
+  mri_interior = MRISfillInterior(mris, resolution, NULL) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_interior, "int.mgz") ;
+
+  volume = mri_interior->xsize * mri_interior->ysize * mri_interior->zsize ;
+  sphere_volume = volume*M_PI*radius*radius*radius*4/3 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexToVoxel(mris, v, mri_interior, &xf, &yf, &zf) ;
+    for (num = 0, x = floor(xf-radius) ; x <= ceil(xf+radius) ; x++)
+    {
+      if (x < 0 || x >= mri_interior->width)
+        continue ;
+      for (y = floor(yf-radius) ; y <= ceil(yf+radius) ; y++)
+      {
+        if (y < 0 || y >= mri_interior->height)        
+          continue ;
+        for (z = floor(zf-radius) ; z <= ceil(zf+radius) ; z++)
+        {
+          if (z < 0 || z >= mri_interior->depth)        
+            continue ;
+          dx = x-xf ; dy = y-yf ; dz = z-zf ; dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist > radius)
+            continue ;
+          if (MRIgetVoxVal(mri_interior, x, y, z, 0) > 0)
+            num++ ;
+        }
+      }
+    }
+    v->curv = num*volume/sphere_volume ;
+  }
+
+  return(NO_ERROR) ;
 }
