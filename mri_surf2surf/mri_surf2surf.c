@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $
+  $Id: mri_surf2surf.c,v 1.45 2006/12/20 00:55:52 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -157,6 +157,10 @@ OPTIONS
     cannot exceed 2^15). Use this flag to prevent this behavior. This has no 
     effect when the output type is paint.
 
+  --sd SUBJECTS_DIR
+
+    Set SUBJECTS_DIR on the command line.
+
 EXAMPLES:
 
 1. Resample a subject's thickness of the left cortical hemisphere on to a 
@@ -243,6 +247,7 @@ ENDHELP
 #include "prime.h"
 #include "version.h"
 #include "colortab.h"
+#include "fsenv.h"
 
 int DumpSurface(MRIS *surf, char *outfile);
 MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
@@ -281,7 +286,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.45 2006/12/20 00:55:52 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -365,7 +370,7 @@ int main(int argc, char **argv)
 {
   int f,tvtx,svtx,n,err;
   float *framepower = NULL;
-  char fname[2000];
+  char fname[4000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits, val;
@@ -376,7 +381,7 @@ int main(int argc, char **argv)
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.44 2006/11/29 20:51:21 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.45 2006/12/20 00:55:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -809,6 +814,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--sd")){
+      if(nargc < 1) argnerr(option,1);
+      FSENVsetSUBJECTS_DIR(pargv[0]);
       nargsused = 1;
     }
     else if (!strcmp(option, "--s")){
