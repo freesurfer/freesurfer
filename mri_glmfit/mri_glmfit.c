@@ -449,7 +449,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.101 2006/11/27 18:22:56 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.102 2006/12/22 05:49:51 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -548,6 +548,8 @@ int usedti = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
 MRI  *ivc;
+
+int useasl = 0;
 
 char *format = "mgh";
 
@@ -678,6 +680,23 @@ int main(int argc, char **argv)
       if(dti==NULL) exit(1);
       mriglm->Xg = MatrixCopy(dti->B,NULL);
     }
+  }
+  if(useasl){
+    mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 2, NULL);
+    for(n=0; n < mriglm->y->nframes; n += 2){
+      mriglm->Xg->rptr[n+1][2] = 1;
+      mriglm->Xg->rptr[n+2][2] = 0;
+    }
+    nContrasts = 2;
+    mriglm->glm->ncontrasts = nContrasts;
+    mriglm->glm->Cname[0] = "lvc";
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[0]->rptr[1][1] = 0;
+    mriglm->glm->C[0]->rptr[1][2] = 1;
+    mriglm->glm->Cname[1] = "control";
+    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[1]->rptr[1][1] = 1;
+    mriglm->glm->C[1]->rptr[1][2] = 0;
   }
   if(fsgd != NULL){
     mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
@@ -868,13 +887,15 @@ int main(int argc, char **argv)
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
-      // Get its name
-      mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
-      // Read it in
-      mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
-      if(mriglm->glm->C[n] == NULL){
-	printf("ERROR: loading C %s\n",CFile[n]);
-	exit(1);
+      if(! useasl){
+	// Get its name
+	mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+	// Read it in
+	mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
+	if(mriglm->glm->C[n] == NULL){
+	  printf("ERROR: loading C %s\n",CFile[n]);
+	  exit(1);
+	}
       }
       // Check it's dimension
       if(mriglm->glm->C[n]->cols != mriglm->nregtot){
@@ -1467,6 +1488,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
+    else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")){
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -2103,7 +2125,7 @@ static void check_options(void)
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
-  if(XFile == NULL && fsgdfile == NULL && ! OneSampleGroupMean){
+  if(XFile == NULL && fsgdfile == NULL && ! OneSampleGroupMean && ! useasl){
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
@@ -2119,7 +2141,7 @@ static void check_options(void)
     printf("ERROR: cannot specify --C with --osgm\n");
     exit(1);
   } 
-  if(nContrasts == 0 && !OneSampleGroupMean && !usedti){
+  if(nContrasts == 0 && !OneSampleGroupMean && !usedti && !useasl){
     printf("ERROR: no contrasts specified\n");
     exit(1);
   }
