@@ -48,7 +48,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.5 2006/12/27 18:40:00 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.6 2006/12/27 20:18:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -197,6 +197,9 @@ static void print_usage(void)
   printf("   --log10p sigvolfile : sig volume \n");
   printf("\n");
   printf("   --mask maskfile : mask volume \n");
+  printf("   --unsigned : singled sided (default)\n");
+  printf("   --signed : two-sided/signed pvalue (p = 2*(1-p))\n");
+  printf("\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -266,6 +269,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"signed   %d\n",Signed);
 
   return;
 }
