@@ -8,7 +8,7 @@ function s = ldstruct(fid)
 %    <val2> ...
 %  type is char or nonchar
 %
-%  $Id: ldstruct.m,v 1.2 2006/08/11 18:29:54 greve Exp $
+%  $Id: ldstruct.m,v 1.3 2006/12/27 22:40:43 nicks Exp $
 
 s = [];
 
@@ -34,7 +34,14 @@ for n = 1:nfields,
      % Swallow new line. I added this on 8/11/06. It was not broken
      % before but matlab 7.2 seems not to work without it. So, I
      % don't know if this will break previous versions.
-     fgetl(fid);
+     % NJS: it does break previous versions, so this check for version
+     % number has been added before eating newline.
+     % Note: v7.3 does not work correctly when newline is eaten!
+     matlab_version = version;
+     matlab_version = str2num(matlab_version(1:3));
+     if (matlab_version == 7.2)
+       fgetl(fid);
+     end
      nstrings = vsize(1);
      v = [];
      for m = 1:nstrings,
