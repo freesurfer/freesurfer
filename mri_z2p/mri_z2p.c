@@ -48,7 +48,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.4 2006/10/28 19:23:47 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.5 2006/12/27 18:40:00 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -59,6 +59,7 @@ char *ZVolFile=NULL;
 char *PVolFile=NULL;
 char *Log10PVolFile=NULL;
 char *MaskVolFile=NULL;
+int Signed = 0;
 
 MRI *z,*p,*sig,*mask=NULL;
 
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
     if(mask==NULL) exit(1);
   }
 
-  p = RFz2p(z, mask, NULL);
+  p = RFz2p(z, mask, Signed, NULL);
 
   if(PVolFile) MRIwrite(p,PVolFile);
 
@@ -136,6 +137,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--signed"))   Signed = 1;
+    else if (!strcasecmp(option, "--unsigned")) Signed = 0;
 
     else if (!strcasecmp(option, "--z")){
       if(nargc < 1) CMDargNErr(option,1);

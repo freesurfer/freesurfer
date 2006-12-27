@@ -16,7 +16,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) {
-  return("$Id: randomfields.c,v 1.8 2006/10/28 19:18:44 greve Exp $");
+  return("$Id: randomfields.c,v 1.9 2006/12/27 18:40:00 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -154,9 +154,13 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
   }
   return(0);
 }
-
-/*-------------------------------------------------------------------*/
-MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
+/*!
+  \fn MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
+  \brief Converts a stat to a p value. If Signed != 0 and the voxel
+      value is < 0, then p = -2*(1-p). This converts it to TWO-SIDED
+      test. 
+*/
+MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
 {
   int c,r,s,f=0,m;
   double v,pval;
@@ -174,6 +178,7 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
         for(f=0; f < rf->nframes; f++){
           v = MRIgetVoxVal(rf,c,r,s,f);
           pval = RFstat2PVal(rfs,v);
+	  if(Signed && v < 0) pval = -2*(1-pval);
           MRIsetVoxVal(p,c,r,s,f,pval);
         }
       }
@@ -185,14 +190,14 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, MRI *p)
   \fn MRI *RFz2p(MRI *z, MRI *mask, MRI *p)
   \brief Converts z to p (single-sided).
 */
-MRI *RFz2p(MRI *z, MRI *mask, MRI *p)
+MRI *RFz2p(MRI *z, MRI *mask, int Signed, MRI *p)
 {
   RFS *rfs;
   rfs = RFspecInit(0,NULL);
   rfs->name = strcpyalloc("gaussian");
   rfs->params[0] = 0;
   rfs->params[1] = 1;
-  p = RFstat2P(z,rfs,mask,p);
+  p = RFstat2P(z,rfs,mask,Signed,p);
   return(p);
 }
 
@@ -232,7 +237,7 @@ MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout)
   if(RFname2Code(rfsin)  == -1) return(NULL);
   if(RFname2Code(rfsout) == -1) return(NULL);
 
-  p     = RFstat2P(rfin, rfsin, binmask, p);
+  p     = RFstat2P(rfin, rfsin, binmask, 0, p);
   rfout = RFp2Stat(p, rfsout, binmask, rfout);
   MRIfree(&p);
   return(rfout);
