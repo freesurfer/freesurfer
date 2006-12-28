@@ -71,14 +71,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.49 2006/12/28 02:08:26 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.50 2006/12/28 20:06:56 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.49 2006/12/28 02:08:26 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.50 2006/12/28 20:06:56 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -341,6 +341,13 @@ get_option(int argc, char *argv[])
     printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
     intensity_below = 15 ;
   }
+  else if (!stricmp(option, "WASHU_MPRAGE"))
+  {
+    scan_type = MRI_WASHU_MPRAGE;
+    printf("assuming input volume is WashU MP-RAGE (dark GM)\n") ;
+    intensity_below = 22 ;
+
+  }
   else if (!stricmp(option, "monkey"))
   {
     no1d = 1 ;
@@ -582,7 +589,8 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
   wm_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins-1) ;
   wm_peak = hsmooth->bins[wm_peak] ;
   thresh = wm_peak-intensity_below ;
-  printf("using wm threshold %2.1f for removing exterior voxels\n", thresh) ;
+  printf("using wm (%d) threshold %2.1f for removing exterior voxels\n", 
+         wm_peak, thresh) ;
 
   // now remove stuff that's on the border and is pretty dark
   for (nremoved = x = 0 ; x < mri_src->width ; x++)
