@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.53 2006/12/18 23:27:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.54 2006/12/28 20:51:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -87,6 +87,8 @@ set RngSeed = 1234   # seed for random number generator, used only when
 set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
                      # mri_em_register are run in order to determine the best
                      # skull-strip
+set IsMPRAGE = 0     # if 1, then -mprage added to mri_normalize/segment
+set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -670,6 +672,8 @@ if($DoNormalization) then
     set cmd = (mri_normalize -g $NormMaxGrad);
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
+    if($IsMPRAGE)         set cmd = ($cmd -mprage)
+    if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
     set cmd = ($cmd $xopts nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
@@ -679,7 +683,10 @@ if($DoNormalization) then
     if(! -e $tp1dir/mri/ctrl_vol.mgz) then
       echo "Recompute intensity normalization to create $tp1id ctrl_vol.mgz" \
         |& tee -a $LF
-      set cmd = (mri_normalize \
+      set cmd = (mri_normalize)
+      if($IsMPRAGE)      set cmd = ($cmd -mprage)
+      if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
+      set cmd = ($cmd \
         -mask $tp1dir/mri/brain.mgz
         -W $tp1dir/mri/ctrl_vol.mgz $tp1dir/mri/bias_vol.mgz \
         $tp1dir/mri/nu.mgz \
@@ -1201,6 +1208,8 @@ if($DoNormalization2) then
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
+  if($IsMPRAGE)           set cmd = ($cmd -mprage)
+  if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
   set cmd = ($cmd -mask brainmask.mgz)
   if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.mgz)
   set cmd = ($cmd $xopts norm.mgz brain.mgz)
@@ -1244,6 +1253,8 @@ if($DoSegmentation) then
   set cmd = (mri_segment);
   if ($NoThicken) set cmd = ($cmd -thicken 0)
   if(! $DoCleanWM && -e wm.seg.mgz) set cmd = ($cmd -keep)
+  if($IsMPRAGE)         set cmd = ($cmd -mprage)
+  if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
   set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
@@ -2813,6 +2824,13 @@ while( $#argv != 0 )
       set UseTP1CtrlVol = 1;
       breaksw
 
+    case "-mprage":
+      set IsMPRAGE = 1;
+      breaksw;
+
+    case "-washu_mprage":
+      set IsWashuMPRAGE = 1;
+      breaksw;
 
     default:
       echo ERROR: Flag $flag unrecognized.
@@ -3051,6 +3069,11 @@ check_params:
     exit(1);
   endif
 
+  if($IsMPRAGE == 1 && $IsWashuMPRAGE == 1) then
+    echo "ERROR: cannot specify both -mprage and -washu_mprage"
+    exit(1);
+  endif
+
   set XOptsPreExist = $subjdir/scripts/expert-options
   if(-e $XOptsPreExist) then
     # There is a pre-existing xopts file
@@ -3284,6 +3307,9 @@ usage_exit:
   echo "  -xopts-use       : use pre-existing expert options file"
   echo "  -xopts-clean     : delete pre-existing expert options file"
   echo "  -xopts-overwrite : overwrite pre-existing expert options file"
+  echo ""
+  echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
+  echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
