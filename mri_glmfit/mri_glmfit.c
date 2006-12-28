@@ -449,7 +449,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.102 2006/12/22 05:49:51 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.103 2006/12/28 11:01:40 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1127,7 +1127,7 @@ int main(int argc, char **argv)
 	  //   during thresholding.
 	  // First, use zabs to get a two-sided pval bet 0 and 0.5
 	  zabs = MRIabs(z,zabs); 
-	  mriglm->p[n] = RFstat2P(zabs,rfs,mriglm->mask,mriglm->p[n]);
+	  mriglm->p[n] = RFstat2P(zabs,rfs,mriglm->mask,0,mriglm->p[n]);
 	  // Next, mult pvals by 2 to get two-sided bet 0 and 1
 	  MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
 	  // sig = -log10(p)
