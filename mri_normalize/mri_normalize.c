@@ -17,7 +17,7 @@
 
 static MRI *MRIremoveWMOutliers(MRI *mri_src, 
 				MRI *mri_src_ctrl, 
-				MRI *mri_dst_ctrl) ;
+				MRI *mri_dst_ctrl, int intensity_below) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(int code) ;
@@ -30,6 +30,8 @@ static float bias_sigma = 8.0 ;
 
 static char *mask_fname ;
 char *Progname ;
+
+static int scan_type = MRI_UNKNOWN ;
 
 static int prune = 0 ;  /* off by default */
 static MRI_NORM_INFO  mni = {} ;
@@ -69,14 +71,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.48 2006/11/18 02:11:55 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.49 2006/12/28 02:08:26 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.48 2006/11/18 02:11:55 fischl Exp $",
+     "$Id: mri_normalize.c,v 1.49 2006/12/28 02:08:26 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -220,7 +222,7 @@ main(int argc, char *argv[])
     for (i = 0 ; i < NWM_LABELS ; i++)
       MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
     fprintf(stderr,"removing outliers in the aseg WM...\n") ;
-    MRIremoveWMOutliers(mri_dst, mri_ctrl, mri_ctrl) ;
+    MRIremoveWMOutliers(mri_dst, mri_ctrl, mri_ctrl, intensity_below) ;
     MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
     MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -282,7 +284,7 @@ main(int argc, char *argv[])
       MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                      mri_dst,
                      intensity_above, intensity_below,
-                     file_only, prune, bias_sigma);
+                     file_only, prune, bias_sigma, scan_type);
   }
 
   if (bias_volume_fname)
@@ -332,6 +334,12 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE"))
+  {
+    scan_type = MRI_MGH_MPRAGE;
+    printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
+    intensity_below = 15 ;
   }
   else if (!stricmp(option, "monkey"))
   {
@@ -548,7 +556,8 @@ compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias)
 }
 
 static MRI *
-MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl)
+MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
+                    int intensity_below)
 {
   MRI  *mri_inside, *mri_bin ;
   HISTOGRAM *histo, *hsmooth ;
@@ -566,111 +575,111 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl)
   hsmooth = HISTOcopy(histo, NULL) ;
   HISTOsmooth(histo, hsmooth, 2) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      HISTOplot(histo, "h.plt") ;
-      HISTOplot(hsmooth, "hs.plt") ;
-    }
+  {
+    HISTOplot(histo, "h.plt") ;
+    HISTOplot(hsmooth, "hs.plt") ;
+  }
   wm_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins-1) ;
   wm_peak = hsmooth->bins[wm_peak] ;
-  thresh = wm_peak-10 ;
+  thresh = wm_peak-intensity_below ;
   printf("using wm threshold %2.1f for removing exterior voxels\n", thresh) ;
 
   // now remove stuff that's on the border and is pretty dark
   for (nremoved = x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
     {
-      for (y = 0 ; y < mri_src->height ; y++)
-	{
-	  for (z = 0 ; z < mri_src->depth ; z++)
+      for (z = 0 ; z < mri_src->depth ; z++)
 	    {
 	      if (x == Gx && y == Gy && z == Gz)
-		DiagBreak() ;
+          DiagBreak() ;
 	      /* if it's a control point, 
-		 it's not in the interior of the wm, 
-		 and it's T1 val is too low */
+           it's not in the interior of the wm, 
+           and it's T1 val is too low */
 	      if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
-		continue ;  // not a  control point
+          continue ;  // not a  control point
 
 	      /* if it's way far from the wm mode 
-		 then remove it even if it's in the interior */
+           then remove it even if it's in the interior */
 	      val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 	      if (val < thresh-5)
-		{
-		  MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
-		  nremoved++ ;
-		}
+        {
+          MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          nremoved++ ;
+        }
 
 	      if (nint(MRIgetVoxVal(mri_inside, x, y, z, 0)) > 0)  
-		// don't process interior voxels further
-		continue ;   // in the interior
+          // don't process interior voxels further
+          continue ;   // in the interior
 	      if (val < thresh)
-		{
-		  MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
-		  nremoved++ ;
-		}
+        {
+          MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          nremoved++ ;
+        }
 	      else
-		{
-		  lmean = 
-		    MRImeanInLabelInRegion(mri_src, mri_inside, 1, x, y, z, 7);
-		  if (val < lmean-10)
-		    {
-		      MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
-		      nremoved++ ;
-		    }
-		}
+        {
+          lmean = 
+            MRImeanInLabelInRegion(mri_src, mri_inside, 1, x, y, z, 7);
+          if (val < lmean-10)
+          {
+            MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+            nremoved++ ;
+          }
+        }
 	    }
-	}
     }
+  }
 
 #if 0
   for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
     {
-      for (y = 0 ; y < mri_src->height ; y++)
-	{
-	  for (z = 0 ; z < mri_src->depth ; z++)
+      for (z = 0 ; z < mri_src->depth ; z++)
 	    {
 	      if (x == Gx && y == Gy && z == Gz)
-		DiagBreak() ;
+          DiagBreak() ;
 	      /* if it's a control point, 
-		 it's not in the interior of the wm, 
-		 and it's T1 val is too low */
+           it's not in the interior of the wm, 
+           and it's T1 val is too low */
 	      if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
-		continue ;  // not a  control point
+          continue ;  // not a  control point
 	      if (MRIcountNonzeroInNbhd(mri_dst_ctrl,3, x, y, z)<=2)
-		{
-		  MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
-		  nremoved++ ;
-		}
+        {
+          MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          nremoved++ ;
+        }
 	    }
-	}
     }
+  }
 #endif
 
   /* now take out voxels that have too big an intensity diff 
      with surrounding ones */
   mri_bin = MRIbinarize(mri_dst_ctrl, NULL, 1, 0, 1) ;
   for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
     {
-      for (y = 0 ; y < mri_src->height ; y++)
-	{
-	  for (z = 0 ; z < mri_src->depth ; z++)
+      for (z = 0 ; z < mri_src->depth ; z++)
 	    {
 	      if (x == Gx && y == Gy && z == Gz)
-		DiagBreak() ;
+          DiagBreak() ;
 	      /* if it's a control point, 
-		 it's not in the interior of the wm, 
-		 and it's T1 val is too low */
+           it's not in the interior of the wm, 
+           and it's T1 val is too low */
 	      if (MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0) == 0)
-		continue ;  // not a  control point
+          continue ;  // not a  control point
 	      val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 	      max = MRImaxInLabelInRegion(mri_src, mri_bin, 1, x, y, z, 3);
 	      if (val+7 < max)
-		{
-		  MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
-		  nremoved++ ;
-		}
+        {
+          MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          nremoved++ ;
+        }
 	    }
-	}
     }
+  }
 
   fprintf(stderr, "%d control points removed\n", nremoved) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
