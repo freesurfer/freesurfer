@@ -86,7 +86,7 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 MRI *MRInormFindControlPoints(MRI *mri_src, int wm_target, 
                               float intensity_above, float intensity_below,
-                              MRI *mri_ctrl, int which) ;
+                              MRI *mri_ctrl, int which, int scan_type) ;
 MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_dst, float bias_sigma, float wm_target) ;
 MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) ;
 MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target, 
@@ -95,7 +95,7 @@ MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias, float sigma);
 MRI *MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                     float intensity_above, float intensity_below,
-                    int only_file, int prune, float sigma);
+                    int only_file, int prune, float sigma, int scan_type);
 MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, 
                           MRI *mri_norm, float intensity_above, 
                           float intensity_below, int only_file, float bias_sigma);
@@ -107,8 +107,11 @@ int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
 MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter) ;
 int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
-MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target, float intensity_above, 
-																			float intensity_below, MRI *mri_ctrl, float whalf_mm, char *debug_str, int *pnctrl);
+MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target, 
+                                      float intensity_above, 
+																			float intensity_below, MRI *mri_ctrl, 
+                                      float whalf_mm, char *debug_str, 
+                                      int *pnctrl, int scan_type);
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 
 #endif

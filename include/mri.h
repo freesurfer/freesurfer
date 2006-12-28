@@ -1089,4 +1089,11 @@ int MRInormalizeFrames(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
 
+// types of MRI sequences
+#define MRI_UNKNOWN          0
+#define MRI_MGH_MPRAGE       1 
+#define MRI_ADNI_MPRAGE      2 
+#define MRI_WASHU_MPRAGE     3 
+#define MRI_MIND_MPRAGE      4 
+
 #endif
