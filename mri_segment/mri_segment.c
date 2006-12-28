@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.30 2006/04/12 18:47:51 fischl Exp $
+// ID             : $Id: mri_segment.c,v 1.31 2006/12/28 20:06:48 fischl Exp $
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/04/12 18:47:51 $
-// Revision       : $Revision: 1.30 $
+// Revision Date  : $Date: 2006/12/28 20:06:48 $
+// Revision       : $Revision: 1.31 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.30 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.31 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +49,7 @@ static int gray_hi_set = 0 ;
 static int wm_hi_set = 0 ;
 static int wm_low_set = 0 ;
 
+static int scan_type = MRI_UNKNOWN ;
 static int thickness = 4 ;
 static int thicken = 1 ;
 static int nsegments = 20 ;
@@ -103,7 +104,7 @@ main(int argc, char *argv[])
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.30 2006/04/12 18:47:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.31 2006/12/28 20:06:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -326,6 +327,20 @@ get_option(int argc, char *argv[])
   {
     fprintf(stderr, "Version: %s\n", MRI_SEGMENT_VERSION);
     exit(0);
+  }
+  else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE"))
+  {
+    scan_type = MRI_MGH_MPRAGE;
+    printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
+    gray_hi = 99 ;
+    wm_low = 89 ;
+  }
+  else if (!stricmp(option, "WASHU_MPRAGE"))
+  {
+    scan_type = MRI_WASHU_MPRAGE;
+    printf("assuming input volume is WashU MP-RAGE (dark GM)\n") ;
+    gray_hi = 85 ;
+    wm_low = 80 ;
   }
   else if (!stricmp(option, "slope"))
   {
