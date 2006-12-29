@@ -1,15 +1,21 @@
 /**
  * @file  gca.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Core routines implementing the Gaussian Classifier Atlas mechanism
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Routines implementing the mechanism of encoding voxel label information
+ * based on probabilistic information estimated from a training set.
+ *
+ * Reference:
+ * "Whole Brain Segmentation: Automated Labeling of Neuroanatomical
+ * Structures in the Human Brain", Fischl et al.
+ * (2002) Neuron, 33:341-355.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.218 $
+ *    $Date: 2006/12/29 20:37:07 $
+ *    $Revision: 1.219 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,15 +30,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// gca.c
-// originally written by Bruce Fischl
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:32 $
-// Revision       : $Revision: 1.218 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +71,6 @@ int Gyn = -1; // 21;
 int Gzn = -1; // 32;
 char *G_write_probs = NULL ;
 
-static int initialize_ventricle_alignment(MRI *mri_seg, MRI *mri, MATRIX *m_L, char *base_name) ;
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
 #define LABEL_UNDETERMINED   255
@@ -103,12 +99,18 @@ static float gcaFindCerebellarScaleFactor(GCA *gca,
     HISTOGRAM *h_mri,
     int label,
     FILE *logfp);
-static double GCAcomputeScaledMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform,
+static double GCAcomputeScaledMeanEntropy(GCA *gca, 
+                                          MRI *mri, 
+                                          TRANSFORM *transform,
     int *labels, float *scales, int nlabels) ;
 #endif
-static int gcaScale(GCA *gca, int *labels, int *contra_labels, float *scales, int nlabels, int dir);
+static int gcaScale(GCA *gca, int *labels, int *contra_labels, 
+                    float *scales, int nlabels, int dir);
 #if 0
-static int gcaMaxPriorLabel(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
+static int gcaMaxPriorLabel(GCA *gca, 
+                            MRI *mri, 
+                            TRANSFORM *transform, 
+                            int x, int y, int z) ;
 #endif
 static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame) ;
 int GCAmaxLabel(GCA *gca) ;
@@ -296,6 +298,12 @@ static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
 
 static void  set_equilavent_classes(int *equivalent_classes);
 
+static int initialize_ventricle_alignment(MRI *mri_seg, 
+                                          MRI *mri, 
+                                          MATRIX *m_L, 
+                                          char *base_name) ;
+
+
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg)
 {
   vg->width = gca->width;
@@ -480,8 +488,8 @@ void GCAsetup(GCA *gca)
     MRIfree(&gca->mri_tal__);
     gca->mri_tal__ = 0;
   }
-  gca->mri_tal__ = \
-                   MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
+  gca->mri_tal__ = 
+    MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
 
   /* Copy the voxel resolutions.  Set the defaults */
   gca->mri_tal__->xsize = gca->xsize;
@@ -2433,7 +2441,6 @@ GCAread(char *fname)
         }
       }
     }
-
   }
 
   for (x = 0 ; x < gca->node_width ; x++)
@@ -2967,7 +2974,6 @@ GCAcompleteMeanTraining(GCA *gca)
       }
     }
   }
-
 
   printf("%d classifiers: %2.1f per node, %2.2f in brain (%d holes filled)\n",
          total_gcs, (float)total_gcs/(float)total_nodes,
@@ -7499,7 +7505,11 @@ GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRAN
           DiagBreak() ;
         if ((int)MRIgetVoxVal(mri_labels, x, y, z, 0) == 0)
           continue ;
-        log_likelihood += gcaVoxelLogLikelihood(gca, mri_labels, mri_inputs, x, y, z, transform);
+        log_likelihood += gcaVoxelLogLikelihood(gca, 
+                                                mri_labels, 
+                                                mri_inputs, 
+                                                x, y, z, 
+                                                transform);
         num++ ;
         if (!finite(log_likelihood))
           DiagBreak() ;
@@ -8059,7 +8069,8 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   found, xmin, xmax, ymin, ymax, zmin, zmax ;
   GCA_NODE *gcan ;
   GC1D     *gc ;
-  float    v_means[MAX_GCA_INPUTS], v_var, dist_ven, dist_label, vals[MAX_GCA_INPUTS] ;
+  float    v_means[MAX_GCA_INPUTS], v_var, dist_ven, 
+    dist_label, vals[MAX_GCA_INPUTS] ;
 
   /* compute label mean and variance */
 
@@ -8135,8 +8146,10 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           {
             yi = mri_dst->yi[y+yk] ;  // look superior/inferior
 
-            // only change it if there is a "wall" of ventricle superior or inferior
-            count = MRIlabelsInPlanarNbhd(mri_dst, x, yi, z, V_WHALF, target_label, MRI_HORIZONTAL) ;
+            // only change it if there is a "wall" of 
+            // ventricle superior or inferior
+            count = MRIlabelsInPlanarNbhd
+              (mri_dst, x, yi, z, V_WHALF, target_label, MRI_HORIZONTAL) ;
             if (count >= V_THRESH)
               found = 1 ;
           }
@@ -8144,8 +8157,10 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           {
             xi = mri_dst->xi[x+xk] ;  // look superior/inferior
 
-            // only change it if there is a "wall" of ventricle superior or inferior
-            count = MRIlabelsInPlanarNbhd(mri_dst, xi, y, z, V_WHALF, target_label, MRI_SAGITTAL) ;
+            // only change it if there is a "wall" of 
+            // ventricle superior or inferior
+            count = MRIlabelsInPlanarNbhd
+              (mri_dst, xi, y, z, V_WHALF, target_label, MRI_SAGITTAL) ;
             if (count >= V_THRESH)
               found = 1 ;
           }
@@ -8153,8 +8168,10 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           {
             zi = mri_dst->zi[z+zk] ;  // look superior/inferior
 
-            // only change it if there is a "wall" of ventricle anterior or posterior
-            count = MRIlabelsInPlanarNbhd(mri_dst, x, y, zi, V_WHALF, target_label, MRI_CORONAL) ;
+            // only change it if there is a "wall" of 
+            // ventricle anterior or posterior
+            count = MRIlabelsInPlanarNbhd
+              (mri_dst, x, y, zi, V_WHALF, target_label, MRI_CORONAL) ;
             if (count >= V_THRESH)
               found = 1 ;
           }
@@ -8177,7 +8194,8 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             else
               dist_label = GCAmahDistIdentityCovariance(gc, vals,gca->ninputs);
             gc = GCAfindGC(gca, xn, yn, zn,target_label) ;
-            if (2*dist_ven < dist_label)   // much more like ventricle than anything else
+            if (2*dist_ven < dist_label)   // much more like ventricle 
+                                           //than anything else
             {
               if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
               {
@@ -8345,11 +8363,13 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                      xi, yi, zi) ;
                             printf("GCAexpandVentricle:voxel"
                                    "(%d, %d, %d) changed from %s (%d) "
-                                   "to %s (%d), because current label p = %.2f "
+                                   "to %s (%d), because current "
+                                   "label p = %.2f "
                                    "and new lable p = %.2f\n",
                                    xi, yi, zi,
                                    cma_label_to_name(olabel), olabel,
-                                   cma_label_to_name(target_label), target_label,
+                                   cma_label_to_name(target_label), 
+                                   target_label,
                                    plabel, pv);
                           }
                           if (xi == 140
@@ -8814,7 +8834,8 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                      "to %s (%d), prior=%.2f\n",
                                      xi, yi, zi,
                                      cma_label_to_name(nbr_label), nbr_label,
-                                     cma_label_to_name(target_label), target_label,
+                                     cma_label_to_name(target_label), 
+                                     target_label,
                                      prior);
                             }
                             nchanged++ ;
@@ -12420,7 +12441,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   for (r = 0 ; r < gca->ninputs ; r++)
   {
     mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
-    MRImask(mri_frame, mri_mask, mri_frame, 0,0) ;  // remove stuff that is background or csf
+    MRImask(mri_frame, mri_mask, mri_frame, 0,0) ;  /* remove stuff that is 
+                                                       background or csf */
 
     printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
            "to find MRI wm\n", wm_means[r], box.x, box.y, box.z,
@@ -14876,7 +14898,6 @@ GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src,
                          gca_flash_src->TEs[i]) ;
           }
 
-
 #define MIN_T1 50
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak()  ;
@@ -16131,7 +16152,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           border = WM_BORDER_SIZE ;
         else
           border = BORDER_SIZE ;
-        GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
+        GCAbuildMostLikelyVolumeForStructure
+          (gca, mri_seg, l, border, transform,mri_labels) ;
         for (x = 0 ; x < mri_labels->width ; x++)
         {
           for (y = 0 ; y < mri_labels->height ; y++)
@@ -16180,7 +16202,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           // create a volume that is the wm eroded 3 times,
           // plus the border voxels
           mri_tmp = MRIclone(mri_seg, NULL) ;
-          GCAbuildMostLikelyVolumeForStructure(gca, mri_tmp, l, BORDER_SIZE, transform, NULL) ;
+          GCAbuildMostLikelyVolumeForStructure
+            (gca, mri_tmp, l, BORDER_SIZE, transform, NULL) ;
           mri_border = MRIsubtract(mri_seg, mri_tmp, NULL) ;
           // just outside
 
@@ -16230,7 +16253,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
             {
               char label_base_name[STRLEN] ;
               sprintf(label_base_name, "%s_label%d", base_name, l) ;
-              initialize_ventricle_alignment(mri_seg, mri, m_L, label_base_name) ;
+              initialize_ventricle_alignment
+                (mri_seg, mri, m_L, label_base_name) ;
             }
             MRIfaridAlignImages(mri_seg, mri,  m_L) ;
           }
@@ -16272,7 +16296,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 
             if (evalues[0]/evalues[2] > 2)
             {
-              printf("extreme anistropy detected in transform (%2.2f=%2.2f/%2.2f)\n", evalues[0]/evalues[2], evalues[0], evalues[2]) ;
+              printf("extreme anistropy detected in transform "
+                     "(%2.2f=%2.2f/%2.2f)\n", 
+                     evalues[0]/evalues[2], evalues[0], evalues[2]) ;
               det = -1 ;
             }
           }
@@ -16408,7 +16434,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
       HISTOmakePDF(h_gca, h_gca) ;
       if (gca_peak >= 0)
-        printf("gca peak = %2.5f (%2.0f)\n", h_gca->counts[gca_peak], h_gca->bins[gca_peak]) ;
+        printf("gca peak = %2.5f (%2.0f)\n", 
+               h_gca->counts[gca_peak], h_gca->bins[gca_peak]) ;
       label_peaks[l] = h_gca->bins[gca_peak] ;
       fflush(stdout);
 
@@ -16416,7 +16443,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       HISTOfillHoles(h_mri) ;
       HISTOmakePDF(h_mri, h_mri) ;
       if (mri_peak >= 0)
-        printf("mri peak = %2.5f (%2.0f)\n", h_mri->counts[mri_peak], h_mri->bins[mri_peak]) ;
+        printf("mri peak = %2.5f (%2.0f)\n", 
+               h_mri->counts[mri_peak], h_mri->bins[mri_peak]) ;
       fflush(stdout);
 
       if (IS_CSF(l) && h_mri->bins[mri_peak] > 55)
@@ -16521,12 +16549,15 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           upper_thresh = 256 ;
           break ;
         }
-        if ((val < lower_thresh || val > upper_thresh) ||
-            (h_mri->bins[mri_peak] < lower_thresh || h_mri->bins[mri_peak] > upper_thresh))
+        if ((val < lower_thresh || 
+             val > upper_thresh) ||
+            (h_mri->bins[mri_peak] < lower_thresh || 
+             h_mri->bins[mri_peak] > upper_thresh))
         {
           //          if (transform->type != MORPH_3D_TYPE)
           {
-            printf("unreasonable value (%2.1f/%2.1f), not in range [%2.0f, %2.0f] - rejecting\n",
+            printf("unreasonable value (%2.1f/%2.1f), "
+                   "not in range [%2.0f, %2.0f] - rejecting\n",
                    val, h_mri->bins[mri_peak], lower_thresh, upper_thresh) ;
             label_scales[l] = 1.0 ;
             label_offsets[l] = 1.0 ;
@@ -16618,7 +16649,10 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
         if (gca_peak >= 0)
-          printf("gca peak %s = %2.5f (%2.0f)\n", cma_label_to_name(l), h_gca->counts[gca_peak], h_gca->bins[gca_peak]) ;
+          printf("gca peak %s = %2.5f (%2.0f)\n", 
+                 cma_label_to_name(l), 
+                 h_gca->counts[gca_peak], 
+                 h_gca->bins[gca_peak]) ;
         label_peaks[l] = h_gca->bins[gca_peak] ;
         fflush(stdout);
       }
@@ -16887,7 +16921,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  (label_peaks[Left_Cerebral_White_Matter] +
                   label_peaks[Right_Cerebral_White_Matter])/2 ;
           scale = peak / label_peaks[l] ;
-          printf("%s too bright - rescaling by %2.3f (from %2.3f) to %2.1f (was %2.1f)\n",
+          printf("%s too bright - rescaling by %2.3f "
+                 "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
           label_scales[l] = scale ;
@@ -16905,7 +16940,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  (label_peaks[Left_Cerebral_White_Matter] +
                   label_peaks[Right_Cerebral_White_Matter])/2 ;
           scale = peak / label_peaks[l] ;
-          printf("%s too bright - rescaling by %2.3f (from %2.3f) to %2.1f (was %2.1f)\n",
+          printf("%s too bright - rescaling by %2.3f "
+                 "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
           label_scales[l] = scale ;
@@ -16915,7 +16951,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       }
     }
 
-    // now use precomputed eigenstructure of intensity volumes to adjust corrections
+    // now use precomputed eigenstructure of intensity 
+    // volumes to adjust corrections
 #if 0
     {
 #define NUM_EIG 5
@@ -16927,7 +16964,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       v_obs = RVectorAlloc(NUM_INT_EIG_LABELS, MATRIX_REAL) ;
       for (r = 0 ; r < NUM_INT_EIG_LABELS ; r++)
       {
-        for (c2 = 1, c = NUM_INT_EIG_LABELS-num_eig ; c < NUM_INT_EIG_LABELS ; c++, c2++)
+        for (c2 = 1, c = NUM_INT_EIG_LABELS-num_eig ; 
+             c < NUM_INT_EIG_LABELS ; 
+             c++, c2++)
         {
           *MATRIX_RELT(m_eig, r+1, c2) = intensity_eig_vectors[r][c] ;
         }
@@ -16935,7 +16974,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 
       for (r = 1 ; r <= NUM_INT_EIG_LABELS ; r++)
       {
-        RVECTOR_ELT(v_obs, r) = label_peaks[intensity_eig_labels[r-1]] - intensity_means[r-1] ;
+        RVECTOR_ELT(v_obs, r) = 
+          label_peaks[intensity_eig_labels[r-1]] - intensity_means[r-1] ;
       }
       v_dot = MatrixMultiply(v_obs, m_eig, NULL) ;
       v_dot_T = VectorTranspose(v_dot, NULL) ;
@@ -16946,11 +16986,15 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         l = intensity_eig_labels[c-1] ;
         old_peak = label_peaks[l] ;
         new_peak = intensity_means[c-1] + VECTOR_ELT(v_obs_estimated,c) ;
-        printf("EIG %s = changing peak from %2.0f to %2.0f, scale from %2.3f to %2.3f\n",
-               cma_label_to_name(l), old_peak, new_peak, label_scales[l], label_scales[l]*new_peak/old_peak) ;
+        printf("EIG %s = changing peak from %2.0f to %2.0f, "
+               "scale from %2.3f to %2.3f\n",
+               cma_label_to_name(l), old_peak, new_peak, 
+               label_scales[l], label_scales[l]*new_peak/old_peak) ;
         if (logfp)
-          fprintf(logfp, "EIG %s = changing peak from %2.0f to %2.0f, scale from %2.3f to %2.3f\n",
-                  cma_label_to_name(l), old_peak, new_peak, label_scales[l], label_scales[l]*new_peak/old_peak) ;
+          fprintf(logfp, "EIG %s = changing peak from %2.0f to %2.0f, "
+                  "scale from %2.3f to %2.3f\n",
+                  cma_label_to_name(l), old_peak, new_peak, 
+                  label_scales[l], label_scales[l]*new_peak/old_peak) ;
         label_scales[l] *= (new_peak/old_peak) ;
         label_peaks[l] = new_peak ;
       }
@@ -17575,7 +17619,6 @@ GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform)
      (weighted by priors) to determine
      p(I|u,c) p(c).
   */
-
 
   max_label = GCAmaxLabel(gca) ;
 
@@ -18784,7 +18827,8 @@ MRI *
 GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri, int label, int border,
                                      TRANSFORM *transform, MRI *mri_labels)
 {
-  int              x,  y, z, xn, yn, zn, width, depth, height, n, xp, yp, zp, r ;
+  int              x,  y, z, xn, yn, zn, width, depth, height, 
+    n, xp, yp, zp, r ;
   GCA_NODE         *gcan ;
   GCA_PRIOR        *gcap ;
   double           max_prior ;
@@ -19146,7 +19190,6 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame)
                 DiagBreak() ;
             }
           }
-
         }
       }
     }
@@ -19167,7 +19210,6 @@ gcaComputePrior(GCA *gca, MRI *mri, TRANSFORM *transform,
 
   if (x0 == Ggca_x && y0 == Ggca_y && z0 == Ggca_z)
     DiagBreak() ;
-
 
   gcaSourceVoxelToPriorReal(gca, mri, transform, x0, y0, z0, &x, &y, &z);
   xm = MAX((int)x, 0) ;
@@ -19705,7 +19747,7 @@ GCAlabelWMandWMSAs(GCA *gca,
             // took gm out for now
             if (ncaudate+nwm+nwmsa+nunknown <
                 .9*WSIZE*WSIZE*WSIZE)  /* somewhat arbitrary -
-                                                                                                            the bulk of the nbhd */
+                                          the bulk of the nbhd */
               continue ;
             ngm = MRIlabelsInNbhd(mri_tmp, x, y, z,1, gm_label) ;
             if (ngm > 0)  // not if there are any gm nearest nbrs
@@ -19807,7 +19849,10 @@ GCAlabelWMandWMSAs(GCA *gca,
   return(mri_dst_labels) ;
 }
 static int
-initialize_ventricle_alignment(MRI *mri_seg, MRI *mri, MATRIX *m_L, char *base_name)
+initialize_ventricle_alignment(MRI *mri_seg, 
+                               MRI *mri, 
+                               MATRIX *m_L, 
+                               char *base_name)
 {
   printf("Handling expanded ventricles... "
          "(gca::initialize_ventricle_alignment)\n");
@@ -19917,7 +19962,10 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
   MRI        *mri_ll ;
 
   if (DIAG_VERBOSE_ON)
-    mri_ll = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth, MRI_FLOAT) ;
+    mri_ll = MRIalloc(mri_inputs->width, 
+                      mri_inputs->height, 
+                      mri_inputs->depth, 
+                      MRI_FLOAT) ;
   else
     mri_ll = NULL ;
 
@@ -20006,13 +20054,18 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
           num++ ;
 
           log_p = gcaComputeLogDensity(gc, vals,gca->ninputs,prior, label);
-          if (penalize_zero_brain && FZERO(vals[0]) && IS_BRAIN(label) && !IS_CSF(label))
+          if (penalize_zero_brain && 
+              FZERO(vals[0]) && 
+              IS_BRAIN(label) && 
+              !IS_CSF(label))
           {
-            if (mri_orig)  // use unstripped volume to see if this could have been brain
+            if (mri_orig)  // use unstripped volume to 
+                           // see if this could have been brain
             {
               float      ovals[MAX_GCA_INPUTS] ;
               load_vals(mri_orig, x, y, z, ovals, gca->ninputs) ;
-              if (ovals[0] >= fmin && ovals[0] <= fmax)  // could have been brain
+              if (ovals[0] >= fmin && 
+                  ovals[0] <= fmax)  // could have been brain
               {
                 nz++ ;
                 log_p += min_log_p ;
@@ -20052,8 +20105,6 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
   GC1D       *gc ;
   double     total_log_p, log_p, min_log_p ;
   float      vals[MAX_GCA_INPUTS], min ;
-
-
 
   /* go through each voxel in the input volume and find the canonical
   voxel (and hence the classifier) to which it maps. Then update the
@@ -20172,7 +20223,9 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
   }
 #endif
 
-  total_log_p /= (double)(mri_inputs->width*mri_inputs->height*mri_inputs->depth);
+  total_log_p /= (double)(mri_inputs->width*
+                          mri_inputs->height*
+                          mri_inputs->depth);
   return(total_log_p) ;
 }
 #endif
@@ -20257,7 +20310,10 @@ static int entropy_labels[] =
 #define NUM_CONTRA_LABELS (sizeof(contra_entropy_labels) / sizeof(contra_entropy_labels[0]))
 
 static int
-compute_ll_scale_change(GCA *gca, MRI *mri, MRI *mri_aseg, TRANSFORM *transform,
+compute_ll_scale_change(GCA *gca, 
+                        MRI *mri, 
+                        MRI *mri_aseg, 
+                        TRANSFORM *transform,
                         int *labels, int *contra_labels,
                         float *scales, int nlabels, float step_size)
 {
@@ -20294,7 +20350,8 @@ compute_ll_scale_change(GCA *gca, MRI *mri, MRI *mri_aseg, TRANSFORM *transform,
         ind = label_indices[label] ;
         if (gcap == NULL || gcap->nlabels <= 1 || ind < 0)
           continue ;
-        if (MRIlabelsInNbhd(mri_aseg, x, y, z, 1, label) < 26)  // avoid border voxels
+        if (MRIlabelsInNbhd
+            (mri_aseg, x, y, z, 1, label) < 26)  // avoid border voxels
           continue ;
         if (!GCAsourceVoxelToNode(gca, mri, transform,x, y, z, &xn, &yn, &zn))
         {
@@ -20326,10 +20383,14 @@ compute_ll_scale_change(GCA *gca, MRI *mri, MRI *mri_aseg, TRANSFORM *transform,
   return(NO_ERROR) ;
 }
 int
-GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp)
+GCArenormalizeWithEntropyMinimization(GCA *gca, 
+                                      MRI *mri, 
+                                      TRANSFORM *transform, 
+                                      FILE *logfp)
 {
   float     scales[NUM_ENTROPY_LABELS], ll, last_ll, peaks[NUM_ENTROPY_LABELS],
-  contra_peaks[NUM_CONTRA_LABELS], pct_change, last_scales[NUM_ENTROPY_LABELS] ;
+    contra_peaks[NUM_CONTRA_LABELS], pct_change, 
+    last_scales[NUM_ENTROPY_LABELS] ;
   int       i, done = 0, peak_bin ;
   HISTOGRAM *h_gca ;
   MRI       *mri_aseg ;
@@ -20356,22 +20417,30 @@ GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, 
     printf("writing current segmentation snapshot to %s\n", fname) ;
     MRIwrite(mri_aseg, fname) ;
   }
-  last_ll = ll = GCAimagePosteriorLogProbability(gca, mri_aseg, mri, transform) ;
+  last_ll = 
+    ll = 
+    GCAimagePosteriorLogProbability(gca, mri_aseg, mri, transform) ;
   printf("%3.3d: ll = %2.7f\n", 0, ll) ;
   i = 0 ;
   do
   {
     memmove(last_scales, scales, sizeof(scales)) ;
-    compute_ll_scale_change(gca, mri, mri_aseg, transform, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS,.1) ;
-    gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, 1);
+    compute_ll_scale_change(gca, mri, mri_aseg, 
+                            transform, entropy_labels, 
+                            contra_entropy_labels, 
+                            scales, NUM_ENTROPY_LABELS,.1) ;
+    gcaScale(gca, entropy_labels, contra_entropy_labels, 
+             scales, NUM_ENTROPY_LABELS, 1);
     {
       int n ;
       for (n = 0 ; n < NUM_ENTROPY_LABELS ; n++)
-        printf("scales[%s] = %2.3f, peak = %2.0f (rh=%2.0f)\n", cma_label_to_name(entropy_labels[n]), scales[n],
+        printf("scales[%s] = %2.3f, peak = %2.0f (rh=%2.0f)\n", 
+               cma_label_to_name(entropy_labels[n]), scales[n],
                peaks[n]*scales[n], contra_peaks[n]*scales[n]) ;
     }
     ll = GCAimagePosteriorLogProbability(gca, mri_aseg, mri, transform) ;
-    gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, -1);
+    gcaScale(gca, entropy_labels, contra_entropy_labels, 
+             scales, NUM_ENTROPY_LABELS, -1);
 
     pct_change = 100*(last_ll-ll) / last_ll ;
     if (pct_change < 0.01)
@@ -20383,7 +20452,8 @@ GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, 
     if (!((i+1)%1))
     {
       printf("recomputing MAP labels...\n") ;
-      gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, 1);
+      gcaScale(gca, entropy_labels, contra_entropy_labels, 
+               scales, NUM_ENTROPY_LABELS, 1);
       GCAlabel(mri, gca, mri_aseg, transform) ;
       if (Gdiag & DIAG_WRITE && (!((i+1)%2)))
       {
@@ -20393,7 +20463,8 @@ GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, 
         MRIwrite(mri_aseg, fname) ;
       }
       ll = GCAimagePosteriorLogProbability(gca, mri_aseg, mri, transform) ;
-      gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, -1);
+      gcaScale(gca, entropy_labels, contra_entropy_labels, 
+               scales, NUM_ENTROPY_LABELS, -1);
     }
     if (last_ll < ll)
       memmove(scales, last_scales, sizeof(scales)) ;
@@ -20408,7 +20479,8 @@ GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, 
 
   for (i = 0 ; i < NUM_ENTROPY_LABELS ; i++)
   {
-    printf("scaling %s by %2.3f from %2.0f to %2.0f (rh=%2.0f)\n", cma_label_to_name(entropy_labels[i]), scales[i],
+    printf("scaling %s by %2.3f from %2.0f to %2.0f (rh=%2.0f)\n", 
+           cma_label_to_name(entropy_labels[i]), scales[i],
            peaks[i], peaks[i]*scales[i], contra_peaks[i]*scales[i]) ;
     if (logfp)
       fprintf(logfp, "scaling %s by %2.3f from %2.0f to %2.0f (rh=%2.0f)\n",
@@ -20417,15 +20489,20 @@ GCArenormalizeWithEntropyMinimization(GCA *gca, MRI *mri, TRANSFORM *transform, 
   }
   if (logfp)
     fflush(logfp) ;
-  gcaScale(gca, entropy_labels, contra_entropy_labels, scales, NUM_ENTROPY_LABELS, 1);
+  gcaScale(gca, entropy_labels, contra_entropy_labels, 
+           scales, NUM_ENTROPY_LABELS, 1);
   return(NO_ERROR) ;
 }
 
 #if 0
 static double
-GCAcomputeScaledMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform, int *labels, float *scales, int nlabels)
+GCAcomputeScaledMeanEntropy(GCA *gca, 
+                            MRI *mri, 
+                            TRANSFORM *transform, 
+                            int *labels, float *scales, int nlabels)
 {
-  double      entropy, entropy_total, p[MAX_LABELS_PER_GCAN], ptotal, max_prior, max_like, p_like ;
+  double      entropy, entropy_total, p[MAX_LABELS_PER_GCAN], 
+    ptotal, max_prior, max_like, p_like ;
   int         x, y, z, c, xn, yn, zn, num, max_prior_c, max_like_c, l, i ;
   GCA_PRIOR   *gcap ;
   GC1D        *gc ;
@@ -20468,7 +20545,10 @@ GCAcomputeScaledMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform, int *label
               for (i = 0 ; i < gca->ninputs ; i++)
                 gc->means[i] += scales[label_indices[gcap->labels[c]]] ;
             }
-            p_like = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, gcap->labels[c]) ;
+            p_like = GCAcomputeConditionalDensity(gc, 
+                                                  vals, 
+                                                  gca->ninputs, 
+                                                  gcap->labels[c]) ;
             p[c] = gcap->priors[c]*p_like ;
             if (label_indices[gcap->labels[c]] >= 0)  // scale back down
             {
@@ -20547,7 +20627,10 @@ GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform)
               p[c] = 0 ;
               continue ;
             }
-            p[c] = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, gcap->labels[c]) ;
+            p[c] = GCAcomputeConditionalDensity(gc, 
+                                                vals, 
+                                                gca->ninputs, 
+                                                gcap->labels[c]) ;
             ptotal += p[c] ;
             if (p[c] > max_p)
             {
@@ -20576,7 +20659,12 @@ GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform)
   return(-entropy_total/num) ;
 }
 static int
-gcaScale(GCA *gca, int *labels, int *contra_labels, float *scales, int nlabels, int dir)
+gcaScale(GCA *gca, 
+         int *labels, 
+         int *contra_labels, 
+         float *scales, 
+         int nlabels, 
+         int dir)
 {
   int         label_indices[MAX_CMA_LABEL+1], x, y, z, n, label, ind, i ;
   GC1D        *gc ;
