@@ -1,3 +1,31 @@
+/**
+ * @file  texfont.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 /* Copyright (c) Mark J. Kilgard, 1997. */
 
@@ -32,7 +60,7 @@ int useLuminanceAlpha = 0;
 #else
 #define USE_DISPLAY_LISTS
 /* Intensity texture format not in OpenGL 1.0; added by the EXT_texture
-   extension and now part of OpenGL 1.1. */
+extension and now part of OpenGL 1.1. */
 int useLuminanceAlpha = 1;
 #endif
 #else
@@ -71,26 +99,32 @@ getTCVI(TexFont * txf, int c)
 
   /* Automatically substitute uppercase letters with lowercase if not
      uppercase available (and vice versa). */
-  if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range)) {
+  if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range))
+  {
     tgvi = txf->lut[c - txf->min_glyph];
-    if (tgvi) {
+    if (tgvi)
+    {
       return tgvi;
     }
-    if (islower(c)) {
+    if (islower(c))
+    {
       c = toupper(c);
-      if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range)) {
+      if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range))
+      {
         return txf->lut[c - txf->min_glyph];
       }
     }
-    if (isupper(c)) {
+    if (isupper(c))
+    {
       c = tolower(c);
-      if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range)) {
+      if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range))
+      {
         return txf->lut[c - txf->min_glyph];
       }
     }
   }
   fprintf(stderr, "texfont: tried to access unavailable font character \"%c\" (%d)\n",
-    isprint(c) ? c : ' ', c);
+          isprint(c) ? c : ' ', c);
   abort();
   /* NOTREACHED */
 }
@@ -117,12 +151,14 @@ txfLoadFont(char *filename)
 
   txf = NULL;
   file = fopen(filename, "rb");
-  if (file == NULL) {
+  if (file == NULL)
+  {
     lastError = "file open failed.";
     goto error;
   }
   txf = (TexFont *) malloc(sizeof(TexFont));
-  if (txf == NULL) {
+  if (txf == NULL)
+  {
     lastError = "out of memory.";
     goto error;
   }
@@ -133,17 +169,23 @@ txfLoadFont(char *filename)
   txf->teximage = NULL;
 
   got = fread(fileid, 1, 4, file);
-  if (got != 4 || strncmp(fileid, "\377txf", 4)) {
+  if (got != 4 || strncmp(fileid, "\377txf", 4))
+  {
     lastError = "not a texture font file.";
     goto error;
   }
   assert(sizeof(int) == 4);  /* Ensure external file format size. */
   got = fread(&endianness, sizeof(int), 1, file);
-  if (got == 1 && endianness == 0x12345678) {
+  if (got == 1 && endianness == 0x12345678)
+  {
     swap = 0;
-  } else if (got == 1 && endianness == 0x78563412) {
+  }
+  else if (got == 1 && endianness == 0x78563412)
+  {
     swap = 1;
-  } else {
+  }
+  else
+  {
     lastError = "not a texture font file.";
     goto error;
   }
@@ -161,7 +203,8 @@ txfLoadFont(char *filename)
   got = fread(&txf->num_glyphs, sizeof(int), 1, file);
   EXPECT(1);
 
-  if (swap) {
+  if (swap)
+  {
     SWAPL(&format, tmp);
     SWAPL(&txf->tex_width, tmp);
     SWAPL(&txf->tex_height, tmp);
@@ -170,7 +213,8 @@ txfLoadFont(char *filename)
     SWAPL(&txf->num_glyphs, tmp);
   }
   txf->tgi = (TexGlyphInfo *) malloc(txf->num_glyphs * sizeof(TexGlyphInfo));
-  if (txf->tgi == NULL) {
+  if (txf->tgi == NULL)
+  {
     lastError = "out of memory.";
     goto error;
   }
@@ -178,16 +222,19 @@ txfLoadFont(char *filename)
   got = fread(txf->tgi, sizeof(TexGlyphInfo), txf->num_glyphs, file);
   EXPECT(txf->num_glyphs);
 
-  if (swap) {
-    for (i = 0; i < txf->num_glyphs; i++) {
+  if (swap)
+  {
+    for (i = 0; i < txf->num_glyphs; i++)
+    {
       SWAPS(&txf->tgi[i].c, tmp);
       SWAPS(&txf->tgi[i].x, tmp);
       SWAPS(&txf->tgi[i].y, tmp);
     }
   }
   txf->tgvi = (TexGlyphVertexInfo *)
-    malloc(txf->num_glyphs * sizeof(TexGlyphVertexInfo));
-  if (txf->tgvi == NULL) {
+              malloc(txf->num_glyphs * sizeof(TexGlyphVertexInfo));
+  if (txf->tgvi == NULL)
+  {
     lastError = "out of memory.";
     goto error;
   }
@@ -195,7 +242,8 @@ txfLoadFont(char *filename)
   h = txf->tex_height;
   xstep = 0.5 / w;
   ystep = 0.5 / h;
-  for (i = 0; i < txf->num_glyphs; i++) {
+  for (i = 0; i < txf->num_glyphs; i++)
+  {
     TexGlyphInfo *tgi;
 
     tgi = &txf->tgi[i];
@@ -220,11 +268,14 @@ txfLoadFont(char *filename)
 
   min_glyph = txf->tgi[0].c;
   max_glyph = txf->tgi[0].c;
-  for (i = 1; i < txf->num_glyphs; i++) {
-    if (txf->tgi[i].c < min_glyph) {
+  for (i = 1; i < txf->num_glyphs; i++)
+  {
+    if (txf->tgi[i].c < min_glyph)
+    {
       min_glyph = txf->tgi[i].c;
     }
-    if (txf->tgi[i].c > max_glyph) {
+    if (txf->tgi[i].c > max_glyph)
+    {
       max_glyph = txf->tgi[i].c;
     }
   }
@@ -232,42 +283,52 @@ txfLoadFont(char *filename)
   txf->range = max_glyph - min_glyph + 1;
 
   txf->lut = (TexGlyphVertexInfo **)
-    calloc(txf->range, sizeof(TexGlyphVertexInfo *));
-  if (txf->lut == NULL) {
+             calloc(txf->range, sizeof(TexGlyphVertexInfo *));
+  if (txf->lut == NULL)
+  {
     lastError = "out of memory.";
     goto error;
   }
-  for (i = 0; i < txf->num_glyphs; i++) {
+  for (i = 0; i < txf->num_glyphs; i++)
+  {
     txf->lut[txf->tgi[i].c - txf->min_glyph] = &txf->tgvi[i];
   }
 
-  switch (format) {
+  switch (format)
+  {
   case TXF_FORMAT_BYTE:
-    if (useLuminanceAlpha) {
+    if (useLuminanceAlpha)
+    {
       unsigned char *orig;
 
       orig = (unsigned char *) malloc(txf->tex_width * txf->tex_height);
-      if (orig == NULL) {
+      if (orig == NULL)
+      {
         lastError = "out of memory.";
         goto error;
       }
       got = fread(orig, 1, txf->tex_width * txf->tex_height, file);
       EXPECT(txf->tex_width * txf->tex_height);
       txf->teximage = (unsigned char *)
-        malloc(2 * txf->tex_width * txf->tex_height);
-      if (txf->teximage == NULL) {
+                      malloc(2 * txf->tex_width * txf->tex_height);
+      if (txf->teximage == NULL)
+      {
         lastError = "out of memory.";
         goto error;
       }
-      for (i = 0; i < txf->tex_width * txf->tex_height; i++) {
+      for (i = 0; i < txf->tex_width * txf->tex_height; i++)
+      {
         txf->teximage[i * 2] = orig[i];
         txf->teximage[i * 2 + 1] = orig[i];
       }
       free(orig);
-    } else {
+    }
+    else
+    {
       txf->teximage = (unsigned char *)
-        malloc(txf->tex_width * txf->tex_height);
-      if (txf->teximage == NULL) {
+                      malloc(txf->tex_width * txf->tex_height);
+      if (txf->teximage == NULL)
+      {
         lastError = "out of memory.";
         goto error;
       }
@@ -280,35 +341,47 @@ txfLoadFont(char *filename)
     height = txf->tex_height;
     stride = (width + 7) >> 3;
     texbitmap = (unsigned char *) malloc(stride * height);
-    if (texbitmap == NULL) {
+    if (texbitmap == NULL)
+    {
       lastError = "out of memory.";
       goto error;
     }
     got = fread(texbitmap, 1, stride * height, file);
     EXPECT(stride * height);
-    if (useLuminanceAlpha) {
+    if (useLuminanceAlpha)
+    {
       txf->teximage = (unsigned char *) calloc(width * height * 2, 1);
-      if (txf->teximage == NULL) {
+      if (txf->teximage == NULL)
+      {
         lastError = "out of memory.";
         goto error;
       }
-      for (i = 0; i < height; i++) {
-        for (j = 0; j < width; j++) {
-          if (texbitmap[i * stride + (j >> 3)] & (1 << (j & 7))) {
+      for (i = 0; i < height; i++)
+      {
+        for (j = 0; j < width; j++)
+        {
+          if (texbitmap[i * stride + (j >> 3)] & (1 << (j & 7)))
+          {
             txf->teximage[(i * width + j) * 2] = 255;
             txf->teximage[(i * width + j) * 2 + 1] = 255;
           }
         }
       }
-    } else {
+    }
+    else
+    {
       txf->teximage = (unsigned char *) calloc(width * height, 1);
-      if (txf->teximage == NULL) {
+      if (txf->teximage == NULL)
+      {
         lastError = "out of memory.";
         goto error;
       }
-      for (i = 0; i < height; i++) {
-        for (j = 0; j < width; j++) {
-          if (texbitmap[i * stride + (j >> 3)] & (1 << (j & 7))) {
+      for (i = 0; i < height; i++)
+      {
+        for (j = 0; j < width; j++)
+        {
+          if (texbitmap[i * stride + (j >> 3)] & (1 << (j & 7)))
+          {
             txf->teximage[i * width + j] = 255;
           }
         }
@@ -323,7 +396,8 @@ txfLoadFont(char *filename)
 
 error:
 
-  if (txf) {
+  if (txf)
+  {
     if (txf->tgi)
       free(txf->tgi);
     if (txf->tgvi)
@@ -345,14 +419,18 @@ txfEstablishTexture(
   GLuint texobj,
   GLboolean setupMipmaps)
 {
-  if (txf->texobj == 0) {
-    if (texobj == 0) {
+  if (txf->texobj == 0)
+  {
+    if (texobj == 0)
+    {
 #if !defined(USE_DISPLAY_LISTS)
       glGenTextures(1, &txf->texobj);
 #else
       txf->texobj = glGenLists(1);
 #endif
-    } else {
+    }
+    else
+    {
       txf->texobj = texobj;
     }
   }
@@ -366,15 +444,18 @@ txfEstablishTexture(
   /* XXX Indigo2 IMPACT in IRIX 5.3 and 6.2 does not support the GL_INTENSITY
      internal texture format. Sigh. Win32 non-GLX users should disable this
      code. */
-  if (useLuminanceAlpha == 0) {
+  if (useLuminanceAlpha == 0)
+  {
     char *vendor, *renderer, *version;
 
     renderer = (char *) glGetString(GL_RENDERER);
     vendor = (char *) glGetString(GL_VENDOR);
-    if (!strcmp(vendor, "SGI") && !strncmp(renderer, "IMPACT", 6)) {
+    if (!strcmp(vendor, "SGI") && !strncmp(renderer, "IMPACT", 6))
+    {
       version = (char *) glGetString(GL_VERSION);
       if (!strcmp(version, "1.0 Irix 6.2") ||
-        !strcmp(version, "1.0 Irix 5.3")) {
+          !strcmp(version, "1.0 Irix 5.3"))
+      {
         unsigned char *latex;
         int width = txf->tex_width;
         int height = txf->tex_height;
@@ -383,7 +464,8 @@ txfEstablishTexture(
         useLuminanceAlpha = 1;
         latex = (unsigned char *) calloc(width * height * 2, 1);
         /* XXX unprotected alloc. */
-        for (i = 0; i < height * width; i++) {
+        for (i = 0; i < height * width; i++)
+        {
           latex[i * 2] = txf->teximage[i];
           latex[i * 2 + 1] = txf->teximage[i];
         }
@@ -394,32 +476,41 @@ txfEstablishTexture(
   }
 #endif
 
-  if (useLuminanceAlpha) {
-    if (setupMipmaps) {
+  if (useLuminanceAlpha)
+  {
+    if (setupMipmaps)
+    {
       gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE_ALPHA,
-        txf->tex_width, txf->tex_height,
-        GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, txf->teximage);
-    } else {
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA,
-        txf->tex_width, txf->tex_height, 0,
-        GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, txf->teximage);
+                        txf->tex_width, txf->tex_height,
+                        GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, txf->teximage);
     }
-  } else {
+    else
+    {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA,
+                   txf->tex_width, txf->tex_height, 0,
+                   GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, txf->teximage);
+    }
+  }
+  else
+  {
 #if defined(GL_VERSION_1_1) || defined(GL_EXT_texture)
     /* Use GL_INTENSITY4 as internal texture format since we want to use as
        little texture memory as possible. */
-    if (setupMipmaps) {
+    if (setupMipmaps)
+    {
       gluBuild2DMipmaps(GL_TEXTURE_2D, GL_INTENSITY4,
-        txf->tex_width, txf->tex_height,
-        GL_LUMINANCE, GL_UNSIGNED_BYTE, txf->teximage);
-    } else {
+                        txf->tex_width, txf->tex_height,
+                        GL_LUMINANCE, GL_UNSIGNED_BYTE, txf->teximage);
+    }
+    else
+    {
       glTexImage2D(GL_TEXTURE_2D, 0, GL_INTENSITY4,
-        txf->tex_width, txf->tex_height, 0,
-        GL_LUMINANCE, GL_UNSIGNED_BYTE, txf->teximage);
+                   txf->tex_width, txf->tex_height, 0,
+                   GL_LUMINANCE, GL_UNSIGNED_BYTE, txf->teximage);
     }
 #else
     abort();            /* Should not get here without EXT_texture or OpenGL
-                           1.1. */
+    1.1. */
 #endif
   }
 
@@ -445,7 +536,8 @@ void
 txfUnloadFont(
   TexFont * txf)
 {
-  if (txf->teximage) {
+  if (txf->teximage)
+  {
     free(txf->teximage);
   }
   free(txf->tgi);
@@ -467,9 +559,12 @@ txfGetStringMetrics(
   int w, i;
 
   w = 0;
-  for (i = 0; i < len; i++) {
-    if (string[i] == 27) {
-      switch (string[i + 1]) {
+  for (i = 0; i < len; i++)
+  {
+    if (string[i] == 27)
+    {
+      switch (string[i + 1])
+      {
       case 'M':
         i += 4;
         break;
@@ -483,7 +578,9 @@ txfGetStringMetrics(
         i += 13;
         break;
       }
-    } else {
+    }
+    else
+    {
       tgvi = getTCVI(txf, string[i]);
       w += tgvi->advance;
     }
@@ -520,7 +617,8 @@ txfRenderString(
 {
   int i;
 
-  for (i = 0; i < len; i++) {
+  for (i = 0; i < len; i++)
+  {
     txfRenderGlyph(txf, string[i]);
   }
 }
@@ -540,9 +638,12 @@ txfRenderFancyString(
   int mode = MONO;
   int i;
 
-  for (i = 0; i < len; i++) {
-    if (string[i] == 27) {
-      switch (string[i + 1]) {
+  for (i = 0; i < len; i++)
+  {
+    if (string[i] == 27)
+    {
+      switch (string[i + 1])
+      {
       case 'M':
         mode = MONO;
         glColor3ubv((GLubyte *) & string[i + 2]);
@@ -564,8 +665,11 @@ txfRenderFancyString(
         i += 13;
         break;
       }
-    } else {
-      switch (mode) {
+    }
+    else
+    {
+      switch (mode)
+      {
       case MONO:
         txfRenderGlyph(txf, string[i]);
         break;
@@ -630,8 +734,10 @@ int
 txfInFont(TexFont * txf, int c)
 {
   /* NOTE: No uppercase/lowercase substituion. */
-  if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range)) {
-    if (txf->lut[c - txf->min_glyph]) {
+  if ((c >= txf->min_glyph) && (c < txf->min_glyph + txf->range))
+  {
+    if (txf->lut[c - txf->min_glyph])
+    {
       return 1;
     }
   }

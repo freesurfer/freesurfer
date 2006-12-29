@@ -1,5 +1,33 @@
+/**
+ * @file  mri_concat.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // mri_concat.c
-// $Id: mri_concat.c,v 1.11 2006/10/28 18:24:04 greve Exp $
+// $Id: mri_concat.c,v 1.12 2006/12/29 02:09:06 nicks Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.11 2006/10/28 18:24:04 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.12 2006/12/29 02:09:06 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -41,8 +69,7 @@ int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
 
 /*--------------------------------------------------*/
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
   int r,c,s,f;
   double v, v1, v2, vavg;
@@ -58,68 +85,68 @@ int main(int argc, char **argv)
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
 
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
 
   printf("ninputs = %d\n",ninputs);
-  for(nthin = 0; nthin < ninputs; nthin++){
-    if(Gdiag_no > 0) printf("%2d %s\n",nthin,inlist[nthin]);
+  for (nthin = 0; nthin < ninputs; nthin++) {
+    if (Gdiag_no > 0) printf("%2d %s\n",nthin,inlist[nthin]);
     mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
-    if(mritmp == NULL){
+    if (mritmp == NULL) {
       printf("ERROR: reading %s\n",inlist[nthin]);
       exit(1);
     }
-    if(nthin == 0) {
+    if (nthin == 0) {
       nc = mritmp->width;
       nr = mritmp->height;
       ns = mritmp->depth;
     }
-    if(mritmp->width != nc || mritmp->height != nr ||
-       mritmp->depth != ns){
+    if (mritmp->width != nc || mritmp->height != nr ||
+        mritmp->depth != ns) {
       printf("ERROR: dimension mismatch between %s and %s\n",
-	     inlist[0],inlist[nthin]);
+             inlist[0],inlist[nthin]);
       exit(1);
     }
 
     nframestot += mritmp->nframes;
     MRIfree(&mritmp);
   }
-  printf("nframestot = %d\n",nframestot); 
+  printf("nframestot = %d\n",nframestot);
 
-  if(DoPairedDiff){
-    if(remainder(nframestot,2) != 0){
+  if (DoPairedDiff) {
+    if (remainder(nframestot,2) != 0) {
       printf("ERROR: --paired-diff specified but there are an "
-	     "odd number of frames\n");
+             "odd number of frames\n");
       exit(1);
     }
   }
 
   mriout = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nframestot);
-  if(mriout == NULL) exit(1);
+  if (mriout == NULL) exit(1);
 
   fout = 0;
-  for(nthin = 0; nthin < ninputs; nthin++){
-    if(Gdiag_no > 0){
+  for (nthin = 0; nthin < ninputs; nthin++) {
+    if (Gdiag_no > 0) {
       printf("---=====------=========----=======-----========---------\n");
       printf("#@# %d th input \n",nthin);
     }
     fflush(stdout);
     mritmp = MRIread(inlist[nthin]);
-    if(nthin == 0) {
+    if (nthin == 0) {
       MRIcopyHeader(mritmp, mriout);
       //mriout->nframes = nframestot;
     }
-    for(f=0; f < mritmp->nframes; f++){
-      for(c=0; c < nc; c++){
-	for(r=0; r < nr; r++){
-	  for(s=0; s < ns; s++){
-	    v = MRIgetVoxVal(mritmp,c,r,s,f);
-	    MRIsetVoxVal(mriout,c,r,s,fout,v);
-	  }
-	}
+    for (f=0; f < mritmp->nframes; f++) {
+      for (c=0; c < nc; c++) {
+        for (r=0; r < nr; r++) {
+          for (s=0; s < ns; s++) {
+            v = MRIgetVoxVal(mritmp,c,r,s,f);
+            MRIsetVoxVal(mriout,c,r,s,fout,v);
+          }
+        }
       }
       fout++;
     }
@@ -127,47 +154,47 @@ int main(int argc, char **argv)
   }
 
 
-  if(DoPairedDiff){
+  if (DoPairedDiff) {
     printf("Performing paired difference\n");
     mritmp = MRIcloneBySpace(mriout,-1,mriout->nframes/2);
-    for(c=0; c < nc; c++){
-      for(r=0; r < nr; r++){
-	for(s=0; s < ns; s++){
-	  fout = 0;
-	  for(f=0; f < mriout->nframes; f+=2){
-	    v1 = MRIgetVoxVal(mriout,c,r,s,f);
-	    v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
-	    v = v1-v2; // difference
-	    if(DoPairedDiffNorm){
-	      vavg = (v1+v2)/2.0;
-	      if(vavg != 0.0) v = v/vavg;
-	    }
-	    if(DoPairedDiffNorm1) {
-	      if(v1 != 0.0) v = v/v1;
-	      else v = 0;
-	    }
-	    if(DoPairedDiffNorm2){
-	      if(v2 != 0.0) v = v/v2;
-	      else v = 0;
-	    }
-	    MRIsetVoxVal(mritmp,c,r,s,fout,v);
-	    fout++;
-	  }
-	}
+    for (c=0; c < nc; c++) {
+      for (r=0; r < nr; r++) {
+        for (s=0; s < ns; s++) {
+          fout = 0;
+          for (f=0; f < mriout->nframes; f+=2) {
+            v1 = MRIgetVoxVal(mriout,c,r,s,f);
+            v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
+            v = v1-v2; // difference
+            if (DoPairedDiffNorm) {
+              vavg = (v1+v2)/2.0;
+              if (vavg != 0.0) v = v/vavg;
+            }
+            if (DoPairedDiffNorm1) {
+              if (v1 != 0.0) v = v/v1;
+              else v = 0;
+            }
+            if (DoPairedDiffNorm2) {
+              if (v2 != 0.0) v = v/v2;
+              else v = 0;
+            }
+            MRIsetVoxVal(mritmp,c,r,s,fout,v);
+            fout++;
+          }
+        }
       }
     }
     MRIfree(&mriout);
     mriout = mritmp;
   }
 
-  if(DoMean){
+  if (DoMean) {
     printf("Computing mean across frames\n");
     mritmp = MRIframeMean(mriout,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
 
-  if(DoMax){
+  if (DoMax) {
     printf("Computing max across all frames \n");
     mritmp = MRIvolMax(mriout,NULL);
     MRIfree(&mriout);
@@ -184,19 +211,18 @@ int main(int argc, char **argv)
 /*-----------------------------------------------------------------*/
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -211,28 +237,22 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--paired-diff-norm")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm = 1;
-    }
-    else if (!strcasecmp(option, "--paired-diff-norm1")) {
+    } else if (!strcasecmp(option, "--paired-diff-norm1")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm1 = 1;
-    }
-    else if (!strcasecmp(option, "--paired-diff-norm2")) {
+    } else if (!strcasecmp(option, "--paired-diff-norm2")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm2 = 1;
-    }
-
-    else if ( !strcmp(option, "--i") ) {
-      if(nargc < 1) argnerr(option,1);
+    } else if ( !strcmp(option, "--i") ) {
+      if (nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
       ninputs ++;
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--o") ) {
-      if(nargc < 1) argnerr(option,1);
+    } else if ( !strcmp(option, "--o") ) {
+      if (nargc < 1) argnerr(option,1);
       out = pargv[0];
       nargsused = 1;
-    }
-    else{
+    } else {
       inlist[ninputs] = option;
       ninputs ++;
       //fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -246,14 +266,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --i invol <--i invol ...> (don't need --i) \n");
@@ -273,8 +291,7 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
 
   printf("Concatenates input data sets.\n");
@@ -290,40 +307,37 @@ static void print_help(void)
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
-  if(n==1)
+static void argnerr(char *option, int n) {
+  if (n==1)
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(ninputs == 0){
+static void check_options(void) {
+  if (ninputs == 0) {
     printf("ERROR: no inputs specified\n");
     exit(1);
   }
-  if(out == NULL){
+  if (out == NULL) {
     printf("ERROR: no output specified\n");
     exit(1);
   }
-  if(DoPairedDiffNorm1 && DoPairedDiffNorm2){
+  if (DoPairedDiffNorm1 && DoPairedDiffNorm2) {
     printf("ERROR: cannot specify both --paried-diff-norm1 and --paried-diff-norm2 \n");
     exit(1);
   }
-  if(DoPairedDiffNorm && DoPairedDiffNorm1){
+  if (DoPairedDiffNorm && DoPairedDiffNorm1) {
     printf("ERROR: cannot specify both --paried-diff-norm and --paried-diff-norm1 \n");
     exit(1);
   }
-  if(DoPairedDiffNorm && DoPairedDiffNorm2){
+  if (DoPairedDiffNorm && DoPairedDiffNorm2) {
     printf("ERROR: cannot specify both --paried-diff-norm and --paried-diff-norm2 \n");
     exit(1);
   }
@@ -332,19 +346,17 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   return;
 }
 /*---------------------------------------------------------------*/
 #if 0
-static int singledash(char *flag)
-{
+static int singledash(char *flag) {
   int len;
   len = strlen(flag);
-  if(len < 2) return(0);
+  if (len < 2) return(0);
 
-  if(flag[0] == '-' && flag[1] != '-') return(1);
+  if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
 #endif

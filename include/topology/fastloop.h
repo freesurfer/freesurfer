@@ -1,3 +1,31 @@
+/**
+ * @file  fastloop.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:02 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef TOPOLOGY_FASTLOOP_H
 #define TOPOLOGY_FASTLOOP_H
 
@@ -17,112 +45,119 @@
 class FastLoop
 {
 private:
-	typedef enum {eAlive=0, eTrial=1, eFar=2, eForbidden=3, eTemporary=4 } eState;
+  typedef enum {eAlive=0, eTrial=1, eFar=2, eForbidden=3, eTemporary=4 } eState;
 
-	//////////////////////////////////////////////////////////////////////////////
-	//information about the surface	
-	class FaceData{
-	public:
-		int v[3]; // the 3 neighboring vertices
-		int f[3]; // the 3 neighboring faces
-		double x,y,z;
-		bool border; // bordering face or not
-		//Fast Marching on the Faces
-		int fmState; // state of the face in the fast marching (eAlive, eTrial, eFar or eForbidden
-		int nfather; // number of face fathers in the fast marching
-		int fmFather; //the first father in the fast marching
-		double val;  
-		double val2;
-	    // Fast Segmentation Into Connected Components
-		int fccState; // state of the face in the fast segmentation into connected components (eAlive, eTrial, eFar or eForbidden
-		int fccFather; // the first father in the fast segmentation into connected components
-		int fccLabel;
-		//constructor
-		FaceData(){
-			fmState = eForbidden;
-			fccState = eForbidden;
-			border = 1;
-		};
-	};
-	class VertexData{
-	public: 
-		int fmFather;
-		int fmState;
-		VertexData(){
-			fmState = eForbidden;
-			fmFather = -2;
-		}
-	};
+  //////////////////////////////////////////////////////////////////////////////
+  //information about the surface
+  class FaceData
+  {
+  public:
+    int v[3]; // the 3 neighboring vertices
+    int f[3]; // the 3 neighboring faces
+    double x,y,z;
+    bool border; // bordering face or not
+    //Fast Marching on the Faces
+    int fmState; // state of the face in the fast marching (eAlive, eTrial, eFar or eForbidden
+    int nfather; // number of face fathers in the fast marching
+    int fmFather; //the first father in the fast marching
+    double val;
+    double val2;
+    // Fast Segmentation Into Connected Components
+    int fccState; // state of the face in the fast segmentation into connected components (eAlive, eTrial, eFar or eForbidden
+    int fccFather; // the first father in the fast segmentation into connected components
+    int fccLabel;
+    //constructor
+    FaceData()
+    {
+      fmState = eForbidden;
+      fccState = eForbidden;
+      border = 1;
+    };
+  };
+  class VertexData
+  {
+  public:
+    int fmFather;
+    int fmState;
+    VertexData()
+    {
+      fmState = eForbidden;
+      fmFather = -2;
+    }
+  };
 
-	////////////////////////////////////////////////////////////////////////////
-	// Fast Marching class
-	class HeapCompare : std::binary_function<int,int,bool>{
-	protected:
-		FaceData *f;
-	public:
-		HeapCompare(FaceData *_f) : f(_f) {}
-		bool operator() (const int a, int b) const {
-			return (f[a].val>f[b].val);
-		}
-	};
-	
-	typedef std::priority_queue<int,std::vector<int>,HeapCompare> FaceHeap;
+  ////////////////////////////////////////////////////////////////////////////
+  // Fast Marching class
+class HeapCompare : std::binary_function<int,int,bool>
+  {
+  protected:
+    FaceData *f;
+  public:
+    HeapCompare(FaceData *_f) : f(_f)
+    {}
+    bool operator() (const int a, int b) const
+    {
+      return (f[a].val>f[b].val);
+    }
+  };
 
-	//////////////////////////////////////////////////////////////////////////////
-	//information about the surface	
-	Surface *surface;
-	//Vertices *vertices;
-	//additional information about the surface
-	FaceData *facedata;
-	VertexData *vertexdata;
+  typedef std::priority_queue<int,std::vector<int>,HeapCompare> FaceHeap;
 
-	//list of defect faces
-	int *defect_faces;
-	int ndefect_faces;
+  //////////////////////////////////////////////////////////////////////////////
+  //information about the surface
+  Surface *surface;
+  //Vertices *vertices;
+  //additional information about the surface
+  FaceData *facedata;
+  VertexData *vertexdata;
 
-	//Fast Marching
-	FaceHeap *FM_trial_heap;
+  //list of defect faces
+  int *defect_faces;
+  int ndefect_faces;
 
-	//Fast Segmentation
-	FaceHeap *FCC_trial_heap;
-	int final_face[2];
-	int nsegments[2];
-	Segment segments[2];
+  //Fast Marching
+  FaceHeap *FM_trial_heap;
 
-	//Functions
-	void _InitFaceData(void);
-	void _UpdateFace(int fdst, int fsrc);
-	void _UpdateSegmentFace(int fdst, int fsrc);
-	void _InitSegment(int which_segment, int fn);
-	int _InitSegmentation(int fn);
-	int _FindSeedFaces(int conflicting_face, int& init_fn1, int& init_fn2);
-	void _UpdateSegmentFaces(int which_segment);
-	double _Distance(int fdst, int fsrc);
-	int _CheckAdjacency(int fn);
-	int _FastSegmentation();
-	int _AddAliveFace(int fno);
-	int _AddTrialFace(int fno);
-	int _Run(int &stopping_face);
-	void _InitDefect();
-	int _ExtractFirstLoop(Loop& loop, int init_fn1, int init_fn2);
-	void _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
-	int _FindCommonVertex(int init_fn1,int init_fn2);
-	int _FindNextFace(int next_fn,int vno);
-	int _ExtractSecondLoop(Loop& loop, int init_fn);
-	int _SimplifyLoop(Loop &loop);
-	int _OrderLoop(Loop &loop);
-	double _GetLoopLength(Loop &loop);
+  //Fast Segmentation
+  FaceHeap *FCC_trial_heap;
+  int final_face[2];
+  int nsegments[2];
+  Segment segments[2];
+
+  //Functions
+  void _InitFaceData(void);
+  void _UpdateFace(int fdst, int fsrc);
+  void _UpdateSegmentFace(int fdst, int fsrc);
+  void _InitSegment(int which_segment, int fn);
+  int _InitSegmentation(int fn);
+  int _FindSeedFaces(int conflicting_face, int& init_fn1, int& init_fn2);
+  void _UpdateSegmentFaces(int which_segment);
+  double _Distance(int fdst, int fsrc);
+  int _CheckAdjacency(int fn);
+  int _FastSegmentation();
+  int _AddAliveFace(int fno);
+  int _AddTrialFace(int fno);
+  int _Run(int &stopping_face);
+  void _InitDefect();
+  int _ExtractFirstLoop(Loop& loop, int init_fn1, int init_fn2);
+  void _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
+  int _FindCommonVertex(int init_fn1,int init_fn2);
+  int _FindNextFace(int next_fn,int vno);
+  int _ExtractSecondLoop(Loop& loop, int init_fn);
+  int _SimplifyLoop(Loop &loop);
+  int _OrderLoop(Loop &loop);
+  double _GetLoopLength(Loop &loop);
 
 public:
-	//////////////////////////////////////////////////////////////////////////////
-	//constructor / destructor
-	FastLoop(Surface &s);
-	~FastLoop(void);
-	void Init(void);
-	void SetSeed(int seed);
-	void SetDefectList(int nfaces, int *list_of_faces);
-	Loop* FindLoop(int seed);
-	void FindMinimalLoop(Loop &minimial_loop , int max_init_face=-1 , int nattempts = 10);
+  //////////////////////////////////////////////////////////////////////////////
+  //constructor / destructor
+  FastLoop(Surface &s);
+  ~FastLoop(void);
+  void Init(void);
+  void SetSeed(int seed);
+  void SetDefectList(int nfaces, int *list_of_faces);
+  Loop* FindLoop(int seed);
+  void FindMinimalLoop(Loop &minimial_loop , int max_init_face=-1 , int nattempts = 10);
 };
 
 #endif

@@ -1,3 +1,31 @@
+/**
+ * @file  xwin.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
    @(#)xwin.h  1.2
    8/10/95
@@ -9,7 +37,7 @@
 
         Created:  Jan. 1994
 
-    Description:  
+    Description:
 
 ------------------------------------------------------------------------*/
 #ifndef XWIN_H
@@ -37,7 +65,8 @@ typedef struct
   XFontStruct         *font_struct;
   unsigned long       charwidth, charheight;
   float               scale ;
-} xwindow_type;
+}
+xwindow_type;
 
 #define xBLACK  0
 #define xWHITE  1
@@ -51,14 +80,14 @@ void xInit(xwindow_type *xwindow, int xsize, int ysize) ;
 void xEnd(xwindow_type *xwindow) ;
 void xNextEvent(xwindow_type *xwindow, XEvent *event) ;
 void xDrawLine(xwindow_type *xwindow,int x0, int y0, int x1, int y1,
-                      int color, int style) ;
+               int color, int style) ;
 void xDrawLines(xwindow_type *xwindow, XSegment *segs, int nsegs, int color) ;
 
 void xDrawCircle(xwindow_type *xwindow, int x0, int y0, int radius,int color);
 void xDrawPoint(xwindow_type *xwindow, int x, int y, int color) ;
-xwindow_type  
-  *xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, 
-              int ysize, char *name, int border, int event_mask) ;
+xwindow_type
+*xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize,
+            int ysize, char *name, int border, int event_mask) ;
 
 void xFreeWindow(xwindow_type *xwindow) ;
 void xShowWindowAttributes(xwindow_type *xwindow, FILE *fp) ;

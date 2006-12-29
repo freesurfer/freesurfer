@@ -1,3 +1,31 @@
+/**
+ * @file  fsgdf.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.22 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* fsgdf.h - header for freesurfer group descriptor file format */
 
 #ifndef FSGDF_INC
@@ -23,7 +51,8 @@ extern int fsgdf_AllowSubjRep;
 #define FSGDF_NVARS_MAX     128
 #define FSGDF_NINPUTS_MAX  2000
 
-typedef struct {
+typedef struct
+{
   int version;
   char title[200];
   char measname[200];
@@ -32,8 +61,8 @@ typedef struct {
   char datafile[1000];
   int  nclasses;
   char classlabel[FSGDF_NCLASSES_MAX][50]; /* [class][length]*/
-  char classmarker[FSGDF_NCLASSES_MAX][50];  /* [class][length]*/  
-  char classcolor[FSGDF_NCLASSES_MAX][50]; /* [class][length]*/  
+  char classmarker[FSGDF_NCLASSES_MAX][50];  /* [class][length]*/
+  char classcolor[FSGDF_NCLASSES_MAX][50]; /* [class][length]*/
   int  nvariables;
   char varlabel[FSGDF_NVARS_MAX][50]; /* [class][length]*/
   char defvarlabel[50]; /* default variable */
@@ -58,12 +87,13 @@ typedef struct {
   double ResFWHM;
   int LogY; // indicates whether nat log of y was used
   int DeMean; // remove mean from continuous variables
-} GROUPDESCRIPTOR, FSGD;
+}
+GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
 FSGD   *gdfRead(char *gdfname, int LoadData);
-int     gdfWrite(char *gdfname, FSGD *gd); 
+int     gdfWrite(char *gdfname, FSGD *gd);
 MRI    *gdfReadDataInfo(char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
 int     gdfCheckMatrixMethod(char *gd2mtx_method);
@@ -74,8 +104,8 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
 MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar);
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
-int     gdfOffsetSlope(FSGD *gd, int classno, int varno, 
-		   int c, int r, int s, float *offset, float *slope);
+int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
+                       int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);
 int gdfCountItemsInString(char *str);
 char *gdfGetNthItemFromString(char *str, int nth);
@@ -100,18 +130,18 @@ int gdfGetDefaultVariableIndex(FSGD *gd, int *nvariable);
 int gdfGetNumSubjects(FSGD *gd, int *nsubjects);
 int gdfGetNthSubjectID(FSGD *gd, int nsubject, char *id);
 int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class_number);
-int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject, 
-			     int nvariable, float *value);
-int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 
-				int x, int y, int z, float *value);
+int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
+                             int nvariable, float *value);
+int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
+                                int x, int y, int z, float *value);
 
 FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
-		int nVars, char **VarList);
+                int nVars, char **VarList);
 char **gdfCopySubjIdppc(FSGD *fsgd);
-char *gdfGetSDataFromTable(char *tablefile, char *field, 
-			   int fieldcol, int datacol);
-int gdfGetDDataFromTable(char *tablefile, char *field, 
-			 int fieldcol, int datacol, double *data);
+char *gdfGetSDataFromTable(char *tablefile, char *field,
+                           int fieldcol, int datacol);
+int gdfGetDDataFromTable(char *tablefile, char *field,
+                         int fieldcol, int datacol, double *data);
 int gdfVarMeans(FSGD *gd);
 int gdfClassVarMeans(FSGD *gd);
 

@@ -1,13 +1,13 @@
-/*	@(#)pixwin.h 20.25 91/09/14 SMI	*/
+/* @(#)pixwin.h 20.25 91/09/14 SMI */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_pixwin_DEFINED
-#define	xview_pixwin_DEFINED
+#define xview_pixwin_DEFINED
 
 /*
  ***********************************************************************
@@ -21,15 +21,15 @@
 
 /*
  ***********************************************************************
- *			Definitions and Macros
+ *   Definitions and Macros
  ***********************************************************************
  */
-#define PIX_MAX_PLANE_GROUPS  	1
-#define	PW_PIXEL_CACHE_NULL	((Pw_pixel_cache *)0)
+#define PIX_MAX_PLANE_GROUPS   1
+#define PW_PIXEL_CACHE_NULL ((Pw_pixel_cache *)0)
 
 #define XV_DEFAULT_FG_BG        0
 #define XV_INVERTED_FG_BG       1
-#define XV_USE_OP_FG            0 
+#define XV_USE_OP_FG            0
 #define XV_USE_CMS_FG           1
 
 #define PW_ROP_NULL_SRC 0
@@ -48,39 +48,39 @@
  *    SV1 compatibility definitions.
  */
 #define pw_copy(dpw, dx, dy, w, h, op, spw, sx, sy) \
-		xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)spw, sx, sy)
+  xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)spw, sx, sy)
 
 #define pw_read(dpr, dx, dy, w, h, op, spw, sx, sy) \
-		xv_read(dpr, dx, dy, w, h, op, spw, sx, sy)
+  xv_read(dpr, dx, dy, w, h, op, spw, sx, sy)
 
 #define pw_replrop(dpw, xw, yw, width, height, op, pr, xr, yr) \
-		xv_replrop(dpw, xw, yw, width, height, op, pr, xr, yr)
+  xv_replrop(dpw, xw, yw, width, height, op, pr, xr, yr)
 
 #define pw_rop(dpw, dx, dy, w, h, op, sp, sx, sy) \
-	    	xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)sp, sx, sy)
+      xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)sp, sx, sy)
 
 #define pw_setcmsname(pw, name) xv_set(pw, WIN_CMS_NAME, name, 0)
 
 #define pw_stencil(dpw, x, y, w, h, op, stpr, stx, sty, spr, sy, sx) \
-		xv_stencil(dpw, x, y, w, h, op, stpr, stx, sty, spr, sy, sx)
+  xv_stencil(dpw, x, y, w, h, op, stpr, stx, sty, spr, sy, sx)
 
 #define pw_text(window, xbasew, ybasew, op, pixfont, str) \
-		xv_text(window, xbasew, ybasew, op, pixfont, str)
+  xv_text(window, xbasew, ybasew, op, pixfont, str)
 
 #define pw_ttext(pw, xbasew, ybasew, op, pixfont, str) \
-		xv_ttext(pw, xbasew, ybasew, op, pixfont, str)
+  xv_ttext(pw, xbasew, ybasew, op, pixfont, str)
 
 #define pw_vector(window, x0, y0, x1, y1, op, cms_index) \
-		xv_vector(window, x0, y0, x1, y1, op, cms_index)
+  xv_vector(window, x0, y0, x1, y1, op, cms_index)
 
 #define pw_write(dpw, dx, dy, w, h, op, spr, sx, sy) \
-	   	xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)spr, sx, sy)
+     xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)spr, sx, sy)
 
 #define pw_writebackground(dpw, dx, dy, w, h, op) \
-		xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)NULL, 0, 0)
+  xv_rop(dpw, dx, dy, w, h, op, (Pixrect *)NULL, 0, 0)
 
-/* 
- *	Obsolete SV1 pixwin functions.
+/*
+ * Obsolete SV1 pixwin functions.
  */
 #define pw_batch(pw, type)
 #define pw_batch_off(pw)
@@ -92,8 +92,8 @@
 #define pw_dbl_get(pw, attrs)
 #define pw_dbl_set(pw, attrs)
 #define pw_get_region_rect(pw, r)
-#define pw_get_x_offset(pw) 
-#define pw_get_y_offset(pw) 
+#define pw_get_x_offset(pw)
+#define pw_get_y_offset(pw)
 #define pw_lock(pixwin, rect)
 #define pw_region(pw, x, y, w, h)
 #define pw_set_region_rect(pw, r, use_same_pr)
@@ -107,37 +107,41 @@
 
 /*
  ***********************************************************************
- *		Typedefs, Enumerations, and Structures
+ *  Typedefs, Enumerations, and Structures
  ***********************************************************************
  */
-typedef struct pw_pixel_cache {
-	Rect r;
-	struct pixrect * plane_group[PIX_MAX_PLANE_GROUPS];
-} Pw_pixel_cache;
+typedef struct pw_pixel_cache
+{
+  Rect r;
+  struct pixrect * plane_group[PIX_MAX_PLANE_GROUPS];
+}
+Pw_pixel_cache;
 
-typedef	struct	pixwin {
-	char	dummy;		/* dummy field for compatibility */
-} Pixwin;
+typedef struct pixwin
+{
+  char dummy;  /* dummy field for compatibility */
+}
+Pixwin;
 
 /*
  ***********************************************************************
- *				Globals
+ *    Globals
  ***********************************************************************
  */
 
 /*
- * PUBLIC functions 
+ * PUBLIC functions
  */
 
 EXTERN_FUNCTION (Pw_pixel_cache * pw_save_pixels, (Xv_opaque pw, Rect *rect));
 EXTERN_FUNCTION (void pw_restore_pixels, (Xv_opaque ps, Pw_pixel_cache *pc));
- 
+
 /*
  * For SunView Pixrect/Pixwin Graphics Compatibility
  */
 
 EXTERN_FUNCTION (int xv_read, (Pixrect *pr, int op, int x, int y, int width, int height, Xv_opaque window, int sx, int sy));
-EXTERN_FUNCTION (int xv_replrop, (Xv_opaque window, int op, int xw, int yw, int width, int height, Pixrect *pr, int xr, int yr)); 
+EXTERN_FUNCTION (int xv_replrop, (Xv_opaque window, int op, int xw, int yw, int width, int height, Pixrect *pr, int xr, int yr));
 EXTERN_FUNCTION (int xv_rop, (Xv_opaque window, int op, int x, int y, int width, int height, Pixrect *pr, int xr, int yr));
 EXTERN_FUNCTION (int xv_stencil, (Xv_opaque window, int op, int dx, int dy, int width, int height, Pixrect *stpr, int stx, int sty, Pixrect *spr, int sx, int sy));
 EXTERN_FUNCTION (int xv_text, (Xv_opaque window, int op, int xbasew, int ybasew, Xv_opaque font, char *str));
@@ -152,5 +156,5 @@ EXTERN_FUNCTION (int pw_putcolormap, (Xv_opaque pw, int index, int count, unsign
 EXTERN_FUNCTION (int pw_getcolormap, (Xv_opaque pw, int index, int count, unsigned char *red, unsigned char *green, unsigned char *blue));
 EXTERN_FUNCTION (struct pixfont * pw_pfsysopen, (void));
 EXTERN_FUNCTION (int pw_pfsysclose, (void));
- 
-#endif	/* ~xview_pixwin_DEFINED */
+
+#endif /* ~xview_pixwin_DEFINED */

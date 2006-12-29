@@ -1,3 +1,31 @@
+/**
+ * @file  mriHeadPointList.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef mriHeadPointList_h
 #define mriHeadPointList_h
 
@@ -34,18 +62,21 @@ typedef enum {
   HPtL_knNumIterationPlanes
 } HPtL_tIterationPlane;
 
-typedef struct {
-  
+typedef struct
+{
+
   char   msLabel[256];
   int    mnIndex;
   xVoxel mPoint;           /* original point */
   xVoxel mClientPoint;     /* client space point */
-  
-} HPtL_tHeadPoint, *HPtL_tHeadPointRef;
+
+}
+HPtL_tHeadPoint, *HPtL_tHeadPointRef;
 
 #define HPtL_kSignature 0x009087fb
 
-typedef struct {
+typedef struct
+{
 
   long mSignature;
 
@@ -66,60 +97,61 @@ typedef struct {
   float                mfIterPlaneRange;
   int                  mnCurPoint;
 
-} mriHeadPointList, *mriHeadPointListRef;
+}
+mriHeadPointList, *mriHeadPointListRef;
 
 HPtL_tErr HPtL_New    ( mriHeadPointListRef* oList,
-      char*                isListName,
-      char*                isTransformName,
-      mriTransformRef      iClientTransform );
+                        char*                isListName,
+                        char*                isTransformName,
+                        mriTransformRef      iClientTransform );
 HPtL_tErr HPtL_Delete ( mriHeadPointListRef* opList );
 
 HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
-           char*               isListName );
+                                   char*               isListName );
 HPtL_tErr HPtL_CreateTransform_  ( mriHeadPointListRef this,
-           char*               isTransformName,
-           mriTransformRef     iClientTransform );
+                                   char*               isTransformName,
+                                   mriTransformRef     iClientTransform );
 
 HPtL_tErr HPtL_ConvertListToClientSpace_ ( mriHeadPointListRef this );
 
 HPtL_tErr HPtL_WriteTransform     ( mriHeadPointListRef this,
-            char*               isDest );
+                                    char*               isDest );
 HPtL_tErr HPtL_WriteHeadPointFile ( mriHeadPointListRef this,
-            char*               isDest );
+                                    char*               isDest );
 
 HPtL_tErr HPtL_ResetIterator ( mriHeadPointListRef  this,
-             HPtL_tIterationPlane iPlane,
-             float                ifPlaneNumber,
-             float                ifPlaneRange );
+                               HPtL_tIterationPlane iPlane,
+                               float                ifPlaneNumber,
+                               float                ifPlaneRange );
 HPtL_tErr HPtL_NextPoint     ( mriHeadPointListRef this,
-             HPtL_tHeadPointRef* opPoint );
+                               HPtL_tHeadPointRef* opPoint );
 
 HPtL_tErr HPtL_FindNearestPoint ( mriHeadPointListRef  this,
-          HPtL_tIterationPlane iPlane,
-          float                ifPlaneRange,
-          xVoxelRef            iWhere,
-          HPtL_tHeadPointRef*  opPoint );
+                                  HPtL_tIterationPlane iPlane,
+                                  float                ifPlaneRange,
+                                  xVoxelRef            iWhere,
+                                  HPtL_tHeadPointRef*  opPoint );
 HPtL_tErr HPtL_FindFlattenedNearestPoint ( mriHeadPointListRef  this,
-             HPtL_tIterationPlane iPlane,
-             xVoxelRef            iWhere,
-             HPtL_tHeadPointRef*  opPoint );
+    HPtL_tIterationPlane iPlane,
+    xVoxelRef            iWhere,
+    HPtL_tHeadPointRef*  opPoint );
 
 HPtL_tErr HPtL_RestoreTransform ( mriHeadPointListRef this );
 HPtL_tErr HPtL_ApplyTransform   ( mriHeadPointListRef this,
-          MATRIX*             iTransform );
+                                  MATRIX*             iTransform );
 HPtL_tErr HPtL_Translate ( mriHeadPointListRef this,
-         float               ifDistance,
-         tAxis               iAxis );
+                           float               ifDistance,
+                           tAxis               iAxis );
 HPtL_tErr HPtL_Rotate    ( mriHeadPointListRef this,
-         float               ifDegrees,
-         tAxis               iAxis );
+                           float               ifDegrees,
+                           tAxis               iAxis );
 HPtL_tErr HPtL_Scale      ( mriHeadPointListRef this,
-          float               ifFactor,
-          tAxis               iAxis );
+                            float               ifFactor,
+                            tAxis               iAxis );
 
 HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
-           HPtL_tHeadPointRef  iPoint,
-           xVoxelRef           iClientVox );
+    HPtL_tHeadPointRef  iPoint,
+    xVoxelRef           iClientVox );
 
 HPtL_tErr HPtL_Verify         ( mriHeadPointListRef this );
 char*     HPtL_GetErrorString ( HPtL_tErr           ieCode );

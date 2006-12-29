@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaToolState.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.26 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <errno.h>
 #include "string_fixed.h"
 #include "ScubaToolState.h"
@@ -8,240 +36,237 @@ DeclareIDTracker(ScubaToolState);
 
 
 ScubaToolState::ScubaToolState() :
-  mMode( navigation ),
-  mTargetLayer( -1 ),
-  mBrushRadius( 0.5 ),
-  mBrushShape( voxel ),
-  mbBrush3D( false ),
-  mNewValue( 1 ),
-  mNewValueMinThreshold( 0 ), // These are for COR volume editing
-  mNewValueMaxThreshold( 5 ),
-  mEraseValue( 0 ),
-  mEraseValueMinThreshold( 5 ),
-  mEraseValueMaxThreshold( 255 ),
-  mbUseEditThreshold( false ),
-  mbOnlyFillZero( false ),
-  mbFloodStopAtPaths( true ),
-  mbFloodStopAtROIs( true ),
-  mFloodFuzziness( 0 ),
-  mFloodFuzzinessType( seed ),
-  mFloodMaxDistance( 0 ),
-  mbFlood3D( false ),
-  mFloodSourceCollection( -1 ),
-  mbOnlyFloodZero( false ),
-  mEdgePathStraightBias( 0.9 ),
-  mEdgePathEdgeBias( 0.9 )
-{
+    mMode( navigation ),
+    mTargetLayer( -1 ),
+    mBrushRadius( 0.5 ),
+    mBrushShape( voxel ),
+    mbBrush3D( false ),
+    mNewValue( 1 ),
+    mNewValueMinThreshold( 0 ), // These are for COR volume editing
+    mNewValueMaxThreshold( 5 ),
+    mEraseValue( 0 ),
+    mEraseValueMinThreshold( 5 ),
+    mEraseValueMaxThreshold( 255 ),
+    mbUseEditThreshold( false ),
+    mbOnlyFillZero( false ),
+    mbFloodStopAtPaths( true ),
+    mbFloodStopAtROIs( true ),
+    mFloodFuzziness( 0 ),
+    mFloodFuzzinessType( seed ),
+    mFloodMaxDistance( 0 ),
+    mbFlood3D( false ),
+    mFloodSourceCollection( -1 ),
+    mbOnlyFloodZero( false ),
+    mEdgePathStraightBias( 0.9 ),
+    mEdgePathEdgeBias( 0.9 ) {
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
-			 "Sets the current mode of a tool." );
+                         "Sets the current mode of a tool." );
   commandMgr.AddCommand( *this, "GetToolMode", 1, "toolID",
-			 "Gets the current mode of a tool." );
+                         "Gets the current mode of a tool." );
   commandMgr.AddCommand( *this, "SetToolTargetLayer", 2, "toolID layerID",
-			 "Sets the target layer of a tool." );
+                         "Sets the target layer of a tool." );
   commandMgr.AddCommand( *this, "GetToolTargetLayer", 1, "toolID",
-			 "Gets the target layer of a tool." );
+                         "Gets the target layer of a tool." );
   commandMgr.AddCommand( *this, "SetToolNewVoxelValue", 2, "toolID value",
-			 "Sets the new voxel value of a tool." );
+                         "Sets the new voxel value of a tool." );
   commandMgr.AddCommand( *this, "GetToolNewVoxelValue", 1, "toolID",
-			 "Gets the new voxel value of a tool." );
+                         "Gets the new voxel value of a tool." );
   commandMgr.AddCommand( *this, "SetToolEraseVoxelValue", 2, "toolID value",
-			 "Sets the erase voxel value of a tool." );
+                         "Sets the erase voxel value of a tool." );
   commandMgr.AddCommand( *this, "GetToolEraseVoxelValue", 1, "toolID",
-			 "Gets the erase voxel value of a tool." );
+                         "Gets the erase voxel value of a tool." );
   commandMgr.AddCommand( *this, "SetToolOnlyBrushZero", 2, "toolID onlyZero",
-			 "Specify whether the brush should only affect zero "
-			 "values.." );
+                         "Specify whether the brush should only affect zero "
+                         "values.." );
   commandMgr.AddCommand( *this, "GetToolOnlyBrushZero", 1, "toolID",
-			 "Returns whether or not a brush is only affecting "
-			 "zero values." );
+                         "Returns whether or not a brush is only affecting "
+                         "zero values." );
   commandMgr.AddCommand( *this, "SetToolBrushRadius", 2, "toolID radius",
-			 "Sets the current brush radius of a tool." );
+                         "Sets the current brush radius of a tool." );
   commandMgr.AddCommand( *this, "GetToolBrushRadius", 1, "toolID",
-			 "Gets the current brush radius of a tool." );
+                         "Gets the current brush radius of a tool." );
   commandMgr.AddCommand( *this, "SetToolBrushShape", 2, "toolID shape",
-			 "Sets the current brush shape of a tool. shape "
-			 "should be voxel, square or circle." );
+                         "Sets the current brush shape of a tool. shape "
+                         "should be voxel, square or circle." );
   commandMgr.AddCommand( *this, "GetToolBrushShape", 1, "toolID",
-			 "Gets the current brush shape of a tool, "
-			 "voxel, square or circle." );
+                         "Gets the current brush shape of a tool, "
+                         "voxel, square or circle." );
   commandMgr.AddCommand( *this, "SetToolBrush3D", 2, "toolID 3D",
-			 "Sets the current brush 3D of a tool." );
+                         "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolBrush3D", 1, "toolID",
-			 "Gets the current brush 3D of a tool." );
+                         "Gets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "SetToolFloodStopAtPaths", 2, "toolID stop",
-			 "Specify whether a tool flood should stop at paths.");
+                         "Specify whether a tool flood should stop at paths.");
   commandMgr.AddCommand( *this, "GetToolFloodStopAtPaths", 1, "toolID",
-			 "Returns whether or not a tool flood will stop "
-			 "at paths." );
+                         "Returns whether or not a tool flood will stop "
+                         "at paths." );
   commandMgr.AddCommand( *this, "SetToolFloodStopAtROIs", 2, "toolID stop",
-			 "Specify whether a tool flood should stop at ROIs." );
+                         "Specify whether a tool flood should stop at ROIs." );
   commandMgr.AddCommand( *this, "GetToolFloodStopAtROIs", 1, "toolID",
-			 "Returns whether or not a tool flood will stop "
-			 "at ROIs." );
+                         "Returns whether or not a tool flood will stop "
+                         "at ROIs." );
   commandMgr.AddCommand( *this, "SetToolFloodFuzziness", 2, "toolID fuzziness",
-			 "Specify a tool flood's fuzziness." );
+                         "Specify a tool flood's fuzziness." );
   commandMgr.AddCommand( *this, "GetToolFloodFuzziness", 1, "toolID",
-			 "Returns a tool flood's fuzziness." );
+                         "Returns a tool flood's fuzziness." );
   commandMgr.AddCommand( *this, "SetToolFloodMaxDistance", 2,"toolID distance",
-			 "Specify a tool flood's max distance." );
+                         "Specify a tool flood's max distance." );
   commandMgr.AddCommand( *this, "GetToolFloodMaxDistance", 1, "toolID",
-			 "Returns a tool flood's max distance." );
+                         "Returns a tool flood's max distance." );
   commandMgr.AddCommand( *this, "SetToolFlood3D", 2, "toolID 3D",
-			 "Sets the current flood 3D of a tool." );
+                         "Sets the current flood 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolFlood3D", 1, "toolID",
-			 "Gets the current flood 3D of a tool." );
-  commandMgr.AddCommand( *this, "SetToolFloodSourceCollection", 2, 
-			 "toolID colID", "Sets the current flood "
-			 "source collection of a tool." );
+                         "Gets the current flood 3D of a tool." );
+  commandMgr.AddCommand( *this, "SetToolFloodSourceCollection", 2,
+                         "toolID colID", "Sets the current flood "
+                         "source collection of a tool." );
   commandMgr.AddCommand( *this, "SetToolFloodFuzzinessType", 2, "toolID type",
-			 "Sets the tool's fuzziness type. Should be seed "
-			 "or gradient." );
+                         "Sets the tool's fuzziness type. Should be seed "
+                         "or gradient." );
   commandMgr.AddCommand( *this, "GetToolFloodFuzzinessType", 1, "toolID",
-			 "Returns the tool's fuzziness type: seed "
-			 "or gradient." );
-  commandMgr.AddCommand( *this, "GetToolFloodSourceCollection", 1, 
-			 "toolID", "Gets the current flood "
-			 "source collection of a tool." );
+                         "Returns the tool's fuzziness type: seed "
+                         "or gradient." );
+  commandMgr.AddCommand( *this, "GetToolFloodSourceCollection", 1,
+                         "toolID", "Gets the current flood "
+                         "source collection of a tool." );
   commandMgr.AddCommand( *this, "SetToolOnlyFloodZero", 2, "toolID onlyZero",
-			 "Specify whether the flood should only affect zero "
-			 "values.." );
+                         "Specify whether the flood should only affect zero "
+                         "values.." );
   commandMgr.AddCommand( *this, "GetToolOnlyFloodZero", 1, "toolID",
-			 "Returns whether or not a flood is only affecting "
-			 "zero values." );
-  commandMgr.AddCommand( *this, "SetToolEdgePathStraightBias", 2, 
-			 "toolID bias", "Sets the bias (0-1) for straight "
-			 "paths for the edge path tool." );
-  commandMgr.AddCommand( *this, "GetToolEdgePathStraightBias", 1, 
-			 "toolID", "Returns the bias for straight "
-			 "paths for the edge path tool." );
-  commandMgr.AddCommand( *this, "SetToolEdgePathEdgeBias", 2, 
-			 "toolID bias", "Sets the bias (0-1) for edges "
-			 "for the edge path tool." );
-  commandMgr.AddCommand( *this, "GetToolEdgePathEdgeBias", 1, 
-			 "toolID", "Returns the bias for edges "
-			 "for the edge path tool." );
+                         "Returns whether or not a flood is only affecting "
+                         "zero values." );
+  commandMgr.AddCommand( *this, "SetToolEdgePathStraightBias", 2,
+                         "toolID bias", "Sets the bias (0-1) for straight "
+                         "paths for the edge path tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgePathStraightBias", 1,
+                         "toolID", "Returns the bias for straight "
+                         "paths for the edge path tool." );
+  commandMgr.AddCommand( *this, "SetToolEdgePathEdgeBias", 2,
+                         "toolID bias", "Sets the bias (0-1) for edges "
+                         "for the edge path tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgePathEdgeBias", 1,
+                         "toolID", "Returns the bias for edges "
+                         "for the edge path tool." );
 
 }
 
-ScubaToolState::~ScubaToolState() {
-
-}
+ScubaToolState::~ScubaToolState() {}
 
 TclCommandListener::TclCommandResult
-ScubaToolState::DoListenToTclCommand ( char* isCommand, 
-				       int, char** iasArgv ) {
+ScubaToolState::DoListenToTclCommand ( char* isCommand,
+                                       int, char** iasArgv ) {
 
   // SetToolMode <toolID> <mode>
-  if( 0 == strcmp( isCommand, "SetToolMode" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolMode" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       Mode newMode;
-      if( 0 == strcmp( iasArgv[2], "navigation" )) {
-	newMode = navigation;
+      if ( 0 == strcmp( iasArgv[2], "navigation" )) {
+        newMode = navigation;
       } else if ( 0 == strcmp( iasArgv[2], "plane" )) {
-	newMode = plane;
+        newMode = plane;
       } else if ( 0 == strcmp( iasArgv[2], "marker" )) {
-	newMode = marker;
+        newMode = marker;
       } else if ( 0 == strcmp( iasArgv[2], "voxelEditing" )) {
-	newMode = voxelEditing;
+        newMode = voxelEditing;
       } else if ( 0 == strcmp( iasArgv[2], "voxelFilling" )) {
-	newMode = voxelFilling;
+        newMode = voxelFilling;
       } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
-	newMode = roiEditing;
+        newMode = roiEditing;
       } else if ( 0 == strcmp( iasArgv[2], "roiFilling" )) {
-	newMode = roiFilling;
+        newMode = roiFilling;
       } else if ( 0 == strcmp( iasArgv[2], "straightPath" )) {
-	newMode = straightPath;
+        newMode = straightPath;
       } else if ( 0 == strcmp( iasArgv[2], "edgePath" )) {
-	newMode = edgePath;
+        newMode = edgePath;
       } else {
-	sResult = "bad mode \"" + string(iasArgv[2]) + 
-	  "\", should be navigation, plane, marker, voxelEditing, "
-	  "voxelFilling, roiEditing, roiFilling, straightPath, edgePath.";
-	return error;
+        sResult = "bad mode \"" + string(iasArgv[2]) +
+                  "\", should be navigation, plane, marker, voxelEditing, "
+                  "voxelFilling, roiEditing, roiFilling, straightPath, edgePath.";
+        return error;
       }
       SetMode( newMode );
     }
   }
 
   // GetToolMode <toolID>
-  if( 0 == strcmp( isCommand, "GetToolMode" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolMode" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
 
-      switch( GetMode() ) {
+    if ( GetID() == toolID ) {
+
+      switch ( GetMode() ) {
       case navigation:
-	sReturnValues = "navigation";
-	break;
+        sReturnValues = "navigation";
+        break;
       case plane:
-	sReturnValues = "plane";
-	break;
+        sReturnValues = "plane";
+        break;
       case marker:
-	sReturnValues = "marker";
-	break;
+        sReturnValues = "marker";
+        break;
       case voxelEditing:
-	sReturnValues = "voxelEditing";
-	break;
+        sReturnValues = "voxelEditing";
+        break;
       case voxelFilling:
-	sReturnValues = "voxelFilling";
-	break;
+        sReturnValues = "voxelFilling";
+        break;
       case roiEditing:
-	sReturnValues = "roiEditing";
-	break;
+        sReturnValues = "roiEditing";
+        break;
       case roiFilling:
-	sReturnValues = "roiFilling";
-	break;
+        sReturnValues = "roiFilling";
+        break;
       case straightPath:
-	sReturnValues = "straightPath";
-	break;
+        sReturnValues = "straightPath";
+        break;
       case edgePath:
-	sReturnValues = "edgePath";
-	break;
+        sReturnValues = "edgePath";
+        break;
       }
       sReturnFormat = "s";
     }
   }
 
   // SetToolNewVoxelValue <toolID> <value>
-  if( 0 == strcmp( isCommand, "SetToolNewVoxelValue" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolNewVoxelValue" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float value = strtod(iasArgv[2], (char**)NULL);
-      if( ERANGE == errno ) {
-	sResult = "bad radius";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad radius";
+        return error;
       }
       SetNewValue( value );
     }
   }
 
   // GetToolNewVoxelValue <toolID>
-  if( 0 == strcmp( isCommand, "GetToolNewVoxelValue" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolNewVoxelValue" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       stringstream ssValues;
       ssValues << GetNewValue();
@@ -251,33 +276,33 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolEraseVoxelValue <toolID> <value>
-  if( 0 == strcmp( isCommand, "SetToolEraseVoxelValue" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolEraseVoxelValue" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float value = strtod(iasArgv[2], (char**)NULL);
-      if( ERANGE == errno ) {
-	sResult = "bad radius";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad radius";
+        return error;
       }
       SetEraseValue( value );
     }
   }
 
   // GetToolEraseVoxelValue <toolID>
-  if( 0 == strcmp( isCommand, "GetToolEraseVoxelValue" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolEraseVoxelValue" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       stringstream ssValues;
       ssValues << GetEraseValue();
@@ -287,115 +312,114 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolOnlyBrushZero <toolID> <onlyZero>
-  if( 0 == strcmp( isCommand, "SetToolOnlyBrushZero" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolOnlyBrushZero" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
       try {
-	bool bOnlyZero =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
-	SetOnlyBrushZero( bOnlyZero );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
-	return error;	
+        bool bOnlyZero =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+        SetOnlyBrushZero( bOnlyZero );
+      } catch ( runtime_error& e ) {
+        sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
+        return error;
       }
     }
   }
 
   // GetToolOnlyBrushZero <toolID>
-  if( 0 == strcmp( isCommand, "GetToolOnlyBrushZero" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolOnlyBrushZero" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
       sReturnValues =
-	TclCommandManager::ConvertBooleanToReturnValue( GetOnlyBrushZero() );
+        TclCommandManager::ConvertBooleanToReturnValue( GetOnlyBrushZero() );
       sReturnFormat = "i";
     }
   }
 
   // SetToolFloodFuzzinessType <toolID> <type>
-  if( 0 == strcmp( isCommand, "SetToolFloodFuzzinessType" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodFuzzinessType" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       FuzzinessType type;
-      if( 0 == strcmp( iasArgv[2], "seed" )) {
-	type = seed;
+      if ( 0 == strcmp( iasArgv[2], "seed" )) {
+        type = seed;
       } else if ( 0 == strcmp( iasArgv[2], "gradient" )) {
-	type = gradient;
+        type = gradient;
       } else {
-	sResult = "bad type \"" + string(iasArgv[2]) + 
-	  "\", should be seed or gradient.";
-	return error;
+        sResult = "bad type \"" + string(iasArgv[2]) +
+                  "\", should be seed or gradient.";
+        return error;
       }
       SetFuzzinessType( type );
     }
   }
 
   // GetToolFloodFuzzinessType <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodFuzzinessType" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodFuzzinessType" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
 
-      switch( GetFuzzinessType() ) {
+    if ( GetID() == toolID ) {
+
+      switch ( GetFuzzinessType() ) {
       case seed:
-	sReturnValues = "seed";
-	break;
+        sReturnValues = "seed";
+        break;
       case gradient:
-	sReturnValues = "gradient";
-	break;
+        sReturnValues = "gradient";
+        break;
       }
       sReturnFormat = "s";
     }
   }
 
   // SetToolTargetLayer <toolID> <layerID>
-  if( 0 == strcmp( isCommand, "SetToolTargetLayer" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolTargetLayer" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       int layerID = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad layerID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad layerID";
+        return error;
       }
       SetTargetLayer( layerID );
     }
   }
 
   // GetToolTargetLayer <toolID>
-  if( 0 == strcmp( isCommand, "GetToolTargetLayer" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolTargetLayer" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       stringstream ssValues;
       ssValues << GetTargetLayer();
@@ -405,33 +429,33 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolBrushRadius <toolID> <radius>
-  if( 0 == strcmp( isCommand, "SetToolBrushRadius" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolBrushRadius" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float radius = strtod(iasArgv[2], (char**)NULL);
-      if( ERANGE == errno ) {
-	sResult = "bad radius";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad radius";
+        return error;
       }
       SetBrushRadius( radius );
     }
   }
 
   // GetToolBrushRadius <toolID>
-  if( 0 == strcmp( isCommand, "GetToolBrushRadius" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolBrushRadius" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       stringstream ssValues;
       ssValues << GetBrushRadius();
@@ -441,89 +465,89 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolBrushShape <toolID> <shape>
-  if( 0 == strcmp( isCommand, "SetToolBrushShape" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolBrushShape" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       Shape shape;
-      if( 0 == strcmp( iasArgv[2], "voxel" )) {
-	shape = voxel;
-      } else if( 0 == strcmp( iasArgv[2], "square" )) {
-	shape = square;
+      if ( 0 == strcmp( iasArgv[2], "voxel" )) {
+        shape = voxel;
+      } else if ( 0 == strcmp( iasArgv[2], "square" )) {
+        shape = square;
       } else if ( 0 == strcmp( iasArgv[2], "circle" )) {
-	shape = circle;
+        shape = circle;
       } else {
-	sResult = "bad shape \"" + string(iasArgv[2]) + 
-	  "\", should be voxel, square or circle.";
-	return error;
+        sResult = "bad shape \"" + string(iasArgv[2]) +
+                  "\", should be voxel, square or circle.";
+        return error;
       }
       SetBrushShape( shape );
     }
   }
 
   // GetToolBrushShape <toolID>
-  if( 0 == strcmp( isCommand, "GetToolBrushShape" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolBrushShape" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
 
-      switch( GetBrushShape() ) {
+    if ( GetID() == toolID ) {
+
+      switch ( GetBrushShape() ) {
       case voxel:
-	sReturnValues = "voxel";
-	break;
+        sReturnValues = "voxel";
+        break;
       case square:
-	sReturnValues = "square";
-	break;
+        sReturnValues = "square";
+        break;
       case circle:
-	sReturnValues = "circle";
-	break;
+        sReturnValues = "circle";
+        break;
       }
       sReturnFormat = "s";
     }
   }
 
   // SetToolBrush3D <toolID> <3D>
-  if( 0 == strcmp( isCommand, "SetToolBrush3D" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolBrush3D" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
-      
-      if( 0 == strcmp( iasArgv[2], "true" ) || 
-	  0 == strcmp( iasArgv[2], "1" )) {
-	SetBrush3D( true );
-      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
-		 0 == strcmp( iasArgv[2], "0" ) ) {
-	SetBrush3D( false );
+
+    if ( GetID() == toolID ) {
+
+      if ( 0 == strcmp( iasArgv[2], "true" ) ||
+           0 == strcmp( iasArgv[2], "1" )) {
+        SetBrush3D( true );
+      } else if ( 0 == strcmp( iasArgv[2], "false" ) ||
+                  0 == strcmp( iasArgv[2], "0" ) ) {
+        SetBrush3D( false );
       } else {
-	sResult = "bad 3D\"" + string(iasArgv[2]) +
-	  "\", should be true, 1, false, or 0";
-	return error;	
+        sResult = "bad 3D\"" + string(iasArgv[2]) +
+                  "\", should be true, 1, false, or 0";
+        return error;
       }
     }
   }
 
   // GetToolBrush3D <toolID>
-  if( 0 == strcmp( isCommand, "GetToolBrush3D" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolBrush3D" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -533,38 +557,38 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFloodStopAtPaths <toolID> <stop>
-  if( 0 == strcmp( isCommand, "SetToolFloodStopAtPaths" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodStopAtPaths" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
-      
-      if( 0 == strcmp( iasArgv[2], "true" ) || 
-	  0 == strcmp( iasArgv[2], "1" )) {
-	SetFloodStopAtPaths( true );
-      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
-		 0 == strcmp( iasArgv[2], "0" ) ) {
-	SetFloodStopAtPaths( false );
+
+    if ( GetID() == toolID ) {
+
+      if ( 0 == strcmp( iasArgv[2], "true" ) ||
+           0 == strcmp( iasArgv[2], "1" )) {
+        SetFloodStopAtPaths( true );
+      } else if ( 0 == strcmp( iasArgv[2], "false" ) ||
+                  0 == strcmp( iasArgv[2], "0" ) ) {
+        SetFloodStopAtPaths( false );
       } else {
-	sResult = "bad stop \"" + string(iasArgv[2]) +
-	  "\", should be true, 1, false, or 0";
-	return error;	
+        sResult = "bad stop \"" + string(iasArgv[2]) +
+                  "\", should be true, 1, false, or 0";
+        return error;
       }
     }
   }
 
   // GetToolFloodStopAtPaths <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodStopAtPaths" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodStopAtPaths" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -574,38 +598,38 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFloodStopAtROIs <toolID> <stop>
-  if( 0 == strcmp( isCommand, "SetToolFloodStopAtROIs" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodStopAtROIs" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
-      
-      if( 0 == strcmp( iasArgv[2], "true" ) || 
-	  0 == strcmp( iasArgv[2], "1" )) {
-	SetFloodStopAtROIs( true );
-      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
-		 0 == strcmp( iasArgv[2], "0" ) ) {
-	SetFloodStopAtROIs( false );
+
+    if ( GetID() == toolID ) {
+
+      if ( 0 == strcmp( iasArgv[2], "true" ) ||
+           0 == strcmp( iasArgv[2], "1" )) {
+        SetFloodStopAtROIs( true );
+      } else if ( 0 == strcmp( iasArgv[2], "false" ) ||
+                  0 == strcmp( iasArgv[2], "0" ) ) {
+        SetFloodStopAtROIs( false );
       } else {
-	sResult = "bad stop \"" + string(iasArgv[2]) +
-	  "\", should be true, 1, false, or 0";
-	return error;	
+        sResult = "bad stop \"" + string(iasArgv[2]) +
+                  "\", should be true, 1, false, or 0";
+        return error;
       }
     }
   }
 
   // GetToolFloodStopAtROIs <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodStopAtROIs" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodStopAtROIs" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -615,33 +639,33 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFloodFuzziness <toolID> <fuzziness>
-  if( 0 == strcmp( isCommand, "SetToolFloodFuzziness" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodFuzziness" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float fuzziness = strtod(iasArgv[2], (char**)NULL);
-      if( ERANGE == errno ) {
-	sResult = "bad fuzziness";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad fuzziness";
+        return error;
       }
       SetFloodFuzziness( fuzziness );
     }
   }
 
   // GetToolFloodFuzziness <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodFuzziness" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodFuzziness" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -651,33 +675,33 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFloodMaxDistance <toolID> <MaxDistance>
-  if( 0 == strcmp( isCommand, "SetToolFloodMaxDistance" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodMaxDistance" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float maxDistance = strtod(iasArgv[2], (char**)NULL);
-      if( ERANGE == errno ) {
-	sResult = "bad distance";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad distance";
+        return error;
       }
       SetFloodMaxDistance( maxDistance );
     }
   }
 
   // GetToolFloodMaxDistance <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodMaxDistance" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodMaxDistance" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -687,38 +711,38 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFlood3D <toolID> <3D>
-  if( 0 == strcmp( isCommand, "SetToolFlood3D" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFlood3D" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
-      
-      if( 0 == strcmp( iasArgv[2], "true" ) || 
-	  0 == strcmp( iasArgv[2], "1" )) {
-	SetFlood3D( true );
-      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
-		 0 == strcmp( iasArgv[2], "0" ) ) {
-	SetFlood3D( false );
+
+    if ( GetID() == toolID ) {
+
+      if ( 0 == strcmp( iasArgv[2], "true" ) ||
+           0 == strcmp( iasArgv[2], "1" )) {
+        SetFlood3D( true );
+      } else if ( 0 == strcmp( iasArgv[2], "false" ) ||
+                  0 == strcmp( iasArgv[2], "0" ) ) {
+        SetFlood3D( false );
       } else {
-	sResult = "bad 3D\"" + string(iasArgv[2]) +
-	  "\", should be true, 1, false, or 0";
-	return error;	
+        sResult = "bad 3D\"" + string(iasArgv[2]) +
+                  "\", should be true, 1, false, or 0";
+        return error;
       }
     }
   }
 
   // GetToolFlood3D <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFlood3D" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFlood3D" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -728,33 +752,33 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolFloodSourceCollection <toolID> <colID>
-  if( 0 == strcmp( isCommand, "SetToolFloodSourceCollection" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolFloodSourceCollection" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
-      
+
+    if ( GetID() == toolID ) {
+
       int colID = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad colID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad colID";
+        return error;
       }
       SetFloodSourceCollection( colID );
     }
   }
 
   // GetToolFloodSourceCollection <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodSourceCollection" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolFloodSourceCollection" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -764,55 +788,54 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolOnlyFloodZero <toolID> <onlyZero>
-  if( 0 == strcmp( isCommand, "SetToolOnlyFloodZero" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolOnlyFloodZero" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
       try {
-	bool bOnlyZero =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
-	SetOnlyFloodZero( bOnlyZero );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
-	return error;	
+        bool bOnlyZero =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+        SetOnlyFloodZero( bOnlyZero );
+      } catch ( runtime_error& e ) {
+        sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
+        return error;
       }
     }
   }
 
   // GetToolOnlyFloodZero <toolID>
-  if( 0 == strcmp( isCommand, "GetToolOnlyFloodZero" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolOnlyFloodZero" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
       sReturnValues =
-	TclCommandManager::ConvertBooleanToReturnValue( GetOnlyFloodZero() );
+        TclCommandManager::ConvertBooleanToReturnValue( GetOnlyFloodZero() );
       sReturnFormat = "i";
     }
   }
 
   // SetToolEdgePathStraightBias <toolID> <bias>
-  if( 0 == strcmp( isCommand, "SetToolEdgePathStraightBias" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolEdgePathStraightBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float bias = (float) strtod( iasArgv[2], (char**)NULL );
-      if( ERANGE == errno ) {
-	sResult = "bad bias";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad bias";
+        return error;
       }
 
       SetEdgePathStraightBias( bias );
@@ -820,14 +843,14 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetToolEdgePathStraightBias <toolID>
-  if( 0 == strcmp( isCommand, "GetToolEdgePathStraightBias" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolEdgePathStraightBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "f";
       stringstream ssReturnValues;
@@ -837,19 +860,19 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetToolEdgePathEdgeBias <toolID> <bias>
-  if( 0 == strcmp( isCommand, "SetToolEdgePathEdgeBias" ) ) {
+  if ( 0 == strcmp( isCommand, "SetToolEdgePathEdgeBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       float bias = (float) strtod( iasArgv[2], (char**)NULL );
-      if( ERANGE == errno ) {
-	sResult = "bad bias";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad bias";
+        return error;
       }
 
       SetEdgePathEdgeBias( bias );
@@ -857,14 +880,14 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetToolEdgePathEdgeBias <toolID>
-  if( 0 == strcmp( isCommand, "GetToolEdgePathEdgeBias" ) ) {
+  if ( 0 == strcmp( isCommand, "GetToolEdgePathEdgeBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad tool ID";
       return error;
     }
-    
-    if( GetID() == toolID ) {
+
+    if ( GetID() == toolID ) {
 
       sReturnFormat = "f";
       stringstream ssReturnValues;
@@ -879,7 +902,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 string
 ScubaToolState::GetBrushShapeAsString () {
 
-  switch( GetBrushShape() ) {
+  switch ( GetBrushShape() ) {
   case voxel:
     return "voxel";
     break;

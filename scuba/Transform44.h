@@ -1,3 +1,31 @@
+/**
+ * @file  Transform44.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef Transform44_h
 #define Transform44_h
 
@@ -16,21 +44,21 @@ class Transform44 : public DebugReporter {
 
   friend class Transform44Tester;
 
- public:
+public:
 
   Transform44();
   Transform44 ( float i0j0, float i1j0, float i2j0, float i3j0,
-		float i0j1, float i1j1, float i2j1, float i3j1,
-		float i0j2, float i1j2, float i2j2, float i3j2,
-		float i0j3, float i1j3, float i2j3, float i3j3 );
+                float i0j1, float i1j1, float i2j1, float i3j1,
+                float i0j2, float i1j2, float i2j2, float i3j2,
+                float i0j3, float i1j3, float i2j3, float i3j3 );
   Transform44 ( MATRIX* iMatrix );
   Transform44 ( Matrix44& iMatrix );
   virtual ~Transform44();
 
   void SetMainTransform ( float i0j0, float i1j0, float i2j0, float i3j0,
-			  float i0j1, float i1j1, float i2j1, float i3j1,
-			  float i0j2, float i1j2, float i2j2, float i3j2,
-			  float i0j3, float i1j3, float i2j3, float i3j3 );
+                          float i0j1, float i1j1, float i2j1, float i3j1,
+                          float i0j2, float i1j2, float i2j2, float i3j2,
+                          float i0j3, float i1j3, float i2j3, float i3j3 );
 
   void SetMainTransform ( MATRIX* iMatrix );
   void SetMainTransform ( Matrix44& iMatrix );
@@ -38,9 +66,9 @@ class Transform44 : public DebugReporter {
 
   void MakeIdentity ();
 
-  void MakeRotation ( float iCenterPoint[3], 
-		      float iRotationVector[3],
-		      float iRadians );
+  void MakeRotation ( float iCenterPoint[3],
+                      float iRotationVector[3],
+                      float iRadians );
 
   void LoadFromLTAFile ( std::string ifnLTA );
 
@@ -63,11 +91,13 @@ class Transform44 : public DebugReporter {
     return *this;
   }
 
-  Matrix44& GetMainMatrix () { return m; }
+  Matrix44& GetMainMatrix () {
+    return m;
+  }
 
   Transform44 Inverse ();
-  
- protected:
+
+protected:
 
   virtual void ValuesChanged ();
 

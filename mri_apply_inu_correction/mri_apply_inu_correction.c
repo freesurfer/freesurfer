@@ -1,3 +1,31 @@
+/**
+ * @file  mri_apply_inu_correction.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:04 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Try to estimate gain field from a pair of volumes went through NU_correct;
  *  and then apply the gain field to the current input volume
  */
@@ -31,8 +59,7 @@ char *Progname;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
   char **av;
   MRI *mri_before, *mri_after, *mri_in, *mri_out;
@@ -43,72 +70,71 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_apply_inu_correction.c,v 1.1 2006/02/17 23:09:49 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_apply_inu_correction.c,v 1.2 2006/12/29 02:09:04 nicks Exp $", "$Name:  $");
   argc -= nargs ;
-  
+
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
-  
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  if(argc  !=  3)
+
+  if (argc  !=  3)
     usage(1);
 
-  if(fname_before == NULL  || fname_after == NULL){
+  if (fname_before == NULL  || fname_after == NULL) {
     printf("Use options to specify template volumes for gain field computation\n");
     usage(1);
   }
-  
+
   mri_in = MRIread(argv[1]) ;
   if (!mri_in)
     ErrorExit(ERROR_BADPARM, "%s: could not read input volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
 
   mri_before = MRIread(fname_before) ;
   if (!mri_before)
     ErrorExit(ERROR_BADPARM, "%s: could not read tempate volume %s",
-	      Progname, fname_before) ;
+              Progname, fname_before) ;
 
   mri_after = MRIread(fname_after) ;
   if (!mri_after)
     ErrorExit(ERROR_BADPARM, "%s: could not read tempate volume %s",
-	      Progname, fname_after) ;
+              Progname, fname_after) ;
 
-  if((mri_in->width != mri_after->width) ||
-     (mri_in->height != mri_after->height) ||
-     (mri_in->depth != mri_after->depth) ||
-     (mri_in->width != mri_before->width) ||
-     (mri_in->height != mri_before->height) ||
-     (mri_in->depth != mri_before->depth)
-     
+  if ((mri_in->width != mri_after->width) ||
+      (mri_in->height != mri_after->height) ||
+      (mri_in->depth != mri_after->depth) ||
+      (mri_in->width != mri_before->width) ||
+      (mri_in->height != mri_before->height) ||
+      (mri_in->depth != mri_before->depth)
+
      )
     ErrorExit(ERROR_BADPARM, "%s: three input volumes have different sizes \n", Progname);
-  
+
   mri_out = MRIclone(mri_in, NULL) ;
 
   width = mri_in->width ;
   height = mri_in->height ;
   depth = mri_in->depth ;
   nframes = mri_in->nframes ;
-  if(nframes == 0) nframes = 1;
+  if (nframes == 0) nframes = 1;
 
-  for (f = 0 ; f < nframes ; f++){
-    for (z = 0 ; z < depth ; z++){
-      for (y = 0 ; y < height ; y++){
-	for (x = 0 ; x < width ; x++){
-	  v_in = (double) MRIgetVoxVal(mri_in,x,y,z,f);
-	  v_before = (double) MRIgetVoxVal(mri_before,x,y,z,f);
-	  v_after = (double) MRIgetVoxVal(mri_after,x,y,z,f);
-	  gain = v_after/(v_before + 1e-15);
-	  v_out = gain*v_in;
+  for (f = 0 ; f < nframes ; f++) {
+    for (z = 0 ; z < depth ; z++) {
+      for (y = 0 ; y < height ; y++) {
+        for (x = 0 ; x < width ; x++) {
+          v_in = (double) MRIgetVoxVal(mri_in,x,y,z,f);
+          v_before = (double) MRIgetVoxVal(mri_before,x,y,z,f);
+          v_after = (double) MRIgetVoxVal(mri_after,x,y,z,f);
+          gain = v_after/(v_before + 1e-15);
+          v_out = gain*v_in;
 
-	  MRIsetVoxVal(mri_out,x,y,z,f,(float)v_out);
-	}
+          MRIsetVoxVal(mri_out,x,y,z,f,(float)v_out);
+        }
       }
     }
   }
@@ -120,13 +146,12 @@ int main(int argc, char *argv[])
   MRIfree(&mri_out);
   MRIfree(&mri_before);
   MRIfree(&mri_after);
-  
+
   exit(0);
 
 }  /*  end main()  */
 
-void usage(int exit_val)
-{
+void usage(int exit_val) {
 
   FILE *fout;
 
@@ -144,35 +169,27 @@ void usage(int exit_val)
 /*  EOF  */
 
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "debug_voxel"))
-    {
-      Gx = atoi(argv[2]) ;
-      Gy = atoi(argv[3]) ;
-      Gz = atoi(argv[4]) ;
-      debug_flag = 1;
-      nargs = 3 ;
-      printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
-    }
-  else if (!stricmp(option, "before"))
-    {
-      fname_before  = argv[2];
-      printf("Use file %s for template volume before N3 \n", fname_before) ;
-      nargs = 1;
-    }
-  else if (!stricmp(option, "after"))
-    {
-      fname_after  = argv[2];
-      printf("Use file %s for template volume after N3 \n", fname_after) ;
-      nargs = 1;
-    }
-  else switch (toupper(*option))
-    {
+  if (!stricmp(option, "debug_voxel")) {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    debug_flag = 1;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
+  } else if (!stricmp(option, "before")) {
+    fname_before  = argv[2];
+    printf("Use file %s for template volume before N3 \n", fname_before) ;
+    nargs = 1;
+  } else if (!stricmp(option, "after")) {
+    fname_after  = argv[2];
+    printf("Use file %s for template volume after N3 \n", fname_after) ;
+    nargs = 1;
+  } else switch (toupper(*option)) {
     case '?':
     case 'U':
       usage(0) ;
@@ -182,6 +199,6 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-  
+
   return(nargs) ;
 }

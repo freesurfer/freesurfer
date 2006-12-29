@@ -1,3 +1,31 @@
+/**
+ * @file  mri_extract.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -18,15 +46,14 @@ static int reductions = 1 ;
 static int verbose = 0 ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs, x0, y0, z0, dx, dy, dz ;
   MRI    *mri_src, *mri_dst = NULL ;
   char   *in_dir, *out_dir ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract.c,v 1.4 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract.c,v 1.5 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -37,23 +64,22 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-/*
-   command line:
+  /*
+     command line:
 
-   mri_extract <src_dir> x0 y0 z0 dx dy dz <dst_dir>
-*/
+     mri_extract <src_dir> x0 y0 z0 dx dy dz <dst_dir>
+  */
 
   if (argc < 8)
     ErrorExit(ERROR_BADPARM,
               "usage: %s <src_dir> x0 y0 z0 dx dy dz <dst_dir>", Progname) ;
-              
+
   in_dir = argv[1] ;
   if (sscanf(argv[2], "%d", &x0) != 1)
     ErrorExit(ERROR_BADPARM,
@@ -105,14 +131,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'V':
     verbose = 1 ;
     break ;

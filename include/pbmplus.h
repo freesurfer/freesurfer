@@ -1,3 +1,31 @@
+/**
+ * @file  pbmplus.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* pbmplus.h - header file for PBM, PGM, PPM, and PNM
 **
 ** Copyright (C) 1988, 1989, 1991 by Jef Poskanzer.
@@ -34,7 +62,7 @@
 /* CONFIGURE: If you want to enable writing "raw" files, set this option.
 ** "Raw" files are smaller, and much faster to read and write, but you
 ** must have a filesystem that allows all 256 ASCII characters to be read
-** and written.  You will no longer be able to mail P?M files without 
+** and written.  You will no longer be able to mail P?M files without
 ** using uuencode or the equivalent, or running the files through pnmnoraw.
 ** Note that reading "raw" files works whether writing is enabled or not.
 */

@@ -1,3 +1,31 @@
+/**
+ * @file  scuba.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.28 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 extern "C" {
 #include "tk.h"
 #include "tix.h"
@@ -28,7 +56,7 @@ char* Progname = "scuba";
 
 // extern "C" {
 // int Scuba_Init ( Tcl_Interp* iInterp ) {
-    
+
 //     try {
 //     ToglManager& toglMgr = ToglManager::GetManager();
 //     toglMgr.InitializeTogl( iInterp );
@@ -40,7 +68,7 @@ char* Progname = "scuba";
 //     commandMgr.Start( iInterp );
 
 //     ScubaLayerFactory::GetFactory();
-    
+
 //     ScubaDataCollectionFactory::GetFactory();
 
 //     PathManager::GetManager();
@@ -72,35 +100,35 @@ int main ( int argc, char** argv ) {
     glutInit( &argc, argv );
 
     Tcl_Interp* interp = Tcl_CreateInterp();
-    if( NULL == interp ) {
+    if ( NULL == interp ) {
       throw runtime_error( "Tcl_CreateInterp returned null" );
     }
-    
+
     int rTcl = Tcl_Init( interp );
-    if( TCL_OK != rTcl ) {
+    if ( TCL_OK != rTcl ) {
       stringstream ssError;
       const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tcl_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
-    
+
     rTcl = Tk_Init( interp );
-    if( TCL_OK != rTcl ) {
+    if ( TCL_OK != rTcl ) {
       stringstream ssError;
       const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tk_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
-    
+
     rTcl = Tix_Init( interp );
-    if( TCL_OK != rTcl ) {
+    if ( TCL_OK != rTcl ) {
       stringstream ssError;
       const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tix_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
 
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.Start( interp );
     commandMgr.SetCommandLineParameters( argc, argv );
@@ -114,7 +142,7 @@ int main ( int argc, char** argv ) {
     ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
     ScubaLayerFactory::GetFactory();
-    
+
     ScubaDataCollectionFactory::GetFactory();
 
     PathManager::GetManager();
@@ -139,58 +167,55 @@ int main ( int argc, char** argv ) {
 
     // Look for the script, first in the local dir, then in
     // ../scripts, then in $FREESURFER_HOME/lib/tcl.
-   struct stat info;
-   string fnScuba( "./scuba.tcl" );
-   int rStat = stat( fnScuba.c_str(), &info );
-   if( 0 != rStat ||
-       !S_ISREG(info.st_mode) ) {
-     fnScuba = "../scripts/scuba.tcl";
-     rStat = stat( fnScuba.c_str(), &info );
-     if( 0 != rStat ||
-	 !S_ISREG(info.st_mode) ) {
-       char* sFressurferHome = getenv( "FREESURFER_HOME" );
-       if( NULL != sFressurferHome ) {
-	 fnScuba = sFressurferHome + string("/lib/tcl/scuba.tcl");
-	 rStat = stat( fnScuba.c_str(), &info );
-       }
-     }
-   }
+    struct stat info;
+    string fnScuba( "./scuba.tcl" );
+    int rStat = stat( fnScuba.c_str(), &info );
+    if ( 0 != rStat ||
+         !S_ISREG(info.st_mode) ) {
+      fnScuba = "../scripts/scuba.tcl";
+      rStat = stat( fnScuba.c_str(), &info );
+      if ( 0 != rStat ||
+           !S_ISREG(info.st_mode) ) {
+        char* sFressurferHome = getenv( "FREESURFER_HOME" );
+        if ( NULL != sFressurferHome ) {
+          fnScuba = sFressurferHome + string("/lib/tcl/scuba.tcl");
+          rStat = stat( fnScuba.c_str(), &info );
+        }
+      }
+    }
 
-   // If we haven't found one by now, bail.
-   if( 0 != rStat ||
-       !S_ISREG(info.st_mode) ) {
+    // If we haven't found one by now, bail.
+    if ( 0 != rStat ||
+         !S_ISREG(info.st_mode) ) {
       stringstream ssError;
       ssError <<  "Couldn't find scuba.tcl file.";
       throw runtime_error( ssError.str() );
-   }
+    }
 
-   char* fnScubaC = strdup( fnScuba.c_str() );
-   rTcl = Tcl_EvalFile( interp, fnScubaC );
-   if( TCL_OK != rTcl ) {
-     stringstream ssError;
-     const char* sResult = Tcl_GetStringResult( interp );
-     ssError <<  "Reading " << fnScuba << " returned not TCL_OK: " << sResult;
-     throw runtime_error( ssError.str() );
-   }
-   free( fnScubaC );
+    char* fnScubaC = strdup( fnScuba.c_str() );
+    rTcl = Tcl_EvalFile( interp, fnScubaC );
+    if ( TCL_OK != rTcl ) {
+      stringstream ssError;
+      const char* sResult = Tcl_GetStringResult( interp );
+      ssError <<  "Reading " << fnScuba << " returned not TCL_OK: " << sResult;
+      throw runtime_error( ssError.str() );
+    }
+    free( fnScubaC );
 
-   cout << "Using " << fnScuba << endl;
+    cout << "Using " << fnScuba << endl;
 
-    
-   while( 1 ) {
-     Tcl_DoOneEvent( TCL_ALL_EVENTS );
-   }
-   
-  }
-  catch( runtime_error& e ) {
+
+    while ( 1 ) {
+      Tcl_DoOneEvent( TCL_ALL_EVENTS );
+    }
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

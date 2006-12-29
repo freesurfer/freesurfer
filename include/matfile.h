@@ -1,17 +1,45 @@
+/**
+ * @file  matfile.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef MATFILE_H
 #define MATFILE_H
-       
+
 #ifdef Darwin
 typedef unsigned char  Byte;
 #endif
 
-#include "znzlib.h"  
+#include "znzlib.h"
 #include "matrix.h"
 #include "machine.h"
 
 
 /*----------------------------------------------------------
-  MATHD - Header for version 4 matrix data element (not for the file). 
+  MATHD - Header for version 4 matrix data element (not for the file).
   ----------------------------------------------------------*/
 typedef struct
 {
@@ -20,10 +48,11 @@ typedef struct
   long32  ncols ;
   long32  imagf ;
   long32  namlen ;
-} MATHD ;
+}
+MATHD ;
 
 /*----------------------------------------------------------
-  MATFILE - structure to store information about a matrix 
+  MATFILE - structure to store information about a matrix
   in a matfile (not the matfile itself).
   ----------------------------------------------------------*/
 typedef struct
@@ -38,11 +67,12 @@ typedef struct
   char  *data ;     // buffer for real data
   char  *idata ;    // buffer for imaginary data
   char endian; // only for 5 (endian for 4 is in type)
-} MATFILE ;
+}
+MATFILE ;
 
 
 /*----------------------------------------------------------
-  MLFC - 
+  MLFC -
   ----------------------------------------------------------*/
 typedef struct
 {
@@ -50,7 +80,8 @@ typedef struct
   int nvars;      // Number of variables in matfile
   char *varname[1000]; // Variable name (all variables)
   MATRIX *varmtx[1000];  // Matrices ???
-} MATFILECONTENTS, MLFC;
+}
+MATFILECONTENTS, MLFC;
 
 char *MatReadHeader0(FILE *fp, MATFILE *mf);
 char    *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) ;
@@ -60,7 +91,7 @@ MATRIX  *MatlabRead(const char *fname) ;
 MATRIX  *MatlabRead2(const char *fname) ;
 int     MatlabWrite(MATRIX *mat, const char *fname, char *name) ;
 int     MatFileWrite(const char *fname,
-                    float *data, int rows, int cols, char *name) ;
+                     float *data, int rows, int cols, char *name) ;
 int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) );
 MLFC *ReadMatlabFileContents(const char *fname);
 int   MLFCprint(FILE *fp, MLFC *mlfc);
@@ -79,8 +110,8 @@ MATRIX *ReadMatlabFileVariable(char *fname, char *varname);
 #define MATFILE_SPARC   1000
 
 // Endianness for version 5
-#define MATFILE_PC5     'I' 
-#define MATFILE_SPARC5  'M' 
+#define MATFILE_PC5     'I'
+#define MATFILE_SPARC5  'M'
 
 #define MATFILE_DOUBLE  00
 #define MATFILE_FLOAT   10

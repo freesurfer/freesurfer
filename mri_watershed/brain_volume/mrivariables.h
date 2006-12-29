@@ -1,3 +1,31 @@
+/**
+ * @file  mrivariables.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mrivariables.h
 //
@@ -17,34 +45,33 @@ extern "C" {
 #ifndef c_mrivariables_h
 #define c_mrivariables_h
 
-typedef struct Cell
-{
+typedef struct Cell {
   unsigned char type;
   void * next;
-} Cell;
+}
+Cell;
 
-typedef struct Basincell
-{
+typedef struct Basincell {
   unsigned char depth;
   unsigned long size;
   unsigned long ambiguous;
-} BasinCell;
+}
+BasinCell;
 
-typedef struct Bound
-{
+typedef struct Bound {
   unsigned char x,y,z,val;
   struct Bound *next;
-} Bound;
+}
+Bound;
 
 typedef unsigned char Coord[3];
 
 
-typedef struct STRIP_PARMS    
-{ 
+typedef struct STRIP_PARMS {
   /*  float  fill_level;*/
-  int template_deformation; 
+  int template_deformation;
   /*to save the surfaces into the output volume*/
-  int surf_dbg; 
+  int surf_dbg;
   /*to write out the brain surface into the file surfname*/
   /*the brain surface is shrank inward of h_shrk mm*/
   int brainsurf;
@@ -58,29 +85,29 @@ typedef struct STRIP_PARMS
   /*specify T1 volume*/
   int T1;
   /*specify the center fo the brain and its radius*/
-  int cx,cy,cz,rb; 
+  int cx,cy,cz,rb;
 
   char *surfname;
   int h_shk;
-  int skull_type;  
-  int watershed_analyze;  
-  int threshold_analyze;   
+  int skull_type;
+  int watershed_analyze;
+  int threshold_analyze;
 
   int seed_coord[30][4];
   int nb_seed_points/*=0*/;
-  unsigned char hpf;  
-          
+  unsigned char hpf;
+
   int manual_params;
   int manual_CSF_MAX,manual_TRANSITION_INTENSITY,manual_GM_INTENSITY;
-   
-} STRIP_PARMS ;
+
+}
+STRIP_PARMS ;
 
 
-typedef struct
-{
+typedef struct {
   float direction[26][3];
   MRIS *mrisphere,*mris,*mris_curv,*mris_var_curv,*mris_dCOG
-                    ,*mris_var_dCOG;
+  ,*mris_var_dCOG;
 
   double xCOG,yCOG,zCOG,rad_Brain;
   double xsCOG,ysCOG,zsCOG;
@@ -104,7 +131,7 @@ typedef struct
 #if OUTPUT_CURVES
   FILE *fout;
 #endif
-#if OUTPUT_SURFACES 
+#if OUTPUT_SURFACES
   FILE *fsvout,*fsfout;
 #endif
 
@@ -129,6 +156,7 @@ typedef struct
   int validation;
   int verbose_mode;
 
-} MRI_variables;
+}
+MRI_variables;
 
 #endif

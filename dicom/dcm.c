@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2006/12/07 01:05:08 $
+** Last Update:   $Author: nicks $, $Date: 2006/12/29 02:08:57 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.28 $
+** Revision:    $Revision: 1.29 $
 ** Status:    $State: Exp $
 */
 
@@ -96,9 +96,9 @@
 #include <ctype.h>
 
 #ifdef SunOS
-  #include <sys/types.h>
-  #include <sys/stat.h>
-  #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #endif
 
 #define BYTEORDER_SAME      1
@@ -131,7 +131,7 @@
 
 static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
 
-// undeclared ones 
+// undeclared ones
 #ifndef Darwin
 #ifndef SunOS
 extern void swab(const void *from, void *to, size_t n);
@@ -276,15 +276,14 @@ static void remapFileName(const char *name, char *mapName);
 */
 
 CONDITION
-DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
-{
+DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject) {
   CONDITION cond;
   int fd;
   off_t fileOffset = 0;
   U32 lengthToEnd;
   U32 size;
   CTNBOOLEAN
-    remainFileOpen = FALSE; /* Leave file open after parse ? */
+  remainFileOpen = FALSE; /* Leave file open after parse ? */
 
   if ((opt & (DCM_ORDERMASK | DCM_FILEFORMATMASK)) == 0)
     return COND_PushCondition(DCM_ILLEGALOPTION,
@@ -325,7 +324,7 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
     if (cond != DCM_NORMAL) {
       (void) close(fd);
       return COND_PushCondition(DCM_FILEOPENFAILED,
-                                DCM_Message(DCM_FILEOPENFAILED), name, 
+                                DCM_Message(DCM_FILEOPENFAILED), name,
                                 "DCM_OpenFile");
     }
     size = lengthToEnd;
@@ -344,7 +343,7 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
     if (debug)
       DCM_DumpElements(callerObject, 1);
     return COND_PushCondition(DCM_FILEOPENFAILED,
-                              DCM_Message(DCM_FILEOPENFAILED), name, 
+                              DCM_Message(DCM_FILEOPENFAILED), name,
                               "DCM_OpenFile");
   } else
     return DCM_NORMAL;
@@ -353,19 +352,18 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
 CONDITION
 DCM_ReadStream(DCM_OBJECT ** callerObject, unsigned long opt, long size,
                void *ctx,
-               CONDITION(*rd) (void *ctx, void *buf, int toRead, 
+               CONDITION(*rd) (void *ctx, void *buf, int toRead,
                                int *bytesRead),
-               CONDITION(*sk) (void *ctx, int offset, int flag))
-{
+               CONDITION(*sk) (void *ctx, int offset, int flag)) {
   CONDITION cond;
   int fd = -1;
   CTNBOOLEAN
-    remainFileOpen = FALSE; /* Leave file open after parse ? */
+  remainFileOpen = FALSE; /* Leave file open after parse ? */
   off_t fileOffset = 0;
 
   if ((opt & (DCM_ORDERMASK | DCM_FILEFORMATMASK)) == 0)
     return COND_PushCondition(DCM_ILLEGALOPTION,
-                              DCM_Message(DCM_ILLEGALOPTION), 
+                              DCM_Message(DCM_ILLEGALOPTION),
                               "Byte order",
                               "DCM_ReadStream");
 
@@ -373,7 +371,7 @@ DCM_ReadStream(DCM_OBJECT ** callerObject, unsigned long opt, long size,
                    callerObject, NULL, &remainFileOpen, ctx, rd, sk);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_READSTREAMFAILED,
-                              DCM_Message(DCM_READSTREAMFAILED), 
+                              DCM_Message(DCM_READSTREAMFAILED),
                               "DCM_ReadStream");
   else
     return DCM_NORMAL;
@@ -400,17 +398,16 @@ DCM_ReadStream(DCM_OBJECT ** callerObject, unsigned long opt, long size,
 */
 
 CONDITION
-DCM_CreateObject(DCM_OBJECT ** object, unsigned long opt)
-{
+DCM_CreateObject(DCM_OBJECT ** object, unsigned long opt) {
   PRIVATE_OBJECT
-    * obj;
+  * obj;
 
   if (object == NULL) {
     (void) COND_PushCondition(DCM_NULLADDRESS,
-                              DCM_Message(DCM_NULLADDRESS), 
+                              DCM_Message(DCM_NULLADDRESS),
                               "DCM_CreateObject");
     return COND_PushCondition(DCM_OBJECTCREATEFAILED,
-                              DCM_Message(DCM_OBJECTCREATEFAILED), 
+                              DCM_Message(DCM_OBJECTCREATEFAILED),
                               "DCM_CreateObject");
   }
   obj = (PRIVATE_OBJECT *) CTN_MALLOC(sizeof(PRIVATE_OBJECT));
@@ -421,7 +418,7 @@ DCM_CreateObject(DCM_OBJECT ** object, unsigned long opt)
                               "DCM_CreateObject");
     *object = NULL;
     return COND_PushCondition(DCM_OBJECTCREATEFAILED,
-                              DCM_Message(DCM_OBJECTCREATEFAILED), 
+                              DCM_Message(DCM_OBJECTCREATEFAILED),
                               "DCM_CreateObject");
   }
   (void) memset(obj, 0, sizeof(PRIVATE_OBJECT));
@@ -486,18 +483,17 @@ DCM_CreateObject(DCM_OBJECT ** object, unsigned long opt)
 */
 
 CONDITION
-DCM_CloseObject(DCM_OBJECT ** callerObject)
-{
+DCM_CloseObject(DCM_OBJECT ** callerObject) {
   CONDITION
-    cond;
+  cond;
   PRV_GROUP_ITEM
-    * group;
+  * group;
   PRV_ELEMENT_ITEM
-    * element;
+  * element;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   DCM_SEQUENCE_ITEM
-    * sequenceItem;
+  * sequenceItem;
   DCM_FRAGMENT_ITEM* fragmentItem;
 
   if (debug)
@@ -561,7 +557,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
   cond = LST_Destroy(&(*object)->groupList);
   if (cond != LST_NORMAL)
     return COND_PushCondition(DCM_LISTFAILURE,
-                              DCM_Message(DCM_LISTFAILURE), 
+                              DCM_Message(DCM_LISTFAILURE),
                               "DCM_CloseObject");
 
   cond = DCM_NORMAL;
@@ -571,7 +567,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
          (void) COND_PushCondition(DCM_FILEDELETEFAILED, strerror(errno));
       **/
       cond = COND_PushCondition(DCM_FILEDELETEFAILED,
-                                DCM_Message(DCM_FILEDELETEFAILED), 
+                                DCM_Message(DCM_FILEDELETEFAILED),
                                 (*object)->fileName, strerror(errno),
                                 "DCM_CloseObject");
     }
@@ -619,16 +615,15 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 */
 
 CONDITION
-DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
-{
+DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element) {
   CONDITION
-    cond;
+  cond;
   DCM_ELEMENT
-    localElement;
+  localElement;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
 
   object = (PRIVATE_OBJECT **) callerObject;
 
@@ -638,9 +633,9 @@ DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
 
   if ((DCM_TAG_ELEMENT(element->tag) == 0x0000))
     return COND_PushCondition(DCM_ILLEGALADD,
-                              DCM_Message(DCM_ILLEGALADD), 
+                              DCM_Message(DCM_ILLEGALADD),
                               DCM_TAG_GROUP(element->tag),
-                              DCM_TAG_ELEMENT(element->tag), 
+                              DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
 
 
@@ -667,7 +662,7 @@ DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
   cond = findCreateGroup(object, DCM_TAG_GROUP(localElement.tag), &groupItem);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_INSERTFAILED,
-                              DCM_Message(DCM_INSERTFAILED), 
+                              DCM_Message(DCM_INSERTFAILED),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
@@ -675,7 +670,7 @@ DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
   cond = insertNewElement(object, &localElement);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_INSERTFAILED,
-                              DCM_Message(DCM_INSERTFAILED), 
+                              DCM_Message(DCM_INSERTFAILED),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
@@ -683,7 +678,7 @@ DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
   cond = updateObjectType(object, &localElement);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_INSERTFAILED,
-                              DCM_Message(DCM_INSERTFAILED), 
+                              DCM_Message(DCM_INSERTFAILED),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
@@ -715,8 +710,7 @@ DCM_AddElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
 */
 
 CONDITION
-DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
-{
+DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element) {
   CONDITION cond;
   DCM_ELEMENT localElement;
   PRIVATE_OBJECT **object;
@@ -730,9 +724,9 @@ DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
 
   if ((DCM_TAG_ELEMENT(element->tag) == 0x0000))
     return COND_PushCondition(DCM_ILLEGALADD,
-                              DCM_Message(DCM_ILLEGALADD), 
+                              DCM_Message(DCM_ILLEGALADD),
                               DCM_TAG_GROUP(element->tag),
-                              DCM_TAG_ELEMENT(element->tag), 
+                              DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
 
 
@@ -763,7 +757,7 @@ DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
   cond = insertNewElement(object, &localElement);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_INSERTFAILED,
-                              DCM_Message(DCM_INSERTFAILED), 
+                              DCM_Message(DCM_INSERTFAILED),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddElement");
@@ -771,7 +765,7 @@ DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
   cond = updateObjectType(object, &localElement);
   if (cond != DCM_NORMAL)
     return COND_PushCondition(DCM_INSERTFAILED,
-                              DCM_Message(DCM_INSERTFAILED), 
+                              DCM_Message(DCM_INSERTFAILED),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_AddSequenceElement");
@@ -806,22 +800,21 @@ DCM_AddSequenceElement(DCM_OBJECT ** callerObject, DCM_ELEMENT * element)
 */
 
 CONDITION
-DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag)
-{
+DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem,
-    *groupLengthItem;
+  * elementItem,
+  *groupLengthItem;
   CONDITION
-    cond;
+  cond;
   CTNBOOLEAN
-    flag;
+  flag;
   unsigned short
-    group,
-    element;
+  group,
+  element;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_RemoveElement");
@@ -849,7 +842,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag)
   }
   if (flag == FALSE)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               group, element,
                               "DCM_RemoveElement");
 
@@ -951,18 +944,17 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag)
 
 CONDITION
 DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
-                    U32 * rtnLength, void **ctx)
-{
+                    U32 * rtnLength, void **ctx) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   int
-    nBytes;
+  nBytes;
   CONDITION
-    cond;
+  cond;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_GetElementValue");
@@ -972,7 +964,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
   groupItem = LST_Head(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_GetElementValue");
@@ -1027,7 +1019,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
             nBytes = read((*object)->fd, element->d.ot, (int) l);
           } else {
             (*object)->sk((*object)->userCtx,
-                          (long) (elementItem->dataOffset + (long) p), 
+                          (long) (elementItem->dataOffset + (long) p),
                           SEEK_SET);
             cond = (*object)->rd((*object)->userCtx, element->d.ot, l,
                                  &nBytes);
@@ -1057,7 +1049,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
         } else {
           unsigned char *q;
           q = (unsigned char *) elementItem->element.d.ot +
-            (long) p;
+              (long) p;
           (void) memcpy(element->d.ot, q, l);
           if (elementItem->byteOrder == BYTEORDER_REVERSE) {
             DCM_ELEMENT e;
@@ -1086,8 +1078,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 }
 
 char*
-DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
-{
+DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag) {
   DCM_ELEMENT e;
   CONDITION cond;
   char* s;
@@ -1171,8 +1162,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
 
 CONDITION
 DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
-                          unsigned long offset)
-{
+                          unsigned long offset) {
   PRIVATE_OBJECT **object;
   PRV_ELEMENT_ITEM *elementItem;
   int nBytes;
@@ -1186,7 +1176,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
   elementItem = locateElement(object, element->tag);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(element->tag),
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_GetElementValueOffset");
@@ -1201,7 +1191,8 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
                                 DCM_Message(DCM_CANNOTGETSEQUENCEVALUE),
                                 element->tag, "DCM_GetElementValueOffset");
 
-    p = (unsigned char *) offset;;
+    p = (unsigned char *) offset;
+    ;
     if ((long) p > elementItem->element.length)
       return COND_PushCondition(DCM_BADOFFSET,
                                 DCM_Message(DCM_BADOFFSET),
@@ -1254,7 +1245,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
       } else {
         unsigned char *q;
         q = (unsigned char *) elementItem->element.d.ot +
-          (long) p;
+            (long) p;
         (void) memcpy(element->d.ot, q, l);
         if (elementItem->byteOrder == BYTEORDER_REVERSE) {
           DCM_ELEMENT e;
@@ -1297,21 +1288,20 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 
 CONDITION
 DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
-                   U32 * rtnLength)
-{
+                   U32 * rtnLength) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CONDITION
-    cond;
+  cond;
   CTNBOOLEAN
-    flag;
+  flag;
   unsigned short
-    group,
-    element;
+  group,
+  element;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_GetElementSize");
@@ -1324,7 +1314,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
   groupItem = LST_Head(&((*object)->groupList));
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               group, element,
                               "DCM_GetElementSize");
 
@@ -1339,7 +1329,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
   }
   if (flag == FALSE)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               group, element,
                               "DCM_GetElementSize");
 
@@ -1417,28 +1407,27 @@ CONDITION
 DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
                     DCM_FLAGGED_ELEMENT * elementVector, int vectorLength,
                     CONDITION(*callback) (const DCM_ELEMENT* e, void* ctx),
-                    void *ctx)
-{
+                    void *ctx) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CONDITION
-    cond;
+  cond;
   CTNBOOLEAN
-    done = FALSE;
+  done = FALSE;
   DCM_ELEMENT
-    e;
+  e;
   int
-    i;
+  i;
   CTNBOOLEAN
-    found;
+  found;
   U32
-    l=0;
+  l=0;
   char
-    *p;
+  *p;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_ScanParseObject");
@@ -1514,8 +1503,7 @@ DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
 
 CONDITION
 DCM_ImportStream(unsigned char *buf, unsigned long length,
-                 unsigned long opt, DCM_OBJECT ** callerObject)
-{
+                 unsigned long opt, DCM_OBJECT ** callerObject) {
 #ifdef DEBUG
   if (debug)
     (void) fprintf(stderr, "DCM_ImportStream, %ld bytes\n", length);
@@ -1526,7 +1514,7 @@ DCM_ImportStream(unsigned char *buf, unsigned long length,
                               DCM_Message(DCM_ILLEGALOPTION), "Byte order",
                               "DCM_ImportStream");
 
-  return readFile1("", buf, -1, length, 0, 0, opt, NULL, 
+  return readFile1("", buf, -1, length, 0, 0, opt, NULL,
                    callerObject, NULL, NULL,
                    NULL, NULL, NULL);
 }
@@ -1568,14 +1556,13 @@ CONDITION
 DCM_ExportStream(DCM_OBJECT ** callerObject, unsigned long opt,
                  void *buffer, unsigned long bufferlength,
                  DCM_EXPORT_STREAM_CALLBACK* callback,
-                 void *ctx)
-{
+                 void *ctx) {
 
 
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_ExportStream");
@@ -1608,12 +1595,11 @@ DCM_ExportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 */
 
 CONDITION
-DCM_GetObjectSize(DCM_OBJECT ** callerObject, unsigned long *returnlength)
-{
+DCM_GetObjectSize(DCM_OBJECT ** callerObject, unsigned long *returnlength) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_GetObjectSize");
@@ -1653,22 +1639,21 @@ DCM_GetObjectSize(DCM_OBJECT ** callerObject, unsigned long *returnlength)
 **  End for
 */
 CONDITION
-DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
-{
+DCM_DumpElements(DCM_OBJECT ** callerObject, long vm) {
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
   DCM_SEQUENCE_ITEM
-    * sq;
+  * sq;
   char
-    scratch[128];
+  scratch[128];
   int
-    stringLength;
+  stringLength;
 
   object = (PRIVATE_OBJECT **) callerObject;
 
@@ -1830,22 +1815,21 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 }
 
 CONDITION
-DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
-{
+DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix) {
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
   DCM_SEQUENCE_ITEM
-    * sq;
+  * sq;
   char
-    scratch[128];
+  scratch[128];
   int
-    stringLength;
+  stringLength;
   char localPrefix[128];
 
   object = (PRIVATE_OBJECT **) callerObject;
@@ -2021,8 +2005,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 */
 
 void
-DCM_Debug(CTNBOOLEAN flag)
-{
+DCM_Debug(CTNBOOLEAN flag) {
   debug = flag;
 }
 
@@ -2055,16 +2038,15 @@ DCM_Debug(CTNBOOLEAN flag)
 */
 
 CONDITION
-DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
-{
+DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   int
-    fd;
+  fd;
   unsigned char
-    buf[2048];
+  buf[2048];
   CONDITION
-    cond;
+  cond;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_WriteFile");
@@ -2080,7 +2062,7 @@ DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
 #endif
   if (fd < 0) {
     return COND_PushCondition(DCM_FILECREATEFAILED,
-                              DCM_Message(DCM_FILECREATEFAILED), 
+                              DCM_Message(DCM_FILECREATEFAILED),
                               file, strerror(errno),
                               "DCM_WriteFile");
   }
@@ -2136,19 +2118,18 @@ DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
 */
 
 CONDITION
-DCM_ModifyElements(DCM_OBJECT ** callerObject, 
+DCM_ModifyElements(DCM_OBJECT ** callerObject,
                    DCM_ELEMENT * vector, int count,
                    DCM_FLAGGED_ELEMENT * flaggedVector, int flaggedCount,
-                   int *updateCount)
-{
+                   int *updateCount) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
   DCM_ELEMENT
-    e;
+  e;
   int
-    c = 0;
+  c = 0;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_ModifyElement");
@@ -2228,22 +2209,21 @@ DCM_ModifyElements(DCM_OBJECT ** callerObject,
 */
 CONDITION
 DCM_ParseObject(DCM_OBJECT ** callerObject, DCM_ELEMENT * vector,
-                int count, 
+                int count,
                 DCM_FLAGGED_ELEMENT * flaggedVector, int flagCount,
-                int *parseCount)
-{
+                int *parseCount) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
   void
-    *ctx;
+  *ctx;
   U32
-    l;
+  l;
   int
-    c = 0;
+  c = 0;
   char
-    *p;
+  *p;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_ParseObject");
@@ -2313,18 +2293,17 @@ DCM_ParseObject(DCM_OBJECT ** callerObject, DCM_ELEMENT * vector,
 */
 
 CONDITION
-DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group)
-{
+DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   CONDITION
-    cond;
+  cond;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CTNBOOLEAN
-    found = FALSE;
+  found = FALSE;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_RemoveGroup");
@@ -2334,7 +2313,7 @@ DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group)
   groupItem = LST_Head(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_GROUPNOTFOUND,
-                              DCM_Message(DCM_GROUPNOTFOUND), 
+                              DCM_Message(DCM_GROUPNOTFOUND),
                               (int) group, "DCM_RemoveGroup");
 
   (void) LST_Position(&(*object)->groupList, groupItem);
@@ -2390,18 +2369,17 @@ DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group)
 */
 
 CONDITION
-DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list)
-{
+DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list) {
   PRIVATE_OBJECT
-    ** obj;
+  ** obj;
   CONDITION
-    cond;
+  cond;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CTNBOOLEAN
-    found = FALSE;
+  found = FALSE;
 
   obj = (PRIVATE_OBJECT **) object;
   cond = checkObject(obj, "DCM_GetSequenceList");
@@ -2411,7 +2389,7 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list)
   groupItem = LST_Head(&(*obj)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetSequenceList");
@@ -2450,15 +2428,14 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list)
     return DCM_NORMAL;
   else
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetSequenceList");
 }
 
 CONDITION
-DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e)
-{
+DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e) {
   PRIVATE_OBJECT **obj;
   CONDITION cond;
   PRV_ELEMENT_ITEM *elementItem;
@@ -2516,25 +2493,24 @@ DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e)
 */
 CONDITION
 DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
-                        size_t structureSize, long stringOffset, 
-                        LST_HEAD ** list)
-{
+                        size_t structureSize, long stringOffset,
+                        LST_HEAD ** list) {
   PRIVATE_OBJECT
-    ** obj;
+  ** obj;
   CONDITION
-    cond;
+  cond;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CTNBOOLEAN
-    found = FALSE;
+  found = FALSE;
   char
-    *src,
-    *dst,
-    *p;
+  *src,
+  *dst,
+  *p;
   U32
-    l;
+  l;
 
   obj = (PRIVATE_OBJECT **) object;
   cond = checkObject(obj, "DCM_GetSequenceList");
@@ -2558,7 +2534,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
   }
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetSequenceList");
@@ -2566,7 +2542,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
   elementItem = LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_GROUP(tag),
                               "DCM_GetSequenceTag");
@@ -2580,14 +2556,14 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
   }
   if (!found)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetElementValueList");
 
   if (!DCM_IsString(elementItem->element.representation)) {
     return COND_PushCondition(DCM_UNEXPECTEDREPRESENTATION,
-                              DCM_Message(DCM_UNEXPECTEDREPRESENTATION), 
+                              DCM_Message(DCM_UNEXPECTEDREPRESENTATION),
                               "DCM_GetElementValueList",
                               "string");
   }
@@ -2617,7 +2593,8 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
         *dst++ = *src++;
         l--;
       }
-      *dst = '\0';;
+      *dst = '\0';
+      ;
       cond = LST_Enqueue(list, p);
       if (cond != LST_NORMAL)
         return COND_PushCondition(DCM_LISTFAILURE,
@@ -2660,14 +2637,13 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
 */
 CONDITION
 DCM_AddElementList(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
-                   LST_HEAD * list, long offset)
-{
+                   LST_HEAD * list, long offset) {
   DCM_ELEMENT
-    e;      /* Local copy of caller's element */
+  e;      /* Local copy of caller's element */
   CONDITION
-    cond;
+  cond;
   char
-    *s;
+  *s;
 
   e = *element;
   cond = DCM_ListToString(list, offset, &s);
@@ -2706,14 +2682,13 @@ DCM_AddElementList(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 **  Description of the algorithm (optional) and any other notes.
 */
 CONDITION
-DCM_GetElement(DCM_OBJECT ** callerObject, DCM_TAG tag, DCM_ELEMENT * element)
-{
+DCM_GetElement(DCM_OBJECT ** callerObject, DCM_TAG tag, DCM_ELEMENT * element) {
   PRIVATE_OBJECT
-    ** obj;
+  ** obj;
   CONDITION
-    cond;
+  cond;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
 
   obj = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(obj, "DCM_GetElementVM");
@@ -2723,7 +2698,7 @@ DCM_GetElement(DCM_OBJECT ** callerObject, DCM_TAG tag, DCM_ELEMENT * element)
   elementItem = locateElement(obj, tag);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetElementVM");
@@ -2734,14 +2709,13 @@ DCM_GetElement(DCM_OBJECT ** callerObject, DCM_TAG tag, DCM_ELEMENT * element)
 
 CONDITION
 DCM_ComputeExportLength(DCM_OBJECT ** callerObject, unsigned long opt,
-                        unsigned long *length)
-{
+                        unsigned long *length) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   unsigned char
-    buf[2048];
+  buf[2048];
   CONDITION
-    cond;
+  cond;
 
   object = (PRIVATE_OBJECT **) callerObject;
   cond = checkObject(object, "DCM_ComputeExportSize");
@@ -2762,12 +2736,11 @@ DCM_CompareAttributes(DCM_OBJECT ** o1, DCM_OBJECT ** o2,
                       void (*callback) (const DCM_ELEMENT * e1,
                                         const DCM_ELEMENT * e2,
                                         void *ctx),
-                      void *ctx)
-{
+                      void *ctx) {
   PRIVATE_OBJECT **object1,
-    **object2;
+  **object2;
   PRV_GROUP_ITEM *groupItem1,
-    *groupItem2;
+  *groupItem2;
   CONDITION cond;
 
   object1 = (PRIVATE_OBJECT **) o1;
@@ -2814,8 +2787,7 @@ DCM_CompareAttributes(DCM_OBJECT ** o1, DCM_OBJECT ** o2,
 }
 
 CTNBOOLEAN
-DCM_GroupPresent(DCM_OBJECT ** o1, U16 group)
-{
+DCM_GroupPresent(DCM_OBJECT ** o1, U16 group) {
   PRIVATE_OBJECT **object;
   PRV_GROUP_ITEM * item;
   CONDITION cond;
@@ -2874,8 +2846,7 @@ DCM_GroupPresent(DCM_OBJECT ** o1, U16 group)
 */
 static CONDITION
 newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
-               PRV_ELEMENT_ITEM ** dst)
-{
+               PRV_ELEMENT_ITEM ** dst) {
   long l;
 
   if (allocateData && (src->representation != DCM_SQ)) {
@@ -2885,10 +2856,10 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
   } else
     l = 0;
 
-  if (debug){
+  if (debug) {
     fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", (int)l,
             (int)(sizeof(PRV_ELEMENT_ITEM) + l));
-	}
+  }
   *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
   if (debug)
     fprintf(stderr, "%8lx\n", (unsigned long) *dst);
@@ -2964,14 +2935,13 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 
 static CONDITION
 findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
-                PRV_GROUP_ITEM ** groupItem)
-{
+                PRV_GROUP_ITEM ** groupItem) {
   PRV_GROUP_ITEM
-    * item;
+  * item;
   CONDITION
-    cond;
+  cond;
   CTNBOOLEAN
-    tooFar = FALSE;
+  tooFar = FALSE;
 
   item = LST_Head(&(*object)->groupList);
   if (item != NULL)
@@ -2987,13 +2957,13 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
       item = LST_Next(&(*object)->groupList);
     }
   }
-    
+
   {
     U32 l;
     PRV_GROUP_ITEM *newGroupItem;
     DCM_ELEMENT groupLength = {0, DCM_UL, "", 1, sizeof(l),{NULL}};
     PRV_ELEMENT_ITEM *groupLengthItem;
-      
+
     newGroupItem = CTN_MALLOC(sizeof(*newGroupItem));
     if (newGroupItem == NULL)
       return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
@@ -3033,7 +3003,7 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
       cond = newElementItem(&groupLength, TRUE, &groupLengthItem);
       (void) memcpy(groupLengthItem->element.d.ot, &l, sizeof(l));
 
-      if (LST_Insert(&newGroupItem->elementList, 
+      if (LST_Insert(&newGroupItem->elementList,
                      groupLengthItem,
                      LST_K_AFTER) !=
           LST_NORMAL)
@@ -3085,17 +3055,16 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
 **      Insert new ACR_ELEMENTITEM just before the "larger" element
 */
 static CONDITION
-insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
-{
+insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
   PRV_ELEMENT_ITEM
-    * nextItem,
-    *newItem;
+  * nextItem,
+  *newItem;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   CONDITION
-    cond;
+  cond;
   char
-    *p;
+  *p;
 
   cond = newElementItem(element, TRUE, &newItem);
   if (cond != DCM_NORMAL) {
@@ -3202,7 +3171,7 @@ insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
   groupItem = LST_Current(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_LISTFAILURE,
-                              DCM_Message(DCM_LISTFAILURE), 
+                              DCM_Message(DCM_LISTFAILURE),
                               "insertNewElement");
 
   if (groupItem->baseLength != DCM_UNSPECIFIEDLENGTH)
@@ -3268,8 +3237,7 @@ insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
 }
 
 static CONDITION
-insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem)
-{
+insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem) {
   PRV_ELEMENT_ITEM * nextItem;
   PRV_GROUP_ITEM * groupItem = 0;
   CONDITION cond;
@@ -3284,7 +3252,7 @@ insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem)
 
   if (groupItem == NULL)
     return COND_PushCondition(DCM_LISTFAILURE,
-                              DCM_Message(DCM_LISTFAILURE), 
+                              DCM_Message(DCM_LISTFAILURE),
                               "insertThisElementItem");
 
   if (groupItem->baseLength != DCM_UNSPECIFIEDLENGTH)
@@ -3371,8 +3339,7 @@ insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem)
 */
 
 static CONDITION
-updateObjectType(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
-{
+updateObjectType(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
   switch ((*object)->objectType) {
   case DCM_OBJECTUNKNOWN:
     if (DCM_TAG_GROUP(element->tag) == DCM_GROUPCOMMAND)
@@ -3415,8 +3382,7 @@ updateObjectType(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
 */
 static CONDITION
 updateSpecialElements(PRIVATE_OBJECT ** object,
-                      PRV_ELEMENT_ITEM * item)
-{
+                      PRV_ELEMENT_ITEM * item) {
   int idx;
 #ifdef BIG_ENDIAN_ARCHITECTURE
   unsigned char* b1;
@@ -3445,10 +3411,10 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
   case DCM_METATRANSFERSYNTAX:
     if (strcmp(item->element.d.string, DICOM_TRANSFERLITTLEENDIAN) == 0) {
       (*object)->dataOptions = DCM_ORDERLITTLEENDIAN;
-    } else if (strcmp(item->element.d.string, 
+    } else if (strcmp(item->element.d.string,
                       DICOM_TRANSFERLITTLEENDIANEXPLICIT) == 0) {
       (*object)->dataOptions = DCM_EXPLICITLITTLEENDIAN;
-    } else if (strcmp(item->element.d.string, 
+    } else if (strcmp(item->element.d.string,
                       DICOM_TRANSFERBIGENDIANEXPLICIT) == 0) {
       (*object)->dataOptions = DCM_EXPLICITBIGENDIAN;
     } else {  /* Must be an encapsulated transfer syntax */
@@ -3456,8 +3422,8 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
     }
     break;
   case DCM_MAKETAG(0x003a, 0x0103):
-    strncpy((*object)->waveformDataVR, item->element.d.string,
-            item->element.length);
+          strncpy((*object)->waveformDataVR, item->element.d.string,
+                  item->element.length);
     (*object)->waveformDataVR[item->element.length] = '\0';
     idx = item->element.length - 1;
     while (idx >= 0 && (*object)->waveformDataVR[idx] == ' ') {
@@ -3474,46 +3440,48 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
 typedef struct {
   DCM_VALUEREPRESENTATION representation;
   char code[3];
-}   VRMAP;
+}
+VRMAP;
 
 static VRMAP vrMap[] = {
-  {DCM_AE, "AE"},
-  {DCM_AS, "AS"},
-  {DCM_AT, "AT"},
-  {DCM_CS, "CS"},
-  {DCM_DA, "DA"},
-  {DCM_DD, "DD"},
-  {DCM_DS, "DS"},
-  {DCM_FD, "FD"},
-  {DCM_FL, "FL"},
-  {DCM_IS, "IS"},
-  {DCM_LO, "LO"},
-  {DCM_LT, "LT"},
-  {DCM_OT, "OT"},
-  {DCM_SH, "SH"},
-  {DCM_SL, "SL"},
-  {DCM_SQ, "SQ"},
-  {DCM_SS, "SS"},
-  {DCM_ST, "ST"},
-  {DCM_TM, "TM"},
-  {DCM_UI, "UI"},
-  {DCM_UL, "UL"},
-  {DCM_UN, "UN"},
-  {DCM_US, "US"},
-  {DCM_UT, "UT"},
-  /*{DCM_UNKNOWN, "UK"},*/
-  {DCM_RET, "RT"},
-  {DCM_CTX, "  "},
-  {DCM_PN, "PN"},
-  {DCM_OB, "OB"},
-  {DCM_OW, "OW"},
-  {DCM_DT, "DT"},
-  {DCM_DLM, ""}
-};
+                         {
+                           DCM_AE, "AE"
+                         },
+                         {DCM_AS, "AS"},
+                         {DCM_AT, "AT"},
+                         {DCM_CS, "CS"},
+                         {DCM_DA, "DA"},
+                         {DCM_DD, "DD"},
+                         {DCM_DS, "DS"},
+                         {DCM_FD, "FD"},
+                         {DCM_FL, "FL"},
+                         {DCM_IS, "IS"},
+                         {DCM_LO, "LO"},
+                         {DCM_LT, "LT"},
+                         {DCM_OT, "OT"},
+                         {DCM_SH, "SH"},
+                         {DCM_SL, "SL"},
+                         {DCM_SQ, "SQ"},
+                         {DCM_SS, "SS"},
+                         {DCM_ST, "ST"},
+                         {DCM_TM, "TM"},
+                         {DCM_UI, "UI"},
+                         {DCM_UL, "UL"},
+                         {DCM_UN, "UN"},
+                         {DCM_US, "US"},
+                         {DCM_UT, "UT"},
+                         /*{DCM_UNKNOWN, "UK"},*/
+                         {DCM_RET, "RT"},
+                         {DCM_CTX, "  "},
+                         {DCM_PN, "PN"},
+                         {DCM_OB, "OB"},
+                         {DCM_OW, "OW"},
+                         {DCM_DT, "DT"},
+                         {DCM_DLM, ""}
+                       };
 
 static VRMAP *
-lookupVRCode(const char *code)
-{
+lookupVRCode(const char *code) {
   int i;
 
   for (i = 0; i < (int) DIM_OF(vrMap); i++) {
@@ -3525,8 +3493,7 @@ lookupVRCode(const char *code)
 }
 
 static void
-mapVRtoASCII(DCM_VALUEREPRESENTATION vr, char *s)
-{
+mapVRtoASCII(DCM_VALUEREPRESENTATION vr, char *s) {
   int i;
 
   for (i = 0; i < (int) DIM_OF(vrMap); i++) {
@@ -3542,8 +3509,7 @@ mapVRtoASCII(DCM_VALUEREPRESENTATION vr, char *s)
 
 static void
 exportVRLength(DCM_ELEMENT * e, unsigned char *b, int byteOrder,
-               U32 * rtnLength)
-{
+               U32 * rtnLength) {
   int i;
   char *c = "xx";
   unsigned char *p;
@@ -3599,8 +3565,7 @@ exportVRLength(DCM_ELEMENT * e, unsigned char *b, int byteOrder,
 
 static CONDITION
 exportPreamble(PRIVATE_OBJECT ** obj, unsigned char *dst,
-               U32 bufferLength, U32 * rtnLength)
-{
+               U32 bufferLength, U32 * rtnLength) {
   *rtnLength = 0;
   if (bufferLength < (DCM_PREAMBLELENGTH + 4))
     return COND_PushCondition(DCM_EXPORTBUFFERTOOSMALL,
@@ -3655,15 +3620,14 @@ exportPreamble(PRIVATE_OBJECT ** obj, unsigned char *dst,
 static void
 exportFixedFields(DCM_ELEMENT * e,
                   unsigned char *b, U32 length, int byteOrder,
-                  CTNBOOLEAN explicitVR, U32 * rtnLength)
-{
+                  CTNBOOLEAN explicitVR, U32 * rtnLength) {
   unsigned char
-    *p;
+  *p;
   unsigned short
-    group,
-    element;
+  group,
+  element;
   U32
-    minimumLength;
+  minimumLength;
 
   group = DCM_TAG_GROUP(e->tag);
   element = DCM_TAG_ELEMENT(e->tag);
@@ -3784,21 +3748,21 @@ exportFixedFields(DCM_ELEMENT * e,
 union {
   unsigned short sh[2];
   unsigned char ch[4];
-}   groupElement = {};
+}
+groupElement = {};
 
 static CONDITION
 exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
            unsigned char *src,
            unsigned char *b, U32 length, int byteOrder,
-           U32 * rtnLength)
-{
+           U32 * rtnLength) {
   /* repair OT for pixel data*/
   unsigned char
-    *p;
+  *p;
   DCM_TAG
-    * tag;
+  * tag;
   DCM_ELEMENT
-    * element;
+  * element;
   int nBytes;
   CONDITION cond;
 
@@ -3925,11 +3889,11 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 #ifdef SOLARIS
           swab((char *) p, (char *) b, length);
 #elif defined AIXV3
-        swab((short *) p, (short *) b, length);
+          swab((short *) p, (short *) b, length);
 #elif defined MACOS
-        /* Not Yet Defined */
+          /* Not Yet Defined */
 #else
-        swab(p, b, length);
+          swab(p, b, length);
 #endif
       } else {
         if (byteOrder == BYTEORDER_SAME)
@@ -3938,11 +3902,11 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 #ifdef SOLARIS
           swab((char *) p, (char *) b, length);
 #elif defined AIXV3
-        swab((short *) p, (short *) b, length);
+          swab((short *) p, (short *) b, length);
 #elif defined MACOS
-        /* Not Yet Defined */
+          /* Not Yet Defined */
 #else
-        swab(p, b, length);
+          swab(p, b, length);
 #endif
       }
       break;
@@ -3963,10 +3927,9 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 
 static CONDITION
 exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
-                         unsigned char* buffer, U32 bufferlength, 
+                         unsigned char* buffer, U32 bufferlength,
                          DCM_EXPORT_STREAM_CALLBACK* callback,
-                         void* ctx)
-{
+                         void* ctx) {
   DCM_ELEMENT * element;
   int nBytes;
   CONDITION cond;
@@ -3988,13 +3951,13 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     }
 
     toExport = item->originalDataLength + 12;
-    while(toExport > 0) {
+    while (toExport > 0) {
       length = (toExport < bufferlength) ? toExport : bufferlength;
 
       if ((*object)->fd != -1) {
         nBytes = read((*object)->fd, buffer, length);
       } else {
-        cond = (*object)->rd((*object)->userCtx, buffer, 
+        cond = (*object)->rd((*object)->userCtx, buffer,
                              (long) length, &nBytes);
       }
       if ((U32) nBytes != length) {
@@ -4011,7 +3974,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
       cond = callback(buffer, length, 0, ctx);
       if (cond != DCM_NORMAL) {
         return COND_PushCondition(DCM_CALLBACKABORTED,
-                                  DCM_Message(DCM_CALLBACKABORTED), 
+                                  DCM_Message(DCM_CALLBACKABORTED),
                                   "exportStream");
       }
       toExport -= length;
@@ -4044,7 +4007,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     cond = callback(buffer, toExport, 0, ctx);
     if (cond != DCM_NORMAL) {
       return COND_PushCondition(DCM_CALLBACKABORTED,
-                                DCM_Message(DCM_CALLBACKABORTED), 
+                                DCM_Message(DCM_CALLBACKABORTED),
                                 "exportEncapsulatedPixels");
     }
 
@@ -4085,7 +4048,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     cond = callback(buffer, rtnLength, 0, ctx);
     if (cond != DCM_NORMAL) {
       return COND_PushCondition(DCM_CALLBACKABORTED,
-                                DCM_Message(DCM_CALLBACKABORTED), 
+                                DCM_Message(DCM_CALLBACKABORTED),
                                 "exportEncapsulatedPixels");
     }
   }
@@ -4095,11 +4058,10 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 static CONDITION
 exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
              int encapsulatedPixels,
-             unsigned char* buffer, U32 bufferlength, 
+             unsigned char* buffer, U32 bufferlength,
              DCM_EXPORT_STREAM_CALLBACK* callback,
              void* ctx,
-             int byteOrder, int explicitVR)
-{
+             int byteOrder, int explicitVR) {
   DCM_ELEMENT * element;
   CONDITION cond;
   U32 bytesExported = 0;
@@ -4131,16 +4093,16 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 
   while (remainingData > 0) {
     if (debug) {
-      fprintf(stderr, "Export: (%08x) %d\n", 
+      fprintf(stderr, "Export: (%08x) %d\n",
               (unsigned int) element->tag, element->length);
     }
 
     if (element->d.ot != NULL) {
       remainingData = element->length -
-        (src - ((unsigned char *) element->d.ot));
+                      (src - ((unsigned char *) element->d.ot));
     } else {
       remainingData = element->length -
-        (item->currentOffset - item->dataOffset);
+                      (item->currentOffset - item->dataOffset);
     }
 
     exportLength = (remainingData < c) ? remainingData : c;
@@ -4158,7 +4120,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
       cond = callback(buffer, bytesExported, 0, ctx);
       if (cond != DCM_NORMAL) {
         return COND_PushCondition(DCM_CALLBACKABORTED,
-                                  DCM_Message(DCM_CALLBACKABORTED), 
+                                  DCM_Message(DCM_CALLBACKABORTED),
                                   "exportPixels");
       }
       bytesExported = 0;
@@ -4189,7 +4151,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     }
 
     toExport = item->originalDataLength + 12;
-    while(toExport > 0) {
+    while (toExport > 0) {
       length = (toExport < bufferlength) ? toExport : bufferlength;
 
       if ((*object)->fd != -1) {
@@ -4205,7 +4167,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
                                   DCM_Message(DCM_GENERALWARNING),
                                   "exportPixels", b);
         return COND_PushCondition(DCM_FILEACCESSERROR,
-                                  DCM_Message(DCM_FILEACCESSERROR), 
+                                  DCM_Message(DCM_FILEACCESSERROR),
                                   (*object)->fileName,
                                   "exportPixels");
       }
@@ -4217,8 +4179,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
       }
       toExport -= length;
     }
-  } else {
-  }
+  } else {}
   return DCM_NORMAL;
 #endif
 
@@ -4248,12 +4209,11 @@ static long
 #else
 static int
 #endif
-fileSize(int fd)
-{
+fileSize(int fd) {
   int
-    status;
+  status;
   struct stat
-    im_stat;
+        im_stat;
 
   status = fstat(fd, &im_stat);
   if (status < 0) {
@@ -4288,13 +4248,12 @@ fileSize(int fd)
 */
 
 static void
-swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e)
-{
+swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e) {
   U32
-    length;
+  length;
   unsigned char
-    tmp,
-    *p1;
+  tmp,
+  *p1;
 
   length = e->length;
   p1 = e->d.ot;
@@ -4311,8 +4270,7 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e)
       p1 += 2;
       length -= 2;
     }
-  } 
-  else if (e->representation == DCM_UL || e->representation == DCM_SL) {
+  } else if (e->representation == DCM_UL || e->representation == DCM_SL) {
 
     // there are cases where the representaiton is UL but length were
     // not divisible by 4!   In this way, at least it reads the length
@@ -4367,8 +4325,7 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e)
 */
 
 static CONDITION
-checkObject(PRIVATE_OBJECT ** object, char *caller)
-{
+checkObject(PRIVATE_OBJECT ** object, char *caller) {
   if (object == NULL)
     return COND_PushCondition(DCM_NULLOBJECT, DCM_Message(DCM_NULLOBJECT),
                               caller);
@@ -4408,10 +4365,9 @@ checkObject(PRIVATE_OBJECT ** object, char *caller)
 
 static CONDITION
 writeFile(void *buffer, U32 length, int flag,
-          void /* int */ *fdPtr)
-{
+          void /* int */ *fdPtr) {
   int
-    bytesWritten;
+  bytesWritten;
   int *fd;
 
   fd = (int *) fdPtr;
@@ -4428,8 +4384,7 @@ writeFile(void *buffer, U32 length, int flag,
 
 static CONDITION
 countBytes(void *buffer, U32 length, int flag,
-           void /* unsigned long */ *sizePtr)
-{
+           void /* unsigned long */ *sizePtr) {
   unsigned long *size;
 
   size = (unsigned long *) sizePtr;
@@ -4440,8 +4395,7 @@ countBytes(void *buffer, U32 length, int flag,
 }
 
 static CONDITION
-setFileOptions(DCM_OBJECT ** obj, unsigned long *opt)
-{
+setFileOptions(DCM_OBJECT ** obj, unsigned long *opt) {
   CONDITION cond;
   char xferSyntax[DICOM_UI_LENGTH + 1];
   DCM_ELEMENT e = {DCM_METATRANSFERSYNTAX, DCM_UI, "", 1, sizeof(xferSyntax),
@@ -4469,8 +4423,7 @@ setFileOptions(DCM_OBJECT ** obj, unsigned long *opt)
 static CONDITION
 extractFileOptions(unsigned long opt, CTNBOOLEAN * part10File,
                    CTNBOOLEAN * explicitVR, int *byteOrder,
-                   CTNBOOLEAN* encapsulatedPixels)
-{
+                   CTNBOOLEAN* encapsulatedPixels) {
   *part10File = *explicitVR = FALSE;
 
   if ((opt & DCM_FILEFORMATMASK) == DCM_PART10FILE) {
@@ -4522,11 +4475,10 @@ extractFileOptions(unsigned long opt, CTNBOOLEAN * part10File,
 
 static U32
 computeGroupLength(PRV_GROUP_ITEM * groupItem,
-                   CTNBOOLEAN explicitVR)
-{
+                   CTNBOOLEAN explicitVR) {
   return (explicitVR) ?
-    groupItem->baseLength + 4 * groupItem->longVRAttributes :
-    groupItem->baseLength;
+         groupItem->baseLength + 4 * groupItem->longVRAttributes :
+         groupItem->baseLength;
 
 }
 
@@ -4566,169 +4518,278 @@ static CONDITION
 exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
              void *buffer, U32 bufferlength,
              DCM_EXPORT_STREAM_CALLBACK* callback,
-             void *ctx, int sequenceLevel)
-{
+             void *ctx, int sequenceLevel) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   DCM_ELEMENT
-    element;
+  element;
   int
-    byteOrder;
+  byteOrder;
   int
-    lastFlag = 0;
+  lastFlag = 0;
   unsigned char
-    *src,
-    *dst;
+  *src,
+  *dst;
   U32
-    c,
-    bytesExported = 0,
-    rtnLength,
-    remainingData,
-    exportLength;
+  c,
+  bytesExported = 0,
+                  rtnLength,
+                  remainingData,
+                  exportLength;
   CONDITION
-    cond;
+  cond;
   DCM_SEQUENCE_ITEM
-    * sequenceItem;
+  * sequenceItem;
   DCM_ELEMENT
-    itemMarker = {
-      DCM_DLMITEM, DCM_DLM, "", 1, DCM_UNSPECIFIEDLENGTH, {NULL}
-    },
-    itemDelimiter = {
-      DCM_DLMITEMDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
-    },
-      sequenceDelimiter = {
-        DCM_DLMSEQUENCEDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
-      };
-      CTNBOOLEAN
-        unspecifiedSQLength = FALSE,
-        explicitVR = FALSE,
-        part10File = FALSE,
-        encapsulatedPixels = FALSE;
-      unsigned long fileOptions = 0;
+  itemMarker = {
+                 DCM_DLMITEM, DCM_DLM, "", 1, DCM_UNSPECIFIEDLENGTH, {NULL}
+               },
+               itemDelimiter = {
+                                 DCM_DLMITEMDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
+                               },
+                               sequenceDelimiter = {
+                                                     DCM_DLMSEQUENCEDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
+                                                   };
+  CTNBOOLEAN
+  unspecifiedSQLength = FALSE,
+                        explicitVR = FALSE,
+                                     part10File = FALSE,
+                                                  encapsulatedPixels = FALSE;
+  unsigned long fileOptions = 0;
 
-      object = (PRIVATE_OBJECT **) callerObject;
-      cond = checkObject(object, "exportStream");
-      if (cond != DCM_NORMAL)
-        return cond;
+  object = (PRIVATE_OBJECT **) callerObject;
+  cond = checkObject(object, "exportStream");
+  if (cond != DCM_NORMAL)
+    return cond;
 
-      if ((opt & DCM_FILEFORMATMASK) == DCM_PART10FILE) {
-        part10File = TRUE;
-        opt &= ~DCM_ORDERMASK;
-        opt |= DCM_EXPLICITLITTLEENDIAN;
-        cond = setFileOptions(callerObject, &fileOptions);
-        if (cond != DCM_NORMAL)
-          return cond;
-      }
-      if ((opt & DCM_ORDERMASK) == 0)
-        return COND_PushCondition(DCM_ILLEGALOPTION,
-                                  DCM_Message(DCM_ILLEGALOPTION), 
-                                  "Byte order",
-                                  "exportStream");
+  if ((opt & DCM_FILEFORMATMASK) == DCM_PART10FILE) {
+    part10File = TRUE;
+    opt &= ~DCM_ORDERMASK;
+    opt |= DCM_EXPLICITLITTLEENDIAN;
+    cond = setFileOptions(callerObject, &fileOptions);
+    if (cond != DCM_NORMAL)
+      return cond;
+  }
+  if ((opt & DCM_ORDERMASK) == 0)
+    return COND_PushCondition(DCM_ILLEGALOPTION,
+                              DCM_Message(DCM_ILLEGALOPTION),
+                              "Byte order",
+                              "exportStream");
 
-      switch (opt & DCM_ORDERMASK) {
-      case DCM_ORDERNATIVE:
-        byteOrder = NATIVE_ORDER;
-        break;
-      case DCM_ORDERLITTLEENDIAN:
-        byteOrder = LITTLE_ORDER;
-        break;
-      case DCM_EXPLICITLITTLEENDIAN:
-        byteOrder = LITTLE_ORDER;
-        explicitVR = TRUE;
-        break;
-      case DCM_ORDERBIGENDIAN:
-        byteOrder = BIG_ORDER;
-        break;
-      case DCM_EXPLICITBIGENDIAN:
-        byteOrder = BIG_ORDER;
-        explicitVR = TRUE;
-        break;
-      case DCM_ENCAPSULATEDPIXELS:
-        byteOrder = LITTLE_ORDER;
-        explicitVR = TRUE;
-        encapsulatedPixels = TRUE;
-        break;
-      default:
-        byteOrder = LITTLE_ORDER;
-        break;
-      }
+  switch (opt & DCM_ORDERMASK) {
+  case DCM_ORDERNATIVE:
+    byteOrder = NATIVE_ORDER;
+    break;
+  case DCM_ORDERLITTLEENDIAN:
+    byteOrder = LITTLE_ORDER;
+    break;
+  case DCM_EXPLICITLITTLEENDIAN:
+    byteOrder = LITTLE_ORDER;
+    explicitVR = TRUE;
+    break;
+  case DCM_ORDERBIGENDIAN:
+    byteOrder = BIG_ORDER;
+    break;
+  case DCM_EXPLICITBIGENDIAN:
+    byteOrder = BIG_ORDER;
+    explicitVR = TRUE;
+    break;
+  case DCM_ENCAPSULATEDPIXELS:
+    byteOrder = LITTLE_ORDER;
+    explicitVR = TRUE;
+    encapsulatedPixels = TRUE;
+    break;
+  default:
+    byteOrder = LITTLE_ORDER;
+    break;
+  }
 
-      /*  We are making this step mandatory for now (smm)*/
+  /*  We are making this step mandatory for now (smm)*/
 
-      opt &= ~DCM_SEQUENCELENGTHMASK;
-      opt |= DCM_UNSPECIFIEDLENGTHFLAG;
+  opt &= ~DCM_SEQUENCELENGTHMASK;
+  opt |= DCM_UNSPECIFIEDLENGTHFLAG;
 
-      /*  End of something that is out of place */
+  /*  End of something that is out of place */
 
-      if ((opt & DCM_SEQUENCELENGTHMASK) == DCM_UNSPECIFIEDLENGTHFLAG)
-        unspecifiedSQLength = TRUE;
+  if ((opt & DCM_SEQUENCELENGTHMASK) == DCM_UNSPECIFIEDLENGTHFLAG)
+    unspecifiedSQLength = TRUE;
 
-      dst = (unsigned char *) buffer;
-      c = bufferlength;
+  dst = (unsigned char *) buffer;
+  c = bufferlength;
 
-      if (part10File) {
-        cond = exportPreamble(object, dst, c, &rtnLength);
-        if (cond != DCM_NORMAL)
-          return cond;
+  if (part10File) {
+    cond = exportPreamble(object, dst, c, &rtnLength);
+    if (cond != DCM_NORMAL)
+      return cond;
 
-        dst += rtnLength;
-        c -= rtnLength;
-        bytesExported += rtnLength;
-      }
-      if (sequenceLevel != 0) {
-        if (!unspecifiedSQLength)
-          itemMarker.length = (*object)->objectSize;
-        exportFixedFields(&itemMarker, dst, bufferlength, byteOrder,
-                          explicitVR, &rtnLength);
-        dst += rtnLength;
-        c -= rtnLength;
-        bytesExported += rtnLength;
-      }
-      groupItem = LST_Head(&(*object)->groupList);
+    dst += rtnLength;
+    c -= rtnLength;
+    bytesExported += rtnLength;
+  }
+  if (sequenceLevel != 0) {
+    if (!unspecifiedSQLength)
+      itemMarker.length = (*object)->objectSize;
+    exportFixedFields(&itemMarker, dst, bufferlength, byteOrder,
+                      explicitVR, &rtnLength);
+    dst += rtnLength;
+    c -= rtnLength;
+    bytesExported += rtnLength;
+  }
+  groupItem = LST_Head(&(*object)->groupList);
 
-      /*  Take this code out to allow empty groups. */
+  /*  Take this code out to allow empty groups. */
 #if 0
-      if (groupItem == NULL)
-        return COND_PushCondition(DCM_LISTFAILURE,
-                                  DCM_Message(DCM_LISTFAILURE),
-                                  "exportStream");
+  if (groupItem == NULL)
+    return COND_PushCondition(DCM_LISTFAILURE,
+                              DCM_Message(DCM_LISTFAILURE),
+                              "exportStream");
 #endif
-      if (groupItem != NULL)
-        (void) LST_Position(&(*object)->groupList, groupItem);
+  if (groupItem != NULL)
+    (void) LST_Position(&(*object)->groupList, groupItem);
 
-      while (groupItem != NULL) {
-        if (part10File && groupItem->group != DCM_GROUPFILEMETA) {
-          if (opt != fileOptions) {
-            opt = fileOptions;
-            cond = extractFileOptions(opt, &part10File,
-                                      &explicitVR, &byteOrder,
-                                      &encapsulatedPixels);
+  while (groupItem != NULL) {
+    if (part10File && groupItem->group != DCM_GROUPFILEMETA) {
+      if (opt != fileOptions) {
+        opt = fileOptions;
+        cond = extractFileOptions(opt, &part10File,
+                                  &explicitVR, &byteOrder,
+                                  &encapsulatedPixels);
+        if (cond != DCM_NORMAL)
+          return cond;
+      }
+    }
+    elementItem = LST_Head(&groupItem->elementList);
+    if (elementItem != NULL) {
+      (void) LST_Position(&groupItem->elementList, elementItem);
+      if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
+        U32 l;
+        l = computeGroupLength(groupItem, explicitVR);
+        *elementItem->element.d.ul = l;
+
+        /* We have some problems computing group length
+           for groups with sequences.
+           ** For now, just remove this attribute, except
+           for group 0000 and 0002.
+        */
+        if (groupItem->group != 0x0000 && groupItem->group != 0x0002)
+          elementItem = LST_Next(&groupItem->elementList);
+      }
+    }
+    while (elementItem != NULL) {
+      if (c <= 20) {
+        cond = callback(buffer, bytesExported, 0, ctx);
+        if (cond != DCM_NORMAL)
+          return COND_PushCondition(DCM_CALLBACKABORTED,
+                                    DCM_Message(DCM_CALLBACKABORTED),
+                                    "exportStream");
+
+        bytesExported = 0;
+        c = bufferlength;
+        dst = (unsigned char *) buffer;
+      }
+      element = elementItem->element;
+
+      if (element.tag == DCM_PXLPIXELDATA) {
+        /* Lots of special rules for pixel data. Handle separately */
+        /* First, dump the current buffer */
+        cond = callback(buffer, bytesExported, 0, ctx);
+        if (cond != DCM_NORMAL)
+          return COND_PushCondition(DCM_CALLBACKABORTED,
+                                    DCM_Message(DCM_CALLBACKABORTED),
+                                    "exportStream");
+
+        cond = exportPixels(object, elementItem, encapsulatedPixels,
+                            buffer, bufferlength, callback,
+                            ctx, byteOrder, explicitVR);
+        if (cond != DCM_NORMAL)
+          return cond;
+
+        bytesExported = 0;
+        c = bufferlength;
+        dst = (unsigned char *) buffer;
+        rtnLength = 0;
+      } else if (element.representation == DCM_SQ) {
+        if (unspecifiedSQLength)
+          element.length = DCM_UNSPECIFIEDLENGTH;
+
+        exportFixedFields(&element, dst, bufferlength, byteOrder,
+                          explicitVR, &rtnLength);
+      } else {
+        element.length = elementItem->paddedDataLength;
+        exportFixedFields(&element, dst, bufferlength, byteOrder,
+                          explicitVR, &rtnLength);
+      }
+      dst += rtnLength;
+      c -= rtnLength;
+      bytesExported += rtnLength;
+
+      remainingData = element.length;
+      src = element.d.ot;
+      elementItem->currentOffset = elementItem->dataOffset;
+
+      if (element.tag == DCM_PXLPIXELDATA) {
+        /* Then, we did that above */
+        ;
+      } else if (element.representation == DCM_SQ) {
+
+        cond = callback(buffer, bytesExported, 0, ctx);
+        if (cond != DCM_NORMAL)
+          return COND_PushCondition(DCM_CALLBACKABORTED,
+                                    DCM_Message(DCM_CALLBACKABORTED),
+                                    "exportStream");
+
+        bytesExported = 0;
+        c = bufferlength;
+        dst = (unsigned char *) buffer;
+
+        if (element.d.sq != NULL) {
+          sequenceItem = LST_Head(&element.d.sq);
+          if (sequenceItem != NULL)
+            (void) LST_Position(&element.d.sq, sequenceItem);
+          while (sequenceItem != NULL) {
+            cond = exportStream(&sequenceItem->object, opt,
+                                buffer, bufferlength, callback, ctx,
+                                sequenceLevel + 1);
             if (cond != DCM_NORMAL)
               return cond;
+            sequenceItem = LST_Next(&element.d.sq);
           }
         }
-        elementItem = LST_Head(&groupItem->elementList);
-        if (elementItem != NULL) {
-          (void) LST_Position(&groupItem->elementList, elementItem);
-          if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
-            U32 l;
-            l = computeGroupLength(groupItem, explicitVR);
-            *elementItem->element.d.ul = l;
+        if (element.length == DCM_UNSPECIFIEDLENGTH) {
+          sequenceDelimiter.length = 0;
+          exportFixedFields(&sequenceDelimiter, dst, bufferlength,
+                            byteOrder, explicitVR, &rtnLength);
+          dst += rtnLength;
+          c -= rtnLength;
+          bytesExported += rtnLength;
+        }
+      } else {
+        while (remainingData > 0) {
+          if (debug)
+            fprintf(stderr, "Export: (%08x) %d\n",
+                    (unsigned int) element.tag, element.length);
+          if (element.d.ot != NULL)
+            remainingData = element.length -
+                            (src - ((unsigned char *) element.d.ot));
+          else
+            remainingData = element.length -
+                            (elementItem->currentOffset - elementItem->dataOffset);
 
-            /* We have some problems computing group length 
-               for groups with sequences.
-               ** For now, just remove this attribute, except
-               for group 0000 and 0002.
-            */
-            if (groupItem->group != 0x0000 && groupItem->group != 0x0002)
-              elementItem = LST_Next(&groupItem->elementList);
-          }
-        }
-        while (elementItem != NULL) {
+          exportLength = (remainingData < c) ? remainingData : c;
+          cond = exportData(object, elementItem, src, dst,
+                            exportLength, byteOrder, &rtnLength);
+          if (cond != DCM_NORMAL)
+            return cond;
+
+          src += rtnLength;
+          dst += rtnLength;
+          bytesExported += rtnLength;
+          c -= rtnLength;
+
           if (c <= 20) {
             cond = callback(buffer, bytesExported, 0, ctx);
             if (cond != DCM_NORMAL)
@@ -4740,159 +4801,49 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
             c = bufferlength;
             dst = (unsigned char *) buffer;
           }
-          element = elementItem->element;
-
-          if (element.tag == DCM_PXLPIXELDATA) {
-            /* Lots of special rules for pixel data. Handle separately */
-            /* First, dump the current buffer */
-            cond = callback(buffer, bytesExported, 0, ctx);
-            if (cond != DCM_NORMAL)
-              return COND_PushCondition(DCM_CALLBACKABORTED,
-                                        DCM_Message(DCM_CALLBACKABORTED), 
-                                        "exportStream");
-
-            cond = exportPixels(object, elementItem, encapsulatedPixels,
-                                buffer, bufferlength, callback, 
-                                ctx, byteOrder, explicitVR);
-            if (cond != DCM_NORMAL)
-              return cond;
-
-            bytesExported = 0;
-            c = bufferlength;
-            dst = (unsigned char *) buffer;
-            rtnLength = 0;
-          } else if (element.representation == DCM_SQ) {
-            if (unspecifiedSQLength)
-              element.length = DCM_UNSPECIFIEDLENGTH;
-
-            exportFixedFields(&element, dst, bufferlength, byteOrder,
-                              explicitVR, &rtnLength);
-          } else {
-            element.length = elementItem->paddedDataLength;
-            exportFixedFields(&element, dst, bufferlength, byteOrder,
-                              explicitVR, &rtnLength);
-          }
-          dst += rtnLength;
-          c -= rtnLength;
-          bytesExported += rtnLength;
-
-          remainingData = element.length;
-          src = element.d.ot;
-          elementItem->currentOffset = elementItem->dataOffset;
-
-          if (element.tag == DCM_PXLPIXELDATA) {
-            /* Then, we did that above */
-            ;
-          } else if (element.representation == DCM_SQ) {
-
-            cond = callback(buffer, bytesExported, 0, ctx);
-            if (cond != DCM_NORMAL)
-              return COND_PushCondition(DCM_CALLBACKABORTED,
-                                        DCM_Message(DCM_CALLBACKABORTED),
-                                        "exportStream");
-
-            bytesExported = 0;
-            c = bufferlength;
-            dst = (unsigned char *) buffer;
-
-            if (element.d.sq != NULL) {
-              sequenceItem = LST_Head(&element.d.sq);
-              if (sequenceItem != NULL)
-                (void) LST_Position(&element.d.sq, sequenceItem);
-              while (sequenceItem != NULL) {
-                cond = exportStream(&sequenceItem->object, opt,
-                                    buffer, bufferlength, callback, ctx,
-                                    sequenceLevel + 1);
-                if (cond != DCM_NORMAL)
-                  return cond;
-                sequenceItem = LST_Next(&element.d.sq);
-              }
-            }
-            if (element.length == DCM_UNSPECIFIEDLENGTH) {
-              sequenceDelimiter.length = 0;
-              exportFixedFields(&sequenceDelimiter, dst, bufferlength,
-                                byteOrder, explicitVR, &rtnLength);
-              dst += rtnLength;
-              c -= rtnLength;
-              bytesExported += rtnLength;
-            }
-          } else {
-            while (remainingData > 0) {
-              if (debug)
-                fprintf(stderr, "Export: (%08x) %d\n",
-                        (unsigned int) element.tag, element.length);
-              if (element.d.ot != NULL)
-                remainingData = element.length -
-                  (src - ((unsigned char *) element.d.ot));
-              else
-                remainingData = element.length -
-                  (elementItem->currentOffset - elementItem->dataOffset);
-
-              exportLength = (remainingData < c) ? remainingData : c;
-              cond = exportData(object, elementItem, src, dst,
-                                exportLength, byteOrder, &rtnLength);
-              if (cond != DCM_NORMAL)
-                return cond;
-
-              src += rtnLength;
-              dst += rtnLength;
-              bytesExported += rtnLength;
-              c -= rtnLength;
-
-              if (c <= 20) {
-                cond = callback(buffer, bytesExported, 0, ctx);
-                if (cond != DCM_NORMAL)
-                  return COND_PushCondition(DCM_CALLBACKABORTED,
-                                            DCM_Message(DCM_CALLBACKABORTED),
-                                            "exportStream");
-
-                bytesExported = 0;
-                c = bufferlength;
-                dst = (unsigned char *) buffer;
-              }
-            }
-          }
-          elementItem = LST_Next(&groupItem->elementList);
         }
-        groupItem = LST_Next(&(*object)->groupList);
       }
-      if ((sequenceLevel != 0) && unspecifiedSQLength) {
-        if (c <= 20) {
-          cond = callback(buffer, bytesExported, 0, ctx);
-          if (cond != DCM_NORMAL)
-            return COND_PushCondition(DCM_CALLBACKABORTED,
-                                      DCM_Message(DCM_CALLBACKABORTED), 
-                                      "exportStream");
-
-          bytesExported = 0;
-          c = bufferlength;
-          dst = (unsigned char *) buffer;
-        }
-        exportFixedFields(&itemDelimiter, dst, bufferlength, byteOrder,
-                          explicitVR, &rtnLength);
-        dst += rtnLength;
-        c -= rtnLength;
-        bytesExported += rtnLength;
-      }
-      lastFlag = (sequenceLevel == 0) ? 1 : 0;
-      cond = callback(buffer, bytesExported, lastFlag, ctx);
+      elementItem = LST_Next(&groupItem->elementList);
+    }
+    groupItem = LST_Next(&(*object)->groupList);
+  }
+  if ((sequenceLevel != 0) && unspecifiedSQLength) {
+    if (c <= 20) {
+      cond = callback(buffer, bytesExported, 0, ctx);
       if (cond != DCM_NORMAL)
         return COND_PushCondition(DCM_CALLBACKABORTED,
-                                  DCM_Message(DCM_CALLBACKABORTED), 
+                                  DCM_Message(DCM_CALLBACKABORTED),
                                   "exportStream");
 
-      return DCM_NORMAL;
+      bytesExported = 0;
+      c = bufferlength;
+      dst = (unsigned char *) buffer;
+    }
+    exportFixedFields(&itemDelimiter, dst, bufferlength, byteOrder,
+                      explicitVR, &rtnLength);
+    dst += rtnLength;
+    c -= rtnLength;
+    bytesExported += rtnLength;
+  }
+  lastFlag = (sequenceLevel == 0) ? 1 : 0;
+  cond = callback(buffer, bytesExported, lastFlag, ctx);
+  if (cond != DCM_NORMAL)
+    return COND_PushCondition(DCM_CALLBACKABORTED,
+                              DCM_Message(DCM_CALLBACKABORTED),
+                              "exportStream");
+
+  return DCM_NORMAL;
 }
 
 /* verifyFormat
 **
 ** Purpose:
-**  This routine verifies the format of the 
+**  This routine verifies the format of the
 **  data value of attributes according to
 **  the DICOM v3 standard.
 **
 ** Parameter Dictionary:
-**   element    Pointer to the DCM_ELEMENT containing the 
+**   element    Pointer to the DCM_ELEMENT containing the
 **              element to be examined.
 **
 ** Return Values:
@@ -4924,19 +4875,18 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 */
 
 static CONDITION
-verifyFormat(PRV_ELEMENT_ITEM * item)
-{
+verifyFormat(PRV_ELEMENT_ITEM * item) {
   int
-    i,
-    l;
+  i,
+  l;
   char
-    *src,
-    *dst,
-    *p;
+  *src,
+  *dst,
+  *p;
   DCM_ELEMENT
-    * element;
+  * element;
   CTNBOOLEAN
-    stopFlag = FALSE;
+  stopFlag = FALSE;
 
   element = &item->element;
   if (element->length > 0) {
@@ -5134,51 +5084,50 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
          U32 * scannedLength, CTNBOOLEAN * remainOpenFlag,
          void *ctx,
          CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
-         CONDITION(*sk) (void *ctx, int offset, int flag))
-{
+         CONDITION(*sk) (void *ctx, int offset, int flag)) {
   CONDITION
-    cond;
+  cond;
   int
-    byteOrder;
+  byteOrder;
   long
-    lastGroup = -1,
-    lastElement = -1;
+  lastGroup = -1,
+              lastElement = -1;
   U32
-    sequenceLength,
-    localLength;
+  sequenceLength,
+  localLength;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem = NULL;
+  * groupItem = NULL;
   unsigned short
-    group,
-    element,
-    tagGroup,
-    tagElement;
+  group,
+  element,
+  tagGroup,
+  tagElement;
   DCM_ELEMENT
-    e,
-    tagE;
+  e,
+  tagE;
   CTNBOOLEAN
-    pixelFlag,
-    convertFlag = FALSE,
-    done = FALSE,
-    knownLength = TRUE,
-    sequenceDone = FALSE,
-    createGroupFlag,
-    explicitVR = FALSE;
+  pixelFlag,
+  convertFlag = FALSE,
+                done = FALSE,
+                       knownLength = TRUE,
+                                     sequenceDone = FALSE,
+                                                    createGroupFlag,
+                                                    explicitVR = FALSE;
   unsigned char
-    buf[8],
-    *ptr;
+  buf[8],
+  *ptr;
   int
-    nBytes;
+  nBytes;
   PRV_ELEMENT_ITEM
-    * elementItem = NULL;
+  * elementItem = NULL;
   DCM_OBJECT
-    * sequenceObject;
+  * sequenceObject;
   DCM_SEQUENCE_ITEM
-    * sequenceItem;
+  * sequenceItem;
   CTNBOOLEAN
-    fileFlag = TRUE;
+  fileFlag = TRUE;
 
   if (callerBuf != NULL) {
     ptr = callerBuf;
@@ -5300,10 +5249,10 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
       (*object)->objectSize += 4;
       if ((strncmp((char *) ptr, "OB", 2) == 0) ||
           (strncmp((char *) ptr, "OW", 2) == 0) ||
-          (strncmp((char *) ptr, "SQ", 2) == 0)) {
-      } else {
-      }
-    } else {
+        (strncmp((char *) ptr, "SQ", 2) == 0)) {}
+      else {}
+    }
+    else {
 
       if (fileFlag) {
         if (fd != -1) {
@@ -5499,7 +5448,7 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
           if (nBytes != (int) elementItem->element.length) {
             (void) DCM_CloseObject(callerObject);
             return COND_PushCondition(DCM_FILEACCESSERROR,
-                                      DCM_Message(DCM_FILEACCESSERROR), 
+                                      DCM_Message(DCM_FILEACCESSERROR),
                                       name, "readFile");
           }
         } else {
@@ -5539,8 +5488,8 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
         return COND_PushCondition(DCM_ELEMENTOUTOFORDER,
                                   DCM_Message(DCM_ELEMENTOUTOFORDER),
                                   group, element, "readFile");
-    } else if ((long) DCM_TAG_GROUP(e.tag) > lastGroup) {
-    } else {
+    } else if ((long) DCM_TAG_GROUP(e.tag) > lastGroup) {}
+    else {
       return COND_PushCondition(DCM_ELEMENTOUTOFORDER,
                                 DCM_Message(DCM_ELEMENTOUTOFORDER),
                                 group, element,
@@ -5605,7 +5554,7 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
 #ifdef DEBUG
     if (debug) {
       /*lint -e644 */
-      (void) fprintf(stderr, 
+      (void) fprintf(stderr,
                      "Address: %px Group %2x, element %2x, length %ld ",
                      elementItem,
                      DCM_TAG_GROUP(elementItem->element.tag),
@@ -5637,10 +5586,9 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
 static CONDITION
 readPreamble(const char *name, unsigned char **ptr, int fd, U32 * size,
              off_t * fileOffset, CTNBOOLEAN knownLength,
-             PRIVATE_OBJECT ** object, U32 * scannedLength)
-{
+             PRIVATE_OBJECT ** object, U32 * scannedLength) {
   int nBytes,
-    tmp;
+  tmp;
   CONDITION cond;
   char label[4];
 
@@ -5698,14 +5646,13 @@ readGroupElement(const char *name, unsigned char **ptr, int fd, U32 * size,
                  off_t * fileOffset, CTNBOOLEAN knownLength, int byteOrder,
                  CTNBOOLEAN explicitVR, CTNBOOLEAN acceptVRMismatch,
                  PRIVATE_OBJECT ** object, U32 * scannedLength,
-                 DCM_ELEMENT * e)
-{
+                 DCM_ELEMENT * e) {
   unsigned char *localPtr;
   unsigned char buf[4];
   int nBytes;
   CONDITION cond;
   unsigned short group,
-    element;
+  element;
 
   if (*size == 0)
     return DCM_STREAMCOMPLETE;
@@ -5780,8 +5727,7 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
              off_t * fileOffset,
              CTNBOOLEAN knownLength, int byteOrder, CTNBOOLEAN explicitVR,
              CTNBOOLEAN acceptVRMismatch,
-             PRIVATE_OBJECT ** object, U32 * scannedLength, DCM_ELEMENT * e)
-{
+             PRIVATE_OBJECT ** object, U32 * scannedLength, DCM_ELEMENT * e) {
   unsigned char *localPtr;
   unsigned char buf[4];
   char vrCode[3];
@@ -5861,7 +5807,7 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
       } else {
         if (e->tag != DCM_PXLPIXELDATA)
           return COND_PushCondition(DCM_VRMISMATCH,
-                                    DCM_Message(DCM_VRMISMATCH), 
+                                    DCM_Message(DCM_VRMISMATCH),
                                     vrCode, e->tag);
       }
     }
@@ -5936,7 +5882,7 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
   if (debug) {
     char localVR[10];
     mapVRtoASCII(e->representation, localVR);
-    fprintf(stderr, "%2s %6d %06x %s\n", 
+    fprintf(stderr, "%2s %6d %06x %s\n",
             localVR, e->length, (unsigned int) *fileOffset,
             e->description);
   }
@@ -5969,8 +5915,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
              CTNBOOLEAN fileFlag, CTNBOOLEAN * remainOpenFlag,
              CTNBOOLEAN convertFlag, PRIVATE_OBJECT ** object,
              U32 * scannedLength, DCM_ELEMENT * e,
-             PRV_ELEMENT_ITEM ** elementItem)
-{
+             PRV_ELEMENT_ITEM ** elementItem) {
   CTNBOOLEAN knownLength = TRUE;
   CONDITION cond;
   U32 sequenceLength;
@@ -5979,7 +5924,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
   CTNBOOLEAN sequenceDone;
   DCM_ELEMENT tagE;
   DCM_OBJECT
-    * sequenceObject;
+  * sequenceObject;
   DCM_SEQUENCE_ITEM *sequenceItem;
   CONDITION flag;
   unsigned char *localPtr;
@@ -6009,9 +5954,9 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
       itemTagOffset = *fileOffset;
     }
 
-    flag = readGroupElement(name, ptr, fd, &localLength, 
+    flag = readGroupElement(name, ptr, fd, &localLength,
                             fileOffset, knownLength,
-                            byteOrder, explicitVR, acceptVRMismatch, 
+                            byteOrder, explicitVR, acceptVRMismatch,
                             object, &sequenceLength, &tagE);
     if (flag == DCM_STREAMCOMPLETE)
       break;
@@ -6035,7 +5980,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
     if (debug)
       fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
               DCM_TAG_GROUP(tagE.tag),
-              DCM_TAG_ELEMENT(tagE.tag), tagE.length, 
+              DCM_TAG_ELEMENT(tagE.tag), tagE.length,
               (unsigned int) tagE.length);
     if (tagE.tag == DCM_DLMITEM) {
       localPtr = *ptr;
@@ -6088,8 +6033,7 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
                      CTNBOOLEAN fileFlag, CTNBOOLEAN * remainOpenFlag,
                      CTNBOOLEAN convertFlag, PRIVATE_OBJECT ** object,
                      U32 * scannedLength, DCM_ELEMENT * e,
-                     PRV_ELEMENT_ITEM ** elementItem)
-{
+                     PRV_ELEMENT_ITEM ** elementItem) {
   CTNBOOLEAN knownLength = TRUE;
   U32 sequenceLength;
   U32 scannedBytes = 0;
@@ -6131,7 +6075,7 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
     if (debug)
       fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
               DCM_TAG_GROUP(tagE.tag),
-              DCM_TAG_ELEMENT(tagE.tag), tagE.length, 
+              DCM_TAG_ELEMENT(tagE.tag), tagE.length,
               (unsigned int) tagE.length);
     if (tagE.tag == DCM_DLMITEM) {
       localPtr = *ptr;
@@ -6169,14 +6113,13 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
          CTNBOOLEAN fileFlag, CTNBOOLEAN * remainOpenFlag,
          CTNBOOLEAN convertFlag, PRIVATE_OBJECT ** object,
          U32 * scannedLength, DCM_ELEMENT * e,
-         PRV_ELEMENT_ITEM ** elementItem)
-{
+         PRV_ELEMENT_ITEM ** elementItem) {
   CTNBOOLEAN pixelFlag;
   CONDITION cond;
   int nBytes;
 
   pixelFlag = (e->tag == DCM_PXLPIXELDATA);
-  cond = newElementItem(e, ((pixelFlag == FALSE) || (fileFlag == FALSE)), 
+  cond = newElementItem(e, ((pixelFlag == FALSE) || (fileFlag == FALSE)),
                         elementItem);
   if (cond != DCM_NORMAL) {
     (void) DCM_CloseObject((DCM_OBJECT **) object);
@@ -6237,7 +6180,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
       if (nBytes != (int) (*elementItem)->element.length) {
         (void) DCM_CloseObject((DCM_OBJECT **) object);
         return COND_PushCondition(DCM_FILEACCESSERROR,
-                                  DCM_Message(DCM_FILEACCESSERROR), 
+                                  DCM_Message(DCM_FILEACCESSERROR),
                                   name, "readFile");
       }
     } else {
@@ -6279,8 +6222,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 
 static CONDITION
 checkAttributeOrder(DCM_ELEMENT * e, long *lastGroup, long *lastElement,
-                    CTNBOOLEAN allowRepeatElements)
-{
+                    CTNBOOLEAN allowRepeatElements) {
   unsigned short group;
   unsigned short element;
 
@@ -6295,8 +6237,8 @@ checkAttributeOrder(DCM_ELEMENT * e, long *lastGroup, long *lastElement,
       return COND_PushCondition(DCM_ELEMENTOUTOFORDER,
                                 DCM_Message(DCM_ELEMENTOUTOFORDER),
                                 group, element, "checkAttributeOrder");
-  } else if ((long) group > *lastGroup) {
-  } else {
+  } else if ((long) group > *lastGroup) {}
+  else {
     return COND_PushCondition(DCM_ELEMENTOUTOFORDER,
                               DCM_Message(DCM_ELEMENTOUTOFORDER),
                               group, element, "checkAttributeOrder");
@@ -6309,8 +6251,7 @@ checkAttributeOrder(DCM_ELEMENT * e, long *lastGroup, long *lastElement,
 
 static CONDITION
 handleGroupItem(PRIVATE_OBJECT ** obj, PRV_GROUP_ITEM ** groupItem,
-                unsigned short group)
-{
+                unsigned short group) {
   CTNBOOLEAN createGroupFlag;
 
   if (*groupItem == NULL)
@@ -6357,37 +6298,36 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
           U32 * scannedLength, CTNBOOLEAN * remainOpenFlag,
           void *ctx,
           CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
-          CONDITION(*sk) (void *ctx, int offset, int flag))
-{
+          CONDITION(*sk) (void *ctx, int offset, int flag)) {
   CONDITION
-    cond;
+  cond;
   int
-    byteOrder;
+  byteOrder;
   long
-    lastGroup = -1,
-    lastElement = -1;
+  lastGroup = -1,
+              lastElement = -1;
   U32
-    sequenceLength,
-    scannedSequenceLength;
+  sequenceLength,
+  scannedSequenceLength;
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_GROUP_ITEM
-    * groupItem = NULL;
+  * groupItem = NULL;
   DCM_ELEMENT
-    e;
+  e;
   CTNBOOLEAN
-    convertFlag = FALSE,
-    done = FALSE,
-    knownLength = TRUE,
-    explicitVR = FALSE,
-    acceptVRMismatch = FALSE,
-    part10Flag = FALSE;
+  convertFlag = FALSE,
+                done = FALSE,
+                       knownLength = TRUE,
+                                     explicitVR = FALSE,
+                                                  acceptVRMismatch = FALSE,
+                                                                     part10Flag = FALSE;
   unsigned char
-    *ptr = NULL;
+  *ptr = NULL;
   PRV_ELEMENT_ITEM
-    * elementItem = NULL;
+  * elementItem = NULL;
   CTNBOOLEAN
-    fileFlag = TRUE;
+  fileFlag = TRUE;
   CONDITION flag;
   CTNBOOLEAN allowRepeatElements = FALSE;
 
@@ -6632,7 +6572,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
   }
   return DCM_NORMAL;
 
- abort:
+abort:
   return flag;
 }
 
@@ -6655,14 +6595,13 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 **  Description of the algorithm (optional) and any other notes.
 */
 static PRV_ELEMENT_ITEM *
-locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag)
-{
+locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag) {
   PRV_GROUP_ITEM
-    * groupItem;
+  * groupItem;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   CTNBOOLEAN
-    found = FALSE;
+  found = FALSE;
 
   groupItem = LST_Head(&(*obj)->groupList);
   if (groupItem == NULL)
@@ -6714,12 +6653,11 @@ locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag)
 **  Description of the algorithm (optional) and any other notes.
 */
 static void
-computeVM(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
-{
+computeVM(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
   char
-    *c;
+  *c;
   int
-    i;
+  i;
 
   switch (element->representation) {
   case DCM_AE:    /* Application Entity */
@@ -6785,8 +6723,7 @@ computeVM(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
 **
 */
 static void
-ctxSensitiveLookup(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
-{
+ctxSensitiveLookup(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
   switch (element->tag) {
   case DCM_IMGSMALLESTIMAGEPIXELVALUE:
   case DCM_IMGLARGESTIMAGEPIXELVALUE:
@@ -6807,8 +6744,8 @@ ctxSensitiveLookup(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
       element->representation = DCM_US;
     break;
   case DCM_MAKETAG(0x003a, 0x1000):
-    if (strcmp((*object)->waveformDataVR, "SS") == 0)
-      element->representation = DCM_SS;
+          if (strcmp((*object)->waveformDataVR, "SS") == 0)
+            element->representation = DCM_SS;
     break;
 
   default:
@@ -6818,8 +6755,7 @@ ctxSensitiveLookup(PRIVATE_OBJECT ** object, DCM_ELEMENT * element)
 
 static CONDITION
 copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
-         DCM_ELEMENT * to, U32 * rtnLength)
-{
+         DCM_ELEMENT * to, U32 * rtnLength) {
   unsigned char *p = NULL;
   U32 l;
   int nBytes;
@@ -6869,7 +6805,7 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
   } else {
     unsigned char *q;
     q = (unsigned char *) from->element.d.ot +
-      (long) p;
+        (long) p;
     (void) memcpy(to->d.ot, q, l);
   }
   p += l;
@@ -6881,8 +6817,7 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
 
 static CONDITION
 readLengthToEnd(int fd, const char *fileName,
-                unsigned long opt, U32 * lengthToEnd)
-{
+                unsigned long opt, U32 * lengthToEnd) {
   unsigned char buf[24];
   DCM_OBJECT *obj;
   CONDITION cond;
@@ -6909,13 +6844,12 @@ readLengthToEnd(int fd, const char *fileName,
 
 #ifdef LITTLE_ENDIAN_ARCHITECTURE
 static void
-swapATGroupElement(DCM_ELEMENT * e)
-{
+swapATGroupElement(DCM_ELEMENT * e) {
   U32
-    length;
+  length;
   unsigned short
-    tmp,
-    *us;
+  tmp,
+  *us;
 
   length = e->length;
   us = e->d.us;
@@ -6930,8 +6864,7 @@ swapATGroupElement(DCM_ELEMENT * e)
 #endif
 
 static void
-dumpSS(short *ss, long vm)
-{
+dumpSS(short *ss, long vm) {
   long index = 0;
   while (index < vm) {
     printf("%7d ", *(ss++));
@@ -6942,8 +6875,7 @@ dumpSS(short *ss, long vm)
 }
 
 static void
-dumpSL(S32 * sl, long vm)
-{
+dumpSL(S32 * sl, long vm) {
   long index = 0;
   while (index < vm) {
     printf("%7d ", *(sl++));
@@ -6954,8 +6886,7 @@ dumpSL(S32 * sl, long vm)
 }
 
 static void
-dumpUS(unsigned short *us, long vm)
-{
+dumpUS(unsigned short *us, long vm) {
   long index = 0;
   while (index < vm) {
     printf("%7d ", *(us++));
@@ -6965,8 +6896,7 @@ dumpUS(unsigned short *us, long vm)
   printf("\n");
 }
 static void
-dumpUL(U32 * ul, long vm)
-{
+dumpUL(U32 * ul, long vm) {
   long index = 0;
   while (index < vm) {
     printf("%7u ", *(ul++));
@@ -6976,8 +6906,7 @@ dumpUL(U32 * ul, long vm)
   printf("\n");
 }
 static void
-dumpOB(unsigned char* c, long vm)
-{
+dumpOB(unsigned char* c, long vm) {
   long index = 0;
   while (index < vm) {
     printf("%02x ", *(c++));
@@ -6989,8 +6918,7 @@ dumpOB(unsigned char* c, long vm)
 
 static void
 dumpBinaryData(void *d, DCM_VALUEREPRESENTATION vr, long vm,
-               long vmLimit)
-{
+               long vmLimit) {
   vm = (vm < vmLimit) ? vm : vmLimit;
 
   if (vm <= 1)
@@ -7024,10 +6952,9 @@ compareGroup(PRV_GROUP_ITEM * g1, PRV_GROUP_ITEM * g2,
              void (*callback) (const DCM_ELEMENT * e1,
                                const DCM_ELEMENT * e2,
                                void *ctx),
-             void *ctx)
-{
+             void *ctx) {
   PRV_ELEMENT_ITEM *e1 = NULL,
-    *e2 = NULL;
+                         *e2 = NULL;
 
   if (g1 != NULL) {
     e1 = LST_Head(&g1->elementList);
@@ -7063,8 +6990,7 @@ compareGroup(PRV_GROUP_ITEM * g1, PRV_GROUP_ITEM * g2,
 }
 
 static void
-remapFileName(const char *name, char *mapName)
-{
+remapFileName(const char *name, char *mapName) {
   char c;
 
   while ((c = *name++) != '\0') {
@@ -7079,8 +7005,7 @@ remapFileName(const char *name, char *mapName)
 }
 
 static void
-copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e)
-{
+copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e) {
   LST_HEAD *lst;
   DCM_SEQUENCE_ITEM *sqItem=NULL;
   DCM_ELEMENT newElement;
@@ -7114,12 +7039,11 @@ copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e)
 CONDITION
 DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
                        size_t bufSize, DCM_GET_COMPRESSED_CALLBACK* callback,
-                       void *ctx)
-{
+                       void *ctx) {
   PRIVATE_OBJECT
-    ** object;
+  ** object;
   PRV_ELEMENT_ITEM
-    * elementItem;
+  * elementItem;
   S32 nBytes;
   S32 toRead;
   CONDITION cond;
@@ -7268,10 +7192,9 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
 }
 
 CONDITION
-DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag)
-{
+DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag) {
   PRIVATE_OBJECT **obj,
-    *sqObject;
+  *sqObject;
   CONDITION cond = DCM_NORMAL;
   PRV_ELEMENT_ITEM *elementItem;
   LST_HEAD *lst;
@@ -7306,13 +7229,12 @@ DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag)
 }
 
 CONDITION
-DCM_GetSequenceByOffset(DCM_OBJECT ** object, 
-                        DCM_TAG tag, 
+DCM_GetSequenceByOffset(DCM_OBJECT ** object,
+                        DCM_TAG tag,
                         unsigned long offset,
-                        DCM_OBJECT ** rtnObject)
-{
+                        DCM_OBJECT ** rtnObject) {
   PRIVATE_OBJECT **obj,
-    *sqObject;
+  *sqObject;
   CONDITION cond;
   PRV_ELEMENT_ITEM *elementItem;
   LST_HEAD *lst;
@@ -7327,7 +7249,7 @@ DCM_GetSequenceByOffset(DCM_OBJECT ** object,
 
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-                              DCM_Message(DCM_ELEMENTNOTFOUND), 
+                              DCM_Message(DCM_ELEMENTNOTFOUND),
                               DCM_TAG_GROUP(tag),
                               DCM_TAG_ELEMENT(tag),
                               "DCM_PrintSequenceList");
@@ -7347,8 +7269,7 @@ DCM_GetSequenceByOffset(DCM_OBJECT ** object,
 }
 
 CONDITION
-DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
-{
+DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
   PRIVATE_OBJECT **srcObj;
   PRIVATE_OBJECT *dstObj;
   PRV_GROUP_ITEM *groupItem;
@@ -7365,7 +7286,7 @@ DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
   dstObj = (PRIVATE_OBJECT *) CTN_MALLOC(sizeof(PRIVATE_OBJECT));
   if (dstObj == NULL) {
     (void) COND_PushCondition(DCM_MALLOCFAILURE,
-                              DCM_Message(DCM_MALLOCFAILURE), 
+                              DCM_Message(DCM_MALLOCFAILURE),
                               sizeof(PRIVATE_OBJECT),
                               "DCM_CopyObject");
     *dst = NULL;
@@ -7431,8 +7352,7 @@ DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
 }
 
 CONDITION
-DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
-{
+DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
   PRIVATE_OBJECT **srcObj;
   PRIVATE_OBJECT *dstObj;
   PRV_GROUP_ITEM *groupItem;
@@ -7449,7 +7369,7 @@ DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
   dstObj = *((PRIVATE_OBJECT **)dst);
   if (dstObj == NULL) {
     (void) COND_PushCondition(DCM_MALLOCFAILURE,
-                              DCM_Message(DCM_MALLOCFAILURE), 
+                              DCM_Message(DCM_MALLOCFAILURE),
                               sizeof(PRIVATE_OBJECT),
                               "DCM_MergeObject");
     *dst = NULL;
@@ -7484,8 +7404,7 @@ DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst)
 
 
 CONDITION
-DCM_GetFirstElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e)
-{
+DCM_GetFirstElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e) {
   PRIVATE_OBJECT** object;
   PRV_GROUP_ITEM* groupItem;
   PRV_ELEMENT_ITEM* elementItem;
@@ -7516,8 +7435,7 @@ DCM_GetFirstElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e)
 }
 
 CONDITION
-DCM_GetNextElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e)
-{
+DCM_GetNextElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e) {
   PRIVATE_OBJECT** object;
   PRV_GROUP_ITEM* groupItem;
   PRV_ELEMENT_ITEM* elementItem;
@@ -7560,8 +7478,7 @@ DCM_GetNextElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e)
 }
 
 CONDITION
-DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength)
-{
+DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength) {
   PRIVATE_OBJECT** object;
   PRV_ELEMENT_ITEM* elementItem;
   PRV_ELEMENT_ITEM* newItem;
@@ -7602,7 +7519,7 @@ DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength)
     newItem->element.d.fragments = LST_Create();
     if (newItem->element.d.fragments == NULL) {
       return COND_PushCondition(DCM_LISTFAILURE,
-                                DCM_Message(DCM_LISTFAILURE), 
+                                DCM_Message(DCM_LISTFAILURE),
                                 "DCM_AddFragment");
     }
     cond = insertThisElementItem(object, newItem);
@@ -7620,8 +7537,8 @@ DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength)
                               "DCM_AddFragment");
   }
 
-  fragmentItem->fragment = (unsigned char*)fragmentItem + 
-	(long)sizeof(DCM_FRAGMENT_ITEM);
+  fragmentItem->fragment = (unsigned char*)fragmentItem +
+                           (long)sizeof(DCM_FRAGMENT_ITEM);
   fragmentItem->length = fragmentLength;
   memcpy(fragmentItem->fragment, fragment, fragmentLength);
   elementItem->fragmentFlag = 1;

@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaLayer2DMRI.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.58 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ScubaLayer2DMRI_h
 #define ScubaLayer2DMRI_h
 
@@ -14,37 +42,39 @@ class ScubaLayer2DMRI : public Layer {
 
   friend class ScubaLayer2DMRITester;
 
- public:
+public:
   ScubaLayer2DMRI ();
   virtual ~ScubaLayer2DMRI ();
 
   // Associate a volume collection with this layer.
   void SetVolumeCollection ( VolumeCollection& iVolume );
-  VolumeCollection* GetVolumeCollection () { return mVolume; }
+  VolumeCollection* GetVolumeCollection () {
+    return mVolume;
+  }
 
   // Tell the layer to draw its contents into a GL frame buffer.
   virtual void DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				ViewState& iViewState,
-				ScubaWindowToRASTranslator& iTranslator );
+                                ViewState& iViewState,
+                                ScubaWindowToRASTranslator& iTranslator );
 
   // Tell the layer to draw its contents that need openGl commands.
   virtual void DrawIntoGL ( ViewState& iViewState,
-			    ScubaWindowToRASTranslator& iTranslator );
+                            ScubaWindowToRASTranslator& iTranslator );
 
   // Draws the MIP into the buffer.
   virtual void DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				   ViewState& iViewState,
-				   ScubaWindowToRASTranslator& iTranslator );
+                                   ViewState& iViewState,
+                                   ScubaWindowToRASTranslator& iTranslator );
 
   // These take a volume value and a base color and outputs a final
   // color. The base is used for blending or for translucency if there
   // is no color for the value.
-  void GetGrayscaleColorForValue ( float iValue, 
-				   GLubyte* const iBase, int* oColor );
-  void GetHeatscaleColorForValue ( float iValue, 
-				   GLubyte* const iBase, int* oColor );
-  void GetColorLUTColorForValue  ( float iValue, 
-				   GLubyte* const iBase, int* oColor );
+  void GetGrayscaleColorForValue ( float iValue,
+                                   GLubyte* const iBase, int* oColor );
+  void GetHeatscaleColorForValue ( float iValue,
+                                   GLubyte* const iBase, int* oColor );
+  void GetColorLUTColorForValue  ( float iValue,
+                                   GLubyte* const iBase, int* oColor );
 
   // We save a cache of RAS coords for the start of each row, and
   // increments as we progress across the row. This cache is the side
@@ -60,27 +90,31 @@ class ScubaLayer2DMRI : public Layer {
   // Asks the layer to describe a point of data by making InfoAtRAS
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
-			      std::list<InfoAtRAS>& ioInfo );
-  
+                              std::list<InfoAtRAS>& ioInfo );
+
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription () { return "2DMRI"; }
+  virtual std::string GetTypeDescription () {
+    return "2DMRI";
+  }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Return the volume collection.
-  virtual DataCollection* GetMainDataCollection() { return mVolume; }
+  virtual DataCollection* GetMainDataCollection() {
+    return mVolume;
+  }
 
   // Override to change min/max range on new value.
   virtual void DataChanged();
 
   // Handles tool events.
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
-			    ScubaWindowToRASTranslator& iTranslator,
-			    ScubaToolState& iTool, InputState& iInput );
+                            ScubaWindowToRASTranslator& iTranslator,
+                            ScubaToolState& iTool, InputState& iInput );
 
   // Looks for command line options and sets internals from them.
   virtual void ProcessOption ( std::string isOption, std::string isValue );
@@ -101,14 +135,19 @@ class ScubaLayer2DMRI : public Layer {
   // segmenation volume.
   enum ColorMapMethod { grayscale, heatScale, LUT };
   void SetColorMapMethod ( ColorMapMethod iMethod );
-  ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
+  ColorMapMethod GetColorMapMethod () {
+    return mColorMapMethod;
+  }
   std::string GetColorMapMethodAsString ();
 
   // Determines the smoothness of voxels on screen.
   enum SampleMethod { nearest, trilinear, sinc, magnitude };
   void SetSampleMethod ( SampleMethod iSampleMethod ) {
-    mSampleMethod = iSampleMethod; }
-  SampleMethod GetSampleMethod () { return mSampleMethod; }
+    mSampleMethod = iSampleMethod;
+  }
+  SampleMethod GetSampleMethod () {
+    return mSampleMethod;
+  }
   std::string GetSampleMethodAsString ();
 
   // If the color map method is LUT, this determines the LUT to use.
@@ -116,20 +155,24 @@ class ScubaLayer2DMRI : public Layer {
   int GetColorLUT ();
 
   // If true, voxels with values of 0 are clear.
-  void SetDrawZeroClear ( bool ibClearZero ) { mbClearZero = ibClearZero; }
-  bool GetDrawZeroClear () { return mbClearZero; }
+  void SetDrawZeroClear ( bool ibClearZero ) {
+    mbClearZero = ibClearZero;
+  }
+  bool GetDrawZeroClear () {
+    return mbClearZero;
+  }
 
   // Calcs the grayscale table. cGrayscaleLUTEntries is the resolution
   // of the LUT, kMaxPixelComponentValue is a multiplier to go from a
   // 0->1 range to the e.g. uchar 0-255 range, and
   // kMaxPixelComponentValueFloat is the float version of that.
   static int const cGrayscaleLUTEntries;
-  static int const kMaxPixelComponentValue;  
-  static float const kMaxPixelComponentValueFloat;  
+  static int const kMaxPixelComponentValue;
+  static float const kMaxPixelComponentValueFloat;
   void BuildGrayscaleLUT ();
 
   // GRAYSCALE COLOR LUT - See https://surfer.nmr.mgh.harvard.edu/fswiki/ScubaGuide_2fScubaWorkingWithData_2fScubaAnatomicalVolumes
-  //   
+  //
   //       |---level---|   level +- range/2
   //             |
   //              .__----               <1 black
@@ -145,56 +188,84 @@ class ScubaLayer2DMRI : public Layer {
   // This determines the levels above and below which voxels are drawn
   // as black, or no color.
   void SetMinVisibleValue ( float iValue );
-  float GetMinVisibleValue () { return mMinVisibleValue; }
+  float GetMinVisibleValue () {
+    return mMinVisibleValue;
+  }
   void SetMaxVisibleValue ( float iValue );
-  float GetMaxVisibleValue () { return mMaxVisibleValue; }
+  float GetMaxVisibleValue () {
+    return mMaxVisibleValue;
+  }
   void SetMinMaxVisibleValue ( float iMinValue, float iMaxValue );
 
   // These determine the visible value range. Values below the range
   // are drawn at the 'lowest' color (e.g. black) and values above are
   // drawn in the 'highest' color (e.g. white).
   void SetWindow ( float iWindow );
-  float GetWindow () { return mWindow; }
+  float GetWindow () {
+    return mWindow;
+  }
   void SetLevel ( float iLevel );
-  float GetLevel () { return mLevel; }
+  float GetLevel () {
+    return mLevel;
+  }
 
   // Brightness/contrast determines the slope of the sigmoid function
   // within the valid window/level range.
   // Brightness:  dark  1 --~~==## 0  bright
   // Contrast:    gray  0 --~~==## 30 black/white
   void SetBrightness ( float iBrightness );
-  float GetBrightness () { return mBrightness; }
+  float GetBrightness () {
+    return mBrightness;
+  }
   void SetContrast ( float iContrast );
-  float GetContrast () { return mContrast; }
+  float GetContrast () {
+    return mContrast;
+  }
 
   // These determine the heatscale color map. The threshold is mirrored:
   //
   // -> cyan -> blue -> trans_blue -> clear -> trans_orange -> orange -> red ->
   // -> -max -> -mid ->    -min    ->   0   ->     min      ->   mid  -> max ->
   void SetHeatScaleMinThreshold ( float iValue );
-  float GetHeatScaleMinThreshold () { return mHeatScaleMinThreshold; }
+  float GetHeatScaleMinThreshold () {
+    return mHeatScaleMinThreshold;
+  }
   void SetHeatScaleMidThreshold ( float iValue );
-  float GetHeatScaleMidThreshold () { return mHeatScaleMidThreshold; }
+  float GetHeatScaleMidThreshold () {
+    return mHeatScaleMidThreshold;
+  }
   void SetHeatScaleMaxThreshold ( float iValue );
-  float GetHeatScaleMaxThreshold () { return mHeatScaleMaxThreshold; }
+  float GetHeatScaleMaxThreshold () {
+    return mHeatScaleMaxThreshold;
+  }
   void SetHeatScaleOffset ( float iValue );
-  float GetHeatScaleOffset () { return mHeatScaleOffset; }
+  float GetHeatScaleOffset () {
+    return mHeatScaleOffset;
+  }
 
-  void SetReverseHeatScale ( bool ib ) { mbReverseHeatScale = ib; }
-  bool GetReverseHeatScale () { return mbReverseHeatScale; }
-  void SetShowPositiveHeatScaleValues ( bool ib ) 
-    { mbShowPositiveHeatScaleValues = ib; }
-  bool GetShowPositiveHeatScaleValues () 
-    { return mbShowPositiveHeatScaleValues; }
-  void SetShowNegativeHeatScaleValues ( bool ib ) 
-    { mbShowNegativeHeatScaleValues = ib; }
-  bool GetShowNegativeHeatScaleValues () 
-    { return mbShowNegativeHeatScaleValues; }
+  void SetReverseHeatScale ( bool ib ) {
+    mbReverseHeatScale = ib;
+  }
+  bool GetReverseHeatScale () {
+    return mbReverseHeatScale;
+  }
+  void SetShowPositiveHeatScaleValues ( bool ib ) {
+    mbShowPositiveHeatScaleValues = ib;
+  }
+  bool GetShowPositiveHeatScaleValues () {
+    return mbShowPositiveHeatScaleValues;
+  }
+  void SetShowNegativeHeatScaleValues ( bool ib ) {
+    mbShowNegativeHeatScaleValues = ib;
+  }
+  bool GetShowNegativeHeatScaleValues () {
+    return mbShowNegativeHeatScaleValues;
+  }
 
   // Sets the heatscale threshold by FDR value. If asked to use a
   // mask, this will attempt to load the given volume as a mask.
   void SetHeatScaleThresholdUsingFDR ( float       iRate,
-				       std::string ifnMask );
+                                       std::string ifnMask );
 
   // Set the volume mask of this layer.
   void SetMaskVolume ( VolumeCollection& iVolume );
@@ -202,21 +273,29 @@ class ScubaLayer2DMRI : public Layer {
   int GetMaskVolume ();
 
   // Opacity of ROIs drawn on this layer.
-  float GetROIOpacity () { return mROIOpacity; }
-  void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
+  float GetROIOpacity () {
+    return mROIOpacity;
+  }
+  void SetROIOpacity ( float iOpacity ) {
+    mROIOpacity = iOpacity;
+  }
 
   // Flag to draw the maximum intensity projection.
-  void SetDrawMIP ( bool ibDrawMIP ) { mbDrawMIP = ibDrawMIP; }
-  bool GetDrawMIP () { return mbDrawMIP; }
+  void SetDrawMIP ( bool ibDrawMIP ) {
+    mbDrawMIP = ibDrawMIP;
+  }
+  bool GetDrawMIP () {
+    return mbDrawMIP;
+  }
 
   // Stretch a path from its beginning to the end RAS point.
   void StretchPathStraight  ( Path<float>& iPath,
-			      float iRASBegin[3], float iRASEnd[3] );
+                              float iRASBegin[3], float iRASEnd[3] );
   void StretchPathAsEdge    ( Path<float>& iPath,
-			      float iRASBegin[3], float iRASEnd[3],
-			      ViewState& iViewState,
-			      ScubaWindowToRASTranslator& iTranslator,
-			      float iStraightBias, float iEdgeBias );
+                              float iRASBegin[3], float iRASEnd[3],
+                              ViewState& iViewState,
+                              ScubaWindowToRASTranslator& iTranslator,
+                              float iStraightBias, float iEdgeBias );
 
 
   // Select or deselect voxels along a path.
@@ -224,13 +303,13 @@ class ScubaLayer2DMRI : public Layer {
 
   // Finds the closest path in a plane.
   Path<float>* FindClosestPathInPlane ( float iRAS[3],
-					ViewState& iViewState );
+                                        ViewState& iViewState );
 
   // Draw a path.
   void DrawRASPathIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-			       int iColor[3], ViewState& iViewState,
-			       ScubaWindowToRASTranslator& iTranslator,
-			       Path<float>& iRASPath );
+                               int iColor[3], ViewState& iViewState,
+                               ScubaWindowToRASTranslator& iTranslator,
+                               Path<float>& iRASPath );
 
   // The distance to travel in plane when the user navigates in and
   // out of the plane.
@@ -252,23 +331,23 @@ class ScubaLayer2DMRI : public Layer {
   // For filling. Sets the given flooder params based on the given
   // tool and view state.
   void SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
-			VolumeCollectionFlooder::Params& ioParams );
- 
- protected:
+                        VolumeCollectionFlooder::Params& ioParams );
+
+protected:
 
   // Given an RAS point and a radius, calculates the corners of a
   // square on the view plane.
   void CalcRASSquareInViewPlane ( float iRAS[3], float iRadiusRAS,
-				  ScubaWindowToRASTranslator& iTranslator,
-				  ViewState& iViewState,
-				  float oSquareRAS[4][3] );
+                                  ScubaWindowToRASTranslator& iTranslator,
+                                  ViewState& iViewState,
+                                  float oSquareRAS[4][3] );
 
   // Given an RAS point and a radius, calculates the minimum update
   // rect needed to display changes done to voxels in that
   // rectangle. Adds the rect to the update list.
   void CalcAndAddUpdateSquare ( float iRAS[3], float iRadiusRAS,
-				ScubaWindowToRASTranslator& iTranslator,
-				ViewState& iViewState );
+                                ScubaWindowToRASTranslator& iTranslator,
+                                ViewState& iViewState );
 
   // This is the time callback.
   virtual void DoTimer ();
@@ -303,7 +382,7 @@ class ScubaLayer2DMRI : public Layer {
 
   // Our look up table.
   ScubaColorLUT* mColorLUT;
-  
+
   // Optional layer mask.
   VolumeCollection* mMaskVolume;
 
@@ -336,11 +415,11 @@ class ScubaLayer2DMRI : public Layer {
 // Flooders ============================================================
 
 class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
- public:
+public:
   ScubaLayer2DMRIFloodVoxelEdit ( float iValue );
   ~ScubaLayer2DMRIFloodVoxelEdit () {}
 
-  virtual void DoBegin ();  
+  virtual void DoBegin ();
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
@@ -351,11 +430,11 @@ class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
 };
 
 class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
- public:
+public:
   ScubaLayer2DMRIFloodSelect ( bool ibSelect );
   ~ScubaLayer2DMRIFloodSelect () {}
 
-  virtual void DoBegin ();  
+  virtual void DoBegin ();
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
@@ -368,16 +447,16 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
 // Undoers ============================================================
 
 class UndoVoxelEditAction : public UndoAction {
- public:
+public:
 
-  UndoVoxelEditAction ( VolumeCollection* iVolume, 
-			float iNewValue, float iOrigValue, 
-			float iRAS[3], int iFrame );
+  UndoVoxelEditAction ( VolumeCollection* iVolume,
+                        float iNewValue, float iOrigValue,
+                        float iRAS[3], int iFrame );
 
   virtual void Undo ();
   virtual void Redo ();
-  
- protected:
+
+protected:
   VolumeCollection* mVolume;
   float mNewValue;
   float mOrigValue;
@@ -386,34 +465,34 @@ class UndoVoxelEditAction : public UndoAction {
 };
 
 class UndoSelectionAction : public UndoAction {
- public:
+public:
 
-  UndoSelectionAction ( VolumeCollection* iVolume, 
-			bool ibSelect, float iRAS[3] );
+  UndoSelectionAction ( VolumeCollection* iVolume,
+                        bool ibSelect, float iRAS[3] );
 
   virtual void Undo ();
   virtual void Redo ();
-  
- protected:
+
+protected:
   VolumeCollection* mVolume;
   bool mbSelect;
   float mRAS[3];
 };
 
 class UndoPathAction : public UndoAction {
- public:
+public:
   UndoPathAction ( Path<float>* iPath );
   virtual ~UndoPathAction ();
 
   virtual void Undo () {}
   virtual void Redo () {}
 
- protected:
+protected:
   Path<float>* mPath;
 };
 
 class UndoNewPathAction : public UndoPathAction {
- public:
+public:
   UndoNewPathAction ( Path<float>* iPath );
 
   virtual void Undo ();
@@ -421,7 +500,7 @@ class UndoNewPathAction : public UndoPathAction {
 };
 
 class UndoDeletePathAction : public UndoPathAction {
- public:
+public:
   UndoDeletePathAction ( Path<float>* iPath );
   virtual ~UndoDeletePathAction ();
 
@@ -432,15 +511,15 @@ class UndoDeletePathAction : public UndoPathAction {
 // Edge Finder ============================================================
 
 class EdgePathFinder : public ShortestPathFinder {
-  
- public:
+
+public:
   EdgePathFinder ( int iViewWidth, int iViewHeight, int iLongestEdge,
-		   ScubaWindowToRASTranslator* iTranslator,
-		   VolumeCollection* iVolume );
-		  
+                   ScubaWindowToRASTranslator* iTranslator,
+                   VolumeCollection* iVolume );
+
   virtual float GetEdgeCost ( Point2<int>& iPoint );
 
- protected:
+protected:
   VolumeCollection* mVolume;
   ScubaWindowToRASTranslator* mTranslator;
 };

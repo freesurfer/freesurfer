@@ -1,3 +1,31 @@
+/**
+ * @file  WindowFrame.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef WindowFrame_h
 #define WindowFrame_h
 
@@ -7,9 +35,9 @@
 #include "IDTracker.h"
 
 class WindowFrame : public DebugReporter,
-		    public IDTracker<WindowFrame> {
+      public IDTracker<WindowFrame> {
 
- public:
+public:
   typedef int ID;
 
   // Constructor takes an ID that is ultimately set by the Tcl script.
@@ -17,7 +45,9 @@ class WindowFrame : public DebugReporter,
   virtual ~WindowFrame();
 
   // Accessor for the ID
-  ID GetID() const { return mID; }
+  ID GetID() const {
+    return mID;
+  }
 
   // These callabacks are called by the WindowFrame. Subclasses
   // can't/shouldn't override these as these setup the environment
@@ -30,20 +60,30 @@ class WindowFrame : public DebugReporter,
   virtual void MouseDown( int iWindow[2], InputState& iInput );
   virtual void KeyDown( int iWindow[2], InputState& iInput );
   virtual void KeyUp( int iWindow[2], InputState& iInput );
-  
+
   // These manage flags that the WindowFrame will check to see if the
   // frame wants a redisplay. The frame should call RequestRedisplay()
   // to request one. Then WindowFrame will ask the frame if it wants
   // one by calling WantRedisplay() on it, and notify that the
   // redisplay has been posted with RedisplayPosted().
-  void RequestRedisplay() { mbPostRedisplay = true; }
-  bool WantRedisplay() const { return mbPostRedisplay; }
-  void RedisplayPosted() { mbPostRedisplay = false; }
+  void RequestRedisplay() {
+    mbPostRedisplay = true;
+  }
+  bool WantRedisplay() const {
+    return mbPostRedisplay;
+  }
+  void RedisplayPosted() {
+    mbPostRedisplay = false;
+  }
 
-  int GetWidth () const { return mWidth; }
-  int GetHeight () const { return mHeight; }
+  int GetWidth () const {
+    return mWidth;
+  }
+  int GetHeight () const {
+    return mHeight;
+  }
 
- protected:
+protected:
 
   // These are the overridable functions that subclass frames can use
   // to implement specific behavior.
@@ -76,9 +116,9 @@ class WindowFrame : public DebugReporter,
 // subclass of the WindowFrameFactory and pass it to the WindowFrame's
 // SetFrameFactory().
 class WindowFrameFactory {
- public:
+public:
   virtual ~WindowFrameFactory() {};
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
+  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
     return new WindowFrame( iID );
   }
 };

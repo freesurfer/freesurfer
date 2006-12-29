@@ -1,3 +1,31 @@
+/**
+ * @file  mriVolume.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef mriVolume_h
 #define mriVolume_h
 
@@ -28,7 +56,7 @@ typedef enum {
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
   Volm_tErr_FloodVisitCommandNotSupported,
-  
+
   Volm_knNumErrorCodes
 } Volm_tErr;
 
@@ -58,8 +86,8 @@ typedef enum {
   Volm_knNumVisitCommands
 } Volm_tVisitCommand;
 typedef Volm_tVisitCommand(*Volm_tVisitFunction)(xVoxelRef  iMRIIdx,
-						 float      iValue,
-						 void*      ipData);
+    float      iValue,
+    void*      ipData);
 
 /* Parameters for a generic flood algorithm. */
 typedef enum {
@@ -73,8 +101,8 @@ typedef enum {
    for a successful flood, i.e. it should continue on this voxel,and
    false if not. */
 typedef tBoolean(*Volm_tFloodComparatorFunction)(xVoxelRef  iMRIIdx,
-						 float      iValue,
-						 void*      ipData);
+    float      iValue,
+    void*      ipData);
 
 /* This should be kept in sync with the SAMPLE_* constants in mri.h */
 typedef enum {
@@ -90,7 +118,8 @@ typedef enum {
   Volm_knNumResampleMethods
 } Volm_tResampleMethod;
 
-typedef struct {
+typedef struct
+{
   xVoxel           mSourceIdx;       /* The starting voxel */
   float            mfSourceValue;    /* The value at the starting voxel */
   float            mfFuzziness;      /* The fuzziness for the comparator */
@@ -100,16 +129,18 @@ typedef struct {
   float            mfMaxDistance;    /* Max distance of flood (in voxels) */
   tBoolean         mb3D;             /* Should the fill be in 3D? */
   mri_tOrientation mOrientation;     /* If not, which plane? */
-  
-  Volm_tVisitFunction  mpFunction;     /* User function, called for each */ 
+
+  Volm_tVisitFunction  mpFunction;     /* User function, called for each */
   void*                mpFunctionData; /* visited. */
 
-} Volm_tFloodParams;
+}
+Volm_tFloodParams;
 
-typedef struct {
-  
+typedef struct
+{
+
   long mSignature;
-  
+
   int mnDimensionX;
   int mnDimensionY;
   int mnDimensionZ;
@@ -123,17 +154,17 @@ typedef struct {
 
 
   Volm_tSampleType mSampleType;  /* How to sample the volume */
-  
+
   mriTransformRef    mIdxToRASTransform;           /* idx -> ras (by MRI) */
   mriTransformRef    mDisplayTransform;            /* buf -> index */
   mriTransformRef    mMNITalLtzToRealTalTransform; /* tal (z<0) -> real tal */
   mriTransformRef    mMNITalGtzToRealTalTransform; /* tal (z>0) -> real tal */
   mriTransformRef    mScannerTransform;            /* idx -> scnaner */
-  
+
   char msSubjectName[mri_knSubjectNameLen];
   char msVolumeName[mri_knSubjectNameLen];
   char msOriginalPath[mri_knPathLen];
-  
+
   float    mfColorBrightness;               /* threshold */
   float    mfColorContrast;                 /* squash */
   float    mfColorMin;                      /* min color value for col table */
@@ -165,174 +196,175 @@ typedef struct {
   xVoxel  mTmpVoxel;
   xVoxel  mTmpVoxel2;
   Real    mTmpReal;
-  
-} mriVolume, *mriVolumeRef;
+
+}
+mriVolume, *mriVolumeRef;
 
 Volm_tErr Volm_New        ( mriVolumeRef* opVolume );
 Volm_tErr Volm_Delete     ( mriVolumeRef* iopVolume );
-Volm_tErr Volm_DeepClone  ( mriVolumeRef  this, 
-			    mriVolumeRef* opVolume );
+Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
+                            mriVolumeRef* opVolume );
 
-Volm_tErr Volm_CreateFromVolume( mriVolumeRef this, 
-				 mriVolumeRef iVolume );
+Volm_tErr Volm_CreateFromVolume( mriVolumeRef this,
+                                 mriVolumeRef iVolume );
 Volm_tErr Volm_ImportData      ( mriVolumeRef this,
-				 char*        isSource );
+                                 char*        isSource );
 Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
-				 char*        isPath );
+                                 char*        isPath );
 
 Volm_tErr Volm_Save ( mriVolumeRef iVolume,
-		      char*        isFileName,
-		      tBoolean     ibSaveFileName );
+                      char*        isFileName,
+                      tBoolean     ibSaveFileName );
 
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
-				      char*        isSource );
+                                      char*        isSource );
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this );
 
 
 /* Copies the MRI's VOL_GEOM field. */
 Volm_tErr Volm_CopyGeometryInformation ( mriVolumeRef this,
-					 VOL_GEOM*    ioVolumeGeometry );
+    VOL_GEOM*    ioVolumeGeometry );
 
 /* Use the GetColor functions when you just need to display a color on
    the screen. It gets a sampled value and passes it through the color
    table to return an intensity color. */
 void Volm_GetIntColorAtIdx        ( mriVolumeRef     this,
-				    xVoxelRef        iIdx,
-				    xColor3nRef      oColor );
+                                    xVoxelRef        iIdx,
+                                    xColor3nRef      oColor );
 void Volm_GetMaxIntColorAtIdx     ( mriVolumeRef     this,
-				    xVoxelRef        iIdx,
-				    mri_tOrientation iOrientation,
-				    xColor3nRef      oColor );
+                                    xVoxelRef        iIdx,
+                                    mri_tOrientation iOrientation,
+                                    xColor3nRef      oColor );
 
 Volm_tErr Volm_GetDimensions        ( mriVolumeRef this,
-				      int*         onDimensionX, 
-				      int*         onDimensionY, 
-				      int*         onDimensionZ );
+                                      int*         onDimensionX,
+                                      int*         onDimensionY,
+                                      int*         onDimensionZ );
 Volm_tErr Volm_GetNumberOfFrames    ( mriVolumeRef this,
-				      int*         onDimensionFrames );
+                                      int*         onDimensionFrames );
 Volm_tErr Volm_GetType              ( mriVolumeRef this,
-				      int*         onType );
+                                      int*         onType );
 Volm_tErr Volm_GetValueMinMax       ( mriVolumeRef this,
-				      float*       ofMin,
-				      float*       ofMax );
+                                      float*       ofMin,
+                                      float*       ofMax );
 
 Volm_tErr Volm_GetResampleMethod    ( mriVolumeRef          this,
-				      Volm_tResampleMethod* oMethod );
+                                      Volm_tResampleMethod* oMethod );
 Volm_tErr Volm_SetResampleMethod    ( mriVolumeRef          this,
-				      Volm_tResampleMethod  iMethod );
+                                      Volm_tResampleMethod  iMethod );
 
 Volm_tErr Volm_GetSampleType  ( mriVolumeRef       this,
-				Volm_tSampleType*  oType );
+                                Volm_tSampleType*  oType );
 Volm_tErr Volm_SetSampleType  ( mriVolumeRef       this,
-				Volm_tSampleType   iType );
+                                Volm_tSampleType   iType );
 
 /* Use the GetValue functions when you want the real value of the
    voxel. Before calling the unsafe version, make sure the volume is
    valid, the index is in bounds, and you're passing a valid
    pointer. */
 Volm_tErr Volm_GetValueAtIdx       ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     float*       oValue );
+                                     xVoxelRef    iIdx,
+                                     float*       oValue );
 Volm_tErr Volm_GetValueAtIdxUnsafe ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     float*       oValue );
+                                     xVoxelRef    iIdx,
+                                     float*       oValue );
 Volm_tErr Volm_SetValueAtIdx       ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     float        iValue );
+                                     xVoxelRef    iIdx,
+                                     float        iValue );
 
 Volm_tErr Volm_GetValueAtIdxFrame       ( mriVolumeRef this,
-					  xVoxelRef    iIdx,
-					  int          iFrame,
-					  float*       oValue );
+    xVoxelRef    iIdx,
+    int          iFrame,
+    float*       oValue );
 Volm_tErr Volm_GetValueAtIdxFrameUnsafe ( mriVolumeRef this,
-					  xVoxelRef    iIdx,
-					  int          iFrame,
-					  float*       oValue );
+    xVoxelRef    iIdx,
+    int          iFrame,
+    float*       oValue );
 Volm_tErr Volm_SetValueAtIdxFrame       ( mriVolumeRef this,
-					  xVoxelRef    iIdx,
-					  int          iFrame,
-					  float        iValue );
+    xVoxelRef    iIdx,
+    int          iFrame,
+    float        iValue );
 
 /* These work on MRI indices instead of screen indices, for high-res
    volumes. */
 Volm_tErr Volm_GetValueAtMRIIdx       ( mriVolumeRef this,
-					xVoxelRef    iMRIIdx,
-					float*       oValue );
+                                        xVoxelRef    iMRIIdx,
+                                        float*       oValue );
 Volm_tErr Volm_SetValueAtMRIIdx       ( mriVolumeRef this,
-					xVoxelRef    iMRIIdx,
-					float        iValue );
+                                        xVoxelRef    iMRIIdx,
+                                        float        iValue );
 
 /* Returns whether or not we have a talairach transform. */
 Volm_tErr Volm_HasTalTransform ( mriVolumeRef this,
-				 tBoolean*    obHasTransform );
+                                 tBoolean*    obHasTransform );
 
 /* coordinate conversion. idx stands for index and is the 0->dimension-1
    index of the volume. RAS space, aka world space, is centered on the
-   center of the volume and is in mm. mni tal is mni's version of 
+   center of the volume and is in mm. mni tal is mni's version of
    talairach space. the other tal is mni tal with a small modification. */
 Volm_tErr Volm_ConvertIdxToRAS     ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     xVoxelRef    oRAS );
+                                     xVoxelRef    iIdx,
+                                     xVoxelRef    oRAS );
 Volm_tErr Volm_ConvertRASToIdx     ( mriVolumeRef this,
-				     xVoxelRef    iRAS,
-				     xVoxelRef    oIdx );
+                                     xVoxelRef    iRAS,
+                                     xVoxelRef    oIdx );
 Volm_tErr Volm_ConvertIdxToMNITal  ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     xVoxelRef    oMNITal );
+                                     xVoxelRef    iIdx,
+                                     xVoxelRef    oMNITal );
 Volm_tErr Volm_ConvertIdxToTal     ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     xVoxelRef    oTal );
+                                     xVoxelRef    iIdx,
+                                     xVoxelRef    oTal );
 Volm_tErr Volm_ConvertTalToIdx     ( mriVolumeRef this,
-				     xVoxelRef    iTal,
-				     xVoxelRef    oIdx );
+                                     xVoxelRef    iTal,
+                                     xVoxelRef    oIdx );
 Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     xVoxelRef    oScanner );
+                                     xVoxelRef    iIdx,
+                                     xVoxelRef    oScanner );
 Volm_tErr Volm_ConvertMRIIdxToScanner ( mriVolumeRef this,
-					xVoxelRef    iMRIIdx,
-					xVoxelRef    oScanner );
+                                        xVoxelRef    iMRIIdx,
+                                        xVoxelRef    oScanner );
 Volm_tErr Volm_ConvertIdxToMRIIdx  ( mriVolumeRef this,
-				     xVoxelRef    iIdx,
-				     xVoxelRef    oMRIIdx );
+                                     xVoxelRef    iIdx,
+                                     xVoxelRef    oMRIIdx );
 Volm_tErr Volm_ConvertMRIIdxToIdx  ( mriVolumeRef this,
-				     xVoxelRef    iMRIIdx,
-				     xVoxelRef    oIdx );
+                                     xVoxelRef    iMRIIdx,
+                                     xVoxelRef    oIdx );
 Volm_tErr Volm_ConvertMRIIdxToRAS  ( mriVolumeRef this,
-				     xVoxelRef    iMRIIdx,
-				     xVoxelRef    oRAS );
+                                     xVoxelRef    iMRIIdx,
+                                     xVoxelRef    oRAS );
 Volm_tErr Volm_ConvertRASToMRIIdx  ( mriVolumeRef this,
-				     xVoxelRef    iRAS,
-				     xVoxelRef    oMRIIdx );
+                                     xVoxelRef    iRAS,
+                                     xVoxelRef    oMRIIdx );
 
 /* Use these when converting an RAS coming from the surface to an MRI
    index. This is different than normal RAS because surface RAS always
    has c_ras = 0, where volume RAS doesn't.  */
 Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS  ( mriVolumeRef this,
-					    xVoxelRef    iMRIIdx,
-					    xVoxelRef    oSurfaceRAS );
+    xVoxelRef    iMRIIdx,
+    xVoxelRef    oSurfaceRAS );
 Volm_tErr Volm_ConvertSurfaceRASToMRIIdx  ( mriVolumeRef this,
-					    xVoxelRef    iSurfaceRAS,
-					    xVoxelRef    oMRIIdx );
+    xVoxelRef    iSurfaceRAS,
+    xVoxelRef    oMRIIdx );
 
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
-				      mriTransformRef* opTransform );
+                                      mriTransformRef* opTransform );
 
 /* Generic flood algorithm. Starts at a user-supplied voxel and floods
    outwards, in 3D or inplane, and for every valid voxel, calls the
    user-supplied visitation function. User needs to fill out
    Volm_tFloodParams struct. */
 Volm_tErr Volm_Flood         ( mriVolumeRef        this,
-			       Volm_tFloodParams*  iParams );
+                               Volm_tFloodParams*  iParams );
 Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
-			       Volm_tFloodParams*  iParams,
-			       xVoxelRef           iIdx,
-			       tBoolean*           visited );
+                               Volm_tFloodParams*  iParams,
+                               xVoxelRef           iIdx,
+                               tBoolean*           visited );
 
 /* calls the parameter function for every voxel, passing the MRI index, the
    value, and the pointer passed to it. */
 Volm_tErr Volm_VisitAllVoxels ( mriVolumeRef        this,
-				Volm_tVisitFunction iFunc,
-				void*               ipData );
+                                Volm_tVisitFunction iFunc,
+                                void*               ipData );
 
 
 Volm_tErr Volm_FindMaxValues ( mriVolumeRef this );
@@ -340,48 +372,48 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this );
 Volm_tErr Volm_MakeColorTable ( mriVolumeRef this );
 
 Volm_tErr Volm_SetBrightnessAndContrast ( mriVolumeRef this,
-					  float        ifBrightness,
-					  float        ifContrast );
+    float        ifBrightness,
+    float        ifContrast );
 Volm_tErr Volm_SetColorMinMax           ( mriVolumeRef this,
-					  float        ifMin,
-					  float        ifMax );
+    float        ifMin,
+    float        ifMax );
 Volm_tErr Volm_GetBrightnessAndContrast ( mriVolumeRef this,
-					  float*       ofBrightness,
-					  float*       ofContrast );
+    float*       ofBrightness,
+    float*       ofContrast );
 
 Volm_tErr Volm_SaveToSnapshot      ( mriVolumeRef this );
 Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this );
 
 Volm_tErr Volm_Rotate    ( mriVolumeRef     this,
-			   mri_tOrientation iAxis,
-			   float            ifDegrees );
+                           mri_tOrientation iAxis,
+                           float            ifDegrees );
 Volm_tErr Volm_Threshold ( mriVolumeRef     this,
-			   float            iThreshold,
-			   tBoolean         ibAbove,
-			   float            iNewValue );
+                           float            iThreshold,
+                           tBoolean         ibAbove,
+                           float            iNewValue );
 Volm_tErr Volm_Flip      ( mriVolumeRef     this,
-			   mri_tOrientation iAxis );
+                           mri_tOrientation iAxis );
 Volm_tErr Volm_SetAllValues ( mriVolumeRef     this,
-			      float            iValue );
+                              float            iValue );
 
 Volm_tErr Volm_CopySubjectName ( mriVolumeRef this,
-				 char*        oSubjectName,
-				 int          inDestLen );
+                                 char*        oSubjectName,
+                                 int          inDestLen );
 Volm_tErr Volm_CopyVolumeName  ( mriVolumeRef this,
-				 char*        oVolumeName,
-				 int          inDestLen );
+                                 char*        oVolumeName,
+                                 int          inDestLen );
 Volm_tErr Volm_CopySourceDir   ( mriVolumeRef this,
-				 char*        oSourceDir,
-				 int          inDestLen );
+                                 char*        oSourceDir,
+                                 int          inDestLen );
 
 Volm_tErr Volm_SetSubjectName           ( mriVolumeRef this,
-					  char*        isName );
+    char*        isName );
 Volm_tErr Volm_SetVolumeName            ( mriVolumeRef this,
-					  char*        isName );
+    char*        isName );
 Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
-					  char*        isSource );
+    char*        isSource );
 Volm_tErr Volm_ExtractAndSetVolumeName  ( mriVolumeRef this,
-					  char*        isSource );
+    char*        isSource );
 
 /* Sets the mri voxel size and fov so that the smallest dimension is 1. */
 Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this );
@@ -392,16 +424,16 @@ Volm_tErr Volm_Conform ( mriVolumeRef this );
 /* Sets up internal data structures from an MRI volume and starts
    using the given MRI as its voxel values. */
 Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
-			     MRI*        iMRI );
+                             MRI*        iMRI );
 
 /* Calculates this->mIdxToRASTransform baesd on resample method. */
 Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this );
 
 /* For the max values in an orientation. */
 Volm_tErr Volm_GetMaxValueAtMRIIdx_ ( mriVolumeRef     this,
-				      xVoxelRef        iMRIIdx,
-				      mri_tOrientation iOrientation,
-				      float*           oValue );
+                                      xVoxelRef        iMRIIdx,
+                                      mri_tOrientation iOrientation,
+                                      float*           oValue );
 
 /* Note that the functions in this section are implemented as
    functions and macros. The functions are slower but safer, and the
@@ -417,45 +449,45 @@ Volm_tErr Volm_GetMaxValueAtMRIIdx_ ( mriVolumeRef     this,
    the local MRI space. This is done using the m_resample matrix. All
    the access functions of course need to use the local MRI idx. */
 void Volm_ConvertScreenIdxToMRIIdx_ ( mriVolumeRef this,
-				      xVoxelRef    iScreenIdx,
-				      xVoxelRef    oMRIIdx );
+                                      xVoxelRef    iScreenIdx,
+                                      xVoxelRef    oMRIIdx );
 void Volm_ConvertMRIIdxToScreenIdx_ ( mriVolumeRef this,
-				      xVoxelRef    iMRIIdx,
-				      xVoxelRef    oScreenIdx );
+                                      xVoxelRef    iMRIIdx,
+                                      xVoxelRef    oScreenIdx );
 
 /* safer function versions of main accessing and setting functions */
 void Volm_GetValueAtIdx_             ( mriVolumeRef      this,
-				       xVoxelRef         iIdx,
-				       float*            oValue );
+                                       xVoxelRef         iIdx,
+                                       float*            oValue );
 void Volm_GetValueAtMRIIdx_          ( mriVolumeRef      this,
-				       xVoxelRef         iMRIIdx,
-				       float*            oValue );
+                                       xVoxelRef         iMRIIdx,
+                                       float*            oValue );
 void Volm_GetValueAtIdxFrame_        ( mriVolumeRef      this,
-				       xVoxelRef         iIdx,
-				       int               iFrame,
-				       float*            oValue );
+                                       xVoxelRef         iIdx,
+                                       int               iFrame,
+                                       float*            oValue );
 void Volm_GetSampledValueAtIdx_      ( mriVolumeRef      this,
-				      xVoxelRef         iIdx,
-				       float*            oValue);
+                                       xVoxelRef         iIdx,
+                                       float*            oValue);
 void Volm_GetSampledValueAtIdxFrame_ ( mriVolumeRef      this,
-				       xVoxelRef         iIdx,
-				       int               iFrame,
-				       float*            oValue );
+                                       xVoxelRef         iIdx,
+                                       int               iFrame,
+                                       float*            oValue );
 
 
 void Volm_SetValueAtIdx_         ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   float             iValue );
+                                   xVoxelRef         iIdx,
+                                   float             iValue );
 void Volm_SetValueAtMRIIdx_         ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   float             iValue );
+                                      xVoxelRef         iIdx,
+                                      float             iValue );
 void Volm_SetValueAtIdxFrame_    ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   int               iFrame,
-				   float             iValue );
+                                   xVoxelRef         iIdx,
+                                   int               iFrame,
+                                   float             iValue );
 void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
-				   xVoxelRef        iIdx,
-				   xVoxelRef        oIdx );
+                                   xVoxelRef        iIdx,
+                                   xVoxelRef        oIdx );
 
 #else /* VOLM_USE_MACROS */
 
@@ -486,7 +518,7 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   *MATRIX_RELT(this->mpTmpMRIIdx,4,1) = 1.0 ; \
  \
   MatrixMultiply( this->m_resample_inv,  \
-		  this->mpTmpMRIIdx, this->mpTmpScreenIdx ); \
+    this->mpTmpMRIIdx, this->mpTmpScreenIdx ); \
  \
   (oScreenIdx)->mfX = *MATRIX_RELT(this->mpTmpScreenIdx,1,1); \
   (oScreenIdx)->mfY = *MATRIX_RELT(this->mpTmpScreenIdx,1,2); \
@@ -507,28 +539,28 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   switch( this->mpMriValues->type ) { \
     case MRI_UCHAR: \
       *oValue =  \
-	MRIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		(int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+ MRIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+  (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_INT: \
       *oValue =  \
-	MRIIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		 (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+ MRIIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_LONG: \
       *oValue =  \
-	MRILvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		 (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+ MRILvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_FLOAT: \
       *oValue =  \
-	MRIFvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		 (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+ MRIFvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_SHORT: \
       *oValue =  \
-	MRISvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		 (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+ MRISvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     default: \
       *oValue = 0; \
@@ -539,28 +571,28 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   switch( this->mpMriValues->type ) { \
     case MRI_UCHAR: \
       *oValue =  \
-	MRIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-		(int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
+ MRIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
+  (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
       break; \
     case MRI_INT: \
       *oValue =  \
-	MRIIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-		 (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
+ MRIIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
+   (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
       break; \
     case MRI_LONG: \
       *oValue =  \
-	MRILvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-		 (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
+ MRILvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
+   (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
       break; \
     case MRI_FLOAT: \
       *oValue =  \
-	MRIFvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-		 (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
+ MRIFvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
+   (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
       break; \
     case MRI_SHORT: \
       *oValue =  \
-	MRISvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-		 (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
+ MRISvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
+   (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ); \
       break; \
     default: \
       *oValue = 0; \
@@ -571,11 +603,11 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
  \
   MRIsampleVolumeType( this->mpMriValues, \
-		       xVoxl_GetFloatX(&this->mTmpVoxel), \
-		       xVoxl_GetFloatY(&this->mTmpVoxel), \
-		       xVoxl_GetFloatZ(&this->mTmpVoxel), \
-		       &this->mTmpReal, \
-		       (int)this->mSampleType ); \
+         xVoxl_GetFloatX(&this->mTmpVoxel), \
+         xVoxl_GetFloatY(&this->mTmpVoxel), \
+         xVoxl_GetFloatZ(&this->mTmpVoxel), \
+         &this->mTmpReal, \
+         (int)this->mSampleType ); \
  \
   *oValue = (float)this->mTmpReal;
 
@@ -585,12 +617,12 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
  \
   MRIsampleVolumeFrameType( this->mpMriValues, \
-			    xVoxl_GetFloatX(&this->mTmpVoxel), \
-			    xVoxl_GetFloatY(&this->mTmpVoxel), \
-			    xVoxl_GetFloatZ(&this->mTmpVoxel), \
-			    iFrame, \
-			    (int)this->mSampleType, \
-			    &value ); \
+       xVoxl_GetFloatX(&this->mTmpVoxel), \
+       xVoxl_GetFloatY(&this->mTmpVoxel), \
+       xVoxl_GetFloatZ(&this->mTmpVoxel), \
+       iFrame, \
+       (int)this->mSampleType, \
+       &value ); \
  \
   *oValue = (float)this->mTmpReal;
 
@@ -603,28 +635,28 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       break ; \
     case MRI_UCHAR: \
       MRIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	      (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
-	(BUFTYPE) iValue; \
+       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+ (BUFTYPE) iValue; \
       break ; \
     case MRI_SHORT: \
       MRISvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
-	(short) iValue; \
+        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+ (short) iValue; \
       break ; \
     case MRI_FLOAT: \
       MRIFvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
-	(float) iValue; \
+        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+ (float) iValue; \
       break ; \
     case MRI_LONG: \
       MRILvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
-	(long) iValue; \
+        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+ (long) iValue; \
       break ; \
     case MRI_INT: \
       MRIIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
-	(int) iValue; \
+        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+ (int) iValue; \
       break ; \
     }
 
@@ -635,28 +667,28 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       break ; \
     case MRI_UCHAR: \
       MRIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-	      (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
-	(BUFTYPE) iValue; \
+       (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
+ (BUFTYPE) iValue; \
       break ; \
     case MRI_SHORT: \
       MRISvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-	       (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
-	(short) iValue; \
+        (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
+ (short) iValue; \
       break ; \
     case MRI_FLOAT: \
       MRIFvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-	       (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
-	(float) iValue; \
+        (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
+ (float) iValue; \
       break ; \
     case MRI_LONG: \
       MRILvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-	       (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
-	(long) iValue; \
+        (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
+ (long) iValue; \
       break ; \
     case MRI_INT: \
       MRIIvox( this->mpMriValues, (int)floor((iMRIIdx)->mfX+0.5),  \
-	       (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
-	(int) iValue; \
+        (int)floor((iMRIIdx)->mfY+0.5), (int)floor((iMRIIdx)->mfZ+0.5) ) =  \
+ (int) iValue; \
       break ; \
     }
 
@@ -666,32 +698,32 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   switch( this->mpMriValues->type ) { \
     case MRI_UCHAR: \
       *oValue =  \
-	MRIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	   	    (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+ MRIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+         (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                     iFrame ); \
       break; \
     case MRI_INT: \
       *oValue =  \
-	MRIIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		     (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+ MRIIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_LONG: \
       *oValue =  \
-	MRILseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		     (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+ MRILseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_FLOAT: \
       *oValue =  \
-	MRIFseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		     (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+ MRIFseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_SHORT: \
       *oValue =  \
-	MRISseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-		     (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+ MRISseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
+       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     default: \
@@ -708,33 +740,33 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       break ; \
     case MRI_UCHAR: \
       MRIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	          (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                   iFrame ) =  \
-	(BUFTYPE) iValue; \
+ (BUFTYPE) iValue; \
       break ; \
     case MRI_SHORT: \
       MRISseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
-	(short) iValue; \
+ (short) iValue; \
       break ; \
     case MRI_FLOAT: \
       MRIFseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
-	(float) iValue; \
+ (float) iValue; \
       break ; \
     case MRI_LONG: \
       MRILseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
-	(long) iValue; \
+ (long) iValue; \
       break ; \
     case MRI_INT: \
       MRIIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-	           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
-	(int) iValue; \
+ (int) iValue; \
       break ; \
     }
 
@@ -742,10 +774,10 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
  \
   MRIsincSampleVolume( this->mpMriValues,  \
-		       (this->mTmpVoxel).mfX, \
-		       (this->mTmpVoxel).mfY, \
-		       (this->mTmpVoxel).mfZ, \
-		       2, irValue);
+         (this->mTmpVoxel).mfX, \
+         (this->mTmpVoxel).mfY, \
+         (this->mTmpVoxel).mfZ, \
+         2, irValue);
 
 #define Volm_ApplyDisplayTransform_(this,iIdx,oIdx) \
     Trns_ConvertBtoA( this->mDisplayTransform, iIdx, oIdx )
@@ -758,21 +790,21 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
    worthless because voxels always end up being valid. */
 Volm_tErr Volm_Verify     ( mriVolumeRef this );
 Volm_tErr Volm_VerifyIdx  ( mriVolumeRef this,
-			    xVoxelRef    iIdx );
+                            xVoxelRef    iIdx );
 Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
-			    xVoxelRef    iIdx );
+                            xVoxelRef    iIdx );
 Volm_tErr Volm_VerifyMRIIdx_ ( mriVolumeRef this,
-			    xVoxelRef    iIdx );
+                               xVoxelRef    iIdx );
 
 /* So here is a function that really does return an error when an
    index is out of bounds. This can be used to actually verify indices
    so you don't end up drawing the value at 0,0,0 when you're outside
    the bounds of the volume. -RKT */
 Volm_tErr Volm_VerifyIdxInMRIBounds ( mriVolumeRef this,
-				      xVoxelRef    iIdx );
+                                      xVoxelRef    iIdx );
 
 Volm_tErr Volm_VerifyFrame_ ( mriVolumeRef this,
-			      int          iFrame );
+                              int          iFrame );
 char* Volm_GetErrorString ( Volm_tErr ieCode );
 
 

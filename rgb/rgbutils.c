@@ -40,8 +40,7 @@ IMAGE *RGBReadHeader(char *fname, IMAGE *);
 
 
 IMAGE *
-RGBReadHeader(char *fname, IMAGE *I)
-{
+RGBReadHeader(char *fname, IMAGE *I) {
   RGB_IMAGE *rgb;
 
   rgb = iopen(fname, "r", 0, 0, 0, 0, 0);
@@ -50,15 +49,14 @@ RGBReadHeader(char *fname, IMAGE *I)
     I = ImageAlloc(rgb->ysize, rgb->xsize, PFRGB, 1) ;
   else
     init_header(I, "orig", "seq", 1, "today", rgb->ysize,
-    rgb->xsize, PFRGB, 1, "temp");
-  
+                rgb->xsize, PFRGB, 1, "temp");
+
   iclose(rgb);
 
   return(I) ;
 }
 
-IMAGE *RGBReadImage(char *fname)
-{
+IMAGE *RGBReadImage(char *fname) {
   IMAGE *I;
   RGB_IMAGE *rgb;
   unsigned short rows,cols,*r,*g,*b,i,j,*tr,*tg,*tb;
@@ -67,13 +65,13 @@ IMAGE *RGBReadImage(char *fname)
   rgb = iopen(fname, "r", 0, 0, 0, 0, 0);
   rows = rgb->ysize;
   cols = rgb->xsize;
-  
+
   if (rgb->zsize>3)
     ErrorReturn(NULL, (ERROR_BAD_PARM,
-           "Too many color planes in RGBReadImage (%s)\n",fname));
+                       "Too many color planes in RGBReadImage (%s)\n",fname));
 
   I = ImageAlloc(rows, cols, PFRGB, 1);
-  
+
   if ((r = (unsigned short *)malloc(sizeof(unsigned short)*cols)) == NULL)
     ErrorExit(ERROR_NO_MEMORY,"Failed to allocate color buffer\n");
 
@@ -85,22 +83,22 @@ IMAGE *RGBReadImage(char *fname)
 
   iptr = I->image;
 
-  for(i=0;i<rows;i++)
-    {
-      getrow(rgb,r,i,0); /* Red */
-      getrow(rgb,g,i,1); /* Green */
-      getrow(rgb,b,i,2); /* Blue */
+  for (i=0;i<rows;i++) {
+    getrow(rgb,r,i,0); /* Red */
+    getrow(rgb,g,i,1); /* Green */
+    getrow(rgb,b,i,2); /* Blue */
 
-      /* Translate color planes to RGB format */
-      tr = r; tg = g; tb = b;
-      for (j=0;j<cols;j++)
-  {
-    *iptr++ = *tr++;
-    *iptr++ = *tg++;
-    *iptr++ = *tb++;
-  }
+    /* Translate color planes to RGB format */
+    tr = r;
+    tg = g;
+    tb = b;
+    for (j=0;j<cols;j++) {
+      *iptr++ = *tr++;
+      *iptr++ = *tg++;
+      *iptr++ = *tb++;
     }
-  
+  }
+
   free(r);
   free(g);
   free(b);
@@ -110,8 +108,7 @@ IMAGE *RGBReadImage(char *fname)
 }
 
 int
-RGBwrite(IMAGE *I, char *fname, int frame)
-{
+RGBwrite(IMAGE *I, char *fname, int frame) {
   RGB_IMAGE  *image ;
   int    x, y ;
   unsigned short *r ;
@@ -122,8 +119,7 @@ RGBwrite(IMAGE *I, char *fname, int frame)
   image = iopen(fname,"w",UNCOMPRESSED(1), 2, I->cols, I->rows, 1);
 #endif
   r = (unsigned short *)calloc(I->cols, sizeof(unsigned short)) ;
-  for (y = 0 ; y < I->rows; y++) 
-  {
+  for (y = 0 ; y < I->rows; y++) {
     for (x = 0 ; x < I->cols ; x++)
       r[x] = (unsigned short)(*IMAGEpix(I, x, y)) ;
 

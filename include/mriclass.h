@@ -1,3 +1,31 @@
+/**
+ * @file  mriclass.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.41 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef MRICLASS_H
 #define MRICLASS_H
 
@@ -42,7 +70,8 @@
 typedef struct
 {
   int  max_clusters[NCLASSES] ;
-} RBF_PARMS ;
+}
+RBF_PARMS ;
 
 /* bitfield of feature types */
 #define FEATURE_INTENSITY      0x00000001
@@ -97,7 +126,8 @@ typedef struct
   CL_UNION    classifier[MAX_ROUNDS] ;/* pointer to appropriate classifier */
   MRI         *mri_priors ;           /* prior probabilities */
   char        prior_fname[100] ;
-} MRI_CLASSIFIER, MRIC ;
+}
+MRI_CLASSIFIER, MRIC ;
 
 MRIC   *MRICalloc(int nrounds, int types[], int features[], void *parms) ;
 int    MRICfree(MRIC **pmri) ;
@@ -106,7 +136,7 @@ int    MRICretrain(MRIC *mric, char *file_name) ;
 MRIC   *MRICread(char *fname) ;
 MRIC   *MRICquickRead(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
-MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
+MRI    *MRICclassify(MRIC *mric, MRI *mri_src,
                      MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
 int    MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_obs,
                          int features);
@@ -114,7 +144,7 @@ MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
 int    MRInormalizePriors(MRI *mri_priors) ;
-int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, 
+int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src,
                             MRI *mri_wm, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
@@ -126,7 +156,7 @@ int    MRICfeatureNumber(MRIC *mric, int round, int feature_code) ;
 char   *MRICfeatureNumberToName(int feature_number) ;
 int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
 int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
-                 char *training_file_name) ;
+                            char *training_file_name) ;
 int    MRICsetRegionSize(MRIC *mric, int rwidth, int rheight, int rdepth) ;
 int    MRICresetRegionSize(MRIC *mric) ;
 

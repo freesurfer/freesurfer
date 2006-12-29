@@ -32,45 +32,46 @@
 /* Copyright marker.  Copyright will be inserted above.  Do not remove */
 
 /*
-**				DICOM 96
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 96
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Stephen M. Moore, 30-Jun-96
-** Intent:		This is the include file for the CTN threads.
-**			facility.  This facility provides functions for
-**			simple thread operations needed to make some
-**			parts of the code thread safe.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
-** Source File:		$RCSfile: ctnthread.h,v $
-** Revision:		$Revision: 1.3 $
-** Status:		$State: Exp $
+** Author, Date: Stephen M. Moore, 30-Jun-96
+** Intent:  This is the include file for the CTN threads.
+**   facility.  This facility provides functions for
+**   simple thread operations needed to make some
+**   parts of the code thread safe.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: ctnthread.h,v $
+** Revision:  $Revision: 1.4 $
+** Status:  $State: Exp $
 */
 
 #ifndef CTN_THREADS_IS_IN
 #define CTN_THREADS_IS_IN 1
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* Define the function prototypes for this set of routines.
-** The first set defines initialization routines for using these
-** services as a user or provider.
-*/
-CONDITION THR_Init(void);
-CONDITION  THR_Shutdown(void);
-CONDITION  THR_ObtainMutex(int fac);
-CONDITION  THR_ReleaseMutex(int fac);
+  /* Define the function prototypes for this set of routines.
+  ** The first set defines initialization routines for using these
+  ** services as a user or provider.
+  */
+  CONDITION THR_Init(void);
+  CONDITION  THR_Shutdown(void);
+  CONDITION  THR_ObtainMutex(int fac);
+  CONDITION  THR_ReleaseMutex(int fac);
 
 #define THR_ObtainMutexA(a) EEE;
 #define THR_ReleaseMutexA(a) FFF;
 
-#define	THR_NORMAL			FORM_COND(FAC_THR, SEV_SUCC, 1)
-#define	THR_GENERICFAILURE		FORM_COND(FAC_THR, SEV_ERROR, 2)
-#define	THR_NOTINITIALIZED		FORM_COND(FAC_THR, SEV_ERROR, 3)
+#define THR_NORMAL   FORM_COND(FAC_THR, SEV_SUCC, 1)
+#define THR_GENERICFAILURE  FORM_COND(FAC_THR, SEV_ERROR, 2)
+#define THR_NOTINITIALIZED  FORM_COND(FAC_THR, SEV_ERROR, 3)
 
 #ifdef  __cplusplus
 }

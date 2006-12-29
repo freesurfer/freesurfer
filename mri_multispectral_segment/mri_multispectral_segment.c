@@ -1,3 +1,31 @@
+/**
+ * @file  mri_multispectral_segment.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,8 +41,7 @@
 #define MAXVERTICES 25000
 #define MAXFACES 25000
 
-typedef struct ss_vertex_type_
-{
+typedef struct ss_vertex_type_ {
   float x,y,z;
   float nx,ny,nz;
   float xf,yf,zf;
@@ -26,7 +53,8 @@ typedef struct ss_vertex_type_
   int v[10];
   int fnum;
   int f[10];
-} ss_vertex_type;
+}
+ss_vertex_type;
 
 float direction[26][3];
 
@@ -54,7 +82,7 @@ int MRI_correction=0;
 MRI *mri_T1,*mri_PD,*mri_Err,*mri_dst,*mri_test,*mri_CSF;
 int mriT1=0, mriPD=0, mriErr=0,mriCSF=0,mriOut=0,mriSURF=0;
 char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,
-  *CSF_fname,surf_fname[512];
+*CSF_fname,surf_fname[512];
 
 #if 0
 static void shrink_Brain(void);
@@ -104,68 +132,64 @@ unsigned long Compteur[2000][5000];
 
 /*Error routine*/
 
-static void Error(char *string)
-{
+static void Error(char *string) {
   fprintf(stderr, "\nError %s\n",string) ;
   exit(1) ;
 }
 
 
-static void brain_params(void)
-{
+static void brain_params(void) {
   int i,j,k;
   unsigned long n;
   double x,y,z;
-	unsigned long masse;
-	int threshold=PEAK1*90/100;
-	double mean,var,fmasse,fval;
-	int a,b,c,d=3,nb=1,nbvox;
-	int val;
+  unsigned long masse;
+  int threshold=PEAK1*90/100;
+  double mean,var,fmasse,fval;
+  int a,b,c,d=3,nb=1,nbvox;
+  int val;
 
 
-	txCOG = tyCOG = tzCOG = 0;
-	fmasse=0;
+  txCOG = tyCOG = tzCOG = 0;
+  fmasse=0;
   for (k=0;k<depth;k++)
-    for(j=0;j<height;j++)
-      for(i=0;i<width;i++)
-			{
-				txCOG+= i*MRISvox(mri_dst,i,j,k);
-				tyCOG+= j*MRISvox(mri_dst,i,j,k);
-				tzCOG+= k*MRISvox(mri_dst,i,j,k);
+    for (j=0;j<height;j++)
+      for (i=0;i<width;i++) {
+        txCOG+= i*MRISvox(mri_dst,i,j,k);
+        tyCOG+= j*MRISvox(mri_dst,i,j,k);
+        tzCOG+= k*MRISvox(mri_dst,i,j,k);
 
-				fmasse+=MRISvox(mri_dst,i,j,k);
-			}
+        fmasse+=MRISvox(mri_dst,i,j,k);
+      }
 
-	txCOG/=fmasse;
-	tyCOG/=fmasse;
-	tzCOG/=fmasse;
+  txCOG/=fmasse;
+  tyCOG/=fmasse;
+  tzCOG/=fmasse;
 
   fprintf(stderr,"\n      first estimation of the COG coord: x=%d,y=%d, z=%d",(int)txCOG,(int)tyCOG,(int)tzCOG);
 
 
-	nbvox=((2*nb+1)*SQR(2*nb+1));
+  nbvox=((2*nb+1)*SQR(2*nb+1));
 
   x=y=z=0;
   n=0;
-	fmasse=0;
+  fmasse=0;
   for (k=nb*d;k<depth-nb*d;k++)
-    for(j=nb*d;j<height-nb*d;j++)
-      for(i=nb*d;i<width-nb*d;i++)
-        if (MRISvox(mri_dst,i,j,k)>threshold)
-        {
-					mean=0;var=0;
-					for(c=-nb;c<nb+1;c++)
-						for(b=-nb;b<nb+1;b++)
-							for(a=-nb;a<nb+1;a++)
-							{
-								val=MRISvox(mri_dst,i+a*d,j+b*d,k+c*d);
-								mean+=val;
-								var+=SQR(val);
-							}
-					mean/=nbvox;
-					var=var/nbvox-SQR(mean);
-					fval=1/(1+SQR(var));
-					fmasse+=fval;
+    for (j=nb*d;j<height-nb*d;j++)
+      for (i=nb*d;i<width-nb*d;i++)
+        if (MRISvox(mri_dst,i,j,k)>threshold) {
+          mean=0;
+          var=0;
+          for (c=-nb;c<nb+1;c++)
+            for (b=-nb;b<nb+1;b++)
+              for (a=-nb;a<nb+1;a++) {
+                val=MRISvox(mri_dst,i+a*d,j+b*d,k+c*d);
+                mean+=val;
+                var+=SQR(val);
+              }
+          mean/=nbvox;
+          var=var/nbvox-SQR(mean);
+          fval=1/(1+SQR(var));
+          fmasse+=fval;
           x+=i*fval;
           y+=j*fval;
           z+=k*fval;
@@ -178,30 +202,28 @@ static void brain_params(void)
 
   masse=0;
   for (k=0;k<depth;k++)
-    for(j=0;j<height;j++)
-      for(i=0;i<width;i++)
-        if(MRISvox(mri_dst,i,j,k)>threshold)
-        {
-					masse+=MRISvox(mri_dst,i,j,k);
-					rad_Brain+=(SQR(i-xCOG)+SQR(j-yCOG)+SQR(k-zCOG))*MRISvox(mri_dst,i,j,k);
+    for (j=0;j<height;j++)
+      for (i=0;i<width;i++)
+        if (MRISvox(mri_dst,i,j,k)>threshold) {
+          masse+=MRISvox(mri_dst,i,j,k);
+          rad_Brain+=(SQR(i-xCOG)+SQR(j-yCOG)+SQR(k-zCOG))*MRISvox(mri_dst,i,j,k);
         }
 
-	rad_Brain=sqrt(rad_Brain/masse);
+  rad_Brain=sqrt(rad_Brain/masse);
 
   fprintf(stderr,"\n      second estimation of the COG coord: x=%d,y=%d, z=%d, r=%d",(int)xCOG,(int)yCOG,(int)zCOG,(int)rad_Brain);
 
-	txCOG=xCOG-txCOG;
-	tyCOG=yCOG-tyCOG;
-	tzCOG=zCOG-tzCOG;
-	
-	fprintf(stderr,"\n      direction of the top of the brain: x=%d,y=%d, z=%d",(int)txCOG,(int)tyCOG,(int)tzCOG);
+  txCOG=xCOG-txCOG;
+  tyCOG=yCOG-tyCOG;
+  tzCOG=zCOG-tzCOG;
+
+  fprintf(stderr,"\n      direction of the top of the brain: x=%d,y=%d, z=%d",(int)txCOG,(int)tyCOG,(int)tzCOG);
 
 }
 
 
 static void
-normal_face(int f,float *n)
-{
+normal_face(int f,float *n) {
   float v1[3],v2[3];
 
   v1[0] = vertex[face[f][0]].x-vertex[face[f][1]].x;
@@ -216,19 +238,16 @@ normal_face(int f,float *n)
 }
 
 static void
-compute_normals(void)
-{
+compute_normals(void) {
   int j,k;
   ss_vertex_type *v;
   float n[3],nt[3],d;
 
-  for (k=0;k<nvertices;k++)
-  {
+  for (k=0;k<nvertices;k++) {
     v = &vertex[k];
     n[0] = n[1] = n[2] = 0;
-    for (j=0;j<v->fnum;j++)
-    {
-      normal_face(v->f[j],nt);    
+    for (j=0;j<v->fnum;j++) {
+      normal_face(v->f[j],nt);
       n[0] += nt[0];
       n[1] += nt[1];
       n[2] += nt[2];
@@ -240,67 +259,59 @@ compute_normals(void)
   }
 }
 
-static void read_geometry_init(void)
-{
+static void read_geometry_init(void) {
   int i,j,k,n,last,next,skiplast,skipnext;
-  char fname[512], *mri_dir; 
+  char fname[512], *mri_dir;
   FILE *fp;
 
   mri_dir = getenv("MRI_DIR");
-	sprintf(fname,"%s/lib/bem/ic5.tri",mri_dir);
+  sprintf(fname,"%s/lib/bem/ic5.tri",mri_dir);
 
   fp = fopen(fname,"r");
-  if (fp==NULL) 
-  {
+  if (fp==NULL) {
     fprintf(stderr,"\n\nmri_strip_skull: ### cannot open file %s\n",fname);
     return;
   }
 
- 
-	fscanf(fp,"%d",&nvertices);
-	for (k=0;k<nvertices;k++)
-	{
-		fscanf(fp,"%*d %f %f %f",
-					 &vertex[k].x,&vertex[k].y,&vertex[k].z);
-		vertex[k].mx = vertex[k].my = vertex[k].mz = 0;
-		vertex[k].vnum = 0;
-		vertex[k].fnum = 0;  /* marty */
-		vertex[k].nc = 0;
-		vertex[k].snc = 0;
-	}
-	fscanf(fp,"%d",&nfaces);
-	for (k=0;k<nfaces;k++)
-	{
-		fscanf(fp,"%*d");
-		for (n=0;n<3;n++)
-			{
-				fscanf(fp,"%d",&face[k][n]);
-				face[k][n]--;
-			}
-	}
 
-		fclose(fp);
-		fprintf(stderr,"mri_strip_skull: triangle file %s read\n",fname);
-          fprintf(stderr,"nvertices=%d, nfaces=%d\n",nvertices,nfaces);
+  fscanf(fp,"%d",&nvertices);
+  for (k=0;k<nvertices;k++) {
+    fscanf(fp,"%*d %f %f %f",
+           &vertex[k].x,&vertex[k].y,&vertex[k].z);
+    vertex[k].mx = vertex[k].my = vertex[k].mz = 0;
+    vertex[k].vnum = 0;
+    vertex[k].fnum = 0;  /* marty */
+    vertex[k].nc = 0;
+    vertex[k].snc = 0;
+  }
+  fscanf(fp,"%d",&nfaces);
+  for (k=0;k<nfaces;k++) {
+    fscanf(fp,"%*d");
+    for (n=0;n<3;n++) {
+      fscanf(fp,"%d",&face[k][n]);
+      face[k][n]--;
+    }
+  }
 
-  for (k=0;k<nfaces;k++)
-  {
-    for (i=0;i<3;i++)
-    {
+  fclose(fp);
+  fprintf(stderr,"mri_strip_skull: triangle file %s read\n",fname);
+  fprintf(stderr,"nvertices=%d, nfaces=%d\n",nvertices,nfaces);
+
+  for (k=0;k<nfaces;k++) {
+    for (i=0;i<3;i++) {
       vertex[face[k][i]].f[vertex[face[k][i]].fnum++] = k;
       last = (i>0)?i-1:2;
       next = (i<2)?i+1:0;
       skiplast = skipnext = FALSE;
-      for (j=0;j<vertex[face[k][i]].vnum;j++)
-      {
+      for (j=0;j<vertex[face[k][i]].vnum;j++) {
         if (vertex[face[k][i]].v[j]==face[k][last])
           skiplast = TRUE;
         if (vertex[face[k][i]].v[j]==face[k][next])
           skipnext = TRUE;
       }
-      if (!skiplast) 
+      if (!skiplast)
         vertex[face[k][i]].v[vertex[face[k][i]].vnum++]=face[k][last];
-      if (!skipnext) 
+      if (!skipnext)
         vertex[face[k][i]].v[vertex[face[k][i]].vnum++]=face[k][next];
     }
   }
@@ -309,24 +320,23 @@ static void read_geometry_init(void)
 
 
 static void
-write_geometry_init(char *fname)
-{
+write_geometry_init(char *fname) {
   FILE *fp;
   int  k,n;
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {printf("### File %s not found\n",fname);return;}
+  if (fp==NULL) {
+    printf("### File %s not found\n",fname);
+    return;
+  }
   fprintf(fp,"%5d\n",nvertices);
-  for (k=0;k<nvertices;k++)
-  {
+  for (k=0;k<nvertices;k++) {
     fprintf(fp,"%5d%10.4f%10.4f%10.4f\n",k+1,vertex[k].x,vertex[k].y,vertex[k].z);
   }
   fprintf(fp,"%5d\n",nfaces);
-  for (k=0;k<nfaces;k++)
-  {
+  for (k=0;k<nfaces;k++) {
     fprintf(fp,"%5d",k+1);
-    for (n=0;n<3;n++)
-    {
+    for (n=0;n<3;n++) {
       fprintf(fp,"%5d",face[k][n]+1);
     }
     fprintf(fp,"\n");
@@ -335,64 +345,56 @@ write_geometry_init(char *fname)
   printf("triangle file %s written\n",fname);
 }
 
-static void read_geometry(char *fname)
-{
+static void read_geometry(char *fname) {
   int i,j,k,n,last,next,skiplast,skipnext;
   FILE *fp;
 
 
 
   fp = fopen(fname,"r");
-  if (fp==NULL) 
-  {
+  if (fp==NULL) {
     fprintf(stderr,"\n\nmri_strip_skull: ### cannot open file %s\n",fname);
     return;
   }
 
 
-	fscanf(fp,"%d",&nvertices);
-	for (k=0;k<nvertices;k++)
-	{
-		fscanf(fp,"%f %f %f",
-					 &vertex[k].x,&vertex[k].y,&vertex[k].z);
-		vertex[k].mx = vertex[k].my = vertex[k].mz = 0;
-		vertex[k].vnum = 0;
-		vertex[k].fnum = 0;  /* marty */
-		vertex[k].nc = 0;
-		vertex[k].snc = 0;
-	}
-	fscanf(fp,"%d",&nfaces);
-	for (k=0;k<nfaces;k++)
-	{
-		for (n=0;n<3;n++)
-		{
-				fscanf(fp,"%d",&face[k][n]);
-				/*face[k][n];*/
-		}
-	}
+  fscanf(fp,"%d",&nvertices);
+  for (k=0;k<nvertices;k++) {
+    fscanf(fp,"%f %f %f",
+           &vertex[k].x,&vertex[k].y,&vertex[k].z);
+    vertex[k].mx = vertex[k].my = vertex[k].mz = 0;
+    vertex[k].vnum = 0;
+    vertex[k].fnum = 0;  /* marty */
+    vertex[k].nc = 0;
+    vertex[k].snc = 0;
+  }
+  fscanf(fp,"%d",&nfaces);
+  for (k=0;k<nfaces;k++) {
+    for (n=0;n<3;n++) {
+      fscanf(fp,"%d",&face[k][n]);
+      /*face[k][n];*/
+    }
+  }
 
-	fclose(fp);
-	/*    fprintf(stderr,"mri_strip_skull: triangle file %s read\n",fname);
-				fprintf(stderr,"nvertices=%d, nfaces=%d\n",nvertices,nfaces);*/
+  fclose(fp);
+  /*    fprintf(stderr,"mri_strip_skull: triangle file %s read\n",fname);
+     fprintf(stderr,"nvertices=%d, nfaces=%d\n",nvertices,nfaces);*/
 
-  for (k=0;k<nfaces;k++)
-  {
-    for (i=0;i<3;i++)
-    {
+  for (k=0;k<nfaces;k++) {
+    for (i=0;i<3;i++) {
       vertex[face[k][i]].f[vertex[face[k][i]].fnum++] = k;
       last = (i>0)?i-1:2;
       next = (i<2)?i+1:0;
       skiplast = skipnext = FALSE;
-      for (j=0;j<vertex[face[k][i]].vnum;j++)
-      {
+      for (j=0;j<vertex[face[k][i]].vnum;j++) {
         if (vertex[face[k][i]].v[j]==face[k][last])
           skiplast = TRUE;
         if (vertex[face[k][i]].v[j]==face[k][next])
           skipnext = TRUE;
       }
-      if (!skiplast) 
+      if (!skiplast)
         vertex[face[k][i]].v[vertex[face[k][i]].vnum++]=face[k][last];
-      if (!skipnext) 
+      if (!skipnext)
         vertex[face[k][i]].v[vertex[face[k][i]].vnum++]=face[k][next];
     }
   }
@@ -400,41 +402,35 @@ static void read_geometry(char *fname)
 }
 
 static void
-init_surf_to_image(float rx, float ry, float rz)
-{
+init_surf_to_image(float rx, float ry, float rz) {
   int k;
-  for (k=0;k<nvertices;k++)
-  {
+  for (k=0;k<nvertices;k++) {
     vertex[k].x = rx*vertex[k].x+xCOG;
-    vertex[k].y = ry*vertex[k].y+yCOG;    
+    vertex[k].y = ry*vertex[k].y+yCOG;
     vertex[k].z = rz*vertex[k].z+zCOG;
   }
 }
 
 #if 0
-static float rtanh(float x)
-{
+static float rtanh(float x) {
   return (x<0.0)?0.0:tanh(x);
 }
-#endif 
+#endif
 
 
 
 /* Find 2 normals to a  vector nx, ny, nz */
-static void find_normal(float nx,float ny, float nz,float* n1,float *n2)
-{
+static void find_normal(float nx,float ny, float nz,float* n1,float *n2) {
   float ps,ps_buff;
   int p,k;
-  
+
   k=0;
   ps=10;
-  for(p=0;p<26;p++)
-  {
+  for (p=0;p<26;p++) {
     ps_buff=direction[p][0]*nx+direction[p][1]*ny+direction[p][2]*nz;
     if (ps_buff<0)
       ps_buff=-ps_buff;
-    if (ps_buff<ps)
-    {
+    if (ps_buff<ps) {
       ps=ps_buff;
       k=p;
     }
@@ -454,16 +450,14 @@ static void find_normal(float nx,float ny, float nz,float* n1,float *n2)
 
 }
 
-static void init_direction(void)
-{
+static void init_direction(void) {
   int i,j,k,p=0;
   float norm;
-  
-  for(i=-1;i<2;i++)
-    for(j=-1;j<2;j++)
-      for(k=-1;k<2;k++)
-        if(i || j || k)
-        {
+
+  for (i=-1;i<2;i++)
+    for (j=-1;j<2;j++)
+      for (k=-1;k<2;k++)
+        if (i || j || k) {
           norm=sqrt(SQR(i)+SQR(j)+SQR(k));
           direction[p][0]=i/norm;
           direction[p][1]=j/norm;
@@ -476,8 +470,7 @@ static void init_direction(void)
 /*************************************************************************/
 
 static void
-shrink_Inner_Skull(void)
-{
+shrink_Inner_Skull(void) {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   float force,force1,force2,force3;
   float d,dx,dy,dz,nx,ny,nz,avgnc;
@@ -488,53 +481,48 @@ shrink_Inner_Skull(void)
   float r,F,E,rmin=5,rmax=20.;
   float decay=0.8,update=0.9;
 
-	float outsamp[50],insamp[50];
-	float fsteepness=0.5,outmax=0,fzero=65*PEAK1/100,valt,force0;
-  
+  float outsamp[50],insamp[50];
+  float fsteepness=0.5,outmax=0,fzero=65*PEAK1/100,valt,force0;
+
   int MRIflag=1,int_smooth=1;
 
-  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
+  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;
   float ***dist;
- 
+
   float cout,cout_prec,coutbuff,varbuff,mean_sd[10],mean_dist[10];
 
 
   dist = (float ***) malloc( nvertices*sizeof(float**) );
 
-  for( it = 0; it < nvertices; it++ ) 
-  {
-      dist[it] = (float**) malloc( 4*sizeof(float*) );
-      for( jt = 0; jt < 4; jt++ ) 
-      {
-          dist[it][jt] = (float*) calloc( 3, sizeof(float));
-      }  
+  for ( it = 0; it < nvertices; it++ ) {
+    dist[it] = (float**) malloc( 4*sizeof(float*) );
+    for ( jt = 0; jt < 4; jt++ ) {
+      dist[it][jt] = (float*) calloc( 3, sizeof(float));
+    }
   }
 
 
   E=(1/rmin+1/rmax)/2;
-  F=6/(1/rmin-1/rmax);  
+  F=6/(1/rmin-1/rmax);
 
-  for(k=0;k<nvertices;k++)
+  for (k=0;k<nvertices;k++)
     for (m=0;m<4;m++)
       for (n=0;n<3;n++)
         dist[k][m][n]=0;
 
-  for (n=0;n<10;n++)
-  {
+  for (n=0;n<10;n++) {
     mean_sd[n]=0;
     mean_dist[n]=0;
   }
 
   niter =int_smooth;
-  force = 0.0f ; 
+  force = 0.0f ;
 
   cout_prec = 0;
 
-  for (iter=0;niter;iter++)
-  {
+  for (iter=0;niter;iter++) {
     lm = d10 = f1m = f2m = dm = 0;
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       v->ox = v->x;
       v->oy = v->y;
@@ -542,8 +530,7 @@ shrink_Inner_Skull(void)
       v->onc=v->nc;
     }
 
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       x = v->ox;
       y = v->oy;
@@ -555,8 +542,7 @@ shrink_Inner_Skull(void)
       n=0;
 
 
-      for (m=0;m<v->vnum;m++)
-      {
+      for (m=0;m<v->vnum;m++) {
         sx += dx = vertex[v->v[m]].ox - x;
         sy += dy = vertex[v->v[m]].oy - y;
         sz += dz = vertex[v->v[m]].oz - z;
@@ -567,11 +553,11 @@ shrink_Inner_Skull(void)
       sy = sy/n;
       sz = sz/n;
       sd = sd/n;
-      
+
       lm+=sd;
 
       nc = sx*nx+sy*ny+sz*nz;
-      
+
       sxn = nc*nx;
       syn = nc*ny;
       szn = nc*nz;
@@ -582,73 +568,65 @@ shrink_Inner_Skull(void)
       v->nc=nc;
 
       force1=0;
-      if (nc)
-      {
+      if (nc) {
         r= (nc>0) ? nc : -nc;
         r=SQR(sd)/(2*r);
         force1=(1+tanh(F*(1/r-E)))/2;
-      }else
+      } else
         Error("normal pbm !");
 
       f1m+=force1;
 
-			if (MRIflag)
-			{
+      if (MRIflag) {
 
 
-				for (h= -noutside;h<ninside;h++)
-				{
-					kt = (int)(z-nz*h+0.5);
-					it = (int)(x-nx*h+0.5);
-					jt = (int)(y-ny*h+0.5);
-					if (kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height)
-						valt = 0;
-					else
-					{
-							valt = MRISvox(mri_dst,it,jt,kt);
-					}
-					if (h<=0)
-						outsamp[-h] = valt;
-					if (h>=0)
-						insamp[h] = valt;
+        for (h= -noutside;h<ninside;h++) {
+          kt = (int)(z-nz*h+0.5);
+          it = (int)(x-nx*h+0.5);
+          jt = (int)(y-ny*h+0.5);
+          if (kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height)
+            valt = 0;
+          else {
+            valt = MRISvox(mri_dst,it,jt,kt);
+          }
+          if (h<=0)
+            outsamp[-h] = valt;
+          if (h>=0)
+            insamp[h] = valt;
 
-				}
-				outmax = 0;
-				force2=-1;
-				for (h=1;h<noutside;h++)
-				{
-					valt = outsamp[h];
-					force2*=valt<fzero? 0:1;
-				}
-				force3 = 1;
-				for (h=0;h<ninside;h++)
-				{
-					valt = insamp[h];
-					force3 *= valt<fzero ? 0:1;
+        }
+        outmax = 0;
+        force2=-1;
+        for (h=1;h<noutside;h++) {
+          valt = outsamp[h];
+          force2*=valt<fzero? 0:1;
+        }
+        force3 = 1;
+        for (h=0;h<ninside;h++) {
+          valt = insamp[h];
+          force3 *= valt<fzero ? 0:1;
         }
 
-				valt = insamp[0];
-				force0 = tanh((valt-fzero)*fsteepness)*force3;
-				
-				force = 0.1*force2+1.0*(force3-0.1)+0.5*force0;
-		}else
-				force=0;
-		 
-	
-      if (!MRIflag)
-      {
+        valt = insamp[0];
+        force0 = tanh((valt-fzero)*fsteepness)*force3;
+
+        force = 0.1*force2+1.0*(force3-0.1)+0.5*force0;
+      } else
+        force=0;
+
+
+      if (!MRIflag) {
         avgnc = 0;
         for (m=0;m<v->vnum;m++)
           avgnc += vertex[v->v[m]].onc;
         avgnc /= v->vnum;
         force += tanh((nc-avgnc)*0.5);
-      }else
+      } else
         force += tanh(nc*0.1);
 
       f2m+=force;
 
-      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0)
-      {
+      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0) {
         sxt /= d;
         syt /= d;
         szt /= d;
@@ -659,26 +637,24 @@ shrink_Inner_Skull(void)
       dy = syt*0.5 + force1*syn+v->ny*force;
       dz = szt*0.5 + force1*szn+v->nz*force;
 
-      if (MRIflag)
-      {
+      if (MRIflag) {
         dx = decay*v->mx+update*dx;
         dy = decay*v->my+update*dy;
         dz = decay*v->mz+update*dz;
       }
 
-      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
-      {
+      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
         dx /= d;
         dy /= d;
         dz /= d;
       }
-      
+
       v->mx = dx;
       v->my = dy;
       v->mz = dz;
 
       d=sqrt(dx*dx+dy*dy+dz*dz);
-      
+
       dm+=d;
 
       dist[k][iter%4][0]=x;
@@ -687,15 +663,14 @@ shrink_Inner_Skull(void)
 
       d10m[0] = d10m[1] = d10m[2] = 0;
 
-      for(n=0;n<4;n++)
-      {
+      for (n=0;n<4;n++) {
         d10m[0]+=dist[k][n][0]/4;
         d10m[1]+=dist[k][n][1]/4;
         d10m[2]+=dist[k][n][2]/4;
       }
-    
+
       dbuff=0;
-      for(n=0;n<4;n++)
+      for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
@@ -715,22 +690,22 @@ shrink_Inner_Skull(void)
     mean_dist[iter%10]=d10;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_sd[n]/10;
-    
+
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_sd[n]-coutbuff);
 
 
-		cout=varbuff;
+    cout=varbuff;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_dist[n]/10;
 
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_dist[n]-coutbuff);
 
     cout+=10*varbuff;
@@ -744,40 +719,36 @@ shrink_Inner_Skull(void)
     if (MRIflag)
       compute_normals();
 
-		if ((niter==int_smooth) && !(iter % 5))
+    if ((niter==int_smooth) && !(iter % 5))
       fprintf(stderr,
               "\n%d: lm=%5.3f,f1m=%5.3f,f2m=%5.3f,dm=%5.3f,d10m=%5.3f,c=%5.3f"
               ,iter,lm,f1m,f2m,dm,d10,100*cout);
-   
-    if (niter==int_smooth)
-    {
-      if(((iter>20)&&(10000*cout<5))||(iter>100))
-      {
+
+    if (niter==int_smooth) {
+      if (((iter>20)&&(10000*cout<5))||(iter>100)) {
         niter--;
         MRIflag=0;
       };
-    }else
+    } else
       niter--;
   }
   fprintf(stderr,"\n%d iterations",iter);
 
-  compute_normals();  
+  compute_normals();
 }
 
 
-static void mean(float tab[4][9],float *moy)
-{
+static void mean(float tab[4][9],float *moy) {
   int p;
   for (p=0;p<4;p++)
     moy[p]=(2*tab[p][4]+tab[p][1]+tab[p][3]+tab[p][5]+
-             tab[p][7])/6;
+            tab[p][7])/6;
 }
 
 
 /* to get the Outer Skull: the criterium to find is not so obvious...*/
 
-static void shrink_Outer_Skull(void)
-{
+static void shrink_Outer_Skull(void) {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   float force,force1;
   float f0,f1,f2,f3,f4,f5;
@@ -794,49 +765,44 @@ static void shrink_Outer_Skull(void)
   float val;
   int MRIflag=1,int_smooth=1;
 
-  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
+  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;
   float ***dist;
   int nb_GM,nb_TR;
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
   float n1[3],n2[3];
- 
+
   dist = (float ***) malloc( nvertices*sizeof(float**) );
 
-  for( it = 0; it < nvertices; it++ ) 
-  {
-      dist[it] = (float**) malloc( 4*sizeof(float*) );
-      for( jt = 0; jt < 4; jt++ ) 
-      {
-          dist[it][jt] = (float*) calloc( 3, sizeof(float));
-      }  
+  for ( it = 0; it < nvertices; it++ ) {
+    dist[it] = (float**) malloc( 4*sizeof(float*) );
+    for ( jt = 0; jt < 4; jt++ ) {
+      dist[it][jt] = (float*) calloc( 3, sizeof(float));
+    }
   }
 
   E=(1/rmin+1/rmax)/2;
-  F=6/(1/rmin-1/rmax);  
+  F=6/(1/rmin-1/rmax);
 
   fzero=PEAK1/10;
   fmax=PEAK1/2;
-  
-  for(k=0;k<nvertices;k++)
+
+  for (k=0;k<nvertices;k++)
     for (m=0;m<4;m++)
       for (n=0;n<3;n++)
         dist[k][m][n]=0;
 
-  for (n=0;n<10;n++)
-  {
+  for (n=0;n<10;n++) {
     mean_sd[n]=0;
     mean_dist[n]=0;
   }
 
   niter =int_smooth;
-  force = 0.0f ; 
+  force = 0.0f ;
   pcout=0;
 
-  for (iter=0;niter;iter++)
-  {
+  for (iter=0;niter;iter++) {
     cout = lm = d10 = f1m = f2m = dm = 0;
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       v->ox = v->x;
       v->oy = v->y;
@@ -844,8 +810,7 @@ static void shrink_Outer_Skull(void)
       v->onc=v->nc;
     }
 
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       x = v->ox;
       y = v->oy;
@@ -855,8 +820,7 @@ static void shrink_Outer_Skull(void)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++)
-      {
+      for (m=0;m<v->vnum;m++) {
         sx += dx = vertex[v->v[m]].ox - x;
         sy += dy = vertex[v->v[m]].oy - y;
         sz += dz = vertex[v->v[m]].oz - z;
@@ -867,11 +831,11 @@ static void shrink_Outer_Skull(void)
       sy = sy/n;
       sz = sz/n;
       sd = sd/n;
-      
+
       lm+=sd;
 
       nc = sx*nx+sy*ny+sz*nz;
-      
+
       sxn = nc*nx;
       syn = nc*ny;
       szn = nc*nz;
@@ -883,77 +847,70 @@ static void shrink_Outer_Skull(void)
 
 
       force1=0;
-      if (nc)
-      {
+      if (nc) {
         r= (nc>0) ? nc : -nc;
         r=SQR(sd)/(2*r);
         force1=(1+tanh(F*(1/r-E)))/2;
-      }else
-         Error("pbm de normale!");
+      } else
+        Error("pbm de normale!");
 
       f1m+=force1;
 
       f0 = f1 = f2 = f3 = f4 = f5 =0;
 
 
-			find_normal(nx,ny,nz,n1,n2);
-			for (h=0;h<4;h++)
-				for (a=-1;a<2;a++)
-					for (b=-1;b<2;b++)
-					{
-						kt = (int)(z-nz*h+n1[2]*a+n2[2]*b+0.5);
-						it = (int)(x-nx*h+n1[0]*a+n2[0]*b+0.5);
-						jt = (int)(y-ny*h+n1[1]*a+n2[1]*b+0.5);
-						if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
-							val=0;
-						else
-							val=MRISvox(mri_dst,it,jt,kt);
-						
-						test_samp[h][3*b+a+4] = val;
-					}
-			
-			
-        val=test_samp[0][4];
-  
-        if (!val)
-          force=0.25;
-        else 
-        {
-          nb_GM=0;
-          nb_TR=0;
-          for (h=0;h<4;h++)
-          {
-            for (a=0;a<9;a++)
-            {
-              if (test_samp[h][a]<=fzero)
-                nb_GM++;
-              if (test_samp[h][a]>fmax)
-                nb_TR++;
-            }
-          }
-          
-          if (nb_TR>=18)
-            force=-0.25;
-          else if (nb_GM>=15)
-            force=0.5;
-          else
-          {
-            if (nb_GM>9 && nb_TR<9)
-              force=0.3;
+      find_normal(nx,ny,nz,n1,n2);
+      for (h=0;h<4;h++)
+        for (a=-1;a<2;a++)
+          for (b=-1;b<2;b++) {
+            kt = (int)(z-nz*h+n1[2]*a+n2[2]*b+0.5);
+            it = (int)(x-nx*h+n1[0]*a+n2[0]*b+0.5);
+            jt = (int)(y-ny*h+n1[1]*a+n2[1]*b+0.5);
+            if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
+              val=0;
             else
-              force=-0.1;
+              val=MRISvox(mri_dst,it,jt,kt);
+
+            test_samp[h][3*b+a+4] = val;
           }
+
+
+      val=test_samp[0][4];
+
+      if (!val)
+        force=0.25;
+      else {
+        nb_GM=0;
+        nb_TR=0;
+        for (h=0;h<4;h++) {
+          for (a=0;a<9;a++) {
+            if (test_samp[h][a]<=fzero)
+              nb_GM++;
+            if (test_samp[h][a]>fmax)
+              nb_TR++;
+          }
+        }
+
+        if (nb_TR>=18)
+          force=-0.25;
+        else if (nb_GM>=15)
+          force=0.5;
+        else {
+          if (nb_GM>9 && nb_TR<9)
+            force=0.3;
+          else
+            force=-0.1;
+        }
       }
 
 
 
-      
-       force += tanh(nc*0.1);
+
+      force += tanh(nc*0.1);
 
       f2m+=force;
 
-      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0)
-      {
+      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0) {
         sxt /= d;
         syt /= d;
         szt /= d;
@@ -963,26 +920,25 @@ static void shrink_Outer_Skull(void)
       dx = sxt*0.5 + force1*sxn+v->nx*force;
       dy = syt*0.5 + force1*syn+v->ny*force;
       dz = szt*0.5 + force1*szn+v->nz*force;
-      
+
       dx = decay*v->mx+update*dx;
       dy = decay*v->my+update*dy;
       dz = decay*v->mz+update*dz;
-      
 
-      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
-      {
+
+      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
         dx /= d;
         dy /= d;
         dz /= d;
       }
-      
+
       v->mx = dx;
       v->my = dy;
       v->mz = dz;
 
 
       d=sqrt(dx*dx+dy*dy+dz*dz);
-      
+
       dm+=d;
 
       dist[k][iter%4][0]=x;
@@ -991,17 +947,16 @@ static void shrink_Outer_Skull(void)
 
       d10m[0] = d10m[1] = d10m[2] = 0;
 
-      for(n=0;n<4;n++)
-      {
+      for (n=0;n<4;n++) {
         d10m[0]+=dist[k][n][0]/4;
         d10m[1]+=dist[k][n][1]/4;
         d10m[2]+=dist[k][n][2]/4;
       }
-    
+
       dbuff=0;
-      for(n=0;n<4;n++)
+      for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-          SQR(dist[k][n][2]-d10m[2]);
+               SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -1020,21 +975,21 @@ static void shrink_Outer_Skull(void)
     mean_dist[iter%10]=d10;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_sd[n]/10;
-    
+
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_sd[n]-coutbuff);
 
-     cout=varbuff;
+    cout=varbuff;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_dist[n]/10;
 
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_dist[n]-coutbuff);
 
     cout+=10*varbuff;
@@ -1053,11 +1008,10 @@ static void shrink_Outer_Skull(void)
               "%d: lm=%5.3f,f1m=%5.3f,f2m=%5.3f,dm=%5.3f,d10m=%5.3f,c=%5.3f\n"
               ,iter,lm,f1m,f2m,dm,d10,100*cout);
 
-    if (niter==int_smooth)
-    {
-      if(((iter>20)&&(10000*cout<1))||(iter>100))
+    if (niter==int_smooth) {
+      if (((iter>20)&&(10000*cout<1))||(iter>100))
         niter--;
-    }else
+    } else
       niter--;
   }
   fprintf(stderr,"%d iterations",iter);
@@ -1067,8 +1021,7 @@ static void shrink_Outer_Skull(void)
 
 /*to get the Outer Skin*/
 
-static void shrink_Outer_Skin(void)
-{
+static void shrink_Outer_Skin(void) {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   float force,force1;
   float f0,f1,f2,f3,f4,f5;
@@ -1086,48 +1039,43 @@ static void shrink_Outer_Skin(void)
   float val;
   int MRIflag=1,int_smooth=5;  /*smoothing for 5 iterations*/
 
-  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
+  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;
   float ***dist;
   int nb_GM,nb_TR,nb_GTM;
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
   float n1[3],n2[3];
- 
+
   dist = (float ***) malloc( nvertices*sizeof(float**) );
 
-  for( it = 0; it < nvertices; it++ ) 
-  {
-      dist[it] = (float**) malloc( 4*sizeof(float*) );
-      for( jt = 0; jt < 4; jt++ ) 
-      {
-          dist[it][jt] = (float*) calloc( 3, sizeof(float));
-      }  
+  for ( it = 0; it < nvertices; it++ ) {
+    dist[it] = (float**) malloc( 4*sizeof(float*) );
+    for ( jt = 0; jt < 4; jt++ ) {
+      dist[it][jt] = (float*) calloc( 3, sizeof(float));
+    }
   }
 
   E=(1/rmin+1/rmax)/2;
-  F=6/(1/rmin-1/rmax);  
+  F=6/(1/rmin-1/rmax);
 
   fzero=PEAK1/20;
 
-  for(k=0;k<nvertices;k++)
+  for (k=0;k<nvertices;k++)
     for (m=0;m<4;m++)
       for (n=0;n<3;n++)
         dist[k][m][n]=0;
 
-  for (n=0;n<10;n++)
-  {
+  for (n=0;n<10;n++) {
     mean_sd[n]=0;
     mean_dist[n]=0;
   }
 
   niter =int_smooth;
-  force = 0.0f ; 
+  force = 0.0f ;
   pcout=0;
 
-  for (iter=0;niter;iter++)
-  {
+  for (iter=0;niter;iter++) {
     cout = lm = d10 = f1m = f2m = dm = 0;
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       v->ox = v->x;
       v->oy = v->y;
@@ -1135,8 +1083,7 @@ static void shrink_Outer_Skin(void)
       v->onc=v->nc;
     }
 
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       x = v->ox;
       y = v->oy;
@@ -1146,8 +1093,7 @@ static void shrink_Outer_Skin(void)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++)
-      {
+      for (m=0;m<v->vnum;m++) {
         sx += dx = vertex[v->v[m]].ox - x;
         sy += dy = vertex[v->v[m]].oy - y;
         sz += dz = vertex[v->v[m]].oz - z;
@@ -1158,11 +1104,11 @@ static void shrink_Outer_Skin(void)
       sy = sy/n;
       sz = sz/n;
       sd = sd/n;
-      
+
       lm+=sd;
 
       nc = sx*nx+sy*ny+sz*nz;
-      
+
       sxn = nc*nx;
       syn = nc*ny;
       szn = nc*nz;
@@ -1174,13 +1120,12 @@ static void shrink_Outer_Skin(void)
 
 
       force1=0;
-      if (nc)
-      {
+      if (nc) {
         r= (nc>0) ? nc : -nc;
         r=SQR(sd)/(2*r);
         force1=(1+tanh(F*(1/r-E)))/2;
-      }else
-         Error("pbm de normale!");
+      } else
+        Error("pbm de normale!");
 
       f1m+=force1;
 
@@ -1188,141 +1133,131 @@ static void shrink_Outer_Skin(void)
 
 
 
-        /******************************/
+      /******************************/
 
-        find_normal(nx,ny,nz,n1,n2);
-        for (h=0;h<4;h++)
-          for (a=-1;a<2;a++)
-            for (b=-1;b<2;b++)
-            {
-              kt = (int)(z-nz*h+n1[2]*a+n2[2]*b+0.5);
-              it = (int)(x-nx*h+n1[0]*a+n2[0]*b+0.5);
-              jt = (int)(y-ny*h+n1[1]*a+n2[1]*b+0.5);
-              if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
-                val=0;
-              else
-                val=MRISvox(mri_dst,it,jt,kt);
-              
-              test_samp[h][3*b+a+4] = val;
-            }
+      find_normal(nx,ny,nz,n1,n2);
+      for (h=0;h<4;h++)
+        for (a=-1;a<2;a++)
+          for (b=-1;b<2;b++) {
+            kt = (int)(z-nz*h+n1[2]*a+n2[2]*b+0.5);
+            it = (int)(x-nx*h+n1[0]*a+n2[0]*b+0.5);
+            jt = (int)(y-ny*h+n1[1]*a+n2[1]*b+0.5);
+            if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
+              val=0;
+            else
+              val=MRISvox(mri_dst,it,jt,kt);
+
+            test_samp[h][3*b+a+4] = val;
+          }
 
 #if 0
-        val=test_samp[0][4];
-  
-				if (!val)                  /*very simple criterium !!!!!!*/
-          force=-0.25;
-			 else
-			 {
-				 nb_GM=0;
-				 for (h=0;h<3;h++)
-					 for (a=0;a<9;a++)
-						 if (test_samp[h][a]>=fzero)
-							 nb_GM++;
-				 if(nb_GM>=10)
-					 force=0.3;
-				 else
-					 force=-0.2;
-			 }
-				 
-#else                     /*more sophisticated criterium*/
-				/*but, the idea is the same*/
+      val=test_samp[0][4];
 
-        if (!val)
-          force=-0.25;
-        else if (val<=fzero/2)
-          force=-0.1;
-        else 
-        {        
-          mean(test_samp,samp_mean);
-					nb_GM=0;
-					nb_TR=0;
-					nb_GTM=0;
-					for (h=0;h<3;h++)
-					{
-						if (samp_mean[h]>=fzero)
-							nb_GM++;
-						if (samp_mean[h]<fzero/2)
-							nb_TR++;
-					}
-            
-					if (nb_TR>=2)
-						force=-0.2;
-					else if (nb_GM==3 )
-						force=0.5;
-					else if (nb_GM==2 && samp_mean[0]>fzero)
-						force=0.5; 
-					else if (nb_TR==0)
-						force=0.3;
-					else
-					{
-						nb_GM=0;
-						nb_TR=0;
-						for (h=0;h<3;h++)
-						{
-                for (a=0;a<9;a++)
-                {
-                  if (test_samp[h][a]>=fzero)
-                    nb_GM++;
-                  else if (test_samp[h][a]<fzero/2)
-                    nb_TR++;
-                  else
-                    nb_GTM++;
-                }
-						}
-						
-						if (nb_TR>=18)
-							force=-0.3;
-						else if (nb_GM>=18)
-							force=0.5;
-						else if (nb_GM>=15)
-                force=0.3;
-						else
-						{
-							if (nb_GM>9 && nb_TR<9)
-								force=0.5;
-							else if (nb_GTM>30)
-								force=0.1;
-							else
-								force=-0.0;
-						}
-					}
-				}
-     
-				force += tanh(nc*0.1);
+      if (!val)                  /*very simple criterium !!!!!!*/
+        force=-0.25;
+      else {
+        nb_GM=0;
+        for (h=0;h<3;h++)
+          for (a=0;a<9;a++)
+            if (test_samp[h][a]>=fzero)
+              nb_GM++;
+        if (nb_GM>=10)
+          force=0.3;
+        else
+          force=-0.2;
+      }
+
+#else                     /*more sophisticated criterium*/
+      /*but, the idea is the same*/
+
+      if (!val)
+        force=-0.25;
+      else if (val<=fzero/2)
+        force=-0.1;
+      else {
+        mean(test_samp,samp_mean);
+        nb_GM=0;
+        nb_TR=0;
+        nb_GTM=0;
+        for (h=0;h<3;h++) {
+          if (samp_mean[h]>=fzero)
+            nb_GM++;
+          if (samp_mean[h]<fzero/2)
+            nb_TR++;
+        }
+
+        if (nb_TR>=2)
+          force=-0.2;
+        else if (nb_GM==3 )
+          force=0.5;
+        else if (nb_GM==2 && samp_mean[0]>fzero)
+          force=0.5;
+        else if (nb_TR==0)
+          force=0.3;
+        else {
+          nb_GM=0;
+          nb_TR=0;
+          for (h=0;h<3;h++) {
+            for (a=0;a<9;a++) {
+              if (test_samp[h][a]>=fzero)
+                nb_GM++;
+              else if (test_samp[h][a]<fzero/2)
+                nb_TR++;
+              else
+                nb_GTM++;
+            }
+          }
+
+          if (nb_TR>=18)
+            force=-0.3;
+          else if (nb_GM>=18)
+            force=0.5;
+          else if (nb_GM>=15)
+            force=0.3;
+          else {
+            if (nb_GM>9 && nb_TR<9)
+              force=0.5;
+            else if (nb_GTM>30)
+              force=0.1;
+            else
+              force=-0.0;
+          }
+        }
+      }
+
+      force += tanh(nc*0.1);
 #endif
-				
-				f2m+=force;
-				
-				if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0)
-				{
-					sxt /= d;
-					syt /= d;
-					szt /= d;
-				}
-				
-				force1=force1;
-				dx = sxt*0.5 + force1*sxn+v->nx*force;
-				dy = syt*0.5 + force1*syn+v->ny*force;
-				dz = szt*0.5 + force1*szn+v->nz*force;
-				
-				dx = decay*v->mx+update*dx;
-				dy = decay*v->my+update*dy;
-				dz = decay*v->mz+update*dz;
-				
-				if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
-				{
-					dx /= d;
-					dy /= d;
-					dz /= d;
-				}
-				
-				v->mx = dx;
-				v->my = dy;
-				v->mz = dz;
-				
-				
+
+      f2m+=force;
+
+      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0) {
+        sxt /= d;
+        syt /= d;
+        szt /= d;
+      }
+
+      force1=force1;
+      dx = sxt*0.5 + force1*sxn+v->nx*force;
+      dy = syt*0.5 + force1*syn+v->ny*force;
+      dz = szt*0.5 + force1*szn+v->nz*force;
+
+      dx = decay*v->mx+update*dx;
+      dy = decay*v->my+update*dy;
+      dz = decay*v->mz+update*dz;
+
+      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+        dx /= d;
+        dy /= d;
+        dz /= d;
+      }
+
+      v->mx = dx;
+      v->my = dy;
+      v->mz = dz;
+
+
       d=sqrt(dx*dx+dy*dy+dz*dz);
-      
+
       dm+=d;
 
       dist[k][iter%4][0]=x;
@@ -1331,17 +1266,16 @@ static void shrink_Outer_Skin(void)
 
       d10m[0] = d10m[1] = d10m[2] = 0;
 
-      for(n=0;n<4;n++)
-      {
+      for (n=0;n<4;n++) {
         d10m[0]+=dist[k][n][0]/4;
         d10m[1]+=dist[k][n][1]/4;
         d10m[2]+=dist[k][n][2]/4;
       }
-    
+
       dbuff=0;
-      for(n=0;n<4;n++)
+      for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-          SQR(dist[k][n][2]-d10m[2]);
+               SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -1360,21 +1294,21 @@ static void shrink_Outer_Skin(void)
     mean_dist[iter%10]=d10;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_sd[n]/10;
-    
+
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_sd[n]-coutbuff);
 
-     cout=varbuff;
+    cout=varbuff;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_dist[n]/10;
 
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_dist[n]-coutbuff);
 
     cout+=10*varbuff;
@@ -1393,18 +1327,16 @@ static void shrink_Outer_Skin(void)
               "%d: lm=%5.3f,f1m=%5.3f,f2m=%5.3f,dm=%5.3f,d10m=%5.3f,c=%5.3f\n"
               ,iter,lm,f1m,f2m,dm,d10,100*cout);
 
-    if (niter==int_smooth)
-    {
-      if(((iter>20)&&(10000*cout<5))||(iter>230))
+    if (niter==int_smooth) {
+      if (((iter>20)&&(10000*cout<5))||(iter>230))
         niter--;
-    }else
-		{
+    } else {
       niter--;     /*smoothing*/
-			rmin=3.33;
-			rmax=10;
-			E=(1/rmin+1/rmax)/2;
-			F=6/(1/rmin-1/rmax);  
-		}
+      rmin=3.33;
+      rmax=10;
+      E=(1/rmin+1/rmax)/2;
+      F=6/(1/rmin-1/rmax);
+    }
   }
   fprintf(stderr,"%d iterations",iter);
   compute_normals();
@@ -1416,10 +1348,9 @@ static void shrink_Outer_Skin(void)
 /************** routine not used *********************/
 /*to be implemented to get the right brain surface (without CSF...)*/
 
-#if 0   
+#if 0
 static void
-shrink_Brain(void)
-{
+shrink_Brain(void) {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   float force,force1,force2,force3;
   float d,dx,dy,dz,nx,ny,nz,avgnc;
@@ -1430,58 +1361,53 @@ shrink_Brain(void)
   float r,F,E,rmin=5,rmax=20.;
   float decay=0.8,update=0.9;
 
-	float outsamp[50],insamp[50];
-	float fsteepness=0.5,outmax=0,fzero=PEAK1/2,valt,force0;
-  
+  float outsamp[50],insamp[50];
+  float fsteepness=0.5,outmax=0,fzero=PEAK1/2,valt,force0;
+
   int MRIflag=1,int_smooth=1;
 
-  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
+  double lm,d10m[3],d10,f1m,f2m,dm,dbuff;
   float ***dist;
- 
+
   float cout,cout_prec,coutbuff,varbuff,mean_sd[10],mean_dist[10];
 
-	float test_samp[4][9],n1[3],n2[3],samp_mean[4];
-	int a,b;
-	int nb_BR;
+  float test_samp[4][9],n1[3],n2[3],samp_mean[4];
+  int a,b;
+  int nb_BR;
 
 
   dist = (float ***) malloc( nvertices*sizeof(float**) );
 
-  for( it = 0; it < nvertices; it++ ) 
-  {
-      dist[it] = (float**) malloc( 4*sizeof(float*) );
-      for( jt = 0; jt < 4; jt++ ) 
-      {
-          dist[it][jt] = (float*) calloc( 3, sizeof(float));
-      }  
+  for ( it = 0; it < nvertices; it++ ) {
+    dist[it] = (float**) malloc( 4*sizeof(float*) );
+    for ( jt = 0; jt < 4; jt++ ) {
+      dist[it][jt] = (float*) calloc( 3, sizeof(float));
+    }
   }
 
-	init_direction();
+  init_direction();
 
   E=(1/rmin+1/rmax)/2;
-  F=6/(1/rmin-1/rmax);  
+  F=6/(1/rmin-1/rmax);
 
-  for(k=0;k<nvertices;k++)
+  for (k=0;k<nvertices;k++)
     for (m=0;m<4;m++)
       for (n=0;n<3;n++)
         dist[k][m][n]=0;
 
-  for (n=0;n<10;n++)
-  {
+  for (n=0;n<10;n++) {
     mean_sd[n]=0;
     mean_dist[n]=0;
   }
 
   niter =int_smooth;
-  force = 0.0f ; 
+  force = 0.0f ;
 
   cout_prec = 0;
 
-  for (iter=0;niter;iter++)
-  {
+  for (iter=0;niter;iter++) {
     lm = d10 = f1m = f2m = dm = 0;
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       v->ox = v->x;
       v->oy = v->y;
@@ -1489,8 +1415,7 @@ shrink_Brain(void)
       v->onc=v->nc;
     }
 
-    for (k=0;k<nvertices;k++)
-    {
+    for (k=0;k<nvertices;k++) {
       v = &vertex[k];
       x = v->ox;
       y = v->oy;
@@ -1500,8 +1425,7 @@ shrink_Brain(void)
       nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++)
-      {
+      for (m=0;m<v->vnum;m++) {
         sx += dx = vertex[v->v[m]].ox - x;
         sy += dy = vertex[v->v[m]].oy - y;
         sz += dz = vertex[v->v[m]].oz - z;
@@ -1512,11 +1436,11 @@ shrink_Brain(void)
       sy = sy/n;
       sz = sz/n;
       sd = sd/n;
-      
+
       lm+=sd;
 
       nc = sx*nx+sy*ny+sz*nz;
-      
+
       sxn = nc*nx;
       syn = nc*ny;
       szn = nc*nz;
@@ -1527,108 +1451,102 @@ shrink_Brain(void)
       v->nc=nc;
 
       force1=0;
-      if (nc)
-      {
+      if (nc) {
         r= (nc>0) ? nc : -nc;
         r=SQR(sd)/(2*r);
         force1=(1+tanh(F*(1/r-E)))/2;
-      }else
+      } else
         Error("pbm de normale!");
 
       f1m+=force1;
 
-			if (MRIflag)
-			{
+      if (MRIflag) {
 
 
-#if 1	
-				find_normal(nx,ny,nz,n1,n2);
+#if 1
+        find_normal(nx,ny,nz,n1,n2);
         for (h=0;h<4;h++)
           for (a=-1;a<2;a++)
-            for (b=-1;b<2;b++)
-            {
+            for (b=-1;b<2;b++) {
               kt = (int)(z-nz*h+n1[2]*a+n2[2]*b+0.5);
               it = (int)(x-nx*h+n1[0]*a+n2[0]*b+0.5);
               jt = (int)(y-ny*h+n1[1]*a+n2[1]*b+0.5);
               if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
                 valt=0;
-              else
-							{
-								if(MRISvox(mri_T1,it,jt,kt)>4000)
-									valt=0;
-								else if(MRISvox(mri_T1,it,jt,kt)>2000)
-									valt=fzero-1;
-								else
-									valt = MRISvox(mri_PD,it,jt,kt);
+              else {
+                if (MRISvox(mri_T1,it,jt,kt)>4000)
+                  valt=0;
+                else if (MRISvox(mri_T1,it,jt,kt)>2000)
+                  valt=fzero-1;
+                else
+                  valt = MRISvox(mri_PD,it,jt,kt);
               }
               test_samp[h][3*b+a+4] = valt;
             }
 
         valt=test_samp[0][4];
-  
+
         if (valt==0)
           force=-0.1;
         else if (valt<fzero)
           force=-0.0;
-        else 
-					force=0.2;
+        else
+          force=0.2;
 
-				/*        {        
-          mean(test_samp,samp_mean);
-          {
-            nb_BR=0;
-            for (h=0;h<4;h++)
-            {
-              if (samp_mean[h]>=fzero)
-                nb_BR++;
-            }
-            
-            if (nb_BR<2)
-              force=-0.2;
-            else if (nb_BR>=3)
-              force=0.7;
-            else
-            {
-              nb_BR=0;
-              for (h=0;h<4;h++)
+        /*        {
+              mean(test_samp,samp_mean);
               {
-                for (a=0;a<9;a++)
+                nb_BR=0;
+                for (h=0;h<4;h++)
                 {
-                  if (test_samp[h][a]>=fzero)
+                  if (samp_mean[h]>=fzero)
                     nb_BR++;
                 }
+
+                if (nb_BR<2)
+                  force=-0.2;
+                else if (nb_BR>=3)
+                  force=0.7;
+                else
+                {
+                  nb_BR=0;
+                  for (h=0;h<4;h++)
+                  {
+                    for (a=0;a<9;a++)
+                    {
+                      if (test_samp[h][a]>=fzero)
+                        nb_BR++;
+                    }
+                  }
+                  if (nb_BR<15)
+                    force=-0.3;
+                  else if (nb_BR>=30)
+                    force=0.2;
+                  else if (nb_BR>=12)
+                    force=0.2;
+                }
               }
-              if (nb_BR<15)
-                force=-0.3;
-              else if (nb_BR>=30)
-                force=0.2;
-              else if (nb_BR>=12)
-                force=0.2;
+
             }
-          }
-				
-        }
-*/     
+        */
 
 #endif
-		}else
-				force=0;
-		 
-	
-      if (!MRIflag)
-      {
+      } else
+        force=0;
+
+
+      if (!MRIflag) {
         avgnc = 0;
         for (m=0;m<v->vnum;m++)
           avgnc += vertex[v->v[m]].onc;
         avgnc /= v->vnum;
         force += tanh((nc-avgnc)*0.5);
-      }else
+      } else
         force += tanh(nc*0.1);
 
       f2m+=force;
 
-      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0)
-      {
+      if ((d=sqrt(sxt*sxt+syt*syt+szt*szt))>1.0) {
         sxt /= d;
         syt /= d;
         szt /= d;
@@ -1639,26 +1557,24 @@ shrink_Brain(void)
       dy = syt*0.5 + force1*syn+v->ny*force;
       dz = szt*0.5 + force1*szn+v->nz*force;
 
-      if (MRIflag)
-      {
+      if (MRIflag) {
         dx = decay*v->mx+update*dx;
         dy = decay*v->my+update*dy;
         dz = decay*v->mz+update*dz;
       }
 
-      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
-      {
+      if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
         dx /= d;
         dy /= d;
         dz /= d;
       }
-      
+
       v->mx = dx;
       v->my = dy;
       v->mz = dz;
 
       d=sqrt(dx*dx+dy*dy+dz*dz);
-      
+
       dm+=d;
 
       dist[k][iter%4][0]=x;
@@ -1667,15 +1583,14 @@ shrink_Brain(void)
 
       d10m[0] = d10m[1] = d10m[2] = 0;
 
-      for(n=0;n<4;n++)
-      {
+      for (n=0;n<4;n++) {
         d10m[0]+=dist[k][n][0]/4;
         d10m[1]+=dist[k][n][1]/4;
         d10m[2]+=dist[k][n][2]/4;
       }
-    
+
       dbuff=0;
-      for(n=0;n<4;n++)
+      for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
@@ -1695,22 +1610,22 @@ shrink_Brain(void)
     mean_dist[iter%10]=d10;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_sd[n]/10;
-    
+
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_sd[n]-coutbuff);
 
 
-		cout=varbuff;
+    cout=varbuff;
 
     coutbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       coutbuff+=mean_dist[n]/10;
 
     varbuff=0;
-    for(n=0;n<10;n++)
+    for (n=0;n<10;n++)
       varbuff+=SQR(mean_dist[n]-coutbuff);
 
     cout+=10*varbuff;
@@ -1724,47 +1639,43 @@ shrink_Brain(void)
     if (MRIflag)
       compute_normals();
 
-		if ((niter==int_smooth) && !(iter % 5))
+    if ((niter==int_smooth) && !(iter % 5))
       fprintf(stderr,
               "\n%d: lm=%5.3f,f1m=%5.3f,f2m=%5.3f,dm=%5.3f,d10m=%5.3f,c=%5.3f"
               ,iter,lm,f1m,f2m,dm,d10,100*cout);
-   
-    if (niter==int_smooth)
-    {
-      if(((iter>20)&&(10000*cout<5))||(iter>100))
-      {
+
+    if (niter==int_smooth) {
+      if (((iter>20)&&(10000*cout<5))||(iter>100)) {
         niter--;
         MRIflag=0;
       };
-    }else
+    } else
       niter--;
   }
   fprintf(stderr,"\n%d iterations",iter);
 
-  compute_normals();  
+  compute_normals();
 }
 #endif
 
 
-static void write_image(MRI *mri)
-{
-   int i,j,imnr,k,u,v;
+static void write_image(MRI *mri) {
+  int i,j,imnr,k,u,v;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
   float px0,py0,pz0,px1,py1,pz1,px,py,pz;
   int numu,numv;
 
 
-  for (k=0;k<nfaces;k++)
-  {
-    x0 = vertex[face[k][0]].x;    
-    y0 = vertex[face[k][0]].y;    
-    z0 = vertex[face[k][0]].z;    
-    x1 = vertex[face[k][1]].x;    
-    y1 = vertex[face[k][1]].y;    
-    z1 = vertex[face[k][1]].z;    
-    x2 = vertex[face[k][2]].x;    
-    y2 = vertex[face[k][2]].y;    
-    z2 = vertex[face[k][2]].z;    
+  for (k=0;k<nfaces;k++) {
+    x0 = vertex[face[k][0]].x;
+    y0 = vertex[face[k][0]].y;
+    z0 = vertex[face[k][0]].z;
+    x1 = vertex[face[k][1]].x;
+    y1 = vertex[face[k][1]].y;
+    z1 = vertex[face[k][1]].z;
+    x2 = vertex[face[k][2]].x;
+    y2 = vertex[face[k][2]].y;
+    z2 = vertex[face[k][2]].z;
     d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0));
     d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
     d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
@@ -1773,93 +1684,86 @@ static void write_image(MRI *mri)
     numv = ceil(2*dmax);
 
 
-    for (v=0;v<=numv;v++)
-    {
+    for (v=0;v<=numv;v++) {
       px0 = x0 + (x2-x0)*v/numv;
       py0 = y0 + (y2-y0)*v/numv;
       pz0 = z0 + (z2-z0)*v/numv;
       px1 = x1 + (x2-x1)*v/numv;
       py1 = y1 + (y2-y1)*v/numv;
       pz1 = z1 + (z2-z1)*v/numv;
-      for (u=0;u<=numu;u++)
-      {
+      for (u=0;u<=numu;u++) {
         px = px0 + (px1-px0)*u/numu;
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
-        
+
         i=(int)(px+0.5);
         j = (int)(py+0.5);
         imnr = (int)(pz+0.5);
-        
+
         if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
           MRISvox(mri,i,j,imnr) = 2500;
       }
     }
   }
-	for (k=0;k<nvertices;k++)
-  {
-        i=(int)(vertex[k].x+0.5);
-        j = (int)(vertex[k].y+0.5);
-        imnr = (int)(vertex[k].z+0.5);
-        if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-          MRISvox(mri,i,j,imnr) = 1000;
-	}
+  for (k=0;k<nvertices;k++) {
+    i=(int)(vertex[k].x+0.5);
+    j = (int)(vertex[k].y+0.5);
+    imnr = (int)(vertex[k].z+0.5);
+    if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
+      MRISvox(mri,i,j,imnr) = 1000;
+  }
 }
 
 
 
-static int Reading(void)
-{
-	fprintf(stderr,"\nreading...");
+static int Reading(void) {
+  fprintf(stderr,"\nreading...");
 
-	mri_T1=MRIread(T1_fname);
-	mri_PD=MRIread(PD_fname);
-	if(mriErr)
-	{
-		mri_Err=MRIread(Err_fname);
-		if (mri_Err==NULL)
-		{
-			fprintf(stderr,"\n      reading of the file %s impossible",Err_fname);
-			mriErr=0;
-		}
-	}
+  mri_T1=MRIread(T1_fname);
+  mri_PD=MRIread(PD_fname);
+  if (mriErr) {
+    mri_Err=MRIread(Err_fname);
+    if (mri_Err==NULL) {
+      fprintf(stderr,"\n      reading of the file %s impossible",Err_fname);
+      mriErr=0;
+    }
+  }
 
-	if (mri_T1==NULL)
-		Error("\nT1=NULL");
-	if (mri_PD==NULL)
-		Error("\nPD=NULL");
+  if (mri_T1==NULL)
+    Error("\nT1=NULL");
+  if (mri_PD==NULL)
+    Error("\nPD=NULL");
 
 
-	width=mri_T1->width;
-	height=mri_T1->height;
-	depth=mri_T1->depth;
+  width=mri_T1->width;
+  height=mri_T1->height;
+  depth=mri_T1->depth;
 
-	fprintf(stderr,"\ndone");
-	fprintf(stderr,"\ncloning...");
+  fprintf(stderr,"\ndone");
+  fprintf(stderr,"\ncloning...");
 
-	mri_dst =	MRIclone(mri_T1, NULL) ;
-	if(!mri_dst)
-		Error("\n mri_dst NUll");
+  mri_dst = MRIclone(mri_T1, NULL) ;
+  if (!mri_dst)
+    Error("\n mri_dst NUll");
 
-	mri_test=MRIclone(mri_T1, NULL) ;
-	if(!mri_test)
-		Error("\n mri_test NUll");
+  mri_test=MRIclone(mri_T1, NULL) ;
+  if (!mri_test)
+    Error("\n mri_test NUll");
 
-	mri_CSF=MRIclone(mri_T1, NULL) ;
-	if(!mri_CSF)
-		Error("\n mri_CSF NUll");
+  mri_CSF=MRIclone(mri_T1, NULL) ;
+  if (!mri_CSF)
+    Error("\n mri_CSF NUll");
 
-	fprintf(stderr,"\ndone");
-	
-	return 1;
+  fprintf(stderr,"\ndone");
+
+  return 1;
 }
 
 
-/*routine to select an area inside or outside the surface,and 
+/*routine to select an area inside or outside the surface,and
  fill the complement in the MR Image with the short val (usually =0)*/
-static void peel_brain(MRI *mri, float h,int type, short val)
-{
-  int i,j,k,imnr; 
+static void peel_brain(MRI *mri, float h,int type, short val) {
+  int i,j,k,imnr;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,u,v;
   float px,py,pz,px0,py0,pz0,px1,py1,pz1;
   int numu,numv,totalfilled,newfilled;
@@ -1868,77 +1772,71 @@ static void peel_brain(MRI *mri, float h,int type, short val)
 
   mri_buff= MRIalloc(width, height, depth, MRI_UCHAR) ;
 
-  for (k=0;k<nvertices;k++)
-  {
+  for (k=0;k<nvertices;k++) {
     vertex[k].xf=vertex[k].x;
     vertex[k].yf=vertex[k].y;
     vertex[k].zf=vertex[k].z;
     vertex[k].nxf=vertex[k].nx;
     vertex[k].nyf=vertex[k].ny;
     vertex[k].nzf=vertex[k].nz;
-    
+
     vertex[k].x+=h*vertex[k].nx;
     vertex[k].y+=h*vertex[k].ny;
     vertex[k].z+=h*vertex[k].nz;
   }
 
-  for (k=0;k<nfaces;k++)
-  {
-    x0 = vertex[face[k][0]].x;    
-    y0 = vertex[face[k][0]].y;    
-    z0 = vertex[face[k][0]].z;    
-    x1 = vertex[face[k][1]].x;    
-    y1 = vertex[face[k][1]].y;    
-    z1 = vertex[face[k][1]].z;    
-    x2 = vertex[face[k][2]].x;    
-    y2 = vertex[face[k][2]].y;    
-    z2 = vertex[face[k][2]].z;    
+  for (k=0;k<nfaces;k++) {
+    x0 = vertex[face[k][0]].x;
+    y0 = vertex[face[k][0]].y;
+    z0 = vertex[face[k][0]].z;
+    x1 = vertex[face[k][1]].x;
+    y1 = vertex[face[k][1]].y;
+    z1 = vertex[face[k][1]].z;
+    x2 = vertex[face[k][2]].x;
+    y2 = vertex[face[k][2]].y;
+    z2 = vertex[face[k][2]].z;
     d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0));
     d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
     d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
     dmax = (d0>=d1&&d0>=d2)?d0:(d1>=d0&&d1>=d2)?d1:d2;
     numu = ceil(2*d0);
     numv = ceil(2*dmax);
-      
-    for (v=0;v<=numv;v++)
-    {
+
+    for (v=0;v<=numv;v++) {
       px0 = x0 + (x2-x0)*v/numv;
       py0 = y0 + (y2-y0)*v/numv;
       pz0 = z0 + (z2-z0)*v/numv;
       px1 = x1 + (x2-x1)*v/numv;
       py1 = y1 + (y2-y1)*v/numv;
       pz1 = z1 + (z2-z1)*v/numv;
-      for (u=0;u<=numu;u++)
-      {
+      for (u=0;u<=numu;u++) {
         px = px0 + (px1-px0)*u/numu;
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
-        
- 
-				i=(int)(px+0.5);
-				j = (int)(py+0.5);
-				imnr = (int)(pz+0.5);
-				
-				if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-					MRIvox(mri_buff,i,j,imnr) = 255;
-			
-      }  
+
+
+        i=(int)(px+0.5);
+        j = (int)(py+0.5);
+        imnr = (int)(pz+0.5);
+
+        if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
+          MRIvox(mri_buff,i,j,imnr) = 255;
+
+      }
     }
   }
 
 
   MRIvox(mri_buff,1,1,1)= 64;
   totalfilled = newfilled = 1;
-  while (newfilled>0)
-  {
+  while (newfilled>0) {
     newfilled = 0;
     for (k=1;k<depth-1;k++)
       for (j=1;j<height-1;j++)
         for (i=1;i<width-1;i++)
           if (MRIvox(mri_buff,i,j,k)==0)
             if (MRIvox(mri_buff,i,j,k-1)==64||MRIvox(mri_buff,i,j-1,k)==64||
-                MRIvox(mri_buff,i-1,j,k)==64)
-            {
+                MRIvox(mri_buff,i-1,j,k)==64) {
               MRIvox(mri_buff,i,j,k)= 64;
               newfilled++;
             }
@@ -1948,8 +1846,7 @@ static void peel_brain(MRI *mri, float h,int type, short val)
         for (i=width-2;i>=1;i--)
           if (MRIvox(mri_buff,i,j,k)==0)
             if (MRIvox(mri_buff,i,j,k+1)==64||MRIvox(mri_buff,i,j+1,k)==64||
-                MRIvox(mri_buff,i+1,j,k)==64)
-            {
+                MRIvox(mri_buff,i+1,j,k)==64) {
               MRIvox(mri_buff,i,j,k) = 64;
               newfilled++;
             }
@@ -1958,25 +1855,22 @@ static void peel_brain(MRI *mri, float h,int type, short val)
           newfilled,totalfilled,(depth-2)*(width-2)*(height-2));*/
   }
 
-	if(type==-1)
-		for (k=1;k<depth-1;k++)
-			for (j=1;j<height-1;j++)
-				for (i=1;i<width-1;i++)
-				{
-					if (MRIvox(mri_buff,i,j,k)==64)
-						MRISvox(mri,i,j,k) = val;
-				}
-	else if(type==1)
-		for (k=1;k<depth-1;k++)
-			for (j=1;j<height-1;j++)
-				for (i=1;i<width-1;i++)
-				{
-					if (MRIvox(mri_buff,i,j,k)!=64 && MRIvox(mri_buff,i,j,k)!=255)
-						MRISvox(mri,i,j,k) = val;
-				}
+  if (type==-1)
+    for (k=1;k<depth-1;k++)
+      for (j=1;j<height-1;j++)
+        for (i=1;i<width-1;i++) {
+          if (MRIvox(mri_buff,i,j,k)==64)
+            MRISvox(mri,i,j,k) = val;
+        }
+  else if (type==1)
+    for (k=1;k<depth-1;k++)
+      for (j=1;j<height-1;j++)
+        for (i=1;i<width-1;i++) {
+          if (MRIvox(mri_buff,i,j,k)!=64 && MRIvox(mri_buff,i,j,k)!=255)
+            MRISvox(mri,i,j,k) = val;
+        }
 
-  for (k=0;k<nvertices;k++)
-  {
+  for (k=0;k<nvertices;k++) {
     vertex[k].x=vertex[k].xf;
     vertex[k].y=vertex[k].yf;
     vertex[k].z=vertex[k].zf;
@@ -1997,18 +1891,16 @@ static void peel_brain(MRI *mri, float h,int type, short val)
 
 
 /* smooth the tab curve*/
-static void lisse(unsigned long *tab,int m)
-{
+static void lisse(unsigned long *tab,int m) {
   int k,n,p;
   unsigned long tmp[3];
   unsigned long buff;
   p=2;
   tmp[0]=0;
   tmp[1]=0;
-  for(k=2;k<m-2;k++)
-  {
+  for (k=2;k<m-2;k++) {
     buff=0;
-    for(n=-2;n<3;n++)
+    for (n=-2;n<3;n++)
       buff+=tab[k+n]/5;
     tmp[p]=buff;
     p=(p+1)%3;
@@ -2023,62 +1915,56 @@ static void lisse(unsigned long *tab,int m)
 }
 
 
-static void analyse_curve(unsigned long *tab,int dim,int scale_factor)
-{
+static void analyse_curve(unsigned long *tab,int dim,int scale_factor) {
   int n,k,k1,k2;
   unsigned long max;
-	unsigned long *tab_buff;
+  unsigned long *tab_buff;
   float a,b,Sxy,Sx,Sy,Sxx;
-  
-	tab_buff=(unsigned long *)calloc(dim,sizeof(unsigned long));
+
+  tab_buff=(unsigned long *)calloc(dim,sizeof(unsigned long));
 
   lisse(tab,dim);
 
-#if DEBUG_MODE  
-	n=0;
-	for(k=1;k<299;k++)
-		if (n<tab[k])
-			n=tab[k];
-	
-	for(k=1;k<300;k++)
-	{
-		fprintf(stderr,"\n%3d ",k);
-		for(k1=0;k1<(int)((double)tab[k]*65/n);k1++)
-			fprintf(stderr,".");
-	}
+#if DEBUG_MODE
+  n=0;
+  for (k=1;k<299;k++)
+    if (n<tab[k])
+      n=tab[k];
+
+  for (k=1;k<300;k++) {
+    fprintf(stderr,"\n%3d ",k);
+    for (k1=0;k1<(int)((double)tab[k]*65/n);k1++)
+      fprintf(stderr,".");
+  }
 #endif
 
-	max=0;
-	for (k=0;k<dim;k++)
-		if(max<tab[k])
-			max=tab[k];
+  max=0;
+  for (k=0;k<dim;k++)
+    if (max<tab[k])
+      max=tab[k];
 
 
-	k1=0;k2=dim;
-	for(k=dim-1;k>0;k--)
-	{
-	 	if(!k1)
-		{
-			if(tab[k]<max/5)
-				k2=k;
-			else
-				k1=k2;
-		}
-		else
-		{
-			if(tab[k]<3*max/4)
-				k1=k;
-			else break;
-		}			
-	}
-  
+  k1=0;
+  k2=dim;
+  for (k=dim-1;k>0;k--) {
+    if (!k1) {
+      if (tab[k]<max/5)
+        k2=k;
+      else
+        k1=k2;
+    } else {
+      if (tab[k]<3*max/4)
+        k1=k;
+      else break;
+    }
+  }
+
 
 
 
   n=k2-k1+1;
   Sxy = Sx = Sy = Sxx = 0;
-  for(k=k1;k<=k2;k++)
-  {
+  for (k=k1;k<=k2;k++) {
     Sxy+=(float)k*tab[k];
     Sx+=k;
     Sy+=tab[k];
@@ -2089,324 +1975,292 @@ static void analyse_curve(unsigned long *tab,int dim,int scale_factor)
   b=-(a*Sx-Sy)/n;
   SKULL_PD=(int)((-b/a));
 
-	max=0;
-	for (k=SKULL_PD/2;k<dim;k++)
-		if (tab[k]>max)
-		{
-			PEAK1=k;
-			max=tab[k];
-		}
+  max=0;
+  for (k=SKULL_PD/2;k<dim;k++)
+    if (tab[k]>max) {
+      PEAK1=k;
+      max=tab[k];
+    }
 
-				 
-	SKULL_PD*=scale_factor;
-	fprintf(stderr," k1=%d k2=%d SKULL_PD=%d %d", k1, k2,SKULL_PD/scale_factor,PEAK1);
 
-	PEAK1*=scale_factor;
+  SKULL_PD*=scale_factor;
+  fprintf(stderr," k1=%d k2=%d SKULL_PD=%d %d", k1, k2,SKULL_PD/scale_factor,PEAK1);
+
+  PEAK1*=scale_factor;
 
 
 }
 
-static void PDcurve(MRI* mri)
-{
-	int i,j,k,n,val;
-	unsigned long countPD[300],nb_vox;
-	int max,scale;
+static void PDcurve(MRI* mri) {
+  int i,j,k,n,val;
+  unsigned long countPD[300],nb_vox;
+  int max,scale;
 
-	for (k=0;k<300;k++)
-		countPD[k]=0;
+  for (k=0;k<300;k++)
+    countPD[k]=0;
 
-	max=0;
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-			{
-				val=MRISvox(mri,i,j,k);
-				if(val>max)
-					max=val;				 
-			}
+  max=0;
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++) {
+        val=MRISvox(mri,i,j,k);
+        if (val>max)
+          max=val;
+      }
 
-	nb_vox=0;
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-			{
-				val=MRISvox(mri,i,j,k);
-				if(val)
-				{
-					n=val*299/max;
-					countPD[n]++;
-					nb_vox++;
-				}
-			}
+  nb_vox=0;
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++) {
+        val=MRISvox(mri,i,j,k);
+        if (val) {
+          n=val*299/max;
+          countPD[n]++;
+          nb_vox++;
+        }
+      }
 
 
-	scale=299;
-	for (k=298;k>=0;k--)
-	{
-		countPD[k]+=countPD[k+1];
-		if(countPD[k]*1000<nb_vox)
-			scale=k;
-		else 
-			break;
-	}
+  scale=299;
+  for (k=298;k>=0;k--) {
+    countPD[k]+=countPD[k+1];
+    if (countPD[k]*1000<nb_vox)
+      scale=k;
+    else
+      break;
+  }
 
-	scale=MIN(299,scale*12/10);
+  scale=MIN(299,scale*12/10);
 
-	fprintf(stderr,"max=%d scale=%d  %d ",max,scale*10/15,max*scale/299/299);
+  fprintf(stderr,"max=%d scale=%d  %d ",max,scale*10/15,max*scale/299/299);
 
-	for (k=0;k<300;k++)
-		countPD[k]=0;
-	
+  for (k=0;k<300;k++)
+    countPD[k]=0;
 
-	scale=max*scale/299/299;
 
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-			{
-				val=MRISvox(mri,i,j,k);
-				if(val)
-				{
-					n=MIN(299,val/scale);
-					countPD[n]++;
-				}
-			}
-	n=0;
+  scale=max*scale/299/299;
+
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++) {
+        val=MRISvox(mri,i,j,k);
+        if (val) {
+          n=MIN(299,val/scale);
+          countPD[n]++;
+        }
+      }
+  n=0;
 
 
 
-	/*	for(k=1;k<299;k++)
-		if (n<countPD[k])
-			n=countPD[k];
-	
-	for(k=1;k<300;k++)
-	{
-		fprintf(stderr,"\n%3d ",k);
-		for(i=0;i<(int)((double)countPD[k]*65/n);i++)
-			fprintf(stderr,".");
-			}*/
+  /* for(k=1;k<299;k++)
+   if (n<countPD[k])
+    n=countPD[k];
+
+  for(k=1;k<300;k++)
+  {
+   fprintf(stderr,"\n%3d ",k);
+   for(i=0;i<(int)((double)countPD[k]*65/n);i++)
+    fprintf(stderr,".");
+    }*/
 
 
-	analyse_curve(countPD,300,scale);
+  analyse_curve(countPD,300,scale);
 
 }
 
 
 
-static void write_surface(char *fname)
-{
-	int k,n;
-	FILE *fout;
+static void write_surface(char *fname) {
+  int k,n;
+  FILE *fout;
 
 
-	fout=fopen(fname,"w");
-	if (fout==NULL) 
-	{
-		printf(" ### File %s not found\n",fname);
-		return;
-	}
+  fout=fopen(fname,"w");
+  if (fout==NULL) {
+    printf(" ### File %s not found\n",fname);
+    return;
+  }
 
-	fprintf(fout," %d \n",nvertices);
-	for (k=0;k<nvertices;k++)
-		fprintf(fout, " %f %f %f \n",vertex[k].x,vertex[k].y,vertex[k].z);
-	fprintf(fout," %d \n",nfaces);
-	for (k=0;k<nfaces;k++)
-	{
-		for (n=0;n<3;n++)
-			fprintf(fout," %d",face[k][n]);
-		fprintf(fout,"\n");
-	}
+  fprintf(fout," %d \n",nvertices);
+  for (k=0;k<nvertices;k++)
+    fprintf(fout, " %f %f %f \n",vertex[k].x,vertex[k].y,vertex[k].z);
+  fprintf(fout," %d \n",nfaces);
+  for (k=0;k<nfaces;k++) {
+    for (n=0;n<3;n++)
+      fprintf(fout," %d",face[k][n]);
+    fprintf(fout,"\n");
+  }
 
-	fclose(fout);
+  fclose(fout);
 }
 
 
-void savetab(char *fname)
-{
-	int k,n;
-	FILE *fout;
+void savetab(char *fname) {
+  int k,n;
+  FILE *fout;
 
-	fout=fopen(fname,"w");
+  fout=fopen(fname,"w");
 
-	for (k=0;k<2000;k++)
-	{
-		for(n=0;n<5000;n++)
-			fprintf(fout, " %ld",Compteur[k][n]);
-			fprintf(fout, "\n");
-	}
+  for (k=0;k<2000;k++) {
+    for (n=0;n<5000;n++)
+      fprintf(fout, " %ld",Compteur[k][n]);
+    fprintf(fout, "\n");
+  }
 
-	fclose(fout);
+  fclose(fout);
 }
 
-static void GenerateMRI(void)
-{
-	int i,j,k;
-	
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-			{
-				if(MRISvox(mri_T1,i,j,k))
-					MRISvox(mri_dst,i,j,k)=(short)(MRISvox(mri_PD,i,j,k)				
-																				 *exp(-100/MRISvox(mri_T1,i,j,k)));
-				else
-					MRISvox(mri_dst,i,j,k)=0;
+static void GenerateMRI(void) {
+  int i,j,k;
 
-				MRISvox(mri_test,i,j,k)=MRISvox(mri_PD,i,j,k);
-			}
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++) {
+        if (MRISvox(mri_T1,i,j,k))
+          MRISvox(mri_dst,i,j,k)=(short)(MRISvox(mri_PD,i,j,k)
+                                         *exp(-100/MRISvox(mri_T1,i,j,k)));
+        else
+          MRISvox(mri_dst,i,j,k)=0;
+
+        MRISvox(mri_test,i,j,k)=MRISvox(mri_PD,i,j,k);
+      }
 }
 
-static void intensity_correction(void)
-{
-	int i,j,k,f,nf;
+static void intensity_correction(void) {
+  int i,j,k,f,nf;
 
-	nf=sqrt(SQR(txCOG)+SQR(tyCOG)+SQR(tzCOG));
+  nf=sqrt(SQR(txCOG)+SQR(tyCOG)+SQR(tzCOG));
 
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-			{
-				f=((i-xCOG)*txCOG+(j-yCOG)*tyCOG+(k-zCOG)*tzCOG)/nf;
-				if(f >= 0)
-				{
-					MRISvox(mri_dst,i,j,k)=(short)((float)MRISvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
-				}
-			}
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++) {
+        f=((i-xCOG)*txCOG+(j-yCOG)*tyCOG+(k-zCOG)*tzCOG)/nf;
+        if (f >= 0) {
+          MRISvox(mri_dst,i,j,k)=(short)((float)MRISvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
+        }
+      }
 }
 
 
-static void label_voxel(void)
-{
-	int i,j,k;
-	char fname[512];
+static void label_voxel(void) {
+  int i,j,k;
+  char fname[512];
 
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-				MRISvox(mri_CSF,i,j,k)=5;
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++)
+        MRISvox(mri_CSF,i,j,k)=5;
 
-	strcpy(fname,"surface_Inner_Skull");
-	read_geometry(fname);
-	peel_brain(mri_CSF,-1,-1,9);
+  strcpy(fname,"surface_Inner_Skull");
+  read_geometry(fname);
+  peel_brain(mri_CSF,-1,-1,9);
 
-	strcpy(fname,"surface_Outer_Skull");
-	read_geometry(fname);
-	peel_brain(mri_CSF,1,-1,7);
+  strcpy(fname,"surface_Outer_Skull");
+  read_geometry(fname);
+  peel_brain(mri_CSF,1,-1,7);
 
-	strcpy (fname,"surface_Outer_Skin");
-	read_geometry(fname);
-	peel_brain(mri_CSF,-3,-1,0); /*originally 0*/
+  strcpy (fname,"surface_Outer_Skin");
+  read_geometry(fname);
+  peel_brain(mri_CSF,-3,-1,0); /*originally 0*/
 
 
-	for(i=0;i<width;i++) 
-		for(j=0;j<height;j++)
-			for(k=0;k<depth;k++)
-				if(MRISvox(mri_CSF,i,j,k)==5)
-				{
-					if(MRISvox(mri_T1,i,j,k)>1400 && MRISvox(mri_PD,i,j,k)>80*PEAK1/100)
-						MRISvox(mri_CSF,i,j,k)=4; /*CSF*/
+  for (i=0;i<width;i++)
+    for (j=0;j<height;j++)
+      for (k=0;k<depth;k++)
+        if (MRISvox(mri_CSF,i,j,k)==5) {
+          if (MRISvox(mri_T1,i,j,k)>1400 && MRISvox(mri_PD,i,j,k)>80*PEAK1/100)
+            MRISvox(mri_CSF,i,j,k)=4; /*CSF*/
 
 #if 0   /*could be usefull to determine white matter tissue- gray...
-					However, the right threshold have to be found...*/
+          However, the right threshold have to be found...*/
 
-					else if(MRISvox(mri_T1,i,j,k)>800 && MRISvox(mri_T1,i,j,k)<1400)
-						MRISvox(mri_CSF,i,j,k)=800;  /*Gray matter*/
+          else if (MRISvox(mri_T1,i,j,k)>800 && MRISvox(mri_T1,i,j,k)<1400)
+            MRISvox(mri_CSF,i,j,k)=800;  /*Gray matter*/
 
-					else if(MRISvox(mri_T1,i,j,k)>500 && MRISvox(mri_T1,i,j,k)<700)
-						MRISvox(mri_T1,i,j,k)=600; /*white matter*/
+          else if (MRISvox(mri_T1,i,j,k)>500 && MRISvox(mri_T1,i,j,k)<700)
+            MRISvox(mri_T1,i,j,k)=600; /*white matter*/
 
-					else
-						MRISvox(mri_T1,i,j,k)=500; /*ambiguous*/
+          else
+            MRISvox(mri_T1,i,j,k)=500; /*ambiguous*/
 #endif
 
 
-				}else if(MRISvox(mri_CSF,i,j,k)==7)
-				{
-					if(MRISvox(mri_T1,i,j,k)<750)
-						MRISvox(mri_CSF,i,j,k)=900; /*SKULL*/
-				}
+        } else if (MRISvox(mri_CSF,i,j,k)==7) {
+          if (MRISvox(mri_T1,i,j,k)<750)
+            MRISvox(mri_CSF,i,j,k)=900; /*SKULL*/
+        }
 
-	strcpy(fname,"surface_Outer_Skin");
-	read_geometry(fname);
-	peel_brain(mri_CSF,-3,-1,7); /*originally 0*/
+  strcpy(fname,"surface_Outer_Skin");
+  read_geometry(fname);
+  peel_brain(mri_CSF,-3,-1,7); /*originally 0*/
 
-	strcpy(fname,"surface_Outer_Skin");
-	read_geometry(fname);
-	peel_brain(mri_CSF,0,-1,0);
+  strcpy(fname,"surface_Outer_Skin");
+  read_geometry(fname);
+  peel_brain(mri_CSF,0,-1,0);
 }
 
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-	
-	if(!strcmp(option, "T1"))
-	{
-		mriT1=1;
-		T1_fname = argv[2];
+
+  if (!strcmp(option, "T1")) {
+    mriT1=1;
+    T1_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-	}else if(!strcmp(option, "PD"))
-	{
-		mriPD=1;
-		PD_fname = argv[2];
+  } else if (!strcmp(option, "PD")) {
+    mriPD=1;
+    PD_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-	}else if(!strcmp(option, "ERR"))
-	{
-		mriErr=1;
-		Err_fname = argv[2];
+  } else if (!strcmp(option, "ERR")) {
+    mriErr=1;
+    Err_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-	}else if(!strcmp(option, "CSF"))
-	{
-		mriCSF=1;
-		CSF_fname = argv[2];
+  } else if (!strcmp(option, "CSF")) {
+    mriCSF=1;
+    CSF_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-	}else if(!strcmp(option, "OUT"))
-	{
-		mriOut=1;
-		out_fname = argv[2];
+  } else if (!strcmp(option, "OUT")) {
+    mriOut=1;
+    out_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-	}else if(!strcmp(option, "correction"))
-	{
-		MRI_correction=1;
-		 fprintf(stderr," mode correction of the MR intensity: top of the head...") ;
-	}else if(!strcmp(option, "SURF"))
-	{
-		mriSURF = 1;
-		strcpy(surf_fname,argv[2]);
-		nargs=1;
-	}else switch (toupper(*option))
-  {
-	default:
-    printf("Mode:          unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else if (!strcmp(option, "correction")) {
+    MRI_correction=1;
+    fprintf(stderr," mode correction of the MR intensity: top of the head...") ;
+  } else if (!strcmp(option, "SURF")) {
+    mriSURF = 1;
+    strcpy(surf_fname,argv[2]);
+    nargs=1;
+  } else switch (toupper(*option)) {
+    default:
+      printf("Mode:          unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
-} 
+}
 
-int main(int argc, char *argv[])
-{
-	int nargs;
-	char fname[512];
+int main(int argc, char *argv[]) {
+  int nargs;
+  char fname[512];
 
-	Progname=argv[0];
+  Progname=argv[0];
 
 
   /************* Command line****************/
 
-	fprintf(stderr,"\n");
+  fprintf(stderr,"\n");
 
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -2414,160 +2268,157 @@ int main(int argc, char *argv[])
 
 
 
-  if(!(mriT1*mriPD))
-  {
+  if (!(mriT1*mriPD)) {
     fprintf(stderr, "\nUsage: %s -[option] file -[option] file ...", Progname);
     exit(1);
   };
 
 
-	/**************Program*********************/
+  /**************Program*********************/
 
-	Reading(); /*load and clone the MRI structures: T1, PD, Err, etc. */
+  Reading(); /*load and clone the MRI structures: T1, PD, Err, etc. */
 
-	init_direction(); /*initialize the variable direction used 
-											in the different template processes.
-											not very easy to understand in a first reading*/
+  init_direction(); /*initialize the variable direction used
+                   in the different template processes.
+                   not very easy to understand in a first reading*/
 
-	GenerateMRI();   /*generate the mri_dst structure 
-										 used to find the surfaces:
-										 mri_dst=mri_PD*exp(-100/mri_T1).   
-										 this approach is better since it "removes"
-										 some of the errors done during the generation 
-										 of the T1 and PD maps */
-
-
-	PDcurve(mri_dst);  /*generate a curve with the mri_dst MR image
-											 and find some parameters useful for the next steps:*/
-	brain_params();    /*for instance, the COG coordinates, 
-											 an approximate brain radius, the intensity of the 
-											 CSF proton density, the main peak (PEAK1) in the 
-											 previously construted curve (this peak is supposed 
-											 to correspond to the white-gray matter density,
-											 which means about 70% of the CSF PD*/
-
-	if(MRI_correction)
-		intensity_correction();
+  GenerateMRI();   /*generate the mri_dst structure
+                   used to find the surfaces:
+                   mri_dst=mri_PD*exp(-100/mri_T1).
+                   this approach is better since it "removes"
+                   some of the errors done during the generation
+                   of the T1 and PD maps */
 
 
-	fprintf(stderr,"\n %d %d \n",SKULL_PD,PEAK1);
+  PDcurve(mri_dst);  /*generate a curve with the mri_dst MR image
+                    and find some parameters useful for the next steps:*/
+  brain_params();    /*for instance, the COG coordinates,
+                    an approximate brain radius, the intensity of the
+                    CSF proton density, the main peak (PEAK1) in the
+                    previously construted curve (this peak is supposed
+                    to correspond to the white-gray matter density,
+                    which means about 70% of the CSF PD*/
+
+  if (MRI_correction)
+    intensity_correction();
 
 
-	/***********Inner Skull Template Deformation**********/
-	/*Try to localize the brain, using the fact that its proton density 
-		is very high.... threshold about 80% of PEAK1*/
-/*save the surface*/
-
-	/*load the tesselated surface*/
-	read_geometry_init();    
-
-	/*initialize the surface with the brain parameters*/
-	init_surf_to_image(0.7*rad_Brain,0.7*rad_Brain,0.7*rad_Brain);
-
-	/*template deformation process: expanding surface*/  
-	shrink_Inner_Skull();
-
-	strcpy(fname,"surface_Inner_Skull");
-	fprintf(stderr,"\nsaving the file %s ... ",fname);
-	write_surface(fname);
-	fprintf(stderr,"done");
-
-	peel_brain(mri_dst,2,1,0); /*the skull is assume to have, at least,
-															 a 2-mm thickness*/
-
-	/*write surfaces in the MRI sturcture mri_test*/
-	write_image(mri_test);
+  fprintf(stderr,"\n %d %d \n",SKULL_PD,PEAK1);
 
 
-	/*****************Outer Skin Template Deformation***************/
+  /***********Inner Skull Template Deformation**********/
+  /*Try to localize the brain, using the fact that its proton density
+   is very high.... threshold about 80% of PEAK1*/
+  /*save the surface*/
 
-	/*load the tesselated surface*/
-	read_geometry_init();
+  /*load the tesselated surface*/
+  read_geometry_init();
 
-	/*initialize the surface with the brain parameters*/
-	init_surf_to_image(2*rad_Brain,2*rad_Brain,2*rad_Brain);
+  /*initialize the surface with the brain parameters*/
+  init_surf_to_image(0.7*rad_Brain,0.7*rad_Brain,0.7*rad_Brain);
 
-	/*template deformation process: shrinking surface*/ 
-	shrink_Outer_Skin();
+  /*template deformation process: expanding surface*/
+  shrink_Inner_Skull();
 
-	/*save the surface*/
-	//	strcpy(fname,"./");
-	strcpy(fname,"surface_Outer_Skin");
-	fprintf(stderr,"\nsaving the file %s ...",fname);
-	write_surface(fname);
-	fprintf(stderr,"done");
+  strcpy(fname,"surface_Inner_Skull");
+  fprintf(stderr,"\nsaving the file %s ... ",fname);
+  write_surface(fname);
+  fprintf(stderr,"done");
+
+  peel_brain(mri_dst,2,1,0); /*the skull is assume to have, at least,
+                        a 2-mm thickness*/
+
+  /*write surfaces in the MRI sturcture mri_test*/
+  write_image(mri_test);
+
+
+  /*****************Outer Skin Template Deformation***************/
+
+  /*load the tesselated surface*/
+  read_geometry_init();
+
+  /*initialize the surface with the brain parameters*/
+  init_surf_to_image(2*rad_Brain,2*rad_Brain,2*rad_Brain);
+
+  /*template deformation process: shrinking surface*/
+  shrink_Outer_Skin();
+
+  /*save the surface*/
+  // strcpy(fname,"./");
+  strcpy(fname,"surface_Outer_Skin");
+  fprintf(stderr,"\nsaving the file %s ...",fname);
+  write_surface(fname);
+  fprintf(stderr,"done");
 
 #if OUTPUT_SURFACES
-	/*	sprintf(surf_fname,"v");
-	writevertices(surf_fname);
-	sprintf(surf_fname,"f");
-	writefaces(surf_fname);*/
+  /* sprintf(surf_fname,"v");
+  writevertices(surf_fname);
+  sprintf(surf_fname,"f");
+  writefaces(surf_fname);*/
 #endif
 
-	peel_brain(mri_dst,-1,-1,PEAK1); /*originally -3 mm */
+  peel_brain(mri_dst,-1,-1,PEAK1); /*originally -3 mm */
 
-	/*write surfaces in the MRI sturcture mri_test*/
-	write_image(mri_test);
-
-
-	/*******************Outer Skull Template Deformation*************/
-
-	/*load the tesselated surface: load the Inner Skull Surface*/
-	strcpy(fname,"surface_Inner_Skull");
-	fprintf(stderr,"\nloading the file %s ...",fname);
-	read_geometry(fname);
-	fprintf(stderr,"done");
-
-	
-	/*template deformation process: expanding surface*/
-	shrink_Outer_Skull();
-
-	/*save the surface*/
-	strcpy(fname,"surface_Outer_Skull");
-	fprintf(stderr,"\nsaving the file %s ...",fname);
-	write_surface(fname);
-	fprintf(stderr,"done");
-
-	/*write surfaces in the MRI sturcture mri_test*/
-	write_image(mri_test);
+  /*write surfaces in the MRI sturcture mri_test*/
+  write_image(mri_test);
 
 
-	/******************Label Process******************************/
-	/*simple routine to get the voxelised labels of different tissue*/
-	
-	fprintf(stderr,"\nlabelize the volume...");
-	label_voxel();
-	fprintf(stderr,"done\n");	
+  /*******************Outer Skull Template Deformation*************/
 
-	if(mriCSF)
-				MRIwrite(mri_test,CSF_fname);
-	if(mriOut)
-		MRIwrite(mri_CSF,out_fname);
+  /*load the tesselated surface: load the Inner Skull Surface*/
+  strcpy(fname,"surface_Inner_Skull");
+  fprintf(stderr,"\nloading the file %s ...",fname);
+  read_geometry(fname);
+  fprintf(stderr,"done");
 
-	if(mriSURF)
-	{	
-		strcpy(fname,surf_fname);
-		strcat(fname,"surface_Inner_Skull");
-		read_geometry(fname);
-		write_geometry_init(fname);
-		strcpy(fname,surf_fname);
-		strcat(fname,"surface_Outer_Skull");
-		write_surface(fname);
-		write_geometry_init(fname);
-		strcpy(fname,surf_fname);
-		strcat(fname,"surface_Outer_Skin");
-		write_surface(fname);
-		write_geometry_init(fname);
-	}
 
-	return 0;
+  /*template deformation process: expanding surface*/
+  shrink_Outer_Skull();
+
+  /*save the surface*/
+  strcpy(fname,"surface_Outer_Skull");
+  fprintf(stderr,"\nsaving the file %s ...",fname);
+  write_surface(fname);
+  fprintf(stderr,"done");
+
+  /*write surfaces in the MRI sturcture mri_test*/
+  write_image(mri_test);
+
+
+  /******************Label Process******************************/
+  /*simple routine to get the voxelised labels of different tissue*/
+
+  fprintf(stderr,"\nlabelize the volume...");
+  label_voxel();
+  fprintf(stderr,"done\n");
+
+  if (mriCSF)
+    MRIwrite(mri_test,CSF_fname);
+  if (mriOut)
+    MRIwrite(mri_CSF,out_fname);
+
+  if (mriSURF) {
+    strcpy(fname,surf_fname);
+    strcat(fname,"surface_Inner_Skull");
+    read_geometry(fname);
+    write_geometry_init(fname);
+    strcpy(fname,surf_fname);
+    strcat(fname,"surface_Outer_Skull");
+    write_surface(fname);
+    write_geometry_init(fname);
+    strcpy(fname,surf_fname);
+    strcat(fname,"surface_Outer_Skin");
+    write_surface(fname);
+    write_geometry_init(fname);
+  }
+
+  return 0;
 }
 
 
 #if 0
 static void
-normal_vector(float *nx,float *ny,float *nz,int f)
-{
+normal_vector(float *nx,float *ny,float *nz,int f) {
   float v1[3],v2[3],d;
 
   v1[0] = vertex[face[f][0]].x-vertex[face[f][1]].x;
@@ -2585,28 +2436,25 @@ normal_vector(float *nx,float *ny,float *nz,int f)
   *ny /= d;
   *nz /= d;
 }
-static void writevertices(char *fname)
-{
+static void writevertices(char *fname) {
   int k;
-	FILE *fout;
-	fout=fopen(fname,"w");
+  FILE *fout;
+  fout=fopen(fname,"w");
   for (k=0;k<nvertices;k++)
     fprintf(fout, " %f %f %f \n",vertex[k].x,vertex[k].y,vertex[k].z);
-	fclose(fout);
+  fclose(fout);
 }
 
-static void writefaces(char *fname)
-{
+static void writefaces(char *fname) {
   int k,n;
-	FILE *fout;
-	fout=fopen(fname,"w");
-  for (k=0;k<nfaces;k++)
-  {
+  FILE *fout;
+  fout=fopen(fname,"w");
+  for (k=0;k<nfaces;k++) {
     for (n=0;n<3;n++)
       fprintf(fout," %d",face[k][n]);
     fprintf(fout,"\n");
   }
-	fclose(fout);
+  fclose(fout);
 }
 #endif
 

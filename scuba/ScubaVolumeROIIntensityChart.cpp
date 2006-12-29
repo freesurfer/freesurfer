@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaVolumeROIIntensityChart.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <queue>
 #include "ScubaVolumeROIIntensityChart.h"
 
@@ -7,16 +35,16 @@ bool ScubaVolumeROIIntensityChartFactory::mbAddedTclCommands = false;
 
 
 ScubaVolumeROIIntensityChart::
-ScubaVolumeROIIntensityChart( VolumeCollection& iVolume, 
-			      ScubaROIVolume& iROI, SortOrder iOrder ) :
-  Listener("ScubaVolumeROIIntensityChart"),
-  mVolume(iVolume),
-  mROI(iROI),
-  mChart(NULL),
-  mSortOrder(iOrder) {
+ScubaVolumeROIIntensityChart( VolumeCollection& iVolume,
+                              ScubaROIVolume& iROI, SortOrder iOrder ) :
+    Listener("ScubaVolumeROIIntensityChart"),
+    mVolume(iVolume),
+    mROI(iROI),
+    mChart(NULL),
+    mSortOrder(iOrder) {
 
   mChart = ChartWindow::NewChartWindow();
-  if( NULL == mChart ) {
+  if ( NULL == mChart ) {
     throw runtime_error( "Couldn't create chart." );
   }
 
@@ -37,25 +65,25 @@ ScubaVolumeROIIntensityChart::~ScubaVolumeROIIntensityChart () {
 
 void
 ScubaVolumeROIIntensityChart::DoListenToMessage ( string isMessage,
-						  void*  iData ) {
+    void*  iData ) {
 
-  if( isMessage == "dataChanged" ) {
+  if ( isMessage == "dataChanged" ) {
     Draw();
   }
-  if( isMessage == "roiChanged" ) {
+  if ( isMessage == "roiChanged" ) {
     Draw();
   }
-  if( isMessage == "chartDeleted" ) {
+  if ( isMessage == "chartDeleted" ) {
     delete this;
   }
 }
 
-void 
+void
 ScubaVolumeROIIntensityChart::Draw() {
 
   // Switch on our sort order and call the second Draw function
   // passing in the class of the proper comparator.
-  switch( mSortOrder ) {
+  switch ( mSortOrder ) {
   case x:
     DrawWithSort<VolumeLocationRASXComparatorGT>();
     break;
@@ -84,9 +112,9 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
   // Check against the bounds of the volume.
   int mriIdxRange[3];
   mVolume.GetMRIIndexRange( mriIdxRange );
-  if( bounds[0] != mriIdxRange[0] ||
-      bounds[1] != mriIdxRange[1] ||
-      bounds[2] != mriIdxRange[2] ) {
+  if ( bounds[0] != mriIdxRange[0] ||
+       bounds[1] != mriIdxRange[1] ||
+       bounds[2] != mriIdxRange[2] ) {
     throw runtime_error( "Bounds of volume don't match bounds of ROI." );
   }
 
@@ -95,20 +123,20 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
 
   // Iterate over the ROI...
   int idx[3];
-  for( idx[2] = 0; idx[2] < bounds[2]; idx[2]++ ) {
-    for( idx[1] = 0; idx[1] < bounds[1]; idx[1]++ ) {
-      for( idx[0] = 0; idx[0] < bounds[0]; idx[0]++ ) {
+  for ( idx[2] = 0; idx[2] < bounds[2]; idx[2]++ ) {
+    for ( idx[1] = 0; idx[1] < bounds[1]; idx[1]++ ) {
+      for ( idx[0] = 0; idx[0] < bounds[0]; idx[0]++ ) {
 
-	// If this voxel is selected...
-	if( mROI.IsVoxelSelected( idx ) ) {
+        // If this voxel is selected...
+        if ( mROI.IsVoxelSelected( idx ) ) {
 
-	  // Make a location from this index.
-	  VolumeLocation& loc = 
-	    (VolumeLocation&) mVolume.MakeLocationFromIndex( idx );
+          // Make a location from this index.
+          VolumeLocation& loc =
+            (VolumeLocation&) mVolume.MakeLocationFromIndex( idx );
 
-	  // Add it our sorted queue of selected points.
-	  lLocs.push( &loc );
-	}
+          // Add it our sorted queue of selected points.
+          lLocs.push( &loc );
+        }
       }
     }
   }
@@ -117,12 +145,12 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
   // queue picking stuff off the top.
   int cSelected = 0;
   int nPoint = 0;
-  while( !lLocs.empty() ) {
+  while ( !lLocs.empty() ) {
 
     // Get the top element and pop it.
     VolumeLocation* loc = lLocs.top();
     lLocs.pop();
-    
+
     // Copy the data into the point data structure. The x value is an
     // incrementing index and the y is the intensity.
     data.mX = nPoint;
@@ -131,12 +159,12 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
     // Our label is the RAS coordinate.
     stringstream ssLabel;
     ssLabel << "(" << loc->RAS(0) << ", " << loc->RAS(1)
-	    << ", " << loc->RAS(2) << ")";
+    << ", " << loc->RAS(2) << ")";
     data.msLabel = ssLabel.str();
 
     // Add the data to the list of points we'll send to the chart.
     lData.push_back( data );
-    
+
     // Delete the VolumeLocation now.
     delete loc;
 
@@ -147,11 +175,11 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
   // Build the title and info string for the chart.
   stringstream sTitle, sInfo;
   sTitle << "Volume ROI Intensity Plot: Vol " << mVolume.GetID ()
-	 << " ROI " << mROI.GetID();
+  << " ROI " << mROI.GetID();
 
-  sInfo << "Volume: \\\"" << mVolume.GetLabel() 
-	<< "\\\" ROI: \\\"" << mROI.GetLabel()
-	<< "\\\" Num voxels: " << cSelected;
+  sInfo << "Volume: \\\"" << mVolume.GetLabel()
+  << "\\\" ROI: \\\"" << mROI.GetLabel()
+  << "\\\" Num voxels: " << cSelected;
 
   // Set all the data chart and tell it to draw.
   mChart->SetTitle( sTitle.str() );
@@ -164,15 +192,15 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASXComparatorGT::operator()
-  ( const VolumeLocation* v1,
-    const VolumeLocation* v2 ) const {
+( const VolumeLocation* v1,
+  const VolumeLocation* v2 ) const {
 
   // Compare the first VolumeLocation to the second and return true if
   // the x coordinate is greater in the first one. If they are equal,
   // move to the y coordinate, and then to z.
-  if( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) { //if v1->RAS(0) != v2->RAS(0)
+  if ( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) { //if v1->RAS(0) != v2->RAS(0)
     return (v1->RAS(0) > v2->RAS(0));
-  } else if( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
+  } else if ( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
     return (v1->RAS(1) > v2->RAS(1));
   } else {
     return (v1->RAS(2) > v2->RAS(2));
@@ -181,13 +209,13 @@ ScubaVolumeROIIntensityChart::VolumeLocationRASXComparatorGT::operator()
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASYComparatorGT::operator()
-  ( const VolumeLocation* v1,
-    const VolumeLocation* v2 ) const {
+( const VolumeLocation* v1,
+  const VolumeLocation* v2 ) const {
 
   // Same, but y first, then z, then x.
-  if( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
+  if ( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
     return (v1->RAS(1) > v2->RAS(1));
-  } else if( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
+  } else if ( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
     return (v1->RAS(2) > v2->RAS(2));
   } else {
     return (v1->RAS(0) > v2->RAS(0));
@@ -196,13 +224,13 @@ ScubaVolumeROIIntensityChart::VolumeLocationRASYComparatorGT::operator()
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASZComparatorGT::operator()
-  ( const VolumeLocation* v1,
-    const VolumeLocation* v2 ) const {
+( const VolumeLocation* v1,
+  const VolumeLocation* v2 ) const {
 
   // Same, but z first, then x, then y.
-  if( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
+  if ( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
     return (v1->RAS(2) > v2->RAS(2));
-  } else if( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) {
+  } else if ( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) {
     return (v1->RAS(0) > v2->RAS(0));
   } else {
     return (v1->RAS(1) > v2->RAS(1));
@@ -210,53 +238,51 @@ ScubaVolumeROIIntensityChart::VolumeLocationRASZComparatorGT::operator()
 }
 
 
-ScubaVolumeROIIntensityChartFactory& 
+ScubaVolumeROIIntensityChartFactory&
 ScubaVolumeROIIntensityChartFactory::GetFactory() {
 
   static ScubaVolumeROIIntensityChartFactory sFactory;
 
-  if( !mbAddedTclCommands ) {
+  if ( !mbAddedTclCommands ) {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( sFactory, "MakeNewVolumeROIIntensityChart", 3,
-			   "volumeID roiID sortOrder", "Makes a new chart "
-			   "window plotting the intensities of voxels in a "
-			   "volume ROI. sortOrder should be x, y, or z." );
+                           "volumeID roiID sortOrder", "Makes a new chart "
+                           "window plotting the intensities of voxels in a "
+                           "volume ROI. sortOrder should be x, y, or z." );
   }
 
   return sFactory;
 }
 
 TclCommandListener::TclCommandResult
-ScubaVolumeROIIntensityChartFactory::DoListenToTclCommand( char* isCommand, 
-							   int, char** iasArgv ) {
-  
+ScubaVolumeROIIntensityChartFactory::DoListenToTclCommand( char* isCommand,
+    int, char** iasArgv ) {
+
   // MakeVolumeROIIntensityChart <volumeID> <roiID>
-  if( 0 == strcmp( isCommand, "MakeNewVolumeROIIntensityChart" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeNewVolumeROIIntensityChart" ) ) {
 
     // Get the collection ID.
     int collectionID;
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collectionID: ") + e.what();
       return error;
     }
 
     // Try to find the object.
     DataCollection* col;
-    try { 
+    try {
       col = &DataCollection::FindByID( collectionID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("Couldn't find collection: ") + e.what();
       return error;
     }
-    
+
     // Make sure it's a volume.
-    if( col->GetTypeDescription() != "Volume" ) {
+    if ( col->GetTypeDescription() != "Volume" ) {
       throw runtime_error( "Collection wasn't a volume." );
     }
 
@@ -268,24 +294,22 @@ ScubaVolumeROIIntensityChartFactory::DoListenToTclCommand( char* isCommand,
     int roiID;
     try {
       roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad roiID: ") + e.what();
       return error;
     }
 
     // If it's not in this volume, return an error.
-    if( !vol->IsROIInThisCollection( roiID ) ) {
+    if ( !vol->IsROIInThisCollection( roiID ) ) {
       sResult = "That ROI is not in that volume.";
       return error;
     }
 
     // Get the object.
     ScubaROI* roi;
-    try { 
+    try {
       roi = &ScubaROI::FindByID( roiID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("Couldn't find roi: ") + e.what();
       return error;
     }
@@ -296,11 +320,11 @@ ScubaVolumeROIIntensityChartFactory::DoListenToTclCommand( char* isCommand,
 
     // Try to parse the sortOrder.
     ScubaVolumeROIIntensityChart::SortOrder sortOrder;
-    if( iasArgv[3][0] == 'x' || iasArgv[3][0] == 'X' ) {
+    if ( iasArgv[3][0] == 'x' || iasArgv[3][0] == 'X' ) {
       sortOrder = ScubaVolumeROIIntensityChart::x;
-    } else if( iasArgv[3][0] == 'y' || iasArgv[3][0] == 'Y' ) {
+    } else if ( iasArgv[3][0] == 'y' || iasArgv[3][0] == 'Y' ) {
       sortOrder = ScubaVolumeROIIntensityChart::y;
-    } else if( iasArgv[3][0] == 'z' || iasArgv[3][0] == 'Z' ) {
+    } else if ( iasArgv[3][0] == 'z' || iasArgv[3][0] == 'Z' ) {
       sortOrder = ScubaVolumeROIIntensityChart::z;
     } else {
       sResult = string("bad sortOrder: ") + iasArgv[3][0];

@@ -1,3 +1,31 @@
+/**
+ * @file  test_ShortestPathFinder.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <sstream>
 #include "ShortestPathFinder.h"
 extern "C" {
@@ -25,16 +53,19 @@ public:
 
 // These edge costs set us up so that we should be straight from 2,2 to 8,8
 float const maEdgeCosts[10][10] = {
-  {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9},
-  {  9,   1,   1,   1,   1,   1,   1,   1,   1,   9},
-  {  9,   7,   1,   9,   1,   1,   1,   9,   1,   9},
-  {  9,   1,   7,   1,   9,   1,   1,   1,   1,   9},
-  {  9,   5,   3,   7,   1,   9,   1,   9,   1,   9},
-  {  9,   5,   3,   2,   7,   1,   9,   9,   1,   9},
-  {  9,   3,   3,   5,   5,   7,   1,   9,   1,   9},
-  {  9,   3,   3,   3,   3,   5,   7,   1,   1,   9},
-  {  9,   5,   5,   5,   3,   3,   1,   7,   1,   9},
-  {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9} };
+                                    {
+                                      9,   9,   9,   9,   9,   9,   9,   9,   9,   9
+                                    },
+                                    {  9,   1,   1,   1,   1,   1,   1,   1,   1,   9},
+                                    {  9,   7,   1,   9,   1,   1,   1,   9,   1,   9},
+                                    {  9,   1,   7,   1,   9,   1,   1,   1,   1,   9},
+                                    {  9,   5,   3,   7,   1,   9,   1,   9,   1,   9},
+                                    {  9,   5,   3,   2,   7,   1,   9,   9,   1,   9},
+                                    {  9,   3,   3,   5,   5,   7,   1,   9,   1,   9},
+                                    {  9,   3,   3,   3,   3,   5,   7,   1,   1,   9},
+                                    {  9,   5,   5,   5,   3,   3,   1,   7,   1,   9},
+                                    {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9}
+                                  };
 
 class TestShortestPathFinder : public ShortestPathFinder {
 public:
@@ -49,7 +80,7 @@ public:
 };
 
 
-void 
+void
 ShortestPathFinderTester::Test () {
 
   stringstream ssError;
@@ -63,34 +94,48 @@ ShortestPathFinderTester::Test () {
     Point2<int> end( 8, 8 );
     list<Point2<int> > points;
     finder.FindPath( begin, end, points );
-    
+
     // Our path should be straight from 2,2 to 8,8.
     list<Point2<int> >::iterator tPoint;
     int nPoint = 0;
-    for( tPoint = points.begin(); tPoint != points.end(); ++tPoint, nPoint++ ){
+    for ( tPoint = points.begin(); tPoint != points.end(); ++tPoint, nPoint++ ) {
       Point2<int> p = *tPoint;
       stringstream ssError;
       bool bGood = false;
-      switch( nPoint ) {
-      case 0: bGood = p[0] == 2 && p[1] == 2; break;
-      case 1: bGood = p[0] == 3 && p[1] == 3; break;
-      case 2: bGood = p[0] == 4 && p[1] == 4; break;
-      case 3: bGood = p[0] == 5 && p[1] == 5; break;
-      case 4: bGood = p[0] == 6 && p[1] == 6; break;
-      case 5: bGood = p[0] == 7 && p[1] == 7; break;
-      case 6: bGood = p[0] == 8 && p[1] == 8; break;
-      default: ssError << "Too many points!" << endl; break;
+      switch ( nPoint ) {
+      case 0:
+        bGood = p[0] == 2 && p[1] == 2;
+        break;
+      case 1:
+        bGood = p[0] == 3 && p[1] == 3;
+        break;
+      case 2:
+        bGood = p[0] == 4 && p[1] == 4;
+        break;
+      case 3:
+        bGood = p[0] == 5 && p[1] == 5;
+        break;
+      case 4:
+        bGood = p[0] == 6 && p[1] == 6;
+        break;
+      case 5:
+        bGood = p[0] == 7 && p[1] == 7;
+        break;
+      case 6:
+        bGood = p[0] == 8 && p[1] == 8;
+        break;
+      default:
+        ssError << "Too many points!" << endl;
+        break;
       }
       ssError << "Wrong point at index " << nPoint << ", was " << p;
-      Assert( (bGood), ssError.str() );      
+      Assert( (bGood), ssError.str() );
     }
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -106,17 +151,15 @@ int main ( int argc, char** argv ) {
     ShortestPathFinderTester tester0;
     tester0.Test();
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
-  
+
   cerr << "Success" << endl;
 
   exit( 0 );

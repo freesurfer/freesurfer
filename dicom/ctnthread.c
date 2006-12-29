@@ -33,18 +33,18 @@
 +-+-+-+-+-+-+-+-+-
 */
 /*
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Steve Moore, 30-Jun-96
-** Intent:		Provide common abstractions needed for operations
-**			in a multi-threaded environment.
-** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:06:04 $
-** Source File:		$RCSfile: ctnthread.c,v $
-** Revision:		$Revision: 1.4 $
-** Status:		$State: Exp $
+** Author, Date: Steve Moore, 30-Jun-96
+** Intent:  Provide common abstractions needed for operations
+**   in a multi-threaded environment.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:08:57 $
+** Source File:  $RCSfile: ctnthread.c,v $
+** Revision:  $Revision: 1.5 $
+** Status:  $State: Exp $
 */
 
 #include <stdio.h>
@@ -72,145 +72,140 @@ static CTNBOOLEAN initialized = FALSE;
 
 #ifdef _MSC_VER
 static void
-mutexName(int i, char *name)
-{
-    sprintf(name, "CTN-MUTEX-%d", i);
+mutexName(int i, char *name) {
+  sprintf(name, "CTN-MUTEX-%d", i);
 }
 #endif
 
 CONDITION
-THR_Init()
-{
+THR_Init() {
 #ifdef CTN_USE_THREADS
 #ifdef _MSC_VER
-    int i;
+  int i;
 
-    if (initialized)
-	return THR_NORMAL;
-
-    for (i = 0; i < (int) DIM_OF(hMutex); i++) {
-	char name[32];
-	mutexName(i, name);
-	hMutex[i] = CreateMutex(NULL, FALSE, name);
-    }
-    initialized = TRUE;
-    return THR_NORMAL;
-#else
-    int cond;
-    int i;
-
-    if (initialized)
-	return;
-
-    for (i = 0; i < (int) DIM_OF(mutex); i++) {
-	cond = mutex_init(&mutex[i], USYNC_THREAD, NULL);
-	if (cond != 0) {
-	    fprintf(stderr, "Fatal error in THR_Init; could not initialize mutex\n");
-	    exit(1);
-	}
-    }
-    initialized = TRUE;
-    return THR_NORMAL;
-#endif
-#else
-    return THR_NORMAL;
-#endif
-}
-
-CONDITION
-THR_Shutdown()
-{
-#ifdef CTN_USE_THREADS
-#ifdef _MSC_VER
-    int i;
-
-    if (!initialized) {
-	fprintf(stderr, "Threads not initialized in call to THR_Shutdown\n");
-	return THR_NOTINITIALIZED;
-    }
-    for (i = 0; i < (int) DIM_OF(hMutex); i++)
-	CloseHandle(hMutex[i]);
-
+  if (initialized)
     return THR_NORMAL;
 
-#else
-    int cond;
-    int i;
-
-    if (!initialized) {
-	fprintf(stderr, "Threads not initialized in call to THR_Shutdown\n");
-	return THR_NOTINITIALIZED;
-    }
-    for (i = 0; i < (int) DIM_OF(mutex); i++) {
-	cond = mutex_destroy(&mutex[i]);
-	if (cond != 0) {
-	    fprintf(stderr, "Failed on call to mutex_destroy in THR_Shutdown\n");
-	    return THR_GENERICFAILURE;
-	}
-    }
-    return THR_NORMAL;
-#endif
-#else
-    return THR_NORMAL;
-#endif
-}
-
-CONDITION
-THR_ObtainMutex(int fac)
-{
-#ifdef CTN_USE_THREADS
-#ifdef _MSC_VER
+  for (i = 0; i < (int) DIM_OF(hMutex); i++) {
     char name[32];
-    HANDLE hTmpMutex;
-    mutexName(fac, name);
-    hTmpMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, name);
-    WaitForSingleObject(hMutex[fac], INFINITE);
-    /* From JCS, close temp handle to get eliminate resource leak. */
-    CloseHandle(hTmpMutex);
-
-    return THR_NORMAL;
+    mutexName(i, name);
+    hMutex[i] = CreateMutex(NULL, FALSE, name);
+  }
+  initialized = TRUE;
+  return THR_NORMAL;
 #else
-    int cond;
+  int cond;
+  int i;
 
-    if (!initialized) {
-	fprintf(stderr,
-	   "Threads not initialized in call to THR_ObtainMutex: exiting\n");
-	exit(1);
-    }
-    cond = mutex_lock(&mutex[fac]);
+  if (initialized)
+    return;
+
+  for (i = 0; i < (int) DIM_OF(mutex); i++) {
+    cond = mutex_init(&mutex[i], USYNC_THREAD, NULL);
     if (cond != 0) {
-	fprintf(stderr, "Failed on call to mutex_lock in THR_ObtainMutex\n");
-	return THR_GENERICFAILURE;
+      fprintf(stderr, "Fatal error in THR_Init; could not initialize mutex\n");
+      exit(1);
     }
-    return THR_NORMAL;
+  }
+  initialized = TRUE;
+  return THR_NORMAL;
 #endif
 #else
-    return THR_NORMAL;
+  return THR_NORMAL;
 #endif
 }
 
 CONDITION
-THR_ReleaseMutex(int fac)
-{
+THR_Shutdown() {
 #ifdef CTN_USE_THREADS
 #ifdef _MSC_VER
-    ReleaseMutex(hMutex[fac]);
-    return THR_NORMAL;
-#else
-    int cond;
+  int i;
 
-    if (!initialized) {
-	fprintf(stderr, "Threads not initialized in call to THR_ReleaseMutex\n");
-	return THR_NOTINITIALIZED;
-    }
-    cond = mutex_unlock(&mutex[fac]);
+  if (!initialized) {
+    fprintf(stderr, "Threads not initialized in call to THR_Shutdown\n");
+    return THR_NOTINITIALIZED;
+  }
+  for (i = 0; i < (int) DIM_OF(hMutex); i++)
+    CloseHandle(hMutex[i]);
+
+  return THR_NORMAL;
+
+#else
+  int cond;
+  int i;
+
+  if (!initialized) {
+    fprintf(stderr, "Threads not initialized in call to THR_Shutdown\n");
+    return THR_NOTINITIALIZED;
+  }
+  for (i = 0; i < (int) DIM_OF(mutex); i++) {
+    cond = mutex_destroy(&mutex[i]);
     if (cond != 0) {
-	fprintf(stderr, "Failed on call to mutex_unlock in THR_ReleaseMutex\n");
-	return THR_GENERICFAILURE;
+      fprintf(stderr, "Failed on call to mutex_destroy in THR_Shutdown\n");
+      return THR_GENERICFAILURE;
     }
-    return THR_NORMAL;
+  }
+  return THR_NORMAL;
 #endif
 #else
-    return THR_NORMAL;
+  return THR_NORMAL;
+#endif
+}
+
+CONDITION
+THR_ObtainMutex(int fac) {
+#ifdef CTN_USE_THREADS
+#ifdef _MSC_VER
+  char name[32];
+  HANDLE hTmpMutex;
+  mutexName(fac, name);
+  hTmpMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, name);
+  WaitForSingleObject(hMutex[fac], INFINITE);
+  /* From JCS, close temp handle to get eliminate resource leak. */
+  CloseHandle(hTmpMutex);
+
+  return THR_NORMAL;
+#else
+  int cond;
+
+  if (!initialized) {
+    fprintf(stderr,
+            "Threads not initialized in call to THR_ObtainMutex: exiting\n");
+    exit(1);
+  }
+  cond = mutex_lock(&mutex[fac]);
+  if (cond != 0) {
+    fprintf(stderr, "Failed on call to mutex_lock in THR_ObtainMutex\n");
+    return THR_GENERICFAILURE;
+  }
+  return THR_NORMAL;
+#endif
+#else
+  return THR_NORMAL;
+#endif
+}
+
+CONDITION
+THR_ReleaseMutex(int fac) {
+#ifdef CTN_USE_THREADS
+#ifdef _MSC_VER
+  ReleaseMutex(hMutex[fac]);
+  return THR_NORMAL;
+#else
+  int cond;
+
+  if (!initialized) {
+    fprintf(stderr, "Threads not initialized in call to THR_ReleaseMutex\n");
+    return THR_NOTINITIALIZED;
+  }
+  cond = mutex_unlock(&mutex[fac]);
+  if (cond != 0) {
+    fprintf(stderr, "Failed on call to mutex_unlock in THR_ReleaseMutex\n");
+    return THR_GENERICFAILURE;
+  }
+  return THR_NORMAL;
+#endif
+#else
+  return THR_NORMAL;
 #endif
 }

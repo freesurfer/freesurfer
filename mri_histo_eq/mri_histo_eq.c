@@ -1,3 +1,31 @@
+/**
+ * @file  mri_histo_eq.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -26,8 +54,7 @@ static int   adaptive_normalize = 0 ;
 static char *xform_fname = NULL ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av, *out_fname ;
   int    ac, nargs ;
   int          msec, minutes, seconds ;
@@ -35,7 +62,7 @@ main(int argc, char *argv[])
   MRI    *mri_src, *mri_template, *mri_eq ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.4 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.5 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -48,8 +75,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -69,20 +95,19 @@ main(int argc, char *argv[])
               argv[2]) ;
   out_fname = argv[3] ;
 
-  if (xform_fname)
-  {
+  if (xform_fname) {
     char   path[STRLEN], fname[STRLEN] ;
     LTA    *lta_src, *lta_template ;
     MATRIX *m_L, *m_inv ;
     MRI    *mri_tmp ;
-    
+
     FileNameOnly(xform_fname, xform_fname) ;
 
     FileNamePath(argv[1], path) ;
     sprintf(fname, "%s/%s", path, xform_fname) ;
     lta_src = LTAread(fname) ;
     if (!lta_src)
-      ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s", 
+      ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s",
                 Progname, fname) ;
 
     /* now put template in source space */
@@ -95,13 +120,17 @@ main(int argc, char *argv[])
     sprintf(fname, "%s/%s", path, xform_fname) ;
     lta_template = LTAread(fname) ;
     if (!lta_template)
-      ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s", 
+      ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s",
                 Progname, fname) ;
 
     m_L = MatrixMultiply(m_inv, lta_template->xforms[0].m_L, NULL) ;
-    LTAfree(&lta_src) ; LTAfree(&lta_template) ; MatrixFree(&m_inv) ;
+    LTAfree(&lta_src) ;
+    LTAfree(&lta_template) ;
+    MatrixFree(&m_inv) ;
     mri_tmp = MRIlinearTransform(mri_template, NULL, m_L) ;
-    MRIfree(&mri_template) ; mri_template = mri_tmp ; MatrixFree(&m_L);
+    MRIfree(&mri_template) ;
+    mri_template = mri_tmp ;
+    MatrixFree(&m_L);
   }
 
   if (adaptive_normalize)
@@ -110,8 +139,7 @@ main(int argc, char *argv[])
   else
     mri_eq = MRIhistoNormalize(mri_src, NULL, mri_template, 30, 170) ;
   MRIwrite(mri_eq, out_fname) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     HISTOGRAM *histo,*hsmooth ;
 
     histo = MRIhistogram(mri_src, 0) ;
@@ -129,7 +157,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
 
-  fprintf(stderr, "histogram normalization took %d minutes and %d seconds.\n", 
+  fprintf(stderr, "histogram normalization took %d minutes and %d seconds.\n",
           minutes, seconds) ;
 
   exit(0) ;
@@ -141,14 +169,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'A':
     adaptive_normalize = 1 ;
     break ;
@@ -173,12 +199,11 @@ get_option(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf("usage: %s [options] <volume 1> <volume 2>",
          Progname) ;
   printf(
-         "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-         );
+    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
+  );
   exit(code) ;
 }

@@ -1,12 +1,40 @@
+/**
+ * @file  oglutil.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.17 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef OGLUTIL_H
 #define OGLUTIL_H
 
 #include "mrisurf.h"
 
 int    OGLUinit(MRI_SURFACE *mris, long frame_xsize, long frame_ysize) ;
-int    OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, 
+int    OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags,
                    float cslope) ;
-void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
+void   OGLUsetLightingModel(float lite0, float lite1, float lite2,
                             float lite3, float newoffset) ;
 int    OGLUnoscale(void) ;
 int    OGLUsetFOV(int fov) ;
@@ -18,7 +46,7 @@ extern double oglu_fov ;
 
 #define PATCH_FLAG   0x0001
 #define TP_FLAG      0x0002   /* show tangent plane and principal directions */
-                              /*  of marked vertices */
+/*  of marked vertices */
 #define MESH_FLAG     0x0004
 #define COORD_FLAG    0x0008   /* draw canonical coordinate system */
 #define BW_FLAG       0x0010   /* only use black and white */

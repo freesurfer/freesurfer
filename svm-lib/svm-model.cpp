@@ -1,21 +1,48 @@
+/**
+ * @file  svm-model.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "svm-model.h"
 
 using namespace std;
 
 
-bool Model::copyData (const SvmReal* const* data, int rows, int cols)
-{
-  if ( !isValid() ) 
+bool Model::copyData (const SvmReal* const* data, int rows, int cols) {
+  if ( !isValid() )
     return false;
-  
+
   _svData.init(svCount(),cols);
   for ( int i = 0; i < svCount(); i++ )
     if ( svIndex(i) < rows )
       _svData.setRow(i, data[svIndex(i)]);
     else {
-      cerr << "Sketch error: the support vector index (" << svIndex(i) 
-	   << ") is outside the data array (length of " 
-	   << rows << ").\n";
+      cerr << "Sketch error: the support vector index (" << svIndex(i)
+      << ") is outside the data array (length of "
+      << rows << ").\n";
       setValid(false);
       return false;
     }
@@ -28,11 +55,10 @@ bool Model::copyData (const SvmReal* const* data, int rows, int cols)
 ///////////////  Classify
 
 
-double Model::classify (const SvmReal *x) const
-{
+double Model::classify (const SvmReal *x) const {
   if ( ! isValid() ) {
     cerr << "Model error: attempting to use uninitialized classifier "
-	 << "to classify an example.\n";
+    << "to classify an example.\n";
     return 0;
   }
 
@@ -41,16 +67,15 @@ double Model::classify (const SvmReal *x) const
     res += alpha(i)*kernel(x,svData(i),svDim());
   return res;
 }
-  
+
 
 ///////////////  Gradient
 
 
-SvmReal Model::d10(int index, const SvmReal* x) const
-{
+SvmReal Model::d10(int index, const SvmReal* x) const {
   if ( ! isValid() ) {
     cerr << "Model error: attempting to use uninitialized classifier "
-	 << "to compute the gradient.\n";
+    << "to compute the gradient.\n";
     return 0;
   }
 
@@ -61,25 +86,24 @@ SvmReal Model::d10(int index, const SvmReal* x) const
 }
 
 
-bool Model::d10(SvmReal* res, const SvmReal* x) const
-{
+bool Model::d10(SvmReal* res, const SvmReal* x) const {
   if ( ! isValid() ) {
     cerr << "Model error: attempting to use uninitialized classifier "
-	 << "to compute the gradient.\n";
+    << "to compute the gradient.\n";
     return false;
   }
 
   // Initialize the result
-  for ( int j = 0; j < svDim(); j++ ) 
+  for ( int j = 0; j < svDim(); j++ )
     res[j] = 0;
-  
+
 
   // y is an intermidiate result, it is a gradient of the kernel
   // evaluated at the currently considered support vector.
   SvmReal* y = new SvmReal[svDim()];
   for ( int i = 0; i < svCount(); i++ ) {
     kernel().d10(y,x,svData(i),svDim());
-    for ( int j = 0; j < svDim(); j++ ) 
+    for ( int j = 0; j < svDim(); j++ )
       res[j] += alpha(i)*y[j];
   }
 
@@ -91,17 +115,16 @@ bool Model::d10(SvmReal* res, const SvmReal* x) const
 
 ///////////////  I/O
 
-bool Model::read (FILE* f, bool binary)
-{
+bool Model::read (FILE* f, bool binary) {
   Sketch::read(f);
 
   // Use fgets and not fscanf, because fscanf can skip over a character
   // if the first character in the binary data is eol, or something like that.
-  
-  int dim;  
+
+  int dim;
   char header[300];
   fgets(header,300,f);
-  if ( sscanf(header,"%d", &dim ) != 1 ) 
+  if ( sscanf(header,"%d", &dim ) != 1 )
     return false;
 
   _svData.init(svCount(),dim);
@@ -109,11 +132,10 @@ bool Model::read (FILE* f, bool binary)
 }
 
 
-bool Model::write (FILE* f, bool binary) const
-{
+bool Model::write (FILE* f, bool binary) const {
   Sketch::write(f);
   fprintf(f,"%d\n", svDim());
-  
+
   return _svData.write(f,binary);
 }
 

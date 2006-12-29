@@ -1,3 +1,31 @@
+/**
+ * @file  repair_siemens_file.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,22 +48,20 @@ extern void swab(const void *from, void *to, size_t n);
 
 int repair_file(char *fname);
 
-void usage(void)
-{
+void usage(void) {
 
   fprintf(stderr, "usage: %s <siemens file> ...\n", Progname);
   exit(1);
 
 } /* end usage() */
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
   int i;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.8 2006/04/19 22:47:27 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.9 2006/12/29 02:09:13 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -44,13 +70,11 @@ int main(int argc, char *argv[])
   Progname = strrchr(argv[0], '/');
   Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
-  if(argc < 2)
-  {
+  if (argc < 2) {
     usage();
   }
 
-  for(i = 1;i < argc;i++)
-  {
+  for (i = 1;i < argc;i++) {
     repair_file(argv[i]);
   }
 
@@ -58,8 +82,7 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 
-int repair_file(char *fname)
-{
+int repair_file(char *fname) {
 
   FILE *fp;
   short rows, cols;
@@ -70,8 +93,7 @@ int repair_file(char *fname)
   int data_bytes;
   char new_fname[STRLEN];
 
-  if((fp = fopen(fname, "r")) == NULL)
-  {
+  if ((fp = fopen(fname, "r")) == NULL) {
     fprintf(stderr, "can't open file %s for reading\n", fname);
     return(ERROR_BADFILE);
   }
@@ -87,54 +109,49 @@ int repair_file(char *fname)
   fread(&bits_per_voxel, sizeof(short), 1, fp);
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-  #if defined(SunOS)
+#if defined(SunOS)
   swab((const char *)&rows, (char *)&rows, 2);
   swab((const char *)&cols, (char *)&cols, 2);
   swab((const char *)&bits_per_voxel, (char *)&bits_per_voxel, 2);
-  #else
+#else
   swab(&rows, &rows, 2);
   swab(&cols, &cols, 2);
   swab(&bits_per_voxel, &bits_per_voxel, 2);
-  #endif
+#endif
 #endif
 
   bytes_per_voxel = bits_per_voxel / 8;
 
   data_bytes = rows * cols * bytes_per_voxel;
 
-  if(file_length == HEADER_LENGTH + data_bytes)
-  {
+  if (file_length == HEADER_LENGTH + data_bytes) {
     fprintf(stderr, "file %s is the correct length, skipping\n", fname);
     fclose(fp);
     return(ERROR_BADPARM);
   }
 
-  if(file_length < HEADER_LENGTH + data_bytes)
-  {
+  if (file_length < HEADER_LENGTH + data_bytes) {
     fprintf(stderr, "file %s is too short; can't repair\n", fname);
     fclose(fp);
     return(ERROR_BADPARM);
   }
 
   fseek(fp, 0, SEEK_SET);
-  if(fread(&header, 1, HEADER_LENGTH, fp) != HEADER_LENGTH)
-  {
+  if (fread(&header, 1, HEADER_LENGTH, fp) != HEADER_LENGTH) {
     fprintf(stderr, "error reading header from file %s\n", fname);
     fclose(fp);
     return(ERROR_BADPARM);
   }
 
   data = (char *)malloc(data_bytes);
-  if(data == NULL)
-  {
+  if (data == NULL) {
     fprintf(stderr, "error allocating data memory for file %s\n", fname);
     fclose(fp);
     return(ERROR_NOMEMORY);
   }
 
   fseek(fp, -data_bytes, SEEK_END);
-  if(fread(data, 1, data_bytes, fp) != data_bytes)
-  {
+  if (fread(data, 1, data_bytes, fp) != data_bytes) {
     fprintf(stderr, "error reading data from file %s\n", fname);
     free(data);
     fclose(fp);
@@ -145,30 +162,26 @@ int repair_file(char *fname)
 
   strcpy(new_fname, fname);
   strcat(new_fname, OLD_APPEND);
-  if(rename(fname, new_fname) == -1)
-  {
+  if (rename(fname, new_fname) == -1) {
     fprintf(stderr, "error moving file %s to %s\n", fname, new_fname);
     free(data);
     return(ERROR_BADPARM);
   }
 
-  if((fp = fopen(fname, "w")) == NULL)
-  {
+  if ((fp = fopen(fname, "w")) == NULL) {
     fprintf(stderr, "error opening file %s for writing\n", new_fname);
     free(data);
     return(ERROR_BADPARM);
   }
 
-  if(fwrite(&header, 1, HEADER_LENGTH, fp) != HEADER_LENGTH)
-  {
+  if (fwrite(&header, 1, HEADER_LENGTH, fp) != HEADER_LENGTH) {
     fprintf(stderr, "error writing header to file %s\n", fname);
     free(data);
     fclose(fp);
     return(ERROR_BADPARM);
   }
 
-  if(fwrite(data, 1, data_bytes, fp) != data_bytes)
-  {
+  if (fwrite(data, 1, data_bytes, fp) != data_bytes) {
     fprintf(stderr, "error writing data to file %s\n", fname);
     free(data);
     fclose(fp);

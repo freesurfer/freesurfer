@@ -1,8 +1,36 @@
+/**
+ * @file  heap.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------------
 //
-//      File: heap.h                           
-//      Data Structure: list and heap                    
-//                                              
+//      File: heap.h
+//      Data Structure: list and heap
+//
 //--------------------------------------------------------------------------*/
 
 /*============================================================================
@@ -11,14 +39,14 @@
 //
 //  DATA STRUCTURE:
 //  PGlist ---> {elementSize, size, data, capacity, capacityIncrement}
-//  
+//
 //  NOTE: the type of PGlist is a pointer.
 //
 //  Assume the following variable declarations:
 //      PGlist list, list1, list2;
 //      ListElement element;
 //      ListElement *data;
-//      int capacity, capacityIncrement, size, 
+//      int capacity, capacityIncrement, size,
 //          elementSize, index, returnFlag;
 //
 //  LIST MANIPULATIONS:
@@ -29,7 +57,7 @@
 //  pgList1 ....................... default constructor with capacity
 //           list1 = pgList(sizeof(ListElement), capacity);
 //
-//  pgList2 ....................... default constructor with capacity 
+//  pgList2 ....................... default constructor with capacity
 //                                  and capacity increment
 //           list2 = pgList(sizeof(ListElement), capacity, capacityIncrement);
 //
@@ -42,8 +70,8 @@
 //  pgListAddElement .............. add an element to this list
 //           pgListAddElement(list, &element);
 //
-//  pgListInsertElementAt ......... insert an element in the list at the given 
-//                                  index. Each list element's index greater 
+//  pgListInsertElementAt ......... insert an element in the list at the given
+//                                  index. Each list element's index greater
 //                                  or equal to the specified index is
 //                                  shifted upward than its previous value.
 //           returnFlag = pgListInsertElementAt(list, index, &element);
@@ -51,21 +79,21 @@
 //  pgListElementAt ............... retrieve an element at index
 //           returnFlag = pgListElementAt(list, index, &element);
 //
-//  pgListSetElementAt ............ set the element at the specified index of 
-//                                  this list by copying the value of 
+//  pgListSetElementAt ............ set the element at the specified index of
+//                                  this list by copying the value of
 //                                  given element.
 //           returnFlag = pgListSetElementAt(list, index, &element);
 //
 //  pgListRemoveElementAt ......... Delete the element at the specified index.
-//                                  The index of each element after the 
+//                                  The index of each element after the
 //                                  specified index is decreased by 1.
 //           returnFlag = pgListRemoveElementAt(list, index);
 //
 //  pgListRemoveAllElements ....... removes all elements from this list
-//                                  and sets its size to zero 
+//                                  and sets its size to zero
 //           pgListRemoveAllElements(list);
 //
-//  pgListTrim .................... trim this list to its current size 
+//  pgListTrim .................... trim this list to its current size
 //           pgListTrim(list);
 //
 //  pgListIsEmpty ................. PG_TRUE if this list has no elements
@@ -86,13 +114,15 @@
 #define HEAP_TOOLS
 #include <stdio.h>
 
-typedef struct {
+typedef struct
+{
   int   elementSize;
   int   size;
   void *data;
   int   capacity;
   int   capacityIncrement;
-} PGlistStruct;
+}
+PGlistStruct;
 
 typedef PGlistStruct *PGlist;
 
@@ -109,8 +139,8 @@ void    pgListDelete(PGlist list);
 void    pgListAddElement(PGlist list, void *element);
 int pgListInsertElementAt(PGlist list, int index, void *element);
 int pgListSetElementAt(PGlist list, int index, void *element);
-int pgListElementAt(PGlist list, int index, 
-		    /* stores the result at */ void *element);
+int pgListElementAt(PGlist list, int index,
+                    /* stores the result at */ void *element);
 int pgListRemoveElementAt(PGlist list, int index);
 void    pgListRemoveAllElements(PGlist list);
 void    pgListTrim(PGlist list);
@@ -141,14 +171,16 @@ void    pgListTrim(PGlist list);
 #define pgListSetCapacity(list, val)          list->capacity = val
 #define pgListSetCapacityIncrement(list, val) list->capacityIncrement = val
 
-/* The following is the definition of HEAP data structure, 
+/* The following is the definition of HEAP data structure,
  which is built upon pgList above. It implements a Min_heap that stores
  floating point value with an associated attribute of id */
-typedef struct {
-   double value;
-   int id;
-   int*  p; /* backpointer */
-} XheapElement;
+typedef struct
+{
+  double value;
+  int id;
+  int*  p; /* backpointer */
+}
+XheapElement;
 
 typedef PGlist Xheap;
 

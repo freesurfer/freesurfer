@@ -1,3 +1,31 @@
+/**
+ * @file  Layer.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.41 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include "Layer.h"
 #include "macros.h"
@@ -13,46 +41,46 @@ bool Layer::kbDefaultReportInfo = true;
 LayerStaticTclListener Layer::mStaticListener;
 
 Layer::Layer() :
-  Listener( "Layer" ),
-  Broadcaster( "Layer" ),
-  mWidth(0),
-  mHeight(0),
-  msLabel(""),
-  mOpacity(1.0),
-  mbVisible(true),
-  mbPostRedisplay(false),
-  mbReportInfoAtRAS(kbDefaultReportInfo),
-  mBytesPerPixel(4) {
+    Listener( "Layer" ),
+    Broadcaster( "Layer" ),
+    mWidth(0),
+    mHeight(0),
+    msLabel(""),
+    mOpacity(1.0),
+    mbVisible(true),
+    mbPostRedisplay(false),
+    mbReportInfoAtRAS(kbDefaultReportInfo),
+    mBytesPerPixel(4) {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetLayerLabel", 2, "layerID label",
-			 "Set the label for a layer." );
+                         "Set the label for a layer." );
   commandMgr.AddCommand( *this, "GetLayerLabel", 1, "layerID",
-			 "Return the label for this layer." );
+                         "Return the label for this layer." );
   commandMgr.AddCommand( *this, "GetLayerType", 1, "layerID",
-			 "Return the type for this layer." );
+                         "Return the type for this layer." );
   commandMgr.AddCommand( *this, "GetLayerOpacity", 1, "layerID",
-			 "Return the opacity for this layer." );
+                         "Return the opacity for this layer." );
   commandMgr.AddCommand( *this, "SetLayerOpacity", 2, "layerID opacity",
-			 "Set the opacity for this layer. opacity should be "
-			 "a float from 0 to 1." );
+                         "Set the opacity for this layer. opacity should be "
+                         "a float from 0 to 1." );
   commandMgr.AddCommand( *this, "GetLayerPreferredBrushRadiusIncrement", 1,
-			 "layerID", "Return a preferrerd brush radius "
-			 "increment based on the data." );
+                         "layerID", "Return a preferrerd brush radius "
+                         "increment based on the data." );
   commandMgr.AddCommand( *this, "GetLayerPreferredValueIncrement", 1,
-			 "layerID", "Return a preferrerd value "
-			 "increment based on the data." );
-  commandMgr.AddCommand( *this, "ProcessLayerOptionList", 2, 
-			 "layerID layerOptionList", "Process a string of "
-			 "options in the format "
-			 "option[=value][:option[=value]]..." );
+                         "layerID", "Return a preferrerd value "
+                         "increment based on the data." );
+  commandMgr.AddCommand( *this, "ProcessLayerOptionList", 2,
+                         "layerID layerOptionList", "Process a string of "
+                         "options in the format "
+                         "option[=value][:option[=value]]..." );
   commandMgr.AddCommand( *this, "GetLayerReportInfo", 1, "layerID",
-			 "Return whether or not a layer is reporting info." );
+                         "Return whether or not a layer is reporting info." );
   commandMgr.AddCommand( *this, "SetLayerReportInfo", 2, "layerID report",
-			 "Set whether or not a layer should report info." );
+                         "Set whether or not a layer should report info." );
   commandMgr.AddCommand( *this, "GetLayerMainDataCollection", 1, "layerID",
-			 "Returns the collection ID of the main collection "
-			 "for this layer." );
+                         "Returns the collection ID of the main collection "
+                         "for this layer." );
 }
 
 Layer::~Layer() {
@@ -60,27 +88,27 @@ Layer::~Layer() {
   SendBroadcast( "layerDeleted", (void*)&id );
 }
 
-void 
+void
 Layer::DrawIntoBuffer( GLubyte*, int, int,
-		       ViewState&,
-		       ScubaWindowToRASTranslator& ) {
+                       ViewState&,
+                       ScubaWindowToRASTranslator& ) {
   cerr << "Layer " << msLabel << " is drawing into buffer" << endl;
 }
 
 void
 Layer::DrawIntoGL ( ViewState& iViewState,
-		    ScubaWindowToRASTranslator& iTranslator ) {
+                    ScubaWindowToRASTranslator& iTranslator ) {
   cerr << "Layer " << msLabel << " is drawing into GL" << endl;
 }
 
-void 
+void
 Layer::GetInfoAtRAS ( float[3], list<InfoAtRAS>& ioInfo ) {
 
-  if( !mbReportInfoAtRAS )
+  if ( !mbReportInfoAtRAS )
     return;
 
   string sLabel;
-  if( msLabel != "" ) {
+  if ( msLabel != "" ) {
     sLabel = msLabel;
   } else {
     stringstream ssLabel;
@@ -93,34 +121,34 @@ Layer::GetInfoAtRAS ( float[3], list<InfoAtRAS>& ioInfo ) {
   info.SetValue( "Hello world" );
   ioInfo.push_back( info );
 }
- 
+
 TclCommandListener::TclCommandResult
 Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 
   // SetLayerLabel <layerID> <label>
-  if( 0 == strcmp( isCommand, "SetLayerLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "SetLayerLabel" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
-      
+
+    if ( mID == layerID ) {
+
       string sLabel = iasArgv[2];
       SetLabel( sLabel );
     }
   }
 
   // GetLayerLabel <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerLabel" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabel() << "\"";
@@ -129,28 +157,28 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // GetLayerType <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerType" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerType" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
       sReturnFormat = "s";
       sReturnValues = GetTypeDescription();
     }
   }
 
   // GetLayerOpacity <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerOpacity" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerOpacity" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
       sReturnFormat = "f";
       stringstream ssReturnValues;
       ssReturnValues << GetOpacity();
@@ -159,34 +187,34 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // SetLayerOpacity <layerID> <opacity>
-  if( 0 == strcmp( isCommand, "SetLayerOpacity" ) ) {
+  if ( 0 == strcmp( isCommand, "SetLayerOpacity" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
-      
+
+    if ( mID == layerID ) {
+
       float opacity = (float) strtod( iasArgv[2], (char**)NULL );
-      if( ERANGE == errno ) {
-	sResult = "bad opacity";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad opacity";
+        return error;
       }
-      
+
       SetOpacity( opacity );
     }
   }
-  
+
   // GetLayerPreferredBrushRadiusIncrement <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerPreferredBrushRadiusIncrement" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerPreferredBrushRadiusIncrement" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
       sReturnFormat = "f";
       stringstream ssReturnValues;
       ssReturnValues << GetPreferredBrushRadiusIncrement();
@@ -195,14 +223,14 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // GetLayerPreferredValueIncrement <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerPreferredValueIncrement" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerPreferredValueIncrement" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad layer ID";
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
       sReturnFormat = "f";
       stringstream ssReturnValues;
       ssReturnValues << GetPreferredValueIncrement();
@@ -211,96 +239,90 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // ProcessLayerOptionList <layerID> <layerOptions>
-  if( 0 == strcmp( isCommand, "ProcessLayerOptionList" ) ) {
+  if ( 0 == strcmp( isCommand, "ProcessLayerOptionList" ) ) {
     int layerID;
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
-    
-    if( mID == layerID ) {
-      
+
+    if ( mID == layerID ) {
+
       try {
-	ProcessOptionsList( string(iasArgv[2]) );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad options \"" + string(iasArgv[2]) + "\", \n" + e.what();
-	return error;	
+        ProcessOptionsList( string(iasArgv[2]) );
+      } catch ( runtime_error& e ) {
+        sResult = "bad options \"" + string(iasArgv[2]) + "\", \n" + e.what();
+        return error;
       }
     }
   }
 
   // GetLayerReportInfo <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerReportInfo" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerReportInfo" ) ) {
     int layerID;
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
 
       sReturnValues =
-	TclCommandManager::ConvertBooleanToReturnValue( GetReportInfo() );
+        TclCommandManager::ConvertBooleanToReturnValue( GetReportInfo() );
       sReturnFormat = "i";
     }
   }
 
   // SetLayerReportInfo <layerID> <report>
-  if( 0 == strcmp( isCommand, "SetLayerReportInfo" ) ) {
-     int layerID;
-    try {
-      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
-      sResult = string("bad layerID: ") + e.what();
-      return error;
-    }
-   
-    if( mID == layerID ) {
-      
-      try {
-	bool bReport =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
-	SetReportInfo( bReport );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad report \"" + string(iasArgv[2]) + "\"," + e.what();
-	return error;	
-      }
-    }
-  }
-  
-  // GetLayerMainDataCollection <layerID>
-  if( 0 == strcmp( isCommand, "GetLayerMainDataCollection" ) ) {
+  if ( 0 == strcmp( isCommand, "SetLayerReportInfo" ) ) {
     int layerID;
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
-    
-    if( mID == layerID ) {
+
+    if ( mID == layerID ) {
+
+      try {
+        bool bReport =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+        SetReportInfo( bReport );
+      } catch ( runtime_error& e ) {
+        sResult = "bad report \"" + string(iasArgv[2]) + "\"," + e.what();
+        return error;
+      }
+    }
+  }
+
+  // GetLayerMainDataCollection <layerID>
+  if ( 0 == strcmp( isCommand, "GetLayerMainDataCollection" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == layerID ) {
 
       DataCollection* collection = GetMainDataCollection();
-      if( collection ) {
-	stringstream ssReturnValues;
-	ssReturnValues << collection->GetID();
-	sReturnValues = ssReturnValues.str();
-	sReturnFormat = "i";
+      if ( collection ) {
+        stringstream ssReturnValues;
+        ssReturnValues << collection->GetID();
+        sReturnValues = ssReturnValues.str();
+        sReturnFormat = "i";
       } else {
-	stringstream ssReturnValues;
-	ssReturnValues << -1;
-	sReturnValues = ssReturnValues.str();
-	sReturnFormat = "i";
+        stringstream ssReturnValues;
+        ssReturnValues << -1;
+        sReturnValues = ssReturnValues.str();
+        sReturnFormat = "i";
       }
     }
   }
@@ -312,7 +334,7 @@ void
 Layer::ProcessOptionsList ( string isOptionList ) {
 
   vector<string> lsOptions;
-  int cDelims = 
+  int cDelims =
     Utilities::SplitString( isOptionList, ":", lsOptions );
 
   // If cDelims is zero, there might still be an optionvalue here,
@@ -321,71 +343,69 @@ Layer::ProcessOptionsList ( string isOptionList ) {
   if ( cDelims == 0 ) {
     lsOptions.push_back( isOptionList );
   }
-  
+
   bool bError = false;
   stringstream ssErrors;
   vector<string>::iterator tOption;
-  for( tOption = lsOptions.begin(); 
-       tOption != lsOptions.end(); ++tOption ) {
+  for ( tOption = lsOptions.begin();
+        tOption != lsOptions.end(); ++tOption ) {
     string sOptionValue = *tOption;
 
     int nEquals = sOptionValue.find( '=' );
-    if( nEquals < 0 ) {
+    if ( nEquals < 0 ) {
 
       try {
-	this->ProcessOption( sOptionValue, "" );
-      }
-      catch( runtime_error& e) {
-	ssErrors << e.what() << ". ";
-	bError = true;
+        this->ProcessOption( sOptionValue, "" );
+      } catch ( runtime_error& e) {
+        ssErrors << e.what() << ". ";
+        bError = true;
       }
 
     } else {
 
       try {
-	int z = sOptionValue.length();
-	this->ProcessOption( sOptionValue.substr( 0, nEquals ),
-			     sOptionValue.substr( nEquals+1, z-nEquals+1 ) );
+        int z = sOptionValue.length();
+        this->ProcessOption( sOptionValue.substr( 0, nEquals ),
+                             sOptionValue.substr( nEquals+1, z-nEquals+1 ) );
+      } catch ( runtime_error& e) {
+        ssErrors << e.what() << ". ";
+        bError = true;
       }
-      catch( runtime_error& e) {
-	ssErrors << e.what() << ". ";
- 	bError = true;
-     }
 
     }
 
   }
 
-  if( bError ) {
+  if ( bError ) {
     throw runtime_error( ssErrors.str() );
   }
 }
 
 void
 Layer::ProcessOption ( string isOption, string isValue ) {
-  
+
   char sValue[1024];
   strcpy( sValue, isValue.c_str() );
 
-  if( 0 == isOption.compare( "label" ) ) {
+  if ( 0 == isOption.compare( "label" ) ) {
     SetLabel( sValue );
 
-  } else if( 0 == isOption.compare( "opacity" ) ) {
+  } else if ( 0 == isOption.compare( "opacity" ) ) {
     float opacity = (float) strtod( sValue, (char**)NULL );
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       throw runtime_error( "Bad opacity value" );
     }
     SetOpacity( opacity );
 
-  } else if( 0 == isOption.compare( "visible" ) ) {
+  } else if ( 0 == isOption.compare( "visible" ) ) {
     int visible = strtol( sValue, (char**)NULL, 10 );
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       throw runtime_error( "Bad visible value" );
     }
     SetVisible( (bool)visible );
 
   } else {
-    
+
     stringstream ssError;
     ssError << "Unrecognized option " << isOption;
     throw runtime_error( ssError.str() );
@@ -395,7 +415,7 @@ Layer::ProcessOption ( string isOption, string isValue ) {
 void
 Layer::DoListenToMessage ( string isMessage, void* ) {
 
-  if( isMessage == "dataChanged" ) {
+  if ( isMessage == "dataChanged" ) {
     DataChanged ();
     int id = GetID();
     SendBroadcast( "layerChanged", (void*)&id );
@@ -403,16 +423,16 @@ Layer::DoListenToMessage ( string isMessage, void* ) {
 }
 
 DataCollection*
-Layer::GetMainDataCollection() { 
+Layer::GetMainDataCollection() {
   return NULL;
 }
 
 
 int
 Layer::GetSelectedROI () {
-  
+
   DataCollection* col = this->GetMainDataCollection();
-  if( NULL != col ) {
+  if ( NULL != col ) {
     return col->GetSelectedROI();
   } else {
     return -1;
@@ -437,18 +457,18 @@ Layer::GetLabel () {
 }
 
 void
-Layer::SetWidth( int iWidth ) { 
-  mWidth = iWidth; 
+Layer::SetWidth( int iWidth ) {
+  mWidth = iWidth;
 }
 
 void
-Layer::SetHeight( int iHeight ) { 
-  mHeight = iHeight; 
+Layer::SetHeight( int iHeight ) {
+  mHeight = iHeight;
 }
 
 void
-Layer::SetReportInfo( bool ibReport ) { 
-  mbReportInfoAtRAS = ibReport; 
+Layer::SetReportInfo( bool ibReport ) {
+  mbReportInfoAtRAS = ibReport;
   SendBroadcast( "layerInfoSettingsChanged", NULL );
 
 }
@@ -456,47 +476,45 @@ Layer::SetReportInfo( bool ibReport ) {
 
 void
 Layer::HandleTool ( float[3], ViewState&,
-		    ScubaWindowToRASTranslator&,
-		    ScubaToolState&, InputState& ) {
+                    ScubaWindowToRASTranslator&,
+                    ScubaToolState&, InputState& ) {}
 
-}
-
-void 
+void
 Layer::Timer () {
   this->DoTimer ();
 }
 
-void 
+void
 Layer::DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-			     int iWindow[2], int iColor[3], float iOpacity ){
+                             int iWindow[2], int iColor[3], float iOpacity ) {
 
-  if( iWindow[0] >= 0 && iWindow[0] < iWidth && 
-      iWindow[1] >= 0 && iWindow[1] < iHeight ) {
-    GLubyte* dest = iBuffer + (iWindow[0] * mBytesPerPixel) + 
-      (iWindow[1] * iWidth * mBytesPerPixel);
+  if ( iWindow[0] >= 0 && iWindow[0] < iWidth &&
+       iWindow[1] >= 0 && iWindow[1] < iHeight ) {
+    GLubyte* dest = iBuffer + (iWindow[0] * mBytesPerPixel) +
+                    (iWindow[1] * iWidth * mBytesPerPixel);
     DrawPixelIntoBuffer( dest, iColor, iOpacity );
   }
 }
 
-void 
+void
 Layer::DrawPixelIntoBuffer ( GLubyte* iAddress,
-			     int iColor[3], float iOpacity ){
+                             int iColor[3], float iOpacity ) {
 
   iAddress[0] = (GLubyte) (((float)iAddress[0] * (1.0 - iOpacity)) +
-			   ((float)iColor[0] * iOpacity));
+                           ((float)iColor[0] * iOpacity));
   iAddress[1] = (GLubyte) (((float)iAddress[1] * (1.0 - iOpacity)) +
-			   ((float)iColor[1] * iOpacity));
+                           ((float)iColor[1] * iOpacity));
   iAddress[2] = (GLubyte) (((float)iAddress[2] * (1.0 - iOpacity)) +
-			   ((float)iColor[2] * iOpacity));
-  iAddress[3] = 255; 
+                           ((float)iColor[2] * iOpacity));
+  iAddress[3] = 255;
 }
 
 
 
-void 
+void
 Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
-			      int iFromWindow[2], int iToWindow[2],
-			      int iColor[3], int iThickness, float ) {
+                              int iFromWindow[2], int iToWindow[2],
+                              int iColor[3], int iThickness, float ) {
 
   // Set up x1, x2, y1, y2 so that x1 is always less than x2;
   int x1 = MIN( iFromWindow[0], iToWindow[0] );
@@ -510,7 +528,7 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
 
   // If the dy is negative, remember it and reverse dy.
   bool bNegativeY = false;
-  if( dy < 0 ) {
+  if ( dy < 0 ) {
     bNegativeY = true;   // This affects
     dy = -dy;
   }
@@ -519,23 +537,25 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
   // dy. This makes sure that x will be our major axis and y our
   // minor.
   bool bSteep = false;
-  if( dy > dx ) {
+  if ( dy > dx ) {
     bSteep = true;
-    int temp = dx; dx = dy; dy = temp;
+    int temp = dx;
+    dx = dy;
+    dy = temp;
   }
 
   // Calculate our step increments based on the negative y-ness and
   // steep-ness.
   int adjInc, diagInc, orthInc;
-  if( !bSteep && !bNegativeY ) {
+  if ( !bSteep && !bNegativeY ) {
     adjInc  = ( 1 * mBytesPerPixel) + ( 0 * iWidth * mBytesPerPixel);
     diagInc = ( 1 * mBytesPerPixel) + ( 1 * iWidth * mBytesPerPixel);
     orthInc = ( 0 * mBytesPerPixel) + ( 1 * iWidth * mBytesPerPixel);
-  } else if( bSteep && !bNegativeY ) {
+  } else if ( bSteep && !bNegativeY ) {
     adjInc  = ( 0 * mBytesPerPixel) + ( 1 * iWidth * mBytesPerPixel);
     diagInc = ( 1 * mBytesPerPixel) + ( 1 * iWidth * mBytesPerPixel);
     orthInc = ( 1 * mBytesPerPixel) + ( 0 * iWidth * mBytesPerPixel);
-  } else if( !bSteep && bNegativeY ) {
+  } else if ( !bSteep && bNegativeY ) {
     adjInc  = ( 1 * mBytesPerPixel) + ( 0 * iWidth * mBytesPerPixel);
     diagInc = ( 1 * mBytesPerPixel) + (-1 * iWidth * mBytesPerPixel);
     orthInc = ( 0 * mBytesPerPixel) + (-1 * iWidth * mBytesPerPixel);
@@ -548,13 +568,13 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
   // Calculate the slope. In the divide by zero case, set it to a big
   // number.
   float slope;
-  if( 0 == dx ) {
+  if ( 0 == dx ) {
     slope = 100000;
   } else {
     slope = dy / dx;
   }
   float Poinc = sqrt( slope );
-  if( 0 == Poinc ) Poinc = 1;
+  if ( 0 == Poinc ) Poinc = 1;
   float Painc = slope * Poinc;
   float Pdinc = Painc - Poinc;
   float Pmid = 0;
@@ -566,26 +586,26 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
 
   GLubyte* midPixel = iBuffer + ( x1 * mBytesPerPixel ) + ( y1 * iWidth * mBytesPerPixel );
   GLubyte* curPixel;
-  
+
   do {
     // Draw at the middle pixel with our current Pmid.
     DrawPixelIntoBuffer( midPixel, iColor, Pmid );
 
     // Walk up the minor axis.
-    for( Pnow = Poinc - Pmid,   curPixel = midPixel + (GLubyte)orthInc;
-	 Pnow < iThickness;
-	 Pnow += Poinc,         curPixel += (GLubyte)orthInc ) {
+    for ( Pnow = Poinc - Pmid,   curPixel = midPixel + (GLubyte)orthInc;
+          Pnow < iThickness;
+          Pnow += Poinc,         curPixel += (GLubyte)orthInc ) {
       DrawPixelIntoBuffer( curPixel, iColor, Pnow );
     }
 
     // Walk down the minor axis.
-    for( Pnow = Poinc - Pmid,   curPixel = midPixel - (GLubyte)orthInc;
-	 Pnow < iThickness;
-	 Pnow += Poinc,         curPixel -= (GLubyte)orthInc ) {
+    for ( Pnow = Poinc - Pmid,   curPixel = midPixel - (GLubyte)orthInc;
+          Pnow < iThickness;
+          Pnow += Poinc,         curPixel -= (GLubyte)orthInc ) {
       DrawPixelIntoBuffer( curPixel, iColor, Pnow );
     }
-    
-    if( Bvar < 0 ) {
+
+    if ( Bvar < 0 ) {
       Bvar += Bainc;
       midPixel += adjInc;
       Pmid += Painc;
@@ -594,37 +614,37 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
       midPixel += diagInc;
       Pmid += Pdinc;
     }
-    
+
     dx--;
-  } while( dx >= 0 );
+  } while ( dx >= 0 );
 
 }
 
 void
 Layer::DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-			    int iFromWindow[2], int iToWindow[2],
-			    int iColor[3], int iThickness, float iOpacity ) {
-  
+                            int iFromWindow[2], int iToWindow[2],
+                            int iColor[3], int iThickness, float iOpacity ) {
+
 
   list<Point2<int> > points;
   Utilities::FindPointsOnLine2d( iFromWindow, iToWindow, iThickness,
-				 points );
+                                 points );
 
   list<Point2<int> >::iterator tPoints;
-  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
+  for ( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
 
     Point2<int>& point = *tPoints;
     int window[2];
     window[0] = point.x();
     window[1] = point.y();
     DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window,
-			 iColor, iOpacity );
+                         iColor, iOpacity );
   }
 }
 
-void 
+void
 Layer::GetPreferredThroughPlaneIncrements ( float oIncrements[3] ) {
-  
+
   oIncrements[0] = 1.0;
   oIncrements[1] = 1.0;
   oIncrements[2] = 1.0;
@@ -632,51 +652,48 @@ Layer::GetPreferredThroughPlaneIncrements ( float oIncrements[3] ) {
 
 float
 Layer::GetPreferredBrushRadiusIncrement () {
-  
+
   return 1.0;
 }
 
 float
 Layer::GetPreferredValueIncrement () {
-  
+
   return 1.0;
 }
 
 void
-Layer::DoTimer () {
-
-}
+Layer::DoTimer () {}
 
 
 LayerStaticTclListener::LayerStaticTclListener () {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "GetLayerIDList", 0, "", 
-			 "Return a list of all layerIDs." );
+  commandMgr.AddCommand( *this, "GetLayerIDList", 0, "",
+                         "Return a list of all layerIDs." );
 }
 
-LayerStaticTclListener::~LayerStaticTclListener () {
-}
+LayerStaticTclListener::~LayerStaticTclListener () {}
 
 TclCommandListener::TclCommandResult
-LayerStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-					       int, char** ) {
+LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
+    int, char** ) {
 
   // GetLayerIDList
-  if( 0 == strcmp( isCommand, "GetLayerIDList" ) ) {
+  if ( 0 == strcmp( isCommand, "GetLayerIDList" ) ) {
     list<int> idList;
     Layer::GetIDList( idList );
     stringstream ssFormat;
     stringstream ssResult;
     ssFormat << "L";
     list<int>::iterator tID;
-    for( tID = idList.begin(); tID != idList.end(); ++tID ) {
+    for ( tID = idList.begin(); tID != idList.end(); ++tID ) {
       int id = *tID;
       ssFormat << "i";
       ssResult << id << " ";
     }
     ssFormat << "l";
-    
+
     sReturnFormat = ssFormat.str();
     sReturnValues = ssResult.str();
   }
@@ -686,11 +703,9 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
 
 
-Layer::InfoAtRAS::InfoAtRAS() 
-  : msLabel(""), msValue(""), msTclCallback(""), msInputFilter(""), 
-    mbShortenHint(false) {
-
-}
+Layer::InfoAtRAS::InfoAtRAS()
+    : msLabel(""), msValue(""), msTclCallback(""), msInputFilter(""),
+    mbShortenHint(false) {}
 
 void
 Layer::InfoAtRAS::Clear () {

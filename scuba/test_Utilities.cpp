@@ -1,3 +1,31 @@
+/**
+ * @file  test_Utilities.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include <sstream>
 
@@ -30,56 +58,53 @@ public:
 };
 
 
-void 
+void
 UtilitiesTester::Test () {
 
   try {
 
     Volume3<bool> bVol( 10, 15, 20, false );
-    for( int nZ = 0; nZ < 20; nZ++ ) {
-      for( int nY = 0; nY < 15; nY++ ) {
-	for( int nX = 0; nX < 10; nX++ ) {
+    for ( int nZ = 0; nZ < 20; nZ++ ) {
+      for ( int nY = 0; nY < 15; nY++ ) {
+        for ( int nX = 0; nX < 10; nX++ ) {
 
-	  {
-	    stringstream ssError; 
-	    bool bVal = bVol.Get( nX, nY, nZ );
-	    ssError << "initial value was not false  for " << nX 
-		    << ", " << nY << ", " << nZ;
-	    Assert( (false == bVal), ssError.str() );
-	  }
-	  
-	  {
-	    stringstream ssError; 
-	    ssError << "set failed for " << nX << ", " << nY << ", " << nZ;
-	    bVol.Set( nX, nY, nZ, true );
-	  }
-	  
-	  {
-	    stringstream ssError; 
-	    bool bVal = bVol.Get( nX, nY, nZ );
-	    ssError << "set value was not true for " << nX 
-		    << ", " << nY << ", " << nZ;
-	    Assert( (true == bVal), ssError.str() );
-	  }
-	}
+          {
+            stringstream ssError;
+            bool bVal = bVol.Get( nX, nY, nZ );
+            ssError << "initial value was not false  for " << nX
+            << ", " << nY << ", " << nZ;
+            Assert( (false == bVal), ssError.str() );
+          }
+
+          {
+            stringstream ssError;
+            ssError << "set failed for " << nX << ", " << nY << ", " << nZ;
+            bVol.Set( nX, nY, nZ, true );
+          }
+
+          {
+            stringstream ssError;
+            bool bVal = bVol.Get( nX, nY, nZ );
+            ssError << "set value was not true for " << nX
+            << ", " << nY << ", " << nZ;
+            Assert( (true == bVal), ssError.str() );
+          }
+        }
       }
     }
 
     try {
       bVol.Get( 11, 0, 0 );
       throw runtime_error( "didn't throw for illegal x access" );
-    }
-    catch(...) {}
+    } catch (...) {}
     try {
       bVol.Get( 0, 16, 0 );
       throw runtime_error( "didn't throw for illegal x access" );
-    }
-    catch(...) {}
+    } catch (...) {}
     try {
       bVol.Get( 0, 0, 21 );
       throw runtime_error( "didn't throw for illegal x access" );
-    }
-    catch(...) {}
+    } catch (...) {}
 
 
 
@@ -97,26 +122,50 @@ UtilitiesTester::Test () {
       // (2,3,3) (3,3,4) (3,4,5) (4,5,5) (4,5,6) (5,6,7)
       int nPoint = 0;
       list<Point3<int> >::iterator t;
-      for( t = l.begin(); t != l.end(); ++t, nPoint++ ) {
-	stringstream ssError;
-	bool bGood = false;
-	Point3<int> p = *t;
-	switch( nPoint ) {
-	case 0: bGood = p[0] == 0 && p[1] == 0 && p[2] == 0; break;
-	case 1: bGood = p[0] == 0 && p[1] == 1 && p[2] == 1; break;
-	case 2: bGood = p[0] == 1 && p[1] == 1 && p[2] == 1; break;
-	case 3: bGood = p[0] == 1 && p[1] == 2 && p[2] == 2; break;
-	case 4: bGood = p[0] == 2 && p[1] == 2 && p[2] == 3; break;
-	case 5: bGood = p[0] == 2 && p[1] == 3 && p[2] == 3; break;
-	case 6: bGood = p[0] == 3 && p[1] == 3 && p[2] == 4; break;
-	case 7: bGood = p[0] == 3 && p[1] == 4 && p[2] == 5; break;
-	case 8: bGood = p[0] == 4 && p[1] == 5 && p[2] == 5; break;
-	case 9: bGood = p[0] == 4 && p[1] == 5 && p[2] == 6; break;
-	case 10: bGood = p[0] == 5 && p[1] == 6 && p[2] == 7; break;
-	default: ssError << "Too many points!"; break;
-	}
-	ssError << "Incorrect point at position " << nPoint << endl;
-	Assert( (bGood), ssError.str() );
+      for ( t = l.begin(); t != l.end(); ++t, nPoint++ ) {
+        stringstream ssError;
+        bool bGood = false;
+        Point3<int> p = *t;
+        switch ( nPoint ) {
+        case 0:
+          bGood = p[0] == 0 && p[1] == 0 && p[2] == 0;
+          break;
+        case 1:
+          bGood = p[0] == 0 && p[1] == 1 && p[2] == 1;
+          break;
+        case 2:
+          bGood = p[0] == 1 && p[1] == 1 && p[2] == 1;
+          break;
+        case 3:
+          bGood = p[0] == 1 && p[1] == 2 && p[2] == 2;
+          break;
+        case 4:
+          bGood = p[0] == 2 && p[1] == 2 && p[2] == 3;
+          break;
+        case 5:
+          bGood = p[0] == 2 && p[1] == 3 && p[2] == 3;
+          break;
+        case 6:
+          bGood = p[0] == 3 && p[1] == 3 && p[2] == 4;
+          break;
+        case 7:
+          bGood = p[0] == 3 && p[1] == 4 && p[2] == 5;
+          break;
+        case 8:
+          bGood = p[0] == 4 && p[1] == 5 && p[2] == 5;
+          break;
+        case 9:
+          bGood = p[0] == 4 && p[1] == 5 && p[2] == 6;
+          break;
+        case 10:
+          bGood = p[0] == 5 && p[1] == 6 && p[2] == 7;
+          break;
+        default:
+          ssError << "Too many points!";
+          break;
+        }
+        ssError << "Incorrect point at position " << nPoint << endl;
+        Assert( (bGood), ssError.str() );
       }
 
 
@@ -131,36 +180,36 @@ UtilitiesTester::Test () {
       int cFound = Utilities::SplitString( sToSplit, sDelimiter, lsResults );
 
       {
-	stringstream ssError;
-	ssError << "cFound is incorrect: should be 2, is " << cFound;
-	Assert( (2 == cFound), ssError.str() );
+        stringstream ssError;
+        ssError << "cFound is incorrect: should be 2, is " << cFound;
+        Assert( (2 == cFound), ssError.str() );
       }
       {
-	stringstream ssError;
-	ssError << "size of lsResults is incorrect: should be 3, is " 
-		<< lsResults.size();
-	Assert( (lsResults.size() == 3), ssError.str() );
+        stringstream ssError;
+        ssError << "size of lsResults is incorrect: should be 3, is "
+        << lsResults.size();
+        Assert( (lsResults.size() == 3), ssError.str() );
       }
       string sResult = lsResults[0];
       {
-	stringstream ssError;
-	ssError << "Result 0 is incorrect, should be option1, is " << sResult;
-	Assert( (sResult == "option1"), ssError.str() );
+        stringstream ssError;
+        ssError << "Result 0 is incorrect, should be option1, is " << sResult;
+        Assert( (sResult == "option1"), ssError.str() );
       }
       {
-	stringstream ssError;
-	sResult = lsResults[1];
-	ssError << "Result 1 is incorrect, should be option1, is " << sResult;
-	Assert( (sResult == "option2=value2"), ssError.str() );
+        stringstream ssError;
+        sResult = lsResults[1];
+        ssError << "Result 1 is incorrect, should be option1, is " << sResult;
+        Assert( (sResult == "option2=value2"), ssError.str() );
       }
       {
-	stringstream ssError;
-	sResult = lsResults[2];
-	ssError << "Result 2 is incorrect, should be option1, is " << sResult;
-	Assert( (sResult == "option3"), ssError.str() );
+        stringstream ssError;
+        sResult = lsResults[2];
+        ssError << "Result 2 is incorrect, should be option1, is " << sResult;
+        Assert( (sResult == "option3"), ssError.str() );
       }
     }
-      
+
     {
       string sToSplit = "option1";
       string sDelimiter = ":";
@@ -169,24 +218,22 @@ UtilitiesTester::Test () {
       int cFound = Utilities::SplitString( sToSplit, sDelimiter, lsResults );
 
       {
-	stringstream ssError;
-	ssError << "cFound is incorrect: should be 0, is " << cFound;
-	Assert( (0 == cFound), ssError.str() );
+        stringstream ssError;
+        ssError << "cFound is incorrect: should be 0, is " << cFound;
+        Assert( (0 == cFound), ssError.str() );
       }
       {
-	stringstream ssError;
-	ssError << "size of lsResults is incorrect: should be 0, is " 
-		<< lsResults.size();
-	Assert( (lsResults.size() == 0), ssError.str() );
+        stringstream ssError;
+        ssError << "size of lsResults is incorrect: should be 0, is "
+        << lsResults.size();
+        Assert( (lsResults.size() == 0), ssError.str() );
       }
     }
-      
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -202,13 +249,11 @@ int main ( int argc, char** argv ) {
     UtilitiesTester tester0;
     tester0.Test();
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

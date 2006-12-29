@@ -1,3 +1,31 @@
+/**
+ * @file  mris_ca_label.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.19 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -18,7 +46,7 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_ca_label.c,v 1.18 2006/07/13 14:41:21 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.19 2006/12/29 02:09:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -52,10 +80,9 @@ static int novar = 0 ;
 static int refine = 0;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
-    *canon_surf_name ;
+  *canon_surf_name ;
   int          ac, nargs, i ;
   int          msec, minutes, seconds ;
   struct timeb start ;
@@ -76,22 +103,21 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (!strlen(subjects_dir)) /* hasn't been set on command line */
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM,
-                  "%s: SUBJECTS_DIR not defined in environment",
-                  Progname);
-      strcpy(subjects_dir, cp) ;
-    }
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM,
+                "%s: SUBJECTS_DIR not defined in environment",
+                Progname);
+    strcpy(subjects_dir, cp) ;
+  }
   if (argc < 5)
     usage_exit(1) ;
 
@@ -119,7 +145,7 @@ main(int argc, char *argv[])
               Progname, fname, subject_name) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
   mris->ct = gcsa->ct ; /* hack so that color table
-                           will get written into annot file */
+                                   will get written into annot file */
 
   //set annotation table from the colortable
   set_atable_from_ctable(gcsa->ct);
@@ -135,62 +161,57 @@ main(int argc, char *argv[])
               "%s: could not read spherical coordinate system from %s for %s",
               Progname, canon_surf_name, subject_name) ;
 #if 1
-  for (i = gcsa->ninputs-1 ; i >= 0 ; i--)
-    {
-      printf("input %d: %s, flags %0x, avgs %d, name %s\n",
-             i, gcsa->inputs[i].type == GCSA_INPUT_CURV_FILE ?
-             "CURVATURE FILE" : "MEAN CURVATURE",
-             gcsa->inputs[i].flags,
-             gcsa->inputs[i].navgs, gcsa->inputs[i].fname) ;
-      switch (gcsa->inputs[i].type)
-        {
-        case GCSA_INPUT_CURV_FILE:
-          if (MRISreadCurvature(mris, gcsa->inputs[i].fname) != NO_ERROR)
-            ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-                      Progname, gcsa->inputs[i].fname, subject_name) ;
-          break ;
-        case GCSA_INPUT_CURVATURE:
-          MRISuseMeanCurvature(mris) ;
-          MRISaverageCurvatures(mris, gcsa->inputs[i].navgs) ;
-          break ;
-        }
-      if (gcsa->inputs[i].flags & GCSA_NORMALIZE)
-        MRISnormalizeCurvature(mris) ;
-      MRIScopyCurvatureToValues(mris) ;
-      if (i == 2)
-        MRIScopyCurvatureToImagValues(mris) ;
-      else if (i == 1)
-        MRIScopyValToVal2(mris) ;
-    }
-#else
-  if (gcsa->ninputs > 2)
-    {
-      if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
+  for (i = gcsa->ninputs-1 ; i >= 0 ; i--) {
+    printf("input %d: %s, flags %0x, avgs %d, name %s\n",
+           i, gcsa->inputs[i].type == GCSA_INPUT_CURV_FILE ?
+           "CURVATURE FILE" : "MEAN CURVATURE",
+           gcsa->inputs[i].flags,
+           gcsa->inputs[i].navgs, gcsa->inputs[i].fname) ;
+    switch (gcsa->inputs[i].type) {
+    case GCSA_INPUT_CURV_FILE:
+      if (MRISreadCurvature(mris, gcsa->inputs[i].fname) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-                  Progname, thickness_name, subject_name) ;
-      MRIScopyCurvatureToImagValues(mris) ;
-    }
-  if (gcsa->ninputs > 1 || sulconly)
-    {
-      if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-                  Progname, curv_name, subject_name) ;
-      MRIScopyCurvatureToValues(mris) ;
-      MRIScopyValToVal2(mris) ;
-    }
-
-  if (!sulconly)
-    {
-#if 0
-      if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-                  Progname, sulc_name, subject_name) ;
-#else
+                  Progname, gcsa->inputs[i].fname, subject_name) ;
+      break ;
+    case GCSA_INPUT_CURVATURE:
       MRISuseMeanCurvature(mris) ;
-      MRISaverageCurvatures(mris, navgs) ;
-#endif
-      MRIScopyCurvatureToValues(mris) ;
+      MRISaverageCurvatures(mris, gcsa->inputs[i].navgs) ;
+      break ;
     }
+    if (gcsa->inputs[i].flags & GCSA_NORMALIZE)
+      MRISnormalizeCurvature(mris) ;
+    MRIScopyCurvatureToValues(mris) ;
+    if (i == 2)
+      MRIScopyCurvatureToImagValues(mris) ;
+    else if (i == 1)
+      MRIScopyValToVal2(mris) ;
+  }
+#else
+  if (gcsa->ninputs > 2) {
+    if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                Progname, thickness_name, subject_name) ;
+    MRIScopyCurvatureToImagValues(mris) ;
+  }
+  if (gcsa->ninputs > 1 || sulconly) {
+    if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                Progname, curv_name, subject_name) ;
+    MRIScopyCurvatureToValues(mris) ;
+    MRIScopyValToVal2(mris) ;
+  }
+
+  if (!sulconly) {
+#if 0
+    if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                Progname, sulc_name, subject_name) ;
+#else
+  MRISuseMeanCurvature(mris) ;
+  MRISaverageCurvatures(mris, navgs) ;
+#endif
+    MRIScopyCurvatureToValues(mris) ;
+  }
 #endif
 
 
@@ -201,37 +222,34 @@ main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
-  if (!read_fname)
-    {
-      printf("labeling surface...\n") ;
-      GCSAlabel(gcsa, mris) ;
-      if (Gdiag_no >= 0)
-        printf("vertex %d: label %s\n",
-               Gdiag_no,
-               annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-      printf("relabeling using gibbs priors...\n") ;
-      GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
-      if (Gdiag_no >= 0)
-        printf("vertex %d: label %s\n",
-               Gdiag_no,
-               annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-      postprocess(gcsa, mris) ;
-      if (Gdiag_no >= 0)
-        printf("vertex %d: label %s\n",
-               Gdiag_no,
-               annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-      if (gcsa_write_iterations != 0)
-        {
-          char fname[STRLEN] ;
-          sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
-          printf("writing snapshot to %s...\n", fname) ;
-          MRISwriteAnnotation(mris, fname) ;
-        }
+  if (!read_fname) {
+    printf("labeling surface...\n") ;
+    GCSAlabel(gcsa, mris) ;
+    if (Gdiag_no >= 0)
+      printf("vertex %d: label %s\n",
+             Gdiag_no,
+             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    printf("relabeling using gibbs priors...\n") ;
+    GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
+    if (Gdiag_no >= 0)
+      printf("vertex %d: label %s\n",
+             Gdiag_no,
+             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    postprocess(gcsa, mris) ;
+    if (Gdiag_no >= 0)
+      printf("vertex %d: label %s\n",
+             Gdiag_no,
+             annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if (gcsa_write_iterations != 0) {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRISwriteAnnotation(mris, fname) ;
     }
-  else{
+  } else {
 
     MRISreadAnnotation(mris, read_fname) ;
-    if(refine != 0){
+    if (refine != 0) {
       GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
       if (Gdiag_no >= 0)
         printf("vertex %d: label %s\n",
@@ -242,13 +260,12 @@ main(int argc, char *argv[])
         printf("vertex %d: label %s\n",
                Gdiag_no,
                annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
-      if (gcsa_write_iterations != 0)
-        {
-          char fname[STRLEN] ;
-          sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
-          printf("writing snapshot to %s...\n", fname) ;
-          MRISwriteAnnotation(mris, fname) ;
-        }
+      if (gcsa_write_iterations != 0) {
+        char fname[STRLEN] ;
+        sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
+        printf("writing snapshot to %s...\n", fname) ;
+        MRISwriteAnnotation(mris, fname) ;
+      }
 
     }
   }
@@ -282,8 +299,7 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
   char *gcsfile, *fsh, *outannot;
@@ -297,138 +313,120 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "ml-annot")){
+  else if (!stricmp(option, "ml-annot")) {
     // Compute most-likely annotation labeling on ico, save, and exit
     // args: gcs icoorder outannot
-    if(argc < 5){
+    if (argc < 5) {
       printf("ERROR: -ml-annot requires 3 args: gcs icoorder outannot\n");
       exit(1);
     }
-    gcsfile=argv[2];/* rel to FREESURFER_HOME/average, 
-                       ?h.curvature.buckner40.filled.desikan_killiany.gcs */
+    gcsfile=argv[2];/* rel to FREESURFER_HOME/average,
+                                       ?h.curvature.buckner40.filled.desikan_killiany.gcs */
     sscanf(    argv[3],"%d",&icoorder); // usually 7
     outannot = argv[4];  // absolute path to output
     printf("ML Label: %s %d %s\n",gcsfile,icoorder,outannot);
     ico = ReadIcoByOrder(icoorder, 100);
-    if(ico == NULL) exit(1);
+    if (ico == NULL) exit(1);
     fsh = getenv("FREESURFER_HOME");
     sprintf(tmpstr,"%s/average/%s",fsh,gcsfile);
     printf("Reading gcsa from %s\n",tmpstr);
     gcsa = GCSAread(tmpstr);
-    if(gcsa == NULL) exit(1);
+    if (gcsa == NULL) exit(1);
     ico->ct = gcsa->ct;
     printf("Building most likely labels\n");
     GCSAbuildMostLikelyLabels(gcsa,ico);
     printf("Filtering labels\n");
     MRISmodeFilterAnnotations(ico, 2);
     err = MRISwriteAnnotation(ico, outannot);
-    if(err) exit(1);
+    if (err) exit(1);
     MRISfree(&ico);
     GCSAfree(&gcsa);
     exit(0);
+  } else if (!stricmp(option, "SDIR")) {
+    strcpy(subjects_dir, argv[2]) ;
+    nargs = 1 ;
+    printf("using %s as subjects directory\n", subjects_dir) ;
+  } else if (!stricmp(option, "MINAREA")) {
+    MIN_AREA_PCT = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting minimum area threshold for connectivity to %2.2f\n",
+           MIN_AREA_PCT) ;
+    if (MIN_AREA_PCT < 0 || MIN_AREA_PCT > 1)
+      ErrorExit(ERROR_BADPARM, "%s: MIN_AREA_PCT must be in [0,1]\n",Progname);
+  } else if (!stricmp(option, "ORIG")) {
+    orig_name = argv[2] ;
+    nargs = 1 ;
+    printf("using %s as original surface\n", orig_name) ;
+  } else if (!stricmp(option, "LONG")) {
+    refine = 1 ;
+    printf("will refine the initial labeling read-in from -R \n") ;
+  } else if (!stricmp(option, "NOVAR")) {
+    novar = 1 ;
+    printf("setting all covariance matrices to the identity...\n") ;
   }
-  else if (!stricmp(option, "SDIR"))
-	{
-		strcpy(subjects_dir, argv[2]) ;
-		nargs = 1 ;
-		printf("using %s as subjects directory\n", subjects_dir) ;
-	}
-  else if (!stricmp(option, "MINAREA"))
-	{
-		MIN_AREA_PCT = atof(argv[2]) ;
-		nargs = 1 ;
-		printf("setting minimum area threshold for connectivity to %2.2f\n",
-					 MIN_AREA_PCT) ;
-		if (MIN_AREA_PCT < 0 || MIN_AREA_PCT > 1)
-			ErrorExit(ERROR_BADPARM, "%s: MIN_AREA_PCT must be in [0,1]\n",Progname);
-	}
-  else if (!stricmp(option, "ORIG"))
-	{
-		orig_name = argv[2] ;
-		nargs = 1 ;
-		printf("using %s as original surface\n", orig_name) ;
-	}
-  else if (!stricmp(option, "LONG"))
-	{
-		refine = 1 ;
-		printf("will refine the initial labeling read-in from -R \n") ;
-	}
-  else if (!stricmp(option, "NOVAR"))
-	{
-		novar = 1 ;
-		printf("setting all covariance matrices to the identity...\n") ;
-	}
 #if 0
-  else if (!stricmp(option, "NORM"))
-	{
-		normalize_flag = 1 ;
-		printf("normalizing sulc after reading...\n") ;
-	}
-  else if (!stricmp(option, "SULC"))
-	{
-		sulconly = 1 ;
-		printf("using sulc as only input....\n") ;
-	}
+  else if (!stricmp(option, "NORM")) {
+    normalize_flag = 1 ;
+    printf("normalizing sulc after reading...\n") ;
+  } else if (!stricmp(option, "SULC")) {
+    sulconly = 1 ;
+    printf("using sulc as only input....\n") ;
+  }
 #endif
-  else if (!stricmp(option, "nbrs"))
-	{
-		nbrs = atoi(argv[2]) ;
-		nargs = 1 ;
-		fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-	}
-  else if (!stricmp(option, "seed"))
-	{
-		setRandomSeed(atol(argv[2])) ;
-		fprintf(stderr,"setting seed for random number generator to %d\n",
-						atoi(argv[2])) ;
-		nargs = 1 ;
-	}
-  else switch (toupper(*option))
-	{
+  else if (!stricmp(option, "nbrs")) {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+  } else if (!stricmp(option, "seed")) {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number generator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
+  } else switch (toupper(*option)) {
 #if 0
-	case 'A':
-		navgs = atoi(argv[2]) ;
-		nargs = 1 ;
-		break ;
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
 #endif
-	case 'F':
-		filter = atoi(argv[2]) ;
-		nargs = 1 ;
-		printf("applying mode filter %d times before writing...\n", filter) ;
-		break ;
-	case 'T':
-		if (read_named_annotation_table(argv[2]) != NO_ERROR)
-			ErrorExit(ERROR_BADFILE,
-								"%s: could not read annotation file %s...\n",
-								Progname, argv[2]) ;
-		nargs = 1 ;
-		break ;
-	case 'V':
-		Gdiag_no = atoi(argv[2]) ;
-		nargs = 1 ;
-		printf("printing diagnostic information about vertex %d\n", Gdiag_no) ;
-		break ;
-	case 'W':
-		gcsa_write_iterations = atoi(argv[2]) ;
-		gcsa_write_fname = argv[3] ;
-		nargs = 2 ;
-		printf("writing out snapshots of gibbs process every %d "
-					 "iterations to %s\n"
-					 ,gcsa_write_iterations, gcsa_write_fname) ;
-		break ;
-	case 'R':
-		read_fname = argv[2] ;
-		nargs = 1 ;
-		printf("reading precomputed parcellation from %s...\n", read_fname) ;
-		break ;
-	case 'U':
-		usage_exit(0) ;
-		break ;
-	default:
-		fprintf(stderr, "unknown option %s\n", argv[1]) ;
-		exit(1) ;
-		break ;
-	}
+    case 'F':
+      filter = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("applying mode filter %d times before writing...\n", filter) ;
+      break ;
+    case 'T':
+      if (read_named_annotation_table(argv[2]) != NO_ERROR)
+        ErrorExit(ERROR_BADFILE,
+                  "%s: could not read annotation file %s...\n",
+                  Progname, argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("printing diagnostic information about vertex %d\n", Gdiag_no) ;
+      break ;
+    case 'W':
+      gcsa_write_iterations = atoi(argv[2]) ;
+      gcsa_write_fname = argv[3] ;
+      nargs = 2 ;
+      printf("writing out snapshots of gibbs process every %d "
+             "iterations to %s\n"
+             ,gcsa_write_iterations, gcsa_write_fname) ;
+      break ;
+    case 'R':
+      read_fname = argv[2] ;
+      nargs = 1 ;
+      printf("reading precomputed parcellation from %s...\n", read_fname) ;
+      break ;
+    case 'U':
+      usage_exit(0) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
@@ -439,8 +437,7 @@ get_option(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static void
-print_usage(void)
-{
+print_usage(void) {
   printf("mris_ca_label [options] <subject> <hemi> "
          "<canon surf> <classifier> <output file>\n");
   printf("\n");
@@ -469,15 +466,13 @@ print_usage(void)
 }
 
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   print_usage();
   exit(code) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
   fprintf(stderr,
           "\n"
@@ -538,76 +533,69 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-postprocess(GCSA *gcsa, MRI_SURFACE *mris)
-{
+postprocess(GCSA *gcsa, MRI_SURFACE *mris) {
   LABEL       **larray, *area ;
   int         nlabels, i, j, annotation, n, nchanged, niter = 0, deleted ;
   double      max_area, label_area ;
 
 #define MAX_ITER 5
 
-  do
-	{
-		deleted = nchanged  = 0 ;
-		MRISsegmentAnnotated(mris, &larray, &nlabels, 0) ;
-		/*    printf("%d total segments in Gibbs annotation\n", nlabels) ;*/
-		MRISclearMarks(mris) ;
-		for (i = 0 ; i < nlabels ; i++)
-		{
-			area = larray[i] ;
-			if (!area)   /* already processed */
-				continue ;
-			annotation = mris->vertices[area->lv[0].vno].annotation ;
+  do {
+    deleted = nchanged  = 0 ;
+    MRISsegmentAnnotated(mris, &larray, &nlabels, 0) ;
+    /*    printf("%d total segments in Gibbs annotation\n", nlabels) ;*/
+    MRISclearMarks(mris) ;
+    for (i = 0 ; i < nlabels ; i++) {
+      area = larray[i] ;
+      if (!area)   /* already processed */
+        continue ;
+      annotation = mris->vertices[area->lv[0].vno].annotation ;
 
-			/* find label with this annotation with max area */
-			max_area = LabelArea(area, mris) ;
-			for (n = 1, j = i+1 ; j < nlabels ; j++)
-			{
-				if (!larray[j])
-					continue ;
-				if (annotation !=
-						mris->vertices[larray[j]->lv[0].vno].annotation)
-					continue ;
-				n++ ;
-				label_area = LabelArea(larray[j], mris) ;
-				if (label_area > max_area)
-					max_area = label_area ;
-			}
+      /* find label with this annotation with max area */
+      max_area = LabelArea(area, mris) ;
+      for (n = 1, j = i+1 ; j < nlabels ; j++) {
+        if (!larray[j])
+          continue ;
+        if (annotation !=
+            mris->vertices[larray[j]->lv[0].vno].annotation)
+          continue ;
+        n++ ;
+        label_area = LabelArea(larray[j], mris) ;
+        if (label_area > max_area)
+          max_area = label_area ;
+      }
 #if 0
-			printf("%03d: annotation %s (%d): %d segments, max area %2.1f\n",
-						 niter, annotation_to_name(annotation, NULL),
-						 annotation, n, max_area) ;
+      printf("%03d: annotation %s (%d): %d segments, max area %2.1f\n",
+             niter, annotation_to_name(annotation, NULL),
+             annotation, n, max_area) ;
 #endif
-			for (j = i ; j < nlabels ; j++)
-			{
-				if (!larray[j])
-					continue ;
-				if (annotation !=
-						mris->vertices[larray[j]->lv[0].vno].annotation)
-					continue ;
+      for (j = i ; j < nlabels ; j++) {
+        if (!larray[j])
+          continue ;
+        if (annotation !=
+            mris->vertices[larray[j]->lv[0].vno].annotation)
+          continue ;
 
-				label_area = LabelArea(larray[j], mris) ;
-				if (label_area < MIN_AREA_PCT*max_area)
-				{
-					/*          printf("relabeling annot %2.1f mm
-											area...\n", label_area) ;*/
-					nchanged += GCSAreclassifyLabel(gcsa, mris, larray[j]) ;
-					deleted++ ;
-				}
-				LabelFree(&larray[j]) ;
-			}
-		}
-		free(larray) ;
-		printf("%03d: %d total segments, %d labels (%d vertices) changed\n",
-					 niter, nlabels, deleted, nchanged) ;
-	} while (nchanged > 0 && niter++ < MAX_ITER) ;
+        label_area = LabelArea(larray[j], mris) ;
+        if (label_area < MIN_AREA_PCT*max_area) {
+          /*          printf("relabeling annot %2.1f mm
+                area...\n", label_area) ;*/
+          nchanged += GCSAreclassifyLabel(gcsa, mris, larray[j]) ;
+          deleted++ ;
+        }
+        LabelFree(&larray[j]) ;
+      }
+    }
+    free(larray) ;
+    printf("%03d: %d total segments, %d labels (%d vertices) changed\n",
+           niter, nlabels, deleted, nchanged) ;
+  } while (nchanged > 0 && niter++ < MAX_ITER) ;
   return(NO_ERROR) ;
 }
 

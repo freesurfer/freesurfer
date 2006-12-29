@@ -1,3 +1,31 @@
+/**
+ * @file  colortab.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.14 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef COLORTAB_H
 #define COLORTAB_H
 
@@ -8,10 +36,11 @@
    the structure index. */
 typedef struct
 {
-  char  name[STRLEN];		/* Structure name. */
-  int   ri, gi, bi, ai; 	/* 0-255 range. */
-  float rf, gf, bf, af;  	/* 0-1 range.  */
-} COLOR_TABLE_ENTRY, CTE;
+  char  name[STRLEN];  /* Structure name. */
+  int   ri, gi, bi, ai;  /* 0-255 range. */
+  float rf, gf, bf, af;   /* 0-1 range.  */
+}
+COLOR_TABLE_ENTRY, CTE;
 
 /* The color table. Has an arry of entries. A structure index maps to
    a color table index. The table can be sparse, there need not be an
@@ -19,11 +48,12 @@ typedef struct
    doesn't exist in the table. */
 typedef struct
 {
-  CTE   **entries;		/* Array of CTE ptrs; some may be NULL */
-  int   nentries;		/* Size of entries array. */
-  char  fname[STRLEN];		/* Original file name. */
-  int   version;		/* Version number, if read from binary */
-} COLOR_TABLE, CT ;
+  CTE   **entries;  /* Array of CTE ptrs; some may be NULL */
+  int   nentries;  /* Size of entries array. */
+  char  fname[STRLEN];  /* Original file name. */
+  int   version;  /* Version number, if read from binary */
+}
+COLOR_TABLE, CT ;
 
 
 /* Reads a color table from an ASCII file. In this format, each line
@@ -63,14 +93,14 @@ int CTABisEntryValid(COLOR_TABLE *ct, int index, int *valid);
 /* Returns the integer or floating point color values or color + alpha
    at a given index. Returns an error code if the index is out of
    bounds. */
-int CTABrgbAtIndexi(COLOR_TABLE *ct, int index, 
-		    int*r, int*g, int*b);
-int CTABrgbAtIndexf(COLOR_TABLE *ct, int index, 
-		    float*r, float*g, float*b);
-int CTABrgbaAtIndexi(COLOR_TABLE *ct, int index, 
-		     int*r, int*g, int*b, int*a);
-int CTABrgbaAtIndexf(COLOR_TABLE *ct, int index, 
-		     float*r, float*g, float*b, float*a);
+int CTABrgbAtIndexi(COLOR_TABLE *ct, int index,
+                    int*r, int*g, int*b);
+int CTABrgbAtIndexf(COLOR_TABLE *ct, int index,
+                    float*r, float*g, float*b);
+int CTABrgbaAtIndexi(COLOR_TABLE *ct, int index,
+                     int*r, int*g, int*b, int*a);
+int CTABrgbaAtIndexf(COLOR_TABLE *ct, int index,
+                     float*r, float*g, float*b, float*a);
 
 /* Gets the name of a structure. name should be an allocated string
    and name_len should be its size. */

@@ -1,3 +1,31 @@
+/**
+ * @file  xUndoList.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef xUndoList_H
 #define xUndoList_H
 
@@ -33,7 +61,8 @@ typedef void(*xUndL_tSwapFuncPtr)       ( xUndL_tEntryPtr, xUndL_tEntryPtr* );
 typedef void(*xUndL_tDeleteEntryFuncPtr)( xUndL_tEntryPtr* );
 typedef void(*xUndL_tPrintEntryFuncPtr) ( xUndL_tEntryPtr );
 
-typedef struct {
+typedef struct
+{
 
   long                       mSignature;
 
@@ -42,23 +71,24 @@ typedef struct {
   xUndL_tDeleteEntryFuncPtr  mpDeleteFunction;
   xUndL_tPrintEntryFuncPtr   mpPrintFunction;
 
-} xUndoList, *xUndoListRef;
+}
+xUndoList, *xUndoListRef;
 
 xUndL_tErr xUndL_New ( xUndoListRef*             oppList,
-           xUndL_tSwapFuncPtr        ipSwapFunction,
-           xUndL_tDeleteEntryFuncPtr ipDeleteFunction );
+                       xUndL_tSwapFuncPtr        ipSwapFunction,
+                       xUndL_tDeleteEntryFuncPtr ipDeleteFunction );
 
 xUndL_tErr xUndL_Delete ( xUndoListRef* ioppList );
 
 xUndL_tErr xUndL_Clear ( xUndoListRef ipList );
 
-xUndL_tErr xUndL_AddEntry ( xUndoListRef    ipList, 
-          xUndL_tEntryPtr ipEntry );
+xUndL_tErr xUndL_AddEntry ( xUndoListRef    ipList,
+                            xUndL_tEntryPtr ipEntry );
 
 xUndL_tErr xUndL_Restore ( xUndoListRef ipList );
 
 xUndL_tErr xUndL_SetPrintFunction ( xUndoListRef             ipList,
-            xUndL_tPrintEntryFuncPtr ipPrintFunction );
+                                    xUndL_tPrintEntryFuncPtr ipPrintFunction );
 
 xUndL_tErr xUndL_Print ( xUndoListRef ipList );
 
@@ -71,7 +101,7 @@ char * xUndL_GetErrorString ( xUndL_tErr ieCode );
 xUndL_tErr xUndL_NewList_ ( xListRef* ippList );
 
 xUndL_tErr xUndL_DeleteList_ ( xUndoListRef ipUndoList,
-             xListRef*    oppList );
+                               xListRef*    oppList );
 
 
 

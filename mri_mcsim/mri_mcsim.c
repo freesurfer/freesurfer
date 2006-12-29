@@ -1,3 +1,31 @@
+/**
+ * @file  mri_mcsim.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:07 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // Random field simulator
 //
 // Things to do:
@@ -56,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.4 2006/05/11 21:56:17 nicks Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.5 2006/12/29 02:09:07 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -90,8 +118,7 @@ RFS *rfs = NULL;
 int SynthSeed = 0;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs, nthrep;
   double gmean, gstddev, gmax;
   MRI *mritmp;
@@ -108,32 +135,32 @@ int main(int argc, char *argv[])
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly) return(0);
+  if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  if(SynthSeed > 0) RFspecSetSeed(rfs,SynthSeed);
+  if (SynthSeed > 0) RFspecSetSeed(rfs,SynthSeed);
 
   TempVol = MRIread(TempVolFile);
-  if(TempVol == NULL){
+  if (TempVol == NULL) {
     printf("ERROR: reading %s\n",TempVolFile);
     exit(1);
   }
 
-  if(UberMaskFile){
+  if (UberMaskFile) {
     UberMask = MRIread(UberMaskFile);
-    if(UberMask == NULL){
+    if (UberMask == NULL) {
       printf("ERROR: reading %s\n",UberMaskFile);
       exit(1);
     }
   }
 
-  if(TempVol->type != MRI_FLOAT){
+  if (TempVol->type != MRI_FLOAT) {
     printf("INFO: changing template type to float\n");
     mritmp = MRIchangeType(TempVol,MRI_FLOAT,0,0,0);
-    if(mritmp == NULL){
+    if (mritmp == NULL) {
       printf("ERROR: could change type\n");
       exit(1);
     }
@@ -141,7 +168,7 @@ int main(int argc, char *argv[])
     TempVol = mritmp;
   }
 
-  for(nthrep = 0; nthrep < nreps; nthrep++){
+  for (nthrep = 0; nthrep < nreps; nthrep++) {
     RFsynth(TempVol,rfs,UberMask);
     RFglobalStats(TempVol, UberMask, &gmean, &gstddev, &gmax);
     printf("%3d %lf %lf %lf\n",nthrep,gmean,gstddev,gmax);
@@ -151,20 +178,19 @@ int main(int argc, char *argv[])
   return 0;
 }
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
   int n;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -177,90 +203,78 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--mask-invert")) MaskInvertFlag = 1;
 
-    else if (!strcasecmp(option, "--temp-vol")){
-      if(nargc < 1) CMDargNErr(option,1);
+    else if (!strcasecmp(option, "--temp-vol")) {
+      if (nargc < 1) CMDargNErr(option,1);
       TempVolFile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--temp-surf")){
-      if(nargc < 2) CMDargNErr(option,2);
+    } else if (!strcasecmp(option, "--temp-surf")) {
+      if (nargc < 2) CMDargNErr(option,2);
       subject = pargv[0];
       hemi    = pargv[1];
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-      if(SUBJECTS_DIR == NULL){
-	printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-	exit(1);
+      if (SUBJECTS_DIR == NULL) {
+        printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+        exit(1);
       }
       nargsused = 2;
-    }
-    else if (!strcasecmp(option, "--vw-pthresh")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--vw-pthresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&VWPThresh);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--vw-sign")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--vw-sign")) {
+      if (nargc < 1) CMDargNErr(option,1);
       VWSign = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--ubermask")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--ubermask")) {
+      if (nargc < 1) CMDargNErr(option,1);
       UberMaskFile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--mask")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--mask")) {
+      if (nargc < 1) CMDargNErr(option,1);
       MaskFile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--mask-thresh")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--mask-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&MaskThresh);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--mask-sign")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--mask-sign")) {
+      if (nargc < 1) CMDargNErr(option,1);
       MaskSign = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--fwhm")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--fwhm")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--nreps")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--nreps")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nreps);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--field")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--field")) {
+      if (nargc < 1) CMDargNErr(option,1);
       rfs = RFspecInit(0,NULL);
       rfs->name = strcpyalloc(pargv[0]);
-      if(RFname2Code(rfs)==-1){
-	printf("ERROR: field %s not supported\n",rfs->name);
-	exit(1);
+      if (RFname2Code(rfs)==-1) {
+        printf("ERROR: field %s not supported\n",rfs->name);
+        exit(1);
       }
       printf("code = %d\n",rfs->code);
       RFnparams(rfs);
-      if(nargc < rfs->nparams + 1){
-	printf("ERROR: field %s requires %d parameters\n",rfs->name,rfs->nparams);
-	exit(1);
+      if (nargc < rfs->nparams + 1) {
+        printf("ERROR: field %s requires %d parameters\n",rfs->name,rfs->nparams);
+        exit(1);
       }
-      for(n=0; n < rfs->nparams; n++)
-	sscanf(pargv[n+1],"%lf",&(rfs->params[n]));
+      for (n=0; n < rfs->nparams; n++)
+        sscanf(pargv[n+1],"%lf",&(rfs->params[n]));
       RFexpectedMeanStddev(rfs);
       nargsused = rfs->nparams+1;
-    }
-    else if (!strcasecmp(option, "--o")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--o")) {
+      if (nargc < 1) CMDargNErr(option,1);
       OutFile = pargv[0];
       nargsused = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(CMDsingleDash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -269,14 +283,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --temp-vol volfile : template volume \n");
@@ -290,42 +302,39 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(TempVolFile == NULL && subject == NULL){
+static void check_options(void) {
+  if (TempVolFile == NULL && subject == NULL) {
     printf("ERROR: need template volume or surface\n");
     exit(1);
   }
-  if(VWPThresh < 0){
+  if (VWPThresh < 0) {
     printf("ERROR: --vw-pthresh needs to be set\n");
     exit(1);
   }
-  if(rfs==NULL){
+  if (rfs==NULL) {
     printf("ERROR: need to specify a random field\n");
     exit(1);
   }
-  if(OutFile==NULL){
+  if (OutFile==NULL) {
     printf("ERROR: need to specify an output file\n");
     exit(1);
   }
-  if(nreps < 1){
+  if (nreps < 1) {
     printf("ERROR: need to specify number of simulation repitions\n");
     exit(1);
   }
-  if(fwhm < 0){
+  if (fwhm < 0) {
     printf("ERROR: need to specify FWHM\n");
     exit(1);
   }
@@ -333,8 +342,7 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
@@ -344,19 +352,19 @@ static void dump_options(FILE *fp)
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
-  if(TempVolFile != NULL)
+  if (TempVolFile != NULL)
     fprintf(fp,"tempvol     %s\n",TempVolFile);
-  if(subject != NULL)
+  if (subject != NULL)
     fprintf(fp,"subject     %s\n",subject);
-  if(hemi != NULL)
+  if (hemi != NULL)
     fprintf(fp,"hemi     %s\n",hemi);
-  if(UberMaskFile != NULL)
+  if (UberMaskFile != NULL)
     fprintf(fp,"ubermask     %s\n",UberMaskFile);
-  if(Mask != NULL){
+  if (Mask != NULL) {
     fprintf(fp,"mask     %s\n",MaskFile);
     fprintf(fp,"maskthresh  %lf\n",MaskThresh);
     fprintf(fp,"masksign    %s\n",MaskSign);
-    fprintf(fp,"maskinvert  %d\n",MaskInvertFlag);    
+    fprintf(fp,"maskinvert  %d\n",MaskInvertFlag);
   }
   fprintf(fp,"vwpthresh  %lf\n",VWPThresh);
   fprintf(fp,"vwsign     %s\n",VWSign);
@@ -369,8 +377,5 @@ static void dump_options(FILE *fp)
 }
 #if 0
 /*-------------------------------------------------------------------*/
-MRI *RFsynth(MRI *temp, RFS *rfs, MRI *rf, int nframes)
-{
-
-}
+MRI *RFsynth(MRI *temp, RFS *rfs, MRI *rf, int nframes) {}
 #endif

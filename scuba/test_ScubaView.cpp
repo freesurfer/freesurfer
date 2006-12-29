@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaView.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.13 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include <sstream>
 extern "C" {
@@ -26,8 +54,8 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       sError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       cerr << sError.str().c_str() << endl; \
       throw logic_error( sError.str() ); \
     } \
@@ -37,25 +65,24 @@ using namespace std;
 // Togl tester ---------------------------------------------------------
 
 extern "C" {
-int Test_scubaview_Init ( Tcl_Interp* iInterp ) {
+  int Test_scubaview_Init ( Tcl_Interp* iInterp ) {
 
-  ToglManager& toglMgr = ToglManager::GetManager();
+    ToglManager& toglMgr = ToglManager::GetManager();
 
-  try {
-    toglMgr.InitializeTogl( iInterp );
-    toglMgr.SetFrameFactory( new ScubaFrameFactory );
-    ScubaFrame::SetViewFactory( new ScubaViewFactory );
+    try {
+      toglMgr.InitializeTogl( iInterp );
+      toglMgr.SetFrameFactory( new ScubaFrameFactory );
+      ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
-    TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.SetOutputStreamToCerr();
-    commandMgr.Start( iInterp );
+      TclCommandManager& commandMgr = TclCommandManager::GetManager();
+      commandMgr.SetOutputStreamToCerr();
+      commandMgr.Start( iInterp );
+    } catch ( ... ) {
+      return TCL_ERROR;
+    }
+
+    return TCL_OK;
   }
-  catch( ... ) {
-    return TCL_ERROR;
-  }
-
-  return TCL_OK;
-}
 }
 
 
@@ -69,16 +96,24 @@ class TestLayer : public Layer {
 public:
   TestLayer();
   virtual void DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
-			       ViewState& iViewState,
-			       ScubaWindowToRASTranslator& iTranslator );
+                               ViewState& iViewState,
+                               ScubaWindowToRASTranslator& iTranslator );
   virtual void DrawIntoGL    ( ViewState& iViewState,
-  		               ScubaWindowToRASTranslator& iTranslator );
+                               ScubaWindowToRASTranslator& iTranslator );
   virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
-			    std::map<std::string,std::string>& iLabelValues );
-  virtual string GetTypeDescription() { return "TestLayer"; }
-  bool WasDrawn() const { return (mbBufferWasDrawn && mbGLWasDrawn); }
-  int GetWidth() const { return mWidth; }
-  int GetHeight() const { return mHeight; }
+                              std::map<std::string,std::string>& iLabelValues );
+  virtual string GetTypeDescription() {
+    return "TestLayer";
+  }
+  bool WasDrawn() const {
+    return (mbBufferWasDrawn && mbGLWasDrawn);
+  }
+  int GetWidth() const {
+    return mWidth;
+  }
+  int GetHeight() const {
+    return mHeight;
+  }
 protected:
   bool mbBufferWasDrawn;
   bool mbGLWasDrawn;
@@ -91,8 +126,8 @@ TestLayer::TestLayer() {
 
 void
 TestLayer::DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
-			   ViewState& iViewState,
-			   ScubaWindowToRASTranslator& iTranslator ) {
+                           ViewState& iViewState,
+                           ScubaWindowToRASTranslator& iTranslator ) {
   mbBufferWasDrawn = true;
 }
 
@@ -101,12 +136,12 @@ TestLayer::DrawIntoGL( ViewState&, ScubaWindowToRASTranslator& ) {
   mbGLWasDrawn = true;
 }
 
-void 
+void
 TestLayer::GetInfoAtRAS ( float inX, float inY, float inZ,
-			  std::map<std::string,std::string>& iLabelValues ) {
+                          std::map<std::string,std::string>& iLabelValues ) {
 
   string sLabel;
-  if( msLabel != "" ) {
+  if ( msLabel != "" ) {
     sLabel = msLabel;
   } else {
     stringstream ssLabel;
@@ -123,70 +158,70 @@ TestLayer::GetInfoAtRAS ( float inX, float inY, float inZ,
 class ScubaViewTester {
 public:
   void Test( Tcl_Interp* iInterp );
-  void TestCoords ( ScubaView& iView, 
-		    int iWidth, int iHeight,
-		    float iZoomLevel,
-		    float iCenterRASX, float iCenterRASY, float iCenterRASZ,
-		    ViewState::Plane iInPlane,
-		    int iXWindow, int iYWindow,
-		    float iRASX, float iRASY, float iRASZ );
+  void TestCoords ( ScubaView& iView,
+                    int iWidth, int iHeight,
+                    float iZoomLevel,
+                    float iCenterRASX, float iCenterRASY, float iCenterRASZ,
+                    ViewState::Plane iInPlane,
+                    int iXWindow, int iYWindow,
+                    float iRASX, float iRASY, float iRASZ );
 };
 
-void 
-ScubaViewTester::TestCoords( ScubaView& iView, 
-			     int iWidth, int iHeight,
-			     float iZoomLevel,
-			     float iCenterRASX, float iCenterRASY,
-			     float iCenterRASZ,
-			     ViewState::Plane iInPlane,
-			     int iXWindow, int iYWindow,
-			     float iRASX, float iRASY, float iRASZ ) {
+void
+ScubaViewTester::TestCoords( ScubaView& iView,
+                             int iWidth, int iHeight,
+                             float iZoomLevel,
+                             float iCenterRASX, float iCenterRASY,
+                             float iCenterRASZ,
+                             ViewState::Plane iInPlane,
+                             int iXWindow, int iYWindow,
+                             float iRASX, float iRASY, float iRASZ ) {
 
-    iView.Reshape( iWidth, iHeight );
-    iView.Set2DZoomLevel( iZoomLevel );
-    float center[3];
-    center[0] = iCenterRASX; 
-    center[1] = iCenterRASY; 
-    center[2] = iCenterRASZ;
-    iView.Set2DRASCenter( center );
-    iView.Set2DInPlane( iInPlane );
-    float RAS[3];
-    int window[2];
-    window[0] = iXWindow;
-    window[1] = iYWindow;
+  iView.Reshape( iWidth, iHeight );
+  iView.Set2DZoomLevel( iZoomLevel );
+  float center[3];
+  center[0] = iCenterRASX;
+  center[1] = iCenterRASY;
+  center[2] = iCenterRASZ;
+  iView.Set2DRASCenter( center );
+  iView.Set2DInPlane( iInPlane );
+  float RAS[3];
+  int window[2];
+  window[0] = iXWindow;
+  window[1] = iYWindow;
 
-    iView.TranslateWindowToRAS( window, RAS );
+  iView.TranslateWindowToRAS( window, RAS );
 #if 0
-    if( !fequal(RAS[0],iRASX) || 
-	!fequal(RAS[1],iRASY) || 
-	!fequal(RAS[2],iRASZ) ) {
-      cerr << "translate didn't work: " << endl 
-	   << iView.mViewState << endl
-	   << "   window: " << window[0] << ", " << window[1] << endl
-	   << "  got RAS: "<< RAS[0]<< ", " << RAS[1] << ", " << RAS[2] << endl
-	   << "should be: "<< iRASX<< ", " << iRASY << ", " << iRASZ << endl;
-	
-      throw 0;
-    }
+  if ( !fequal(RAS[0],iRASX) ||
+       !fequal(RAS[1],iRASY) ||
+       !fequal(RAS[2],iRASZ) ) {
+    cerr << "translate didn't work: " << endl
+    << iView.mViewState << endl
+    << "   window: " << window[0] << ", " << window[1] << endl
+    << "  got RAS: "<< RAS[0]<< ", " << RAS[1] << ", " << RAS[2] << endl
+    << "should be: "<< iRASX<< ", " << iRASY << ", " << iRASZ << endl;
+
+    throw 0;
+  }
 #endif
 
-    int windowTest[2];
-    iView.TranslateRASToWindow( RAS, windowTest );
+  int windowTest[2];
+  iView.TranslateRASToWindow( RAS, windowTest );
 #if 0
-    if( windowTest[0] != window[0] || windowTest[1] != windowTest[1] ) {
-      cerr << "translate didn't work: " << endl 
-	   << iView.mViewState << endl
-	   << "   window: " << window[0] << ", " << window[1] << endl
-	   << "  got RAS: "<< RAS[0]<< ", " << RAS[1] << ", " << RAS[2] << endl
-	   << "  back to: " << windowTest[0] << ", " << windowTest[1] << endl
-	   << "should be: " << window[0] << ", " << window[1] << endl;
-	
-      throw 0;
-    }
+  if ( windowTest[0] != window[0] || windowTest[1] != windowTest[1] ) {
+    cerr << "translate didn't work: " << endl
+    << iView.mViewState << endl
+    << "   window: " << window[0] << ", " << window[1] << endl
+    << "  got RAS: "<< RAS[0]<< ", " << RAS[1] << ", " << RAS[2] << endl
+    << "  back to: " << windowTest[0] << ", " << windowTest[1] << endl
+    << "should be: " << window[0] << ", " << window[1] << endl;
+
+    throw 0;
+  }
 #endif
 }
 
-void 
+void
 ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 
   stringstream sError;
@@ -195,7 +230,7 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 
     ScubaView view;
     view.SetFlipLeftRightYZ( false );
-    
+
 
     // Make sure they both have the default transform.
     int viewTransformID = view.GetWorldToViewTransform();
@@ -213,19 +248,19 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     float center[3] = { 5.0, 5.1, 5.2 };
     view.Set2DRASCenter( center );
     Assert( (view.mViewState.mCenterRAS[0] == center[0] &&
-	     view.mViewState.mCenterRAS[1] == center[1] &&
-	     view.mViewState.mCenterRAS[2] == center[2]), 
-	    "Set2DRASCenter failed" );
+             view.mViewState.mCenterRAS[1] == center[1] &&
+             view.mViewState.mCenterRAS[2] == center[2]),
+            "Set2DRASCenter failed" );
 
     float zoomLevel = 5.0;
     view.Set2DZoomLevel( zoomLevel );
     Assert( (view.mViewState.mZoomLevel == 5.0),
-	    "SetZoomLevel failed" );
+            "SetZoomLevel failed" );
 
     ViewState::Plane plane = ViewState::X;
     view.Set2DInPlane( plane );
     Assert( (view.mViewState.mInPlane == ViewState::X),
-	    "Set2DInPlane failed" );
+            "Set2DInPlane failed" );
 
 
     // Set the view size. When we add layers we'll make sure they got
@@ -238,7 +273,7 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     TestLayer aLayer[kcLayers];
     int nLevel = 0;
     map<int,int> levelLayerID;
-    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+    for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
       int layerID = aLayer[nLayer].GetID();
       levelLayerID[nLevel] = layerID;
       view.SetLayerAtLevel( layerID, nLevel );
@@ -247,20 +282,20 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 
     bool bFailed = false;
     map<int,int>::iterator tLevelLayerID;
-    for( tLevelLayerID = view.mLevelLayerIDMap.begin(); 
-	 tLevelLayerID != view.mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    for ( tLevelLayerID = view.mLevelLayerIDMap.begin();
+          tLevelLayerID != view.mLevelLayerIDMap.end(); ++tLevelLayerID ) {
       int level = (*tLevelLayerID).first;
       int layerID = (*tLevelLayerID).second;
-      if( levelLayerID[level] != layerID ) {
-	cerr << "ID at level " << level << " incorrect" << endl << ", was "
-	     << layerID << ", should be " << levelLayerID[level] << endl;
-	bFailed = true;
+      if ( levelLayerID[level] != layerID ) {
+        cerr << "ID at level " << level << " incorrect" << endl << ", was "
+        << layerID << ", should be " << levelLayerID[level] << endl;
+        bFailed = true;
       }
     }
     Assert( (!bFailed), "Adding IDs failed" );
 
     // Check layer sizes.
-    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+    for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
       Assert( (aLayer[nLayer].GetWidth() == 123), "Width not set correctly" );
       Assert( (aLayer[nLayer].GetHeight() == 456), "Height not set correctly" );
     }
@@ -268,14 +303,14 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     // Check removing layers.
     int levelToRemove = 0;
     view.RemoveLayerAtLevel( levelToRemove );
-    for( tLevelLayerID = view.mLevelLayerIDMap.begin(); 
-	 tLevelLayerID != view.mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    for ( tLevelLayerID = view.mLevelLayerIDMap.begin();
+          tLevelLayerID != view.mLevelLayerIDMap.end(); ++tLevelLayerID ) {
       int level = (*tLevelLayerID).first;
       int layerID = (*tLevelLayerID).second;
-      if( levelToRemove == level || 
-	  layerID == levelLayerID[levelToRemove] ) {
-	cerr << "ID at level " << level << " was not removed" << endl;
-	bFailed = true;
+      if ( levelToRemove == level ||
+           layerID == levelLayerID[levelToRemove] ) {
+        cerr << "ID at level " << level << " was not removed" << endl;
+        bFailed = true;
       }
     }
     Assert( (!bFailed), "Removing level failed" );
@@ -291,36 +326,34 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     view.Reshape( 200, 200 );
     Assert( (NULL != view.mBuffer), "buffer not allocated on reshape" );
     Assert( (200 == aLayer[0].mWidth &&
-	     200 == aLayer[0].mHeight), "layer height/width not correct" );
+             200 == aLayer[0].mHeight), "layer height/width not correct" );
     view.Reshape( 200, 200 );
     Assert( (NULL != view.mBuffer), "buffer not allocated on second reshape" );
     view.Reshape( 100, 50 );
     Assert( (NULL != view.mBuffer), "buffer not allocated on reshape" );
     Assert( (100 == aLayer[0].mWidth &&
-	     50 == aLayer[0].mHeight), "layer width/height not correct" );
+             50 == aLayer[0].mHeight), "layer width/height not correct" );
     view.DisableOutput();
     try {
       view.Reshape( -1, 0 );
       sError << "error not thrown when reshaping with -1, 0" << endl;
       throw  0;
-    }
-    catch(...) {}
+    } catch (...) {}
     try {
       view.Reshape( -1, -1 );
       sError << "error not thrown when reshaping with -1, -1" << endl;
       throw  0;
-    }
-    catch(...) {}
+    } catch (...) {}
     view.SetOutputStreamToCerr();
     view.Reshape( 200, 200 );
 
     // Draw the view, all our layers should be drawn.
     bFailed = false;
     view.DoDraw();
-    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
-      if( !aLayer[nLayer].WasDrawn() ) {
-	cerr << "layer ID " << aLayer[nLayer].GetID() << " not drawn" << endl;
-	bFailed = true;
+    for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+      if ( !aLayer[nLayer].WasDrawn() ) {
+        cerr << "layer ID " << aLayer[nLayer].GetID() << " not drawn" << endl;
+        bFailed = true;
       }
     }
     Assert( (!bFailed), "Drawing failed" );
@@ -330,14 +363,14 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     // labelvalue map to make sure they got copied properly.
     map<string,string> labelValueMap;
     bFailed = false;
-    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+    for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
       stringstream ssLabel;
       ssLabel << nLayer;
       aLayer[nLayer].SetLabel( ssLabel.str() );
       aLayer[nLayer].GetInfoAtRAS( 0, 0, 0, labelValueMap );
-      if( labelValueMap[ssLabel.str()] != "Hello world" ) {
-	cerr << "layer ID " << aLayer[nLayer].GetID() << " not copied" << endl;
-	bFailed = true;
+      if ( labelValueMap[ssLabel.str()] != "Hello world" ) {
+        cerr << "layer ID " << aLayer[nLayer].GetID() << " not copied" << endl;
+        bFailed = true;
       }
     }
     Assert( (!bFailed), "GetInfoAtRAS failed" );
@@ -348,35 +381,35 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     // inplane z, RASCenter 100,100,100, window coords h,v should
     // equal RAS coords x,y,100 where x==h and y==v.
     TestCoords( view,
-		200, 200,   1,   100, 100, 100,   ViewState::Z,
-		0, 0,       0, 0, 100 );
+                200, 200,   1,   100, 100, 100,   ViewState::Z,
+                0, 0,       0, 0, 100 );
     TestCoords( view,
-		200, 200,   1,   100, 100, 100,   ViewState::Z,
-		199, 199,       199, 199, 100 );
+                200, 200,   1,   100, 100, 100,   ViewState::Z,
+                199, 199,       199, 199, 100 );
 
     TestCoords( view,
-		200, 200,   2,   100, 100, 100,   ViewState::Z,
-		0, 0,       50, 50, 100 );
+                200, 200,   2,   100, 100, 100,   ViewState::Z,
+                0, 0,       50, 50, 100 );
     TestCoords( view,
-		200, 200,   2,   100, 100, 100,   ViewState::Z,
-		199, 199,       149.5, 149.5, 100 );
+                200, 200,   2,   100, 100, 100,   ViewState::Z,
+                199, 199,       149.5, 149.5, 100 );
 
     TestCoords( view,
-		100, 100,   1,   0, 0, 0,   ViewState::Z,
-		0, 0,       -50, -50, 0 );
+                100, 100,   1,   0, 0, 0,   ViewState::Z,
+                0, 0,       -50, -50, 0 );
     TestCoords( view,
-		100, 100,   1,   0, 0, 0,   ViewState::Z,
-		99, 99,       49, 49, 0 );
+                100, 100,   1,   0, 0, 0,   ViewState::Z,
+                99, 99,       49, 49, 0 );
 
     TestCoords( view,
-		200, 200,   1,   100, 100, 100,   ViewState::X,
-		0, 0,       100, 0, 0 );
+                200, 200,   1,   100, 100, 100,   ViewState::X,
+                0, 0,       100, 0, 0 );
     TestCoords( view,
-		200, 200,   1,   100, 100, 100,   ViewState::Y,
-		0, 0,       0, 100, 0 );
+                200, 200,   1,   100, 100, 100,   ViewState::Y,
+                0, 0,       0, 100, 0 );
     TestCoords( view,
-		200, 200,   1,   100, 100, 100,   ViewState::Z,
-		0, 0,       0, 0, 100 );
+                200, 200,   1,   100, 100, 100,   ViewState::Z,
+                0, 0,       0, 0, 100 );
 
 
     // Test the ScubaView tcl commands.
@@ -387,38 +420,38 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (view.mViewState.mCenterRAS[0] == (float)1.2 &&
-	     view.mViewState.mCenterRAS[1] == (float)3.4 &&
-	     view.mViewState.mCenterRAS[2] == (float)5.6), 
-	    "SetViewRASCenter didn't set properly" );
+             view.mViewState.mCenterRAS[1] == (float)3.4 &&
+             view.mViewState.mCenterRAS[2] == (float)5.6),
+            "SetViewRASCenter didn't set properly" );
 
     sprintf( sCommand, "SetViewZoomLevel %d 3.4", view.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (view.mViewState.mZoomLevel == (float)3.4),
-	    "SetViewZoomLevel didn't set properly" );
+            "SetViewZoomLevel didn't set properly" );
 
     sprintf( sCommand, "SetViewInPlane %d X", view.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (view.mViewState.mInPlane == ViewState::X),
-	    "SetViewInPlane didn't set properly" );
+            "SetViewInPlane didn't set properly" );
 
 
     int level = 30;
-    sprintf( sCommand, "SetLayerInViewAtLevel %d %d %d", 
-	     view.GetID(), aLayer[0].GetID(), level );
+    sprintf( sCommand, "SetLayerInViewAtLevel %d %d %d",
+             view.GetID(), aLayer[0].GetID(), level );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (view.mLevelLayerIDMap[level] == aLayer[0].GetID()),
-	    "SetLayerInViewAtLevel didn't work" );
+            "SetLayerInViewAtLevel didn't work" );
 
-    sprintf( sCommand, "RemoveLayerFromViewAtLevel %d %d", 
-	     view.GetID(), level );
+    sprintf( sCommand, "RemoveLayerFromViewAtLevel %d %d",
+             view.GetID(), level );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     map<int,int>::iterator tLevelLayer = view.mLevelLayerIDMap.find( level );
     Assert( (tLevelLayer == view.mLevelLayerIDMap.end()),
-	    "RemoveLayerFromViewAtLevel didn't work" );
+            "RemoveLayerFromViewAtLevel didn't work" );
 
 
     // Test the Layer tcl commands.
@@ -428,30 +461,30 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     const char* sTclResult = Tcl_GetStringResult( iInterp );
     string sIDList( sTclResult );
     bFailed = false;
-    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+    for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
       int id = aLayer[nLayer].GetID();
       stringstream ssID;
       ssID << id;
       string::size_type position = sIDList.find( ssID.str(), 0 );
-      if( position == string::npos ) {
-	cerr << "ID " << id << " not found" << endl;
-	bFailed = true;
+      if ( position == string::npos ) {
+        cerr << "ID " << id << " not found" << endl;
+        bFailed = true;
       }
     }
     stringstream ssIDList( sIDList );
-    while( !ssIDList.eof() ) {
+    while ( !ssIDList.eof() ) {
       int id;
       ssIDList >> id;
       bool bIDFound = false;
-      for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
-	if( id == aLayer[nLayer].GetID() ) {
-	  bIDFound = true;
-	  break;	  
-	}
+      for ( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+        if ( id == aLayer[nLayer].GetID() ) {
+          bIDFound = true;
+          break;
+        }
       }
-      if( !bIDFound ) {
-	cerr << "incorrect ID returned: " << id << endl;
-	bFailed = true;
+      if ( !bIDFound ) {
+        cerr << "incorrect ID returned: " << id << endl;
+        bFailed = true;
       }
     }
     Assert( (!bFailed), "GetLayerIDList failed" );
@@ -476,14 +509,14 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "SetLayerOpacity %d 5.5", id );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    Assert( (layer.GetOpacity() == (float)5.5), 
-	    "SetLayerOpacity didn't work" );
+    Assert( (layer.GetOpacity() == (float)5.5),
+            "SetLayerOpacity didn't work" );
 
     sprintf( sCommand, "SetLayerLabel %d testLabel", id );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    Assert( (layer.GetLabel() == "testLabel"), 
-	    "SetLayerLabel didn't work" );
+    Assert( (layer.GetLabel() == "testLabel"),
+            "SetLayerLabel didn't work" );
 
     sprintf( sCommand, "GetLayerLabel %d", id );
     rTcl = Tcl_Eval( iInterp, sCommand );
@@ -492,12 +525,11 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     string sLabel( sTclResult );
     Assert( (sLabel == layer.GetLabel()), "GetLayerLabel didn't work" );
 
-    // Check removing all the layers. 
+    // Check removing all the layers.
     view.RemoveAllLayers();
     Assert( (view.mLevelLayerIDMap.size() == 0 ), "RemoveAllLayers failed" );
 
-  }
-  catch(...) {
+  } catch (...) {
     throw logic_error(sError.str());
   }
 }
@@ -508,15 +540,15 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 int main( int argc, char** argv ) {
 
   cerr << "Beginning test" << endl;
-  
+
   try {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -524,22 +556,20 @@ int main( int argc, char** argv ) {
     ScubaTransform t;
 
     // Test constructor/destructor segfaults.
-    { 
+    {
       ScubaView v;
     }
 
-    for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+    for ( int nTrial = 0; nTrial < 50; nTrial++ ) {
       ScubaViewTester tester0;
       tester0.Test( interp );
     }
 
     Tcl_DeleteInterp( interp );
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

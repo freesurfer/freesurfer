@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaMultiFrameVolumeChart.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <queue>
 #include "ScubaMultiFrameVolumeChart.h"
 #include "ScubaView.h"
@@ -9,14 +37,14 @@ bool ScubaMultiFrameVolumeChartFactory::mbAddedTclCommands = false;
 
 ScubaMultiFrameVolumeChart::
 ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume ) :
-  Listener( "ScubaMultiFrameVolumeChart" ),
-  mVolume(iVolume),
-  mROI(NULL),
-  mChart(NULL) {
+    Listener( "ScubaMultiFrameVolumeChart" ),
+    mVolume(iVolume),
+    mROI(NULL),
+    mChart(NULL) {
 
   // Create the chart and listen to it.
   mChart = ChartWindow::NewChartWindow();
-  if( NULL == mChart ) {
+  if ( NULL == mChart ) {
     throw runtime_error( "Couldn't create chart." );
   }
 
@@ -33,12 +61,12 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume ) :
   list<int> lIDs;
   Layer::GetIDList( lIDs );
   list<int>::iterator tID;
-  for( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
+  for ( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
     int id = *tID;
     Layer& layer = Layer::FindByID( id );
     DataCollection* col = layer.GetMainDataCollection();
-    if( NULL != col &&
-	col->GetID() == mVolume.GetID() ) {
+    if ( NULL != col &&
+         col->GetID() == mVolume.GetID() ) {
       layer.AddListener( this );
     }
   }
@@ -47,16 +75,16 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume ) :
 }
 
 ScubaMultiFrameVolumeChart::
-ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume, 
-			     ScubaROIVolume&   iROI ) :
-  Listener( "ScubaMultiFrameVolumeChart" ),
-  mVolume(iVolume),
-  mROI(&iROI),
-  mChart(NULL) {
+ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume,
+                             ScubaROIVolume&   iROI ) :
+    Listener( "ScubaMultiFrameVolumeChart" ),
+    mVolume(iVolume),
+    mROI(&iROI),
+    mChart(NULL) {
 
   // Create the chart and listen to it.
   mChart = ChartWindow::NewChartWindow();
-  if( NULL == mChart ) {
+  if ( NULL == mChart ) {
     throw runtime_error( "Couldn't create chart." );
   }
 
@@ -74,12 +102,12 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume,
   list<int> lIDs;
   Layer::GetIDList( lIDs );
   list<int>::iterator tID;
-  for( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
+  for ( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
     int id = *tID;
     Layer& layer = Layer::FindByID( id );
     DataCollection* col = layer.GetMainDataCollection();
-    if( NULL != col &&
-	col->GetID() == mVolume.GetID() ) {
+    if ( NULL != col &&
+         col->GetID() == mVolume.GetID() ) {
       layer.AddListener( this );
     }
   }
@@ -97,12 +125,12 @@ ScubaMultiFrameVolumeChart::~ScubaMultiFrameVolumeChart () {
   list<int> lIDs;
   Layer::GetIDList( lIDs );
   list<int>::iterator tID;
-  for( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
+  for ( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
     int id = *tID;
     Layer& layer = Layer::FindByID( id );
     DataCollection* col = layer.GetMainDataCollection();
-    if( NULL != col &&
-	col->GetID() == mVolume.GetID() ) {
+    if ( NULL != col &&
+         col->GetID() == mVolume.GetID() ) {
       layer.RemoveListener( this );
     }
   }
@@ -110,21 +138,21 @@ ScubaMultiFrameVolumeChart::~ScubaMultiFrameVolumeChart () {
 
 void
 ScubaMultiFrameVolumeChart::DoListenToMessage ( string isMessage,
-						void*  iData ) {
+    void*  iData ) {
 
-  if( isMessage == "dataChanged" ) {
+  if ( isMessage == "dataChanged" ) {
     Draw();
   }
-  if( isMessage == "roiChanged" ) {
+  if ( isMessage == "roiChanged" ) {
     Draw();
   }
-  if( isMessage == "layerChanged" ) {
+  if ( isMessage == "layerChanged" ) {
     Draw();
   }
-  if( isMessage == "cursorChanged" ) {
+  if ( isMessage == "cursorChanged" ) {
     Draw();
   }
-  if( isMessage == "chartDeleted" ) {
+  if ( isMessage == "chartDeleted" ) {
     delete this;
   }
 }
@@ -144,7 +172,7 @@ ScubaMultiFrameVolumeChart::Draw() {
 
   // Set our x axis label according to whether this is a volume with
   // timepoint data.
-  if( mVolume.InterpretFramesAsTimePoints() ) {
+  if ( mVolume.InterpretFramesAsTimePoints() ) {
     mChart->SetXAxisLabel( "Time" );
   } else {
     mChart->SetXAxisLabel( "Frame" );
@@ -156,106 +184,106 @@ ScubaMultiFrameVolumeChart::Draw() {
   // If we have time info, we maybe have multiple conditions, which
   // we'll draw as difference groups. Otherwise, we just have one
   // group.
-  int cGroup = 1;    
-  if( mVolume.InterpretFramesAsTimePoints() ) {
+  int cGroup = 1;
+  if ( mVolume.InterpretFramesAsTimePoints() ) {
     cGroup = mVolume.GetNumberOfConditions();
   } else {
     cGroup = 1;
   }
-  
+
   // If we have more than one group, show the legend.
-  if( cGroup > 1 ) {
+  if ( cGroup > 1 ) {
     mChart->SetShowLegend( true );
   }
-  
+
   // For each group...
-  for( int nGroup = 0; nGroup < cGroup; nGroup++ ) {
-    
+  for ( int nGroup = 0; nGroup < cGroup; nGroup++ ) {
+
     // If we have time info, we'll add a label for this condition,
     // as we'll need it in the legend.
     stringstream ssGroupLabel;
-    if( mVolume.InterpretFramesAsTimePoints() ) {
+    if ( mVolume.InterpretFramesAsTimePoints() ) {
       ssGroupLabel << "Condition " << nGroup;
     }
-    
+
     // Set the group info for this group.
     mChart->SetGroupLabel( nGroup, ssGroupLabel.str() );
     mChart->SetGroupConnected( nGroup, 1 );
-    
+
     // Find out how many elements on the x axis we have. For a
     // volume with time info, this is the number of time points,
     // otherwise it's just the number of frames.
     int cX;
-    if( mVolume.InterpretFramesAsTimePoints() ) {
+    if ( mVolume.InterpretFramesAsTimePoints() ) {
       cX = mVolume.GetNumberOfTimePoints();
     } else {
       cX = mVolume.GetNumberOfFrames();
     }
-    
+
     // For each frame or time point...
-    for( int nX = 0; nX < cX; nX++ ) {
-      
+    for ( int nX = 0; nX < cX; nX++ ) {
+
       // We need to find the proper frame. For a volume with time
       // info, we use the condition and time point to calculate a
       // frame, otherwise it's just the x index here.
       int nFrame;
-      if( mVolume.InterpretFramesAsTimePoints() ) {
-	nFrame = mVolume.ConvertConditionAndTimePointToFrame( nGroup, nX );
+      if ( mVolume.InterpretFramesAsTimePoints() ) {
+        nFrame = mVolume.ConvertConditionAndTimePointToFrame( nGroup, nX );
       } else {
-	nFrame = nX;
+        nFrame = nX;
       }
-      
+
       // We're going to find the value and the label for this
       // point. If this chart doesn't have an ROI, it's just the value
       // at the cursor. If it does have an ROI, we need to find the
       // value at each ROI location and average it.
       float value = 0;
       stringstream ssPointLabel;
-      
-      // No ROI...
-      if( NULL == mROI ) {
-	
-	// Get the cursor.
-	float cursorRAS[3];
-	ScubaView::GetCursor( cursorRAS );
-	
-	// Make a location in the volume.
-	VolumeLocation& loc = 
-	  (VolumeLocation&) mVolume.MakeLocationFromRAS( cursorRAS, nFrame );
-	
-	// Check against the bounds of the volume.
-	if( mVolume.IsInBounds( loc ) ) {
-	  
-	  // Just value at the cursor.
-	  value = mVolume.GetMRINearestValue( loc );
-	  ssPointLabel << "Frame " << nX;
-	}
-	
-	delete &loc;
 
-     } else {
-	
-	// As long as this is a non-empty ROI...
-	if( mROI->NumSelectedVoxels() > 0 ) {
-	  
-	  // Iterate over the ROI and sum the values.
-	  list<Point3<int> > lSelected = mROI->GetSelectedVoxelList();
-	  list<Point3<int> >::iterator tSelected;
-	  for( tSelected = lSelected.begin(); 
-	       tSelected != lSelected.end(); ++tSelected ) {
-	    Point3<int> voxel = *tSelected;
-	    VolumeLocation& loc = 
-	      (VolumeLocation&) mVolume.MakeLocationFromIndex(voxel.xyz(), 
-							      nFrame);
-	    value += mVolume.GetMRINearestValue( loc );
-	    delete &loc;
-	  }
-	  
-	  // Average the value.
-	  value /= mROI->NumSelectedVoxels();
-	}
+      // No ROI...
+      if ( NULL == mROI ) {
+
+        // Get the cursor.
+        float cursorRAS[3];
+        ScubaView::GetCursor( cursorRAS );
+
+        // Make a location in the volume.
+        VolumeLocation& loc =
+          (VolumeLocation&) mVolume.MakeLocationFromRAS( cursorRAS, nFrame );
+
+        // Check against the bounds of the volume.
+        if ( mVolume.IsInBounds( loc ) ) {
+
+          // Just value at the cursor.
+          value = mVolume.GetMRINearestValue( loc );
+          ssPointLabel << "Frame " << nX;
+        }
+
+        delete &loc;
+
+      } else {
+
+        // As long as this is a non-empty ROI...
+        if ( mROI->NumSelectedVoxels() > 0 ) {
+
+          // Iterate over the ROI and sum the values.
+          list<Point3<int> > lSelected = mROI->GetSelectedVoxelList();
+          list<Point3<int> >::iterator tSelected;
+          for ( tSelected = lSelected.begin();
+                tSelected != lSelected.end(); ++tSelected ) {
+            Point3<int> voxel = *tSelected;
+            VolumeLocation& loc =
+              (VolumeLocation&) mVolume.MakeLocationFromIndex(voxel.xyz(),
+                  nFrame);
+            value += mVolume.GetMRINearestValue( loc );
+            delete &loc;
+          }
+
+          // Average the value.
+          value /= mROI->NumSelectedVoxels();
+        }
       }
-      
+
       // Set data in this point and add it to the list.
       ChartWindow::PointData data;
       data.mX = nX;
@@ -264,44 +292,44 @@ ScubaMultiFrameVolumeChart::Draw() {
       mChart->AddPointData( nGroup, data );
     }
   }
-  
+
   // Go through all the layers. If they are showing this volume, get
   // the current time point and condition from the layer. Draw a time
   // point marker.
   list<int> lIDs;
   Layer::GetIDList( lIDs );
   list<int>::iterator tID;
-  for( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
+  for ( tID = lIDs.begin(); tID != lIDs.end(); ++tID ) {
     int id = *tID;
     Layer& layer = Layer::FindByID( id );
     DataCollection* col = layer.GetMainDataCollection();
-    if( NULL != col &&
-	col->GetID() == mVolume.GetID() ) {
+    if ( NULL != col &&
+         col->GetID() == mVolume.GetID() ) {
 
       ScubaLayer2DMRI& mriLayer = (ScubaLayer2DMRI&) layer;
 
       ChartWindow::MarkerData marker;
 
-      if( mVolume.InterpretFramesAsTimePoints() ) {
-	
-	marker.mValue = mriLayer.GetCurrentTimePoint();
+      if ( mVolume.InterpretFramesAsTimePoints() ) {
 
-	// Get the color of the group matching the current condition
-	// and use that for the marker color.
-	int condition = mriLayer.GetCurrentCondition();
-	int color[3];
-	mChart->GetGroupColor( condition, color );
-	marker.mColorRGBi[0] = color[0];
-	marker.mColorRGBi[1] = color[1];
-	marker.mColorRGBi[2] = color[2];
+        marker.mValue = mriLayer.GetCurrentTimePoint();
+
+        // Get the color of the group matching the current condition
+        // and use that for the marker color.
+        int condition = mriLayer.GetCurrentCondition();
+        int color[3];
+        mChart->GetGroupColor( condition, color );
+        marker.mColorRGBi[0] = color[0];
+        marker.mColorRGBi[1] = color[1];
+        marker.mColorRGBi[2] = color[2];
 
       } else {
 
-	marker.mValue = mriLayer.GetCurrentFrame();
-      }      
+        marker.mValue = mriLayer.GetCurrentFrame();
+      }
 
       marker.msLabel = col->GetLabel();
-      
+
       mChart->AddXAxisMarker( marker );
     }
   }
@@ -309,25 +337,25 @@ ScubaMultiFrameVolumeChart::Draw() {
   // Build the title and info string for the chart.
   stringstream sTitle, sInfo;
 
-  if( NULL == mROI ) {
+  if ( NULL == mROI ) {
 
     // Get the cursor and put that in the strings.
     float cursorRAS[3];
     ScubaView::GetCursor( cursorRAS );
-    
+
     sTitle << "Multiframe Volume Chart: Vol " << mVolume.GetID ()
-	   << " RAS " << Point3<float>(cursorRAS);
-    sInfo << "Volume: \\\"" << mVolume.GetLabel() 
-	  << "\\\" RAS: \\\"" << Point3<float>(cursorRAS);
+    << " RAS " << Point3<float>(cursorRAS);
+    sInfo << "Volume: \\\"" << mVolume.GetLabel()
+    << "\\\" RAS: \\\"" << Point3<float>(cursorRAS);
 
   } else {
 
     // Get the ROI ID and number of voxels in the ROI.
     sTitle << "Multiframe Volume Chart: Vol " << mVolume.GetID ()
-	   << " ROI " << mROI->GetID();
-    sInfo << "Volume: \\\"" << mVolume.GetLabel() 
-	  << "\\\" ROI: \\\"" << mROI->GetLabel() 
-	  << "\\\" (" << mROI->NumSelectedVoxels() << " voxels)";
+    << " ROI " << mROI->GetID();
+    sInfo << "Volume: \\\"" << mVolume.GetLabel()
+    << "\\\" ROI: \\\"" << mROI->GetLabel()
+    << "\\\" (" << mROI->NumSelectedVoxels() << " voxels)";
   }
 
   mChart->SetTitle( sTitle.str() );
@@ -337,22 +365,22 @@ ScubaMultiFrameVolumeChart::Draw() {
   mChart->Draw();
 }
 
-ScubaMultiFrameVolumeChartFactory& 
+ScubaMultiFrameVolumeChartFactory&
 ScubaMultiFrameVolumeChartFactory::GetFactory() {
 
   static ScubaMultiFrameVolumeChartFactory sFactory;
 
-  if( !mbAddedTclCommands ) {
+  if ( !mbAddedTclCommands ) {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( sFactory, "MakeNewMultiFrameVolumeChart", 1,
-			   "volumeID", "Makes a new chart window "
-			   "plotting the voxel values over multiple frames." );
+                           "volumeID", "Makes a new chart window "
+                           "plotting the voxel values over multiple frames." );
     commandMgr.AddCommand( sFactory, "MakeNewMultiFrameVolumeChartWithROI", 2,
-			   "volumeID roiID", "Makes a new chart window "
-			   "plotting the average of an ROI over multiple "
-			   "frames." );
+                           "volumeID roiID", "Makes a new chart window "
+                           "plotting the average of an ROI over multiple "
+                           "frames." );
   }
 
   return sFactory;
@@ -360,34 +388,32 @@ ScubaMultiFrameVolumeChartFactory::GetFactory() {
 
 TclCommandListener::TclCommandResult
 ScubaMultiFrameVolumeChartFactory::DoListenToTclCommand ( char*  isCommand,
-							  int    iArgc,
-							  char** iasArgv ) {
-  
+    int    iArgc,
+    char** iasArgv ) {
+
   // MakeNewMultiFrameVolumeChart <volumeID>
-  if( 0 == strcmp( isCommand, "MakeNewMultiFrameVolumeChart" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeNewMultiFrameVolumeChart" ) ) {
 
     // Get the collection ID.
     int collectionID;
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collectionID: ") + e.what();
       return error;
     }
 
     // Try to find the object.
     DataCollection* col;
-    try { 
+    try {
       col = &DataCollection::FindByID( collectionID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("Couldn't find collection: ") + e.what();
       return error;
     }
-    
+
     // Make sure it's a volume.
-    if( col->GetTypeDescription() != "Volume" ) {
+    if ( col->GetTypeDescription() != "Volume" ) {
       throw runtime_error( "Collection wasn't a volume." );
     }
 
@@ -399,30 +425,28 @@ ScubaMultiFrameVolumeChartFactory::DoListenToTclCommand ( char*  isCommand,
   }
 
   // MakeNewMultiFrameVolumeChartWithROI <volumeID> <roiID>
-  if( 0 == strcmp( isCommand, "MakeNewMultiFrameVolumeChartWithROI" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeNewMultiFrameVolumeChartWithROI" ) ) {
 
     // Get the collection ID.
     int collectionID;
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collectionID: ") + e.what();
       return error;
     }
 
     // Try to find the object.
     DataCollection* col;
-    try { 
+    try {
       col = &DataCollection::FindByID( collectionID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("Couldn't find collection: ") + e.what();
       return error;
     }
-    
+
     // Make sure it's a volume.
-    if( col->GetTypeDescription() != "Volume" ) {
+    if ( col->GetTypeDescription() != "Volume" ) {
       throw runtime_error( "Collection wasn't a volume." );
     }
 
@@ -434,24 +458,22 @@ ScubaMultiFrameVolumeChartFactory::DoListenToTclCommand ( char*  isCommand,
     int roiID;
     try {
       roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad roiID: ") + e.what();
       return error;
     }
 
     // If it's not in this volume, return an error.
-    if( !vol->IsROIInThisCollection( roiID ) ) {
+    if ( !vol->IsROIInThisCollection( roiID ) ) {
       sResult = "That ROI is not in that volume.";
       return error;
     }
 
     // Get the object.
     ScubaROI* roi;
-    try { 
+    try {
       roi = &ScubaROI::FindByID( roiID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("Couldn't find roi: ") + e.what();
       return error;
     }

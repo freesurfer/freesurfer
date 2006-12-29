@@ -1,3 +1,31 @@
+/**
+ * @file  xwin.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
    @(#)xwin.c 1.2
    8/10/95
@@ -9,7 +37,7 @@
 
         Created: Jan. 1994
 
-    Description: 
+    Description:
 
 ------------------------------------------------------------------------*/
 
@@ -51,12 +79,12 @@ xInit(xwindow_type *xwin, int xsize, int ysize)
   long                  eventmask ;
 
   if (!xwin) return ;
-  
+
   eventmask = FocusChangeMask | EnterWindowMask | LeaveWindowMask |
-    ButtonReleaseMask | ButtonPressMask | KeyReleaseMask | KeyPressMask | 
-      ExposureMask | ButtonMotionMask;
+              ButtonReleaseMask | ButtonPressMask | KeyReleaseMask | KeyPressMask |
+              ExposureMask | ButtonMotionMask;
   if (!xwin->scale) xwin->scale = 1 ;
-  open_xwindow(xwin,"",-1,-1, xsize, ysize, 
+  open_xwindow(xwin,"",-1,-1, xsize, ysize,
                "DEBUGGING IMAGE", eventmask);
   XSetWindowBorderWidth(xwin->display, xwin->window, BORDERWIDTH) ;
   XSetLineAttributes(xwin->display,xwin->black,
@@ -65,7 +93,7 @@ xInit(xwindow_type *xwin, int xsize, int ysize)
                      3, LineSolid, CapRound, JoinRound );
   XSetLineAttributes(xwin->display,xwin->flip,
                      3, LineSolid, CapRound, JoinRound );
-  
+
   if (!ncolors) xUseGrayscale(xwin->display, xwin->screen) ;
   XSync(xwin->display, 0) ;
 }
@@ -85,11 +113,11 @@ xInit(xwindow_type *xwin, int xsize, int ysize)
 /*************************************************************************/
 void
 open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
-    xwindow_type *xwin;
-    char displayname[];
-    int xpos,ypos,xsize,ysize;
-    char title[];
-    long eventmask;
+xwindow_type *xwin;
+char displayname[];
+int xpos,ypos,xsize,ysize;
+char title[];
+long eventmask;
 {
   GC create_gc();
   XWMHints xwmh;
@@ -97,10 +125,10 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
   XSetWindowAttributes xswa ;
   XVisualInfo xinfo ;
   int ret ;
-  
+
   /**** open display and screen ****/
   xwin->display = XOpenDisplay(displayname);
-  if(xwin->display == NULL)
+  if (xwin->display == NULL)
   {
     printf("ERROR open_xwindow: can't open display %s\n",displayname);
     exit(1);
@@ -118,22 +146,22 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
     xwin->hint.flags = ( PPosition | PSize);
   else
     xwin->hint.flags = (USPosition | PSize);
-  
+
 #if 0
   /**** create the x window ****/
-  xwin->window = XCreateSimpleWindow(xwin->display, 
+  xwin->window = XCreateSimpleWindow(xwin->display,
                                      DefaultRootWindow(xwin->display),
                                      xwin->hint.x,     xwin->hint.y,
                                      xwin->hint.width, xwin->hint.height,
-                                     BORDERWIDTH, 
+                                     BORDERWIDTH,
                                      BlackPixel(xwin->display,xwin->screen),
                                      WhitePixel(xwin->display,xwin->screen));
 #else
-  
+
   ret = XMatchVisualInfo(xwin->display, DefaultScreen(xwin->display),
                          8, GrayScale, &xinfo) ;
-  
-/*  if (ret == False)  always use default visual */
+
+  /*  if (ret == False)  always use default visual */
   xinfo.visual = DefaultVisual(xwin->display, xwin->screen) ;
   valuemask = CWEventMask ;
   xswa.event_mask = eventmask ;
@@ -142,7 +170,7 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
                                xwin->hint.x,     xwin->hint.y,
                                xwin->hint.width, xwin->hint.height,
                                BORDERWIDTH, CopyFromParent, InputOutput,
-                               xinfo.visual, 
+                               xinfo.visual,
                                valuemask, &xswa) ;
   xwmh.flags = InputHint ;
   xwmh.input = True ;
@@ -150,22 +178,22 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
 
 #endif
 
-  XSetStandardProperties(xwin->display, xwin->window, title, title, 
+  XSetStandardProperties(xwin->display, xwin->window, title, title,
                          None, NULL, None, &xwin->hint);
-  
+
   /**** make window sensitive selected events ****/
   XSelectInput(xwin->display, xwin->window, eventmask);
-  
+
   /**** create graphics contexts (drawing colors & properties) ****/
   xwin->black = XCreateGC(xwin->display, xwin->window, 0, 0);
   xwin->white = XCreateGC(xwin->display, xwin->window, 0, 0);
   xwin->flip  = XCreateGC(xwin->display, xwin->window, 0, 0);
-  
+
   /**** set gc drawing functions ****/
   XSetFunction(xwin->display, xwin->black, GXcopy);
   XSetFunction(xwin->display, xwin->white, GXcopy);
   XSetFunction(xwin->display, xwin->flip,  GXinvert);
-  
+
   /**** set gc drawing colors ****/
   XSetForeground(xwin->display, xwin->black,
                  BlackPixel(xwin->display,xwin->screen));
@@ -175,13 +203,13 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
                  WhitePixel(xwin->display,xwin->screen));
   XSetBackground(xwin->display, xwin->white,
                  BlackPixel(xwin->display,xwin->screen));
-  
+
   /**** load font ****/
   xwin->font_struct = XLoadQueryFont(xwin->display, FONT);
-  if(xwin->font_struct == 0)
+  if (xwin->font_struct == 0)
   {
     printf("font %s not found, using default\n",FONT);
-    xwin->font_struct = 
+    xwin->font_struct =
       XQueryFont(xwin->display,
                  XGContextFromGC(DefaultGC(xwin->display,xwin->screen)));
   }
@@ -191,11 +219,11 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
     XSetFont(xwin->display, xwin->white, xwin->font_struct->fid);
     XSetFont(xwin->display, xwin->flip,  xwin->font_struct->fid);
   }
-  
+
   /**** get font character dimensions ****/
   XGetFontProperty(xwin->font_struct, XA_QUAD_WIDTH, &xwin->charwidth);
   XGetFontProperty(xwin->font_struct, XA_CAP_HEIGHT, &xwin->charheight);
-  
+
   /**** map window to screen (make it visible) ****/
   XMapRaised(xwin->display, xwin->window);
 }
@@ -207,7 +235,7 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
 /*************************************************************************/
 void
 close_xwindow(xwin)
-  xwindow_type *xwin;
+xwindow_type *xwin;
 {
   XDestroyWindow(xwin->display,xwin->window);
   XCloseDisplay(xwin->display);
@@ -219,7 +247,7 @@ xNextEvent(xwindow_type *xwin, XEvent *event)
   if (!xwin)
   {
     static int callno = 0 ;
-    
+
     switch (callno)
     {
     case 0:
@@ -235,7 +263,7 @@ xNextEvent(xwindow_type *xwin, XEvent *event)
     }
     return ;
   }
-  
+
 #if 0
   /* KLUGE a GraphicsExpose event */
   /* to keep XNextEvent from blocking */
@@ -244,18 +272,18 @@ xNextEvent(xwindow_type *xwin, XEvent *event)
 #else
   if (XEventsQueued(xwin->display, QueuedAfterReading))
 #endif
-    XNextEvent(xwin->display, event) ;
+  XNextEvent(xwin->display, event) ;
   event->xbutton.x -= xwin->xsize / 2 ;
   event->xbutton.y = xwin->ysize / 2 - event->xbutton.y ;
 }
 
 void
-xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color, 
-               int style)
+xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color,
+          int style)
 {
   int ox, oy ;
   GC  gc ;
-  
+
   if (!xwin) return ;
 
   gc = xwin->black ;  /* default */
@@ -273,42 +301,42 @@ xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color,
   y0 = oy - y0 ;
 #endif
 
-   switch (style)
-   {
-   case PLOT_LINES_DASHED:
-      style = LineOnOffDash ;
-      break ;
-   case PLOT_LINES_DOUBLE_DASHED:
-      style = LineDoubleDash ;
-   default:
-      style = LineSolid ;
-      break ;
-   }
+  switch (style)
+  {
+  case PLOT_LINES_DASHED:
+    style = LineOnOffDash ;
+    break ;
+  case PLOT_LINES_DOUBLE_DASHED:
+    style = LineDoubleDash ;
+  default:
+    style = LineSolid ;
+    break ;
+  }
 
   switch (color)
   {
   case xBLACK:
-      gc = xwin->black ;
+    gc = xwin->black ;
     break ;
   case xFLIP:
-      gc = xwin->flip ;
+    gc = xwin->flip ;
     break ;
   case xWHITE:
-      gc = xwin->white ;
+    gc = xwin->white ;
     break ;
   default:
     break ;
   }
 
-   XSetLineAttributes(xwin->display, gc, 0, style, CapRound, JoinBevel) ;
-   XDrawLine(xwin->display,xwin->window, gc, x0, y0, x1, y1) ;
+  XSetLineAttributes(xwin->display, gc, 0, style, CapRound, JoinBevel) ;
+  XDrawLine(xwin->display,xwin->window, gc, x0, y0, x1, y1) ;
 }
 void
 xDrawLines(xwindow_type *xwin, XSegment *segs, int nsegs, int color)
 {
   int i ;
   GC  gc ;
-  
+
   if (!xwin) return ;
 
   /* scale according to window size */
@@ -344,7 +372,7 @@ xDrawCircle(xwindow_type *xwin, int x0, int y0, int radius, int color)
   int ox, oy ;
 
   if (!xwin) return ;
-  
+
   x0 *= xwin->scale ;
   y0 *= xwin->scale ;
   radius *= xwin->scale ;
@@ -424,17 +452,17 @@ xFreeWindow(xwindow_type *xwin)
 }
 
 xwindow_type *
-xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, int ysize, 
+xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, int ysize,
            char *name, int border, int event_mask)
 {
   xwindow_type *xwin ;
   Display      *display ;
   int          screen ;
   Window       pwindow ;
-  
+
   xwin = (xwindow_type *)calloc(1, sizeof(xwindow_type)) ;
   xwin->scale = 1 ;
-  
+
   if (!parent)
   {
     display = XOpenDisplay("") ;
@@ -456,7 +484,7 @@ xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, int ysize,
   xwin->hint.flags = (PPosition | PSize) ;
   xwin->screen = screen ;
   xwin->display = display ;
-  
+
   xwin->window = XCreateSimpleWindow(display,
                                      pwindow,
                                      xwin->hint.x, xwin->hint.y,
@@ -481,16 +509,16 @@ xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, int ysize,
   XSetBackground(xwin->display, xwin->black,
                  WhitePixel(xwin->display,xwin->screen));
 
-  XSelectInput(display, xwin->window, 
-               ButtonReleaseMask | ButtonPressMask | KeyPressMask | 
+  XSelectInput(display, xwin->window,
+               ButtonReleaseMask | ButtonPressMask | KeyPressMask |
                ExposureMask | KeyReleaseMask) ;
 
   /**** load font ****/
   xwin->font_struct = XLoadQueryFont(xwin->display, FONT);
-  if(xwin->font_struct == 0)
+  if (xwin->font_struct == 0)
   {
     printf("font %s not found, using default\n",FONT);
-    xwin->font_struct = 
+    xwin->font_struct =
       XQueryFont(xwin->display,
                  XGContextFromGC(DefaultGC(xwin->display,xwin->screen)));
   }
@@ -502,14 +530,14 @@ xNewWindow(xwindow_type *parent, int xpos, int ypos, int xsize, int ysize,
     XSetFont(xwin->display, xwin->flip,  xwin->font_struct->fid);
 #endif
   }
-  
+
   /**** get font character dimensions ****/
   XGetFontProperty(xwin->font_struct, XA_QUAD_WIDTH, &xwin->charwidth);
   XGetFontProperty(xwin->font_struct, XA_CAP_HEIGHT, &xwin->charheight);
 
   return(xwin) ;
 }
-void 
+void
 xDrawPoint(xwindow_type *xwin, int x, int y, int color)
 {
   GC gc ;
@@ -519,7 +547,7 @@ xDrawPoint(xwindow_type *xwin, int x, int y, int color)
   xend = xstart + xwin->scale - 1 ;
   ystart = y * xwin->scale ;
   yend = ystart + xwin->scale - 1 ;
-  
+
   switch (color)
   {
   default:
@@ -541,17 +569,17 @@ void
 xShowWindowAttributes(xwindow_type *xwin, FILE *fp)
 {
   XWindowAttributes xattribs ;
-  
+
   XGetWindowAttributes(xwin->display, xwin->window, &xattribs) ;
-  
+
   fprintf(fp, "xwin @%lx, x %d, y %d, width %d, height %d, border %d\n",
-          (long)xwin, xattribs.x, xattribs.y, xattribs.width, xattribs.height, 
+          (long)xwin, xattribs.x, xattribs.y, xattribs.width, xattribs.height,
           xattribs.border_width) ;
   fprintf(fp, "class %s, event_mask %lx:\n",
           xattribs.class == InputOnly ? "InputOnly" : "InputOutput",
           xattribs.your_event_mask) ;
   xShowEventMask(xattribs.your_event_mask, fp) ;
-  
+
 #if 0
   fprintf(fp, "all events %lx:\n", xattribs.all_event_masks) ;
   xShowEventMask(xattribs.all_event_masks, fp) ;
@@ -727,19 +755,19 @@ xShowDisplayInfo(xwindow_type *xwin, FILE *fp)
   int   /* ret, */ major_ver, minor_rev, release, cells, planes ;
   char *display_name, *vendor_name ;
   Visual *visual ;
-  
+
   display_name = DisplayString(xwin->display) ;
-  
+
   cells = DisplayCells(xwin->display, xwin->screen) ;
   planes = DisplayPlanes(xwin->display, xwin->screen) ;
   major_ver = ProtocolVersion(xwin->display) ;
   minor_rev = ProtocolRevision(xwin->display) ;
   release = VendorRelease(xwin->display) ;
   vendor_name = ServerVendor(xwin->display) ;
-  
-  fprintf(fp, "x version %d.%d.%d from %s\n", major_ver, minor_rev, 
+
+  fprintf(fp, "x version %d.%d.%d from %s\n", major_ver, minor_rev,
           release, vendor_name) ;
-  fprintf(fp, "display %s, %d planes, %d cells\n", display_name,  planes, 
+  fprintf(fp, "display %s, %d planes, %d cells\n", display_name,  planes,
           cells) ;
   visual = DefaultVisual(xwin->display, xwin->screen) ;
   fprintf(fp, "visual class ") ;
@@ -784,40 +812,40 @@ xUseGrayscale(Display *display, int screen)
   double         cno, slotsPerColor ;
   unsigned long  plane_masks[NPLANES+10], colors[NCOLORS+10] ;
   Colormap       cmap ;
-  
+
   cmap = DefaultColormap(display, screen) ;
-  
+
   ncolors = NCOLORS ;
   do
   {
-    result = XAllocColorCells(display, cmap, 
-                              False, plane_masks, NPLANES, 
+    result = XAllocColorCells(display, cmap,
+                              False, plane_masks, NPLANES,
                               colors, ncolors) ;
-    if (result == False) 
+    if (result == False)
       ncolors-- ;
-  } 
+  }
   while (result == False) ;
-  
+
   if (result == False)
   {
     fprintf(stderr, "could not allocate color cells\n") ;
     exit(1) ;
   }
-  
+
   slotsPerColor = (double)ncolors / (double)NCOLORS ;
   for (cno = 0.0, i = 0 ; i < NCOLORS ; i++, cno += slotsPerColor)
   {
     cindex = nint(cno) ;
-      xcolors[i].pixel = colors[cindex] ;
-      xcolors[i].flags = DoRed | DoGreen | DoBlue ;
-      xcolors[i].red = cindex << SHIFT ;
-      xcolors[i].green = cindex << SHIFT ;
-      xcolors[i].blue = cindex << SHIFT ;
+    xcolors[i].pixel = colors[cindex] ;
+    xcolors[i].flags = DoRed | DoGreen | DoBlue ;
+    xcolors[i].red = cindex << SHIFT ;
+    xcolors[i].green = cindex << SHIFT ;
+    xcolors[i].blue = cindex << SHIFT ;
   }
   XStoreColors(display, cmap, xcolors, NCOLORS) ;
   printf("%d gray scale values allocated\n", ncolors) ;
 
-   return(ncolors) ;
+  return(ncolors) ;
 }
 #define MAX_STRING 250
 
@@ -839,11 +867,11 @@ xprintf(xwindow_type *xwin, int x, int y, char *fmt, ...)
 
   /* this will clear the whole window from x, y down and to the right */
   XClearArea(xwin->display, xwin->window, 0, 0, 0, 0, False) ;
-  
+
   vsprintf(str, fmt, args) ;
   len = strlen(str) ;
   XDrawString(xwin->display, xwin->window, xwin->black, x, y, str, len);
-/*  XFlush(xwin->display) ;*/
+  /*  XFlush(xwin->display) ;*/
   va_end(args) ;
   return(len) ;
 }

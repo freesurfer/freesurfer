@@ -1,3 +1,31 @@
+/**
+ * @file  tkmedit.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:18 $
+ *    $Revision: 1.52 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef tkmedit_h
 #define tkmedit_h
 
@@ -43,7 +71,7 @@ typedef enum {
   tkm_tErr_CouldntInitBLT,
   tkm_tErr_CouldntReadVolume,
   tkm_tErr_CouldntLoadSurface,
-  tkm_tErr_CouldntLoadLabel,  
+  tkm_tErr_CouldntLoadLabel,
   tkm_tErr_CouldntLoadSurfaceVertexSet,
   tkm_tErr_CouldntLoadSurfaceAnnotation,
   tkm_tErr_CouldntLoadColorTable,
@@ -82,7 +110,7 @@ typedef enum {
 
 /* commands for the tcl side of things */
 typedef enum {
-  
+
   /* updating vars */
   tkm_tTclCommand_UpdateLinkedCursorFlag = 0,
   tkm_tTclCommand_UpdateVolumeCursor,
@@ -163,19 +191,19 @@ typedef enum {
   tkm_tTclCommand_ShowGDFOptions,
   tkm_tTclCommand_ClearSegColorTable,
   tkm_tTclCommand_AddSegColorTableEntry,
-  
+
   /* histogram */
   tkm_tTclCommand_DrawHistogram,
-  
+
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
   tkm_tTclCommand_RaiseToolWindow,
   tkm_tTclCommand_CsurfInterface,
   tkm_tTclCommand_FinishBuildingInterface,
-  
+
   /* misc */
   tkm_tTclCommand_DoResolveUseRealRASDlog,
-  tkm_tTclCommand_ErrorDlog,  
+  tkm_tTclCommand_ErrorDlog,
   tkm_tTclCommand_FormattedErrorDlog,
   tkm_tTclCommand_AlertDlog,
   tkm_tTclCommand_MakeProgressDlog,
@@ -258,88 +286,88 @@ void tkm_DisplayAlert   ( char* isAction, char* isMsg, char* isDesc );
 
 /* make a file name */
 void tkm_MakeFileName ( char*         isInput,
-			tkm_tFileName iType, 
-			char*         osCompleteFileName,
-			int           inDestSize );
+                        tkm_tFileName iType,
+                        char*         osCompleteFileName,
+                        int           inDestSize );
 
 /* volume value */
 void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
-			       mriVolumeRef*   opVolume );
+                               mriVolumeRef*   opVolume );
 
 /* segmentation value */
 void tkm_GetSegLabel                 ( tkm_tSegType iVolume,
-				       xVoxelRef    iAnaIdx, 
-				       int*         onIndex,
-				       char*        osLabel );
+                                       xVoxelRef    iAnaIdx,
+                                       int*         onIndex,
+                                       char*        osLabel );
 
 /* get the volume of an segmentation label */
 void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
-			      xVoxelRef    iMRIIdx,
-			      int*         onVolume );
- 
+                              xVoxelRef    iMRIIdx,
+                              int*         onVolume );
+
 /* editing the segmentation */
 void tkm_EditSegmentation      ( tkm_tSegType      iVolume,
-				 xVoxelRef         iMRIIdx,
-				 int               inIndex );
+                                 xVoxelRef         iMRIIdx,
+                                 int               inIndex );
 void tkm_EditSegmentationArray ( tkm_tSegType      iVolume,
-				 xVoxelRef         iaMRIIdx,
-				 int               inCount,
-				 int               inIndex );
+                                 xVoxelRef         iaMRIIdx,
+                                 int               inCount,
+                                 int               inIndex );
 void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
-				 xVoxelRef         iMRIIdx,
-				 int               inIndex,
-				 tBoolean          ib3D,
-				 tkm_tVolumeTarget iSrc,
-				 float             iFuzzy,
-				 float             iDistance );
+                                 xVoxelRef         iMRIIdx,
+                                 int               inIndex,
+                                 tBoolean          ib3D,
+                                 tkm_tVolumeTarget iSrc,
+                                 float             iFuzzy,
+                                 float             iDistance );
 
 /* Update with new color scale. */
 void tkm_SetVolumeBrightnessContrast ( tkm_tVolumeType iVolume,
-				       float ifBrightness, float ifContrast );
+                                       float ifBrightness, float ifContrast );
 
 
 /* dealing with control points */
 void tkm_MakeControlPoint             ( xVoxelRef        iMRIIdx );
 void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
-					mri_tOrientation iPlane,
-					int              inDistance );
+                                        mri_tOrientation iPlane,
+                                        int              inDistance );
 void tkm_WriteControlFile             ();
 
 /* editing */
-void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
-				      xVoxelRef        iMRIIdx, 
-				      Volm_tValue      inLow, 
-				      Volm_tValue      inHigh, 
-				      Volm_tValue      inNewValue );
-void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
-					   xVoxelRef        iaMRIIdx, 
-					   int              inCount,
-					   Volm_tValue      inLow, 
-					   Volm_tValue      inHigh, 
-					   Volm_tValue      inNewValue );
-void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume, 
-					    tkm_tVolumeType  iSrcVolume, 
-					    xVoxelRef        iaMRIIdx, 
-					    int              inCount,
-					    Volm_tValue      inLow, 
-					    Volm_tValue      inHigh );
+void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
+                                      xVoxelRef        iMRIIdx,
+                                      Volm_tValue      inLow,
+                                      Volm_tValue      inHigh,
+                                      Volm_tValue      inNewValue );
+void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume,
+    xVoxelRef        iaMRIIdx,
+    int              inCount,
+    Volm_tValue      inLow,
+    Volm_tValue      inHigh,
+    Volm_tValue      inNewValue );
+void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume,
+    tkm_tVolumeType  iSrcVolume,
+    xVoxelRef        iaMRIIdx,
+    int              inCount,
+    Volm_tValue      inLow,
+    Volm_tValue      inHigh );
 void tkm_FloodFillAnatomicalVolume ( tkm_tSegType      iVolume,
-				     xVoxelRef         iMRIIdx,
-				     int               inValue,
-				     tBoolean          ib3D,
-				     float             iFuzzy,
-				     float             iDistance );
+                                     xVoxelRef         iMRIIdx,
+                                     int               inValue,
+                                     tBoolean          ib3D,
+                                     float             iFuzzy,
+                                     float             iDistance );
 
 
 /* Sets a region in the anatomical volume to a new value. */
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
-				     int             iMRIIdxX0,
-				     int             iMRIIdxX1,
-				     int             iMRIIdxY0,
-				     int             iMRIIdxY1,
-				     int             iMRIIdxZ0,
-				     int             iMRIIdxZ1,
-				     float           iNewValue );
+                                     int             iMRIIdxX0,
+                                     int             iMRIIdxX1,
+                                     int             iMRIIdxY0,
+                                     int             iMRIIdxY1,
+                                     int             iMRIIdxZ0,
+                                     int             iMRIIdxZ1,
+                                     float           iNewValue );
 
 /* undo list */
 void tkm_ClearUndoList   ();
@@ -352,9 +380,9 @@ tBoolean tkm_IsMRIIdxInUndoVolume          ( xVoxelRef iMRIIdx );
 
 /* head points */
 void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
-			mri_tOrientation    iOrientation,
-			tBoolean            ibFlat,
-			HPtL_tHeadPointRef* opPoint );
+                        mri_tOrientation    iOrientation,
+                        tBoolean            ibFlat,
+                        HPtL_tHeadPointRef* opPoint );
 
 /* selecting */
 void tkm_SelectVoxel         ( xVoxelRef iMRIIdx );
@@ -364,11 +392,11 @@ void tkm_DeselectVoxelArray  ( xVoxelRef iaMRIIdx, int inCount );
 void tkm_ClearSelection      ();
 tBoolean tkm_IsSelectionPresent ();
 void tkm_FloodSelect         ( xVoxelRef         iSeedMRIIdx,
-			       tBoolean          ib3D,
-			       tkm_tVolumeTarget iSrc,
-			       float             iFuzzy,
-			       float             iDistance,
-			       tBoolean          ibSelect );
+                               tBoolean          ib3D,
+                               tkm_tVolumeTarget iSrc,
+                               float             iFuzzy,
+                               float             iDistance,
+                               tBoolean          ibSelect );
 
 /* useRealRAS */
 tBoolean tkm_UseRealRAS();
@@ -383,12 +411,12 @@ void tkm_ReadCursorFromEditFile  ();
 
 /* writing surface distances. */
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
-				 float     ifDistance );
+                                 float     ifDistance );
 
 /* Write an anatomical value to the surface. */
 void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
-				Surf_tVertexSet  iVertexSet,
-				float            ifValue );
+                                Surf_tVertexSet  iVertexSet,
+                                float            ifValue );
 
 /* Allow a GDF point to be selected. */
 void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx );
@@ -401,7 +429,7 @@ void tkm_Quit ();
 
 /* send a tcl command */
 void tkm_SendTclCommand ( tkm_tTclCommand iCommand,
-        char*           isArguments );
+                          char*           isArguments );
 
 char* tkm_GetErrorString( tkm_tErr ieCode );
 

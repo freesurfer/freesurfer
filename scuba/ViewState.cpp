@@ -1,3 +1,31 @@
+/**
+ * @file  ViewState.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.14 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include <math.h>
 #include "ViewState.h"
@@ -9,14 +37,16 @@ ViewState::ViewState () {
   mCenterRAS[0] = mCenterRAS[1] = mCenterRAS[2] = 0;
   mZoomLevel = 1;
   mInPlane = X;
-  mPlaneNormal[0] = 1; mPlaneNormal[1] = 0; mPlaneNormal[2] = 0;
+  mPlaneNormal[0] = 1;
+  mPlaneNormal[1] = 0;
+  mPlaneNormal[2] = 0;
 }
 
-std::ostream& operator << ( std::ostream& os, ViewState& iInput ) { 
+std::ostream& operator << ( std::ostream& os, ViewState& iInput ) {
   os << "ViewState CenterRAS: " << iInput.GetCenterRAS()[0] << ", "
-     << iInput.GetCenterRAS()[1] << ", " << iInput.GetCenterRAS()[2] 
-     << " ZoomLevel: " << iInput.GetZoomLevel() << " InPlane: " 
-     << iInput.GetInPlane();
+  << iInput.GetCenterRAS()[1] << ", " << iInput.GetCenterRAS()[2]
+  << " ZoomLevel: " << iInput.GetZoomLevel() << " InPlane: "
+  << iInput.GetInPlane();
   return os;
 }
 
@@ -36,16 +66,16 @@ ViewState::GetPlaneNormal ( float oPlaneNormal[3] ) {
   oPlaneNormal[2] = mPlaneNormal[2];
 }
 
-void 
-ViewState::SetCenterRAS ( float iCenterRASX, 
-			  float iCenterRASY, float iCenterRASZ ) {
+void
+ViewState::SetCenterRAS ( float iCenterRASX,
+                          float iCenterRASY, float iCenterRASZ ) {
 
   mCenterRAS[0] = iCenterRASX;
   mCenterRAS[1] = iCenterRASY;
   mCenterRAS[2] = iCenterRASZ;
 }
 
-void 
+void
 ViewState::SetCenterRAS ( float iCenterRAS[3] ) {
 
   mCenterRAS[0] = iCenterRAS[0];
@@ -53,13 +83,13 @@ ViewState::SetCenterRAS ( float iCenterRAS[3] ) {
   mCenterRAS[2] = iCenterRAS[2];
 }
 
-void 
+void
 ViewState::SetZoomLevel ( float iZoomLevel ) {
 
   mZoomLevel = iZoomLevel;
 }
 
-void 
+void
 ViewState::SetPlaneNormal ( float iPlaneX, float iPlaneY, float iPlaneZ ) {
 
   mPlaneNormal[0] = iPlaneX;
@@ -67,7 +97,7 @@ ViewState::SetPlaneNormal ( float iPlaneX, float iPlaneY, float iPlaneZ ) {
   mPlaneNormal[2] = iPlaneZ;
 }
 
-void 
+void
 ViewState::SetPlaneNormal ( float iPlaneNormal[3] ) {
 
   mPlaneNormal[0] = iPlaneNormal[0];
@@ -75,19 +105,19 @@ ViewState::SetPlaneNormal ( float iPlaneNormal[3] ) {
   mPlaneNormal[2] = iPlaneNormal[2];
 }
 
-void 
+void
 ViewState::SetInPlane ( Plane iInPlane ) {
 
   mInPlane = iInPlane;
 }
 
-void 
+void
 ViewState::SetBufferWidth ( int iWidth ) {
 
   mBufferWidth = iWidth;
 }
 
-void 
+void
 ViewState::SetBufferHeight ( int iHeight ) {
 
   mBufferHeight = iHeight;
@@ -100,7 +130,7 @@ ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
   float rasCoord;
   float viewCoord;
 
-  switch( mInPlane ) {
+  switch ( mInPlane ) {
   case ViewState::X:
     rasCoord = iRAS[0];
     viewCoord = mCenterRAS[0];
@@ -121,7 +151,7 @@ ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
 
 void
 ViewState::SetFrom ( ViewState& ioViewState ) {
-  
+
   SetCenterRAS( ioViewState.GetCenterRAS() );
   SetZoomLevel( ioViewState.GetZoomLevel() );
   SetPlaneNormal( ioViewState.GetPlaneNormal() );
@@ -136,24 +166,24 @@ ViewState::SetFrom ( ViewState& ioViewState ) {
   mUpdateRect[3] = windowUpdateBounds[3];
 }
 
-bool 
+bool
 ViewState::IsSameAs ( ViewState& iViewState ) {
 
-  if( iViewState.GetCenterRAS()[0] == GetCenterRAS()[0] &&
-      iViewState.GetCenterRAS()[1] == GetCenterRAS()[1] &&
-      iViewState.GetCenterRAS()[2] == GetCenterRAS()[2] &&
+  if ( iViewState.GetCenterRAS()[0] == GetCenterRAS()[0] &&
+       iViewState.GetCenterRAS()[1] == GetCenterRAS()[1] &&
+       iViewState.GetCenterRAS()[2] == GetCenterRAS()[2] &&
 
-      iViewState.GetZoomLevel() == GetZoomLevel() &&
+       iViewState.GetZoomLevel() == GetZoomLevel() &&
 
-      iViewState.GetPlaneNormal()[0] == GetPlaneNormal()[0] &&
-      iViewState.GetPlaneNormal()[1] == GetPlaneNormal()[1] &&
-      iViewState.GetPlaneNormal()[2] == GetPlaneNormal()[2] &&
+       iViewState.GetPlaneNormal()[0] == GetPlaneNormal()[0] &&
+       iViewState.GetPlaneNormal()[1] == GetPlaneNormal()[1] &&
+       iViewState.GetPlaneNormal()[2] == GetPlaneNormal()[2] &&
 
-      iViewState.GetInPlane() == GetInPlane() &&
+       iViewState.GetInPlane() == GetInPlane() &&
 
-      iViewState.GetBufferWidth() == GetBufferWidth() &&
+       iViewState.GetBufferWidth() == GetBufferWidth() &&
 
-      iViewState.GetBufferHeight() == GetBufferHeight() ) {
+       iViewState.GetBufferHeight() == GetBufferHeight() ) {
 
     return true;
 
@@ -173,31 +203,31 @@ ViewState::ResetUpdateRect () {
 
 void
 ViewState::AddUpdateRect ( int iWindowLeft,  int iWindowTop,
-			   int iWindowRight, int iWindowBottom ) {
+                           int iWindowRight, int iWindowBottom ) {
 
-  if( iWindowLeft != -1 ) {
-    if( mUpdateRect[0] == -1 ) 
+  if ( iWindowLeft != -1 ) {
+    if ( mUpdateRect[0] == -1 )
       mUpdateRect[0] = MAX( 0, iWindowLeft );
     else
       mUpdateRect[0] = MAX( 0, MIN( mUpdateRect[0], iWindowLeft ) );
   }
 
-  if( iWindowTop != -1 ) {
-    if( mUpdateRect[1] == -1 ) 
+  if ( iWindowTop != -1 ) {
+    if ( mUpdateRect[1] == -1 )
       mUpdateRect[1] = MAX( 0, iWindowTop );
     else
       mUpdateRect[1] = MAX( 0, MIN( mUpdateRect[1], iWindowTop ) );
   }
 
-  if( iWindowRight != -1 ) {
-    if( mUpdateRect[2] == -1 ) 
+  if ( iWindowRight != -1 ) {
+    if ( mUpdateRect[2] == -1 )
       mUpdateRect[2] = MIN( mBufferWidth-1, iWindowRight );
     else
       mUpdateRect[2] = MIN( mBufferWidth-1, MAX( mUpdateRect[2], iWindowRight ));
   }
 
-  if( iWindowBottom != -1 ) {
-    if( mUpdateRect[3] == -1 ) 
+  if ( iWindowBottom != -1 ) {
+    if ( mUpdateRect[3] == -1 )
       mUpdateRect[3] = MIN( mBufferHeight-1, iWindowBottom );
     else
       mUpdateRect[3] = MIN( mBufferHeight-1, MAX( mUpdateRect[3],iWindowBottom));
@@ -214,24 +244,24 @@ ViewState::UpdateEntireRect () {
 
 void
 ViewState::CopyUpdateRect ( int& oWindowLeft,  int& oWindowTop,
-			    int& oWindowRight, int& oWindowBottom ) {
+                            int& oWindowRight, int& oWindowBottom ) {
 
-  if( mUpdateRect[0] == -1 ) 
+  if ( mUpdateRect[0] == -1 )
     oWindowLeft = 0;
   else
     oWindowLeft = mUpdateRect[0];
-  
-  if( mUpdateRect[1] == -1 ) 
+
+  if ( mUpdateRect[1] == -1 )
     oWindowTop = 0;
   else
     oWindowTop = mUpdateRect[1];
-  
-  if( mUpdateRect[2] == -1 ) 
+
+  if ( mUpdateRect[2] == -1 )
     oWindowRight = mBufferWidth-1;
   else
     oWindowRight = mUpdateRect[2];
-  
-  if( mUpdateRect[3] == -1 ) 
+
+  if ( mUpdateRect[3] == -1 )
     oWindowBottom = mBufferHeight-1;
   else
     oWindowBottom = mUpdateRect[3];
@@ -241,5 +271,5 @@ void
 ViewState::CopyUpdateRect ( int oWindowUpdate[4] ) {
 
   CopyUpdateRect( oWindowUpdate[0], oWindowUpdate[1],
-		  oWindowUpdate[2], oWindowUpdate[3] );
+                  oWindowUpdate[2], oWindowUpdate[3] );
 }

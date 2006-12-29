@@ -1,3 +1,31 @@
+/**
+ * @file  stim_polar.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifdef HAVE_APPLE_GLUT_FRAMEWORK
 #  include <GLUT/glut.h>
 #else
@@ -25,7 +53,7 @@ static double minEcc;
 static double maxEcc;
 static int numRings, numSpokes, OUTWARD;
 static int counter = 0;
-static int currentFrame = 0 ;   
+static int currentFrame = 0 ;
 
 static double timeTick;
 static double timePoint = 0;
@@ -51,8 +79,7 @@ static int mseq_tap = 45 ;   /* could also be 57, 63, 83, 189, 215, 303, 317, 33
 static int get_option(int argc, char *argv[]) ;
 static unsigned char *generate_msequence(int order, unsigned int tap, int *len) ;
 
-void display_expanding_rings(void)
-{
+void display_expanding_rings(void) {
 
   GLUquadricObj *qobj = NULL;
   double innerRadiusOfRing;
@@ -60,10 +87,10 @@ void display_expanding_rings(void)
   double start_angle;
   double angular_step;
   static int current_list = 0 ;
-  
+
   int ring, spoke, bit;
   double scaleFactor;
-  
+
   double t, T, eccRange;
   double innerRadiusOfAnnulus;
   double outerRadiusOfAnnulus;
@@ -72,78 +99,73 @@ void display_expanding_rings(void)
   glClear(GL_COLOR_BUFFER_BIT);
   current_list = !current_list ;
   glNewList(current_list, GL_COMPILE) ;
-  
-  angular_step = 360.0/numSpokes; 
-  
-  scaleFactor = pow( (maxEcc/minEcc), 
+
+  angular_step = 360.0/numSpokes;
+
+  scaleFactor = pow( (maxEcc/minEcc),
                      (1.0/( (double) numRings) ) );
-  
-  innerRadiusOfRing = minEcc; 
+
+  innerRadiusOfRing = minEcc;
   outerRadiusOfRing = minEcc * scaleFactor;
-  
+
   /* draw radial checkerboard */
-  for(ring = 0; ring < numRings; ring++)
-  {
-    if( ring % 2 )
+  for (ring = 0; ring < numRings; ring++) {
+    if ( ring % 2 )
       bit = 0;
     else
       bit = 1;
-    
-    for(spoke = 0; spoke < numSpokes; spoke++)
-    {
-      
+
+    for (spoke = 0; spoke < numSpokes; spoke++) {
+
       start_angle = spoke * angular_step;
-      
-      if( (spoke + bit) % 2 )
+
+      if ( (spoke + bit) % 2 )
         glColor3f(On, On, On);
       else
         glColor3f(1-On, 1-On, 1-On);
-      
-      qobj = gluNewQuadric(); 
-      gluPartialDisk(qobj, 
+
+      qobj = gluNewQuadric();
+      gluPartialDisk(qobj,
                      (GLdouble) innerRadiusOfRing,  /* inner radius */
                      (GLdouble) outerRadiusOfRing,  /* outer radius */
                      (GLint) angular_step, /* #vert. on disk perimeter */
                      1,   /* # vertices on disk ray (minus 1) */
                      (GLdouble) start_angle,  /* start angle for wedge */
                      (GLdouble) angular_step); /* wedge width in degrees */
-      
-    }    
-    
+
+    }
+
     innerRadiusOfRing *= scaleFactor;
     outerRadiusOfRing *= scaleFactor;
-    
+
   }
 
-  
-  T = stimPeriod; 
-  t = timePoint - counter*T; 
-  if(t > T)
-  {
+
+  T = stimPeriod;
+  t = timePoint - counter*T;
+  if (t > T) {
     outerRadiusOfAnnulus = maxEcc;
-    innerRadiusOfAnnulus = minEcc; 
+    innerRadiusOfAnnulus = minEcc;
     counter++;
   }
-  
+
   eccRange = log(maxEcc) - log(minEcc);
-  
-  if(OUTWARD == 1)
-  { /*** --------- EXP. OUTWARD ---------- ***/
-    if( t < T/2 )
-    {
+
+  if (OUTWARD == 1) { /*** --------- EXP. OUTWARD ---------- ***/
+    if ( t < T/2 ) {
       outerRadiusOfAnnulus = maxEcc;
-      innerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 +  
-        eccRange * (1/T) * t;
+      innerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 +
+                             eccRange * (1/T) * t;
       innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
-      
+
       /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
+      if ( outerRadiusOfAnnulus >= maxEcc)
         outerRadiusOfAnnulus = maxEcc + 1;
-      
+
       /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
+      if ( innerRadiusOfAnnulus <= minEcc)
         innerRadiusOfAnnulus = minEcc - 1;
-      
+
       /*** GL calls to draw annulus ***/
       glColor3f(0.5, 0.5, 0.5);
       gluDisk(qobj,
@@ -151,20 +173,20 @@ void display_expanding_rings(void)
               (GLdouble) outerRadiusOfAnnulus,
               360,
               1);
-      
-      outerRadiusOfAnnulus = log(minEcc) + 
-        eccRange * (1/T) * t;
+
+      outerRadiusOfAnnulus = log(minEcc) +
+                             eccRange * (1/T) * t;
       outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
       innerRadiusOfAnnulus = minEcc;
-      
+
       /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
+      if ( outerRadiusOfAnnulus >= maxEcc)
         outerRadiusOfAnnulus = maxEcc + 1;
-      
+
       /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
+      if ( innerRadiusOfAnnulus <= minEcc)
         innerRadiusOfAnnulus = minEcc - 1;
-      
+
       /*** GL calls to draw annulus ***/
       glColor3f(0.5, 0.5, 0.5);
       gluDisk(qobj,
@@ -172,26 +194,24 @@ void display_expanding_rings(void)
               (GLdouble) outerRadiusOfAnnulus,
               360,
               1);
-      
-    }
-    else
-    {
-      innerRadiusOfAnnulus = log(minEcc) + 
-        eccRange * (1/T) * (t - T/2);
+
+    } else {
+      innerRadiusOfAnnulus = log(minEcc) +
+                             eccRange * (1/T) * (t - T/2);
       innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
-      
-      outerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 +  
-        eccRange * (1/T) * (t - T/2);
+
+      outerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 +
+                             eccRange * (1/T) * (t - T/2);
       outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
-      
+
       /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
+      if ( outerRadiusOfAnnulus >= maxEcc)
         outerRadiusOfAnnulus = maxEcc + 1;
-      
+
       /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
+      if ( innerRadiusOfAnnulus <= minEcc)
         innerRadiusOfAnnulus = minEcc - 1;
-      
+
       /*** GL calls to draw annulus ***/
       glColor3f(0.5, 0.5, 0.5);
       gluDisk(qobj,
@@ -199,97 +219,91 @@ void display_expanding_rings(void)
               (GLdouble) outerRadiusOfAnnulus,
               360,
               1);
-      
-      
+
+
+    }
+  } else { /*** --------- EXP. INWARD ---------- ***/
+    if ( t < T/2 ) {
+      outerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 -
+                             eccRange * (1/T) * t;
+      outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
+      innerRadiusOfAnnulus = minEcc;
+
+      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
+      if ( outerRadiusOfAnnulus >= maxEcc)
+        outerRadiusOfAnnulus = maxEcc + 1;
+
+      /* Threshold, and subtract 1 so that mask overcovers stim */
+      if ( innerRadiusOfAnnulus <= minEcc)
+        innerRadiusOfAnnulus = minEcc - 1;
+
+      /*** GL calls to draw annulus ***/
+      glColor3f(0.5, 0.5, 0.5);
+      gluDisk(qobj,
+              (GLdouble) innerRadiusOfAnnulus,
+              (GLdouble) outerRadiusOfAnnulus,
+              360,
+              1);
+
+      outerRadiusOfAnnulus = maxEcc;
+      innerRadiusOfAnnulus = log(maxEcc) -
+                             eccRange * (1/T) * t;
+      innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
+
+      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
+      if ( outerRadiusOfAnnulus >= maxEcc)
+        outerRadiusOfAnnulus = maxEcc + 1;
+
+      /* Threshold, and subtract 1 so that mask overcovers stim */
+      if ( innerRadiusOfAnnulus <= minEcc)
+        innerRadiusOfAnnulus = minEcc - 1;
+
+      /*** GL calls to draw annulus ***/
+      glColor3f(0.5, 0.5, 0.5);
+      gluDisk(qobj,
+              (GLdouble) innerRadiusOfAnnulus,
+              (GLdouble) outerRadiusOfAnnulus,
+              360,
+              1);
+
+    } else {
+      innerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 -
+                             eccRange * (1/T) * (t - T/2);
+      innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
+
+      outerRadiusOfAnnulus = log(maxEcc) -
+                             eccRange * (1/T) * (t - T/2);
+      outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
+
+      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
+      if ( outerRadiusOfAnnulus >= maxEcc)
+        outerRadiusOfAnnulus = maxEcc + 1;
+
+      /* Threshold, and subtract 1 so that mask overcovers stim */
+      if ( innerRadiusOfAnnulus <= minEcc)
+        innerRadiusOfAnnulus = minEcc - 1;
+
+      /*** GL calls to draw annulus ***/
+      glColor3f(0.5, 0.5, 0.5);
+      gluDisk(qobj,
+              (GLdouble) innerRadiusOfAnnulus,
+              (GLdouble) outerRadiusOfAnnulus,
+              360,
+              1);
+
+
     }
   }
-  else 
-  { /*** --------- EXP. INWARD ---------- ***/
-    if( t < T/2 )
-    {
-      outerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 -  
-        eccRange * (1/T) * t;
-      outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
-      innerRadiusOfAnnulus = minEcc;
-      
-      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
-        outerRadiusOfAnnulus = maxEcc + 1;
-      
-      /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
-        innerRadiusOfAnnulus = minEcc - 1;
-      
-      /*** GL calls to draw annulus ***/
-      glColor3f(0.5, 0.5, 0.5);
-      gluDisk(qobj,
-              (GLdouble) innerRadiusOfAnnulus,
-              (GLdouble) outerRadiusOfAnnulus,
-              360,
-              1);
-      
-      outerRadiusOfAnnulus = maxEcc;
-      innerRadiusOfAnnulus = log(maxEcc) - 
-        eccRange * (1/T) * t;
-      innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
- 
-      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
-        outerRadiusOfAnnulus = maxEcc + 1;
-      
-      /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
-        innerRadiusOfAnnulus = minEcc - 1;
-      
-      /*** GL calls to draw annulus ***/
-      glColor3f(0.5, 0.5, 0.5);
-      gluDisk(qobj,
-              (GLdouble) innerRadiusOfAnnulus,
-              (GLdouble) outerRadiusOfAnnulus,
-              360,
-              1);
-      
-    }
-    else
-    {
-      innerRadiusOfAnnulus = (log(minEcc) + log(maxEcc))/2 -
-        eccRange * (1/T) * (t - T/2);
-      innerRadiusOfAnnulus = exp(innerRadiusOfAnnulus);
-      
-      outerRadiusOfAnnulus = log(maxEcc) -  
-        eccRange * (1/T) * (t - T/2);
-      outerRadiusOfAnnulus = exp(outerRadiusOfAnnulus);
-      
-      /* Threshold, and add 1 (pixel?) so that mask overcovers stim */
-      if( outerRadiusOfAnnulus >= maxEcc)
-        outerRadiusOfAnnulus = maxEcc + 1;
-      
-      /* Threshold, and subtract 1 so that mask overcovers stim */
-      if( innerRadiusOfAnnulus <= minEcc)
-        innerRadiusOfAnnulus = minEcc - 1;
-      
-      /*** GL calls to draw annulus ***/
-      glColor3f(0.5, 0.5, 0.5);
-      gluDisk(qobj,
-              (GLdouble) innerRadiusOfAnnulus,
-              (GLdouble) outerRadiusOfAnnulus,
-              360,
-              1);
-      
-      
-    }
-  }  
-  
+
   /*  glTranslatef( -Width/2 , -Height/2 , 0 ); */
-  
+
   glEndList() ;
-  glCallList(current_list) ; 
+  glCallList(current_list) ;
   /*  glFlush();*/
   glutSwapBuffers();
 }
 
-void display_all(void)
-{
+void display_all(void) {
 
   GLUquadricObj *qobj = NULL;
   double innerRadiusOfRing;
@@ -300,62 +314,58 @@ void display_all(void)
   int ring, spoke ;
   double scaleFactor;
 
-  
+
   glClear(GL_COLOR_BUFFER_BIT);
   current_list = !current_list ;
   glNewList(current_list, GL_COMPILE) ;
-  
-  angular_step = 360.0/numSpokes; 
-  
-  scaleFactor = pow( (maxEcc/minEcc), 
+
+  angular_step = 360.0/numSpokes;
+
+  scaleFactor = pow( (maxEcc/minEcc),
                      (1.0/( (double) numRings) ) );
-  
-  innerRadiusOfRing = minEcc; 
+
+  innerRadiusOfRing = minEcc;
   outerRadiusOfRing = minEcc * scaleFactor;
 
-  
+
   /* draw radial checkerboard */
-  for(ring = 0; ring < numRings; ring++)
-  {
-    for(spoke = 0; spoke < numSpokes; spoke++)
-    {
+  for (ring = 0; ring < numRings; ring++) {
+    for (spoke = 0; spoke < numSpokes; spoke++) {
       start_angle = spoke * angular_step;
-      
-      glColor3f(redFrames[ring][spoke][currentFrame], greenFrames[ring][spoke][currentFrame], 
+
+      glColor3f(redFrames[ring][spoke][currentFrame], greenFrames[ring][spoke][currentFrame],
                 blueFrames[ring][spoke][currentFrame]) ;
-      
-      qobj = gluNewQuadric(); 
-      gluPartialDisk(qobj, 
+
+      qobj = gluNewQuadric();
+      gluPartialDisk(qobj,
                      (GLdouble) innerRadiusOfRing,  /* inner radius */
                      (GLdouble) outerRadiusOfRing,  /* outer radius */
                      (GLint) angular_step, /* #vert. on disk perimeter */
                      1,   /* # vertices on disk ray (minus 1) */
                      (GLdouble) start_angle,  /* start angle for wedge */
                      (GLdouble) angular_step); /* wedge width in degrees */
-      
-    }    
-    
+
+    }
+
     innerRadiusOfRing *= scaleFactor;
     outerRadiusOfRing *= scaleFactor;
-    
+
   }
 
   /*  glTranslatef( -Width/2 , -Height/2 , 0 ); */
-  
+
   glEndList() ;
-  glCallList(current_list) ; 
+  glCallList(current_list) ;
   /*  glFlush();*/
   glutSwapBuffers();
 }
 
-void idle(void)
-{
+void idle(void) {
   float time ;
-  
+
   time = glutGet( GLUT_ELAPSED_TIME ); /* cumulative time */
-  
-  if(time > timePoint)
-  {
+
+  if (time > timePoint) {
     /* printf("time %f\n", time); */
     timePoint += timeTick;
     if (++currentFrame >= numFrames)
@@ -363,11 +373,10 @@ void idle(void)
 
     glutPostRedisplay();
   }
-  
+
 }
 
-void init(void) 
-{
+void init(void) {
   int  ring, spoke, frame, bit, start_bit  ;
 
   glClearColor (0.5, 0.5, 0.5, 0.5);
@@ -378,18 +387,16 @@ void init(void)
   blueFrames = (float ***)calloc(numRings, sizeof(float **)) ;
   greenFrames = (float ***)calloc(numRings, sizeof(float **)) ;
   if (!redFrames || !blueFrames || !greenFrames)
-      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ring list of %d x %d x %d buffer",
-                  Progname, numRings, numSpokes, numFrames) ;
-  for (ring = 0 ; ring < numRings ; ring++)
-  {
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ring list of %d x %d x %d buffer",
+              Progname, numRings, numSpokes, numFrames) ;
+  for (ring = 0 ; ring < numRings ; ring++) {
     redFrames[ring] = (float **)calloc(numSpokes, sizeof(float *)) ;
     blueFrames[ring] = (float **)calloc(numSpokes, sizeof(float *)) ;
     greenFrames[ring] = (float **)calloc(numSpokes, sizeof(float *)) ;
     if (!redFrames[ring] || !blueFrames[ring] || !greenFrames[ring])
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate spoke list [%d] of %d x %d x %d buffer",
-                  Progname, ring, numRings, numSpokes, numFrames) ;
-    for (spoke = 0 ; spoke < numSpokes ; spoke++)
-    {
+                Progname, ring, numRings, numSpokes, numFrames) ;
+    for (spoke = 0 ; spoke < numSpokes ; spoke++) {
       redFrames[ring][spoke] = (float *)calloc(numFrames, sizeof(float)) ;
       blueFrames[ring][spoke] = (float *)calloc(numFrames, sizeof(float)) ;
       greenFrames[ring][spoke] = (float *)calloc(numFrames, sizeof(float)) ;
@@ -399,8 +406,7 @@ void init(void)
     }
   }
 
-  if (use_mseq)
-  {
+  if (use_mseq) {
     unsigned char *mseq ;
     int      nbr_delay, delay, index, len ;
 
@@ -409,58 +415,44 @@ void init(void)
     printf("generating m-sequence, order=%d, tap=%d...", mseq_order, mseq_tap) ;
     mseq = generate_msequence(mseq_order, mseq_tap, &len) ;
     printf("finished\n") ;
-    for (frame = 0 ; frame < numFrames ; frame++)
-    {
+    for (frame = 0 ; frame < numFrames ; frame++) {
       delay = 0 ;
-      for (ring = 0 ; ring < numRings ; ring++)
-      {
-        for (spoke = 0 ; spoke < numSpokes ; spoke++, delay += nbr_delay)
-        {
-          index = (frame + delay) % len ; 
-          if(mseq[index])
-          {
+      for (ring = 0 ; ring < numRings ; ring++) {
+        for (spoke = 0 ; spoke < numSpokes ; spoke++, delay += nbr_delay) {
+          index = (frame + delay) % len ;
+          if (mseq[index]) {
             redFrames[ring][spoke][frame] = 1 ;
             blueFrames[ring][spoke][frame] = 1 ;
             greenFrames[ring][spoke][frame] = 1 ;
-          }
-          else
-          {
+          } else {
             redFrames[ring][spoke][frame] = 0 ;
             blueFrames[ring][spoke][frame] = 0 ;
             greenFrames[ring][spoke][frame] = 0 ;
           }
-          
+
         }
       }
     }
     free(mseq) ;
-  }
-  else
-  {
-    for (frame = 0 ; frame < numFrames ; frame++)
-    {
+  } else {
+    for (frame = 0 ; frame < numFrames ; frame++) {
       start_bit = frame % 2 ;
-      for (ring = 0 ; ring < numRings ; ring++)
-      {
-        if( ring % 2 )
+      for (ring = 0 ; ring < numRings ; ring++) {
+        if ( ring % 2 )
           bit = start_bit ;
         else
           bit = !start_bit ;
-        for (spoke = 0 ; spoke < numSpokes ; spoke++)
-        {
-          if( (spoke + bit) % 2 )
-          {
+        for (spoke = 0 ; spoke < numSpokes ; spoke++) {
+          if ( (spoke + bit) % 2 ) {
             redFrames[ring][spoke][frame] = On ;
             blueFrames[ring][spoke][frame] = On ;
             greenFrames[ring][spoke][frame] = On ;
-          }
-          else
-          {
+          } else {
             redFrames[ring][spoke][frame] = 1-On ;
             blueFrames[ring][spoke][frame] = 1-On ;
             greenFrames[ring][spoke][frame] = 1-On ;
           }
-          
+
         }
       }
     }
@@ -468,8 +460,7 @@ void init(void)
 
 }
 
-void reshape(int w, int h)
-{
+void reshape(int w, int h) {
   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -480,8 +471,7 @@ void reshape(int w, int h)
 
 /*#include <term.h>*/
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   char   **av ;
   int    ac, nargs ;
 
@@ -496,7 +486,7 @@ int main(int argc, char** argv)
   }
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.7 2005/06/08 19:45:05 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.8 2006/12/29 02:09:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -508,21 +498,19 @@ int main(int argc, char** argv)
   setenv("__GL_SYNC_TO_VBLANK", "23", 1) ;
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   glutInit(&argc, argv);
-  if(argc != 8)
-  {
+  if (argc != 8) {
     printf("\nUsage: eccen <flickerFreq> <stimPeriod (ms)> <minEcc> <maxEcc> "
            "<numRings> <numSpokes> <OUTWARD>\n\n");
     exit(1);
   }
-  
+
   flickerFreq = atof(argv[1]);
   stimPeriod = atof(argv[2]);
   minEcc = atof(argv[3]);
@@ -530,16 +518,15 @@ int main(int argc, char** argv)
   numRings = atoi(argv[5]);
   numSpokes = atoi(argv[6]);
   OUTWARD = atoi(argv[7]);
-  
-  if(minEcc < EPS)
-  {
+
+  if (minEcc < EPS) {
     printf("\nArgument 3 (minEcc) must be larger than %.1e\n\n", EPS);
     exit(1);
   }
-  
-  
+
+
   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize (width, height); 
+  glutInitWindowSize (width, height);
   glutInitWindowPosition (100, 100);
   glutCreateWindow (argv[0]);
   init ();
@@ -548,11 +535,11 @@ int main(int argc, char** argv)
   glNewList(1, GL_COMPILE) ;
 #endif
 
-  glutDisplayFunc(display_all); 
-  glutReshapeFunc(reshape);  
+  glutDisplayFunc(display_all);
+  glutReshapeFunc(reshape);
   glutIdleFunc(idle);
   glutMainLoop();
-  return 0;   
+  return 0;
 }
 
 
@@ -568,30 +555,25 @@ int main(int argc, char** argv)
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "MSEQ"))
-  {
+  if (!stricmp(option, "MSEQ")) {
     use_mseq = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static unsigned char *
-generate_msequence(int order, unsigned int tap, int *plen)
-{
+generate_msequence(int order, unsigned int tap, int *plen) {
   unsigned int    len, q, R, i ;
   unsigned char   *mseq, *used ;
 
@@ -601,19 +583,15 @@ generate_msequence(int order, unsigned int tap, int *plen)
   used = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
 
   R = 1 ;  /* shift register */
-  for (i = 0 ; i < len ; i++)
-  {
+  for (i = 0 ; i < len ; i++) {
     if (used[R])
       ErrorExit(ERROR_BADPARM, "\n%s: tap %x does not generate an m-sequence!\n",
                 Progname, tap) ;
     used[R] = 1 ;
     mseq[i] = (R & 0x01) ;
-    if ((R & q) != q)
-    {
+    if ((R & q) != q) {
       R = R << 1 ;
-    }
-    else
-    {
+    } else {
       R = R << 1 ;
       R = R ^ tap ;
     }
@@ -621,7 +599,7 @@ generate_msequence(int order, unsigned int tap, int *plen)
   }
 
   *plen = len ;
-  
+
   free(used) ;
   return(mseq) ;
 }

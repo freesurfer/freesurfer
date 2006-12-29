@@ -1,3 +1,31 @@
+/**
+ * @file  mris_thickness_diff.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //Modified from utils/test/mris_diff.cpp; replaced ANN routine with
 // HASH_TABLE method implemented in FreeSurfer.
 
@@ -31,12 +59,12 @@
 #define MAX_DATA_NUMBERS 200
 #define DEBUG 0
 
-typedef struct _double_3d
-{
+typedef struct _double_3d {
   double x;
   double y;
   double z;
-} double3d ;
+}
+double3d ;
 
 #define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
         a[k][l]=h+s*(g-h*tau);
@@ -48,7 +76,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-"$Id: mris_thickness_diff.c,v 1.6 2006/11/01 01:49:10 fischl Exp $";
+  "$Id: mris_thickness_diff.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -117,8 +145,7 @@ double v_to_f_distance(VERTEX *P0,
                        double *topt);
 
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char **av, *surf1_name, *surf2_name;
   char *data1_name, *data2_name;
 
@@ -143,13 +170,14 @@ int main(int argc, char *argv[])
   LTA          *lta = 0;
   int          transform_type;
 
-  label = 0; annotation = 0;
+  label = 0;
+  annotation = 0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_thickness_diff.c,v 1.6 2006/11/01 01:49:10 fischl Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mris_thickness_diff.c,v 1.7 2006/12/29 02:09:11 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,16 +188,15 @@ int main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   /* command line: <surf1> <datafile 1> <surf2> <datafile 2> */
 
-  if(argc != 5){
+  if (argc != 5) {
     printf("Incorrect number of arguments, argc = %d\n", argc);
     usage_exit();
   }
@@ -179,42 +206,41 @@ int main(int argc, char *argv[])
   surf2_name = argv[3];
   data2_name = argv[4];
 
-  if(srctypestring == NULL || (out_name != NULL && trgtypestring == NULL)){
+  if (srctypestring == NULL || (out_name != NULL && trgtypestring == NULL)) {
     printf("Please specify input and output data type!\n");
     usage_exit();
   }
 
   printf("Reading first surface file\n");
   Surf1 = MRISread(surf1_name);
-  if(!Surf1)
+  if (!Surf1)
     ErrorExit
-      (ERROR_NOFILE, "%s:could not read surface %s", Progname, surf1_name);
+    (ERROR_NOFILE, "%s:could not read surface %s", Progname, surf1_name);
 
   printf("Surface1 has %d vertices\n", Surf1->nvertices);
 
   printf("Reading in first data file\n");
   /* Read in the first data file */
   /* only two data types are supported */
-  if(!strcmp(srctypestring,"curv")){ /* curvature file */
-    if(MRISreadCurvatureFile(Surf1, data1_name) != 0){
+  if (!strcmp(srctypestring,"curv")) { /* curvature file */
+    if (MRISreadCurvatureFile(Surf1, data1_name) != 0) {
       printf("ERROR: reading curvature file\n");
       exit(1);
     }
     SrcVal1 = MRIcopyMRIS(NULL, Surf1, 0, "curv");
-  }
-  else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
+  } else if (!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")) {
     MRISreadValues(Surf1,data1_name);
     SrcVal1 = MRIcopyMRIS(NULL, Surf1, 0, "val");
-  }else{
+  } else {
     printf("ERROR: unknown data file format\n");
     exit(1);
   }
 
-  if(SrcVal1 == NULL){
+  if (SrcVal1 == NULL) {
     fprintf(stderr, "ERROR loading data values from %s\n", data1_name);
   }
 
-  if(nSmoothSteps > 0){
+  if (nSmoothSteps > 0) {
     printf("Smooth input data 1 by %d steps\n", nSmoothSteps);
     MRISsmoothMRI(Surf1, SrcVal1, nSmoothSteps, NULL,SrcVal1);
 
@@ -222,107 +248,110 @@ int main(int argc, char *argv[])
 
   printf("Reading second surface file\n");
   Surf2 = MRISread(surf2_name);
-  if(!Surf2)
+  if (!Surf2)
     ErrorExit
-      (ERROR_NOFILE, "%s:could not read surface %s", Progname, surf2_name);
+    (ERROR_NOFILE, "%s:could not read surface %s", Progname, surf2_name);
 
   printf("Surface2 has %d vertices\n", Surf2->nvertices);
 
   printf("Reading in second data file\n");
   /* Read in the second data file */
   /* only two data types are supported */
-  if(!strcmp(srctypestring,"curv")){ /* curvature file */
-    if(MRISreadCurvatureFile(Surf2, data2_name) != 0){
+  if (!strcmp(srctypestring,"curv")) { /* curvature file */
+    if (MRISreadCurvatureFile(Surf2, data2_name) != 0) {
       printf("ERROR: reading curvature file\n");
       exit(1);
     }
     SrcVal2 = MRIcopyMRIS(NULL, Surf2, 0, "curv");
-  }
-  else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
+  } else if (!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")) {
     MRISreadValues(Surf2,data2_name);
     SrcVal2 = MRIcopyMRIS(NULL, Surf2, 0, "val");
-  }else{
+  } else {
     printf("ERROR: unknown data file format\n");
     exit(1);
   }
 
-  if(SrcVal2 == NULL){
+  if (SrcVal2 == NULL) {
     fprintf(stderr, "ERROR loading data values from %s\n", data2_name);
   }
 
-  if(nSmoothSteps > 0){
+  if (nSmoothSteps > 0) {
     printf("Smooth input data 2 by %d steps\n", nSmoothSteps);
     MRISsmoothMRI(Surf2, SrcVal2, nSmoothSteps, NULL, SrcVal2);
   }
 
   /* added for allowing using faces; maybe unnecessary */
-  for (fno = 0 ; fno < Surf1->nfaces ; fno++){
+  for (fno = 0 ; fno < Surf1->nfaces ; fno++) {
     face = &Surf1->faces[fno] ;
-    vno0 = face->v[0] ; vno1 = face->v[1] ; vno2 = face->v[2] ;
+    vno0 = face->v[0] ;
+    vno1 = face->v[1] ;
+    vno2 = face->v[2] ;
     mrisSetVertexFaceIndex(Surf1, vno0, fno) ;
     mrisSetVertexFaceIndex(Surf1, vno1, fno) ;
     mrisSetVertexFaceIndex(Surf1, vno2, fno) ;
   }
-  for (fno = 0 ; fno < Surf2->nfaces ; fno++){
+  for (fno = 0 ; fno < Surf2->nfaces ; fno++) {
     face = &Surf2->faces[fno] ;
-    vno0 = face->v[0] ; vno1 = face->v[1] ; vno2 = face->v[2] ;
+    vno0 = face->v[0] ;
+    vno1 = face->v[1] ;
+    vno2 = face->v[2] ;
     mrisSetVertexFaceIndex(Surf2, vno0, fno) ;
     mrisSetVertexFaceIndex(Surf2, vno1, fno) ;
     mrisSetVertexFaceIndex(Surf2, vno2, fno) ;
   }
 
-  if(debugflag){
+  if (debugflag) {
     printf("Data%d at vertex %d has value %g\n",
            1, debugvtx, MRIFseq_vox(SrcVal1, debugvtx, 0, 0, 0));
   }
 
-  if(register_flag && (xform_fname != NULL)){
+  if (register_flag && (xform_fname != NULL)) {
     printf("A LTA is specified, so only apply the LTA, "
            "and no ICP will be computed\n");
     register_flag = 0;
   }
 
-  if(register_flag){
+  if (register_flag) {
     printf("Register surface 2 to surface 1 (rigid mapping using ICP)\n");
     register2to1(Surf1, Surf2);
   }
 
 
-  if(xform_fname != NULL){
+  if (xform_fname != NULL) {
     printf("Apply the given LTA xform to align input "
            "surface 1 to surface 2 \n ...");
     // read transform
     transform_type =  TransformFileNameType(xform_fname);
 
-    if(transform_type == MNI_TRANSFORM_TYPE ||
-       transform_type == TRANSFORM_ARRAY_TYPE ||
-       transform_type == REGISTER_DAT ||
-       transform_type == FSLREG_TYPE
-       ){
+    if (transform_type == MNI_TRANSFORM_TYPE ||
+        transform_type == TRANSFORM_ARRAY_TYPE ||
+        transform_type == REGISTER_DAT ||
+        transform_type == FSLREG_TYPE
+       ) {
       printf("Reading transform ...\n");
       lta = LTAreadEx(xform_fname) ;
       if (!lta)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
                   Progname, xform_fname) ;
 
-      if (transform_type == FSLREG_TYPE){
-        if(mri == 0 || mri_dst == 0){
+      if (transform_type == FSLREG_TYPE) {
+        if (mri == 0 || mri_dst == 0) {
           fprintf
-            (stderr,
-             "ERROR: fslmat does not have information on the "
-             "src and dst volumes\n");
+          (stderr,
+           "ERROR: fslmat does not have information on the "
+           "src and dst volumes\n");
           fprintf
-            (stderr,
-             "ERROR: you must give options '-src' and '-dst' "
-             "to specify the src and dst volume infos\n");
+          (stderr,
+           "ERROR: you must give options '-src' and '-dst' "
+           "to specify the src and dst volume infos\n");
         }
 
         LTAmodifySrcDstGeom(lta, mri, mri_dst); // add src and dst information
         LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       }
 
-      if (lta->xforms[0].src.valid == 0){
-        if(mri == 0){
+      if (lta->xforms[0].src.valid == 0) {
+        if (mri == 0) {
           fprintf(stderr,
                   "The transform does not have the valid src volume info.\n");
           fprintf(stderr,
@@ -330,13 +359,13 @@ int main(int argc, char *argv[])
           fprintf(stderr,
                   "make the transform to have the valid src info.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        }else{
+        } else {
           LTAmodifySrcDstGeom(lta, mri, NULL); // add src information
           //      getVolGeom(mri, &lt->src);
         }
       }
-      if (lta->xforms[0].dst.valid == 0){
-        if(mri_dst == 0){
+      if (lta->xforms[0].dst.valid == 0) {
+        if (mri_dst == 0) {
           fprintf(stderr,
                   "The transform does not have the valid dst volume info.\n");
           fprintf(stderr,
@@ -350,25 +379,24 @@ int main(int argc, char *argv[])
           fprintf(stderr,
                   "without giving the dst volume for RAS-to-RAS transform.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        }else{
+        } else {
           LTAmodifySrcDstGeom(lta, NULL, mri_dst); // add  dst information
         }
       }
-    }
-    else{
+    } else {
       ErrorExit
-        (ERROR_BADPARM,
-         "transform is not of MNI, nor Register.dat, nor FSLMAT type");
+      (ERROR_BADPARM,
+       "transform is not of MNI, nor Register.dat, nor FSLMAT type");
     }
 
-    if (invert){
+    if (invert) {
       VOL_GEOM vgtmp;
       LT *lt;
       MATRIX *m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0){
+      if (lt->dst.valid == 0 || lt->src.valid == 0) {
         fprintf(stderr,
                 "WARNING:*************************************************\n");
         fprintf(stderr,
@@ -386,7 +414,7 @@ int main(int argc, char *argv[])
     MRISsaveVertexPositions(Surf1, ORIGINAL_VERTICES);
     {
       TRANSFORM transform ;
-      
+
       transform.type = lta->type ;
       transform.xform = (void *)lta ;
       MRIStransform(Surf1, mri, &transform, mri_dst) ;
@@ -397,20 +425,20 @@ int main(int argc, char *argv[])
     if (mri_dst)
       MRIfree(&mri_dst);
 
-    if(lta)
+    if (lta)
       LTAfree(&lta);
   }   /* if (xform_fname != NULL) */
 
 
-  if(annotation_flag){
+  if (annotation_flag) {
     printf("read annotation file for surface #1\n");
     MRISreadAnnotation(Surf1, annotation_fname) ;
     printf("mask out vertices not have annotation %d\n", annotation);
     //CTABindexToAnnotation(Surf1->ct, annotation_index, &annotation);
     CTABfindName(Surf1->ct, annotation_name, &annotation);
-    for(index = 0; index < Surf1->nvertices; index++){
+    for (index = 0; index < Surf1->nvertices; index++) {
       vertex = &Surf1->vertices[index];
-      if(vertex->annotation != annotation)
+      if (vertex->annotation != annotation)
         vertex->border = 1;
     }
   }
@@ -418,20 +446,23 @@ int main(int argc, char *argv[])
   resVal = ComputeDifferenceNew(Surf1, SrcVal1, Surf2, SrcVal2, NULL);
 
   printf("Compute difference\n");
-  maxV = -1000.0; minV = 1000.0;  meanV=0.0; absMean = 0.0;
+  maxV = -1000.0;
+  minV = 1000.0;
+  meanV=0.0;
+  absMean = 0.0;
   total = 0;
-  for(index = 0; index < Surf1->nvertices; index++){
+  for (index = 0; index < Surf1->nvertices; index++) {
     vertex = &Surf1->vertices[index];
-    if(vertex->border == 1) continue;
+    if (vertex->border == 1) continue;
 
     total++;
     scalar = MRIgetVoxVal(resVal,index,0,0,0);
 
-    if(maxV < scalar) maxV = scalar;
-    if(minV > scalar) minV = scalar;
+    if (maxV < scalar) maxV = scalar;
+    if (minV > scalar) minV = scalar;
     meanV += scalar;
 
-    if(scalar < 0) scalar = -scalar;
+    if (scalar < 0) scalar = -scalar;
     absMean += scalar;
 
     //    if(abs_flag) MRIsetVoxVal(resVal, index, 0, 0, 0, scalar);
@@ -442,33 +473,32 @@ int main(int argc, char *argv[])
   meanV /= (total + 1e-20);
   absMean /= (total + 1e-20);
 
-  if(maplike_fname && mapout_fname){
+  if (maplike_fname && mapout_fname) {
     mri_map = MRIread(maplike_fname);
-    for(z = 0; z < mri_map->depth; z++)
-      for(y=0; y < mri_map->height; y++)
-        for(x = 0; x < mri_map->width; x++){
+    for (z = 0; z < mri_map->depth; z++)
+      for (y=0; y < mri_map->height; y++)
+        for (x = 0; x < mri_map->width; x++) {
           MRIsetVoxVal(mri_map, x, y, z, 0, 0);
         }
   }
 
-  if(abs_flag){
+  if (abs_flag) {
     printf("Compute stdev of absolute-valued thickness difference\n");
   }
 
   std = 0.0;
-  for(index = 0; index < Surf1->nvertices; index++){
-    if(Surf1->vertices[index].border == 1) continue;
+  for (index = 0; index < Surf1->nvertices; index++) {
+    if (Surf1->vertices[index].border == 1) continue;
     tmpval = MRIgetVoxVal(resVal,index,0,0,0);
-    if(abs_flag){ //compute stat of absolute-value-thickness-differences
-      if(tmpval < 0) tmpval = -tmpval;
+    if (abs_flag) { //compute stat of absolute-value-thickness-differences
+      if (tmpval < 0) tmpval = -tmpval;
       scalar = tmpval - absMean;
-    }
-    else
+    } else
       scalar = tmpval - meanV;
 
     std += scalar*scalar;
 
-    if(maplike_fname && mapout_fname){
+    if (maplike_fname && mapout_fname) {
       vertex = &Surf1->vertices[index];
       cx = vertex->origx;
       cy = vertex->origy;
@@ -476,22 +506,24 @@ int main(int argc, char *argv[])
 
       MRIsurfaceRASToVoxel(mri_map, cx, cy, cz, &vx, &vy, &vz);
       /* Nearest neighbor */
-      x = (int) (vx + 0.5); y = (int)(vy+0.5); z = (int)(vz + 0.5);
+      x = (int) (vx + 0.5);
+      y = (int)(vy+0.5);
+      z = (int)(vz + 0.5);
 
-      if(x < 0 || x >= mri_map->width ||
-         y < 0 || y >= mri_map->height ||
-         z < 0 || z >= mri_map->depth) continue;
+      if (x < 0 || x >= mri_map->width ||
+          y < 0 || y >= mri_map->height ||
+          z < 0 || z >= mri_map->depth) continue;
 
-      if(tmpval < 0) tmpval = -tmpval;
+      if (tmpval < 0) tmpval = -tmpval;
 
       /* index = 69894 & 69916
          if(x==162 && y==97 && z == 124){
          printf("index = %d, diff = %g\n", index, tmpval);
          } */
 
-      if(DEBUG){
-        if(tmpval > 1.0) tmpval = 4;
-      }else
+      if (DEBUG) {
+        if (tmpval > 1.0) tmpval = 4;
+      } else
         tmpval *= 10;
 
       MRIsetVoxVal(mri_map, x, y, z, 0, tmpval);
@@ -506,34 +538,32 @@ int main(int argc, char *argv[])
          "mean = %g, abs_mean = %g, std = %g\n",
          maxV, minV, meanV, absMean, std);
 
-  if (log_fname)
-    {
-      char fname[STRLEN] ;
+  if (log_fname) {
+    char fname[STRLEN] ;
 
-      sprintf(fname, log_fname, label) ;
-      printf("logging to %s...\n", fname) ;
-      log_fp = fopen(fname, "a+") ;
-      if (!log_fp)
-        ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
-                  Progname, fname) ;
-    }
-  else
+    sprintf(fname, log_fname, label) ;
+    printf("logging to %s...\n", fname) ;
+    log_fp = fopen(fname, "a+") ;
+    if (!log_fp)
+      ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                Progname, fname) ;
+  } else
     log_fp = NULL ;
 
-  if(log_fp){
+  if (log_fp) {
     fprintf(log_fp, "%s  ", subject_name) ;
     fprintf(log_fp, "%d %8.4f %8.4f %8.4f\n", total, meanV, absMean, std);
     fclose(log_fp) ;
   }
 
-  if(maplike_fname && mapout_fname){
+  if (maplike_fname && mapout_fname) {
     MRIwrite(mri_map, mapout_fname);
     MRIfree(&mri_map);
   }
 
-  if(out_name){
+  if (out_name) {
     MRIScopyMRI(Surf1, resVal, framesave, "curv");
-    if(!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")){
+    if (!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")) {
 
       /* This function will remove a zero-valued vertices */
       /* Make sense, since default value is considered as zero */
@@ -544,9 +574,9 @@ int main(int argc, char *argv[])
       /* MRIScopyMRI(BaseSurf, AvgVals, framesave, "val");*/
       /* MRISwriteValues(BaseSurf,fname); */
       MRISwriteCurvatureToWFile(Surf1,out_name);
-    }else if(!strcmp(trgtypestring,"curv")){
+    } else if (!strcmp(trgtypestring,"curv")) {
       MRISwriteCurvature(Surf1, out_name);
-    }else{
+    } else {
       fprintf(stderr, "ERROR unknown output file format.\n");
     }
   }
@@ -562,21 +592,19 @@ int main(int argc, char *argv[])
 }
 
 
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   fprintf(stdout, "USAGE: %s [options] surface1 data1 surface2 data2 \n",
           Progname) ;
   fprintf(stdout, "\n");
   fprintf(stdout, "Options:\n");
   fprintf(stdout, "   -src_type %%s  input surface data format "
-	  "(curv, paint or w)\n");
+          "(curv, paint or w)\n");
   fprintf(stdout, "   -trg_type %%s  output format\n");
   fprintf(stdout, "   -out %%s       output file name\n");
   fprintf(stdout, "   -nsmooth %%d   number of smoothing steps\n");
@@ -598,60 +626,58 @@ static void print_usage(void)
 }
 
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
   printf
-    (
-     "This program computes the difference of two surface data "
-     "sets defined on the \n"
-     "two surface mesh. Result = data2 - data1 (in sense of "
-     "closest vertex). \n"
-     "\n"
-     "OPTIONS\n"
-     "\n"
-     "  -src_type typestring\n"
-     "    Format type string. Can be either curv (for FreeSurfer "
-     "curvature file), \n"
-     "    paint or w (for FreeSurfer paint files).\n"
-     "\n"
-     "  -trg_type typestring\n"
-     "    Format type string. Can be paint or w (for FreeSurfer "
-     "paint files).\n"
-     "\n"
-     "  -out filename\n"
-     "    Output the difference to the paint file. \n    Note the # of "
-     "entries is same as VN of surface1.\n"
-     "\n"
-     "  -nsmooth #\n"
-     "    Perform # of iterations (smoothing) before computing "
-     "the difference.\n"
-     "\n"
-     "  -annot annotationfile annotation_name\n"
-     "    Limit thickness comparison to region with annotation = "
-     "annotation_name.\n"
-     "\n"
-     "  -s subject_name (to be recorded in logfile).\n"
-     "\n"
-     "  -register\n"
-     "    Perform ICP rigid registration before computing "
-     "closet-vertex difference.\n"
-     "\n"
-     "  -xform xformfilename\n    Apply LTA transform to align "
-     "surface1 to surface2\n\n"
-     "  -invert\n    Reversely apply -xform \n\n"
-     "  -src filename\n    Source volume for -xform \n\n"
-     "  -dst filename\n    Target volume for -xform \n\n"
-     "\n"
-     );
+  (
+    "This program computes the difference of two surface data "
+    "sets defined on the \n"
+    "two surface mesh. Result = data2 - data1 (in sense of "
+    "closest vertex). \n"
+    "\n"
+    "OPTIONS\n"
+    "\n"
+    "  -src_type typestring\n"
+    "    Format type string. Can be either curv (for FreeSurfer "
+    "curvature file), \n"
+    "    paint or w (for FreeSurfer paint files).\n"
+    "\n"
+    "  -trg_type typestring\n"
+    "    Format type string. Can be paint or w (for FreeSurfer "
+    "paint files).\n"
+    "\n"
+    "  -out filename\n"
+    "    Output the difference to the paint file. \n    Note the # of "
+    "entries is same as VN of surface1.\n"
+    "\n"
+    "  -nsmooth #\n"
+    "    Perform # of iterations (smoothing) before computing "
+    "the difference.\n"
+    "\n"
+    "  -annot annotationfile annotation_name\n"
+    "    Limit thickness comparison to region with annotation = "
+    "annotation_name.\n"
+    "\n"
+    "  -s subject_name (to be recorded in logfile).\n"
+    "\n"
+    "  -register\n"
+    "    Perform ICP rigid registration before computing "
+    "closet-vertex difference.\n"
+    "\n"
+    "  -xform xformfilename\n    Apply LTA transform to align "
+    "surface1 to surface2\n\n"
+    "  -invert\n    Reversely apply -xform \n\n"
+    "  -src filename\n    Source volume for -xform \n\n"
+    "  -dst filename\n    Target volume for -xform \n\n"
+    "\n"
+  );
 
   exit(1) ;
 }
 
 
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   fprintf(stdout, "%s\n", vcid) ;
   exit(1) ;
 }
@@ -662,8 +688,7 @@ static void print_version(void)
 
   Description:
   ----------------------------------------------------------------------*/
-static int get_option(int argc, char *argv[])
-{
+static int get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
@@ -672,122 +697,92 @@ static int get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "src_type"))
-    {
-      srctypestring = argv[2];
-      srctype = string_to_type(srctypestring);
-      nargs = 1 ;
-    }
-  else if (!stricmp(option, "register"))
-    {
-      register_flag = 1;
-      printf("Do a rigid alignment of two surfaces before "
-             "mapping to each other\n");
-    }
-  else if (!stricmp(option, "xform")){
+  else if (!stricmp(option, "src_type")) {
+    srctypestring = argv[2];
+    srctype = string_to_type(srctypestring);
+    nargs = 1 ;
+  } else if (!stricmp(option, "register")) {
+    register_flag = 1;
+    printf("Do a rigid alignment of two surfaces before "
+           "mapping to each other\n");
+  } else if (!stricmp(option, "xform")) {
     xform_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "transform file name is %s\n", xform_fname);
-  }
-  else if (!stricmp(option, "invert")){
+  } else if (!stricmp(option, "invert")) {
     invert = 1;
     fprintf(stderr, "Inversely apply the given LTA transform\n");
-  }
-  else if (!stricmp(option, "src")){
+  } else if (!stricmp(option, "src")) {
     fprintf(stderr, "src volume for the given transform "
             "(given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the src volume...\n");
     mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri){
+    if (!mri) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else if (!stricmp(option, "dst")){
+  } else if (!stricmp(option, "dst")) {
     fprintf(stderr, "dst volume for the transform "
             "(given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the dst volume...\n");
     mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri_dst){
+    if (!mri_dst) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else if (!stricmp(option, "out") ||
-           !stricmp(option, "out_file") ||
-           !stricmp(option, "out_name"))
-    {
-      out_name = argv[2];
-      printf("Output differences to file %s\n", out_name);
-      nargs = 1 ;
-    }
-  else if (!stricmp(option, "nsmooth"))
-    {
-      nSmoothSteps = atoi(argv[2]);
-      nargs = 1;
-      printf("Perform %d steps of smoothing of input data\n", nSmoothSteps);
-    }
-  else if (!stricmp(option, "trg_type"))
-    {
-      trgtypestring = argv[2];
-      trgtype = string_to_type(trgtypestring);
-      nargs = 1 ;
-    }
-  else if (!stricmp(option, "annot") ||
-           !stricmp(option, "annotation"))
-    {
-      annotation_fname = argv[2];
-      annotation_flag = 1;
-      annotation_name = argv[3];
-      nargs = 2;
-      printf("only compute thickness stats for region with label %s\n",
-             annotation_name);
-    }
-  else if (!stricmp(option, "distance"))
-    {
-      compute_distance = 1;
-    }
-  else if (!stricmp(option, "abs"))
-    {
-      abs_flag = 1;
-    }
-  else if (!stricmp(option, "L") ||
-           !stricmp(option, "Log")
-           )
-    {
-      log_fname = argv[2];
-      nargs = 1;
-      fprintf(stderr, "logging results to %s\n", log_fname) ;
-    }
-  else if (!stricmp(option, "S") ||
-           !stricmp(option, "subj")
-           )
-    {
-      subject_name = argv[2];
-      nargs = 1;
-    }
-  else if(!stricmp(option, "debug"))
-    {
-      debugflag = 1;
-      debugvtx = atoi(argv[2]);
-      nargs = 1;
-    }
-  else if(!stricmp(option, "percentage"))
-    {
-      percentage = 1;
-      printf("Compute percentage thickness-difference\n");
-    }
-  else if(!stricmp(option, "map_like")){
+  } else if (!stricmp(option, "out") ||
+             !stricmp(option, "out_file") ||
+             !stricmp(option, "out_name")) {
+    out_name = argv[2];
+    printf("Output differences to file %s\n", out_name);
+    nargs = 1 ;
+  } else if (!stricmp(option, "nsmooth")) {
+    nSmoothSteps = atoi(argv[2]);
+    nargs = 1;
+    printf("Perform %d steps of smoothing of input data\n", nSmoothSteps);
+  } else if (!stricmp(option, "trg_type")) {
+    trgtypestring = argv[2];
+    trgtype = string_to_type(trgtypestring);
+    nargs = 1 ;
+  } else if (!stricmp(option, "annot") ||
+             !stricmp(option, "annotation")) {
+    annotation_fname = argv[2];
+    annotation_flag = 1;
+    annotation_name = argv[3];
+    nargs = 2;
+    printf("only compute thickness stats for region with label %s\n",
+           annotation_name);
+  } else if (!stricmp(option, "distance")) {
+    compute_distance = 1;
+  } else if (!stricmp(option, "abs")) {
+    abs_flag = 1;
+  } else if (!stricmp(option, "L") ||
+             !stricmp(option, "Log")
+            ) {
+    log_fname = argv[2];
+    nargs = 1;
+    fprintf(stderr, "logging results to %s\n", log_fname) ;
+  } else if (!stricmp(option, "S") ||
+             !stricmp(option, "subj")
+            ) {
+    subject_name = argv[2];
+    nargs = 1;
+  } else if (!stricmp(option, "debug")) {
+    debugflag = 1;
+    debugvtx = atoi(argv[2]);
+    nargs = 1;
+  } else if (!stricmp(option, "percentage")) {
+    percentage = 1;
+    printf("Compute percentage thickness-difference\n");
+  } else if (!stricmp(option, "map_like")) {
     maplike_fname = argv[2];
     printf("Create a volume indicating thickness diff\n");
     nargs = 1;
-  }
-  else if(!stricmp(option, "map_out")){
+  } else if (!stricmp(option, "map_out")) {
     mapout_fname = argv[2];
     printf("Output thickness volume map to %s\n", mapout_fname);
     nargs = 1;
-  }
-  else{
+  } else {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     print_help() ;
     exit(1) ;
@@ -802,8 +797,7 @@ double v_to_f_distance(VERTEX *P0,
                        int face_number,
                        int debug,
                        double *sopt,
-                       double *topt)
-{
+                       double *topt) {
   /* Compute the distance from point P0 to a face of the surface mesh */
   /* (sopt, topt) determines the closest point inside the triangle from P0 */
 
@@ -819,9 +813,15 @@ double v_to_f_distance(VERTEX *P0,
   V2 = &mri_surf->vertices[face->v[1]];
   V3 = &mri_surf->vertices[face->v[2]];
 
-  E0.x = V2->x - V1->x; E0.y = V2->y - V1->y; E0.z = V2->z - V1->z;
-  E1.x = V3->x - V1->x; E1.y = V3->y - V1->y; E1.z = V3->z - V1->z;
-  D.x = V1->x - P0->x;  D.y = V1->y - P0->y; D.z = V1->z - P0->z;
+  E0.x = V2->x - V1->x;
+  E0.y = V2->y - V1->y;
+  E0.z = V2->z - V1->z;
+  E1.x = V3->x - V1->x;
+  E1.y = V3->y - V1->y;
+  E1.z = V3->z - V1->z;
+  D.x = V1->x - P0->x;
+  D.y = V1->y - P0->y;
+  D.z = V1->z - P0->z;
 
   a = E0.x *E0.x + E0.y * E0.y + E0.z *E0.z;
   b = E0.x *E1.x + E0.y * E1.y + E0.z *E1.z;
@@ -830,84 +830,95 @@ double v_to_f_distance(VERTEX *P0,
   e = E1.x *D.x + E1.y * D.y + E1.z *D.z;
   f = D.x *D.x + D.y * D.y + D.z *D.z;
 
-  det = a*c - b*b; s = b*e - c*d; t = b*d - a*e;
+  det = a*c - b*b;
+  s = b*e - c*d;
+  t = b*d - a*e;
 
-  if(debug) printf("det = %g\n", det);
-  if(s + t <= det){
-    if(s < 0){
-      if(t<0){
+  if (debug) printf("det = %g\n", det);
+  if (s + t <= det) {
+    if (s < 0) {
+      if (t<0) {
         /* Region 4 */
-        if( d < 0){ /* Minimum on edge t = 0 */
-          s = (-d >= a ? 1 : -d/a); t = 0;
-        }else if (e < 0){ /* Minimum on edge s = 0 */
-          t = (-e >= c ? 1 : -e/c); s = 0;
-        }else { s = 0; t = 0;}
-        if(debug)
+        if ( d < 0) { /* Minimum on edge t = 0 */
+          s = (-d >= a ? 1 : -d/a);
+          t = 0;
+        } else if (e < 0) { /* Minimum on edge s = 0 */
+          t = (-e >= c ? 1 : -e/c);
+          s = 0;
+        } else {
+          s = 0;
+          t = 0;
+        }
+        if (debug)
           printf("region 4,  d= %g, e = %g, s =%g, t =%g\n", d, e, s, t);
-      }else{
+      } else {
         /* Region 3 */
         s = 0;
         t = ( e >= 0 ? 0 : (-e >= c ? 1 : (-e/c)));
-        if(debug) printf("region 3, s =%g, t =%g\n", s, t);
+        if (debug) printf("region 3, s =%g, t =%g\n", s, t);
       }
-    }
-    else if (t < 0){
+    } else if (t < 0) {
       /* Region 5 */
       t = 0;
       s = (d >= 0 ? 0 :(-d >= a ? 1 : (-d/a)));
-      if(debug) printf("region 5, s =%g, t =%g\n", s, t);
-    }else{
+      if (debug) printf("region 5, s =%g, t =%g\n", s, t);
+    } else {
       /* Region 0 */
       invDet = 1/det;
-      s *= invDet; t *= invDet;
-      if(debug) printf("region 0, s =%g, t =%g\n", s, t);
+      s *= invDet;
+      t *= invDet;
+      if (debug) printf("region 0, s =%g, t =%g\n", s, t);
     }
-  }else{
-    if( s < 0 ){
+  } else {
+    if ( s < 0 ) {
       /* Region 2 */
-      tmp0 = b + d; tmp1 = c + e;
-      if(tmp1 > tmp0){
+      tmp0 = b + d;
+      tmp1 = c + e;
+      if (tmp1 > tmp0) {
         numer = tmp1 - tmp0;
         denom = a - b - b +c;
         s = (numer >= denom ? 1 : numer/denom);
         t = 1-s;
-      }else{
+      } else {
         s = 0;
         /* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
         t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
       }
-      if(debug) printf("region 2, s =%g, t =%g\n", s, t);
-    }else if( t < 0){
+      if (debug) printf("region 2, s =%g, t =%g\n", s, t);
+    } else if ( t < 0) {
       /* Region 6 */
-      tmp0 = b + e; tmp1 = a + d;
-      if(tmp1 > tmp0){ /* Minimum at line s + t = 1 */
+      tmp0 = b + e;
+      tmp1 = a + d;
+      if (tmp1 > tmp0) { /* Minimum at line s + t = 1 */
         numer = tmp1 - tmp0; /* Positive */
         denom = a + c - b -b;
         t = (numer >= denom ? 1 : (numer/denom));
         s = 1 - t;
-      }else{ /* Minimum at line t = 0 */
+      } else { /* Minimum at line t = 0 */
         s = (tmp1 <= 0 ? 1 : (d >= 0 ? 0 : -d/a));
         t = 0;
       }
-      if(debug) printf("region 6, s =%g, t =%g\n", s, t);
-    }else{
+      if (debug) printf("region 6, s =%g, t =%g\n", s, t);
+    } else {
       /* Region 1 */
       numer = c + e - b - d;
-      if(numer <= 0){ s = 0;}
-      else{
+      if (numer <= 0) {
+        s = 0;
+      } else {
         denom = a + c - b - b; /* denom is positive */
         s = (numer >= denom ? 1 : (numer/denom));
       }
       t = 1-s;
-      if(debug) printf("region 1, s =%g, t =%g\n", s, t);
+      if (debug) printf("region 1, s =%g, t =%g\n", s, t);
     }
   }
 
-  if( s < 0  || s > 1 || t < 0 || t > 1){
+  if ( s < 0  || s > 1 || t < 0 || t > 1) {
     printf("Error in computing s and t \n");
   }
 
-  *sopt = s; *topt = t;
+  *sopt = s;
+  *topt = t;
   /* return (sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f)); */
   /* The square-root will be taken later to save time */
   return (a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f);
@@ -918,8 +929,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
                           MRI *mri_data1,
                           MRI_SURFACE *Mesh2,
                           MRI *mri_data2,
-                          MRI *mri_res)
-{
+                          MRI *mri_res) {
   /* This one will do a more accurate interpolation */
   int index, k, facenumber, closestface, nnindex;
   VERTEX *vertex;
@@ -936,14 +946,15 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
 
   max_distance = 0;
 
-  if(mri_res == NULL)
+  if (mri_res == NULL)
     mri_res = MRIclone(mri_data1, NULL);
 
 
-  total_distance = 0.0; std_dist = 0;
+  total_distance = 0.0;
+  std_dist = 0;
 
-  for(index = 0; index < Mesh1->nvertices; index++){
-    if(Mesh1->vertices[index].border == 1) continue;
+  for (index = 0; index < Mesh1->nvertices; index++) {
+    if (Mesh1->vertices[index].border == 1) continue;
     vertex = &Mesh1->vertices[index];
     nnindex = MHTfindClosestVertexNo(SrcHash,Mesh2,vertex,&dmin);
 
@@ -952,22 +963,23 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
 
     /* Now need to find the closest face in order
        to perform linear interpolation */
-    distance = 1e30; closestface = 0;
-    for(k=0; k < Mesh2->vertices[nnindex].num; k++){
+    distance = 1e30;
+    closestface = 0;
+    for (k=0; k < Mesh2->vertices[nnindex].num; k++) {
 
       facenumber =  Mesh2->vertices[nnindex].f[k]; /* index of the k-th face */
-      if(facenumber < 0 || facenumber >= Mesh2->nfaces) continue;
+      if (facenumber < 0 || facenumber >= Mesh2->nfaces) continue;
       value = v_to_f_distance(vertex, Mesh2, facenumber, 0, &tmps, &tmpt);
 
-      if(distance > value){
+      if (distance > value) {
         distance = value;
         closestface = facenumber;
       }
     }
 
-    if(compute_distance){
+    if (compute_distance) {
       tmp_distance =  sqrt(distance);
-      if(max_distance < tmp_distance) max_distance = tmp_distance;
+      if (max_distance < tmp_distance) max_distance = tmp_distance;
       total_distance += (tmp_distance);
       std_dist += distance;
     }
@@ -976,7 +988,8 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     V1 = &Mesh2->vertices[face->v[0]];
     V2 = &Mesh2->vertices[face->v[1]];
     V3 = &Mesh2->vertices[face->v[2]];
-    sumcurv = 0.0;  sumweight = 0.0;
+    sumcurv = 0.0;
+    sumweight = 0.0;
     weight = 1.0/(1e-20 +
                   (V1->x - vertex->x)*(V1->x - vertex->x) +
                   (V1->y - vertex->y)*(V1->y - vertex->y) +
@@ -1000,16 +1013,16 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
 
     sumcurv /= (sumweight + 1e-30);
     value =  sumcurv -
-      MRIgetVoxVal(mri_data1,index,0,0,0);
+             MRIgetVoxVal(mri_data1,index,0,0,0);
 
-    if(percentage){
+    if (percentage) {
       value /= 0.5*(sumcurv + MRIgetVoxVal(mri_data1,index,0,0,0) + 1e-15);
     }
 
     MRIsetVoxVal(mri_res,index, 0, 0, 0, value);
   }
 
-  if(compute_distance){
+  if (compute_distance) {
     std_dist /= (Mesh1->nvertices + 1e-30);
     total_distance /= (Mesh1->nvertices + 1e-30);
     std_dist = sqrt(std_dist - total_distance* total_distance);
@@ -1022,8 +1035,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
 }
 
 
-void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
-{
+void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2) {
   double error_old, error_new;
   int iter = 0;
   double TR[3][3];
@@ -1038,13 +1050,15 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
   TR[0][0] = TR[1][1] = TR[2][2] = 1;
   TR[0][1] = TR[0][2] = TR[1][0] = TR[1][2] = TR[2][0] = TR[2][1] = 0;
 
-  shift[0] = 0; shift[1] = 0; shift[2]= 0;
+  shift[0] = 0;
+  shift[1] = 0;
+  shift[2]= 0;
 
   mesh2avtx = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
   closevtx2a = (double3d*) malloc(Surf2->nvertices*sizeof(double3d));
 
   /* Initialize */
-  for(index = 0; index < Surf2->nvertices; index++){
+  for (index = 0; index < Surf2->nvertices; index++) {
     mesh2avtx[index].x = Surf2->vertices[index].x;
     mesh2avtx[index].y = Surf2->vertices[index].y;
     mesh2avtx[index].z = Surf2->vertices[index].z;
@@ -1052,7 +1066,7 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
 
   error_old = 1000.0;
   error_new = 900.0;
-  while ((error_old - error_new) > 0.0001 && iter < 50){
+  while ((error_old - error_new) > 0.0001 && iter < 50) {
     error_old = error_new;
     /* For each vertex in Surf2, find its closest vertex in Surf1,
      * and record the coordinates in closevtx2a
@@ -1062,14 +1076,14 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
     // Find the rigid transformation
     error_new = transformS(mesh2avtx, closevtx2a, Surf2->nvertices, TR, shift);
 
-    for (k = 0; k < Surf2->nvertices; k++){
+    for (k = 0; k < Surf2->nvertices; k++) {
       Surf2->vertices[k].x = mesh2avtx[k].x;
       Surf2->vertices[k].y  = mesh2avtx[k].y;
       Surf2->vertices[k].z  = mesh2avtx[k].z;
     }
 
     iter ++;
-    if(debugflag)  printf(" iteration %d, error = %15.4f\n", iter, error_new);
+    if (debugflag)  printf(" iteration %d, error = %15.4f\n", iter, error_new);
   }
 
   MHTfree(&SrcHash);
@@ -1084,8 +1098,7 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
 void FindClosest(MRI_SURFACE *TrueMesh,
                  MHT *SrcHash,
                  MRI_SURFACE *EstMesh,
-                 double3d *closest)
-{
+                 double3d *closest) {
   int index;
   float dmin;
   int annIndex;
@@ -1111,8 +1124,8 @@ double transformS(double3d *V1a,
                   int N,
                   double TR[3][3],
                   double shift[3])
-     // transform V1 to fit V2
-     // V1 is equavilent to left frame in Horn paper
+// transform V1 to fit V2
+// V1 is equavilent to left frame in Horn paper
 {
   double3d centroid1a, centroid2a;
   double Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz;
@@ -1127,11 +1140,15 @@ double transformS(double3d *V1a,
   int k,l, nrot;
   int count;
 
-  centroid1a.x = 0; centroid1a.y = 0; centroid1a.z = 0;
-  centroid2a.x = 0; centroid2a.y = 0; centroid2a.z = 0;
+  centroid1a.x = 0;
+  centroid1a.y = 0;
+  centroid1a.z = 0;
+  centroid2a.x = 0;
+  centroid2a.y = 0;
+  centroid2a.z = 0;
 
   count = 0;
-  for (k = 0; k < N; k ++){
+  for (k = 0; k < N; k ++) {
     //   if (label[k]){
     centroid1a.x += V1a[k].x;
     centroid1a.y += V1a[k].y;
@@ -1150,13 +1167,20 @@ double transformS(double3d *V1a,
   centroid2a.y /= (double)count;
   centroid2a.z /= (double)count;
 
-  Sxx = 0; Sxy = 0; Sxz = 0;
-  Syx = 0; Syy = 0; Syz = 0;
-  Szx = 0; Szy = 0; Szz = 0;
+  Sxx = 0;
+  Sxy = 0;
+  Sxz = 0;
+  Syx = 0;
+  Syy = 0;
+  Syz = 0;
+  Szx = 0;
+  Szy = 0;
+  Szz = 0;
 
   /* Centralize respective point data sets */
-  scale1 = 0; scale2 = 0;
-  for (k = 0; k < N; k ++){
+  scale1 = 0;
+  scale2 = 0;
+  for (k = 0; k < N; k ++) {
     V1a[k].x -= centroid1a.x;
     V1a[k].y -= centroid1a.y;
     V1a[k].z -= centroid1a.z;
@@ -1165,7 +1189,7 @@ double transformS(double3d *V1a,
     V2a[k].y -= centroid2a.y;
     V2a[k].z -= centroid2a.z;
   }
-  for (k = 0; k < N; k++){
+  for (k = 0; k < N; k++) {
     /* if (label[k]){ */
     scale1+=(V1a[k].x * V1a[k].x + V1a[k].y * V1a[k].y + V1a[k].z * V1a[k].z);
     Sxx += V1a[k].x * V2a[k].x;
@@ -1231,9 +1255,10 @@ double transformS(double3d *V1a,
      M[4][1],M[4][2],M[4][3], M[4][4]);*/
 
   jacobi(M,4,d,v,&nrot);
-  dummy = d[1]; l = 1;
-  for (k = 2; k <= 4; k++){
-    if (dummy < d[k]){
+  dummy = d[1];
+  l = 1;
+  for (k = 2; k <= 4; k++) {
+    if (dummy < d[k]) {
       dummy = d[k];
       l = k;
     }
@@ -1259,12 +1284,14 @@ double transformS(double3d *V1a,
      printf("\t %15.11f %15.11f %15.11f\n", R[0][1], R[1][1], R[2][1]);
      printf("\t %15.11f %15.11f %15.11f\n", R[0][2], R[1][2], R[2][2]);*/
 
-  for (k = 0; k < N; k ++){
+  for (k = 0; k < N; k ++) {
     x = R[0][0] * V1a[k].x + R[1][0] * V1a[k].y + R[2][0] * V1a[k].z;
     y = R[0][1] * V1a[k].x + R[1][1] * V1a[k].y + R[2][1] * V1a[k].z;
     z = R[0][2] * V1a[k].x + R[1][2] * V1a[k].y + R[2][2] * V1a[k].z;
 
-    V1a[k].x = x;     V1a[k].y = y;     V1a[k].z = z;
+    V1a[k].x = x;
+    V1a[k].y = y;
+    V1a[k].z = z;
     // if (label[k])
     scale2+=(V1a[k].x * V2a[k].x +  V1a[k].y * V2a[k].y + V1a[k].z * V2a[k].z);
   }
@@ -1272,7 +1299,7 @@ double transformS(double3d *V1a,
   scale1 = scale2/scale1;
   //  printf ("Scaling factor: %15.4f\n", scale1);
 
-  for (k = 0; k < N; k ++){
+  for (k = 0; k < N; k ++) {
     V1a[k].x *= scale1;
     V1a[k].y *= scale1;
     V1a[k].z *= scale1;
@@ -1288,9 +1315,15 @@ double transformS(double3d *V1a,
   }
 
   /* Stores the previous transformation matrix */
-  temp[0][0]=TR[0][0]; temp[0][1]=TR[0][1]; temp[0][2]=TR[0][2];
-  temp[1][0]=TR[1][0]; temp[1][1]=TR[1][1]; temp[1][2]=TR[1][2];
-  temp[2][0]=TR[2][0]; temp[2][1]=TR[2][1]; temp[2][2]=TR[2][2];
+  temp[0][0]=TR[0][0];
+  temp[0][1]=TR[0][1];
+  temp[0][2]=TR[0][2];
+  temp[1][0]=TR[1][0];
+  temp[1][1]=TR[1][1];
+  temp[1][2]=TR[1][2];
+  temp[2][0]=TR[2][0];
+  temp[2][1]=TR[2][1];
+  temp[2][2]=TR[2][2];
 
   /* Update the overall scaled rotation */
   TR[0][0]=scale1*(temp[0][0]*R[0][0]+temp[0][1]*R[1][0]+temp[0][2]*R[2][0]);
@@ -1346,8 +1379,7 @@ double transformS(double3d *V1a,
 }
 
 
-static void jacobi(float **a, int n,float *d, float **v, int *nrot)
-{
+static void jacobi(float **a, int n,float *d, float **v, int *nrot) {
   int j,iq,ip,i;
   float tresh,theta,tau,t,sm,s,h,g,c,*b,*z;
 
@@ -1407,16 +1439,16 @@ static void jacobi(float **a, int n,float *d, float **v, int *nrot)
           a[ip][iq]=0.0;
           for (j=1;j<=ip-1;j++) {
             ROTATE(a,j,ip,j,iq)
-              }
+          }
           for (j=ip+1;j<=iq-1;j++) {
             ROTATE(a,ip,j,j,iq)
-              }
+          }
           for (j=iq+1;j<=n;j++) {
             ROTATE(a,ip,j,iq,j)
-              }
+          }
           for (j=1;j<=n;j++) {
             ROTATE(v,j,ip,j,iq)
-              }
+          }
           ++(*nrot);
         }
       }
@@ -1440,8 +1472,7 @@ static void jacobi(float **a, int n,float *d, float **v, int *nrot)
   Search the face for vno and set the v->n[] field
   appropriately.
   ------------------------------------------------------*/
-static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
-{
+static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno) {
   VERTEX  *v ;
   FACE    *f ;
   int     n, i ;
@@ -1449,11 +1480,10 @@ static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
   v = &mris->vertices[vno] ;
   f = &mris->faces[fno] ;
 
-  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      if (f->v[n] == vno)
-        break ;
-    }
+  for (n = 0 ; n < VERTICES_PER_FACE ; n++) {
+    if (f->v[n] == vno)
+      break ;
+  }
   if (n >= VERTICES_PER_FACE)
     return(ERROR_BADPARM) ;
 

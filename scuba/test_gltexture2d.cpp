@@ -1,3 +1,31 @@
+/**
+ * @file  test_gltexture2d.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:16 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <string>
 #include <GL/glut.h>
 #include <GL/glx.h>
@@ -44,13 +72,13 @@ void LoadTextures () {
 
   GLubyte* texture = NULL;
   texture = (GLubyte*) malloc( mri->width * mri->height * mri->depth *
- 			       sizeof(GLubyte) );
-  
-  for( int nZ = 0; nZ < mri->depth; nZ++ ) {
-    for( int nY = 0; nY < mri->height; nY++ ) {
-      for( int nX = 0; nX < mri->width; nX++ ) {
-	texture[nZ*mri->height*mri->width + nY*mri->width + nX] =
-	  MRIvox(mri,nZ,nY,nX);
+                               sizeof(GLubyte) );
+
+  for ( int nZ = 0; nZ < mri->depth; nZ++ ) {
+    for ( int nY = 0; nY < mri->height; nY++ ) {
+      for ( int nX = 0; nX < mri->width; nX++ ) {
+        texture[nZ*mri->height*mri->width + nY*mri->width + nX] =
+          MRIvox(mri,nZ,nY,nX);
       }
     }
   }
@@ -65,11 +93,11 @@ void LoadTextures () {
   for (int s = 0; s < 16; s++)
     for (int t = 0; t < 16; t++)
       for (int r = 0; r < 16; r++) {
-	image[r][t][s][0] = (GLubyte) (s * 17);
-	image[r][t][s][1] = (GLubyte) (t * 17);
-	image[r][t][s][2] = (GLubyte) (r * 17);
+        image[r][t][s][0] = (GLubyte) (s * 17);
+        image[r][t][s][1] = (GLubyte) (t * 17);
+        image[r][t][s][2] = (GLubyte) (r * 17);
       }
-  
+
 
   width = height = depth = 16;
   nSlice = depth / 2;
@@ -93,15 +121,15 @@ void LoadTextures () {
   CheckError();
 
   glTexImage3D( GL_TEXTURE_3D, 0, GL_RGB,
-		width, height, depth, 0,
-		GL_RGB, GL_UNSIGNED_BYTE,
-		image );
+                width, height, depth, 0,
+                GL_RGB, GL_UNSIGNED_BYTE,
+                image );
 
 #if 0
   glTexImage3D( GL_TEXTURE_3D, 0, GL_RGB,
-		width, height, depth, 0,
-		GL_LUMINANCE, GL_UNSIGNED_BYTE,
-		&(texture[0]) );
+                width, height, depth, 0,
+                GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                &(texture[0]) );
   CheckError();
 #endif
 
@@ -115,17 +143,17 @@ void LoadTextures () {
   glGenTextures( mri->depth, textureID );
   CheckError();
 
-  for( int nZ = 0; nZ < mri->depth; nZ++ ) {
-    
-    
+  for ( int nZ = 0; nZ < mri->depth; nZ++ ) {
+
+
     glBindTexture( GL_TEXTURE_2D, textureID[nZ] );
     CheckError();
     glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
     CheckError();
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB,
-		  width, height, 0,
-		  GL_LUMINANCE, GL_UNSIGNED_BYTE, 
-		  &(texture[nZ*mri->width*mri->height]) );
+                  width, height, 0,
+                  GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                  &(texture[nZ*mri->width*mri->height]) );
     CheckError();
 
 
@@ -152,7 +180,7 @@ void LoadTextures () {
 
   glShadeModel( GL_FLAT );
   CheckError();
-    
+
   // free( texture );
 }
 
@@ -191,19 +219,19 @@ void DrawWindow () {
   glLoadIdentity();
 
   glBegin( GL_QUADS );
-  
+
   glTexCoord3f( 0.0f, 0.0f, (float)nSlice/(float)depth );
   glVertex3f  ( -1.0f, -1.0f, 0 );
 
   glTexCoord3f( 0.0f, 1.0f, (float)nSlice/(float)depth );
   glVertex3f  ( -1.0f, 1.0f, 0 );
-  
+
   glTexCoord3f( 1.0f, 1.0f, (float)nSlice/(float)depth );
   glVertex3f  ( 1.0f, 1.0f, 0 );
-  
+
   glTexCoord3f( 1.0f, 0.0f, (float)nSlice/(float)depth );
   glVertex3f  ( 1.0f, -1.0f, 0 );
-  
+
   glEnd();
   glGetError();  // get rid of error
 
@@ -251,22 +279,22 @@ void ReshapeWindow ( int iWidth, int iHeight ) {
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
   gluPerspective( 45.0f, (GLfloat) windowWidth / windowHeight, 0.1f, 100.0f );
-  
+
 }
 
 void HandleKeyboard ( unsigned char iKey, int iX, int iY ) {
 
 
-  switch( iKey ) {
-  case '.': 
-    nSlice++; 
-    if( nSlice >= depth ) {
+  switch ( iKey ) {
+  case '.':
+    nSlice++;
+    if ( nSlice >= depth ) {
       nSlice = 0;
     }
     break;
-  case ',': 
-    nSlice--; 
-    if( nSlice < 0 ) {
+  case ',':
+    nSlice--;
+    if ( nSlice < 0 ) {
       nSlice = depth - 1;
     }
     break;
@@ -274,9 +302,9 @@ void HandleKeyboard ( unsigned char iKey, int iX, int iY ) {
 }
 
 void Timer ( int value ) {
-  
+
   rotation++;
-  if( rotation > 360.0f ) rotation = 0.0f;
+  if ( rotation > 360.0f ) rotation = 0.0f;
   glutPostRedisplay();
 
   glutTimerFunc( 10, Timer, value );

@@ -1,3 +1,31 @@
+/**
+ * @file  xSparseVolume.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef xSparseVolume_h
 #define xSparseVolume_h
 
@@ -15,40 +43,42 @@ typedef enum {
   xSVol_tErr_IndexNotAllocated,
   xSVol_tErr_InvalidErrorCode,
   xSVol_knNumErrorCodes
- } xSVol_tErr;
+} xSVol_tErr;
 
- #define xSVol_kSignature 0x098abcdd
+#define xSVol_kSignature 0x098abcdd
 
- typedef struct {
+typedef struct
+{
 
-   tSignature mSignature;
+  tSignature mSignature;
 
-   /* stored mStorage[z][y][x] */
-   void**** mStorage;
+  /* stored mStorage[z][y][x] */
+  void**** mStorage;
 
-   /* dimensions of volume */
-   int mnXDim;
-   int mnYDim;
-   int mnZDim;
+  /* dimensions of volume */
+  int mnXDim;
+  int mnYDim;
+  int mnZDim;
 
- } xSparseVolume, *xSparseVolumeRef;
+}
+xSparseVolume, *xSparseVolumeRef;
 
- typedef void(*xSVol_tDeleteEntryFuncPtr)( void* );
+typedef void(*xSVol_tDeleteEntryFuncPtr)( void* );
 
- /* only allocates an array of z values */
- xSVol_tErr xSVol_New    ( xSparseVolumeRef* opVolume,
-         int               inXDim,
-         int               inYDim,
-         int               inZDim );
- xSVol_tErr xSVol_Delete ( xSparseVolumeRef*         iopVolume,
-        xSVol_tDeleteEntryFuncPtr ipDeleteFunc );
+/* only allocates an array of z values */
+xSVol_tErr xSVol_New    ( xSparseVolumeRef* opVolume,
+                          int               inXDim,
+                          int               inYDim,
+                          int               inZDim );
+xSVol_tErr xSVol_Delete ( xSparseVolumeRef*         iopVolume,
+                          xSVol_tDeleteEntryFuncPtr ipDeleteFunc );
 
 /* checks if the given location exists. if so, returns the value of the
-   data stored there (a pointer). if not, returns NULL and 
+   data stored there (a pointer). if not, returns NULL and
    xSVol_tErr_ItemNotFound. */
 xSVol_tErr xSVol_Get ( xSparseVolumeRef this,
-           xVoxelRef        iWhere,
-           void**           oppItem );
+                       xVoxelRef        iWhere,
+                       void**           oppItem );
 
 /* sets the pointer value of the location. if necessary, allocates additional
    storage in the volume. starts out with only a z array allocated. when it
@@ -57,25 +87,25 @@ xSVol_tErr xSVol_Get ( xSparseVolumeRef this,
    not allocate any more memory, while one for 2,3,3 will allocate another y
    and x array. */
 xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
-           xVoxelRef        iWhere,
-           void*            ipItem );
+                       xVoxelRef        iWhere,
+                       void*            ipItem );
 
 /* purges all memory. calls the given delete function on each object, if
    given. */
 xSVol_tErr xSVol_Purge ( xSparseVolumeRef          this,
-       xSVol_tDeleteEntryFuncPtr ipDeleteFunc );
+                         xSVol_tDeleteEntryFuncPtr ipDeleteFunc );
 
 /* calls given function an all entries. calls the z function every time a new
    z index is entered or left, the y function etc */
 xSVol_tErr xSVol_VisitAll ( xSparseVolumeRef this,
-          void(*ipVisitFunction)(void* ipItem),
-          void(*ipXFunction)(int inIndex,tBoolean bEntering),
-          void(*ipYFunction)(int inIndex,tBoolean bEntering),
-          void(*ipZFunction)(int inIndex,tBoolean bEntering));
+                            void(*ipVisitFunction)(void* ipItem),
+                            void(*ipXFunction)(int inIndex,tBoolean bEntering),
+                            void(*ipYFunction)(int inIndex,tBoolean bEntering),
+                            void(*ipZFunction)(int inIndex,tBoolean bEntering));
 
 xSVol_tErr xSVol_VerifyIndex_ ( xSparseVolumeRef this,
-        xVoxelRef        iIndex );
-                 
+                                xVoxelRef        iIndex );
+
 char* xSVol_GetErrorString ( xSVol_tErr ieCode );
 xSVol_tErr xSVol_Verify ( xSparseVolumeRef this );
 

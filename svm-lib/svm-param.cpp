@@ -1,3 +1,31 @@
+/**
+ * @file  svm-param.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <string.h>
 #include "svm-io-format.h"
 #include "svm-param.h"
@@ -23,8 +51,7 @@ const char* SvmParam::nameOptEpsilon = "-opt_epsilon";
 
 using namespace std;
 
-SvmParam::SvmParam()
-{
+SvmParam::SvmParam() {
   C = dC;
   kernel = dKernel;
   verbose = dVerbose;
@@ -36,25 +63,22 @@ SvmParam::SvmParam()
 }
 
 
-int find_param(const char* param, const char* const* argv, int argc) 
-{
-  for (int i = 0; i < argc; i++ ) 
-    if (!strcmp(param,argv[i]) ) 
+int find_param(const char* param, const char* const* argv, int argc) {
+  for (int i = 0; i < argc; i++ )
+    if (!strcmp(param,argv[i]) )
       return i;
   return -1;
 }
 
 template <class T>
-bool scan_param (T& param, const char* valStr, const char *format = "%d " )
-{
+bool scan_param (T& param, const char* valStr, const char *format = "%d " ) {
   return ( sscanf(valStr,format,&param) == 1 );
 
 }
 
 template <class T>
-bool scan_single_param (T& param, const char *paramString, 
-			const char* const* argv, int argc)
-{
+bool scan_single_param (T& param, const char *paramString,
+                        const char* const* argv, int argc) {
   int index;
   if ( (index = find_param(paramString,argv,argc)) >= 0 )
     return scan_param(param,argv[index+1],readFormat(param));
@@ -64,8 +88,7 @@ bool scan_single_param (T& param, const char *paramString,
 
 
 
-void SvmParam::parse(const char* const* argv, int argc)
-{
+void SvmParam::parse(const char* const* argv, int argc) {
   // Kernel is a special case, it has two parameters.
   int index = find_param(nameKernel,argv,argc);
   if ( index >= 0 ) {
@@ -76,10 +99,10 @@ void SvmParam::parse(const char* const* argv, int argc)
   }
 
 
-    
+
   // Parse all the single valued parameters
   scan_single_param(C,nameC,argv,argc);
-  
+
   scan_single_param(verbose,nameVerbose,argv,argc);
   scan_single_param(alphaEpsilon,nameAlphaEpsilon,argv,argc);
   scan_single_param(classEpsilon,nameClassEpsilon,argv,argc);
@@ -92,36 +115,35 @@ void SvmParam::parse(const char* const* argv, int argc)
 
 
 
-ostream& SvmParam::printUsage(ostream& s)
-{
+ostream& SvmParam::printUsage(ostream& s) {
   s << "\nSVM options:\n"
-    << " " << nameKernel << " kernel_type [kernel_param]"
-    << " : kernel used in the training step\n"
-    << "\t kernel_type: 1-linear, 2 - rbf, 3 - polynomial (default = "
-    << dKernel.getString() << ")\n"
-    << "\t kernel_parameter: width for rbf, degree for polynomial\n"
-    << " " << nameC << " double (default = " << dC << ")"
-    << " : soft margin parameter in the training step\n"
-    << "\nAdditional options:\n"
-    << " " << nameVerbose << " int (0-3, default = " << dVerbose << ")"
-    << " : verbose mode, controls the level of log detail\n"
-    << " " << nameAlphaEpsilon << " double (default = " << dAlphaEpsilon << ")"
-    << " : a (positive) threshold below which\n"
-    << "\t an alpha coefficient is considered zero; if -1, the threshold\n"
-    << "\t is set adaptively to 10^-5 of the largest alpha\n"
-    << " " << nameClassEpsilon << " double (default = " << dClassEpsilon << ")"
-    << " : threshold for the classification\n"
-    << "\t result; has to exceed the threshold to count as correct\n"
-    << "\nInterior poit optimization options:\n"
-    << " " << nameMaxIterations << " int (default = " << dMaxIterations << ")"
-    << " : maximal numer of optimization iterations\n"
-    << " " << nameSigDig << " int (default = " << dSigDig << ") "
-    << " : number of significant digits to which\n"
-    << "\t the primal and the dual cost functions have to agree\n"
-    << " " << nameOptEpsilon << " double (default = " << dOptEpsilon << ")"
-    << " : epsilon region around\n"
-    << "\t the constraints that is enforced during the optimization\n"
-    << "\n";
+  << " " << nameKernel << " kernel_type [kernel_param]"
+  << " : kernel used in the training step\n"
+  << "\t kernel_type: 1-linear, 2 - rbf, 3 - polynomial (default = "
+  << dKernel.getString() << ")\n"
+  << "\t kernel_parameter: width for rbf, degree for polynomial\n"
+  << " " << nameC << " double (default = " << dC << ")"
+  << " : soft margin parameter in the training step\n"
+  << "\nAdditional options:\n"
+  << " " << nameVerbose << " int (0-3, default = " << dVerbose << ")"
+  << " : verbose mode, controls the level of log detail\n"
+  << " " << nameAlphaEpsilon << " double (default = " << dAlphaEpsilon << ")"
+  << " : a (positive) threshold below which\n"
+  << "\t an alpha coefficient is considered zero; if -1, the threshold\n"
+  << "\t is set adaptively to 10^-5 of the largest alpha\n"
+  << " " << nameClassEpsilon << " double (default = " << dClassEpsilon << ")"
+  << " : threshold for the classification\n"
+  << "\t result; has to exceed the threshold to count as correct\n"
+  << "\nInterior poit optimization options:\n"
+  << " " << nameMaxIterations << " int (default = " << dMaxIterations << ")"
+  << " : maximal numer of optimization iterations\n"
+  << " " << nameSigDig << " int (default = " << dSigDig << ") "
+  << " : number of significant digits to which\n"
+  << "\t the primal and the dual cost functions have to agree\n"
+  << " " << nameOptEpsilon << " double (default = " << dOptEpsilon << ")"
+  << " : epsilon region around\n"
+  << "\t the constraints that is enforced during the optimization\n"
+  << "\n";
 
   return s;
 }

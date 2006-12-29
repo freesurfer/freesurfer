@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaROI.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "ScubaROI.h"
 #include "ScubaColorLUT.h"
 
@@ -9,170 +37,166 @@ ScubaROIStaticTclListener ScubaROI::mStaticListener;
 
 
 ScubaROI::ScubaROI () :
-  Broadcaster( "ScubaROI" ) ,
-  msLabel( "" ),
-  mType( Free ),
-  mLUTID( 0 ),
-  mStructure( 0 ),
-  mbSuspendROIChangedMessage( false )
-{
+    Broadcaster( "ScubaROI" ) ,
+    msLabel( "" ),
+    mType( Free ),
+    mLUTID( 0 ),
+    mStructure( 0 ),
+    mbSuspendROIChangedMessage( false ) {
   mColor[0] = mColor[1] = mColor[2] = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetROILabel", 2, "roiID label",
-			 "Set the label for a ROI." );
+                         "Set the label for a ROI." );
   commandMgr.AddCommand( *this, "GetROILabel", 1, "roiID",
-			 "Returns the label for a ROI." );
+                         "Returns the label for a ROI." );
   commandMgr.AddCommand( *this, "SetROIType", 2, "roiID type",
-			 "Sets ROI type. type should be structure or free." );
+                         "Sets ROI type. type should be structure or free." );
   commandMgr.AddCommand( *this, "GetROIType", 1, "roiID",
-			 "Returns ROI type of structure or free." );
+                         "Returns ROI type of structure or free." );
   commandMgr.AddCommand( *this, "SetROILUTID", 2, "roiID lutID",
-			 "Sets the LUT ID for an ROI." );
+                         "Sets the LUT ID for an ROI." );
   commandMgr.AddCommand( *this, "GetROILUTID", 1, "roiID",
-			 "Returns LUT ID for an ROI." );
+                         "Returns LUT ID for an ROI." );
   commandMgr.AddCommand( *this, "SetROIStructure", 2, "roiID structure",
-			 "Sets ROI structure index." );
+                         "Sets ROI structure index." );
   commandMgr.AddCommand( *this, "GetROIStructure", 1, "roiID",
-			 "Returns ROI structure index." );
+                         "Returns ROI structure index." );
   commandMgr.AddCommand( *this, "SetROIColor", 4, "roiID red green blue",
-			 "Sets ROI color. red, green, and blue should be"
-			 "0-255 integers." );
+                         "Sets ROI color. red, green, and blue should be"
+                         "0-255 integers." );
   commandMgr.AddCommand( *this, "GetROIColor", 1, "roiID",
-			 "Returns ROI color as a list of red, green, and "
-			 "blue integers from 0-255." );
+                         "Returns ROI color as a list of red, green, and "
+                         "blue integers from 0-255." );
 
 }
 
-ScubaROI::~ScubaROI () {
-
-}
+ScubaROI::~ScubaROI () {}
 
 
 TclCommandManager::TclCommandResult
 ScubaROI::DoListenToTclCommand ( char* isCommand,
-				 int, char** iasArgv ) {
+                                 int, char** iasArgv ) {
 
   // SetROILabel <transformID> <label>
-  if( 0 == strcmp( isCommand, "SetROILabel" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROILabel" ) ) {
     int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
-    
-    if( mID == transformID ) {
-      
+
+    if ( mID == transformID ) {
+
       string sLabel = iasArgv[2];
       SetLabel( sLabel );
     }
   }
 
   // GetROILabel <transformID>
-  if( 0 == strcmp( isCommand, "GetROILabel" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROILabel" ) ) {
     int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
-    
-    if( mID == transformID ) {
+
+    if ( mID == transformID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabel() << "\"";
       sReturnValues = ssReturnValues.str();
     }
   }
-  
+
   // SetROIType <roiID> <type>
-  if( 0 == strcmp( isCommand, "SetROIType" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROIType" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       Type type;
-      if( 0 == strcmp( iasArgv[2], "structure" ) ) {
-	type = Structure;
-      } else if( 0 == strcmp( iasArgv[2], "free" ) ) {
-	type = Free;
+      if ( 0 == strcmp( iasArgv[2], "structure" ) ) {
+        type = Structure;
+      } else if ( 0 == strcmp( iasArgv[2], "free" ) ) {
+        type = Free;
       } else {
-	sResult = "bad type \"" + string(iasArgv[2]) +
-	  "\", should be structure or free";
-	return error;
+        sResult = "bad type \"" + string(iasArgv[2]) +
+                  "\", should be structure or free";
+        return error;
       }
-      
+
       SetType( type );
     }
   }
 
   // GetROIType <roiID>
-  if( 0 == strcmp( isCommand, "GetROIType" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROIType" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
-      switch( mType ) {
+
+    if ( mID == roiID ) {
+
+      switch ( mType ) {
       case Structure:
-	sReturnValues = "structure";
-	break;
+        sReturnValues = "structure";
+        break;
       case Free:
-	sReturnValues = "free";
-	break;
+        sReturnValues = "free";
+        break;
       }
       sReturnFormat = "s";
     }
   }
 
   // SetROILUTID <roiID> <lutID>
-  if( 0 == strcmp( isCommand, "SetROILUTID" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROILUTID" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
+
+    if ( mID == roiID ) {
 
       int lutID = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad lut ID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad lut ID";
+        return error;
       }
-    
+
       try {
-	ScubaColorLUT& lut = ScubaColorLUT::FindByID( lutID );
-	if( lut.GetID() != lutID ) {
-	  sResult = "Got wrong lut";
-	  return error;
-	}
+        ScubaColorLUT& lut = ScubaColorLUT::FindByID( lutID );
+        if ( lut.GetID() != lutID ) {
+          sResult = "Got wrong lut";
+          return error;
+        }
+      } catch (...) {
+        sResult = "bad lut ID, doesn't exist";
+        return error;
       }
-      catch(...) {
-	sResult = "bad lut ID, doesn't exist";
-	return error;
-      }
-      
+
       SetColorLUT( lutID );
     }
   }
 
   // GetROILUTID <roiID>
-  if( 0 == strcmp( isCommand, "GetROILUTID" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROILUTID" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       stringstream ssReturnValues;
       ssReturnValues << GetColorLUT();
       sReturnValues = ssReturnValues.str();
@@ -181,19 +205,19 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetROIStructure <roiID> <structure>
-  if( 0 == strcmp( isCommand, "SetROIStructure" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROIStructure" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       int structure = strtol( iasArgv[2], (char**)NULL, 10 );
-      if( ERANGE == errno ) {
-	sResult = "bad structure";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad structure";
+        return error;
       }
 
       SetStructure( structure );
@@ -201,15 +225,15 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetROIStructure <roiID>
-  if( 0 == strcmp( isCommand, "GetROIStructure" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROIStructure" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       stringstream ssReturnValues;
       ssReturnValues << mStructure;
       sReturnValues = ssReturnValues.str();
@@ -218,33 +242,33 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetROIColor <roiID> <red> <green> <blue>
-  if( 0 == strcmp( isCommand, "SetROIColor" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROIColor" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       int red = strtol( iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad red";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad red";
+        return error;
       }
-      
+
       int green = strtol( iasArgv[3], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad green";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad green";
+        return error;
       }
-      
+
       int blue = strtol( iasArgv[4], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad blue";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad blue";
+        return error;
       }
-      
+
       int color[3];
       color[0] = red;
       color[1] = green;
@@ -254,19 +278,19 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetROIColor <roiID>
-  if( 0 == strcmp( isCommand, "GetROIColor" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROIColor" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad roi ID";
       return error;
     }
-    
-    if( mID == roiID ) {
-      
+
+    if ( mID == roiID ) {
+
       sReturnFormat = "Liiil";
       stringstream ssReturnValues;
       ssReturnValues << mColor[0] << " " << mColor[1] << " "
-		     << mColor[2];
+      << mColor[2];
       sReturnValues = ssReturnValues.str();
     }
   }
@@ -274,7 +298,7 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   return ok;
 }
 
-void 
+void
 ScubaROI::SetColor( int iColor[3] ) {
 
   mColor[0] = iColor[0];
@@ -282,7 +306,7 @@ ScubaROI::SetColor( int iColor[3] ) {
   mColor[2] = iColor[2];
 }
 
-void 
+void
 ScubaROI::GetColor( int oColor[3] ) {
 
   oColor[0] = mColor[0];
@@ -290,10 +314,10 @@ ScubaROI::GetColor( int oColor[3] ) {
   oColor[2] = mColor[2];
 }
 
-void 
+void
 ScubaROI::GetDrawColor( int oColor[3] ) {
 
-  switch( mType ) {
+  switch ( mType ) {
   case Free:
     oColor[0] = mColor[0];
     oColor[1] = mColor[1];
@@ -303,33 +327,32 @@ ScubaROI::GetDrawColor( int oColor[3] ) {
     try {
       ScubaColorLUT& lut = ScubaColorLUT::FindByID( mLUTID );
       lut.GetColorAtIndex( mStructure, oColor );
-    }
-    catch(...) {
+    } catch (...) {
       // Couldn't find LUT, just use red.
       oColor[0] = 255;
       oColor[1] = 0;
       oColor[2] = 0;
     }
   }
-    break;
+  break;
   }
 }
 
 void
 ScubaROI::ROIChanged() {
 
-  if( !mbSuspendROIChangedMessage ) {
+  if ( !mbSuspendROIChangedMessage ) {
     int id = GetID();
     SendBroadcast( "roiChanged", (void*)&id );
   }
 }
 
-void 
+void
 ScubaROI::BeginBatchChanges () {
   mbSuspendROIChangedMessage = true;
 }
 
-void 
+void
 ScubaROI::EndBatchChanges () {
   mbSuspendROIChangedMessage = false;
   ROIChanged();
@@ -338,33 +361,31 @@ ScubaROI::EndBatchChanges () {
 ScubaROIStaticTclListener::ScubaROIStaticTclListener () {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "GetROIIDList", 0, "", 
-			 "Return a list of all ROIs." );
+  commandMgr.AddCommand( *this, "GetROIIDList", 0, "",
+                         "Return a list of all ROIs." );
 }
 
-ScubaROIStaticTclListener::~ScubaROIStaticTclListener () {
-
-}
+ScubaROIStaticTclListener::~ScubaROIStaticTclListener () {}
 
 TclCommandManager::TclCommandResult
-ScubaROIStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-						  int, char** ) {
+ScubaROIStaticTclListener::DoListenToTclCommand ( char* isCommand,
+    int, char** ) {
 
   // GetROIIDList
-  if( 0 == strcmp( isCommand, "GetROIIDList" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROIIDList" ) ) {
     list<int> idList;
     ScubaROI::GetIDList( idList );
     stringstream ssFormat;
     stringstream ssResult;
     ssFormat << "L";
     list<int>::iterator tID;
-    for( tID = idList.begin(); tID != idList.end(); ++tID ) {
+    for ( tID = idList.begin(); tID != idList.end(); ++tID ) {
       int id = *tID;
       ssFormat << "i";
       ssResult << id << " ";
     }
     ssFormat << "l";
-    
+
     sReturnFormat = ssFormat.str();
     sReturnValues = ssResult.str();
   }

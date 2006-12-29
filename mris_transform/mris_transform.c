@@ -1,3 +1,31 @@
+/**
+ * @file  mris_transform.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +41,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_transform.c,v 1.6 2006/10/31 18:57:39 fischl Exp $";
+static char vcid[] = "$Id: mris_transform.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,8 +59,7 @@ MRI          *mri = 0;
 MRI          *mri_dst = 0;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname, *xform_fname ;
   int          ac, nargs ;
   LTA          *lta=0 ;
@@ -40,7 +67,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.6 2006/10/31 18:57:39 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.7 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -51,8 +78,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -75,22 +101,19 @@ main(int argc, char *argv[])
   transform = TransformRead(xform_fname) ;
   if (!transform)
     ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
-                Progname, xform_fname) ;
-  if(transform->type == MNI_TRANSFORM_TYPE || 
-     transform->type == TRANSFORM_ARRAY_TYPE ||
-     transform->type  == REGISTER_DAT)
-  {
+              Progname, xform_fname) ;
+  if (transform->type == MNI_TRANSFORM_TYPE ||
+      transform->type == TRANSFORM_ARRAY_TYPE ||
+      transform->type  == REGISTER_DAT) {
     lta = (LTA *)(transform->xform) ;
-    
-    if (mri == 0 && lta->xforms[0].src.valid == 0)
-    {
+
+    if (mri == 0 && lta->xforms[0].src.valid == 0) {
       fprintf(stderr, "The transform does not have the valid src volume info.\n");
       fprintf(stderr, "Either you give src volume info by option --src or\n");
       fprintf(stderr, "make the transform to have the valid src info.\n");
       ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
     }
-    if (mri_dst == 0 && lta->xforms[0].dst.valid == 0)
-    {
+    if (mri_dst == 0 && lta->xforms[0].dst.valid == 0) {
       fprintf(stderr, "The transform does not have the valid dst volume info.\n");
       fprintf(stderr, "Either you give src volume info by option --dst or\n");
       fprintf(stderr, "make the transform to have the valid dst info.\n");
@@ -105,19 +128,19 @@ main(int argc, char *argv[])
     //       orig              ------>      RAS   c_(ras) != 0
     //        |                              |
     //        |                              | identity
-    //        V                              V 
-    //    conformed vol        ------>      RAS     
+    //        V                              V
+    //    conformed vol        ------>      RAS
     //        |                              |
     //        | identity                     |
     //        V                              V
-    //    conformed vol        ------>   surfaceRAS 
+    //    conformed vol        ------>   surfaceRAS
     //
     // given a volume transform you have to create a surfaceRAS transform
     //
     // Note that vertices are given by surfaceRAS coordinates
     //
     // RAS-to-RAS transform
-    // 
+    //
     //    surfaceRAS--->RAS --(ras-to-ras)-->RAS -->surfaceRAS
     //
     // VOX-to-Vox transform
@@ -125,16 +148,14 @@ main(int argc, char *argv[])
     //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
     //
     //
-    if (invert)
-    {
+    if (invert) {
       VOL_GEOM vgtmp;
       LT *lt;
       MATRIX *m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0)
-      {
+      if (lt->dst.valid == 0 || lt->src.valid == 0) {
         fprintf(stderr, "WARNING:***************************************************************\n");
         fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
         fprintf(stderr, "WARNING:***************************************************************\n");
@@ -143,13 +164,9 @@ main(int argc, char *argv[])
       copyVolGeom(&lt->src, &lt->dst);
       copyVolGeom(&vgtmp, &lt->src);
     }
-  }
-  else
-  {
+  } else {
     TransformInvert(transform, mri_dst) ;
-    if (invert)
-    {
-    }
+    if (invert) {}
     //    ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat type");
   }
   //
@@ -173,65 +190,55 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
-  else if (!stricmp(option, "-src"))
-  {
+  else if (!stricmp(option, "-src")) {
     fprintf(stderr, "Reading src volume...\n");
     mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri)
-    {
+    if (!mri) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else if (!stricmp(option, "-dst"))
-  {
+  } else if (!stricmp(option, "-dst")) {
     fprintf(stderr, "Reading dst volume...\n");
     mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!mri_dst)
-    {
+    if (!mri_dst) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else if (!stricmp(option, "-version"))
+  } else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "-invert"))
     invert = 1 ;
-  else switch (toupper(*option))
-  {
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  else switch (toupper(*option)) {
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <input surf> <transform file> <output surf>\n",
           Progname) ;
   fprintf(stderr, "  options: --src <volumename>  src volume\n");
@@ -245,18 +252,16 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will transform an MRI surface into Talairach space.\n");
+  fprintf(stderr,
+          "\nThis program will transform an MRI surface into Talairach space.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

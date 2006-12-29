@@ -1,3 +1,31 @@
+/**
+ * @file  mri_extract_largest_CC.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //Extract the largest connected component of a binary segmentation
 
 #include <stdio.h>
@@ -30,72 +58,69 @@ static char hemi[80] = "lh";
 
 char *Progname;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char   **av;
   MRI *mri_seg;
   int ac, nargs;
 
   int x, y, z;
   int target_value = 255;
-  
+
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.4 2006/11/01 20:17:47 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.5 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if(argc != 3)
+  if (argc != 3)
     usage(1);
 
-  if (!stricmp(hemi, "lh")){
+  if (!stricmp(hemi, "lh")) {
     target_value = lh_label;
-  }else{
+  } else {
     target_value = rh_label;
   }
-  
+
   mri_seg = MRIread(argv[1]) ;
   if (!mri_seg)
     ErrorExit(ERROR_BADPARM, "%s: could not read label volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
 
-  for(z = 0; z < mri_seg->depth; z++)
-    for(y = 0; y < mri_seg->height; y++)
-      for(x = 0; x < mri_seg->width; x++){
-	if(MRIgetVoxVal(mri_seg, x, y, z, 0) < threshold)
-	  MRIsetVoxVal(mri_seg, x, y, z, 0, 0);
-	else
-	  MRIsetVoxVal(mri_seg, x, y, z, 0, 255);
+  for (z = 0; z < mri_seg->depth; z++)
+    for (y = 0; y < mri_seg->height; y++)
+      for (x = 0; x < mri_seg->width; x++) {
+        if (MRIgetVoxVal(mri_seg, x, y, z, 0) < threshold)
+          MRIsetVoxVal(mri_seg, x, y, z, 0, 0);
+        else
+          MRIsetVoxVal(mri_seg, x, y, z, 0, 255);
       }
 
   GetLargestCC6(mri_seg);
 
-  for(z = 0; z < mri_seg->depth; z++)
-    for(y = 0; y < mri_seg->height; y++)
-      for(x = 0; x < mri_seg->width; x++){
-	if(MRIgetVoxVal(mri_seg, x, y, z, 0) > 0)
-	  MRIsetVoxVal(mri_seg, x, y, z, 0, target_value);
+  for (z = 0; z < mri_seg->depth; z++)
+    for (y = 0; y < mri_seg->height; y++)
+      for (x = 0; x < mri_seg->width; x++) {
+        if (MRIgetVoxVal(mri_seg, x, y, z, 0) > 0)
+          MRIsetVoxVal(mri_seg, x, y, z, 0, target_value);
       }
 
   MRIwrite(mri_seg, argv[2]);
 
   exit(0);
-  
+
 }  /*  end main()  */
 
-void usage(int exit_val)
-{
+void usage(int exit_val) {
 
   FILE *fout;
 
@@ -117,26 +142,20 @@ void usage(int exit_val)
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  if(!stricmp(option, "T"))
-    {
-      threshold = atof(argv[2]);
-      printf("threshold = %g\n", threshold);
-      nargs = 1;
-    }
-  else if(!stricmp(option, "hemi"))
-    {
-      strcpy(hemi,argv[2]);
-      printf("hemisphere = %s\n", hemi);
-      nargs = 1;
-    }
-  else switch (toupper(*option))
-    {
+  if (!stricmp(option, "T")) {
+    threshold = atof(argv[2]);
+    printf("threshold = %g\n", threshold);
+    nargs = 1;
+  } else if (!stricmp(option, "hemi")) {
+    strcpy(hemi,argv[2]);
+    printf("hemisphere = %s\n", hemi);
+    nargs = 1;
+  } else switch (toupper(*option)) {
     case '?':
     case 'U':
       usage(0) ;
@@ -146,7 +165,7 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-  
+
   return(nargs) ;
 }
 

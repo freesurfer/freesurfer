@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaLayer2DMRIS.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.15 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ScubaLayer2DMRIS_h
 #define ScubaLayer2DMRIS_h
 
@@ -8,7 +36,7 @@ class ScubaLayer2DMRIS : public Layer {
 
   friend class ScubaLayer2DMRISTester;
 
- public:
+public:
   ScubaLayer2DMRIS ();
   virtual ~ScubaLayer2DMRIS ();
 
@@ -17,35 +45,39 @@ class ScubaLayer2DMRIS : public Layer {
 
   // Tell the layer to draw its contents into a GL frame buffer.
   virtual void DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				ViewState& iViewState,
-				ScubaWindowToRASTranslator& iTranslator );
-  
+                                ViewState& iViewState,
+                                ScubaWindowToRASTranslator& iTranslator );
+
   // Tell the layer to draw its contents that need openGl commands.
   virtual void DrawIntoGL ( ViewState& iViewState,
-			    ScubaWindowToRASTranslator& iTranslator );
+                            ScubaWindowToRASTranslator& iTranslator );
 
   // Asks the layer to describe a point of data by making InfoAtRAS
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
-			      std::list<InfoAtRAS>& ioInfo );
-  
+                              std::list<InfoAtRAS>& ioInfo );
+
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription () { return "2DMRIS"; }
+  virtual std::string GetTypeDescription () {
+    return "2DMRIS";
+  }
 
   virtual void DataChanged();
 
   // Handle tools.
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
-			    ScubaWindowToRASTranslator& iTranslator,
-			    ScubaToolState& iTool, InputState& iInput );
+                            ScubaWindowToRASTranslator& iTranslator,
+                            ScubaToolState& iTool, InputState& iInput );
 
   void FindRASLocationOfVertex ( int inVertex, float oRAS[3] );
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   // Return the surface collection.
-  virtual DataCollection* GetMainDataCollection() { return mSurface; }
+  virtual DataCollection* GetMainDataCollection() {
+    return mSurface;
+  }
 
   void SetLineColor3d ( int iaLineColor[3] ) {
     maLineColor[0] = iaLineColor[0];
@@ -85,7 +117,7 @@ class ScubaLayer2DMRIS : public Layer {
   // To process command line options.
   void ProcessOption ( std::string isOption, std::string isValue );
 
- protected:
+protected:
   SurfaceCollection* mSurface;
 
   int maLineColor[3];

@@ -1,12 +1,12 @@
 /*      @(#)db.h 50.12 91/09/14 SMI */
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_db_h_DEFINED
-#define	xview_db_h_DEFINED
+#define xview_db_h_DEFINED
 
 #include <xview/generic.h>
 #include <xview/attr.h>
@@ -23,4 +23,4 @@
 #define db_cvt_char_to_string(from_value, to_value) \
             to_value[0] = (char)from_value, to_value[1] = '\0'
 
-#endif	/* ~xview_db_h_DEFINED */
+#endif /* ~xview_db_h_DEFINED */

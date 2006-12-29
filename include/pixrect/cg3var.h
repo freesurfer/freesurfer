@@ -4,8 +4,8 @@
  * Copyright 1989 by Sun Microsystems, Inc.
  */
 
-#ifndef	cg3var_DEFINED
-#define	cg3var_DEFINED
+#ifndef cg3var_DEFINED
+#define cg3var_DEFINED
 
 /*
  * cg3 -- color memory frame buffer
@@ -17,9 +17,9 @@
  * On e.g. the 386i might as well start at zero.
  */
 #if defined(mc68000) || defined(sparc)
-#define	CG3_MMAP_OFFSET	0x04000000	/* 8K x 8K */
+#define CG3_MMAP_OFFSET 0x04000000 /* 8K x 8K */
 #else
-#define	CG3_MMAP_OFFSET	0
+#define CG3_MMAP_OFFSET 0
 #endif
 
 /*
@@ -30,21 +30,22 @@
 #include <pixrect/memvar.h>
 
 /* pixrect private data */
-struct cg3_data {
-	struct mprp_data mprp;		/* memory pixrect simulator */
-	int fd;				/* file descriptor */
+struct cg3_data
+{
+  struct mprp_data mprp;  /* memory pixrect simulator */
+  int fd;    /* file descriptor */
 };
 
-#define	cg3_d(pr)	((struct cg3_data *) (pr)->pr_data)
+#define cg3_d(pr) ((struct cg3_data *) (pr)->pr_data)
 
 /* pixrect ops vector */
 extern struct pixrectops cg3_ops;
 
-Pixrect	*cg3_make();
+Pixrect *cg3_make();
 int cg3_destroy();
 Pixrect *cg3_region();
 int cg3_putcolormap();
 int cg3_getcolormap();
 #endif !KERNEL
 
-#endif	!cg3var_DEFINED
+#endif !cg3var_DEFINED

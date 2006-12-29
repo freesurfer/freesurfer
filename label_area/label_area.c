@@ -1,3 +1,31 @@
+/**
+ * @file  label_area.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:03 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,7 +52,7 @@ static int verbose = 0 ;
 
 #define NAME_LEN      100
 
-static float compute_label_area(MRI_SURFACE *mris, char *subject_name, 
+static float compute_label_area(MRI_SURFACE *mris, char *subject_name,
                                 char *area_name) ;
 
 static char subjects_dir[NAME_LEN] = "" ;
@@ -32,15 +60,14 @@ static char subjects_dir[NAME_LEN] = "" ;
 
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   int          ac, nargs, i ;
   char         **av, *cp, surf_name[100], *hemi, *subject_name, *area_name ;
   MRI_SURFACE  *mris ;
   float        area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.6 2006/10/31 13:55:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.7 2006/12/29 02:09:03 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -52,8 +79,7 @@ main(int argc, char *argv[])
   /* read in command-line options */
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -78,20 +104,18 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
 
   /*  read in the area names */
-  for (i = 3 ; i < argc ; i++)
-  {
+  for (i = 3 ; i < argc ; i++) {
     area_name = argv[i] ;
     if (verbose > 3)  /* never */
       fprintf(stderr, "reading area %s\n", area_name) ;
     area = compute_label_area(mris, subject_name, area_name) ;
-    if (mris->group_avg_surface_area > 0)
-    {
+    if (mris->group_avg_surface_area > 0) {
       MRIScomputeMetricProperties(mris) ;
       printf("adjusting for group surface area %2.2f (%2.0f / %2.0f)\n",
              mris->group_avg_surface_area/mris->total_area, mris->group_avg_surface_area,mris->total_area);
       area *= mris->group_avg_surface_area/mris->total_area ;
     }
-    fprintf(stderr, "%s:  %s - %2.3f square mm\n", 
+    fprintf(stderr, "%s:  %s - %2.3f square mm\n",
             subject_name, area_name, area) ;
   }
 
@@ -108,14 +132,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'V':
     verbose = !verbose ;
     break ;
@@ -134,14 +156,13 @@ get_option(int argc, char *argv[])
 }
 #if 0
 static Transform *
-load_transform(char *subject_name, General_transform *transform)
-{
+load_transform(char *subject_name, General_transform *transform) {
   char xform_fname[100] ;
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           subjects_dir, subject_name) ;
   if (input_transform_file(xform_fname, transform) != OK)
-    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'", 
+    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'",
               Progname, xform_fname) ;
 
   if (verbose == 2)
@@ -151,8 +172,7 @@ load_transform(char *subject_name, General_transform *transform)
 #endif
 
 static float
-compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name)
-{
+compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name) {
   int      nlines, vno ;
   char     *cp, line[200], fname[200] ;
   FILE     *fp ;
@@ -163,7 +183,7 @@ compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name)
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorExit(ERROR_NOFILE, "%s: could not open label file %s",
-                Progname, fname) ;
+              Progname, fname) ;
 
   cp = fgetl(line, 199, fp) ;
   if (!cp)
@@ -174,8 +194,7 @@ compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name)
 
   nlines = 0 ;
   total_area = 0.0f ;
-  while ((cp = fgetl(line, 199, fp)) != NULL)
-  {
+  while ((cp = fgetl(line, 199, fp)) != NULL) {
     if (sscanf(cp, "%d %*f %*f %*f", &vno) != 1)
       ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
                 Progname, nlines, fname) ;
@@ -193,8 +212,7 @@ compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name)
 }
 
 static void
-print_usage(void)
-{
-   printf("usage: %s <hemi> <subject name> <label file name>...\n",Progname);
-   exit(1) ;
+print_usage(void) {
+  printf("usage: %s <hemi> <subject name> <label file name>...\n",Progname);
+  exit(1) ;
 }

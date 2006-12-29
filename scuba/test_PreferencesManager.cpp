@@ -1,10 +1,38 @@
+/**
+ * @file  test_PreferencesManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // PreferencesManager.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/10/07 20:32:30 $
-// Revision       : $Revision: 1.8 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/29 02:09:15 $
+// Revision       : $Revision: 1.9 $
 
 #include <stdlib.h>
 #include "string_fixed.h"
@@ -24,39 +52,39 @@ char* Progname = "test_PreferencesManager";
 
 
 // Try to register a value.
-void TestRegister( PreferencesManager::SimplePreferenceValue& iValue, 
-		   string isKeyName,
-		   string isError ) {
+void TestRegister( PreferencesManager::SimplePreferenceValue& iValue,
+                   string isKeyName,
+                   string isError ) {
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.RegisterValue( isKeyName, "A sample value.", iValue );
 }
 
 // Try to write a value.
-void TestW( PreferencesManager::SimplePreferenceValue& iValue, 
-	    string                isKeyName, 
-	    string                isError ) {
+void TestW( PreferencesManager::SimplePreferenceValue& iValue,
+            string                isKeyName,
+            string                isError ) {
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.SetValue( isKeyName, iValue );
 }
 
 // Try to read a value and compare it to the argument.
-void TestR( PreferencesManager::SimplePreferenceValue& iValue, 
-	    string                isKeyName, 
-	    string                isError ) {
-  
+void TestR( PreferencesManager::SimplePreferenceValue& iValue,
+            string                isKeyName,
+            string                isError ) {
+
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   string value( prefsMgr.GetValue( isKeyName ) );
   Assert( (iValue.ValueToString() == value), logic_error(isError.c_str()) );
 }
 
 // Write and read a few times with different values.
-void TestWR( PreferencesManager::SimplePreferenceValue& iValue, 
-	     PreferencesManager::SimplePreferenceValue& iValue2, 
-	     string                isKeyName, 
-	     string                isError ) {
-  
+void TestWR( PreferencesManager::SimplePreferenceValue& iValue,
+             PreferencesManager::SimplePreferenceValue& iValue2,
+             string                isKeyName,
+             string                isError ) {
+
   PreferencesManager::GetManager();
 
   TestW( iValue, isKeyName, isError );
@@ -70,8 +98,8 @@ void TestWR( PreferencesManager::SimplePreferenceValue& iValue,
 // Run lots of test cycles on a certain pref value type.
 template <class TPrefValue, class TValue>
 void TestType ( int icValues,
-		string(*iGetName)(int n),
-		TValue(*iGetNewValue)() ) {
+                string(*iGetName)(int n),
+                TValue(*iGetNewValue)() ) {
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
 
@@ -81,22 +109,22 @@ void TestType ( int icValues,
 
   // Create our values using the iGetNewValue function we were passed.
   map<string,TPrefValue*> aValues;
-  for( int nValue = 0; nValue < icValues; nValue++ ) {
+  for ( int nValue = 0; nValue < icValues; nValue++ ) {
     TPrefValue* value = new TPrefValue( iGetNewValue() );
     aValues[iGetName(nValue)] = value;
   }
 
   // TestRegister and TestWR all our values.
   typename map<string,TPrefValue*>::iterator tValue;
-  for( tValue = aValues.begin(); tValue != aValues.end(); ++tValue ) {
-    
+  for ( tValue = aValues.begin(); tValue != aValues.end(); ++tValue ) {
+
     string sName = (*tValue).first;
     TPrefValue* value = (*tValue).second;
-    
+
     TestRegister( *value, sName, "value didn't match" );
     TestWR( *value, *value, sName, "value didn't match" );
   }
-  
+
   // Write the file, close it, and reload it.
   prefsMgr.SaveFile();
   prefsMgr.Clear();
@@ -104,11 +132,11 @@ void TestType ( int icValues,
 
   // Read the values again and make sure they were what we wrote
   // before saving and reloading the file.
-  for( tValue = aValues.begin(); tValue != aValues.end(); ++tValue ) {
-    
+  for ( tValue = aValues.begin(); tValue != aValues.end(); ++tValue ) {
+
     string sName = (*tValue).first;
     TPrefValue* value = (*tValue).second;
-    
+
     TestR( *value, sName, "didn't read correct value" );
   }
 }
@@ -132,7 +160,7 @@ string GetFloatName( int inValue ) {
 
 float GetFloatValue() {
   float divisor = random();
-  while( divisor == 0 ) divisor = random();
+  while ( divisor == 0 ) divisor = random();
   return (float)random() / divisor;
 }
 
@@ -145,10 +173,10 @@ string GetStringName( int inValue ) {
 string GetStringValue() {
   int cChars = random() % 500;
   stringstream sValue;
-  for( int nChar = 0; nChar < cChars; nChar++ ) {
-    if( nChar % 20 == 0 ) 
+  for ( int nChar = 0; nChar < cChars; nChar++ ) {
+    if ( nChar % 20 == 0 )
       sValue << " ";
-    else 
+    else
       sValue << (char)( (int)'a' + random() % 26 );
   }
   return sValue.str();
@@ -161,8 +189,8 @@ int main ( int argc, char** argv ) {
 
   string sHeader = "This is the header.";
 
-  try { 
- 
+  try {
+
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     prefsMgr.DisableOutput();
 
@@ -172,11 +200,11 @@ int main ( int argc, char** argv ) {
     prefsMgr.UseFile( fnPrefs );
     string fnPrefsTest = prefsMgr.GetFileName();
     char* sHomeDir = getenv("HOME");
-    if( sHomeDir ) {
+    if ( sHomeDir ) {
       string fnHomeVersion = string(sHomeDir) + "/" + fnPrefs;
       stringstream sError;
       sError << "Filenames don't match: should be" << fnHomeVersion
-	     << ", got " << fnPrefs;
+      << ", got " << fnPrefs;
       Assert( (fnHomeVersion == fnPrefsTest), logic_error(sError.str()) );
     }
 
@@ -186,7 +214,7 @@ int main ( int argc, char** argv ) {
     fnPrefsTest = prefsMgr.GetFileName();
     stringstream sError;
     sError << "Filenames don't match: should be" << fnPrefs
-	   << ", got " << fnPrefsTest;
+    << ", got " << fnPrefsTest;
     Assert( (fnPrefs == fnPrefsTest), logic_error(sError.str()) );
 
     // Set the header.
@@ -195,27 +223,25 @@ int main ( int argc, char** argv ) {
     // Run a bunch of tests on our prefs types.
     int const kzValuesToTest = 100;
     TestType<PreferencesManager::IntPrefValue,int>
-      ( kzValuesToTest, GetIntName, GetIntValue );
+    ( kzValuesToTest, GetIntName, GetIntValue );
     TestType<PreferencesManager::FloatPrefValue,float>
-      ( kzValuesToTest, GetFloatName, GetFloatValue );
+    ( kzValuesToTest, GetFloatName, GetFloatValue );
     TestType<PreferencesManager::StringPrefValue,string>
-      ( kzValuesToTest, GetStringName, GetStringValue );
-  }
-  catch( char const* iMsg ) {
+    ( kzValuesToTest, GetStringName, GetStringValue );
+  } catch ( char const* iMsg ) {
     cerr << "failed: " << iMsg << endl;
     exit( 1 );
   }
-  catch( logic_error& e ) {
+  catch ( logic_error& e ) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed." << endl;
     exit( 1 );
   }
 
   cerr << "Success" << endl;
-  
+
   exit( 0 );
 }
 

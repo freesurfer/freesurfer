@@ -1,3 +1,31 @@
+/**
+ * @file  View.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef View_h
 #define View_h
 
@@ -15,13 +43,12 @@
 // multiple non-overlapping Views, and each View can have multiple
 // layers.
 
-class View : public DebugReporter, 
-	     public IDTracker<View>,
-	     public TclCommandListener,
-	     public Broadcaster,
-	     public Listener
-{
-  
+class View : public DebugReporter,
+      public IDTracker<View>,
+      public TclCommandListener,
+      public Broadcaster,
+      public Listener {
+
   friend class ViewTester;
 
 public:
@@ -37,46 +64,64 @@ public:
   void KeyDown( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
   void KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
 
-  void SetWidth( int iWidth ) { mWidth = iWidth; }
-  void SetHeight( int iHeight ) { mHeight = iHeight; }
+  void SetWidth( int iWidth ) {
+    mWidth = iWidth;
+  }
+  void SetHeight( int iHeight ) {
+    mHeight = iHeight;
+  }
 
-  void SetLabel( std::string isLabel ) { msLabel = isLabel; }
-  std::string GetLabel() { return msLabel; }
+  void SetLabel( std::string isLabel ) {
+    msLabel = isLabel;
+  }
+  std::string GetLabel() {
+    return msLabel;
+  }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   // Handle broadcast messages.
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Redisplay posters.
-  void RequestRedisplay() { mbPostRedisplay = true; }
-  bool WantRedisplay() const { return mbPostRedisplay; }
-  void RedisplayPosted() { mbPostRedisplay = false; }
+  void RequestRedisplay() {
+    mbPostRedisplay = true;
+  }
+  bool WantRedisplay() const {
+    return mbPostRedisplay;
+  }
+  void RedisplayPosted() {
+    mbPostRedisplay = false;
+  }
 
   // Set the frame visiblity flag.
-  void SetVisibleInFrame ( bool ibVisible ) { mbVisibleInFrame = ibVisible; }
-  bool IsVisibleInFrame () { return mbVisibleInFrame; }
+  void SetVisibleInFrame ( bool ibVisible ) {
+    mbVisibleInFrame = ibVisible;
+  }
+  bool IsVisibleInFrame () {
+    return mbVisibleInFrame;
+  }
 
- protected:
+protected:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
   virtual void DoTimer();
-  virtual void DoMouseMoved( int iWindow[2], 
-			     InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseMoved( int iWindow[2],
+                             InputState& iInput, ScubaToolState& iTool );
   virtual void DoMouseUp( int iWindow[2],
-			  InputState& iInput, ScubaToolState& iTool );
+                          InputState& iInput, ScubaToolState& iTool );
   virtual void DoMouseDown( int iWindow[2],
-			    InputState& iInput, ScubaToolState& iTool );
+                            InputState& iInput, ScubaToolState& iTool );
   virtual void DoKeyDown( int iWindow[2],
-			  InputState& iInput, ScubaToolState& iTool );
+                          InputState& iInput, ScubaToolState& iTool );
   virtual void DoKeyUp( int iWindow[2],
-			InputState& iInput, ScubaToolState& iTool );
+                        InputState& iInput, ScubaToolState& iTool );
 
   int mWidth;
   int mHeight;
-  
+
   std::string msLabel;
 
   // Redisplay requested flag.
@@ -89,9 +134,9 @@ public:
 
 
 class ViewFactory {
- public:
+public:
   virtual ~ViewFactory() {};
-  virtual View* NewView() { 
+  virtual View* NewView() {
     return new View();
   }
 };

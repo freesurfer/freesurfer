@@ -1,3 +1,31 @@
+/**
+ * @file  DataCollection.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.22 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef DataCollection_h
 #define DataCollection_h
 
@@ -19,16 +47,16 @@
 class DataLocation {
   friend class DataCollectionTester;
   friend class DataCollection;
- public:
-  DataLocation () { 
+public:
+  DataLocation () {
     mRAS[0] = 0;
     mRAS[1] = 0;
     mRAS[2] = 0;
   }
   DataLocation ( float const iRAS[3] ) {
-    mRAS[0] = iRAS[0]; 
-    mRAS[1] = iRAS[1]; 
-    mRAS[2] = iRAS[2]; 
+    mRAS[0] = iRAS[0];
+    mRAS[1] = iRAS[1];
+    mRAS[2] = iRAS[2];
   }
   DataLocation ( const DataLocation& iLoc ) {
     mRAS[0] = iLoc.RAS(0);
@@ -36,25 +64,29 @@ class DataLocation {
     mRAS[2] = iLoc.RAS(2);
   }
   ~DataLocation () {}
-  float* RAS() { return mRAS; }
-  float RAS ( int in ) const { return mRAS[in]; }
- protected:
+  float* RAS() {
+    return mRAS;
+  }
+  float RAS ( int in ) const {
+    return mRAS[in];
+  }
+protected:
   float mRAS[3];
 };
 
 class DataCollection : public DebugReporter,
-		       public IDTracker<DataCollection>, 
-		       public TclCommandListener, 
-		       public Listener,    // transformChanged
-		       public Broadcaster  // dataChanged
+      public IDTracker<DataCollection>,
+      public TclCommandListener,
+      public Listener,    // transformChanged
+      public Broadcaster  // dataChanged
 {
 
   friend class DataCollectionTester;
 
- public:
+public:
 
   DataCollection();
-  virtual ~DataCollection(); 
+  virtual ~DataCollection();
 
   // If the normal DataLocation is not enough, should subclass to
   // create specific DataLocation. Basically for caching RAS -> data
@@ -63,36 +95,44 @@ class DataCollection : public DebugReporter,
 
   // used to poll for any displayable data at the given point.
   virtual void GetInfo( DataLocation& iLoc,
-			std::map<std::string,std::string>& iLabelValues );
+                        std::map<std::string,std::string>& iLabelValues );
 
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription() { return "BaseCollection"; }
+  virtual std::string GetTypeDescription() {
+    return "BaseCollection";
+  }
 
-  std::string GetLabel() const { return msLabel; }
+  std::string GetLabel() const {
+    return msLabel;
+  }
   void SetLabel( std::string const isLabel );
-  
+
   // Return the bounds of the data in RAS coords. 0=xmin, 1=xmax,
   // 2=ymin, etc.
   virtual void GetDataRASBounds ( float oBounds[6] );
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   // Handle broadcast messages.
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Get a list of ROI IDs that belong to this data collection.
   std::vector<int> GetROIList ();
-  int GetNumberOfROIs () { return mROIMap.size(); }
+  int GetNumberOfROIs () {
+    return mROIMap.size();
+  }
   bool IsROIInThisCollection ( int iROIID );
-  
+
   // Create a new ROI and assign it to this collection. Return its ID.
   int NewROI ();
 
   // Tell this collection to select this ROI.
   void SelectROI ( int iROIID );
-  int GetSelectedROI () { return mSelectedROIID; }
+  int GetSelectedROI () {
+    return mSelectedROIID;
+  }
   void DeleteROI ( int iROIID );
 
   // Called by NewROI, should be subclassed to return specific ROI type.
@@ -120,11 +160,11 @@ protected:
 
   int mSelectedROIID;
   std::map<int,ScubaROI*> mROIMap;
-  
+
   // For self to call when data has changed.
   virtual void DataChanged ();
   bool mbSuspendDataChangedMessage;
- 
+
   // The data to world transform. Should be applied to all requests
   // for data at RAS points.
   ScubaTransform* mDataToWorldTransform;

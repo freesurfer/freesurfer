@@ -1,3 +1,31 @@
+/**
+ * @file  xvmri.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.41 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------
            File Name:  xvmri.h
 
@@ -63,7 +91,7 @@ static Panel_item     view_panel ;
 static char           image_path[100] = "." ;
 
 static int            talairach = 0 ; /* show image or Talairach coords */
-static int            fixed[MAX_IMAGES] = { 0 } ;
+static int            fixed [MAX_IMAGES] = { 0 } ;
 static MRI_SURFACE    *mri_surface = NULL ;
 static int            dont_redraw = 0 ;
 static int            show_three_views = 0 ;
@@ -90,7 +118,7 @@ static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
            Description:
 ----------------------------------------------------------------------*/
 int
-mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
+mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
   int       x, y, z, which, depth, view, frame, xi, yi, zi, xk, yk, zk, slice ;
@@ -110,15 +138,15 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   slice = mri_slices[which] ;
 
   /* click can occur in the middle of other stuff (sort of asynchonous) */
-  if (!mri || !mri->slices)  
+  if (!mri || !mri->slices)
     return(ERROR_BAD_PARM) ;
 
-/*
-  The convention  is  that  positive xspace coordinates run
-  from the patient's  left  side  to  right  side,  positive
-  yspace  coordinates run from patient posterior to anterior
-  and positive zspace coordinates run from inferior to superior.
- */   
+  /*
+    The convention  is  that  positive xspace coordinates run
+    from the patient's  left  side  to  right  side,  positive
+    yspace  coordinates run from patient posterior to anterior
+    and positive zspace coordinates run from inferior to superior.
+   */
   switch (mri_views[which])
   {
   default:
@@ -203,7 +231,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
         for (xk = x - brush ; xk <= x+brush ; xk++)
         {
           xi = mri->xi[xk] ;
-          if (val) 
+          if (val)
           {
             repaint_needed = 1 ;
             switch (mri->type)
@@ -224,201 +252,201 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     }
   }
   else switch (event_id(event))
-  {
-  case LOC_DRAG:
-    if (!event_left_is_down(event))
-      break ;
-  case MS_LEFT:
-    switch (mri->type)
     {
-    case MRI_UCHAR:
-      if (talairach)
-        XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
-                 nint(xt),nint(yt),nint(zt),
-                 MRIseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
-      else
-        XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,
-                 MRIseq_vox(mri,x,y,z,frame));
-      break ;
-    case MRI_FLOAT:
-      if (talairach)
-        XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
-                 nint(xt),nint(yt),nint(zt),
-                 MRIFseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
-      else
-        XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,
-                 MRIFseq_vox(mri, x, y, z,frame));
-      break ;
-    }
-    break ;
-  default:
-    if (event_is_up(event)) switch ((char)event->ie_code)
-    {
-    case 'B':
-      brush++ ;
-      break ;
-    case 'b':
-      if (brush > 0)
-        brush-- ;
-      break ;
-    case 'S':   /* change all views and slices to be the same */
-      XVMRIsetView(xvf, which, mri_views[which]) ;
-      break ;
-#if 0
-    case '0':
-      fprintf(stderr, "turning off voxel (%d, %d, %d)\n", x, y, z) ;
+    case LOC_DRAG:
+      if (!event_left_is_down(event))
+        break ;
+    case MS_LEFT:
       switch (mri->type)
       {
       case MRI_UCHAR:
-        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1 ;
+        if (talairach)
+          XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
+                   nint(xt),nint(yt),nint(zt),
+                   MRIseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
+        else
+          XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,
+                   MRIseq_vox(mri,x,y,z,frame));
         break ;
       case MRI_FLOAT:
-        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 0.0f ;
+        if (talairach)
+          XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
+                   nint(xt),nint(yt),nint(zt),
+                   MRIFseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
+        else
+          XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,
+                   MRIFseq_vox(mri, x, y, z,frame));
         break ;
       }
-      XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
       break ;
-    case '1':
-      fprintf(stderr, "turning on voxel (%d, %d, %d)\n", x, y, z) ;
-      switch (mri->type)
-      {
-      case MRI_UCHAR:
-        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 255 ;
-        break ;
-      case MRI_FLOAT:
-        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1.0f ;
-        break ;
-      }
-      XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
-      break ;
-#endif
-    case 'G':
-    case 'g':
-      /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
-         ../tmp and ../../tmp
-         */
-      sprintf(fname, "%s/edit.dat", image_path) ;
-      if (!FileExists(fname))
-      {
-        sprintf(fname, "%s/../tmp/edit.dat", image_path) ;
-        if (!FileExists(fname))
+    default:
+      if (event_is_up(event)) switch ((char)event->ie_code)
         {
-          sprintf(fname, "%s/../../tmp/edit.dat", image_path) ;
+        case 'B':
+          brush++ ;
+          break ;
+        case 'b':
+          if (brush > 0)
+            brush-- ;
+          break ;
+        case 'S':   /* change all views and slices to be the same */
+          XVMRIsetView(xvf, which, mri_views[which]) ;
+          break ;
+#if 0
+        case '0':
+          fprintf(stderr, "turning off voxel (%d, %d, %d)\n", x, y, z) ;
+          switch (mri->type)
+          {
+          case MRI_UCHAR:
+            MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1 ;
+            break ;
+          case MRI_FLOAT:
+            MRIseq_vox(mri, x, y, z, mri_frames[which]) = 0.0f ;
+            break ;
+          }
+          XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
+          break ;
+        case '1':
+          fprintf(stderr, "turning on voxel (%d, %d, %d)\n", x, y, z) ;
+          switch (mri->type)
+          {
+          case MRI_UCHAR:
+            MRIseq_vox(mri, x, y, z, mri_frames[which]) = 255 ;
+            break ;
+          case MRI_FLOAT:
+            MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1.0f ;
+            break ;
+          }
+          XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
+          break ;
+#endif
+        case 'G':
+        case 'g':
+          /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
+             ../tmp and ../../tmp
+             */
+          sprintf(fname, "%s/edit.dat", image_path) ;
           if (!FileExists(fname))
           {
-            sprintf(fname, "%s/tmp/edit.dat", image_path) ;
+            sprintf(fname, "%s/../tmp/edit.dat", image_path) ;
             if (!FileExists(fname))
             {
-              XVprintf(xvf,0,"could not find edit.dat from %s", image_path);
-              return(ERROR_NO_FILE) ;
+              sprintf(fname, "%s/../../tmp/edit.dat", image_path) ;
+              if (!FileExists(fname))
+              {
+                sprintf(fname, "%s/tmp/edit.dat", image_path) ;
+                if (!FileExists(fname))
+                {
+                  XVprintf(xvf,0,"could not find edit.dat from %s", image_path);
+                  return(ERROR_NO_FILE) ;
+                }
+              }
             }
           }
-        }
-      }
-      fp = fopen(fname, "r") ;
-      if (fscanf(fp, "%f %f %f", &xf, &yf, &zf) != 3)
-      {
-        XVprintf(xvf, 0, "could not scan coordinates out of %s", fname) ;
-        fclose(fp) ;
-        return(ERROR_BAD_FILE) ;
-      }
-      if (fscanf(fp, "%f %f %f", &xft, &yft, &zft) != 3)
-      {
-        XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",
-                 fname);
-        fclose(fp) ;
-        return(ERROR_BAD_FILE) ;
-      }
-      fclose(fp) ;
-      if (talairach)
-        MRItalairachToVoxel(mri, (Real)xft,(Real)yft,(Real)zft,&xv,&yv,&zv);
-      else
-        MRIworldToVoxel(mri, (Real)xf, (Real)yf, (Real)zf, &xv, &yv, &zv) ;
-      XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
-      XVprintf(xvf, 0, "current point: (%d, %d, %d) --> (%d, %d, %d)",
-               nint(xf), nint(yf), nint(zf), nint(xv), nint(yv), nint(zv)) ;
+          fp = fopen(fname, "r") ;
+          if (fscanf(fp, "%f %f %f", &xf, &yf, &zf) != 3)
+          {
+            XVprintf(xvf, 0, "could not scan coordinates out of %s", fname) ;
+            fclose(fp) ;
+            return(ERROR_BAD_FILE) ;
+          }
+          if (fscanf(fp, "%f %f %f", &xft, &yft, &zft) != 3)
+          {
+            XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",
+                     fname);
+            fclose(fp) ;
+            return(ERROR_BAD_FILE) ;
+          }
+          fclose(fp) ;
+          if (talairach)
+            MRItalairachToVoxel(mri, (Real)xft,(Real)yft,(Real)zft,&xv,&yv,&zv);
+          else
+            MRIworldToVoxel(mri, (Real)xf, (Real)yf, (Real)zf, &xv, &yv, &zv) ;
+          XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
+          XVprintf(xvf, 0, "current point: (%d, %d, %d) --> (%d, %d, %d)",
+                   nint(xf), nint(yf), nint(zf), nint(xv), nint(yv), nint(zv)) ;
 #if 0
-fprintf(stderr, "read (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
-        xf, yf, zf, xft, yft, zft) ;
-fprintf(stderr, "voxel (%d, %d, %d)\n", nint(xv), nint(yv), nint(zv)) ;
+          fprintf(stderr, "read (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
+                  xf, yf, zf, xft, yft, zft) ;
+          fprintf(stderr, "voxel (%d, %d, %d)\n", nint(xv), nint(yv), nint(zv)) ;
 #endif
-      break ;
-    case 'W':
-    case 'w':
-      /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
-         ../tmp and ../../tmp
-         */
-      sprintf(fname, "%s/edit.dat", image_path) ;
-      if (!FileExists(fname))
-      {
-        sprintf(fname, "%s/../tmp/edit.dat", image_path) ;
-        if (!FileExists(fname))
-        {
-          sprintf(fname, "%s/../../tmp/edit.dat", image_path) ;
+          break ;
+        case 'W':
+        case 'w':
+          /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
+             ../tmp and ../../tmp
+             */
+          sprintf(fname, "%s/edit.dat", image_path) ;
           if (!FileExists(fname))
           {
-            sprintf(fname, "%s/tmp/edit.dat", image_path) ;
+            sprintf(fname, "%s/../tmp/edit.dat", image_path) ;
             if (!FileExists(fname))
             {
-              XVprintf(xvf,0,"could not find edit.dat from %s", image_path) ;
-              return(ERROR_BAD_FILE) ;
+              sprintf(fname, "%s/../../tmp/edit.dat", image_path) ;
+              if (!FileExists(fname))
+              {
+                sprintf(fname, "%s/tmp/edit.dat", image_path) ;
+                if (!FileExists(fname))
+                {
+                  XVprintf(xvf,0,"could not find edit.dat from %s", image_path) ;
+                  return(ERROR_BAD_FILE) ;
+                }
+              }
             }
           }
-        }
-      }
-      fp = fopen(fname, "w") ;
-      MRIvoxelToWorld(mri, (Real)x_click, (Real)y_click, (Real)z_click, 
-                      &xr, &yr, &zr) ;
-      MRIvoxelToTalairach(mri, (Real)x_click, (Real)y_click, (Real)z_click, 
-                          &xt, &yt, &zt) ;
-      fprintf(fp, "%f %f %f\n", (float)xr, (float)yr, (float)zr) ;
-      fprintf(fp, "%f %f %f\n", (float)xt, (float)yt, (float)zt) ;
-      fclose(fp) ;
+          fp = fopen(fname, "w") ;
+          MRIvoxelToWorld(mri, (Real)x_click, (Real)y_click, (Real)z_click,
+                          &xr, &yr, &zr) ;
+          MRIvoxelToTalairach(mri, (Real)x_click, (Real)y_click, (Real)z_click,
+                              &xt, &yt, &zt) ;
+          fprintf(fp, "%f %f %f\n", (float)xr, (float)yr, (float)zr) ;
+          fprintf(fp, "%f %f %f\n", (float)xt, (float)yt, (float)zt) ;
+          fclose(fp) ;
 #if 0
-fprintf(stderr, "wrote (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
-        xr, yr, zr, xt, yt, zt) ;
-fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
+          fprintf(stderr, "wrote (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
+                  xr, yr, zr, xt, yt, zt) ;
+          fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
 #endif
-      break ;
-    case 'x':
-    case 'X':
-      XVMRIsetView(xvf, which, MRI_SAGITTAL) ;
-      break ;
-    case 'y':
-    case 'Y':
-      XVMRIsetView(xvf, which, MRI_HORIZONTAL) ;
-      break ;
-    case 'z':
-    case 'Z':
-      XVMRIsetView(xvf, which, MRI_CORONAL) ;
-      break ;
-    case 'T':
-      talairach = 1 ;
-      break ;
-    case 't':
-      talairach = 0 ;
-      break ;
+          break ;
+        case 'x':
+        case 'X':
+          XVMRIsetView(xvf, which, MRI_SAGITTAL) ;
+          break ;
+        case 'y':
+        case 'Y':
+          XVMRIsetView(xvf, which, MRI_HORIZONTAL) ;
+          break ;
+        case 'z':
+        case 'Z':
+          XVMRIsetView(xvf, which, MRI_CORONAL) ;
+          break ;
+        case 'T':
+          talairach = 1 ;
+          break ;
+        case 't':
+          talairach = 0 ;
+          break ;
 #if 0
-    case 'h':
-      {
-        HISTOGRAM *histo ;
-        float     fmin, fmax ;
-        XV_FRAME  *xvnew ;
+        case 'h':
+        {
+          HISTOGRAM *histo ;
+          float     fmin, fmax ;
+          XV_FRAME  *xvnew ;
 
-        MRIvalRange(mri, &fmin, &fmax) ;
-        histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
-        xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
-        XVshowHistogram(xvnew, 0, histo) ;
-        xv_main_loop(xvnew->frame);
-        HISTOfree(&histo) ;
-      }
+          MRIvalRange(mri, &fmin, &fmax) ;
+          histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
+          xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
+          XVshowHistogram(xvnew, 0, histo) ;
+          xv_main_loop(xvnew->frame);
+          HISTOfree(&histo) ;
+        }
 #else
-    case 'h':
+        case 'h':
 #endif
+          break ;
+        }
       break ;
     }
-    break ;
-  }
 
 #if 0
   if (event_is_up(event) && (event_id(event) == MS_LEFT))
@@ -436,7 +464,7 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
       which_click = dimage->which ;
       XVrepaintImage(xvf, old_which) ;
       view = mri_views[which] ;
-      sprintf(view_str, "view: %s", 
+      sprintf(view_str, "view: %s",
               view == MRI_CORONAL ? "CORONAL" :
               view == MRI_SAGITTAL ? "SAGITTAL" : "HORIZONTAL") ;
       xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
@@ -630,9 +658,9 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
   mag = MIN((float)xvf->orig_disp_rows / (float)I->rows,
             (float)xvf->orig_disp_cols / (float)I->cols) ;
 
-  XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
+  XVsetImageSize(xvf, which, nint((float)I->rows*mag),
                  nint((float)I->cols*mag));
-/*  XVresize(xvf) ;*/
+  /*  XVresize(xvf) ;*/
 
   /* must be done before XVshowImage to draw point properly */
   if (which_click < 0)  /* reset current click point */
@@ -665,7 +693,7 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 ----------------------------------------------------------------------*/
 IMAGE *
 XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
-                      float fmin, float fmax)
+               float fmin, float fmax)
 {
   IMAGE  *I ;
   float  mag ;
@@ -724,9 +752,9 @@ XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
   mag = MIN((float)xvf->orig_disp_rows / (float)I->rows,
             (float)xvf->orig_disp_cols / (float)I->cols) ;
 
-  XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
+  XVsetImageSize(xvf, which, nint((float)I->rows*mag),
                  nint((float)I->cols*mag));
-/*  XVresize(xvf) ;*/
+  /*  XVresize(xvf) ;*/
 
   /* must be done before XVshowImage to draw point properly */
   if (which_click < 0)  /* reset current click point */
@@ -766,7 +794,7 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
 
            Description:
 ----------------------------------------------------------------------*/
-int  
+int
 XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
 {
   int i ;
@@ -781,18 +809,18 @@ XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
   XVsetWriteFunc(xvf, "WRITE MRI", "MR image file name", mri_write_func) ;
   sprintf(view_str, "view: CORONAL") ;
   view_menu = (Menu)
-    xv_create((Xv_opaque)NULL, MENU,
-              MENU_NOTIFY_PROC,    viewMenuItem,
-              MENU_STRINGS,        "CORONAL", "SAGITTAL", "HORIZONTAL", NULL,
-              NULL) ;
+              xv_create((Xv_opaque)NULL, MENU,
+                        MENU_NOTIFY_PROC,    viewMenuItem,
+                        MENU_STRINGS,        "CORONAL", "SAGITTAL", "HORIZONTAL", NULL,
+                        NULL) ;
 
   view_panel = (Panel_item)
-    xv_create(xvf->panel, PANEL_BUTTON,
-              PANEL_LABEL_STRING,    view_str,
-              XV_X,                  view_col,
-              XV_Y,                  view_row,
-              PANEL_ITEM_MENU,       view_menu,
-              NULL) ;
+               xv_create(xvf->panel, PANEL_BUTTON,
+                         PANEL_LABEL_STRING,    view_str,
+                         XV_X,                  view_col,
+                         XV_Y,                  view_row,
+                         PANEL_ITEM_MENU,       view_menu,
+                         NULL) ;
 
   XVsetRepaintHandler(repaint_handler) ;
   return(NO_ERROR) ;
@@ -802,7 +830,7 @@ XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
 
            Description:
 ----------------------------------------------------------------------*/
-static void 
+static void
 viewMenuItem(Menu menu, Menu_item menu_item)
 {
   char   *menu_str ;
@@ -843,7 +871,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
   if (!Iold)
     return(NULL) ;
 
-  if (fixed[which])
+  if (fixed [which])
     return(Iold) ;
 
   mri = mris[which] ;
@@ -857,7 +885,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
 
     I = MRItoImageView(mri, Idisplay[which], depth-offset, mri_views[which],
                        mri_frames[which]);
-    
+
     if (!I)
       I = Idisplay[which] ;         /* failed to get next slice */
     else
@@ -872,7 +900,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
     /* if current image is changing depth, then change the location of
        the current click to agree with the current depth.
        */
-    if (which_click == which) 
+    if (which_click == which)
     {
       switch (mri_views[which])
       {
@@ -954,7 +982,8 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
             MRIworldToVoxel(mri,vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((zv2 > slice-.5) && (zv2 < slice+.5))
             {
-              dx = xv2-xv ; dy = yv2-yv ;
+              dx = xv2-xv ;
+              dy = yv2-yv ;
               XVdrawLinef(xvf, which, xv, yv, dx, dy, XCYAN) ;
             }
           }
@@ -975,7 +1004,8 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2);
             if ((xv2 > slice-.5) && (xv2 < slice+.5))
             {
-              dx = zv2-zv ; dy = yv2-yv ;
+              dx = zv2-zv ;
+              dy = yv2-yv ;
               XVdrawLinef(xvf, which, zv, yv, dx, dy, XCYAN) ;
             }
           }
@@ -996,7 +1026,8 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((yv2 > slice-.5) && (yv2 < slice+.5))
             {
-              dx = xv2-xv ; dy = zv2-zv ;
+              dx = xv2-xv ;
+              dy = zv2-zv ;
               XVdrawLinef(xvf, which, xv, zv, dx, dy, XCYAN) ;
             }
           }
@@ -1007,7 +1038,7 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
   }
   dont_redraw = 0 ;
   if (dimage->sync || (which == which_click))
-    XVMRIdrawPoint(xvf, which, mri_views[which], 0, 
+    XVMRIdrawPoint(xvf, which, mri_views[which], 0,
                    mri, x_click, y_click, z_click, XRED) ;
 }
 /*----------------------------------------------------------------------
@@ -1102,8 +1133,8 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
       mri2 = mris[which2] ;
-      if (which2 == which || fixed[which2] || !mri2) 
-        continue ;
+      if (which2 == which || fixed [which2] || !mri2)
+          continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       xsize = mri2->xsize / mri->xsize ;
       ysize = mri2->ysize / mri->ysize ;
@@ -1128,8 +1159,10 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
         default:
           slice2 = slice ;
         }
-        dimage2->dx = dimage->dx ; dimage2->dy = dimage->dy ;
-        dimage2->x0 = dimage->x0 ; dimage2->y0 = dimage->y0 ;
+        dimage2->dx = dimage->dx ;
+        dimage2->dy = dimage->dy ;
+        dimage2->x0 = dimage->x0 ;
+        dimage2->y0 = dimage->y0 ;
         if (view == mri_views[which2])
           XVMRIredisplayFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
         else
@@ -1145,7 +1178,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   if (view != mri_views[which])
   {
     mri_views[which] = view ;
-    XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;  
+    XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;
     if (show_three_views)
       XVsyncAll(xvf, 0) ;
 #if 0
@@ -1233,13 +1266,18 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
       if (dimage2 /* && (which2 != which) */ && mri2)
       {
         MRIvoxelToVoxel(mri, mri2, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr);
-        x2 = nint(xr) ; y2 = nint(yr) ; z2 = nint(zr) ;
+        x2 = nint(xr) ;
+        y2 = nint(yr) ;
+        z2 = nint(zr) ;
         if (x2 < 0 || x2 >= mri2->width || y2 < 0 || y2 >= mri2->height ||
             z2 < 0 || z2 >= mri2->depth)
           continue ;
 #if 0
-        x2 = MAX(0, x2) ; y2 = MAX(0, y2) ; z2 = MAX(0, z2) ;
-        x2 = MIN(mri2->width-1, x2) ; y2 = MIN(mri2->height-1, y2) ; 
+        x2 = MAX(0, x2) ;
+        y2 = MAX(0, y2) ;
+        z2 = MAX(0, z2) ;
+        x2 = MIN(mri2->width-1, x2) ;
+        y2 = MIN(mri2->height-1, y2) ;
         z2 = MIN(mri2->depth-1, z2) ;
 #endif
         XVgetTitle(xvf, which2, title, 0) ;
@@ -1277,7 +1315,7 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
               pass data back and forth between applications like
               surfer.
 ----------------------------------------------------------------------*/
-int  
+int
 XVMRIsetImageName(XV_FRAME *xvf, char *image_name)
 {
   FileNamePath(image_name, image_path) ;
@@ -1287,7 +1325,7 @@ XVMRIsetImageName(XV_FRAME *xvf, char *image_name)
             Parameters:
 
            Description:
-             Redisplay just the point (x,y,z) 
+             Redisplay just the point (x,y,z)
 ----------------------------------------------------------------------*/
 #if 0
 static int
@@ -1433,7 +1471,7 @@ XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 int
 XVMRIfixDepth(XV_FRAME *xvf, int which, int fix)
 {
-  fixed[which] = fix ;
+  fixed [which] = fix ;
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------

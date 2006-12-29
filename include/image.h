@@ -1,3 +1,31 @@
+/**
+ * @file  image.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.13 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   image.h
  *
@@ -33,12 +61,12 @@ int     ImageFree(IMAGE **pI) ;
 
 /* resizing */
 int      ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale) ;
-IMAGE    *ImageDifferentialScale(IMAGE *inImage, IMAGE *outImage, 
+IMAGE    *ImageDifferentialScale(IMAGE *inImage, IMAGE *outImage,
+                                 int outRows, int outCols) ;
+int      ImageDifferentialScaleUp(IMAGE *inImage, IMAGE *outImage,
                                   int outRows, int outCols) ;
-int      ImageDifferentialScaleUp(IMAGE *inImage, IMAGE *outImage, 
-                                  int outRows, int outCols) ;
-int      ImageDifferentialScaleDown(IMAGE *inImage, IMAGE *outImage, 
-                                  int outRows, int outCols) ;
+int      ImageDifferentialScaleDown(IMAGE *inImage, IMAGE *outImage,
+                                    int outRows, int outCols) ;
 int      ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale) ;
 IMAGE   *ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols) ;
 
@@ -82,9 +110,9 @@ IMAGE   *ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
                          float lthresh, float uthresh, int dothin);
 IMAGE   *ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zpad,IMAGE *Icorr) ;
 IMAGE   *ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
-            int drow, int dcol, int rows, int cols) ;
+                       int drow, int dcol, int rows, int cols) ;
 int     ImageClearArea(IMAGE *image, int row, int col, int rows, int cols,
-          float val, int frame) ;
+                       float val, int frame) ;
 float   ImageFindPeak(IMAGE *image, int *prow, int *pcol, float *pval) ;
 IMAGE   *ImagePowerSpectrum(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE   *ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst) ;
@@ -96,14 +124,14 @@ int     ImageType(char *fname) ;
 #define ImageSize(image)   ((image)->orows * (image)->ocols)
 #define ImageBytes(image)  ((image)->sizeimage)
 IMAGE   *ImageScale(IMAGE *Isrc, IMAGE *Idst, float fmin, float fmax) ;
-int     ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows, 
-                        int cols, int nframes) ;
+int     ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows,
+                       int cols, int nframes) ;
 int     ImageFrame(char *fname) ;
-int     ImageUnpackFileName(char *inFname, int *pframe, int *ptype, 
+int     ImageUnpackFileName(char *inFname, int *pframe, int *ptype,
                             char *outFname) ;
-int      ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, 
-                    int nframes, int dst_frame);
-int      ImageScaleRange(IMAGE *image, float fmin, float fmax, 
+int      ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start,
+                         int nframes, int dst_frame);
+int      ImageScaleRange(IMAGE *image, float fmin, float fmax,
                          int low, int high) ;
 IMAGE    *ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale) ;
 int      ImageReflect(IMAGE *inImage, IMAGE *outImage, int how) ;
@@ -125,18 +153,18 @@ float    ImageRMSDifference(IMAGE *I1, IMAGE *I2) ;
 /* offset stuff */
 IMAGE    *ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps) ;
 int      ImageAdjustOffsetLen(IMAGE *inImage, IMAGE *outImage,
-                               int wsize) ;
-IMAGE    *ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
-                               float mu, float c, IMAGE *offsetImage) ;
-IMAGE    *ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
+                              int wsize) ;
+IMAGE    *ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
+                                     float mu, float c, IMAGE *offsetImage) ;
+IMAGE    *ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize,
                                         IMAGE *offsetImage) ;
-IMAGE    *ImageOffsetDirectionMap(IMAGE *Ix, IMAGE *Iy, int wsize, 
+IMAGE    *ImageOffsetDirectionMap(IMAGE *Ix, IMAGE *Iy, int wsize,
                                   IMAGE *Iorient, IMAGE *Idir, IMAGE *Ioffset);
 IMAGE    *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst) ;
 int      ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
-                                     IMAGE *offsetImage);
-IMAGE    *ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
-                              IMAGE *offsetImage);
+                                    IMAGE *offsetImage);
+IMAGE    *ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
+                               IMAGE *offsetImage);
 IMAGE    *ImageOffsetOrientation(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient);
 IMAGE    *ImageOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient,
                                IMAGE *Ioffset);
@@ -145,75 +173,75 @@ IMAGE    *ImageNitshiOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,
 IMAGE    *ImageOffsetDirectionMagnitude(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy,
                                         int wsize, IMAGE *Idst,int maxsteps);
 
-IMAGE    *ImageFilterMinMax(IMAGE *Imin, IMAGE *Imax, IMAGE *Ioffset, 
+IMAGE    *ImageFilterMinMax(IMAGE *Imin, IMAGE *Imax, IMAGE *Ioffset,
                             IMAGE *Idir, IMAGE *Idst) ;
 
 
 /* various filters */
-int      ImageMedianFilter(IMAGE *inImage, int wsize, 
-                            IMAGE *offsetImage, IMAGE *outImage) ;
+int      ImageMedianFilter(IMAGE *inImage, int wsize,
+                           IMAGE *offsetImage, IMAGE *outImage) ;
 IMAGE    *ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma,
-                            IMAGE *Ioffset, IMAGE *Idst) ;
+                           IMAGE *Ioffset, IMAGE *Idst) ;
 int      ImageBuildExponentialFilter(IMAGE *inImage, int wsize, float k,
-                                 IMAGE *offsetImage, 
-                                      IMAGE *filterSequnce) ;
+                                     IMAGE *offsetImage,
+                                     IMAGE *filterSequnce) ;
 int      ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
-                                 int wsize, float k, IMAGE *offsetImage, 
-                                 IMAGE *outImage) ;
-int      ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence, 
+                                int wsize, float k, IMAGE *offsetImage,
                                 IMAGE *outImage) ;
-int      ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k, 
-                       int niter, int which, double slope, KIMAGE *kimage) ;
-int      ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, 
-                            double A,int niter, double slope,KIMAGE *kimage) ;
-int      ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, 
-                             double k, int niter,double slope, KIMAGE *kimage);
-int      ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, 
-                         int niter, double slope, KIMAGE *kimage) ;
+int      ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence,
+                                 IMAGE *outImage) ;
+int      ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k,
+                      int niter, int which, double slope, KIMAGE *kimage) ;
+int      ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage,
+                               double A,int niter, double slope,KIMAGE *kimage) ;
+int      ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage,
+                            double k, int niter,double slope, KIMAGE *kimage);
+int      ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k,
+                        int niter, double slope, KIMAGE *kimage) ;
 
 int      ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage) ;
 IMAGE    *ImageAbs(IMAGE *inImage, IMAGE *outImage) ;
-int      ImageSobel(IMAGE *inImage, IMAGE *gradImage, 
-                     IMAGE *xImage, IMAGE *yImage) ;
+int      ImageSobel(IMAGE *inImage, IMAGE *gradImage,
+                    IMAGE *xImage, IMAGE *yImage) ;
 int      ImageSobelX(IMAGE *inImage, IMAGE *xImage) ;
 int      ImageSobelY(IMAGE *inImage, IMAGE *yImage) ;
 int      ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage) ;
 IMAGE    *ImageXDerivative(IMAGE *inImage, IMAGE *xImage) ;
 IMAGE    *ImageYDerivative(IMAGE *inImage, IMAGE *yImage) ;
-void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J, float k[], int len, 
+void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J, float k[], int len,
                                 int axis) ;
-void    ImageConvolve1d(IMAGE *imageI, IMAGE *J, 
+void    ImageConvolve1d(IMAGE *imageI, IMAGE *J,
                         float k[], int len, int axis) ;
-void    ImageConvolve1dByte(IMAGE *imageI, IMAGE *J, 
+void    ImageConvolve1dByte(IMAGE *imageI, IMAGE *J,
                             float k[], int len, int axis) ;
 IMAGE   *ImageGaussian(float xsigma, float ysigma) ;
 IMAGE   *ImageGaussian1d(float sigma, int max_len) ;
-IMAGE   *ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, 
-                              int dst_frameno) ;
-void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J, 
+IMAGE   *ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout,
+                                       int dst_frameno) ;
+void    ImageCircularConvolve1d(IMAGE *imageI, IMAGE *J,
                                 float k[], int len, int axis) ;
-IMAGE   *ImageConvolveGaussianByte(IMAGE *inImage, IMAGE *gImage, 
-                                  IMAGE *outImage, int dst_frameno) ;
-IMAGE   *ImageConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
-                                  IMAGE *outImage, int dst_frameno) ;
-IMAGE   *ImageCircularConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
-                                  IMAGE *outImage, int dst_frameno) ;
-IMAGE   *ImageConvolveGaussianFrames(IMAGE *inImage, IMAGE *gImage, 
-                                  IMAGE *outImage) ;
+IMAGE   *ImageConvolveGaussianByte(IMAGE *inImage, IMAGE *gImage,
+                                   IMAGE *outImage, int dst_frameno) ;
+IMAGE   *ImageConvolveGaussian(IMAGE *inImage, IMAGE *gImage,
+                               IMAGE *outImage, int dst_frameno) ;
+IMAGE   *ImageCircularConvolveGaussian(IMAGE *inImage, IMAGE *gImage,
+                                       IMAGE *outImage, int dst_frameno) ;
+IMAGE   *ImageConvolveGaussianFrames(IMAGE *inImage, IMAGE *gImage,
+                                     IMAGE *outImage) ;
 IMAGE   *ImageLaplacian(IMAGE *inImage, IMAGE *outImage) ;
 IMAGE   *ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst) ;
 
-IMAGE   *ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, 
-                            int y0, int dx, int dy, int xdst, int ydst) ;
-IMAGE   *ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, 
-                       int y0,int dx,int dy) ;
+IMAGE   *ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0,
+                          int y0, int dx, int dy, int xdst, int ydst) ;
+IMAGE   *ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0,
+                      int y0,int dx,int dy) ;
 IMAGE   *ImageReduce(IMAGE *inImage, IMAGE *outImage) ;
 void   ImageReduce1d(IMAGE *imageI, IMAGE *J, float k[], int len, int axis) ;
 IMAGE   *ImageCovarMatrix(IMAGE *image, float **pmeans) ;
 IMAGE   *ImagePrincipalComponents(IMAGE *image, int nterms,
-                                     IMAGE **pcoefImage) ;
-IMAGE   *ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, 
-                             IMAGE *xrImage, int start, int nframes) ;
+                                  IMAGE **pcoefImage) ;
+IMAGE   *ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage,
+                          IMAGE *xrImage, int start, int nframes) ;
 IMAGE  *ImageZeroMean(IMAGE *inImage, IMAGE *outImage) ;
 IMAGE  *ImageNormalizeComplex(IMAGE *Isrc, IMAGE *Idst, float thresh) ;
 int    ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage) ;
@@ -225,7 +253,7 @@ IMAGE  *ImageOffsetMedialAxis(IMAGE *offsetImage, IMAGE *Iedge) ;
 IMAGE  *ImageHistoEqualize(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageConvertToByte(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageCorrelateRegion(IMAGE *Isrc,IMAGE *Ikernel,IMAGE *Idst,
-                                 int row0, int col0, int wsize);
+                             int row0, int col0, int wsize);
 int    ImageStatistics(IMAGE *image, float *pmean, float *pvar) ;
 IMAGE  *ImageZeroPad(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols) ;
@@ -338,13 +366,15 @@ typedef struct
 {
   float  real ;
   float  imag ;
-} CPIX ;
+}
+CPIX ;
 
 typedef struct
 {
   double  real ;
   double  imag ;
-} DCPIX ;
+}
+DCPIX ;
 
 
 #define HIPS_IMAGE     0
@@ -352,10 +382,10 @@ typedef struct
 #define TIFF_IMAGE     2
 #define TIF_IMAGE      TIFF_IMAGE
 #define JPEG_IMAGE     3
-#define PGM_IMAGE      4 
-#define PPM_IMAGE      5 
+#define PGM_IMAGE      4
+#define PPM_IMAGE      5
 #define PBM_IMAGE      6 /* Write not yet implemented */
-#define RGBI_IMAGE     7 
+#define RGBI_IMAGE     7
 
 #define END_UNDEF 0
 #define END_BIG   1

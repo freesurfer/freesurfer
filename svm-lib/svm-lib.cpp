@@ -1,3 +1,31 @@
+/**
+ * @file  svm-lib.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "svm-lib.h"
 
 extern "C" {
@@ -9,8 +37,7 @@ using namespace std;
 ///////////////////////////// Utility functions for svm train and cross-validate
 
 void svmKernel(DoubleMatrix& kernelMatrix, const DoubleMatrix& distMatrix,
-               const Kernel& kernel)
-{
+               const Kernel& kernel) {
   kernelMatrix.init(distMatrix.rows(), distMatrix.cols());
   for ( int i = 0; i < kernelMatrix.rows(); i++ )
     for ( int j = 0; j < kernelMatrix.cols(); j++ )
@@ -18,21 +45,21 @@ void svmKernel(DoubleMatrix& kernelMatrix, const DoubleMatrix& distMatrix,
 }
 
 
-bool checkSvmParams (const DoubleMatrix& distMatrix, 
-		     int posCount, int negCount)
-  // This function performs basic sanity checks on the parameters to
-  // the svm functions.
+bool checkSvmParams (const DoubleMatrix& distMatrix,
+                     int posCount, int negCount)
+// This function performs basic sanity checks on the parameters to
+// the svm functions.
 {
   if ( distMatrix.rows() != distMatrix.cols() ) {
-    cerr << "SVM error: the kernel table is not square (" 
-	 << distMatrix.rows() << "x" << distMatrix.cols() << ").\n";
+    cerr << "SVM error: the kernel table is not square ("
+    << distMatrix.rows() << "x" << distMatrix.cols() << ").\n";
     return false;
   }
-  
+
   if ( distMatrix.rows() != posCount+negCount) {
-    cerr << "SVM error: the size of the kernel table (" << distMatrix.rows() 
-	 << ") does not " << "match the size of the data set (" 
-	 << posCount+negCount << ").\n";
+    cerr << "SVM error: the size of the kernel table (" << distMatrix.rows()
+    << ") does not " << "match the size of the data set ("
+    << posCount+negCount << ").\n";
     return false;
   }
 
@@ -41,13 +68,13 @@ bool checkSvmParams (const DoubleMatrix& distMatrix,
 
 
 
-int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB, 
-			  const DoubleMatrix& kernelMatrix, 
-			  const SvmParam& svmParam, 
-			  int posCount, int negCount)
-  // This functions sets the right structures and calls the interior
-  // point optimization from pr_loqo. It assumes that the size of the
-  // structures is correct.
+int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
+                          const DoubleMatrix& kernelMatrix,
+                          const SvmParam& svmParam,
+                          int posCount, int negCount)
+// This functions sets the right structures and calls the interior
+// point optimization from pr_loqo. It assumes that the size of the
+// structures is correct.
 {
   int n = posCount+negCount; // m = 1
 
@@ -58,19 +85,19 @@ int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
   double *b = new double[1];
   double *l = new double[n];
   double *u = new double[n];
- 
+
   int labelI = 1;
   for ( int i = 0; i < n; i++ ) {
     // Change the label, if it's time
-    if ( i == posCount ) 
+    if ( i == posCount )
       labelI = -1;
 
     // Objective function parameters
     c[i] = -1;
     int labelJ = 1;
     for ( int j = 0; j < n; j++ ) {
-      if  ( j == posCount ) 
-	labelJ = -1;
+      if  ( j == posCount )
+        labelJ = -1;
       h[i*n+j] = labelI*labelJ*kernelMatrix[i][j];
     }
 
@@ -86,13 +113,13 @@ int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
 
   // Initialize primal and dual space
   double *primal = new double[3*n];
-  double *dual = new double[1+2*n]; 
+  double *dual = new double[1+2*n];
 
-  
+
   // Initialize optimization parameters
 
 
-  /* 
+  /*
    * solve the quadratic programming problem
    *
    * minimize   c' * x + 1/2 x' * H * x
@@ -102,9 +129,9 @@ int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
 
 
   int status = pr_loqo(n,1,c,h,a,b,l,u,primal,dual,
-		      svmParam.verbose-2,svmParam.sigDig,
-		      svmParam.maxIterations,
-		      svmParam.optEpsilon,svmParam.C/2,0);
+                       svmParam.verbose-2,svmParam.sigDig,
+                       svmParam.maxIterations,
+                       svmParam.optEpsilon,svmParam.C/2,0);
 
   delete [] c;
   delete [] h;
@@ -118,7 +145,7 @@ int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
   // Generate the result
   bool retCode = false;
   if ( status == OPTIMAL_SOLUTION ) {
-    for ( int i = 0; i < n; i++ ) 
+    for ( int i = 0; i < n; i++ )
       svmAlpha[i] = (SvmReal)primal[i];
     svmB = dual[0];
     retCode = true;
@@ -136,12 +163,12 @@ int solveSvmOptimization (SvmRealVector& svmAlpha, double& svmB,
 
 
 
-bool svmTrain (Sketch& sketch, const DoubleMatrix& distMatrix, 
-	       const SvmParam& svmParam, int posCount, int negCount)
-  // This functions sets the right structures and calls the interior
-  // point optimization from pr_loqo.
+bool svmTrain (Sketch& sketch, const DoubleMatrix& distMatrix,
+               const SvmParam& svmParam, int posCount, int negCount)
+// This functions sets the right structures and calls the interior
+// point optimization from pr_loqo.
 {
-  if ( !checkSvmParams(distMatrix,posCount,negCount) ) 
+  if ( !checkSvmParams(distMatrix,posCount,negCount) )
     return false;
 
   SvmRealVector alpha(distMatrix.rows());
@@ -158,15 +185,15 @@ bool svmTrain (Sketch& sketch, const DoubleMatrix& distMatrix,
 }
 
 
-/////////////////////////// Cross-validate 
+/////////////////////////// Cross-validate
 
 
-bool svmCrossValidate (Sketch* sketchArray, const DoubleMatrix& distMatrix, 
-		       const SvmParam& svmParam, int posCount, int negCount)
-  // This functions performs leave-one-out cross-validation,
-  // returning the set of sketches.
+bool svmCrossValidate (Sketch* sketchArray, const DoubleMatrix& distMatrix,
+                       const SvmParam& svmParam, int posCount, int negCount)
+// This functions performs leave-one-out cross-validation,
+// returning the set of sketches.
 {
-  if ( !checkSvmParams(distMatrix,posCount,negCount) ) 
+  if ( !checkSvmParams(distMatrix,posCount,negCount) )
     return false;
 
   DoubleMatrix kernelMatrix;
@@ -188,44 +215,42 @@ bool svmCrossValidate (Sketch* sketchArray, const DoubleMatrix& distMatrix,
 
     // Create new data: missing i-th row and i-th column
     for ( int j = 0; j < i; j++ ) {
-      dataIndex[j] = j; 
-      for ( int m = 0; m < i; m++ ) 
-	newKernelMatrix[j][m] = kernelMatrix[j][m];
-      for ( int m = i+1; m < dataCount; m++ ) 
-	newKernelMatrix[j][m-1] = kernelMatrix[j][m];
+      dataIndex[j] = j;
+      for ( int m = 0; m < i; m++ )
+        newKernelMatrix[j][m] = kernelMatrix[j][m];
+      for ( int m = i+1; m < dataCount; m++ )
+        newKernelMatrix[j][m-1] = kernelMatrix[j][m];
     }
     for ( int j = i+1; j < dataCount; j++ ) {
       dataIndex[j-1] = j;
-      for ( int m = 0; m < i; m++ ) 
-	newKernelMatrix[j-1][m] = kernelMatrix[j][m];
-      for ( int m = i+1; m < dataCount; m++ ) 
-	newKernelMatrix[j-1][m-1] = kernelMatrix[j][m];
+      for ( int m = 0; m < i; m++ )
+        newKernelMatrix[j-1][m] = kernelMatrix[j][m];
+      for ( int m = i+1; m < dataCount; m++ )
+        newKernelMatrix[j-1][m-1] = kernelMatrix[j][m];
     }
 
-    if ( i == 0 ) { 
+    if ( i == 0 ) {
       write(dataIndex,"foo.txt");
     }
 
-     // Train
-    if ( solveSvmOptimization(alpha, b, newKernelMatrix, 
-			      svmParam, newPosCount, newNegCount) ) {
+    // Train
+    if ( solveSvmOptimization(alpha, b, newKernelMatrix,
+                              svmParam, newPosCount, newNegCount) ) {
       sketchArray[i].setKernel(svmParam.kernel);
-      retCode &= sketchArray[i].init(alpha, dataIndex, b, kernelMatrix, 
-				     newPosCount, newNegCount,
-				     svmParam.alphaEpsilon);
-    }
-    else
+      retCode &= sketchArray[i].init(alpha, dataIndex, b, kernelMatrix,
+                                     newPosCount, newNegCount,
+                                     svmParam.alphaEpsilon);
+    } else
       return false;
-      
+
   }
   return retCode;
 }
 
 
 
-bool svmCrossValidate (DoubleVector& label, const DoubleMatrix& distMatrix, 
-		       const SvmParam& svmParam, int posCount, int negCount)
-{
+bool svmCrossValidate (DoubleVector& label, const DoubleMatrix& distMatrix,
+                       const SvmParam& svmParam, int posCount, int negCount) {
   // Train the classifiers
   int dataCount = posCount+negCount;
   Sketch* sketchArray = new Sketch[dataCount];
@@ -237,28 +262,25 @@ bool svmCrossValidate (DoubleVector& label, const DoubleMatrix& distMatrix,
   for ( int i = 0; i < dataCount; i++ )
     label[i] = sketchArray[i].classify(i);
 
-  delete [] sketchArray; 
+  delete [] sketchArray;
   return true;
 }
 
 
 /////////////////////////////    Classify
 
-double svmClassify (const Sketch& sketch, int index)
-{
+double svmClassify (const Sketch& sketch, int index) {
   return sketch.classify(index);
 }
 
 
 
-double svmClassify (const Model& model, const SvmReal* vec)
-{
-   return model.classify(vec);
+double svmClassify (const Model& model, const SvmReal* vec) {
+  return model.classify(vec);
 }
 
 
-double svmClassify (const Model& model, const SvmRealVector& vec)
-{
+double svmClassify (const Model& model, const SvmRealVector& vec) {
   return model.classify(vec);
 }
 
@@ -268,14 +290,12 @@ double svmClassify (const Model& model, const SvmRealVector& vec)
 /////////////////////////////    Compute gradient
 
 
-bool svmWeights (const Model& model, SvmReal* weights, const SvmReal* vec)
-{
-   return model.d10(weights,vec);
+bool svmWeights (const Model& model, SvmReal* weights, const SvmReal* vec) {
+  return model.d10(weights,vec);
 }
 
 
-bool svmWeights (const Model& model, SvmRealVector& weights, const SvmRealVector& vec)
-{
+bool svmWeights (const Model& model, SvmRealVector& weights, const SvmRealVector& vec) {
   return model.d10(weights,vec);
 }
 

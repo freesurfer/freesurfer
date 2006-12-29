@@ -1,3 +1,31 @@
+/**
+ * @file  mri_twoclass.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:09 $
+ *    $Revision: 1.14 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +49,7 @@
 #include "mri_conform.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.13 2004/02/26 19:03:42 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.14 2006/12/29 02:09:09 nicks Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -68,24 +96,24 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n) ;
 static int  compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
-                                         TRANSFORM *transform);
+    TRANSFORM *transform);
 static int  accumulate_white_matter_density(MRI *mri, MRI *mri_mean, MRI *mri_var) ;
 static int  add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,
-                                         float resolution, TRANSFORM *transform);
+    float resolution, TRANSFORM *transform);
 
-static int voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
+static int voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv,
                          int *pxn, int *pyn, int *pzn, TRANSFORM *transform) ;
-static int voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv, 
+static int voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv,
                                float *pxn, float *pyn, float *pzn, TRANSFORM *transform) ;
-static int node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn, 
+static int node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn,
                          int *pxv, int *pyv, int *pzv, TRANSFORM *transform) ;
 static char *xform_fname = "talairach.lta" ;
-static MRI *compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2, 
-                                            MRI *mri_var1, MRI *mri_var2, 
-                                            MRI *mri_stats, 
-                                            int num_class1, int num_class2,
-																						int stat_type) ;
-static MRI *compute_voxel_statistics(VL ***voxel_labels_class1, 
+static MRI *compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2,
+    MRI *mri_var1, MRI *mri_var2,
+    MRI *mri_stats,
+    int num_class1, int num_class2,
+    int stat_type) ;
+static MRI *compute_voxel_statistics(VL ***voxel_labels_class1,
                                      VL ***voxel_labels_class2,
                                      int width, int height,
                                      int depth, float resolution,
@@ -108,28 +136,27 @@ static char subjects_dir[STRLEN] ;
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   MRI          *mri, *mri_stats, *mri_mean1 = NULL, *mri_mean2 = NULL, *mri_template = NULL,
-               *mri_var1 = NULL, *mri_var2 = NULL, *mri_atlas_wm = NULL, *mri_tmp ;
+      *mri_var1 = NULL, *mri_var2 = NULL, *mri_atlas_wm = NULL, *mri_tmp ;
   char         **av, fname[STRLEN], *aseg_name,
-               *cp, *subject_name, *out_fname,
-               **c1_subjects, **c2_subjects, *output_subject ;
-  int          ac, nargs, n, num_class1, num_class2, i, width, height, depth, 
-               awidth, aheight, adepth ;
+  *cp, *subject_name, *out_fname,
+  **c1_subjects, **c2_subjects, *output_subject ;
+  int          ac, nargs, n, num_class1, num_class2, i, width, height, depth,
+  awidth, aheight, adepth ;
   LABEL        *area ;
   struct timeb start ;
   int          msec, minutes, seconds ;
-  VL           ***voxel_labels_class1 = NULL, ***voxel_labels_class2=NULL, 
-               ***vls ;
+  VL           ***voxel_labels_class1 = NULL, ***voxel_labels_class2=NULL,
+                                        ***vls ;
   TRANSFORM    *transform ;
   VLI          *vli1 = NULL, *vli2 = NULL ;
 
-	/* rkt: check for and handle version tag */
-	nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.13 2004/02/26 19:03:42 fischl Exp $", "$Name:  $");
-	if (nargs && argc - nargs == 1)
-		exit (0);
-	argc -= nargs;
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.14 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -137,8 +164,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -149,9 +175,8 @@ main(int argc, char *argv[])
   /* subject_name hemi surface curvature */
   if (argc < 7)
     usage_exit() ;
-  
-  if (!strlen(subjects_dir))
-  {
+
+  if (!strlen(subjects_dir)) {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment",
@@ -169,28 +194,28 @@ main(int argc, char *argv[])
 #define ARGV_OFFSET 4
 
   /* first determine the number of subjects in each class */
-  num_class1 = 0 ; n = ARGV_OFFSET ;
-  do
-  {
+  num_class1 = 0 ;
+  n = ARGV_OFFSET ;
+  do {
     num_class1++ ;
     n++ ;
     if (argv[n] == NULL || n >= argc)
       ErrorExit(ERROR_BADPARM, "%s: must spectify ':' between class lists",
                 Progname) ;
-  } while(argv[n][0] != ':') ;
+  } while (argv[n][0] != ':') ;
 
 
 
-  num_class2 = 0 ; n++ ; /* skip ':' */
+  num_class2 = 0 ;
+  n++ ; /* skip ':' */
   if (n >= argc)
     ErrorExit(ERROR_BADPARM, "%s: class2 list empty", Progname) ;
-  do
-  {
+  do {
     num_class2++ ;
     n++ ;
     if (n >= argc)
       break ;
-  } while(argv[n] != NULL) ;
+  } while (argv[n] != NULL) ;
 
   c1_subjects = (char **)calloc(num_class1, sizeof(char *)) ;
   c2_subjects = (char **)calloc(num_class2, sizeof(char *)) ;
@@ -199,35 +224,28 @@ main(int argc, char *argv[])
 
 
   /* read in subject names for the two classes */
-  for (n = 0 ; n < num_class1 ; n++)
-  {
+  for (n = 0 ; n < num_class1 ; n++) {
     c1_subjects[n] = argv[ARGV_OFFSET+n] ;
   }
   i = n+1+ARGV_OFFSET ;  /* starting index */
-  for (n = 0 ; n < num_class2 ; n++)
-  {
+  for (n = 0 ; n < num_class2 ; n++) {
     c2_subjects[n] = argv[i+n] ;
   }
 
   /* read in label if limitting calculation to an ROI */
-  if (label_name)
-  {
+  if (label_name) {
     area = LabelRead(output_subject, label_name) ;
     if (!area)
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname,
                 label_name) ;
-  }
-  else
+  } else
     area = NULL ;
 
   if (read_dir)  /* read in precomputed data */
   {
-  }
-  else
-  {
+  } else {
     /* real all the data for both groups  */
-    for (n = 0 ; n < num_class1+num_class2 ; n++)
-    {
+    for (n = 0 ; n < num_class1+num_class2 ; n++) {
       /* transform each subject's curvature into the output subject's space */
       subject_name = n < num_class1 ? c1_subjects[n]:c2_subjects[n-num_class1];
       fprintf(stderr, "reading subject %d of %d: %s\n",
@@ -237,63 +255,58 @@ main(int argc, char *argv[])
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation %s",
                   Progname, fname) ;
-			if (!mri_template)
-			{
-				mri_tmp = MRIcopy(mri, NULL) ;
-				mri_template = MRIconform(mri_tmp) ; 
-			}
-			mri_tmp = MRIcopy(mri, NULL) ;
+      if (!mri_template) {
+        mri_tmp = MRIcopy(mri, NULL) ;
+        mri_template = MRIconform(mri_tmp) ;
+      }
+      mri_tmp = MRIcopy(mri, NULL) ;
       mri = MRIresample(mri_tmp, mri_template, SAMPLE_NEAREST) ;
-			MRIfree(&mri_tmp) ;
-			if (mask_fname)
-			{
-				MRI *mri_mask ;
-				
-				sprintf(fname, "%s/%s/mri/%s", subjects_dir,subject_name,mask_fname);
-				mri_mask = MRIread(fname) ;
-				if (!mri_mask)
-					ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-										Progname, fname) ;
-				
-				MRImask(mri, mri_mask, mri, 0, 0) ;
-				MRIfree(&mri_mask) ;
-			}
+      MRIfree(&mri_tmp) ;
+      if (mask_fname) {
+        MRI *mri_mask ;
+
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir,subject_name,mask_fname);
+        mri_mask = MRIread(fname) ;
+        if (!mri_mask)
+          ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                    Progname, fname) ;
+
+        MRImask(mri, mri_mask, mri, 0, 0) ;
+        MRIfree(&mri_mask) ;
+      }
       sprintf(fname, "%s/%s/mri/transforms/%s", subjects_dir,subject_name,
               xform_fname);
-      if (wm_flag)
-      {
+      if (wm_flag) {
         MRIthresholdRangeInto(mri, mri, WM_MIN_VAL, WM_MAX_VAL) ;
         MRIbinarize(mri, mri, WM_MIN_VAL, 0, 64) ;
       }
-      if (sigma)
-      {
+      if (sigma) {
         MRI *mri_kernel, *mri_tmp ;
 
         mri_kernel = MRIgaussian1d(sigma, 0);
         mri_tmp = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
-        MRIfree(&mri_kernel) ; MRIfree(&mri) ;
+        MRIfree(&mri_kernel) ;
+        MRIfree(&mri) ;
         mri = mri_tmp ;
       }
 
-			if ((stricmp(xform_fname, "null") == 0) || (stricmp(xform_fname,"identity") == 0))
-			{
+      if ((stricmp(xform_fname, "null") == 0) || (stricmp(xform_fname,"identity") == 0)) {
 #if 0
-				transform = TransformIdentity() ;
+        transform = TransformIdentity() ;
 #endif
-			}
-			else
-				transform = TransformRead(fname) ;
-			if (!transform)
-				ErrorExit(ERROR_NOFILE, "%s: could not read transform %s",
-									Progname, fname) ;
-			TransformInvert(transform, mri) ;
+      } else
+        transform = TransformRead(fname) ;
+      if (!transform)
+        ErrorExit(ERROR_NOFILE, "%s: could not read transform %s",
+                  Progname, fname) ;
+      TransformInvert(transform, mri) ;
 
 
-      if (!wm_flag && !vol_flag)
-      {
-        if (!width)
-        {
-          width = mri->width ; height = mri->height ; depth = mri->depth ;
+      if (!wm_flag && !vol_flag) {
+        if (!width) {
+          width = mri->width ;
+          height = mri->height ;
+          depth = mri->depth ;
           awidth = width/resolution ;
           aheight = height/resolution ;
           adepth = depth/resolution ;
@@ -301,63 +314,60 @@ main(int argc, char *argv[])
           vli2 = VLalloc(awidth, aheight, adepth, resolution) ;
           if (!vli1 || !vli2)
             ErrorExit(ERROR_NOMEMORY, "%s: could not allocate VL ***", Progname);
-          
+
           voxel_labels_class1 = vli1->vl ;
           voxel_labels_class2 = vli2->vl ;
         }
-        
+
         vls = n < num_class1 ? voxel_labels_class1 : voxel_labels_class2 ;
         add_volume_labels_to_average(mri, vls, resolution, transform) ;
-      }
-      else   /* compute white matter density statistics */
+      } else   /* compute white matter density statistics */
       {
-        width = mri->width ; height = mri->height ; depth = mri->depth ;
+        width = mri->width ;
+        height = mri->height ;
+        depth = mri->depth ;
         awidth = width/resolution ;
         aheight = height/resolution ;
         adepth = depth/resolution ;
-        if (!mri_mean1)
-        {
+        if (!mri_mean1) {
           mri_mean1 = MRIalloc(awidth, aheight, adepth, MRI_FLOAT) ;
           mri_var1 = MRIalloc(awidth, aheight, adepth, MRI_FLOAT) ;
           mri_mean2 = MRIalloc(awidth, aheight, adepth, MRI_FLOAT) ;
           mri_var2 = MRIalloc(awidth, aheight, adepth, MRI_FLOAT) ;
           mri_atlas_wm = MRIalloc(awidth, aheight, adepth, MRI_FLOAT) ;
-        }
-        else
+        } else
           MRIclear(mri_atlas_wm) ;
         if (!mri_mean1 || !mri_mean2 || !mri_var1 || !mri_var2 || !mri_atlas_wm)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dx%dx%d summary volumes",
                     Progname, awidth, aheight, adepth) ;
-				if ((stricmp(xform_fname, "null") == 0) || (stricmp(xform_fname,"identity") == 0))
-				{
-					MRIrasXformToVoxelXform(mri, mri_atlas_wm, 
-																	((LTA *)transform->xform)->xforms[0].m_L, 
-																	((LTA *)transform->xform)->xforms[0].m_L) ;
-					MRIrasXformToVoxelXform(mri, mri_atlas_wm, 
-																	((LTA *)transform->xform)->inv_xforms[0].m_L, 
-																	((LTA *)transform->xform)->inv_xforms[0].m_L) ;
-				}
-				compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
-				if (n < num_class1)
-					accumulate_white_matter_density(mri_atlas_wm, mri_mean1, mri_var1);
-				else
-					accumulate_white_matter_density(mri_atlas_wm, mri_mean2, mri_var2);
+        if ((stricmp(xform_fname, "null") == 0) || (stricmp(xform_fname,"identity") == 0)) {
+          MRIrasXformToVoxelXform(mri, mri_atlas_wm,
+                                  ((LTA *)transform->xform)->xforms[0].m_L,
+                                  ((LTA *)transform->xform)->xforms[0].m_L) ;
+          MRIrasXformToVoxelXform(mri, mri_atlas_wm,
+                                  ((LTA *)transform->xform)->inv_xforms[0].m_L,
+                                  ((LTA *)transform->xform)->inv_xforms[0].m_L) ;
+        }
+        compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
+        if (n < num_class1)
+          accumulate_white_matter_density(mri_atlas_wm, mri_mean1, mri_var1);
+        else
+          accumulate_white_matter_density(mri_atlas_wm, mri_mean2, mri_var2);
       }
 
-      MRIfree(&mri) ; TransformFree(&transform) ;
+      MRIfree(&mri) ;
+      TransformFree(&transform) ;
     }
   }
 
 
-  if (wm_flag || vol_flag)
-  {
-    normalize_white_matter_density(mri_mean1, mri_var1, num_class1) ; 
+  if (wm_flag || vol_flag) {
+    normalize_white_matter_density(mri_mean1, mri_var1, num_class1) ;
     normalize_white_matter_density(mri_mean2, mri_var2, num_class2) ;
-    mri_stats = compute_white_matter_statistics(mri_mean1, mri_mean2, mri_var1, mri_var2, 
-                                                NULL, num_class1, num_class2, stat_type) ;
-  }
-  else
-    mri_stats = 
+    mri_stats = compute_white_matter_statistics(mri_mean1, mri_mean2, mri_var1, mri_var2,
+                NULL, num_class1, num_class2, stat_type) ;
+  } else
+    mri_stats =
       compute_voxel_statistics(voxel_labels_class1, voxel_labels_class2,
                                awidth, aheight, adepth, resolution,
                                num_class1, num_class2, NULL) ;
@@ -369,18 +379,16 @@ main(int argc, char *argv[])
   else
     write_bfloats(mri_stats, fname, output_subject) ;
 
-  if (vl1_name && stricmp(vl1_name, "none"))
-  {
+  if (vl1_name && stricmp(vl1_name, "none")) {
     printf("writing voxel labels for group 1 to %s...\n", vl1_name) ;
-		if (normalize)
-			VLnormalize(vli1) ;
+    if (normalize)
+      VLnormalize(vli1) ;
     VLwrite(vli1, vl1_name) ;
   }
-  if (vl2_name && stricmp(vl2_name, "none"))
-  {
+  if (vl2_name && stricmp(vl2_name, "none")) {
     printf("writing voxel labels for group 2 to %s...\n", vl2_name) ;
-		if (normalize)
-			VLnormalize(vli2) ;
+    if (normalize)
+      VLnormalize(vli2) ;
     VLwrite(vli2, vl2_name) ;
   }
 
@@ -400,149 +408,125 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "test"))
-  {
+  else if (!stricmp(option, "test")) {
     test_subject = argv[2] ;
     fprintf(stderr, "writing test.dat for subject %s\n", test_subject) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "DEBUG_VOXEL"))
-  {
+  } else if (!stricmp(option, "DEBUG_VOXEL")) {
     Gx = Gxv = atoi(argv[2]) ;
     Gy = Gyv = atoi(argv[3]) ;
     Gz = Gzv = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gxv,Gyv,Gzv) ;
-  }
-  else if (!stricmp(option, "DEBUG_NODE"))
-  {
+  } else if (!stricmp(option, "DEBUG_NODE")) {
     Gxn = atoi(argv[2]) ;
     Gyn = atoi(argv[3]) ;
     Gzn = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gxn,Gyn,Gzn) ;
-  }
-  else if (!stricmp(option, "WRITE_LABELS"))
-  {
+  } else if (!stricmp(option, "WRITE_LABELS")) {
     vl1_name = argv[2] ;
     vl2_name = argv[3] ;
     nargs = 2 ;
     printf("writing voxel labels to %s and %s\n", vl1_name, vl2_name) ;
-  }
-  else if (!stricmp(option, "sdir"))
-  {
+  } else if (!stricmp(option, "sdir")) {
     strcpy(subjects_dir, argv[2]) ;
-    fprintf(stderr, "using subjects_dir %s\n", subjects_dir) ; 
+    fprintf(stderr, "using subjects_dir %s\n", subjects_dir) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "mean"))
-  {
-		stat_type = STAT_MEAN ;
-		fprintf(stderr, "computing mean difference between groups...\n") ;
-  }
-  else if (!stricmp(option, "wm"))
-  {
+  } else if (!stricmp(option, "mean")) {
+    stat_type = STAT_MEAN ;
+    fprintf(stderr, "computing mean difference between groups...\n") ;
+  } else if (!stricmp(option, "wm")) {
     wm_flag = 1 ;
     fprintf(stderr, "generating map of white matter differences...\n") ;
-  }
-  else if (!stricmp(option, "vol"))
-  {
+  } else if (!stricmp(option, "vol")) {
     vol_flag = 1 ;
     fprintf(stderr, "generating maps of volumetric (non-labeled) differences...\n") ;
-  }
-  else if (!stricmp(option, "sigma"))
-  {
+  } else if (!stricmp(option, "sigma")) {
     sigma = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using gaussian blurring kernel with sigma=%2.2f\n",sigma);
-  }
-  else if (!stricmp(option, "read"))
-  {
+  } else if (!stricmp(option, "read")) {
     read_fname1 = argv[2] ;
     read_fname2 = argv[3] ;
     printf("reading precomputed voxel labels from %s and %s\n",
            read_fname1, read_fname2) ;
     nargs = 2 ;
-  }
-  else switch (toupper(*option))
-  {
-	case 'N':
-		normalize = atoi(argv[2]) ;
-		printf("%snormalizing voxel label counts to percentages\n", normalize ? "" : "not ") ;
-		nargs = 1 ;
-		break ;
-  case 'X':
-    xform_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using xform fname %s\n", xform_fname) ;
-    break ;
-  case 'R':
-    resolution = atof(argv[2]) ;
-    printf("using resolution %2.1f\n", resolution) ;
-    nargs = 1 ;
-    break ;
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-	case 'M':
-		mask_fname = argv[2] ;
-		printf("using volume %s to mask inputs...\n", mask_fname) ;
-		nargs = 1 ;
-		break ;
-  case 'L':
-    label_name = argv[2] ;
-    fprintf(stderr, "masking label %s\n", label_name) ;
-    nargs = 1 ;
-    break ;
-  case 'P':
-    prefix = argv[2] ;
-    fprintf(stderr, "using label prefix %s\n", prefix) ;
-    nargs = 1 ;
-    break ;
-  case 'T':
-    fthresh = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "using F snr threshold of %2.2f...\n", fthresh) ;
-    break ;
-  case 'B':
-    bonferroni = 1 ;
-    fprintf(stderr, "doing bonferroni correction of SNR values...\n") ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'N':
+      normalize = atoi(argv[2]) ;
+      printf("%snormalizing voxel label counts to percentages\n", normalize ? "" : "not ") ;
+      nargs = 1 ;
+      break ;
+    case 'X':
+      xform_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using xform fname %s\n", xform_fname) ;
+      break ;
+    case 'R':
+      resolution = atof(argv[2]) ;
+      printf("using resolution %2.1f\n", resolution) ;
+      nargs = 1 ;
+      break ;
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'M':
+      mask_fname = argv[2] ;
+      printf("using volume %s to mask inputs...\n", mask_fname) ;
+      nargs = 1 ;
+      break ;
+    case 'L':
+      label_name = argv[2] ;
+      fprintf(stderr, "masking label %s\n", label_name) ;
+      nargs = 1 ;
+      break ;
+    case 'P':
+      prefix = argv[2] ;
+      fprintf(stderr, "using label prefix %s\n", prefix) ;
+      nargs = 1 ;
+      break ;
+    case 'T':
+      fthresh = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "using F snr threshold of %2.2f...\n", fthresh) ;
+      break ;
+    case 'B':
+      bonferroni = 1 ;
+      fprintf(stderr, "doing bonferroni correction of SNR values...\n") ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
+print_usage(void) {
   printf("usage: %s [options] \n"
          "\t<segmentation volume> <output subject> <output volume> \n\t<c1_subject1> "
          "<c1_subject2>... : \n"
@@ -560,37 +544,33 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  printf( 
-          "\nThis program will compute the cross-subject statistics of two "
-          "sets of labels.\n") ;
+  printf(
+    "\nThis program will compute the cross-subject statistics of two "
+    "sets of labels.\n") ;
   printf( "\nvalid options are:\n\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   printf( "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution, 
-                             TRANSFORM *transform)
-{
+add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
+                             TRANSFORM *transform) {
   int          x, y, z, width, height, depth, index, label, xv, yv, zv ;
   VOXEL_LABELS *vl ;
 
-  width = mri->width; height = mri->height; depth = mri->depth;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  width = mri->width;
+  height = mri->height;
+  depth = mri->depth;
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = MRIvox(mri, x, y, z) ;
@@ -605,15 +585,15 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
         vl = &voxel_labels[xv][yv][zv] ;
         if (index < 0)  /* allocate space for it */
         {
-          if (vl->nlabels > 0)
-          {
+          if (vl->nlabels > 0) {
             unsigned char *old_labels ;
             unsigned short *old_counts ;
 
             if (xv == Gxn && yv == Gyn && zv == Gzn)
               DiagBreak() ;
-            old_labels = vl->labels ; old_counts = vl->counts ;
-            vl->labels = (unsigned char *)calloc(vl->nlabels+1, 
+            old_labels = vl->labels ;
+            old_counts = vl->counts ;
+            vl->labels = (unsigned char *)calloc(vl->nlabels+1,
                                                  sizeof(unsigned char));
             vl->counts = (unsigned short *)calloc(vl->nlabels+1,
                                                   sizeof(unsigned short));
@@ -623,13 +603,12 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
             memmove(vl->labels, old_labels,vl->nlabels*sizeof(unsigned char));
             memmove(vl->counts, old_counts,vl->nlabels*sizeof(unsigned short));
             index = vl->nlabels++ ;
-            free(old_labels) ; free(old_counts) ;
-          }
-          else
-          {
-            vl->labels = 
+            free(old_labels) ;
+            free(old_counts) ;
+          } else {
+            vl->labels =
               (unsigned char *)calloc(vl->nlabels+1, sizeof(unsigned char));
-            vl->counts = 
+            vl->counts =
               (unsigned short *)calloc(vl->nlabels+1,sizeof(unsigned short));
             if (!vl->labels || !vl->counts)
               ErrorExit(ERROR_NOMEMORY, "%s: could not reallocate %d labels "
@@ -656,19 +635,20 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
 }
 
 static int
-voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv, 
-                    float *pxn, float *pyn, float *pzn, TRANSFORM *transform)
-{
+voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv,
+                    float *pxn, float *pyn, float *pzn, TRANSFORM *transform) {
   float  xt, yt, zt, xscale, yscale, zscale ;
   int    width, height, depth ;
 
   TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
 
-  xt = (xt/mri->xsize) ; yt = (yt/mri->ysize) ; zt = (zt/mri->zsize); 
+  xt = (xt/mri->xsize) ;
+  yt = (yt/mri->ysize) ;
+  zt = (zt/mri->zsize);
   width = mri->width/resolution ;
   height = mri->height/resolution ;
   depth = mri->depth/resolution ;
-  xscale = mri->xsize / resolution ; 
+  xscale = mri->xsize / resolution ;
   yscale = mri->ysize / resolution ;
   zscale = mri->zsize / resolution ;
   *pxn = (xt) * xscale ;
@@ -691,13 +671,12 @@ voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv,
   return(NO_ERROR) ;
 }
 static int
-voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
-              int *pxn, int *pyn, int *pzn, TRANSFORM *transform)
-{
+voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv,
+              int *pxn, int *pyn, int *pzn, TRANSFORM *transform) {
   float  xt, yt, zt ;
   int    width, height, depth ;
 
-	voxel_to_node_float(mri, resolution, xv, yv, zv, &xt, &yt, &zt, transform) ;
+  voxel_to_node_float(mri, resolution, xv, yv, zv, &xt, &yt, &zt, transform) ;
   width = mri->width/resolution ;
   height = mri->height/resolution ;
   depth = mri->depth/resolution ;
@@ -722,16 +701,19 @@ voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv,
 }
 
 static int
-node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn, 
-              int *pxv, int *pyv, int *pzv, TRANSFORM *transform)
-{
+node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn,
+              int *pxv, int *pyv, int *pzv, TRANSFORM *transform) {
   float  xt, yt, zt ;
   int    width, height, depth ;
 
   TransformSampleInverse(transform, xn*resolution, yn*resolution, zn*resolution, &xt, &yt, &zt) ;
 
-  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize); 
-  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  xt = nint(xt/mri->xsize) ;
+  yt = nint(yt/mri->ysize) ;
+  zt = nint(zt/mri->zsize);
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
   *pxv = nint(xt) ;
   if (*pxv < 0)
     *pxv = 0 ;
@@ -753,8 +735,7 @@ node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn,
 }
 
 static int
-find_label_index(VL ***voxel_labels, int x, int y, int z, int label)
-{
+find_label_index(VL ***voxel_labels, int x, int y, int z, int label) {
   int  index ;
   VL   *vl ;
 
@@ -768,34 +749,31 @@ find_label_index(VL ***voxel_labels, int x, int y, int z, int label)
 static MRI *
 compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
                          int width, int height, int depth,
-                         float resolution, int nclass1, int nclass2, 
-                         MRI *mri_stats)
-{
+                         float resolution, int nclass1, int nclass2,
+                         MRI *mri_stats) {
   int          x, y, z, label_counts_c1[256], label_counts_c2[256], index, dof;
   int          xc, yc, zc, xp, yp, zp ;
   VOXEL_LABELS *vl ;
-  double       chisq, pi, xi1, xi2, numer, denom, n1, n2, ntotal, p, 
-               max_chisq, min_p ;
+  double       chisq, pi, xi1, xi2, numer, denom, n1, n2, ntotal, p,
+  max_chisq, min_p ;
 
-  n1 = (double)nclass1 ; n2 = (double)nclass2 ;
+  n1 = (double)nclass1 ;
+  n2 = (double)nclass2 ;
   ntotal = n1 + n2 ;
 
-  if (!mri_stats)
-  {
+  if (!mri_stats) {
     mri_stats = MRIalloc(width, height, depth, MRI_FLOAT) ;
     if (!mri_stats)
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dx%dx%d stats volume",
                 Progname, width, height, depth) ;
     mri_stats->xsize = mri_stats->ysize = mri_stats->zsize = resolution ;
   }
-  max_chisq = 0.0 ; min_p = 1.0 ;
+  max_chisq = 0.0 ;
+  min_p = 1.0 ;
   xp = yp = zp = xc = yc = zc = 0 ;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gxn && y == Gyn && z == Gzn)
           DiagBreak() ;
 
@@ -812,17 +790,16 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
         vl = &voxel_labels_class2[x][y][z] ;
         for (index = 0 ; index < vl->nlabels ; index++)
           label_counts_c2[vl->labels[index]] += vl->counts[index] ;
-        
-        chisq = 0.0 ; dof = 0 ;
-        for (n1 = n2 = 0.0, index = 0 ; index <= MAX_CMA_LABEL ; index++)
-        {
+
+        chisq = 0.0 ;
+        dof = 0 ;
+        for (n1 = n2 = 0.0, index = 0 ; index <= MAX_CMA_LABEL ; index++) {
           n1 += (double)label_counts_c1[index] ;
           n2 += (double)label_counts_c2[index] ;
         }
         ntotal = n1 + n2 ;
 
-        for (index = 0 ; index <= MAX_CMA_LABEL ; index++)
-        {
+        for (index = 0 ; index <= MAX_CMA_LABEL ; index++) {
           if (label_counts_c1[index] == 0 && label_counts_c2[index] == 0)
             continue ;
           dof++ ;
@@ -830,50 +807,52 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
           xi2 = (double)label_counts_c2[index] ;
           pi = (xi1 + xi2) / ntotal ;
 
-          numer = (xi1 - (n1 * pi)) ; numer *= numer ; denom = n1 * pi ;
+          numer = (xi1 - (n1 * pi)) ;
+          numer *= numer ;
+          denom = n1 * pi ;
           if (!FZERO(denom))
             chisq += numer/denom ;
-          numer = (xi2 - (n2 * pi)) ; numer *= numer ; denom = n2 * pi ;
+          numer = (xi2 - (n2 * pi)) ;
+          numer *= numer ;
+          denom = n2 * pi ;
           if (!FZERO(denom))
             chisq += numer/denom ;
         }
         if (dof > 1)
           DiagBreak() ;
         p = sigchisq(chisq, dof-1) ;
-        if (DZERO(p) || p < 0)
-        {
+        if (DZERO(p) || p < 0) {
           p = 1e-20 ;
           MRIFvox(mri_stats, x, y, z) = 20 ;
-        }
-        else
-        {
+        } else {
           if (!finite(-log(p)))
             DiagBreak() ;
           MRIFvox(mri_stats, x, y, z) = -log(p) ;
         }
-        if (chisq > max_chisq)
-        {
-          xc = x  ; yc = y ; zc = z ;
+        if (chisq > max_chisq) {
+          xc = x  ;
+          yc = y ;
+          zc = z ;
           max_chisq = chisq ;
         }
-        if (p < min_p)
-        {
-          xp = x  ; yp = y ; zp = z ;
+        if (p < min_p) {
+          xp = x  ;
+          yp = y ;
+          zp = z ;
           min_p = p ;
         }
-        if (x == Gxn && y == Gyn && z == Gzn)
-        {
+        if (x == Gxn && y == Gyn && z == Gzn) {
           printf("class 1 @ (%d, %d, %d):\n", x, y, z) ;
           vl = &voxel_labels_class1[x][y][z] ;
           for (index = 0 ; index < MAX_CMA_LABEL ; index++)
             if (label_counts_c1[index] > 0)
-              printf("\tlabel %03d: %d\n", 
+              printf("\tlabel %03d: %d\n",
                      index, label_counts_c1[index]) ;
           printf("class 2:\n") ;
           vl = &voxel_labels_class2[x][y][z] ;
           for (index = 0 ; index < MAX_CMA_LABEL ; index++)
             if (label_counts_c2[index] > 0)
-              printf("\tlabel %03d: %d\n", 
+              printf("\tlabel %03d: %d\n",
                      index, label_counts_c2[index]) ;
           printf("\tchisq = %2.2f, p = %2.2e, dof = %d\n",
                  chisq, p, dof) ;
@@ -890,11 +869,10 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
 #include "stats.h"
 #include "matrix.h"
 static void
-write_bfloats(MRI *mri, char *out_name, char *output_subject)
-{
+write_bfloats(MRI *mri, char *out_name, char *output_subject) {
   STAT_VOLUME  *sv ;
   fMRI_REG     *reg ;
-  
+
   sv = StatAllocVolume(NULL, 1, mri->width, mri->height, mri->depth,1,0);
   strcpy(sv->reg->name, output_subject) ;
   MRIfree(&sv->mri_avgs[0]) ;
@@ -903,38 +881,39 @@ write_bfloats(MRI *mri, char *out_name, char *output_subject)
   sv->slice_width = mri->width ;
   sv->slice_height = mri->height ;
   sv->voltype = 0 ;  /* Raw */
-  sv->nevents = 1 ; sv->time_per_event = 1 ; 
+  sv->nevents = 1 ;
+  sv->time_per_event = 1 ;
   reg = sv->reg ;
-  
+
   reg->in_plane_res = mri->xsize ;
   reg->slice_thickness = mri->zsize ;
   reg->brightness_scale = 1.0 ;
-  
+
   StatWriteVolume(sv, out_name) ;
   StatFree(&sv) ;
 }
 
 static int
 compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
-                             TRANSFORM *transform)
-{
+                             TRANSFORM *transform) {
   int          x, y, z, width, height, depth, nwidth, nheight, ndepth, nholes ;
   MRI          *mri_filled ;
   float        xvf, yvf, zvf ;
   int          xm, xp, ym, yp, zm, zp, xv, yv, zv ;
   Real         xmd, ymd, zmd, xpd, ypd, zpd,label ;  /* d's are distances */
 
-  mri_filled = MRIalloc(mri_atlas_wm->width, mri_atlas_wm->height, 
+  mri_filled = MRIalloc(mri_atlas_wm->width, mri_atlas_wm->height,
                         mri_atlas_wm->depth, MRI_UCHAR) ;
 
-  width = mri->width; height = mri->height; depth = mri->depth;
-  nwidth = mri_atlas_wm->width; nheight = mri_atlas_wm->height; ndepth = mri_atlas_wm->depth;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  width = mri->width;
+  height = mri->height;
+  depth = mri->depth;
+  nwidth = mri_atlas_wm->width;
+  nheight = mri_atlas_wm->height;
+  ndepth = mri_atlas_wm->depth;
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 #if 0
@@ -944,17 +923,24 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
 #endif
         voxel_to_node_float(mri, resolution, x, y, z, &xvf, &yvf, &zvf, transform) ;
 
-        if ((Gxn >= 0 && fabs(xvf-Gxn)<=1) && (Gyn >= 0 && fabs(yvf-Gyn)) <= 1  && 
-						(Gzn >= 0 && fabs(zvf-Gzn)<=1))
+        if ((Gxn >= 0 && fabs(xvf-Gxn)<=1) && (Gyn >= 0 && fabs(yvf-Gyn)) <= 1  &&
+            (Gzn >= 0 && fabs(zvf-Gzn)<=1))
           printf("(%d, %d, %d) --> (%2.1f,%2.1f,%2.1f), label = %2.1f\n",
                  x, y, z, (xvf), (yvf), (zvf), label) ;
 
-        xm = MAX((int)xvf, 0) ;  xp = MIN(nwidth-1, xm+1) ;
-        ym = MAX((int)yvf, 0) ;  yp = MIN(nheight-1, ym+1) ;
-        zm = MAX((int)zvf, 0) ;  zp = MIN(ndepth-1, zm+1) ;
+        xm = MAX((int)xvf, 0) ;
+        xp = MIN(nwidth-1, xm+1) ;
+        ym = MAX((int)yvf, 0) ;
+        yp = MIN(nheight-1, ym+1) ;
+        zm = MAX((int)zvf, 0) ;
+        zp = MIN(ndepth-1, zm+1) ;
 
-        xmd = xvf - (float)xm ; ymd = yvf - (float)ym ; zmd = zvf - (float)zm ;
-        xpd = (1.0f - xmd) ;    ypd = (1.0f - ymd) ;    zpd = (1.0f - zmd) ;
+        xmd = xvf - (float)xm ;
+        ymd = yvf - (float)ym ;
+        zmd = zvf - (float)zm ;
+        xpd = (1.0f - xmd) ;
+        ypd = (1.0f - ymd) ;
+        zpd = (1.0f - zmd) ;
 
         if (nint(xvf) == Gxn && nint(yvf) == Gyn && nint(zvf) == Gzn)
           DiagBreak() ;
@@ -979,14 +965,13 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
       }
     }
   }
-  
-  width = mri_filled->width; height = mri_filled->height; depth = mri_filled->depth;
-  for (nholes = x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+
+  width = mri_filled->width;
+  height = mri_filled->height;
+  depth = mri_filled->depth;
+  for (nholes = x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gxn && y == Gyn && z == Gzn)
           DiagBreak() ;
         if (MRIvox(mri_filled, x, y, z) > 0)
@@ -997,7 +982,7 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
 #if 0
         label = MRIvox(mri, xv, yv, zv) ;
 #else
-				MRIsampleVolume(mri, xv, yv, zv, &label) ;
+        MRIsampleVolume(mri, xv, yv, zv, &label) ;
 #endif
         if (x == Gxn && y == Gyn && z == Gzn)
           printf("filling hole (%d, %d, %d) <-- (%d,%d,%d), label = %2.1f\n",
@@ -1017,18 +1002,16 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
 }
 
 static int
-accumulate_white_matter_density(MRI *mri_atlas_wm, MRI *mri_mean, MRI *mri_var)
-{
+accumulate_white_matter_density(MRI *mri_atlas_wm, MRI *mri_mean, MRI *mri_var) {
   int    x, y, z, width, height, depth ;
   float  label ;
 
-  width = mri_atlas_wm->width; height = mri_atlas_wm->height; depth = mri_atlas_wm->depth;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  width = mri_atlas_wm->width;
+  height = mri_atlas_wm->height;
+  depth = mri_atlas_wm->depth;
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = MRIFvox(mri_atlas_wm, x, y, z) ;
@@ -1045,18 +1028,16 @@ accumulate_white_matter_density(MRI *mri_atlas_wm, MRI *mri_mean, MRI *mri_var)
 }
 
 static int
-normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n)
-{
+normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n) {
   int      x, y, z, width, height, depth ;
   float    mean, var ;
 
-  width = mri_mean->width; height = mri_mean->height; depth = mri_mean->depth;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  width = mri_mean->width;
+  height = mri_mean->height;
+  depth = mri_mean->depth;
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 
@@ -1072,24 +1053,21 @@ normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n)
 
 static MRI *
 compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2, MRI *mri_var1, MRI *mri_var2,
-                                MRI *mri_stats, int num_class1, int num_class2, int stat_type)
-{
+                                MRI *mri_stats, int num_class1, int num_class2, int stat_type) {
   int   x, y, z, width, height, depth ;
   float numer, denom, t, p, mean1, mean2, var1, var2 ;
 
-  if (!mri_stats)
-  {
+  if (!mri_stats) {
     mri_stats = MRIclone(mri_mean1, NULL) ;
     mri_stats->xsize = mri_stats->ysize = mri_stats->zsize = resolution ;
   }
 
-  width = mri_mean1->width ; height = mri_mean1->height ; depth = mri_mean1->depth ;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
+  width = mri_mean1->width ;
+  height = mri_mean1->height ;
+  depth = mri_mean1->depth ;
+  for (x = 0 ; x < width ; x++) {
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         mean1 = MRIFvox(mri_mean1, x, y, z) ;
@@ -1098,15 +1076,11 @@ compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2, MRI *mri_var1, M
         var2 = MRIFvox(mri_var2, x, y, z) ;
         numer = mean1 - mean2 ;
         denom = sqrt((var1/num_class1) + (var2/num_class2)) ;
-        if (FZERO(denom))
-        {
+        if (FZERO(denom)) {
           t = 0 ;
           p = 0.0f ;
-        }
-        else
-        {
-          if (num_class1 == 1 || num_class2 == 1)
-          {
+        } else {
+          if (num_class1 == 1 || num_class2 == 1) {
             int dof_out = num_class1 + num_class2 ;
             /*
               if one of the means is not a population but a single subject
@@ -1123,13 +1097,17 @@ compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2, MRI *mri_var1, M
         if (x == Gxn && y == Gyn && z == Gzn)
           printf("node(%d, %d, %d): t = (%2.1f - %2.1f) / ((%2.1f/%d) + (%2.1f/%d)) = %2.3f, -logp = %2.1f\n",
                  x, y,z , mean1, mean2, var1, num_class1, var2, num_class2, t, p) ;
-				switch (stat_type)
-				{
-				case STAT_T:    MRIFvox(mri_stats, x,y, z) = p ; break ;
-				case STAT_MEAN: MRIFvox(mri_stats, x,y, z) = numer ; break ;
-				default: ErrorExit(ERROR_UNSUPPORTED, "compute_white_matter_statistics: unsupported stat type %d",
-													 stat_type) ;
-				}
+        switch (stat_type) {
+        case STAT_T:
+          MRIFvox(mri_stats, x,y, z) = p ;
+          break ;
+        case STAT_MEAN:
+          MRIFvox(mri_stats, x,y, z) = numer ;
+          break ;
+        default:
+          ErrorExit(ERROR_UNSUPPORTED, "compute_white_matter_statistics: unsupported stat type %d",
+                    stat_type) ;
+        }
       }
     }
   }

@@ -1,4 +1,32 @@
-#ifndef TOPO_PARMS 
+/**
+ * @file  topo_parms.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:02 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+#ifndef TOPO_PARMS
 #define TOPO_PARMS
 
 typedef struct
@@ -6,13 +34,15 @@ typedef struct
   int   vno1, vno2 ;
   float len ;
   short used ;
-} EDGE ;
+}
+EDGE ;
 
 typedef struct
 {
   int **faces ;   /* array of pointer to list of ambiguous faces */
   int *nfaces ;   /* array of ints specifying how many faces are ambigous */
-} FACE_DEFECT_LIST, FDL ;
+}
+FACE_DEFECT_LIST, FDL ;
 
 typedef struct
 {
@@ -50,7 +80,8 @@ typedef struct
   /* final fitness */
   float final_face_ll,final_vertex_ll,final_curv_ll,final_qcurv_ll,final_mri_ll,final_unmri_ll;
 
-} DEFECT ;
+}
+DEFECT ;
 
 #define MAX_DEFECTS             25000
 
@@ -58,7 +89,8 @@ typedef struct
 {
   int    ndefects ;
   DEFECT defects[MAX_DEFECTS] ;
-} DEFECT_LIST, DL ;
+}
+DEFECT_LIST, DL ;
 
 /* structure which contains the information about a specific retessellation */
 typedef struct
@@ -76,10 +108,11 @@ typedef struct
 
   /* fitness information */
   float face_ll,vertex_ll,curv_ll,qcurv_ll,mri_ll,unmri_ll;
-	//the next fitness information takes into account the local area
-	float fll,vll,cll,qcll,mrill,unmrill;
+  //the next fitness information takes into account the local area
+  float fll,vll,cll,qcll,mrill,unmrill;
 
-} TESSELLATED_PATCH, TP ;
+}
+TESSELLATED_PATCH, TP ;
 
 
 

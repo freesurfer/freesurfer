@@ -1,3 +1,31 @@
+/**
+ * @file  ChartWindow.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ChartWindow_h
 #define ChartWindow_h
 
@@ -14,12 +42,12 @@
 
 class ChartWindowFactory;
 
-class ChartWindow : public DebugReporter, 
-		    public IDTracker<ChartWindow>,
-		    public Broadcaster  // chartDeleted
+class ChartWindow : public DebugReporter,
+      public IDTracker<ChartWindow>,
+      public Broadcaster  // chartDeleted
 {
 
- public:
+public:
 
   virtual ~ChartWindow ();
 
@@ -83,13 +111,17 @@ class ChartWindow : public DebugReporter,
   // Vertical markers.
   void SetXAxisMarkers ( std::list<MarkerData>& iaData );
   void AddXAxisMarker  ( MarkerData& iData );
-  
+
   // An info label under the graph.
   void SetInfo ( std::string isInfo );
 
   // Configuration options for the graph.
-  void SetShowLegend ( bool ibShowLegend ) { mbShowLegend = ibShowLegend; }
-  bool GetShowLegend () { return mbShowLegend; }
+  void SetShowLegend ( bool ibShowLegend ) {
+    mbShowLegend = ibShowLegend;
+  }
+  bool GetShowLegend () {
+    return mbShowLegend;
+  }
 
   // Close the chart window.
   virtual void Close () = 0;
@@ -100,12 +132,12 @@ class ChartWindow : public DebugReporter,
   // Output a text file. Specify the columns to generate and other
   // settings.
   void GenerateReport ( std::string ifnReport,
-			bool ibIncludeGroupColumn,
-			bool ibIncludeLabelColumn,
-			bool ibIncludeXColumn,
-			bool ibIncludeYColumn );
+                        bool ibIncludeGroupColumn,
+                        bool ibIncludeLabelColumn,
+                        bool ibIncludeXColumn,
+                        bool ibIncludeYColumn );
 
- protected:
+protected:
 
   // Init group data if needed.
   void InitGroupDataIfNotSet ( int inGroup );
@@ -124,8 +156,8 @@ class ChartWindow : public DebugReporter,
   std::string msYLabel;
   std::string msInfo;
   bool mbShowLegend;
-  
- private:
+
+private:
 
   static ChartWindowFactory* sFactory;
 };
@@ -135,13 +167,13 @@ class ChartWindow : public DebugReporter,
 // subclass of the ChartWindowFactory and pass it to the ChartWindow's
 // SetFactory().
 class ChartWindowFactory {
- public:
+public:
   ChartWindowFactory() {};
   virtual ~ChartWindowFactory() {};
 
-  virtual ChartWindow* NewChartWindow() { 
+  virtual ChartWindow* NewChartWindow() {
     throw std::runtime_error( "Default chart window constructor "
-			      "is being thrown." );
+                              "is being thrown." );
   }
 };
 

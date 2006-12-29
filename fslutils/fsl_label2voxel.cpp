@@ -1,8 +1,36 @@
+/**
+ * @file  fsl_label2voxel.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:57 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // fsl_label2voxel.cpp
 //
 // purpose:
-// two fsl aligned label volume and src volume 
+// two fsl aligned label volume and src volume
 // to get the voxel values of the src corresponding to the label volume
 //
 
@@ -23,18 +51,15 @@ extern "C" {
 
 using namespace std;
 
-void usage()
-{
+void usage() {
   cout << "Usage: fsl_label2voxel <labelval> <labeled volume> <src volume> <output filename>" << endl;
 }
 
-class Row
-{
+class Row {
 public:
   Row(int id, int x, int y, int z, double val):id_(id), x_(x), y_(y), z_(z), val_(val) {}
 
-  void print(ostream &o)
-  {
+  void print(ostream &o) {
     o << id_ << "\t" << x_ << "\t" << y_ << "\t" << z_ << "\t" << val_ << endl;
   }
 
@@ -46,36 +71,31 @@ private:
   double val_;
 };
 
-int main(int argc, char *argv[])
-{
-  if (argc < 4)
-  {
+int main(int argc, char *argv[]) {
+  if (argc < 4) {
     usage();
     return -1;
   }
-  
+
   double label_val = atof(argv[1]);
   string labelVol = argv[2];
   string srcVol = argv[3];
   string outFile = argv[4];
 
   MRI *labelMRI = MRIread(const_cast<char *> (labelVol.c_str()));
-  if (!labelMRI)
-  {
+  if (!labelMRI) {
     cerr << "Could not open " << labelVol.c_str() << endl;
     return -1;
   }
   MRI *srcMRI = MRIread(const_cast<char *> (srcVol.c_str()));
-  if (!srcMRI)
-  {
+  if (!srcMRI) {
     cerr << "Could not open " << srcVol.c_str() << endl;
     return -1;
   }
   // check the size
   if ((labelMRI->width != srcMRI->width)
       || (labelMRI->height != srcMRI->height)
-      || (labelMRI->depth != srcMRI->depth))
-  {
+      || (labelMRI->depth != srcMRI->depth)) {
     cerr << "src and label volume sizes differ" << endl;
     return -1;
   }
@@ -84,15 +104,13 @@ int main(int argc, char *argv[])
   int counter = 0;
   for (int z = 0; z < srcMRI->depth; z++)
     for (int y=0; y < srcMRI->height; y++)
-      for (int x = 0; x < srcMRI->width; x++)
-      {
-	float aval = MRIgetVoxVal(labelMRI, x, y, z, 0);
-	if (FEQUAL(label_val, aval))
-	{
-	  double srcVal = MRIgetVoxVal(srcMRI, x, y, z, 0);
-	  list.push_back(Row(counter, x, y, z, srcVal));
-	  counter++;
-	}
+      for (int x = 0; x < srcMRI->width; x++) {
+        float aval = MRIgetVoxVal(labelMRI, x, y, z, 0);
+        if (FEQUAL(label_val, aval)) {
+          double srcVal = MRIgetVoxVal(srcMRI, x, y, z, 0);
+          list.push_back(Row(counter, x, y, z, srcVal));
+          counter++;
+        }
       }
 
   // now printout the file

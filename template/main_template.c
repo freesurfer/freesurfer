@@ -1,3 +1,31 @@
+/**
+ * @file  main_template.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,8 +53,7 @@ static int normalize_flag = 0 ;
 
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
   int    ac, nargs, i ;
   char   *in_fname, *out_fname ;
@@ -34,7 +61,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: main_template.c,v 1.3 2003/09/05 04:45:48 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: main_template.c,v 1.4 2006/12/29 02:09:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -47,8 +74,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -63,7 +89,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   fprintf(stderr, "inverse operator application took %d minutes"
-					" and %d seconds.\n", minutes, seconds) ;
+          " and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -73,19 +99,17 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'N':
-		normalize_flag = atoi(argv[2]) ;
+    normalize_flag = atoi(argv[2]) ;
     fprintf(stderr, "noise-sensitiviy normalization %s\n",
-						normalize_flag ? "on" : "off") ;
-		nargs = 1 ;
+            normalize_flag ? "on" : "off") ;
+    nargs = 1 ;
     break ;
   case '?':
   case 'U':
@@ -105,14 +129,13 @@ get_option(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
-				 Progname) ;
+         Progname) ;
   printf(
-				 "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-				 );
-	printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
+    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
+  );
+  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
   exit(code) ;
 }
 

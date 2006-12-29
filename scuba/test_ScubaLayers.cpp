@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaLayers.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "ToglManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
@@ -21,8 +49,8 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
@@ -31,31 +59,30 @@ using namespace std;
 
 #if BUILD_TCL_TEST
 extern "C" {
-int Test_scubalayers_Init ( Tcl_Interp* iInterp ) {
+  int Test_scubalayers_Init ( Tcl_Interp* iInterp ) {
 
-  ToglManager& toglMgr = ToglManager::GetManager();
+    ToglManager& toglMgr = ToglManager::GetManager();
 
-  try {
-    toglMgr.InitializeTogl( iInterp );
-    toglMgr.SetFrameFactory( new ScubaFrameFactory );
-    ScubaFrame::SetViewFactory( new ScubaViewFactory );
+    try {
+      toglMgr.InitializeTogl( iInterp );
+      toglMgr.SetFrameFactory( new ScubaFrameFactory );
+      ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
-    TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.SetOutputStreamToCerr();
-    commandMgr.Start( iInterp );
+      TclCommandManager& commandMgr = TclCommandManager::GetManager();
+      commandMgr.SetOutputStreamToCerr();
+      commandMgr.Start( iInterp );
 
-    ScubaLayerFactory& layerFactory = 
-      ScubaLayerFactory::GetFactory();
+      ScubaLayerFactory& layerFactory =
+        ScubaLayerFactory::GetFactory();
 
-    ScubaDataCollectionFactory& dataFactory = 
-      ScubaDataCollectionFactory::GetFactory();
+      ScubaDataCollectionFactory& dataFactory =
+        ScubaDataCollectionFactory::GetFactory();
+    } catch ( ... ) {
+      return TCL_ERROR;
+    }
+
+    return TCL_OK;
   }
-  catch( ... ) {
-    return TCL_ERROR;
-  }
-
-  return TCL_OK;
-}
 }
 #endif
 
@@ -67,7 +94,7 @@ public:
   void Test( Tcl_Interp* iInterp );
 };
 
-void 
+void
 ScubaLayerFactoryTester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
@@ -82,7 +109,7 @@ ScubaLayerFactoryTester::Test ( Tcl_Interp* iInterp ) {
     string sType = "2DMRI";
     Layer& layer = layerFactory.MakeLayer( sType );
     Assert( (layer.GetTypeDescription() == "2DMRI" ),
-	    "Layer factory didn't return correct layer type" );
+            "Layer factory didn't return correct layer type" );
 
 
     // Try the tcl commands.
@@ -98,24 +125,21 @@ ScubaLayerFactoryTester::Test ( Tcl_Interp* iInterp ) {
     try {
       Layer& layer2 = Layer::FindByID( layerID );
       Assert( (layer2.GetTypeDescription() == "2DMRI" ),
-	    "Layer factory didn't return correct layer type via Tcl" );
-    }
-    catch(...) {
+              "Layer factory didn't return correct layer type via Tcl" );
+    } catch (...) {
       ssError <<  "Couldn't find layer with return ID from MakeLayer, id ="
-	      << layerID;
+      << layerID;
       throw runtime_error( ssError.str() );
     }
-    
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
-};  
+};
 
 
 
@@ -127,10 +151,10 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -139,13 +163,11 @@ int main ( int argc, char** argv ) {
     ScubaLayerFactoryTester tester0;
     tester0.Test( interp );
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

@@ -1,3 +1,31 @@
+/**
+ * @file  mri_add_xform_to_header.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:04 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,15 +52,14 @@ int verbose = 0 ;
 int CopyNameOnly = 0;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs ;
   MRI    *mri ;
   char   *xform_fname, *in_fname, *out_fname ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_add_xform_to_header.c,v 1.6 2005/12/13 19:28:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_add_xform_to_header.c,v 1.7 2006/12/29 02:09:04 nicks Exp $", "$Name:  $");
 
   argc -= nargs;
 
@@ -40,12 +67,11 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if(argc == 1) usage_exit();
+  if (argc == 1) usage_exit();
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -65,32 +91,32 @@ main(int argc, char *argv[])
   if (verbose)  fprintf(stderr, "reading from %s...", in_fname) ;
 
   // we have two cases, in_fname is just a directory name or .mgz
-  if(fio_IsDirectory(in_fname))mri = MRIreadInfo(in_fname) ; // must be old COR volume
-  else if (fio_FileExistsReadable(in_fname)){
+  if (fio_IsDirectory(in_fname))mri = MRIreadInfo(in_fname) ; // must be old COR volume
+  else if (fio_FileExistsReadable(in_fname)) {
     char *ext = fio_extension(in_fname);
     if (ext==0)
       ErrorExit(ERROR_BADPARM, "%s: no extension found", Progname) ;
     printf("INFO: extension is %s\n", ext);
     if (strcmp(ext, "mgz")==0 || strcmp(ext, "mgh")==0)
       mri = MRIread(in_fname);      // mgh or mgz
-    else{
-      ErrorExit(ERROR_BADPARM, 
-		"%s: currently only .mgz or .mgh saves transform name", Progname) ;      
+    else {
+      ErrorExit(ERROR_BADPARM,
+                "%s: currently only .mgz or .mgh saves transform name", Progname) ;
     }
   }
   if (!mri)
-    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
+    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, xform_fname) ;
 
-  if(! CopyNameOnly){
+  if (! CopyNameOnly) {
     // why do we need to load the transform at this time
     // mri is removed anyway???? -- good point, added -s for noload
     if (input_transform_file(xform_fname, &mri->transform) != OK)
-      ErrorPrintf(ERROR_NO_MEMORY, 
-		  "%s: could not read xform file '%s'\n", Progname, xform_fname);
+      ErrorPrintf(ERROR_NO_MEMORY,
+                  "%s: could not read xform file '%s'\n", Progname, xform_fname);
     // my guess is just to verify the validity of the transform?
     mri->linear_transform = get_linear_transform_ptr(&mri->transform) ;
-    mri->inverse_linear_transform = 
+    mri->inverse_linear_transform =
       get_inverse_linear_transform_ptr(&mri->transform) ;
     mri->free_transform = 1 ;
   }
@@ -115,14 +141,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'C':
     CopyNameOnly = 1;
     break ;
@@ -134,8 +158,8 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-   printf("usage: %s [xform file name] [input directory] [output directory]\n",
-          argv[0]) ;
+    printf("usage: %s [xform file name] [input directory] [output directory]\n",
+           argv[0]) ;
     exit(1) ;
     break ;
   default:
@@ -147,14 +171,12 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s <options> xfmfile invol outvol \n",Progname) ;
   printf("\n");
   printf("   -v : verbose \n");

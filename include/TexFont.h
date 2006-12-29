@@ -1,3 +1,31 @@
+/**
+ * @file  TexFont.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 /* Copyright (c) Mark J. Kilgard, 1997. */
 
@@ -13,7 +41,8 @@
 #define TXF_FORMAT_BYTE   0
 #define TXF_FORMAT_BITMAP 1
 
-typedef struct {
+typedef struct
+{
   unsigned short c;       /* Potentially support 16-bit glyphs. */
   unsigned char width;
   unsigned char height;
@@ -23,9 +52,11 @@ typedef struct {
   char dummy;           /* Space holder for alignment reasons. */
   short x;
   short y;
-} TexGlyphInfo;
+}
+TexGlyphInfo;
 
-typedef struct {
+typedef struct
+{
   GLfloat t0[2];
   GLshort v0[2];
   GLfloat t1[2];
@@ -35,9 +66,11 @@ typedef struct {
   GLfloat t3[2];
   GLshort v3[2];
   GLfloat advance;
-} TexGlyphVertexInfo;
+}
+TexGlyphVertexInfo;
 
-typedef struct {
+typedef struct
+{
   GLuint texobj;
   int tex_width;
   int tex_height;
@@ -50,45 +83,46 @@ typedef struct {
   TexGlyphInfo *tgi;
   TexGlyphVertexInfo *tgvi;
   TexGlyphVertexInfo **lut;
-} TexFont;
+}
+TexFont;
 
 extern char *txfErrorString(void);
 
 extern TexFont *txfLoadFont(
-  char *filename);
+    char *filename);
 
 extern void txfUnloadFont(
-  TexFont * txf);
+    TexFont * txf);
 
 extern GLuint txfEstablishTexture(
-  TexFont * txf,
-  GLuint texobj,
-  GLboolean setupMipmaps);
+    TexFont * txf,
+    GLuint texobj,
+    GLboolean setupMipmaps);
 
 extern void txfBindFontTexture(
-  TexFont * txf);
+    TexFont * txf);
 
 extern void txfGetStringMetrics(
-  TexFont * txf,
-  char *string,
-  int len,
-  int *width,
-  int *max_ascent,
-  int *max_descent);
+    TexFont * txf,
+    char *string,
+    int len,
+    int *width,
+    int *max_ascent,
+    int *max_descent);
 
 extern void txfRenderGlyph(
-  TexFont * txf,
-  int c);
+    TexFont * txf,
+    int c);
 
 extern void txfRenderString(
-  TexFont * txf,
-  char *string,
-  int len);
+    TexFont * txf,
+    char *string,
+    int len);
 
 extern void txfRenderFancyString(
-  TexFont * txf,
-  char *string,
-  int len);
+    TexFont * txf,
+    char *string,
+    int len);
 
 extern int txfInFont(TexFont * txf, int c) ;
 

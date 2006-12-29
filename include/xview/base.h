@@ -1,9 +1,9 @@
 /*      @(#)base.h 20.30 91/09/14 SMI      */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_base_DEFINED
@@ -23,31 +23,31 @@ void *malloc(size_t byteSize) ;
 
 /*
  ***********************************************************************
- *			Definitions and Macros
+ *   Definitions and Macros
  ***********************************************************************
  */
 
-#define XV_OK		0
-#define	XV_ERROR	1
+#define XV_OK  0
+#define XV_ERROR 1
 
 #ifndef TRUE
-#define	TRUE		1
+#define TRUE  1
 #endif
 
 #ifndef FALSE
-#define FALSE		0
+#define FALSE  0
 #endif
 
 #ifndef NULL
-#define NULL		0
+#define NULL  0
 #endif
 
 #ifndef MIN
-#define MIN(x, y) 	( ((x) < (y)) ? (x) : (y) )
+#define MIN(x, y)  ( ((x) < (y)) ? (x) : (y) )
 #endif
 
 #ifndef MAX
-#define MAX(x, y) 	( ((x) > (y)) ? (x) : (y) )
+#define MAX(x, y)  ( ((x) > (y)) ? (x) : (y) )
 #endif
 
 /* These are portability #defines needed by public header files. Please see
@@ -56,14 +56,14 @@ void *malloc(size_t byteSize) ;
 #if ( defined( SVR4 ) || defined( SYSV ))
 #define XV_OS_SVR4
 #define XV_USE_TTCOMPAT
-#define SYSV_WAIT 
-#define SYSV_UCONTEXT 
-#define XV_USE_XVFCNTL 
+#define SYSV_WAIT
+#define SYSV_UCONTEXT
+#define XV_USE_XVFCNTL
 #endif
- 
+
 /*
- * 	These alloc macros should be functions someday with an error call out
- * 	to cleanup, if the underlying malloc fails.
+ *  These alloc macros should be functions someday with an error call out
+ *  to cleanup, if the underlying malloc fails.
  */
 
 extern void *xv_alloc_save_ret;
@@ -95,24 +95,24 @@ extern void *xv_calloc();
      xv_alloc_error()) \
    , xv_alloc_save_ret )
 
-#define xv_free(s)		((void) free((char *)s))
-#define xv_strsave(s)		strcpy( (char *)xv_malloc(strlen(s)+1), (s) )
+#define xv_free(s)  ((void) free((char *)s))
+#define xv_strsave(s)  strcpy( (char *)xv_malloc(strlen(s)+1), (s) )
 
-#define XV_NULL			((Xv_opaque)NULL)
+#define XV_NULL   ((Xv_opaque)NULL)
 
 /*
  ***********************************************************************
- *		Typedefs, Enumerations, and Structs
+ *  Typedefs, Enumerations, and Structs
  ***********************************************************************
  */
 
-typedef unsigned long	Xv_opaque;
+typedef unsigned long Xv_opaque;
 typedef unsigned long   Xv_object;
 
 
 /*
  ***********************************************************************
- *		Global Functions
+ *  Global Functions
  ***********************************************************************
  */
 

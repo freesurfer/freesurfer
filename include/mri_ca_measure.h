@@ -1,3 +1,31 @@
+/**
+ * @file  mri_ca_measure.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef Measure_h
 #define Measure_h
 
@@ -12,67 +40,74 @@ typedef vector<class CMeasure> TypeVectorMeasures;
 class CMeasure
 {
 
- public:
+public:
   // Default ctor, dtor, copy and assign OK
-  
-   CMeasure() {}
 
-   void get(CConfigFile& configFile, string strSectionName)
-    {
-      if (strstr(strSectionName.c_str(), "T1")!=NULL)
-	measureType=T1;
-      else if (strstr(strSectionName.c_str(), "T2")!=NULL)
-	measureType=T2;
-      else if (strstr(strSectionName.c_str(), "PD")!=NULL)
-	measureType=PD;
-      else if (strstr(strSectionName.c_str(), "EEG")!=NULL)
-	measureType=EEG;
-      else if (strstr(strSectionName.c_str(), "MEG")!=NULL)
-	measureType=MEG;
-      else if (strstr(strSectionName.c_str(), "fMRI")!=NULL)
-	measureType=fMRI;     
-      configFile.get(vectDoubleIntensityScales,  strSectionName, "IntensityScales");
-      configFile.get(vectDoubleGradientScales,  strSectionName, "GradientScales");
-      configFile.get(vectDoubleCurvatureScales,  strSectionName, "CurvatureScales");
+  CMeasure()
+  {}
 
-    } 
+  void get(CConfigFile& configFile, string strSectionName)
+  {
+    if (strstr(strSectionName.c_str(), "T1")!=NULL)
+      measureType=T1;
+    else if (strstr(strSectionName.c_str(), "T2")!=NULL)
+      measureType=T2;
+    else if (strstr(strSectionName.c_str(), "PD")!=NULL)
+      measureType=PD;
+    else if (strstr(strSectionName.c_str(), "EEG")!=NULL)
+      measureType=EEG;
+    else if (strstr(strSectionName.c_str(), "MEG")!=NULL)
+      measureType=MEG;
+    else if (strstr(strSectionName.c_str(), "fMRI")!=NULL)
+      measureType=fMRI;
+    configFile.get(vectDoubleIntensityScales,  strSectionName, "IntensityScales");
+    configFile.get(vectDoubleGradientScales,  strSectionName, "GradientScales");
+    configFile.get(vectDoubleCurvatureScales,  strSectionName, "CurvatureScales");
+
+  }
 
 
   void write(CConfigFile& configFile, bool bEchoToStdOut=false)
-    {  
-      string strSectionName="MEASURE: ";
-       switch (measureType)
-       {  
-        case T1: strSectionName.append("T1");  
-	       break;
-        case T2: strSectionName.append("T2");  
-	       break; 
-        case PD: strSectionName.append("PD");  
-	       break;
-        case EEG:strSectionName.append("EEG");  
-	       break;
-        case MEG: strSectionName.append("MEG");  
-	       break;
-        case fMRI: strSectionName.append("fMRI"); 
-	       break;
-       }
-
-      configFile.writeSection(strSectionName,bEchoToStdOut);
-        configFile.write(vectDoubleIntensityScales,   "IntensityScales",bEchoToStdOut);
-        configFile.write(vectDoubleGradientScales,   "GradientScales",bEchoToStdOut);
-        configFile.write(vectDoubleCurvatureScales,  "CurvatureScales",bEchoToStdOut);
-
-#if 0  
-      configFile.write(vectDoubleIntensityScales,  strSectionName, "IntensityScales",bEchoToStdOut);
-      configFile.write(vectDoubleGradientScales,  strSectionName, "GradientScales",bEchoToStdOut);
-      configFile.write(vectDoubleCurvatureScales,  strSectionName, "CurvatureScales",bEchoToStdOut);
-#endif
+  {
+    string strSectionName="MEASURE: ";
+    switch (measureType)
+    {
+    case T1:
+      strSectionName.append("T1");
+      break;
+    case T2:
+      strSectionName.append("T2");
+      break;
+    case PD:
+      strSectionName.append("PD");
+      break;
+    case EEG:
+      strSectionName.append("EEG");
+      break;
+    case MEG:
+      strSectionName.append("MEG");
+      break;
+    case fMRI:
+      strSectionName.append("fMRI");
+      break;
     }
 
+    configFile.writeSection(strSectionName,bEchoToStdOut);
+    configFile.write(vectDoubleIntensityScales,   "IntensityScales",bEchoToStdOut);
+    configFile.write(vectDoubleGradientScales,   "GradientScales",bEchoToStdOut);
+    configFile.write(vectDoubleCurvatureScales,  "CurvatureScales",bEchoToStdOut);
+
+#if 0
+    configFile.write(vectDoubleIntensityScales,  strSectionName, "IntensityScales",bEchoToStdOut);
+    configFile.write(vectDoubleGradientScales,  strSectionName, "GradientScales",bEchoToStdOut);
+    configFile.write(vectDoubleCurvatureScales,  strSectionName, "CurvatureScales",bEchoToStdOut);
+#endif
+  }
 
 
-  public:
-  // use a class scoped enumeration type 
+
+public:
+  // use a class scoped enumeration type
   enum MeasureType { T1, T2, PD, EEG, MEG, fMRI};
 
 
@@ -85,41 +120,41 @@ class CMeasure
 
 class CMeasures
 {
- public:
-  
+public:
+
   void get(CConfigFile& configFile)
+  {
+    TypeVectorString vectStrMeasures;
+    configFile.find(vectStrMeasures, "MEASURE:");
+
+    int nMaxMeasureNameIndex=vectStrMeasures.size()-1;
+    for (int nWhichMeasureNameIndex=0; nWhichMeasureNameIndex<=nMaxMeasureNameIndex; nWhichMeasureNameIndex++)
     {
-      TypeVectorString vectStrMeasures;
-      configFile.find(vectStrMeasures, "MEASURE:");
-      
-      int nMaxMeasureNameIndex=vectStrMeasures.size()-1;
-      for (int nWhichMeasureNameIndex=0; nWhichMeasureNameIndex<=nMaxMeasureNameIndex; nWhichMeasureNameIndex++)
-      {
-       CMeasure measure;
-       measure.get(configFile, vectStrMeasures[nWhichMeasureNameIndex]);
-       measures.push_back(measure); // add the measure read in to the list of measures
-      }
+      CMeasure measure;
+      measure.get(configFile, vectStrMeasures[nWhichMeasureNameIndex]);
+      measures.push_back(measure); // add the measure read in to the list of measures
+    }
 
 
-    } 
+  }
 
   void write(CConfigFile& configFile, bool bEchoToStdOut=false)
+  {
+    int nMaxMeasureIndex=measures.size()-1;
+    for (int nWhichMeasureIndex=0; nWhichMeasureIndex<=nMaxMeasureIndex; nWhichMeasureIndex++)
     {
-      int nMaxMeasureIndex=measures.size()-1;
-      for (int nWhichMeasureIndex=0; nWhichMeasureIndex<=nMaxMeasureIndex; nWhichMeasureIndex++)
-       {
-         measures[nWhichMeasureIndex].write(configFile,bEchoToStdOut);
-        }
+      measures[nWhichMeasureIndex].write(configFile,bEchoToStdOut);
     }
+  }
 
 
   void clear()
-    {
-      measures.clear();
+  {
+    measures.clear();
 
-    }
+  }
 
- public:
+public:
   TypeVectorMeasures measures;
 
 };

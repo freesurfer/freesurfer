@@ -96,7 +96,6 @@ fsr-getxopts \
 rebuild_gca_atlas.csh \
 recon-all \
 recon-all-dev \
-recon-all-long \
 recon-all.2005 \
 reg-feat2anat \
 register_child \
@@ -200,7 +199,6 @@ EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup
 # recon-all is the official recon-all.
 # recon-all-dev is the 'development' version of recon-all, which,
 #               when changes are tested, get merged into recon-all.
-# recon-all-long is the longitudinal version of recon-all.
 
 
 # Our release target. Include files to be excluded here. They will be

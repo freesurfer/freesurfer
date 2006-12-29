@@ -1,3 +1,31 @@
+/**
+ * @file  h_logz.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.23 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)logmap.h  1.18
   8/10/95
@@ -9,7 +37,7 @@
 
         Created:  Jan. 1993
 
-    Description:  
+    Description:
 
 ------------------------------------------------------------------------*/
 
@@ -24,11 +52,12 @@ typedef struct _neighbor_list
 {
   struct _LOGPIX        *logpix ;
   struct _neighbor_list *next ;
-} NEIGHBOR ;
+}
+NEIGHBOR ;
 
-/* 
+/*
   constants for eight neighbors and self.  Note that these must match
-  the positions in a 3x3 matrix (row major order), where south and west 
+  the positions in a 3x3 matrix (row major order), where south and west
   correspond to lower indices (down and to the left).
 */
 #define N_SW   0
@@ -59,7 +88,8 @@ typedef struct _LOGPIX
   float  rho ;           /* radial log coordinate */
   float  phi ;           /* angular log coordinate */
   int    ncpix ;         /* # of cart. pix that map to this logpix */
-} LOGPIX ;
+}
+LOGPIX ;
 
 #define MAX_PIX  10
 typedef struct
@@ -67,14 +97,16 @@ typedef struct
   int npix ;      /* # of log pix that this cart. pixel contributes to */
   /* array of log pixels that this pixel contributes to */
   LOGPIX *logpix[MAX_PIX] ;
-} CARTESIAN_PIXEL, CP ;
+}
+CARTESIAN_PIXEL, CP ;
 
 typedef struct
 {
   int    rows ;
   int    cols ;
   CP     *pix ;    /* array of LUTs for doing mapping */
-} CARTESIAN_MAP_INFO, CMI ;
+}
+CARTESIAN_MAP_INFO, CMI ;
 
 typedef struct
 {
@@ -101,16 +133,17 @@ typedef struct
   int     *start_spoke ;  /* first spoke with real data in each ring */
   int     *end_spoke ;    /* last  spoke with real data in each ring */
   CMI     cmi ;           /* for overlapping logmap construction */
-} LOGMAP_INFO ;
+}
+LOGMAP_INFO ;
 
 /*
   These macros give access to the mapping from Cartesian coordinates to log
-  space coordinates.  In the macros r = row (y), c = col (x) 
+  space coordinates.  In the macros r = row (y), c = col (x)
 */
 #define TV_TO_SPOKE(m, c, r)   (*((m)->tvToSpoke + ((r) * m->ncols) + c))
 #define TV_TO_RING(m, c, r)    (*((m)->tvToRing + ((r) * m->ncols) + c))
 
-/* 
+/*
   these macros deal with obtaining information about a log space pixel.
   In the macros r = ring (x), s = spoke (y)
 */
@@ -151,30 +184,30 @@ IMAGE  *LogMapInverseSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth,
                        IMAGE *Idst) ;
 int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
-int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
-                      IMAGE *gradImage, int doweight, 
+int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage,
+                      IMAGE *gradImage, int doweight,
                       int start_ring, int end_ring) ;
-int    LogMapSobel(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
-                   IMAGE *Ix, IMAGE *Iy, int doweight, int start_ring, 
+int    LogMapSobel(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
+                   IMAGE *Ix, IMAGE *Iy, int doweight, int start_ring,
                    int end_ring) ;
-IMAGE  *LogMapFilter(LOGMAP_INFO *lmi, int which, int window_size, 
+IMAGE  *LogMapFilter(LOGMAP_INFO *lmi, int which, int window_size,
                      IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *LogMapMeanFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
-double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
+double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage,
                      double k, int niter, int doweight, int which,
                      int time_type) ;
-double LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, 
-                           IMAGE *outImage, double k, int niterations, 
+double LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage,
+                           IMAGE *outImage, double k, int niterations,
                            int doweight, int time_type) ;
-double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
-                              IMAGE *outImage, double A, int niterations, 
+double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage,
+                              IMAGE *outImage, double A, int niterations,
                               int doweight, int time_type) ;
 
-int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
+int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
                       float A, int doweight, int start_ring, int end_ring) ;
 
 void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *Itv, IMAGE *Ilog) ;
-IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
                        float low, float hi) ;
 int   LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which) ;
 IMAGE *LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
@@ -183,22 +216,22 @@ IMAGE *LogMapInverseBilinear(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst);
 IMAGE *LogMapInverseFilterGaussian(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst);
 
 
-IMAGE *LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, 
+IMAGE *LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize,
                           IMAGE *Ioffset, IMAGE *Idst) ;
 
 /* offset filtering in the log plane */
-IMAGE *LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize, IMAGE *Isrc, 
-                         IMAGE *Iorient) ;
+IMAGE *LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize, IMAGE *Isrc,
+                               IMAGE *Iorient) ;
 IMAGE *LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset);
-IMAGE *LogMapOffsetMagnitude(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+IMAGE *LogMapOffsetMagnitude(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
                              int maxsteps) ;
-IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset, 
+IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset,
                          IMAGE *Idst) ;
-IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, 
-                              IMAGE *Igaussian, IMAGE *Idst) ;
+IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc,
+                            IMAGE *Igaussian, IMAGE *Idst) ;
 IMAGE *LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset) ;
 IMAGE *LogMapAddSaltNoise(LOGMAP_INFO *lmi, IMAGE *Isrc,IMAGE *Idst,
-        float density);
+                          float density);
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
@@ -226,8 +259,8 @@ IMAGE *LogMapAddSaltNoise(LOGMAP_INFO *lmi, IMAGE *Isrc,IMAGE *Idst,
 
 #define for_each_tv_pixel(lmi, i, j) \
     for (j = 0; j < lmi->nrows ; j++)  \
-      for (i = 0; i < lmi->ncols ; i++) 
-      
+      for (i = 0; i < lmi->ncols ; i++)
+
 
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))

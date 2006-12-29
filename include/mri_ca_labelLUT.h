@@ -1,3 +1,31 @@
+/**
+ * @file  mri_ca_labelLUT.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef labelLUT_h
 #define labelLUT_h
 
@@ -20,75 +48,75 @@ typedef map<int, string> TypeMapLUT;
 
 class CLabelLUT
 {
- public:
-   // default dtor, copy , assign OK
+public:
+  // default dtor, copy , assign OK
   CLabelLUT(string strFilepath, int nProt=0)
-    {   
-       labelLUTConfigFile.init(strFilepath, nProt);
-       mapLut.clear();
-       read();
-    }
- 
+  {
+    labelLUTConfigFile.init(strFilepath, nProt);
+    mapLut.clear();
+    read();
+  }
+
   void read()
-     { // init the data members to be empty
-       mapLut.clear();
-       
-       TypeMatrixString arr2DLUTStrings;
-       // get the values from the config file
-       labelLUTConfigFile.get(arr2DLUTStrings, "LabelLUT", "");
-       for (int i=0; i<(int)arr2DLUTStrings.size(); i++)
-	 {
-            if (arr2DLUTStrings[i].size()>=2)
-	      { 
-                int nKey=atoi(arr2DLUTStrings[i][0].c_str());
-                string strLabel=arr2DLUTStrings[i][1];
-                mapLut[nKey]=strLabel;
-	      }
-	 }
-     }
+  { // init the data members to be empty
+    mapLut.clear();
+
+    TypeMatrixString arr2DLUTStrings;
+    // get the values from the config file
+    labelLUTConfigFile.get(arr2DLUTStrings, "LabelLUT", "");
+    for (int i=0; i<(int)arr2DLUTStrings.size(); i++)
+    {
+      if (arr2DLUTStrings[i].size()>=2)
+      {
+        int nKey=atoi(arr2DLUTStrings[i][0].c_str());
+        string strLabel=arr2DLUTStrings[i][1];
+        mapLut[nKey]=strLabel;
+      }
+    }
+  }
 
   void write(bool bEchoToStdOut=false)
-     { 
-       TypeMatrixString arr2DLUTStrings;
+  {
+    TypeMatrixString arr2DLUTStrings;
 
-       TypeMapLUT::iterator it;
-       for (it=mapLut.begin(); it!=mapLut.end(); it++)
-	 {
-           int nKey=it->first;
-           string strLabel=it->second;
-           char cstrKey[500];
-           sprintf(cstrKey,"%d",nKey);
-           string strKey=cstrKey;
-           TypeVectorString vectorString;
-	   vectorString.push_back(strKey);
-	   vectorString.push_back(strLabel);
-           arr2DLUTStrings.push_back(vectorString);
-	 }
+    TypeMapLUT::iterator it;
+    for (it=mapLut.begin(); it!=mapLut.end(); it++)
+    {
+      int nKey=it->first;
+      string strLabel=it->second;
+      char cstrKey[500];
+      sprintf(cstrKey,"%d",nKey);
+      string strKey=cstrKey;
+      TypeVectorString vectorString;
+      vectorString.push_back(strKey);
+      vectorString.push_back(strLabel);
+      arr2DLUTStrings.push_back(vectorString);
+    }
 
-       // getwrite  the values to the config file
-       labelLUTConfigFile.writeSection("LabelLUT",bEchoToStdOut);
-         labelLUTConfigFile.write(arr2DLUTStrings, "",bEchoToStdOut);
-     }
+    // getwrite  the values to the config file
+    labelLUTConfigFile.writeSection("LabelLUT",bEchoToStdOut);
+    labelLUTConfigFile.write(arr2DLUTStrings, "",bEchoToStdOut);
+  }
 
 
   int size()
-    {
-      return(mapLut.size());
-    }
+  {
+    return(mapLut.size());
+  }
 
   string label(int nKey)
-    {
-      return(mapLut[nKey]);
-    }
-  
+  {
+    return(mapLut[nKey]);
+  }
+
   TypeMapLUT& getMapLUT()
-    {
-      return(mapLut);
-    }
+  {
+    return(mapLut);
+  }
 
 
- private:
-  
+private:
+
   TypeMapLUT mapLut;
 
   //friend istream& operator>>(istream&,CLabelLUT&);
@@ -100,35 +128,35 @@ class CLabelLUT
 
 /*
  istream& operator>>(istream& is, CLabelLUT& labelLUT)
- { 
+ {
    labelLUT.mapLut.clear();
    ulong nMapSize;
    is >> nMapSize;
    for (ulong nMapIndex=0; nMapIndex<nMapSize; nMapIndex++)
      {  int nKey;
-	string strLabel;
-	is >> nKey;
-	is >> strLabel;
-	labelLUT.mapLut[nKey]=strLabel;
-      }  
- 
+ string strLabel;
+ is >> nKey;
+ is >> strLabel;
+ labelLUT.mapLut[nKey]=strLabel;
+      }
+
    return is;
  }
- 
- 
+
+
  ostream& operator<<(ostream& os, CLabelLUT& labelLUT)
- { 
- 
+ {
+
    ulong uMapSize= labelLUT.mapLut.size();
    os << uMapSize;
- 
+
    TypeMapLUT::iterator it;
    for (it=labelLUT.mapLut.begin(); it!=labelLUT.mapLut.end(); it++)
      {  int nKey = it->first;
-	string strLabel= it->second;
-	os << nKey << " " << strLabel << "\n";
-      }  
- 
+ string strLabel= it->second;
+ os << nKey << " " << strLabel << "\n";
+      }
+
    return os;
  }
 */

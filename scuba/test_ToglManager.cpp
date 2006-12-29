@@ -1,3 +1,31 @@
+/**
+ * @file  test_ToglManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include "ToglManager.h"
 #include "Scuba-impl.h"
@@ -46,14 +74,13 @@ TestFrame::DoDraw() {
   glRasterPos2i( mWidth/2, mHeight/2 );
   glClearColor( 0, 0, 0, 1 );
   glClear( GL_COLOR_BUFFER_BIT );
-  for( int nChar = 0; nChar < (int)strlen(sID); nChar++ ) {
+  for ( int nChar = 0; nChar < (int)strlen(sID); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, sID[nChar] );
   }
 }
 
 void
-TestFrame::DoReshape() {
-}
+TestFrame::DoReshape() {}
 
 void
 TestFrame::DoTimer() {
@@ -63,42 +90,42 @@ TestFrame::DoTimer() {
 void
 TestFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
-  DebugOutput( << "TestFrame " << mID << ": DoMouseMoved " 
-	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
+  DebugOutput( << "TestFrame " << mID << ": DoMouseMoved "
+               << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
 TestFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseUp "
-	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
+               << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
 TestFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseDown "
-	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
+               << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
 TestFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyDown "
-	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
+               << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
 TestFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyUp "
-	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
+               << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 
 class TestFrameFactory : public WindowFrameFactory {
 public:
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
+  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
     return new TestFrame( iID );
   }
 };
@@ -106,20 +133,19 @@ public:
 
 #if BUILD_TCL_TEST
 extern "C" {
-int Test_toglmanager_Init ( Tcl_Interp* iInterp ) {
+  int Test_toglmanager_Init ( Tcl_Interp* iInterp ) {
 
-  ToglManager& toglMgr = ToglManager::GetManager();
+    ToglManager& toglMgr = ToglManager::GetManager();
 
-  try {
-    toglMgr.InitializeTogl( iInterp );
-    toglMgr.SetFrameFactory( new TestFrameFactory );
+    try {
+      toglMgr.InitializeTogl( iInterp );
+      toglMgr.SetFrameFactory( new TestFrameFactory );
+    } catch ( ... ) {
+      return TCL_ERROR;
+    }
+
+    return TCL_OK;
   }
-  catch( ... ) {
-    return TCL_ERROR;
-  }
-
-  return TCL_OK;
-}
 }
 #endif
 
@@ -128,53 +154,51 @@ public:
   void Test();
 };
 
-void 
+void
 InputStateTester::Test() {
-  
+
   try {
 
     InputState m;
-    if( m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+    if ( m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState not init'd properly" << endl;
       throw logic_error( "InputState not init'd properly" );
     }
-    
+
     m.mbShiftKey = true;
-    if( !m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+    if ( !m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState shift not set properly" << endl;
       throw logic_error( "InputState shift not set properly" );
     }
 
     m.mbAltKey = true;
-    if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+    if ( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState alt not set properly" << endl;
       throw logic_error( "InputState alt not set properly" );
     }
 
     m.mbControlKey = true;
-    if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || !m.IsControlKeyDown() ) {
+    if ( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || !m.IsControlKeyDown() ) {
       cerr << "InputState control not set properly" << endl;
       throw logic_error( "InputState control not set properly" );
     }
 
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "InputStateTester failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "InputStateTester failed" << endl;
     exit( 1 );
   }
-  
+
 }
 
 int main( int argc, char** argv ) {
 
   cerr << "Beginning test" << endl;
- 
+
   try {
-    for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+    for ( int nTrial = 0; nTrial < 50; nTrial++ ) {
 
       InputStateTester mt0;
       mt0.Test();
@@ -183,12 +207,10 @@ int main( int argc, char** argv ) {
       mt1.Test();
 
     }
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

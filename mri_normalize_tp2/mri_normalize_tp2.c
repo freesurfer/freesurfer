@@ -1,3 +1,31 @@
+/**
+ * @file  mri_normalize_tp2.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* use tp1's ctrl volume to normalize tp2
  */
 
@@ -42,8 +70,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_val);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char **av;
   MRI *mri_T1, *mri_tmp, *mri_ctrl, *mri_in, *mri_out;
   MRI *mri_snr, *mri_bias;
@@ -70,7 +97,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize_tp2.c,v 1.4 2006/12/15 23:53:36 nicks Exp $",
+           "$Id: mri_normalize_tp2.c,v 1.5 2006/12/29 02:09:08 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -78,8 +105,7 @@ int main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -88,8 +114,7 @@ int main(int argc, char *argv[])
   if (argc  !=  3)
     usage(1);
 
-  if (tp1_ctrl_fname == NULL  || tp1_T1_fname == NULL)
-  {
+  if (tp1_ctrl_fname == NULL  || tp1_T1_fname == NULL) {
     printf("Use options to specify ctrl volume and T1 volume for tp1\n");
     usage(1);
   }
@@ -118,10 +143,9 @@ int main(int argc, char *argv[])
       (mri_in->depth != mri_ctrl->depth)
 
      ) ErrorExit(ERROR_BADPARM,
-                 "%s: three input volumes have different sizes \n", Progname);
+                   "%s: three input volumes have different sizes \n", Progname);
 
-  if (mask1_fname)
-  {
+  if (mask1_fname) {
     mri_mask1 = MRIread(mask1_fname) ;
     if (!mri_mask1)
       ErrorExit(ERROR_BADPARM,
@@ -132,12 +156,11 @@ int main(int argc, char *argv[])
         (mri_mask1->height != mri_in->height) ||
         (mri_mask1->depth != mri_in->depth))
       ErrorExit
-        (ERROR_BADPARM,
-         "%s:  mask volumes have different sizes than other volumes \n",
-         Progname);
+      (ERROR_BADPARM,
+       "%s:  mask volumes have different sizes than other volumes \n",
+       Progname);
   }
-  if (mask2_fname)
-  {
+  if (mask2_fname) {
     mri_mask2 = MRIread(mask2_fname) ;
     if (!mri_mask2)
       ErrorExit
@@ -165,8 +188,7 @@ int main(int argc, char *argv[])
   mri_out = MRIclone(mri_in, NULL) ;
 
   /* Read LTA transform and apply it to mri_ctrl */
-  if (xform_fname != NULL)
-  {
+  if (xform_fname != NULL) {
     // read transform
     transform_type =  TransformFileNameType(xform_fname);
 
@@ -174,18 +196,15 @@ int main(int argc, char *argv[])
         transform_type == TRANSFORM_ARRAY_TYPE ||
         transform_type == REGISTER_DAT ||
         transform_type == FSLREG_TYPE
-       )
-    {
+       ) {
       printf("Reading transform ...\n");
       lta = LTAreadEx(xform_fname) ;
       if (!lta)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
                   Progname, xform_fname) ;
 
-      if (transform_type == FSLREG_TYPE)
-      {
-        if (lta_src == 0 || lta_dst == 0)
-        {
+      if (transform_type == FSLREG_TYPE) {
+        if (lta_src == 0 || lta_dst == 0) {
           fprintf
           (stderr,
            "ERROR: fslmat does not have information "
@@ -201,10 +220,8 @@ int main(int argc, char *argv[])
         LTAchangeType(lta, LINEAR_VOX_TO_VOX); //this is necessary
       }
 
-      if (lta->xforms[0].src.valid == 0)
-      {
-        if (lta_src == 0)
-        {
+      if (lta->xforms[0].src.valid == 0) {
+        if (lta_src == 0) {
           fprintf
           (stderr,
            "The transform does not have the valid src volume info.\n");
@@ -213,17 +230,13 @@ int main(int argc, char *argv[])
            "Either you give src volume info by option -lta_src or\n");
           fprintf(stderr, "make the transform to have the valid src info.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        }
-        else
-        {
+        } else {
           LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
           //   getVolGeom(lta_src, &lt->src);
         }
       }
-      if (lta->xforms[0].dst.valid == 0)
-      {
-        if (lta_dst == 0)
-        {
+      if (lta->xforms[0].dst.valid == 0) {
+        if (lta_dst == 0) {
           fprintf
           (stderr,
            "The transform does not have the valid dst volume info.\n");
@@ -243,28 +256,22 @@ int main(int argc, char *argv[])
           (stderr,
            "without giving the dst volume for RAS-to-RAS transform.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        }
-        else
-        {
+        } else {
           LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
         }
       }
-    }
-    else
-    {
+    } else {
       ErrorExit
       (ERROR_BADPARM,
        "transform is not of MNI, nor Register.dat, nor FSLMAT type");
     }
 
-    if (invert)
-    {
+    if (invert) {
       m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0)
-      {
+      if (lt->dst.valid == 0 || lt->src.valid == 0) {
         fprintf
         (stderr,
          "WARNING:***********************************************\n");
@@ -296,8 +303,7 @@ int main(int argc, char *argv[])
     MRIfree(&mri_ctrl);
     mri_ctrl = mri_tmp;
 
-    if (mask1_fname != NULL && mask2_fname == NULL)
-    {
+    if (mask1_fname != NULL && mask2_fname == NULL) {
       printf("map mask for tp1 to get mask for tp2 ...\n");
       mri_mask2 = MRIalloc(mri_in->width,
                            mri_in->height,
@@ -312,9 +318,7 @@ int main(int argc, char *argv[])
       mask2_set = 1;
       if (debug_flag)
         MRIwrite(mri_mask2, "mri_mask2.mgz");
-    }
-    else if (mask2_fname != NULL && mask1_fname == NULL)
-    {
+    } else if (mask2_fname != NULL && mask1_fname == NULL) {
       printf("map mask for tp2 to get mask for tp1 ...\n");
       //need to invert lta first
       m_tmp = lta->xforms[0].m_L ;
@@ -350,14 +354,12 @@ int main(int argc, char *argv[])
       LTAfree(&lta);
   }   /* if (xform_fname != NULL) */
 
-  if (debug_flag)
-  {
+  if (debug_flag) {
     //    MRIwrite(mri_snr, "snr.mgz");
     MRIwrite(mri_ctrl, "ctrl.mgz");
   }
 
-  if (mask1_set == 0)
-  {
+  if (mask1_set == 0) {
     //create mask1
     mri_mask1 = MRIalloc(mri_T1->width,
                          mri_T1->height,
@@ -365,19 +367,15 @@ int main(int argc, char *argv[])
                          MRI_UCHAR) ;
     for (z=0; z < depth; z++)
       for (y=0; y< height; y++)
-        for (x=0; x < width; x++)
-        {
-          if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold)
-          {
+        for (x=0; x < width; x++) {
+          if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold) {
             MRIvox(mri_mask1,x,y,z) = 0;
-          }
-          else
+          } else
             MRIvox(mri_mask1,x,y,z) = 1;
         }
   }
 
-  if (mask2_set == 0)
-  {
+  if (mask2_set == 0) {
     //create mask2
     mri_mask2 = MRIalloc(mri_in->width,
                          mri_in->height,
@@ -385,13 +383,10 @@ int main(int argc, char *argv[])
                          MRI_UCHAR) ;
     for (z=0; z < depth; z++)
       for (y=0; y< height; y++)
-        for (x=0; x < width; x++)
-        {
-          if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold)
-          {
+        for (x=0; x < width; x++) {
+          if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold) {
             MRIvox(mri_mask2,x,y,z) = 0;
-          }
-          else
+          } else
             MRIvox(mri_mask2,x,y,z) = 1;
         }
   }
@@ -409,10 +404,8 @@ int main(int argc, char *argv[])
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold) {
           MRIFvox(mri_snr,x,y,z) = 0;
           continue;
         }
@@ -421,8 +414,7 @@ int main(int argc, char *argv[])
         count = 0;
         for (i=-1; i<=1; i++)
           for (j=-1; j<=1; j++)
-            for (k=-1;k<=1;k++)
-            {
+            for (k=-1;k<=1;k++) {
               cx = x+i;
               cy = y+j, cz = z+k;
 
@@ -453,12 +445,11 @@ int main(int argc, char *argv[])
         h->counts[bin_no]++;
       }
 
-  for (num = 0.0f, b = h->nbins - 1; b >= 1; b --)
-  {
+  for (num = 0.0f, b = h->nbins - 1; b >= 1; b --) {
     num += h->counts[b];
     if (num > 20000) /* this may make me only use WM points,
-                        is it good to use only WM to compute
-                        scale of intensity?? */
+                                                is it good to use only WM to compute
+                                                scale of intensity?? */
       break;
   }
 
@@ -469,10 +460,8 @@ int main(int argc, char *argv[])
   count1 = 0;
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_T1, x, y, z, 0) < noise_threshold) {
           continue;
         }
 
@@ -495,10 +484,8 @@ int main(int argc, char *argv[])
   count1 = 0;
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_mask1, x, y, z, 0) <= 1e-30)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_mask1, x, y, z, 0) <= 1e-30) {
           continue;
         }
 
@@ -531,10 +518,8 @@ int main(int argc, char *argv[])
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold) {
           MRIFvox(mri_snr,x,y,z) = 0;
           continue;
         }
@@ -543,8 +528,7 @@ int main(int argc, char *argv[])
         count = 0;
         for (i=-1; i<=1; i++)
           for (j=-1; j<=1; j++)
-            for (k=-1;k<=1;k++)
-            {
+            for (k=-1;k<=1;k++) {
               cx = x+i;
               cy = y+j, cz = z+k;
 
@@ -576,11 +560,10 @@ int main(int argc, char *argv[])
       }
 
 #if 0
-  for (num = 0.0f, b = h->nbins - 1; b >= 1; b --)
-  {
+  for (num = 0.0f, b = h->nbins - 1; b >= 1; b --) {
     num += h->counts[b];
     if (num > 20000) /* this may make me only use WM points, is it good to
-                        use only WM to compute scale of intensity?? */
+                                                use only WM to compute scale of intensity?? */
       break;
   }
 
@@ -591,17 +574,14 @@ int main(int argc, char *argv[])
   count2 = 0;
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold) {
           continue;
         }
 
         value = MRIFvox(mri_snr,x,y,z);
 
-        if (value >= h->bins[b])
-        {
+        if (value >= h->bins[b]) {
           count2++;
           mean2 += value;
           std2 += value*value;
@@ -610,18 +590,16 @@ int main(int argc, char *argv[])
 #else
   printf("compute mean and std of tp2 volume within masked area\n");
   /* somehow mri_watershed seems to leave some unzero voxels around
-     image border, so I will skip image boundaries
-     no, that's not a problem of most recent mri_watershed;
-     something wrong previously */
+  image border, so I will skip image boundaries
+  no, that's not a problem of most recent mri_watershed;
+  something wrong previously */
   mean2 = 0;
   std2 = 0;
   count2 = 0;
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_mask2, x, y, z, 0) <= 1e-30)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_mask2, x, y, z, 0) <= 1e-30) {
           continue;
         }
 
@@ -653,8 +631,7 @@ int main(int argc, char *argv[])
   mri_in = mri_tmp;
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
+      for (x=0; x < width; x++) {
         value = MRIFvox(mri_in, x, y, z);
         MRIFvox(mri_in, x, y, z) = value*slope + offset;
       }
@@ -666,10 +643,8 @@ int main(int argc, char *argv[])
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++)
-      {
-        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold)
-        {
+      for (x=0; x < width; x++) {
+        if (MRIgetVoxVal(mri_in, x, y, z, 0) < noise_threshold) {
           //    MRIFvox(mri_snr,x,y,z) = 0;
           continue;
         }
@@ -677,13 +652,11 @@ int main(int argc, char *argv[])
         value = MRIFvox(mri_snr,x,y,z);
 
         if (value < 20) MRIvox(mri_ctrl, x, y, z) = 0;
-        else if (MRIvox(mri_ctrl, x, y, z) > 0)
-        {
+        else if (MRIvox(mri_ctrl, x, y, z) > 0) {
           MRIvox(mri_ctrl, x, y, z) = 1;
         }
       }
-  if (debug_flag)
-  {
+  if (debug_flag) {
     MRIwrite(mri_snr, "snr.mgz");
     //    MRIwrite(mri_ctrl, "ctrl.mgz");
   }
@@ -694,12 +667,9 @@ int main(int argc, char *argv[])
   printf("normalize tp2...\n");
   mri_bias = MRIbuildBiasImage(mri_in, mri_ctrl, NULL, bias_sigma) ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
+      for (x = 0 ; x < width ; x++) {
         src = MRIgetVoxVal(mri_in, x, y, z, 0) ;
         bias = MRIgetVoxVal(mri_bias, x, y, z, 0) ;
         if (!bias)   /* should never happen */
@@ -731,8 +701,7 @@ int main(int argc, char *argv[])
 }  /*  end main()  */
 
 
-static void usage(int exit_val)
-{
+static void usage(int exit_val) {
   FILE *fout;
 
   fout = (exit_val ? stderr : stdout);
@@ -762,99 +731,75 @@ static void usage(int exit_val)
 
 
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "debug_voxel"))
-  {
+  if (!stricmp(option, "debug_voxel")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     debug_flag = 1;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
-  }
-  else if (!stricmp(option, "T1"))
-  {
+  } else if (!stricmp(option, "T1")) {
     tp1_T1_fname  = argv[2];
     printf("Use file %s for tp1's T1 volume \n", tp1_T1_fname) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "threshold"))
-  {
+  } else if (!stricmp(option, "threshold")) {
     noise_threshold  = atof(argv[2]);
     printf("Take values < %g as background for both volumes \n",
            noise_threshold) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "mask1"))
-  {
+  } else if (!stricmp(option, "mask1")) {
     mask1_fname  = (argv[2]);
     printf("Use volume %s as brain mask for tp1, and will be mapped to\n"
            "tp2 to get rough mask for tp2 in computing "
            "intensity normalization \n", mask1_fname) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "mask2"))
-  {
+  } else if (!stricmp(option, "mask2")) {
     mask2_fname  = (argv[2]);
     printf("Use volume %s as brain mask for tp2, and will be mapped to \n"
            "tp1 to get rough mask for tp1 in computing "
            "intensity normalization \n", mask2_fname) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "ctrl"))
-  {
+  } else if (!stricmp(option, "ctrl")) {
     tp1_ctrl_fname  = argv[2];
     printf("Use file %s for control points volume for tp1\n", tp1_ctrl_fname) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "xform"))
-  {
+  } else if (!stricmp(option, "xform")) {
     xform_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "transform file name is %s\n", xform_fname);
-  }
-  else if (!stricmp(option, "invert"))
-  {
+  } else if (!stricmp(option, "invert")) {
     invert = 1;
     fprintf(stderr, "Inversely apply the given LTA transform\n");
-  }
-  else if (!stricmp(option, "lta_src") ||
-           !stricmp(option, "src")
-          )
-  {
+  } else if (!stricmp(option, "lta_src") ||
+             !stricmp(option, "src")
+            ) {
     fprintf
-      (stderr,
-       "src volume for the given transform (given by -xform) is %s\n",argv[2]);
+    (stderr,
+     "src volume for the given transform (given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the src volume...\n");
     lta_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!lta_src)
-    {
+    if (!lta_src) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else if (!stricmp(option, "lta_dst") ||
-           !stricmp(option, "dst")
-          )
-  {
+  } else if (!stricmp(option, "lta_dst") ||
+             !stricmp(option, "dst")
+            ) {
     fprintf
-      (stderr,
-       "dst volume for the transform (given by -xform) is %s\n",argv[2]);
+    (stderr,
+     "dst volume for the transform (given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the dst volume...\n");
     lta_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!lta_dst)
-    {
+    if (!lta_dst) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  }
-  else switch (toupper(*option))
-    {
+  } else switch (toupper(*option)) {
     case '?':
     case 'U':
       usage(0) ;

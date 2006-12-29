@@ -1,3 +1,31 @@
+/**
+ * @file  label2flat.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:03 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -42,8 +70,7 @@ static char *output_subject = NULL ;
 static char *canon_name = NULL ;
 
 #if 0
-typedef struct
-{
+typedef struct {
   int    n_points ;           /* # of points in area */
   char   name[100] ;          /* name of label file */
   char   subject_name[100] ;  /* name of subject */
@@ -51,7 +78,8 @@ typedef struct
   float  *x ;
   float  *y ;
   float  *z ;
-} LABEL ;
+}
+LABEL ;
 
 
 int LabelFree(LABEL **parea) ;
@@ -64,17 +92,16 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 #endif
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av ;
   int          ac, nargs ;
-  char         *cp, label_fname[100], *subject_name, *label_name, 
-               *out_fname, *patch_name, surf_fname[100], hemi[10] ;
+  char         *cp, label_fname[100], *subject_name, *label_name,
+  *out_fname, *patch_name, surf_fname[100], hemi[10] ;
   LABEL        *area ;
   MRI_SURFACE  *mris ;
-  
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.5 2006/08/01 22:22:51 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.6 2006/12/29 02:09:03 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -86,8 +113,7 @@ main(int argc, char *argv[])
   /* read in command-line options */
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -105,7 +131,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM, "no subjects directory in environment.\n") ;
   strcpy(subjects_dir, cp) ;
 
-  sprintf(label_fname, "%s/%s/label/%s.label", 
+  sprintf(label_fname, "%s/%s/label/%s.label",
           subjects_dir, subject_name, label_name) ;
 
   linear_transform = load_transform(subject_name, &transform) ;
@@ -130,10 +156,10 @@ main(int argc, char *argv[])
   {
     cp = strrchr(canon_name, '.') ;
     if (cp)   /* hemisphere specified explicitly */
-      sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name, 
+      sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name,
               canon_name) ;
     else
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, 
+      sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
               hemi, canon_name) ;
     MRISreadCanonicalCoordinates(mris, surf_fname) ;
     LabelToCanonical(area, mris) ;
@@ -153,14 +179,13 @@ main(int argc, char *argv[])
     {
       cp = strrchr(canon_name, '.') ;
       if (cp)   /* hemisphere specified explicitly */
-        sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name, 
+        sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name,
                 canon_name) ;
       else
-        sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, 
+        sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
                 hemi, canon_name) ;
       MRISreadCanonicalCoordinates(mris, surf_fname) ;
-    }
-    else
+    } else
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
     LabelFromCanonical(area, mris) ;
@@ -182,14 +207,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'C':
     canon_name = argv[2] ;
     fprintf(stderr, "using surface %s as canonical coordinate system.\n",
@@ -222,14 +245,13 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 static Transform *
-load_transform(char *subject_name, General_transform *transform)
-{
+load_transform(char *subject_name, General_transform *transform) {
   char xform_fname[100] ;
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           subjects_dir, subject_name) ;
   if (input_transform_file(xform_fname, transform) != OK)
-    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'", 
+    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'",
               Progname, xform_fname) ;
 
   if (verbose == 2)
@@ -238,8 +260,7 @@ load_transform(char *subject_name, General_transform *transform)
 }
 
 static void
-print_usage(void)
-{
+print_usage(void) {
   printf("usage: %s [options] <subject name> <label file> <patch file> "
          "<output file>\n",
          Progname) ;
@@ -248,8 +269,7 @@ print_usage(void)
 
 
 void
-print_help(void)
-{
+print_help(void) {
   printf("usage: %s [options] <subject name> <label file> <patch file>"
          " <output file>\n", Progname) ;
   exit(1) ;
@@ -257,8 +277,7 @@ print_help(void)
 
 #if 0
 LABEL *
-LabelRead(char *subject_name, char *label_name)
-{
+LabelRead(char *subject_name, char *label_name) {
   LABEL  *area ;
   char   fname[100], *cp, line[200] ;
   FILE   *fp ;
@@ -277,7 +296,7 @@ LabelRead(char *subject_name, char *label_name)
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorExit(ERROR_NOFILE, "%s: could not open label file %s",
-                Progname, fname) ;
+              Progname, fname) ;
 
   cp = fgetl(line, 199, fp) ;
   if (!cp)
@@ -287,28 +306,27 @@ LabelRead(char *subject_name, char *label_name)
               Progname, fname) ;
   area->x = (float *)calloc(area->n_points, sizeof(float)) ;
   if (!area->x)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: LabelRead(%s) could not allocate %d-sized vector",
               Progname, label_name, area->n_points) ;
   area->y = (float *)calloc(area->n_points, sizeof(float)) ;
   if (!area->y)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: LabelRead(%s) could not allocate %d-sized vector",
               Progname, label_name, area->n_points) ;
   area->z = (float *)calloc(area->n_points, sizeof(float)) ;
   if (!area->z)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: LabelRead(%s) could not allocate %d-sized vector",
               Progname, label_name, area->n_points) ;
   area->vno = (int *)calloc(area->n_points, sizeof(int)) ;
   if (!area->vno)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: LabelRead(%s) could not allocate %d-sized vector",
               Progname, label_name, area->n_points) ;
 
   nlines = 0 ;
-  while ((cp = fgetl(line, 199, fp)) != NULL)
-  {
+  while ((cp = fgetl(line, 199, fp)) != NULL) {
     if (sscanf(cp, "%d %f %f %f", &vno, &x, &y, &z) != 4)
       ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
                 Progname, area->n_points, fname) ;
@@ -325,36 +343,35 @@ LabelRead(char *subject_name, char *label_name)
   return(area) ;
 }
 int
-LabelDump(FILE *fp, LABEL *area)
-{
+LabelDump(FILE *fp, LABEL *area) {
   int  n ;
 
   fprintf(fp, "label %s, from subject %s\n", area->name, area->subject_name) ;
   for (n = 0 ; n < area->n_points ; n++)
-    fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n], 
+    fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n],
             area->y[n], area->z[n]) ;
   return(NO_ERROR) ;
 }
 int
-LabelFree(LABEL **parea)
-{
+LabelFree(LABEL **parea) {
   LABEL *area ;
 
   area = *parea ;
   *parea = NULL ;
-  free(area->x) ; free(area->y) ; free(area->z) ; free(area->vno) ;
+  free(area->x) ;
+  free(area->y) ;
+  free(area->z) ;
+  free(area->vno) ;
   free(area) ;
   return(NO_ERROR) ;
 }
-  
+
 int
-LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
-{
+LabelToCanonical(LABEL *area, MRI_SURFACE *mris) {
   int     n, vno ;
   VERTEX  *v ;
 
-  for (n = 0 ; n < area->n_points ; n++)
-  {
+  for (n = 0 ; n < area->n_points ; n++) {
     vno = area->vno[n] ;
     v = &mris->vertices[vno] ;
     area->vno[n] = -1 ;      /* not associated with a vertex anymore */
@@ -365,13 +382,11 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 int
-LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
-{
+LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) {
   int     n, vno ;
   VERTEX  *v ;
 
-  for (n = 0 ; n < area->n_points ; n++)
-  {
+  for (n = 0 ; n < area->n_points ; n++) {
     vno =MRISfindClosestCanonicalVertex(mris,area->x[n],area->y[n],area->z[n]);
     v = &mris->vertices[vno] ;
     area->vno[n] = vno ;
@@ -382,14 +397,12 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 int
-LabelToFlat(LABEL *area, MRI_SURFACE *mris)
-{
+LabelToFlat(LABEL *area, MRI_SURFACE *mris) {
   int     n, vno ;
   VERTEX  *v ;
   float dmin;
 
-  for (n = 0 ; n < area->n_points ; n++)
-  {
+  for (n = 0 ; n < area->n_points ; n++) {
     vno = area->vno[n] ;
     if (vno >= 0)   /* already have associated vertex */
     {
@@ -397,8 +410,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
       area->x[n] = v->x ;
       area->y[n] = v->y ;
       area->z[n] = v->z ;
-    }
-    else    /* in canonical coordinate system - find closest vertex */
+    } else    /* in canonical coordinate system - find closest vertex */
     {
       vno = MRISfindClosestVertex(mris, area->x[n], area->y[n], area->z[n],&dmin) ;
       v = &mris->vertices[vno] ;
@@ -411,21 +423,20 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 int
-LabelWrite(LABEL *area, char *fname)
-{
+LabelWrite(LABEL *area, char *fname) {
   FILE  *fp ;
   int  n ;
 
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorExit(ERROR_NOFILE, "%s: could not open label file %s",
-                Progname, fname) ;
+              Progname, fname) ;
 
 #if 0
   fprintf(fp, "# label %s, from subject %s\n", area->name, area->subject_name);
 #endif
   for (n = 0 ; n < area->n_points ; n++)
-    fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n], 
+    fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n],
             area->y[n], area->z[n]) ;
   fclose(fp) ;
   return(NO_ERROR) ;

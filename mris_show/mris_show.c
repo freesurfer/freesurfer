@@ -1,3 +1,31 @@
+/**
+ * @file  mris_show.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +50,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.36 2005/06/08 19:45:10 nicks Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.37 2006/12/29 02:09:11 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -79,7 +107,9 @@ char *Progname ;
 static char *surf_fname ;
 static MRI_SURFACE  *mris ;
 static int nmarked = 0 ;
-static int marked_vertices[MAX_MARKED+1] = { -1 } ;
+static int marked_vertices[MAX_MARKED+1] = {
+      -1
+    } ;
 static long frame_xdim = FRAME_SIZE;
 static long frame_ydim = FRAME_SIZE;
 
@@ -137,15 +167,14 @@ static float light = 0.0f ;
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname, fname[100], hemi[10],
-               *cp, path[100], name[100] ;
+  *cp, path[100], name[100] ;
   int          ac, nargs, i ;
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.36 2005/06/08 19:45:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.37 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,8 +195,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -179,18 +207,15 @@ main(int argc, char *argv[])
   surf_fname = in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  if (patch_flag && !strstr(surf_fname, ".geo"))
-  {
+  if (patch_flag && !strstr(surf_fname, ".geo")) {
     /* read in orig surface before reading in patch */
     FileNamePath(surf_fname, path) ;
     FileNameOnly(surf_fname, name) ;
     cp = strchr(name, '.') ;
-    if (cp)
-    {
+    if (cp) {
       strncpy(hemi, cp-2, 2) ;
       hemi[2] = 0 ;
-    }
-    else
+    } else
       strcpy(hemi, "lh") ;
     sprintf(fname, "%s/%s.orig", path, hemi) ;
     mris = MRISfastRead(fname) ;
@@ -201,31 +226,25 @@ main(int argc, char *argv[])
     if (MRISreadPatch(mris, name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, surf_fname) ;
-  }
-  else
-  {
+  } else {
     mris = MRISfastRead(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
-  if (!FEQUAL(scale,1))
-  {
+  if (!FEQUAL(scale,1)) {
     MRIScenter(mris, mris) ;
     MRISscaleBrain(mris, mris,scale) ;
   }
-  if (coord_fname)
-  {
+  if (coord_fname) {
     if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read canonical coordinate system",
                 Progname) ;
-  }
-  else
+  } else
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   /*  MRIScomputeMetricProperties(mris) ;*/
-  if (mean_curvature_flag || gaussian_curvature_flag)
-  {
+  if (mean_curvature_flag || gaussian_curvature_flag) {
     MRISsetNeighborhoodSize(mris, nbrs) ;  /* so curvatures are reasonable */
     MRIScomputeSecondFundamentalForm(mris) ;
     if (mean_curvature_flag)
@@ -235,8 +254,7 @@ main(int argc, char *argv[])
   }
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
-  if (mrisp)
-  {
+  if (mrisp) {
     MRISnormalizeCurvature(mris) ;
     MRISstoreMeanCurvature(mris) ;
     starting_mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
@@ -250,8 +268,7 @@ main(int argc, char *argv[])
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     current_list = MRISP_LIST ;
   }
-  if (ellipsoid_flag)
-  {
+  if (ellipsoid_flag) {
     MRISupdateEllipsoidSurface(mris) ;
     findAreaExtremes(mris) ;
   }
@@ -259,7 +276,7 @@ main(int argc, char *argv[])
     MRISnormalizeCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
   if (nonmax_flag)
-  /*MRISnonmaxSuppress(mris)*/ ;
+    /*MRISnonmaxSuppress(mris)*/ ;
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
   MRIScenter(mris, mris) ;
@@ -269,11 +286,10 @@ main(int argc, char *argv[])
     OGLUsetFOV(fov) ;
   else   /* try and pick an appropriate one */
   {
-    if (mris->patch)
-    {
+    if (mris->patch) {
       int   ngood, vno ;
       float pct_vertices ;
-      
+
       for (vno = ngood = 0 ; vno < mris->nvertices ; vno++)
         if (!mris->vertices[vno].ripflag)
           ngood++ ;
@@ -294,12 +310,12 @@ main(int argc, char *argv[])
   glutInit(&argc, argv) ;  /* pass -geometry and such to  GLUT */
   glutInitWindowSize(frame_xdim, frame_ydim) ;
 
-/* 
-   use double buffering, RBF color stuff, and a depth buffer for 
-   hidden surface removal 
-   */
+  /*
+     use double buffering, RBF color stuff, and a depth buffer for
+     hidden surface removal
+     */
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH) ;
-  sprintf(wname, "%scortical surface reconstruction '%s'", 
+  sprintf(wname, "%scortical surface reconstruction '%s'",
           talairach_flag ? "talairached " : "", in_fname) ;
   strcpy(title, wname) ;
   glutCreateWindow(title) ;          /* open the window */
@@ -311,37 +327,30 @@ main(int argc, char *argv[])
   if (!FZERO(light))
     OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light) ;
 
-  if (compile_flags & TP_FLAG)
-  {
+  if (compile_flags & TP_FLAG) {
     MRISsetNeighborhoodSize(mris, nbrs) ;
     MRIScomputeSecondFundamentalForm(mris) ;
   }
-    
+
   /* now compile the surface tessellation */
   glNewList(current_list, GL_COMPILE) ;
   compiled[current_list] = 1 ;
-  for (i = 0 ; i < nmarked ; i++)
-  {
-    if (marked_vertices[i] >= mris->nvertices)
-    {
+  for (i = 0 ; i < nmarked ; i++) {
+    if (marked_vertices[i] >= mris->nvertices) {
       nmarked = i ;
       marked_vertices[i] = -1 ;
-    }
-    else
+    } else
       mris->vertices[marked_vertices[i]].marked = 1 ;
   }
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
 
   glMatrixMode(GL_MODELVIEW);
-  if (mris->patch)
-  {
+  if (mris->patch) {
     angle = 90.0f ;
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
-  }
-  else
-  {
+  } else {
     if (mris->hemisphere == RIGHT_HEMISPHERE)
       angle = RIGHT_HEMISPHERE_ANGLE ;
     else
@@ -386,32 +395,27 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "light"))
-  {
+  else if (!stricmp(option, "light")) {
     light = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "setting lighting to %2.2f\n", light) ;
-  }
-  else if (!stricmp(option, "nparam"))
-  {
+  } else if (!stricmp(option, "nparam")) {
     char *cp ;
     cp = strchr(argv[2], '#') ;
     if (cp)   /* # explicitly given */
     {
       param_no = atoi(cp+1) ;
       *cp = 0 ;
-    }
-    else
+    } else
       param_no = 0 ;
     mrisp = MRISPread(argv[2]) ;
     normalize_param = 1 ;
@@ -420,17 +424,14 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "param"))
-  {
+  } else if (!stricmp(option, "param")) {
     char *cp ;
     cp = strchr(argv[2], '#') ;
     if (cp)   /* # explicitly given */
     {
       param_no = atoi(cp+1) ;
       *cp = 0 ;
-    }
-    else
+    } else
       param_no = 0 ;
     mrisp = MRISPread(argv[2]) ;
     if (!mrisp)
@@ -438,35 +439,26 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "bw"))
+  } else if (!stricmp(option, "bw"))
     compile_flags |= BW_FLAG ;
-  else if (!stricmp(option, "coord"))
-  {
+  else if (!stricmp(option, "coord")) {
     coord_fname = argv[2] ;
     fprintf(stderr, "reading canonical coordinate system from %s\n", argv[2]) ;
     nargs = 1 ;
     compile_flags |= COORD_FLAG ;
-  }
-  else if (!stricmp(option, "canon"))
-  {
+  } else if (!stricmp(option, "canon")) {
     coord_fname = argv[2] ;
     fprintf(stderr, "reading canonical coordinate system from %s\n", argv[2]) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "cslope"))
-  {
+  } else if (!stricmp(option, "cslope")) {
     sscanf(argv[2], "%f", &cslope) ;
     nargs = 1 ;
     fprintf(stderr, "using color slope compression = %2.4f\n", cslope) ;
-  }
-  else if (!stricmp(option, "nbrs"))
-  {
+  } else if (!stricmp(option, "nbrs")) {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using %d neighbors for curvature calculation\n", nbrs) ;
-  }
-  else if (!stricmp(option, "tp"))
+  } else if (!stricmp(option, "tp"))
     compile_flags |= TP_FLAG ;
   else if (!stricmp(option, "mesh"))
     compile_flags |= MESH_FLAG ;
@@ -474,143 +466,131 @@ get_option(int argc, char *argv[])
     noscale = 1 ;
   else if (!stricmp(option, "scale"))
     noscale = 0 ;
-  else if (!stricmp(option, "rescale"))
-  {
+  else if (!stricmp(option, "rescale")) {
     scale = atof(argv[2]) ;
     fprintf(stderr, "scaling brain by %2.2f\n", scale) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "nonmax"))
+  } else if (!stricmp(option, "nonmax"))
     nonmax_flag = 1 ;
-  else if (!stricmp(option, "fov"))
-  {
+  else if (!stricmp(option, "fov")) {
     fov = atoi(argv[2]) ;
     fprintf(stderr, "using fov = %d\n", fov) ;
     nargs = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    fprintf(stderr, "averaging curvature pattern %d times.\n", navgs) ;
-    nargs = 1 ;
-    break ;
-  case 'M':
-    mean_curvature_flag = 1 ;
-    break ;
-  case 'G':
-    gaussian_curvature_flag = 1 ;
-    break ;
-  case 'P':
-    patch_flag = 1 ;
-    compile_flags |= PATCH_FLAG ;
-    nargs = 0 ;
-    break ;
-  case 'C':
-    strcpy(curvature_fname, argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'L':
-  {
-    LABEL *area ;
-    int   i ;
+  } else switch (toupper(*option)) {
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      fprintf(stderr, "averaging curvature pattern %d times.\n", navgs) ;
+      nargs = 1 ;
+      break ;
+    case 'M':
+      mean_curvature_flag = 1 ;
+      break ;
+    case 'G':
+      gaussian_curvature_flag = 1 ;
+      break ;
+    case 'P':
+      patch_flag = 1 ;
+      compile_flags |= PATCH_FLAG ;
+      nargs = 0 ;
+      break ;
+    case 'C':
+      strcpy(curvature_fname, argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'L': {
+      LABEL *area ;
+      int   i ;
 
-    fprintf(stderr, "reading label file %s\n",argv[2]) ;
-    nargs = 1 ;
-    area = LabelRead(NULL, argv[2]) ;
-    if (nmarked+area->n_points >= MAX_MARKED)
-      area->n_points = MAX_MARKED - nmarked ;
-    for (i = 0 ; i < area->n_points ; i++)
-      marked_vertices[nmarked++] = area->lv[i].vno ;
-    LabelFree(&area) ;
-  }
-  case 'V':
-    if (nmarked >= MAX_MARKED)
-      ErrorExit(ERROR_NOMEMORY, "%s: too many vertices marked (%d)",
-                Progname, nmarked) ;
-    if (*argv[2] == '#' || *argv[2] == ':')
-    {
-      int  skip, vno, vindex ;
-
-      sscanf(argv[2], "#%d", &skip) ;
-      for (vindex = vno = 0 ; vindex < MAX_MARKED ; vindex++, vno += skip)
-        marked_vertices[vindex] = vno ;
-      nmarked = MAX_MARKED ;
+      fprintf(stderr, "reading label file %s\n",argv[2]) ;
+      nargs = 1 ;
+      area = LabelRead(NULL, argv[2]) ;
+      if (nmarked+area->n_points >= MAX_MARKED)
+        area->n_points = MAX_MARKED - nmarked ;
+      for (i = 0 ; i < area->n_points ; i++)
+        marked_vertices[nmarked++] = area->lv[i].vno ;
+      LabelFree(&area) ;
     }
-    else
-      sscanf(argv[2], "%d", &marked_vertices[nmarked++]) ;
-    marked_vertices[nmarked] = -1 ;  /* terminate list */
-    nargs = 1 ;
-    break ;
-  case 'X':
-    sscanf(argv[2], "%f", &x_angle) ;
-    x_angle = RADIANS(x_angle) ;
-    nargs = 1 ;
-    break ;
-  case 'F':
-    fit_flag = 1 ;
-    break ;
-  case 'Y':
-    sscanf(argv[2], "%f", &y_angle) ;
-    y_angle = RADIANS(y_angle) ;
-    nargs = 1 ;
-    break ;
-  case 'Z':
-    sscanf(argv[2], "%f", &z_angle) ;
-    z_angle = RADIANS(z_angle) ;
-    nargs = 1 ;
-    break ;
-  case 'S':
-    ellipsoid_flag = 1 ;
-    break ;
-  case 'T':
-    talairach_flag = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'N':
-    normalize_flag = 1 ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+    case 'V':
+      if (nmarked >= MAX_MARKED)
+        ErrorExit(ERROR_NOMEMORY, "%s: too many vertices marked (%d)",
+                  Progname, nmarked) ;
+      if (*argv[2] == '#' || *argv[2] == ':') {
+        int  skip, vno, vindex ;
+
+        sscanf(argv[2], "#%d", &skip) ;
+        for (vindex = vno = 0 ; vindex < MAX_MARKED ; vindex++, vno += skip)
+          marked_vertices[vindex] = vno ;
+        nmarked = MAX_MARKED ;
+      } else
+        sscanf(argv[2], "%d", &marked_vertices[nmarked++]) ;
+      marked_vertices[nmarked] = -1 ;  /* terminate list */
+      nargs = 1 ;
+      break ;
+    case 'X':
+      sscanf(argv[2], "%f", &x_angle) ;
+      x_angle = RADIANS(x_angle) ;
+      nargs = 1 ;
+      break ;
+    case 'F':
+      fit_flag = 1 ;
+      break ;
+    case 'Y':
+      sscanf(argv[2], "%f", &y_angle) ;
+      y_angle = RADIANS(y_angle) ;
+      nargs = 1 ;
+      break ;
+    case 'Z':
+      sscanf(argv[2], "%f", &z_angle) ;
+      z_angle = RADIANS(z_angle) ;
+      nargs = 1 ;
+      break ;
+    case 'S':
+      ellipsoid_flag = 1 ;
+      break ;
+    case 'T':
+      talairach_flag = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'N':
+      normalize_flag = 1 ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <input image file>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
+  fprintf(stderr,
           "\nThis program will display an MRI surface reconstruction.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
@@ -620,8 +600,7 @@ print_version(void)
 
 #define COMPILE_SURFACE 1
 static void
-display_handler(void)
-{
+display_handler(void) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
 #if COMPILE_SURFACE
   glCallList(current_list) ;      /* render sphere display list */
@@ -636,22 +615,19 @@ display_handler(void)
 }
 
 static void
-keyboard_handler(unsigned char key, int x, int y)
-{
+keyboard_handler(unsigned char key, int x, int y) {
   int   redraw = 1 ;
   char  wname[100] ;
 
   glMatrixMode(GL_MODELVIEW);
-  switch (key)
-  {
+  switch (key) {
   case 'E':
   case 'e':
-    if (mrisp)
-    {
+    if (mrisp) {
       double mse ;
       fprintf(stderr, "computing correlation error...") ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-      MRISrotate(mris, mris, RADIANS(total_alpha), 
+      MRISrotate(mris, mris, RADIANS(total_alpha),
                  RADIANS(total_beta), RADIANS(total_gamma)) ;
       mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -771,7 +747,7 @@ keyboard_handler(unsigned char key, int x, int y)
     current_list = ORIG_SURFACE_LIST ;
     fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
             total_alpha, total_beta, total_gamma) ;
-    MRISrotate(mris, mris, RADIANS(total_alpha), 
+    MRISrotate(mris, mris, RADIANS(total_alpha),
                RADIANS(total_beta), RADIANS(total_gamma)) ;
     home(mris) ;   /* reset the view to original state */
     glNewList(current_list, GL_COMPILE) ;
@@ -779,7 +755,7 @@ keyboard_handler(unsigned char key, int x, int y)
     glEndList() ;
     compiled[current_list] = 1 ;
 #else
-    sprintf(wname, "talairached cortical surface reconstruction '%s'", 
+    sprintf(wname, "talairached cortical surface reconstruction '%s'",
             surf_fname);
     MRIStalairachTransform(mris, mris) ;
     MRIScenter(mris, mris) ;
@@ -795,18 +771,19 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'o':
     if (!mrisp)
       break ;
-    switch (current_list)
-    {
-    default:
-    case ORIG_SURFACE_LIST: current_list = MRISP_LIST ; break ;
-    case MRISP_LIST:        current_list = ORIG_SURFACE_LIST ; break ;
-    }
-    switch (current_list)
-    {
+    switch (current_list) {
     default:
     case ORIG_SURFACE_LIST:
-      if (!compiled[current_list])
-      {
+      current_list = MRISP_LIST ;
+      break ;
+    case MRISP_LIST:
+      current_list = ORIG_SURFACE_LIST ;
+      break ;
+    }
+    switch (current_list) {
+    default:
+    case ORIG_SURFACE_LIST:
+      if (!compiled[current_list]) {
         MRISuseMeanCurvature(mris) ;
         glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
         OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
@@ -814,8 +791,7 @@ keyboard_handler(unsigned char key, int x, int y)
       }
       break ;
     case MRISP_LIST:
-      if (!compiled[current_list])
-      {
+      if (!compiled[current_list]) {
         MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
         if (normalize_param)
           MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
@@ -864,45 +840,35 @@ keyboard_handler(unsigned char key, int x, int y)
 
 #if 0
 static void
-rotate_brain(float angle, char c)
-{
+rotate_brain(float angle, char c) {
   int i,j,k;
   float m[4][4], m1[4][4], m2[4][4]; /* Matrix m,m1,m2; */
   float sa,ca;
 
   glGetFloatv(GL_MODELVIEW_MATRIX,(float *)(m)) ;
 
-  for (i=0;i<4;i++)
-  {
+  for (i=0;i<4;i++) {
     for (j=0;j<4;j++)
       m1[i][j] = (i==j)?1.0:0.0;
   }
   angle = angle*PI/180;
   sa = sin(angle);
   ca = cos(angle);
-  if (c=='y')
-  {
+  if (c=='y') {
     m1[0][0] = m1[2][2] = ca;
     m1[2][0] = -(m1[0][2] = sa);
-  } 
-  else if (c=='x') 
-  {
+  } else if (c=='x') {
     m1[1][1] = m1[2][2] = ca;
     m1[1][2] = -(m1[2][1] = sa);
-  } 
-  else if (c=='z') 
-  {
+  } else if (c=='z') {
     m1[0][0] = m1[1][1] = ca;
     m1[1][0] = -(m1[0][1] = sa);
-  } 
-  else 
-  {
-    printf("surfer: ### Illegal axis %c\n",c);return;
+  } else {
+    printf("surfer: ### Illegal axis %c\n",c);
+    return;
   }
-  for (i=0;i<4;i++)
-  {
-    for (j=0;j<4;j++) 
-    {
+  for (i=0;i<4;i++) {
+    for (j=0;j<4;j++) {
       m2[i][j] = 0;
       for (k=0;k<4;k++)
         m2[i][j] += m[i][k]*m1[k][j];
@@ -913,8 +879,7 @@ rotate_brain(float angle, char c)
 }
 #endif
 static void
-reshape_handler(int width, int height)
-{
+reshape_handler(int width, int height) {
   int new_dim ;
 
   new_dim = MIN(width, height) ;
@@ -922,26 +887,23 @@ reshape_handler(int width, int height)
 }
 
 static void
-mouse_handler(int button, int state, int x, int y)
-{
+mouse_handler(int button, int state, int x, int y) {
   int kb_state, redraw = 1, width, height ;
 
   kb_state = glutGetModifiers() ;
-  switch (button)
-  {
+  switch (button) {
   case GLUT_LEFT_BUTTON:
     width = glutGet(GLUT_WINDOW_WIDTH) ;
     height = glutGet(GLUT_WINDOW_HEIGHT) ;
-    x -= width/2 ; y -= height/2 ;  /* put origin to center of window */
+    x -= width/2 ;
+    y -= height/2 ;  /* put origin to center of window */
     if (kb_state & GLUT_ACTIVE_CTRL && state == GLUT_UP)/* zoom around click */
     {
       glMatrixMode(GL_PROJECTION) ;
       glTranslatef(-SCALE_FACTOR*(float)x, SCALE_FACTOR*(float)y, 0.0f) ;
       glScalef(2.0f, 2.0f, 2.0f) ;
       /*      glTranslatef(0.0f, SCALE_FACTOR*y, SCALE_FACTOR*x) ;*/
-    }
-    else
-    {
+    } else {
       redraw = 0 ;
       fprintf(stderr, "(%d, %d)      \r", x, y) ;
     }
@@ -960,8 +922,7 @@ mouse_handler(int button, int state, int x, int y)
 }
 
 static void
-special_key_handler(int key, int x, int y)
-{
+special_key_handler(int key, int x, int y) {
   int   redraw = 1, kb_state ;
   float angle ;
 
@@ -973,8 +934,7 @@ special_key_handler(int key, int x, int y)
   else
     angle = delta_angle ;
 
-  switch (key)
-  {
+  switch (key) {
   case GLUT_KEY_F1:
     break ;
   case GLUT_KEY_LEFT:
@@ -1019,14 +979,11 @@ special_key_handler(int key, int x, int y)
   }
   if (redraw)
     glutPostRedisplay() ;
-  if (!mrisp)
-  {
+  if (!mrisp) {
     sprintf(title, "%s (%2.2f, %2.2f, %2.2f)",
             wname, total_alpha, total_beta, total_gamma) ;
     glutSetWindowTitle(title) ;
-  }
-  else
-  {
+  } else {
     sprintf(title, "%s (%2.2f, %2.2f, %2.2f)",
             wname, total_alpha, total_beta, total_gamma) ;
     glutSetWindowTitle(title) ;
@@ -1037,14 +994,14 @@ special_key_handler(int key, int x, int y)
 #if 0
 #define NUM_LIGHTS 4
 static void
-controlLights(int value)
-{
-  static int light_enabled[NUM_LIGHTS] = {1, 1, 1, 1} ;
+controlLights(int value) {
+  static int light_enabled[NUM_LIGHTS] = {
+                                           1, 1, 1, 1
+                                         } ;
 
   light_enabled[value] = !light_enabled[value] ;
 
-  switch (value)
-  {
+  switch (value) {
   case 1:
     if (light_enabled[value])
       glEnable(GL_LIGHT0);
@@ -1078,21 +1035,17 @@ controlLights(int value)
 #endif
 
 static void
-home(MRI_SURFACE *mris)
-{
+home(MRI_SURFACE *mris) {
   float angle ;
 
   total_alpha = total_beta = total_gamma = 0.0f ;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  if (mris->patch)
-  {
+  if (mris->patch) {
     angle = 90.0f ;
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
-  }
-  else
-  {
+  } else {
     if (mris->hemisphere == RIGHT_HEMISPHERE)
       angle = RIGHT_HEMISPHERE_ANGLE ;
     else
@@ -1101,27 +1054,24 @@ home(MRI_SURFACE *mris)
   }
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov, 
+  glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov,
           -10.0f*oglu_fov, 10.0f*oglu_fov);
 }
 static void
-findAreaExtremes(MRI_SURFACE *mris)
-{
+findAreaExtremes(MRI_SURFACE *mris) {
   int     fno, fmax, fmin ;
   FACE    *face ;
   float   min_area, max_area;
 
   fmax = fmin = 0 ;
-  min_area = 10000.0f ; max_area = -10000.0f ;
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
+  min_area = 10000.0f ;
+  max_area = -10000.0f ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++) {
     face = &mris->faces[fno] ;
-    if (face->area > max_area)
-    {
+    if (face->area > max_area) {
       max_area = face->area ;
       fmax = fno ;
-      if (face->area < min_area)
-      {
+      if (face->area < min_area) {
         min_area = face->area ;
         fmin = fno ;
       }
@@ -1132,35 +1082,32 @@ findAreaExtremes(MRI_SURFACE *mris)
 }
 
 int
-MRISinvertSurface(MRI_SURFACE *mris)
-{
+MRISinvertSurface(MRI_SURFACE *mris) {
   int     vno ;
   VERTEX  *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->nx *= -1 ; v->ny *= -1 ; v->nz *= -1 ;
+    v->nx *= -1 ;
+    v->ny *= -1 ;
+    v->nz *= -1 ;
   }
   return(NO_ERROR) ;
 }
 int
-MRIScheckSphericalOrientation(MRI_SURFACE *mris)
-{
+MRIScheckSphericalOrientation(MRI_SURFACE *mris) {
   int     vno ;
   VERTEX  *v ;
   float   dot ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     dot = v->nx * v->x + v->ny * v->y + v->nz * v->z ;
-    if (dot < 0)
-    {
+    if (dot < 0) {
       fprintf(stderr, "vertex %d: x = (%2.1f,%2.1f,%2.1f), "
               "n = (%2.1f,%2.1f,%2.1f), dot = %2.1f.\n",
               vno, v->x, v->y, v->z, v->nx, v->ny, v->nz, dot) ;
@@ -1173,16 +1120,14 @@ MRIScheckSphericalOrientation(MRI_SURFACE *mris)
 static int mrisFillFace(MRI_SURFACE *mris, int fno) ;
 static void load_brain_coords(float x,float y, float z, float *v) ;
 int
-MRISfillSurface(MRI_SURFACE *mris)
-{
+MRISfillSurface(MRI_SURFACE *mris) {
   int    fno ;
   float  vn[3], v0[3], v1[3], v2[3] ;
   VERTEX *v_0, *v_1, *v_2 ;
   FACE   *f ;
 
   /* draw surface in red */
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
+  for (fno = 0 ; fno < mris->nfaces ; fno++) {
     f = &mris->faces[fno] ;
     v_0 = &mris->vertices[f->v[0]] ;
     v_1 = &mris->vertices[f->v[1]] ;
@@ -1217,13 +1162,13 @@ MRISfillSurface(MRI_SURFACE *mris)
 
        V0    b     V2
         o----------o
-        |        /       
-        |      /         
-      a |    /            
-        |  /             
-        |/      
+        |        /
+        |      /
+      a |    /
+        |  /
+        |/
         o
-       V1      b        V2        
+       V1      b        V2
 ------------------------------------------------------*/
 #if 0
 #define SAMPLE_DIST   0.25
@@ -1232,10 +1177,9 @@ MRISfillSurface(MRI_SURFACE *mris)
 #endif
 
 static int
-mrisFillFace(MRI_SURFACE *mris, int fno)
-{
-  Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz, 
-         cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
+mrisFillFace(MRI_SURFACE *mris, int fno) {
+  Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz,
+  cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
   VERTEX *v0, *v1, *v2 ;
   FACE   *face ;
   float  vn[3], vstart[3], vend[3] ;
@@ -1245,10 +1189,8 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
   if (face->ripflag)
     return(NO_ERROR) ;
 
-  for (i = 0 ; i < 3 ; i++)
-  {
-    switch (i)
-    {
+  for (i = 0 ; i < 3 ; i++) {
+    switch (i) {
     default:
     case 0:
       v0 = &mris->vertices[face->v[0]] ;
@@ -1267,16 +1209,20 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
       break ;
     }
 
-    adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
+    adx = v1->x - v0->x ;
+    ady = v1->y - v0->y ;
+    adz = v1->z - v0->z ;
     alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
-    cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
+    cdx = v2->x - v0->x ;
+    cdy = v2->y - v0->y ;
+    cdz = v2->z - v0->z ;
     clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
-    
+
     /*
       sample along legs of the triangle making sure the maximum spacing
       between samples (along the longer leg) is SAMPLE_DIST.
     */
-    
+
     /*move along v0->v1 and v3->v2 lines and draw in crossing line to fill face*/
     /* t0 parameterizes lines from v0->v1 and v0->v2 */
     if (FZERO(alen) && FZERO(clen))
@@ -1284,26 +1230,30 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
     else
       delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
     if (FZERO(delta_t0))
-      ErrorReturn(ERROR_BADPARM, 
+      ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM,
                    "mrisFillFace: face %d has infinite leg (%d, %d)\n",
                    fno, alen, clen)) ;
-    
+
     if (delta_t0 >= 1.0)
       delta_t0 = 0.99 ;
-    
+
     /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
-    for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
-    {
+    for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0) {
       /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
-      xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
-      xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
-      dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+      xa = v0->x + t0*adx ;
+      ya = v0->y + t0*ady ;
+      za = v0->z + t0*adz ;
+      xc = v0->x + t0*cdx ;
+      yc = v0->y + t0*cdy ;
+      zc = v0->z + t0*cdz ;
+      dx = xc-xa ;
+      dy = yc-ya ;
+      dz = zc-za ;
       len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
       if (FZERO(len))
         delta_t1 = 0.99 ;
-      else
-      {
+      else {
         delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
         if (delta_t1 >= 1.0f)
           delta_t1 = 0.99 ;
@@ -1312,10 +1262,11 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
       /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
       load_brain_coords(face->nx,face->ny,face->nz,vn);
       load_brain_coords(xa, ya, za, vstart);
-      for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
-      {
+      for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1) {
         /* compute a point on the line connecting a and c */
-        x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+        x = xa + t1*dx ;
+        y = ya + t1*dy ;
+        z = za + t1*dz ;
 #if 1
         glBegin(GL_POINTS) ;
         glColor3ub(255,255,255) ;
@@ -1328,7 +1279,9 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
 #else
         // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
         MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
-        xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
+        xv = nint(x) ;
+        yv = nint(y) ;
+        zv = nint(z) ;  /* voxel coordinate */
         MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
 #endif
       }
@@ -1343,26 +1296,32 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
     }
     t0 = 1.0f ;
     /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
-    xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
-    xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
-    dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+    xa = v0->x + t0*adx ;
+    ya = v0->y + t0*ady ;
+    za = v0->z + t0*adz ;
+    xc = v0->x + t0*cdx ;
+    yc = v0->y + t0*cdy ;
+    zc = v0->z + t0*cdz ;
+    dx = xc-xa ;
+    dy = yc-ya ;
+    dz = zc-za ;
     len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
     if (FZERO(len))
       delta_t1 = 0.99 ;
-    else
-    {
+    else {
       delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
       if (delta_t1 >= 1.0f)
         delta_t1 = 0.99 ;
     }
-    
+
     /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
     load_brain_coords(face->nx,face->ny,face->nz,vn);
     load_brain_coords(xa, ya, za, vstart);
-    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
-    {
+    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1) {
       /* compute a point on the line connecting a and c */
-      x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+      x = xa + t1*dx ;
+      y = ya + t1*dy ;
+      z = za + t1*dz ;
 #if 1
       glBegin(GL_POINTS) ;
       glColor3ub(255,255,255) ;
@@ -1375,7 +1334,9 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
 #else
       // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
       MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
-      xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
+      xv = nint(x) ;
+      yv = nint(y) ;
+      zv = nint(z) ;  /* voxel coordinate */
       MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
 #endif
     }
@@ -1392,8 +1353,7 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
   return(NO_ERROR) ;
 }
 static void
-load_brain_coords(float x,float y, float z, float *v)
-{
+load_brain_coords(float x,float y, float z, float *v) {
   v[0] = -x;
   v[1] = z;
   v[2] = y;

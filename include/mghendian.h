@@ -1,7 +1,35 @@
+/**
+ * @file  mghendian.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
 // mghendian.h
 //
-// purpose: 
+// purpose:
 // define BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and which BYTE_ORDER it is
 //
 // by y.tosa
@@ -31,7 +59,7 @@
 #define BYTE_ORDER __BYTE_ORDER
 #endif
 
-#ifndef LITTLE_ENDIAN 
+#ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN __LITTLE_ENDIAN
 #endif
 
@@ -58,7 +86,7 @@
 #endif
 
 #include <sys/isa_defs.h>
-/* only defines one of _LITTLE_ENDIAN or _BIG_ENDIAN */ 
+/* only defines one of _LITTLE_ENDIAN or _BIG_ENDIAN */
 #ifdef _LITTLE_ENDIAN
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
@@ -76,7 +104,7 @@
 
 /*/////////////////////////////////////////////*/
 #ifndef BYTE_ORDER
- #error "Unknown OS to mghendian.h.   Please report"
+#error "Unknown OS to mghendian.h.   Please report"
 #endif
 
 #ifndef LITTLE_ENDIAN
@@ -95,7 +123,7 @@
 #if !defined(BYTE_ORDER) || \
     (BYTE_ORDER != BIG_ENDIAN && BYTE_ORDER != LITTLE_ENDIAN)
 /*  && BYTE_ORDER != PDP_ENDIAN) */
-  #error "Undefined or invalid BYTE_ORDER";
+#error "Undefined or invalid BYTE_ORDER";
 #endif
 
 #endif /* mghendian.h */

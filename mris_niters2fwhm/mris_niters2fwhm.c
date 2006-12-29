@@ -1,3 +1,31 @@
+/**
+ * @file  mris_niters2fwhm.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
 BEGINHELP
 
@@ -35,7 +63,7 @@ double round(double x);
 double MRISmeanInterVertexDist(MRIS *surf);
 
 MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
-			 double TruncFactor);
+                         double TruncFactor);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -46,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.10 2006/02/10 04:36:33 greve Exp $";
+static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.11 2006/12/29 02:09:11 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -63,12 +91,11 @@ int dof = 100;
 int nitersmax = 100;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs, nthiter;
   MRI *mri, *var, *mri0, *delta, *deltasm, *xyz;
   double gmax, vrfmn, vrfstd, gstd, fwhm;
-  
+
   nthiter = 0;
   mri = var = mri0 = delta = deltasm = xyz = NULL;
 
@@ -84,24 +111,24 @@ int main(int argc, char *argv[])
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly) return(0);
+  if (checkoptsonly) return(0);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
+  if (SUBJECTS_DIR == NULL) {
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
   sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
   surfpath = strcpyalloc(tmpstr);
 
-  if(debug) dump_options(stdout);
+  if (debug) dump_options(stdout);
 
   surf = ReadIcoByOrder(7,50);
   //surf = MRISread(surfpath);
-  if(surf == NULL){
+  if (surf == NULL) {
     printf("ERROR: could not read %s\n",surfpath);
     exit(1);
   }
@@ -113,7 +140,7 @@ int main(int argc, char *argv[])
   printf("Avg IterVertex     %lf\n",MRISmeanInterVertexDist(surf));
 
   //----------------------------------------------------------
-  // Smooth a delta function and get results 
+  // Smooth a delta function and get results
   xyz = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,4);
   MRIcopyMRIS(xyz,surf,0,"x");
   MRIcopyMRIS(xyz,surf,1,"y");
@@ -133,8 +160,8 @@ int main(int argc, char *argv[])
 
   mri0 = MRIrandn(surf->nvertices,1,1,dof,0, 1, NULL);
   mri = MRIcopy(mri0,NULL);
-  
-  for(nthiter = 2; nthiter <= nitersmax; nthiter++){
+
+  for (nthiter = 2; nthiter <= nitersmax; nthiter++) {
     //MRISsmoothMRI(surf, mri, 1, NULL, mri);
     MRISgaussianSmooth2(surf, mri0, nthiter, mri, 5.0);
 
@@ -143,25 +170,24 @@ int main(int argc, char *argv[])
     gstd = 1/(2*sqrt(vrfmn*PI));
     fwhm = gstd*sqrt(log(256.0));
     printf("%3d %lf  %lf  %lf %lf\n",nthiter,vrfmn,vrfstd,gstd,fwhm);
-    exit(1);    
+    exit(1);
   }
 
   return 0;
 }
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -173,35 +199,30 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--s")){
-      if(nargc < 1) CMDargNErr(option,1);
+    else if (!strcasecmp(option, "--s")) {
+      if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--h")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--h")) {
+      if (nargc < 1) CMDargNErr(option,1);
       hemi = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--surf")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--surf")) {
+      if (nargc < 1) CMDargNErr(option,1);
       surfname = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--dof")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--dof")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&dof);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--niters")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--niters")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nitersmax);
       nargsused = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(CMDsingleDash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -210,14 +231,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s --s --h --surf --dof --niters \n",Progname) ;
   printf("\n");
   printf("   --s subject \n");
@@ -235,27 +254,23 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
+static void check_options(void) {
   return;
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"%s\n",Progname);
@@ -268,29 +283,28 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname  %s\n",uts.nodename);
   fprintf(fp,"machine   %s\n",uts.machine);
   fprintf(fp,"user      %s\n",VERuser());
-  if(subject) fprintf(fp,"subject %s\n",subject);
-  if(hemi)     fprintf(fp,"hemi     %s\n",hemi);
-  if(surfname) fprintf(fp,"surfname %s\n",surfname);
+  if (subject) fprintf(fp,"subject %s\n",subject);
+  if (hemi)     fprintf(fp,"hemi     %s\n",hemi);
+  if (surfname) fprintf(fp,"surfname %s\n",surfname);
   fprintf(fp,"dof %d\n",dof);
   fprintf(fp,"nitersmax %d\n",nitersmax);
 
   return;
 }
 /*---------------------------------------------------------------------*/
-double MRISmeanInterVertexDist(MRIS *surf)
-{
+double MRISmeanInterVertexDist(MRIS *surf) {
   int vtx, nbrvtx, nnbrs, nthnbr;
   double dx, dy, dz, x0, y0, z0, xn, yn, zn, d;
   double dnbrsum, dnbrmn, dsum;
 
   dsum = 0.0;
-  for(vtx = 0; vtx < surf->nvertices; vtx++){
+  for (vtx = 0; vtx < surf->nvertices; vtx++) {
     nnbrs = surf->vertices[vtx].vnum;
     x0 = surf->vertices[vtx].x;
     y0 = surf->vertices[vtx].y;
     z0 = surf->vertices[vtx].z;
     dnbrsum=0.0;
-    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
       nbrvtx = surf->vertices[vtx].v[nthnbr];
       xn = surf->vertices[nbrvtx].x;
       yn = surf->vertices[nbrvtx].y;
@@ -308,14 +322,13 @@ double MRISmeanInterVertexDist(MRIS *surf)
   return(dsum/surf->nvertices);
 }
 /*-------------------------------------------------------------------
-  MRISgaussianSmooth() - perform gaussian smoothing on a spherical 
+  MRISgaussianSmooth() - perform gaussian smoothing on a spherical
   surface. The gaussian is defined by stddev GStd and is truncated
-  at TruncFactor stddevs. Note: this will change the val2bak of all 
+  at TruncFactor stddevs. Note: this will change the val2bak of all
   the vertices. See also MRISspatialFilter() and MRISgaussianWeights().
   -------------------------------------------------------------------*/
 MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
-			double TruncFactor)
-{
+                         double TruncFactor) {
   int vtxno1, vtxno2;
   float val;
   MRI *SrcTmp, *GSum, *GSum2, *nXNbrsMRI, *AreaSum;
@@ -325,55 +338,54 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   double *XNbrDotProd, DotProdThresh;
   double InterVertexDistAvg,InterVertexDistStdDev;
   double VertexRadiusAvg,VertexRadiusStdDev;
-  
-  if(Surf->nvertices != Src->width){
+
+  if (Surf->nvertices != Src->width) {
     printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
     return(NULL);
   }
-  
-  if(Targ == NULL){
-    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
-			    MRI_FLOAT, Src->nframes);
-    if(Targ==NULL){
+
+  if (Targ == NULL) {
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
+                            MRI_FLOAT, Src->nframes);
+    if (Targ==NULL) {
       printf("ERROR: MRISgaussianSmooth: could not alloc\n");
       return(NULL);
     }
-  }
-  else{
-    if(Src->width   != Targ->width  || 
-       Src->height  != Targ->height || 
-       Src->depth   != Targ->depth  ||
-       Src->nframes != Targ->nframes){
+  } else {
+    if (Src->width   != Targ->width  ||
+        Src->height  != Targ->height ||
+        Src->depth   != Targ->depth  ||
+        Src->nframes != Targ->nframes) {
       printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
       return(NULL);
     }
-    if(Targ->type != MRI_FLOAT){
+    if (Targ->type != MRI_FLOAT) {
       printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
       return(NULL);
     }
   }
-  
+
   /* Make a copy in case it's done in place */
   SrcTmp = MRIcopy(Src,NULL);
-  
+
   AreaSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);//dng
 
   /* This is for normalizing */
   GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum==NULL){
+  if (GSum==NULL) {
     printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
     return(NULL);
   }
-  
+
   GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum2==NULL){
+  if (GSum2==NULL) {
     printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
     return(NULL);
   }
   MRIScomputeMetricProperties(Surf);
-  
+
   nXNbrsMRI = MRIallocSequence(Src->width,Src->height,Src->depth,MRI_FLOAT, 1);
-  
+
   vtx1 = &Surf->vertices[0] ;
   Radius2 = (vtx1->x * vtx1->x) + (vtx1->y * vtx1->y) + (vtx1->z * vtx1->z);
   Radius  = sqrt(Radius2);
@@ -381,10 +393,10 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   GVar2 = 2*(GStd*GStd);
   f = pow(1/(sqrt(2*M_PI)*GStd),2.0); // squared for 2D
   DotProdThresh = Radius2*cos(dmax/Radius)*(1.0001);
-  
+
   printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
-	 Radius,GStd,dmax,GVar2,f,DotProdThresh);
-  
+         Radius,GStd,dmax,GVar2,f,DotProdThresh);
+
   InterVertexDistAvg    = Surf->avg_vertex_dist;
   InterVertexDistStdDev = Surf->std_vertex_dist;
   VertexRadiusAvg = MRISavgVetexRadius(Surf, &VertexRadiusStdDev);
@@ -393,114 +405,114 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   printf("Dist   = %g +/- %g\n",InterVertexDistAvg,InterVertexDistStdDev);
   printf("Radius = %g +/- %g\n",VertexRadiusAvg,VertexRadiusStdDev);
   printf("nvertices = %d\n",Surf->nvertices);
-  
+
   /* Initialize */
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+  for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++) {
     MRIFseq_vox(AreaSum,vtxno1,0,0,0)  = 0; //dng
     MRIFseq_vox(GSum,vtxno1,0,0,0)  = 0;
     MRIFseq_vox(GSum2,vtxno1,0,0,0) = 0;
-    for(frame = 0; frame < Targ->nframes; frame ++)
+    for (frame = 0; frame < Targ->nframes; frame ++)
       MRIFseq_vox(Targ,vtxno1,0,0,frame) = 0;
     Surf->vertices[vtxno1].val2bak = -1;
   }
-  
+
   /* These are needed by MRISextendedNeighbors()*/
   XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
   XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
-  
-  if(0){
+
+  if (0) {
     // This will mess up future searches because it sets
     // val2bak to 0
     printf("Starting Search\n");
-    err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo, 
-				XNbrDotProd, &nXNbrs, Surf->nvertices);
+    err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo,
+                                XNbrDotProd, &nXNbrs, Surf->nvertices);
     printf("Found %d (err=%d)\n",nXNbrs,err);
-    for(n = 0; n < nXNbrs; n++){
+    for (n = 0; n < nXNbrs; n++) {
       printf("%d %d %g\n",n,XNbrVtxNo[n],XNbrDotProd[n]);
     }
   }
-  
+
   // --------------- Loop over target voxel -------------------
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+  for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++) {
     nXNbrs = 0;
-    err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo, 
-				XNbrDotProd, &nXNbrs, Surf->nvertices);
+    err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo,
+                                XNbrDotProd, &nXNbrs, Surf->nvertices);
     MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
-    if(vtxno1%10000==0 && Gdiag_no > 0){
+    if (vtxno1%10000==0 && Gdiag_no > 0) {
       printf("vtxno1 = %d, nXNbrs = %d\n",vtxno1,nXNbrs);
       fflush(stdout);
     }
-    
+
     // ------- Loop over neighbors of target voxel --------------
-    for(n = 0; n < nXNbrs; n++){
+    for (n = 0; n < nXNbrs; n++) {
       vtxno2  = XNbrVtxNo[n];
       dotprod =  XNbrDotProd[n];
       costheta = dotprod/Radius2;
-      
+
       // cos theta might be slightly > 1 due to precision
-      if(costheta > +1.0) costheta = +1.0;
-      if(costheta < -1.0) costheta = -1.0;
-      
+      if (costheta > +1.0) costheta = +1.0;
+      if (costheta < -1.0) costheta = -1.0;
+
       // Compute the angle between the vertices
       theta = acos(costheta);
-      
+
       /* Compute the distance bet vertices along the surface of the sphere */
       d = Radius * theta;
-      
+
       /* Compute weighting factor for this distance */
       g = f*exp( -(d*d)/(GVar2) );
       ga = g * Surf->vertices[vtxno2].area;
-      
-      if(vtxno2 == 81921 && 0){
-	printf("@ %d %d %g %g %g %g %g\n",
-	       vtxno1,vtxno2,dotprod,costheta,theta,d,g);
+
+      if (vtxno2 == 81921 && 0) {
+        printf("@ %d %d %g %g %g %g %g\n",
+               vtxno1,vtxno2,dotprod,costheta,theta,d,g);
       }
 
       MRIFseq_vox(AreaSum,vtxno1,0,0,0) += Surf->vertices[vtxno2].area;  //dng
       MRIFseq_vox(GSum,vtxno1,0,0,0)  += ga;
       MRIFseq_vox(GSum2,vtxno1,0,0,0) += (ga*ga);
-      
-      for(frame = 0; frame < Targ->nframes; frame ++){
-	val = ga*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
-	MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
+
+      for (frame = 0; frame < Targ->nframes; frame ++) {
+        val = ga*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
+        MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
       }
-      
+
     } /* end loop over vertex2 */
 
   } /* end loop over vertex1 */
-  
+
   //MRIwrite(Targ,"ynoscale.mgh");
 
   /* Normalize */
-  if(0){
-    for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+  if (0) {
+    for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++) {
       vtx1 = &Surf->vertices[vtxno1] ;
       g = MRIFseq_vox(GSum,vtxno1,0,0,0);
       MRIFseq_vox(GSum2,vtxno1,0,0,0) /= (g*g);
-      for(frame = 0; frame < Targ->nframes; frame ++){
-	val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
-	MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
-	if(vtxno1 == 81921 && 1){
-	  printf("%d gsum = %g  src=%g tpre=%g  tpost=%g\n",vtxno1,g,val,
-		 MRIFseq_vox(Src,vtxno1,0,0,frame),
-		 MRIFseq_vox(Targ,vtxno1,0,0,frame));
-	}
+      for (frame = 0; frame < Targ->nframes; frame ++) {
+        val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
+        MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
+        if (vtxno1 == 81921 && 1) {
+          printf("%d gsum = %g  src=%g tpre=%g  tpost=%g\n",vtxno1,g,val,
+                 MRIFseq_vox(Src,vtxno1,0,0,frame),
+                 MRIFseq_vox(Targ,vtxno1,0,0,frame));
+        }
       }
     }
   }
-  
+
   MRIwrite(AreaSum,"areasum.mgh"); //dng
   MRIwrite(GSum,"gsum.mgh");
   MRIwrite(GSum2,"gsum2.mgh");
   MRIwrite(nXNbrsMRI,"nxnbrs.mgh");
-  
+
   MRIfree(&SrcTmp);
   MRIfree(&GSum);
   MRIfree(&GSum2);
   MRIfree(&nXNbrsMRI);
-  
+
   free(XNbrVtxNo);
   free(XNbrDotProd);
-  
+
   return(Targ);
 }

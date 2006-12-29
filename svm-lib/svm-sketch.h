@@ -1,3 +1,31 @@
+/**
+ * @file  svm-sketch.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 ////SVM-LIB////////////////////////////////////////////////////////////////
 //
 // Name: Sketch
@@ -8,22 +36,22 @@
 // for a compact representation. A sketch is only valid if a kernel
 // and a distance table are specified.
 //
-// I/O format: the number of support vectors and the threshold b in the first 
-// row, followed by index-alpha pairs, one pair per row. This format makes 
+// I/O format: the number of support vectors and the threshold b in the first
+// row, followed by index-alpha pairs, one pair per row. This format makes
 // it easy to read the file into matlab.
 //
-// Note: b is the threshold, i.e., the classifier is 
+// Note: b is the threshold, i.e., the classifier is
 //
 //        y(x) = sum_i alpha_i K(x,x_i) - b.
 //
 //
 //  Polina Golland polina@ai.mit.edu
-// 
+//
 ///////////////////////////////////////////////////////////////////////////
 
 
 #ifndef __SVM_SKETCH_H__
-#define __SVM_SKETCH_H__ 
+#define __SVM_SKETCH_H__
 
 #include <stdio.h>
 #include <iostream>
@@ -44,17 +72,16 @@ class Sketch {
   DoubleMatrix _kernelMatrix;
 
 
- protected:
+protected:
 
   // Initialize the sketch to a particular size. This function is made private
-  // as the callers should use more substantial versions of init below. 
-  void init (int count)
-    {
-      _alpha.init(count);
-      _svIndex.init(count);
-      _kernelMatrix.init(count,count);
-    }
-  
+  // as the callers should use more substantial versions of init below.
+  void init (int count) {
+    _alpha.init(count);
+    _svIndex.init(count);
+    _kernelMatrix.init(count,count);
+  }
+
   // This function can only be used by tis class and its derived classes.
   // The callers can only check if the sketch is valid.
   void setValid (bool valid = true) {
@@ -64,35 +91,35 @@ class Sketch {
 
 
 
- public:
+public:
 
   Sketch() : _valid(false) {}
 
-  // Initialize the sketch from SVM's alphas. Construct 
-  // _svIndex to point to the support vectors in the training data set. 
-  // The threshold is used to assign alpha's to zero. If no threshold 
-  // for alpha is given, it will be set to 1e-5 of the largest alpha. 
-  
-  bool init (const SvmRealVector& alpha, double b, const DoubleMatrix& kernelMatrix,
-	     int posCount, int negCount, double threshold = -1);
+  // Initialize the sketch from SVM's alphas. Construct
+  // _svIndex to point to the support vectors in the training data set.
+  // The threshold is used to assign alpha's to zero. If no threshold
+  // for alpha is given, it will be set to 1e-5 of the largest alpha.
 
-  // Initialize the sketch from SVM's alphas. This function is used if 
-  // the training was done using a sub-set of the original data set. 
-  // dataIndex contains the indices into the original array. This is 
+  bool init (const SvmRealVector& alpha, double b, const DoubleMatrix& kernelMatrix,
+             int posCount, int negCount, double threshold = -1);
+
+  // Initialize the sketch from SVM's alphas. This function is used if
+  // the training was done using a sub-set of the original data set.
+  // dataIndex contains the indices into the original array. This is
   // useful in cross-validation, chunking, etc.
 
-  bool init (const SvmRealVector& alpha, const IntVector& dataIndex, double b, 
-	     const DoubleMatrix& kernelMatrix, int posCount, int negCount, double threshold = -1);
+  bool init (const SvmRealVector& alpha, const IntVector& dataIndex, double b,
+             const DoubleMatrix& kernelMatrix, int posCount, int negCount, double threshold = -1);
 
-  
+
   // Classify an example from the training set. This uses the table of distance
-  // values constructed at the training phase to compute the value of the 
+  // values constructed at the training phase to compute the value of the
   // classifier.
 
   double classify (int vectorIndex) const;
 
 
-  
+
   // Accessor functions
   bool isValid() const {
     return _valid;
@@ -117,25 +144,25 @@ class Sketch {
   double kernel (const SvmReal* v1, const SvmReal* v2, int n) const {
     return _kernel(v1,v2,n);
   }
-  
+
   void setKernel(const Kernel& kernel) {
     _kernel = kernel;
   }
 
-  const SvmRealVector& alpha() const { 
-    return _alpha; 
+  const SvmRealVector& alpha() const {
+    return _alpha;
   }
 
-  SvmReal alpha(int i) const { 
-    return _alpha[i]; 
+  SvmReal alpha(int i) const {
+    return _alpha[i];
   }
 
-  const IntVector& svIndex() const { 
-    return _svIndex; 
+  const IntVector& svIndex() const {
+    return _svIndex;
   }
 
-  int svIndex(int i) const { 
-    return _svIndex[i]; 
+  int svIndex(int i) const {
+    return _svIndex[i];
   }
 
   const DoubleMatrix& kernelMatrix() const {
@@ -146,9 +173,9 @@ class Sketch {
     return _kernelMatrix[i][j];
   }
 
-  
+
   //I/O
-  
+
   bool read (FILE* f, bool binary = false);
   bool write (FILE* f, bool binary = false) const;
 };

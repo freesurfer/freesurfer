@@ -1,3 +1,31 @@
+/**
+ * @file  windiag.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
    @(#)window.h 1.4
    8/10/95
@@ -9,7 +37,7 @@
 
         Created:  Feb. 1994
 
-    Description:  
+    Description:
 
 ------------------------------------------------------------------------*/
 #ifndef WINDOW_H
@@ -31,10 +59,10 @@ int  WinDrawCircle(int iWin, int x0, int y0, int radius, int color) ;
 int  WinSetScale(int iWin, double dXscale, double dYscale) ;
 int  WinGetScale(int iWin, double *pdXscale, double *pdYscale) ;
 int  WinSetRange(int iWin,double dXmin,double dXmax,double dYmin,double dYmax);
-int  WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin, 
+int  WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin,
                  double *pdYmax);
 
-int  WinCreate(char *pcName, int button_rows, int image_rows, 
+int  WinCreate(char *pcName, int button_rows, int image_rows,
                int image_cols, int rows, int cols) ;
 int  WinPrintf(int iWin, int x, int y, char *fmt, ...) ;
 int  WinShowImage(int iWin, IMAGE *image, int which) ;

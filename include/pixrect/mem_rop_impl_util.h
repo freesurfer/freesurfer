@@ -4,29 +4,29 @@
  * Copyright 1986, 1987 by Sun Microsystems,  Inc.
  */
 
-#ifndef	mem_rop_impl_util_DEFINED
-#define	mem_rop_impl_util_DEFINED
+#ifndef mem_rop_impl_util_DEFINED
+#define mem_rop_impl_util_DEFINED
 
 /*
  * Utility macros for memory pixrect code
  */
 
-/* 
- * Code selection macros 
+/*
+ * Code selection macros
  */
-#define	IFTRUET(t, a, b)	_STMT(if (t) {a;} else {b;})
-#define	IFFALSET(t, a, b)	_STMT(b;)
+#define IFTRUET(t, a, b) _STMT(if (t) {a;} else {b;})
+#define IFFALSET(t, a, b) _STMT(b;)
 
 /*
  * Option control macros
  */
-#define ALWAYS(option,a,b)	IFTRUE(a,b)
-#define NEVER(option,a,b)	IFFALSE(a,b)
-#define OPTION(option,a,b)	option(a,b)
+#define ALWAYS(option,a,b) IFTRUE(a,b)
+#define NEVER(option,a,b) IFFALSE(a,b)
+#define OPTION(option,a,b) option(a,b)
 
-#define	ALWAYST(option,t,a,b)	IFTRUET(t,a,b)
-#define	NEVERT(option,t,a,b)	IFFALSET(t,a,b)
-#define	OPTIONT(option,t,a,b)	option(t,a,b)
+#define ALWAYST(option,t,a,b) IFTRUET(t,a,b)
+#define NEVERT(option,t,a,b) IFFALSET(t,a,b)
+#define OPTIONT(option,t,a,b) option(t,a,b)
 
 /*
  * Speed choice macros
@@ -37,25 +37,25 @@
  * Define NEVER_SLOW to get all fast code.
  * Define NEVER_FAST to get all slow code.
  */
- 
+
 #if defined(NEVER_FAST) && !defined(NEVER_SLOW)
-#define	FAST	IFFALSE
-#define	FASTT	IFFALSET
+#define FAST IFFALSE
+#define FASTT IFFALSET
 #else
-#define	FAST	IFTRUE
-#define	FASTT	IFTRUET
+#define FAST IFTRUE
+#define FASTT IFTRUET
 #endif
 
 #ifdef NEVER_SLOW
-#define	SLOW	IFTRUE
-#define	SLOWT	IFTRUET
+#define SLOW IFTRUE
+#define SLOWT IFTRUET
 #else
-#define	SLOW	IFFALSE
-#define	SLOWT	IFFALSET
+#define SLOW IFFALSE
+#define SLOWT IFFALSET
 #endif
 
 /* fast in user, slow in kernel */
 #define UFAST IFKERNEL(SLOW,FAST)
 #define UFASTT IFKERNEL(SLOWT,FASTT)
 
-#endif	mem_rop_impl_util_DEFINED
+#endif mem_rop_impl_util_DEFINED

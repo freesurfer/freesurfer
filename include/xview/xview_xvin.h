@@ -1,9 +1,9 @@
 /*      @(#)xview_xvin.h 1.13 91/09/14 SMI      */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_xview_xvin_DEFINED
@@ -11,7 +11,7 @@
 
 /*
  ***********************************************************************
- *			Include Files
+ *   Include Files
  ***********************************************************************
  */
 
@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #endif /* __cplusplus || __STDC__ */
 
-#include <xview/xv_c_types.h>   
+#include <xview/xv_c_types.h>
 #include <xview/generic.h>
 #include <xview/server.h>
 #include <xview/screen.h>

@@ -1,3 +1,31 @@
+/**
+ * @file  mri_paint.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +40,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_paint.c,v 1.3 2003/09/05 04:45:36 kteich Exp $";
+static char vcid[] = "$Id: mri_paint.c,v 1.4 2006/12/29 02:09:08 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,8 +61,7 @@ static int coords = TALAIRACH_COORDS ;
 usage: stat_paint [options] <input> <subject> <hemisphere> <surface> <output>
 */
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char        **av, *in_vol, *in_surf, *xform_fname, *out_fname ;
   int         ac, nargs ;
   MRI_SURFACE *mris ;
@@ -43,7 +70,7 @@ main(int argc, char *argv[])
   MATRIX      *m ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_paint.c,v 1.3 2003/09/05 04:45:36 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_paint.c,v 1.4 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -54,8 +81,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -78,8 +104,7 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, in_surf) ;
 
-  if (thickness_fname)
-  {
+  if (thickness_fname) {
     if (MRISreadCurvature(mris, thickness_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read thickness file %s", Progname, thickness_fname) ;
   }
@@ -93,7 +118,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_fname) ;
 
   m = MatrixInverse(lta->xforms[0].m_L, NULL) ;
-  MatrixFree(&lta->xforms[0].m_L) ; lta->xforms[0].m_L = m ;
+  MatrixFree(&lta->xforms[0].m_L) ;
+  lta->xforms[0].m_L = m ;
   MRISpaintVolume(mris, lta, mri) ;
   MRIScopyValuesToCurvature(mris) ;    /* write them out in new curv format */
   fprintf(stderr, "writing output to %s.\n", out_fname) ;
@@ -109,73 +135,66 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "imageoffset"))
-  {
+  else if (!stricmp(option, "imageoffset")) {
     imageoffset = atoi(argv[2]) ;
     nargs = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'T':
-    thickness_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using thickness file %s to sample with...\n", thickness_fname) ;
-    break ;
-  case 'S':
-  case 'C':
-    coords = SPHERICAL_COORDS ;
-    fprintf(stderr, "using spherical coordinates\n") ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'T':
+      thickness_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using thickness file %s to sample with...\n", thickness_fname) ;
+      break ;
+    case 'S':
+    case 'C':
+      coords = SPHERICAL_COORDS ;
+      fprintf(stderr, "using spherical coordinates\n") ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <input volume> <input surface> <registration file> <output .float file>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-     "\nThis program will paint a average Talairach stats onto a surface\n");
+  fprintf(stderr,
+          "\nThis program will paint a average Talairach stats onto a surface\n");
   fprintf(stderr, "-imageoffset <image offset> - set offset to use\n") ;
   fprintf(stderr, "-S                          - paint using surface "
           "coordinates\n") ;
@@ -183,8 +202,7 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

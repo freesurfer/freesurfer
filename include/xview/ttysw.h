@@ -1,9 +1,9 @@
-/*	@(#)ttysw.h 20.15 91/09/14 SMI	*/
+/* @(#)ttysw.h 20.15 91/09/14 SMI */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 /*
@@ -23,51 +23,51 @@
 
 /*
  ***********************************************************************
- *			Definitions and Macros
+ *   Definitions and Macros
  ***********************************************************************
  */
 
 /*
- * PRIVATE #defines 
+ * PRIVATE #defines
  */
 
-/* 
+/*
  * options - controlled by ttysw_getopt(), ttysw_setopt
  * The values of the #define's are wired into aliases, shell-scripts,
  * etc. and should not be changed!
  */
-#define	TTYOPT_PAGEMODE			1
-#define TTYOPT_SELSVC			3
-#define TTYOPT_TEXT			4	/* TERMSW */
+#define TTYOPT_PAGEMODE   1
+#define TTYOPT_SELSVC   3
+#define TTYOPT_TEXT   4 /* TERMSW */
 
 /*
- * styles for rendering boldface characters 
+ * styles for rendering boldface characters
  */
-#define TTYSW_BOLD_NONE			0x0
-#define TTYSW_BOLD_OFFSET_X		0x1
-#define TTYSW_BOLD_OFFSET_Y		0x2
-#define TTYSW_BOLD_OFFSET_XY		0x4
-#define TTYSW_BOLD_INVERT		0x8
-#define TTYSW_BOLD_MAX			0x8
+#define TTYSW_BOLD_NONE   0x0
+#define TTYSW_BOLD_OFFSET_X  0x1
+#define TTYSW_BOLD_OFFSET_Y  0x2
+#define TTYSW_BOLD_OFFSET_XY  0x4
+#define TTYSW_BOLD_INVERT  0x8
+#define TTYSW_BOLD_MAX   0x8
 
 /*
- * Modes for invert and underline 
+ * Modes for invert and underline
  */
-#define TTYSW_ENABLE			0x0
-#define TTYSW_DISABLE			0x1
-#define TTYSW_SAME_AS_BOLD		0x2
+#define TTYSW_ENABLE   0x0
+#define TTYSW_DISABLE   0x1
+#define TTYSW_SAME_AS_BOLD  0x2
 
 /*
  ***********************************************************************
- *		Typedefs, Enumerations, and Structures
+ *  Typedefs, Enumerations, and Structures
  ***********************************************************************
  */
 
-typedef caddr_t	Ttysubwindow;
+typedef caddr_t Ttysubwindow;
 
 /*
  ***********************************************************************
- *				Globals
+ *    Globals
  ***********************************************************************
  */
 
@@ -82,7 +82,7 @@ EXTERN_FUNCTION (int ttysw_output, (Tty ttysw, char *addr, int len));
  */
 
 /*
- * PRIVATE functions 
+ * PRIVATE functions
  */
 
 EXTERN_FUNCTION (void ttysw_done, (Tty ttysw));

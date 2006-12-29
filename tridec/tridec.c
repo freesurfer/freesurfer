@@ -1,3 +1,31 @@
+/**
+ * @file  tridec.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:18 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,19 +33,18 @@
 #include "version.h"
 
 int
-main(int argc,char *argv[])
-{
+main(int argc,char *argv[]) {
 
   FILE *fp1,*fp2,*fp3;
   char fname[STRLEN],fpref[STRLEN],pname[STRLEN];
   int vnum1, vnum2, cnum2;
-  char line[STRLEN]; 
+  char line[STRLEN];
   char *data_dir,*mri_dir;
   int i;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.4 2003/09/05 04:45:49 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.5 2006/12/29 02:09:18 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -28,14 +55,12 @@ main(int argc,char *argv[])
   }
 
   data_dir = getenv("SUBJECTS_DIR");
-  if (data_dir==NULL)
-  {
+  if (data_dir==NULL) {
     printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
     exit(0);
   }
   mri_dir = getenv("FREESURFER_HOME");
-  if (mri_dir==NULL)
-  {
+  if (mri_dir==NULL) {
     printf("environment variable FREESURFER_HOME undefined (use setenv)\n");
     exit(0);
   }
@@ -44,14 +69,23 @@ main(int argc,char *argv[])
   sprintf(fpref,"%s/%s",data_dir,pname);
 
   sprintf(fname,"%s/bem/%s",fpref,argv[2]);
-  fp1 = fopen(fname,"r"); 
-  if (fp1==NULL) {printf("File %s not found.\n",fname);exit(0);}
+  fp1 = fopen(fname,"r");
+  if (fp1==NULL) {
+    printf("File %s not found.\n",fname);
+    exit(0);
+  }
   sprintf (fname,"%s/lib/bem/%s",mri_dir,argv[3]);
   fp2 = fopen(fname,"r");
-  if (fp2==NULL) {printf("File %s not found.\n",fname);exit(0);}
+  if (fp2==NULL) {
+    printf("File %s not found.\n",fname);
+    exit(0);
+  }
   sprintf(fname,"%s/bem/%s",fpref,argv[4]);
-  fp3 = fopen(fname,"w"); 
-  if (fp3==NULL) {printf("can't write to file %s\n",fname);exit(0);}
+  fp3 = fopen(fname,"w");
+  if (fp3==NULL) {
+    printf("can't write to file %s\n",fname);
+    exit(0);
+  }
 
   fgets(line,STRLEN,fp2);
   sscanf(line,"%d",&vnum2);
@@ -67,11 +101,11 @@ main(int argc,char *argv[])
   for (i=0;i<vnum2;i++) {
     fgets(line,STRLEN,fp2);
   }
- 
+
   fgets(line,STRLEN,fp2);
   sscanf(line,"%d",&cnum2);
   fprintf(fp3,"%d\n",cnum2);
- 
+
   for (i=0;i<cnum2;i++) {
     fgets(line,STRLEN,fp2);
     fprintf(fp3,"%s",line);
@@ -79,8 +113,8 @@ main(int argc,char *argv[])
 
   printf("written triangle file %s\n",fname);
 
-  fclose(fp1); 
-  fclose(fp2); 
-  fclose(fp3); 
+  fclose(fp1);
+  fclose(fp2);
+  fclose(fp3);
   return(0) ;
 }

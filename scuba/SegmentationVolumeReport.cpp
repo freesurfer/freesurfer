@@ -1,42 +1,70 @@
+/**
+ * @file  SegmentationVolumeReport.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <fstream>
 #include "SegmentationVolumeReport.h"
 
 using namespace std;
 
-SegmentationVolumeReport& 
+SegmentationVolumeReport&
 SegmentationVolumeReport::GetReport () {
 
   static SegmentationVolumeReport* sReport = NULL;
-  if( NULL == sReport ) {
+  if ( NULL == sReport ) {
 
     sReport = new SegmentationVolumeReport();
 
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( *sReport, "ClearSegVolReport", 0, "",
-			   "Clears all info in the segmentation "
-			   "volume report." );
+                           "Clears all info in the segmentation "
+                           "volume report." );
     commandMgr.AddCommand( *sReport, "SetSegVolReportSegmentation", 1, "segID",
-			   "Set the segmentation volume in the segmentation "
-			   "volume report." );
-    commandMgr.AddCommand( *sReport, "AddSegVolReportIntensityVolume", 1, 
-			   "volID", "Add an intensity volume to the "
-			   "segmentation volume report." );
+                           "Set the segmentation volume in the segmentation "
+                           "volume report." );
+    commandMgr.AddCommand( *sReport, "AddSegVolReportIntensityVolume", 1,
+                           "volID", "Add an intensity volume to the "
+                           "segmentation volume report." );
     commandMgr.AddCommand( *sReport, "SetROIForSegVolReport", 2, "volID roiID",
-			   "Set the volume and ROI to use in the "
-			   "segmentation volume report." );
+                           "Set the volume and ROI to use in the "
+                           "segmentation volume report." );
     commandMgr.AddCommand( *sReport, "DontUseROIInSegVolReport", 0, "",
-			   "Don't use an ROI in the segmentation volume "
-			   "report." );
+                           "Don't use an ROI in the segmentation volume "
+                           "report." );
     commandMgr.AddCommand( *sReport, "SetSegVolReportLUT", 1, "lutID",
-			   "Set the LUT in the segmentation volume report." );
-    commandMgr.AddCommand( *sReport, "AddSegmentationToSegVolReport", 1, 
-			   "structure", "Add a segmentation to the "
-			   "segmentation volume report." );
+                           "Set the LUT in the segmentation volume report." );
+    commandMgr.AddCommand( *sReport, "AddSegmentationToSegVolReport", 1,
+                           "structure", "Add a segmentation to the "
+                           "segmentation volume report." );
     commandMgr.AddCommand( *sReport, "MakeSegVolReport", 1, "fnReport",
-			   "Make the segmentation volume report." );
-    commandMgr.AddCommand( *sReport, "MakeSegVolIntensityReport", 1, 
-			   "fnReport", "Make the intensity report from the "
-			   "segmentation volume report." );
+                           "Make the segmentation volume report." );
+    commandMgr.AddCommand( *sReport, "MakeSegVolIntensityReport", 1,
+                           "fnReport", "Make the intensity report from the "
+                           "segmentation volume report." );
   }
 
   return *sReport;
@@ -54,7 +82,7 @@ SegmentationVolumeReport::SegmentationVolumeReport() {
 
 void
 SegmentationVolumeReport::Clear () {
-  
+
   mSegVol = NULL;
   mlIntVols.clear();
   mbUseROI = false;
@@ -68,28 +96,28 @@ SegmentationVolumeReport::Clear () {
   mStructureToVolumeVoxelListMap.clear();
 }
 
-void  
+void
 SegmentationVolumeReport::SetSegmentation ( VolumeCollection& iSeg ) {
 
   mSegVol = &iSeg;
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::AddIntensityVolume ( VolumeCollection& iVol ) {
 
   mlIntVols.push_back( &iVol );
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::DontUseROI () {
 
   mbUseROI = false;
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::UseVolumeForROI ( VolumeCollection& iVol ) {
 
   mbUseROI = true;
@@ -97,7 +125,7 @@ SegmentationVolumeReport::UseVolumeForROI ( VolumeCollection& iVol ) {
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::UseROI ( ScubaROIVolume& iROI ) {
 
   mbUseROI = true;
@@ -105,21 +133,21 @@ SegmentationVolumeReport::UseROI ( ScubaROIVolume& iROI ) {
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::SetColorLUT ( ScubaColorLUT& iLUT ) {
 
   mLUT = &iLUT;
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::AddSegmentationStructure ( int inStructure ) {
 
   mlStructures.push_back( inStructure );
   mbReportDirty = true;
 }
 
-void  
+void
 SegmentationVolumeReport::MakeVolumeReport ( string ifnReport ) {
 
   try {
@@ -128,57 +156,55 @@ SegmentationVolumeReport::MakeVolumeReport ( string ifnReport ) {
 
     // Generate the report data.
     MakeVolumeReport();
-    
+
     // Write out the file.
 
     // SUBJ Struct Struct-intVol-intensity...
     fReport << "SUBJ";
     list<int>::iterator tStructure;
-    for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-	 ++tStructure ) {
+    for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+          ++tStructure ) {
       int nStructure = *tStructure;
       string sStructure = mLUT->GetLabelAtIndex( nStructure );
       fReport << "\t" << sStructure;
-      
+
       list<VolumeCollection*>::iterator tIntVol;
-      for( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
-	   ++tIntVol ) {
-	VolumeCollection* intVol = *tIntVol;
-	string sIntVol = intVol->GetLabel();
-	fReport << "\t" << sStructure << "-" << sIntVol
-		<< "-intensity";
+      for ( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
+            ++tIntVol ) {
+        VolumeCollection* intVol = *tIntVol;
+        string sIntVol = intVol->GetLabel();
+        fReport << "\t" << sStructure << "-" << sIntVol
+        << "-intensity";
       }
     }
     fReport << endl;
-    
+
 
     // SubjName volume intensityAverage...
     fReport << mSegVol->GetLabel();
-    for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-	 ++tStructure ) {
+    for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+          ++tStructure ) {
       int nStructure = *tStructure;
       fReport << "\t" << mStructureToVolumeMap[nStructure];
-      
+
       list<VolumeCollection*>::iterator tIntVol;
-      for( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end(); 
-	   ++tIntVol ) {
-	VolumeCollection* intVol = *tIntVol;
-	fReport << "\t" << mVolumeToIntensityAverageMap[intVol][nStructure];
+      for ( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
+            ++tIntVol ) {
+        VolumeCollection* intVol = *tIntVol;
+        fReport << "\t" << mVolumeToIntensityAverageMap[intVol][nStructure];
       }
     }
     fReport << endl;
-    
-  }
-  catch( exception& e ) {
+
+  } catch ( exception& e ) {
     throw runtime_error( "Error writing " + ifnReport + ": " + e.what() );
-  }
-  catch( ... ) {
+  } catch ( ... ) {
     throw runtime_error( "Error writing " + ifnReport );
   }
 }
 
 
-void  
+void
 SegmentationVolumeReport::MakeIntensityReport ( std::string ifnReport ) {
 
   try {
@@ -192,20 +218,20 @@ SegmentationVolumeReport::MakeIntensityReport ( std::string ifnReport ) {
     bool bFirst = true;
     list<int>::iterator tStructure;
     list<VolumeCollection*>::iterator tIntVol;
-    for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-	 ++tStructure ) {
+    for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+          ++tStructure ) {
       int nStructure = *tStructure;
       string sStructure = mLUT->GetLabelAtIndex( nStructure );
-      for( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
-	   ++tIntVol ) {
-	VolumeCollection* intVol = *tIntVol;
-	string sIntVol = intVol->GetLabel();
+      for ( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
+            ++tIntVol ) {
+        VolumeCollection* intVol = *tIntVol;
+        string sIntVol = intVol->GetLabel();
 
-	if( !bFirst ) {
-	  fReport << "\t";
-	}
-	fReport << sIntVol << "-" << sStructure;
-	bFirst = false;
+        if ( !bFirst ) {
+          fReport << "\t";
+        }
+        fReport << sIntVol << "-" << sStructure;
+        bFirst = false;
       }
     }
     fReport << endl;
@@ -218,18 +244,18 @@ SegmentationVolumeReport::MakeIntensityReport ( std::string ifnReport ) {
 
     // Find the max length of the list of voxels in each structure.
     int cVoxels = 0;
-    for( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
-	 ++tIntVol ) {
+    for ( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
+          ++tIntVol ) {
       VolumeCollection* intVol = *tIntVol;
-      for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-	   ++tStructure ) {
-	int nStructure = *tStructure;
-	
-	if((int)mStructureToVolumeVoxelListMap[nStructure][intVol].size() > cVoxels)
-	  cVoxels = mStructureToVolumeVoxelListMap[nStructure][intVol].size();
+      for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+            ++tStructure ) {
+        int nStructure = *tStructure;
+
+        if ((int)mStructureToVolumeVoxelListMap[nStructure][intVol].size() > cVoxels)
+          cVoxels = mStructureToVolumeVoxelListMap[nStructure][intVol].size();
       }
     }
-    
+
     int cStructures = mlStructures.size();
     int cVolumes = mlIntVols.size();
 
@@ -240,79 +266,76 @@ SegmentationVolumeReport::MakeIntensityReport ( std::string ifnReport ) {
     // Go through everything and fill it out.
     int nVolume = 0;
     int nZeroBasedStructure = 0;
-    for( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
-	 ++tIntVol ) {
+    for ( tIntVol = mlIntVols.begin(); tIntVol != mlIntVols.end();
+          ++tIntVol ) {
 
       nZeroBasedStructure = 0;
       VolumeCollection* intVol = *tIntVol;
-      for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-	   ++tStructure ) {
-	int nStructure = *tStructure;
+      for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+            ++tStructure ) {
+        int nStructure = *tStructure;
 
-	list<VolumeLocation>::iterator tLocation;
-	int nLocation = 0;
-	for( tLocation =
-	       mStructureToVolumeVoxelListMap[nStructure][intVol].begin();
-	     tLocation != 
-	       mStructureToVolumeVoxelListMap[nStructure][intVol].end();
-	     ++tLocation ) {
-	  volLocs.Set( nZeroBasedStructure, nVolume, nLocation, &(*tLocation));
-	  nLocation++;
-	}
-	nZeroBasedStructure++;
+        list<VolumeLocation>::iterator tLocation;
+        int nLocation = 0;
+        for ( tLocation =
+                mStructureToVolumeVoxelListMap[nStructure][intVol].begin();
+              tLocation !=
+              mStructureToVolumeVoxelListMap[nStructure][intVol].end();
+              ++tLocation ) {
+          volLocs.Set( nZeroBasedStructure, nVolume, nLocation, &(*tLocation));
+          nLocation++;
+        }
+        nZeroBasedStructure++;
       }
       nVolume++;
     }
 
     // Now fill them out by row.
-    for( int nVoxel = 0; nVoxel < cVoxels; nVoxel++ ) {
-      for( nZeroBasedStructure = 0; nZeroBasedStructure < cStructures; nZeroBasedStructure++ ) {
-	for( int nVolume = 0; nVolume < cVolumes; nVolume++ ) {
+    for ( int nVoxel = 0; nVoxel < cVoxels; nVoxel++ ) {
+      for ( nZeroBasedStructure = 0; nZeroBasedStructure < cStructures; nZeroBasedStructure++ ) {
+        for ( int nVolume = 0; nVolume < cVolumes; nVolume++ ) {
 
-	  VolumeLocation* loc = 
-	    volLocs.Get( nZeroBasedStructure, nVolume, nVoxel );
-	  if( NULL != loc ) {
-	    fReport << Point3<int>(loc->Index());
-	  }
-	  fReport << "\t";
-	}
+          VolumeLocation* loc =
+            volLocs.Get( nZeroBasedStructure, nVolume, nVoxel );
+          if ( NULL != loc ) {
+            fReport << Point3<int>(loc->Index());
+          }
+          fReport << "\t";
+        }
       }
       fReport << endl;
     }
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     throw runtime_error( "Error writing " + ifnReport + ": " + e.what() );
-  }
-  catch( ... ) {
+  } catch ( ... ) {
     throw runtime_error( "Error writing " + ifnReport );
   }
 }
 
 TclCommandManager::TclCommandResult
-SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int, 
-						 char** iasArgv ) {
+SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
+    char** iasArgv ) {
 
   // ClearSegVolReport
-  if( 0 == strcmp( isCommand, "ClearSegVolReport" ) ) {
+  if ( 0 == strcmp( isCommand, "ClearSegVolReport" ) ) {
 
     Clear();
     return ok;
   }
 
   // SetSegVolReportSegmentation <segID>
-  if( 0 == strcmp( isCommand, "SetSegVolReportSegmentation" ) ) {
+  if ( 0 == strcmp( isCommand, "SetSegVolReportSegmentation" ) ) {
 
     int segID;
     try {
       segID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       DataCollection::FindByID( segID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad segID: ") + e.what();
       return error;
     }
 
-    VolumeCollection& seg = 
+    VolumeCollection& seg =
       (VolumeCollection&) DataCollection::FindByID( segID );
     SetSegmentation( seg );
 
@@ -320,19 +343,18 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // AddSegVolReportIntensityVolume <volID>
-  if( 0 == strcmp( isCommand, "AddSegVolReportIntensityVolume" ) ) {
+  if ( 0 == strcmp( isCommand, "AddSegVolReportIntensityVolume" ) ) {
 
     int volID;
     try {
       volID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       DataCollection::FindByID( volID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad volID: ") + e.what();
       return error;
     }
 
-    VolumeCollection& intVol = 
+    VolumeCollection& intVol =
       (VolumeCollection&) DataCollection::FindByID( volID );
     AddIntensityVolume( intVol );
 
@@ -340,14 +362,13 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // SetROIForSegVolReport <volID> <roiID>
-  if( 0 == strcmp( isCommand, "SetROIForSegVolReport" ) ) {
+  if ( 0 == strcmp( isCommand, "SetROIForSegVolReport" ) ) {
 
     int volID;
     try {
       volID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       DataCollection::FindByID( volID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad volID: ") + e.what();
       return error;
     }
@@ -356,13 +377,12 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
     try {
       roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       ScubaROI::FindByID( volID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad roiID: ") + e.what();
       return error;
     }
 
-    VolumeCollection& vol = 
+    VolumeCollection& vol =
       (VolumeCollection&) DataCollection::FindByID( volID );
     ScubaROIVolume& roi = (ScubaROIVolume&) ScubaROI::FindByID( roiID );
 
@@ -373,7 +393,7 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // DontUseROIInSegVolReportk
-  if( 0 == strcmp( isCommand, "DontUseROIInSegVolReportk" ) ) {
+  if ( 0 == strcmp( isCommand, "DontUseROIInSegVolReportk" ) ) {
 
     DontUseROI();
 
@@ -381,14 +401,13 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // SetSegVolReportLUT <lutID>
-  if( 0 == strcmp( isCommand, "SetSegVolReportLUT" ) ) {
+  if ( 0 == strcmp( isCommand, "SetSegVolReportLUT" ) ) {
 
     int lutID;
     try {
       lutID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       ScubaColorLUT::FindByID( lutID );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad lutID: ") + e.what();
       return error;
     }
@@ -400,13 +419,12 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // AddSegmentationToSegVolReport <structure>
-  if( 0 == strcmp( isCommand, "AddSegmentationToSegVolReport" ) ) {
+  if ( 0 == strcmp( isCommand, "AddSegmentationToSegVolReport" ) ) {
 
     int nStructure;
     try {
       nStructure = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad structure: ") + e.what();
       return error;
     }
@@ -417,7 +435,7 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // MakeSegVolReport <fnReport>
-  if( 0 == strcmp( isCommand, "MakeSegVolReport" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeSegVolReport" ) ) {
 
     string fnReport( iasArgv[1] );
     MakeVolumeReport( fnReport );
@@ -426,7 +444,7 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
   }
 
   // MakeSegVolIntensityReport <fnReport>
-  if( 0 == strcmp( isCommand, "MakeSegVolIntensityReport" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeSegVolIntensityReport" ) ) {
 
     string fnReport( iasArgv[1] );
     MakeIntensityReport( fnReport );
@@ -440,13 +458,13 @@ SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int,
 void
 SegmentationVolumeReport::MakeVolumeReport () {
 
-  if( !mbReportDirty ) 
+  if ( !mbReportDirty )
     return;
 
   // For each structure...
   list<int>::iterator tStructure;
-  for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
-       ++tStructure ) {
+  for ( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
+        ++tStructure ) {
 
     int nStructure = *tStructure;
 
@@ -458,51 +476,51 @@ SegmentationVolumeReport::MakeVolumeReport () {
 
     // If we're using an ROI, go through all the voxels and if they
     // are not in the ROI, remove them from our list.
-    if( mbUseROI && NULL != mROIVol && NULL != mROI ) {
-      for( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
+    if ( mbUseROI && NULL != mROIVol && NULL != mROI ) {
+      for ( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
 
-	// We have a location from the seg vol, which may not be the
-	// same volume as the ROI volume. So make a location for the
-	// ROI volume from the RAS of the seg volume location.
-	VolumeLocation& loc = *tLoc;
-	VolumeLocation& roiLoc = 
-	  (VolumeLocation&) mROIVol->MakeLocationFromRAS( loc.RAS() );
-	if( !mROIVol->IsSelected( roiLoc ) ) {
-	  lLocations.erase( tLoc );
-	}
+        // We have a location from the seg vol, which may not be the
+        // same volume as the ROI volume. So make a location for the
+        // ROI volume from the RAS of the seg volume location.
+        VolumeLocation& loc = *tLoc;
+        VolumeLocation& roiLoc =
+          (VolumeLocation&) mROIVol->MakeLocationFromRAS( loc.RAS() );
+        if ( !mROIVol->IsSelected( roiLoc ) ) {
+          lLocations.erase( tLoc );
+        }
       }
     }
-    
+
     // Get the RAS volume of this many voxels from our segmentation
     // volume.
-    mStructureToVolumeMap[nStructure] = 
+    mStructureToVolumeMap[nStructure] =
       mSegVol->GetRASVolumeOfNVoxels( lLocations.size() );
 
     // For each intensity volume...
     list<VolumeCollection*>::iterator tVol;
-    for( tVol = mlIntVols.begin(); tVol != mlIntVols.end(); ++tVol ) {
+    for ( tVol = mlIntVols.begin(); tVol != mlIntVols.end(); ++tVol ) {
 
       VolumeCollection* vol = (*tVol);
 
       // Have to make a list of locations for this volume from the
       // other one.
       list<VolumeLocation> lLocationsForIntVol;
-      for( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
-	VolumeLocation& loc = *tLoc;
-	VolumeLocation& intLoc = 
-	  (VolumeLocation&) vol->MakeLocationFromRAS( loc.RAS() );
-	lLocationsForIntVol.push_back( intLoc );
+      for ( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
+        VolumeLocation& loc = *tLoc;
+        VolumeLocation& intLoc =
+          (VolumeLocation&) vol->MakeLocationFromRAS( loc.RAS() );
+        lLocationsForIntVol.push_back( intLoc );
       }
 
       // Save the list.
       mStructureToVolumeVoxelListMap[nStructure][vol] = lLocationsForIntVol;
 
       // Get the average intensity for this list of voxels.
-      if( lLocationsForIntVol.size() > 0 ) {
-	mVolumeToIntensityAverageMap[vol][nStructure] = 
-	  vol->GetAverageValue( lLocationsForIntVol );
+      if ( lLocationsForIntVol.size() > 0 ) {
+        mVolumeToIntensityAverageMap[vol][nStructure] =
+          vol->GetAverageValue( lLocationsForIntVol );
       } else {
-	mVolumeToIntensityAverageMap[vol][nStructure] = 0;
+        mVolumeToIntensityAverageMap[vol][nStructure] = 0;
       }
     }
   }

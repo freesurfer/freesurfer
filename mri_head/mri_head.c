@@ -1,3 +1,31 @@
+/**
+ * @file  mri_head.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -33,12 +61,11 @@ static char *fname = NULL;
 
 static int action = ACTION_NONE;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_head.c,v 1.5 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_head.c,v 1.6 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -50,11 +77,11 @@ int main(int argc, char *argv[])
 
   get_options(argc, argv);
 
-  if(action == ACTION_USAGE)
+  if (action == ACTION_USAGE)
     usage(0);
-  else if(action == ACTION_IDENTIFY)
+  else if (action == ACTION_IDENTIFY)
     dummy_identify();
-  else if(action == ACTION_READ)
+  else if (action == ACTION_READ)
     dummy_read();
   else
     usage(1);
@@ -63,27 +90,24 @@ int main(int argc, char *argv[])
 
 }  /*  end main()  */
 
-void get_options(int argc, char *argv[])
-{
+void get_options(int argc, char *argv[]) {
 
   int i;
 
-  for(i = 1;i < argc;i++)
-    {
-    if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0)
+  for (i = 1;i < argc;i++) {
+    if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0)
       action = ACTION_USAGE;
-    else if(strcmp(argv[i], "-identify") == 0)
+    else if (strcmp(argv[i], "-identify") == 0)
       action = ACTION_IDENTIFY;
-    else if(strcmp(argv[i], "-read") == 0)
+    else if (strcmp(argv[i], "-read") == 0)
       action = ACTION_READ;
     else
       fname = argv[i];
-    }
+  }
 
 }  /*  end get_options()  */
 
-void usage(int exit_val)
-{
+void usage(int exit_val) {
 
   FILE *fout;
 
@@ -97,77 +121,70 @@ void usage(int exit_val)
 
 }  /*  end usage()  */
 
-void dummy_identify(void)
-{
+void dummy_identify(void) {
 
   int type;
   struct stat stat_buf;
 
-  if(fname == NULL)
+  if (fname == NULL)
     usage(1);
 
-  if(stat(fname, &stat_buf) < 0)
-    {
+  if (stat(fname, &stat_buf) < 0) {
     printf("fail\n");
     printf("can't stat file %s\n",fname);
     exit(1);
-    }
+  }
 
   type = mri_identify(fname);
 
-  if(type < 0)
-    {
+  if (type < 0) {
     printf("fail\nunknown file type\n");
     exit(1);
-    }
-  else if(type == MRI_CORONAL_SLICE_DIRECTORY)
+  } else if (type == MRI_CORONAL_SLICE_DIRECTORY)
     printf("succeed\ncoronal slice directory\n");
-  else if(type == GENESIS_FILE)
+  else if (type == GENESIS_FILE)
     printf("succeed\ngenesis\n");
-  else if(type == GE_LX_FILE)
+  else if (type == GE_LX_FILE)
     printf("succeed\nGE LX\n");
-  else if(type == MRI_MGH_FILE)
+  else if (type == MRI_MGH_FILE)
     printf("succeed\nmgh\n");
-  else if(type == MRI_MINC_FILE)
+  else if (type == MRI_MINC_FILE)
     printf("succeed\nminc\n");
-  else if(type == MRI_ANALYZE_FILE)
+  else if (type == MRI_ANALYZE_FILE)
     printf("succeed\nanalyze\n");
-  else if(type == SIEMENS_FILE)
+  else if (type == SIEMENS_FILE)
     printf("succeed\nsiemens\n");
-  else if(type == BRIK_FILE)
+  else if (type == BRIK_FILE)
     printf("succeed\nbrik\n");
-  else if(type == BSHORT_FILE)
+  else if (type == BSHORT_FILE)
     printf("succeed\nbshort\n");
-  else if(type == SDT_FILE)
+  else if (type == SDT_FILE)
     printf("succeed\nsdt\n");
-  else
-    {
+  else {
     printf("fail\n");
     printf("%s: positive file type, but unknown to this program\n", short_prog_name);
     printf("%s: yell at your friendly neighborhood programmer\n", short_prog_name);
     exit(1);
-    }
+  }
 
 }  /*  end dummy_identify()  */
 
-void dummy_read(void)
-{
+void dummy_read(void) {
 
   MRI *mri;
 
-  if(fname == NULL)
+  if (fname == NULL)
     usage(1);
 
   freopen("/dev/null", "w", stderr);
 
   mri = MRIreadInfo(fname);
 
-  if(mri == NULL)
-    {
+  if (mri == NULL) {
     printf("fail\n");
     printf("couldn't open or determine file type of %s\n", fname);
     exit(1);
-    }
+  }
 
   printf("succeed\n");
   MRIdump(mri, stdout);

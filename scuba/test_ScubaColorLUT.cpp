@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaColorLUT.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "ScubaColorLUT.h"
 extern "C" {
 #include "macros.h"
@@ -19,18 +47,18 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
 
 class ScubaColorLUTTester {
 public:
-  void Test( Tcl_Interp* iInterp );
+void Test( Tcl_Interp* iInterp );
 };
 
-void 
+void
 ScubaColorLUTTester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
@@ -38,7 +66,7 @@ ScubaColorLUTTester::Test ( Tcl_Interp* iInterp ) {
   try {
 
     ScubaColorLUT lut;
-    
+
     lut.UseFile( "testLUT.lut" );
 
     int color[3];
@@ -46,27 +74,27 @@ ScubaColorLUTTester::Test ( Tcl_Interp* iInterp ) {
     lut.GetColorAtIndex( 0, color );
     sLabel = lut.GetLabelAtIndex( 0 );
     ssError << "Failed for entry 0: color " << color[0] << ", "
-	    << color[1] << ", " << color[2] << ", label " << sLabel;
+    << color[1] << ", " << color[2] << ", label " << sLabel;
     Assert( (0 == color[0] && 0 == color[1] && 0 == color[2] &&
-	     sLabel == "Unknown"), ssError.str() );
+             sLabel == "Unknown"), ssError.str() );
 
     lut.GetColorAtIndex( 1, color );
     sLabel = lut.GetLabelAtIndex( 1 );
     Assert( (255 == color[0] && 255 == color[1] && 255 == color[2] &&
-	     sLabel == "Entry1"),
-	    "Failed for entry 1" );
+             sLabel == "Entry1"),
+            "Failed for entry 1" );
 
     lut.GetColorAtIndex( 2, color );
     sLabel = lut.GetLabelAtIndex( 2 );
     Assert( (1 == color[0] && 2 == color[1] && 3 == color[2] &&
-	     sLabel == "Entry2"),
-	    "Failed for entry 2" );
+             sLabel == "Entry2"),
+            "Failed for entry 2" );
 
     lut.GetColorAtIndex( 4, color );
     sLabel = lut.GetLabelAtIndex( 4 );
     Assert( (1 == color[0] && 2 == color[1] && 3 == color[2] &&
-	     sLabel == "Entry4"),
-	    "Failed for entry 4" );
+             sLabel == "Entry4"),
+            "Failed for entry 4" );
 
     // Try the tcl commands.
     char sCommand[1024];
@@ -85,12 +113,10 @@ ScubaColorLUTTester::Test ( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -105,10 +131,10 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -117,13 +143,11 @@ int main ( int argc, char** argv ) {
     ScubaColorLUTTester tester0;
     tester0.Test( interp );
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

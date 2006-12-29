@@ -1,3 +1,31 @@
+/**
+ * @file  test_window_env.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #ifdef HAVE_APPLE_OPENGL_FRAMEWORK
@@ -26,7 +54,7 @@ int main ( int argc, char** argv ) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.5 2005/06/08 19:45:20 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.6 2006/12/29 02:09:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -36,7 +64,7 @@ int main ( int argc, char** argv ) {
 
   bSuccess = tkoInitWindow( "test" );
   printf( "tkoInitWindow() returned %s\n",
-    (GL_TRUE == bSuccess ? "GL_TRUE" : "GL_FALSE") );
+          (GL_TRUE == bSuccess ? "GL_TRUE" : "GL_FALSE") );
 #endif
 
   InitDisplay();
@@ -52,18 +80,18 @@ void InitDisplay () {
   int eventBase;
 
   gDisplay = XOpenDisplay( 0 );
-  if( !gDisplay ) {
+  if ( !gDisplay ) {
     printf( "XOpenDisplay() did not return a display.\n" );
     exit( 1 );
   }
-  if( !glXQueryExtension( gDisplay, &errorBase, &eventBase ) ) {
+  if ( !glXQueryExtension( gDisplay, &errorBase, &eventBase ) ) {
     printf( "glXQueryExtension returned false, no glx extensions.\n" );
     exit( 1 );
   }
 
   gScreen = DefaultScreen( gDisplay );
   gRoot = RootWindow( gDisplay, gScreen );
-  
+
 }
 
 #define CLEAR_ATTRIBUTES() \
@@ -133,7 +161,7 @@ void FindVisual () {
   SET_ATTRIBUTE_VALUE( GLX_LEVEL, 0 );
   SET_ATTRIBUTE_VALUE( GLX_BUFFER_SIZE, 1 );
   RUN_TEST();
-  
+
   /* try with and without double buffer. */
   SET_ATTRIBUTE( GLX_DOUBLEBUFFER );
   RUN_TEST();
@@ -157,14 +185,14 @@ void FindVisual () {
     case a: \
       fprintf( iOutput, "%s"#a"\n", isPrefix ); \
       break;
-  
+
 
 void PrintAttributeList ( FILE* iOutput, char* isPrefix, int iaAttributes[] ) {
 
   int nAttribute = 0;
 
-  while( (int)None != iaAttributes[nAttribute] ) {
-    switch( iaAttributes[nAttribute++] ) {
+  while ( (int)None != iaAttributes[nAttribute] ) {
+    switch ( iaAttributes[nAttribute++] ) {
       PRINT_ATTRIBUTE_VALUE_CASE(GLX_LEVEL);
       PRINT_ATTRIBUTE_VALUE_CASE(GLX_RED_SIZE);
       PRINT_ATTRIBUTE_VALUE_CASE(GLX_GREEN_SIZE);
@@ -180,8 +208,8 @@ void PrintAttributeList ( FILE* iOutput, char* isPrefix, int iaAttributes[] ) {
       PRINT_ATTRIBUTE_CASE(GLX_DOUBLEBUFFER);
       PRINT_ATTRIBUTE_CASE(GLX_RGBA);
     default:
-      fprintf( iOutput, "Unrecognized attribute: %d\n", 
-         iaAttributes[nAttribute] );
+      fprintf( iOutput, "Unrecognized attribute: %d\n",
+               iaAttributes[nAttribute] );
     }
   }
 

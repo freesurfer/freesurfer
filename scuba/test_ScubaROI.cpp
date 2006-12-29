@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaROI.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "ScubaROI.h"
 extern "C" {
 #include "macros.h"
@@ -19,18 +47,18 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
 
 class ScubaROITester {
 public:
-  void Test( Tcl_Interp* iInterp );
+void Test( Tcl_Interp* iInterp );
 };
 
-void 
+void
 ScubaROITester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
@@ -43,43 +71,43 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     sLabel = "punk ROI";
     roi.SetLabel( sLabel );
     Assert( (sLabel == roi.msLabel), "SetLabel didn't work" );
-    
+
     sTestLabel = roi.GetLabel();
     Assert( (sTestLabel == sLabel), "GetLabel didn't work" );
-    
+
     roi.SetType( ScubaROI::Structure );
     Assert( (ScubaROI::Structure == roi.GetType()),
-	    "Get/SetType structure didn't work" );
+            "Get/SetType structure didn't work" );
 
     roi.SetType( ScubaROI::Free );
     Assert( (ScubaROI::Free == roi.GetType()),
-	    "Get/SetType free didn't work" );
+            "Get/SetType free didn't work" );
 
     roi.SetStructure( 5 );
     Assert( (5 == roi.GetStructure()),
-	    "Get/SetStructure didn't work" );
-    
+            "Get/SetStructure didn't work" );
+
     roi.SetStructure( -1 );
     Assert( (-1 == roi.GetStructure()),
-	    "Get/SetStructure didn't work" );
-    
+            "Get/SetStructure didn't work" );
+
     int color[3];
     color[0] = 1;
     color[1] = 2;
     color[2] = 3;
     roi.SetColor( color );
-    Assert( (1 == roi.mColor[0] && 2 == roi.mColor[1] && 
-	     3 == roi.mColor[2]), "SetColor failed" );
+    Assert( (1 == roi.mColor[0] && 2 == roi.mColor[1] &&
+             3 == roi.mColor[2]), "SetColor failed" );
 
     color[0] = color[1] = color[2] = 0;
     roi.GetColor( color );
     Assert( (1 == color[0] && 2 == color[1] && 3 == color[2]),
-	    "GetColor failed" );
+            "GetColor failed" );
 
     // Try the tcl commands.
     char sCommand[1024];
     int rTcl;
-    
+
     int roiID = roi.GetID();
 
     sprintf( sCommand, "SetROILabel %d \"i hate ROIs\"", roiID );
@@ -99,12 +127,12 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (ScubaROI::Structure == roi.mType),
-	    "Tcl SetROIType failed" );
+            "Tcl SetROIType failed" );
     sprintf( sCommand, "SetROIType %d free", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (ScubaROI::Free == roi.mType),
-	    "Tcl SetROIType failed" );
+            "Tcl SetROIType failed" );
 
     sprintf( sCommand, "GetROIType %d", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
@@ -123,7 +151,7 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     ssError << "Tcl GetROIType failed: sType=" << sType << ", should be structure";
     Assert( ("structure" == sType), "Tcl GetROIType failed" );
 
-    
+
     sprintf( sCommand, "SetROIStructure %d 5", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
@@ -142,9 +170,11 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     Assert( (7 == roi.mColor[0] && 8 == roi.mColor[1] && 9 == roi.mColor[2]),
-	    "Tcl SetROIColor failed" );
+            "Tcl SetROIColor failed" );
 
-    color[0] = 10; color[1] = 11; color[2] = 12;
+    color[0] = 10;
+    color[1] = 11;
+    color[2] = 12;
     roi.SetColor( color );
     sprintf( sCommand, "GetROIColor %d", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
@@ -153,12 +183,10 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     string sColor = sTclResult;
     Assert( ("10 11 12" == sColor), "Tcl GetROIColor failed" );
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -173,10 +201,10 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -185,13 +213,11 @@ int main ( int argc, char** argv ) {
     ScubaROITester tester0;
     tester0.Test( interp );
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

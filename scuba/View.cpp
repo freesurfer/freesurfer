@@ -1,3 +1,31 @@
+/**
+ * @file  View.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "View.h"
 
 using namespace std;
@@ -5,17 +33,13 @@ using namespace std;
 DeclareIDTracker(View);
 
 View::View() :
-  Broadcaster( "View" ),
-  Listener( "View" ),
-  mWidth( 0 ),
-  mHeight( 0 ),
-  mbPostRedisplay( false )
-{
-}
+    Broadcaster( "View" ),
+    Listener( "View" ),
+    mWidth( 0 ),
+    mHeight( 0 ),
+    mbPostRedisplay( false ) {}
 
-View::~View() {
-
-}
+View::~View() {}
 
 void
 View::Draw () {
@@ -29,7 +53,7 @@ View::Reshape ( int iWidth, int iHeight ) {
   this->DoReshape( iWidth, iHeight );
 }
 
-void 
+void
 View::Timer() {
 
   this->DoTimer();
@@ -65,15 +89,13 @@ View::KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
   this->DoKeyUp( iWindow, iInput, iTool );
 }
 
-TclCommandListener::TclCommandResult 
+TclCommandListener::TclCommandResult
 View::DoListenToTclCommand ( char*, int, char** ) {
   return ok;
 }
 
 void
-View::DoListenToMessage ( string, void* ) {
-
-}
+View::DoListenToMessage ( string, void* ) {}
 
 
 void

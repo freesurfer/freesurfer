@@ -1,3 +1,31 @@
+/**
+ * @file  svm-pr-loqo.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef __SVM_PR_LOQO_H__
 #define __SVM_PR_LOQO_H__
 
@@ -11,7 +39,7 @@
  * Created:     10/14/97
  * Updated:     11/08/97
  *
- * 
+ *
  * Copyright (c) 1997  GMD Berlin - All rights reserved
  * THIS IS UNPUBLISHED PROPRIETARY SOURCE CODE of GMD Berlin
  * The copyright notice above does not evidence any
@@ -40,7 +68,7 @@
 #define DUAL_UNBOUNDED              9
 #define TIME_LIMIT                  10
 
-/* 
+/*
  * solve the quadratic programming problem
  *
  * minimize   c' * x + 1/2 x' * H * x
@@ -62,15 +90,15 @@
  *
  * primal : workspace for primal variables, has to be of size 3 n
  *
- *  x = primal;			n
- *  g = x + n;			n
- *  t = g + n;			n
+ *  x = primal;   n
+ *  g = x + n;   n
+ *  t = g + n;   n
  *
  * dual : workspace for dual variables, has to be of size m + 2 n
  *
- *  y = dual;			m
- *  z = y + m;			n
- *  s = z + n;			n
+ *  y = dual;   m
+ *  z = y + m;   n
+ *  s = z + n;   n
  *
  * verb       : verbosity level
  * sigfig_max : number of significant digits
@@ -80,9 +108,9 @@
  */
 
 int pr_loqo(int n, int m, double c[], double h_x[], double a[], double b[],
-	    double l[], double u[], double primal[], double dual[], 
-	    int verb, double sigfig_max, int counter_max, 
-	    double margin, double bound, int restart);
+            double l[], double u[], double primal[], double dual[],
+            int verb, double sigfig_max, int counter_max,
+            double margin, double bound, int restart);
 
 
 

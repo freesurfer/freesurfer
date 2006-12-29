@@ -1,5 +1,33 @@
+/**
+ * @file  qdecutils.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.8 2005/11/10 22:31:04 greve Exp $
+// $Id: qdecutils.h,v 1.9 2006/12/29 02:09:00 nicks Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -16,7 +44,8 @@
 #define QDEC_FACTOR_TYPE_DISCRETE   2
 
 /*---------------------------------------------------------*/
-typedef struct{
+typedef struct
+{
   char *name;
   int type;
   int nLevels;
@@ -24,31 +53,37 @@ typedef struct{
   int nInputs;
   double  *cValues; // continuous value for each input
   char   **dValues; // or discrete value for each input
-} QDEC_FACTOR, QDECF;
+}
+QDEC_FACTOR, QDECF;
 /*---------------------------------------------------------*/
 
 /*---------------------------------------------------------*/
-typedef struct{
+typedef struct
+{
   int nContrasts;
   char **ContrastNames;
   char **ContrastQuestions;
   MATRIX **C;
-} QDEC_CONTRAST, QDECC;
+}
+QDEC_CONTRAST, QDECC;
 /*---------------------------------------------------------*/
 
 /*---------------------------------------------------------*/
-typedef struct{
+typedef struct
+{
   char *name;
   int nInputs;        // Number of subjects
   char **InputIdList; // Subject Ids
   int nFactors;
   char *measure;
   QDEC_FACTOR *Factors;
-} QDEC_DESIGN, QDECD;
+}
+QDEC_DESIGN, QDECD;
 /*---------------------------------------------------------*/
 
 /*---------------------------------------------------------*/
-typedef struct{
+typedef struct
+{
   char *name;         // Design name
   char *measure;      // thickness, sulc, curv
   char *hemi;         // lh or rh
@@ -58,7 +93,8 @@ typedef struct{
   char *cf2;          // name of continuous factor 2
   double fwhm;        // approx fwhm
   int  nsmooth;       // number of smooth steps
-} QDEC_DESIGN_GUI, QDECDGUI;
+}
+QDEC_DESIGN_GUI, QDECDGUI;
 /*---------------------------------------------------------*/
 
 

@@ -1,3 +1,31 @@
+/**
+ * @file  mrimorph.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.22 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef MRI_MORPH_H
 #define MRI_MORPH_H
 
@@ -16,7 +44,8 @@ typedef struct
   float      neck_dx ;       /* vector along neck in 'don't care' direction */
   float      neck_dy ;
   float      neck_dz ;
-} NECK_PARMS ;
+}
+NECK_PARMS ;
 
 #define MAX_LEVELS 10
 typedef struct
@@ -63,8 +92,9 @@ typedef struct
   GCAS       *gcas ;
   int        nsamples ;
   TRANSFORM  *transform ;
-	void       *vgca ;
-} MORPH_PARMS, MP ;
+  void       *vgca ;
+}
+MORPH_PARMS, MP ;
 
 
 #define INTEGRATION_TOL    1e-4  /*5e-5*/
@@ -73,7 +103,8 @@ typedef struct
 typedef struct
 {
   float      x, y, z ;       /* current coordinates */
-} MORPH_NODE ;
+}
+MORPH_NODE ;
 
 /* this data structure is separate so that it doesn't have to
    be held in memory all the time.
@@ -86,7 +117,8 @@ typedef struct
   float      orig_area ;             /* original area */
   float      area ;                  /* current area */
   float      tdx, tdy, tdz ;         /* temp. quantities for gradient avging */
-} MORPH_NODE_PROPERTIES, MNP ;
+}
+MORPH_NODE_PROPERTIES, MNP ;
 
 typedef struct
 {
@@ -100,7 +132,8 @@ typedef struct
   MORPH_NODE ***nodes ;
   MORPH_NODE_PROPERTIES ***pnodes ;
   int        neg ;
-} MORPH_3D, M3D ;
+}
+MORPH_3D, M3D ;
 
 
 #define LTA_TYPE       0
@@ -116,15 +149,15 @@ MRI       *MRIlabel(MRI *mri_src, MRI *mri_dst, int *nlabels) ;
 int       MRIlabelBoundingBoxes(MRI *mri_label,MRI_REGION *bboxes,int nlabels);
 int       MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label) ;
 int       MRIeraseLabel(MRI *mri_src, MRI *mri_dst, int label) ;
-int       MRIfindHorizontalLabelLimits(MRI *mri, int label, 
+int       MRIfindHorizontalLabelLimits(MRI *mri, int label,
                                        int *xmins, int *xmaxs) ;
-MRI       *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, 
-                         int thresh_hi, MORPH_PARMS *parms, int dir,
-                         NECK_PARMS *np) ;
+MRI       *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low,
+                       int thresh_hi, MORPH_PARMS *parms, int dir,
+                       NECK_PARMS *np) ;
 int       MRIlabelAreas(MRI *mri_label, float *areas, int nlabels) ;
 int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
-int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms, 
+int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms,
                         MATRIX *m_L);
 int       MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L);
 MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint) ;
@@ -143,8 +176,8 @@ int       MRI3DmorphFreeProperties(MORPH_3D *m3d) ;
 int       MRI3Dwrite(MORPH_3D *m3d, char *fname) ;
 MORPH_3D  *MRI3Dread(char *fname) ;
 MORPH_3D  *MRI3DreadSmall(char *fname) ;
-int       MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z, 
-                                 float *pxd, float *pyd, float *pzd);
+int       MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z,
+                               float *pxd, float *pyd, float *pzd);
 
 MRI_SURFACE   *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) ;
 int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
@@ -152,15 +185,15 @@ int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 MATRIX *
 MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L);
 double MRIcomputeOptimalLinearXform(
-																		MRI *mri_src,
-																		MRI *mri_dst, 
-																		MATRIX *m_L, 
-																		float min_angle, float max_angle,
-																		float min_scale, float max_scale,
-																		float min_trans, float max_trans,
-																		float angle_steps, float scale_steps, 
-																		float trans_steps,
-																		int nreductions, char *base_name) ;
+  MRI *mri_src,
+  MRI *mri_dst,
+  MATRIX *m_L,
+  float min_angle, float max_angle,
+  float min_scale, float max_scale,
+  float min_trans, float max_trans,
+  float angle_steps, float scale_steps,
+  float trans_steps,
+  int nreductions, char *base_name) ;
 
 
 #define M3D_MAGIC  0xabcdef42

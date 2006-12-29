@@ -1,3 +1,31 @@
+/**
+ * @file  mri_fslmat_to_lta.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Convert an transformation matrix from flirt output to lta format */
 
 #include <stdio.h>
@@ -27,49 +55,47 @@ static int get_option(int argc, char *argv[]) ;
 
 static int invert_flag = 0;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char **av;
   char *fslfn, *ltafn;
   MRI *mri_src, *mri_tgt;
   int ac, nargs;
   LTA *mylta = 0;
   FILE *fo;
-  VOL_GEOM srcG, dstG; 
+  VOL_GEOM srcG, dstG;
   MATRIX *invTgt, *Dsrc, *V_to_V;
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_fslmat_to_lta.c,v 1.1 2005/12/21 15:34:47 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fslmat_to_lta.c,v 1.2 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
-  
+
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-  
-  if(argc != 5)
+
+  if (argc != 5)
     usage(1);
-  
+
   printf("Read source volume file %s\n", argv[1]);
   mri_src = MRIread(argv[1]) ;
 
   if (!mri_src)
     ErrorExit(ERROR_BADPARM, "%s: could not read source volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
 
   printf("Read destination volume file %s\n", argv[2]);
   mri_tgt = MRIread(argv[2]) ;
   if (!mri_tgt)
     ErrorExit(ERROR_BADPARM, "%s: could not read label volume %s",
-	      Progname, argv[2]) ;
-  
+              Progname, argv[2]) ;
+
   fslfn = argv[3];
   ltafn = argv[4];
 
@@ -79,11 +105,10 @@ int main(int argc, char *argv[])
   getVolGeom(mri_src, &srcG);
   getVolGeom(mri_tgt, &dstG);
 
-  if(invert_flag){
+  if (invert_flag) {
     mylta->xforms[0].src = dstG;
     mylta->xforms[0].dst = srcG;
-  }
-  else{
+  } else {
     mylta->xforms[0].src = srcG;
     mylta->xforms[0].dst = dstG;
   }
@@ -103,31 +128,31 @@ int main(int argc, char *argv[])
   V_to_V = MatrixMultiply(invTgt, mylta->xforms[0].m_L, NULL);
   V_to_V = MatrixMultiply(V_to_V, Dsrc, V_to_V);
 
-  if(invert_flag){
+  if (invert_flag) {
     mylta->xforms[0].m_L = MatrixInverse(V_to_V, mylta->xforms[0].m_L);
-  }else{
+  } else {
     mylta->xforms[0].m_L = MatrixCopy(V_to_V, mylta->xforms[0].m_L);
   }
 
-  if(!mylta){
-      MRIfree(&mri_src);
-      MRIfree(&mri_tgt);
-      ErrorExit(ERROR_BADFILE, "%s: can't read in transformation",Progname);
+  if (!mylta) {
+    MRIfree(&mri_src);
+    MRIfree(&mri_tgt);
+    ErrorExit(ERROR_BADFILE, "%s: can't read in transformation",Progname);
   }
 
   printf("Write transformation to lta file %s\n", ltafn);
   fo = fopen(ltafn,"w");
-  if (fo==NULL) 
+  if (fo==NULL)
     ErrorExit(ERROR_BADFILE, "%s: can't create file %s",Progname, ltafn);
-  
+
   LTAprint(fo, mylta);
-  
+
   fclose(fo);
 
-  
+
   MRIfree(&mri_src);
   MRIfree(&mri_tgt);
- 
+
   LTAfree(&mylta);
 
   MatrixFree(&invTgt);
@@ -138,8 +163,7 @@ int main(int argc, char *argv[])
 
 }  /*  end main()  */
 
-void usage(int exit_val)
-{
+void usage(int exit_val) {
 
   FILE *fout;
 
@@ -154,8 +178,7 @@ void usage(int exit_val)
 }  /*  end usage()  */
 
 static LTA  *
-ltaFSLread(const char *fname)
-{
+ltaFSLread(const char *fname) {
   LTA              *lta ;
   LINEAR_TRANSFORM *lt ;
   char             *cp, line[1000] ;
@@ -165,7 +188,7 @@ ltaFSLread(const char *fname)
 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_NOFILE, "ltFSLread: could not open file %s",fname));
 
   lta = LTAalloc(1, NULL) ;
@@ -174,22 +197,20 @@ ltaFSLread(const char *fname)
   lt->x0 = lt->y0 = lt->z0 = 0 ;
 
   m_L = lt->m_L ;
-  for (row = 1 ; row <= 3 ; row++)
-  {
+  for (row = 1 ; row <= 3 ; row++) {
     cp = fgetl(line, 900, fp) ;
-    if (!cp)
-    {
+    if (!cp) {
       LTAfree(&lta) ;
       ErrorReturn(NULL,
                   (ERROR_BADFILE, "ltFSLread: could not read row %d from %s",
                    row, fname)) ;
     }
     sscanf(cp, "%f %f %f %f",
-           MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
+           MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2),
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
   fclose(fp) ;
-	lta->type = LINEAR_VOX_TO_VOX;
+  lta->type = LINEAR_VOX_TO_VOX;
   return(lta) ;
 }
 
@@ -200,20 +221,16 @@ ltaFSLread(const char *fname)
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  
-  if (!stricmp(option, "inverse"))
-    {
-      invert_flag = 1;
-      printf("convert to lta and then compute its inverse \n");
-    }
-  else switch (toupper(*option))
-    {
+
+  if (!stricmp(option, "inverse")) {
+    invert_flag = 1;
+    printf("convert to lta and then compute its inverse \n");
+  } else switch (toupper(*option)) {
     case '?':
     case 'U':
       usage(0) ;
@@ -223,7 +240,7 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-  
+
   return(nargs) ;
 }
 

@@ -1,9 +1,9 @@
-/*	@(#)rectlist.h 20.15 91/09/14 SMI	*/
+/* @(#)rectlist.h 20.15 91/09/14 SMI */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_rectlist_DEFINED
@@ -12,7 +12,7 @@
 #include <xview/xv_c_types.h>
 
 /*
- * Defines the interface to the data structure called 
+ * Defines the interface to the data structure called
  * a rectlist which is a list of rectangles.
  *
  * A rectlist has an offset (rl_x, rl_y) assoicated with it that is used
@@ -27,69 +27,73 @@
 
 /*
  ***********************************************************************
- *			Definitions and Macros
+ *   Definitions and Macros
  ***********************************************************************
  */
 
 /*
- * PUBLIC #defines 
+ * PUBLIC #defines
  */
 
-#define	RECTNODE_NULL	((Rectnode *)0)
-#define	RECTLIST_NULL	((Rectlist *)0)
+#define RECTNODE_NULL ((Rectnode *)0)
+#define RECTLIST_NULL ((Rectlist *)0)
 
 /*
  * Rectlist Transformation macros used for passing rectlists up/down embedded
  * coordinate systems.
  */
-#define	rl_passtoparent(x,y,rl) \
-	{(rl)->rl_x=(rl)->rl_x+(x); (rl)->rl_y=(rl)->rl_y+(y);}
+#define rl_passtoparent(x,y,rl) \
+ {(rl)->rl_x=(rl)->rl_x+(x); (rl)->rl_y=(rl)->rl_y+(y);}
 
-#define	rl_passtochild(x,y,rl) \
-	{(rl)->rl_x=(rl)->rl_x-(x); (rl)->rl_y=(rl)->rl_y-(y);}
+#define rl_passtochild(x,y,rl) \
+ {(rl)->rl_x=(rl)->rl_x-(x); (rl)->rl_y=(rl)->rl_y-(y);}
 
 /*
  * Rectlist Offset Adjustment macros
  */
-#define	rl_rectoffset(rl,r1,r) \
-	{*(r)= *(r1); (r)->r_left+=(rl)->rl_x; (r)->r_top+=(rl)->rl_y;}
+#define rl_rectoffset(rl,r1,r) \
+ {*(r)= *(r1); (r)->r_left+=(rl)->rl_x; (r)->r_top+=(rl)->rl_y;}
 
-#define	rl_coordoffset(rl,x,y) {*(x)-=(rl)->rl_x;*(y)-=(rl)->rl_y;}
+#define rl_coordoffset(rl,x,y) {*(x)-=(rl)->rl_x;*(y)-=(rl)->rl_y;}
 
 
 /*
  ***********************************************************************
- *		Typedefs, Enumerations, and Structures
- ***********************************************************************
- */
-
-/*
- * PUBLIC structures 
- */
-
-typedef	struct	rectnode {
-	struct	rectnode *rn_next;	/* Pointer to next rectnode */
-	struct	rect rn_rect;
-} Rectnode;
-
-
-typedef	struct	rectlist {
-	coord	rl_x, rl_y;		/* Offset to apply to each rect
-					   in list including bound */
-	struct	rectnode *rl_head;	/* Pointer to first rectnode */
-	struct	rectnode *rl_tail;	/* Pointer to last rectnode */
-	struct	rect rl_bound;		/* Describes bounding rect of 
-					   all rects in list */
-} Rectlist;
-
-/*
- ***********************************************************************
- *				Globals
+ *  Typedefs, Enumerations, and Structures
  ***********************************************************************
  */
 
 /*
- * PUBLIC functions 
+ * PUBLIC structures
+ */
+
+typedef struct rectnode
+{
+  struct rectnode *rn_next; /* Pointer to next rectnode */
+  struct rect rn_rect;
+}
+Rectnode;
+
+
+typedef struct rectlist
+{
+  coord rl_x, rl_y;  /* Offset to apply to each rect
+                in list including bound */
+  struct rectnode *rl_head; /* Pointer to first rectnode */
+  struct rectnode *rl_tail; /* Pointer to last rectnode */
+  struct rect rl_bound;  /* Describes bounding rect of
+                all rects in list */
+}
+Rectlist;
+
+/*
+ ***********************************************************************
+ *    Globals
+ ***********************************************************************
+ */
+
+/*
+ * PUBLIC functions
  */
 extern  struct rectlist rl_null;
 
@@ -118,4 +122,4 @@ EXTERN_FUNCTION (void rl_print, (Rectlist *rl, char *tag));
 
 #endif /* xview_other_rl_funcs */
 
-#endif	/* ~xview_rectlist_DEFINED */
+#endif /* ~xview_rectlist_DEFINED */

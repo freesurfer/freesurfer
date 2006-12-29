@@ -1,3 +1,31 @@
+/**
+ * @file  rbf.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   rbf.h
  *
@@ -45,18 +73,19 @@ typedef struct
   unsigned char *observed ;       /* used for randomizing training order */
   int           nobs ;            /* # of observations in training set */
   MATRIX       *m_pi ;            /* psuedo-inverse for LMS calculation */
-} RBF ;
+}
+RBF ;
 
 RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
 int   RBFtrain(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
                void *parm, float momentum) ;
 int   RBFretrain(RBF *rbf, int (*get_observation_func)
-               (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
-               void *parm, float momentum) ;
+                 (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
+                 void *parm, float momentum) ;
 int   RBFfree(RBF **prbf) ;
 int   RBFprint(RBF *rbf, FILE *fp) ;
-int   RBFprintActivations(RBF *rbf, VECTOR *v_obs, VECTOR *v_error, 
+int   RBFprintActivations(RBF *rbf, VECTOR *v_obs, VECTOR *v_error,
                           int class, FILE *fp);
 int   RBFclassify(RBF *rbf, VECTOR *v_obs) ;
 int   RBFwrite(RBF *rbf, char *fname) ;
@@ -68,6 +97,6 @@ float RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error) ;
 int   RBFexamineTrainingSet(RBF *rbf, int (*get_observation_func)
                             (VECTOR *v_obs, int no, void *parm,
                              int same_class,int *pclass), void *parm) ;
-               
+
 
 #endif

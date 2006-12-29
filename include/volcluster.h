@@ -1,3 +1,31 @@
+/**
+ * @file  volcluster.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.17 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #ifndef _VOLCLUSTER_H
 #define _VOLCLUSTER_H
@@ -8,7 +36,8 @@
 #undef SIGN
 #define SIGN(x) (((x)>0)? 1.0 : -1.0 )
 
-typedef struct {
+typedef struct
+{
   int nmembers;
   int *col;
   int *row;
@@ -22,7 +51,8 @@ typedef struct {
   double pval_clusterwise;
   double pval_clusterwise_low;
   double pval_clusterwise_hi;
-} VOLCLUSTER;
+}
+VOLCLUSTER;
 
 #ifdef VOLCLUSTER_SRC
 int VolClustFixMNI = 0;
@@ -38,58 +68,59 @@ VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc);
 VOLCLUSTER **clustAllocClusterList(int nlist);
 int clustFreeClusterList(VOLCLUSTER ***pppvclist, int nlist);
 VOLCLUSTER **clustCopyClusterList(VOLCLUSTER **vclist, int nlist,
-          VOLCLUSTER **vclist2);
+                                  VOLCLUSTER **vclist2);
 
 int clustValueInRange(float val, float thmin, float thmax, int thsign);
-MRI *clustInitHitMap(MRI *vol, int frame, 
-         float thmin, float thmax, int thsign, 
-         int *nhits, int **hitcol, int **hitrow, int **hitslc,
-         MRI *binmask, int maskframe);
+MRI *clustInitHitMap(MRI *vol, int frame,
+                     float thmin, float thmax, int thsign,
+                     int *nhits, int **hitcol, int **hitrow, int **hitslc,
+                     MRI *binmask, int maskframe);
 int clustDumpCluster(FILE *fp, VOLCLUSTER *vc, MRI *vol, int frame);
 int clustAddMember(VOLCLUSTER *vc, int col, int row, int slc);
 
-VOLCLUSTER *clustGrow(int col0, int row0, int slc0, 
-          MRI *HitMap, int AllowDiag);
-int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0, 
-          MRI *HitMap, int AllowDiag);
+VOLCLUSTER *clustGrow(int col0, int row0, int slc0,
+                      MRI *HitMap, int AllowDiag);
+int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0,
+                      MRI *HitMap, int AllowDiag);
 
 int clustMaxMember(VOLCLUSTER *vc, MRI *vol, int frame, int thsign);
-     
 
-VOLCLUSTER **clustPruneBySize(VOLCLUSTER **vclist, int nlist, 
-            float voxsize, float sizethresh, 
-            int *nkeep);
 
-VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist, 
-          float distthresh, int *nkeep);
+VOLCLUSTER **clustPruneBySize(VOLCLUSTER **vclist, int nlist,
+                              float voxsize, float sizethresh,
+                              int *nkeep);
+
+VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist,
+                                  float distthresh, int *nkeep);
 
 int clustCompareCluster(const void *a, const void *b);
 VOLCLUSTER **clustSortClusterList(VOLCLUSTER **vclist, int nlist,
-          VOLCLUSTER **vcsorted);
+                                  VOLCLUSTER **vcsorted);
 
 int clustComputeXYZ(VOLCLUSTER *vc, MATRIX *CRS2XYZ);
 int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI);
 
 
 MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
-         int frame, int ValOption);
+                           int frame, int ValOption);
 
 LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
-        float colres, float rowres, float sliceres, 
-        MATRIX *FSA2Func);
+                          float colres, float rowres, float sliceres,
+                          MATRIX *FSA2Func);
 
-int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist, 
-       MRI *vol, int frame);
+int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist,
+                         MRI *vol, int frame);
 VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
-      float threshmin, float threshmax, 
-      int threshsign, float minclustsizemm3, 
-      MRI *binmask, int *nClusters,
-      MATRIX *XFM);
+                              float threshmin, float threshmax,
+                              int threshsign, float minclustsizemm3,
+                              MRI *binmask, int *nClusters,
+                              MATRIX *XFM);
 int clustMaxClusterCount(VOLCLUSTER **VolClustList, int nClusters);
 int clustDumpSummary(FILE *fp,VOLCLUSTER **VolClustList, int nClusters);
 
 /*----------------------------------------------------------*/
-typedef struct {
+typedef struct
+{
   char simtype[100];  // perm, null-full, null-z
   char anattype[100]; // surface or volume
   char subject[100];  // when anattype==surf
@@ -109,7 +140,8 @@ typedef struct {
   int mergedflag;     // Flag to indicate that two or more merged
   HISTOGRAM *mcs_pdf, *mcs_cdf; // max cluster size
   HISTOGRAM *ms_pdf, *ms_cdf;   // max sig
-} CLUSTER_SIM_DATA, CSD;
+}
+CLUSTER_SIM_DATA, CSD;
 
 CLUSTER_SIM_DATA *CSDalloc(void);
 int CSDallocData(CLUSTER_SIM_DATA *csd);
@@ -123,7 +155,7 @@ int CSDprint(FILE *fp, CSD *csd);
 double CSDpvalMaxSig(double val, CSD *csd);
 MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
-			double ciPct, double *pvalLow, double *pvalHi);
+                        double ciPct, double *pvalLow, double *pvalHi);
 
 int CSDcheckSimType(char *simtype);
 int CSDpdf(CSD *csd, int nbins);
@@ -131,7 +163,8 @@ int CSDprintPDF(FILE *fp, CSD *csd);
 int CSDwritePDF(char *fname, CSD *csd);
 
 /*----------------------------------------------------------*/
-typedef struct {
+typedef struct
+{
   int nsim; /* number of simulation runs to generate table */
   long int seed; /* seed for random number generator */
   int nvox; /* number of voxels/vertices in search area */
@@ -148,10 +181,11 @@ typedef struct {
   double  *sthr; /* list of size thresholds*/
   int **hits;  /* hit[ithr][sthr] */
 
-} CLUSTER_HIT_TABLE, CHT;
+}
+CLUSTER_HIT_TABLE, CHT;
 
 CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
-	      int n_sthr, double sthr_lo, double sthr_hi);
+              int n_sthr, double sthr_lo, double sthr_hi);
 int CHTfree(CHT **ppcht);
 int CHTprint(FILE *fp, CHT *cht);
 int CHTwrite(char *fname, CHT *cht);

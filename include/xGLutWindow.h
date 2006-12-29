@@ -1,3 +1,31 @@
+/**
+ * @file  xGLutWindow.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef xGLutWindow_h
 #define xGLutWindow_h
 
@@ -15,14 +43,14 @@ typedef enum {
   xGWin_tErr_InvalidWindowSignature,
   xGWin_tErr_AllocationFailed,
   xGWin_tErr_InvalidParameter,
-  xGWin_tErr_InvalidErrorCode, 
+  xGWin_tErr_InvalidErrorCode,
   xGWin_knNumErrorCodes
 
 } xGWin_tErr;
 
-  /* the event class */
+/* the event class */
 typedef enum {
-  
+
   xGWin_tEventType_NoEvent = 0,
   xGWin_tEventType_KeyDown,
   xGWin_tEventType_MouseDown,
@@ -38,7 +66,7 @@ typedef enum {
 typedef int           xGWin_tButton;
 typedef unsigned char xGWin_tKey;
 
-  /* special keys */
+/* special keys */
 enum {
 
   xGWin_tKey_Tab = 9,  /* 9 myst remain hardcoded */
@@ -65,7 +93,8 @@ enum {
 #define xGWin_knCtrl8 127
 #define xGWin_knCtrl9 57
 
-typedef struct {
+typedef struct
+{
 
   xGWin_tEventType mType;      // type of event that occured.
   xPoint2n         mWhere;     // where mouse was (or what window resized to)
@@ -74,47 +103,50 @@ typedef struct {
   tBoolean         mbCtrlKey;  // ctrl key was down?
   tBoolean         mbAltKey;   // alt key was down?
   tBoolean         mbShiftKey; // shift key was down?
-  
-} xGWin_tEvent, *xGWin_tEventRef;
 
-  /* create and destroy events */
+}
+xGWin_tEvent, *xGWin_tEventRef;
+
+/* create and destroy events */
 void xGWin_NewEvent    ( xGWin_tEventRef* oppEvent );
 void xGWin_DeleteEvent ( xGWin_tEventRef* ioppEvent );
 
-  /* print event data */
+/* print event data */
 void xGWin_DebugPrintEvent ( xGWin_tEventRef this );
 
-  /* event handle function signature */
+/* event handle function signature */
 typedef void(*xGWin_tEventHandlerFunc) ( void* ipData, xGWin_tEventRef );
 typedef void(*xGWin_tIdleFunc)         ( void );
 
 #define xGWin_kSignature 0x1234ABCD
 
-  /* window class */
-typedef struct {
-  
+/* window class */
+typedef struct
+{
+
   tSignature              mSignature;
   int                     mnGLutWindowID;    // openGL window id
   xGWin_tEventHandlerFunc mpHandlerFunc;     // subclass event handler
   void*                   mpHandlerFuncData; // ptr to subclass data
-} xGLutWindow, *xGLutWindowRef;
+}
+xGLutWindow, *xGLutWindowRef;
 
-  /* creates and deletes windows. */
+/* creates and deletes windows. */
 xGWin_tErr xGWin_New    ( xGLutWindowRef* oppWindow,
-        int             inWidth,
-        int             inHeight,
-        char*           isTitle );
+                          int             inWidth,
+                          int             inHeight,
+                          char*           isTitle );
 xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow );
 
 /* sets the window title */
 xGWin_tErr xGWin_SetWindowTitle ( xGLutWindowRef ipWindow,
-          char*          isTitle );
+                                  char*          isTitle );
 
 /* set the event handler for this window. when an event is received,
    calls ipFunc( ipData ). */
 xGWin_tErr xGWin_SetEventHandlerFunc ( xGLutWindowRef          this,
-				       xGWin_tEventHandlerFunc ipFunc, 
-				       void*                   ipData );
+                                       xGWin_tEventHandlerFunc ipFunc,
+                                       void*                   ipData );
 
 /* activate idle events for this window */
 xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this );
@@ -128,55 +160,55 @@ xGWin_tErr xGWin_Verify ( xGLutWindowRef this );
 char* xGWin_GetErrorString ( xGWin_tErr );
 
 
-  /* since glut doesn't provide us a way to attach a ptr to a glut window,
-     we have to make a lookup list of gl id numbers and window ptrs, so when
-     we get an event, we figure out the current window, look up its ptr, 
-     and pass the event to the right window. */
+/* since glut doesn't provide us a way to attach a ptr to a glut window,
+   we have to make a lookup list of gl id numbers and window ptrs, so when
+   we get an event, we figure out the current window, look up its ptr,
+   and pass the event to the right window. */
 
 #define xGWin_knMaxNumWindows 200
 
-  /* this adds an id and window to the list. it will also init the list if
-     it hasn't been done yet. */
-void xGWin_AddWindowIDToLookupList ( int            inWindowID, 
-             xGLutWindowRef ipWindow );
+/* this adds an id and window to the list. it will also init the list if
+   it hasn't been done yet. */
+void xGWin_AddWindowIDToLookupList ( int            inWindowID,
+                                     xGLutWindowRef ipWindow );
 
-  /* this gets a window ptr from an id. returns null if it can't find the
-     the id. */
+/* this gets a window ptr from an id. returns null if it can't find the
+   the id. */
 void xGWin_GetWindowFromID ( int             inWindowID,
-           xGLutWindowRef* oppWindow );
+                             xGLutWindowRef* oppWindow );
 
-  /* removes a window from the list. does nothing if it can't find the id. */
+/* removes a window from the list. does nothing if it can't find the id. */
 void xGWin_RemoveWindowIDFromLookupList ( int inWindowID );
 
-  /* passes an event to a window. */
+/* passes an event to a window. */
 void xGWin_PassEventToCurrentWindow ( xGWin_tEventRef ipEvent );
 void xGWin_PassEventToAllWindows    ( xGWin_tEventRef ipEvent );
 
-  /* these are the callbacks we register with glut. since glut's event system
-     is pretty barebones, and each callback has a different signature, we
-     stuff each event into a custom structure and pass it to a single event
-     handler on the window side. */
-void xGWin_GLutKeyboardCallback        ( unsigned char icKey, 
-					 int           inX, 
-					 int           inY );
+/* these are the callbacks we register with glut. since glut's event system
+   is pretty barebones, and each callback has a different signature, we
+   stuff each event into a custom structure and pass it to a single event
+   handler on the window side. */
+void xGWin_GLutKeyboardCallback        ( unsigned char icKey,
+    int           inX,
+    int           inY );
 void xGWin_GLutSpecialCallback         ( int           inKey,
-					 int           inX, 
-					 int           inY );
+    int           inX,
+    int           inY );
 void xGWin_GLutMouseCallback           ( int           inButton,
-					 int           inState,
-					 int           inX,
-					 int           inY );
+    int           inState,
+    int           inX,
+    int           inY );
 void xGWin_GLutMotionCallback          ( int           inX,
-					 int           inY );
+    int           inY );
 void xGWin_GLutPassiveMotionCallback   ( int           inX,
-					 int           inY );
-void xGWin_GLutResizeCallback          ( int           inWidth, 
-					 int           inHeight );
+    int           inY );
+void xGWin_GLutResizeCallback          ( int           inWidth,
+    int           inHeight );
 void xGWin_GLutDrawCallback            ();
 void xGWin_GLutIdleCallback            ();
 
-  /* posts a redisplay for all windows. note that the redisplays go into the
-     normal glut event queue. */
+/* posts a redisplay for all windows. note that the redisplays go into the
+   normal glut event queue. */
 void xGWin_RedrawAllWindows ();
 
 #endif

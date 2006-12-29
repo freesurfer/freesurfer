@@ -1,3 +1,31 @@
+/**
+ * @file  congraph.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:03 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)congraph.c  1.3
   8/2/95
@@ -50,7 +78,7 @@ static NEIGHBOR *newNeighbor(LOGMAP_INFO *lmi) ;
 static NEIGHBOR *appendNeighbor(NEIGHBOR *neighbor, NEIGHBOR *next) ;
 static int   neighborP(LOGMAP_INFO *lmi, int ring, int spoke, int neigh_ring,
                        int neigh_spoke) ;
-static void  unionNeighbors(LOGMAP_INFO *lmi, int ring, int spoke, 
+static void  unionNeighbors(LOGMAP_INFO *lmi, int ring, int spoke,
                             int neigh_ring, int neigh_spoke);
 static void conGraphShow(LOGMAP_INFO *lmi) ;
 static void  orderNeighbors(LOGMAP_INFO *lmi, int ring, int spoke) ;
@@ -79,9 +107,8 @@ static int findConnectedSpoke(LOGMAP_INFO *lmi, int ring, int spoke, int dir) ;
              to account for aliasing.
 ----------------------------------------------------------------------*/
 void
-ConGraphInit(LOGMAP_INFO *lmi)
-{
-  int i, j; 
+ConGraphInit(LOGMAP_INFO *lmi) {
+  int i, j;
   int spoke, ring, neigh_ring, neigh_spoke, ncols, nrows, nrings, nspokes ;
 
   nrings = lmi->nrings ;
@@ -93,81 +120,69 @@ ConGraphInit(LOGMAP_INFO *lmi)
   lmi->max_neighbors = nrings * nspokes * 8 ;
   lmi->neighbors =
     (NEIGHBOR *)calloc(lmi->max_neighbors, sizeof(NEIGHBOR)) ;
-  if (!lmi->neighbors)
-  {
+  if (!lmi->neighbors) {
     fprintf(stderr, "ConGraphInit: could not allocate %d neighbors\n",
             lmi->max_neighbors) ;
     exit(1) ;
   }
 
-/*
-  all log pixels which contains Cartesian pixels which are neighbors
-  are also neighbors in log space.
-*/
-  for_each_tv_pixel(lmi, i, j)
-  {
+  /*
+    all log pixels which contains Cartesian pixels which are neighbors
+    are also neighbors in log space.
+  */
+  for_each_tv_pixel(lmi, i, j) {
     ring = TV_TO_RING(lmi, i, j) ;
     spoke = TV_TO_SPOKE(lmi, i, j) ;
-    if (DEFINED(ring, spoke) && LOG_PIX_AREA(lmi, ring, spoke) > 0)
-    {
-      if (i > 0) 
-      {
+    if (DEFINED(ring, spoke) && LOG_PIX_AREA(lmi, ring, spoke) > 0) {
+      if (i > 0) {
         neigh_ring = TV_TO_RING(lmi, i-1, j) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i-1, j) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
-      if (i < ncols-1) 
-      {
+      if (i < ncols-1) {
         neigh_ring = TV_TO_RING(lmi, i+1, j) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i+1, j) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
-      } 
-      if (j > 0) 
-      {
+      }
+      if (j > 0) {
         neigh_ring = TV_TO_RING(lmi, i, j-1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i, j-1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
-      if (j < nrows-1) 
-      {
+      if (j < nrows-1) {
         neigh_ring = TV_TO_RING(lmi, i, j+1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i, j+1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
-      if (i > 0 && j > 0) 
-      {
+      if (i > 0 && j > 0) {
         neigh_ring = TV_TO_RING(lmi, i-1, j-1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i-1, j-1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
-      if (i < ncols-1 && j > 0) 
-      {
+      if (i < ncols-1 && j > 0) {
         neigh_ring = TV_TO_RING(lmi, i+1, j-1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i+1, j-1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
-      } 
-      if (i > 0 && j < nrows-1) 
-      {
+      }
+      if (i > 0 && j < nrows-1) {
         neigh_ring = TV_TO_RING(lmi, i-1, j+1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i-1, j+1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
-      if (i < ncols-1 && j < nrows-1) 
-      {
+      if (i < ncols-1 && j < nrows-1) {
         neigh_ring = TV_TO_RING(lmi, i+1, j+1) ;
         neigh_spoke = TV_TO_SPOKE(lmi, i+1, j+1) ;
         unionNeighbors(lmi, ring, spoke, neigh_ring, neigh_spoke) ;
       }
     }
-  } 
+  }
 
-/*
-  due to aliasing, some log pixels which are neighbors will not contain
-  any Cartesian pixels which are neighbors.  Find them to complete the
-  connectivity graph.
-*/
-  for_each_log_pixel(lmi, ring, spoke)
-  {
+  /*
+    due to aliasing, some log pixels which are neighbors will not contain
+    any Cartesian pixels which are neighbors.  Find them to complete the
+    connectivity graph.
+  */
+  for_each_log_pixel(lmi, ring, spoke) {
     if (spoke > 0 &&  LOG_PIX_AREA(lmi, ring, spoke) > 0)
       unionNeighbors(lmi, ring, spoke, ring, spoke-1);
     if (spoke < nspokes-1 &&  LOG_PIX_AREA(lmi, ring, spoke+1) > 0)
@@ -176,10 +191,10 @@ ConGraphInit(LOGMAP_INFO *lmi)
       unionNeighbors(lmi, ring, spoke, ring-1, spoke);
     if (ring < nrings-1  &&  LOG_PIX_AREA(lmi, ring+1, spoke) > 0)
       unionNeighbors(lmi, ring, spoke, ring+1, spoke);
-    
+
     if (spoke > 0 && ring > 0 && LOG_PIX_AREA(lmi, ring-1, spoke-1) > 0)
       unionNeighbors(lmi, ring, spoke, ring-1, spoke-1);
-    if (spoke < nspokes-1 && ring > 0 && 
+    if (spoke < nspokes-1 && ring > 0 &&
         LOG_PIX_AREA(lmi, ring-1, spoke+1) > 0)
       unionNeighbors(lmi, ring, spoke, ring-1, spoke+1);
     if (spoke> 0 && ring < nrings-1 && LOG_PIX_AREA(lmi,ring+1,spoke-1) >0)
@@ -191,7 +206,7 @@ ConGraphInit(LOGMAP_INFO *lmi)
 
   /* now order the neighbors of a pixel by spoke then ring */
   for_each_log_pixel(lmi, ring, spoke)
-    orderNeighbors(lmi, ring, spoke) ;
+  orderNeighbors(lmi, ring, spoke) ;
 
   initEightConnected(lmi) ;
   if (Gdiag & DIAG_CONGRAPH) conGraphShow(lmi) ;
@@ -204,13 +219,12 @@ ConGraphInit(LOGMAP_INFO *lmi)
              create a new NEIGHBOR structure and return it.
 ----------------------------------------------------------------------*/
 static NEIGHBOR *
-newNeighbor(LOGMAP_INFO *lmi)
-{
+newNeighbor(LOGMAP_INFO *lmi) {
   if (lmi->n_neighbors >= lmi->max_neighbors)
     ErrorReturn(lmi->neighbors + lmi->n_neighbors,
-                (ERROR_NO_MEMORY, 
-                "newNeighbor: too many total neighbors (%d)\n",
-                lmi->n_neighbors)) ;
+                (ERROR_NO_MEMORY,
+                 "newNeighbor: too many total neighbors (%d)\n",
+                 lmi->n_neighbors)) ;
 
 
   return(lmi->neighbors + lmi->n_neighbors++) ;
@@ -222,11 +236,9 @@ newNeighbor(LOGMAP_INFO *lmi)
              Append the neighbor list 'next' to 'neighbor'
 ----------------------------------------------------------------------*/
 static NEIGHBOR *
-appendNeighbor(NEIGHBOR *neighbor, NEIGHBOR *next)
-{
+appendNeighbor(NEIGHBOR *neighbor, NEIGHBOR *next) {
   if (neighbor == NULL) return(next) ;
-  else 
-  {
+  else {
     neighbor->next = next ;
     return(neighbor) ;
   }
@@ -239,13 +251,12 @@ appendNeighbor(NEIGHBOR *neighbor, NEIGHBOR *next)
              and neigh_spoke is a neighbor of the one at ring,spoke.
 ----------------------------------------------------------------------*/
 static int
-neighborP(LOGMAP_INFO *lmi,int ring,int spoke, int neigh_ring, int neigh_spoke)
-{
+neighborP(LOGMAP_INFO *lmi,int ring,int spoke, int neigh_ring, int neigh_spoke) {
   NEIGHBOR *neighbor;
 
   for_each_neighbor(lmi, neighbor, ring, spoke)
-    if (LOG_PIX(lmi, neigh_ring, neigh_spoke) == neighbor->logpix)
-      return(1);
+  if (LOG_PIX(lmi, neigh_ring, neigh_spoke) == neighbor->logpix)
+    return(1);
   return(0);
 }
 /*----------------------------------------------------------------------
@@ -257,19 +268,17 @@ neighborP(LOGMAP_INFO *lmi,int ring,int spoke, int neigh_ring, int neigh_spoke)
 ----------------------------------------------------------------------*/
 static void
 unionNeighbors(LOGMAP_INFO *lmi, int ring, int spoke, int neigh_ring,
-               int neigh_spoke)
-{
+               int neigh_spoke) {
   NEIGHBOR *neighbor;
 
   if (!DEFINED(neigh_ring, neigh_spoke)) return ;
 
-  if ((neigh_spoke != spoke || neigh_ring != ring) &&  
-/* 
-** speedup trick: a pixel can't be its own neighbor
-*/
-      LOG_PIX_AREA(lmi, neigh_ring, neigh_spoke) > 0 && 
-      neighborP(lmi, ring, spoke, neigh_ring, neigh_spoke) == 0) 
-  {
+  if ((neigh_spoke != spoke || neigh_ring != ring) &&
+      /*
+      ** speedup trick: a pixel can't be its own neighbor
+      */
+      LOG_PIX_AREA(lmi, neigh_ring, neigh_spoke) > 0 &&
+      neighborP(lmi, ring, spoke, neigh_ring, neigh_spoke) == 0) {
     neighbor = newNeighbor(lmi);
     neighbor->logpix = LOG_PIX(lmi, neigh_ring, neigh_spoke) ;
     LOG_PIX_NEIGHBORS(lmi, ring, spoke) =
@@ -284,17 +293,15 @@ unionNeighbors(LOGMAP_INFO *lmi, int ring, int spoke, int neigh_ring,
              display the connectivity graph in Cartesian and in Log space.
 ----------------------------------------------------------------------*/
 static void
-conGraphShow(LOGMAP_INFO *lmi)
-{
+conGraphShow(LOGMAP_INFO *lmi) {
 #if USE_XWIN
   int       spoke, ring, area, radius, x0, y0, x1, y1 ;
   NEIGHBOR  *neighbor ;
 
-  DebugNewWindow(lmi->ncols, lmi->nrows, 
-                  "log pixel centroids, area, and connectivity", 3) ;
+  DebugNewWindow(lmi->ncols, lmi->nrows,
+                 "log pixel centroids, area, and connectivity", 3) ;
 
-  for_each_log_pixel(lmi, ring, spoke)
-  {
+  for_each_log_pixel(lmi, ring, spoke) {
     area = LOG_PIX_AREA(lmi, ring, spoke) ;
     radius = nint(sqrt((double)area / PI)) / 2 ;
 
@@ -303,11 +310,10 @@ conGraphShow(LOGMAP_INFO *lmi)
     if (radius > 1)
       DebugDrawCircle(x0, y0, radius, xWHITE) ;
 
-    for_each_neighbor(lmi, neighbor, ring, spoke)
-    {
+    for_each_neighbor(lmi, neighbor, ring, spoke) {
       x1 = neighbor->logpix->col_cent ;
       y1 = neighbor->logpix->row_cent ;
-      
+
       DebugBufferLine(x0, y0, x1, y1, xWHITE) ;
     }
   }
@@ -325,26 +331,21 @@ conGraphShow(LOGMAP_INFO *lmi)
              lowest ring.
 ----------------------------------------------------------------------*/
 static void
-orderNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
-{
+orderNeighbors(LOGMAP_INFO *lmi, int ring, int spoke) {
   NEIGHBOR *nOne, *nTwo, *nPrev ;
   int      swapped ;
 
   /* do a bubble sort */
-  do
-  {
+  do {
     swapped = 0 ;
-/*     printNeighbors(lmi, ring, spoke) ;*/
+    /*     printNeighbors(lmi, ring, spoke) ;*/
     nOne = nTwo = nPrev = NULL ;
-    for_each_neighbor(lmi, nOne, ring, spoke)
-    {
+    for_each_neighbor(lmi, nOne, ring, spoke) {
       nTwo = nOne->next ;
-      if (nTwo)
-      {
-        if ((nTwo->logpix->spoke < nOne->logpix->spoke) || 
-            ((nTwo->logpix->spoke == nOne->logpix->spoke) && 
-             (nTwo->logpix->ring < nOne->logpix->ring)))
-        {
+      if (nTwo) {
+        if ((nTwo->logpix->spoke < nOne->logpix->spoke) ||
+            ((nTwo->logpix->spoke == nOne->logpix->spoke) &&
+             (nTwo->logpix->ring < nOne->logpix->ring))) {
           /* swap nOne and nTwo */
           swapped = 1 ;
           nOne->next = nTwo->next ;
@@ -362,20 +363,18 @@ orderNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
     }
   } while (swapped) ;
 
-/*  printNeighbors(lmi, ring, spoke) ;*/
+  /*  printNeighbors(lmi, ring, spoke) ;*/
 }
 
 #if 0
 static void
-printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
-{
+printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke) {
 #if 1
   int    k, n_ring, n_spoke ;
   LOGPIX *npix ;
 
   printf("neighbors(%d, %d)\n", ring, spoke) ;
-  for (k = 0 ; k < NBD_SIZE ; k++)
-  {
+  for (k = 0 ; k < NBD_SIZE ; k++) {
     n_ring = LOG_PIX_NBD(lmi, ring, spoke, k)->ring ;
     n_spoke = LOG_PIX_NBD(lmi, ring, spoke, k)->spoke ;
     npix = LOG_PIX(lmi, n_ring, n_spoke) ;
@@ -385,8 +384,7 @@ printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
   NEIGHBOR *neighbor ;
 
   printf("neighbors(%d, %d)\n", ring, spoke) ;
-  for_each_neighbor(lmi, neighbor, ring, spoke)
-  {
+  for_each_neighbor(lmi, neighbor, ring, spoke) {
     printf("0x%lx (%d, %d)\n", (unsigned long)neighbor, neighbor->logpix->ring,
            neighbor->logpix->spoke) ;
   }
@@ -398,9 +396,8 @@ printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
 extern int debug(void) ;
 
 static void
-initEightConnected(LOGMAP_INFO *lmi)
-{
-  int      k, n_ring ; 
+initEightConnected(LOGMAP_INFO *lmi) {
+  int      k, n_ring ;
   int      spoke, ring, ncols, nrows, nrings, nspokes ;
   LOGPIX  *pix ;
 
@@ -409,8 +406,7 @@ initEightConnected(LOGMAP_INFO *lmi)
   ncols = lmi->ncols ;
   nrows = lmi->nrows ;
 
-  for_each_log_pixel(lmi, ring, spoke)
-  {
+  for_each_log_pixel(lmi, ring, spoke) {
     /* use Neumann boundary conditions */
     for (k = 0 ; k < NBD_SIZE ; k++)
       LOG_PIX_NBD(lmi, ring, spoke, k) = LOG_PIX(lmi, ring, spoke) ;
@@ -461,8 +457,7 @@ initEightConnected(LOGMAP_INFO *lmi)
       n_ring = findConnectedRing(lmi, ring-1, spoke-1, -1) ;
       if (n_ring >= 0)
         LOG_PIX_NBD(lmi, ring, spoke, N_SW) = LOG_PIX(lmi, n_ring, spoke-1) ;
-    }
-    else                                          /* in left half-plane */
+    } else                                          /* in left half-plane */
     {
       /* find north-eastern neighbor */
       n_ring = findConnectedRing(lmi, ring+1, spoke+1, 1) ;
@@ -510,38 +505,33 @@ initEightConnected(LOGMAP_INFO *lmi)
       printNeighbors(lmi, ring, spoke) ;
 #endif
 #if 0
-  {
-    FILE *fp ;
-
-    fp = fopen("nbd.dat", "w") ;
-    for (k = 0 ; k < NBD_SIZE ; k++)
     {
-      npix = LOG_PIX_NBD(lmi, ring, spoke, k) ;
-      if ((npix->ring < 0) || (npix->row_cent <= 0) || (npix->col_cent <= 0))
-      {
-        fprintf(stderr, "(%d,%d,%d) - (%d, %d, %d, %d), area %d\n",
-                ring, spoke, k, npix->ring, npix->spoke, npix->col_cent,
-                npix->row_cent, npix->area) ;
+      FILE *fp ;
+
+      fp = fopen("nbd.dat", "w") ;
+      for (k = 0 ; k < NBD_SIZE ; k++) {
+        npix = LOG_PIX_NBD(lmi, ring, spoke, k) ;
+        if ((npix->ring < 0) || (npix->row_cent <= 0) || (npix->col_cent <= 0)) {
+          fprintf(stderr, "(%d,%d,%d) - (%d, %d, %d, %d), area %d\n",
+                  ring, spoke, k, npix->ring, npix->spoke, npix->col_cent,
+                  npix->row_cent, npix->area) ;
+        } else {
+          fprintf(fp, "%d  %d  %d  %d\n", ring, spoke,
+                  LOG_PIX_COL_CENT(lmi,ring,spoke),
+                  LOG_PIX_ROW_CENT(lmi, ring, spoke)) ;
+          fprintf(fp, "%d  %d  %d  %d\n\n", npix->ring, npix->spoke,
+                  npix->col_cent, npix->row_cent) ;
+        }
       }
-      else
-      {
-        fprintf(fp, "%d  %d  %d  %d\n", ring, spoke, 
-                LOG_PIX_COL_CENT(lmi,ring,spoke),
-                LOG_PIX_ROW_CENT(lmi, ring, spoke)) ;
-        fprintf(fp, "%d  %d  %d  %d\n\n", npix->ring, npix->spoke, 
-                npix->col_cent, npix->row_cent) ;
-      }
+      fclose(fp) ;
     }
-    fclose(fp) ;
-  }
 #endif
   }
 }
 
 #if 0
 static int
-findConnectedSpoke(LOGMAP_INFO *lmi, int ring, int spoke, int dir)
-{
+findConnectedSpoke(LOGMAP_INFO *lmi, int ring, int spoke, int dir) {
   int nspokes ;
 
   nspokes = lmi->nspokes ;
@@ -552,8 +542,7 @@ findConnectedSpoke(LOGMAP_INFO *lmi, int ring, int spoke, int dir)
       (ring < 0))
     return(-1) ;
 
-  do
-  {
+  do {
     if (LOG_PIX_AREA(lmi, ring, spoke) > 0)
       return(spoke) ;
     spoke += dir ;          /* search left or right */
@@ -565,8 +554,7 @@ findConnectedSpoke(LOGMAP_INFO *lmi, int ring, int spoke, int dir)
 #endif
 
 static int
-findConnectedRing(LOGMAP_INFO *lmi, int ring, int spoke, int dir)
-{
+findConnectedRing(LOGMAP_INFO *lmi, int ring, int spoke, int dir) {
   int nrings ;
 
   /* find closest ring with positive area */
@@ -576,11 +564,9 @@ findConnectedRing(LOGMAP_INFO *lmi, int ring, int spoke, int dir)
     return(-1) ;
 
   nrings = lmi->nrings ;
-  do
-  {
-    if (LOG_PIX_AREA(lmi, ring, spoke) > 10000)
-    {
-      fprintf(stderr, "area(%d, %d) = %d!\n", ring, spoke, 
+  do {
+    if (LOG_PIX_AREA(lmi, ring, spoke) > 10000) {
+      fprintf(stderr, "area(%d, %d) = %d!\n", ring, spoke,
               LOG_PIX_AREA(lmi, ring, spoke)) ;
       return(-1) ;
     }

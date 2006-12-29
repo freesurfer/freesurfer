@@ -34,31 +34,32 @@
 ** @$=@$=@$=
 */
 /*
-**				DICOM 97
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 97
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Stephen M. Moore, 6-Aug-1997
-** Intent:		This header defines platform specific values for
-**			MIR CTN software.  This version happens to be for
-**			Windows NT.
-** Last Update:		$Author: nicks $, $Date: 2006/12/07 01:05:09 $
-** Source File:		$RCSfile: dicom_platform.h,v $
-** Revision:		$Revision: 1.5 $
-** Status:		$State: Exp $
+** Author, Date: Stephen M. Moore, 6-Aug-1997
+** Intent:  This header defines platform specific values for
+**   MIR CTN software.  This version happens to be for
+**   Windows NT.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: dicom_platform.h,v $
+** Revision:  $Revision: 1.6 $
+** Status:  $State: Exp $
 */
 
 #ifndef DICOMPLATFORM_IS_IN
 #define DICOMPLATFORM_IS_IN 1
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-#define	LONGSIZE 32
-#define	INTSIZE 32
+#define LONGSIZE 32
+#define INTSIZE 32
 #define SHORTSIZE 16
 
 #include "mghendian.h"
@@ -74,10 +75,10 @@ extern "C" {
 #undef LITTLE_ENDIAN_ARCHITECTURE
 #endif
 
-#define	TBL_SQLSERVER
+#define TBL_SQLSERVER
 
   /* RKT - commeted this out, we don't want to use threads. */
-  /* #define	CTN_USE_THREADS */
+  /* #define CTN_USE_THREADS */
 
 #ifdef  __cplusplus
 }

@@ -1,3 +1,31 @@
+/**
+ * @file  PreferencesManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.16 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include <fstream>
 #include "string_fixed.h"
@@ -14,13 +42,13 @@
 
 using namespace std;
 
-PreferencesManager::PreferencesManager() 
-  : DebugReporter() {
-  
+PreferencesManager::PreferencesManager()
+    : DebugReporter() {
+
   mVersion = 1;
 }
 
-PreferencesManager& 
+PreferencesManager&
 PreferencesManager::GetManager() {
 
   static PreferencesManager sManager;
@@ -29,7 +57,7 @@ PreferencesManager::GetManager() {
 }
 
 
-void 
+void
 PreferencesManager::UseFile( string const ifnPrefs ) {
 
   string fnPrefs = ifnPrefs;
@@ -37,57 +65,57 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
   int rStat;
 
   // If we're already using this file and it's not dirty, don't reread it.
-  if( mfnPrefs == fnPrefs &&
-      mbPrefsFileDirty ) {
+  if ( mfnPrefs == fnPrefs &&
+       mbPrefsFileDirty ) {
     return;
   }
 
   // If this is an absolute file name, try it.
-  if( fnPrefs[0] == '/' ) {
+  if ( fnPrefs[0] == '/' ) {
     rStat = stat( fnPrefs.c_str(), &info );
 
     // If that didn't work, at least make sure we can write it. If
     // not, return an error.
-    if( !S_ISREG(info.st_mode) ) {
+    if ( !S_ISREG(info.st_mode) ) {
       fstream testFile( fnPrefs.c_str(), ios::out );
-      if( !testFile.good() ) {
-	stringstream ssError;
-	ssError << "Cannot find or create specified preferences file: "
-		<< fnPrefs;
-	throw runtime_error( ssError.str() );
+      if ( !testFile.good() ) {
+        stringstream ssError;
+        ssError << "Cannot find or create specified preferences file: "
+        << fnPrefs;
+        throw runtime_error( ssError.str() );
       }
     }
   }
 
 
   // If this is not an absolute file name, try a few search paths.
-  if( fnPrefs[0] != '/' ) {
+  if ( fnPrefs[0] != '/' ) {
 
     // Local file first, then in home dir, then in usr/share.
     fnPrefs = "./" + ifnPrefs;
-    
+
     info.st_mode = (mode_t) 0; // Keep valgrind from complaining.
     rStat = stat( fnPrefs.c_str(), &info );
-    if( !S_ISREG(info.st_mode) ) {
+    if ( !S_ISREG(info.st_mode) ) {
       char* homeDir = getenv("HOME");
-      if( NULL != homeDir ) {
-	fnPrefs = string(homeDir) + "/" + ifnPrefs;
-	rStat = stat( fnPrefs.c_str(), &info );
+      if ( NULL != homeDir ) {
+        fnPrefs = string(homeDir) + "/" + ifnPrefs;
+        rStat = stat( fnPrefs.c_str(), &info );
       }
     }
 
-    if( !S_ISREG(info.st_mode) ) {
+    if ( !S_ISREG(info.st_mode) ) {
       fnPrefs = "/usr/share" + ifnPrefs;
       rStat = stat( fnPrefs.c_str(), &info );
     }
 
     // If still nothing, we'll write it in their home dir.
     char* homeDir = getenv("HOME");
-    if( NULL != homeDir ) {
+    if ( NULL != homeDir ) {
       fnPrefs = string(homeDir) + "/" + ifnPrefs;
     } else {
       fnPrefs = "./" +  ifnPrefs;
-    }      
+    }
   }
 
 
@@ -99,20 +127,20 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
   ReadFile();
 }
 
-void 
+void
 PreferencesManager::SetHeader( string const isHeader ) {
 
   msHeader = isHeader;
 }
 
-void 
+void
 PreferencesManager::RegisterValue( string const isKeyName,
-				   string const isDescription,
-				   SimplePreferenceValue& iValue ) {
+                                   string const isDescription,
+                                   SimplePreferenceValue& iValue ) {
 
   PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
-  if( tPref != mPrefValues.end() ) {
-    
+  if ( tPref != mPrefValues.end() ) {
+
     PreferenceValue pref = *mPrefValues[isKeyName];
 
   } else {
@@ -127,13 +155,13 @@ PreferencesManager::RegisterValue( string const isKeyName,
   }
 }
 
-void 
+void
 PreferencesManager::SetValue( std::string const isKeyName,
-			      SimplePreferenceValue& iValue ) {
+                              SimplePreferenceValue& iValue ) {
 
   PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
-  if( tPref != mPrefValues.end() ) {
-    
+  if ( tPref != mPrefValues.end() ) {
+
     PreferenceValue* pref = mPrefValues[isKeyName];
     pref->msValue = iValue.ValueToString();
 
@@ -148,8 +176,8 @@ string
 PreferencesManager::GetValue( std::string const isKeyName )  {
 
   PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
-  if( tPref != mPrefValues.end() ) {
-    
+  if ( tPref != mPrefValues.end() ) {
+
     PreferenceValue* pref = mPrefValues[isKeyName];
     return pref->msValue;
 
@@ -168,91 +196,91 @@ void
 PreferencesManager::ReadFile() {
 
   ifstream fPrefs( mfnPrefs.c_str(), ios::in );
-  if( !fPrefs || fPrefs.bad() ) {
+  if ( !fPrefs || fPrefs.bad() ) {
     //    throw runtime_error("Can't open prefs file");
     return;
   }
 
   string sKeyword;
-  while( !fPrefs.eof() ) {
+  while ( !fPrefs.eof() ) {
     getline( fPrefs, sKeyword );
 
-    if( sKeyword == "begin-version" ) {
+    if ( sKeyword == "begin-version" ) {
       fPrefs >> mVersion;
       fPrefs >> sKeyword;
-      if( sKeyword != "end-version" ) {
-	stringstream sError;
-	sError << "Bad prefs file: expected end-version, got " << sKeyword;
-	throw runtime_error( sError.str() );
+      if ( sKeyword != "end-version" ) {
+        stringstream sError;
+        sError << "Bad prefs file: expected end-version, got " << sKeyword;
+        throw runtime_error( sError.str() );
       }
       DebugOutput( << "Reading prefs file version " << mVersion );
 
-    } else if( sKeyword == "begin-header" ) {
+    } else if ( sKeyword == "begin-header" ) {
       stringstream sHeader;
-      while( !fPrefs.eof() ) {
-	getline( fPrefs, sKeyword );
-	if( sKeyword == "end-header" ) {
-	  msHeader = sHeader.str();
-	  break;
-	} else {
-	  sHeader << sKeyword;
-	}
+      while ( !fPrefs.eof() ) {
+        getline( fPrefs, sKeyword );
+        if ( sKeyword == "end-header" ) {
+          msHeader = sHeader.str();
+          break;
+        } else {
+          sHeader << sKeyword;
+        }
       }
 
       /* Just read in but ignore the timestamp. */
-    } else if( sKeyword == "begin-timestamp" ) {
-      while( !fPrefs.eof() ) {
-	getline( fPrefs, sKeyword );
-	if( sKeyword == "end-timestamp" ) {
-	  break;
-	}
+    } else if ( sKeyword == "begin-timestamp" ) {
+      while ( !fPrefs.eof() ) {
+        getline( fPrefs, sKeyword );
+        if ( sKeyword == "end-timestamp" ) {
+          break;
+        }
       }
 
-    } else if( sKeyword == "begin-pref" ) {
+    } else if ( sKeyword == "begin-pref" ) {
 
       PreferenceValue* pref = new PreferenceValue();
 
-      while( !fPrefs.eof() ) {
-	getline( fPrefs, sKeyword );
+      while ( !fPrefs.eof() ) {
+        getline( fPrefs, sKeyword );
 
-	if( sKeyword == "begin-description" ) {
-	  stringstream sDescription;
-	  while( !fPrefs.eof() ) {
-	    getline( fPrefs, sKeyword );
-	    if( sKeyword == "end-description" ) {
-	      pref->msDescription = sDescription.str();
-	      break;
-	    } else {
-	      sDescription << sKeyword;
-	    }
-	  }
+        if ( sKeyword == "begin-description" ) {
+          stringstream sDescription;
+          while ( !fPrefs.eof() ) {
+            getline( fPrefs, sKeyword );
+            if ( sKeyword == "end-description" ) {
+              pref->msDescription = sDescription.str();
+              break;
+            } else {
+              sDescription << sKeyword;
+            }
+          }
 
-	} else if( sKeyword == "begin-name" ) {
-	  fPrefs >> pref->msKeyName;
-	  fPrefs >> sKeyword;
-	  if( sKeyword != "end-name" ) {
-	    stringstream sError;
-	    sError << "Bad prefs file: expected end-name, got " << sKeyword;
-	    throw runtime_error( sError.str() );
-	  }
+        } else if ( sKeyword == "begin-name" ) {
+          fPrefs >> pref->msKeyName;
+          fPrefs >> sKeyword;
+          if ( sKeyword != "end-name" ) {
+            stringstream sError;
+            sError << "Bad prefs file: expected end-name, got " << sKeyword;
+            throw runtime_error( sError.str() );
+          }
 
-	} else if( sKeyword == "begin-value" ) {
-	  stringstream sValue;
-	  while( !fPrefs.eof() ) {
-	    getline( fPrefs, sKeyword );
-	    if( sKeyword == "end-value" ) {
-	      pref->msValue = sValue.str();
-	      break;
-	    } else {
-	      sValue << sKeyword;
-	    }
-	  }
+        } else if ( sKeyword == "begin-value" ) {
+          stringstream sValue;
+          while ( !fPrefs.eof() ) {
+            getline( fPrefs, sKeyword );
+            if ( sKeyword == "end-value" ) {
+              pref->msValue = sValue.str();
+              break;
+            } else {
+              sValue << sKeyword;
+            }
+          }
 
-	} else if( sKeyword == "end-pref" ) {
-	  break;
-	}
+        } else if ( sKeyword == "end-pref" ) {
+          break;
+        }
       }
-      
+
       mPrefValues[pref->msKeyName] = pref;
     }
   }
@@ -264,7 +292,7 @@ void
 PreferencesManager::WriteFile() {
 
   ofstream fPrefs( mfnPrefs.c_str(), ios::out );
-  if( fPrefs.bad() ) {
+  if ( fPrefs.bad() ) {
     throw runtime_error( "Can't open prefs file" );
   }
 
@@ -276,7 +304,7 @@ PreferencesManager::WriteFile() {
 
   fPrefs << "begin-timestamp" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.15 2006/11/15 21:38:55 kteich Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.16 2006/12/29 02:09:14 nicks Exp $" << endl;
   fPrefs << "end-timestamp" << endl << endl;
 
   fPrefs << "begin-header" << endl;
@@ -284,20 +312,20 @@ PreferencesManager::WriteFile() {
   fPrefs << "end-header" << endl << endl;
 
   PreferenceValueMap::iterator tPref;
-  for( tPref = mPrefValues.begin(); tPref != mPrefValues.end(); ++tPref ) {
-    
+  for ( tPref = mPrefValues.begin(); tPref != mPrefValues.end(); ++tPref ) {
+
     PreferenceValue* pref = (*tPref).second;
 
     fPrefs << "begin-pref" << endl;
     fPrefs << "begin-description" << endl
-	   << pref->msDescription << endl << "end-description" << endl;
-    fPrefs << "begin-name" << endl 
-	   << pref->msKeyName << endl << "end-name" << endl;
+    << pref->msDescription << endl << "end-description" << endl;
+    fPrefs << "begin-name" << endl
+    << pref->msKeyName << endl << "end-name" << endl;
     fPrefs << "begin-value" << endl
-	   << pref->msValue << endl << "end-value" << endl;
+    << pref->msValue << endl << "end-value" << endl;
     fPrefs << "end-pref" << endl << endl;
   }
-  
+
   fPrefs.close();
 
   mbPrefsFileDirty = false;
@@ -307,17 +335,17 @@ PreferencesManager::WriteFile() {
 
 
 
-PreferencesManager::IntPrefValue::IntPrefValue( int const i ) { 
-  mValue = i; 
+PreferencesManager::IntPrefValue::IntPrefValue( int const i ) {
+  mValue = i;
 }
 
-PreferencesManager::IntPrefValue::IntPrefValue( string const i ) { 
-  mValue = atoi(i.c_str()); 
-  mValue = strtol(i.c_str(), (char**)NULL, 10); 
+PreferencesManager::IntPrefValue::IntPrefValue( string const i ) {
+  mValue = atoi(i.c_str());
+  mValue = strtol(i.c_str(), (char**)NULL, 10);
 }
-    
+
 void
-PreferencesManager::IntPrefValue::SetFromString( string const isValue ) { 
+PreferencesManager::IntPrefValue::SetFromString( string const isValue ) {
   mValue = atoi(isValue.c_str());
 }
 
@@ -328,23 +356,23 @@ PreferencesManager::IntPrefValue::ValueToString() {
   return string(sValue);
 }
 
-int 
-PreferencesManager::IntPrefValue::GetValue() const { 
+int
+PreferencesManager::IntPrefValue::GetValue() const {
   return mValue;
 }
 
 
-    
-PreferencesManager::FloatPrefValue::FloatPrefValue( float const i ) { 
-  mValue = i; 
+
+PreferencesManager::FloatPrefValue::FloatPrefValue( float const i ) {
+  mValue = i;
 }
 
-PreferencesManager::FloatPrefValue::FloatPrefValue( string const i ) { 
-  mValue = atof(i.c_str()); 
+PreferencesManager::FloatPrefValue::FloatPrefValue( string const i ) {
+  mValue = atof(i.c_str());
 }
-    
+
 void
-PreferencesManager::FloatPrefValue::SetFromString( string const isValue ) { 
+PreferencesManager::FloatPrefValue::SetFromString( string const isValue ) {
   mValue = atof(isValue.c_str());
 }
 
@@ -355,20 +383,20 @@ PreferencesManager::FloatPrefValue::ValueToString() {
   return string(sValue);
 }
 
-float 
-PreferencesManager::FloatPrefValue::GetValue() const { 
+float
+PreferencesManager::FloatPrefValue::GetValue() const {
   return mValue;
 }
-    
 
 
 
-PreferencesManager::StringPrefValue::StringPrefValue( string const i ) { 
-  msValue = i; 
+
+PreferencesManager::StringPrefValue::StringPrefValue( string const i ) {
+  msValue = i;
 }
-    
+
 void
-PreferencesManager::StringPrefValue::SetFromString( string const isValue ) { 
+PreferencesManager::StringPrefValue::SetFromString( string const isValue ) {
   msValue = isValue;
 }
 
@@ -378,7 +406,7 @@ PreferencesManager::StringPrefValue::ValueToString() {
 }
 
 string
-PreferencesManager::StringPrefValue::GetValue() const { 
+PreferencesManager::StringPrefValue::GetValue() const {
   return msValue;
 }
-    
+

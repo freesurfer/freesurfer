@@ -1,3 +1,31 @@
+/**
+ * @file  stats.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.15 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef STATS_H
 #define STATS_H
 
@@ -13,7 +41,8 @@ typedef struct
   MATRIX  *fmri2mri ;
   MATRIX  *mri2fmri ;
   char    name[100] ;            /* subject's name */
-} fMRI_REGISTRATION, fMRI_REG ;
+}
+fMRI_REGISTRATION, fMRI_REG ;
 
 #define STAT_VOLUMES   2  /* avg, std, dof for avg, dof for std */
 
@@ -24,7 +53,7 @@ typedef struct
   in a separate file. The files contain all the mean images (one per
   time point) followed by all the standard deviation images (one per
   time point) for that slice for each event type.
-  */ 
+  */
 
 #define ALLOC_MEANS        0x0001
 #define ALLOC_STDS         0x0002
@@ -46,7 +75,7 @@ typedef struct
 
   /* from register.dat file */
   fMRI_REG  *reg ;
-  
+
   int       voltype; /* 0 = raw, 1 = selavg, 2 = selxavg */
 
   /* stuff from the .dat file */
@@ -64,8 +93,9 @@ typedef struct
   General_transform transform ;
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-} STAT_VOLUME, SV  ;
-  
+}
+STAT_VOLUME, SV  ;
+
 /* can't include this before structure, as mrisurf.h includes this file. */
 #include "mrisurf.h"
 #include "resample.h"
@@ -73,46 +103,46 @@ typedef struct
 /* This is so applications can specify different xforms */
 /* StatReadTransform() will read in this file */
 #ifdef _STATS_SRC
-  char *stats_talxfm = "talairach.xfm";
-  int  statnorm_float2int = FLT2INT_ROUND;
-  int  stats_fixxfm = 0;
-  #undef _STATS_SRC
+char *stats_talxfm = "talairach.xfm";
+int  statnorm_float2int = FLT2INT_ROUND;
+int  stats_fixxfm = 0;
+#undef _STATS_SRC
 #else
-  extern char *stats_talxfm;
-  extern int  statnorm_float2int;
-  extern int  stats_fixxfm;
+extern char *stats_talxfm;
+extern int  statnorm_float2int;
+extern int  stats_fixxfm;
 #endif
 
 SV        *StatReadVolume(char *prefix);
-SV        *StatReadTalairachVolume(char *prefix, 
+SV        *StatReadTalairachVolume(char *prefix,
                                    char *xform_fname,
                                    char *subject_name) ;
 fMRI_REG  *StatReadRegistration(char *fname) ;
-fMRI_REG  *StatReadTalairachRegistration(char *fname, 
-                                         char *subject_name) ;
-int       StatWriteVolume(SV *sv, 
+fMRI_REG  *StatReadTalairachRegistration(char *fname,
+    char *subject_name) ;
+int       StatWriteVolume(SV *sv,
                           char *prefix) ;
-int       StatWriteRegistration(fMRI_REG *reg, 
+int       StatWriteRegistration(fMRI_REG *reg,
                                 char *fname) ;
 int       StatFreeRegistration(fMRI_REG **preg) ;
 int       StatFree(SV **psv) ;
-SV        *StatAllocVolume(SV *sv, 
-                           int nevents, 
-                           int width, 
+SV        *StatAllocVolume(SV *sv,
+                           int nevents,
+                           int width,
                            int height,
-                           int nslices, 
-                           int time_points, 
+                           int nslices,
+                           int time_points,
                            int which) ;
-SV        *StatAllocStructuralVolume(SV *sv, 
-                                     float fov, 
+SV        *StatAllocStructuralVolume(SV *sv,
+                                     float fov,
                                      float resolution,
                                      char *name) ;
-int       StatAccumulateTalairachVolume(SV *sv_tal, 
+int       StatAccumulateTalairachVolume(SV *sv_tal,
                                         SV *sv) ;
-int       StatAccumulateSurfaceVolume(SV *sv_tal, 
-                                      SV *sv, 
+int       StatAccumulateSurfaceVolume(SV *sv_tal,
+                                      SV *sv,
                                       MRI_SURFACE *mris) ;
-int       StatReadTransform(STAT_VOLUME *sv, 
+int       StatReadTransform(STAT_VOLUME *sv,
                             char *name) ;
 int       StatVolumeExists(char *prefix) ;
 

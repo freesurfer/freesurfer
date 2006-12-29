@@ -1,3 +1,31 @@
+/**
+ * @file  DataCollection.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.26 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "string_fixed.h"
 #include <errno.h>
 #include <stdexcept>
@@ -9,20 +37,19 @@ DeclareIDTracker(DataCollection);
 
 
 DataCollection::DataCollection() :
-  Listener( "DataCollection" ),
-  Broadcaster( "DataCollection" ),
-  msLabel(""),
-  mSelectedROIID(-1),
-  mbSuspendDataChangedMessage(false),
-  mDataToWorldTransform(NULL) {
+    Listener( "DataCollection" ),
+    Broadcaster( "DataCollection" ),
+    msLabel(""),
+    mSelectedROIID(-1),
+    mbSuspendDataChangedMessage(false),
+    mDataToWorldTransform(NULL) {
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
-  try { 
+  try {
     mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
     mDataToWorldTransform->AddListener( this );
-  }
-  catch(...) {
+  } catch (...) {
 
     ScubaTransform* transform = new ScubaTransform();
     transform->SetLabel( "Identity" );
@@ -30,45 +57,44 @@ DataCollection::DataCollection() :
     try {
       mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
       mDataToWorldTransform->AddListener( this );
-    }
-    catch(...) {
+    } catch (...) {
       DebugOutput( << "Couldn't make default transform!" );
     }
   }
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetCollectionLabel", 2, "collectionID label",
-			 "Set the label for a collection." );
+                         "Set the label for a collection." );
   commandMgr.AddCommand( *this, "GetCollectionLabel", 1, "collectionID",
-			 "Return the label for this collection." );
+                         "Return the label for this collection." );
   commandMgr.AddCommand( *this, "GetCollectionType", 1, "colID",
-			 "Return the type for this layer." );
+                         "Return the type for this layer." );
   commandMgr.AddCommand( *this, "NewCollectionROI", 1, "colID",
-			 "Makes a new ROI for this collection and returns "
-			 "the ID." );
+                         "Makes a new ROI for this collection and returns "
+                         "the ID." );
   commandMgr.AddCommand( *this, "SelectCollectionROI", 2, "colID roiID",
-			 "Selects an ROI for this collection." );
+                         "Selects an ROI for this collection." );
   commandMgr.AddCommand( *this, "DeleteCollectionROI", 2, "colID roiID",
-			 "Deletes an ROI for this collection." );
+                         "Deletes an ROI for this collection." );
   commandMgr.AddCommand( *this, "GetROIIDListForCollection", 1, "colID",
-			 "Returns a lit of roiIDs belonging to this "
-			 "collection." );
+                         "Returns a lit of roiIDs belonging to this "
+                         "collection." );
   commandMgr.AddCommand( *this, "SetDataTransform", 2, "colID transformID",
-			 "Set the data to world transform for a data "
-			 "collection." );
+                         "Set the data to world transform for a data "
+                         "collection." );
   commandMgr.AddCommand( *this, "GetDataTransform", 1, "colID",
-			 "Returns the transformID of a data collection's "
-			 "data to world transform." );
+                         "Returns the transformID of a data collection's "
+                         "data to world transform." );
 }
 
 DataCollection::~DataCollection() {
 
   // Delete our ROIs when we get deleted.
   map<int,ScubaROI*>::iterator tIDROI;
-  for( tIDROI = mROIMap.begin();
-       tIDROI != mROIMap.end(); ++tIDROI ) {
+  for ( tIDROI = mROIMap.begin();
+        tIDROI != mROIMap.end(); ++tIDROI ) {
     ScubaROI* roi = (*tIDROI).second;
-    if( NULL != roi ) {
+    if ( NULL != roi ) {
       delete roi;
     }
   }
@@ -85,50 +111,50 @@ DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
 
 void
 DataCollection::GetInfo( DataLocation&,
-			 std::map<std::string,std::string>& ) {
+                         std::map<std::string,std::string>& ) {
 
   return;
 }
 
-void 
+void
 DataCollection::SetLabel( string isLabel ) {
-  msLabel = isLabel; 
+  msLabel = isLabel;
   DataChanged();
 }
 
 void
 DataCollection::GetDataRASBounds ( float oRASBounds[6] ) {
 
-  oRASBounds[0] = oRASBounds[1] = oRASBounds[2] = 
-    oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+  oRASBounds[0] = oRASBounds[1] = oRASBounds[2] =
+                                    oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
 }
 
 TclCommandListener::TclCommandResult
 DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 
   // SetCollectionLabel <collectionID> <label>
-  if( 0 == strcmp( isCommand, "SetCollectionLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "SetCollectionLabel" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
       string sLabel = iasArgv[2];
       SetLabel( sLabel );
     }
   }
 
   // GetCollectionLabel <collectionID>
-  if( 0 == strcmp( isCommand, "GetCollectionLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "GetCollectionLabel" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabel() << "\"";
@@ -137,28 +163,28 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // GetCollectionType <colID>
-  if( 0 == strcmp( isCommand, "GetCollectionType" ) ) {
+  if ( 0 == strcmp( isCommand, "GetCollectionType" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
       sReturnFormat = "s";
       sReturnValues = GetTypeDescription();
     }
   }
 
   // NewCollectionROI <colID>
-  if( 0 == strcmp( isCommand, "NewCollectionROI" ) ) {
+  if ( 0 == strcmp( isCommand, "NewCollectionROI" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
 
       int roiID = NewROI();
 
@@ -170,117 +196,115 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
   }
 
   // SelectCollectionROI <colID> <roiID
-  if( 0 == strcmp( isCommand, "SelectCollectionROI" ) ) {
+  if ( 0 == strcmp( isCommand, "SelectCollectionROI" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
 
       int roiID = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad roi ID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad roi ID";
+        return error;
       }
-    
+
       try {
-	SelectROI( roiID );
-      }
-      catch(...) {
-	sResult = "That ROI doesn't belong to this collection";
-	return error;
+        SelectROI( roiID );
+      } catch (...) {
+        sResult = "That ROI doesn't belong to this collection";
+        return error;
       }
     }
   }
 
   // DeleteCollectionROI <colID> <roiID
-  if( 0 == strcmp( isCommand, "DeleteCollectionROI" ) ) {
+  if ( 0 == strcmp( isCommand, "DeleteCollectionROI" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
 
       int roiID = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad roi ID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad roi ID";
+        return error;
       }
-    
+
       try {
-	DeleteROI( roiID );
-      }
-      catch(...) {
-	sResult = "That ROI doesn't belong to this collection";
-	return error;
+        DeleteROI( roiID );
+      } catch (...) {
+        sResult = "That ROI doesn't belong to this collection";
+        return error;
       }
     }
   }
 
   // GetROIIDListForCollection <colID>
-  if( 0 == strcmp( isCommand, "GetROIIDListForCollection" ) ) {
+  if ( 0 == strcmp( isCommand, "GetROIIDListForCollection" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       stringstream ssFormat;
       stringstream ssResult;
       ssFormat << "L";
 
       map<int,ScubaROI*>::iterator tIDROI;
-      for( tIDROI = mROIMap.begin();
-	   tIDROI != mROIMap.end(); ++tIDROI ) {
-	int roiID = (*tIDROI).first;
-	ScubaROI* roi = (*tIDROI).second;
-	if( NULL != roi ) {
-	  ssFormat << "i";
-	  ssResult << roiID << " ";
-	}
+      for ( tIDROI = mROIMap.begin();
+            tIDROI != mROIMap.end(); ++tIDROI ) {
+        int roiID = (*tIDROI).first;
+        ScubaROI* roi = (*tIDROI).second;
+        if ( NULL != roi ) {
+          ssFormat << "i";
+          ssResult << roiID << " ";
+        }
       }
       ssFormat << "l";
-      
+
       sReturnFormat = ssFormat.str();
       sReturnValues = ssResult.str();
     }
   }
 
   // SetDataTransform <colID> <transformID>
-  if( 0 == strcmp( isCommand, "SetDataTransform" ) ) {
+  if ( 0 == strcmp( isCommand, "SetDataTransform" ) ) {
     int colID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == colID ) {
-      
+
+    if ( mID == colID ) {
+
       int transformID = strtol( iasArgv[2], (char**)NULL, 10 );
-      if( ERANGE == errno ) {
-	sResult = "bad transformID";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad transformID";
+        return error;
       }
-      
+
       SetDataToWorldTransform( transformID );
     }
   }
 
   // GetDataTransform <viewID>
-  if( 0 == strcmp( isCommand, "GetDataTransform" ) ) {
+  if ( 0 == strcmp( isCommand, "GetDataTransform" ) ) {
     int colID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == colID ) {
+
+    if ( mID == colID ) {
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
@@ -293,17 +317,15 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 }
 
 void
-DataCollection::DoListenToMessage ( string, void* ) {
-  
-}
+DataCollection::DoListenToMessage ( string, void* ) {}
 
 vector<int>
 DataCollection::GetROIList () {
-  
+
   std::vector<int> lROIs;
   map<int,ScubaROI*>::iterator tIDROI;
-  for( tIDROI = mROIMap.begin();
-       tIDROI != mROIMap.end(); ++tIDROI ) {
+  for ( tIDROI = mROIMap.begin();
+        tIDROI != mROIMap.end(); ++tIDROI ) {
     int roiID = (*tIDROI).first;
     lROIs.push_back( roiID );
   }
@@ -340,7 +362,7 @@ DataCollection::SelectROI ( int iROIID ) {
   // saving its ID. Otherwise throw an error.
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( iROIID );
-  if( tIDROI != mROIMap.end() ) {
+  if ( tIDROI != mROIMap.end() ) {
     mSelectedROIID = iROIID;
   } else {
     throw runtime_error( "ROI doesn't belong to this collection" );
@@ -354,14 +376,14 @@ DataCollection::DeleteROI ( int iROIID ) {
   // ROI. Otherwise throw an error.
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( iROIID );
-  if( tIDROI != mROIMap.end() ) {
+  if ( tIDROI != mROIMap.end() ) {
 
     ScubaROI* roi = (*tIDROI).second;
     delete roi;
 
     mROIMap.erase( iROIID );
 
-    if( mSelectedROIID == iROIID ) {
+    if ( mSelectedROIID == iROIID ) {
       mSelectedROIID = -1;
     }
   } else {
@@ -374,21 +396,20 @@ DataCollection::DoNewROI () {
 
   return NULL;
 }
- 
+
 void
 DataCollection::SetDataToWorldTransform ( int iTransformID ) {
 
   // Don't set if we're already using this one.
-  if( NULL != mDataToWorldTransform &&
-      iTransformID == mDataToWorldTransform->GetID() )
+  if ( NULL != mDataToWorldTransform &&
+       iTransformID == mDataToWorldTransform->GetID() )
     return;
 
   try {
     mDataToWorldTransform->RemoveListener( this );
     mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
     mDataToWorldTransform->AddListener( this );
-  }
-  catch(...) {
+  } catch (...) {
     DebugOutput( << "Couldn't find transform " << iTransformID );
     mDataToWorldTransform = NULL;
   }
@@ -402,26 +423,26 @@ DataCollection::GetDataToWorldTransform () {
 
 float
 DataCollection::GetPreferredValueIncrement () {
-  
+
   return 0;
 }
 
 void
 DataCollection::DataChanged () {
-  
-  if( !mbSuspendDataChangedMessage ) {
+
+  if ( !mbSuspendDataChangedMessage ) {
     int id = GetID();
     SendBroadcast( "dataChanged", (void*)&id );
   }
 }
 
 
-void 
+void
 DataCollection::BeginBatchChanges () {
   mbSuspendDataChangedMessage = true;
 }
 
-void 
+void
 DataCollection::EndBatchChanges () {
   mbSuspendDataChangedMessage = false;
   DataChanged();
@@ -431,7 +452,7 @@ void
 DataCollection::BeginBatchROIChanges () {
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( mSelectedROIID );
-  if( tIDROI != mROIMap.end() ) {
+  if ( tIDROI != mROIMap.end() ) {
     (*tIDROI).second->BeginBatchChanges();
   }
 }
@@ -440,7 +461,7 @@ void
 DataCollection::EndBatchROIChanges () {
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( mSelectedROIID );
-  if( tIDROI != mROIMap.end() ) {
+  if ( tIDROI != mROIMap.end() ) {
     (*tIDROI).second->EndBatchChanges();
   }
 }

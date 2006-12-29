@@ -1,3 +1,31 @@
+/**
+ * @file  IDTracker.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #ifndef IDTracker_h
 #define IDTracker_h
@@ -29,7 +57,7 @@ template <typename ClassType> class IDTracker {
 public:
   // Ctor adds this object to the tracked map with a unique ID
   // number. Dtor removes it from the map.
-  IDTracker ( ){
+  IDTracker ( ) {
     mID = GetNextID();
     mIDMap[mID] = (ClassType*)this;
   }
@@ -39,30 +67,32 @@ public:
   }
 
   // Accessor for the ID.
-  int GetID() const  { return mID; }
+  int GetID() const  {
+    return mID;
+  }
 
   // Static function that will return a reference to an object.
   static ClassType& FindByID( int const iID ) {
-    
+
     ClassType* obj = mIDMap[iID];
-    if( NULL == obj ) {
+    if ( NULL == obj ) {
       std::stringstream sError;
       sError << "Couldn't find object with ID " << iID;
       throw std::out_of_range( sError.str() );
     }
-    
+
     return *obj;
   }
 
   // Static function that will fill a list of active (non-NULL) IDs.
   static void GetIDList( std::list<int>& iList ) {
-    
+
     typename std::map<int,ClassType*>::iterator tIDObject;
-    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
+    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
       int id = (*tIDObject).first;
       ClassType* object = (*tIDObject).second;
-      if( NULL != object ) {
-	iList.push_back( id );
+      if ( NULL != object ) {
+        iList.push_back( id );
       }
     }
   }
@@ -71,11 +101,11 @@ public:
   static void PrintIDList( std::ostream& os ) {
 
     typename std::map<int,ClassType*>::iterator tIDObject;
-    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
+    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
       int id = (*tIDObject).first;
       ClassType* object = (*tIDObject).second;
-      if( NULL != object ) {
-	os << id << " ";
+      if ( NULL != object ) {
+        os << id << " ";
       }
     }
   }
@@ -90,11 +120,13 @@ protected:
 
   // ID management.
   static int mNextID;
-  static int GetNextID () { return mNextID++; }
+  static int GetNextID () {
+    return mNextID++;
+  }
 };
 
 
 template <typename T> int IDTracker<T>::mNextID = 0;
-template <typename T> std::map<int,T*> IDTracker<T>::mIDMap; 
+template <typename T> std::map<int,T*> IDTracker<T>::mIDMap;
 
 #endif

@@ -1,3 +1,31 @@
+/**
+ * @file  vtkKWOrientMRIWindow.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef vtkKWOrientMRIWindow_h
 #define vtkKWOrientMRIWindow_h
 
@@ -9,7 +37,7 @@ class vtkKWPushButton;
 
 class vtkKWOrientMRIWindow : public vtkKWWindow {
 
- public:
+public:
 
   static vtkKWOrientMRIWindow* New ();
   vtkTypeRevisionMacro( vtkKWOrientMRIWindow, vtkKWWindow );
@@ -32,8 +60,8 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
   void ZoomBy ( float iFactor );
   void ZoomIn ();
   void ZoomOut ();
-  
- protected:
+
+protected:
 
   vtkKWOrientMRIWindow ();
   virtual ~vtkKWOrientMRIWindow ();
@@ -47,19 +75,25 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
   // For keeping track of buttons and menu items that relate to
   // commands, and whether or not they should be enabled.
   //BTX
-  enum Command { CmdLoadVolume = 0,
-		 CmdSaveVolume,
-		 CmdSaveVolumeAs,
-		 CmdTransformVolume,
-		 CmdRevertVolume, 
-		 CmdRestoreView,
-		 CmdZoomOut,
-		 CmdZoomIn,
-		 kcCommands };
+  enum Command {
+    CmdLoadVolume = 0,
+    CmdSaveVolume,
+    CmdSaveVolumeAs,
+    CmdTransformVolume,
+    CmdRevertVolume,
+    CmdRestoreView,
+    CmdZoomOut,
+    CmdZoomIn,
+    kcCommands
+  };
   bool maCommandEnabled[kcCommands];
 
   // Struct for associating a menu and an entry item.
-  typedef struct { vtkKWMenu* menu; int nItem; } MenuItem;
+  typedef struct {
+    vtkKWMenu* menu;
+    int nItem;
+  }
+  MenuItem;
 
   // The menu items associated with each command.
   MenuItem maMenuItems[kcCommands];
@@ -72,5 +106,5 @@ class vtkKWOrientMRIWindow : public vtkKWWindow {
 
   //ETX
 };
-  
+
 #endif

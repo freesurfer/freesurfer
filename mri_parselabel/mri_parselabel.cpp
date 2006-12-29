@@ -1,3 +1,31 @@
+/**
+ * @file  mri_parselabel.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.17 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mri_parselabel.cpp
 //
@@ -40,21 +68,19 @@ double vx;
 double vy;
 double vz;
 
-class Vertex
-{
+class Vertex {
 public:
-  Vertex(double x=0, double y=0, double z=0, double value=0) 
-    : x_(x), y_(y), z_(z), value_(value) {}
+  Vertex(double x=0, double y=0, double z=0, double value=0)
+      : x_(x), y_(y), z_(z), value_(value) {}
 
-  double x_; 
-  double y_; 
+  double x_;
+  double y_;
   double z_;
   double value_;
 };
 
 
-bool operator==(const Vertex &a, const Vertex &b)
-{
+bool operator==(const Vertex &a, const Vertex &b) {
   // don't compare values
   if ((fabs(a.x_ - b.x_) < vx/2.)
       && (fabs(a.y_ - b.y_) < vy/2.)
@@ -64,26 +90,22 @@ bool operator==(const Vertex &a, const Vertex &b)
     return false;
 }
 
-ostream &operator<<(ostream &s, const Vertex &v)
-{
-  s.setf(ios::fixed, ios::floatfield);
+ostream &operator<<(ostream &s, const Vertex &v) {
+  s.setf(ios::fixed , ios::floatfield);
   s.precision(4);
   s << " (" << setw(8) << v.x_ << ", " << setw(8) << v.y_ << ", " << setw(8) << v.z_ << ") ";
   return s;
 }
 
-// used for sort 
-class LessX
-{
+// used for sort
+class LessX {
 public:
-  bool operator() (const Vertex &a, const Vertex &b)
-  {
+  bool operator() (const Vertex &a, const Vertex &b) {
     return ((a.x_ - b.x_) < 0);
   }
 };
 
-bool compareDirCos(const MRI *mri, const VOL_GEOM *vg)
-{
+bool compareDirCos(const MRI *mri, const VOL_GEOM *vg) {
   //////////////////////////////////
   if ((mri->width - vg->width))
     return false;
@@ -133,26 +155,23 @@ int (*rasToVox)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.16 2004/06/10 21:59:39 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.17 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   // option parse
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-  // check 
-  if (argc < 4)
-  {
+  // check
+  if (argc < 4) {
     cerr << "Usage: mri_parselabel [option] <labelfile> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
     cerr << "options are:" << endl;
     cerr << "        -scale <val> : uses <val> to scale label position" << endl;
@@ -163,20 +182,17 @@ int main(int argc, char *argv[])
     cerr << "        -cras        : use scanner ras value for label position" << endl;
     cerr << "                       default is to use the surface ras value."<< endl;
     return -1;
-  }
-  else if (argc==4)
-  {
+  } else if (argc==4) {
     cerr << "You gave the arguments of the following: " << argc <<  endl;
     cerr << argv[1] << " " << argv[2] << " " << argv[3] << endl;
     // check to make sure that -stats is set
-    if (!stats)
-    {
+    if (!stats) {
       cerr << "For stats usage: " << endl;
       cerr << "Usage: mri_parselabel [option] -stats <labelfile> <volfileforlabel> <outputvol>" << endl;
       cerr << "For other usage: " << endl;
       cerr << "Usage: mri_parselabel [option] <labelfile> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
       return -1;
-    }  
+    }
   }
   cout << "---------------------------------------------------------------" << endl;
   cout << "Inputs: " << endl;
@@ -185,56 +201,46 @@ int main(int argc, char *argv[])
   cout << "output vol : " << argv[3] << endl;
   cout << "greyvalue  : " << argv[4] << endl;
   cout << "scale      : " << scale << endl;
-  if (xfname.size() != 0)
-  {
+  if (xfname.size() != 0) {
     cout << "xfm        : " << xfname.c_str() << endl;
     cout << "invert     : " << invert << endl;
   }
   cout << "---------------------------------------------------------------" << endl;
 
   int val=0;
-  if (!stats)
-  {
+  if (!stats) {
     val = int(atof(argv[4]));
-    if (val < 0 || val > 255)
-    {
+    if (val < 0 || val > 255) {
       cout << "grey value must be between 0 and 255.  you gave " << argv[5] << endl;
       return -1;
     }
   }
   ifstream flabel(argv[1], ios::in);
-  if (!flabel.good())
-  {
+  if (!flabel.good()) {
     cerr << "Could not open file for label: " << argv[1] << endl;
     return -1;
-  }  
+  }
 
   //////////////////////////////////////////////////////////////////
   LTA *lta = 0;
-  if (xfname.size())
-  {
+  if (xfname.size()) {
     lta = LTAreadEx(const_cast<char *>(xfname.c_str()));
-    if (!lta->xforms[0].src.valid)
-    {
+    if (!lta->xforms[0].src.valid) {
       cerr << "could not find the src volume" << lta->xforms[0].src.fname << endl;
       cerr << " need to calculate the correct transform" << endl;
       return -1;
-    }
-    else
+    } else
       cout << "found the src volume: " << lta->xforms[0].src.fname << endl;
-    if (!lta->xforms[0].dst.valid)
-    {
+    if (!lta->xforms[0].dst.valid) {
       cerr << "could not find the dst volume" << lta->xforms[0].dst.fname << endl;
       cerr << " need to calculate the correct transform" << endl;
       return -1;
-    }
-    else
+    } else
       cout << "found the dst volume: " << lta->xforms[0].dst.fname << endl;
   }
 
   MRI *mriIn=MRIread(argv[2]);
-  if (!mriIn)
-  {
+  if (!mriIn) {
     cerr << "Could not open input volume : " << argv[2] << endl;
     return -1;
   }
@@ -254,26 +260,22 @@ int main(int argc, char *argv[])
   cout << "reading vertices ..." << endl;
 
   //////////////////////////////////////////////////////////////////////
-  // reading vertices 
+  // reading vertices
   //////////////////////////////////////////////////////////////////////
   MATRIX *hSRASTolSRAS = 0;
-  if (xfname.size())
-  {
+  if (xfname.size()) {
     bool res;
     // before doing anything, verify that the target volume has the same
     // direction cosines as the transform has
-    if (!invert)
-    {
+    if (!invert) {
       res = compareDirCos(mriIn, &lta->xforms[0].dst);
       if (!res)
-	cerr << "volume and transform dst do not agree" << endl;
-    }
-    else
-    {
+        cerr << "volume and transform dst do not agree" << endl;
+    } else {
       res = compareDirCos(mriIn, &lta->xforms[0].src);
       if (!res)
-	cerr << "volume and transform src do not agree" << endl;
-    }  
+        cerr << "volume and transform src do not agree" << endl;
+    }
     //  conformed -------> surfaceRAS
     //      |                  |
     //      V                  V  RASFromSRAS
@@ -292,57 +294,50 @@ int main(int argc, char *argv[])
     *MATRIX_RELT(RASFromSRAS, 1,4) = lta->xforms[0].src.c_r;
     *MATRIX_RELT(RASFromSRAS, 2,4) = lta->xforms[0].src.c_a;
     *MATRIX_RELT(RASFromSRAS, 3,4) = lta->xforms[0].src.c_s;
-    
+
     MATRIX *sRASFromRAS;
     sRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
     MatrixIdentity(4, sRASFromRAS);
     *MATRIX_RELT(sRASFromRAS, 1,4) = -lta->xforms[0].dst.c_r;
     *MATRIX_RELT(sRASFromRAS, 2,4) = -lta->xforms[0].dst.c_a;
     *MATRIX_RELT(sRASFromRAS, 3,4) = -lta->xforms[0].dst.c_s;
-    
+
     MATRIX *tmpM = MatrixMultiply(lta->xforms[0].m_L, RASFromSRAS, NULL);
-    hSRASTolSRAS = MatrixMultiply(sRASFromRAS, tmpM, NULL); 
+    hSRASTolSRAS = MatrixMultiply(sRASFromRAS, tmpM, NULL);
 
     MatrixFree(&RASFromSRAS);
     MatrixFree(&sRASFromRAS);
     MatrixFree(&tmpM);
 
-    if (invert)
-    {
+    if (invert) {
       MATRIX *tmp=MatrixInverse(hSRASTolSRAS, NULL);
       MatrixFree(&hSRASTolSRAS);
       hSRASTolSRAS = tmp;
-    }  
+    }
     cout << "surfaceRASToSurfaceRAS matrix " << endl;
     MatrixPrint(stdout, hSRASTolSRAS);
     cout << "Transforming vertices ... " << endl;
   }
   // read label
   int count =0;
-  while (flabel.good())
-  {
+  while (flabel.good()) {
     Vertex v;
     int num;
     double x, y, z;
     double value;
     flabel >> num >> x >> y >> z >> value;
-    if (xfname.size())
-    {
+    if (xfname.size()) {
       double xt, yt, zt;
       TransformWithMatrix(hSRASTolSRAS, scale*x, scale*y, scale*z, &xt, &yt, &zt);
       // create a vector
       v = Vertex(xt, yt, zt, value);
-      if (count < 10)
-      {
-	cout << "transformed:";
-	cout << Vertex(scale*x, scale*y, scale*z) << "to " << v << endl;
-      }
-      else if (count == 10)
-	cout << " ... " << endl;
+      if (count < 10) {
+        cout << "transformed:";
+        cout << Vertex(scale*x, scale*y, scale*z) << "to " << v << endl;
+      } else if (count == 10)
+        cout << " ... " << endl;
       count++;
-    }
-    else
-    {
+    } else {
       v = Vertex(scale*x, scale*y, scale*z, value);
     }
     vertices.push_back(v);
@@ -374,13 +369,10 @@ int main(int argc, char *argv[])
 
   // set voxToRAS and rasToVox transform function
   Real xv, yv, zv;
-  if (useRealRAS)
-  {
+  if (useRealRAS) {
     voxToRAS = MRIvoxelToWorld;
     rasToVox = MRIworldToVoxel;
-  }
-  else
-  {
+  } else {
     voxToRAS = MRIvoxelToSurfaceRAS;
     rasToVox = MRIsurfaceRASToVoxel;
   }
@@ -388,8 +380,7 @@ int main(int argc, char *argv[])
   cout << "filling...." << endl;
   int added = 0;
   // first use the naive approach
-  for (size_t i=0; i < vertices.size(); ++i)
-  {
+  for (size_t i=0; i < vertices.size(); ++i) {
     rasToVox(mriIn, vertices[i].x_, vertices[i].y_, vertices[i].z_, &xv, &yv, &zv);
     if (count < 10)
       cout << "get voxel at " << Vertex(xv, yv, zv) << "from vertex " << vertices[i] << endl;
@@ -398,44 +389,39 @@ int main(int argc, char *argv[])
     count++;
 
     // verify the voxel position
-    if (xv < 0 || yv < 0 || zv < 0 
-	|| xv > mriIn->width-1 || yv > mriIn->height-1 || zv > mriIn->depth -1)
-    {
+    if (xv < 0 || yv < 0 || zv < 0
+        || xv > mriIn->width-1 || yv > mriIn->height-1 || zv > mriIn->depth -1) {
       cerr << i << vertices[i] << " has invalid voxel position:" << Vertex(xv, yv, zv) << endl;
-    }
-    else
-    {
+    } else {
       if (!stats)
-	MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
+        MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
       else
-	MRIFvox(mriOut, nint(xv), nint(yv), nint(zv)) = (float) vertices[i].value_;
+        MRIFvox(mriOut, nint(xv), nint(yv), nint(zv)) = (float) vertices[i].value_;
       //////////////////////////////////////////////////////////////////////////
       // check possible others.  look around 3x3x3 neighbors
       for (int z0=-1; z0 < 2; ++z0)
-	for (int y0=-1; y0 < 2; ++y0)
-	  for (int x0=-1; x0 < 2; ++x0)
-	  {
-	    int x = nint(xv) + x0;
-	    int y = nint(yv) + y0;
-	    int z = nint(zv) + z0;
-	    Real xr, yr, zr;
-	    // go back to RAS to see whether the point is close enough
-	    voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
-	    // if the difference is 1/2 voxel size mm then equal
-	    if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
-	    {
-	      if (!stats)
-		MRIvox(mriOut, x, y, z ) = (unsigned char) val;
-	      else
-		MRIFvox(mriOut, x, y, z ) = (float) vertices[i].value_;
+        for (int y0=-1; y0 < 2; ++y0)
+          for (int x0=-1; x0 < 2; ++x0) {
+            int x = nint(xv) + x0;
+            int y = nint(yv) + y0;
+            int z = nint(zv) + z0;
+            Real xr, yr, zr;
+            // go back to RAS to see whether the point is close enough
+            voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
+            // if the difference is 1/2 voxel size mm then equal
+            if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0) {
+              if (!stats)
+                MRIvox(mriOut, x, y, z ) = (unsigned char) val;
+              else
+                MRIFvox(mriOut, x, y, z ) = (float) vertices[i].value_;
 
-	      cout << "added voxel:" << Vertex(x, y, z)  
-		   << "for vertex :" << Vertex(xr, yr, zr) << endl; 
-	      cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv)) 
-		   << "for vertex :" << vertices[i] << endl;
-	      added++;
-	    }
-	  }
+              cout << "added voxel:" << Vertex(x, y, z)
+              << "for vertex :" << Vertex(xr, yr, zr) << endl;
+              cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv))
+              << "for vertex :" << vertices[i] << endl;
+              added++;
+            }
+          }
     }
     //////////////////////////////////////////////////////////////////////////
   }
@@ -447,8 +433,7 @@ int main(int argc, char *argv[])
   MRI *mask =0;
 
   // the following is unnecessary, since I check the neightbor above
-  if (fillup)
-  {
+  if (fillup) {
 
     // create a mask with eroded region
     mask = MRIcopy(mriOut, NULL);
@@ -472,57 +457,49 @@ int main(int argc, char *argv[])
     int totcount = 0;
     int percentage = 0;
     Real xl, yl, zl;
-    for (int z = 0; z < mriOut->depth; z++)
-    {
-      for (int y = 0; y < mriOut->height; y++)
-      {
-	for (int x = 0; x < mriOut->width; x++)
-	{
-	  // mask has only added points marked with val
-	  curval = MRIvox(mask, x, y, z);
-	  // get the RAS point
-	  voxToRAS(mriOut, x, y, z, &xl, &yl, &zl);
+    for (int z = 0; z < mriOut->depth; z++) {
+      for (int y = 0; y < mriOut->height; y++) {
+        for (int x = 0; x < mriOut->width; x++) {
+          // mask has only added points marked with val
+          curval = MRIvox(mask, x, y, z);
+          // get the RAS point
+          voxToRAS(mriOut, x, y, z, &xl, &yl, &zl);
 
-	  // this point is marked, then looking around to see other points
-	  // may belong to the label list.
-	  if (curval == val)
-	  {
-	    totcount++;
-	    if (totcount % fivepercent == 0)
-	    {
-	      percentage += 5;
-	      cout << percentage << "% done" << endl;
-	    }
-	    // search
-	    for (size_t i=0; i < vertices.size(); ++i)
-	    {
-	      // since I sorted by X, the vertex position > current position + 2x vx
-	      // don't do anymore
-	      if ((vertices[i].x_) > (xl + 2*vx))
-		goto nextpoint;
-	      
-	      if (vertices[i] == Vertex(xl, yl, zl, 0))
-	      {
-		// if it is not set
-		if (MRIvox(mriOut, x, y, z) != val)
-		{
-		  MRIvox(mriOut, x, y, z) = val;
-		  cout << "\nadded another point: ( " 
-		       << x << ", " << y << ", " << z <<")" << endl; 
-		  addedcount++;
-		}
-	      } // for i		    
-	    nextpoint:
-	      continue;
-	    }
-	  }
-	} // x
+          // this point is marked, then looking around to see other points
+          // may belong to the label list.
+          if (curval == val) {
+            totcount++;
+            if (totcount % fivepercent == 0) {
+              percentage += 5;
+              cout << percentage << "% done" << endl;
+            }
+            // search
+            for (size_t i=0; i < vertices.size(); ++i) {
+              // since I sorted by X, the vertex position > current position + 2x vx
+              // don't do anymore
+              if ((vertices[i].x_) > (xl + 2*vx))
+                goto nextpoint;
+
+              if (vertices[i] == Vertex(xl, yl, zl, 0)) {
+                // if it is not set
+                if (MRIvox(mriOut, x, y, z) != val) {
+                  MRIvox(mriOut, x, y, z) = val;
+                  cout << "\nadded another point: ( "
+                  << x << ", " << y << ", " << z <<")" << endl;
+                  addedcount++;
+                }
+              } // for i
+nextpoint:
+              continue;
+            }
+          }
+        } // x
       } // y
     } // z
     cout << endl;
     cout << "       added = " << addedcount << endl;
   }
-  
+
   MRIwrite(mriOut, argv[3]);
 
   MRIfree(&mriOut);
@@ -533,114 +510,88 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-int get_option(int argc, char *argv[])
-{
+int get_option(int argc, char *argv[]) {
   char *option ;
   int nargs = 0;
 
   option=argv[1]+1; // pass -
-  if (strcmp(option, "cras")==0)
-  {
+  if (strcmp(option, "cras")==0) {
     cout << "OPTION: use the scanner RAS coordinates for label position." << endl;
     useRealRAS=1;
-  }
-  else if (strcmp(option,"fillup") == 0)
-  {
+  } else if (strcmp(option,"fillup") == 0) {
     cout << "OPTION: check to make sure all points are filled.... no longer necessary" << endl;
     fillup = 1;
-  }
-  else if (strcmp(option,"scale") == 0)
-  {
+  } else if (strcmp(option,"scale") == 0) {
     cout << "OPTION: we scale the label positions by " << argv[2] << endl;
     scale = atof(argv[2]);
     nargs=1;
-  }
-  else if (strcmp(option, "xfm") == 0)
-  {
+  } else if (strcmp(option, "xfm") == 0) {
     cout << "OPTION: use xfm " << argv[2] << endl;
     cout << "        make sure that this is the xfm from high res to low res" << endl;
     cout << "        if the other way, you must use -invert option also" << endl;
     xfname = argv[2];
     nargs=1;
-  }
-  else if (strcmp(option, "invert")==0)
-  {
+  } else if (strcmp(option, "invert")==0) {
     cout << "OPTION: xfm will be inverted" << endl;
     invert=1;
     nargs=0;
-  }
-  else if (strcmp(option, "stats")==0)
-  {
+  } else if (strcmp(option, "stats")==0) {
     cout << "OPTION: stats values will be in the output volume" << endl;
     stats = 1;
     nargs = 0;
   }
   return (nargs);
 }
-    
-MRI *erodeRegion(MRI *mask, MRI *current, unsigned char val)
-{  
+
+MRI *erodeRegion(MRI *mask, MRI *current, unsigned char val) {
   int xi, yi, zi;
   unsigned char curval;
-  for (int z = 0; z < mask->depth; z++)
-  {
-    for (int y = 0; y < mask->height; y++)
-    {
-      for (int x = 0; x < mask->width; x++)
-      {
-	curval = MRIvox(current, x, y, z);
-	// this point is marked, then looking around to see other points
-	// may belong to the label list.
-	if (curval == val)
-	{
-	  // look around 3 x 3 x 3 neighbors
-	  /////////////////////////////////////////////
-	  for (int z0 = -1 ; z0 <= 1 ; z0++)
-	  {
-	    zi = mask->zi[z+z0] ;
-	    for (int y0 = -1 ; y0 <= 1 ; y0++)
-	    {
-	      yi = mask->yi[y+y0] ;
-	      for (int x0 = -1 ; x0 <= 1 ; x0++)
-	      {
-		xi = mask->xi[x+x0] ;
-		MRIvox(mask, xi, yi, zi) = val;
-	      }
-	    }
-	  } 
-	} 
+  for (int z = 0; z < mask->depth; z++) {
+    for (int y = 0; y < mask->height; y++) {
+      for (int x = 0; x < mask->width; x++) {
+        curval = MRIvox(current, x, y, z);
+        // this point is marked, then looking around to see other points
+        // may belong to the label list.
+        if (curval == val) {
+          // look around 3 x 3 x 3 neighbors
+          /////////////////////////////////////////////
+          for (int z0 = -1 ; z0 <= 1 ; z0++) {
+            zi = mask->zi[z+z0] ;
+            for (int y0 = -1 ; y0 <= 1 ; y0++) {
+              yi = mask->yi[y+y0] ;
+              for (int x0 = -1 ; x0 <= 1 ; x0++) {
+                xi = mask->xi[x+x0] ;
+                MRIvox(mask, xi, yi, zi) = val;
+              }
+            }
+          }
+        }
       } // x
     } // y
   } // z
   return mask;
 }
 
-int selectAddedRegion(MRI *mask, MRI *orig, unsigned char val)
-{
+int selectAddedRegion(MRI *mask, MRI *orig, unsigned char val) {
   int totcount = 0;
   int origcount = 0;
   unsigned char mval;
   unsigned char curval;
-  for (int z = 0; z < mask->depth; z++)
-  {
-    for (int y = 0; y < mask->height; y++)
-    {
-      for (int x = 0; x < mask->width; x++)
-      {
-	mval = MRIvox(mask, x, y, z);
-	curval = MRIvox(orig, x, y, z);
-	
-	// this point is marked, then looking around to see other points
-	// may belong to the label list.
-	if (mval == val)
-	{
-	  totcount++;
-	  if (curval == val)
-	  {
-	    MRIvox(mask, x, y, z) = 0;
-	    origcount++;
-	  }
-	} 
+  for (int z = 0; z < mask->depth; z++) {
+    for (int y = 0; y < mask->height; y++) {
+      for (int x = 0; x < mask->width; x++) {
+        mval = MRIvox(mask, x, y, z);
+        curval = MRIvox(orig, x, y, z);
+
+        // this point is marked, then looking around to see other points
+        // may belong to the label list.
+        if (mval == val) {
+          totcount++;
+          if (curval == val) {
+            MRIvox(mask, x, y, z) = 0;
+            origcount++;
+          }
+        }
       } // x
     } // y
   } // z

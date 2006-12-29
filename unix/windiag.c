@@ -1,3 +1,31 @@
+/**
+ * @file  windiag.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
    @(#)window.c 1.1
    2/28/94
@@ -9,7 +37,7 @@
 
         Created: Jan. 1994
 
-    Description: 
+    Description:
 
 ------------------------------------------------------------------------*/
 
@@ -50,7 +78,8 @@ typedef struct
   double       dYmin ;
   double       dXmax ;
   double       dYmax ;
-} DIAG_WINDOW ;
+}
+DIAG_WINDOW ;
 
 
 /*------------------------------------------------------------------------
@@ -83,7 +112,7 @@ static void           winThread(int iTid, void *parm) ;
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -92,7 +121,7 @@ int
 WinShow(int iWin)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   XMapRaised(pwin->xvf->display, pwin->xwin->window) ;
   XFlush(pwin->xvf->display) ;
@@ -102,7 +131,7 @@ WinShow(int iWin)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -122,7 +151,7 @@ WinShowImage(int iWin, IMAGE *image, int which)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -133,21 +162,21 @@ WinSetName(int win, int which, char *fmt, ...)
   char   name[100] ;
   DIAG_WINDOW *pwin ;
   va_list args ;
-  
+
   va_start(args, fmt) ;
-/*  fmt = va_arg(args, char *) ;*/
+  /*  fmt = va_arg(args, char *) ;*/
   vsprintf(name, fmt, args) ;
 
   pwin = HandleToPtr(win) ;
   XVshowImageTitle(pwin->xvf, which, name) ;
-  
+
   return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -156,9 +185,9 @@ int
 WinClear(int iWin)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
-  
+
   /* this will clear the whole window from x, y down and to the right */
   XClearArea(pwin->xvf->display, pwin->xwin->window, 0, 0, 0, 0, False) ;
   return(0) ;
@@ -167,7 +196,7 @@ WinClear(int iWin)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -176,7 +205,7 @@ int
 WinFree(int iWin)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   xFreeWindow(pwin->xwin) ;
   pwin->xwin = NULL ;
@@ -186,7 +215,7 @@ WinFree(int iWin)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -195,7 +224,7 @@ int
 WinFlush(int iWin)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   XSync(pwin->xvf->display, 0) ;
   XFlush(pwin->xvf->display) ;
@@ -205,7 +234,7 @@ WinFlush(int iWin)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -215,26 +244,26 @@ WinAlloc(char *pcName, int iXpos, int iYpos, int iWidth, int iHeight)
 {
   int    iWin ;
   DIAG_WINDOW *pwin ;
-  
+
   iWin = winNewHandle() ;
   if (iWin < 0)
     return(ErrorPrintf(ERROR_NO_MEMORY,
-                    "WinAlloc: could not allocate new window"));
-  
+                       "WinAlloc: could not allocate new window"));
+
   pwin = HandleToPtr(iWin) ;
 #if 1
   pwin->xwin = xNewWindow(NULL, iXpos, iYpos, iWidth, iHeight, pcName, 0, 0) ;
 #else
   pwin->xwin = xNewWindow(NULL, iXpos, iYpos, iWidth, iHeight, pcName, 0, 0) ;
 #endif
-  
+
   return(iWin) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -248,32 +277,32 @@ winPoll(void)
     ThreadSignal(0, SIG_ALL) ;
 
   ThreadYield() ;
-/*  ThreadSleep(TID_SELF, 100) ;*/
+  /*  ThreadSleep(TID_SELF, 100) ;*/
   return(NOTIFY_DONE) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
 int
-WinCreate(char *pcName, int button_rows, int image_rows, int image_cols, 
+WinCreate(char *pcName, int button_rows, int image_rows, int image_cols,
           int rows, int cols)
 {
   int    iWin ;
   DIAG_WINDOW *pwin ;
-  
+
   iWin = winNewHandle() ;
   if (iWin < 0)
     return(ErrorPrintf(ERROR_NO_MEMORY,
-                    "WinAlloc: could not allocate new window"));
-  
+                       "WinAlloc: could not allocate new window"));
+
   pwin = HandleToPtr(iWin) ;
-  pwin->xvf = XValloc(rows, cols, button_rows, image_rows, image_cols, 
+  pwin->xvf = XValloc(rows, cols, button_rows, image_rows, image_cols,
                       pcName, winPoll) ;
   XVsetParms(event_handler) ;
 
@@ -293,7 +322,7 @@ WinCreate(char *pcName, int button_rows, int image_rows, int image_cols,
        Parameters:
 
       Description:
-  
+
     Return Values:
 ------------------------------------------------------------------------*/
 static void
@@ -309,7 +338,7 @@ winThread(int iTid, void *parm)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -318,18 +347,18 @@ static int
 winNewHandle(void)
 {
   int iWin ;
-  
+
   for (iWin = 0 ; iWin < MAX_WINDOWS ; iWin++)
     if (!window_table[iWin].xwin)
       return(iWin) ;
-  
+
   return(-1) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -348,7 +377,7 @@ HandleToPtr(int iWin)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -357,9 +386,9 @@ int
 WinDrawLine(int iWin, int x0, int y0, int x1, int y1, int color, int style)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
-  
+
   /* invert coordinate system so increasing y goes up */
   y0 = pwin->xwin->ysize - y0 ;
   y1 = pwin->xwin->ysize - y1 ;
@@ -370,7 +399,7 @@ WinDrawLine(int iWin, int x0, int y0, int x1, int y1, int color, int style)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -388,12 +417,12 @@ WinPrintf(int iWin, int x, int y, char *fmt, ...)
   pwin = HandleToPtr(iWin) ;
 
   /* AHH! what coordinate system to use? */
-/*  y = pwin->xwin->ysize - y ;*/
+  /*  y = pwin->xwin->ysize - y ;*/
   fmt = va_arg(args, char *) ;
-  
+
   vsprintf(str, fmt, args) ;
   len = strlen(str) ;
-  XDrawString(pwin->xvf->display, pwin->xwin->window, pwin->xwin->black, 
+  XDrawString(pwin->xvf->display, pwin->xwin->window, pwin->xwin->black,
               x, y, str, len);
   /*  XFlush(pwin->xvf->display) ;*/
   va_end(args) ;
@@ -404,7 +433,7 @@ int
 WinClearArea(int iWin, int x0, int y0, int width, int height)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   XClearArea(pwin->xvf->display, pwin->xwin->window,x0,y0,width,height,False);
   return(1) ;
@@ -413,7 +442,7 @@ WinClearArea(int iWin, int x0, int y0, int width, int height)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -422,12 +451,12 @@ int
 WinDrawCircle(int iWin, int x0, int y0, int radius, int color)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
-  
+
   /* invert coordinate system so increasing y goes up */
   /* AHH! what coordinate system to use? */
-/*  y0 = pwin->xwin->ysize - y0 ;*/
+  /*  y0 = pwin->xwin->ysize - y0 ;*/
   xDrawCircle(pwin->xwin, x0, y0, radius, color) ;
   return(0) ;
 }
@@ -435,7 +464,7 @@ WinDrawCircle(int iWin, int x0, int y0, int radius, int color)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -444,7 +473,7 @@ int
 WinSetScale(int iWin, double dXscale, double dYscale)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
 
   pwin->dXscale = dXscale ;
@@ -455,7 +484,7 @@ WinSetScale(int iWin, double dXscale, double dYscale)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -464,7 +493,7 @@ int
 WinGetScale(int iWin, double *pdXscale, double *pdYscale)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   *pdXscale = pwin->dXscale ;
   *pdYscale = pwin->dYscale ;
@@ -474,7 +503,7 @@ WinGetScale(int iWin, double *pdXscale, double *pdYscale)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
@@ -483,7 +512,7 @@ int
 WinSetRange(int iWin, double dXmin, double dXmax, double dYmin, double dYmax)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   pwin->dXmin = dXmin ;
   pwin->dXmax = dXmax ;
@@ -495,17 +524,17 @@ WinSetRange(int iWin, double dXmin, double dXmax, double dYmin, double dYmax)
        Parameters:
 
       Description:
-  
+
     Return Values:
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
 int
-WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin, 
-                 double *pdYmax)
+WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin,
+            double *pdYmax)
 {
   DIAG_WINDOW *pwin ;
-  
+
   pwin = HandleToPtr(iWin) ;
   *pdXmin = pwin->dXmin ;
   *pdXmax = pwin->dXmax ;
@@ -540,23 +569,23 @@ event_handler(Event *event, DIMAGE *dimage)
         XVprintf(xvf, 0, "offset at (%d, %d) = (%2.3f, %2.3f)", x, y, dx, dy) ;
       }
       else
-          dx = dy = 0.0f ;
+        dx = dy = 0.0f ;
 
       showOffsetArea(x,y, dx, dy) ;
       switch (filter_type)
       {
       case FILTER_EXPONENTIAL:
         calculateExponentialKernel(gradImage, x, y, filter_size,
-                filter_parm, kernelImage, dx, dy) ;
+                                   filter_parm, kernelImage, dx, dy) ;
         break ;
       case FILTER_EXP_LAPLACIAN:
         calculateExponentialKernel(laplacianImage, x, y, filter_size,
-                filter_parm, kernelImage, dx, dy) ;
+                                   filter_parm, kernelImage, dx, dy) ;
         break ;
       case FILTER_EXP_SUM:
         tmpImage = HipsAdd(laplacianImage, gradImage, tmpImage) ;
         calculateExponentialKernel(tmpImage, x, y, filter_size,
-                filter_parm, kernelImage, dx, dy) ;
+                                   filter_parm, kernelImage, dx, dy) ;
         break ;
       default:
         return ;

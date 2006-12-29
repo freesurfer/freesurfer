@@ -1,3 +1,31 @@
+/**
+ * @file  mriTransform.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef mriTransform_h
 #define mriTransform_h
 
@@ -21,15 +49,16 @@ typedef enum {
 
 } Trns_tErr;
 
-typedef struct {
+typedef struct
+{
 
   long mSignature;
 
   /* our various matrices. */
   MATRIX* mAtoRAS;     /* these go from a sepcific system to RAS */
   MATRIX* mBtoRAS;
-  MATRIX* mARAStoBRAS; /* this goes from RAS in one system to 
-			  RAS in the other */
+  MATRIX* mARAStoBRAS; /* this goes from RAS in one system to
+             RAS in the other */
 
   MATRIX* mRAStoA;     /* these are inverses of the above three */
   MATRIX* mRAStoB;
@@ -37,48 +66,49 @@ typedef struct {
 
   MATRIX* mAtoB;       /* these are compositions of the first three and */
   MATRIX* mBtoA;       /* second three */
-  
+
   MATRIX* mCoord1;     /* temp matricies for transforms. */
   MATRIX* mCoord2;
   int     type ;       /* RAS or voxel (see transform.h) */
-  
-} mriTransform, *mriTransformRef;
+
+}
+mriTransform, *mriTransformRef;
 
 #define Trns_kSignature 0x09876543
 
 Trns_tErr Trns_New        ( mriTransformRef* opTransform );
 Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
-          char*            isLTAFileName );
+                            char*            isLTAFileName );
 Trns_tErr Trns_Delete     ( mriTransformRef* iopTransform );
 Trns_tErr Trns_DeepClone  ( mriTransformRef  this,
-			    mriTransformRef* opTransform );
+                            mriTransformRef* opTransform );
 
 /* these are the minimum that should be set in a normal
    situation. Note that every time you copy one of these, the other
    matrices (the inverses of these tree and the compositions, AtoB and
    BtoA) will be recalculated in Trns_CalcMatricies_. */
 Trns_tErr Trns_CopyAtoRAS     ( mriTransformRef this,
-				MATRIX*         iAtoRAS );
+                                MATRIX*         iAtoRAS );
 Trns_tErr Trns_CopyBtoRAS     ( mriTransformRef this,
-				MATRIX*         iBtoRAS );
+                                MATRIX*         iBtoRAS );
 Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
-				MATRIX*         iARAStoBRAS );
+                                MATRIX*         iARAStoBRAS );
 
 /* Alternatively, use this if you only have one matrix to use. It will
    set AtoB and calc BtoA and then not touch the rest of the
    matrices. */
 Trns_tErr Trns_CopyAtoB     ( mriTransformRef this,
-			      MATRIX*         iAtoB );
+                              MATRIX*         iAtoB );
 
 /* access internal matrices */
 Trns_tErr Trns_GetAtoRAS     ( mriTransformRef this,
-			       MATRIX**        opMatrix );
+                               MATRIX**        opMatrix );
 Trns_tErr Trns_GetType     ( mriTransformRef this,
                              int *ptype) ;
 Trns_tErr Trns_GetBtoRAS     ( mriTransformRef this,
-			       MATRIX**        opMatrix );
+                               MATRIX**        opMatrix );
 Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
-			       MATRIX**        opMatrix );
+                               MATRIX**        opMatrix );
 Trns_tErr Trns_GetAtoB ( mriTransformRef this,
                          MATRIX**        opMatrix );
 Trns_tErr Trns_GetBtoA ( mriTransformRef this,
@@ -86,60 +116,60 @@ Trns_tErr Trns_GetBtoA ( mriTransformRef this,
 
 /* apply a transformation to the ARAStoBRAS matrix */
 Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
-        MATRIX*         iTransform );
+                                MATRIX*         iTransform );
 
 /* extracts the individual portions of a transformation matrix. necessary
    for local transformation. does not allocate new matricies. note that the
    scale extraction assumes all scales have been uniform in the three axes. */
 Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
-            MATRIX* oTranslation );
+    MATRIX* oTranslation );
 Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
-            MATRIX* oRotation );
+    MATRIX* oRotation );
 Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
-            MATRIX* oScale );
+    MATRIX* oScale );
 
 /* */
 Trns_tErr Trns_Translate  ( mriTransformRef this,
-          float           ifAmount,
-          tAxis           iAxis );
+                            float           ifAmount,
+                            tAxis           iAxis );
 Trns_tErr Trns_Rotate     ( mriTransformRef this,
-          float           ifDegrees,
-          tAxis           iAxis );
+                            float           ifDegrees,
+                            tAxis           iAxis );
 Trns_tErr Trns_Scale      ( mriTransformRef this,
-          float           ifFactor,
-          tAxis           iAxis );
+                            float           ifFactor,
+                            tAxis           iAxis );
 
-/* converts from a voxel in A space to one in B space, i.e. 
+/* converts from a voxel in A space to one in B space, i.e.
    A -> A_RAS, A_RAS -> B_RAS, B_RAS -> B */
 Trns_tErr Trns_ConvertAtoB   ( mriTransformRef this,
-			       xVoxelRef       iAVoxel,
-			       xVoxelRef       oBVoxel );
+                               xVoxelRef       iAVoxel,
+                               xVoxelRef       oBVoxel );
 Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
-			       xVoxelRef       iAVoxel,
-			       xVoxelRef       oRASVoxel );
+                               xVoxelRef       iAVoxel,
+                               xVoxelRef       oRASVoxel );
 Trns_tErr Trns_ConvertBtoA   ( mriTransformRef this,
-			       xVoxelRef       iBVoxel,
-			       xVoxelRef       oAVoxel );
+                               xVoxelRef       iBVoxel,
+                               xVoxelRef       oAVoxel );
 Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
-			       xVoxelRef       iBVoxel,
-			       xVoxelRef       oRASVoxel );
+                               xVoxelRef       iBVoxel,
+                               xVoxelRef       oRASVoxel );
 Trns_tErr Trns_ConvertBRAStoB( mriTransformRef this,
-			       xVoxelRef       iBRASVoxel,
-			       xVoxelRef       oBVoxel );
+                               xVoxelRef       iBRASVoxel,
+                               xVoxelRef       oBVoxel );
 
 /* converts matricies between a and b */
 Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
-				   MATRIX*         iAMatrix,
-				   MATRIX*         oBMatrix );
+                                   MATRIX*         iAMatrix,
+                                   MATRIX*         oBMatrix );
 Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
-				     MATRIX*         iAMatrix,
-				     MATRIX*         oRASMatrix );
+                                     MATRIX*         iAMatrix,
+                                     MATRIX*         oRASMatrix );
 Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
-				   MATRIX*         iBMatrix,
-				   MATRIX*         oAMatrix );
+                                   MATRIX*         iBMatrix,
+                                   MATRIX*         oAMatrix );
 Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
-				     MATRIX*         iBMatrix,
-				     MATRIX*         oRASMatrix );
+                                     MATRIX*         iBMatrix,
+                                     MATRIX*         oRASMatrix );
 
 /* internal function that calculates all the matricies */
 Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this );
@@ -148,9 +178,9 @@ Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this );
 /* debugging support */
 Trns_tErr Trns_Verify         ( mriTransformRef this );
 void      Trns_DebugPrint_    ( mriTransformRef this );
-void      Trns_Signal         ( char*           inMsg, 
-        int             inLineNum, 
-        Trns_tErr       ieCode );
+void      Trns_Signal         ( char*           inMsg,
+                                int             inLineNum,
+                                Trns_tErr       ieCode );
 char*     Trns_GetErrorString ( Trns_tErr       ieCode );
 
 #endif

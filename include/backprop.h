@@ -1,3 +1,31 @@
+/**
+ * @file  backprop.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)backprop.h  1.12
   10/23/95
@@ -6,10 +34,13 @@
 
       File Name:   backprop.h
 
-      Description:  
+      Description:
 
-  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.4 2004/08/26 15:27:12 tosa Exp $
+  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.5 2006/12/29 02:08:59 nicks Exp $
   $Log: backprop.h,v $
+  Revision 1.5  2006/12/29 02:08:59  nicks
+  added license header; ran astyle to set to kr and ansi code styling
+
   Revision 1.4  2004/08/26 15:27:12  tosa
   long to long32
 
@@ -27,9 +58,9 @@
 
 #include "machine.h"
 
-/* 
+/*
   backprop files can store multiple networks of varying size. In order to
-  accomodate this, I mimic the tiff file structure with a header indicating 
+  accomodate this, I mimic the tiff file structure with a header indicating
   the # of networks, and a pointer to the 1st one. Each one then starts with
   a pointer to the next network, or NULL for the last network in the file.
 */
@@ -39,7 +70,8 @@ typedef struct
   long32    nnets ;         /* total # of nets in file */
   long32    magic ;         /* magic # for identification */
   long32    first ;         /* file offset of first net */
-} BPFILE_HEADER ;
+}
+BPFILE_HEADER ;
 
 #define BP_APPEND         0
 #define BP_WRITE          1
@@ -54,7 +86,7 @@ typedef struct
   learning_rate = learning_rate * TRATE_DECREASE
 
   otherwise, if the sse decresed, the increase the step size by:
-  
+
   learning_rate = learning_rate * TRATE_INCREASE.
 */
 
@@ -73,7 +105,8 @@ typedef struct
   float   *db ;           /* last bias change for momentum */
   float   *deltas ;       /* for training */
   float   *dw ;           /* last weight change for momentum */
-} LAYER ;
+}
+LAYER ;
 
 typedef struct
 {
@@ -98,10 +131,11 @@ typedef struct
   float   sse ;           /* sum squared error */
   int     user_bytes ;    /* # of bytes in user memory */
   char    *user ;         /* ad hoc memory for user to use */
-} BACKPROP ;
+}
+BACKPROP ;
 
 BACKPROP *BackpropAlloc(int ninputs, int noutputs, int nhidden, float alpha,
-                      float trate, float *mean_out, float *std_out) ;
+                        float trate, float *mean_out, float *std_out) ;
 BACKPROP *BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst) ;
 int      BackpropSetParms(BACKPROP *bp, float trate_up, float trate_down,
                           float error_rate) ;
@@ -112,10 +146,10 @@ int      BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 int      BackpropFree(BACKPROP **backprop) ;
 int      BackpropProcess(BACKPROP *backprop, float *I) ;
 float    BackpropLearn(BACKPROP *backprop, float *inputs, float *targets) ;
-float    BackpropTrainEpoch(BACKPROP *bp, int ntrials, 
-                            int (*io_func)(float *inputs, float *targets, 
+float    BackpropTrainEpoch(BACKPROP *bp, int ntrials,
+                            int (*io_func)(float *inputs, float *targets,
                                            int index, int ninputs,
-                                           int noutputs, void *user), 
+                                           int noutputs, void *user),
                             void *user) ;
 float    BackpropError(BACKPROP *bp, float *targets) ;
 int      BackpropErrorReset(BACKPROP *bp) ;

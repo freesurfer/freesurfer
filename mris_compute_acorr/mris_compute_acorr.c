@@ -1,3 +1,31 @@
+/**
+ * @file  mris_compute_acorr.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +44,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_compute_acorr.c,v 1.5 2003/09/05 04:45:40 kteich Exp $";
+static char vcid[] = "$Id: mris_compute_acorr.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -34,14 +62,14 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 #if 1
-static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, 
-                                                   float *curv, double *acorr,
-                                                   double *counts,
-                                                   int nbins, float bin_size) ;
+static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
+    float *curv, double *acorr,
+    double *counts,
+    int nbins, float bin_size) ;
 #else
-static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, 
-                                                  float bin_size, 
-                                                  float max_dist, int *pn) ;
+static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
+    float bin_size,
+    float max_dist, int *pn) ;
 #endif
 
 
@@ -51,21 +79,21 @@ static int   cvector_accumulate(float *v, float *vtotal, int num) ;
 static int   cvector_accumulate_square(float *v, float *vtotal, int num) ;
 static int   cvector_subtract(float *v1, float *v2, float *vdst, int num) ;
 static int   cvector_compute_variance(float *var,float *mean,int norm,int num);
-static int   cvector_compute_t_test(float *c1_mean, float *c1_var, 
-                                    float *c2_mean, float *c2_var, 
-                                    int num_class1, int num_class2, 
+static int   cvector_compute_t_test(float *c1_mean, float *c1_var,
+                                    float *c2_mean, float *c2_var,
+                                    int num_class1, int num_class2,
                                     float *pvals, int num) ;
 #if 0
 static double    cvector_len(float *v, int num) ;
 #endif
-static double cvector_compute_snr(float *c1_mean, float *c2_mean, 
+static double cvector_compute_snr(float *c1_mean, float *c2_mean,
                                   float *verror, float *snr, int num, int *pi);
 
-static int   cvector_mark_low_prob_vertices(float *pvals, float pthresh, 
-                                            MRI_SURFACE *mris) ;
+static int   cvector_mark_low_prob_vertices(float *pvals, float pthresh,
+    MRI_SURFACE *mris) ;
 static float *cvector_alloc(int num) ;
 static int   cvector_clear(float *v, int num) ;
-static int   cvector_add_variances(float *c1_var, float *c2_var, 
+static int   cvector_add_variances(float *c1_var, float *c2_var,
                                    int num_class1, int num_class2,
                                    float *total_var, int nvertices) ;
 static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
@@ -93,22 +121,21 @@ static int max_avgs = 100 ;
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char         **av, *curv_name, *surf_name, *hemi, fname[STRLEN],
-               *cp, *subject_name, subjects_dir[STRLEN],
-               **c1_subjects, **c2_subjects ;
+  *cp, *subject_name, subjects_dir[STRLEN],
+  **c1_subjects, **c2_subjects ;
   int          ac, nargs, n, num_class1, num_class2, i, nvertices, nbins;
   float        **c1_curvs, **c2_curvs, *curvs, *total_mean, *c1_mean, *c2_mean,
-               *class_mean, *c1_var, *c2_var, *class_var, *pvals ;
+  *class_mean, *c1_var, *c2_var, *class_var, *pvals ;
   double       *noise_acorr, *signal_acorr, *noise_counts, *signal_counts ;
   MRI_SP       *mrisp ;
   LABEL        *area ;
   FILE         *fp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_acorr.c,v 1.5 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_acorr.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -121,8 +148,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -134,7 +160,7 @@ main(int argc, char *argv[])
   if (output_subject == NULL)
     ErrorExit(ERROR_BADPARM,
               "output subject must be specified with -o <subject name>");
-  
+
   cp = getenv("SUBJECTS_DIR") ;
   if (!cp)
     ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment",
@@ -149,18 +175,18 @@ main(int argc, char *argv[])
 #define ARGV_OFFSET 4
 
   /* first determine the number of subjects in each class */
-  num_class1 = 0 ; n = ARGV_OFFSET ;
-  do
-  {
+  num_class1 = 0 ;
+  n = ARGV_OFFSET ;
+  do {
     num_class1++ ;
     n++ ;
     if (argv[n] == NULL || n >= argc)
       ErrorExit(ERROR_BADPARM, "%s: must spectify ':' between class lists",
                 Progname) ;
-  } while(argv[n][0] != ':') ;
+  } while (argv[n][0] != ':') ;
 
   /* find  # of vertices in output subject surface */
-  sprintf(fname, "%s/%s/surf/%s.%s", 
+  sprintf(fname, "%s/%s/surf/%s.%s",
           subjects_dir,output_subject,hemi,surf_name);
   mris = MRISread(fname) ;
   if (!mris)
@@ -171,46 +197,46 @@ main(int argc, char *argv[])
 
   total_mean = (float *)calloc(nvertices, sizeof(float)) ;
   if (!total_mean)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate mean list of %d curvatures",
               Progname, n, nvertices) ;
   c1_mean = (float *)calloc(nvertices, sizeof(float)) ;
   if (!c1_mean)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate c1 mean list of %d curvatures",
               Progname, n, nvertices) ;
   pvals = (float *)calloc(nvertices, sizeof(float)) ;
   if (!pvals)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate pvals",
               Progname, n, nvertices) ;
   c2_mean = (float *)calloc(nvertices, sizeof(float)) ;
   if (!c2_mean)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate c2 mean list of %d curvatures",
               Progname, n, nvertices) ;
 
   c1_var = (float *)calloc(nvertices, sizeof(float)) ;
   if (!c1_var)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate c1 var list of %d curvatures",
               Progname, n, nvertices) ;
   c2_var = (float *)calloc(nvertices, sizeof(float)) ;
   if (!c2_var)
-    ErrorExit(ERROR_NOMEMORY, 
+    ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate c2 var list of %d curvatures",
               Progname, n, nvertices) ;
 
-  num_class2 = 0 ; n++ ; /* skip ':' */
+  num_class2 = 0 ;
+  n++ ; /* skip ':' */
   if (n >= argc)
     ErrorExit(ERROR_BADPARM, "%s: class2 list empty", Progname) ;
-  do
-  {
+  do {
     num_class2++ ;
     n++ ;
     if (n >= argc)
       break ;
-  } while(argv[n] != NULL) ;
+  } while (argv[n] != NULL) ;
 
   fprintf(stderr, "%d subjects in class1, %d subjects in class2\n",
           num_class1, num_class2) ;
@@ -219,12 +245,11 @@ main(int argc, char *argv[])
   c1_curvs = (float **)calloc(num_class1, sizeof(char *)) ;
   c2_subjects = (char **)calloc(num_class2, sizeof(char *)) ;
   c2_curvs = (float **)calloc(num_class2, sizeof(char *)) ;
-  for (n = 0 ; n < num_class1 ; n++)
-  {
+  for (n = 0 ; n < num_class1 ; n++) {
     c1_subjects[n] = argv[ARGV_OFFSET+n] ;
     c1_curvs[n] = (float *)calloc(nvertices, sizeof(float)) ;
     if (!c1_curvs[n])
-      ErrorExit(ERROR_NOMEMORY, 
+      ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate %dth list of %d curvatures",
                 Progname, n, nvertices) ;
 
@@ -232,36 +257,32 @@ main(int argc, char *argv[])
     /*    fprintf(stderr, "class1[%d] - %s\n", n, c1_subjects[n]) ;*/
   }
   i = n+1+ARGV_OFFSET ;  /* starting index */
-  for (n = 0 ; n < num_class2 ; n++)
-  {
+  for (n = 0 ; n < num_class2 ; n++) {
     c2_subjects[n] = argv[i+n] ;
     c2_curvs[n] = (float *)calloc(nvertices, sizeof(float)) ;
     if (!c2_curvs[n])
-      ErrorExit(ERROR_NOMEMORY, 
+      ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate %dth list of %d curvatures",
                 Progname, n, nvertices) ;
     strcpy(c2_subjects[n], argv[i+n]) ;
     /*    fprintf(stderr, "class2[%d] - %s\n", n, c2_subjects[n]) ;*/
   }
-  
-  if (label_name)
-  {
+
+  if (label_name) {
     area = LabelRead(output_subject, label_name) ;
     if (!area)
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname,
                 label_name) ;
-  }
-  else
+  } else
     area = NULL ;
 
   /* real all the curvatures in for group1 */
-  for (n = 0 ; n < num_class1+num_class2 ; n++)
-  {
+  for (n = 0 ; n < num_class1+num_class2 ; n++) {
     /* transform each subject's curvature into the output subject's space */
     subject_name = n < num_class1 ? c1_subjects[n] : c2_subjects[n-num_class1];
     fprintf(stderr, "reading subject %d of %d: %s\n",
             n+1, num_class1+num_class2, subject_name) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", 
+    sprintf(fname, "%s/%s/surf/%s.%s",
             subjects_dir,subject_name,hemi,surf_name);
     mris = MRISread(fname) ;
     if (!mris)
@@ -278,8 +299,8 @@ main(int argc, char *argv[])
     MRISaverageCurvatures(mris, navgs) ;
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
     MRISfree(&mris) ;
-    
-    sprintf(fname, "%s/%s/surf/%s.%s", 
+
+    sprintf(fname, "%s/%s/surf/%s.%s",
             subjects_dir,output_subject,hemi,surf_name);
     mris = MRISread(fname) ;
     if (!mris)
@@ -305,10 +326,10 @@ main(int argc, char *argv[])
   cvector_normalize(c2_mean, num_class2, nvertices) ;
   cvector_compute_variance(c1_var, c1_mean, num_class1, nvertices) ;
   cvector_compute_variance(c2_var, c2_mean, num_class2, nvertices) ;
-  cvector_compute_t_test(c1_mean, c1_var, c2_mean, c2_var, 
+  cvector_compute_t_test(c1_mean, c1_var, c2_mean, c2_var,
                          num_class1, num_class2, pvals, nvertices) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", 
+  sprintf(fname, "%s/%s/surf/%s.%s",
           subjects_dir,output_subject,hemi,surf_name);
   fprintf(stderr, "reading output surface %s...\n", fname) ;
   mris = MRISread(fname) ;
@@ -316,8 +337,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  if (max_avgs)
-  {
+  if (max_avgs) {
     float  *vbest_snr, *vbest_avgs, *vtotal_var, *vsnr ;
     int    avgs, max_snr_avgs, i ;
     double snr, max_snr ;
@@ -326,24 +346,24 @@ main(int argc, char *argv[])
     vbest_avgs = cvector_alloc(nvertices) ;
     vtotal_var = cvector_alloc(nvertices) ;
     vsnr = cvector_alloc(nvertices) ;
-    
+
     cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
                           vtotal_var, nvertices) ;
-    snr = cvector_compute_snr(c1_mean, c2_mean, vtotal_var, 
+    snr = cvector_compute_snr(c1_mean, c2_mean, vtotal_var,
                               vsnr, nvertices, &i);
     fprintf(stderr, "raw SNR=%2.2f\n", snr/(double)nvertices) ;
     max_snr = snr ;
     max_snr_avgs = 0 ;
     cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, 0, nvertices) ;
 
-    for (avgs = 1 ; avgs <= max_avgs ; avgs++)
-    {
+    for (avgs = 1 ; avgs <= max_avgs ; avgs++) {
       fprintf(stderr, "testing %d averages...\n", avgs) ;
-      cvector_clear(c1_mean, nvertices) ; cvector_clear(c2_mean, nvertices) ;
-      cvector_clear(c1_var, nvertices) ; cvector_clear(c1_var, nvertices) ;
+      cvector_clear(c1_mean, nvertices) ;
+      cvector_clear(c2_mean, nvertices) ;
+      cvector_clear(c1_var, nvertices) ;
+      cvector_clear(c1_var, nvertices) ;
       cvector_clear(total_mean, nvertices) ;
-      for (n = 0 ; n < num_class1 ; n++)
-      {
+      for (n = 0 ; n < num_class1 ; n++) {
 #if 0
         fprintf(stderr, "processing subject %d of %d: %s\r",
                 n+1, num_class1+num_class2, c1_subjects[n]) ;
@@ -355,8 +375,7 @@ main(int argc, char *argv[])
         cvector_accumulate(c1_curvs[n], c1_mean, nvertices) ;
         cvector_accumulate_square(c1_curvs[n], c1_var, nvertices) ;
       }
-      for (n = 0 ; n < num_class2 ; n++)
-      {
+      for (n = 0 ; n < num_class2 ; n++) {
 #if 0
         fprintf(stderr, "processing subject %d of %d: %s\r",
                 n+1+num_class1, num_class1+num_class2, c2_subjects[n]) ;
@@ -375,7 +394,7 @@ main(int argc, char *argv[])
       cvector_compute_variance(c2_var, c2_mean, num_class2, nvertices) ;
       cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
                             vtotal_var, nvertices) ;
-      snr = 
+      snr =
         cvector_compute_snr(c1_mean, c2_mean, vtotal_var, vsnr, nvertices,&i);
       fprintf(fp, "%d %2.1f  %2.2f %2.2f %2.2f ",
               avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
@@ -386,9 +405,8 @@ main(int argc, char *argv[])
       for (n = 0 ; n < num_class2 ; n++)
         fprintf(fp, "%2.2f ", c2_curvs[n][i]) ;
       fprintf(fp, "\n") ;
-      if (snr > max_snr)
-      {
-        fprintf(stderr, 
+      if (snr > max_snr) {
+        fprintf(stderr,
                 "new max SNR found at avgs=%d (%2.1f mm)=%2.2f, n=%2.2f, "
                 "d=%2.2f\n",
                 avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
@@ -400,9 +418,11 @@ main(int argc, char *argv[])
     }
     printf("max snr=%2.2f at %d averages\n", max_snr, max_snr_avgs) ;
     MRISimportValVector(mris, vbest_snr) ;
-    sprintf(fname, "./%s.best_snr", hemi) ; MRISwriteValues(mris, fname) ;
+    sprintf(fname, "./%s.best_snr", hemi) ;
+    MRISwriteValues(mris, fname) ;
     MRISimportValVector(mris, vbest_avgs) ;
-    sprintf(fname, "./%s.best_avgs", hemi) ; MRISwriteValues(mris, fname) ;
+    sprintf(fname, "./%s.best_avgs", hemi) ;
+    MRISwriteValues(mris, fname) ;
     fclose(fp) ;
     exit(0) ;
   }
@@ -415,9 +435,9 @@ main(int argc, char *argv[])
     cvector_mark_low_prob_vertices(pvals, pthresh, mris) ;
 
   noise_acorr = (double *)calloc(nbins, sizeof(double)) ;
-  noise_counts = (double *)calloc(nbins, sizeof(double)) ; 
+  noise_counts = (double *)calloc(nbins, sizeof(double)) ;
   signal_acorr = (double *)calloc(nbins, sizeof(double)) ;
-  signal_counts = (double *)calloc(nbins, sizeof(double)) ; 
+  signal_counts = (double *)calloc(nbins, sizeof(double)) ;
   curvs = cvector_alloc(nvertices) ;
   cvector_subtract(c1_mean, c2_mean, curvs, nvertices) ;
   MRISimportCurvatureVector(mris, curvs) ;
@@ -433,8 +453,7 @@ main(int argc, char *argv[])
   MRISwriteCurvature(mris, fname) ;
 
   fprintf(stderr, "computing autocorrelation functions...\n") ;
-  for (n = 0 ; n < num_class1 ; n++)
-  {
+  for (n = 0 ; n < num_class1 ; n++) {
     fprintf(stderr, "processing subject %d of %d: %s\n",
             n+1, num_class1+num_class2, c1_subjects[n]) ;
     cvector_subtract(c1_mean, c1_curvs[n], curvs, nvertices) ;
@@ -446,8 +465,7 @@ main(int argc, char *argv[])
                                         nbins,BIN_SIZE);
 #endif
   }
-  for (n = 0 ; n < num_class2 ; n++)
-  {
+  for (n = 0 ; n < num_class2 ; n++) {
     fprintf(stderr, "processing subject %d of %d: %s\n",
             n+1+num_class1, num_class1+num_class2, c2_subjects[n]) ;
     cvector_subtract(c2_mean, c2_curvs[n], curvs, nvertices) ;
@@ -462,8 +480,7 @@ main(int argc, char *argv[])
   cvector_subtract(c1_mean, c2_mean, curvs, nvertices) ;
   MRIScomputeCurvatureAutocorrelation(mris, curvs,signal_acorr,signal_counts,
                                       nbins,BIN_SIZE);
-  for (n = 0 ; n < nbins ; n++)
-  {
+  for (n = 0 ; n < nbins ; n++) {
     if (signal_counts[n])
       signal_acorr[n] /= signal_counts[n] ;
     if (noise_counts[n])
@@ -473,7 +490,7 @@ main(int argc, char *argv[])
   fill_acorr_holes(noise_acorr, noise_counts, nbins) ;
   write_acorr(signal_name, signal_acorr, signal_counts, nbins, BIN_SIZE) ;
   write_acorr(noise_name, noise_acorr, noise_counts, nbins, BIN_SIZE) ;
-#if 0  
+#if 0
   exit(0) ;
 
   acorr = MRIScomputeCurvatureAutocorrelation(mris, BIN_SIZE, MAX_DIST, &n) ;
@@ -491,81 +508,75 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "avgs"))
-  {
+  else if (!stricmp(option, "avgs")) {
     max_avgs = atoi(argv[2]) ;
-    fprintf(stderr, 
+    fprintf(stderr,
             "computing kernel for maximum snr up to %d averages (%2.1f mm)\n",
             max_avgs, sqrt((double)max_avgs)) ;
     nargs = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'L':
-    label_name = argv[2] ;
-    fprintf(stderr, "masking label %s\n", label_name) ;
-    nargs = 1 ;
-    break ;
-  case 'N':
-    noise_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "outputting noise autocorrelation to %s...\n", noise_name);
-    break ;
-  case 'S':
-    signal_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr,"outputting signal autocorrelation to %s...\n",signal_name);
-    break ;
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "averaging curvature patterns %d times...\n", navgs) ;
-    break ;
-  case 'T':
-    pthresh = atof(argv[2]) ;
-    fprintf(stderr, "using p value threshold %2.3f\n", (float)pthresh) ;
-    nargs = 1 ;
-    break ;
-  case 'O':
-    output_subject = argv[2] ;
-    fprintf(stderr, "using %s as output subject\n", output_subject) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'L':
+      label_name = argv[2] ;
+      fprintf(stderr, "masking label %s\n", label_name) ;
+      nargs = 1 ;
+      break ;
+    case 'N':
+      noise_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "outputting noise autocorrelation to %s...\n", noise_name);
+      break ;
+    case 'S':
+      signal_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr,"outputting signal autocorrelation to %s...\n",signal_name);
+      break ;
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "averaging curvature patterns %d times...\n", navgs) ;
+      break ;
+    case 'T':
+      pthresh = atof(argv[2]) ;
+      fprintf(stderr, "using p value threshold %2.3f\n", (float)pthresh) ;
+      nargs = 1 ;
+      break ;
+    case 'O':
+      output_subject = argv[2] ;
+      fprintf(stderr, "using %s as output subject\n", output_subject) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s -o <output subject> [options] \n"
           "\t<hemi> <surf> <curv> \n\t<c1_subject1> <c1_subject2>... : \n"
           "\t<c2_subject1> <c2_subject2>...\n",
@@ -578,10 +589,9 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
+  fprintf(stderr,
           "\nThis program will compute the autocorrelation function of"
           " a curvature file\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
@@ -589,8 +599,7 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
@@ -598,8 +607,7 @@ print_version(void)
 #if 1
 static double *
 MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
-                                    double *counts, int nbins, float bin_size)
-{
+                                    double *counts, int nbins, float bin_size) {
   static MHT     *mht = NULL ;
   static int nv = 0 ;
   MHBT    *bucket ;
@@ -615,8 +623,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
     MHTfree(&mht) ;
 
   nv = mris->nvertices ;
-  if (!mht)
-  {
+  if (!mht) {
     fprintf(stderr, "building spatial LUT...\n") ;
     mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_dist) ;
   }
@@ -625,8 +632,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
   radius = MRISaverageRadius(mris) ;
   circumference = M_PI * 2.0 * radius ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || !v->marked)
       continue ;
@@ -636,27 +642,29 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
     if (!(vno % 10000))
       fprintf(stderr, "%d of %d vertices processed\n", vno, mris->nvertices) ;
 #endif
-    x = v->x ; y = v->y ; z = v->z ;
+    x = v->x ;
+    y = v->y ;
+    z = v->z ;
     bucket = MHTgetBucket(mht, x, y, z) ;
     VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
-    for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
-    {
-      n = bin->fno ; vn = &mris->vertices[n] ;
+    for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) {
+      n = bin->fno ;
+      vn = &mris->vertices[n] ;
       VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
       angle = fabs(Vector3Angle(v1, v2)) ;
 #if 0
-      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+      xd = v->x - vn->x ;
+      yd = v->y - vn->y ;
+      zd = v->z - vn->z ;
       dist = sqrt(xd*xd + yd*yd + zd*zd) ;
 #else
       dist = circumference * angle / (2.0 * M_PI) ;
 #endif
-      if (dist < max_dist)
-      {
+      if (dist < max_dist) {
         index = (int)((float)dist/bin_size) ;
         counts[index]++ ;
 #if 0
-        if (!index)
-        {
+        if (!index) {
           double a = (double)(curv[vno] * curv[n]) ;
           DiagBreak() ;
         }
@@ -665,15 +673,15 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
       }
     }
   }
-  
-  VectorFree(&v1) ; VectorFree(&v2) ;
+
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
   return(acorr) ;
 }
 #else
 static double *
-MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size, 
-                                    float max_dist, int *pn)
-{
+MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
+                                    float max_dist, int *pn) {
   MHT     *mht ;
   int     vno, n, i, index, *counts, nbins ;
   VERTEX  *v, *vn ;
@@ -692,8 +700,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
 
   nbins = max_dist/bin_size+1 ;
   counts = (int *)calloc(nbins, sizeof(int)) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -701,22 +708,25 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
       DiagBreak() ;
     if (!(vno % 10000))
       fprintf(stderr, "%d of %d vertices processed\n", vno, mris->nvertices) ;
-    x = v->x ; y = v->y ; z = v->z ;
+    x = v->x ;
+    y = v->y ;
+    z = v->z ;
     bucket = MHTgetBucket(mht, x, y, z) ;
     VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
-    for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
-    {
-      n = bin->fno ; vn = &mris->vertices[n] ;
+    for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) {
+      n = bin->fno ;
+      vn = &mris->vertices[n] ;
       VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
       angle = fabs(Vector3Angle(v1, v2)) ;
 #if 0
-      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+      xd = v->x - vn->x ;
+      yd = v->y - vn->y ;
+      zd = v->z - vn->z ;
       dist = sqrt(xd*xd + yd*yd + zd*zd) ;
 #else
-      dist = circumference * angle / (2.0 * M_PI) ;
+dist = circumference * angle / (2.0 * M_PI) ;
 #endif
-      if (dist < max_dist)
-      {
+      if (dist < max_dist) {
         index = (int)((float)dist/bin_size) ;
         counts[index]++ ;
         acorr[index] += (double)(v->curv * vn->curv) ;
@@ -724,13 +734,11 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
     }
 
   }
-  
+
   MHTfree(&mht) ;
 
-  for (i = 0 ; i < nbins ; i++)
-  {
-    if (counts[i])
-    {
+  for (i = 0 ; i < nbins ; i++) {
+    if (counts[i]) {
       acorr[i] /= (float)counts[i] ;
       printf("%2.4f  %2.4f  %d\n",
              (float)i*bin_size, acorr[i], counts[i]) ;
@@ -742,14 +750,14 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
   }
   *pn = nbins ;
   free(counts) ;
-  VectorFree(&v1) ; VectorFree(&v2) ;
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
   return(acorr) ;
 }
 #endif
 
 static int
-cvector_compute_variance(float *var,float *mean,int norm,int num)
-{
+cvector_compute_variance(float *var,float *mean,int norm,int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -757,8 +765,7 @@ cvector_compute_variance(float *var,float *mean,int norm,int num)
   return(NO_ERROR) ;
 }
 static int
-cvector_normalize(float *v, float norm, int num)
-{
+cvector_normalize(float *v, float norm, int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -766,9 +773,8 @@ cvector_normalize(float *v, float norm, int num)
   return(NO_ERROR) ;
 }
 
-static int   
-cvector_accumulate_square(float *v, float *vtotal, int num)
-{
+static int
+cvector_accumulate_square(float *v, float *vtotal, int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -776,8 +782,7 @@ cvector_accumulate_square(float *v, float *vtotal, int num)
   return(NO_ERROR) ;
 }
 static int
-cvector_accumulate(float *v, float *vtotal, int num)
-{
+cvector_accumulate(float *v, float *vtotal, int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -786,8 +791,7 @@ cvector_accumulate(float *v, float *vtotal, int num)
 }
 
 static int
-cvector_subtract(float *v1, float *v2, float *vdst, int num)
-{
+cvector_subtract(float *v1, float *v2, float *vdst, int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -795,16 +799,14 @@ cvector_subtract(float *v1, float *v2, float *vdst, int num)
   return(NO_ERROR) ;
 }
 static int
-cvector_compute_t_test(float *c1_mean, float *c1_var, 
-                       float *c2_mean, float *c2_var, 
-                       int num_class1, int num_class2, 
-                       float *pvals, int num)
-{
+cvector_compute_t_test(float *c1_mean, float *c1_var,
+                       float *c2_mean, float *c2_var,
+                       int num_class1, int num_class2,
+                       float *pvals, int num) {
   int    i ;
   double t, numer, denom ;
 
-  for (i = 0 ; i < num ; i++)
-  {
+  for (i = 0 ; i < num ; i++) {
     numer = (c1_mean[i] - c2_mean[i]) ;
     denom = sqrt(c1_var[i]/num_class1) + sqrt(c2_var[i]/num_class2) ;
     t = numer / denom ;
@@ -814,23 +816,21 @@ cvector_compute_t_test(float *c1_mean, float *c1_var,
 }
 
 static int
-write_acorr(char *fname,double *acorr,double *counts,int nbins, float bin_size)
-{
+write_acorr(char *fname,double *acorr,double *counts,int nbins, float bin_size) {
   int  i ;
   FILE *fp ;
 
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(ERROR_BADFILE, 
-                (ERROR_BADFILE, "%s: could not open autocorrelation file %s", 
+    ErrorReturn(ERROR_BADFILE,
+                (ERROR_BADFILE, "%s: could not open autocorrelation file %s",
                  Progname, fname)) ;
 
-  for (i = 0 ; i < nbins ; i++)
-  {
+  for (i = 0 ; i < nbins ; i++) {
     /*    if (counts[i])*/
     {
       fprintf(fp, "%2.4f  %2.4f  %d\n",
-             (float)i*bin_size, acorr[i], (int)counts[i]) ;
+              (float)i*bin_size, acorr[i], (int)counts[i]) ;
     }
 #if 0
     else
@@ -842,16 +842,12 @@ write_acorr(char *fname,double *acorr,double *counts,int nbins, float bin_size)
 }
 
 static int
-fill_acorr_holes(double *acorr, double *counts, int nbins)
-{
+fill_acorr_holes(double *acorr, double *counts, int nbins) {
   int    i, n ;
 
-  for (n = 0 ; n < 5000  ; n++)
-  {
-    for (i = 0 ; i < nbins ; i++)
-    {
-      if (counts[i] == 0)
-      {
+  for (n = 0 ; n < 5000  ; n++) {
+    for (i = 0 ; i < nbins ; i++) {
+      if (counts[i] == 0) {
         if (i == 0)
           acorr[i] = (acorr[i] + acorr[i+1]) / 2 ;
         else if (i == nbins-1)
@@ -866,14 +862,11 @@ fill_acorr_holes(double *acorr, double *counts, int nbins)
 
 
 static int
-cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris)
-{
+cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris) {
   int    i, num ;
 
-  for (num = i = 0 ; i < mris->nvertices ; i++)
-  {
-    if (pvals[i] < pthresh)
-    {
+  for (num = i = 0 ; i < mris->nvertices ; i++) {
+    if (pvals[i] < pthresh) {
       num++ ;
       mris->vertices[i].marked = 1 ;
     }
@@ -883,22 +876,20 @@ cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris)
 }
 
 static double
-cvector_compute_snr(float *c1_mean, float *c2_mean, float *vvar, float *snr, 
-                    int num, int *pi)
-{
+cvector_compute_snr(float *c1_mean, float *c2_mean, float *vvar, float *snr,
+                    int num, int *pi) {
   int    i, max_i ;
   float  f, max_snr ;
   double total_snr ;
 
   max_i = -1 ;
-  for (max_snr = total_snr = 0.0, i = 0 ; i < num ; i++)
-  {
-    f = (c1_mean[i]-c2_mean[i]) ; f *= f ;
+  for (max_snr = total_snr = 0.0, i = 0 ; i < num ; i++) {
+    f = (c1_mean[i]-c2_mean[i]) ;
+    f *= f ;
     if (!iszero(vvar[i]))
       f /= (vvar[i]) ;
-      
-    if (f > max_snr)
-    {
+
+    if (f > max_snr) {
       max_snr = f ;
       max_i = i ;
     }
@@ -911,20 +902,19 @@ cvector_compute_snr(float *c1_mean, float *c2_mean, float *vvar, float *snr,
 }
 #if 0
 static double
-cvector_len(float *v, int num)
-{
+cvector_len(float *v, int num) {
   int    i ;
   double len ;
 
   for (len = 0.0, i = 0 ; i < num ; i++)
     len += v[i]*v[i] ;
-  len /= (double)num ; len = sqrt(len) ;
+  len /= (double)num ;
+  len = sqrt(len) ;
   return(len) ;
 }
 #endif
 static float *
-cvector_alloc(int num)
-{
+cvector_alloc(int num) {
   float *v ;
 
   v = (float *)calloc(num, sizeof(float)) ;
@@ -934,8 +924,7 @@ cvector_alloc(int num)
 }
 
 static int
-cvector_clear(float *v, int num)
-{
+cvector_clear(float *v, int num) {
   int   i ;
 
   for (i = 0 ; i < num ; i++)
@@ -943,9 +932,8 @@ cvector_clear(float *v, int num)
   return(NO_ERROR) ;
 }
 static int
-cvector_add_variances(float *c1_var, float *c2_var, int num_class1, 
-                      int num_class2, float *vtotal_var, int nvertices)
-{
+cvector_add_variances(float *c1_var, float *c2_var, int num_class1,
+                      int num_class2, float *vtotal_var, int nvertices) {
   int     i, total_dof ;
 
   total_dof = num_class1 + num_class2 ;
@@ -957,15 +945,12 @@ cvector_add_variances(float *c1_var, float *c2_var, int num_class1,
 
 
 static int
-cvector_track_best_snr(float *vsnr, float *vbest_snr, float *vbest_avgs, 
-                       int avgs, int num)
-{
+cvector_track_best_snr(float *vsnr, float *vbest_snr, float *vbest_avgs,
+                       int avgs, int num) {
   int    i ;
-  
-  for (i = 0 ; i < num ; i++)
-  {
-    if (vsnr[i] > vbest_snr[i])
-    {
+
+  for (i = 0 ; i < num ; i++) {
+    if (vsnr[i] > vbest_snr[i]) {
       vbest_snr[i] = vsnr[i] ;
       vbest_avgs[i] = avgs ;
     }

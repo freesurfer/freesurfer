@@ -1,3 +1,31 @@
+/**
+ * @file  xvutil.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef XVUTIL_H
 #define XVUTIL_H
 
@@ -56,8 +84,8 @@ typedef struct
   IMAGE       *oSourceImage ; /* source image passed to XVshowImage */
   XImage      *ximage ;
   Window      window ;
-  GC          clearGC, greenGC, blueGC, redGC, 
-              xorGC, whiteGC, cyanGC, yellowGC, purpleGC ;
+  GC          clearGC, greenGC, blueGC, redGC,
+  xorGC, whiteGC, cyanGC, yellowGC, purpleGC ;
   float       xscale ;        /* scale of dispImage relative to sourceImage */
   float       yscale ;        /* scale of dispImage relative to sourceImage */
   int         rescale_range ;
@@ -74,8 +102,8 @@ typedef struct
   int         dx ;          /* width of zoomed image */
   int         dy ;          /* height of zoomed image */
 
-/* the next 4 are temporary copies of the prior 4 while drawing is underway */
-  int         x1 ;          
+  /* the next 4 are temporary copies of the prior 4 while drawing is underway */
+  int         x1 ;
   int         y1 ;          /* y box origin */
   int         dx1 ;         /* width of zoomed image */
   int         dy1 ;         /* height of zoomed image */
@@ -85,7 +113,8 @@ typedef struct
   HISTOGRAM   *histo ;
   float       fmin ;        /* fixed minimum for display scaling */
   float       fmax ;        /* fixed maximum for display scaling */
-} DISPLAY_IMAGE, DIMAGE ;
+}
+DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
 {
@@ -126,34 +155,35 @@ typedef struct
   int             orig_disp_rows ;  /* original value of display_rows */
   int             orig_disp_cols ;  /* original values of display_cols */
   int             (*write_func)(Event *event, DIMAGE *dimage, char *str) ;
-} XV_FRAME ;
+}
+XV_FRAME ;
 
-int  XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str, 
+int  XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
                     int (*write_func)(Event *event,DIMAGE *dimage,char *str));
 int  XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *mrih) ;
-XV_FRAME *XValloc(int rows, int cols, int button_rows, int display_rows, 
+XV_FRAME *XValloc(int rows, int cols, int button_rows, int display_rows,
                   int display_cols, char *name, Notify_value (*poll)(void)) ;
 int XVprintf(XV_FRAME *xvf, int which, ...) ;
 void XVclearImage(XV_FRAME *xvf, int which, int dotitle) ;
 void XVclearImageTitle(XV_FRAME *xvf, int which) ;
 int  XVshowImageTitle(XV_FRAME *xvf, int which, ...) ;
 void XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame) ;
-void XVshowImageRange(XV_FRAME *xvf, int which, IMAGE *image, int frame, 
+void XVshowImageRange(XV_FRAME *xvf, int which, IMAGE *image, int frame,
                       float fmin, float fmax) ;
-void XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, 
+void XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,
                int color) ;
-void XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,  
-               int color) ;
-void XVdrawLinef(XV_FRAME *xvf, int which, float x, float y, float dx, 
+void XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,
+                int color) ;
+void XVdrawLinef(XV_FRAME *xvf, int which, float x, float y, float dx,
                  float dy,  int color) ;
-void XVdrawArrow(XV_FRAME *xvf, int which, int x, int y, float dx, float dy,  
-               int color) ;
+void XVdrawArrow(XV_FRAME *xvf, int which, int x, int y, float dx, float dy,
+                 int color) ;
 void XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color) ;
 void XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage)) ;
 void XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage)) ;
 void XVsetRepaintHandler(void(*repaint_handler)(XV_FRAME *xvf,DIMAGE *dimage));
-void XVshowVectorImage(XV_FRAME *xvf, int which, int x0, int y0, 
-                  int width, int height, int color, IMAGE *image) ;
+void XVshowVectorImage(XV_FRAME *xvf, int which, int x0, int y0,
+                       int width, int height, int color, IMAGE *image) ;
 void XVsetQuitFunc(void (*quit_func)(void)) ;
 void XVrepaintImage(XV_FRAME *xvf, int which) ;
 int XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row) ;
@@ -176,9 +206,9 @@ int XVshowAllSyncedImages(XV_FRAME *xvf, int which) ;
 int XVsetPrintStatus(XV_FRAME *xvf, int status) ;
 int XVsetYDir(XV_FRAME *xvf, int ydir) ;
 int XVshowAll(XV_FRAME *xvf) ;
-int XVgetFileName(XV_FRAME *xvf, char *default_fname, 
+int XVgetFileName(XV_FRAME *xvf, char *default_fname,
                   int (*fname_func)(char *fname), ...) ;
-int XVsetDepthFunc(XV_FRAME *xvf, 
+int XVsetDepthFunc(XV_FRAME *xvf,
                    IMAGE *(*get_image)(IMAGE *Iold, int which, int dir)) ;
 DIMAGE *XVgetDimage(XV_FRAME *xvf, int which, int type) ;
 char   *XVgetTitle(XV_FRAME *xvf,int which, char *title, int with_value) ;

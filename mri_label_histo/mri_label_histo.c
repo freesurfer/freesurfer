@@ -1,3 +1,31 @@
+/**
+ * @file  mri_label_histo.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:07 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,8 +53,7 @@ static int quiet = 0 ;
 static int all_flag = 0 ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    label, ac, nargs ;
   int          msec, minutes, seconds/*, wrong, total, correct*/ ;
@@ -36,7 +63,7 @@ main(int argc, char *argv[])
   HISTOGRAM *histo ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_histo.c,v 1.3 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_histo.c,v 1.4 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -49,8 +76,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -69,30 +95,28 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[2]) ;
 
-  if (log_fname)
-  {
+  if (log_fname) {
     log_fp = fopen(log_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
-  }
-  else
+  } else
     log_fp = NULL ;
 
-  
+
   label = atoi(argv[3]) ;
   printf("generating histogram for label %d...\n", label) ;
   histo = MRIhistogramLabel(mri_T1, mri_labeled, label, 0) ;
 
   HISTOplot(histo, argv[4]) ;
-  
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
 
   if (DIAG_VERBOSE_ON)
-    fprintf(stderr, "overlap calculation took %d minutes and %d seconds.\n", 
+    fprintf(stderr, "overlap calculation took %d minutes and %d seconds.\n",
             minutes, seconds) ;
 
   exit(0) ;
@@ -104,14 +128,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'Q':
     quiet = 1 ;
     break ;
@@ -141,8 +163,7 @@ get_option(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf("usage: %s [options] <T1 volume> <labeled volume> <label> <output>\n",
          Progname) ;
   exit(code) ;

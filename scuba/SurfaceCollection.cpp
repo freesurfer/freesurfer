@@ -1,3 +1,31 @@
+/**
+ * @file  SurfaceCollection.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.26 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "string_fixed.h"
 #include <errno.h>
 #include <stdexcept>
@@ -10,57 +38,56 @@ using namespace std;
 
 
 SurfaceCollection::SurfaceCollection () :
-  DataCollection(),
+    DataCollection(),
 
-  mfnMRIS( "" ),
-  mMRIS( NULL ),
-  mbIsUsingVolumeForTransform( false ),
-  mTransformVolume( NULL ),
-  mHashTable( NULL ),
-  mbBoundsCacheDirty( true ) {
+    mfnMRIS( "" ),
+    mMRIS( NULL ),
+    mbIsUsingVolumeForTransform( false ),
+    mTransformVolume( NULL ),
+    mHashTable( NULL ),
+    mbBoundsCacheDirty( true ) {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2, 
-			 "collectionID fileName", 
-			 "Sets the file name for a given surface collection.");
-  commandMgr.AddCommand( *this, "LoadSurfaceFromFileName", 1, "collectionID", 
-			 "Loads the surface from the file name.");
-  commandMgr.AddCommand( *this, "GetSurfaceCollectionFileName", 1, 
-			 "collectionID", 
-			 "Gets the file name for a given surface collection.");
+  commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2,
+                         "collectionID fileName",
+                         "Sets the file name for a given surface collection.");
+  commandMgr.AddCommand( *this, "LoadSurfaceFromFileName", 1, "collectionID",
+                         "Loads the surface from the file name.");
+  commandMgr.AddCommand( *this, "GetSurfaceCollectionFileName", 1,
+                         "collectionID",
+                         "Gets the file name for a given surface collection.");
   commandMgr.AddCommand( *this, "SetSurfaceDataToSurfaceTransformFromVolume",
-			 2, "collectionID volumeID", 
-			 "Gets the data to surface transform from a volume." );
+                         2, "collectionID volumeID",
+                         "Gets the data to surface transform from a volume." );
   commandMgr.AddCommand( *this, "SetSurfaceDataToSurfaceTransformToDefault",
-			 1, "collectionID", 
-			 "Sets the data to surface transform for a surface "
-			 "to the default, which will be ../mri/orig or "
-			 "identity." );
+                         1, "collectionID",
+                         "Sets the data to surface transform for a surface "
+                         "to the default, which will be ../mri/orig or "
+                         "identity." );
   commandMgr.AddCommand(*this,"IsSurfaceUsingDataToSurfaceTransformFromVolume",
-			 1, "collectionID", 
-			 "Returns whether or not a surface collection is "
-			 "using a volume to get its data to surface "
-			 "transform." );
+                        1, "collectionID",
+                        "Returns whether or not a surface collection is "
+                        "using a volume to get its data to surface "
+                        "transform." );
   commandMgr.AddCommand( *this, "GetSurfaceDataToSurfaceTransformVolume",
-			 1, "collectionID", 
-			 "If a surface collection is using a volume "
-			 "to get its data to surface transform, returns "
-			 "the volume's collection ID." );
+                         1, "collectionID",
+                         "If a surface collection is using a volume "
+                         "to get its data to surface transform, returns "
+                         "the volume's collection ID." );
   commandMgr.AddCommand( *this, "LoadSurfacePatch", 2, "collectionID fileName",
-			 "Loads a patch into a surface." );
+                         "Loads a patch into a surface." );
   commandMgr.AddCommand( *this, "GetSurfaceUseRealRAS", 1, "collectionID",
-			 "Returns whether or not a surface has its useRealRAS "
-			 "flag on." );
+                         "Returns whether or not a surface has its useRealRAS "
+                         "flag on." );
 }
 
 SurfaceCollection::~SurfaceCollection() {
 
   DataManager dataMgr = DataManager::GetManager();
   MRISLoader mrisLoader = dataMgr.GetMRISLoader();
-  try { 
+  try {
     mrisLoader.ReleaseData( &mMRIS );
-  } 
-  catch(...) {
+  } catch (...) {
     cerr << "Couldn't release data"  << endl;
   }
 }
@@ -79,35 +106,33 @@ SurfaceCollection::LoadSurface () {
   MRISLoader mrisLoader = dataMgr.GetMRISLoader();
 
   // If we already have data...
-  if( NULL != mMRIS ) {
+  if ( NULL != mMRIS ) {
 
     // Try to load this and see what we get. If it's the same as what
     // we already have, we're fine. If not, keep this one and release
     // the one we have.
     MRIS* newMRIS = NULL;
-    try { 
+    try {
       newMRIS = mrisLoader.GetData( mfnMRIS );
-    }
-    catch( exception& e ) {
+    } catch ( exception& e ) {
       throw logic_error( "Couldn't load MRIS" );
     }
 
-    if( newMRIS == mMRIS ) {
+    if ( newMRIS == mMRIS ) {
       return;
     }
 
     /* Release old data. */
-    try { 
+    try {
       mrisLoader.ReleaseData( &mMRIS );
-    } 
-    catch(...) {
+    } catch (...) {
       cerr << "Couldn't release data"  << endl;
     }
 
     /* Save new data. */
     mMRIS = newMRIS;
     DataChanged();
-    
+
     // Generate hash table.
     mHashTable = MHTfillVertexTableRes( mMRIS, NULL, CURRENT_VERTICES, 2.0 );
 
@@ -115,24 +140,23 @@ SurfaceCollection::LoadSurface () {
 
     DataManager dataMgr = DataManager::GetManager();
     MRISLoader mrisLoader = dataMgr.GetMRISLoader();
-    
+
     mMRIS = NULL;
-    try { 
+    try {
       mMRIS = mrisLoader.GetData( mfnMRIS );
-    }
-    catch( exception& e ) {
+    } catch ( exception& e ) {
       throw logic_error( "Couldn't load MRIS" );
     }
 
     // Get transform.
-    if( NULL != mMRIS->lta ) {
+    if ( NULL != mMRIS->lta ) {
 
       // This is our RAS -> TkRegRAS transform.
       mDataToSurfaceTransform.SetMainTransform
-	( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
-	  0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,
-	  0, 0, 1, -mMRIS->lta->xforms[0].src.c_s,
-	  0, 0, 0, 1 );
+      ( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
+        0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,
+        0, 0, 1, -mMRIS->lta->xforms[0].src.c_s,
+        0, 0, 0, 1 );
     }
 
     CalcWorldToSurfaceTransform();
@@ -142,15 +166,15 @@ SurfaceCollection::LoadSurface () {
 
   }
 
-  if( msLabel == "" ) {
+  if ( msLabel == "" ) {
     SetLabel( mfnMRIS );
   }
 }
 
 MRIS*
-SurfaceCollection::GetMRIS () { 
+SurfaceCollection::GetMRIS () {
 
-  if( NULL == mMRIS ) {
+  if ( NULL == mMRIS ) {
     LoadSurface();
   }
 
@@ -163,7 +187,7 @@ SurfaceCollection::LoadPatch ( string& ifnPatch ) {
   char* cfnPath;
   cfnPath = strdup( ifnPatch.c_str() );
   int rMRIS = MRISreadPatchNoRemove( mMRIS, cfnPath );
-  if( rMRIS != NO_ERROR ) {
+  if ( rMRIS != NO_ERROR ) {
     throw runtime_error( "Error loading " + ifnPatch );
   }
   DataChanged();
@@ -173,13 +197,13 @@ SurfaceCollection::LoadPatch ( string& ifnPatch ) {
 void
 SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
 
-  if( mbBoundsCacheDirty ) {
+  if ( mbBoundsCacheDirty ) {
 
     mRASBounds[0] = mRASBounds[2] = mRASBounds[4] = 999999;
     mRASBounds[1] = mRASBounds[3] = mRASBounds[5] = -999999;
 
-    for( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
-      
+    for ( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
+
       VERTEX* vertex = &(mMRIS->vertices[nVertex]);
       float TkRegRAS[3], RAS[3];
       TkRegRAS[0] = vertex->x;
@@ -187,17 +211,17 @@ SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
       TkRegRAS[2] = vertex->z;
       SurfaceToRAS( TkRegRAS, RAS );
 
-      if( RAS[0] < mRASBounds[0] ) mRASBounds[0] = RAS[0];
-      if( RAS[0] > mRASBounds[1] ) mRASBounds[1] = RAS[0];
-      if( RAS[1] < mRASBounds[2] ) mRASBounds[2] = RAS[1];
-      if( RAS[1] > mRASBounds[3] ) mRASBounds[3] = RAS[1];
-      if( RAS[2] < mRASBounds[4] ) mRASBounds[4] = RAS[2];
-      if( RAS[2] > mRASBounds[5] ) mRASBounds[5] = RAS[2];
+      if ( RAS[0] < mRASBounds[0] ) mRASBounds[0] = RAS[0];
+      if ( RAS[0] > mRASBounds[1] ) mRASBounds[1] = RAS[0];
+      if ( RAS[1] < mRASBounds[2] ) mRASBounds[2] = RAS[1];
+      if ( RAS[1] > mRASBounds[3] ) mRASBounds[3] = RAS[1];
+      if ( RAS[2] < mRASBounds[4] ) mRASBounds[4] = RAS[2];
+      if ( RAS[2] > mRASBounds[5] ) mRASBounds[5] = RAS[2];
     }
 
     mbBoundsCacheDirty = false;
   }
-  
+
   oRASBounds[0] = mRASBounds[0];
   oRASBounds[1] = mRASBounds[1];
   oRASBounds[2] = mRASBounds[2];
@@ -206,141 +230,136 @@ SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
   oRASBounds[5] = mRASBounds[5];
 }
 
-TclCommandListener::TclCommandResult 
+TclCommandListener::TclCommandResult
 SurfaceCollection::DoListenToTclCommand ( char* isCommand,
-					 int iArgc, char** iasArgv ) {
+    int iArgc, char** iasArgv ) {
 
   // SetSurfaceCollectionFileName <collectionID> <fileName>
-  if( 0 == strcmp( isCommand, "SetSurfaceCollectionFileName" ) ) {
+  if ( 0 == strcmp( isCommand, "SetSurfaceCollectionFileName" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       string fnSurface = iasArgv[2];
       SetSurfaceFileName( fnSurface );
     }
   }
-  
+
   // LoadSurfaceFromFileName <collectionID>
-  if( 0 == strcmp( isCommand, "LoadSurfaceFromFileName" ) ) {
+  if ( 0 == strcmp( isCommand, "LoadSurfaceFromFileName" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
       LoadSurface();
     }
   }
-  
+
   // GetSurfaceCollectionFileName <collectionID>
-  if( 0 == strcmp( isCommand, "GetSurfaceCollectionFileName" ) ) {
+  if ( 0 == strcmp( isCommand, "GetSurfaceCollectionFileName" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad collection ID";
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       sReturnFormat = "s";
       sReturnValues = mfnMRIS;
     }
   }
-  
+
   // SetSurfaceDataToSurfaceTransformFromVolume <collectionID> <volumeID>
-  if( 0 == strcmp( isCommand, "SetSurfaceDataToSurfaceTransformFromVolume") ) {
+  if ( 0 == strcmp( isCommand, "SetSurfaceDataToSurfaceTransformFromVolume") ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
-      try {
-	int volumeID = 
-	  TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
 
-	DataCollection& col = DataCollection::FindByID( volumeID );
-	VolumeCollection& vol = (VolumeCollection&)col;
-	//	  dynamic_cast<VolumeCollection&>( col );
-	
-	SetDataToSurfaceTransformFromVolume( vol );
-      }
-      catch( runtime_error& e ) {
-	sResult = e.what();
-	return error;
+    if ( mID == collectionID ) {
+
+      try {
+        int volumeID =
+          TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+
+        DataCollection& col = DataCollection::FindByID( volumeID );
+        VolumeCollection& vol = (VolumeCollection&)col;
+        //   dynamic_cast<VolumeCollection&>( col );
+
+        SetDataToSurfaceTransformFromVolume( vol );
+      } catch ( runtime_error& e ) {
+        sResult = e.what();
+        return error;
       }
     }
   }
-  
+
   // SetSurfaceDataToSurfaceTransformToDefault <collectionID>
-  if( 0 == strcmp( isCommand, "SetSurfaceDataToSurfaceTransformToDefault") ) {
+  if ( 0 == strcmp( isCommand, "SetSurfaceDataToSurfaceTransformToDefault") ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       SetDataToSurfaceTransformToDefault();
     }
   }
-  
+
   // IsSurfaceUsingDataToSurfaceTransformFromVolume <collectionID>
-  if( 0 == strcmp( isCommand, "IsSurfaceUsingDataToSurfaceTransformFromVolume" ) ) {
+  if ( 0 == strcmp( isCommand, "IsSurfaceUsingDataToSurfaceTransformFromVolume" ) ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
-      sReturnValues = 
-	TclCommandManager::ConvertBooleanToReturnValue( mbIsUsingVolumeForTransform );
+
+    if ( mID == collectionID ) {
+
+      sReturnValues =
+        TclCommandManager::ConvertBooleanToReturnValue( mbIsUsingVolumeForTransform );
       sReturnFormat = "i";
     }
   }
 
   // GetSurfaceDataToSurfaceTransformVolume <collectionID>
-  if( 0 == strcmp( isCommand, "GetSurfaceDataToSurfaceTransformVolume" ) ) {
+  if ( 0 == strcmp( isCommand, "GetSurfaceDataToSurfaceTransformVolume" ) ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       stringstream ssReturnValues;
-      if( NULL != mTransformVolume ) {
-	ssReturnValues << mTransformVolume->GetID();
+      if ( NULL != mTransformVolume ) {
+        ssReturnValues << mTransformVolume->GetID();
       } else {
-	ssReturnValues << 0;
+        ssReturnValues << 0;
       }
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "i";
@@ -348,18 +367,17 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
   }
 
   // LoadSurfacePatch <collectionID> <fileName>
-  if( 0 == strcmp( isCommand, "LoadSurfacePatch" ) ) {
+  if ( 0 == strcmp( isCommand, "LoadSurfacePatch" ) ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
+
+    if ( mID == collectionID ) {
 
       string fnPatch = iasArgv[2];
       LoadPatch( fnPatch );
@@ -367,19 +385,18 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetSurfaceUseRealRAS <collectionID>
-  if( 0 == strcmp( isCommand, "GetSurfaceUseRealRAS" ) ) {
+  if ( 0 == strcmp( isCommand, "GetSurfaceUseRealRAS" ) ) {
 
     int collectionID;
-    try { 
+    try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
-    
-    if( mID == collectionID ) {
-      
+
+    if ( mID == collectionID ) {
+
       stringstream ssReturnValues;
       ssReturnValues << GetUseRealRAS();
       sReturnValues = ssReturnValues.str();
@@ -392,8 +409,8 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
 
 void
 SurfaceCollection::DoListenToMessage ( string isMessage, void* iData ) {
-  
-  if( isMessage == "transformChanged" ) {
+
+  if ( isMessage == "transformChanged" ) {
     CalcWorldToSurfaceTransform();
   }
 
@@ -426,7 +443,7 @@ SurfaceCollection::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
 
   float minDistance = 1000;
   int nClosestVertex = -1;
-  for( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
+  for ( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
 
     VERTEX* vertex = &(mMRIS->vertices[nVertex]);
     float curDataRAS[3];
@@ -434,24 +451,24 @@ SurfaceCollection::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
     curDataRAS[1] = vertex->y;
     curDataRAS[2] = vertex->z;
 
-    if( !vertex->ripflag ) {
+    if ( !vertex->ripflag ) {
 
       float dx = dataRAS[0] - curDataRAS[0];
       float dy = dataRAS[1] - curDataRAS[1];
       float dz = dataRAS[2] - curDataRAS[2];
       float distance = sqrt( dx*dx + dy*dy + dz*dz );
-      if( distance < minDistance ) {
-	minDistance = distance;
-	nClosestVertex = nVertex;
+      if ( distance < minDistance ) {
+        minDistance = distance;
+        nClosestVertex = nVertex;
       }
     }
   }
 
-  if( -1 == nClosestVertex ) {
+  if ( -1 == nClosestVertex ) {
     throw runtime_error( "No vertices found.");
   }
 
-  if( NULL != oDistance ) {
+  if ( NULL != oDistance ) {
     *oDistance = minDistance;
   }
   return nClosestVertex;
@@ -471,11 +488,11 @@ SurfaceCollection::FindVertexAtRAS ( float iRAS[3], float* oDistance ) {
   int nClosestVertex =
     MHTfindClosestVertexNo( mHashTable, mMRIS, &v, &distance );
 
-  if( -1 == nClosestVertex ) {
+  if ( -1 == nClosestVertex ) {
     throw runtime_error( "No vertices found.");
   }
 
-  if( NULL != oDistance ) {
+  if ( NULL != oDistance ) {
     *oDistance = distance;
   }
 
@@ -485,7 +502,7 @@ SurfaceCollection::FindVertexAtRAS ( float iRAS[3], float* oDistance ) {
 int
 SurfaceCollection::GetNumFaces () {
 
-  if( NULL != mMRIS ) {
+  if ( NULL != mMRIS ) {
     return mMRIS->nfaces;
   }
 
@@ -499,8 +516,8 @@ SurfaceCollection::GetNumVerticesPerFace_Unsafe ( int ) {
 }
 
 void
-SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex, 
-					       float oRAS[3], bool* oRipped ) {
+SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
+    float oRAS[3], bool* oRipped ) {
 
   VERTEX* vertex = &(mMRIS->vertices[mMRIS->faces[inFace].v[inVertex]]);
   float dataRAS[3];
@@ -510,7 +527,7 @@ SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
 
   SurfaceToRAS( dataRAS, oRAS );
 
-  if( NULL != oRAS ) {
+  if ( NULL != oRAS ) {
     *oRipped = vertex->ripflag;
   }
 }
@@ -518,7 +535,7 @@ SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
 int
 SurfaceCollection::GetNumVertices () {
 
-  if( NULL != mMRIS ) {
+  if ( NULL != mMRIS ) {
     return mMRIS->nvertices;
   }
 
@@ -526,8 +543,8 @@ SurfaceCollection::GetNumVertices () {
 }
 
 void
-SurfaceCollection::GetNthVertex_Unsafe ( int inVertex, 
-					 float oRAS[3], bool* oRipped ) {
+SurfaceCollection::GetNthVertex_Unsafe ( int inVertex,
+    float oRAS[3], bool* oRipped ) {
 
   VERTEX* vertex = &(mMRIS->vertices[inVertex]);
   float dataRAS[3];
@@ -537,7 +554,7 @@ SurfaceCollection::GetNthVertex_Unsafe ( int inVertex,
 
   SurfaceToRAS( dataRAS, oRAS );
 
-  if( NULL != oRipped ) {
+  if ( NULL != oRipped ) {
     *oRipped = vertex->ripflag;
   }
 }
@@ -545,7 +562,7 @@ SurfaceCollection::GetNthVertex_Unsafe ( int inVertex,
 bool
 SurfaceCollection::GetUseRealRAS () {
 
-  if( NULL != mMRIS ) {
+  if ( NULL != mMRIS ) {
     return mMRIS->useRealRAS;
   }
 
@@ -554,7 +571,7 @@ SurfaceCollection::GetUseRealRAS () {
 
 void
 SurfaceCollection::CalcWorldToSurfaceTransform () {
-  
+
   Transform44 worldToData = mDataToWorldTransform->Inverse();
   Transform44 tmp = mDataToSurfaceTransform * worldToData;
   mWorldToSurfaceTransform = tmp;
@@ -564,19 +581,19 @@ SurfaceCollection::CalcWorldToSurfaceTransform () {
 
 void
 SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
-							iVolume ) {
+    iVolume ) {
 
-  if( mbIsUsingVolumeForTransform ) {
-    if( NULL != mTransformVolume ) {
-      if( mTransformVolume->GetID() == iVolume.GetID() ) {
-	return;
+  if ( mbIsUsingVolumeForTransform ) {
+    if ( NULL != mTransformVolume ) {
+      if ( mTransformVolume->GetID() == iVolume.GetID() ) {
+        return;
       }
     }
   }
 
   // We want to get the MRITkRegRASToRAS matrix from the volume.
   MRI* mri = iVolume.GetMRI();
-  if( NULL == mri ) {
+  if ( NULL == mri ) {
     throw runtime_error( "Couldn't get MRI from volume" );
   }
 
@@ -585,22 +602,22 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   // back to what I originally had, which is just getting the matrix
   // with TkRegRASFromRAS_ and setting our dataToSurface transform
   // to it. So we'll see how that goes for now.
-#if 0  
+#if 0
   VOL_GEOM  surfaceGeometry;
   VOL_GEOM  volumeGeometry;
 
   memcpy( &surfaceGeometry, &(mMRIS->vg), sizeof(VOL_GEOM) );
   getVolGeom( mri, &volumeGeometry );
 
-  if( surfaceGeometry.valid ) {
-    if( !vg_isEqual( &volumeGeometry, &surfaceGeometry ) ) {
+  if ( surfaceGeometry.valid ) {
+    if ( !vg_isEqual( &volumeGeometry, &surfaceGeometry ) ) {
       printf( "Transforming surface to match volume geometry.\n" );
 
-      
-      MRI* transformMRI = 
-	MRIallocHeader( volumeGeometry.width, volumeGeometry.height, 
-			volumeGeometry.depth, MRI_VOLUME_TYPE_UNKNOWN);
-      
+
+      MRI* transformMRI =
+        MRIallocHeader( volumeGeometry.width, volumeGeometry.height,
+                        volumeGeometry.depth, MRI_VOLUME_TYPE_UNKNOWN);
+
       useVolGeomToMRI( &volumeGeometry, transformMRI );
 
       int eMRIS = MRISsurf2surf( mMRIS, transformMRI, NULL );
@@ -610,12 +627,12 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
     }
   }
 
-#else  
+#else
   MATRIX* RASToTkRegRASMatrix = surfaceRASFromRAS_( mri );
-  if( NULL == RASToTkRegRASMatrix ) {
+  if ( NULL == RASToTkRegRASMatrix ) {
     throw runtime_error( "Couldn't get surfaceRASFromRAS_ from MRI" );
   }
-  
+
   mDataToSurfaceTransform.SetMainTransform( RASToTkRegRASMatrix );
   MatrixFree( &RASToTkRegRASMatrix );
 #endif
@@ -623,7 +640,7 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   CalcWorldToSurfaceTransform();
 
   DataChanged();
-  
+
   mbIsUsingVolumeForTransform = true;
   mTransformVolume = &iVolume;
 }
@@ -631,23 +648,23 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
 void
 SurfaceCollection::SetDataToSurfaceTransformToDefault () {
 
-  if( !mbIsUsingVolumeForTransform )
+  if ( !mbIsUsingVolumeForTransform )
     return;
 
   // We want to get the lta from the mris or else use identity.
-  if( NULL != mMRIS->lta ) {
-    
+  if ( NULL != mMRIS->lta ) {
+
     // This is our RAS -> TkRegRAS transform.
     mDataToSurfaceTransform.SetMainTransform
-      ( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
-	0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,
-	0, 0, 1, -mMRIS->lta->xforms[0].src.c_s,
-	0, 0, 0, 1 );
+    ( 1, 0, 0, -mMRIS->lta->xforms[0].src.c_r,
+      0, 1, 0, -mMRIS->lta->xforms[0].src.c_a,
+      0, 0, 1, -mMRIS->lta->xforms[0].src.c_s,
+      0, 0, 0, 1 );
   } else {
 
     mDataToSurfaceTransform.MakeIdentity();
   }
-  
+
   CalcWorldToSurfaceTransform();
 
   DataChanged();

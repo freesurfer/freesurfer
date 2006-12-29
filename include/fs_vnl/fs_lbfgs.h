@@ -42,7 +42,7 @@
 
 class fs_lbfgs : public vnl_nonlinear_minimizer, public fs_lbfgs_subject
 {
- public:
+public:
   fs_lbfgs();
   fs_lbfgs(vnl_cost_function& f);
 
@@ -70,7 +70,7 @@ class fs_lbfgs : public vnl_nonlinear_minimizer, public fs_lbfgs_subject
   // single evaluation.
   double default_step_length;
 
- private:
+private:
   void init_parameters();
   vnl_cost_function* f_;
   //  vnl_lbfgs() {} // default constructor makes no sense

@@ -1,3 +1,31 @@
+/**
+ * @file  DICOMRead.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.22 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef _DICOMRead_H
 #define _DICOMRead_H
 
@@ -25,108 +53,112 @@ typedef unsigned short int BOOL;
 #define false 0
 
 #ifdef _DICOMRead_SRC
-  char *SDCMStatusFile = 0;
-  char *SDCMListFile = 0;
-  int  UseDICOMRead2 = 1; // use new dicom reader by default
+char *SDCMStatusFile = 0;
+char *SDCMListFile = 0;
+int  UseDICOMRead2 = 1; // use new dicom reader by default
 #else
-  extern char *SDCMStatusFile;
-  extern char *SDCMListFile;
-  extern int  UseDICOMRead2;
+extern char *SDCMStatusFile;
+extern char *SDCMListFile;
+extern int  UseDICOMRead2;
 #endif
 
-typedef enum { 
+typedef enum
+{
   // note: increment the #DEFINE NUMBEROFTAGS at the top of this file
   // if adding elements to this DCM_TagList
-  
+
   // general infos
-  DCM_StudyDate, 
-  DCM_PatientName, 
-  DCM_Manufacturer, 
-  DCM_StudyTime, 
-  DCM_SeriesTime, 
+  DCM_StudyDate,
+  DCM_PatientName,
+  DCM_Manufacturer,
+  DCM_StudyTime,
+  DCM_SeriesTime,
   DCM_AcquisitionTime,
-  
+
   // image data format identifier (raw, or JPEG compressed)
   DCM_TransferSyntaxUID,
 
   // image dimensions
-  DCM_SliceThickness, 
-  DCM_xsize, 
-  DCM_ysize, 
-  DCM_ImageNumber, 
+  DCM_SliceThickness,
+  DCM_xsize,
+  DCM_ysize,
+  DCM_ImageNumber,
   DCM_SeriesNumber,
-  DCM_Rows, 
-  DCM_Columns, 
-  DCM_BitsAllocated, 
-  DCM_NumberOfFrames, 
+  DCM_Rows,
+  DCM_Columns,
+  DCM_BitsAllocated,
+  DCM_NumberOfFrames,
   DCM_FieldOfView,
 
   // image position and orientation
-  DCM_ImagePosition,  
+  DCM_ImagePosition,
   DCM_ImageOrientation,
 
   // acquisition parameters
-  DCM_EchoTime, 
-  DCM_RepetitionTime, 
-  DCM_InversionTime, 
-  DCM_FlipAngle, 
+  DCM_EchoTime,
+  DCM_RepetitionTime,
+  DCM_InversionTime,
+  DCM_FlipAngle,
   DCM_EchoNumber
 
-} DCM_TagList;
+}
+DCM_TagList;
 
 typedef struct
 {
   // DICOM file name
   char *FileName;
-  
+
   // general infos
-  char *StudyDate, 
-    *PatientName, 
-    *Manufacturer, 
-    *StudyTime, 
-    *SeriesTime, 
-    *AcquisitionTime;
-  
+  char *StudyDate,
+  *PatientName,
+  *Manufacturer,
+  *StudyTime,
+  *SeriesTime,
+  *AcquisitionTime;
+
   // image data format identifier (raw, or JPEG compressed)
   char *TransferSyntaxUID;
 
   // image dimensions
   double SliceThickness,
-    xsize,
-    ysize,
-    FieldOfView;
+  xsize,
+  ysize,
+  FieldOfView;
   unsigned short ImageNumber,
-    Rows, 
-    Columns, 
-    BitsAllocated, 
-    NumberOfFrames,
-    SeriesNumber;
+  Rows,
+  Columns,
+  BitsAllocated,
+  NumberOfFrames,
+  SeriesNumber;
 
   // image position and orientation
-  double ImagePosition[3], 
-    ImageOrientation[6],
-    FirstImagePosition[3],
-    LastImagePosition[3],
-    Vc[3],Vr[3],Vs[3];
+  double ImagePosition[3],
+  ImageOrientation[6],
+  FirstImagePosition[3],
+  LastImagePosition[3],
+  Vc[3],Vr[3],Vs[3];
 
   // acquisition parameters
-  double EchoTime, 
-    RepetitionTime,
-    InversionTime,
-    FlipAngle;
+  double EchoTime,
+  RepetitionTime,
+  InversionTime,
+  FlipAngle;
   short EchoNumber;
 
   // pixels
   void *PixelData;
-  unsigned char min8, 
-    max8;
-  unsigned short int min16, 
-    max16;
+  unsigned char min8,
+  max8;
+  unsigned short int min16,
+  max16;
 
-}  DICOMInfo ;
+}
+DICOMInfo ;
 
 /*--- Relevant Info for a single Siemens DICOM File ------*/
-typedef struct {
+typedef struct
+{
   char *FileName;
   char *PatientName;
   char *StudyDate;
@@ -140,7 +172,7 @@ typedef struct {
   char *ScannerModel;
 
   // This stores the 'Transfer Syntax Unique Identification',
-  // which reports the structure of the image data, revealing 
+  // which reports the structure of the image data, revealing
   // whether the data has been compressed. See:
   // http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
   char *TransferSyntaxUID;
@@ -153,7 +185,7 @@ typedef struct {
 
   float PhEncFOV;
   float ReadoutFOV;
-  
+
   int  SeriesNo;
   int  ImageNo;
   int  NImageRows;
@@ -174,10 +206,11 @@ typedef struct {
   float VolRes[3];   /* Resolution of col, row, slice in mm */
   float VolCenter[3]; /* Exact RAS center of the volume */
   int   NFrames;     /* Equals lRepetitions + 1 */
-  
+
   int   ErrorFlag;   /* Set for error, eg, aborted run */
 
-} SDCMFILEINFO;
+}
+SDCMFILEINFO;
 
 
 
@@ -219,9 +252,9 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);
 int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes);
-int dcmImageDirCos(char *dcmfile, 
-       float *Vcx, float *Vcy, float *Vcz,
-       float *Vrx, float *Vry, float *Vrz);
+int dcmImageDirCos(char *dcmfile,
+                   float *Vcx, float *Vcy, float *Vcz,
+                   float *Vrx, float *Vry, float *Vrz);
 int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz);
 int dcmImagePosition(char *dcmfile, float *x, float *y, float *z);
 
@@ -239,8 +272,8 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiRunNo(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
-int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list, 
-         int nlist, int *NRunList);
+int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list,
+                     int nlist, int *NRunList);
 MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly);
 int sdfiVolCenter(SDCMFILEINFO *sdfi);
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi);

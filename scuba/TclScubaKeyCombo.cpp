@@ -1,3 +1,31 @@
+/**
+ * @file  TclScubaKeyCombo.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include "TclScubaKeyCombo.h"
 
@@ -6,57 +34,59 @@ using namespace std;
 bool TclScubaKeyComboStaticTclListener::mbAddedTclCommands = false;
 
 TclScubaKeyCombo::TclScubaKeyCombo () :
-  ScubaKeyCombo() {
-}
+    ScubaKeyCombo() {}
 
 void
 TclScubaKeyCombo::SetFromString ( string isKey ) {
 
   ScubaKeyCombo::SetFromString( isKey );
-  
+
   // We are initialied with a key code already; even if it didn't find
   // the right tk name, it definitely matched a last letter. So this
   // just gives the potential to override what we've already done, and
   // if not, goes with what we got.
-  struct keyStringCodePair { string sKey; int code; };
+  struct keyStringCodePair {
+    string sKey;
+    int code;
+  };
   keyStringCodePair aKeys[] = {
-    {"bracketright", Key_BracketRight },
-    { "bracketleft", Key_BracketLeft },
-    { "asciicirum", Key_AsciiCircum },
-    { "underscore", Key_Underscore },
-    { "parenright", Key_ParenRight },
-    { "numbersign", Key_NumberSign },
-    { "apostrophe", Key_Apostrophe },
-    { "braceright", Key_BraceRight },
-    { "asciitilde", Key_AsciiTilde },
-    { "backslash", Key_Backslash },
-    { "ampersand", Key_Ampersand },
-    { "parenleft", Key_ParenLeft },
-    { "semicolon", Key_Semicolon },
-    { "braceleft", Key_BraceLeft },
-    { "backslash", Key_Backslash },
-    { "asterisk", Key_Asterisk },
-    { "quotedbl", Key_QuoteDbl },
-    { "percent", Key_Percent },
-    { "greater", Key_Greater },
-    { "exclam", Key_Exclam },
-    { "dollar", Key_Dollar },
-    { "period", Key_Period },
-    { "Prior", Key_Prior },
-    { "minus", Key_Minus },
-    { "equal", Key_Equal },
-    { "space", Key_Space },
-    { "comma", Key_Comma },
-    { "minus", Key_Minus },
-    { "slash", Key_Slash },
-    { "colon", Key_Colon },
-    { "equal", Key_Equal },
-    { "grave", Key_QuoteLeft },
-    { "less", Key_Less },
-    { "Next", Key_PageDown },
-    { "plus", Key_Plus },
-    { "bar", Key_Bar },
-    { "at", Key_At } };
+                                {"bracketright", Key_BracketRight },
+                                { "bracketleft", Key_BracketLeft },
+                                { "asciicirum", Key_AsciiCircum },
+                                { "underscore", Key_Underscore },
+                                { "parenright", Key_ParenRight },
+                                { "numbersign", Key_NumberSign },
+                                { "apostrophe", Key_Apostrophe },
+                                { "braceright", Key_BraceRight },
+                                { "asciitilde", Key_AsciiTilde },
+                                { "backslash", Key_Backslash },
+                                { "ampersand", Key_Ampersand },
+                                { "parenleft", Key_ParenLeft },
+                                { "semicolon", Key_Semicolon },
+                                { "braceleft", Key_BraceLeft },
+                                { "backslash", Key_Backslash },
+                                { "asterisk", Key_Asterisk },
+                                { "quotedbl", Key_QuoteDbl },
+                                { "percent", Key_Percent },
+                                { "greater", Key_Greater },
+                                { "exclam", Key_Exclam },
+                                { "dollar", Key_Dollar },
+                                { "period", Key_Period },
+                                { "Prior", Key_Prior },
+                                { "minus", Key_Minus },
+                                { "equal", Key_Equal },
+                                { "space", Key_Space },
+                                { "comma", Key_Comma },
+                                { "minus", Key_Minus },
+                                { "slash", Key_Slash },
+                                { "colon", Key_Colon },
+                                { "equal", Key_Equal },
+                                { "grave", Key_QuoteLeft },
+                                { "less", Key_Less },
+                                { "Next", Key_PageDown },
+                                { "plus", Key_Plus },
+                                { "bar", Key_Bar },
+                                { "at", Key_At } };
 
   // For each key string, try a reverse find on the input string we
   // got. If we found it, check that the position we got is correct,
@@ -66,10 +96,10 @@ TclScubaKeyCombo::SetFromString ( string isKey ) {
   for ( int nKey = 0; nKey < 37; nKey++ ) {
     size_t pos;
     pos = isKey.rfind( aKeys[nKey].sKey );
-    if( pos != string::npos && 
-	pos == isKey.length () - aKeys[nKey].sKey.length() &&
-	(isKey.length() == aKeys[nKey].sKey.length() ||
-	 isKey[pos-1] == ' ') ) {
+    if ( pos != string::npos &&
+         pos == isKey.length () - aKeys[nKey].sKey.length() &&
+         (isKey.length() == aKeys[nKey].sKey.length() ||
+          isKey[pos-1] == ' ') ) {
       mKeyCode = aKeys[nKey].code;
       return;
     }
@@ -82,27 +112,27 @@ TclScubaKeyComboStaticTclListener::GetListener () {
 
   static TclScubaKeyComboStaticTclListener sListener;
 
-  if( !mbAddedTclCommands ) {
+  if ( !mbAddedTclCommands ) {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( sListener,
-			   "ConvertTkInputStringToScubaKeyComboString", 5,
-			   "input shift meta alt control", "Takes an input "
-			   "string from Tk key text and boolean values for "
-			   "modifiers and returns a ScubaKeyCombo key "
-			   "combo string." );
+                           "ConvertTkInputStringToScubaKeyComboString", 5,
+                           "input shift meta alt control", "Takes an input "
+                           "string from Tk key text and boolean values for "
+                           "modifiers and returns a ScubaKeyCombo key "
+                           "combo string." );
   }
 
   return sListener;
 }
 
 TclCommandManager::TclCommandResult
-TclScubaKeyComboStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-							  int iArgc,
-							  char** iasArgv ) {
+TclScubaKeyComboStaticTclListener::DoListenToTclCommand ( char* isCommand,
+    int iArgc,
+    char** iasArgv ) {
   // ConvertTkInputStringToScubaKeyComboString <input string> <shift> <meta> <alt> <control>
-  if( 0 == strcmp( isCommand, "ConvertTkInputStringToScubaKeyComboString" ) ) {
+  if ( 0 == strcmp( isCommand, "ConvertTkInputStringToScubaKeyComboString" ) ) {
 
     string sKey = iasArgv[1];
     bool bShift = TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );

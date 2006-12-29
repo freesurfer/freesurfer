@@ -1,3 +1,31 @@
+/**
+ * @file  xVoxel.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef xxVoxl_H
 #define xxVoxl_H
 
@@ -6,11 +34,13 @@
 /* Enable this to turn on macros, see details below. */
 #define XVOXL_USE_MACROS
 
-typedef struct {
+typedef struct
+{
 
   float mfX, mfY, mfZ;
 
-} xVoxel, *xVoxelRef;
+}
+xVoxel, *xVoxelRef;
 
 
 void xVoxl_New    ( xVoxelRef* oppVoxel );
@@ -51,7 +81,7 @@ float xVoxl_GetFloatZ ( xVoxelRef this );
 #else /* macros versions */
 
 /* The do/while garbage is to allow the compiler to parse a semicolon
-   after the macro call. */
+after the macro call. */
 
 #define xVoxl_Set(this,x,y,z) \
   do { \
@@ -90,20 +120,20 @@ float xVoxl_GetFloatZ ( xVoxelRef this );
 #endif /* end of macro versions */
 
 tBoolean xVoxl_IncrementUntilLimit          ( xVoxelRef this,
-					      float      inLimit );
-tBoolean xVoxl_IncrementWithMinUntilLimit   ( xVoxelRef this, 
-					      float     inMin,
-					      float     inLimit );
+    float      inLimit );
+tBoolean xVoxl_IncrementWithMinUntilLimit   ( xVoxelRef this,
+    float     inMin,
+    float     inLimit );
 tBoolean xVoxl_IncrementUntilLimits         ( xVoxelRef this,
-					      float     inXLimit, 
-					      float     inYLimit,
-					      float     inZLimit );
+    float     inXLimit,
+    float     inYLimit,
+    float     inZLimit );
 tBoolean xVoxl_IncrementWithMinsUntilLimits  ( xVoxelRef this,
-					      float     inXMin, 
-					      float     inYMin,
-					      float     inXLimit, 
-					      float     inYLimit,
-					      float     inZLimit );
+    float     inXMin,
+    float     inYMin,
+    float     inXLimit,
+    float     inYLimit,
+    float     inZLimit );
 
 int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimensionX, int inDimensionY );
 

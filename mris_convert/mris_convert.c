@@ -1,3 +1,31 @@
+/**
+ * @file  mris_convert.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.21 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +48,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.20 2006/01/19 16:33:55 nicks Exp $";
+  "$Id: mris_convert.c,v 1.21 2006/12/29 02:09:10 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -57,18 +85,17 @@ static MATRIX *XFM=NULL;
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
-    *cp, path[STRLEN], *dot, ext[STRLEN] ;
+  *cp, path[STRLEN], *dot, ext[STRLEN] ;
   int          ac, nargs ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_convert.c,v 1.20 2006/01/19 16:33:55 nicks Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mris_convert.c,v 1.21 2006/12/29 02:09:10 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -79,57 +106,56 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++){
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if(argc < 3) usage_exit() ;
+  if (argc < 3) usage_exit() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  if(talxfmsubject && curv_file_flag){
+  if (talxfmsubject && curv_file_flag) {
     printf("ERROR: cannot specify -t and -c\n");
     exit(1);
   }
 
   // check whether outputis a .w file
   dot = strrchr(out_fname, '.') ;
-  if (dot){
+  if (dot) {
     strcpy(ext, dot+1) ;
     if (!stricmp(ext, "W")) w_file_dst_flag = 1 ;
   }
 
-  if(w_file_dst_flag){
+  if (w_file_dst_flag) {
     convertToWFile(in_fname, out_fname) ; //???
     exit(0) ;
   }
 
   // check whether input is a .w file
   dot = strrchr(in_fname, '.') ;
-  if (dot){
+  if (dot) {
     strcpy(ext, dot+1) ;
     if (!stricmp(ext, "W")) w_file_src_flag = 1 ;
   }
 
-  if (w_file_src_flag){
+  if (w_file_src_flag) {
     convertFromWFile(in_fname, out_fname) ; //???
     exit(0) ;
   }
 
-  if(patch_flag){   /* read in orig surface before reading in patch */
+  if (patch_flag) {   /* read in orig surface before reading in patch */
     char name[100] ;
 
     FileNamePath(in_fname, path) ;
     FileNameOnly(in_fname, name) ;
     cp = strchr(name, '.') ;
-    if (cp){
+    if (cp) {
       strncpy(hemi, cp-2, 2) ;
       hemi[2] = 0 ;
-    }
-    else
+    } else
       strcpy(hemi, "lh") ;
 
     sprintf(fname, "%s/%s.orig", path, hemi) ;
@@ -140,42 +166,41 @@ main(int argc, char *argv[])
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
-    if(read_orig_positions){
+    if (read_orig_positions) {
       if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, orig_surf_name) ;
     }
-  }
-  else {
+  } else {
     mris = MRISread(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
 
-  if(talxfmsubject){
+  if (talxfmsubject) {
     XFM = DevolveXFM(talxfmsubject, NULL, NULL);
-    if(XFM == NULL) exit(1);
+    if (XFM == NULL) exit(1);
     printf("Applying talairach transform\n");
     MatrixPrint(stdout,XFM);
     MRISmatrixMultiply(mris,XFM);
   }
 
-  if(rescale){
-    if(mris->group_avg_surface_area == 0){
+  if (rescale) {
+    if (mris->group_avg_surface_area == 0) {
       printf("ERROR: cannot rescale a non-group surface\n");
       exit(1);
     }
     scale = sqrt((double)mris->group_avg_surface_area/mris->total_area);
   }
 
-  if(scale > 0) {
+  if (scale > 0) {
     printf("scale = %lf\n",scale);
     MRISscale(mris,scale);
     MRIScomputeMetricProperties(mris);
   }
 
-  if(curv_file_flag){
+  if (curv_file_flag) {
     int type ;
 
     MRISreadCurvatureFile(mris, curv_fname) ;
@@ -184,8 +209,7 @@ main(int argc, char *argv[])
       writeAsciiCurvFile(mris, out_fname) ;
     else
       MRISwriteCurvature(mris, out_fname) ;
-  }
-  else if (mris->patch)
+  } else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
@@ -203,8 +227,7 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
@@ -213,8 +236,7 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else switch (toupper(*option))
-    {
+  else switch (toupper(*option)) {
     case 'C':
       curv_file_flag = 1 ;
       curv_fname = argv[2] ;
@@ -257,27 +279,24 @@ get_option(int argc, char *argv[])
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
+print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <input surface file> <output surface file>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
   printf(
-         "\nThis program will convert an MRI surface to ascii, and "
-         "vice-versa.\n") ;
+    "\nThis program will convert an MRI surface to ascii, and "
+    "vice-versa.\n") ;
   printf( "\nvalid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
   printf( "  -c <curv file>    input is curvature file (must still\n"
@@ -308,15 +327,13 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   printf( "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-convertToWFile(char *in_fname, char *out_fname)
-{
+convertToWFile(char *in_fname, char *out_fname) {
   FILE   *infp, *outfp ;
   char   line[300], *cp ;
   int    vno, l = 0, num, ilat ;
@@ -339,19 +356,17 @@ convertToWFile(char *in_fname, char *out_fname)
   fwrite2(0,outfp);
   fwrite3(num,outfp);
 
-  while ((cp = fgetl(line, 299, infp)) != NULL)
-    {
-      l++ ;
-      if (sscanf(cp, "%d %f", &vno, &val) != 2)
-        {
-          ErrorPrintf(ERROR_BADFILE,
-                      "%s: could not scan parms from line %d: %s.\n",
-                      Progname, l, cp) ;
-          val = 0.0f ;   /* don't know what it is... */
-        }
-      fwrite3(vno,outfp);
-      fwriteFloat(val, outfp) ;
+  while ((cp = fgetl(line, 299, infp)) != NULL) {
+    l++ ;
+    if (sscanf(cp, "%d %f", &vno, &val) != 2) {
+      ErrorPrintf(ERROR_BADFILE,
+                  "%s: could not scan parms from line %d: %s.\n",
+                  Progname, l, cp) ;
+      val = 0.0f ;   /* don't know what it is... */
     }
+    fwrite3(vno,outfp);
+    fwriteFloat(val, outfp) ;
+  }
   fclose(infp) ;
   fclose(outfp) ;
   return(NO_ERROR) ;
@@ -359,8 +374,7 @@ convertToWFile(char *in_fname, char *out_fname)
 
 
 static int
-convertFromWFile(char *in_fname, char *out_fname)
-{
+convertFromWFile(char *in_fname, char *out_fname) {
   FILE   *infp, *outfp ;
   int    vno, num, ilat, i ;
   float  val, lat ;
@@ -379,21 +393,20 @@ convertFromWFile(char *in_fname, char *out_fname)
   fprintf(outfp, "%2.3f\n", lat) ;
   fread3(&num,infp);
   fprintf(outfp, "%d\n", num) ;
-  for (i=0;i<num;i++)
-    {
-      fread3(&vno,infp);
-      val = freadFloat(infp) ;
-      fprintf(outfp, "%d  %f\n", vno, val) ;
-    }
-  fclose(outfp); fclose(infp) ;
+  for (i=0;i<num;i++) {
+    fread3(&vno,infp);
+    val = freadFloat(infp) ;
+    fprintf(outfp, "%d  %f\n", vno, val) ;
+  }
+  fclose(outfp);
+  fclose(infp) ;
 
   return(NO_ERROR) ;
 }
 
 
 static int
-writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
-{
+writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) {
   FILE   *fp ;
   int    vno ;
   VERTEX *v ;
@@ -403,14 +416,13 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
     ErrorExit(ERROR_BADFILE, "%s could not open output file %s.\n",
               Progname, out_fname) ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
-              vno, v->x, v->y, v->z, v->curv) ;
-    }
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
+            vno, v->x, v->y, v->z, v->curv) ;
+  }
 
   fclose(fp) ;
   return(NO_ERROR) ;

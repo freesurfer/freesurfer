@@ -1,3 +1,31 @@
+/**
+ * @file  tkmFunctionalVolume.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:18 $
+ *    $Revision: 1.23 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef tkmFunctionalVolume_h
 #define tkmFunctionalVolume_h
 
@@ -107,18 +135,18 @@ typedef float* FunV_tOverlayCache;
 
 /* main class structure */
 struct tkmFunctionalVolume {
-  
+
   tSignature mSignature;
-  
+
   /* default conversion method */
   FunD_tConversionMethod mDefaultConvMethod;
-  
+
   /* our volumes.mriFunctionalDataRef is actually tkmFunctionalDataAccess */
   mriFunctionalDataRef  mpOverlayVolume;
   mriFunctionalDataRef  mpTimeCourseVolume;
   mriFunctionalDataRef  mpOverlayOffsetVolume;
   mriFunctionalDataRef  mpTimeCourseOffsetVolume;
-  
+
   /* overlay cache. this looks just like an anatomical volume. */
   FunV_tOverlayCache mOverlayCache;
   int                manCacheDimensions[3];
@@ -126,13 +154,13 @@ struct tkmFunctionalVolume {
   tBoolean           mbUseOverlayCache;
   int                mnCachedTimePoint;
   int                mnCachedCondition;
-  
+
   /* color cache. */
   float                  mafColorCache[FunV_knColorCacheSize][3];
   FunV_tFunctionalValue  mCachedThresholdMin;
   FunV_tFunctionalValue  mCachedThresholdMid;
   FunV_tFunctionalValue  mCachedThresholdSlope;
-  
+
   /* current drawing state, what section is being displayed */
   xListRef               mpSelectedVoxels;
   int                    mnTimePoint;
@@ -143,7 +171,7 @@ struct tkmFunctionalVolume {
   tBoolean               mabDisplayFlags[FunV_knNumDisplayFlags];
   tBoolean               mbGraphInited;
   tBoolean               mbRegistrationEnabled;
-  
+
   /* functions to access the outside world */
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
@@ -164,51 +192,51 @@ typedef enum {
 
 /* allocator an destructor */
 FunV_tErr FunV_New    ( tkmFunctionalVolumeRef* oppVolume,
-			void(*ipOverlayChangedFunction)(void),
-			void(*ipSendTkmeditCmdFunction)(tkm_tTclCommand,char*),
-			char*(*ipSendTclCommandFunction)(char*) );
+                        void(*ipOverlayChangedFunction)(void),
+                        void(*ipSendTkmeditCmdFunction)(tkm_tTclCommand,char*),
+                        char*(*ipSendTclCommandFunction)(char*) );
 FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume );
 
 /* loads the data volumes. The transform should be a->b index->RAS
    (only a->RAS transform will be used). */
 FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
-				char*                  isPathAndStem,
-				char*                  isOffsetPath,
-				FunV_tRegistrationType iRegistrationType,
-				char*                  isRegistration,
-				mriVolumeRef           iAnatomicalVolume );
+                                char*                  isPathAndStem,
+                                char*                  isOffsetPath,
+                                FunV_tRegistrationType iRegistrationType,
+                                char*                  isRegistration,
+                                mriVolumeRef           iAnatomicalVolume );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
-				char*                  isPathAndStem,
-				char*                  isOffsetPath,
-				FunV_tRegistrationType iRegistrationType,
-				char*                  isRegistration,
-				mriVolumeRef           iAnatomicalVolume );
+                                char*                  isPathAndStem,
+                                char*                  isOffsetPath,
+                                FunV_tRegistrationType iRegistrationType,
+                                char*                  isRegistration,
+                                mriVolumeRef           iAnatomicalVolume );
 
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-				       mriFunctionalDataRef*  ioppVolume,
-				       char*                  isFileName,
-				       char*                  isHeaderStem,
-				      FunV_tRegistrationType iRegistrationType,
-				       char*                  isRegPath,
-				       mriVolumeRef          iAnatomicalVolume,
-				       tBoolean               ibPrintErrors );
+                                       mriFunctionalDataRef*  ioppVolume,
+                                       char*                  isFileName,
+                                       char*                  isHeaderStem,
+                                       FunV_tRegistrationType iRegistrationType,
+                                       char*                  isRegPath,
+                                       mriVolumeRef          iAnatomicalVolume,
+                                       tBoolean               ibPrintErrors );
 
 /* sets conversion method in all volumes */
 FunV_tErr FunV_SetConversionMethod ( tkmFunctionalVolumeRef this,
-				     FunD_tConversionMethod iMethod );
+                                     FunD_tConversionMethod iMethod );
 
 /* this takes a functional volume and converts it into an anatomical
    space volume, so it can be indexed with anatomical coords. */
 FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-				       xVoxelRef              ipMRIIdx,
-				       FunV_tFunctionalValue  iValue );
+                                       xVoxelRef              ipMRIIdx,
+                                       FunV_tFunctionalValue  iValue );
 FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-				       xVoxelRef              ipMRIIdx,
-				       FunV_tFunctionalValue* oValue );
+                                       xVoxelRef              ipMRIIdx,
+                                       FunV_tFunctionalValue* oValue );
 FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
-				 tBoolean               ibUseCache );
+                                 tBoolean               ibUseCache );
 
 /* builds a cache table for calculating color values for functional
    values based on the current threshold data */
@@ -216,136 +244,136 @@ FunV_tErr FunV_InitColorCache_ ( tkmFunctionalVolumeRef this );
 
 /* get status of loadedness */
 FunV_tErr FunV_IsOverlayPresent     ( tkmFunctionalVolumeRef this,
-				      tBoolean*              obIsLoaded );
+                                      tBoolean*              obIsLoaded );
 FunV_tErr FunV_IsTimeCoursePresent  ( tkmFunctionalVolumeRef this,
-				      tBoolean*              obIsLoaded );
+                                      tBoolean*              obIsLoaded );
 FunV_tErr FunV_IsOverlayCacheLoaded ( tkmFunctionalVolumeRef this,
-				      tBoolean*              obIsLoaded );
+                                      tBoolean*              obIsLoaded );
 
 
 /* smooths the overlay data */
 FunV_tErr FunV_SmoothOverlayData ( tkmFunctionalVolumeRef this,
-				   float                  ifSigma );
+                                   float                  ifSigma );
 
 /* settors. these check values and if valid, sets internal vars. generates
    proper update msgs for tcl */
 FunV_tErr FunV_SetTimeResolution   ( tkmFunctionalVolumeRef this,
-				     float                  inTimeResolution );
+                                     float                  inTimeResolution );
 FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
-				     int                    inNumPoints );
+                                     int                    inNumPoints );
 FunV_tErr FunV_SetTimeSecond       ( tkmFunctionalVolumeRef this,
-				     int                    inSecond );
+                                     int                    inSecond );
 FunV_tErr FunV_SetTimePoint        ( tkmFunctionalVolumeRef this,
-				     int                    inTimePoint );
+                                     int                    inTimePoint );
 FunV_tErr FunV_SetCondition        ( tkmFunctionalVolumeRef this,
-				     int                    inCondition );
+                                     int                    inCondition );
 FunV_tErr FunV_SetThreshold        ( tkmFunctionalVolumeRef this,
-				     FunV_tFunctionalValue  iMin,  
-				     FunV_tFunctionalValue  iMid,     
-				     FunV_tFunctionalValue  iSlope ); 
+                                     FunV_tFunctionalValue  iMin,
+                                     FunV_tFunctionalValue  iMid,
+                                     FunV_tFunctionalValue  iSlope );
 FunV_tErr FunV_SetThresholdUsingFDR( tkmFunctionalVolumeRef this,
-				     float                  iRate,  
-				     tBoolean               ibMaskToBrain );
+                                     float                  iRate,
+                                     tBoolean               ibMaskToBrain );
 FunV_tErr FunV_SetDisplayFlag      ( tkmFunctionalVolumeRef this,
-				     FunV_tDisplayFlag      iFlag,
-				     tBoolean               iNewValue );
+                                     FunV_tDisplayFlag      iFlag,
+                                     tBoolean               iNewValue );
 FunV_tErr FunV_EnableRegistration  ( tkmFunctionalVolumeRef this,
-				     tBoolean               iNewValue );
+                                     tBoolean               iNewValue );
 
 /* moving time point */
 FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
-				     int                    inDelta );
+                                     int                    inDelta );
 
 /* allows functional volume to respond to a click. */
 FunV_tErr FunV_MRIIdxClicked ( tkmFunctionalVolumeRef this,
-			       xVoxelRef              iMRIIdx );
+                               xVoxelRef              iMRIIdx );
 
 /* modify the overlay registration */
 FunV_tErr FunV_ApplyTransformToOverlay      ( tkmFunctionalVolumeRef this,
-					      MATRIX*             iTransform );
+    MATRIX*             iTransform );
 FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
-					      float                ifDistance,
-					      tAxis                  iAxis );
+    float                ifDistance,
+    tAxis                  iAxis );
 FunV_tErr FunV_RotateOverlayRegistration    ( tkmFunctionalVolumeRef this,
-					      float                  ifDegrees,
-					      tAxis                  iAxis,
-					      xVoxelRef        iCenterMRIIdx );
+    float                  ifDegrees,
+    tAxis                  iAxis,
+    xVoxelRef        iCenterMRIIdx );
 FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
-					      float                  ifFactor,
-					      tAxis                  iAxis );
+    float                  ifFactor,
+    tAxis                  iAxis );
 
 /* overlay access */
 
 /* basic accessors to values, based on current plane position if
    applicable */
 FunV_tErr FunV_GetValueAtMRIIdx ( tkmFunctionalVolumeRef this,
-				  xVoxelRef               ipVoxel,
-				  tBoolean               iSampled,
-				  FunV_tFunctionalValue* opValue );
+                                  xVoxelRef               ipVoxel,
+                                  tBoolean               iSampled,
+                                  FunV_tFunctionalValue* opValue );
 
 /* calculate the rgb values for a color */
 FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
-				  FunV_tFunctionalValue  iValue,
-				  xColor3fRef            iBaseColor,
-				  xColor3fRef            oColor );
+                                  FunV_tFunctionalValue  iValue,
+                                  xColor3fRef            iBaseColor,
+                                  xColor3fRef            oColor );
 
 /* returns the average value of the voxels in the overlay selection range.
    also returns the func idx and ras coords of that value if voxels are
    passed in. */
 FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
-				       FunV_tFunctionalValue* oValue,
-				       xVoxelRef              oFuncIdx,
-				       xVoxelRef              oFuncRAS,
-				       tBoolean*              obIsSelection );
+                                       FunV_tFunctionalValue* oValue,
+                                       xVoxelRef              oFuncIdx,
+                                       xVoxelRef              oFuncRAS,
+                                       tBoolean*              obIsSelection );
 
 /* converts an anatomical index to a functional overlay index or RAS */
 FunV_tErr FunV_ConvertMRIIdxToFuncIdx ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iMRIIdx,
-					xVoxelRef              oFuncIdx );
+                                        xVoxelRef              iMRIIdx,
+                                        xVoxelRef              oFuncIdx );
 
 FunV_tErr FunV_ConvertMRIIdxToFuncRAS ( tkmFunctionalVolumeRef this,
-					xVoxelRef              iMRIIdx,
-					xVoxelRef              oFuncRAS );
+                                        xVoxelRef              iMRIIdx,
+                                        xVoxelRef              oFuncRAS );
 
 /* time course graph access */
 
 /* reads the graph tcl script and sets up the window. also sets up initial
    values for functional state. */
 FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
-				 Tcl_Interp*            pInterp );
+                                 Tcl_Interp*            pInterp );
 
 /* for displaying voxels in graph */
 FunV_tErr FunV_BeginSelectionRange      ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_AddMRIIdxToSelectionRange( tkmFunctionalVolumeRef this,
-					  xVoxelRef              ipVoxel );
+    xVoxelRef              ipVoxel );
 FunV_tErr FunV_EndSelectionRange        ( tkmFunctionalVolumeRef this );
 
 /* finds average time course values for a condition over the voxels in the
    current selection range. also returns the number of good voxels */
 FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
-					 int                    inCondition,
-					 int*                   onNumValues,
-					 float*                 oafValues,
-					 float*                 oafDeviations);
+    int                    inCondition,
+    int*                   onNumValues,
+    float*                 oafValues,
+    float*                 oafDeviations);
 /* prints out a log of the selected time course data */
 FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
-					   char*                  isFileName );
+    char*                  isFileName );
 
 /* grabs values for the current selected voxels and shoots them towards
    the graph to be drawn onto the screen. */
 FunV_tErr FunV_DrawGraph           ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SendGraphData_      ( tkmFunctionalVolumeRef this,
-				     int                    inCondition,
-				     int                    inNumValues,
-				     float*                 iafValues );
+                                     int                    inCondition,
+                                     int                    inNumValues,
+                                     float*                 iafValues );
 FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
-				     int                    inCondition,
-				     int                    inNumValues,
-				     float*                 iafBars );
+                                     int                    inCondition,
+                                     int                    inNumValues,
+                                     float*                 iafBars );
 
 /* manually set the location string in the graph */
 FunV_tErr FunV_SetLocationString ( tkmFunctionalVolumeRef this,
-				   char*                  isLabel );
+                                   char*                  isLabel );
 
 /* gets value at a point and then selects all voxels around it with a
    value >= to the starting value. */
@@ -354,84 +382,85 @@ typedef struct {
   FunV_tFunctionalValue  mStartValue;
   FunV_tFindStatsComp    mCompareType;
   int                    mnCount;
-} FunV_tFloodSelectCallbackData;
+}
+FunV_tFloodSelectCallbackData;
 
 FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
-			     xVoxelRef              iSeedMRIIdx,
-			     tkm_tVolumeType        iVolume,
-			     int                    inDistance,
-			     FunV_tFindStatsComp    iCompare );
+                             xVoxelRef              iSeedMRIIdx,
+                             tkm_tVolumeType        iVolume,
+                             int                    inDistance,
+                             FunV_tFindStatsComp    iCompare );
 
 tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
-					float      iValue,
-					void*      ipData );
+                                        float      iValue,
+                                        void*      ipData );
 
 Volm_tVisitCommand FunV_FloodSelectCallback ( xVoxelRef iMRIIdx,
-					      float     iValue,
-					      void*     iData );
+    float     iValue,
+    void*     iData );
 
 
 /* tcl commands */
-int FunV_TclOlSaveRegistration    ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetRegistrationToIdentity ( ClientData iClientData, 
-					  Tcl_Interp *ipInterp, 
-					  int argc, char *argv[] );
-int FunV_TclOlRestoreRegistration ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetTimePoint        ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetCondition        ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetDisplayFlag      ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetThreshold        ( ClientData inClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclOlSetSampleType       ( ClientData inClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclTCSetNumPreStimPoints ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclTCSetTimeResolution   ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclTCSetDisplayFlag      ( ClientData iClientData, 
-				    Tcl_Interp *ipInterp, 
-				    int argc, char *argv[] );
-int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData, 
-					  Tcl_Interp *ipInterp, 
-					  int argc, char *argv[] );
+int FunV_TclOlSaveRegistration    ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetRegistrationToIdentity ( ClientData iClientData,
+    Tcl_Interp *ipInterp,
+    int argc, char *argv[] );
+int FunV_TclOlRestoreRegistration ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetTimePoint        ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetCondition        ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetDisplayFlag      ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetThreshold        ( ClientData inClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclOlSetSampleType       ( ClientData inClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclTCSetNumPreStimPoints ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclTCSetTimeResolution   ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclTCSetDisplayFlag      ( ClientData iClientData,
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
+int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData,
+    Tcl_Interp *ipInterp,
+    int argc, char *argv[] );
 int FunV_TclTCPrintTimeCourseData ( ClientData iClientData,
-				    Tcl_Interp *ipInterp,
-				    int argc, char *argv[] );
+                                    Tcl_Interp *ipInterp,
+                                    int argc, char *argv[] );
 
 /* misc */
 FunV_tErr FunV_SendViewStateToTcl  ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
-				     Tcl_Interp*            pInterp );
+                                     Tcl_Interp*            pInterp );
 FunV_tErr FunV_GetThresholdMax     ( tkmFunctionalVolumeRef this,
-				     FunV_tFunctionalValue* oValue );
+                                     FunV_tFunctionalValue* oValue );
 FunV_tErr FunV_GetThreshold        ( tkmFunctionalVolumeRef this,
-				     FunV_tFunctionalValue* oMin,  
-				     FunV_tFunctionalValue* oMid,     
-				     FunV_tFunctionalValue* oSlope ); 
+                                     FunV_tFunctionalValue* oMin,
+                                     FunV_tFunctionalValue* oMid,
+                                     FunV_tFunctionalValue* oSlope );
 
 /* these check to see if we have valid callback functions and if so,
    calls them. */
 FunV_tErr FunV_OverlayChanged_        ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SendTkmeditTclCommand_ ( tkmFunctionalVolumeRef this,
-					tkm_tTclCommand        iCommand,
-					char*                  isArguments );
+                                        tkm_tTclCommand        iCommand,
+                                        char*                  isArguments );
 FunV_tErr FunV_SendTclCommand_        ( tkmFunctionalVolumeRef this,
-					FunV_tTclCommand       iCommand,
-					char*                  isArguments );
+                                        FunV_tTclCommand       iCommand,
+                                        char*                  isArguments );
 
 /* error checking etc */
 FunV_tErr FunV_Verify ( tkmFunctionalVolumeRef this );

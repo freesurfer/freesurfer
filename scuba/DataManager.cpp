@@ -1,3 +1,31 @@
+/**
+ * @file  DataManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include "string_fixed.h"
 #include <list>
@@ -7,8 +35,7 @@
 using namespace std;
 
 template <typename T>
-DataLoader<T>::DataLoader() : DebugReporter() {
-}
+DataLoader<T>::DataLoader() : DebugReporter() {}
 
 template <typename T>
 T DataLoader<T>::GetData( string const& ifnData ) {
@@ -16,10 +43,10 @@ T DataLoader<T>::GetData( string const& ifnData ) {
   typename list<T>::iterator tData;
   string fnData( ifnData );
 
-  for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
+  for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
     T data = *tData;
     string fnCurData( ifnData );
-    if( this->DoesFileNameMatchObject( data, fnCurData ) ) {
+    if ( this->DoesFileNameMatchObject( data, fnCurData ) ) {
       mRefs[data]++;
       return data;
     }
@@ -40,16 +67,16 @@ DataLoader<T>::ReleaseData( T* ioData ) {
 
   typename list<T>::iterator tData;
 
-  for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
+  for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
     T data = *tData;
 
-    if( data == *ioData ) {
+    if ( data == *ioData ) {
 
       mRefs[data]--;
 
-      if( 0 == mRefs[data] ) {
-	mlData.remove( data );
-	this->FreeData( &data );
+      if ( 0 == mRefs[data] ) {
+        mlData.remove( data );
+        this->FreeData( &data );
       }
 
       *ioData = NULL;
@@ -71,9 +98,9 @@ DataLoader<T>::CountReferences( T iData ) {
 
   typename list<T>::iterator tData;
 
-  for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
+  for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
     T data = *tData;
-    if( data == iData ) {
+    if ( data == iData ) {
       return mRefs[data];
     }
   }
@@ -82,22 +109,21 @@ DataLoader<T>::CountReferences( T iData ) {
 }
 
 
-DataManager::DataManager() : DebugReporter() {
-}
+DataManager::DataManager() : DebugReporter() {}
 
-DataManager& 
+DataManager&
 DataManager::GetManager() {
   static DataManager sManager;
   return sManager;
 }
 
-MRILoader& 
+MRILoader&
 DataManager::GetMRILoader() {
   static MRILoader sLoader;
   return sLoader;
 }
 
-MRISLoader& 
+MRISLoader&
 DataManager::GetMRISLoader() {
   static MRISLoader sLoader;
   return sLoader;
@@ -105,15 +131,15 @@ DataManager::GetMRISLoader() {
 
 template class DataLoader<MRI*>;
 
-MRI* 
-MRILoader::LoadData( std::string& ifnData ) { 
+MRI*
+MRILoader::LoadData( std::string& ifnData ) {
 
-  // Use MRIread to load the MRI object. Need to make a non-const, 
+  // Use MRIread to load the MRI object. Need to make a non-const,
   // c-string copy of the file name.
   char* fnMRI = strdup( ifnData.c_str() );
-  MRI* mri = MRIread( fnMRI ); 
+  MRI* mri = MRIread( fnMRI );
   free( fnMRI );
-  if( NULL == mri ) {
+  if ( NULL == mri ) {
     DebugOutput( << "MRIread() failed for " << fnMRI );
     throw logic_error("Couldn't load MRI.");
   }
@@ -121,10 +147,10 @@ MRILoader::LoadData( std::string& ifnData ) {
 }
 
 void
-MRILoader::FreeData( MRI** ioMRI ) { 
+MRILoader::FreeData( MRI** ioMRI ) {
 
   // Call MRIfree. This will set *ioMRI to NULL if successful.
-  MRIfree( ioMRI ); 
+  MRIfree( ioMRI );
 }
 
 bool
@@ -139,15 +165,15 @@ MRILoader::DoesFileNameMatchObject( MRI* iData, std::string& ifnData ) {
 
 template class DataLoader<MRIS*>;
 
-MRIS* 
-MRISLoader::LoadData( std::string& ifnData ) { 
+MRIS*
+MRISLoader::LoadData( std::string& ifnData ) {
 
-  // Use MRISread to load the MRIS object. Need to make a non-const, 
+  // Use MRISread to load the MRIS object. Need to make a non-const,
   // c-string copy of the file name.
   char* fnMRIS = strdup( ifnData.c_str() );
-  MRIS* mris = MRISread( fnMRIS ); 
+  MRIS* mris = MRISread( fnMRIS );
   free( fnMRIS );
-  if( NULL == mris ) {
+  if ( NULL == mris ) {
     DebugOutput( << "MRISread() failed for " << fnMRIS );
     throw logic_error("Couldn't load MRIS.");
   }
@@ -155,10 +181,10 @@ MRISLoader::LoadData( std::string& ifnData ) {
 }
 
 void
-MRISLoader::FreeData( MRIS** ioMRIS ) { 
+MRISLoader::FreeData( MRIS** ioMRIS ) {
 
   // Call MRISfree. This will set *ioMRIS to NULL if successful.
-  MRISfree( ioMRIS ); 
+  MRISfree( ioMRIS );
 }
 
 bool

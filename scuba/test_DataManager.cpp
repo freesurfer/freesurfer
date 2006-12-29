@@ -1,3 +1,31 @@
+/**
+ * @file  test_DataManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.13 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <fstream>
 #include "string_fixed.h"
@@ -24,10 +52,10 @@ using namespace std;
 
 char* Progname = "test_DataManager";
 
-template <typename LoaderType, typename DataType> 
+template <typename LoaderType, typename DataType>
 void TestLoaderStackLoad ( string const& ifnData,
-			   DataLoader<DataType>& loader,
-			   DataType& iData ) {
+                           DataLoader<DataType>& loader,
+                           DataType& iData ) {
 
   iData = loader.GetData( ifnData );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
@@ -35,10 +63,10 @@ void TestLoaderStackLoad ( string const& ifnData,
 
 }
 
-template <typename LoaderType, typename DataType> 
+template <typename LoaderType, typename DataType>
 void TestLoaderStackRelease ( string const& ifnData,
-			      DataLoader<DataType>& loader,
-			      DataType& iData ) {
+                              DataLoader<DataType>& loader,
+                              DataType& iData ) {
 
   loader.ReleaseData( &iData );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
@@ -46,9 +74,9 @@ void TestLoaderStackRelease ( string const& ifnData,
 }
 
 
-template <typename LoaderType, typename DataType> 
+template <typename LoaderType, typename DataType>
 void TestLoader ( string const& ifnData,
-		  DataLoader<DataType>& loader ) {
+                  DataLoader<DataType>& loader ) {
 
   loader.SetOutputStreamToCerr();
 
@@ -60,7 +88,7 @@ void TestLoader ( string const& ifnData,
   loader.ReleaseData( &data );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
   Assert( 0 == loader.CountReferences(data), "CountReferences didn't return 0" );
-  
+
   // Load the data with multiple references. Make sure we still only
   // loaded it once. Make sure all the Datas are ones we want.
   DataType data1 = loader.GetData( ifnData );
@@ -74,7 +102,7 @@ void TestLoader ( string const& ifnData,
   Assert( 1 == loader.CountLoaded(),  "CountLoaded didn't return 1" );
   Assert( data1 == data2, "Datas don't match" );
   Assert( data2 == data3, "Datas don't match" );
-  
+
   // Release some of the references and make sure the Data is loaded.
   loader.ReleaseData( &data1 );
   Assert( 2 == loader.CountReferences(data2), "CountReferences didn't return 2" );
@@ -82,7 +110,7 @@ void TestLoader ( string const& ifnData,
   loader.ReleaseData( &data2 );
   Assert( 1 == loader.CountReferences(data3), "CountReferences didn't return 1" );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
-  
+
   // Final release. Check the count.
   loader.ReleaseData( &data3 );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
@@ -103,32 +131,30 @@ int main ( int argc, char** argv ) {
 
   cerr << "Beginning test" << endl;
 
-  try { 
- 
+  try {
+
     DataManager& dataMgr = DataManager::GetManager();
     dataMgr.SetOutputStreamToCerr();
-    
+
     string fnMRI = "test_data/bertT1.mgz";
     TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
 
     string fnMRIS = "test_data/lh.white";
     TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
 
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch( char const* iMsg ) {
+  } catch ( char const* iMsg ) {
     cerr << "failed: " << iMsg << endl;
     exit( 1 );
   }
-  catch(...) {
+  catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
 
   cerr << "Success" << endl;
-  
+
   exit( 0 );
 }

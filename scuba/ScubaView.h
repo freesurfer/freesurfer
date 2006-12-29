@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaView.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.48 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ScubaView_h
 #define ScubaView_h
 
@@ -21,34 +49,34 @@
 #include "VolumeCollection.h"
 #include "ScubaKeyCombo.h"
 
-class ScubaViewStaticTclListener : public DebugReporter, 
-				   public TclCommandListener {
-  
+class ScubaViewStaticTclListener : public DebugReporter,
+      public TclCommandListener {
+
 public:
   ScubaViewStaticTclListener ();
   ~ScubaViewStaticTclListener ();
 
-    virtual TclCommandResult
-      DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 };
 
 
-class ScubaView : public View, 
-		  public ScubaWindowToRASTranslator {
-  
+class ScubaView : public View,
+      public ScubaWindowToRASTranslator {
+
   friend class ScubaViewTester;
   friend class ScubaViewStaticTclListener;
-  
+
 public:
-  
+
   ScubaView();
   virtual ~ScubaView();
 
   static int const kBytesPerPixel;         // for buffer size
   static int const kcInPlaneMarkerColors;  // number of preset colors
   static bool const kbDefaultLevelReportInfo; // whether a level
-					      // should report info by
-					      // default
+  // should report info by
+  // default
 
   // Sets the view. Used by something that wants to explicitly set up
   // the view area, such as a linked view broadcasting its position or
@@ -98,39 +126,53 @@ public:
   int GetWorldToViewTransform ();
 
   void SetThroughPlaneIncrement ( ViewState::Plane iInPlane,
-				  float iIncrement );
+                                  float iIncrement );
   float GetThroughPlaneIncrement ( ViewState::Plane iInPlane );
 
-  void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
-  bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
+  void SetLinkedStatus ( bool ibLinked ) {
+    mViewIDLinkedList[GetID()]=ibLinked;
+  }
+  bool GetLinkedStatus () {
+    return mViewIDLinkedList[GetID()];
+  }
 
-  void SetLockOnCursor ( bool ibLock ) { mbLockOnCursor = ibLock; }
-  bool GetLockOnCursor () { return mbLockOnCursor; }
+  void SetLockOnCursor ( bool ibLock ) {
+    mbLockOnCursor = ibLock;
+  }
+  bool GetLockOnCursor () {
+    return mbLockOnCursor;
+  }
 
   // Get view state.
-  ViewState& GetViewState () { return mViewState; }
+  ViewState& GetViewState () {
+    return mViewState;
+  }
 
   // Get the map of label values.
   std::list<Layer::InfoAtRAS>& GetInfoAtRASList ( std::string isSet );
 
   // Handle Tcl commands.
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   // Handle broadcast messages.
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Implement ScubaWindowToRASTranslator.
   void TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] );
   void TranslateRASToWindow ( float const iRAS[3], int oWindow[2] );
 
   // Set the flag to rebuild the draw overlay.
-  void RebuildOverlayDrawList () { mbRebuildOverlayDrawList = true; }
+  void RebuildOverlayDrawList () {
+    mbRebuildOverlayDrawList = true;
+  }
 
   // Access the left/right flip flag.
   void SetFlipLeftRightYZ ( bool iFlip );
-  bool GetFlipLeftRightYZ () { return mbFlipLeftRightInYZ; }
+  bool GetFlipLeftRightYZ () {
+    return mbFlipLeftRightInYZ;
+  }
 
   // Get the inplane marker color.
   void GetInPlaneMarkerColor ( float oColor[3] );
@@ -138,22 +180,24 @@ public:
   // Sets a marker in the view, wrapping around the number of markers.
   static void SetNextMarker ( float iRAS[3] );
   static void HideNearestMarker ( float iRAS[3] );
-  
+
   // Sets the number of markers to use, as well as initializes new
   // markers.
   static void SetNumberOfMarkers ( int icMarkers );
-  static int GetNumberOfMarkers () { return mcMarkers; }
+  static int GetNumberOfMarkers () {
+    return mcMarkers;
+  }
 
   static bool IsNthMarkerVisible ( int inMarker );
   static void GetNthMarker ( int inMarker, float oMarkerRAS[3] );
 
   // Export markers to control points for a volume.
-  static void ExportMarkersToControlPointsForVolume 
-    ( std::string ifnControlPoints,
-      VolumeCollection& iVolume );
+  static void ExportMarkersToControlPointsForVolume
+  ( std::string ifnControlPoints,
+    VolumeCollection& iVolume );
   static void ImportMarkersFromControlPointsForVolume
-    ( std::string ifnControlPoints,
-      VolumeCollection& iVolume );
+  ( std::string ifnControlPoints,
+    VolumeCollection& iVolume );
 
 
   // Gets a histogram of values in the current view from the given
@@ -161,17 +205,17 @@ public:
   // passes that to the volume to generate a histogram, and returns
   // the data.
   void GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
-				  ScubaROIVolume* iROI,
-				  int icBins,
-				  float& oMinBinValue, float& oBinIncrement,
-				  std::map<int,int>& oBinCounts );
+                                  ScubaROIVolume* iROI,
+                                  int icBins,
+                                  float& oMinBinValue, float& oBinIncrement,
+                                  std::map<int,int>& oBinCounts );
 
   void BeginValueRangeFill ( VolumeCollection& iSourceVol,
-			     ScubaROIVolume* iROI,
-			     VolumeCollection& iDestVol );
+                             ScubaROIVolume* iROI,
+                             VolumeCollection& iDestVol );
   void DoOneValueRangeFill ( float iBeginValueRange,
-			     float iEndValueRange,
-			     float iFillValue );
+                             float iEndValueRange,
+                             float iFillValue );
   void EndValueRangeFill   ();
 
   // Markers are shared between views so these are static functions.
@@ -190,36 +234,36 @@ protected:
 
   // Passes to layers.
   virtual void DoTimer ();
-  
+
   // On mouse moves, this calls GetInfoAtRAS on all Layers and writes
   // the info as strings on the window.
-  virtual void DoMouseMoved ( int iWindow[2], 
-			      InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseMoved ( int iWindow[2],
+                              InputState& iInput, ScubaToolState& iTool );
 
   // Mouse up sets a marker at the current location. Mouse down and
   // mouse up may trigger tool effects.
-  virtual void DoMouseUp ( int iWindow[2], 
-			   InputState& iInput, ScubaToolState& iTool );
-  virtual void DoMouseDown ( int iWindow[2], 
-			     InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseUp ( int iWindow[2],
+                           InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseDown ( int iWindow[2],
+                             InputState& iInput, ScubaToolState& iTool );
 
   // Key up and down may trigger commands.
-  virtual void DoKeyDown ( int iWindow[2], 
-			   InputState& iInput, ScubaToolState& iTool );
-  virtual void DoKeyUp ( int iWindow[2], 
-			 InputState& Translates, ScubaToolState& iTool );
+  virtual void DoKeyDown ( int iWindow[2],
+                           InputState& iInput, ScubaToolState& iTool );
+  virtual void DoKeyUp ( int iWindow[2],
+                         InputState& Translates, ScubaToolState& iTool );
 
   // iInput window coords to RAS coordinates based on the current
   // view port.
-  float ConvertWindowToRAS ( float iWindow, float iRASCenter, 
-			     float iWindowDimension );
-  float ConvertRASToWindow ( float iRAS, float iRASCenter, 
-			     float iWindowDimension );
+  float ConvertWindowToRAS ( float iWindow, float iRASCenter,
+                             float iWindowDimension );
+  float ConvertRASToWindow ( float iRAS, float iRASCenter,
+                             float iWindowDimension );
 
   // Translates RAS (view) coordinates by a vector in window space.
   void TranslateRASInWindowSpace ( float iRAS[3], float iMove[3],
-				   float oRAS[3] );
-				    
+                                   float oRAS[3] );
+
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame
   // buffer. DrawFrameBuffer() copies it to the screen. BuildOverlay()
@@ -327,13 +371,13 @@ protected:
   class ValueRangeFillElement {
   public:
     ValueRangeFillElement ( float iBegin, float iEnd, float iValue ) :
-      mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
+        mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
     float mBegin, mEnd, mValue;
   };
 
   class ValueRangeFillParams {
   public:
-    ValueRangeFillParams ( VolumeCollection& iSrc, ScubaROIVolume* iROI, VolumeCollection& iDest ) : mSourceVol(iSrc), mROI(iROI), mDestVol(iDest) {} 
+    ValueRangeFillParams ( VolumeCollection& iSrc, ScubaROIVolume* iROI, VolumeCollection& iDest ) : mSourceVol(iSrc), mROI(iROI), mDestVol(iDest) {}
     VolumeCollection& mSourceVol;
     ScubaROIVolume* mROI;
     VolumeCollection& mDestVol;
@@ -341,20 +385,20 @@ protected:
   };
 
   ValueRangeFillParams* mValueRangeFillParams;
-};  
+};
 
 class ScubaViewFactory : public ViewFactory {
- public:
+public:
   virtual ~ScubaViewFactory () {};
   virtual View* NewView();
 };
 
 class ScubaViewBroadcaster : public Broadcaster {
- public:
+public:
   ScubaViewBroadcaster();
   static ScubaViewBroadcaster& GetBroadcaster ();
   virtual void SendBroadcast ( std::string iMessage, void* iData );
- protected:
+protected:
   int mCurrentBroadcaster;
 };
 

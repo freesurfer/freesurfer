@@ -1,3 +1,31 @@
+/**
+ * @file  gcsa.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef GCSA_H
 #define GCSA_H
 
@@ -22,7 +50,8 @@ typedef struct
   char   fname[STRLEN] ;
   int    navgs ;
   int    flags ;
-} GCSA_INPUT ;
+}
+GCSA_INPUT ;
 
 #define GIBBS_SURFACE_NEIGHBORHOOD   4
 #define GIBBS_SURFACE_NEIGHBORS      GIBBS_SURFACE_NEIGHBORHOOD
@@ -34,8 +63,9 @@ typedef struct
   VECTOR  *v_means ;
   MATRIX  *m_cov ;
   int     total_training ;
-	int     regularized ;
-} GCS, SURFACE_GAUSSIAN_CLASSIFIER ;
+  int     regularized ;
+}
+GCS, SURFACE_GAUSSIAN_CLASSIFIER ;
 
 typedef struct
 {
@@ -44,7 +74,8 @@ typedef struct
   int    *labels[GIBBS_SURFACE_NEIGHBORHOOD] ;
   short   nlabels[ GIBBS_SURFACE_NEIGHBORHOOD];
   int     total_nbrs[GIBBS_SURFACE_NEIGHBORHOOD] ;
-} CLASS_PRIORS, CP ;
+}
+CLASS_PRIORS, CP ;
 
 typedef struct
 {
@@ -53,7 +84,8 @@ typedef struct
   int     *labels ;
   CP      *cps ;            /* class priors */
   int     total_training ;  /* total # of times this node was was accessed */
-} CP_NODE ;
+}
+CP_NODE ;
 
 typedef struct
 {
@@ -62,7 +94,8 @@ typedef struct
   int     *labels ;
   GCS     *gcs ;       /* classifiers */
   int     total_training ;  /* total # of times this node was was accessed */
-} GCSA_NODE ;
+}
+GCSA_NODE ;
 
 typedef struct
 {
@@ -76,9 +109,10 @@ typedef struct
   MRIS_HASH_TABLE  *mht_priors ;
   MRIS_HASH_TABLE  *mht_classifiers ;
   GCSA_INPUT       inputs[GCSA_MAX_INPUTS] ;
-	char             *ptable_fname ;   /* name of color lookup table */
-	COLOR_TABLE      *ct ;
-} GAUSSIAN_CLASSIFIER_SURFACE_ARRAY, GCSA ;
+  char             *ptable_fname ;   /* name of color lookup table */
+  COLOR_TABLE      *ct ;
+}
+GAUSSIAN_CLASSIFIER_SURFACE_ARRAY, GCSA ;
 
 
 GCSA  *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers) ;

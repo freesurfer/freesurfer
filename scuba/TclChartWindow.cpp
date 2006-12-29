@@ -1,3 +1,31 @@
+/**
+ * @file  TclChartWindow.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "string_fixed.h"
 #include <sstream>
 #include "TclChartWindow.h"
@@ -9,25 +37,24 @@ TclChartWindowStaticListener TclChartWindow::mStaticListener;
 bool TclChartWindow::sbInitedTclFile = false;
 
 TclChartWindow::TclChartWindow () :
-  ChartWindow() {
+    ChartWindow() {
   msTitle = "Chart";
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
 
   // If we're not already inited...
-  if( !sbInitedTclFile ) {
+  if ( !sbInitedTclFile ) {
     try {
       // Try using a utility function in scuba.tcl to load the
       // file. If this doesn't work...
       commandMgr.SendCommand( "LoadScubaSupportFile TclChartWindow.tcl" );
-    }
-    catch(...) {
+    } catch (...) {
       // Just use the source command. If this doesn't work, we can't
       // find the TclChartWindow.tcl and we have a genuine error, so
       // let it be thrown.
       commandMgr.SendCommand( "source TclChartWindow.tcl" );
     }
-    
+
     // This inits the chart stuff.
     commandMgr.SendCommand( "Chart_Init" );
 
@@ -36,10 +63,10 @@ TclChartWindow::TclChartWindow () :
 
   // Add our commands.
   commandMgr.AddCommand( *this, "GenerateChartReport", 6, "chartID "
-			 "includeGroupLabel includePointLabel includeX "
-			 "includeY fileName",
-			 "Generates a text file with the requested "
-			 "information from the specified chart." );
+                         "includeGroupLabel includePointLabel includeX "
+                         "includeY fileName",
+                         "Generates a text file with the requested "
+                         "information from the specified chart." );
 
   // Our chart ID is the same as our IDTracker ID.
   int chartID = GetID();
@@ -48,12 +75,11 @@ TclChartWindow::TclChartWindow () :
   stringstream ssCommand;
   ssCommand << "Chart_NewWindow " << chartID;
   commandMgr.SendCommand( ssCommand.str() );
-  
+
 
 }
 
-TclChartWindow::~TclChartWindow () {
-}
+TclChartWindow::~TclChartWindow () {}
 
 void
 TclChartWindow::Close () {
@@ -81,29 +107,29 @@ TclChartWindow::Draw () {
   // chart.
   ssCommand.str("");
   ssCommand << "Chart_SetWindowTitle " << chartID
-	    << " \"" << msTitle << "\"";
+  << " \"" << msTitle << "\"";
   manager.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
   ssCommand << "Chart_SetXAxisLabel " << chartID
-	    << " \"" << msXLabel << "\"";
+  << " \"" << msXLabel << "\"";
   manager.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
   ssCommand << "Chart_SetYAxisLabel " << chartID
-	    << " \"" << msYLabel << "\"";
+  << " \"" << msYLabel << "\"";
   manager.SendCommand( ssCommand.str() );
-  
+
   ssCommand.str("");
   ssCommand << "Chart_SetInfo " << chartID
-	    << " \"" << msInfo << "\"";
+  << " \"" << msInfo << "\"";
   manager.SendCommand( ssCommand.str() );
-  
+
   ssCommand.str("");
   ssCommand << "Chart_SetShowLegend " << chartID << " "
-	    << (mbShowLegend ? "true" : "false");
+  << (mbShowLegend ? "true" : "false");
   manager.SendCommand( ssCommand.str() );
-  
+
   // Clear the existing data.
   ssCommand.str("");
   ssCommand << "Chart_ClearData " << chartID;
@@ -111,67 +137,67 @@ TclChartWindow::Draw () {
 
   // Make some tcl commands with all our data groups and send it.
   map<int,list<PointData> >::iterator tGroup;
-  for( tGroup = mPointData.begin(); tGroup != mPointData.end(); ++tGroup ) {
-    
-      int nGroup = tGroup->first;
-      list<PointData>& lPoints = tGroup->second;
+  for ( tGroup = mPointData.begin(); tGroup != mPointData.end(); ++tGroup ) {
 
-      // Send the tcl commands to set the group data.
-      ssCommand.str("");
-      ssCommand << "Chart_SetGroupConnected " << chartID << " "
-		<< nGroup << " " << mGroupData[nGroup].mbConnected;
-      manager.SendCommand( ssCommand.str() );
-      
-      if( mGroupData[nGroup].msLabel != "" ) {
-	ssCommand.str("");
-	ssCommand << "Chart_SetGroupLabel " << chartID << " "
-		  << nGroup << " \"" << mGroupData[nGroup].msLabel << "\"";
-	manager.SendCommand( ssCommand.str() );
-      }
+    int nGroup = tGroup->first;
+    list<PointData>& lPoints = tGroup->second;
 
+    // Send the tcl commands to set the group data.
+    ssCommand.str("");
+    ssCommand << "Chart_SetGroupConnected " << chartID << " "
+    << nGroup << " " << mGroupData[nGroup].mbConnected;
+    manager.SendCommand( ssCommand.str() );
+
+    if ( mGroupData[nGroup].msLabel != "" ) {
       ssCommand.str("");
-      ssCommand << "Chart_SetGroupColor " << chartID << " "
-		<< nGroup << " " 
-		<< mGroupData[nGroup].mColorRGBi[0] << " "
-		<< mGroupData[nGroup].mColorRGBi[1] << " "
-		<< mGroupData[nGroup].mColorRGBi[2];
+      ssCommand << "Chart_SetGroupLabel " << chartID << " "
+      << nGroup << " \"" << mGroupData[nGroup].msLabel << "\"";
       manager.SendCommand( ssCommand.str() );
-      
-      // Go through the point list and build the points command.
-      list<PointData>::iterator tPoint;
-      ssCommand.str("");
-      ssCommand << "Chart_SetPointData " << chartID << " " 
-		<< nGroup << " [list ";
-      for( tPoint = lPoints.begin(); tPoint != lPoints.end(); ++tPoint ) {
-	PointData& point = *tPoint;
-	ssCommand << "[list x " << point.mX << " y " << point.mY
-		  << " label \"" << point.msLabel << "\"] ";
-      }
-      ssCommand << "]";
-      manager.SendCommand( ssCommand.str() );
+    }
+
+    ssCommand.str("");
+    ssCommand << "Chart_SetGroupColor " << chartID << " "
+    << nGroup << " "
+    << mGroupData[nGroup].mColorRGBi[0] << " "
+    << mGroupData[nGroup].mColorRGBi[1] << " "
+    << mGroupData[nGroup].mColorRGBi[2];
+    manager.SendCommand( ssCommand.str() );
+
+    // Go through the point list and build the points command.
+    list<PointData>::iterator tPoint;
+    ssCommand.str("");
+    ssCommand << "Chart_SetPointData " << chartID << " "
+    << nGroup << " [list ";
+    for ( tPoint = lPoints.begin(); tPoint != lPoints.end(); ++tPoint ) {
+      PointData& point = *tPoint;
+      ssCommand << "[list x " << point.mX << " y " << point.mY
+      << " label \"" << point.msLabel << "\"] ";
+    }
+    ssCommand << "]";
+    manager.SendCommand( ssCommand.str() );
   }
 
 
-  if( mXAxisMarkerData.size() > 0 ) {
+  if ( mXAxisMarkerData.size() > 0 ) {
 
     ssCommand.str("");
-    ssCommand << "Chart_SetXAxisMarkers " << chartID << " " 
-	      << " [list ";
+    ssCommand << "Chart_SetXAxisMarkers " << chartID << " "
+    << " [list ";
 
     list<MarkerData>::iterator tMarker;
-    for( tMarker = mXAxisMarkerData.begin(); tMarker != mXAxisMarkerData.end();
-	 ++tMarker ) {
-      
+    for ( tMarker = mXAxisMarkerData.begin(); tMarker != mXAxisMarkerData.end();
+          ++tMarker ) {
+
       MarkerData& marker = *tMarker;
       /*
-	std::string msLabel;
-	float mValue;
-	int mColorRGBi[3];
+      std::string msLabel;
+      float mValue;
+      int mColorRGBi[3];
       */
-      ssCommand << "[list value " << marker.mValue << " label \"" 
-		<< marker.msLabel << "\" red " << marker.mColorRGBi[0]
-		<< " green " << marker.mColorRGBi[1]
-		<< " blue " << marker.mColorRGBi[2] << "] ";
+      ssCommand << "[list value " << marker.mValue << " label \""
+      << marker.msLabel << "\" red " << marker.mColorRGBi[0]
+      << " green " << marker.mColorRGBi[1]
+      << " blue " << marker.mColorRGBi[2] << "] ";
     }
 
     ssCommand << "]";
@@ -183,76 +209,70 @@ TclChartWindow::Draw () {
   ssCommand.str("");
   ssCommand << "Chart_ShowWindow " << chartID;
   manager.SendCommand( ssCommand.str() );
-  
+
 }
 
 TclCommandListener::TclCommandResult
-TclChartWindow::DoListenToTclCommand ( char* isCommand, 
-				       int, char** iasArgv ) {
+TclChartWindow::DoListenToTclCommand ( char* isCommand,
+                                       int, char** iasArgv ) {
 
-  // GenerateChartReport <chartID> <includeGroupLabel> <includePointLabel> 
+  // GenerateChartReport <chartID> <includeGroupLabel> <includePointLabel>
   // <includeX> <includeY> <fileName>
-  if( 0 == strcmp( isCommand, "GenerateChartReport" ) ) {
+  if ( 0 == strcmp( isCommand, "GenerateChartReport" ) ) {
     int chartID;
     try {
       chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad collectionID: ") + e.what();
       return error;
     }
-    
-    if( mID == chartID ) {
-      
+
+    if ( mID == chartID ) {
+
       bool bIncludeGroupLabel = false;
       try {
-	bIncludeGroupLabel =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad includeGroupLabel \"" + string(iasArgv[2]) + "\"," + e.what();
-	return error;	
+        bIncludeGroupLabel =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+      } catch ( runtime_error& e ) {
+        sResult = "bad includeGroupLabel \"" + string(iasArgv[2]) + "\"," + e.what();
+        return error;
       }
 
       bool bIncludePointLabel = false;
       try {
-	bIncludePointLabel =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad includePointLabel \"" + string(iasArgv[3]) + "\"," + e.what();
-	return error;	
+        bIncludePointLabel =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      } catch ( runtime_error& e ) {
+        sResult = "bad includePointLabel \"" + string(iasArgv[3]) + "\"," + e.what();
+        return error;
       }
 
       bool bIncludeX = false;
       try {
-	bIncludeX =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad includeX \"" + string(iasArgv[4]) + "\"," + e.what();
-	return error;	
+        bIncludeX =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
+      } catch ( runtime_error& e ) {
+        sResult = "bad includeX \"" + string(iasArgv[4]) + "\"," + e.what();
+        return error;
       }
 
       bool bIncludeY = false;
       try {
-	bIncludeY =
-	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[5] );
-      }
-      catch( runtime_error& e ) {
-	sResult = "bad includeY \"" + string(iasArgv[5]) + "\"," + e.what();
-	return error;	
+        bIncludeY =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[5] );
+      } catch ( runtime_error& e ) {
+        sResult = "bad includeY \"" + string(iasArgv[5]) + "\"," + e.what();
+        return error;
       }
 
       try {
-	GenerateReport( string(iasArgv[6]), bIncludeGroupLabel,
-			bIncludePointLabel, bIncludeX, bIncludeY );
+        GenerateReport( string(iasArgv[6]), bIncludeGroupLabel,
+                        bIncludePointLabel, bIncludeX, bIncludeY );
+      } catch ( runtime_error& e ) {
+        sResult = string("Error generating report: ") + e.what();
+        return error;
       }
-      catch( runtime_error& e ) {
-	sResult = string("Error generating report: ") + e.what();
-	return error;	
-      }
-      
+
       return ok;
     }
   }
@@ -263,39 +283,37 @@ TclChartWindow::DoListenToTclCommand ( char* isCommand,
 TclChartWindowStaticListener::TclChartWindowStaticListener () {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "DeleteTclChartWindow", 1, "chartID", 
-			 "Deletes a TclChartWindow." );
+  commandMgr.AddCommand( *this, "DeleteTclChartWindow", 1, "chartID",
+                         "Deletes a TclChartWindow." );
 
 }
 
 TclCommandListener::TclCommandResult
-TclChartWindowStaticListener::DoListenToTclCommand ( char* isCommand, 
-						     int, char** iasArgv ) {
+TclChartWindowStaticListener::DoListenToTclCommand ( char* isCommand,
+    int, char** iasArgv ) {
 
   // DeleteTclChartWindow <chartID>
-  if( 0 == strcmp( isCommand, "DeleteTclChartWindow" ) ) {
+  if ( 0 == strcmp( isCommand, "DeleteTclChartWindow" ) ) {
 
     // Get our chart ID.
     int chartID;
     try {
       chartID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-      }
-    catch( runtime_error& e ) {
+    } catch ( runtime_error& e ) {
       sResult = string("bad chartID: ") + e.what();
       return error;
     }
-    
+
     // Try to find the chart window.
     TclChartWindow* chart;
     try {
       chart = (TclChartWindow*) &TclChartWindow::FindByID( chartID );
-    }
-    catch(...) {
+    } catch (...) {
       throw runtime_error( "Couldn't find the chart window." );
     }
-    
+
     // Delete the chart window object.
-    if( NULL != chart )
+    if ( NULL != chart )
       delete chart;
   }
 

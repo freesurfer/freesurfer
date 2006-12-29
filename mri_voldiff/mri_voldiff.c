@@ -1,3 +1,31 @@
+/**
+ * @file  mri_voldiff.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // mri_voldiff.c
 
 #include <stdio.h>
@@ -43,7 +71,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_voldiff.c,v 1.4 2005/09/29 03:19:05 greve Exp $";
+static char vcid[] = "$Id: mri_voldiff.c,v 1.5 2006/12/29 02:09:10 nicks Exp $";
 char *Progname = NULL;
 
 char *vol1File = NULL, *vol2File=NULL;
@@ -61,8 +89,7 @@ double vox2ras_thresh = 0;
 double pixdiff_thresh = 0;
 
 /*--------------------------------------------------*/
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int nargs,r,c;
   struct utsname uts;
   char *cmdline, cwd[2000];
@@ -82,10 +109,10 @@ int main(int argc, char **argv)
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly) return(0);
+  if (checkoptsonly) return(0);
 
   printf("\n");
   printf("%s\n",vcid);
@@ -98,61 +125,62 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   vol1 = MRIread(vol1File);
-  if(vol1 == NULL) exit(1);
+  if (vol1 == NULL) exit(1);
   vol2 = MRIread(vol2File);
-  if(vol2 == NULL) exit(1);
+  if (vol2 == NULL) exit(1);
 
   vox2ras1 = MRIxfmCRS2XYZ(vol1,0);
   vox2ras2 = MRIxfmCRS2XYZ(vol2,0);
 
-  if(vol1->xsize   != vol2->xsize ||
-     vol1->ysize   != vol2->ysize ||
-     vol1->zsize   != vol2->zsize){
+  if (vol1->xsize   != vol2->xsize ||
+      vol1->ysize   != vol2->ysize ||
+      vol1->zsize   != vol2->zsize) {
     printf("volumes differ in resolution\n");
-    if(!AllowResolution) exit(RESOLUTION_EC);
+    if (!AllowResolution) exit(RESOLUTION_EC);
     printf("  but continuing\n");
   }
 
-  if(vol1->type != vol2->type){
+  if (vol1->type != vol2->type) {
     printf("volumes differ in precision\n");
-    if(!AllowPrecision) exit(PRECISION_EC);
+    if (!AllowPrecision) exit(PRECISION_EC);
     printf("  but continuing\n");
   }
 
-  for(c=1; c <= 4; c++){
-    for(r=1; r <= 4; r++){
+  for (c=1; c <= 4; c++) {
+    for (r=1; r <= 4; r++) {
       d = fabs(vox2ras1->rptr[c][r] - vox2ras2->rptr[c][r]);
-      if(fabs(d) > vox2ras_thresh){
-	printf("volumes differ in vox2ras %d %d %g %g\n",c,r,
-	       vox2ras1->rptr[c][r],vox2ras2->rptr[c][r]);
-	if(!AllowVox2RAS) exit(VOX2RAS_EC);
-	printf("  but continuing\n");
-	c=4;r=4;
+      if (fabs(d) > vox2ras_thresh) {
+        printf("volumes differ in vox2ras %d %d %g %g\n",c,r,
+               vox2ras1->rptr[c][r],vox2ras2->rptr[c][r]);
+        if (!AllowVox2RAS) exit(VOX2RAS_EC);
+        printf("  but continuing\n");
+        c=4;
+        r=4;
       }
     }
   }
 
-  if(vol1->width   != vol2->width ||
-     vol1->height  != vol2->height ||
-     vol1->depth   != vol2->depth ||
-     vol1->nframes != vol2->nframes){
+  if (vol1->width   != vol2->width ||
+      vol1->height  != vol2->height ||
+      vol1->depth   != vol2->depth ||
+      vol1->nframes != vol2->nframes) {
     printf("volumes differ in dimension (%d %d %d %d) (%d %d %d %d) \n",
-	   vol1->width,vol1->height,vol1->depth,vol1->nframes,
-	   vol2->width,vol2->height,vol2->depth,vol2->nframes);
+           vol1->width,vol1->height,vol1->depth,vol1->nframes,
+           vol2->width,vol2->height,vol2->depth,vol2->nframes);
     exit(DIMENSION_EC);
   }
 
   maxdiff = MRImaxAbsDiff(vol1,vol2,&cmax,&rmax,&smax,&fmax);
   printf("pixdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
 
-  if(maxdiff > pixdiff_thresh){
-    printf("volumes differ in pixel data\n");    
+  if (maxdiff > pixdiff_thresh) {
+    printf("volumes differ in pixel data\n");
     exit(PIXEL_EC);
   }
 
-  printf("volumes are consistent\n");    
+  printf("volumes are consistent\n");
   printf("mri_voldiff done\n");
-  return(0); 
+  return(0);
   exit(0);
 
 }
@@ -161,19 +189,18 @@ int main(int argc, char **argv)
 /*-----------------------------------------------------------------*/
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -188,30 +215,26 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--allow-prec")) AllowPrecision = 1;
     else if (!strcasecmp(option, "--allow-vox2ras")) AllowVox2RAS = 1;
 
-    else if (!strcmp(option, "--v1")){
-      if(nargc < 1) CMDargNErr(option,1);
+    else if (!strcmp(option, "--v1")) {
+      if (nargc < 1) CMDargNErr(option,1);
       vol1File = fio_fullpath(pargv[0]);
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--v2")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcmp(option, "--v2")) {
+      if (nargc < 1) CMDargNErr(option,1);
       vol2File = fio_fullpath(pargv[0]);
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--pix")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcmp(option, "--pix")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&pixdiff_thresh);
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--vox2ras")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcmp(option, "--vox2ras")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&vox2ras_thresh);
       nargsused = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(CMDsingleDash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(1);
     }
     nargc -= nargsused;
@@ -220,14 +243,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --v1 first input volume \n");
@@ -249,43 +270,40 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
   printf(
-"Determines whether two volumes are different. The difference\n"
-"can be in pixel data or in the dimension, precision, resolution\n"
-"or geometry. If there are no errors of differences in the volumes,\n"
-"then it exits with 0. If an error occurs, then it exits with 1.\n"
-"If the volumes are different, it will exit with one of the \n"
-"following codes:\n");
+    "Determines whether two volumes are different. The difference\n"
+    "can be in pixel data or in the dimension, precision, resolution\n"
+    "or geometry. If there are no errors of differences in the volumes,\n"
+    "then it exits with 0. If an error occurs, then it exits with 1.\n"
+    "If the volumes are different, it will exit with one of the \n"
+    "following codes:\n");
 
   printf("\n");
   dump_exit_codes(stdout);
   printf("\n");
 
   printf(
-"Some of the exit conditions can be allowed with --allow-prec,\n"
-"--allow-res, --allow-vox2ras.\n"
-"\n");
+    "Some of the exit conditions can be allowed with --allow-prec,\n"
+    "--allow-res, --allow-vox2ras.\n"
+    "\n");
 
 
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(vol1File == NULL){
+static void check_options(void) {
+  if (vol1File == NULL) {
     printf("ERROR: must specify a vol1 file\n");
     exit(1);
   }
-  if(vol2File == NULL){
+  if (vol2File == NULL) {
     printf("ERROR: must specify a vol2 file\n");
     exit(1);
   }
@@ -293,8 +311,7 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"vol1    %s\n",vol1File);
   fprintf(fp,"vol2    %s\n",vol2File);
   fprintf(fp,"pix thresh  %g\n",pixdiff_thresh);
@@ -303,8 +320,7 @@ static void dump_options(FILE *fp)
 }
 
 /* --------------------------------------------- */
-static void dump_exit_codes(FILE *fp)
-{
+static void dump_exit_codes(FILE *fp) {
   fprintf(fp,"dimensions inconsistent   %d\n",DIMENSION_EC);
   fprintf(fp,"precision  inconsistent   %d\n",PRECISION_EC);
   fprintf(fp,"resolution inconsistent   %d\n",RESOLUTION_EC);

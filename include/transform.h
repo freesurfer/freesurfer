@@ -1,10 +1,38 @@
+/**
+ * @file  transform.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.54 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /***********************************************************************/
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following three lines. CVS maintains them. */
-/* Revision Author: $Author: greve $                                  */
-/* Revision Date  : $Date: 2006/12/18 01:06:59 $                       */
-/* Revision       : $Revision: 1.53 $                                  */
+/* Revision Author: $Author: nicks $                                  */
+/* Revision Date  : $Date: 2006/12/29 02:09:00 $                       */
+/* Revision       : $Revision: 1.54 $                                  */
 /*                                                                     */
 /***********************************************************************/
 
@@ -19,7 +47,7 @@ typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 typedef struct
 {
   int           valid;   /* whether this is a
-                            valid info or not (1 valid, 0 not valid) */
+                                    valid info or not (1 valid, 0 not valid) */
   int           width ;
   int           height ;
   int           depth ;
@@ -31,7 +59,8 @@ typedef struct
   float         z_r, z_a, z_s;
   float         c_r, c_a, c_s;
   char          fname[STRLEN];  // volume filename
-} VOL_GEOM, VG;
+}
+VOL_GEOM, VG;
 
 typedef struct
 {
@@ -46,7 +75,8 @@ typedef struct
   VOL_GEOM   src;            /* src for the transform       */
   VOL_GEOM   dst;            /* dst for the transform       */
   int        label ;         // if this xform only applies to a specific label
-} LINEAR_TRANSFORM, LT ;
+}
+LINEAR_TRANSFORM, LT ;
 
 typedef struct
 {
@@ -54,7 +84,8 @@ typedef struct
   LINEAR_TRANSFORM  *xforms ;         /* transforms */
   LINEAR_TRANSFORM  *inv_xforms ;     /* inverse transforms */
   int               type ;
-} LINEAR_TRANSFORM_ARRAY, LTA ;
+}
+LINEAR_TRANSFORM_ARRAY, LTA ;
 
 #include "mri.h"
 typedef struct
@@ -64,7 +95,8 @@ typedef struct
   MRI        *mri_yn ;
   MRI        *mri_zn ;
   void       *xform ;
-} TRANSFORM ;
+}
+TRANSFORM ;
 
 void mincGetVolInfo(char *infoline, char *infoline2,
                     VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
@@ -183,8 +215,8 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
-int vg_isEqual(const VOL_GEOM *vg1, 
-               const VOL_GEOM *vg2); /* return 1 if equal 
+int vg_isEqual(const VOL_GEOM *vg1,
+               const VOL_GEOM *vg2); /* return 1 if equal
                                         return 0 if not equal */
 void vg_print(const VOL_GEOM *vg);
 

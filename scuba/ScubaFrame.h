@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaFrame.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.18 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ScubaFrame_h
 #define ScubaFrame_h
 
@@ -8,9 +36,9 @@
 #include "ScubaToolState.h"
 #include "Listener.h"
 
-class ScubaFrame : public WindowFrame, 
-		   public TclCommandListener,
-		   public Listener // viewChanged
+class ScubaFrame : public WindowFrame,
+      public TclCommandListener,
+      public Listener // viewChanged
 {
 
   friend class ScubaFrameTester;
@@ -18,24 +46,26 @@ class ScubaFrame : public WindowFrame,
 public:
   ScubaFrame( ID iID );
   virtual ~ScubaFrame();
-  
+
   // View configurations. The cxx numbers spec the number of columns
   // in each row. So c22 is 2 columns in row 0, and 2 in row 1, while
   // c13 is 1 view in row 0 and 3 in row 1.
   enum ViewConfiguration { c1, c22, c44, c13 };
   void SetViewConfiguration( ViewConfiguration iConfig );
-  ViewConfiguration GetViewConfiguration() { return mViewConfiguration; }
+  ViewConfiguration GetViewConfiguration() {
+    return mViewConfiguration;
+  }
   std::string GetViewConfigurationAsString();
 
   virtual TclCommandResult
-    DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
+  DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
 
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Sets the factory to use for creating new frames.
-  static void SetViewFactory( ViewFactory* const iFactory ) { 
-    mFactory = iFactory; 
+  static void SetViewFactory( ViewFactory* const iFactory ) {
+    mFactory = iFactory;
   }
 
   // Return the selected view.
@@ -65,8 +95,8 @@ protected:
 
   // Adjusts window coords for a view.
   void TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
-			       int oView[2] );
-  
+                               int oView[2] );
+
   // Sets the sizes for all of our views according to our current
   // configuration and view size.
   void SizeViewsToConfiguration ();
@@ -113,7 +143,7 @@ protected:
 // created.
 class ScubaFrameFactory : public WindowFrameFactory {
 public:
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
+  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
     ScubaFrame* frame = new ScubaFrame( iID );
     frame->SetViewConfiguration( ScubaFrame::c1 );
     frame->SetOutputStreamToCerr();

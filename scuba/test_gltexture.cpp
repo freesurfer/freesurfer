@@ -1,3 +1,31 @@
+/**
+ * @file  test_gltexture.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:16 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <string>
 #include <GL/glut.h>
 #include <GL/glx.h>
@@ -47,10 +75,22 @@ void LoadTextures () {
 
   Matrix44& t = vol.GetWorldToIndexTransform().ExtractRotation();
   cerr << t << endl;
-  m[0] = t(0,0); m[4] = t(1,0);  m[8] = t(2,0); m[12] = t(3,0); 
-  m[1] = t(0,1); m[5] = t(1,1);  m[9] = t(2,1); m[13] = t(3,1); 
-  m[2] = t(0,2); m[6] = t(1,2); m[10] = t(2,2); m[14] = t(3,2); 
-  m[3] = t(0,3); m[7] = t(1,3); m[11] = t(2,3); m[15] = t(3,3); 
+  m[0] = t(0,0);
+  m[4] = t(1,0);
+  m[8] = t(2,0);
+  m[12] = t(3,0);
+  m[1] = t(0,1);
+  m[5] = t(1,1);
+  m[9] = t(2,1);
+  m[13] = t(3,1);
+  m[2] = t(0,2);
+  m[6] = t(1,2);
+  m[10] = t(2,2);
+  m[14] = t(3,2);
+  m[3] = t(0,3);
+  m[7] = t(1,3);
+  m[11] = t(2,3);
+  m[15] = t(3,3);
 
   nSlice = depth / 2;
 
@@ -70,16 +110,16 @@ void LoadTextures () {
 #if 0
   // check memory
   glTexImage3D( GL_PROXY_TEXTURE_3D, 0, GL_RGB,
-		tSize[0], tSize[1], tSize[2], 0,
-		GL_RGB, GL_UNSIGNED_BYTE,
-		NULL );
+                tSize[0], tSize[1], tSize[2], 0,
+                GL_RGB, GL_UNSIGNED_BYTE,
+                NULL );
   CheckError();
 
-  GLint testWidth;  
+  GLint testWidth;
   glGetTexLevelParameteriv( GL_PROXY_TEXTURE_3D, 0,
-			    GL_TEXTURE_WIDTH, &testWidth );
+                            GL_TEXTURE_WIDTH, &testWidth );
   CheckError();
-  if( testWidth != tSize[0] ) {
+  if ( testWidth != tSize[0] ) {
     fprintf( stderr, "test width was %d\n", testWidth );
     exit( 0 );
   }
@@ -92,51 +132,51 @@ void LoadTextures () {
 
   GLubyte* buffer = NULL;
   buffer = (GLubyte*) malloc( tSize[0] * tSize[1] * tSize[2] *
-			      sizeof(GLubyte) );
-  
+                              sizeof(GLubyte) );
+
   // make textures
   int i = 0;
-  for( int nTexZ = 0; nTexZ < 2; nTexZ++ ) {
-    for( int nTexY = 0; nTexY < 2; nTexY++ ) {
-      for( int nTexX = 0; nTexX < 2; nTexX++ ) {
-	
-	for( int nBufZ = 0; nBufZ < tSize[2]; nBufZ++ ) {
-	  for( int nBufY = 0; nBufY < tSize[1]; nBufY++ ) {
-	    for( int nBufX = 0; nBufX < tSize[0]; nBufX++ ) {
+  for ( int nTexZ = 0; nTexZ < 2; nTexZ++ ) {
+    for ( int nTexY = 0; nTexY < 2; nTexY++ ) {
+      for ( int nTexX = 0; nTexX < 2; nTexX++ ) {
 
-	      int nMRIX = nBufX + (nTexX * tSize[0]);
-	      int nMRIY = nBufY + (nTexY * tSize[1]);
-	      int nMRIZ = nBufZ + (nTexZ * tSize[2]);
+        for ( int nBufZ = 0; nBufZ < tSize[2]; nBufZ++ ) {
+          for ( int nBufY = 0; nBufY < tSize[1]; nBufY++ ) {
+            for ( int nBufX = 0; nBufX < tSize[0]; nBufX++ ) {
 
-	      buffer[nBufZ*tSize[1]*tSize[0] + nBufY*tSize[0] + nBufX] =
-		MRIvox(mri,nMRIZ,nMRIY,nMRIX);
-	    }
-	  }
-	}
+              int nMRIX = nBufX + (nTexX * tSize[0]);
+              int nMRIY = nBufY + (nTexY * tSize[1]);
+              int nMRIZ = nBufZ + (nTexZ * tSize[2]);
 
-	glBindTexture( GL_TEXTURE_3D, textures[i] );
+              buffer[nBufZ*tSize[1]*tSize[0] + nBufY*tSize[0] + nBufX] =
+                MRIvox(mri,nMRIZ,nMRIY,nMRIX);
+            }
+          }
+        }
 
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	CheckError();
-	
-	glTexImage3D( GL_TEXTURE_3D, 0, GL_ALPHA,
-		      tSize[0], tSize[1], tSize[2], 0,
-		      GL_INTENSITY, GL_UNSIGNED_BYTE,
-		      buffer );
-	CheckError();
+        glBindTexture( GL_TEXTURE_3D, textures[i] );
 
-	glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-	CheckError();
-	glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-	CheckError();
-	glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP );
-	CheckError();
-	glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-	CheckError();
-	glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	CheckError();
+        glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+        CheckError();
 
-	i++;
+        glTexImage3D( GL_TEXTURE_3D, 0, GL_ALPHA,
+                      tSize[0], tSize[1], tSize[2], 0,
+                      GL_INTENSITY, GL_UNSIGNED_BYTE,
+                      buffer );
+        CheckError();
+
+        glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        CheckError();
+        glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+        CheckError();
+        glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP );
+        CheckError();
+        glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+        CheckError();
+        glTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        CheckError();
+
+        i++;
       }
     }
   }
@@ -150,7 +190,7 @@ void LoadTextures () {
 
   glShadeModel( GL_FLAT );
   CheckError();
-  
+
   free( buffer );
 }
 
@@ -170,10 +210,14 @@ void DrawWindow () {
 
   glPushAttrib( GL_ALL_ATTRIB_BITS );
   glEnable( GL_TEXTURE_3D );
-  glEnable( GL_TEXTURE_GEN_S );  CheckError();
-  glEnable( GL_TEXTURE_GEN_T );  CheckError();
-  glEnable( GL_TEXTURE_GEN_R );  CheckError();
-  glEnable( GL_TEXTURE_GEN_Q );  CheckError();
+  glEnable( GL_TEXTURE_GEN_S );
+  CheckError();
+  glEnable( GL_TEXTURE_GEN_T );
+  CheckError();
+  glEnable( GL_TEXTURE_GEN_R );
+  CheckError();
+  glEnable( GL_TEXTURE_GEN_Q );
+  CheckError();
 
   glEnable( GL_ALPHA_TEST );
   glAlphaFunc( GL_GREATER, intensity*density );
@@ -182,87 +226,119 @@ void DrawWindow () {
 
 #if 0
   int i = 0;
-  for( int nTexZ = 0; nTexZ < 2; nTexZ++ ) {
-    for( int nTexY = 0; nTexY < 2; nTexY++ ) {
-      for( int nTexX = 0; nTexX < 2; nTexX++ ) {
+  for ( int nTexZ = 0; nTexZ < 2; nTexZ++ ) {
+    for ( int nTexY = 0; nTexY < 2; nTexY++ ) {
+      for ( int nTexX = 0; nTexX < 2; nTexX++ ) {
 #endif
 
-	for( int i = nTexture; i < nTexture+4; i++ ) {
+        for ( int i = nTexture; i < nTexture+4; i++ ) {
 
-	  int t = i % 8;
+          int t = i % 8;
 
-	  glBindTexture( GL_TEXTURE_3D, textures[t] );
-	  
-	  glMatrixMode( GL_TEXTURE );
-	  glLoadIdentity();
+          glBindTexture( GL_TEXTURE_3D, textures[t] );
 
-	  switch( t ) {
-	  case 0: break;
-	  case 1: break;
-	  case 2: break;
-	  case 3: break;
-	  case 4: break;
-	  case 5: break;
-	  case 6: break;
-	  case 7: break;
-	  }
+          glMatrixMode( GL_TEXTURE );
+          glLoadIdentity();
 
-	  int textureSlice = nSlice % 128;
+          switch ( t ) {
+          case 0:
+            break;
+          case 1:
+            break;
+          case 2:
+            break;
+          case 3:
+            break;
+          case 4:
+            break;
+          case 5:
+            break;
+          case 6:
+            break;
+          case 7:
+            break;
+          }
 
-	  glTranslatef( 0, 0, (float)textureSlice/(float)tSize[2] );
+          int textureSlice = nSlice % 128;
 
-	  //	  glMultMatrixf( m );
+          glTranslatef( 0, 0, (float)textureSlice/(float)tSize[2] );
 
-	  glRotatef( rotation, 0, 1, 0 );
+          //   glMultMatrixf( m );
 
-	  glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
-	  glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
-	  glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
-	  glTexGeni( GL_Q, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
-	  glTexGenfv( GL_S, GL_OBJECT_PLANE, xPlane );  CheckError();
-	  glTexGenfv( GL_T, GL_OBJECT_PLANE, yPlane );  CheckError();
-	  glTexGenfv( GL_R, GL_OBJECT_PLANE, zPlane );  CheckError();
-	  glTexGenfv( GL_Q, GL_OBJECT_PLANE, qPlane );  CheckError();
+          glRotatef( rotation, 0, 1, 0 );
 
-	  glMatrixMode( GL_MODELVIEW );
-	  glLoadIdentity();
-	  glTranslatef( 0.0f, 0.0f, -5.0f);
-	  switch( t ) {
-	  case 0: glTranslatef( -1, -1,  0 ); break;
-	  case 1: glTranslatef(  0, -1,  0 ); break;
-	  case 2: glTranslatef( -1,  0,  0 ); break;
-	  case 3: glTranslatef(  0,  0,  0 ); break;
-	  case 4: glTranslatef( -1, -1,  0 ); break;
-	  case 5: glTranslatef(  0, -1,  0 ); break;
-	  case 6: glTranslatef( -1,  0,  0 ); break;
-	  case 7: glTranslatef(  0,  0,  0 ); break;
-	  }
-	  
-	  glColor4f( 1, 1, 1, intensity );
-	  glBegin( GL_QUADS );
+          glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+          CheckError();
+          glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+          CheckError();
+          glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+          CheckError();
+          glTexGeni( GL_Q, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+          CheckError();
+          glTexGenfv( GL_S, GL_OBJECT_PLANE, xPlane );
+          CheckError();
+          glTexGenfv( GL_T, GL_OBJECT_PLANE, yPlane );
+          CheckError();
+          glTexGenfv( GL_R, GL_OBJECT_PLANE, zPlane );
+          CheckError();
+          glTexGenfv( GL_Q, GL_OBJECT_PLANE, qPlane );
+          CheckError();
 
-	  glVertex3f( 0, 0, 0 );
-	  glVertex3f( 0, 1, 0 );
-	  glVertex3f( 1, 1, 0 );
-	  glVertex3f( 1, 0, 0 );
-	  
-	  glEnd();
-	  glGetError();  // get rid of error
+          glMatrixMode( GL_MODELVIEW );
+          glLoadIdentity();
+          glTranslatef( 0.0f, 0.0f, -5.0f);
+          switch ( t ) {
+          case 0:
+            glTranslatef( -1, -1,  0 );
+            break;
+          case 1:
+            glTranslatef(  0, -1,  0 );
+            break;
+          case 2:
+            glTranslatef( -1,  0,  0 );
+            break;
+          case 3:
+            glTranslatef(  0,  0,  0 );
+            break;
+          case 4:
+            glTranslatef( -1, -1,  0 );
+            break;
+          case 5:
+            glTranslatef(  0, -1,  0 );
+            break;
+          case 6:
+            glTranslatef( -1,  0,  0 );
+            break;
+          case 7:
+            glTranslatef(  0,  0,  0 );
+            break;
+          }
 
-	  glRasterPos2f( 0, 0 );
-	  glColor3f( 1, 1, 0 );
-	  char sLabel[60];
-	  sprintf( sLabel, "%d", t );
-	  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-	    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-	  }
-	}
+          glColor4f( 1, 1, 1, intensity );
+          glBegin( GL_QUADS );
+
+          glVertex3f( 0, 0, 0 );
+          glVertex3f( 0, 1, 0 );
+          glVertex3f( 1, 1, 0 );
+          glVertex3f( 1, 0, 0 );
+
+          glEnd();
+          glGetError();  // get rid of error
+
+          glRasterPos2f( 0, 0 );
+          glColor3f( 1, 1, 0 );
+          char sLabel[60];
+          sprintf( sLabel, "%d", t );
+          for ( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+            glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+          }
+        }
 
 #if 0
-	i++;
+        i++;
 
       }
-    }  
+    }
   }
 #endif
 
@@ -275,10 +351,10 @@ void DrawWindow () {
   glDisable( GL_BLEND );
   char sLabel[60];
   sprintf( sLabel, "tex %d-%d, slice %d, rotation %.2f i %.1f d %.1f",
-	   nTexture, (nTexture+4)%8, nSlice, rotation, intensity, density );
+           nTexture, (nTexture+4)%8, nSlice, rotation, intensity, density );
   glRasterPos2f( -1.4, -1.4 );
   glColor3f( 0, 1, 0 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+  for ( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
 
@@ -303,55 +379,55 @@ void ReshapeWindow ( int iWidth, int iHeight ) {
 void HandleKeyboard ( unsigned char iKey, int iX, int iY ) {
 
 
-  switch( iKey ) {
-  case '.': 
-    nSlice++; 
-    if( nSlice >= depth ) nSlice = 0;
+  switch ( iKey ) {
+  case '.':
+    nSlice++;
+    if ( nSlice >= depth ) nSlice = 0;
     break;
-  case ',': 
-    nSlice--; 
-    if( nSlice < 0 ) nSlice = depth - 1;
+  case ',':
+    nSlice--;
+    if ( nSlice < 0 ) nSlice = depth - 1;
     break;
   case ']':
     rotation++;
-    if( rotation > 360.0f ) rotation = 0.0f;
+    if ( rotation > 360.0f ) rotation = 0.0f;
     break;
   case '[':
     rotation--;
-    if( rotation < 0 ) rotation = 359;
+    if ( rotation < 0 ) rotation = 359;
     break;
   case 'T':
     nTexture++;
-    if( nTexture >= 8 ) nTexture = 0;
+    if ( nTexture >= 8 ) nTexture = 0;
     break;
   case 't':
     nTexture--;
-    if( nTexture < 0 ) nTexture = 8;
+    if ( nTexture < 0 ) nTexture = 8;
     break;
   case 'd':
     density -= 0.1;
-    if( density < 0 ) density = 1;
+    if ( density < 0 ) density = 1;
     break;
   case 'D':
     density += 0.1;
-    if( density > 1 ) density = 0;
+    if ( density > 1 ) density = 0;
     break;
   case 'i':
     intensity -= 0.1;
-    if( intensity < 0 ) intensity = 1;
+    if ( intensity < 0 ) intensity = 1;
     break;
   case 'I':
     intensity += 0.1;
-    if( intensity > 1 ) intensity = 0;
+    if ( intensity > 1 ) intensity = 0;
     break;
   }
   glutPostRedisplay();
 }
 
 void Timer ( int value ) {
-  
+
   rotation++;
-  if( rotation > 360.0f ) rotation = 0.0f;
+  if ( rotation > 360.0f ) rotation = 0.0f;
   glutPostRedisplay();
 
   glutTimerFunc( 10, Timer, value );

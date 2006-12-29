@@ -1,3 +1,31 @@
+/**
+ * @file  mris_spherical_average.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.18 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.17 2006/07/31 20:06:58 kteich Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,22 +73,21 @@ static char *sdir = NULL ;
 static char *osdir = NULL ;
 
 int
-main(int argc, char *argv[])
-{
-  char            **av, *out_fname, *surf_name, fname[STRLEN], 
-                  *hemi, *cp, *data_fname ;
+main(int argc, char *argv[]) {
+  char            **av, *out_fname, *surf_name, fname[STRLEN],
+  *hemi, *cp, *data_fname ;
   int             ac, nargs, i, which, nsubjects ;
   double          max_len, mean, sigma ;
   MRI_SURFACE     *mris, *mris_avg ;
   MRIS_HASH_TABLE *mht = NULL ;
   LABEL           *area, *area_avg = NULL ;
 
-	char cmdline[CMD_LINE_LEN] ;
-	
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.17 2006/07/31 20:06:58 kteich Exp $", "$Name:  $", cmdline);
+  char cmdline[CMD_LINE_LEN] ;
+
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.17 2006/07/31 20:06:58 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -71,24 +98,22 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-  
-  if (!sdir)
-  {
+
+  if (!sdir) {
     sdir = getenv("SUBJECTS_DIR") ;
     if (!sdir)
       ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",
                 Progname);
   }
-	if (!osdir)
-		osdir = sdir ;
-  /* 
-     command line: <which> <fname> <hemi> <spherical surf> <subject 1> ... 
+  if (!osdir)
+    osdir = sdir ;
+  /*
+     command line: <which> <fname> <hemi> <spherical surf> <subject 1> ...
                    <output>
   */
   if (argc < 7)
@@ -129,52 +154,48 @@ main(int argc, char *argv[])
   MRISclear(mris_avg, which) ;
 
 #define FIRST_SUBJECT 5
-  for (nsubjects = 0, i = FIRST_SUBJECT ; i < argc-1 ; i++, nsubjects++)
-  {
+  for (nsubjects = 0, i = FIRST_SUBJECT ; i < argc-1 ; i++, nsubjects++) {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-		MRISaddCommandLine(mris, cmdline) ;
-		if (which == VERTEX_COORDS)
-		{
-			printf("reading surface coords from %s...\n", orig_name) ;
-			if (MRISreadVertexPositions(mris, orig_name) != NO_ERROR)
-				ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
-			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-		}
-		if (which == VERTEX_LABEL)  // read orig coords in case we need to assign vertices
-		{
-			if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
-				ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
-		}
+                Progname, fname) ;
+    MRISaddCommandLine(mris, cmdline) ;
+    if (which == VERTEX_COORDS) {
+      printf("reading surface coords from %s...\n", orig_name) ;
+      if (MRISreadVertexPositions(mris, orig_name) != NO_ERROR)
+        ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
+      MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    }
+    if (which == VERTEX_LABEL)  // read orig coords in case we need to assign vertices
+    {
+      if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
+        ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
+    }
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-		MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
       MRISprojectOntoSphere(mris_avg, mris_avg, DEFAULT_RADIUS) ;
       mean = MRIScomputeVertexSpacingStats(mris_avg, &sigma, NULL, &max_len, NULL,NULL);
-			if (max_len > mean+3*sigma)
-				max_len = mean+3*sigma ;
+      if (max_len > mean+3*sigma)
+        max_len = mean+3*sigma ;
       mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,2*max_len);
     }
 
-    switch (which)
-    {
-		case VERTEX_VALS:
-			{
-				char fname[STRLEN] ;
-				sprintf(fname,"%s/%s/fmri/%s.%s", sdir, argv[i], hemi, data_fname) ;
-				if (MRISreadValues(mris, fname) != NO_ERROR)
-					ErrorExit(ERROR_BADFILE,"%s: could not read val file %s.\n", Progname, fname);
-				MRIScopyValuesToCurvature(mris) ;
-				MRISaverageCurvatures(mris, navgs) ;
-				if (normalize_flag)
-					MRISnormalizeCurvature(mris) ;
-				break ;
-			}
+    switch (which) {
+    case VERTEX_VALS: {
+      char fname[STRLEN] ;
+      sprintf(fname,"%s/%s/fmri/%s.%s", sdir, argv[i], hemi, data_fname) ;
+      if (MRISreadValues(mris, fname) != NO_ERROR)
+        ErrorExit(ERROR_BADFILE,"%s: could not read val file %s.\n", Progname, fname);
+      MRIScopyValuesToCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      if (normalize_flag)
+        MRISnormalizeCurvature(mris) ;
+      break ;
+    }
     case VERTEX_LABEL:
       if (i == FIRST_SUBJECT)
         area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
@@ -186,13 +207,13 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
-			if (reassign)
-				LabelUnassign(area) ;
-			LabelFillUnassignedVertices(mris, area, ORIG_VERTICES) ;
-			if (argc-1-FIRST_SUBJECT > 1)
-				LabelSetStat(area, 1) ;
-			else
-				printf("only %d subject - copying statistics...\n", argc-1-FIRST_SUBJECT );
+      if (reassign)
+        LabelUnassign(area) ;
+      LabelFillUnassignedVertices(mris, area, ORIG_VERTICES) ;
+      if (argc-1-FIRST_SUBJECT > 1)
+        LabelSetStat(area, 1) ;
+      else
+        printf("only %d subject - copying statistics...\n", argc-1-FIRST_SUBJECT );
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
@@ -213,7 +234,7 @@ main(int argc, char *argv[])
 #endif
       break ;
     default:
-      
+
       break ;
     }
     if (which != VERTEX_LABEL)
@@ -223,30 +244,28 @@ main(int argc, char *argv[])
   }
   if (which != VERTEX_LABEL)
     MRISnormalize(mris_avg, nsubjects, which) ;
-  if (mht) 
+  if (mht)
     MHTfree(&mht) ;
 
-  if (output_subject_name)
-  {
+  if (output_subject_name) {
     sprintf(fname, "%s/%s/surf/%s.%s", osdir,output_subject_name,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     MRISfree(&mris) ;
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
+                Progname, fname) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   }
 
   MRISclear(mris, which) ;
   mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL);
-	if (max_len > mean+3*sigma)
-		max_len = mean+3*sigma ;
+  if (max_len > mean+3*sigma)
+    max_len = mean+3*sigma ;
   mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
   if (which != VERTEX_LABEL)
     MRISsphericalCopy(mris_avg, mris, mht, which) ;
-  else
-  {
+  else {
     LabelFree(&area) ;
     area = LabelSphericalCombine(mris_avg, area_avg, mht, mris, NULL) ;
     LabelRemoveDuplicates(area) ;
@@ -267,8 +286,7 @@ main(int argc, char *argv[])
 
     /* change variances to squared standard errors */
     dof = nsubjects ;
-    if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++)
-      {
+    if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++) {
         v = &mris->vertices[vno] ;
         if (v->ripflag)
           continue ;
@@ -288,13 +306,10 @@ main(int argc, char *argv[])
     fprintf(stderr, "writing dof file %s\n", fname) ;
     fprintf(fp, "%d\n", (int)dof) ;
     fclose(fp) ;
-  }
-  else
-  {
+  } else {
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
-    switch (which)
-    {
+    switch (which) {
     case VERTEX_LABEL:
       printf("writing label with %d points to %s...\n", area->n_points,
              out_fname) ;
@@ -302,18 +317,18 @@ main(int argc, char *argv[])
         LabelNormalizeStats(area, (float)nsubjects) ;
       LabelWrite(area, out_fname) ;
       break ;
-		case VERTEX_VALS:
-			MRIScopyCurvatureToValues(mris) ;
+    case VERTEX_VALS:
+      MRIScopyCurvatureToValues(mris) ;
       MRISwriteValues(mris, out_fname) ;
-			break ;
+      break ;
     case VERTEX_AREA:
     case VERTEX_CURV:
       MRISwriteCurvature(mris, out_fname) ;
       break ;
-		case VERTEX_COORDS:
-			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-			MRISwrite(mris, out_fname) ;
-			break ;
+    case VERTEX_COORDS:
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISwrite(mris, out_fname) ;
+      break ;
     default:
       break ;
     }
@@ -330,105 +345,87 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "ohemi"))
-  {
+  else if (!stricmp(option, "ohemi")) {
     ohemi = argv[2] ;
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "ic"))
-  {
+  } else if (!stricmp(option, "ic")) {
     which_ic = atoi(argv[2]) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "sdir"))
-  {
+  } else if (!stricmp(option, "sdir")) {
     sdir = argv[2] ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "osdir"))
-  {
+  } else if (!stricmp(option, "osdir")) {
     osdir = argv[2] ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "orig"))
-  {
+  } else if (!stricmp(option, "orig")) {
     orig_name = argv[2] ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "reassign"))
-  {
-		reassign = 1 ;
-		printf("recomputing label vertex assignments\n") ;
-  }
-  else if (!stricmp(option, "osurf"))
-  {
+  } else if (!stricmp(option, "reassign")) {
+    reassign = 1 ;
+    printf("recomputing label vertex assignments\n") ;
+  } else if (!stricmp(option, "osurf")) {
     osurf = argv[2] ;
     fprintf(stderr, "output surface = %s\n", osurf) ;
     nargs = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-	case 'V':
-		Gdiag_no = atoi(argv[2]) ;
-		nargs = 1 ;
-		printf("debugging vertex %d\n", Gdiag_no) ;
-		break ;
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
-    nargs = 1 ;
-    break ;
-  case 'O':
-    output_subject_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "painting output onto subject %s.\n", output_subject_name);
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'S':   /* write out stats */
-    stat_flag = 1 ;
-    condition_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "writing out summary statistics as condition %d\n",
-            condition_no) ;
-    break ;
-  case 'N':
-    normalize_flag = 1 ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("debugging vertex %d\n", Gdiag_no) ;
+      break ;
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
+      nargs = 1 ;
+      break ;
+    case 'O':
+      output_subject_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "painting output onto subject %s.\n", output_subject_name);
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'S':   /* write out stats */
+      stat_flag = 1 ;
+      condition_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "writing out summary statistics as condition %d\n",
+              condition_no) ;
+      break ;
+    case 'N':
+      normalize_flag = 1 ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [option] <which> <fname> <hemi> <spherical surf> "
           "<subject 1> ... <output>\n", Progname) ;
   fprintf(stderr, "where which is one of\n"
@@ -440,21 +437,19 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+  fprintf(stderr,
+          "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
-                  "                them into sigavg<cond #>-<hemi>.w and\n"
-                  "                sigvar<cond #>-<hemi>.w.\n") ;
+          "                them into sigavg<cond #>-<hemi>.w and\n"
+          "                sigvar<cond #>-<hemi>.w.\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

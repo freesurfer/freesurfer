@@ -1,3 +1,31 @@
+/**
+ * @file  xwindow.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:19 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef XWINDOW_H
 #define XWINDOW_H
 
@@ -37,12 +65,12 @@
 */
 
 enum {
-    TKO_USE_ID = 1,
-    TKO_EXACT_MATCH,
-    TKO_MINIMUM_CRITERIA
+  TKO_USE_ID = 1,
+  TKO_EXACT_MATCH,
+  TKO_MINIMUM_CRITERIA
 };
 
-/* 
+/*
 ** Window Masks
 */
 
@@ -64,9 +92,9 @@ enum {
 */
 
 enum {
-    TKO_X_DISPLAY = 1,
-    TKO_X_WINDOW,
-    TKO_X_SCREEN
+  TKO_X_DISPLAY = 1,
+  TKO_X_WINDOW,
+  TKO_X_SCREEN
 };
 
 /*
@@ -79,7 +107,7 @@ enum {
 #define TKO_SHIFT   1
 #define TKO_CONTROL   2
 
-/* 
+/*
 ** Key Codes
 */
 
@@ -158,14 +186,14 @@ enum {
 */
 
 enum {
-    TKO_BLACK = 0,
-    TKO_RED,
-    TKO_GREEN,
-    TKO_YELLOW,
-    TKO_BLUE,
-    TKO_MAGENTA,
-    TKO_CYAN,
-    TKO_WHITE
+  TKO_BLACK = 0,
+  TKO_RED,
+  TKO_GREEN,
+  TKO_YELLOW,
+  TKO_BLUE,
+  TKO_MAGENTA,
+  TKO_CYAN,
+  TKO_WHITE
 };
 
 extern float tkoRGBMap[8][3];
@@ -177,10 +205,12 @@ extern float tkoRGBMap[8][3];
 ** RGB Image Structure
 */
 
-typedef struct _TKO_RGBImageRec {
-    GLint sizeX, sizeY;
-    unsigned char *data;
-} TKO_RGBImageRec;
+typedef struct _TKO_RGBImageRec
+{
+  GLint sizeX, sizeY;
+  unsigned char *data;
+}
+TKO_RGBImageRec;
 
 /*
 ** Prototypes
@@ -224,7 +254,7 @@ extern void tkoSetRGBMap(int, float *);
 extern void tkoSetOverlayMap(int, float *);
 
 extern void tkoNewCursor(GLint, GLubyte *, GLubyte *, GLenum, GLenum,
-      GLint, GLint);
+                           GLint, GLint);
 extern void tkoSetCursor(GLint);
 
 extern TKO_RGBImageRec *tkoRGBImageLoad(char *);
@@ -260,19 +290,21 @@ extern void tkoSolidCone(GLuint, float, float);
 #endif
 
 
-typedef struct _WINDOW_REC {
-    int x, y, w, h;
-    GLenum type;
-    GLenum dmPolicy;
-    Window wMain, wOverlay;
-    XVisualInfo *vInfoMain, *vInfoOverlay;
-    Colormap cMapMain, cMapOverlay;
-    GLXContext cMain, cOverlay;
-} WINDOW_REC;
+typedef struct _WINDOW_REC
+{
+  int x, y, w, h;
+  GLenum type;
+  GLenum dmPolicy;
+  Window wMain, wOverlay;
+  XVisualInfo *vInfoMain, *vInfoOverlay;
+  Colormap cMapMain, cMapOverlay;
+  GLXContext cMain, cOverlay;
+}
+WINDOW_REC;
 
 
 extern Display *xDisplay;
-extern int xScreen; 
+extern int xScreen;
 extern Window wRoot;
 extern WINDOW_REC w;
 extern Atom deleteWindowAtom;

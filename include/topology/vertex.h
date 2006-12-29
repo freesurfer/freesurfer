@@ -1,3 +1,31 @@
+/**
+ * @file  vertex.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:02 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef TOPOLOGY_VERTEX_H
 #define TOPOLOGY_VERTEX_H
 
@@ -8,102 +36,112 @@
 class Vertex
 {
 public:
-	double x,y,z; // location
-	double tx,ty,tz; // temporary coordinates
-	double xorig,yorig,zorig; // original coordinates
-	double sx,sy,sz; //spherical coordinates
-	
-	double nx,ny,nz; // normal (defined by the set of normals)
+  double x,y,z; // location
+  double tx,ty,tz; // temporary coordinates
+  double xorig,yorig,zorig; // original coordinates
+  double sx,sy,sz; //spherical coordinates
 
-	int fnum,maxfnum; // number of adjacent faces
-	int *f;   // list of adjacent faces
-	int *n;   // list of vertex positions in adjacent faces
-	int vnum,maxvnum; // number of adjacent vertices (we must have vnum = fnum for a valid closed surface)
-	int *v;   // list of adjacent vertices (represent an edge)
-	int *e;   // state of the adjacent vertices or of the corresponding edges
+  double nx,ny,nz; // normal (defined by the set of normals)
 
-	double curv; // the curvature of the vertex
+  int fnum,maxfnum; // number of adjacent faces
+  int *f;   // list of adjacent faces
+  int *n;   // list of vertex positions in adjacent faces
+  int vnum,maxvnum; // number of adjacent vertices (we must have vnum = fnum for a valid closed surface)
+  int *v;   // list of adjacent vertices (represent an edge)
+  int *e;   // state of the adjacent vertices or of the corresponding edges
 
-	int marked; // for computational purposes
+  double curv; // the curvature of the vertex
 
-	//constructor/destructor
-	Vertex(void);
-	~Vertex(void);
-	void Clear();
-	const Vertex &operator=(const Vertex &v);
+  int marked; // for computational purposes
 
-	inline int AllocateFaces(int mf){
-		if(maxfnum < mf){
-			maxfnum = mf;
-			if(f) delete [] f;
-			if(n) delete [] n;
-			f = new int[maxfnum];
-			n = new int[maxfnum];
-			ASSERT(f != 0 && n != 0);
-		}
-		fnum=0;
-		return 0;
-	}
-	inline int ExpandFaces(int nf){
-		if(fnum + nf <= maxfnum) return 1; // enough free faces are available
+  //constructor/destructor
+  Vertex(void);
+  ~Vertex(void);
+  void Clear();
+  const Vertex &operator=(const Vertex &v);
 
-		int *f_tmp = f, *n_tmp = n;
-		maxfnum = fnum + nf ;
+  inline int AllocateFaces(int mf)
+  {
+    if (maxfnum < mf)
+    {
+      maxfnum = mf;
+      if (f) delete [] f;
+      if (n) delete [] n;
+      f = new int[maxfnum];
+      n = new int[maxfnum];
+      ASSERT(f != 0 && n != 0);
+    }
+    fnum=0;
+    return 0;
+  }
+  inline int ExpandFaces(int nf)
+  {
+    if (fnum + nf <= maxfnum) return 1; // enough free faces are available
 
-		f = new int[maxfnum];
-		n = new int[maxfnum];
-		ASSERT(f != 0 && n != 0);
-		if(!f || !n) return -1;
+    int *f_tmp = f, *n_tmp = n;
+    maxfnum = fnum + nf ;
 
-		for(int k = 0 ; k < fnum; k++){
-			f[k]=f_tmp[k];	
-			n[k]=n_tmp[k];
-		}
-		delete [] f_tmp;
-		delete [] n_tmp;
-		return 0;
-	}
-	inline int AllocateVertices(int mv){
-		if(maxvnum < mv){
-			maxvnum = mv;
-			if(v) delete [] v;
-			if(e) delete [] e;
-			v = new int[maxvnum];
-			e = new int[maxvnum];
-			ASSERT(v != 0 && e != 0);
-		}
-		vnum=0;
-		return 0;
-	}
-	inline int ExpandVertices(int nv){
-		if(vnum + nv <= maxvnum) return 1; // enough free vertices are available
+    f = new int[maxfnum];
+    n = new int[maxfnum];
+    ASSERT(f != 0 && n != 0);
+    if (!f || !n) return -1;
 
-		int *v_tmp = v, *e_tmp = e;
-		maxvnum = vnum + nv ;
+    for (int k = 0 ; k < fnum; k++)
+    {
+      f[k]=f_tmp[k];
+      n[k]=n_tmp[k];
+    }
+    delete [] f_tmp;
+    delete [] n_tmp;
+    return 0;
+  }
+  inline int AllocateVertices(int mv)
+  {
+    if (maxvnum < mv)
+    {
+      maxvnum = mv;
+      if (v) delete [] v;
+      if (e) delete [] e;
+      v = new int[maxvnum];
+      e = new int[maxvnum];
+      ASSERT(v != 0 && e != 0);
+    }
+    vnum=0;
+    return 0;
+  }
+  inline int ExpandVertices(int nv)
+  {
+    if (vnum + nv <= maxvnum) return 1; // enough free vertices are available
 
-		v = new int[maxvnum];
-		e = new int[maxvnum];
-		ASSERT(v != 0 && e != 0);
-		if(!v || !e) return -1;
+    int *v_tmp = v, *e_tmp = e;
+    maxvnum = vnum + nv ;
 
-		for(int k = 0 ; k < vnum; k++){
-			v[k]=v_tmp[k];	
-			e[k]=e_tmp[k];
-		}
-		delete [] v_tmp;
-		delete [] e_tmp;
-		return 0;
-	}
-	inline void AddFace(int fn, int _n){
-		if(fnum == maxfnum) ExpandFaces(2);
-		f[fnum]=fn;
-		n[fnum++]=_n;
-	}
-	inline void AddEdge(int nv){
-		if(vnum==maxvnum) ExpandVertices(1);
-		v[vnum]=nv;
-		e[vnum++]=0;
-	}
+    v = new int[maxvnum];
+    e = new int[maxvnum];
+    ASSERT(v != 0 && e != 0);
+    if (!v || !e) return -1;
+
+    for (int k = 0 ; k < vnum; k++)
+    {
+      v[k]=v_tmp[k];
+      e[k]=e_tmp[k];
+    }
+    delete [] v_tmp;
+    delete [] e_tmp;
+    return 0;
+  }
+  inline void AddFace(int fn, int _n)
+  {
+    if (fnum == maxfnum) ExpandFaces(2);
+    f[fnum]=fn;
+    n[fnum++]=_n;
+  }
+  inline void AddEdge(int nv)
+  {
+    if (vnum==maxvnum) ExpandVertices(1);
+    v[vnum]=nv;
+    e[vnum++]=0;
+  }
 };
 
 

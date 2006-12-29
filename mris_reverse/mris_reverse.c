@@ -1,3 +1,31 @@
+/**
+ * @file  mris_reverse.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_reverse.c,v 1.6 2005/01/28 18:52:07 fischl Exp $";
+static char vcid[] = "$Id: mris_reverse.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,15 +58,14 @@ static int patch_flag = 0 ;
 static int which = REVERSE_X ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char               **av, *in_fname, *out_fname, path[STRLEN], fname[STRLEN],
-                     hemi[10], *cp ;
+  hemi[10], *cp ;
   int                ac, nargs ;
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.6 2005/01/28 18:52:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.7 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -49,8 +76,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -61,9 +87,8 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
-  
-  if (patch_flag)
-  {
+
+  if (patch_flag) {
     FileNamePath(in_fname, path) ;
     FileNameOnly(in_fname, hemi) ;
     cp = strchr(hemi, '.') ;
@@ -79,9 +104,7 @@ main(int argc, char *argv[])
                 Progname, fname) ;
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read patch\n", Progname) ;
-  }
-  else
-  {
+  } else {
     mris = MRISread(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -107,59 +130,54 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else switch (toupper(*option))
-  {
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'P':
-    patch_flag = 1 ;
-    break ;
-  case 'Y':
-    which = REVERSE_Y ;
-    break ;
-  case 'Z':
-    which = REVERSE_Z ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  else switch (toupper(*option)) {
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'P':
+      patch_flag = 1 ;
+      break ;
+    case 'Y':
+      which = REVERSE_Y ;
+      break ;
+    case 'Z':
+      which = REVERSE_Z ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
-          "usage: %s [options] <input surface> <output surface>\n", 
+print_usage(void) {
+  fprintf(stderr,
+          "usage: %s [options] <input surface> <output surface>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
   fprintf(stderr, "\nThis reverses a cortical surface\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
@@ -167,8 +185,7 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

@@ -34,20 +34,20 @@
 ** @$=@$=@$=
 */
 /*
-**				DICOM 93
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 93
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Stephen M. Moore, 14-Apr-1993
-** Intent:		This module defines function prototypes for the
-**			CONDITION facility which is used to record status
-**			and error messages on a stack.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:23 $
-** Source File:		$RCSfile: condition.h,v $
-** Revision:		$Revision: 1.3 $
-** Status:		$State: Exp $
+** Author, Date: Stephen M. Moore, 14-Apr-1993
+** Intent:  This module defines function prototypes for the
+**   CONDITION facility which is used to record status
+**   and error messages on a stack.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: condition.h,v $
+** Revision:  $Revision: 1.4 $
+** Status:  $State: Exp $
 */
 
 #ifndef COND_IS_IN
@@ -56,29 +56,30 @@
 #include <stdio.h>
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-CONDITION COND_PushCondition(CONDITION cond, char *controlString,...);
-CONDITION
-COND_ExtractConditions(CTNBOOLEAN(*callback) ());
-CONDITION
-COND_TopCondition(CONDITION * condition, char *text,
-		  unsigned long maxlength);
-CONDITION COND_PopCondition(CTNBOOLEAN clearstack);
-CONDITION COND_EstablishCallback(void (*callback) ());
-void COND_DumpConditions(void);
-void COND_CopyText(char *txt, size_t length);
-void COND_WriteConditions(FILE * lfp);
+  CONDITION COND_PushCondition(CONDITION cond, char *controlString,...);
+  CONDITION
+  COND_ExtractConditions(CTNBOOLEAN(*callback) ());
+  CONDITION
+  COND_TopCondition(CONDITION * condition, char *text,
+                    unsigned long maxlength);
+  CONDITION COND_PopCondition(CTNBOOLEAN clearstack);
+  CONDITION COND_EstablishCallback(void (*callback) ());
+  void COND_DumpConditions(void);
+  void COND_CopyText(char *txt, size_t length);
+  void COND_WriteConditions(FILE * lfp);
 
-/*  Now define the fixed values for conditions returned by this
-**  package.  Note that FAC_COND is used to generate these
-**  conditions.  This should be defined in some global include
-**  file so that we can keep all of the facilities straight.
-*/
+  /*  Now define the fixed values for conditions returned by this
+  **  package.  Note that FAC_COND is used to generate these
+  **  conditions.  This should be defined in some global include
+  **  file so that we can keep all of the facilities straight.
+  */
 
-#define	COND_NORMAL	/* Successful return */ \
-	FORM_COND(FAC_COND, SEV_SUCC, 1)
+#define COND_NORMAL /* Successful return */ \
+ FORM_COND(FAC_COND, SEV_SUCC, 1)
 
 
 #ifdef  __cplusplus

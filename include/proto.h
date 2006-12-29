@@ -1,3 +1,31 @@
+/**
+ * @file  proto.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.34 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef _PROTO_H_
 #define _PROTO_H_
 
@@ -30,7 +58,7 @@ int stricmp(char *str1, char *str2) ;
 
 int _flsbuf(unsigned char c, FILE *p) ;
 int _filbuf(FILE *p) ;
-int select (int width, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
+int select (int width, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
             struct timeval *timeout) ;
 
 int puts(char *s) ;
@@ -53,7 +81,7 @@ int vprintf(const char *fmt, va_list args) ;
 int sscanf(char *str, const char *fmt, ...) ;
 void system(char *command_string) ;
 void perror(char *s) ;
-int fgetc(FILE *fp) ; 
+int fgetc(FILE *fp) ;
 time_t time(time_t *tloc) ;
 void fclose(FILE *fp) ;
 void rewind(FILE *fp) ;
@@ -75,7 +103,7 @@ double drand48(void);
 #else
 #define drand48()   randomNumber(0.0, 1.0)
 #endif
-void srand48(long seed); 
+void srand48(long seed);
 /* #define log2(d)  log10(d)/log10(2) */
 /* #define exp2(d)  pow(2.0, d) */
 int ftime(struct timeb *tp) ;

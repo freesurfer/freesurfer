@@ -1,3 +1,31 @@
+/**
+ * @file  canny.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*****************************************************
  * Name:    canny.h
  *****************************************************/
@@ -34,7 +62,7 @@
 /* POSSIBLE VALUES OF THE STATUS PARAMETER */
 
 #define SUCCESS        1    /* SUCCESSFULL EXECUTION */
-#define NO_SUCH_FILTER 2  /* IF THE FILTER TYPE PARAMETER IS NOT ONE OF THE ALLOWED VALS. */                                                  
+#define NO_SUCH_FILTER 2  /* IF THE FILTER TYPE PARAMETER IS NOT ONE OF THE ALLOWED VALS. */
 #define EVENWINDOWSIZE  3  /* IF THE FILTER IS EVENSIZED */
 #define NOSUCHDIRECTION 4 /* Direction is not XDIR of YDIR */
 #define NOSUCHBOUNDERY 5  /* Nonexistant boundery option specified */
@@ -49,21 +77,21 @@
 /* prototypes */
 void canny(int *magmax, int *hthresh, int *lthresh, int *image, int *xsize, int *ysize, short *shortim,
            int *windowsize, double *sigma, int *bordermode, double *hfrac, double *lfrac, int *pflag,
-           short *gx, short *gy, short *mag, int *hist, int *histsize, unsigned char *nms, 
+           short *gx, short *gy, short *mag, int *hist, int *histsize, unsigned char *nms,
            unsigned char *edgemap, float *gm, float *gmp,short *temp) ;
 void cleanup(unsigned char *map, int xsize, int ysize) ;
 void find_edges(unsigned char *map, short *mag, int xsize, int ysize, int maxmag, float hpixel_fraction,
                 float lpixel_fraction, int *hgram, int hsize, int *actual_hthresh, int *actual_lthresh);
 void follow_edges(unsigned char *edgemapptr, short *edgemagptr) ;
 void clear_borders(unsigned char *charimage, int xsize, int ysize) ;
-void gauss_filter(short *inimage, int inx, int iny, int direction, int boundary, int masksize, 
-             float sigma, short *grad, int *outx, int *outy,
-             float *gmask, float *gprimemask, short *tempimage) ;
+void gauss_filter(short *inimage, int inx, int iny, int direction, int boundary, int masksize,
+                  float sigma, short *grad, int *outx, int *outy,
+                  float *gmask, float *gprimemask, short *tempimage) ;
 void copyimage(int *charimage, int ncols, int nrows, short *shortimage) ;
 void thin(unsigned char *edges, int height, int width) ;
 
-int h_canny(struct header *Isrc, struct header *Idst, double sigma, 
-      int mask_size,double lfrac,double hfrac,int dothin); /* dng */
+int h_canny(struct header *Isrc, struct header *Idst, double sigma,
+            int mask_size,double lfrac,double hfrac,int dothin); /* dng */
 
 #endif
 

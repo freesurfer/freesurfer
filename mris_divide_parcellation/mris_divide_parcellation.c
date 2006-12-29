@@ -1,11 +1,39 @@
+/**
+ * @file  mris_divide_parcellation.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 
-/*! 
+
+
+/*!
 \author Douglas Greve
 
 */
 
 
-// $Id: mris_divide_parcellation.c,v 1.5 2006/12/12 14:19:36 fischl Exp $
+// $Id: mris_divide_parcellation.c,v 1.6 2006/12/29 02:09:10 nicks Exp $
 
 
 
@@ -35,7 +63,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.5 2006/12/12 14:19:36 fischl Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
@@ -45,16 +73,15 @@ int  MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int  MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int         ac, nargs, *nunits, index ;
   MRI_SURFACE *mris ;
   char        **av, fname[STRLEN], *annot_name, *out_fname, *cp,
-              *subject, *hemi ;
+  *subject, *hemi ;
   float       area_thresh ;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-  if (nargs && argc - nargs == 1) 
+  if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
@@ -64,8 +91,7 @@ int main(int argc, char *argv[])
   Progname = argv[0] ;
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -79,8 +105,7 @@ int main(int argc, char *argv[])
   area_thresh = atof(argv[4]) ;
   out_fname = argv[5] ;
 
-  if (!strlen(sdir))
-  {
+  if (!strlen(sdir)) {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM,
@@ -91,7 +116,7 @@ int main(int argc, char *argv[])
   sprintf(fname, "%s/%s/surf/%s.sphere", sdir, subject, hemi) ;
   mris = MRISread(fname) ;
   if (mris == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", 
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s",
               Progname, fname) ;
   if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read annotation %s",
@@ -113,8 +138,7 @@ int main(int argc, char *argv[])
     area = (float *)calloc(mris->ct->nentries, sizeof(float)) ;
     if (!area)
       ErrorExit(ERROR_BADPARM, "%s: could not allocate %d area table", Progname,mris->ct->nentries) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
+    for (vno = 0 ; vno < mris->nvertices ; vno++) {
       v = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, v->annotation, &index) ;
       if (index < 0 || v->ripflag)
@@ -124,8 +148,7 @@ int main(int argc, char *argv[])
     for (index = 0 ; index < mris->ct->nentries ; index++)
       nunits[index] =  (int)(area[index] / area_thresh)+1 ;
     free(area) ;
-  }
-  else                  // interpret it as a file with parcellation names and # of units
+  } else                 // interpret it as a file with parcellation names and # of units
   {
     char  line[STRLEN], *cp, name[STRLEN] ;
     FILE  *fp ;
@@ -135,8 +158,7 @@ int main(int argc, char *argv[])
     fp = fopen(argv[4], "r") ;
     if (fp == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open parcellation division file %s", Progname,argv[4]) ;
-    while ((cp = fgetl(line, STRLEN-1, fp)) != NULL)
-    {
+    while ((cp = fgetl(line, STRLEN-1, fp)) != NULL) {
       if (sscanf(line, "%s %d", name, &num) != 2)
         ErrorExit(ERROR_BADFILE, "%s: could not parse name/num pair from '%s'", Progname, line) ;
       CTABfindName(mris->ct, name, &index) ;
@@ -163,8 +185,7 @@ int main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
@@ -173,38 +194,31 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "SDIR"))
-  {
+  else if (!stricmp(option, "SDIR")) {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "scale"))
-  {
+  } else if (!stricmp(option, "scale")) {
     rgb_scale = atoi(argv[2]) ;
     printf("scaling rgb values by %d\n", rgb_scale) ;
     nargs = 1 ;
-  }
-  else switch (toupper(*option))
-  {
-  case '?':
-  case 'U':
-    usage_exit() ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case '?':
+    case 'U':
+      usage_exit() ;
+      break ;
+    }
   return(nargs) ;
 }
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
+print_usage(void) {
   printf("%s [options] <subject> <hemi> <input annot> <area> <output annot>\n",Progname) ;
   printf("\n");
   printf("options\n");
@@ -213,27 +227,24 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
   printf("\nThis program divides a parcellation either into a specified #\n"
-          "of units or until all units are below an area threshold\n") ;
+         "of units or until all units are below an area threshold\n") ;
   printf("If <area thresh> is non-numeric, it is interpreted as a file name.\n"
-          "The file is parsed for <name> <num> pairs that specify how many\ndivisions each parcellation "
-          "unit should be split into \n(only units that should be split need be specified.\n") ;
+         "The file is parsed for <name> <num> pairs that specify how many\ndivisions each parcellation "
+         "unit should be split into \n(only units that should be split need be specified.\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 int
-MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
-{
+MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
   int   *done, vno, index, nadded, i, num, j, annot, new_annot ;
   VERTEX *v ;
   COLOR_TABLE *ct ;
@@ -247,8 +258,7 @@ MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
 
   MRISclearMarks(mris) ;
   MRISsetNeighborhoodSize(mris, 2) ;
-  for (nadded = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (nadded = vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation <= 0)
       continue ;
@@ -271,28 +281,28 @@ MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
   printf("allocating new colortable with %d additional units...\n", nadded) ;
   ct = CTABalloc(mris->ct->nentries+nadded) ;
   index = mris->ct->nentries ;
-  for (i = 0 ; i < mris->ct->nentries ; i++)
-  {
+  for (i = 0 ; i < mris->ct->nentries ; i++) {
     if (i == Gdiag_no)
       DiagBreak() ;
     *(ct->entries[i]) = *(mris->ct->entries[i]) ;
-    for (j = 1 ; j < done[i] ; j++)
-    {
+    for (j = 1 ; j < done[i] ; j++) {
       int offset, new_index, ri, gi, bi, found ;
 
       *(ct->entries[index]) = *(mris->ct->entries[i]) ;
       sprintf(ct->entries[index]->name, "%s_div%d", ct->entries[i]->name, j+1) ;
-      offset = j ; found = 0 ;
-      do
-      {
-        ri = (ct->entries[i]->ri+rgb_scale*offset) % 256 ; 
-        gi = (ct->entries[i]->gi+rgb_scale*offset) % 256 ; 
+      offset = j ;
+      found = 0 ;
+      do {
+        ri = (ct->entries[i]->ri+rgb_scale*offset) % 256 ;
+        gi = (ct->entries[i]->gi+rgb_scale*offset) % 256 ;
         bi = (ct->entries[i]->bi+rgb_scale*offset) % 256 ;
         CTABfindRGBi(ct, ri, gi, bi, &new_index) ;
         if (new_index < 0)  // couldn't find this r,g,b set - can use it for new entry
         {
-          ct->entries[index]->ri = ri ; ct->entries[index]->gi = gi ; ct->entries[index]->bi = bi ;
-        
+          ct->entries[index]->ri = ri ;
+          ct->entries[index]->gi = gi ;
+          ct->entries[index]->bi = bi ;
+
           ct->entries[index]->rf = (float)ri/255.0f;
           ct->entries[index]->gf = (float)gi/255.0f;
           ct->entries[index]->bf = (float)bi/255.0f;
@@ -301,16 +311,14 @@ MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
           CTABannotationAtIndex(ct, i, &annot) ;
           CTABannotationAtIndex(ct, index, &new_annot) ;
           // translate old annotations to new ones
-          for (vno = 0 ; vno < mris->nvertices ; vno++)
-          {
+          for (vno = 0 ; vno < mris->nvertices ; vno++) {
             v = &mris->vertices[vno] ;
             if (v->ripflag || v->marked != j || v->annotation != annot)
               continue ;
             v->annotation = new_annot ;
           }
         }
-        else
-        {
+        else {
           offset++ ;
           found = 0 ;
         }
@@ -332,12 +340,11 @@ MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
   return the # of additional parcellation units that have been added
 */
 int
-MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
-{
+MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) {
   int    vno, num, min_vno ;
   VERTEX *v, *vc ;
-  float  cx, cy, cz, dist, min_dist, evalues[3], u, w, dx, dy, dz, 
-         min_dot, max_dot, e1x, e1y, e1z, dot, mx ;
+  float  cx, cy, cz, dist, min_dist, evalues[3], u, w, dx, dy, dz,
+  min_dot, max_dot, e1x, e1y, e1z, dot, mx ;
   MATRIX *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
 
@@ -346,29 +353,32 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
 
   // compute centroid of annotation
   cx = cy = cz = 0 ;
-  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation != annot)
       continue ;
-    cx += v->x ; cy += v->y ; cz += v->z ;
+    cx += v->x ;
+    cy += v->y ;
+    cz += v->z ;
     num++ ;
   }
   if (num == 0) // unused parcellation
     return(0) ;
-  
-  cx /= num ; cy /= num ; cz /= num ;
+
+  cx /= num ;
+  cy /= num ;
+  cz /= num ;
 
   // find vertex in annotation closest to centroid
-  min_dist = 100000 ; min_vno = -1 ; vc = NULL ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  min_dist = 100000 ;
+  min_vno = -1 ;
+  vc = NULL ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation != annot)
       continue ;
     dist = sqrt(SQR(v->x-cx)+SQR(v->y-cy)+SQR(v->z-cz));
-    if (dist < min_dist) 
-    {
+    if (dist < min_dist) {
       min_vno = vno;
       min_dist = dist ;
       vc = v ;
@@ -381,12 +391,13 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
 
   // now compute eigensystem around this vertex
   m_obs = MatrixAlloc(2, num, MATRIX_REAL) ;
-  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation != annot)
       continue ;
-    dx = v->x - cx ;  dy = v->y - cy ; dz = v->z - cz ; 
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
     u = vc->e1x * dx + vc->e1y * dy + vc->e1z*dz ;
     w = vc->e2x * dx + vc->e2y * dy + vc->e2z*dz ;
     *MATRIX_RELT(m_obs, 1, num+1) = u ;
@@ -409,22 +420,28 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
   //  if (mx < 0)
   if (e1y < 0)  // orient them from posterior to anterior
   {
-    e1x *= -1 ; e1y *= -1 ; e1z *= -1 ;
+    e1x *= -1 ;
+    e1y *= -1 ;
+    e1z *= -1 ;
   }
-    
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     MatrixPrint(stdout, m_eig) ;
   dist = sqrt(e1x*e1x + e1y*e1y + e1z*e1z) ;
-  e1x /= dist ; e1y /= dist ; e1z /= dist ;
+  e1x /= dist ;
+  e1y /= dist ;
+  e1z /= dist ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("principle eigendirection = (%2.3f, %2.3f, %2.3f)\n",e1x,e1y,e1z) ;
-  min_dot = 10000 ; max_dot = -min_dot ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  min_dot = 10000 ;
+  max_dot = -min_dot ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation != annot)
       continue ;
-    dx = v->x - cx ;  dy = v->y - cy ; dz = v->z - cz ; 
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
     dot = dx*e1x + dy*e1y + dz*e1z ;
     if (dot > max_dot)
       max_dot = dot ;
@@ -432,14 +449,15 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
       min_dot = dot ;
   }
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->annotation != annot)
       continue ;
     if  (vno == Gdiag_no)
       DiagBreak() ;
-    dx = v->x - cx ;  dy = v->y - cy ; dz = v->z - cz ; 
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
     dot = dx*e1x + dy*e1y + dz*e1z ;
     v->curv = (dot - min_dot) / (max_dot-min_dot) ;
     v->marked = (int)(nunits * v->curv) ;
@@ -447,7 +465,9 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
       v->marked = nunits-1 ;  // one with max_dot will be just too big
   }
 
-  MatrixFree(&m_obs) ; MatrixFree(&m_cov) ; MatrixFree(&m_obs_T) ;
+  MatrixFree(&m_obs) ;
+  MatrixFree(&m_cov) ;
+  MatrixFree(&m_obs_T) ;
   return(nunits-1) ;
 }
 

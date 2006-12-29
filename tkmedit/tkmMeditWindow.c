@@ -1,23 +1,51 @@
+/**
+ * @file  tkmMeditWindow.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:18 $
+ *    $Revision: 1.59 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "tkmMeditWindow.h"
 #include "tkmDisplayArea.h"
 
 char *MWin_ksaErrorStrings [MWin_knNumErrorCodes] = {
 
-  "No error",
-  "Allocation failed.",
-  "Allocation of display area failed.",
-  "Error accessing GLUT window.",
-  "Invalid ptr to object (was probably NULL).",
-  "Invalid signature found while verifying object.",
-  "Invalid display index.",
-  "Invalid display area.",
-  "Invalid display configuration",
-  "Invalid coordinate space.",
-  "Error accessing display.",
-  "Wrong number of arguments.",
-  "Invalid event type.",
-  "Invalid error code."
-};
+      "No error",
+      "Allocation failed.",
+      "Allocation of display area failed.",
+      "Error accessing GLUT window.",
+      "Invalid ptr to object (was probably NULL).",
+      "Invalid signature found while verifying object.",
+      "Invalid display index.",
+      "Invalid display area.",
+      "Invalid display configuration",
+      "Invalid coordinate space.",
+      "Error accessing display.",
+      "Wrong number of arguments.",
+      "Invalid event type.",
+      "Invalid error code."
+    };
 
 MWin_tErr MWin_New ( tkmMeditWindowRef* oppWindow,
                      char*              isTitle,
@@ -94,7 +122,7 @@ MWin_tErr MWin_New ( tkmMeditWindowRef* oppWindow,
 
   goto cleanup;
 
- error:
+error:
 
   /* if we allocated some stuff... */
   if ( NULL != this ) {
@@ -115,7 +143,7 @@ MWin_tErr MWin_New ( tkmMeditWindowRef* oppWindow,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -160,7 +188,7 @@ MWin_tErr MWin_Delete ( tkmMeditWindowRef* ioppWindow ) {
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -168,7 +196,7 @@ MWin_tErr MWin_Delete ( tkmMeditWindowRef* ioppWindow ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -221,7 +249,7 @@ MWin_tErr MWin_GetWindowSize ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -229,15 +257,15 @@ MWin_tErr MWin_GetWindowSize ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef this,
-                                         int               inCols,
-                                         int               inRows,
-                                         MWin_tLinkPolicy  iPolicy ) {
+    int               inCols,
+    int               inRows,
+    MWin_tLinkPolicy  iPolicy ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
 
@@ -246,8 +274,8 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef this,
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
-  if( inCols < 0 || inRows < 0 ||
-      inCols * inRows > MWin_knMaxNumAreas ) {
+  if ( inCols < 0 || inRows < 0 ||
+       inCols * inRows > MWin_knMaxNumAreas ) {
     eResult = MWin_tErr_InvalidDisplayConfiguration;
     goto error;
   }
@@ -271,7 +299,7 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -279,7 +307,7 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -301,12 +329,12 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
 
   /* if we're on 1x1, just make the focused one big and the rest
      little */
-  if( this->mnCols == 1 && this->mnRows == 1 ) {
+  if ( this->mnCols == 1 && this->mnRows == 1 ) {
 
-    for( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+    for ( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
       location.mnX = location.mnY = 0;
-      if( nDisplay == this->mnLastClickedArea ) {
+      if ( nDisplay == this->mnLastClickedArea ) {
         nWidth = this->mnWidth;
         nHeight = this->mnHeight;
       } else {
@@ -340,11 +368,11 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
     goto error;
 
   nDisplay = 0;
-  for( nY = 0; nY < this->mnRows; nY++ ) {
-    for( nX = 0; nX < this->mnCols; nX++ ) {
+  for ( nY = 0; nY < this->mnRows; nY++ ) {
+    for ( nX = 0; nX < this->mnCols; nX++ ) {
 
       /* if mult orienations, set different orientation on each */
-      if( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
+      if ( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
 
         /* set its position and size */
         location.mnX = (nX * this->mnWidth / this->mnCols);
@@ -369,7 +397,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
           goto error;
 
 
-      } else if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+      } else if ( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
 
         /* this is a yflip */
         nMosaicHackedIndex = ((this->mnRows - 1) - nY) * this->mnCols + nX;
@@ -386,8 +414,8 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
 
         /* if mosaic, set same orientation and then set the slice */
         eDispResult = DspA_SetOrientation
-          ( this->mapDisplays[nMosaicHackedIndex],
-            orientation );
+                      ( this->mapDisplays[nMosaicHackedIndex],
+                        orientation );
         if ( DspA_tErr_NoErr != eDispResult )
           goto error;
 
@@ -409,7 +437,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   }
 
   /* set all other displays to 0 */
-  for( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+  for ( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
     location.mnX = location.mnY = 0;
     eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
@@ -422,7 +450,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
 
   goto cleanup;
 
- error:
+error:
 
   if ( DspA_tErr_NoErr != eDispResult )
     eResult = MWin_tErr_ErrorAccessingDisplay;
@@ -433,7 +461,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -486,7 +514,7 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -494,7 +522,7 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   DebugExitFunction;
 
@@ -545,7 +573,7 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -553,7 +581,7 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -601,7 +629,7 @@ MWin_tErr MWin_SetSegmentationVolume ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -609,15 +637,15 @@ MWin_tErr MWin_SetSegmentationVolume ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
-                                           tkm_tSegType      iType,
-                                           int               inDispIndex,
-                                           COLOR_TABLE*      iCTAB ) {
+    tkm_tSegType      iType,
+    int               inDispIndex,
+    COLOR_TABLE*      iCTAB ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -657,7 +685,7 @@ MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -665,7 +693,7 @@ MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -712,7 +740,7 @@ MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -720,7 +748,7 @@ MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -766,7 +794,7 @@ MWin_tErr MWin_SetOverlayVolume ( tkmMeditWindowRef      this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -774,7 +802,7 @@ MWin_tErr MWin_SetOverlayVolume ( tkmMeditWindowRef      this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -811,7 +839,7 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
         nDispIndex++ ) {
 
     eDispResult = DspA_SetControlPointsSpace ( this->mapDisplays[nDispIndex],
-                                               ipVoxels );
+                  ipVoxels );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -820,7 +848,7 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -828,7 +856,7 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -875,7 +903,7 @@ MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -883,7 +911,7 @@ MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -929,7 +957,7 @@ MWin_tErr MWin_SetHeadPointList ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -937,7 +965,7 @@ MWin_tErr MWin_SetHeadPointList ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -986,7 +1014,7 @@ MWin_tErr MWin_SetVLIs  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -994,7 +1022,7 @@ MWin_tErr MWin_SetVLIs  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1039,7 +1067,7 @@ MWin_tErr MWin_SetDTIVolume  ( tkmMeditWindowRef  this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1047,7 +1075,7 @@ MWin_tErr MWin_SetDTIVolume  ( tkmMeditWindowRef  this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1095,7 +1123,7 @@ MWin_tErr MWin_SetGCA ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1103,7 +1131,7 @@ MWin_tErr MWin_SetGCA ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1128,7 +1156,7 @@ MWin_tErr MWin_SetLinkedCursorFlag ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1136,7 +1164,7 @@ MWin_tErr MWin_SetLinkedCursorFlag ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1152,12 +1180,12 @@ MWin_tErr MWin_ToggleLinkedCursorFlag ( tkmMeditWindowRef this ) {
 
   /* set cursor link status. */
   eResult = MWin_SetLinkedCursorFlag( this, !(this->mbLinkedCursor) );
-  if( MWin_tErr_NoErr != eResult )
+  if ( MWin_tErr_NoErr != eResult )
     goto error;
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1165,7 +1193,7 @@ MWin_tErr MWin_ToggleLinkedCursorFlag ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1211,7 +1239,7 @@ MWin_tErr MWin_SetCursor ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1219,7 +1247,7 @@ MWin_tErr MWin_SetCursor ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1257,7 +1285,7 @@ MWin_tErr MWin_ConvertAndSetCursor ( tkmMeditWindowRef this,
         nDispIndex++ ) {
 
     eDispResult = DspA_ConvertAndSetCursor ( this->mapDisplays[nDispIndex],
-                                             iFromSpace, ipCursor );
+                  iFromSpace, ipCursor );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -1266,7 +1294,7 @@ MWin_tErr MWin_ConvertAndSetCursor ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1274,7 +1302,7 @@ MWin_tErr MWin_ConvertAndSetCursor ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1311,7 +1339,7 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
         nDispIndex++ ) {
 
     /* if in mosiac mode, save the slice */
-    if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+    if ( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
       DspA_GetSlice( this->mapDisplays[nDispIndex], &nSlice );
     }
 
@@ -1323,14 +1351,14 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
     }
 
     /* if in mosiac mode, restore the slice */
-    if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+    if ( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
       DspA_SetSlice( this->mapDisplays[nDispIndex], nSlice );
     }
   }
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1338,7 +1366,7 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1384,7 +1412,7 @@ MWin_tErr MWin_SetSlice ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1392,7 +1420,7 @@ MWin_tErr MWin_SetSlice ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1438,7 +1466,7 @@ MWin_tErr MWin_SetZoomCenter ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1446,7 +1474,7 @@ MWin_tErr MWin_SetZoomCenter ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1490,7 +1518,7 @@ MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1498,7 +1526,7 @@ MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1543,7 +1571,7 @@ MWin_tErr MWin_SetZoomLevel ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1551,7 +1579,7 @@ MWin_tErr MWin_SetZoomLevel ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1589,7 +1617,7 @@ MWin_tErr MWin_HiliteSurfaceVertex ( tkmMeditWindowRef this,
         nDispIndex++ ) {
 
     eDispResult = DspA_HiliteSurfaceVertex ( this->mapDisplays[nDispIndex],
-                                             inSurface, inVertex );
+                  inSurface, inVertex );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -1598,7 +1626,7 @@ MWin_tErr MWin_HiliteSurfaceVertex ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1606,7 +1634,7 @@ MWin_tErr MWin_HiliteSurfaceVertex ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1653,7 +1681,7 @@ MWin_tErr MWin_SetDisplayFlag ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1661,7 +1689,7 @@ MWin_tErr MWin_SetDisplayFlag ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1698,7 +1726,7 @@ MWin_tErr MWin_SetSegmentationAlpha ( tkmMeditWindowRef this,
         nDispIndex++ ) {
 
     eDispResult = DspA_SetSegmentationAlpha ( this->mapDisplays[nDispIndex],
-                                              ifAlpha );
+                  ifAlpha );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -1707,7 +1735,7 @@ MWin_tErr MWin_SetSegmentationAlpha ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1715,7 +1743,7 @@ MWin_tErr MWin_SetSegmentationAlpha ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1760,7 +1788,7 @@ MWin_tErr MWin_SetDTIAlpha ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1768,7 +1796,7 @@ MWin_tErr MWin_SetDTIAlpha ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1816,7 +1844,7 @@ MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1824,7 +1852,7 @@ MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1870,7 +1898,7 @@ MWin_tErr MWin_SetFuncOverlayAlpha ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1878,7 +1906,7 @@ MWin_tErr MWin_SetFuncOverlayAlpha ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -1916,7 +1944,7 @@ MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1924,7 +1952,7 @@ MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   /* delete cursor */
   xVoxl_Delete( &pCursor );
@@ -1963,7 +1991,7 @@ MWin_tErr MWin_GetCursorInMRIIdx ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -1971,7 +1999,7 @@ MWin_tErr MWin_GetCursorInMRIIdx ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2007,7 +2035,7 @@ MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2015,7 +2043,7 @@ MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2051,7 +2079,7 @@ MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2059,18 +2087,18 @@ MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 MWin_tErr MWin_GetClosestInterpSurfVoxel ( tkmMeditWindowRef this,
-                                           tkm_tSurfaceType  iType,
-                                           Surf_tVertexSet   iSet,
-                                           xVoxelRef         iAnaIdx,
-                                           xVoxelRef         oOrigAnaIdx,
-                                           xVoxelRef         oInterpAnaIdx,
-                                           char*             osDescription ) {
+    tkm_tSurfaceType  iType,
+    Surf_tVertexSet   iSet,
+    xVoxelRef         iAnaIdx,
+    xVoxelRef         oOrigAnaIdx,
+    xVoxelRef         oInterpAnaIdx,
+    char*             osDescription ) {
 
   MWin_tErr          eResult      = MWin_tErr_NoErr;
   DspA_tErr          eDispResult  = DspA_tErr_NoErr;
@@ -2098,7 +2126,7 @@ MWin_tErr MWin_GetClosestInterpSurfVoxel ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2106,7 +2134,7 @@ MWin_tErr MWin_GetClosestInterpSurfVoxel ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2138,7 +2166,7 @@ MWin_tErr MWin_AdjustSurfaceAnaIdx ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2146,7 +2174,7 @@ MWin_tErr MWin_AdjustSurfaceAnaIdx ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2178,7 +2206,7 @@ MWin_tErr MWin_UnadjustSurfaceAnaIdx ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2186,7 +2214,7 @@ MWin_tErr MWin_UnadjustSurfaceAnaIdx ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2205,17 +2233,17 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
     goto error;
 
   /* if we're not linking cursors, return. */
-  if( !this->mbLinkedCursor )
+  if ( !this->mbLinkedCursor )
     goto cleanup;
 
   /* if we are in mult mode.. */
-  if( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
+  if ( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
 
     /* for every display... */
     for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
       /* if this is not the display that called us... */
-      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+      if ( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
         /* set the cursor. */
         eDispResult = DspA_SetCursor ( this->mapDisplays[nDisplay], ipCursor );
@@ -2230,7 +2258,7 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2238,7 +2266,7 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2257,18 +2285,18 @@ MWin_tErr MWin_ZoomLevelChanged  ( tkmMeditWindowRef this,
     goto error;
 
   /* if we're not linking cursors, return. */
-  if( !this->mbLinkedCursor )
+  if ( !this->mbLinkedCursor )
     goto cleanup;
 
   /* if we're not in single or mult orientation mode.. */
-  if( MWin_tLinkPolicy_None == this->mLinkPolicy ||
-      MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
+  if ( MWin_tLinkPolicy_None == this->mLinkPolicy ||
+       MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
 
     /* for every display... */
     for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
       /* if this is not the display that called us... */
-      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+      if ( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
         /* set the zoom level */
         eDispResult = DspA_SetZoomLevel ( this->mapDisplays[nDisplay],
@@ -2283,7 +2311,7 @@ MWin_tErr MWin_ZoomLevelChanged  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2291,7 +2319,7 @@ MWin_tErr MWin_ZoomLevelChanged  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2311,14 +2339,14 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
     goto error;
 
   /* if we're not linking cursors, return. */
-  if( !this->mbLinkedCursor )
+  if ( !this->mbLinkedCursor )
     goto cleanup;
 
   /* for every display... */
   for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
     /* if this is not the display that called us... */
-    if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+    if ( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
       /* set the flag. */
       eDispResult = DspA_SetDisplayFlag ( this->mapDisplays[nDisplay],
@@ -2332,7 +2360,7 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2340,7 +2368,7 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2360,17 +2388,17 @@ MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
     goto error;
 
   /* if we're not linking cursors, return. */
-  if( !this->mbLinkedCursor )
+  if ( !this->mbLinkedCursor )
     goto cleanup;
 
   /* if we are in mosaic mode.. */
-  if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+  if ( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
 
     /* for every display... */
     for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
       /* if this is not the display that called us... */
-      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+      if ( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
         /* get current slice */
         DspA_GetSlice( this->mapDisplays[nDisplay], &nSlice );
@@ -2392,7 +2420,7 @@ MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2400,7 +2428,7 @@ MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2419,17 +2447,17 @@ MWin_tErr MWin_SliceChanged  ( tkmMeditWindowRef this,
     goto error;
 
   /* if we're not linking cursors, return. */
-  if( !this->mbLinkedCursor )
+  if ( !this->mbLinkedCursor )
     goto cleanup;
 
   /* if we are in mosaic mode.. */
-  if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+  if ( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
 
     /* for every display... */
     for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
       /* if this is not the display that called us... */
-      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+      if ( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
         /* change the slice */
         eDispResult = DspA_ChangeSliceBy ( this->mapDisplays[nDisplay],
@@ -2445,7 +2473,7 @@ MWin_tErr MWin_SliceChanged  ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2453,7 +2481,7 @@ MWin_tErr MWin_SliceChanged  ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2508,24 +2536,24 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
     /* hack! if this is a key-down and it's the home key, move the
        tool window to right under us. */
-    if( xGWin_tEventType_KeyDown == ipEvent->mType
-        && xGWin_tKey_Home == ipEvent->mKey ) {
+    if ( xGWin_tEventType_KeyDown == ipEvent->mType
+         && xGWin_tKey_Home == ipEvent->mKey ) {
       MWin_PlaceToolWindow_( this );
       goto cleanup;
     }
 
     /* Ctrl-q quits. */
-    if( xGWin_tEventType_KeyDown == ipEvent->mType
-        && 'q' == ipEvent->mKey
-	&& TRUE == ipEvent->mbCtrlKey ) {
+    if ( xGWin_tEventType_KeyDown == ipEvent->mType
+         && 'q' == ipEvent->mKey
+         && TRUE == ipEvent->mbCtrlKey ) {
       tkm_Quit();
       goto cleanup;
     }
 
     /* look for tab. if so, change focus. */
-    if( xGWin_tEventType_KeyDown == ipEvent->mType
-        && xGWin_tKey_Tab == ipEvent->mKey ) {
-      if( ipEvent->mbShiftKey ) {
+    if ( xGWin_tEventType_KeyDown == ipEvent->mType
+         && xGWin_tKey_Tab == ipEvent->mKey ) {
+      if ( ipEvent->mbShiftKey ) {
         MWin_ChangeFocusedDisplayAreaBy_( this, -1 );
       } else {
         MWin_ChangeFocusedDisplayAreaBy_( this, 1 );
@@ -2547,9 +2575,9 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
       bWasHit = FALSE;
 
       /* if this was a mouse event... */
-      if( xGWin_tEventType_MouseMoved == ipEvent->mType
-          || xGWin_tEventType_MouseDown == ipEvent->mType
-          || xGWin_tEventType_MouseUp == ipEvent->mType ) {
+      if ( xGWin_tEventType_MouseMoved == ipEvent->mType
+           || xGWin_tEventType_MouseDown == ipEvent->mType
+           || xGWin_tEventType_MouseUp == ipEvent->mType ) {
 
         /* get the size and location */
         eDispResult = DspA_GetPosition ( this->mapDisplays[nDispIndex],
@@ -2570,21 +2598,21 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
         }
 
         /* else if it was a key event.. */
-      } else if( xGWin_tEventType_KeyDown == ipEvent->mType ) {
+      } else if ( xGWin_tEventType_KeyDown == ipEvent->mType ) {
 
         /* was hit if this is the focused pane */
-        if( nDispIndex == this->mnLastClickedArea ) {
+        if ( nDispIndex == this->mnLastClickedArea ) {
           bWasHit = TRUE;
         }
       }
 
       /* if this was hit... */
-      if( bWasHit ) {
+      if ( bWasHit ) {
 
         /* if this was not the last clicked area and this was not
            a moved event... */
-        if( nDispIndex != this->mnLastClickedArea &&
-            ipEvent->mType != xGWin_tEventType_MouseMoved ) {
+        if ( nDispIndex != this->mnLastClickedArea &&
+             ipEvent->mType != xGWin_tEventType_MouseMoved ) {
 
           /* save new focused display. HACK: we need to do this first, because
              calling DspA_Focus makes the display panel send all its view
@@ -2606,9 +2634,9 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
         /* pass the event along. if it's a mouse moved event, only pass it
            if this is the focused pane. */
-        if( (ipEvent->mType != xGWin_tEventType_MouseMoved) ||
-            (nDispIndex == this->mnLastClickedArea &&
-             ipEvent->mType == xGWin_tEventType_MouseMoved) ) {
+        if ( (ipEvent->mType != xGWin_tEventType_MouseMoved) ||
+             (nDispIndex == this->mnLastClickedArea &&
+              ipEvent->mType == xGWin_tEventType_MouseMoved) ) {
 
           eDispResult = DspA_HandleEvent ( this->mapDisplays[nDispIndex],
                                            ipEvent );
@@ -2629,7 +2657,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     this->mnHeight = ipEvent->mWhere.mnY;
 
     /* force 1x1 aspect ratio (unless env var is set) */
-    if(getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
+    if (getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
       this->mnWidth = this->mnHeight; // force 1x1 aspect ratio
     }
 
@@ -2686,7 +2714,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     tkm_HandleIdle();
 
     /* just call the tk event handling function */
-    while (Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT )) {}
+  while (Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT )) {}
 
     /* Sleep for a bit to ease off on the CPU. */
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
@@ -2707,7 +2735,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2715,7 +2743,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   /* we're responsbile for deleting the event */
   xGWin_DeleteEvent( &ipEvent );
@@ -2733,7 +2761,7 @@ MWin_tErr MWin_Redraw ( tkmMeditWindowRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2741,7 +2769,7 @@ MWin_tErr MWin_Redraw ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2765,7 +2793,7 @@ MWin_tErr MWin_RedrawAll ( tkmMeditWindowRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2773,7 +2801,7 @@ MWin_tErr MWin_RedrawAll ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2801,7 +2829,7 @@ MWin_tErr MWin_ForceRedraw ( tkmMeditWindowRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2809,7 +2837,7 @@ MWin_tErr MWin_ForceRedraw ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2824,7 +2852,7 @@ MWin_tErr MWin_HandleDraw_ ( tkmMeditWindowRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2832,7 +2860,7 @@ MWin_tErr MWin_HandleDraw_ ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -2855,7 +2883,7 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2863,14 +2891,14 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this ) {
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 
 }
 
 MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
-                                             int               inDelta ) {
+    int               inDelta ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
@@ -2885,13 +2913,13 @@ MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
 
   /* inc. if more than max, set to 0. */
   nDispIndex += inDelta;
-  while( nDispIndex >= nNumAreas )
+  while ( nDispIndex >= nNumAreas )
     nDispIndex -= nNumAreas;
-  while( nDispIndex < 0 )
+  while ( nDispIndex < 0 )
     nDispIndex += MWin_knMaxNumAreas;
 
   /* if we changed... */
-  if( this->mnLastClickedArea != nDispIndex ) {
+  if ( this->mnLastClickedArea != nDispIndex ) {
 
     /* focus on this display. */
     this->mnLastClickedArea = nDispIndex;
@@ -2907,7 +2935,7 @@ MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -2915,7 +2943,7 @@ MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 
@@ -3021,7 +3049,7 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3029,7 +3057,7 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -3049,7 +3077,7 @@ MWin_tErr MWin_AcceptTclCommands ( tkmMeditWindowRef this,
   this->mbAcceptingTclCommands = ibAccept;
 
   /* if going to true... */
-  if( this->mbAcceptingTclCommands ) {
+  if ( this->mbAcceptingTclCommands ) {
 
     /* verify the last clicked display area index. */
     eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
@@ -3067,7 +3095,7 @@ MWin_tErr MWin_AcceptTclCommands ( tkmMeditWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3075,7 +3103,7 @@ MWin_tErr MWin_AcceptTclCommands ( tkmMeditWindowRef this,
                  eResult, MWin_GetErrorString(eResult) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 
@@ -3098,7 +3126,7 @@ MWin_tErr MWin_Verify ( tkmMeditWindowRef this ) {
     goto cleanup;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -3127,7 +3155,7 @@ MWin_tErr MWin_VerifyDisplayIndex ( tkmMeditWindowRef this,
     }
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -3167,7 +3195,7 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3186,7 +3214,7 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3202,7 +3230,7 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   /* delete the voxel */
   xVoxl_Delete( &pCursor );
@@ -3234,7 +3262,7 @@ int MWin_TclSetCursor ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3255,7 +3283,7 @@ int MWin_TclSetCursor ( ClientData  iClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3271,7 +3299,7 @@ int MWin_TclSetCursor ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   /* delete the voxel */
   xVoxl_Delete( &pCursor );
@@ -3299,7 +3327,7 @@ int MWin_TclSetSlice ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3319,7 +3347,7 @@ int MWin_TclSetSlice ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3335,7 +3363,7 @@ int MWin_TclSetSlice ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3359,7 +3387,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3379,7 +3407,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3395,7 +3423,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3419,7 +3447,7 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3438,7 +3466,7 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3454,7 +3482,7 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3482,7 +3510,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3501,7 +3529,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3517,7 +3545,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   /* delete the voxel */
   xVoxl_Delete( &pCenter );
@@ -3548,7 +3576,7 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3569,7 +3597,7 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3585,7 +3613,7 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3611,7 +3639,7 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the number of arguments. */
@@ -3631,7 +3659,7 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3647,7 +3675,7 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3673,7 +3701,7 @@ int MWin_TclSetTool ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -3700,7 +3728,7 @@ int MWin_TclSetTool ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3716,7 +3744,7 @@ int MWin_TclSetTool ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3742,7 +3770,7 @@ int MWin_TclSetBrushTarget ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -3768,7 +3796,7 @@ int MWin_TclSetBrushTarget ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3784,7 +3812,7 @@ int MWin_TclSetBrushTarget ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3812,7 +3840,7 @@ int MWin_TclSetBrushShape ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -3841,7 +3869,7 @@ int MWin_TclSetBrushShape ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3857,7 +3885,7 @@ int MWin_TclSetBrushShape ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3885,7 +3913,7 @@ int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -3914,7 +3942,7 @@ int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -3930,7 +3958,7 @@ int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -3962,7 +3990,7 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4001,7 +4029,7 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4017,7 +4045,7 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4043,7 +4071,7 @@ int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4070,7 +4098,7 @@ int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4086,7 +4114,7 @@ int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4112,7 +4140,7 @@ int MWin_TclSetCursorColor   ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4141,7 +4169,7 @@ int MWin_TclSetCursorColor   ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4157,7 +4185,7 @@ int MWin_TclSetCursorColor   ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4183,7 +4211,7 @@ int MWin_TclSetCursorShape ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4209,7 +4237,7 @@ int MWin_TclSetCursorShape ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4225,7 +4253,7 @@ int MWin_TclSetCursorShape ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4253,7 +4281,7 @@ int MWin_TclSetSurfaceLineWidth ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4282,7 +4310,7 @@ int MWin_TclSetSurfaceLineWidth ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4297,7 +4325,7 @@ int MWin_TclSetSurfaceLineWidth ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4325,7 +4353,7 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4356,7 +4384,7 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4371,7 +4399,7 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4398,7 +4426,7 @@ int MWin_TclSetFloodSelectParams ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4428,7 +4456,7 @@ int MWin_TclSetFloodSelectParams ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4444,7 +4472,7 @@ int MWin_TclSetFloodSelectParams ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4470,7 +4498,7 @@ int MWin_TclSetSegBrushInfo ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4501,7 +4529,7 @@ int MWin_TclSetSegBrushInfo ( ClientData  ipClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4517,15 +4545,15 @@ int MWin_TclSetSegBrushInfo ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
 
 int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
-                                         Tcl_Interp* ipInterp,
-                                         int         argc,
-                                         char*       argv[] ) {
+    Tcl_Interp* ipInterp,
+    int         argc,
+    char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -4542,7 +4570,7 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4558,14 +4586,14 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
 
   /* pass on to the last clicked display. */
   eDispResult = DspA_SetSurfaceDistanceAtCursor
-    ( this->mapDisplays[this->mnLastClickedArea] );
+                ( this->mapDisplays[this->mnLastClickedArea] );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4581,15 +4609,15 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
 
 int MWin_TclSetMRIValueAtCursorInSurface ( ClientData  iClientData,
-                                           Tcl_Interp* ipInterp,
-                                           int         argc,
-                                           char*       argv[] ) {
+    Tcl_Interp* ipInterp,
+    int         argc,
+    char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -4607,7 +4635,7 @@ int MWin_TclSetMRIValueAtCursorInSurface ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4626,14 +4654,14 @@ int MWin_TclSetMRIValueAtCursorInSurface ( ClientData  iClientData,
 
   /* pass on to the last clicked display. */
   eDispResult = DspA_SetMRIValueAtCursorInSurface
-    ( this->mapDisplays[this->mnLastClickedArea], vertexSet );
+                ( this->mapDisplays[this->mnLastClickedArea], vertexSet );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4649,16 +4677,16 @@ int MWin_TclSetMRIValueAtCursorInSurface ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
 
 
 int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData,
-                                                 Tcl_Interp* ipInterp,
-                                                 int         argc,
-                                                 char*       argv[] ) {
+    Tcl_Interp* ipInterp,
+    int         argc,
+    char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -4675,7 +4703,7 @@ int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4691,14 +4719,14 @@ int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData,
 
   /* pass on to the last clicked display. */
   eDispResult = DspA_SetCursorToCenterOfSelectionVolume
-    ( this->mapDisplays[this->mnLastClickedArea] );
+                ( this->mapDisplays[this->mnLastClickedArea] );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4714,7 +4742,7 @@ int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4739,7 +4767,7 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4762,7 +4790,7 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4778,7 +4806,7 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4803,7 +4831,7 @@ int MWin_TclAddLineToSelection ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4826,7 +4854,7 @@ int MWin_TclAddLineToSelection ( ClientData  iClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4842,7 +4870,7 @@ int MWin_TclAddLineToSelection ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4869,7 +4897,7 @@ int MWin_TclWriteLineToLabel ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4897,7 +4925,7 @@ int MWin_TclWriteLineToLabel ( ClientData  iClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4913,7 +4941,7 @@ int MWin_TclWriteLineToLabel ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -4939,7 +4967,7 @@ int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* verify the last clicked display area index. */
@@ -4966,7 +4994,7 @@ int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData,
   }
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -4982,7 +5010,7 @@ int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }
@@ -5006,7 +5034,7 @@ int MWin_TclRedrawAll ( ClientData  ipClientData,
     goto error;
 
   /* if not accepting commands yet, return. */
-  if( !this->mbAcceptingTclCommands )
+  if ( !this->mbAcceptingTclCommands )
     goto cleanup;
 
   /* redraw all. */
@@ -5016,7 +5044,7 @@ int MWin_TclRedrawAll ( ClientData  ipClientData,
 
   goto cleanup;
 
- error:
+error:
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
@@ -5032,7 +5060,7 @@ int MWin_TclRedrawAll ( ClientData  ipClientData,
 
   eTclResult = TCL_ERROR;
 
- cleanup:
+cleanup:
 
   return eTclResult;
 }

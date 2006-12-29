@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaKeyCombo.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ScubaKeyCombo_h
 #define ScubaKeyCombo_h
 
@@ -38,7 +66,7 @@ class ScubaKeyCombo : public DebugReporter {
 
   friend class ScubaKeyComboFactory;
 
- public:
+public:
 
   virtual ~ScubaKeyCombo() {};
 
@@ -51,22 +79,46 @@ class ScubaKeyCombo : public DebugReporter {
 
   virtual void SetFromString ( std::string isKey );
   void CopyFrom ( ScubaKeyCombo& iKey );
-  void CopyFrom ( ScubaKeyCombo* iKey ) { CopyFrom(*iKey); }
+  void CopyFrom ( ScubaKeyCombo* iKey ) {
+    CopyFrom(*iKey);
+  }
 
   bool IsSameAs ( ScubaKeyCombo& iCombo );
-  bool IsSameAs ( ScubaKeyCombo* iCombo ) { return IsSameAs(*iCombo); }
+  bool IsSameAs ( ScubaKeyCombo* iCombo ) {
+    return IsSameAs(*iCombo);
+  }
 
-  int GetKeyCode ()        { return mKeyCode; }
-  bool IsShiftKeyDown ()   { return mbShift; }
-  bool IsAltKeyDown ()     { return mbAlt; }
-  bool IsMetaKeyDown ()    { return mbMeta; }
-  bool IsControlKeyDown () { return mbControl; }
-  
-  void SetKeyCode        ( int iKey )    { mKeyCode = iKey; }
-  void SetShiftKeyDown   ( bool isDown ) { mbShift = isDown; }
-  void SetAltKeyDown     ( bool isDown ) { mbAlt = isDown; }
-  void SetMetaKeyDown    ( bool isDown ) { mbMeta = isDown; }
-  void SetControlKeyDown ( bool isDown ) { mbControl = isDown; }
+  int GetKeyCode ()        {
+    return mKeyCode;
+  }
+  bool IsShiftKeyDown ()   {
+    return mbShift;
+  }
+  bool IsAltKeyDown ()     {
+    return mbAlt;
+  }
+  bool IsMetaKeyDown ()    {
+    return mbMeta;
+  }
+  bool IsControlKeyDown () {
+    return mbControl;
+  }
+
+  void SetKeyCode        ( int iKey )    {
+    mKeyCode = iKey;
+  }
+  void SetShiftKeyDown   ( bool isDown ) {
+    mbShift = isDown;
+  }
+  void SetAltKeyDown     ( bool isDown ) {
+    mbAlt = isDown;
+  }
+  void SetMetaKeyDown    ( bool isDown ) {
+    mbMeta = isDown;
+  }
+  void SetControlKeyDown ( bool isDown ) {
+    mbControl = isDown;
+  }
 
   // This is straight out of Qt. We use their key codes for simplicity
   // with the QtScubaKeyCombo class.
@@ -211,11 +263,11 @@ class ScubaKeyCombo : public DebugReporter {
     Key_Bar = 0x7c,
     Key_BraceRight = 0x7d,
     Key_AsciiTilde = 0x7e,
-    
+
     Key_unknown = 0xffff
   };
 
- protected:
+protected:
   ScubaKeyCombo ();
 
   int mKeyCode;
@@ -225,7 +277,7 @@ class ScubaKeyCombo : public DebugReporter {
 };
 
 class ScubaKeyComboFactory {
- public:
+public:
   virtual ~ScubaKeyComboFactory() {};
   virtual ScubaKeyCombo* MakeKeyCombo() {
     return new ScubaKeyCombo();

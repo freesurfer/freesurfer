@@ -1,8 +1,37 @@
+/**
+ * @file  numerics.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef NUMERICS_H_
 #define NUMERICS_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "matrix.h"
@@ -91,7 +120,8 @@ extern "C" {
     unsigned int skip;
     unsigned int carry;
     unsigned long int u[24];
-  } sc_status_t;
+  }
+  sc_status_t;
 
   typedef struct
   {
@@ -99,19 +129,22 @@ extern "C" {
     unsigned long int min;
     unsigned long int max;
     int size;
-  } sc_rng_type;
+  }
+  sc_rng_type;
 
   typedef struct
   {
     const sc_rng_type *type;
     void  *status;
-  } sc_rng;
+  }
+  sc_rng;
 
   static const sc_rng_type intern_rng_type =
     {"rng_generator",
      0x00ffffffUL,
      0,
-     sizeof(sc_status_t)};
+     sizeof(sc_status_t)
+    };
 
 
   //##################### FUNCTION PROTOTYPES ########################

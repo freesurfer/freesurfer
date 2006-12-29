@@ -1,10 +1,38 @@
+/**
+ * @file  DataManager.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // DataManager.h
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/03/13 16:33:02 $
-// Revision       : $Revision: 1.9 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/29 02:09:13 $
+// Revision       : $Revision: 1.10 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -16,17 +44,17 @@
 #include "DebugReporter.h"
 
 
-extern "C" { 
+extern "C" {
 #include "mri.h"
 #include "mrisurf.h"
 #ifdef X
-  #undef X 
+#undef X
 #endif
 #ifdef Y
-  #undef Y
+#undef Y
 #endif
 #ifdef Z
-  #undef Z
+#undef Z
 #endif
 }
 
@@ -34,9 +62,9 @@ extern "C" {
 // This is the generic Loader object. It provides basic algorithm for
 // keeping references to loaded data of this type, and virtual functions
 // for actually loading the data and freeing it.
-template <typename T> 
-class DataLoader : public DebugReporter { 
- public:
+template <typename T>
+class DataLoader : public DebugReporter {
+public:
 
   // Returns an instance to the data for the given file name, or
   // throws an error if it can't be loaded.
@@ -48,13 +76,15 @@ class DataLoader : public DebugReporter {
 
   // Returns the number of data of this type actually loaded. (Not
   // references to a specific instance of data.
-  int CountLoaded() const { return mlData.size(); }
+  int CountLoaded() const {
+    return mlData.size();
+  }
 
   // Returns the number of references to this data.
   int CountReferences( T iData );
 
   virtual ~DataLoader() {};
- protected:
+protected:
   DataLoader();
 
   // Override this function to load a specfic type of data given a
@@ -76,18 +106,18 @@ class DataLoader : public DebugReporter {
 
 
 class MRILoader : public DataLoader<MRI*> {
- public:
+public:
   virtual ~MRILoader() {};
- protected:
+protected:
   MRI* LoadData( std::string& ifnData );
   void FreeData( MRI** ioMRI ) ;
   bool DoesFileNameMatchObject( MRI* iData, std::string& ifnData );
 };
 
 class MRISLoader : public DataLoader<MRIS*> {
- public:
+public:
   virtual ~MRISLoader() {}
- protected:
+protected:
   MRIS* LoadData( std::string& ifnData );
   void FreeData( MRIS** ioMRI ) ;
   bool DoesFileNameMatchObject( MRIS* iData, std::string& ifnData );
@@ -97,16 +127,16 @@ class MRISLoader : public DataLoader<MRIS*> {
 
 class DataManager : public DebugReporter {
 
- public: 
+public:
 
   static DataManager& GetManager();
 
   static MRILoader& GetMRILoader();
   static MRISLoader& GetMRISLoader();
 
- protected:
+protected:
   DataManager();
-  
+
   //  static MRILoader mMRILoader;
   //  static MRISLoader mMRISLoader;
 };

@@ -1,3 +1,31 @@
+/**
+ * @file  mri_strip_subject_info.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,66 +45,52 @@ int fix_siemens(char *fname, char *dname);
 extern int errno;
 char *Progname;
 
-void usage(void)
-{
+void usage(void) {
 
   fprintf(stderr, "usage: %s <input file> ... <output directory>\n", Progname);
 
 } /* end usage() */
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
   struct stat stat_buf;
   int i;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_strip_subject_info.c,v 1.4 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_strip_subject_info.c,v 1.5 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   Progname = get_base_name(argv[0]);
 
-  if(argc < 3)
-  {
+  if (argc < 3) {
     usage();
     exit(1);
   }
 
-  if(stat(argv[argc-1], &stat_buf) != 0)
-  {
+  if (stat(argv[argc-1], &stat_buf) != 0) {
     ErrorExit(ERROR_BADFILE, "%s: error on stat(%s)", Progname, argv[argc-1]);
   }
 
-  if(!S_ISDIR(stat_buf.st_mode))
-  {
+  if (!S_ISDIR(stat_buf.st_mode)) {
     errno = 0;
     ErrorExit(ERROR_BADFILE, "%s: %s is not a directory", Progname, argv[argc-1]);
     exit(1);
   }
 
-  for(i = 1;i < argc-1;i++)
-  {
+  for (i = 1;i < argc-1;i++) {
     printf("%s\n", argv[i]);
-    if(stat(argv[i], &stat_buf) != 0)
-    {
+    if (stat(argv[i], &stat_buf) != 0) {
       fprintf(stderr, "%s: error accessing %s\n", Progname, argv[i]);
-    }
-    else if(S_ISDIR(stat_buf.st_mode))
-    {
+    } else if (S_ISDIR(stat_buf.st_mode)) {
       fprintf(stderr, "%s: %s is a directory\n", Progname, argv[i]);
-    }
-    else if(is_genesis(argv[i]))
-    {
+    } else if (is_genesis(argv[i])) {
       fix_genesis(argv[i], argv[argc-1]);
-    }
-    else if(is_siemens(argv[i]))
-    {
+    } else if (is_siemens(argv[i])) {
       fix_siemens(argv[i], argv[argc-1]);
-    }
-    else
+    } else
       fprintf(stderr, "%s: file %s is not GE or Siemens\n", Progname, argv[i]);
   }
 
@@ -84,8 +98,7 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 
-char *get_base_name(char *fullpath)
-{
+char *get_base_name(char *fullpath) {
 
   char *bn;
 
@@ -96,8 +109,7 @@ char *get_base_name(char *fullpath)
 
 } /* end get_base_name() */
 
-int fix_genesis(char *fname, char *dname)
-{
+int fix_genesis(char *fname, char *dname) {
 
   FILE *fp;
   char *basename;
@@ -107,8 +119,7 @@ int fix_genesis(char *fname, char *dname)
   int exam_header_offset;
 
   fp = fopen(fname, "r");
-  if(fp == NULL)
-  {
+  if (fp == NULL) {
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error opening file %s", fname));
   }
 
@@ -117,13 +128,11 @@ int fix_genesis(char *fname, char *dname)
   fseek(fp, 0, SEEK_SET);
 
   buf = (char *)malloc(file_length);
-  if(buf == NULL)
-  {
+  if (buf == NULL) {
     ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error: no memory to read file %s", fname));
   }
 
-  if(fread(buf, 1, file_length, fp) != file_length)
-  {
+  if (fread(buf, 1, file_length, fp) != file_length) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading from file %s", fname));
   }
@@ -133,8 +142,7 @@ int fix_genesis(char *fname, char *dname)
   memcpy(&exam_header_offset, &(buf[132]), 4);
   exam_header_offset = orderIntBytes(exam_header_offset);
 
-  if(exam_header_offset + 282 + 23 >= file_length)
-  {
+  if (exam_header_offset + 282 + 23 >= file_length) {
     free(buf);
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "file %s is too short", fname));
@@ -153,14 +161,12 @@ int fix_genesis(char *fname, char *dname)
   sprintf(out_fname, "%s/%s", dname, basename);
 
   fp = fopen(out_fname, "w");
-  if(fp == NULL)
-  {
+  if (fp == NULL) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error opening file %s", fname));
   }
 
-  if(fwrite(buf, 1, file_length, fp) != file_length)
-  {
+  if (fwrite(buf, 1, file_length, fp) != file_length) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error writing to file %s", out_fname));
   }
@@ -173,8 +179,7 @@ int fix_genesis(char *fname, char *dname)
 
 } /* end fix_genesis() */
 
-int fix_siemens(char *fname, char *dname)
-{
+int fix_siemens(char *fname, char *dname) {
 
   FILE *fp;
   char *basename;
@@ -183,8 +188,7 @@ int fix_siemens(char *fname, char *dname)
   int file_length;
 
   fp = fopen(fname, "r");
-  if(fp == NULL)
-  {
+  if (fp == NULL) {
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error opening file %s", fname));
   }
 
@@ -193,21 +197,18 @@ int fix_siemens(char *fname, char *dname)
   fseek(fp, 0, SEEK_SET);
 
   buf = (char *)malloc(file_length);
-  if(buf == NULL)
-  {
+  if (buf == NULL) {
     ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error: no memory to read file %s", fname));
   }
 
-  if(fread(buf, 1, file_length, fp) != file_length)
-  {
+  if (fread(buf, 1, file_length, fp) != file_length) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading from file %s", fname));
   }
 
   fclose(fp);
 
-  if(6058 + 27 >= file_length)
-  {
+  if (6058 + 27 >= file_length) {
     free(buf);
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "file %s is too short", fname));
@@ -257,14 +258,12 @@ int fix_siemens(char *fname, char *dname)
   sprintf(out_fname, "%s/%s", dname, basename);
 
   fp = fopen(out_fname, "w");
-  if(fp == NULL)
-  {
+  if (fp == NULL) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error opening file %s", fname));
   }
 
-  if(fwrite(buf, 1, file_length, fp) != file_length)
-  {
+  if (fwrite(buf, 1, file_length, fp) != file_length) {
     free(buf);
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error writing to file %s", out_fname));
   }

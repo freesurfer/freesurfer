@@ -1,3 +1,31 @@
+/**
+ * @file  xDebug.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.16 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef xDebug_H
 #define xDebug_H
 
@@ -7,7 +35,7 @@
 #ifdef XDEBUG_NO_CODE
 #define kDebugging          0
 #else
-#define kDebugging          1 
+#define kDebugging          1
 #endif
 
 #define xDebug_Nothing 0
@@ -55,7 +83,7 @@ extern int                  xDbg_gLineNumberOfError;
 #define InitDebugging(sProgName) xDbg_Init(sProgName)
 #define DeleteDebugging          xDbg_ShutDown()
 
-/* register a handler to get called at a segfault */   
+/* register a handler to get called at a segfault */
 #define DebugRegisterSegfaultHandler(s) xDbg_RegisterSegfaultHandler(s)
 
 /* control whether or not output is sent to the chosen target. */
@@ -63,7 +91,7 @@ extern int                  xDbg_gLineNumberOfError;
 #define EnableDebuggingOutput    if ( xDbg_gStream != xDebug_Nothing) \
                                       xDbg_gbOutput = TRUE
 
-/* to be used to get the current state and restore it later so it can be 
+/* to be used to get the current state and restore it later so it can be
    explicitly enabled or disabled in a function */
 #define GetDebuggingState(x)     *x = xDbg_gbOutput
 #define SetDebuggingState(x)     xDbg_gbOutput = x
@@ -182,17 +210,17 @@ extern int                  xDbg_gLineNumberOfError;
         DebugPrint( ("\tNo error code.\n") ); \
      } \
      xDbg_PrintStack (); \
-     } while(0) 
+     } while(0)
 
 #define DebugGotoCleanup         goto cleanup
 
 #else
 
-       /* define all macros so they do nothing */
-#define InitDebugging(s)   
+/* define all macros so they do nothing */
+#define InitDebugging(s)
 #define DeleteDebugging
 #define DebugRegisterSegfaultHandler(s)
-#define DisableDebuggingOutput  
+#define DisableDebuggingOutput
 #define EnableDebuggingOutput
 #define GetDebuggingState(x)
 #define SetDebuggingState(x)
@@ -206,11 +234,11 @@ extern int                  xDbg_gLineNumberOfError;
 #define DebugGetFunction
 #define DebugPrintStack
 #define DebugEnterFunction(ARGS)
-#define DebugExitFunction    
+#define DebugExitFunction
 
 /* use these only if you are going to catch them with the DebugCatch macros
-   below. the first just takes a test. the second will set var to errorCode
-   if the test is true. the third throws without a test. */
+below. the first just takes a test. the second will set var to errorCode
+if the test is true. the third throws without a test. */
 #define DebugAssertThrow(test) \
                                  do { \
                                     if( !(test) ) { \

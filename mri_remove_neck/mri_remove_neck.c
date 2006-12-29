@@ -1,3 +1,31 @@
+/**
+ * @file  mri_remove_neck.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 
 #include <math.h>
@@ -34,7 +62,7 @@ MRI *MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gc
 static int get_option(int argc, char *argv[]) ;
 
 
-/* 
+/*
    command line consists of three inputs:
 
    argv[1]  - directory containing 'canonical' brain
@@ -44,41 +72,39 @@ static int get_option(int argc, char *argv[]) ;
 
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         *gca_fname, *in_fname, *out_fname, **av, *transform_fname ;
   MRI          *mri_in, *mri_out ;
   GCA          *gca ;
   int          ac, nargs ;
   int          msec, minutes, seconds,err ;
   struct timeb start ;
-	TRANSFORM    *transform ;
+  TRANSFORM    *transform ;
 
   Progname = argv[0] ;
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.5 2006/05/31 15:41:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.6 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 5)
-    ErrorExit(ERROR_BADPARM, 
-							"usage: %s <in volume> <transform> <gca> <output volume>\n", argv[0]) ;
+    ErrorExit(ERROR_BADPARM,
+              "usage: %s <in volume> <transform> <gca> <output volume>\n", argv[0]) ;
 
   in_fname = argv[1] ;
-	transform_fname = argv[2] ;
+  transform_fname = argv[2] ;
   gca_fname = argv[3] ;
   out_fname = argv[4] ;
 
@@ -97,10 +123,10 @@ main(int argc, char *argv[])
 
   printf("reading transform '%s'...\n", transform_fname) ;
   fflush(stdout) ;
-	transform = TransformRead(transform_fname) ;
+  transform = TransformRead(transform_fname) ;
   if (!transform)
     ErrorExit(ERROR_NOFILE, "%s: could not open transform %s.\n", Progname, transform_fname) ;
-	TransformInvert(transform, mri_in) ;
+  TransformInvert(transform, mri_in) ;
 
   printf("removing structures at least %d mm from brain...\n", radius) ;
   fflush(stdout) ;
@@ -109,10 +135,10 @@ main(int argc, char *argv[])
   fflush(stdout) ;
 
   GCAfree(&gca) ;
-  MRIfree(&mri_in) ; 
+  MRIfree(&mri_in) ;
 
   err=MRIwrite(mri_out, out_fname);
-  if(err) exit(1);
+  if (err) exit(1);
 
   MRIfree(&mri_out)  ;
   msec = TimerStop(&start) ;
@@ -130,146 +156,120 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!stricmp(option, "FILL"))
-  {
+  if (!stricmp(option, "FILL")) {
     fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     printf("filling defaced regions with %d\n", fill_val) ;
-  }
-  else if (!stricmp(option, "RADIUS"))
-  {
+  } else if (!stricmp(option, "RADIUS")) {
     radius = atoi(argv[2]) ;
     nargs = 1 ;
     printf("erasing everything more than %d mm from possible brain\n", radius) ;
-  }
-  else if (!stricmp(option, "DEBUG_LABEL"))
-  {
-		Ggca_label = atoi(argv[2]) ;
-		printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label), Ggca_label) ;
+  } else if (!stricmp(option, "DEBUG_LABEL")) {
+    Ggca_label = atoi(argv[2]) ;
+    printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label), Ggca_label) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "DEBUG_VOXEL"))
-  {
+  } else if (!stricmp(option, "DEBUG_VOXEL")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
-  }
-  else if (!stricmp(option, "TR"))
-  {
+  } else if (!stricmp(option, "TR")) {
     TR = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TR=%2.1f msec\n", TR) ;
-  }
-  else if (!stricmp(option, "TE"))
-  {
+  } else if (!stricmp(option, "TE")) {
     TE = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TE=%2.1f msec\n", TE) ;
-  }
-  else if (!stricmp(option, "ALPHA"))
-  {
+  } else if (!stricmp(option, "ALPHA")) {
     nargs = 1 ;
     alpha = RADIANS(atof(argv[2])) ;
     printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
-  }
-  else switch (*option)
-  {
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    printf("usage: %s <in volume> <transform> <GCA> <output volume>\n", 
-           argv[0]) ;
-    exit(1) ;
-    break ;
-  default:
-    printf("unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (*option) {
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      printf("usage: %s <in volume> <transform> <GCA> <output volume>\n",
+             argv[0]) ;
+      exit(1) ;
+      break ;
+    default:
+      printf("unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 MRI *
-MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, int radius, int fill_val)
-{
-	int       x, y, z, frame, nerased = 0 ;
-	MRI       *mri_brain ;
+MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, int radius, int fill_val) {
+  int       x, y, z, frame, nerased = 0 ;
+  MRI       *mri_brain ;
 
-	mri_dst = MRIcopy(mri_src, mri_dst) ;
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-	mri_brain = fill_brain_volume(mri_dst, gca, transform, radius) ;
+  mri_brain = fill_brain_volume(mri_dst, gca, transform, radius) ;
 
-	for (x = 0 ; x < mri_src->width ; x++)
-	{
-		for (y = 0 ; y < mri_src->height ; y++)
-		{
-			for (z = 0 ; z < mri_src->depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				if (MRIvox(mri_brain, x, y, z)  > 0)
-					continue ;
+  for (x = 0 ; x < mri_src->width ; x++) {
+    for (y = 0 ; y < mri_src->height ; y++) {
+      for (z = 0 ; z < mri_src->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_brain, x, y, z)  > 0)
+          continue ;
 
-				for (frame = 0 ; frame < mri_dst->nframes ; frame++)
-					MRIseq_vox(mri_dst, x, y, z, frame) = fill_val ;
-				nerased++ ;
-			}
-		}
-	}
+        for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+          MRIseq_vox(mri_dst, x, y, z, frame) = fill_val ;
+        nerased++ ;
+      }
+    }
+  }
 
-	printf("%d nonbrain voxels erased\n", nerased) ;
-	MRIfree(&mri_brain) ;
-	return(mri_dst)  ;
+  printf("%d nonbrain voxels erased\n", nerased) ;
+  MRIfree(&mri_brain) ;
+  return(mri_dst)  ;
 }
 
 static MRI *
-fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
-{
-	int       i, x, y, z, n ;
-	MRI       *mri_brain ;
-	GCA_PRIOR *gcap ;
+fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius) {
+  int       i, x, y, z, n ;
+  MRI       *mri_brain ;
+  GCA_PRIOR *gcap ;
 
-	mri_brain = MRIclone(mri, NULL) ;
+  mri_brain = MRIclone(mri, NULL) ;
 
-	for (x = 0 ; x < mri->width ; x++)
-	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				MRIvox(mri_brain, x, y, z) = 0 ;
-				gcap = getGCAP(gca, mri, transform, x, y, z) ;
-				if (gcap == NULL)
-					continue ;
-				for (n = 0 ; n < gcap->nlabels ; n++)
-				{
-					if (IS_BRAIN(gcap->labels[n]) && (gcap->labels[n] != Brain_Stem))
-					{
-						MRIvox(mri_brain, x, y, z) = 128 ;
-						break ;
-					}
-				}
-			}
-		}
-	}
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-		MRIwrite(mri_brain, "brain_mask.mgz") ;
-	for (i = 0 ; i < radius ; i++)
-		MRIdilate(mri_brain, mri_brain) ;
-	return(mri_brain) ;
+  for (x = 0 ; x < mri->width ; x++) {
+    for (y = 0 ; y < mri->height ; y++) {
+      for (z = 0 ; z < mri->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRIvox(mri_brain, x, y, z) = 0 ;
+        gcap = getGCAP(gca, mri, transform, x, y, z) ;
+        if (gcap == NULL)
+          continue ;
+        for (n = 0 ; n < gcap->nlabels ; n++) {
+          if (IS_BRAIN(gcap->labels[n]) && (gcap->labels[n] != Brain_Stem)) {
+            MRIvox(mri_brain, x, y, z) = 128 ;
+            break ;
+          }
+        }
+      }
+    }
+  }
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_brain, "brain_mask.mgz") ;
+  for (i = 0 ; i < radius ; i++)
+    MRIdilate(mri_brain, mri_brain) ;
+  return(mri_brain) ;
 }

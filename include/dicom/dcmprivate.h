@@ -32,36 +32,40 @@
 /* Copyright marker.  Copyright will be inserted above.  Do not remove */
 
 /*
-**				DICOM 93
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 93
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Stephen M. Moore, 26-Apr-93
+** Author, Date: Stephen M. Moore, 26-Apr-93
 ** Intent:
-**	This file defines private structures for the DICOM information
-**	object package.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
-** Source File:		$RCSfile: dcmprivate.h,v $
-** Revision:		$Revision: 1.3 $
-** Status:		$State: Exp $
+** This file defines private structures for the DICOM information
+** object package.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: dcmprivate.h,v $
+** Revision:  $Revision: 1.4 $
+** Status:  $State: Exp $
 */
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct {
+  typedef struct
+  {
     void *reserved[2];
     unsigned short group;
-/*    unsigned long groupLength; */
+    /*    unsigned long groupLength; */
     unsigned long baseLength;
     int longVRAttributes;
     LST_HEAD *elementList;
-}   PRV_GROUP_ITEM;
+  }
+  PRV_GROUP_ITEM;
 
-typedef struct {
+  typedef struct
+  {
     void *reserved[2];
     DCM_ELEMENT element;
     int byteOrder;
@@ -71,13 +75,15 @@ typedef struct {
     size_t originalDataLength;
     size_t paddedDataLength;
     int fragmentFlag;
-}   PRV_ELEMENT_ITEM;
+  }
+  PRV_ELEMENT_ITEM;
 
-#define	DCM_OBJUNDEFINED 0x01
-#define	DCM_OBJCOMMAND	0x02
-#define	DCM_OBJDATASET	0x03
+#define DCM_OBJUNDEFINED 0x01
+#define DCM_OBJCOMMAND 0x02
+#define DCM_OBJDATASET 0x03
 
-typedef struct {
+  typedef struct
+  {
     void *reserved[2];
     char keyType[32];
     DCM_OBJECTTYPE objectType;
@@ -95,8 +101,8 @@ typedef struct {
     int fd;
     char fileName[1024];
     void *userCtx;
-        CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead);
-        CONDITION(*sk) (void *ctx, int offset, int flag);
+    CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead);
+    CONDITION(*sk) (void *ctx, int offset, int flag);
     LST_HEAD *groupList;
     CTNBOOLEAN preambleFlag;
     unsigned char preamble[DCM_PREAMBLELENGTH];
@@ -104,57 +110,58 @@ typedef struct {
     unsigned long metaHeaderLength;
     int longVRAttributes;
     char waveformDataVR[DICOM_CS_LENGTH+1];
-}   PRIVATE_OBJECT;
+  }
+  PRIVATE_OBJECT;
 
-#define KEY_DCM_OBJECT	"KEY ACR NEMA V3 OBJECT"
+#define KEY_DCM_OBJECT "KEY ACR NEMA V3 OBJECT"
 
-#define	DCM_FILE_ACCESS		1
-#define	DCM_MEMORY_ACCESS	2
+#define DCM_FILE_ACCESS  1
+#define DCM_MEMORY_ACCESS 2
 
-typedef union {
+  typedef union {
     unsigned short s;
     unsigned char u[2];
-}   SHORT_WORD;
+  }   SHORT_WORD;
 
-typedef union {
+  typedef union {
 #ifdef __alpha
     unsigned int l;
 #else
     unsigned long l;
 #endif
     unsigned char u[4];
-}   LONG_WORD;
+  }   LONG_WORD;
 
-#define GET_SHORT_SAME_ORDER(A,B) {		\
-	SHORT_WORD sss;				\
-	sss.u[0] = (A)[0];			\
-	sss.u[1] = (A)[1];			\
-	(B) = sss.s;				\
+#define GET_SHORT_SAME_ORDER(A,B) {  \
+ SHORT_WORD sss;    \
+ sss.u[0] = (A)[0];   \
+ sss.u[1] = (A)[1];   \
+ (B) = sss.s;    \
 }
 
-#define GET_SHORT_REVERSE_ORDER(A,B) {		\
-	SHORT_WORD sss;				\
-	sss.u[0] = (A)[1];			\
-	sss.u[1] = (A)[0];			\
-	(B) = sss.s;				\
+#define GET_SHORT_REVERSE_ORDER(A,B) {  \
+ SHORT_WORD sss;    \
+ sss.u[0] = (A)[1];   \
+ sss.u[1] = (A)[0];   \
+ (B) = sss.s;    \
 }
 
-#define GET_LONG_SAME_ORDER(A,B) {		\
-	LONG_WORD lll;				\
-	lll.u[0] = (A)[0];			\
-	lll.u[1] = (A)[1];			\
-	lll.u[2] = (A)[2];			\
-	lll.u[3] = (A)[3];			\
-	(B) = lll.l;				\
+#define GET_LONG_SAME_ORDER(A,B) {  \
+ LONG_WORD lll;    \
+ lll.u[0] = (A)[0];   \
+ lll.u[1] = (A)[1];   \
+ lll.u[2] = (A)[2];   \
+ lll.u[3] = (A)[3];   \
+ (B) = lll.l;    \
 }
 
-#define GET_LONG_REVERSE_ORDER(A,B) {		\
-	LONG_WORD lll;				\
-	lll.u[0] = (A)[3];			\
-	lll.u[1] = (A)[2];			\
-	lll.u[2] = (A)[1];			\
-	lll.u[3] = (A)[0];			\
-	(B) = lll.l;				\
+#define GET_LONG_REVERSE_ORDER(A,B) {  \
+ LONG_WORD lll;    \
+ lll.u[0] = (A)[3];   \
+ lll.u[1] = (A)[2];   \
+ lll.u[2] = (A)[1];   \
+ lll.u[3] = (A)[0];   \
+ (B) = lll.l;    \
 }
 
 #ifdef  __cplusplus

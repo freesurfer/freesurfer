@@ -1,3 +1,31 @@
+/**
+ * @file  znzlib.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:01 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef _ZNZLIB_H_
 #define _ZNZLIB_H_
 
@@ -20,7 +48,7 @@ znzlib.h  (zipped or non-zipped library)
 
 This library provides an interface to both compressed (gzip/zlib) and
 uncompressed (normal) file IO.  The functions are written to have the
-same interface as the standard file IO functions.  
+same interface as the standard file IO functions.
 
 To use this library instead of normal file IO, the following changes
 are required:
@@ -30,7 +58,7 @@ are required:
  - add a third parameter to all calls to znzopen (previously fopen)
    that specifies whether to use compression (1) or not (0)
  - use znz_isnull rather than any (pointer == NULL) comparisons in the code
- 
+
 NB: seeks for writable files with compression are quite restricted
 
 */
@@ -38,73 +66,75 @@ NB: seeks for writable files with compression are quite restricted
 
 /*=================*/
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-/*=================*/
+  /*=================*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-	//#include "config.h"
+  //#include "config.h"
 
-#ifdef HAVE_ZLIB 
+#ifdef HAVE_ZLIB
 #include "zlib.h"
 #endif
 
 
-struct znzptr {
-  int withz;
-  FILE* nzfptr;
+  struct znzptr
+  {
+    int withz;
+    FILE* nzfptr;
 #ifdef HAVE_ZLIB
-  gzFile zfptr;
+    gzFile zfptr;
 #endif
-} ;
+  } ;
 
-/* the type for all file pointers */
-typedef struct znzptr * znzFile;
+  /* the type for all file pointers */
+  typedef struct znzptr * znzFile;
 
 
-/* int znz_isnull(znzFile f); */
-/* int znzclose(znzFile f); */
+  /* int znz_isnull(znzFile f); */
+  /* int znzclose(znzFile f); */
 #define znz_isnull(f) ((f) == NULL)
 #define znzclose(f)   Xznzclose(&(f))
 
-/* Note extra argument (use_compression) where 
-   use_compression==0 is no compression
-   use_compression!=0 uses zlib (gzip) compression
-*/
+  /* Note extra argument (use_compression) where
+     use_compression==0 is no compression
+     use_compression!=0 uses zlib (gzip) compression
+  */
 
-znzFile znzopen(const char *path, const char *mode, int use_compression);
+  znzFile znzopen(const char *path, const char *mode, int use_compression);
 
-znzFile znzdopen(int fd, const char *mode, int use_compression);
+  znzFile znzdopen(int fd, const char *mode, int use_compression);
 
-int Xznzclose(znzFile * file);
+  int Xznzclose(znzFile * file);
 
-size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file);
+  size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file);
 
-size_t znzwrite(void* buf, size_t size, size_t nmemb, znzFile file);
+  size_t znzwrite(void* buf, size_t size, size_t nmemb, znzFile file);
 
-long znzseek(znzFile file, long offset, int whence);
+  long znzseek(znzFile file, long offset, int whence);
 
-int znzrewind(znzFile stream);
+  int znzrewind(znzFile stream);
 
-long znztell(znzFile file);
+  long znztell(znzFile file);
 
-int znzputs(char *str, znzFile file);
+  int znzputs(char *str, znzFile file);
 
-char * znzgets(char* str, int size, znzFile file);
+  char * znzgets(char* str, int size, znzFile file);
 
-int znzputc(int c, znzFile file);
+  int znzputc(int c, znzFile file);
 
-int znzgetc(znzFile file);
+  int znzgetc(znzFile file);
 
 #if !defined(WIN32)
-int znzprintf(znzFile stream, const char *format, ...);
+  int znzprintf(znzFile stream, const char *format, ...);
 #endif
 
-/*=================*/
+  /*=================*/
 #ifdef  __cplusplus
 }
 #endif

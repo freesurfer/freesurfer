@@ -1,3 +1,31 @@
+/**
+ * @file  mris_entropy.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_entropy.c,v 1.5 2003/09/05 04:45:40 kteich Exp $";
+static char vcid[] = "$Id: mris_entropy.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,17 +59,16 @@ static char sdir[STRLEN] ;
 static int normalize_flag = 0 ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char               **av, fname[STRLEN], *subject_name, *wfile_name,
-                     *cp, *hemi ;
+  *cp, *hemi ;
   int                ac, nargs, vno ;
   MRI_SURFACE        *mris ;
   VERTEX             *v ;
   double             entropy, total_len, min_w ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_entropy.c,v 1.5 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_entropy.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -52,8 +79,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -63,11 +89,10 @@ main(int argc, char *argv[])
     print_help() ;
 
   subject_name = argv[1] ;
-  hemi = argv[2] ; 
+  hemi = argv[2] ;
   wfile_name = argv[3] ;
 
-  if (strlen(sdir) == 0)
-  {
+  if (strlen(sdir) == 0) {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_UNSUPPORTED, "%s: must specifiy SUBJECTS_DIR in env",
@@ -84,19 +109,18 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read w file %s",
               Progname, wfile_name) ;
 
-  if (navgs > 0)
-  {
+  if (navgs > 0) {
     printf("smoothing surface values for %d iterations...\n",navgs) ;
     MRISaverageVals(mris, navgs) ;
   }
 
   min_w = fabs(mris->vertices[0].val) ;
-  for (total_len = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (total_len = vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->val = fabs(v->val) ; total_len += (v->val*v->val) ;
+    v->val = fabs(v->val) ;
+    total_len += (v->val*v->val) ;
     if (v->val < min_w)
       min_w = v->val ;
   }
@@ -105,8 +129,7 @@ main(int argc, char *argv[])
   if (FZERO(total_len))
     ErrorExit(ERROR_BADPARM, "total vector len = 0, entropy = 0 (trivial case)") ;
 
-  for (entropy = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (entropy = vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -118,8 +141,7 @@ main(int argc, char *argv[])
 
   entropy = -entropy ;
   printf("total entropy = %f\n", entropy) ;
-  if (log_fname)
-  {
+  if (log_fname) {
     FILE *fp ;
 
     fp = fopen(log_fname, "a") ;
@@ -138,66 +160,60 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "sdir"))
-  {
+  else if (!stricmp(option, "sdir")) {
     strcpy(sdir, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using SUBJECTS_DIR=%s\n", sdir) ;
-  }
-  else switch (toupper(*option))
-  {
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'L':
-    log_fname = argv[2] ;
-    printf("logging results to %s...\n", log_fname) ;
-    nargs = 1 ;
-    break ;
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "averaging curvature for %d iterations\n", navgs) ;
-    break ;
-  case 'N':
-    normalize_flag = atoi(argv[2]) ;
-    printf("normalizing curvature before writing\n") ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'L':
+      log_fname = argv[2] ;
+      printf("logging results to %s...\n", log_fname) ;
+      nargs = 1 ;
+      break ;
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "averaging curvature for %d iterations\n", navgs) ;
+      break ;
+    case 'N':
+      normalize_flag = atoi(argv[2]) ;
+      printf("normalizing curvature before writing\n") ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <subject> <hemi> <wfile> <curv file>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program computes the entropy of a surface activation pattern "
+  fprintf(stderr,
+          "\nThis program computes the entropy of a surface activation pattern "
           "smoothing (-a <avgs>) or normalizing (-n)\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-a <avgs>  "
@@ -207,8 +223,7 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

@@ -1,3 +1,31 @@
+/**
+ * @file  hiam_register.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:57 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,20 +41,20 @@
 #include "macros.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.1 2004/04/16 21:26:44 pengyu Exp $";
+static char vcid[] = "$Id: hiam_register.c,v 1.2 2006/12/29 02:08:57 nicks Exp $";
 
 
-static float sigmas[] = { 4.0f, 2.0f, 1.0f, 0.5f } ;
+static float sigmas[] = {
+                          4.0f, 2.0f, 1.0f, 0.5f
+                        } ;
 
-char *surface_names[] = 
-{
-  "hippocampus"
-} ;
+char *surface_names[] = {
+                          "hippocampus"
+                        } ;
 
-static char *curvature_names[] = 
-{
-  "hippocampus.curv",
-} ;
+static char *curvature_names[] = {
+                                   "hippocampus.curv",
+                                 } ;
 
 
 
@@ -72,8 +100,7 @@ static int use_defaults = 1 ;
 static INTEGRATION_PARMS  parms ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, *surf_fname, *template_fname, *out_fname, fname[STRLEN],*cp;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
@@ -115,8 +142,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -128,8 +154,7 @@ main(int argc, char *argv[])
   surf_fname = argv[1] ;
   template_fname = argv[2] ;
   out_fname = argv[3] ;
-  if (parms.base_name[0] == 0)
-  {
+  if (parms.base_name[0] == 0) {
     FileNameOnly(out_fname, fname) ;
     cp = strchr(fname, '.') ;
     if (cp)
@@ -145,11 +170,10 @@ main(int argc, char *argv[])
               Progname, surf_fname) ;
 
   if (!FZERO(dalpha) || !FZERO(dbeta) || !FZERO(dgamma))
-    MRISrotate(mris, mris, RADIANS(dalpha), RADIANS(dbeta), 
+    MRISrotate(mris, mris, RADIANS(dalpha), RADIANS(dbeta),
                RADIANS(dgamma)) ;
 
-  if (curvature_fname[0])
-  {
+  if (curvature_fname[0]) {
     fprintf(stderr, "reading source curvature from %s\n",curvature_fname) ;
     MRISreadCurvatureFile(mris, curvature_fname) ;
   }
@@ -158,16 +182,18 @@ main(int argc, char *argv[])
   mrisp_template = MRISPread(template_fname) ;
   if (!mrisp_template)
     ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
-                Progname, template_fname) ;
-  if (use_defaults)
-  {
+              Progname, template_fname) ;
+  if (use_defaults) {
     if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
     {
-      parms.l_dist = 0.5 ; parms.l_corr = 1.0 ; parms.l_parea = 0.1 ;
-    }
-    else   /* subsequent alignments */
+      parms.l_dist = 0.5 ;
+      parms.l_corr = 1.0 ;
+      parms.l_parea = 0.1 ;
+    } else   /* subsequent alignments */
     {
-      parms.l_dist = 0.1 ; parms.l_corr = 1.0 ; parms.l_parea = 0.2 ;
+      parms.l_dist = 0.1 ;
+      parms.l_corr = 1.0 ;
+      parms.l_parea = 0.2 ;
     }
   }
 
@@ -175,7 +201,7 @@ main(int argc, char *argv[])
     MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag)
-    MRISreverse(mris, REVERSE_X) ; 
+    MRISreverse(mris, REVERSE_X) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
@@ -191,8 +217,7 @@ main(int argc, char *argv[])
   MRISregister(mris, mrisp_template, &parms, max_passes) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
-  if (jacobian_fname)
-  {
+  if (jacobian_fname) {
     MRIScomputeMetricProperties(mris) ;
     compute_area_ratios(mris) ;  /* will put results in v->curv */
 #if 0
@@ -214,268 +239,214 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int    nargs = 0 ;
   char   *option ;
   float  f ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
-  {
+  else if (!stricmp(option, "vnum") || !stricmp(option, "distances")) {
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
     nargs = 2 ;
     fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
             parms.nbhd_size, parms.max_nbrs) ;
-  }
-  else if (!stricmp(option, "rotate"))
-  {
+  } else if (!stricmp(option, "rotate")) {
     dalpha = atof(argv[2]) ;
     dbeta = atof(argv[3]) ;
     dgamma = atof(argv[4]) ;
     fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
             dalpha, dbeta, dgamma) ;
     nargs = 3 ;
-  }
-  else if (!stricmp(option, "reverse"))
-  {
+  } else if (!stricmp(option, "reverse")) {
     reverse_flag = 1 ;
     fprintf(stderr, "mirror image reversing brain before morphing...\n") ;
-  }
-  else if (!stricmp(option, "jacobian"))
-  {
+  } else if (!stricmp(option, "jacobian")) {
     jacobian_fname = argv[2] ;
     nargs = 1 ;
     printf("writing out jacobian of mapping to %s\n", jacobian_fname) ;
-  }
-  else if (!stricmp(option, "dist"))
-  {
+  } else if (!stricmp(option, "dist")) {
     sscanf(argv[2], "%f", &parms.l_dist) ;
     nargs = 1 ;
     use_defaults = 0 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
-  }
-  else if (!stricmp(option, "norot"))
-  {
+  } else if (!stricmp(option, "norot")) {
     fprintf(stderr, "disabling initial rigid alignment...\n") ;
     parms.flags |= IP_NO_RIGID_ALIGN ;
-  }
-  else if (!stricmp(option, "lm"))
-  {
+  } else if (!stricmp(option, "lm")) {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
-  }
-  else if (!stricmp(option, "search"))
-  {
+  } else if (!stricmp(option, "search")) {
     parms.integration_type = INTEGRATE_LM_SEARCH ;
     fprintf(stderr, "integrating with binary search line minimization\n") ;
-  }
-  else if (!stricmp(option, "dt"))
-  {
+  } else if (!stricmp(option, "dt")) {
     parms.dt = atof(argv[2]) ;
     parms.base_dt = .2*parms.dt ;
     nargs = 1 ;
     fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
-  }
-  else if (!stricmp(option, "area"))
-  {
+  } else if (!stricmp(option, "area")) {
     use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
-  else if (!stricmp(option, "parea"))
-  {
+  } else if (!stricmp(option, "parea")) {
     use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_parea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_parea = %2.3f\n", parms.l_parea) ;
-  }
-  else if (!stricmp(option, "nlarea"))
-  {
+  } else if (!stricmp(option, "nlarea")) {
     use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_nlarea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_nlarea = %2.3f\n", parms.l_nlarea) ;
-  }
-  else if (!stricmp(option, "spring"))
-  {
+  } else if (!stricmp(option, "spring")) {
     use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_spring) ;
     nargs = 1 ;
     fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
-  }
-  else if (!stricmp(option, "corr"))
-  {
+  } else if (!stricmp(option, "corr")) {
     use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_corr) ;
     nargs = 1 ;
     fprintf(stderr, "using l_corr = %2.3f\n", parms.l_corr) ;
-  }
-  else if (!stricmp(option, "curv"))
-  {
+  } else if (!stricmp(option, "curv")) {
     parms.flags |= IP_USE_CURVATURE ;
     fprintf(stderr, "using smoothwm curvature for final alignment\n") ;
-  }
-  else if (!stricmp(option, "nocurv"))
-  {
+  } else if (!stricmp(option, "nocurv")) {
     parms.flags &= ~IP_USE_CURVATURE ;
     fprintf(stderr, "using smoothwm curvature for final alignment\n") ;
-  }
-  else if (!stricmp(option, "adaptive"))
-  {
+  } else if (!stricmp(option, "adaptive")) {
     parms.integration_type = INTEGRATE_ADAPTIVE ;
     fprintf(stderr, "using adaptive time step integration\n") ;
-  }
-  else if (!stricmp(option, "nbrs"))
-  {
+  } else if (!stricmp(option, "nbrs")) {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-  }
-  else if (!stricmp(option, "tol"))
-  {
+  } else if (!stricmp(option, "tol")) {
     if (sscanf(argv[2], "%e", &f) < 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan tol from %s",
                 Progname, argv[2]) ;
     parms.tol = (double)f ;
     nargs = 1 ;
     fprintf(stderr, "using tol = %2.2e\n", (float)parms.tol) ;
-  }
-  else if (!stricmp(option, "error_ratio"))
-  {
+  } else if (!stricmp(option, "error_ratio")) {
     parms.error_ratio = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
-  }
-  else if (!stricmp(option, "dt_inc"))
-  {
+  } else if (!stricmp(option, "dt_inc")) {
     parms.dt_increase = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
-  }
-  else if (!stricmp(option, "vnum"))
-  {
+  } else if (!stricmp(option, "vnum")) {
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
     nargs = 2 ;
     fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
             parms.nbhd_size, parms.max_nbrs) ;
-  }
-  else if (!stricmp(option, "dt_dec"))
-  {
+  } else if (!stricmp(option, "dt_dec")) {
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'M':
-    parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.momentum = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
-    break ;
-  case 'C':
-    strcpy(curvature_fname, argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'A':
-    sscanf(argv[2], "%d", &parms.n_averages) ;
-    nargs = 1 ;
-    fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
-    break ;
-  case 'S':
-    scale = atof(argv[2]) ;
-    fprintf(stderr, "scaling distances by %2.2f\n", scale) ;
-    nargs = 1 ;
-    break ;
-  case 'N':
-    sscanf(argv[2], "%d", &parms.niterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
-    break ;
-  case 'W':
-    Gdiag |= DIAG_WRITE ;
-    sscanf(argv[2], "%d", &parms.write_iterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
-    break ;
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'O':
-    orig_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "using %s for original properties...\n", orig_name) ;
-    break ;
-  case 'P':
-    max_passes = atoi(argv[2]) ;
-    fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'M':
+      parms.integration_type = INTEGRATE_MOMENTUM ;
+      parms.momentum = atof(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
+      break ;
+    case 'C':
+      strcpy(curvature_fname, argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'A':
+      sscanf(argv[2], "%d", &parms.n_averages) ;
+      nargs = 1 ;
+      fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
+      break ;
+    case 'S':
+      scale = atof(argv[2]) ;
+      fprintf(stderr, "scaling distances by %2.2f\n", scale) ;
+      nargs = 1 ;
+      break ;
+    case 'N':
+      sscanf(argv[2], "%d", &parms.niterations) ;
+      nargs = 1 ;
+      fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
+      break ;
+    case 'W':
+      Gdiag |= DIAG_WRITE ;
+      sscanf(argv[2], "%d", &parms.write_iterations) ;
+      nargs = 1 ;
+      fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
+      break ;
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'O':
+      orig_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "using %s for original properties...\n", orig_name) ;
+      break ;
+    case 'P':
+      max_passes = atoi(argv[2]) ;
+      fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
-       "usage: %s [options] <input surface> <average surface> <output surface>\n",
+print_usage(void) {
+  fprintf(stderr,
+          "usage: %s [options] <input surface> <average surface> <output surface>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program register a surface with  an average surface.\n");
+  fprintf(stderr,
+          "\nThis program register a surface with  an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-compute_area_ratios(MRI_SURFACE *mris)
-{
+compute_area_ratios(MRI_SURFACE *mris) {
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
 
   area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -487,36 +458,33 @@ compute_area_ratios(MRI_SURFACE *mris)
 }
 
 static int
-MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
-             INTEGRATION_PARMS *parms, int max_passes)
-{
+MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
+             INTEGRATION_PARMS *parms, int max_passes) {
   float   sigma ;
-	int     i, /*steps,*/ done, sno, ino, msec ;
+  int     i, /*steps,*/ done, sno, ino, msec ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
   double  base_dt ;
   struct  timeb start ;
   static  int first = 1 ;
-  
+
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
   TimerStart(&start) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   FileNamePath(mris->fname, path) ;
-  sprintf(base_name, "%s/%s.%s", path, 
+  sprintf(base_name, "%s/%s.%s", path,
           mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name);
 
   base_dt = parms->dt ;
-  if (Gdiag & DIAG_WRITE)
-  {
-    sprintf(fname, "%s.%s.out", 
+  if (Gdiag & DIAG_WRITE) {
+    sprintf(fname, "%s.%s.out",
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
-    if (!parms->start_t)      
-    {
+    if (!parms->start_t) {
       parms->fp = fopen(fname, "w") ;
       if (!parms->fp)
         ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-      Progname, fname) ;
+                  Progname, fname) ;
     }
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
@@ -534,30 +502,28 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       nbrs[i] = parms->max_nbrs ;
   }
 
-  for (sno = 0 ; sno < SURFACES ; sno++)
-  {
+  for (sno = 0 ; sno < SURFACES ; sno++) {
     if (!first && ((parms->flags & IP_USE_CURVATURE) == 0))
       break ;
 
     ino = parms->frame_no = sno*IMAGES_PER_SURFACE ;
     if (curvature_names[sno])  /* read in precomputed curvature file */
     {
-      sprintf(fname, "%s.%s", 
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
+      sprintf(fname, "%s.%s",
+              mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
               curvature_names[sno]) ;
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   "MRISregister", fname) ;
       MRISnormalizeCurvature(mris) ;
-    }
-    else                       /* compute curvature of surface */
+    } else                       /* compute curvature of surface */
     {
       sprintf(fname, "%s", surface_names[sno]) ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   "MRISregister", fname) ;
-      
+
       MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
@@ -568,8 +534,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     }
     MRISstoreMeanCurvature(mris) ;
 
-    if (Gdiag & DIAG_SHOW)
-    {
+    if (Gdiag & DIAG_SHOW) {
       if (curvature_names[sno])
         fprintf(stdout, "reading precomputed curvature from %s\n",fname) ;
       else
@@ -579,8 +544,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp,"calculating curvature of %s surface\n",fname);
 
-    if (!first && parms->flags & IP_USE_CURVATURE)
-    {
+    if (!first && parms->flags & IP_USE_CURVATURE) {
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
       parms->l_corr /= 20.0f ;  /* should be more adaptive */
@@ -588,8 +552,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
       if (Gdiag & DIAG_SHOW)
         mrisLogIntegrationParms(stderr, mris, parms) ;
-    }
-    else
+    } else
       if (!first) /* don't do curvature alignment */
         break ;   /* finished */
 
@@ -602,8 +565,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp,"\ncorrelating surfaces with with sigma=%2.2f\n",
                 sigma) ;
-      if (Gdiag & DIAG_WRITE && !i && !parms->start_t)
-      {
+      if (Gdiag & DIAG_WRITE && !i && !parms->start_t) {
         MRISfromParameterization(mrisp_template, mris, ino);
         sprintf(fname, "%s/%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
         if (Gdiag & DIAG_SHOW)
@@ -631,9 +593,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino+1) ;
 #endif
 
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
-        sprintf(fname, "%s/%s.%4.4dtarget%2.2f", 
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+        sprintf(fname, "%s/%s.%4.4dtarget%2.2f",
                 path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
                 parms->start_t, sigma) ;
         if (Gdiag & DIAG_SHOW)
@@ -642,22 +603,20 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout, "done.\n") ;
       }
-      
+
       MRISfromParameterization(parms->mrisp, mris, 0);
       MRISnormalizeCurvature(mris) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
 
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
         MRISPwrite(parms->mrisp, "mrisp_blur.hipl") ;
         MRISPwrite(parms->mrisp_template, "mrisp_template_blur.hipl") ;
       }
       mris->vp = (void *)parms->mrisp ;  /* hack to get it to projectSurface */
 
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
-        sprintf(fname, "%s/%s.%4.4dblur%2.2f", 
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+        sprintf(fname, "%s/%s.%4.4dblur%2.2f",
                 path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
                 parms->start_t, sigma) ;
         if (Gdiag & DIAG_SHOW)
@@ -675,15 +634,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (first)  /* only do rigid alignment first time through */
       {
         first = 0 ;
-        if ((parms->flags & IP_NO_RIGID_ALIGN) == 0)
-        {
+        if ((parms->flags & IP_NO_RIGID_ALIGN) == 0) {
           if (Gdiag & DIAG_SHOW)
             fprintf(stdout, "finding optimal rigid alignment\n") ;
           if (Gdiag & DIAG_WRITE)
             fprintf(parms->fp, "finding optimal rigid alignment\n") ;
           MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;
-           if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
-             MRISwrite(mris, "rotated") ;
+          if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
+            MRISwrite(mris, "rotated") ;
         }
       }
 
@@ -702,11 +660,13 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   parms->l_nlarea *= 5 ;
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 #else
-  parms->l_nlarea = 1 ; parms->l_corr /= 10.0 ;
+  parms->l_nlarea = 1 ;
+  parms->l_corr /= 10.0 ;
   parms->l_area = parms->l_parea = 0 ;
   mrisRemoveNegativeArea(mris,parms,parms->n_averages,MAX_NEG_AREA_PCT,3);
 #endif
-  MRISPfree(&parms->mrisp) ; MRISPfree(&parms->mrisp_template) ;
+  MRISPfree(&parms->mrisp) ;
+  MRISPfree(&parms->mrisp_template) ;
   msec = TimerStop(&start) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "registration took %2.2f hours\n",
@@ -717,70 +677,73 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   return(NO_ERROR) ;
 }
 static int
-mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages)
-{
+mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages) {
   int   total_steps, done, steps, n_averages, old_averages ;
   char  *snum, *sdenom ;
   float ratio, *pdenom, *pnum ;
 
-  if (!FZERO(parms->l_corr))
-  { sdenom = "corr" ; pdenom = &parms->l_corr  ; }
-  else
-  { sdenom = "dist" ; pdenom = &parms->l_dist  ; }
+  if (!FZERO(parms->l_corr)) {
+    sdenom = "corr" ;
+    pdenom = &parms->l_corr  ;
+  } else {
+    sdenom = "dist" ;
+    pdenom = &parms->l_dist  ;
+  }
 
-  if (!FZERO(parms->l_area))
-  { snum = "area" ;   pnum = &parms->l_area ; }
-  else if (!FZERO(parms->l_parea))
-  { snum = "parea" ;  pnum = &parms->l_parea  ; }
-  else if (!FZERO(parms->l_nlarea))
-  { snum = "nlarea" ;  pnum = &parms->l_nlarea  ; }
-  else
-  { snum = "spring" ; pnum = &parms->l_spring  ; }
+  if (!FZERO(parms->l_area)) {
+    snum = "area" ;
+    pnum = &parms->l_area ;
+  } else if (!FZERO(parms->l_parea)) {
+    snum = "parea" ;
+    pnum = &parms->l_parea  ;
+  } else if (!FZERO(parms->l_nlarea)) {
+    snum = "nlarea" ;
+    pnum = &parms->l_nlarea  ;
+  } else {
+    snum = "spring" ;
+    pnum = &parms->l_spring  ;
+  }
 
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
   if (Gdiag & DIAG_WRITE)
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
-  if (!FZERO(*pdenom))
-  {
+  if (!FZERO(*pdenom)) {
     ratio = *pnum / *pdenom ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
-    if (Gdiag & DIAG_WRITE)
-    {
+    if (Gdiag & DIAG_WRITE) {
       char fname[STRLEN] ;
-      if (!parms->fp)
-      {
-        sprintf(fname, "%s.%s.out", 
+      if (!parms->fp) {
+        sprintf(fname, "%s.%s.out",
                 mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
                 parms->base_name);
         if (!parms->start_t)
           parms->fp = fopen(fname, "w") ;
         else
           parms->fp = fopen(fname, "a") ;
-  if (!parms->fp)
-    ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-        Progname, fname) ;
+        if (!parms->fp)
+          ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+                    Progname, fname) ;
       }
       fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
     }
   }
 
   old_averages = parms->n_averages ;
-  for (done = total_steps = 0, n_averages = base_averages ; !done ; 
-       n_averages /= 4)
-  {
+  for (done = total_steps = 0, n_averages = base_averages ; !done ;
+       n_averages /= 4) {
     parms->n_averages = n_averages ;
     steps = MRISintegrate(mris, parms, n_averages) ;
-    if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION && 
+    if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION &&
         ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
-        (parms->integration_type == INTEGRATE_LM_SEARCH)))
-    {
+         (parms->integration_type == INTEGRATE_LM_SEARCH))) {
       int niter = parms->niterations ;
       int integration_type = parms->integration_type ;
 
       fprintf(stdout, "taking momentum steps...\n") ;
-      parms->integration_type = INTEGRATE_MOMENTUM ; parms->niterations = 10 ;
+      parms->integration_type = INTEGRATE_MOMENTUM ;
+      parms->niterations = 10 ;
       parms->start_t += steps ;
       total_steps += steps ;
       steps = MRISintegrate(mris, parms, n_averages) ;
@@ -793,8 +756,7 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
     parms->start_t += steps ;
     total_steps += steps ;
     done = n_averages == parms->min_averages ;
-    if (mris->status == MRIS_SPHERE)
-    {
+    if (mris->status == MRIS_SPHERE) {
       if (Gdiag & DIAG_SHOW)
         MRISprintTessellationStats(mris, stderr) ;
       parms->scale *= parms->dt_decrease ;
@@ -814,25 +776,24 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
 
 
 static int
-mrisClearMomentum(MRI_SURFACE *mris)
-{
+mrisClearMomentum(MRI_SURFACE *mris) {
   int     vno, nvertices ;
   VERTEX  *v ;
 
   nvertices = mris->nvertices ;
-  for (vno = 0 ; vno < nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->odx = 0 ; v->ody = 0 ; v->odz = 0 ;
+    v->odx = 0 ;
+    v->ody = 0 ;
+    v->odz = 0 ;
   }
   return(NO_ERROR) ;
 }
 
 static int
-mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
-{
+mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms) {
   char  *cp, host_name[STRLEN] ;
 
   if (!fp)
@@ -895,8 +856,7 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
   if (!FZERO(parms->l_tsmooth))
     fprintf(fp, ", l_tsmooth=%2.3f", parms->l_tsmooth) ;
   fprintf(fp, "\n") ;
-  switch (parms->integration_type)
-  {
+  switch (parms->integration_type) {
   case INTEGRATE_LM_SEARCH:
     fprintf(fp, "using binary search line minimization\n") ;
     break ;
@@ -904,16 +864,16 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, "using quadratic fit line minimization\n") ;
     break ;
   case INTEGRATE_ADAPTIVE:
-    fprintf(fp, 
+    fprintf(fp,
             "mom=%2.2f, dt=%2.2f, base_dt=%2.3f, dt_inc=%2.2f, "
-            "dt_dec=%2.2f, err_rat=%2.2f\n", 
+            "dt_dec=%2.2f, err_rat=%2.2f\n",
             (float)parms->momentum, (float)parms->dt,
-            (float)parms->base_dt, (float)parms->dt_increase, 
+            (float)parms->base_dt, (float)parms->dt_increase,
             (float)parms->dt_decrease, (float)parms->error_ratio) ;
     break ;
   default:
   case INTEGRATE_MOMENTUM:
-    fprintf(fp, 
+    fprintf(fp,
             "mom=%2.2f, dt=%2.2f\n",(float)parms->momentum, (float)parms->dt);
     break ;
   }

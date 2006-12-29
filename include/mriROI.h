@@ -1,3 +1,31 @@
+/**
+ * @file  mriROI.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef mriROI_h
 #define mriROI_h
 
@@ -31,14 +59,17 @@ typedef enum {
 } ROI_tIterationPlane;
 
 /* voxel value pair */
-typedef struct {
+typedef struct
+{
   xVoxel  mVoxel;
   float*  mafValues;
-} ROI_tROIVoxel, *ROI_tROIVoxelRef;
+}
+ROI_tROIVoxel, *ROI_tROIVoxelRef;
 
 #define ROI_kSignature 0x01928374
 
-typedef struct {
+typedef struct
+{
 
   long mSignature;
 
@@ -59,38 +90,39 @@ typedef struct {
   float               mfIterPlaneRange;
   ROI_tROIVoxelRef    mIterVoxel;
 
-} mriROI, *mriROIRef;
+}
+mriROI, *mriROIRef;
 
 
 ROI_tErr ROI_New    ( mriROIRef* opROI,
-          int        inIndex,
-          char*      isName,
-          int        inNumValuesPerVoxel,
-          char**     iasValueLabels );
+                      int        inIndex,
+                      char*      isName,
+                      int        inNumValuesPerVoxel,
+                      char**     iasValueLabels );
 ROI_tErr ROI_Delete ( mriROIRef* iopROI );
 
 ROI_tErr ROI_AddVoxel ( mriROIRef this,
-      xVoxelRef  iVoxel,
-      float*     iafValues );
+                        xVoxelRef  iVoxel,
+                        float*     iafValues );
 
 ROI_tErr ROI_GetIndex ( mriROIRef this,
-      int*      onIndex );
+                        int*      onIndex );
 ROI_tErr ROI_GetName  ( mriROIRef this,
-      char*     osName );
+                        char*     osName );
 
 ROI_tErr ROI_DebugPrint ( mriROIRef this );
 
 ROI_tErr ROI_IsVoxelInROI ( mriROIRef this,
-          xVoxelRef iVoxel,
-          tBoolean* oIsInROI );
+                            xVoxelRef iVoxel,
+                            tBoolean* oIsInROI );
 
 /* iterate thru points */
 ROI_tErr ROI_ResetIterator ( mriROIRef            this,
-           ROI_tIterationPlane  iPlane,
-           float                ifPlaneNumber,
-           float                ifPlaneRange );
+                             ROI_tIterationPlane  iPlane,
+                             float                ifPlaneNumber,
+                             float                ifPlaneRange );
 ROI_tErr ROI_NextVoxel     ( mriROIRef         this,
-           ROI_tROIVoxelRef* opPoint );
+                             ROI_tROIVoxelRef* opPoint );
 
 char* ROI_GetErrorString ( ROI_tErr ieCode );
 ROI_tErr ROI_Verify ( mriROIRef this );

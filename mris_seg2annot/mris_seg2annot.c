@@ -1,4 +1,32 @@
-// $Id: mris_seg2annot.c,v 1.6 2006/08/31 00:50:35 nicks Exp $
+/**
+ * @file  mris_seg2annot.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:11 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+// $Id: mris_seg2annot.c,v 1.7 2006/12/29 02:09:11 nicks Exp $
 
 /*
   BEGINHELP
@@ -26,14 +54,14 @@ $FREESURFER_HOME/FreeSurferColorsLUT.txt.
 --s subject
 --h hemi
 
-Subject and hemisphere. Used to load in the surface upon which the 
+Subject and hemisphere. Used to load in the surface upon which the
 annotation is created.
 
 --o annot
 
-Output annotation file. By default, it will be stored in the subject's 
+Output annotation file. By default, it will be stored in the subject's
 label directory. If you do not want it there, then supply some path
-in front of it (eg, './'). This is a file like lh.aparc.annot. 
+in front of it (eg, './'). This is a file like lh.aparc.annot.
 
 EXAMPLE:
 
@@ -41,7 +69,7 @@ EXAMPLE:
     --s FL_002 --h lh --ctab ./MyColorLUT.txt \\
     --o ./lh.myaparc.annot
 
-lh.myaparc.annot can then be loaded into tksurfer as with any other 
+lh.myaparc.annot can then be loaded into tksurfer as with any other
 parcellation/annotation.
 
   ENDHELP
@@ -88,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.6 2006/08/31 00:50:35 nicks Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -105,8 +133,7 @@ MRI_SURFACE *mris;
 MRI *surfseg, *mritmp;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs,nv,err;
   char tmpstr[2000];
 
@@ -122,29 +149,29 @@ int main(int argc, char *argv[])
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly) return(0);
+  if (checkoptsonly) return(0);
   dump_options(stdout);
 
   // Have to read ctab both ways
   printf("Reading ctab %s\n",ctabfile);
   ctab = CTABreadASCII(ctabfile);
-  if(ctab == NULL){
+  if (ctab == NULL) {
     printf("ERROR: reading %s\n",ctabfile);
     exit(1);
   }
 
   printf("Reading surface seg %s\n",surfsegfile);
   surfseg = MRIread(surfsegfile);
-  if(surfseg == NULL) exit(1);
+  if (surfseg == NULL) exit(1);
 
   nv = surfseg->width * surfseg->height * surfseg->depth;
-  if(surfseg->height != 1 || surfseg->depth != 1){
+  if (surfseg->height != 1 || surfseg->depth != 1) {
     printf("Reshaping\n");
     mritmp = mri_reshape(surfseg, nv, 1, 1, surfseg->nframes);
-    if(mritmp == NULL){
+    if (mritmp == NULL) {
       printf("ERROR: mri_reshape could not alloc\n");
       exit(1);
     }
@@ -153,24 +180,24 @@ int main(int argc, char *argv[])
   }
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL){
+  if (SUBJECTS_DIR == NULL) {
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
   sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
   printf("Reading surface %s\n",tmpstr);
   mris = MRISread(tmpstr);
-  if(mris==NULL) exit(1);
+  if (mris==NULL) exit(1);
 
-  if(mris->nvertices != nv){
+  if (mris->nvertices != nv) {
     printf("ERROR: dimension mismatch. Surface has %d vertices, seg has %d\n",
-	   mris->nvertices,nv);
+           mris->nvertices,nv);
     printf("Make sure the surface segmentation matches the subject and hemi\n");
     exit(1);
   }
 
   err = MRISseg2annot(mris, surfseg, ctab);
-  if(err) exit(1);
+  if (err) exit(1);
 
   printf("Writing annot to %s\n",annotfile);
   MRISwriteAnnotation(mris, annotfile);
@@ -178,19 +205,18 @@ int main(int argc, char *argv[])
   return(0);
 }
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -202,35 +228,30 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--s")){
-      if(nargc < 1) CMDargNErr(option,1);
+    else if (!strcasecmp(option, "--s")) {
+      if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--seg")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--seg")) {
+      if (nargc < 1) CMDargNErr(option,1);
       surfsegfile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--h") || !strcasecmp(option, "--hemi")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--h") || !strcasecmp(option, "--hemi")) {
+      if (nargc < 1) CMDargNErr(option,1);
       hemi = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--ctab")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--ctab")) {
+      if (nargc < 1) CMDargNErr(option,1);
       ctabfile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--o")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--o")) {
+      if (nargc < 1) CMDargNErr(option,1);
       annotfile = pargv[0];
       nargsused = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(CMDsingleDash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -239,14 +260,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --seg  surfseg    : volume-encoded surface segmentation \n");
@@ -264,79 +283,76 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
-printf("\n");
-printf("Converts a surfaced-based segmentation into a custom annotation file.\n");
-printf("\n");
-printf("--seg surfseg\n");
-printf("\n");
-printf("Surface segmentation file. This could be as simple as a binarized\n");
-printf("functional map. The values are whole numbers indicating the index into\n");
-printf("the color table. This file is similar to the volume-based aseg.  The\n");
-printf("hard part to getting a custom annotation is in creating this file and\n");
-printf("corresponding color table.\n");
-printf("\n");
-printf("--ctab colortable\n");
-printf("\n");
-printf("Color table used to map segmentation index to name and color. This is\n");
-printf("something that can be created by the user to create custom\n");
-printf("annotations. This color table is then imbedded in the annotation\n");
-printf("file. Be default, it will look for this file in $FREESURFER_HOME.  If\n");
-printf("this is not where your color table is, then add a './' in front of the\n");
-printf("name. The format should be the same as in\n");
-printf("$FREESURFER_HOME/FreeSurferColorsLUT.txt.\n");
-printf("\n");
-printf("--s subject\n");
-printf("--h hemi\n");
-printf("\n");
-printf("Subject and hemisphere. Used to load in the surface upon which the \n");
-printf("annotation is created.\n");
-printf("\n");
-printf("--o annot\n");
-printf("\n");
-printf("Output annotation file. By default, it will be stored in the subject's \n");
-printf("label directory. If you do not want it there, then supply some path\n");
-printf("in front of it (eg, './'). This is a file like lh.aparc.annot. \n");
-printf("\n");
-printf("EXAMPLE:\n");
-printf("\n");
-printf("  mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\\n");
-printf("    --s FL_002 --h lh --ctab ./MyColorLUT.txt \\\n");
-printf("    --o ./lh.myaparc.annot\n");
-printf("\n");
-printf("lh.myaparc.annot can then be loaded into tksurfer as with any other \n");
-printf("parcellation/annotation.\n");
-printf("\n");
+  printf("\n");
+  printf("Converts a surfaced-based segmentation into a custom annotation file.\n");
+  printf("\n");
+  printf("--seg surfseg\n");
+  printf("\n");
+  printf("Surface segmentation file. This could be as simple as a binarized\n");
+  printf("functional map. The values are whole numbers indicating the index into\n");
+  printf("the color table. This file is similar to the volume-based aseg.  The\n");
+  printf("hard part to getting a custom annotation is in creating this file and\n");
+  printf("corresponding color table.\n");
+  printf("\n");
+  printf("--ctab colortable\n");
+  printf("\n");
+  printf("Color table used to map segmentation index to name and color. This is\n");
+  printf("something that can be created by the user to create custom\n");
+  printf("annotations. This color table is then imbedded in the annotation\n");
+  printf("file. Be default, it will look for this file in $FREESURFER_HOME.  If\n");
+  printf("this is not where your color table is, then add a './' in front of the\n");
+  printf("name. The format should be the same as in\n");
+  printf("$FREESURFER_HOME/FreeSurferColorsLUT.txt.\n");
+  printf("\n");
+  printf("--s subject\n");
+  printf("--h hemi\n");
+  printf("\n");
+  printf("Subject and hemisphere. Used to load in the surface upon which the \n");
+  printf("annotation is created.\n");
+  printf("\n");
+  printf("--o annot\n");
+  printf("\n");
+  printf("Output annotation file. By default, it will be stored in the subject's \n");
+  printf("label directory. If you do not want it there, then supply some path\n");
+  printf("in front of it (eg, './'). This is a file like lh.aparc.annot. \n");
+  printf("\n");
+  printf("EXAMPLE:\n");
+  printf("\n");
+  printf("  mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\\n");
+  printf("    --s FL_002 --h lh --ctab ./MyColorLUT.txt \\\n");
+  printf("    --o ./lh.myaparc.annot\n");
+  printf("\n");
+  printf("lh.myaparc.annot can then be loaded into tksurfer as with any other \n");
+  printf("parcellation/annotation.\n");
+  printf("\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(subject == NULL){
+static void check_options(void) {
+  if (subject == NULL) {
     printf("ERROR: subject not specified\n");
     exit(1);
   }
-  if(hemi == NULL){
+  if (hemi == NULL) {
     printf("ERROR: hemi not specified\n");
     exit(1);
   }
-  if(ctabfile == NULL){
+  if (ctabfile == NULL) {
     printf("ERROR: ctab not specified\n");
     exit(1);
   }
-  if(annotfile == NULL){
+  if (annotfile == NULL) {
     printf("ERROR: output not specified\n");
     exit(1);
   }
-  if(surfsegfile == NULL){
+  if (surfsegfile == NULL) {
     printf("ERROR: surfseg not specified\n");
     exit(1);
   }
@@ -344,8 +360,7 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);

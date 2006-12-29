@@ -1,3 +1,31 @@
+/**
+ * @file  mri_strip_nonwhite.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -15,9 +43,9 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-static MRI *MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, 
-                                         MRI *mri_dst, 
-                                         float threshold, int nsize) ;
+static MRI *MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask,
+    MRI *mri_dst,
+    float threshold, int nsize) ;
 
 char *Progname ;
 
@@ -33,8 +61,7 @@ static float pct = 0.0f ;
 static int nsize = 0 ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs ;
   MRI    *mri, *mri_template, *mri_inverse_template ;
@@ -44,7 +71,7 @@ main(int argc, char *argv[])
   int     msec ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_strip_nonwhite.c,v 1.7 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_strip_nonwhite.c,v 1.8 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -57,8 +84,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -67,8 +93,10 @@ main(int argc, char *argv[])
   if (argc < 4)
     usage_exit(1) ;
 
-  in_fname = argv[1] ; xform_fname = argv[2] ;
-  template_fname = argv[3] ; out_fname = argv[4] ;
+  in_fname = argv[1] ;
+  xform_fname = argv[2] ;
+  template_fname = argv[3] ;
+  out_fname = argv[4] ;
 
   mri = MRIread(in_fname) ;
   if (!mri)
@@ -90,7 +118,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
               Progname, xform_fname) ;
   fprintf(stderr, "done.\n") ;
-  fprintf(stderr, 
+  fprintf(stderr,
           "template has %d degrees of freedom - setting thresh = %2.1f\n",
           mri_template->dof, pct) ;
   fprintf(stderr, "applying inverse transform...") ;
@@ -120,14 +148,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'N':
     nsize = atoi(argv[2]) ;
     nargs = 1 ;
@@ -157,9 +183,8 @@ get_option(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
-  printf("usage: %s <input volume> <transform> <template volume> <output volume>\n", 
+usage_exit(int code) {
+  printf("usage: %s <input volume> <transform> <template volume> <output volume>\n",
          Progname) ;
   exit(code) ;
 }
@@ -169,37 +194,37 @@ usage_exit(int code)
            Description:
 ----------------------------------------------------------------------*/
 static MRI *
-MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
-                             float threshold, int nsize)
-{
+MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
+                             float threshold, int nsize) {
   BUFTYPE   *pmask, out_val ;
   int       width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi,
-            xmin, xmax, ymin, ymax, zmin, zmax ;
+  xmin, xmax, ymin, ymax, zmin, zmax ;
 
   if (mri_mask->type != MRI_UCHAR)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "MRI3Dthreshold: mask must be MRI_FLOAT")) ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
 
   /* now apply the inverse morph to build an average wm representation
-     of the input volume 
+     of the input volume
      */
 
-  xmin = width ; ymin = height ; zmin = depth ; xmax = ymax = zmax = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
+  xmin = width ;
+  ymin = height ;
+  zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
       pmask = &MRIvox(mri_mask, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if (*pmask++ > threshold)
-        {
+      for (x = 0 ; x < width ; x++) {
+        if (*pmask++ > threshold) {
           if (x < xmin)
             xmin = x ;
           if (x > xmax)
@@ -216,7 +241,7 @@ MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
       }
     }
   }
-  xmin = MAX(xmin-nsize, 0) ; 
+  xmin = MAX(xmin-nsize, 0) ;
   ymin = MAX(ymin-nsize, 0) ;
   zmin = MAX(zmin-nsize, 0) ;
   xmax = MIN(xmax+nsize, width-1) ;
@@ -228,12 +253,9 @@ MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
             xmin, xmax, ymin, ymax, zmin, zmax) ;
 
   /* remove stuff outside bounding box */
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
+      for (x = 0 ; x < width ; x++) {
         if ((x < xmin || x > xmax) ||
             (y < ymin || y > ymax) ||
             (z < zmin || z > zmax))
@@ -242,24 +264,17 @@ MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
     }
   }
 
-  for (z = zmin ; z <= zmax ; z++)
-  {
-    for (y = ymin ; y <= ymax ; y++)
-    {
-      for (x = xmin ; x <= xmax ; x++)
-      {
+  for (z = zmin ; z <= zmax ; z++) {
+    for (y = ymin ; y <= ymax ; y++) {
+      for (x = xmin ; x <= xmax ; x++) {
         out_val = 0 ;
-        for (z1 = -nsize ; z1 <= nsize ; z1++)
-        {
+        for (z1 = -nsize ; z1 <= nsize ; z1++) {
           zi = mri_src->zi[z+z1] ;
-          for (y1 = -nsize ; y1 <= nsize ; y1++)
-          {
+          for (y1 = -nsize ; y1 <= nsize ; y1++) {
             yi = mri_src->yi[y+y1] ;
-            for (x1 = -nsize ; x1 <= nsize ; x1++)
-            {
+            for (x1 = -nsize ; x1 <= nsize ; x1++) {
               xi = mri_src->xi[x+x1] ;
-              if (MRIvox(mri_mask, xi, yi, zi) > threshold)
-              {
+              if (MRIvox(mri_mask, xi, yi, zi) > threshold) {
                 out_val = MRIvox(mri_src, x, y, z) ;
                 break ;
               }

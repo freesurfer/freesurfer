@@ -1,3 +1,31 @@
+/**
+ * @file  SurfaceCollection.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.14 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef SurfaceCollection_H
 #define SurfaceCollection_H
 
@@ -7,24 +35,26 @@ extern "C" {
 #include "mrisurf.h"
 #include "mrishash.h"
 #ifdef X
-  #undef X 
+#undef X
 #endif
 #ifdef Y
-  #undef Y
+#undef Y
 #endif
 #ifdef Z
-  #undef Z
+#undef Z
 #endif
 }
 
 class SurfaceCollection : public DataCollection {
 
- public:
+public:
   SurfaceCollection();
   virtual ~SurfaceCollection();
 
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription() { return "Surface"; }
+  virtual std::string GetTypeDescription() {
+    return "Surface";
+  }
 
   void SetSurfaceFileName ( std::string& ifnMRIS );
 
@@ -43,10 +73,10 @@ class SurfaceCollection : public DataCollection {
   void SetDataToSurfaceTransformToDefault ();
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   virtual ScubaROI* DoNewROI ();
 
@@ -60,16 +90,16 @@ class SurfaceCollection : public DataCollection {
   // Surface access functions.
   int GetNumFaces ();
   int GetNumVerticesPerFace_Unsafe ( int inFace );
-  void GetNthVertexInFace_Unsafe ( int inFace, int inVertex, 
-				   float oRAS[3], bool* oRipped );
+  void GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
+                                   float oRAS[3], bool* oRipped );
 
   int GetNumVertices ();
-  void GetNthVertex_Unsafe ( int inVertex, 
-			     float oRAS[3], bool* oRipped );
+  void GetNthVertex_Unsafe ( int inVertex,
+                             float oRAS[3], bool* oRipped );
 
   bool GetUseRealRAS ();
 
- protected:
+protected:
   std::string mfnMRIS;
   MRIS* mMRIS;
 

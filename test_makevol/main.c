@@ -1,3 +1,31 @@
+/**
+ * @file  main.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:17 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,17 +34,17 @@
 
 #define SET_METHOD_XYZ 0
 #define SET_METHOD_RANDOM 1
-#define SET_METHOD_CONSTANT 2 
+#define SET_METHOD_CONSTANT 2
 
 char sSetMethods[][256] = {
-  "XYZ", "Random", "Constant"
-};
+                            "XYZ", "Random", "Constant"
+                          };
 
 char* Progname="makevol";
 
 void PrintUsage ( char* isError ) {
 
-  if( isError ) {
+  if ( isError ) {
     printf( "\nERROR: %s\n\n", isError );
   }
 
@@ -63,172 +91,172 @@ int main ( int argc, char** argv ) {
   int i;
   char* arg = NULL;
 
-  for( i = 1; i < argc; i++ ) {
-    
+  for ( i = 1; i < argc; i++ ) {
+
     arg = argv[i];
 
-    if( argv[i] && *argv[i] != '-' ) {
+    if ( argv[i] && *argv[i] != '-' ) {
       printf( "ERROR: Unrecognized argument %s\n", argv[i] );
       PrintUsage( NULL );
       exit( 1 );
     }
 
-    while( arg[0] == '-' )
+    while ( arg[0] == '-' )
       arg = arg+1;
 
-    if( strlen(arg) <= 0 ) 
+    if ( strlen(arg) <= 0 )
       continue;
-    
-    if( strcmp(arg,"h") == 0 ||
-	strcmp(arg,"help") == 0 ) {
+
+    if ( strcmp(arg,"h") == 0 ||
+         strcmp(arg,"help") == 0 ) {
       PrintUsage( NULL );
       exit( 0 );
     }
 
-    if( strcmp(arg,"f") == 0 ||
-	strcmp(arg,"filename") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to filename option." );
-	exit( 1 );
+    if ( strcmp(arg,"f") == 0 ||
+         strcmp(arg,"filename") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to filename option." );
+        exit( 1 );
       }
       strcpy( fnVol, argv[i+1] );
       i++;
     }
 
-    if( strcmp(arg,"x") == 0 ||
-	strcmp(arg,"width") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to width option." );
-	exit( 1 );
+    if ( strcmp(arg,"x") == 0 ||
+         strcmp(arg,"width") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to width option." );
+        exit( 1 );
       }
       zX = atoi(argv[i+1]);
       i++;
     }
-    if( strcmp(arg,"y") == 0 ||
-	strcmp(arg,"height") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to height option." );
-	exit( 1 );
+    if ( strcmp(arg,"y") == 0 ||
+         strcmp(arg,"height") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to height option." );
+        exit( 1 );
       }
       zY = atoi(argv[i+1]);
       i++;
     }
-    if( strcmp(arg,"z") == 0 ||
-	strcmp(arg,"depth") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to depth option." );
-	exit( 1 );
+    if ( strcmp(arg,"z") == 0 ||
+         strcmp(arg,"depth") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to depth option." );
+        exit( 1 );
       }
       zZ = atoi(argv[i+1]);
       i ++;
     }
 
-    if( strcmp(arg,"sizex") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to sizex option." );
-	exit( 1 );
+    if ( strcmp(arg,"sizex") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to sizex option." );
+        exit( 1 );
       }
       sizeX = atof(argv[i+1]);
       i++;
     }
-    if( strcmp(arg,"sizey") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to sizey option." );
-	exit( 1 );
+    if ( strcmp(arg,"sizey") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to sizey option." );
+        exit( 1 );
       }
       sizeY = atof(argv[i+1]);
       i++;
     }
-    if( strcmp(arg,"sizez") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to sizez optoin." );
-	exit( 1 );
+    if ( strcmp(arg,"sizez") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to sizez optoin." );
+        exit( 1 );
       }
       sizeZ = atof(argv[i+1]);
       i++;
     }
 
-    if( strcmp(arg,"set-method") == 0 ) {
-      if( i+1 >= argc ) {
-	PrintUsage( "No argument to set-method option." );
-	exit( 1 );
+    if ( strcmp(arg,"set-method") == 0 ) {
+      if ( i+1 >= argc ) {
+        PrintUsage( "No argument to set-method option." );
+        exit( 1 );
       }
-      if( strcmp( argv[i+1], "xyz" ) == 0 ) {
-	setMethod = SET_METHOD_XYZ;
-	i++;
-	printf( "set_method is xyz\n" );
-      } else if( strcmp( argv[i+1], "random" ) == 0 ) {
-	setMethod = SET_METHOD_RANDOM;
-	i++;
-	printf( "set_method is random\n" );
-      } else if( strncmp( argv[i+1], "constant", 9 ) == 0 ) {
-	if( i+2 >= argc ) {
-	  PrintUsage( "No value argument to constant method option." );
-	  exit( 1 );
-	}
-	setMethod = SET_METHOD_CONSTANT;
-	setValue = atoi( argv[i+2] );
-	i+=2;
-	printf( "set_method is constant, %d\n", setValue );
+      if ( strcmp( argv[i+1], "xyz" ) == 0 ) {
+        setMethod = SET_METHOD_XYZ;
+        i++;
+        printf( "set_method is xyz\n" );
+      } else if ( strcmp( argv[i+1], "random" ) == 0 ) {
+        setMethod = SET_METHOD_RANDOM;
+        i++;
+        printf( "set_method is random\n" );
+      } else if ( strncmp( argv[i+1], "constant", 9 ) == 0 ) {
+        if ( i+2 >= argc ) {
+          PrintUsage( "No value argument to constant method option." );
+          exit( 1 );
+        }
+        setMethod = SET_METHOD_CONSTANT;
+        setValue = atoi( argv[i+2] );
+        i+=2;
+        printf( "set_method is constant, %d\n", setValue );
       } else {
-	PrintUsage( "Unrecognized argument to set-method option" );
-	exit( 1 );
+        PrintUsage( "Unrecognized argument to set-method option" );
+        exit( 1 );
       }
     }
   }
 
   printf( "Creating volume %s\n"
-	  "  width = %d height = %d depth = %d\n"
-	  "  xsize = %f ysize = %f zsize = %f\n"
-	  "  set method = %s, constant = %d\n",
-	  fnVol, zX, zY, zZ, 
-	  sizeX, sizeY, sizeZ,
-	  sSetMethods[setMethod], setValue );
-  
+          "  width = %d height = %d depth = %d\n"
+          "  xsize = %f ysize = %f zsize = %f\n"
+          "  set method = %s, constant = %d\n",
+          fnVol, zX, zY, zZ,
+          sizeX, sizeY, sizeZ,
+          sSetMethods[setMethod], setValue );
+
   mri = MRIalloc( zX, zY, zZ, MRI_UCHAR );
-  if( NULL == mri ) {
+  if ( NULL == mri ) {
     fprintf( stderr, "Couldn't create volume.\n" );
     return 1;
   }
   MRIsetResolution( mri, sizeX, sizeY, sizeZ );
 
-  switch( setMethod ) {
+  switch ( setMethod ) {
   case SET_METHOD_CONSTANT:
     MRIvalueFill( mri, 0 );
     break;
   case SET_METHOD_RANDOM:
-    for( nZ = 0; nZ < zZ; nZ++ ) {
-      for( nY = 0; nY < zY; nY++ ) {
-	for( nX = 0; nX < zX; nX++ ) {
-	  MRIvox( mri, nX, nY, nZ ) = (int)((random()/(float)RAND_MAX)*255.0);
-	}
+    for ( nZ = 0; nZ < zZ; nZ++ ) {
+      for ( nY = 0; nY < zY; nY++ ) {
+        for ( nX = 0; nX < zX; nX++ ) {
+          MRIvox( mri, nX, nY, nZ ) = (int)((random()/(float)RAND_MAX)*255.0);
+        }
       }
     }
     break;
   case SET_METHOD_XYZ:
-    for( nZ = 0; nZ < zZ; nZ++ ) {
-      for( nY = 0; nY < zY; nY++ ) {
-	for( nX = 0; nX < zX; nX++ ) {
-	  MRIvox( mri, nX, nY, nZ ) = 
-	    (((float)nZ/(float)zZ)*255.0/3.0) + 
-	    (((float)nY/(float)zY)*255.0/3.0) + 
-	    (((float)nX/(float)zX)*255.0/3.0) ;
-	}
+    for ( nZ = 0; nZ < zZ; nZ++ ) {
+      for ( nY = 0; nY < zY; nY++ ) {
+        for ( nX = 0; nX < zX; nX++ ) {
+          MRIvox( mri, nX, nY, nZ ) =
+            (((float)nZ/(float)zZ)*255.0/3.0) +
+            (((float)nY/(float)zY)*255.0/3.0) +
+            (((float)nX/(float)zX)*255.0/3.0) ;
+        }
       }
     }
     break;
   default:
-    for( nZ = (zZ/2) - (zZ/4); nZ < (zZ/2) + (zZ/4); nZ++ ) {
-      for( nY = (zY/2) - (zY/4); nY < (zY/2) + (zY/4); nY++ ) {
-	for( nX = (zX/2) - (zX/4); nX < (zX/2) + (zX/4); nX++ ) {
-	  MRIvox( mri, nX, nY, nZ ) = 255;
-	}
+    for ( nZ = (zZ/2) - (zZ/4); nZ < (zZ/2) + (zZ/4); nZ++ ) {
+      for ( nY = (zY/2) - (zY/4); nY < (zY/2) + (zY/4); nY++ ) {
+        for ( nX = (zX/2) - (zX/4); nX < (zX/2) + (zX/4); nX++ ) {
+          MRIvox( mri, nX, nY, nZ ) = 255;
+        }
       }
     }
   }
 
   err = MRIwrite( mri, fnVol );
-  if( NO_ERROR != err ) {
+  if ( NO_ERROR != err ) {
     fprintf( stderr, "Couldn't write volume.\n" );
     return 1;
   }

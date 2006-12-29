@@ -1,9 +1,38 @@
+/**
+ * @file  vss.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* $Id */
 #ifndef VTXSAMPSPC_H
 #define VTXSAMPSPC_H
 
-#ifdef	__cplusplus
-extern "C" {
+#ifdef __cplusplus
+extern "C"
+{
 #endif
   /* ----------------------------------------------------- */
 
@@ -31,7 +60,8 @@ extern "C" {
 #define MVSS_CODE_STAT 1
 
   /* vertex-sampled space structure */
-  typedef struct {
+  typedef struct
+  {
     int    version;
     char   sampname[1024];
     char   spacename[1024];
@@ -43,10 +73,12 @@ extern "C" {
     char  *notes;
     int    udid;
     void  *ud;
-  } VTX_SAMP_SPC, VSS;
+  }
+  VTX_SAMP_SPC, VSS;
 
   /* VSS representation of inter-space average */
-  typedef struct {
+  typedef struct
+  {
     int    version;
     char   name[2048];
     int    nspaces;
@@ -61,18 +93,22 @@ extern "C" {
     char  *notes;
     int    udid;
     void  *ud;
-  } INTER_SPACE_STAT, ISS;
+  }
+  INTER_SPACE_STAT, ISS;
 
   /* vertex projection matrix */
-  typedef struct {
+  typedef struct
+  {
     char vpmname[2048];
     int nrows, ncols;
     int affine;
     float **m;
-  } VSS_VTXPROJMTX, VPM;
+  }
+  VSS_VTXPROJMTX, VPM;
 
   /** vertex sampled stat (with covariance mtx) **/
-  typedef struct {
+  typedef struct
+  {
     int   version;
     char  name[2048];
     int   avgholes;
@@ -85,18 +121,22 @@ extern "C" {
     void *ud;
     int   sznotes;
     char *notes;
-  } VTX_SAMP_STAT, VSSTAT, VST;
+  }
+  VTX_SAMP_STAT, VSSTAT, VST;
 
   /* vertex neighborhood structure */
-  typedef struct {
+  typedef struct
+  {
     int    nnbrs;
     int   *id;
     float *weight;
     float *dist;
-    } VTXNBRHD;
+  }
+  VTXNBRHD;
 
   /* vertex interpolation table */
-  typedef struct {
+  typedef struct
+  {
     int      version;
     char     interpspacename[1024];
     char     targsampname[1024];
@@ -109,19 +149,23 @@ extern "C" {
     void    *wmdata;
     int      sznotes;
     char    *notes;
-  } VTX_INTERP_TBL, VIT;
+  }
+  VTX_INTERP_TBL, VIT;
 
   /* KNearest-Neighbor Structure */
-  typedef struct {
+  typedef struct
+  {
     int   knearest;
     float dmax;
     int   noself;
-  } VSS_KNN;
+  }
+  VSS_KNN;
 
   /* Selavg */
-  typedef struct {
+  typedef struct
+  {
     int    version;
-    int    Nc, Nh; 
+    int    Nc, Nh;
     float  TR,TW,TPS;
     float  TER;
     int    Ntp;
@@ -131,10 +175,12 @@ extern "C" {
     float *gfDelta;
     float *gfTau;
     int    NullCondId;
-  } VSS_SELAVG;
+  }
+  VSS_SELAVG;
 
   /* spatial interpolation table - projection*/
-  typedef struct   {
+  typedef struct
+  {
     int version;
     char sampname[1024];
     char inspacename[1024];
@@ -144,10 +190,12 @@ extern "C" {
     float **w;
     int  sznotes;
     char  *notes;
-  } SPC_INTERP_TBL, SIT;   
+  }
+  SPC_INTERP_TBL, SIT;
 
   /* Multi-linear interpolation */
-  typedef struct {
+  typedef struct
+  {
     int   version;
     char  sampname[1024];
     int   spacedim; /* number of axes */
@@ -155,7 +203,8 @@ extern "C" {
     int   *nsamp; /* number of samples per axis */
     float *dsamp; /* distance between samples */
     float *val0;  /* axis value at sample 0 */
-  } MULTI_LIN_INTERP, MLI;
+  }
+  MULTI_LIN_INTERP, MLI;
 
   void *vssAllocVPM(int rows, int cols);
   int   vssFreeVPM(void **pm);
@@ -210,9 +259,9 @@ extern "C" {
   int vssGetVtxNbrNum(VTXNBRHD *vn, int id);
   int vssAddVtxNbr(VTXNBRHD *vn, int id);
 
-  VIT *vssBuildInterpTable(VSS *targ,        VSS *src, 
-			   int nbridmethod,  void *nmdata, 
-			   int weightmethod, void *wmdata);
+  VIT *vssBuildInterpTable(VSS *targ,        VSS *src,
+                           int nbridmethod,  void *nmdata,
+                           int weightmethod, void *wmdata);
   VIT *vssCompositeInterpTable(VIT *a2b, VIT *b2c);
   VIT *vssBuildMLITable(VSS *targ, void *pmli);
 
@@ -228,16 +277,16 @@ extern "C" {
   VSS *vssInterpSpace(SIT *sit, VSS *inspc);
 
 
-  int vssNbrIdMethod_Dist(VTXNBRHD *nbrhd, int tvtx, VSS *targ, 
-			  int candvtx, VSS *src, void *wm);
-  int vssNbrIdMethod_KNearest(VTXNBRHD *nbrhd, int tvtx, VSS *targ, 
-			      int candvtx, VSS *src, void *wm);
-  int vssNbrIdMethod_QNearest(VTXNBRHD *nbrhd, int tvtx, VSS *targ, 
-			      int candvtx, VSS *src, void *wm);
-  
-  int vssWeightMethod_NbrAvg(int tvtx, VSS *targ, VTXNBRHD *nbrhd, 
-			     VSS *src, int nbidmethod, void *nmdata, 
-			     void *wmdata);
+  int vssNbrIdMethod_Dist(VTXNBRHD *nbrhd, int tvtx, VSS *targ,
+                          int candvtx, VSS *src, void *wm);
+  int vssNbrIdMethod_KNearest(VTXNBRHD *nbrhd, int tvtx, VSS *targ,
+                              int candvtx, VSS *src, void *wm);
+  int vssNbrIdMethod_QNearest(VTXNBRHD *nbrhd, int tvtx, VSS *targ,
+                              int candvtx, VSS *src, void *wm);
+
+  int vssWeightMethod_NbrAvg(int tvtx, VSS *targ, VTXNBRHD *nbrhd,
+                             VSS *src, int nbidmethod, void *nmdata,
+                             void *wmdata);
 
   int vssRandFill(VSS *vss, float *min, float *max);
   VSS *vssRandomQuantization (MLI *mli, char *spacename);
@@ -245,10 +294,10 @@ extern "C" {
 
 
   VSS *vssSamplePoly(VSS *coord, int pdim);
-  VSS *vssSampleGaussianNoise(char *sampname, int nvertices, int spcdim, 
-			    float mean, float var, long seed);
-  VSS *vssSampleSphere(char *sampname, int nvertices, int spcdim, 
-		       float radius, long seed);
+  VSS *vssSampleGaussianNoise(char *sampname, int nvertices, int spcdim,
+                              float mean, float var, long seed);
+  VSS *vssSampleSphere(char *sampname, int nvertices, int spcdim,
+                       float radius, long seed);
 
   VSS *vssVertexStat(VSS *inspc);
   float **vssSpaceStat(VSS *spc);
@@ -257,7 +306,7 @@ extern "C" {
 
 
   ISS *vssInterSpaceRandomEffects(VSS **spc, int nobservations,
-				  float *weight, int IncludeHoles);
+                                  float *weight, int IncludeHoles);
   ISS *vssISAvgRE(VSS **spc, int nspaces, float *wspace, int AvgHoles);
   ISS *vssISAvgFE(ISS **spc, int nspaces, float *wspace, int AvgHoles);
 
@@ -287,13 +336,13 @@ extern "C" {
   VSS *vssReadSurfFormat(char *surffilename);
   VSS *vssReadTalairachFormat(char *stem);
   VSS *vssReadBVolumeFormat(char *stem);
-  int vssWriteBVolumeFormat(char *stem, VSS *vss, 
-			    int Nrows, int Ncols, int Nslices);
-  int vssWriteSelavgFormat(char *stem, ISS *iss, 
-			   int Nrows, int Ncols, int Nslices);
+  int vssWriteBVolumeFormat(char *stem, VSS *vss,
+                            int Nrows, int Ncols, int Nslices);
+  int vssWriteSelavgFormat(char *stem, ISS *iss,
+                           int Nrows, int Ncols, int Nslices);
 
-  float *vssReadBFile(char *stem, char *ext, int slice, 
-		      int Nrows, int Ncols, int Ntp, int Endian);
+  float *vssReadBFile(char *stem, char *ext, int slice,
+                      int Nrows, int Ncols, int Ntp, int Endian);
   ISS *vssReadSelavgVolume(char *stem);
   VST *vssReadSelXAvgAsVST(char *stem);
   VSS *vssReadBVolumeFormat(char *stem);
@@ -352,12 +401,12 @@ extern "C" {
 
   int GetFileCode(char *fname);
   int CountBVolumeSlices(char *stem);
-  float * vssReadBSlice(char *stem, char *ext, int slice, 
-			int *Nrows, int *Ncols, int *Nframes);
+  float * vssReadBSlice(char *stem, char *ext, int slice,
+                        int *Nrows, int *Ncols, int *Nframes);
   VPM *vssReadHCovAsVPM(char *stem, int slice);
 
   /* ----------------------------------------------------- */
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif /* #ifdef __cplusplus */
 

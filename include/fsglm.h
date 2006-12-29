@@ -1,5 +1,33 @@
+/**
+ * @file  fsglm.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.8 2005/09/25 21:10:20 greve Exp $
+// $Id: fsglm.h,v 1.9 2006/12/29 02:08:59 nicks Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -10,7 +38,8 @@ const char * GLMSrcVersion(void);
 #undef X
 
 #define GLMMAT_NCONTRASTS_MAX 100
-typedef struct{
+typedef struct
+{
   MATRIX *y;   // input: nframes-by-1 (can only be 1)
   MATRIX *X;   // Design matrix: nframes-by-ncols
   // Note: weighted GLM not included here. To do weighted,
@@ -47,7 +76,8 @@ typedef struct{
   MATRIX *igCVM[GLMMAT_NCONTRASTS_MAX];
   MATRIX *gtigCVM[GLMMAT_NCONTRASTS_MAX];
 
-} GLMMAT;
+}
+GLMMAT;
 
 GLMMAT *GLMalloc(void);
 int GLMfree(GLMMAT **pgm);

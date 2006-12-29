@@ -1,3 +1,31 @@
+/**
+ * @file  VolumeCollection.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.66 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef VolumeCollection_H
 #define VolumeCollection_H
 
@@ -10,13 +38,13 @@ extern "C" {
 #endif
 #include "mri.h"
 #ifdef X
-  #undef X 
+#undef X
 #endif
 #ifdef Y
-  #undef Y
+#undef Y
 #endif
 #ifdef Z
-  #undef Z
+#undef Z
 #endif
 }
 #include "Volume3.h"
@@ -30,19 +58,29 @@ class VolumeCollection;
 class VolumeLocation : public DataLocation {
   friend class VolumeCollectionTester;
   friend class VolumeCollection;
- public:
+public:
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
   VolumeLocation ( VolumeCollection& iVolume, int const iIndex[3] );
   VolumeLocation ( const VolumeLocation& iLoc );
   ~VolumeLocation () {}
-  int*   Index      ()               { return mIdxi; }
-  int    Index      ( int in ) const { return mIdxi[in]; }
-  float* IndexF     ()               { return mIdxf; }
-  float  IndexF     ( int in ) const { return mIdxf[in]; }
+  int*   Index      ()               {
+    return mIdxi;
+  }
+  int    Index      ( int in ) const {
+    return mIdxi[in];
+  }
+  float* IndexF     ()               {
+    return mIdxf;
+  }
+  float  IndexF     ( int in ) const {
+    return mIdxf[in];
+  }
   void   SetFromRAS ( float const iRAS[3] );
   void   SetFrame   ( int in );
-  VolumeCollection* GetVolume () const { return mVolume; }
- protected:
+  VolumeCollection* GetVolume () const {
+    return mVolume;
+  }
+protected:
   VolumeCollection* mVolume;
   int mFrame;
   int mIdxi[3];
@@ -54,7 +92,7 @@ class VolumeCollection : public DataCollection {
   friend class VolumeCollectionTester;
   friend class VolumeCollectionFlooder;
 
- public:
+public:
   VolumeCollection ();
   virtual ~VolumeCollection ();
 
@@ -62,17 +100,21 @@ class VolumeCollection : public DataCollection {
   virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
   DataLocation& MakeLocationFromIndex ( int const iIndex[3] );
 
-  // Optional way that also sets the frame. 
+  // Optional way that also sets the frame.
   DataLocation& MakeLocationFromRAS ( float const iRAS[3], int iFrame );
   DataLocation& MakeLocationFromIndex ( int const iIndex[3], int iFrame );
 
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription() { return "Volume"; }
+  virtual std::string GetTypeDescription() {
+    return "Volume";
+  }
 
   // Set the file name for this ROI. This will be used to load the MRI
   // and to save it.
   void SetFileName ( std::string& ifnMRI );
-  std::string GetFileName () { return mfnMRI; }
+  std::string GetFileName () {
+    return mfnMRI;
+  }
 
   // Creates an MRI using an existing data collection as a template.
   void MakeUsingTemplate ( int iCollectionID );
@@ -90,23 +132,41 @@ class VolumeCollection : public DataCollection {
   void Save ( std::string ifn );
 
   // Accessors.
-  float GetMRIMinValue () { return mMRIMinValue; }
-  float GetMRIMaxValue () { return mMRIMaxValue; }
+  float GetMRIMinValue () {
+    return mMRIMinValue;
+  }
+  float GetMRIMaxValue () {
+    return mMRIMaxValue;
+  }
 
   float GetMRIMagnitudeMinValue (); // (Calls MakeMagnitudeVolume if necessary)
   float GetMRIMagnitudeMaxValue ();
 
-  float GetVoxelXSize () { return mVoxelSize[0]; }
-  float GetVoxelYSize () { return mVoxelSize[1]; }
-  float GetVoxelZSize () { return mVoxelSize[2]; }
+  float GetVoxelXSize () {
+    return mVoxelSize[0];
+  }
+  float GetVoxelYSize () {
+    return mVoxelSize[1];
+  }
+  float GetVoxelZSize () {
+    return mVoxelSize[2];
+  }
 
   // For multiframe volumes.
-  int GetNumberOfFrames () { return mcFrames; }
+  int GetNumberOfFrames () {
+    return mcFrames;
+  }
 
   // To see whether we should use time points and conditions.
-  bool InterpretFramesAsTimePoints () { return mbInterpretFramesAsTimePoints; }
-  int GetNumberOfConditions () { return mcConditions; }
-  int GetNumberOfTimePoints () { return mcTimePoints; } 
+  bool InterpretFramesAsTimePoints () {
+    return mbInterpretFramesAsTimePoints;
+  }
+  int GetNumberOfConditions () {
+    return mcConditions;
+  }
+  int GetNumberOfTimePoints () {
+    return mcTimePoints;
+  }
 
   // Convert a time point and condition to a frame number.
   int ConvertConditionAndTimePointToFrame ( int iCondition, int iTimePoint );
@@ -137,15 +197,15 @@ class VolumeCollection : public DataCollection {
   float GetMRITrilinearValue ( VolumeLocation& iLoc ) const;
   float GetMRISincValue      ( VolumeLocation& iLoc ) const;
   float GetMRIMagnitudeValue ( VolumeLocation& iLoc );
-  
+
   // Sets value.
   void SetMRIValue ( VolumeLocation& iLoc, float const iValue );
-  
+
   virtual TclCommandResult
-    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   virtual void
-    DoListenToMessage ( std::string isMessage, void* iData );
+  DoListenToMessage ( std::string isMessage, void* iData );
 
   // Create an ROI for this data collection.
   virtual ScubaROI* DoNewROI ();
@@ -184,52 +244,60 @@ class VolumeCollection : public DataCollection {
 
   // Enable or disable world to index transform.
   void SetUseWorldToIndexTransform ( bool ibUse );
-  bool GetUseWorldToIndexTransform () { return mbUseDataToIndexTransform; }
+  bool GetUseWorldToIndexTransform () {
+    return mbUseDataToIndexTransform;
+  }
 
   // Finds and returns RAS points in a square area. Each RAS will
   // translate to a unique voxel. INPUT POINTS MUST BE IN CLOCKWISE OR
   // COUNTERCLOCKWISE ORDER.
   void FindRASPointsInSquare ( float iCenter[3],
-			       float iPointA[3], float iPointB[3],
-			       float iPointC[3], float iPointD[3],
-			       float iMaxDistance, // optional
-			       std::list<Point3<float> >& oPoints );
+                               float iPointA[3], float iPointB[3],
+                               float iPointC[3], float iPointD[3],
+                               float iMaxDistance, // optional
+                               std::list<Point3<float> >& oPoints );
   void FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
-			       float iPointC[3], float iPointD[3],
-			       float iMaxDistance, // optional
-			       float iCenter[3], float iRadius,
-			       std::list<Point3<float> >& oPoints );
+                               float iPointC[3], float iPointD[3],
+                               float iMaxDistance, // optional
+                               float iCenter[3], float iRadius,
+                               std::list<Point3<float> >& oPoints );
 
   // Finds and returns RAS points on a segment.
   void FindRASPointsOnSegment ( float iPointA[3], float iPointB[3],
-			       std::list<Point3<float> >& oPoints );
-				
+                                std::list<Point3<float> >& oPoints );
+
 
   // Import and export points to a control point file.
   void ImportControlPoints ( std::string ifnControlPoints,
-			     std::list<Point3<float> >& oControlPoints);
+                             std::list<Point3<float> >& oControlPoints);
   void ExportControlPoints ( std::string ifnControlPoints,
-			     std::list<Point3<float> >& iControlPoints );
+                             std::list<Point3<float> >& iControlPoints );
 
 
   // Return a histogram from the RAS voxels passed in.
   void MakeHistogram ( std::list<Point3<float> >& iRASPoints, int icBins,
-		       float& oMinBinValue, float& oBinIncrement,
-		       std::map<int,int>& oBinCounts );
+                       float& oMinBinValue, float& oBinIncrement,
+                       std::map<int,int>& oBinCounts );
 
   // Return a histogram for the entire volume.
-  void MakeHistogram ( int icBins, 
-		       float iMinThresh, float iMaxThresh,
-		       float& oMinBinValue, float& oBinIncrement,
-		       std::map<int,int>& oBinCounts );
+  void MakeHistogram ( int icBins,
+                       float iMinThresh, float iMaxThresh,
+                       float& oMinBinValue, float& oBinIncrement,
+                       std::map<int,int>& oBinCounts );
 
   virtual void DataChanged ();
 
   // For autosaving.
-  void SetAutoSaveOn ( bool ibAutosave ) { mbAutosave = ibAutosave; }
-  bool GetAutoSaveOn () { return mbAutosave; }
+  void SetAutoSaveOn ( bool ibAutosave ) {
+    mbAutosave = ibAutosave;
+  }
+  bool GetAutoSaveOn () {
+    return mbAutosave;
+  }
 
-  bool IsAutosaveDirty () { return mbAutosaveDirty; }
+  bool IsAutosaveDirty () {
+    return mbAutosaveDirty;
+  }
   void AutosaveIfDirty ();
 
   // Given an MRI voxel index and a plane in idx coords, returns
@@ -237,32 +305,32 @@ class VolumeCollection : public DataCollection {
   // voxel's edges against the plane. Returns the result of the first
   // intersection.
   VectorOps::IntersectionResult VoxelIntersectsPlane
-    ( Point3<int>& iMRIIndex,
-      Point3<float>& iPlaneIdx, Point3<float>& iPlaneIdxNormal,
-      Point3<float>& oIntersectionIdx ); 
+  ( Point3<int>& iMRIIndex,
+    Point3<float>& iPlaneIdx, Point3<float>& iPlaneIdxNormal,
+    Point3<float>& oIntersectionIdx );
 
   // A longer version, this will return a list of all the
   // intersections and their results. The above function uses this
   // one. Returns true if there was an intersection.
   bool VoxelIntersectsPlane
-    ( Point3<int>& iMRIIndex,
-      Point3<float>& iPlaneIdx,
-      Point3<float>& iPlaneIdxNormal,
-      int& oNumIntersections,
-      VectorOps::IntersectionResult orIntersection[12],
-      Point3<float> oIntersectionIdx[12] ); 
+  ( Point3<int>& iMRIIndex,
+    Point3<float>& iPlaneIdx,
+    Point3<float>& iPlaneIdxNormal,
+    int& oNumIntersections,
+    VectorOps::IntersectionResult orIntersection[12],
+    Point3<float> oIntersectionIdx[12] );
 
   // Does something similar but tests if a segment goes through a
   // voxel. Does this by testing the segment against each face as a
   // plane.
   VectorOps::IntersectionResult VoxelIntersectsSegment
-    ( Point3<int>& iMRIIndex, 
-      Point3<float>& iSegIdxA, Point3<float>& iSegIdxB, 
-      Point3<float>& oIntersectionIdx );
+  ( Point3<int>& iMRIIndex,
+    Point3<float>& iSegIdxA, Point3<float>& iSegIdxB,
+    Point3<float>& oIntersectionIdx );
 
   // Returns a list of volume locations whose voxels have the given value.
   void GetVoxelsWithValue ( float iValue,
-			    std::list<VolumeLocation>& olLocations);
+                            std::list<VolumeLocation>& olLocations);
 
   // Returns the volume of N voxels.
   float GetRASVolumeOfNVoxels ( int icVoxels );
@@ -279,7 +347,7 @@ class VolumeCollection : public DataCollection {
 
   // Print out the corner RAS coordinates of a voxel.
   void PrintVoxelCornerCoords ( std::ostream& iStream,
-				Point3<int>& iMRIIdx );
+                                Point3<int>& iMRIIdx );
 
 protected:
 
@@ -354,7 +422,7 @@ protected:
   // conditions and time points should be interpreted as error
   // data. We also hold a matrix of covariances, size numTimePoints *
   // (numConditions-1) squared.
-  bool    mbDataContainsErrorValues; 
+  bool    mbDataContainsErrorValues;
   typedef std::map<int,std::map<int,float> > CovarianceTable;
   CovarianceTable mCovarianceTable;
 
@@ -375,13 +443,13 @@ protected:
 };
 
 class VolumeCollectionFlooder {
- public:
+public:
   VolumeCollectionFlooder ();
   virtual ~VolumeCollectionFlooder ();
 
   // Override these to do startup and shutdown stuff, also allow the
   // user or program to cancel the flood.
-  virtual void DoBegin ();  
+  virtual void DoBegin ();
   virtual void DoEnd ();
   virtual bool DoStopRequested ();
 
@@ -411,15 +479,16 @@ class VolumeCollectionFlooder {
   public:
     CheckPair() {}
     CheckPair( Point3<int>& iFrom, Point3<int>& iTo ) {
-      mFromIndex = iFrom; mToIndex = iTo;
+      mFromIndex = iFrom;
+      mToIndex = iTo;
     }
     Point3<int> mFromIndex;
     Point3<int> mToIndex;
-  };    
+  };
 
-  void Flood ( VolumeCollection& iVolume, 
-	       float iRASSeed[3], int iFrame,
-	       Params& iParams );
+  void Flood ( VolumeCollection& iVolume,
+               float iRASSeed[3], int iFrame,
+               Params& iParams );
   VolumeCollection* mVolume;
   Params* mParams;
 };

@@ -1,11 +1,39 @@
+/**
+ * @file  mri_log_likelihood.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:07 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mri_log_likelihood
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/11/15 19:55:43 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/12/29 02:09:07 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -46,8 +74,7 @@ static char *orig_fname = NULL ;
 
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         *gca_fname, *in_fname, **av, *xform_fname ;
   MRI          *mri_in, *mri_tmp, *mri_orig = NULL ;
   GCA          *gca ;
@@ -57,15 +84,15 @@ main(int argc, char *argv[])
   double       ll ;
 
   make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_log_likelihood.c,v 1.2 2006/11/15 19:55:43 fischl Exp $",
-     "$Name:  $", cmdline);
+  (argc, argv,
+   "$Id: mri_log_likelihood.c,v 1.3 2006/12/29 02:09:07 nicks Exp $",
+   "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_log_likelihood.c,v 1.2 2006/11/15 19:55:43 fischl Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mri_log_likelihood.c,v 1.3 2006/12/29 02:09:07 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -78,19 +105,18 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-	{
-		nargs = get_option(argc, argv) ;
-		argc -= nargs ;
-		argv += nargs ;
-	}
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (argc < 3)
     ErrorExit
-      (ERROR_BADPARM,
-       "usage: %s [<options>] <inbrain1> <inbrain2> ... "
-       "<atlas> <transform file> ...\n",
-       Progname) ;
+    (ERROR_BADPARM,
+     "usage: %s [<options>] <inbrain1> <inbrain2> ... "
+     "<atlas> <transform file> ...\n",
+     Progname) ;
 
   ninputs = (argc - 1) / 2 ;
   if (DIAG_VERBOSE_ON)
@@ -100,48 +126,45 @@ main(int argc, char *argv[])
   xform_fname = argv[2+ninputs] ;
   transform = TransformRead(xform_fname) ;
   if (!transform)
-			ErrorExit(ERROR_NOFILE, "%s: could not read input transform from %s",
-								Progname, xform_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read input transform from %s",
+              Progname, xform_fname) ;
 
   if (DIAG_VERBOSE_ON)
     printf("reading atlas from '%s'...\n", gca_fname) ;
   gca = GCAread(gca_fname) ;
   if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read input atlas from %s",
-								Progname, gca_fname) ;
+              Progname, gca_fname) ;
 
   fflush(stdout) ;
-  for (input = 0 ; input < ninputs ; input++)
-	{
-		in_fname = argv[1+input] ;
+  for (input = 0 ; input < ninputs ; input++) {
+    in_fname = argv[1+input] ;
     if (DIAG_VERBOSE_ON)
       printf("reading input volume from %s...\n", in_fname) ;
-		mri_tmp = MRIread(in_fname) ;
-		if (!mri_tmp)
-			ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-								Progname, in_fname) ;
-		MRImakePositive(mri_tmp, mri_tmp) ;
-		if (input == 0)
-		{
-			mri_in =
-				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-												 mri_tmp->type, ninputs) ;
-			if (!mri_in)
-				ErrorExit(ERROR_NOMEMORY,
-									"%s: could not allocate input volume %dx%dx%dx%d",
-									mri_tmp->width,mri_tmp->height,mri_tmp->depth,ninputs) ;
-			MRIcopyHeader(mri_tmp, mri_in) ;
-		}
+    mri_tmp = MRIread(in_fname) ;
+    if (!mri_tmp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
+                Progname, in_fname) ;
+    MRImakePositive(mri_tmp, mri_tmp) ;
+    if (input == 0) {
+      mri_in =
+        MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+                         mri_tmp->type, ninputs) ;
+      if (!mri_in)
+        ErrorExit(ERROR_NOMEMORY,
+                  "%s: could not allocate input volume %dx%dx%dx%d",
+                  mri_tmp->width,mri_tmp->height,mri_tmp->depth,ninputs) ;
+      MRIcopyHeader(mri_tmp, mri_in) ;
+    }
 
-		MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
-		MRIfree(&mri_tmp) ;
-	}
+    MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
+    MRIfree(&mri_tmp) ;
+  }
   MRIaddCommandLine(mri_in, cmdline) ;
 
   TransformInvert(transform, mri_in) ;
 
-  if (orig_fname)
-  {
+  if (orig_fname) {
     mri_orig = MRIread(orig_fname) ;
     if (mri_orig == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read orig volume from %s", Progname, orig_fname) ;
@@ -166,48 +189,41 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!strcmp(option, "DEBUG_VOXEL"))
-  {
+  if (!strcmp(option, "DEBUG_VOXEL")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-  }
-  else if (!stricmp(option, "orig"))
-  {
+  } else if (!stricmp(option, "orig")) {
     orig_fname = argv[2] ;
     nargs = 1 ;
-  }
-  else switch (*option)
-  {
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    usage_exit(0) ;
-    break ;
-  default:
-    printf("unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (*option) {
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      usage_exit(0) ;
+      break ;
+    default:
+      printf("unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf("usage: %s <in volume> <atlas> <transform>\n\n",
          Progname) ;
   exit(code) ;

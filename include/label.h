@@ -1,3 +1,31 @@
+/**
+ * @file  label.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef LABEL_H
 #define LABEL_H
 
@@ -12,7 +40,8 @@ typedef struct
   float         z ;
   unsigned char deleted ;
   float         stat ;     /* statistic (might not be used) */
-} LABEL_VERTEX, LV ;
+}
+LABEL_VERTEX, LV ;
 
 typedef struct
 {
@@ -25,13 +54,14 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   char   space[100];          /* space description of the coords */
-} LABEL ;
+}
+LABEL ;
 
 #include "mrisurf.h" // MRI_SURFACE, MRIS
 
 int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
-int     LabelFillUnassignedVertices(MRI_SURFACE *mris, 
-                                    LABEL *area, 
+int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
+                                    LABEL *area,
                                     int coords);
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
@@ -45,27 +75,27 @@ int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
-int     LabelRipRestOfSurfaceWithThreshold(LABEL *area, 
-                                           MRI_SURFACE *mris, 
-                                           float thresh) ;
+int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,
+    MRI_SURFACE *mris,
+    float thresh) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
 int     LabelRealloc(LABEL *lb, int max_points);
-int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, 
-                    int max_vertices, MRI_SURFACE *mris) ;
+int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
+                      int max_vertices, MRI_SURFACE *mris) ;
 int     LabelFillMarked(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris) ;
-int     LabelFillAll(LABEL *area, int *vertex_list, int nvertices, 
-                    int max_vertices, MRI_SURFACE *mris) ;
+int     LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
+                     int max_vertices, MRI_SURFACE *mris) ;
 int     LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris) ;
 MATRIX  *LabelCovarianceMatrix(LABEL *area, MATRIX *mat) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *area_dst) ;
 
-LABEL   *LabelTranslate(LABEL *area, 
-                        LABEL *area_offset, 
+LABEL   *LabelTranslate(LABEL *area,
+                        LABEL *area_offset,
                         float dx, float dy, float dz) ;
 LABEL   *LabelCopy(LABEL *asrc, LABEL *adst) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *adst) ;
@@ -78,8 +108,8 @@ LABEL   *LabelFromMarkedSurfaces(MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
 int     LabelNormalizeStats(LABEL *area, float norm) ;
-LABEL   *MaskSurfLabel(LABEL *lbl, 
-                       MRI *SurfMask, 
+LABEL   *MaskSurfLabel(LABEL *lbl,
+                       MRI *SurfMask,
                        float thresh, char *masksign, int frame);
 
 int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
@@ -97,7 +127,7 @@ LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 int   LabelUnassign(LABEL *area) ;
 
 #include "mrishash.h"
-LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area, 
+LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
                                MRIS_HASH_TABLE *mht,
                                MRI_SURFACE *mris_dst, LABEL *area_dst);
 

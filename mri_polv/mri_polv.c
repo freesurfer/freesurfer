@@ -1,3 +1,31 @@
+/**
+ * @file  mri_polv.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -23,15 +51,14 @@ static int verbose = 1 ;
 static int window_size = WINDOW_SIZE ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs ;
   MRI    *mri_src, *mri_dst = NULL ;
   char   *in_fname, *out_fname ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_polv.c,v 1.4 2003/09/05 04:45:36 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_polv.c,v 1.5 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -42,8 +69,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -64,14 +90,14 @@ main(int argc, char *argv[])
     fprintf(stderr, "reading from %s...", in_fname) ;
   mri_src = MRIread(in_fname) ;
   if (!mri_src)
-    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
+    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, in_fname) ;
 
   if (verbose)
     fprintf(stderr, "done.\ncalculating plane of least variance...") ;
   mri_dst = MRIcentralPlaneOfLeastVarianceNormal(mri_src, NULL, window_size) ;
   if (!mri_dst)
-    ErrorExit(ERROR_BADPARM, "%s: plane of least variance calculation failed", 
+    ErrorExit(ERROR_BADPARM, "%s: plane of least variance calculation failed",
               Progname) ;
 
   if (verbose)
@@ -89,16 +115,14 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case 'V':
     verbose = !verbose ;
     break ;
@@ -106,7 +130,7 @@ get_option(int argc, char *argv[])
     if (sscanf(argv[2], "%d", &window_size) < 0)
       ErrorExit(ERROR_BADPARM, "%s: could not scan window size from %s",
                 Progname, argv[2]) ;
-    fprintf(stderr, "using a %d x %d window of CPOLV calcualation\n", 
+    fprintf(stderr, "using a %d x %d window of CPOLV calcualation\n",
             window_size, window_size) ;
     nargs = 1 ;
     break ;
@@ -124,8 +148,7 @@ get_option(int argc, char *argv[])
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   printf("usage: %s [options] <input image> <output image>\n", Progname) ;
   printf("\n") ;
   printf("calculate an image specifying the plane of least variance at each\n") ;
@@ -133,7 +156,7 @@ print_help(void)
   printf("Valid options are:\n\n") ;
   printf("  -w <window size>   - specify the window size to be used in the "
          "calculation\n"
-           "                       of the central plane of least variance"
+         "                       of the central plane of least variance"
          " (default=5).\n") ;
   exit(1) ;
 }

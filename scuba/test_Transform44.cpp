@@ -1,3 +1,31 @@
+/**
+ * @file  test_Transform44.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <sstream>
 #include <fstream>
 #include "Transform44.h"
@@ -37,7 +65,9 @@ Transform44Tester::Test () {
 
     // Set to identity, make sure multing a vector returns same vector.
     float in[3], out[3];
-    in[0] = 5;  in[1] = 35.67; in[2] = 1000;
+    in[0] = 5;
+    in[1] = 35.67;
+    in[2] = 1000;
     transform.MultiplyVector3( in, out );
     Assert((in[0] == out[0] && in[1] == out[1] && in[2] == out[2]),
            "Identity mult check failed");
@@ -50,12 +80,14 @@ Transform44Tester::Test () {
                                 0, 0, 5, 0,
                                 0, 0, 0, 1 );
 
-    in[0] = 5;  in[1] = 6; in[2] = 7;
+    in[0] = 5;
+    in[1] = 6;
+    in[2] = 7;
     transform.MultiplyVector3( in, out );
-    if( !(in[0]*5 == out[0] && in[1]*5 == out[1] && in[2]*5 == out[2]) ) {
+    if ( !(in[0]*5 == out[0] && in[1]*5 == out[1] && in[2]*5 == out[2]) ) {
       ssError << "Scale mult check failed" << endl
-              << transform << endl
-              << "out " << Point3<float>(out) << endl;
+      << transform << endl
+      << "out " << Point3<float>(out) << endl;
       throw(runtime_error(ssError.str()));
     }
 
@@ -68,10 +100,10 @@ Transform44Tester::Test () {
     // Try loading an LTA.
     string fnLTA = "test_data/testTransform44.lta";
     ifstream fLTA( fnLTA.c_str(), ios::in );
-    if( !fLTA ) {
+    if ( !fLTA ) {
       cerr << "WARNING: File " + fnLTA + " not found, test skipped." << endl;
     } else {
-      
+
       Transform44 l;
       l.LoadFromLTAFile( fnLTA );
       Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
@@ -80,12 +112,10 @@ Transform44Tester::Test () {
               l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
              "LTA didn't load properly.");
     }
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -101,12 +131,10 @@ int main ( int argc, char** argv ) {
     Transform44Tester tester0;
     tester0.Test();
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

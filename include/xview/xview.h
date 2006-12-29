@@ -1,9 +1,9 @@
 /*      @(#)xview.h 1.2 89/04/09 SMI      */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_xview_DEFINED
@@ -11,7 +11,7 @@
 
 /*
  ***********************************************************************
- *			Include Files
+ *   Include Files
  ***********************************************************************
  */
 

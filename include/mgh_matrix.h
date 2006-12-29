@@ -1,3 +1,31 @@
+/**
+ * @file  mgh_matrix.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef MGH_MATRIX_H
 #define MGH_MATRIX_H
 
@@ -19,16 +47,16 @@ void scale_matrix(FLOATTYPE **a,FLOATTYPE s,int n,int m);
 void normalize_matrix(FLOATTYPE **a,int n,int m);
 void matrix_copy(FLOATTYPE **a,FLOATTYPE **b,int n,int m);
 void matrix_copy2(FLOATTYPE **a,FLOATTYPE **b,int n,int m,int sno,int smo,
-      int tno,int tmo);
+                  int tno,int tmo);
 void matrix_transpose(FLOATTYPE **a,FLOATTYPE **at,int n,int m);
 void matrix_add(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c, int n,int m);
 void matrix_multiply(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m);
 void matrix_multiply2(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m,
-          int l);
+                      int l);
 void matrix_angles(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m);
 void vector_subtract(FLOATTYPE *a,FLOATTYPE *b,FLOATTYPE *c,int n);
 void vector_add(FLOATTYPE *a,FLOATTYPE *b,FLOATTYPE *c,FLOATTYPE fa,
-    FLOATTYPE fb,int n);
+                FLOATTYPE fb,int n);
 void vector_multiply(FLOATTYPE **a,FLOATTYPE *b,FLOATTYPE *c,int n,int m);
 void derivative_matrix(FLOATTYPE **D,int dy,int dx);
 void MGH_identity_matrix(FLOATTYPE **I,int n);

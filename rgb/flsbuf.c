@@ -6,8 +6,7 @@
  */
 #include  "rgb_image.h"
 
-unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
-{
+unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c) {
   register unsigned short *base;
   register int n, rn;
   int size;
@@ -22,15 +21,15 @@ unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
     }
     rn = n = 0;
   } else if ((rn = n = image->ptr - base) > 0)  {
-      n = putrow(image,base,image->y,image->z);
-      if(++image->y >= image->ysize) {
-          image->y = 0;
-          if(++image->z >= image->zsize) {
+    n = putrow(image,base,image->y,image->z);
+    if (++image->y >= image->ysize) {
+      image->y = 0;
+      if (++image->z >= image->zsize) {
         image->z = image->zsize-1;
         image->flags |= _IOEOF;
         return -1;
-          }
       }
+    }
   }
   image->cnt = image->xsize-1;
   *base++ = c;

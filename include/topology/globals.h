@@ -1,3 +1,31 @@
+/**
+ * @file  globals.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:02 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef TOPOLOGY_GLOBALS_H
 #define TOPOLOGY_GLOBALS_H
 
@@ -20,9 +48,9 @@ using namespace std;
 // macros
 
 #define __DOT(a,b) (a[0]*b[0]+a[1]*b[1]+a[2]*b[2])
-#define __CROSS(a,b,d) (d[0]=a[1]*b[2]-b[1]*a[2],	\
-			d[1]=a[2]*b[0]-b[2]*a[0],	\
-			d[2]=a[0]*b[1]-b[0]*a[1])
+#define __CROSS(a,b,d) (d[0]=a[1]*b[2]-b[1]*a[2], \
+   d[1]=a[2]*b[0]-b[2]*a[0], \
+   d[2]=a[0]*b[1]-b[0]*a[1])
 
 #ifndef __SIGN
 #define __SIGN(x) (((x)>0)? 1.0 : -1.0 )
@@ -46,27 +74,34 @@ using namespace std;
 #define __MIN3(a,b,c) (MIN(a,MIN(b,c)))
 #endif
 
-inline double __SQR(double x){
-	return x*x;
+inline double __SQR(double x)
+{
+  return x*x;
 }
 
-inline double __norm(double x,double y, double z){
-	return sqrt(x*x+y*y+z*z);
+inline double __norm(double x,double y, double z)
+{
+  return sqrt(x*x+y*y+z*z);
 }
 
-inline void __normalize(double &x,double &y, double &z){
-	double n=__norm(x,y,z);
-	x /= n; y /= n; z /= n;
+inline void __normalize(double &x,double &y, double &z)
+{
+  double n=__norm(x,y,z);
+  x /= n;
+  y /= n;
+  z /= n;
 }
 
-inline double __dot(double x[3],double y[3]){
-	return x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
+inline double __dot(double x[3],double y[3])
+{
+  return x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
 }
 
-inline void __cross(double x[3], double y[3], double *z){
-	z[0] = x[1]*y[2]-x[2]*y[1];
-	z[1] = x[2]*y[0]-x[0]*y[2];
-	z[2] = x[0]*y[1]-x[1]*y[0];
+inline void __cross(double x[3], double y[3], double *z)
+{
+  z[0] = x[1]*y[2]-x[2]*y[1];
+  z[1] = x[2]*y[0]-x[0]*y[2];
+  z[2] = x[0]*y[1]-x[1]*y[0];
 }
 
 // a random number in the range 0 to nmax

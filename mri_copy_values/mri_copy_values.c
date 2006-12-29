@@ -1,3 +1,31 @@
+/**
+ * @file  mri_copy_values.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -16,8 +44,7 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs ;
   MRI    *mri_src, *mri_dst ;
@@ -25,7 +52,7 @@ main(int argc, char *argv[])
   int    label, nvox ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_copy_values.c,v 1.3 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_copy_values.c,v 1.4 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -36,8 +63,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -58,18 +84,19 @@ main(int argc, char *argv[])
   fprintf(stderr, "reading from %s...\n", in_fname) ;
   mri_src = MRIread(in_fname) ;
   if (!mri_src)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", 
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, in_fname) ;
   mri_dst = MRIread(out_fname) ;
   if (!mri_dst)
-    ErrorExit(ERROR_NOFILE, "%s: could not read destination volume %s", 
+    ErrorExit(ERROR_NOFILE, "%s: could not read destination volume %s",
               Progname, out_fname) ;
   nvox = MRIcopyLabel(mri_src, mri_dst, label) ;
   fprintf(stderr, "%d voxels copied from input to output volume...\n", nvox);
 
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
-  MRIfree(&mri_dst) ;  MRIfree(&mri_src) ;
+  MRIfree(&mri_dst) ;
+  MRIfree(&mri_src) ;
   exit(0) ;
   return(0) ;
 }
@@ -80,14 +107,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case '?':
   case 'U':
     printf("usage: %s <input volume> <label> <output volume>\n", argv[0]) ;

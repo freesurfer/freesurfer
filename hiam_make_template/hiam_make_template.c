@@ -1,3 +1,31 @@
+/**
+ * @file  hiam_make_template.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:57 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* This code is a modified version of mris_make_template.c for being applied on hippocampus and amygdala */
 /* Revised 02/26/2003 */
 
@@ -15,7 +43,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: hiam_make_template.c,v 1.1 2004/04/16 21:23:26 pengyu Exp $";
+static char vcid[] = "$Id: hiam_make_template.c,v 1.2 2006/12/29 02:08:57 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,29 +56,25 @@ static void print_version(void) ;
 char *Progname ;
 
 #if 0
-static char *surface_names[] = 
-{
-  "inflated",
-  "smoothwm",
-  "smoothwm"
-} ;
+static char *surface_names[] = {
+                                 "inflated",
+                                 "smoothwm",
+                                 "smoothwm"
+                               } ;
 
-static char *curvature_names[] = 
-{
-  NULL,
-  "sulc",
-  NULL
-} ;
+static char *curvature_names[] = {
+                                   NULL,
+                                   "sulc",
+                                   NULL
+                                 } ;
 #else
-static char *surface_names[] = 
-{
-  "hippocampus"
-} ;
+static char *surface_names[] = {
+                                 "hippocampus"
+                               } ;
 
-static char *curvature_names[] = 
-{
-  "hippocampus.curv"
-} ;
+static char *curvature_names[] = {
+                                   "hippocampus.curv"
+                                 } ;
 #endif
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
@@ -64,10 +88,9 @@ static int no_rot = 0 ;
 static char subjects_dir[STRLEN] ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
-               *cp, *subject, fname[STRLEN] ;
+  *cp, *subject, fname[STRLEN] ;
   int          ac, nargs, ino, sno ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_aligned, *mrisp_template ;
@@ -80,8 +103,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -104,14 +126,12 @@ main(int argc, char *argv[])
   if (1 || !FileExists(template_fname))  /* first time - create it */
   {
     fprintf(stderr, "creating new parameterization...\n") ;
-    mrisp_template = MRISPalloc(scale, PARAM_IMAGES); 
+    mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
     if (no_rot)  /* don't do rigid alignment */
       mrisp_aligned = NULL ;
     else
-      mrisp_aligned = MRISPalloc(scale, PARAM_IMAGES); 
-  }
-  else
-  {
+      mrisp_aligned = MRISPalloc(scale, PARAM_IMAGES);
+  } else {
     fprintf(stderr, "reading template parameterization from %s...\n",
             template_fname) ;
     mrisp_aligned = NULL ;
@@ -121,34 +141,33 @@ main(int argc, char *argv[])
                 Progname, template_fname) ;
   }
 
-  argv += 3 ; argc -= 3 ;
-  for (ino = 0 ; ino < argc-1 ; ino++)
-  {
+  argv += 3 ;
+  argc -= 3 ;
+  for (ino = 0 ; ino < argc-1 ; ino++) {
     subject = argv[ino] ;
     fprintf(stderr, "processing subject %s\n", subject) ;
-    sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+    sprintf(surf_fname, "%s/%s/surf/%s.%s",
             subjects_dir, subject, hemi, sphere_name) ;
     fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
     mris = MRISread(surf_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, surf_fname) ;
+                Progname, surf_fname) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
+    MRIScomputeMetricProperties(mris) ;
+    MRISstoreMetricProperties(mris) ;
 
-    for (sno = 0; sno < SURFACES ; sno++)
-    {
+    for (sno = 0; sno < SURFACES ; sno++) {
       if (curvature_names[sno])  /* read in precomputed curvature file */
       {
-        sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+        sprintf(surf_fname, "%s/%s/surf/%s.%s",
                 subjects_dir, subject, hemi, curvature_names[sno]) ;
         if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
-					ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
-										Progname, surf_fname) ;
-      }
-      else                       /* compute curvature of surface */
+          ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
+                    Progname, surf_fname) ;
+      } else                       /* compute curvature of surface */
       {
-        sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+        sprintf(surf_fname, "%s/%s/surf/%s.%s",
                 subjects_dir, subject, hemi, surface_names[sno]) ;
         if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -176,46 +195,43 @@ main(int argc, char *argv[])
   {
     MRI_SP *mrisp_tmp ;
 
-    if (Gdiag & DIAG_WRITE)
-    {
+    if (Gdiag & DIAG_WRITE) {
       char *cp1 ;
-      
+
       FileNameOnly(template_fname, fname) ;
       cp = strchr(fname, '.') ;
-      if (cp)
-      {
+      if (cp) {
         cp1 = strrchr(fname, '.') ;
         if (cp1 && cp1 != cp)
           strncpy(parms.base_name, cp+1, cp1-cp-1) ;
         else
           strcpy(parms.base_name, cp+1) ;
-      }
-      else
+      } else
         strcpy(parms.base_name, "template") ;
       sprintf(fname, "%s.%s.out", hemi, parms.base_name);
       parms.fp = fopen(fname, "w") ;
       printf("writing output to '%s'\n", fname) ;
     }
-    for (ino = 0 ; ino < argc-1 ; ino++)
-    {
+    for (ino = 0 ; ino < argc-1 ; ino++) {
       subject = argv[ino] ;
       if (Gdiag & DIAG_WRITE)
         fprintf(parms.fp, "processing subject %s\n", subject) ;
       fprintf(stderr, "processing subject %s\n", subject) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+      sprintf(surf_fname, "%s/%s/surf/%s.%s",
               subjects_dir, subject, hemi, sphere_name) ;
       fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
       mris = MRISread(surf_fname) ;
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, surf_fname) ;
-      MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
+      MRIScomputeMetricProperties(mris) ;
+      MRISstoreMetricProperties(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+      sprintf(surf_fname, "%s/%s/surf/%s.%s",
               subjects_dir, subject, hemi, "hippocampus.curv") ;
-			if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
-				ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
-									Progname, surf_fname) ;
+      if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
+                  Progname, surf_fname) ;
       parms.frame_no = 3 ;
       parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
       parms.mrisp_template = mrisp_template ;
@@ -233,24 +249,22 @@ main(int argc, char *argv[])
 #endif
 
       /* now generate new parameterization using the optimal alignment */
-      for (sno = 0; sno < SURFACES ; sno++)
-      {
+      for (sno = 0; sno < SURFACES ; sno++) {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+          sprintf(surf_fname, "%s/%s/surf/%s.%s",
                   subjects_dir, subject, hemi, curvature_names[sno]) ;
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
             ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
-											Progname, surf_fname) ;
-        }
-        else                       /* compute curvature of surface */
+                      Progname, surf_fname) ;
+        } else                       /* compute curvature of surface */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+          sprintf(surf_fname, "%s/%s/surf/%s.%s",
                   subjects_dir, subject, hemi, surface_names[sno]) ;
           if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
             ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                       Progname, surf_fname) ;
-          
+
           if (nbrs > 1)
             MRISsetNeighborhoodSize(mris, nbrs) ;
           MRIScomputeMetricProperties(mris) ;
@@ -272,7 +286,8 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_WRITE)
       fclose(parms.fp) ;
 
-    mrisp_tmp = mrisp_aligned ; mrisp_aligned = mrisp_template ;
+    mrisp_tmp = mrisp_aligned ;
+    mrisp_aligned = mrisp_template ;
     mrisp_template = mrisp_tmp ;
     MRISPfree(&mrisp_aligned) ;
   }
@@ -289,92 +304,80 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "nbrs"))
-  {
+  else if (!stricmp(option, "nbrs")) {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size = %d\n", nbrs) ;
-  }
-  else if (!stricmp(option, "sdir"))
-  {
+  } else if (!stricmp(option, "sdir")) {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using SUBJECTS_DIR=%s\n", subjects_dir) ;
-  }
-  else if (!stricmp(option, "norot"))
-  {
+  } else if (!stricmp(option, "norot")) {
     no_rot = 1 ;
     fprintf(stderr, "not aligning hemispheres before averaging.\n") ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'W':
-    Gdiag |= DIAG_WRITE ;
-    if (isdigit((int)*argv[2]))
+  } else switch (toupper(*option)) {
+    case 'W':
+      Gdiag |= DIAG_WRITE ;
+      if (isdigit((int)*argv[2]))
+        nargs = 1 ;
+      break ;
+    case 'S':
+      scale = atof(argv[2]) ;
+      fprintf(stderr, "scaling parameterization by %2.1f\n", scale) ;
       nargs = 1 ;
-    break ;
-  case 'S':
-    scale = atof(argv[2]) ;
-    fprintf(stderr, "scaling parameterization by %2.1f\n", scale) ;
-    nargs = 1 ;
-    break ;
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+      break ;
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <hemi> <surface name> <subject> <subject> ... "
           "<output name>\n", Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+  fprintf(stderr,
+          "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

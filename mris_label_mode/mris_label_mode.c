@@ -1,3 +1,31 @@
+/**
+ * @file  mris_label_mode.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +44,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_label_mode.c,v 1.4 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_label_mode.c,v 1.5 2006/12/29 02:09:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -52,17 +80,16 @@ static int **AnnotHistLabelVertex, **AnnotHistCountVertex, *AnnotHistNumVertex;
 static int udim=256, vdim=128, maxlabels=25, maxvertices=500000, TotalCount;
 
 int
-main(int argc, char *argv[])
-{
-  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, 
-               *hemi ;
+main(int argc, char *argv[]) {
+  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir,
+  *hemi ;
   int          ac, nargs, i ;
   MRI_SURFACE  *mris ;
 
   int u,v,index;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_label_mode.c,v 1.4 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_label_mode.c,v 1.5 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -76,8 +103,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -100,20 +126,17 @@ main(int argc, char *argv[])
   AnnotMapCount = (int **)calloc(udim,sizeof(int *));
   AnnotHistCount = (int ***)calloc(udim,sizeof(int **));
   AnnotHistLabel = (int ***)calloc(udim,sizeof(int **));
-  for (u=0;u<udim;u++)
-  {
+  for (u=0;u<udim;u++) {
     AnnotMapLabel[u] = (int *)calloc(vdim,sizeof(int));
     AnnotMapCount[u] = (int *)calloc(vdim,sizeof(int));
     AnnotHistCount[u] = (int **)calloc(udim,sizeof(int *));
     AnnotHistLabel[u] = (int **)calloc(udim,sizeof(int *));
-    for (v=0;v<vdim;v++)  
-    {
+    for (v=0;v<vdim;v++) {
       AnnotMapLabel[u][v] = -1;
       AnnotMapCount[u][v] = 0;
       AnnotHistCount[u][v] = (int *)calloc(maxlabels,sizeof(int));
       AnnotHistLabel[u][v] = (int *)calloc(maxlabels,sizeof(int));
-      for (index=0;index<maxlabels;index++)  
-      {
+      for (index=0;index<maxlabels;index++) {
         AnnotHistCount[u][v][index] = 0;
         AnnotHistLabel[u][v][index] = -1;
       }
@@ -121,15 +144,14 @@ main(int argc, char *argv[])
   }
 
   TotalCount = 0;
-  for (i = 4 ; i < argc-1 ; i++)
-  {
+  for (i = 4 ; i < argc-1 ; i++) {
     TotalCount++;
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
+                Progname, fname) ;
     sprintf(fname, "%s/%s/label/%s%s.annot", sdir, argv[i], hemi, in_fname) ;
     ReadAnnotFile(mris, fname);
     AnnotToParameterization(mris);
@@ -158,63 +180,59 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else switch (toupper(*option))
-  {
-  case 'A':
-    sigma = atof(argv[2]) ;
-    fprintf(stderr, "blurring thickness measures with sigma=%2.3f\n",sigma);
-    nargs = 1 ;
-    break ;
-  case 'O':
-    output_surf_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "painting output onto subject %s.\n", output_surf_name);
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'S':   /* write out stats */
-    stat_flag = 1 ;
-    condition_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "writing out summary statistics as condition %d\n",
-            condition_no) ;
-    break ;
-  case 'N':
-    normalize_flag = 1 ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  else switch (toupper(*option)) {
+    case 'A':
+      sigma = atof(argv[2]) ;
+      fprintf(stderr, "blurring thickness measures with sigma=%2.3f\n",sigma);
+      nargs = 1 ;
+      break ;
+    case 'O':
+      output_surf_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "painting output onto subject %s.\n", output_surf_name);
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'S':   /* write out stats */
+      stat_flag = 1 ;
+      condition_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "writing out summary statistics as condition %d\n",
+              condition_no) ;
+      break ;
+    case 'N':
+      normalize_flag = 1 ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
+print_usage(void) {
+  fprintf(stderr,
           "usage: %s [options] <input curv. file> <hemi> <surface> <subject> ... "
           " <output curv file >\n", Progname) ;
   fprintf(stderr, "the output curvature file will be painted onto the last "
@@ -226,29 +244,26 @@ print_usage(void)
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+  fprintf(stderr,
+          "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
-                  "                them into sigavg<cond #>-<hemi>.w and\n"
-                  "                sigvar<cond #>-<hemi>.w.\n") ;
+          "                them into sigavg<cond #>-<hemi>.w and\n"
+          "                sigvar<cond #>-<hemi>.w.\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 
 static int
-parameterization_coordinate(float x, float y, float z, int *pu, int *pv)
-{
+parameterization_coordinate(float x, float y, float z, int *pu, int *pv) {
   double phi, theta, uf, vf ;
   int    u, v ;
 
@@ -265,80 +280,74 @@ parameterization_coordinate(float x, float y, float z, int *pu, int *pv)
     v += vdim ;
   if (v >= vdim)
     v -= vdim ;
-  *pu = u ; *pv = v ;
+  *pu = u ;
+  *pv = v ;
   return(NO_ERROR) ;
 }
 
 static int
-spherical_coordinate(double x, double y, double z,double *pphi,double *ptheta)
-{
+spherical_coordinate(double x, double y, double z,double *pphi,double *ptheta) {
   double r, d ;
 
   r = sqrt(x*x + y*y + z*z) ;
-  d = r*r-z*z ; 
-  if (d < 0.0) 
+  d = r*r-z*z ;
+  if (d < 0.0)
     d = 0.0 ;
 
   *pphi = atan2(sqrt(d), z) ;
   *ptheta = atan2(y/r, x/r) ;
-    if (*ptheta < 0.0f)
-      *ptheta = 2 * M_PI + *ptheta ;  /* make it 0 --> 2*PI */
+  if (*ptheta < 0.0f)
+    *ptheta = 2 * M_PI + *ptheta ;  /* make it 0 --> 2*PI */
   return(NO_ERROR) ;
 }
 
 static void
-AnnotToParameterization(MRI_SURFACE *mris)
-{
+AnnotToParameterization(MRI_SURFACE *mris) {
   int u,v,du,dv,vertex_index,k,nundef;
 
   for (u=0;u<udim;u++)
-  for (v=0;v<vdim;v++)
-    AnnotMapLabel[u][v] = -1;
+    for (v=0;v<vdim;v++)
+      AnnotMapLabel[u][v] = -1;
   vertex_index = mris->nvertices;
-  for (k=0;k<vertex_index;k++)
-  {
+  for (k=0;k<vertex_index;k++) {
     parameterization_coordinate(mris->vertices[k].x,mris->vertices[k].y,
                                 mris->vertices[k].z,&u,&v);
-    AnnotMapLabel[u][v] = AnnotLabel[k]; 
+    AnnotMapLabel[u][v] = AnnotLabel[k];
   }
   nundef = 1;
-  while (nundef>0)
-  {
+  while (nundef>0) {
     nundef = 0;
     for (u=0;u<udim;u++)
-    for (v=0;v<vdim;v++)
-    if (AnnotMapLabel[u][v]==-1) /* undefined AnnotLabel */
-    {
-      nundef++;
-      for (du= -1;du<=1;du++) 
-      for (dv= -1;dv<=1;dv++) 
-        if ((u+du>=0)&&(u+du<udim)&&(v+dv>=0)&&(v+dv<vdim)&&
-            (AnnotMapLabel[u+du][v+dv]!=-1))
-          AnnotMapLabel[u][v] = AnnotMapLabel[u+du][v+dv];
-    }
+      for (v=0;v<vdim;v++)
+        if (AnnotMapLabel[u][v]==-1) /* undefined AnnotLabel */
+        {
+          nundef++;
+          for (du= -1;du<=1;du++)
+            for (dv= -1;dv<=1;dv++)
+              if ((u+du>=0)&&(u+du<udim)&&(v+dv>=0)&&(v+dv<vdim)&&
+                  (AnnotMapLabel[u+du][v+dv]!=-1))
+                AnnotMapLabel[u][v] = AnnotMapLabel[u+du][v+dv];
+        }
     printf("AnnotToParameterization: nundef=%d\n",nundef);
   }
 }
 
 static void
-ParameterizationToAnnot(MRI_SURFACE *mris)
-{
+ParameterizationToAnnot(MRI_SURFACE *mris) {
   int u,v,vertex_index,k,i,num,*list;
 
   vertex_index = mris->nvertices;
-  for (k=0;k<vertex_index;k++)
-  {
+  for (k=0;k<vertex_index;k++) {
     parameterization_coordinate(mris->vertices[k].x,mris->vertices[k].y,
                                 mris->vertices[k].z,&u,&v);
     AnnotLabel[k] = AnnotMapLabel[u][v];
     AnnotCount[k] = AnnotMapCount[u][v];
     list = AnnotHistLabel[u][v];
-    for (i=0;i<maxlabels&&list[i]!=-1;i++) ; 
-    num = AnnotHistNumVertex[k] = i;  
+    for (i=0;i<maxlabels&&list[i]!=-1;i++) ;
+    num = AnnotHistNumVertex[k] = i;
     AnnotHistLabelVertex[k] = (int *)calloc(num,sizeof(int));
     AnnotHistCountVertex[k] = (int *)calloc(num,sizeof(int));
-    for (i=0;i<maxlabels&&list[i]!=-1;i++) 
-    {
+    for (i=0;i<maxlabels&&list[i]!=-1;i++) {
       AnnotHistLabelVertex[k][i] = AnnotHistLabel[u][v][i];
       AnnotHistCountVertex[k][i] = AnnotHistCount[u][v][i];
     }
@@ -346,45 +355,39 @@ ParameterizationToAnnot(MRI_SURFACE *mris)
 }
 
 static void
-UpdateAnnotHist(void)
-{
+UpdateAnnotHist(void) {
   int u,v,label,*list,i;
 
   for (u=0;u<udim;u++)
-  for (v=0;v<vdim;v++)
-  {
-    label = AnnotMapLabel[u][v];
-    list = AnnotHistLabel[u][v];
-    for (i=0;i<maxlabels&&list[i]!=-1&&list[i]!=label;i++);
-    if (list[i]==label) AnnotHistCount[u][v][i]++; 
-    else
-    {
-      AnnotHistLabel[u][v][i] = label;
-      AnnotHistCount[u][v][i] = 1;
+    for (v=0;v<vdim;v++) {
+      label = AnnotMapLabel[u][v];
+      list = AnnotHistLabel[u][v];
+      for (i=0;i<maxlabels&&list[i]!=-1&&list[i]!=label;i++);
+      if (list[i]==label) AnnotHistCount[u][v][i]++;
+      else {
+        AnnotHistLabel[u][v][i] = label;
+        AnnotHistCount[u][v][i] = 1;
+      }
     }
-  } 
 }
 
 static void
-GetAnnotMode(void)
-{
+GetAnnotMode(void) {
   int u,v,*list,i,imaxcnt;
 
   for (u=0;u<udim;u++)
-  for (v=0;v<vdim;v++)
-  {
-    list = AnnotHistCount[u][v];
-    imaxcnt = 0;
-    for (i=0;i<maxlabels&&list[i]>0;i++) 
-      if (list[i]>list[imaxcnt]) imaxcnt=i;
-    AnnotMapLabel[u][v] = AnnotHistLabel[u][v][imaxcnt];
-    AnnotMapCount[u][v] = AnnotHistCount[u][v][imaxcnt];
-  }  
+    for (v=0;v<vdim;v++) {
+      list = AnnotHistCount[u][v];
+      imaxcnt = 0;
+      for (i=0;i<maxlabels&&list[i]>0;i++)
+        if (list[i]>list[imaxcnt]) imaxcnt=i;
+      AnnotMapLabel[u][v] = AnnotHistLabel[u][v][imaxcnt];
+      AnnotMapCount[u][v] = AnnotHistCount[u][v][imaxcnt];
+    }
 }
 
 static int
-ReadAnnotFile(MRI_SURFACE *mris, char *fname)
-{
+ReadAnnotFile(MRI_SURFACE *mris, char *fname) {
   int i,j,k,num,vertex_index;
   FILE *fp;
 
@@ -397,8 +400,7 @@ ReadAnnotFile(MRI_SURFACE *mris, char *fname)
     AnnotLabel[k]=0;
   num = freadInt(fp);
   printf("num=%d\n",num);
-  for (j=0;j<num;j++)
-  {
+  for (j=0;j<num;j++) {
     k = freadInt(fp);
     i = freadFloat(fp);
     if (k>=vertex_index||k<0)
@@ -411,25 +413,22 @@ ReadAnnotFile(MRI_SURFACE *mris, char *fname)
 }
 
 static int
-WriteAnnotFile(MRI_SURFACE *mris, char *fname)
-{
+WriteAnnotFile(MRI_SURFACE *mris, char *fname) {
   int k,num,i,vertex_index;
   FILE *fp;
 
   vertex_index = mris->nvertices;
   fp = fopen(fname,"wb");
   if (fp==NULL)
-    ErrorReturn(ERROR_NOFILE, 
+    ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE,
                  "WriteAnnotFile(%s) - could not open file (%d)",
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotLabel[k]!=0) num++;
   printf("num = %d\n",num);
   fwriteFloat(num,fp);
-  for (k=0;k<vertex_index;k++)
-  {
-    if (AnnotLabel[k]!=0)
-    {
+  for (k=0;k<vertex_index;k++) {
+    if (AnnotLabel[k]!=0) {
       fwriteInt(k,fp);
       i = AnnotLabel[k];
       fwriteInt(i,fp);
@@ -441,26 +440,23 @@ WriteAnnotFile(MRI_SURFACE *mris, char *fname)
 }
 
 static int
-WriteAnnotFreqFile(MRI_SURFACE *mris,char *fname)
-{
+WriteAnnotFreqFile(MRI_SURFACE *mris,char *fname) {
   int k,num,vertex_index;
   float f;
   FILE *fp;
 
   vertex_index = mris->nvertices;
   fp = fopen(fname,"wb");
-  if (fp==NULL) 
+  if (fp==NULL)
     ErrorReturn(ERROR_NOFILE,
-                (ERROR_NOFILE, 
+                (ERROR_NOFILE,
                  "WriteAnnotFreqFile(%s): can't create file (%d)",
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotLabel[k]!=0) num++;
   printf("num = %d\n",num);
   fwriteInt(num,fp);
-  for (k=0;k<vertex_index;k++)
-  {
-    if (AnnotLabel[k]!=0)
-    {
+  for (k=0;k<vertex_index;k++) {
+    if (AnnotLabel[k]!=0) {
       fwriteInt(k,fp);
       f = ((float)AnnotCount[k])/TotalCount;
       fwriteFloat(f,fp);
@@ -472,25 +468,22 @@ WriteAnnotFreqFile(MRI_SURFACE *mris,char *fname)
 }
 
 static int
-WriteAnnotHistFile(MRI_SURFACE *mris, char *fname)
-{
+WriteAnnotHistFile(MRI_SURFACE *mris, char *fname) {
   int k,num,vertex_index,i;
   FILE *fp;
 
   vertex_index = mris->nvertices;
   fp = fopen(fname,"wb");
   if (fp==NULL)
-    ErrorReturn(ERROR_NOFILE, 
+    ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE,
                  "WriteAnnotHistFile(%s) - could not open file (%d)",
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotHistNumVertex[k]>0) num++;
   printf("num = %d\n",num);
   fwriteInt(num,fp);
-  for (k=0;k<vertex_index;k++)
-  {
-    if (AnnotHistNumVertex[k]>0)
-    {
+  for (k=0;k<vertex_index;k++) {
+    if (AnnotHistNumVertex[k]>0) {
       fwriteInt(k,fp);
       fwriteInt(AnnotHistNumVertex[k],fp);
       for (i=0;i<AnnotHistNumVertex[k];i++)

@@ -1,3 +1,31 @@
+/**
+ * @file  connect.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)connect.h 1.1
   3/31/94
@@ -9,7 +37,7 @@
 
         Created:  Jan. 1994
 
-    Description:  
+    Description:
 
 ------------------------------------------------------------------------*/
 #ifndef CONNECT_H
@@ -28,7 +56,8 @@ typedef struct _s_rle
   struct _s_rle *next ;   /* next run of continuous pixels */
   int           start ;   /* starting column of run */
   int           len ;     /* length of run */
-} RLE ;
+}
+RLE ;
 
 /*
   images are typically in log coordinates, so clips, dx and dy, and row
@@ -53,7 +82,8 @@ typedef struct _s_cobj
   int     starty ;
   int     log_col_cent ;     /* column center in log space */
   int     log_row_cent ;     /* row center in log space */
-} CONNECTED_OBJECT, COBJ ;
+}
+CONNECTED_OBJECT, COBJ ;
 
 typedef struct
 {
@@ -67,7 +97,8 @@ typedef struct
   int       white ;       /* 1 is white connected, 0 if black connected */
   LOGMAP_INFO *lmi ;      /* the logmap info structure used in segmentation */
   int       xo, yo ;      /* origin of table */
-} CONNECTED_OBJECT_TABLE, COBJ_TABLE ;
+}
+CONNECTED_OBJECT_TABLE, COBJ_TABLE ;
 
 COBJ_TABLE  *ConnectedComponents(LOGMAP_INFO *lmi, IMAGE *image, int white,
                                  int thresh, int xo, int yo) ;
@@ -76,8 +107,8 @@ void        ConnTableCalculateCentroids(COBJ_TABLE *ctable) ;
 int         ConnTableMatch(LOGMAP_INFO *lmi, COBJ_TABLE *ct1, COBJ_TABLE *ct2,
                            int *x, int *y, int dx_old, int dy_old,int use_old);
 COBJ *      CobjFindMatch(LOGMAP_INFO *lmi, COBJ_TABLE *ctable, int x, int y,
-                            int use_map, int *pdistance, int min_area, 
-                            int max_area, int max_dist) ;
+                          int use_map, int *pdistance, int min_area,
+                          int max_area, int max_dist) ;
 COBJ_TABLE  *ConnTableMerge(COBJ_TABLE *ct1, COBJ_TABLE *ct2, int dx, int dy) ;
 void        CobjCopy(COBJ *cSrcObj,COBJ *cDstObj,int dx,int dy,int copy_rles) ;
 void        CobjTranslate(COBJ *cobj, int dx, int dy) ;

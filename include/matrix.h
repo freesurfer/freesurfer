@@ -1,3 +1,31 @@
+/**
+ * @file  matrix.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.61 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef MATRIX_H
 #define MATRIX_H
 
@@ -18,13 +46,15 @@ typedef struct
   float **rptr;    /* pointer to an array of rows */
   float *data;     /* pointer to base of data */
   FILE *mmapfile;
-} MATRIX, VECTOR ;
+}
+MATRIX, VECTOR ;
 
 typedef struct
 {
   float  real ;
   float  imag ;
-} COMPLEX_FLOAT, *CPTR ;
+}
+COMPLEX_FLOAT, *CPTR ;
 
 #define MATRIX_CELT(m,r,c)      (((COMPLEX_FLOAT **)m->rptr)[r]+c)
 #define MATRIX_RELT(m,r,c)      (m->rptr[r]+c)
@@ -176,7 +206,7 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
              V3_X(v)/=len ;\
              V3_Y(v)/=len ;\
              V3_Z(v)/=len ;}
-                             
+
 #define V3_SUBTRACT(va,vb,vc) \
                  V3_X(vc) = V3_X(va)-V3_X(vb), \
                  V3_Y(vc) = V3_Y(va)-V3_Y(vb), \
@@ -224,9 +254,9 @@ MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
 int MatrixColsAreNotOrthog(MATRIX *X);
 int MatrixOrthonormalizeTransform(MATRIX *m_L) ;
-int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, 
+int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr,
                             double *pxt, double *pyt, double *pzt);
-MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, 
+MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr,
                                   double xt, double yt, double zt);
 
 int MatrixCheckFinite(MATRIX *m);

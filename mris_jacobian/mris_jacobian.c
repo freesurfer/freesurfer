@@ -1,3 +1,31 @@
+/**
+ * @file  mris_jacobian.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_jacobian.c,v 1.5 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_jacobian.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,14 +61,13 @@ static int noscale = 0 ;
 char *Progname ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, *orig_surf, *mapped_surf, *out_fname;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_jacobian.c,v 1.5 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_jacobian.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -53,8 +80,7 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -98,72 +124,63 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int    nargs = 0 ;
   char   *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "log"))
-  {
+  else if (!stricmp(option, "log")) {
     log_flag = 1 ;
     fprintf(stderr, "computing log of jacobian...\n") ;
-  }
-  else if (!stricmp(option, "invert"))
-  {
+  } else if (!stricmp(option, "invert")) {
     invert_flag = 1 ;
     fprintf(stderr, "computing inverse of jacobian<1 locations...\n") ;
-  }
-  else switch (toupper(*option))
-  {
-  case 'N':
-    noscale = 1 ;
-    printf("not scaling by total surface area\n") ;
-    break ;
-  case 'V':
-    Gdiag_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  } else switch (toupper(*option)) {
+    case 'N':
+      noscale = 1 ;
+      printf("not scaling by total surface area\n") ;
+      break ;
+    case 'V':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void)
-{
-  fprintf(stderr, 
-       "usage: %s [options] <original surface> <mapped surface> <jacobian file name>\n",
+print_usage(void) {
+  fprintf(stderr,
+          "usage: %s [options] <original surface> <mapped surface> <jacobian file name>\n",
           Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
 
 
-  fprintf(stderr, 
+  fprintf(stderr,
           "\nThis program computes the jacobian of a surface mapping\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "\t-log:\tcompute and write out log of jacobian\n") ;
@@ -173,15 +190,13 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-compute_area_ratios(MRI_SURFACE *mris, int noscale)
-{
+compute_area_ratios(MRI_SURFACE *mris, int noscale) {
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
@@ -190,8 +205,7 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
     area_scale = 1 ;
   else
     area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -208,15 +222,13 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
 }
 
 static int
-log_ratios(MRI_SURFACE *mris)
-{
+log_ratios(MRI_SURFACE *mris) {
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
 
   area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -231,15 +243,13 @@ log_ratios(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 static int
-invert_ratios(MRI_SURFACE *mris)
-{
+invert_ratios(MRI_SURFACE *mris) {
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
 
   area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;

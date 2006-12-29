@@ -1,3 +1,31 @@
+/**
+ * @file  map.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:03 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)map.c 1.1
   4/4/94
@@ -57,19 +85,17 @@
 ----------------------------------------------------------------------*/
 
 IMAP *
-MapIAlloc(int cols, int rows)
-{
+MapIAlloc(int cols, int rows) {
   IMAP *map ;
-  
+
   map = (IMAP *)calloc(1, sizeof(IMAP)) ;
   if (!map)
     return(NULL) ;
-  
+
   map->rows = rows ;
   map->cols = cols ;
   map->image = (int *)calloc(rows * cols, sizeof(int)) ;
-  if (!map->image)
-  {
+  if (!map->image) {
     free(map) ;
     return(NULL) ;
   }
@@ -84,19 +110,17 @@ MapIAlloc(int cols, int rows)
         initialize the runlength lookup tables.
 ----------------------------------------------------------------------*/
 CMAP *
-MapCAlloc(int cols, int rows)
-{
+MapCAlloc(int cols, int rows) {
   CMAP *map ;
-  
+
   map = (CMAP *)calloc(1, sizeof(CMAP)) ;
   if (!map)
     return(NULL) ;
-  
+
   map->rows = rows ;
   map->cols = cols ;
   map->image = (unsigned char *)calloc(rows * cols, sizeof(unsigned char)) ;
-  if (!map->image)
-  {
+  if (!map->image) {
     free(map) ;
     return(NULL) ;
   }
@@ -110,8 +134,7 @@ MapCAlloc(int cols, int rows)
               free a map.
 ----------------------------------------------------------------------*/
 void
-MapIFree(IMAP *map)
-{
+MapIFree(IMAP *map) {
   free(map->image) ;
   free(map) ;
 }
@@ -123,8 +146,7 @@ MapIFree(IMAP *map)
               free a map.
 ----------------------------------------------------------------------*/
 void
-MapCFree(CMAP *map)
-{
+MapCFree(CMAP *map) {
   free(map->image) ;
   free(map) ;
 }
@@ -138,13 +160,12 @@ MapCFree(CMAP *map)
               write a map out to a file in hips format
 ----------------------------------------------------------------------*/
 void
-MapCHipsWrite(CMAP *map, char *fname)
-{
+MapCHipsWrite(CMAP *map, char *fname) {
   IMAGE image ;
 
   ImageInitHeader(&image, map->cols, map->rows,  PFBYTE, 1) ;
   image.image = map->image ;
-   
+
   ImageWrite(&image, fname) ;
 }
 /*----------------------------------------------------------------------
@@ -156,8 +177,7 @@ MapCHipsWrite(CMAP *map, char *fname)
               write a map out to a file in hips format
 ----------------------------------------------------------------------*/
 void
-MapCShowImage(CMAP *map, char *name)
-{
+MapCShowImage(CMAP *map, char *name) {
   IMAGE    image ;
 #if USE_XWIN
   xwindow_type *xwin ;
@@ -181,8 +201,7 @@ MapCShowImage(CMAP *map, char *name)
               write a map out to a file in hips format
 ----------------------------------------------------------------------*/
 void
-MapIShowImage(IMAP *map, char *name)
-{
+MapIShowImage(IMAP *map, char *name) {
   IMAGE    image ;
 #if USE_XWIN
   xwindow_type *xwin ;
@@ -206,10 +225,9 @@ MapIShowImage(IMAP *map, char *name)
               write a map out to a file in hips format
 ----------------------------------------------------------------------*/
 void
-MapIHipsWrite(IMAP *map, char *fname)
-{
+MapIHipsWrite(IMAP *map, char *fname) {
   IMAGE image ;
-  
+
   ImageInitHeader(&image, map->cols, map->rows, PFINT, 1) ;
 
   image.image = (unsigned char *)map->image ;
@@ -223,8 +241,7 @@ MapIHipsWrite(IMAP *map, char *fname)
               allocate and make an exact copy of map m.
 ----------------------------------------------------------------------*/
 CMAP *
-MapClone(CMAP *m)
-{
+MapClone(CMAP *m) {
   CMAP *mClone ;
 
   mClone = MapCAlloc(m->cols, m->rows) ;
@@ -241,8 +258,7 @@ MapClone(CMAP *m)
               copy each cell in mSrc into mDst.
 ----------------------------------------------------------------------*/
 void
-MapCopy(CMAP *mSrc, CMAP *mDst)
-{
+MapCopy(CMAP *mSrc, CMAP *mDst) {
   int           size ;
   unsigned char *src, *dst ;
 
@@ -264,8 +280,7 @@ MapCopy(CMAP *mSrc, CMAP *mDst)
               mSum.  All the maps must be the same size.
 ----------------------------------------------------------------------*/
 void
-MapAdd(CMAP *m1, CMAP *m2, CMAP *mSum)
-{
+MapAdd(CMAP *m1, CMAP *m2, CMAP *mSum) {
   int           size ;
   unsigned char *src1, *src2, *dst ;
 
@@ -291,10 +306,9 @@ MapAdd(CMAP *m1, CMAP *m2, CMAP *mSum)
 #define MEAN_Y      10
 
 void
-MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited)
-{
+MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited) {
   int    x, y, kx, ky, count, max_change, sum, xmin, xmax, ymin, ymax, val,
-         *cell, trialno ;
+  *cell, trialno ;
   UCHAR  *vcell ;
 
 #if DEBUG_ALL
@@ -307,12 +321,9 @@ MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited)
   xmin = mVisited->cols ;
   ymin = mVisited->rows ;
   xmax = ymax = 0 ;
-  for (x = 0 ; x < mVisited->cols ; x++)
-  {
-    for (y = 0 ; y < mVisited->rows ; y++)
-    {
-      if (MAPcell(mVisited, x, y))
-      {
+  for (x = 0 ; x < mVisited->cols ; x++) {
+    for (y = 0 ; y < mVisited->rows ; y++) {
+      if (MAPcell(mVisited, x, y)) {
         if (x < xmin)
           xmin = x ;
         if (x > xmax)
@@ -332,22 +343,17 @@ MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited)
 #endif
 
   /* first run 10 by 10 mean filter on fixed points to speed stuff up */
-  for (y = ymin ; y <= ymax ; y++)
-  {
-    for (x = xmin ; x <= xmax ; x++)
-    {
+  for (y = ymin ; y <= ymax ; y++) {
+    for (x = xmin ; x <= xmax ; x++) {
       if (MAPcell(mVisited, x, y))
         continue ;
 
       sum = 0 ;
       count = 0 ;
-      for (ky = y - MEAN_Y/2 ; ky <= y + MEAN_Y/2 ; ky++)
-      {
-        if ((ky >= ymin) && (ky <= ymax)) 
-          for (kx = x-MEAN_X/2 ; kx <= x+MEAN_X/2 ; kx++)
-          {
-            if ((kx >= xmin) && (kx <= xmax) && MAPcell(mVisited, kx, ky))
-            {
+      for (ky = y - MEAN_Y/2 ; ky <= y + MEAN_Y/2 ; ky++) {
+        if ((ky >= ymin) && (ky <= ymax))
+          for (kx = x-MEAN_X/2 ; kx <= x+MEAN_X/2 ; kx++) {
+            if ((kx >= xmin) && (kx <= xmax) && MAPcell(mVisited, kx, ky)) {
               count++ ;
               cell = &MAPcell(mVal, kx, ky) ;
               sum += *cell ;
@@ -364,35 +370,28 @@ MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited)
 
   trialno = 0 ;
 
-  do
-  {
+  do {
     max_change = 0 ;
-    for (y = ymin ; y <= ymax ; y++)
-    {
-      for (x = xmin ; x <= xmax ; x++)
-      {
+    for (y = ymin ; y <= ymax ; y++) {
+      for (x = xmin ; x <= xmax ; x++) {
         if (MAPcell(mVisited, x, y))
           continue ;                   /* fix points that were given */
-        
-        count = sum = 0 ;
-        for (ky = y-1 ; ky <= y+1 ; ky++)
-        {
-          if ((ky >= ymin) && (ky <= ymax)) for (kx = x-1 ; kx <= x+1 ;kx++)
-          {
-            if ((kx >= xmin) && (kx <= xmax))
-            {
-              count++ ;
-              cell = &MAPcell(mVal, kx, ky) ;
-              if (*cell > 200)
-              {
-                vcell = &MAPcell(mVisited, x, y) ;
-              }
 
-              sum += MAPcell(mVal, kx, ky) ;
+        count = sum = 0 ;
+        for (ky = y-1 ; ky <= y+1 ; ky++) {
+          if ((ky >= ymin) && (ky <= ymax)) for (kx = x-1 ; kx <= x+1 ;kx++) {
+              if ((kx >= xmin) && (kx <= xmax)) {
+                count++ ;
+                cell = &MAPcell(mVal, kx, ky) ;
+                if (*cell > 200) {
+                  vcell = &MAPcell(mVisited, x, y) ;
+                }
+
+                sum += MAPcell(mVal, kx, ky) ;
+              }
             }
-          }
         }
-        
+
         if (!count)
           continue ;
 
@@ -416,16 +415,13 @@ MapSoapBubbleRelax(IMAP *mVal, CMAP *mVisited)
            Description:
 ----------------------------------------------------------------------*/
 void
-MapIPrint(IMAP *map, FILE *fp)
-{
+MapIPrint(IMAP *map, FILE *fp) {
   int  x, y ;
 
   if (!Gdiag) return ;
 
-  for (y = 0 ; y < map->rows ; y++)
-  {
-    for (x = 0 ; x < map->cols ; x++)
-    {
+  for (y = 0 ; y < map->rows ; y++) {
+    for (x = 0 ; x < map->cols ; x++) {
       fprintf(fp, "%4.4d  ", MAPcell(map, x, y)) ;
     }
     fprintf(fp, "\n") ;
@@ -437,16 +433,13 @@ MapIPrint(IMAP *map, FILE *fp)
            Description:
 ----------------------------------------------------------------------*/
 void
-MapCPrint(CMAP *map, FILE *fp)
-{
+MapCPrint(CMAP *map, FILE *fp) {
   int  x, y ;
 
   if (!Gdiag) return ;
 
-  for (y = 0 ; y < map->rows ; y++)
-  {
-    for (x = 0 ; x < map->cols ; x++)
-    {
+  for (y = 0 ; y < map->rows ; y++) {
+    for (x = 0 ; x < map->cols ; x++) {
       fprintf(fp, "%4.4d  ", (int)MAPcell(map, x, y)) ;
     }
     fprintf(fp, "\n") ;

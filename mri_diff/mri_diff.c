@@ -1,10 +1,38 @@
+/**
+ * @file  mri_diff.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:06 $
+ *    $Revision: 1.16 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // mri_voldiff v1 v2
 //
 /*
   BEGINHELP
 
-  Determines whether two volumes differ. See below for what 
-  'differ' means. 
+  Determines whether two volumes differ. See below for what
+  'differ' means.
 
   The basic usage is something like:
 
@@ -13,7 +41,7 @@
   It then prints to the terminal whether they differ or not.
 
   NOTE: stuff might get printed to the terminal regardless of whether
-  the volumes are different or not, so you cannot just use the 
+  the volumes are different or not, so you cannot just use the
   presence or absence of terminal output to determine whether they
   are different as you can with unix diff.
 
@@ -27,7 +55,7 @@
 
   mri_diff vol1 vol2 --log yourlogfile
 
-  If yourlogfile exists, it will be immediately deleted when the 
+  If yourlogfile exists, it will be immediately deleted when the
   program starts. If a difference is detected, yourlogfile will
   be created, and information about the difference will be
   printed to it. If there is no difference, yourlogfile will
@@ -133,7 +161,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.15 2006/11/28 20:22:05 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.16 2006/12/29 02:09:06 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -163,8 +191,7 @@ int ExitOnDiff = 1;
 int ExitStatus = 0;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
   int rmax, cmax, smax, fmax;
   double diff,maxdiff;
@@ -183,45 +210,45 @@ int main(int argc, char *argv[])
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly) return(0);
+  if (checkoptsonly) return(0);
 
-  if(debug) dump_options(stdout);
+  if (debug) dump_options(stdout);
 
   //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   //  if(SUBJECTS_DIR == NULL){
   //    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
   //    exit(1);
   //  }
-  if(DiffFile){
-    if(fio_FileExistsReadable(DiffFile)) unlink(DiffFile);
-    if(fio_FileExistsReadable(DiffFile)){
+  if (DiffFile) {
+    if (fio_FileExistsReadable(DiffFile)) unlink(DiffFile);
+    if (fio_FileExistsReadable(DiffFile)) {
       printf("ERROR: could not delete %s\n",DiffFile);
       exit(1);
     }
   }
 
   InVol1 = MRIread(InVol1File);
-  if(InVol1==NULL) exit(1);
+  if (InVol1==NULL) exit(1);
 
   InVol2 = MRIread(InVol2File);
-  if(InVol2==NULL) exit(1);
-  
+  if (InVol2==NULL) exit(1);
+
   /*- Check dimension ---------------------------------*/
-  if(InVol1->width   != InVol2->width  ||
-     InVol1->height  != InVol2->height ||
-     InVol1->depth   != InVol2->depth  ||
-     InVol1->nframes != InVol2->nframes){
+  if (InVol1->width   != InVol2->width  ||
+      InVol1->height  != InVol2->height ||
+      InVol1->depth   != InVol2->depth  ||
+      InVol1->nframes != InVol2->nframes) {
     printf("Volumes differ in dimension\n");
     printf("v1dim %d %d %d %d\n",
            InVol1->width,InVol1->height,InVol1->depth,InVol1->nframes);
     printf("v2dim %d %d %d %d\n",
            InVol2->width,InVol2->height,InVol2->depth,InVol2->nframes);
-    if(DiffFile){
+    if (DiffFile) {
       fp = fopen(DiffFile,"w");
-      if(fp==NULL){
+      if (fp==NULL) {
         printf("ERROR: could not open %s\n",DiffFile);
         exit(1);
       }
@@ -236,12 +263,12 @@ int main(int argc, char *argv[])
     // Must exit here
     exit(101);
   }
-  
+
   //---------------------------------------------------
-  if(CheckResolution){
-    if(fabs(InVol1->xsize - InVol2->xsize) > resthresh  ||
-       fabs(InVol1->ysize - InVol2->ysize) > resthresh  ||
-       fabs(InVol1->zsize - InVol2->zsize) > resthresh){
+  if (CheckResolution) {
+    if (fabs(InVol1->xsize - InVol2->xsize) > resthresh  ||
+        fabs(InVol1->ysize - InVol2->ysize) > resthresh  ||
+        fabs(InVol1->zsize - InVol2->zsize) > resthresh) {
       printf("Volumes differ in resolution\n");
       printf("v1res %f %f %f\n",
              InVol1->xsize,InVol1->ysize,InVol1->zsize);
@@ -251,9 +278,9 @@ int main(int argc, char *argv[])
              InVol1->xsize-InVol2->xsize,
              InVol1->ysize-InVol2->ysize,
              InVol1->zsize-InVol2->zsize);
-      if(DiffFile){
+      if (DiffFile) {
         fp = fopen(DiffFile,"w");
-        if(fp==NULL){
+        if (fp==NULL) {
           printf("ERROR: could not open %s\n",DiffFile);
           exit(1);
         }
@@ -266,24 +293,24 @@ int main(int argc, char *argv[])
         fclose(fp);
       }
       ExitStatus = 102;
-      if(ExitOnDiff) exit(ExitStatus);
+      if (ExitOnDiff) exit(ExitStatus);
     }
   }
 
   //---------------------------------------------------
-  if(CheckAcqParams){
-    if(InVol1->flip_angle   != InVol2->flip_angle ||
-       InVol1->tr   != InVol2->tr ||
-       InVol1->te   != InVol2->te ||
-       InVol1->ti   != InVol2->ti){
+  if (CheckAcqParams) {
+    if (InVol1->flip_angle   != InVol2->flip_angle ||
+        InVol1->tr   != InVol2->tr ||
+        InVol1->te   != InVol2->te ||
+        InVol1->ti   != InVol2->ti) {
       printf("Volumes differ in acquisition parameters\n");
       printf("v1acq fa=%f tr=%f te=%f ti=%f\n",
              InVol1->flip_angle,InVol1->tr,InVol1->te,InVol1->ti);
       printf("v2acq fa=%f tr=%f te=%f ti=%f\n",
              InVol2->flip_angle,InVol2->tr,InVol2->te,InVol2->ti);
-      if(DiffFile){
+      if (DiffFile) {
         fp = fopen(DiffFile,"w");
-        if(fp==NULL){
+        if (fp==NULL) {
           printf("ERROR: could not open %s\n",DiffFile);
           exit(1);
         }
@@ -296,25 +323,25 @@ int main(int argc, char *argv[])
         fclose(fp);
       }
       ExitStatus = 103;
-      if(ExitOnDiff) exit(103);
+      if (ExitOnDiff) exit(103);
     }
   }
 
   //------------------------------------------------------
-  if(CheckGeo){
+  if (CheckGeo) {
     vox2ras1 = MRIxfmCRS2XYZ(InVol1,0);
     vox2ras2 = MRIxfmCRS2XYZ(InVol2,0);
-    for(r=1; r<=4; r++){
-      for(c=1; c<=4; c++){
+    for (r=1; r<=4; r++) {
+      for (c=1; c<=4; c++) {
         val1 = vox2ras1->rptr[r][c];
         val2 = vox2ras2->rptr[r][c];
         diff = fabs(val1-val2);
-        if(diff > geothresh){
+        if (diff > geothresh) {
           printf("Volumes differ in geometry %d %d %lf\n",
                  r,c,diff);
-          if(DiffFile){
+          if (DiffFile) {
             fp = fopen(DiffFile,"w");
-            if(fp==NULL){
+            if (fp==NULL) {
               printf("ERROR: could not open %s\n",DiffFile);
               exit(1);
             }
@@ -328,21 +355,21 @@ int main(int argc, char *argv[])
                     r,c,diff);
             fclose(fp);
           }
-	  ExitStatus = 104;
-          if(ExitOnDiff) exit(104);
+          ExitStatus = 104;
+          if (ExitOnDiff) exit(104);
         }
       } // c
     } // r
   } // checkgeo
 
   //-------------------------------------------------------
-  if(CheckPrecision){
-    if(InVol1->type != InVol2->type){
+  if (CheckPrecision) {
+    if (InVol1->type != InVol2->type) {
       printf("Volumes differ in precision %d %d\n",
              InVol1->type,InVol2->type);
-      if(DiffFile){
+      if (DiffFile) {
         fp = fopen(DiffFile,"w");
-        if(fp==NULL){
+        if (fp==NULL) {
           printf("ERROR: could not open %s\n",DiffFile);
           exit(1);
         }
@@ -353,16 +380,16 @@ int main(int argc, char *argv[])
         fclose(fp);
       }
       ExitStatus = 105;
-      if(ExitOnDiff) exit(105);
+      if (ExitOnDiff) exit(105);
     }
   }
 
   //------------------------------------------------------
   // Compare pixel values
-  if(CheckPixVals){
-    if(DiffVolFile) {
+  if (CheckPixVals) {
+    if (DiffVolFile) {
       DiffVol = MRIallocSequence(InVol1->width,InVol1->height,
-				 InVol1->depth,MRI_FLOAT,InVol1->nframes);
+                                 InVol1->depth,MRI_FLOAT,InVol1->nframes);
       MRIcopyHeader(InVol1,DiffVol);
     }
     c=r=s=f=0;
@@ -370,16 +397,16 @@ int main(int argc, char *argv[])
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
     maxdiff = fabs(val1-val2);
     cmax=rmax=smax=fmax=0;
-    for(c=0; c < InVol1->width; c++){
-      for(r=0; r < InVol1->height; r++){
-        for(s=0; s < InVol1->depth; s++){
-          for(f=0; f < InVol1->nframes; f++){
+    for (c=0; c < InVol1->width; c++) {
+      for (r=0; r < InVol1->height; r++) {
+        for (s=0; s < InVol1->depth; s++) {
+          for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-            if(! DiffAbs) diff = fabs(val1-val2);
+            if (! DiffAbs) diff = fabs(val1-val2);
             else diff = fabs(fabs(val1)-fabs(val2));
-            if(DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
-            if(maxdiff < diff){
+            if (DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
+            if (maxdiff < diff) {
               maxdiff = diff;
               cmax = c;
               rmax = r;
@@ -390,17 +417,17 @@ int main(int argc, char *argv[])
         }
       }
     }
-    if(debug) printf("maxdiff %f at %d %d %d %d\n",
-                     maxdiff,cmax,rmax,smax,fmax);
-    if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
+    if (debug) printf("maxdiff %f at %d %d %d %d\n",
+                        maxdiff,cmax,rmax,smax,fmax);
+    if (DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
 
-    if(maxdiff > pixthresh){
+    if (maxdiff > pixthresh) {
       printf("Volumes differ in pixel data\n");
       printf("maxdiff %f at %d %d %d %d\n",
              maxdiff,cmax,rmax,smax,fmax);
-      if(DiffFile){
+      if (DiffFile) {
         fp = fopen(DiffFile,"w");
-        if(fp==NULL){
+        if (fp==NULL) {
           printf("ERROR: could not open %s\n",DiffFile);
           exit(1);
         }
@@ -410,20 +437,20 @@ int main(int argc, char *argv[])
         fclose(fp);
       }
       ExitStatus = 106;
-      if(ExitOnDiff) exit(106);
+      if (ExitOnDiff) exit(106);
     }
   }
 
   //----------------------------------------------------------
-  if(CheckOrientation){
+  if (CheckOrientation) {
     MRIdircosToOrientationString(InVol1,Orient1);
     MRIdircosToOrientationString(InVol2,Orient2);
-    if(strcmp(Orient1,Orient2)){
+    if (strcmp(Orient1,Orient2)) {
       printf("Volumes differ in orientation %s %s\n",
              Orient1,Orient2);
-      if(DiffFile){
+      if (DiffFile) {
         fp = fopen(DiffFile,"w");
-        if(fp==NULL){
+        if (fp==NULL) {
           printf("ERROR: could not open %s\n",DiffFile);
           exit(1);
         }
@@ -433,7 +460,7 @@ int main(int argc, char *argv[])
         fclose(fp);
       }
       ExitStatus = 107;
-      if(ExitOnDiff) exit(107);
+      if (ExitOnDiff) exit(107);
     }
   }
 
@@ -441,19 +468,18 @@ int main(int argc, char *argv[])
   return(ExitStatus);
 }
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -474,63 +500,53 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
     else if (!strcasecmp(option, "--diffabs"))  DiffAbs = 1;
-    else if (!strcasecmp(option, "--qa")){
+    else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
-    }
-    else if (!strcasecmp(option, "--pix-only")){
+    } else if (!strcasecmp(option, "--pix-only")) {
       CheckPixVals = 1;
       CheckResolution = 0;
       CheckAcqParams = 0;
       CheckGeo     = 0;
       CheckPrecision = 0;
       CheckOrientation = 0;
-    }
-
-    else if (!strcasecmp(option, "--v1")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--v1")) {
+      if (nargc < 1) CMDargNErr(option,1);
       InVol1File = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--v2")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--v2")) {
+      if (nargc < 1) CMDargNErr(option,1);
       InVol2File = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--thresh")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&pixthresh);
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--res-thresh")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--res-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&resthresh);
       CheckResolution=1;
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--geo-thresh")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--geo-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&geothresh);
       CheckResolution=1;
       nargsused = 1;
-    }
-    else if (!strcasecmp(option, "--diff-file") ||
-             !strcasecmp(option, "--log")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--diff-file") ||
+               !strcasecmp(option, "--log")) {
+      if (nargc < 1) CMDargNErr(option,1);
       DiffFile = pargv[0];
       nargsused = 1;
-    }
-    else if(!strcasecmp(option, "--diff")){
-      if(nargc < 1) CMDargNErr(option,1);
+    } else if (!strcasecmp(option, "--diff")) {
+      if (nargc < 1) CMDargNErr(option,1);
       DiffVolFile = pargv[0];
       nargsused = 1;
-    }
-    else{
-      if(InVol1File == NULL)      InVol1File = option;
-      else if(InVol2File == NULL) InVol2File = option;
-      else{
+    } else {
+      if (InVol1File == NULL)      InVol1File = option;
+      else if (InVol2File == NULL) InVol2File = option;
+      else {
         fprintf(stderr,"ERROR: Option %s unknown\n",option);
-        if(CMDsingleDash(option))
+        if (CMDsingleDash(option))
           fprintf(stderr,"       Did you really mean -%s ?\n",option);
         exit(-1);
       }
@@ -541,33 +557,29 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(InVol1File==NULL){
+static void check_options(void) {
+  if (InVol1File==NULL) {
     printf("ERROR: need to spec volume 1\n");
     exit(1);
   }
-  if(InVol2File==NULL){
+  if (InVol2File==NULL) {
     printf("ERROR: need to spec volume 2\n");
     exit(1);
   }
   return;
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"%s\n",Progname);
@@ -593,8 +605,7 @@ static void dump_options(FILE *fp)
   return;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s <options> vol1file vol2file <options> \n",Progname) ;
   printf("\n");
   //printf("   --v1 volfile1 : first  input volume \n");
@@ -626,8 +637,7 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
 
   printf("\n");

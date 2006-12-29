@@ -1,3 +1,31 @@
+/**
+ * @file  UndoManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "UndoManager.h"
 
 using namespace std;
@@ -6,18 +34,18 @@ UndoManager&
 UndoManager::GetManager () {
 
   static UndoManager* sManager = NULL;
-  if( NULL == sManager ) {
+  if ( NULL == sManager ) {
     sManager = new UndoManager();
 
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( *sManager, "GetUndoTitle", 0, "",
-			   "Returns the title for the undo action." );
+                           "Returns the title for the undo action." );
     commandMgr.AddCommand( *sManager, "GetRedoTitle", 0, "",
-			   "Returns the title for the redo action." );
+                           "Returns the title for the redo action." );
     commandMgr.AddCommand( *sManager, "Undo", 0, "",
-			   "Undoes the last action." );
+                           "Undoes the last action." );
     commandMgr.AddCommand( *sManager, "Redo", 0, "",
-			   "Redoes last undone action." );
+                           "Redoes last undone action." );
   };
 
   return *sManager;
@@ -37,7 +65,7 @@ UndoManager::BeginAction ( std::string isTitle ) {
 void
 UndoManager::AddAction ( UndoAction* iAction ) {
 
-  if( NULL == mCurrentAction ) {
+  if ( NULL == mCurrentAction ) {
     throw runtime_error( "Tried to add undo action without beginning an action first." );
   }
 
@@ -50,14 +78,14 @@ UndoManager::EndAction () {
   mUndoActions.push_back( mCurrentAction );
   mCurrentAction = NULL;
 
-  if( mUndoActions.size() + mRedoActions.size() > 
-      (unsigned int)mcMaxActions ) {
+  if ( mUndoActions.size() + mRedoActions.size() >
+       (unsigned int)mcMaxActions ) {
 
     // First pop the oldest redo item if we have one, because that's
     // probably the lest neeeded item. If the redo list is empty, do
     // the undo list. The oldest one in each list will be the
     // front. (That's notnecessarily true, but good enough for us.)
-    if( mRedoActions.size() > 0 ) {
+    if ( mRedoActions.size() > 0 ) {
       UndoableAction* toDelete = mRedoActions.front();
       mRedoActions.pop_front();
       delete toDelete;
@@ -70,11 +98,11 @@ UndoManager::EndAction () {
 }
 
 string
-UndoManager::GetUndoTitle () { 
+UndoManager::GetUndoTitle () {
 
-  if( mUndoActions.size() > 0 ) {
+  if ( mUndoActions.size() > 0 ) {
     UndoableAction* undoableAction = mUndoActions.back();
-    if( NULL != undoableAction ) {
+    if ( NULL != undoableAction ) {
       stringstream ss;
       ss << "Undo " << undoableAction->msTitle;
       return ss.str();
@@ -84,11 +112,11 @@ UndoManager::GetUndoTitle () {
 }
 
 string
-UndoManager::GetRedoTitle () { 
+UndoManager::GetRedoTitle () {
 
-  if( mRedoActions.size() > 0 ) {
+  if ( mRedoActions.size() > 0 ) {
     UndoableAction* redoableAction = mRedoActions.back();
-    if( NULL != redoableAction ) {
+    if ( NULL != redoableAction ) {
       stringstream ss;
       ss << "Redo " << redoableAction->msTitle;
       return ss.str();
@@ -100,9 +128,9 @@ UndoManager::GetRedoTitle () {
 void
 UndoManager::Undo () {
 
-  if( mUndoActions.size() > 0 ) {
+  if ( mUndoActions.size() > 0 ) {
     UndoableAction* undoableAction =  mUndoActions.back();
-    if( NULL != undoableAction ) {
+    if ( NULL != undoableAction ) {
       mUndoActions.pop_back();
 
       // We use a revers iterator here so that the most recently done
@@ -111,14 +139,14 @@ UndoManager::Undo () {
       // multiple times in the same action, as in a brush action, so
       // that the first value is restored last.
       list<UndoAction*>::reverse_iterator tActions;
-      for( tActions = undoableAction->mActions.rbegin();
-	   tActions != undoableAction->mActions.rend(); 
-	   ++tActions ) {
+      for ( tActions = undoableAction->mActions.rbegin();
+            tActions != undoableAction->mActions.rend();
+            ++tActions ) {
 
-	UndoAction* action = *tActions;
-	action->Undo();
+        UndoAction* action = *tActions;
+        action->Undo();
       }
-      
+
       mRedoActions.push_back( undoableAction );
     }
   }
@@ -127,19 +155,19 @@ UndoManager::Undo () {
 void
 UndoManager::Redo () {
 
-  if( mRedoActions.size() > 0 ) {
+  if ( mRedoActions.size() > 0 ) {
     UndoableAction* redoableAction = mRedoActions.back();
-    if( NULL != redoableAction ) {
+    if ( NULL != redoableAction ) {
       mRedoActions.pop_back();
-      
+
       list<UndoAction*>::reverse_iterator tActions;
-      for( tActions = redoableAction->mActions.rbegin();
-	   tActions != redoableAction->mActions.rend(); 
-	   ++tActions ) {
-	UndoAction* action = *tActions;
-	action->Redo();
+      for ( tActions = redoableAction->mActions.rbegin();
+            tActions != redoableAction->mActions.rend();
+            ++tActions ) {
+        UndoAction* action = *tActions;
+        action->Redo();
       }
-      
+
       mUndoActions.push_back( redoableAction );
     }
   }
@@ -149,31 +177,31 @@ void
 UndoManager::Clear () {
 
   list<UndoableAction*>::iterator tAction;
-  for( tAction = mUndoActions.begin();
-       tAction != mUndoActions.end(); 
-       ++tAction ) {
+  for ( tAction = mUndoActions.begin();
+        tAction != mUndoActions.end();
+        ++tAction ) {
     UndoableAction* action = *tAction;
     delete action;
   }
-      
-  for( tAction = mRedoActions.begin();
-       tAction != mRedoActions.end(); 
-       ++tAction ) {
+
+  for ( tAction = mRedoActions.begin();
+        tAction != mRedoActions.end();
+        ++tAction ) {
     UndoableAction* action = *tAction;
     delete action;
   }
-     
+
   mUndoActions.clear();
   mRedoActions.clear();
 }
 
 TclCommandManager::TclCommandResult
-UndoManager::DoListenToTclCommand ( char* isCommand, 
-				    int, char** ) {
+UndoManager::DoListenToTclCommand ( char* isCommand,
+                                    int, char** ) {
 
 
   // GetUndoTitle
-  if( 0 == strcmp( isCommand, "GetUndoTitle" ) ) {
+  if ( 0 == strcmp( isCommand, "GetUndoTitle" ) ) {
 
     sReturnFormat = "s";
     stringstream ssReturnValues;
@@ -182,7 +210,7 @@ UndoManager::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetRedoTitle
-  if( 0 == strcmp( isCommand, "GetRedoTitle" ) ) {
+  if ( 0 == strcmp( isCommand, "GetRedoTitle" ) ) {
 
     sReturnFormat = "s";
     stringstream ssReturnValues;
@@ -191,42 +219,34 @@ UndoManager::DoListenToTclCommand ( char* isCommand,
   }
 
   // Undo
-  if( 0 == strcmp( isCommand, "Undo" ) ) {
+  if ( 0 == strcmp( isCommand, "Undo" ) ) {
     Undo();
   }
 
   // Redo
-  if( 0 == strcmp( isCommand, "Redo" ) ) {
+  if ( 0 == strcmp( isCommand, "Redo" ) ) {
     Redo();
   }
 
   return ok;
 }
 
-UndoAction::UndoAction () {
+UndoAction::UndoAction () {}
 
-}
+UndoAction::~UndoAction () {}
 
-UndoAction::~UndoAction () {
+void
+UndoAction::Undo () {}
 
-}
-
-void 
-UndoAction::Undo () {
-
-}
-
-void 
-UndoAction::Redo () {
-
-}
+void
+UndoAction::Redo () {}
 
 UndoableAction::~UndoableAction () {
 
   list<UndoAction*>::iterator tActions;
-  for( tActions = mActions.begin();
-       tActions != mActions.end(); 
-       ++tActions ) {
+  for ( tActions = mActions.begin();
+        tActions != mActions.end();
+        ++tActions ) {
     UndoAction* action = *tActions;
     delete action;
   }

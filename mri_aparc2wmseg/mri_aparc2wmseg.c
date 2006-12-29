@@ -1,4 +1,32 @@
-// mri_aparc2aseg.c 
+/**
+ * @file  mri_aparc2wmseg.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:04 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+// mri_aparc2aseg.c
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +62,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.4 2006/06/01 22:31:03 kteich Exp $";
+static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.5 2006/12/29 02:09:04 nicks Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -56,8 +84,7 @@ char tmpstr[2000];
 
 
 /*--------------------------------------------------*/
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int nargs, err, asegid, c, r, s, annot, hemioffset;
   int annotid;
   struct utsname uts;
@@ -77,7 +104,7 @@ int main(int argc, char **argv)
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
 
   parse_commandline(argc, argv);
   check_options();
@@ -92,7 +119,7 @@ int main(int argc, char **argv)
   printf("machine  %s\n",uts.machine);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR==NULL){
+  if (SUBJECTS_DIR==NULL) {
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
@@ -105,7 +132,7 @@ int main(int argc, char **argv)
   sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
   printf("Reading lh white surface \n %s\n",tmpstr);
   lhwhite = MRISread(tmpstr);
-  if(lhwhite == NULL){
+  if (lhwhite == NULL) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
@@ -117,7 +144,7 @@ int main(int argc, char **argv)
   sprintf(annotfile,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
   printf("Loading lh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(lhwhite, annotfile);
-  if(err){
+  if (err) {
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
     exit(1);
   }
@@ -126,43 +153,42 @@ int main(int argc, char **argv)
   sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
   printf("Reading rh white surface \n %s\n",tmpstr);
   rhwhite = MRISread(tmpstr);
-  if(rhwhite == NULL){
+  if (rhwhite == NULL) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  if(debug) printf("Building hash of rh white\n");
+  if (debug) printf("Building hash of rh white\n");
   rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,16);
 
   /* ------ Load rh annotation ------ */
   sprintf(annotfile,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
   printf("Loading rh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(rhwhite, annotfile);
-  if(err){
+  if (err) {
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
     exit(1);
   }
 
-  if(debug && lhwhite->ct) printf("Have color table for annotation\n");
-  if(debug) print_annotation_table(stdout);
+  if (debug && lhwhite->ct) printf("Have color table for annotation\n");
+  if (debug) print_annotation_table(stdout);
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
-  if(!fio_FileExistsReadable(tmpstr)){
+  if (!fio_FileExistsReadable(tmpstr)) {
     sprintf(tmpstr,"%s/%s/mri/aseg.mgh",SUBJECTS_DIR,subject);
-    if(!fio_FileExistsReadable(tmpstr)){
+    if (!fio_FileExistsReadable(tmpstr)) {
       sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
-      if(!fio_FileExistsReadable(tmpstr)){
-	printf("ERROR: cannot find aseg\n");
-	exit(1);
-      }
-      else
-	sprintf(tmpstr,"%s/%s/mri/aseg/",SUBJECTS_DIR,subject);
+      if (!fio_FileExistsReadable(tmpstr)) {
+        printf("ERROR: cannot find aseg\n");
+        exit(1);
+      } else
+        sprintf(tmpstr,"%s/%s/mri/aseg/",SUBJECTS_DIR,subject);
     }
   }
 
   printf("Loading aseg from %s\n",tmpstr);
   ASeg = MRIread(tmpstr);
-  if(ASeg == NULL){
+  if (ASeg == NULL) {
     printf("ERROR: loading aseg %s\n",tmpstr);
     exit(1);
   }
@@ -172,10 +198,10 @@ int main(int argc, char **argv)
   WMSeg = MRIclone(ASeg,NULL);
 
   Vox2RAS = MRIxfmCRS2XYZtkreg(ASeg);
-  if(debug){
-    printf("ASeg Vox2RAS: -----------\n");  
+  if (debug) {
+    printf("ASeg Vox2RAS: -----------\n");
     MatrixPrint(stdout,Vox2RAS);
-    printf("-------------------------\n");  
+    printf("-------------------------\n");
   }
   CRS = MatrixAlloc(4,1,MATRIX_REAL);
   CRS->rptr[4][1] = 1;
@@ -184,65 +210,64 @@ int main(int argc, char **argv)
 
   // Go through each voxel in the aseg
   printf("\n");
-  printf("Labeling WM\n");  
-  for(c=0; c < ASeg->width; c++){
-    if(debug) printf("%3d ",c);
-    if(debug && c%20 ==19) printf("\n");
-    for(r=0; r < ASeg->height; r++){
-      for(s=0; s < ASeg->depth; s++){
+  printf("Labeling WM\n");
+  for (c=0; c < ASeg->width; c++) {
+    if (debug) printf("%3d ",c);
+    if (debug && c%20 ==19) printf("\n");
+    for (r=0; r < ASeg->height; r++) {
+      for (s=0; s < ASeg->depth; s++) {
 
-	// If it's not labeled as white matter in the aseg, set
-	// seg value to that from the aseg and skip the rest
-	asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(asegid != 2 && asegid != 41){
-	  MRIsetVoxVal(WMSeg,c,r,s,0,asegid);
-	  continue;
-	}
+        // If it's not labeled as white matter in the aseg, set
+        // seg value to that from the aseg and skip the rest
+        asegid = MRIgetVoxVal(ASeg,c,r,s,0);
+        if (asegid != 2 && asegid != 41) {
+          MRIsetVoxVal(WMSeg,c,r,s,0,asegid);
+          continue;
+        }
 
-	// Convert the CRS to RAS
-	CRS->rptr[1][1] = c;
-	CRS->rptr[2][1] = r;
-	CRS->rptr[3][1] = s;
-	RAS = MatrixMultiply(Vox2RAS,CRS,RAS);
-	vtx.x = RAS->rptr[1][1];
-	vtx.y = RAS->rptr[2][1];
-	vtx.z = RAS->rptr[3][1];
+        // Convert the CRS to RAS
+        CRS->rptr[1][1] = c;
+        CRS->rptr[2][1] = r;
+        CRS->rptr[3][1] = s;
+        RAS = MatrixMultiply(Vox2RAS,CRS,RAS);
+        vtx.x = RAS->rptr[1][1];
+        vtx.y = RAS->rptr[2][1];
+        vtx.z = RAS->rptr[3][1];
 
-	// Get the index of the closest vertex in the 
-	// lh.white, rh.white
-	lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-	rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+        // Get the index of the closest vertex in the
+        // lh.white, rh.white
+        lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
+        rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
 
-	if( (lhwvtx < 0) && (rhwvtx < 0) ){
-	  printf("ERROR: could not map to any surface.\n");
-	  printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
-		 c,r,s,vtx.x,vtx.y,vtx.z);
-	  exit(1);
-	}
+        if ( (lhwvtx < 0) && (rhwvtx < 0) ) {
+          printf("ERROR: could not map to any surface.\n");
+          printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
+                 c,r,s,vtx.x,vtx.y,vtx.z);
+          exit(1);
+        }
 
-	if(lhwvtx < 0) dlhw = 1000000000000000.0;
-	if(rhwvtx < 0) drhw = 1000000000000000.0;
+        if (lhwvtx < 0) dlhw = 1000000000000000.0;
+        if (rhwvtx < 0) drhw = 1000000000000000.0;
 
-	if(dlhw < drhw){
-	  // Left hemi is closer than the right
-	  annot = lhwhite->vertices[lhwvtx].annotation;
-	  hemioffset = 1000;
-	  if(lhwhite->ct)
-	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-	  else
-	    annotid = annotation_to_index(annot);
-	}
-	else{
-	  // Right hemi is closer than the left
-	  annot = rhwhite->vertices[rhwvtx].annotation;
-	  hemioffset = 2000;
-	  if(rhwhite->ct)
-	    CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-	  else
-	    annotid = annotation_to_index(annot);
-	}
+        if (dlhw < drhw) {
+          // Left hemi is closer than the right
+          annot = lhwhite->vertices[lhwvtx].annotation;
+          hemioffset = 1000;
+          if (lhwhite->ct)
+            CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+          else
+            annotid = annotation_to_index(annot);
+        } else {
+          // Right hemi is closer than the left
+          annot = rhwhite->vertices[rhwvtx].annotation;
+          hemioffset = 2000;
+          if (rhwhite->ct)
+            CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+          else
+            annotid = annotation_to_index(annot);
+        }
 
-	MRIsetVoxVal(WMSeg,c,r,s,0,annotid+hemioffset);
+        MRIsetVoxVal(WMSeg,c,r,s,0,annotid+hemioffset);
       }
     }
   }
@@ -258,19 +283,18 @@ int main(int argc, char **argv)
 /*-----------------------------------------------------------------*/
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -279,20 +303,18 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcmp(option, "--s")){
-      if(nargc < 1) argnerr(option,1);
+    else if (!strcmp(option, "--s")) {
+      if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--wmseg")){
-      if(nargc < 1) argnerr(option,1);
+    } else if (!strcmp(option, "--wmseg")) {
+      if (nargc < 1) argnerr(option,1);
       WMSegFile = pargv[0];
       nargsused = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (singledash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -301,14 +323,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --s subject \n");
@@ -321,35 +341,31 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
-  if(n==1)
+static void argnerr(char *option, int n) {
+  if (n==1)
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if(subject == NULL){
+static void check_options(void) {
+  if (subject == NULL) {
     printf("ERROR: must specify a subject\n");
     exit(1);
   }
-  if(WMSegFile == NULL){
+  if (WMSegFile == NULL) {
     printf("ERROR: must specify a wm seg file\n");
     exit(1);
   }
@@ -357,18 +373,16 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   return;
 }
 /*---------------------------------------------------------------*/
-static int singledash(char *flag)
-{
+static int singledash(char *flag) {
   int len;
   len = strlen(flag);
-  if(len < 2) return(0);
+  if (len < 2) return(0);
 
-  if(flag[0] == '-' && flag[1] != '-') return(1);
+  if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
 

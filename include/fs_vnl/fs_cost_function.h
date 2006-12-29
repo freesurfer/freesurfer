@@ -4,18 +4,19 @@
 #include <vnl/vnl_cost_function.h>
 #include <vnl/vnl_vector.h>
 
-class fs_cost_function : public vnl_cost_function {
+class fs_cost_function : public vnl_cost_function
+{
 
- private:
+private:
   float (*mFunction)(float []);
   void (*mFunctionGradient)(float [], float []);
 
   void copyFromVNLToFloat
-    ( float *floatVector,
-      const vnl_vector< double > vnlVector, int numberOfParameters);
+  ( float *floatVector,
+    const vnl_vector< double > vnlVector, int numberOfParameters);
 
 
- public:
+public:
 
   fs_cost_function( float (*function)(float []) );
 

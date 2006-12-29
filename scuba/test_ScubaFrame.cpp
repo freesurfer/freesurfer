@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaFrame.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include <sstream>
 #include "ScubaFrame.h"
@@ -21,8 +49,8 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       sError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       cerr << sError.str().c_str() << endl; \
       throw logic_error( sError.str() ); \
     } \
@@ -42,14 +70,13 @@ protected:
   virtual void DoMouseDown( int inX, int inY, InputState& iInput );
   virtual void DoKeyDown( int inX, int inY, InputState& iInput );
   virtual void DoKeyUp( int inX, int inY, InputState& iInput );
-};  
+};
 
-TestView::TestView() {
-}
+TestView::TestView() {}
 
 void
 TestView::DoDraw() {
- 
+
   stringstream ssLabel;
   ssLabel << mID << ": " << msLabel;
   string sLabel = ssLabel.str();
@@ -64,14 +91,14 @@ TestView::DoDraw() {
   glEnd();
 
   glColor3f( 1, 1, 1 );
-  
+
   glRasterPos2i( mWidth / 2, mHeight / 2 - sLabel.length()/2);
-  
+
   glColor3f( 1, 0, 1 );
-  for( int nChar = 0; nChar < (int)sLabel.length(); nChar++ ) {
+  for ( int nChar = 0; nChar < (int)sLabel.length(); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, sLabel[nChar] );
   }
-  
+
   glBegin( GL_LINE_STRIP );
   glVertex2d( 4, 4 );
   glVertex2d( mWidth-4, 4 );
@@ -82,22 +109,16 @@ TestView::DoDraw() {
 }
 
 void
-TestView::DoReshape( int iWidth, int iHeight ) {
-}
+TestView::DoReshape( int iWidth, int iHeight ) {}
 
 void
-TestView::DoTimer() {
-
-}
+TestView::DoTimer() {}
 
 void
-TestView::DoMouseMoved( int inX, int inY, InputState& iInput ) {
-}
+TestView::DoMouseMoved( int inX, int inY, InputState& iInput ) {}
 
 void
-TestView::DoMouseUp( int inX, int inY, InputState& iInput ) {
-
-}
+TestView::DoMouseUp( int inX, int inY, InputState& iInput ) {}
 
 void
 TestView::DoMouseDown( int inX, int inY, InputState& iInput ) {
@@ -105,18 +126,14 @@ TestView::DoMouseDown( int inX, int inY, InputState& iInput ) {
 }
 
 void
-TestView::DoKeyDown( int inX, int inY, InputState& iInput ) {
-
-}
+TestView::DoKeyDown( int inX, int inY, InputState& iInput ) {}
 
 void
-TestView::DoKeyUp( int inX, int inY, InputState& iInput ) {
-
-}
+TestView::DoKeyUp( int inX, int inY, InputState& iInput ) {}
 
 class TestViewFactory : public ViewFactory {
 public:
-  virtual View* NewView() { 
+  virtual View* NewView() {
     return new TestView();
   }
 };
@@ -129,25 +146,24 @@ public:
 
 #if BUILD_TCL_TEST
 extern "C" {
-int Test_scubaframe_Init ( Tcl_Interp* iInterp ) {
+  int Test_scubaframe_Init ( Tcl_Interp* iInterp ) {
 
-  ToglManager& toglMgr = ToglManager::GetManager();
+    ToglManager& toglMgr = ToglManager::GetManager();
 
-  try {
-    toglMgr.InitializeTogl( iInterp );
-    toglMgr.SetFrameFactory( new ScubaFrameFactory );
-    ScubaFrame::SetViewFactory( new TestViewFactory );
+    try {
+      toglMgr.InitializeTogl( iInterp );
+      toglMgr.SetFrameFactory( new ScubaFrameFactory );
+      ScubaFrame::SetViewFactory( new TestViewFactory );
 
-    TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.SetOutputStreamToCerr();
-    commandMgr.Start( iInterp );
+      TclCommandManager& commandMgr = TclCommandManager::GetManager();
+      commandMgr.SetOutputStreamToCerr();
+      commandMgr.Start( iInterp );
+    } catch ( ... ) {
+      return TCL_ERROR;
+    }
+
+    return TCL_OK;
   }
-  catch( ... ) {
-    return TCL_ERROR;
-  }
-
-  return TCL_OK;
-}
 }
 #endif
 
@@ -160,35 +176,35 @@ public:
   void Test( Tcl_Interp* iInterp );
 };
 
-void 
+void
 ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
 
   stringstream sError;
 
   try {
-    
+
     sError.flush();
     sError << "Setting view factory" << endl;
     ScubaFrame::SetViewFactory( new TestViewFactory );
-    
+
     sError.flush();
     sError << "Creating frame 0" << endl;
     ScubaFrame* frame = new ScubaFrame( 0 );
     Assert( (NULL != frame), "frame was not created" );
-    
+
     sError.flush();
     sError << "Setting view config to c22" << endl;
     frame->SetViewConfiguration( ScubaFrame::c22 );
-    
+
     View* view = NULL;
-    for( int nRow = 0; nRow < 2; nRow++ ) {
-      for( int nCol = 0; nCol < 2; nCol++ ) {
-	sError.flush();
-	sError << "View " << nCol << ", " << nRow << " was NULL.";
-	view = frame->GetViewAtColRow( nCol, nRow );
+    for ( int nRow = 0; nRow < 2; nRow++ ) {
+      for ( int nCol = 0; nCol < 2; nCol++ ) {
+        sError.flush();
+        sError << "View " << nCol << ", " << nRow << " was NULL.";
+        view = frame->GetViewAtColRow( nCol, nRow );
       }
     }
-    
+
     // Check the tcl functions that return number of cols and rows.
     char sCommand[1024];
     int rTcl;
@@ -196,23 +212,22 @@ ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
     const char* sTclResult = Tcl_GetStringResult( iInterp );
-    string scRows( sTclResult ); 
+    string scRows( sTclResult );
     Assert( (scRows == "2"), "tcl function returned wrong number of rows" );
-    for( int nRow = 0; nRow < 2; nRow++ ) {
-      sprintf( sCommand, "GetNumberOfColsAtRowInFrame %d %d", 
-	       frame->GetID(), nRow );
+    for ( int nRow = 0; nRow < 2; nRow++ ) {
+      sprintf( sCommand, "GetNumberOfColsAtRowInFrame %d %d",
+               frame->GetID(), nRow );
       rTcl = Tcl_Eval( iInterp, sCommand );
       AssertTclOK( rTcl );
       const char* sTclResult = Tcl_GetStringResult( iInterp );
-      string scCols( sTclResult ); 
+      string scCols( sTclResult );
       Assert( (scCols == "2"), "tcl function returned wrong number of cols" );
     }
 
     sError.flush();
     sError << "deleting frame" << endl;
     delete frame;
-  }
-  catch(...) {
+  } catch (...) {
     throw logic_error(sError.str());
   }
 }
@@ -221,19 +236,19 @@ ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
 int main( int argc, char** argv ) {
 
   cerr << "Beginning test" << endl;
- 
+
   try {
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-    
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
 
-    for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+    for ( int nTrial = 0; nTrial < 50; nTrial++ ) {
       ScubaFrameTester tester0;
       tester0.Test( interp );
 
@@ -243,12 +258,10 @@ int main( int argc, char** argv ) {
       ScubaFrameTester tester2;
       tester2.Test( interp );
     }
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

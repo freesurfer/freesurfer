@@ -1,4 +1,32 @@
-/* $Id: togl.h,v 1.4 2006/11/13 19:15:03 nicks Exp $ */
+/**
+ * @file  togl.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:16 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+/* $Id: togl.h,v 1.5 2006/12/29 02:09:16 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -9,6 +37,9 @@
 
 /*
  * $Log: togl.h,v $
+ * Revision 1.5  2006/12/29 02:09:16  nicks
+ * added license header; ran astyle to set to kr and ansi code styling
+ *
  * Revision 1.4  2006/11/13 19:15:03  nicks
  * added license.togl; removed license.gnu and license.mesa
  *
@@ -145,9 +176,9 @@ extern "C" {
 #define TOGL_MAJOR_VERSION 1
 #define TOGL_MINOR_VERSION 6
 
-/*
- * "Standard" fonts which can be specified to Togl_LoadBitmapFont()
- */
+  /*
+   * "Standard" fonts which can be specified to Togl_LoadBitmapFont()
+   */
 #define TOGL_BITMAP_8_BY_13   ((char *) 1)
 #define TOGL_BITMAP_9_BY_15   ((char *) 2)
 #define TOGL_BITMAP_TIMES_ROMAN_10  ((char *) 3)
@@ -156,9 +187,9 @@ extern "C" {
 #define TOGL_BITMAP_HELVETICA_12  ((char *) 6)
 #define TOGL_BITMAP_HELVETICA_18  ((char *) 7)
 
-/*
- * Normal and overlay plane constants
- */
+  /*
+   * Normal and overlay plane constants
+   */
 #define TOGL_NORMAL 1
 #define TOGL_OVERLAY  2
 
@@ -169,9 +200,9 @@ extern "C" {
 
   EXPORT(int,Togl_Init)(Tcl_Interp *interp);
 
-/*
- * Default/initial callback setup functions
- */
+  /*
+   * Default/initial callback setup functions
+   */
 
   extern void Togl_CreateFunc( Togl_Callback *proc );
 
@@ -186,9 +217,9 @@ extern "C" {
   extern void Togl_ResetDefaultCallbacks( void );
 
 
-/*
- * Change callbacks for existing widget
- */
+  /*
+   * Change callbacks for existing widget
+   */
 
   extern void Togl_SetCreateFunc( struct Togl *togl, Togl_Callback *proc );
 
@@ -201,26 +232,26 @@ extern "C" {
   extern void Togl_SetTimerFunc( struct Togl *togl, Togl_Callback *proc );
 
 
-/*
- * Miscellaneous
- */
+  /*
+   * Miscellaneous
+   */
 
   extern int Togl_Configure( Tcl_Interp *interp, struct Togl *togl,
-                             int argc, char *argv[], int flags );
+                               int argc, char *argv[], int flags );
 
   extern void Togl_MakeCurrent( const struct Togl *togl );
 
   extern void Togl_CreateCommand( char *cmd_name,
-                                  Togl_CmdProc *cmd_proc );
+                                    Togl_CmdProc *cmd_proc );
 
   extern void Togl_PostRedisplay( struct Togl *togl );
 
   extern void Togl_SwapBuffers( const struct Togl *togl );
 
 
-/*
- * Query functions
- */
+  /*
+   * Query functions
+   */
 
   extern char *Togl_Ident( const struct Togl *togl );
 
@@ -233,33 +264,33 @@ extern "C" {
   extern Tk_Window Togl_TkWin( const struct Togl *togl );
 
 
-/*
- * Color Index mode
- */
+  /*
+   * Color Index mode
+   */
 
   extern unsigned long Togl_AllocColor( const struct Togl *togl,
-                                        float red, float green, float blue );
+                                          float red, float green, float blue );
 
   extern void Togl_FreeColor( const struct Togl *togl, unsigned long index );
 
   extern void Togl_SetColor( const struct Togl *togl, unsigned long index,
-                             float red, float green, float blue );
+                               float red, float green, float blue );
 
 
-/*
- * Bitmap fonts
- */
+  /*
+   * Bitmap fonts
+   */
 
   extern GLuint Togl_LoadBitmapFont( const struct Togl *togl,
-                                     const char *fontname );
+                                       const char *fontname );
 
   extern void Togl_UnloadBitmapFont( const struct Togl *togl,
-                                     GLuint fontbase );
+                                       GLuint fontbase );
 
 
-/*
- * Overlay functions
- */
+  /*
+   * Overlay functions
+   */
 
   extern void Togl_UseLayer( struct Togl *togl, int layer );
 
@@ -278,15 +309,15 @@ extern "C" {
   extern int Togl_IsMappedOverlay( const struct Togl *togl );
 
   extern unsigned long Togl_AllocColorOverlay( const struct Togl *togl,
-                                               float red, float green,
-                                               float blue );
+        float red, float green,
+        float blue );
 
   extern void Togl_FreeColorOverlay( const struct Togl *togl,
-                                     unsigned long index );
+                                       unsigned long index );
 
-/*
- * User client data
- */
+  /*
+   * User client data
+   */
 
   extern void Togl_ClientData( ClientData clientData );
 
@@ -295,10 +326,10 @@ extern "C" {
   extern void Togl_SetClientData( struct Togl *togl, ClientData clientData );
 
 
-/*
- * X11-only commands.
- * Contributed by Miguel A. De Riera Pasenau (miguel@DALILA.UPC.ES)
- */
+  /*
+   * X11-only commands.
+   * Contributed by Miguel A. De Riera Pasenau (miguel@DALILA.UPC.ES)
+   */
 
 #ifdef TOGL_X11
   extern Display *Togl_Display( const struct Togl *togl );
@@ -308,34 +339,34 @@ extern "C" {
 #endif
 
 
-/*
- * SGI stereo-only commands.
- * Contributed by Ben Evans (Ben.Evans@anusf.anu.edu.au)
- */
+  /*
+   * SGI stereo-only commands.
+   * Contributed by Ben Evans (Ben.Evans@anusf.anu.edu.au)
+   */
 
 #ifdef __sgi
   extern void Togl_StereoDrawBuffer( GLenum mode );
   extern void Togl_StereoFrustum( GLfloat left, GLfloat right,
-                                  GLfloat bottom, GLfloat top,
-                                  GLfloat near, GLfloat far,
-                                  GLfloat eyeDist, GLfloat eyeOffset );
+                                    GLfloat bottom, GLfloat top,
+                                    GLfloat near, GLfloat far,
+                                    GLfloat eyeDist, GLfloat eyeOffset );
   extern void Togl_StereoClear( GLbitfield mask );
 #endif
 
 
-/*
- * Generate EPS file.
- * Contributed by Miguel A. De Riera Pasenau (miguel@DALILA.UPC.ES)
- */
+  /*
+   * Generate EPS file.
+   * Contributed by Miguel A. De Riera Pasenau (miguel@DALILA.UPC.ES)
+   */
 
   extern int Togl_DumpToEpsFile( const struct Togl *togl,
-                                 const char *filename,
-                                 int inColor,
-                                 void (*user_redraw)(const struct Togl *) );
+                                   const char *filename,
+                                   int inColor,
+                                   void (*user_redraw)(const struct Togl *) );
 
 
 
-/* Mac-specific setup functions */
+  /* Mac-specific setup functions */
 #ifdef macintosh
   int Togl_MacInit(void);
   int Togl_MacSetupMainInterp(Tcl_Interp *interp);

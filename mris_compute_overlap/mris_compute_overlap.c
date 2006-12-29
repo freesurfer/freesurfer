@@ -1,3 +1,31 @@
+/**
+ * @file  mris_compute_overlap.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -31,10 +59,9 @@ static char sdir[STRLEN] ;
   Description:
   ----------------------------------------------------------------------*/
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av, *subject_name, *cp, *hemi,
-    *surf_name, *annot_name, fname[STRLEN], *name ;
+  *surf_name, *annot_name, fname[STRLEN], *name ;
   int    ac, nargs, msec, minutes, label, seconds, i ;
   double area, total_area ;
   struct timeb start ;
@@ -43,9 +70,9 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_compute_overlap.c,v 1.4 2006/09/15 23:41:29 nicks Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mris_compute_overlap.c,v 1.5 2006/12/29 02:09:10 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -58,12 +85,11 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (argc < 3)
     usage_exit(1) ;
@@ -73,23 +99,22 @@ main(int argc, char *argv[])
   surf_name = argv[3] ;
   annot_name = argv[4] ;
 
-  if (strlen(sdir) == 0)
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-        ErrorExit
-          (ERROR_BADPARM,
-           "%s: SUBJECTS_DIR not defined in env or cmd line",
-           Progname) ;
-      strcpy(sdir, cp) ;
-    }
+  if (strlen(sdir) == 0) {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit
+      (ERROR_BADPARM,
+       "%s: SUBJECTS_DIR not defined in env or cmd line",
+       Progname) ;
+    strcpy(sdir, cp) ;
+  }
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit
-      (ERROR_NOFILE,
-       "%s: could not read surface from %s",
-       Progname,fname) ;
+    (ERROR_NOFILE,
+     "%s: could not read surface from %s",
+     Progname,fname) ;
 
   MRIScomputeMetricProperties(mris) ;
 #if 0
@@ -104,54 +129,46 @@ main(int argc, char *argv[])
 
   if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
     ErrorExit
-      (ERROR_NOFILE,
-       "%s: could not read annot file %s",
-       Progname, annot_name) ;
+    (ERROR_NOFILE,
+     "%s: could not read annot file %s",
+     Progname, annot_name) ;
 
-  for (i = 5 ; i < argc ; i++)
-    {
-      label = atoi(argv[i]) ;
-      name = annotation_to_name(index_to_annotation(label), NULL) ;
-      printf("processing label %s (%d)...\n", name, label) ;
+  for (i = 5 ; i < argc ; i++) {
+    label = atoi(argv[i]) ;
+    name = annotation_to_name(index_to_annotation(label), NULL) ;
+    printf("processing label %s (%d)...\n", name, label) ;
 
-      area = MRISannotArea(mris, label) ;
-      if (log_fname)
-        {
-          char fname[STRLEN] ;
+    area = MRISannotArea(mris, label) ;
+    if (log_fname) {
+      char fname[STRLEN] ;
 
-          sprintf(fname, log_fname, label) ;
-          printf("logging to %s...\n", fname) ;
-          log_fp = fopen(fname, "a+") ;
-          if (!log_fp)
-            ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
-                      Progname, fname) ;
-        }
-      else
-        log_fp = NULL ;
+      sprintf(fname, log_fname, label) ;
+      printf("logging to %s...\n", fname) ;
+      log_fp = fopen(fname, "a+") ;
+      if (!log_fp)
+        ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                  Progname, fname) ;
+    } else
+      log_fp = NULL ;
 
-      if (compute_pct)
-        {
-          printf("%2.3f mm^2 in label %d (%s), "
-                 "%%%2.6f of total cortical area (%2.2f)\n",
-                 area, label, name,
-                 100.0*(float)area/(float)total_area,
-                 total_area) ;
-          if (log_fp)
-            {
-              fprintf(log_fp,"%2.6f\n", 100.0*area/(float)total_area) ;
-              fclose(log_fp) ;
-            }
-        }
-      else
-        {
-          printf("%2.0f mm^2 in label %s (%d)\n", area, name, label) ;
-          if (log_fp)
-            {
-              fprintf(log_fp,"%f\n", area) ;
-              fclose(log_fp) ;
-            }
-        }
+    if (compute_pct) {
+      printf("%2.3f mm^2 in label %d (%s), "
+             "%%%2.6f of total cortical area (%2.2f)\n",
+             area, label, name,
+             100.0*(float)area/(float)total_area,
+             total_area) ;
+      if (log_fp) {
+        fprintf(log_fp,"%2.6f\n", 100.0*area/(float)total_area) ;
+        fclose(log_fp) ;
+      }
+    } else {
+      printf("%2.0f mm^2 in label %s (%d)\n", area, name, label) ;
+      if (log_fp) {
+        fprintf(log_fp,"%f\n", area) ;
+        fclose(log_fp) ;
+      }
     }
+  }
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -173,20 +190,16 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "sdir"))
-    {
-      strcpy(sdir, argv[2]) ;
-      printf("using SUBJECTS_DIR=%s\n", sdir) ;
-      nargs = 1 ;
-    }
-  else switch (toupper(*option))
-    {
+  if (!stricmp(option, "sdir")) {
+    strcpy(sdir, argv[2]) ;
+    printf("using SUBJECTS_DIR=%s\n", sdir) ;
+    nargs = 1 ;
+  } else switch (toupper(*option)) {
     case 'C':
       if (read_named_annotation_table(argv[2]) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read lookup table %s",
@@ -228,19 +241,18 @@ get_option(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf
-    (
-     "usage:\n%s [options] <subj name> <hemi> <surf name> "
-     "<annot name> <label 1> <label 2> ...\n",
-     Progname) ;
+  (
+    "usage:\n%s [options] <subj name> <hemi> <surf name> "
+    "<annot name> <label 1> <label 2> ...\n",
+    Progname) ;
   printf
-    (
-     "\t-p             - compute brain area as a pct of all brain labels\n"
-     "\t-l <log fname> - log results to file (note %%d will include label #)\n"
-     "\t-b <brain vol> - load brain vol and use it to normalize areas\n"
-     );
+  (
+    "\t-p             - compute brain area as a pct of all brain labels\n"
+    "\t-l <log fname> - log results to file (note %%d will include label #)\n"
+    "\t-b <brain vol> - load brain vol and use it to normalize areas\n"
+  );
   exit(code) ;
 }
 
@@ -251,21 +263,19 @@ usage_exit(int code)
   Description:
   ----------------------------------------------------------------------*/
 static double
-MRISannotArea(MRI_SURFACE *mris, int label)
-{
+MRISannotArea(MRI_SURFACE *mris, int label) {
   int    vno, annotation ;
   VERTEX *v ;
   double area ;
 
   annotation = index_to_annotation(label) ;
-  for (area = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (v->annotation == annotation)
-        area += v->area ;
-    }
+  for (area = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->annotation == annotation)
+      area += v->area ;
+  }
   return(area) ;
 }
 

@@ -1,3 +1,31 @@
+/**
+ * @file  mris_annot_to_segmentation.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -26,8 +54,7 @@ char *Progname ;
 static char subjects_dir[NAME_LEN] = "" ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   int          ac, nargs ;
   char         *cp, *subject_name, *hemi, *surface, *annot_file, *color_file, *output_file;
   MRI_SURFACE  *mris ;
@@ -41,10 +68,10 @@ main(int argc, char *argv[])
   int structure;
   float dx, dy, dz, len, d;
   Real idxx, idxy, idxz;
-  
+
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.5 2006/06/01 22:31:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -55,8 +82,7 @@ main(int argc, char *argv[])
 
   /* read in command-line options */
   ac = argc ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -95,13 +121,13 @@ main(int argc, char *argv[])
   err = MRISreadAnnotation (mris, annot_file);
   if (err != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read annotation %s\n",
-	      annot_file);
+              annot_file);
 
   /* Read the color look up table. */
   ctab = CTABreadASCII ( color_file );
   if (NULL == ctab)
     ErrorExit(ERROR_NOFILE, "%s: could not read color table %s\n",
-	      color_file);
+              color_file);
 
   /* Read in the T1 for this subject and change its name to the one
      they passed in. Set all values to 0. We'll use this as the
@@ -111,70 +137,65 @@ main(int argc, char *argv[])
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 for template volume");
   MRIsetValues (mri, 0);
-  
+
   /* For every annoted vertex... */
-  for (vno = 0; vno < mris->nvertices; vno++) 
-    {
+  for (vno = 0; vno < mris->nvertices; vno++) {
 
-      v = &mris->vertices[vno];
-      
-      /* Get the color and then the index. */
-      if ( 0 != v->annotation ) {
-	structure = 0;
-	if (mris->ct) {
-	  CTABfindAnnotation (mris->ct, v->annotation, &structure);
-	} else {
-	  CTABfindAnnotation (ctab, v->annotation, &structure);
-	}
+    v = &mris->vertices[vno];
 
-	if (0 != structure)
-	  {
-	    
-	    /* Set all the voxels between the white (current) vertex
-	       and the pial vertex coords. Find the direction from the
-	       pial to the normal vertex positions. Then step from the
-	       normal outward in that direction in 0.1 increments to a
-	       distance of 1, convert the coord to ana idx, and set
-	       the voxel in the seg volume to the structure index we
-	       found above. */
-	    dx = v->cx - v->x;
-	    dy = v->cy - v->y;
-	    dz = v->cz - v->z;
-	    
-	    len = sqrt(dx*dx + dy*dy + dz*dz) ;
-	    dx /= len; 
-	    dy /= len; 
-	    dz /= len;
-	    
-	    for( d = 0 ; d <= len; d = d+0.1 ) {
-	      if (mris->useRealRAS)
-		{
-		  MRIworldToVoxel (mri,
-				   v->x + (d * dx),
-				   v->y + (d * dy),
-				   v->z + (d * dz),
-				   &idxx, &idxy, &idxz);
-		} 
-	      else 
-		{
-		  MRIsurfaceRASToVoxel (mri,
-					v->x + (d * dx),
-					v->y + (d * dy),
-					v->z + (d * dz),
-					&idxx, &idxy, &idxz);
-		}
-	      MRIvox(mri,(int)idxx,(int)idxy,(int)idxz) = (BUFTYPE)structure;
-	    }
-	    
-	  }
+    /* Get the color and then the index. */
+    if ( 0 != v->annotation ) {
+      structure = 0;
+      if (mris->ct) {
+        CTABfindAnnotation (mris->ct, v->annotation, &structure);
+      } else {
+        CTABfindAnnotation (ctab, v->annotation, &structure);
       }
-      
-      if( !(vno % 1000) ) {
-	fprintf( stdout, "\rConverting annotation... %.2f%% done",
-		 ((float)vno / (float)mris->nvertices) * 100.0 );
-	fflush( stdout );
+
+      if (0 != structure) {
+
+        /* Set all the voxels between the white (current) vertex
+           and the pial vertex coords. Find the direction from the
+           pial to the normal vertex positions. Then step from the
+           normal outward in that direction in 0.1 increments to a
+           distance of 1, convert the coord to ana idx, and set
+           the voxel in the seg volume to the structure index we
+           found above. */
+        dx = v->cx - v->x;
+        dy = v->cy - v->y;
+        dz = v->cz - v->z;
+
+        len = sqrt(dx*dx + dy*dy + dz*dz) ;
+        dx /= len;
+        dy /= len;
+        dz /= len;
+
+        for ( d = 0 ; d <= len; d = d+0.1 ) {
+          if (mris->useRealRAS) {
+            MRIworldToVoxel (mri,
+                             v->x + (d * dx),
+                             v->y + (d * dy),
+                             v->z + (d * dz),
+                             &idxx, &idxy, &idxz);
+          } else {
+            MRIsurfaceRASToVoxel (mri,
+                                  v->x + (d * dx),
+                                  v->y + (d * dy),
+                                  v->z + (d * dz),
+                                  &idxx, &idxy, &idxz);
+          }
+          MRIvox(mri,(int)idxx,(int)idxy,(int)idxz) = (BUFTYPE)structure;
+        }
+
       }
     }
+
+    if ( !(vno % 1000) ) {
+      fprintf( stdout, "\rConverting annotation... %.2f%% done",
+               ((float)vno / (float)mris->nvertices) * 100.0 );
+      fflush( stdout );
+    }
+  }
 
   fprintf( stdout, "\rConverting annotation... 100%% done       \n" );
 
@@ -192,14 +213,12 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
-  {
+  switch (toupper(*option)) {
   case '?':
   case 'U':
     print_usage() ;
@@ -214,8 +233,7 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 static void
-print_usage(void)
-{
-   printf("usage: %s <subject name> <hemi> <surface> <annot file> <color table> <output volume>\n", Progname);
-   exit(1) ;
+print_usage(void) {
+  printf("usage: %s <subject name> <hemi> <surface> <annot file> <color table> <output volume>\n", Progname);
+  exit(1) ;
 }

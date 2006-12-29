@@ -1,3 +1,31 @@
+/**
+ * @file  ToglManager.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.13 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef ToglManager_h
 #define ToglManager_h
 
@@ -12,7 +40,7 @@ extern "C" {
 
 class ToglManager {
 
- public:
+public:
   // These are the Togl callbacks that we will register to get event
   // notifications from the Togl system. ToglManager determines to
   // which window they apply and calls ToglFrame functions in a
@@ -22,7 +50,7 @@ class ToglManager {
   static void DestroyCallback ( struct Togl* iTogl );
   static void ReshapeCallback ( struct Togl* iTogl );
   static void TimerCallback ( struct Togl* iTogl );
-  
+
   // These are the Togl frame-specific callbacks that are attached to
   // the Togl Tcl/Tk object with the Tk bind command. ToglManager
   // determines to which window they apply, parses the arguments, and
@@ -42,14 +70,15 @@ class ToglManager {
   static ToglManager& GetManager();
 
   // Sets the factory to use for creating new frames.
-  static void SetFrameFactory( WindowFrameFactory* iFactory ) { 
-    mFactory = iFactory; 
+  static void SetFrameFactory( WindowFrameFactory* iFactory ) {
+    mFactory = iFactory;
   }
 
- protected:
+protected:
 
   static inline int YFlip ( WindowFrame* iFrame, int iY ) {
-    return (iFrame->GetHeight() - iY); }
+    return (iFrame->GetHeight() - iY);
+  }
 
   // Maps Window IDs to frames.
   static std::map<WindowFrame::ID,WindowFrame*> mFrames;

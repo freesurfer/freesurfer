@@ -33,38 +33,43 @@
 ** @$=@$=@$=
 */
 /*
-**				DICOM 93
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 93
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Thomas R. Leith, xx-May-92
-** Intent:		This module defines private structures
-**			used by the LST facility.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
-** Source File:		$RCSfile: lstprivate.h,v $
-** Revision:		$Revision: 1.3 $
-** Status:		$State: Exp $
+** Author, Date: Thomas R. Leith, xx-May-92
+** Intent:  This module defines private structures
+**   used by the LST facility.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: lstprivate.h,v $
+** Revision:  $Revision: 1.4 $
+** Status:  $State: Exp $
 */
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-#define LST_KEYS	1	/* Private defs override public ones */
-typedef struct lst_node {
-    struct lst_node *next;	/* next node in list	 */
-    struct lst_node *previous;	/* previous node	 */
-    void *data;			/* node data		 */
-}   LST_NODE, *LST_NODEPTR;
+#define LST_KEYS 1 /* Private defs override public ones */
+  typedef struct lst_node
+  {
+    struct lst_node *next; /* next node in list  */
+    struct lst_node *previous; /* previous node  */
+    void *data;   /* node data   */
+  }
+  LST_NODE, *LST_NODEPTR;
 
-typedef struct lst_head {
-    LST_NODE *head;		/* points at first node */
-    LST_NODE *tail;		/* points at last node  */
-    LST_NODE *current;		/* "    "  " node 	 */
-    unsigned long count;	/* # of nodes in list   */
-}   LST_HEAD, *LST_HEADPTR;
+  typedef struct lst_head
+  {
+    LST_NODE *head;  /* points at first node */
+    LST_NODE *tail;  /* points at last node  */
+    LST_NODE *current;  /* "    "  " node   */
+    unsigned long count; /* # of nodes in list   */
+  }
+  LST_HEAD, *LST_HEADPTR;
 
 #ifdef  __cplusplus
 }

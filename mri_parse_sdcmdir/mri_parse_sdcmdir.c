@@ -1,3 +1,31 @@
+/**
+ * @file  mri_parse_sdcmdir.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:08 $
+ *    $Revision: 1.17 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,7 +36,7 @@
 // MacOSX does not have malloc.h but declaration is in stdlib.h
 #ifndef Darwin
 #include <malloc.h>
-#endif   
+#endif
 #include <errno.h>
 #include <ctype.h>
 #include "mri.h"
@@ -30,7 +58,7 @@ extern int isblank(int c);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.16 2006/11/10 19:41:58 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.17 2006/12/29 02:09:08 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -46,7 +74,7 @@ static int   strip_leading_slashes(char *s);
 static char *strip_white_space(char *s);
 
 int debug, verbose;
-char* sdicomdir = NULL; 
+char* sdicomdir = NULL;
 char *outfile;
 FILE *outstream;
 int summarize = 0;
@@ -59,8 +87,7 @@ struct utsname uts;
 char *cmdline, cwd[2000];
 
 /*---------------------------------------------------------------*/
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   SDCMFILEINFO **sdfi_list;
   SDCMFILEINFO  *sdfi=NULL;
   int nlist;
@@ -75,7 +102,7 @@ int main(int argc, char **argv)
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if(argc == 0) usage_exit();
+  if (argc == 0) usage_exit();
 
   cmdline = argv2cmdline(argc,argv);
 
@@ -95,29 +122,28 @@ int main(int argc, char **argv)
   strip_leading_slashes(sdicomdir);
 
   /* open the output file, or set output stream to stdout */
-  if(outfile != NULL){
+  if (outfile != NULL) {
     outstream = fopen(outfile,"w");
-    if(outstream == NULL){
+    if (outstream == NULL) {
       fprintf(stderr,"ERROR: could not open %s for writing\n",outfile);
       exit(1);
     }
-  }
-  else outstream = stdout;
+  } else outstream = stdout;
 
   /* Get all the Siemens DICOM files from this directory */
   fprintf(stderr,"INFO: scanning path to Siemens DICOM DIR:\n   %s\n",
-	  sdicomdir);
+          sdicomdir);
   sdfi_list = ScanSiemensDCMDir(sdicomdir, &nlist);
-  if(sdfi_list == NULL){
+  if (sdfi_list == NULL) {
     fprintf(stderr,"ERROR: scanning directory %s\n",sdicomdir);
     exit(1);
   }
   printf("INFO: found %d Siemens files\n",nlist);
   printf("%s\n",sdfi_list[0]->NumarisVer);
   tmpstring = sdcmExtractNumarisVer(sdfi_list[0]->NumarisVer, &Maj, &Min, &MinMin);
-  if(tmpstring == NULL) free(tmpstring);
-  else{
-    if((Min == 1 && MinMin <= 6) && Maj < 4){
+  if (tmpstring == NULL) free(tmpstring);
+  else {
+    if ((Min == 1 && MinMin <= 6) && Maj < 4) {
       // This should only be run for pretty old data. I've lost
       // track as to which versions should do this. With Maj<4,
       // I'm pretty sure that this section of code will never
@@ -130,15 +156,16 @@ int main(int argc, char **argv)
 
   /* Sort the files by Series, Slice Position, and Image Number */
   printf("Sorting\n");
-  fflush(stdout);fflush(stderr);
+  fflush(stdout);
+  fflush(stderr);
   SortSDCMFileInfo(sdfi_list,nlist);
 
   /* Assign run numbers to each file (count number of runs)*/
-  if(sortbyrun){
+  if (sortbyrun) {
     fprintf(stderr,"Assigning Run Numbers\n");
     fflush(stderr);
     NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
-    if(NRuns == 0){
+    if (NRuns == 0) {
       fprintf(stderr,"ERROR: sorting runs\n");
       fflush(stderr);
       exit(1);
@@ -146,11 +173,11 @@ int main(int argc, char **argv)
   }
 
   PrevRunNo = -1;
-  for(nthfile = 0; nthfile < nlist; nthfile++){
+  for (nthfile = 0; nthfile < nlist; nthfile++) {
 
     sdfi = sdfi_list[nthfile];
 
-    if(summarize && PrevRunNo == sdfi->RunNo) continue;
+    if (summarize && PrevRunNo == sdfi->RunNo) continue;
     PrevRunNo = sdfi->RunNo;
 
     sdfi->RepetitionTime /= 1000.0;
@@ -158,28 +185,27 @@ int main(int argc, char **argv)
     // Old version of Siemens software had reptime as time between
     // slices. New has reptime as time between volumes.
     // Code (above) looks at version and does the right thing.
-    if(sdfi->IsMosaic && TRSlice) sdfi->RepetitionTime *= sdfi->VolDim[2];
+    if (sdfi->IsMosaic && TRSlice) sdfi->RepetitionTime *= sdfi->VolDim[2];
 
     fname     = fio_basename(sdfi->FileName,NULL);
     psname    = strip_white_space(sdfi->PulseSequence);
     protoname = strip_white_space(sdfi->ProtocolName);
 
     fprintf(outstream,
-      "%4d %s  %3d %d  %4d %d  %3d %3d %3d %3d  %8.4f %8.4f %s\n",
-      nthfile+1, fname,
-      sdfi->SeriesNo, sdfi->ErrorFlag,
-      sdfi->ImageNo, sdfi->IsMosaic,
-      sdfi->VolDim[0], sdfi->VolDim[1], sdfi->VolDim[2], sdfi->NFrames, 
-      sdfi->RepetitionTime, sdfi->EchoTime,
-      protoname);
+            "%4d %s  %3d %d  %4d %d  %3d %3d %3d %3d  %8.4f %8.4f %s\n",
+            nthfile+1, fname,
+            sdfi->SeriesNo, sdfi->ErrorFlag,
+            sdfi->ImageNo, sdfi->IsMosaic,
+            sdfi->VolDim[0], sdfi->VolDim[1], sdfi->VolDim[2], sdfi->NFrames,
+            sdfi->RepetitionTime, sdfi->EchoTime,
+            protoname);
     fflush(outstream);
     free(fname);
     free(psname);
     free(protoname);
   }
 
-  while(nlist--)
-  {
+  while (nlist--) {
     // free strings
     free(sdfi_list[nlist]->FileName);
     free(sdfi_list[nlist]->StudyDate);
@@ -197,9 +223,10 @@ int main(int argc, char **argv)
   }
   free(sdfi_list);
 
-  if(outfile != NULL) fclose(outstream);
+  if (outfile != NULL) fclose(outstream);
 
-  fflush(stdout);fflush(stderr);
+  fflush(stdout);
+  fflush(stderr);
   exit(0);
   return(0);
 }
@@ -208,27 +235,26 @@ int main(int argc, char **argv)
 /*---------------------------------------------------------------*/
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
   FILE *fptmp;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.16 2006/11/10 19:41:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.17 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc;
   pargv = argv;
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -238,40 +264,35 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
-    else if (!strcmp(option, "--d")){
-      if(nargc < 1) argnerr(option,1);
+    else if (!strcmp(option, "--d")) {
+      if (nargc < 1) argnerr(option,1);
       sdicomdir = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--o")){
-      if(nargc < 1) argnerr(option,1);
+    } else if (!strcmp(option, "--o")) {
+      if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--summarize") || !strcmp(option, "--sum")){
+    } else if (!strcmp(option, "--summarize") || !strcmp(option, "--sum")) {
       summarize = 1;
-    }
-    else if (!strcmp(option, "--status")){
-      if(nargc < 1) argnerr(option,1);
+    } else if (!strcmp(option, "--status")) {
+      if (nargc < 1) argnerr(option,1);
       SDCMStatusFile = (char *) calloc(strlen(pargv[0])+1,sizeof(char));
       memcpy(SDCMStatusFile,pargv[0],strlen(pargv[0]));
       fptmp = fopen(SDCMStatusFile,"w");
-      if(fptmp == NULL){
-	fprintf(stderr,"ERROR: could not open %s for writing\n",
-		SDCMStatusFile);
-	exit(1);
+      if (fptmp == NULL) {
+        fprintf(stderr,"ERROR: could not open %s for writing\n",
+                SDCMStatusFile);
+        exit(1);
       }
       fprintf(fptmp,"0\n");
       fclose(fptmp);
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--sortbyrun")){
+    } else if (!strcmp(option, "--sortbyrun")) {
       sortbyrun = 1;
-    }
-    else{
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      if (singledash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -280,14 +301,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   fprintf(stdout, "USAGE: %s \n",Progname) ;
   fprintf(stdout, "\n");
   fprintf(stdout, "   --d sdicomdir  : path to siemens dicom directory \n");
@@ -298,21 +317,20 @@ static void print_usage(void)
   fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   printf("\n");
   print_usage() ;
   printf("\n");
 
   printf(
-  "This program parses the Siemens DICOM files in a given directory, and \n"
-  "prints out information about each file. The output is printed to stdout\n"
-  "unless a file name is passed with the --o flag.\n"
-  "\n"
-  "The most useful information is that which cannot be easily obtained by \n"
-  "probing a dicom file. This includes: the run number, number of frames \n"
-  "in the run, number of slices in the run, and, for mosaics, the number \n"
-  "of rows and cols in the volume.\n");
+    "This program parses the Siemens DICOM files in a given directory, and \n"
+    "prints out information about each file. The output is printed to stdout\n"
+    "unless a file name is passed with the --o flag.\n"
+    "\n"
+    "The most useful information is that which cannot be easily obtained by \n"
+    "probing a dicom file. This includes: the run number, number of frames \n"
+    "in the run, number of slices in the run, and, for mosaics, the number \n"
+    "of rows and cols in the volume.\n");
 
   printf("\n");
 
@@ -346,10 +364,10 @@ static void print_help(void)
   printf("\n");
 
   printf(
-	 "BUGS:\n"
-	 "Prior to 5/25/05, the protocol name was stripped of anything that\n"
-	 "was not a number or letter. After 5/25/05 it is only stripped of\n"
-	 "white space.\n");
+    "BUGS:\n"
+    "Prior to 5/25/05, the protocol name was stripped of anything that\n"
+    "was not a number or letter. After 5/25/05 it is only stripped of\n"
+    "white space.\n");
 
   printf("\n");
   printf("\n");
@@ -357,51 +375,46 @@ static void print_help(void)
   exit(1);
 }
 /* --------------------------------------------- */
-static void check_options(void)
-{
+static void check_options(void) {
 
-  if(sdicomdir == NULL){
+  if (sdicomdir == NULL) {
     fprintf(stderr,"ERROR: no directory name supplied\n");
     exit(1);
   }
 
-  if(summarize && ! sortbyrun ) {
+  if (summarize && ! sortbyrun ) {
     fprintf(stderr,"ERROR: must specify --sortbyrun with --summarize\n");
     exit(1);
   }
-    
+
 
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
-  if(n==1)
+static void argnerr(char *option, int n) {
+  if (n==1)
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
 /*---------------------------------------------------------------*/
-static int singledash(char *flag)
-{
+static int singledash(char *flag) {
   int len;
   len = strlen(flag);
-  if(len < 2) return(0);
+  if (len < 2) return(0);
 
-  if(flag[0] == '-' && flag[1] != '-') return(1);
+  if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
 /*---------------------------------------------------------------*/
-static int strip_leading_slashes(char *s)
-{
-  while(strlen(s) > 0 && s[strlen(s)-1] == '/') s[strlen(s)-1] = '\0';
-  if(strlen(s) == 0) s[0] = '/';
+static int strip_leading_slashes(char *s) {
+  while (strlen(s) > 0 && s[strlen(s)-1] == '/') s[strlen(s)-1] = '\0';
+  if (strlen(s) == 0) s[0] = '/';
   return(0);
 }
 /*---------------------------------------------------------------
@@ -413,19 +426,18 @@ static int strip_leading_slashes(char *s)
   the string. Prior to 5/25/05, it would strip out anything
   that was not a number or letter (eg, dashes and underscores).
 ---------------------------------------------------------------*/
-static char * strip_white_space(char *s)
-{
+static char * strip_white_space(char *s) {
   char *s2;
   int l,n,m;
 
-  if(s==NULL) return(NULL);
+  if (s==NULL) return(NULL);
 
   l = strlen(s);
   s2 = (char *) calloc(l+1,sizeof(char));
-  
+
   m = 0;
-  for(n=0; n<l; n++){
-    if(isascii(s[n]) && !isblank(s[n])){
+  for (n=0; n<l; n++) {
+    if (isascii(s[n]) && !isblank(s[n])) {
       s2[m] = s[n];
       m++;
     }

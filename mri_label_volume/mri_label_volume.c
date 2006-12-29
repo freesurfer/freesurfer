@@ -1,3 +1,31 @@
+/**
+ * @file  mri_label_volume.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:07 $
+ *    $Revision: 1.25 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -39,8 +67,7 @@ static double atlas_icv = -1 ;
 
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs, msec, minutes, label, volume, seconds, i ;
   struct timeb start ;
@@ -52,7 +79,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.24 2006/04/13 18:55:08 nicks Exp $",
+     "$Id: mri_label_volume.c,v 1.25 2006/12/29 02:09:07 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -66,12 +93,11 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if ((all_flag && argc < 2) || (all_flag == 0 && argc < 3))
     usage_exit(1) ;
@@ -80,16 +106,16 @@ main(int argc, char *argv[])
   mri = MRIread(argv[1]) ;
   if (!mri)
     ErrorExit
-      (ERROR_NOFILE, "%s: could not read volume from %s", Progname,argv[1]) ;
+    (ERROR_NOFILE, "%s: could not read volume from %s", Progname,argv[1]) ;
 
   // Volume of a single voxel
   vox_volume = mri->xsize * mri->ysize * mri->zsize ;
 
   // Not sure why you would want to do this, but here it is
-  if(in_label >= 0) MRIreplaceValues(mri, mri, in_label, out_label) ;
+  if (in_label >= 0) MRIreplaceValues(mri, mri, in_label, out_label) ;
 
   // This looks like it is for debugging
-  if (all_flag){
+  if (all_flag) {
     int   nvox ;
     float volume ;
     nvox = MRItotalVoxelsOn(mri, WM_MIN_VAL) ;
@@ -100,46 +126,42 @@ main(int argc, char *argv[])
 
   // Compute the volume of the brain in one of
   // four ways (or don't use brain volume)
-  if (brain_fname){
+  if (brain_fname) {
     // (1) Load the brain volume and count voxels over a threshold
     MRI *mri_brain = MRIread(brain_fname) ;
     if (mri_brain == NULL)
       ErrorExit
-        (ERROR_BADPARM,
-         "%s: could not read brain volume from %s\n", Progname,brain_fname) ;
+      (ERROR_BADPARM,
+       "%s: could not read brain volume from %s\n", Progname,brain_fname) ;
 
     brain_volume = (double)MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
     MRIfree(&mri_brain) ;
     brain_volume *= (mri->xsize * mri->ysize * mri->zsize) ;
-  }
-  else if(atlas_icv > 0){
+  } else if (atlas_icv > 0) {
     // (2) Use ICV from atlas. See below when option is processed.
     brain_volume = atlas_icv;
-  }
-  else if(compute_pct){
+  } else if (compute_pct) {
     // (3) Count voxels in labels that are brain
-    for (brain_volume = 0.0, label = 0 ; label <= MAX_CMA_LABEL ; label++){
+    for (brain_volume = 0.0, label = 0 ; label <= MAX_CMA_LABEL ; label++) {
       if (!IS_BRAIN(label)) continue ;
       brain_volume += (double)MRIvoxelsInLabel(mri, label) ;
     }
     brain_volume *= (mri->xsize * mri->ysize * mri->zsize) ;
-  }
-  else if (icv_fname){
+  } else if (icv_fname) {
     // (4) Use ICV supplied in a file
     FILE *fp ;
     fp = fopen(icv_fname, "r") ;
     if (fp == NULL)
       ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not open ICV file %s\n", Progname, icv_fname) ;
+      (ERROR_NOFILE,
+       "%s: could not open ICV file %s\n", Progname, icv_fname) ;
     if (fscanf(fp, "%lf", &brain_volume) != 1)
       ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not read ICV from %s\n", Progname, icv_fname) ;
+      (ERROR_NOFILE,
+       "%s: could not read ICV from %s\n", Progname, icv_fname) ;
     fclose(fp) ;
     printf("using intra-cranial volume = %2.1f\n", brain_volume) ;
-  }
-  else{
+  } else {
     // (5) Just use brain_volume=1 (ie, don't try to take it into account)
     brain_volume = 1.0 ;
   }
@@ -147,16 +169,16 @@ main(int argc, char *argv[])
   // For spread sheet, print first col as subj name.
   // The next col is the brain volume.
   // Not sure what col_strings are.
-  if (spread_sheet){
+  if (spread_sheet) {
     int i ;
 
-    if(log_fname == NULL) log_fname = "area_volumes.log" ;
+    if (log_fname == NULL) log_fname = "area_volumes.log" ;
     log_fp = fopen(log_fname, "a+") ;
 
     fprintf(log_fp, "%s  ", subject_name) ;
-    if(icv_fname ||
-       compute_pct ||
-       atlas_icv > 0) fprintf(log_fp, "%f ", brain_volume)  ;
+    if (icv_fname ||
+        compute_pct ||
+        atlas_icv > 0) fprintf(log_fp, "%f ", brain_volume)  ;
 
     for (i = 0 ;i < ncols ; i++) fprintf(log_fp, "%s ", col_strings[i])  ;
     fclose(log_fp) ;
@@ -164,55 +186,53 @@ main(int argc, char *argv[])
 
   // The rest of the args are label indices
   // (or "brain" means to use all labels in brain)
-  for (i = 2 ; i < argc ; i++){
+  for (i = 2 ; i < argc ; i++) {
 
     // Compute the label volume
-    if(stricmp(argv[i], "brain") == 0){
+    if (stricmp(argv[i], "brain") == 0) {
       // All labels in brain
       volume = 0 ;
-      for (label = 0 ; label <= MAX_CMA_LABEL ; label++){
+      for (label = 0 ; label <= MAX_CMA_LABEL ; label++) {
         if (!IS_BRAIN(label)) continue ;
         if (partial_volume)
           volume += MRIvoxelsInLabelWithPartialVolumeEffects
-            (mri, mri_vals, label) ;
+                    (mri, mri_vals, label) ;
         else
           volume += MRIvoxelsInLabel(mri, label) ;
       }
       label = -1 ;
-    }
-    else {
+    } else {
       // Label-by-label
       label = atoi(argv[i]) ;
       printf("processing label %d...\n", label) ;
 
       if (partial_volume)
         volume = MRIvoxelsInLabelWithPartialVolumeEffects
-          (mri, mri_vals, label) ;
+                 (mri, mri_vals, label) ;
       else
         volume = MRIvoxelsInLabel(mri, label) ;
     }
 
     // Open the logfile for appending
-    if (log_fname){
+    if (log_fname) {
       char fname[STRLEN] ;
 
       sprintf(fname, log_fname, label) ;
       printf("logging to %s...\n", fname) ;
       log_fp = fopen(fname, "a+") ;
       if (!log_fp)ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
-                            Progname, fname) ;
-    }
-    else log_fp = NULL ;
+                              Progname, fname) ;
+    } else log_fp = NULL ;
 
     // print perent volume, or ...
-    if (compute_pct || icv_fname || atlas_icv > 0){
+    if (compute_pct || icv_fname || atlas_icv > 0) {
       printf("%d voxels (%2.1f mm^3) in label %d, "
              "%%%2.6f of %s volume (%2.0f)\n",
              volume, volume*vox_volume,label,
              100.0*(float)volume/(float)brain_volume,
              atlas_icv > 0 ? "eTIV" : "brain",
              brain_volume) ;
-      if (log_fp){
+      if (log_fp) {
         if (spread_sheet)
           fprintf(log_fp,"%2.6f ",
                   100.0*(float)volume*vox_volume/(float)brain_volume) ;
@@ -224,10 +244,10 @@ main(int argc, char *argv[])
       }
     }
     // Print actual volume (instead of percent)
-    else{
+    else {
       printf("%d (%2.1f mm^3) voxels in label %d\n",
              volume,volume*vox_volume, label) ;
-      if(log_fp){
+      if (log_fp) {
         if (spread_sheet)
           fprintf(log_fp,"%2.6f ", (float)volume*vox_volume) ;
         else
@@ -239,7 +259,7 @@ main(int argc, char *argv[])
   } // End loop over labels
 
   // For spread sheet, add a newline
-  if(spread_sheet){
+  if (spread_sheet) {
     log_fp = fopen(log_fname, "a+") ;
     fprintf(log_fp,  "\n") ;
     fclose(log_fp) ;
@@ -265,36 +285,32 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "ICV")){
+  if (!stricmp(option, "ICV")) {
     icv_fname = argv[2] ;
     printf("reading ICV from %s\n", icv_fname) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "PV")){
+  } else if (!stricmp(option, "PV")) {
     partial_volume = 1 ;
     nargs = 1 ;
     mri_vals = MRIread(argv[2]) ;
     if (mri_vals == NULL)
       ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not read intensity volume %s", Progname, argv[3]) ;
+      (ERROR_NOFILE,
+       "%s: could not read intensity volume %s", Progname, argv[3]) ;
     printf("including partial volume effects in calculations\n") ;
-  }
-  else if (!stricmp(option, "debug_voxel")){
+  } else if (!stricmp(option, "debug_voxel")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
-  }
-  else if (!stricmp(option, "atlas_icv") ||
-           !stricmp(option, "eTIV") ||
-           !stricmp(option, "eTIV_matdat")){
+  } else if (!stricmp(option, "atlas_icv") ||
+             !stricmp(option, "eTIV") ||
+             !stricmp(option, "eTIV_matdat")) {
     double atlas_det, eTIV_scale_factor; // filled-in by MRIestimateTIV
 
     atlas_icv = MRIestimateTIV(argv[2],&eTIV_scale_factor,&atlas_det);
@@ -302,73 +318,70 @@ get_option(int argc, char *argv[])
            atlas_icv/(10*10*10)) ;
     nargs = 1 ;
 
-    if (!stricmp(option, "eTIV_matdat"))
-      {
-        /* create matlab-readable data file (append to
-           existing file named "det_eTIV_matdat.m") */
-        FILE *dat_fp = fopen("det_eTIV_matdat.m", "a+") ;
-        if (dat_fp)
-          {
-            fprintf(dat_fp,
-                    "eTIV_scale_factor = %f;\n", eTIV_scale_factor);
-            fprintf(dat_fp,
-                    "det_eTIV(length(det_eTIV)+1).det = %f;\n", atlas_det);
-            fprintf(dat_fp,
-                    "det_eTIV(length(det_eTIV)).eTIV = %f;\n", atlas_icv);
-            fprintf(dat_fp,
-                    "det_eTIV(length(det_eTIV)).id = '%s';\n\n\n", argv[3]);
-            fclose(dat_fp);
-          }
-        nargs = 2 ;
+    if (!stricmp(option, "eTIV_matdat")) {
+      /* create matlab-readable data file (append to
+         existing file named "det_eTIV_matdat.m") */
+      FILE *dat_fp = fopen("det_eTIV_matdat.m", "a+") ;
+      if (dat_fp) {
+        fprintf(dat_fp,
+                "eTIV_scale_factor = %f;\n", eTIV_scale_factor);
+        fprintf(dat_fp,
+                "det_eTIV(length(det_eTIV)+1).det = %f;\n", atlas_det);
+        fprintf(dat_fp,
+                "det_eTIV(length(det_eTIV)).eTIV = %f;\n", atlas_icv);
+        fprintf(dat_fp,
+                "det_eTIV(length(det_eTIV)).id = '%s';\n\n\n", argv[3]);
+        fclose(dat_fp);
       }
-  }
-  else switch (toupper(*option)){
-  case 'C':
-    if (ncols >=  MAX_COLS)
-      ErrorExit
+      nargs = 2 ;
+    }
+  } else switch (toupper(*option)) {
+    case 'C':
+      if (ncols >=  MAX_COLS)
+        ErrorExit
         (ERROR_NOMEMORY,
          "%s: too many columns specified (max=%d)\n", Progname, ncols) ;
-    col_strings[ncols++] = argv[2] ;
-    nargs = 1 ;
-    break ;
-  case 'S':
-    spread_sheet = 1  ;
-    subject_name = argv[2] ;
-    nargs = 1 ;
-    break  ;
-  case 'A':
-    all_flag = 1 ;
-    printf("computing volume of all non-zero voxels\n") ;
-    break ;
-  case 'T':
-    in_label = atoi(argv[2]) ;
-    out_label = atoi(argv[3]) ;
-    nargs = 2 ;
-    printf("translating label %d to label %d\n", in_label, out_label) ;
-    break ;
-  case 'B':
-    brain_fname = argv[2] ;
-    compute_pct = 1 ;
-    nargs = 1 ;
-    printf("reading brain volume from %s...\n", brain_fname) ;
-    break ;
-  case 'L':
-    log_fname = argv[2] ;
-    nargs = 1 ;
-    /*    fprintf(stderr, "logging results to %s\n", log_fname) ;*/
-    break ;
-  case 'P':
-    compute_pct = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    usage_exit(0) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+      col_strings[ncols++] = argv[2] ;
+      nargs = 1 ;
+      break ;
+    case 'S':
+      spread_sheet = 1  ;
+      subject_name = argv[2] ;
+      nargs = 1 ;
+      break  ;
+    case 'A':
+      all_flag = 1 ;
+      printf("computing volume of all non-zero voxels\n") ;
+      break ;
+    case 'T':
+      in_label = atoi(argv[2]) ;
+      out_label = atoi(argv[3]) ;
+      nargs = 2 ;
+      printf("translating label %d to label %d\n", in_label, out_label) ;
+      break ;
+    case 'B':
+      brain_fname = argv[2] ;
+      compute_pct = 1 ;
+      nargs = 1 ;
+      printf("reading brain volume from %s...\n", brain_fname) ;
+      break ;
+    case 'L':
+      log_fname = argv[2] ;
+      nargs = 1 ;
+      /*    fprintf(stderr, "logging results to %s\n", log_fname) ;*/
+      break ;
+    case 'P':
+      compute_pct = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      usage_exit(0) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
@@ -380,8 +393,7 @@ get_option(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static void
-usage_exit(int code)
-{
+usage_exit(int code) {
   printf("usage: %s [options] <volume> <label 1> <label 2> ...\n", Progname) ;
   printf("valid options are:\n") ;
   printf("  -pv <fname>   - compute partial volume effects "
@@ -399,7 +411,7 @@ usage_exit(int code)
   printf("  -p            - compute volume as a %% of all non-zero labels\n") ;
   printf("  -l <fname>    - log results to <fname>\n") ;
   printf("  -atlas_icv <fname> - specify LTA atlas transform file to use "
-	 "for ICV correction (c.f. Buckner et al. 2004)\n");
+         "for ICV correction (c.f. Buckner et al. 2004)\n");
   printf("  -eTIV <fname> - same as -atlas_icv\n");
   printf("  -eTIV_matdat <fname> <subject> - same as -eTIV, and generate \n");
   printf("                  matlab data appending <subject> to structure\n");

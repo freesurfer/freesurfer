@@ -1,3 +1,31 @@
+/**
+ * @file  ScubaColorLUT.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:14 $
+ *    $Revision: 1.15 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
@@ -23,65 +51,63 @@ ScubaColorLUT::ScubaColorLUT() {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetColorLUTLabel", 2, "lutID label",
-			 "Set the label for a color LUT." );
+                         "Set the label for a color LUT." );
   commandMgr.AddCommand( *this, "GetColorLUTLabel", 1, "lutID",
-			 "Returns the label for a color LUT." );
+                         "Returns the label for a color LUT." );
   commandMgr.AddCommand( *this, "SetColorLUTFileName", 2,
-			 "lutID fileName",
-			 "Set the LUT file name for a colorLUT." );
+                         "lutID fileName",
+                         "Set the LUT file name for a colorLUT." );
   commandMgr.AddCommand( *this, "GetColorLUTFileName", 1, "lutID",
-			 "Returns the LUT file name for a transform." );
+                         "Returns the LUT file name for a transform." );
   commandMgr.AddCommand( *this, "GetColorLUTNumberOfEntries", 1, "lutID",
-			 "Returns the number of entries in an LUT." );
+                         "Returns the number of entries in an LUT." );
   commandMgr.AddCommand( *this, "GetColorLUTEntryLabel", 2, "lutID entry",
-			 "Returns the label for an entry in an LUT." );
+                         "Returns the label for an entry in an LUT." );
   commandMgr.AddCommand( *this, "GetColorLUTEntryRGB", 2, "lutID entry",
-			 "Returns the rgb values (0-255) for an entry "
-			 "in an LUT." );
+                         "Returns the rgb values (0-255) for an entry "
+                         "in an LUT." );
   commandMgr.AddCommand( *this, "IsColorLUTEntryValid", 2, "lutID entry",
-			 "Returns whether or not an entry is valid. Can "
-			 "be invalid if it's out of range or was missing "
-			 "from the LUT." );
+                         "Returns whether or not an entry is valid. Can "
+                         "be invalid if it's out of range or was missing "
+                         "from the LUT." );
 }
 
-ScubaColorLUT::~ScubaColorLUT() {
+ScubaColorLUT::~ScubaColorLUT() {}
 
-}
-
-void 
+void
 ScubaColorLUT::UseFile ( std::string ifnLUT ) {
   mfnLUT = ifnLUT;
   ReadFile();
 }
 
 TclCommandListener::TclCommandResult
-ScubaColorLUT::DoListenToTclCommand ( char* isCommand, 
-				      int, char** iasArgv ) {
+ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
+                                      int, char** iasArgv ) {
 
   // SetColorLUTLabel <lutID> <label>
-  if( 0 == strcmp( isCommand, "SetColorLUTLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "SetColorLUTLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
-      
+
+    if ( mID == lutID ) {
+
       string sLabel = iasArgv[2];
       SetLabel( sLabel );
     }
   }
 
   // GetColorLUTLabel <lutID>
-  if( 0 == strcmp( isCommand, "GetColorLUTLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabel() << "\"";
@@ -90,28 +116,28 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   }
 
   // SetColorLUTFileName <lutID> <fileName>
-  if( 0 == strcmp( isCommand, "SetColorLUTFileName" ) ) {
+  if ( 0 == strcmp( isCommand, "SetColorLUTFileName" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
-      
+
+    if ( mID == lutID ) {
+
       UseFile( iasArgv[2] );
     }
   }
 
   // GetColorLUTFileName <lutID>
-  if( 0 == strcmp( isCommand, "GetColorLUTFileName" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTFileName" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << mfnLUT << "\"";
@@ -120,14 +146,14 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetColorLUTNumberOfEntries <lutID>
-  if( 0 == strcmp( isCommand, "GetColorLUTNumberOfEntries" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTNumberOfEntries" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
       sReturnFormat = "i";
       stringstream ssReturnValues;
       ssReturnValues << mHighestItemNo + 1;
@@ -136,24 +162,24 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetColorLUTEntryLabel <lutID> <entry>
-  if( 0 == strcmp( isCommand, "GetColorLUTEntryLabel" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTEntryLabel" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
 
       int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad entry";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad entry";
+        return error;
       }
 
-      if( nEntry < 0 || nEntry > mHighestItemNo ) {
-	sResult = "No entry at this index";
-	return error;
+      if ( nEntry < 0 || nEntry > mHighestItemNo ) {
+        sResult = "No entry at this index";
+        return error;
       }
 
       sReturnFormat = "s";
@@ -164,51 +190,51 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   }
 
   // GetColorLUTEntryRGB <lutID> <entry>
-  if( 0 == strcmp( isCommand, "GetColorLUTEntryRGB" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTEntryRGB" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
 
       int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad entry";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad entry";
+        return error;
       }
 
-      if( nEntry < 0 || nEntry > mHighestItemNo ) {
-	sResult = "No entry at this index";
-	return error;
+      if ( nEntry < 0 || nEntry > mHighestItemNo ) {
+        sResult = "No entry at this index";
+        return error;
       }
 
       sReturnFormat = "Liiil";
       stringstream ssReturnValues;
       ssReturnValues << mEntries[nEntry].color[0] << " "
-		     << mEntries[nEntry].color[1] << " "
-		     << mEntries[nEntry].color[2];
+      << mEntries[nEntry].color[1] << " "
+      << mEntries[nEntry].color[2];
       sReturnValues = ssReturnValues.str();
     }
   }
 
   // IsColorLUTEntryValid <lutID> <entry>
-  if( 0 == strcmp( isCommand, "IsColorLUTEntryValid" ) ) {
+  if ( 0 == strcmp( isCommand, "IsColorLUTEntryValid" ) ) {
     int lutID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
+    if ( ERANGE == errno ) {
       sResult = "bad lut ID";
       return error;
     }
-    
-    if( mID == lutID ) {
+
+    if ( mID == lutID ) {
 
       int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad entry index";
-	return error;
+      if ( ERANGE == errno ) {
+        sResult = "bad entry index";
+        return error;
       }
-    
+
       sReturnFormat = "i";
       stringstream ssReturnValues;
       ssReturnValues << IsEntryValid( nEntry );
@@ -220,11 +246,11 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
   return ok;
 }
 
-void 
+void
 ScubaColorLUT::GetColorAtIndex ( int iIndex, int oColor[3] ) {
 
-  if( iIndex >= 0 && iIndex <= mHighestItemNo &&
-      mEntries[iIndex].mbValid ) {
+  if ( iIndex >= 0 && iIndex <= mHighestItemNo &&
+       mEntries[iIndex].mbValid ) {
     oColor[0] = mEntries[iIndex].color[0];
     oColor[1] = mEntries[iIndex].color[1];
     oColor[2] = mEntries[iIndex].color[2];
@@ -233,67 +259,65 @@ ScubaColorLUT::GetColorAtIndex ( int iIndex, int oColor[3] ) {
   }
 }
 
-void 
+void
 ScubaColorLUT::GetIndexOfColor ( int[3], int& ) {
-
-  
 }
 
-bool 
+bool
 ScubaColorLUT::IsEntryValid ( int inIndex ) {
 
-  if( inIndex >= 0 && inIndex <= mHighestItemNo ) {
+  if ( inIndex >= 0 && inIndex <= mHighestItemNo ) {
     return mEntries[inIndex].mbValid;
   }
   return false;
 }
 
-string 
+string
 ScubaColorLUT::GetLabelAtIndex ( int iIndex ) {
 
-  if( iIndex >= 0 && iIndex <= mHighestItemNo &&
-      mEntries[iIndex].mbValid ) {
+  if ( iIndex >= 0 && iIndex <= mHighestItemNo &&
+       mEntries[iIndex].mbValid ) {
     return mEntries[iIndex].msLabel;
   } else  {
     return "No entry";
   }
 }
 
-void 
+void
 ScubaColorLUT::ReadFile () {
 
   /* Read the file with the CTAB code. */
   char fnLUT[1024];
   strncpy( fnLUT, mfnLUT.c_str(), sizeof(fnLUT) );
   COLOR_TABLE* ctab = CTABreadASCII( fnLUT );
-  if( NULL == ctab ) {
-    throw new runtime_error( string("Couldn't open color table file ") + 
-			     mfnLUT );
+  if ( NULL == ctab ) {
+    throw new runtime_error( string("Couldn't open color table file ") +
+                             mfnLUT );
   }
 
   /* Go through and make entries for each valid entry we got. */
   int cEntries;
   CTABgetNumberOfTotalEntries( ctab, &cEntries );
   mHighestItemNo = -1;
-  for( int nEntry = 0; nEntry < cEntries; nEntry++ ) {
+  for ( int nEntry = 0; nEntry < cEntries; nEntry++ ) {
 
     int bValid;
     CTABisEntryValid( ctab, nEntry, &bValid );
-    if( bValid ) {
+    if ( bValid ) {
 
       mEntries[nEntry].mbValid = true;
       CTABrgbaAtIndexi( ctab, nEntry,
-			&mEntries[nEntry].color[0],
-			&mEntries[nEntry].color[1],
-			&mEntries[nEntry].color[2],
-			&mEntries[nEntry].alpha );
+                        &mEntries[nEntry].color[0],
+                        &mEntries[nEntry].color[1],
+                        &mEntries[nEntry].color[2],
+                        &mEntries[nEntry].alpha );
       char sName[1024];
       CTABcopyName( ctab, nEntry, sName, sizeof(sName) );
       mEntries[nEntry].msLabel = sName;
 
       /* Update our highest item number. */
-      if( nEntry > mHighestItemNo ) 
-	mHighestItemNo = nEntry;
+      if ( nEntry > mHighestItemNo )
+        mHighestItemNo = nEntry;
 
     } else {
 
@@ -308,40 +332,39 @@ ScubaColorLUT::ReadFile () {
 ScubaColorLUTStaticTclListener::ScubaColorLUTStaticTclListener () {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "GetColorLUTIDList", 0, "", 
-			 "Return a list of all colorLUTIDs." );
-  commandMgr.AddCommand( *this, "MakeNewColorLUT", 0, "", 
-			 "Creates a new color LUT and returns its id." );
+  commandMgr.AddCommand( *this, "GetColorLUTIDList", 0, "",
+                         "Return a list of all colorLUTIDs." );
+  commandMgr.AddCommand( *this, "MakeNewColorLUT", 0, "",
+                         "Creates a new color LUT and returns its id." );
 }
 
-ScubaColorLUTStaticTclListener::~ScubaColorLUTStaticTclListener () {
-}
+ScubaColorLUTStaticTclListener::~ScubaColorLUTStaticTclListener () {}
 
 TclCommandListener::TclCommandResult
-ScubaColorLUTStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-						       int, char** ) {
+ScubaColorLUTStaticTclListener::DoListenToTclCommand ( char* isCommand,
+    int, char** ) {
 
   // GetColorLUTIDList
-  if( 0 == strcmp( isCommand, "GetColorLUTIDList" ) ) {
+  if ( 0 == strcmp( isCommand, "GetColorLUTIDList" ) ) {
     list<int> idList;
     ScubaColorLUT::GetIDList( idList );
     stringstream ssFormat;
     stringstream ssResult;
     ssFormat << "L";
     list<int>::iterator tID;
-    for( tID = idList.begin(); tID != idList.end(); ++tID ) {
+    for ( tID = idList.begin(); tID != idList.end(); ++tID ) {
       int id = *tID;
       ssFormat << "i";
       ssResult << id << " ";
     }
     ssFormat << "l";
-    
+
     sReturnFormat = ssFormat.str();
     sReturnValues = ssResult.str();
   }
 
   // MakeNewColorLUT
-  if( 0 == strcmp( isCommand, "MakeNewColorLUT" ) ) {
+  if ( 0 == strcmp( isCommand, "MakeNewColorLUT" ) ) {
 
     ScubaColorLUT* lut = new ScubaColorLUT();
     sReturnFormat = "i";

@@ -1,3 +1,31 @@
+/**
+ * @file  oglutil.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:18 $
+ *    $Revision: 1.27 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +48,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.26 2005/11/03 00:05:14 nicks Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.27 2006/12/29 02:09:18 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -30,8 +58,8 @@ static char vcid[] = "$Id: oglutil.c,v 1.26 2005/11/03 00:05:14 nicks Exp $";
 
 #define FIELDSIGN_POS      4    /* blue */
 #define FIELDSIGN_NEG      5    /* yellow */
-#define BORDER             6 
-#define MARKED             7 
+#define BORDER             6
+#define MARKED             7
 
 #define FOV                (256.0f*SCALE_FACTOR)
 #define COLSCALEBAR_XPOS    1.7
@@ -53,10 +81,10 @@ static void draw_colscalebar(void) ;
 static void draw_colscalebar_time(int flags) ;
 static int  read_environment_variables(void) ;
 static int set_color(float val,float curv, int flags) ;
-static int set_stat_color(float f, float *rp, float *gp, float *bp, 
+static int set_stat_color(float f, float *rp, float *gp, float *bp,
                           float tmpoffset) ;
-static int set_stat_color_time(float f, float *rp, float *gp, float *bp, 
-                          float tmpoffset) ;
+static int set_stat_color_time(float f, float *rp, float *gp, float *bp,
+                               float tmpoffset) ;
 static void load_brain_coords(float x,float y, float z, float v[]) ;
 static int mrisFindMaxExtents(MRI_SURFACE *mris) ;
 static int ogluSetFOV(MRI_SURFACE *mris, double fov) ;
@@ -111,31 +139,70 @@ OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
 }
 
 #define LIGHT0_BR  0.4 /* was 0.2 */
-#define LIGHT1_BR  0.0 
+#define LIGHT1_BR  0.0
 #define LIGHT2_BR  0.6 /* was 0.3 */
 #define LIGHT3_BR  0.2 /* was 0.1 */
 #define OFFSET 0.25   /* was 0.15 */
 void
-OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3, 
-                   float newoffset)
+OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3,
+                     float newoffset)
 {
   float offset = OFFSET ;
-  static GLfloat mat0_ambient[] =  { 0.0, 0.0, 0.0, 1.0 };
-  static GLfloat mat0_diffuse[] =  { OFFSET, OFFSET, OFFSET, 1.0 };
-  static GLfloat mat0_emission[] = { 0.0, 0.0, 0.0, 1.0 };
-  static GLfloat light0_diffuse[] = { LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0 };
-  static GLfloat light1_diffuse[] = { LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0 };
-  static GLfloat light2_diffuse[] = { LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0 };
-  static GLfloat light3_diffuse[] = { LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0 };
-  static GLfloat light0_position[] = { 0.0, 0.0, 1.0, 0.0 };
-  static GLfloat light1_position[] = { 0.0, 0.0,-1.0, 0.0 };
+  static GLfloat mat0_ambient[] =
+    {
+      0.0, 0.0, 0.0, 1.0
+    };
+  static GLfloat mat0_diffuse[] =
+    {
+      OFFSET, OFFSET, OFFSET, 1.0
+    };
+  static GLfloat mat0_emission[] =
+    {
+      0.0, 0.0, 0.0, 1.0
+    };
+  static GLfloat light0_diffuse[] =
+    {
+      LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0
+    };
+  static GLfloat light1_diffuse[] =
+    {
+      LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0
+    };
+  static GLfloat light2_diffuse[] =
+    {
+      LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0
+    };
+  static GLfloat light3_diffuse[] =
+    {
+      LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0
+    };
+  static GLfloat light0_position[] =
+    {
+      0.0, 0.0, 1.0, 0.0
+    };
+  static GLfloat light1_position[] =
+    {
+      0.0, 0.0,-1.0, 0.0
+    };
 #if 0
-  static GLfloat light2_position[] = { 0.6, 0.6, 1.6, 0.0 };
+  static GLfloat light2_position[] =
+    {
+      0.6, 0.6, 1.6, 0.0
+    };
 #else
-  static GLfloat light2_position[] = { 0.6, 0.6, 0.6, 0.0 };
+  static GLfloat light2_position[] =
+    {
+      0.6, 0.6, 0.6, 0.0
+    };
 #endif
-  static GLfloat light3_position[] = {-1.0, 0.0, 0.0, 0.0 };
-  static GLfloat lmodel_ambient[] =  { 0.0, 0.0, 0.0, 0.0 };
+  static GLfloat light3_position[] =
+    {
+      -1.0, 0.0, 0.0, 0.0
+    };
+  static GLfloat lmodel_ambient[] =
+    {
+      0.0, 0.0, 0.0, 0.0
+    };
 
   if (lite0 < 0.0)     lite0 = light0_diffuse[0];
   if (lite1 < 0.0)     lite1 = light1_diffuse[0];
@@ -158,31 +225,31 @@ OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3,
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
-    glLoadIdentity();
+  glLoadIdentity();
 
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat0_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat0_diffuse);
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat0_emission);
+  glMaterialfv(GL_FRONT, GL_AMBIENT, mat0_ambient);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, mat0_diffuse);
+  glMaterialfv(GL_FRONT, GL_EMISSION, mat0_emission);
 
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
-    glLightfv(GL_LIGHT2, GL_DIFFUSE, light2_diffuse);
-    glLightfv(GL_LIGHT3, GL_DIFFUSE, light3_diffuse);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
+  glLightfv(GL_LIGHT2, GL_DIFFUSE, light2_diffuse);
+  glLightfv(GL_LIGHT3, GL_DIFFUSE, light3_diffuse);
 
-    /* might need to move */
-    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
-    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
-    glLightfv(GL_LIGHT2, GL_POSITION, light2_position);
-    glLightfv(GL_LIGHT3, GL_POSITION, light3_position);
+  /* might need to move */
+  glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+  glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+  glLightfv(GL_LIGHT2, GL_POSITION, light2_position);
+  glLightfv(GL_LIGHT3, GL_POSITION, light3_position);
 
-    /* turn off default global 0.2 ambient (inf. viewpnt, not 2-sided OK) */
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
-    glEnable(GL_LIGHT3);
+  /* turn off default global 0.2 ambient (inf. viewpnt, not 2-sided OK) */
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+  glEnable(GL_COLOR_MATERIAL);
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  glEnable(GL_LIGHT1);
+  glEnable(GL_LIGHT2);
+  glEnable(GL_LIGHT3);
   glPopMatrix();
 }
 
@@ -209,7 +276,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tessellation...") ;
-  
+
   min_curv = mris->min_curv ;
   max_curv = mris->max_curv ;
   if (-min_curv > max_curv)
@@ -220,237 +287,241 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 
   /** Pre-processing to paint MEG/EEG activation/temporal information **/
   if (flags & VAL_FLAG)
-    {
-      int find_flag = 0 ;
-      /* find range of values */
-      min_curv = 1000000.0f ; max_curv = -min_curv ;
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag || v->val == 0.0)
-      continue ;
-    find_flag = 1 ;
-    if (v->val > max_curv)
-      max_curv = v->val ;
-    if (v->val < min_curv)
-      min_curv = v->val ;
-  }
-      if (!find_flag) min_curv = max_curv = 0.0 ;
-      fprintf(stderr, "min val = %2.3f, max val = %2.3f\n",
-        min_curv, max_curv) ;
-  
-      if((flags & TIME_FLAG) || (flags & STAN_FLAG)) {
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    int find_flag = 0 ;
+    /* find range of values */
+    min_curv = 1000000.0f ;
+    max_curv = -min_curv ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag || v->val == 0.0)
         continue ;
-      v->val = (v->val - (min_curv)) / (max_curv-(min_curv)) ;
-    }   
+      find_flag = 1 ;
+      if (v->val > max_curv)
+        max_curv = v->val ;
+      if (v->val < min_curv)
+        min_curv = v->val ;
+    }
+    if (!find_flag) min_curv = max_curv = 0.0 ;
+    fprintf(stderr, "min val = %2.3f, max val = %2.3f\n",
+            min_curv, max_curv) ;
+
+    if ((flags & TIME_FLAG) || (flags & STAN_FLAG))
+    {
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag || v->val == 0.0)
+          continue ;
+        v->val = (v->val - (min_curv)) / (max_curv-(min_curv)) ;
       }
     }
-      
+  }
+
   for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
-  {
-    f = &mris->faces[k];
-    marked = 0 ;
-
-    if (flags & MESH_FLAG)
     {
-      float v2[3], v3[3] ;
+      f = &mris->faces[k];
+      marked = 0 ;
 
-      glBegin(GL_LINES);
-      glColor3ub(255,255,255);
-      for (n=0;n<VERTICES_PER_FACE ;n++)
+      if (flags & MESH_FLAG)
+      {
+        float v2[3], v3[3] ;
+
+        glBegin(GL_LINES);
+        glColor3ub(255,255,255);
+        for (n=0;n<VERTICES_PER_FACE ;n++)
+        {
+          v = &mris->vertices[f->v[n]];
+          vn = n == VERTICES_PER_FACE-1 ?
+               &mris->vertices[f->v[0]] : &mris->vertices[f->v[n+1]] ;
+          load_brain_coords(v->nx,v->ny,v->nz,v1);
+          glNormal3fv(v1);
+          load_brain_coords(v->x,v->y,v->z,v2);
+          load_brain_coords(vn->x, vn->y, vn->z,v3);
+          glVertex3fv(v2);
+          glVertex3fv(v3);
+        }
+        glEnd() ;
+      }
+      for (n=0;n<VERTICES_PER_FACE;n++)
+        if (mris->vertices[f->v[n]].marked)
+          marked = mris->vertices[f->v[n]].marked ;
+
+      glBegin(GL_TRIANGLES) ;
+      for (n=0;n<VERTICES_PER_FACE;n++)
       {
         v = &mris->vertices[f->v[n]];
-        vn = n == VERTICES_PER_FACE-1 ? 
-          &mris->vertices[f->v[0]] : &mris->vertices[f->v[n+1]] ;
-        load_brain_coords(v->nx,v->ny,v->nz,v1);
-        glNormal3fv(v1);
-        load_brain_coords(v->x,v->y,v->z,v2);
-        load_brain_coords(vn->x, vn->y, vn->z,v3);
-        glVertex3fv(v2);
-        glVertex3fv(v3);
-      }
-      glEnd() ;
-    }
-    for (n=0;n<VERTICES_PER_FACE;n++)
-      if (mris->vertices[f->v[n]].marked)
-        marked = mris->vertices[f->v[n]].marked ;
 
-    glBegin(GL_TRIANGLES) ;
-    for (n=0;n<VERTICES_PER_FACE;n++)
-    {
-      v = &mris->vertices[f->v[n]];
+        if (v->ripflag)
+          mv = 0 ;
 
-      if (v->ripflag)
-        mv = 0 ;
+        if ((flags & PATCH_FLAG) && (v->nz < 0))  /* invert negative vertices */
+          v->nz *= -1 ;
 
-      if ((flags & PATCH_FLAG) && (v->nz < 0))  /* invert negative vertices */
-        v->nz *= -1 ;
-        
-      /* don't display negative flat stuff */
-      if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
-        continue ;
+        /* don't display negative flat stuff */
+        if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
+          continue ;
 
-      if (flags & COORD_FLAG && getenv("THIN_LINES") == NULL)
-      {
-        int    itheta, iphi ;
-        float  phi_dist, theta_dist, dist, xc, yc, zc, radius, theta, phi ;
+        if (flags & COORD_FLAG && getenv("THIN_LINES") == NULL)
+        {
+          int    itheta, iphi ;
+          float  phi_dist, theta_dist, dist, xc, yc, zc, radius, theta, phi ;
 
-        radius = sqrt(SQR(v->cx)+SQR(v->cy)+SQR(v->cz)) ;
-        itheta = 
-          nint((DEGREES(v->theta) / oglu_coord_spacing)) * oglu_coord_spacing ;
-        iphi =   
-          nint((DEGREES(v->phi)   / oglu_coord_spacing)) * oglu_coord_spacing ;
-        phi = RADIANS((double)iphi) ; theta = RADIANS((double)itheta) ;
-        xc = radius * sin(phi) * cos(v->theta) ;
-        yc = radius * sin(phi) * sin(v->theta) ;
-        zc = radius * cos(phi) ;
-        phi_dist = sqrt(SQR(xc-v->cx)+SQR(yc-v->cy)+SQR(zc-v->cz)) ;
-        if (zc >126)
-          DiagBreak() ;
-        phi = RADIANS((double)iphi) ; theta = RADIANS((double)itheta) ;
-        xc = radius * sin(v->phi) * cos(theta) ;
-        yc = radius * sin(v->phi) * sin(theta) ;
-        zc = radius * cos(v->phi) ;
-        theta_dist = sqrt(SQR(xc-v->cx)+SQR(yc-v->cy)+SQR(zc-v->cz)) ;
+          radius = sqrt(SQR(v->cx)+SQR(v->cy)+SQR(v->cz)) ;
+          itheta =
+            nint((DEGREES(v->theta) / oglu_coord_spacing)) * oglu_coord_spacing ;
+          iphi =
+            nint((DEGREES(v->phi)   / oglu_coord_spacing)) * oglu_coord_spacing ;
+          phi = RADIANS((double)iphi) ;
+          theta = RADIANS((double)itheta) ;
+          xc = radius * sin(phi) * cos(v->theta) ;
+          yc = radius * sin(phi) * sin(v->theta) ;
+          zc = radius * cos(phi) ;
+          phi_dist = sqrt(SQR(xc-v->cx)+SQR(yc-v->cy)+SQR(zc-v->cz)) ;
+          if (zc >126)
+            DiagBreak() ;
+          phi = RADIANS((double)iphi) ;
+          theta = RADIANS((double)itheta) ;
+          xc = radius * sin(v->phi) * cos(theta) ;
+          yc = radius * sin(v->phi) * sin(theta) ;
+          zc = radius * cos(v->phi) ;
+          theta_dist = sqrt(SQR(xc-v->cx)+SQR(yc-v->cy)+SQR(zc-v->cz)) ;
 
-        if (theta_dist < phi_dist)
-          dist = theta_dist ;
-        else
-          dist = phi_dist ;
+          if (theta_dist < phi_dist)
+            dist = theta_dist ;
+          else
+            dist = phi_dist ;
 
-        if (k == 50322 && n == 2)
-          DiagBreak() ;
-        if (zc >126 && dist < oglu_coord_thickness/2)
-          DiagBreak() ;
+          if (k == 50322 && n == 2)
+            DiagBreak() ;
+          if (zc >126 && dist < oglu_coord_thickness/2)
+            DiagBreak() ;
 #if 0
-        if (dist > oglu_coord_thickness)
-          coord_coef = 0.0f ;
-        else   /* ramp values down from 1 based on distance */
-        {
-          coord_coef = 1.0f - dist/oglu_coord_thickness ;
-        }
+          if (dist > oglu_coord_thickness)
+            coord_coef = 0.0f ;
+          else   /* ramp values down from 1 based on distance */
+          {
+            coord_coef = 1.0f - dist/oglu_coord_thickness ;
+          }
 #else
-        coord_coef = exp(-(SQR(dist)) / (SQR(2*oglu_coord_thickness))) ;
+          coord_coef = exp(-(SQR(dist)) / (SQR(2*oglu_coord_thickness))) ;
 #endif
-      }
-      else
-        coord_coef = 0 ;
-
-      if (marked)
-      {
-        switch (marked)
-        {
-        default:
-        case MARK_RED:
-          glColor3ub(255,0,0) ;  
-          break ;
-          break ;
-        case MARK_WHITE:
-          glColor3ub(255,255,255) ;  
-          break ;
-          break ;
-        case MARK_GREEN:
-          glColor3ub(0,255,0) ;  
-          break ;
-          break ;
-        case MARK_BLUE:
-          glColor3ub(0,0,255) ;  
-          break ;
-        case MARK_CYAN:
-          glColor3ub(0,255,255) ;  
-          break ;
-        case MARK_YELLOW:
-          glColor3ub(255,255, 0) ;  
-          break ;
-        case MARK_ORANGE:
-          glColor3ub(255,128, 128) ;   /* orange */
-          break ;
-        case MARK_LIGHTGREEN:
-          glColor3ub(200,255, 200) ;  
-          break ;
-        case MARK_PURPLE:
-          glColor3ub(255,0,255) ;  
-          break ;
         }
-      }
-      else if (v->border && !(flags & BW_FLAG) && !(flags & NOBORDER_FLAG))
-        glColor3f(240,240,0.0);
-      else   /* color it depending on curvature */
-  {
+        else
+          coord_coef = 0 ;
+
+        if (marked)
+        {
+          switch (marked)
+          {
+          default:
+          case MARK_RED:
+            glColor3ub(255,0,0) ;
+            break ;
+            break ;
+          case MARK_WHITE:
+            glColor3ub(255,255,255) ;
+            break ;
+            break ;
+          case MARK_GREEN:
+            glColor3ub(0,255,0) ;
+            break ;
+            break ;
+          case MARK_BLUE:
+            glColor3ub(0,0,255) ;
+            break ;
+          case MARK_CYAN:
+            glColor3ub(0,255,255) ;
+            break ;
+          case MARK_YELLOW:
+            glColor3ub(255,255, 0) ;
+            break ;
+          case MARK_ORANGE:
+            glColor3ub(255,128, 128) ;   /* orange */
+            break ;
+          case MARK_LIGHTGREEN:
+            glColor3ub(200,255, 200) ;
+            break ;
+          case MARK_PURPLE:
+            glColor3ub(255,0,255) ;
+            break ;
+          }
+        }
+        else if (v->border && !(flags & BW_FLAG) && !(flags & NOBORDER_FLAG))
+          glColor3f(240,240,0.0);
+        else   /* color it depending on curvature */
+        {
 #define DARK_GRAY    (brightness - (brightness / 3.0f))
 #define BRIGHT_GRAY  (brightness + (brightness / 3.0f))
 #define MIN_GRAY     min_gray
 #define BRIGHTNESS   brightness
 
-        red = green = blue = MIN_GRAY ;
-        if (FZERO(max_curv))  /* no curvature info */
-          red = green = blue = GRAY ;    /* paint it gray */
+          red = green = blue = MIN_GRAY ;
+          if (FZERO(max_curv))  /* no curvature info */
+            red = green = blue = GRAY ;    /* paint it gray */
 
-        if (f->v[n] == 62152)
-          DiagBreak() ;
+          if (f->v[n] == 62152)
+            DiagBreak() ;
 
-        if (flags & VAL_FLAG && (fabs(v->val) >= fthresh))
-        {
-          color_val = v->val ;
-          set_color(v->val, v->curv, flags) ;
-        }
-        else
-        {
-          float  abs_color_val  ;
-
-          if (v->curv < 0)
-            color_val = -v->curv / min_curv ;
-          else
-            color_val = v->curv / max_curv ;
-
-          color_val = tanh(cslope * color_val) ;
-          abs_color_val = fabs(color_val) ;
-          red = 
-            BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)+MAX(0,color_val));
-          green = 
-            BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)+MAX(0,-color_val));
-          blue = 
-            BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)) ;
-
-          if (red > 255)
-            red = 255 ;
-          if (green > 255)
-            green = 255 ;
-          if (blue > 255)
-            blue = 255 ;
-          if (red < 0)
-            red = 0 ;
-          if (green < 0)
-            green = 0 ;
-          if (blue < 0)
-            blue = 0 ;
-          if (flags & BW_FLAG)
+          if (flags & VAL_FLAG && (fabs(v->val) >= fthresh))
           {
-            if (v->curv > 0)
-              red = green = blue = BRIGHT_GRAY ;
-            else
-              red = green = blue = DARK_GRAY ;
-            
+            color_val = v->val ;
+            set_color(v->val, v->curv, flags) ;
           }
-          red += (COORD_RED - red) * coord_coef ;
-          blue += (COORD_BLUE - blue) * coord_coef ;
-          green += (COORD_GREEN - green) * coord_coef ;
-          glColor3ub(red,green,blue);  /* specify the RGB color */
+          else
+          {
+            float  abs_color_val  ;
+
+            if (v->curv < 0)
+              color_val = -v->curv / min_curv ;
+            else
+              color_val = v->curv / max_curv ;
+
+            color_val = tanh(cslope * color_val) ;
+            abs_color_val = fabs(color_val) ;
+            red =
+              BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)+MAX(0,color_val));
+            green =
+              BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)+MAX(0,-color_val));
+            blue =
+              BRIGHTNESS * (MIN_GRAY * (1.0f - abs_color_val)) ;
+
+            if (red > 255)
+              red = 255 ;
+            if (green > 255)
+              green = 255 ;
+            if (blue > 255)
+              blue = 255 ;
+            if (red < 0)
+              red = 0 ;
+            if (green < 0)
+              green = 0 ;
+            if (blue < 0)
+              blue = 0 ;
+            if (flags & BW_FLAG)
+            {
+              if (v->curv > 0)
+                red = green = blue = BRIGHT_GRAY ;
+              else
+                red = green = blue = DARK_GRAY ;
+
+            }
+            red += (COORD_RED - red) * coord_coef ;
+            blue += (COORD_BLUE - blue) * coord_coef ;
+            green += (COORD_GREEN - green) * coord_coef ;
+            glColor3ub(red,green,blue);  /* specify the RGB color */
+          }
         }
-      }
-      load_brain_coords(v->nx,v->ny,v->nz,v1);
-      glNormal3fv(v1);                /* specify the normal for lighting */
-      load_brain_coords(v->x,v->y,v->z,v1);
-      glVertex3fv(v1);                /* specify the position of the vertex*/
+        load_brain_coords(v->nx,v->ny,v->nz,v1);
+        glNormal3fv(v1);                /* specify the normal for lighting */
+        load_brain_coords(v->x,v->y,v->z,v1);
+        glVertex3fv(v1);                /* specify the position of the vertex*/
       }
       glEnd() ;   /* done specifying this polygon */
     }
 
-    
+
   /* draw canonical coordinate system */
   if (flags & COORD_FLAG && getenv("THIN_LINES") != NULL)
   {
@@ -470,7 +541,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       if (f->ripflag)
         continue ;
       phi_avg = theta_avg = nx = ny = nz = 0.0f ;
-      
+
       /* calculate average surface coordinate and average normal */
       for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
       {
@@ -479,9 +550,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
         vf[fvno] = &mris->vertices[f->v[fvno]] ;
         phi_avg += vf[fvno]->phi ;
         theta_avg += vf[fvno]->theta ;
-        nx += vf[fvno]->nx ; ny += vf[fvno]->ny ; nz += vf[fvno]->nz ;
+        nx += vf[fvno]->nx ;
+        ny += vf[fvno]->ny ;
+        nz += vf[fvno]->nz ;
       }
-      phi_avg /= (float)VERTICES_PER_FACE ; 
+      phi_avg /= (float)VERTICES_PER_FACE ;
       theta_avg /= (float)VERTICES_PER_FACE ;
       nx /= (float)VERTICES_PER_FACE ;
       ny /= (float)VERTICES_PER_FACE ;
@@ -496,9 +569,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           RGBcolor(255,230,0);
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
-          RGBcolor(255,230, 0) ;  
+          RGBcolor(255,230, 0) ;
           RGBcolor(0,0, 255) ;      /* blue */
-          RGBcolor(255,255, 0) ;  
+          RGBcolor(255,255, 0) ;
           glLineWidth(oglu_coord_thickness) ;
           for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
             fcoords[fvno] = DEGREES(vf[fvno]->phi) ;
@@ -508,7 +581,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           avg_coord = DEGREES(theta_avg) ;
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
-          RGBcolor(255,230, 0) ;  
+          RGBcolor(255,230, 0) ;
           RGBcolor(0,0, 255) ;      /* blue */
           RGBcolor(255,255, 0) ;    /* yellow */
           glLineWidth(oglu_coord_thickness) ;
@@ -549,7 +622,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           if (nintersections >= 2)   /* draw the line */
           {
             glBegin(GL_LINES) ;
-    
+
             load_brain_coords(nx,ny,nz,v1);
             glNormal3fv(v1);
             load_brain_coords(cross_x[0]+cheight*nx,cross_y[0]+cheight*ny,
@@ -593,10 +666,12 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       if (v->ripflag)
         continue ;
 
-      theta = DEGREES(v->theta) ; phi = DEGREES(v->phi) ;
-      itheta = nint(theta) ; iphi = nint(phi) ;
-      coord = 
-        ((((iphi/oglu_coord_spacing)   * oglu_coord_spacing) == iphi) || 
+      theta = DEGREES(v->theta) ;
+      phi = DEGREES(v->phi) ;
+      itheta = nint(theta) ;
+      iphi = nint(phi) ;
+      coord =
+        ((((iphi/oglu_coord_spacing)   * oglu_coord_spacing) == iphi) ||
          (((itheta/oglu_coord_spacing) * oglu_coord_spacing) == itheta));
       if (!coord)
         continue ;
@@ -611,49 +686,49 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 #endif
 
   if (flags & TP_FLAG) for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
-  {
-    float v2[3], v3[3] ;
+    {
+      float v2[3], v3[3] ;
 #define LINE_LEN  0.1*MAX(MAX(mris->xhi,mris->yhi),mris->zhi)
 
-    if (marked_vertices[mv] < mris->nvertices)
-    {
-      v = &mris->vertices[marked_vertices[mv]] ;
-      glLineWidth(2.0f);
-      
-      glBegin(GL_LINES);
-      glColor3ub(0,255,255);
-      load_brain_coords(v->e1x,v->e1y,v->e1z,v1);
-      glNormal3fv(v1);
-      load_brain_coords(v->x,v->y,v->z,v2);
-      load_brain_coords(v->x+LINE_LEN*v->nx,v->y+LINE_LEN*v->ny,
-                        v->z+LINE_LEN*v->nz,v3);
-      glVertex3fv(v2);
-      glVertex3fv(v3);
-      glEnd() ;
-      
-      glBegin(GL_LINES);
-      glColor3ub(255,255,0);
-      load_brain_coords(v->nx,v->ny,v->nz,v1);
-      glNormal3fv(v1);
-      load_brain_coords(v->x,v->y,v->z,v2);
-      load_brain_coords(v->x+LINE_LEN*v->e1x,v->y+LINE_LEN*v->e1y,
-                        v->z+LINE_LEN*v->e1z,v3);
-      glVertex3fv(v2);
-      glVertex3fv(v3);
-      glEnd() ;
-      
-      glBegin(GL_LINES);
-      glColor3ub(255,255,0);
-      load_brain_coords(v->nx,v->ny,v->nz,v1);
-      glNormal3fv(v1);
-      load_brain_coords(v->x,v->y,v->z,v2);
-      load_brain_coords(v->x+LINE_LEN*v->e2x,v->y+LINE_LEN*v->e2y,
-                        v->z+LINE_LEN*v->e2z,v3);
-      glVertex3fv(v2);
-      glVertex3fv(v3);
-      glEnd() ;
+      if (marked_vertices[mv] < mris->nvertices)
+      {
+        v = &mris->vertices[marked_vertices[mv]] ;
+        glLineWidth(2.0f);
+
+        glBegin(GL_LINES);
+        glColor3ub(0,255,255);
+        load_brain_coords(v->e1x,v->e1y,v->e1z,v1);
+        glNormal3fv(v1);
+        load_brain_coords(v->x,v->y,v->z,v2);
+        load_brain_coords(v->x+LINE_LEN*v->nx,v->y+LINE_LEN*v->ny,
+                          v->z+LINE_LEN*v->nz,v3);
+        glVertex3fv(v2);
+        glVertex3fv(v3);
+        glEnd() ;
+
+        glBegin(GL_LINES);
+        glColor3ub(255,255,0);
+        load_brain_coords(v->nx,v->ny,v->nz,v1);
+        glNormal3fv(v1);
+        load_brain_coords(v->x,v->y,v->z,v2);
+        load_brain_coords(v->x+LINE_LEN*v->e1x,v->y+LINE_LEN*v->e1y,
+                          v->z+LINE_LEN*v->e1z,v3);
+        glVertex3fv(v2);
+        glVertex3fv(v3);
+        glEnd() ;
+
+        glBegin(GL_LINES);
+        glColor3ub(255,255,0);
+        load_brain_coords(v->nx,v->ny,v->nz,v1);
+        glNormal3fv(v1);
+        load_brain_coords(v->x,v->y,v->z,v2);
+        load_brain_coords(v->x+LINE_LEN*v->e2x,v->y+LINE_LEN*v->e2y,
+                          v->z+LINE_LEN*v->e2z,v3);
+        glVertex3fv(v2);
+        glVertex3fv(v3);
+        glEnd() ;
+      }
     }
-  }
 
 
   /** DS Color Scale and writing ... **/
@@ -661,16 +736,19 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 
   /** Then draw the color scale (stolen from tksurfer) **/
 #if 1
-  if(flags & CSCALE_FLAG) {
-    if((flags & STAN_FLAG) || (flags & TIME_FLAG)) {
+  if (flags & CSCALE_FLAG)
+  {
+    if ((flags & STAN_FLAG) || (flags & TIME_FLAG))
+    {
       draw_colscalebar_time(flags) ;
-    } 
-    else {
+    }
+    else
+    {
       draw_colscalebar() ;
     }
   }
 #else
-  for (i=0;i<100-1;i++) 
+  for (i=0;i<100-1;i++)
   {
     stat = i/(100.0-1.0);
     set_color(stat,0.0, flags);
@@ -689,86 +767,96 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   }
 #endif
 
-  if(flags & LEG_FLAG) {
-    /** All the following mess is just to write 2 numbers using a package 
+  if (flags & LEG_FLAG)
+  {
+    /** All the following mess is just to write 2 numbers using a package
       found on the net DS. **/
-    
-    /** ** First load the texture corresponding to a given font, i.e. 
+
+    /** ** First load the texture corresponding to a given font, i.e.
       default in this case ** **/
     txf = txfLoadFont("/space/raid/2/users/inverse/build/mris2rgb/default.txf");
-    if (txf == NULL) {
+    if (txf == NULL)
+    {
       fprintf(stderr, "Problem loading %s, %s\n",
-        "default.txf", txfErrorString());
+              "default.txf", txfErrorString());
       exit(1);
     }
-    
+
     glLoadIdentity() ;
     v1[0] = v1[1] = 0;
     v1[2] = 1.0 ;
     glNormal3fv(v1) ;
-    
+
     set_color(0.01,0.0, flags);
-    
+
     /** ** Texture computation ** **/
     txfEstablishTexture(txf, 0, GL_TRUE);
-    
+
     glEnable(GL_TEXTURE_2D);
     glAlphaFunc(GL_GEQUAL, 0.0625);
     glEnable(GL_ALPHA_TEST);
-    
+
     /** ** put here the text you want to render ... ** **/
-    if(flags & TIME_FLAG) {
+    if (flags & TIME_FLAG)
+    {
       sprintf(text, "%.0fms", min_curv) ;
     }
-    else {
+    else
+    {
       sprintf(text, "%.2f", min_curv) ;
     }
 
     /** ** Text positioning and scaling ** **/
     glMatrixMode(GL_MODELVIEW) ;
 
-    if(flags & STAN_FLAG) {
-      glTranslatef(100.0, -137, 1.0); 
+    if (flags & STAN_FLAG)
+    {
+      glTranslatef(100.0, -137, 1.0);
     }
-    else {
+    else
+    {
       glTranslatef(90.0, -137, 1.0);
     }
-    glScalef(0.2, 0.2, 0.2); 
-    
+    glScalef(0.2, 0.2, 0.2);
+
     /** ** and finally render "text" ** **/
     txfRenderString(txf, text, strlen(text));
-    
-    
+
+
     /** ** Once again for the second number ** **/
     glLoadIdentity() ;
     glNormal3fv(v1) ;
     glMatrixMode(GL_MODELVIEW);
 
-    if(flags & STAN_FLAG) {
+    if (flags & STAN_FLAG)
+    {
       glTranslatef(100.0, -67, 1.0);
     }
-    else {
+    else
+    {
       glTranslatef(90.0, -67, 1.0);
     }
-    glScalef(0.2, 0.2, 0.2); 
-    
-    if(flags & TIME_FLAG) {
+    glScalef(0.2, 0.2, 0.2);
+
+    if (flags & TIME_FLAG)
+    {
       sprintf(text, "%.0fms", max_curv) ;
     }
-    else {
+    else
+    {
       sprintf(text, "%.2f", max_curv) ;
     }
     txfRenderString(txf, text, strlen(text));
-    
+
     /** Restore geometrical information **/
     glPopMatrix();
-    
+
     /** End of the text rendering ... **/
   }
-  
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "done.\n") ;
-  
+
   error = glGetError() ;
   if (error != GL_NO_ERROR)
   {
@@ -789,40 +877,40 @@ load_brain_coords(float x,float y, float z, float v[])
   v[2] = y;
 }
 #if SHOW_AXES
-  /* build axes */
-  glNewList(2, GL_COMPILE) ;
+/* build axes */
+glNewList(2, GL_COMPILE) ;
 
-  /* x axis */
-  glBegin(GL_LINE) ;
-  glColor3ub(meshr,0,0) ;
-  load_brain_coords(mris->xlo-30,mris->yctr,mris->zctr,v1);
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xhi+30,mris->yctr,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
+/* x axis */
+glBegin(GL_LINE) ;
+glColor3ub(meshr,0,0) ;
+load_brain_coords(mris->xlo-30,mris->yctr,mris->zctr,v1);
+glVertex3fv(v1);
+load_brain_coords(mris->xhi+30,mris->yctr,mris->zctr,v1);
+glColor3ub(meshr,0,0) ;
+glVertex3fv(v1);
+glEnd() ;
 
-  /* y axis */
-  glBegin(GL_LINE) ;
-  load_brain_coords(mris->xctr,mris->ylo-30,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xctr,mris->yhi+30,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
+/* y axis */
+glBegin(GL_LINE) ;
+load_brain_coords(mris->xctr,mris->ylo-30,mris->zctr,v1);
+glColor3ub(meshr,0,0) ;
+glVertex3fv(v1);
+load_brain_coords(mris->xctr,mris->yhi+30,mris->zctr,v1);
+glColor3ub(meshr,0,0) ;
+glVertex3fv(v1);
+glEnd() ;
 
-  /* z axis */
-  glBegin(GL_LINE) ;
-  load_brain_coords(mris->xctr,mris->yctr,mris->zlo-30,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xctr,mris->yctr,mris->zhi+30,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
+/* z axis */
+glBegin(GL_LINE) ;
+load_brain_coords(mris->xctr,mris->yctr,mris->zlo-30,v1);
+glColor3ub(meshr,0,0) ;
+glVertex3fv(v1);
+load_brain_coords(mris->xctr,mris->yctr,mris->zhi+30,v1);
+glColor3ub(meshr,0,0) ;
+glVertex3fv(v1);
+glEnd() ;
 
-  glEndList() ;
+glEndList() ;
 #endif
 
 
@@ -851,9 +939,12 @@ mrisFindMaxExtents(MRI_SURFACE *mris)
     if (z<zlo) zlo=z;
   }
 
-  mris->xlo = xlo ; mris->xhi = xhi ;
-  mris->ylo = ylo ; mris->yhi = yhi ;
-  mris->zlo = zlo ; mris->zhi = zhi ;
+  mris->xlo = xlo ;
+  mris->xhi = xhi ;
+  mris->ylo = ylo ;
+  mris->yhi = yhi ;
+  mris->zlo = zlo ;
+  mris->zhi = zhi ;
   return(NO_ERROR) ;
 }
 
@@ -872,7 +963,7 @@ ogluSetFOV(MRI_SURFACE *mris, double fov)
     oglu_fov = max_dim*1.1 ;
   }
 
-  zfov = 10.0f*oglu_fov ; 
+  zfov = 10.0f*oglu_fov ;
   glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov, -zfov, zfov);
 
   return(NO_ERROR) ;
@@ -913,13 +1004,17 @@ set_color(float val,float curv, int flags)
 
   if (flags & VAL_FLAG)
   {
-    if (flags & TIME_FLAG) {
+    if (flags & TIME_FLAG)
+    {
       set_stat_color_time(val,&fr,&fg,&fb,tmpoffset);
     }
-    else { 
+    else
+    {
       set_stat_color(val,&fr,&fg,&fb,tmpoffset);
     }
-    r=fr; g=fg; b=fb;
+    r=fr;
+    g=fg;
+    b=fb;
     r = (r<0)?0:(r>255)?255:r;
     g = (g<0)?0:(g>255)?255:g;
     b = (b<0)?0:(b>255)?255:b;
@@ -951,17 +1046,18 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
   if (f>=0)
   {
     r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-      ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
+        ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
     g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-      ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+        ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
     b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-  } else
+  }
+  else
   {
     f = -f;
     b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-      ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
+        ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
     g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-      ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+        ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
     r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
   }
   r = r*255;
@@ -1008,20 +1104,22 @@ set_stat_color_time(float f, float *rp, float *gp, float *bp, float tmpoffset)
   double blufact = 1.0;
 #endif
 
-  if (f>0.0) {
+  if (f>0.0)
+  {
     f = 1.0-f ;
     b = tmpoffset/5.0 + ((f<0.25)?f:((f<0.50)?(0.25)*(1-(f-0.25)/(1-0.25)):0));
     g = tmpoffset/5.0 + ((f<0.25)?0:((f<0.50)?2*(f-0.25):(f<time_fthresh)?2*(0.50-0.25)*(1-(f-0.50)/(1-0.50)):0));
     r = ((f<0.50)?0:(f<time_fthresh)?(f-0.50)/(time_fthresh-0.50):10.0);
   }
-  else {
+  else
+  {
     r = g = b = tmpoffset ;
   }
 
   r = r*255;
   g = g*255;
   b = b*255;
-  
+
   *rp = r;
   *gp = g;
   *bp = b;
@@ -1045,9 +1143,9 @@ draw_colscalebar(void)
 
   for (i=0;i<NSEGMENTS-1;i++)
   {
-/*
-    stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
-*/
+    /*
+        stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
+    */
     stat = -maxval+i*(2*maxval)/(NSEGMENTS-1.0);
     set_color(stat,0.0,VAL_FLAG /*REAL_VAL*/);
     glBegin(GL_POLYGON);
@@ -1057,7 +1155,7 @@ draw_colscalebar(void)
     glVertex3fv(v);
     v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
     glVertex3fv(v);
-    v[1] = 
+    v[1] =
       fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
     glVertex3fv(v);
     v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
@@ -1094,7 +1192,7 @@ draw_colscalebar_time(int flags)
     glVertex3fv(v);
     v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
     glVertex3fv(v);
-    v[1] = 
+    v[1] =
       fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
     glVertex3fv(v);
     v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);

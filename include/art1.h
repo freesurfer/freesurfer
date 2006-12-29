@@ -1,3 +1,31 @@
+/**
+ * @file  art1.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)art1.h  1.3
   8/10/95
@@ -6,10 +34,13 @@
 
       File Name:   art1.h
 
-      Description:  
+      Description:
 
-  $Header: /space/repo/1/dev/dev/include/art1.h,v 1.1 1997/03/18 18:17:34 fischl Exp $
+  $Header: /space/repo/1/dev/dev/include/art1.h,v 1.2 2006/12/29 02:08:59 nicks Exp $
   $Log: art1.h,v $
+  Revision 1.2  2006/12/29 02:08:59  nicks
+  added license header; ran astyle to set to kr and ansi code styling
+
   Revision 1.1  1997/03/18 18:17:34  fischl
   Initial revision
 
@@ -32,10 +63,11 @@ typedef struct
   double  *scratch ;      /* for scratch calculations of intersection */
   double  *f0 ;           /* points to inputs (provided by caller) */
   double  *f1 ;           /* input vector */
-  double  *f2 ; 
+  double  *f2 ;
   double  huge *zj ;      /* top down weights */
   int     *flags ;        /* is node committed, reset */
-} ART1 ;
+}
+ART1 ;
 
 #define ART1_RESET      0x0001
 #define ART1_COMMITTED  0x0002

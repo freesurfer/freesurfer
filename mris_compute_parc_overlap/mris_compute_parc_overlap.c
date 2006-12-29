@@ -1,3 +1,31 @@
+/**
+ * @file  mris_compute_parc_overlap.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  * This is a simple program to compare two parcellated (annotated) surfaces
  * to compute the label Dice coefficients.
@@ -24,7 +52,7 @@ static int  singledash(char *flag);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.1 2006/11/09 02:31:04 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.2 2006/12/29 02:09:10 nicks Exp $";
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
 static char *hemi = NULL;
@@ -32,8 +60,7 @@ static char *annot1 = NULL;
 static char *annot2 = NULL;
 static int debug = 0;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   MRIS *white1, *white2;
   int nargs,err,n;
   char tmpstr[2000];
@@ -55,8 +82,7 @@ int main(int argc, char *argv[])
   check_options();
   dump_options(stdout);
 
-  if (SUBJECTS_DIR==NULL)
-  {
+  if (SUBJECTS_DIR==NULL) {
     printf
     ("ERROR: SUBJECTS_DIR not defined in environment or on command-line\n");
     exit(1);
@@ -66,8 +92,7 @@ int main(int argc, char *argv[])
   sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
   printf("\nReading %s white surface \n %s\n",hemi,tmpstr);
   white1 = MRISread(tmpstr);
-  if (white1 == NULL)
-  {
+  if (white1 == NULL) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
@@ -78,8 +103,7 @@ int main(int argc, char *argv[])
           SUBJECTS_DIR,subject,hemi,annot1);
   printf("\nLoading %s annotations from %s\n",hemi,annotfile1);
   err = MRISreadAnnotation(white1, annotfile1);
-  if (err)
-  {
+  if (err) {
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile1);
     exit(1);
   }
@@ -89,34 +113,29 @@ int main(int argc, char *argv[])
           SUBJECTS_DIR,subject,hemi,annot2);
   printf("\nLoading rh annotations from %s\n",annotfile2);
   err = MRISreadAnnotation(white2, annotfile2);
-  if (err)
-  {
+  if (err) {
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile2);
     exit(1);
   }
 
   /* make sure files contain embedded color look-up table. */
-  if (white1->ct == NULL)
-  {
+  if (white1->ct == NULL) {
     printf("ERROR: %s does not contain color table!\n",annot1);
     exit(1);
   }
-  if (white2->ct == NULL)
-  {
+  if (white2->ct == NULL) {
     printf("ERROR: %s does not contain color table!\n",annot2);
     exit(1);
   }
   char *ctabname1 = white1->ct->fname;
   char *ctabname2 = white2->ct->fname;
-  if (strcmp(ctabname1,ctabname2) != 0)
-  {
+  if (strcmp(ctabname1,ctabname2) != 0) {
     printf("ERROR: annotation files based on different colortables:\n");
     printf("\tannot1: %s\n",ctabname1);
     printf("\tannot2: %s\n",ctabname2);
     exit(1);
   }
-  if (white1->nvertices != white2->nvertices)
-  {
+  if (white1->nvertices != white2->nvertices) {
     printf("ERROR: (white1->nvertices=%d != white2->nvertices=%d)",
            white1->nvertices,white2->nvertices);
     exit(1);
@@ -124,22 +143,20 @@ int main(int argc, char *argv[])
 
   /*
      get annot info on the label 'unknown', so that we can use it to
-     create an .annot file containing vertices were perfect overlap occurs 
+     create an .annot file containing vertices were perfect overlap occurs
      which are labeled as unknown, making it easy to see where
      the failure in overlap occurs.
   */
   int unknown_index=0;
   int unknown_annot=0;
   CTABfindName(white1->ct, "unknown", &unknown_index);
-  if (unknown_index == -1)
-  {
+  if (unknown_index == -1) {
     printf
     ("ERROR: could not retrieve index for label 'unknown'\n");
     exit(1);
   }//else printf("label 'unknown' has index %d\n",unknown_index);
   err=CTABannotationAtIndex(white1->ct,unknown_index,&unknown_annot);
-  if (err != NO_ERROR)
-  {
+  if (err != NO_ERROR) {
     printf
     ("ERROR: could not retrieve annotation for label 'unknown'\n");
     exit(1);
@@ -152,16 +169,14 @@ int main(int argc, char *argv[])
   int surfannot_overlap = 0;
   int surfannot1 = 0;
   int surfannot2 = 0;
-  for (n = 0; n < white1->nvertices; n++)
-  {
+  for (n = 0; n < white1->nvertices; n++) {
     /*
      * surface 1
      */
     int structure1 = 0;
     VERTEX *v1 = &white1->vertices[n];
     /* Get the color and then the index. */
-    if ( 0 != v1->annotation )
-    {
+    if ( 0 != v1->annotation ) {
       //printf("v1->annotation=0x%8.8X\n",v1->annotation);
       CTABfindAnnotation (white1->ct, v1->annotation, &structure1);
     }
@@ -171,22 +186,19 @@ int main(int argc, char *argv[])
     int structure2 = 0;
     VERTEX *v2 = &white2->vertices[n];
     /* Get the color and then the index. */
-    if ( 0 != v2->annotation )
-    {
+    if ( 0 != v2->annotation ) {
       CTABfindAnnotation (white2->ct, v2->annotation, &structure2);
     }
     /*
      * compare
      */
     //printf("structure1=%d, structure2=%d\n", structure1, structure2);
-    if (structure1 != structure2)
-    {
+    if (structure1 != structure2) {
       if (debug)
         printf("structure1=%d != structure2=%d\n", structure1, structure2);
       err++;
     }
-    if (structure1 != 0)
-    {
+    if (structure1 != 0) {
       if (structure1 == structure2) surfannot_overlap++;
       surfannot1++;
       surfannot2++;
@@ -197,8 +209,7 @@ int main(int argc, char *argv[])
      * are relabelled as unknown, thus leaving unequal structures labelled
      * as-is, allowing visualization of overlap failure.
      */
-    if (structure1 == structure2)
-    {
+    if (structure1 == structure2) {
       v2->annotation = unknown_annot;
     }
   }
@@ -222,8 +233,7 @@ int main(int argc, char *argv[])
 
 
 /* --------------------------------------------- */
-static void usage(int exit_val)
-{
+static void usage(int exit_val) {
   FILE *fout;
   char progname[] = "mris_compute_parc_overlap";
 
@@ -286,16 +296,14 @@ static void usage(int exit_val)
 
 
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
@@ -303,8 +311,7 @@ static int parse_commandline(int argc, char **argv)
 
   nargc   = argc;
   pargv = argv;
-  while (nargc > 0)
-  {
+  while (nargc > 0) {
 
     option = pargv[0];
     if (debug) printf("%d %s\n",nargc,option);
@@ -316,39 +323,28 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcmp(option, "--sd"))
-    {
+    else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
       setenv("SUBJECTS_DIR",SUBJECTS_DIR,1);
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--s"))
-    {
+    } else if (!strcmp(option, "--s")) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--hemi"))
-    {
+    } else if (!strcmp(option, "--hemi")) {
       if (nargc < 1) argnerr(option,1);
       hemi = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--annot1"))
-    {
+    } else if (!strcmp(option, "--annot1")) {
       if (nargc < 1) argnerr(option,1);
       annot1 = pargv[0];
       nargsused = 1;
-    }
-    else if (!strcmp(option, "--annot2"))
-    {
+    } else if (!strcmp(option, "--annot2")) {
       if (nargc < 1) argnerr(option,1);
       annot2 = pargv[0];
       nargsused = 1;
-    }
-    else
-    {
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -362,15 +358,13 @@ static int parse_commandline(int argc, char **argv)
 
 
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   usage(1);
 }
 
 
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
+static void argnerr(char *option, int n) {
   if (n==1)
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
   else
@@ -380,25 +374,20 @@ static void argnerr(char *option, int n)
 
 
 /* --------------------------------------------- */
-static void check_options(void)
-{
-  if (subject == NULL)
-  {
+static void check_options(void) {
+  if (subject == NULL) {
     printf("ERROR: must specify a subject\n");
     exit(1);
   }
-  if (hemi == NULL)
-  {
+  if (hemi == NULL) {
     printf("ERROR: must specify a hemisphere (rh or lh)\n");
     exit(1);
   }
-  if (annot1 == NULL)
-  {
+  if (annot1 == NULL) {
     printf("ERROR: must specify an annotation file\n");
     exit(1);
   }
-  if (annot2 == NULL)
-  {
+  if (annot2 == NULL) {
     printf("ERROR: must specify the second annotation file\n");
     exit(1);
   }
@@ -407,8 +396,7 @@ static void check_options(void)
 
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
+static void dump_options(FILE *fp) {
   fprintf(fp,"\nSUBJECTS_DIR: %s\n",SUBJECTS_DIR);
   fprintf(fp,"subject:      %s\n",subject);
   fprintf(fp,"hemi:         %s\n",hemi);
@@ -419,8 +407,7 @@ static void dump_options(FILE *fp)
 
 
 /*---------------------------------------------------------------*/
-static int singledash(char *flag)
-{
+static int singledash(char *flag) {
   int len;
   len = strlen(flag);
   if (len < 2) return(0);

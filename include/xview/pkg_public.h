@@ -1,9 +1,9 @@
 /*      @(#)pkg_public.h 20.24 91/09/14 SMI      */
 
 /*
- *	(c) Copyright 1989 Sun Microsystems, Inc. Sun design patents 
- *	pending in the U.S. and foreign countries. See LEGAL NOTICE 
- *	file for terms of the license.
+ * (c) Copyright 1989 Sun Microsystems, Inc. Sun design patents
+ * pending in the U.S. and foreign countries. See LEGAL NOTICE
+ * file for terms of the license.
  */
 
 #ifndef xview_pkg_public_DEFINED
@@ -12,7 +12,7 @@
 
 /*
  ***********************************************************************
- *			Include Files
+ *   Include Files
  ***********************************************************************
  */
 
@@ -22,38 +22,40 @@
 
 /*
  ***********************************************************************
- *		Typedefs, Enumerations, and Structures
+ *  Typedefs, Enumerations, and Structures
  ***********************************************************************
  *
- * SunView pkg. definition	
+ * SunView pkg. definition
  */
 
 /*
- * PRIVATE structures for pkg implementors only  
+ * PRIVATE structures for pkg implementors only
  */
 
 /*
- * Last field before "embedded" struct in an "embedding object". 
+ * Last field before "embedded" struct in an "embedding object".
  */
-typedef long unsigned	 Xv_embedding;
+typedef long unsigned  Xv_embedding;
 
 
 /*
- * Base instance for all objects	
+ * Base instance for all objects
  */
-typedef struct {
-    long unsigned	 seal;	/* Has "special" value meaning "am object" */
-    Xv_pkg		*pkg;   /* Always points to pkg chain for an object */
-} Xv_base;
+typedef struct
+{
+  long unsigned  seal; /* Has "special" value meaning "am object" */
+  Xv_pkg  *pkg;   /* Always points to pkg chain for an object */
+}
+Xv_base;
 
 /*
  ***********************************************************************
- *				Globals
+ *    Globals
  ***********************************************************************
  */
 
 /*
- * PUBLIC General interface functions	
+ * PUBLIC General interface functions
  */
 EXTERN_FUNCTION (Xv_object xv_create, (Xv_opaque owner, Xv_pkg *pkg, DOTDOTDOT));
 EXTERN_FUNCTION (Xv_object xv_find, (Xv_opaque owner, Xv_pkg *pkg, DOTDOTDOT));
@@ -65,13 +67,13 @@ EXTERN_FUNCTION (int xv_destroy, (Xv_object object));
 EXTERN_FUNCTION (int xv_destroy_immediate,(Xv_object object));
 
 /*
- * PRIVATE functions for pkg implementors only  
+ * PRIVATE functions for pkg implementors only
  */
 
 EXTERN_FUNCTION (Xv_opaque xv_object_to_standard, (Xv_object object, const char *caller));
 
 #if !(defined(__STDC__) || defined(__cplusplus) || defined(c_plusplus))
-#define const 
+#define const
 #endif
 extern const char *xv_notptr_str;
 #define XV_OBJECT_SEAL          0xF0A58142

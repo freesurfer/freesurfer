@@ -1,3 +1,31 @@
+/**
+ * @file  filter.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.22 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   filter.h
  *
@@ -48,7 +76,7 @@
 #define FILTER_CENTRAL_PLANE_OF_LEAST_VARIANCE 32
 #define FILTER_CPOLV_MEDIAN            33
 #define FILTER_CPOLV_STD               34
-#define FILTER_CPOLV_MEAN              35 
+#define FILTER_CPOLV_MEAN              35
 #define FILTER_CPOLV_NORMAL_CURVATURE  36
 #define FILTER_CPOLV_CURVATURE         37
 #define FILTER_CPOLV_ORDER             38
@@ -74,8 +102,8 @@
 
 #include "image.h"
 
-IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
-                           double sigma, IMAGE *Idst) ;
+IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize,
+                            double sigma, IMAGE *Idst) ;
 IMAGE    *ImageGreyErode(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE    *ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE    *ImageLOGFilter(IMAGE *Isrc, float sigma, IMAGE *Idst) ;

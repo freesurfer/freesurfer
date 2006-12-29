@@ -1,3 +1,31 @@
+/**
+ * @file  cma.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef CMA_H
 #define CMA_H
 
@@ -94,7 +122,7 @@
 #define Left_Amygdala_Anterior        96
 #define Right_Amygdala_Anterior       97
 
-/* 
+/*
  * no brain labels after this please unless you fix the IS_BRAIN macro
  */
 
@@ -251,20 +279,24 @@
 #define CMA_FILL_OUTLINE  1
 #define CMA_FILL_INTERIOR 2
 
-typedef struct {
+typedef struct
+{
   int n_claims;
   int interior_claim_flag;
   short claim_labels[MAX_OUTLINE_CLAIMS];
   float claim_values[MAX_OUTLINE_CLAIMS];
   float no_label_claim;
-} CMAoutlineClaim;
+}
+CMAoutlineClaim;
 
-typedef struct {
+typedef struct
+{
   int width, height;
   CMAoutlineClaim **claim_field;
   unsigned char **fill_field;
   unsigned char **outline_points_field;
-} CMAoutlineField;
+}
+CMAoutlineField;
 
 CMAoutlineField *CMAoutlineFieldAlloc(int width, int height);
 int CMAfreeOutlineField(CMAoutlineField **of);

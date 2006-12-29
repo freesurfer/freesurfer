@@ -1,3 +1,31 @@
+/**
+ * @file  test_TclCommandManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.15 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -28,7 +56,7 @@ class TestListenerCounter : public TclCommandListener {
 
 protected:
   int mID;
-  
+
   struct ListenCount {
     char msCommand[1024];
     int mcHeard;
@@ -42,11 +70,11 @@ public:
   TclCommandResult
   DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
     list<ListenCount*>::iterator tListenCount;
-    for( tListenCount = mlListenCounts.begin();
-	 tListenCount != mlListenCounts.end(); ++tListenCount ) {
+    for ( tListenCount = mlListenCounts.begin();
+          tListenCount != mlListenCounts.end(); ++tListenCount ) {
       ListenCount* listenCount = *tListenCount;
-      if( 0 == strcmp( isCommand, listenCount->msCommand ) ) {
-	listenCount->mcHeard++;
+      if ( 0 == strcmp( isCommand, listenCount->msCommand ) ) {
+        listenCount->mcHeard++;
       }
     }
     return ok;
@@ -61,11 +89,11 @@ public:
 
   int GetCountForCommand ( char const* isCommand ) {
     list<ListenCount*>::iterator tListenCount;
-    for( tListenCount = mlListenCounts.begin();
-	 tListenCount != mlListenCounts.end(); ++tListenCount ) {
+    for ( tListenCount = mlListenCounts.begin();
+          tListenCount != mlListenCounts.end(); ++tListenCount ) {
       ListenCount* listenCount = *tListenCount;
-      if( 0 == strcmp( isCommand, listenCount->msCommand ) ) {
-	return listenCount->mcHeard;
+      if ( 0 == strcmp( isCommand, listenCount->msCommand ) ) {
+        return listenCount->mcHeard;
       }
     }
     return 0;
@@ -80,36 +108,36 @@ public:
 
     // These test the functionality of returning Tcl objects to the
     // Tcl context. Used in conjunction with test_TclCommandManager.tcl.
-    if( 0 == strcmp( isCommand, "ReturnSingleInt" ) ) {
+    if ( 0 == strcmp( isCommand, "ReturnSingleInt" ) ) {
       sReturnFormat = "i";
       sReturnValues = "5";
-    } else if( 0 == strcmp( isCommand, "ReturnSingleFloat" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnSingleFloat" ) ) {
       sReturnFormat = "f";
       sReturnValues = "5.5";
-    } else if( 0 == strcmp( isCommand, "ReturnSingleString" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnSingleString" ) ) {
       sReturnFormat = "s";
       sReturnValues = "hello";
-    } else if( 0 == strcmp( isCommand, "ReturnSingleTwoWordString" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnSingleTwoWordString" ) ) {
       sReturnFormat = "s";
       sReturnValues = "\"hello world\"";
-    } else if( 0 == strcmp( isCommand, "ReturnSingleLongString" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnSingleLongString" ) ) {
       sReturnFormat = "s";
       sReturnValues = "\"to neither love nor reverence will thou be tied\"";
-    } else if( 0 == strcmp( isCommand, "ReturnSingleList" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnSingleList" ) ) {
       sReturnFormat = "Lifsl";
       sReturnValues = "5 5.5 hello";
-    } else if( 0 == strcmp( isCommand, "ReturnNestedList" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnNestedList" ) ) {
       sReturnFormat = "LifsLifsll";
       sReturnValues = "5 5.5 hello 6 6.6 \"hello world\"";
-    } else if( 0 == strcmp( isCommand, "ReturnNestedList2" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnNestedList2" ) ) {
       sReturnFormat = "LLsslLssll";
       sReturnValues = "\"Label 1\" \"Value 1\" \"Label 2\" \"Value 2\"";
-    } else if( 0 == strcmp( isCommand, "ReturnMessage" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnMessage" ) ) {
       sResult = "This is a result string.";
-    } else if( 0 == strcmp( isCommand, "ReturnError" ) ) {
+    } else if ( 0 == strcmp( isCommand, "ReturnError" ) ) {
       sResult = "This is an error string.";
       return error;
-    } else if( 0 == strcmp( isCommand, "TestThrow" ) ) {
+    } else if ( 0 == strcmp( isCommand, "TestThrow" ) ) {
       throw runtime_error( "throw" );
     }
     return ok;
@@ -119,123 +147,123 @@ public:
 class TclCommandManagerTester {
 public:
   void Test( Tcl_Interp* iInterp ) {
-    
+
     int rTcl = TCL_OK;
     int const kzListeners = 10;
     int const kzCommands = 10;
     int const kNumberOfCallsToMake = 10;
-    
+
     TestListenerCounter* aListener[kzListeners];
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
       aListener[nListener] = new TestListenerCounter( nListener );
     }
-    
-    char asCommandNames[1024][kzCommands]; 
-    for( int nCommand = 0; nCommand < kzCommands; nCommand++ ) {
+
+    char asCommandNames[1024][kzCommands];
+    for ( int nCommand = 0; nCommand < kzCommands; nCommand++ ) {
       sprintf( asCommandNames[nCommand], "command%d", nCommand );
     }
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
-    
-    
+
+
     // Add half of the commands for each even listener before Start()
     // is called. Don't add them to the odd listeners.
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
-      if( nListener % 2 == 0 ) {
-	for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
-	  aListener[nListener]->CountCommand( asCommandNames[nCommand] );
-	  commandMgr.AddCommand( *aListener[nListener], 
-				 asCommandNames[nCommand], 3, 
-				 "arg1 arg2 arg3", "" );
-	}
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
+      if ( nListener % 2 == 0 ) {
+        for ( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
+          aListener[nListener]->CountCommand( asCommandNames[nCommand] );
+          commandMgr.AddCommand( *aListener[nListener],
+                                 asCommandNames[nCommand], 3,
+                                 "arg1 arg2 arg3", "" );
+        }
       }
     }
-    
+
 
     // Call start.
     commandMgr.Start( iInterp );
-    
-    
+
+
     // Call those commands many times each.
-    for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
+    for ( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
       char sCommandAndArgs[1024];
-      sprintf( sCommandAndArgs, "%s arg1 arg2 arg3", 
-	       asCommandNames[nCommand] );
-      for( int nCall = 0; nCall < kNumberOfCallsToMake; nCall++ ) {
-	rTcl = Tcl_Eval( iInterp, sCommandAndArgs );
-	Assert( TCL_OK == rTcl, "Tcl_Eval returned not TCL_OK" );
+      sprintf( sCommandAndArgs, "%s arg1 arg2 arg3",
+               asCommandNames[nCommand] );
+      for ( int nCall = 0; nCall < kNumberOfCallsToMake; nCall++ ) {
+        rTcl = Tcl_Eval( iInterp, sCommandAndArgs );
+        Assert( TCL_OK == rTcl, "Tcl_Eval returned not TCL_OK" );
       }
     }
-    
-    
+
+
     // Check the counts in all listeners. All evens should have the
     // full number of calls, all odds should have 0 counts.
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
-      for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
-	int cCalls = 
-	  aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
-	if( nListener % 2 == 0 ) {
-	  if( kNumberOfCallsToMake != cCalls ) {
-	    throw logic_error( "Count mismatch" );
-	  }
-	} else {
-	  if( 0 != cCalls ) {
-	    throw logic_error( "Count mismatch" );
-	  }
-	}
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
+      for ( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
+        int cCalls =
+          aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
+        if ( nListener % 2 == 0 ) {
+          if ( kNumberOfCallsToMake != cCalls ) {
+            throw logic_error( "Count mismatch" );
+          }
+        } else {
+          if ( 0 != cCalls ) {
+            throw logic_error( "Count mismatch" );
+          }
+        }
       }
     }
-    
-    
+
+
     // Add some commands for each even listener now that Start() has
     // called. Don't add them to the odd listeners.
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
-      if( nListener % 2 == 0 ) {
-	for( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
-	  aListener[nListener]->CountCommand( asCommandNames[nCommand] );
-	  commandMgr.AddCommand( *aListener[nListener], 
-				 asCommandNames[nCommand], 
-				 3, "arg1 arg2 arg3", "" );
-	}
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
+      if ( nListener % 2 == 0 ) {
+        for ( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
+          aListener[nListener]->CountCommand( asCommandNames[nCommand] );
+          commandMgr.AddCommand( *aListener[nListener],
+                                 asCommandNames[nCommand],
+                                 3, "arg1 arg2 arg3", "" );
+        }
       }
     }
-    
-    
+
+
     // Call those commands many times each.
-    for( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
+    for ( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
       char sCommandAndArgs[1024];
-      sprintf( sCommandAndArgs, "%s arg1 arg2 arg3", 
-	       asCommandNames[nCommand] );
-      for( int nCall = 0; nCall < kNumberOfCallsToMake; nCall++ ) {
-	rTcl = Tcl_Eval( iInterp, sCommandAndArgs );
-	Assert( TCL_OK == rTcl, "Tcl_Eval returned not TCL_OK" );
+      sprintf( sCommandAndArgs, "%s arg1 arg2 arg3",
+               asCommandNames[nCommand] );
+      for ( int nCall = 0; nCall < kNumberOfCallsToMake; nCall++ ) {
+        rTcl = Tcl_Eval( iInterp, sCommandAndArgs );
+        Assert( TCL_OK == rTcl, "Tcl_Eval returned not TCL_OK" );
       }
     }
-    
-    
+
+
     // Check the counts in all listeners. All evens should have 100
     // counts, all odds should have 0 counts.
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
-      for( int nCommand = 0; nCommand < kzCommands; nCommand++ ) {
-	int cCalls = 
-	  aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
-	if( nListener % 2 == 0 ) {
-	  if( kNumberOfCallsToMake != cCalls ) {
-	    throw logic_error( "Count mismatch" );
-	  }
-	} else {
-	  if( 0 != cCalls ) {
-	    throw logic_error( "Count mismatch" );
-	  }
-	}
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
+      for ( int nCommand = 0; nCommand < kzCommands; nCommand++ ) {
+        int cCalls =
+          aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
+        if ( nListener % 2 == 0 ) {
+          if ( kNumberOfCallsToMake != cCalls ) {
+            throw logic_error( "Count mismatch" );
+          }
+        } else {
+          if ( 0 != cCalls ) {
+            throw logic_error( "Count mismatch" );
+          }
+        }
       }
     }
 
 
     // Set our command line stuff. We'll test it in the script.
     int argc = 5;
-    char **argv = (char**) calloc( argc, sizeof(char*) ); 
+    char **argv = (char**) calloc( argc, sizeof(char*) );
     argv[0] = (char*) calloc( 256, sizeof(char) );
     strcpy( argv[0], "test_TclCommandManager" );
     argv[1] = (char*) calloc( 256, sizeof(char) );
@@ -248,7 +276,7 @@ public:
     strcpy( argv[4], "param 4" );
     commandMgr.SetCommandLineParameters( argc, argv );
 
-    
+
     // Add the return testing commands.
     TestListenerReturner* listener = new TestListenerReturner();
     commandMgr.AddCommand( *listener, "ReturnSingleInt", 0, "", "" );
@@ -259,26 +287,26 @@ public:
     commandMgr.AddCommand( *listener, "ReturnSingleList", 0, "", "" );
     commandMgr.AddCommand( *listener, "ReturnNestedList", 0, "", "" );
     commandMgr.AddCommand( *listener, "ReturnNestedList2", 0, "", "" );
-    commandMgr.AddCommand( *listener, "ReturnMessage", 0, "", "" );  
+    commandMgr.AddCommand( *listener, "ReturnMessage", 0, "", "" );
     commandMgr.AddCommand( *listener, "ReturnError", 0, "", "" );
     commandMgr.AddCommand( *listener, "TestThrow", 0, "", "" );
-  
+
     // Run the script that will test tcl return stuff.
     rTcl = Tcl_EvalFile( iInterp, "test_TclCommandManager.tcl" );
     const char* sTclResult = Tcl_GetStringResult( iInterp );
-    if( 0 != strcmp( sTclResult, "" ) ) {
+    if ( 0 != strcmp( sTclResult, "" ) ) {
       cerr << "result not null" << endl;
       throw logic_error( iInterp->result );
     }
-    if( rTcl != TCL_OK ) {
+    if ( rTcl != TCL_OK ) {
       cerr << "rTcl not OK" << endl;
       throw logic_error( iInterp->result );
     }
-    
-    
+
+
     // Delete all the listeners and then make sure the the manager's
     // command lists are empty.
-    for( int nListener = 0; nListener < kzListeners; nListener++ ) {
+    for ( int nListener = 0; nListener < kzListeners; nListener++ ) {
       delete aListener[nListener];
     }
     delete listener;
@@ -286,51 +314,47 @@ public:
     // Don't check the commands that are listened to by the
     // TclCommandManager, as these are 'global'.
     std::list<TclCommandManager::Command*>::iterator tCommand;
-    for( tCommand = commandMgr.mlCommands.begin(); 
-	 tCommand != commandMgr.mlCommands.end(); ++tCommand ) {
+    for ( tCommand = commandMgr.mlCommands.begin();
+          tCommand != commandMgr.mlCommands.end(); ++tCommand ) {
       TclCommandManager::Command* command = *tCommand;
-      if( 0 != command->mlListeners.size() &&
-	  command->msCommand != "PrintAllCommands" && 
-	  command->msCommand != "GetArgc" && 
-	  command->msCommand != "GetArgv" && 
-	  command->msCommand != "DebugOutput" ) {
-	cerr << "Not all listeners removed for command " 
-	     << command->msCommand << " size = " 
-	     << command->mlListeners.size() << endl;
+      if ( 0 != command->mlListeners.size() &&
+           command->msCommand != "PrintAllCommands" &&
+           command->msCommand != "GetArgc" &&
+           command->msCommand != "GetArgv" &&
+           command->msCommand != "DebugOutput" ) {
+        cerr << "Not all listeners removed for command "
+        << command->msCommand << " size = "
+        << command->mlListeners.size() << endl;
       }
     }
-    
+
   }
 };
 
 int main ( int iArgc, char** iArgv ) {
 
   cerr << "Beginning test" << endl;
- 
+
   try {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-    
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
 
-    for( int nTrial = 0; nTrial < 1; nTrial++ ) {
-      
+    for ( int nTrial = 0; nTrial < 1; nTrial++ ) {
+
       TclCommandManagerTester tester0;
       tester0.Test( interp );
     }
-  }
-
-  catch ( char* msg ) {
+  } catch ( char* msg ) {
     cerr << msg << " failed" << endl;
     exit( 1 );
-  }
-  catch( logic_error& e ) {
+  } catch ( logic_error& e ) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed." << endl;
     exit( 1 );
   }

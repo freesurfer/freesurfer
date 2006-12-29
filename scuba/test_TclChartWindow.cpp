@@ -1,3 +1,31 @@
+/**
+ * @file  test_TclChartWindow.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -27,8 +55,8 @@ extern "C" {
     if( TCL_OK != (x) ) { \
       stringstream ssError; \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
@@ -53,8 +81,8 @@ public:
   void NewDataMulti ();
 
   // Tcl command callback function.
-  TclCommandResult DoListenToTclCommand ( char* isCommand, 
-					  int iArgc, char** iArgv );
+  TclCommandResult DoListenToTclCommand ( char* isCommand,
+                                          int iArgc, char** iArgv );
 
 protected:
   ChartWindow* mChart;
@@ -73,16 +101,16 @@ TclChartWindowTester::MakeTestButtonWindow ( int iTestID ) {
 
   ssCommand.str("");
   ssCommand << "button .w.bwPass -text PASS -background green"
-	    << " -activebackground green"
-	    << " -command {TestResult " << iTestID 
-	    << " true ; wm withdraw .w}";
+  << " -activebackground green"
+  << " -command {TestResult " << iTestID
+  << " true ; wm withdraw .w}";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
   ssCommand << "button .w.bwFail -text FAIL -background red"
-	    << " -activebackground red"
-	    << " -command {TestResult " << iTestID 
-	    << " false ; wm withdraw .w}";
+  << " -activebackground red"
+  << " -command {TestResult " << iTestID
+  << " false ; wm withdraw .w}";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
@@ -99,7 +127,7 @@ TclChartWindowTester::NewData () {
 
   ChartWindow::PointData data;
   int cData = 100;
-  for( int nData = 0; nData < cData; nData++ ) {
+  for ( int nData = 0; nData < cData; nData++ ) {
 
     data.mX = nData;
     data.mY = random() % 100;
@@ -116,7 +144,7 @@ TclChartWindowTester::NewData () {
   list<ChartWindow::MarkerData> lMarkers;
   ChartWindow::MarkerData marker;
   int cMarkers = 5;
-  for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+  for ( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
 
     marker.mValue = random() % 100;
 
@@ -132,7 +160,7 @@ TclChartWindowTester::NewData () {
   }
 
   mChart->SetXAxisMarkers( lMarkers );
-  
+
 }
 
 void
@@ -144,20 +172,20 @@ TclChartWindowTester::NewDataMulti () {
 
   ChartWindow::PointData data;
   int cGroups = 10;
-  for( int nGroup = 0; nGroup < cGroups; nGroup++ ) {
+  for ( int nGroup = 0; nGroup < cGroups; nGroup++ ) {
 
     lData.clear();
-    
+
     int cData = 20;
-    for( int nData = 0; nData < cData; nData++ ) {
-      
+    for ( int nData = 0; nData < cData; nData++ ) {
+
       data.mX = nData;
       data.mY = random() % 100;
-      
+
       stringstream ssLabel;
       ssLabel << "Item " << nData;
       data.msLabel = ssLabel.str();
-      
+
       lData.push_back( data );
     }
 
@@ -188,17 +216,17 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
 
   ssCommand.str("");
   ssCommand << "button .f.bwNewData -text \"New 1 Data\""
-	    << " -command NewData";
+  << " -command NewData";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
   ssCommand << "button .f.bwNewDataMulti -text \"New multi Data\""
-	    << " -command NewDataMulti";
+  << " -command NewDataMulti";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
   ssCommand << "button .f.bwToggleLegend -text \"Toggle Legend\""
-	    << " -command {ToggleShowLegend}";
+  << " -command {ToggleShowLegend}";
   commandMgr.SendCommand( ssCommand.str() );
 
   ssCommand.str("");
@@ -220,32 +248,32 @@ TclChartWindowTester::Test( Tcl_Interp* iInterp ) {
   MakeTestButtonWindow( 1 );
   mNewPass = false;
   mTestPass[1] = false;
-  while( 1 && !mNewPass ) {
+  while ( 1 && !mNewPass ) {
     Tcl_DoOneEvent( TCL_ALL_EVENTS );
   }
 
-  if( !mTestPass[1] ) {
+  if ( !mTestPass[1] ) {
     throw runtime_error( "Didn't pass test 1" );
   }
 }
 
 TclCommandListener::TclCommandResult
-TclChartWindowTester::DoListenToTclCommand ( char* isCommand, 
-					      int iArgc, char** iasArgv ) { 
+TclChartWindowTester::DoListenToTclCommand ( char* isCommand,
+    int iArgc, char** iasArgv ) {
 
-  if( 0 == strcmp( isCommand, "TestResult" ) ) {
+  if ( 0 == strcmp( isCommand, "TestResult" ) ) {
 
     int testID;
     bool pass;
     testID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     pass = TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
-    
+
     mTestPass[testID] = pass;
     mNewPass = true;
 
     return ok;
 
-  } else if( 0 == strcmp( isCommand, "NewData" ) ) {
+  } else if ( 0 == strcmp( isCommand, "NewData" ) ) {
 
     static int cNew = 0;
     stringstream ssLabel;
@@ -254,10 +282,10 @@ TclChartWindowTester::DoListenToTclCommand ( char* isCommand,
     NewData();
     mChart->SetInfo( ssLabel.str() );
     mChart->Draw();
-    
+
     return ok;
 
-  } else if( 0 == strcmp( isCommand, "NewDataMulti" ) ) {
+  } else if ( 0 == strcmp( isCommand, "NewDataMulti" ) ) {
 
     static int cNew = 0;
     stringstream ssLabel;
@@ -266,14 +294,14 @@ TclChartWindowTester::DoListenToTclCommand ( char* isCommand,
     NewDataMulti();
     mChart->SetInfo( ssLabel.str() );
     mChart->Draw();
-    
+
     return ok;
 
-  } else if( 0 == strcmp( isCommand, "ToggleShowLegend" ) ) {
-    
+  } else if ( 0 == strcmp( isCommand, "ToggleShowLegend" ) ) {
+
     mChart->SetShowLegend( !mChart->GetShowLegend() );
     mChart->Draw();
-    
+
     return ok;
   }
 
@@ -291,18 +319,18 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     int rTk = Tcl_Init( interp );
     Assert( TCL_OK == rTk, "Tk_Init returned not TCL_OK" );
-    
+
     int rTix = Tix_Init( interp );
     Assert( TCL_OK == rTix, "Tix_Init returned not TCL_OK" );
 
     ChartWindow::SetFactory( new TclChartWindowFactory );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -313,13 +341,11 @@ int main ( int argc, char** argv ) {
     TclChartWindowTester tester0;
     tester0.Test( interp );
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

@@ -1,3 +1,31 @@
+/**
+ * @file  test_UndoManager.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <map>
 
 #include "UndoManager.h"
@@ -21,34 +49,34 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
 
 class UndoManagerTester {
 public:
-  void Test( Tcl_Interp* iInterp );
+void Test( Tcl_Interp* iInterp );
 };
 
 
 class TestUndoAction : public UndoAction {
 public:
   TestUndoAction ( map<int,int>& iData,
-		  int inIndex, int iUndoValue, int iRedoValue ) :
-  mData ( iData ) {
+                   int inIndex, int iUndoValue, int iRedoValue ) :
+      mData ( iData ) {
     mData = iData;
     mnIndex = inIndex;
     mUndoValue = iUndoValue;
     mRedoValue = iRedoValue;
   }
 
-  virtual void Undo () { 
-    mData[mnIndex] = mUndoValue; 
+  virtual void Undo () {
+    mData[mnIndex] = mUndoValue;
   }
   virtual void Redo () {
-    mData[mnIndex] = mRedoValue; 
+    mData[mnIndex] = mRedoValue;
   }
 
 protected:
@@ -59,7 +87,7 @@ protected:
 
 };
 
-void 
+void
 UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
@@ -75,42 +103,42 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     int const kNewValue = 2;
     int const kNewValue2 = 3;
 
-    for( int n = 0; n < 10; n ++ ) {
+    for ( int n = 0; n < 10; n ++ ) {
       data[n] = kOrigValue;
     }
 
     undoList.BeginAction( "Change values" );
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	data[n] = kNewValue;
-	TestUndoAction* action  = 
-	  new TestUndoAction ( data, n, kOrigValue, kNewValue );
-	undoList.AddAction( action );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        data[n] = kNewValue;
+        TestUndoAction* action  =
+          new TestUndoAction ( data, n, kOrigValue, kNewValue );
+        undoList.AddAction( action );
       }
     }
 
     undoList.EndAction();
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	Assert((kNewValue == data[n]), "pre-undo wasn't correct" );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        Assert((kNewValue == data[n]), "pre-undo wasn't correct" );
       } else {
-	Assert((kOrigValue == data[n]), "pre-undo wasn't correct" );
+        Assert((kOrigValue == data[n]), "pre-undo wasn't correct" );
       }
     }
-    
+
     {
       stringstream ssErr;
       ssErr << "Pre undo Size of undo list was "
-	    << undoList.mUndoActions.size();
+      << undoList.mUndoActions.size();
       Assert( (undoList.mUndoActions.size() == 1), ssErr.str() );
     }
 
     {
       stringstream ssErr;
       ssErr << "Pre undo Size of redo list was "
-	    << undoList.mRedoActions.size();
+      << undoList.mRedoActions.size();
       Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
     }
 
@@ -118,19 +146,19 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
     {
       stringstream ssErr;
-      ssErr << "Post undo Size of undo list was " 
-	    << undoList.mUndoActions.size();
+      ssErr << "Post undo Size of undo list was "
+      << undoList.mUndoActions.size();
       Assert( (undoList.mUndoActions.size() == 0), ssErr.str() );
     }
 
     {
       stringstream ssErr;
       ssErr << "Post undo Size of redo list was "
-	    << undoList.mRedoActions.size();
+      << undoList.mRedoActions.size();
       Assert( (undoList.mRedoActions.size() == 1), ssErr.str() );
     }
 
-    for( int n = 0; n < 10; n ++ ) {
+    for ( int n = 0; n < 10; n ++ ) {
       Assert((kOrigValue == data[n]), "post-undo wasn't correct" );
     }
 
@@ -138,41 +166,42 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
     {
       stringstream ssErr;
-      ssErr << "Post redo Size of undo list was " 
-	    << undoList.mUndoActions.size();
+      ssErr << "Post redo Size of undo list was "
+      << undoList.mUndoActions.size();
       Assert( (undoList.mUndoActions.size() == 1), ssErr.str() );
     }
 
     {
       stringstream ssErr;
       ssErr << "Post redo Size of redo list was "
-	    << undoList.mRedoActions.size();
+      << undoList.mRedoActions.size();
       Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
     }
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	Assert((kNewValue == data[n]), "post-redo wasn't correct" );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        Assert((kNewValue == data[n]), "post-redo wasn't correct" );
       } else {
-	Assert((kOrigValue == data[n]), "post-redo wasn't correct" );
+        Assert((kOrigValue == data[n]), "post-redo wasn't correct" );
       }
     }
 
     string sTitle = undoList.GetUndoTitle();
-    Assert( ("Undo Change values" == sTitle), 
-	    "GetUndoTitle failed for undo" );
+    Assert( ("Undo Change values" == sTitle),
+            "GetUndoTitle failed for undo" );
 
     undoList.Undo();
 
-    sTitle = undoList.GetRedoTitle();;
-    Assert( ("Redo Change values" == sTitle), 
-	    "GetRedoTitle failed for redo" );
+    sTitle = undoList.GetRedoTitle();
+    ;
+    Assert( ("Redo Change values" == sTitle),
+            "GetRedoTitle failed for redo" );
 
 
     // Try the tcl commands.
     char sCommand[1024];
     int rTcl;
-    
+
     undoList.Redo();
 
     sprintf( sCommand, "GetUndoTitle" );
@@ -187,7 +216,7 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     }
 
     undoList.Undo();
-    
+
     sprintf( sCommand, "GetRedoTitle" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
@@ -204,11 +233,11 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     // undo, and make sure the list is the same.
     undoList.BeginAction( "Dummy" );
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	data[n] = kNewValue2;
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        data[n] = kNewValue2;
       } else {
-	data[n] = kNewValue;
+        data[n] = kNewValue;
       }
     }
 
@@ -216,21 +245,21 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
     undoList.Undo();
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	Assert((kNewValue2 == data[n]), "post dummy undo wasn't correct" );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        Assert((kNewValue2 == data[n]), "post dummy undo wasn't correct" );
       } else {
-	Assert((kNewValue == data[n]), "post dummy undo wasn't correct" );
+        Assert((kNewValue == data[n]), "post dummy undo wasn't correct" );
       }
     }
 
     undoList.Redo();
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	Assert((kNewValue2 == data[n]), "post dummy redo wasn't correct" );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        Assert((kNewValue2 == data[n]), "post dummy redo wasn't correct" );
       } else {
-	Assert((kNewValue == data[n]), "post dummy redo wasn't correct" );
+        Assert((kNewValue == data[n]), "post dummy redo wasn't correct" );
       }
     }
 
@@ -239,14 +268,14 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     // Do the same undo test we did before but through tcl.
     undoList.BeginAction( "Change values" );
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	data[n] = kNewValue;
-	TestUndoAction* action  = 
-	  new TestUndoAction ( data, n, kOrigValue, kNewValue );
-	undoList.AddAction( action );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        data[n] = kNewValue;
+        TestUndoAction* action  =
+          new TestUndoAction ( data, n, kOrigValue, kNewValue );
+        undoList.AddAction( action );
       } else {
-	data[n] = kOrigValue;
+        data[n] = kOrigValue;
       }
     }
 
@@ -255,18 +284,18 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, "Undo" );
     AssertTclOK( rTcl );
 
-    for( int n = 0; n < 10; n ++ ) {
+    for ( int n = 0; n < 10; n ++ ) {
       Assert((kOrigValue == data[n]), "post-tcl undo wasn't correct" );
     }
 
     rTcl = Tcl_Eval( iInterp, "Redo" );
     AssertTclOK( rTcl );
 
-    for( int n = 0; n < 10; n ++ ) {
-      if( n%2 ) {
-	Assert((kNewValue == data[n]), "post-tcl redo wasn't correct" );
+    for ( int n = 0; n < 10; n ++ ) {
+      if ( n%2 ) {
+        Assert((kNewValue == data[n]), "post-tcl redo wasn't correct" );
       } else {
-	Assert((kOrigValue == data[n]), "post-tcl redo wasn't correct" );
+        Assert((kOrigValue == data[n]), "post-tcl redo wasn't correct" );
       }
     }
 
@@ -277,113 +306,117 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     {
       stringstream ssErr;
       ssErr << "After clearing, undo size was "
-	    << undoList.mUndoActions.size();
+      << undoList.mUndoActions.size();
       Assert( (undoList.mUndoActions.size() == 0), ssErr.str() );
     }
-    
+
     {
       stringstream ssErr;
       ssErr << "After clearing, redo size was "
-	    << undoList.mRedoActions.size();
-	Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
+      << undoList.mRedoActions.size();
+      Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
     }
-    
+
 
     // Test multiple undoes. Create an undo action for each value from
     // 1 to 10, then undo them one by one, each time checking the
     // values in the array. Then redo them, checking again.
-    for( unsigned int n = 0; n < 10; n++ ) {
+    for ( unsigned int n = 0; n < 10; n++ ) {
       data[n] = kNewValue;
       stringstream ssTitle;
       ssTitle  << "Change value " << n;
       undoList.BeginAction( ssTitle.str() );
-      TestUndoAction* action = 
-	new TestUndoAction( data, n, kOrigValue, kNewValue );
+      TestUndoAction* action =
+        new TestUndoAction( data, n, kOrigValue, kNewValue );
       undoList.AddAction( action );
       undoList.EndAction();
-      
+
       {
-	stringstream ssErr;
-	ssErr << "Pre multi undo size of undo list with n " << n << " was "
-	      << undoList.mUndoActions.size();
-	Assert( (undoList.mUndoActions.size() == n+1), ssErr.str() );
+        stringstream ssErr;
+        ssErr << "Pre multi undo size of undo list with n " << n << " was "
+        << undoList.mUndoActions.size();
+        Assert( (undoList.mUndoActions.size() == n+1), ssErr.str() );
       }
-     
+
       {
-	stringstream ssErr;
-	ssErr << "Pre multi redo size of undo list with n " << n << " was "
-	      << undoList.mRedoActions.size();
-	Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
+        stringstream ssErr;
+        ssErr << "Pre multi redo size of undo list with n " << n << " was "
+        << undoList.mRedoActions.size();
+        Assert( (undoList.mRedoActions.size() == 0), ssErr.str() );
       }
     }
 
-    for( int n = 9; n >= 5; n-- ) {
+    for ( int n = 9; n >= 5; n-- ) {
 
       undoList.Undo();
-      
-      {
-	stringstream ssErr;
-	ssErr << "Data not correct n " << n << ", array: ";
-	for( int m = 0; m < 10; m++ ) { ssErr << data[m] << " "; }
 
-	for( int m = 0; m < n; m++ ) { 
-	  Assert( (data[m] == kNewValue), ssErr.str() );
-	}
-	for( int m = n; m < 10; m++ ) { 
-	  Assert( (data[m] == kOrigValue), ssErr.str() );
-	}
+      {
+        stringstream ssErr;
+        ssErr << "Data not correct n " << n << ", array: ";
+        for ( int m = 0; m < 10; m++ ) {
+          ssErr << data[m] << " ";
+        }
+
+        for ( int m = 0; m < n; m++ ) {
+          Assert( (data[m] == kNewValue), ssErr.str() );
+        }
+        for ( int m = n; m < 10; m++ ) {
+          Assert( (data[m] == kOrigValue), ssErr.str() );
+        }
       }
 
       {
-	stringstream ssErr;
-	ssErr << "multi undo size of undo list with n " << n << " was "
-	      << undoList.mUndoActions.size();
-	Assert( (undoList.mUndoActions.size() == (unsigned int)n), 
-		ssErr.str() );
+        stringstream ssErr;
+        ssErr << "multi undo size of undo list with n " << n << " was "
+        << undoList.mUndoActions.size();
+        Assert( (undoList.mUndoActions.size() == (unsigned int)n),
+                ssErr.str() );
       }
-      
+
       {
-	stringstream ssErr;
-	ssErr << "multi redo size of undo list with n " << n << " was "
-		<< undoList.mRedoActions.size();
-	Assert( (undoList.mRedoActions.size() == (unsigned int)(10-n)),
-		ssErr.str() );
+        stringstream ssErr;
+        ssErr << "multi redo size of undo list with n " << n << " was "
+        << undoList.mRedoActions.size();
+        Assert( (undoList.mRedoActions.size() == (unsigned int)(10-n)),
+                ssErr.str() );
       }
     }
-    
-    for( int n = 5; n < 10; n++ ) {
+
+    for ( int n = 5; n < 10; n++ ) {
 
       undoList.Redo();
-      
+
 
       // Now 0 -> n are new, and n+1 -> 9 are orig
       {
-	stringstream ssErr;
-	ssErr << "Data not correct n " << n << ", array: ";
-	for( int m = 0; m < 10; m++ ) { ssErr << data[m] << " "; }
+        stringstream ssErr;
+        ssErr << "Data not correct n " << n << ", array: ";
+        for ( int m = 0; m < 10; m++ ) {
+          ssErr << data[m] << " ";
+        }
 
-	for( int m = 0; m <= n; m++ ) { 
-	  Assert( (data[m] == kNewValue), ssErr.str() );
-	}
-	for( int m = n+1; m < 10; m++ ) { 
-	  Assert( (data[m] == kOrigValue), ssErr.str() );
-	}
+        for ( int m = 0; m <= n; m++ ) {
+          Assert( (data[m] == kNewValue), ssErr.str() );
+        }
+        for ( int m = n+1; m < 10; m++ ) {
+          Assert( (data[m] == kOrigValue), ssErr.str() );
+        }
       }
 
       {
-	stringstream ssErr;
-	ssErr << "multi undo size of undo list with n " << n << " was "
-	      << undoList.mUndoActions.size();
-	Assert( (undoList.mUndoActions.size() == (unsigned int)n+1), 
-		ssErr.str() );
+        stringstream ssErr;
+        ssErr << "multi undo size of undo list with n " << n << " was "
+        << undoList.mUndoActions.size();
+        Assert( (undoList.mUndoActions.size() == (unsigned int)n+1),
+                ssErr.str() );
       }
-      
+
       {
-	stringstream ssErr;
-	ssErr << "multi redo size of undo list with n " << n << " was "
-		<< undoList.mRedoActions.size();
-	Assert( (undoList.mRedoActions.size() == (unsigned int)(9-n)),
-		ssErr.str() );
+        stringstream ssErr;
+        ssErr << "multi redo size of undo list with n " << n << " was "
+        << undoList.mRedoActions.size();
+        Assert( (undoList.mRedoActions.size() == (unsigned int)(9-n)),
+                ssErr.str() );
       }
     }
 
@@ -392,36 +425,34 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     // the count is still good. (In the future it would be good to
     // test if the right one is being deleted.)
     undoList.Clear();
-    for( int n = 0; n < undoList.mcMaxActions + 2; n++ ) {
+    for ( int n = 0; n < undoList.mcMaxActions + 2; n++ ) {
       undoList.BeginAction( "test" );
       undoList.EndAction();
 
       Assert( (undoList.mUndoActions.size() + undoList.mRedoActions.size() <=
-	       (unsigned int)undoList.mcMaxActions),
-	      "Went above max number of actions." );
+               (unsigned int)undoList.mcMaxActions),
+              "Went above max number of actions." );
     }
-    for( int n = 0; n < 10; n++ ) {
+    for ( int n = 0; n < 10; n++ ) {
       undoList.Undo();
       Assert( (undoList.mUndoActions.size() + undoList.mRedoActions.size() <=
-	       (unsigned int)undoList.mcMaxActions),
-	      "Went above max number of actions." );
+               (unsigned int)undoList.mcMaxActions),
+              "Went above max number of actions." );
     }
-    for( int n = 0; n < 10; n++ ) {
+    for ( int n = 0; n < 10; n++ ) {
       undoList.BeginAction( "test" );
       undoList.EndAction();
 
       Assert( (undoList.mUndoActions.size() + undoList.mRedoActions.size() <=
-	       (unsigned int)undoList.mcMaxActions),
-	      "Went above max number of actions." );
+               (unsigned int)undoList.mcMaxActions),
+              "Went above max number of actions." );
     }
 
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -436,10 +467,10 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
@@ -448,13 +479,11 @@ int main ( int argc, char** argv ) {
     UndoManagerTester tester0;
     tester0.Test( interp );
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

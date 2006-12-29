@@ -6,8 +6,7 @@
  */
 #include  "rgb_image.h"
 
-int ifilbuf(RGB_IMAGE *image)
-{
+int ifilbuf(RGB_IMAGE *image) {
   int size;
 
   if ((image->flags&_IOREAD) == 0)
@@ -31,13 +30,13 @@ int ifilbuf(RGB_IMAGE *image)
     image->cnt = 0;
     return -1;
   }
-  if(++image->y >= image->ysize) {
-      image->y = 0;
-      if(++image->z >= image->zsize) {
-    image->z = image->zsize-1;
-    image->flags |= _IOEOF;
-    return -1;
-      }
+  if (++image->y >= image->ysize) {
+    image->y = 0;
+    if (++image->z >= image->zsize) {
+      image->z = image->zsize-1;
+      image->flags |= _IOEOF;
+      return -1;
+    }
   }
   return *image->ptr++ & 0xffff;
 }

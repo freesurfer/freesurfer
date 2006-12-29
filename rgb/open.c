@@ -19,33 +19,30 @@ RGB_IMAGE *imgopen(int, char *, char *,unsigned int, unsigned int,
                    unsigned int, unsigned int, unsigned int);
 
 RGB_IMAGE *iopen(char *file, char *mode, unsigned int type, unsigned int dim,
-                 unsigned int xsize, unsigned int ysize, unsigned int zsize)
-{
+                 unsigned int xsize, unsigned int ysize, unsigned int zsize) {
   return(imgopen(0, file, mode, type, dim, xsize, ysize, zsize));
 }
 
 RGB_IMAGE *fiopen(int f, char *mode, unsigned int type, unsigned int dim,
-                  unsigned int xsize, unsigned int ysize, unsigned int zsize)
-{
+                  unsigned int xsize, unsigned int ysize, unsigned int zsize) {
   return(imgopen(f, 0, mode, type, dim, xsize, ysize, zsize));
 }
 
 RGB_IMAGE *imgopen(int f, char *file, char *mode,
                    unsigned int type, unsigned int dim,
-                   unsigned int xsize, unsigned int ysize, unsigned int zsize)
-{
+                   unsigned int xsize, unsigned int ysize, unsigned int zsize) {
   register RGB_IMAGE  *image;
   register int rw;
   int tablesize;
   register int i, max;
 
   image = (RGB_IMAGE*)calloc(1,sizeof(RGB_IMAGE));
-  if(!image ) {
+  if (!image ) {
     i_errhdlr("iopen: error on image struct alloc\n",0,0,0,0);
     return NULL;
   }
   rw = mode[1] == '+';
-  if(rw) {
+  if (rw) {
     i_errhdlr("iopen: read/write mode not supported\n",0,0,0,0);
     return NULL;
   }
@@ -70,16 +67,16 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
       image->ysize = ysize;
     if (dim>2)
       image->zsize = zsize;
-    if(image->zsize == 1) {
+    if (image->zsize == 1) {
       image->dim = 2;
-      if(image->ysize == 1)
+      if (image->ysize == 1)
         image->dim = 1;
     } else {
       image->dim = 3;
     }
     image->min = 10000000;
     image->max = 0;
-    isetname(image,"no name"); 
+    isetname(image,"no name");
     image->wastebytes = 0;
     image->dorev = 0;
     swapImage(image) ;
@@ -97,8 +94,8 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
       i_errhdlr("iopen: error on read of image header\n",0,0,0,0);
       return NULL;
     }
-    if( ((image->imagic>>8) | ((image->imagic&0xff)<<8)) 
-        == IMAGIC ) {
+    if ( ((image->imagic>>8) | ((image->imagic&0xff)<<8))
+         == IMAGIC ) {
       image->dorev = 1;
       cvtimage((long *)image);
     } else
@@ -114,18 +111,18 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
     image->flags = _IOWRT;
   else
     image->flags = _IOREAD;
-  if(ISRLE(image->type)) {
+  if (ISRLE(image->type)) {
     tablesize = image->ysize*image->zsize*sizeof(long);
     image->rowstart = (unsigned int *)malloc(tablesize);
     image->rowsize = (int *)malloc(tablesize);
-    if( image->rowstart == 0 || image->rowsize == 0 ) {
+    if ( image->rowstart == 0 || image->rowsize == 0 ) {
       i_errhdlr("iopen: error on table alloc\n",0,0,0,0);
       return NULL;
     }
     image->rleend = 512L+2*tablesize;
     if (*mode=='w') {
       max = image->ysize*image->zsize;
-      for(i=0; i<max; i++) {
+      for (i=0; i<max; i++) {
         image->rowstart[i] = 0;
         image->rowsize[i] = -1;
       }
@@ -136,20 +133,20 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
         i_errhdlr("iopen: error on read of rowstart\n",0,0,0,0);
         return NULL;
       }
-      if(image->dorev)
+      if (image->dorev)
         cvtlongs((long *)image->rowstart,tablesize);
       if (read(f,image->rowsize,tablesize) != tablesize) {
         i_errhdlr("iopen: error on read of rowsize\n",0,0,0,0);
         return NULL;
       }
-      if(image->dorev)
+      if (image->dorev)
         cvtlongs((long *)image->rowsize,tablesize);
     }
   }
   image->cnt = 0;
   image->ptr = 0;
   image->base = 0;
-  if( (image->tmpbuf = ibufalloc(image)) == 0 ) { 
+  if ( (image->tmpbuf = ibufalloc(image)) == 0 ) {
     i_errhdlr("iopen: error on tmpbuf alloc %d\n",image->xsize,0,0,0);
     return NULL;
   }
@@ -160,28 +157,25 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
   return(image);
 }
 
-unsigned short *ibufalloc(RGB_IMAGE *image)
-{
+unsigned short *ibufalloc(RGB_IMAGE *image) {
   return (unsigned short *)malloc(IBUFSIZE(image->xsize));
 }
 
 long
-reverse(unsigned long lwrd) 
-{
-  return ((lwrd>>24)    | 
-          (lwrd>>8 & 0xff00)   | 
-          (lwrd<<8 & 0xff0000) | 
+reverse(unsigned long lwrd) {
+  return ((lwrd>>24)    |
+          (lwrd>>8 & 0xff00)   |
+          (lwrd<<8 & 0xff0000) |
           (lwrd<<24)     );
 }
 
 void
-cvtshorts( unsigned short *buffer, long n)
-{
+cvtshorts( unsigned short *buffer, long n) {
   register short i;
   register long nshorts = n>>1;
   register unsigned short swrd;
 
-  for(i=0; i<nshorts; i++) {
+  for (i=0; i<nshorts; i++) {
     swrd = *buffer;
     *buffer++ = (swrd>>8) | (swrd<<8);
   }
@@ -189,24 +183,22 @@ cvtshorts( unsigned short *buffer, long n)
 
 
 void
-cvtlongs( long *buffer, register long n)
-{
+cvtlongs( long *buffer, register long n) {
   register short i;
   register long nlongs = n>>2;
   register unsigned long lwrd;
 
-  for(i=0; i<nlongs; i++) {
+  for (i=0; i<nlongs; i++) {
     lwrd = buffer[i];
-    buffer[i] =     ((lwrd>>24)     | 
-                     (lwrd>>8 & 0xff00)  | 
-                     (lwrd<<8 & 0xff0000)  | 
+    buffer[i] =     ((lwrd>>24)     |
+                     (lwrd>>8 & 0xff00)  |
+                     (lwrd<<8 & 0xff0000)  |
                      (lwrd<<24)    );
   }
 }
 
 void
-cvtimage( long *buffer)
-{
+cvtimage( long *buffer) {
   cvtshorts((unsigned short *)buffer,12);
   cvtlongs(buffer+3,12);
   cvtlongs(buffer+26,4);
@@ -223,12 +215,11 @@ static void (*i_errfunc)(char *ebuf);
 */
 /* most args currently used is 2 */
 void
-i_errhdlr(char *fmt, int a1, int a2, int a3, int a4) 
-{
-  if(i_errfunc) {
+i_errhdlr(char *fmt, int a1, int a2, int a3, int a4) {
+  if (i_errfunc) {
     char ebuf[2048];  /* be generous; if an error includes a
-                         pathname, the maxlen is 1024, so we shouldn't ever 
-                         overflow this! */
+                                         pathname, the maxlen is 1024, so we shouldn't ever
+                                         overflow this! */
     sprintf(ebuf, fmt, a1, a2, a3, a4);
     (*i_errfunc)(ebuf);
     return;
@@ -239,15 +230,14 @@ i_errhdlr(char *fmt, int a1, int a2, int a3, int a4)
 
 /* this function sets the error handler for i_errhdlr */
 void
-i_seterror(void (*func)(char *))
-{
+i_seterror(void (*func)(char *)) {
   i_errfunc = func;
 }
 
-// 
-// swapShort, swapInt (defined in utils/machine.c) creates circular dependency 
+//
+// swapShort, swapInt (defined in utils/machine.c) creates circular dependency
 // In order to remove circular dependency, I copied the swap routines here.
-// 
+//
 typedef union
 {
   short  s ;
@@ -263,8 +253,7 @@ typedef union
 } SSWAP_LONG ;
 
 short
-tmpswapShort(short s)
-{
+tmpswapShort(short s) {
   SSWAP_SHORT ss ;
   char       c ;
 
@@ -278,8 +267,7 @@ tmpswapShort(short s)
 }
 
 int
-tmpswapInt(int i)
-{
+tmpswapInt(int i) {
   SSWAP_LONG  sl ;
   short      s ;
 
@@ -297,8 +285,7 @@ tmpswapInt(int i)
 }
 
 void
-swapImage(RGB_IMAGE *image)
-{
+swapImage(RGB_IMAGE *image) {
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   image->imagic = tmpswapShort(image->imagic) ;
   image->type = tmpswapShort(image->type) ;
@@ -308,7 +295,7 @@ swapImage(RGB_IMAGE *image)
   image->zsize = tmpswapShort(image->zsize) ;
   image->min = tmpswapInt(image->min) ;
   image->max = tmpswapInt(image->max) ;
-  image->wastebytes = tmpswapShort(image->wastebytes) ; 
+  image->wastebytes = tmpswapShort(image->wastebytes) ;
   image->colormap = tmpswapInt(image->colormap) ;
 #endif
 }

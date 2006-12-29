@@ -1,8 +1,36 @@
+/**
+ * @file  myutil.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:07 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------------
 //
-//      File: myutil.h                          
-//      A MY utility library                    
-//                                              
+//      File: myutil.h
+//      A MY utility library
+//
 //--------------------------------------------------------------------------*/
 
 /*============================================================================
@@ -11,14 +39,14 @@
 //
 //  DATA STRUCTURE:
 //  MYlist ---> {elementSize, size, data, capacity, capacityIncrement}
-//  
+//
 //  NOTE: the type of MYlist is a pointer.
 //
 //  Assume the following variable declarations:
 //      MYlist list, list1, list2;
 //      ListElement element;
 //      ListElement *data;
-//      int capacity, capacityIncrement, size, 
+//      int capacity, capacityIncrement, size,
 //          elementSize, index, returnFlag;
 //
 //  LIST MANIPULATIONS:
@@ -29,7 +57,7 @@
 //  myList1 ....................... default constructor with capacity
 //           list1 = myList(sizeof(ListElement), capacity);
 //
-//  myList2 ....................... default constructor with capacity 
+//  myList2 ....................... default constructor with capacity
 //                                  and capacity increment
 //           list2 = myList(sizeof(ListElement), capacity, capacityIncrement);
 //
@@ -42,8 +70,8 @@
 //  myListAddElement .............. add an element to this list
 //           myListAddElement(list, &element);
 //
-//  myListInsertElementAt ......... insert an element in the list at the given 
-//                                  index. Each list element's index greater 
+//  myListInsertElementAt ......... insert an element in the list at the given
+//                                  index. Each list element's index greater
 //                                  or equal to the specified index is
 //                                  shifted upward than its previous value.
 //           returnFlag = myListInsertElementAt(list, index, &element);
@@ -51,21 +79,21 @@
 //  myListElementAt ............... retrieve an element at index
 //           returnFlag = myListElementAt(list, index, &element);
 //
-//  myListSetElementAt ............ set the element at the specified index of 
-//                                  this list by copying the value of 
+//  myListSetElementAt ............ set the element at the specified index of
+//                                  this list by copying the value of
 //                                  given element.
 //           returnFlag = myListSetElementAt(list, index, &element);
 //
 //  myListRemoveElementAt ......... Delete the element at the specified index.
-//                                  The index of each element after the 
+//                                  The index of each element after the
 //                                  specified index is decreased by 1.
 //           returnFlag = myListRemoveElementAt(list, index);
 //
 //  myListRemoveAllElements ....... removes all elements from this list
-//                                  and sets its size to zero 
+//                                  and sets its size to zero
 //           myListRemoveAllElements(list);
 //
-//  myListTrim .................... trim this list to its current size 
+//  myListTrim .................... trim this list to its current size
 //           myListTrim(list);
 //
 //  myListIsEmpty ................. 1 if this list has no elements
@@ -121,21 +149,23 @@
 #include <stdio.h>
 
 typedef struct {
-   int   elementSize;
-   int   size;
-   void *data;
-   int   capacity;
-   int   capacityIncrement;
-} MYlistStruct;
+  int   elementSize;
+  int   size;
+  void *data;
+  int   capacity;
+  int   capacityIncrement;
+}
+MYlistStruct;
 
 typedef MYlistStruct *MYlist;
 #define MYstack MYlist
 
 typedef struct {
-   int start;
-   int end;
-   MYlist list;
-} MYqueueStruct;
+  int start;
+  int end;
+  MYlist list;
+}
+MYqueueStruct;
 
 typedef MYqueueStruct *MYqueue;
 
@@ -161,8 +191,8 @@ void    myListAddInt(MYlist list, int element);
 void    myListAddArray(MYlist list, void *array, int num);
 int myListInsertElementAt(MYlist list, int index, void *element);
 int myListSetElementAt(MYlist list, int index, void *element);
-int myListElementAt(MYlist list, int index, 
-                        /* stores the result at */ void *element);
+int myListElementAt(MYlist list, int index,
+                    /* stores the result at */ void *element);
 int myListRemoveElementAt(MYlist list, int index);
 void    myListRemoveAllElements(MYlist list);
 void    myListTrim(MYlist list);
@@ -191,7 +221,7 @@ void    myQueueTrim(MYqueue queue);
 void*   myQueueToArray(MYqueue queue);
 void    myQueueInfo(MYqueue queue);
 #define myQueueSize(queue)         (queue->end - queue->start + 1)
-#define myQueueIsEmpty(queue)      (myQueueSize(queue) == 0) 
+#define myQueueIsEmpty(queue)      (myQueueSize(queue) == 0)
 #define myQueueElementSize(queue)  (myListElementSize(queue->list))
 
 /*============================================================================

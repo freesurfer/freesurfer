@@ -1,3 +1,31 @@
+/**
+ * @file  mri_train.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:09 $
+ *    $Revision: 1.19 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +42,7 @@
 #include "version.h"
 
 static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
-                        FEATURE_CPOLV_MEDIAN5 ;
+                      FEATURE_CPOLV_MEDIAN5 ;
 
 static int extract = 0 ;
 static int classifier = CLASSIFIER_RBF ;
@@ -31,20 +59,20 @@ static int get_option(int argc, char *argv[]) ;
 static int nclusters = 0 ;
 static int train_cpolv = 0 ;
 
-static RBF_PARMS rbf_parms =
-{
-{ NCLUSTERS/2, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS/2}
-} ;
+static RBF_PARMS rbf_parms = {
+                               {
+                                 NCLUSTERS/2, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS/2
+                               }
+                             } ;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   MRIC    *mric ;
   char    *training_file_name, *output_file_name ;
   int     nargs, error, i ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.18 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.19 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -53,8 +81,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -67,29 +94,24 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  if (nclusters > 0)
-  {
-    for (i = 0 ; i < NCLASSES ; i++)
-    {
+  if (nclusters > 0) {
+    for (i = 0 ; i < NCLASSES ; i++) {
       if (ISWHITE(i) || i == GRAY_MATTER)
         rbf_parms.max_clusters[i] = nclusters ;
       else
         rbf_parms.max_clusters[i] = nclusters/2 ;
     }
-  }
-  else
+  } else
     nclusters = NCLUSTERS ;
 
-  if (train_cpolv)
-  {
-    for (i = 0 ; i < NCLASSES ; i++)
-    {
+  if (train_cpolv) {
+    for (i = 0 ; i < NCLASSES ; i++) {
       if (ISWHITE(i))
         rbf_parms.max_clusters[i] = nclusters/3 ;
       else
         if (i == CSF)
           rbf_parms.max_clusters[i] = nclusters ;
-      else
+        else
           rbf_parms.max_clusters[i] = 0 ;
     }
   }
@@ -114,54 +136,52 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "cpolv"))
     train_cpolv = 1 ;
-  else switch (toupper(*option))
-  {
-  case 'V':
-    verbose = !verbose ;
-    break ;
-  case 'N':
-    if (sscanf(argv[2], "%d", &nclusters) != 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
-                Progname, argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'F':
-    if (sscanf(argv[2], "0x%x", &features) != 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
-                Progname, argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "using features 0x%x\n", features) ;
-    break ;
-  case 'P':
-    strcpy(priors_fname, argv[2]) ;
-    nargs = 1 ;
-    if (verbose)
-      fprintf(stderr, "using priors file %s\n", priors_fname) ;
-    break ;
-  case 'X':
-    if (sscanf(argv[2], "%d", &extract) != 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
-                Progname, argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-    printf("usage: %s <training file> <output file>\n", Progname) ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+  else switch (toupper(*option)) {
+    case 'V':
+      verbose = !verbose ;
+      break ;
+    case 'N':
+      if (sscanf(argv[2], "%d", &nclusters) != 1)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
+                  Progname, argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'F':
+      if (sscanf(argv[2], "0x%x", &features) != 1)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
+                  Progname, argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "using features 0x%x\n", features) ;
+      break ;
+    case 'P':
+      strcpy(priors_fname, argv[2]) ;
+      nargs = 1 ;
+      if (verbose)
+        fprintf(stderr, "using priors file %s\n", priors_fname) ;
+      break ;
+    case 'X':
+      if (sscanf(argv[2], "%d", &extract) != 1)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
+                  Progname, argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      printf("usage: %s <training file> <output file>\n", Progname) ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }

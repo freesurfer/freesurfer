@@ -1,3 +1,31 @@
+/**
+ * @file  test_Broadcaster.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -33,30 +61,37 @@ public:
 class TestListener : public Listener {
 public:
   TestListener() : Listener( "TestListener" ) {}
-  void Clear () { bGotMessage = false; bGotData = false; }
+  void Clear () {
+    bGotMessage = false;
+    bGotData = false;
+  }
   virtual void DoListenToMessage ( string iMessage, void* iData );
-  bool GotMessage () { return bGotMessage; }
-  bool GotData () { return bGotData; }
+  bool GotMessage () {
+    return bGotMessage;
+  }
+  bool GotData () {
+    return bGotData;
+  }
 protected:
   bool bGotMessage;
   bool bGotData;
 };
 
-void 
+void
 TestListener::DoListenToMessage ( string iMessage, void* iData ) {
 
-  if( iMessage == "testMessage" ) {
+  if ( iMessage == "testMessage" ) {
     bGotMessage = true;
-    if( NULL != iData ) {
+    if ( NULL != iData ) {
       ListenerData* data = (ListenerData*)iData;
-      if( data->mData == 5 ) {
-	bGotData = true;
+      if ( data->mData == 5 ) {
+        bGotData = true;
       }
     }
   }
 }
 
-void 
+void
 BroadcasterTester::Test () {
 
   stringstream ssError;
@@ -78,14 +113,14 @@ BroadcasterTester::Test () {
     Assert( (listenerListening.GotMessage()), "Listener didn't get message" );
     Assert( (listenerListening.GotData()), "Listener didn't get data" );
     Assert( (!listenerNotListening.GotMessage()), "NotListener got message" );
-    
+
     listenerListening.Clear();
     listenerNotListening.Clear();
     broadcaster.SendBroadcast( "bogusMessage", NULL );
 
     Assert( (!listenerListening.GotMessage()), "Listener got bogus message" );
-    Assert( (!listenerNotListening.GotMessage()), 
-	    "NotListener got bogus message" );
+    Assert( (!listenerNotListening.GotMessage()),
+            "NotListener got bogus message" );
 
     broadcaster.RemoveListener( &listenerListening );
 
@@ -96,12 +131,10 @@ BroadcasterTester::Test () {
     Assert( (!listenerListening.GotMessage()), "Listener got message after being removed" );
     Assert( (!listenerNotListening.GotMessage()), "NotListener got message" );
 
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
@@ -118,13 +151,11 @@ int main ( int argc, char** argv ) {
     BroadcasterTester tester0;
     tester0.Test();
 
- 
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

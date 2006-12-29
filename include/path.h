@@ -1,13 +1,41 @@
+/**
+ * @file  path.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef PATHS_INCLUDED
 #define PATHS_INCLUDED
 
 #define _GNU_SOURCE
 #include <stdio.h>
 #ifdef Darwin
-// Mac OS X doesnt have gnulib, so it doesn't have getline, 
+// Mac OS X doesnt have gnulib, so it doesn't have getline,
 // so the source for getline is found here in utils and built on the Mac
 #include "getline.h"
-#endif 
+#endif
 
 #include "label.h"
 
@@ -18,7 +46,8 @@ typedef struct
   float y;
   float z;
   int vno;
-} PATH_POINT;
+}
+PATH_POINT;
 
 /* Main path struct. */
 typedef struct
@@ -26,7 +55,8 @@ typedef struct
   int n_points;         /* number of points in this path. */
   char name[100];       /* original file name */
   PATH_POINT *points;   /* array of size n_points */
-} PATH;
+}
+PATH;
 
 
 /* Read in multiple paths from a path file. On return, num_read will

@@ -1,3 +1,31 @@
+/**
+ * @file  histo.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.30 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef HISTO_H
 #define HISTO_H
 
@@ -14,9 +42,10 @@ typedef struct
   float   *bins ;   /* upper end of the range that maps to this bin */
   float   *counts ; /* # of voxels which map to this bin */
   float   bin_size ;
-	float   min ; 
-	float   max ;     // min and max vals in the histo
-} HISTOGRAM, HISTO ;
+  float   min ;
+  float   max ;     // min and max vals in the histo
+}
+HISTOGRAM, HISTO ;
 
 int       HISTOfree(HISTOGRAM **phisto) ;
 int       HISTOdump(HISTOGRAM *histo, FILE *fp) ;
@@ -26,17 +55,17 @@ HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
-HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, 
+HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,
                           int max_out) ;
 HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 int       HISTOclearZeroBin(HISTOGRAM *h) ;
 HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
-HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, 
+HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2,
                         HISTOGRAM *histo_dst) ;
-HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, 
+HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,
                           int max_val) ;
-HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, 
+HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
                               HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
@@ -53,18 +82,18 @@ int       HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf) ;
 int       HISTOfindPreviousValley(HISTOGRAM *h, int b0) ;
 int       HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak) ;
 int       HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak) ;
-int       HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+int       HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                     int b0, int b1) ;
-int       HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+int       HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                   int *peaks, int max_peaks, int b0, int b1) ;
-int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                      int b0, int b1) ;
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
-int       HISTOfindCurrentPeak(HISTOGRAM *histo, 
-                               int b0, 
-                               int wsize, 
+int       HISTOfindCurrentPeak(HISTOGRAM *histo,
+                               int b0,
+                               int wsize,
                                float min_pct) ;
 int       HISTOfillHoles(HISTO *h) ;
 int       HISTOtotal(HISTO *h) ;
@@ -73,11 +102,11 @@ int       HISTOfindBin(HISTOGRAM *h, float val) ;
 HISTO     *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) ;
 int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
 HISTO     *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale,
-														float offset) ;
+                            float offset) ;
 
-int       HISTOfindLinearFit(HISTOGRAM *h1, 
-                             HISTOGRAM *h2, 
-                             double amin, double amax, 
+int       HISTOfindLinearFit(HISTOGRAM *h1,
+                             HISTOGRAM *h2,
+                             double amin, double amax,
                              double bmin, double bmax,
                              float *pa, float *pb) ;
 float HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh) ;

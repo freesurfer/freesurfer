@@ -1,3 +1,31 @@
+/**
+ * @file  mris_inflate.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.32 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +45,7 @@
 #include "version.h"
 
 static char vcid[] =
-"$Id: mris_inflate.c,v 1.31 2006/05/02 22:01:29 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.32 2006/12/29 02:09:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,8 +68,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int SaveSulc = 1;
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname, fname[STRLEN], *cp, path[STRLEN] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
@@ -52,15 +79,15 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
-    (argc, argv,
-     "$Id: mris_inflate.c,v 1.31 2006/05/02 22:01:29 nicks Exp $",
-     "$Name:  $", cmdline);
+  (argc, argv,
+   "$Id: mris_inflate.c,v 1.32 2006/12/29 02:09:10 nicks Exp $",
+   "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_inflate.c,v 1.31 2006/05/02 22:01:29 nicks Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mris_inflate.c,v 1.32 2006/12/29 02:09:10 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -98,19 +125,18 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (argc < 3) print_help() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  if (parms.base_name[0] == 0){
+  if (parms.base_name[0] == 0) {
     FileNameOnly(out_fname, fname) ;
     cp = strchr(fname, '.') ;
     if (cp)
@@ -119,7 +145,7 @@ main(int argc, char *argv[])
       strcpy(parms.base_name, "inflated") ;
   }
 
-  if(!SaveSulc) printf("Not saving sulc\n");
+  if (!SaveSulc) printf("Not saving sulc\n");
 
   mris = MRISread(in_fname) ;
   if (!mris)
@@ -144,19 +170,21 @@ main(int argc, char *argv[])
   MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISaverageVertexPositions(mris, navgs) ;
   MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
-  if (FZERO(parms.l_sphere))
-    {
+  if (FZERO(parms.l_sphere)) {
 #if 1
-      MRISinflateBrain(mris, &parms) ;
+    MRISinflateBrain(mris, &parms) ;
 #else
-      parms.n_averages = 32 ; parms.niterations = 30 ; parms.l_dist = 1.0 ;
-      MRISinflateBrain(mris, &parms) ;
-      MRISscaleBrainArea(mris) ;
-      parms.n_averages = 0 ; parms.niterations = 70 ; parms.l_dist = .1 ;
-      MRISinflateBrain(mris, &parms) ;
+    parms.n_averages = 32 ;
+    parms.niterations = 30 ;
+    parms.l_dist = 1.0 ;
+    MRISinflateBrain(mris, &parms) ;
+    MRISscaleBrainArea(mris) ;
+    parms.n_averages = 0 ;
+    parms.niterations = 70 ;
+    parms.l_dist = .1 ;
+    MRISinflateBrain(mris, &parms) ;
 #endif
-    }
-  else
+  } else
     MRISinflateToSphere(mris, &parms) ;
   fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
   MRIScenter(mris, mris) ;
@@ -165,13 +193,12 @@ main(int argc, char *argv[])
   FileNamePath(out_fname, path) ;
   MRISzeroMeanCurvature(mris) ;  /* make sulc zero mean */
 
-  if(SaveSulc){
+  if (SaveSulc) {
     sprintf(fname, "%s/%s.sulc", path,
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
     MRISwriteCurvature(mris, fname) ;
-  }
-  else printf("Not saving sulc\n");
+  } else printf("Not saving sulc\n");
 
   msec = TimerStop(&then) ;
   fprintf(stderr, "inflation took %2.1f minutes\n", (float)msec/(60*1000.0f));
@@ -187,8 +214,7 @@ main(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
-{
+get_option(int argc, char *argv[]) {
   int  nargs = 0 ;
   char *option ;
 
@@ -197,185 +223,140 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "name"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      strcpy(parms.base_name, argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "base name = %s\n", parms.base_name) ;
-    }
-  else if (!stricmp(option, "angle"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      sscanf(argv[2], "%f", &parms.l_angle) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_angle = %2.3f\n", parms.l_angle) ;
-    }
-  else if (!stricmp(option, "sphere"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.l_sphere = atof(argv[2]) ;
-      nargs = 1 ; parms.a = 128.0f ;
-      fprintf(stderr, "l_sphere = %2.3f\n", parms.l_sphere) ;
-    }
-  else if (!stricmp(option, "area"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      sscanf(argv[2], "%f", &parms.l_area) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_area = %2.3f\n", parms.l_area) ;
-    }
-  else if (!stricmp(option, "dist"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      sscanf(argv[2], "%f", &parms.l_dist) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
-    }
-  else if (!stricmp(option, "area"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      sscanf(argv[2], "%f", &parms.l_parea) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_parea = %2.3f\n", parms.l_parea) ;
-    }
-  else if (!stricmp(option, "curv")){
+  else if (!stricmp(option, "name")) {
+    if (argc < 2)
+      print_usage() ;
+    strcpy(parms.base_name, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "base name = %s\n", parms.base_name) ;
+  } else if (!stricmp(option, "angle")) {
+    if (argc < 2)
+      print_usage() ;
+    sscanf(argv[2], "%f", &parms.l_angle) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_angle = %2.3f\n", parms.l_angle) ;
+  } else if (!stricmp(option, "sphere")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_sphere = atof(argv[2]) ;
+    nargs = 1 ;
+    parms.a = 128.0f ;
+    fprintf(stderr, "l_sphere = %2.3f\n", parms.l_sphere) ;
+  } else if (!stricmp(option, "area")) {
+    if (argc < 2)
+      print_usage() ;
+    sscanf(argv[2], "%f", &parms.l_area) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_area = %2.3f\n", parms.l_area) ;
+  } else if (!stricmp(option, "dist")) {
+    if (argc < 2)
+      print_usage() ;
+    sscanf(argv[2], "%f", &parms.l_dist) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
+  } else if (!stricmp(option, "area")) {
+    if (argc < 2)
+      print_usage() ;
+    sscanf(argv[2], "%f", &parms.l_parea) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_parea = %2.3f\n", parms.l_parea) ;
+  } else if (!stricmp(option, "curv")) {
     if (argc < 2) print_usage() ;
     parms.l_curv = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_curv = %2.3f\n", parms.l_curv) ;
-  }
-  else if (!stricmp(option, "save-sulc")){
+  } else if (!stricmp(option, "save-sulc")) {
     SaveSulc=1;
-  }
-  else if (!stricmp(option, "no-save-sulc")){
+  } else if (!stricmp(option, "no-save-sulc")) {
     SaveSulc=0;
-  }
-  else if (!stricmp(option, "spring"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.l_spring = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
-    }
-  else if (!stricmp(option, "nspring"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.l_nspring = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_nspring = %2.3f\n", parms.l_nspring) ;
-    }
-  else if (!stricmp(option, "tspring"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.l_tspring = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_tspring = %2.3f\n", parms.l_tspring) ;
-    }
-  else if (!stricmp(option, "spring_norm"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.l_spring_norm = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "l_spring_norm = %2.3f\n", parms.l_spring_norm) ;
-    }
-  else if (!stricmp(option, "tol"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.tol = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "tol = %2.2e\n", parms.tol) ;
-    }
-  else if (!stricmp(option, "hvariable"))
-    {
-      parms.flags |= IPFLAG_HVARIABLE ;
-      fprintf(stderr, "variable Hdesired to drive integration\n") ;
-    }
-  else if (!stricmp(option, "lm"))
-    {
-      parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
-      fprintf(stderr, "integrating with line minimization\n") ;
-    }
-  else if (!stricmp(option, "dt"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.integration_type = INTEGRATE_MOMENTUM ;
-      parms.dt = atof(argv[2]) ;
-      parms.base_dt = base_dt_scale*parms.dt ;
-      nargs = 1 ;
-      fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
-    }
-  else if (!stricmp(option, "avgs"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      navgs = atoi(argv[2]) ;
-      fprintf(stderr, "smoothing surface for %d iterations before inflating\n",
-              navgs) ;
-      nargs = 1 ;
-    }
-  else if (!stricmp(option, "nbrs"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      nbrs = atoi(argv[2]) ;
-      fprintf(stderr, "setting neighborhood size to %d\n", nbrs) ;
-      nargs = 1 ;
-    }
-  else if (!stricmp(option, "error_ratio"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.error_ratio = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
-    }
-  else if (!stricmp(option, "scale"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.scale = atof(argv[2]) ;
-      nargs = 1 ;
-      parms.desired_rms_height = -1.0 ;
-      fprintf(stderr, "scaling brain area during integration\n");
-    }
-  else if (!stricmp(option, "dt_inc"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.dt_increase = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
-    }
-  else if (!stricmp(option, "dt_dec"))
-    {
-      if (argc < 2)
-        print_usage() ;
-      parms.dt_decrease = atof(argv[2]) ;
-      nargs = 1 ;
-      fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
-    }
-  else if (!stricmp(option, "seed"))
-    {
-      setRandomSeed(atol(argv[2])) ;
-      fprintf(stderr,"setting seed for random number generator to %d\n",
-              atoi(argv[2])) ;
-      nargs = 1 ;
-    }
-  else switch (toupper(*option))
-    {
+  } else if (!stricmp(option, "spring")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_spring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
+  } else if (!stricmp(option, "nspring")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_nspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_nspring = %2.3f\n", parms.l_nspring) ;
+  } else if (!stricmp(option, "tspring")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_tspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_tspring = %2.3f\n", parms.l_tspring) ;
+  } else if (!stricmp(option, "spring_norm")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_spring_norm = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_spring_norm = %2.3f\n", parms.l_spring_norm) ;
+  } else if (!stricmp(option, "tol")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.tol = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "tol = %2.2e\n", parms.tol) ;
+  } else if (!stricmp(option, "hvariable")) {
+    parms.flags |= IPFLAG_HVARIABLE ;
+    fprintf(stderr, "variable Hdesired to drive integration\n") ;
+  } else if (!stricmp(option, "lm")) {
+    parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
+    fprintf(stderr, "integrating with line minimization\n") ;
+  } else if (!stricmp(option, "dt")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.integration_type = INTEGRATE_MOMENTUM ;
+    parms.dt = atof(argv[2]) ;
+    parms.base_dt = base_dt_scale*parms.dt ;
+    nargs = 1 ;
+    fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
+  } else if (!stricmp(option, "avgs")) {
+    if (argc < 2)
+      print_usage() ;
+    navgs = atoi(argv[2]) ;
+    fprintf(stderr, "smoothing surface for %d iterations before inflating\n",
+            navgs) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "nbrs")) {
+    if (argc < 2)
+      print_usage() ;
+    nbrs = atoi(argv[2]) ;
+    fprintf(stderr, "setting neighborhood size to %d\n", nbrs) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "error_ratio")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.error_ratio = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
+  } else if (!stricmp(option, "scale")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.scale = atof(argv[2]) ;
+    nargs = 1 ;
+    parms.desired_rms_height = -1.0 ;
+    fprintf(stderr, "scaling brain area during integration\n");
+  } else if (!stricmp(option, "dt_inc")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.dt_increase = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
+  } else if (!stricmp(option, "dt_dec")) {
+    if (argc < 2)
+      print_usage() ;
+    parms.dt_decrease = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  } else if (!stricmp(option, "seed")) {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number generator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
+  } else switch (toupper(*option)) {
     case 'T':
       talairach_flag = 1 ;
       fprintf(stderr,
@@ -468,24 +449,21 @@ get_option(int argc, char *argv[])
 
 #if 0
 static void
-usage_exit(void)
-{
+usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 #endif
 
 static void
-print_usage(void)
-{
+print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <input surface file> <output surface file>"
           "\n", Progname) ;
 }
 
 static void
-print_help(void)
-{
+print_help(void) {
   print_usage() ;
   fprintf(stderr,
           "\nThis program will inflate a cortical surface.\n");
@@ -503,8 +481,7 @@ print_help(void)
 }
 
 static void
-print_version(void)
-{
+print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

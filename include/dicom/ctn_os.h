@@ -34,29 +34,30 @@
 ** @$=@$=@$=
 */
 /*
-**				DICOM 93
-**		     Electronic Radiology Laboratory
-**		   Mallinckrodt Institute of Radiology
-**		Washington University School of Medicine
+**    DICOM 93
+**       Electronic Radiology Laboratory
+**     Mallinckrodt Institute of Radiology
+**  Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:	Stephen M. Moore, 15-Apr-93
-** Intent:		This header defines public typedefs for the DICOM
-**			software produced at the Mallinckrodt Institute of
-**			Radiology.  It also defines unique identifiers
-**			for standard classes and objects defined by the
-**			standard.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
-** Source File:		$RCSfile: ctn_os.h,v $
-** Revision:		$Revision: 1.2 $
-** Status:		$State: Exp $
+** Author, Date: Stephen M. Moore, 15-Apr-93
+** Intent:  This header defines public typedefs for the DICOM
+**   software produced at the Mallinckrodt Institute of
+**   Radiology.  It also defines unique identifiers
+**   for standard classes and objects defined by the
+**   standard.
+** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Source File:  $RCSfile: ctn_os.h,v $
+** Revision:  $Revision: 1.3 $
+** Status:  $State: Exp $
 */
 
 #ifndef CTNOS_IS_IN
 #define CTNOS_IS_IN 1
 
 #ifdef  __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <stdio.h>
@@ -77,14 +78,14 @@ extern "C" {
 #include <sys/timeb.h>
 #include <direct.h>
 
-typedef SOCKET CTN_SOCKET;
+  typedef SOCKET CTN_SOCKET;
 #define CTN_BAD_SOCKET INVALID_SOCKET
 
 #else
 #include <unistd.h>
 #include <sys/file.h>
 #include <sys/socket.h>
-/*#include <sys/param.h>*/
+  /*#include <sys/param.h>*/
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
@@ -93,7 +94,7 @@ typedef SOCKET CTN_SOCKET;
 #include <sys/utsname.h>
 #include <dirent.h>
 
-typedef int CTN_SOCKET;
+  typedef int CTN_SOCKET;
 #define CTN_BAD_SOCKET -1
 #endif
 

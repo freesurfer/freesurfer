@@ -24,29 +24,39 @@
 // Implemented from scratch from NR.
 class fs_powell : public vnl_nonlinear_minimizer
 {
- public:
+public:
 
   //: Initialize a powell with the given cost function
   fs_powell(fs_cost_function* functor)
-    : functor_(functor), linmin_xtol_(1e-4), initial_step_(1.0),
-    is_contrained_(false) {}
+      : functor_(functor), linmin_xtol_(1e-4), initial_step_(1.0),
+      is_contrained_(false)
+  {}
 
   //: Run minimization, place result in x.
   ReturnCodes minimize(vnl_vector<double>& x, vnl_matrix<double>* xi);
 
   //: Set tolerance on line search parameter step
   //  Default value is 0.0001
-  void set_linmin_xtol(double tol) { linmin_xtol_ = tol; }
+  void set_linmin_xtol(double tol)
+  {
+    linmin_xtol_ = tol;
+  }
 
   //: Set initial step when bracketting minima along a line
   //  Default value is 1.0
-  void set_initial_step(double step) { initial_step_ = step; }
+  void set_initial_step(double step)
+  {
+    initial_step_ = step;
+  }
 
- protected:
+protected:
   fs_cost_function* functor_;
 
   friend class fs_powell_1dfun;
-  void pub_report_eval(double e) { report_eval(e); }
+  void pub_report_eval(double e)
+  {
+    report_eval(e);
+  }
 
   //: Tolerance on line search parameter step
   double linmin_xtol_;
@@ -54,7 +64,7 @@ class fs_powell : public vnl_nonlinear_minimizer
   //: Initial step when bracketting minima along a line
   double initial_step_;
 
- private:
+private:
   bool is_contrained_;
 };
 

@@ -1,3 +1,31 @@
+/**
+ * @file  field_code.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:08:59 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef FIELD_CODE_INCLUDED
 #define FIELD_CODE_INCLUDED
 
@@ -6,18 +34,18 @@
 /* field code: definition of the field type*/
 #define INFLATED_CURV_CORR_FRAME       0
 #define SULC_CORR_FRAME                1
-#define CURVATURE_CORR_FRAME           2 
+#define CURVATURE_CORR_FRAME           2
 #define GRAYMID_CORR_FRAME             3
-#define T1MID_CORR_FRAME               4 
+#define T1MID_CORR_FRAME               4
 #define T2MID_CORR_FRAME               5
 #define PDMID_CORR_FRAME               6
-#define AMYGDALA_CORR_FRAME            7 
+#define AMYGDALA_CORR_FRAME            7
 #define HIPPOCAMPUS_CORR_FRAME         8
 #define PALLIDUM_CORR_FRAME            9
 #define PUTAMEN_CORR_FRAME            10
 #define CAUDATE_CORR_FRAME            11
 #define LAT_VENTRICLE_CORR_FRAME      12
-#define INF_LAT_VENTRICLE_CORR_FRAME  13 
+#define INF_LAT_VENTRICLE_CORR_FRAME  13
 #define OVERLAY_FRAME                 14
 
 /* surface names */
@@ -28,16 +56,16 @@
 #ifndef GRAYMID_NAME
 #define GRAYMID_NAME                   "graymid"
 #endif
-#define		T1MID_NAME                   "T1mid"   
-#define		T2MID_NAME                   "T2mid"
-#define		PDMID_NAME                   "PDmid"
-#define		AMYGDALA_DIST_NAME           "amygdala_dist"
-#define		HIPPOCAMPUS_DIST_NAME        "hippocampus_dist"  
-#define		PALLIDUM_DIST_NAME           "pallidum_dist"
-#define		PUTAMEN_DIST_NAME            "putamen_dist"
-#define		CAUDATE_DIST_NAME            "caudate_dist" 
-#define		LAT_VENTRICLE_DIST_NAME      "latventricle_dist"   
-#define		INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
+#define  T1MID_NAME                   "T1mid"
+#define  T2MID_NAME                   "T2mid"
+#define  PDMID_NAME                   "PDmid"
+#define  AMYGDALA_DIST_NAME           "amygdala_dist"
+#define  HIPPOCAMPUS_DIST_NAME        "hippocampus_dist"
+#define  PALLIDUM_DIST_NAME           "pallidum_dist"
+#define  PUTAMEN_DIST_NAME            "putamen_dist"
+#define  CAUDATE_DIST_NAME            "caudate_dist"
+#define  LAT_VENTRICLE_DIST_NAME      "latventricle_dist"
+#define  INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
 #define   OVERLAY_NAME                 "overlay"
 
 #ifndef MAX_OF_TWO
@@ -47,16 +75,18 @@
 char *ReturnFieldName(int which_field);
 int IsDistanceField(int which_field);
 
-typedef struct{
-	int     field;              /* see field code above */
-	int     frame;              /* corresponding frame in mrisp */ 
-	int     type;               /* field type (default,distance field,...) */
-	float   l_corr;             /* correlation coefficient */
-	float   l_pcorr;            /* polar correlation coefficient */
-	float   sse;                /* sse associated with this field */
-	char    *name ;             // if user specified
-	int     navgs ;
-}FIELD_LABEL;
+typedef struct
+{
+  int     field;              /* see field code above */
+  int     frame;              /* corresponding frame in mrisp */
+  int     type;               /* field type (default,distance field,...) */
+  float   l_corr;             /* correlation coefficient */
+  float   l_pcorr;            /* polar correlation coefficient */
+  float   sse;                /* sse associated with this field */
+  char    *name ;             // if user specified
+  int     navgs ;
+}
+FIELD_LABEL;
 
 int InitFieldLabel(FIELD_LABEL *label);
 
@@ -64,7 +94,7 @@ int SetFieldLabel(FIELD_LABEL *label,
                   int field,
                   int frame,
                   float l_corr,
-                  float l_pcorr, 
+                  float l_pcorr,
                   int navgs);
 
 int SetFieldName(FIELD_LABEL *label, char *name) ;

@@ -1,3 +1,31 @@
+/**
+ * @file  ChartWindow.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:13 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include "ChartWindow.h"
 #include <fstream>
@@ -8,14 +36,14 @@ ChartWindowFactory* ChartWindow::sFactory = NULL;
 
 void
 ChartWindow::SetFactory ( ChartWindowFactory* iFactory ) {
-  
+
   sFactory = iFactory;
 }
 
 ChartWindow*
 ChartWindow::NewChartWindow () {
 
-  if( NULL != sFactory ) {
+  if ( NULL != sFactory ) {
     return sFactory->NewChartWindow();
   } else {
     throw runtime_error( "No factory defined" );
@@ -25,11 +53,8 @@ ChartWindow::NewChartWindow () {
 }
 
 ChartWindow::ChartWindow ():
-  Broadcaster( "ChartWindow" ),
-  mbShowLegend( false )
-{
-
-}
+    Broadcaster( "ChartWindow" ),
+    mbShowLegend( false ) {}
 
 ChartWindow::~ChartWindow () {
   int id = GetID();
@@ -145,53 +170,51 @@ ChartWindow::AddXAxisMarker  ( MarkerData& iData ) {
 
 void
 ChartWindow::GenerateReport ( string ifnReport,
-			      bool ibIncludeGroupColumn,
-			      bool ibIncludeLabelColumn,
-			      bool ibIncludeXColumn,
-			      bool ibIncludeYColumn ) {
+                              bool ibIncludeGroupColumn,
+                              bool ibIncludeLabelColumn,
+                              bool ibIncludeXColumn,
+                              bool ibIncludeYColumn ) {
 
   try {
     // Check file name first.
     ofstream fReport( ifnReport.c_str(), ios::out );
 
     map<int,list<PointData> >::iterator tGroup;
-    for( tGroup = mPointData.begin(); 
-	 tGroup != mPointData.end();
-	 ++tGroup ) {
-    
+    for ( tGroup = mPointData.begin();
+          tGroup != mPointData.end();
+          ++tGroup ) {
+
       int nGroup = tGroup->first;
       list<PointData>& lPoints = tGroup->second;
-      
+
       list<PointData>::iterator tPoint;
-      for( tPoint = lPoints.begin(); 
-	   tPoint != lPoints.end();
-	   ++tPoint ) {
-	
-	PointData& point = (*tPoint);
-	
-	// Output the data they want.
-	if( ibIncludeGroupColumn && 
-	    mGroupData[nGroup].msLabel != "" ) {
-	  fReport << mGroupData[nGroup].msLabel << "\t";
-	}
-	if( ibIncludeLabelColumn &&
-	    point.msLabel != "" ) {
-	  fReport << point.msLabel << "\t";
-	}
-	if( ibIncludeXColumn ) {
-	  fReport << point.mX << "\t";
-	}
-	if( ibIncludeYColumn ) {
-	  fReport << point.mY;
-	}
-	fReport << endl;
+      for ( tPoint = lPoints.begin();
+            tPoint != lPoints.end();
+            ++tPoint ) {
+
+        PointData& point = (*tPoint);
+
+        // Output the data they want.
+        if ( ibIncludeGroupColumn &&
+             mGroupData[nGroup].msLabel != "" ) {
+          fReport << mGroupData[nGroup].msLabel << "\t";
+        }
+        if ( ibIncludeLabelColumn &&
+             point.msLabel != "" ) {
+          fReport << point.msLabel << "\t";
+        }
+        if ( ibIncludeXColumn ) {
+          fReport << point.mX << "\t";
+        }
+        if ( ibIncludeYColumn ) {
+          fReport << point.mY;
+        }
+        fReport << endl;
       }
     }
-  }
-  catch( exception& e ) {
+  } catch ( exception& e ) {
     throw runtime_error( "Error writing " + ifnReport + ": " + e.what() );
-  }
-  catch( ... ) {
+  } catch ( ... ) {
     throw runtime_error( "Error writing " + ifnReport );
   }
 }
@@ -199,11 +222,11 @@ ChartWindow::GenerateReport ( string ifnReport,
 void
 ChartWindow::InitGroupDataIfNotSet ( int inGroup ) {
 
-  if( mGroupData.find( inGroup ) == mGroupData.end() ) {
+  if ( mGroupData.find( inGroup ) == mGroupData.end() ) {
     GroupData groupData;
     groupData.mbConnected = false;
     // Default colors
-    switch( inGroup % 8 ) {
+    switch ( inGroup % 8 ) {
     case 0:
       // Red
       groupData.mColorRGBi[0] = 255;

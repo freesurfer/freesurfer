@@ -1,3 +1,31 @@
+/**
+ * @file  mris_info.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:10 $
+ *    $Revision: 1.25 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mris_info.cpp
 //
@@ -40,7 +68,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.24 2006/11/01 20:17:50 nicks Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.25 2006/12/29 02:09:10 nicks Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -53,8 +81,7 @@ int rescale = 0;
 double scale=0;
 
 /*------------------------------------------------------------*/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   double InterVertexDistAvg, InterVertexDistStdDev,avgvtxarea;
   char ext[STRLEN] ;
   vector<string> type;
@@ -66,9 +93,9 @@ int main(int argc, char *argv[])
   type.push_back("MRIS_ICO_FILE");
   type.push_back("MRIS_VTK_FILE");
 
-  if(argc < 2) usage_exit();
+  if (argc < 2) usage_exit();
   parse_commandline(argc, argv);
-  if(surffile == NULL){
+  if (surffile == NULL) {
     printf("ERROR: must specify a surface file\n");
     exit(1);
   }
@@ -76,18 +103,18 @@ int main(int argc, char *argv[])
   // Check whether it's a gcs file. If so, just print ctab
   if (!stricmp(FileNameExtension(surffile, ext), "gcs")) {
     GCSA *gcsa = GCSAread(surffile) ;
-    if (!gcsa)	{
+    if (!gcsa) {
       cerr << "could not open " << surffile << endl;
       return -1;
     }
     printf("GCSA file %s opened\n", surffile) ;
-    if (gcsa->ct != NULL)	{
+    if (gcsa->ct != NULL) {
       printf("color table:\n") ;
       CTABprintASCII(gcsa->ct,stdout) ;
     }
     return(0) ;
   }
-  
+
   // Open as a surface
   MRIS *mris = MRISread(surffile);
   if (!mris) {
@@ -95,13 +122,13 @@ int main(int argc, char *argv[])
     return -1;
   }
   MRIScomputeMetricProperties(mris) ;
-	
-	if (Gdiag_no >= 0)
-		printf("v %d: (%2.1f, %2.1f, %2.1f)\n", Gdiag_no, 
-					 mris->vertices[Gdiag_no].x, mris->vertices[Gdiag_no].y, mris->vertices[Gdiag_no].z) ;
-					 
-  if(rescale){
-    if(mris->group_avg_surface_area == 0){
+
+  if (Gdiag_no >= 0)
+    printf("v %d: (%2.1f, %2.1f, %2.1f)\n", Gdiag_no,
+           mris->vertices[Gdiag_no].x, mris->vertices[Gdiag_no].y, mris->vertices[Gdiag_no].z) ;
+
+  if (rescale) {
+    if (mris->group_avg_surface_area == 0) {
       printf("ERROR: cannot rescale a non-group surface\n");
       exit(1);
     }
@@ -111,27 +138,27 @@ int main(int argc, char *argv[])
     //MRISscale(mris,scale);
   }
 
-  if(talairach_flag){
-    if(! subject){
+  if (talairach_flag) {
+    if (! subject) {
       printf("ERROR: need --s with --t\n");
       exit(1);
     }
     XFM = DevolveXFM(subject, NULL, NULL);
-    if(XFM == NULL) exit(1);
+    if (XFM == NULL) exit(1);
     printf("Applying talairach transform\n");
     MatrixPrint(stdout,XFM);
     MRISmatrixMultiply(mris,XFM);
   }
- 
+
   cout << "SURFACE INFO ======================================== " << endl;
   cout << "type        : " << type[mris->type].c_str() << endl;
-  if (mris->type == MRIS_BINARY_QUADRANGLE_FILE){
+  if (mris->type == MRIS_BINARY_QUADRANGLE_FILE) {
     FILE *fp = fopen(surffile, "rb") ;
     int magic;
     fread3(&magic, fp) ;
-    if(magic == QUAD_FILE_MAGIC_NUMBER)
+    if (magic == QUAD_FILE_MAGIC_NUMBER)
       cout << "              QUAD_FILE_MAGIC_NUMBER" << endl;
-    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
+    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER)
       cout << "              NEW_QUAD_FILE_MAGIC_NUMBER" << endl;
     fclose(fp);
   }
@@ -148,28 +175,27 @@ int main(int argc, char *argv[])
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
 
-  if (mris->group_avg_surface_area > 0){
+  if (mris->group_avg_surface_area > 0) {
     cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
   }
   cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
   cout << "vertex locs : " << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
-  if (mris->lta)
-    {
-      cout << "talairch.xfm: " << endl;
-      MatrixPrint(stdout, mris->lta->xforms[0].m_L);
-      cout << "surfaceRAS to talaraiched surfaceRAS: " << endl;
-      MatrixPrint(stdout, mris->SRASToTalSRAS_);
-      cout << "talairached surfaceRAS to surfaceRAS: " << endl;
-      MatrixPrint(stdout, mris->TalSRASToSRAS_);
-    }
-  vg_print(&mris->vg); 
-  
+  if (mris->lta) {
+    cout << "talairch.xfm: " << endl;
+    MatrixPrint(stdout, mris->lta->xforms[0].m_L);
+    cout << "surfaceRAS to talaraiched surfaceRAS: " << endl;
+    MatrixPrint(stdout, mris->SRASToTalSRAS_);
+    cout << "talairached surfaceRAS to surfaceRAS: " << endl;
+    MatrixPrint(stdout, mris->TalSRASToSRAS_);
+  }
+  vg_print(&mris->vg);
+
   {
     int i ;
     for (i = 0 ; i < mris->ncmds ; i++)
       printf("cmd[%d]: %s\n", i, mris->cmdlines[i]) ;
   }
-  if (argc > 2){
+  if (argc > 2) {
     int vno = atoi(argv[2]) ;
     VERTEX *v ;
     v= &mris->vertices[vno] ;
@@ -177,16 +203,15 @@ int main(int argc, char *argv[])
   }
 
   uname(&uts);
-  
+
   // Open an output file to capture values
-  if(outfile != NULL){
+  if (outfile != NULL) {
     fp = fopen(outfile,"w");
-    if(fp == NULL){
+    if (fp == NULL) {
       printf("ERROR: cannot open %s\n",outfile);
       exit(1);
     }
-  }
-  else fp = stdout;
+  } else fp = stdout;
 
   fprintf(fp,"mris_info\n");
   fprintf(fp,"creationtime %s\n",VERcurTimeStamp());
@@ -194,45 +219,44 @@ int main(int argc, char *argv[])
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"surfacefile %s\n",surffile);
-  if(SUBJECTS_DIR) fprintf(fp,"SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
-  if(subject)      fprintf(fp,"subject       %s\n",subject);
-  if(hemi)         fprintf(fp,"hemi          %s\n",hemi);
-  if(surfname)     fprintf(fp,"surfname      %s\n",surfname);
+  if (SUBJECTS_DIR) fprintf(fp,"SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
+  if (subject)      fprintf(fp,"subject       %s\n",subject);
+  if (hemi)         fprintf(fp,"hemi          %s\n",hemi);
+  if (surfname)     fprintf(fp,"surfname      %s\n",surfname);
   fprintf(fp,"hemicode    %d\n",mris->hemisphere);
   fprintf(fp,"talairach_flag  %d\n",talairach_flag);
   fprintf(fp,"rescale     %lf\n",scale);
   fprintf(fp,"nvertices   %d\n",mris->nvertices);
   fprintf(fp,"nfaces      %d\n",mris->nfaces);
   fprintf(fp,"total_area  %f\n",mris->total_area);
-  if(mris->group_avg_surface_area > 0)
+  if (mris->group_avg_surface_area > 0)
     fprintf(fp,"group_avg_surf_area  %f\n",mris->group_avg_surface_area);
   printf("group_avg_vtxarea_loaded %d\n",mris->group_avg_vtxarea_loaded);
   fprintf(fp,"avgvtxarea  %lf\n",avgvtxarea);
   fprintf(fp,"avgvtxdist  %lf\n",InterVertexDistAvg);
   fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);
   fprintf(fp,"vtx0xyz   %f %f %f\n",mris->vertices[0].x,mris->vertices[0].y,
-	  mris->vertices[0].z);
+          mris->vertices[0].z);
 
-  if(outfile != NULL) fclose(fp);
+  if (outfile != NULL) fclose(fp);
 
 
   MRISfree(&mris);
 }
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv)
-{
+static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if(argc < 1) usage_exit();
+  if (argc < 1) usage_exit();
 
   nargc   = argc-1;
   pargv = &argv[1];
-  while(nargc > 0){
+  while (nargc > 0) {
 
     option = pargv[0];
-    if(debug) printf("%d %s\n",nargc,option);
+    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -245,36 +269,32 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--t"))   talairach_flag = 1;
     else if (!strcasecmp(option, "--r"))   rescale = 1;
     else if ( !strcmp(option, "--o") ) {
-      if(nargc < 1) argnerr(option,1);
+      if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--v") ) {
-      if(nargc < 1) argnerr(option,1);
+    } else if ( !strcmp(option, "--v") ) {
+      if (nargc < 1) argnerr(option,1);
       Gdiag_no = atoi(pargv[0]);
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--o") ) {
-      if(nargc < 1) argnerr(option,1);
+    } else if ( !strcmp(option, "--o") ) {
+      if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--s") ) {
-      if(nargc < 3) argnerr(option,3);
+    } else if ( !strcmp(option, "--s") ) {
+      if (nargc < 3) argnerr(option,3);
       subject  = pargv[0];
       hemi     = pargv[1];
       surfname = pargv[2];
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-      if(SUBJECTS_DIR==NULL){
-				printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-				exit(1);
+      if (SUBJECTS_DIR==NULL) {
+        printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+        exit(1);
       }
       sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
       surffile = strcpyalloc(tmpstr);
       nargsused = 3;
-    }
-    else{
-      if(NULL == surffile) surffile = option;
+    } else {
+      if (NULL == surffile) surffile = option;
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -282,14 +302,12 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void)
-{
+static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void)
-{
+static void print_usage(void) {
   printf("USAGE: %s   surfacefile\n",Progname) ;
   printf("\n");
   printf("  --o outfile : save some data to outfile\n");
@@ -303,10 +321,9 @@ static void print_usage(void)
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help(void)
-{
+static void print_help(void) {
   print_usage() ;
-  printf("\n");  
+  printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
   printf("Prints out information about a surface file.\n");
@@ -314,17 +331,15 @@ static void print_help(void)
   exit(1);
 }
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
-  if(n==1)
+static void argnerr(char *option, int n) {
+  if (n==1)
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
 /* --------------------------------------------- */
-static void print_version(void)
-{
+static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }

@@ -1,5 +1,33 @@
+/**
+ * @file  mrisurf.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:00 $
+ *    $Revision: 1.275 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 
-/* $Id: mrisurf.h,v 1.274 2006/12/18 18:42:41 fischl Exp $ */
+
+
+/* $Id: mrisurf.h,v 1.275 2006/12/29 02:09:00 nicks Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -34,10 +62,11 @@ typedef struct _area_label
   float    cy ;               /* centroid y */
   float    cz ;               /* centroid z */
   int      label ;            /* an identifier (used as an index) */
-} MRIS_AREA_LABEL ;
+}
+MRIS_AREA_LABEL ;
 
 /*
-  the vertices in the face structure are arranged in 
+  the vertices in the face structure are arranged in
   counter-clockwise fashion when viewed from the outside.
 */
 typedef struct face_type_
@@ -51,11 +80,12 @@ typedef struct face_type_
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   char   ripflag;                        /* ripped face */
-  int    marked;                         /* marked face */ 
+  int    marked;                         /* marked face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
-} face_type, FACE ;
+}
+face_type, FACE ;
 
 #ifndef uchar
 #define uchar  unsigned char
@@ -109,8 +139,8 @@ typedef struct vertex_type_
   int   *e;              /* edge state for neighboring vertices */
   uchar  v2num ;         /* number of 2-connected neighbors */
   uchar  v3num ;         /* number of 3-connected neighbors */
-  short  vtotal ;        /* total # of neighbors, 
-                            will be same as one of above*/
+  short  vtotal ;        /* total # of neighbors,
+                                    will be same as one of above*/
   float d ;              /* for distance calculations */
   uchar nsize ;          /* size of neighborhood (e.g. 1, 2, 3) */
 #if 0
@@ -155,16 +185,18 @@ typedef struct vertex_type_
   float std_error ;
   unsigned int flags ;
   void *vp; /* to store user's information */
-	int   linked ;         // is this vertex linked to some others?
-} vertex_type, VERTEX ;
+  int   linked ;         // is this vertex linked to some others?
+}
+vertex_type, VERTEX ;
 
 #define VERTEX_SULCAL  0x00000001L
 
-typedef struct 
+typedef struct
 {
   int nvertices;
   unsigned int *vertex_indices;
-} STRIP;
+}
+STRIP;
 
 #include "transform.h" // TRANSFORM, LTA
 
@@ -186,7 +218,7 @@ typedef struct
   float        yhi ;
   float        zhi ;
   float        x0 ;   // center of spherical expansion
-  float        y0 ; 
+  float        y0 ;
   float        z0 ;
   VERTEX       *v_temporal_pole ;
   VERTEX       *v_frontal_pole ;
@@ -204,14 +236,14 @@ typedef struct
   int          hemisphere ;      /* which hemisphere */
   int          initialized ;
 #if 0
-  General_transform transform ;   /* the next two are from 
-                                     this struct (MNI transform) */
+  General_transform transform ;   /* the next two are from
+                                             this struct (MNI transform) */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
 #endif
-  LTA         *lta; 
+  LTA         *lta;
   MATRIX      *SRASToTalSRAS_;
-  MATRIX      *TalSRASToSRAS_;        
+  MATRIX      *TalSRASToSRAS_;
   int          free_transform ;
   double       radius ;           /* radius (if status==MRIS_SPHERE) */
   float        a, b, c ;          /* ellipsoid parameters */
@@ -238,27 +270,28 @@ typedef struct
   char         subject_name[STRLEN] ;/* name of the subject */
   float        canon_area ;
   int          noscale ;          /* don't scale by surface area if true */
-  float        *dx2 ;             /* an extra set of gradient 
-                                     (not always alloced) */
+  float        *dx2 ;             /* an extra set of gradient
+                                             (not always alloced) */
   float        *dy2 ;
   float        *dz2 ;
   COLOR_TABLE  *ct ;
-  int          useRealRAS;        /* if 0, vertex position is a 
-                                     conformed volume RAS with c_(r,a,s)=0 */
-                                  /* if 1, verteix position is a 
-                                     real RAS (volume stored RAS)         */
-                                  /* The default is 0.        */
-  VOL_GEOM     vg;                /* volume information from which 
-                                     this surface is created. 
-                                     check validity by vg.valid = 1 or not */
+  int          useRealRAS;        /* if 0, vertex position is a
+                                             conformed volume RAS with c_(r,a,s)=0 */
+  /* if 1, verteix position is a
+     real RAS (volume stored RAS)         */
+  /* The default is 0.        */
+  VOL_GEOM     vg;                /* volume information from which
+                                             this surface is created.
+                                             check validity by vg.valid = 1 or not */
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
-  int    group_avg_vtxarea_loaded; /* average vertex area for group 
-                                      at each vertex */
-	int    triangle_links_removed ;  // for quad surfaces
-	void   *user_parms ;             // for whatever the user wants to hang here 
-} MRI_SURFACE, MRIS ;
+  int    group_avg_vtxarea_loaded; /* average vertex area for group
+                                              at each vertex */
+  int    triangle_links_removed ;  // for quad surfaces
+  void   *user_parms ;             // for whatever the user wants to hang here
+}
+MRI_SURFACE, MRIS ;
 
 #define IPFLAG_HVARIABLE                0x0001 /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST         0x0002
@@ -272,15 +305,15 @@ typedef struct
 #define IP_NO_SULC                      0x0100
 #define IP_USE_INFLATED                 0x0200
 /* MRIScorrectTopology : topology preserving patch deformation */
-#define IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL 0x1000 /* apply topology 
-                                                      preserving gradient */
-#define IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA 0x2000 /* apply gradients 
-                                                          that preserve 
-                                                          positive areas */
-#define IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA 0x4000  /* apply  gradients 
-                                                           that will 
-                                                           maximize the 
-                                                           positive areas */
+#define IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL 0x1000 /* apply topology
+preserving gradient */
+#define IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA 0x2000 /* apply gradients
+that preserve
+positive areas */
+#define IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA 0x4000  /* apply  gradients
+that will
+maximize the
+positive areas */
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -306,7 +339,7 @@ typedef struct
   as convolution to be carried out directly in the parameterization space
 */
 
-/* 
+/*
    define it for a sphere, the first axis (x or u) goes from 0 to pi,
    the second axis (y or v) goes from 0 to 2pi.
 */
@@ -329,7 +362,7 @@ typedef struct
 typedef struct
 {
   MRI_SURFACE  *mris ;        /* surface it came from (if any) */
-  IMAGE        *Ip ;        
+  IMAGE        *Ip ;
 #if 0
   /* 2-d array of curvature, or sulc in parms */
   float        data[X_DIM][Y_DIM] ;
@@ -337,7 +370,8 @@ typedef struct
   int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
 #endif
   float        sigma ;                    /* blurring scale */
-} MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
+}
+MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 
 #define L_ANGLE              0.25f /*was 0.01*/ /* coefficient of angle term */
 #define L_AREA               1.0f    /* coefficient of angle term */
@@ -358,7 +392,7 @@ typedef struct
 #define DELTA_T              0.1
 
 /* VECTORIAL_REGISTRATION */
-#include "field_code.h" 
+#include "field_code.h"
 
 typedef struct
 {
@@ -374,9 +408,9 @@ typedef struct
   float   l_curv ;            /* coefficient of curvature term */
   float   l_scurv ;           /* coefficient of curvature term */
   float   l_lap ;             // coefficient of laplacian term
-  float   l_link ;            /* coefficient of link term to keep 
-                                 white and pial vertices approximately 
-                                 along normal */
+  float   l_link ;            /* coefficient of link term to keep
+                                         white and pial vertices approximately
+                                         along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
@@ -399,8 +433,8 @@ typedef struct
   float   l_unfold ;          /* move inwards along normal */
   float   l_dura ;            // move away from dura
   double  dura_thresh ;
-  MRI     *mri_dura ;         /* ratio of early to late echo - 
-                                 dura shows up bright */
+  MRI     *mri_dura ;         /* ratio of early to late echo -
+                                         dura shows up bright */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -432,22 +466,22 @@ typedef struct
   MRI_SP  *mrisp ;            /* parameterization  of this surface */
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
-  MRI_SP  *mrisp_blurred_template ; /* parameterization of canonical 
-                                       surface convolve with Gaussian */
+  MRI_SP  *mrisp_blurred_template ; /* parameterization of canonical
+                                               surface convolve with Gaussian */
   double  area_coef_scale ;
   float   sigma ;             /* blurring scale */
 
   /* VECTORIAL_REGISTRATION
-     The average template mrisp is assumed to be composed of several 
-     different fields (look in 'field_code.h'). 
-     MRISvectorRegistration will use 'nfields' fields, 
-     with their corresponding 
+     The average template mrisp is assumed to be composed of several
+     different fields (look in 'field_code.h').
+     MRISvectorRegistration will use 'nfields' fields,
+     with their corresponding
      location at fields[n].frames, 0 <= n< nfields in the mrisp structure.
      The field code is in fields[n].field (look in 'field_code.h').
-     Corresponding correlation terms are in 
+     Corresponding correlation terms are in
      fields[n].l_corrs and fields[n].l_pcorrs.
      MRISvectorRegistration will use the structure VALS_VP in v->vp
-  */    
+  */
 #define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION  20
 #define MNOFIV MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
   int nfields;                  /* the number of fields in mrisp */
@@ -455,8 +489,8 @@ typedef struct
   /*    int     ncorrs;            /\* the number of fields in mrisp *\/ */
   /*    int     corrfields[MNOFIV];/\* field code (see below) *\/ */
   /*    int     frames[MNOFIV];    /\* corresponding frame in mrisp *\/  */
-  /*    int     types[MNOFIV];     /\* the field type 
-				(default,distance field...) *\/ */
+  /*    int     types[MNOFIV];     /\* the field type
+    (default,distance field...) *\/ */
   /*    float   l_corrs[MNOFIV];   /\* correlation coefficient *\/ */
   /*    float   l_pcorrs[MNOFIV];  /\* polar correlation coefficient *\/ */
   /*    float   sses[MNOFIV];      /\* corresponding sse *\/ */
@@ -470,51 +504,54 @@ typedef struct
   int     check_tol ;         // to avoid changing mris_make_surfaces
   char    *overlay_dir;       // subject/overlay_dir/parms->fields[n].fname
   int     nsurfaces ;         // if 0 use default
-} INTEGRATION_PARMS ;
+}
+INTEGRATION_PARMS ;
 
-extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, 
-                                       INTEGRATION_PARMS *parms) ;
-extern double (*gMRISexternalSSE)(MRI_SURFACE *mris, 
-                                  INTEGRATION_PARMS *parms) ;
-extern double (*gMRISexternalRMS)(MRI_SURFACE *mris, 
-                                  INTEGRATION_PARMS *parms) ;
-extern int (*gMRISexternalTimestep)(MRI_SURFACE *mris, 
+extern double (*gMRISexternalGradient)(MRI_SURFACE *mris,
+                                         INTEGRATION_PARMS *parms) ;
+extern double (*gMRISexternalSSE)(MRI_SURFACE *mris,
                                     INTEGRATION_PARMS *parms) ;
-extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, 
-                                       INTEGRATION_PARMS *parms);
+extern double (*gMRISexternalRMS)(MRI_SURFACE *mris,
+                                    INTEGRATION_PARMS *parms) ;
+extern int (*gMRISexternalTimestep)(MRI_SURFACE *mris,
+                                      INTEGRATION_PARMS *parms) ;
+extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris,
+                                         INTEGRATION_PARMS *parms);
 extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
-extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, 
-                                                       double pct) ;
+extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
+      double pct) ;
 
 // These are for backwards compatibility for when we don't want to fix
 // the vertex area. Default is to fix, but this can be changed
 // by setting to 0.
-int MRISsetFixVertexAreaValue(int value); 
+int MRISsetFixVertexAreaValue(int value);
 int MRISgetFixVertexAreaValue(void);
 
-/* The following structure is used in MRISvectorRegistration 
+/* The following structure is used in MRISvectorRegistration
    The original values are loaded in orig_vals
    The used values are in vals (for instance the  blurred orig_vals)
 */
-typedef struct{
+typedef struct
+{
   float *vals;
   float *orig_vals;
   int nvals;
-}VALS_VP;
+}
+VALS_VP;
 
 const char *MRISurfSrcVersion(void);
 
 /* new functions */
-int MRISvectorRegister(MRI_SURFACE *mris, 
-                       MRI_SP *mrisp_template, 
-                       INTEGRATION_PARMS *parms, int max_passes, 
-                       float min_degrees, float max_degrees, 
+int MRISvectorRegister(MRI_SURFACE *mris,
+                       MRI_SP *mrisp_template,
+                       INTEGRATION_PARMS *parms, int max_passes,
+                       float min_degrees, float max_degrees,
                        int nangles);
-int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, 
+int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris,
                                   INTEGRATION_PARMS *old_parms);
-int MRISrigidBodyAlignVectorGlobal(MRI_SURFACE *mris, 
+int MRISrigidBodyAlignVectorGlobal(MRI_SURFACE *mris,
                                    INTEGRATION_PARMS *parms,
-                                   float min_degrees, 
+                                   float min_degrees,
                                    float max_degrees, int nangles);
 void MRISnormalizeField(MRIS *mris , int distance_field);
 void MRISsetCurvaturesToValues(MRIS *mris,int fno);
@@ -522,23 +559,23 @@ void MRISsetCurvaturesToOrigValues(MRIS *mris,int fno);
 void MRISsetOrigValuesToCurvatures(MRIS *mris,int fno);
 void MRISsetOrigValuesToValues(MRIS *mris,int fno);
 
-MRI *MRISbinarizeVolume(MRI_SURFACE *mris, 
-                        MRI_REGION *region, 
-                        float resolution, 
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
+                        MRI_REGION *region,
+                        float resolution,
                         float distance_from_surface);
 
-int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
+int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y,
                                    float z) ;
-int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, 
+int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y,
                                   float z) ;
-int MRISfindClosestVertex(MRI_SURFACE *mris, 
-                          float x, float y, float z, 
+int MRISfindClosestVertex(MRI_SURFACE *mris,
+                          float x, float y, float z,
                           float *dmin);
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               double *ext_sse) ;
-double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
-                                         MRI_SP *mrisp_template, int fno) ;
+double       MRIScomputeCorrelationError(MRI_SURFACE *mris,
+    MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(char *fname) ;
 MRI_SURFACE  *MRISreadOverAlloc(char *fname, double pct_over) ;
@@ -561,7 +598,7 @@ float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf, 
+MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
                       char *subject, char *hemi, char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
@@ -591,7 +628,7 @@ int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
-int          MRISscaleCurvatures(MRI_SURFACE *mris, 
+int          MRISscaleCurvatures(MRI_SURFACE *mris,
                                  float min_curv, float max_curv) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
@@ -606,16 +643,16 @@ int          MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) ;
 double       MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 
-MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces, 
+MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
                             int nvertices, int nfaces) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfreeDists(MRI_SURFACE *mris) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
-MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src, 
+MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src,
                                     MRI_SURFACE *mris_dst, double r) ;
-MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
-                                       MRI_SURFACE *mris_dst, 
+MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src,
+                                       MRI_SURFACE *mris_dst,
                                        float a, float b, float c) ;
 int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
 int          MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
@@ -623,68 +660,68 @@ int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
                                       int nbrs_per_distance) ;
 int          MRISscaleDistances(MRI_SURFACE *mris, float scale) ;
-MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
-                                             MRI_SURFACE *mris_dst, 
-                                             float a, float b, float c);
+MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
+    MRI_SURFACE *mris_dst,
+    float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
-int MRISorigVertexToVoxel(MRI_SURFACE *, 
-													VERTEX *v, 
+int MRISorigVertexToVoxel(MRI_SURFACE *,
+                          VERTEX *v,
                           MRI *mri,
                           Real *pxv, Real *pyv, Real *pzv) ;
-int MRISwhiteVertexToVoxel(MRI_SURFACE *, 
-													 VERTEX *v, 
-													 MRI *mri,
-													 Real *pxv, Real *pyv, Real *pzv) ;
+int MRISwhiteVertexToVoxel(MRI_SURFACE *,
+                           VERTEX *v,
+                           MRI *mri,
+                           Real *pxv, Real *pyv, Real *pzv) ;
 int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
-			       Real *pxv, Real *pyv, 
+                               Real *pxv, Real *pyv,
                                Real *pzv) ;
-int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri, 
-				    int coord,
-				    Real *pxv, Real *pyv, 
-				    Real *pzv) ;
+int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
+                                    int coord,
+                                    Real *pxv, Real *pyv,
+                                    Real *pzv) ;
 #if 0
-int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
+int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
 #endif
-int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
-                                            Real xw, Real yw, Real zw,
-                                            Real *pxv, Real *pyv, Real *pzv) ;
+int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
+    Real xw, Real yw, Real zw,
+    Real *pxv, Real *pyv, Real *pzv) ;
 
-int          MRIStalairachToVertex(MRI_SURFACE *mris, 
+int          MRIStalairachToVertex(MRI_SURFACE *mris,
                                    Real xt, Real yt, Real zt) ;
 int           MRIScanonicalToVertex(MRI_SURFACE *mris, Real phi, Real theta) ;
-MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
+MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src,
                                      MRI_SURFACE *mris_dst);
-MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
+MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                          int max_passes) ;
-MRI_SURFACE  *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
+MRI_SURFACE  *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               int max_passes) ;
-int          MRISregister(MRI_SURFACE *mris, 
-                          MRI_SP *mrisp_template, 
-                          INTEGRATION_PARMS *parms, 
-                          int max_passes, 
-                          float min_degrees, 
-                          float max_degrees, 
+int          MRISregister(MRI_SURFACE *mris,
+                          MRI_SP *mrisp_template,
+                          INTEGRATION_PARMS *parms,
+                          int max_passes,
+                          float min_degrees,
+                          float max_degrees,
                           int nangles) ;
-int          MRISrigidBodyAlignLocal(MRI_SURFACE *mris, 
+int          MRISrigidBodyAlignLocal(MRI_SURFACE *mris,
                                      INTEGRATION_PARMS *parms) ;
-int          MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, 
+int          MRISrigidBodyAlignGlobal(MRI_SURFACE *mris,
                                       INTEGRATION_PARMS *parms,
                                       float min_degrees,
                                       float max_degrees,
                                       int nangles) ;
-MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, 
-                                 INTEGRATION_PARMS *parms, 
+MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris,
+                                 INTEGRATION_PARMS *parms,
                                  int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
-MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris, 
-                                         INTEGRATION_PARMS *parms,
-                                         int min_neg, float min_neg_pct) ;
+MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris,
+    INTEGRATION_PARMS *parms,
+    int min_neg, float min_neg_pct) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
-MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
+MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                          float alpha, float beta, float gamma) ;
 
 MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int type) ;
@@ -701,16 +738,16 @@ int          MRISflattenPatch(MRI_SURFACE *mris) ;
 int          MRISflattenPatchRandomly(MRI_SURFACE *mris) ;
 int          MRIScomputeMeanCurvature(MRI_SURFACE *mris) ;
 
-int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, 
+int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
                                     int *pnfaces, int *pnedges) ;
 int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,
-                                          float curv_thresh);
+    float curv_thresh);
 
 int          MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris,
-                                                      int vno, 
-                                                      int *vertices,
-                                                      int vnum) ;
+    int vno,
+    int *vertices,
+    int vnum) ;
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureStretch(MRI_SURFACE *mris) ;
@@ -723,8 +760,8 @@ int          MRISclearCurvature(MRI_SURFACE *mris) ;
 int          MRISclearDistances(MRI_SURFACE *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
-int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
-                                         double *pici, double *pfi) ;
+int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris,
+    double *pici, double *pfi) ;
 int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureContrast(MRI_SURFACE *mris) ;
 
@@ -741,25 +778,25 @@ double       MRISrmsTPHeight(MRI_SURFACE *mris) ;
 double       MRIStotalVariation(MRI_SURFACE *mris) ;
 double       MRIStotalVariationDifference(MRI_SURFACE *mris) ;
 double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
-MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
+MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                              float scale) ;
 int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
 int          MRISrestoreMetricProperties(MRI_SURFACE *mris) ;
 double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
-                                              FILE *fp);
+    FILE *fp);
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
-int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, 
-                                                 double gaussian_norm, 
-                                                 double l_spring) ;
+int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
+    double gaussian_norm,
+    double l_spring) ;
 int          MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring) ;
-double       MRISmomentumTimeStep(MRI_SURFACE *mris, 
-                                  float momentum, 
-                                  float dt, 
-                                  float tol, 
+double       MRISmomentumTimeStep(MRI_SURFACE *mris,
+                                  float momentum,
+                                  float dt,
+                                  float tol,
                                   float n_averages) ;
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
@@ -776,31 +813,31 @@ MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 MRI_SP       *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 int          MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z,
                              int *pu, int *pv) ;
-double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, 
+double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               MRI_SURFACE *mris,
                               float x, float y, float z, int fno) ;
-MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
+MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                      float scale, int fno) ;
 MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
                                        int fno) ;
-MRI_SURFACE  *MRISnormalizeFromParameterization(MRI_SP *mrisp, 
-                                                MRI_SURFACE *mris, int fno) ;
-MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
-                                             float scale) ;
+MRI_SURFACE  *MRISnormalizeFromParameterization(MRI_SP *mrisp,
+    MRI_SURFACE *mris, int fno) ;
+MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
+    float scale) ;
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 
-MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
-                                           float scale) ;
+MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
+    float scale) ;
 MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris);
 
 
 MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
                         int fno) ;
-MRI_SP       *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, 
+MRI_SP       *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst,
                                     float sigma, float radius, int fno) ;
-MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
+MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src,
                          MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) ;
-MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, 
+MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du,
                              int dv) ;
 MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
@@ -881,19 +918,19 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define REVERSE_Z     2
 
 int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
-int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
+int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
-int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, 
+int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash,
                            int nvolumes, INTEGRATION_PARMS *parms);
 
-int MRISpositionSurface_mef(MRI_SURFACE *mris, 
-			    MRI *mri_30, 
-			    MRI *mri_5,
-			    INTEGRATION_PARMS *parms, 
-			    float weight30, 
-			    float weight5);
+int MRISpositionSurface_mef(MRI_SURFACE *mris,
+                            MRI *mri_30,
+                            MRI *mri_5,
+                            INTEGRATION_PARMS *parms,
+                            float weight30,
+                            float weight5);
 
-int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, 
+int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
                       MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
@@ -901,17 +938,17 @@ int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
-int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
-                                           int which) ;
+int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs,
+    int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 #if 0
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_wm, float nsigma) ;
 #else
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, 
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size,
                                    float max_thickness) ;
 #endif
 int
@@ -941,33 +978,33 @@ int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
 int   MRIScopyImagValuesToCurvature(MRI_SURFACE *mris) ;
 int   MRIScopyValuesToCurvature(MRI_SURFACE *mris) ;
-int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, 
+int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof,
                                   int mri_dof, int coordinate_system,int sno);
-int   MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri, 
-                                           int mris_dof, int mri_dof, 
-                                           int coordinate_system, int sno) ;
+int   MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri,
+    int mris_dof, int mri_dof,
+    int coordinate_system, int sno) ;
 int   MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof,
                                    int new_dof);
 int   MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof,
-                                            int new_dof);
-int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, 
-                                            int total_dof,int new_dof);
+    int new_dof);
+int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
+    int total_dof,int new_dof);
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
-                                             MRI *mri_brain,
-                                             MRI *mri_smooth, 
-                                             Real inside_hi, 
-                                             Real border_hi,
-                                             Real border_low, 
-                                             Real outside_low,
-                                             Real outside_hi,
-                                             double sigma,
-                                             float max_thickness, 
-                                             FILE *log_fp);
+    MRI *mri_brain,
+    MRI *mri_smooth,
+    Real inside_hi,
+    Real border_hi,
+    Real border_low,
+    Real outside_low,
+    Real outside_hi,
+    double sigma,
+    float max_thickness,
+    FILE *log_fp);
 int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
                                         MRI *mri_brain,
-                                        MRI *mri_smooth, 
+                                        MRI *mri_smooth,
                                         Real inside_hi,
                                         Real border_hi,
                                         Real border_low,
@@ -978,8 +1015,8 @@ int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
                                         FILE *log_fp);
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               MRI *mri_brain,
-                              MRI *mri_smooth, 
-                              Real inside_hi, 
+                              MRI *mri_smooth,
+                              Real inside_hi,
                               Real border_hi,
                               Real border_low,
                               Real outside_low,
@@ -989,9 +1026,9 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               FILE *log_fp,
                               int white,
                               MRI *mri_mask, double thresh);
-int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
+int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
-int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
+int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                   MRI *mri_smooth, float gray_surface);
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
 int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
@@ -1007,7 +1044,7 @@ int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterZeroVals(MRI_SURFACE *mris) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
-int  MRIStransform(MRI_SURFACE *mris, MRI *mri, 
+int  MRIStransform(MRI_SURFACE *mris, MRI *mri,
                    TRANSFORM *transform, MRI *mri_dst) ;
 int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
@@ -1020,9 +1057,9 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
-MRI *MRISbinarizeVolume(MRI_SURFACE *mris, 
-                        MRI_REGION* region, 
-                        float resolution, 
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
+                        MRI_REGION* region,
+                        float resolution,
                         float distance_from_surface);
 
 ////////////////////////////////////////////////////
@@ -1033,7 +1070,8 @@ typedef struct
   int n_vertices,n_faces; //number of vertices & faces before top. correction
   int *vtrans_to,*ftrans_to,*vtrans_from,*ftrans_from;
   MRIS *mris_source;
-}MRI_PATCH, MRIP;
+}
+MRI_PATCH, MRIP;
 
 /* Different verbose mode for mris_fix_topology and mris_topo_fix */
 #define VERBOSE_MODE_DEFAULT 1
@@ -1043,52 +1081,54 @@ typedef struct
 
 #include "histo.h" // HISTOGRAM
 
-typedef struct{
-	int verbose; // verbose mode
-	int smooth;  // smoothing defect
-	int match;   // using local intensity to match surface
-	int defect_number; // the defect_number 
-	int mode; // which mode to use (not used so far) 
-	int no_self_intersections; //to prevent self-intersection
-	int contrast; //direction of the contrast
-	int write; //writing out temporary surfaces using fname  
-	char fname[STRLEN] ;
-	double nattempts_percent; 
-	int nattempts;
-	int minimal_mode;
-	int nminattempts;
-	double minimal_loop_percent;
-	int nminimal_attempts;
-	int max_face;
-	void* patchdisk; // the patching surfaces
-	// loglikelihood
-	double  l_mri ;
+typedef struct
+{
+  int verbose; // verbose mode
+  int smooth;  // smoothing defect
+  int match;   // using local intensity to match surface
+  int defect_number; // the defect_number
+  int mode; // which mode to use (not used so far)
+  int no_self_intersections; //to prevent self-intersection
+  int contrast; //direction of the contrast
+  int write; //writing out temporary surfaces using fname
+  char fname[STRLEN] ;
+  double nattempts_percent;
+  int nattempts;
+  int minimal_mode;
+  int nminattempts;
+  double minimal_loop_percent;
+  int nminimal_attempts;
+  int max_face;
+  void* patchdisk; // the patching surfaces
+  // loglikelihood
+  double  l_mri ;
   double  l_curv ;
   double  l_qcurv;
   double  l_unmri ;
-	int volume_resolution; /* used if l_unmri is on */
-	MRI *mri; //brain volume
-	MRI *mri_wm; //wm volume
-	HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
-	MRI *mri_gray_white, *mri_k1_k2;
-	MATRIX *transformation_matrix;
-	//defect info
-	MRIP *mrip;
-	MRIS *mris_defect;
-	void *defect_list;
-	void   *dp; 
-	//statistics
-	float fitness,initial_fitness;
-	int ngeneratedpatches,nselfintersectingpatches;
-} TOPOFIX_PARMS;
+  int volume_resolution; /* used if l_unmri is on */
+  MRI *mri; //brain volume
+  MRI *mri_wm; //wm volume
+  HISTOGRAM *h_k1, *h_k2,*h_gray,*h_white,*h_dot,*h_border, *h_grad;
+  MRI *mri_gray_white, *mri_k1_k2;
+  MATRIX *transformation_matrix;
+  //defect info
+  MRIP *mrip;
+  MRIS *mris_defect;
+  void *defect_list;
+  void   *dp;
+  //statistics
+  float fitness,initial_fitness;
+  int ngeneratedpatches,nselfintersectingpatches;
+}
+TOPOFIX_PARMS;
 
 void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms);
-void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, 
+void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms,
                                float distance_to_surface);
 void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name); //floflo
 int MRISisSurfaceValid(MRIS *mris, int patch,int verbose);
 void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms);
-void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms); 
+void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms);
 void TOPOFIXfreeDP(TOPOFIX_PARMS *parms);
 void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms);
 void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms);
@@ -1097,12 +1137,12 @@ double MRIScomputeFitness(MRIS* mris,TOPOFIX_PARMS *parms,int verbose);
 int IsMRISselfIntersecting(MRI_SURFACE *mris);
 void MRISmapOntoSphere(MRIS *mris);
 void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms);
-void MRISmarkPatchVertices(MRIS *mris, 
-			   TOPOFIX_PARMS *parms, 
-			   int ninitvertices);
-void MRISmarkBorderVertices(MRIS *mris, 
-			    TOPOFIX_PARMS *parms,
-			    int mark);
+void MRISmarkPatchVertices(MRIS *mris,
+                           TOPOFIX_PARMS *parms,
+                           int ninitvertices);
+void MRISmarkBorderVertices(MRIS *mris,
+                            TOPOFIX_PARMS *parms,
+                            int mark);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
@@ -1134,7 +1174,8 @@ typedef struct
   int correct_defect; /* correct only one single defect */
   int check_surface_intersection; /* check if self-intersection happens */
   int optimal_mapping; /* find optmal mapping by genrating sevral mappings */
-} TOPOLOGY_PARMS ;
+}
+TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
@@ -1142,9 +1183,9 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract);
 MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
-MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
-                                 MRI_SURFACE *mris_corrected, 
-                                 MRI *mri, 
+MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
+                                 MRI_SURFACE *mris_corrected,
+                                 MRI *mri,
                                  MRI *mri_wm,
                                  int nsmooth,
                                  TOPOLOGY_PARMS *parms) ;
@@ -1173,41 +1214,43 @@ int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
 #define MAX_LINKS 10
 typedef struct
 {
-	double     tx, ty, tz ;   // target coords 
-	int        l_in ;         // inside label
-	int        l_out ;        // outside label
-	HISTOGRAM *h_in ;         // inside label histogram
-	HISTOGRAM *h_out ;        // inside label histogram
-	double     mag ;          // directional derivative in normal dir initially
-	int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
-	int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
-	int        nlinks ;
-	double     p ;            // p-value for user to fill in
-} VERTEX_INFO ;
+  double     tx, ty, tz ;   // target coords
+  int        l_in ;         // inside label
+  int        l_out ;        // outside label
+  HISTOGRAM *h_in ;         // inside label histogram
+  HISTOGRAM *h_out ;        // inside label histogram
+  double     mag ;          // directional derivative in normal dir initially
+  int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
+  int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
+  int        nlinks ;
+  double     p ;            // p-value for user to fill in
+}
+VERTEX_INFO ;
 
 typedef struct
 {
-	MRI_SURFACE *mris[MAX_SURFACES] ;
-	int         nsurfaces ;
-	int         nvertices ;   // sum of individual surface nvertices
-	int         nfaces ;      // sum of individual surface faces
-	int         labels[MAX_SURFACES] ;  // interior label of the structure
-	MRI_SURFACE *mris_total ; // single surface with all other surfs in it
-	VERTEX_INFO *vi ;                   // one/vertex in mris_total
-	int         vstart[MAX_SURFACES] ;  /* starting index of this 
-                                         surface in mris_total vertices */
-} MRI_SURFACE_ARRAY, MSA ;
+  MRI_SURFACE *mris[MAX_SURFACES] ;
+  int         nsurfaces ;
+  int         nvertices ;   // sum of individual surface nvertices
+  int         nfaces ;      // sum of individual surface faces
+  int         labels[MAX_SURFACES] ;  // interior label of the structure
+  MRI_SURFACE *mris_total ; // single surface with all other surfs in it
+  VERTEX_INFO *vi ;                   // one/vertex in mris_total
+  int         vstart[MAX_SURFACES] ;  /* starting index of this
+                                                 surface in mris_total vertices */
+}
+MRI_SURFACE_ARRAY, MSA ;
 #if 1
 #include "mrishash.h"
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float x0, float y0, float z0,
                              float nx, float ny, float nz) ;
-int    MRISexpandSurface(MRI_SURFACE *mris, 
+int    MRISexpandSurface(MRI_SURFACE *mris,
                          float distance,
                          INTEGRATION_PARMS *parms, int use_thickness) ;
 
 #endif
-                             
+
 /* cortical ribbon */
 MRI   *MRISribbon(MRI_SURFACE *inner_mris,
                   MRI_SURFACE *outer_mris,
@@ -1222,7 +1265,7 @@ MRI   *MRISshell(MRI *mri_src,
                  MRI_SURFACE *mris,
                  MRI *mri_dst,
                  int clearflag);
-MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst); 
+MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 // src never used. dst is modified
 
 /* high resolution cortical ribbon */
@@ -1242,7 +1285,7 @@ MRI   *MRISpartialshell(MRI *mri_src,
                         MRI *mri_dst,
                         int clearflag);
 MRI   *MRISpartialfloodoutside(MRI *mri_src,
-                               MRI *mri_dst); 
+                               MRI *mri_dst);
 // src is used. dst must be initialized
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
@@ -1269,18 +1312,18 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 
 
 /* VECTORIAL_REGISTRATION*/
-int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp, 
+int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
                             MRI_SURFACE *mris,
-                            float x, float y, float z, 
+                            float x, float y, float z,
                             int *frames, int nframes, double *vals);
-MRI_SURFACE * MRISfromParameterizations(MRI_SP *mrisp, 
-                                        MRI_SURFACE *mris, int *frames, 
+MRI_SURFACE * MRISfromParameterizations(MRI_SP *mrisp,
+                                        MRI_SURFACE *mris, int *frames,
                                         int *indices,int nframes);
-MRI_SP * MRIStoParameterizations(MRI_SURFACE *mris, 
+MRI_SP * MRIStoParameterizations(MRI_SURFACE *mris,
                                  MRI_SP *mrisp, float scale,int *frames,
                                  int *indices,int nframes);
-MRI_SP * MRISPblurFrames(MRI_SP *mrisp_src, 
-                         MRI_SP *mrisp_dst, float sigma, int *frames, 
+MRI_SP * MRISPblurFrames(MRI_SP *mrisp_src,
+                         MRI_SP *mrisp_dst, float sigma, int *frames,
                          int nframes);
 
 typedef struct
@@ -1288,17 +1331,19 @@ typedef struct
   float   x ;
   float   y ;
   float   z ;
-} SMALL_VERTEX ;
+}
+SMALL_VERTEX ;
 
 typedef struct
 {
   int   nvertices ;
   SMALL_VERTEX *vertices ;
-} SMALL_SURFACE ;
+}
+SMALL_SURFACE ;
 
 
-int   MRISpositionSurfaceArray(MRI_SURFACE_ARRAY *msa, MRI *mri_brain, 
-															 MRI *mri_smooth, INTEGRATION_PARMS *parms);
+int   MRISpositionSurfaceArray(MRI_SURFACE_ARRAY *msa, MRI *mri_brain,
+                               MRI *mri_smooth, INTEGRATION_PARMS *parms);
 
 #define MRISSread  MRISreadVerticesOnly
 SMALL_SURFACE *MRISreadVerticesOnly(char *fname) ;
@@ -1324,9 +1369,9 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
-int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
+int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
                 MRIS_HASH_TABLE *mht, int which) ;
-int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
+int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
                       MRIS_HASH_TABLE *mht, int which) ;
 int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
@@ -1335,11 +1380,11 @@ int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
 MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
-MRI *MRISsmoothMRI(MRIS *Surf, 
-		   MRI *Src, 
-		   int nSmoothSteps, 
-		   MRI *binmask, 
-		   MRI *Targ);
+MRI *MRISsmoothMRI(MRIS *Surf,
+                   MRI *Src,
+                   int nSmoothSteps,
+                   MRI *binmask,
+                   MRI *Targ);
 int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
@@ -1366,7 +1411,7 @@ unsigned long MRISeraseOutsideOfSurface(float h,
   annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
 
 int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
-                          double DotProdThresh, int *XNbrVtxNo, 
+                          double DotProdThresh, int *XNbrVtxNo,
                           double *XNbrDotProd, int *nXNbrs,
                           int nXNbrsMax);
 MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
@@ -1391,8 +1436,8 @@ int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
-int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, 
-				   INTEGRATION_PARMS *parms) ;
+int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris,
+                                   INTEGRATION_PARMS *parms) ;
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
@@ -1406,31 +1451,31 @@ int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
 
-int MRIScomputeClassStatistics(MRI_SURFACE *mris, 
-			       MRI *mri, 
-			       float *pwhite_mean, 
-			       float *pwhite_std, 
-			       float *pgray_mean, 
-			       float *pgray_std) ;
-int MRIScomputeClassModes(MRI_SURFACE *mris, 
-			  MRI *mri, 
-			  float *pwhite_mode, 
-			  float *pgray_mode, 
-			  float *pcsf_mode);
-int MRISrasToVoxel(MRI_SURFACE *mris, 
-		   MRI *mri, 
-		   Real xs, Real ys, Real zs, 
-		   Real *pxv, Real *pyv, Real *pzv) ;
+int MRIScomputeClassStatistics(MRI_SURFACE *mris,
+                               MRI *mri,
+                               float *pwhite_mean,
+                               float *pwhite_std,
+                               float *pgray_mean,
+                               float *pgray_std) ;
+int MRIScomputeClassModes(MRI_SURFACE *mris,
+                          MRI *mri,
+                          float *pwhite_mode,
+                          float *pgray_mode,
+                          float *pcsf_mode);
+int MRISrasToVoxel(MRI_SURFACE *mris,
+                   MRI *mri,
+                   Real xs, Real ys, Real zs,
+                   Real *pxv, Real *pyv, Real *pzv) ;
 int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
 int MRISripMedialWall(MRI_SURFACE *mris) ;
 int MRISripMarked(MRI_SURFACE *mris) ;
 int MRISripUnmarked(MRI_SURFACE *mris) ;
 int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) ;
-int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, 
-				  MRI *mri, 
-				  int vno, 
-				  double *pnx, double *pny, double *pnz) ;
+int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
+                                  MRI *mri,
+                                  int vno,
+                                  double *pnx, double *pny, double *pnz) ;
 
 #define MRISgetCoords(v,c,vx,vy,vz) \
  switch(c) { \
@@ -1450,17 +1495,17 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
-int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, 
-                                              LABEL *area,
-                                              float *pdx,
-                                              float *pdy,
-                                              float *pdz);
+int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris,
+    LABEL *area,
+    float *pdx,
+    float *pdy,
+    float *pdz);
 
 int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
-int MRISsegmentMarked(MRI_SURFACE *mris, 
+int MRISsegmentMarked(MRI_SURFACE *mris,
                       LABEL ***plabel_array,
                       int *pnlabels,
                       float min_label_area) ;

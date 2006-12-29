@@ -1,3 +1,31 @@
+/**
+ * @file  test_ScubaLayer2DMRI.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 02:09:15 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "ToglManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
@@ -19,17 +47,17 @@ using namespace std;
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
-	     << "Command: " << sCommand << endl \
-	     << "Result: " << iInterp->result; \
+      << "Command: " << sCommand << endl \
+      << "Result: " << iInterp->result; \
       throw runtime_error( ssError.str() ); \
     } \
 
 class ScubaLayer2DMRITester {
 public:
-  void Test( Tcl_Interp* iInterp );
+void Test( Tcl_Interp* iInterp );
 };
 
-void 
+void
 ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
@@ -45,11 +73,11 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
     ScubaLayer2DMRI layer;
     layer.SetVolumeCollection( vol );
     Assert( (&vol == layer.mVolume), "Didn't set volume collection properly" );
- 
+
     // Try the tcl commands.
     char sCommand[1024];
     int rTcl;
-    
+
     sprintf( sCommand, "Set2DMRILayerVolumeCollection 99 99" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
@@ -60,17 +88,15 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
 
-    
-  }
-  catch( runtime_error& e ) {
+
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }
-};  
+};
 
 
 
@@ -82,22 +108,20 @@ int main ( int argc, char** argv ) {
 
     Tcl_Interp* interp = Tcl_CreateInterp();
     Assert( interp, "Tcl_CreateInterp returned null" );
-  
+
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
-    
+
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
 
     ScubaLayer2DMRITester tester;
     tester.Test( interp );
-  }
-  catch( runtime_error& e ) {
+  } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
-  }
-  catch(...) {
+  } catch (...) {
     cerr << "failed" << endl;
     exit( 1 );
   }

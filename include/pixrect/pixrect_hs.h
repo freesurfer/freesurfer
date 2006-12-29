@@ -1,4 +1,4 @@
-/*	@(#)pixrect_hs.h 1.23 90/04/23 SMI	*/
+/* @(#)pixrect_hs.h 1.23 90/04/23 SMI */
 
 /*
  * Copyright 1986, 1987 by Sun Microsystems, Inc.
@@ -8,8 +8,8 @@
  * Include this header file to get all pixrect related header files.
  */
 
-#ifndef	pixrect_hs_DEFINED
-#define	pixrect_hs_DEFINED
+#ifndef pixrect_hs_DEFINED
+#define pixrect_hs_DEFINED
 
 #include <sys/types.h>
 #include <pixrect/pixrect.h>
@@ -34,4 +34,4 @@
 #include <rasterfile.h>
 #include <pixrect/pr_io.h>
 
-#endif	pixrect_hs_DEFINED
+#endif pixrect_hs_DEFINED
