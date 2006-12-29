@@ -1,15 +1,15 @@
 /**
  * @file  tkregister2.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Tcl/Tk-based MRI volume registration utility
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * See: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.67 $
+ *    $Date: 2006/12/29 21:36:45 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +25,9 @@
  *
  */
 
-
-/*============================================================================
-  Copyright (c) 1996 Martin Sereno and Anders Dale
-  ============================================================================
-*/
-/*   $Id: tkregister2.c,v 1.67 2006/12/29 02:09:18 nicks Exp $   */
-
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.67 2006/12/29 02:09:18 nicks Exp $";
+  "$Id: tkregister2.c,v 1.68 2006/12/29 21:36:45 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -398,7 +391,9 @@ char *ltafname;
 
 
 /**** ------------------ main ------------------------------- ****/
-int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[]) {
+int Register(ClientData clientData,
+             Tcl_Interp *interp, 
+             int argc, char *argv[]) {
   int i,j,n,c,r,s;
   MATRIX *Vxyz=NULL, *Vcrs=NULL;
 
@@ -476,7 +471,8 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[]) {
       exit(1);
     }
     // First try .mgz
-    sprintf(targ_vol_path,"%s/%s/mri/%s.mgz",subjectsdir,subjectid,targ_vol_id);
+    sprintf(targ_vol_path,"%s/%s/mri/%s.mgz",
+            subjectsdir,subjectid,targ_vol_id);
     if (! fio_FileExistsReadable(targ_vol_path)) {
       // Now try COR
       sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
@@ -963,7 +959,8 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
       targ_vol_id = strcpyalloc(tmpstr);
     } else if (stringmatch(option, "--fsl-targ-lr")) {
-      sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked.img",getenv("FSLDIR"));
+      sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked.img",
+              getenv("FSLDIR"));
       targ_vol_id = strcpyalloc(tmpstr);
     } else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
@@ -2485,7 +2482,8 @@ void select_pixel(short sx, short sy) {
 
   printf("------------------------------------------------------------\n");
   printf("  Screen:  %3d %3d (%d,%d,%d), inorm = %d, mov_frame = %d \n",
-         cScreen,rScreen,lvidbuf[3*kScreen], lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
+         cScreen,rScreen,lvidbuf[3*kScreen], 
+         lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
          use_inorm,mov_frame);
   printf("  Anat:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
          sag,hor,cor,xAnat,yAnat,zAnat);
@@ -4171,7 +4169,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.67 2006/12/29 02:09:18 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.68 2006/12/29 21:36:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
