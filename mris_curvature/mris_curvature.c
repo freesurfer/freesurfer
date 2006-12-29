@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2006/12/29 20:32:17 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.20 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.21 2006/12/29 20:32:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,7 +83,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.20 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.21 2006/12/29 20:32:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -270,16 +270,16 @@ main(int argc, char *argv[]) {
 
     if (write_flag) {
       MRISuseGaussianCurvature(mris) ;
-      if (normalize)
-        MRISnormalizeCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.K", path,name) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
-      MRISwriteCurvature(mris, fname) ;
-      MRISuseMeanCurvature(mris) ;
       if (normalize)
         MRISnormalizeCurvature(mris) ;
+      MRISwriteCurvature(mris, fname) ;
+      MRISuseMeanCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
       sprintf(fname, "%s/%s.H", path,name) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
