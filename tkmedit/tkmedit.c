@@ -1,15 +1,19 @@
 /**
  * @file  tkmedit.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Tcl/Tk-based MRI volume viewer
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * TkMedit displays anatomical data and allows the user to navigate through 
+ * that data and view it from different orientations. TkMedit also displays 
+ * other data types such as functional data and surfaces as overlays onto 
+ * this anatomical data.
+ * See: http://surfer.nmr.mgh.harvard.edu/fswiki/TkMeditGuide
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.299 $
+ *    $Date: 2006/12/29 21:25:06 $
+ *    $Revision: 1.300 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,20 +30,12 @@
  */
 
 
-/*============================================================================
-  Copyright (c) 1996 Martin Sereno and Anders Dale
-  ===========================================================================*/
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:18 $
-// Revision       : $Revision: 1.299 $
-char *VERSION = "$Revision: 1.299 $";
+char *VERSION = "$Revision: 1.300 $";
 
 #define TCL
 #define TKMEDIT
@@ -1181,7 +1177,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.299 2006/12/29 02:09:18 nicks Exp $",
+     "$Id: tkmedit.c,v 1.300 2006/12/29 21:25:06 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1700,7 +1696,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
                          sizeof(sTimeCourseRegistration) );
           if (!fio_FileExistsReadable(sTimeCourseRegistration)) {
-            printf("ERROR: cannot find timecourse reg %s\n",sTimeCourseRegistration);
+            printf("ERROR: cannot find timecourse reg %s\n",
+                   sTimeCourseRegistration);
             exit(1);
           }
           timecourseRegType = FunD_tRegistration_File;
@@ -2630,7 +2627,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                                       sSegmentationPath,
                                       sSegmentationColorFile,
                                       bConformSegmentation );
-    printf( "LoadSegmentationVolume main %s %s\n", sSegmentationPath, sSegmentationColorFile );
+    printf( "LoadSegmentationVolume main %s %s\n", 
+            sSegmentationPath, sSegmentationColorFile );
     /* set roi alpha */
     if ( bSegmentationAlpha ) {
       SetSegmentationAlpha( fSegmentationAlpha );
@@ -2643,7 +2641,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                                       sAuxSegmentationPath,
                                       sAuxSegmentationColorFile,
                                       bConformAuxSegmentation );
-    printf( "LoadSegmentationVolume aux %s %s\n", sAuxSegmentationPath, sAuxSegmentationColorFile );
+    printf( "LoadSegmentationVolume aux %s %s\n", 
+            sAuxSegmentationPath, sAuxSegmentationColorFile );
   }
 
   /* load VLIs */
@@ -5811,7 +5810,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.299 2006/12/29 02:09:18 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.300 2006/12/29 21:25:06 nicks Exp $ $Name:  $\n"
     )
   );
 
