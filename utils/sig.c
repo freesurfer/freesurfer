@@ -1,3 +1,31 @@
+/**
+ * @file  sig.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.20 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -33,8 +61,8 @@ double fdr2vwth(double *p, int np, double fdr)
   qsort(p,np,sizeof(double),doublecompar);
 
   // Find the largest value of n for which p < r*(n+1)
-  for(n=np-1;n>=0; n--)
-    if(p[n] < r*(n+1)) return(p[n]);
+  for (n=np-1;n>=0; n--)
+    if (p[n] < r*(n+1)) return(p[n]);
 
   // If p[n] never goes less than r*(n+1), then return the smallest p
   return(p[0]);
@@ -59,8 +87,8 @@ double vwth2fdr(double *p, int np, double vwth)
   qsort(p,np,sizeof(double),doublecompar);
 
   // Find the index n of the pvalue closest to vwth
-  for(n=1; n < np; n++)
-    if(p[n-1] <= vwth && vwth < p[n]) break;
+  for (n=1; n < np; n++)
+    if (p[n-1] <= vwth && vwth < p[n]) break;
 
   // Compute the corresponding FDR
   r = (double)n/np; // Normalize rank for index n
@@ -78,8 +106,8 @@ int doublecompar(const void *v1, const void *v2)
   double dv1, dv2;
   dv1 = *((double *) v1);
   dv2 = *((double *) v2);
-  if(dv1 < dv2)  return(-1);
-  if(dv1 == dv2) return(0);
+  if (dv1 < dv2)  return(-1);
+  if (dv1 == dv2) return(0);
   return(+1);
 }
 
@@ -96,16 +124,17 @@ double sigt(double t,int df)
   else if (df < MAXDOF && fabs(t) < MAXT)
     sig = OpenBetaIncomplete(0.5*df,0.5,df/(df+t*t));
 
-  if(df>MAXDOF || sig < DBL_MIN){
+  if (df>MAXDOF || sig < DBL_MIN)
+  {
     sig1 = erfc(fabs(t)/sqrt(2.0));
     sig2 = 1.0/sqrt(2.0*M_PI)*exp(-0.5*(t*t)); /* use Normal approximation */
-    if(sig1 > sig2)  sig = sig1;
+    if (sig1 > sig2)  sig = sig1;
     else             sig = sig2;
   }
 
   if (!finite(sig))
     printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
-  if(sig > 1.0) sig = 1.0;
+  if (sig > 1.0) sig = 1.0;
 
   return sig;
 }

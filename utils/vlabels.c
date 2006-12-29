@@ -1,3 +1,31 @@
+/**
+ * @file  vlabels.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:41 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -21,7 +49,9 @@ VLalloc(int width, int height, int depth, float resolution)
   vli = (VLI *)calloc(1, sizeof(VLI)) ;
   if (!vli)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate VLI *", Progname);
-  vli->width = width ; vli->height = height ; vli->depth = depth ;
+  vli->width = width ;
+  vli->height = height ;
+  vli->depth = depth ;
   vli->resolution = resolution ;
   vl = vli->vl = (VL ***)calloc(width, sizeof(VL **)) ;
   if (!vl)
@@ -30,7 +60,7 @@ VLalloc(int width, int height, int depth, float resolution)
   {
     vl[x] = (VL **)calloc(height, sizeof(VL *)) ;
     if (!vl[x])
-      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate  VL ** %d", 
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate  VL ** %d",
                 Progname,x) ;
     for (y = 0 ; y < height ; y++)
     {
@@ -49,7 +79,7 @@ VLalloc(int width, int height, int depth, float resolution)
         v = &vli->vl[x][y][z] ;
         v->labels = 0;
         v->counts = 0;
-      }	
+      }
 
   return(vli) ;
 }
@@ -62,7 +92,8 @@ VLfree(VLI **pvli)
   VL   ***vl ;
   VL   *v;
 
-  vli = *pvli ; *pvli = NULL ;
+  vli = *pvli ;
+  *pvli = NULL ;
   vl = vli->vl ;
 
   // freeup labels and counts first
@@ -71,11 +102,11 @@ VLfree(VLI **pvli)
       for (z=0; z < vli->depth; z++)
       {
         v = &vli->vl[x][y][z] ;
-	if (v->labels)
-	  free(v->labels);
-	if (v->counts)
-	  free(v->counts);
-      }	
+        if (v->labels)
+          free(v->labels);
+        if (v->counts)
+          free(v->counts);
+      }
 
   // then free up arrays
   for (x = 0 ; x < vli->width ; x++)
@@ -133,7 +164,7 @@ VLwrite(VLI *vli, char *fname)
         }
       }
     }
-  } 
+  }
 
   fclose(fp) ;
   return(NO_ERROR) ;
@@ -154,7 +185,7 @@ VLread(char *fname)
   magic = freadInt(fp) ;
   if (magic != VL_MAGIC)
     ErrorReturn(NULL, (ERROR_BADFILE,
-                       "VLread(%s): not a VL file (magic %x != %x)", 
+                       "VLread(%s): not a VL file (magic %x != %x)",
                        fname, magic, VL_MAGIC)) ;
 
   width = freadInt(fp) ;
@@ -181,10 +212,10 @@ VLread(char *fname)
         vl->counts =
           (unsigned short*)calloc(vl->nlabels,sizeof(unsigned short));
         if (!vl->labels || !vl->counts)
-          ErrorExit(ERROR_NOMEMORY, 
+          ErrorExit(ERROR_NOMEMORY,
                     "VLread(%s): could not allocate voxel %d,%d,%d",
                     fname, x, y, z) ;
-        
+
         for (n = 0 ; n < vl->nlabels ; n++)
         {
           vl->labels[n] = fgetc(fp) ;
@@ -192,7 +223,7 @@ VLread(char *fname)
         }
       }
     }
-  } 
+  }
 
   fclose(fp) ;
   return(vli) ;
@@ -211,7 +242,7 @@ VLnormalize(VLI *vli)
 {
   int    x, y, z, n ;
   VL     *vl ;
-	float   pct, total ;
+  float   pct, total ;
 
   for (x = 0 ; x < vli->width ; x++)
   {
@@ -221,16 +252,16 @@ VLnormalize(VLI *vli)
       {
         vl = &vli->vl[x][y][z] ;
         for (total = 0.0, n = 0 ; n < vl->nlabels ; n++)
-					total += (float)vl->counts[n] ;
+          total += (float)vl->counts[n] ;
 
         for (n = 0 ; n < vl->nlabels ; n++)
-				{
-					pct = 100.0f * (float)vl->counts[n] / total ;
-					vl->counts[n] = nint(pct) ;
-				}
-			}
-		}
-	}
-	return(NO_ERROR) ;
+        {
+          pct = 100.0f * (float)vl->counts[n] / total ;
+          vl->counts[n] = nint(pct) ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
 }
 

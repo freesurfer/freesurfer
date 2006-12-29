@@ -1,6 +1,34 @@
+/**
+ * @file  selxavgio.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:39 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.4 2004/05/26 16:40:52 greve Exp $
+  $Id: selxavgio.c,v 1.5 2006/12/29 01:49:39 nicks Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -31,7 +59,7 @@ SXADAT * ld_sxadat_from_stem(char *volstem)
   char tmpstr[1000];
   SXADAT *sxa;
 
-  if(! is_sxa_volume(volstem) ) return(NULL);
+  if (! is_sxa_volume(volstem) ) return(NULL);
 
   sprintf(tmpstr,"%s.dat",volstem);
 
@@ -51,12 +79,15 @@ float *sxa_framepower(SXADAT *sxa, int *nframes)
   framepower = (float *)calloc(*nframes,sizeof(float));
 
   frame = 0;
-  for(condition = 0; condition < sxa->Nc; condition++){
-    for(statid = 0; statid < 2; statid++){
-      for(h = 0; h < sxa->Nh; h++){
-	if(statid == 0) framepower[frame] = 1.0; /* avereage */
-	if(statid == 1) framepower[frame] = 2.0; /* std/var */
-	frame++;
+  for (condition = 0; condition < sxa->Nc; condition++)
+  {
+    for (statid = 0; statid < 2; statid++)
+    {
+      for (h = 0; h < sxa->Nh; h++)
+      {
+        if (statid == 0) framepower[frame] = 1.0; /* avereage */
+        if (statid == 1) framepower[frame] = 2.0; /* std/var */
+        frame++;
       }
     }
   }
@@ -71,7 +102,7 @@ int is_sxa_volume(char *volstem)
 
   sprintf(tmpstr,"%s.dat",volstem);
   fp = fopen(tmpstr,"r");
-  if(fp==NULL) return(0);
+  if (fp==NULL) return(0);
   fclose(fp);
 
   return(1);
@@ -85,19 +116,21 @@ SXADAT * ld_sxadat(char *sxadatfile)
   int n, r, c, Nch;
 
   fp = fopen(sxadatfile,"r");
-  if(fp==NULL){
+  if (fp==NULL)
+  {
     perror("ldsxdat():");
     fprintf(stderr,"Could not open %s\n",sxadatfile);
     return(NULL);
   }
 
   sxa = (SXADAT *) calloc(1,sizeof(SXADAT));
-  if(sxa == NULL){
+  if (sxa == NULL)
+  {
     fprintf(stderr,"Could not alloc SXADAT\n");
     fclose(fp);
     return(NULL);
   }
-    
+
   fscanf(fp,"%*s %f",&sxa->TR);
   fscanf(fp,"%*s %f",&sxa->TimeWindow);
   fscanf(fp,"%*s %f",&sxa->TPreStim);
@@ -105,7 +138,8 @@ SXADAT * ld_sxadat(char *sxadatfile)
   fscanf(fp,"%*s %d",&sxa->Nh);
   sxa->Nnnc = sxa->Nc - 1;
   n = fscanf(fp,"%*s %d",&sxa->version);
-  if(n==0){
+  if (n==0)
+  {
     sxa->version = 0;
     return(sxa);
   }
@@ -114,7 +148,7 @@ SXADAT * ld_sxadat(char *sxadatfile)
 
   fscanf(fp,"%*s");
   sxa->npercond = (int *)calloc(sxa->Nc,sizeof(int));
-  for(n=0; n < sxa->Nc; n++)
+  for (n=0; n < sxa->Nc; n++)
     fscanf(fp,"%d",&sxa->npercond[n]);
   fscanf(fp,"%*s %d",&sxa->nruns);
   fscanf(fp,"%*s %d",&sxa->ntp);
@@ -127,12 +161,13 @@ SXADAT * ld_sxadat(char *sxadatfile)
   fscanf(fp,"%*s %d",&sxa->nNoiseAC);
   fscanf(fp,"%*s %d",&sxa->BrainAirSeg);
   fscanf(fp,"%*s %d",&sxa->GammaFit);
-  if(sxa->GammaFit){
+  if (sxa->GammaFit)
+  {
     fscanf(fp,"%*s");
-    for(n=0;n<sxa->GammaFit;n++)
+    for (n=0;n<sxa->GammaFit;n++)
       fscanf(fp,"%f",&sxa->gfDelta[n]);
     fscanf(fp,"%*s");
-    for(n=0;n<sxa->GammaFit;n++)
+    for (n=0;n<sxa->GammaFit;n++)
       fscanf(fp,"%f",&sxa->gfTau[n]);
   }
   fscanf(fp,"%*s %d",&sxa->NullCondId);
@@ -142,20 +177,24 @@ SXADAT * ld_sxadat(char *sxadatfile)
   fscanf(fp,"%*s");
   sxa->SumXtX = (float *)calloc(Nch*Nch,sizeof(float));
   n = 0;
-  for(r=0; r < Nch; r++){
-    for(c=0; c < Nch; c++){
+  for (r=0; r < Nch; r++)
+  {
+    for (c=0; c < Nch; c++)
+    {
       fscanf(fp,"%f",&sxa->SumXtX[n]);
       n++;
     }
   }
 
-  if(sxa->version == 1) return(sxa);
+  if (sxa->version == 1) return(sxa);
 
   fscanf(fp,"%*s");
   sxa->hCovMtx = (float *)calloc(Nch*Nch,sizeof(float));
   n = 0;
-  for(r=0; r < Nch; r++){
-    for(c=0; c < Nch; c++){
+  for (r=0; r < Nch; r++)
+  {
+    for (c=0; c < Nch; c++)
+    {
       fscanf(fp,"%f",&sxa->hCovMtx[n]);
       n++;
     }
@@ -163,7 +202,7 @@ SXADAT * ld_sxadat(char *sxadatfile)
 
   fscanf(fp,"%*s");
   sxa->CondIdMap = (int *) calloc(sxa->Nc, sizeof(int));
-  for(n=0; n < sxa->Nc; n++)
+  for (n=0; n < sxa->Nc; n++)
     fscanf(fp,"%d",&sxa->CondIdMap[n]);
 
   fclose(fp);
@@ -178,7 +217,8 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   int n, r, c, Nch;
 
   fp = fopen(sxadatfile,"w");
-  if(fp==NULL){
+  if (fp==NULL)
+  {
     perror("sv_sxdat():");
     fprintf(stderr,"Could not open %s\n",sxadatfile);
     return(1);
@@ -189,7 +229,8 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   fprintf(fp,"TPreStim   %f\n",sxa->TPreStim);
   fprintf(fp,"nCond      %d\n",sxa->Nc);
   fprintf(fp,"Nh         %d\n",sxa->Nh);
-  if(sxa->version == 0){
+  if (sxa->version == 0)
+  {
     fclose(fp);
     return(0);
   }
@@ -198,7 +239,7 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   fprintf(fp,"DOF %f\n",sxa->DOF);
 
   fprintf(fp,"NPerCond ");
-  for(n=0; n < sxa->Nc; n++) fprintf(fp,"%d ",sxa->npercond[n]);
+  for (n=0; n < sxa->Nc; n++) fprintf(fp,"%d ",sxa->npercond[n]);
   fprintf(fp,"\n");
 
   fprintf(fp,"nruns %d\n",sxa->nruns);
@@ -212,13 +253,14 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   fprintf(fp,"nNoiseAC %d\n",sxa->nNoiseAC);
   fprintf(fp,"BrainAirSeg %d\n",sxa->BrainAirSeg);
   fprintf(fp,"GammaFit %d\n",sxa->GammaFit);
-  if(sxa->GammaFit){
+  if (sxa->GammaFit)
+  {
     fprintf(fp,"gfDelta ");
-    for(n=0;n<sxa->GammaFit;n++)
+    for (n=0;n<sxa->GammaFit;n++)
       fprintf(fp,"%f ",sxa->gfDelta[n]);
     fprintf(fp,"\n");
     fprintf(fp,"gfTau ");
-    for(n=0;n<sxa->GammaFit;n++)
+    for (n=0;n<sxa->GammaFit;n++)
       fprintf(fp,"%f ",sxa->gfTau[n]);
     fprintf(fp,"\n");
   }
@@ -228,26 +270,30 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   Nch = sxa->Nh * sxa->Nnnc;
 
   n = 0;
-  for(r=0; r < Nch; r++){
-    for(c=0; c < Nch; c++){
+  for (r=0; r < Nch; r++)
+  {
+    for (c=0; c < Nch; c++)
+    {
       fprintf(fp,"%f \n",sxa->SumXtX[n]);
       n++;
     }
   }
 
-  if(sxa->version == 1) return(0);
+  if (sxa->version == 1) return(0);
 
   fprintf(fp,"hCovMtx\n");
   n = 0;
-  for(r=0; r < Nch; r++){
-    for(c=0; c < Nch; c++){
+  for (r=0; r < Nch; r++)
+  {
+    for (c=0; c < Nch; c++)
+    {
       fprintf(fp,"%f \n",sxa->hCovMtx[n]);
       n++;
     }
   }
 
-  fprintf(fp,"CondIdMap ");  
-  for(n=0; n < sxa->Nc; n++)
+  fprintf(fp,"CondIdMap ");
+  for (n=0; n < sxa->Nc; n++)
     fprintf(fp,"%d ",sxa->CondIdMap[n]);
   fprintf(fp,"\n");
 

@@ -1,3 +1,31 @@
+/**
+ * @file  diag.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.31 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   diag.c
  *
@@ -68,20 +96,22 @@ static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) =vfprintf;
        Parameters:
 
       Description:
-  
+
     Return Values:
         diag bits.
 
 ------------------------------------------------------------------------*/
 unsigned long
-DiagInit(char *fname, 
-                  int (*vfprint)(FILE *fp, const char *fmt, va_list args),
-                  int (*vprint)(const char *fmt, va_list args))
+DiagInit(char *fname,
+         int (*vfprint)(FILE *fp, const char *fmt, va_list args),
+         int (*vprint)(const char *fmt, va_list args))
 {
   char *cp = 0;
   unsigned long diag = 0L ;
 
-	Gstdout = stdout ; Gstdin = stdin ; Gstderr = stderr ; // for use in gdb
+  Gstdout = stdout ;
+  Gstdin = stdin ;
+  Gstderr = stderr ; // for use in gdb
   if (fname)
     strcpy(diag_fname, fname) ;
   if (vfprint)
@@ -106,7 +136,7 @@ DiagInit(char *fname,
   cp = getenv("DIAGZ") ;
   if (cp)
     Gz = atoi(cp) ;
-  
+
   cp = getenv("DIAGVX") ;
   if (cp)
     Gvx = atoi(cp) ;
@@ -116,13 +146,13 @@ DiagInit(char *fname,
   cp = getenv("DIAGVZ") ;
   if (cp)
     Gvz = atoi(cp) ;
-  
+
   cp = getenv("PROFILE") ;
   if (cp)
-	{
+  {
     Gprofile = atof(cp) ;
-		printf("turning profiling diagnostics on (%d)...\n", Gprofile) ;
-	}
+    printf("turning profiling diagnostics on (%d)...\n", Gprofile) ;
+  }
   cp = getenv("diag") ;
   if (!cp) cp = getenv("DIAG") ;
   if (cp)
@@ -133,8 +163,8 @@ DiagInit(char *fname,
 
   if (getenv("DIAG_VERBOSE"))
     Gdiag |= DIAG_VERBOSE ;
-	if (Gdiag & DIAG_VERBOSE)
-		printf("verbose diagnostics enabled...\n") ;
+  if (Gdiag & DIAG_VERBOSE)
+    printf("verbose diagnostics enabled...\n") ;
 
 #if 0
   if (Gdiag)
@@ -144,7 +174,7 @@ DiagInit(char *fname,
 #if 0
   if (getenv("logging") != NULL)
     DebugOpenLogFile("trace.log") ;
-  
+
   if (getenv("flushing") != NULL)
     flushing = 1 ;
 #endif
@@ -158,18 +188,18 @@ DiagInit(char *fname,
         Description
 ------------------------------------------------------*/
 int
-DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, 
+DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
               char *fmt, ...)
 {
 #if 0
   char    name[100] ;
   va_list args ;
-  
+
   if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
   va_start(args, fmt) ;
-/*  fmt = va_arg(args, char *) ;*/
+  /*  fmt = va_arg(args, char *) ;*/
   vsprintf(name, fmt, args) ;
 
   if (win == DIAG_NEW_WINDOW)    /* create a new window for this image */
@@ -179,7 +209,7 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
   WinShowImage(win, I, which) ;
   WinSetName(win, which, name) ;
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
-    fgetc(stdin) ;    
+    fgetc(stdin) ;
 #endif
   return(win) ;
 }
@@ -191,17 +221,22 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
         Description
 ------------------------------------------------------*/
 int
-DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, 
-                 int rows, int cols, int color)
+DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
+            int rows, int cols, int color)
 {
-   int i;
-   i=win; i=row0; i=col; i=rows; i=cols; i=color; /* prevent warning (dng) */
+  int i;
+  i=win;
+  i=row0;
+  i=col;
+  i=rows;
+  i=cols;
+  i=color; /* prevent warning (dng) */
 
   if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
-    fgetc(stdin) ;    
+    fgetc(stdin) ;
 
   return(0) ;
 }
@@ -234,16 +269,16 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
 {
   int win = -1 ;
 #if 0
-   int i;
-   i=wcols; 
+  int i;
+  i=wcols;
 
   if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
-/*
-  create a set of rows x cols windows, each one of which is wrows x wcols
-  in size.
-*/
+  /*
+    create a set of rows x cols windows, each one of which is wrows x wcols
+    in size.
+  */
 #if 0
   win = WinAlloc("window", 50,50, wcols,wrows) ;
   WinShow(win) ;
@@ -267,7 +302,7 @@ DiagFprintf(unsigned long diag_bits, char *fmt, ...)
   va_list args ;
   FILE    *fp ;
   int     len ;
-  
+
   if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
@@ -292,7 +327,7 @@ int
 DiagPrintf(unsigned long diag_bits, char *fmt, ...)
 {
   va_list args ;
-  
+
   if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
@@ -309,8 +344,7 @@ DiagPrintf(unsigned long diag_bits, char *fmt, ...)
 ------------------------------------------------------*/
 void
 DiagBreak(void)
-{
-}
+{}
 /*-----------------------------------------------------
         Parameters:
 

@@ -1,3 +1,31 @@
+/**
+ * @file  mris_diff_on_surface.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Compute the difference of two data defined on the same surface mesh */
 /* The write function somehow will screen out vextices with value exactly
  * equal to zero! No wonder my output file gets smaller
@@ -21,9 +49,9 @@
 #include "icosahedron.h"
 #include "version.h"
 
-#define MAX_DATA_NUMBERS 200 
+#define MAX_DATA_NUMBERS 200
 
-static char vcid[] = "$Id: mris_diff_on_surface.c,v 1.1 2005/02/08 16:26:18 xhan Exp $";
+static char vcid[] = "$Id: mris_diff_on_surface.c,v 1.2 2006/12/29 01:49:46 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -43,7 +71,7 @@ int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 int negflag = 0;
 int debugflag = 0;
 int debugvtx = 0;
-int pathflag = 0; 
+int pathflag = 0;
 
 char *Progname ;
 
@@ -61,7 +89,7 @@ int main(int argc, char *argv[])
   MRI_SURFACE *BaseSurf;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff_on_surface.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff_on_surface.c,v 1.2 2006/12/29 01:49:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -69,91 +97,106 @@ int main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  
+
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
-  
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
   /* command line: <surf> <datafile 1> <datafile 2> <output prefix> */
 
-  if(argc != 5)
+  if (argc != 5)
     usage_exit();
 
   surf_name = argv[1];
   out_prefix = argv[argc - 1];
 
-  if(srctypestring == NULL || trgtypestring == NULL){
+  if (srctypestring == NULL || trgtypestring == NULL)
+  {
     printf("Please specify both input and output data type!\n");
     usage_exit();
   }
 
   printf("Reading underlying surface file\n");
   BaseSurf = MRISread(surf_name);
-  if(!BaseSurf)
+  if (!BaseSurf)
     ErrorExit(ERROR_NOFILE, "%s:could not read surface %s", Progname, surf_name);
 
   printf("Base surface has %d vertices\n", BaseSurf->nvertices);
 
-  
+
   /* Read in the first data file */
   fname = argv[2];
   /* only two data types are supported */
-  if(!strcmp(srctypestring,"curv")){ /* curvature file */
-    if(MRISreadCurvatureFile(BaseSurf, fname) != 0){
+  if (!strcmp(srctypestring,"curv"))
+  { /* curvature file */
+    if (MRISreadCurvatureFile(BaseSurf, fname) != 0)
+    {
       printf("ERROR: reading curvature file\n");
       exit(1);
     }
     SrcVals[0] = MRIcopyMRIS(NULL, BaseSurf, 0, "curv");
   }
-  else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
+  else if (!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w"))
+  {
     MRISreadValues(BaseSurf,fname);
     SrcVals[0] = MRIcopyMRIS(NULL, BaseSurf, 0, "val");
-  }else{
+  }
+  else
+  {
     printf("ERROR: unknown data file format\n");
     exit(1);
   }
-  
-  if(SrcVals[0] == NULL){
+
+  if (SrcVals[0] == NULL)
+  {
     fprintf(stderr, "ERROR loading data values from %s\n", fname);
   }
 
   /* Read in the second data file */
   fname = argv[3];
   /* only two data types are supported */
-  if(!strcmp(srctypestring,"curv")){ /* curvature file */
-    if(MRISreadCurvatureFile(BaseSurf, fname) != 0){
+  if (!strcmp(srctypestring,"curv"))
+  { /* curvature file */
+    if (MRISreadCurvatureFile(BaseSurf, fname) != 0)
+    {
       printf("ERROR: reading curvature file\n");
       exit(1);
     }
     SrcVals[1] = MRIcopyMRIS(NULL, BaseSurf, 0, "curv");
   }
-  else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
+  else if (!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w"))
+  {
     MRISreadValues(BaseSurf,fname);
     SrcVals[1] = MRIcopyMRIS(NULL, BaseSurf, 0, "val");
-  }else{
+  }
+  else
+  {
     printf("ERROR: unknown data file format\n");
     exit(1);
   }
-  
-  if(SrcVals[1] == NULL){
+
+  if (SrcVals[1] == NULL)
+  {
     fprintf(stderr, "ERROR loading data values from %s\n", fname);
   }
 
-  if(debugflag){
-    for(i=0; i < 2; i++){
-      printf("Data%d at vertex %d has value %g\n",i, debugvtx, 	MRIFseq_vox(SrcVals[i], debugvtx, 0, 0, 0));
+  if (debugflag)
+  {
+    for (i=0; i < 2; i++)
+    {
+      printf("Data%d at vertex %d has value %g\n",i, debugvtx,  MRIFseq_vox(SrcVals[i], debugvtx, 0, 0, 0));
     }
   }
 
 #if 0
   AvgVals = MRIclone(SrcVals[0], NULL);
 
-  if(negflag) /* Add the two data sets */
+  if (negflag) /* Add the two data sets */
     AvgVals = MRIadd(SrcVals[0], SrcVals[1], AvgVals);
   else /* Data1 - Data2 */
     AvgVals = MRIsubtract(SrcVals[0], SrcVals[1], AvgVals);
@@ -161,24 +204,32 @@ int main(int argc, char *argv[])
 
   AvgVals = MRIcopy(SrcVals[0], NULL);
 
-  if(negflag){
-    for(index=0; index < BaseSurf->nvertices; index++){
+  if (negflag)
+  {
+    for (index=0; index < BaseSurf->nvertices; index++)
+    {
       MRIFseq_vox(AvgVals, index, 0, 0, 0) =  MRIFseq_vox(SrcVals[0], index, 0, 0, 0) +
-	MRIFseq_vox(SrcVals[1], index, 0, 0, 0);
+                                              MRIFseq_vox(SrcVals[1], index, 0, 0, 0);
     }
-  }else{
-    for(index=0; index < BaseSurf->nvertices; index++){
+  }
+  else
+  {
+    for (index=0; index < BaseSurf->nvertices; index++)
+    {
       MRIFseq_vox(AvgVals, index, 0, 0, 0) =  MRIFseq_vox(SrcVals[0], index, 0, 0, 0) -
-	MRIFseq_vox(SrcVals[1], index, 0, 0, 0);
+                                              MRIFseq_vox(SrcVals[1], index, 0, 0, 0);
     }
   }
 
-  maxV = -1000.0; minV = 1000.0;  meanV=0.0;
+  maxV = -1000.0;
+  minV = 1000.0;
+  meanV=0.0;
 
-  for(index=0; index < BaseSurf->nvertices; index++){
+  for (index=0; index < BaseSurf->nvertices; index++)
+  {
     scalar = MRIFseq_vox(AvgVals, index, 0, 0, 0);
-    if(maxV < scalar) maxV = scalar;
-    if(minV > scalar) minV = scalar;
+    if (maxV < scalar) maxV = scalar;
+    if (minV > scalar) minV = scalar;
     meanV += scalar;
   }
 
@@ -186,40 +237,46 @@ int main(int argc, char *argv[])
 
   printf("Output max = %g, min = %g, mean = %g\n", maxV, minV, meanV);
 
-  if(debugflag){
-      printf("Output at vertex %d has value %g\n", debugvtx, 	MRIFseq_vox(AvgVals, debugvtx, 0, 0, 0));
+  if (debugflag)
+  {
+    printf("Output at vertex %d has value %g\n", debugvtx,  MRIFseq_vox(AvgVals, debugvtx, 0, 0, 0));
   }
 
-  if(pathflag)
+  if (pathflag)
     sprintf(fname, "%s", out_prefix);
-  else{
-    if(negflag)
+  else
+  {
+    if (negflag)
       sprintf(fname, "%s.sum.w", out_prefix) ;
     else
       sprintf(fname, "%s.diff.w", out_prefix) ;
   }
 
-  if(!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")){
-    
+  if (!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w"))
+  {
+
     /* This function will remove a zero-valued vertices */
     /* Make sense, since default value is considered as zero */
     /* But it will confuse the processing with matlab! */
-    /* So I copy the data to the curv field to force every value is 
+    /* So I copy the data to the curv field to force every value is
      *  written out
      */
-    /* MRIScopyMRI(BaseSurf, AvgVals, framesave, "val");*/   
+    /* MRIScopyMRI(BaseSurf, AvgVals, framesave, "val");*/
     /* MRISwriteValues(BaseSurf,fname); */
     MRIScopyMRI(BaseSurf, AvgVals, framesave, "curv");
     MRISwriteCurvatureToWFile(BaseSurf,fname);
 
-  }else{
-    fprintf(stderr, "ERROR unknown output file format.\n");      
   }
-  
+  else
+  {
+    fprintf(stderr, "ERROR unknown output file format.\n");
+  }
+
   /* Free memories */
   MRISfree(&BaseSurf);
   MRIfree(&AvgVals);
-  for(i=0; i < 2; i++){
+  for (i=0; i < 2; i++)
+  {
     MRIfree(&SrcVals[i]);
   }
 
@@ -253,23 +310,23 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-"This program computes the difference of two data sets defined on the \n"
-"the same surface mesh. Result = data1 - data2. \n"
-"\n"
-"OPTIONS\n"
-"\n"
-"  -src_type typestring\n"
-"\n"
-"    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
-"    paint or w (for FreeSurfer paint files)."
-"\n"
-"  -trg_type typestring\n"
-"\n"
-"    Format type string. Can be paint or w (for FreeSurfer paint files)."
-"\n"
-"  -neg\n"
-"    Take negative of data2, thus results in the sum of the two data sets."
-"\n");
+    "This program computes the difference of two data sets defined on the \n"
+    "the same surface mesh. Result = data1 - data2. \n"
+    "\n"
+    "OPTIONS\n"
+    "\n"
+    "  -src_type typestring\n"
+    "\n"
+    "    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
+    "    paint or w (for FreeSurfer paint files)."
+    "\n"
+    "  -trg_type typestring\n"
+    "\n"
+    "    Format type string. Can be paint or w (for FreeSurfer paint files)."
+    "\n"
+    "  -neg\n"
+    "    Take negative of data2, thus results in the sum of the two data sets."
+    "\n");
 
   exit(1) ;
 }
@@ -292,7 +349,7 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
@@ -312,18 +369,20 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "abspath"))
   {
-      pathflag = 1;
-  }  
+    pathflag = 1;
+  }
   else if (!stricmp(option, "neg"))
   {
     negflag = 1 ;
-  }else if(!stricmp(option, "debug"))
-    {
-      debugflag = 1;
-      debugvtx = atoi(argv[2]);
-      nargs = 1;
-    }
-  else{
+  }
+  else if (!stricmp(option, "debug"))
+  {
+    debugflag = 1;
+    debugvtx = atoi(argv[2]);
+    nargs = 1;
+  }
+  else
+  {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     print_help() ;
     exit(1) ;

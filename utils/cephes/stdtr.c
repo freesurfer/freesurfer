@@ -94,34 +94,34 @@ double sqrt(), atan(), incbet(), incbi(), fabs();
 #endif
 
 double stdtr( k, t )
-     double k;
-     double t;
+double k;
+double t;
 {
   double x, rk, z, f, tz, p, xsqk;
   int j;
 
   //printf("stdtr(%d,%f)\n",k,t);
 
-  if( k <= 0 )
-    {
-      mtherr( "stdtr", DOMAIN );
-      return(0.0);
-    }
+  if ( k <= 0 )
+  {
+    mtherr( "stdtr", DOMAIN );
+    return(0.0);
+  }
 
-  if( t == 0 )
+  if ( t == 0 )
     return( 0.5 );
 
-  if( t < -2.0 )
-    {
-      rk = k;
-      z = rk / (rk + t * t);
-      p = 0.5 * incbet( 0.5*rk, 0.5, z );
-      return( p );
-    }
+  if ( t < -2.0 )
+  {
+    rk = k;
+    z = rk / (rk + t * t);
+    p = 0.5 * incbet( 0.5*rk, 0.5, z );
+    return( p );
+  }
 
   /*      compute integral from -t to + t */
 
-  if( t < 0 )
+  if ( t < 0 )
     x = -t;
   else
     x = t;
@@ -130,52 +130,52 @@ double stdtr( k, t )
   z = 1.0 + ( x * x )/rk;
 
   /* test if k is odd or even */
-  if( ((int)k & 1) != 0)
+  if ( ((int)k & 1) != 0)
+  {
+
+    /*      computation for odd k   */
+
+    xsqk = x/sqrt(rk);
+    p = atan( xsqk );
+    if ( k > 1 )
     {
-
-      /*      computation for odd k   */
-
-      xsqk = x/sqrt(rk);
-      p = atan( xsqk );
-      if( k > 1 )
-        {
-          f = 1.0;
-          tz = 1.0;
-          j = 3;
-          while(  (j<=(k-2)) && ( (tz/f) > MACHEP )  )
-            {
-              tz *= (j-1)/( z * j );
-              f += tz;
-              j += 2;
-            }
-          p += f * xsqk/z;
-        }
-      p *= 2.0/PI;
+      f = 1.0;
+      tz = 1.0;
+      j = 3;
+      while (  (j<=(k-2)) && ( (tz/f) > MACHEP )  )
+      {
+        tz *= (j-1)/( z * j );
+        f += tz;
+        j += 2;
+      }
+      p += f * xsqk/z;
     }
+    p *= 2.0/PI;
+  }
 
 
   else
+  {
+
+    /*      computation for even k  */
+
+    f = 1.0;
+    tz = 1.0;
+    j = 2;
+
+    while (  ( j <= (k-2) ) && ( (tz/f) > MACHEP )  )
     {
-
-      /*      computation for even k  */
-
-      f = 1.0;
-      tz = 1.0;
-      j = 2;
-
-      while(  ( j <= (k-2) ) && ( (tz/f) > MACHEP )  )
-        {
-          tz *= (j - 1)/( z * j );
-          f += tz;
-          j += 2;
-        }
-      p = f * x/sqrt(z*rk);
+      tz *= (j - 1)/( z * j );
+      f += tz;
+      j += 2;
     }
+    p = f * x/sqrt(z*rk);
+  }
 
   /*      common exit     */
 
 
-  if( t < 0 )
+  if ( t < 0 )
     p = -p; /* note destruction of relative accuracy */
 
   p = 0.5 + 0.5 * p;
@@ -183,56 +183,56 @@ double stdtr( k, t )
 }
 
 double stdtri( k, p )
-     double k;
-     double p;
+double k;
+double p;
 {
   double t, rk, z;
   int rflg;
   char msg[100];
 
-  if( k <= 0 )
-    {
-      sprintf(msg,"stdtri(%f,%f)",k,p);
-      mtherr( msg, DOMAIN );
-      return(0.0);
-    }
+  if ( k <= 0 )
+  {
+    sprintf(msg,"stdtri(%f,%f)",k,p);
+    mtherr( msg, DOMAIN );
+    return(0.0);
+  }
 
-  if( p <= 0.0 )
-    {
-      //sprintf(msg,"stdtri(%d,%f)",k,p);
-      //mtherr( msg, DOMAIN );
-      return(-HUGE_VAL);
-    }
+  if ( p <= 0.0 )
+  {
+    //sprintf(msg,"stdtri(%d,%f)",k,p);
+    //mtherr( msg, DOMAIN );
+    return(-HUGE_VAL);
+  }
 
-  if( p >= 1.0 )
-    {
-      //sprintf(msg,"stdtri(%d,%f)",k,p);
-      //mtherr( msg, DOMAIN );
-      return(HUGE_VAL);
-    }
+  if ( p >= 1.0 )
+  {
+    //sprintf(msg,"stdtri(%d,%f)",k,p);
+    //mtherr( msg, DOMAIN );
+    return(HUGE_VAL);
+  }
 
   rk = k;
 
-  if( p > 0.25 && p < 0.75 )
-    {
-      if( p == 0.5 )
-        return( 0.0 );
-      z = 1.0 - 2.0 * p;
-      z = incbi( 0.5, 0.5*rk, fabs(z) );
-      t = sqrt( rk*z/(1.0-z) );
-      if( p < 0.5 )
-        t = -t;
-      return( t );
-    }
+  if ( p > 0.25 && p < 0.75 )
+  {
+    if ( p == 0.5 )
+      return( 0.0 );
+    z = 1.0 - 2.0 * p;
+    z = incbi( 0.5, 0.5*rk, fabs(z) );
+    t = sqrt( rk*z/(1.0-z) );
+    if ( p < 0.5 )
+      t = -t;
+    return( t );
+  }
   rflg = -1;
-  if( p >= 0.5)
-    {
-      p = 1.0 - p;
-      rflg = 1;
-    }
+  if ( p >= 0.5)
+  {
+    p = 1.0 - p;
+    rflg = 1;
+  }
   z = incbi( 0.5*rk, 0.5, 2.0*p );
 
-  if( MAXNUM * z < rk )
+  if ( MAXNUM * z < rk )
     return(rflg* MAXNUM);
   t = sqrt( rk/z - rk );
   return( rflg * t );

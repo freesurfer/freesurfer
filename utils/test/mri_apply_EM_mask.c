@@ -1,3 +1,31 @@
+/**
+ * @file  mri_apply_EM_mask.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Clear voxels labelled as dura by mri_ms_EM (hard seg)
  */
 
@@ -42,69 +70,74 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_apply_EM_mask.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_apply_EM_mask.c,v 1.2 2006/12/29 01:49:44 nicks Exp $", "$Name:  $");
   argc -= nargs ;
-  
+
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
-  
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  if(argc  !=  3)
+
+  if (argc  !=  3)
     usage(1);
 
-  if(fname_dura == NULL){
+  if (fname_dura == NULL)
+  {
     printf("Use options to specify dura membership function volume \n");
     usage(1);
   }
-  
+
   mri_in = MRIread(argv[1]) ;
   if (!mri_in)
     ErrorExit(ERROR_BADPARM, "%s: could not read input volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
 
   mri_dura = MRIread(fname_dura) ;
   if (!mri_dura)
     ErrorExit(ERROR_BADPARM, "%s: could not read dura volume %s",
-	      Progname, fname_dura) ;
+              Progname, fname_dura) ;
 
-  if((mri_in->width != mri_dura->width) ||
-     (mri_in->height != mri_dura->height) ||
-     (mri_in->depth != mri_dura->depth) 
+  if ((mri_in->width != mri_dura->width) ||
+      (mri_in->height != mri_dura->height) ||
+      (mri_in->depth != mri_dura->depth)
      )
     ErrorExit(ERROR_BADPARM, "%s: the input volumes have different sizes \n", Progname);
-  
+
   mri_out = MRIclone(mri_in, NULL) ;
 
   width = mri_in->width ;
   height = mri_in->height ;
   depth = mri_in->depth ;
   nframes = mri_in->nframes ;
-  if(nframes == 0) nframes = 1;
+  if (nframes == 0) nframes = 1;
 
-  for (f = 0 ; f < nframes ; f++){
-    for (z = 0 ; z < depth ; z++){
-      for (y = 0 ; y < height ; y++){
-	for (x = 0 ; x < width ; x++){
-	  v_in = (double) MRIgetVoxVal(mri_in,x,y,z,f);
-	  dura_label = (int) MRIgetVoxVal(mri_dura,x,y,z,f);
-	  if(dura_label == 2) v_out = 0;
-	  else v_out = v_in;
+  for (f = 0 ; f < nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          v_in = (double) MRIgetVoxVal(mri_in,x,y,z,f);
+          dura_label = (int) MRIgetVoxVal(mri_dura,x,y,z,f);
+          if (dura_label == 2) v_out = 0;
+          else v_out = v_in;
 
-	  MRIsetVoxVal(mri_out,x,y,z,f,(float)v_out);
-	}
+          MRIsetVoxVal(mri_out,x,y,z,f,(float)v_out);
+        }
       }
     }
   }
 
   printf("writing dura-removed volume to %s...\n", argv[2]) ;
   MRIwrite(mri_out, argv[2]);
-  
+
   MRIfree(&mri_in);
   MRIfree(&mri_out);
   MRIfree(&mri_dura);
@@ -135,23 +168,23 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "debug_voxel"))
-    {
-      Gx = atoi(argv[2]) ;
-      Gy = atoi(argv[3]) ;
-      Gz = atoi(argv[4]) ;
-      debug_flag = 1;
-      nargs = 3 ;
-      printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
-    }
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    debug_flag = 1;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
+  }
   else if (!stricmp(option, "dura"))
-    {
-      fname_dura  = argv[2];
-      printf("Use file %s for hard EM-segmentation volume (dura_label = 2) \n", fname_dura) ;
-      nargs = 1;
-    }
+  {
+    fname_dura  = argv[2];
+    printf("Use file %s for hard EM-segmentation volume (dura_label = 2) \n", fname_dura) ;
+    nargs = 1;
+  }
   else switch (toupper(*option))
     {
     case '?':
@@ -163,6 +196,6 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-  
+
   return(nargs) ;
 }

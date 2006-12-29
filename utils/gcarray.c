@@ -1,3 +1,31 @@
+/**
+ * @file  gcarray.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:32 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   gcarray.c
  *
@@ -42,12 +70,12 @@
 -------------------------------------------------------*/
 
 static char *class_names[NCLASSES] =
-{
-  "BACKGROUND",
-  "GREY MATTER",
-  "WHITE MATTER",
-  "BRIGHT MATTER"
-} ;
+  {
+    "BACKGROUND",
+    "GREY MATTER",
+    "WHITE MATTER",
+    "BRIGHT MATTER"
+  } ;
 
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
@@ -82,7 +110,7 @@ GCarrayAlloc(MRI *mri_template, int scale, int nvars)
   depth = mri_template->depth ;
   gcarray = (GCARRAY *)calloc(1, sizeof(GCARRAY)) ;
   if (!gcarray)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_NO_MEMORY, "GCarrayAlloc: could not alloc struct")) ;
 
   MRIvoxelToWorld(mri_template, 0, 0, 0, &xw, &yw, &zw) ;
@@ -96,7 +124,7 @@ GCarrayAlloc(MRI *mri_template, int scale, int nvars)
   width = nint((float)(width - scale/2) / (float)scale + 0.99f) ;
   height = nint((float)(height - scale/2) / (float)scale + 0.99f) ;
   depth = nint((float)(depth - scale/2) / (float)scale + 0.99f) ;
-        
+
   gcarray->scale = scale ;
   gcarray->width = width ;
   gcarray->height = height ;
@@ -111,7 +139,7 @@ GCarrayAlloc(MRI *mri_template, int scale, int nvars)
   {
     gcarray->gcs[z] = (GCLASSIFY ***)calloc(height, sizeof(GCLASSIFY **)) ;
     if (!gcarray->gcs[z])
-      ErrorExit(ERROR_NO_MEMORY, 
+      ErrorExit(ERROR_NO_MEMORY,
                 "GCarrayAlloc: could not allocate gcs[%d]", z) ;
 
     for (y = 0 ; y < height ; y++)
@@ -200,7 +228,7 @@ GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninpu
   /* first figure out the total # of files */
   fp = fopen(training_file_name, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_NO_FILE,
                  "GCarrayTrainAll(%s): could not open file",
                  training_file_name)) ;
@@ -310,8 +338,8 @@ GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninpu
         Description
           Do iterative training of a classifier. First go through
 
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
+          allow each classifier to be trained on a part of
+          the space that it's neighbor is responsible (i.e.
           use overlapping training regions). The overlap is
           defined to be MAX(1, scale/4) on each side of the
           region.
@@ -327,13 +355,13 @@ GCarrayUpdate(GCARRAY *gcarray, MRI *mri_src,MRI *mri_norm,MRI *mri_target)
         Returns value:
 
         Description
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
+          allow each classifier to be trained on a part of
+          the space that it's neighbor is responsible (i.e.
           use overlapping training regions). The overlap is
           defined to be MAX(1, scale/4) on each side of the
           region.
 ------------------------------------------------------*/
-int     
+int
 GCarrayFinish(GCARRAY *gcarray)
 {
   return(NO_ERROR) ;
@@ -344,8 +372,8 @@ GCarrayFinish(GCARRAY *gcarray)
         Returns value:
 
         Description
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
+          allow each classifier to be trained on a part of
+          the space that it's neighbor is responsible (i.e.
           use overlapping training regions). The overlap is
           defined to be MAX(1, scale/4) on each side of the
           region.
@@ -359,8 +387,8 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
   MATRIX     *m_inputs[NCLASSES] ;
   GCLASSIFY  *gc, **pgc ;
   int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, xv, yv, zv,
-             width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
-             swidth, sheight, sdepth, overlap, ninputs ;
+  width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
+  swidth, sheight, sdepth, overlap, ninputs ;
   BUFTYPE    src, target ;
   Real       xrv, yrv, zrv, xt, yt, zt ;
 
@@ -380,15 +408,15 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
   sheight = mri_src->height ;
   sdepth = mri_src->depth ;
 
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
+  /*
+     the classifiers are distributed in Talairach space, whereas the
+     input MR images are not (necessarily). Therefore we have to
+     transform the voxel coordinates into Tal. space before selecting
+     the training values.
 
-   train each classifier, x,y,z are in classifier space, xm, ym, and
-   zm are pixel coordinates in Talairach space
-*/
+     train each classifier, x,y,z are in classifier space, xm, ym, and
+     zm are pixel coordinates in Talairach space
+  */
   for (z = 0 ; z < depth ; z++)
   {
     z0 = MAX(0,z*scale - overlap) ;
@@ -403,7 +431,7 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
         gc = *pgc++ ;
         x0 = MAX(0,x*scale-overlap);
         x1 = MIN(swidth-1,(x+1)*scale+overlap) ;
-        
+
         memset(nobs, 0, NCLASSES*sizeof(nobs[0])) ;
         for (zm = z0 ; zm <= z1 ; zm++)
         {
@@ -414,8 +442,8 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
               /* convert to Talairach coords, then to voxel coords of src */
               /* convert from natural axes of coronal slices  Talairach axes */
               xt = (Real)xm + gcarray->xstart ;   /* voxel to world */
-              yt = (Real)zm + gcarray->ystart ; 
-              zt = (Real)-ym + gcarray->zstart ; 
+              yt = (Real)zm + gcarray->ystart ;
+              zt = (Real)-ym + gcarray->zstart ;
               MRItalairachToVoxel(mri_src, xt, yt, zt, &xrv, &yrv, &zrv) ;
               xv = nint(xrv) ;
               yv = nint(yrv) ;
@@ -424,10 +452,10 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
                   yv < 0 || yv >= sheight ||
                   zv < 0 || zv >= sdepth)
                 continue ;
-                                       
+
               src = MRIvox(mri_src, xv, yv, zv) ;
               target = MRIvox(mri_target, xv, yv, zv) ;
-              
+
               /* decide what class it is */
               if (target)
                 classno = WHITE_MATTER ;
@@ -442,7 +470,7 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
               }
 
               m_inputs[classno]->rptr[nobs[classno]+1][1] = src ;
-              m_inputs[classno]->rptr[nobs[classno]+1][2] = 
+              m_inputs[classno]->rptr[nobs[classno]+1][2] =
                 MRIFvox(mri_zscore, xv, yv, zv) ;
               if (gcarray->nvars > 2)
               {
@@ -482,13 +510,13 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
 #define PRETTY_SURE   .90f
 
 MRI *
-GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst, 
-            float conf, MRI *mri_probs, MRI *mri_classes)
+GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
+                float conf, MRI *mri_probs, MRI *mri_classes)
 {
   MATRIX     *m_inputs ;
   GCLASSIFY  *gc ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno,
+  nclasses, swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      *pzscore, prob, *pprobs = NULL ;
   Real       xt, yt, zt, xv, yv, zv ;
@@ -516,14 +544,14 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
   scale = gcarray->scale ;
   nclasses = NCLASSES ;
 
-/* 
-   x, y, and z are in the MR image space. To get the appropriate classifier
-   for each spatial location we must convert to Talairach voxel coords.,
-   then find the classifier assigned to that location in Talairach space.
-   
-   xc, yc, and zc are in classifier space, while xvt, yvt and zvt are
-   in Talairach voxel coords.
-*/
+  /*
+     x, y, and z are in the MR image space. To get the appropriate classifier
+     for each spatial location we must convert to Talairach voxel coords.,
+     then find the classifier assigned to that location in Talairach space.
+
+     xc, yc, and zc are in classifier space, while xvt, yvt and zvt are
+     in Talairach voxel coords.
+  */
   for (z = 0 ; z < sdepth ; z++)
   {
     for (y = 0 ; y < sheight ; y++)
@@ -574,7 +602,7 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
           m_inputs->rptr[4][1] = yt ;
           m_inputs->rptr[5][1] = zt ;
         }
-        
+
         /* now classify this observation */
         classno = GCclassify(gc, m_inputs, NULL, &prob) ;
 
@@ -605,7 +633,7 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
 ------------------------------------------------------*/
 int
 GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc,
-                int *pxv, int *pyv, int *pzv)
+               int *pxv, int *pyv, int *pzv)
 {
   int scale ;
 
@@ -625,7 +653,7 @@ GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc,
 ------------------------------------------------------*/
 int
 GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv,
-                int *pxc, int *pyc, int *pzc)
+                    int *pxc, int *pyc, int *pzc)
 {
   int scale ;
 
@@ -644,8 +672,8 @@ GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv,
 
 ------------------------------------------------------*/
 int
-GCarraySetTransform(GCARRAY *gcarray, Transform *transform, 
-                     Transform *inverse_transform)
+GCarraySetTransform(GCARRAY *gcarray, Transform *transform,
+                    Transform *inverse_transform)
 {
   gcarray->transform = transform ;
   gcarray->inverse_transform = inverse_transform ;
@@ -669,16 +697,16 @@ GCarrayRead(char *fname)
 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_NO_FILE,"GCarrayRead(%s): could not open file",fname));
 
-  if (fscanf(fp, "%d %d %d %d %d %d %d %d %f %f %f\n", 
-             &scale, &width, &height, &depth, &mri.width, &mri.height, 
+  if (fscanf(fp, "%d %d %d %d %d %d %d %d %f %f %f\n",
+             &scale, &width, &height, &depth, &mri.width, &mri.height,
              &mri.depth, &nvars, &mri.xstart, &mri.ystart, &mri.zstart) != 11)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, 
-                (ERROR_BADFILE, 
+    ErrorReturn(NULL,
+                (ERROR_BADFILE,
                  "GCarrayRead(%s): could scanf parms from file",fname));
   }
   setDirectionCosine(&mri, MRI_CORONAL);
@@ -724,8 +752,8 @@ GCarrayWrite(GCARRAY *gcarray, char *fname)
 
   fp = fopen(fname, "wb") ;
   if (!fp)
-    ErrorReturn(ERROR_NO_FILE, 
-              (ERROR_NO_FILE,"GCarrayWrite(%s): could not open file",fname));
+    ErrorReturn(ERROR_NO_FILE,
+                (ERROR_NO_FILE,"GCarrayWrite(%s): could not open file",fname));
 
   fprintf(fp, "%d %d %d %d %d %d %d %d %2.3f %2.3f %2.3f\n",
           gcarray->scale,
@@ -763,7 +791,7 @@ GCarrayWrite(GCARRAY *gcarray, char *fname)
 ------------------------------------------------------*/
 MRI *
 GCarrayThreshold(GCARRAY *gcarray, MRI *mri_probs, MRI *mri_classes,
-                  MRI *mri_dst, float threshold)
+                 MRI *mri_dst, float threshold)
 {
   int      x, y, z, width, height, depth, class ;
   float    *pprobs, prob ;
@@ -844,9 +872,9 @@ MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z)
     zc = depth-1 ;
   gc = gcarray->gcs[zc][yc][xc] ;
 #if 1
-fprintf(stderr, 
-        "classifier at (%d, %d, %d) --> (%d, %d, %d) is (%d, %d, %d)\n",
-        xv, yv, zv, (int)xt, (int)yt, (int)zt, xc, yc, zc) ;
+  fprintf(stderr,
+          "classifier at (%d, %d, %d) --> (%d, %d, %d) is (%d, %d, %d)\n",
+          xv, yv, zv, (int)xt, (int)yt, (int)zt, xc, yc, zc) ;
 #endif
 
   return(gc) ;
@@ -864,8 +892,8 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth, overlap ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno,
+  nclasses, swidth, sheight, sdepth, overlap ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore ;
   Real       xt, yt, zt, xv, yv, zv ;
@@ -885,17 +913,17 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
   sheight = mri_src->height ;
   sdepth = mri_src->depth ;
 
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
+  /*
+     the classifiers are distributed in Talairach space, whereas the
+     input MR images are not (necessarily). Therefore we have to
+     transform the voxel coordinates into Tal. space before selecting
+     the training values.
+  */
 
-/* 
-   for each point in the image, find the its Talairach coordinates and
-   therefore the classifier responsible for it, and update it's mean.
-*/
+  /*
+     for each point in the image, find the its Talairach coordinates and
+     therefore the classifier responsible for it, and update it's mean.
+  */
   for (z = 0 ; z < sdepth ; z++)
   {
     for (y = 0 ; y < sheight ; y++)
@@ -928,7 +956,7 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
 
         src = *psrc++ ;
         target = *ptarget++ ;
-              /* decide what class it is */
+        /* decide what class it is */
         if (target)
           classno = WHITE_MATTER ;
         else
@@ -940,7 +968,7 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
           else
             classno = GREY_MATTER ;
         }
-        
+
         gc = gcarray->gcs[zc][yc][xc] ;
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
@@ -971,8 +999,8 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth, overlap, col, row ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno,
+  nclasses, swidth, sheight, sdepth, overlap, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore, obs[6], covariance ;
   Real       xt, yt, zt, xv, yv, zv ;
@@ -993,17 +1021,17 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
   sheight = mri_src->height ;
   sdepth = mri_src->depth ;
 
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
+  /*
+     the classifiers are distributed in Talairach space, whereas the
+     input MR images are not (necessarily). Therefore we have to
+     transform the voxel coordinates into Tal. space before selecting
+     the training values.
+  */
 
-/* 
-   for each point in the image, find the its Talairach coordinates and
-   therefore the classifier responsible for it, and update it's mean.
-*/
+  /*
+     for each point in the image, find the its Talairach coordinates and
+     therefore the classifier responsible for it, and update it's mean.
+  */
   for (z = 0 ; z < sdepth ; z++)
   {
     for (y = 0 ; y < sheight ; y++)
@@ -1036,7 +1064,7 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
 
         src = *psrc++ ;
         target = *ptarget++ ;
-              /* decide what class it is */
+        /* decide what class it is */
         if (target)
           classno = WHITE_MATTER ;
         else
@@ -1048,7 +1076,7 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
           else
             classno = GREY_MATTER ;
         }
-        
+
         gc = gcarray->gcs[zc][yc][xc] ;
         gcl = &gc->classes[classno] ;
         obs[1] = (float)src - gcl->m_u->rptr[1][1] ;
@@ -1093,12 +1121,12 @@ GCarrayComputeMeans(GCARRAY *gcarray)
   height = gcarray->height ;
   depth = gcarray->depth ;
 
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
+  /*
+     the classifiers are distributed in Talairach space, whereas the
+     input MR images are not (necessarily). Therefore we have to
+     transform the voxel coordinates into Tal. space before selecting
+     the training values.
+  */
   /* train each classifier, x,y,z are in classifier space */
   for (z = 0 ; z < depth ; z++)
   {
@@ -1145,12 +1173,12 @@ GCarrayComputeCovariances(GCARRAY *gcarray)
   height = gcarray->height ;
   depth = gcarray->depth ;
 
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
+  /*
+     the classifiers are distributed in Talairach space, whereas the
+     input MR images are not (necessarily). Therefore we have to
+     transform the voxel coordinates into Tal. space before selecting
+     the training values.
+  */
   /* train each classifier, x,y,z are in classifier space */
   for (z = 0 ; z < depth ; z++)
   {

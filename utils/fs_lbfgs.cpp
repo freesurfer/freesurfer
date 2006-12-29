@@ -1,3 +1,31 @@
+/**
+ * @file  fs_lbfgs.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author$
+ *    $Date$
+ *    $Revision$
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 // This is core/vnl/algo/vnl_lbfgs.cxx
 #ifdef VCL_NEEDS_PRAGMA_INTERFACE
 #pragma implementation
@@ -21,7 +49,7 @@
 // memory is set to 5, line_search_accuracy to 0.9.
 // Calls init_parameters
 fs_lbfgs::fs_lbfgs():
-  fs_lbfgs_subject(), f_(0)
+    fs_lbfgs_subject(), f_(0)
 {
   init_parameters();
 }
@@ -29,7 +57,7 @@ fs_lbfgs::fs_lbfgs():
 //: Constructor. f is the cost function to be minimized.
 // Calls init_parameters
 fs_lbfgs::fs_lbfgs(vnl_cost_function& f):
-  fs_lbfgs_subject(), f_(&f)
+    fs_lbfgs_subject(), f_(&f)
 {
   init_parameters();
 }
@@ -67,8 +95,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
   if (verbose_)
     vcl_cerr << "vnl_lbfgs: n = "<< n <<", memory = "<< m <<", Workspace = "
-             << w.size() << "[ "<< ( w.size() / 128.0 / 1024.0) <<" MB], ErrorScale = "
-             << f_->reported_error(1) <<", xnorm = "<< x.magnitude() << vcl_endl;
+    << w.size() << "[ "<< ( w.size() / 128.0 / 1024.0) <<" MB], ErrorScale = "
+    << f_->reported_error(1) <<", xnorm = "<< x.magnitude() << vcl_endl;
 
   bool we_trace = (verbose_ && !trace);
 
@@ -82,7 +110,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
   this->num_evaluations_ = 0;
   this->num_iterations_ = 0;
   long iflag = 0;
-  while (true) {
+  while (true)
+  {
     // We do not wish to provide the diagonal matrices Hk0, and therefore set DIAGCO to FALSE.
     v3p_netlib_logical diagco = false;
 
@@ -95,14 +124,17 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
     // Call function
     double f;
     f_->compute(x, &f, &g);
-    if (this->num_evaluations_ == 0) {
+    if (this->num_evaluations_ == 0)
+    {
       this->start_error_ = f;
       best_f = f;
-    } else if (f < best_f) {
+    }
+    else if (f < best_f)
+    {
       best_x = x;
       best_f = f;
-            
-      this->notify( best_f, &best_x );      
+
+      this->notify( best_f, &best_x );
     }
 
 #define print_(i,a,b,c,d) vcl_cerr<<vcl_setw(6)<<i<<' '<<vcl_setw(20)<<a<<' '\
@@ -117,7 +149,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
         int l = n;
         int limit = 100;
         int limit_tail = 10;
-        if (l > limit + limit_tail) {
+        if (l > limit + limit_tail)
+        {
           vcl_cerr << " [ Showing only first " <<limit<< " components ]\n";
           l = limit;
         }
@@ -125,7 +158,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
         print_("-","-","-","---","--");
         for (int i = 0; i < l; ++i)
           print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
-        if (n > limit) {
+        if (n > limit)
+        {
           vcl_cerr << "   ...\n";
           for (int i = n - limit_tail; i < n; ++i)
             print_(i, x[i], g[i], fdg[i], g[i]-fdg[i]);
@@ -144,7 +178,8 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
     if (we_trace)
       vcl_cerr << iflag << ":" << f_->reported_error(f) << " ";
 
-    if (iflag == 0) {
+    if (iflag == 0)
+    {
       // Successful return
       this->end_error_ = f;
       ok = true;
@@ -152,13 +187,15 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       break;
     }
 
-    if (iflag < 0) {
+    if (iflag < 0)
+    {
       // Eeek.
       //vcl_cerr << "\nfs_lbfgs: WARN: (iflag < 0)\n";
       ok = false;
 
       // this is an DJ addition for when the best_x is not initialized yet
-      if( best_x.size() != 0 ) {
+      if ( best_x.size() != 0 )
+      {
         this->end_error_ = f;
         x = best_x;
       }
@@ -166,12 +203,14 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
       break;
     }
 
-    if (++this->num_evaluations_ > get_max_function_evals()) {
+    if (++this->num_evaluations_ > get_max_function_evals())
+    {
       failure_code_ = FAILED_TOO_MANY_ITERATIONS;
       ok = false;
 
       // this is an DJ addition for when the best_x is not initialized yet
-      if( best_x.size() != 0 ) {
+      if ( best_x.size() != 0 )
+      {
         this->end_error_ = f;
         x = best_x;
       }

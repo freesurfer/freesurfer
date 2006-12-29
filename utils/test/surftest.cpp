@@ -1,3 +1,31 @@
+/**
+ * @file  surftest.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // surftest.cpp
 //
@@ -6,7 +34,8 @@
 #include <iomanip>
 
 
-extern "C" {
+extern "C"
+{
 #include "error.h"
 #include "mri.h"
 #include "matrix.h"
@@ -22,25 +51,25 @@ using namespace std;
 
 void MPrint(MATRIX *m)
 {
-  cout.setf(ios::fixed,ios::floatfield);
+  cout.setf(ios::fixed ,ios::floatfield);
   cout.precision(10);
   cout << endl;
   cout << setw(15) << *MATRIX_RELT(m,1,1)
-       << setw(15) << *MATRIX_RELT(m,1,2)
-       << setw(15) << *MATRIX_RELT(m,1,3)
-       << setw(15) << *MATRIX_RELT(m,1,4) << '\n'
-       << setw(15) << *MATRIX_RELT(m,2,1)
-       << setw(15) << *MATRIX_RELT(m,2,2)
-       << setw(15) << *MATRIX_RELT(m,2,3)
-       << setw(15) << *MATRIX_RELT(m,2,4) << '\n'
-       << setw(15) << *MATRIX_RELT(m,3,1)
-       << setw(15) << *MATRIX_RELT(m,3,2)
-       << setw(15) << *MATRIX_RELT(m,3,3)
-       << setw(15) << *MATRIX_RELT(m,3,4) << '\n'
-       << setw(15) << *MATRIX_RELT(m,4,1)
-       << setw(15) << *MATRIX_RELT(m,4,2)
-       << setw(15) << *MATRIX_RELT(m,4,3)
-       << setw(15) << *MATRIX_RELT(m,4,4) << endl;
+  << setw(15) << *MATRIX_RELT(m,1,2)
+  << setw(15) << *MATRIX_RELT(m,1,3)
+  << setw(15) << *MATRIX_RELT(m,1,4) << '\n'
+  << setw(15) << *MATRIX_RELT(m,2,1)
+  << setw(15) << *MATRIX_RELT(m,2,2)
+  << setw(15) << *MATRIX_RELT(m,2,3)
+  << setw(15) << *MATRIX_RELT(m,2,4) << '\n'
+  << setw(15) << *MATRIX_RELT(m,3,1)
+  << setw(15) << *MATRIX_RELT(m,3,2)
+  << setw(15) << *MATRIX_RELT(m,3,3)
+  << setw(15) << *MATRIX_RELT(m,3,4) << '\n'
+  << setw(15) << *MATRIX_RELT(m,4,1)
+  << setw(15) << *MATRIX_RELT(m,4,2)
+  << setw(15) << *MATRIX_RELT(m,4,3)
+  << setw(15) << *MATRIX_RELT(m,4,4) << endl;
 }
 
 #if 0
@@ -60,15 +89,24 @@ int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr, Real *sxr, Real *syr
   // ended up with the following
   /////////////////////////////////////////////////////////////
   surfaceRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
-  m11= 1.; m12= 0.; m13= 0.; m14= -mri->c_r;
-  m21= 0.; m22= 1.; m23= 0.; m24= -mri->c_a;
-  m31= 0.; m32= 0.; m33= 1.; m34= -mri->c_s;
-  stuff_four_by_four(surfaceRASFromRAS, 
-		        m11, m12, m13, m14, 
-                        m21, m22, m23, m24, 
-                        m31, m32, m33, m34, 
-                        0.0, 0.0, 0.0, 1.0);
-  
+  m11= 1.;
+  m12= 0.;
+  m13= 0.;
+  m14= -mri->c_r;
+  m21= 0.;
+  m22= 1.;
+  m23= 0.;
+  m24= -mri->c_a;
+  m31= 0.;
+  m32= 0.;
+  m33= 1.;
+  m34= -mri->c_s;
+  stuff_four_by_four(surfaceRASFromRAS,
+                     m11, m12, m13, m14,
+                     m21, m22, m23, m24,
+                     m31, m32, m33, m34,
+                     0.0, 0.0, 0.0, 1.0);
+
   vr = VectorAlloc(4, MATRIX_REAL);
   V4_LOAD(vr, xr, yr, zr, 1.);
 
@@ -103,7 +141,7 @@ int main(int argc, char *argv[])
 //  conformed  ---- >   SurfaceRAS (c_(r,a,s) = 0)
 //        |id            |id
 //        |              |
-//     surface ---- >   SurfaceRAS 
+//     surface ---- >   SurfaceRAS
 //
   if (argc < 2)
   {
@@ -134,29 +172,29 @@ int main(int argc, char *argv[])
     {
       for (x=0; x < mri->width; ++x)
       {
-	// forward path
-	MRIvoxelToWorld(mri, x, y, z, &xr1, &yr1, &zr1);
-	MRIRASToSurfaceRAS(mri, xr1, yr1, zr1, &XR1, &YR1, &ZR1);
-	// vs.
-	MRIvoxelToSurfaceRAS(mri, x, y, z, &XR2, &YR2, &ZR2);
-	if (!zero(XR1-XR2, ep) || !zero(YR1-YR2, ep) || !zero(ZR1-ZR2, ep))
-	{
-	  cerr << "error : (XR1, YR1, ZR1)= (" << XR1 <<", " << YR1 << ", " << ZR1 << ")" << endl;
-	  cerr << "error : (XR2, YR2, ZR2)= (" << XR2 <<", " << YR2 << ", " << ZR2 << ")" << endl;
-	  cerr << "diff  :  XR1 - XR2 = " << XR1 - XR2 
-	       << "  YR1 - YR2 = " << YR1 - YR2
-	       << "  ZR1 - ZR2 = " << ZR1 - ZR2 << endl;
-	}
-	// backward path
-	double dx, dy, dz;
-	MRIsurfaceRASToVoxel(mri, XR2, YR2, ZR2, &dx, &dy, &dz);
-	if (!zero(x - dx, ep) || !zero(y - dy, ep) || !zero(z - dz, ep))
-	{
-	  cout << "going back to get back the same vaue" << endl;
-	  cerr << "error : (  x,   y,   z)= (" << x <<", " << y << ", " << z << ")" << endl;
-	  cerr << "error : ( dx,  dy,  dz)= (" << dx <<", " << dy << ", " << dz << ")" << endl;
-	  cerr << "diff  : (" << (x-dx) << ", " << (y-dy) <<", " << (z-dz) << ")" << endl;
-	}
+        // forward path
+        MRIvoxelToWorld(mri, x, y, z, &xr1, &yr1, &zr1);
+        MRIRASToSurfaceRAS(mri, xr1, yr1, zr1, &XR1, &YR1, &ZR1);
+        // vs.
+        MRIvoxelToSurfaceRAS(mri, x, y, z, &XR2, &YR2, &ZR2);
+        if (!zero(XR1-XR2, ep) || !zero(YR1-YR2, ep) || !zero(ZR1-ZR2, ep))
+        {
+          cerr << "error : (XR1, YR1, ZR1)= (" << XR1 <<", " << YR1 << ", " << ZR1 << ")" << endl;
+          cerr << "error : (XR2, YR2, ZR2)= (" << XR2 <<", " << YR2 << ", " << ZR2 << ")" << endl;
+          cerr << "diff  :  XR1 - XR2 = " << XR1 - XR2
+          << "  YR1 - YR2 = " << YR1 - YR2
+          << "  ZR1 - ZR2 = " << ZR1 - ZR2 << endl;
+        }
+        // backward path
+        double dx, dy, dz;
+        MRIsurfaceRASToVoxel(mri, XR2, YR2, ZR2, &dx, &dy, &dz);
+        if (!zero(x - dx, ep) || !zero(y - dy, ep) || !zero(z - dz, ep))
+        {
+          cout << "going back to get back the same vaue" << endl;
+          cerr << "error : (  x,   y,   z)= (" << x <<", " << y << ", " << z << ")" << endl;
+          cerr << "error : ( dx,  dy,  dz)= (" << dx <<", " << dy << ", " << dz << ")" << endl;
+          cerr << "diff  : (" << (x-dx) << ", " << (y-dy) <<", " << (z-dz) << ")" << endl;
+        }
       }
     }
     cout << ".";

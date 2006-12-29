@@ -1,3 +1,31 @@
+/**
+ * @file  mriprob.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:36 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +51,9 @@ MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst)
   if (!mri_dst)
     mri_dst = MRIclone(mri_priors, NULL) ;
 
-  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ;
+  width = mri_dst->width ;
+  height = mri_dst->height ;
+  depth = mri_dst->depth ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -37,9 +67,14 @@ MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst)
       {
         if (DEBUG_POINT(x,y,z))
           DiagBreak() ;
-        p1 = (float)*pp1++ ; p2 = (float)*pp2++ ; prior = (float)*ppriors++ ;
-        p1 /= 100.0f ; p2 /= 100.0f ; prior /= 100.0f ;
-        p1 *= prior ; p2 *= (1.0f-prior) ;
+        p1 = (float)*pp1++ ;
+        p2 = (float)*pp2++ ;
+        prior = (float)*ppriors++ ;
+        p1 /= 100.0f ;
+        p2 /= 100.0f ;
+        prior /= 100.0f ;
+        p1 *= prior ;
+        p2 *= (1.0f-prior) ;
         p = p1 / (p1 + p2);
         *pdst++ = (BUFTYPE)nint(p*100.0f) ;
       }
@@ -48,15 +83,17 @@ MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst)
   return(mri_dst) ;
 }
 MRI *
-MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean, 
-                                 MRI *mri_std, MRI *mri_dst)
+MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean,
+                                   MRI *mri_std, MRI *mri_dst)
 {
   int       x, y, z, width, height, depth ;
   BUFTYPE   *pT1, *pmean, *pstd ;
   float     p, mean, std, val, n, *pdst ;
 
 
-  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+  width = mri_T1->width ;
+  height = mri_T1->height ;
+  depth = mri_T1->depth ;
 
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
@@ -73,7 +110,9 @@ MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean,
       {
         if (DEBUG_POINT(x,y,z))
           DiagBreak() ;
-        val = (float)*pT1++ ; mean = (float)*pmean++ ; std = (float)*pstd++ ;
+        val = (float)*pT1++ ;
+        mean = (float)*pmean++ ;
+        std = (float)*pstd++ ;
         if (FZERO(std))
           std = 1.0 ;
 #if 0
@@ -94,29 +133,34 @@ MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean,
            Description:
 ----------------------------------------------------------------------*/
 MRI *
-MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, 
-                             float threshold, int nsize)
+MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst,
+                                       float threshold, int nsize)
 {
   BUFTYPE   *pprob, out_val ;
   int       width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi,
-            xmin, xmax, ymin, ymax, zmin, zmax, nchanged ;
+  xmin, xmax, ymin, ymax, zmin, zmax, nchanged ;
   float     nvox ;
 
   if (mri_prob->type != MRI_UCHAR)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "MRI3Dthreshold: prob must be MRI_UCHAR")) ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
 
   /* now apply the inverse morph to build an average wm representation
-     of the input volume 
+     of the input volume
      */
 
-  xmin = width ; ymin = height ; zmin = depth ; xmax = ymax = zmax = 0 ;
+  xmin = width ;
+  ymin = height ;
+  zmin = depth ;
+  xmax = ymax = zmax = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -142,7 +186,7 @@ MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst
       }
     }
   }
-  xmin = MAX(xmin-nsize, 0) ; 
+  xmin = MAX(xmin-nsize, 0) ;
   ymin = MAX(ymin-nsize, 0) ;
   zmin = MAX(zmin-nsize, 0) ;
   xmax = MIN(xmax+nsize, width-1) ;
@@ -219,28 +263,33 @@ MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst
 ----------------------------------------------------------------------*/
 MRI *
 MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,MRI *mri_dst,
-                             float threshold, int nsize, int out_label)
+                                      float threshold, int nsize, int out_label)
 {
   BUFTYPE   *pprob, out_val ;
   int       width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi,
-            xmin, xmax, ymin, ymax, zmin, zmax, nchanged ;
+  xmin, xmax, ymin, ymax, zmin, zmax, nchanged ;
   float     nvox ;
 
   if (mri_prob->type != MRI_UCHAR)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "MRI3Dthreshold: prob must be MRI_UCHAR")) ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
 
   /* now apply the inverse morph to build an average wm representation
-     of the input volume 
+     of the input volume
      */
 
-  xmin = width ; ymin = height ; zmin = depth ; xmax = ymax = zmax = 0 ;
+  xmin = width ;
+  ymin = height ;
+  zmin = depth ;
+  xmax = ymax = zmax = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -266,7 +315,7 @@ MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,MRI *mri_dst,
       }
     }
   }
-  xmin = MAX(xmin-nsize, 0) ; 
+  xmin = MAX(xmin-nsize, 0) ;
   ymin = MAX(ymin-nsize, 0) ;
   zmin = MAX(zmin-nsize, 0) ;
   xmax = MIN(xmax+nsize, width-1) ;
@@ -279,7 +328,9 @@ MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,MRI *mri_dst,
 
 #if 0
   xmin = ymin = zmin = 0 ;
-  xmax = width-1 ; ymax = height-1 ; zmax = depth-1 ;
+  xmax = width-1 ;
+  ymax = height-1 ;
+  zmax = depth-1 ;
 #endif
 
   nchanged = 0 ;
@@ -324,7 +375,7 @@ MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,MRI *mri_dst,
 }
 
 MRI *
-MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, 
+MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst,
                         float threshold, int out_label)
 {
   BUFTYPE   *pprob, *pdst, *psrc, out_val, prob, in_val ;
@@ -332,15 +383,17 @@ MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst,
   float     nvox ;
 
   if (mri_prob->type != MRI_UCHAR)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "MRI3Dthreshold: prob must be MRI_UCHAR")) ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
   /* now apply the inverse morph to build an average wm representation
-     of the input volume 
+     of the input volume
      */
 
 

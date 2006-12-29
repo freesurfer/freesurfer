@@ -1,8 +1,36 @@
 /**
+ * @file  version.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.25 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+/**
  * @file   version.c
  * @author $Author: nicks $
- * @date   $Date: 2006/04/17 20:07:05 $
- *         $Revision: 1.24 $
+ * @date   $Date: 2006/12/29 01:49:40 $
+ *         $Revision: 1.25 $
  * @brief  freesurfer version functions defined here
  *
  *
@@ -112,18 +140,18 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   struct passwd *pw;
 
   if (strlen(version_string) > 7)
+  {
+    strcpy (stripped_version_string, &(version_string[7]));
+    length = strlen (stripped_version_string);
+    if (length > 2)
     {
-      strcpy (stripped_version_string, &(version_string[7]));
-      length = strlen (stripped_version_string);
-      if (length > 2)
-        {
-          stripped_version_string[length-2] = '\0';
-        }
+      stripped_version_string[length-2] = '\0';
     }
+  }
   else
-    {
-      strcpy (stripped_version_string, version_string);
-    }
+  {
+    strcpy (stripped_version_string, version_string);
+  }
 
   begin = argv[0];
   strcpy (program_name, begin);
@@ -131,11 +159,11 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   /* Copy the arguments to the arguments string. */
   strcpy (arguments, "");
   if (argc > 1)
-    {
-      strcpy (arguments, argv[1]);
-      for (nnarg = 2; nnarg < argc; nnarg++)
-        sprintf (arguments, "%s %s", arguments, argv[nnarg]);
-    }
+  {
+    strcpy (arguments, argv[1]);
+    for (nnarg = 2; nnarg < argc; nnarg++)
+      sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+  }
 
   /* Find the time string. */
   seconds = time(NULL);
@@ -161,16 +189,16 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   /* Call uname to get the machine. */
   result = uname (&kernel_info);
   if (0 != result)
-    {
-      //fprintf (stderr, "uname() returned %d\n", result);
-      strcpy (machine, "UNKNOWN");
-      strcpy (platform_version, "UNKNOWN");
-    }
+  {
+    //fprintf (stderr, "uname() returned %d\n", result);
+    strcpy (machine, "UNKNOWN");
+    strcpy (platform_version, "UNKNOWN");
+  }
   else
-    {
-      strcpy (machine, kernel_info.nodename);
-      strcpy (platform_version, kernel_info.release);
-    }
+  {
+    strcpy (machine, kernel_info.nodename);
+    strcpy (platform_version, kernel_info.release);
+  }
 
   /* Build the info string. */
   sprintf (return_string, "%s %s "
@@ -219,151 +247,151 @@ handle_version_option (int argc, char** argv,
   /* Go through each option looking for --version, -version,
      --all-info, or -all-info */
   for (narg = 1; narg < argc; narg++)
+  {
+    option = argv[narg];
+
+    if (!strncmp(option,"--version",9) ||
+        !strncmp(option,"-version",8))
     {
-      option = argv[narg];
-
-      if (!strncmp(option,"--version",9) ||
-          !strncmp(option,"-version",8))
-        {
 #if 0
-          /* Since BIRN is now using --all-info to get version stuff,
-             I want to keep this as simple as possible. So I'm
-             commenting out some of this stuff, let's see if anybody
-             complains. */
+      /* Since BIRN is now using --all-info to get version stuff,
+         I want to keep this as simple as possible. So I'm
+         commenting out some of this stuff, let's see if anybody
+         complains. */
 
-          /* Print out the entire command line. */
-          for (nnarg = 0; nnarg < argc; nnarg++)
-            fprintf (stdout, "%s ", argv[nnarg]);
-          fprintf (stdout, "\n");
+      /* Print out the entire command line. */
+      for (nnarg = 0; nnarg < argc; nnarg++)
+        fprintf (stdout, "%s ", argv[nnarg]);
+      fprintf (stdout, "\n");
 
-          fprintf (stdout, "%s Platform: %s C lib: %d\n",
-                   id_string, PLATFORM, COMPILER_VERSION);
+      fprintf (stdout, "%s Platform: %s C lib: %d\n",
+               id_string, PLATFORM, COMPILER_VERSION);
 #else
-          /* Strip the "{Name: " and "}" from the id string. */
-          if (strlen(version_string) > 7)
-            {
-              strcpy (stripped_version_string, &(version_string[7]));
-              length = strlen (stripped_version_string);
-              if (length > 2)
-                {
-                  stripped_version_string[length-2] = '\0';
-                }
-            }
-          else
-            {
-              strcpy (stripped_version_string, version_string);
-            }
+      /* Strip the "{Name: " and "}" from the id string. */
+      if (strlen(version_string) > 7)
+      {
+        strcpy (stripped_version_string, &(version_string[7]));
+        length = strlen (stripped_version_string);
+        if (length > 2)
+        {
+          stripped_version_string[length-2] = '\0';
+        }
+      }
+      else
+      {
+        strcpy (stripped_version_string, version_string);
+      }
 
-          if (strcmp(" $",stripped_version_string)==0)
-            {
-              // on the dev build, where a sticky tag does not exist,
-              // just a dollar sign is printed, which isnt very helpful,
-              // so print something...
-              strcpy(stripped_version_string,
-                     "dev build (use --all-info flag for full version info)");
-            }
-          fprintf (stdout, "%s\n", stripped_version_string);
+      if (strcmp(" $",stripped_version_string)==0)
+      {
+        // on the dev build, where a sticky tag does not exist,
+        // just a dollar sign is printed, which isnt very helpful,
+        // so print something...
+        strcpy(stripped_version_string,
+               "dev build (use --all-info flag for full version info)");
+      }
+      fprintf (stdout, "%s\n", stripped_version_string);
 
 #endif
-          num_processed_args++;
+      num_processed_args++;
 
-          /* Copy later args one step back. */
-          for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
-            {
-              myarg=malloc(strlen(argv[nnarg+1])+1);
-              strcpy (myarg, argv[nnarg+1]);
-              argv[nnarg]=myarg;
-            }
-        }
-
-      if (!strncmp(option,"--all-info",11) ||
-          !strncmp(option,"-all-info",10))
-        {
-
-          /* Copy argv[0] without the path into program_name. */
-          begin = strrchr (argv[0], (int)'/');
-          if (NULL == begin)
-            {
-              begin = argv[0];
-            }
-          else
-            {
-              begin = begin + 1;
-            }
-          strcpy (program_name, begin);
-
-          /* Copy the arguments to the arguments string. */
-          strcpy (arguments, "");
-          if (argc > 1)
-            {
-              strcpy (arguments, argv[1]);
-              for (nnarg = 2; nnarg < argc; nnarg++)
-                sprintf (arguments, "%s %s", arguments, argv[nnarg]);
-            }
-
-          /* Find the time string. */
-          seconds = time(NULL);
-          gmtime_r (&seconds, &broken_time);
-          sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
-                   broken_time.tm_year%100, /* mod here to change 103 to 03 */
-                   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
-                   broken_time.tm_mday, broken_time.tm_hour,
-                   broken_time.tm_min, broken_time.tm_sec);
-
-          /* As suggested by the getlogin() manpage, use getpwuid(geteuid())
-             to get the user controlling this process. don't use getlogin()
-             as that returns the name of the user logged in on the controlling
-             terminal of the process (ie the person sitting at the terminal),
-             and don't use cuserid() because the manpage says not to.
-          */
-          pw = getpwuid(geteuid());
-          if ((pw != NULL) && (pw->pw_name != NULL))
-            strcpy (user, pw->pw_name);
-          else
-            strcpy(user, "UNKNOWN") ;
-
-          /* Call uname to get the machine. */
-          result = uname (&kernel_info);
-          if (0 != result)
-            {
-              //fprintf (stderr, "uname() returned %d\n", result);
-              strcpy (machine, "UNKNOWN");
-              strcpy (platform_version, "UNKNOWN");
-            }
-          else
-            {
-              strcpy (machine, kernel_info.nodename);
-              strcpy (platform_version, kernel_info.release);
-            }
-
-          /* Build the info string. */
-          fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
-                   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-                   "Machine: %s Platform: %s PlatformVersion: %s "
-                   "CompilerName: %s CompilerVersion: %d\n",
-                   program_name,
-                   arguments,
-                   version_string,
-                   time_stamp,
-                   id_string,
-                   user,
-                   machine,
-                   PLATFORM,
-                   platform_version,
-                   COMPILER_NAME,
-                   COMPILER_VERSION);
-
-          num_processed_args++;
-
-          /* Copy later args one step back. */
-          for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
-            {
-              myarg=malloc(strlen(argv[nnarg+1])+1);
-              strcpy (myarg, argv[nnarg+1]);
-              argv[nnarg]=myarg;
-            }
-        }
+      /* Copy later args one step back. */
+      for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+      {
+        myarg=malloc(strlen(argv[nnarg+1])+1);
+        strcpy (myarg, argv[nnarg+1]);
+        argv[nnarg]=myarg;
+      }
     }
+
+    if (!strncmp(option,"--all-info",11) ||
+        !strncmp(option,"-all-info",10))
+    {
+
+      /* Copy argv[0] without the path into program_name. */
+      begin = strrchr (argv[0], (int)'/');
+      if (NULL == begin)
+      {
+        begin = argv[0];
+      }
+      else
+      {
+        begin = begin + 1;
+      }
+      strcpy (program_name, begin);
+
+      /* Copy the arguments to the arguments string. */
+      strcpy (arguments, "");
+      if (argc > 1)
+      {
+        strcpy (arguments, argv[1]);
+        for (nnarg = 2; nnarg < argc; nnarg++)
+          sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+      }
+
+      /* Find the time string. */
+      seconds = time(NULL);
+      gmtime_r (&seconds, &broken_time);
+      sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+               broken_time.tm_year%100, /* mod here to change 103 to 03 */
+               broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+               broken_time.tm_mday, broken_time.tm_hour,
+               broken_time.tm_min, broken_time.tm_sec);
+
+      /* As suggested by the getlogin() manpage, use getpwuid(geteuid())
+         to get the user controlling this process. don't use getlogin()
+         as that returns the name of the user logged in on the controlling
+         terminal of the process (ie the person sitting at the terminal),
+         and don't use cuserid() because the manpage says not to.
+      */
+      pw = getpwuid(geteuid());
+      if ((pw != NULL) && (pw->pw_name != NULL))
+        strcpy (user, pw->pw_name);
+      else
+        strcpy(user, "UNKNOWN") ;
+
+      /* Call uname to get the machine. */
+      result = uname (&kernel_info);
+      if (0 != result)
+      {
+        //fprintf (stderr, "uname() returned %d\n", result);
+        strcpy (machine, "UNKNOWN");
+        strcpy (platform_version, "UNKNOWN");
+      }
+      else
+      {
+        strcpy (machine, kernel_info.nodename);
+        strcpy (platform_version, kernel_info.release);
+      }
+
+      /* Build the info string. */
+      fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
+               "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+               "Machine: %s Platform: %s PlatformVersion: %s "
+               "CompilerName: %s CompilerVersion: %d\n",
+               program_name,
+               arguments,
+               version_string,
+               time_stamp,
+               id_string,
+               user,
+               machine,
+               PLATFORM,
+               platform_version,
+               COMPILER_NAME,
+               COMPILER_VERSION);
+
+      num_processed_args++;
+
+      /* Copy later args one step back. */
+      for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+      {
+        myarg=malloc(strlen(argv[nnarg+1])+1);
+        strcpy (myarg, argv[nnarg+1]);
+        argv[nnarg]=myarg;
+      }
+    }
+  }
 
   /* Return the number of arguments processed. */
   return num_processed_args;
@@ -378,10 +406,11 @@ char *argv2cmdline(int argc, char *argv[])
   char *cmdline;
 
   len = 0;
-  for(n=0; n<argc; n++) len += strlen(argv[n]);
+  for (n=0; n<argc; n++) len += strlen(argv[n]);
 
   cmdline = (char *) calloc(sizeof(char),len+n+1);
-  for(n=0; n<argc; n++){
+  for (n=0; n<argc; n++)
+  {
     strcat(cmdline,argv[n]);
     strcat(cmdline," ");
   }
@@ -424,7 +453,8 @@ char *VERfileTimeStamp(char *fname)
   char *timestamp, tmpstr[1000];
 
   err = stat(fname, &buf);
-  if(err){
+  if (err)
+  {
     printf("ERROR: stating file %s\n",fname);
     return(NULL);
   }

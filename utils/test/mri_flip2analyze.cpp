@@ -1,17 +1,46 @@
 /**
+ * @file  mri_flip2analyze.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:45 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+/**
  * @file   mri_flip2analyze.cpp
  * @author Yasunari Tosa
  * @date   Wed Dec 22 13:32:49 2004
- * 
+ *
  * @brief  flip axis direction to analyze orient 0 direction
- * 
- * 
+ *
+ *
  */
 
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+extern "C"
+{
 #include "mri.h"
 
   char *Progname = "mri_flip2analyze";
@@ -36,15 +65,15 @@ int main(int argc, char *argv[])
   //        0 0 c      0 b 0     0 b 0     0 0 c     a 0 0     a 0 0  where a, b, c = +/- 1
   //
   // analyze orient = 0 is  LAS
-  //       -1 0 0        
+  //       -1 0 0
   //        0 1 0
   //        0 0 1
   /////////////////////////////////////////////////////////////////////////////////////
 
-  int which_xras = ( fabs(src->x_r) > fabs(src->x_a) ) ? 
-    ( ( fabs(src->x_r) > fabs(src->x_s) ) ?  0 : 2 ) :  ( (fabs(src->x_a ) > fabs(src->x_s)) ? 1 : 2); 
-  int which_yras = ( fabs(src->y_r) > fabs(src->y_a) ) ? 
-    ( ( fabs(src->y_r) > fabs(src->y_s) ) ?  0 : 2 ) :  ( (fabs(src->y_a ) > fabs(src->y_s)) ? 1 : 2) ;
+  int which_xras = ( fabs(src->x_r) > fabs(src->x_a) ) ?
+                   ( ( fabs(src->x_r) > fabs(src->x_s) ) ?  0 : 2 ) :  ( (fabs(src->x_a ) > fabs(src->x_s)) ? 1 : 2);
+  int which_yras = ( fabs(src->y_r) > fabs(src->y_a) ) ?
+                   ( ( fabs(src->y_r) > fabs(src->y_s) ) ?  0 : 2 ) :  ( (fabs(src->y_a ) > fabs(src->y_s)) ? 1 : 2) ;
 
   float dstXsize = 0.;
   float dstYsize = 0.;
@@ -55,10 +84,10 @@ int main(int argc, char *argv[])
   int dstWidth = 0;
   int dstHeight = 0;
   int dstDepth = 0;
-  switch(which_xras)
+  switch (which_xras)
   {
   case 0:
-    dstXsize = src->xsize;
+      dstXsize = src->xsize;
     if (which_yras == 1)
     {
       index = 0;
@@ -122,12 +151,22 @@ int main(int argc, char *argv[])
     break;
   }
   MRI *dst = MRIallocSequence(dstWidth, dstHeight, dstDepth, src->type, src->nframes);
-  dst->xsize = dstXsize; dst->ysize = dstYsize; dst->zsize = dstZsize;
+  dst->xsize = dstXsize;
+  dst->ysize = dstYsize;
+  dst->zsize = dstZsize;
   //set to Analyze orient = 0 orientation
-  dst->x_r = -1; dst->x_a = 0; dst->x_s = 0;
-  dst->y_r = 0; dst->y_a = 1; dst->y_s = 0;
-  dst->z_r = 0; dst->z_a = 0; dst->z_s = 1;
-  dst->c_r = 0; dst->c_a = 0; dst->c_s = 0;
+  dst->x_r = -1;
+  dst->x_a = 0;
+  dst->x_s = 0;
+  dst->y_r = 0;
+  dst->y_a = 1;
+  dst->y_s = 0;
+  dst->z_r = 0;
+  dst->z_a = 0;
+  dst->z_s = 1;
+  dst->c_r = 0;
+  dst->c_a = 0;
+  dst->c_s = 0;
   // now set the voxel values
   int dstx;
   int dsty;
@@ -135,67 +174,67 @@ int main(int argc, char *argv[])
   for (int frame=0; frame < src->nframes; frame++)
     for (int z = 0; z < src->depth; z++)
       for (int y = 0; y < src->height; y++)
-	for (int x = 0; x < src->width; x++)
-	{
-	  switch(index)
-	  {
-	    ///////////////////////////////////////////
-	  case 0:
-	    // a 0 0
-	    // 0 b 0
-	    // 0 0 c
-	    dstx = (src->x_r > 0.) ? (src->width-x-1): x;   // X
-	    dsty = (src->y_a > 0.) ? y : (src->height-y-1); // Y
-	    dstz = (src->z_s > 0.) ? z : (src->depth-z-1);  // Z
-	    break;
-	  case 1:
-	    // a 0 0
-	    // 0 0 c
-	    // 0 b 0
-	    dstx = (src->x_r > 0.) ? (src->width-x-1): x;   // X
-	    dsty = (src->z_a > 0.) ? z : (src->depth-z-1);  // Z'
-	    dstz = (src->y_s > 0.) ? y : (src->height-y-1); // Y'
-	    break;
-	    ////////////////////////////////////////////
-	  case 2:
-	    // 0 0 c
-	    // a 0 0
-	    // 0 b 0
-	    dstx = (src->z_r > 0.) ? (src->depth-z-1): z;   // Z"
-	    dsty = (src->x_a > 0.) ? x : (src->width-x-1);  // X'
-	    dstz = (src->y_s > 0.) ? y : (src->height-y-1); // Y'
-	    break;
-	  case 3:
-	    // 0 b 0
-	    // a 0 0
-	    // 0 0 c
-	    dstx = (src->y_r > 0.) ? (src->height-y-1): y; // Y"
-	    dsty = (src->x_a > 0.) ? x : (src->width-x-1); // X'
-	    dstz = (src->z_s > 0.) ? z : (src->depth-z-1); // Z
-	    break;
-	    ////////////////////////////////////////////
-	  case 4:
-	    // 0 b 0
-	    // 0 0 c
-	    // a 0 0
-	    dstx = (src->y_r > 0.) ? (src->height-y-1) : y; // Y"
-	    dsty = (src->z_a > 0.) ? z : (src->depth-z-1);  // Z'
-	    dstz = (src->x_s > 0.) ? x : (src->width-x-1);  // X"
-	    break;
-	  case 5:
-	    // 0 0 c
-	    // 0 b 0
-	    // a 0 0
-	    dstx = (src->z_r > 0.) ? (src->depth-z-1) : z;  // Z"
-	    dsty = (src->y_a > 0.) ? y : (src->height-y-1); // Y
-	    dstz = (src->x_s > 0.) ? x : (src->width-x -1); // X"
-	    break;
-	  default:
-	    cerr << "NO such case is allowed. index is out of range" << endl;
-	    return -1;
-	  }
-	  MRIsetVoxVal(dst, dstx, dsty, dstz, frame, MRIgetVoxVal(src, x, y, z, frame));
-	}
+        for (int x = 0; x < src->width; x++)
+        {
+          switch (index)
+          {
+            ///////////////////////////////////////////
+          case 0:
+            // a 0 0
+            // 0 b 0
+            // 0 0 c
+            dstx = (src->x_r > 0.) ? (src->width-x-1): x;   // X
+            dsty = (src->y_a > 0.) ? y : (src->height-y-1); // Y
+            dstz = (src->z_s > 0.) ? z : (src->depth-z-1);  // Z
+            break;
+          case 1:
+            // a 0 0
+            // 0 0 c
+            // 0 b 0
+            dstx = (src->x_r > 0.) ? (src->width-x-1): x;   // X
+            dsty = (src->z_a > 0.) ? z : (src->depth-z-1);  // Z'
+            dstz = (src->y_s > 0.) ? y : (src->height-y-1); // Y'
+            break;
+            ////////////////////////////////////////////
+          case 2:
+            // 0 0 c
+            // a 0 0
+            // 0 b 0
+            dstx = (src->z_r > 0.) ? (src->depth-z-1): z;   // Z"
+            dsty = (src->x_a > 0.) ? x : (src->width-x-1);  // X'
+            dstz = (src->y_s > 0.) ? y : (src->height-y-1); // Y'
+            break;
+          case 3:
+            // 0 b 0
+            // a 0 0
+            // 0 0 c
+            dstx = (src->y_r > 0.) ? (src->height-y-1): y; // Y"
+            dsty = (src->x_a > 0.) ? x : (src->width-x-1); // X'
+            dstz = (src->z_s > 0.) ? z : (src->depth-z-1); // Z
+            break;
+            ////////////////////////////////////////////
+          case 4:
+            // 0 b 0
+            // 0 0 c
+            // a 0 0
+            dstx = (src->y_r > 0.) ? (src->height-y-1) : y; // Y"
+            dsty = (src->z_a > 0.) ? z : (src->depth-z-1);  // Z'
+            dstz = (src->x_s > 0.) ? x : (src->width-x-1);  // X"
+            break;
+          case 5:
+            // 0 0 c
+            // 0 b 0
+            // a 0 0
+            dstx = (src->z_r > 0.) ? (src->depth-z-1) : z;  // Z"
+            dsty = (src->y_a > 0.) ? y : (src->height-y-1); // Y
+            dstz = (src->x_s > 0.) ? x : (src->width-x -1); // X"
+            break;
+          default:
+            cerr << "NO such case is allowed. index is out of range" << endl;
+            return -1;
+          }
+          MRIsetVoxVal(dst, dstx, dsty, dstz, frame, MRIgetVoxVal(src, x, y, z, frame));
+        }
 
   MRIwrite(dst, argv[2]);
   MRIfree(&src);

@@ -153,129 +153,129 @@ double incbet(), incbi(), pow(), log1p(), expm1();
 #endif
 
 double bdtrc( k, n, p )
-     int k, n;
-     double p;
+int k, n;
+double p;
 {
   double dk, dn;
 
-  if( (p < 0.0) || (p > 1.0) )
+  if ( (p < 0.0) || (p > 1.0) )
     goto domerr;
-  if( k < 0 )
+  if ( k < 0 )
     return( 1.0 );
 
-  if( n < k )
-    {
-    domerr:
-      mtherr( "bdtrc", DOMAIN );
-      return( 0.0 );
-    }
+  if ( n < k )
+  {
+domerr:
+    mtherr( "bdtrc", DOMAIN );
+    return( 0.0 );
+  }
 
-  if( k == n )
+  if ( k == n )
     return( 0.0 );
   dn = n - k;
-  if( k == 0 )
-    {
-      if( p < .01 )
-        dk = -expm1( dn * log1p(-p) );
-      else
-        dk = 1.0 - pow( 1.0-p, dn );
-    }
+  if ( k == 0 )
+  {
+    if ( p < .01 )
+      dk = -expm1( dn * log1p(-p) );
+    else
+      dk = 1.0 - pow( 1.0-p, dn );
+  }
   else
-    {
-      dk = k + 1;
-      dk = incbet( dk, dn, p );
-    }
+  {
+    dk = k + 1;
+    dk = incbet( dk, dn, p );
+  }
   return( dk );
 }
 
 
 double bdtr( k, n, p )
-     int k, n;
-     double p;
+int k, n;
+double p;
 {
   double dk, dn;
 
-  if( (p < 0.0) )
-    {
-      mtherr( "bdtr (p < 0.0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (p > 1.0) )
-    {
-      mtherr( "bdtr (p > 1.0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (k < 0) )
-    {
-      mtherr( "bdtr (k < 0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (n < k) )
-    {
-      mtherr( "bdtr (n < k)", DOMAIN );
-      return( 0.0 );
-    }
+  if ( (p < 0.0) )
+  {
+    mtherr( "bdtr (p < 0.0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (p > 1.0) )
+  {
+    mtherr( "bdtr (p > 1.0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (k < 0) )
+  {
+    mtherr( "bdtr (k < 0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (n < k) )
+  {
+    mtherr( "bdtr (n < k)", DOMAIN );
+    return( 0.0 );
+  }
 
-  if( k == n )
+  if ( k == n )
     return( 1.0 );
 
   dn = n - k;
-  if( k == 0 )
-    {
-      dk = pow( 1.0-p, dn );
-    }
+  if ( k == 0 )
+  {
+    dk = pow( 1.0-p, dn );
+  }
   else
-    {
-      dk = k + 1;
-      dk = incbet( dn, dk, 1.0 - p );
-    }
+  {
+    dk = k + 1;
+    dk = incbet( dn, dk, 1.0 - p );
+  }
   return( dk );
 }
 
 
 double bdtri( k, n, y )
-     int k, n;
-     double y;
+int k, n;
+double y;
 {
   double dk, dn, p;
 
-  if( (y < 0.0) )
-    {
-      mtherr( "bdtri (y < 0.0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (y > 1.0) )
-    {
-      mtherr( "bdtri (y > 1.0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (k < 0) )
-    {
-      mtherr( "bdtri (k < 0)", DOMAIN );
-      return( 0.0 );
-    }
-  if( (n <= k) )
-    {
-      mtherr( "bdtri (n <= k)", DOMAIN );
-      return( 0.0 );
-    }
+  if ( (y < 0.0) )
+  {
+    mtherr( "bdtri (y < 0.0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (y > 1.0) )
+  {
+    mtherr( "bdtri (y > 1.0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (k < 0) )
+  {
+    mtherr( "bdtri (k < 0)", DOMAIN );
+    return( 0.0 );
+  }
+  if ( (n <= k) )
+  {
+    mtherr( "bdtri (n <= k)", DOMAIN );
+    return( 0.0 );
+  }
 
   dn = n - k;
-  if( k == 0 )
-    {
-      if( y > 0.8 )
-        p = -expm1( log1p(y-1.0) / dn );
-      else
-        p = 1.0 - pow( y, 1.0/dn );
-    }
+  if ( k == 0 )
+  {
+    if ( y > 0.8 )
+      p = -expm1( log1p(y-1.0) / dn );
+    else
+      p = 1.0 - pow( y, 1.0/dn );
+  }
   else
-    {
-      dk = k + 1;
-      p = incbet( dn, dk, 0.5 );
-      if( p > 0.5 )
-        p = incbi( dk, dn, 1.0-y );
-      else
-        p = 1.0 - incbi( dn, dk, y );
-    }
+  {
+    dk = k + 1;
+    p = incbet( dn, dk, 0.5 );
+    if ( p > 0.5 )
+      p = incbi( dk, dn, 1.0-y );
+    else
+      p = 1.0 - incbi( dn, dk, y );
+  }
   return( p );
 }

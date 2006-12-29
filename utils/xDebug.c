@@ -1,3 +1,31 @@
+/**
+ * @file  xDebug.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:41 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
@@ -19,13 +47,17 @@ char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
 int  mCurrentStackDepth = 0;
 void (*mSegfaultFunction)(int) = NULL;
 
-void xDbg_Init ( char* isFileName ) {
+void xDbg_Init ( char* isFileName )
+{
 
   char sFileName[256] = "";
 
-  if( isFileName == NULL ) {
+  if ( isFileName == NULL )
+  {
     strcpy( sFileName, ".xdebug" );
-  } else {
+  }
+  else
+  {
 #ifdef IRIX
     sprintf( sFileName, ".xdebug_%s", isFileName );
 #else
@@ -34,165 +66,195 @@ void xDbg_Init ( char* isFileName ) {
   }
 
   /* if env variable is defined, check it and set debug type if something is
-     requested. do file if nothing is recognizable. otherwise try to do 
+     requested. do file if nothing is recognizable. otherwise try to do
      file. */
-  xDbg_gsRequest = getenv( "XDEBUG" );                   
-  if( NULL == xDbg_gsRequest ) {                         
-    xDbg_gType = xDebug_File;                            
-  } else {                                              
-    if( strcmp( "file", xDbg_gsRequest ) == 0 )
-      xDbg_gType = xDebug_File;                          
-    else if( strcmp( "stderr", xDbg_gsRequest ) == 0 )   
-      xDbg_gType = xDebug_Print;                         
-    else if( strcmp( "none", xDbg_gsRequest ) == 0 )     
-      xDbg_gType = xDebug_Nothing;                       
-    else                                                 
-      xDbg_gType = xDebug_Print;                         
-  }                                                      
-  if( xDebug_File == xDbg_gType ) {                      
-    xDbg_gStream = fopen( sFileName, "w" );      
-    if( NULL == xDbg_gStream ) {
+  xDbg_gsRequest = getenv( "XDEBUG" );
+  if ( NULL == xDbg_gsRequest )
+  {
+    xDbg_gType = xDebug_File;
+  }
+  else
+  {
+    if ( strcmp( "file", xDbg_gsRequest ) == 0 )
+      xDbg_gType = xDebug_File;
+    else if ( strcmp( "stderr", xDbg_gsRequest ) == 0 )
+      xDbg_gType = xDebug_Print;
+    else if ( strcmp( "none", xDbg_gsRequest ) == 0 )
+      xDbg_gType = xDebug_Nothing;
+    else
+      xDbg_gType = xDebug_Print;
+  }
+  if ( xDebug_File == xDbg_gType )
+  {
+    xDbg_gStream = fopen( sFileName, "w" );
+    if ( NULL == xDbg_gStream )
+    {
       fprintf( stdout, "Couldn't create output file %s", sFileName );
       fflush( stdout );
       xDbg_gType= xDebug_Nothing;
     }
-  }                                                      
-  if( xDebug_Print == xDbg_gType )                       
-    xDbg_gStream = stderr;                              
-  if( xDebug_Nothing == xDbg_gType ) {                 
-    xDbg_gbOutput = FALSE;                            
-  } else {                                             
-    xDbg_gbOutput = TRUE;                               
-  }  
+  }
+  if ( xDebug_Print == xDbg_gType )
+    xDbg_gStream = stderr;
+  if ( xDebug_Nothing == xDbg_gType )
+  {
+    xDbg_gbOutput = FALSE;
+  }
+  else
+  {
+    xDbg_gbOutput = TRUE;
+  }
 
   mCurrentStackDepth = 0;
   mSegfaultFunction = NULL;
   signal( SIGSEGV, xDbg_SegfaultHandler );
 }
 
-void xDbg_RegisterSegfaultHandler ( void(*iFunction)(int) ) {
+void xDbg_RegisterSegfaultHandler ( void(*iFunction)(int) )
+{
 
   mSegfaultFunction = iFunction;
 }
 
-void xDbg_ShutDown () {
+void xDbg_ShutDown ()
+{
 
   /* close file if we opened it */
-  if( xDebug_File == xDbg_gType                     
-      && NULL != xDbg_gStream )                     
+  if ( xDebug_File == xDbg_gType
+       && NULL != xDbg_gStream )
     fclose( xDbg_gStream );
 }
 
 
-void xDbg_PrintStatus () {
+void xDbg_PrintStatus ()
+{
 
   fprintf( stderr, "output = %d\n", (int)xDbg_gbOutput );
   fprintf( stderr, "type = %s\n",
-     (xDbg_gType == xDebug_Nothing) ? "nothing" :
-     (xDbg_gType == xDebug_Print) ? "print" :
-     (xDbg_gType == xDebug_File) ? "file" : "" );
-  fprintf( stderr, "env var = %s\n", 
-     (xDbg_gsRequest != NULL) ? xDbg_gsRequest : "undefined" );
-  if( xDbg_gStream == stderr ) 
+           (xDbg_gType == xDebug_Nothing) ? "nothing" :
+           (xDbg_gType == xDebug_Print) ? "print" :
+           (xDbg_gType == xDebug_File) ? "file" : "" );
+  fprintf( stderr, "env var = %s\n",
+           (xDbg_gsRequest != NULL) ? xDbg_gsRequest : "undefined" );
+  if ( xDbg_gStream == stderr )
     fprintf( stderr, "stream = stderr\n" );
-  else if( NULL != xDbg_gStream )
+  else if ( NULL != xDbg_gStream )
     fprintf( stderr, "stream = probably a file\n" );
   else
     fprintf( stderr, "stream = NULL\n" );
 }
 
-void xDbg_PushStack ( char* isTitle, char* isNote ) {
+void xDbg_PushStack ( char* isTitle, char* isNote )
+{
 
-  if( mCurrentStackDepth+1 < xDbg_knMaxStackDepth ) {
-    
-    strncpy( masStackTitle[mCurrentStackDepth], isTitle, 
-	     xDbg_knMaxDescLength );
-    strncpy( masStackNote[mCurrentStackDepth], isNote, 
-	     xDbg_knMaxDescLength );
-    
+  if ( mCurrentStackDepth+1 < xDbg_knMaxStackDepth )
+  {
+
+    strncpy( masStackTitle[mCurrentStackDepth], isTitle,
+             xDbg_knMaxDescLength );
+    strncpy( masStackNote[mCurrentStackDepth], isNote,
+             xDbg_knMaxDescLength );
+
     ++mCurrentStackDepth;
-  } else {
-    
+  }
+  else
+  {
+
     DebugPrint( ("Stack limit reached, can't store name.\n" ) );
   }
 }
 
-void xDbg_PopStack () {
+void xDbg_PopStack ()
+{
 
-  if( mCurrentStackDepth-1 >= 0 ) {
+  if ( mCurrentStackDepth-1 >= 0 )
+  {
 
     --mCurrentStackDepth;
 
-    strncpy( xDbg_sStackDesc, masStackTitle[mCurrentStackDepth], 
-	     xDbg_knMaxDescLength );
-    strncpy( xDbg_sCurNoteDesc, masStackNote[mCurrentStackDepth], 
-	     xDbg_knMaxDescLength );
+    strncpy( xDbg_sStackDesc, masStackTitle[mCurrentStackDepth],
+             xDbg_knMaxDescLength );
+    strncpy( xDbg_sCurNoteDesc, masStackNote[mCurrentStackDepth],
+             xDbg_knMaxDescLength );
 
-  } else {
+  }
+  else
+  {
 
     DebugPrint( ("ERROR: xDbg_PopStack call when stack is empty.\n") );
   }
 }
 
-char* xDbg_GetCurrentFunction () {
+char* xDbg_GetCurrentFunction ()
+{
 
-  if( mCurrentStackDepth > 0 ) {
+  if ( mCurrentStackDepth > 0 )
+  {
     return masStackTitle[mCurrentStackDepth-1];
-  } else {
+  }
+  else
+  {
     return "(No current function)";
   }
 }
 
-void xDbg_PrintStack () {
+void xDbg_PrintStack ()
+{
 
   int nCurDesc = 0;
-  int nSpace   = 0; 
+  int nSpace   = 0;
 
   DebugPrint( ("xDebug stack (length: %d)\n", mCurrentStackDepth+1 ) );
 
-  strncpy( masStackTitle[mCurrentStackDepth], xDbg_sStackDesc, 
-	   xDbg_knMaxDescLength );
-  strncpy( masStackNote[mCurrentStackDepth], xDbg_sCurNoteDesc, 
-	   xDbg_knMaxDescLength );
+  strncpy( masStackTitle[mCurrentStackDepth], xDbg_sStackDesc,
+           xDbg_knMaxDescLength );
+  strncpy( masStackNote[mCurrentStackDepth], xDbg_sCurNoteDesc,
+           xDbg_knMaxDescLength );
 
-  for( nCurDesc = mCurrentStackDepth; nCurDesc >= 0; nCurDesc-- ) {
-    for( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
+  for ( nCurDesc = mCurrentStackDepth; nCurDesc >= 0; nCurDesc-- )
+  {
+    for ( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
       DebugPrint( ("  ") );
     DebugPrint( ("%02d: %s\n", nCurDesc, masStackTitle[nCurDesc]) );
-    for( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
+    for ( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
       DebugPrint( ("  ") );
     DebugPrint( ("%02d: %s\n", nCurDesc, masStackNote[nCurDesc] ) );
   }
 }
 
-void xDbg_SegfaultHandler ( int inSignal ) {
+void xDbg_SegfaultHandler ( int inSignal )
+{
 
   DebugPrint( ("\nSegfault\n%s\n", xDbg_sCurNoteDesc ) );
 
   /* Keeps us from segfaulting more than once. */
-  if( xDbg_gbSegfaulted ) {
+  if ( xDbg_gbSegfaulted )
+  {
     exit( 1 );
   }
   xDbg_gbSegfaulted = TRUE;
 
   xDbg_PrintStack();
 
-  if( NULL != mSegfaultFunction )
+  if ( NULL != mSegfaultFunction )
     mSegfaultFunction( inSignal );
 }
 
-void xDbg_Segfault () {
+void xDbg_Segfault ()
+{
 
   char* pBadPtr = 0x0;
   *pBadPtr = 1;
 }
 
 
-void xDbg_Printf ( const char* iFormat, ... ) {
+void xDbg_Printf ( const char* iFormat, ... )
+{
 
   va_list args;
 
-  if( xDbg_gbOutput ) {
+  if ( xDbg_gbOutput )
+  {
 
     va_start( args, iFormat );
     vfprintf( xDbg_gStream, iFormat, args );
@@ -202,7 +264,8 @@ void xDbg_Printf ( const char* iFormat, ... ) {
   fflush( xDbg_gStream );
 }
 
-void xDbg_SetStackDesc ( const char* iFormat, ... ) {
+void xDbg_SetStackDesc ( const char* iFormat, ... )
+{
 
 #ifdef Solaris
   strncpy( xDbg_sStackDesc, iFormat, xDbg_knMaxDescLength );
@@ -220,7 +283,8 @@ void xDbg_SetStackDesc ( const char* iFormat, ... ) {
 #endif
 }
 
-void xDbg_SetCurrentNote ( const char* iFormat, ... ) {
+void xDbg_SetCurrentNote ( const char* iFormat, ... )
+{
 
 #ifdef Solaris
   strncpy( xDbg_sCurNoteDesc, iFormat, xDbg_knMaxDescLength );
@@ -237,8 +301,9 @@ void xDbg_SetCurrentNote ( const char* iFormat, ... ) {
 #endif
 }
 
-char* xDbg_GetCurrentNote () {
-  
+char* xDbg_GetCurrentNote ()
+{
+
   return xDbg_sCurNoteDesc;
 }
 

@@ -1,3 +1,31 @@
+/**
+ * @file  sc_test.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* cdf/test.c
  *
  * Copyright (C) 2002 Jason H Stover.
@@ -45,36 +73,36 @@ sc_test (int status, const char *test_description,...)
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("*** FAIL: ");
-    }
+  {
+    failed++;
+    if (verbose)
+      printf ("*** FAIL: ");
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
 
-      printf("\n");
-      fflush (stdout);
-    }
+    printf("\n");
+    fflush (stdout);
+  }
 }
 
 int
@@ -107,71 +135,71 @@ sc_test_rel (double result, double expected, double relative_error,
   /* Check for NaN vs inf vs number */
 
   if (sc_isnan(result) || sc_isnan(expected))
-    {
-      status = sc_isnan(result) != sc_isnan(expected);
-    }
+  {
+    status = sc_isnan(result) != sc_isnan(expected);
+  }
   else if (sc_isinf(result) || sc_isinf(expected))
-    {
-      status = sc_isinf(result) != sc_isinf(expected);
-    }
+  {
+    status = sc_isinf(result) != sc_isinf(expected);
+  }
   else if (expected != 0 )
-    {
-      status = (fabs(result-expected)/fabs(expected) > relative_error) ;
-    }
+  {
+    status = (fabs(result-expected)/fabs(expected) > relative_error) ;
+  }
   else
-    {
-      status = (fabs(result) > relative_error) ;
-    }
+  {
+    status = (fabs(result) > relative_error) ;
+  }
 
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("*** FAIL: ");
+  {
+    failed++;
+    if (verbose)
+      printf ("*** FAIL: ");
 
-    }
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
-      if (status == 0)
-        {
-          if (strlen(test_description) < 45)
-            {
-              printf(" (%g observed vs %g expected)", result, expected) ;
-            }
-          else
-            {
-              printf(" (%g obs vs %g exp)", result, expected) ;
-            }
-        }
+    if (status == 0)
+    {
+      if (strlen(test_description) < 45)
+      {
+        printf(" (%g observed vs %g expected)", result, expected) ;
+      }
       else
-        {
-          printf(" (%.18g observed vs %.18g expected)", result, expected) ;
-        }
-
-      printf ("\n") ;
-      fflush (stdout);
+      {
+        printf(" (%g obs vs %g exp)", result, expected) ;
+      }
     }
+    else
+    {
+      printf(" (%.18g observed vs %.18g expected)", result, expected) ;
+    }
+
+    printf ("\n") ;
+    fflush (stdout);
+  }
 }
 
 void
@@ -183,67 +211,67 @@ sc_test_abs (double result, double expected, double absolute_error,
   /* Check for NaN vs inf vs number */
 
   if (sc_isnan(result) || sc_isnan(expected))
-    {
-      status = sc_isnan(result) != sc_isnan(expected);
-    }
+  {
+    status = sc_isnan(result) != sc_isnan(expected);
+  }
   else if (sc_isinf(result) || sc_isinf(expected))
-    {
-      status = sc_isinf(result) != sc_isinf(expected);
-    }
+  {
+    status = sc_isinf(result) != sc_isinf(expected);
+  }
   else
-    {
-      status = fabs(result-expected) > absolute_error ;
-    }
+  {
+    status = fabs(result-expected) > absolute_error ;
+  }
 
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("FAIL: ");
+  {
+    failed++;
+    if (verbose)
+      printf ("FAIL: ");
 
-    }
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
-      if (status == 0)
-        {
-          if (strlen(test_description) < 45)
-            {
-              printf(" (%g observed vs %g expected)", result, expected) ;
-            }
-          else
-            {
-              printf(" (%g obs vs %g exp)", result, expected) ;
-            }
-        }
+    if (status == 0)
+    {
+      if (strlen(test_description) < 45)
+      {
+        printf(" (%g observed vs %g expected)", result, expected) ;
+      }
       else
-        {
-          printf(" (%.18g observed vs %.18g expected)", result, expected) ;
-        }
-
-      printf ("\n") ;
-      fflush (stdout);
+      {
+        printf(" (%g obs vs %g exp)", result, expected) ;
+      }
     }
+    else
+    {
+      printf(" (%.18g observed vs %.18g expected)", result, expected) ;
+    }
+
+    printf ("\n") ;
+    fflush (stdout);
+  }
 }
 
 
@@ -254,68 +282,68 @@ sc_test_factor (double result, double expected, double factor,
   int status;
 
   if (result == expected)
-    {
-      status = 0;
-    }
+  {
+    status = 0;
+  }
   else if (expected == 0.0)
-    {
-      status = (result > expected || result < expected);
-    }
+  {
+    status = (result > expected || result < expected);
+  }
   else
-    {
-      double u = result / expected;
-      status = (u > factor || u < 1.0 / factor) ;
-    }
+  {
+    double u = result / expected;
+    status = (u > factor || u < 1.0 / factor) ;
+  }
 
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("FAIL: ");
+  {
+    failed++;
+    if (verbose)
+      printf ("FAIL: ");
 
-    }
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
-      if (status == 0)
-        {
-          if (strlen(test_description) < 45)
-            {
-              printf(" (%g observed vs %g expected)", result, expected) ;
-            }
-          else
-            {
-              printf(" (%g obs vs %g exp)", result, expected) ;
-            }
-        }
+    if (status == 0)
+    {
+      if (strlen(test_description) < 45)
+      {
+        printf(" (%g observed vs %g expected)", result, expected) ;
+      }
       else
-        {
-          printf(" (%.18g observed vs %.18g expected)", result, expected) ;
-        }
-
-      printf ("\n") ;
-      fflush (stdout);
+      {
+        printf(" (%g obs vs %g exp)", result, expected) ;
+      }
     }
+    else
+    {
+      printf(" (%.18g observed vs %.18g expected)", result, expected) ;
+    }
+
+    printf ("\n") ;
+    fflush (stdout);
+  }
 }
 
 void
@@ -326,44 +354,44 @@ sc_test_int (int result, int expected, const char *test_description,...)
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("FAIL: ");
-    }
+  {
+    failed++;
+    if (verbose)
+      printf ("FAIL: ");
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
-      if (status == 0)
-        {
-          printf(" (%d observed vs %d expected)", result, expected) ;
-        }
-      else
-        {
-          printf(" (%d observed vs %d expected)", result, expected) ;
-        }
-
-      printf ("\n");
-      fflush (stdout);
+    if (status == 0)
+    {
+      printf(" (%d observed vs %d expected)", result, expected) ;
     }
+    else
+    {
+      printf(" (%d observed vs %d expected)", result, expected) ;
+    }
+
+    printf ("\n");
+    fflush (stdout);
+  }
 }
 
 void
@@ -375,40 +403,40 @@ sc_test_str (const char * result, const char * expected,
   tests++;
 
   if (status == 0)
-    {
-      passed++;
-      if (verbose)
-        printf ("PASS: ");
-    }
+  {
+    passed++;
+    if (verbose)
+      printf ("PASS: ");
+  }
   else
-    {
-      failed++;
-      if (verbose)
-        printf ("FAIL: ");
-    }
+  {
+    failed++;
+    if (verbose)
+      printf ("FAIL: ");
+  }
 
   if (verbose)
-    {
+  {
 
 #if HAVE_VPRINTF
-      va_list ap;
+    va_list ap;
 
 #ifdef STDC_HEADERS
-      va_start (ap, test_description);
+    va_start (ap, test_description);
 #else
-      va_start (ap);
+    va_start (ap);
 #endif
-      vprintf (test_description, ap);
-      va_end (ap);
+    vprintf (test_description, ap);
+    va_end (ap);
 #endif
-      if (status)
-        {
-          printf(" (%s observed vs %s expected)", result, expected) ;
-        }
-
-      printf ("\n");
-      fflush (stdout);
+    if (status)
+    {
+      printf(" (%s observed vs %s expected)", result, expected) ;
     }
+
+    printf ("\n");
+    fflush (stdout);
+  }
 }
 
 void
@@ -425,29 +453,29 @@ sc_test_summary (void)
     printf ("%d tests, passed %d, failed %d.\n", tests, passed, failed);
 
   if (failed != 0)
-    {
+  {
 
-      if (verbose && 0)         /* FIXME: turned it off, this annoys me */
-        {
-          printf ("%d TEST%s FAILED.\n", failed, failed == 1 ? "" : "S");
-        }
-      return EXIT_FAILURE;
+    if (verbose && 0)         /* FIXME: turned it off, this annoys me */
+    {
+      printf ("%d TEST%s FAILED.\n", failed, failed == 1 ? "" : "S");
     }
+    return EXIT_FAILURE;
+  }
 
   if (tests != passed + failed)
-    {
-      if (verbose)
-        printf ("TEST RESULTS DO NOT ADD UP %d != %d + %d\n",
-                tests, passed, failed);
-      return EXIT_FAILURE;
-    }
+  {
+    if (verbose)
+      printf ("TEST RESULTS DO NOT ADD UP %d != %d + %d\n",
+              tests, passed, failed);
+    return EXIT_FAILURE;
+  }
 
   if (passed == tests)
-    {
-      if (verbose && 0)         /* FIXME: turned it off, this annoys me */
-        printf ("All tests passed successfully\n");
-      return EXIT_SUCCESS;
-    }
+  {
+    if (verbose && 0)         /* FIXME: turned it off, this annoys me */
+      printf ("All tests passed successfully\n");
+    return EXIT_SUCCESS;
+  }
 
   return EXIT_FAILURE;
 }
@@ -508,111 +536,111 @@ test_auto_fdist (void)
 void
 test_auto_gaussian (void)
 {
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+10,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+09,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+08,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+07,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+06,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+05,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+04,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+03,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+02,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+01,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (7.2252292279265077e-15,1.0), 7.692307692307691, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e+00,1.0), 0.158655253931457046, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (2.2087816371245972e-01,1.0), 0.7692307692307e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000001e-01,1.0), 4.601721627222e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (4.6934236960338749e-01,1.0), 0.0769230769230768996, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e-02,1.0), 4.960106436853e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (4.9693124349158196e-01,1.0), 0.7692307692307e-02, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e-03,1.0), 4.996010577860e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (4.9969312135303229e-01,1.0), 0.7692307692307e-03, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e-04,1.0), 0.49996010577202632, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000001e-05,1.0), 0.499996010577196059, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (9.9999999999999995e-07,1.0), 0.499999601057719623, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (9.9999999999999995e-08,1.0), 0.499999960105771968, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e-08,1.0), 0.499999996010577208, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000001e-09,1.0), 4.999999996931e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (1.0000000000000000e-10,1.0), 4.999999999693e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (0.0000000000000000e+00,1.0), 5.000000000000e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (5.0000000000000000e-01,1.0), 0.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e-10,1.0), 5.000000000307e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000001e-09,1.0), 5.000000003069e-01, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e-08,1.0), 0.500000003989422792, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-9.9999999999999995e-08,1.0), 0.500000039894228032, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-9.9999999999999995e-07,1.0), 0.500000398942280433, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000001e-05,1.0), 0.500003989422803996, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e-04,1.0), 0.50003989422797368, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e-03,1.0), 0.500398942213911013, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (5.0030687864696777e-01,1.0), -0.00076923076923092709, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e-02,1.0), 0.503989356314631598, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (5.0306875650841798e-01,1.0), -0.00769230769230770488, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000001e-01,1.0), 0.539827837277028988, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (5.3065763039661251e-01,1.0), -0.0769230769230768996, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+00,1.0), 0.841344746068542926, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Qinv, 
+  TEST(sc_cdf_gaussian_Qinv,
        (7.7912183628754028e-01,1.0), -0.769230769230769051, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+01,1.0), 1.000000000000e-00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+02,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+03,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+04,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+05,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+06,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+07,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+08,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+09,1.0), 1.000000000000e+00, TEST_TOL6);
-  TEST(sc_cdf_gaussian_Q, 
+  TEST(sc_cdf_gaussian_Q,
        (-1.0000000000000000e+10,1.0), 1.000000000000e+00, TEST_TOL6);
 }
 
@@ -876,7 +904,8 @@ test_auto_tdist (void)
 }
 
 
-void test_tdist (void) {
+void test_tdist (void)
+{
   TEST (sc_cdf_tdist_Q,
         (0.0, 1.0), 0.5, TEST_TOL6);
   TEST (sc_cdf_tdist_Q,
@@ -1049,7 +1078,8 @@ void test_tdist (void) {
         (-10000.0, 300.0), 1.0, TEST_TOL6);
 }
 
-void test_fdist (void) {
+void test_fdist (void)
+{
   TEST (sc_cdf_fdist_Q,
         (0.0, 1.2, 1.3), 1.0, TEST_TOL6);
   TEST (sc_cdf_fdist_Q,
@@ -1171,7 +1201,8 @@ void test_fdist (void) {
         (10000.0, 200.0, 500.0), 0.0, 0.0);
 }
 
-void test_chisq (void) {
+void test_chisq (void)
+{
   TEST (sc_cdf_chisq_Q,
         (0.0, 13.0), 1e0, TEST_TOL6);
   TEST (sc_cdf_chisq_Q,
@@ -1371,11 +1402,11 @@ testMoments (double (*f) (void), const char *name,
   int status;
 
   for (i = 0; i < N; i++)
-    {
-      double r = f ();
-      if (r < b && r > a)
-        count++;
-    }
+  {
+    double r = f ();
+    if (r < b && r > a)
+      count++;
+  }
 
   expected = p * N;
   sigma = fabs (count - expected) / sqrt (expected);
@@ -1410,7 +1441,7 @@ int main(int argc, char *argv[])
   test_auto_flat ();
   test_auto_chisq ();
 
-  //this fails because implementation is inaccurate for 
+  //this fails because implementation is inaccurate for
   //continuous-valued degree-of-freedom input arg (it passes for discrete
   //values, ie. test_tdist)
   //test_auto_tdist ();

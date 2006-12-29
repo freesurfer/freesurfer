@@ -1,4 +1,32 @@
-// $Id: fsenv.c,v 1.2 2006/08/08 20:12:41 greve Exp $
+/**
+ * @file  fsenv.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:32 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+// $Id: fsenv.c,v 1.3 2006/12/29 01:49:32 nicks Exp $
 
 
 #include <stdlib.h>
@@ -16,8 +44,9 @@
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
-const char *FSENVsrcVersion(void) { 
-  return("$Id: fsenv.c,v 1.2 2006/08/08 20:12:41 greve Exp $");
+const char *FSENVsrcVersion(void)
+{
+  return("$Id: fsenv.c,v 1.3 2006/12/29 01:49:32 nicks Exp $");
 }
 
 FSENV *FSENVgetenv(void)
@@ -26,17 +55,19 @@ FSENV *FSENVgetenv(void)
   char *pc, tmpstr[2000];
   struct utsname uts;
 
-  fsenv = (FSENV *) calloc(sizeof(FSENV),1); 
+  fsenv = (FSENV *) calloc(sizeof(FSENV),1);
 
   pc = getenv("FREESURFER_HOME");
-  if(pc == NULL){
+  if (pc == NULL)
+  {
     printf("FREESURFER_HOME not defined\n");
     return(NULL);
   }
   fsenv->FREESURFER_HOME = strcpyalloc(pc);
 
   pc = getenv("SUBJECTS_DIR");
-  if(pc == NULL){
+  if (pc == NULL)
+  {
     printf("SUBJECTS_DIR not defined\n");
     return(NULL);
   }
@@ -56,7 +87,8 @@ FSENV *FSENVgetenv(void)
   // Load the default color table
   sprintf(tmpstr,"%s/FreeSurferColorLUT.txt",fsenv->FREESURFER_HOME);
   fsenv->ctab = CTABreadASCII(tmpstr);
-  if(fsenv->ctab == NULL){
+  if (fsenv->ctab == NULL)
+  {
     printf("ERROR: reading %s\n",tmpstr);
     return(NULL);
   }

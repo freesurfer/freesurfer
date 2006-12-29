@@ -2,23 +2,23 @@
   NrrdIO: stand-alone code for basic nrrd functionality
   Copyright (C) 2005  Gordon Kindlmann
   Copyright (C) 2004, 2003, 2002, 2001, 2000, 1999, 1998  University of Utah
- 
+
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any
   damages arising from the use of this software.
- 
+
   Permission is granted to anyone to use this software for any
   purpose, including commercial applications, and to alter it and
   redistribute it freely, subject to the following restrictions:
- 
+
   1. The origin of this software must not be misrepresented; you must
      not claim that you wrote the original software. If you use this
      software in a product, an acknowledgment in the product
      documentation would be appreciated but is not required.
- 
+
   2. Altered source versions must be plainly marked as such, and must
      not be misrepresented as being the original software.
- 
+
   3. This notice may not be removed or altered from any source distribution.
 */
 
@@ -39,12 +39,13 @@
 ** -- in case of error, put text error messages into biff via
 **    biffAdd(NRRD, <error char*>)
 **
-** The "unknown" encoding below is intended to serve as a template for 
+** The "unknown" encoding below is intended to serve as a template for
 ** any new encodings being developed.
 */
 
 int
-_nrrdEncodingUnknown_available(void) {
+_nrrdEncodingUnknown_available(void)
+{
 
   /* insert code here */
 
@@ -54,7 +55,8 @@ _nrrdEncodingUnknown_available(void) {
 int
 _nrrdEncodingUnknown_read(FILE *file, void *data,
                           size_t elementNum, Nrrd *nrrd,
-                          struct NrrdIoState_t *nio) {
+                          struct NrrdIoState_t *nio)
+{
   char me[]="_nrrdEncodingUnknown_read", err[BIFF_STRLEN];
 
   /* insert code here, and remove error handling below */
@@ -72,7 +74,8 @@ _nrrdEncodingUnknown_read(FILE *file, void *data,
 int
 _nrrdEncodingUnknown_write(FILE *file, const void *data,
                            size_t elementNum, const Nrrd *nrrd,
-                           struct NrrdIoState_t *nio) {
+                           struct NrrdIoState_t *nio)
+{
   char me[]="_nrrdEncodingUnknown_write", err[BIFF_STRLEN];
 
   /* insert code here, and remove error handling below */
@@ -88,26 +91,28 @@ _nrrdEncodingUnknown_write(FILE *file, const void *data,
 }
 
 const NrrdEncoding
-_nrrdEncodingUnknown = {
-  "unknown",  /* name */
-  "unknown",  /* suffix */
-  AIR_FALSE,  /* endianMatters */
-  AIR_FALSE,  /* isCompression */
-  _nrrdEncodingUnknown_available,
-  _nrrdEncodingUnknown_read,
-  _nrrdEncodingUnknown_write
-};
+_nrrdEncodingUnknown =
+  {
+    "unknown",  /* name */
+    "unknown",  /* suffix */
+    AIR_FALSE,  /* endianMatters */
+    AIR_FALSE,  /* isCompression */
+    _nrrdEncodingUnknown_available,
+    _nrrdEncodingUnknown_read,
+    _nrrdEncodingUnknown_write
+  };
 
 const NrrdEncoding *const
 nrrdEncodingUnknown = &_nrrdEncodingUnknown;
 
 const NrrdEncoding *const
-nrrdEncodingArray[NRRD_ENCODING_TYPE_MAX+1] = {
-  &_nrrdEncodingUnknown,
-  &_nrrdEncodingRaw,
-  &_nrrdEncodingAscii,
-  &_nrrdEncodingHex,
-  &_nrrdEncodingGzip,
-  &_nrrdEncodingBzip2
-};
+nrrdEncodingArray[NRRD_ENCODING_TYPE_MAX+1] =
+  {
+    &_nrrdEncodingUnknown,
+    &_nrrdEncodingRaw,
+    &_nrrdEncodingAscii,
+    &_nrrdEncodingHex,
+    &_nrrdEncodingGzip,
+    &_nrrdEncodingBzip2
+  };
 

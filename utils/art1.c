@@ -1,3 +1,31 @@
+/**
+ * @file  art1.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:30 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)art1.c  1.1
   3/28/94
@@ -6,10 +34,13 @@
 
       File Name:   art1.c
 
-      Description:  
+      Description:
 
-  $Header: /space/repo/1/dev/dev/utils/art1.c,v 1.1 1997/03/18 18:26:29 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/art1.c,v 1.2 2006/12/29 01:49:30 nicks Exp $
   $Log: art1.c,v $
+  Revision 1.2  2006/12/29 01:49:30  nicks
+  added license header; ran astyle to set to kr and ansi code styling
+
   Revision 1.1  1997/03/18 18:26:29  fischl
   Initial revision
 
@@ -88,10 +119,10 @@ void    artFastLearn(ART1 *art1, int j) ;
 
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 ART1 *
 Art1Alloc(int ninputs, int max_f2, double rho)
@@ -119,10 +150,10 @@ Art1Alloc(int ninputs, int max_f2, double rho)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 ART1 *
 Art1Read(char *fname)
@@ -137,7 +168,7 @@ Art1Read(char *fname)
     return(NULL) ;
 
   fscanf(fp, "%d %d %d %lf %lf\n",
-    &ninputs, &noutputs, &max_f2, &beta, &rho) ;
+         &ninputs, &noutputs, &max_f2, &beta, &rho) ;
 
   art1 = Art1Alloc(ninputs, max_f2, rho) ;
   art1->noutputs = art1->noutputs ;
@@ -158,10 +189,10 @@ Art1Read(char *fname)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 Art1Write(ART1 *art1, char *fname)
@@ -175,7 +206,7 @@ Art1Write(ART1 *art1, char *fname)
     return(-1) ;
 
   fprintf(fp, "%d %d %d %f %f\n",
-    art1->ninputs, art1->noutputs, art1->max_f2, art1->beta, art1->rho) ;
+          art1->ninputs, art1->noutputs, art1->max_f2, art1->beta, art1->rho) ;
 
   for (i = 0 ; i < art1->ninputs ; i++)
   {
@@ -191,10 +222,10 @@ Art1Write(ART1 *art1, char *fname)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 Art1Free(ART1 **art1)
@@ -211,10 +242,10 @@ Art1Free(ART1 **art1)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 Art1Process(ART1 *art1, double *I)
@@ -234,9 +265,10 @@ Art1Process(ART1 *art1, double *I)
   {
     art1->class = class = artFeedForward(art1) ;
     if (class < 0) break ;    /* no classes left */
-  } while (!artFeedBack(art1, class)) ;
+  }
+  while (!artFeedBack(art1, class)) ;
 
-  
+
   if (class < 0)     /* no prior match was enough to establish resonance */
   {
     if (art1->noutputs >= art1->max_f2)   /* no more nodes left */
@@ -260,10 +292,10 @@ Art1Process(ART1 *art1, double *I)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 void
 artInitWeights(ART1 *art1)
@@ -282,8 +314,8 @@ artInitWeights(ART1 *art1)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
       feed the active f2 nodes activation back through the top down weights
       to f1.  Return 1 if resonance is established, 0 if there is a mismatch.
 
@@ -293,7 +325,7 @@ artInitWeights(ART1 *art1)
               --------
                 |I|
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 int
 artFeedBack(ART1 *art1, int class)
@@ -327,10 +359,10 @@ artFeedBack(ART1 *art1, int class)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 artFeedForward(ART1 *art1)
@@ -354,21 +386,21 @@ artFeedForward(ART1 *art1)
     }
   }
 
-  if (Gdiag & DIAG_WRITE) 
+  if (Gdiag & DIAG_WRITE)
     printf("artFeedForward() --> %d (%2.3f)\n", max_j, max_out) ;
   return(max_j) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
        calculate the choice function for an f2 node:
 
        Tj =    |I ^ zj|  = Zj . I
-            ------------ 
+            ------------
       BETA + |zj|
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 double
 artChoice(ART1 *art1, int j)

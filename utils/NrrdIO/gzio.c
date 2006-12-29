@@ -2,26 +2,26 @@
   NrrdIO: stand-alone code for basic nrrd functionality
   Copyright (C) 2005  Gordon Kindlmann
   Copyright (C) 2004, 2003, 2002, 2001, 2000, 1999, 1998  University of Utah
- 
+
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any
   damages arising from the use of this software.
- 
+
   Permission is granted to anyone to use this software for any
   purpose, including commercial applications, and to alter it and
   redistribute it freely, subject to the following restrictions:
- 
+
   1. The origin of this software must not be misrepresented; you must
      not claim that you wrote the original software. If you use this
      software in a product, an acknowledgment in the product
      documentation would be appreciated but is not required.
- 
+
   2. Altered source versions must be plainly marked as such, and must
      not be misrepresented as being the original software.
- 
+
   3. This notice may not be removed or altered from any source distribution.
 */
-/* 
+/*
   This file is a modified version of the 'gzio.c' and 'zutil.h' source
   files from the zlib 1.1.4 distribution.
 
@@ -89,7 +89,8 @@
 #define _NRRD_COMMENT      0x10 /* bit 4 set: file comment present */
 #define _NRRD_RESERVED     0xE0 /* bits 5..7: reserved */
 
-typedef struct _NrrdGzStream {
+typedef struct _NrrdGzStream
+{
   z_stream stream;
   int      z_err;   /* error code for last stream operation */
   int      z_eof;   /* set if end of input file */
@@ -101,22 +102,29 @@ typedef struct _NrrdGzStream {
   int      transparent; /* 1 if input file is not a .gz file */
   char     mode;    /* 'w' or 'r' */
   long     startpos; /* start of compressed data in file (header skipped) */
-} _NrrdGzStream;
+}
+_NrrdGzStream;
 
-static int _nrrdGzMagic[2] = {0x1f, 0x8b}; /* gzip magic header */
+static int _nrrdGzMagic[2] =
+  {
+    0x1f, 0x8b
+  }
+  ; /* gzip magic header */
 
 /* zlib error messages */
-static const char *_nrrdGzErrMsg[10] = {
-  "need dictionary",     /* Z_NEED_DICT       2  */
-  "stream end",          /* Z_STREAM_END      1  */
-  "",                    /* Z_OK              0  */
-  "file error",          /* Z_ERRNO         (-1) */
-  "stream error",        /* Z_STREAM_ERROR  (-2) */
-  "data error",          /* Z_DATA_ERROR    (-3) */
-  "insufficient memory", /* Z_MEM_ERROR     (-4) */
-  "buffer error",        /* Z_BUF_ERROR     (-5) */
-  "incompatible version",/* Z_VERSION_ERROR (-6) */
-  ""};
+static const char *_nrrdGzErrMsg[10] =
+  {
+    "need dictionary",     /* Z_NEED_DICT       2  */
+    "stream end",          /* Z_STREAM_END      1  */
+    "",                    /* Z_OK              0  */
+    "file error",          /* Z_ERRNO         (-1) */
+    "stream error",        /* Z_STREAM_ERROR  (-2) */
+    "data error",          /* Z_DATA_ERROR    (-3) */
+    "insufficient memory", /* Z_MEM_ERROR     (-4) */
+    "buffer error",        /* Z_BUF_ERROR     (-5) */
+    "incompatible version",/* Z_VERSION_ERROR (-6) */
+    ""
+  };
 
 #define _NRRD_GZ_ERR_MSG(err) _nrrdGzErrMsg[Z_NEED_DICT-(err)]
 
@@ -155,14 +163,15 @@ int _nrrdGzWrite (gzFile file, const voidp buf, unsigned int len, unsigned int* 
 ** if it is not set appropriately.
 **
 ** The complete syntax for the mode parameter is: "(r|w[a])[0-9][f|h]".
-** 
+**
 ** Returns Z_NULL if the file could not be opened or if there was
 ** insufficient memory to allocate the (de)compression state; errno
 ** can be checked to distinguish the two cases (if errno is zero, the
 ** zlib error is Z_MEM_ERROR).
 */
 gzFile
-_nrrdGzOpen(FILE* fd, const char* mode) {
+_nrrdGzOpen(FILE* fd, const char* mode)
+{
   char me[]="_nrrdGzOpen", err[BIFF_STRLEN];
   int error;
   int level = Z_DEFAULT_COMPRESSION; /* compression level */
@@ -171,15 +180,17 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
   _NrrdGzStream *s;
   char fmode[AIR_STRLEN_MED]; /* copy of mode, without the compression level */
   char *m = fmode;
-    
-  if (!mode) {
+
+  if (!mode)
+  {
     sprintf(err, "%s: no file mode specified", me);
     biffAdd(NRRD, err);
     return Z_NULL;
   }
   /* allocate stream struct */
   s = (_NrrdGzStream *)calloc(1, sizeof(_NrrdGzStream));
-  if (!s) {
+  if (!s)
+  {
     sprintf(err, "%s: failed to allocate stream buffer", me);
     biffAdd(NRRD, err);
     return Z_NULL;
@@ -199,38 +210,52 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
   s->transparent = 0;
   /* parse mode flag */
   s->mode = '\0';
-  do {
+  do
+  {
     if (*p == 'r') s->mode = 'r';
     if (*p == 'w' || *p == 'a') s->mode = 'w';
-    if (*p >= '0' && *p <= '9') {
+    if (*p >= '0' && *p <= '9')
+    {
       level = *p - '0';
-    } else if (*p == 'f') {
+    }
+    else if (*p == 'f')
+    {
       strategy = Z_FILTERED;
-    } else if (*p == 'h') {
+    }
+    else if (*p == 'h')
+    {
       strategy = Z_HUFFMAN_ONLY;
-    } else {
+    }
+    else
+    {
       *m++ = *p; /* copy the mode */
     }
-  } while (*p++ && m != fmode + sizeof(fmode));
-  if (s->mode == '\0') {
+  }
+  while (*p++ && m != fmode + sizeof(fmode));
+  if (s->mode == '\0')
+  {
     sprintf(err, "%s: invalid file mode", me);
     biffAdd(NRRD, err);
     return _nrrdGzDestroy(s), (gzFile)Z_NULL;
   }
-    
-  if (s->mode == 'w') {
+
+  if (s->mode == 'w')
+  {
     error = deflateInit2(&(s->stream), level,
-                         Z_DEFLATED, -MAX_WBITS, _NRRD_DEF_MEM_LEVEL, 
+                         Z_DEFLATED, -MAX_WBITS, _NRRD_DEF_MEM_LEVEL,
                          strategy);
     /* windowBits is passed < 0 to suppress zlib header */
 
     s->stream.next_out = s->outbuf = (Byte*)calloc(1, _NRRD_Z_BUFSIZE);
-    if (error != Z_OK || s->outbuf == Z_NULL) {
+    if (error != Z_OK || s->outbuf == Z_NULL)
+    {
       sprintf(err, "%s: stream init failed", me);
       biffAdd(NRRD, err);
       return _nrrdGzDestroy(s), (gzFile)Z_NULL;
     }
-  } else {
+  }
+  else
+  {
     s->stream.next_in  = s->inbuf = (Byte*)calloc(1, _NRRD_Z_BUFSIZE);
 
     error = inflateInit2(&(s->stream), -MAX_WBITS);
@@ -240,7 +265,8 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
      * return Z_STREAM_END. Here the gzip CRC32 ensures that 4 bytes are
      * present after the compressed stream.
      */
-    if (error != Z_OK || s->inbuf == Z_NULL) {
+    if (error != Z_OK || s->inbuf == Z_NULL)
+    {
       sprintf(err, "%s: stream init failed", me);
       biffAdd(NRRD, err);
       return _nrrdGzDestroy(s), (gzFile)Z_NULL;
@@ -249,18 +275,20 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
   s->stream.avail_out = _NRRD_Z_BUFSIZE;
   errno = 0;
   s->file = fd;
-  if (s->file == NULL) {
+  if (s->file == NULL)
+  {
     sprintf(err, "%s: null file pointer", me);
     biffAdd(NRRD, err);
     return _nrrdGzDestroy(s), (gzFile)Z_NULL;
   }
-  if (s->mode == 'w') {
+  if (s->mode == 'w')
+  {
     /* Write a very simple .gz header: */
     fprintf(s->file, "%c%c%c%c%c%c%c%c%c%c", _nrrdGzMagic[0], _nrrdGzMagic[1],
-            Z_DEFLATED, 
-            0 /*flags*/, 
-            0,0,0,0 /*time*/, 
-            0 /*xflags*/, 
+            Z_DEFLATED,
+            0 /*flags*/,
+            0,0,0,0 /*time*/,
+            0 /*xflags*/,
             _NRRD_OS_CODE);
     s->startpos = 10L;
     /* We use 10L instead of ftell(s->file) to because ftell causes an
@@ -268,7 +296,9 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
      * startpos anyway in write mode, so this initialization is not
      * necessary.
      */
-  } else {
+  }
+  else
+  {
     _nrrdGzCheckHeader(s); /* skip the .gz header */
     s->startpos = (ftell(s->file) - s->stream.avail_in);
   }
@@ -282,19 +312,23 @@ _nrrdGzOpen(FILE* fd, const char* mode) {
 ** and deallocates the (de)compression state.
 */
 int
-_nrrdGzClose (gzFile file) {
+_nrrdGzClose (gzFile file)
+{
   char me[]="_nrrdGzClose", err[BIFF_STRLEN];
   int error;
   _NrrdGzStream *s = (_NrrdGzStream*)file;
 
-  if (s == NULL) {
+  if (s == NULL)
+  {
     sprintf(err, "%s: invalid stream", me);
     biffAdd(NRRD, err);
     return 1;
   }
-  if (s->mode == 'w') {
+  if (s->mode == 'w')
+  {
     error = _nrrdGzDoFlush(file, Z_FINISH);
-    if (error != Z_OK) {
+    if (error != Z_OK)
+    {
       sprintf(err, "%s: failed to flush pending data", me);
       biffAdd(NRRD, err);
       return _nrrdGzDestroy((_NrrdGzStream*)file);
@@ -312,27 +346,31 @@ _nrrdGzClose (gzFile file) {
 ** Returns the number of bytes actually read (0 for end of file).
 */
 int
-_nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
+_nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read)
+{
   char me[]="_nrrdGzRead", err[BIFF_STRLEN];
   _NrrdGzStream *s = (_NrrdGzStream*)file;
   Bytef *start = (Bytef*)buf; /* starting point for crc computation */
   Byte  *next_out; /* == stream.next_out but not forced far (for MSDOS) */
 
-  if (s == NULL || s->mode != 'r') {
+  if (s == NULL || s->mode != 'r')
+  {
     sprintf(err, "%s: invalid stream or file mode", me);
     biffAdd(NRRD, err);
     *read = 0;
     return 1;
   }
 
-  if (s->z_err == Z_DATA_ERROR || s->z_err == Z_ERRNO) {
+  if (s->z_err == Z_DATA_ERROR || s->z_err == Z_ERRNO)
+  {
     sprintf(err, "%s: data read error", me);
     biffAdd(NRRD, err);
     *read = 0;
     return 1;
   }
 
-  if (s->z_err == Z_STREAM_END) {
+  if (s->z_err == Z_STREAM_END)
+  {
     *read = 0;
     return 0;  /* EOF */
   }
@@ -341,13 +379,16 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
   s->stream.next_out = (Bytef*)buf;
   s->stream.avail_out = len;
 
-  while (s->stream.avail_out != 0) {
+  while (s->stream.avail_out != 0)
+  {
 
-    if (s->transparent) {
+    if (s->transparent)
+    {
       /* Copy first the lookahead bytes: */
       uInt n = s->stream.avail_in;
       if (n > s->stream.avail_out) n = s->stream.avail_out;
-      if (n > 0) {
+      if (n > 0)
+      {
         memcpy(s->stream.next_out, s->stream.next_in, n);
         next_out += n;
         s->stream.next_out = next_out;
@@ -355,7 +396,8 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
         s->stream.avail_out -= n;
         s->stream.avail_in  -= n;
       }
-      if (s->stream.avail_out > 0) {
+      if (s->stream.avail_out > 0)
+      {
         s->stream.avail_out -= fread(next_out, 1, s->stream.avail_out,
                                      s->file);
       }
@@ -366,13 +408,16 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
       *read = len;
       return 0;
     }
-    if (s->stream.avail_in == 0 && !s->z_eof) {
+    if (s->stream.avail_in == 0 && !s->z_eof)
+    {
 
       errno = 0;
       s->stream.avail_in = fread(s->inbuf, 1, _NRRD_Z_BUFSIZE, s->file);
-      if (s->stream.avail_in == 0) {
+      if (s->stream.avail_in == 0)
+      {
         s->z_eof = 1;
-        if (ferror(s->file)) {
+        if (ferror(s->file))
+        {
           s->z_err = Z_ERRNO;
           break;
         }
@@ -381,21 +426,26 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
     }
     s->z_err = inflate(&(s->stream), Z_NO_FLUSH);
 
-    if (s->z_err == Z_STREAM_END) {
+    if (s->z_err == Z_STREAM_END)
+    {
       /* Check CRC and original size */
       s->crc = crc32(s->crc, start, (uInt)(s->stream.next_out - start));
       start = s->stream.next_out;
 
-      if (_nrrdGzGetLong(s) != s->crc) {
+      if (_nrrdGzGetLong(s) != s->crc)
+      {
         s->z_err = Z_DATA_ERROR;
-      } else {
+      }
+      else
+      {
         (void)_nrrdGzGetLong(s);
         /* The uncompressed length returned by above getlong() may
          * be different from s->stream.total_out) in case of
          * concatenated .gz files. Check for such files:
          */
         _nrrdGzCheckHeader(s);
-        if (s->z_err == Z_OK) {
+        if (s->z_err == Z_OK)
+        {
           uLong total_in = s->stream.total_in;
           uLong total_out = s->stream.total_out;
 
@@ -422,11 +472,13 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read) {
 */
 int
 _nrrdGzWrite (gzFile file, const voidp buf, unsigned int len,
-              unsigned int* written) {
+              unsigned int* written)
+{
   char me[]="_nrrdGzWrite", err[BIFF_STRLEN];
   _NrrdGzStream *s = (_NrrdGzStream*)file;
 
-  if (s == NULL || s->mode != 'w') {
+  if (s == NULL || s->mode != 'w')
+  {
     sprintf(err, "%s: invalid stream or file mode", me);
     biffAdd(NRRD, err);
     *written = 0;
@@ -436,10 +488,13 @@ _nrrdGzWrite (gzFile file, const voidp buf, unsigned int len,
   s->stream.next_in = (Bytef*)buf;
   s->stream.avail_in = len;
 
-  while (s->stream.avail_in != 0) {
-    if (s->stream.avail_out == 0) {
+  while (s->stream.avail_in != 0)
+  {
+    if (s->stream.avail_out == 0)
+    {
       s->stream.next_out = s->outbuf;
-      if (fwrite(s->outbuf, 1, _NRRD_Z_BUFSIZE, s->file) != _NRRD_Z_BUFSIZE) {
+      if (fwrite(s->outbuf, 1, _NRRD_Z_BUFSIZE, s->file) != _NRRD_Z_BUFSIZE)
+      {
         s->z_err = Z_ERRNO;
         sprintf(err, "%s: failed to write to file", me);
         biffAdd(NRRD, err);
@@ -464,16 +519,20 @@ _nrrdGzWrite (gzFile file, const voidp buf, unsigned int len,
 ** IN assertion: the stream s has been sucessfully opened for reading.
 */
 static int
-_nrrdGzGetByte(_NrrdGzStream *s) {
+_nrrdGzGetByte(_NrrdGzStream *s)
+{
   char me[]="_nrrdGzGetByte", err[BIFF_STRLEN];
 
   if (s->z_eof) return EOF;
-  if (s->stream.avail_in == 0) {
+  if (s->stream.avail_in == 0)
+  {
     errno = 0;
     s->stream.avail_in = fread(s->inbuf, 1, _NRRD_Z_BUFSIZE, s->file);
-    if (s->stream.avail_in == 0) {
+    if (s->stream.avail_in == 0)
+    {
       s->z_eof = 1;
-      if (ferror(s->file)) {
+      if (ferror(s->file))
+      {
         sprintf(err, "%s: failed to read from file", me);
         biffAdd(NRRD, err);
         s->z_err = Z_ERRNO;
@@ -498,7 +557,8 @@ _nrrdGzGetByte(_NrrdGzStream *s) {
 ** for concatenated .gz files.
 */
 static void
-_nrrdGzCheckHeader(_NrrdGzStream *s) {
+_nrrdGzCheckHeader(_NrrdGzStream *s)
+{
   char me[]="_nrrdGzCheckHeader", err[BIFF_STRLEN];
   int method; /* method byte */
   int flags;  /* flags byte */
@@ -506,11 +566,14 @@ _nrrdGzCheckHeader(_NrrdGzStream *s) {
   int c;
 
   /* Check the gzip magic header */
-  for (len = 0; len < 2; len++) {
+  for (len = 0; len < 2; len++)
+  {
     c = _nrrdGzGetByte(s);
-    if (c != _nrrdGzMagic[len]) {
+    if (c != _nrrdGzMagic[len])
+    {
       if (len != 0) s->stream.avail_in++, s->stream.next_in--;
-      if (c != EOF) {
+      if (c != EOF)
+      {
         s->stream.avail_in++, s->stream.next_in--;
         s->transparent = 1;
       }
@@ -520,7 +583,8 @@ _nrrdGzCheckHeader(_NrrdGzStream *s) {
   }
   method = _nrrdGzGetByte(s);
   flags = _nrrdGzGetByte(s);
-  if (method != Z_DEFLATED || (flags & _NRRD_RESERVED) != 0) {
+  if (method != Z_DEFLATED || (flags & _NRRD_RESERVED) != 0)
+  {
     sprintf(err, "%s: gzip compression method is not deflate", me);
     biffAdd(NRRD, err);
     s->z_err = Z_DATA_ERROR;
@@ -530,19 +594,23 @@ _nrrdGzCheckHeader(_NrrdGzStream *s) {
   /* Discard time, xflags and OS code: */
   for (len = 0; len < 6; len++) (void)_nrrdGzGetByte(s);
 
-  if ((flags & _NRRD_EXTRA_FIELD) != 0) { /* skip the extra field */
+  if ((flags & _NRRD_EXTRA_FIELD) != 0)
+  { /* skip the extra field */
     len  =  (uInt)_nrrdGzGetByte(s);
     len += ((uInt)_nrrdGzGetByte(s))<<8;
     /* len is garbage if EOF but the loop below will quit anyway */
     while (len-- != 0 && _nrrdGzGetByte(s) != EOF) ;
   }
-  if ((flags & _NRRD_ORIG_NAME) != 0) { /* skip the original file name */
+  if ((flags & _NRRD_ORIG_NAME) != 0)
+  { /* skip the original file name */
     while ((c = _nrrdGzGetByte(s)) != 0 && c != EOF) ;
   }
-  if ((flags & _NRRD_COMMENT) != 0) {   /* skip the .gz file comment */
+  if ((flags & _NRRD_COMMENT) != 0)
+  {   /* skip the .gz file comment */
     while ((c = _nrrdGzGetByte(s)) != 0 && c != EOF) ;
   }
-  if ((flags & _NRRD_HEAD_CRC) != 0) {  /* skip the header crc */
+  if ((flags & _NRRD_HEAD_CRC) != 0)
+  {  /* skip the header crc */
     for (len = 0; len < 2; len++) (void)_nrrdGzGetByte(s);
   }
   s->z_err = s->z_eof ? Z_DATA_ERROR : Z_OK;
@@ -556,29 +624,37 @@ _nrrdGzCheckHeader(_NrrdGzStream *s) {
 ** closed.  Because we didn't allocate it, we shouldn't delete it.
 */
 static int
-_nrrdGzDestroy(_NrrdGzStream *s) {
+_nrrdGzDestroy(_NrrdGzStream *s)
+{
   char me[]="_nrrdGzDestroy", err[BIFF_STRLEN];
   int error = Z_OK;
 
-  if (s == NULL) {
+  if (s == NULL)
+  {
     sprintf(err, "%s: invalid stream", me);
     biffAdd(NRRD, err);
     return 1;
   }
   s->msg = (char *)airFree(s->msg);
-  if (s->stream.state != NULL) {
-    if (s->mode == 'w') {
+  if (s->stream.state != NULL)
+  {
+    if (s->mode == 'w')
+    {
       error = deflateEnd(&(s->stream));
-    } else if (s->mode == 'r') {
+    }
+    else if (s->mode == 'r')
+    {
       error = inflateEnd(&(s->stream));
     }
   }
-  if (error != Z_OK) {
+  if (error != Z_OK)
+  {
     sprintf(err, "%s: %s", me, _NRRD_GZ_ERR_MSG(error));
     biffAdd(NRRD, err);
   }
   if (s->z_err < 0) error = s->z_err;
-  if (error != Z_OK) {
+  if (error != Z_OK)
+  {
     sprintf(err, "%s: %s", me, _NRRD_GZ_ERR_MSG(error));
     biffAdd(NRRD, err);
   }
@@ -595,13 +671,15 @@ _nrrdGzDestroy(_NrrdGzStream *s) {
 ** flush is the same as in the deflate() function.
 */
 static int
-_nrrdGzDoFlush(gzFile file, int flush) {
+_nrrdGzDoFlush(gzFile file, int flush)
+{
   char me[]="_nrrdGzDoFlush", err[BIFF_STRLEN];
   uInt len;
   int done = 0;
   _NrrdGzStream *s = (_NrrdGzStream*)file;
 
-  if (s == NULL || s->mode != 'w') {
+  if (s == NULL || s->mode != 'w')
+  {
     sprintf(err, "%s: invalid stream or file mode", me);
     biffAdd(NRRD, err);
     return Z_STREAM_ERROR;
@@ -609,11 +687,14 @@ _nrrdGzDoFlush(gzFile file, int flush) {
 
   s->stream.avail_in = 0; /* should be zero already anyway */
 
-  for (;;) {
+  for (;;)
+  {
     len = _NRRD_Z_BUFSIZE - s->stream.avail_out;
 
-    if (len != 0) {
-      if ((uInt)fwrite(s->outbuf, 1, len, s->file) != len) {
+    if (len != 0)
+    {
+      if ((uInt)fwrite(s->outbuf, 1, len, s->file) != len)
+      {
         s->z_err = Z_ERRNO;
         return Z_ERRNO;
       }
@@ -627,10 +708,10 @@ _nrrdGzDoFlush(gzFile file, int flush) {
     if (len == 0 && s->z_err == Z_BUF_ERROR) s->z_err = Z_OK;
 
     /* deflate has finished flushing only when it hasn't used up
-     * all the available space in the output buffer: 
+     * all the available space in the output buffer:
      */
     done = (s->stream.avail_out != 0 || s->z_err == Z_STREAM_END);
- 
+
     if (s->z_err != Z_OK && s->z_err != Z_STREAM_END) break;
   }
   return  s->z_err == Z_STREAM_END ? Z_OK : s->z_err;
@@ -642,9 +723,11 @@ _nrrdGzDoFlush(gzFile file, int flush) {
 ** Outputs a long in LSB order to the given file.
 */
 static void
-_nrrdGzPutLong(FILE* file, uLong x) {
+_nrrdGzPutLong(FILE* file, uLong x)
+{
   int n;
-  for (n = 0; n < 4; n++) {
+  for (n = 0; n < 4; n++)
+  {
     fputc((int)(x & 0xff), file);
     x >>= 8;
   }
@@ -657,7 +740,8 @@ _nrrdGzPutLong(FILE* file, uLong x) {
 ** Sets z_err in case of error.
 */
 static uLong
-_nrrdGzGetLong(_NrrdGzStream *s) {
+_nrrdGzGetLong(_NrrdGzStream *s)
+{
   uLong x = (uLong)_nrrdGzGetByte(s);
   int c;
 
@@ -672,10 +756,11 @@ _nrrdGzGetLong(_NrrdGzStream *s) {
 #endif /* TEEM_ZLIB */
 
 /*
-** random symbol to have in object file, even when Zlib not enabled 
+** random symbol to have in object file, even when Zlib not enabled
 */
 int
-_nrrdGzDummySymbol(void) {
+_nrrdGzDummySymbol(void)
+{
   return 42;
 }
 

@@ -1,3 +1,31 @@
+/**
+ * @file  tritri.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Triangle/triangle intersection test routine,
  * by Tomas Moller, 1997.
  * See article "A Fast Triangle-Triangle Intersection Test",
@@ -17,11 +45,11 @@
 #include "tritri.h"
 #include "macros.h"
 
-/* if USE_EPSILON_TEST is true then we do a check: 
+/* if USE_EPSILON_TEST is true then we do a check:
          if |dv|<EPSILON then dv=0.0;
    else no check is done (which is less robust)
 */
-#define USE_EPSILON_TEST TRUE  
+#define USE_EPSILON_TEST TRUE
 #define EPSILON 0.000001
 #define BEPSILON (0.000001*10)
 
@@ -78,7 +106,7 @@
 
 /* this edge to edge test is based on Franlin Antonio's gem:
    "Faster Line Segment Intersection", in Graphics Gems III,
-   pp. 199-202 */ 
+   pp. 199-202 */
 #define EDGE_EDGE_TEST(V0,U0,U1)                      \
   Bx=U0[i0]-U1[i0];                                   \
   By=U0[i1]-U1[i1];                                   \
@@ -97,7 +125,7 @@
     {                                                 \
       if(e<=0 && e>=f) return 1;                      \
     }                                                 \
-  }                                
+  }
 
 #define EDGE_AGAINST_TRI_EDGES(V0,V1,U0,U1,U2) \
 {                                              \
@@ -143,50 +171,50 @@ int coplanar_tri_tri(double N[3],double V0[3],double V1[3],double V2[3],
 int coplanar_tri_tri(double N[3],double V0[3],double V1[3],double V2[3],
                      double U0[3],double U1[3],double U2[3])
 {
-   double A[3];
-   short i0,i1;
-   /* first project onto an axis-aligned plane, that maximizes the area */
-   /* of the triangles, compute indices: i0,i1. */
-   A[0]=fabs(N[0]);
-   A[1]=fabs(N[1]);
-   A[2]=fabs(N[2]);
-   if(A[0]>A[1])
-   {
-      if(A[0]>A[2])  
-      {
-          i0=1;      /* A[0] is greatest */
-          i1=2;
-      }
-      else
-      {
-          i0=0;      /* A[2] is greatest */
-          i1=1;
-      }
-   }
-   else   /* A[0]<=A[1] */
-   {
-      if(A[2]>A[1])
-      {
-          i0=0;      /* A[2] is greatest */
-          i1=1;                                           
-      }
-      else
-      {
-          i0=0;      /* A[1] is greatest */
-          i1=2;
-      }
-    }               
-                
-    /* test all edges of triangle 1 against the edges of triangle 2 */
-    EDGE_AGAINST_TRI_EDGES(V0,V1,U0,U1,U2);
-    EDGE_AGAINST_TRI_EDGES(V1,V2,U0,U1,U2);
-    EDGE_AGAINST_TRI_EDGES(V2,V0,U0,U1,U2);
-                
-    /* finally, test if tri1 is totally contained in tri2 or vice versa */
-    POINT_IN_TRI(V0,U0,U1,U2);
-    POINT_IN_TRI(U0,V0,V1,V2);
+  double A[3];
+  short i0,i1;
+  /* first project onto an axis-aligned plane, that maximizes the area */
+  /* of the triangles, compute indices: i0,i1. */
+  A[0]=fabs(N[0]);
+  A[1]=fabs(N[1]);
+  A[2]=fabs(N[2]);
+  if (A[0]>A[1])
+  {
+    if (A[0]>A[2])
+    {
+      i0=1;      /* A[0] is greatest */
+      i1=2;
+    }
+    else
+    {
+      i0=0;      /* A[2] is greatest */
+      i1=1;
+    }
+  }
+  else   /* A[0]<=A[1] */
+  {
+    if (A[2]>A[1])
+    {
+      i0=0;      /* A[2] is greatest */
+      i1=1;
+    }
+    else
+    {
+      i0=0;      /* A[1] is greatest */
+      i1=2;
+    }
+  }
 
-    return 0;
+  /* test all edges of triangle 1 against the edges of triangle 2 */
+  EDGE_AGAINST_TRI_EDGES(V0,V1,U0,U1,U2);
+  EDGE_AGAINST_TRI_EDGES(V1,V2,U0,U1,U2);
+  EDGE_AGAINST_TRI_EDGES(V2,V0,U0,U1,U2);
+
+  /* finally, test if tri1 is totally contained in tri2 or vice versa */
+  POINT_IN_TRI(V0,U0,U1,U2);
+  POINT_IN_TRI(U0,V0,V1,V2);
+
+  return 0;
 }
 
 
@@ -215,7 +243,9 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   du0=DOT(N1,U0)+d1;
   du1=DOT(N1,U1)+d1;
   du2=DOT(N1,U2)+d1;
-  fdu0 = fabs(du0) ; fdu1 = fabs(du1) ; fdu2 = fabs(du2) ;
+  fdu0 = fabs(du0) ;
+  fdu1 = fabs(du1) ;
+  fdu2 = fabs(du2) ;
   /* coplanarity robustness check */
 
 
@@ -225,9 +255,9 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   if ((fdu0>EPSILON||fdu1>EPSILON||fdu2>EPSILON) && (du0du1>0.0f&&du0du2>0.0f))
     return 0;                    /* no intersection occurs */
 #if USE_EPSILON_TEST==TRUE
-  if(fdu0<EPSILON) du0=0.0;
-  if(fdu1<EPSILON) du1=0.0;
-  if(fdu2<EPSILON) du2=0.0;
+  if (fdu0<EPSILON) du0=0.0;
+  if (fdu1<EPSILON) du1=0.0;
+  if (fdu2<EPSILON) du2=0.0;
 #endif
   du0du1=du0*du1;
   du0du2=du0*du2;
@@ -245,24 +275,26 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   dv0=DOT(N2,V0)+d2;
   dv1=DOT(N2,V1)+d2;
   dv2=DOT(N2,V2)+d2;
-  fdv0 = fabs(dv0) ; fdv1 = fabs(dv1) ; fdv2 = fabs(dv2) ;
+  fdv0 = fabs(dv0) ;
+  fdv1 = fabs(dv1) ;
+  fdv2 = fabs(dv2) ;
 
   dv0dv1=dv0*dv1;
   dv0dv2=dv0*dv2;
-        
+
   if ((fdv0>EPSILON||fdv1>EPSILON||fdv2>EPSILON) && (dv0dv1>0.0f&&dv0dv2>0.0f))
     return 0;                    /* no intersection occurs */
 #if USE_EPSILON_TEST==TRUE
-  if(fabs(dv0)<EPSILON) dv0=0.0;
-  if(fabs(dv1)<EPSILON) dv1=0.0;
-  if(fabs(dv2)<EPSILON) dv2=0.0;
+  if (fabs(dv0)<EPSILON) dv0=0.0;
+  if (fabs(dv1)<EPSILON) dv1=0.0;
+  if (fabs(dv2)<EPSILON) dv2=0.0;
 #endif
 
   dv0dv1=dv0*dv1;
   dv0dv2=dv0*dv2;
   if ((fdv0 < BEPSILON) && (fdv1 < BEPSILON) && (fdv2 < EPSILON))
     dv0dv1 = dv0dv2 = dv0 = dv1 = dv2 = 0.0 ;
-        
+
 
   /* compute direction of intersection line */
   CROSS(D,N1,N2);
@@ -272,14 +304,14 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   index=0;
   b=fabs(D[1]);
   c=fabs(D[2]);
-  if(b>max) max=b,index=1;
-  if(c>max) max=c,index=2;
+  if (b>max) max=b,index=1;
+  if (c>max) max=c,index=2;
 
   /* this is the simplified projection onto L*/
   vp0=V0[index];
   vp1=V1[index];
   vp2=V2[index];
-  
+
   up0=U0[index];
   up1=U1[index];
   up2=U2[index];
@@ -293,7 +325,7 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   SORT(isect1[0],isect1[1]);
   SORT(isect2[0],isect2[1]);
 
-  if(isect1[1]<isect2[0] || isect2[1]<isect1[0]) 
+  if (isect1[1]<isect2[0] || isect2[1]<isect1[0])
     return 0;
   return 1;
 }
@@ -312,7 +344,7 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
      v[0] = VECTOR_ELT(vec, 1) ; \
      v[1] = VECTOR_ELT(vec, 2) ; \
      v[2] = VECTOR_ELT(vec, 3) ;
-     
+
 #define VEC_SET(vec, v) \
      VECTOR_ELT(vec, 1) = v[0] ; \
      VECTOR_ELT(vec, 2) = v[1] ; \
@@ -326,11 +358,11 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
 */
 #include "matrix.h"
 int
-triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3], 
+triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
                        double U1[3],double U2[3], double int_pt[3])
 {
-  double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, a, b, t, dot, 
-         norm_proj[3], *V0, *V1, *V2, desc[3], Point[3] ;
+  double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, a, b, t, dot,
+  norm_proj[3], *V0, *V1, *V2, desc[3], Point[3] ;
   MATRIX *m_U, *m_inv ;
   VECTOR *v_p, *v_r ;
   int    i ;
@@ -350,10 +382,16 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
   CROSS(basis2, basis1, tmp) ;   /* now basis2 is orthogonal to basis1 */
 
   /* normalize their lengths */
-  len = VLEN(basis1) ; basis1[0] /= len ; basis1[1] /= len ; basis1[2] /= len ;
-  len = VLEN(basis2) ; basis2[0] /= len ; basis2[1] /= len ; basis2[2] /= len ;
+  len = VLEN(basis1) ;
+  basis1[0] /= len ;
+  basis1[1] /= len ;
+  basis1[2] /= len ;
+  len = VLEN(basis2) ;
+  basis2[0] /= len ;
+  basis2[1] /= len ;
+  basis2[2] /= len ;
 
-  /* 
+  /*
      build matrix: 1st two cols are basis vectors and third is
      negative of direction vector. Inverting this will yield solution.
   */
@@ -361,17 +399,23 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
   MAT_COL_SET(m_U, 2, basis2) ;
   MAT_COL_SET(m_U, 3, -dir) ;
   m_inv = MatrixSVDInverse(m_U, NULL) ;
-  SUB(Point, orig_pt, U0) ; VEC_SET(v_p, Point) ; /* pt in U0 coord sys */
+  SUB(Point, orig_pt, U0) ;
+  VEC_SET(v_p, Point) ; /* pt in U0 coord sys */
   MatrixMultiply(m_inv, v_p, v_r) ;
 
   /* a and b are coordinate of point in plane, t is parameterization of ray */
-  a = VECTOR_ELT(v_r, 1) ; b = VECTOR_ELT(v_r, 2) ; t = VECTOR_ELT(v_r, 3) ; 
-  MatrixFree(&m_U) ; VectorFree(&v_p) ; VectorFree(&v_r) ; MatrixFree(&m_inv);
+  a = VECTOR_ELT(v_r, 1) ;
+  b = VECTOR_ELT(v_r, 2) ;
+  t = VECTOR_ELT(v_r, 3) ;
+  MatrixFree(&m_U) ;
+  VectorFree(&v_p) ;
+  VectorFree(&v_r) ;
+  MatrixFree(&m_inv);
 
   /* coordinates of interesection point */
-  int_pt[0] = orig_pt[0] + t * dir[0] ; 
-  int_pt[1] = orig_pt[1] + t * dir[1] ; 
-  int_pt[2] = orig_pt[2] + t * dir[2] ; 
+  int_pt[0] = orig_pt[0] + t * dir[0] ;
+  int_pt[1] = orig_pt[1] + t * dir[1] ;
+  int_pt[2] = orig_pt[2] + t * dir[2] ;
 
   /* now determine whether the point is in the triagle by seeing if it is
      on the 'right' halfplane defined by each triangle leg
@@ -379,7 +423,7 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
 
   for (i = 0 ; i < 3 ; i++)
   {
-    /* 
+    /*
        build a coordinate system with V0 as the origin, then construct
        the vector connecting V2 with it's normal projection onto V0->V1.
        This will be a descriminant vector for dividing the plane by the
@@ -388,31 +432,48 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
        may be contained within the triangle. Doing this for each of the
        legs in sequence gives a test for being inside the triangle.
        */
-       
+
     switch (i)
     {
     default:
-    case 0:   V0 = U0 ; V1 = U1 ; V2 = U2 ; break ;
-    case 1:   V0 = U1 ; V1 = U2 ; V2 = U0 ; break ;
-    case 2:   V0 = U2 ; V1 = U0 ; V2 = U1 ; break ;
+    case 0:
+      V0 = U0 ;
+      V1 = U1 ;
+      V2 = U2 ;
+      break ;
+    case 1:
+      V0 = U1 ;
+      V1 = U2 ;
+      V2 = U0 ;
+      break ;
+    case 2:
+      V0 = U2 ;
+      V1 = U0 ;
+      V2 = U1 ;
+      break ;
     }
-    SUB(L0, V1, V0) ; SUB(L1, V2, V0) ;
+    SUB(L0, V1, V0) ;
+    SUB(L1, V2, V0) ;
 
     /* compute normal projection onto base of triangle */
-    len = VLEN(L0) ; L0[0] /= len ; L0[1] /= len ; L0[2] /= len ;
-    dot = DOT(L0,L1) ; 
+    len = VLEN(L0) ;
+    L0[0] /= len ;
+    L0[1] /= len ;
+    L0[2] /= len ;
+    dot = DOT(L0,L1) ;
     SCALAR_MUL(norm_proj, dot, L0) ;
 
     /* build descriminant vector */
     SUB(desc, L1, norm_proj) ;
 
-    /* 
+    /*
        transform point in question into local coordinate system and build
        the vector from the point in question to the normal projection point.
        The dot product of this vector with the descrimant vector will then
        indicate which side of the V0->V1 line the point is on.
        */
-    SUB(Point, int_pt, V0) ; SUB(Point, Point, norm_proj) ;
+    SUB(Point, int_pt, V0) ;
+    SUB(Point, Point, norm_proj) ;
     dot = DOT(desc, Point) ;
     if (dot < 0 && !DZERO(dot))
       return(0) ;

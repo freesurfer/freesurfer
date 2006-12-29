@@ -1,3 +1,31 @@
+/**
+ * @file  kinput.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +62,7 @@ KinputAlloc(int rows, int cols, int nscales, int input_size, float sigma,
 
   kinput = (KINPUT *)calloc(1, sizeof(KINPUT)) ;
   kinput->nscales = nscales ;
-  kinput->ninputs = nscales * input_size * input_size * 2 ; 
+  kinput->ninputs = nscales * input_size * input_size * 2 ;
   kinput->parms.abs_gradient = abs_gradient ;
   if (FZERO(sigma_scale_factor))
     sigma_scale_factor = kinput->parms.sigma_scale_factor = SIGMA_SCALE_FACTOR;
@@ -46,7 +74,7 @@ KinputAlloc(int rows, int cols, int nscales, int input_size, float sigma,
   kinput->yInputs = ImageAlloc(rows, cols, PFFLOAT, nscales) ;
   for (scale = 1 ; scale < nscales ; scale++)
   {
-    kinput->gImages[scale] = 
+    kinput->gImages[scale] =
       ImageGaussian1d(sigma*sigma_scale_factor*(float)(scale), 0) ;
     kinput->parms.sigmas[scale] = (float)scale * sigma_scale_factor * sigma ;
   }
@@ -118,15 +146,15 @@ KinputInit(KINPUT *kinput, IMAGE *image)
   /* now compute blurred derivates at different scales */
   for (scale = 1 ; scale < kinput->nscales ; scale++)
   {
-    ImageConvolveGaussian(kinput->xInputs, kinput->gImages[scale], 
-                         kinput->xInputs, scale) ;
-    ImageConvolveGaussian(kinput->yInputs, kinput->gImages[scale], 
-                         kinput->yInputs, scale) ;
+    ImageConvolveGaussian(kinput->xInputs, kinput->gImages[scale],
+                          kinput->xInputs, scale) ;
+    ImageConvolveGaussian(kinput->yInputs, kinput->gImages[scale],
+                          kinput->yInputs, scale) ;
   }
 #if 0
-ImageWrite(image, "i.hipl") ;
-ImageWriteFrames(kinput->xInputs, "xin.hipl", 0, kinput->xInputs->num_frame) ;
-ImageWriteFrames(kinput->yInputs, "yin.hipl", 0, kinput->yInputs->num_frame) ;
+  ImageWrite(image, "i.hipl") ;
+  ImageWriteFrames(kinput->xInputs, "xin.hipl", 0, kinput->xInputs->num_frame) ;
+  ImageWriteFrames(kinput->yInputs, "yin.hipl", 0, kinput->yInputs->num_frame) ;
 #endif
 #endif
   return(0) ;
@@ -147,36 +175,36 @@ KinputVector(KINPUT *kinput, int x0, int y0)
   half_in = kinput->parms.input_size / 2 ;
 
 #if USE_PYRAMID
-/* int index ; */
+  /* int index ; */
   rows = kinput->xImage->rows ;
   cols = kinput->xImage->cols ;
 
-/*  
-  the input vector consists of pairs of x and y derivative values at each
-  level of the pyramid at this point.
-*/
+  /*
+    the input vector consists of pairs of x and y derivative values at each
+    level of the pyramid at this point.
+  */
   for (index = scale = 0 ; scale < kinput->nscales ; scale++)
   {
     for (y = y0-(neg_half ; y <= y0+half_in ; y++)
-    {
-      for (x = x0-(neg_half ; x <= x0+half_in ; x++)
-      {
-        xval = kinputGetPoint(kinput->xpyr, x, y, scale) ;
-        if (kinput->parms.abs_gradient)
-          xval = fabs(xval) ;
-        kinput->inputs[index++] = xval ;
-        yval = kinputGetPoint(kinput->ypyr, x, y, scale) ;
-        if (kinput->parms.abs_gradient)
-          yval = fabs(yval) ;
-        kinput->inputs[index++] = yval ;
-      }
-    }
-  }
+           {
+             for (x = x0-(neg_half ; x <= x0+half_in ; x++)
+                      {
+                        xval = kinputGetPoint(kinput->xpyr, x, y, scale) ;
+                          if (kinput->parms.abs_gradient)
+                            xval = fabs(xval) ;
+                          kinput->inputs[index++] = xval ;
+                          yval = kinputGetPoint(kinput->ypyr, x, y, scale) ;
+                          if (kinput->parms.abs_gradient)
+                            yval = fabs(yval) ;
+                          kinput->inputs[index++] = yval ;
+                        }
+                      }
+                    }
 #else
-/*  
+  /*
   the input vector consists of pairs of x and y derivative values at each
   level of blurring at this point.
-*/
+  */
   rows = kinput->xInputs->rows ;
   cols = kinput->xInputs->cols ;
 
@@ -191,7 +219,7 @@ KinputVector(KINPUT *kinput, int x0, int y0)
           x = 0 ;
         if (x >= cols)
           x = cols - 1 ;
-        
+
         y = y0 + y1 ;
         if (y < 0)
           y = 0 ;
@@ -213,8 +241,8 @@ KinputVector(KINPUT *kinput, int x0, int y0)
     }
   }
 #endif
-  
-  return(0) ;
+
+                    return(0) ;
 }
 #if USE_PYRAMID
 
@@ -248,7 +276,7 @@ kinputGetPoint(IMAGEPyramid *pyr, int x, int y, int level)
 
 #define BILINEAR 1
 #if BILINEAR
-  
+
   /* do bilinear interpolation on 4 surrounding points */
   x1 = (int)floor(xc) ;
   x2 = (int)ceil(xc) ;
@@ -262,10 +290,10 @@ kinputGetPoint(IMAGEPyramid *pyr, int x, int y, int level)
     y2 = rows - 1 ;
 #endif
 
-  if ((x1 < 0) || (y1 < 0) || (x2 >= cols) || 
+  if ((x1 < 0) || (y1 < 0) || (x2 >= cols) ||
       (y2 >= pyr->images[level]->rows))
   {
-    fprintf(stderr, 
+    fprintf(stderr,
             "kinputGetPoint(%d, %d, %d): point (%d,%d,%d,%d) out of bounds\n",
             x, y, level, x1, y1, x2, y2) ;
     return(0.0f) ;
@@ -274,14 +302,14 @@ kinputGetPoint(IMAGEPyramid *pyr, int x, int y, int level)
   /* all other distances are 1-a or 1-b */
   dy = yc - (float)y1 ;
   dx = xc - (float)x1 ;
-  
+
   f1p = image + y1 * cols + x1 ;    /* dy, dx */
   f2p = image + y2 * cols + x1 ;    /* 1-dy, dx */
   f3p = image + y1 * cols + x2 ;    /* dy, 1-dx */
   f4p = image + y2 * cols + x2 ;    /* 1-dy, 1-dx */
   val = (1.0 - dy) * ((1.0 - dx) * *f1p + dx * *f3p) +
-    dy * ((1.0 - dx) * *f2p + dx * *f4p) ;
-  
+        dy * ((1.0 - dx) * *f2p + dx * *f4p) ;
+
 #else
   x1 = nint(xc) ;
   y1 = nint(yc) ;

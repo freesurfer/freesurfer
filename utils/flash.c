@@ -1,3 +1,31 @@
+/**
+ * @file  flash.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include "macros.h"
 #include "error.h"
@@ -17,9 +45,10 @@ typedef struct
   double alpha ;
   double step_size ; /* T1 increment between table elements */
   double min_T1 ;
-	double max_T1 ;
+  double max_T1 ;
   int    size ;      /* number of elements in flash and norm */
-} FLASH_LOOKUP_TABLE, FLT ;
+}
+FLASH_LOOKUP_TABLE, FLT ;
 
 static int build_lookup_table(double tr, double flip_angle, double te, double min_T1, double max_T1, double step) ;
 static double lookup_flash_value(double TR, double flip_angle, double PD, double T1) ;
@@ -33,27 +62,28 @@ static double FLASHforwardModelLookup(double T1, double PD, double TR, double fl
 double
 dFlash_dT1(double T1, double PD, double TR, double flip_angle, double TE)
 {
-	double e1, numer, denom ;
+  double e1, numer, denom ;
 
-	e1 = exp(TR/T1) ;
-	numer = e1 * PD * TR * (cos(flip_angle)-1)*sin(flip_angle) ;
-	denom = T1 * (e1 - cos(flip_angle)) ; denom *= denom ;
-	if (DZERO(denom))
-		denom = 0.0001 ;
-	return(numer/denom) ;
+  e1 = exp(TR/T1) ;
+  numer = e1 * PD * TR * (cos(flip_angle)-1)*sin(flip_angle) ;
+  denom = T1 * (e1 - cos(flip_angle)) ;
+  denom *= denom ;
+  if (DZERO(denom))
+    denom = 0.0001 ;
+  return(numer/denom) ;
 }
 
 double
 dFlash_dPD(double T1, double PD, double TR, double flip_angle, double TE)
 {
-	double e1, numer, denom ;
+  double e1, numer, denom ;
 
-	e1 = exp(TR/T1) ;
-	numer = (e1-1) * sin(flip_angle) ;
-	denom = e1 - cos(flip_angle) ;
-	if (DZERO(denom))
-		denom = 0.0001 ;
-	return(numer/denom) ;
+  e1 = exp(TR/T1) ;
+  numer = (e1-1) * sin(flip_angle) ;
+  denom = e1 - cos(flip_angle) ;
+  if (DZERO(denom))
+    denom = 0.0001 ;
+  return(numer/denom) ;
 }
 
 double
@@ -63,9 +93,10 @@ FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE)
   double  CFA, SFA ;
 
 
-  CFA = cos(flip_angle) ; SFA = sin(flip_angle) ;
+  CFA = cos(flip_angle) ;
+  SFA = sin(flip_angle) ;
   E1 = exp(-TR/T1) ;
-      
+
   FLASH = PD * SFA ;
   if (!DZERO(T1))
     FLASH *= (1-E1)/(1-CFA*E1);
@@ -74,42 +105,44 @@ FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE)
 MRI *
 MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, double *FAs, int nflash)
 {
-	int    x, y, z, n ;
-	double T1, PD ;
-	Real   val ;
+  int    x, y, z, n ;
+  double T1, PD ;
+  Real   val ;
 
-	if (!mri_dst)
-		mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth,
-																	 mri_src->type, nflash) ;
+  if (!mri_dst)
+    mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth,
+                               mri_src->type, nflash) ;
 
-	for (x = 0 ; x < mri_src->width ; x++)
-	{
-		for (y = 0 ; y < mri_src->height ; y++)
-		{
-			for (z = 0 ; z < mri_src->depth ; z++)
-			{
-				MRIsampleVolumeFrame(mri_src, x, y, z, 0, &val); T1 = val ;
-				MRIsampleVolumeFrame(mri_src, x, y, z, 1, &val); PD = val ;
-				
-				for (n = 0 ; n < nflash ; n++)
-				{
-					val = FLASHforwardModel(T1, PD, TRs[n], FAs[n], TEs[n]) ;
-					MRISseq_vox(mri_dst, x, y, z, n) = (short)nint(val) ;
-				}
-			}
-		}
-	}
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        MRIsampleVolumeFrame(mri_src, x, y, z, 0, &val);
+        T1 = val ;
+        MRIsampleVolumeFrame(mri_src, x, y, z, 1, &val);
+        PD = val ;
+
+        for (n = 0 ; n < nflash ; n++)
+        {
+          val = FLASHforwardModel(T1, PD, TRs[n], FAs[n], TEs[n]) ;
+          MRISseq_vox(mri_dst, x, y, z, n) = (short)nint(val) ;
+        }
+      }
+    }
+  }
 
 
-	return(mri_dst) ;
+  return(mri_dst) ;
 }
 
 int
 compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double *TEs, double *pT1, double *pPD)
 {
   double    best_T1, best_PD, norm_im, norm_pred, sse, best_sse, T1,
-            pred_vals[MAX_FLASH_VOLUMES], error, upper_T1, lower_T1, mid_T1,
-            upper_sse, lower_sse, mid_sse, upper_norm, mid_norm, lower_norm, range ;
+  pred_vals[MAX_FLASH_VOLUMES], error, upper_T1, lower_T1, mid_T1,
+  upper_sse, lower_sse, mid_sse, upper_norm, mid_norm, lower_norm, range ;
   int       i, j, upper_j, lower_j, mid_j, niter ;
 
   if (!norms)
@@ -146,7 +179,8 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
   for (i = 0 ; i < nvolumes ; i++)
     image_vals[i] /= norm_im ;   /* normalize them */
 
-  mid_T1 = (MAX_T1 - MIN_T1)/2 ;   mid_j = T1_TO_INDEX(mid_T1) ;
+  mid_T1 = (MAX_T1 - MIN_T1)/2 ;
+  mid_j = T1_TO_INDEX(mid_T1) ;
   range = (MAX_T1 - MIN_T1) / 2 ;
 
   /* compute sse for mid T1 */
@@ -159,7 +193,9 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
     mid_sse += (error * error) ;
   }
 
-  best_T1 = mid_T1 ; best_PD = norm_im / mid_norm ; best_sse = mid_sse ;
+  best_T1 = mid_T1 ;
+  best_PD = norm_im / mid_norm ;
+  best_sse = mid_sse ;
   niter = 0 ;
   if (FZERO(mid_norm))
   {
@@ -175,8 +211,10 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
       upper_T1 = MAX_T1 ;
     if (lower_T1 < MIN_T1)
       lower_T1 = MIN_T1 ;
-    upper_j = T1_TO_INDEX(upper_T1) ; lower_j = T1_TO_INDEX(lower_T1) ;
-    upper_norm = norms[upper_j] ; lower_norm = norms[lower_j] ;
+    upper_j = T1_TO_INDEX(upper_T1) ;
+    lower_j = T1_TO_INDEX(lower_T1) ;
+    upper_norm = norms[upper_j] ;
+    lower_norm = norms[lower_j] ;
     if (FZERO(upper_norm))
     {
       printf("upper norm=0 at %d (%2.1f)\n", upper_j, upper_T1) ;
@@ -201,16 +239,26 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
       error = (pred_vals[i] - image_vals[i]) ;
       lower_sse += (error * error) ;
     }
-    
+
     if (lower_sse <= mid_sse && lower_sse <= upper_sse) /* make lower new mid */
     {
-      mid_sse = lower_sse ; mid_j = lower_j ; mid_norm = lower_norm ; mid_T1 = lower_T1 ;
-      best_T1 = lower_T1 ; best_PD = norm_im / lower_norm ; best_sse = lower_sse ;
+      mid_sse = lower_sse ;
+      mid_j = lower_j ;
+      mid_norm = lower_norm ;
+      mid_T1 = lower_T1 ;
+      best_T1 = lower_T1 ;
+      best_PD = norm_im / lower_norm ;
+      best_sse = lower_sse ;
     }
     else if (upper_sse < mid_sse)  /* make upper new mid */
     {
-      mid_sse = upper_sse ; mid_j = upper_j ; mid_norm = upper_norm ; mid_T1 = upper_T1 ;
-      best_T1 = upper_T1 ; best_PD = norm_im / upper_norm ; best_sse = upper_sse ;
+      mid_sse = upper_sse ;
+      mid_j = upper_j ;
+      mid_norm = upper_norm ;
+      mid_T1 = upper_T1 ;
+      best_T1 = upper_T1 ;
+      best_PD = norm_im / upper_norm ;
+      best_sse = upper_sse ;
     }
     if (!finite(best_PD))
     {
@@ -220,7 +268,8 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
     }
     range /= 2 ;
     niter++ ;
-  } while (upper_j - lower_j > 3) ;
+  }
+  while (upper_j - lower_j > 3) ;
 
   for (i = 0 ; i < nvolumes ; i++)
     image_vals[i] *= norm_im ;   /* restore them */
@@ -232,7 +281,8 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
     sse += (error * error) ;
   }
 
-  *pT1 = best_T1 ; *pPD = best_PD ;
+  *pT1 = best_T1 ;
+  *pPD = best_PD ;
   return(NO_ERROR) ;
 }
 static double
@@ -263,7 +313,9 @@ build_lookup_table(double tr, double flip_angle, double te,
 
 
   flt = &lookup_tables[ntables++] ;
-  flt->TR = tr ; flt->alpha = flip_angle ; flt->step_size = step ;
+  flt->TR = tr ;
+  flt->alpha = flip_angle ;
+  flt->step_size = step ;
 
   flt->size = (int)((max_T1 - min_T1) / step)+1 ;
   flt->flash = (double *)calloc(flt->size, sizeof(*flt->flash)) ;
@@ -271,8 +323,8 @@ build_lookup_table(double tr, double flip_angle, double te,
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocated %dth lookup table",
               Progname, ntables) ;
 
-	flt->min_T1 = min_T1 ;
-	flt->max_T1 = max_T1 ;
+  flt->min_T1 = min_T1 ;
+  flt->max_T1 = max_T1 ;
 
   for (i = 0, T1 = MIN_T1 ; T1 <= MAX_T1 ; i++, T1 += step)
     flt->flash[i] = FLASHforwardModel(T1, 1.0, tr, flip_angle, te) ;
@@ -297,11 +349,11 @@ find_lookup_table(double TR, double flip_angle)
 int
 FlashBuildLookupTables(int nvolumes, double *TRs, double *FAs, double *TEs)
 {
-	int n ;
-	
-	for (n = 0 ; n < nvolumes ; n++)
+  int n ;
+
+  for (n = 0 ; n < nvolumes ; n++)
     build_lookup_table(TRs[n], FAs[n], TEs[n], MIN_T1, MAX_T1, T1_STEP_SIZE) ;
-	return(NO_ERROR) ;
+  return(NO_ERROR) ;
 }
 static double
 lookup_flash_value(double TR, double flip_angle, double PD, double T1)
@@ -322,20 +374,21 @@ lookup_flash_value(double TR, double flip_angle, double PD, double T1)
   FLASH = PD*flt->flash[index] ;
   return(FLASH) ;
 }
-double 
+double
 FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double flip_angle, double TE)
 {
   double FLASH, E1 ;
   double  CFA, SFA ;
 
 
-  CFA = cos(flip_angle) ; SFA = sin(flip_angle) ;
+  CFA = cos(flip_angle) ;
+  SFA = sin(flip_angle) ;
   E1 = exp(-TR/T1) ;
-      
+
   FLASH = PD * SFA ;
   if (!DZERO(T1))
     FLASH *= (1-E1)/(1-CFA*E1);
-	if (!DZERO(T2star))
-		FLASH *= exp(-TE/T2star) ;
+  if (!DZERO(T2star))
+    FLASH *= exp(-TE/T2star) ;
   return(FLASH) ;
 }

@@ -1,3 +1,31 @@
+/**
+ * @file  mri_edit_wm.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:45 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -31,28 +59,29 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm.c,v 1.2 2006/12/29 01:49:45 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
-  
-  if(argc != 4)
+
+  if (argc != 4)
     usage(1);
-  
+
   mri_wm = MRIread(argv[1]) ;
   if (!mri_wm)
     ErrorExit(ERROR_BADPARM, "%s: could not read source volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
   mri_seg = MRIread(argv[2]) ;
   if (!mri_seg)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
-	      Progname, argv[1]) ;
+              Progname, argv[1]) ;
 
-  if(mri_wm->width != mri_seg->width || 
-     mri_wm->height != mri_seg->height || 
-     mri_wm->depth != mri_seg->depth){
+  if (mri_wm->width != mri_seg->width ||
+      mri_wm->height != mri_seg->height ||
+      mri_wm->depth != mri_seg->depth)
+  {
     ErrorExit(ERROR_BADPARM, "%s: the two input volumes have unequal size. Exit.",
-	      Progname) ;
+              Progname) ;
   }
 
   edit_segmentation(mri_wm, mri_seg);
@@ -87,17 +116,23 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 {
   int   width, height, depth, x, y, z, label, non;
 
-  width = mri_wm->width ; height = mri_wm->height ; depth = mri_wm->depth ;
+  width = mri_wm->width ;
+  height = mri_wm->height ;
+  depth = mri_wm->depth ;
 
   non = 0 ;
-  for (z = 0 ; z < depth ; z++){
-    for (y = 0 ; y < height ; y++){
-      for (x = 0 ; x < width ; x++){
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         label = (int) MRIgetVoxVal(mri_seg, x, y,z,0);
-        
-        switch (label) {
-	  
-	  /* fill these */
+
+        switch (label)
+        {
+
+          /* fill these */
         case Left_Thalamus_Proper:
         case Right_Thalamus_Proper:
         case Left_Caudate:
@@ -108,11 +143,11 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         case Right_Lateral_Ventricle:
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
-	  if (MRIgetVoxVal(mri_wm, x, y, z, 0) < 110)
-	    {
-	      MRIsetVoxVal(mri_wm, x, y, z, 0, 110);
-	      non++ ;  
-	    }
+          if (MRIgetVoxVal(mri_wm, x, y, z, 0) < 110)
+          {
+            MRIsetVoxVal(mri_wm, x, y, z, 0, 110);
+            non++ ;
+          }
           break ;
         default:
           break ;
@@ -120,8 +155,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
       }
     }
   }
-  
+
   printf("SEG EDIT: %d voxels turned on.\n", non) ;
-  
+
   return(NO_ERROR) ;
 }

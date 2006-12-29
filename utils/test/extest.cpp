@@ -1,3 +1,31 @@
+/**
+ * @file  extest.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // extest.cpp
 //
@@ -10,7 +38,8 @@
 #include <cstdlib>
 #include <typeinfo>
 
-extern "C" {
+extern "C"
+{
 #include "fio.h"
 }
 
@@ -95,13 +124,13 @@ int main(int argc, char *argv[])
   s[0] = 1;
   s[1] = (short)(256*256);
   s[2] = (short)(i[2]-1);
-  f[0] = 1.; 
-  f[1] = 1.-0.001; 
+  f[0] = 1.;
+  f[1] = 1.-0.001;
   f[2] = 1./3.;
-  d[0] = 1.; 
-  d[1] = 1.-0.001; 
+  d[0] = 1.;
+  d[1] = 1.-0.001;
   d[2] = 1./3.;
-  d[3] = MAXD; 
+  d[3] = MAXD;
   d[4] = MIND;
 
   fwriteInt(i[0], out);
@@ -120,9 +149,9 @@ int main(int argc, char *argv[])
   fwriteDouble(d[4], out);
 
   fclose(out);
-  
+
   in = fopen(file, "rb");
-  if(freadIntEx(&ii[0], in))
+  if (freadIntEx(&ii[0], in))
   {
     if (!checkOK(i[0], ii[0]))
       goto finalize;
@@ -197,7 +226,7 @@ int main(int argc, char *argv[])
   cout << "No error" << endl;
   return 0;
 
- finalize:
+finalize:
   cerr << "Error" << endl;
   exit(-1);
 }

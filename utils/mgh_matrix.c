@@ -1,3 +1,31 @@
+/**
+ * @file  mgh_matrix.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:34 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,7 +39,11 @@ FLOATTYPE * MGH_vector(int n)
   FLOATTYPE *h;
 
   h = (FLOATTYPE *)calloc(n,sizeof(FLOATTYPE));
-  if (h==NULL) {printf("out of memory in vector(%d)\n",n);exit(0);}
+  if (h==NULL)
+  {
+    printf("out of memory in vector(%d)\n",n);
+    exit(0);
+  }
   return h;
 }
 
@@ -20,7 +52,11 @@ int* MGH_ivector(int n)
   int *h;
 
   h = (int *)calloc(n,sizeof(int));
-  if (h==NULL) {printf("out of memory in ivector(%d)\n",n);exit(0);}
+  if (h==NULL)
+  {
+    printf("out of memory in ivector(%d)\n",n);
+    exit(0);
+  }
   return h;
 }
 
@@ -30,7 +66,11 @@ FLOATTYPE ** MGH_matrix(int n,int m)
   int i;
 
   h = (FLOATTYPE **)calloc(n,sizeof(FLOATTYPE *));
-  if (h==NULL) {printf("out of memory in matrix(%d,%d)\n",n,m);exit(0);}
+  if (h==NULL)
+  {
+    printf("out of memory in matrix(%d,%d)\n",n,m);
+    exit(0);
+  }
   for (i=0;i<n;i++) h[i]=MGH_vector(m);
   return h;
 }
@@ -41,15 +81,15 @@ void print_matrix(FLOATTYPE **a,int m,int n)
 
   if (n>0)
   {
-  for (i=0;i<m;i++)
-  {
-    for (j=0;j<n;j++)
+    for (i=0;i<m;i++)
     {
-      printf("%10.3e ",a[i][j]);
+      for (j=0;j<n;j++)
+      {
+        printf("%10.3e ",a[i][j]);
+      }
+      printf("\n");
     }
     printf("\n");
-  }
-  printf("\n");
   }
 }
 
@@ -59,11 +99,11 @@ void read_matrix(FILE *fptr,FLOATTYPE **a,int m,int n)
   float f;
 
   for (i=0;i<m;i++)
-  for (j=0;j<n;j++)
-  {
-    fscanf(fptr,"%f",&f);
-    a[i][j] = f;
-  }
+    for (j=0;j<n;j++)
+    {
+      fscanf(fptr,"%f",&f);
+      a[i][j] = f;
+    }
 }
 
 void print_vector(FLOATTYPE *v,int n)
@@ -92,19 +132,19 @@ void vector_to_matrix(FLOATTYPE *v,FLOATTYPE **a,int m,int n)
   int i,j,indx=0;
 
   for (i=0;i<m;i++)
-  for (j=0;j<n;j++)
-  {
-    a[i][j] = v[indx++];
-  }
+    for (j=0;j<n;j++)
+    {
+      a[i][j] = v[indx++];
+    }
 }
 
 void scale_matrix(FLOATTYPE **a,FLOATTYPE s,int n,int m)
 {
   int i,j;
 
-  for (i=0;i<n;i++) 
-  for (j=0;j<m;j++) 
-    a[i][j] *= s;
+  for (i=0;i<n;i++)
+    for (j=0;j<m;j++)
+      a[i][j] *= s;
 }
 
 void normalize_matrix(FLOATTYPE **a,int n,int m)
@@ -112,10 +152,10 @@ void normalize_matrix(FLOATTYPE **a,int n,int m)
   FLOATTYPE sum=0;
   int i,j;
 
-  for (i=0;i<n;i++) 
-  for (j=0;j<m;j++) 
-    sum += a[i][j];
-/*  scale_matrix(a,n/sum,n,m); */
+  for (i=0;i<n;i++)
+    for (j=0;j<m;j++)
+      sum += a[i][j];
+  /*  scale_matrix(a,n/sum,n,m); */
 }
 
 void matrix_copy(FLOATTYPE **a,FLOATTYPE **b,int n,int m)
@@ -126,7 +166,7 @@ void matrix_copy(FLOATTYPE **a,FLOATTYPE **b,int n,int m)
 }
 
 void matrix_copy2(FLOATTYPE **a,FLOATTYPE **b,int n,int m,int sno,int smo,
-      int tno,int tmo)
+                  int tno,int tmo)
 {
   int i,j;
 
@@ -138,8 +178,8 @@ void matrix_transpose(FLOATTYPE **a,FLOATTYPE **at,int n,int m)
   int i,j;
 
   for (i=0;i<m;i++)
-  for (j=0;j<n;j++)
-    at[i][j] = a[j][i];
+    for (j=0;j<n;j++)
+      at[i][j] = a[j][i];
 }
 
 void matrix_add(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c, int n,int m)
@@ -147,8 +187,8 @@ void matrix_add(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c, int n,int m)
   int i,j;
 
   for (i=0;i<n;i++)
-  for (j=0;j<m;j++)
-    c[i][j] = a[i][j]+b[i][j];
+    for (j=0;j<m;j++)
+      c[i][j] = a[i][j]+b[i][j];
 }
 
 void matrix_multiply(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m)
@@ -169,7 +209,7 @@ void matrix_multiply(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m)
 }
 
 void matrix_multiply2(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m,
-          int l)
+                      int l)
 {
   FLOATTYPE sum;
   int i,j,k;
@@ -197,7 +237,7 @@ void matrix_angles(FLOATTYPE **a,FLOATTYPE **b,FLOATTYPE **c,int n,int m)
     {
       sum = asum = bsum = 0.0;
       for (k=0;k<m;k++)
-      { 
+      {
         sum += a[i][k]*b[k][j];
         asum += a[i][k]*a[i][k];
         bsum += b[k][j]*b[k][j];
@@ -216,7 +256,7 @@ void vector_subtract(FLOATTYPE *a,FLOATTYPE *b,FLOATTYPE *c,int n)
 }
 
 void vector_add(FLOATTYPE *a,FLOATTYPE *b,FLOATTYPE *c,FLOATTYPE fa,
-    FLOATTYPE fb,int n)
+                FLOATTYPE fb,int n)
 {
   int i;
 
@@ -243,8 +283,8 @@ void derivative_matrix(FLOATTYPE **D,int dy,int dx)
   int i,j,n=dx*dy;
 
   for (i=0;i<n;i++)
-  for (j=0;j<n;j++)
-    D[i][j]=0.0;
+    for (j=0;j<n;j++)
+      D[i][j]=0.0;
   for (i=0;i<n;i++)
   {
     D[i][i] = 1;
@@ -264,8 +304,8 @@ void regularization_matrix(FLOATTYPE **R,int n)
   int i,j;
 
   for (i=0;i<n;i++)
-  for (j=0;j<n;j++)
-    R[i][j]=0;
+    for (j=0;j<n;j++)
+      R[i][j]=0;
   for (i=0;i<n;i++)
   {
     R[i][(i==0)?n-1:i-1] = -1.0;
@@ -279,11 +319,11 @@ void covariance_matrix(FLOATTYPE **R,int n)
   int i,j;
 
   for (i=0;i<n;i++)
-  for (j=0;j<n;j++)
-  {
-    R[i][j]=1.0/(1.0+fabs(i-j));
-/*    printf("i=%d,j=%d,R[i][j]=%f\n",i,j,R[i][j]); */
-  }
+    for (j=0;j<n;j++)
+    {
+      R[i][j]=1.0/(1.0+fabs(i-j));
+      /*    printf("i=%d,j=%d,R[i][j]=%f\n",i,j,R[i][j]); */
+    }
 }
 
 
@@ -300,7 +340,7 @@ void mgh_ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
     big=0.0;
     for (j=0;j<n;j++)
       if ((temp=fabs(a[i][j])) > big) big=temp;
-    if (big == 0.0) 
+    if (big == 0.0)
       ErrorExit(ERROR_BADPARM, "LU decomposition: matrix in singular");
     vv[i]=1.0/big;
   }
@@ -383,7 +423,7 @@ void inverse(FLOATTYPE **a,FLOATTYPE **y,int n)
     for (i=0;i<n;i++) col[i]=0.0;
     col[j]=1.0;
     mgh_lubksb(a,n,indx,col);
-    for(i=0;i<n;i++) y[i][j]=col[i];
+    for (i=0;i<n;i++) y[i][j]=col[i];
   }
 }
 
@@ -424,7 +464,8 @@ FLOATTYPE MGH_svd(FLOATTYPE **A,FLOATTYPE **V,FLOATTYPE *z,int m,int n)
         {
           c=0;
           s=1;
-        } else
+        }
+        else
         {
           q = q-r;
           v = sqrt(4*p*p+q*q);
@@ -461,7 +502,7 @@ FLOATTYPE MGH_svd(FLOATTYPE **A,FLOATTYPE **V,FLOATTYPE *z,int m,int n)
 
   return (FLOATTYPE)(0.0); /* What is this *really* suppose to return? (RJW) */
 }
- 
+
 static FLOATTYPE at,bt,ct;
 #define PYTHAG(a,b) ((at=fabs(a)) > (bt=fabs(b)) ? \
 (ct=bt/at,at*sqrt(1.0+ct*ct)) : (bt ? (ct=at/bt,bt*sqrt(1.0+ct*ct)):0.0))
@@ -483,8 +524,8 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
   FLOATTYPE anorm=0.0,g=0.0,scale=0.0;
   FLOATTYPE *rv1;
 
-  if (m<n) 
-    ErrorExit(ERROR_BADPARM, 
+  if (m<n)
+    ErrorExit(ERROR_BADPARM,
               "Singular value decompostion: input matrix has too few rows");
   rv1=MGH_vector(n);
   for (i=0;i<n;i++)
@@ -501,7 +542,7 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
         {
           a[k][i] /= scale;
           s += a[k][i]*a[k][i];
-        }       
+        }
         f=a[i][i];
         g = -SIGN(sqrt(s),f);
         h=f*g-s;
@@ -549,7 +590,7 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
     anorm=MAX(anorm,(fabs(w[i])+fabs(rv1[i])));
   }
 
-  for (i=n-1;i>=0;i--) 
+  for (i=n-1;i>=0;i--)
   {
     if (i < n-1)
     {
@@ -569,7 +610,7 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
     l=i;
   }
 
-  for (i=n-1;i>=0;i--) 
+  for (i=n-1;i>=0;i--)
   {
     l=i+1;
     g=w[i];
@@ -588,7 +629,8 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
         }
       }
       for (j=i;j<m;j++) a[j][i] *= g;
-    } else
+    }
+    else
     {
       for (j=i;j<m;j++) a[j][i]=0.0;
     }
@@ -644,8 +686,8 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
         }
         break;
       }
-      if (its==30) 
-        ErrorExit(ERROR_BADPARM, 
+      if (its==30)
+        ErrorExit(ERROR_BADPARM,
                   "Singular value decomposition failed to converge");
       x=w[l];
       nm=k-1;

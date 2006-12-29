@@ -1,10 +1,39 @@
+/**
+ * @file  mri_remove.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:45 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mri_remove
 //
 
 #include <iostream>
 
-extern "C" {
+extern "C"
+{
 #include "mri.h"
 #include "version.h"
   char *Progname = "mri_remove";
@@ -41,7 +70,7 @@ int main(int argc, char *argv[])
   }
   int nargs;
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove.cpp,v 1.1 2004/10/12 20:37:48 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove.cpp,v 1.2 2006/12/29 01:49:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -60,8 +89,8 @@ int main(int argc, char *argv[])
     for (int y=0; y < mri->height; y++)
       for (int x=0; x < mri->width; x++)
       {
-	if (y > yval)
-	  MRIvox(mri, x, y, z) = 0;
+        if (y > yval)
+          MRIvox(mri, x, y, z) = 0;
       }
 
   MRIwrite(mri, argv[2]);

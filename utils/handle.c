@@ -1,3 +1,31 @@
+/**
+ * @file  handle.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:32 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------
 
       File Name:    handle.c
@@ -22,7 +50,7 @@ int not_used_000(void)
 }
 
 #else
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +61,7 @@ int not_used_000(void)
 
 
 /*-----------------------------------------------------------------
-              MACROS AND CONSTANTS
+MACROS AND CONSTANTS
 -----------------------------------------------------------------*/
 
 #define DEFAULT_MAX_HANDLES   100
@@ -46,23 +74,24 @@ int not_used_000(void)
 #endif
 
 /*----------------------------------------------------------------------
-                STRUCTURES
+STRUCTURES
 ----------------------------------------------------------------------*/
 
 typedef struct
 {
   void  *ptr ;
   int status ;
-} HandleInfo ;
+}
+HandleInfo ;
 
 /*-----------------------------------------------------------------
-                PROTOTYPES
+PROTOTYPES
 -----------------------------------------------------------------*/
 
 static void growHandleTable(void) ;
 
 /*-----------------------------------------------------------------
-                STATIC DATA
+STATIC DATA
 -----------------------------------------------------------------*/
 
 static HandleInfo *handleTable ;
@@ -71,18 +100,18 @@ static int      nhandles = 0L ;
 static int      freeHandles = 0L ;
 
 /*-----------------------------------------------------------------
-                FUNCTIONS
+FUNCTIONS
 -----------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------
-    Parameters:   
-              
-    Description:
-      Allocate a new handle and assign the given pointer to it.
-      If the current handle space is used up, grow the handle table.      
+Parameters:
 
-    Returns:
-      the newly allocated handle.
+Description:
+Allocate a new handle and assign the given pointer to it.
+If the current handle space is used up, grow the handle table.
+
+Returns:
+the newly allocated handle.
 ----------------------------------------------------------------------*/
 PTR_HANDLE
 HandleAlloc(void *ptr)
@@ -100,13 +129,13 @@ HandleAlloc(void *ptr)
   return(handle) ;
 }
 /*----------------------------------------------------------------------
-    Parameters:   
-              
-    Description:
-      Free a previously allocated handle.
+Parameters:
 
-    Returns:
-      nothing.
+Description:
+Free a previously allocated handle.
+
+Returns:
+nothing.
 ----------------------------------------------------------------------*/
 void
 HandleFree(PTR_HANDLE handle)
@@ -123,13 +152,13 @@ HandleFree(PTR_HANDLE handle)
   handleInfo->ptr = NULL ;
 }
 /*----------------------------------------------------------------------
-    Parameters:   
-              
-    Description:
-      turn a handle into the pointer which it reprents.
+Parameters:
 
-    Returns:
-      the pointer which the handle represents.
+Description:
+turn a handle into the pointer which it reprents.
+
+Returns:
+the pointer which the handle represents.
 ----------------------------------------------------------------------*/
 void *
 HandleToPtr(PTR_HANDLE handle)
@@ -144,15 +173,15 @@ HandleToPtr(PTR_HANDLE handle)
   return(handleInfo->ptr) ;
 }
 /*----------------------------------------------------------------------
-    Parameters:   
-              
-    Description:
-      determine whether a handle is a valid one.
+Parameters:
 
-    Returns:
-      1  if the handle is ok and allocated.
-      -1  if the handle is ok and not allocated
-      0  if the handle is out of range.
+Description:
+determine whether a handle is a valid one.
+
+Returns:
+1  if the handle is ok and allocated.
+-1  if the handle is ok and not allocated
+0  if the handle is out of range.
 ----------------------------------------------------------------------*/
 int
 HandleOk(PTR_HANDLE handle)
@@ -167,15 +196,15 @@ HandleOk(PTR_HANDLE handle)
   return(1) ;
 }
 /*----------------------------------------------------------------------
-    Parameters:   
-              
-    Description:  
-      We have run out of room for more handles.  Free the current
-      handle table, and allocate one twice as large, moving all
-      the current information into it.
+Parameters:
 
-    Returns:
-      nothing.
+Description:
+We have run out of room for more handles.  Free the current
+handle table, and allocate one twice as large, moving all
+the current information into it.
+
+Returns:
+nothing.
 ----------------------------------------------------------------------*/
 static void
 growHandleTable(void)
@@ -193,7 +222,7 @@ growHandleTable(void)
   if (maxHandles > 0)   /* not the first time */
   {
     hmemmove((long huge *)newTable, (long huge *)handleTable,
-      (ULONG)maxHandles * sizeof(HandleInfo)) ;
+             (ULONG)maxHandles * sizeof(HandleInfo)) ;
     free(handleTable) ;
   }
   maxHandles = newMaxHandles ;

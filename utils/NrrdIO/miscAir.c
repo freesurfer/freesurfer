@@ -2,23 +2,23 @@
   NrrdIO: stand-alone code for basic nrrd functionality
   Copyright (C) 2005  Gordon Kindlmann
   Copyright (C) 2004, 2003, 2002, 2001, 2000, 1999, 1998  University of Utah
- 
+
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any
   damages arising from the use of this software.
- 
+
   Permission is granted to anyone to use this software for any
   purpose, including commercial applications, and to alter it and
   redistribute it freely, subject to the following restrictions:
- 
+
   1. The origin of this software must not be misrepresented; you must
      not claim that you wrote the original software. If you use this
      software in a product, an acknowledgment in the product
      documentation would be appreciated but is not required.
- 
+
   2. Altered source versions must be plainly marked as such, and must
      not be misrepresented as being the original software.
- 
+
   3. This notice may not be removed or altered from any source distribution.
 */
 
@@ -38,7 +38,7 @@
 ******** airTeemVersion
 ******** airTeemReleaseDate
 **
-** updated with each release to contain a string representation of 
+** updated with each release to contain a string representation of
 ** the Teem version number and release date.  Originated in version 1.5;
 ** use of TEEM_VERSION #defines started in 1.9
 */
@@ -48,7 +48,8 @@ const char *
 airTeemReleaseDate = "26 December 2005";
 
 double
-_airSanityHelper(double val) {
+_airSanityHelper(double val)
+{
   return val*val*val;
 }
 
@@ -58,7 +59,8 @@ _airSanityHelper(double val) {
 ** returns NULL
 */
 void *
-airNull(void) {
+airNull(void)
+{
 
   return NULL;
 }
@@ -69,9 +71,11 @@ airNull(void) {
 ** dereferences and sets to NULL, returns NULL
 */
 void *
-airSetNull(void **ptrP) {
-  
-  if (ptrP) {
+airSetNull(void **ptrP)
+{
+
+  if (ptrP)
+  {
     *ptrP = NULL;
   }
   return NULL;
@@ -84,9 +88,11 @@ airSetNull(void **ptrP) {
 ** also makes sure that NULL is not passed to free().
 */
 void *
-airFree(void *ptr) {
+airFree(void *ptr)
+{
 
-  if (ptr) {
+  if (ptr)
+  {
     free(ptr);
   }
   return NULL;
@@ -96,23 +102,28 @@ airFree(void *ptr) {
 ******** airFopen()
 **
 ** encapsulates that idea that "-" is either standard in or stardard
-** out, and does McRosopht stuff required to make piping work 
+** out, and does McRosopht stuff required to make piping work
 **
 ** Does not error checking.  If fopen fails, then C' errno and strerror are
 ** left untouched for the caller to access.
 */
 FILE *
-airFopen(const char *name, FILE *std, const char *mode) {
+airFopen(const char *name, FILE *std, const char *mode)
+{
   FILE *ret;
 
-  if (!strcmp(name, "-")) {
+  if (!strcmp(name, "-"))
+  {
     ret = std;
 #ifdef _MSC_VER
-    if (strchr(mode, 'b')) {
+    if (strchr(mode, 'b'))
+    {
       _setmode(_fileno(ret), _O_BINARY);
     }
 #endif
-  } else {
+  }
+  else
+  {
     ret = fopen(name, mode);
   }
   return ret;
@@ -127,10 +138,13 @@ airFopen(const char *name, FILE *std, const char *mode) {
 ** stdin, stdout, or stderr (its up to the user to open these correctly)
 */
 FILE *
-airFclose(FILE *file) {
+airFclose(FILE *file)
+{
 
-  if (file) {
-    if (!( stdin == file || stdout == file || stderr == file )) {
+  if (file)
+  {
+    if (!( stdin == file || stdout == file || stderr == file ))
+    {
       fclose(file);
     }
   }
@@ -156,13 +170,14 @@ airFclose(FILE *file) {
 ** Someday I'll find/write a complete {f|s|}printf replacement ...
 */
 int
-airSinglePrintf(FILE *file, char *str, const char *_fmt, ...) {
+airSinglePrintf(FILE *file, char *str, const char *_fmt, ...)
+{
   char *fmt, buff[AIR_STRLEN_LARGE];
   double val=0, gVal, fVal;
   int ret, isF, isD, cls;
   char *conv=NULL, *p0, *p1, *p2, *p3, *p4, *p5;
   va_list ap;
-  
+
   va_start(ap, _fmt);
   fmt = airStrdup(_fmt);
 
@@ -175,28 +190,35 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...) {
   p5 = strstr(fmt, "%lg");
   isF = p0 || p1 || p2;
   isD = p3 || p4 || p5;
-  /* the code here says "isF" and "isD" as if it means "is float" or 
-     "is double".  It really should be "is2" or "is3", as in, 
+  /* the code here says "isF" and "isD" as if it means "is float" or
+     "is double".  It really should be "is2" or "is3", as in,
      "is 2-character conversion sequence, or "is 3-character..." */
-  if (isF) {
+  if (isF)
+  {
     conv = p0 ? p0 : (p1 ? p1 : p2);
   }
-  if (isD) {
+  if (isD)
+  {
     conv = p3 ? p3 : (p4 ? p4 : p5);
   }
-  if (isF || isD) {
+  if (isF || isD)
+  {
     /* use "double" instead of "float" because var args are _always_
        subject to old-style C type promotions: float promotes to double */
     val = va_arg(ap, double);
     cls = airFPClass_d(val);
-    switch (cls) {
+    switch (cls)
+    {
     case airFP_SNAN:
     case airFP_QNAN:
     case airFP_POS_INF:
     case airFP_NEG_INF:
-      if (isF) {
+      if (isF)
+      {
         memcpy(conv, "%s", 2);
-      } else {
+      }
+      else
+      {
         /* this sneakiness allows us to replace a 3-character conversion
            sequence for a double (such as %lg) with a 3-character conversion
            for a string, which we know has at most 4 characters */
@@ -205,7 +227,8 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...) {
       break;
     }
 #define PRINT(F, S, C, V) ((F) ? fprintf((F),(C),(V)) : sprintf((S),(C),(V)))
-    switch (cls) {
+    switch (cls)
+    {
     case airFP_SNAN:
     case airFP_QNAN:
       ret = PRINT(file, str, fmt, "NaN");
@@ -217,17 +240,22 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...) {
       ret = PRINT(file, str, fmt, "-inf");
       break;
     default:
-      if (p2 || p5) {
+      if (p2 || p5)
+      {
         /* got "%g" or "%lg", see if it would be better to use "%f" */
         sprintf(buff, "%f", val);
         sscanf(buff, "%lf", &fVal);
         sprintf(buff, "%g", val);
         sscanf(buff, "%lf", &gVal);
-        if (fVal != gVal) {
+        if (fVal != gVal)
+        {
           /* using %g (or %lg) lost precision!! Use %f (or %lf) instead */
-          if (p2) {
+          if (p2)
+          {
             memcpy(conv, "%f", 2);
-          } else {
+          }
+          else
+          {
             memcpy(conv, "%lf", 3);
           }
         }
@@ -235,11 +263,13 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...) {
       ret = PRINT(file, str, fmt, val);
       break;
     }
-  } else {
+  }
+  else
+  {
     /* conversion sequence is neither for float nor double */
     ret = file ? vfprintf(file, fmt, ap) : vsprintf(str, fmt, ap);
   }
-  
+
   va_end(ap);
   free(fmt);
   return ret;

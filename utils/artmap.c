@@ -1,11 +1,42 @@
+/**
+ * @file  artmap.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:30 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------
 
       File Name:   artmap.c
 
-      Description:  
+      Description:
 
-  $Header: /space/repo/1/dev/dev/utils/artmap.c,v 1.2 2000/04/04 14:28:18 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/artmap.c,v 1.3 2006/12/29 01:49:30 nicks Exp $
   $Log: artmap.c,v $
+  Revision 1.3  2006/12/29 01:49:30  nicks
+  added license header; ran astyle to set to kr and ansi code styling
+
   Revision 1.2  2000/04/04 14:28:18  fischl
   removed compiler warning.
 
@@ -92,10 +123,10 @@ void    mapLearn(ARTMAP *artmap, int ja, int jb) ;
 
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 ARTMAP *
 ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2)
@@ -125,10 +156,10 @@ ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 ARTMAP *
 ArtmapRead(char *fname)
@@ -145,7 +176,7 @@ ArtmapRead(char *fname)
     return(NULL) ;
 
   fscanf(fp, "%d %d %d %lf %lf\n",
-    &ninputs, &noutputs, &f2nodes, &beta, &rho_bar) ;
+         &ninputs, &noutputs, &f2nodes, &beta, &rho_bar) ;
 
   artmap = ArtmapAlloc(ninputs, noutputs, rho_bar, f2nodes) ;
   artmap->ncommitted = artmap->f2nodes = f2nodes ;
@@ -173,10 +204,10 @@ ArtmapRead(char *fname)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 ArtmapWrite(ARTMAP *artmap, char *fname)
@@ -190,8 +221,8 @@ ArtmapWrite(ARTMAP *artmap, char *fname)
     return(-1) ;
 
   fprintf(fp, "%d %d %d %f %f\n",
-    artmap->ninputs, artmap->noutputs, artmap->f2nodes, artmap->beta,
-    artmap->rho_bar) ;
+          artmap->ninputs, artmap->noutputs, artmap->f2nodes, artmap->beta,
+          artmap->rho_bar) ;
 
   for (j = 0 ; j < artmap->f2nodes ; j++)
   {
@@ -216,10 +247,10 @@ ArtmapWrite(ARTMAP *artmap, char *fname)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 ArtmapFree(ARTMAP **artmap)
@@ -237,10 +268,10 @@ ArtmapFree(ARTMAP **artmap)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 ArtmapProcess(ARTMAP *artmap, double *I)
@@ -262,10 +293,10 @@ ArtmapProcess(ARTMAP *artmap, double *I)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 artProcess(ARTMAP *artmap, double *I)
@@ -292,17 +323,18 @@ artProcess(ARTMAP *artmap, double *I)
     }
     artmap->class = class = artFeedForward(artmap) ;
     if (class < 0) break ;    /* no classes left */
-  } while (!artFeedBack(artmap, class)) ;
+  }
+  while (!artFeedBack(artmap, class)) ;
 
   if (Gdiag & DIAG_WRITE) printf("artProcess() --> %d\n", class) ;
   return(class) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 ArtmapLearn(ARTMAP *artmap, double *I, int class)
@@ -317,16 +349,16 @@ ArtmapLearn(ARTMAP *artmap, double *I, int class)
   do
   {
     artmap->rho = artmap->match + DELTA_RHO ;  /* match tracking */
-/*    artmap->f2nodes = artmap->max_f2 ;*/
+    /*    artmap->f2nodes = artmap->max_f2 ;*/
     artClass = ArtmapProcess(artmap, I) ;
-/*    artmap->f2nodes = artmap->ncommitted ;*/
+    /*    artmap->f2nodes = artmap->ncommitted ;*/
     if (artClass < 0)      /* commit new node */
     {
       if (artmap->f2nodes < artmap->max_f2)
       {
-        if (Gdiag & DIAG_WRITE) 
+        if (Gdiag & DIAG_WRITE)
           printf("committing new f2 node %d to class %d\n",
-                artmap->f2nodes, class) ;
+                 artmap->f2nodes, class) ;
         artmap->class = artmap->f2nodes++ ;
         artmap->flags[artmap->class] |= ARTMAP_COMMITTED ;
         artmap->ncommitted++ ;
@@ -338,9 +370,10 @@ ArtmapLearn(ARTMAP *artmap, double *I, int class)
     {
       if (Gdiag & DIAG_WRITE)
         printf("artClass %d != class %d --> match tracking\n",
-          artClass, class);
+               artClass, class);
     }
-  } while (artClass != class) ;
+  }
+  while (artClass != class) ;
 
   artFastLearn(artmap, artmap->class) ;
   mapLearn(artmap, artmap->class, class) ;
@@ -350,10 +383,10 @@ ArtmapLearn(ARTMAP *artmap, double *I, int class)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 artInitWeights(ARTMAP *artmap)
@@ -371,16 +404,16 @@ artInitWeights(ARTMAP *artmap)
   }
   for (j = 0 ; j < artmap->max_f2 ; j++)
   {
-     for (k = 0 ; k < artmap->noutputs ; k++)
-     {
-        *Mwj(artmap, j, k) = 1 ;
-     }
+    for (k = 0 ; k < artmap->noutputs ; k++)
+    {
+      *Mwj(artmap, j, k) = 1 ;
+    }
   }
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
       feed the active f2 nodes activation back through the top down weights
       to f1.  Return 1 if resonance is established, 0 if there is a mismatch.
 
@@ -390,7 +423,7 @@ artInitWeights(ARTMAP *artmap)
               --------
                 |I|
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 static int
 artFeedBack(ARTMAP *artmap, int class)
@@ -424,10 +457,10 @@ artFeedBack(ARTMAP *artmap, int class)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static int
 artFeedForward(ARTMAP *artmap)
@@ -451,21 +484,21 @@ artFeedForward(ARTMAP *artmap)
     }
   }
 
-  if (Gdiag & DIAG_WRITE) 
+  if (Gdiag & DIAG_WRITE)
     printf("artFeedForward() --> %d (%2.3f)\n", max_j, max_out) ;
   return(max_j) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
        calculate the choice function for an f2 node:
 
        Tj =    |I ^ zj|  = Zj . I
-            ------------ 
+            ------------
       BETA + |zj|
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 static double
 artChoice(ARTMAP *artmap, int j)
@@ -544,14 +577,14 @@ artFastLearn(ARTMAP *artmap, int j)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
       calculate map field activation x = Yb ^ wj
 
       where Yb is b field activation, and wj are adaptive weights
       between F2a and the map field.
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 int
 mapFeedForward(ARTMAP *artmap, int class)
@@ -570,19 +603,19 @@ mapFeedForward(ARTMAP *artmap, int class)
       break ;
     }
   }
-  if (Gdiag & DIAG_WRITE) 
+  if (Gdiag & DIAG_WRITE)
     printf("mapFeedForward(%d) --> %d\n", class, apredict) ;
   return(apredict) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
+
+    Description:
       learn weights at the map field.  The weights obey
 
       Wjk = 1 for j and k active.  All other weights are 0.
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 void
 mapLearn(ARTMAP *artmap, int aclass, int mapclass)

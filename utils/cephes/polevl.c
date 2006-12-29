@@ -51,9 +51,9 @@
 
 
 double polevl( x, coef, N )
-     double x;
-     double coef[];
-     int N;
+double x;
+double coef[];
+int N;
 {
   double ans;
   int i;
@@ -65,7 +65,7 @@ double polevl( x, coef, N )
 
   do
     ans = ans * x  +  *p++;
-  while( --i );
+  while ( --i );
 
   return( ans );
 }
@@ -77,9 +77,9 @@ double polevl( x, coef, N )
  */
 
 double p1evl( x, coef, N )
-     double x;
-     double coef[];
-     int N;
+double x;
+double coef[];
+int N;
 {
   double ans;
   double *p;
@@ -91,7 +91,7 @@ double p1evl( x, coef, N )
 
   do
     ans = ans * x  + *p++;
-  while( --i );
+  while ( --i );
 
   return( ans );
 }

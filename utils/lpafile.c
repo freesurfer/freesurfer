@@ -1,3 +1,31 @@
+/**
+ * @file  lpafile.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,12 +72,12 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(-1,(ERROR_NO_FILE,"LPAFreadImageAnswer(%d): could not open %s",
-                     current, fname)) ;
+                    current, fname)) ;
 
   ecode = fread_header(fp, &Iheader, fname) ;
   fclose(fp) ;
   if (ecode)
-    ErrorReturn(-2, (ERROR_BADFILE, 
+    ErrorReturn(-2, (ERROR_BADFILE,
                      "LPAFreadImageAnswer(%s): could not read header",fname));
 
   if (Iheader.numparam < Iheader.num_frame)
@@ -57,26 +85,26 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
 
   /* read answer from header */
 #if 0
-  fprintf(stderr, "reading lp values from %dth entry in image file\n", 
+  fprintf(stderr, "reading lp values from %dth entry in image file\n",
           current_frame);
 #endif
   lpb = &lpaf->coords[current] ;
   for (frame = 0, xp = Iheader.params ; xp ; xp = xp->nextp)
     if (frame++ == current_frame)
       break ;
-                  
- /*
-  if hips file created on Sun, then the parameters are actually longs.
-*/
- #ifndef _MSDOS
-  parms = xp->val.v_pi ;
- #else
-  parms = (long *)xp->val.v_pi ;
- #endif
 
- #ifndef _MSDOS
+  /*
+   if hips file created on Sun, then the parameters are actually longs.
+  */
+#ifndef _MSDOS
+  parms = xp->val.v_pi ;
+#else
+  parms = (long *)xp->val.v_pi ;
+#endif
+
+#ifndef _MSDOS
   if (parms[0] < 0 || parms[0] >= Iheader.cols)
-  {                        
+  {
     parms[0] = swapInt(parms[0]) ;
     parms[1] = swapInt(parms[1]) ;
     for (i = 0 ; i < NPOINTS ; i++)
@@ -85,7 +113,7 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
       parms[2+2*i+1] = swapInt(parms[2*i+1]) ;
     }
   }
-  #else
+#else
   if (parms[0] < 0 || parms[0] >= (long)Iheader.cols)
   {
     parms[0] = swapLong(parms[0]) ;
@@ -96,7 +124,7 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
       parms[2+2*i+1] = swapLong(parms[2*i+1]) ;
     }
   }
-  #endif
+#endif
 
   if ((int)parms[0] == INIT_VAL)  /* not yet written with real value */
     return(0) ;
@@ -109,7 +137,7 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
     lpb->yp[i] = (int)parms[2+2*i+1] ;
   }
 
-  if (lpb->xc < 0 || lpb->xc >= Iheader.cols || 
+  if (lpb->xc < 0 || lpb->xc >= Iheader.cols ||
       lpb->yc < 0 || lpb->xc >= Iheader.rows )
     return(0) ;
 
@@ -136,13 +164,13 @@ LPAFresetImageAnswer(LPAF *lpaf, int current)
   if (!infp)
     ErrorReturn(-1,(ERROR_NO_FILE,
                     "LPAFwriteImageAnswer(%d): could not open %s",
-                     current, fname)) ;
+                    current, fname)) ;
   ecode = fread_header(infp, &Iheader, fname) ;
   if (ecode)
   {
     fclose(infp) ;
     ErrorReturn(-2, (ERROR_BADFILE,
-                  "LPAFwriteImageAnswer(%d): could not read header", current));
+                     "LPAFwriteImageAnswer(%d): could not read header", current));
   }
   fclose(infp) ;
   if (Iheader.numparam == 0)  /* must make room for header in image file */
@@ -210,13 +238,13 @@ LPAFwriteImageAnswer(LPAF *lpaf, int current)
   if (!infp)
     ErrorReturn(-1,(ERROR_NO_FILE,
                     "LPAFwriteImageAnswer(%d): could not open %s",
-                     current, fname)) ;
+                    current, fname)) ;
   ecode = fread_header(infp, &Iheader, fname) ;
   if (ecode)
   {
     fclose(infp) ;
     ErrorReturn(-2, (ERROR_BADFILE,
-                  "LPAFwriteImageAnswer(%d): could not read header", current));
+                     "LPAFwriteImageAnswer(%d): could not read header", current));
   }
   fclose(infp) ;
   if (Iheader.numparam == 0)  /* must make room for header in image file */
@@ -279,7 +307,7 @@ LPAFcreate(char *out_fname, int argc, char *argv[])
 
   if (nfiles <= 0)
     ErrorReturn(NULL, (ERROR_NO_FILE, "LPAFcreate: no valid files specified"));
-  
+
   lpaf = (LP_ANSWER_FILE *)calloc(1, sizeof(*lpaf)) ;
   if (!lpaf)
     ErrorExit(ERROR_NO_MEMORY, "LPAFcreate: allocation failed") ;
@@ -377,7 +405,7 @@ lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf)
 
 
 /* filename (centroid) (x, y) ... */
-#define FILE_FMT  "%s (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d)\n" 
+#define FILE_FMT  "%s (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d)\n"
 
 int
 LPAFwrite(LPAF *lpaf, int current)
@@ -397,18 +425,17 @@ LPAFwrite(LPAF *lpaf, int current)
     }
     else
       lpb->fpos = ftell(lpaf->fp) ;
-    
+
     if (current > lpaf->last_written)
       lpaf->last_written = current ;
     else   /* write out rest of file */
-    {
-    }
-  
+    {}
+
     fprintf(lpaf->fp, FILE_FMT,
             lpaf->filelist[current], lpb->xc, lpb->yc,
             lpb->xp[0], lpb->yp[0], lpb->xp[1], lpb->yp[1],
             lpb->xp[2], lpb->yp[2], lpb->xp[3], lpb->yp[3]) ;
-    
+
     if (lpaf->flush++ >= NFLUSH)
     {
       fflush(lpaf->fp) ;
@@ -430,33 +457,33 @@ LPAFread(LPAF *lpaf, int current)
   {
     if (!lpaf->fp || (lpb->fpos < 0))
       return(0) ;     /* hasn't been written yet */
-    
+
     if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
       ErrorReturn(-1, (ERROR_BADFILE, "LPAFread could not seek to %ld",
                        lpb->fpos)) ;
-    
+
     cp = fgetl(line, 299, lpaf->fp) ;
     if (!cp)
       ErrorReturn(-1, (ERROR_BADFILE, "LPAFread: could not read line")) ;
-    
+
     if (sscanf(cp, FILE_FMT,
                lpaf->filelist[current], &lpb->xc, &lpb->yc,
                &lpb->xp[0], &lpb->yp[0], &lpb->xp[1], &lpb->yp[1],
                &lpb->xp[2], &lpb->yp[2], &lpb->xp[3], &lpb->yp[3]) != 11)
-      ErrorReturn(-1, 
+      ErrorReturn(-1,
                   (ERROR_BADFILE, "LPAFread: could not scan all parms from %s",
                    cp)) ;
-    
+
   }
 
 #if 0
-{
-  int i ;
+  {
+    int i ;
 
-  for (i = 0 ; i < NPOINTS ; i++)
-    fprintf(stderr, "(%d, %d) ", lpb->xp[i], lpb->yp[i]) ;
-  fprintf(stderr, "\n") ;
-}
+    for (i = 0 ; i < NPOINTS ; i++)
+      fprintf(stderr, "(%d, %d) ", lpb->xp[i], lpb->yp[i]) ;
+    fprintf(stderr, "\n") ;
+  }
 #endif
 
   return(abs(lpb->xc) < INIT_VAL) ;  /* handles garbages as well as unwritten */

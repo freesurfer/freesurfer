@@ -1,3 +1,31 @@
+/**
+ * @file  test_matrix.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.19 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
@@ -12,11 +40,13 @@
 
 #include "numerics.h"
 
-extern "C" {
+extern "C"
+{
 #include "matrix.h"
 }
 
-class MatrixTest : public CppUnit::TestFixture {
+class MatrixTest : public CppUnit::TestFixture
+{
 
   // create the test suite and add the tests here
   CPPUNIT_TEST_SUITE( MatrixTest );
@@ -131,7 +161,7 @@ const std::string MatrixTest::TESTING_DIR = "test_matrix_data/";
 
 const std::string MatrixTest::PASCAL_MATRIX = TESTING_DIR + "Pascal.mat";
 const std::string MatrixTest::PASCAL_INVERSE =
-TESTING_DIR + "PascalInverse.mat";
+  TESTING_DIR + "PascalInverse.mat";
 
 const std::string MatrixTest::BUCKY_MATRIX = TESTING_DIR + "Bucky.mat";
 const std::string MatrixTest::BUCKY_INVERSE = TESTING_DIR + "BuckyInverse.mat";
@@ -143,35 +173,36 @@ const std::string MatrixTest::IDENTITY_MATRIX = TESTING_DIR + "Identity.mat";
 const std::string MatrixTest::SINGULAR_MATRIX = TESTING_DIR + "Singular.mat";
 
 const std::string MatrixTest::NON_SQUARE_MATRIX =
-TESTING_DIR + "NonSquare.mat";
+  TESTING_DIR + "NonSquare.mat";
 const std::string MatrixTest::NON_SQUARE_MATRIX_PSEUDO_INVERSE =
-TESTING_DIR + "NonSquarePseudoInverse.mat";
+  TESTING_DIR + "NonSquarePseudoInverse.mat";
 
 const std::string MatrixTest::SQUARE_MATRIX = TESTING_DIR + "Square.mat";
 const std::string MatrixTest::SQUARE_MATRIX_PSEUDO_INVERSE =
-TESTING_DIR + "SvdPseudoInverse.mat";
+  TESTING_DIR + "SvdPseudoInverse.mat";
 
 const std::string MatrixTest::ONE_MATRIX = TESTING_DIR + "One.mat";
 const std::string MatrixTest::ONE_INVERSE = TESTING_DIR + "OneInverse.mat";
 
 const std::string MatrixTest::ONE_SMALL_MATRIX = TESTING_DIR + "OneSmall.mat";
 const std::string MatrixTest::ONE_SMALL_INVERSE =
-TESTING_DIR + "OneSmallInverse.mat";
+  TESTING_DIR + "OneSmallInverse.mat";
 
 const std::string MatrixTest::TRANSFORM_MATRIX =
-TESTING_DIR + "TransformMatrix.mat";
+  TESTING_DIR + "TransformMatrix.mat";
 const std::string MatrixTest::TRANSFORM_INVERSE =
-TESTING_DIR + "TransformMatrixInverse.mat";
+  TESTING_DIR + "TransformMatrixInverse.mat";
 
 const std::string MatrixTest::NON_SYMMETRIC_MATRIX =
-TESTING_DIR + "NonSymmetricMatrix.mat";
+  TESTING_DIR + "NonSymmetricMatrix.mat";
 
 const std::string MatrixTest::SVD_U_MATRIX = TESTING_DIR + "SVD_U.mat";
 const std::string MatrixTest::SVD_V_MATRIX = TESTING_DIR + "SVD_V.mat";
 const std::string MatrixTest::SVD_S_VECTOR = TESTING_DIR + "SVD_S.mat";
 
 void
-MatrixTest::setUp() {
+MatrixTest::setUp()
+{
   mPascalMatrix =    MatrixRead( (char*) ( PASCAL_MATRIX.c_str() ) );
   mBuckyMatrix =     MatrixRead( (char*) ( BUCKY_MATRIX.c_str() ) );
   mZeroesMatrix =    MatrixRead( (char*) ( ZEROES_MATRIX.c_str() ) );
@@ -186,7 +217,8 @@ MatrixTest::setUp() {
 }
 
 void
-MatrixTest::tearDown() {
+MatrixTest::tearDown()
+{
   MatrixFree( &mPascalMatrix );
   MatrixFree( &mBuckyMatrix );
   MatrixFree( &mZeroesMatrix );
@@ -198,37 +230,45 @@ MatrixTest::tearDown() {
 }
 
 bool
-MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
+MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 )
+{
   bool areEqual = true;
 
-  if( m1->rows == m2->rows &&
-      m2->cols == m2->cols ) {
+  if ( m1->rows == m2->rows &&
+       m2->cols == m2->cols )
+  {
 
     int numberOfRows =  m1->rows;
     int numberOfColumns = m1->cols;
 
-    for( int row=0; row<numberOfRows; row++ ) {
-      for( int column=0; column<numberOfColumns; column++ ) {
+    for ( int row=0; row<numberOfRows; row++ )
+    {
+      for ( int column=0; column<numberOfColumns; column++ )
+      {
 
         int index = column + row * numberOfColumns;
         float difference = fabs( m1->data[ index ] - m2->data[ index ] );
 
-        if( difference > tolerance ) {
+        if ( difference > tolerance )
+        {
           areEqual = false;
           std::cerr << "MatrixTest::AreMatricesEqual() not equal: (" <<
-            m1->data[ index ] << ", " << m2->data[ index ] << ")\n";
+          m1->data[ index ] << ", " << m2->data[ index ] << ")\n";
           std::cerr.flush();
         }
       }
     }
-  } else {
+  }
+  else
+  {
     std::cerr << "MatrixTest::AreMatricesEqual() not equal: m1: (" <<
-      m1->rows << ", " << m1->cols << "), m2: (" << 
-      m2->rows << ", " << m2->cols << ")\n"; 
+    m1->rows << ", " << m1->cols << "), m2: (" <<
+    m2->rows << ", " << m2->cols << ")\n";
     areEqual = false;
   }
 
-  if (! areEqual) {
+  if (! areEqual)
+  {
     std::cerr << "actual:\n";
     MatrixPrint(stderr, m1);
     std::cerr << "expected:\n";
@@ -239,7 +279,8 @@ MatrixTest::AreMatricesEqual( MATRIX *m1, MATRIX *m2, float tolerance=0.0 ) {
 }
 
 bool
-MatrixTest::AreInversesEqual( MATRIX *matrix, const std::string inverseFile ) {
+MatrixTest::AreInversesEqual( MATRIX *matrix, const std::string inverseFile )
+{
 
   // NJS: had to change the tolerance for the test case to pass with VXL
   float tolerance = 0.0022;
@@ -259,13 +300,15 @@ MatrixTest::AreInversesEqual( MATRIX *matrix, const std::string inverseFile ) {
 }
 
 void
-MatrixTest::DeleteMatrix(MATRIX* m) {
+MatrixTest::DeleteMatrix(MATRIX* m)
+{
   MatrixFree( &m );
   m = NULL;
 }
 
 void
-MatrixTest::TestMatrixInverse() {
+MatrixTest::TestMatrixInverse()
+{
   std::cout << "\rMatrixTest::TestMatrixInverse()\n";
 
   //  std::cout << "\ttest a well-formed pascal matrix\n";
@@ -299,7 +342,8 @@ MatrixTest::TestMatrixInverse() {
 }
 
 void
-MatrixTest::TestMatrixDeterminant() {
+MatrixTest::TestMatrixDeterminant()
+{
   double tolerance = 1e-4;
 
   std::cout << "\rMatrixTest::TestNRMatrixDeterminant()\n";
@@ -342,7 +386,8 @@ MatrixTest::TestMatrixDeterminant() {
 }
 
 void
-MatrixTest::TestOpenMatrixDeterminant() {
+MatrixTest::TestOpenMatrixDeterminant()
+{
   double tolerance = 1e-4;
 
   // is it ok that bucky has a higher tolerance?
@@ -376,9 +421,9 @@ MatrixTest::TestOpenMatrixDeterminant() {
 
   // non-square matrices will have a determinant of 0 for us
   CPPUNIT_ASSERT_DOUBLES_EQUAL(
-                               (double)OpenMatrixDeterminant(mNonSquareMatrix),
-                               0.0,
-                               tolerance );
+    (double)OpenMatrixDeterminant(mNonSquareMatrix),
+    0.0,
+    tolerance );
 
   CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)OpenMatrixDeterminant(mOneSmallMatrix),
                                 2.e-20,
@@ -386,7 +431,8 @@ MatrixTest::TestOpenMatrixDeterminant() {
 }
 
 int
-MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
+MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix )
+{
   const float TOLERANCE = 2e-5;
 
   int eigenSystemState = EIGENSYSTEM_INVALID;
@@ -398,26 +444,31 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
   MATRIX *eigenVectors = MatrixAlloc( size, cols, MATRIX_REAL );
 
   MATRIX *eigenSystem = MatrixEigenSystem( matrix, eigenValues, eigenVectors );
-  if (eigenSystem == NULL) {
+  if (eigenSystem == NULL)
+  {
     return EIGENSYSTEM_INVALID;
   }
 
   bool isInDecendingOrder = true;
-  for( int i=1; i<size; i++ ) {
-    if( fabs( eigenValues[ i-1 ] ) < fabs( eigenValues[i] ) ) {
+  for ( int i=1; i<size; i++ )
+  {
+    if ( fabs( eigenValues[ i-1 ] ) < fabs( eigenValues[i] ) )
+    {
       isInDecendingOrder = false;
       std::cerr << "DoesCreateValidEigenSystem::not in descending order: (" <<
-        eigenValues[ i-1 ] << ", " << eigenValues[i] << ")\n";
+      eigenValues[ i-1 ] << ", " << eigenValues[i] << ")\n";
     }
   }
 
-  if( !isInDecendingOrder ) {
+  if ( !isInDecendingOrder )
+  {
     eigenSystemState = EIGENSYSTEM_NOT_DESCENDING;
   }
 
   MATRIX* eigenValuesMatrix = MatrixAlloc( size, size, MATRIX_REAL );
 
-  for( int i=0; i<size; i++ ) {
+  for ( int i=0; i<size; i++ )
+  {
     // index of the diagonal
     int index = i + i * size;
     eigenValuesMatrix->data[index] = eigenValues[i];
@@ -426,7 +477,8 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
   MATRIX* xv = MatrixMultiply( matrix, eigenVectors, NULL );
   MATRIX* vd = MatrixMultiply( eigenVectors, eigenValuesMatrix, NULL );
 
-  if( isInDecendingOrder && AreMatricesEqual( xv, vd, TOLERANCE ) ) {
+  if ( isInDecendingOrder && AreMatricesEqual( xv, vd, TOLERANCE ) )
+  {
     eigenSystemState = EIGENSYSTEM_VALID;
   }
 
@@ -438,40 +490,42 @@ MatrixTest::DoesCreateValidEigenSystem( MATRIX* matrix ) {
 }
 
 void
-MatrixTest::TestMatrixEigenSystem() {
+MatrixTest::TestMatrixEigenSystem()
+{
 
   std::cout << "\rMatrixTest::TestMatrixEigenSystem()\n";
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mPascalMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem( mPascalMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem(mBuckyMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem(mBuckyMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mZeroesMatrix ) == EIGENSYSTEM_VALID);
+  ( DoesCreateValidEigenSystem( mZeroesMatrix ) == EIGENSYSTEM_VALID);
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mIdentityMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem( mIdentityMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mSingularMatrix ) == EIGENSYSTEM_VALID);
+  ( DoesCreateValidEigenSystem( mSingularMatrix ) == EIGENSYSTEM_VALID);
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
+  ( DoesCreateValidEigenSystem( mNonSquareMatrix ) );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mOneMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem( mOneMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mOneSmallMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem( mOneSmallMatrix ) == EIGENSYSTEM_VALID );
 
   CPPUNIT_ASSERT
-    ( DoesCreateValidEigenSystem( mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
+  ( DoesCreateValidEigenSystem( mNonSymmetricMatrix ) == EIGENSYSTEM_VALID );
 }
 
 void
-MatrixTest::TestMatrixSVDPseudoInverse() {
+MatrixTest::TestMatrixSVDPseudoInverse()
+{
   float tolerance = 1e-5;
 
   std::cout << "\rMatrixTest::TestMatrixSVDPseudoInverse()\n";
@@ -508,10 +562,11 @@ MatrixTest::TestMatrixSVDPseudoInverse() {
   expectedInverse =
     MatrixRead( (char*) ( SQUARE_MATRIX_PSEUDO_INVERSE.c_str() ) );
   CPPUNIT_ASSERT
-    ( AreMatricesEqual( actualInverse, expectedInverse, tolerance ) );
+  ( AreMatricesEqual( actualInverse, expectedInverse, tolerance ) );
 }
 
-int main ( int argc, char** argv ) {
+int main ( int argc, char** argv )
+{
 
   int SUCCESS = 0;
   int FAIL = 1;
@@ -519,7 +574,8 @@ int main ( int argc, char** argv ) {
   CppUnit::TextUi::TestRunner runner;
   runner.addTest( MatrixTest::suite() );
 
-  if( runner.run() ) {
+  if ( runner.run() )
+  {
     exit ( SUCCESS );
   }
 

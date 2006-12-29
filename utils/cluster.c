@@ -1,3 +1,31 @@
+/**
+ * @file  cluster.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.12 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   cluster.c
  *
@@ -67,7 +95,7 @@ CSprint(CLUSTER_SET *cs, FILE *fp)
 
   fprintf(fp, "cluster set %swith %d inputs, %d obs, and %d clusters, "
           "looking for %d\n",
-          cs->normalize ? "normalized " : "", cs->ninputs, cs->nsamples, 
+          cs->normalize ? "normalized " : "", cs->ninputs, cs->nsamples,
           cs->nclusters, cs->max_clusters)  ;
 #if 0
   fprintf(fp, "within-cluster scatter matrix:\n") ;
@@ -169,7 +197,7 @@ CSfree(CLUSTER_SET **pcs)
     MatrixFree(&cs->m_sw) ;
   if (cs->m_sb)
     MatrixFree(&cs->m_sb) ;
-  
+
   for (c = 0 ; c < cs->max_clusters ; c++)
     clusterFree(cs->clusters+c) ;
   free(cs) ;
@@ -184,24 +212,24 @@ CSfree(CLUSTER_SET **pcs)
            allocate the internal variables of the given cluster
            and initialize them to reasonable values.
 ------------------------------------------------------*/
-static int 
+static int
 clusterInit(CLUSTER *cluster, int ninputs)
 {
   cluster->m_scatter = MatrixAlloc(ninputs, ninputs, MATRIX_REAL) ;
   if (!cluster->m_scatter)
-    ErrorExit(ERROR_NO_MEMORY, 
+    ErrorExit(ERROR_NO_MEMORY,
               "clusterInit(%d): could not allocate scatter matrix", ninputs) ;
   cluster->v_means = VectorAlloc(ninputs, MATRIX_REAL) ;
   if (!cluster->v_means)
-    ErrorExit(ERROR_NO_MEMORY, 
+    ErrorExit(ERROR_NO_MEMORY,
               "clusterInit(%d): could not allocate mean vector", ninputs) ;
   cluster->v_seed = VectorAlloc(ninputs, MATRIX_REAL) ;
   if (!cluster->v_seed)
-    ErrorExit(ERROR_NO_MEMORY, 
+    ErrorExit(ERROR_NO_MEMORY,
               "clusterInit(%d): could not allocate centroid vector", ninputs) ;
   cluster->evalues = (float *)calloc(ninputs+1, sizeof(float)) ;
   if (!cluster->evalues)
-    ErrorExit(ERROR_NO_MEMORY, 
+    ErrorExit(ERROR_NO_MEMORY,
               "clusterInit(%d): could not allocate eigen values", ninputs) ;
   cluster->nobs = cluster->nsamples = 0 ;
   return(NO_ERROR) ;
@@ -249,8 +277,8 @@ CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
   for (c = 1 ; c < cs->nclusters ; c++)
   {
     dist = clusterDistance(cs, cs->clusters+c, v_obs) ;
-    if ((dist < min_dist) || 
-        ((FEQUAL(dist,min_dist) && 
+    if ((dist < min_dist) ||
+        ((FEQUAL(dist,min_dist) &&
           cs->clusters[c].nobs < cs->clusters[min_cluster].nobs)))
     {
       min_dist = dist ;
@@ -337,8 +365,8 @@ clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs)
   {
     for (col = 1 ; col <= row ; col++)
     {
-      covariance = cluster->m_scatter->rptr[row][col] + 
-        VECTOR_ELT(v_obs,row) * VECTOR_ELT(v_obs, col) ;
+      covariance = cluster->m_scatter->rptr[row][col] +
+                   VECTOR_ELT(v_obs,row) * VECTOR_ELT(v_obs, col) ;
       cluster->m_scatter->rptr[row][col] = covariance;
     }
   }
@@ -419,7 +447,7 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
     if (FZERO(cluster->det) || cluster->det < 0.0f)
     {
       /* the scatter matrix is ill-conditioned or actually singular. If
-         this is because there are too few observations, not much can be done 
+         this is because there are too few observations, not much can be done
          except to regularize the matrix and get an inverse. Otherwise, we
          can use svd to get a 'better' inverse.
          */
@@ -427,11 +455,11 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
       if (1 || cluster->nobs < 3)  /* no information to do any better */
       {
         MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
-        cluster->m_inverse = 
+        cluster->m_inverse =
           MatrixInverse(cluster->m_scatter, cluster->m_inverse);
       }
       else
-        cluster->m_inverse = 
+        cluster->m_inverse =
           MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
       cluster->det = MatrixDeterminant(cluster->m_scatter) ;
       if (cluster->det <= 0.0f)
@@ -442,18 +470,18 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
     else
     {
       cluster->ill_conditioned = 0 ;
-      cluster->m_inverse = 
+      cluster->m_inverse =
         MatrixInverse(cluster->m_scatter, cluster->m_inverse);
       cluster->norm = 1.0f / sqrt(cluster->det) ;
     }
     if (!cluster->m_inverse)
-      ErrorReturn(ERROR_BADPARM, 
+      ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                    "singular inverse scatter matrix", cluster->cno)) ;
 #if 0
     cluster->det = MatrixDeterminant(cluster->m_inverse) ;
     if (cluster->det < 0.0f)
-      ErrorReturn(ERROR_BADPARM, 
+      ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                    "singular inverse scatter matrix", cluster->cno)) ;
 #endif
@@ -468,13 +496,13 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
   else
     return(ERROR_BADPARM) ;
 #if 0
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
-                 "has no observations", cluster->cno)) ;
+  ErrorReturn(ERROR_BADPARM,
+              (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
+               "has no observations", cluster->cno)) ;
 #endif
 
-  cluster->m_evectors = 
-    MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
+  cluster->m_evectors =
+    MatrixEigenSystem(cluster->m_scatter, cluster->evalues,
                       cluster->m_evectors) ;
   VectorCopy(cluster->v_means, cluster->v_seed) ;
   cluster->nsamples = cluster->nobs ;
@@ -498,7 +526,7 @@ clusterPrint(CLUSTER *cluster, FILE *fp)
 {
   /*  int    i ;*/
 
-  fprintf(fp, "cluster %d has %d observations. Seed:", 
+  fprintf(fp, "cluster %d has %d observations. Seed:",
           cluster->cno, cluster->nsamples) ;
   MatrixPrintTranspose(fp, cluster->v_seed) ;
   fprintf(fp, "Mean: ") ;
@@ -585,7 +613,7 @@ clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
   fprintf(stderr, "mean 2: ") ;
   MatrixPrintTranspose(stderr, cdst->v_seed) ;
 #endif
-  
+
 #if DEBUG
   clusterPrint(csrc, stderr) ;
   clusterPrint(cdst, stderr) ;
@@ -639,12 +667,13 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
       if (CScomputeStatistics(cs) != NO_ERROR)
         return(Gerror) ;
       if (cs->nobs < cs->max_clusters)
-        ErrorReturn(ERROR_BADPARM, 
+        ErrorReturn(ERROR_BADPARM,
                     (ERROR_BADPARM, "CScluster: not enough observations (%d)"
                      " to generate %d clusters", cs->nobs, cs->max_clusters)) ;
-    } while (CSdivide(cs) == CS_CONTINUE) ;
-    
-    /* Go through the data one more time to rebuild scatter matrices and means 
+    }
+    while (CSdivide(cs) == CS_CONTINUE) ;
+
+    /* Go through the data one more time to rebuild scatter matrices and means
        with final # of clusters */
     CSreset(cs) ;
     obs_no = 0 ;
@@ -652,10 +681,11 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
       CSnewObservation(cs, v_obs) ;
     if (CScomputeStatistics(cs) != NO_ERROR)
       return(Gerror) ;
-  } while (cs->nclusters < cs->max_clusters) ;
+  }
+  while (cs->nclusters < cs->max_clusters) ;
 
   /*  if (cs->normalize)*/
-/*    CSrenormalize(cs) ;*/
+  /*    CSrenormalize(cs) ;*/
 
   /* now we have the proper # of clusters, use a scale-invariant metric
      to find the optimum grouping
@@ -678,7 +708,7 @@ CSreset(CLUSTER_SET *cs)
 {
   int      c ;
   CLUSTER  *cluster ;
-  
+
   for (c = 0 ; c < cs->nclusters ; c++)
   {
     cluster = cs->clusters+c ;
@@ -695,7 +725,7 @@ CSreset(CLUSTER_SET *cs)
         Returns value:
 
         Description
-          Compute the covariances and means of all the clusters 
+          Compute the covariances and means of all the clusters
           (performed after each complete pass through the data).
 ------------------------------------------------------*/
 int
@@ -729,7 +759,7 @@ CScomputeStatistics(CLUSTER_SET *cs)
 ------------------------------------------------------*/
 int
 CScomputeDimensionStatistics(CLUSTER_SET *cs, int (*get_observation_func)
-          (VECTOR *v_obs, int no, void *parm), void *parm)
+                             (VECTOR *v_obs, int no, void *parm), void *parm)
 {
   int         obs_no = 0, i ;
   VECTOR      *v_obs ;
@@ -756,7 +786,7 @@ CScomputeDimensionStatistics(CLUSTER_SET *cs, int (*get_observation_func)
     cs->means[i] = mean ;
     cs->stds[i] = sqrt(cs->stds[i] / obs_no - mean*mean) ;
   }
-  
+
   VectorFree(&v_obs) ;
   return(NO_ERROR) ;
 }
@@ -778,7 +808,8 @@ normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs)
 
   for (i = 1 ; i <= v_obs->rows ; i++)
   {
-    mean = cs->means[i-1] ; std = cs->stds[i-1] ;
+    mean = cs->means[i-1] ;
+    std = cs->stds[i-1] ;
     if (!FZERO(std))
       VECTOR_ELT(v_obs,i) = (VECTOR_ELT(v_obs,i) - mean) / std ;
   }
@@ -837,14 +868,14 @@ CSwriteInto(FILE *fp, CLUSTER_SET *cs)
   fprintf(fp, "# input statistics (means and stds):\n") ;
   for (i = 0 ; i < cs->ninputs ; i++)
     fprintf(fp, "%f ", cs->means[i]) ;
-  fprintf(fp, "\n") ; 
+  fprintf(fp, "\n") ;
   for (i = 0 ; i < cs->ninputs ; i++)
     fprintf(fp, "%f ", cs->stds[i]) ;
-  fprintf(fp, "\n") ; 
+  fprintf(fp, "\n") ;
 
-  fprintf(fp, "\n# within-cluster scatter matrix:\n") ; 
+  fprintf(fp, "\n# within-cluster scatter matrix:\n") ;
   MatrixAsciiWriteInto(fp, cs->m_sw) ;
-  fprintf(fp, "\n# between-cluster scatter matrix\n") ; 
+  fprintf(fp, "\n# between-cluster scatter matrix\n") ;
   MatrixAsciiWriteInto(fp, cs->m_sb) ;
   for (i = 0 ; i < cs->nclusters ; i++)
     clusterWriteInto(fp, cs->clusters+i) ;
@@ -857,7 +888,7 @@ CSwriteInto(FILE *fp, CLUSTER_SET *cs)
         Returns value:
 
         Description
-          Read a (and possibly allocate) CLUSTER_SET and all it's 
+          Read a (and possibly allocate) CLUSTER_SET and all it's
           associated parameters into the specified file.
 
 ------------------------------------------------------*/
@@ -872,8 +903,8 @@ CSreadFrom(FILE *fp, CLUSTER_SET *cs)
     ErrorReturn(NULL, (ERROR_BADFILE, "CSreadFrom: could not scan parms"));
 
   if (sscanf(cp, "%d %d %d %d %d %d\n",
-          &nclusters, &ninputs, &max_clusters,
-          &nobs, &nsamples, &normalize) != 6)
+             &nclusters, &ninputs, &max_clusters,
+             &nobs, &nsamples, &normalize) != 6)
     ErrorReturn(NULL, (ERROR_BADFILE, "CSreadFrom: could not scan parms"));
 
   if (cs)
@@ -893,7 +924,7 @@ CSreadFrom(FILE *fp, CLUSTER_SET *cs)
   for (i = 0 ; i < cs->ninputs ; i++)
   {
     if (sscanf(cp, "%f", &cs->means[i]) != 1)
-      ErrorReturn(NULL, 
+      ErrorReturn(NULL,
                   (ERROR_BADFILE, "CSreadFrom: could not scan %dth mean",i));
     cp = StrSkipNumber(cp) ;
   }
@@ -901,7 +932,7 @@ CSreadFrom(FILE *fp, CLUSTER_SET *cs)
   for (i = 0 ; i < cs->ninputs ; i++)
   {
     if (sscanf(cp, "%f", &cs->stds[i]) != 1)
-      ErrorReturn(NULL, 
+      ErrorReturn(NULL,
                   (ERROR_BADFILE, "CSreadFrom: could not scan %dth std",i));
     cp = StrSkipNumber(cp) ;
   }
@@ -943,7 +974,7 @@ clusterWriteInto(FILE *fp, CLUSTER *cluster)
         Returns value:
 
         Description
-          Read a (and possibly allocate) CLUSTER and all it's 
+          Read a (and possibly allocate) CLUSTER and all it's
           associated parameters into the specified file.
 
 ------------------------------------------------------*/
@@ -954,11 +985,11 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
 
   cp = fgetl(line, 199, fp) ;
   if (!cp)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
   if (sscanf(cp, "%d %d %d %f", &cluster->nobs, &cluster->nsamples,
-          &cluster->cno, &cluster->det) != 4)
-    ErrorReturn(NULL, 
+             &cluster->cno, &cluster->det) != 4)
+    ErrorReturn(NULL,
                 (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
   MatrixAsciiReadFrom(fp, cluster->m_scatter) ;
   cluster->m_inverse = MatrixAsciiReadFrom(fp, cluster->m_inverse) ;
@@ -970,7 +1001,7 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
   if (FZERO(cluster->det) || cluster->det < 0.0f)
   {
     /* the scatter matrix is ill-conditioned or actually singular. If
-       this is because there are too few observations, not much can be done 
+       this is because there are too few observations, not much can be done
        except to regularize the matrix and get an inverse. Otherwise, we
        can use svd to get a 'better' inverse.
        */
@@ -978,11 +1009,11 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
     if (1 || cluster->nobs < 3)  /* no information to do any better */
     {
       MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
-      cluster->m_inverse = 
+      cluster->m_inverse =
         MatrixInverse(cluster->m_scatter, cluster->m_inverse);
     }
     else
-      cluster->m_inverse = 
+      cluster->m_inverse =
         MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
     cluster->det = MatrixDeterminant(cluster->m_scatter) ;
     if (cluster->det <= 0.0f)
@@ -994,19 +1025,19 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
   {
     cluster->norm = 1.0f / sqrt(cluster->det) ;
     cluster->ill_conditioned = 0 ;
-    cluster->m_inverse = 
+    cluster->m_inverse =
       MatrixInverse(cluster->m_scatter, cluster->m_inverse);
   }
   if (!cluster->m_inverse)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADPARM, "clusterAsciiReadFrom: cluster %d "
                  "singular inverse scatter matrix", cluster->cno)) ;
 
   VectorAsciiReadFrom(fp, cluster->v_means) ;
   VectorAsciiReadFrom(fp, cluster->v_seed) ;
   cluster->det = MatrixDeterminant(cluster->m_inverse) ;
-  cluster->m_evectors = 
-    MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
+  cluster->m_evectors =
+    MatrixEigenSystem(cluster->m_scatter, cluster->evalues,
                       cluster->m_evectors) ;
   return(cluster) ;
 }
@@ -1033,7 +1064,7 @@ clusterCopy(CLUSTER *csrc, CLUSTER *cdst)
   cdst->nsamples = csrc->nsamples ;
   cdst->det = csrc->det ;
   cdst->ill_conditioned = csrc->ill_conditioned ;
-  
+
   return(NO_ERROR) ;
 }
 

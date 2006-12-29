@@ -1,10 +1,38 @@
+/**
+ * @file  fio.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.30 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // fio.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/04/19 22:47:33 $
-// Revision       : $Revision: 1.29 $
+// Revision Date  : $Date: 2006/12/29 01:49:31 $
+// Revision       : $Revision: 1.30 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -197,7 +225,7 @@ long long
 freadLong(FILE *fp)
 {
   int  nread ;
-	long long i ;
+  long long i ;
 
   nread = fread(&i,sizeof(long long),1,fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -339,36 +367,40 @@ char *fio_dirname(char *pathname)
   int l,n;
   char *dirname;
 
-  if(pathname == NULL) return(NULL);
+  if (pathname == NULL) return(NULL);
 
   l = strlen(pathname);
 
   /* strip off leading forward slashes */
-  while(l > 0 && pathname[l-1] == '/'){
+  while (l > 0 && pathname[l-1] == '/')
+  {
     pathname[l-1] = '\0';
     l = strlen(pathname);
   }
 
-  if(l < 2){
+  if (l < 2)
+  {
     /* pathname is / or . or single character */
     dirname = (char *) calloc(2,sizeof(char));
-    if(l==0 || pathname[0] == '/') dirname[0] = '/';
+    if (l==0 || pathname[0] == '/') dirname[0] = '/';
     else                           dirname[0] = '.';
     return(dirname);
   }
 
   /* Start at the end of the path name and step back
      until a forward slash is found */
-  for(n=l; n >= 0; n--)if(pathname[n] == '/') break;
+  for (n=l; n >= 0; n--)if (pathname[n] == '/') break;
 
-  if(n < 0){
+  if (n < 0)
+  {
     /* no forward slash found */
     dirname = (char *) calloc(2,sizeof(char));
     dirname[0] = '.';
     return(dirname);
   }
 
-  if(n == 0){
+  if (n == 0)
+  {
     /* first forward slash is the first character */
     dirname = (char *) calloc(2,sizeof(char));
     dirname[0] = '/';
@@ -389,32 +421,37 @@ char *fio_basename(char *pathname, char *ext)
   int l,n,lext;
   char *basename, *tmp;
 
-  if(pathname == NULL) return(NULL);
+  if (pathname == NULL) return(NULL);
 
   l = strlen(pathname);
   tmp = strcpyalloc(pathname); // keep a copy
 
   /* strip off the extension if it matches ext */
-  if(ext != NULL){
+  if (ext != NULL)
+  {
     lext = strlen(ext);
-    if(lext < (l + 2)){
-      if( strcmp(ext,&(pathname[l-lext]) ) == 0){
-	memset(&(pathname[l-lext]),'\0',lext+1);
-	l = strlen(pathname);
+    if (lext < (l + 2))
+    {
+      if ( strcmp(ext,&(pathname[l-lext]) ) == 0)
+      {
+        memset(&(pathname[l-lext]),'\0',lext+1);
+        l = strlen(pathname);
       }
     }
   }
 
   /* strip off leading forward slashes */
-  while(l > 0 && pathname[l-1] == '/'){
+  while (l > 0 && pathname[l-1] == '/')
+  {
     pathname[l-1] = '\0';
     l = strlen(pathname);
   }
-  
-  if(l < 2){
+
+  if (l < 2)
+  {
     /* basename is / or . or single character */
     basename = (char *) calloc(2,sizeof(char));
-    if(l==0) basename[0] = '/';
+    if (l==0) basename[0] = '/';
     else     basename[0] = pathname[0];
     memcpy(pathname,tmp,strlen(tmp));
     free(tmp);
@@ -423,7 +460,7 @@ char *fio_basename(char *pathname, char *ext)
 
   /* Start at the end of the path name and step back
      until a forward slash is found */
-  for(n=l; n >= 0; n--) if(pathname[n] == '/') break;
+  for (n=l; n >= 0; n--) if (pathname[n] == '/') break;
 
   basename = (char *) calloc(l-n,sizeof(char));
   memcpy(basename,&(pathname[n+1]),l-n);
@@ -443,22 +480,23 @@ char *fio_extension(char *pathname)
   int lpathname,n, lext;
   char *ext;
 
-  if(pathname == NULL) return(NULL);
+  if (pathname == NULL) return(NULL);
 
   lpathname = strlen(pathname);
 
   lext = 0;
   n = lpathname - 1;
-  while(n >= 0 && pathname[n] != '.') {
+  while (n >= 0 && pathname[n] != '.')
+  {
     n--;
     lext++;
   }
 
   /* A dot was not found, return NULL */
-  if(n < 0) return(NULL);
+  if (n < 0) return(NULL);
 
   /* A dot was not found at the end of the file name */
-  if(lext == 0) return(NULL);
+  if (lext == 0) return(NULL);
 
   ext = (char *) calloc(sizeof(char),lext+1);
   memcpy(ext,&(pathname[n+1]),lext);
@@ -477,13 +515,13 @@ int fio_DirIsWritable(char *dirname, int fname)
   FILE *fp;
   char tmpstr[2000];
 
-  if(fname != 0)
+  if (fname != 0)
     sprintf(tmpstr,"%s.junk.54_-_sdfklj",dirname);
   else
     sprintf(tmpstr,"%s/.junk.54_-_sdfklj",dirname);
-  
+
   fp = fopen(tmpstr,"w");
-  if(fp == NULL) return(0);
+  if (fp == NULL) return(0);
 
   fclose(fp);
   unlink(tmpstr);
@@ -498,7 +536,8 @@ int fio_FileExistsReadable(char *fname)
   FILE *fp;
 
   fp = fopen(fname,"r");
-  if(fp != NULL){
+  if (fp != NULL)
+  {
     fclose(fp);
     return(1);
   }
@@ -514,10 +553,10 @@ int fio_IsDirectory(char *fname)
   int err;
 
   fp = fopen(fname,"r");
-  if(fp == NULL) return(0);
+  if (fp == NULL) return(0);
   fclose(fp);
   err = stat(fname, &buf);
-  if(err != 0) return(0);
+  if (err != 0) return(0);
   return(S_ISDIR(buf.st_mode));
 }
 /*------------------------------------------------------------
@@ -531,13 +570,14 @@ int fio_NLines(char *fname)
   char tmpstring[4001];
 
   fp = fopen(fname,"r");
-  if(fp == NULL){
+  if (fp == NULL)
+  {
     printf("ERROR: cannot open %s\n",fname);
     return(-1);
   }
 
   nrows = 0;
-  while(fgets(tmpstring,4000,fp) != NULL)  nrows ++;
+  while (fgets(tmpstring,4000,fp) != NULL)  nrows ++;
   fclose(fp);
 
   return(nrows);
@@ -552,13 +592,15 @@ int fio_pushd(char *dir)
   int err;
 
   fio_npushes ++;
-  if(fio_npushes == FIO_NPUSHES_MAX){
+  if (fio_npushes == FIO_NPUSHES_MAX)
+  {
     printf("ERROR: fio_pushd: maximum number of pushes reached\n");
     return(1);
   }
   getcwd(fio_dirstack[fio_npushes],1000);
   err = chdir(dir);
-  if(err){
+  if (err)
+  {
     printf("ERROR: fio_pushd: %s\n",dir);
     fio_npushes --;
     return(1);
@@ -571,17 +613,19 @@ int fio_pushd(char *dir)
 /*------------------------------------------------------------------------*/
 int fio_popd(void)
 {
-  extern int fio_npushes; 
+  extern int fio_npushes;
   extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
   int err;
 
-  if(fio_npushes == -1){
+  if (fio_npushes == -1)
+  {
     printf("ERROR: fio_popd: dir stack is empty\n");
     return(1);
   }
 
   err = chdir(fio_dirstack[fio_npushes]);
-  if(err){
+  if (err)
+  {
     printf("ERROR: fio_popd: %d %s\n",fio_npushes,fio_dirstack[fio_npushes]);
     return(1);
   }
@@ -608,7 +652,8 @@ char *fio_fullpath(char *fname)
   dirname  = fio_dirname(fname);
 
   err = fio_pushd(dirname);
-  if(err){
+  if (err)
+  {
     free(dirname);
     free(basename);
     return(NULL);
@@ -621,7 +666,7 @@ char *fio_fullpath(char *fname)
 
   free(dirname);
   free(basename);
-  
+
   return(fullpath);
 }
 

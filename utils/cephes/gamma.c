@@ -111,25 +111,27 @@
 
 #ifdef UNK
 #ifndef Darwin // Mac OS has gamma in its libm
-static double P[] = {
-  1.60119522476751861407E-4,
-  1.19135147006586384913E-3,
-  1.04213797561761569935E-2,
-  4.76367800457137231464E-2,
-  2.07448227648435975150E-1,
-  4.94214826801497100753E-1,
-  9.99999999999999996796E-1
-};
-static double Q[] = {
-  -2.31581873324120129819E-5,
-  5.39605580493303397842E-4,
-  -4.45641913851797240494E-3,
-  1.18139785222060435552E-2,
-  3.58236398605498653373E-2,
-  -2.34591795718243348568E-1,
-  7.14304917030273074085E-2,
-  1.00000000000000000320E0
-};
+static double P[] =
+  {
+    1.60119522476751861407E-4,
+    1.19135147006586384913E-3,
+    1.04213797561761569935E-2,
+    4.76367800457137231464E-2,
+    2.07448227648435975150E-1,
+    4.94214826801497100753E-1,
+    9.99999999999999996796E-1
+  };
+static double Q[] =
+  {
+    -2.31581873324120129819E-5,
+    5.39605580493303397842E-4,
+    -4.45641913851797240494E-3,
+    1.18139785222060435552E-2,
+    3.58236398605498653373E-2,
+    -2.34591795718243348568E-1,
+    7.14304917030273074085E-2,
+    1.00000000000000000320E0
+  };
 #define MAXGAM 171.624376956302725
 #endif
 static double LOGPI = 1.14472988584940017414;
@@ -138,13 +140,14 @@ static double LOGPI = 1.14472988584940017414;
 /* Stirling's formula for the gamma function */
 #ifndef Darwin // Mac OS has gamma in its libm
 #if UNK
-static double STIR[5] = {
-  7.87311395793093628397E-4,
-  -2.29549961613378126380E-4,
-  -2.68132617805781232825E-3,
-  3.47222221605458667310E-3,
-  8.33333333333482257126E-2,
-};
+static double STIR[5] =
+  {
+    7.87311395793093628397E-4,
+    -2.29549961613378126380E-4,
+    -2.68132617805781232825E-3,
+    3.47222221605458667310E-3,
+    8.33333333333482257126E-2,
+  };
 #define MAXSTIR 143.01608
 static double SQTPI = 2.50662827463100050242E0;
 #endif
@@ -164,22 +167,22 @@ double pow(), log(), exp(), sin(), polevl(), p1evl(), floor(), fabs();
  * The polynomial STIR is valid for 33 <= x <= 172.
  */
 static double stirf(x)
-     double x;
+double x;
 {
   double y, w, v;
 
   w = 1.0/x;
   w = 1.0 + w * polevl( w, STIR, 4 );
   y = exp(x);
-  if( x > MAXSTIR )
-    { /* Avoid overflow in pow() */
-      v = pow( x, 0.5 * x - 0.25 );
-      y = v * (v / y);
-    }
+  if ( x > MAXSTIR )
+  { /* Avoid overflow in pow() */
+    v = pow( x, 0.5 * x - 0.25 );
+    y = v * (v / y);
+  }
   else
-    {
-      y = pow( x, x - 0.5 ) / y;
-    }
+  {
+    y = pow( x, x - 0.5 ) / y;
+  }
   y = SQTPI * y * w;
   return( y );
 }
@@ -187,7 +190,7 @@ static double stirf(x)
 
 
 double gamma(x)
-     double x;
+double x;
 {
   double p, q, z;
   int i;
@@ -195,63 +198,63 @@ double gamma(x)
   sgngam = 1;
   q = fabs(x);
 
-  if( q > 33.0 )
+  if ( q > 33.0 )
+  {
+    if ( x < 0.0 )
     {
-      if( x < 0.0 )
-        {
-          p = floor(q);
-          if( p == q )
-            goto goverf;
-          i = p;
-          if( (i & 1) == 0 )
-            sgngam = -1;
-          z = q - p;
-          if( z > 0.5 )
-            {
-              p += 1.0;
-              z = q - p;
-            }
-          z = q * sin( PI * z );
-          if( z == 0.0 )
-            {
-            goverf:
-              mtherr( "gamma", OVERFLOW );
-              return( sgngam * MAXNUM);
-            }
-          z = fabs(z);
-          z = PI/(z * stirf(q) );
-        }
-      else
-        {
-          z = stirf(x);
-        }
-      return( sgngam * z );
+      p = floor(q);
+      if ( p == q )
+        goto goverf;
+      i = p;
+      if ( (i & 1) == 0 )
+        sgngam = -1;
+      z = q - p;
+      if ( z > 0.5 )
+      {
+        p += 1.0;
+        z = q - p;
+      }
+      z = q * sin( PI * z );
+      if ( z == 0.0 )
+      {
+goverf:
+        mtherr( "gamma", OVERFLOW );
+        return( sgngam * MAXNUM);
+      }
+      z = fabs(z);
+      z = PI/(z * stirf(q) );
     }
+    else
+    {
+      z = stirf(x);
+    }
+    return( sgngam * z );
+  }
 
   z = 1.0;
-  while( x >= 3.0 )
-    {
-      x -= 1.0;
-      z *= x;
-    }
+  while ( x >= 3.0 )
+  {
+    x -= 1.0;
+    z *= x;
+  }
 
-  while( x < 0.0 )
-    {
-      if( x > -1.E-9 )
-        goto small;
-      z /= x;
-      x += 1.0;
-    }
+  while ( x < 0.0 )
+  {
+    if ( x > -1.E-9 )
+      goto small;
+    z /= x;
+    x += 1.0;
+  }
 
-  while( x < 2.0 )
-    {
-      if( x < 1.e-9 )
-        goto small;
-      z /= x;
-      x += 1.0;
-    }
+  while ( x < 2.0 )
+  {
+    if ( x < 1.e-9 )
+      goto small;
+    z /= x;
+    x += 1.0;
+  }
 
-  if( (x == 2.0) || (x == 3.0) )
+  if ( (x == 2.0) || (x == 3.0) )
     return(z);
 
   x -= 2.0;
@@ -259,12 +262,12 @@ double gamma(x)
   q = polevl( x, Q, 7 );
   return( z * p / q );
 
- small:
-  if( x == 0.0 )
-    {
-      mtherr( "gamma", SING );
-      return( MAXNUM );
-    }
+small:
+  if ( x == 0.0 )
+  {
+    mtherr( "gamma", SING );
+    return( MAXNUM );
+  }
   else
     return( z/((1.0 + 0.5772156649015329 * x) * x) );
 }
@@ -276,127 +279,144 @@ double gamma(x)
  * B[], C[]: log gamma function between 2 and 3
  */
 #ifdef UNK
-static double A[] = {
-  8.11614167470508450300E-4,
-  -5.95061904284301438324E-4,
-  7.93650340457716943945E-4,
-  -2.77777777730099687205E-3,
-  8.33333333333331927722E-2
-};
-static double B[] = {
-  -1.37825152569120859100E3,
-  -3.88016315134637840924E4,
-  -3.31612992738871184744E5,
-  -1.16237097492762307383E6,
-  -1.72173700820839662146E6,
-  -8.53555664245765465627E5
-};
-static double C[] = {
-  /* 1.00000000000000000000E0, */
-  -3.51815701436523470549E2,
-  -1.70642106651881159223E4,
-  -2.20528590553854454839E5,
-  -1.13933444367982507207E6,
-  -2.53252307177582951285E6,
-  -2.01889141433532773231E6
-};
+static double A[] =
+  {
+    8.11614167470508450300E-4,
+    -5.95061904284301438324E-4,
+    7.93650340457716943945E-4,
+    -2.77777777730099687205E-3,
+    8.33333333333331927722E-2
+  };
+static double B[] =
+  {
+    -1.37825152569120859100E3,
+    -3.88016315134637840924E4,
+    -3.31612992738871184744E5,
+    -1.16237097492762307383E6,
+    -1.72173700820839662146E6,
+    -8.53555664245765465627E5
+  };
+static double C[] =
+  {
+    /* 1.00000000000000000000E0, */
+    -3.51815701436523470549E2,
+    -1.70642106651881159223E4,
+    -2.20528590553854454839E5,
+    -1.13933444367982507207E6,
+    -2.53252307177582951285E6,
+    -2.01889141433532773231E6
+  };
 /* log( sqrt( 2*pi ) ) */
 static double LS2PI  =  0.91893853320467274178;
 #define MAXLGM 2.556348e305
 #endif
 
 #ifdef DEC
-static unsigned short A[] = {
-  0035524,0141201,0034633,0031405,
-  0135433,0176755,0126007,0045030,
-  0035520,0006371,0003342,0172730,
-  0136066,0005540,0132605,0026407,
-  0037252,0125252,0125252,0125132
-};
-static unsigned short B[] = {
-  0142654,0044014,0077633,0035410,
-  0144027,0110641,0125335,0144760,
-  0144641,0165637,0142204,0047447,
-  0145215,0162027,0146246,0155211,
-  0145322,0026110,0010317,0110130,
-  0145120,0061472,0120300,0025363
-};
-static unsigned short C[] = {
-  /*0040200,0000000,0000000,0000000*/
-  0142257,0164150,0163630,0112622,
-  0143605,0050153,0156116,0135272,
-  0144527,0056045,0145642,0062332,
-  0145213,0012063,0106250,0001025,
-  0145432,0111254,0044577,0115142,
-  0145366,0071133,0050217,0005122
-};
+static unsigned short A[] =
+  {
+    0035524,0141201,0034633,0031405,
+    0135433,0176755,0126007,0045030,
+    0035520,0006371,0003342,0172730,
+    0136066,0005540,0132605,0026407,
+    0037252,0125252,0125252,0125132
+  };
+static unsigned short B[] =
+  {
+    0142654,0044014,0077633,0035410,
+    0144027,0110641,0125335,0144760,
+    0144641,0165637,0142204,0047447,
+    0145215,0162027,0146246,0155211,
+    0145322,0026110,0010317,0110130,
+    0145120,0061472,0120300,0025363
+  };
+static unsigned short C[] =
+  {
+    /*0040200,0000000,0000000,0000000*/
+    0142257,0164150,0163630,0112622,
+    0143605,0050153,0156116,0135272,
+    0144527,0056045,0145642,0062332,
+    0145213,0012063,0106250,0001025,
+    0145432,0111254,0044577,0115142,
+    0145366,0071133,0050217,0005122
+  };
 /* log( sqrt( 2*pi ) ) */
-static unsigned short LS2P[] = {040153,037616,041445,0172645,};
+static unsigned short LS2P[] =
+  {
+    040153,037616,041445,0172645,
+  };
 #define LS2PI *(double *)LS2P
 #define MAXLGM 2.035093e36
 #endif
 
 #ifdef IBMPC
-static unsigned short A[] = {
-  0x6661,0x2733,0x9850,0x3f4a,
-  0xe943,0xb580,0x7fbd,0xbf43,
-  0x5ebb,0x20dc,0x019f,0x3f4a,
-  0xa5a1,0x16b0,0xc16c,0xbf66,
-  0x554b,0x5555,0x5555,0x3fb5
-};
-static unsigned short B[] = {
-  0x6761,0x8ff3,0x8901,0xc095,
-  0xb93e,0x355b,0xf234,0xc0e2,
-  0x89e5,0xf890,0x3d73,0xc114,
-  0xdb51,0xf994,0xbc82,0xc131,
-  0xf20b,0x0219,0x4589,0xc13a,
-  0x055e,0x5418,0x0c67,0xc12a
-};
-static unsigned short C[] = {
-  /*0x0000,0x0000,0x0000,0x3ff0,*/
-  0x12b2,0x1cf3,0xfd0d,0xc075,
-  0xd757,0x7b89,0xaa0d,0xc0d0,
-  0x4c9b,0xb974,0xeb84,0xc10a,
-  0x0043,0x7195,0x6286,0xc131,
-  0xf34c,0x892f,0x5255,0xc143,
-  0xe14a,0x6a11,0xce4b,0xc13e
-};
+static unsigned short A[] =
+  {
+    0x6661,0x2733,0x9850,0x3f4a,
+    0xe943,0xb580,0x7fbd,0xbf43,
+    0x5ebb,0x20dc,0x019f,0x3f4a,
+    0xa5a1,0x16b0,0xc16c,0xbf66,
+    0x554b,0x5555,0x5555,0x3fb5
+  };
+static unsigned short B[] =
+  {
+    0x6761,0x8ff3,0x8901,0xc095,
+    0xb93e,0x355b,0xf234,0xc0e2,
+    0x89e5,0xf890,0x3d73,0xc114,
+    0xdb51,0xf994,0xbc82,0xc131,
+    0xf20b,0x0219,0x4589,0xc13a,
+    0x055e,0x5418,0x0c67,0xc12a
+  };
+static unsigned short C[] =
+  {
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x12b2,0x1cf3,0xfd0d,0xc075,
+    0xd757,0x7b89,0xaa0d,0xc0d0,
+    0x4c9b,0xb974,0xeb84,0xc10a,
+    0x0043,0x7195,0x6286,0xc131,
+    0xf34c,0x892f,0x5255,0xc143,
+    0xe14a,0x6a11,0xce4b,0xc13e
+  };
 /* log( sqrt( 2*pi ) ) */
-static unsigned short LS2P[] = {
-  0xbeb5,0xc864,0x67f1,0x3fed
-};
+static unsigned short LS2P[] =
+  {
+    0xbeb5,0xc864,0x67f1,0x3fed
+  };
 #define LS2PI *(double *)LS2P
 #define MAXLGM 2.556348e305
 #endif
 
 #ifdef MIEEE
-static unsigned short A[] = {
-  0x3f4a,0x9850,0x2733,0x6661,
-  0xbf43,0x7fbd,0xb580,0xe943,
-  0x3f4a,0x019f,0x20dc,0x5ebb,
-  0xbf66,0xc16c,0x16b0,0xa5a1,
-  0x3fb5,0x5555,0x5555,0x554b
-};
-static unsigned short B[] = {
-  0xc095,0x8901,0x8ff3,0x6761,
-  0xc0e2,0xf234,0x355b,0xb93e,
-  0xc114,0x3d73,0xf890,0x89e5,
-  0xc131,0xbc82,0xf994,0xdb51,
-  0xc13a,0x4589,0x0219,0xf20b,
-  0xc12a,0x0c67,0x5418,0x055e
-};
-static unsigned short C[] = {
-  0xc075,0xfd0d,0x1cf3,0x12b2,
-  0xc0d0,0xaa0d,0x7b89,0xd757,
-  0xc10a,0xeb84,0xb974,0x4c9b,
-  0xc131,0x6286,0x7195,0x0043,
-  0xc143,0x5255,0x892f,0xf34c,
-  0xc13e,0xce4b,0x6a11,0xe14a
-};
+static unsigned short A[] =
+  {
+    0x3f4a,0x9850,0x2733,0x6661,
+    0xbf43,0x7fbd,0xb580,0xe943,
+    0x3f4a,0x019f,0x20dc,0x5ebb,
+    0xbf66,0xc16c,0x16b0,0xa5a1,
+    0x3fb5,0x5555,0x5555,0x554b
+  };
+static unsigned short B[] =
+  {
+    0xc095,0x8901,0x8ff3,0x6761,
+    0xc0e2,0xf234,0x355b,0xb93e,
+    0xc114,0x3d73,0xf890,0x89e5,
+    0xc131,0xbc82,0xf994,0xdb51,
+    0xc13a,0x4589,0x0219,0xf20b,
+    0xc12a,0x0c67,0x5418,0x055e
+  };
+static unsigned short C[] =
+  {
+    0xc075,0xfd0d,0x1cf3,0x12b2,
+    0xc0d0,0xaa0d,0x7b89,0xd757,
+    0xc10a,0xeb84,0xb974,0x4c9b,
+    0xc131,0x6286,0x7195,0x0043,
+    0xc143,0x5255,0x892f,0xf34c,
+    0xc13e,0xce4b,0x6a11,0xe14a
+  };
 /* log( sqrt( 2*pi ) ) */
-static unsigned short LS2P[] = {
-  0x3fed,0x67f1,0xc864,0xbeb5
-};
+static unsigned short LS2P[] =
+  {
+    0x3fed,0x67f1,0xc864,0xbeb5
+  };
 #define LS2PI *(double *)LS2P
 #define MAXLGM 2.556348e305
 #endif
@@ -406,81 +426,81 @@ static unsigned short LS2P[] = {
 
 
 double lgam(x)
-     double x;
+double x;
 {
   double p, q, w, z;
   int i;
 
   sgngam = 1;
 
-  if( x < -34.0 )
+  if ( x < -34.0 )
+  {
+    q = -x;
+    w = lgam(q); /* note this modifies sgngam! */
+    p = floor(q);
+    if ( p == q )
+      goto loverf;
+    i = p;
+    if ( (i & 1) == 0 )
+      sgngam = -1;
+    else
+      sgngam = 1;
+    z = q - p;
+    if ( z > 0.5 )
     {
-      q = -x;
-      w = lgam(q); /* note this modifies sgngam! */
-      p = floor(q);
-      if( p == q )
-        goto loverf;
-      i = p;
-      if( (i & 1) == 0 )
-        sgngam = -1;
-      else
-        sgngam = 1;
-      z = q - p;
-      if( z > 0.5 )
-        {
-          p += 1.0;
-          z = p - q;
-        }
-      z = q * sin( PI * z );
-      if( z == 0.0 )
-        goto loverf;
-      /*      z = log(PI) - log( z ) - w;*/
-      z = LOGPI - log( z ) - w;
-      return( z );
+      p += 1.0;
+      z = p - q;
     }
+    z = q * sin( PI * z );
+    if ( z == 0.0 )
+      goto loverf;
+    /*      z = log(PI) - log( z ) - w;*/
+    z = LOGPI - log( z ) - w;
+    return( z );
+  }
 
-  if( x < 13.0 )
+  if ( x < 13.0 )
+  {
+    z = 1.0;
+    while ( x >= 3.0 )
     {
-      z = 1.0;
-      while( x >= 3.0 )
-        {
-          x -= 1.0;
-          z *= x;
-        }
-      while( x < 2.0 )
-        {
-          if( x == 0.0 )
-            goto loverf;
-          z /= x;
-          x += 1.0;
-        }
-      if( z < 0.0 )
-        {
-          sgngam = -1;
-          z = -z;
-        }
-      else
-        sgngam = 1;
-      if( x == 2.0 )
-        return( log(z) );
-      x -= 2.0;
-      p = x * polevl( x, B, 5 ) / p1evl( x, C, 6);
-      return( log(z) + p );
+      x -= 1.0;
+      z *= x;
     }
+    while ( x < 2.0 )
+    {
+      if ( x == 0.0 )
+        goto loverf;
+      z /= x;
+      x += 1.0;
+    }
+    if ( z < 0.0 )
+    {
+      sgngam = -1;
+      z = -z;
+    }
+    else
+      sgngam = 1;
+    if ( x == 2.0 )
+      return( log(z) );
+    x -= 2.0;
+    p = x * polevl( x, B, 5 ) / p1evl( x, C, 6);
+    return( log(z) + p );
+  }
 
-  if( x > MAXLGM )
-    {
-    loverf:
-      mtherr( "lgam", OVERFLOW );
-      return( sgngam * MAXNUM );
-    }
+  if ( x > MAXLGM )
+  {
+loverf:
+    mtherr( "lgam", OVERFLOW );
+    return( sgngam * MAXNUM );
+  }
 
   q = ( x - 0.5 ) * log(x) - x + LS2PI;
-  if( x > 1.0e8 )
+  if ( x > 1.0e8 )
     return( q );
 
   p = 1.0/(x*x);
-  if( x >= 1000.0 )
+  if ( x >= 1000.0 )
     q += ((   7.9365079365079365079365e-4 * p
               - 2.7777777777777777777778e-3) *p
           + 0.0833333333333333333333) / x;

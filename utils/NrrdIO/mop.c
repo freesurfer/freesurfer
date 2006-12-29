@@ -2,23 +2,23 @@
   NrrdIO: stand-alone code for basic nrrd functionality
   Copyright (C) 2005  Gordon Kindlmann
   Copyright (C) 2004, 2003, 2002, 2001, 2000, 1999, 1998  University of Utah
- 
+
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any
   damages arising from the use of this software.
- 
+
   Permission is granted to anyone to use this software for any
   purpose, including commercial applications, and to alter it and
   redistribute it freely, subject to the following restrictions:
- 
+
   1. The origin of this software must not be misrepresented; you must
      not claim that you wrote the original software. If you use this
      software in a product, an acknowledgment in the product
      documentation would be appreciated but is not required.
- 
+
   2. Altered source versions must be plainly marked as such, and must
      not be misrepresented as being the original software.
- 
+
   3. This notice may not be removed or altered from any source distribution.
 */
 
@@ -26,7 +26,7 @@
 
 /*
 learned: using these functions correctly to manage even simple
-memory usage can be very tricky.  
+memory usage can be very tricky.
 
 problem 0: even trying to write airMopPrint, I foolishly thought:
 "print the string, then free it".  But the print callback clobbered
@@ -37,7 +37,7 @@ problem 1: debugging hest with purify, on case of hitting error after
 parsing multiple variable parameter option of strings: so, I allocated
 an array of strings (arrays), and registered all the strings with
 airMopMem(), and registered the array itself also with airMopMem().
-Again, got clobbered.  airSetNull(&((*vP)[0])) clobbered 
+Again, got clobbered.  airSetNull(&((*vP)[0])) clobbered
 airFree(*vP).  So, I gave up on using airMopMem() for the individual
 elements, and am using simply airMopAdd(airFree).  The alternative
 was to change the airMopAdd()s in airMopMem() to _airMopAdd()s, but
@@ -60,24 +60,29 @@ airMopSub() and airMopUnMem were created
 #define AIR_MOP_INCR 10
 
 airArray *
-airMopNew() {
-  
+airMopNew()
+{
+
   return airArrayNew(NULL, NULL, sizeof(airMop), AIR_MOP_INCR);
 }
 
 void
-airMopAdd(airArray *arr, void *ptr, airMopper mop, int when) {
+airMopAdd(airArray *arr, void *ptr, airMopper mop, int when)
+{
   airMop *mops;
   unsigned int ii;
-  
-  if (!arr) {
+
+  if (!arr)
+  {
     return;
   }
 
   mops = (airMop *)arr->data;
   /* first see if this is something we already set a callback for */
-  for (ii=0; ii<arr->len; ii++) {
-    if (mops[ii].ptr == ptr && mops[ii].mop == mop) {
+  for (ii=0; ii<arr->len; ii++)
+  {
+    if (mops[ii].ptr == ptr && mops[ii].mop == mop)
+    {
       mops[ii].when = when;
       /* we're done */
       return;
@@ -93,18 +98,22 @@ airMopAdd(airArray *arr, void *ptr, airMopper mop, int when) {
 }
 
 void
-airMopSub(airArray *arr, void *ptr, airMopper mop) {
+airMopSub(airArray *arr, void *ptr, airMopper mop)
+{
   airMop *mops;
   unsigned int ii;
-  
-  if (!arr) {
+
+  if (!arr)
+  {
     return;
   }
 
   mops = (airMop *)arr->data;
   /* first see if this is something we already set a callback for */
-  for (ii=0; ii<arr->len; ii++) {
-    if (mops[ii].ptr == ptr && mops[ii].mop == mop) {
+  for (ii=0; ii<arr->len; ii++)
+  {
+    if (mops[ii].ptr == ptr && mops[ii].mop == mop)
+    {
       mops[ii].ptr = NULL;
       mops[ii].mop = NULL;
       mops[ii].when = airMopNever;
@@ -116,10 +125,12 @@ airMopSub(airArray *arr, void *ptr, airMopper mop) {
 }
 
 void
-airMopMem(airArray *arr, void *_ptrP, int when) {
+airMopMem(airArray *arr, void *_ptrP, int when)
+{
   void **ptrP;
 
-  if (!(arr && _ptrP)) {
+  if (!(arr && _ptrP))
+  {
     return;
   }
 
@@ -127,19 +138,21 @@ airMopMem(airArray *arr, void *_ptrP, int when) {
   airMopAdd(arr, ptrP, (airMopper)airSetNull, when);
   airMopAdd(arr, *ptrP, airFree, when);
   /*
-  printf("airMopMem(0x%p): will free() 0x%p\n", 
+  printf("airMopMem(0x%p): will free() 0x%p\n",
          (void*)arr, (void*)(*ptrP));
-  printf("airMopMem(0x%p): will set 0x%p to NULL\n", 
+  printf("airMopMem(0x%p): will set 0x%p to NULL\n",
          (void*)arr, (void*)ptrP);
   */
   return;
 }
 
 void
-airMopUnMem(airArray *arr, void *_ptrP) {
+airMopUnMem(airArray *arr, void *_ptrP)
+{
   void **ptrP;
 
-  if (!(arr && _ptrP)) {
+  if (!(arr && _ptrP))
+  {
     return;
   }
 
@@ -150,18 +163,21 @@ airMopUnMem(airArray *arr, void *_ptrP) {
 }
 
 void *
-_airMopPrint(void *_str) {
+_airMopPrint(void *_str)
+{
   char *str;
 
   str = (char *)_str;
-  if (str) {
+  if (str)
+  {
     printf("%s\n", str);
   }
   return NULL;
 }
 
 void
-airMopPrint(airArray *arr, const void *_str, int when) {
+airMopPrint(airArray *arr, const void *_str, int when)
+{
   char *copy;
 
   if (!(arr && _str))
@@ -175,14 +191,15 @@ airMopPrint(airArray *arr, const void *_str, int when) {
 
 char
 _airMopWhenStr[4][128] = {
-  " never",
-  " error",
-  "  okay",
-  "always",
-};
+                           " never",
+                           " error",
+                           "  okay",
+                           "always",
+                         };
 
 void
-airMopDebug(airArray *arr) {
+airMopDebug(airArray *arr)
+{
   airMop *mops;
   int i;
 
@@ -192,29 +209,35 @@ airMopDebug(airArray *arr) {
   mops = (airMop *)arr->data;
   printf("airMopDebug: _________________________ mop stack for 0x%p:\n",
          (void*)arr);
-  for (i=arr->len-1; i>=0; i--) {
+  for (i=arr->len-1; i>=0; i--)
+  {
     printf("% 4d: ", i);
     if (NULL == mops[i].mop && NULL == mops[i].ptr
-        && airMopNever == mops[i].when) {
+        && airMopNever == mops[i].when)
+    {
       printf("no-op\n");
       continue;
     }
     /* else */
     printf("%s: ", _airMopWhenStr[mops[i].when]);
-    if (airFree == mops[i].mop) {
+    if (airFree == mops[i].mop)
+    {
       printf("airFree(0x%p)\n", (void*)(mops[i].ptr));
       continue;
     }
-    if ((airMopper)airSetNull == mops[i].mop) {
+    if ((airMopper)airSetNull == mops[i].mop)
+    {
       printf("airSetNull(0x%p)\n", (void*)(mops[i].ptr));
       continue;
     }
-    if (_airMopPrint == mops[i].mop) {
+    if (_airMopPrint == mops[i].mop)
+    {
       printf("_airMopPrint(\"%s\" == 0x%p)\n",
              (char*)(mops[i].ptr), (void*)(mops[i].ptr));
       continue;
     }
-    if ((airMopper)airFclose == mops[i].mop) {
+    if ((airMopper)airFclose == mops[i].mop)
+    {
       printf("airFclose(0x%p)\n", (void*)(mops[i].ptr));
       continue;
     }
@@ -225,20 +248,24 @@ airMopDebug(airArray *arr) {
 }
 
 void
-airMopDone(airArray *arr, int error) {
+airMopDone(airArray *arr, int error)
+{
   airMop *mops;
   int i;
 
   /*
   printf("airMopDone(%p): hello, %s\n", (void*)arr, error ? "error" : "okay");
   */
-  if (arr) {
+  if (arr)
+  {
     mops = (airMop *)arr->data;
-    for (i=arr->len-1; i>=0; i--) {
+    for (i=arr->len-1; i>=0; i--)
+    {
       if (mops[i].ptr
           && (airMopAlways == mops[i].when
               || (airMopOnError == mops[i].when && error)
-              || (airMopOnOkay == mops[i].when && !error))) {
+              || (airMopOnOkay == mops[i].when && !error)))
+      {
         mops[i].mop(mops[i].ptr);
       }
     }
@@ -251,14 +278,16 @@ airMopDone(airArray *arr, int error) {
 }
 
 void
-airMopError(airArray *arr) {
-  
+airMopError(airArray *arr)
+{
+
   airMopDone(arr, AIR_TRUE);
 }
 
 void
-airMopOkay(airArray *arr) {
-  
+airMopOkay(airArray *arr)
+{
+
   airMopDone(arr, AIR_FALSE);
 }
 

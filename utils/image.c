@@ -1,3 +1,31 @@
+/**
+ * @file  image.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.105 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   image.c
  *
@@ -17,7 +45,7 @@
 #include <math.h>
 #include <memory.h>
 #include <fcntl.h>
- #include <unistd.h>  /* for SEEK_ constants */
+#include <unistd.h>  /* for SEEK_ constants */
 
 #include "hmem.h"
 #include <hipl_format.h>
@@ -61,7 +89,7 @@ ImageAlloc(int rows, int cols, int format, int nframes)
 {
   IMAGE *I ;
   int   ecode ;
-  
+
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
     ErrorExit(ERROR_NO_MEMORY, "ImageAlloc: could not allocate header\n") ;
@@ -84,7 +112,7 @@ IMAGE *
 ImageAllocHeader(int rows, int cols, int format, int nframes)
 {
   IMAGE *I ;
-  
+
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
     ErrorExit(ERROR_NO_MEMORY,"ImageAllocHeader: could not allocate header\n");
@@ -113,9 +141,9 @@ ImageAllocBuffer(IMAGE *I)
     return(NO_ERROR);
   }
   npix = (long)I->sizeimage*(long)I->num_frame ;
-  if((I->image = hcalloc(npix, sizeof(byte))) == (byte *)NULL)    
+  if ((I->image = hcalloc(npix, sizeof(byte))) == (byte *)NULL)
     return(ERROR_NO_MEMORY);
-  if (I->pixel_format == PFMSBF || I->pixel_format == PFLSBF) 
+  if (I->pixel_format == PFMSBF || I->pixel_format == PFLSBF)
   {
     fcb = I->fcol/8;
     cb = (I->ocols + 7)/8;
@@ -123,7 +151,7 @@ ImageAllocBuffer(IMAGE *I)
   }
   else
     I->firstpix = I->image +
-      (((long)I->ocols * (long)I->frow) + (long)I->fcol) * I->sizepix;
+                  (((long)I->ocols * (long)I->frow) + (long)I->fcol) * I->sizepix;
   I->imdealloc = TRUE;
   hmemset(I->image, 0, I->sizeimage*I->num_frame) ;
   return(NO_ERROR);
@@ -166,8 +194,8 @@ ImageUpdateHeader(IMAGE *I, char *fname)
 
   ecode = fwrite_header(fp, I, fname) ;
   if (ecode != HIPS_OK)
-    ErrorReturn(-1, (ERROR_NO_FILE, 
-                  "ImageUpdateHeader: fwrite_header failed (%d)\n",ecode)) ;
+    ErrorReturn(-1, (ERROR_NO_FILE,
+                     "ImageUpdateHeader: fwrite_header failed (%d)\n",ecode)) ;
 
   fclose(fp) ;
   return(0) ;
@@ -278,8 +306,7 @@ ImageInverseDFT(IMAGE *Isrc, IMAGE *Idst)
   {
   }
   else   /* not a power of 2 - use DFT */
-  {
-  }
+  {}
 #endif
   ecode = h_invfourtr(Itmp) ;
   if  (ecode != HIPS_OK)
@@ -315,7 +342,7 @@ ImageMul(IMAGE *Isrc1, IMAGE *Isrc2, IMAGE *Idst)
   int   ecode ;
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc1->rows, Isrc1->cols, 
+    Idst = ImageAlloc(Isrc1->rows, Isrc1->cols,
                       Isrc1->pixel_format, Isrc1->num_frame) ;
 
   ecode = h_mul(Isrc1, Isrc2, Idst) ;
@@ -365,7 +392,7 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
 #else
       if (x_scale > 1.0f)
         ecode = h_enlarge(Isrc, Idst, nint(x_scale), nint(y_scale) ) ;
-      else 
+      else
         ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
       if (ecode != HIPS_OK)
         ErrorExit(ecode,
@@ -376,15 +403,15 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
     default:
       if (x_scale > 1.0f)
         ecode = h_enlarge(Isrc, Idst, nint(x_scale), nint(y_scale)) ;
-      else 
+      else
       {
         float scale ;
-        
+
         scale = 1.0f / x_scale ;
         if ((x_scale == y_scale) && ISPOW2(scale))
         {
           int   reductions, i ;
-      
+
           reductions = nint(log2(scale)) ;
 
           fprintf(stderr, "reducing %d times\n", reductions) ;
@@ -408,7 +435,7 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
       }
       break ;
     }
-  
+
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -424,7 +451,7 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
   int  old, ecode, frame, nframes ;
   byte *src_image, *dst_image ;
 
-  if (Idst && 
+  if (Idst &&
       (Idst->numpix < Isrc->numpix || Idst->num_frame < Isrc->num_frame))
 #if 1
     ImageFree(&Idst) ;
@@ -433,7 +460,7 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
 #endif
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format,
                       Isrc->num_frame) ;
 
   src_image = Isrc->image ;
@@ -442,7 +469,7 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
   Isrc->num_frame = Idst->num_frame = 1 ;
   Idst->rows = Isrc->rows ;
   Idst->cols = Isrc->cols ;
-  
+
   for (frame = 0 ; frame < nframes ; frame++)
   {
     if (Idst->pixel_format == Isrc->pixel_format)
@@ -530,7 +557,7 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
 #define DISCEDGE_SIZE     7
 
 IMAGE   *
-ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize, 
+ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
                 float lthresh, float uthresh, int dothin)
 {
   int    ecode ;
@@ -570,7 +597,7 @@ ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
 #if 0
 IMAGE   *
 ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
-            int drow, int dcol, int rows, int cols)
+              int drow, int dcol, int rows, int cols)
 {
   return(Idst) ;
 }
@@ -609,28 +636,28 @@ ImageClearArea(IMAGE *I, int r0, int c0, int rows,int cols,float val,int frame)
   for (frame = start_frame ; frame <= end_frame ; frame++)
   {
     for (row = r0 ; row < rows ; row++)
+    {
+      switch (I->pixel_format)
       {
-        switch (I->pixel_format)
-        {
-        case PFFLOAT:
-          fptr = IMAGEFseq_pix(I, c0, row, frame) ;
-          for (col = c0 ; col < cols ; col++)
-            *fptr++ = val ;
-          break ;
-        case PFBYTE:
-          cptr = IMAGEseq_pix(I, c0, row, frame) ;
-          cval = (char)val ;
-          for (col = c0 ; col < cols ; col++)
-            *cptr++ = cval ;
-          break ;
-        default:
-          ErrorReturn(ERROR_UNSUPPORTED, 
-                      (ERROR_UNSUPPORTED, 
-                       "ImageClearArea: unsupported image format %d",
-                       I->pixel_format)) ;
-          break ;
-        }
+      case PFFLOAT:
+        fptr = IMAGEFseq_pix(I, c0, row, frame) ;
+        for (col = c0 ; col < cols ; col++)
+          *fptr++ = val ;
+        break ;
+      case PFBYTE:
+        cptr = IMAGEseq_pix(I, c0, row, frame) ;
+        cval = (char)val ;
+        for (col = c0 ; col < cols ; col++)
+          *cptr++ = cval ;
+        break ;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED,
+                    (ERROR_UNSUPPORTED,
+                     "ImageClearArea: unsupported image format %d",
+                     I->pixel_format)) ;
+        break ;
       }
+    }
   }
   return(0) ;
 }
@@ -648,7 +675,7 @@ ImageFindPeak(IMAGE *I, int *prow, int *pcol, float *pval)
   int    max_row = -1, max_col = -1, row, col, rows, cols ;
 
   if (I->pixel_format != PFFLOAT)
-    ErrorReturn(0.0f, 
+    ErrorReturn(0.0f,
                 (ERROR_UNSUPPORTED, "ImageFindPeak: only supports PFFLOAT")) ;
 
   rows = I->rows ;
@@ -740,7 +767,7 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
   Pixelval  pmin, pmax ;
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format,
                       Isrc->num_frame) ;
 
   ecode = h_minmax(Isrc, &pmin, &pmax, 0) ;
@@ -755,7 +782,7 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
     fmax = pmax.v_float ;
     break ;
   default:
-    ErrorExit(ERROR_UNSUPPORTED, 
+    ErrorExit(ERROR_UNSUPPORTED,
               "ImageNormalize: unsupported pixel format %d\n",
               Isrc->pixel_format) ;
     break ;
@@ -766,10 +793,10 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
 
   if (FEQUAL(fmax, fmin))
 #if 1
-    {
-      ImageCopy(Isrc, Idst) ;
-      return(Idst) ;
-    }
+  {
+    ImageCopy(Isrc, Idst) ;
+    return(Idst) ;
+  }
 #else
     ErrorReturn(NULL, (ERROR_BADPARM, "ImageNormalize: constant image")) ;
 #endif
@@ -779,7 +806,7 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
 
   ecode = h_linscale(Isrc, Idst, scale, fmin) ;
   if (ecode != HIPS_OK)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ecode, "ImageNormalize: h_linscale failed (%d)\n", ecode)) ;
 
   return(Idst) ;
@@ -812,8 +839,8 @@ ImageConjugate(IMAGE *Isrc, IMAGE *Idst)
     }
     break ;
   default:
-    ErrorExit(ERROR_UNSUPPORTED, 
-              "ImageConjugate: unsupported pixel format %d\n", 
+    ErrorExit(ERROR_UNSUPPORTED,
+              "ImageConjugate: unsupported pixel format %d\n",
               Isrc->pixel_format) ;
     break ;
   }
@@ -893,7 +920,7 @@ ImageToMatrix(IMAGE *I)
   if (mat->type == MATRIX_COMPLEX)
     bytes *= 2 ;
 
-  hmemcpy(mat->data, I->image, bytes) ; 
+  hmemcpy(mat->data, I->image, bytes) ;
   return(mat) ;
 }
 /*-----------------------------------------------------
@@ -921,7 +948,7 @@ ImageFromMatrix(MATRIX *matrix, IMAGE *I)
   if (matrix->type == MATRIX_COMPLEX)
     bytes *= 2 ;
 
-  hmemcpy(I->image, matrix->data, bytes) ; 
+  hmemcpy(I->image, matrix->data, bytes) ;
   return(I) ;
 }
 /*-----------------------------------------------------
@@ -956,7 +983,7 @@ ImageMatrixMul(IMAGE *Isrc1, IMAGE *Isrc2, IMAGE *Idst)
   MATRIX *mat1, *mat2, *mat_dst ;
 
   if (Isrc2->rows != Isrc1->cols)
-    ErrorExit(ERROR_BADPARM, 
+    ErrorExit(ERROR_BADPARM,
               "ImageMatrixMul: inner dimensions must agree (%d, %d)",
               Isrc1->cols, Isrc2->rows) ;
 
@@ -991,18 +1018,18 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
   byte   *src_image, *out_image ;
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format,
                       Isrc->num_frame) ;
 
   if (FEQUAL(new_max, new_min))
 #if 1
-    {
-      ImageCopy(Isrc, Idst) ;
-      return(Idst) ;
-    }
+  {
+    ImageCopy(Isrc, Idst) ;
+    return(Idst) ;
+  }
 #else
-    ErrorReturn(NULL, 
-            (ERROR_BADPARM, "ImageScale: specified min and max are equal"));
+    ErrorReturn(NULL,
+                (ERROR_BADPARM, "ImageScale: specified min and max are equal"));
 #endif
 
   old_min = old_max = 0.0f ;  /* remove warning */
@@ -1039,25 +1066,25 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
       old_max = pmax.v_double ;
       break ;
     default:
-      ErrorExit(ERROR_UNSUPPORTED, 
+      ErrorExit(ERROR_UNSUPPORTED,
                 "ImageScale: unsupported pixel format %d\n",
                 Isrc->pixel_format) ;
       break ;
     }
-    
+
     if (ecode != HIPS_OK)
       ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
 
     if (FEQUAL(old_max, old_min))
 #if 1
-      {
-        ImageCopy(Isrc, Idst) ;
-        return(Idst) ;
-      }
+    {
+      ImageCopy(Isrc, Idst) ;
+      return(Idst) ;
+    }
 #else
       ErrorReturn(NULL, (ERROR_BADPARM, "ImageScale: constant image")) ;
 #endif
-    
+
     scale = (new_max - new_min) / (old_max - old_min) ;
 
 
@@ -1109,7 +1136,7 @@ ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows, int cols, int nframes)
 
 #if 0
   inPix = (long)rows * (long)cols * (long)nframes * (long)inImage->sizepix ;
-  outPix = (long)outImage->numpix * (long)outImage->sizepix * 
+  outPix = (long)outImage->numpix * (long)outImage->sizepix *
            (long)outImage->num_frame ;
 #else
   /* don't take size of pixels into account */
@@ -1125,7 +1152,7 @@ ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows, int cols, int nframes)
            Description:
                change the size of an image
 ----------------------------------------------------------------------*/
-int    
+int
 ImageSetSize(IMAGE *I, int rows, int cols)
 {
   if (!ImageCheckSize(I, I, rows, cols, 0))
@@ -1144,8 +1171,8 @@ ImageSetSize(IMAGE *I, int rows, int cols)
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes, 
-               int dst_frame)
+ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
+                int dst_frame)
 {
   byte  *cIn, *cOut ;
   unsigned int  *iIn, *iOut ;
@@ -1166,7 +1193,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
     {
     case PFDOUBLE:
       if (outImage->pixel_format != PFDOUBLE)
-        ErrorExit(ERROR_UNSUPPORTED, 
+        ErrorExit(ERROR_UNSUPPORTED,
                   "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
                   inImage->pixel_format, outImage->pixel_format) ;
 
@@ -1176,7 +1203,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
       break ;
     case PFFLOAT:
       if (outImage->pixel_format != PFFLOAT)
-        ErrorExit(ERROR_UNSUPPORTED, 
+        ErrorExit(ERROR_UNSUPPORTED,
                   "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
                   inImage->pixel_format, outImage->pixel_format) ;
 
@@ -1210,8 +1237,8 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
           while (size--)
             *iOut++ = (UINT)*cIn++ ;
           break ;
-				default:
-          ErrorExit(ERROR_UNSUPPORTED, 
+        default:
+          ErrorExit(ERROR_UNSUPPORTED,
                     "ImageCopyFrames: unsupported image pixel format %d -> %d"
                     , inImage->pixel_format, outImage->pixel_format) ;
           break ;
@@ -1237,28 +1264,28 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
           *cOut++ = (UCHAR)*iIn++ ;
         break ;
       default:
-        ErrorExit(ERROR_UNSUPPORTED, 
+        ErrorExit(ERROR_UNSUPPORTED,
                   "ImageCopyFrames: unsupported image pixel format %d -> %d",
                   inImage->pixel_format, outImage->pixel_format) ;
         break ;
       }
       break ;
     case PFRGB:
-      switch(outImage->pixel_format)
-			{
-			case PFRGB:
-				memcpy(outImage->image+(dst_frame*outImage->sizeimage),
-							 inImage->image+(start*inImage->sizeimage),
-							 inImage->sizeimage*nframes);
-				break;
-			default:
-				ErrorExit(ERROR_UNSUPPORTED, 
-									"ImageCopyFrames: unsupported image pixel format %d -> %d",
-									inImage->pixel_format, outImage->pixel_format) ;
-			}
+      switch (outImage->pixel_format)
+      {
+      case PFRGB:
+        memcpy(outImage->image+(dst_frame*outImage->sizeimage),
+               inImage->image+(start*inImage->sizeimage),
+               inImage->sizeimage*nframes);
+        break;
+      default:
+        ErrorExit(ERROR_UNSUPPORTED,
+                  "ImageCopyFrames: unsupported image pixel format %d -> %d",
+                  inImage->pixel_format, outImage->pixel_format) ;
+      }
       break;
     default:
-      ErrorExit(ERROR_UNSUPPORTED, 
+      ErrorExit(ERROR_UNSUPPORTED,
                 "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
                 inImage->pixel_format, outImage->pixel_format) ;
       break ;
@@ -1274,7 +1301,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
 
            Description:
 ----------------------------------------------------------------------*/
-int  
+int
 ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
 {
   int    size;
@@ -1294,8 +1321,8 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
     cmin_val = (UCHAR)fmin ;
     size = image->cols * image->rows ;
     csrc = IMAGEpix(image, 0, 0) ;
-    norm = ((float)high - (float)low) / 
-      ((float)cmax_val - (float)cmin_val) ;
+    norm = ((float)high - (float)low) /
+           ((float)cmax_val - (float)cmin_val) ;
     while (size--)
     {
       cval = *csrc ;
@@ -1363,7 +1390,7 @@ ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
   cols = nint((float)inImage->cols * scale) ;
   rows = nint((float)inImage->rows * scale) ;
   if (!outImage)
-   outImage = ImageAlloc(rows, cols, inImage->pixel_format,inImage->num_frame);
+    outImage = ImageAlloc(rows, cols, inImage->pixel_format,inImage->num_frame);
 
   if (scale == 1)
     ImageCopy(inImage, outImage) ;
@@ -1382,18 +1409,18 @@ ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
 int
 ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
 {
-  int    inRow, inCol, outRow, outCol, inCols, inRows, 
-         outRows, outCols, frame ;
+  int    inRow, inCol, outRow, outCol, inCols, inRows,
+  outRows, outCols, frame ;
   UCHAR  *outPix ;
   byte   *in_image, *out_image ;
   float  *foutPix ;
 
   if (!ImageCheckSize(inImage, outImage, nint((float)inImage->rows*scale),
-                        nint((float)inImage->cols*scale), inImage->num_frame))
+                      nint((float)inImage->cols*scale), inImage->num_frame))
     ErrorReturn(-1, (ERROR_NO_MEMORY,
                      "ImageScaleDown: output image not big enough\n")) ;
 
-  ImageSetSize(outImage, nint((float)inImage->rows * scale), 
+  ImageSetSize(outImage, nint((float)inImage->rows * scale),
                nint((float)inImage->cols * scale)) ;
 
   inRows = inImage->rows ;
@@ -1441,7 +1468,7 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
         break ;
       default:
         ErrorReturn(-1, (ERROR_UNSUPPORTED,
-                       "ImageScaleDown: unsupported output pixel format %d\n", 
+                         "ImageScaleDown: unsupported output pixel format %d\n",
                          outImage->pixel_format)) ;
         break ;
       }
@@ -1494,16 +1521,16 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
         break ;
       default:
         ErrorReturn(-1, (ERROR_UNSUPPORTED,
-                       "ImageScaleDown: unsupported output pixel format %d\n", 
+                         "ImageScaleDown: unsupported output pixel format %d\n",
                          outImage->pixel_format)) ;
         break ;
       }
       break ;
     case PFINT:
-      
+
     default:
       ErrorReturn(-2, (ERROR_UNSUPPORTED,
-                       "ImageScaleDown: unsupported pixel format %d\n", 
+                       "ImageScaleDown: unsupported pixel format %d\n",
                        inImage->pixel_format)) ;
     }
     inImage->image += inImage->sizeimage ;
@@ -1516,7 +1543,7 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
   }
   inImage->image = inImage->firstpix = in_image ;
   outImage->image = outImage->firstpix = out_image ;
-  
+
 
   return(0) ;
 }
@@ -1529,17 +1556,17 @@ int
 ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 {
   int    inRow, inCol, outRow, outCol, inCols, inRows, endCol, endRow,
-         outRows, outCols, frame ;
+  outRows, outCols, frame ;
   UCHAR  *inPix, *outPix ;
   UINT   *inIPix, *outIPix ;
   float  *finPix, *foutPix ;
   byte   *in_image, *out_image ;
 
   if (!ImageCheckSize(inImage, outImage, nint(inImage->rows*scale),
-                          nint(inImage->cols*scale), inImage->num_frame))
+                      nint(inImage->cols*scale), inImage->num_frame))
     ErrorReturn(-1, (ERROR_NO_MEMORY,
-          "ImageScaleUp: output image not large enough %d x %d -> %d x %d\n",
-            inImage->rows, inImage->cols, outImage->rows, outImage->cols));
+                     "ImageScaleUp: output image not large enough %d x %d -> %d x %d\n",
+                     inImage->rows, inImage->cols, outImage->rows, outImage->cols));
 
   outCols = outImage->cols = nint((float)inImage->cols * scale) ;
   outRows = outImage->rows = nint((float)inImage->rows * scale) ;
@@ -1580,16 +1607,16 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
             for (outRow = nint( (float)inRow *scale);outRow < endRow ;outRow++)
             {
               foutPix = IMAGEFpix(outImage, nint((float)inCol * scale),outRow);
-              
-              for (outCol = nint( (float)inCol * scale);outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * scale);outCol < endCol ;
                    outCol++,foutPix++)
                 *foutPix = (float)(*inPix) ;
             }
           }
         break ;
       default:
-        ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                         "ImageScaleUp: unsupported output pixel format %d\n", 
+        ErrorReturn(-1, (ERROR_UNSUPPORTED,
+                         "ImageScaleUp: unsupported output pixel format %d\n",
                          outImage->pixel_format)) ;
         break ;
       }
@@ -1608,8 +1635,8 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
             for (outRow = nint( (float)inRow*scale);outRow < endRow ;outRow++)
             {
               outPix = IMAGEpix(outImage, nint((float)inCol * scale), outRow) ;
-              
-              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ;
                    outCol++, outPix++)
                 *outPix = (UCHAR)(*finPix) ;
             }
@@ -1626,16 +1653,16 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
             for (outRow = nint( (float)inRow*scale);outRow < endRow ;outRow++)
             {
               foutPix = IMAGEFpix(outImage, nint((float)inCol * scale),outRow);
-              
-              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ;
                    outCol++,foutPix++)
                 *foutPix = *finPix ;
             }
           }
         break ;
       default:
-        ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                         "ImageScaleUp: unsupported output pixel format %d\n", 
+        ErrorReturn(-1, (ERROR_UNSUPPORTED,
+                         "ImageScaleUp: unsupported output pixel format %d\n",
                          outImage->pixel_format)) ;
         break ;
       }
@@ -1653,16 +1680,16 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
           for (outRow = nint( (float)inRow * scale);outRow < endRow ; outRow++)
           {
             outIPix = IMAGEIpix(outImage, nint((float)inCol * scale), outRow) ;
-            
-            for (outCol = nint( (float)inCol * scale); outCol < endCol ; 
+
+            for (outCol = nint( (float)inCol * scale); outCol < endCol ;
                  outCol++, outIPix++)
               *outIPix = *inIPix ;
           }
         }
       break ;
     default:
-      ErrorReturn(-2, (ERROR_UNSUPPORTED, 
-                       "ImageScaleUp: unsupported input pixel format %d\n", 
+      ErrorReturn(-2, (ERROR_UNSUPPORTED,
+                       "ImageScaleUp: unsupported input pixel format %d\n",
                        inImage->pixel_format)) ;
       break ;
     }
@@ -1677,7 +1704,7 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 
   inImage->image = inImage->firstpix = in_image ;
   outImage->image = outImage->firstpix = out_image ;
-  
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -1686,8 +1713,8 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout, 
-                                  int outRows, int outCols)
+ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout,
+                       int outRows, int outCols)
 {
   int rows, cols ;
 
@@ -1701,10 +1728,10 @@ ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout,
   else
     if (rows <= outRows && cols <= outCols)
       ImageDifferentialScaleUp(Isrc, Iout, outRows, outCols) ;
-  else
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                       "ImageDifferentialScale: scaling must be same "
-                       "direction in both dimensions")) ;
+    else
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                         "ImageDifferentialScale: scaling must be same "
+                         "direction in both dimensions")) ;
   return(Iout) ;
 }
 /*----------------------------------------------------------------------
@@ -1721,7 +1748,7 @@ ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows,int outCols)
   float  *foutPix, xscale, yscale ;
 
   if (!ImageCheckSize(Isrc, Iout, outRows, outCols, Isrc->num_frame))
-    ErrorReturn(-1, 
+    ErrorReturn(-1,
                 (ERROR_NO_MEMORY,
                  "ImageDifferentialScaleDown: output image not big enough\n"));
 
@@ -1773,10 +1800,10 @@ ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows,int outCols)
           }
         break ;
       default:
-        ErrorReturn(ERROR_UNSUPPORTED, 
-          (ERROR_UNSUPPORTED,
-           "ImageDifferentialScaleDown: unsupported output pixel format %d\n", 
-                         Iout->pixel_format)) ;
+        ErrorReturn(ERROR_UNSUPPORTED,
+                    (ERROR_UNSUPPORTED,
+                     "ImageDifferentialScaleDown: unsupported output pixel format %d\n",
+                     Iout->pixel_format)) ;
         break ;
       }
       break ;
@@ -1806,19 +1833,19 @@ ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows,int outCols)
           }
         break ;
       default:
-        ErrorReturn(ERROR_UNSUPPORTED, 
-            (ERROR_UNSUPPORTED,
-             "ImageDifferentialScaleDown: unsupported output pixel format %d", 
-                         Iout->pixel_format)) ;
+        ErrorReturn(ERROR_UNSUPPORTED,
+                    (ERROR_UNSUPPORTED,
+                     "ImageDifferentialScaleDown: unsupported output pixel format %d",
+                     Iout->pixel_format)) ;
         break ;
       }
       break ;
     case PFINT:
-      
+
     default:
-      ErrorReturn(ERROR_UNSUPPORTED, 
+      ErrorReturn(ERROR_UNSUPPORTED,
                   (ERROR_UNSUPPORTED,
-                   "ImageDifferentialScaleDown: unsupported pixel format %d", 
+                   "ImageDifferentialScaleDown: unsupported pixel format %d",
                    Isrc->pixel_format)) ;
     }
     Isrc->image += Isrc->sizeimage ;
@@ -1831,7 +1858,7 @@ ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows,int outCols)
   }
   Isrc->image = Isrc->firstpix = in_image ;
   Iout->image = Iout->firstpix = out_image ;
-  
+
 
   return(0) ;
 }
@@ -1850,7 +1877,7 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
   byte   *in_image, *out_image ;
 
   if (!ImageCheckSize(Isrc, Iout, outRows, outCols, Isrc->num_frame))
-    ErrorReturn(ERROR_NO_MEMORY, 
+    ErrorReturn(ERROR_NO_MEMORY,
                 (ERROR_NO_MEMORY,
                  "ImageDifferentialScaleUp: output image not large enough"
                  "%d x %d -> %d x %d",
@@ -1894,18 +1921,18 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
             for (outRow = nint((float)inRow *yscale);outRow < endRow ;outRow++)
             {
               foutPix = IMAGEFpix(Iout, nint((float)inCol * xscale),outRow);
-              
-              for (outCol = nint( (float)inCol * xscale);outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * xscale);outCol < endCol ;
                    outCol++,foutPix++)
                 *foutPix = (float)(*inPix) ;
             }
           }
         break ;
       default:
-        ErrorReturn(-1, 
-            (ERROR_UNSUPPORTED, 
-             "ImageDifferentialScaleUp: unsupported output pixel format %d\n", 
-                         Iout->pixel_format)) ;
+        ErrorReturn(-1,
+                    (ERROR_UNSUPPORTED,
+                     "ImageDifferentialScaleUp: unsupported output pixel format %d\n",
+                     Iout->pixel_format)) ;
         break ;
       }
       break ;
@@ -1923,8 +1950,8 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
             for (outRow = nint( (float)inRow*yscale);outRow < endRow ;outRow++)
             {
               outPix = IMAGEpix(Iout, nint((float)inCol * xscale), outRow) ;
-              
-              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ;
                    outCol++, outPix++)
                 *outPix = (UCHAR)(*finPix) ;
             }
@@ -1941,18 +1968,18 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
             for (outRow = nint( (float)inRow*yscale);outRow < endRow ;outRow++)
             {
               foutPix = IMAGEFpix(Iout, nint((float)inCol * xscale),outRow);
-              
-              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ; 
+
+              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ;
                    outCol++,foutPix++)
                 *foutPix = *finPix ;
             }
           }
         break ;
       default:
-        ErrorReturn(-1, 
-            (ERROR_UNSUPPORTED, 
-            "ImageDifferentialScaleUp: unsupported output pixel format %d\n", 
-                         Iout->pixel_format)) ;
+        ErrorReturn(-1,
+                    (ERROR_UNSUPPORTED,
+                     "ImageDifferentialScaleUp: unsupported output pixel format %d\n",
+                     Iout->pixel_format)) ;
         break ;
       }
       break ;
@@ -1969,18 +1996,18 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
           for (outRow = nint((float)inRow * yscale);outRow < endRow ; outRow++)
           {
             outIPix = IMAGEIpix(Iout, nint((float)inCol * xscale), outRow) ;
-            
-            for (outCol = nint( (float)inCol * xscale); outCol < endCol ; 
+
+            for (outCol = nint( (float)inCol * xscale); outCol < endCol ;
                  outCol++, outIPix++)
               *outIPix = *inIPix ;
           }
         }
       break ;
     default:
-      ErrorReturn(-2, 
-              (ERROR_UNSUPPORTED, 
-               "ImageDifferentialScaleUp: unsupported input pixel format %d", 
-               Isrc->pixel_format)) ;
+      ErrorReturn(-2,
+                  (ERROR_UNSUPPORTED,
+                   "ImageDifferentialScaleUp: unsupported input pixel format %d",
+                   Isrc->pixel_format)) ;
       break ;
     }
     Isrc->image += Isrc->sizeimage ;
@@ -1994,7 +2021,7 @@ ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
 
   Isrc->image = Isrc->firstpix = in_image ;
   Iout->image = Iout->firstpix = out_image ;
-  
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -2010,12 +2037,12 @@ ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
   unsigned int  *isrc, *idst, *itmp ;
 
   if (!ImageCheckSize(inImage, outImage, 0, 0, 0))
-    ErrorReturn(-1, (ERROR_NO_MEMORY, 
+    ErrorReturn(-1, (ERROR_NO_MEMORY,
                      "ImageReflect: output image not large enough\n")) ;
 
   ImageSetSize(outImage, inImage->rows, inImage->cols) ;
 
-  switch(inImage->pixel_format)
+  switch (inImage->pixel_format)
   {
   case PFBYTE:
     switch (how)
@@ -2065,7 +2092,7 @@ ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
     break ;
 
   default:
-    fprintf(stderr, "ImageReflect: unsupported image format %d\n", 
+    fprintf(stderr, "ImageReflect: unsupported image format %d\n",
             inImage->pixel_format) ;
     break ;
   }
@@ -2086,7 +2113,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
   byte   *psrc, *pdst ;
 
   if (inImage->pixel_format != outImage->pixel_format)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddSpeckleNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
@@ -2117,7 +2144,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
     }
     break ;
   default:
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddSpeckleNoise: unsupported input format %d\n",
                      inImage->pixel_format)) ;
 
@@ -2130,7 +2157,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
             Parameters:
 
            Description:
-              corrupt an image with salt & pepper noise: randomly 
+              corrupt an image with salt & pepper noise: randomly
               generated 0s and 1s.
 ----------------------------------------------------------------------*/
 int
@@ -2141,7 +2168,7 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
   byte   *psrc, *pdst, bin ;
 
   if (inImage->pixel_format != outImage->pixel_format)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddSaltNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
@@ -2183,7 +2210,7 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
     }
     break ;
   default:
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddSaltNoise: unsupported input format %d\n",
                      inImage->pixel_format)) ;
     break ;
@@ -2204,7 +2231,7 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
   byte   *psrc, *pdst ;
 
   if (inImage->pixel_format != outImage->pixel_format)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
@@ -2236,7 +2263,7 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
     }
     break ;
   default:
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageAddNoise: unsupported input format %d\n",
                      inImage->pixel_format)) ;
     break ;
@@ -2249,7 +2276,7 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
 
            Description:
 ----------------------------------------------------------------------*/
-int  
+int
 ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
 {
   float  fmax, fmin, *fpix ;
@@ -2332,13 +2359,13 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
     *pfmin = (float)bmin ;
     break ;
   default:
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+    ErrorReturn(-1, (ERROR_UNSUPPORTED,
                      "ImageValRange: unsupported pixel format %d\n",
                      image->pixel_format)) ;
     break ;  /* not used */
   }
 
-    
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -2377,21 +2404,21 @@ ImageCatSeq(IMAGE *Isrc1, IMAGE *Isrc2, IMAGE *Idst)
     ImageWrite(Itmp, "Itmp.hipl") ;
   if (frameno > 0)
     ImageWrite(Isrc2, "Isrc2.hipl") ;
-{
-  IMAGE *Itmp3 ;
+  {
+    IMAGE *Itmp3 ;
 
-  static int n = 0 ;
-  char fname[100] ;
-  sprintf(fname, "new%d.hipl", n) ;
-  ImageWrite(Isrc2, fname) ;
-  sprintf(fname, "add%d.hipl", n++) ;
-  ImageWrite(Itmp, fname) ;
+    static int n = 0 ;
+    char fname[100] ;
+    sprintf(fname, "new%d.hipl", n) ;
+    ImageWrite(Isrc2, fname) ;
+    sprintf(fname, "add%d.hipl", n++) ;
+    ImageWrite(Itmp, fname) ;
 
-  Itmp3 = ImageAlloc(Itmp->rows, Itmp->cols, Itmp->pixel_format, 1) ;
-  ImageCopyFrames(Itmp, Itmp3, Itmp->num_frame-1, 1, 0) ;
-  ImageWrite(Itmp3, "Ilast.hipl") ;
-  ImageFree(&Itmp3) ;
-}
+    Itmp3 = ImageAlloc(Itmp->rows, Itmp->cols, Itmp->pixel_format, 1) ;
+    ImageCopyFrames(Itmp, Itmp3, Itmp->num_frame-1, 1, 0) ;
+    ImageWrite(Itmp3, "Ilast.hipl") ;
+    ImageFree(&Itmp3) ;
+  }
 #endif
 
   if (Isrc1)
@@ -2452,7 +2479,7 @@ ImageAddScalar(IMAGE *Isrc, IMAGE *Idst, float scalar)
   float  *fpix ;
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format,
                       Isrc->num_frame);
 
   switch (Isrc->pixel_format)
@@ -2524,8 +2551,8 @@ ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
     }
     break ;
   default:
-    ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED,
                  "ImageReplace: unsupported pixel format %d", Isrc->pixel_format));
     break ;
   }
@@ -2570,7 +2597,7 @@ ImageCmp(IMAGE *Isrc, IMAGE *Idst)
     fmax = pmax.v_float ;
     break ;
   default:
-    ErrorExit(ERROR_UNSUPPORTED, 
+    ErrorExit(ERROR_UNSUPPORTED,
               "ImageCmp: unsupported pixel format %d\n", Isrc->pixel_format);
     break ;
   }
@@ -2670,7 +2697,7 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
   }
 
   ImageSetSize(outImage, inImage->rows, inImage->cols) ;
-  
+
   return(outImage) ;
 }
 /*----------------------------------------------------------------------
@@ -2718,8 +2745,8 @@ ImageSubtract(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0, 
-                     int dx, int dy, int xdst, int ydst)
+ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
+                 int dx, int dy, int xdst, int ydst)
 {
   CPIX     *cpsrc, *cpdst ;
   UCHAR    *csrc, *cdst ;
@@ -2736,7 +2763,7 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
     Idst = ImageAlloc(dy, dx, Isrc->pixel_format, Isrc->num_frame) ;
   else
     if (Isrc->pixel_format != Idst->pixel_format)
-      ErrorReturn(NULL, (ERROR_BADPARM, 
+      ErrorReturn(NULL, (ERROR_BADPARM,
                          "ImageExtractInto: out format must match"
                          "input format\n")) ;
 
@@ -2808,8 +2835,8 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
     }
     break ;
   default:
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageExtractInto: unsupported image format %d\n", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageExtractInto: unsupported image format %d\n",
                        Isrc->pixel_format)) ;
     break ;
   }
@@ -2876,8 +2903,8 @@ ImageExtract(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,int dx, int dy)
     }
     break ;
   default:
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageExtract: unsupported image format %d\n", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageExtract: unsupported image format %d\n",
                        Isrc->pixel_format)) ;
     break ;
   }
@@ -2895,7 +2922,7 @@ ImageZeroMean(IMAGE *Isrc, IMAGE *Idst)
   int    frameno, rows, cols, row, col, pix_per_frame, nframes ;
   float  ftotal, fmean, *fSrcPtr, *fDstPtr, *fSrcBase, *fDstBase ;
 
-  if (Isrc->pixel_format != PFFLOAT || 
+  if (Isrc->pixel_format != PFFLOAT ||
       (Idst && Idst->pixel_format != PFFLOAT))
   {
     fprintf(stderr, "ImageZeroMean: unsupported pixel format %d\n",
@@ -2953,9 +2980,9 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
   static IMAGE *zimage = NULL ;    /* zero-mean version of image */
   IMAGE  *cimage ;
   int        rows, cols, row, col, crow, ccol, crows, ccols, pix_per_frame,
-             nframes, frameno, i ;
+  nframes, frameno, i ;
   float      *flPtr, *frPtr, *fDstPtr, *flBase, *frBase, ftotal,
-             *means, *meanPtr, *fSrcPtr, *fSrcBase ;
+  *means, *meanPtr, *fSrcPtr, *fSrcBase ;
 
   if (image->pixel_format != PFFLOAT)
   {
@@ -3015,17 +3042,17 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
     }
   }
 
-/* 
-  now form covariance matrix, treating each frame of the input sequence
-  as a row in a num_frame x (rows*cols) sized matrix and forming the 
-  outer product of that matrix with itself. The covariance matrix will then
-  have the dimension (rows*cols) x (rows*cols).
-*/
+  /*
+    now form covariance matrix, treating each frame of the input sequence
+    as a row in a num_frame x (rows*cols) sized matrix and forming the
+    outer product of that matrix with itself. The covariance matrix will then
+    have the dimension (rows*cols) x (rows*cols).
+  */
   ccols = crows = rows*cols ;
   cimage = ImageAlloc(crows, ccols, PFFLOAT, 1) ;
   if (!cimage)
   {
-    fprintf(stderr, 
+    fprintf(stderr,
             "ImageCovarMatrix: could not allocate %d x %d covariance matrix\n",
             crows, ccols) ;
     free(means) ;
@@ -3036,10 +3063,10 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
   {
     for (ccol = 0 ; ccol < ccols ; ccol++)
     {
-/* 
-      Calculate value of this entry in covariance matrix by multiplying
-      the crow'th position in each image by the ccol'th position in each image.
-*/
+      /*
+            Calculate value of this entry in covariance matrix by multiplying
+            the crow'th position in each image by the ccol'th position in each image.
+      */
       ftotal = 0.0f ;
       flPtr = flBase = (float *)zimage->image + crow ;
       frPtr = frBase = (float *)zimage->image + ccol ;
@@ -3075,7 +3102,8 @@ typedef struct
 {
   int   eno ;
   float evalue ;
-} EIGEN_VALUE, EVALUE ;
+}
+EIGEN_VALUE, EVALUE ;
 
 static int
 compare_evalues(const void *l1, const void *l2)
@@ -3094,8 +3122,8 @@ compare_evalues(const void *l1, const void *l2)
               perform the Hotelling or Karhunen-Loeve transform on a
               sequence of images. The output image will contain the
               sorted eigenvectors of the covariance matrix (the principal
-              components) in decreasing order of eigenvalue size. The 
-              num_frame-2st frame contains the mean vectors, while the 
+              components) in decreasing order of eigenvalue size. The
+              num_frame-2st frame contains the mean vectors, while the
               last frame contains the eigenvalues.
 
               Given an input image x where each frame is an observation of
@@ -3113,7 +3141,7 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
   IMAGE *cimage, *pcImage, *zImage, *coefImage ;
   float     *evalues, *evectors ;
   int       frameno, nframes, row, col, rows, cols, pix_per_frame, i, nevalues,
-             frame ;
+  frame ;
   float     *fSrcPtr, *fDstPtr, *mean_vector, *fPcPtr ;
   EVALUE    *eigen_values ;
 
@@ -3139,7 +3167,7 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
   rows = pcImage->rows ;
   cols = pcImage->cols ;
 
-// TODO:  
+// TODO:
   OpenEigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
 //  EigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
 #if 0
@@ -3147,11 +3175,11 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
                "evectors") ;
 #endif
 
-/* 
-  sort eigenvalues in order of decreasing absolute value. The
-  EIGEN_VALUE structure is needed to record final order of eigenvalue so 
-  we can also sort the eigenvectors.
-*/
+  /*
+    sort eigenvalues in order of decreasing absolute value. The
+    EIGEN_VALUE structure is needed to record final order of eigenvalue so
+    we can also sort the eigenvectors.
+  */
   for (i = 0 ; i < nevalues ; i++)
   {
     eigen_values[i].eno = i ;
@@ -3189,49 +3217,49 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
     *fDstPtr++ = evalues[i] ;
 
 #if 0
-ImageWrite(pcImage, "pc.hipl") ;
-MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame, 
-                        pcImage->cols, "pcs") ;
+  ImageWrite(pcImage, "pc.hipl") ;
+  MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame,
+               pcImage->cols, "pcs") ;
 #endif
 
   if (pcoefImage)  /* also return coefficients for reconstruction */
   {
-/*
-    the coefficient image will contain the same number of frames as the
-    # of principal components to be used in reconstruction. Each frame 
-    contains one coefficient per frame in the input image.
-*/
+    /*
+        the coefficient image will contain the same number of frames as the
+        # of principal components to be used in reconstruction. Each frame
+        contains one coefficient per frame in the input image.
+    */
     *pcoefImage = coefImage = ImageAlloc(1, image->num_frame, PFFLOAT,nterms);
     if (!coefImage)
     {
-      fprintf(stderr, 
+      fprintf(stderr,
               "ImagePrincipalComponents: could not allocated coef image\n");
       exit(3) ;
     }
     zImage = ImageZeroMean(image, NULL) ;
-/*
-    the coefficients for reconstruction of the observation vectors from
-    the means and eigenvectors are given by:
-    
-    y = A . (x - mx)
-*/
+    /*
+        the coefficients for reconstruction of the observation vectors from
+        the means and eigenvectors are given by:
+
+        y = A . (x - mx)
+    */
     fPcPtr = IMAGEFpix(pcImage, 0, 0) ;
     fSrcPtr = IMAGEFpix(zImage, 0, 0) ;
     fDstPtr = IMAGEFpix(coefImage, 0, 0) ;
     for (frame = 0 ; frame < nterms ; frame++)
     {
-/* 
-      for first set of coefficients. frame is also the number of the
-      eigenvector used in the construction.
-*/
+      /*
+            for first set of coefficients. frame is also the number of the
+            eigenvector used in the construction.
+      */
       fDstPtr = IMAGEFseq_pix(coefImage, 0, 0, frame) ;
 
       for (col = 0 ; col < image->num_frame ; col++)
       {
-/* 
-        for each column in the transposed centered image matrix, multiply
-        the col'th frame by the frame'th row.
-*/
+        /*
+                for each column in the transposed centered image matrix, multiply
+                the col'th frame by the frame'th row.
+        */
         fPcPtr = IMAGEFseq_pix(pcImage, 0, 0, frame) ;
         fSrcPtr = IMAGEFseq_pix(zImage, 0, 0, col) ;
         for (i = 0 ; i < nevalues ; i++)
@@ -3258,7 +3286,7 @@ MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame,
               reconstruct an image sequence from a set of principal
               components.
 
-              note that the coefficient image may represent the 
+              note that the coefficient image may represent the
               reconstruction coefficients of more than one input
               image. In that case, this function may be called
               repeatedly, each call using an 'nframes' subset of
@@ -3266,7 +3294,7 @@ MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame,
 ----------------------------------------------------------------------*/
 IMAGE *
 ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
-                int start, int nframes)
+                 int start, int nframes)
 {
   int     rows, cols, frame, nterms, term, i, pix_per_frame,pix_per_coef_frame;
   float   *fPcPtr, *fXPtr, *fCoefPtr, *means, *Mx, ftotal ;
@@ -3277,10 +3305,10 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
   pix_per_frame = rows * cols ;
   pix_per_coef_frame = coefImage->cols * coefImage->rows ;
 
-  
+
   /* one coefficient for each frame to be reconstructed */
   if (!nframes)
-    nframes = coefImage->cols ; 
+    nframes = coefImage->cols ;
 
   nterms = coefImage->num_frame ; /* # of terms in expansion */
 
@@ -3292,17 +3320,17 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
     exit(-2) ;
   }
 
-/*
-  reconstruct x image based on a (possibly) reduced set of eigenvectors 
-  (in pcImage) and coefficients (in coefImage).
+  /*
+    reconstruct x image based on a (possibly) reduced set of eigenvectors
+    (in pcImage) and coefficients (in coefImage).
 
-  xr = (Ak' * y)' + mx
+    xr = (Ak' * y)' + mx
 
-  where ' denotes transpose
+    where ' denotes transpose
 
-  We have one coefficient for each frame to be reconstructed, and one frame of
-  coefficients for each principal component to use in the reconstruction.
-*/
+    We have one coefficient for each frame to be reconstructed, and one frame of
+    coefficients for each principal component to use in the reconstruction.
+  */
   means = IMAGEFseq_pix(pcImage, 0, 0, pcImage->num_frame-2) ;
 
   fBaseCoefPtr = IMAGEFpix(coefImage, start, 0) ;
@@ -3319,7 +3347,7 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
       fPcPtr = fBasePcPtr++ ;
       fCoefPtr = fBaseCoefPtr ;
 #if 0
-      fPcPtr = IMAGEFpix(pcImage, i, 0) ;  
+      fPcPtr = IMAGEFpix(pcImage, i, 0) ;
       fCoefPtr = IMAGEFpix(coefImage, frame+start, 0) ;
 #endif
 
@@ -3353,7 +3381,7 @@ ImageNormalizeComplex(IMAGE *Isrc, IMAGE *Idst, float thresh)
   float  real, imag, mag ;
 
   if (Isrc->pixel_format != PFCOMPLEX)
-   ErrorReturn(NULL,(ERROR_BADPARM,"ImageNormalizeComplex: Isrc not complex"));
+    ErrorReturn(NULL,(ERROR_BADPARM,"ImageNormalizeComplex: Isrc not complex"));
   rows = Isrc->rows ;
   cols = Isrc->cols ;
   if (!Idst)
@@ -3400,7 +3428,7 @@ ImageNormalizeFrames(IMAGE *Isrc, IMAGE *Idst)
   rows = Isrc->rows ;
   cols = Isrc->cols ;
   pix_per_frame = (long)rows * cols ;
-  
+
   switch (Isrc->pixel_format)
   {
   case PFFLOAT:
@@ -3433,7 +3461,7 @@ ImageNormalizeFrames(IMAGE *Isrc, IMAGE *Idst)
                     Isrc->pixel_format)) ;
     break ;   /* never used */
   }
-  
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -3456,7 +3484,7 @@ ImageCombine(IMAGE *Ireal, IMAGE *Iimag, IMAGE *Idst)
     Idst = ImageAlloc(rows, cols, PFCOMPLEX, 1) ;
 
   if (Idst->pixel_format != PFCOMPLEX)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "ImageCombine: destination must be complex")) ;
 
   dst = IMAGECpix(Idst, 0, 0) ;
@@ -3533,67 +3561,67 @@ ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
     Ireal = ImageAlloc(rows, cols, PFFLOAT, 1) ;
 
   if (!COMPLEX_IMAGE(Icomp))
-    ErrorReturn(ImageCopy(Icomp, Ireal), (ERROR_UNSUPPORTED, 
-                       "ImageSplit: source must be complex")) ;
+    ErrorReturn(ImageCopy(Icomp, Ireal), (ERROR_UNSUPPORTED,
+                                          "ImageSplit: source must be complex")) ;
 
   real = IMAGEFpix(Ireal, 0, 0) ;
   if (Iimag)
     imag = IMAGEFpix(Iimag, 0, 0) ;
 
   switch (Icomp->pixel_format)
-    {
-    case PFCOMPLEX:
-      cpix = IMAGECpix(Icomp, 0, 0) ;
-      
-      for (y = 0 ; y < rows ; y++)
-        {
-          for (x = 0 ; x < cols ; x++)
-            {
-              if (Iimag)
-                *imag++ = cpix->imag ;
-              *real++ = cpix->real ;
-              cpix++ ;
-            }
-        }
-      break ;
-    case PFDBLCOM:
-      dcpix = IMAGEDCpix(Icomp, 0, 0) ;
-      
-      switch (Ireal->pixel_format)
-      {
-      case PFFLOAT:
-        for (y = 0 ; y < rows ; y++)
-        {
-          for (x = 0 ; x < cols ; x++)
-          {
-            if (Iimag)
-              *imag++ = (float)dcpix->imag ;
-            *real++ = (float)dcpix->real ;
-            dcpix++ ;
-          }
-        }
-        break ;
-      case PFDOUBLE:
-        dreal = IMAGEDpix(Ireal, 0, 0) ;
-        if (Iimag)
-          dimag = IMAGEDpix(Iimag, 0, 0) ;
+  {
+  case PFCOMPLEX:
+    cpix = IMAGECpix(Icomp, 0, 0) ;
 
-        for (y = 0 ; y < rows ; y++)
+    for (y = 0 ; y < rows ; y++)
+    {
+      for (x = 0 ; x < cols ; x++)
+      {
+        if (Iimag)
+          *imag++ = cpix->imag ;
+        *real++ = cpix->real ;
+        cpix++ ;
+      }
+    }
+    break ;
+  case PFDBLCOM:
+    dcpix = IMAGEDCpix(Icomp, 0, 0) ;
+
+    switch (Ireal->pixel_format)
+    {
+    case PFFLOAT:
+      for (y = 0 ; y < rows ; y++)
+      {
+        for (x = 0 ; x < cols ; x++)
         {
-          for (x = 0 ; x < cols ; x++)
-          {
-            if (Iimag)
-              *dimag++ = dcpix->imag ;
-            *dreal++ = dcpix->real ;
-            dcpix++ ;
-          }
+          if (Iimag)
+            *imag++ = (float)dcpix->imag ;
+          *real++ = (float)dcpix->real ;
+          dcpix++ ;
         }
-        break ;
       }
       break ;
-    default:
+    case PFDOUBLE:
+      dreal = IMAGEDpix(Ireal, 0, 0) ;
+      if (Iimag)
+        dimag = IMAGEDpix(Iimag, 0, 0) ;
+
+      for (y = 0 ; y < rows ; y++)
+      {
+        for (x = 0 ; x < cols ; x++)
+        {
+          if (Iimag)
+            *dimag++ = dcpix->imag ;
+          *dreal++ = dcpix->real ;
+          dcpix++ ;
+        }
+      }
       break ;
     }
+    break ;
+  default:
+    break ;
+  }
 
   return(Ireal) ;
 }
@@ -3611,7 +3639,7 @@ ImageShrink(IMAGE *Isrc, IMAGE *Idst)
   float   smax, smin, xscale, yscale, *dpix ;
   register int xs ;
   register float *spix, *gpix, total ;
-  
+
 
   srows = Isrc->rows ;
   scols = Isrc->cols ;
@@ -3632,26 +3660,26 @@ ImageShrink(IMAGE *Isrc, IMAGE *Idst)
   else
     Iout = Idst ;
 
-/* 
-  create a Gaussian sampling function whose sigma depends on the 
-  amount of scaling.
-*/
+  /*
+    create a Gaussian sampling function whose sigma depends on the
+    amount of scaling.
+  */
   xscale = (float)scols / (float)dcols ;
   yscale = (float)srows / (float)drows ;
 #if 0
   Igaussian = ImageGaussian(xscale/4.0f, yscale/4.0f) ;
 #else
   Igaussian = ImageGaussian(xscale/10.0f, yscale/10.0f) ;
-/*  fprintf(stderr, "grows,gcols = %d,%d\n", Igaussian->rows, Igaussian->cols);*/
+  /*  fprintf(stderr, "grows,gcols = %d,%d\n", Igaussian->rows, Igaussian->cols);*/
 #endif
 
   xhalf = (Igaussian->cols-1) / 2 ;
   yhalf = (Igaussian->rows-1) / 2 ;
 
 #if 0
-fprintf(stderr, 
-        "ImageShrink: xscale %2.3f, yscale %2.3f, grows,gcols = %d,%d\n",
-        xscale, yscale, Igaussian->rows, Igaussian->cols) ;
+  fprintf(stderr,
+          "ImageShrink: xscale %2.3f, yscale %2.3f, grows,gcols = %d,%d\n",
+          xscale, yscale, Igaussian->rows, Igaussian->cols) ;
 #endif
 
   /* for each dst pixel, Gaussian sample region around it */
@@ -3691,7 +3719,7 @@ fprintf(stderr,
       *dpix++ = total ;
     }
   }
-  
+
   if (Iin != Isrc)
     ImageFree(&Iin) ;
   if (Iout != Idst)
@@ -3785,7 +3813,8 @@ ImageConvertToByte(IMAGE *Isrc, IMAGE *Idst)
               calculate the mean and variance of the intensity in an image.
 ----------------------------------------------------------------------*/
 static void break_now(void) ;
-static void break_now(void) {}
+static void break_now(void)
+{}
 
 int
 ImageStatistics(IMAGE *Isrc, float *pmean, float *pvar)
@@ -3910,7 +3939,7 @@ ImageValid(IMAGE *I)
     return(1) ;  /* assume unsupported types are valid */
     break ;
   case PFFLOAT:
-    fpix = IMAGEFpix(I, 0, 0); 
+    fpix = IMAGEFpix(I, 0, 0);
     while (size--)
     {
       val = *fpix++ ;
@@ -3934,7 +3963,7 @@ ImageValid(IMAGE *I)
     }
     break ;
   case PFDOUBLE:
-    dpix = IMAGEDpix(I, 0, 0); 
+    dpix = IMAGEDpix(I, 0, 0);
     while (size--)
     {
       val = *dpix++ ;
@@ -3957,7 +3986,7 @@ ImageValid(IMAGE *I)
     }
     break ;
   case PFDBLCOM:
-    dcpix = IMAGEDCpix(I, 0, 0); 
+    dcpix = IMAGEDCpix(I, 0, 0);
     while (size--)
     {
       dcval = *dcpix++ ;
@@ -4000,7 +4029,7 @@ ImageValid(IMAGE *I)
     }
     break ;
   case PFCOMPLEX:
-    cpix = IMAGECpix(I, 0, 0); 
+    cpix = IMAGECpix(I, 0, 0);
     while (size--)
     {
       cval = *cpix++ ;
@@ -4071,13 +4100,13 @@ ImageEntropy(IMAGE *I, int pairflag)
   Ibyte = ImageAlloc(I->rows, I->cols, PFBYTE, 1) ;
   if (I->pixel_format != PFBYTE)
     Itmp = ImageAlloc(I->rows, I->cols, I->pixel_format, 1) ;
-  
+
   nframes = I->num_frame ;
   if (pairflag)
     table = (int *)calloc(256*256, sizeof(int)) ;
   else
     table = (int *)calloc(256, sizeof(int)) ;
-    
+
   for (frame = 0 ; frame < nframes ; frame++)
   {
     switch (I->pixel_format)
@@ -4133,12 +4162,12 @@ ImageDownsample2(IMAGE *Isrc, IMAGE *Idst)
   }
 
   if (Isrc->pixel_format != PFFLOAT)
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageDownsample2: unsupported input pixel format %d", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageDownsample2: unsupported input pixel format %d",
                        Isrc->pixel_format)) ;
   if (Idst->pixel_format != PFFLOAT)
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageDownsample2: unsupported output pixel format %d", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageDownsample2: unsupported output pixel format %d",
                        Idst->pixel_format)) ;
 
   sptr = IMAGEFpix(Isrc, 0, 0) ;
@@ -4178,14 +4207,14 @@ ImageDownsample2Horizontal(IMAGE *Isrc, IMAGE *Idst)
   }
 
   if (Isrc->pixel_format != PFBYTE)
-    ErrorReturn(Idst, 
-                (ERROR_UNSUPPORTED, 
-             "ImageDownsample2Horizontal: unsupported input pixel format %d", 
-                       Isrc->pixel_format)) ;
+    ErrorReturn(Idst,
+                (ERROR_UNSUPPORTED,
+                 "ImageDownsample2Horizontal: unsupported input pixel format %d",
+                 Isrc->pixel_format)) ;
   if (Idst->pixel_format != PFBYTE)
-    ErrorReturn(Idst, 
-                (ERROR_UNSUPPORTED, 
-             "ImageDownsample2Horizontal: unsupported output pixel format %d", 
+    ErrorReturn(Idst,
+                (ERROR_UNSUPPORTED,
+                 "ImageDownsample2Horizontal: unsupported output pixel format %d",
                  Idst->pixel_format)) ;
 
   sptr = IMAGEpix(Isrc, 0, 0) ;
@@ -4224,12 +4253,12 @@ ImageUpsample2(IMAGE *Isrc, IMAGE *Idst)
   }
 
   if (Isrc->pixel_format != PFFLOAT)
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageUpsample2: unsupported input pixel format %d", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageUpsample2: unsupported input pixel format %d",
                        Isrc->pixel_format)) ;
   if (Idst->pixel_format != PFFLOAT)
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                       "ImageUpsample2: unsupported output pixel format %d", 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
+                       "ImageUpsample2: unsupported output pixel format %d",
                        Idst->pixel_format)) ;
 
   if (!ImageCheckSize(Idst, Itmp, 0, 0, 0))

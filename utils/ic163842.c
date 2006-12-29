@@ -1,3 +1,31 @@
+/**
+ * @file  ic163842.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include "mrisurf.h"
 #include "error.h"
@@ -23,7 +51,7 @@ ic163842_make_surface(int max_vertices, int max_faces)
   static int first_time = 1 ;
 
   if (first_time)
-  {  
+  {
     read_icosahedron() ;
     first_time = 0 ;
     for (fno = 0 ; fno < ICO_NFACES ; fno++)
@@ -122,10 +150,10 @@ ic163842_make_surface(int max_vertices, int max_faces)
                 "ic163842: could not allocate list of %d "
                 "dists at v=%d", v->vnum, vno) ;
     v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "ic163842: could not allocate list of %d "
-                  "dists at v=%d", v->vnum, vno) ;
+    if (!v->dist_orig)
+      ErrorExit(ERROR_NOMEMORY,
+                "ic163842: could not allocate list of %d "
+                "dists at v=%d", v->vnum, vno) ;
   }
 
   /* fill in face indices in vertex structures */
@@ -135,13 +163,16 @@ ic163842_make_surface(int max_vertices, int max_faces)
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
     {
       v = &mris->vertices[f->v[n]] ;
-      v->n[v->num] = n ; v->f[v->num++] = fno ;
+      v->n[v->num] = n ;
+      v->f[v->num++] = fno ;
     }
   }
 
   MRIScomputeMetricProperties(mris) ;
   mris->type = MRIS_ICO_SURFACE ;
-  free(ic163842_vertices) ; free(ic163842_faces) ; first_time = 1 ;
+  free(ic163842_vertices) ;
+  free(ic163842_faces) ;
+  first_time = 1 ;
   return(mris) ;
 }
 static int
@@ -159,12 +190,12 @@ read_icosahedron(void)
     ErrorExit(ERROR_NOFILE, "read_icosahedron: could not open %s",
               "ic163842.tri") ;
 
-  ic_vertices = ic163842_vertices = 
-    (IC_VERTEX *)calloc(ICO_NVERTICES, sizeof(IC_VERTEX)) ;
+  ic_vertices = ic163842_vertices =
+                  (IC_VERTEX *)calloc(ICO_NVERTICES, sizeof(IC_VERTEX)) ;
   if (!ic163842_vertices)
     ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
-  ic_faces = ic163842_faces = 
-    (IC_FACE *)calloc(ICO_NFACES, sizeof(IC_FACE)) ;
+  ic_faces = ic163842_faces =
+               (IC_FACE *)calloc(ICO_NFACES, sizeof(IC_FACE)) ;
   if (!ic163842_faces)
     ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
 
@@ -183,7 +214,8 @@ read_icosahedron(void)
     if (++n >= ICO_NVERTICES)
       break ;
   }
-  n = 0 ; fgetl(line, 150, fp) ;   /* discard # of faces */
+  n = 0 ;
+  fgetl(line, 150, fp) ;   /* discard # of faces */
   while ((cp = fgetl(line, 150, fp)) != NULL)
   {
     if (sscanf(cp, "%d %d %d %d\n", &fno, &vno1, &vno2, &vno3) < 4)

@@ -1,3 +1,31 @@
+/**
+ * @file  filter.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.27 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   filter.c
  *
@@ -114,12 +142,12 @@ ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, double sigma,
   ImageConvolveGaussian(IF, Iblur, IF, 0) ;
   ImageConvolveGaussian(IG, Iblur, IG, 0) ;
 
-#if 0  
-ImageWrite(Ix, "Ix.hipl") ;
-ImageWrite(Iy, "Iy.hipl") ;
-ImageWrite(IE, "IE.hipl");
-ImageWrite(IF, "IF.hipl");
-ImageWrite(IG, "IG.hipl");
+#if 0
+  ImageWrite(Ix, "Ix.hipl") ;
+  ImageWrite(Iy, "Iy.hipl") ;
+  ImageWrite(IE, "IE.hipl");
+  ImageWrite(IF, "IF.hipl");
+  ImageWrite(IG, "IG.hipl");
 #endif
 
   /* now apply actual filter */
@@ -157,7 +185,7 @@ ImageWrite(IG, "IG.hipl");
 #if DEBUG_FILTER
           if (x == Gx && y == Gy)
             *IMAGEFpix(Ifilter, xk+whalf, yk+whalf) = fval ;
-#endif          
+#endif
           total += fval * *spix ;
           norm += fval ;
         }
@@ -172,11 +200,11 @@ ImageWrite(IG, "IG.hipl");
             *IMAGEFpix(Ifilter, xk+whalf, yk+whalf) /= norm ;
           }
         }
-#endif          
+#endif
       *dpix++ = total / norm ;
     }
   }
-  
+
   if (Iin != Isrc)
     ImageFree(&Iin) ;
 
@@ -193,13 +221,13 @@ ImageWrite(IG, "IG.hipl");
 
            Description:
 ----------------------------------------------------------------------*/
-int        
+int
 ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
-                           IMAGE *offsetImage, 
-                           IMAGE *filterSequence)
+                            IMAGE *offsetImage,
+                            IMAGE *filterSequence)
 {
   int    rows, cols, x, y, whalf, xc, yc, x0, y0,
-         dx, dy, frame ;
+  dx, dy, frame ;
   float  fpix, *g, norm, val, *filterPix ;
   static float *gaussian = NULL ;
   static int   w = 0 ;
@@ -226,7 +254,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
     for (g = gaussian, y = 0 ; y < wsize ; y++)
     {
       yc = y - whalf ;
-      for (x = 0 ; x < wsize ; x++, g++) 
+      for (x = 0 ; x < wsize ; x++, g++)
       {
         xc = x - whalf ;
         *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
@@ -237,15 +265,15 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
     /* normalize gaussian */
     for (g = gaussian, y = 0 ; y < wsize ; y++)
     {
-      for (x = 0 ; x < wsize ; x++, g++) 
+      for (x = 0 ; x < wsize ; x++, g++)
         *g /= norm ;
     }
   }
 
-/*
-  x and y are in window coordinates, while xc and yc are in image
-  coordinates.
-*/
+  /*
+    x and y are in window coordinates, while xc and yc are in image
+    coordinates.
+  */
   for (frame = y0 = 0 ; y0 < rows ; y0++)
   {
     for (x0 = 0 ; x0 < cols ; x0++, frame++)
@@ -272,7 +300,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
           yc = -yc ;
         else if (yc >= rows)
           yc = rows - (yc - rows + 1) ;
-        
+
         for (x = -whalf ; x <= whalf ; x++)
         {
           xc = x0 + x + dx ;
@@ -280,7 +308,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
             xc = -xc ;
           else if (xc >= cols)
             xc = cols - (xc - cols + 1) ;
-          
+
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
           val = (float)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
           norm += val ;
@@ -301,7 +329,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
     }
   }
 
-/*  ImageWrite(filterSequence, "filter.hipl") ;*/
+  /*  ImageWrite(filterSequence, "filter.hipl") ;*/
   return(0) ;
 }
 #if 0
@@ -310,7 +338,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
            Description:
 ----------------------------------------------------------------------*/
 int ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
-                          IMAGE *offsetImage)
+                               IMAGE *offsetImage)
 {
   return(0) ;
 }
@@ -321,8 +349,8 @@ int ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence, 
-                                  IMAGE *outImage)
+ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence,
+                        IMAGE *outImage)
 {
   return(0) ;
 }
@@ -331,11 +359,11 @@ ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence,
 
            Description:
 ----------------------------------------------------------------------*/
-int        
-ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage, 
-                      int wsize, float k,
-                           IMAGE *offsetImage, 
-                           IMAGE *outImage)
+int
+ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
+                       int wsize, float k,
+                       IMAGE *offsetImage,
+                       IMAGE *outImage)
 {
   int    rows, cols, x, y, whalf, xc, yc, x0, y0, dx, dy ;
   float  fpix, *g, norm, val, *filterPix, *filter, *outPix ;
@@ -344,7 +372,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
   xc = yc = 0 ;   /* eliminate compiler warning */
   filter = (float *)calloc(wsize*wsize, sizeof(float)) ;
   if (!filter)
-    ErrorReturn(ERROR_NO_MEMORY, 
+    ErrorReturn(ERROR_NO_MEMORY,
                 (ERROR_NO_MEMORY,
                  "ImageExponentialFilter: could not allocate filter")) ;
 
@@ -371,7 +399,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
     for (g = gaussian, y = 0 ; y < wsize ; y++)
     {
       yc = y - whalf ;
-      for (x = 0 ; x < wsize ; x++, g++) 
+      for (x = 0 ; x < wsize ; x++, g++)
       {
         xc = x - whalf ;
         *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
@@ -382,15 +410,15 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
     /* normalize gaussian */
     for (g = gaussian, y = 0 ; y < wsize ; y++)
     {
-      for (x = 0 ; x < wsize ; x++, g++) 
+      for (x = 0 ; x < wsize ; x++, g++)
         *g /= norm ;
     }
   }
 
-/*
-  x and y are in window coordinates, while xc and yc are in image
-  coordinates.
-*/
+  /*
+    x and y are in window coordinates, while xc and yc are in image
+    coordinates.
+  */
   outPix = IMAGEFpix(outImage, 0, 0) ;
   for (y0 = 0 ; y0 < rows ; y0++)
   {
@@ -422,7 +450,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
             xc = 0 ;
           else if (xc >= cols)
             xc = cols - 1 ;
-          
+
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
           val = (float)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
           norm += val ;
@@ -444,10 +472,10 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
           *filterPix++ /= norm ;
       }
 
-/* 
-      now apply filter to this point in the image, taking possible 
-      offset into accound 
-*/
+      /*
+            now apply filter to this point in the image, taking possible
+            offset into accound
+      */
       filterPix = filter ;
       val = 0.0f ;
       for (y = -whalf ; y <= whalf ; y++)
@@ -466,7 +494,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
             xc = 0 ;
           else if (xc >= cols)
             xc = cols - 1 ;
-          
+
           fpix = *IMAGEFpix(inImage, xc, yc) ;
           val += fpix * *filterPix++ ;
         }
@@ -488,9 +516,9 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
            Description:
 ----------------------------------------------------------------------*/
 static int compare_sort_array(const void *pf1, const void *pf2) ;
-int        
-ImageMedianFilter(IMAGE *inImage, int wsize, 
-                            IMAGE *offsetImage, IMAGE *outImage)
+int
+ImageMedianFilter(IMAGE *inImage, int wsize,
+                  IMAGE *offsetImage, IMAGE *outImage)
 {
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
@@ -571,10 +599,10 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
     {
       for (x0 = 0 ; x0 < cols ; x0++)
       {
-/*
-         x and y are in window coordinates, while xc and yc are in image
-         coordinates.
- */
+        /*
+                 x and y are in window coordinates, while xc and yc are in image
+                 coordinates.
+         */
         if (offsetImage)
         {
           dx = nint(*IMAGEFpix(offsetImage, x0, y0)) ;
@@ -582,7 +610,7 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
         }
         else
           dx = dy = 0 ;
-        
+
         for (sptr = sort_array, y = -whalf ; y <= whalf ; y++)
         {
           /* reflect across the boundary */
@@ -615,7 +643,7 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
               xc = cols - 1 ;
 #endif
 
-#if 0            
+#if 0
             *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
 #else
             *sptr++ = *(inPix + xc) ;
@@ -637,7 +665,7 @@ compare_sort_array(const void *pf1, const void *pf2)
   f1 = *(float *)pf1 ;
   f2 = *(float *)pf2 ;
 
-/*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
+  /*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
   if (f1 > f2)
     return(1) ;
   else if (f1 < f2)
@@ -723,7 +751,7 @@ ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, int dst_frameno)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, 
+ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout,
                               int dst_frameno)
 {
   static IMAGE     *Itmp = NULL ;
@@ -731,7 +759,7 @@ ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout,
   float            *kernel, *buf ;
 
   if (Isrc->pixel_format != PFFLOAT)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, "ImageCircularConvolveGaussian: type %d"
                  "not supported", Isrc->pixel_format)) ;
 
@@ -783,7 +811,7 @@ ImageConvolveGaussianFrames(IMAGE *Isrc,IMAGE *gImage, IMAGE *Idst)
     if (Isrc != Idst)
       Idst->image += Idst->sizeimage ;
   }
-  
+
   Isrc->image = src_buf ;
   Idst->image = dst_buf ;
   Isrc->num_frame = src_frames ;
@@ -1057,10 +1085,10 @@ ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 ----------------------------------------------------------------------*/
 #define KERNEL_SIZE 5
 #define K_A         0.4f
-static float kernel[KERNEL_SIZE]  = 
-{
-  0.25f - K_A/2.0f, .25f, K_A, 0.25f, 0.25f-K_A/2.0f
-} ;
+static float kernel[KERNEL_SIZE]  =
+  {
+    0.25f - K_A/2.0f, .25f, K_A, 0.25f, 0.25f-K_A/2.0f
+  } ;
 
 IMAGE *
 ImageReduce(IMAGE *Isrc, IMAGE *Idst)
@@ -1104,13 +1132,13 @@ ImageReduce(IMAGE *Isrc, IMAGE *Idst)
   ImageConvolve1d(Isrc, Itmp, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
   ImageReduce1d(Itmp, Idst, kernel, KERNEL_SIZE, IMAGE_HORIZONTAL) ;
 #if 0
-{
-  char str[100] ;
-  sprintf(str, "tmp%d.hipl", rows*2) ;
-  ImageWrite(Itmp, str) ;
-  sprintf(str, "out%d.hipl", rows*2) ;
-  ImageWrite(Idst, str) ;
-}
+  {
+    char str[100] ;
+    sprintf(str, "tmp%d.hipl", rows*2) ;
+    ImageWrite(Itmp, str) ;
+    sprintf(str, "out%d.hipl", rows*2) ;
+    ImageWrite(Idst, str) ;
+  }
 #endif
   return(Idst) ;
 }
@@ -1159,7 +1187,7 @@ ImageReduce1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           else if (xi >= Iwidth)
             xi = Iwidth - 1 ;
 #endif
-          
+
           total = total + k[i] * *IMAGEFpix(I, xi, yi) ;
         }
         *IMAGEFpix(J, x, y) = total ;
@@ -1196,7 +1224,7 @@ ImageReduce1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           else if (yi >= Iheight)
             yi = Iheight - 1 ;
 #endif
-          
+
           total = total + k[i] * *IMAGEFpix(I, xi, yi) ;
         }
         *IMAGEFpix(J, x, y) = total ;
@@ -1237,10 +1265,10 @@ ImageGaussian(float xsigma, float ysigma)
   {
     fx = (float)(x-xhalf) ;
     if (fabs(fx) <= xtwo_sigma)
-      k = (float)exp((double)(-fx*fx/(xtwo_sigma*xsigma))) ; 
+      k = (float)exp((double)(-fx*fx/(xtwo_sigma*xsigma))) ;
     else if (xtwo_sigma < (float)fabs(fx) && (float)fabs(fx) <= 4.0f*xsigma)
-      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
-        (float)pow(4.0 - fabs(fx)/(double)xsigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0 - fabs(fx)/(double)xsigma, 4.0) ;
     else
       k = 0 ;
 
@@ -1278,8 +1306,8 @@ ImageGaussian(float xsigma, float ysigma)
             Parameters:
 
            Description:
-             construct a splined gaussian bump which tails to 0. 
-             Returns an image which is (8*sigma)+1 
+             construct a splined gaussian bump which tails to 0.
+             Returns an image which is (8*sigma)+1
              (Nitzberg and Shiota, 1993)
 ----------------------------------------------------------------------*/
 IMAGE *
@@ -1307,8 +1335,8 @@ ImageGaussian1d(float sigma, int max_len)
     if (fabs(fx) <= two_sigma)
       k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
     else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
-      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
-        (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
     else
       k = 0 ;
 
@@ -1327,9 +1355,9 @@ ImageGaussian1d(float sigma, int max_len)
 
            Description:
 ----------------------------------------------------------------------*/
-int        
-ImageSobel(IMAGE *Isrc, IMAGE *gradImage, 
-                     IMAGE *dxImage, IMAGE *dyImage)
+int
+ImageSobel(IMAGE *Isrc, IMAGE *gradImage,
+           IMAGE *dxImage, IMAGE *dyImage)
 {
   static IMAGE *xImage = NULL, *yImage = NULL ;
   IMAGE        *Iin ;
@@ -1375,7 +1403,7 @@ ImageSobel(IMAGE *Isrc, IMAGE *gradImage,
     dyImage = yImage ;
   }
 
-  
+
   ImageSetSize(dxImage, rows, cols) ;
   ImageSetSize(dyImage, rows, cols) ;
   ImageSobelY(Isrc, dyImage) ;
@@ -1442,7 +1470,7 @@ ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
     {
       *outPtr++ =
         -.25f * *tl_pix++ - .5f * *ml_pix++ - .25f * *bl_pix++ +
-         .25f * *tr_pix++ + .5f * *mr_pix++ + .25f * *br_pix++ ;
+        .25f * *tr_pix++ + .5f * *mr_pix++ + .25f * *br_pix++ ;
     }
     outPtr += 2 ;
     tl_pix += 2 ;
@@ -1457,14 +1485,14 @@ ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 }
 #else
 /*----------------------------------------------------------------------
-            Parameters:
+Parameters:
 
-           Description:
-             use overlapping windows to speed up sobel calculation
+Description:
+use overlapping windows to speed up sobel calculation
 
-   -0.25    0    0.25
-   -0.50    0    0.50
-   -0.25    0    0.25
+-0.25    0    0.25
+-0.50    0    0.50
+-0.25    0    0.25
 ----------------------------------------------------------------------*/
 int
 ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
@@ -1535,7 +1563,7 @@ ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
     {
       *outPtr++ =
         -.25f * *tl_pix++ - .5f * *tm_pix++ - .25f * *tr_pix++ +
-         .25f * *bl_pix++ + .5f * *bm_pix++ + .25f * *br_pix++ ;
+        .25f * *bl_pix++ + .5f * *bm_pix++ + .25f * *br_pix++ ;
     }
     outPtr += 2 ;
     tl_pix += 2 ;
@@ -1550,14 +1578,14 @@ ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 }
 #else
 /*----------------------------------------------------------------------
-            Parameters:
+Parameters:
 
-           Description:
-             use overlapping windows to speed up sobel calculation
+Description:
+use overlapping windows to speed up sobel calculation
 
-   -0.25   -.50   -0.25
-    0       0      0
-    0.25    .50    0.25
+-0.25   -.50   -0.25
+0       0      0
+0.25    .50    0.25
 ----------------------------------------------------------------------*/
 int
 ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
@@ -1577,7 +1605,7 @@ ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
   cols-- ;
   for (row = 1 ; row < rows ; row++)
   {
-    left = *br_pix++ - *tr_pix++ ; 
+    left = *br_pix++ - *tr_pix++ ;
     middle = *br_pix++ - *tr_pix++ ;
 
     for (col = 1 ; col < cols ; col++)
@@ -1655,7 +1683,7 @@ ImageConvolve3x3(IMAGE *Isrc, float kernel[], IMAGE *outImage)
               yi = 0 ;
             else if (yi >= rows)
               yi = rows-1 ;
-            
+
             for (xk = -1 ; xk <= 1 ; xk++, k++, fkpix++)
             {
               xi = x + xk ;   /* image coordinate */
@@ -1686,14 +1714,21 @@ ImageConvolve3x3(IMAGE *Isrc, float kernel[], IMAGE *outImage)
 
            Description:
 ----------------------------------------------------------------------*/
-static int xoffsets[] = { 0, -1, 0, 1, 0 } ;
-static int yoffsets[] = { -1, 0, 0, 0, 1 } ;
+static int xoffsets[] =
+  {
+    0, -1, 0, 1, 0
+  } ;
+static int yoffsets[] =
+  {
+    -1, 0, 0, 0, 1
+  } ;
 #define ONE_EIGHTH (1.0f/8.0f)
-static float weights[] = 
-{          ONE_EIGHTH, 
-    ONE_EIGHTH, -0.5f, ONE_EIGHTH, 
-            ONE_EIGHTH 
-} ;
+static float weights[] =
+  {
+    ONE_EIGHTH,
+    ONE_EIGHTH, -0.5f, ONE_EIGHTH,
+    ONE_EIGHTH
+  } ;
 #define LAPLACIAN_POINTS   (sizeof(xoffsets) / sizeof(xoffsets[0]))
 
 IMAGE  *
@@ -1752,13 +1787,13 @@ ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset, 
+ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
                  IMAGE *Idst)
 {
   float  *sort_array ;
   int    x0, y0, rows, cols, x, y, whalf, yc, dx, dy, frame, wsq, w, npix ;
   float  *sptr, *outPix, min_val, max_val, *inPix, val,mean,sigma,sigma_thresh,
-         filter_val ;
+  filter_val ;
   IMAGE  *Iout, *Iin ;
   register int xc ;
 
@@ -1797,10 +1832,10 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
     {
       for (x0 = 0 ; x0 < cols ; x0++)
       {
-/*
-         x and y are in window coordinates, while xc and yc are in image
-         coordinates.
- */
+        /*
+                 x and y are in window coordinates, while xc and yc are in image
+                 coordinates.
+         */
         if (Ioffset)
         {
           dx = nint(*IMAGEFpix(Ioffset, x0, y0)) ;
@@ -1808,7 +1843,7 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
         }
         else
           dx = dy = 0 ;
-        
+
         for (sptr = sort_array, y = -whalf ; y <= whalf ; y++)
         {
           /* reflect across the boundary */
@@ -1830,7 +1865,7 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
             *sptr++ = *(inPix + xc) ;
           }
         }
-        
+
         /* calculate mean and standard deviation in window */
         mean = sigma = 0.0f ;
         for (w = 0, sptr = sort_array ; w < wsq ; w++)
@@ -1915,7 +1950,7 @@ ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst)
     imageMeanFilter2x2(Isrc, Idst) ;
     break ;
   default:
-    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED,
                        "ImageMeanFilter: unsupported filter size %d",wsize));
     break ; /* never used */
   }
@@ -1937,14 +1972,14 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 {
   float  left, middle, right, *top, *center, *bottom, *out ;
   int    rows, cols, row, col, cols_minus_1, rows_minus_1 ;
-  
+
   rows = Isrc->rows ;
   cols = Isrc->cols ;
 
   /* do 4 corner points separately and 1st and last rows and cols separately */
 
   /* top right corner */
-  left = *IMAGEFpix(Isrc, cols-2, 0) + *IMAGEFpix(Isrc, cols-2, 1) ; 
+  left = *IMAGEFpix(Isrc, cols-2, 0) + *IMAGEFpix(Isrc, cols-2, 1) ;
   middle = *IMAGEFpix(Isrc, cols-1, 0) + *IMAGEFpix(Isrc, cols-1, 1) ;
   *IMAGEFpix(Idst, cols-1, 0) = (left + middle) / 4.0f ;
 
@@ -1955,7 +1990,7 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 
 
   /* top left corner, also initializes for first row */
-  left = *IMAGEFpix(Isrc, 0, 0) + *IMAGEFpix(Isrc, 0, 1) ; 
+  left = *IMAGEFpix(Isrc, 0, 0) + *IMAGEFpix(Isrc, 0, 1) ;
   middle = *IMAGEFpix(Isrc, 1, 0) + *IMAGEFpix(Isrc, 1, 1) ;
   *IMAGEFpix(Idst, 0, 0) = (left + middle) / 4.0f ;
 
@@ -1977,7 +2012,7 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
   }
 
   /* bottom left corner and initialize for bottom row */
-  left = *IMAGEFpix(Isrc, 0, rows-2) + *IMAGEFpix(Isrc, 0, rows-1) ; 
+  left = *IMAGEFpix(Isrc, 0, rows-2) + *IMAGEFpix(Isrc, 0, rows-1) ;
   middle = *IMAGEFpix(Isrc, 1, rows-2) + *IMAGEFpix(Isrc, 1, rows-1);
   *IMAGEFpix(Idst, 0, rows-1) = (left + middle) / 4.0f ;
 
@@ -1996,11 +2031,11 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 
 
   /* do 1st column */
-  left = 
-    *IMAGEFpix(Isrc, 0, 0) + 
-    *IMAGEFpix(Isrc, 1, 0) ; 
-  middle = 
-    *IMAGEFpix(Isrc, 0, 1) + 
+  left =
+    *IMAGEFpix(Isrc, 0, 0) +
+    *IMAGEFpix(Isrc, 1, 0) ;
+  middle =
+    *IMAGEFpix(Isrc, 0, 1) +
     *IMAGEFpix(Isrc, 1, 1) ;
   out = IMAGEFpix(Idst, 0, 1) ;
   center = IMAGEFpix(Isrc, 0, 2) ;
@@ -2017,17 +2052,17 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
     middle = right ;
   }
 
-/* 
-   the naming conventions are messed up for the first and last
-   column. Everything is basically transposed with left referring to top,
-   etc... Sorry.
- */
+  /*
+     the naming conventions are messed up for the first and last
+     column. Everything is basically transposed with left referring to top,
+     etc... Sorry.
+   */
   /* do last column */
-  left = 
-    *IMAGEFpix(Isrc, cols-2, 0) + 
-    *IMAGEFpix(Isrc, cols-1, 0) ; 
-  middle = 
-    *IMAGEFpix(Isrc, cols-2, 1) + 
+  left =
+    *IMAGEFpix(Isrc, cols-2, 0) +
+    *IMAGEFpix(Isrc, cols-1, 0) ;
+  middle =
+    *IMAGEFpix(Isrc, cols-2, 1) +
     *IMAGEFpix(Isrc, cols-1, 1) ;
 
   center = IMAGEFpix(Isrc, cols-1, 2) ;
@@ -2054,14 +2089,14 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 
   for (row = 1 ; row < rows_minus_1 ; row++)
   {
-    left = 
-      *IMAGEFpix(Isrc, 0, row-1) + 
-      *IMAGEFpix(Isrc, 0, row) + 
-      *IMAGEFpix(Isrc, 0, row+1) ; 
-    middle = 
-      *IMAGEFpix(Isrc, 1, row-1) + 
-      *IMAGEFpix(Isrc, 1, row) + 
-      *IMAGEFpix(Isrc, 1, row+1) ; 
+    left =
+      *IMAGEFpix(Isrc, 0, row-1) +
+      *IMAGEFpix(Isrc, 0, row) +
+      *IMAGEFpix(Isrc, 0, row+1) ;
+    middle =
+      *IMAGEFpix(Isrc, 1, row-1) +
+      *IMAGEFpix(Isrc, 1, row) +
+      *IMAGEFpix(Isrc, 1, row+1) ;
 
     for (col = 1 ; col < cols_minus_1 ; col++)
     {
@@ -2090,17 +2125,17 @@ imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst)
 {
   float  left, right, *top, *bottom, *out ;
   int    rows, cols, row, col, cols_minus_1, rows_minus_1 ;
-  
+
   rows = Isrc->rows ;
   cols = Isrc->cols ;
 
-  /* 
-     do last column and bottom right point separately using backwards 
-     averaging instead of forward 
+  /*
+     do last column and bottom right point separately using backwards
+     averaging instead of forward
      */
 
   /* bottom right corner, set it to average of 4 neighbors */
-  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2,rows-1); 
+  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2,rows-1);
   right = *IMAGEFpix(Isrc, cols-1, rows-2) + *IMAGEFpix(Isrc, cols-1, rows-1);
   *IMAGEFpix(Idst, cols-1, rows-1) = (left + right) * 0.25f ;
 
@@ -2112,8 +2147,8 @@ imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst)
   rows_minus_1 = rows - 1 ;
 
   /* do last column */
-  left = 
-    *IMAGEFpix(Isrc, cols-2, 0) + 
+  left =
+    *IMAGEFpix(Isrc, cols-2, 0) +
     *IMAGEFpix(Isrc, cols-1, 0) ;
 
   bottom = IMAGEFpix(Isrc, cols-1, 1) ;    /* actually right */
@@ -2150,7 +2185,7 @@ imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst)
 
   for (row = 0 ; row < rows_minus_1 ; row++)
   {
-    left = *top++ + *bottom++ ;      
+    left = *top++ + *bottom++ ;
 
     for (col = 0 ; col < cols_minus_1 ; col++)
     {
@@ -2214,7 +2249,7 @@ ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst)
               yi = 0 ;
             else if (yi >= rows)
               yi = rows-1 ;
-            
+
             for (xk = -1 ; xk <= 1 ; xk++)
             {
               xi = x + xk ;   /* image coordinate */
@@ -2232,7 +2267,7 @@ ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst)
       }
       break ;
     default:
-      ErrorReturn(NULL, 
+      ErrorReturn(NULL,
                   (ERROR_UNSUPPORTED,
                    "ImageDilate: unsupported pixel format %d\n",
                    Isrc->pixel_format)) ;
@@ -2298,7 +2333,7 @@ ImageGreyErode(IMAGE *Isrc, IMAGE *Idst)
               yi = 0 ;
             else if (yi >= rows)
               yi = rows-1 ;
-            
+
             for (xk = -1 ; xk <= 1 ; xk++)
             {
               xi = x + xk ;   /* image coordinate */
@@ -2316,7 +2351,7 @@ ImageGreyErode(IMAGE *Isrc, IMAGE *Idst)
       }
       break ;
     default:
-      ErrorReturn(NULL, 
+      ErrorReturn(NULL,
                   (ERROR_UNSUPPORTED,
                    "ImageErode: unsupported pixel format %d\n",
                    Isrc->pixel_format)) ;
@@ -2346,7 +2381,7 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
 
 #if 0
   if (zeropad)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "ImageCorrelate: zero padding unsupported")) ;
 #else
   if (zeropad)
@@ -2404,18 +2439,18 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
 
         Description
            perform a spatial correlation of Ikernel with Isrc around the
-           region of the point x0,y0. The size of the correlation region is 
-           given by wsize 
+           region of the point x0,y0. The size of the correlation region is
+           given by wsize
 ------------------------------------------------------*/
 IMAGE *
-ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0, 
+ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0,
                      int col0, int wsize)
 {
   int    col_offset, row_offset, row, col, rows, cols, whalf, krow0, kcol0,
-         rowstart, rowend, colstart, colend, krow, kcol, drow,dcol ;
+  rowstart, rowend, colstart, colend, krow, kcol, drow,dcol ;
   CPIX   *src, *kernel ;
   float  sreal, simag, kreal, kimag, val, *dst, total ;
-  
+
   rows = Isrc->rows ;
   cols = Isrc->cols ;
 
@@ -2481,8 +2516,8 @@ ImageLOGFilter(IMAGE *Isrc, float sigma, IMAGE *Idst)
   Itmp = ImageConvolveGaussian(Isrc, Ig, NULL, 0) ;
   Idst = ImageLaplacian(Itmp, Idst) ;
 #if 0
-ImageWrite(Itmp, "g.hipl") ;  
-ImageWrite(Idst, "l.hipl") ;  
+  ImageWrite(Itmp, "g.hipl") ;
+  ImageWrite(Idst, "l.hipl") ;
 #endif
   ImageFree(&Itmp) ;
   ImageFree(&Ig) ;
@@ -2500,9 +2535,9 @@ ImageDOGFilter(IMAGE *Isrc, float psigma, float nsigma, IMAGE *Idst)
   Itmpn = ImageConvolveGaussian(Isrc, Ign, NULL, 0) ;
   Idst = ImageSubtract(Itmpp, Itmpn, Idst) ;
 #if 1
-ImageWrite(Itmpp, "gp.hipl") ;  
-ImageWrite(Itmpn, "gn.hipl") ;  
-ImageWrite(Idst, "dog.hipl") ;  
+  ImageWrite(Itmpp, "gp.hipl") ;
+  ImageWrite(Itmpn, "gn.hipl") ;
+  ImageWrite(Idst, "dog.hipl") ;
 #endif
   ImageFree(&Itmpp) ;
   ImageFree(&Itmpn) ;

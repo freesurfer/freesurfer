@@ -1,3 +1,31 @@
+/**
+ * @file  mri_level_set.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:34 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------
            File Name:
 
@@ -53,15 +81,15 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
               int niter)
 {
   int     width, height, depth, t, x, y, z, xp1, xm1, yp1, ym1, zp1, zm1,
-          write_iter;
-  double  dx, dy, dz, dxx, dyy, dzz, dxy, dxz, dyz, dist_xp1, dist_xm1, 
-          dist_yp1, dist_ym1, dist_zp1, dist_zm1, dist, km, denom, mag,
-          dist_xp1yp1, dist_xp1zp1, dist_yp1zp1, grad, F, laplacian,
-          dx_f, dx_b, dy_f, dy_b, dz_f, dz_b, sdx, sdy, sdz, orig_mag ;
+  write_iter;
+  double  dx, dy, dz, dxx, dyy, dzz, dxy, dxz, dyz, dist_xp1, dist_xm1,
+  dist_yp1, dist_ym1, dist_zp1, dist_zm1, dist, km, denom, mag,
+  dist_xp1yp1, dist_xp1zp1, dist_yp1zp1, grad, F, laplacian,
+  dx_f, dx_b, dy_f, dy_b, dz_f, dz_b, sdx, sdy, sdz, orig_mag ;
   double  mag_pow, mag_scale, dt, e_diffusion, e_curv ;
   float   f ;
   BUFTYPE src, src_xp1, src_xm1, src_yp1, src_ym1, src_zp1, src_zm1,
-          min_orig_src, max_orig_src ;
+  min_orig_src, max_orig_src ;
   char    *cp ;
 
   cp = getenv("WRITE_ITER") ;
@@ -105,7 +133,8 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
   if (!mri_distance)
     mri_distance = MRIbuildDistanceMap(mri_src, NULL, x0, y0, z0, 2.0f) ;
 
-  min_orig_src = 255 ; max_orig_src = 0 ;
+  min_orig_src = 255 ;
+  max_orig_src = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -185,11 +214,11 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
           dy_b = (dist - dist_ym1) ;
           dz_b = (dist - dist_zm1) ;
 
-/* 
-   use 'upwind' approximation of the derivatives. That is, calculate
-   the derivatives using information from the direction of the front,
-   not away from it.
-*/
+          /*
+             use 'upwind' approximation of the derivatives. That is, calculate
+             the derivatives using information from the direction of the front,
+             not away from it.
+          */
           dx = MAX(dx_b,0) + MIN(dx_f,0) ;
           dy = MAX(dy_b,0) + MIN(dy_f,0) ;
           dz = MAX(dz_b,0) + MIN(dz_f,0) ;
@@ -204,14 +233,14 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
           dyy = dist_yp1 + dist_ym1 - 2.0f * dist ;
           dzz = dist_zp1 + dist_zm1 - 2.0f * dist ;
           laplacian = dxx + dyy + dzz ;
-          
+
           denom = dx*dx + dy*dy + dz*dz ;
           grad = sqrt(denom) ;
           denom = pow(denom, 3.0/2.0) ;
           if (DZERO(denom))
             km = 0.0 ;
           else
-            km = 
+            km =
               ((dyy+dzz)*SQR(dx) +
                (dxx+dzz)*SQR(dy) +
                (dxx+dyy)*SQR(dz) -
@@ -241,11 +270,11 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
           dy_b = (double)(src - src_ym1) ;
           dz_b = (double)(src - src_zm1) ;
 
-/* 
-   use 'upwind' approximation of the derivatives. That is, calculate
-   the derivatives using information from the direction of the front,
-   not away from it.
-*/
+          /*
+             use 'upwind' approximation of the derivatives. That is, calculate
+             the derivatives using information from the direction of the front,
+             not away from it.
+          */
           if (dx > 0.0)
             sdx = dx_b ;
           else
@@ -271,7 +300,7 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
           }
           mag *= mag_scale ;
           mag = pow(mag, mag_pow) ;
-          F *= 1.0 / (1.0 + mag) ; 
+          F *= 1.0 / (1.0 + mag) ;
 
           /* modify by intensity distance from original seed */
           if (src < min_orig_src)
@@ -295,7 +324,7 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
   {
     char fname[100] ;
     MRI  *mri_interior ;
-    
+
     sprintf(fname, "dist%d.mnc", t/write_iter) ;
     MRIwrite(mri_distance, fname) ;
     sprintf(fname, "front%d.mnc", t/write_iter) ;
@@ -312,7 +341,7 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
            Description:
 ----------------------------------------------------------------------*/
 MRI *
-MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0, 
+MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0,
                     float z0, float r)
 {
   int   width, height, depth, x, y, z ;
@@ -333,7 +362,9 @@ MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0,
     {
       for (x = 0 ; x < width ; x++)
       {
-        xdist = (float)x-x0 ; ydist = (float)y-y0 ; zdist = (float)z-z0 ;
+        xdist = (float)x-x0 ;
+        ydist = (float)y-y0 ;
+        zdist = (float)z-z0 ;
         norm = sqrt(xdist*xdist + ydist*ydist + zdist*zdist) ;
         if (FZERO(norm))
           dist = -r ;
@@ -395,7 +426,7 @@ MRI *
 MRIupdateDistanceMap(MRI *mri_distance)
 {
   int      width, height, depth, x, y, z, xk, yk, zk, x0, y0, z0,
-           xmin, ymin, zmin ;
+  xmin, ymin, zmin ;
   float    dist, min_dist, xdist, ydist, zdist ;
 
   width = mri_distance->width ;
@@ -425,7 +456,9 @@ MRIupdateDistanceMap(MRI *mri_distance)
                 dist = MRIFvox(mri_distance, x, y, z) ;
                 if (dist < min_dist)
                 {
-                  xmin = x0+xk ; ymin = y0+yk ; zmin = z0+zk ;
+                  xmin = x0+xk ;
+                  ymin = y0+yk ;
+                  zmin = z0+zk ;
                   min_dist = dist ;
                 }
               }
@@ -433,9 +466,11 @@ MRIupdateDistanceMap(MRI *mri_distance)
           }
           if (min_dist <= MIN_DIST)
           {
-if (!x0 && !y0&& !z0)
-  DiagBreak() ;
-            xdist = x0-xmin ; ydist = y0-ymin ; zdist = z0-zmin ;
+            if (!x0 && !y0&& !z0)
+              DiagBreak() ;
+            xdist = x0-xmin ;
+            ydist = y0-ymin ;
+            zdist = z0-zmin ;
             dist = min_dist + sqrt(xdist*xdist+ydist*ydist+zdist*zdist) ;
             MRIFvox(mri_distance, x0, y0, z0) = dist ;
           }

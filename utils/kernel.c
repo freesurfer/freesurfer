@@ -1,6 +1,34 @@
+/**
+ * @file  kernel.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*----------------------------------------------------------------------
              File Name:
-     
+
                 Author:
 
            Description:
@@ -102,7 +130,7 @@ KernelImageCopy(KIMAGE *ksrc, KIMAGE *kdst)
            Description:
 ----------------------------------------------------------------------*/
 void
-KernelCopy(KIMAGE *ksrc, KIMAGE *kdst, int src_row, int src_col, 
+KernelCopy(KIMAGE *ksrc, KIMAGE *kdst, int src_row, int src_col,
            int dst_row, int dst_col)
 {
   int     row, col, cols ;
@@ -138,11 +166,11 @@ KernelInit(KIMAGE *kimage, int row, int col)
   kernel->rows = kimage->krows ;
   kernel->cols = kimage->kcols ;
 
-/*
-  center the kernel if possible, otherwise move kernel center so that 
-  it is as centered as possible around row,col without leaving the domain 
-  of the image.
-*/
+  /*
+    center the kernel if possible, otherwise move kernel center so that
+    it is as centered as possible around row,col without leaving the domain
+    of the image.
+  */
   halfrows = (kernel->rows)/2 ;
   halfcols = (kernel->cols)/2 ;
 #if 0
@@ -207,7 +235,7 @@ KernelImageFree(KIMAGE *kimage)
             Parameters:
 
            Description:
-              free all the contents of the kernel, but not the kernel 
+              free all the contents of the kernel, but not the kernel
               itself
 ----------------------------------------------------------------------*/
 void
@@ -285,16 +313,16 @@ KernelDiscount(KIMAGE *kimage, int row, int col, float weight)
            Description:
 ----------------------------------------------------------------------*/
 void
-KernelUpdate(KIMAGE *ksrc, KIMAGE *kdst, int dst_row, int dst_col, 
+KernelUpdate(KIMAGE *ksrc, KIMAGE *kdst, int dst_row, int dst_col,
              int src_row, int src_col, float weight)
 {
   KERNEL         *src_kernel, *dst_kernel ;
   register float *w ;
   int            row, col, src_rows, src_cols, dst_rows, dst_cols,
-                 dst_row0, dst_col0, src_row0, src_col0, drow, dcol ;
+  dst_row0, dst_col0, src_row0, src_col0, drow, dcol ;
 
-  DiagPrintf(DIAG_KERNELS, "KernelUpdate(%d, %d, %d, %d, %f)\n", 
-              dst_row, dst_col, src_row, src_col, weight) ;
+  DiagPrintf(DIAG_KERNELS, "KernelUpdate(%d, %d, %d, %d, %f)\n",
+             dst_row, dst_col, src_row, src_col, weight) ;
 
 
   src_kernel = KIMAGEpix(ksrc, src_row, src_col) ;
@@ -310,11 +338,11 @@ KernelUpdate(KIMAGE *ksrc, KIMAGE *kdst, int dst_row, int dst_col,
   dst_row0 = dst_kernel->row0 ;
   dst_col0 = dst_kernel->col0 ;
 
-/*
-  go through each point in the source kernel. If it maps to a point that 
-  is within the domain of the destination kernel, then add its weight
-  to the corresponding point in the destination kernel.
-*/
+  /*
+    go through each point in the source kernel. If it maps to a point that
+    is within the domain of the destination kernel, then add its weight
+    to the corresponding point in the destination kernel.
+  */
   drow = src_row0 - dst_row0 ;
   dcol = src_col0 - dst_col0 ;
   for (row = 0 ; row < src_rows ; row++)
@@ -470,13 +498,13 @@ KernelImageConvolve(KIMAGE *kimage, IMAGE *src_image, IMAGE *dst_image)
       row0 = kernel->row0 ;
       col0 = kernel->col0 ;
 
-/*
-  if the kernel extends off of an edge of the image, we want to ignore
-  those weights, making sure that the image and kernel are still properly 
-  aligned at the new starting point. If the kernel extends off of the
-  end of the image, then clip the effective number of rows and cols in
-  the kernel to reflect the overlap with the image.
-*/
+      /*
+        if the kernel extends off of an edge of the image, we want to ignore
+        those weights, making sure that the image and kernel are still properly
+        aligned at the new starting point. If the kernel extends off of the
+        end of the image, then clip the effective number of rows and cols in
+        the kernel to reflect the overlap with the image.
+      */
       krows = kimage->krows ;
       kcols = kimage->kcols ;
       if (col0 + kcols >= src_cols) /* kernel extends off bottom of image */
@@ -490,7 +518,7 @@ KernelImageConvolve(KIMAGE *kimage, IMAGE *src_image, IMAGE *dst_image)
         start_col = -col0 ;
         col0 = 0 ;
       }
-      else         
+      else
         start_col = 0 ;
 
       if (row0 < 0)  /* kernel extends off of left edge of image */
@@ -574,7 +602,7 @@ KernelImageToSeq(KIMAGE *kimage)
 {
   IMAGE *image ;
   int       num_frame, row, col, rows, cols, krow, kcol, krows, kcols,
-            pix_per_frame, row0, col0, drow, dcol, npix, col_dif, row_dif ;
+  pix_per_frame, row0, col0, drow, dcol, npix, col_dif, row_dif ;
   KERNEL    *kernel ;
   float     *fsrc, *fdst, *fbase ;
 
@@ -591,7 +619,7 @@ KernelImageToSeq(KIMAGE *kimage)
     fprintf(stderr, "KernelImageToSeq: could not allocate sequence\n") ;
     return(NULL) ;
   }
-  
+
   for (row = 0 ; row < rows ; row++)
   {
     for (col = 0 ; col < cols ; col++)
@@ -602,20 +630,20 @@ KernelImageToSeq(KIMAGE *kimage)
       fbase = IMAGEFpix(image, 0, 0) + ((row * cols) + col) * pix_per_frame ;
       memset((char *)fbase, 0, pix_per_frame * sizeof(float)) ;
 
-/* 
-      copy kernel into Image frame, changing coordinate systems so that
-      the kernel is centered in the frame. This involves truncating some of 
-      the kernel.
-*/
+      /*
+            copy kernel into Image frame, changing coordinate systems so that
+            the kernel is centered in the frame. This involves truncating some of
+            the kernel.
+      */
       for (krow = 0 ; krow < krows ; krow++)
       {
         row_dif = (row0+krows/2) - row ;
         col_dif = (col0+kcols/2) - col ;
-        
-/* 
-        calculate destination location. The point (row,col) should map
-        to the center of the Image image.
-*/
+
+        /*
+                calculate destination location. The point (row,col) should map
+                to the center of the Image image.
+        */
         drow = krow + row_dif ;
         dcol =        col_dif ;
         if (dcol < 0)   /* destination before start of image */
@@ -635,8 +663,8 @@ KernelImageToSeq(KIMAGE *kimage)
       }
     }
   }
-  
-  
+
+
   return(image) ;
 }
 /*----------------------------------------------------------------------
@@ -648,7 +676,7 @@ KIMAGE *
 KernelImageFromSeq(IMAGE *image)
 {
   int       rows, cols, krows, kcols, row, col, krow, kcol,
-            pix_per_frame, row0, col0, drow, dcol, npix, col_dif, row_dif ;
+  pix_per_frame, row0, col0, drow, dcol, npix, col_dif, row_dif ;
   KERNEL    *kernel ;
   float     *fsrc, *fdst, *fbase ;
   KIMAGE    *kimage ;
@@ -681,20 +709,20 @@ KernelImageFromSeq(IMAGE *image)
       col0 = kernel->col0 ;
       fbase = IMAGEFpix(image, 0, 0) + ((row * cols) + col) * pix_per_frame ;
 
-/* 
-      copy Image frame into kernel, changing coordinate systems so that
-      the kernel is centered in the frame. This involves truncating some of 
-      the kernel.
-*/
+      /*
+            copy Image frame into kernel, changing coordinate systems so that
+            the kernel is centered in the frame. This involves truncating some of
+            the kernel.
+      */
       for (krow = 0 ; krow < krows ; krow++)
       {
         row_dif = (row0+krows/2) - row ;
         col_dif = (col0+kcols/2) - col ;
-        
-/* 
-        calculate destination location. The point (row,col) should map
-        to the center of the hips image.
-*/
+
+        /*
+                calculate destination location. The point (row,col) should map
+                to the center of the hips image.
+        */
         drow = krow + row_dif ;
         dcol =        col_dif ;
         if (dcol < 0)   /* destination before start of image */
@@ -714,7 +742,7 @@ KernelImageFromSeq(IMAGE *image)
       }
     }
   }
-  
+
   return(kimage) ;
 }
 

@@ -1,9 +1,37 @@
+/**
+ * @file  machine.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 
 #include "machine.h"
 
-double swapDouble(double d) 
-{ 
+double swapDouble(double d)
+{
   size_t typeSize = sizeof(double);
   char *pVar = (char *) (&d);
   char tmp;
@@ -159,10 +187,10 @@ swapInt(int i)
   Name: int Arch486(void)
   Determines whether the current architecture is 486-based
   or not, and returns 1 if it is and 0 otherwise.
-  Notes: 
+  Notes:
     1. endianness = 1 = 486/Linux/PC
     2. endianness = 0 = Sun/IRIX
-    3. This is consistent with the endianness flag in the 
+    3. This is consistent with the endianness flag in the
        bshort/bfloat format.
   --------------------------------------------------------*/
 int Arch486(void)
@@ -170,28 +198,36 @@ int Arch486(void)
   int endian;
   short tmp = 1;
   char *ctmp;
-  
+
   ctmp = (char *)(&tmp);
-  if(*(ctmp+1) == 1) endian = 0;
+  if (*(ctmp+1) == 1) endian = 0;
   else               endian = 1;
   return(endian);
 }
 /*---------------------------------------------------------
   Name: ByteSwapBuf()
   Reverses the byte order of each nBytesPerItem buffer
-  in Buf. nitems is the number of nBytesPerItem-byte items 
+  in Buf. nitems is the number of nBytesPerItem-byte items
   in Buf.
   ---------------------------------------------------------*/
 int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem)
 {
-  switch(nBytesPerItem){
-  case 1: break;
-  case 2: ByteSwap2(Buf, nItems); break;
-  case 4: ByteSwap4(Buf, nItems); break;
-  case 8: ByteSwap8(Buf, nItems); break;
+  switch (nBytesPerItem)
+  {
+  case 1:
+    break;
+  case 2:
+    ByteSwap2(Buf, nItems);
+    break;
+  case 4:
+    ByteSwap4(Buf, nItems);
+    break;
+  case 8:
+    ByteSwap8(Buf, nItems);
+    break;
   default:
     printf("ERROR: ByteSwapBuf: nBytesPerItem = %d not supported\n",
-     nBytesPerItem);
+           nBytesPerItem);
     return(1);
   }
   return(0);
@@ -207,7 +243,8 @@ int ByteSwap2(void *buf2, long int nitems)
   register long int n;
 
   cbuf = (char *) buf2;
-  for(n=0; n < nitems ; n+=2){
+  for (n=0; n < nitems ; n+=2)
+  {
     ctmp = *cbuf;
     *cbuf = *(cbuf+1);
     *(cbuf+1) = ctmp;
@@ -226,7 +263,8 @@ int ByteSwap4(void *buf4, long int nitems)
   register long int n;
 
   cbuf = (char *) buf4;
-  for(n=0; n < nitems ; n+=4){
+  for (n=0; n < nitems ; n+=4)
+  {
 
     /* swap the first and fourth */
     ctmp = *cbuf;
@@ -254,7 +292,8 @@ int ByteSwap8(void *buf8, long int nitems)
   register long int n;
 
   cbuf = (char *) buf8;
-  for(n=0; n < nitems ; n+=8){
+  for (n=0; n < nitems ; n+=8)
+  {
 
     /* swap the first and eigth */
     ctmp = *cbuf;

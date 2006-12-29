@@ -1,3 +1,31 @@
+/**
+ * @file  histo.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.49 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   histo.c
  *
@@ -148,7 +176,7 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
-	histo_dst->bin_size = histo_src->bin_size ;
+  histo_dst->bin_size = histo_src->bin_size ;
   memcpy(histo_dst->counts, histo_src->counts, sizeof(*histo_src->counts)*histo_src->nbins) ;
   memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)*histo_src->nbins) ;
   return(histo_dst) ;
@@ -193,7 +221,7 @@ HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
   }
 
   histo_dst->nbins = max_dst ;
-  /* 
+  /*
      fill in zeros in the inverse histogram - they correspond to
      flat regions in the forward map (i.e. multiple-valued).
   */
@@ -314,7 +342,7 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   int  b, val ;
 
   histo_dst = HISTOcopy(histo_src, histo_dst) ;
-  /* 
+  /*
      fill in zeros in the inverse histogram - they correspond to
      flat regions in the forward map (i.e. multiple-valued).
   */
@@ -343,7 +371,7 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 #define MAX_STRETCH 2
 
 HISTOGRAM *
-HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, 
+HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
                    HISTOGRAM *histo_dst)
 {
   int   b, binv, val, max_fwd, max_inv, stretch ;
@@ -372,7 +400,7 @@ HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
     val = histo_fwd->counts[b] ;
     ffwd = (float)val / (float)max_fwd ;
 
-    for (stretch = 0 ; stretch < MAX_STRETCH && binv < histo_dst->nbins ; 
+    for (stretch = 0 ; stretch < MAX_STRETCH && binv < histo_dst->nbins ;
          stretch++, binv++)
     {
       next = (float)histo_inv->counts[binv] / (float)max_inv ;
@@ -408,7 +436,9 @@ HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   else
     histo_dst->nbins = h1->nbins ;
 
-  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  pc1 = &h1->counts[0] ;
+  pc2 = &h2->counts[0] ;
+  pcdst = &histo_dst->counts[0];
   for (b = 0 ; b < h1->nbins ; b++)
     *pcdst++ = *pc1++ + *pc2++ ;
 
@@ -432,7 +462,9 @@ HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   else
     histo_dst->nbins = h1->nbins ;
 
-  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  pc1 = &h1->counts[0] ;
+  pc2 = &h2->counts[0] ;
+  pcdst = &histo_dst->counts[0];
   for (b = 0 ; b < h1->nbins ; b++)
     *pcdst++ = *pc1++ * *pc2++ ;
 
@@ -456,7 +488,9 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   else
     histo_dst->nbins = h1->nbins ;
 
-  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  pc1 = &h1->counts[0] ;
+  pc2 = &h2->counts[0] ;
+  pcdst = &histo_dst->counts[0];
   for (b = 0 ; b < h1->nbins ; b++)
     *pcdst++ = *pc1++ - *pc2++ ;
 
@@ -506,10 +540,10 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 
   nbins = histo_src->nbins ;
   if (!histo_dst)
-	{
+  {
     histo_dst = HISTOalloc(nbins) ;
-		histo_dst->bin_size = histo_src->bin_size ;
-	}
+    histo_dst->bin_size = histo_src->bin_size ;
+  }
   else
   {
     if (histo_dst->nbins < histo_src->nbins)
@@ -538,8 +572,8 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
     if (fabs(fx) <= two_sigma)
       k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
     else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
-      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
-        (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
     else
       k = 0 ;
 
@@ -774,14 +808,14 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
 {
   int  valley, b, bw, nbins, whalf, center_val, max_count, other_val, b0, b1 ;
 
-	// find max, and find bins corresponding to I0 and I1
-	b0 = b1 = -1 ;
+  // find max, and find bins corresponding to I0 and I1
+  b0 = b1 = -1 ;
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
-		if (h->bins[b] >= I0 && b0 == -1)
-			b0 = b > 0 ? b-1 : b ;
-		if (h->bins[b] >= I1 && b1 == -1)
-			b1 = b < h->nbins-1 ? b+1 : b ;
+    if (h->bins[b] >= I0 && b0 == -1)
+      b0 = b > 0 ? b-1 : b ;
+    if (h->bins[b] >= I1 && b1 == -1)
+      b1 = b < h->nbins-1 ? b+1 : b ;
     center_val = h->counts[b];
     if (center_val > max_count)
       max_count = center_val ;
@@ -811,7 +845,7 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
       if (bw < 0 || bw >= nbins)
         continue ;
       other_val = h->counts[bw] ;
-      if (other_val < center_val)  
+      if (other_val < center_val)
         valley = 0 ;  /* something is smaller than current - not minimum */
     }
     if (valley)
@@ -834,27 +868,27 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
 #define MIN_STD   1.9
 
 int
-HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0, 
+HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0,
                           int I1)
 {
   int    peak, b, bw, nbins, whalf, b0, b1 ;
   float  mean_count, min_count, max_count, other_val, center_val, total ;
 
 
-	// find max, and find bins corresponding to I0 and I1
-	b0 = b1 = -1 ;
+  // find max, and find bins corresponding to I0 and I1
+  b0 = b1 = -1 ;
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
-		if (h->bins[b] >= I0 && b0 == -1)
-			b0 = b > 0 ? b-1 : b ;
-		if (h->bins[b] >= I1 && b1 == -1)
-			b1 = b < h->nbins-1 ? b+1 : b ;
+    if (h->bins[b] >= I0 && b0 == -1)
+      b0 = b > 0 ? b-1 : b ;
+    if (h->bins[b] >= I1 && b1 == -1)
+      b1 = b < h->nbins-1 ? b+1 : b ;
     center_val = h->counts[b];
     if (center_val > max_count)
       max_count = center_val ;
   }
-	if (b1 == -1)
-		b1 = h->nbins-1 ;
+  if (b1 == -1)
+    b1 = h->nbins-1 ;
 
   if (!max_count)
     return(-1) ;
@@ -905,7 +939,7 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0,
   Description
   ------------------------------------------------------*/
 int
-HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                            int b0, int b1)
 {
   int   peak, b, bw, nbins, whalf ;
@@ -973,7 +1007,8 @@ HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
     check to see if the value at b is bigger than anything else within
     a whalfxwhalf window on either side.
   */
-  max_count = 0 ; max_count_bin = -1 ;
+  max_count = 0 ;
+  max_count_bin = -1 ;
   for (b = b0 ; b <= b1 ; b++)
   {
     val = h->counts[b] ;
@@ -1003,12 +1038,12 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   if (fp == NULL)
     return(ERROR_NOFILE);
 
-	for (bmin = 0 ; bmin < histo->nbins ; bmin++)
-		if (histo->counts[bmin] > 0)
-			break ;
-	for (bmax = histo->nbins-1 ; bmax > bmin ; bmax--)
-		if (histo->counts[bmax] > 0)
-			break ;
+  for (bmin = 0 ; bmin < histo->nbins ; bmin++)
+    if (histo->counts[bmin] > 0)
+      break ;
+  for (bmax = histo->nbins-1 ; bmax > bmin ; bmax--)
+    if (histo->counts[bmax] > 0)
+      break ;
 
   for (bin_no = bmin ; bin_no <= bmax ; bin_no++)
     fprintf(fp, "%f  %f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
@@ -1016,12 +1051,12 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   return(NO_ERROR) ;
 }
 /* at least one value on each side which is below the central value */
-/* 
+/*
    the standard deviation of the peak around it's mean must be at least
    two or above.
 */
 int
-HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
                         int *peaks, int max_peaks, int b0, int b1)
 {
   int npeaks = 0, peak_index ;
@@ -1031,7 +1066,8 @@ HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
     peak_index = HISTOfindLastPeakInRegion(h, wsize, min_pct, b0, b1);
     peaks[npeaks++] = peak_index ;
     b1 = peak_index - wsize/2 ;
-  } while (peak_index >= 0 && npeaks < max_peaks) ;
+  }
+  while (peak_index >= 0 && npeaks < max_peaks) ;
 
   return(npeaks) ;
 }
@@ -1096,14 +1132,14 @@ HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf)
   for (b = b0+1 ; b <= h->nbins-whalf ; b++)
   {
     val = h->counts[b] ;
-		for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
-			if (h->counts[bk] > val)
-			{
-				peak = 0 ;
-				break ;
-			}
-		if (peak)
-			break ;
+    for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
+      if (h->counts[bk] > val)
+      {
+        peak = 0 ;
+        break ;
+      }
+    if (peak)
+      break ;
   }
   return(peak ? b : -1) ;
 }
@@ -1119,14 +1155,14 @@ HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf)
   for (b = b0-1 ; b >= whalf ; b--)
   {
     val = h->counts[b] ;
-		for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
-			if (h->counts[bk] > val)
-			{
-				peak = 0 ;
-				break ;
-			}
-		if (peak)
-			break ;
+    for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
+      if (h->counts[bk] > val)
+      {
+        peak = 0 ;
+        break ;
+      }
+    if (peak)
+      break ;
   }
   return(peak ? b : -1) ;
 }
@@ -1303,8 +1339,8 @@ HISTOclearZeroBin(HISTOGRAM *h)
 {
   int b ;
 
-	if (h->bins[0] > h->bin_size)   // zero bin not in range
-		return(NO_ERROR) ;
+  if (h->bins[0] > h->bin_size)   // zero bin not in range
+    return(NO_ERROR) ;
   for (b = 0 ; b < h->nbins ; b++)
   {
     if (h->bins[b] >= 0)
@@ -1316,184 +1352,187 @@ HISTOclearZeroBin(HISTOGRAM *h)
 int
 HISTOfindBin(HISTOGRAM *h, float val)
 {
-	int b ;
+  int b ;
 
-	for (b = h->nbins-1 ; b > 0 ; b--)
-		if (h->bins[b-1] < val)
-			return(b) ;
+  for (b = h->nbins-1 ; b > 0 ; b--)
+    if (h->bins[b-1] < val)
+      return(b) ;
 
-	return(0) ;
+  return(0) ;
 }
 HISTO *
 HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 {
-	int   b0, nv ;
-	float min_count ;
+  int   b0, nv ;
+  float min_count ;
 
-	hdst = HISTOcopy(hsrc, hdst) ;
-	min_count = hsrc->counts[0]*0.1 ;
-	for (b0 = 1 ; b0 < hsrc->nbins ; b0++)
-		if (hdst->counts[b0] < min_count)
-			break ;
+  hdst = HISTOcopy(hsrc, hdst) ;
+  min_count = hsrc->counts[0]*0.1 ;
+  for (b0 = 1 ; b0 < hsrc->nbins ; b0++)
+    if (hdst->counts[b0] < min_count)
+      break ;
 
-	/* ignore any valleys that are still part of bg noise, by waiting
-	 until amplitude has fallen below threshold */
-	nv = HISTOfindNextValley(hsrc, b0 == 0 ? 0 : b0-1) ;
-	printf("clearing  bg bins 0->%d (%d)\n", nv, b0) ;
-	HISTOclearBins(hsrc, hdst, 0, nv) ;
-	*pbg_end = nv ;
-	return(hdst) ;
+  /* ignore any valleys that are still part of bg noise, by waiting
+   until amplitude has fallen below threshold */
+  nv = HISTOfindNextValley(hsrc, b0 == 0 ? 0 : b0-1) ;
+  printf("clearing  bg bins 0->%d (%d)\n", nv, b0) ;
+  HISTOclearBins(hsrc, hdst, 0, nv) ;
+  *pbg_end = nv ;
+  return(hdst) ;
 }
 
 #if 0
-static double 
+static double
 histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
-	int    b1, b2, h2_done[256] ;
-	double error, sse, c1, c2;
+  int    b1, b2, h2_done[256] ;
+  double error, sse, c1, c2;
 
-	if (h2->nbins > 256)
-		ErrorExit(ERROR_UNSUPPORTED, "histoComputeLinearFitError: only 256 bins allowed") ;
-	memset(h2_done, 0, sizeof(h2_done)) ;
-	for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
-	{
-		b2 = nint(b1*a+b) ;
-		if ((b2 < 0) || (b2 > h2->nbins-1))
-			c2 = 0 ;
-		else
-		{
-			c2 = h2->counts[b2] ;
-			h2_done[b2] = 1 ;
-		}
-		c1 = h1->counts[b1] ; 
-		error = (c2 - c1) ;
-		sse += error*error ;
-	}
+  if (h2->nbins > 256)
+    ErrorExit(ERROR_UNSUPPORTED, "histoComputeLinearFitError: only 256 bins allowed") ;
+  memset(h2_done, 0, sizeof(h2_done)) ;
+  for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+  {
+    b2 = nint(b1*a+b) ;
+    if ((b2 < 0) || (b2 > h2->nbins-1))
+      c2 = 0 ;
+    else
+    {
+      c2 = h2->counts[b2] ;
+      h2_done[b2] = 1 ;
+    }
+    c1 = h1->counts[b1] ;
+    error = (c2 - c1) ;
+    sse += error*error ;
+  }
 
-	// inverse map
-	for (b2 = 0 ; b2 < h2->nbins ; b2++)
-	{
-		if (h2_done[b2])
-			continue ;
-		b1 = nint((b2-b)/a) ;
-		if ((b1 < 0) || (b1 > h1->nbins-1))
-			c1 = 0 ;
-		else
-			c1 = h1->counts[b1] ;
-		c2 = h2->counts[b2] ; 
-		error = (c2 - c1) ;
-		sse += error*error ;
-	}
-	return(sse) ;
+  // inverse map
+  for (b2 = 0 ; b2 < h2->nbins ; b2++)
+  {
+    if (h2_done[b2])
+      continue ;
+    b1 = nint((b2-b)/a) ;
+    if ((b1 < 0) || (b1 > h1->nbins-1))
+      c1 = 0 ;
+    else
+      c1 = h1->counts[b1] ;
+    c2 = h2->counts[b2] ;
+    error = (c2 - c1) ;
+    sse += error*error ;
+  }
+  return(sse) ;
 }
 #endif
 
-static double 
+static double
 histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
   //this one uses correlation instead of SSE, and should be more robust!
   int    b1, b2 ;
   double error, sse, c1, c2;
-  
+
   for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
-	{
-		b2 = nint(b1*a+b) ;
-		if ((b2 < 0) || (b2 > h2->nbins-1))
-			c2 = 0 ;
-		else
-			c2 = h2->counts[b2] ;
-		c1 = h1->counts[b1] ; 
-		error = c1*c2;
-		sse -= error;
-	}
-  
-  //	printf("sse = %g\n", sse);
+  {
+    b2 = nint(b1*a+b) ;
+    if ((b2 < 0) || (b2 > h2->nbins-1))
+      c2 = 0 ;
+    else
+      c2 = h2->counts[b2] ;
+    c1 = h1->counts[b1] ;
+    error = c1*c2;
+    sse -= error;
+  }
+
+  // printf("sse = %g\n", sse);
   // inverse map
   for (b2 = 0 ; b2 < h2->nbins ; b2++)
-	{
-		b1 = nint((b2-b)/a) ;
-		if ((b1 < 0) || (b1 > h1->nbins-1))
-			c1 = 0 ;
-		else
-			c1 = h1->counts[b1] ;
-		c2 = h2->counts[b2] ; 
-		error = c1*c2;
-		sse -= error;
-	}
-  //	printf("a= %g, b= %g, sse = %g\n", a, b, sse);
+  {
+    b1 = nint((b2-b)/a) ;
+    if ((b1 < 0) || (b1 > h1->nbins-1))
+      c1 = 0 ;
+    else
+      c1 = h1->counts[b1] ;
+    c2 = h2->counts[b2] ;
+    error = c1*c2;
+    sse -= error;
+  }
+  // printf("a= %g, b= %g, sse = %g\n", a, b, sse);
   return(sse) ;
 }
 
 #define NSTEPS 100
 int
-HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, 
-									 double bmin, double bmax, float *pa, float *pb)
+HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
+                   double bmin, double bmax, float *pa, float *pb)
 {
-	double   a, b, sse, min_sse, min_a, min_b, astep, bstep ;
+  double   a, b, sse, min_sse, min_a, min_b, astep, bstep ;
 
-	min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
-	min_a = 1.0 ; min_b = 0.0 ;
-	astep = MIN(amin, (amax-amin)/NSTEPS) ;
-	astep = MAX(astep, 0.01);
-	bstep = (bmax-bmin)/NSTEPS ;
-	bstep = MAX(bstep, 0.01);
-	for (a = amin ; a <= amax ; a += astep)
-		for (b = bmin ; b <= bmax ; b += bstep)
-	{
-		sse = histoComputeLinearFitError(h1, h2, a, b) ;
-		if (sse < min_sse)
-		{
-			min_sse = sse ;
-			min_a = a ; min_b = b ;
-		}
-	}
+  min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
+  min_a = 1.0 ;
+  min_b = 0.0 ;
+  astep = MIN(amin, (amax-amin)/NSTEPS) ;
+  astep = MAX(astep, 0.01);
+  bstep = (bmax-bmin)/NSTEPS ;
+  bstep = MAX(bstep, 0.01);
+  for (a = amin ; a <= amax ; a += astep)
+    for (b = bmin ; b <= bmax ; b += bstep)
+    {
+      sse = histoComputeLinearFitError(h1, h2, a, b) ;
+      if (sse < min_sse)
+      {
+        min_sse = sse ;
+        min_a = a ;
+        min_b = b ;
+      }
+    }
 
-	*pa = min_a ; *pb = min_b ;
-	return(NO_ERROR) ;
+  *pa = min_a ;
+  *pb = min_b ;
+  return(NO_ERROR) ;
 }
 
 HISTO *
 HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
 {
-	int    b ;
+  int    b ;
 
-	hdst = HISTOcopy(hsrc, hdst) ;
+  hdst = HISTOcopy(hsrc, hdst) ;
 
-	for (b = 0 ; b < hdst->nbins ; b++)
-		hdst->bins[b] = hdst->bins[b]*scale+offset ;
-	return(hdst) ;
+  for (b = 0 ; b < hdst->nbins ; b++)
+    hdst->bins[b] = hdst->bins[b]*scale+offset ;
+  return(hdst) ;
 }
 
 float
 HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh)
 {
-	int   b ;
-	float total ;
+  int   b ;
+  float total ;
 
-	for (total = 0.0, b = 0 ; b < h_mask->nbins ; b++)
-	{
-		if (h_mask->counts[b] > m_thresh)
-			total += h_src->counts[b] ;
-	}
-	return(total) ;
+  for (total = 0.0, b = 0 ; b < h_mask->nbins ; b++)
+  {
+    if (h_mask->counts[b] > m_thresh)
+      total += h_src->counts[b] ;
+  }
+  return(total) ;
 }
 HISTOGRAM *
 HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
 {
-	int    b ;
-	float  total ;
+  int    b ;
+  float  total ;
 
-	if (h_dst == NULL)
-		h_dst = HISTOcopy(h_src, NULL) ;
-	
-	for (total = 0.0, b = 0 ; b < h_dst->nbins ; b++)
-		total += h_dst->counts[b] ;
+  if (h_dst == NULL)
+    h_dst = HISTOcopy(h_src, NULL) ;
 
-	if (total > 0)
-		for (b = 0 ; b < h_dst->nbins ; b++)
-			h_dst->counts[b]/=total ;
+  for (total = 0.0, b = 0 ; b < h_dst->nbins ; b++)
+    total += h_dst->counts[b] ;
 
-	return(h_dst) ;
+  if (total > 0)
+    for (b = 0 ; b < h_dst->nbins ; b++)
+      h_dst->counts[b]/=total ;
+
+  return(h_dst) ;
 }
 /*-------------------------------------------------------------------
   HISTObins() - allocates histogram and assigns bin centers uniformly
@@ -1507,7 +1546,7 @@ HISTO *HISTObins(int nbins, double min, double max)
 
   h = HISTOalloc(nbins);
   h->bin_size = (max-min)/(nbins-1);
-  for(n=0; n < nbins; n++)  h->bins[n] = min + h->bin_size*n;
+  for (n=0; n < nbins; n++)  h->bins[n] = min + h->bin_size*n;
   return(h);
 }
 /*-------------------------------------------------------------------
@@ -1518,7 +1557,8 @@ int HISTOcount(HISTO *h, double *samples, int nsamples)
 {
   int n,bin;
 
-  for(n=0; n<nsamples; n++){
+  for (n=0; n<nsamples; n++)
+  {
     bin = HISTOvalToBin(h, samples[n]);
     h->counts[bin] ++;
   }
@@ -1535,9 +1575,11 @@ int HISTOvalToBin(HISTO *h, double val)
 
   bin = 0;
   dmin = fabs(h->bins[0]-val);
-  for(nthbin=0; nthbin < h->nbins; nthbin++){
+  for (nthbin=0; nthbin < h->nbins; nthbin++)
+  {
     d = fabs(h->bins[nthbin]-val);
-    if(dmin > d){
+    if (dmin > d)
+    {
       dmin = d;
       bin = nthbin;
     }
@@ -1547,20 +1589,20 @@ int HISTOvalToBin(HISTO *h, double val)
 int
 HISTOvalToBinDirect(HISTOGRAM *histo, float val)
 {
-	int bin_no ;
-	bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
-	return(bin_no) ;
+  int bin_no ;
+  bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
+  return(bin_no) ;
 }
 
 
 float
 HISTOvalToCount(HISTOGRAM *histo, float val)
 {
-	int bin_no ;
-	if (histo == NULL)
-		return(0.0) ;
-	bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
-	if (bin_no < 0 || bin_no >= histo->nbins)
-		return(0.0) ;
-	return(histo->counts[bin_no]) ;
+  int bin_no ;
+  if (histo == NULL)
+    return(0.0) ;
+  bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
+  if (bin_no < 0 || bin_no >= histo->nbins)
+    return(0.0) ;
+  return(histo->counts[bin_no]) ;
 }

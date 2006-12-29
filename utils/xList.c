@@ -1,27 +1,57 @@
+/**
+ * @file  xList.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:41 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include "xTypes.h"
 #include "xList.h"
 #include "xDebug.h"
 
-static char *xList_ksaError [xList_knNumErrorCodes]  = {
+static char *xList_ksaError [xList_knNumErrorCodes]  =
+  {
 
-  "No error",
-  "List allocation failed.",
-  "Internal list allocation (RTS) failed.",
-  "Internal list deletion (RTS) failed.",
-  "List deleteion failed.",
-  "Invalid list pointer (was NULL).",
-  "List is full.",
-  "Item not in list.",
-  "Error finding item.",
-  "Error getting list size.",
-  "End of list.",
-  "List is empty.",
-  "Invalid error code."
-};
+    "No error",
+    "List allocation failed.",
+    "Internal list allocation (RTS) failed.",
+    "Internal list deletion (RTS) failed.",
+    "List deleteion failed.",
+    "Invalid list pointer (was NULL).",
+    "List is full.",
+    "Item not in list.",
+    "Error finding item.",
+    "Error getting list size.",
+    "End of list.",
+    "List is empty.",
+    "Invalid error code."
+  };
 
 
-xList_tErr xList_New ( xListRef* oppList ) {
+xList_tErr xList_New ( xListRef* oppList )
+{
 
   xListRef   this       = NULL;
   xList_tErr eResult    = xList_tErr_NoErr;
@@ -31,7 +61,8 @@ xList_tErr xList_New ( xListRef* oppList ) {
 
   // allocate our list structure and check it.
   this = (xListRef) malloc ( sizeof(xList) );
-  if ( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = xList_tErr_AllocationFailed;
     goto cleanup;
   }
@@ -49,13 +80,14 @@ xList_tErr xList_New ( xListRef* oppList ) {
 
   // all good, set the outgoing ptr.
   *oppList = this;
-  
- cleanup:
+
+cleanup:
 
   return eResult;
 }
 
-xList_tErr xList_Delete ( xListRef* ioppList ) {
+xList_tErr xList_Delete ( xListRef* ioppList )
+{
 
   xListRef   this       = NULL;
   xList_tErr eResult    = xList_tErr_NoErr;
@@ -80,13 +112,14 @@ xList_tErr xList_Delete ( xListRef* ioppList ) {
   // set list ptr to nil.
   *ioppList = NULL;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_InsertItem ( xListRef this,
-            void* ipItemToInsert ) {
+                              void* ipItemToInsert )
+{
 
   xList_tErr   eResult    = xList_tErr_NoErr;
   xListNodeRef pNewNode   = NULL;
@@ -99,12 +132,13 @@ xList_tErr xList_InsertItem ( xListRef this,
 
   /* make sure the item isn't already in here. */
   xList_IsInList ( this, ipItemToInsert, &bIsInList );
-  if( bIsInList )
+  if ( bIsInList )
     goto cleanup;
 
   // make a new node.
   pNewNode = (xListNodeRef) malloc ( sizeof(xListNode) );
-  if ( NULL == pNewNode ) {
+  if ( NULL == pNewNode )
+  {
     eResult = xList_tErr_InternalAllocationFailed;
     goto cleanup;
   }
@@ -115,25 +149,29 @@ xList_tErr xList_InsertItem ( xListRef this,
   pNewNode->mpNext     = NULL;
 
   // insert it at the tail.
-  if ( NULL == this->mpHead ) {
+  if ( NULL == this->mpHead )
+  {
 
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
 
-  } else {
+  }
+  else
+  {
 
     this->mpTail->mpNext = pNewNode;
     this->mpTail         = pNewNode;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_RemoveItem ( xListRef this,
-            void**   iopItemToRemove ) {
+                              void**   iopItemToRemove )
+{
 
   xList_tErr   eResult   = xList_tErr_NoErr;
   xListNodeRef pCurNode  = NULL;
@@ -152,16 +190,20 @@ xList_tErr xList_RemoveItem ( xListRef this,
   // scan through the list, keeping a back node.
   pCurNode = this->mpHead;
   while ( NULL != pCurNode
-    && !bFound ) {
+          && !bFound )
+  {
 
     // compare the nodes. if we found it exit the loop.
-    if ( xList_CompareItems_( this, pCurNode->mpData, pItemToRemove ) 
-   == xList_tCompare_Match ) {
-   
+    if ( xList_CompareItems_( this, pCurNode->mpData, pItemToRemove )
+         == xList_tCompare_Match )
+    {
+
       bFound = TRUE;
- 
-    } else {
-      
+
+    }
+    else
+    {
+
       // next node.
       pBackNode = pCurNode;
       pCurNode  = pCurNode->mpNext;
@@ -169,24 +211,29 @@ xList_tErr xList_RemoveItem ( xListRef this,
   }
 
   // error if not found.
-  if ( !bFound ) {
+  if ( !bFound )
+  {
     eResult = xList_tErr_ItemNotInList;
     goto cleanup;
   }
 
   // remove this node.
-  if ( NULL == pBackNode ) {
+  if ( NULL == pBackNode )
+  {
 
     // node to be deleted is head.
     this->mpHead = pCurNode->mpNext;
- 
-  } else {
+
+  }
+  else
+  {
 
     // wrap list around it.
     pBackNode->mpNext = pCurNode->mpNext;
 
     // reattach tail if necessary.
-    if ( this->mpTail == pCurNode ) {
+    if ( this->mpTail == pCurNode )
+    {
       this->mpTail = pBackNode;
     }
   }
@@ -197,14 +244,15 @@ xList_tErr xList_RemoveItem ( xListRef this,
   // delete the node.
   free ( pCurNode );
 
- cleanup:
+cleanup:
 
   return eResult;
 }
- 
+
 
 xList_tErr xList_IsInList ( xListRef this,
-          void* ipItemToFind, tBoolean* obpIsInList ) {
+                            void* ipItemToFind, tBoolean* obpIsInList )
+{
 
   xList_tErr    eResult    = xList_tErr_NoErr;
   tBoolean          bFound     = FALSE;
@@ -220,31 +268,36 @@ xList_tErr xList_IsInList ( xListRef this,
   // set found var.
   *obpIsInList = bFound;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
-xListNodeRef xList_FindItem_ ( xListRef this, void *ipItem ) {
+xListNodeRef xList_FindItem_ ( xListRef this, void *ipItem )
+{
 
   xListNodeRef  pCurNode   = NULL;
 
   // if no comparator, return null.
-  if( NULL == this->mComparator )
+  if ( NULL == this->mComparator )
     return NULL;
 
   // scan through the list.
   pCurNode = this->mpHead;
-  while ( NULL != pCurNode ) {
+  while ( NULL != pCurNode )
+  {
 
     // compare the nodes. if we found it, return it.
-    if ( xList_CompareItems_( this, pCurNode->mpData, ipItem ) 
-   == xList_tCompare_Match ) {
-      
+    if ( xList_CompareItems_( this, pCurNode->mpData, ipItem )
+         == xList_tCompare_Match )
+    {
+
       return pCurNode;
- 
-    } else {
-      
+
+    }
+    else
+    {
+
       // next node.
       pCurNode  = pCurNode->mpNext;
     }
@@ -254,7 +307,8 @@ xListNodeRef xList_FindItem_ ( xListRef this, void *ipItem ) {
   return NULL;
 }
 
-xList_tErr xList_Clear ( xListRef this ) {
+xList_tErr xList_Clear ( xListRef this )
+{
 
   xList_tErr    eResult    = xList_tErr_NoErr;
   xListNodeRef  pCurNode   = NULL;
@@ -267,7 +321,8 @@ xList_tErr xList_Clear ( xListRef this ) {
 
   // go through the list......
   pCurNode = this->mpHead;
-  while ( NULL != pCurNode ) {
+  while ( NULL != pCurNode )
+  {
 
     // mark this node.
     pDelNode = pCurNode;
@@ -276,7 +331,8 @@ xList_tErr xList_Clear ( xListRef this ) {
     pCurNode = pCurNode->mpNext;
 
     // check the node.
-    if ( xList_kSignature != pDelNode->mSignature ) {
+    if ( xList_kSignature != pDelNode->mSignature )
+    {
       eResult = xList_tErr_InvalidListRef;
       goto cleanup;
     }
@@ -292,13 +348,14 @@ xList_tErr xList_Clear ( xListRef this ) {
   this->mpTail = NULL;
   this->mpNext = NULL;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_GetCount ( xListRef this,
-          int*     opnCount ) {
+                            int*     opnCount )
+{
 
   xList_tErr    eResult    = xList_tErr_NoErr;
   xListNodeRef  pCurNode   = NULL;
@@ -312,7 +369,8 @@ xList_tErr xList_GetCount ( xListRef this,
   // go through the list..
   nCount = 0;
   pCurNode = this->mpHead;
-  while ( NULL != pCurNode ) {
+  while ( NULL != pCurNode )
+  {
 
     // inc count
     nCount ++;
@@ -324,16 +382,17 @@ xList_tErr xList_GetCount ( xListRef this,
   // return count.
   *opnCount = nCount;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_GetFirstItem ( xListRef this,
-        void**   oppFirstItem ) {
+                                void**   oppFirstItem )
+{
 
   xList_tErr eResult    = xList_tErr_NoErr;
-  
+
   // verify the list.
   eResult = xList_Verify ( this );
   if ( xList_tErr_NoErr != eResult )
@@ -343,24 +402,28 @@ xList_tErr xList_GetFirstItem ( xListRef this,
   *oppFirstItem = NULL;
 
   // if there's a head...
-  if ( this->mpHead ) {
+  if ( this->mpHead )
+  {
 
     // return the data ptr.
     *oppFirstItem = this->mpHead->mpData;
 
-  } else {
+  }
+  else
+  {
 
     eResult = xList_tErr_ListEmpty;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_GetNextItem ( xListRef this,
-             void*    ipCurrentItem,
-             void**   oppNextItem ) {
+                               void*    ipCurrentItem,
+                               void**   oppNextItem )
+{
 
   xList_tErr    eResult    = xList_tErr_NoErr;
   xListNodeRef  pCurNode   = NULL;
@@ -376,21 +439,27 @@ xList_tErr xList_GetNextItem ( xListRef this,
 
   // try to find the item.
   pCurNode = xList_FindItem_ ( this, ipCurrentItem );
-  if ( NULL != pCurNode ) {
+  if ( NULL != pCurNode )
+  {
 
     // if there's a next one...
-    if ( NULL != pCurNode->mpNext ) {
-      
+    if ( NULL != pCurNode->mpNext )
+    {
+
       // get its data.
       pNextItem = ((xListNodeRef)pCurNode->mpNext)->mpData;
 
-    } else {
+    }
+    else
+    {
 
       // end of list.
       eResult = xList_tErr_EndOfList;
     }
 
-  } else {
+  }
+  else
+  {
 
     // couldn't find item.
     eResult = xList_tErr_ItemNotInList;
@@ -399,12 +468,13 @@ xList_tErr xList_GetNextItem ( xListRef this,
   // return the result.
   *oppNextItem = pNextItem;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
-xList_tErr xList_ResetPosition ( xListRef this ) {
+xList_tErr xList_ResetPosition ( xListRef this )
+{
 
   xList_tErr        eResult    = xList_tErr_NoErr;
 
@@ -416,13 +486,14 @@ xList_tErr xList_ResetPosition ( xListRef this ) {
   // set current ptr to head.
   this->mpNext = this->mpHead;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_GetNextItemFromPosition ( xListRef this,
-             void**   oppNextItem ) {
+    void**   oppNextItem )
+{
 
   xList_tErr    eResult    = xList_tErr_NoErr;
   void*         pNextItem  = NULL;
@@ -436,13 +507,15 @@ xList_tErr xList_GetNextItemFromPosition ( xListRef this,
     goto cleanup;
 
   // make sure we have an item.
-  if ( NULL == this->mpNext ) {
+  if ( NULL == this->mpNext )
+  {
     eResult = xList_tErr_EndOfList;
     goto cleanup;
   }
 
   // verify this item.
-  if ( xList_kSignature != this->mpNext->mSignature ) {
+  if ( xList_kSignature != this->mpNext->mSignature )
+  {
     eResult = xList_tErr_InvalidListRef;
     goto cleanup;
   }
@@ -456,19 +529,21 @@ xList_tErr xList_GetNextItemFromPosition ( xListRef this,
   // return the ptr.
   *oppNextItem = pNextItem;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_NextFromPos ( xListRef this,
-             void**   oppNextItem ) {
+                               void**   oppNextItem )
+{
 
   return xList_GetNextItemFromPosition( this, oppNextItem );
 }
 
-xList_tErr xList_PushItem ( xListRef this, 
-          void* ipItemToInsert ) {
+xList_tErr xList_PushItem ( xListRef this,
+                            void* ipItemToInsert )
+{
   xList_tErr   eResult    = xList_tErr_NoErr;
   xListNodeRef pNewNode   = NULL;
   tBoolean     bIsInList  = FALSE;
@@ -480,12 +555,13 @@ xList_tErr xList_PushItem ( xListRef this,
 
   /* make sure the item isn't already in here. */
   xList_IsInList ( this, ipItemToInsert, &bIsInList );
-  if( bIsInList )
+  if ( bIsInList )
     goto cleanup;
 
   // make a new node.
   pNewNode = (xListNodeRef) malloc ( sizeof(xListNode) );
-  if ( NULL == pNewNode ) {
+  if ( NULL == pNewNode )
+  {
     eResult = xList_tErr_InternalAllocationFailed;
     goto cleanup;
   }
@@ -496,25 +572,29 @@ xList_tErr xList_PushItem ( xListRef this,
   pNewNode->mpNext     = NULL;
 
   // insert it at the head.
-  if ( NULL == this->mpHead ) {
+  if ( NULL == this->mpHead )
+  {
 
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
 
-  } else {
+  }
+  else
+  {
 
     pNewNode->mpNext = this->mpHead;
     this->mpHead     = pNewNode;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 
 }
 
-xList_tErr xList_PopItem ( xListRef this, void** oppItem ) {
+xList_tErr xList_PopItem ( xListRef this, void** oppItem )
+{
 
   xList_tErr    eResult  = xList_tErr_NoErr;
   xListNodeRef  pDelNode = NULL;
@@ -529,13 +609,15 @@ xList_tErr xList_PopItem ( xListRef this, void** oppItem ) {
     goto cleanup;
 
   // make sure we have a head.
-  if ( NULL == this->mpHead ) {
+  if ( NULL == this->mpHead )
+  {
     eResult = xList_tErr_EndOfList;
     goto cleanup;
   }
 
   // verify this item.
-  if ( xList_kSignature != this->mpHead->mSignature ) {
+  if ( xList_kSignature != this->mpHead->mSignature )
+  {
     eResult = xList_tErr_InvalidListRef;
     goto cleanup;
   }
@@ -553,16 +635,17 @@ xList_tErr xList_PopItem ( xListRef this, void** oppItem ) {
   // return the item.
   *oppItem = pItem;
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 xList_tErr xList_SetComparator ( xListRef             this,
-         xList_tCompare(*iComparator)(void*,void*) ) {
-   xList_tErr    eResult  = xList_tErr_NoErr;
+                                 xList_tCompare(*iComparator)(void*,void*) )
+{
+  xList_tErr    eResult  = xList_tErr_NoErr;
 
- // verify the list.
+// verify the list.
   eResult = xList_Verify ( this );
   if ( xList_tErr_NoErr != eResult )
     goto cleanup;
@@ -572,56 +655,65 @@ xList_tErr xList_SetComparator ( xListRef             this,
 
   goto cleanup;
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
-xList_tCompare xList_CompareItems_ ( xListRef this, 
-             void*    pItemA,
-             void*    pItemB ) {
+xList_tCompare xList_CompareItems_ ( xListRef this,
+                                     void*    pItemA,
+                                     void*    pItemB )
+{
 
   xList_tCompare eResult = xList_tCompare_Match;
 
-  if( this->mComparator ) {
+  if ( this->mComparator )
+  {
     eResult = this->mComparator( pItemA, pItemB );
-  } else {
-    if( pItemA == pItemB) 
+  }
+  else
+  {
+    if ( pItemA == pItemB)
       eResult = xList_tCompare_Match;
-    else 
+    else
       eResult = xList_tCompare_GreaterThan;
   }
 
   return eResult;
 }
 
-xList_tErr xList_Verify ( xListRef this ) {
-  
+xList_tErr xList_Verify ( xListRef this )
+{
+
   xList_tErr eResult    = xList_tErr_NoErr;
 
   // check pointer.
-  if ( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = xList_tErr_InvalidListRef;
     goto cleanup;
   }
 
   // check signature.
-  if ( xList_kSignature != this->mSignature ) {
+  if ( xList_kSignature != this->mSignature )
+  {
     eResult = xList_tErr_InvalidListRef;
     goto cleanup;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
-char* xList_GetErrorString ( xList_tErr ieCode ) {
+char* xList_GetErrorString ( xList_tErr ieCode )
+{
 
   xList_tErr eCode = ieCode;
 
   if ( ieCode < xList_tErr_NoErr
-       || ieCode >= xList_knNumErrorCodes ) {
+       || ieCode >= xList_knNumErrorCodes )
+  {
 
     eCode = xList_tErr_InvalidErrorCode;
   }

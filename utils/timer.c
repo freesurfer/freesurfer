@@ -1,3 +1,31 @@
+/**
+ * @file  timer.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,7 +34,7 @@
 #include "proto.h"
 
 struct timeb *
-TimerStart(struct timeb *then)
+      TimerStart(struct timeb *then)
 {
   /* according to the header ftime() is obsolete */
 #if 0
@@ -14,7 +42,7 @@ TimerStart(struct timeb *then)
   return(then) ;
 #endif
   /* struct timeval { long tv_sec; long tv_usec; }; */
-  struct timeval tv; 
+  struct timeval tv;
   gettimeofday(&tv, 0);
   then->time = tv.tv_sec;
   then->millitm = (tv.tv_usec+500)/1000;
@@ -37,7 +65,7 @@ TimerStop(struct timeb *then)
 #endif
   int msec;
   struct timeval tvnow, tvthen;
-  gettimeofday(&tvnow, 0); 
+  gettimeofday(&tvnow, 0);
   tvthen.tv_sec = then->time;
   tvthen.tv_usec = ((long) (then->millitm))*1000;
   msec = 1000*(tvnow.tv_sec - tvthen.tv_sec) + (tvnow.tv_usec - tvthen.tv_usec+500)/1000;

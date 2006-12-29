@@ -1,3 +1,31 @@
+/**
+ * @file  mrivoxel.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:39 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   mri.c
  *
@@ -176,7 +204,7 @@ MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
 {
   float   mean, total  ;
   int     whalf, width, height, depth, x, y, z, npix, xmin, xmax,
-          ymin, ymax, zmin, zmax ;
+  ymin, ymax, zmin, zmax ;
   BUFTYPE *psrc ;
 
   whalf = wsize/2 ;
@@ -219,8 +247,8 @@ float
 MRIvoxelStd(MRI *mri, int x0, int y0, int z0, float mean, int wsize)
 {
   float   std, total, var ;
-  int     whalf, width, height, depth, x, y, z, npix, 
-          xmin, xmax, ymin, ymax, zmin, zmax ;
+  int     whalf, width, height, depth, x, y, z, npix,
+  xmin, xmax, ymin, ymax, zmin, zmax ;
   BUFTYPE *psrc ;
 
   whalf = wsize/2 ;
@@ -250,7 +278,7 @@ MRIvoxelStd(MRI *mri, int x0, int y0, int z0, float mean, int wsize)
     }
   }
   if (npix > 0)
-     std = sqrt(total) / (float)npix ;
+    std = sqrt(total) / (float)npix ;
   else
     std = 0.0f ;
 
@@ -269,13 +297,13 @@ float
 MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
 {
   int     whalf, width, height, depth, x, y, z, npix, total, xmin, xmax,
-          ymin, ymax, zmin, zmax ;
+  ymin, ymax, zmin, zmax ;
   float   dx_win[MAX_LEN], dy_win[MAX_LEN], dz_win[MAX_LEN],dx,dy,dz,
-          odx, ody, odz, *pdx, *pdy, *pdz, dir ;
+  odx, ody, odz, *pdx, *pdy, *pdz, dir ;
 
   if (wsize > MAX_WINDOW)
-    ErrorReturn(0.0f, 
-                (ERROR_BADPARM, "MRIvoxelDirection: window size %d too big", 
+    ErrorReturn(0.0f,
+                (ERROR_BADPARM, "MRIvoxelDirection: window size %d too big",
                  wsize)) ;
   whalf = wsize/2 ;
   width = mri->width ;
@@ -298,7 +326,9 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
   memset(dy_win, 0, MAX_LEN*sizeof(float)) ;
   memset(dz_win, 0, MAX_LEN*sizeof(float)) ;
 #endif
-  pdx = dx_win ; pdy = dy_win ; pdz = dz_win ;
+  pdx = dx_win ;
+  pdy = dy_win ;
+  pdz = dz_win ;
   for (z = z0-whalf ; z <= zmax ; z++)
   {
     for (y = y0-whalf ; y <= ymax ; y++)
@@ -315,7 +345,9 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
   ody = MRIvoxelDy(mri, x0, y0, z0) ;
   odz = MRIvoxelDz(mri, x0, y0, z0) ;
 
-  pdx = dx_win ; pdy = dy_win ; pdz = dz_win ;
+  pdx = dx_win ;
+  pdy = dy_win ;
+  pdz = dz_win ;
   dir = 0.0f ;
   for (z = -whalf ; z <= whalf ; z++)
   {
@@ -346,11 +378,13 @@ MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize)
 {
   int     whalf, width, height, depth ;
   float   odx, ody, odz, len,
-          d2I_dg2, xf, yf, zf, d ;
+  d2I_dg2, xf, yf, zf, d ;
   Real    val ;
 
   whalf = wsize/2 ;
-  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
 
 
   odx = MRIvoxelDx(mri, x0, y0, z0) ;
@@ -359,19 +393,25 @@ MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize)
   len = sqrt(odx*odx + ody*ody + odz*odz) ;
   if (FZERO(len))
     return(0.0f) ;
-  odx /= len ; ody /= len ; odz /= len ;
+  odx /= len ;
+  ody /= len ;
+  odz /= len ;
 
 
   /* second derivative of intensity in gradient direction */
   MRIsampleVolume(mri, (Real)x0, (Real)y0, (Real)z0, &val) ;
-  d2I_dg2 = (wsize-1)*val ; 
+  d2I_dg2 = (wsize-1)*val ;
   for (d = 1 ; d <= whalf ; d++)
   {
-    xf = x0 + d*odx ; yf = y0 + d*ody ; zf = z0 + d*odz ;
+    xf = x0 + d*odx ;
+    yf = y0 + d*ody ;
+    zf = z0 + d*odz ;
     MRIsampleVolume(mri, xf, yf, zf, &val) ;
     d2I_dg2 -= val ;
 
-    xf = x0 - d*odx ; yf = y0 - d*ody ; zf = z0 - d*odz ;
+    xf = x0 - d*odx ;
+    yf = y0 - d*ody ;
+    zf = z0 - d*odz ;
     MRIsampleVolume(mri, xf, yf, zf, &val) ;
     d2I_dg2 -= val ;
   }

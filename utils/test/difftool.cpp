@@ -1,3 +1,31 @@
+/**
+ * @file  difftool.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // difftool.cpp
 //
@@ -9,7 +37,8 @@
 #endif
 #include <string>
 
-extern "C" {
+extern "C"
+{
 #include "mri.h"
 
   char *Progname="difftool";
@@ -33,7 +62,7 @@ int main(int argc, char *argv[])
     cout << "2nd filename :";
 
     cin >> f2;
-    
+
     cout << "output filename :";
 
     cin >> outfile;
@@ -44,10 +73,10 @@ int main(int argc, char *argv[])
     f2 = argv[2];
     if (argv[3])
       outfile = argv[3];
-    else 
+    else
       outfile = "";
   }
-    
+
   MRI *mri1 = MRIread(const_cast<char *> (f1.c_str()));
   if (mri1==0)
   {
@@ -62,7 +91,7 @@ int main(int argc, char *argv[])
     return -1;
   }
   // verify width, height, depth and type are the same
-  if ( (mri1->width != mri2->width) 
+  if ( (mri1->width != mri2->width)
        || (mri1->height != mri2->height)
        || (mri1->depth != mri2->depth)
        || (mri1->type != mri2->type))
@@ -80,28 +109,28 @@ int main(int argc, char *argv[])
     for (int j=0; j < mri1->height; ++j)
       for (int i=0; i < mri1->width; ++i)
       {
-	switch(mri1->type)
-	{
-	case MRI_UCHAR:
-	  u1 = MRIvox(mri1, i,j,k);
-	  u2 = MRIvox(mri2, i,j,k);
-	  udiff = (u1-u2)/2 + 127;
-	  MRIvox(res, i,j,k) = udiff;
-	  if (u1 != u2)
-	    cout << "(" << i << ", " << j << ", " << k << ") = (" << (int) u1 << ", " << (int) u2 << ")" << endl;
-	  break;
-	case MRI_SHORT:
-	case MRI_FLOAT:
-	default:
-	  cout << "Sorry.  currently supports only uchar, short, or float" << endl;
-	  goto cleanup;
-	}
+        switch (mri1->type)
+        {
+        case MRI_UCHAR:
+          u1 = MRIvox(mri1, i,j,k);
+          u2 = MRIvox(mri2, i,j,k);
+          udiff = (u1-u2)/2 + 127;
+          MRIvox(res, i,j,k) = udiff;
+          if (u1 != u2)
+            cout << "(" << i << ", " << j << ", " << k << ") = (" << (int) u1 << ", " << (int) u2 << ")" << endl;
+          break;
+        case MRI_SHORT:
+        case MRI_FLOAT:
+        default:
+          cout << "Sorry.  currently supports only uchar, short, or float" << endl;
+          goto cleanup;
+        }
       }
 
   if (outfile.length())
     MRIwrite(res, const_cast<char *>(outfile.c_str()));
 
- cleanup:
+cleanup:
   cout << "Cleanup" << endl;
   MRIfree(&mri1);
   MRIfree(&mri2);

@@ -1,4 +1,32 @@
 /**
+ * @file  fs_powell.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author$
+ *    $Date$
+ *    $Revision$
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+/**
  * This is taken from vnl_powell.  This version is created so that the initial
  * direction, xi, can be set in the minimize method.
  */
@@ -30,13 +58,14 @@ public:
   vnl_vector<double> dx_;
   vnl_vector<double> tmpx_;
   fs_powell_1dfun(int n, vnl_cost_function* f, fs_powell* p)
-    : vnl_cost_function(1),
+      : vnl_cost_function(1),
       powell_(p),
       f_(f),
       n_(n),
       x0_(n),
       dx_(n),
-      tmpx_(n) {}
+      tmpx_(n)
+  {}
 
   void init(vnl_vector<double> const& x0, vnl_vector<double> const& dx)
   {
@@ -73,7 +102,7 @@ public:
  */
 vnl_nonlinear_minimizer::ReturnCodes
 fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
-  //double p[], double **xi, int n
+//double p[], double **xi, int n
 {
   // verbose_ = true;
   int n = p.size();
@@ -81,7 +110,8 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
 
   // This line below was replaced by the if block
   //  vnl_matrix<double> xi(n,n, vnl_matrix_identity);
-  if( xi == NULL ) {
+  if ( xi == NULL )
+  {
     xi = new vnl_matrix<double>(n,n, vnl_matrix_identity);
   }
 
@@ -91,80 +121,83 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
   report_eval(fret);
   vnl_vector<double> pt = p;
   while (num_iterations_ < unsigned(maxfev))
+  {
+    double fp = fret;
+    int ibig=0;
+    double del=0.0;
+
+    for (int i=0;i<n;i++)
     {
-      double fp = fret;
-      int ibig=0;
-      double del=0.0;
+      // xit = ith column of xi
+      for (int j = 0; j < n; ++j)
+        xit[j] = (*xi)[j][i];
+      double fptt = fret;
 
-      for (int i=0;i<n;i++)
-        {
-          // xit = ith column of xi
-          for (int j = 0; j < n; ++j)
-            xit[j] = (*xi)[j][i];
-          double fptt = fret;
+      // 1D minimization along xi
+      f1d.init(p, xit);
+      vnl_brent brent(&f1d);
+      double ax = 0.0;
+      double xx = initial_step_;
+      double bx;
+      brent.bracket_minimum(&ax, &xx, &bx);
+      fret = brent.minimize_given_bounds(bx, xx, ax, linmin_xtol_, &xx);
+      f1d.uninit(xx, p);
+      // Now p is minimizer along xi
 
-          // 1D minimization along xi
-          f1d.init(p, xit);
-          vnl_brent brent(&f1d);
-          double ax = 0.0;
-          double xx = initial_step_;
-          double bx;
-          brent.bracket_minimum(&ax, &xx, &bx);
-          fret = brent.minimize_given_bounds(bx, xx, ax, linmin_xtol_, &xx);
-          f1d.uninit(xx, p);
-          // Now p is minimizer along xi
-
-          if (vcl_fabs(fptt-fret) > del) {
-            del = vcl_fabs(fptt-fret);
-            ibig = i;
-          }
-        }
-
-      if (2.0*vcl_fabs(fp-fret) <= ftol*(vcl_fabs(fp)+vcl_fabs(fret)))
-        {
-#ifdef DEBUG
-          vnl_matlab_print(vcl_cerr, xi, "xi");
-#endif
-          return CONVERGED_FTOL;
-        }
-
-      if (num_iterations_ == unsigned(maxfev)) {
-        return FAILED_TOO_MANY_ITERATIONS;
+      if (vcl_fabs(fptt-fret) > del)
+      {
+        del = vcl_fabs(fptt-fret);
+        ibig = i;
       }
-
-      for (int j=0;j<n;++j)
-        {
-          ptt[j]=2.0*p[j]-pt[j];
-          xit[j]=p[j]-pt[j];
-          pt[j]=p[j];
-        }
-
-      double fptt = functor_->f(ptt);
-      report_eval(fret);
-      if (fptt < fp)
-        {
-          double t=2.0*(fp-2.0*fret+fptt)*
-            vnl_math_sqr(fp-fret-del)-del*
-            vnl_math_sqr(fp-fptt);
-          if (t < 0.0)
-            {
-              f1d.init(p, xit);
-              vnl_brent brent(&f1d);
-              double ax = 0.0;
-              double xx = 1.0;
-              double bx;
-              brent.bracket_minimum(&ax, &xx, &bx);
-              fret = brent.minimize_given_bounds
-                (bx, xx, ax, linmin_xtol_, &xx);
-              f1d.uninit(xx, p);
-
-              for (int j=0;j<n;j++) {
-                (*xi)[j][ibig]=(*xi)[j][n-1];
-                (*xi)[j][n-1]=xit[j];
-              }
-            }
-        }
-      report_iter();
     }
+
+    if (2.0*vcl_fabs(fp-fret) <= ftol*(vcl_fabs(fp)+vcl_fabs(fret)))
+    {
+#ifdef DEBUG
+      vnl_matlab_print(vcl_cerr, xi, "xi");
+#endif
+      return CONVERGED_FTOL;
+    }
+
+    if (num_iterations_ == unsigned(maxfev))
+    {
+      return FAILED_TOO_MANY_ITERATIONS;
+    }
+
+    for (int j=0;j<n;++j)
+    {
+      ptt[j]=2.0*p[j]-pt[j];
+      xit[j]=p[j]-pt[j];
+      pt[j]=p[j];
+    }
+
+    double fptt = functor_->f(ptt);
+    report_eval(fret);
+    if (fptt < fp)
+    {
+      double t=2.0*(fp-2.0*fret+fptt)*
+               vnl_math_sqr(fp-fret-del)-del*
+               vnl_math_sqr(fp-fptt);
+      if (t < 0.0)
+      {
+        f1d.init(p, xit);
+        vnl_brent brent(&f1d);
+        double ax = 0.0;
+        double xx = 1.0;
+        double bx;
+        brent.bracket_minimum(&ax, &xx, &bx);
+        fret = brent.minimize_given_bounds
+               (bx, xx, ax, linmin_xtol_, &xx);
+        f1d.uninit(xx, p);
+
+        for (int j=0;j<n;j++)
+        {
+          (*xi)[j][ibig]=(*xi)[j][n-1];
+          (*xi)[j][n-1]=xit[j];
+        }
+      }
+    }
+    report_iter();
+  }
   return FAILED_TOO_MANY_ITERATIONS;
 }

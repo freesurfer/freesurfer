@@ -1,11 +1,39 @@
 /**
+ * @file  checkanalyze.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+/**
  * @file   checkanalyze.cpp
  * @author Yasunari Tosa
  * @date   Thu Dec  2 16:16:33 2004
- * 
+ *
  * @brief  testing analyze orient handling
- * 
- * 
+ *
+ *
  */
 #include <iostream>
 #include <iomanip>
@@ -15,7 +43,8 @@
 #endif
 #include <string>
 
-extern "C" {
+extern "C"
+{
 #include "mri.h"
 #include "matrix.h"
   char *Progname = "checkanalyze";
@@ -40,26 +69,26 @@ bool compareBad(const MRI *base, const MRI *tmp)
     for (int j=0; j < base->height; ++j)
       for (int i=0; i < base->width; ++i)
       {
-	V4_LOAD(vb, i, j, k, 1.);
-	MatrixMultiply(b2t, vb, vt);
-	int it, jt, kt;
-	it = int(floor(V3_X(vt)+0.5));
-	jt = int(floor(V3_Y(vt)+0.5));
-	kt = int(floor(V3_Z(vt)+0.5));
-	// now compare
-	if (it >= 0 && it < tmp->width 
-	    && jt >= 0 && jt < tmp->height 
-	    && kt >= 0 && kt < tmp->depth)
-	{
-	  if (MRIvox(base, i,j,k) != MRIvox(tmp, it, jt, kt))
-	  {
-	    if (bad == false)
-	      bad = true;
-	    cout << endl;
-	    cout << "base: (" << i << "," <<j << "," << k << ") =" << MRIvox(base, i,j,k)
-		 << "    tmp: (" << it << "," << jt << "," << kt << ") = " << MRIvox(tmp, i,j,k) << endl;
-	  }
-	}
+        V4_LOAD(vb, i, j, k, 1.);
+        MatrixMultiply(b2t, vb, vt);
+        int it, jt, kt;
+        it = int(floor(V3_X(vt)+0.5));
+        jt = int(floor(V3_Y(vt)+0.5));
+        kt = int(floor(V3_Z(vt)+0.5));
+        // now compare
+        if (it >= 0 && it < tmp->width
+            && jt >= 0 && jt < tmp->height
+            && kt >= 0 && kt < tmp->depth)
+        {
+          if (MRIvox(base, i,j,k) != MRIvox(tmp, it, jt, kt))
+          {
+            if (bad == false)
+              bad = true;
+            cout << endl;
+            cout << "base: (" << i << "," <<j << "," << k << ") =" << MRIvox(base, i,j,k)
+            << "    tmp: (" << it << "," << jt << "," << kt << ") = " << MRIvox(tmp, i,j,k) << endl;
+          }
+        }
       }
   cout << endl;
   return bad;

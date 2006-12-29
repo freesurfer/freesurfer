@@ -1,3 +1,31 @@
+/**
+ * @file  region.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:39 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   region.c
  *
@@ -31,7 +59,7 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
-static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, 
+static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px,
                               int *py, int *pz) ;
 
 /*-----------------------------------------------------
@@ -58,14 +86,14 @@ REGIONalloc(void)
 
           note that a cubic region is not a rich enough descriptor
           for this procedure, but mostly we are concerned with
-          finding the portion of an advancing window which is 
+          finding the portion of an advancing window which is
           new.
 ------------------------------------------------------*/
 MRI_REGION *
 REGIONsubtract(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst)
 {
-  int   x1_start, x1_end, x2_end, y1_start, y1_end, y2_end, 
-        z1_start, z1_end, z2_end ;
+  int   x1_start, x1_end, x2_end, y1_start, y1_end, y2_end,
+  z1_start, z1_end, z2_end ;
 
   x1_start = reg1->x ;
   x1_end = reg1->x + reg1->dx - 1 ;
@@ -188,11 +216,11 @@ REGIONinside(MRI_REGION *reg, int x, int y, int z)
   x1 = reg->x + reg->dx - 1 ;
   y1 = reg->y + reg->dy - 1 ;
   z1 = reg->z + reg->dz - 1 ;
-  
+
   if (x < reg->x || x > x1 || y < reg->y || y > y1 || z < reg->z || z > z1)
     return(REGION_OUTSIDE) ;
 
-  if ((x == reg->x || x == x1) && 
+  if ((x == reg->x || x == x1) &&
       (y == reg->y || y == y1) &&
       (z == reg->z || z == z1))
     return(REGION_ON_BORDER) ;
@@ -230,7 +258,7 @@ REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
   float       min_dist = 10000.0f, dist, dx, dy, dz ;
   int         i, j, x0, y0, z0, x1, y1, z1 ;
   MRI_REGION  r3 ;
-  
+
   REGIONintersect(r1, r2, &r3) ;
   if (r3.dx > 0 && r3.dy > 0)
     return(0.0) ;
@@ -241,7 +269,9 @@ REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
     for (j = 0 ; j < 8 ; j++)   /* each corner of r2 */
     {
       regionCornerCoords(r2, j, &x1, &y1, &z1) ;
-      dx = (float)(x1 - x0) ; dy = (float)(y1 - y0) ; dz = (float)(z1 - z0) ;
+      dx = (float)(x1 - x0) ;
+      dy = (float)(y1 - y0) ;
+      dz = (float)(z1 - z0) ;
       dist = sqrt(dx*dx + dy*dy + dz*dz) ;
       if (dist < min_dist)
         min_dist = dist ;
@@ -262,44 +292,44 @@ regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz)
   switch (which_corner)
   {
   case 0:
-    *px = r->x ; 
-    *py = r->y ; 
-    *pz = r->z ; 
+    *px = r->x ;
+    *py = r->y ;
+    *pz = r->z ;
     break ;
   case 1:
-    *px = r->x + r->dx - 1 ; 
-    *py = r->y ; 
-    *pz = r->z ; 
+    *px = r->x + r->dx - 1 ;
+    *py = r->y ;
+    *pz = r->z ;
     break ;
   case 2:
-    *px = r->x ; 
-    *py = r->y + r->dy - 1 ; 
-    *pz = r->z ; 
+    *px = r->x ;
+    *py = r->y + r->dy - 1 ;
+    *pz = r->z ;
     break ;
   case 3:
-    *px = r->x ; 
-    *py = r->y ; 
-    *pz = r->z + r->dz - 1 ; 
+    *px = r->x ;
+    *py = r->y ;
+    *pz = r->z + r->dz - 1 ;
     break ;
   case 4:
-    *px = r->x + r->dx - 1 ; 
-    *py = r->y + r->dy - 1 ; 
-    *pz = r->z ; 
+    *px = r->x + r->dx - 1 ;
+    *py = r->y + r->dy - 1 ;
+    *pz = r->z ;
     break ;
   case 5:
-    *px = r->x + r->dx - 1 ; 
-    *py = r->y ; 
-    *pz = r->z + r->dz - 1 ; 
+    *px = r->x + r->dx - 1 ;
+    *py = r->y ;
+    *pz = r->z + r->dz - 1 ;
     break ;
   case 6:
-    *px = r->x ; 
+    *px = r->x ;
     *py = r->y + r->dy - 1 ;
-    *pz = r->z + r->dz - 1 ; 
+    *pz = r->z + r->dz - 1 ;
     break ;
   case 7:
-    *px = r->x + r->dx - 1 ;  
-    *py = r->y + r->dy - 1 ; 
-    *pz = r->z + r->dz - 1 ; 
+    *px = r->x + r->dx - 1 ;
+    *py = r->y + r->dy - 1 ;
+    *pz = r->z + r->dz - 1 ;
     break ;
   }
   return(NO_ERROR) ;

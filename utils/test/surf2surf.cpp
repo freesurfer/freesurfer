@@ -1,3 +1,31 @@
+/**
+ * @file  surf2surf.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // surf2surf.cpp
 //
@@ -6,7 +34,8 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+extern "C"
+{
 #include "mri.h"
 #include "transform.h"
 #include "matrix.h"
@@ -34,7 +63,7 @@ int main(int argc, char *argv[])
     cout << "Just load identity ras-to-ras" << endl;
     lta = LTAalloc(1, NULL);
     lta->type = LINEAR_RAS_TO_RAS;
-  }  
+  }
   else
     lta = LTAreadEx(argv[3]);
 
@@ -57,7 +86,7 @@ int main(int argc, char *argv[])
 
   VECTOR *sX = VectorAlloc(4, MATRIX_REAL);
   VECTOR *dX = VectorAlloc(4, MATRIX_REAL);
-  
+
   MATRIX *surf2surf = surfaceRASFromSurfaceRAS_(dst, src, lta);
   MRIfree(&src);
   MRIfree(&dst);

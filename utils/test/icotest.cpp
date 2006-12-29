@@ -1,3 +1,31 @@
+/**
+ * @file  icotest.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // icotest
 //
@@ -15,7 +43,8 @@
 #include <sstream>
 #include <string>
 
-extern "C" {
+extern "C"
+{
 #include <mrisurf.h>
   char *Progname = "icotest";
 }
@@ -44,7 +73,7 @@ int main()
     infile << mri_dir << "/lib/bem/ic" << index << ".tri";
     outfile << "./test" << index << ".tri";
     cout << "Comparing " << outfile.str() << " with " << infile.str() << endl;
-    
+
     ifstream origf(infile.str().c_str(), ios::in);
     ifstream outf(outfile.str().c_str(), ios::in);
     char buf[512];
@@ -78,10 +107,10 @@ int main()
       st1 >> idx1 >> x1 >> y1 >> z1;
       if (idx != idx1 || x != x1 || y != y1 || z != z1)
       {
-	cerr << "vertices values do not agree " << endl;
-	cerr << "orig: idx " << idx << "  x " << x << " y " << y << " z " << z << endl; 
-	cerr << "new : idx " << idx1 << "  x " << x1 << " y " << y1 << " z " << z1 << endl; 
-	return -1;
+        cerr << "vertices values do not agree " << endl;
+        cerr << "orig: idx " << idx << "  x " << x << " y " << y << " z " << z << endl;
+        cerr << "new : idx " << idx1 << "  x " << x1 << " y " << y1 << " z " << z1 << endl;
+        return -1;
       }
     }
     // next faces with 3 vertices
@@ -110,10 +139,10 @@ int main()
       st5 >> idx1 >> v11 >> v12 >> v13;
       if (idx != idx1 || v1 != v11 || v2 != v12 || v3 != v13)
       {
-	cerr << "vertices values do not agree " << endl;
-	cerr << "orig: idx " << idx << "  v1 " << v1 << " v2 " << v2 << " v3 " << v3 << endl; 
-	cerr << "new : idx " << idx1 << "  v11 " << v11 << " v12 " << v12 << " v13 " << v13 << endl; 
-	return -1;
+        cerr << "vertices values do not agree " << endl;
+        cerr << "orig: idx " << idx << "  v1 " << v1 << " v2 " << v2 << " v3 " << v3 << endl;
+        cerr << "new : idx " << idx1 << "  v11 " << v11 << " v12 " << v12 << " v13 " << v13 << endl;
+        return -1;
       }
     }
     // remove outputfile

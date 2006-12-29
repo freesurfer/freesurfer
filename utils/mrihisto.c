@@ -1,3 +1,31 @@
+/**
+ * @file  mrihisto.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:35 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   mrihisto.c
  *
@@ -45,7 +73,7 @@
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
 static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo,
-				    LABEL *label);
+                                    LABEL *label);
 /*-----------------------------------------------------
   GLOBAL FUNCTIONS
   -------------------------------------------------------*/
@@ -106,12 +134,13 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
 #if 0
   if (mri->type != MRI_UCHAR)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,"MRIhistogramRegion: must by type UCHAR"));
 #endif
 
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
-  bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
+  bmin = (BUFTYPE)fmin ;
+  bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
   if (nbins <= 0)
@@ -144,12 +173,12 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     h_prev = HISTOcopy(histo, NULL) ;
   }
   /*
-    note that the overlap only works with subsequent windows advancing only 
+    note that the overlap only works with subsequent windows advancing only
     in the x direction.
   */
   /* check to see if regions overlap */
   overlap = ((mri == mri_prev) &&
-             ((region->x-region->dx) > reg_prev.x) && 
+             ((region->x-region->dx) > reg_prev.x) &&
              (region->y == reg_prev.y) &&
              (region->z == reg_prev.z)) ;
 
@@ -168,11 +197,12 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
     HISTOsubtract(h_prev, histo_left, histo) ;
     HISTOadd(histo, histo_right, histo) ;
-    HISTOfree(&histo_left) ; HISTOfree(&histo_right) ;
+    HISTOfree(&histo_left) ;
+    HISTOfree(&histo_right) ;
   }
   else
     mriHistogramRegion(mri, nbins, histo, region) ;
-  
+
   mri_prev = mri ;
   HISTOcopy(histo, h_prev) ;
   REGIONcopy(region, &reg_prev) ;
@@ -209,7 +239,7 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 
 
   mriHistogramLabel(mri, nbins, histo, label) ;
-  
+
   return(histo) ;
 }
 
@@ -223,7 +253,8 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 
   if (mri->type == MRI_UCHAR)
   {
-    fmin = 0 ; fmax = 255 ;
+    fmin = 0 ;
+    fmax = 255 ;
   }
   else
     MRIvalRange(mri, &fmin, &fmax) ;
@@ -256,11 +287,13 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_UCHAR:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
       //                 &xv, &yv, &zv) ;
-      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-			   &xv, &yv, &zv) ;
-      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
+                           &xv, &yv, &zv) ;
+      x = nint(xv) ;
+      y = nint(yv) ;
+      z = nint(zv) ;
       val = (float)MRIvox(mri, x, y, z) ;
       bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
@@ -269,11 +302,13 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_SHORT:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
       //                &xv, &yv, &zv) ;
-      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-			   &xv, &yv, &zv) ;
-      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
+                           &xv, &yv, &zv) ;
+      x = nint(xv) ;
+      y = nint(yv) ;
+      z = nint(zv) ;
       val = (float)MRISvox(mri, x, y, z) ;
       bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
@@ -282,25 +317,27 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_FLOAT:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
       //                &xv, &yv, &zv) ;
-      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-			   &xv, &yv, &zv) ;
-      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
+                           &xv, &yv, &zv) ;
+      x = nint(xv) ;
+      y = nint(yv) ;
+      z = nint(zv) ;
       val = (float)MRIFvox(mri, x, y, z) ;
       bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
     }
     break ;
   default:
-    ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED,
                  "mriHistogramLabel: unsupported mri type %d",
                  mri->type)) ;
     break ;
   }
 
-    
+
   return(histo) ;
 }
 /*-----------------------------------------------------
@@ -321,7 +358,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
 #if 0
   if (mri->type != MRI_UCHAR)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,"mriHistogramRegion: must by type UCHAR"));
 #endif
 
@@ -332,10 +369,11 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
       }
       else
   */
-  
+
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
 
-  bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
+  bmin = (BUFTYPE)fmin ;
+  bmax = (BUFTYPE)fmax ;
 
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
@@ -390,7 +428,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         {
           val = *psrc++ ;
           bin_no = nint((float)(val - fmin) / (float)histo->bin_size) ;
-	  if(bin_no >= nbins) bin_no = nbins - 1;
+          if (bin_no >= nbins) bin_no = nbins - 1;
           histo->counts[bin_no]++ ;
         }
       }
@@ -405,10 +443,10 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           bin_no = nint((float)(*spsrc++ - fmin) / (float)bin_size) ;
-	  if (bin_no < 0)
-	    bin_no = 0 ;
-	  if (bin_no >= histo->nbins)
-	    bin_no = histo->nbins-1 ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
         }
       }
@@ -423,24 +461,24 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           bin_no = nint((float)(*fpsrc++ - fmin) / (float)bin_size) ;
-	  if (bin_no < 0)
-	    bin_no = 0 ;
-	  if (bin_no >= histo->nbins)
-	    bin_no = histo->nbins-1 ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
         }
       }
     }
     break ;
   default:
-    ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED,
                  "mriHistogramRegion: unsupported mri type %d",
                  mri->type)) ;
     break ;
   }
 
-    
+
   return(histo) ;
 }
 /*-----------------------------------------------------
@@ -469,7 +507,7 @@ MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low,MRI_REGION *region)
   Description
   ------------------------------------------------------*/
 MRI *
-MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst, 
+MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
                           HISTOGRAM *histo, MRI_REGION *region)
 {
   int       width, height, depth, x, y, z, x0, y0, z0 ;
@@ -523,7 +561,7 @@ MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
   Description
   ------------------------------------------------------*/
 HISTOGRAM *
-MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
+MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
                           MRI_REGION *region, int norm)
 {
   int       i, nbins ;
@@ -533,7 +571,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
 
   if (mri->type != MRI_UCHAR)
     ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED,
                  "MRIgetEqualizeHistoRegion: unsupported type %d",mri->type));
   histo = MRIhistogramRegion(mri, 0, NULL, region) ;
   nbins = histo->nbins ;
@@ -552,7 +590,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
   for (pc = &histo->counts[0], total_pix = 0, i = low ; i < nbins ; i++)
     total_pix += *pc++ ;
 
-  if (total_pix) 
+  if (total_pix)
   {
     pc = &histo->counts[0] ;
     pdst = &histo_eq->counts[0] ;
@@ -643,7 +681,9 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 
   HISTOplot(histo_src, "cum_src.plt") ;
   HISTOplot(histo_template, "cum_template.plt") ;
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -655,7 +695,8 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
       {
         if (x == 137 && y == 87 && z == 36)
           DiagBreak() ;
-        sval = *psrc++ ; dval = sval ;
+        sval = *psrc++ ;
+        dval = sval ;
         if (sval > 80 && sval < 95)
           DiagBreak() ;
         if (sval >= 83 && sval <= 85)
@@ -769,7 +810,8 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
   float      fval;
 
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
-  bmin = (int)fmin ; bmax = (int)fmax ;
+  bmin = (int)fmin ;
+  bmax = (int)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
 
@@ -782,8 +824,10 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
-	histo->bin_size = bin_size ;
-  x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
+  histo->bin_size = bin_size ;
+  x0 = MAX(0, region->x) ;
+  y0 = MAX(0, region->y) ;
+  z0 = MAX(0, region->z) ;
   x1 = MIN(width, region->x+region->dx) ;
   y1 = MIN(height, region->y+region->dy) ;
   z1 = MIN(depth, region->z+region->dz) ;
@@ -793,8 +837,8 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
     {
       for (x = x0 ; x < x1 ; x++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         if (nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) != label)
           continue ;
         switch (mri->type)
@@ -802,7 +846,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
         case MRI_UCHAR:
           /* 0 -> x */
           psrc = &MRIvox(mri, x, y, z) ;
-          val = *psrc++ ;  
+          val = *psrc++ ;
           bin_no = nint((float)(val - bmin) / (float)bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
@@ -816,7 +860,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
           bin_no = nint((fval - fmin) / (float)bin_size);
           histo->counts[bin_no]++;
           break;
-          
+
         default:
           ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                              "MRIhistogramLabelRegion: unsupported type %d",mri->type));
@@ -844,19 +888,21 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   float      fval;
 
   MRIlabelValRange(mri, mri_labeled, label, &fmin, &fmax) ;
-  bmin = (int)fmin ; bmax = (int)fmax ;
+  bmin = (int)fmin ;
+  bmax = (int)fmax ;
   if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
 
   histo->bin_size = bin_size = (fmax - fmin) / (float)(nbins-1) ;
-	histo->min = fmin ; histo->max = fmax ;
+  histo->min = fmin ;
+  histo->max = fmax ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
-	// note that I think this is correct, but other routines have off-by-1/2 type errors in them (BRF)!
+  // note that I think this is correct, but other routines have off-by-1/2 type errors in them (BRF)!
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
@@ -873,8 +919,8 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           /* 0 -> x */
           val = MRIvox(mri, x, y, z) ;
           bin_no = nint((float)(val - bmin) / (float)bin_size) ;
-					if (bin_no == 0)
-						DiagBreak() ;
+          if (bin_no == 0)
+            DiagBreak() ;
           if (bin_no < 0)
             bin_no = 0 ;
           else if (bin_no >= histo->nbins)
@@ -893,15 +939,15 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
           bin_no = nint((fval - fmin) / (float)bin_size);
-					if (bin_no < 0 || bin_no >= histo->nbins)
-						DiagBreak() ;
+          if (bin_no < 0 || bin_no >= histo->nbins)
+            DiagBreak() ;
           if (bin_no < 0)
             bin_no = 0 ;
           else if (bin_no >= histo->nbins)
             bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++;
           break;
-          
+
         default:
           ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                              "MRIhistogramLabel: unsupported type %d",mri->type));
@@ -943,8 +989,8 @@ MRI *
 MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
                 int gray_hi, int wsize, float sigma)
 {
-  int        width, height, depth, x, y, z, whalf, in_val, label, nvox, 
-    valley, wm_peak, gray_peak, thresh, nlabeled ;
+  int        width, height, depth, x, y, z, whalf, in_val, label, nvox,
+  valley, wm_peak, gray_peak, thresh, nlabeled ;
   BUFTYPE    *pdst, *psrc ;
   MRI_REGION region ;
   HISTOGRAM  *histo, *hsmooth ;
@@ -992,40 +1038,42 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
           continue ;
         }
         nvox++ ;
-        region.x = x-whalf ; region.y = y-whalf ; region.z = z-whalf ;
+        region.x = x-whalf ;
+        region.y = y-whalf ;
+        region.z = z-whalf ;
         histo = mriHistogramRegion(mri_src, 0, histo, &region) ;
-        
+
         /*        HISTOclearBins(histo, histo, in_val-1, in_val+1) ;*/
         hsmooth = HISTOsmooth(histo, hsmooth, sigma) ;
 #if 0
         HISTOclearBins(histo, histo, 0, GRAY_LOW-5) ;
         HISTOclearBins(histo, histo, wm_hi+5, 255) ;
 #endif
-        wm_peak = 
-          HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
-                                    wm_low/*GRAY_LOW*/, 
+        wm_peak =
+          HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
+                                    wm_low/*GRAY_LOW*/,
                                     wm_hi-PEAK_SEPARATION/2-2);
-				if (wm_peak >= 0)
-					wm_peak = hsmooth->bins[wm_peak] ;  // convert it to an image intensity
-        gray_peak = 
-          HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
+        if (wm_peak >= 0)
+          wm_peak = hsmooth->bins[wm_peak] ;  // convert it to an image intensity
+        gray_peak =
+          HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                                     GRAY_LOW+PEAK_SEPARATION/2+2,
                                     wm_peak-PEAK_SEPARATION+1) ;
-				if (gray_peak >= 0)
-					gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
-				if (gray_peak >= 0 && wm_peak >= 0)
-				{
-					while (gray_peak > gray_hi)  /* white matter is bimodal */
-					{
-						wm_peak = gray_peak ;
-						gray_peak = 
-							HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
-																				GRAY_LOW+PEAK_SEPARATION/2+2,
-																				wm_peak-PEAK_SEPARATION+1) ;
-						if (gray_peak >= 0)
-							gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
-					}
-				}
+        if (gray_peak >= 0)
+          gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+        if (gray_peak >= 0 && wm_peak >= 0)
+        {
+          while (gray_peak > gray_hi)  /* white matter is bimodal */
+          {
+            wm_peak = gray_peak ;
+            gray_peak =
+              HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
+                                        GRAY_LOW+PEAK_SEPARATION/2+2,
+                                        wm_peak-PEAK_SEPARATION+1) ;
+            if (gray_peak >= 0)
+              gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+          }
+        }
 
         if ((wm_peak < 0) || (gray_peak < 0))  /* unimodal - take best guess */
           valley = -1 /*thresh*/ ;
@@ -1033,8 +1081,8 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
           valley = HISTOfindValley(hsmooth, VALLEY_WIDTH,
                                    gray_peak+VALLEY_WIDTH-1,
                                    wm_peak-VALLEY_WIDTH+1);
-				if (valley >= 0)
-					valley = hsmooth->bins[valley] ;  // convert it to an image intensity
+        if (valley >= 0)
+          valley = hsmooth->bins[valley] ;  // convert it to an image intensity
         if (valley > gray_hi)  /* can't be proper discriminant */
           valley = -1 ;
 #if 0
@@ -1093,10 +1141,10 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
     fprintf(stderr, "              %8d voxels labeled (%2.2f%%)\n",
             nlabeled, 100.0f*(float)nlabeled / (float)(width*height*depth)) ;
   }
-	if (histo)
-		HISTOfree(&histo) ;
-	if (hsmooth)
-		HISTOfree(&hsmooth) ;
+  if (histo)
+    HISTOfree(&histo) ;
+  if (hsmooth)
+    HISTOfree(&hsmooth) ;
   return(mri_labeled) ;
 }
 /*-----------------------------------------------------
@@ -1109,11 +1157,11 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   ------------------------------------------------------*/
 MRI *
 MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
-		     int gray_hi, int wsize, int x, int y, int z,
+                     int gray_hi, int wsize, int x, int y, int z,
                      HISTOGRAM *histo, HISTOGRAM *hsmooth, float sigma)
 {
   int        whalf, in_val, valley, wm_peak, gray_peak, thresh/*, npeaks,
-								peaks[300]*/ ;
+                peaks[300]*/ ;
   MRI_REGION region ;
   float      sig ;
 
@@ -1126,7 +1174,9 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   if (x == X_DB && y == Y_DB && z == Z_DB)
     DiagBreak() ;
 
-  region.x = x-whalf ; region.y = y-whalf ; region.z = z-whalf ;
+  region.x = x-whalf ;
+  region.y = y-whalf ;
+  region.z = z-whalf ;
   histo = mriHistogramRegion(mri_src, 0, histo, &region) ;
   hsmooth = HISTOsmooth(histo, hsmooth, sigma) ;
   /*        HISTOclearBins(histo, histo, in_val-1, in_val+1) ;*/
@@ -1138,10 +1188,10 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   do
   {
     hsmooth = HISTOsmooth(histo, hsmooth, sigma) ;
-    npeaks = 
-      HISTOcountPeaksInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
-			      peaks, 5,
-			      GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
+    npeaks =
+      HISTOcountPeaksInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
+                              peaks, 5,
+                              GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
     if (npeaks != 2)
     {
       sig += 0.5f ;
@@ -1151,39 +1201,40 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
         return(NULL) ;
       }
     }
-  } while (npeaks != 2) ;
+  }
+  while (npeaks != 2) ;
 #endif
 
   HISTOclearBins(histo, histo, 0, GRAY_LOW-5) ;
   HISTOclearBins(histo, histo, wm_hi+5, 255) ;
-  wm_peak = 
-    HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
+  wm_peak =
+    HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                               GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
-	if (wm_peak >= 0)
-		wm_peak = hsmooth->bins[wm_peak] ; // convert it to an intensity
-  gray_peak = 
-    HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
+  if (wm_peak >= 0)
+    wm_peak = hsmooth->bins[wm_peak] ; // convert it to an intensity
+  gray_peak =
+    HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                               GRAY_LOW+PEAK_SEPARATION/2+2,
                               wm_peak-PEAK_SEPARATION+1) ;
-	if (gray_peak >= 0)
-		gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
+  if (gray_peak >= 0)
+    gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
   while (gray_peak > gray_hi)  /* white matter is bimodal */
   {
     wm_peak = gray_peak ;
-    gray_peak = 
+    gray_peak =
       HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                                 GRAY_LOW+PEAK_SEPARATION/2+2,
                                 wm_peak-PEAK_SEPARATION+1) ;
-		if (gray_peak >= 0)
-			gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
+    if (gray_peak >= 0)
+      gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
   }
-  
+
   if ((wm_peak < 0) || (gray_peak < 0))  /* unimodal - take best guess */
     valley = -1 ; /* was thresh */
   else   /* bimodal, find min between peaks and use it as descriminant */
     valley = HISTOfindValley(hsmooth, VALLEY_WIDTH,gray_peak,wm_peak);
-	if (valley >= 0)
-		valley = hsmooth->bins[valley] ; // convert it to an intensity
+  if (valley >= 0)
+    valley = hsmooth->bins[valley] ; // convert it to an intensity
 
   {
     FILE *fp = fopen("histo.dat", "w") ;
@@ -1192,7 +1243,7 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
             wm_peak, gray_peak, valley, sig) ;
     printf("histogram at (%d, %d, %d) = %d\n", x, y, z, in_val) ;
     printf("wm peak = %d, gray peak = %d, valley = %d\n",
-	   wm_peak, gray_peak, valley) ;
+           wm_peak, gray_peak, valley) ;
     HISTOdump(histo, fp) ;
     fprintf(fp, "smooth histo:\n") ;
     HISTOdump(hsmooth, fp) ;

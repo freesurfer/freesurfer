@@ -1,3 +1,31 @@
+/**
+ * @file  tags.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,9 +44,9 @@ TAGskip(FILE *fp, int tag, long long len)
   int ret ;
 
   buf = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
-  if (buf==NULL) 
+  if (buf==NULL)
     ErrorExit(ERROR_NOMEMORY,
-	      "TAGskip: failed to calloc %u bytes!\n",len);
+              "TAGskip: failed to calloc %u bytes!\n",len);
   ret = fread(buf, sizeof(unsigned char), len, fp) ;
   free(buf) ;
   return(ret) ;
@@ -35,20 +63,20 @@ TAGreadStart(FILE *fp, long long *plen)
   if (feof(fp))
     return(0) ;
   switch (tag)
-    {
-    case TAG_OLD_MGH_XFORM:
-      *plen = (long long)freadInt(fp) ;  /* sorry - backwards compatibility
-                                            with Tosa's stuff */
-      *plen = *plen -1 ; // doesn't include null
-      break ;
-    case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
-    case TAG_OLD_USEREALRAS:
-    case TAG_OLD_COLORTABLE:
-      *plen = 0 ;
-      break ;
-    default:
-      *plen = freadLong(fp) ;
-    }
+  {
+  case TAG_OLD_MGH_XFORM:
+    *plen = (long long)freadInt(fp) ;  /* sorry - backwards compatibility
+                                                            with Tosa's stuff */
+    *plen = *plen -1 ; // doesn't include null
+    break ;
+  case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
+  case TAG_OLD_USEREALRAS:
+  case TAG_OLD_COLORTABLE:
+    *plen = 0 ;
+    break ;
+  default:
+    *plen = freadLong(fp) ;
+  }
 
   return(tag) ;
 }
@@ -100,10 +128,10 @@ TAGmakeCommandLineString(int argc, char **argv, char *cmd_line)
 
   cmd_line[0] = 0 ;
   for (i = 0 ; i < argc ; i++)
-    {
-      strcat(cmd_line, argv[i]) ;
-      strcat(cmd_line, " ") ;
-    }
+  {
+    strcat(cmd_line, argv[i]) ;
+    strcat(cmd_line, " ") ;
+  }
   return(NO_ERROR) ;
 }
 

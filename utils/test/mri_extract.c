@@ -1,3 +1,31 @@
+/**
+ * @file  mri_extract.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:45 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* Extract a subvolume from original one
  */
 
@@ -40,27 +68,29 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract.c,v 1.2 2006/12/29 01:49:45 nicks Exp $", "$Name:  $");
   argc -= nargs ;
-  
+
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
-  
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  if(argc  !=  3)
+
+  if (argc  !=  3)
     usage(1);
 
-  if(start_flag == 0){
+  if (start_flag == 0)
+  {
     printf("Use -start # # # flasg to specify starting coordinates for cropping\n");
     exit(0);
   }
-  if(size_flag == 0){
+  if (size_flag == 0)
+  {
     printf("use -size # # # flasg to specify desired final size\n");
     exit(0);
   }
@@ -68,8 +98,8 @@ int main(int argc, char *argv[])
   mri_in = MRIread(argv[1]) ;
   if (!mri_in)
     ErrorExit(ERROR_BADPARM, "%s: could not read input volume %s",
-	      Progname, argv[1]) ;
-  
+              Progname, argv[1]) ;
+
   mri_out = MRIextract(mri_in, NULL, start_x, start_y, start_z, dx, dy, dz) ;
 
   printf("writing cropped volume to %s...\n", argv[2]) ;
@@ -77,7 +107,7 @@ int main(int argc, char *argv[])
 
   MRIfree(&mri_in);
   MRIfree(&mri_out);
-  
+
   exit(0);
 
 }  /*  end main()  */
@@ -105,36 +135,36 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "debug_voxel"))
-    {
-      Gx = atoi(argv[2]) ;
-      Gy = atoi(argv[3]) ;
-      Gz = atoi(argv[4]) ;
-      debug_flag = 1;
-      nargs = 3 ;
-      printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
-    }
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    debug_flag = 1;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)...\n", Gx, Gy, Gz) ;
+  }
   else if (!stricmp(option, "start"))
-    {
-      start_x = atoi(argv[2]) ;
-      start_y = atoi(argv[3]) ;
-      start_z = atoi(argv[4]) ;
-      start_flag = 1;
-      nargs = 3 ;
-      printf("starting voxel is (%d, %d, %d)...\n", start_x, start_y, start_z) ;
-    }
+  {
+    start_x = atoi(argv[2]) ;
+    start_y = atoi(argv[3]) ;
+    start_z = atoi(argv[4]) ;
+    start_flag = 1;
+    nargs = 3 ;
+    printf("starting voxel is (%d, %d, %d)...\n", start_x, start_y, start_z) ;
+  }
   else if (!stricmp(option, "size"))
-    {
-      dx = atoi(argv[2]) ;
-      dy = atoi(argv[3]) ;
-      dz = atoi(argv[4]) ;
-      size_flag = 1;
-      nargs = 3 ;
-      printf("output size is (%d, %d, %d)...\n", dx, dy, dz) ;
+  {
+    dx = atoi(argv[2]) ;
+    dy = atoi(argv[3]) ;
+    dz = atoi(argv[4]) ;
+    size_flag = 1;
+    nargs = 3 ;
+    printf("output size is (%d, %d, %d)...\n", dx, dy, dz) ;
 
-    }
+  }
   else switch (toupper(*option))
     {
     case '?':
@@ -146,6 +176,6 @@ get_option(int argc, char *argv[])
       exit(1) ;
       break ;
     }
-  
+
   return(nargs) ;
 }

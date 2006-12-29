@@ -1,3 +1,31 @@
+/**
+ * @file  xGLutWindow.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:41 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifdef HAVE_GLUT_LIBS
 
 #include <stdlib.h>
@@ -6,34 +34,38 @@
 
 static xGLutWindowRef mLookupList [xGWin_knMaxNumWindows];
 
-static char *ksErrorStrings [xGWin_knNumErrorCodes] = {
-  "No error.",
-  "Invalid window ptr (probably NULL).",
-  "Invalid window signature.",
-  "Memory allocation failed.",
-  "Invalid input paramter.",
-  "Invalid error code."
-};
+static char *ksErrorStrings [xGWin_knNumErrorCodes] =
+  {
+    "No error.",
+    "Invalid window ptr (probably NULL).",
+    "Invalid window signature.",
+    "Memory allocation failed.",
+    "Invalid input paramter.",
+    "Invalid error code."
+  };
 
 xGWin_tErr xGWin_New ( xGLutWindowRef* oppWindow,
-           int             inWidth,
-           int             inHeight,
-           char*           isTitle ) {
+                       int             inWidth,
+                       int             inHeight,
+                       char*           isTitle )
+{
 
   xGWin_tErr     eResult = xGWin_tErr_NoErr;
   xGLutWindowRef this    = NULL;
 
   // check our params.
-  if ( NULL == isTitle 
-       || inWidth < 0 
-       || inHeight < 0 ) {
+  if ( NULL == isTitle
+       || inWidth < 0
+       || inHeight < 0 )
+  {
     eResult = xGWin_tErr_InvalidParameter;
     goto error;
   }
 
   // allocate the window.
   this = (xGLutWindowRef) malloc ( sizeof ( xGLutWindow ) );
-  if ( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = xGWin_tErr_AllocationFailed;
     goto error;
   }
@@ -67,22 +99,24 @@ xGWin_tErr xGWin_New ( xGLutWindowRef* oppWindow,
 
   goto cleanup;
 
- error:
+error:
 
   // delete window if it was allocated.
-  if ( NULL != this ) {
+  if ( NULL != this )
+  {
     free ( this );
   }
 
-  DebugPrint( ("Error %d in xGWin_New: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_New: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
-xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow ) {
+xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow )
+{
 
   xGWin_tErr     eResult = xGWin_tErr_NoErr;
   xGLutWindowRef this    = NULL;
@@ -92,7 +126,8 @@ xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow ) {
 
   // verify it.
   eResult = xGWin_Verify ( this );
-  if ( xGWin_tErr_NoErr != eResult ) {
+  if ( xGWin_tErr_NoErr != eResult )
+  {
     goto error;
   }
 
@@ -101,7 +136,7 @@ xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow ) {
 
   // trash signature.
   this->mSignature = 0x1;
-  
+
   // delete window.
   free ( this );
 
@@ -110,24 +145,26 @@ xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow ) {
 
   goto cleanup;
 
- error:
+error:
 
-  DebugPrint( ("Error %d in xGWin_Delete: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_Delete: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
 xGWin_tErr xGWin_SetWindowTitle ( xGLutWindowRef this,
-          char*          isTitle ) {
+                                  char*          isTitle )
+{
 
   xGWin_tErr eResult = xGWin_tErr_NoErr;
 
   // verify it.
   eResult = xGWin_Verify ( this );
-  if ( xGWin_tErr_NoErr != eResult ) {
+  if ( xGWin_tErr_NoErr != eResult )
+  {
     goto error;
   }
 
@@ -136,26 +173,28 @@ xGWin_tErr xGWin_SetWindowTitle ( xGLutWindowRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  DebugPrint( ("Error %d in xGWin_SetWindowTitle: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_SetWindowTitle: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 
 }
 
 xGWin_tErr xGWin_SetEventHandlerFunc ( xGLutWindowRef          this,
-               xGWin_tEventHandlerFunc ipFunc, 
-               void*                   ipData ) {
+                                       xGWin_tEventHandlerFunc ipFunc,
+                                       void*                   ipData )
+{
 
   xGWin_tErr eResult = xGWin_tErr_NoErr;
 
   // verify it.
   eResult = xGWin_Verify ( this );
-  if ( xGWin_tErr_NoErr != eResult ) {
+  if ( xGWin_tErr_NoErr != eResult )
+  {
     goto error;
   }
 
@@ -165,24 +204,26 @@ xGWin_tErr xGWin_SetEventHandlerFunc ( xGLutWindowRef          this,
 
   goto cleanup;
 
- error:
+error:
 
-  DebugPrint( ("Error %d in xGWin_SetEventHandlerFunc: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_SetEventHandlerFunc: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
-xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this ) {
+xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this )
+{
 
   xGWin_tErr eResult       = xGWin_tErr_NoErr;
   int        nSaveWindowID = 0;
 
   // verify it.
   eResult = xGWin_Verify ( this );
-  if ( xGWin_tErr_NoErr != eResult ) {
+  if ( xGWin_tErr_NoErr != eResult )
+  {
     goto error;
   }
 
@@ -198,24 +239,26 @@ xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this ) {
 
   goto cleanup;
 
- error:
+error:
 
-  DebugPrint( ("Error %d in xGWin_ActivateIdleEvents: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_ActivateIdleEvents: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
-xGWin_tErr xGWin_ActivatePassiveMotionEvents ( xGLutWindowRef  this ) {
+xGWin_tErr xGWin_ActivatePassiveMotionEvents ( xGLutWindowRef  this )
+{
 
   xGWin_tErr eResult       = xGWin_tErr_NoErr;
   int        nSaveWindowID = 0;
 
   // verify it.
   eResult = xGWin_Verify ( this );
-  if ( xGWin_tErr_NoErr != eResult ) {
+  if ( xGWin_tErr_NoErr != eResult )
+  {
     goto error;
   }
 
@@ -231,41 +274,45 @@ xGWin_tErr xGWin_ActivatePassiveMotionEvents ( xGLutWindowRef  this ) {
 
   goto cleanup;
 
- error:
+error:
 
-  DebugPrint( ("Error %d in xGWin_ActivatePassiveMotionEvents: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) ) );
+  DebugPrint( ("Error %d in xGWin_ActivatePassiveMotionEvents: %s",
+               eResult, xGWin_GetErrorString ( eResult ) ) );
 
- cleanup:
-  
+cleanup:
+
   return eResult;
 }
 
-xGWin_tErr xGWin_Verify ( xGLutWindowRef this ) {
+xGWin_tErr xGWin_Verify ( xGLutWindowRef this )
+{
 
   xGWin_tErr eResult = xGWin_tErr_NoErr;
 
   // check ptr.
-  if ( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = xGWin_tErr_InvalidWindowPtr;
     goto error;
   }
 
   // check signature.
-  if ( xGWin_kSignature != this->mSignature ) {
+  if ( xGWin_kSignature != this->mSignature )
+  {
     eResult = xGWin_tErr_InvalidWindowSignature;
     goto error;
   }
 
   goto cleanup;
 
- error:
- cleanup:
+error:
+cleanup:
 
   return eResult;
 }
 
-char* xGWin_GetErrorString ( xGWin_tErr ieCode ) {
+char* xGWin_GetErrorString ( xGWin_tErr ieCode )
+{
 
   if ( ieCode < 0 || ieCode >= xGWin_knNumErrorCodes )
     ieCode = xGWin_tErr_InvalidErrorCode;
@@ -274,7 +321,8 @@ char* xGWin_GetErrorString ( xGWin_tErr ieCode ) {
 }
 
 void xGWin_AddWindowIDToLookupList ( int            inWindowID,
-				     xGLutWindowRef ipWindow ) {
+                                     xGLutWindowRef ipWindow )
+{
 
   /* this used to be a list of number/ptr nodes, but the glut specification
      says that numbers always start at 1 and increase sequentially, so i
@@ -282,10 +330,11 @@ void xGWin_AddWindowIDToLookupList ( int            inWindowID,
      of max windows. */
 
   // check the bounds.
-  if ( inWindowID < 0 
-       || inWindowID >= xGWin_knMaxNumWindows ) {
+  if ( inWindowID < 0
+       || inWindowID >= xGWin_knMaxNumWindows )
+  {
     DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID ) );
+                 inWindowID ) );
     return;
   }
 
@@ -294,13 +343,15 @@ void xGWin_AddWindowIDToLookupList ( int            inWindowID,
 }
 
 void xGWin_GetWindowFromID ( int             inWindowID,
-			     xGLutWindowRef* oppWindow ) {
+                             xGLutWindowRef* oppWindow )
+{
 
   // check the bounds.
-  if ( inWindowID < 0 
-       || inWindowID >= xGWin_knMaxNumWindows ) {
+  if ( inWindowID < 0
+       || inWindowID >= xGWin_knMaxNumWindows )
+  {
     DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID ) );
+                 inWindowID ) );
     return;
   }
 
@@ -308,13 +359,15 @@ void xGWin_GetWindowFromID ( int             inWindowID,
   *oppWindow = mLookupList[inWindowID];
 }
 
-void xGWin_RemoveWindowIDFromLookupList ( int inWindowID ) {
+void xGWin_RemoveWindowIDFromLookupList ( int inWindowID )
+{
 
   // check the bounds.
-  if ( inWindowID < 0 
-       || inWindowID >= xGWin_knMaxNumWindows ) {
+  if ( inWindowID < 0
+       || inWindowID >= xGWin_knMaxNumWindows )
+  {
     DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID ) );
+                 inWindowID ) );
     return;
   }
 
@@ -322,7 +375,8 @@ void xGWin_RemoveWindowIDFromLookupList ( int inWindowID ) {
   mLookupList[inWindowID] = NULL;
 }
 
-void xGWin_PassEventToCurrentWindow ( xGWin_tEventRef ipEvent ) {
+void xGWin_PassEventToCurrentWindow ( xGWin_tEventRef ipEvent )
+{
 
   int            nWindowID = 0;
   xGLutWindowRef pWindow   = NULL;
@@ -333,20 +387,24 @@ void xGWin_PassEventToCurrentWindow ( xGWin_tEventRef ipEvent ) {
   // get a window ptr.
   xGWin_GetWindowFromID ( nWindowID, &pWindow );
 
-  if ( NULL != pWindow ) {
+  if ( NULL != pWindow )
+  {
 
     // call the window's event handler with the window handler data
     // and this event.
     pWindow->mpHandlerFunc ( pWindow->mpHandlerFuncData, ipEvent );
 
-  } else {
+  }
+  else
+  {
 
     DebugPrint( ("xGWin_PassEventToCurrentWindow: Couldn't find current"
-      "window, id is %d", nWindowID ) );
+                 "window, id is %d", nWindowID ) );
   }
 }
 
-void xGWin_PassEventToAllWindows ( xGWin_tEventRef ipEvent ) {
+void xGWin_PassEventToAllWindows ( xGWin_tEventRef ipEvent )
+{
 
   int            nSaveWindowID = 0;
   int            nWindowID     = 0;
@@ -354,19 +412,21 @@ void xGWin_PassEventToAllWindows ( xGWin_tEventRef ipEvent ) {
 
   // save the current window.
   nSaveWindowID = glutGetWindow ();
-  
+
   // for all windows...
-  for ( nWindowID = 0; nWindowID < xGWin_knMaxNumWindows; nWindowID++ ) {
+  for ( nWindowID = 0; nWindowID < xGWin_knMaxNumWindows; nWindowID++ )
+  {
 
     // try to get a window ptr.
     xGWin_GetWindowFromID ( nWindowID, &pWindow );
 
     // if we got one...
-    if ( NULL != pWindow ) {
-      
+    if ( NULL != pWindow )
+    {
+
       // set the window
       glutSetWindow ( nWindowID );
-      
+
       // call the window's event handler with the window handler data
       // and this event.
       pWindow->mpHandlerFunc ( pWindow->mpHandlerFuncData, ipEvent );
@@ -377,9 +437,10 @@ void xGWin_PassEventToAllWindows ( xGWin_tEventRef ipEvent ) {
   glutSetWindow ( nSaveWindowID );
 }
 
-void xGWin_GLutKeyboardCallback ( unsigned char icKey, 
-				  int           inX, 
-				  int           inY ) {
+void xGWin_GLutKeyboardCallback ( unsigned char icKey,
+                                  int           inX,
+                                  int           inY )
+{
 
   xGWin_tEventRef pEvent        = NULL;
   int             nState        = 0;
@@ -406,55 +467,61 @@ void xGWin_GLutKeyboardCallback ( unsigned char icKey,
   /* if control is down, the char we got was not an actual char, it was
      a special character. so we'll add the value of a minus the value of
      ctrl-a. */
-  if( pEvent->mbCtrlKey ) {
+  if ( pEvent->mbCtrlKey )
+  {
     ucModifiedKey = (unsigned char)((int)icKey + ((int)'a' - xGWin_knCtrlA));
     if ( (ucModifiedKey >= 'a' && ucModifiedKey <= 'z')
-	 || (ucModifiedKey >= 'A' && ucModifiedKey <= 'Z') ) {
+         || (ucModifiedKey >= 'A' && ucModifiedKey <= 'Z') )
+    {
       pEvent->mKey = ucModifiedKey;
-    } else {
+    }
+    else
+    {
       /* we also have special codes for the control-number keys. check
-	 those. */
-      switch( icKey ) {
+      those. */
+      switch ( icKey )
+      {
       case xGWin_knCtrl0:
-	pEvent->mKey = '0';
-	break;
+        pEvent->mKey = '0';
+        break;
       case xGWin_knCtrl1:
-	pEvent->mKey = '1';
-	break;
+        pEvent->mKey = '1';
+        break;
       case xGWin_knCtrl2:
-	pEvent->mKey = '2';
-	break;
+        pEvent->mKey = '2';
+        break;
       case xGWin_knCtrl3:
-	pEvent->mKey = '3';
-	break;
+        pEvent->mKey = '3';
+        break;
       case xGWin_knCtrl4:
-	pEvent->mKey = '4';
-	break;
+        pEvent->mKey = '4';
+        break;
       case xGWin_knCtrl5:
-	pEvent->mKey = '5';
-	break;
+        pEvent->mKey = '5';
+        break;
       case xGWin_knCtrl6:
-	pEvent->mKey = '6';
-	break;
+        pEvent->mKey = '6';
+        break;
       case xGWin_knCtrl7:
-	pEvent->mKey = '7';
-	break;
+        pEvent->mKey = '7';
+        break;
       case xGWin_knCtrl8:
-	pEvent->mKey = '8';
-	break;
+        pEvent->mKey = '8';
+        break;
       case xGWin_knCtrl9:
-	pEvent->mKey = '9';
-	break;
+        pEvent->mKey = '9';
+        break;
       }
     }
   }
 
   xGWin_PassEventToCurrentWindow ( pEvent );
-} 
+}
 
 void xGWin_GLutSpecialCallback ( int inKey,
-         int inX, 
-         int inY ) {
+                                 int inX,
+                                 int inY )
+{
 
   xGWin_tEventRef pEvent = NULL;
   int             nState = 0;
@@ -466,7 +533,8 @@ void xGWin_GLutSpecialCallback ( int inKey,
   pEvent->mWhere.mnY = inY;
 
   /* choose the proper key. */
-  switch ( inKey ) {
+  switch ( inKey )
+  {
   case GLUT_KEY_LEFT:
     pEvent->mKey = xGWin_tKey_LeftArrow;
     break;
@@ -506,7 +574,7 @@ void xGWin_GLutSpecialCallback ( int inKey,
     pEvent->mbAltKey = TRUE;
 
   xGWin_PassEventToCurrentWindow ( pEvent );
-} 
+}
 
 /* we use these variables to save the button pressed and modifers when
    the mouse is first pressed down. we use these values when generating
@@ -516,11 +584,12 @@ static xGWin_tButton mButton = 0;
 static tBoolean mbShiftKey = FALSE;
 static tBoolean mbCtrlKey  = FALSE;
 static tBoolean mbAltKey   = FALSE;
- 
+
 void xGWin_GLutMouseCallback ( int inButton,
-             int inState,
-             int inX,
-             int inY ) {
+                               int inState,
+                               int inX,
+                               int inY )
+{
 
   xGWin_tEventRef pEvent = NULL;
   int             nState = 0;
@@ -532,7 +601,7 @@ void xGWin_GLutMouseCallback ( int inButton,
     pEvent->mType = xGWin_tEventType_MouseDown;
   if ( GLUT_UP   == inState )
     pEvent->mType = xGWin_tEventType_MouseUp;
-  
+
   /* find out which button */
   if ( GLUT_LEFT_BUTTON   == inButton )
     pEvent->mButton = 1;
@@ -548,31 +617,41 @@ void xGWin_GLutMouseCallback ( int inButton,
 
   /* finds the state of modifer keys and set booleans appropriatly */
   nState = glutGetModifiers();
-  if ( nState & GLUT_ACTIVE_SHIFT ) {
+  if ( nState & GLUT_ACTIVE_SHIFT )
+  {
     pEvent->mbShiftKey = TRUE;
     mbShiftKey         = TRUE;
-  } else {
+  }
+  else
+  {
     mbShiftKey         = FALSE;
-  }    
-  if ( nState & GLUT_ACTIVE_CTRL ) {
+  }
+  if ( nState & GLUT_ACTIVE_CTRL )
+  {
     pEvent->mbCtrlKey = TRUE;
     mbCtrlKey         = TRUE;
-  } else {
+  }
+  else
+  {
     mbCtrlKey         = FALSE;
   }
-  if ( nState & GLUT_ACTIVE_ALT ) {
+  if ( nState & GLUT_ACTIVE_ALT )
+  {
     pEvent->mbAltKey = TRUE;
     mbAltKey         = TRUE;
-  } else {
+  }
+  else
+  {
     mbAltKey         = FALSE;
   }
 
   xGWin_PassEventToCurrentWindow ( pEvent );
-} 
+}
 
 void xGWin_GLutMotionCallback ( int inX,
-        int inY ) {
-  
+                                int inY )
+{
+
   xGWin_tEventRef pEvent = NULL;
 
   xGWin_NewEvent ( &pEvent );
@@ -595,8 +674,9 @@ void xGWin_GLutMotionCallback ( int inX,
 }
 
 void xGWin_GLutPassiveMotionCallback ( int inX,
-               int inY ) {
-  
+                                       int inY )
+{
+
   xGWin_tEventRef pEvent = NULL;
 
   xGWin_NewEvent ( &pEvent );
@@ -618,8 +698,9 @@ void xGWin_GLutPassiveMotionCallback ( int inX,
   xGWin_PassEventToCurrentWindow ( pEvent );
 }
 
-void xGWin_GLutResizeCallback ( int inWidth, 
-        int inHeight ) {
+void xGWin_GLutResizeCallback ( int inWidth,
+                                int inHeight )
+{
 
   xGWin_tEventRef pEvent;
 
@@ -632,7 +713,8 @@ void xGWin_GLutResizeCallback ( int inWidth,
   xGWin_PassEventToCurrentWindow ( pEvent );
 }
 
-void xGWin_GLutDrawCallback () {
+void xGWin_GLutDrawCallback ()
+{
 
   xGWin_tEventRef pEvent;
 
@@ -643,7 +725,8 @@ void xGWin_GLutDrawCallback () {
   xGWin_PassEventToCurrentWindow ( pEvent );
 }
 
-void xGWin_GLutIdleCallback () {
+void xGWin_GLutIdleCallback ()
+{
 
   xGWin_tEventRef pEvent;
 
@@ -655,7 +738,8 @@ void xGWin_GLutIdleCallback () {
 }
 
 
-void xGWin_RedrawAllWindows () {
+void xGWin_RedrawAllWindows ()
+{
 
   int            nSaveWindowID = 0;
   int            nWindowID     = 0;
@@ -663,19 +747,21 @@ void xGWin_RedrawAllWindows () {
 
   // save the current window.
   nSaveWindowID = glutGetWindow ();
-  
+
   // for all windows...
-  for ( nWindowID = 0; nWindowID < xGWin_knMaxNumWindows; nWindowID++ ) {
+  for ( nWindowID = 0; nWindowID < xGWin_knMaxNumWindows; nWindowID++ )
+  {
 
     // try to get a window ptr.
     xGWin_GetWindowFromID ( nWindowID, &pWindow );
 
     // if we got one...
-    if ( NULL != pWindow ) {
-      
+    if ( NULL != pWindow )
+    {
+
       // set the window
       glutSetWindow ( nWindowID );
-      
+
       // post a redisplay for it.
       glutPostRedisplay ();
     }
@@ -686,7 +772,8 @@ void xGWin_RedrawAllWindows () {
 
 }
 
-void xGWin_NewEvent ( xGWin_tEventRef* oppEvent ) {
+void xGWin_NewEvent ( xGWin_tEventRef* oppEvent )
+{
 
   xGWin_tEventRef this   = NULL;
 
@@ -706,7 +793,8 @@ void xGWin_NewEvent ( xGWin_tEventRef* oppEvent ) {
   *oppEvent = this;
 }
 
-void xGWin_DeleteEvent ( xGWin_tEventRef* ioppEvent ) {
+void xGWin_DeleteEvent ( xGWin_tEventRef* ioppEvent )
+{
 
   xGWin_tEventRef this = NULL;
 
@@ -718,11 +806,13 @@ void xGWin_DeleteEvent ( xGWin_tEventRef* ioppEvent ) {
   *ioppEvent = NULL;
 }
 
-void xGWin_DebugPrintEvent ( xGWin_tEventRef this ) {
+void xGWin_DebugPrintEvent ( xGWin_tEventRef this )
+{
 
   DebugPrint( ("XGWin_tEvent:\n" ) );
 
-  switch ( this->mType ) {
+  switch ( this->mType )
+  {
   case xGWin_tEventType_Draw:
     DebugPrint( ("\tType: Draw\n" ) );
     break;
@@ -746,12 +836,12 @@ void xGWin_DebugPrintEvent ( xGWin_tEventRef this ) {
   }
 
   DebugPrint( ("\tWhere: %d %d\n", this->mWhere.mnX, this->mWhere.mnY
-    ) );
+              ) );
   DebugPrint( ("\tButton: %d\n", this->mButton ) );
   DebugPrint( ("\tKey: %c (%d)\n", this->mKey, (int)this->mKey ) );
   DebugPrint( ("\tModifiers: ctrl %d alt %d shift %d\n",
-    (int)(this->mbCtrlKey), (int)(this->mbAltKey), (int)(this->mbShiftKey)
-    ) );
+               (int)(this->mbCtrlKey), (int)(this->mbAltKey), (int)(this->mbShiftKey)
+              ) );
   DebugPrint( ("\n" ) );
 }
 

@@ -1,3 +1,31 @@
+/**
+ * @file  mgh_filter.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:34 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +56,7 @@ static void four1(float data[],int nn,int isign)
       SWAP(data[j+1],data[i+1]);
     }
     m=n >> 1;
-    while (m >= 2 && j > m) 
+    while (m >= 2 && j > m)
     {
       j -= m;
       m >>= 1;
@@ -77,8 +105,8 @@ static void lowpass(float data[],int nn,float hi)
   for (i=0;i<2*nn;i+=2)
   {
     w = nn/2-fabs((float)i/2-nn/2);
-/*    f = norm*exp(-(nn-fabs(i/2-nn))/(2*hi)); */
-    f = 1/(1+pow(w/wc,3.0)); 
+    /*    f = norm*exp(-(nn-fabs(i/2-nn))/(2*hi)); */
+    f = 1/(1+pow(w/wc,3.0));
     data[i] *= f;
     data[i+1] *= f;
   }
@@ -98,10 +126,10 @@ static void bandpass(float data[], int nn,float lo,float hi)
   for (i=0;i<2*nn;i+=2)
   {
     w = nn/2-fabs((float)i/2-nn/2);
-/*    f = norm*exp(-(nn-fabs(i/2-nn))/(2*hi)); */
-/*    f = 1/(1+pow(wl/(w+0.001),3.0))*1/(1+pow(w/wh,3.0)); */
-    fl = (wl>0)?1-1/(1+pow(w/wl,6.0)):1; 
-    fh = (wh>0)?1/(1+pow(w/wh,6.0)):0; 
+    /*    f = norm*exp(-(nn-fabs(i/2-nn))/(2*hi)); */
+    /*    f = 1/(1+pow(wl/(w+0.001),3.0))*1/(1+pow(w/wh,3.0)); */
+    fl = (wl>0)?1-1/(1+pow(w/wl,6.0)):1;
+    fh = (wh>0)?1/(1+pow(w/wh,6.0)):0;
     f = sqrt(fl*fh);
     data[i] *= f;
     data[i+1] *= f;
@@ -122,7 +150,7 @@ void bpfilter(FLOATTYPE **data,int nchan,int nsamp,float lo,float hi)
       tmpvec[2*j] = data[i][j];
       tmpvec[2*j+1] = 0;
     }
-    bandpass(tmpvec,nsamp,lo,hi); 
+    bandpass(tmpvec,nsamp,lo,hi);
     for (j=0;j<nsamp;j++)
     {
       data[i][j] = tmpvec[2*j]/nsamp;

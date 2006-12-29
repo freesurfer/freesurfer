@@ -58,14 +58,14 @@ double igamc(), ndtri(), exp(), fabs(), log(), sqrt(), lgam();
 #endif
 
 double igami( a, y0 )
-     double a, y0;
+double a, y0;
 {
   double x0, x1, x, yl, yh, y, d, lgm, dithresh;
   int i, dir;
 
   //printf("igami(%f,%f)\n",a,y0);
 
-  if(y0 == 0) return HUGE_VAL;
+  if (y0 == 0) return HUGE_VAL;
 
   /* bound the solution */
   x0 = MAXNUM;
@@ -81,105 +81,105 @@ double igami( a, y0 )
 
   lgm = lgam(a);
 
-  for( i=0; i<10; i++ )
+  for ( i=0; i<10; i++ )
+  {
+    if ( x > x0 || x < x1 )
+      goto ihalve;
+    y = igamc(a,x);
+    if ( y < yl || y > yh )
+      goto ihalve;
+    if ( y < y0 )
     {
-      if( x > x0 || x < x1 )
-        goto ihalve;
-      y = igamc(a,x);
-      if( y < yl || y > yh )
-        goto ihalve;
-      if( y < y0 )
-        {
-          x0 = x;
-          yl = y;
-        }
-      else
-        {
-          x1 = x;
-          yh = y;
-        }
-      /* compute the derivative of the function at this point */
-      d = (a - 1.0) * log(x) - x - lgm;
-      if( d < -MAXLOG )
-        goto ihalve;
-      d = -exp(d);
-      /* compute the step to the next approximation of x */
-      d = (y - y0)/d;
-      if( fabs(d/x) < MACHEP )
-        goto done;
-      x = x - d;
+      x0 = x;
+      yl = y;
     }
+    else
+    {
+      x1 = x;
+      yh = y;
+    }
+    /* compute the derivative of the function at this point */
+    d = (a - 1.0) * log(x) - x - lgm;
+    if ( d < -MAXLOG )
+      goto ihalve;
+    d = -exp(d);
+    /* compute the step to the next approximation of x */
+    d = (y - y0)/d;
+    if ( fabs(d/x) < MACHEP )
+      goto done;
+    x = x - d;
+  }
 
   /* Resort to interval halving if Newton iteration did not converge. */
- ihalve:
+ihalve:
 
   d = 0.0625;
-  if( x0 == MAXNUM )
+  if ( x0 == MAXNUM )
+  {
+    if ( x <= 0.0 )
+      x = 1.0;
+    while ( x0 == MAXNUM )
     {
-      if( x <= 0.0 )
-        x = 1.0;
-      while( x0 == MAXNUM )
-        {
-          x = (1.0 + d) * x;
-          y = igamc( a, x );
-          if( y < y0 )
-            {
-              x0 = x;
-              yl = y;
-              break;
-            }
-          d = d + d;
-        }
+      x = (1.0 + d) * x;
+      y = igamc( a, x );
+      if ( y < y0 )
+      {
+        x0 = x;
+        yl = y;
+        break;
+      }
+      d = d + d;
     }
+  }
   d = 0.5;
   dir = 0;
 
-  for( i=0; i<400; i++ )
+  for ( i=0; i<400; i++ )
+  {
+    x = x1  +  d * (x0 - x1);
+    y = igamc( a, x );
+    lgm = (x0 - x1)/(x1 + x0);
+    if ( fabs(lgm) < dithresh )
+      break;
+    lgm = (y - y0)/y0;
+    if ( fabs(lgm) < dithresh )
+      break;
+    if ( x <= 0.0 )
+      break;
+    if ( y >= y0 )
     {
-      x = x1  +  d * (x0 - x1);
-      y = igamc( a, x );
-      lgm = (x0 - x1)/(x1 + x0);
-      if( fabs(lgm) < dithresh )
-        break;
-      lgm = (y - y0)/y0;
-      if( fabs(lgm) < dithresh )
-        break;
-      if( x <= 0.0 )
-        break;
-      if( y >= y0 )
-        {
-          x1 = x;
-          yh = y;
-          if( dir < 0 )
-            {
-              dir = 0;
-              d = 0.5;
-            }
-          else if( dir > 1 )
-            d = 0.5 * d + 0.5;
-          else
-            d = (y0 - yl)/(yh - yl);
-          dir += 1;
-        }
+      x1 = x;
+      yh = y;
+      if ( dir < 0 )
+      {
+        dir = 0;
+        d = 0.5;
+      }
+      else if ( dir > 1 )
+        d = 0.5 * d + 0.5;
       else
-        {
-          x0 = x;
-          yl = y;
-          if( dir > 0 )
-            {
-              dir = 0;
-              d = 0.5;
-            }
-          else if( dir < -1 )
-            d = 0.5 * d;
-          else
-            d = (y0 - yl)/(yh - yl);
-          dir -= 1;
-        }
+        d = (y0 - yl)/(yh - yl);
+      dir += 1;
     }
-  if( x == 0.0 )
+    else
+    {
+      x0 = x;
+      yl = y;
+      if ( dir > 0 )
+      {
+        dir = 0;
+        d = 0.5;
+      }
+      else if ( dir < -1 )
+        d = 0.5 * d;
+      else
+        d = (y0 - yl)/(yh - yl);
+      dir -= 1;
+    }
+  }
+  if ( x == 0.0 )
     mtherr( "igami", UNDERFLOW );
 
- done:
+done:
   return( x );
 }

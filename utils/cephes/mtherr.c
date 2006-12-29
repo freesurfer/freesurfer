@@ -64,20 +64,21 @@ int merror = 0;
  * messages is bound to the error codes defined
  * in mconf.h.
  */
-static char *ermsg[7] = {
-  "unknown",      /* error code 0 */
-  "domain",       /* error code 1 */
-  "singularity",  /* et seq.      */
-  "overflow",
-  "underflow",
-  "total loss of precision",
-  "partial loss of precision"
-};
+static char *ermsg[7] =
+  {
+    "unknown",      /* error code 0 */
+    "domain",       /* error code 1 */
+    "singularity",  /* et seq.      */
+    "overflow",
+    "underflow",
+    "total loss of precision",
+    "partial loss of precision"
+  };
 
 
 int mtherr( name, code )
-     char *name;
-     int code;
+char *name;
+int code;
 {
 
   /* Display string passed by calling program,
@@ -92,7 +93,7 @@ int mtherr( name, code )
   /* Display error message defined
    * by the code argument.
    */
-  if( (code <= 0) || (code >= 7) )
+  if ( (code <= 0) || (code >= 7) )
     code = 0;
   printf( "%s error\n***\n", ermsg[code] );
   fflush(stdout);

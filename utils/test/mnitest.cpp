@@ -1,3 +1,31 @@
+/**
+ * @file  mnitest.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:44 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mnitest.cpp
 //
@@ -7,7 +35,8 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+extern "C"
+{
 
 #include "macros.h"
 #include "matrix.h"
@@ -22,15 +51,15 @@ bool isEqual(MATRIX *m1, MATRIX *m2)
 {
   for (int j=1; j < 5; ++j)
     for (int i=1; i < 5; ++i)
+    {
+      if (!FZERO(*MATRIX_RELT(m1, i, j) - *MATRIX_RELT(m2, i, j)))
       {
-        if (!FZERO(*MATRIX_RELT(m1, i, j) - *MATRIX_RELT(m2, i, j)))
-          {
-            cout << "(" << i << ", " << j << ")" << endl;
-            cout << *MATRIX_RELT(m1, i, j) << 
-              "      " << *MATRIX_RELT(m2, i, j) << endl;
-            return false;
-          }
+        cout << "(" << i << ", " << j << ")" << endl;
+        cout << *MATRIX_RELT(m1, i, j) <<
+        "      " << *MATRIX_RELT(m2, i, j) << endl;
+        return false;
       }
+    }
   cout.flush();
   return true;
 }
@@ -108,7 +137,7 @@ void initialize_matrices
   *MATRIX_RELT(m4, 2, 3) = 0.133943930268288;
   *MATRIX_RELT(m4, 2, 4) = -22.0936622619629;
   *MATRIX_RELT(m4, 3, 1) = -0.0524738132953644;
-  *MATRIX_RELT(m4, 3, 2) = -0.158202826976776; 
+  *MATRIX_RELT(m4, 3, 2) = -0.158202826976776;
   *MATRIX_RELT(m4, 3, 3) = 1.1253559589386;
   *MATRIX_RELT(m4, 3, 4) = -0.760713577270508;
   *MATRIX_RELT(m4, 4, 1) = 0;
@@ -170,40 +199,40 @@ int main(int argc, char *argv[])
   // old way always convert it to vox-to-vox
 #if 0
   if (!isEqual(lta1->xforms[0].m_L, m1))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
 #endif
   cout << "bruce2.xfm" << endl;
   lta2 = LTAread(file2);
   LTAprint(stdout, lta2);
 #if 0
   if (!isEqual(lta2->xforms[0].m_L, m2))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
 #endif
   cout << "david.xfm" << endl;
   lta3 = LTAread(file3);
   LTAprint(stdout, lta3);
 #if 0
   if (!isEqual(lta3->xforms[0].m_L, m3))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
-#endif  
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
+#endif
   cout << "tosa.xfm" << endl;
   lta4 = LTAread(file4);
   LTAprint(stdout, lta4);
 #if 0
   if (!isEqual(lta4->xforms[0].m_L, m4))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
 #endif
   LTAfree(&lta1);
   LTAfree(&lta2);
@@ -218,47 +247,47 @@ int main(int argc, char *argv[])
   lta1 = LTAreadEx(file1);
   LTAprint(stdout, lta1);
   if (!isEqual(lta1->xforms[0].m_L, m1))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
   cout << "bruce2.xfm" << endl;
   cout << "////////////////////////////////////" << endl;
   lta2 = LTAreadEx(file2);
   LTAprint(stdout, lta2);
   if (!isEqual(lta2->xforms[0].m_L, m2))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
   cout << "david.xfm" << endl;
   cout << "////////////////////////////////////" << endl;
   lta3 = LTAreadEx(file3);
   LTAprint(stdout, lta3);
   if (!isEqual(lta3->xforms[0].m_L, m3))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
   cout << "tosa.xfm" << endl;
   cout << "////////////////////////////////////" << endl;
   lta4 = LTAreadEx(file4);
   LTAprint(stdout, lta4);
   if (!isEqual(lta4->xforms[0].m_L, m4))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
   cout << "tosa2.xfm" << endl;
   cout << "////////////////////////////////////" << endl;
   lta5 = LTAreadEx(file5);
   LTAprint(stdout, lta5);
   MatrixPrint(stdout, m5);
   if (!isEqual(lta5->xforms[0].m_L, m5))
-    {
-      cerr << "lta1 read wrong" << endl;
-      return -1;
-    }
+  {
+    cerr << "lta1 read wrong" << endl;
+    return -1;
+  }
 
   LTAfree(&lta1);
   LTAfree(&lta2);

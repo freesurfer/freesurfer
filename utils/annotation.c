@@ -1,3 +1,31 @@
+/**
+ * @file  annotation.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:30 $
+ *    $Revision: 1.16 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +47,8 @@ typedef struct
   int    r, g, b ;
   int    annotation ;
   char   name[100] ;
-} ATABLE_ELT ;
+}
+ATABLE_ELT ;
 
 static ATABLE_ELT *atable ;
 static int num_entries = 0 ;
@@ -30,7 +59,7 @@ int print_annotation_table(FILE *fp)
   int n;
   if (num_entries <= 0) read_annotation_table() ;
 
-  for(n = 0; n < num_entries; n++)
+  for (n = 0; n < num_entries; n++)
     fprintf(fp,"%3d   %s\n",atable[n].index,atable[n].name);
   return(0);
 }
@@ -41,16 +70,16 @@ int print_annotation_colortable(FILE *fp)
   int n;
   if (num_entries <= 0) read_annotation_table() ;
 
-  for(n = 0; n < num_entries; n++)
+  for (n = 0; n < num_entries; n++)
     fprintf(fp,"%3d   %-40s  %3d %3d %3d  0\n",atable[n].index,atable[n].name,
-	    atable[n].r,atable[n].g,atable[n].b);
+            atable[n].r,atable[n].g,atable[n].b);
   return(0);
 }
 
 int
 read_named_annotation_table(char *name)
 {
-  
+
   FILE  *fp ;
   char  *cp, fname[STRLEN], line[STRLEN] ;
   int   i ;
@@ -60,13 +89,14 @@ read_named_annotation_table(char *name)
 
   cp = strchr(name, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
-    {
-      cp = getenv("FREESURFER_HOME") ;
-      if (!cp)
-	cp = "." ;
-      sprintf(fname, "%s/%s", cp, name) ;
-    }
-  else{
+  {
+    cp = getenv("FREESURFER_HOME") ;
+    if (!cp)
+      cp = "." ;
+    sprintf(fname, "%s/%s", cp, name) ;
+  }
+  else
+  {
     cp = "" ;  /* use path in name */
     sprintf(fname, "%s", name) ;
   }
@@ -85,7 +115,8 @@ read_named_annotation_table(char *name)
     if (!cp)
       break ;
     num_entries++ ;
-  } while (cp && !feof(fp)) ;
+  }
+  while (cp && !feof(fp)) ;
 
   rewind(fp) ;
 
@@ -122,7 +153,7 @@ read_annotation_table(void)
   if (!cp)
     cp = "." ;
 
-  if(annotation_table_file == NULL)
+  if (annotation_table_file == NULL)
     sprintf(fname, "%s/Simple_surface_labels2002.txt", cp) ;
   else
     sprintf(fname, "%s",annotation_table_file);
@@ -141,7 +172,8 @@ read_annotation_table(void)
     if (!cp)
       break ;
     num_entries++ ;
-  } while (cp && !feof(fp)) ;
+  }
+  while (cp && !feof(fp)) ;
 
   rewind(fp) ;
 
@@ -255,7 +287,7 @@ annotation_to_name(int annotation, int *pindex)
 }
 /*------------------------------------------------------------
   annotation2label() - converts an annotation into a label
-  given the index of the annotation in the color table. 
+  given the index of the annotation in the color table.
   If no vertices with the index can be found, returns NULL.
 ------------------------------------------------------------*/
 LABEL *annotation2label(int annotid, MRIS *Surf)
@@ -264,19 +296,20 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   VERTEX *vtx;
   LABEL *label;
 
-  // Count number of points in the label 
+  // Count number of points in the label
   npoints = 0;
-  for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+  for (vtxno = 0; vtxno < Surf->nvertices; vtxno++)
+  {
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
     // Given this annotation, find its index in the ctab
-   if (Surf->ct)
+    if (Surf->ct)
       CTABfindAnnotation(Surf->ct, annot, &vtxannotid);
     else
       vtxannotid = annotation_to_index(annot);
-    if(vtxannotid == annotid) npoints++;
+    if (vtxannotid == annotid) npoints++;
   }
-  if(npoints==0) return(NULL);
+  if (npoints==0) return(NULL);
 
   // Allocate the label
   label = LabelAlloc(npoints,"","");
@@ -284,14 +317,16 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
 
   // Fill the label
   npoints = 0;
-  for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+  for (vtxno = 0; vtxno < Surf->nvertices; vtxno++)
+  {
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
     if (Surf->ct)
       CTABfindAnnotation(Surf->ct, annot, &vtxannotid);
     else
       vtxannotid = annotation_to_index(annot);
-    if(vtxannotid == annotid){
+    if (vtxannotid == annotid)
+    {
       label->lv[npoints].vno = vtxno;
       label->lv[npoints].x = vtx->x;
       label->lv[npoints].y = vtx->y;
@@ -303,19 +338,20 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
 }
 
 
-int set_atable_from_ctable(COLOR_TABLE *pct){
+int set_atable_from_ctable(COLOR_TABLE *pct)
+{
   CTE *cte;
   int i;
 
-  if(pct == NULL)
+  if (pct == NULL)
     return(ERROR_BAD_PARM);
-  
+
   if (num_entries > 0) // atable already set
     return(NO_ERROR);
 
   num_entries = pct->nentries;
 
-  if(num_entries <= 0)
+  if (num_entries <= 0)
     return(ERROR_BAD_PARM);
 
   atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT)) ;
@@ -323,12 +359,12 @@ int set_atable_from_ctable(COLOR_TABLE *pct){
   {
     cte = pct->entries[i];
     if (NULL != cte)
-      {
-	atable[i].index = i;
-	CTABcopyName(pct, i, atable[i].name, sizeof(atable[i].name));
-	CTABrgbAtIndexi(pct, i, &atable[i].r, &atable[i].g, &atable[i].b );
-	CTABannotationAtIndex(pct, i, &atable[i].annotation);
-      }
+    {
+      atable[i].index = i;
+      CTABcopyName(pct, i, atable[i].name, sizeof(atable[i].name));
+      CTABrgbAtIndexi(pct, i, &atable[i].r, &atable[i].g, &atable[i].b );
+      CTABannotationAtIndex(pct, i, &atable[i].annotation);
+    }
   }
 
   return(NO_ERROR) ;

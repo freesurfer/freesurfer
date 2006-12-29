@@ -1,3 +1,31 @@
+/**
+ * @file  mriFunctionalDataAccess.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:34 $
+ *    $Revision: 1.42 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <math.h>
 #include <sys/types.h>
@@ -29,36 +57,36 @@
 
 
 char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
-  "No error.",
-  "Invalid object signature.",
-  "Invalid ptr to volume (was probably NULL).",
-  "Path not found.",
-  "No stem provided and it couldn't be guessed.",
-  "Data not found in specified path.",
-  "Header file not found in specified path.",
-  "Couldn't allocate volume (memory allocation failed).",
-  "Unrecognized header format.",
-  "Questionable header format (found expected types of values, "
-  "but keywords were different).",
-  "Couldn't find a recognizable data file.",
-  "Couldn't allocate storage (memory allocation failed).",
-  "Couldn't allocate MRI.",
-  "Couldn't allocate matrix (not my fault).",
-  "Couldn't load MRI volume.",
-  "Couldn't read register file.",
-  "Couldn't calculate deviations.",
-  "Error performing an operation on a transform.",
-  "Invalid parameter",
-  "Invalid time resolution, number of time points must be "
-  "evenly divisble by it.",
-  "Invalid number of pre stim time points.",
-  "Invalid functional voxel, out of bounds.",
-  "Invalid condition (is it zero-based?)",
-  "Invalid time point (is it zero-based?)",
-  "Couldn't transform mask into local space.",
-  "Error performing FDR.",
-  "Invalid error code."
-};
+      "No error.",
+      "Invalid object signature.",
+      "Invalid ptr to volume (was probably NULL).",
+      "Path not found.",
+      "No stem provided and it couldn't be guessed.",
+      "Data not found in specified path.",
+      "Header file not found in specified path.",
+      "Couldn't allocate volume (memory allocation failed).",
+      "Unrecognized header format.",
+      "Questionable header format (found expected types of values, "
+      "but keywords were different).",
+      "Couldn't find a recognizable data file.",
+      "Couldn't allocate storage (memory allocation failed).",
+      "Couldn't allocate MRI.",
+      "Couldn't allocate matrix (not my fault).",
+      "Couldn't load MRI volume.",
+      "Couldn't read register file.",
+      "Couldn't calculate deviations.",
+      "Error performing an operation on a transform.",
+      "Invalid parameter",
+      "Invalid time resolution, number of time points must be "
+      "evenly divisble by it.",
+      "Invalid number of pre stim time points.",
+      "Invalid functional voxel, out of bounds.",
+      "Invalid condition (is it zero-based?)",
+      "Invalid time point (is it zero-based?)",
+      "Couldn't transform mask into local space.",
+      "Error performing FDR.",
+      "Invalid error code."
+    };
 
 // ===================================================================== VOLUME
 
@@ -67,7 +95,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
                      FunD_tRegistrationType iRegistrationType,
                      char*                  isRegistrationFileName,
                      int                    inScalarSize,
-                     mriVolumeRef           iAnatomicalVolume ) {
+                     mriVolumeRef           iAnatomicalVolume )
+{
 
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
@@ -95,10 +124,13 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
      the base path of the file name. */
   DebugNote( ("Saving file name") );
   strcpy( this->msFileName, isFileName );
-  if( NULL != isRegistrationFileName ) {
+  if ( NULL != isRegistrationFileName )
+  {
     DebugNote( ("Saving registration file name") );
     strcpy( this->msRegistrationFileName, isRegistrationFileName );
-  } else {
+  }
+  else
+  {
     strcpy( this->msRegistrationFileName, "" );
   }
 
@@ -142,24 +174,27 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   /* Try to parse a stem header if we have a stem specified. */
   DebugNote( ("Trying stem header") );
   eResult = FunD_FindAndParseStemHeader_( this );
-  if( FunD_tErr_NoError != eResult ) {
+  if ( FunD_tErr_NoError != eResult )
+  {
 
     DebugNote( ("Guess meta information") );
     eResult = FunD_GuessMetaInformation_( this );
   }
 
   /* Try to reshape if we can. */
-  if( inScalarSize > 0 ) {
+  if ( inScalarSize > 0 )
+  {
     DebugNote( ("Trying reshape with %d values", inScalarSize) );
     FunD_ReshapeIfScalar_( this, inScalarSize, NULL );
   }
 
   /* If we're not scalar by now, parse the registration file */
-  if( !this->mbScalar ) {
+  if ( !this->mbScalar )
+  {
     DebugNote( ("Parsing registration file") );
     eResult = FunD_ParseRegistrationAndInitMatricies_( this,
-                                                       iRegistrationType,
-                                                       iAnatomicalVolume );
+              iRegistrationType,
+              iAnatomicalVolume );
     DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   }
 
@@ -176,7 +211,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
 
   /* delete data if no good */
-  if( NULL != this ) {
+  if ( NULL != this )
+  {
     free( this );
     this = NULL;
   }
@@ -188,7 +224,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   return eResult;
 }
 
-FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume ) {
+FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume )
+{
 
   FunD_tErr            eResult = FunD_tErr_NoError;
   mriFunctionalDataRef this    = NULL;
@@ -210,21 +247,23 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume ) {
   this->mSignature = 0x1;
 
   /* Delete other data. */
-  if( NULL != this->mpData )
+  if ( NULL != this->mpData )
     MRIfree( &this->mpData );
-  if( NULL != this->mCovMtx ) {
-    for( column = 0;
-         column < (this->mNumConditions-1) * this->mNumTimePoints;
-         column++ ) {
+  if ( NULL != this->mCovMtx )
+  {
+    for ( column = 0;
+          column < (this->mNumConditions-1) * this->mNumTimePoints;
+          column++ )
+    {
       free( this->mCovMtx[column] );
     }
     free( this->mCovMtx );
   }
 
   /* delete our transformers. */
-  if( NULL != this->mIdxToIdxTransform )
+  if ( NULL != this->mIdxToIdxTransform )
     Trns_Delete( &(this->mIdxToIdxTransform) );
-  if( NULL != this->mOriginalIdxToIdxTransform )
+  if ( NULL != this->mOriginalIdxToIdxTransform )
     Trns_Delete( &(this->mOriginalIdxToIdxTransform) );
 
   /* delete the structure. */
@@ -243,7 +282,8 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume ) {
 
 FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
                                   int                  inNumValues,
-                                  tBoolean*            obReshaped ) {
+                                  tBoolean*            obReshaped )
+{
 
   FunD_tErr eResult        = FunD_tErr_NoError;
   MRI*      reshapedVolume = NULL;
@@ -255,8 +295,9 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
   DebugAssertThrowX( (inNumValues > 0), eResult, FunD_tErr_InvalidParameter );
 
-  if( this->mpData->width * this->mpData->height * this->mpData->depth ==
-      inNumValues ) {
+  if ( this->mpData->width * this->mpData->height * this->mpData->depth ==
+       inNumValues )
+  {
 
     /* Reshape it so that everything is in the x direction. */
     DebugNote( ("Calling mri_reshape") );
@@ -275,7 +316,8 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
 
   }
 
-  if( NULL != obReshaped ) {
+  if ( NULL != obReshaped )
+  {
     DebugNote( ("Returning whether it was reshaped") );
     *obReshaped = this->mbScalar = TRUE;
   }
@@ -283,7 +325,8 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
 
-  if( NULL != reshapedVolume ) {
+  if ( NULL != reshapedVolume )
+  {
     DebugNote( ("Freeing reshaped volume") );
     MRIfree( &reshapedVolume );
   }
@@ -295,7 +338,8 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult        = FunD_tErr_NoError;
   tBoolean  bFoundFile = FALSE;
@@ -328,8 +372,10 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
   pCurChar = sMRIFileName;
   pBaseEnd = pCurChar;
-  while( NULL != pCurChar && *pCurChar != '\0' ) {
-    if( '_' == *pCurChar ) {
+  while ( NULL != pCurChar && *pCurChar != '\0' )
+  {
+    if ( '_' == *pCurChar )
+    {
       pBaseEnd = pCurChar;
     }
     pCurChar++;
@@ -344,22 +390,26 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   /* Try to open it. */
   DebugNote( ("Trying to open %s", sFileName) );
   pHeader = fopen( sFileName, "r" );
-  if( NULL != pHeader ) {
+  if ( NULL != pHeader )
+  {
     fclose( pHeader );
     bFoundFile = TRUE;
   }
 
   /* One more guess. Take everything up to the last dot and then add
      the suffix. */
-  if( !bFoundFile ) {
+  if ( !bFoundFile )
+  {
 
     /* Copy the name into a new buffer. Start at the beginning and go
        through the chars, looking for the last . */
     xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
     pCurChar = sMRIFileName;
     pBaseEnd = pCurChar;
-    while( NULL != pCurChar && *pCurChar != '\0' ) {
-      if( '.' == *pCurChar ) {
+    while ( NULL != pCurChar && *pCurChar != '\0' )
+    {
+      if ( '.' == *pCurChar )
+      {
         pBaseEnd = pCurChar;
       }
       pCurChar++;
@@ -374,7 +424,8 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
     /* Try to open it. */
     DebugNote( ("Trying to open %s", sFileName) );
     pHeader = fopen( sFileName, "r" );
-    if( NULL != pHeader ) {
+    if ( NULL != pHeader )
+    {
       fclose( pHeader );
       bFoundFile = TRUE;
     }
@@ -387,12 +438,13 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   pHeader = fopen( sFileName, "r" );
 
   /* Start scanning for keywords... */
-  while(!feof( pHeader ) ) {
+  while (!feof( pHeader ) )
+  {
 
     /* grab a keyword */
     DebugNote( ("Reading a keyword") );
     nValuesRead = fscanf( pHeader, "%s", sKeyword );
-    if( feof( pHeader ) ) break;
+    if ( feof( pHeader ) ) break;
     DebugAssertThrowX( (1 == nValuesRead && !feof( pHeader )),
                        eResult, FunD_tErr_UnrecognizedHeaderFormat );
 
@@ -400,40 +452,53 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
     bGood = TRUE;
 
     /* look at the keyword */
-    if( strcmp( sKeyword, "TER" ) == 0 ) {
+    if ( strcmp( sKeyword, "TER" ) == 0 )
+    {
       DebugNote( ("Reading TER") );
       nValuesRead = fscanf( pHeader, "%f", &this->mTimeResolution );
       bGood = (1 == nValuesRead);
 
-    } else if( strcmp( sKeyword, "TPreStim" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "TPreStim" ) == 0 )
+    {
       DebugNote( ("Reading TPreStim") );
       nValuesRead = fscanf( pHeader, "%f", &fPreStimSecs );
       bGood = (1 == nValuesRead);
 
-    } else if( strcmp( sKeyword, "nCond" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "nCond" ) == 0 )
+    {
       DebugNote( ("Reading nCond") );
       nValuesRead = fscanf( pHeader, "%d", &this->mNumConditions );
       bGood = (1 == nValuesRead);
       this->mbNullConditionPresent = TRUE;
 
-    } else if( strcmp( sKeyword, "Nh" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "Nh" ) == 0 )
+    {
       DebugNote( ("Reading Nh") );
       nValuesRead = fscanf( pHeader, "%d", &this->mNumTimePoints );
       bGood = (1 == nValuesRead);
 
-    } else if( strcmp( sKeyword, "Npercond" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "Npercond" ) == 0 )
+    {
       DebugNote( ("Reading Npercond") );
       nNumValues = this->mNumConditions;
-      for( nValue = 0; nValue < nNumValues; nValue++ )
+      for ( nValue = 0; nValue < nNumValues; nValue++ )
         fscanf( pHeader, "%*d" );
 
-    } else if( strcmp( sKeyword, "SumXtX" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "SumXtX" ) == 0 )
+    {
       DebugNote( ("Reading SumXtX") );
       nNumValues = pow( this->mNumTimePoints * (this->mNumConditions-1), 2 );
-      for( nValue = 0; nValue < nNumValues; nValue++ )
+      for ( nValue = 0; nValue < nNumValues; nValue++ )
         fscanf( pHeader, "%*d" );
 
-    } else if( strcmp( sKeyword, "hCovMtx" ) == 0 ) {
+    }
+    else if ( strcmp( sKeyword, "hCovMtx" ) == 0 )
+    {
 
       /* Allocate the covariance matrix. It's the size of the number
          of time points times conditions (minus null condition) on both
@@ -447,9 +512,10 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
 
       /* The cov mtx doesn't have values for the null condition, so we
          start with 1 instead of 0 in our loops here, and use that-1. */
-      for( nCovMtxRow = 0;
-           nCovMtxRow < this->mNumTimePoints * (this->mNumConditions-1);
-           nCovMtxRow++ ) {
+      for ( nCovMtxRow = 0;
+            nCovMtxRow < this->mNumTimePoints * (this->mNumConditions-1);
+            nCovMtxRow++ )
+      {
 
         DebugNote( ("Allocating cov mtx col %d", nCovMtxCol) );
         this->mCovMtx[nCovMtxRow] =
@@ -458,9 +524,10 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
         DebugAssertThrowX( (NULL != this->mCovMtx),
                            eResult, FunD_tErr_CouldntAllocateStorage );
 
-        for( nCovMtxCol = 0;
-             nCovMtxCol < this->mNumTimePoints * (this->mNumConditions-1);
-             nCovMtxCol++ ) {
+        for ( nCovMtxCol = 0;
+              nCovMtxCol < this->mNumTimePoints * (this->mNumConditions-1);
+              nCovMtxCol++ )
+        {
 
 
           DebugNote( ("Reading cov mtx value %d, %d",
@@ -494,7 +561,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   exit(1);
   EndDebugCatch;
 
-  if( NULL != pHeader )
+  if ( NULL != pHeader )
     fclose( pHeader );
 
   DebugExitFunction;
@@ -502,7 +569,8 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   return eResult;
 }
 
-FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -531,8 +599,9 @@ FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this ) {
 
 FunD_tErr
 FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
-                                          FunD_tRegistrationType iType,
-                                          mriVolumeRef    iAnatomicalVolume ) {
+    FunD_tRegistrationType iType,
+    mriVolumeRef    iAnatomicalVolume )
+{
   FunD_tErr    eResult          = FunD_tErr_NoError;
   char         sBasePath[1024]  = "";
   char         sFileName[1024]  = "";
@@ -546,7 +615,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   char         sKeyWord[1024]   = "";
   tBoolean     bGood            = FALSE;
   FunD_tConversionMethod
-    convMethod       = FunD_tConversionMethod_FCF;
+  convMethod       = FunD_tConversionMethod_FCF;
   int          eMRI             = ERROR_NONE;
 
   DebugEnterFunction( ("FunD_ParseRegistrationAndInitMatricies_( this=%p )",
@@ -565,7 +634,8 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   /* Switch on the registration type. We'll need to get some info out
      of the registration file if they specified one, or generate some
      default info. */
-  switch( iType ) {
+  switch ( iType )
+  {
 
     /* These both try to load files, so we'll share some code. */
   case FunD_tRegistration_File:
@@ -574,12 +644,15 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     /* If file, try to load a file specified in
        msRegistrationFileName. If none was specified or we can't load
        the specified one, return an error. */
-    if( FunD_tRegistration_File == iType ) {
+    if ( FunD_tRegistration_File == iType )
+    {
 
       DebugNote( ("Copying registration file name") );
       strcpy( sFileName, this->msRegistrationFileName );
 
-    } else {
+    }
+    else
+    {
 
       /* Construct a registration name based on our data location and
          try to open that. If we didn't find one, return an error.
@@ -587,8 +660,10 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
       DebugNote( ("Looking for last slash") );
       xUtil_strncpy( sBasePath, this->msFileName, sizeof(sBasePath));
       pCurChar = sBasePath;
-      while( NULL != pCurChar && *pCurChar != '\0' ) {
-        if( '/' == *pCurChar ) {
+      while ( NULL != pCurChar && *pCurChar != '\0' )
+      {
+        if ( '/' == *pCurChar )
+        {
           pBaseEnd = pCurChar;
         }
         pCurChar++;
@@ -624,8 +699,9 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
 
     /* If the ps and thickness from our volume does not match the ps and
        thickness in the registration file, complain */
-    if( !FEQUAL(this->mpData->xsize, theRegInfo->in_plane_res) ||
-        !FEQUAL(this->mpData->zsize, theRegInfo->slice_thickness) ) {
+    if ( !FEQUAL(this->mpData->xsize, theRegInfo->in_plane_res) ||
+         !FEQUAL(this->mpData->zsize, theRegInfo->slice_thickness) )
+    {
 
       DebugPrint( ("\tWARNING: MRI xsize and zsize are not equal to "
                    "reginfo in_plane_res and slice_thickness:\n"
@@ -651,22 +727,27 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     convMethod = FunD_tConversionMethod_FCF;
 
     DebugNote( ("Looking for conversion keyword") );
-    while( !feof( fRegister )) {
+    while ( !feof( fRegister ))
+    {
 
       /* read line and look for string */
       fgets( sLine, 1024, fRegister );
       if (feof(fRegister))
         break;
       bGood = sscanf( sLine, "%s", sKeyWord );
-      if( bGood ) {
+      if ( bGood )
+      {
 
-        if( strcmp( sKeyWord, FunD_ksConversionMethod_FCF ) == 0 ) {
+        if ( strcmp( sKeyWord, FunD_ksConversionMethod_FCF ) == 0 )
+        {
           convMethod = FunD_tConversionMethod_FCF;
         }
-        if( strcmp( sKeyWord, FunD_ksConversionMethod_FFF ) == 0 ) {
+        if ( strcmp( sKeyWord, FunD_ksConversionMethod_FFF ) == 0 )
+        {
           convMethod = FunD_tConversionMethod_FFF;
         }
-        if( strcmp( sKeyWord, FunD_ksConversionMethod_Round ) == 0 ) {
+        if ( strcmp( sKeyWord, FunD_ksConversionMethod_Round ) == 0 )
+        {
           convMethod = FunD_tConversionMethod_Round;
         }
       }
@@ -715,7 +796,8 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   return eResult;
 }
 
-FunD_tErr FunD_RestoreRegistration ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_RestoreRegistration ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -749,16 +831,17 @@ FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
                                       int                  inZMin,
                                       int                  inXMax,
                                       int                  inYMax,
-                                      int                  inZMax ) {
+                                      int                  inZMax )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction
-    (
-     ("FunD_SetClientCoordBounds( this=%p, inXMin=%d, "
-      "inYMin=%d, inZMin=%d, inXMax=%d, inYMax=%d, inZMax=%d )",
-      this, inXMin, inYMin, inZMin, inXMax, inYMax, inZMax)
-     );
+  (
+    ("FunD_SetClientCoordBounds( this=%p, inXMin=%d, "
+     "inYMin=%d, inZMin=%d, inXMax=%d, inYMax=%d, inZMax=%d )",
+     this, inXMin, inYMin, inZMin, inXMax, inYMax, inZMax)
+  );
 
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
@@ -792,7 +875,8 @@ FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
-                                     FunD_tConversionMethod iMethod ) {
+                                     FunD_tConversionMethod iMethod )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -821,7 +905,8 @@ FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetSampleType ( mriFunctionalDataRef this,
-                               FunD_tSampleType* oType ) {
+                               FunD_tSampleType* oType )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -850,7 +935,8 @@ FunD_tErr FunD_GetSampleType ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this,
-                               FunD_tSampleType iType ) {
+                               FunD_tSampleType iType )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -877,7 +963,8 @@ FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   MATRIX*   identity = NULL;
@@ -909,7 +996,7 @@ FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this ) {
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
 
-  if( NULL != identity )
+  if ( NULL != identity )
     MatrixFree (&identity);
 
   DebugExitFunction;
@@ -919,7 +1006,8 @@ FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this ) {
 
 
 FunD_tErr FunD_IsScalar ( mriFunctionalDataRef this,
-                          tBoolean* obScalar ) {
+                          tBoolean* obScalar )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -957,7 +1045,8 @@ FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
                          xVoxelRef            iClientVox,
                          int                  iCondition,
                          int                  iTimePoint,
-                         float*               oValue ) {
+                         float*               oValue )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel    funcIdx;
@@ -991,12 +1080,15 @@ FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  if( !this->mbScalar ) {
+  if ( !this->mbScalar )
+  {
 #ifndef BE_SUPA_FAST
     DebugNote( ("Converting client to func idx") );
 #endif
     FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
-  } else {
+  }
+  else
+  {
     xVoxl_Copy( &funcIdx, iClientVox );
   }
 
@@ -1032,7 +1124,8 @@ FunD_tErr FunD_GetSampledData ( mriFunctionalDataRef this,
                                 xVoxelRef            iClientVox,
                                 int                  iCondition,
                                 int                  iTimePoint,
-                                float*               oValue ) {
+                                float*               oValue )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel    funcIdx;
@@ -1066,12 +1159,15 @@ FunD_tErr FunD_GetSampledData ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  if( !this->mbScalar ) {
+  if ( !this->mbScalar )
+  {
 #ifndef BE_SUPA_FAST
     DebugNote( ("Converting client to func idx") );
 #endif
     FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
-  } else {
+  }
+  else
+  {
     xVoxl_Copy( &funcIdx, iClientVox );
   }
 
@@ -1105,9 +1201,10 @@ FunD_tErr FunD_GetSampledData ( mriFunctionalDataRef this,
 
 
 FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
-                                         xVoxelRef            iClientVox,
-                                         int                  iCondition,
-                                         float*               oaValue ) {
+    xVoxelRef            iClientVox,
+    int                  iCondition,
+    float*               oaValue )
+{
 
   FunD_tErr eResult    = FunD_tErr_NoError;
   xVoxel    funcIdx;
@@ -1129,10 +1226,13 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  if( !this->mbScalar ) {
+  if ( !this->mbScalar )
+  {
     DebugNote( ("Converting client to func idx") );
     FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
-  } else {
+  }
+  else
+  {
     xVoxl_Copy( &funcIdx, iClientVox );
   }
 
@@ -1141,7 +1241,8 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
   DebugAssertQuietThrow( (eResult == FunD_tErr_NoError) );
 
 
-  for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
+  for ( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ )
+  {
 
     DebugNote( ("Getting value") );
     FunD_GetValue_ ( this, this->mpData, &funcIdx,
@@ -1164,7 +1265,8 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
                               xVoxelRef            iClientVox,
                               int                  iCondition,
                               int                  iTimePoint,
-                              float*               oValue ) {
+                              float*               oValue )
+{
 
   FunD_tErr eResult     = FunD_tErr_NoError;
   xVoxel    funcIdx;
@@ -1192,22 +1294,28 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
 
   /* If this is condition 0, just return 0, since there's not error
      data on the null condition. */
-  if( 0 == iCondition ) {
+  if ( 0 == iCondition )
+  {
 
     DebugNote( ("Setting return value") );
     *oValue = 0;
 
-  } else {
+  }
+  else
+  {
 
     DebugNote( ("Getting cov mtx for cond %d tp %d\n",
                 iCondition, iTimePoint) );
     nCovMtx = ((iCondition-1) * this->mNumTimePoints) + iTimePoint;
     fCovariance = this->mCovMtx[nCovMtx][nCovMtx];
 
-    if( !this->mbScalar ) {
+    if ( !this->mbScalar )
+    {
       DebugNote( ("Converting client to func idx") );
       FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
-    } else {
+    }
+    else
+    {
       xVoxl_Copy( &funcIdx, iClientVox );
     }
 
@@ -1228,9 +1336,10 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
-                                              xVoxelRef            iClientVox,
-                                              int                  iCondition,
-                                              float*               oaValue ) {
+    xVoxelRef            iClientVox,
+    int                  iCondition,
+    float*               oaValue )
+{
 
   FunD_tErr eResult    = FunD_tErr_NoError;
   int       nTimePoint = 0;
@@ -1253,23 +1362,30 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  if( !this->mbScalar ) {
+  if ( !this->mbScalar )
+  {
     DebugNote( ("Converting client to func idx") );
     FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
-  } else {
+  }
+  else
+  {
     xVoxl_Copy( &funcIdx, iClientVox );
   }
 
-  for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
+  for ( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ )
+  {
 
     /* If this is condition 0, just return 0, since there's not error
        data on the null condition. */
-    if( 0 == iCondition ) {
+    if ( 0 == iCondition )
+    {
 
       DebugNote( ("Setting return value") );
       oaValue[nTimePoint] = 0;
 
-    } else {
+    }
+    else
+    {
 
       DebugNote( ("Getting sigma value") );
       FunD_GetSigma_ ( this, &funcIdx, nTimePoint, &fSigma );
@@ -1297,7 +1413,8 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
 FunD_tErr FunD_Smooth ( mriFunctionalDataRef this,
                         int                  iTimePoint,
                         int                  iCondition,
-                        float                iSigma ) {
+                        float                iSigma )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
   MRI*      kernel  = NULL;
@@ -1332,13 +1449,14 @@ FunD_tErr FunD_Smooth ( mriFunctionalDataRef this,
 
   DebugExitFunction;
 
-  if( NULL != kernel )
+  if ( NULL != kernel )
     MRIfree( &kernel );
 
   return eResult;
 }
 
-FunD_tErr FunD_NormalizeOverAll ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_NormalizeOverAll ( mriFunctionalDataRef this )
+{
   FunD_tErr eResult    = FunD_tErr_NoError;
 
   DebugEnterFunction( ("FunD_NormalizeOverAll( this=%p )", this) );
@@ -1364,8 +1482,9 @@ FunD_tErr FunD_NormalizeOverAll ( mriFunctionalDataRef this ) {
 
 
 FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
-                                          int                  iTimePoint,
-                                          float*               oSecond ) {
+    int                  iTimePoint,
+    float*               oSecond )
+{
 
   FunD_tErr eResult         = FunD_tErr_NoError;
   float     timeAtFirstPoint = 0;
@@ -1401,8 +1520,9 @@ FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
-                                          float                iSecond,
-                                          int*                 oTimePoint ) {
+    float                iSecond,
+    int*                 oTimePoint )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1431,7 +1551,8 @@ FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_SetTimeResolution ( mriFunctionalDataRef this,
-                                   float                iTimeResolution ) {
+                                   float                iTimeResolution )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1460,7 +1581,8 @@ FunD_tErr FunD_SetTimeResolution ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_SetNumPreStimTimePoints ( mriFunctionalDataRef this,
-                                         int                  iNumPoints ) {
+    int                  iNumPoints )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1489,7 +1611,8 @@ FunD_tErr FunD_SetNumPreStimTimePoints ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetSubjectName ( mriFunctionalDataRef this,
-                                char*                oSubjectName ) {
+                                char*                oSubjectName )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1518,7 +1641,8 @@ FunD_tErr FunD_GetSubjectName ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetNumTimePoints ( mriFunctionalDataRef this,
-                                  int*                 oNumTimePoints ) {
+                                  int*                 oNumTimePoints )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1547,7 +1671,8 @@ FunD_tErr FunD_GetNumTimePoints ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetNumConditions ( mriFunctionalDataRef this,
-                                  int*                 oNumConditions ) {
+                                  int*                 oNumConditions )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1577,7 +1702,8 @@ FunD_tErr FunD_GetNumConditions ( mriFunctionalDataRef this,
 
 
 FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this,
-                                   float*               oTimeResolution ) {
+                                   float*               oTimeResolution )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1607,7 +1733,8 @@ FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this,
 
 
 FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this,
-                                         int*                 oNumPoints ) {
+    int*                 oNumPoints )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1637,7 +1764,8 @@ FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_GetValueRange ( mriFunctionalDataRef this,
                                float*               oMin,
-                               float*               oMax ) {
+                               float*               oMax )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1667,7 +1795,8 @@ FunD_tErr FunD_GetValueRange ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_IsErrorDataPresent ( mriFunctionalDataRef this,
-                                    tBoolean*            oPresent ) {
+                                    tBoolean*            oPresent )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -1698,7 +1827,8 @@ FunD_tErr FunD_IsErrorDataPresent ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_GetBoundsInClientSpace ( mriFunctionalDataRef this,
                                         xVoxelRef            oBeginCorner,
-                                        xVoxelRef            oEndCorner ) {
+                                        xVoxelRef            oEndCorner )
+{
 
   FunD_tErr eResult   = FunD_tErr_NoError;
   xVoxel    curIdx;
@@ -1726,10 +1856,11 @@ FunD_tErr FunD_GetBoundsInClientSpace ( mriFunctionalDataRef this,
   /* For all of our indices, convert it to client space and compare to
      the min/max. Save the most min/max.  */
   xVoxl_Set( &curIdx, 0, 0, 0 );
-  while( xVoxl_IncrementUntilLimits( &curIdx,
-                                     this->mpData->width,
-                                     this->mpData->height,
-                                     this->mpData->depth ) ) {
+  while ( xVoxl_IncrementUntilLimits( &curIdx,
+                                      this->mpData->width,
+                                      this->mpData->height,
+                                      this->mpData->depth ) )
+  {
 
     DebugNote( ("Converting to client space") );
     FunD_ConvertFuncIdxToClient_( this, &curIdx, &curClient );
@@ -1763,7 +1894,8 @@ FunD_tErr FunD_GetBoundsInClientSpace ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_GetValueAtPercentile ( mriFunctionalDataRef this,
                                       float                iPercentile,
-                                      float*               oValue ) {
+                                      float*               oValue )
+{
 
 
   FunD_tErr eResult             = FunD_tErr_NoError;
@@ -1788,7 +1920,8 @@ FunD_tErr FunD_GetValueAtPercentile ( mriFunctionalDataRef this,
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
   /* If we don't have our frequencies yet, calc them now with 100 bins. */
-  if ( NULL == this->mFrequencies ) {
+  if ( NULL == this->mFrequencies )
+  {
     eResult = FunD_CalcFrequencies_( this, FunD_knNumFrequencyBins );
     DebugAssertThrow( (eResult == FunD_tErr_NoError) );
   }
@@ -1804,14 +1937,15 @@ FunD_tErr FunD_GetValueAtPercentile ( mriFunctionalDataRef this,
      the number we're looking for. */
   sum = 0;
   nBin = 0;
-  while ( sum < targetCount && nBin < this->mNumBins ) {
+  while ( sum < targetCount && nBin < this->mNumBins )
+  {
     sum += this->mFrequencies[nBin];
     nBin++;
   }
 
   /* Calc the number that is at the beginning of that bin. */
   value = this->mMinValue +
-    ( ((this->mMaxValue - this->mMinValue + 1) * nBin) / this->mNumBins );
+          ( ((this->mMaxValue - this->mMinValue + 1) * nBin) / this->mNumBins );
 
   /* Return it. */
   DebugNote( ("Setting return value") );
@@ -1831,7 +1965,8 @@ FunD_tErr FunD_GetValueAtPercentile ( mriFunctionalDataRef this,
 #if 0
 FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
                                       float                inValue,
-                                      float*               outPercentile ) {
+                                      float*               outPercentile )
+{
 
   FunD_tErr theErr = FunD_tErr_NoError;
   int theTargetBin, theBin;
@@ -1839,7 +1974,8 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
   float thePercentile;
 
   /* If we don't have our frequencies yet, calc them now with 100 bins. */
-  if ( NULL == this->mFrequencies ) {
+  if ( NULL == this->mFrequencies )
+  {
     theErr = FunD_CalcFrequencies_( this, FunD_knNumFrequencyBins );
     if ( FunD_tErr_NoError != theErr )
       goto error;
@@ -1851,35 +1987,37 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
      floating math because they want a percentile even tho we call it
      a bin and use the integer version. */
   theTargetBin = (inValue - this->mMinValue) /
-    (((this->mMaxValue - this->mMinValue)+1.0) / (float)this->mNumBins);
+                 (((this->mMaxValue - this->mMinValue)+1.0) / (float)this->mNumBins);
   theTargetBin = ((inValue - this->mMinValue) * (float)this->mNumBins) /
-    (this->mMaxValue - this->mMinValue + 1.0);
+                 (this->mMaxValue - this->mMinValue + 1.0);
 
   /* Walk through the frequency array until we hit the bin we got as
      an answer. Add up the counts along the way. */
   theSum = 0;
   theBin = 0;
-  for ( theBin = 0; theBin <= theTargetBin; theBin++ ) {
+  for ( theBin = 0; theBin <= theTargetBin; theBin++ )
+  {
     theSum += this->mFrequencies[theBin];
   }
 
   /* Divide the counts by the total number of values to get our
      percentile. */
   theNumValues = this->mNumConditions * this->mNumTimePoints *
-    this->mNumRows * this->mNumCols * this->mNumSlices;
+                 this->mNumRows * this->mNumCols * this->mNumSlices;
   thePercentile = (float)theSum / (float)theNumValues * 100.0;
 
   *outPercentile = thePercentile;
 
   goto cleanup;
- error:
+error:
 
-  if( FunD_tErr_NoError != theErr ) {
+  if ( FunD_tErr_NoError != theErr )
+  {
     DebugPrint( ("Error in FunD_GetPercentileOfValue (%d): %s\n",
                  theErr, FunD_GetErrorString(theErr) ) );
   }
 
- cleanup:
+cleanup:
 
   return theErr;
 }
@@ -1892,7 +2030,8 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
                                   int                  iSign,
                                   float                iRate,
                                   MRI*                 iMaskVolume,
-                                  float*               oThresholdMin ) {
+                                  float*               oThresholdMin )
+{
 
   FunD_tErr eResult       = FunD_tErr_NoError;
   int       eMRI          = ERROR_NONE;
@@ -1918,7 +2057,8 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
      the mask volume into it. To transform, we need the target->source
      transform, which is local->client, which is the inverse of our
      mIdxToIdxTransform, so create that too.*/
-  if( NULL != iMaskVolume ) {
+  if ( NULL != iMaskVolume )
+  {
     DebugNote( ("Allocating local mask volume") );
     pLocalMaskVol = MRIalloc( this->mpData->width, this->mpData->height,
                               this->mpData->depth, this->mpData->type );
@@ -1954,7 +2094,7 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
                       TRUE,          /* interp vals as -log10(p) */
                       pLocalMaskVol, /* optional mask volume */
                       &newMin,       /* voxel-wise thresh (vwth) 0-1,
-                                        or if log10flag, -log10(vwth) */
+                                                                                                                                or if log10flag, -log10(vwth) */
                       NULL );        /* option thresholded output */
   DebugAssertThrowX( (ERROR_NONE == eMRI),
                      eResult, FunD_tErr_ErrorPerformingFDR );
@@ -1968,11 +2108,13 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
 
-  if( NULL != pLocalMaskVol ) {
+  if ( NULL != pLocalMaskVol )
+  {
     DebugNote( ("Freeing local mask vol") );
     MRIfree( &pLocalMaskVol );
   }
-  if( NULL != localToClient ) {
+  if ( NULL != localToClient )
+  {
     DebugNote( ("Freeing local to client transform") );
     MatrixFree( &localToClient );
   }
@@ -1982,7 +2124,8 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
   fMRI_REG* regInfo = NULL;
@@ -2028,10 +2171,12 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   regInfo->fmri2mri = MatrixInverse( regInfo->mri2fmri, NULL );
 
   /* If a registration already exists... */
-  if( stat( sFileName, &fileInfo ) != 0 ) {
+  if ( stat( sFileName, &fileInfo ) != 0 )
+  {
 
     /* We need to backup the file. Generate a new backup filename */
-    do {
+    do
+    {
 
       /* Keep appending an increasing number to the end of the
          original filename. Check if the newly named file exists. It
@@ -2040,7 +2185,8 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
       sprintf( sBackupFileName, "%s.%d", sFileName, nBackup++ );
       DebugNote( ("Opening file %s", sBackupFileName) );
 
-    } while( stat( sFileName, &fileInfo ) != 0 );
+    }
+    while ( stat( sFileName, &fileInfo ) != 0 );
 
     /* Copy the registration file to backup.*/
     DebugNote( ("Opening file %s", sFileName) );
@@ -2050,9 +2196,10 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
     pBackupFile = fopen( sBackupFileName, "w" );
 
     DebugNote( ("Copying bytes to backup file") );
-    while(!feof( pFile ) ) {
+    while (!feof( pFile ) )
+    {
       fread( &data, sizeof(data), 1, pFile );
-      if(feof(pFile))
+      if (feof(pFile))
         break;
       fwrite( &data, sizeof(data), 1, pBackupFile );
     }
@@ -2071,7 +2218,8 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   StatFreeRegistration( &regInfo );
 
   /* Append the conversion type to the registration file. */
-  switch( this->mConvMethod ) {
+  switch ( this->mConvMethod )
+  {
   case FunD_tConversionMethod_FFF:
     strcpy( sConversionMethod, FunD_ksConversionMethod_FFF );
     break;
@@ -2086,7 +2234,8 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   }
   DebugNote( ("Opening %s") );
   pFile = fopen( sFileName, "a" );
-  if( NULL != pFile ) {
+  if ( NULL != pFile )
+  {
     DebugNote( ("Printing conversion method to file") );
     fprintf( pFile, "%s\n", sConversionMethod );
     DebugNote( ("Closing file") );
@@ -2102,7 +2251,8 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   return eResult;
 }
 
-FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   MATRIX*   identity = NULL;
@@ -2129,7 +2279,8 @@ FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this ) {
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
 
-  if( NULL != identity ) {
+  if ( NULL != identity )
+  {
     DebugNote( ("Freeing identity matrix") );
     MatrixFree( &identity );
   }
@@ -2141,7 +2292,8 @@ FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this ) {
 
 
 FunD_tErr FunD_ApplyTransformToRegistration ( mriFunctionalDataRef this,
-                                              MATRIX*           iTransform ){
+    MATRIX*           iTransform )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
@@ -2172,7 +2324,8 @@ FunD_tErr FunD_ApplyTransformToRegistration ( mriFunctionalDataRef this,
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
 
-  if( NULL != invTransform ) {
+  if ( NULL != invTransform )
+  {
     DebugNote( ("Freeing inverse matrix") );
     MatrixFree( &invTransform );
   }
@@ -2184,7 +2337,8 @@ FunD_tErr FunD_ApplyTransformToRegistration ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_TranslateRegistration ( mriFunctionalDataRef this,
                                        float                ifDistance,
-                                       tAxis                iAxis ) {
+                                       tAxis                iAxis )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
@@ -2220,7 +2374,8 @@ FunD_tErr FunD_TranslateRegistration ( mriFunctionalDataRef this,
 FunD_tErr FunD_RotateRegistration ( mriFunctionalDataRef this,
                                     float                ifDegrees,
                                     tAxis                iAxis,
-                                    xVoxelRef            iCenterFuncRAS ) {
+                                    xVoxelRef            iCenterFuncRAS )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
@@ -2278,7 +2433,8 @@ FunD_tErr FunD_RotateRegistration ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_ScaleRegistration ( mriFunctionalDataRef this,
                                    float                ifFactor,
-                                   tAxis                iAxis ) {
+                                   tAxis                iAxis )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
@@ -2312,7 +2468,8 @@ FunD_tErr FunD_ScaleRegistration ( mriFunctionalDataRef this,
 }
 
 
-FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult  = FunD_tErr_NoError;
 
@@ -2355,7 +2512,8 @@ FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this ) {
   return eResult;
 }
 
-FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult    = FunD_tErr_NoError;
   MRI*      volume     = NULL;
@@ -2394,33 +2552,42 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
   FunD_GetBoundsInClientSpace( this, &begin, &end );
 
   /* For each timepoint and condition... */
-  for( nCondition = 0; nCondition < this->mNumConditions; nCondition++ ) {
-    for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
+  for ( nCondition = 0; nCondition < this->mNumConditions; nCondition++ )
+  {
+    for ( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ )
+    {
 
       /* For each voxel... */
       xVoxl_Copy( &clientIdx, &begin );
-      while( xVoxl_IncrementWithMinsUntilLimits( &clientIdx,
-                                                 xVoxl_GetX(&begin),
-                                                 xVoxl_GetY(&begin),
-                                                 xVoxl_GetX(&end),
-                                                 xVoxl_GetY(&end),
-                                                 xVoxl_GetZ(&end) ) ) {
+      while ( xVoxl_IncrementWithMinsUntilLimits( &clientIdx,
+              xVoxl_GetX(&begin),
+              xVoxl_GetY(&begin),
+              xVoxl_GetX(&end),
+              xVoxl_GetY(&end),
+              xVoxl_GetZ(&end) ) )
+      {
 
         DebugPrint( ("\rResampling: %d %d %d", nCondition, nTimePoint,
                      xVoxl_GetZ( &clientIdx ) ) );
 
         /* Get the func idx. */
-        if( !this->mbScalar ) {
+        if ( !this->mbScalar )
+        {
           DebugNote( ("Converting client to func idx") );
           FunD_ConvertClientToFuncIdx_( this, &clientIdx, &funcIdx );
-        } else {
+        }
+        else
+        {
           xVoxl_Copy( &funcIdx, &clientIdx );
         }
         eResult = FunD_VerifyFuncIdx_( this, &funcIdx );
-        if( FunD_tErr_NoError == eResult ) {
+        if ( FunD_tErr_NoError == eResult )
+        {
           FunD_GetValue_ ( this, this->mpData, &funcIdx,
                            nCondition, nTimePoint, &value );
-        } else {
+        }
+        else
+        {
           continue;
         }
 
@@ -2438,7 +2605,8 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
 
   fprintf( stdout, "\rResampling: 100%% done.       \n" );
 
-  if( NULL != this->mpResampledData ) {
+  if ( NULL != this->mpResampledData )
+  {
     MRIfree( &this->mpResampledData );
   }
   this->mpResampledData = volume;
@@ -2446,7 +2614,8 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
 
-  if( NULL != volume ) {
+  if ( NULL != volume )
+  {
     MRIfree( &volume );
   }
 
@@ -2459,7 +2628,8 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
 
 
 FunD_tErr FunD_CalcFrequencies_ ( mriFunctionalDataRef this,
-                                  int                  iNumBins ) {
+                                  int                  iNumBins )
+{
 
   FunD_tErr eResult      = FunD_tErr_NoError;
   int*      aFrequencies = NULL;
@@ -2486,20 +2656,23 @@ FunD_tErr FunD_CalcFrequencies_ ( mriFunctionalDataRef this,
   DebugAssertThrowX( (NULL != aFrequencies),
                      eResult, FunD_tErr_CouldntAllocateStorage );
 
-  for( nCondition = 0; nCondition < this->mNumConditions; nCondition++ ) {
-    for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
+  for ( nCondition = 0; nCondition < this->mNumConditions; nCondition++ )
+  {
+    for ( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ )
+    {
       xVoxl_Set( &curIdx, 0, 0, 0 );
-      while( xVoxl_IncrementUntilLimits( &curIdx,
-                                         this->mpData->width,
-                                         this->mpData->height,
-                                         this->mpData->depth ) ) {
+      while ( xVoxl_IncrementUntilLimits( &curIdx,
+                                          this->mpData->width,
+                                          this->mpData->height,
+                                          this->mpData->depth ) )
+      {
 
         FunD_GetValue_( this, this->mpData,
                         &curIdx, nCondition, nTimePoint, &value );
 
         /* Calculate the bin in which it should be. */
         nBin = (value - this->mMinValue) /
-          (((this->mMaxValue - this->mMinValue)+1.0) / (float)iNumBins);
+               (((this->mMaxValue - this->mMinValue)+1.0) / (float)iNumBins);
 
         /* Inc the count in that bin. */
         aFrequencies[nBin]++;
@@ -2508,7 +2681,8 @@ FunD_tErr FunD_CalcFrequencies_ ( mriFunctionalDataRef this,
   }
 
   /* If we already have frequencies, free them. */
-  if ( NULL != this->mFrequencies ) {
+  if ( NULL != this->mFrequencies )
+  {
     DebugNote( ("Deleting exisiting frequencies") );
     free( this->mFrequencies );
   }
@@ -2520,7 +2694,8 @@ FunD_tErr FunD_CalcFrequencies_ ( mriFunctionalDataRef this,
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
 
-  if( NULL != aFrequencies ) {
+  if ( NULL != aFrequencies )
+  {
     DebugNote( ("Deleting temp frequencies") );
     free( aFrequencies );
   }
@@ -2532,7 +2707,8 @@ FunD_tErr FunD_CalcFrequencies_ ( mriFunctionalDataRef this,
   return eResult;
 }
 
-char* FunD_GetErrorString ( FunD_tErr iErr ) {
+char* FunD_GetErrorString ( FunD_tErr iErr )
+{
 
   if ( !(iErr >= 0 && iErr < FunD_tErr_knNumErrorCodes) )
     iErr = FunD_tErr_InvalidErrorCode;
@@ -2544,7 +2720,8 @@ char* FunD_GetErrorString ( FunD_tErr iErr ) {
 
 void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
                                     xVoxelRef            iClientVox,
-                                    xVoxelRef            oFuncIdx ) {
+                                    xVoxelRef            oFuncIdx )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2563,7 +2740,8 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
   DebugAssertThrow( (Trns_tErr_NoErr == eTransform) );
 
   /* do the proper conversion method */
-  switch( this->mConvMethod ) {
+  switch ( this->mConvMethod )
+  {
   case FunD_tConversionMethod_FFF:
     DebugNote( ("Using FFF conversion") );
     xVoxl_SetFloat( oFuncIdx,
@@ -2597,8 +2775,9 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
 }
 
 void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
-                                         xVoxelRef            iClientVox,
-                                         xVoxelRef            oFuncIdx ) {
+    xVoxelRef            iClientVox,
+    xVoxelRef            oFuncIdx )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2628,7 +2807,8 @@ void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
 
 void FunD_ConvertClientToFuncRAS_ ( mriFunctionalDataRef this,
                                     xVoxelRef            iClientVox,
-                                    xVoxelRef            oFuncRAS ) {
+                                    xVoxelRef            oFuncRAS )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2664,7 +2844,8 @@ void FunD_ConvertClientToFuncRAS_ ( mriFunctionalDataRef this,
 
 void FunD_ConvertFuncIdxToClient_ ( mriFunctionalDataRef this,
                                     xVoxelRef            iFuncIdx,
-                                    xVoxelRef            oClientVox ) {
+                                    xVoxelRef            oClientVox )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2694,7 +2875,8 @@ void FunD_ConvertFuncIdxToClient_ ( mriFunctionalDataRef this,
 
 void FunD_ConvertRASToFuncIdx_ ( mriFunctionalDataRef this,
                                  xVoxelRef            iRAS,
-                                 xVoxelRef            oFuncIdx ) {
+                                 xVoxelRef            oFuncIdx )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2713,7 +2895,8 @@ void FunD_ConvertRASToFuncIdx_ ( mriFunctionalDataRef this,
   DebugAssertThrow( (Trns_tErr_NoErr == eTransform) );
 
   /* do the proper conversion method */
-  switch( this->mConvMethod ) {
+  switch ( this->mConvMethod )
+  {
   case FunD_tConversionMethod_FFF:
     DebugNote( ("Using FFF conversion") );
     xVoxl_SetFloat( oFuncIdx,
@@ -2748,7 +2931,8 @@ void FunD_ConvertRASToFuncIdx_ ( mriFunctionalDataRef this,
 
 void FunD_ConvertFuncIdxToFuncRAS_ ( mriFunctionalDataRef this,
                                      xVoxelRef            iFuncIdx,
-                                     xVoxelRef            oFuncRAS ) {
+                                     xVoxelRef            oFuncRAS )
+{
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2783,7 +2967,8 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
                       xVoxelRef            iIdx,
                       int                  inCondition,
                       int                  inTimePoint,
-                      float*               oValue ) {
+                      float*               oValue )
+{
 
   int nFrame = 0;
 
@@ -2800,7 +2985,8 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
   *oValue = this->mTmpReal;
 
 #if 0
-  switch( iData->type ) {
+  switch ( iData->type )
+  {
   case MRI_UCHAR:
     *oValue = MRIseq_vox( iData, xVoxl_GetX(iIdx),
                           xVoxl_GetY(iIdx),xVoxl_GetZ(iIdx),nFrame);
@@ -2833,7 +3019,8 @@ void FunD_GetSampledValue_ ( mriFunctionalDataRef this,
                              xVoxelRef            iIdx,
                              int                  inCondition,
                              int                  inTimePoint,
-                             float*               oValue ) {
+                             float*               oValue )
+{
 
   int nFrame = 0;
 
@@ -2855,13 +3042,15 @@ void FunD_SetValue_ ( mriFunctionalDataRef this,
                       xVoxelRef            iIdx,
                       int                  inCondition,
                       int                  inTimePoint,
-                      float                iValue ) {
+                      float                iValue )
+{
 
   int nFrame = 0;
 
   FunD_GetDataFrameNumber(inCondition,inTimePoint,&nFrame);
 
-  switch( iData->type ) {
+  switch ( iData->type )
+  {
   case MRI_UCHAR:
     MRIseq_vox( iData, xVoxl_GetX(iIdx),
                 xVoxl_GetY(iIdx),xVoxl_GetZ(iIdx),nFrame) = iValue;
@@ -2892,37 +3081,39 @@ void FunD_SetValue_ ( mriFunctionalDataRef this,
 void FunD_GetSigma_ ( mriFunctionalDataRef this,
                       xVoxelRef            iFuncIdx,
                       int                  inTimePoint,
-                      float*               oSigma ) {
+                      float*               oSigma )
+{
 
   int   nFrame         = 0;
 
 
   FunD_GetSigmaFrameNumber(inTimePoint, &nFrame);
 
-  switch( this->mpData->type ) {
+  switch ( this->mpData->type )
+  {
   case MRI_UCHAR:
     *oSigma = MRIseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
                           xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
     break;
   case MRI_INT:
     *oSigma = MRIIseq_vox
-      ( this->mpData, xVoxl_GetX(iFuncIdx),
-        xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
+              ( this->mpData, xVoxl_GetX(iFuncIdx),
+                xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
     break;
   case MRI_LONG:
     *oSigma = MRILseq_vox
-      ( this->mpData, xVoxl_GetX(iFuncIdx),
-        xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
+              ( this->mpData, xVoxl_GetX(iFuncIdx),
+                xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
     break;
   case MRI_FLOAT:
     *oSigma = MRIFseq_vox
-      ( this->mpData, xVoxl_GetX(iFuncIdx),
-        xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
+              ( this->mpData, xVoxl_GetX(iFuncIdx),
+                xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
     break;
   case MRI_SHORT:
     *oSigma = MRISseq_vox
-      ( this->mpData, xVoxl_GetX(iFuncIdx),
-        xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
+              ( this->mpData, xVoxl_GetX(iFuncIdx),
+                xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
     break;
   default:
     *oSigma = 0;
@@ -2930,7 +3121,8 @@ void FunD_GetSigma_ ( mriFunctionalDataRef this,
   }
 }
 
-FunD_tErr FunD_Verify ( mriFunctionalDataRef this ) {
+FunD_tErr FunD_Verify ( mriFunctionalDataRef this )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -2950,7 +3142,8 @@ FunD_tErr FunD_Verify ( mriFunctionalDataRef this ) {
 }
 
 FunD_tErr FunD_VerifyFuncIdx_ ( mriFunctionalDataRef this,
-                                xVoxelRef            iFuncIdx ) {
+                                xVoxelRef            iFuncIdx )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -2973,7 +3166,8 @@ FunD_tErr FunD_VerifyFuncIdx_ ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_VerifyTimePoint ( mriFunctionalDataRef this,
-                                 int                  iTimePoint ) {
+                                 int                  iTimePoint )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -2996,7 +3190,8 @@ FunD_tErr FunD_VerifyTimePoint ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_VerifyCondition ( mriFunctionalDataRef this,
-                                 int                  iCondition ) {
+                                 int                  iCondition )
+{
 
   FunD_tErr eResult = FunD_tErr_NoError;
 

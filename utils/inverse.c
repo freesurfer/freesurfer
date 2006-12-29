@@ -1,3 +1,31 @@
+/**
+ * @file  inverse.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,13 +49,13 @@ IOPRead(char *fname, int hemi)
   printf("read_iop(%s,%d)\n",fname,hemi);
 
   fp = fopen(fname,"r");
-  if (fp==NULL) 
-    ErrorReturn(NULL, 
-                 (ERROR_NOFILE, "IOPRead: can't open file %s\n",fname));
+  if (fp==NULL)
+    ErrorReturn(NULL,
+                (ERROR_NOFILE, "IOPRead: can't open file %s\n",fname));
   iop = calloc(1, sizeof(IOP)) ;
   if (!iop)
-    ErrorReturn(NULL, 
-                 (ERROR_NOMEMORY, "IOPRead: can't allocate struct\n"));
+    ErrorReturn(NULL,
+                (ERROR_NOMEMORY, "IOPRead: can't allocate struct\n"));
   iop->pthresh = 1000;
   c = getc(fp);
   if (c=='#')
@@ -41,29 +69,30 @@ IOPRead(char *fname, int hemi)
            &iop->nmeg_channels,
            &iop->ndipoles_per_location,
            &iop->ndipole_files);
-    
+
     iop->nchan = iop->neeg_channels+iop->nmeg_channels;
     for (i=1;i<=hemi;i++)
     {
-      fscanf(fp,"%d %d",&dipoles_in_decimation,&iop->ndipoles); 
+      fscanf(fp,"%d %d",&dipoles_in_decimation,&iop->ndipoles);
       if (i==hemi)
       {
 #if 0
         if (iop->ndipoles_per_location != sol_ndec)
         {
-          fclose(fp); IOPFree(&iop) ;
+          fclose(fp);
+          IOPFree(&iop) ;
           ErrorReturn(NULL,
-                      (ERROR_BADFILE, 
+                      (ERROR_BADFILE,
                        "IOPRead: .dec and .iop file mismatch (%d!=%d)\n",
                        sol_ndec,iop->ndipoles_per_location));
         }
 #endif
-        iop->m_iop = 
+        iop->m_iop =
           MatrixAlloc(iop->ndipoles*iop->ndipoles_per_location,iop->nchan,
                       MATRIX_REAL);
         if (iop->version==1)
-          iop->m_forward = 
-            MatrixAlloc(iop->nchan,iop->ndipoles*iop->ndipoles_per_location, 
+          iop->m_forward =
+            MatrixAlloc(iop->nchan,iop->ndipoles*iop->ndipoles_per_location,
                         MATRIX_REAL);
 
 #if 0
@@ -78,7 +107,7 @@ IOPRead(char *fname, int hemi)
         iop->dipole_vertices = calloc(iop->ndipoles, sizeof(int));
         if (!iop->dipole_vertices)
           ErrorReturn(NULL,
-                      (ERROR_NOMEMORY, 
+                      (ERROR_NOMEMORY,
                        "IOPRead: could not allocated %d v indices",
                        iop->ndipoles)) ;
         iop->pvals = VectorAlloc(iop->ndipoles, MATRIX_REAL);
@@ -88,14 +117,14 @@ IOPRead(char *fname, int hemi)
         iop->bad_sensors = calloc(iop->nchan, sizeof(int));
         if (!iop->bad_sensors)
           ErrorReturn(NULL,
-                      (ERROR_NOMEMORY, 
+                      (ERROR_NOMEMORY,
                        "IOPRead: could not allocate bad sensor array",
                        iop->nchan)) ;
 
         /* initialize bad sensor locations*/
         for (z=0;z<iop->nchan;z++)
           iop->bad_sensors[z] = 0;
-        
+
       }
       for (j=0;j<iop->ndipoles;j++)
       {
@@ -114,7 +143,7 @@ IOPRead(char *fname, int hemi)
           fscanf(fp,"%f",&f);
           *MATRIX_RELT(iop->pvals,j+1,1) = f;
           f = fabs(f);
-          if (f<iop->pthresh) 
+          if (f<iop->pthresh)
             iop->pthresh = f;
         }
         else
@@ -142,8 +171,8 @@ IOPRead(char *fname, int hemi)
             if (i==hemi)
             {
               fscanf(fp,"%f",&f);
-              *MATRIX_RELT(iop->m_iop, j*iop->ndipoles_per_location+jc+1,k+1) 
-                = f;
+              *MATRIX_RELT(iop->m_iop, j*iop->ndipoles_per_location+jc+1,k+1)
+              = f;
             }
             else
               fscanf(fp,"%*f");
@@ -184,7 +213,7 @@ IOPRead(char *fname, int hemi)
          iop->ndipole_files);
   return(iop) ;
 }
-int 
+int
 IOPWrite(IOP *iop, char *fname)
 {
   return(NO_ERROR) ;
@@ -194,7 +223,8 @@ IOPFree(IOP **piop)
 {
   IOP *iop ;
 
-  iop = *piop ; *piop = NULL ;
+  iop = *piop ;
+  *piop = NULL ;
   if (iop->dipole_vertices)
     free(iop->dipole_vertices) ;
   if (iop->spatial_priors)

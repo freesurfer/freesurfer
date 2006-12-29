@@ -1,3 +1,31 @@
+/**
+ * @file  getdelim.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:32 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /* getdelim.c --- Implementation of replacement getdelim function.
    Copyright (C) 1994, 1996, 1997, 1998, 2001, 2003, 2005 Free
    Software Foundation, Inc.
@@ -20,7 +48,7 @@
 /* Ported from glibc by Simon Josefsson. */
 
 #if defined(Darwin) || defined(SunOS)
-// getline does not exist on Mac OS X or Solaris                                                                                                                                                                                                                                                     
+// getline does not exist on Mac OS X or Solaris
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -59,73 +87,73 @@ getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
   size_t cur_len = 0;
 
   if (lineptr == NULL || n == NULL || fp == NULL)
-    {
-      errno = EINVAL;
-      return -1;
-    }
+  {
+    errno = EINVAL;
+    return -1;
+  }
 
   flockfile (fp);
 
   if (*lineptr == NULL || *n == 0)
+  {
+    *n = 120;
+    *lineptr = (char *) malloc (*n);
+    if (*lineptr == NULL)
     {
-      *n = 120;
-      *lineptr = (char *) malloc (*n);
-      if (*lineptr == NULL)
-	{
-	  result = -1;
-	  goto unlock_return;
-	}
+      result = -1;
+      goto unlock_return;
     }
+  }
 
   for (;;)
+  {
+    int i;
+
+    i = getc (fp);
+    if (i == EOF)
     {
-      int i;
-
-      i = getc (fp);
-      if (i == EOF)
-	{
-	  result = -1;
-	  break;
-	}
-
-      /* Make enough space for len+1 (for final NUL) bytes.  */
-      if (cur_len + 1 >= *n)
-	{
-	  size_t needed_max =
-	    SSIZE_MAX < SIZE_MAX ? (size_t) SSIZE_MAX + 1 : SIZE_MAX;
-	  size_t needed = 2 * *n + 1;   /* Be generous. */
-	  char *new_lineptr;
-
-	  if (needed_max < needed)
-	    needed = needed_max;
-	  if (cur_len + 1 >= needed)
-	    {
-	      result = -1;
-	      goto unlock_return;
-	    }
-
-	  new_lineptr = (char *) realloc (*lineptr, needed);
-	  if (new_lineptr == NULL)
-	    {
-	      result = -1;
-	      goto unlock_return;
-	    }
-
-	  *lineptr = new_lineptr;
-	  *n = needed;
-	}
-
-      (*lineptr)[cur_len] = i;
-      cur_len++;
-
-      if (i == delimiter)
-	break;
+      result = -1;
+      break;
     }
+
+    /* Make enough space for len+1 (for final NUL) bytes.  */
+    if (cur_len + 1 >= *n)
+    {
+      size_t needed_max =
+        SSIZE_MAX < SIZE_MAX ? (size_t) SSIZE_MAX + 1 : SIZE_MAX;
+      size_t needed = 2 * *n + 1;   /* Be generous. */
+      char *new_lineptr;
+
+      if (needed_max < needed)
+        needed = needed_max;
+      if (cur_len + 1 >= needed)
+      {
+        result = -1;
+        goto unlock_return;
+      }
+
+      new_lineptr = (char *) realloc (*lineptr, needed);
+      if (new_lineptr == NULL)
+      {
+        result = -1;
+        goto unlock_return;
+      }
+
+      *lineptr = new_lineptr;
+      *n = needed;
+    }
+
+    (*lineptr)[cur_len] = i;
+    cur_len++;
+
+    if (i == delimiter)
+      break;
+  }
   (*lineptr)[cur_len] = '\0';
   result = cur_len ? cur_len : result;
 
- unlock_return:
-  funlockfile (fp);
+unlock_return:
+               funlockfile (fp);
   return result;
 }
 

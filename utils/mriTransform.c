@@ -1,3 +1,31 @@
+/**
+ * @file  mriTransform.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:34 $
+ *    $Revision: 1.17 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdlib.h>
 #include <math.h>
 #include "mriTransform.h"
@@ -5,25 +33,27 @@
 
 char *Trns_ksaErrorStrings [Trns_knNumErrorCodes] = {
 
-  "No error.",
-  "Invalid pointer to object.",
-  "Invalid signature.",
-  "Invalid parameter.",
-  "Allocation failed.",
-  "Tranformation matrices not inited.",
-  "LTA import (LTAread) failed.",
-  "Invalid error code."
-};
+      "No error.",
+      "Invalid pointer to object.",
+      "Invalid signature.",
+      "Invalid parameter.",
+      "Allocation failed.",
+      "Tranformation matrices not inited.",
+      "LTA import (LTAread) failed.",
+      "Invalid error code."
+    };
 
 
-Trns_tErr Trns_New ( mriTransformRef* opTransform ) {
+Trns_tErr Trns_New ( mriTransformRef* opTransform )
+{
 
   Trns_tErr       eResult = Trns_tErr_NoErr;
   mriTransformRef this    = NULL;
 
   /* allocate us */
   this = (mriTransformRef) malloc( sizeof( mriTransform ) );
-  if( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = Trns_tErr_AllocationFailed;
     goto error;
   }
@@ -50,20 +80,22 @@ Trns_tErr Trns_New ( mriTransformRef* opTransform ) {
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_New: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
-          char*            isLTAFileName ) {
+                            char*            isLTAFileName )
+{
 
   Trns_tErr       eResult     = Trns_tErr_NoErr;
   mriTransformRef this        = NULL;
@@ -72,7 +104,8 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
   /* allocate us */
   this = (mriTransformRef) malloc( sizeof( mriTransform ) );
-  if( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = Trns_tErr_AllocationFailed;
     goto error;
   }
@@ -94,7 +127,7 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
   DebugNote( ("Trying to read transform file %s", isLTAFileName) );
   LTATransform = LTAreadEx( isLTAFileName );
   DebugAssertThrowX( (NULL != LTATransform),
-         eResult, Trns_tErr_LTAImportFailed );
+                     eResult, Trns_tErr_LTAImportFailed );
 
   this->type = LTATransform->type ;  /* if RAS will be converted to voxel later */
 
@@ -115,25 +148,27 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_New: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
-  if( NULL != LTATransform )
+  if ( NULL != LTATransform )
     LTAfree( &LTATransform );
 
-  if( NULL != identity ) 
+  if ( NULL != identity )
     MatrixFree( &identity );
 
   return eResult;
 }
 
-Trns_tErr Trns_Delete ( mriTransformRef* iopTransform ) {
+Trns_tErr Trns_Delete ( mriTransformRef* iopTransform )
+{
 
   Trns_tErr       eResult = Trns_tErr_NoErr;
   mriTransformRef this    = NULL;
@@ -143,25 +178,25 @@ Trns_tErr Trns_Delete ( mriTransformRef* iopTransform ) {
 
   /* verify us. */
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult ) 
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* delete any matricies we have. */
-  if( NULL != this->mAtoRAS )
+  if ( NULL != this->mAtoRAS )
     MatrixFree( &(this->mAtoRAS) );
-  if( NULL != this->mBtoRAS )
+  if ( NULL != this->mBtoRAS )
     MatrixFree( &(this->mBtoRAS) );
-  if( NULL != this->mARAStoBRAS )
+  if ( NULL != this->mARAStoBRAS )
     MatrixFree( &(this->mARAStoBRAS) );
-  if( NULL != this->mRAStoA )
+  if ( NULL != this->mRAStoA )
     MatrixFree( &(this->mRAStoA) );
-  if( NULL != this->mRAStoB )
+  if ( NULL != this->mRAStoB )
     MatrixFree( &(this->mRAStoB) );
-  if( NULL != this->mBRAStoARAS )
+  if ( NULL != this->mBRAStoARAS )
     MatrixFree( &(this->mBRAStoARAS) );
-  if( NULL != this->mAtoB )
+  if ( NULL != this->mAtoB )
     MatrixFree( &(this->mAtoB) );
-  if( NULL != this->mBtoA )
+  if ( NULL != this->mBtoA )
     MatrixFree( &(this->mBtoA) );
   MatrixFree( &(this->mCoord1) );
   MatrixFree( &(this->mCoord2) );
@@ -178,39 +213,41 @@ Trns_tErr Trns_Delete ( mriTransformRef* iopTransform ) {
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_Delete: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_DeepClone ( mriTransformRef  this,
-         mriTransformRef* opTransform ) {
+                           mriTransformRef* opTransform )
+{
 
   Trns_tErr       eResult = Trns_tErr_NoErr;
   mriTransformRef clone   = NULL;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* allocate the clone */
   eResult = Trns_New( &clone );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* copy any of our matrices that are defined */
-  if( NULL != this->mAtoRAS )
+  if ( NULL != this->mAtoRAS )
     Trns_CopyAtoRAS( clone, this->mAtoRAS );
-  if( NULL != this->mBtoRAS )
+  if ( NULL != this->mBtoRAS )
     Trns_CopyBtoRAS( clone, this->mBtoRAS );
-  if( NULL != this->mARAStoBRAS )
+  if ( NULL != this->mARAStoBRAS )
     Trns_CopyARAStoBRAS( clone, this->mARAStoBRAS );
 
   /* return the clone. */
@@ -218,25 +255,27 @@ Trns_tErr Trns_DeepClone ( mriTransformRef  this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_DeepClone: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_CopyAtoRAS ( mriTransformRef this,
-          MATRIX*         iAtoRAS ) {
+                            MATRIX*         iAtoRAS )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* create a copy of this matrix */
@@ -244,32 +283,35 @@ Trns_tErr Trns_CopyAtoRAS ( mriTransformRef this,
 
   /* calc the rest of our matricies */
   eResult = Trns_CalcMatricies_( this );
-  if( eResult != Trns_tErr_NoErr ) {
+  if ( eResult != Trns_tErr_NoErr )
+  {
     Trns_Signal( "Trns_CopyAtoRAS", __LINE__, eResult );
     eResult = Trns_tErr_NoErr;
   }
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_CopyAtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_CopyBtoRAS ( mriTransformRef this,
-          MATRIX*         iBtoRAS ) {
+                            MATRIX*         iBtoRAS )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* create a copy of this matrix */
@@ -277,32 +319,35 @@ Trns_tErr Trns_CopyBtoRAS ( mriTransformRef this,
 
   /* calc the rest of our matricies */
   eResult = Trns_CalcMatricies_( this );
-  if( eResult != Trns_tErr_NoErr ) {
+  if ( eResult != Trns_tErr_NoErr )
+  {
     Trns_Signal( "Trns_CopyBtoRAS", __LINE__, eResult );
     eResult = Trns_tErr_NoErr;
   }
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_CopyBtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
-        MATRIX*         iARAStoBRAS ) {
+                                MATRIX*         iARAStoBRAS )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* create a copy of this matrix */
@@ -310,32 +355,35 @@ Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
 
   /* calc the rest of our matricies */
   eResult = Trns_CalcMatricies_( this );
-  if( eResult != Trns_tErr_NoErr ) {
+  if ( eResult != Trns_tErr_NoErr )
+  {
     Trns_Signal( "Trns_CopyARAStoBRAS", __LINE__, eResult );
     eResult = Trns_tErr_NoErr;
   }
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_CopyARAStoBRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_GetAtoRAS ( mriTransformRef this,
-         MATRIX**        opMatrix ) {
+                           MATRIX**        opMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the matrix */
@@ -343,25 +391,27 @@ Trns_tErr Trns_GetAtoRAS ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetAtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_GetBtoRAS ( mriTransformRef this,
-         MATRIX**         opMatrix ) {
+                           MATRIX**         opMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the matrix */
@@ -369,25 +419,27 @@ Trns_tErr Trns_GetBtoRAS ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetBtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
-             MATRIX**        opMatrix ) {
+                               MATRIX**        opMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the matrix */
@@ -395,24 +447,26 @@ Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetARAStoBRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 Trns_tErr Trns_GetAtoB ( mriTransformRef this,
-             MATRIX**        opMatrix ) {
+                         MATRIX**        opMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the matrix */
@@ -420,24 +474,26 @@ Trns_tErr Trns_GetAtoB ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetAtoB: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 Trns_tErr Trns_GetBtoA ( mriTransformRef this,
-             MATRIX**        opMatrix ) {
+                         MATRIX**        opMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the matrix */
@@ -445,14 +501,15 @@ Trns_tErr Trns_GetBtoA ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetBtoA: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
@@ -460,7 +517,8 @@ Trns_tErr Trns_GetBtoA ( mriTransformRef this,
 #define mp(l,m) fprintf(stderr, "%s\n", l ); MatrixPrint(stderr,m);
 
 Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
-				MATRIX*         iTransform ) {
+                                MATRIX*         iTransform )
+{
 
   Trns_tErr eResult         = Trns_tErr_NoErr;
   MATRIX*   mTranslation    = NULL;
@@ -476,7 +534,7 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
   MATRIX*   mNew            = NULL;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* init our matricies */
@@ -546,53 +604,55 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
 
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ApplyTransform: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
-  if( mTranslation ) 
+  if ( mTranslation )
     MatrixFree( &mTranslation );
-  if( mTranslationInv ) 
+  if ( mTranslationInv )
     MatrixFree( &mTranslationInv );
-  if( mRotation ) 
+  if ( mRotation )
     MatrixFree( &mRotation );
-  if( mRotationInv ) 
+  if ( mRotationInv )
     MatrixFree( &mRotationInv );
-  if( mScale ) 
+  if ( mScale )
     MatrixFree( &mScale );
-  if( mNewTranslation ) 
+  if ( mNewTranslation )
     MatrixFree( &mNewTranslation );
-  if( mNewRotation ) 
+  if ( mNewRotation )
     MatrixFree( &mNewRotation );
-  if( mNewScale ) 
+  if ( mNewScale )
     MatrixFree( &mNewScale );
-  if( mNew ) 
+  if ( mNew )
     MatrixFree( &mNew );
-  if( mTmp1 ) 
+  if ( mTmp1 )
     MatrixFree( &mTmp1 );
-  if( mTmp2 ) 
+  if ( mTmp2 )
     MatrixFree( &mTmp2 );
 
   return eResult;
 }
 
 Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
-            MATRIX* oTranslation ) {
+    MATRIX* oTranslation )
+{
 
-  if( NULL == iTransform
-      || NULL == oTranslation ) 
+  if ( NULL == iTransform
+       || NULL == oTranslation )
     return Trns_tErr_InvalidParameter;
-  
+
   /* identity matrix with just the translation components */
   MatrixIdentity( 4, oTranslation );
   *MATRIX_RELT(oTranslation,1,4) = *MATRIX_RELT(iTransform,1,4);
@@ -603,14 +663,15 @@ Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
 }
 
 Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
-            MATRIX* oRotation ) {
+    MATRIX* oRotation )
+{
 
   MATRIX* mScale  = NULL;
   MATRIX* mTmp    = NULL;
   int     n       = 0;
 
-  if( NULL == iTransform
-      || NULL == oRotation ) 
+  if ( NULL == iTransform
+       || NULL == oRotation )
     return Trns_tErr_InvalidParameter;
 
   /* create a matrix identical to the transform but without the translation */
@@ -625,8 +686,8 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
   Trns_ExtractScaleMatrix( mTmp, mScale );
 
   /* now modify it so that all the factors are one-overed. */
-  for( n = 1; n <= 3; n ++ )
-    if( !FZERO(*MATRIX_RELT(mScale,n,n)) )
+  for ( n = 1; n <= 3; n ++ )
+    if ( !FZERO(*MATRIX_RELT(mScale,n,n)) )
       *MATRIX_RELT(mScale,n,n) = 1.0 / *MATRIX_RELT(mScale,n,n);
     else
       *MATRIX_RELT(mScale,n,n) = 1.0;
@@ -641,14 +702,15 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
 }
 
 Trns_tErr Trns_ExtractScaleMatrix ( MATRIX* iTransform,
-            MATRIX* oScale ) {
+                                    MATRIX* oScale )
+{
 
   MATRIX* mTmp    = NULL;
   VECTOR* vTmp    = NULL;
   float   fFactor = 0;
 
-  if( NULL == iTransform
-      || NULL == oScale ) 
+  if ( NULL == iTransform
+       || NULL == oScale )
     return Trns_tErr_InvalidParameter;
 
   /* create a matrix identical to the transform but without the translation */
@@ -659,25 +721,31 @@ Trns_tErr Trns_ExtractScaleMatrix ( MATRIX* iTransform,
 
   /* find the x component. create a 1,0,0 vector and compose it. */
   vTmp = VectorAlloc(4,MATRIX_REAL);
-  VECTOR_ELT(vTmp,1) = 1.0; VECTOR_ELT(vTmp,2) = 0;
-  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 0.0;
+  VECTOR_ELT(vTmp,1) = 1.0;
+  VECTOR_ELT(vTmp,2) = 0;
+  VECTOR_ELT(vTmp,3) = 0;
+  VECTOR_ELT(vTmp,4) = 0.0;
   MatrixMultiply(mTmp,vTmp,vTmp);
 
   /* the x scale factor is the lengh of the transformed vector */
   fFactor = VectorLen( vTmp );
   MatrixIdentity( 4, oScale );
-  *MATRIX_RELT(oScale,1,1) = fFactor; 
+  *MATRIX_RELT(oScale,1,1) = fFactor;
 
   /* do the same for y with a 0,1,0 vector */
-  VECTOR_ELT(vTmp,1) = 0; VECTOR_ELT(vTmp,2) = 1.0;
-  VECTOR_ELT(vTmp,3) = 0; VECTOR_ELT(vTmp,4) = 0.0;
+  VECTOR_ELT(vTmp,1) = 0;
+  VECTOR_ELT(vTmp,2) = 1.0;
+  VECTOR_ELT(vTmp,3) = 0;
+  VECTOR_ELT(vTmp,4) = 0.0;
   MatrixMultiply(mTmp,vTmp,vTmp);
   fFactor = VectorLen( vTmp );
   *MATRIX_RELT(oScale,2,2) = fFactor;
 
   /* do the same for z with a 0,0,1 vector */
-  VECTOR_ELT(vTmp,1) = 0;    VECTOR_ELT(vTmp,2) = 0;
-  VECTOR_ELT(vTmp,3) = 1.00; VECTOR_ELT(vTmp,4) = 0.0;
+  VECTOR_ELT(vTmp,1) = 0;
+  VECTOR_ELT(vTmp,2) = 0;
+  VECTOR_ELT(vTmp,3) = 1.00;
+  VECTOR_ELT(vTmp,4) = 0.0;
   MatrixMultiply(mTmp,vTmp,vTmp);
   fFactor = VectorLen( vTmp );
   *MATRIX_RELT(oScale,3,3) = fFactor;
@@ -690,9 +758,10 @@ Trns_tErr Trns_ExtractScaleMatrix ( MATRIX* iTransform,
 
 
 Trns_tErr Trns_Translate ( mriTransformRef this,
-         float           ifAmount,
-         tAxis           iAxis ) {
-      
+                           float           ifAmount,
+                           tAxis           iAxis )
+{
+
 
   Trns_tErr eResult    = Trns_tErr_NoErr;
   MATRIX*   mTransform = NULL;
@@ -700,7 +769,7 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
   MATRIX*   mNew       = NULL;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -709,7 +778,8 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
 
   /* create the matrix */
   mTransform = MatrixIdentity( 4, NULL );
-  switch( iAxis ) {
+  switch ( iAxis )
+  {
   case tAxis_X:
     *MATRIX_RELT( mTransform, 1, 4 ) = ifAmount;
     break;
@@ -729,33 +799,35 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
 
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_Translate: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
-  if( mTransform != NULL )
+  if ( mTransform != NULL )
     MatrixFree( &mTransform );
-  if( mOld != NULL )
+  if ( mOld != NULL )
     MatrixFree( &mNew );
-  if( mNew != NULL )
+  if ( mNew != NULL )
     MatrixFree( &mNew );
 
   return eResult;
 }
 
 Trns_tErr Trns_Rotate ( mriTransformRef this,
-      float           ifDegrees,
-      tAxis           iAxis ) {
+                        float           ifDegrees,
+                        tAxis           iAxis )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX*   mTransform = NULL;
@@ -764,7 +836,7 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
   float     fRadians  = 0;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -773,7 +845,8 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
 
   /* create the matrix */
   fRadians = ifDegrees * M_PI / 180.0;
-  switch( iAxis ) {
+  switch ( iAxis )
+  {
   case tAxis_X:
     mTransform = MatrixAllocRotation( 4, fRadians, X_ROTATION );
     break;
@@ -793,26 +866,28 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
 
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_Rotate: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_Scale ( mriTransformRef this,
-           float           ifFactor,
-           tAxis           iAxis ) {
+                       float           ifFactor,
+                       tAxis           iAxis )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX*   mTransform = NULL;
@@ -820,7 +895,7 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
   MATRIX*   mNew       = NULL;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -829,7 +904,8 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
 
   /* create the matrix */
   mTransform = MatrixIdentity( 4, NULL );
-  switch( iAxis ) {
+  switch ( iAxis )
+  {
   case tAxis_X:
     *MATRIX_RELT( mTransform, 1, 1 ) = ifFactor;
     break;
@@ -846,39 +922,42 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
   /* compose the new matrix with the old one */
   MatrixCopy( this->mARAStoBRAS, mOld );
   MatrixMultiply( mOld, mTransform, mNew );
-  
+
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_Scale: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 
 Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
-           xVoxelRef       iAVoxel,
-           xVoxelRef       oBVoxel ) {
+                             xVoxelRef       iAVoxel,
+                             xVoxelRef       oBVoxel )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mAtoB ) {
+  if ( NULL == this->mAtoB )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -894,36 +973,39 @@ Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
 
   /* set the voxel to the matrix */
   xVoxl_SetFloat( oBVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+                  *MATRIX_RELT(this->mCoord2,1,1),
+                  *MATRIX_RELT(this->mCoord2,2,1),
+                  *MATRIX_RELT(this->mCoord2,3,1) );
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertAtoB: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
-           xVoxelRef       iAVoxel,
-           xVoxelRef       oRASVoxel ) {
+                               xVoxelRef       iAVoxel,
+                               xVoxelRef       oRASVoxel )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mAtoRAS ) {
+  if ( NULL == this->mAtoRAS )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -939,36 +1021,39 @@ Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
 
   /* set the voxel to the matrix */
   xVoxl_SetFloat( oRASVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+                  *MATRIX_RELT(this->mCoord2,1,1),
+                  *MATRIX_RELT(this->mCoord2,2,1),
+                  *MATRIX_RELT(this->mCoord2,3,1) );
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertAtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertBtoA ( mriTransformRef this,
-           xVoxelRef       iBVoxel,
-           xVoxelRef       oAVoxel ) {
+                             xVoxelRef       iBVoxel,
+                             xVoxelRef       oAVoxel )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mBtoA ) {
+  if ( NULL == this->mBtoA )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -984,36 +1069,39 @@ Trns_tErr Trns_ConvertBtoA ( mriTransformRef this,
 
   /* set the voxel to the matrix */
   xVoxl_SetFloat( oAVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+                  *MATRIX_RELT(this->mCoord2,1,1),
+                  *MATRIX_RELT(this->mCoord2,2,1),
+                  *MATRIX_RELT(this->mCoord2,3,1) );
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertBtoA: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
-           xVoxelRef       iBVoxel,
-           xVoxelRef       oRASVoxel ) {
+                               xVoxelRef       iBVoxel,
+                               xVoxelRef       oRASVoxel )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mBtoRAS ) {
+  if ( NULL == this->mBtoRAS )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1029,37 +1117,40 @@ Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
 
   /* set the voxel to the matrix */
   xVoxl_SetFloat( oRASVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+                  *MATRIX_RELT(this->mCoord2,1,1),
+                  *MATRIX_RELT(this->mCoord2,2,1),
+                  *MATRIX_RELT(this->mCoord2,3,1) );
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertBtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 
 Trns_tErr Trns_ConvertBRAStoB ( mriTransformRef this,
-				xVoxelRef       iBRASVoxel,
-				xVoxelRef       oBVoxel ) {
+                                xVoxelRef       iBRASVoxel,
+                                xVoxelRef       oBVoxel )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
-  
+
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mRAStoB ) {
+  if ( NULL == this->mRAStoB )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1075,37 +1166,40 @@ Trns_tErr Trns_ConvertBRAStoB ( mriTransformRef this,
 
   /* set the voxel to the matrix */
   xVoxl_SetFloat( oBVoxel,
-		  *MATRIX_RELT(this->mCoord2,1,1), 
-		  *MATRIX_RELT(this->mCoord2,2,1), 
-		  *MATRIX_RELT(this->mCoord2,3,1) );
+                  *MATRIX_RELT(this->mCoord2,1,1),
+                  *MATRIX_RELT(this->mCoord2,2,1),
+                  *MATRIX_RELT(this->mCoord2,3,1) );
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertBRAStoB: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 
 Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
-           MATRIX*         iAMatrix,
-           MATRIX*         oBMatrix ) {
+                                   MATRIX*         iAMatrix,
+                                   MATRIX*         oBMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mAtoB ) {
+  if ( NULL == this->mAtoB )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1115,30 +1209,33 @@ Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertAtoB: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
-             MATRIX*         iAMatrix,
-             MATRIX*         oRASMatrix ) {
+                                     MATRIX*         iAMatrix,
+                                     MATRIX*         oRASMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mAtoRAS ) {
+  if ( NULL == this->mAtoRAS )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1148,30 +1245,33 @@ Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertAtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
-           MATRIX*         iBMatrix,
-           MATRIX*         oAMatrix ) {
+                                   MATRIX*         iBMatrix,
+                                   MATRIX*         oAMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mBtoA ) {
+  if ( NULL == this->mBtoA )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1181,30 +1281,33 @@ Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertBtoA: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
-             MATRIX*         iBMatrix,
-             MATRIX*         oRASMatrix ) {
+                                     MATRIX*         iBMatrix,
+                                     MATRIX*         oRASMatrix )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mBtoRAS ) {
+  if ( NULL == this->mBtoRAS )
+  {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
@@ -1214,44 +1317,50 @@ Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_ConvertBtoRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 /* don't use the next function when copying mAtoB or mBtoA */
 /* they will be replaced by recalculated ones              */
-Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this ) {
+Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX*   tmp     = NULL;
 
   /* for each of our first three matricies, if we have them, calc an
      inverse. */
-  if( NULL != this->mAtoRAS ) {
+  if ( NULL != this->mAtoRAS )
+  {
     this->mRAStoA = MatrixInverse( this->mAtoRAS, NULL );
   }
-  if( NULL != this->mBtoRAS ) {
+  if ( NULL != this->mBtoRAS )
+  {
     this->mRAStoB = MatrixInverse( this->mBtoRAS, NULL );
   }
-  if( NULL != this->mARAStoBRAS ) {
+  if ( NULL != this->mARAStoBRAS )
+  {
     this->mBRAStoARAS = MatrixInverse( this->mARAStoBRAS, NULL );
   }
 
   /* if we have everything now, calc the composed conversions */
-  if( NULL != this->mAtoRAS
-      && NULL != this->mRAStoA
-      && NULL != this->mBtoRAS
-      && NULL != this->mRAStoB
-      && NULL != this->mARAStoBRAS
-      && NULL != this->mBRAStoARAS ) {
+  if ( NULL != this->mAtoRAS
+       && NULL != this->mRAStoA
+       && NULL != this->mBtoRAS
+       && NULL != this->mRAStoB
+       && NULL != this->mARAStoBRAS
+       && NULL != this->mBRAStoARAS )
+  {
 
     /* a_index -> a_ras -> b_ras -> b_index */
     tmp = MatrixMultiply( this->mARAStoBRAS, this->mAtoRAS, NULL );
@@ -1265,100 +1374,116 @@ Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this ) {
   goto cleanup;
 
   goto error;
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_CalcMatricies_: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
-Trns_tErr Trns_Verify ( mriTransformRef this ) {
+Trns_tErr Trns_Verify ( mriTransformRef this )
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   /* check for null ptr */
-  if ( NULL == this ) {
+  if ( NULL == this )
+  {
     eResult = Trns_tErr_InvalidPtr;
     goto cleanup;
   }
-  
+
   /* check signature */
-  if ( Trns_kSignature != this->mSignature ) {
+  if ( Trns_kSignature != this->mSignature )
+  {
     eResult = Trns_tErr_InvalidSignature;
     goto cleanup;
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
-void Trns_Signal ( char* isFuncName, int inLineNum, Trns_tErr ieCode ) {
+void Trns_Signal ( char* isFuncName, int inLineNum, Trns_tErr ieCode )
+{
 
-  DebugPrint( ("Signal in %s, line %d: %d, %s", 
-    isFuncName, inLineNum, ieCode, Trns_GetErrorString(ieCode) ) );
+  DebugPrint( ("Signal in %s, line %d: %d, %s",
+               isFuncName, inLineNum, ieCode, Trns_GetErrorString(ieCode) ) );
 }
 
-char* Trns_GetErrorString ( Trns_tErr ieCode ) {
+char* Trns_GetErrorString ( Trns_tErr ieCode )
+{
 
   Trns_tErr eCode = ieCode;
 
   if ( ieCode    < 0
-       || ieCode >= Trns_knNumErrorCodes ) {
+       || ieCode >= Trns_knNumErrorCodes )
+  {
     eCode = Trns_tErr_InvalidErrorCode;
   }
 
   return Trns_ksaErrorStrings [eCode];
 }
 
-void Trns_DebugPrint_ ( mriTransformRef this ) {
+void Trns_DebugPrint_ ( mriTransformRef this )
+{
 
-  if( NULL != this->mAtoRAS ) {
+  if ( NULL != this->mAtoRAS )
+  {
     DebugPrint( ("A to RAS:\n" ) );
     MatrixPrint( stderr, this->mAtoRAS );
   }
-  
-  if( NULL != this->mBtoRAS ) {
+
+  if ( NULL != this->mBtoRAS )
+  {
     DebugPrint( ("B to RAS:\n" ) );
     MatrixPrint( stderr, this->mBtoRAS );
   }
-  
-  if( NULL != this->mARAStoBRAS ) {
+
+  if ( NULL != this->mARAStoBRAS )
+  {
     DebugPrint( ("ARAS to BRAS:\n" ) );
     MatrixPrint( stderr, this->mARAStoBRAS );
   }
-  
-  if( NULL != this->mRAStoA ) {
+
+  if ( NULL != this->mRAStoA )
+  {
     DebugPrint( ("RAS to A:\n" ) );
     MatrixPrint( stderr, this->mRAStoA );
   }
-  
-  if( NULL != this->mRAStoB ) {
+
+  if ( NULL != this->mRAStoB )
+  {
     DebugPrint( ("RAS to B:\n" ) );
     MatrixPrint( stderr, this->mRAStoB );
   }
-  
-  if( NULL != this->mBRAStoARAS ) {
+
+  if ( NULL != this->mBRAStoARAS )
+  {
     DebugPrint( ("BRAS to ARAS:\n" ) );
     MatrixPrint( stderr, this->mBRAStoARAS );
   }
-  
-  if( NULL != this->mAtoB ) {
+
+  if ( NULL != this->mAtoB )
+  {
     DebugPrint( ("A to B:\n" ) );
     MatrixPrint( stderr, this->mAtoB );
   }
 }
-Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)  {
+Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)
+{
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
 
   /* return the type */
@@ -1366,32 +1491,34 @@ Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)  {
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_GetType: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }
 
 Trns_tErr Trns_CopyAtoB ( mriTransformRef this,
-			  MATRIX*         iAtoB ) {
-  
+                          MATRIX*         iAtoB )
+{
+
   Trns_tErr eResult = Trns_tErr_NoErr;
-  
+
   eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
+  if ( Trns_tErr_NoErr != eResult )
     goto error;
-  
+
   if (NULL != this->mAtoB)
     MatrixFree(&this->mAtoB) ;
   if (NULL != this->mBtoA)
     MatrixFree(&this->mBtoA) ;
-  
+
   /* create a copy of this matrix */
   this->mAtoB = MatrixCopy( iAtoB, NULL );
   this->mBtoA = MatrixInverse( iAtoB, NULL );
@@ -1401,14 +1528,15 @@ Trns_tErr Trns_CopyAtoB ( mriTransformRef this,
 
   goto cleanup;
 
- error:
+error:
 
-  if( Trns_tErr_NoErr != eResult ) {
+  if ( Trns_tErr_NoErr != eResult )
+  {
     DebugPrint( ("Error %d in Trns_CopyARAStoBRAS: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
+                 eResult, Trns_GetErrorString( eResult ) ) );
   }
 
- cleanup:
+cleanup:
 
   return eResult;
 }

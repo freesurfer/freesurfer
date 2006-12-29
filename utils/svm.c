@@ -1,3 +1,31 @@
+/**
+ * @file  svm.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -14,7 +42,7 @@
 #if 0
 static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma) ;
 static double svm_linear_dot(int ninputs, float *xi, float *xj) ;
-static double SVMlagrangian(SVM *svm, int ntraining, float **x, 
+static double SVMlagrangian(SVM *svm, int ntraining, float **x,
                             float *y, double **dot_matrix) ;
 SVM   *
 SVMalloc(int ninputs, char *c1_name, char *c2_name)
@@ -39,12 +67,12 @@ SVMalloc(int ninputs, char *c1_name, char *c2_name)
 }
 
 int
-SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, 
+SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
          double tol, int max_iter)
 {
   int    iter, i, j, k, Nsupport, *permutation, *moved, *failed, nmoved, dir, keep_alpha ;
   double **dot_matrix, dot, step_size, L, Lold, Lprev, *da_old, da, b, constraint, ai, aj,
-         dai, daj, min_step_size ;
+  dai, daj, min_step_size ;
 
   permutation = (int *)calloc(ntraining, sizeof(int)) ;
   moved = (int *)calloc(ntraining, sizeof(int)) ;
@@ -85,13 +113,14 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
         dot = svm_rbf_dot(svm->ninputs, x[i], x[j], svm->sigma) ;
         break ;
       }
-        
+
       dot_matrix[i][j] = dot_matrix[j][i] = dot ;
     }
   }
 
 
-  step_size = 0.01/svm->ninputs ; min_step_size = step_size/10000 ;
+  step_size = 0.01/svm->ninputs ;
+  min_step_size = step_size/10000 ;
 
   /* use gradient ascent to maximize lagrangian */
   L = Lold = SVMlagrangian(svm, ntraining, x, y, dot_matrix) ;
@@ -104,7 +133,7 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
     {
       da = 1;
       for (i = 0 ; i < ntraining ; i++)
-         da = da - svm->alpha[i] * y[i] * y[k] * dot_matrix[i][k] ;
+        da = da - svm->alpha[i] * y[i] * y[k] * dot_matrix[i][k] ;
 
       da_old[k] = step_size*da ;
     }
@@ -121,12 +150,16 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
       j = (int)random() % ntraining ;
 #endif
 
-      tmp = permutation[i] ; permutation[i] = permutation[j] ; permutation[j] = tmp ;
+      tmp = permutation[i] ;
+      permutation[i] = permutation[j] ;
+      permutation[j] = tmp ;
     }
 
     /* try to change each alpha at least once */
-    memset(failed, 0, ntraining*sizeof(int)) ; Lprev = Lold ;
-    memset(moved, 0, ntraining*sizeof(int)) ; nmoved = 0 ;
+    memset(failed, 0, ntraining*sizeof(int)) ;
+    Lprev = Lold ;
+    memset(moved, 0, ntraining*sizeof(int)) ;
+    nmoved = 0 ;
     if (iter == Gdiag_no)
       DiagBreak() ;
     for (k = 0 ; k < ntraining ; k++)
@@ -219,18 +252,23 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
       svm->alpha[j] += daj ;
 
       L = SVMlagrangian(svm, ntraining, x, y, dot_matrix) ;
-      
+
       if (svm->alpha[i] < 0 || svm->alpha[j] < 0 || L < Lprev)
       {
         DiagBreak() ;
-        svm->alpha[i] -= dai ; svm->alpha[j] -= daj ;
-        failed[j] = 1 ; k-- ; continue ;
+        svm->alpha[i] -= dai ;
+        svm->alpha[j] -= daj ;
+        failed[j] = 1 ;
+        k-- ;
+        continue ;
       }
 
 
       if (Lprev >= L)  /* Lagrangian didn't change */
       {
-        failed[j] = 1 ; k-- ; continue ;
+        failed[j] = 1 ;
+        k-- ;
+        continue ;
       }
 
       /* Lagrangian increased */
@@ -279,7 +317,7 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
       b += svm->w[k]*x[i][k] ;
     b -= 1/y[i] ;
   }
-  
+
   svm->threshold = b/Nsupport ;
 
   svm->nsupport = Nsupport ;
@@ -301,8 +339,11 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
 
     free(dot_matrix[i]) ;
   }
-  free(da_old) ; free(dot_matrix) ;
-  free(permutation) ; free(moved) ; free(failed) ;
+  free(da_old) ;
+  free(dot_matrix) ;
+  free(permutation) ;
+  free(moved) ;
+  free(failed) ;
   return(NO_ERROR) ;
 }
 
@@ -313,7 +354,7 @@ SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double **dot_matrix)
   double L ;
 
   L = 0 ;
-   
+
   for (i = 0 ; i < ntraining ; i++)
   {
     L += svm->alpha[i] ;
@@ -332,12 +373,12 @@ SVMwrite(SVM *svm, char *fname)
 
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(ERROR_BADPARM, 
+    ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM, "SVMwrite(%s): could not open file", fname)) ;
 
   fprintf(fp, "NINPUTS\t%d\n", svm->ninputs) ;
-  fprintf(fp, "CLASS1\t%s\n", svm->class1_name) ; 
-  fprintf(fp, "CLASS2\t%s\n", svm->class2_name) ; 
+  fprintf(fp, "CLASS1\t%s\n", svm->class1_name) ;
+  fprintf(fp, "CLASS2\t%s\n", svm->class2_name) ;
   fprintf(fp, "C\t%f\n", svm->C) ;
   fprintf(fp, "TYPE\t%d\n", svm->type) ;
   if (svm->extra_args > 0)
@@ -352,7 +393,7 @@ SVMwrite(SVM *svm, char *fname)
   for (i = 0 ; i < svm->ninputs ; i++)
     fprintf(fp, "%e\n", svm->w[i]) ;
 
-  fprintf(fp, "NSUPPORT\t%d\n", svm->nsupport) ; 
+  fprintf(fp, "NSUPPORT\t%d\n", svm->nsupport) ;
   for (i = 0 ; i < svm->nsupport ; i++)
   {
     fprintf(fp, "%e %f\n", svm->asupport[i], svm->ysupport[i]) ;
@@ -374,16 +415,16 @@ SVMread(char *fname)
 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADPARM, "SVMread(%s): could not open file", fname)) ;
 
   retval = fscanf(fp, "NINPUTS\t%d\n", &ninputs) ;
-  retval = fscanf(fp, "CLASS1\t%s\n", class1_name) ; 
-  retval = fscanf(fp, "CLASS2\t%s\n", class2_name) ; 
+  retval = fscanf(fp, "CLASS1\t%s\n", class1_name) ;
+  retval = fscanf(fp, "CLASS2\t%s\n", class2_name) ;
 
   svm = SVMalloc(ninputs, class1_name, class2_name) ;
   if (!svm)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADPARM, "SVMread(%s): could not create svm", fname)) ;
 
   cp = fgetl(line, STRLEN-1, fp) ;
@@ -416,7 +457,7 @@ SVMread(char *fname)
         if (!svm->args[i])
           ErrorExit(ERROR_BADPARM, "SVMread(%s): could not allocate %dth extra arg",i) ;
         strcpy(svm->args[i], cp) ;
-      }        
+      }
     }
     else if (stricmp(token, "THRESHOLD") == 0)
     {
@@ -430,7 +471,7 @@ SVMread(char *fname)
       svm->xsupport = (float **)calloc(svm->nsupport, sizeof(float *)) ;
       for (i = 0 ; i < svm->nsupport ; i++)
       {
-        
+
         retval = fscanf(fp, "%le %f\n", &svm->asupport[i], &svm->ysupport[i]) ;
         svm->xsupport[i] = (float *)calloc(svm->ninputs, sizeof(float)) ;
         for (j = 0 ; j < svm->nsupport ; j++)
@@ -455,7 +496,8 @@ SVMfree(SVM **psvm)
   SVM *svm ;
   int i ;
 
-  svm = *psvm ; *psvm = NULL ;
+  svm = *psvm ;
+  *psvm = NULL ;
 
   if (svm->alpha)
     free(svm->alpha) ;

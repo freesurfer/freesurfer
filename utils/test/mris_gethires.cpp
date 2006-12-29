@@ -1,3 +1,31 @@
+/**
+ * @file  mris_gethires.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:46 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // mris_gethighres.cpp
 //
@@ -5,7 +33,8 @@
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+extern "C"
+{
 #include "error.h"
 #include "mri.h"
 #include "mrisurf.h"
@@ -50,8 +79,8 @@ int main(int argc, char *argv[])
   LINEAR_TRANSFORM *lt = 0;
   MATRIX *m_L = 0;
   fprintf(stderr, "allocating identity RAS-to-RAS xform...\n") ;
-  // allocate hires_xform->xform 
-  TRANSFORM *hires_xform = TransformAlloc(MNI_TRANSFORM_TYPE, NULL); 
+  // allocate hires_xform->xform
+  TRANSFORM *hires_xform = TransformAlloc(MNI_TRANSFORM_TYPE, NULL);
   if (!hires_xform)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate hires xform %s", Progname, argv[3]) ;
   LTA *hires_lta = (LTA *) (hires_xform->xform);

@@ -1,3 +1,31 @@
+/**
+ * @file  backprop.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:30 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)backprop.c  1.1
   3/28/94
@@ -6,10 +34,13 @@
 
       File Name:   backprop.c
 
-      Description:  
+      Description:
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.9 2004/08/26 15:30:25 tosa Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.10 2006/12/29 01:49:30 nicks Exp $
   $Log: backprop.c,v $
+  Revision 1.10  2006/12/29 01:49:30  nicks
+  added license header; ran astyle to set to kr and ansi code styling
+
   Revision 1.9  2004/08/26 15:30:25  tosa
   long to long32
 
@@ -133,10 +164,10 @@ static int  bpChangeNumberOfNets(FILE *fp, int nnets) ;
 
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int coef = -1 ;
 
@@ -165,7 +196,7 @@ BackpropAlloc(int ninputs, int noutputs, int nhidden, float trate,
   memcpy(backprop->std_out, std_out, noutputs*sizeof(float)) ;
   backprop->errors = (float *)calloc(noutputs, sizeof(float)) ;
   if (!backprop->errors)
-   ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not allocate error vector\n") ;
+    ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not allocate error vector\n") ;
 
   backprop->trate = trate ;
   bpInitLayer(&backprop->hidden, ninputs, nhidden) ;
@@ -175,10 +206,10 @@ BackpropAlloc(int ninputs, int noutputs, int nhidden, float trate,
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 BackpropFileNumberOfNets(char *fname)
@@ -198,12 +229,12 @@ BackpropFileNumberOfNets(char *fname)
     fp = stdin ;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
-    ErrorExit(ERROR_BAD_FILE,  
-            "BackpropNumberOfNets(%s): could not read header from file\n",
-            fname) ;
-            
+    ErrorExit(ERROR_BAD_FILE,
+              "BackpropNumberOfNets(%s): could not read header from file\n",
+              fname) ;
+
   DiagPrintf(DIAG_WRITE,"BackpropNumberOfNets(%s): %d nets, 1st at %ld\n",
-              fname, hd.nnets, hd.first) ;
+             fname, hd.nnets, hd.first) ;
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
   {
     hd.magic = swapLong32(hd.magic) ;
@@ -212,17 +243,17 @@ BackpropFileNumberOfNets(char *fname)
   }
 
   if (hd.magic != BP_MAGIC)
-    ErrorReturn(ERROR_BAD_FILE, (ERROR_BAD_FILE, "BackpropFileNumberOfNets(%s): bad magic #\n", 
+    ErrorReturn(ERROR_BAD_FILE, (ERROR_BAD_FILE, "BackpropFileNumberOfNets(%s): bad magic #\n",
                                  fname)) ;
 
   return((int)hd.nnets) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 BACKPROP *
 BackpropRead(char *fname, int netno)
@@ -245,8 +276,8 @@ BackpropRead(char *fname, int netno)
     fp = stdin ;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
-    ErrorReturn(NULL, (ERROR_BAD_FILE, 
-      "BackpropRead(%s): could not read header from file\n", fname)) ;
+    ErrorReturn(NULL, (ERROR_BAD_FILE,
+                       "BackpropRead(%s): could not read header from file\n", fname)) ;
 
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
   {
@@ -262,7 +293,7 @@ BackpropRead(char *fname, int netno)
     netno = (int)hd.nnets ;
 
   DiagPrintf(DIAG_WRITE, "BackpropRead(%s, %d): %d nets, 1st at %ld\n",
-              fname, netno, hd.nnets, hd.first) ;
+             fname, netno, hd.nnets, hd.first) ;
   if (netno >= hd.nnets)
   {
     fclose(fp) ;
@@ -271,8 +302,8 @@ BackpropRead(char *fname, int netno)
 
   bpFileSeekNet(fp, &hd, netno, swapped) ;
   DiagPrintf(DIAG_WRITE, "after bpFileSeekNet: fpos @ %ld\n", ftell(fp)) ;
-  
-  if (fscanf(fp, "%d %d %d %f %f %d\n", &ninputs, &noutputs, 
+
+  if (fscanf(fp, "%d %d %d %f %f %d\n", &ninputs, &noutputs,
              &nhidden, &trate, &momentum, &ubytes) != 6)
   {
     if (fp != stdin)
@@ -284,7 +315,7 @@ BackpropRead(char *fname, int netno)
   {
     if (fp != stdin) fclose(fp) ;
     ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not allocate min_out\n",
-            fname) ;
+              fname) ;
   }
   max_out = (float *)calloc(noutputs, sizeof(float)) ;
   if (!max_out)
@@ -292,28 +323,28 @@ BackpropRead(char *fname, int netno)
     if (fp != stdin)
       fclose(fp) ;
     ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not allocate max_out\n",
-            fname) ;
+              fname) ;
   }
   if (fread(min_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
     if (fp != stdin)
       fclose(fp) ;
     ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not read min_out\n",
-            fname) ;
+              fname) ;
   }
   if (fread(max_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
     if (fp != stdin)
       fclose(fp) ;
     ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not read max_out\n",
-            fname) ;
+              fname) ;
   }
   if (swapped)
   {
     *min_out = swapFloat(*min_out) ;
     *max_out = swapFloat(*max_out) ;
   }
-  backprop = 
+  backprop =
     BackpropAlloc(ninputs, noutputs, nhidden, momentum, trate,min_out,max_out);
 
   free(min_out) ;
@@ -339,19 +370,19 @@ BackpropRead(char *fname, int netno)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 BACKPROP *
 BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst)
 {
-  if (bp_dst && 
+  if (bp_dst &&
       ((bp_dst->ninputs != bp_src->ninputs) ||
        (bp_dst->noutputs != bp_src->noutputs) ||
        (bp_dst->nhidden != bp_src->nhidden)))
-      BackpropFree(&bp_dst) ;
+    BackpropFree(&bp_dst) ;
 
   if (!bp_dst)
     bp_dst = BackpropAlloc(bp_src->ninputs, bp_src->noutputs,
@@ -365,10 +396,10 @@ BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst)
   bp_dst->trate_down = bp_src->trate_down ; /* adaptive step size decrease */
 
   /* ratio of new/old sse for step size modification */
-  bp_dst->error_ratio = bp_src->error_ratio ;   
+  bp_dst->error_ratio = bp_src->error_ratio ;
   bp_dst->nepochs = bp_src->nepochs ;    /* # of epochs of training */
   bp_dst->ntrials = bp_src->ntrials ;
-  bp_dst->old_momentum = bp_src->old_momentum ;  
+  bp_dst->old_momentum = bp_src->old_momentum ;
   bp_dst->sse = bp_src->sse ;
 
   memcpy(bp_dst->mean_out, bp_src->mean_out, bp_src->noutputs * sizeof(float));
@@ -386,10 +417,10 @@ BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpCopyLayer(LAYER *lsrc, LAYER *ldst)
@@ -410,13 +441,13 @@ bpCopyLayer(LAYER *lsrc, LAYER *ldst)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
-BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], 
+BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
               char *comments, int mode)
 {
   FILE           *fp = NULL ;
@@ -427,7 +458,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
   long           fpos ;
 
   DiagPrintf(DIAG_WRITE, "BackpropWrite(%s): mode = %s\n",
-              fname, mode == BP_WRITE ? "write" : "append") ;
+             fname, mode == BP_WRITE ? "write" : "append") ;
 
   switch (mode)
   {
@@ -444,17 +475,17 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
     fp = fopen(fname, "r+") ;
     if (!fp)
       ErrorExit(ERROR_BAD_FILE, "BackpropWrite(%s): could not create file for appending\n",
-              fname) ;
+                fname) ;
     break ;
   case BP_APPEND:
     fp = fopen(fname, "r+") ;
     if (!fp)
       ErrorReturn(-3, (ERROR_BAD_FILE,
-              "BackpropWrite(%s): could not create file for appending\n", fname)) ;
+                       "BackpropWrite(%s): could not create file for appending\n", fname)) ;
 
     if (fread(&hd, sizeof(hd), 1, fp) != 1)
       ErrorReturn(-3, (ERROR_BAD_FILE,
-        "BackpropWrite(%s): could not read header from file\n", fname)) ;
+                       "BackpropWrite(%s): could not read header from file\n", fname)) ;
 
     if (hd.magic != BP_MAGIC)
       ErrorReturn(-4, (ERROR_BAD_FILE, "BackpropWrite(%s): bad magic #\n", fname)) ;
@@ -474,22 +505,22 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 
   DiagPrintf(DIAG_WRITE, "nulls written in file, fpos @ %ld\n", ftell(fp)) ;
   fprintf(fp, "%d %d %d %f %f %d\n",
-    backprop->ninputs, backprop->noutputs, backprop->nhidden,
-    backprop->trate, backprop->momentum, backprop->user_bytes) ;
+          backprop->ninputs, backprop->noutputs, backprop->nhidden,
+          backprop->trate, backprop->momentum, backprop->user_bytes) ;
 
-  if (fwrite(backprop->mean_out, sizeof(float), backprop->noutputs, fp) != 
+  if (fwrite(backprop->mean_out, sizeof(float), backprop->noutputs, fp) !=
       (size_t)backprop->noutputs)
     ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write min output vector\n",
-            fname) ;
+              fname) ;
 
-  if (fwrite(backprop->std_out, sizeof(float), backprop->noutputs, fp) != 
+  if (fwrite(backprop->std_out, sizeof(float), backprop->noutputs, fp) !=
       (size_t)backprop->noutputs)
     ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write max output vector\n",
-            fname) ;
+              fname) ;
 
   if (backprop->user_bytes > 0)
   {
-    if (fwrite(backprop->user, sizeof(char), backprop->user_bytes, fp) != 
+    if (fwrite(backprop->user, sizeof(char), backprop->user_bytes, fp) !=
         (size_t)backprop->user_bytes)
       ErrorReturn(ERROR_BAD_FILE,
                   (ERROR_BAD_FILE, "BackpropWrite: could not write %d user bytes\n",
@@ -523,10 +554,10 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 BackpropProcess(BACKPROP *backprop, float *I)
@@ -535,7 +566,7 @@ BackpropProcess(BACKPROP *backprop, float *I)
   LAYER   *hidden, *output ;
   float   maxX ;
 
-  if (Gdiag & DIAG_BACKPROP) 
+  if (Gdiag & DIAG_BACKPROP)
   {
     if (!backprop->learn)
       printf("\n") ;
@@ -562,7 +593,7 @@ BackpropProcess(BACKPROP *backprop, float *I)
   if (!backprop->learn)
     bpUnnormalizeOutputs(backprop) ;
 
-  if (Gdiag & DIAG_BACKPROP) 
+  if (Gdiag & DIAG_BACKPROP)
   {
     printf("BackpropProcess returning: ") ;
     for (i = 0 ; i  < backprop->noutputs ; i++)
@@ -574,10 +605,10 @@ BackpropProcess(BACKPROP *backprop, float *I)
 #if 1
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
        convert the output range to unnormalized format
 ----------------------------------------------------------------------*/
 #define NO_CONVERT 0
@@ -599,11 +630,11 @@ bpUnnormalizeOutputs(BACKPROP *backprop)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
-      scale targets to desired range 
+    Description:
+
+    Returns:
+      scale targets to desired range
 ----------------------------------------------------------------------*/
 static void
 bpNormalizeTargets(BACKPROP *backprop, float *targets)
@@ -621,10 +652,10 @@ bpNormalizeTargets(BACKPROP *backprop, float *targets)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
        convert targets back to original unnormalized range
 ----------------------------------------------------------------------*/
 static void
@@ -643,12 +674,12 @@ bpUnnormalizeTargets(BACKPROP *backprop, float *targets)
 }
 #else
 /*----------------------------------------------------------------------
-    Parameters:
-                
-    Description:  
+Parameters:
 
-    Returns:   
-      scale outputs to desired range 
+Description:
+
+Returns:
+scale outputs to desired range
 ----------------------------------------------------------------------*/
 #define NO_CONVERT 0
 static void
@@ -659,7 +690,7 @@ bpUnnormalizeOutputs(BACKPROP *backprop)
   LAYER   *output ;
 
 #if NO_CONVERT
-return ;
+  return ;
 #endif
 
   /* scale outputs to desired range */
@@ -672,12 +703,12 @@ return ;
   }
 }
 /*----------------------------------------------------------------------
-    Parameters:
-                
-    Description:  
+Parameters:
 
-    Returns:   
-      scale outputs to desired range 
+Description:
+
+Returns:
+scale outputs to desired range
 ----------------------------------------------------------------------*/
 static void
 bpNormalizeTargets(BACKPROP *backprop, float *targets)
@@ -686,7 +717,7 @@ bpNormalizeTargets(BACKPROP *backprop, float *targets)
   int     i ;
 
 #if NO_CONVERT
-return ;
+  return ;
 #endif
 
   /* scale outputs to desired range */
@@ -698,12 +729,12 @@ return ;
   }
 }
 /*----------------------------------------------------------------------
-    Parameters:
-                
-    Description:  
+Parameters:
 
-    Returns:   
-      scale outputs to desired range 
+Description:
+
+Returns:
+scale outputs to desired range
 ----------------------------------------------------------------------*/
 static void
 bpUnnormalizeTargets(BACKPROP *backprop, float *targets)
@@ -712,7 +743,7 @@ bpUnnormalizeTargets(BACKPROP *backprop, float *targets)
   int     i ;
 
 #if NO_CONVERT
-return ;
+  return ;
 #endif
 
   /* scale outputs to desired range */
@@ -726,10 +757,10 @@ return ;
 #endif
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpLayerFeedForward(float *I, LAYER *layer, int nlin)
@@ -759,7 +790,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
 #if 0
       if (Gdiag & DIAG_BACKPROP)
         printf("net += %2.5f * %2.3f --> %2.5f\n",
-          Wij(layer, i, j), I[i], net) ;
+               Wij(layer, i, j), I[i], net) ;
 #endif
     }
 
@@ -775,12 +806,12 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
-        train the network for one entire epoch, randomizing the training 
+
+    Description:
+        train the network for one entire epoch, randomizing the training
         order.
 
-    Returns:   
+    Returns:
 ----------------------------------------------------------------------*/
 extern FILE *logfp ;
 float
@@ -800,7 +831,7 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
   targets = (float *)calloc(bp->noutputs, sizeof(float)) ;
   if (!input_tested | !inputs | !targets)
     ErrorExit(ERROR_BAD_FILE,  "BackpropTrainEpoch(%d): could not allocated arrays\n",
-            ntrials) ;
+              ntrials) ;
 
   /* reset training parameters */
   for (i = 0 ; i < bp->noutputs ; i++)
@@ -820,7 +851,7 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
     if (index == min_trial)
       while (input_tested[++min_trial] && (max_trial > min_trial))
       {}
-    
+
     if (input_tested[index])
       continue ;
     tested++ ;
@@ -835,26 +866,26 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
   new_bp->sse /= (float)ntrials ;
 #endif
 
-  if (!bp->nepochs)  
+  if (!bp->nepochs)
     bp->sse = new_bp->sse ;  /* nothing to compare it to */
-    
-    
-/*
-  for adaptive learning rate: If sse increases by more than ERROR_RATIO,
-  then update the step size according to:
 
-  learning_rate = learning_rate * TRATE_DECREASE
 
-  otherwise, if the sse decresed, the increase the step size by:
-  
-  learning_rate = learning_rate * TRATE_INCREASE.
-*/
+  /*
+    for adaptive learning rate: If sse increases by more than ERROR_RATIO,
+    then update the step size according to:
+
+    learning_rate = learning_rate * TRATE_DECREASE
+
+    otherwise, if the sse decresed, the increase the step size by:
+
+    learning_rate = learning_rate * TRATE_INCREASE.
+  */
 
   error_ratio = bp->sse / new_bp->sse ;
 
 #if 0
   /* only use new weights if error didn't increase too much */
-  if (new_bp->sse < bp->sse * bp->error_ratio)  
+  if (new_bp->sse < bp->sse * bp->error_ratio)
     BackpropCopy(new_bp, bp) ;
 
   if (error_ratio >= 1.0f)   /* error decreased */
@@ -883,7 +914,7 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
     else  /* error increased by a little   NEW!!!! */
     {
       new_bp->trate = new_bp->trate * new_bp->trate_down ;
-/*      new_bp->momentum = 0.0f ;*/
+      /*      new_bp->momentum = 0.0f ;*/
     }
     /* only use new weights if error didn't increase too much */
     BackpropCopy(new_bp, bp) ;
@@ -904,10 +935,10 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 float
 BackpropLearn(BACKPROP *backprop, float *inputs,  float *targets)
@@ -916,7 +947,7 @@ BackpropLearn(BACKPROP *backprop, float *inputs,  float *targets)
   LAYER   *hidden, *output ;
   float   bpError ;
 
-  if (Gdiag & DIAG_BACKPROP) 
+  if (Gdiag & DIAG_BACKPROP)
   {
     printf("\nBackpropLearn ") ;
     for (i = 0 ; i < backprop->ninputs ; i++)
@@ -935,7 +966,7 @@ BackpropLearn(BACKPROP *backprop, float *inputs,  float *targets)
       (float *)InsCalloc(backprop->noutputs, sizeof(float)) ;
   }
 
-  backprop->learn = 1 ; 
+  backprop->learn = 1 ;
 
   bpClass = BackpropProcess(backprop, inputs) ;
 
@@ -950,23 +981,23 @@ BackpropLearn(BACKPROP *backprop, float *inputs,  float *targets)
 
   bpError = BackpropError(backprop, targets) ;
 
-/*
-  moved the next 2 lines to after the error call.
-*/
+  /*
+    moved the next 2 lines to after the error call.
+  */
   bpUnnormalizeOutputs(backprop) ;
   bpUnnormalizeTargets(backprop, targets) ;
 
-  backprop->learn = 0 ; 
+  backprop->learn = 0 ;
   backprop->ntrials++ ;
 
   return(bpError) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpCalculateOutputDeltas(BACKPROP *backprop, float *targets)
@@ -997,10 +1028,10 @@ bpCalculateOutputDeltas(BACKPROP *backprop, float *targets)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpCalculateHiddenDeltas(BACKPROP *backprop)
@@ -1049,10 +1080,10 @@ bpCalculateHiddenDeltas(BACKPROP *backprop)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpInitLayer(LAYER *layer, int ninputs, int nunits)
@@ -1072,10 +1103,10 @@ bpInitLayer(LAYER *layer, int ninputs, int nunits)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
@@ -1109,7 +1140,7 @@ bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
       if (Gdiag & DIAG_BACKPROP)
         printf("update weight %d-->%d: %2.5f + (%2.3f * %2.5f * %2.3f)"
                "= %2.5f\n",
-               i,j, Wij(layer,i,j), trate, delta, I[i], 
+               i,j, Wij(layer,i,j), trate, delta, I[i],
                Wij(layer,i,j)+dw) ;
 #endif
       *wij += dw ;
@@ -1119,10 +1150,10 @@ bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpInitLayerWeights(LAYER *layer)
@@ -1145,19 +1176,19 @@ bpInitLayerWeights(LAYER *layer)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpReadLayer(FILE *fp, LAYER *layer)
 {
   int i, j ;
-  
+
   fscanf(fp, "%d  %d\n", &layer->ninputs, &layer->nunits) ;
   bpInitLayer(layer, layer->ninputs, layer->nunits) ;
- 
+
   fscanf(fp, "\n") ;
 
   /* now read in weights */
@@ -1172,16 +1203,16 @@ bpReadLayer(FILE *fp, LAYER *layer)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpWriteLayer(FILE *fp, LAYER *layer)
 {
   int i, j ;
-  
+
   fprintf(fp, "%d  %d\n", layer->ninputs, layer->nunits) ;
 
   for (j = 0 ; j < layer->nunits ; j++)
@@ -1195,10 +1226,10 @@ bpWriteLayer(FILE *fp, LAYER *layer)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 BackpropFree(BACKPROP **pbackprop)
@@ -1216,10 +1247,10 @@ BackpropFree(BACKPROP **pbackprop)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static void
 bpFreeLayer(LAYER *layer)
@@ -1238,10 +1269,10 @@ bpFreeLayer(LAYER *layer)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 
 #ifndef TINY
@@ -1268,7 +1299,8 @@ BackpropError(BACKPROP *bp, float *targets)
     else
       target = fabs(targets[i]) ;
 
-    bp->errors[i] += error / target ; ;
+    bp->errors[i] += error / target ;
+    ;
     total += target ;
   }
 
@@ -1291,10 +1323,10 @@ BackpropError(BACKPROP *bp, float *targets)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 BackpropErrorReset(BACKPROP *bp)
@@ -1305,10 +1337,10 @@ BackpropErrorReset(BACKPROP *bp)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 int
 BackpropSetParms(BACKPROP *bp, float trate_up,float trate_down,
@@ -1321,10 +1353,10 @@ BackpropSetParms(BACKPROP *bp, float trate_up,float trate_down,
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 #if 0
 int
@@ -1337,16 +1369,16 @@ BackpropEpochComplete(BACKPROP *bp)
   bp->ntrials = 0 ;
   if (bp->nepochs++)  /* nothing to compare 0th epoch to */
   {
-/*
-  for adaptive learning rate: If sse increases by more than ERROR_RATIO,
-  then update the step size according to:
+    /*
+      for adaptive learning rate: If sse increases by more than ERROR_RATIO,
+      then update the step size according to:
 
-  learning_rate = learning_rate * TRATE_DECREASE
+      learning_rate = learning_rate * TRATE_DECREASE
 
-  otherwise, if the sse decresed, the increase the step size by:
-  
-  learning_rate = learning_rate * TRATE_INCREASE.
-*/
+      otherwise, if the sse decresed, the increase the step size by:
+
+      learning_rate = learning_rate * TRATE_INCREASE.
+    */
 
     bp->momentum = bp->old_momentum ;
     if (new_bp->sse > bp->sse * bp->error_ratio)
@@ -1365,10 +1397,10 @@ BackpropEpochComplete(BACKPROP *bp)
 #endif
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static long
 bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
@@ -1380,34 +1412,34 @@ bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
     ErrorExit(ERROR_BAD_FILE, "bpFileNewEnd: could not seek to end\n") ;
 
   end = ftell(fp) ;
-  
+
   bpFileSeekEndPtr(fp, hd, swapped) ;
   DiagPrintf(DIAG_WRITE, "bpFileNewEnd: putting end %ld at %ld\n",
-              end, ftell(fp)) ;
+             end, ftell(fp)) ;
   fseek(fp, 0L, SEEK_CUR) ;
   if ((err = fwrite(&end, sizeof(end), 1, fp)) != 1)
-    ErrorExit(ERROR_BAD_FILE, 
-            "bpFileNewEnd: %d, could not write new end location %ld @ %ld\n",
-            err, end, ftell(fp)) ;
+    ErrorExit(ERROR_BAD_FILE,
+              "bpFileNewEnd: %d, could not write new end location %ld @ %ld\n",
+              err, end, ftell(fp)) ;
 
   return(ftell(fp)) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static long
 bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
 {
   long next ;
 
-/*
-  now follow pointer chain to find position of null pointer that we need
-  to update with the location of the new net.
-*/
+  /*
+    now follow pointer chain to find position of null pointer that we need
+    to update with the location of the new net.
+  */
   next = (char *)&(hd->first) - (char *)hd ;
   DiagPrintf(DIAG_WRITE, "bpFileSeekEnd: starting search at %ld\n",next) ;
   while (next)
@@ -1420,7 +1452,7 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
     if (swapped)
       next = swapLong32(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekEnd: next %ld @ %ld\n", next,
-                ftell(fp)-sizeof(long));
+               ftell(fp)-sizeof(long));
   }
 
   /* file ptr should be at location of end of pointer chain, not beyond it */
@@ -1431,10 +1463,10 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static long
 bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
@@ -1442,13 +1474,13 @@ bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
   int  index ;
   long next ;
 
-/*
-  now follow pointer chain to find position of null pointer that we need
-  to update with the location of the new net.
-*/
+  /*
+    now follow pointer chain to find position of null pointer that we need
+    to update with the location of the new net.
+  */
   next = (char *)&(hd->first) - (char *)hd ;
   DiagPrintf(DIAG_WRITE, "bpFileSeekNet(%d): starting search at %ld\n",
-              netno, next) ;
+             netno, next) ;
   for (index = 0 ; index <= netno ; index++)
   {
     if (fseek(fp, next, SEEK_SET))
@@ -1467,10 +1499,10 @@ bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
 }
 /*----------------------------------------------------------------------
     Parameters:
-                
-    Description:  
 
-    Returns:   
+    Description:
+
+    Returns:
 ----------------------------------------------------------------------*/
 static int
 bpChangeNumberOfNets(FILE *fp, int nnets)
@@ -1480,23 +1512,23 @@ bpChangeNumberOfNets(FILE *fp, int nnets)
   DiagPrintf(DIAG_WRITE, "bpChangeNumberOfNets(%d)\n", nnets) ;
 
   if (fseek(fp, 0L, SEEK_SET))
-    ErrorExit(ERROR_BAD_FILE,  
-            "bpChangeNumberOfNets(%d): could not seek to start of file\n",
-            nnets) ;
+    ErrorExit(ERROR_BAD_FILE,
+              "bpChangeNumberOfNets(%d): could not seek to start of file\n",
+              nnets) ;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
     ErrorExit(ERROR_BAD_FILE, "bpChangeNumberOfNets(%d): could not read header\n",
-            nnets) ;
+              nnets) ;
 
   hd.nnets += nnets ;
   if (fseek(fp, 0L, SEEK_SET))
-    ErrorExit(ERROR_BAD_FILE, 
-            "bpChangeNumberOfNets(%d): could not seek to start of file\n",
-            nnets) ;
+    ErrorExit(ERROR_BAD_FILE,
+              "bpChangeNumberOfNets(%d): could not seek to start of file\n",
+              nnets) ;
 
   if (fwrite(&hd, sizeof(hd), 1, fp) != 1)
-    ErrorExit(ERROR_BAD_FILE, "bpChangeNumberOfNets(%d): could not write header\n", 
-            nnets) ;
+    ErrorExit(ERROR_BAD_FILE, "bpChangeNumberOfNets(%d): could not write header\n",
+              nnets) ;
 
   return(0) ;
 }

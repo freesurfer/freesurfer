@@ -1,3 +1,31 @@
+/**
+ * @file  error.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:31 $
+ *    $Revision: 1.18 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   error.c
  *
@@ -73,9 +101,9 @@ rgb_error(char *error_str)
         Description
 ------------------------------------------------------*/
 int
-ErrorInit(char *fname, 
-                  int (*vfprint)(FILE *fp, const char *fmt, va_list args),
-                  int (*vprint)(const char *fmt, va_list args))
+ErrorInit(char *fname,
+          int (*vfprint)(FILE *fp, const char *fmt, va_list args),
+          int (*vprint)(const char *fmt, va_list args))
 {
   error_exit = (void *)(int)exit;
   i_seterror(rgb_error) ;
@@ -113,10 +141,10 @@ ErrorExit(int ecode, char *fmt, ...)
   if (hipserrno)
     perr(ecode, "Hips error:") ;
 
-	if (error_exit)
-		(*error_exit)(ecode) ;
-	else
-		exit(ecode) ;
+  if (error_exit)
+    (*error_exit)(ecode) ;
+  else
+    exit(ecode) ;
 }
 
 /*-----------------------------------------------------

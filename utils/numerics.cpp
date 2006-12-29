@@ -1,3 +1,31 @@
+/**
+ * @file  numerics.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:39 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,7 +45,8 @@
 #include "fs_vnl/fs_lbfgs.h"
 #include "fs_vnl/fs_cost_function.h"
 
-extern "C" {
+extern "C"
+{
 #include "error.h"
 #include "cephes.h"
 #include "numerics.h"
@@ -42,7 +71,8 @@ static void ConvertFromFloatToVNLDouble
   vnl_vector< double >& oDestination, const int icSourceAndDestination )
 {
   // indexing p at 1 because of NR legacy
-  for( int nDest=0; nDest< icSourceAndDestination; nDest++ ) {
+  for ( int nDest=0; nDest< icSourceAndDestination; nDest++ )
+  {
     oDestination( nDest ) = static_cast< double >( iaSource[ nDest+1 ] );
   }
 }
@@ -53,7 +83,8 @@ static void ConvertFromVNLDoubleToFloat
   float *oaDestination, const int icSourceAndDestination )
 {
   // indexing p at 1 because of NR legacy
-  for( int i=0; i< icSourceAndDestination; i++ ) {
+  for ( int i=0; i< icSourceAndDestination; i++ )
+  {
     oaDestination[ i+1 ] = static_cast< float >( iSource( i ) );
   }
 }
@@ -64,8 +95,10 @@ static void ConvertFromFloatToVNLDouble
   vnl_matrix< double >& oDestination, const int icSourceAndDestination )
 {
   // indexing p at 1 because of NR legacy
-  for( int row=0; row< icSourceAndDestination; row++ ) {
-    for( int col=0; col< icSourceAndDestination; col++ ) {
+  for ( int row=0; row< icSourceAndDestination; row++ )
+  {
+    for ( int col=0; col< icSourceAndDestination; col++ )
+    {
       oDestination( row, col ) =
         static_cast< double >( iaSource[ row+1 ][ col+1 ] );
     }
@@ -77,8 +110,10 @@ static void ConvertFromVNLDoubleToFloat
   float **oaDestination, const int icSourceAndDestination )
 {
   // indexing p at 1 because of NR legacy
-  for( int row=0; row< icSourceAndDestination; row++ ) {
-    for( int col=0; col< icSourceAndDestination; col++ ) {
+  for ( int row=0; row< icSourceAndDestination; row++ )
+  {
+    for ( int col=0; col< icSourceAndDestination; col++ )
+    {
       oaDestination[ row+1 ][ col+1 ] =
         static_cast< float >( iSource( row, col ) );
     }
@@ -125,9 +160,9 @@ static double d_epsilon()
   r = 1.0;
 
   while ( 1.0 < ( double ) ( 1.0 + r )  )
-    {
-      r = r / 2.0;
-    }
+  {
+    r = r / 2.0;
+  }
 
   return ( 2.0 * r );
 }
@@ -210,13 +245,13 @@ static double d_epsilon()
 static double gamma_log( double x )
 {
   double c[7] = {
-    -1.910444077728E-03,
-    8.4171387781295E-04,
-    -5.952379913043012E-04,
-    7.93650793500350248E-04,
-    -2.777777777777681622553E-03,
-    8.333333333333333331554247E-02,
-    5.7083835261E-03 };
+                  -1.910444077728E-03,
+                  8.4171387781295E-04,
+                  -5.952379913043012E-04,
+                  7.93650793500350248E-04,
+                  -2.777777777777681622553E-03,
+                  8.333333333333333331554247E-02,
+                  5.7083835261E-03 };
   double corr;
   double d1 = - 5.772156649015328605195174E-01;
   double d2 =   4.227843350984671393993777E-01;
@@ -224,60 +259,60 @@ static double gamma_log( double x )
   double frtbig = 1.42E+09;
   int i;
   double p1[8] = {
-    4.945235359296727046734888,
-    2.018112620856775083915565E+02,
-    2.290838373831346393026739E+03,
-    1.131967205903380828685045E+04,
-    2.855724635671635335736389E+04,
-    3.848496228443793359990269E+04,
-    2.637748787624195437963534E+04,
-    7.225813979700288197698961E+03 };
+                   4.945235359296727046734888,
+                   2.018112620856775083915565E+02,
+                   2.290838373831346393026739E+03,
+                   1.131967205903380828685045E+04,
+                   2.855724635671635335736389E+04,
+                   3.848496228443793359990269E+04,
+                   2.637748787624195437963534E+04,
+                   7.225813979700288197698961E+03 };
   double p2[8] = {
-    4.974607845568932035012064,
-    5.424138599891070494101986E+02,
-    1.550693864978364947665077E+04,
-    1.847932904445632425417223E+05,
-    1.088204769468828767498470E+06,
-    3.338152967987029735917223E+06,
-    5.106661678927352456275255E+06,
-    3.074109054850539556250927E+06 };
+                   4.974607845568932035012064,
+                   5.424138599891070494101986E+02,
+                   1.550693864978364947665077E+04,
+                   1.847932904445632425417223E+05,
+                   1.088204769468828767498470E+06,
+                   3.338152967987029735917223E+06,
+                   5.106661678927352456275255E+06,
+                   3.074109054850539556250927E+06 };
   double p4[8] = {
-    1.474502166059939948905062E+04,
-    2.426813369486704502836312E+06,
-    1.214755574045093227939592E+08,
-    2.663432449630976949898078E+09,
-    2.940378956634553899906876E+010,
-    1.702665737765398868392998E+011,
-    4.926125793377430887588120E+011,
-    5.606251856223951465078242E+011 };
+                   1.474502166059939948905062E+04,
+                   2.426813369486704502836312E+06,
+                   1.214755574045093227939592E+08,
+                   2.663432449630976949898078E+09,
+                   2.940378956634553899906876E+010,
+                   1.702665737765398868392998E+011,
+                   4.926125793377430887588120E+011,
+                   5.606251856223951465078242E+011 };
   double pnt68 = 0.6796875;
   double q1[8] = {
-    6.748212550303777196073036E+01,
-    1.113332393857199323513008E+03,
-    7.738757056935398733233834E+03,
-    2.763987074403340708898585E+04,
-    5.499310206226157329794414E+04,
-    6.161122180066002127833352E+04,
-    3.635127591501940507276287E+04,
-    8.785536302431013170870835E+03 };
+                   6.748212550303777196073036E+01,
+                   1.113332393857199323513008E+03,
+                   7.738757056935398733233834E+03,
+                   2.763987074403340708898585E+04,
+                   5.499310206226157329794414E+04,
+                   6.161122180066002127833352E+04,
+                   3.635127591501940507276287E+04,
+                   8.785536302431013170870835E+03 };
   double q2[8] = {
-    1.830328399370592604055942E+02,
-    7.765049321445005871323047E+03,
-    1.331903827966074194402448E+05,
-    1.136705821321969608938755E+06,
-    5.267964117437946917577538E+06,
-    1.346701454311101692290052E+07,
-    1.782736530353274213975932E+07,
-    9.533095591844353613395747E+06 };
+                   1.830328399370592604055942E+02,
+                   7.765049321445005871323047E+03,
+                   1.331903827966074194402448E+05,
+                   1.136705821321969608938755E+06,
+                   5.267964117437946917577538E+06,
+                   1.346701454311101692290052E+07,
+                   1.782736530353274213975932E+07,
+                   9.533095591844353613395747E+06 };
   double q4[8] = {
-    2.690530175870899333379843E+03,
-    6.393885654300092398984238E+05,
-    4.135599930241388052042842E+07,
-    1.120872109616147941376570E+09,
-    1.488613728678813811542398E+010,
-    1.016803586272438228077304E+011,
-    3.417476345507377132798597E+011,
-    4.463158187419713286462081E+011 };
+                   2.690530175870899333379843E+03,
+                   6.393885654300092398984238E+05,
+                   4.135599930241388052042842E+07,
+                   1.120872109616147941376570E+09,
+                   1.488613728678813811542398E+010,
+                   1.016803586272438228077304E+011,
+                   3.417476345507377132798597E+011,
+                   4.463158187419713286462081E+011 };
   double res;
   double sqrtpi = 0.9189385332046727417803297;
   double xbig = 4.08E+36;
@@ -291,104 +326,104 @@ static double gamma_log( double x )
   //  Return immediately if the argument is out of range.
   //
   if ( x <= 0.0 || xbig < x )
-    {
-      return d_huge ( );
-    }
+  {
+    return d_huge ( );
+  }
 
   if ( x <= d_epsilon ( ) )
-    {
-      res = - log ( x );
-    }
+  {
+    res = - log ( x );
+  }
   else if ( x <= 1.5 )
+  {
+    if ( x < pnt68 )
     {
-      if ( x < pnt68 )
-        {
-          corr = - log ( x );
-          xm1 = x;
-        }
-      else
-        {
-          corr = 0.0;
-          xm1 = ( x - 0.5 ) - 0.5;
-        }
-
-      if ( x <= 0.5 || pnt68 <= x )
-        {
-          xden = 1.0;
-          xnum = 0.0;
-
-          for ( i = 0; i < 8; i++ )
-            {
-              xnum = xnum * xm1 + p1[i];
-              xden = xden * xm1 + q1[i];
-            }
-
-          res = corr + ( xm1 * ( d1 + xm1 * ( xnum / xden ) ) );
-        }
-      else
-        {
-          xm2 = ( x - 0.5 ) - 0.5;
-          xden = 1.0;
-          xnum = 0.0;
-          for ( i = 0; i < 8; i++ )
-            {
-              xnum = xnum * xm2 + p2[i];
-              xden = xden * xm2 + q2[i];
-            }
-
-          res = corr + xm2 * ( d2 + xm2 * ( xnum / xden ) );
-
-        }
+      corr = - log ( x );
+      xm1 = x;
     }
-  else if ( x <= 4.0 )
+    else
     {
-      xm2 = x - 2.0;
+      corr = 0.0;
+      xm1 = ( x - 0.5 ) - 0.5;
+    }
+
+    if ( x <= 0.5 || pnt68 <= x )
+    {
+      xden = 1.0;
+      xnum = 0.0;
+
+      for ( i = 0; i < 8; i++ )
+      {
+        xnum = xnum * xm1 + p1[i];
+        xden = xden * xm1 + q1[i];
+      }
+
+      res = corr + ( xm1 * ( d1 + xm1 * ( xnum / xden ) ) );
+    }
+    else
+    {
+      xm2 = ( x - 0.5 ) - 0.5;
       xden = 1.0;
       xnum = 0.0;
       for ( i = 0; i < 8; i++ )
-        {
-          xnum = xnum * xm2 + p2[i];
-          xden = xden * xm2 + q2[i];
-        }
+      {
+        xnum = xnum * xm2 + p2[i];
+        xden = xden * xm2 + q2[i];
+      }
 
-      res = xm2 * ( d2 + xm2 * ( xnum / xden ) );
+      res = corr + xm2 * ( d2 + xm2 * ( xnum / xden ) );
+
     }
+  }
+  else if ( x <= 4.0 )
+  {
+    xm2 = x - 2.0;
+    xden = 1.0;
+    xnum = 0.0;
+    for ( i = 0; i < 8; i++ )
+    {
+      xnum = xnum * xm2 + p2[i];
+      xden = xden * xm2 + q2[i];
+    }
+
+    res = xm2 * ( d2 + xm2 * ( xnum / xden ) );
+  }
   else if ( x <= 12.0 )
+  {
+    xm4 = x - 4.0;
+    xden = - 1.0;
+    xnum = 0.0;
+    for ( i = 0; i < 8; i++ )
     {
-      xm4 = x - 4.0;
-      xden = - 1.0;
-      xnum = 0.0;
-      for ( i = 0; i < 8; i++ )
-        {
-          xnum = xnum * xm4 + p4[i];
-          xden = xden * xm4 + q4[i];
-        }
-
-      res = d4 + xm4 * ( xnum / xden );
+      xnum = xnum * xm4 + p4[i];
+      xden = xden * xm4 + q4[i];
     }
+
+    res = d4 + xm4 * ( xnum / xden );
+  }
   else
+  {
+    res = 0.0;
+
+    if ( x <= frtbig )
     {
-      res = 0.0;
 
-      if ( x <= frtbig )
-        {
+      res = c[6];
+      xsq = x * x;
 
-          res = c[6];
-          xsq = x * x;
-
-          for ( i = 0; i < 6; i++ )
-            {
-              res = res / xsq + c[i];
-            }
-
-        }
-
-      res = res / x;
-      corr = log ( x );
-      res = res + sqrtpi - 0.5 * corr;
-      res = res + x * ( corr - 1.0 );
+      for ( i = 0; i < 6; i++ )
+      {
+        res = res / xsq + c[i];
+      }
 
     }
+
+    res = res / x;
+    corr = log ( x );
+    res = res + sqrtpi - 0.5 * corr;
+    res = res + x * ( corr - 1.0 );
+
+  }
 
   return res;
 }
@@ -420,7 +455,8 @@ static double gamma_log( double x )
  */
 static double beta( double x, double y )
 {
-  if ( x <= 0.0 || y <= 0.0 ) {
+  if ( x <= 0.0 || y <= 0.0 )
+  {
     std::cout << "\n";
     std::cout << "BETA - Fatal error!\n";
     std::cout << "  Both X and Y must be greater than 0.\n";
@@ -485,52 +521,52 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
   double xx;
 
   if ( a <= 0.0 )
-    {
-      std::cout << "\n";
-      std::cout << "BETA_INC - Fatal error!\n";
-      std::cout << "  A <= 0.\n";
-      exit ( 1 );
-    }
+  {
+    std::cout << "\n";
+    std::cout << "BETA_INC - Fatal error!\n";
+    std::cout << "  A <= 0.\n";
+    exit ( 1 );
+  }
 
   if ( b <= 0.0 )
-    {
-      std::cout << "\n";
-      std::cout << "BETA_INC - Fatal error!\n";
-      std::cout << "  B <= 0.\n";
-      exit ( 1 );
-    }
+  {
+    std::cout << "\n";
+    std::cout << "BETA_INC - Fatal error!\n";
+    std::cout << "  B <= 0.\n";
+    exit ( 1 );
+  }
 
   if ( x <= 0.0 )
-    {
-      value = 0.0;
-      return value;
-    }
+  {
+    value = 0.0;
+    return value;
+  }
   else if ( 1.0 <= x )
-    {
-      value = 1.0;
-      return value;
-    }
+  {
+    value = 1.0;
+    return value;
+  }
   //
   //  Change tail if necessary and determine S.
   //
   psq = a + b;
 
   if ( a < ( a + b ) * x )
-    {
-      xx = 1.0 - x;
-      cx = x;
-      pp = b;
-      qq = a;
-      indx = true;
-    }
+  {
+    xx = 1.0 - x;
+    cx = x;
+    pp = b;
+    qq = a;
+    indx = true;
+  }
   else
-    {
-      xx = x;
-      cx = 1.0 - x;
-      pp = a;
-      qq = b;
-      indx = false;
-    }
+  {
+    xx = x;
+    cx = 1.0 - x;
+    pp = a;
+    qq = b;
+    indx = false;
+  }
 
   term = 1.0;
   i = 1;
@@ -544,55 +580,55 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
 
   temp = qq - ( double ) i;
   if ( ns == 0 )
-    {
-      rx = xx;
-    }
+  {
+    rx = xx;
+  }
 
   it = 0;
 
   for ( ; ; )
+  {
+    it = it + 1;
+
+    if ( it_max < it )
     {
-      it = it + 1;
-
-      if ( it_max < it )
-        {
-          std::cout << "\n";
-          std::cout << "BETA_INC - Fatal error!\n";
-          std::cout << "  Maximum number of iterations exceeded!\n";
-          std::cout << "  IT_MAX = " << it_max << "\n";
+      std::cout << "\n";
+      std::cout << "BETA_INC - Fatal error!\n";
+      std::cout << "  Maximum number of iterations exceeded!\n";
+      std::cout << "  IT_MAX = " << it_max << "\n";
 #if 0
-          exit ( 1 );
-#else 
-          return value ;
+      exit ( 1 );
+#else
+      return value ;
 #endif
-        }
-
-      term = term * temp * rx / ( pp + ( double ) ( i ) );
-      value = value + term;
-      temp = fabs ( term );
-
-      if ( temp <= tol && temp <= tol * value )
-        {
-          break;
-        }
-
-      i = i + 1;
-      ns = ns - 1;
-
-      if ( 0 <= ns )
-        {
-          temp = qq - ( double ) i;
-          if ( ns == 0 )
-            {
-              rx = xx;
-            }
-        }
-      else
-        {
-          temp = psq;
-          psq = psq + 1.0;
-        }
     }
+
+    term = term * temp * rx / ( pp + ( double ) ( i ) );
+    value = value + term;
+    temp = fabs ( term );
+
+    if ( temp <= tol && temp <= tol * value )
+    {
+      break;
+    }
+
+    i = i + 1;
+    ns = ns - 1;
+
+    if ( 0 <= ns )
+    {
+      temp = qq - ( double ) i;
+      if ( ns == 0 )
+      {
+        rx = xx;
+      }
+    }
+    else
+    {
+      temp = psq;
+      psq = psq + 1.0;
+    }
+  }
   //
   //  Finish calculation.
   //
@@ -600,9 +636,9 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
                         + ( qq - 1.0 ) * log ( cx ) ) / ( beta ( a, b ) * pp );
 
   if ( indx )
-    {
-      value = 1.0 - value;
-    }
+  {
+    value = 1.0 - value;
+  }
 
   return value;
 }
@@ -621,13 +657,13 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x)
 static double d_min( double x, double y )
 {
   if ( y < x )
-    {
-      return y;
-    }
+  {
+    return y;
+  }
   else
-    {
-      return x;
-    }
+  {
+    return x;
+  }
 }
 
 
@@ -675,21 +711,21 @@ double normal_01_cdf ( double x )
   //  |X| <= 1.28.
   //
   if ( fabs ( x ) <= 1.28 )
-    {
-      y = 0.5 * x * x;
+  {
+    y = 0.5 * x * x;
 
-      q = 0.5 - fabs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
-                                               ( y + a5
-                                                 + a6 / ( y + a7 ) ) ) );
-      //
-      //  1.28 < |X| <= 12.7
-      //
-    }
+    q = 0.5 - fabs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
+                             ( y + a5
+                               + a6 / ( y + a7 ) ) ) );
+    //
+    //  1.28 < |X| <= 12.7
+    //
+  }
   else if ( fabs ( x ) <= 12.7 )
-    {
-      y = 0.5 * x * x;
+  {
+    y = 0.5 * x * x;
 
-      q = exp ( - y ) * b0 /
+    q = exp ( - y ) * b0 /
         ( fabs ( x ) - b1
           + b2 / ( fabs ( x ) + b3
                    + b4 / ( fabs ( x ) - b5
@@ -698,25 +734,25 @@ double normal_01_cdf ( double x )
                                      ( fabs ( x ) + b9
                                        + b10 /
                                        ( fabs ( x ) + b11 ) ) ) ) ) );
-      //
-      //  12.7 < |X|
-      //
-    }
+    //
+    //  12.7 < |X|
+    //
+  }
   else
-    {
-      q = 0.0;
-    }
+  {
+    q = 0.0;
+  }
   //
   //  Take account of negative X.
   //
   if ( x < 0.0 )
-    {
-      cdf = q;
-    }
+  {
+    cdf = q;
+  }
   else
-    {
-      cdf = 1.0 - q;
-    }
+  {
+    cdf = 1.0 - q;
+  }
 
   return cdf;
 }
@@ -774,143 +810,143 @@ extern "C" float OpenGammaIncomplete(float p, float x)
   value = 0.0;
 
   if ( p <= 0.0 )
-    {
-      std::cout << " \n";
-      std::cout << "GAMMA_INC - Fatal error!\n";
-      std::cout << "  Parameter P <= 0.\n";
-      exit ( 1 );
-    }
+  {
+    std::cout << " \n";
+    std::cout << "GAMMA_INC - Fatal error!\n";
+    std::cout << "  Parameter P <= 0.\n";
+    exit ( 1 );
+  }
 
   if ( x <= 0.0 )
-    {
-      value = 0.0;
-      return value;
-    }
+  {
+    value = 0.0;
+    return value;
+  }
   //
   //  Use a normal approximation if PLIMIT < P.
   //
   if ( plimit < p )
-    {
-      pn1 = 3.0 * sqrt ( p ) * ( pow ( x / p, 1.0 / 3.0 )
-                                 + 1.0 / ( 9.0 * p ) - 1.0 );
-      value = normal_01_cdf ( pn1 );
-      return value;
-    }
+  {
+    pn1 = 3.0 * sqrt ( p ) * ( pow ( x / p, 1.0 / 3.0 )
+                               + 1.0 / ( 9.0 * p ) - 1.0 );
+    value = normal_01_cdf ( pn1 );
+    return value;
+  }
   //
   //  Is X extremely large compared to P?
   //
   if ( xbig < x )
-    {
-      value = 1.0;
-      return value;
-    }
+  {
+    value = 1.0;
+    return value;
+  }
   //
   //  Use Pearson's series expansion.
   //  (P is not large enough to force overflow in the log of Gamma.
   //
   if ( x <= 1.0 || x < p )
+  {
+    arg = p * log ( x ) - x - gamma_log ( p + 1.0 );
+    c = 1.0;
+    value = 1.0;
+    a = p;
+
+    for ( ; ; )
     {
-      arg = p * log ( x ) - x - gamma_log ( p + 1.0 );
-      c = 1.0;
-      value = 1.0;
-      a = p;
+      a = a + 1.0;
+      c = c * x / a;
+      value = value + c;
 
-      for ( ; ; )
-        {
-          a = a + 1.0;
-          c = c * x / a;
-          value = value + c;
-
-          if ( c <= tol )
-            {
-              break;
-            }
-        }
-
-      arg = arg + log ( value );
-
-      if ( exp_arg_min <= arg )
-        {
-          value = exp ( arg );
-        }
-      else
-        {
-          value = 0.0;
-        }
+      if ( c <= tol )
+      {
+        break;
+      }
     }
+
+    arg = arg + log ( value );
+
+    if ( exp_arg_min <= arg )
+    {
+      value = exp ( arg );
+    }
+    else
+    {
+      value = 0.0;
+    }
+  }
   //
   //  Use a continued fraction expansion.
   //
   else
+  {
+    arg = p * log ( x ) - x - gamma_log ( p );
+    a = 1.0 - p;
+    b = a + x + 1.0;
+    c = 0.0;
+    pn1 = 1.0;
+    pn2 = x;
+    pn3 = x + 1.0;
+    pn4 = x * b;
+    value = pn3 / pn4;
+
+    for ( ; ; )
     {
-      arg = p * log ( x ) - x - gamma_log ( p );
-      a = 1.0 - p;
-      b = a + x + 1.0;
-      c = 0.0;
-      pn1 = 1.0;
-      pn2 = x;
-      pn3 = x + 1.0;
-      pn4 = x * b;
-      value = pn3 / pn4;
+      a = a + 1.0;
+      b = b + 2.0;
+      c = c + 1.0;
+      pn5 = b * pn3 - a * c * pn1;
+      pn6 = b * pn4 - a * c * pn2;
 
-      for ( ; ; )
+      if ( 0.0 < fabs ( pn6 ) )
+      {
+        rn = pn5 / pn6;
+
+        if ( fabs ( value - rn ) <= d_min ( tol, tol * rn ) )
         {
-          a = a + 1.0;
-          b = b + 2.0;
-          c = c + 1.0;
-          pn5 = b * pn3 - a * c * pn1;
-          pn6 = b * pn4 - a * c * pn2;
+          arg = arg + log ( value );
 
-          if ( 0.0 < fabs ( pn6 ) )
-            {
-              rn = pn5 / pn6;
+          if ( exp_arg_min <= arg )
+          {
+            value = 1.0 - exp ( arg );
+          }
+          else
+          {
+            value = 1.0;
+          }
 
-              if ( fabs ( value - rn ) <= d_min ( tol, tol * rn ) )
-                {
-                  arg = arg + log ( value );
-
-                  if ( exp_arg_min <= arg )
-                    {
-                      value = 1.0 - exp ( arg );
-                    }
-                  else
-                    {
-                      value = 1.0;
-                    }
-
-                  return value;
-                }
-              value = rn;
-            }
-          pn1 = pn3;
-          pn2 = pn4;
-          pn3 = pn5;
-          pn4 = pn6;
-          //
-          //  Rescale terms in continued fraction if terms are large.
-          //
-          if ( overflow <= fabs ( pn5 ) )
-            {
-              pn1 = pn1 / overflow;
-              pn2 = pn2 / overflow;
-              pn3 = pn3 / overflow;
-              pn4 = pn4 / overflow;
-            }
+          return value;
         }
+        value = rn;
+      }
+      pn1 = pn3;
+      pn2 = pn4;
+      pn3 = pn5;
+      pn4 = pn6;
+      //
+      //  Rescale terms in continued fraction if terms are large.
+      //
+      if ( overflow <= fabs ( pn5 ) )
+      {
+        pn1 = pn1 / overflow;
+        pn2 = pn2 / overflow;
+        pn3 = pn3 / overflow;
+        pn4 = pn4 / overflow;
+      }
     }
+  }
 
   return value;
 }
 
 
 extern "C" void OpenDFPMin
-( float p[], int n, float iTolerance,
-  int *oIterations,
-  float *oFinalFunctionReturn, float(*iFunction)(float []),
-  void (*iDerivativeFunction)(float [], float []),
-  void (*iStepFunction)(int, float, void *, float *),
-  void *iStepFunctionParams,
-  void (*iUserCallBackFunction)(float[]) )
+  ( float p[], int n, float iTolerance,
+    int *oIterations,
+    float *oFinalFunctionReturn, float(*iFunction)(float []),
+    void (*iDerivativeFunction)(float [], float []),
+    void (*iStepFunction)(int, float, void *, float *),
+    void *iStepFunctionParams,
+    void (*iUserCallBackFunction)(float[]) )
 {
   fs_cost_function costFunction( iFunction, iDerivativeFunction, n );
 
@@ -922,7 +958,7 @@ extern "C" void OpenDFPMin
   fs_lbfgs_observer observer;
   observer.setStepFunction( iStepFunction, iStepFunctionParams );
   observer.setUserCallbackFunction( iUserCallBackFunction );
-  
+
   minimizer.setObserver( &observer );
 
   minimizer.memory = 7;
@@ -936,33 +972,41 @@ extern "C" void OpenDFPMin
   //       it refused to converge on the second test -- this  impacts the
   //       convergence!
   minimizer.set_g_tolerance( static_cast< double >( iTolerance ) );
-  
+
   bool isSuccess = minimizer.minimize( finalParameters );
 
-  if( isSuccess ) {
+  if ( isSuccess )
+  {
     // success
     *oIterations = observer.getNumberOfOptimalUpdates();
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat( finalParameters, p, n );
-  } else {
+  }
+  else
+  {
 
     int returnCode = minimizer.get_failure_code();
 
-    if( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE ) {
+    if ( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE )
+    {
       *oIterations = observer.getNumberOfOptimalUpdates();
       *oFinalFunctionReturn = minimizer.get_end_error();
 
       ConvertFromVNLDoubleToFloat( finalParameters, p, n );
-    } else if( returnCode == vnl_nonlinear_minimizer::ERROR_DODGY_INPUT ) {
+    }
+    else if ( returnCode == vnl_nonlinear_minimizer::ERROR_DODGY_INPUT )
+    {
       ErrorExit(ERROR_BADPARM,
                 "quasi-Newton minimization (lbfsg) dodgy input");
-    } else if
-      (
-       returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
-       returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
-       returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
-       returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL
-       ) {
+    }
+    else if
+    (
+      returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
+            returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
+                  returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
+                        returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL
+    )
+    {
       ErrorExit(ERROR_BADPARM,
                 "quasi-Newton minimization (lbfsg) tolerances too small");
     }
@@ -974,15 +1018,16 @@ extern "C" void OpenDFPMin
  * Provides the eigen values and vectors for symmetric matrices.
  */
 extern "C" int OpenEigenSystem
-( float *iaData, int icData, float *oEigenValues,
-  float *oEigenVectors )
+  ( float *iaData, int icData, float *oEigenValues,
+    float *oEigenVectors )
 {
   vnl_matrix< float > vnlMatrix( iaData, icData, icData );
 
   vnl_symmetric_eigensystem< float > eigenSystem( vnlMatrix );
 
   eigenSystem.V.copy_out( oEigenVectors );
-  for( int i=0; i<icData; i++ ) {
+  for ( int i=0; i<icData; i++ )
+  {
     oEigenValues[i] = eigenSystem.get_eigenvalue( i );
   }
 
@@ -995,13 +1040,15 @@ extern "C" int OpenEigenSystem
  * Provides the eigen values and vectors for symmetric matrices.
  */
 extern "C" int OpenNonSymmetricEigenSystem
-( float *iaData, int icData,
-  float *oEigenValues, float *oEigenVectors )
+  ( float *iaData, int icData,
+    float *oEigenValues, float *oEigenVectors )
 {
   // convert the data into a double
   double data[ icData * icData ];
-  for( int row=0; row<icData; row++ ) {
-    for( int column=0; column<icData; column++ ) {
+  for ( int row=0; row<icData; row++ )
+  {
+    for ( int column=0; column<icData; column++ )
+    {
       int index = column + row * icData;
       data[ index ] = iaData[ index ];
     }
@@ -1013,14 +1060,17 @@ extern "C" int OpenNonSymmetricEigenSystem
   vnl_real_eigensystem eigenSystem( vnlMatrix );
 
   // copy the eigen vectors (doubles) out into our float array
-  for( int row=0; row<icData; row++ ) {
-    for( int column=0; column<icData; column++ ) {
+  for ( int row=0; row<icData; row++ )
+  {
+    for ( int column=0; column<icData; column++ )
+    {
       int index = column + row * icData;
       oEigenVectors[ index ] = eigenSystem.Vreal[ row ][ column ];
     }
   }
 
-  for( int row=0; row<icData; row++ ) {
+  for ( int row=0; row<icData; row++ )
+  {
     oEigenValues[ row ] = eigenSystem.D[ row ].real();
   }
 
@@ -1030,9 +1080,9 @@ extern "C" int OpenNonSymmetricEigenSystem
 
 
 extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
-                            int icParams, float iTolerance, int *oIterations,
-                            float *oFinalFunctionReturn,
-                            float (*iFunction)(float []) )
+                              int icParams, float iTolerance, int *oIterations,
+                              float *oFinalFunctionReturn,
+                              float (*iFunction)(float []) )
 {
   fs_cost_function costFunction( iFunction );
   fs_powell minimizer( &costFunction );
@@ -1045,7 +1095,8 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
   vnl_matrix< double > initialDirection( icParams, icParams,
                                          vnl_matrix_identity );
 
-  if( ioInitialDirection != NULL ) {
+  if ( ioInitialDirection != NULL )
+  {
     ConvertFromFloatToVNLDouble( ioInitialDirection, initialDirection,
                                  icParams);
   }
@@ -1053,15 +1104,20 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
   int returnCode = minimizer.minimize( finalParameters, &initialDirection );
 
   // exit if failure
-  if( returnCode == fs_powell::FAILED_TOO_MANY_ITERATIONS ) {
+  if ( returnCode == fs_powell::FAILED_TOO_MANY_ITERATIONS )
+  {
     ErrorExit(ERROR_BADPARM, "powell exceeding maximum iterations.");
-  } else if( returnCode == fs_powell::ERROR_FAILURE ||
-             returnCode == fs_powell::ERROR_DODGY_INPUT ||
-             returnCode == fs_powell::FAILED_FTOL_TOO_SMALL ||
-             returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
-             returnCode == fs_powell::FAILED_GTOL_TOO_SMALL ) {
+  }
+  else if ( returnCode == fs_powell::ERROR_FAILURE ||
+                  returnCode == fs_powell::ERROR_DODGY_INPUT ||
+                        returnCode == fs_powell::FAILED_FTOL_TOO_SMALL ||
+                              returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
+                                    returnCode == fs_powell::FAILED_GTOL_TOO_SMALL )
+  {
     ErrorExit(ERROR_BADPARM, "powell error.");
-  } else {
+  }
+  else
+  {
     // success
     *oIterations = minimizer.get_num_iterations();
     *oFinalFunctionReturn = minimizer.get_end_error();
@@ -1084,12 +1140,15 @@ extern "C" int OpenLUMatrixInverse( MATRIX *iMatrix, MATRIX *oInverse )
   vnl_qr< float > vnlMatrixInverter( vnlMatrix );
 
   // determinant of 0 means that it's singular
-  if( vnlMatrixInverter.determinant() != 0.0 ) {
+  if ( vnlMatrixInverter.determinant() != 0.0 )
+  {
 
     vnl_matrix< float > inverse = vnlMatrixInverter.inverse();
     inverse.copy_out( oInverse->data );
 
-  } else {
+  }
+  else
+  {
     errorCode = ERROR_BADPARM;
   }
 
@@ -1106,7 +1165,8 @@ extern "C" float OpenMatrixDeterminant( MATRIX *iMatrix )
 {
   float determinant = 0.0;
 
-  if( iMatrix->rows == iMatrix->cols ) {
+  if ( iMatrix->rows == iMatrix->cols )
+  {
     vnl_matrix< float >vnlMatrix( iMatrix->data,
                                   iMatrix->rows,
                                   iMatrix->cols );
@@ -1127,20 +1187,26 @@ extern "C" int OpenSvdcmp( MATRIX *ioA, VECTOR *oW, MATRIX *oV )
 {
   int errorCode = NO_ERROR;
 
-  if( ioA->rows >= ioA->cols ) {
+  if ( ioA->rows >= ioA->cols )
+  {
 
     vnl_matrix< float > vnlX( ioA->data, ioA->rows, ioA->cols );
     vnl_svd< float > svdMatrix( vnlX );
 
-    if( svdMatrix.valid() ) {
+    if ( svdMatrix.valid() )
+    {
       svdMatrix.U().copy_out( ioA->data );
       svdMatrix.W().diagonal().copy_out( oW->data );
       svdMatrix.V().copy_out( oV->data );
-    } else {
+    }
+    else
+    {
       errorCode = ERROR_BADPARM;
     }
 
-  } else {
+  }
+  else
+  {
     errorCode = ERROR_BADPARM;
   }
 
@@ -1163,7 +1229,8 @@ extern "C" float OpenRan1( long *iSeed )
   static long mSeed;
   static vnl_random mVnlRandom( mSeed );
 
-  if( mSeed != *iSeed ) {
+  if ( mSeed != *iSeed )
+  {
     mSeed = *iSeed;
     mVnlRandom.reseed( mSeed );
   }
@@ -1180,15 +1247,16 @@ extern "C" float OpenRan1( long *iSeed )
  * @param iYEndDerivative The derivative at the last point of the function.
  */
 extern "C" void OpenSpline( float iaX[], float iaY[], int icXY,
-                            float iYStartDerivative, float iYEndDerivative,
-                            float oaYSecondDerivatives[] )
+                              float iYStartDerivative, float iYEndDerivative,
+                              float oaYSecondDerivatives[] )
 {
   float *secondDerivatives = SplineCubicSet
-    ( icXY, iaX, iaY,
-      SPLINE_USE_FIRST_DERIVATIVE, iYStartDerivative,
-      SPLINE_USE_FIRST_DERIVATIVE, iYEndDerivative );
+                             ( icXY, iaX, iaY,
+                               SPLINE_USE_FIRST_DERIVATIVE, iYStartDerivative,
+                               SPLINE_USE_FIRST_DERIVATIVE, iYEndDerivative );
 
-  for( int i=0; i<icXY; i++ ) {
+  for ( int i=0; i<icXY; i++ )
+  {
     oaYSecondDerivatives[i] = secondDerivatives[i];
   }
 }
@@ -1202,11 +1270,11 @@ extern "C" void OpenSpline( float iaX[], float iaY[], int icXY,
  * point.
  */
 extern "C" void OpenSplint( float iaX[],
-                            float iaY[],
-                            float iaYSecondDerivatives[],
-                            int icYSecondDerivatives,
-                            float iX,
-                            float *oY)
+                              float iaY[],
+                              float iaYSecondDerivatives[],
+                              int icYSecondDerivatives,
+                              float iX,
+                              float *oY)
 {
   float firstDerivative = 0.0;
   float secondDerivative = 0.0;
@@ -1331,7 +1399,8 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
   //
   //  Check.
   //
-  if ( n <= 1 ) {
+  if ( n <= 1 )
+  {
     std::cout << "\n";
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  The number of data points N must be at least 2.\n";
@@ -1339,8 +1408,10 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
     return NULL;
   }
 
-  for ( i = 0; i < n - 1; i++ ) {
-    if ( t[i+1] <= t[i] ) {
+  for ( i = 0; i < n - 1; i++ )
+  {
+    if ( t[i+1] <= t[i] )
+    {
       std::cout << "\n";
       std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
       std::cout << "  The knots must be strictly increasing, but\n";
@@ -1355,19 +1426,26 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
   //
   //  Set up the first equation.
   //
-  if ( ibcbeg == SPLINE_USE_QUADRATIC ) {
+  if ( ibcbeg == SPLINE_USE_QUADRATIC )
+  {
     b[0] = 0.0;
     a[1+0*3] = 1.0;
     a[0+1*3] = -1.0;
-  } else if ( ibcbeg == SPLINE_USE_FIRST_DERIVATIVE ) {
+  }
+  else if ( ibcbeg == SPLINE_USE_FIRST_DERIVATIVE )
+  {
     b[0] = ( y[1] - y[0] ) / ( t[1] - t[0] ) - ybcbeg;
     a[1+0*3] = ( t[1] - t[0] ) / 3.0;
     a[0+1*3] = ( t[1] - t[0] ) / 6.0;
-  } else if ( ibcbeg == SPLINE_USE_SECOND_DERIVATIVE ) {
+  }
+  else if ( ibcbeg == SPLINE_USE_SECOND_DERIVATIVE )
+  {
     b[0] = ybcbeg;
     a[1+0*3] = 1.0;
     a[0+1*3] = 0.0;
-  } else {
+  }
+  else
+  {
     std::cout << "\n";
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  IBCBEG must be 0, 1 or 2.\n";
@@ -1379,9 +1457,10 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
   //
   //  Set up the intermediate equations.
   //
-  for ( i = 1; i < n-1; i++ ) {
+  for ( i = 1; i < n-1; i++ )
+  {
     b[i] = ( y[i+1] - y[i] ) / ( t[i+1] - t[i] )
-      - ( y[i] - y[i-1] ) / ( t[i] - t[i-1] );
+           - ( y[i] - y[i-1] ) / ( t[i] - t[i-1] );
     a[2+(i-1)*3] = ( t[i] - t[i-1] ) / 6.0;
     a[1+ i   *3] = ( t[i+1] - t[i-1] ) / 3.0;
     a[0+(i+1)*3] = ( t[i+1] - t[i] ) / 6.0;
@@ -1389,19 +1468,26 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
   //
   //  Set up the last equation.
   //
-  if ( ibcend == SPLINE_USE_QUADRATIC ) {
+  if ( ibcend == SPLINE_USE_QUADRATIC )
+  {
     b[n-1] = 0.0;
     a[2+(n-2)*3] = -1.0;
     a[1+(n-1)*3] = 1.0;
-  } else if ( ibcend == SPLINE_USE_FIRST_DERIVATIVE ) {
+  }
+  else if ( ibcend == SPLINE_USE_FIRST_DERIVATIVE )
+  {
     b[n-1] = ybcend - ( y[n-1] - y[n-2] ) / ( t[n-1] - t[n-2] );
     a[2+(n-2)*3] = ( t[n-1] - t[n-2] ) / 6.0;
     a[1+(n-1)*3] = ( t[n-1] - t[n-2] ) / 3.0;
-  } else if ( ibcend == SPLINE_USE_SECOND_DERIVATIVE ) {
+  }
+  else if ( ibcend == SPLINE_USE_SECOND_DERIVATIVE )
+  {
     b[n-1] = ybcend;
     a[2+(n-2)*3] = 0.0;
     a[1+(n-1)*3] = 1.0;
-  } else {
+  }
+  else
+  {
     std::cout << "\n";
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  IBCEND must be 0, 1 or 2.\n";
@@ -1413,15 +1499,19 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
   //
   //  Solve the linear system.
   //
-  if ( n == 2 && ibcbeg == 0 && ibcend == 0 ) {
+  if ( n == 2 && ibcbeg == 0 && ibcend == 0 )
+  {
     ypp = new float[2];
 
     ypp[0] = 0.0;
     ypp[1] = 0.0;
-  } else {
+  }
+  else
+  {
     ypp = d3_np_fs ( n, a, b );
 
-    if ( !ypp ) {
+    if ( !ypp )
+    {
       std::cout << "\n";
       std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
       std::cout << "  The linear system could not be solved.\n";
@@ -1478,18 +1568,25 @@ float SplineCubicValue ( int n, float t[], float tval, float y[],
   float yval;
   int ival = n - 2;
 
-  if (tval <= t[0]) {
+  if (tval <= t[0])
+  {
     // enforce constant function outside of domain
     yval = y[0];
-  } else if (tval >= t[ n-1 ]) {
+  }
+  else if (tval >= t[ n-1 ])
+  {
     // enforce constant function outside of domain
     yval = y[ n-1 ];
     *ypval = 0.0;
     *ypval = 0.0;
-  } else {
+  }
+  else
+  {
     // we're not outside of the range, so interpolate
-    for ( int i = 0; i < n-1; i++ ) {
-      if ( tval < t[i+1] ) {
+    for ( int i = 0; i < n-1; i++ )
+    {
+      if ( tval < t[i+1] )
+      {
         ival = i;
         break;
       }
@@ -1501,16 +1598,16 @@ float SplineCubicValue ( int n, float t[], float tval, float y[],
     float h = t[ival+1] - t[ival];
 
     yval = y[ival]
-      + dt *
-      ( ( y[ival+1] - y[ival] ) / h
-        - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * h
-        + dt * ( 0.5 * ypp[ival]
-                 + dt * ( ( ypp[ival+1] - ypp[ival] ) / ( 6.0 * h ) ) ) );
+           + dt *
+           ( ( y[ival+1] - y[ival] ) / h
+             - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * h
+             + dt * ( 0.5 * ypp[ival]
+                      + dt * ( ( ypp[ival+1] - ypp[ival] ) / ( 6.0 * h ) ) ) );
 
     *ypval = ( y[ival+1] - y[ival] ) / h
-      - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * h
-      + dt * ( ypp[ival]
-               + dt * ( 0.5 * ( ypp[ival+1] - ypp[ival] ) / h ) );
+             - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * h
+             + dt * ( ypp[ival]
+                      + dt * ( 0.5 * ( ypp[ival+1] - ypp[ival] ) / h ) );
 
     *yppval = ypp[ival] + dt * ( ypp[ival+1] - ypp[ival] ) / h;
   }
@@ -1562,26 +1659,31 @@ float *d3_np_fs ( int n, float a[], float b[] )
   //
   //  Check.
   //
-  for ( i = 0; i < n; i++ ) {
-    if ( a[1+i*3] == 0.0 ) {
+  for ( i = 0; i < n; i++ )
+  {
+    if ( a[1+i*3] == 0.0 )
+    {
       return NULL;
     }
   }
 
   x = new float[n];
 
-  for ( i = 0; i < n; i++ ) {
+  for ( i = 0; i < n; i++ )
+  {
     x[i] = b[i];
   }
 
-  for ( i = 1; i < n; i++ ) {
+  for ( i = 1; i < n; i++ )
+  {
     xmult = a[2+(i-1)*3] / a[1+(i-1)*3];
     a[1+i*3] = a[1+i*3] - xmult * a[0+i*3];
     x[i] = x[i] - xmult * x[i-1];
   }
 
   x[n-1] = x[n-1] / a[1+(n-1)*3];
-  for ( i = n-2; 0 <= i; i-- ) {
+  for ( i = n-2; 0 <= i; i-- )
+  {
     x[i] = ( x[i] - a[0+(i+1)*3] * x[i+1] ) / a[1+i*3];
   }
 
@@ -1627,7 +1729,7 @@ extern "C" float **matrix(long nrl, long nrh, long ncl, long nch)
   m[nrl] += NR_END;
   m[nrl] -= ncl;
 
-  for(i=nrl+1;i<=nrh;i++) m[i]=m[i-1]+ncol;
+  for (i=nrl+1;i<=nrh;i++) m[i]=m[i-1]+ncol;
 
   /* return pointer to array of pointers to rows */
   return m;
@@ -1642,7 +1744,7 @@ extern "C" void free_vector(float *v, long nl, long nh)
 
 
 void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
-  /* free a float matrix allocated by matrix() */
+/* free a float matrix allocated by matrix() */
 {
   free((FREE_ARG) (m[nrl]+ncl-NR_END));
   free((FREE_ARG) (m+nrl-NR_END));
@@ -1663,7 +1765,8 @@ void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
 
 //##################### FUNC PROTOS ######################################
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
   static const unsigned long int SC_MASK_LO = 0x00ffffffUL;  /*2^24 - 1 */
@@ -1688,7 +1791,7 @@ extern "C" {
 
 
 //########### VNL ###################################################
-/*! 
+/*!
   \fn int sc_linalg_cholesky_decomp(MATRIX *U)
   \params MATRIX *U - input and output matrix
   Computes cholesky decomposition C of U in-place.
@@ -1704,18 +1807,18 @@ extern "C" int sc_linalg_cholesky_decomp(MATRIX *U)
   vnl_matrix<double> P(U->rows,U->cols);
   vnl_matrix<double> C(U->rows,U->cols);
 
-  for(i=0; i<U->rows; i++)
-    for(j=0; j<U->cols; j++)
+  for (i=0; i<U->rows; i++)
+    for (j=0; j<U->cols; j++)
       P(i,j)=*MATRIX_RELT(U, i+1, j+1);
 
   vnl_cholesky chol(P);
   err = chol.rank_deficiency();
-  if(err) return(err);
+  if (err) return(err);
 
   C = chol.upper_triangle();
 
-  for(i=0; i<U->rows; i++)
-    for(j=0; j<U->cols; j++)
+  for (i=0; i<U->rows; i++)
+    for (j=0; j<U->cols; j++)
       *MATRIX_RELT(U, i+1, j+1) = C(i,j);
 
   return(0);
@@ -1742,24 +1845,33 @@ extern "C" unsigned long int sc_inc_status(sc_status_t *status)
   j = status->j;
   step = status->u[j]-status->u[i]-status->carry;
 
-  if(step & SC_MASK_HI){
+  if (step & SC_MASK_HI)
+  {
     status->carry = 1;
     step &= SC_MASK_LO;
-  } else {
+  }
+  else
+  {
     status->carry = 0;
   }
   status->u[i] = step;
 
-  if(i == 0){
+  if (i == 0)
+  {
     i = 23;
-  } else {
+  }
+  else
+  {
     i--;
   }
   status->i = i;
 
-  if(j == 0){
+  if (j == 0)
+  {
     j = 23;
-  } else {
+  }
+  else
+  {
     j--;
   }
   status->j = j;
@@ -1778,9 +1890,10 @@ extern "C" unsigned long int sc_rng_get(const sc_rng *r)
   ret  = sc_inc_status(status);
 
   status->n++;
-  if(status->n == 24) {
+  if (status->n == 24)
+  {
     status->n = 0;
-    for(i = 0; i < skip; i++)
+    for (i = 0; i < skip; i++)
       sc_inc_status(status);
   }
 
@@ -1798,30 +1911,37 @@ extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in)
   const_lux = 389;
   status = (sc_status_t *) r->status;
 
-  if(seed_in == 0){
+  if (seed_in == 0)
+  {
     seed = 314159265;
-  } else {
+  }
+  else
+  {
     seed = seed_in;
   }
 
-  for(i = 0; i < 24; i++)
+  for (i = 0; i < 24; i++)
+  {
+    tmp = seed / 53668;
+    seed = 40014 *(seed - tmp *53668) - tmp *12211;
+    if (seed < 0)
     {
-      tmp = seed / 53668;
-      seed = 40014 *(seed - tmp *53668) - tmp *12211;
-      if(seed < 0){
-        seed = seed + 2147483563;
-      }
-      status->u[i] = seed % two_over_24;
+      seed = seed + 2147483563;
     }
+    status->u[i] = seed % two_over_24;
+  }
 
   status->i = 23;
   status->j = 9;
   status->n = 0;
   status->skip = const_lux - 24;
 
-  if(status->u[23] & SC_MASK_HI) {
+  if (status->u[23] & SC_MASK_HI)
+  {
     status->carry = 1;
-  } else{
+  }
+  else
+  {
     status->carry = 0;
   }
 
@@ -1833,7 +1953,8 @@ extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T)
   sc_rng *r;
 
   r = (sc_rng *) malloc (sizeof (sc_rng));
-  if(r == NULL){
+  if (r == NULL)
+  {
     sc_err_msg("*sc_rng_alloc(): problem with allocation");
   }
 
@@ -1847,10 +1968,10 @@ extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T)
 
 extern "C" void sc_rng_free(sc_rng *r)
 {
-  if( r->status != NULL)
+  if ( r->status != NULL)
     free(r->status);
 
-  if(r != NULL)
+  if (r != NULL)
     free(r);
 
   return;
@@ -1868,9 +1989,11 @@ extern "C" double sc_uni(const sc_rng *r)
 extern "C" double sc_uni_pos(const sc_rng *r)
 {
   double x ;
-  do{
+  do
+  {
     x = (double) (sc_rng_get(r)/16777216.0);
-  }while(x == 0) ;
+  }
+  while (x == 0) ;
 
   return(x);
 }
@@ -1890,11 +2013,13 @@ extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma)
 {
   double x, y, r2, ret;
 
-  do{
+  do
+  {
     x = -1 + 2 *sc_uni(r);
     y = -1 + 2 *sc_uni(r);
     r2 = x *x + y *y;
-  } while(r2 > 1.0 || r2 == 0);
+  }
+  while (r2 > 1.0 || r2 == 0);
 
   ret = sigma *y *sqrt(-2.0 *log(r2) / r2);
   return(ret);
@@ -1914,14 +2039,18 @@ extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a)
   unsigned int i;
   double prod, ret;
 
-  if(a < 12) {
+  if (a < 12)
+  {
     prod = 1;
-    for(i = 0; i < a; i++) {
+    for (i = 0; i < a; i++)
+    {
       prod *= sc_uni_pos(r);
     }
     ret = -log(prod);
     return(ret);
-  } else {
+  }
+  else
+  {
     ret = sc_gamma_large(r, (double) a);
     return(ret);
   }
@@ -1932,13 +2061,17 @@ extern "C" double sc_gamma_large(const sc_rng *r, const double a)
   double sqa, y, v, ret;
 
   sqa = sqrt(2 *a - 1);
-  do{
-    do{
+  do
+  {
+    do
+    {
       y = tan(M_PI *sc_uni(r));
       ret = sqa *y + a - 1;
-    } while(ret <= 0);
+    }
+    while (ret <= 0);
     v = sc_uni(r);
-  }while(v > (1 + y *y) *exp((a - 1) *log(ret / (a - 1)) - sqa *y));
+  }
+  while (v > (1 + y *y) *exp((a - 1) *log(ret / (a - 1)) - sqa *y));
 
   return(ret);
 }
@@ -1947,18 +2080,23 @@ extern "C" double sc_gamma_frac(const sc_rng *r, const double a)
 {
   double p, q, u, v, ret;
   p = M_E / (a + M_E);
-  do {
+  do
+  {
     u = sc_uni(r);
     v = sc_uni_pos(r);
 
-    if(u < p) {
+    if (u < p)
+    {
       ret = exp((1 / a) *log(v));
       q = exp(-ret);
-    }else {
+    }
+    else
+    {
       ret = 1 - log(v);
       q = exp((a - 1) *log(ret));
     }
-  }while(sc_uni(r) >= q);
+  }
+  while (sc_uni(r) >= q);
 
   return(ret);
 }
@@ -1969,21 +2107,26 @@ extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b)
   double ret;
 
   na = (unsigned int) floor(a);
-  if(a == na){
+  if (a == na)
+  {
     ret = b *sc_gamma_int(r, na);
     return(ret);
-  } else if(na == 0){
+  }
+  else if (na == 0)
+  {
     ret = b *sc_gamma_frac(r, a);
     return(ret);
-  } else {
+  }
+  else
+  {
     ret = b *(sc_gamma_int(r, na) + sc_gamma_frac(r, a - na));
     return(ret);
   }
 }
 
 extern "C" double sc_ran_fdist(const sc_rng *r,
-                               const double nu1,
-                               const double nu2)
+                                 const double nu1,
+                                 const double nu2)
 {
   double Y1, Y2, ret;
 
@@ -2006,17 +2149,22 @@ extern "C" double sc_ran_tdist(const sc_rng *r, const double nu)
 {
   double Y1, Y2, Z, ret;
 
-  if(nu <= 2){
+  if (nu <= 2)
+  {
     Y1 = sc_ugauss(r);
     Y2 = sc_ran_chisq(r, nu);
     ret  = Y1 / sqrt(Y2 / nu);
     return(ret);
-  }else{
-    do{
+  }
+  else
+  {
+    do
+    {
       Y1 = sc_ugauss(r);
       Y2 = sc_ran_exponential(r, 1 / (nu/2 - 1));
       Z  = Y1 *Y1 / (nu - 2);
-    } while(1 - Z < 0 || exp(-Y2 - Z) > (1 - Z));
+    }
+    while (1 - Z < 0 || exp(-Y2 - Z) > (1 - Z));
 
     ret = Y1 / sqrt((1 - 2 / nu) *(1 - Z));
     return(ret);
@@ -2034,19 +2182,19 @@ extern "C" double sc_ran_exponential(const sc_rng *r, const double mu)
 }
 
 extern "C" double sc_ran_binomial_pdf(unsigned int k,
-                                      double p,
-                                      unsigned int n)
+                                        double p,
+                                        unsigned int n)
 {
   double ret;
 
   if (k==0)
-    {
-      ret = bdtr(k, n, p);
-    }
+  {
+    ret = bdtr(k, n, p);
+  }
   else
-    {
-      ret = bdtr(k, n, p) - bdtr(k-1, n, p);
-    }
+  {
+    ret = bdtr(k, n, p) - bdtr(k-1, n, p);
+  }
 
   return(ret);
 }
@@ -2057,11 +2205,11 @@ extern "C" double sc_cdf_flat_Q(double x, double a, double b)
 {
   double ret = 0.0;
 
-  if(x <= a)
+  if (x <= a)
     ret = 0.0;
-  if( a<x && x<b )
+  if ( a<x && x<b )
     ret=(x-a)/(b-a);
-  if(b <= x)
+  if (b <= x)
     ret = 1.0;
 
   return(1.0 - ret);
@@ -2071,13 +2219,13 @@ extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b)
 {
   double ret = 0.0;
 
-  if(Q == 0.0)
+  if (Q == 0.0)
     ret = b;
 
-  if(Q == 1.0)
+  if (Q == 1.0)
     ret = a;
 
-  if(Q>0.0 && Q<1.0)
+  if (Q>0.0 && Q<1.0)
     ret = Q*a+(1.0-Q)*b;
 
   return(ret);
@@ -2124,10 +2272,10 @@ extern "C" double sc_cdf_gaussian_Q(double x, double nu)
   double ret = 0.0;
 
   if (nu != 1.0)
-    {
-      printf("ERROR sc_cdf_gaussian_Q: sigma=%f != 1.0\n\n",nu);
-      exit(1);
-    }
+  {
+    printf("ERROR sc_cdf_gaussian_Q: sigma=%f != 1.0\n\n",nu);
+    exit(1);
+  }
 
   ret = 1 - ndtr(x);
 
@@ -2139,10 +2287,10 @@ extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu)
   double ret = 0.0;
 
   if (nu != 1.0)
-    {
-      printf("ERROR sc_cdf_gaussian_Qinv: sigma=%f != 1.0\n\n",nu);
-      exit(1);
-    }
+  {
+    printf("ERROR sc_cdf_gaussian_Qinv: sigma=%f != 1.0\n\n",nu);
+    exit(1);
+  }
 
   ret = (-1) * ndtri(Q);
 

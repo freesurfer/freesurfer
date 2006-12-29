@@ -1,13 +1,41 @@
+/**
+ * @file  talairachex.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 //
 // talairachex.c
 //
-// created by tosa 
+// created by tosa
 // date       12/17/2003
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/11/01 20:17:55 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2006/12/29 01:49:40 $
+// Revision       : $Revision: 1.10 $
 
 
 #include "talairachex.h"
@@ -33,41 +61,41 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
     {
       if (lta->type == LINEAR_RAS_TO_RAS)
       {
-	tran = &lta->xforms[0];
-	if (tran->dst.valid == 1) // transform dst is valid
-	{
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
-	  mri_tal->c_r = tran->dst.c_r;
-	  mri_tal->c_a = tran->dst.c_a;
-	  mri_tal->c_s = tran->dst.c_s;
-	}
-	else if (getenv("NO_AVERAGE305")) // if this is set
-	  fprintf(stderr, "INFO: tal c_(r,a,s) not modified\n");
-	else
-	{
-	  // use average_305 value
-    if (DIAG_VERBOSE_ON)
-    {
-      fprintf(stderr, 
-              "INFO: Modifying talairach volume c_(r,a,s) based on average_305.\n");
-      fprintf(stderr,
-              "INFO: If not preferred, set environmental varible NO_AVERAGE305 true.\n");
-    }
-	  mri_tal->c_r = -0.095;
-	  mri_tal->c_a = -16.51;
-	  mri_tal->c_s =   9.75;
-	}
+        tran = &lta->xforms[0];
+        if (tran->dst.valid == 1) // transform dst is valid
+        {
+          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+            printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+          mri_tal->c_r = tran->dst.c_r;
+          mri_tal->c_a = tran->dst.c_a;
+          mri_tal->c_s = tran->dst.c_s;
+        }
+        else if (getenv("NO_AVERAGE305")) // if this is set
+          fprintf(stderr, "INFO: tal c_(r,a,s) not modified\n");
+        else
+        {
+          // use average_305 value
+          if (DIAG_VERBOSE_ON)
+          {
+            fprintf(stderr,
+                    "INFO: Modifying talairach volume c_(r,a,s) based on average_305.\n");
+            fprintf(stderr,
+                    "INFO: If not preferred, set environmental varible NO_AVERAGE305 true.\n");
+          }
+          mri_tal->c_r = -0.095;
+          mri_tal->c_a = -16.51;
+          mri_tal->c_s =   9.75;
+        }
       }
       else
-	ErrorExit(ERROR_BADPARM, "%s: xfm passed is not of RAS-to-RAS type",
-		  Progname) ;
+        ErrorExit(ERROR_BADPARM, "%s: xfm passed is not of RAS-to-RAS type",
+                  Progname) ;
     }
     else
       ErrorExit(ERROR_BADPARM, "%s: xfm has more than one xfrm",
-		Progname) ;
+                Progname) ;
   } // lta != 0
-  else 
+  else
   {
     if (getenv("NO_AVERAGE305")) // if this is set
       fprintf(stderr, "INFO: tal c_(r,a,s) not modified\n");
@@ -75,7 +103,7 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
     {
       // use average_305 value
       if (DIAG_VERBOSE_ON)
-        fprintf(stderr, 
+        fprintf(stderr,
                 "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
       mri_tal->c_r = -0.095;
       mri_tal->c_a = -16.51;
@@ -99,9 +127,9 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 //             |  \       |
 //             |   \      |
 //             |    \     |
-//             V     V    V 
+//             V     V    V
 //         talVol  ---> Talairach
-// 
+//
 // voxel -> RAS -> talairach RAS
 // needs information only on the src volume
 // does not need information on talairach volume
@@ -119,7 +147,7 @@ MATRIX *MtalairachFromVoxel(MRI *mri_src, const LTA *lta)
       ErrorExit(ERROR_BADPARM,"lta does not have xform") ;
     if (lta->type != LINEAR_RAS_TO_RAS)
       ErrorExit(ERROR_BADPARM, "lta must be RAS_TO_RAS transform");
-    
+
     talRASfromVoxel = MatrixMultiply(lta->xforms[0].m_L, RASfromVoxel, NULL); // allocate memory
   }
   else // no transform.  just copy
@@ -228,7 +256,7 @@ void TransformWithMatrix(MATRIX *mat, Real x, Real y, Real z, Real *px, Real *py
 //////////////////////////////////////////////////////////////////////////////////
 int
 MRIvoxelToTalairachEx(MRI *mri_src, Real xv, Real yv, Real zv,
-		      Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
+                      Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
 {
   MATRIX *talairachFromVoxel = MtalairachFromVoxel(mri_src, lta);
   TransformWithMatrix(talairachFromVoxel, xv, yv, zv, pxt, pyt, pzt);
@@ -238,11 +266,11 @@ MRIvoxelToTalairachEx(MRI *mri_src, Real xv, Real yv, Real zv,
 }
 
 
-// voxel -> RAS -> talairach RAS -> talairachVolume 
+// voxel -> RAS -> talairach RAS -> talairachVolume
 // mri must be the source volume
 int
 MRIvoxelToTalairachVoxelEx(MRI *mri_src, Real xv, Real yv, Real zv,
-                               Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
+                           Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
 {
   MATRIX *talVoxelFromVoxel = MtalVoxelFromVoxel(mri_src, lta);
   TransformWithMatrix(talVoxelFromVoxel, xv, yv, zv, pxt, pyt, pzt);
@@ -252,10 +280,10 @@ MRIvoxelToTalairachVoxelEx(MRI *mri_src, Real xv, Real yv, Real zv,
 }
 
 // talairachRAS -> RAS -> voxel
-// needs the target non-tal volume 
+// needs the target non-tal volume
 int
 MRItalairachToVoxelEx(MRI *mri_dst, Real xt, Real yt, Real zt,
-                               Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
+                      Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
 {
   MATRIX *voxelFromTalairach = MvoxelFromTalairach(mri_dst, lta);
   TransformWithMatrix(voxelFromTalairach, xt, yt, zt, pxv, pyv, pzv);
@@ -268,7 +296,7 @@ MRItalairachToVoxelEx(MRI *mri_dst, Real xt, Real yt, Real zt,
 // dst is the non-talairach volume
 int
 MRItalairachVoxelToWorldEx(MRI *mri_dst, Real xt, Real yt, Real zt,
-                               Real *pxw, Real *pyw, Real *pzw, const LTA *lta)
+                           Real *pxw, Real *pyw, Real *pzw, const LTA *lta)
 {
   MATRIX *RASfromTalVoxel = MRASFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(RASfromTalVoxel, xt, yt, zt, pxw, pyw, pzw);
@@ -280,7 +308,7 @@ MRItalairachVoxelToWorldEx(MRI *mri_dst, Real xt, Real yt, Real zt,
 // talairachVolume-> talairach RAS -> RAS -> voxel
 int
 MRItalairachVoxelToVoxelEx(MRI *mri_dst, Real xtv, Real ytv, Real ztv,
-                               Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
+                           Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
 {
   MATRIX *voxelFromTalVoxel = MvoxelFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(voxelFromTalVoxel, xtv, ytv, ztv, pxv, pyv, pzv);
@@ -336,7 +364,7 @@ MRIfromTalairachEx(MRI * mri_tal, MRI *mri_dst, const LTA *lta)
   MatrixPrint(stderr, talVoxelToVoxel);
   if (!mri_dst)
   {
-    ErrorExit(ERROR_BADPARM, "%s: Needs target volume to recover c_(ras)", Progname) ;    
+    ErrorExit(ERROR_BADPARM, "%s: Needs target volume to recover c_(ras)", Progname) ;
     // mri_dst = MRIclone(mri_src, NULL) ;
   }
   MRIlinearTransform(mri_tal, mri_dst, talVoxelToVoxel);
@@ -347,8 +375,8 @@ MRIfromTalairachEx(MRI * mri_tal, MRI *mri_dst, const LTA *lta)
 
 // extract a talairach plane at point (x,y,z)
 MRI *
-MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation, 
-                                int x, int y, int z, int wsize, LTA *lta)
+MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation,
+                           int x, int y, int z, int wsize, LTA *lta)
 {
   Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
@@ -370,45 +398,69 @@ MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation,
     mri_dst->imnr0 = z + mri_src->imnr0 ;
     mri_dst->imnr1 = mri_dst->imnr0 ;
   }
-  // get a poisition in talairach volume 
+  // get a poisition in talairach volume
   MRIvoxelToTalairachVoxelEx(mri_src, x, y, z, &x0, &y0, &z0, lta) ;
   switch (orientation)
   {
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector in talairach space */
-    ex = (Real)x0+1 ; ey = (Real)y0 ; ez = (Real)z0 ;
-    // get the vector in src volume 
+    ex = (Real)x0+1 ;
+    ey = (Real)y0 ;
+    ez = (Real)z0 ;
+    // get the vector in src volume
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector in talairach space */
-    ex = (Real)x0 ; ey = (Real)y0+1 ; ez = (Real)z0 ;
+    ex = (Real)x0 ;
+    ey = (Real)y0+1 ;
+    ez = (Real)z0 ;
     // get the vector
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector in talairach space */
-    ex = (Real)x0+1 ; ey = (Real)y0 ; ez = (Real)z0 ;
+    ex = (Real)x0+1 ;
+    ey = (Real)y0 ;
+    ez = (Real)z0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector in talairach space */
-    ex = (Real)x0 ; ey = (Real)y0 ; ez = (Real)z0+1 ;
+    ex = (Real)x0 ;
+    ey = (Real)y0 ;
+    ez = (Real)z0+1 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x0 ; ey = (Real)y0 ; ez = (Real)z0+1.0 ;
+    ex = (Real)x0 ;
+    ey = (Real)y0 ;
+    ez = (Real)z0+1.0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x0 ; ey = (Real)y0+1.0 ; ez = (Real)z0 ;
+    ex = (Real)x0 ;
+    ey = (Real)y0+1.0 ;
+    ez = (Real)z0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   }
   // calculate the length of the vector in x direction
@@ -437,8 +489,8 @@ MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation,
 }
 
 int
-MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x, 
-			    int y, int z, int wsize, int fill_val, LTA *lta)
+MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x,
+                            int y, int z, int wsize, int fill_val, LTA *lta)
 {
   Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0 ;
@@ -446,54 +498,79 @@ MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x,
 
   whalf = (wsize-1)/2 ;
 
-  x0 = mri_mask->width/2 ; y0 = mri_mask->height/2 ;
+  x0 = mri_mask->width/2 ;
+  y0 = mri_mask->height/2 ;
   MRIvoxelToTalairachVoxelEx(mri, x, y, z, &xt0, &yt0, &zt0, lta) ;
   switch (orientation)
   {
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ; ey = (Real)yt0 ; ez = (Real)zt0 ;
+    ex = (Real)xt0+1 ;
+    ey = (Real)yt0 ;
+    ez = (Real)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ; ey = (Real)yt0+1 ; ez = (Real)zt0 ;
+    ex = (Real)xt0 ;
+    ey = (Real)yt0+1 ;
+    ez = (Real)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ; ey = (Real)yt0 ; ez = (Real)zt0 ;
+    ex = (Real)xt0+1 ;
+    ey = (Real)yt0 ;
+    ez = (Real)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ; ey = (Real)yt0 ; ez = (Real)zt0+1 ;
+    ex = (Real)xt0 ;
+    ey = (Real)yt0 ;
+    ez = (Real)zt0+1 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0 ; ey = (Real)yt0 ; ez = (Real)zt0+1.0 ;
+    ex = (Real)xt0 ;
+    ey = (Real)yt0 ;
+    ez = (Real)zt0+1.0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
+    e1_x -= (Real)x ;
+    e1_y -= (Real)y ;
+    e1_z -= (Real)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ; ey = (Real)yt0+1.0 ; ez = (Real)zt0 ;
+    ex = (Real)xt0 ;
+    ey = (Real)yt0+1.0 ;
+    ez = (Real)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
+    e2_x -= (Real)x ;
+    e2_y -= (Real)y ;
+    e2_z -= (Real)z ;
     break ;
   }
 
-/* 
-   don't want to normalize basis - they are orthonormal in magnet space,
-   not necessarily Talairach space.
-*/
+  /*
+     don't want to normalize basis - they are orthonormal in magnet space,
+     not necessarily Talairach space.
+  */
   len = sqrt(e1_x*e1_x + e1_y*e1_y + e1_z*e1_z) ;
-/*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
+  /*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
   len = sqrt(e2_x*e2_x + e2_y*e2_y + e2_z*e2_z) ;
-/*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
+  /*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
 
   for (yk = -whalf ; yk <= whalf ; yk++)
   {
@@ -506,7 +583,8 @@ MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x,
       xi = mri->xi[nint(xbase + xk*e1_x)] ;
       yi = mri->yi[nint(ybase + xk*e1_y)] ;
       zi = mri->zi[nint(zbase + xk*e1_z)] ;
-      xki = mri_mask->xi[xk+x0] ; yki = mri_mask->yi[yk+y0] ;
+      xki = mri_mask->xi[xk+x0] ;
+      yki = mri_mask->yi[yk+y0] ;
       if (MRIvox(mri_mask, xki, yki,0))
         MRIvox(mri, xi, yi, zi) = fill_val ;
     }

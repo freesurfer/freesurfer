@@ -1,3 +1,31 @@
+/**
+ * @file  imageio.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:33 $
+ *    $Revision: 1.40 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   image.c
  *
@@ -18,7 +46,7 @@
 #include <math.h>
 #include <memory.h>
 #include <fcntl.h>
- #include <unistd.h>  /* for SEEK_ constants */
+#include <unistd.h>  /* for SEEK_ constants */
 
 #include "hmem.h"
 #include <hipl_format.h>
@@ -154,15 +182,15 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 
     ecode = fwrite_header(fp,I,"fwrite") ;
     if (ecode != HIPS_OK)
-     ErrorExit(ERROR_NO_FILE,"ImageFWrite: fwrite_header failed (%d)\n",ecode);
-    
+      ErrorExit(ERROR_NO_FILE,"ImageFWrite: fwrite_header failed (%d)\n",ecode);
+
     image = I->image ;
     for (frame = 0 ; frame < I->num_frame ; frame++)
     {
       ecode = fwrite_image(fp, I, frame, "fwrite") ;
       if (ecode != HIPS_OK)
-        ErrorExit(ERROR_NO_FILE, 
-               "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
+        ErrorExit(ERROR_NO_FILE,
+                  "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
       I->image += I->sizeimage ;  /* next frame */
     }
     I->image = image ;
@@ -178,9 +206,9 @@ static void ImageSwapEndian(IMAGE *I)
   double *dpix, dval ;
   float  *fpix, fval ;
   long   npix ;
-    
+
   npix = (long)I->numpix * (long)I->num_frame ;
-  
+
   switch (I->pixel_format)
   {
   case PFDBLCOM:
@@ -221,7 +249,7 @@ static void ImageSwapEndian(IMAGE *I)
     break ;
   default:
     ErrorExit(ERROR_UNSUPPORTED,"ImageFRead: unsupported type %d\n",
-	      I->pixel_format);
+              I->pixel_format);
   }
 }
 
@@ -266,8 +294,8 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
     if (fseek(fp, (long)I->sizeimage*(long)start, SEEK_CUR) < 0)
     {
       ImageFree(&I) ;
-      ErrorReturn(NULL, 
-                  (ERROR_BADFILE, 
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE,
                    "ImageFRead(%s, %d) - could not seek to specified frame",
                    fname, start)) ;
     }
@@ -278,7 +306,7 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
 
   end_frame = start + nframes - 1 ;
   if (end_frame >= I->num_frame)
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADFILE,
                  "ImageFRead(%s, %d) - frame out of bounds", fname,end_frame));
   I->num_frame = nframes ;
@@ -296,21 +324,21 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   I->image = startpix ;
 
   /* We only swap endians if there wasn't an endian parameter and the image is
-     invalid (ie.  values in the image seem to be extreme) OR the endian of 
+     invalid (ie.  values in the image seem to be extreme) OR the endian of
      the machine does not match the endian of the image */
 
   switch (end)
-    {
-    case END_UNDEF:
-      if (!ImageValid(I))
-  ImageSwapEndian(I);
-      break;
-    case END_BIG:
-    case END_SMALL:
-      if (end != endian)
-  ImageSwapEndian(I);
-      break;
-    }
+  {
+  case END_UNDEF:
+    if (!ImageValid(I))
+      ImageSwapEndian(I);
+    break;
+  case END_BIG:
+  case END_SMALL:
+    if (end != endian)
+      ImageSwapEndian(I);
+    break;
+  }
 
   return(I) ;
 }
@@ -329,7 +357,7 @@ ImageReadFrames(char *fname, int start, int nframes)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadFrames(%s) fopen failed\n", 
+    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadFrames(%s) fopen failed\n",
                        fname)) ;
 
   I = ImageFRead(fp, fname, start, nframes) ;
@@ -357,7 +385,7 @@ ImageReadHeader(char *fname)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadHeader(%s, %d) failed\n", 
+    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadHeader(%s, %d) failed\n",
                        fname, frame)) ;
 
   I = ImageFReadHeader(fp, fname) ;
@@ -399,12 +427,12 @@ ImageFReadHeader(FILE *fp, char *fname)
   case MATLAB_IMAGE:
   {
     MATFILE mf ;
-    
+
     MatReadHeader0(fp, &mf) ;
     init_header(I, "matlab", "seq", 1, "today", (int)mf.mrows, (int)mf.ncols,
-               mf.imagf ? PFCOMPLEX : PFFLOAT, 1, "temp") ;
+                mf.imagf ? PFCOMPLEX : PFFLOAT, 1, "temp") ;
   }
-    break ;
+  break ;
   case JPEG_IMAGE:
     JPEGReadHeader(fp, I);
     break ;
@@ -423,8 +451,8 @@ ImageFReadHeader(FILE *fp, char *fname)
     if (ecode != HIPS_OK)
     {
       fclose(fp) ;
-      ErrorReturn(NULL, (ERROR_NO_FILE, 
-                         "ImageReadHeader(%s): fread_header failed (%d)\n", 
+      ErrorReturn(NULL, (ERROR_NO_FILE,
+                         "ImageReadHeader(%s): fread_header failed (%d)\n",
                          fname, ecode)) ;
     }
     break ;
@@ -446,11 +474,11 @@ ImageReadType(char *fname, int pixel_format)
 {
   IMAGE *Itmp, *I ;
 
-  Itmp = ImageRead(fname) ;          
+  Itmp = ImageRead(fname) ;
   if (!Itmp)
-    ErrorReturn(NULL, (ERROR_NO_FILE, 
-      "ImageReadType(%s, %d): could not read image",
-      fname, pixel_format)) ;
+    ErrorReturn(NULL, (ERROR_NO_FILE,
+                       "ImageReadType(%s, %d): could not read image",
+                       fname, pixel_format)) ;
   if (Itmp->pixel_format != pixel_format)
   {
     I = ImageAlloc(Itmp->rows, Itmp->cols, pixel_format, Itmp->num_frame) ;
@@ -488,7 +516,7 @@ ImageRead(char *fname)
     I = TiffReadImage(fname, frame) ;
     break ;
   case MATLAB_IMAGE:
-    DiagPrintf(DIAG_WRITE, 
+    DiagPrintf(DIAG_WRITE,
                "ImageRead: fname=%s, frame=%d, type=%d (M=%d,H=%d)\n",
                fname, frame, type , MATLAB_IMAGE, HIPS_IMAGE);
     mat = MatlabRead(fname) ;
@@ -501,14 +529,14 @@ ImageRead(char *fname)
   case HIPS_IMAGE:
     fp = fopen(fname, "rb") ;
     if (!fp)
-      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s, %d) failed\n", 
+      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s, %d) failed\n",
                          fname, frame)) ;
     I = ImageFRead(fp, fname, frame, 1) ;
     fclose(fp) ;
     break ;
   case JPEG_IMAGE:
     I = JPEGReadImage(fname);
-    break ; 
+    break ;
   case PGM_IMAGE:
     I = PGMReadImage(fname);
     break;
@@ -548,7 +576,7 @@ ImageType(char *fname)
   }
 
   return(HIPS_IMAGE) ;
-} 
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -574,7 +602,7 @@ ImageFrame(char *fname)
     frame = 0 ;
 
   return(frame) ;
-} 
+}
 /*----------------------------------------------------------------------
             Parameters:
               fname - the name of the file to read from
@@ -593,18 +621,18 @@ ImageReadInto(char *fname, IMAGE *I, int image_no)
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorPrintf(ERROR_NO_FILE, "ImageReadInto(%s) failed\n", fname) ;
-  
+
   ecode = fread_header(fp, I, fname) ;
   if (ecode != HIPS_OK)
-    ErrorExit(ERROR_NO_FILE, "ImageReadInto(%s): fread_header failed (%d)\n", 
+    ErrorExit(ERROR_NO_FILE, "ImageReadInto(%s): fread_header failed (%d)\n",
               fname, ecode) ;
   ecode = fread_image(fp, I, image_no, fname) ;
   if (ecode != HIPS_OK)
-    ErrorExit(ERROR_NO_FILE, "ImageReadInto(%s): fread_image failed (%d)\n", 
+    ErrorExit(ERROR_NO_FILE, "ImageReadInto(%s): fread_image failed (%d)\n",
               fname, ecode) ;
-  
+
   fclose(fp) ;
-  
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -619,7 +647,7 @@ int
 ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
 {
   IMAGE  *tmp_image ;
-  
+
   tmp_image = ImageAlloc(image->rows, image->cols,image->pixel_format,nframes);
   ImageCopyFrames(image, tmp_image, start, nframes, 0) ;
   ImageWrite(tmp_image, fname) ;
@@ -637,8 +665,8 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
 {
   char *number, *dot, buf[STRLEN] ;
 
-	if (inFname != outFname)
-		strcpy(outFname, inFname) ;
+  if (inFname != outFname)
+    strcpy(outFname, inFname) ;
   number = strrchr(outFname, '#') ;
   dot = strrchr(outFname, '.') ;
 
@@ -659,7 +687,7 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     else if (!strcmp(dot, "TIF") || !strcmp(dot, "TIFF"))
       *ptype = TIFF_IMAGE  ;
     else if (!strcmp(dot, "JPG") || !strcmp(dot, "JPEG"))
-      *ptype = JPEG_IMAGE ; 
+      *ptype = JPEG_IMAGE ;
     else if (!strcmp(dot, "PGM"))
       *ptype = PGM_IMAGE;
     else if (!strcmp(dot, "PPM"))
@@ -697,14 +725,14 @@ ImageNumFrames(char *fname)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(ERROR_NO_FILE, 
-                (ERROR_NO_FILE, "ImageNumFrame(%s) could not open file\n", 
+    ErrorReturn(ERROR_NO_FILE,
+                (ERROR_NO_FILE, "ImageNumFrame(%s) could not open file\n",
                  fname)) ;
 
   ecode = fread_header(fp, &I, fname) ;
   if (ecode != HIPS_OK)
     ErrorReturn(ERROR_NO_FILE,
-                (ERROR_NO_FILE, 
+                (ERROR_NO_FILE,
                  "ImageNumFrame: fread_header failed (%d)\n",ecode));
 
   nframes = I.num_frame ;
@@ -754,23 +782,23 @@ ImageAppend(IMAGE *I, char *fname)
     fp = fopen(fname, "wb") ;
     if (!fp)
       ErrorReturn(-1, (ERROR_NO_FILE, "ImageAppend(%s) failed\n", fname)) ;
-    
+
     ecode = fwrite_header(fp, &Iheader, fname) ;
     if (ecode != HIPS_OK)
-     ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
 
     nframes = Iheader.num_frame - 1 ;
     for (frame = 0 ; frame < nframes ; frame++)
     {
       Iframe = ImageReadFrames(tmpname, frame, 1) ;
       if (!Iframe)
-        ErrorReturn(-3, (ERROR_BADFILE, 
+        ErrorReturn(-3, (ERROR_BADFILE,
                          "ImageAppend: could not read %dth frame", frame)) ;
       ecode = fwrite_image(fp, Iframe, frame, fname) ;
       if (ecode != HIPS_OK)
-        ErrorReturn(-4, (ERROR_BADFILE, 
-                          "ImageAppend: fwrite_image frame %d failed (%d)\n",
-                          ecode,frame));
+        ErrorReturn(-4, (ERROR_BADFILE,
+                         "ImageAppend: fwrite_image frame %d failed (%d)\n",
+                         ecode,frame));
     }
     unlink(tmpname) ;
   }
@@ -780,7 +808,7 @@ ImageAppend(IMAGE *I, char *fname)
       ErrorReturn(-2,(ERROR_BADFILE,"ImageAppend(%s): could not seek to end"));
     ecode = fwrite_header(fp, &Iheader, fname) ;
     if (ecode != HIPS_OK)
-     ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
   }
 
   if (fseek(fp, 0L, SEEK_END) < 0)
@@ -788,8 +816,8 @@ ImageAppend(IMAGE *I, char *fname)
 
   ecode = fwrite_image(fp, I, frame, "fwrite") ;
   if (ecode != HIPS_OK)
-    ErrorReturn(-1, (ERROR_BADFILE, 
-              "ImageAppend: fwrite_image frame %d failed (%d)\n",ecode,frame));
+    ErrorReturn(-1, (ERROR_BADFILE,
+                     "ImageAppend: fwrite_image frame %d failed (%d)\n",ecode,frame));
 
   free_hdrcon(&Iheader) ;
   fclose(fp) ;
@@ -807,7 +835,7 @@ ImageAppend(IMAGE *I, char *fname)
 #define IMAGERGBpix(im, x, y)           ((im->image) + (((int) y) * im->ocols * 3) + (x))
 
 static IMAGE *
-TiffReadImage(char *fname, int frame0) 
+TiffReadImage(char *fname, int frame0)
 {
   IMAGE    *I ;
   TIFF     *tif = TIFFOpen(fname, "r");
@@ -837,7 +865,7 @@ TiffReadImage(char *fname, int frame0)
     return(NULL) ;
 
   /* Find out how many frames we have */
-  while(TIFFReadDirectory(tif)) 
+  while (TIFFReadDirectory(tif))
     nframe++;
 
   // some tif image just cannot be handled
@@ -846,7 +874,7 @@ TiffReadImage(char *fname, int frame0)
 
   /* Go back to the beginning */
   TIFFSetDirectory(tif,0);
-  
+
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
@@ -874,52 +902,69 @@ TiffReadImage(char *fname, int frame0)
     fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
     fprintf(stderr, "  orientation: %d\n", orientation);
     photometricInt = photometric; // used in 'case' statement to avoid
-                                  // gcc warning 'case value out of range'
-    switch(photometricInt)
+    // gcc warning 'case value out of range'
+    switch (photometricInt)
     {
     case PHOTOMETRIC_MINISWHITE:
-      fprintf(stderr, "  photometric: min value is white.\n"); break;
+      fprintf(stderr, "  photometric: min value is white.\n");
+      break;
     case PHOTOMETRIC_MINISBLACK:
-      fprintf(stderr, "  photometric: min value is black.\n"); break;
+      fprintf(stderr, "  photometric: min value is black.\n");
+      break;
     case PHOTOMETRIC_RGB:
-      fprintf(stderr, "  photometric: RGB color model.\n"); break;
+      fprintf(stderr, "  photometric: RGB color model.\n");
+      break;
     case PHOTOMETRIC_PALETTE:
-      fprintf(stderr, "  photometric: use palette.\n"); break;
+      fprintf(stderr, "  photometric: use palette.\n");
+      break;
     case PHOTOMETRIC_MASK:
-      fprintf(stderr, "  photometric: $holdout mask.\n"); break;
+      fprintf(stderr, "  photometric: $holdout mask.\n");
+      break;
     case PHOTOMETRIC_SEPARATED:
-      fprintf(stderr, "  photometric: color separations.\n"); break;
+      fprintf(stderr, "  photometric: color separations.\n");
+      break;
     case PHOTOMETRIC_YCBCR:
-      fprintf(stderr, "  photometric: YCbCr6 CCIR 601.\n"); break;
+      fprintf(stderr, "  photometric: YCbCr6 CCIR 601.\n");
+      break;
     case PHOTOMETRIC_CIELAB:
-      fprintf(stderr, "  photometric: 1976 CIE L*a*b* \n"); break;
+      fprintf(stderr, "  photometric: 1976 CIE L*a*b* \n");
+      break;
     case PHOTOMETRIC_ITULAB:
-      fprintf(stderr, "  photometric: ITU L*a*b* \n"); break;
+      fprintf(stderr, "  photometric: ITU L*a*b* \n");
+      break;
     case PHOTOMETRIC_LOGL:
-      fprintf(stderr, "  photometric: CIE Log2(L) \n"); break;
+      fprintf(stderr, "  photometric: CIE Log2(L) \n");
+      break;
     case PHOTOMETRIC_LOGLUV:
-      fprintf(stderr, "  photometric: CIE Log2(L) (u',v') \n"); break;
+      fprintf(stderr, "  photometric: CIE Log2(L) (u',v') \n");
+      break;
     default:
-      fprintf(stderr, "  photometric: unknown type\n"); break;
+      fprintf(stderr, "  photometric: unknown type\n");
+      break;
     }
     compressionInt = compression; // used in 'case' statement to avoid
-                                  // gcc warning 'case value out of range'
-   // we are not supporting compression at this time
-    switch(compressionInt)
+    // gcc warning 'case value out of range'
+    // we are not supporting compression at this time
+    switch (compressionInt)
     {
     case COMPRESSION_NONE:
-      fprintf(stderr, "  compression: no compression\n"); break;
+      fprintf(stderr, "  compression: no compression\n");
+      break;
     case COMPRESSION_LZW:
-      fprintf(stderr, "  compression: Lempel-Ziv & Welch\n"); break;
+      fprintf(stderr, "  compression: Lempel-Ziv & Welch\n");
+      break;
     case COMPRESSION_JPEG:
-      fprintf(stderr, "  compression: JPEG DCT compression\n"); break;
+      fprintf(stderr, "  compression: JPEG DCT compression\n");
+      break;
     case COMPRESSION_PACKBITS:
-      fprintf(stderr, "  compression: Macintosh RLE\n"); break;
+      fprintf(stderr, "  compression: Macintosh RLE\n");
+      break;
     default:
-      fprintf(stderr, "  compression: %d see /usr/include/tiff.h for meaning\n", compression); break; 
+      fprintf(stderr, "  compression: %d see /usr/include/tiff.h for meaning\n", compression);
+      break;
     }
   }
-  switch(nsamples)
+  switch (nsamples)
   {
   case 1:
     switch (bits_per_sample)  /* not valid - I don't know why */
@@ -940,7 +985,7 @@ TiffReadImage(char *fname, int frame0)
     }
     break;
   case 3:
-    switch(bits_per_sample)
+    switch (bits_per_sample)
     {
     default:
     case 8:
@@ -949,118 +994,123 @@ TiffReadImage(char *fname, int frame0)
     }
     break;
   default:
-    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );    
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
   }
   // nsamples not handled here
   if (nsamples != 1 && nsamples != 3)
     ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
 
   // type can be grey scale or RGB
-  if (frame0 < 0) 
+  if (frame0 < 0)
     I = ImageAlloc(height, width, type, nframe) ;
   else
     I = ImageAlloc(height, width, type, 1) ;
-  
+
   iptr = I->image;
 
 
-  for(frame=0;frame<nframe;frame++)
+  for (frame=0;frame<nframe;frame++)
   {
     TIFFSetDirectory(tif,frame);
-    
+
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     scanlinesize = TIFFScanlineSize(tif);
-    for(row=0;row<height;row++)
+    for (row=0;row<height;row++)
     {
       // get the pointer at the first column of a row
       // note that the orientation is column, row
-      switch(orientation)
+      switch (orientation)
       {
       case ORIENTATION_TOPLEFT:
-	index = height-row-1;
-	break;
+        index = height-row-1;
+        break;
       case ORIENTATION_BOTLEFT:
-	index = row;
-	break;
+        index = row;
+        break;
       default:
-	ErrorExit(ERROR_BADPARM, "IMAGE: orientation = %d. we support only topleft or botleft\n", orientation);
+        ErrorExit(ERROR_BADPARM, "IMAGE: orientation = %d. we support only topleft or botleft\n", orientation);
       }
 
       if (nsamples == 1)
       {
-	switch (bits_per_sample)
-	{
-	default:
-	case 8: 
-	  buf = (tdata_t *)IMAGEpix(I,0,index);
-	  break;
-	case 16:
-	  buf = (tdata_t *)IMAGESpix(I,0,index);
-	  break;
-	case 32:
-	  buf = (tdata_t *)IMAGEFpix(I,0,index);
-	  break;
-	case 64:
-	  buf = (tdata_t *)IMAGEDpix(I,0,index);
-	  break;
-	}
-	if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
-	  ErrorReturn(NULL,
-		      (ERROR_BADFILE,
-		       "TiffReadImage:  TIFFReadScanline returned error"));
+        switch (bits_per_sample)
+        {
+        default:
+        case 8:
+          buf = (tdata_t *)IMAGEpix(I,0,index);
+          break;
+        case 16:
+          buf = (tdata_t *)IMAGESpix(I,0,index);
+          break;
+        case 32:
+          buf = (tdata_t *)IMAGEFpix(I,0,index);
+          break;
+        case 64:
+          buf = (tdata_t *)IMAGEDpix(I,0,index);
+          break;
+        }
+        if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
+          ErrorReturn(NULL,
+                      (ERROR_BADFILE,
+                       "TiffReadImage:  TIFFReadScanline returned error"));
       }
       else if (nsamples == 3) // RGB model
       {
-	switch(bits_per_sample)
-	{
-	default:
-	case 8:
-	  buf = (tdata_t*) IMAGERGBpix(I, 0, index);
-	  if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
-	    ErrorReturn(NULL,
-			(ERROR_BADFILE,
-			 "TiffReadImage:  TIFFReadScanline returned error"));
-	}
+        switch (bits_per_sample)
+        {
+        default:
+        case 8:
+          buf = (tdata_t*) IMAGERGBpix(I, 0, index);
+          if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
+            ErrorReturn(NULL,
+                        (ERROR_BADFILE,
+                         "TiffReadImage:  TIFFReadScanline returned error"));
+        }
 
 #if 0
-	////////////////////////////////////////////////////////////
-	// we used to translate into the grey value
-	// now translate it into Y value
-	// RGB range 0 to 1.0
-	// then YIQ is 
-	//     Y   =  0.299  0.587   0.114  R
-	//     I      0.596 -0.275  -0.321  G
-	//     Q      0.212 -0.523   0.311  B
-	// and use Y for grey scale (this is color tv signal into bw tv
-	switch(bits_per_sample)
-	{
-	default:
-	case 8:
-	  skip = 3; // 
-	  for (i = 0; i < width; ++i)
-	  {
-	    r = (float) buffer[i*skip]; g = (float) buffer[i*skip+1]; b = (float) buffer[i*skip+2];
-	    y = (0.299*r + 0.587*g + 0.114*b);
-	    *IMAGEpix(I, i, row) = (unsigned char) y;
-	  }
-	  break; // 3 bytes at a time
-	case 32:
-	  skip = 12; // 3x4 bytes at a time
-	  for (i=0; i < width ; ++i)
-	  {
-	    pf = (float *) &buffer[i*skip]; r = *pf;
-	    pf = (float *) &buffer[i*skip+4]; g = *pf;
-	    pf = (float *) &buffer[i*skip+8]; b = *pf;
-	    y = (0.299*r + 0.587*g + 0.114*b);
-	    *IMAGEFpix(I, i, row) = y;
-	  }
-	case 64:
-	  ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");	  
-	}
-	free(buffer);
+        ////////////////////////////////////////////////////////////
+        // we used to translate into the grey value
+        // now translate it into Y value
+        // RGB range 0 to 1.0
+        // then YIQ is
+        //     Y   =  0.299  0.587   0.114  R
+        //     I      0.596 -0.275  -0.321  G
+        //     Q      0.212 -0.523   0.311  B
+        // and use Y for grey scale (this is color tv signal into bw tv
+        switch (bits_per_sample)
+        {
+        default:
+        case 8:
+          skip = 3; //
+          for (i = 0; i < width; ++i)
+          {
+            r = (float) buffer[i*skip];
+            g = (float) buffer[i*skip+1];
+            b = (float) buffer[i*skip+2];
+            y = (0.299*r + 0.587*g + 0.114*b);
+            *IMAGEpix(I, i, row) = (unsigned char) y;
+          }
+          break; // 3 bytes at a time
+        case 32:
+          skip = 12; // 3x4 bytes at a time
+          for (i=0; i < width ; ++i)
+          {
+            pf = (float *) &buffer[i*skip];
+            r = *pf;
+            pf = (float *) &buffer[i*skip+4];
+            g = *pf;
+            pf = (float *) &buffer[i*skip+8];
+            b = *pf;
+            y = (0.299*r + 0.587*g + 0.114*b);
+            *IMAGEFpix(I, i, row) = y;
+          }
+        case 64:
+          ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");
+        }
+        free(buffer);
 #endif
 
       }
@@ -1071,7 +1121,7 @@ TiffReadImage(char *fname, int frame0)
       break ;
   }
   I->image = iptr;
-  
+
   TIFFClose(tif);
 
   return(I) ;
@@ -1083,8 +1133,7 @@ void __eprintf(void) ;
 
 void
 __eprintf(void)
-{
-}
+{}
 #endif
 
 /*----------------------------------------------------------------------
@@ -1098,7 +1147,7 @@ TiffReadHeader(char *fname, IMAGE *I)
 {
   TIFF  *tif = TIFFOpen(fname, "r");
   int   ret, width, height, bits_per_sample ;
-	short nsamples ;
+  short nsamples ;
   int type = PFBYTE; // just make compiler happy
   if (!tif)
     return(NULL) ;
@@ -1108,9 +1157,9 @@ TiffReadHeader(char *fname, IMAGE *I)
   TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
 
-  switch(nsamples)
+  switch (nsamples)
   {
-  case 1: 
+  case 1:
     switch (bits_per_sample)
     {
     case 32:
@@ -1126,7 +1175,7 @@ TiffReadHeader(char *fname, IMAGE *I)
     }
     break;
   case 3:
-    switch(bits_per_sample)
+    switch (bits_per_sample)
     {
     default:
     case 8:
@@ -1135,14 +1184,14 @@ TiffReadHeader(char *fname, IMAGE *I)
     }
     break;
   default:
-    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );    
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
   }
-  
+
   if (!I)
     I = ImageAlloc(height, width, type, 1) ;
   else
     init_header(I, "orig", "seq", 1, "today", height,width,type,1, "temp");
-  
+
   return(I) ;
 }
 /*----------------------------------------------------------------------
@@ -1183,9 +1232,9 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     bits_per_sample = sizeof(double)*8 ;
     break ;
   default:
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
-                "TiffWrite: pixel format %d not supported currently supported",
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
+                 "TiffWrite: pixel format %d not supported currently supported",
                  I->pixel_format)) ;
     samples_per_pixel = 3 ;
     bits_per_sample = 8 ;
@@ -1194,7 +1243,7 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
 
   timage = I->image;
 
-  for(frames=0;frames<I->num_frame;frames++)
+  for (frames=0;frames<I->num_frame;frames++)
   {
     TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
     TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
@@ -1205,30 +1254,30 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
     /* write out the data, line by line */
-    for (row = 0; row < I->rows; row++) 
+    for (row = 0; row < I->rows; row++)
     {
-    switch (I->pixel_format)
-    {
-    case PFBYTE:
-      buf = (tdata_t *)IMAGEpix(I,0,row);
-      break;
-    case PFSHORT:
-      buf = (tdata_t *)IMAGESpix(I,0,row);
-    case PFFLOAT:
-      buf = (tdata_t *)IMAGEFpix(I,0,row);
-      break;
-    case PFDOUBLE:
-      buf = (tdata_t *)IMAGEDpix(I,0,row);
-      break;
-    default:
-      ErrorReturn(ERROR_UNSUPPORTED, 
-                  (ERROR_BADFILE,
-                   "TiffWrite: unsupported pixel format %d",I->pixel_format));
-    }
-    if (TIFFWriteScanline(out, buf, row, 0) < 0)
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE,
-                   "TiffWrite: TIFFWriteScanline returned error"));
+      switch (I->pixel_format)
+      {
+      case PFBYTE:
+        buf = (tdata_t *)IMAGEpix(I,0,row);
+        break;
+      case PFSHORT:
+        buf = (tdata_t *)IMAGESpix(I,0,row);
+      case PFFLOAT:
+        buf = (tdata_t *)IMAGEFpix(I,0,row);
+        break;
+      case PFDOUBLE:
+        buf = (tdata_t *)IMAGEDpix(I,0,row);
+        break;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED,
+                    (ERROR_BADFILE,
+                     "TiffWrite: unsupported pixel format %d",I->pixel_format));
+      }
+      if (TIFFWriteScanline(out, buf, row, 0) < 0)
+        ErrorReturn(ERROR_BADFILE,
+                    (ERROR_BADFILE,
+                     "TiffWrite: TIFFWriteScanline returned error"));
     }
     TIFFWriteDirectory(out);
     I->image += I->sizeimage;
@@ -1242,56 +1291,65 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
 #if 0
 static IMAGE *JPEGReadImage(char *fname)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ;
 }
 static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ;
 }
 static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
 {
-  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, 
-                                 "jpeg not supported on IRIX")) ; 
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED,
+                                  "jpeg not supported on IRIX")) ;
 }
 #endif
 
 #ifdef IRIX
-static IMAGE *JPEGReadImage(char *fname) {return(NULL);}
-static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I) {return(NULL);}
-static int JPEGWriteImage(IMAGE *I, char *fname, int frame) {return(0);}
+static IMAGE *JPEGReadImage(char *fname)
+{
+  return(NULL);
+}
+static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I)
+{
+  return(NULL);
+}
+static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
+{
+  return(0);
+}
 static IMAGE *PGMReadImage(char *fname)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
 static IMAGE *PGMReadHeader(FILE *fp, IMAGE *I)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
 static int PGMWriteImage(IMAGE *I, char *fname, int frame)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
 static IMAGE *PPMReadImage(char *fname)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
 }
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *I)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
 }
 static IMAGE *PBMReadImage(char *fname)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ;
 }
 static IMAGE *PBMReadHeader(FILE *fp, IMAGE *I)
 {
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ;
 }
-static int 
+static int
 PPMWriteImage(IMAGE *I, char *fname, int frame)
 {
-  ErrorReturn(ERROR_UNSUPPORTED, 
-              (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+  ErrorReturn(ERROR_UNSUPPORTED,
+              (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
 }
 #else
 static IMAGE *
@@ -1324,7 +1382,7 @@ PGMReadImage(char *fname)
   pgm_readpgminit(infile, &cols, &rows, &maxval, &format);
 
   I = ImageAlloc(rows, cols, PFBYTE, 1);
-  for(i=rows-1;i>=0; i--)
+  for (i=rows-1;i>=0; i--)
     pgm_readpgmrow(infile, IMAGEpix(I, 0, i), cols, maxval, format);
 
   pm_close(infile);
@@ -1332,7 +1390,7 @@ PGMReadImage(char *fname)
   return I;
 }
 
-static int 
+static int
 PPMWriteImage(IMAGE *I, char *fname, int frame)
 {
   FILE *outf;
@@ -1340,57 +1398,57 @@ PPMWriteImage(IMAGE *I, char *fname, int frame)
   byte pval;
   pixel *cpix, *pp;
   if (I->pixel_format != PFBYTE)
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
                  "PPMWrite: only PFBYTE currently supported")) ;
-    
+
   if ((outf = fopen(fname, "wb")) == NULL)
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
                  "PPMWrite: only PFBYTE currently supported")) ;
 
   cpix = (pixel *)malloc(sizeof(pixel)*I->ocols);
   if (!cpix)
     ErrorReturn(ERROR_UNSUPPORTED,
-    (ERROR_UNSUPPORTED,
-     "Could not allocate color pixel buffer"));
+                (ERROR_UNSUPPORTED,
+                 "Could not allocate color pixel buffer"));
 
   ppm_writeppminit(outf, I->ocols, I->orows, 255, 0);
-  for(i=I->orows-1;i>=0;i--)
-    {
-      for(pp = cpix, j = 0; j<I->ocols; j++, pp++)
+  for (i=I->orows-1;i>=0;i--)
   {
-    pval = *IMAGEpix(I,j,i);
-    PPM_ASSIGN(*pp, pval, pval, pval);
-  }
-      ppm_writeppmrow(outf, cpix, I->ocols, 255, 0);
+    for (pp = cpix, j = 0; j<I->ocols; j++, pp++)
+    {
+      pval = *IMAGEpix(I,j,i);
+      PPM_ASSIGN(*pp, pval, pval, pval);
     }
+    ppm_writeppmrow(outf, cpix, I->ocols, 255, 0);
+  }
 
   fclose(outf);
-  
+
   free(cpix);
 
   return NO_ERROR;
 }
 
-static int 
+static int
 PGMWriteImage(IMAGE *I, char *fname, int frame)
 {
   FILE *outf;
   int i;
 
   if (I->pixel_format != PFBYTE)
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
                  "PGMWrite: only PFBYTE currently supported")) ;
-    
+
   if ((outf = fopen(fname, "wb")) == NULL)
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
                  "JPEGWrite: only PFBYTE currently supported")) ;
-    
+
   pgm_writepgminit(outf, I->ocols, I->orows, 255, 0);
-  for(i=I->orows-1;i>=0;i--)
+  for (i=I->orows-1;i>=0;i--)
     pgm_writepgmrow(outf, IMAGEpix(I, 0, i), I->ocols, 255, 0);
 
   fclose(outf);
@@ -1417,8 +1475,8 @@ PBMReadImage(char *fname)
   I = ImageAlloc(rows, cols, PFBYTE, 1);
   ptr = I->image;
 
-  for(j=rows-1;j>=0; j--)
-    for(i=0;i<cols;i++)
+  for (j=rows-1;j>=0; j--)
+    for (i=0;i<cols;i++)
       *ptr++ = (byte)((inbits[j][i] == PBM_WHITE) ? 255 : 0);
 
   return I;
@@ -1443,14 +1501,14 @@ PPMReadImage(char *fname)
 
   I = ImageAlloc(rows, cols, PFBYTE, 1);
 
-  for(i=rows-1;i>=0; i--)
-    {
-      ppm_readppmrow(infile, pixelrow, cols, maxval, format);
-      pptr = pixelrow;
-      ptr = IMAGEpix(I, 0, i);
-      for(j=0;j<cols;j++,pptr++,ptr++)
-  *ptr = (byte)(PPM_LUMIN(*pptr) + 0.5);
-    }
+  for (i=rows-1;i>=0; i--)
+  {
+    ppm_readppmrow(infile, pixelrow, cols, maxval, format);
+    pptr = pixelrow;
+    ptr = IMAGEpix(I, 0, i);
+    for (j=0;j<cols;j++,pptr++,ptr++)
+      *ptr = (byte)(PPM_LUMIN(*pptr) + 0.5);
+  }
 
   pm_close(infile);
 
@@ -1489,7 +1547,7 @@ PPMReadHeader(FILE *fp, IMAGE *I)
 }
 
 static IMAGE *
-JPEGReadImage(char *fname) 
+JPEGReadImage(char *fname)
 {
   FILE *infile;
   IMAGE *I;
@@ -1513,11 +1571,11 @@ JPEGReadImage(char *fname)
   I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFBYTE, 1);
 
   rowctr = I->orows - 1;
-  while(cinfo.output_scanline < cinfo.output_height)
-    {
-      ptr = IMAGEpix(I, 0, rowctr--);
-      jpeg_read_scanlines(&cinfo, &ptr, 1);
-    }
+  while (cinfo.output_scanline < cinfo.output_height)
+  {
+    ptr = IMAGEpix(I, 0, rowctr--);
+    jpeg_read_scanlines(&cinfo, &ptr, 1);
+  }
 
   jpeg_finish_decompress(&cinfo);
   jpeg_destroy_decompress(&cinfo);
@@ -1541,26 +1599,26 @@ JPEGReadHeader(FILE *fp, IMAGE *I)
     I = ImageAlloc(cinfo.image_height, cinfo.image_width, PFBYTE, 1) ;
   else
     init_header(I, "orig", "seq", 1, "today", cinfo.image_height,
-    cinfo.image_width,PFBYTE,1, "temp");
-  
+                cinfo.image_width,PFBYTE,1, "temp");
+
   jpeg_destroy_decompress(&cinfo);
 
   return(I) ;
 }
 
-static int 
-JPEGWriteImage(IMAGE *I, char *fname, int frame) 
+static int
+JPEGWriteImage(IMAGE *I, char *fname, int frame)
 {
   FILE *outf;
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
   JSAMPROW ptr;
 
-  if (I->pixel_format != PFBYTE) 
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
+  if (I->pixel_format != PFBYTE)
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED,
                  "JPEGWrite: only PFBYTE currently supported")) ;
-    
+
   cinfo.err = jpeg_std_error(&jerr);
   jpeg_create_compress(&cinfo);
 
@@ -1578,17 +1636,17 @@ JPEGWriteImage(IMAGE *I, char *fname, int frame)
 
   jpeg_start_compress(&cinfo, TRUE);
 
-  while(cinfo.next_scanline < cinfo.image_height) 
-    {
-      ptr = IMAGEpix(I, 0, (I->rows - cinfo.next_scanline - 1));
-      jpeg_write_scanlines(&cinfo, &ptr, 1);
-    }
+  while (cinfo.next_scanline < cinfo.image_height)
+  {
+    ptr = IMAGEpix(I, 0, (I->rows - cinfo.next_scanline - 1));
+    jpeg_write_scanlines(&cinfo, &ptr, 1);
+  }
 
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
 
   fclose(outf);
-  
+
   return NO_ERROR;
 }
 

@@ -109,16 +109,16 @@ int _isinf (const double x)
 }
 */
 double igamc( a, x )
-     double a, x;
+double a, x;
 {
   double ans, ax, c, yc, r, t, y, z;
   double pk, pkm1, pkm2, qk, qkm1, qkm2;
   char msg[100];
 
-  if( (x <= 0) || ( a <= 0) )
+  if ( (x <= 0) || ( a <= 0) )
     return( 1.0 );
 
-  if( (x < 1.0) || (x < a) )
+  if ( (x < 1.0) || (x < a) )
     return( 1.0 - igam(a,x) );
 
   /*
@@ -130,19 +130,19 @@ double igamc( a, x )
     }
   */
   ax = a * log(x) - x - lgam(a);
-  if( ax < -MAXLOG )
-    {
-      //warning message not necessary. proper answer is 0
-      //sprintf(msg,"igamc(%f,%f)",a,x);
-      //mtherr( msg, UNDERFLOW );
-      return( 0.0 );
-    }
-  if( ax != ax ) // check if result is nan
-    {
-      sprintf(msg,"igamc(%f,%f): NAN",a,x);
-      mtherr( msg, TLOSS );
-      return( 0.0 );
-    }
+  if ( ax < -MAXLOG )
+  {
+    //warning message not necessary. proper answer is 0
+    //sprintf(msg,"igamc(%f,%f)",a,x);
+    //mtherr( msg, UNDERFLOW );
+    return( 0.0 );
+  }
+  if ( ax != ax ) // check if result is nan
+  {
+    sprintf(msg,"igamc(%f,%f): NAN",a,x);
+    mtherr( msg, TLOSS );
+    return( 0.0 );
+  }
 
   ax = exp(ax);
 
@@ -157,34 +157,34 @@ double igamc( a, x )
   ans = pkm1/qkm1;
 
   do
+  {
+    c += 1.0;
+    y += 1.0;
+    z += 2.0;
+    yc = y * c;
+    pk = pkm1 * z  -  pkm2 * yc;
+    qk = qkm1 * z  -  qkm2 * yc;
+    if ( qk != 0 )
     {
-      c += 1.0;
-      y += 1.0;
-      z += 2.0;
-      yc = y * c;
-      pk = pkm1 * z  -  pkm2 * yc;
-      qk = qkm1 * z  -  qkm2 * yc;
-      if( qk != 0 )
-        {
-          r = pk/qk;
-          t = fabs( (ans - r)/r );
-          ans = r;
-        }
-      else
-        t = 1.0;
-      pkm2 = pkm1;
-      pkm1 = pk;
-      qkm2 = qkm1;
-      qkm1 = qk;
-      if( fabs(pk) > big )
-        {
-          pkm2 *= biginv;
-          pkm1 *= biginv;
-          qkm2 *= biginv;
-          qkm1 *= biginv;
-        }
+      r = pk/qk;
+      t = fabs( (ans - r)/r );
+      ans = r;
     }
-  while( t > MACHEP );
+    else
+      t = 1.0;
+    pkm2 = pkm1;
+    pkm1 = pk;
+    qkm2 = qkm1;
+    qkm1 = qk;
+    if ( fabs(pk) > big )
+    {
+      pkm2 *= biginv;
+      pkm1 *= biginv;
+      qkm2 *= biginv;
+      qkm1 *= biginv;
+    }
+  }
+  while ( t > MACHEP );
 
   return( ans * ax );
 }
@@ -202,26 +202,26 @@ double igamc( a, x )
  */
 
 double igam( a, x )
-     double a, x;
+double a, x;
 {
   double ans, ax, c, r;
   //char msg[100];
 
-  if( (x <= 0) || ( a <= 0) )
+  if ( (x <= 0) || ( a <= 0) )
     return( 0.0 );
 
-  if( (x > 1.0) && (x > a ) )
+  if ( (x > 1.0) && (x > a ) )
     return( 1.0 - igamc(a,x) );
 
   /* Compute  x**a * exp(-x) / gamma(a)  */
   ax = a * log(x) - x - lgam(a);
-  if( ax < -MAXLOG )
-    {
-      //no warning needed, zero is the correct answer
-      //sprintf(msg,"igam(%f,%f)",a,x);
-      //mtherr( msg, UNDERFLOW );
-      return( 0.0 );
-    }
+  if ( ax < -MAXLOG )
+  {
+    //no warning needed, zero is the correct answer
+    //sprintf(msg,"igam(%f,%f)",a,x);
+    //mtherr( msg, UNDERFLOW );
+    return( 0.0 );
+  }
   ax = exp(ax);
 
   /* power series */
@@ -230,12 +230,12 @@ double igam( a, x )
   ans = 1.0;
 
   do
-    {
-      r += 1.0;
-      c *= x/r;
-      ans += c;
-    }
-  while( c/ans > MACHEP );
+  {
+    r += 1.0;
+    c *= x/r;
+    ans += c;
+  }
+  while ( c/ans > MACHEP );
 
   return( ans * ax/a );
 }

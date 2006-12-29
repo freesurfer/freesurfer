@@ -1,3 +1,31 @@
+/**
+ * @file  signa.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.14 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -36,13 +64,13 @@ read_signa(char *fname, char *h, float scale)
   k=0;
   for (i=0;i<IMGSIZE;i++)
     for (j=0;j<IMGSIZE;j++)
-      {
-        if (buf[k]<min) min=buf[k];
-        if (buf[k]>max) max=buf[k];
-        n = (int)(buf[k]/scale+0.5);
-        im[i][j] = (n<0)?0:(n>255)?255:n;
-        k++;
-      }
+    {
+      if (buf[k]<min) min=buf[k];
+      if (buf[k]>max) max=buf[k];
+      n = (int)(buf[k]/scale+0.5);
+      im[i][j] = (n<0)?0:(n>255)?255:n;
+      k++;
+    }
 
   fclose(fp);
   printf("File %s read\n",fname);
@@ -71,9 +99,9 @@ int ghi( char *header, int offset )
 
   num = 0 ;
   for ( i=0; i < byte_length ; i++ )
-    {
-      num = ( num << 8) | *(header + (2*offset) + i )  ;
-    }
+  {
+    num = ( num << 8) | *(header + (2*offset) + i )  ;
+  }
 
   return(num);
 }
@@ -91,7 +119,10 @@ float ghf( char *header, int offset )
 #define sexponent 0377
 #define smantlen 23
 
-  union { float ff; long ii; char buf[4]; } thing ;
+  union { float ff;
+    long ii;
+    char buf[4];
+  } thing ;
   long k;
   long dg_exp, dg_sign, dg_mantissa;
   long sun_exp;
@@ -109,7 +140,8 @@ float ghf( char *header, int offset )
   dg_mantissa = ( thing.ii  & dmantissa ) << 8;
 
   sun_exp = 4 * ( dg_exp - 64 );
-  while ( (k = dg_mantissa & sign_bit ) == 0 && dg_mantissa != 0) {
+  while ( (k = dg_mantissa & sign_bit ) == 0 && dg_mantissa != 0)
+  {
     sun_exp--;
     dg_mantissa = dg_mantissa << 1;
   }
@@ -122,8 +154,8 @@ float ghf( char *header, int offset )
 
   thing.ii = 0;
   thing.ii = ( dg_sign ) |
-    ( sun_exp << smantlen ) |
-    ( (dg_mantissa >> 9) & smantissa );
+             ( sun_exp << smantlen ) |
+             ( (dg_mantissa >> 9) & smantissa );
 
   return(thing.ff/1000);
 }
@@ -208,15 +240,15 @@ signaRead(char *fname, int read_volume_flag)
 
   odd_only = even_only = 0 ;
   if (getenv("GE_ODD"))
-    {
-      odd_only = 1 ;
-      printf("only using odd # GE Signa files\n") ;
-    }
+  {
+    odd_only = 1 ;
+    printf("only using odd # GE Signa files\n") ;
+  }
   else if (getenv("GE_EVEN"))
-    {
-      even_only = 1 ;
-      printf("only using even # GE Signa files\n") ;
-    }
+  {
+    even_only = 1 ;
+    printf("only using even # GE Signa files\n") ;
+  }
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(0, (ERROR_NOFILE, "is_signa(%s): could not open file",fname)) ;
@@ -228,40 +260,40 @@ signaRead(char *fname, int read_volume_flag)
   get_signa_header_info((char *)&h, &header) ;
 
   if (header.imnr1 < 0)
-    {
-      fprintf(stderr, "WARNING: # of slices=%d in header - assuming 124...\n",
-              header.imnr1) ;
-      header.imnr1 = 124 ;
-    }
+  {
+    fprintf(stderr, "WARNING: # of slices=%d in header - assuming 124...\n",
+            header.imnr1) ;
+    header.imnr1 = 124 ;
+  }
   if (odd_only)
-    {
-      if (ISEVEN(header.imnr0))
-        header.imnr0-- ;
-      if (ISEVEN(header.imnr1))
-        header.imnr1-- ;
-    }
+  {
+    if (ISEVEN(header.imnr0))
+      header.imnr0-- ;
+    if (ISEVEN(header.imnr1))
+      header.imnr1-- ;
+  }
   else if (even_only)
-    {
-      if (ISODD(header.imnr0))
-        header.imnr0++ ;
-      if (ISODD(header.imnr1))
-        header.imnr1++ ;
-    }
+  {
+    if (ISODD(header.imnr0))
+      header.imnr0++ ;
+    if (ISODD(header.imnr1))
+      header.imnr1++ ;
+  }
   if (odd_only || even_only)
     mri = MRIalloc(header.x,
                    header.y,
                    (header.imnr1-header.imnr0)/2+1,
                    MRI_SHORT) ;
   else if (header.num_echoes > 1)
-    {
-      printf("SIGNA multi-echo file detected (%d echoes)\n",
-             header.num_echoes) ;
-      mri = MRIallocSequence(header.x,
-                             header.y,
-                             (header.imnr1-header.imnr0)/2+1,
-                             MRI_SHORT,
-                             header.num_echoes) ;
-    }
+  {
+    printf("SIGNA multi-echo file detected (%d echoes)\n",
+           header.num_echoes) ;
+    mri = MRIallocSequence(header.x,
+                           header.y,
+                           (header.imnr1-header.imnr0)/2+1,
+                           MRI_SHORT,
+                           header.num_echoes) ;
+  }
   else
     mri = MRIalloc(header.x,
                    header.y,
@@ -272,28 +304,33 @@ signaRead(char *fname, int read_volume_flag)
                        "signaRead(%s): could not read %dx%dx%d volume",
                        fname, header.x,header.y, header.imnr1-header.imnr0+1));
 
-  mri->xstart = 1000*header.strtx ; mri->xend = 1000*header.endx ;
-  mri->ystart = 1000*header.strty ; mri->yend = 1000*header.endy ;
-  mri->zstart = 1000*header.strtz ; mri->zend = 1000*header.endz ;
-  mri->tr = header.tr ; mri->ti = header.ti ; mri->te = header.te ;
+  mri->xstart = 1000*header.strtx ;
+  mri->xend = 1000*header.endx ;
+  mri->ystart = 1000*header.strty ;
+  mri->yend = 1000*header.endy ;
+  mri->zstart = 1000*header.strtz ;
+  mri->zend = 1000*header.endz ;
+  mri->tr = header.tr ;
+  mri->ti = header.ti ;
+  mri->te = header.te ;
   mri->location = 1000*header.locatn ;
   mri->fov = 1000*header.fov ;
   mri->xsize = mri->ysize = mri->ps = 1000*header.psiz;
   mri->zsize = mri->thick = 1000*header.thick;
   // no orientation info and thus sets to coronal
   switch (header.plane_type)
-    {
-    case SIGNA_AXIAL:
-      setDirectionCosine(mri, MRI_HORIZONTAL);
-      break ;
-    case SIGNA_SAGITTAL:
-      setDirectionCosine(mri, MRI_SAGITTAL);
-      break ;
-    case SIGNA_CORONAL:
-    default:
-      setDirectionCosine(mri, MRI_CORONAL);
-      break ;
-    }
+  {
+  case SIGNA_AXIAL:
+    setDirectionCosine(mri, MRI_HORIZONTAL);
+    break ;
+  case SIGNA_SAGITTAL:
+    setDirectionCosine(mri, MRI_SAGITTAL);
+    break ;
+  case SIGNA_CORONAL:
+  default:
+    setDirectionCosine(mri, MRI_CORONAL);
+    break ;
+  }
   mri->c_r = header.c_r ;
   mri->c_s = header.c_s ;
   mri->c_a = header.c_a ;
@@ -304,38 +341,38 @@ signaRead(char *fname, int read_volume_flag)
 
   FileNamePath(fname, path) ;
   for (slice = 0, i = header.imnr0 ; i <= header.imnr1 ; i++, slice++)
+  {
+    sprintf(fname, "%s/I.%03d", path, i) ;
+
+    fp = fopen(fname, "rb") ;
+    if (!fp)
+      ErrorReturn(0, (ERROR_NOFILE, "read_signa(%s): could not open file",
+                      fname)) ;
+
+    fseek(fp, HLENGTH, SEEK_SET) ;
+    if (header.num_echoes > 1)
     {
-      sprintf(fname, "%s/I.%03d", path, i) ;
+      int frame ;
 
-      fp = fopen(fname, "rb") ;
-      if (!fp)
-        ErrorReturn(0, (ERROR_NOFILE, "read_signa(%s): could not open file",
-                        fname)) ;
+      frame = (i-header.imnr0) % header.num_echoes ;
 
-      fseek(fp, HLENGTH, SEEK_SET) ;
-      if (header.num_echoes > 1)
-        {
-          int frame ;
-
-          frame = (i-header.imnr0) % header.num_echoes ;
-
-          fread(&MRISseq_vox(mri, 0, 0, slice, frame),
-                sizeof(short),mri->width*mri->height,fp);
-          orderShortBuffer(&MRISseq_vox(mri,0,0,slice,frame),
-                           mri->width*mri->height) ;
-          if (frame == 0)
-            slice-- ;  // same slice, next echo
-        }
-      else
-        {
-          fread(&MRISvox(mri, 0, 0, slice),
-                sizeof(short),mri->width*mri->height,fp);
-          orderShortBuffer(&MRISvox(mri,0,0,slice),mri->width*mri->height) ;
-        }
-      fclose(fp) ;
-      if (odd_only || even_only)
-        i++ ;
+      fread(&MRISseq_vox(mri, 0, 0, slice, frame),
+            sizeof(short),mri->width*mri->height,fp);
+      orderShortBuffer(&MRISseq_vox(mri,0,0,slice,frame),
+                       mri->width*mri->height) ;
+      if (frame == 0)
+        slice-- ;  // same slice, next echo
     }
+    else
+    {
+      fread(&MRISvox(mri, 0, 0, slice),
+            sizeof(short),mri->width*mri->height,fp);
+      orderShortBuffer(&MRISvox(mri,0,0,slice),mri->width*mri->height) ;
+    }
+    fclose(fp) ;
+    if (odd_only || even_only)
+      i++ ;
+  }
 
   /* now figure out what the image #s start and end at */
   return(mri) ;

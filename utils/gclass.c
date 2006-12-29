@@ -1,3 +1,31 @@
+/**
+ * @file  gclass.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:32 $
+ *    $Revision: 1.15 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
  *       FILE NAME:   gclass.c
  *
@@ -51,22 +79,22 @@ GCalloc(int nclasses, int nvars, char *class_names[])
   gc = (GCLASSIFY *)calloc(1, sizeof(GCLASSIFY)) ;
   if (!gc)
     ErrorReturn(NULL,
-              (ERROR_NO_MEMORY,"GCalloc(%d): could not allocate GC",nclasses));
+                (ERROR_NO_MEMORY,"GCalloc(%d): could not allocate GC",nclasses));
 
   gc->nclasses = nclasses ;
   gc->nvars = nvars ;
   gc->classes = (GCLASS *)calloc(nclasses, sizeof(GCLASS)) ;
   if (!gc->classes)
-    ErrorReturn(NULL, 
-                (ERROR_NO_MEMORY, 
+    ErrorReturn(NULL,
+                (ERROR_NO_MEMORY,
                  "GFalloc(%d): could not allocated class table",nclasses));
 
   gc->log_probabilities = (float *)calloc(nclasses, sizeof(float)) ;
   if (!gc->log_probabilities)
   {
     GCfree(&gc) ;
-    ErrorReturn(NULL, 
-                (ERROR_NO_MEMORY, 
+    ErrorReturn(NULL,
+                (ERROR_NO_MEMORY,
                  "GFalloc(%d): could not probability table",nclasses));
   }
 
@@ -78,8 +106,8 @@ GCalloc(int nclasses, int nvars, char *class_names[])
     if (!gcl->m_covariance)
     {
       GCfree(&gc) ;
-      ErrorReturn(NULL, 
-                  (ERROR_NO_MEMORY, 
+      ErrorReturn(NULL,
+                  (ERROR_NO_MEMORY,
                    "GFalloc(%d): could not allocated %d x %d cov. matrix"
                    "for %dth class", nclasses, nvars, nvars, cno)) ;
     }
@@ -87,8 +115,8 @@ GCalloc(int nclasses, int nvars, char *class_names[])
     if (!gcl->m_u)
     {
       GCfree(&gc) ;
-      ErrorReturn(NULL, 
-                  (ERROR_NO_MEMORY, 
+      ErrorReturn(NULL,
+                  (ERROR_NO_MEMORY,
                    "GFalloc(%d): could not allocated %d x 1 mean vector"
                    "for %dth class", nclasses, nvars, cno)) ;
     }
@@ -96,21 +124,21 @@ GCalloc(int nclasses, int nvars, char *class_names[])
     if (!gcl->m_W)
     {
       GCfree(&gc) ;
-      ErrorReturn(NULL, 
-                  (ERROR_NO_MEMORY, 
+      ErrorReturn(NULL,
+                  (ERROR_NO_MEMORY,
                    "GFalloc(%d): could not allocated %d x %d matrix"
                    "for %dth class", nclasses, nvars, nvars, cno)) ;
     }
 #if 1
-    gcl->m_wT = 
+    gcl->m_wT =
       MatrixAlloc(gcl->m_u->cols, gcl->m_covariance->rows, MATRIX_REAL);
     if (!gcl->m_wT)
     {
       GCfree(&gc) ;
-      ErrorReturn(NULL, 
-                  (ERROR_NO_MEMORY, 
+      ErrorReturn(NULL,
+                  (ERROR_NO_MEMORY,
                    "GFalloc(%d): could not allocated %d x %d matrix"
-                   "for %dth class", nclasses, gcl->m_u->cols, 
+                   "for %dth class", nclasses, gcl->m_u->cols,
                    gcl->m_covariance->rows, cno)) ;
     }
 #endif
@@ -119,7 +147,7 @@ GCalloc(int nclasses, int nvars, char *class_names[])
     else
       sprintf(gcl->class_name, "class %d", cno) ;
   }
-  
+
   return(gc) ;
 }
 /*-----------------------------------------------------
@@ -174,17 +202,17 @@ GCfree(GCLASSIFY **pgc)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "GCfree: NULL pointer")) ;
 
   if (gc->classes) for (cno = 0 ; cno < gc->nclasses ; cno++)
-  {
-    gcl = &gc->classes[cno] ;
-    if (gcl->m_covariance)
-      MatrixFree(&gcl->m_covariance) ;
-    if (gcl->m_u)
-      MatrixFree(&gcl->m_u) ;
-    if (gcl->m_W)
-      MatrixFree(&gcl->m_W) ;
-    if (gcl->m_wT)
-      MatrixFree(&gcl->m_wT) ;
-  }
+    {
+      gcl = &gc->classes[cno] ;
+      if (gcl->m_covariance)
+        MatrixFree(&gcl->m_covariance) ;
+      if (gcl->m_u)
+        MatrixFree(&gcl->m_u) ;
+      if (gcl->m_W)
+        MatrixFree(&gcl->m_W) ;
+      if (gcl->m_wT)
+        MatrixFree(&gcl->m_wT) ;
+    }
 
   if (gc->log_probabilities)
     free(gc->log_probabilities) ;
@@ -211,9 +239,9 @@ GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
   if (m_x->cols != 1 || m_x->rows != gc->nvars)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM, "GCclassify: inappropriately sized m_x")) ;
-/*
-   see Duda and Hart page 30
-*/
+  /*
+     see Duda and Hart page 30
+  */
   if (m_xT && ((m_xT->rows != m_x->cols) || (m_xT->cols != m_x->rows)))
   {
     if (m_xT)
@@ -234,7 +262,7 @@ GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
     gcl = &gc->classes[cno] ;
 
     /* check to see if covariance matrix was ill-conditioned */
-    if (FZERO(gcl->w0) || gcl->nobs <= gc->nvars+1)  
+    if (FZERO(gcl->w0) || gcl->nobs <= gc->nvars+1)
     {
       gc->log_probabilities[cno] = -10000.0f ;
       continue ;
@@ -280,7 +308,7 @@ int
 GCasciiWriteInto(FILE *fp, GCLASSIFY *gc)
 {
   int classno ;
-  
+
   fprintf(fp, "%d %d %d\n", gc->nclasses, gc->nvars, gc->type) ;
   for (classno = 0 ; classno < gc->nclasses ; classno++)
     GCasciiWriteClassInto(fp, &gc->classes[classno]) ;
@@ -300,7 +328,7 @@ GCLASSIFY *
 GCasciiReadFrom(FILE *fp, GCLASSIFY *gc)
 {
   int        classno, nclasses, nvars, type ;
-  
+
   if (fscanf(fp, "%d %d %d\n", &nclasses, &nvars, &type) != 3)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "GCasciiReadFrom: could not scan parms")) ;
@@ -314,8 +342,8 @@ GCasciiReadFrom(FILE *fp, GCLASSIFY *gc)
   }
   else
     if ((gc->nclasses != nclasses) || (gc->nvars != nvars))
-        ErrorReturn(NULL,
-                  (ERROR_BADPARM, 
+      ErrorReturn(NULL,
+                  (ERROR_BADPARM,
                    "GCasciiReadFrom: specified classifier is of wrong form"));
 
   for (classno = 0 ; classno < gc->nclasses ; classno++)
@@ -331,7 +359,7 @@ GCasciiReadFrom(FILE *fp, GCLASSIFY *gc)
         Description
           write a single class to disk in ascii format
 ------------------------------------------------------*/
-int 
+int
 GCasciiWriteClassInto(FILE *fp, GCLASS *gcl)
 {
   fprintf(fp, "%d %f %d\n", gcl->classno, gcl->w0, gcl->nobs) ;
@@ -357,12 +385,12 @@ GCasciiReadClassFrom(FILE *fp, GCLASS *gcl)
 
   if (fscanf(fp, "%d %f %d\n", &gcl->classno, &gcl->w0, &gcl->nobs) != 3)
     ErrorReturn(NULL,
-                (ERROR_BADFILE, 
+                (ERROR_BADFILE,
                  "GCasciiReadClassFrom: could not scan parms from file")) ;
 
   if ((cp = fgetl(class_name, CLASS_NAME_LEN-1, fp)) == NULL)
     ErrorReturn(NULL,
-                (ERROR_BADFILE, 
+                (ERROR_BADFILE,
                  "GCasciiReadClassFrom: could not scan class name from file"));
   strcpy(gcl->class_name, cp) ;
 
@@ -419,21 +447,21 @@ GCinit(GCLASSIFY *gc, int class)
   /* log of prior can be added to gcl->w0 */
 
 #if 0
-fprintf(stdout, "\nclass %d:\n", class) ;
-MatrixPrint(stdout, gcl->m_covariance) ;
-MatrixPrint(stdout, m_sigma_inverse) ;
-fprintf(stdout, "means: \n") ;
-MatrixPrint(stdout, gcl->m_u) ;
-fprintf(stdout, "det = %2.3f\n", det) ;
-fprintf(stdout, "Wi = \n") ;
-MatrixPrint(stdout, gcl->m_W) ;
-fprintf(stdout, "w = \n") ;
-MatrixPrint(stdout, gcl->m_wT) ;
-fprintf(stdout, "m_tmp:\n") ;
-MatrixPrint(stdout, m_tmp) ;
-fprintf(stdout, "m_tmp2:\n") ;
-MatrixPrint(stdout, m_tmp2) ;
-fprintf(stdout, "w0: %2.3f\n", gcl->w0) ;
+  fprintf(stdout, "\nclass %d:\n", class) ;
+  MatrixPrint(stdout, gcl->m_covariance) ;
+  MatrixPrint(stdout, m_sigma_inverse) ;
+  fprintf(stdout, "means: \n") ;
+  MatrixPrint(stdout, gcl->m_u) ;
+  fprintf(stdout, "det = %2.3f\n", det) ;
+  fprintf(stdout, "Wi = \n") ;
+  MatrixPrint(stdout, gcl->m_W) ;
+  fprintf(stdout, "w = \n") ;
+  MatrixPrint(stdout, gcl->m_wT) ;
+  fprintf(stdout, "m_tmp:\n") ;
+  MatrixPrint(stdout, m_tmp) ;
+  fprintf(stdout, "m_tmp2:\n") ;
+  MatrixPrint(stdout, m_tmp2) ;
+  fprintf(stdout, "w0: %2.3f\n", gcl->w0) ;
 #endif
 
   MatrixFree(&m_sigma_inverse) ;

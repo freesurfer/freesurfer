@@ -1,3 +1,31 @@
+/**
+ * @file  utils.c
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2006/12/29 01:49:40 $
+ *    $Revision: 1.58 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
 /*
   @(#)utils.c  1.12
   10/16/95
@@ -12,9 +40,9 @@
   Description: miscellaneous utility functions
 
   // Warning: Do not edit the following three lines.  CVS maintains them.
-  // Revision Author: $Author: greve $
-  // Revision Date  : $Date: 2006/10/19 17:19:10 $
-  // Revision       : $Revision: 1.57 $
+  // Revision Author: $Author: nicks $
+  // Revision Date  : $Date: 2006/12/29 01:49:40 $
+  // Revision       : $Revision: 1.58 $
 
   ------------------------------------------------------------------------*/
 
@@ -99,11 +127,11 @@ randomNumber(double low, double hi)
   double val, range ;
 
   if (low > hi)
-    {
-      val = low ;
-      low = hi ;
-      hi = val ;
-    }
+  {
+    val = low ;
+    low = hi ;
+    hi = val ;
+  }
 
   if (idum == 0L)     /* change seed from run to run */
     idum = -1L * (long)(abs((int)time(NULL))) ;
@@ -238,11 +266,11 @@ fComplementCode(double *pdIn, double *pdOut, int iLen)
 
   iFullLen = iLen * 2 ;
   for (i = 0 ; i < iLen ; i++, pdOut++)
-    {
-      d = *pdIn++ ;
-      /*    *pdOut = d ;*/
-      pdOut[iLen] = 1.0 - d ;
-    }
+  {
+    d = *pdIn++ ;
+    /*    *pdOut = d ;*/
+    pdOut[iLen] = 1.0 - d ;
+  }
 }
 
 #ifdef Darwin
@@ -289,15 +317,16 @@ fgetl(char *s, int n, FILE *fp)
   int  len ;
 
   do
-    {
-      cp = fgets(s, n, fp) ;
-      if (!cp)
-        return(NULL) ;
+  {
+    cp = fgets(s, n, fp) ;
+    if (!cp)
+      return(NULL) ;
 
-      while (isspace((int)*cp))
-        cp++ ;
+    while (isspace((int)*cp))
+      cp++ ;
 
-    } while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
+  }
+  while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
 
   for (cp2 = cp ; *cp2 ; cp2++)
     if (*cp2 == '#')
@@ -329,19 +358,20 @@ IntSqrt(int n)
   approx = n/2; /* 1st approx */
 
   do
-    {
-      /*
-       * f(x) = x**2 - n
-       *
-       * nextx = x - f(x)/f'(x)
-       *   = x - (x**2-n)/(2*x) x**2 may overflow
-       *   = x - (x - n/x)/2  but this will *not*
-       */
+  {
+    /*
+     * f(x) = x**2 - n
+     *
+     * nextx = x - f(x)/f'(x)
+     *   = x - (x**2-n)/(2*x) x**2 may overflow
+     *   = x - (x - n/x)/2  but this will *not*
+     */
 
-      prev = approx;
-      approx = prev - (prev - n / prev)/2;
+    prev = approx;
+    approx = prev - (prev - n / prev)/2;
 
-    } while (approx != prev);
+  }
+  while (approx != prev);
 
   return(approx) ;
 }
@@ -400,12 +430,12 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
   char *cp_src, *cp_dst ;
 
   for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
-    {
-      if (*cp_src == csrc)
-        *cp_dst = cdst ;
-      else
-        *cp_dst = *cp_src ;
-    }
+  {
+    if (*cp_src == csrc)
+      *cp_dst = cdst ;
+    else
+      *cp_dst = *cp_src ;
+  }
 
   return(dst) ;
 }
@@ -427,17 +457,17 @@ FileNameOnly(char *full_name, char *fname)
   slash = strrchr(full_name, '/') ;
 
   if (fname)
-    {
-      if (!slash)
-        strcpy(fname, full_name) ;
-      else
-        strcpy(fname, slash+1) ;
-    }
+  {
+    if (!slash)
+      strcpy(fname, full_name) ;
+    else
+      strcpy(fname, slash+1) ;
+  }
   else   /* process it in place */
-    {
-      fname = full_name ;
-      *slash = 0 ;
-    }
+  {
+    fname = full_name ;
+    *slash = 0 ;
+  }
 
   number = strrchr(fname, '#') ;
   if (number)
@@ -534,18 +564,18 @@ FileType(char *fname)
     dot = strrchr(buf, '.') ;
 
   if (dot)
-    {
-      dot++ ;
-      StrUpper(buf) ;
-      if (!strcmp(dot, "MAT"))
-        return(MATLAB_FILE) ;
-      else if (!strcmp(dot, "HIPL") ||
-               !strcmp(dot, "HIPS") ||
-               !strcmp(dot,"HIP"))
-        return(HIPS_FILE) ;
-      else if (!strcmp(dot, "LST"))
-        return(LIST_FILE) ;
-    }
+  {
+    dot++ ;
+    StrUpper(buf) ;
+    if (!strcmp(dot, "MAT"))
+      return(MATLAB_FILE) ;
+    else if (!strcmp(dot, "HIPL") ||
+             !strcmp(dot, "HIPS") ||
+             !strcmp(dot,"HIP"))
+      return(HIPS_FILE) ;
+    else if (!strcmp(dot, "LST"))
+      return(LIST_FILE) ;
+  }
   return(UNKNOWN_FILE) ;
 }
 
@@ -594,37 +624,37 @@ FileNumberOfEntries(char *fname)
 
   num = FileNumber(fname) ;
   if (num == -1)
+  {
+    type = FileType(fname) ;
+    switch (type)
     {
-      type = FileType(fname) ;
-      switch (type)
-        {
-        case LIST_FILE:
-          fp = fopen(FileName(fname), "rb") ;
-          if (!fp)
-            ErrorReturn(-1, (ERROR_NO_FILE,
-                             "FileNumberOfEntries: could not open %s",
-                             FileName(fname))) ;
-          cp = fgetl(line, 199, fp) ;
-          nentries = 0 ;
-          while (cp)
-            {
-              sscanf(cp, "%s", buf) ;
-              num = FileNumberOfEntries(buf) ;
-              nentries += num ;
-              cp = fgetl(line, 199, fp) ;
-            }
-          fclose(fp) ;
+    case LIST_FILE:
+      fp = fopen(FileName(fname), "rb") ;
+      if (!fp)
+        ErrorReturn(-1, (ERROR_NO_FILE,
+                         "FileNumberOfEntries: could not open %s",
+                         FileName(fname))) ;
+      cp = fgetl(line, 199, fp) ;
+      nentries = 0 ;
+      while (cp)
+      {
+        sscanf(cp, "%s", buf) ;
+        num = FileNumberOfEntries(buf) ;
+        nentries += num ;
+        cp = fgetl(line, 199, fp) ;
+      }
+      fclose(fp) ;
 
-          break ;
-        case HIPS_FILE:
-          nentries = ImageNumFrames(fname) ;
-          break ;
-        case MATLAB_FILE:
-        default:
-          nentries = 1 ;
-          break ;
-        }
+      break ;
+    case HIPS_FILE:
+      nentries = ImageNumFrames(fname) ;
+      break ;
+    case MATLAB_FILE:
+    default:
+      nentries = 1 ;
+      break ;
     }
+  }
   else
     nentries = 1 ;
 
@@ -681,12 +711,13 @@ FileTmpName(char *basename)
 
   i = 0 ;
   do
-    {
-      sprintf(fname, "%s%d", basename, i++) ;
-      fp = fopen(fname, "r") ;
-      if (fp)
-        fclose(fp) ;
-    } while (fp) ;
+  {
+    sprintf(fname, "%s%d", basename, i++) ;
+    fp = fopen(fname, "r") ;
+    if (fp)
+      fclose(fp) ;
+  }
+  while (fp) ;
 
   return(fname) ;
 }
@@ -782,26 +813,26 @@ FileNameAbsolute(char *fname, char *absFname)
   int  len ;
 
   if (*fname == '/')
-    {
-      if (absFname != fname)
-        strcpy(absFname, fname) ;
-    }
+  {
+    if (absFname != fname)
+      strcpy(absFname, fname) ;
+  }
   else   /* not already absolute */
-    {
-      len = strlen(fname) ;
-      if (fname[len-1] == '/')
-        fname[len-1] = 0 ;
+  {
+    len = strlen(fname) ;
+    if (fname[len-1] == '/')
+      fname[len-1] = 0 ;
 #ifndef Linux
-      getcwd(pathname,MAXPATHLEN-1) ;
+    getcwd(pathname,MAXPATHLEN-1) ;
 #else
 #if 0
-      getcwd(pathname, MAXPATHLEN-1) ;
+    getcwd(pathname, MAXPATHLEN-1) ;
 #else
-      sprintf(pathname, ".") ;
+    sprintf(pathname, ".") ;
 #endif
 #endif
-      sprintf(absFname, "%s/%s", pathname, fname) ;
-    }
+    sprintf(absFname, "%s/%s", pathname, fname) ;
+  }
   return(absFname) ;
 }
 
@@ -828,7 +859,7 @@ FileNamePath(char *fname, char *pathName)
     getcwd(pathName, MAXPATHLEN-1)  ;    /* no path at all, must be cwd */
 #else
 #if 0
-  getcwd(pathName, MAXPATHLEN-1) ;
+    getcwd(pathName, MAXPATHLEN-1) ;
 #else
   sprintf(pathName, ".") ;
 #endif
@@ -851,11 +882,11 @@ StrSkipNumber(char *str)
   while (*str && isdigit((int)*str))
     str++ ;
   if (*str == '.')  /* check for floating point # */
-    {
+  {
+    str++ ;
+    while (*str && isdigit((int)*str))
       str++ ;
-      while (*str && isdigit((int)*str))
-        str++ ;
-    }
+  }
   while (*str && isspace((int)*str))
     str++ ;
 
@@ -900,18 +931,20 @@ char *AppendString(char *src, char *app)
   int sz1 = 0, sz2 = 0;
   char *tmp;
 
-  if(!app) return src;
+  if (!app) return src;
   sz2 = strlen(app);
 
-  if(src) sz1 = strlen(src);
-  else{
+  if (src) sz1 = strlen(src);
+  else
+  {
     src = (char *) calloc(sizeof(char),(sz2+1));
     memcpy(src,app,sz2);
     return(src);
   }
 
   tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2+1));
-  if(!tmp){
+  if (!tmp)
+  {
     fprintf(stderr,"ERROR: AppendString: \n");
     fprintf(stderr,"Could not realloc\n");
     fprintf(stderr,"%s:%d\n",__FILE__,__LINE__);
@@ -943,10 +976,14 @@ union ieee754_float
   /* This is the IEEE 754 single-precision format.  */
   struct
   {
-    unsigned int negative:1;
-    unsigned int exponent:8;
-    unsigned int mantissa:23;
-  } ieee;
+unsigned int negative:
+    1;
+unsigned int exponent:
+    8;
+unsigned int mantissa:
+    23;
+  }
+  ieee;
 };
 #else // little endian
 union ieee754_float
@@ -956,10 +993,14 @@ union ieee754_float
   /* This is the IEEE 754 single-precision format.  */
   struct
   {
-    unsigned int mantissa:23;
-    unsigned int exponent:8;
-    unsigned int negative:1;
-  } ieee;
+unsigned int mantissa:
+    23;
+unsigned int exponent:
+    8;
+unsigned int negative:
+    1;
+  }
+  ieee;
 };
 #endif
 
@@ -973,10 +1014,10 @@ int devIsinf(float value)
   e = v.ieee.exponent;
   f = v.ieee.mantissa;
 
-  if(e == 255 && s == 0 && f == 0)
+  if (e == 255 && s == 0 && f == 0)
     return(1);
 
-  if(e == 255 && s == 1 && f == 0)
+  if (e == 255 && s == 1 && f == 0)
     return(-1);
 
   return(0);
@@ -993,7 +1034,7 @@ int devIsnan(float value)
   e = v.ieee.exponent;
   f = v.ieee.mantissa;
 
-  if(e == 255 && f != 0)
+  if (e == 255 && f != 0)
     return(1);
 
   return(0);
@@ -1002,7 +1043,7 @@ int devIsnan(float value)
 /* non-zero if neither infinite nor NaN, 0 otherwise */
 int devFinite(float value)
 {
-  if(!devIsinf(value) && !devIsnan(value))
+  if (!devIsinf(value) && !devIsnan(value))
     return(1);
 
   return(0);
@@ -1046,10 +1087,10 @@ FileNameFromWildcard(char *inStr, char *outStr)
     strcpy(outStr, inStr) ;
   cp = strchr(inStr, '*') ;
   if (NULL != cp)
-    {
-      if (glob(inStr, 0, NULL, &gbuf) == 0 && gbuf.gl_pathc > 0)
-        strcpy(outStr, gbuf.gl_pathv[0]) ;
-    }
+  {
+    if (glob(inStr, 0, NULL, &gbuf) == 0 && gbuf.gl_pathc > 0)
+      strcpy(outStr, gbuf.gl_pathv[0]) ;
+  }
 
   return(outStr) ;
 }
@@ -1076,35 +1117,35 @@ int getMemoryUsed()
   errno = 0;
   fp = popen(buf, "r");
   if (fp)
+  {
+    numassigned = fscanf(fp, "%d", &memused);
+    if (numassigned == 1)
     {
-      numassigned = fscanf(fp, "%d", &memused);
-      if (numassigned == 1)
-        {
-          pclose(fp);
-          return memused;
-        }
-      else
-        {
-          pclose(fp);
-          errno = 0;
-          fprintf(stderr, "getting memoryused failed");
-          return -1;
-        }
+      pclose(fp);
+      return memused;
     }
-  if (errno)
+    else
     {
+      pclose(fp);
       errno = 0;
       fprintf(stderr, "getting memoryused failed");
       return -1;
     }
+  }
+  if (errno)
+  {
+    errno = 0;
+    fprintf(stderr, "getting memoryused failed");
+    return -1;
+  }
   return -1;  // this should never happen
 #else
   static int used = 0;
   if (!used)
-    {
-      fprintf(stderr, "getMemoryUsed works only under Linux\n");
-      used = 1;
-    }
+  {
+    fprintf(stderr, "getMemoryUsed works only under Linux\n");
+    used = 1;
+  }
   return -1;
 #endif
 }
@@ -1135,29 +1176,33 @@ int ItemsInString(char *str)
   int items, nthchar, len;
 
   len = strlen(str);
-  if(len == 0) return(-1);
+  if (len == 0) return(-1);
 
   items = 0;
   nthchar = 0;
 
   // Scroll through any white space at the beginning
-  while(isspace(str[nthchar])){
+  while (isspace(str[nthchar]))
+  {
     nthchar ++;
-    if(nthchar == len) return(0); // only whitespace
+    if (nthchar == len) return(0); // only whitespace
   }
 
   // Scroll through the rest of the string
-  while(1){
+  while (1)
+  {
     items++;
-    while(!isspace(str[nthchar])){
+    while (!isspace(str[nthchar]))
+    {
       // scroll thru chars in the item = nonwhitespace
       nthchar ++;
-      if(nthchar == len) return(items);
+      if (nthchar == len) return(items);
     }
-    while(isspace(str[nthchar])){
+    while (isspace(str[nthchar]))
+    {
       // scroll thru whitespace after the item
       nthchar ++;
-      if(nthchar == len)  return(items);
+      if (nthchar == len)  return(items);
     }
   }
 
