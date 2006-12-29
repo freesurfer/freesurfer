@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2006/12/29 20:07:44 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,12 +33,12 @@
 // originally written by Andre van der Kouwe
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:35 $
-// Revision       : $Revision: 1.19 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/12/29 20:07:44 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.19 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.20 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -338,9 +338,9 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
         for (k=depth-1;k>=0;k--)
         {
           if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
-            if ((int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==width-1)?1:0),0)==1||
+            if ((int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0)==1||
                 (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0)==1||
-                (int)MRIgetVoxVal(mri_dst,i,j+1-((j==width-1)?1:0),k,0)==1)
+                (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0)==1) 
             {
               MRIsetVoxVal(mri_dst,i,j,k,0,1);
               newfilled++;

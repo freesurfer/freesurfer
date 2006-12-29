@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.501 $
+ *    $Author: fischl $
+ *    $Date: 2006/12/29 20:07:44 $
+ *    $Revision: 1.502 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -605,7 +605,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.501 2006/12/29 01:49:36 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.502 2006/12/29 20:07:44 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -57811,8 +57811,11 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
     else if ((parms->t > min_neg_iter+50) && parms->t > last_expand+25)
     {
-      parms->max_nbrs++ ;
-      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+      if (parms->max_nbrs < 1)
+      {
+        parms->max_nbrs++ ;
+        printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+      }
       //      parms->dt /= 2 ;
       last_expand = parms->t ;
       same = 0 ;
@@ -57824,7 +57827,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
     if (old_neg == negative)
     {
-      if (same++ > 25)
+      if (same++ > 25 && parms->max_nbrs < 1)
       {
         parms->max_nbrs++ ;
         printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
