@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/19 21:10:50 $
-// Revision       : $Revision: 1.499 $
+// Revision Date  : $Date: 2006/12/29 00:17:24 $
+// Revision       : $Revision: 1.500 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -582,7 +582,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.499 2006/12/19 21:10:50 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.500 2006/12/29 00:17:24 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2794,88 +2794,88 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 
 #if 0
   if (mris->status == MRIS_PLANE)
-    {
-      mrisComputeBoundaryNormals(mris);
-      mrisSmoothBoundaryNormals(mris,10);
-    }
+  {
+    mrisComputeBoundaryNormals(mris);
+    mrisSmoothBoundaryNormals(mris,10);
+  }
 #endif
   for (k=0;k<mris->nfaces;k++) if (mris->faces[k].ripflag)
-    {
-      f = &mris->faces[k];
-      for (n=0;n<VERTICES_PER_FACE;n++)
-        mris->vertices[f->v[n]].border = TRUE;
-    }
+  {
+    f = &mris->faces[k];
+    for (n=0;n<VERTICES_PER_FACE;n++)
+      mris->vertices[f->v[n]].border = TRUE;
+  }
 
 
   for (k=0;k<mris->nvertices;k++) if (!mris->vertices[k].ripflag)
+  {
+    v = &mris->vertices[k];
+    snorm[0]=snorm[1]=snorm[2]=0;
+    v->area = 0;
+
+    for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
     {
-      v = &mris->vertices[k];
-      snorm[0]=snorm[1]=snorm[2]=0;
-      v->area = 0;
-
-      for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
-        {
-          num++ ;
-          mrisNormalFace(mris, v->f[n] , (int)v->n[n] , norm);
-          snorm[0] += norm[0];
-          snorm[1] += norm[1];
-          snorm[2] += norm[2];
+      num++ ;
+      mrisNormalFace(mris, v->f[n] , (int)v->n[n] , norm);
+      snorm[0] += norm[0];
+      snorm[1] += norm[1];
+      snorm[2] += norm[2];
 
 
 
-          /* Note: overestimates area by *2 !! */
-          v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
-        }
-      if (!num)
-        continue ;
-      mrisNormalize(snorm);
-
-      if(fix_vertex_area) v->area /= 3.0 ;
-      else                v->area /= 2.0 ;
-
-      if (v->origarea<0)        /* has never been set */
-        v->origarea = v->area;
-
-      len = sqrt(snorm[0]*snorm[0] + snorm[1]*snorm[1] + snorm[2]*snorm[2]) ;
-      if (!FZERO(len))
-        {
-          v->nx = snorm[0];
-          v->ny = snorm[1];
-          v->nz = snorm[2];
-          i = 0 ;
-        }
-      else
-        {
-          if (i++ > 5)
-            continue ;
-
-          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-            fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-
-          if(mris->status == MRIS_SPHERICAL_PATCH ||
-             mris->status == MRIS_PARAMETERIZED_SPHERE ||
-             mris->status == MRIS_SPHERE)
-            fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-
-          v->x += (float)randomNumber(-RAN, RAN) ;
-          v->y += (float)randomNumber(-RAN, RAN) ;
-          /* normal is always (0,0,+-1) anyway */
-          if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT)
-            {
-              v->nx = v->ny = 0.0f ; v->nz = 1.0f ;
-              continue ;
-            }
-
-          v->z += (float)randomNumber(-RAN, RAN) ;
-          for (n=0;n<v->vnum;n++) /*if (!mris->faces[v->f[n]].ripflag)*/
-            {
-              mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
-              mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
-              mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN) ;
-            }
-          k-- ;   /* recalculate the normal for this vertex */
-        }
+      /* Note: overestimates area by *2 !! */
+      v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
     }
+    if (!num)
+      continue ;
+    mrisNormalize(snorm);
+
+    if(fix_vertex_area) v->area /= 3.0 ;
+    else                v->area /= 2.0 ;
+
+    if (v->origarea<0)        /* has never been set */
+      v->origarea = v->area;
+
+    len = sqrt(snorm[0]*snorm[0] + snorm[1]*snorm[1] + snorm[2]*snorm[2]) ;
+    if (!FZERO(len))
+    {
+      v->nx = snorm[0];
+      v->ny = snorm[1];
+      v->nz = snorm[2];
+      i = 0 ;
+    }
+    else
+    {
+      if (i++ > 5)
+        continue ;
+
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
+
+      if(mris->status == MRIS_SPHERICAL_PATCH ||
+         mris->status == MRIS_PARAMETERIZED_SPHERE ||
+         mris->status == MRIS_SPHERE)
+        fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
+
+      v->x += (float)randomNumber(-RAN, RAN) ;
+      v->y += (float)randomNumber(-RAN, RAN) ;
+      /* normal is always (0,0,+-1) anyway */
+      if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT)
+      {
+        v->nx = v->ny = 0.0f ; v->nz = 1.0f ;
+        continue ;
+      }
+
+      v->z += (float)randomNumber(-RAN, RAN) ;
+      for (n=0;n<v->vnum;n++) /*if (!mris->faces[v->f[n]].ripflag)*/
+      {
+        mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
+        mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
+        mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN) ;
+      }
+      k-- ;   /* recalculate the normal for this vertex */
+    }
+  }
 #if 0
   mris->vertices[0].nx = mris->vertices[0].ny = 0 ;
   mris->vertices[0].nz = mris->vertices[0].nz / fabs(mris->vertices[0].nz) ;
@@ -3996,46 +3996,46 @@ MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
   mris_dst->radius = r ;
 
   for (total_dist = vno = 0 ; vno < mris_dst->nvertices ; vno++)
+  {
+    v = &mris_dst->vertices[vno];
+    if (v->ripflag)  /* shouldn't happen */
+      continue ;
+    if (vno == 118009)
+    { DiagBreak() ; }
+    x = (double)v->x;
+    y = (double)v->y;
+    z = (double)v->z;
+
+    x2 = x*x ; y2 = y*y ; z2 = z*z ;
+    dist = sqrt(x2+y2+z2) ;
+    if (FZERO(dist))
+      d = 0 ;
+    else
+      d = 1 - r / dist ;
+    dx = d*x ;
+    dy = d*y;
+    dz = d*z;
+    v->x = x-dx ;
+    v->y = y-dy;
+    v->z = z-dz;
+
+    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+      DiagBreak() ;
+
+    /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
     {
-      v = &mris_dst->vertices[vno];
-      if (v->ripflag)  /* shouldn't happen */
-        continue ;
-      if (vno == 118009)
-        { DiagBreak() ; }
-      x = (double)v->x;
-      y = (double)v->y;
-      z = (double)v->z;
-
-      x2 = x*x ; y2 = y*y ; z2 = z*z ;
-      dist = sqrt(x2+y2+z2) ;
-      if (FZERO(dist))
-        d = 0 ;
-      else
-        d = 1 - r / dist ;
-      dx = d*x ;
-      dy = d*y;
-      dz = d*z;
-      v->x = x-dx ;
-      v->y = y-dy;
-      v->z = z-dz;
-
-      if (!finite(v->x) || !finite(v->y) || !finite(v->z))
-        DiagBreak() ;
-
-      /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
-      {
-        dist = sqrt((double)(dx*dx+dy*dy+dz*dz));
-        total_dist += dist;
-      }
+      dist = sqrt((double)(dx*dx+dy*dy+dz*dz));
+      total_dist += dist;
+    }
 #if 1
-      x = (double)v->x;
-      y = (double)v->y;
-      z = (double)v->z;
-      x2 = x*x ; y2 = y*y ; z2 = z*z ;
-      dist = sqrt(x2+y2+z2) ;
+    x = (double)v->x;
+    y = (double)v->y;
+    z = (double)v->z;
+    x2 = x*x ; y2 = y*y ; z2 = z*z ;
+    dist = sqrt(x2+y2+z2) ;
 #endif
 
-    }
+  }
   if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
     fprintf(stdout,  "sphere_project: total dist = %f\n",total_dist);
   MRISupdateEllipsoidSurface(mris_dst) ;
@@ -7103,50 +7103,57 @@ static int
 mrisOrientEllipsoid(MRI_SURFACE *mris)
 {
   int     fno, ano ;
-  VERTEX  *v ;
+  VERTEX  *v0, *v1, *v2 ;
   FACE    *face ;
-  float   dot ;
+  float   dot, xc, yc, zc ;
 
   for (fno = 0 ; fno < mris->nfaces ; fno++)
-    {
-      face = &mris->faces[fno] ;
-      if (face->ripflag)
-        continue ;
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    if (fno == Gdiag_no)
+      DiagBreak();
 
-      /* now give the area an orientation: if the unit normal is pointing
-         inwards on the ellipsoid then the area should be negative.
-      */
-      v = &mris->vertices[face->v[0]] ;
-      dot = v->x * face->nx + v->y * face->ny + v->z * face->nz;
-      if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
-        {
-          face->area *= -1.0f ;
-          face->nx *= -1.0f; face->ny *= -1.0f; face->nz *= -1.0f;
-          for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-            face->angle[ano] *= -1.0f ;
-        }
+    /* now give the area an orientation: if the unit normal is pointing
+       inwards on the ellipsoid then the area should be negative.
+    */
+    v0 = &mris->vertices[face->v[0]] ;
+    v1 = &mris->vertices[face->v[1]] ;
+    v2 = &mris->vertices[face->v[2]] ;
+    xc = (v0->x+v1->x+v2->x)/3 ;
+    yc = (v0->y+v1->y+v2->y)/3 ;
+    zc = (v0->z+v1->z+v2->z)/3 ;
+    dot = xc * face->nx + yc * face->ny + zc * face->nz;
+    if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
+    {
+      face->area *= -1.0f ;
+      face->nx *= -1.0f; face->ny *= -1.0f; face->nz *= -1.0f;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+        face->angle[ano] *= -1.0f ;
     }
+  }
 
   /* now recompute the total surface area, ignoring negative areas */
 #if 0
   if ((mris->status != MRIS_PARAMETERIZED_SPHERE) || (!mris->total_area))
 #endif
+  {
+    mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f ;
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
-      mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f ;
-      for (fno = 0 ; fno < mris->nfaces ; fno++)
-        {
-          face = &mris->faces[fno] ;
-          if (face->ripflag)
-            continue ;
-          if (face->area >= 0.0f)
-            mris->total_area += face->area ;
-          else
-            {
-              mris->neg_area += -face->area ;
-              mris->neg_orig_area += face->orig_area ;
-            }
-        }
+      face = &mris->faces[fno] ;
+      if (face->ripflag)
+        continue ;
+      if (face->area >= 0.0f)
+        mris->total_area += face->area ;
+      else
+      {
+        mris->neg_area += -face->area ;
+        mris->neg_orig_area += face->orig_area ;
+      }
     }
+  }
 
   return(NO_ERROR) ;
 }
@@ -53536,7 +53543,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int    negative, old_neg, same = 0, min_neg, min_neg_iter, last_expand ;
 
-  parms->dt = .1 ;
+  parms->dt = .99 ;
   parms->max_nbrs = 0 ;
   min_neg = negative = MRIScountNegativeTriangles(mris) ; min_neg_iter = 0 ;
   last_expand = 0 ;
@@ -53560,7 +53567,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (parms->dt > 0.01)
         parms->dt *= 0.95 ;
     }
-    else if ((parms->t > min_neg_iter+100) && parms->t > last_expand+50)
+    else if ((parms->t > min_neg_iter+50) && parms->t > last_expand+25)
     {
       parms->max_nbrs++ ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
@@ -53586,6 +53593,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
     else
       same = 0 ;
+#if 0
     if (parms->t == parms->niterations/4)
     {
       parms->max_nbrs++ ;
@@ -53608,6 +53616,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       parms->max_nbrs++ ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
     }
+#endif
 
     if (parms->t > parms->niterations)
       break ;
@@ -53624,7 +53633,7 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   int      vno, n, m, fno ;
   VERTEX   *v, *vn ;
   FACE     *face ;
-  double   dx, dy, dz, x, y, z ;
+  double   dx, dy, dz, x, y, z, max_dx, max_dy, max_dz ;
 
   MRIScomputeMetricProperties(mris) ;
   MRISclearMarks(mris) ;
@@ -53642,6 +53651,7 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
 
+  max_dx = max_dy = max_dz = 0 ;
   for (m = 0 ; m < parms->max_nbrs ; m++)
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -53699,14 +53709,24 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
 
     v->dx = dx ; v->dy = dy ; v->dz = dz ;
+    if (fabs(dx) > fabs(max_dx))
+      max_dx = dx ;
+    if (fabs(dy) > fabs(max_dy))
+      max_dy = dy ;
+    if (fabs(dz) > fabs(max_dz))
+      max_dz = dz ;
+
     if (vno == Gdiag_no)
       fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n",
               vno, dx, dy, dz) ;
   }
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("max delta = (%2.4f, %2.4f, %2.4f) [%2.3f]\n", 
+           max_dx, max_dy, max_dz, sqrt(SQR(max_dx)+SQR(max_dy)+SQR(max_dz))) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag || v->area > 0)
+    if (v->ripflag || v->marked == 0)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
