@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2006/12/30 16:38:32 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1275,9 +1275,9 @@ MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
 
   if (ncalls++ >= 0)
   {
+#if 0
     checkFace(mht, mris, 144) ;
     checkFace(mht, mris, 185) ;
-#if 0
     checkFace(mht, mris, 16960) ;
     checkFace(mht, mris, 18168) ;
     checkFace(mht, mris, 39705) ;
@@ -1583,6 +1583,22 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
         {
           if (f1->v[n1] == f2->v[n2])
             nbr = 1 ;  /* they share a vertex - don't count it as filled */
+					if (mris->vertices[f1->v[n1]].linked > 0)
+					{
+						int n3 ;
+						VERTEX_INFO *vi = (VERTEX_INFO *)mris->user_parms ;
+						for (n3 = 0 ; n3 < vi[f1->v[n1]].nlinks ; n3++)
+							if (vi[f1->v[n1]].linked_vno[n3] == f2->v[n2])
+								nbr = 1 ;
+					}
+					if (mris->vertices[f2->v[n2]].linked > 0)
+					{
+						int n3 ;
+						VERTEX_INFO *vi = (VERTEX_INFO *)mris->user_parms ;
+						for (n3 = 0 ; n3 < vi[f2->v[n2]].nlinks ; n3++)
+							if (vi[f2->v[n2]].linked_vno[n3] == f1->v[n1])
+								nbr = 1 ;
+					}
         }
       if (!nbr)   /* add it to list, if not already there */
       {
