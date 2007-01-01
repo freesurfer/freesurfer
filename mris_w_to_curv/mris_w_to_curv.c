@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:22:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_w_to_curv.c,v 1.4 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_w_to_curv.c,v 1.5 2007/01/01 16:22:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   VERTEX             *v ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_w_to_curv.c,v 1.4 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_w_to_curv.c,v 1.5 2007/01/01 16:22:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -123,7 +123,7 @@ main(int argc, char *argv[]) {
 
   if (normalize_flag) {
     printf("normalizing curvature before writing...\n") ;
-    MRISnormalizeCurvature(mris) ;
+    MRISnormalizeCurvature(mris, NORM_MEAN) ;
   }
   MRISwriteCurvature(mris, curv_name) ;
 
