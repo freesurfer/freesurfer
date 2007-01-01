@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2006/12/29 20:38:36 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/01/01 16:14:35 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.41 2006/12/29 20:38:36 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,6 +70,7 @@ static char *curvature_names[] = {
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 
+static int which_norm = NORM_MEAN ;
 static int navgs = 0 ;
 static int single_surf = 0 ;
 static char *annot_name = NULL ;
@@ -123,10 +124,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.41 2006/12/29 20:38:36 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.41 2006/12/29 20:38:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -245,7 +246,7 @@ main(int argc, char *argv[]) {
 
         /* the two next lines were not in the original code */
         MRISaverageCurvatures(mris_template, navgs) ;
-        MRISnormalizeCurvature(mris_template) ;
+        MRISnormalizeCurvature(mris_template, which_norm) ;
       } else                       /* compute curvature of surface */
       {
         sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
@@ -259,7 +260,7 @@ main(int argc, char *argv[]) {
         MRISuseMeanCurvature(mris_template) ;
         MRISaverageCurvatures(mris_template, navgs) ;
         MRISrestoreVertexPositions(mris_template, CANONICAL_VERTICES) ;
-        MRISnormalizeCurvature(mris_template) ;
+        MRISnormalizeCurvature(mris_template, which_norm) ;
       }
       fprintf(stderr, "computing parameterization for surface %s...\n", fname);
       MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
@@ -367,6 +368,11 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "median"))
+  {
+    which_norm = NORM_MEDIAN ;
+    printf("using median normalization\n") ;
+  }
   else if (!stricmp(option, "vector")) {
     fprintf(stderr,"\nMultiframe Mode:\n");
     fprintf(stderr,"Use -addframe option to add extra-fields into average atlas\n");
