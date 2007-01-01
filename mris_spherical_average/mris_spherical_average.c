@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:23:58 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.19 2007/01/01 16:23:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -84,10 +84,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.19 2007/01/01 16:23:58 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.18 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.19 2007/01/01 16:23:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -193,7 +193,7 @@ main(int argc, char *argv[]) {
       MRIScopyValuesToCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize_flag)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris, NORM_MEAN) ;
       break ;
     }
     case VERTEX_LABEL:
@@ -222,7 +222,7 @@ main(int argc, char *argv[]) {
                   Progname, data_fname);
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize_flag)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris, NORM_MEAN) ;
       break ;
     case VERTEX_AREA:
       if (MRISreadOriginalProperties(mris, data_fname) != NO_ERROR)

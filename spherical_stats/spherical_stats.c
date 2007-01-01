@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:16 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:24:41 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "version.h"
 
 
-static char vcid[] = "$Id: spherical_stats.c,v 1.6 2006/12/29 02:09:16 nicks Exp $";
+static char vcid[] = "$Id: spherical_stats.c,v 1.7 2007/01/01 16:24:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -532,7 +532,7 @@ int main(int argc, char *argv[]) {
   // struct timeb start;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.6 2006/12/29 02:09:16 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.7 2007/01/01 16:24:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -698,13 +698,13 @@ int main(int argc, char *argv[]) {
       sprintf(fname,"%s/%s/surf/%s.sulc", subjects_dir,subject_fname,hemi);
       fprintf(stderr, "reading sulcal file from %s...\n", fname) ;
       MRISreadCurvature(mris,fname);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       for (m=0;m<mris->nvertices;m++) {
         v=&mris->vertices[m];
         v->valbak=v->curv;
       }
       MRISfromParameterization(mrisp_average,mris,6);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
 
       for (m=0;m<mris->nvertices;m++) {
         v=&mris->vertices[m];
