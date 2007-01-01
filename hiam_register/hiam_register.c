@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 18:28:23 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.2 2006/12/29 02:08:57 nicks Exp $";
+static char vcid[] = "$Id: hiam_register.c,v 1.3 2007/01/01 18:28:23 fischl Exp $";
 
 
 static float sigmas[] = {
@@ -67,11 +67,12 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
-static int  MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, INTEGRATION_PARMS *parms, int max_passes) ;
+static int  mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template, INTEGRATION_PARMS *parms, int max_passes) ;
 static int  mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
 static int  mrisClearMomentum(MRI_SURFACE *mris);
 static int  mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages);
 
+static int which_norm = NORM_MEAN;
 static int max_passes = 4 ;
 static int nbrs = 1 ;
 static float scale = 1.0f ;
@@ -81,6 +82,7 @@ static int reverse_flag = 0 ;
 static float dalpha = 0.0f ;
 static float dbeta = 0.0f ;
 static float dgamma = 0.0f ;
+
 
 char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
@@ -214,7 +216,7 @@ main(int argc, char *argv[]) {
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
   MRISreadOriginalProperties(mris, orig_name) ;
-  MRISregister(mris, mrisp_template, &parms, max_passes) ;
+  mrisRegister(mris, mrisp_template, &parms, max_passes) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   if (jacobian_fname) {
@@ -458,7 +460,7 @@ compute_area_ratios(MRI_SURFACE *mris) {
 }
 
 static int
-MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
+mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              INTEGRATION_PARMS *parms, int max_passes) {
   float   sigma ;
   int     i, /*steps,*/ done, sno, ino, msec ;
@@ -492,7 +494,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     mrisLogIntegrationParms(stderr, mris,parms) ;
 
   MRISuseMeanCurvature(mris) ;
-  MRISnormalizeCurvature(mris) ;
+  MRISnormalizeCurvature(mris, which_norm) ;
   MRISstoreMeanCurvature(mris) ;
 
   if (parms->nbhd_size > 0)  /* compute long-range distances */
@@ -514,21 +516,21 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
               curvature_names[sno]) ;
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
-                  "MRISregister", fname) ;
-      MRISnormalizeCurvature(mris) ;
+                  "mrisRegister", fname) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
     } else                       /* compute curvature of surface */
     {
       sprintf(fname, "%s", surface_names[sno]) ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  "MRISregister", fname) ;
+                  "mrisRegister", fname) ;
 
       MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
       MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     }
@@ -583,13 +585,13 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         fprintf(stdout, "done.\n") ;
       /* normalize curvature intensities for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris,which_norm) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino) ;
 
 #if 0
       /* normalize variances for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino+1);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino+1) ;
 #endif
 
@@ -605,7 +607,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       }
 
       MRISfromParameterization(parms->mrisp, mris, 0);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
 
