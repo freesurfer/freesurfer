@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 21:14:29 $
- *    $Revision: 1.235 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:12:20 $
+ *    $Revision: 1.236 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -873,7 +873,7 @@ void ellipsoid_shrink_bug(int niter, float rad, float len) ;
 void compute_curvature(void) ;
 void clear_curvature(void) ;
 void normalize_area(void) ;
-void normalize_curvature(void) ;
+void normalize_curvature(int which_norm) ;
 void normalize_surface(void) ;
 void load_brain_coords(float x, float y, float z, float v[]) ;
 int outside(float x,float y, float z) ;
@@ -12349,8 +12349,8 @@ clear_curvature(void) {
 }
 
 void
-normalize_curvature(void) {
-  MRISnormalizeCurvature(mris) ;
+normalize_curvature(int which_norm) {
+  MRISnormalizeCurvature(mris, which_norm) ;
 }
 void
 normalize_area(void) {
@@ -17540,8 +17540,8 @@ normalize_area();
 WEND
 
 int                  W_normalize_curvature  WBEGIN
-ERR(1,"Wrong # args: normalize_curvature")
-normalize_curvature();
+ERR(2,"Wrong # args: normalize_curvature")
+normalize_curvature(atoi(argv[1]));
 WEND
 
 int                  W_shift_values  WBEGIN
@@ -18726,7 +18726,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.235 2006/12/29 21:14:29 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.236 2007/01/01 16:12:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

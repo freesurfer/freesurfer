@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.275 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:12:32 $
+ *    $Revision: 1.276 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 
-/* $Id: mrisurf.h,v 1.275 2006/12/29 02:09:00 nicks Exp $ */
+/* $Id: mrisurf.h,v 1.276 2007/01/01 16:12:32 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -624,7 +624,9 @@ int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
-int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
+#define NORM_MEAN   0
+#define NORM_MEDIAN 1
+int          MRISnormalizeCurvature(MRI_SURFACE *mris, int norm_type) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
