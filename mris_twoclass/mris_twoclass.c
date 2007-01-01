@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 16:20:52 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.9 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.10 2007/01/01 16:20:52 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -60,6 +60,7 @@ static char vcid[] = "$Id: mris_twoclass.c,v 1.9 2006/12/29 02:09:11 nicks Exp $
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
+static int which_norm = NORM_MEAN ;
 static float sigma = 0.0f ;
 static int stat_type = STAT_T ;
 static int true_class = 1 ;
@@ -257,7 +258,7 @@ main(int argc, char *argv[]) {
     fp = fopen("scalespace.dat", "w") ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.9 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.10 2007/01/01 16:20:52 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -453,7 +454,7 @@ main(int argc, char *argv[]) {
           ErrorExit(Gerror,"%s: could no read curvature file %s",
                     Progname,fname);
         if (normalize_flag)
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
       }
       if (rectify_flag)
         MRISrectifyCurvature(mris) ;
@@ -1113,7 +1114,7 @@ main(int argc, char *argv[]) {
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
     if (normalize_flag)
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
     if (rectify_flag)
       MRISrectifyCurvature(mris) ;
 
