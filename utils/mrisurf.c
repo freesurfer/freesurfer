@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2006/12/29 20:07:44 $
- *    $Revision: 1.502 $
+ *    $Date: 2007/01/01 15:58:59 $
+ *    $Revision: 1.503 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -156,6 +156,7 @@ retessellation (was
 #define WHICH_OUTPUT stderr
 
 //static int mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris);
+static int compare_sort_vals(const void *pc1, const void *pc2) ;
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
                                         double dt,
@@ -605,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.502 2006/12/29 20:07:44 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.503 2007/01/01 15:58:59 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1963,6 +1964,11 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           dist = sqrt(xd*xd + yd*yd + zd*zd) ;
           vn->d = dist ;
         }
+        if (vn->d >= UNFOUND_DIST/2)
+        {
+          printf("***** WARNING - surface distance not found at vno %d ******", vall[n]) ;
+          DiagBreak() ;
+        }
         if ((vall[n] == diag_vno1 && vno == diag_vno2) ||
             (vall[n] == diag_vno2 && vno == diag_vno1))
           printf("vn %d is %2.3f mm from v %d at ring %d\n",
@@ -2033,6 +2039,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
         {
           v->v[v->vtotal] = vnbrs[n] ;
           v->dist_orig[v->vtotal] = mris->vertices[vnbrs[n]].d ;
+          if (v->dist_orig[v->vtotal] > 10000)
+            DiagBreak() ;
         }
       }
       else                   /* randomly sample from them */
@@ -2076,6 +2084,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           vn = &mris->vertices[vnbrs[i]] ;
           v->v[v->vtotal] = vnbrs[i] ;
           v->dist_orig[v->vtotal] = vn->d ;
+          if (v->dist_orig[v->vtotal] > 10000)
+            DiagBreak() ;
           if (FZERO(vn->d))
             DiagBreak() ;
           vnbrs[i] = -1 ;
@@ -5031,7 +5041,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     mrisLogIntegrationParms(stderr, mris,parms) ;
 
   MRISuseMeanCurvature(mris) ;
-  MRISnormalizeCurvature(mris) ;
+  MRISnormalizeCurvature(mris, NORM_MEAN) ;
   MRISstoreMeanCurvature(mris) ;
 
   if (parms->nbhd_size > 0)  /* compute long-range distances */
@@ -5071,7 +5081,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   "MRISregister", fname) ;
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
     }
     else                       /* compute curvature of surface */
     {
@@ -5085,7 +5095,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       MRISresetNeighborhoodSize(mris,1);/*only use nearest
                                  neighbor distances*/
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -5146,7 +5156,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
         MRIScomputeMetricProperties(mris) ;
         MRISfromParameterization(mrisp_template, mris, ino);
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris, NORM_MEAN) ;
         sprintf
         (fname,
          "%s/%s.target%d",
@@ -5185,13 +5195,13 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         fprintf(stdout, "done.\n") ;
       /* normalize curvature intensities for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino) ;
 
 #if 0
       /* normalize variances for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino+1);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino+1) ;
 #endif
 
@@ -5204,7 +5214,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       }
 
       MRISfromParameterization(parms->mrisp, mris, 0);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
       if (Gdiag & DIAG_WRITE && sno == 0)
@@ -5393,7 +5403,7 @@ void MRISnormalizeField(MRIS *mris , int distance_field)
       }
   }
   else /* gaussian */
-    MRISnormalizeCurvature(mris);
+    MRISnormalizeCurvature(mris, NORM_MEAN);
 }
 
 
@@ -5585,7 +5595,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     {
       MRISfromParameterizations(parms->mrisp_template, mris,
                                 frames,indices , nframes);
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, NORM_MEAN) ;
       sprintf
       (fname,
        "%s/%s.target",
@@ -16536,6 +16546,8 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
 
 #if NO_NEG_DISTANCE_TERM
     if (v->neg)
@@ -20674,48 +20686,86 @@ MRISzeroMeanCurvature(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 int
-MRISnormalizeCurvature(MRI_SURFACE *mris)
+MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
 {
-  double    mean, var, std ;
+  double    mean, var, std, median ;
   int       vno, vtotal ;
   VERTEX    *v ;
 
-  for (mean = 0.0f, vtotal = vno = 0 ; vno < mris->nvertices ; vno++)
+  if (which_norm == NORM_MEDIAN)
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    mean += v->curv ;
-    vtotal++ ;
+    float *curvs ;
+    curvs = (float *)calloc(mris->nvertices, sizeof(float)) ;
+    if (curvs == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISnormalize(MEDIAN): couldn't alloc array");
+
+    MRISextractCurvatureVector(mris, curvs) ;
+    qsort(curvs, mris->nvertices, sizeof(curvs[0]), compare_sort_vals) ;
+    median = curvs[mris->nvertices/2] ;
+    free(curvs) ;
+    for (var = 0.0f, vtotal = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      std = (v->curv - median) ;
+      vtotal++ ;
+      var += std * std ;
+    }
+    
+    var /= (double)vtotal ;
+    std = sqrt(var) ;
+    
+    //    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stdout, "curvature median = %2.3f, std = %2.3f\n", median, std) ;
+
+    // now normalize the curvatures so they have unit standard deviation 
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->curv = (v->curv - median) / std ;
+    }
   }
-
-  mean /= (double)vtotal ;
-
-  for (var = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
+  else  // normalize mean
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    std = v->curv - mean ;
-    var += std * std ;
+    for (mean = 0.0f, vtotal = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      mean += v->curv ;
+      vtotal++ ;
+    }
+    
+    mean /= (double)vtotal ;
+    
+    for (var = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      std = v->curv - mean ;
+      var += std * std ;
+    }
+    
+    var /= (double)vtotal ;
+    std = sqrt(var) ;
+    
+    //    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stdout, "curvature mean = %2.3f, std = %2.3f\n", mean, std) ;
+
+    /* now normalize the curvatures so they have unit standard deviation, but
+       leave the mean alone */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->curv = (v->curv - mean) / std /* + mean*/ ;
+    }
   }
-
-  var /= (double)vtotal ;
-  std = sqrt(var) ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout, "curvature mean = %2.3f, std = %2.3f\n", mean, std) ;
-
-  /* now normalize the curvatures so they have unit standard deviation, but
-     leave the mean alone */
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    v->curv = (v->curv - mean) / std /* + mean*/ ;
-  }
-
   mrisComputeCurvatureValues(mris) ;
   return(NO_ERROR) ;
 }
