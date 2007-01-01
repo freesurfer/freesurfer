@@ -234,7 +234,9 @@ MISCDIRS=histo_compute_joint_density \
 	images \
 	distribution \
 	dummy \
-	hiam_make_surfaces
+	hiam_make_surfaces\
+	hiam_make_template\
+	hiam_register
 
 SUBDIRS=include \
 	unix \
