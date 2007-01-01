@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 18:28:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: hiam_make_template.c,v 1.2 2006/12/29 02:08:57 nicks Exp $";
+static char vcid[] = "$Id: hiam_make_template.c,v 1.3 2007/01/01 18:28:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,6 +54,8 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 char *Progname ;
+
+static int which_norm = NORM_MEAN;
 
 #if 0
 static char *surface_names[] = {
@@ -180,7 +182,7 @@ main(int argc, char *argv[]) {
         MRISuseMeanCurvature(mris) ;
         MRISaverageCurvatures(mris, navgs) ;
         MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris, which_norm) ;
       }
       fprintf(stderr, "computing parameterization for surface %s...\n",
               surf_fname);
@@ -272,7 +274,7 @@ main(int argc, char *argv[]) {
           MRISuseMeanCurvature(mris) ;
           MRISaverageCurvatures(mris, navgs) ;
           MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
         }
         fprintf(stderr, "computing parameterization for surface %s...\n",
                 surf_fname);
