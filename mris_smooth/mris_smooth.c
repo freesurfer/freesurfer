@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/01 18:16:19 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.20 2006/12/29 02:09:11 nicks Exp $";
+  "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,6 +56,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int which_norm = NORM_MEAN ;
 static int normalize_flag = 0 ;
 static char curvature_fname[STRLEN] = "curv" ;
 static char area_fname[STRLEN] = "area" ;
@@ -86,13 +87,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.20 2006/12/29 02:09:11 nicks Exp $",
+   "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.20 2006/12/29 02:09:11 nicks Exp $",
+           "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -268,7 +269,7 @@ main(int argc, char *argv[]) {
   MRISuseMeanCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
   if (normalize_flag)
-    MRISnormalizeCurvature(mris) ;
+    MRISnormalizeCurvature(mris, which_norm) ;
   sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
           curvature_fname);
   if (no_write == 0) {
