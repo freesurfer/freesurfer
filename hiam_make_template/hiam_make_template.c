@@ -1,15 +1,16 @@
 /**
  * @file  hiam_make_template.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief hippocampus and amygdala version of mris_make_templace
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This code is a modified version of mris_make_template.c for being 
+ * applied on hippocampus and amygdala.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/01 18:28:53 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/02 15:07:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,10 +26,6 @@
  *
  */
 
-
-/* This code is a modified version of mris_make_template.c for being applied on hippocampus and amygdala */
-/* Revised 02/26/2003 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +40,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: hiam_make_template.c,v 1.3 2007/01/01 18:28:53 fischl Exp $";
+static char vcid[] = "$Id: hiam_make_template.c,v 1.4 2007/01/02 15:07:06 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
