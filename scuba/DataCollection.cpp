@@ -1,15 +1,19 @@
 /**
  * @file  DataCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Base abstract data collection object
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class is the base class for all data objects in Scuba. A 'collection'
+ * is usually a primary data object, such as a volume or surface, and its
+ * associated data, such as ROIs. This file also defines the DataLocation
+ * class, which is encapsulates different coordinate spaces such as RAS and
+ * data indicies.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.26 $
+ *    $Author: kteich $
+ *    $Date: 2007/01/02 22:41:17 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,6 +89,10 @@ DataCollection::DataCollection() :
   commandMgr.AddCommand( *this, "GetDataTransform", 1, "colID",
                          "Returns the transformID of a data collection's "
                          "data to world transform." );
+  commandMgr.AddCommand( *this, "GetCollectionRASBounds", 1, "colID",
+			 "Returns the RAS bounds of the data collection. Six "
+			 "numbers are returned as a list of floats: xmin xmax "
+			 "ymin ymax zmin zmax." );
 }
 
 DataCollection::~DataCollection() {
@@ -124,9 +132,9 @@ DataCollection::SetLabel( string isLabel ) {
 
 void
 DataCollection::GetDataRASBounds ( float oRASBounds[6] ) {
-
+  
   oRASBounds[0] = oRASBounds[1] = oRASBounds[2] =
-                                    oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+    oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
 }
 
 TclCommandListener::TclCommandResult
@@ -310,6 +318,30 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
       stringstream ssReturnValues;
       ssReturnValues << (int)GetDataToWorldTransform();
       sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // GetCollectionRASBounds <colID>
+  if ( 0 == strcmp( isCommand, "GetCollectionRASBounds" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if ( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+
+    if ( mID == collectionID ) {
+
+      stringstream ssResult;
+
+      float bounds[6];
+      this->GetDataRASBounds( bounds );
+
+      ssResult << bounds[0] << " " << bounds[1] << " "
+	       << bounds[2] << " " << bounds[3] << " "
+	       << bounds[4] << " " << bounds[5];
+
+      sReturnFormat = "Lffffffl";
+      sReturnValues = ssResult.str();
     }
   }
 

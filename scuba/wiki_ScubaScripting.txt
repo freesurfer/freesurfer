@@ -217,6 +217,11 @@ objects. If they don't you'll receive an error. All IDs are integers.
 
  Returns as a list of RAS coords the location of the vertex. '''vertexIndex''' should be an integer that's a valid index for the surface displayed by the layer.
 
+[[Anchor(GetCollectionRASBounds)]]
+''Get``Collection``RAS``Bounds'' '''''collectionID'''''
+
+ Return the bounds for this collection in RAS space. They will be returned as a list with six floating numbers: xmin, xmax, ymin, ymax, zmin, zmax.
+
 [[Anchor(GetCollectionLabel)]]
 ''Get``Collection``Label'' '''''collectionID'''''
 
@@ -1399,6 +1404,7 @@ objects. If they don't you'll receive an error. All IDs are integers.
 [#GetDataCollectionIDList GetDataCollectionIDList]
 [#MakeDataCollection MakeDataCollection]
 [#DeleteDataCollection DeleteDataCollection]
+[#GetCollectionRASBounds GetCollectionRASBounds]
 
 ==== Volumes ====
 

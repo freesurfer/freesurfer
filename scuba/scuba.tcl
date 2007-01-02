@@ -1,6 +1,35 @@
+/**
+ * @file  scuba.tcl
+ * @brief Main interface script file for Scuba
+ *
+ * This is the main interface file for Scuba. It defines all the windows
+ * and widgets as well as many high-level functions such as domain specific
+ * chart windows and utilities.
+ */
+/*
+ * Original Author: Kevin Teich
+ * CVS Revision Info:
+ *    $Author: kteich $
+ *    $Date: 2007/01/02 22:41:17 $
+ *    $Revision: 1.234 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.233 2006/12/06 20:15:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.234 2007/01/02 22:41:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -587,6 +616,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "ROI Stats..." { DoROIStatsDlog } }
 	{command "Make New Volume ROI Intensity Chart..." { DoMakeNewVolumeROIIntensityChartDlog } }
 	{command "Make New Time Course Window..." { DoMakeNewMultiFrameVolumeChartDlog } }
+	{command "Make Image Series..." { DoMakeImageSeriesDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -6708,7 +6738,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.233 2006/12/06 20:15:13 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.234 2007/01/02 22:41:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -8340,7 +8370,7 @@ proc DoMakeNewMultiFrameVolumeChartDlog {} {
     
     # If no volumes, return.
     if { [llength $lVolumes] == 0 } {
-       tkuErrorDlog "Must have a volume loaded before generating an ROI chart."
+       tkuErrorDlog "Must have a volume loaded before generating an multiframe volume chart."
 	return
     }
 
@@ -8411,6 +8441,132 @@ proc MultiFrameVolumeChartDlogVolCallback { iVol } {
 }
  
   
+proc DoMakeImageSeriesDlog {} {
+    global gaCollection
+    global gaImageSeriesInfo
+
+    # Build a list of volumes.
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Volume] } {
+	    set sLabel [GetCollectionLabel $colID]
+	    lappend lVolumes $colID
+	}
+    }
+    
+    # If no volumes, return.
+    if { [llength $lVolumes] == 0 } {
+	tkuFormattedErrorDlog "Couldn't Make Image Series" \
+	    "No volumes are loaded." \
+	    "To make a series of images, you must load at least one volume first. The image series will be based on the volume range of a volume you select."
+	return
+    }
+
+    # Create the dialog.
+    set wwDialog .wwImageSeriesDlog
+    if { [tkuCreateDialog $wwDialog "Make Image Series" {-borderwidth 10}] } {
+
+	set owVolume    $wwDialog.owVolume
+	set fwDirectory $wwDialog.fwDirectory
+	set ewPrefix    $wwDialog.ewPrefix
+	set fwNote      $wwDialog.fwNote
+	set fwButtons   $wwDialog.fwButtons
+
+	# Option menu full of volumes.
+	tixOptionMenu $owVolume \
+	    -label "Volume: " \
+	    -variable gaImageSeriesInfo(volume)
+	FillMenuFromList $owVolume \
+	    $lVolumes "GetCollectionLabel %s" {} false
+
+	tkuMakeDirectorySelector $fwDirectory \
+	    -text "Directory in which to save images: " \
+	    -variable gaImageSeriesInfo(dir)
+
+	tkuMakeEntry $ewPrefix \
+	    -label "File name prefix: " \
+	    -variable gaImageSeriesInfo(prefix)
+
+	tkuMakeNormalLabel $fwNote \
+	    -font [tkuSmallFont] \
+	    -wrap 400 \
+	    -label "The series of TIFFs will be created spanning the extent of the selected volume in the current direction."
+
+	# OK button will call the chart function.
+	tkuMakeCancelOKButtons $fwButtons $wwDialog \
+	    -okCmd { after idle {MakeImageSeries $gaImageSeriesInfo(volume) $gaImageSeriesInfo(dir) $gaImageSeriesInfo(prefix)} }
+
+	pack $owVolume $fwDirectory $ewPrefix $fwNote $fwButtons \
+	    -side top -expand yes -fill x
+
+	# If our current collection is in the list of volumes, select
+	# it in the option menu. Otherwise select the first
+	# one.
+	if { [lsearch $lVolumes $gaCollection(current,id)] != -1 } {
+	    set gaImageSeriesInfo(volume) $gaCollection(current,id)
+	} else {
+	    set gaImageSeriesInfo(volume) [lindex $lVolumes 0]
+	}
+
+    }
+}
+
+proc MakeImageSeries { iVolID ifnDirectory isPrefix } {
+    global gaView
+
+    # Figure out the current in-plane and in-plane increment from the
+    # current view.
+    set inPlane $gaView(current,inPlane)
+    set inc $gaView(current,throughPlaneInc)
+
+    # Get the RAS bounds from the data collection.
+    set bounds [GetCollectionRASBounds $iVolID]
+
+    # Make our bounds in the direction in which we're going to scan.
+    set min 0
+    set max 0
+    switch $inPlane {
+	x { set min [lindex $bounds 0]; set max [lindex $bounds 1] }
+	y { set min [lindex $bounds 2]; set max [lindex $bounds 3] }
+	z { set min [lindex $bounds 4]; set max [lindex $bounds 5] }
+    }
+    
+    # Get the current center.
+    set rasCenter [GetViewRASCenter $gaView(current,id)]
+    set x [lindex $rasCenter 0]
+    set y [lindex $rasCenter 1]
+    set z [lindex $rasCenter 2]
+
+    # For each frame from min to max, incrementing by the view's
+    # increment...
+    set n 0
+    for { set cur $min } { $cur <= $max } { set cur [expr $cur + $inc] } {
+	
+	# Set the relevant coordinate.
+	switch $inPlane {
+	    x { set x $cur }
+	    y { set y $cur }
+	    z { set z $cur }
+	}
+
+	# Set the center and draw the frame.
+	SetViewRASCenter $gaView(current,id) $x $y $z
+	UpdateFrame [GetMainFrameID]
+
+	# Make a screen shot, making a file name from the directory
+	# and prefix they gave us.
+	CaptureFrameToFile [GetMainFrameID] \
+	    [file join $ifnDirectory [format "$isPrefix%04d.tiff" $n]]
+
+	# Increment our frame counter.
+	incr n
+    }
+
+    # Go back to the original center.
+    SetViewRASCenter $gaView(current,id) \
+	[lindex $rasCenter 0] [lindex $rasCenter 1] [lindex $rasCenter 2]
+}
+
 # MAIN =============================================================
 
 set argc [GetArgc]
