@@ -1,15 +1,15 @@
 /**
  * @file  mri_info.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Prints mri volume information found in .mgz file.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Dumps information about the volume to stdout.
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/01/02 21:03:38 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,18 +25,7 @@
  *
  */
 
-
-////////////////////////////////////////////////////////////////////
-// mri_info.c
-//
-// Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.54 $
-//
-////////////////////////////////////////////////////////////////////
-
-char *MRI_INFO_VERSION = "$Revision: 1.54 $";
+char *MRI_INFO_VERSION = "$Revision: 1.55 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -69,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.54 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.55 2007/01/02 21:03:38 nicks Exp $";
 
 char *Progname ;
 char *inputlist[100];
