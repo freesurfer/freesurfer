@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2006/12/29 20:32:17 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/02 19:49:47 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,8 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +40,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.21 2006/12/29 20:32:17 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.22 2007/01/02 19:49:47 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,6 +72,8 @@ static int contrast_flag = 0 ;
 static int nbhd_size = 0 ;
 static int nbrs_per_distance = 0 ;
 
+static int which_norm = NORM_MEAN;
+
 int
 main(int argc, char *argv[]) {
   char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
@@ -83,7 +83,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.21 2006/12/29 20:32:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.22 2007/01/02 19:49:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -149,7 +149,7 @@ main(int argc, char *argv[]) {
       MRISfromParameterization(mrisp, mris, param_no) ;
     MRISPfree(&mrisp) ;
     if (normalize)
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris,which_norm) ;
     sprintf(fname, "%s/%s.param", path,name) ;
     fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
@@ -185,7 +185,7 @@ main(int argc, char *argv[]) {
       MRISuseCurvatureRatio(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.ratio", path,name) ;
       fprintf(stderr, "writing curvature ratio to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -195,7 +195,7 @@ main(int argc, char *argv[]) {
       MRISuseCurvatureContrast(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.contrast", path,name) ;
       fprintf(stderr, "writing curvature contrast to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -238,7 +238,7 @@ main(int argc, char *argv[]) {
       MRISuseCurvatureMax(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.max", path,name) ;
       fprintf(stderr, "writing curvature maxima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -249,7 +249,7 @@ main(int argc, char *argv[]) {
       MRISuseCurvatureMin(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.min", path,name) ;
       fprintf(stderr, "writing curvature minima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -261,7 +261,7 @@ main(int argc, char *argv[]) {
       MRISuseCurvatureStretch(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.stretch", path,name) ;
       fprintf(stderr, "writing curvature stretch to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -274,12 +274,12 @@ main(int argc, char *argv[]) {
       sprintf(fname, "%s/%s.K", path,name) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
-        MRISnormalizeCurvature(mris) ;
+        MRISnormalizeCurvature(mris,which_norm) ;
       sprintf(fname, "%s/%s.H", path,name) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;

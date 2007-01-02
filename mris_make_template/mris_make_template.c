@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/01/02 19:53:56 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +40,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.21 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.22 2007/01/02 19:53:56 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,6 +86,8 @@ static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS] ;
 static char *overlay_dir = "label";
 
+static int which_norm = NORM_MEAN;
+
 int
 main(int argc, char *argv[]) {
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
@@ -99,7 +100,7 @@ main(int argc, char *argv[]) {
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.21 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.22 2007/01/02 19:53:56 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -367,7 +368,7 @@ main(int argc, char *argv[]) {
           }
           /* the two next lines were not in the original code */
           MRISaverageCurvatures(mris, navgs) ;
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
         } else                       /* compute curvature of surface */
         {
           sprintf(surf_fname, "%s/%s/surf/%s.%s",
@@ -387,7 +388,7 @@ main(int argc, char *argv[]) {
           MRISuseMeanCurvature(mris) ;
           MRISaverageCurvatures(mris, navgs) ;
           MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
         }
         fprintf(stderr, "computing parameterization for surface %s...\n",
                 surf_fname);

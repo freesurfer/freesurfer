@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/01/02 19:46:06 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_ca_train.c,v 1.14 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mris_ca_train.c,v 1.15 2007/01/02 19:46:06 nicks Exp $";
 
 #define MAX_LABELS  1000
 #if 0
@@ -62,6 +62,7 @@ static int normalize3_flag = 0 ;
 static int nparcs = 0 ;
 static char *ptable_fname = NULL ;
 static COLOR_TABLE *ctab = NULL ;
+static int which_norm = NORM_MEAN;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -260,7 +261,7 @@ main(int argc, char *argv[]) {
                     "%s: could not read curv file %s for %s",
                     Progname, thickness_name, subject_name) ;
         if (normalize3_flag)
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
         MRIScopyCurvatureToImagValues(mris) ;
       }
       if (ninputs > 1 || sulconly) {
@@ -269,7 +270,7 @@ main(int argc, char *argv[]) {
                     "%s: could not read curv file %s for %s",
                     Progname, sulc_name, subject_name) ;
         if (normalize2_flag || (sulconly && normalize1_flag))
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
         MRIScopyCurvatureToValues(mris) ;
         MRIScopyValToVal2(mris) ;
       }
@@ -283,7 +284,7 @@ main(int argc, char *argv[]) {
         MRISuseMeanCurvature(mris) ;
         MRISaverageCurvatures(mris, navgs) ;
         if (normalize1_flag)
-          MRISnormalizeCurvature(mris) ;
+          MRISnormalizeCurvature(mris, which_norm) ;
 #endif
         MRIScopyCurvatureToValues(mris) ;
       }
