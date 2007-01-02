@@ -15,7 +15,7 @@ function [r, mask, voxmain, voxghost] = fast_ghostdet(vol, mask)
 % and their corresponding voxels in the ghost (again excluding
 % voxels that are in both).
 % 
-% $Id: fast_ghostdet.m,v 1.2 2005/08/31 21:26:37 greve Exp $
+% $Id: fast_ghostdet.m,v 1.3 2007/01/02 23:07:56 greve Exp $
 
 % To test: this should force r=1
 if(0)
@@ -51,6 +51,7 @@ else
   globalmean = mean(reshape(volmean,[nvoxels 1])); % mean over everything
   thresh = 0.5*globalmean;
   mask = volmean > thresh;
+  % Should probably dilate mask
 end
 
 % Get a mask of the ghost
