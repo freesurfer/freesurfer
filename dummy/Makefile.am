@@ -1,6 +1,7 @@
 ##
 ## Makefile.am 
 ##
+
 #######################################################################
 # When you create your own program directory, copy the 'from' to the 
 # 'to' lines to your Makefile.am and change dummy to your program name.
@@ -26,6 +27,7 @@
 # nicks@nmr.mgh.harvard.edu).
 #########################################################################
 # from ------------------------------------------------
+
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
@@ -33,6 +35,7 @@ bin_PROGRAMS = dummy
 dummy_SOURCES=dummy.c
 dummy_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 dummy_LDFLAGS=$(OS_LDFLAGS)
+
 # to --------------------------------------------------
 #
 # Where $(OS_LDFLAGS) is to compile programs statically for Linux.
@@ -52,14 +55,13 @@ dummy_LDFLAGS=$(OS_LDFLAGS)
 # 
 # Please don't remove myown.c from this dummy directory.
 ########################################################################
-check_PROGRAMS=myown
+#check_PROGRAMS=myown
 
-myown_SOURCES=myown.c
-myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
+#myown_SOURCES=myown.c
+#myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
