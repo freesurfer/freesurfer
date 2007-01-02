@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/02 13:34:31 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_add_template.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_add_template.c,v 1.7 2007/01/02 13:34:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,8 @@ static void print_version(void) ;
 
 char *Progname ;
 
-static char curvature_fname[100] = "" ;
+static char curvature_fname[STRLEN] = "" ;
+static int which_norm = NORM_MEAN ;
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES             2   /* smoothwm and inflated */
@@ -72,7 +73,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp, *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_add_template.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_add_template.c,v 1.7 2007/01/02 13:34:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -134,7 +135,7 @@ main(int argc, char *argv[]) {
   MRISuseMeanCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRISnormalizeCurvature(mris) ;
+  MRISnormalizeCurvature(mris, which_norm) ;
   fprintf(stderr, "computing parameterization for surface %s...\n",surf_fname);
   mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
   MRISPcombine(mrisp, mrisp_template, 0) ;
@@ -162,7 +163,7 @@ main(int argc, char *argv[]) {
   else
     fprintf(stderr, "computing parameterization for surface %s...\n",
             surf_fname);
-  MRISnormalizeCurvature(mris) ;
+  MRISnormalizeCurvature(mris, which_norm) ;
   mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
   MRISPcombine(mrisp, mrisp_template, 3) ;
 
