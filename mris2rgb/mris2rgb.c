@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/01/02 19:56:50 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,7 +69,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.35 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -85,6 +85,8 @@ static char vcid[] = "$Id: mris2rgb.c,v 1.35 2006/12/29 02:09:10 nicks Exp $";
 #define MEAN_CURVATURE           1
 #define GAUSSIAN_CURVATURE       2
 #define AREA_ERRORS              3
+
+static int which_norm = NORM_MEAN;
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -219,7 +221,7 @@ main(int argc, char *argv[]) {
   unsigned char   *rgb=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.35 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,7 +445,7 @@ main(int argc, char *argv[]) {
     }
 
     if (normalize_flag)
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
     if (zero_flag)
       MRISzeroMeanCurvature(mris) ;
 
