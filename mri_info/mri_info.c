@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/02 21:03:38 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/01/02 21:19:30 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.55 $";
+char *MRI_INFO_VERSION = "$Revision: 1.56 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.55 2007/01/02 21:03:38 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.56 2007/01/02 21:19:30 nicks Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -199,7 +199,8 @@ static int parse_commandline(int argc, char **argv) {
       outfile = pargv[0];
       nargc --;
       pargv ++;
-    } else if (!strcasecmp(option, "-it") || !strcasecmp(option, "--in_type")) {
+    } else if (!strcasecmp(option, "-it") || 
+               !strcasecmp(option, "--in_type")) {
       intypestr = pargv[0];
       intype = string_to_type(intypestr);
       nargc --;
@@ -213,7 +214,8 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&VoxelCRS[0]);
       sscanf(pargv[1],"%d",&VoxelCRS[1]);
       sscanf(pargv[2],"%d",&VoxelCRS[2]);
-      if (Gdiag_no > 1) printf("%d %d %d\n",VoxelCRS[0],VoxelCRS[1],VoxelCRS[2]);
+      if (Gdiag_no > 1) 
+        printf("%d %d %d\n",VoxelCRS[0],VoxelCRS[1],VoxelCRS[2]);
       nargc -= 3;
       pargv += 3;
     } else {
@@ -255,9 +257,11 @@ static void print_usage(void) {
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
-  printf("   --voxel c r s : dump voxel value from col row slice (0-based, all frames)\n");
+  printf("   --voxel c r s : dump voxel value from col row slice "
+         "(0-based, all frames)\n");
   printf("   --o file : print flagged results to file \n");
-  printf("   --in_type type : explicitly specify file type (see mri_convert) \n");
+  printf("   --in_type type : explicitly specify file type "
+         "(see mri_convert) \n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
