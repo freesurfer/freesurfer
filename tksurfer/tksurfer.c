@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/01 16:12:20 $
- *    $Revision: 1.236 $
+ *    $Author: kteich $
+ *    $Date: 2007/01/02 16:57:19 $
+ *    $Revision: 1.237 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -13139,6 +13139,13 @@ get_color_vals(float val, float curv, int mode,
 
   val -= foffset ;
 
+  /* Refresh the curv min and max. This is kind of hacky since we
+     could just reference the value in mris, but for some reason we
+     have a separate variable for cmin and cmax, and who am I to
+     judge. */
+  cmin = mris->min_curv;
+  cmax = mris->max_curv;
+
   r = g = b = 0 ;
   /* rkt: changed curv<0 to curv<cmid so that the grayscale curv
      display would use cmid */
@@ -18726,7 +18733,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.236 2007/01/01 16:12:20 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.237 2007/01/02 16:57:19 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
