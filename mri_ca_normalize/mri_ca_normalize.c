@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:05 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/02 13:37:33 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,9 +31,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:05 $
-// Revision       : $Revision: 1.37 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/01/02 13:37:33 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -122,20 +122,22 @@ static int  discard_unlikely_control_points
 #define DEFAULT_CTL_POINT_PCT   .25
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 
-static int normalization_structures[] = {
-                                          Left_Cerebral_White_Matter,
-                                          Right_Cerebral_White_Matter,
-                                          Left_Cerebellum_White_Matter,
-                                          Right_Cerebellum_White_Matter,
-                                          Brain_Stem
-                                        } ;
+static int normalization_structures[] =
+  {
+    Left_Cerebral_White_Matter,
+    Right_Cerebral_White_Matter,
+    Left_Cerebellum_White_Matter,
+    Right_Cerebellum_White_Matter,
+    Brain_Stem
+  } ;
 
 #define NSTRUCTURES (sizeof(normalization_structures) / sizeof(normalization_structures[0]))
 
 static int nregions = 3 ;  /* divide each struct into 3x3x3 regions */
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname ;
   MRI          *mri_in, *mri_norm = NULL, *mri_tmp ;
   GCA          *gca ;
@@ -147,15 +149,15 @@ main(int argc, char *argv[]) {
   char         cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.37 2006/12/29 02:09:05 nicks Exp $",
-   "$Name:  $", cmdline);
+    (argc, argv,
+     "$Id: mri_ca_normalize.c,v 1.38 2007/01/02 13:37:33 fischl Exp $",
+     "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.37 2006/12/29 02:09:05 nicks Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mri_ca_normalize.c,v 1.38 2007/01/02 13:37:33 fischl Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -168,18 +170,19 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+	{
+		nargs = get_option(argc, argv) ;
+		argc -= nargs ;
+		argv += nargs ;
+	}
 
   if (argc < 5)
     ErrorExit
-    (ERROR_BADPARM,
-     "usage: %s [<options>] <inbrain1> <inbrain2> ... "
-     "<atlas> <transform file> <output1> <output2> ...\n",
-     Progname) ;
+      (ERROR_BADPARM,
+       "usage: %s [<options>] <inbrain1> <inbrain2> ... "
+       "<atlas> <transform file> <output1> <output2> ...\n",
+       Progname) ;
 
   ninputs = (argc - 2) / 2 ;
   printf("reading %d input volume%ss\n", ninputs, ninputs > 1 ? "s" : "") ;
@@ -191,267 +194,291 @@ main(int argc, char *argv[]) {
   TimerStart(&start) ;
   printf("reading atlas from '%s'...\n", gca_fname) ;
   fflush(stdout) ;
-  if (seg_fname == NULL) {
-    gca = GCAread(gca_fname) ;
-    if (gca == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
-                Progname, gca_fname) ;
+  if (seg_fname == NULL)
+	{
+		gca = GCAread(gca_fname) ;
+		if (gca == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
+								Progname, gca_fname) ;
 
-    printf("reading transform from '%s'...\n", xform_fname) ;
-    fflush(stdout) ;
-    transform = TransformRead(xform_fname) ;
-    if (!transform)
-      ErrorExit
-      (ERROR_BADPARM,
-       "%s: could not open xform file %s", Progname,xform_fname) ;
+		printf("reading transform from '%s'...\n", xform_fname) ;
+		fflush(stdout) ;
+		transform = TransformRead(xform_fname) ;
+		if (!transform)
+			ErrorExit
+				(ERROR_BADPARM,
+				 "%s: could not open xform file %s", Progname,xform_fname) ;
 
-    if (novar)
-      GCAunifyVariance(gca) ;
+		if (novar)
+			GCAunifyVariance(gca) ;
 
-    if (renormalization_fname) {
-      FILE   *fp ;
-      int    *labels, nlines, i ;
-      float  *intensities, f1, f2 ;
-      char   *cp, line[STRLEN] ;
+		if (renormalization_fname)
+		{
+			FILE   *fp ;
+			int    *labels, nlines, i ;
+			float  *intensities, f1, f2 ;
+			char   *cp, line[STRLEN] ;
 
-      fp = fopen(renormalization_fname, "r") ;
-      if (!fp)
-        ErrorExit(ERROR_NOFILE, "%s: could not read %s",
-                  Progname, renormalization_fname) ;
+			fp = fopen(renormalization_fname, "r") ;
+			if (!fp)
+				ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+									Progname, renormalization_fname) ;
 
-      cp = fgetl(line, 199, fp) ;
-      nlines = 0 ;
-      while (cp) {
-        nlines++ ;
-        cp = fgetl(line, 199, fp) ;
-      }
-      rewind(fp) ;
-      printf("reading %d labels from %s...\n",
-             nlines,renormalization_fname) ;
-      labels = (int *)calloc(nlines, sizeof(int)) ;
-      intensities = (float *)calloc(nlines, sizeof(float)) ;
-      cp = fgetl(line, 199, fp) ;
-      for (i = 0 ; i < nlines ; i++) {
-        sscanf(cp, "%e  %e", &f1, &f2) ;
-        labels[i] = (int)f1 ;
-        intensities[i] = f2 ;
-        if (labels[i] == Left_Cerebral_White_Matter)
-          DiagBreak() ;
-        cp = fgetl(line, 199, fp) ;
-      }
-      GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
-      free(labels) ;
-      free(intensities) ;
-    }
-  } else
+			cp = fgetl(line, 199, fp) ;
+			nlines = 0 ;
+			while (cp)
+			{
+				nlines++ ;
+				cp = fgetl(line, 199, fp) ;
+			}
+			rewind(fp) ;
+			printf("reading %d labels from %s...\n",
+						 nlines,renormalization_fname) ;
+			labels = (int *)calloc(nlines, sizeof(int)) ;
+			intensities = (float *)calloc(nlines, sizeof(float)) ;
+			cp = fgetl(line, 199, fp) ;
+			for (i = 0 ; i < nlines ; i++)
+			{
+				sscanf(cp, "%e  %e", &f1, &f2) ;
+				labels[i] = (int)f1 ; intensities[i] = f2 ;
+				if (labels[i] == Left_Cerebral_White_Matter)
+					DiagBreak() ;
+				cp = fgetl(line, 199, fp) ;
+			}
+			GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+			free(labels) ; free(intensities) ;
+		}
+	}
+  else
     gca = NULL ;  /* don't need atlas if using segmentation */
 
-  for (input = 0 ; input < ninputs ; input++) {
-    in_fname = argv[1+input] ;
-    printf("reading input volume from %s...\n", in_fname) ;
-    mri_tmp = MRIread(in_fname) ;
-    if (!mri_tmp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-                Progname, in_fname) ;
-    MRImakePositive(mri_tmp, mri_tmp) ;
-    if (alpha > 0)
-      mri_tmp->flip_angle = alpha ;
-    if (TR > 0)
-      mri_tmp->tr = TR ;
-    if (TE > 0)
-      mri_tmp->te = TE ;
+  for (input = 0 ; input < ninputs ; input++)
+	{
+		in_fname = argv[1+input] ;
+		printf("reading input volume from %s...\n", in_fname) ;
+		mri_tmp = MRIread(in_fname) ;
+		if (!mri_tmp)
+			ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
+								Progname, in_fname) ;
+		MRImakePositive(mri_tmp, mri_tmp) ;
+		if (alpha > 0)
+			mri_tmp->flip_angle = alpha ;
+		if (TR > 0)
+			mri_tmp->tr = TR ;
+		if (TE > 0)
+			mri_tmp->te = TE ;
 
-    TRs[input] = mri_tmp->tr ;
-    fas[input] = mri_tmp->flip_angle ;
-    TEs[input] = mri_tmp->te ;
+		TRs[input] = mri_tmp->tr ;
+		fas[input] = mri_tmp->flip_angle ;
+		TEs[input] = mri_tmp->te ;
 
-    if (input == 0) {
-      mri_in =
-        MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-                         mri_tmp->type, ninputs) ;
-      if (!mri_in)
-        ErrorExit(ERROR_NOMEMORY,
-                  "%s: could not allocate input volume %dx%dx%dx%d",
-                  mri_tmp->width,mri_tmp->height,mri_tmp->depth,ninputs) ;
-      MRIcopyHeader(mri_tmp, mri_in) ;
-    }
+		if (input == 0)
+		{
+			mri_in =
+				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+												 mri_tmp->type, ninputs) ;
+			if (!mri_in)
+				ErrorExit(ERROR_NOMEMORY,
+									"%s: could not allocate input volume %dx%dx%dx%d",
+									mri_tmp->width,mri_tmp->height,mri_tmp->depth,ninputs) ;
+			MRIcopyHeader(mri_tmp, mri_in) ;
+		}
 
-    if (mask_fname) {
-      int i ;
-      MRI *mri_mask ;
+		if (mask_fname)
+		{
+			int i ;
+			MRI *mri_mask ;
 
-      mri_mask = MRIread(mask_fname) ;
-      if (!mri_mask)
-        ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                  Progname, mask_fname) ;
+			mri_mask = MRIread(mask_fname) ;
+			if (!mri_mask)
+				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+									Progname, mask_fname) ;
 
-      for (i = 1 ; i < WM_MIN_VAL ; i++)
-        MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-      MRIfree(&mri_mask) ;
-    }
-    MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
-    MRIfree(&mri_tmp) ;
-  }
+			for (i = 1 ; i < WM_MIN_VAL ; i++)
+				MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
+			MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+			MRIfree(&mri_mask) ;
+		}
+		MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
+		MRIfree(&mri_tmp) ;
+	}
   MRIaddCommandLine(mri_in, cmdline) ;
 
-  if (seg_fname == NULL) {
-    if (gca->type == GCA_PARAM) {
-      GCA *gca_tmp ;
+  if (seg_fname == NULL)
+	{
+		if (gca->type == GCA_PARAM)
+		{
+			GCA *gca_tmp ;
 
-      printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n",
-             mri_in->nframes) ;
-      // that means gca->ninputs = nframes
-      gca_tmp = GCAcreateFlashGCAfromParameterGCA
-                (gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER);
-      // now the type is set gca->type = GCA_FLASH
-      GCAfree(&gca) ;
-      gca = gca_tmp ;
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
-    } else if (gca->type == GCA_FLASH) {
-      GCA *gca_tmp ;
+			printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n",
+						 mri_in->nframes) ;
+			// that means gca->ninputs = nframes
+			gca_tmp = GCAcreateFlashGCAfromParameterGCA
+				(gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER);
+			// now the type is set gca->type = GCA_FLASH
+			GCAfree(&gca) ;
+			gca = gca_tmp ;
+			GCAhistoScaleImageIntensities(gca, mri_in) ;
+		}
+		else if (gca->type == GCA_FLASH)
+		{
+			GCA *gca_tmp ;
 
-      int need_map_flag = 0;
-      int n;
+			int need_map_flag = 0;
+			int n;
 
-      if (gca->ninputs != ninputs) need_map_flag = 1;
-      else {
-        for (n = 0 ; n < mri_in->nframes; n++) {
-          if (!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
-          if (!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
-          if (!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
-        }
-      }
+			if(gca->ninputs != ninputs) need_map_flag = 1;
+			else{
+				for (n = 0 ; n < mri_in->nframes; n++){
+					if(!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
+					if(!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
+					if(!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
+				}
+			}
 
-      if (need_map_flag) {
-        printf("mapping %d-dimensional flash atlas "
-               "into %d-dimensional input space\n",
-               gca->ninputs, ninputs) ;
+			if(need_map_flag){
+				printf("mapping %d-dimensional flash atlas "
+							 "into %d-dimensional input space\n",
+							 gca->ninputs, ninputs) ;
 
-        gca_tmp = GCAcreateFlashGCAfromFlashGCA
-                  (gca, TRs, fas, TEs, mri_in->nframes) ;
-        GCAfree(&gca) ;
-        gca = gca_tmp ;
-      }
+				gca_tmp = GCAcreateFlashGCAfromFlashGCA
+					(gca, TRs, fas, TEs, mri_in->nframes) ;
+				GCAfree(&gca) ;
+				gca = gca_tmp ;
+			}
 
-      if (novar)
-        GCAunifyVariance(gca) ;
+			if (novar)
+				GCAunifyVariance(gca) ;
 
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
-    } else
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+			GCAhistoScaleImageIntensities(gca, mri_in) ;
+		}
+		else
+			GCAhistoScaleImageIntensities(gca, mri_in) ;
 
-    if (example_T1) {
-      MRI *mri_T1, *mri_seg ;
+		if (example_T1)
+		{
+			MRI *mri_T1, *mri_seg ;
 
-      mri_seg = MRIread(example_segmentation) ;
-      if (!mri_seg)
-        ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not read example segmentation from %s",
-         Progname, example_segmentation) ;
-      mri_T1 = MRIread(example_T1) ;
-      if (!mri_T1)
-        ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
-                  Progname, example_T1) ;
-      printf("scaling atlas intensities using specified examples...\n") ;
-      MRIeraseBorderPlanes(mri_seg) ;
-      GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
-      MRIfree(&mri_seg) ;
-      MRIfree(&mri_T1) ;
-    }
+			mri_seg = MRIread(example_segmentation) ;
+			if (!mri_seg)
+				ErrorExit
+					(ERROR_NOFILE,
+					 "%s: could not read example segmentation from %s",
+					 Progname, example_segmentation) ;
+			mri_T1 = MRIread(example_T1) ;
+			if (!mri_T1)
+				ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
+									Progname, example_T1) ;
+			printf("scaling atlas intensities using specified examples...\n") ;
+			MRIeraseBorderPlanes(mri_seg) ;
+			GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
+			MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
+		}
 
-    if (tissue_parms_fname)   /* use FLASH forward model */
-      GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
-  }
+		if (tissue_parms_fname)   /* use FLASH forward model */
+			GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
+	}
 
   if (seg_fname)   /* use segmentation volume to drive normalization */
-  {
-    MRI *mri_seg ;
-    int  structs[MAX_CMA_LABELS], nstructs ;
-    mri_seg = MRIread(seg_fname) ;
-    if (!mri_seg)
-      ErrorExit
-      (ERROR_NOFILE,
-       "%s: could not read segmentation volume %s...\n",
-       Progname, seg_fname);
+	{
+		MRI *mri_seg ;
+		int  structs[MAX_CMA_LABELS], nstructs ;
+		mri_seg = MRIread(seg_fname) ;
+		if (!mri_seg)
+			ErrorExit
+				(ERROR_NOFILE,
+				 "%s: could not read segmentation volume %s...\n",
+				 Progname, seg_fname);
 
-    nstructs = 0 ;
-    structs[nstructs++] = Left_Cerebral_White_Matter ;
-    structs[nstructs++] = Right_Cerebral_White_Matter ;
-    mri_norm = normalize_from_segmentation_volume
-               (mri_in, NULL, mri_seg, structs, nstructs) ;
-    MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
-    MRIfree(&mri_norm) ;
-    MRIfree(&mri_seg) ;
-  } else {
-    gcas = GCAfindAllSamples(gca, &nsamples, NULL, 1) ;
-    printf("using %d sample points...\n", nsamples) ;
-    GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
-    if (sample_fname)
-      GCAtransformAndWriteSamples
-      (gca, mri_in, gcas, nsamples, sample_fname, transform) ;
+		nstructs = 0 ;
+		structs[nstructs++] = Left_Cerebral_White_Matter ;
+		structs[nstructs++] = Right_Cerebral_White_Matter ;
+		mri_norm = normalize_from_segmentation_volume
+			(mri_in, NULL, mri_seg, structs, nstructs) ;
+		MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
+		MRIfree(&mri_norm) ;
+		MRIfree(&mri_seg) ;
+	}
+  else
+	{
+    int j ;
 
-    for (n = 3 ; n <= nregions ; n++) {
-      for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++) {
-        if (normalization_structures[i] == Gdiag_no)
-          DiagBreak() ;
-        printf("finding control points in %s....\n",
-               cma_label_to_name(normalization_structures[i])) ;
-        gcas_struct = find_control_points
-                      (gca, gcas, nsamples, &struct_samples, n,
-                       normalization_structures[i], mri_in, transform, min_prior,
-                       ctl_point_pct) ;
-        discard_unlikely_control_points
-        (gca, gcas_struct, struct_samples, mri_in, transform,
-         cma_label_to_name(normalization_structures[i])) ;
-        if (i) {
-          GCA_SAMPLE *gcas_tmp ;
-          gcas_tmp = gcas_concatenate
-                     (gcas_norm, gcas_struct, norm_samples, struct_samples) ;
-          free(gcas_norm) ;
-          norm_samples += struct_samples ;
-          gcas_norm = gcas_tmp ;
-        } else {
-          gcas_norm = gcas_struct ;
-          norm_samples = struct_samples ;
+		gcas = GCAfindAllSamples(gca, &nsamples, NULL, 1) ;
+		printf("using %d sample points...\n", nsamples) ;
+		GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
+		if (sample_fname)
+			GCAtransformAndWriteSamples
+				(gca, mri_in, gcas, nsamples, sample_fname, transform) ;
+
+    for (j = 0 ; j < 1 ; j++)
+    {
+      for (n = 1 ; n <= nregions ; n++)
+      {
+        for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
+        {
+          if (normalization_structures[i] == Gdiag_no)
+            DiagBreak() ;
+          printf("finding control points in %s....\n",
+                 cma_label_to_name(normalization_structures[i])) ;
+          gcas_struct = find_control_points
+            (gca, gcas, nsamples, &struct_samples, n,
+             normalization_structures[i], mri_in, transform, min_prior,
+             ctl_point_pct) ;
+          discard_unlikely_control_points
+            (gca, gcas_struct, struct_samples, mri_in, transform,
+             cma_label_to_name(normalization_structures[i])) ;
+          if (i)
+          {
+            GCA_SAMPLE *gcas_tmp ;
+            gcas_tmp = gcas_concatenate
+              (gcas_norm, gcas_struct, norm_samples, struct_samples) ;
+            free(gcas_norm) ;
+            norm_samples += struct_samples ;
+            gcas_norm = gcas_tmp ;
+          }
+          else
+          {
+            gcas_norm = gcas_struct ; norm_samples = struct_samples ;
+          }
         }
+
+        printf("using %d total control points "
+               "for intensity normalization...\n", norm_samples) ;
+        if (normalized_transformed_sample_fname)
+          GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
+                                      normalized_transformed_sample_fname,
+                                      transform) ;
+        mri_norm = GCAnormalizeSamplesAllChannels
+          (mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
+           transform, ctl_point_fname) ;
+        if (Gdiag & DIAG_WRITE)
+        {
+          char fname[STRLEN] ;
+          sprintf(fname, "norm%d.mgz", n) ;
+          printf("writing normalized volume to %s...\n", fname) ;
+          MRIwrite(mri_norm, fname) ;
+          sprintf(fname, "norm_samples%d.mgz", n) ;
+          GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
+                                      fname, transform) ;
+        
+        }
+        MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
+        MRIfree(&mri_norm) ;
       }
-
-      printf("using %d total control points "
-             "for intensity normalization...\n", norm_samples) ;
-      if (normalized_transformed_sample_fname)
-        GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
-                                    normalized_transformed_sample_fname,
-                                    transform) ;
-      mri_norm = GCAnormalizeSamplesAllChannels
-                 (mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
-                  transform, ctl_point_fname) ;
     }
-    if (Gdiag & DIAG_WRITE) {
-      char fname[STRLEN] ;
-      sprintf(fname, "norm%d.mgh", n) ;
-      printf("writing normalized volume to %s...\n", fname) ;
-      MRIwrite(mri_norm, fname) ;
-      sprintf(fname, "norm_samples%d.mgh", n) ;
-      GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
-                                  fname, transform) ;
+	}
 
-    }
-    MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
-    MRIfree(&mri_norm) ;
-  }
-
-  for (input = 0 ; input < ninputs ; input++) {
-    out_fname  = argv[3+ninputs+input] ;
-    printf("writing normalized volume to %s...\n", out_fname) ;
-    mri_in->tr = TRs[input] ;
-    mri_in->flip_angle = fas[input] ;
-    mri_in->te = TEs[input] ;
-    if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
-      ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
-                Progname, out_fname);
-  }
+  for (input = 0 ; input < ninputs ; input++)
+	{
+		out_fname  = argv[3+ninputs+input] ;
+		printf("writing normalized volume to %s...\n", out_fname) ;
+		mri_in->tr = TRs[input] ;
+		mri_in->flip_angle = fas[input] ;
+		mri_in->te = TEs[input] ;
+		if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
+			ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
+								Progname, out_fname);
+	}
   MRIfree(&mri_in) ;
 
 #if 1
@@ -481,90 +508,124 @@ main(int argc, char *argv[]) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!strcmp(option, "FSAMPLES")) {
-    sample_fname = argv[2] ;
-    nargs = 1 ;
-    printf("writing control points to %s...\n", sample_fname) ;
-  } else if (!strcmp(option, "MASK")) {
-    mask_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using MR volume %s to mask input volume...\n", mask_fname) ;
-  } else if (!strcmp(option, "SEG")) {
-    seg_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using segmentation volume %s to generate control points...\n",
-           seg_fname) ;
-  } else if (!strcmp(option, "FONLY")) {
-    ctl_point_fname = argv[2] ;
-    nargs = 1 ;
-    file_only = 1 ;
-    printf("only using control points from file %s\n", ctl_point_fname) ;
-  } else if (!strcmp(option, "DIAG")) {
-    diag_fp = fopen(argv[2], "w") ;
-    if (!diag_fp)
-      ErrorExit(ERROR_NOFILE, "%s: could not open diag file %s for writing",
-                Progname, argv[2]) ;
-    printf("opening diag file %s for writing\n", argv[2]) ;
-    nargs = 1 ;
-  } else if (!strcmp(option, "DEBUG_VOXEL")) {
-    Gx = atoi(argv[2]) ;
-    Gy = atoi(argv[3]) ;
-    Gz = atoi(argv[4]) ;
-    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-    nargs = 3 ;
-  } else if (!strcmp(option, "DEBUG_NODE")) {
-    Ggca_x = atoi(argv[2]) ;
-    Ggca_y = atoi(argv[3]) ;
-    Ggca_z = atoi(argv[4]) ;
-    printf("debugging node (%d, %d, %d)\n", Ggca_x, Ggca_y, Ggca_z) ;
-    nargs = 3 ;
-  } else if (!strcmp(option, "TR")) {
-    TR = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using TR=%2.1f msec\n", TR) ;
-  } else if (!strcmp(option, "EXAMPLE")) {
-    example_T1 = argv[2] ;
-    example_segmentation = argv[3] ;
-    printf("using %s and %s as example T1 and segmentations respectively.\n",
-           example_T1, example_segmentation) ;
-    nargs = 2 ;
-  } else if (!strcmp(option, "TE")) {
-    TE = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using TE=%2.1f msec\n", TE) ;
-  } else if (!strcmp(option, "ALPHA")) {
-    nargs = 1 ;
-    alpha = RADIANS(atof(argv[2])) ;
-    printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
-  } else if (!strcmp(option, "NSAMPLES")) {
-    normalized_transformed_sample_fname = argv[2] ;
-    nargs = 1 ;
-    printf("writing  transformed normalization control points to %s...\n",
-           normalized_transformed_sample_fname) ;
-  } else if (!strcmp(option, "RENORM")) {
-    renormalization_fname = argv[2] ;
-    nargs = 1 ;
-    printf("renormalizing using predicted intensity values in %s...\n",
-           renormalization_fname) ;
-  } else if (!strcmp(option, "FLASH")) {
-    tissue_parms_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using FLASH forward model and tissue parms in %s to predict"
-           " intensity values...\n", tissue_parms_fname) ;
-  } else if (!strcmp(option, "PRIOR")) {
-    min_prior = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using prior threshold %2.2f\n", min_prior) ;
-  } else if (!stricmp(option, "NOVAR")) {
-    novar = 1 ;
-    printf("not using variance estimates\n") ;
-  } else switch (*option) {
+  if (!strcmp(option, "FSAMPLES"))
+    {
+      sample_fname = argv[2] ;
+      nargs = 1 ;
+      printf("writing control points to %s...\n", sample_fname) ;
+    }
+  else if (!strcmp(option, "MASK"))
+    {
+      mask_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+    }
+  else if (!strcmp(option, "SEG"))
+    {
+      seg_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using segmentation volume %s to generate control points...\n",
+             seg_fname) ;
+    }
+  else if (!strcmp(option, "FONLY"))
+    {
+      ctl_point_fname = argv[2] ;
+      nargs = 1 ;
+      file_only = 1 ;
+      printf("only using control points from file %s\n", ctl_point_fname) ;
+    }
+  else if (!strcmp(option, "DIAG"))
+    {
+      diag_fp = fopen(argv[2], "w") ;
+      if (!diag_fp)
+        ErrorExit(ERROR_NOFILE, "%s: could not open diag file %s for writing",
+                  Progname, argv[2]) ;
+      printf("opening diag file %s for writing\n", argv[2]) ;
+      nargs = 1 ;
+    }
+  else if (!strcmp(option, "DEBUG_VOXEL"))
+    {
+      Gx = atoi(argv[2]) ;
+      Gy = atoi(argv[3]) ;
+      Gz = atoi(argv[4]) ;
+      printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+      nargs = 3 ;
+    }
+  else if (!strcmp(option, "DEBUG_NODE"))
+    {
+      Ggca_x = atoi(argv[2]) ;
+      Ggca_y = atoi(argv[3]) ;
+      Ggca_z = atoi(argv[4]) ;
+      printf("debugging node (%d, %d, %d)\n", Ggca_x, Ggca_y, Ggca_z) ;
+      nargs = 3 ;
+    }
+  else if (!strcmp(option, "TR"))
+    {
+      TR = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using TR=%2.1f msec\n", TR) ;
+    }
+  else if (!strcmp(option, "EXAMPLE"))
+    {
+      example_T1 = argv[2] ;
+      example_segmentation = argv[3] ;
+      printf("using %s and %s as example T1 and segmentations respectively.\n",
+             example_T1, example_segmentation) ;
+      nargs = 2 ;
+    }
+  else if (!strcmp(option, "TE"))
+    {
+      TE = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using TE=%2.1f msec\n", TE) ;
+    }
+  else if (!strcmp(option, "ALPHA"))
+    {
+      nargs = 1 ;
+      alpha = RADIANS(atof(argv[2])) ;
+      printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
+    }
+  else if (!strcmp(option, "NSAMPLES"))
+    {
+      normalized_transformed_sample_fname = argv[2] ;
+      nargs = 1 ;
+      printf("writing  transformed normalization control points to %s...\n",
+             normalized_transformed_sample_fname) ;
+    }
+  else if (!strcmp(option, "RENORM"))
+    {
+      renormalization_fname = argv[2] ;
+      nargs = 1 ;
+      printf("renormalizing using predicted intensity values in %s...\n",
+             renormalization_fname) ;
+    }
+  else if (!strcmp(option, "FLASH"))
+    {
+      tissue_parms_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using FLASH forward model and tissue parms in %s to predict"
+             " intensity values...\n", tissue_parms_fname) ;
+    }
+  else if (!strcmp(option, "PRIOR"))
+    {
+      min_prior = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using prior threshold %2.2f\n", min_prior) ;
+    }
+  else if (!stricmp(option, "NOVAR"))
+    {
+      novar = 1 ;
+      printf("not using variance estimates\n") ;
+    }
+  else switch (*option)
+    {
     case 'W':
       Gdiag |= DIAG_WRITE ;
       break ;
@@ -606,12 +667,13 @@ static GCA_SAMPLE *
 find_control_points
 (GCA *gca, GCA_SAMPLE *gcas_total,
  int total_samples, int *pnorm_samples, int nregions, int label,
- MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct) {
+ MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct)
+{
   int        i, j, *ordered_indices, nsamples,
-  xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
-  x, y, z, xi, yi, zi, region_samples,
-  used_in_region, prior_wsize=5, image_wsize=3, histo_peak, n,
-                              nbins ;
+    xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
+    x, y, z, xi, yi, zi, region_samples,
+    used_in_region, prior_wsize=5, image_wsize=3, histo_peak, n,
+    nbins ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
   double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, nsigma ;
   HISTOGRAM  *histo, *hsmooth ;
@@ -636,253 +698,267 @@ find_control_points
 
   MRIvalRange(mri_in, &fmin, &fmax) ;
   nbins = (int)(fmax-fmin+1);
-  histo = HISTOalloc(nbins) ;
-  hsmooth = HISTOalloc(nbins) ;
-  for (nsamples = i = 0 ; i < total_samples ; i++) {
-    if (gcas_total[i].label != label)
-      continue ;
-    nsamples++ ;
-  }
+  histo = HISTOalloc(nbins) ; hsmooth = HISTOalloc(nbins) ;
+  for (nsamples = i = 0 ; i < total_samples ; i++)
+    {
+      if (gcas_total[i].label != label)
+        continue ;
+      nsamples++ ;
+    }
 
   *pnorm_samples = 0 ;
   printf("found %d control points for structure...\n", nsamples) ;
-  if (nsamples == 0) {
-    DiagBreak() ;
-    return(NO_ERROR) ;
-  }
+  if (nsamples == 0)
+    {
+      DiagBreak() ;
+      return(NO_ERROR) ;
+    }
   gcas = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   gcas_region = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   gcas_norm = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   if (!gcas || !gcas_region || !gcas_norm)
     ErrorExit
-    (ERROR_NOMEMORY,
-     "find_control_points: could not allocate %d samples\n",nsamples);
+      (ERROR_NOMEMORY,
+       "find_control_points: could not allocate %d samples\n",nsamples);
 
-  for (j = i = 0 ; i < total_samples ; i++) {
-    if (gcas_total[i].label != label)
-      continue ;
-    memmove(&gcas[j], &gcas_total[i], sizeof(GCA_SAMPLE)) ;
-    j++ ;
-  }
+  for (j = i = 0 ; i < total_samples ; i++)
+    {
+      if (gcas_total[i].label != label)
+        continue ;
+      memmove(&gcas[j], &gcas_total[i], sizeof(GCA_SAMPLE)) ;
+      j++ ;
+    }
   ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
 
   gcas_bounding_box
-  (gcas, nsamples, &xmin, &ymin, &zmin, &xmax, &ymax, &zmax, label) ;
+    (gcas, nsamples, &xmin, &ymin, &zmin, &xmax, &ymax, &zmax, label) ;
   printf("bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
          xmin, ymin, zmin, xmax, ymax, zmax) ;
-  for (x = 0 ; x < nregions ; x++) {
-    for (y = 0 ; y < nregions ; y++) {
-      for (z = 0 ; z < nregions ; z++) {
-        /* only process samples in this region */
-        nsigma = 1.0 ;
-        do {
-          for (region_samples = i = 0 ; i < nsamples ; i++) {
-            xi = (int)(nregions*(gcas[i].x - xmin) / (xmax-xmin+1)) ;
-            yi = (int)(nregions*(gcas[i].y - ymin) / (ymax-ymin+1)) ;
-            zi = (int)(nregions*(gcas[i].z - zmin) / (zmax-zmin+1)) ;
-            if ((xi < 0 || xi >= nregions) ||
-                (yi < 0 || yi >= nregions) ||
-                (zi < 0 || zi >= nregions))
-              DiagBreak() ;
-            xv = gcas[i].x ;
-            yv = gcas[i].y ;
-            zv = gcas[i].z ;
-            if (xi != x || yi != y || zi != z
-                || gcas[i].prior < min_prior)
-              continue ;
+  for (x = 0 ; x < nregions ; x++)
+    {
+      for (y = 0 ; y < nregions ; y++)
+        {
+          for (z = 0 ; z < nregions ; z++)
+            {
+              /* only process samples in this region */
+              nsigma = 1.0 ;
+              do
+                {
+                  for (region_samples = i = 0 ; i < nsamples ; i++)
+                    {
+                      xi = (int)(nregions*(gcas[i].x - xmin) / (xmax-xmin+1)) ;
+                      yi = (int)(nregions*(gcas[i].y - ymin) / (ymax-ymin+1)) ;
+                      zi = (int)(nregions*(gcas[i].z - zmin) / (zmax-zmin+1)) ;
+                      if ((xi < 0 || xi >= nregions) ||
+                          (yi < 0 || yi >= nregions) ||
+                          (zi < 0 || zi >= nregions))
+                        DiagBreak() ;
+                      xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+                      if (xi != x || yi != y || zi != z
+                          || gcas[i].prior < min_prior)
+                        continue ;
 
-            if (xv == Gx && yv == Gy && zv == Gz)
-              DiagBreak() ;
-            if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 2)
-              DiagBreak() ;
-            if (min_region_prior
-                (gca, gcas[i].xp, gcas[i].yp, gcas[i].zp,
-                 prior_wsize, label) < min_prior)
-              continue ;
-            if (uniform_region(gca, mri_in, transform,
-                               xv, yv, zv,
-                               image_wsize, &gcas[i], nsigma) == 0)
-              continue ;
-            memmove(&gcas_region[region_samples],
-                    &gcas[i],
-                    sizeof(GCA_SAMPLE)) ;
-            region_samples++ ;
-            if (gcas[i].x == Gx &&
-                gcas[i].y == Gy &&
-                gcas[i].z == Gz)
-              DiagBreak() ;
-          }
-          nsigma *= 1.1 ;
-        } while (region_samples < 8 && nsigma < 3) ;
+                      if (xv == Gx && yv == Gy && zv == Gz)
+                        DiagBreak() ;
+                      if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 2)
+                        DiagBreak() ;
+                      if (min_region_prior
+                          (gca, gcas[i].xp, gcas[i].yp, gcas[i].zp,
+                           prior_wsize, label) < min_prior)
+                        continue ;
+                      if (uniform_region(gca, mri_in, transform,
+                                         xv, yv, zv,
+                                         image_wsize, &gcas[i], nsigma) == 0)
+                        continue ;
+                      memmove(&gcas_region[region_samples],
+                              &gcas[i],
+                              sizeof(GCA_SAMPLE)) ;
+                      region_samples++ ;
+                      if (gcas[i].x == Gx &&
+                          gcas[i].y == Gy &&
+                          gcas[i].z == Gz)
+                        DiagBreak() ;
+                    }
+                  nsigma *= 1.1 ;
+                } while (region_samples < 8 && nsigma < 3) ;
 
-        if (region_samples < 8)/* can't reliably estimate statistics */
-          continue ;
-        if (DIAG_VERBOSE_ON)
-          printf("\t%d total samples found in region (%d, %d, %d)\n",
-                 region_samples,x, y,z) ;
-        /* compute mean and variance of label within this region */
-        for (n = 0 ; n < gca->ninputs ; n++) {
-          HISTOclear(histo, histo) ;
-          histo->bin_size = 1 ;
-          for (means[n] = vars[n] = 0.0, i = 0 ;
-               i < region_samples ;
-               i++) {
-            MRIsampleVolumeFrame
-            (mri_in,
-             gcas_region[i].x,gcas_region[i].y,gcas_region[i].z,
-             n, &val) ;
-            if (FZERO(val)) {
-              if (i < (region_samples-1))
-                memmove(&gcas_region[i],
-                        &gcas_region[i+1],
-                        (region_samples-(i+1))*sizeof(GCA_SAMPLE));
-              i-- ;
-              region_samples-- ;
-              continue ;
-            }
-            histo->counts[(int)val]++ ;
-            means[n] += val ;
-            vars[n] += (val*val) ;
+              if (region_samples < 8)/* can't reliably estimate statistics */
+                continue ;
+              if (DIAG_VERBOSE_ON)
+                printf("\t%d total samples found in region (%d, %d, %d)\n",
+                       region_samples,x, y,z) ;
+              /* compute mean and variance of label within this region */
+              for (n = 0 ; n < gca->ninputs ; n++)
+                {
+                  HISTOclear(histo, histo) ;
+                  histo->bin_size = 1 ;
+                  for (means[n] = vars[n] = 0.0, i = 0 ;
+                       i < region_samples ;
+                       i++)
+                    {
+                      MRIsampleVolumeFrame
+                        (mri_in,
+                         gcas_region[i].x,gcas_region[i].y,gcas_region[i].z,
+                         n, &val) ;
+                      if (FZERO(val))
+                        {
+                          if (i < (region_samples-1))
+                            memmove(&gcas_region[i],
+                                    &gcas_region[i+1],
+                                    (region_samples-(i+1))*sizeof(GCA_SAMPLE));
+                          i-- ;
+                          region_samples-- ;
+                          continue ;
+                        }
+                      histo->counts[(int)val]++ ;
+                      means[n] += val ;
+                      vars[n] += (val*val) ;
 #if 0
-            if (mri_T1) {
-              val = MRIvox(mri_T1,
-                           gcas_region[i].x,
-                           gcas_region[i].y,
-                           gcas_region[i].z) ;
-              if (val < 85 || val > 130) {
-                FILE *fp ;
-                fp = fopen("badpoints.log", "a") ;
-                fprintf(fp, "%s: (%d, %d, %d): %f\n",
-                        mri_in->fname,
-                        (int)gcas_region[i].x,
-                        (int)gcas_region[i].y,
-                        (int)gcas_region[i].z,val) ;
-                fclose(fp) ;
-                printf("!!!!!!!!!!!!!!!!!!!!!!! "
-                       "%s: (%d, %d, %d): %f "
-                       "!!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
-                       mri_in->fname,
-                       (int)gcas_region[i].x,
-                       (int)gcas_region[i].y,
-                       (int)gcas_region[i].z,val) ;
-              }
-            }
+                      if (mri_T1)
+                        {
+                          val = MRIvox(mri_T1,
+                                       gcas_region[i].x,
+                                       gcas_region[i].y,
+                                       gcas_region[i].z) ;
+                          if (val < 85 || val > 130)
+                            {
+                              FILE *fp ;
+                              fp = fopen("badpoints.log", "a") ;
+                              fprintf(fp, "%s: (%d, %d, %d): %f\n",
+                                      mri_in->fname,
+                                      (int)gcas_region[i].x,
+                                      (int)gcas_region[i].y,
+                                      (int)gcas_region[i].z,val) ;
+                              fclose(fp) ;
+                              printf("!!!!!!!!!!!!!!!!!!!!!!! "
+                                     "%s: (%d, %d, %d): %f "
+                                     "!!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
+                                     mri_in->fname,
+                                     (int)gcas_region[i].x,
+                                     (int)gcas_region[i].y,
+                                     (int)gcas_region[i].z,val) ;
+                            }
+                        }
 #endif
-          }
+                    }
 
-          HISTOsmooth(histo, hsmooth, 2) ;
-          histo_peak =
-            HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins) ;
-          if (histo_peak < 0)   /* couldn't find a valid peak? */
-            break ;
+                  HISTOsmooth(histo, hsmooth, 2) ;
+                  histo_peak =
+                    HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins) ;
+                  if (histo_peak < 0)   /* couldn't find a valid peak? */
+                    break ;
 
-          for (means[n] = vars[n] = 0.0, i = 0 ;
-               i < region_samples ;
-               i++) {
-            if (gcas_region[i].label < 0)
-              continue ;
-            MRIsampleVolumeFrame
-            (mri_in,
-             gcas_region[i].x,
-             gcas_region[i].y,
-             gcas_region[i].z,
-             n, &val) ;
-            means[n] += val ;
-            vars[n] += (val*val) ;
-          }
-          means[n] /= (double)region_samples ;
-          vars[n] =
-            vars[n] / (double)region_samples - means[n]*means[n] ;
+                  for (means[n] = vars[n] = 0.0, i = 0 ;
+                       i < region_samples ;
+                       i++)
+                    {
+                      if (gcas_region[i].label < 0)
+                        continue ;
+                      MRIsampleVolumeFrame
+                        (mri_in,
+                         gcas_region[i].x,
+                         gcas_region[i].y,
+                         gcas_region[i].z,
+                         n, &val) ;
+                      means[n] += val ;
+                      vars[n] += (val*val) ;
+                    }
+                  means[n] /= (double)region_samples ;
+                  vars[n] =
+                    vars[n] / (double)region_samples - means[n]*means[n] ;
 
-          means[n] = histo_peak ;
-          if (DIAG_VERBOSE_ON)
-            printf("\tlabel %s[%d]: %2.1f +- %2.1f\n",
-                   cma_label_to_name(label),
-                   n, means[n], sqrt(vars[n])) ;
-        }
+                  means[n] = histo_peak ;
+                  if (DIAG_VERBOSE_ON)
+                    printf("\tlabel %s[%d]: %2.1f +- %2.1f\n",
+                           cma_label_to_name(label),
+                           n, means[n], sqrt(vars[n])) ;
+                }
 
-        /* ignore GCA mean and variance -
-           use image instead (otherwise bias field will mess us up) */
-        for (i = 0 ; i < region_samples ; i++) {
-          int r ;
+              /* ignore GCA mean and variance -
+                 use image instead (otherwise bias field will mess us up) */
+              for (i = 0 ; i < region_samples ; i++)
+                {
+                  int r ;
 
-          for (r = 0 ; r < gca->ninputs ; r++)
-            gcas_region[i].means[r] = means[r] ;
-          /*          gcas_region[i].var = var ;*/
-        }
+                  for (r = 0 ; r < gca->ninputs ; r++)
+                    gcas_region[i].means[r] = means[r] ;
+                  /*          gcas_region[i].var = var ;*/
+                }
 
-        GCAcomputeLogSampleProbability
-        (gca, gcas_region, mri_in, transform, region_samples) ;
-        GCArankSamples
-        (gca, gcas_region, region_samples, ordered_indices) ;
+              GCAcomputeLogSampleProbability
+                (gca, gcas_region, mri_in, transform, region_samples) ;
+              GCArankSamples
+                (gca, gcas_region, region_samples, ordered_indices) ;
 #if 0
-        /* use detected peak as normalization value for whole region */
-        used_in_region = 1 ;
-        j = ordered_indices[0] ;
-        MRIvox(mri_in,
-               gcas_region[j].x,
-               gcas_region[j].y,
-               gcas_region[j].z) = histo_peak ;
-        memmove(&gcas_norm[*pnorm_samples],
-                &gcas_region[j],
-                sizeof(GCA_SAMPLE)) ;
-        (*pnorm_samples)++ ;
+              /* use detected peak as normalization value for whole region */
+              used_in_region = 1 ; j = ordered_indices[0] ;
+              MRIvox(mri_in,
+                     gcas_region[j].x,
+                     gcas_region[j].y,
+                     gcas_region[j].z) = histo_peak ;
+              memmove(&gcas_norm[*pnorm_samples],
+                      &gcas_region[j],
+                      sizeof(GCA_SAMPLE)) ;
+              (*pnorm_samples)++ ;
 #else
 #if 1
-        GCAremoveOutlyingSamples
-        (gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
+              GCAremoveOutlyingSamples
+                (gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
 #endif
-        for (used_in_region = i = 0 ; i < region_samples ; i++) {
-          j = ordered_indices[i] ;
-          if (gcas_region[j].label != label)  /* it was an outlier */
-            continue ;
-          memmove
-          (&gcas_norm[*pnorm_samples],
-           &gcas_region[j],
-           sizeof(GCA_SAMPLE)) ;
-          (*pnorm_samples)++ ;
-          used_in_region++ ;
-        }
-        if ((used_in_region <= 0) && region_samples>0) {
-          j = ordered_indices[0] ;
-          /*          gcas_region[j].label = label ;*/
-          printf("forcing use of sample %d @ (%d, %d, %d)\n", j,
-                 gcas_region[j].x,
-                 gcas_region[j].y,
-                 gcas_region[j].z) ;
-          memmove(&gcas_norm[*pnorm_samples],
-                  &gcas_region[j],
-                  sizeof(GCA_SAMPLE)) ;
-          (*pnorm_samples)++ ;
-          used_in_region++ ;
-        }
+              for (used_in_region = i = 0 ; i < region_samples ; i++)
+                {
+                  j = ordered_indices[i] ;
+                  if (gcas_region[j].label != label)  /* it was an outlier */
+                    continue ;
+                  memmove
+                    (&gcas_norm[*pnorm_samples],
+                     &gcas_region[j],
+                     sizeof(GCA_SAMPLE)) ;
+                  (*pnorm_samples)++ ; used_in_region++ ;
+                }
+              if ((used_in_region <= 0) && region_samples>0)
+                {
+                  j = ordered_indices[0] ;
+                  /*          gcas_region[j].label = label ;*/
+                  printf("forcing use of sample %d @ (%d, %d, %d)\n", j,
+                         gcas_region[j].x,
+                         gcas_region[j].y,
+                         gcas_region[j].z) ;
+                  memmove(&gcas_norm[*pnorm_samples],
+                          &gcas_region[j],
+                          sizeof(GCA_SAMPLE)) ;
+                  (*pnorm_samples)++ ; used_in_region++ ;
+                }
 #endif
-        if (DIAG_VERBOSE_ON)
-          printf("\t%d samples used in region\n", used_in_region) ;
-      }
+              if (DIAG_VERBOSE_ON)
+                printf("\t%d samples used in region\n", used_in_region) ;
+            }
+        }
     }
-  }
 
   /* put gca means back into samples */
-  for (i = 0 ; i < *pnorm_samples ; i++) {
-    gc = GCAfindPriorGC(gca,
-                        gcas_norm[i].xp,
-                        gcas_norm[i].yp,
-                        gcas_norm[i].zp,
-                        gcas_norm[i].label) ;
-    if (gc) {
-      int r, c, v ;
+  for (i = 0 ; i < *pnorm_samples ; i++)
+    {
+      gc = GCAfindPriorGC(gca,
+                          gcas_norm[i].xp,
+                          gcas_norm[i].yp,
+                          gcas_norm[i].zp,
+                          gcas_norm[i].label) ;
+      if (gc)
+        {
+          int r, c, v ;
 
-      for (v = r = 0 ; r < gca->ninputs ; r++) {
-        for (c = r ; c < gca->ninputs ; c++, v++) {
-          gcas_norm[i].means[v] = gc->means[v] ;
-          gcas_norm[i].covars[v] = gc->covars[v] ;
+          for (v = r = 0 ; r < gca->ninputs ; r++)
+            {
+              for (c = r ; c < gca->ninputs ; c++, v++)
+                {
+                  gcas_norm[i].means[v] = gc->means[v] ;
+                  gcas_norm[i].covars[v] = gc->covars[v] ;
+                }
+            }
         }
-      }
     }
-  }
-  HISTOfree(&histo) ;
-  HISTOfree(&hsmooth) ;
+  HISTOfree(&histo) ; HISTOfree(&hsmooth) ;
   free(gcas_region) ;
   free(gcas) ;
   if (mri_T1)
@@ -891,15 +967,16 @@ find_control_points
 }
 
 static GCA_SAMPLE *
-gcas_concatenate(GCA_SAMPLE *gcas1, GCA_SAMPLE *gcas2, int n1, int n2) {
+gcas_concatenate(GCA_SAMPLE *gcas1, GCA_SAMPLE *gcas2, int n1, int n2)
+{
   GCA_SAMPLE *gcas ;
   int        i ;
 
   gcas = (GCA_SAMPLE *)calloc(n1+n2, sizeof(GCA_SAMPLE)) ;
   if (!gcas)
     ErrorExit
-    (ERROR_NOMEMORY,
-     "gcas_concatenate: could not allocate %d samples",n1+n2) ;
+      (ERROR_NOMEMORY,
+       "gcas_concatenate: could not allocate %d samples",n1+n2) ;
 
   for (i = 0 ; i < n1 ; i++)
     memmove(&gcas[i], &gcas1[i], sizeof(GCA_SAMPLE)) ;
@@ -912,38 +989,37 @@ gcas_concatenate(GCA_SAMPLE *gcas1, GCA_SAMPLE *gcas2, int n1, int n2) {
 static int
 gcas_bounding_box(GCA_SAMPLE *gcas, int nsamples,
                   int *pxmin, int *pymin, int *pzmin,
-                  int *pxmax, int *pymax, int *pzmax, int label) {
+                  int *pxmax, int *pymax, int *pzmax, int label)
+{
   int   i, xmin, ymin, zmin, xmax, ymax, zmax ;
 
   xmax = ymax = zmax = -1 ;
   xmin = ymin = zmin = 1000000 ;
-  for (i = 0 ; i < nsamples ; i++) {
-    if (gcas[i].x < xmin)
-      xmin = gcas[i].x ;
-    if (gcas[i].y < ymin)
-      ymin = gcas[i].y ;
-    if (gcas[i].z < zmin)
-      zmin = gcas[i].z ;
+  for (i = 0 ; i < nsamples ; i++)
+    {
+      if (gcas[i].x < xmin)
+        xmin = gcas[i].x ;
+      if (gcas[i].y < ymin)
+        ymin = gcas[i].y ;
+      if (gcas[i].z < zmin)
+        zmin = gcas[i].z ;
 
-    if (gcas[i].x > xmax)
-      xmax = gcas[i].x ;
-    if (gcas[i].y > ymax)
-      ymax = gcas[i].y ;
-    if (gcas[i].z > zmax)
-      zmax = gcas[i].z ;
-  }
+      if (gcas[i].x > xmax)
+        xmax = gcas[i].x ;
+      if (gcas[i].y > ymax)
+        ymax = gcas[i].y ;
+      if (gcas[i].z > zmax)
+        zmax = gcas[i].z ;
+    }
 
-  *pxmin = xmin ;
-  *pymin = ymin ;
-  *pzmin = zmin ;
-  *pxmax = xmax ;
-  *pymax = ymax ;
-  *pzmax = zmax ;
+  *pxmin = xmin ; *pymin = ymin ; *pzmin = zmin ;
+  *pxmax = xmax ; *pymax = ymax ; *pzmax = zmax ;
   return(NO_ERROR) ;
 }
 
 static double
-min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label) {
+min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label)
+{
   int       whalf, xi, yi, zi, xk, yk, zk ;
   double    min_prior, prior ;
   GCA_PRIOR *gcap ;
@@ -951,25 +1027,28 @@ min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label) {
   gcap = &gca->priors[xp][yp][zp] ;
   min_prior = getPrior(gcap, label) ;
   whalf = (wsize-1)/(gca->prior_spacing*2) ;
-  for (xi = -whalf ; xi <= whalf ; xi++) {
-    xk = xp+xi ;
-    if (xk < 0 || xk >= gca->prior_width)
-      continue ;
-    for (yi = -whalf ; yi <= whalf ; yi++) {
-      yk = yp+yi ;
-      if (yk < 0 || yk >= gca->prior_height)
+  for (xi = -whalf ; xi <= whalf ; xi++)
+    {
+      xk = xp+xi ;
+      if (xk < 0 || xk >= gca->prior_width)
         continue ;
-      for (zi = -whalf ; zi <= whalf ; zi++) {
-        zk = zp+zi ;
-        if (zk < 0 || zk >= gca->prior_depth)
-          continue ;
-        gcap = &gca->priors[xk][yk][zk] ;
-        prior = getPrior(gcap, label) ;
-        if (prior < min_prior)
-          min_prior = prior ;
-      }
+      for (yi = -whalf ; yi <= whalf ; yi++)
+        {
+          yk = yp+yi ;
+          if (yk < 0 || yk >= gca->prior_height)
+            continue ;
+          for (zi = -whalf ; zi <= whalf ; zi++)
+            {
+              zk = zp+zi ;
+              if (zk < 0 || zk >= gca->prior_depth)
+                continue ;
+              gcap = &gca->priors[xk][yk][zk] ;
+              prior = getPrior(gcap, label) ;
+              if (prior < min_prior)
+                min_prior = prior ;
+            }
+        }
     }
-  }
 
   return(min_prior) ;
 }
@@ -978,7 +1057,8 @@ static int
 uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
                int x, int y, int z,
                int wsize, GCA_SAMPLE *gcas,
-               float nsigma) {
+               float nsigma)
+{
   int   xk, yk, zk, whalf, xi, yi, zi, n ;
   Real   val0, val, sigma, min_val,max_val, thresh ;
   MATRIX *m ;
@@ -990,35 +1070,39 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
   m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
 
   whalf = (wsize-1)/2 ;
-  for (n = 0 ; n < gca->ninputs ; n++) {
-    sigma = sqrt(*MATRIX_RELT(m, n+1, n+1)) ;
-    MRIsampleVolumeFrame(mri, (Real)x, (Real)y, (Real)z, n, &val0) ;
-    if (sigma < 0.05*val0)   /* don't let it be too small */
-      sigma = 0.05*val0 ;
-    if (sigma > 0.1*val0)    /* don't let it be too big */
-      sigma = 0.1*val0 ;
-    min_val = max_val = val0 ;
-    thresh = nsigma*sigma ;
+  for (n = 0 ; n < gca->ninputs ; n++)
+    {
+      sigma = sqrt(*MATRIX_RELT(m, n+1, n+1)) ;
+      MRIsampleVolumeFrame(mri, (Real)x, (Real)y, (Real)z, n, &val0) ;
+      if (sigma < 0.05*val0)   /* don't let it be too small */
+        sigma = 0.05*val0 ;
+      if (sigma > 0.1*val0)    /* don't let it be too big */
+        sigma = 0.1*val0 ;
+      min_val = max_val = val0 ;
+      thresh = nsigma*sigma ;
 
-    for (xk = -whalf ; xk <= whalf ; xk++) {
-      xi = mri->xi[x+xk] ;
-      for (yk = -whalf ; yk <= whalf ; yk++) {
-        yi = mri->yi[y+yk] ;
-        for (zk = -whalf ; zk <= whalf ; zk++) {
-          zi = mri->zi[z+zk] ;
-          MRIsampleVolumeFrame
-          (mri, (Real)xi, (Real)yi, (Real)zi, n, &val) ;
-          if (val < min_val)
-            min_val = val ;
-          if (val > max_val)
-            max_val = val ;
-          if (fabs(val-val0) > thresh ||
-              fabs(max_val-min_val) > thresh)
-            return(0) ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+        {
+          xi = mri->xi[x+xk] ;
+          for (yk = -whalf ; yk <= whalf ; yk++)
+            {
+              yi = mri->yi[y+yk] ;
+              for (zk = -whalf ; zk <= whalf ; zk++)
+                {
+                  zi = mri->zi[z+zk] ;
+                  MRIsampleVolumeFrame
+                    (mri, (Real)xi, (Real)yi, (Real)zi, n, &val) ;
+                  if (val < min_val)
+                    min_val = val ;
+                  if (val > max_val)
+                    max_val = val ;
+                  if (fabs(val-val0) > thresh ||
+                      fabs(max_val-min_val) > thresh)
+                    return(0) ;
+                }
+            }
         }
-      }
     }
-  }
 
   MatrixFree(&m) ;
   return(1) ;
@@ -1026,7 +1110,8 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
 
 static int
 discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                                MRI *mri_in, TRANSFORM *transform, char *name) {
+                                MRI *mri_in, TRANSFORM *transform, char *name)
+{
   int    i, xv, yv, zv, n, peak, start, end, num ;
   HISTO *h, *hsmooth ;
   float  fmin, fmax ;
@@ -1035,61 +1120,61 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   if (nsamples == 0)
     return(NO_ERROR) ;
 
-  for (num = n = 0 ; n < gca->ninputs ; n++) {
-    MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
-    h = HISTOalloc(nint(fmax-fmin)+1) ;
-    h->bin_size = (fmax-fmin)/(float)h->nbins ;
-    for (i = 0 ; i < h->nbins ; i++)
-      h->bins[i] = (i+1)*h->bin_size+fmin ;
+  for (num = n = 0 ; n < gca->ninputs ; n++)
+    {
+      MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
+      h = HISTOalloc(nint(fmax-fmin)+1) ;
+      h->bin_size = (fmax-fmin)/(float)h->nbins ;
+      for (i = 0 ; i < h->nbins ; i++)
+        h->bins[i] = (i+1)*h->bin_size+fmin ;
 
-    for (i = 0 ; i < nsamples ; i++) {
-      xv = gcas[i].x ;
-      yv = gcas[i].y ;
-      zv = gcas[i].z ;
-      if (xv == Gx && yv == Gy && zv == Gz)
-        DiagBreak() ;
-      MRIsampleVolumeFrame
-      (mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
-      if (FZERO(val))
-        DiagBreak() ;
-      h->counts[nint(val-fmin)]++ ;
+      for (i = 0 ; i < nsamples ; i++)
+        {
+          xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+          if (xv == Gx && yv == Gy && zv == Gz)
+            DiagBreak() ;
+          MRIsampleVolumeFrame
+            (mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
+          if (FZERO(val))
+            DiagBreak() ;
+          h->counts[nint(val-fmin)]++ ;
+        }
+
+      /* check to see  if peak is unlikely */
+      hsmooth = HISTOsmooth(h, NULL, 2) ;
+      do
+        {
+          if (gca->ninputs == 1) /*  find  brightest peak as
+                                     for  n=1 it is T1  weighted  */
+            peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+          else
+            peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+          end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
+          start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
+          for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++)
+            {
+              mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
+            }
+          mean_ratio /= (Real)nsamples ;
+          HISTOclearBins
+            (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
+        } while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
+
+      printf("%s: limiting intensities to %2.1f --> %2.1f\n",
+             name, fmin+start, fmin+end) ;
+      for (i = 0 ; i < nsamples ; i++)
+        {
+          xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+          if (xv == Gx && yv == Gy && zv == Gz)
+            DiagBreak() ;
+          MRIsampleVolumeFrame(mri_in,gcas[i].x,gcas[i].y,gcas[i].z,n,&val) ;
+          if (val-fmin < start || val-fmin > end)
+            {
+              num++ ; gcas[i].label = 0 ;
+            }
+        }
+      HISTOfree(&h) ; HISTOfree(&hsmooth) ;
     }
-
-    /* check to see  if peak is unlikely */
-    hsmooth = HISTOsmooth(h, NULL, 2) ;
-    do {
-      if (gca->ninputs == 1) /*  find  brightest peak as
-                                                                     for  n=1 it is T1  weighted  */
-        peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-      else
-        peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
-      end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
-      start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
-      for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++) {
-        mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
-      }
-      mean_ratio /= (Real)nsamples ;
-      HISTOclearBins
-      (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
-    } while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
-
-    printf("%s: limiting intensities to %2.1f --> %2.1f\n",
-           name, fmin+start, fmin+end) ;
-    for (i = 0 ; i < nsamples ; i++) {
-      xv = gcas[i].x ;
-      yv = gcas[i].y ;
-      zv = gcas[i].z ;
-      if (xv == Gx && yv == Gy && zv == Gz)
-        DiagBreak() ;
-      MRIsampleVolumeFrame(mri_in,gcas[i].x,gcas[i].y,gcas[i].z,n,&val) ;
-      if (val-fmin < start || val-fmin > end) {
-        num++ ;
-        gcas[i].label = 0 ;
-      }
-    }
-    HISTOfree(&h) ;
-    HISTOfree(&hsmooth) ;
-  }
 
   printf("%d of %d (%2.1f%%) samples deleted\n",
          num, nsamples, 100.0f*(float)num/(float)nsamples) ;
@@ -1097,7 +1182,8 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 }
 
 static void
-usage_exit(int code) {
+usage_exit(int code)
+{
   printf("usage: %s <in volume> <atlas> <transform> <normalized volume>\n\n",
          Progname) ;
   printf("\t-fsamples <filename>         write control points to filename\n");
@@ -1135,7 +1221,8 @@ usage_exit(int code) {
 }
 static MRI *
 normalize_from_segmentation_volume
-(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs) {
+(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs)
+{
   MRI *mri_bin, *mri_tmp ;
   int i, x, y, z, label, ctrl ;
 
@@ -1143,7 +1230,8 @@ normalize_from_segmentation_volume
     mri_dst = MRIclone(mri_src, NULL) ;
   mri_tmp = MRIclone(mri_seg, NULL) ;
   mri_bin = MRIclone(mri_seg, NULL) ;
-  for (i = 0 ; i < nstructs ; i++) {
+  for (i = 0 ; i < nstructs ; i++)
+  {
     MRIcopyLabel(mri_seg, mri_tmp, structs[i]) ;
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
     MRIerode(mri_tmp, mri_tmp) ;
@@ -1156,20 +1244,22 @@ normalize_from_segmentation_volume
   //  mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;
   //normalize each channel separately
 
-  for (i=0; i < mri_src->nframes; i++) {
+  for(i=0; i < mri_src->nframes; i++){
     mri_dst = normalizeChannelFromLabel(mri_src, mri_dst, mri_bin, fas, i);
   }
-
+  
   MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin) ;
   // remove control points that don't agree with the seg
   for (x = 0 ; x < mri_dst->width ; x++)
     for (y = 0 ; y < mri_dst->height ; y++)
-      for (z = 0 ; z < mri_dst->depth ; z++) {
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
         ctrl = (int)nint(MRIgetVoxVal(mri_bin, x, y, z, 0)) ;
         if (ctrl == 0)
           continue ;
         label = (int)nint(MRIgetVoxVal(mri_seg, x, y, z, 0)) ;
-        switch (label) {
+        switch (label)
+        {
         default:
           MRIsetVoxVal(mri_bin, x, y, z, 0, 0) ;
           break ;
@@ -1184,19 +1274,19 @@ normalize_from_segmentation_volume
         }
       }
 
+          
 
-
-  for (i=0; i < mri_src->nframes; i++) {
+  for(i=0; i < mri_src->nframes; i++){
     normalizeChannelFromLabel(mri_dst, mri_dst, mri_bin, fas, i);
   }
 
-  MRIfree(&mri_bin) ;
-  MRIfree(&mri_tmp) ;
+  MRIfree(&mri_bin) ; MRIfree(&mri_tmp) ;
   return(mri_dst) ;
 }
 #include "mrinorm.h"
 MRI *
-normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) {
+normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
+{
   MRI    *mri_ctrl, *mri_bias ;
   int    x, y, z, width, height, depth, num, total, input, T1_index, i ;
   float   bias ;
@@ -1205,14 +1295,13 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) {
 
   max_fa = fas[T1_index = 0] ;
   for (i = 1 ; i < mri_in->nframes ; i++)
-    if (fas[i] > max_fa) {
-      T1_index = i ;
-      max_fa = fas[i] ;
-    }
+    if (fas[i] > max_fa)
+      {
+        T1_index = i ;
+        max_fa = fas[i] ;
+      }
   printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
@@ -1220,9 +1309,9 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) {
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)
     ErrorExit
-    (ERROR_NOMEMORY,
-     "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
-     mri_in->width,mri_in->height,mri_in->depth) ;
+      (ERROR_NOMEMORY,
+       "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+       mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
 #define NO_BIAS  1000
@@ -1230,64 +1319,76 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) {
   /* use all non-zero locations in mri_seg as control points */
   MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
-        if (MRIvox(mri_ctrl, x, y, z) !=
-            CONTROL_MARKED)  /* not read from file */
-          continue ;
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
+              if (MRIvox(mri_ctrl, x, y, z) !=
+                  CONTROL_MARKED)  /* not read from file */
+                continue ;
 
-        MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
-        bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;
-        MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
-      }
+              MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
+              bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;
+              MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+            }
+        }
     }
-  }
 
   /* now check for and remove outliers */
   mean = sigma = 0.0 ;
-  for (num = z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED) {
-          num++ ;
-          bias = (double)MRISvox(mri_bias, x, y, z) ;
-          mean += bias ;
-          sigma += (bias*bias) ;
+  for (num = z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)
+                {
+                  num++ ;
+                  bias = (double)MRISvox(mri_bias, x, y, z) ;
+                  mean += bias ; sigma += (bias*bias) ;
+                }
+            }
         }
-      }
     }
-  }
 
-  if (num > 0) {
-    mean /= (double)num ;
-    sigma  = sqrt(sigma / (double)num - mean*mean) ;
-    printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
-  }
+  if (num > 0)
+    {
+      mean /= (double)num ;
+      sigma  = sqrt(sigma / (double)num - mean*mean) ;
+      printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
+    }
 
   /* now check for and remove outliers */
-  for (total = num = z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED) {
-          bias = (double)MRISvox(mri_bias, x, y, z) ;
-          total++ ;
-          if (fabs(bias-mean) > 4*sigma) {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
-            num++ ;
-            MRISvox(mri_bias, x, y, z) = NO_BIAS ;
-          }
+  for (total = num = z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)
+                {
+                  bias = (double)MRISvox(mri_bias, x, y, z) ;
+                  total++ ;
+                  if (fabs(bias-mean) > 4*sigma)
+                    {
+                      MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
+                      num++ ;
+                      MRISvox(mri_bias, x, y, z) = NO_BIAS ;
+                    }
+                }
+            }
         }
-      }
     }
-  }
 
   printf("%d of %d control points discarded\n", num, total) ;
 
@@ -1301,83 +1402,79 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) {
     mri_down = MRIdownsample2(mri_bias, NULL) ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     mri_smooth = MRIconvolveGaussian(mri_down, NULL, mri_kernel) ;
-    MRIfree(&mri_bias) ;
-    MRIfree(&mri_kernel) ;
+    MRIfree(&mri_bias) ; MRIfree(&mri_kernel) ;
     mri_bias = MRIupsample2(mri_smooth, NULL) ;
-    sigma = 2.0f ;
-    MRIfree(&mri_down) ;
-    MRIfree(&mri_smooth) ;
+    sigma = 2.0f ; MRIfree(&mri_down) ; MRIfree(&mri_smooth) ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
-    MRIfree(&mri_bias) ;
-    mri_bias = mri_smooth ;
-    MRIfree(&mri_kernel) ;
+    MRIfree(&mri_bias) ; mri_bias = mri_smooth ; MRIfree(&mri_kernel) ;
   }
 #else
   MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
-        if (bias < 0)
-          DiagBreak() ;
-        for (input = 0 ; input < mri_in->nframes ; input++) {
-          MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-          val *= bias ;   /* corrected value */
-          switch (mri_in->type) {
-          case MRI_UCHAR:
-            if (val < 0)
-              val = 0 ;
-            else if (val > 255)
-              val = 255 ;
-            MRIseq_vox(mri_dst, x, y, z, input) =
-              (BUFTYPE)nint(val) ;
-            break ;
-          case MRI_SHORT:
-            MRISseq_vox(mri_dst, x, y, z, input) =
-              (short)nint(val) ;
-            break ;
-          case MRI_FLOAT:
-            MRIFseq_vox(mri_dst, x, y, z, input) =
-              val ;
-            break ;
-          default:
-            ErrorReturn
-            (NULL,
-             (ERROR_UNSUPPORTED,
-              "GCAnormalizeSamples: unsupported input type %d",
-              mri_in->type));
-            break ;
-          }
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
+              if (bias < 0)
+                DiagBreak() ;
+              for (input = 0 ; input < mri_in->nframes ; input++)
+                {
+                  MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+                  val *= bias ;   /* corrected value */
+                  switch (mri_in->type)
+                    {
+                    case MRI_UCHAR:
+                      if (val < 0)
+                        val = 0 ;
+                      else if (val > 255)
+                        val = 255 ;
+                      MRIseq_vox(mri_dst, x, y, z, input) =
+                        (BUFTYPE)nint(val) ;
+                      break ;
+                    case MRI_SHORT:
+                      MRISseq_vox(mri_dst, x, y, z, input) =
+                        (short)nint(val) ;
+                      break ;
+                    case MRI_FLOAT:
+                      MRIFseq_vox(mri_dst, x, y, z, input) =
+                        val ;
+                      break ;
+                    default:
+                      ErrorReturn
+                        (NULL,
+                         (ERROR_UNSUPPORTED,
+                          "GCAnormalizeSamples: unsupported input type %d",
+                          mri_in->type));
+                      break ;
+                    }
+                }
+            }
         }
-      }
     }
-  }
 
-  MRIfree(&mri_bias) ;
-  MRIfree(&mri_ctrl) ;
+  MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
 }
 
 
 MRI *
 normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
-                          double *fas, int input_index) {
+                          double *fas, int input_index)
+{
   MRI    *mri_ctrl, *mri_bias ;
   int    x, y, z, width, height, depth, num, total;
   float   bias ;
   double  mean, sigma;
   Real    val ;
 
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
@@ -1385,9 +1482,9 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)
     ErrorExit
-    (ERROR_NOMEMORY,
-     "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
-     mri_in->width,mri_in->height,mri_in->depth) ;
+      (ERROR_NOMEMORY,
+       "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+       mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
 #define NO_BIAS  1000
@@ -1395,64 +1492,76 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
   /* use all non-zero locations in mri_seg as control points */
   MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
-        if (MRIvox(mri_ctrl, x, y, z) !=
-            CONTROL_MARKED)  /* not read from file */
-          continue ;
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
+              if (MRIvox(mri_ctrl, x, y, z) !=
+                  CONTROL_MARKED)  /* not read from file */
+                continue ;
 
-        MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
-        bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;
-        MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
-      }
+              MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+              bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;
+              MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+            }
+        }
     }
-  }
 
   /* now check for and remove outliers */
   mean = sigma = 0.0 ;
-  for (num = z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED) {
-          num++ ;
-          bias = (double)MRISvox(mri_bias, x, y, z) ;
-          mean += bias ;
-          sigma += (bias*bias) ;
+  for (num = z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)
+                {
+                  num++ ;
+                  bias = (double)MRISvox(mri_bias, x, y, z) ;
+                  mean += bias ; sigma += (bias*bias) ;
+                }
+            }
         }
-      }
     }
-  }
 
-  if (num > 0) {
-    mean /= (double)num ;
-    sigma  = sqrt(sigma / (double)num - mean*mean) ;
-    printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
-  }
+  if (num > 0)
+    {
+      mean /= (double)num ;
+      sigma  = sqrt(sigma / (double)num - mean*mean) ;
+      printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
+    }
 
   /* now check for and remove outliers */
-  for (total = num = z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED) {
-          bias = (double)MRISvox(mri_bias, x, y, z) ;
-          total++ ;
-          if (fabs(bias-mean) > 2*sigma) {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
-            num++ ;
-            MRISvox(mri_bias, x, y, z) = NO_BIAS ;
-          }
+  for (total = num = z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+            {
+              if (x == Gx && y == Gy && z == Gz)
+                DiagBreak() ;
+              if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)
+                {
+                  bias = (double)MRISvox(mri_bias, x, y, z) ;
+                  total++ ;
+                  if (fabs(bias-mean) > 2*sigma)
+                    {
+                      MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
+                      num++ ;
+                      MRISvox(mri_bias, x, y, z) = NO_BIAS ;
+                    }
+                }
+            }
         }
-      }
     }
-  }
 
   printf("%d of %d control points discarded\n", num, total) ;
 
@@ -1466,17 +1575,12 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
     mri_down = MRIdownsample2(mri_bias, NULL) ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     mri_smooth = MRIconvolveGaussian(mri_down, NULL, mri_kernel) ;
-    MRIfree(&mri_bias) ;
-    MRIfree(&mri_kernel) ;
+    MRIfree(&mri_bias) ; MRIfree(&mri_kernel) ;
     mri_bias = MRIupsample2(mri_smooth, NULL) ;
-    sigma = 2.0f ;
-    MRIfree(&mri_down) ;
-    MRIfree(&mri_smooth) ;
+    sigma = 2.0f ; MRIfree(&mri_down) ; MRIfree(&mri_smooth) ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
-    MRIfree(&mri_bias) ;
-    mri_bias = mri_smooth ;
-    MRIfree(&mri_kernel) ;
+    MRIfree(&mri_bias) ; mri_bias = mri_smooth ; MRIfree(&mri_kernel) ;
   }
 #else
   MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
@@ -1484,49 +1588,50 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 
 
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
-        bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
-        if (bias < 0)
-          DiagBreak() ;
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
         {
-          MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
-          val *= bias ;   /* corrected value */
-          switch (mri_in->type) {
-          case MRI_UCHAR:
-            if (val < 0)
-              val = 0 ;
-            else if (val > 255)
-              val = 255 ;
-            MRIseq_vox(mri_dst, x, y, z, input_index) =
-              (BUFTYPE)nint(val) ;
-            break ;
-          case MRI_SHORT:
-            MRISseq_vox(mri_dst, x, y, z, input_index) =
-              (short)nint(val) ;
-            break ;
-          case MRI_FLOAT:
-            MRIFseq_vox(mri_dst, x, y, z, input_index) =
-              val ;
-            break ;
-          default:
-            ErrorReturn
-            (NULL,
-             (ERROR_UNSUPPORTED,
-              "GCAnormalizeSamples: unsupported input type %d",
-              mri_in->type));
-            break ;
-          }
+          for (x = 0 ; x < width ; x++)
+            {
+              bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
+              if (bias < 0)
+                DiagBreak() ;
+              {
+                MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+                val *= bias ;   /* corrected value */
+                switch (mri_in->type)
+                  {
+                  case MRI_UCHAR:
+                    if (val < 0)
+                      val = 0 ;
+                    else if (val > 255)
+                      val = 255 ;
+                    MRIseq_vox(mri_dst, x, y, z, input_index) =
+                      (BUFTYPE)nint(val) ;
+                    break ;
+                  case MRI_SHORT:
+                    MRISseq_vox(mri_dst, x, y, z, input_index) =
+                      (short)nint(val) ;
+                    break ;
+                  case MRI_FLOAT:
+                    MRIFseq_vox(mri_dst, x, y, z, input_index) =
+                      val ;
+                    break ;
+                  default:
+                    ErrorReturn
+                      (NULL,
+                       (ERROR_UNSUPPORTED,
+                        "GCAnormalizeSamples: unsupported input type %d",
+                        mri_in->type));
+                    break ;
+                  }
+              }
+            }
         }
-      }
     }
-  }
 
-  MRIfree(&mri_bias) ;
-  MRIfree(&mri_ctrl) ;
+  MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
 }
