@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/02 21:19:30 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/01/02 21:25:15 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.56 $";
+char *MRI_INFO_VERSION = "$Revision: 1.57 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.56 2007/01/02 21:19:30 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.57 2007/01/02 21:25:15 nicks Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -272,7 +272,7 @@ static void print_help(void) {
     "\n"
     "Dumps information about the volume to stdout. Specific pieces \n"
     "of information can be printed out as well by specifying the proper\n"
-    "flag (eg, --tr for TR). Time is in msec. Distance is in MM. Angles\n"
+    "flag (eg, --tr for TR). Time is in msec. Distance is in mm. Angles\n"
     "are in radians.\n"
     "\n"
     "The direction cosine outputs (--cdc, --rdc, --sdc) correspond to \n"
