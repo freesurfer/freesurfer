@@ -1,5 +1,5 @@
 
-# $Id: tksurfer.tcl,v 1.129 2006/11/15 19:54:14 kteich Exp $
+# $Id: tksurfer.tcl,v 1.130 2007/01/02 19:51:21 kteich Exp $
 
 package require BLT;
 
@@ -1089,36 +1089,77 @@ proc DoConfigOverlayDisplayDlog {} {
 	# calc a new max when set.
 	tkm_MakeEntry $ewMin "Min" gaLinkedVars(fthresh) 6 \
 	    {
-		SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
-		if { [string match $gaHistogramData(threshMode) linear] } { 
-		    CalcNewLinearThreshold $gaHistoWidget(graph)
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gaLinkedVars(fthresh)] } {
+		    SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
+		    if { [string match $gaHistogramData(threshMode) \
+			      linear] } { 
+			CalcNewLinearThreshold $gaHistoWidget(graph)
+		    }
+		} else {
+		    bell
 		}
 	    }
 	# Mid field isn't active in linear threshold mode.
 	tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
 	    {
-		if { [string match $gaHistogramData(threshMode) piecewise] } { 
-		    SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
-		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gaLinkedVars(fthresh)] } {
+		    if { [string match $gaHistogramData(threshMode) \
+			      piecewise] } { 
+			SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+			CalcNewPiecewiseThresholdSlopeFromMidMax \
+			    $gaHistoWidget(graph)
+		    }
+		} else {
+		    bell
 		}
 	    }
 	tkm_MakeEntry $ewMax "Max" gaLinkedVars(fthreshmax) 6 \
 	    {
-		SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
-		if { [string match $gaHistogramData(threshMode) linear] } { 
-		    CalcNewLinearThreshold $gaHistoWidget(graph)
-		} elseif { [string match $gaHistogramData(threshMode) piecewise] } {   
-		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gaLinkedVars(fthresh)] } {
+		    SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
+		    if { [string match $gaHistogramData(threshMode) \
+			      linear] } { 
+			CalcNewLinearThreshold $gaHistoWidget(graph)
+		    } elseif { [string match $gaHistogramData(threshMode)\
+				    piecewise] } {   
+			CalcNewPiecewiseThresholdSlopeFromMidMax \
+			    $gaHistoWidget(graph)
+		    }
+		} else {
+		    bell
 		}
 	    }
 	# Slope field isn't active in linear threshold mode.
 	tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
 	    {
-		if { [string match $gaHistogramData(threshMode) piecewise] } { 
-		    SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
-		    CalcNewPiecewiseThresholdMaxFromMidSlope $gaHistoWidget(graph)
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gaLinkedVars(fthresh)] } {
+		    if { [string match $gaHistogramData(threshMode) \
+			      piecewise] } { 
+			SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
+			CalcNewPiecewiseThresholdMaxFromMidSlope \
+			    $gaHistoWidget(graph)
+		    }
+		} else {
+		    bell
 		}
 	    }
+
+	# Add field validators to only allow the user to enter
+	# floating numbers. These validators allow partial numbers
+	# like "-", "-2.", and even "". We'll check for complete
+	# numbers in the callback functions.
+ 	$ewMin.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$ewMid.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$ewMax.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$ewSlope.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
 	
 	# color the entries to match the lines in the histogram.
 	$ewMin.lwLabel config -fg red 
@@ -5776,4 +5817,3 @@ foreach fnUserScript $lUserScripts {
 	}
     }
 }
-
