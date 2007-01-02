@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.134 $
+ *    $Date: 2007/01/02 20:50:34 $
+ *    $Revision: 1.135 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,16 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_convert.c
-// original: written by Bruce Fischl (Apr 16, 1997)
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.134 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,7 +170,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.134 2006/12/29 02:09:06 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.135 2007/01/02 20:50:34 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -280,7 +270,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.134 2006/12/29 02:09:06 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.135 2007/01/02 20:50:34 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -716,11 +706,13 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
     }
-    else if(strcmp(argv[i], "-sc") == 0 || strcmp(argv[i], "--scale") == 0) {
+    else if(strcmp(argv[i], "-sc") == 0 || 
+            strcmp(argv[i], "--scale") == 0) {
       scale_factor = atof(argv[i+1]) ;
       i++ ;
     }
-    else if(strcmp(argv[i], "-osc") == 0 || strcmp(argv[i], "--out-scale") == 0) {
+    else if(strcmp(argv[i], "-osc") == 0 || 
+            strcmp(argv[i], "--out-scale") == 0) {
       out_scale_factor = atof(argv[i+1]) ;
       i++ ;
     }
@@ -745,7 +737,8 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
     }
-    else if(strcmp(argv[i], "-it") == 0 || strcmp(argv[i], "--in_type") == 0) {
+    else if(strcmp(argv[i], "-it") == 0 || 
+            strcmp(argv[i], "--in_type") == 0) {
       get_string(argc, argv, &i, in_type_string);
       forced_in_type = string_to_type(in_type_string);
       force_in_type_flag = TRUE;
@@ -1215,7 +1208,8 @@ int main(int argc, char *argv[]) {
 
   if (in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)    {
     errno = 0;
-    ErrorPrintf(ERROR_BADFILE, "file not found or unknown file type for file %s",
+    ErrorPrintf(ERROR_BADFILE, 
+                "file not found or unknown file type for file %s",
                 in_name_only);
     if (in_like_flag) MRIfree(&mri_in_like);
     exit(1);
@@ -1354,7 +1348,6 @@ int main(int argc, char *argv[]) {
           mri = MRIreadEx(in_name, nthframe);
       }
     }
-
   }
 
 
@@ -1424,7 +1417,8 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     if (mri->nframes != mri_in_like->nframes)
-      printf("INFO: frames are not the same, but I'm going to let that slide\n");
+      printf("INFO: frames are not the same, "
+             "but I'm going to let that slide\n");
 
     temp_type = mri->type;
 
@@ -1659,7 +1653,8 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "INFO: Succeeded in retrieving "
                     "the source volume info.\n");
           } else  printf("INFO: Failed to find %s as a source volume.  \n"
-                           "      The inverse c_(ras) may not be valid.\n",buf);
+                           "      The inverse c_(ras) may not be valid.\n",
+                         buf);
         }
         copyVolGeom(&lt->dst, &vgtmp);
         copyVolGeom(&lt->src, &lt->dst);
@@ -2562,7 +2557,8 @@ void usage(FILE *stream) {
     "\n"
     "reorient to sphinx the position. This function is applicable when \n"
     "the input geometry information is correct but the  subject was in the \n"
-    "scanner in the 'sphinx' position (ie, AP in line with the bore) instead \n"
+    "scanner in the 'sphinx' position "
+    "(ie, AP in line with the bore) instead \n"
     "of head-first-supine (HFS). This is often the  case with monkeys.\n"
     "Note that the assumption is that the geometry information in the input\n"
     "file is otherwise accurate.\n"
