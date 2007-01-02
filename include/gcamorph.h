@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/01/02 16:48:16 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -319,5 +319,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 
 #include "mrisurf.h"
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
+
+int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma)
 
 #endif
