@@ -1,15 +1,20 @@
 /**
  * @file  mri_normalize.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Normalize the white-matter, based on control points.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * The variation in intensity due to the B1 bias field is corrected.
+ *
+ * Reference:
+ * "Cortical Surface-Based Analysis I: Segmentation and Surface
+ * Reconstruction", Dale, A.M., Fischl, B., Sereno, M.I.
+ * (1999) NeuroImage 9(2):179-194
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.51 $
+ *    $Date: 2007/01/02 21:34:40 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,9 +79,10 @@ static char *control_point_fname ;
 static char *aseg_fname = NULL ;
 //static int aseg_wm_labels[] =
 // { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter, Brain_Stem} ;
-static int aseg_wm_labels[] = {
-                                Left_Cerebral_White_Matter, Right_Cerebral_White_Matter
-                              } ;
+static int aseg_wm_labels[] = 
+{
+  Left_Cerebral_White_Matter, Right_Cerebral_White_Matter
+} ;
 #define NWM_LABELS (sizeof(aseg_wm_labels) / sizeof(aseg_wm_labels[0]))
 
 static char *control_volume_fname = NULL ;
@@ -99,14 +105,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.51 2006/12/29 02:09:08 nicks Exp $",
+   "$Id: mri_normalize.c,v 1.52 2007/01/02 21:34:40 nicks Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.51 2006/12/29 02:09:08 nicks Exp $",
+           "$Id: mri_normalize.c,v 1.52 2007/01/02 21:34:40 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -223,7 +229,7 @@ main(int argc, char *argv[]) {
   /* first do a gentle normalization to get
      things in the right intensity range */
   if (control_point_fname != NULL)  /* do one pass with only
-                                                       file control points first */
+                                       file control points first */
     mri_dst =
       MRI3dGentleNormalize(mri_src,
                            NULL,
@@ -252,7 +258,8 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_ctrl) ;
     MRIfree(&mri_aseg) ;
     mri_dst = MRIapplyBiasCorrectionSameGeometry
-              (mri_dst, mri_bias, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+              (mri_dst, mri_bias, mri_dst, 
+               DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_dst, "norm_1.mgz") ;
   } else {
@@ -371,10 +378,14 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "conform")) {
     conform = atoi(argv[1]) ;
     nargs = 1 ;
-    fprintf(stderr, "%sinterpolating and embedding volume to be 256^3...\n", conform ? "": "not ") ;
+    fprintf(stderr, 
+            "%sinterpolating and embedding volume to be 256^3...\n", 
+            conform ? "": "not ") ;
   } else if (!stricmp(option, "noconform")) {
     conform = 0 ;
-    fprintf(stderr, "%sinterpolating and embedding volume to be 256^3...\n", conform ? "": "not ") ;
+    fprintf(stderr, 
+            "%sinterpolating and embedding volume to be 256^3...\n", 
+            conform ? "": "not ") ;
   } else if (!stricmp(option, "aseg") || !stricmp(option, "segmentation")) {
     aseg_fname = argv[2] ;
     nargs = 1  ;
