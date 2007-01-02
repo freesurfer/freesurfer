@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/02 19:24:52 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.19 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.20 2007/01/02 19:24:52 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -58,6 +58,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
+static int which_norm = NORM_MEAN ;
 static double MIN_AREA_PCT = 0.1 ;
 static char *read_fname = NULL ;
 static int nbrs = 2 ;
@@ -179,7 +180,7 @@ main(int argc, char *argv[]) {
       break ;
     }
     if (gcsa->inputs[i].flags & GCSA_NORMALIZE)
-      MRISnormalizeCurvature(mris) ;
+      MRISnormalizeCurvature(mris, which_norm) ;
     MRIScopyCurvatureToValues(mris) ;
     if (i == 2)
       MRIScopyCurvatureToImagValues(mris) ;
