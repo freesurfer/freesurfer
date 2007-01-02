@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/01/02 20:05:40 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.37 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.38 2007/01/02 20:05:40 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -74,6 +74,8 @@ static char vcid[] = "$Id: mris_show.c,v 1.37 2006/12/29 02:09:11 nicks Exp $";
 #endif
 
 #define MAX_MARKED       20000
+
+static int which_norm = NORM_MEAN;
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -174,7 +176,7 @@ main(int argc, char *argv[]) {
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.37 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.38 2007/01/02 20:05:40 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -255,7 +257,7 @@ main(int argc, char *argv[]) {
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (mrisp) {
-    MRISnormalizeCurvature(mris) ;
+    MRISnormalizeCurvature(mris, which_norm) ;
     MRISstoreMeanCurvature(mris) ;
     starting_mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -264,7 +266,7 @@ main(int argc, char *argv[]) {
       MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
     else
       MRISfromParameterization(mrisp, mris, param_no) ;
-    MRISnormalizeCurvature(mris) ;
+    MRISnormalizeCurvature(mris, which_norm) ;
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     current_list = MRISP_LIST ;
   }
@@ -273,7 +275,7 @@ main(int argc, char *argv[]) {
     findAreaExtremes(mris) ;
   }
   if (normalize_flag)
-    MRISnormalizeCurvature(mris) ;
+    MRISnormalizeCurvature(mris, which_norm) ;
   MRISaverageCurvatures(mris, navgs) ;
   if (nonmax_flag)
     /*MRISnonmaxSuppress(mris)*/ ;
