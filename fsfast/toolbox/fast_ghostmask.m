@@ -8,8 +8,13 @@ function ghostmask = fast_ghostmask(mask)
 % mask is of size nrows X ncols X nslices (as is ghostmask)
 % mask does not have to be a binary mask. The voxel values can 
 %   be anything.
+% 
+% To compute the row that a given brain voxel maps to in the ghost:
+%   if(brainrow <= N/2) ghostrow = brainrow + N/2
+%   else                ghostrow = brainrow - N/2
+%   end
 %
-% $Id: fast_ghostmask.m,v 1.1 2004/04/06 04:14:44 greve Exp $
+% $Id: fast_ghostmask.m,v 1.2 2007/01/02 22:48:38 greve Exp $
 
 ghostmask = [];
 
