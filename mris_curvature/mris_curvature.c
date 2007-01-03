@@ -1,15 +1,16 @@
 /**
  * @file  mris_curvature.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for computing various curvature metrics of a surface (e.g. gaussian, mean, etc...)
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * program for computing various curvature metrics of a surface. This includes gaussian, mean, 1st
+ * and 2nd principle ones, and various others.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 19:49:47 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/03 17:22:18 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.22 2007/01/02 19:49:47 nicks Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.23 2007/01/03 17:22:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,7 +84,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.22 2007/01/02 19:49:47 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.23 2007/01/03 17:22:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -323,6 +324,11 @@ get_option(int argc, char *argv[]) {
     min_flag = 1 ;
   else if (!stricmp(option, "stretch"))
     stretch_flag = 1 ;
+  else if (!stricmp(option, "median"))
+  {
+    which_norm = NORM_MEDIAN ;
+    printf("using median normalization for curvature\n") ;
+  }
   else if (!stricmp(option, "param")) {
     param_file = argv[2] ;
     nargs = 1 ;
