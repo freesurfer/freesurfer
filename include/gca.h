@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.78 $
+ *    $Author: kteich $
+ *    $Date: 2007/01/03 21:27:08 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -393,7 +393,7 @@ int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label, Gxp, Gyp, Gzp ;
 extern char *G_write_probs ;
 MRI *GCAmarkImpossible(GCA *gca, MRI *mri_labeled, MRI *mri_dst, TRANSFORM *transform) ;
-int GCAclassMode(GCA *gca, int class, float *modes) ;
+int GCAclassMode(GCA *gca, int the_class, float *modes) ;
 int GCAcomputeLabelMeansAndCovariances(GCA *gca, int target_label, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 double GCAgibbsImpossibleConfiguration(GCA *gca,
                                        MRI *mri_labels,
