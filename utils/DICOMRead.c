@@ -1,15 +1,14 @@
 /**
  * @file  DICOMRead.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief DICOM 3.0 reading functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.102 $
+ *    $Date: 2007/01/03 20:40:16 $
+ *    $Revision: 1.103 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,14 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*******************************************************
-   DICOM 3.0 reading functions
-   Author: Sebastien Gicquel and Douglas Greve
-   Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.102 2006/12/29 01:49:30 nicks Exp $
-*******************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -954,7 +945,6 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
     nthchar ++;
   }
   free(TestStr);
-
 
   if (! dumpline)
   {
@@ -4303,7 +4293,8 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
   for (i=0; i<*NumberOfFiles; i++)
   {
     length=pathlength+strlen(NameList[i]->d_name)+2; // must be +2
-    //printf("i=%d, l=%d, pl=%d, file=%s\n",i,length,pathlength,NameList[i]->d_name);
+    //printf("i=%d, l=%d, pl=%d, file=%s\n",i,length,
+    // pathlength,NameList[i]->d_name);
     pfn[i]=(char *)calloc(length, sizeof(char));
     sprintf(pfn[i], "%s/%s", PathName, NameList[i]->d_name);
   }
@@ -4334,8 +4325,9 @@ int scandir(const char *dir, struct_dirent ***namelist,
   {
     if (select == NULL || (select != NULL && (*select)(entry)))
     {
-      *namelist=(struct_dirent **)realloc((void *)(*namelist),
-                                          (size_t)((i+1)*sizeof(struct_dirent *)));
+      *namelist=(struct_dirent **)realloc
+        ((void *)(*namelist),
+         (size_t)((i+1)*sizeof(struct_dirent *)));
       if (*namelist == NULL) return(-1);
       entrysize=sizeof(struct_dirent)-
                 sizeof(entry->d_name)+strlen(entry->d_name)+1;
@@ -4534,7 +4526,8 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   // Return here if only reading in the header
   if (!LoadVolume)
   {
-    for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) free(dcminfo[ndcmfiles]);
+    for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) 
+      free(dcminfo[ndcmfiles]);
     free(dcminfo);
     return(mri);
   }
@@ -4552,7 +4545,8 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
         element = GetElementFromFile(dcminfo[nthfile]->FileName,0x7FE0,0x10);
         if (element == NULL)
         {
-          printf("ERROR: reading pixel data from %s\n",dcminfo[nthfile]->FileName);
+          printf("ERROR: reading pixel data from %s\n",
+                 dcminfo[nthfile]->FileName);
           MRIfree(&mri);
         }
         v16 = (unsigned short *)(element->d.string);

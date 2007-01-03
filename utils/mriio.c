@@ -1,15 +1,16 @@
 /**
  * @file  mriio.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for reading/writing MRI data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Reading and writing most of the major MRI volume types, to and from
+ * the Freesurfer .mgz format, is provided here.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.319 $
+ *    $Date: 2007/01/03 20:40:15 $
+ *    $Revision: 1.320 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,17 +23,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- *       FILE NAME:   mriio.c
- *
- *       DESCRIPTION: utilities for reading/writing MRI data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        4/12/97
  *
  */
 
@@ -288,11 +278,17 @@ int getSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
 
-  if (isCloseToOne(mri->x_r) && isCloseToOne(mri->y_s) && isCloseToOne(mri->z_a))
+  if (isCloseToOne(mri->x_r) && 
+      isCloseToOne(mri->y_s) && 
+      isCloseToOne(mri->z_a))
     direction = MRI_CORONAL;
-  else if (isCloseToOne(mri->x_a) && isCloseToOne(mri->y_s) && isCloseToOne(mri->z_r))
+  else if (isCloseToOne(mri->x_a) && 
+           isCloseToOne(mri->y_s) && 
+           isCloseToOne(mri->z_r))
     direction = MRI_SAGITTAL;
-  else if (isCloseToOne(mri->x_r) && isCloseToOne(mri->y_a) && isCloseToOne( mri->z_s))
+  else if (isCloseToOne(mri->x_r) && 
+           isCloseToOne(mri->y_a) && 
+           isCloseToOne( mri->z_s))
     direction = MRI_HORIZONTAL;
   return direction;
 }
@@ -1976,7 +1972,8 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   {
     errno = 0;
     ErrorReturn(NULL,
-                (ERROR_BADFILE, "siemensRead(): file %s doesn't exist", fname_use));
+                (ERROR_BADFILE, 
+                 "siemensRead(): file %s doesn't exist", fname_use));
   }
 
   /* Check whether it is really a dicom file */
@@ -2130,12 +2127,14 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   }
 
   if (read_volume_flag)
-    mri = MRIallocSequence
-          (base_raw_matrix_size, base_raw_matrix_size, n_slices, MRI_SHORT, n_t);
+    mri = MRIallocSequence(base_raw_matrix_size, 
+                           base_raw_matrix_size, 
+                           n_slices, MRI_SHORT, n_t);
   else
   {
-    mri = MRIallocHeader
-          (base_raw_matrix_size, base_raw_matrix_size, n_slices, MRI_SHORT);
+    mri = MRIallocHeader(base_raw_matrix_size, 
+                         base_raw_matrix_size, 
+                         n_slices, MRI_SHORT);
     mri->nframes = n_t;
   }
 
@@ -2337,13 +2336,11 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
         {
           for (j = 0;j < mri->height;j++)
           {
-            MRISseq_vox(mri, i, j, s, t) = \
-                                           MRISvox
-                                           (mri_raw, mri->width *
-                                            bc + i, mri->height * br + j, file);
+            MRISseq_vox(mri, i, j, s, t) = 
+              MRISvox(mri_raw, mri->width * 
+                      bc + i, mri->height * br + j, file);
           }
         }
-
       }
     }
 
@@ -3742,9 +3739,19 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
       bad_flag = TRUE;
     }
     stuff_four_by_four
-    (as, subject_info->x_r, subject_info->y_r, subject_info->z_r, subject_info->c_r,
-     subject_info->y_r, subject_info->y_r, subject_info->y_r, subject_info->c_r,
-     subject_info->z_r, subject_info->z_r, subject_info->z_r, subject_info->c_r,
+    (as, 
+     subject_info->x_r, 
+     subject_info->y_r, 
+     subject_info->z_r, 
+     subject_info->c_r,
+     subject_info->y_r, 
+     subject_info->y_r, 
+     subject_info->y_r, 
+     subject_info->c_r,
+     subject_info->z_r, 
+     subject_info->z_r, 
+     subject_info->z_r, 
+     subject_info->c_r,
      0.0,               0.0,               0.0,               1.0);
 
     if ((af = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
@@ -4559,9 +4566,19 @@ static int orient_with_register(MRI *mri)
   }
 
   stuff_four_by_four
-  (sa, -subject_mri->xsize, 0.0, 0.0, subject_mri->width * subject_mri->xsize / 2.0,
-   0.0, 0.0, subject_mri->zsize, -subject_mri->depth * subject_mri->zsize / 2.0,
-   0.0, -subject_mri->ysize, 0.0, subject_mri->height * subject_mri->ysize / 2.0,
+  (sa, 
+   -subject_mri->xsize, 
+   0.0, 
+   0.0, 
+   subject_mri->width * subject_mri->xsize / 2.0,
+   0.0, 
+   0.0, 
+   subject_mri->zsize, 
+   -subject_mri->depth * subject_mri->zsize / 2.0,
+   0.0, 
+   -subject_mri->ysize, 
+   0.0, 
+   subject_mri->height * subject_mri->ysize / 2.0,
    0.0, 0.0, 0.0, 1.0);
 
   MRIfree(&subject_mri);
@@ -5481,7 +5498,6 @@ static MRI *genesisRead(char *fname, int read_volume)
       if (frame != (mri->nframes-1))
         slice-- ;
     }
-
   }
 
   return(mri);
@@ -6224,10 +6240,11 @@ static MRI *analyzeRead(char *fname, int read_volume)
         T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
         T->rptr[4][4] = 1.;
         mri->ras_good_flag = 0;
-        fprintf(stderr,
-                "WARNING: could not find %s file for direction cosine info.\n"
-                "WARNING: Analyze 7.5 hdr->hist.orient value = -1, not valid.\n"
-                "WARNING: assuming %s\n",matfile, direction);
+        fprintf
+          (stderr,
+           "WARNING: could not find %s file for direction cosine info.\n"
+           "WARNING: Analyze 7.5 hdr->hist.orient value = -1, not valid.\n"
+           "WARNING: assuming %s\n",matfile, direction);
       }
       else
       {
@@ -7249,8 +7266,9 @@ static MRI *gdfRead(char *fname, int read_volume)
   }
 
   /* --- defined flags --- */
-  path_d = ipr_d = st_d = u_d = dt_d =
-                                  o_d = s_d = x_ras_d = y_ras_d = z_ras_d = c_ras_d = FALSE;
+  path_d = 
+    ipr_d = st_d = u_d = dt_d =
+    o_d = s_d = x_ras_d = y_ras_d = z_ras_d = c_ras_d = FALSE;
 
   while (fgets(line, STRLEN, fp) != NULL)
   {
@@ -7443,9 +7461,10 @@ static MRI *gdfRead(char *fname, int read_volume)
   if (gdf_crop_flag && !(have_min_crop && have_max_crop))
   {
     errno = 0;
-    ErrorReturn(NULL,
-                (ERROR_BADPARM,
-                 "gdfRead(): cropping desired but missing MIN_CROP or MAX_CROP\n"));
+    ErrorReturn
+      (NULL,
+       (ERROR_BADPARM,
+        "gdfRead(): cropping desired but missing MIN_CROP or MAX_CROP\n"));
   }
 
   strcpy(file_path_1, file_path);
@@ -8390,10 +8409,7 @@ static int read_otl_file(FILE *fp,
           for (j = 0;j < n_rows;j++)
             cma_field[points[2*j]][points[2*j+1]] = 0;
         }
-
-
       }
-
     }
 
     free(points);
@@ -9570,9 +9586,10 @@ static MRI *nifti1Read(char *fname, int read_volume)
         hdr.slice_code != NIFTI_SLICE_ALT_INC &&
         hdr.slice_code != NIFTI_SLICE_ALT_DEC)
     {
-      ErrorReturn(NULL,(ERROR_UNSUPPORTED,
-                        "nifti1Read(): unsupported slice timing pattern %d in %s",
-                        hdr.slice_code, hdr_fname));
+      ErrorReturn(NULL,
+                  (ERROR_UNSUPPORTED,
+                   "nifti1Read(): unsupported slice timing pattern %d in %s",
+                   hdr.slice_code, hdr_fname));
     }
   }
 
@@ -10336,9 +10353,10 @@ static MRI *niiRead(char *fname, int read_volume)
         hdr.slice_code != NIFTI_SLICE_ALT_INC &&
         hdr.slice_code != NIFTI_SLICE_ALT_DEC)
     {
-      ErrorReturn(NULL,(ERROR_UNSUPPORTED,
-                        "nifti1Read(): unsupported slice timing pattern %d in %s",
-                        hdr.slice_code, fname));
+      ErrorReturn(NULL,
+                  (ERROR_UNSUPPORTED,
+                   "nifti1Read(): unsupported slice timing pattern %d in %s",
+                   hdr.slice_code, fname));
     }
   }
 
@@ -10507,7 +10525,9 @@ static MRI *niiRead(char *fname, int read_volume)
     void *buf;
 
     for (t = 0;t < mri->nframes;t++)
+    {
       for (k = 0;k < mri->depth;k++)
+      {
         for (j = 0;j < mri->height;j++)
         {
           buf = &MRIseq_vox(mri, 0, j, k, t);
@@ -10529,9 +10549,9 @@ static MRI *niiRead(char *fname, int read_volume)
             if (bytes_per_voxel == 4)
               byteswapbuffloat(buf, bytes_per_voxel * mri->width);
           }
-
         }
-
+      }
+    }
   }
   else
   {
@@ -12175,9 +12195,9 @@ mghRead(char *fname, int read_volume, int frame)
     }
     else
     {  /* hack - # of frames < -1 means to only read in that
-                                      many frames. Otherwise I would have had to change the whole
-                                      MRIread interface and that was too much of a pain. Sorry.
-                                   */
+          many frames. Otherwise I would have had to change the whole
+          MRIread interface and that was too much of a pain. Sorry.
+       */
       if (frame < -1)
         nframes = frame*-1 ;
 
@@ -13368,7 +13388,6 @@ static int bfloatWrite(MRI *vol, char *stem)
         fwrite(buf, sizeof(float), mri->width, fp);
 
       }
-
     }
 
     fclose(fp);
@@ -14723,9 +14742,10 @@ static MRI *mriNrrdRead(char *fname, int read_volume)
     {
       char *err =  biffGetDone(NRRD);
       //doesn't seem to be an appropriate error code for this case
-      ErrorPrintf(ERROR_BADFILE,
-                  "mriNrrdRead(): error permuting independent axis in %s: \n%s",
-                  fname, err);
+      ErrorPrintf
+        (ERROR_BADFILE,
+         "mriNrrdRead(): error permuting independent axis in %s: \n%s",
+         fname, err);
       nrrdNuke(ntmp);
       free(err);
       return NULL;
@@ -14836,3 +14856,4 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
   //fprintf(fp,"          %d \n",hdr->);
   return(0);
 }
+
