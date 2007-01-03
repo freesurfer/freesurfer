@@ -1,35 +1,34 @@
-/**
- * @file  scuba.tcl
- * @brief Main interface script file for Scuba
- *
- * This is the main interface file for Scuba. It defines all the windows
- * and widgets as well as many high-level functions such as domain specific
- * chart windows and utilities.
- */
-/*
- * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/02 22:41:17 $
- *    $Revision: 1.234 $
- *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
+#
+# @file  scuba.tcl
+# @brief Main interface script file for Scuba
+#
+# This is the main interface file for Scuba. It defines all the windows
+# and widgets as well as many high-level functions such as domain specific
+# chart windows and utilities.
+#
+#
+# Original Author: Kevin Teich
+# CVS Revision Info:
+#    $Author: kteich $
+#    $Date: 2007/01/03 15:38:34 $
+#    $Revision: 1.235 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.234 2007/01/02 22:41:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.235 2007/01/03 15:38:34 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6738,7 +6737,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.234 2007/01/02 22:41:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.235 2007/01/03 15:38:34 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
