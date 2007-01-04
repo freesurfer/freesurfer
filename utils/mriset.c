@@ -1,15 +1,16 @@
 /**
  * @file  mriset.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for MRI data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Operators like union, intersection, erosion, dialation and masking on
+ * MRI data structs.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.47 $
+ *    $Date: 2007/01/04 22:55:48 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,17 +23,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- *       FILE NAME:   mriset.c
- *
- *       DESCRIPTION: utilities for MRI data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
  *
  */
 
