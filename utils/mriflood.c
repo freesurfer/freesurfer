@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2006/12/29 20:07:44 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/01/04 15:44:07 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,11 +34,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/12/29 20:07:44 $
-// Revision       : $Revision: 1.20 $
+// Revision Date  : $Date: 2007/01/04 15:44:07 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.20 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.21 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1319,10 +1319,13 @@ void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst)
 MRI *
 MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
 {
-  int    width, height, depth, x, y, z, val ;
+  int    width, height, depth, x, y, z, val, saved_use_Real_RAS ;
   MATRIX *m_vox2ras ;
   MRI    *mri_shell, *mri_outside ;
 
+  saved_use_Real_RAS = mris->useRealRAS ;
+  mris->useRealRAS = 1 ;  // MRISshell needs this
+  
   MRIScomputeMetricProperties(mris) ;
 
   width = ceil((mris->xhi - mris->xlo)/resolution) ;
@@ -1357,6 +1360,8 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
         val = (int)MRIgetVoxVal(mri_outside, x, y, z, 0) ;
         MRIsetVoxVal(mri_interior, x, y, z, 0, val == 1 ? 0 : 1) ;
       }
+
+  mris->useRealRAS = saved_use_Real_RAS ;
 
   MRIfree(&mri_outside) ;
   MRIfree(&mri_shell) ;
