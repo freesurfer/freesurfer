@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # inorm-sess - 
 #
-# $Id: inorm-sess,v 1.6 2006/10/30 21:46:30 greve Exp $
-set VERSION = '$Id: inorm-sess,v 1.6 2006/10/30 21:46:30 greve Exp $'
+# $Id: inorm-sess,v 1.7 2007/01/04 23:54:46 greve Exp $
+set VERSION = '$Id: inorm-sess,v 1.7 2007/01/04 23:54:46 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -95,19 +95,21 @@ foreach sess ($SessList)
   ### Goto the functional subdirectory ###
   cd $sess/$fsd
 
-  ## Get the TR ##
-  if(! -e seq.info ) then
-    echo "ERROR($sess): no seq.info file"
-    exit 1;
-  endif
-  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
-  set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
-  set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
-  set seqname = `cat seq.info | awk '{if($1 == "sequencename") print $2}'`;
-  if($#inplaneres == 0) then
-    echo "ERROR: seq.info file does not appear to be formated correctly"
-    echo "       Try running fixseqinfo-sess."
-    exit 1;
+  if($use_new_inorm == 0) then
+    ## Get the TR ##
+    if(! -e seq.info ) then
+      echo "ERROR($sess): no seq.info file"
+      exit 1;
+    endif
+    set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+    set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
+    set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
+    set seqname = `cat seq.info | awk '{if($1 == "sequencename") print $2}'`;
+    if($#inplaneres == 0) then
+      echo "ERROR: seq.info file does not appear to be formated correctly"
+      echo "       Try running fixseqinfo-sess."
+      exit 1;
+    endif
   endif
 
   ### Get the list of runs in the FSD ###
