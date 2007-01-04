@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/03 20:40:16 $
- *    $Revision: 1.103 $
+ *    $Author: greve $
+ *    $Date: 2007/01/04 23:09:59 $
+ *    $Revision: 1.104 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4380,6 +4380,10 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
 
   printf("Starting DICOMRead2()\n");
 
+  if(!fio_FileExistsReadable(dcmfile)){
+    printf("ERROR: file %s does not exist.\n",dcmfile);
+    exit(1);
+  }
   dcmdir = fio_dirname(dcmfile);
   printf("dcmfile = %s\n",dcmfile);
   printf("dcmdir = %s\n",dcmdir);
