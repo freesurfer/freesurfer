@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.11 2006/04/19 23:02:51 greve Exp $
+# $Id: mc-sess,v 1.12 2007/01/04 23:41:17 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.11 2006/04/19 23:02:51 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.12 2007/01/04 23:41:17 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -98,16 +98,18 @@ foreach sess ($SessList)
 
   pushd $sess/$fsd > /dev/null
 
-  ## get resolutions #
-  set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
-  set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
-  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+  if(! $usenew) then
+    ## get resolutions #
+    set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
+    set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
+    set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
 
-  if($#inplaneres == 0) then
-    echo "ERROR: seq.info file does not appear to be formated correctly"
-    echo "       Try running fixseqinfo-sess."
-    exit 1;
-  endif
+    if($#inplaneres == 0) then
+      echo "ERROR: seq.info file does not appear to be formated correctly"
+      echo "       Try running fixseqinfo-sess."
+      exit 1;
+    endif
+  endif # dont use new
 
   if($#RunListFile == 0) then
     set RunList = `getrunlist .`;
