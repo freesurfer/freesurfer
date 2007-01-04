@@ -1,5 +1,5 @@
 
-$Id: README,v 1.2 2006/11/01 23:35:08 nicks Exp $
+$Id: README,v 1.3 2007/01/04 00:41:11 greve Exp $
 
 These are diffusion gradient direction files that describe some of the
 protocols distributed by Siemens though the MGH DTI Sequence Package.
@@ -28,6 +28,7 @@ for 6 directions or 72 for 72 directions).
 
 Each file will have three columns with the number of rows equal to the
 number of directions. Each row is a gradient direction of unit length.
+The directions are in the magnet frame.
 
 The file does not indicate the bvalue or the number of acquisitions
 for which the bvalue is 0. These can be obtained in one of two ways:
