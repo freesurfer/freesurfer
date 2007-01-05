@@ -1,15 +1,16 @@
 /**
  * @file  mri_morphology.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief applies morphological operations to a volume.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Program for applying morphological operations open, close, dilate, and erode either to an
+ * entire volume or to only a label (specified with -l <label>) within it.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/05 17:24:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,18 +60,19 @@ char *Progname ;
 
 static void usage_exit(int code) ;
 
+static int label = -1 ;
 
 
 int
 main(int argc, char *argv[]) {
   char   *out_fname, **av ;
   int    ac, nargs, niter, operation, i ;
-  MRI    *mri_src, *mri_dst ;
+  MRI    *mri_src, *mri_dst, *mri_saved_src = NULL ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.6 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.7 2007/01/05 17:24:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,8 +102,6 @@ main(int argc, char *argv[]) {
 
   if (!stricmp(argv[2], "dilate"))
     operation = DILATE ;
-  else  if (!stricmp(argv[2], "dilatelabel"))
-    operation = DILATE_LABEL ;
   else  if (!stricmp(argv[2], "open"))
     operation = OPEN ;
   else  if (!stricmp(argv[2], "close"))
@@ -117,6 +117,17 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_UNSUPPORTED, "morphological operation '%s'  is not supported", argv[2]) ;
   }
 
+  if (label > 0)  // erase everything but label in src, and save orig vol
+  {
+    MRI *mri_tmp ;
+
+    mri_saved_src = MRIcopy(mri_src, NULL) ;
+    mri_tmp = MRIclone(mri_src, NULL);
+    MRIcopyLabel(mri_src, mri_tmp,label) ;
+    MRIfree(&mri_src) ;
+    mri_src = mri_tmp ;
+  }
+    
   niter = atoi(argv[3]) ;
   switch (operation) {
   case MODE_FILTER: {
@@ -128,15 +139,6 @@ main(int argc, char *argv[]) {
     }
     printf("applying mode filter %d times\n", niter) ;
     mri_dst = MRImodeFilter(mri_src, NULL, niter) ;
-    break ;
-  }
-  case DILATE_LABEL: {
-    int label ;
-
-    label = atoi(argv[4]) ;
-    printf("dilating label %s (%d) %d times\n",
-           cma_label_to_name(label), label, niter) ;
-    mri_dst = MRIdilateLabel(mri_src, NULL, label, niter) ;
     break ;
   }
   case DILATE:
@@ -178,6 +180,14 @@ main(int argc, char *argv[]) {
   default:
     break ;
   }
+  if (label > 0)
+  {
+    MRIreplaceValues(mri_saved_src, mri_saved_src, label, 0) ;
+    MRIcopyLabel(mri_dst, mri_saved_src, label) ;
+    MRIcopy(mri_saved_src, mri_dst) ;
+    MRIfree(&mri_saved_src) ;
+  }
+
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
   MRIfree(&mri_dst) ;
@@ -203,15 +213,20 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "dt")) {}
   else switch (toupper(*option)) {
-    case '?':
-    case 'U':
-      usage_exit(0) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'L':
+    label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("only applying operations to label %d\n", label) ;
+    break ;
+  case '?':
+  case 'U':
+    usage_exit(0) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
@@ -223,7 +238,9 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(int code) {
   printf("usage: %s [options] <volume> <operation> <# iter> <out volume>\n", Progname) ;
-  printf("\t-u              where which can be [open,close,dilate,erode,mode]\n");
+  printf("\twhere <operation> can be [open,close,dilate,erode,mode]\n");
+  printf("\tvalid options are:\n") ;
+  printf("\t-l <label>  only apply operations to <label> instead of all nonzero voxels\n") ;
   exit(code) ;
 }
 
