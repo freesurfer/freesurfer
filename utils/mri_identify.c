@@ -1,15 +1,14 @@
 /**
  * @file  mri_identify.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Identify MRI volume format based on filename extension.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/01/05 19:17:43 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,8 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <string.h>
@@ -166,7 +163,8 @@ int string_to_type(char *string)
   if (strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0 ||
       strcmp(ls, "analyze3d") == 0)
     type = MRI_ANALYZE_FILE;
-  if (strcmp(ls, "analyze4d") == 0 || strcmp(ls, "img")==0 ) // img used to be 3d
+  if (strcmp(ls, "analyze4d") == 0 || 
+      strcmp(ls, "img")==0 ) // img used to be 3d
     type = MRI_ANALYZE4D_FILE;
   if (strcmp(ls, "mgh") == 0 || strcmp(ls,"mgz")==0)
     type = MRI_MGH_FILE;
@@ -591,7 +589,7 @@ int is_analyze(char *fname)
   }
 
   dot = '\0';
-  sprintf(hfname, "%s.hdr", hfname);
+  strcat(hfname, ".hdr");
 
   if ((fp = fopen(hfname, "r")) == NULL)
   {
@@ -672,7 +670,9 @@ int is_mgh(char *fname)
   FILE *fp;
   int version, width, height, depth, nframes, type, dof;
 
-  if (strstr(fname, ".mgh") || strstr(fname, ".mgz") || strstr(fname, ".mgh.gz"))
+  if (strstr(fname, ".mgh") || 
+      strstr(fname, ".mgz") || 
+      strstr(fname, ".mgh.gz"))
     return 1;
 
   if ((fp = fopen(fname, "r")) == NULL)
@@ -1133,10 +1133,6 @@ int IDisCurv(char *curvfile)
   if (magno != NEW_VERSION_MAGIC_NUMBER) return(FALSE);
   return(TRUE);
 }
-
-
-
-
 
 
 /* EOF */

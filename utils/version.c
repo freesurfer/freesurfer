@@ -1,15 +1,18 @@
 /**
  * @file  version.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief freesurfer version functions defined here
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Looks for the --version, -version, --all-info, or -all-info tag in the 
+ * argv and if found, prints out version information, namely this:
+ * ProgramVersion, TimeStamp, CVS, User, Machine, Platform, PlatformVersion
+ * CompilerName, and CompilerVersion.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/01/05 19:17:43 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,17 +28,6 @@
  *
  */
 
-
-/**
- * @file   version.c
- * @author $Author: nicks $
- * @date   $Date: 2006/12/29 01:49:40 $
- *         $Revision: 1.25 $
- * @brief  freesurfer version functions defined here
- *
- *
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,9 +40,6 @@
 #include "version.h"
 #include "utils.h"
 #include "error.h"
-
-/* I have no idea what this is */
-// char version[] = "version 1.0, Wed Apr 26 11:11:26 EDT 2000" ;
 
 /* Set our compiler name */
 #if defined(__GNUC__)
@@ -162,7 +151,14 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   {
     strcpy (arguments, argv[1]);
     for (nnarg = 2; nnarg < argc; nnarg++)
-      sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+    {
+      // on Slackware Linux, libc does not support having the same source and 
+      // destination, like this:
+      //sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+      // the correct way to do this is:
+      strcat (arguments, " ");
+      strcat (arguments, argv[nnarg]);
+    }
   }
 
   /* Find the time string. */
@@ -326,7 +322,14 @@ handle_version_option (int argc, char** argv,
       {
         strcpy (arguments, argv[1]);
         for (nnarg = 2; nnarg < argc; nnarg++)
-          sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+        {
+          // on Slackware Linux, libc does not support having the same 
+          // source and destination, like this:
+          //sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+          // the correct way to do this is:
+          strcat (arguments, " ");
+          strcat (arguments, argv[nnarg]);
+        }
       }
 
       /* Find the time string. */

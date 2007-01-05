@@ -2,14 +2,13 @@
  * @file  mri.c
  * @brief utilities for MRI data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:07:40 $
- *    $Revision: 1.374 $
+ *    $Date: 2007/01/05 19:17:43 $
+ *    $Revision: 1.375 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.374 $";
+char *MRI_C_VERSION = "$Revision: 1.375 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -14090,8 +14089,10 @@ char *MRIcheckOrientationString(char *ostr)
 {
   int c, nsag=0, ncor=0, nax=0, err;
   char errstr[1000], *errstrret=NULL;
+  char tmpstr[1000];
 
   errstr[0] = '\0';
+  tmpstr[0] = '\0';
   err = 0;
 
   for (c=0; c<3; c++)
@@ -14117,8 +14118,9 @@ char *MRIcheckOrientationString(char *ostr)
       nax++;
       break;
     default:
-      sprintf(errstr,"%s  Character %c in position %d is invalid.\n",
+      sprintf(tmpstr,"%s  Character %c in position %d is invalid.\n",
               errstr,ostr[c],c+1);
+      strcpy(errstr,tmpstr);
       err = 1;
       break;
     }
@@ -14126,32 +14128,32 @@ char *MRIcheckOrientationString(char *ostr)
 
   if (nsag > 1)
   {
-    sprintf(errstr,"%s  LR axis represented multiple times.\n",errstr);
+    strcat(errstr,"  LR axis represented multiple times.\n");
     err = 1;
   }
   if (ncor > 1)
   {
-    sprintf(errstr,"%s  PA axis represented multiple times.\n",errstr);
+    strcat(errstr,"  PA axis represented multiple times.\n");
     err = 1;
   }
   if (nax > 1)
   {
-    sprintf(errstr,"%s  IS axis represented multiple times.\n",errstr);
+    strcat(errstr,"  IS axis represented multiple times.\n");
     err = 1;
   }
   if (nsag == 0)
   {
-    sprintf(errstr,"%s  LR axis not represented.\n",errstr);
+    strcat(errstr,"  LR axis not represented.\n");
     err = 1;
   }
   if (ncor == 0)
   {
-    sprintf(errstr,"%s  PA axis not represented.\n",errstr);
+    strcat(errstr,"  PA axis not represented.\n");
     err = 1;
   }
   if (nax == 0)
   {
-    sprintf(errstr,"%s  IS axis not represented.\n",errstr);
+    strcat(errstr,"  IS axis not represented.\n");
     err = 1;
   }
 
