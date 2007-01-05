@@ -1,15 +1,21 @@
 /**
  * @file  mris_fix_topology.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Finds and corrects defects in surface topology.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Topology Correction of Subcortical Segmentation",
+ * F. Segonne, E. Grimson and B. Fischl
+ * (2003) MICCAI 2003.
+ * 
+ * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
+ * F. Segonne, E. Grimson, B. Fischl
+ * (2005) IPMI pp393--405.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/01/05 16:57:16 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +30,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +51,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.42 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -97,7 +102,7 @@ main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.42 2006/12/29 02:09:10 nicks Exp $",
+   "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -106,7 +111,7 @@ main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.42 2006/12/29 02:09:10 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -209,7 +214,7 @@ main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, brain_name) ;
-  if (MGZ) sprintf(fname, "%s.mgz", fname);
+  if (MGZ) strcat(fname,".mgz");
   printf("reading brain volume from %s...\n", brain_name) ;
   mri = MRIread(fname) ;
   if (!mri)
@@ -217,7 +222,7 @@ main(int argc, char *argv[]) {
               "%s: could not read brain volume from %s", Progname, fname) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
-  if (MGZ) sprintf(fname, "%s.mgz", fname);
+  if (MGZ) strcat(fname,".mgz");
   printf("reading wm segmentation from %s...\n", wm_name) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
