@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.12 $
+ *    $Author: greve $
+ *    $Date: 2007/01/05 20:56:34 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.12 2006/12/29 02:09:06 nicks Exp $
+// $Id: mri_concat.c,v 1.13 2007/01/05 20:56:34 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.12 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.13 2007/01/05 20:56:34 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -233,6 +233,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
+    else if (!strcasecmp(option, "--asl")){
+      DoPairedDiff = 1;
+      DoMean = 1;
+    }
     else if (!strcasecmp(option, "--paired-diff")) DoPairedDiff = 1;
     else if (!strcasecmp(option, "--paired-diff-norm")) {
       DoPairedDiff = 1;
