@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.9 2006/11/09 20:56:29 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.10 2007/01/05 21:34:32 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -139,8 +139,11 @@ for nthsess = 1:nsess
 	      [hvol rvarvol hd] = fast_ldsxavol(hstem); 
 	      if(isempty(hvol)) return; end
 	    end
-	    beta = squeeze(hvol.vol(:,:,slice+1,:));
-	    rvar = squeeze(rvarvol.vol(:,:,slice+1));
+	    %beta = squeeze(hvol.vol(:,:,slice+1,:));
+	    % rvar = squeeze(rvarvol.vol(:,:,slice+1));
+	    % have to use permute in case there are other singletons
+	    beta = permute(hvol.vol(:,:,slice+1,:),[1 2 4 3]); 
+	    rvar = permute(rvarvol.vol(:,:,slice+1,:),[1 2 4 3]); 
 	  end
 	  Ch = hd.hCovMtx;
 	  DOF = hd.DOF;
