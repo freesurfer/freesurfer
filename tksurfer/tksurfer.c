@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/01/02 16:57:19 $
- *    $Revision: 1.237 $
+ *    $Date: 2007/01/05 17:24:40 $
+ *    $Revision: 1.238 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -13906,11 +13906,91 @@ draw_surface(void)  /* marty: combined three versions */
 }
 #endif
 
+const float DEG2RAD = 3.14159/180;
+ 
+void 
+drawCircle(float radius)
+{
+  int i;
+  float degInRad;
+
+   glBegin(GL_LINE_LOOP);
+   for (i=0; i < 360; i++) 
+     {
+       degInRad = i*DEG2RAD;
+       glVertex2f(cos(degInRad)*radius,sin(degInRad)*radius);
+     } 
+   glEnd();
+}
+
 void
 draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
 {
 #ifdef OPENGL
-  /* omit this (6 gl calls found here only) */
+  VERTEX *v;
+  int k;
+  float cx,cy,cz;
+  float lati,longi;
+
+  a *= 1.01;  /* brain x,  50, lhrh     */
+  b *= 1.01;  /* brain y, 140  ant/post */
+  c *= 1.01;  /* brain z,  80, sup/inf  */
+  cx = cy = cz = 0.0;
+  for (k=0; k<mris->nvertices; k++) 
+    {
+      v = &mris->vertices[k];
+      cx += v->x;
+      cy += v->y;
+      cz += v->z;
+    }
+  cx /= mris->nvertices;
+  cy /= mris->nvertices;
+  cz /= mris->nvertices;
+  printf("surfer: ellipsoid center: x=%f y=%f z=%f\n",cx,cy,cz);
+
+  glPushMatrix();
+
+  /* center:cx->lh/rh, cz->sup/inf, cy->ant/post */
+  glTranslatef (-cx, -cz, cy);
+
+  for (lati= -90.0; lati<90.0; lati+=10.0) 
+    {
+      
+      glPushMatrix();
+      
+      glTranslatef (0.0, 0.0, b*sin(M_PI/180.0*lati));
+      glScalef (a/c, 1.0, 1.0);
+      
+      if (lati==0.0) 
+	{
+	  glLineWidth (6.0);
+	  glColor3ub (255, 255, 0);
+	} 
+      else
+	{
+	  glLineWidth (2.0);
+	  glColor3ub (217, 170, 0);
+	}
+      drawCircle (c*cos(M_PI/180.0*lati));
+      glPopMatrix();
+    }
+
+  glColor3ub (190, 145, 255);
+  glLineWidth (2.0);
+
+  for (longi=0.0; longi<180.0; longi+=10.0)
+    {
+      glPushMatrix();
+      glRotatef (90.0, 0, 1, 0 ); /* Rotate around y axis */
+      glScalef (1.0, c/b, a/b);
+      glRotatef (longi, 1, 0, 0); /* Rotate around the x axis */
+      drawCircle (b);
+      glPopMatrix();
+    }
+
+  glPopMatrix();
+
+
 #else
   VERTEX *v;
   int k;
@@ -18733,7 +18813,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.237 2007/01/02 16:57:19 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.238 2007/01/05 17:24:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
