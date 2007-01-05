@@ -1,6 +1,27 @@
 #! /usr/bin/tclsh
+
+##
+## solmovie-flat.tcl
+## tksurfer script: solmovie-flat [render dipole estimates on flat surface]
+##
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:21 $
+##    $Revision: 1.4 $
+##
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
 #############################################################################
-# tksurfer script: solmovie-flat [render dipole estimates on flat surface]
 #############################################################################
 # NOTE: just setenv inpatch for nomid
 #setenv flat              ;# savergb flag, like med,ven,.. flags in saveviews

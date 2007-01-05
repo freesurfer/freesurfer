@@ -1,17 +1,16 @@
 #
-# @file  scuba.tcl
-# @brief Main interface script file for Scuba
+# scuba.tcl
+# Main interface script file for Scuba
 #
 # This is the main interface file for Scuba. It defines all the windows
 # and widgets as well as many high-level functions such as domain specific
 # chart windows and utilities.
 #
-#
 # Original Author: Kevin Teich
 # CVS Revision Info:
-#    $Author: kteich $
-#    $Date: 2007/01/03 15:38:34 $
-#    $Revision: 1.235 $
+#    $Author: nicks $
+#    $Date: 2007/01/05 00:21:45 $
+#    $Revision: 1.236 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.235 2007/01/03 15:38:34 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.236 2007/01/05 00:21:45 nicks Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6737,7 +6736,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.235 2007/01/03 15:38:34 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.236 2007/01/05 00:21:45 nicks Exp $"
     puts $f ""
 
     # Find all the data collections.

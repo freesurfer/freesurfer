@@ -1,5 +1,32 @@
 #!/usr/bin/wish
-# this cript looks at the headers of ima files in a predetermined archive directory. The default archive directory is over-ridden by the environment variable ARCHIVE_DIR. the user selcets a session and the path to that session is proveded to the script that copies the relevant files via nfs to the local machine and unpacks them locally into b shorts.
+
+##
+## unpack_ima1.tcl
+## Tthis cript looks at the headers of ima files in a predetermined 
+## archive directory. The default archive directory is over-ridden 
+## by the environment variable ARCHIVE_DIR. the user selects a 
+## session and the path to that session is provided to the script 
+## that copies the relevant files via nfs to the local machine and 
+## unpacks them locally into b shorts.
+##
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:40 $
+##    $Revision: 1.2 $
+##
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
+
 #--------------------------------------------------------------------------------------#
 #export ALPHA_BIN=/space/annecy/5/users/inverse/freesurfer_alpha/bin
 #cp unpack_ima.tcl $ALPHA_BIN/noarch

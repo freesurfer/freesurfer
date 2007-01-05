@@ -1,5 +1,34 @@
 #!/usr/bin/wish
-# This script looks at the headers of minc files in a predetermined archive directory. The default archive directory is over-ridden by the environment variable ARCHIVE_DIR. The scripts attempts to read an index file, "index.txt", which is a sister to the archive directory. This index is produced by "mkmnc_index.tcl" and contains header info and paths to sessions in other directries. The user selects a session.The path to that session is provided to the script "unpackmincdir," which copies the relevant files via nfs to the local machine and unpacks them locally into b shorts.
+
+##
+## unpack_mnc.tcl
+## This script looks at the headers of minc files in a predetermined 
+## archive directory. The default archive directory is over-ridden by
+## the environment variable ARCHIVE_DIR. The scripts attempts to read
+## an index file, "index.txt", which is a sister to the archive 
+## directory. This index is produced by "mkmnc_index.tcl" and contains
+## header info and paths to sessions in other directries. The user 
+## selects a session.The path to that session is provided to the script
+## "unpackmincdir," which copies the relevant files via nfs to the local
+## machine and unpacks them locally into b shorts.
+##
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:41 $
+##    $Revision: 1.2 $
+##
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
 #--------------------------------------------------------------------------------------#
 
 #export ALPHA_BIN=/space/annecy/5/users/inverse/freesurfer_alpha/bin

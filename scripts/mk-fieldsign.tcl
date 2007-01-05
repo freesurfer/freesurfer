@@ -1,9 +1,27 @@
 #! /usr/bin/tclsh
-##############################################################################
-# surfer script: mk-fieldsign    [calc,write fieldsign using patch--optional disp]
-# This is a slight modification of fs-make.tcl
-# $Id: mk-fieldsign.tcl,v 1.3 2005/05/16 15:22:50 kteich Exp $
-##############################################################################
+
+##
+## mk-fieldsign.tcl
+## surfer script: mk-fieldsign    [calc,write fieldsign using patch--optional disp]
+## This is a slight modification of fs-make.tcl
+##
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:11 $
+##    $Revision: 1.4 $
+##
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
 
 #### session dir autoset to $cwd/.. when cwd=scripts
 #setsession ~/fmri/DALE0308/08798

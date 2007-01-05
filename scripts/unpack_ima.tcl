@@ -1,10 +1,31 @@
 #!/usr/bin/wish
 
+##
+## unpack_ima.tcl
+##
+## Original Author: Tony Harris
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:39 $
+##    $Revision: 1.10 $
+##
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
+
 #-------------------- NOTICE ------------------------------------#
 # This program is under revision control. Do not edit it without
 # going through the proper checkin/checkout steps!
 #----------------------------------------------------------------#
-
 
 # this script looks at the headers of ima files in a predetermined 
 # archive directory. The default archive directory is over-ridden 

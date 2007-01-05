@@ -1,7 +1,29 @@
 #! /usr/bin/tclsh
+
+##
+## tkanalyse.tcl
+##
+## CVS Revision Info:
+##    $Author: nicks $
+##    $Date: 2007/01/05 00:21:27 $
+##    $Revision: 1.4 $
+##
+## Copyright (C) 1996 Martin Sereno and Anders Dale
+## Copyright (C) 2002-2007,
+## The General Hospital Corporation (Boston, MA). 
+## All rights reserved.
+##
+## Distribution, usage and copying of this software is covered under the
+## terms found in the License Agreement file named 'COPYING' found in the
+## FreeSurfer source code root directory, and duplicated here:
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+##
+## General inquiries: freesurfer@nmr.mgh.harvard.edu
+## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+##
 ############################################################################
-#  Copyright (c) 1996 Martin Sereno and Anders Dale
 ############################################################################
+
 set program tkanalyse
 set ffont -b&h-lucidatypewriter-medium-r-normal-sans-12-120-75-75-m-70-iso8859-1
 set ffontb -b&h-lucidatypewriter-bold-r-normal-sans-12-120-75-75-m-70-iso8859-1

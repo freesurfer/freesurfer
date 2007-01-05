@@ -2,7 +2,6 @@
 # \
 exec wish "$0" ${1+"$@"}
 
-#
 ## tkcon.tcl
 ## Enhanced Tk Console, part of the VerTcl system
 ##
@@ -187,7 +186,7 @@ proc ::tkcon::Init {args} {
 	    alias clear dir dump echo idebug lremove
 	    tkcon_puts tkcon_gets observe observe_var unalias which what
 	}
-	RCS		{RCS: $Id: tkcon.tcl,v 1.5 2004/09/17 21:44:17 kteich Exp $}
+	RCS		{RCS: $Id: tkcon.tcl,v 1.6 2007/01/05 00:21:54 nicks Exp $}
 	HEADURL		{http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD}
 	docs		"http://tkcon.sourceforge.net/"
 	email		{jeff@hobbs.org}
