@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/03 20:40:15 $
- *    $Revision: 1.320 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/06 18:36:36 $
+ *    $Revision: 1.321 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -9682,7 +9682,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    printf("INFO: using NIfTI-1 sform \n");
+    fprintf(stderr, "INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -9693,7 +9693,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   else if (hdr.qform_code != 0)
   {
     // Then, try the qform, if that is ok
-    printf("INFO: using NIfTI-1 qform \n");
+    fprintf(stderr,"INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -10445,7 +10445,7 @@ static MRI *niiRead(char *fname, int read_volume)
   {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    printf("INFO: using NIfTI-1 sform \n");
+    fprintf(stderr,"INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -10456,7 +10456,7 @@ static MRI *niiRead(char *fname, int read_volume)
   else if (hdr.qform_code != 0)
   {
     // Then, try the qform, if that is ok
-    printf("INFO: using NIfTI-1 qform \n");
+    fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -10467,8 +10467,8 @@ static MRI *niiRead(char *fname, int read_volume)
   else
   {
     // Should probably just die here.
-    printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
-    printf("WARNING: your volume will probably be incorrectly oriented\n");
+    fprintf(stderr, "WARNING: neither NIfTI-1 qform or sform are valid\n");
+    fprintf(stderr, "WARNING: your volume will probably be incorrectly oriented\n");
     mri->x_r = -1.0;
     mri->x_a = 0.0;
     mri->x_s = 0.0;
