@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.3 2007/01/06 05:59:53 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.4 2007/01/06 07:23:06 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -44,7 +44,7 @@ popd > /dev/null
 set LF = $OutDir/dt_recon.log
 if(-e $LF) mv $LF $LF.bak
 echo "dt_recon logfile" | tee -a $LF
-echo date                | tee -a $LF
+date                    | tee -a $LF
 echo "VERSION $VERSION"  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "cd `pwd`"          | tee -a $LF
@@ -57,6 +57,9 @@ which eddy_correct       | tee -a $LF
 setenv FSLOUTPUTTYPE NIFTI
 
 # Convert the input to nifti
+echo "#@#-------------------------------" |  tee -a $LF
+echo "Converting input" |  tee -a $LF
+date |  tee -a $LF
 set f = $OutDir/dwi.nii
 set cmd = (mri_convert $InputVol $f);
 echo "cd `pwd`" |  tee -a $LF
@@ -77,6 +80,9 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 # Eddy/Motion Correct (needs its own tmp dir)
+echo "#@#-------------------------------" |  tee -a $LF
+echo "Eddy/Motion Correct" |  tee -a $LF
+date |  tee -a $LF
 set fec = $OutDir/dwi-ec.nii
 set ectmp = $OutDir/ectmp
 mkdir -p $ectmp
@@ -98,6 +104,9 @@ echo "" | tee -a $LF
 
 
 # Fit tensors
+echo "#@#-------------------------------" |  tee -a $LF
+echo "Fitting Tensors" |  tee -a $LF
+date |  tee -a $LF
 set cmd = (mri_glmfit --y $fec --glmdir $OutDir --dti $infodump)
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF 
@@ -107,6 +116,9 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 # Register to subject
+echo "#@#-------------------------------" |  tee -a $LF
+echo "Registration" |  tee -a $LF
+date |  tee -a $LF
 set reg = $OutDir/register.dat
 set cmd = (fslregister --s $subject --mov $OutDir/lowb.nii)
 set cmd = ($cmd --reg $reg)
@@ -119,6 +131,9 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 # Map Mask to talairach space
+echo "#@#-------------------------------" |  tee -a $LF
+echo "Reslicing to Tal" |  tee -a $LF
+date |  tee -a $LF
 set mask = $OutDir/mask.nii
 set masktal = $OutDir/mask-tal.nii
 set cmd = (mri_vol2vol --reg $reg --tal --interp nearest\
@@ -321,8 +336,8 @@ $FREESURFER_HOME/diffusion/mgh-dti-seqpack/README.
 
 Stages:
 1. Convert dicom to nifti (creates dwi.nii)
-2. Eddy current and motion correction using FSLs eddy_correct
-   (creates dwi-ec.nii)
+2. Eddy current and motion correction using FSLs eddy_correct,
+   creates dwi-ec.nii. Can take 1-2 hours.
 3. DTI GLM Fit and tensor construction. Includes creation of:
    tensor.nii -- maps of the tensor (9 frames)
    eigvals.nii -- maps of the eigenvalues
