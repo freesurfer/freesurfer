@@ -1,12 +1,15 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
+# fsr-getxopts
 #
 # USAGE: fsr-getxopts cmd xoptsfile
-# 
+#
 # Parses expert options for freesurfer recon.
 # Looks in xoptsfile for a line with cmd as the first item,
 # then returns the rest of the items on that line. Ignores
 # all lines with # in them, regardless of where on the line
-# they occur. 
+# they occur.
 #
 # Eg, if the file expert.opts contains:
 #   mri_em_register -p .5
@@ -15,8 +18,26 @@
 # will return
 #   -p .5
 #
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.4 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: fsr-getxopts,v 1.3 2006/02/06 21:55:21 greve Exp $';
+set VERSION = '$Id: fsr-getxopts,v 1.4 2007/01/06 00:01:14 nicks Exp $';
 
 if($#argv < 2) exit 0;
 

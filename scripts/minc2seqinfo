@@ -1,20 +1,17 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
 #
 # Name: minc2seqinfo
-# $Id: minc2seqinfo,v 1.2 2006/04/18 23:05:04 nicks Exp $
 #
-# Author: Douglas Greve
-# Date:   10/28/00
 # Purpose: extracts the relevent information for the seq.info file
 #          that is part of the Sessions Database.
 #
 # The seq.info file has a tag-value following format.
 # Example, for a data set with 16 slices, each slice 64x64, with 100 TRs,
-# TR = 2 seconds, slice thickness of 5 mm, pixel size of 3.125 
-# collected with a sequence called ep2d_fid_ts_20b2604, then the 
+# TR = 2 seconds, slice thickness of 5 mm, pixel size of 3.125
+# collected with a sequence called ep2d_fid_ts_20b2604, then the
 # seq.info file is shown below.  The order is actually unimportant. If there
 # is no temporal dimension, then there would be no "ntrs" and "TR" fields.
-# 
+#
 # ------ cut here -------
 # sequencename     ep2d_fid_ts_20b2604
 # nrows            64
@@ -26,6 +23,25 @@
 # ntrs             100
 # TR               2.0
 # ------ cut here -------
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.3 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
 if($#argv != 1  && $#argv != 2  ) then
   echo "Usage: minc2seqinfo mincfile <seqinfofile>"
@@ -57,7 +73,7 @@ if($dimnames[1] == time) then
   shift dimnames;
 endif
 
-## Get the number and size of each dimension  
+## Get the number and size of each dimension
 ## vdim:  nslices, nrows, ncols
 ## vsize: slice thicknes, row thickness, col thickness
 set vdim  = ();
@@ -89,7 +105,7 @@ if($#argv == 2) then
   endif
 else
   # no seq.info file specified, print to stdout #
-  echo "sequencename $seq"    
+  echo "sequencename $seq"
   echo "nrows        $vdim[2]"
   echo "ncols        $vdim[3]"
   echo "nslcs        $vdim[1]"
@@ -97,8 +113,8 @@ else
   echo "colpixelsize $vsize[3]"
   echo "slcpixelsize $vsize[1]"
   if($#TR != 0) then
-    echo "ntrs         $ntrs"   
-    echo "TR           $TR"     
+    echo "ntrs         $ntrs"
+    echo "TR           $TR"
   endif
 endif
 

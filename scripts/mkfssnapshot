@@ -1,17 +1,31 @@
-#!/bin/tcsh -f
-#
-# WARNING: this file is under revision control. Please
-# use the appropriate checkin/checkout procedures when
-# editing.
+#! /bin/tcsh -f
+
 #
 # mkfssnapshot
-# $Id: mkfssnapshot,v 1.4 2006/04/18 23:05:04 nicks Exp $
 #
 # Purpose: creates a FreeSurfer snapshot in the directory specified on
 # the command-line. This is not a full release, but merely a
 # collection of binaries that can be used to update an existing
 # FreeSurfer installation.
-
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.5 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
 # TO MAKE THE SNAPSHOT:
 
@@ -24,12 +38,12 @@
 # - Run mkfsdist:
 #    $ mkfsdist ~/work/freesurfer-20030512/freesurfer
 #              ~/work/freesurfer-20030512 PLATFORM
-#   with appropriate substitutions. PLATFORM can be Linux or Darwin 
+#   with appropriate substitutions. PLATFORM can be Linux or Darwin
 #   or Solaris.
 
 # - mkfsdist will fill ~/work/freesurfer-20030512 with tarballs and other
 #   files. Tar up this directory:
-#    $ tar cfzv freesurfer-20030512-Linux-Update.tar.gz 
+#    $ tar cfzv freesurfer-20030512-Linux-Update.tar.gz
 #               ~/work/freesurfer-20030512
 #   with appropriate OS name in the tarball name.
 
@@ -40,10 +54,10 @@
 # will just use 'freesurfer' to refer to the destination directory.
 #
 # Symbolic Links in freesurfer:
-# 
+#
 #  It does not follow symbolic links, so any symbolic link
 #  in the source dir must have a pointer relative to someplace in the
-#  source dir tree.  
+#  source dir tree.
 #
 # Dynamic and Statically Linked Programs
 #
@@ -54,18 +68,18 @@
 #  involved. See comments in the code for more detail.
 #
 # Excluding files and directories from freesurfer:
-# 
+#
 #  Files and directories within the freesurfer tree can be targeted
 #  for exclusion by entering them into freesurfer/tar-exclude. This
 #  is useful for excluding the license file (.license) as well as other
 #  files that just take up space. When adding items to the exclude file,
 #  put only one name on each line and make sure there are no trailing
-#  white spaces. This name will be exluded where ever it is found in the 
+#  white spaces. This name will be exluded where ever it is found in the
 #  tree, either as a file or as a directory.  It will also exclude the
 #  files found in tar-exclude-gca.
 #
-# 
-set VERSION = '$Id: mkfssnapshot,v 1.4 2006/04/18 23:05:04 nicks Exp $';
+#
+set VERSION = '$Id: mkfssnapshot,v 1.5 2007/01/06 00:01:14 nicks Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)

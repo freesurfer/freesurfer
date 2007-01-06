@@ -1,8 +1,33 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
 #
-# 
-# $Id: fsl_rigid_register,v 1.17 2006/09/08 20:31:41 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.17 2006/09/08 20:31:41 greve Exp $';
+# fsl_rigid_register
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.18 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+#
+#
+
+set VERSION = '$Id: fsl_rigid_register,v 1.18 2007/01/06 00:01:14 nicks Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -29,12 +54,12 @@ set xfmmatfile = ();
 set ltamatfile = ();
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | egrep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | egrep help | wc -l` 
+set n = `echo $argv | egrep help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -224,7 +249,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-r":
@@ -284,7 +309,7 @@ while( $#argv != 0 )
       foreach c ($costlist);
         if($cost == $c) set err = 0;
       end
-      if($err) then 
+      if($err) then
         echo "ERROR: cost $cost is unrecognized"
         echo " I only know about $costlist)"
         exit 1;
@@ -358,7 +383,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -475,7 +500,7 @@ outvol.fslmat (unless -fslmat).
 By default, an init FSL registration matrix is computed from the
 geometry information in the header ref and input headers. This is a
 good idea because the anlyze format does not keep the direction cosine
-info around.  
+info around.
 
 -fslmat fslmatfile
 
@@ -488,7 +513,7 @@ will have to edit the subject name.
 
 -ltamat ltamatfile
 
-Convert the FSL matrix to an MGH lta file. 
+Convert the FSL matrix to an MGH lta file.
 
 -noinitgeom
 
@@ -505,7 +530,7 @@ initialization is specified, the identity is assumed. Forces
 Search only +/- maxangle degrees around the initial starting
 point. Default is 90.
 
--applyxfm 
+-applyxfm
 
 When the -applyxfm flag is is used, the input is resampled to the
 output using the FSL mat file supplied as the argument to the
@@ -517,7 +542,7 @@ geometry for the output file. Forces -noinitgeom.
 Non-rigid registration can be performed by changing the dof from 6.
 
 
-BUGS: 
+BUGS:
 
 If using COR as output, the COR directory must exist prior to running
 this script.

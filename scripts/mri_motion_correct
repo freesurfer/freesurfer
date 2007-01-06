@@ -1,9 +1,25 @@
 #!/bin/sh
 
 #
-# mri_motion_correct v.2
+# mri_motion_correct
 #
-# 18 May 2001 ch
+# Original Author: Christian Haselgrove
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.5 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 # ---------------------------------------------------------------------
@@ -82,7 +98,7 @@ get_size()
   if [ ! $nframe ] ; then return 2 ; fi
   if [ ! $type ] ; then return 2 ; fi
 
-  # from mri.h: 
+  # from mri.h:
   # define MRI_UCHAR   0
   # define MRI_INT     1
   # define MRI_LONG    2
@@ -174,7 +190,7 @@ check_size()
   then
     echo "WARNING: $files_sizes Kb needed, $avail Kb available in $tmpdir (you're cutting it close!)"
   fi
-  
+
 } # end check_size()
 
 # ---------------------------------------------------------------------
@@ -189,15 +205,15 @@ mri_convert_default_dir=${FREESURFER_HOME}/bin/Linux/mri_convert
 # ----- update variables -----
 PATH=${mni_bin_dir}:${PATH}:${mri_convert_default_dir}
 
-if [ $LD_LIBRARY_PATH ] ; then 
+if [ $LD_LIBRARY_PATH ] ; then
     LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${mni_lib_dir}
-else 
+else
     LD_LIBRARY_PATH=$mni_lib_dir
 fi
 
-if [ $PERLLIB ] ; then 
+if [ $PERLLIB ] ; then
     PERLLIB=${PERLLIB}:${perl_lib_dir}
-else 
+else
     PERLLIB=$perl_lib_dir
 fi
 
@@ -257,8 +273,8 @@ do
       exit 1
     fi
   else
-    if [ ! $outfile ] ; then outfile=$1 ; 
-    elif [ `echo $infile | wc | awk '{print $2}'` -eq 0 ] ; then infile=$1 ; 
+    if [ ! $outfile ] ; then outfile=$1 ;
+    elif [ `echo $infile | wc | awk '{print $2}'` -eq 0 ] ; then infile=$1 ;
     else infile=$infile" $1" ; fi
   fi
   shift
@@ -472,16 +488,16 @@ else
   for input in $infile
   do
     tr=`awk '{ if ($1 == "tr") print $2}' $input/COR-.info`
-    if [ "$tr" ] 
-    then 
+    if [ "$tr" ]
+    then
       echo $input " TR vlaue is " $tr >&2
       trlist=$trlist" $tr"
     else
       echo $input " TR not found" >&2
     fi
   ################# TE
-    te=`awk '{ if ($1 == "te") print $2}' $input/COR-.info`  
-    if [ "$te" ] 
+    te=`awk '{ if ($1 == "te") print $2}' $input/COR-.info`
+    if [ "$te" ]
     then
       echo $input " TE vlaue is " $te >&2
       telist=$telist" $te"
@@ -489,8 +505,8 @@ else
       echo $input " TE not found" >&2
     fi
   ################# TI
-    ti=`awk '{ if ($1 == "ti") print $2}' $input/COR-.info`  
-    if [ "$ti" ] 
+    ti=`awk '{ if ($1 == "ti") print $2}' $input/COR-.info`
+    if [ "$ti" ]
     then
       echo $input " TI vlaue is " $ti >&2
       tilist=$tilist" $te"
@@ -498,8 +514,8 @@ else
       echo $input " TI not found" >&2
     fi
   ################# Flip angle
-    fa=`awk '{ if ($1 == "flip") if ($2 == "angle") print $3}' $input/COR-.info` 
-    if [ "$fa" ] 
+    fa=`awk '{ if ($1 == "flip") if ($2 == "angle") print $3}' $input/COR-.info`
+    if [ "$fa" ]
     then
       echo $input " Flip angle is " $fa >&2
       falist=$falist" $fa"
@@ -515,10 +531,10 @@ else
   for elem in $trlist
   do
     mycount=`expr ${mycount} + 1`
-    if [ $mycount = 1 ] 
+    if [ $mycount = 1 ]
     then
       tr1=$elem
-    elif [ $tr1 != $elem ] 
+    elif [ $tr1 != $elem ]
     then
       tr1=0
     fi
@@ -532,10 +548,10 @@ else
   for elem in $telist
   do
     mycount=`expr ${mycount} + 1`
-    if [ $mycount = 1 ] 
+    if [ $mycount = 1 ]
     then
       te1=$elem
-    elif [ $te1 != $elem ] 
+    elif [ $te1 != $elem ]
     then
       te1=0
     fi
@@ -549,10 +565,10 @@ else
   for elem in $tilist
   do
     mycount=`expr ${mycount} + 1`
-    if [ $mycount = 1 ] 
+    if [ $mycount = 1 ]
     then
       ti1=$elem
-    elif [ $ti1 != $elem ] 
+    elif [ $ti1 != $elem ]
     then
       ti1=0
     fi
@@ -567,10 +583,10 @@ else
   for elem in $falist
   do
     mycount=`expr ${mycount} + 1`
-    if [ $mycount = 1 ] 
+    if [ $mycount = 1 ]
     then
       fa1=$elem
-    elif [ $fa1 != $elem ] 
+    elif [ $fa1 != $elem ]
     then
       fa1=0
     fi
@@ -583,17 +599,17 @@ else
   # check whether tr is present
   echo "Writing TR value " $tr1
   tr=`awk '{ if ($1 == "tr") print $2}' $outfile/COR-.info`
-  if [ "$tr" ] 
-  then 
+  if [ "$tr" ]
+  then
     echo "found tr field"
     awk -v trval=$tr1 '{ if ($1 == "tr") print $1, trval; else print }' $outfile/tmp > $outfile/tmp2
   else
     echo "tr " $tr1 >> $outfile/COR-.info
-  fi 
+  fi
 
   echo "Writing TE value " $te1
-  te=`awk '{ if ($1 == "te") print $2}' $outfile/COR-.info` 
-  if [ "$te" ] 
+  te=`awk '{ if ($1 == "te") print $2}' $outfile/COR-.info`
+  if [ "$te" ]
   then
     echo "found te field"
     awk -v teval=$te1 '{ if ($1 == "te") print $1, teval; else print }' $outfile/tmp2 > $outfile/tmp3
@@ -602,18 +618,18 @@ else
   fi
 
   echo "Writing TI value " $ti1
-  ti=`awk '{ if ($1 == "ti") print $2}' $outfile/COR-.info`  
-  if [ "$ti" ] 
+  ti=`awk '{ if ($1 == "ti") print $2}' $outfile/COR-.info`
+  if [ "$ti" ]
   then
     echo "found ti field"
     awk -v tival=$ti1 '{ if ($1 == "ti") print $1, tival; else print }' $outfile/tmp3 > $outfile/tmp4
-  else  
+  else
     echo "ti " $ti1 >> $outfile/COR-.info
   fi
 
   echo "Writing Flip angle (degrees) " $fa1
-  fa=`awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $outfile/COR-.info` 
-  if [ "$fa" ] 
+  fa=`awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $outfile/COR-.info`
+  if [ "$fa" ]
   then
     echo "found flip angle field"
     awk -v faval=$fa1 '{ if ($1 == "flip") print "flip angle", faval; else print }' $outfile/tmp4 > $outfile/tmp5

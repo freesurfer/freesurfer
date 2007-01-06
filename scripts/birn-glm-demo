@@ -1,7 +1,32 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
 # birn-glm-demo
-# $Id: birn-glm-demo,v 1.6 2006/04/18 23:05:03 nicks Exp $
-set VERSION = '$Id: birn-glm-demo,v 1.6 2006/04/18 23:05:03 nicks Exp $';
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.7 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# birn-glm-demo
+
+set VERSION = '$Id: birn-glm-demo,v 1.7 2007/01/06 00:01:13 nicks Exp $';
 
 set inputargs = ($argv);
 
@@ -20,12 +45,12 @@ set MLF = ();
 set monly = 0;
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | egrep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | egrep help | wc -l` 
+set n = `echo $argv | egrep help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -100,7 +125,7 @@ end
 ncols = size(d,2);
 nsubjects = size(d,1);
 
-if(xcol > ncols) 
+if(xcol > ncols)
   fprintf('ERROR: requested xcol %d is greater than number of cols %d\n',...
           xcol,ncols);
   return;quit;
@@ -214,7 +239,7 @@ if(! $monly) then
     exit 1;
   endif
   rm $ScatterDat
-  rm $gnpfile 
+  rm $gnpfile
 endif
 
 echo ""
@@ -231,7 +256,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-qrf":
@@ -269,7 +294,7 @@ while( $#argv != 0 )
       set Contrast = $argv[1]; shift;
       if($Contrast != "offset" && $Contrast != "slope") then
         echo "ERROR: test must be either offset or slope"
-        exit 1; 
+        exit 1;
       endif
       breaksw
 
@@ -326,7 +351,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -383,7 +408,7 @@ arg1err:
 usage_exit:
   echo ""
   echo "USAGE: birn-glm-demo"
-  echo ""  
+  echo ""
   echo "Required Arguments"
   echo "  -qrf query result file"
   echo "  -glm GLM result file"
@@ -420,12 +445,12 @@ scatter plot is written to the argument of -scatter.
 
 The input file is assumed to have many colums of which 3 are actual
 data (namely columns 5, 8, and 11). Col 5 is the independent variable;
-Col 8 is the volume of the left side structure; Col 11 is the volume 
-of the right side structure. 
+Col 8 is the volume of the left side structure; Col 11 is the volume
+of the right side structure.
 
 By default, the structure name is assumed to be Hippocampus, but
 this can be changed with the -struct option. This only affects
-the axis label. 
+the axis label.
 
 By default, the program tests the hypothesis that the slope fitted
 to the left side volume as a function of the independent variable is

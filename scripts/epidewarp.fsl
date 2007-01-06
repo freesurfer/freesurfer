@@ -1,8 +1,33 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
+# epidewarp.fsl
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.23 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.22 2006/10/20 19:57:52 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.23 2007/01/06 00:01:13 nicks Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -13,7 +38,7 @@ set epi = ();
 set tediff = (); # Suggest 2.46 ms for 3T
 
 # EPI Echo Spacing (MGH .58 ms)
-set esp    = (); 
+set esp    = ();
 
 # FUGUE parameters
 set sigmamm = 2; # Smoothing sigma in mm
@@ -35,12 +60,12 @@ set LF = ();
 
 ## If there are no arguments, just print useage and exit ##
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -102,7 +127,7 @@ if($#exf == 0) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  if($#epimat) cp $epimat `dirname $exf`/`basename $exf .$ext`.mat 
+  if($#epimat) cp $epimat `dirname $exf`/`basename $exf .$ext`.mat
 endif
 if(! -e $exf) then
   echo "ERROR: cannot find $exf"
@@ -115,7 +140,7 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 set mag = $tmpdir/mag.$ext
-if($#epimat) cp $epimat `dirname $mag`/`basename $mag .$ext`.mat 
+if($#epimat) cp $epimat `dirname $mag`/`basename $mag .$ext`.mat
 
 # Create brain mask from the mag
 set cmd = (bet $mag $brain)
@@ -126,7 +151,7 @@ set cmd = (avwmaths $brain -bin $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-if($#epimat) cp $epimat `dirname $brain`/`basename $brain .$ext`.mat 
+if($#epimat) cp $epimat `dirname $brain`/`basename $brain .$ext`.mat
 
 # Create head mask by dilating the brain mask 3 times
 @ nthdil = 1;
@@ -159,7 +184,7 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 # FUGUE wants a phase image for each echo, but we only have
-# phase difference between echoes. So create an image of 0s 
+# phase difference between echoes. So create an image of 0s
 # and merging with the phase diff.
 set ph1 = $tmpdir/ph1.$ext
 set cmd = (avwmaths $dph -mul 0 $ph1)
@@ -173,10 +198,10 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
-# Create the voxel shift map (VSM) in the mag/phase space. Use mag as 
+# Create the voxel shift map (VSM) in the mag/phase space. Use mag as
 # input to assure that VSM is same dimension as mag. The input only affects
 # the output dimension. The content of the input has no effect
-# on the VSM. The dewarped mag volume is meaningless and will be thrown away. 
+# on the VSM. The dewarped mag volume is meaningless and will be thrown away.
 if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.$ext
 set magdw = $tmpdir/magdw.$ext # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
@@ -185,7 +210,7 @@ if($#sigmamm && $sigmamm > 0) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .$ext`.mat 
+if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .$ext`.mat
 
 # Remove the mean in-brain shift from VSM
 set vsmmean = `avwstats $vsmmag -M`;
@@ -209,7 +234,7 @@ if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .$ext`.mat
 
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
-if($DoMagExfReg) then 
+if($DoMagExfReg) then
   set cmd = (flirt -in $magfw -ref $exf \
     -out $tmpdir/magfw-in-exf.$ext \
     -omat $tmpdir/magfw-in-exf.fsl.mat \
@@ -231,7 +256,7 @@ else
 endif
 
 
-# Now resample VSM into epi space. This will take care of any 
+# Now resample VSM into epi space. This will take care of any
 # differences in in-plane voxel size.
 set cmd = (flirt -in $vsmmag -ref $exf -out $vsm \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
@@ -243,7 +268,7 @@ if($#epimat) then # Propogate mat file
   cp $epimat `dirname $vsm`/$vsmbase.mat
 endif
 
-# Now resample brain mask into epi space. This will take care of any 
+# Now resample brain mask into epi space. This will take care of any
 # differences in in-plane voxel size.
 set brainexf = $tmpdir/brainexf.$ext
 set cmd = (flirt -in $brain -ref $exf -out $brainexf \
@@ -282,8 +307,8 @@ if($#epidw != 0) then
   mkdir -p $tmpdir/epi-split
   pushd $tmpdir/epi-split
   set cmd = (avwsplit $epipath)
-  echo $cmd 
-  $cmd 
+  echo $cmd
+  $cmd
   if($status) exit 1;
   popd
 
@@ -320,7 +345,7 @@ exit 0;
 
 ##############################################################
 done:
-  if($cleanup) then 
+  if($cleanup) then
     echo "Deleting tmp dir $tmpdir" |& tee -a $LF
     rm -r $tmpdir
   endif
@@ -334,7 +359,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--mag":
@@ -441,7 +466,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -456,22 +481,22 @@ goto parse_args_return;
 check_params:
 
   if($#mag == 0) then
-    echo "ERROR: no magnitude volume specified"    
+    echo "ERROR: no magnitude volume specified"
     exit 1;
   endif
 
   if($#dph == 0) then
-    echo "ERROR: no phase diff volume specified"    
+    echo "ERROR: no phase diff volume specified"
     exit 1;
   endif
 
   if($#tediff == 0) then
-    echo "ERROR: no TE diff specified"    
+    echo "ERROR: no TE diff specified"
     exit 1;
   endif
 
   if($#esp == 0) then
-    echo "ERROR: no Echo Spacing specified"    
+    echo "ERROR: no Echo Spacing specified"
     exit 1;
   endif
 
@@ -481,7 +506,7 @@ check_params:
   endif
 
   if($#vsm == 0) then
-    echo "ERROR: no output VSM specified"    
+    echo "ERROR: no output VSM specified"
     exit 1;
   endif
 
@@ -594,7 +619,7 @@ echo times (TEs). The field map should be acquired with the same slice
 prescription, slice thickness, slice skip, voxel resolution, and
 field-of-view as the EPI. This script uses only FSL commands (ie,
 FreeSurfer not needed). This should work with NIFTI, NIFTI_GZ, and
-ANALYZE formats, but NIFTI are NIFTI_GZ *HIGHLY* recommended. 
+ANALYZE formats, but NIFTI are NIFTI_GZ *HIGHLY* recommended.
 Converting between ANALYZE and NIFTI in FSL can produce
 unpredictable results.
 
@@ -676,7 +701,7 @@ out a line of k-space and it cannot be computed from the bandwidth
 because neither of these methods takes into account the dead time
 between lines when no data are being read out.
 
---sigma sigmamm 
+--sigma sigmamm
 
 2D Smoothing VSM with gaussian with stddev of sigmamm (in mm). Default
 is 2 mm. This tends to have minimal impact but can clean things up
@@ -713,7 +738,7 @@ Do not delete the tmp dir. --tmpdir automatically implies --nocleanup.
 
 --cleanup
 
-Forces deleting of the tmp dir regardless of whether --tmpdir or 
+Forces deleting of the tmp dir regardless of whether --tmpdir or
 --nocleanup have been specified.
 
 --debug
@@ -735,20 +760,20 @@ TE2 = TE1 + DeltaTE
 
 DeltaTE = 4.92ms for 1.5T
 Flip Angle: 65 for 1.5T
-DeltaTE = 2.46ms for 3T 
-Flip Angle: 55 for 3T 
+DeltaTE = 2.46ms for 3T
+Flip Angle: 55 for 3T
 DeltaTE = 1.845ms for 4T
-Flip Angle: 55 for 4T 
+Flip Angle: 55 for 4T
 
 FatSat: Off
 Bandwidth: Maximum
-Slice Prescription, FOV, Thickness, Skip, Pixel Resolution, Matrix Size: 
+Slice Prescription, FOV, Thickness, Skip, Pixel Resolution, Matrix Size:
 same as functional
 
 NOTES
 
 The output will not necessarily be registered with the mag volume. To
-compare the mag with the dewarped output, first register the mag 
+compare the mag with the dewarped output, first register the mag
 to the dewarped output.
 
 SEE ALSO
@@ -793,8 +818,8 @@ Jezzard, Peter, and Balaban, Robert S. Correction for Geometric
 Distortion in Echo Planar Images from B0 Field Variations. Mag Res
 Med, 1995, 34:65-73.
 
-For epidewarp.fsl we ask that the following be placed in the 
+For epidewarp.fsl we ask that the following be placed in the
 acknowledgement section of you papers:
 
-  "Some of the scripts involved in this work were developed by 
+  "Some of the scripts involved in this work were developed by
    FBIRN (www.nbirn.net)."

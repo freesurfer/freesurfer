@@ -20,13 +20,30 @@
 # "nu_noneck.mgz" is needed for every subject to build the gca with skull.
 #
 # Original author: Xiao Han
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.7 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.6 2006/10/30 19:25:41 nicks Exp $';
+
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.7 2007/01/06 00:01:14 nicks Exp $';
 
 #set echo=1
 
-# these are the subjects to use in training.  
+# these are the subjects to use in training.
 # one of them, the target, set to ONE_SUBJECT, should be declared is this file:
 source ${SUBJECTS_DIR}/scripts/subjects.csh
 
@@ -36,7 +53,7 @@ set DATE=(`date +%F`)
 # pbs special configure options:
 set PBCONF="-l nodes=1:opteron -m $USER"
 
-# optionally choose to not run commands (but commands are echoed 
+# optionally choose to not run commands (but commands are echoed
 # in logfile) by setting RunIt=0
 set RunIt=1
 
@@ -289,7 +306,7 @@ end
 
 
 #
-# optionally stop here, and adjust SUBJECTS to contain 
+# optionally stop here, and adjust SUBJECTS to contain
 # only well-aligned subjects.
 # to stop here, use '1' as the input argument to this script.
 # to start-up here, use '2' as the input arg. default is run both stages.

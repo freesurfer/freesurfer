@@ -1,4 +1,5 @@
-#!/bin/tcsh -ef
+#! /bin/tcsh -ef
+
 #
 # make_average_subject
 #
@@ -6,8 +7,27 @@
 #
 # --help option will show usage
 #
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.10 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: make_average_subject,v 1.9 2006/06/09 15:44:34 nicks Exp $'
+
+set VERSION = '$Id: make_average_subject,v 1.10 2007/01/06 00:01:14 nicks Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -125,7 +145,7 @@ while( $#argv != 0 )
       set DoLink = 0;
       breaksw
 
-   case "--debug": 
+   case "--debug":
    case "--echo":
       set echo = 1;
       set verbose = 1
@@ -169,7 +189,7 @@ check_params:
   set outdir = $sdout/$average_subject
   if(-e $outdir && ! $Force) then
     echo "ERROR: $outdir already exists, select a new average subject name"
-    echo "       or delete and rerun" 
+    echo "       or delete and rerun"
     exit 1;
   endif
   if($sdout == $SUBJECTS_DIR) set DoLink = 0;
@@ -193,7 +213,7 @@ usage_exit:
   echo "USAGE: make_average_subject"
   echo ""
   echo "Required Arguments"
-  echo "   --subjects <subj1> <subj2> ... <subjN>" 
+  echo "   --subjects <subj1> <subj2> ... <subjN>"
   echo "             : or declare subjects in SUBJECTS env var"
   echo "   --fsgd fsgdfile : get subject list from fsgd"
   echo ""
@@ -229,9 +249,9 @@ BEGINHELP
 Creates average subject by averaging surfaces, curvatures, and volumes
 from a set of subjects. The surface is a 7th order icosahedron
 tesselation.  For surfaces, the XYZ coordinate of a vertex is computed
-as the average talairach coordinate of that vertex in each subject. The 
+as the average talairach coordinate of that vertex in each subject. The
 talairach coordinate is based on talairach.xfm (unless changed with
---xform), so the individual talairachs must be accurate for the final 
+--xform), so the individual talairachs must be accurate for the final
 coordinate to be meaningful. Note that even though talairach coordinates
 are used for surfaces, all surface-based averaging is done using the
 surface atlas (NOT talairach averaging!).
@@ -239,7 +259,7 @@ surface atlas (NOT talairach averaging!).
 Calls make_average_surface and make_average_volume. See these programs
 for specific help.
 
-The subject list can be specified in one of three ways: 
+The subject list can be specified in one of three ways:
   (1) on the command-line with --subjects
   (2) through the SUBJECTS environment variable
   (3) specifying a FreeSurfer Group Descriptor (FSGD) file. The FSGD is
@@ -248,7 +268,7 @@ The subject list can be specified in one of three ways:
 
 The output will be created in SUBJECTS_DIR/averagesubjectname unless
 --topdir is specified. In this case, the data are stored in
-topdir/averagesubjectname, and a link is created to 
+topdir/averagesubjectname, and a link is created to
 SUBJECTS_DIR/averagesubjectname. This can convenient when your
 the disk that hosts your SUBJECTS_DIR starts to get full.
 
@@ -266,16 +286,16 @@ overriding the default output name 'average'.
 Example 2:
 
   setenv SUBJECTS = (subj1 subj2 subj3 subj4)
-  make_average_subject --out avgsubject 
+  make_average_subject --out avgsubject
 
 will do the same as Example 1.
 
-Example 3: check that the average subject volume aligns with the 
+Example 3: check that the average subject volume aligns with the
 talairach subject:
 
   tkregister2 --fstal --s avgsubject --mgz
 
-Example 4: check that the average subject surfaces align with the 
+Example 4: check that the average subject surfaces align with the
 volume:
 
   tkmedit avgsubject orig.mgz lh.white
@@ -285,11 +305,11 @@ Remember this is talairach, so the volume will be blurry.
 
 SEE ALSO
 
-make_average_volume, make_average_surface, recon-all, make_final_surfaces, 
+make_average_volume, make_average_surface, recon-all, make_final_surfaces,
 morph_subject
 
 GETTING HELP
 
-Run recon-all --help for extensive text on the reconstruction process. 
-Or, send email to freesurfer@nmr.mgh.harvard.edu 
+Run recon-all --help for extensive text on the reconstruction process.
+Or, send email to freesurfer@nmr.mgh.harvard.edu
 See also https://surfer.nmr.mgh.harvard.edu

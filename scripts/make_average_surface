@@ -1,4 +1,5 @@
-#!/bin/tcsh -ef
+#! /bin/tcsh -ef
+
 #
 # make_average_surface
 #
@@ -6,8 +7,27 @@
 #
 # --help option will show usage
 #
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.31 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: make_average_surface,v 1.30 2006/12/01 19:54:50 greve Exp $';
+
+set VERSION = '$Id: make_average_surface,v 1.31 2007/01/06 00:01:14 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -59,7 +79,7 @@ mkdir -p ${ddir} \
         ${ddir}/stats
 
 set LF = ${ddir}/scripts/make_average_surface.log
-if(-e $LF) mv $LF $LF.bak 
+if(-e $LF) mv $LF $LF.bak
 
 echo $VERSION | tee -a $LF
 date | tee -a $LF
@@ -185,7 +205,7 @@ foreach hemi (rh lh)
 
   #--------------------------------------------------------------
   echo "#@# Smoothing, inflating, etc $hemi ----------------" | tee -a $LF
-  cd $sdout/${average_subject}/surf      
+  cd $sdout/${average_subject}/surf
   echo "" | tee -a $LF
   pwd     | tee -a $LF
   echo "mris_smooth" | tee -a $LF
@@ -197,15 +217,15 @@ foreach hemi (rh lh)
   echo "mris_curvature" | tee -a $LF
   mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
   echo "" | tee -a $LF
-  cp ${hemi}.white_avg.H  ${hemi}.curv 
-  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg . 
+  cp ${hemi}.white_avg.H  ${hemi}.curv
+  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
   if($UseSymLink) then
-    ln -s -f ${hemi}.sphere.reg ${hemi}.sphere 
+    ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
     ln -s -f ${hemi}.orig_avg ${hemi}.orig
     ln -s -f ${hemi}.white_avg ${hemi}.white
     ln -s -f ${hemi}.pial_avg ${hemi}.pial
   else
-    cp -f ${hemi}.sphere.reg ${hemi}.sphere 
+    cp -f ${hemi}.sphere.reg ${hemi}.sphere
     cp -f ${hemi}.orig_avg ${hemi}.orig
     cp -f ${hemi}.white_avg ${hemi}.white
     cp -f ${hemi}.pial_avg ${hemi}.pial
@@ -238,7 +258,7 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
 echo "make_average_surface done" | tee -a $LF
-echo "" 
+echo ""
 
 exit 0
 
@@ -250,7 +270,7 @@ set cmdline = ($argv);
 set getting_subjects = 0;
 while( $#argv != 0 )
 
-  set flag = $argv[1]; 
+  set flag = $argv[1];
   if (! $getting_subjects) then
     shift;
   endif
@@ -270,7 +290,7 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1moreerr;
       set SUBJECTS = $argv[1]; shift;
       # loop on getting variable number of subject names
-      set getting_subjects = 1; # see 'default:' case 
+      set getting_subjects = 1; # see 'default:' case
       breaksw
 
     case "--fsgd":
@@ -384,7 +404,7 @@ while( $#argv != 0 )
         set SUBJECTS = ( $SUBJECTS $argv[1] ); shift;
         set getting_subjects = 1;
       else
-        echo ERROR: Flag $flag unrecognized. 
+        echo ERROR: Flag $flag unrecognized.
         echo $cmdline
         exit 1
       endif
@@ -445,7 +465,7 @@ usage_exit:
   echo "USAGE: make_average_surface"
   echo ""
   echo "Required Arguments"
-  echo "   --subjects <subj1> <subj2> ... <subjN>" 
+  echo "   --subjects <subj1> <subj2> ... <subjN>"
   echo "             : or declare subjects in SUBJECTS env var"
   echo "   --fsgd fsgdfile : get subject list from fsgd"
   echo ""
@@ -490,7 +510,7 @@ EXAMPLE
 make_average_surface --out avgsubject --subjects subj1 subj2 subj3 subj4
 
 will create $SUBJECTS_DIR/avgsubject with average surfaces for orig,
-white, pial, inflated for each hemi. 
+white, pial, inflated for each hemi.
 
 SEE ALSO
 
@@ -498,7 +518,7 @@ make_average_subject, make_average_volume
 
 GETTING HELP
 
-Run recon-all --help for extensive text on the reconstruction process. 
-Or, send email to freesurfer@nmr.mgh.harvard.edu. 
+Run recon-all --help for extensive text on the reconstruction process.
+Or, send email to freesurfer@nmr.mgh.harvard.edu.
 Also see http://surfer.nmr.mgh.harvard.edu.
 

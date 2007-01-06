@@ -1,6 +1,5 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
 
-##############################################################################
 #
 # Name:    test_recon-all.csh
 # Purpose: runs recon-all on a reference subject, then checks results
@@ -28,9 +27,27 @@
 #     mris_compute_parc_overlap
 #     diff
 #
-##############################################################################
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.4 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION='$Id: test_recon-all.csh,v 1.3 2006/12/01 23:25:29 nicks Exp $'
+
+set VERSION='$Id: test_recon-all.csh,v 1.4 2007/01/06 00:01:15 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)

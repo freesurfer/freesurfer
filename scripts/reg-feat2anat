@@ -1,8 +1,31 @@
-#!/bin/tcsh -f
-# reg-feat2anat
-# Registers example func to freesurfer using fsl
+#! /bin/tcsh -f
 
-set VERSION = '$Id: reg-feat2anat,v 1.22 2006/09/07 21:54:33 greve Exp $'
+#
+# reg-feat2anat
+#
+# Registers example func to freesurfer using fsl
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.23 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: reg-feat2anat,v 1.23 2007/01/06 00:01:15 nicks Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -22,12 +45,12 @@ set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -91,7 +114,7 @@ set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
   set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
   if(! -e $refvolcor/COR-.info) then
-    echo "ERROR: cannot find $anatvol for $subject " 
+    echo "ERROR: cannot find $anatvol for $subject "
     exit 1;
   endif
 endif
@@ -123,8 +146,8 @@ if($manual && $manxfm == std2anat) then
             --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
             --reg $anat2std_regdat --fslreg $std2anat_fslmat)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
-  echo $cmd 
-  $cmd 
+  echo $cmd
+  $cmd
   if($status) exit 1;
   exit 0;
 endif
@@ -138,8 +161,8 @@ if($manual && $manxfm == func2std) then
   set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
             --mov $FeatDir/example_func.$fslext \
             --reg $std2exf_regdat --s $subject --tag  --inorm);
-  echo $cmd 
-  $cmd 
+  echo $cmd
+  $cmd
   if($status) exit 1;
   exit 0;
 endif
@@ -148,27 +171,27 @@ endif
 set LF = $FeatDir/reg/freesurfer/reg-feat2anat.log
 if(-e $LF) mv $LF $LF.bak
 echo log file is $LF
-date | tee -a $LF 
-pwd | tee -a $LF 
-echo $0 | tee -a $LF 
-echo $cmdargs | tee -a $LF 
-uname -a | tee -a $LF 
+date | tee -a $LF
+pwd | tee -a $LF
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+uname -a | tee -a $LF
 
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
   set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
   if(! -e $refvolcor/COR-.info) then
-    echo "ERROR: cannot find $anatvol for $subject " 
+    echo "ERROR: cannot find $anatvol for $subject "
     exit 1;
   endif
 endif
 # Convert the reference volume to analyze
 set refvol =  $FeatDir/reg/freesurfer/tmp/anat.$fslext
 set cmd = (mri_convert $refvolcor $refvol)
-echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: mri_convert" | tee -a $LF 
+  echo "ERROR: mri_convert" | tee -a $LF
   exit 1;
 endif
 
@@ -188,10 +211,10 @@ else
     --ras_good $FeatDir/example_func.$fslext >& /dev/null
   set exf_ras_good = `cat /tmp/reg-feat2anat.rasgood.$$`;
 endif
-echo "example_func ras_good_flag $exf_ras_good"| tee -a $LF 
+echo "example_func ras_good_flag $exf_ras_good"| tee -a $LF
 if($exf_ras_good) then
-  echo "-------------------------------------------------------" | tee -a $LF 
-  echo "Initializing exf2anat with header" | tee -a $LF 
+  echo "-------------------------------------------------------" | tee -a $LF
+  echo "Initializing exf2anat with header" | tee -a $LF
   set cmd = ($TKR \
               --targ $refvolcor \
               --mov $FeatDir/example_func.$fslext\
@@ -199,12 +222,12 @@ if($exf_ras_good) then
               --fslregout $exf2anat_init_fslmat \
               --regheader)
   if(! $debug) set cmd = ($cmd --noedit)
-  echo $cmd | tee -a $LF 
-  $cmd | tee -a $LF 
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
 else
-  echo "-------------------------------------------------------" | tee -a $LF 
-  echo "Initializing exf2anat from crude std2anat" | tee -a $LF 
+  echo "-------------------------------------------------------" | tee -a $LF
+  echo "Initializing exf2anat from crude std2anat" | tee -a $LF
   # vox2ras is not valid in exf, so init from crude std2anat
   set cmd = ($TKR \
               --targ $refvolcor \
@@ -213,8 +236,8 @@ else
               --fslregout $std2anat_fslmat \
               --regheader)
   if(! $debug) set cmd = ($cmd --noedit)
-  echo $cmd | tee -a $LF 
-  $cmd | tee -a $LF 
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
   cp $std2anat_fslmat $std2anat_fslmat.init
   # Compute initial matrix. Binarize because otherwise there
@@ -223,15 +246,15 @@ else
   set cmd = ($MM -fsl -bin \
               -iim $exf2std_fslmat -iim $std2anat_fslmat \
               -om $exf2anat_init_fslmat)
-  echo $cmd | tee -a $LF 
-  $cmd | tee -a $LF 
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
 endif
 
 # Brain extraction on the example func
 set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
-echo $cmd | tee -a $LF 
-$cmd | tee -a $LF 
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
 if($status) exit 1;
 set tempvol0 = $tempvol
 set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.$fslext;
@@ -246,11 +269,11 @@ set cmd = ($cmd  -omat $exf2anat_fslmat -cost $cost -dof $dof)
 set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
-date | tee -a $LF 
-echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+date | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: flirt" | tee -a $LF 
+  echo "ERROR: flirt" | tee -a $LF
   exit 1;
 endif
 
@@ -259,7 +282,7 @@ if(fslext == img) then
   set tmp = (`cat $exf2anat_fslmat`);
   set isflipped = `echo "$tmp[1] < 0" | bc -l`;
   if($isflipped) then
-    echo "ERROR: appears to be a left-right reversal" | tee -a $LF 
+    echo "ERROR: appears to be a left-right reversal" | tee -a $LF
     exit 1;
   endif
 endif
@@ -272,11 +295,11 @@ set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
 if(! $debug) set cmd = ($cmd --noedit)
 if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
 
-echo "-------------------------------------------------------" | tee -a $LF 
-echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+echo "-------------------------------------------------------" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF 
+  echo "ERROR: tkregister2" | tee -a $LF
   exit 1;
 endif
 
@@ -297,10 +320,10 @@ set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
             --mov $FeatDir/example_func.$fslext \
             --fslreg $FeatDir/reg/example_func2standard.mat \
             --reg $std2exf_regdat --noedit)
-echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF 
+  echo "ERROR: tkregister2" | tee -a $LF
   exit 1;
 endif
 
@@ -309,10 +332,10 @@ set cmd = ($MM -fsl \
   -im $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
   -iim $FeatDir/reg/example_func2standard.mat \
   -om $FeatDir/reg/freesurfer/std2anat.fsl.mat)
-echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF 
+  echo "ERROR: tkregister2" | tee -a $LF
   exit 1;
 endif
 
@@ -324,30 +347,30 @@ set cmd = ($TKR \
             --reg $anat2std_regdat \
             --fslreg $std2anat_fslmat)
 if(! $debug)  set cmd = ($cmd --noedit)
-echo "-------------------------------------------------------" | tee -a $LF 
-echo $cmd | tee -a $LF 
-$cmd | tee -a $LF 
+echo "-------------------------------------------------------" | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
 if($status) exit 1;
 
 
 echo ""
-echo "To visually check your results, run:" | tee -a $LF 
-echo $tkregcheckcmd --tag | tee -a $LF 
+echo "To visually check your results, run:" | tee -a $LF
+echo $tkregcheckcmd --tag | tee -a $LF
 echo ""
 echo ""
 
 if($cleanup == 0) then
-  echo "Or you can run:" | tee -a $LF 
+  echo "Or you can run:" | tee -a $LF
   set tkregcheckcmd2 = (tkregister2 --s $subject --mov $outvol)
   set tkregcheckcmd2 = ($tkregcheckcmd2 --reg $outvolreg --surf orig);
-  echo $tkregcheckcmd2 | tee -a $LF 
+  echo $tkregcheckcmd2 | tee -a $LF
   echo ""
 else
   rm -r $FeatDir/reg/freesurfer/tmp
 endif
 
-date | tee -a $LF 
-echo "reg-feat2anat done" | tee -a $LF 
+date | tee -a $LF
+echo "reg-feat2anat done" | tee -a $LF
 
 exit 0;
 ###############################################
@@ -359,7 +382,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--feat":
@@ -574,11 +597,11 @@ OPTIONAL FLIRT ARGUMENTS
 
 These arguments are passed to flirt
 
---dof  dof  
---bins bins 
+--dof  dof
+--bins bins
 --cost cost
 --maxangle angle : passed as max_angle for -searchrx, -searchry, and -searchrz
- 
+
 OTHER ARGUMENTS
 
 --manual
@@ -627,7 +650,7 @@ tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.img \
      -fthresh 1.3 -fmid 2.3 -fslope 1
 
 # Resample fbert.feat onto the surface
-feat2surf --feat fbert.feat 
+feat2surf --feat fbert.feat
 
 
 SEE ALSO

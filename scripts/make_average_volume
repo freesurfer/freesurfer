@@ -1,4 +1,5 @@
-#!/bin/tcsh -ef
+#! /bin/tcsh -ef
+
 #
 # make_average_volume
 #
@@ -6,8 +7,26 @@
 #
 # --help option will show usage
 #
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.14 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: make_average_volume,v 1.13 2006/06/09 15:44:34 nicks Exp $';
+set VERSION = '$Id: make_average_volume,v 1.14 2007/01/06 00:01:14 nicks Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -76,7 +95,7 @@ foreach volid (orig T1 brain)
     endif
 
     set xfmvol = $tmpdir/$volid-$subject.mgz
-    
+
     set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
     set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
     #if($transform_fname == talairach.xfm) set cmd = ($cmd --devolvexfm $subject);
@@ -130,7 +149,7 @@ set cmdline = ($argv);
 set getting_subjects = 0;
 while( $#argv != 0 )
 
-  set flag = $argv[1]; 
+  set flag = $argv[1];
   if (! $getting_subjects) then
     shift;
   endif
@@ -150,7 +169,7 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1moreerr;
       set SUBJECTS = $argv[1]; shift;
       # loop on getting variable number of subject names
-      set getting_subjects = 1; # see 'default:' case 
+      set getting_subjects = 1; # see 'default:' case
       breaksw
 
     case "--fsgd":
@@ -242,7 +261,7 @@ while( $#argv != 0 )
         set SUBJECTS = ( $SUBJECTS $argv[1] ); shift;
         set getting_subjects = 1;
       else
-        echo ERROR: Flag $flag unrecognized. 
+        echo ERROR: Flag $flag unrecognized.
         echo $cmdline
         exit 1
       endif
@@ -303,7 +322,7 @@ usage_exit:
   echo "USAGE: make_average_volume"
   echo ""
   echo "Required Arguments"
-  echo "   --subjects <subj1> <subj2> ... <subjN>" 
+  echo "   --subjects <subj1> <subj2> ... <subjN>"
   echo "             : or declare subjects in SUBJECTS env var"
   echo "   --fsgd fsgdfile : get subject list from fsgd"
   echo ""

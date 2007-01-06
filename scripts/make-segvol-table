@@ -1,8 +1,30 @@
-#!/bin/tcsh -f
-# make-segvol-table - creates a table of volumes of subcortical 
-# structures for the given list of subjects.
+#! /bin/tcsh -f
 
-set VERSION = '$Id: make-segvol-table,v 1.2 2006/04/18 23:05:04 nicks Exp $';
+#
+# make-segvol-table - creates a table of volumes of subcortical
+# structures for the given list of subjects.
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.3 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: make-segvol-table,v 1.3 2007/01/06 00:01:14 nicks Exp $';
 set inputargs = ($argv);
 set subjects = ();
 set outfile = ();
@@ -12,12 +34,12 @@ set asegdir0 = aseg;
 set PrintHelp = 0;
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | grep help | wc -l` 
+set n = `echo $argv | grep help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -88,10 +110,10 @@ end
 set mlvfile = $outdir/mlvfile.$$
 set mlvtmpfile = $outdir/mlvfile.$$.tmp
 set mlvtmp2file = $outdir/mlvfile.$$.tmp2
-foreach subject ($subjects)  
+foreach subject ($subjects)
   set asegdir = $SUBJECTS_DIR/$subject/mri/$asegdir0
   echo "---------------------------------"
-  echo "$subject `date`"    
+  echo "$subject `date`"
   set cmd = (mri_label_volume -l $mlvfile $asegdir $idnolist)
   $cmd
   if($status) then
@@ -122,7 +144,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-s":
@@ -137,7 +159,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $subjfile"
         exit 1;
       endif
-      set subjects = ($subjects `cat $subjfile`); 
+      set subjects = ($subjects `cat $subjfile`);
       breaksw
 
     case "-o":
@@ -199,7 +221,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -281,7 +303,7 @@ Creates a table of volumes of subcortical structures for the given
 list of subjects. Each row is a different structure, and each column
 is a different subject. The first column gives the structure name, and
 the first row gives the subject id. The list of subjects can be listed
-directly on the command-line (with -s) or specified inside of a text 
+directly on the command-line (with -s) or specified inside of a text
 file (with -sf). The output table is a text file specified with -o.
 
 By default, make-segvol-table gets the volume of each structure listed

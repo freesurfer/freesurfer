@@ -1,7 +1,32 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
 # mri_nu_correct.mni
-# 
-set VERSION = '$Id: mri_nu_correct.mni,v 1.6 2006/11/24 20:15:34 nicks Exp $';
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.7 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# mri_nu_correct.mni
+#
+set VERSION = '$Id: mri_nu_correct.mni,v 1.7 2007/01/06 00:01:14 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -16,12 +41,12 @@ set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -59,51 +84,51 @@ echo "tmpdir is $tmpdir" | tee -a $LF
 set cmd = (mri_convert ${HiRes} $InVol $tmpdir/nu0.mnc)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF 
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: converting to minc" |& tee -a $LF 
+  echo "ERROR: converting to minc" |& tee -a $LF
   exit 1;
 endif
 
 # Run intensity correction #
 @ nthIter = 1;
 while($nthIter <= $nIters)
-  echo " " |& tee -a $LF 
-  echo "--------------------------------------------------------" |& tee -a $LF 
-  echo "Iteration $nthIter `date`" |& tee -a $LF 
+  echo " " |& tee -a $LF
+  echo "--------------------------------------------------------" |& tee -a $LF
+  echo "Iteration $nthIter `date`" |& tee -a $LF
   @ m = $nthIter - 1
   set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
   if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
   if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
-  echo $cmd |& tee -a $LF 
-  $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: nu_correct" |& tee -a $LF 
+    echo "ERROR: nu_correct" |& tee -a $LF
     exit 1;
   endif
   rm -f $tmpdir/nu${m}.mnc $tmpdir/nu${m}.imp
   @ nthIter = $nthIter + 1;
-  echo " " |& tee -a $LF 
+  echo " " |& tee -a $LF
 end
-echo " " |& tee -a $LF 
-echo " " |& tee -a $LF 
+echo " " |& tee -a $LF
+echo " " |& tee -a $LF
 
 # Convert nu back to cor or mgz, use --like to keep all the header info
 set numnc = $tmpdir/nu$nIters.mnc
 set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
-echo $cmd |& tee -a $LF 
-$cmd |& tee -a $LF 
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: converting nu to COR/mgz" |& tee -a $LF 
+  echo "ERROR: converting nu to COR/mgz" |& tee -a $LF
   exit 1;
 endif
 
 rm -r $tmpdir
 
-echo " " |& tee -a $LF 
-echo " " |& tee -a $LF 
-date | tee -a $LF 
-echo "mri_nu_correct.mni done" | tee -a $LF 
+echo " " |& tee -a $LF
+echo " " |& tee -a $LF
+date | tee -a $LF
+echo "mri_nu_correct.mni done" | tee -a $LF
 
 exit 0;
 ###############################################
@@ -115,7 +140,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--i":
@@ -257,5 +282,5 @@ in field estimate below which iteration stops (suggest 0.01 to
 
 --cm
 
-For use with data that is higher than 1mm resolution. 
+For use with data that is higher than 1mm resolution.
 

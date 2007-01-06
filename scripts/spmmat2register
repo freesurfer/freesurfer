@@ -1,4 +1,29 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
+# spmmat2register
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.12 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 
 echo ""
 echo "ERROR: spmmat2register is obsolete. Use tkregister2."
@@ -7,7 +32,7 @@ echo "In particular, look at the section called USING WITH FSL and SPM"
 echo ""
 exit 1;
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.11 2006/04/18 23:05:05 nicks Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.12 2007/01/06 00:01:15 nicks Exp $';
 
 set OutStream = /dev/null;
 set funcvol   = ();
@@ -44,7 +69,7 @@ if($monly) then
   set TARGET = " tee  $mfile "
 else
   set TARGET = "matlab -display iconic "
-endif 
+endif
 
 rm -f $regfile
 
@@ -97,7 +122,7 @@ $TARGET > $OutStream <<EOF
   fprintf(fid,'%8.4f\n',$Intensity);
   fprintf(fid,'%8.4f %8.4f %8.4f %8.4f\n',Mreg'); %'
   fclose(fid);
- 
+
   return;
 EOF
 #-----------------------------------------------------------------#
@@ -120,7 +145,7 @@ set cmdline = "$argv";
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-fvol":
@@ -187,17 +212,17 @@ check_args:
   if($#funcvol == 0) then
     echo "ERROR: must specify a functional volume";
     exit 1;
-  endif  
+  endif
 
   if($#structvol == 0) then
     echo "ERROR: must specify a structural volume";
     exit 1;
-  endif  
+  endif
 
   if($#subject == 0) then
     echo "ERROR: must specify a subject name";
     exit 1;
-  endif  
+  endif
 
 goto check_args_return;
 

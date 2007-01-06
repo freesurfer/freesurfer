@@ -1,17 +1,32 @@
-#!/bin/tcsh -f
-#
-# WARNING: this file is under revision control. Please
-# use the appropriate checkin/checkout procedures when
-# editing.
+#! /bin/tcsh -f
+
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.33 2006/04/18 23:05:04 nicks Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
-# Purpose: creates a FreeSurfer distribution from sourcedir in the targetdir 
-# specified on the command-line. The distribution can be installed 
+# Purpose: creates a FreeSurfer distribution from sourcedir in the targetdir
+# specified on the command-line. The distribution can be installed
 # by following the instructions in freesurfer/INSTALL.
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.34 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
 
 # TO MAKE THE DISTRO:
@@ -23,9 +38,9 @@
 #   freesurfer/. For example, ~/work/freesurfer-20030512/freesurfer/.
 
 # - Run mkfsdist:
-#    $ mkfsdist ~/work/freesurfer-20030512/freesurfer 
+#    $ mkfsdist ~/work/freesurfer-20030512/freesurfer
 #           ~/work/freesurfer-20030512 PLATFORM
-#   with appropriate substitutions. PLATFORM can be Linux or Darwin 
+#   with appropriate substitutions. PLATFORM can be Linux or Darwin
 #   or Solaris.
 
 # - mkfsdist will fill ~/work/freesurfer-20030512 with tarballs and other
@@ -47,10 +62,10 @@
 #  average7.tar.gz    -- contains average labels for checking spherical morph
 #
 # Symbolic Links in freesurfer:
-# 
+#
 #  It does not follow symbolic links, so any symbolic link
 #  in the source dir must have a pointer relative to someplace in the
-#  source dir tree.  
+#  source dir tree.
 #
 # Dynamic and Statically Linked Programs
 #
@@ -61,18 +76,18 @@
 #  involved. See comments in the code for more detail.
 #
 # Excluding files and directories from freesurfer:
-# 
+#
 #  Files and directories within the freesurfer tree can be targeted
 #  for exclusion by entering them into freesurfer/tar-exclude. This
 #  is useful for excluding the license file (.license) as well as other
 #  files that just take up space. When adding items to the exclude file,
 #  put only one name on each line and make sure there are no trailing
-#  white spaces. This name will be exluded where ever it is found in the 
+#  white spaces. This name will be exluded where ever it is found in the
 #  tree, either as a file or as a directory.  It will also exclude the
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
-# 
-set VERSION = '$Id: mkfsdist,v 1.33 2006/04/18 23:05:04 nicks Exp $';
+#
+set VERSION = '$Id: mkfsdist,v 1.34 2007/01/06 00:01:14 nicks Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -274,14 +289,14 @@ pushd $TARGET_DIR  > /dev/null
 set TARGET_DIR = `pwd`;
 popd > /dev/null
 
-# Make sure the target dir is not inadvertently set to 
+# Make sure the target dir is not inadvertently set to
 # freesurfer_alpha
 if("$TARGET_DIR" == "$SOURCE_DIR") then
   echo "ERROR: target dir == source dir"
   exit 1;
 endif
 
-# Put a file with the date as name in the target dir 
+# Put a file with the date as name in the target dir
 set DateStr = "`date '+%Y%m%d'`"
 touch $TARGET_DIR/$DateStr
 
@@ -301,9 +316,9 @@ if( $MAIN_TREE ) then
 
   pushd $SOURCE_DIR > /dev/null
   cd ..
-  
+
   set SOURCE_DIR_REL = `basename $SOURCE_DIR`
-  
+
   # Create the exclude file for the freesurfer source dir. Basically we
   # want to exclude platform-specific binary and lib directories and any
   # backup or temp files (i.e. README~, tkmedit.031402)
@@ -333,13 +348,13 @@ if( $MAIN_TREE ) then
   find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
   find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
   find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
-  
+
   # For the distribution, we exclude the UpdateFromSnapshot.sh script
   # and UPDATE instructions.
   find $SOURCE_DIR_REL -name UpdateFromSnapshot.sh >> $EXCLUDE_FILE
   find $SOURCE_DIR_REL -name UPDATE >> $EXCLUDE_FILE
 
-  # Add on the other exclude files.  
+  # Add on the other exclude files.
   if( -e $SOURCE_DIR/tar-exclude ) then
     cat $SOURCE_DIR/tar-exclude >> $EXCLUDE_FILE
   endif
@@ -359,16 +374,16 @@ if( $MAIN_TREE ) then
   set tarcmd = ( tar cv -f $TF  $SOURCE_DIR_REL --exclude-from $EXCLUDE_FILE )
   echo $tarcmd | tee -a $LF
   $tarcmd  >> $LF
-  
+
   rm -f $EXCLUDE_FILE
-  
+
   date | tee -a $LF
-  
-  
+
+
   #--- Special for tksurfer, tkmedit, and tkregister in freesurfer_alpha ---#
   # Note: static vs dynamic only applies to Linux.
   # This part assures that the statically linked versions of tksurfer,
-  # tkmedit, and tkregister are the default in the Linux distribution. 
+  # tkmedit, and tkregister are the default in the Linux distribution.
   # In the NMR version (ie, ~inverse/freesurfer_alpha), these programs are
   # dynamically linked, and the static version have a .static extension.
   # Also, tksurfer is replaced by tksurfer.new in all OSs; note that there
@@ -386,27 +401,27 @@ if( $MAIN_TREE ) then
   # tksurfer.new.static tksurfer             N/A
   # tksurfer.new.static tksurfer.new         N/A
   #
-  # A temporary freesurfer_alpha is created in the target 
+  # A temporary freesurfer_alpha is created in the target
   # directory, and, under that, bin/Linux is created.
   # The relevant files are copied according to
   # the translation described above. This freesurfer_alpha is appended
-  # to the tar of the original freesurfer_alpha. The temporary 
+  # to the tar of the original freesurfer_alpha. The temporary
   # freesurfer_alpha is then deledted, and the tar file is compressed.
-  # When the distribution is extracted, the static versions will 
+  # When the distribution is extracted, the static versions will
   # overwrite the dynamic version (though there will be .dynamic and
   # .static files there).
   if( "`basename $SOURCE_DIR`" == "freesurfer_alpha" ) then
-  
+
     echo "------------------------------------------" | tee -a $LF
     echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
     date | tee -a $LF
     pushd $TARGET_DIR > /dev/null
     set FSA_TMP_DIR = freesurfer_alpha;
     mkdir -p $FSA_TMP_DIR
-    
+
     # Go through each OS - actually only applies to Linux #
     foreach OS (Linux)
-    
+
       # tkmedit and tkregister #
       mkdir -p $FSA_TMP_DIR/bin/$OS
       foreach binary (tkmedit tkregister)
@@ -425,20 +440,20 @@ if( $MAIN_TREE ) then
         endif
         cp $fstatic  $FSA_TMP_DIR/bin/$OS/$binary
       end # foreach binary (tkmedit tkregister)
-    
+
     end#foreach OS
-    
+
     # ----------- Handle tksurfer ----------------------#
     foreach OS (Linux Solaris IRIX)
       mkdir -p $FSA_TMP_DIR/bin/$OS
-    
+
       # Get path to tksurfer.new
       set tksurfernew = $SOURCE_DIR/bin/$OS/tksurfer.new
       if(! -e $tksurfernew) then
         echo "ERROR: cannot find $tksurfernew"| tee -a $LF
         exit 1;
       endif
-    
+
       # Copy tksurfer.new to tksurfer (except Linux) #
       if("$OS" != "Linux") then
         # Solaris and IRIX
@@ -457,27 +472,27 @@ if( $MAIN_TREE ) then
         cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer
         cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer.new
       endif
-    
+
     end #foreach OS
-    
+
     echo "Appending temporary freesurfer_alpha to tar `date`"| tee -a $LF
     tar rv -f $TF ./$FSA_TMP_DIR >> $LF
-    
+
     echo "Removing temporary directory `date`"| tee -a $LF
     rm -rf $FSA_TMP_DIR
-  
+
   endif # specials for freesurfer_alpha #
-  
+
   echo "Compressing tar file `date`"| tee -a $LF
   gzip $TF
-    
+
 endif
 
 #----- Tar up average7 --------#
 if ( $AVERAGE ) then
 
   echo "--------------------------------------------" | tee -a $LF
-  date | tee -a $LF  
+  date | tee -a $LF
   pushd $AVERAGE7_DIR > /dev/null
   cd ..
   echo "Tarring average7 data" | tee -a $LF
@@ -497,9 +512,9 @@ if ( $AVERAGE ) then
     ./average7/surf/?h.sphere.reg \
     ./average7/surf/lh.rh.sphere.reg \
     ./average7/surf/?h.sulc >> $LF
-  date | tee -a $LF  
-  
-endif 
+  date | tee -a $LF
+
+endif
 
 #-- Tar up the minc bin and libs -------#
 if( $MINC ) then
@@ -546,7 +561,7 @@ endif
 #----- Tar up berts raw anatomicals --------#
 if( $BERT_RAW ) then
     echo "--------------------------------------------" | tee -a $LF
-    date | tee -a $LF  
+    date | tee -a $LF
     if( -e $BERT_ORIG_DIR ) then
       pushd $BERT_ORIG_DIR > /dev/null
       pawd
@@ -561,13 +576,13 @@ endif
 #----- Tar up berts reconstructed anatomicals --------#
 if( $BERT_RECON ) then
     echo "--------------------------------------------" | tee -a $LF
-    date | tee -a $LF  
+    date | tee -a $LF
     if( -e $BERT_ANAT_DIR ) then
       pushd $BERT_ANAT_DIR > /dev/null
       cd ..
       pawd
       set TF = $TARGET_DIR/bert.recon.tar.gz
-      rm -f $TF 
+      rm -f $TF
       tar cvz -f $TF ./bert >> $LF
     else
       cp $BERT_ANAT_TARRED $TARGET_DIR
@@ -577,7 +592,7 @@ endif
 #----- Tar up Bert's functional data --------#
 if( $BERT_FUNC ) then
     echo "--------------------------------------------" | tee -a $LF
-    date | tee -a $LF  
+    date | tee -a $LF
     if( -e $BERT_FUNC_DIR ) then
       pushd $BERT_FUNC_DIR > /dev/null
       cd ..
@@ -585,7 +600,7 @@ if( $BERT_FUNC ) then
       set TF = $TARGET_DIR/bert.func.tar.gz
       rm -f $TF
       tar cvz -f $TF ./bert-functional >> $LF
-      date | tee -a $LF  
+      date | tee -a $LF
     else
       cp $BERT_FUNC_TARRED $TARGET_DIR
     endif

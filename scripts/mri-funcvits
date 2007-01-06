@@ -1,6 +1,31 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.6 2006/04/18 23:05:04 nicks Exp $';
+#
+# mri-funcvits
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.7 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.7 2007/01/06 00:01:14 nicks Exp $';
 
 set stem     = ();
 set outdir   = ();
@@ -171,7 +196,7 @@ foreach hemi ($hemilist)
     echo "$func2ico done at `date`"
   endif
 
-end 
+end
 
 if($#mailuser == 1) then
   echo "mri-funcvits $subject $icosize finished at `date`" | \
@@ -194,7 +219,7 @@ set cmdline = "$argv";
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-verbose"

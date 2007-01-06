@@ -1,4 +1,29 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
+# fsralpha.tmp
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.7 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 #
 # expertopts
 # fsl motion correction
@@ -6,7 +31,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.6 2005/12/14 15:08:21 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.7 2007/01/06 00:01:14 nicks Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -44,7 +69,7 @@ set cdGCS     = atlas2005_simple.gcs
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
-set RunIt = 1; 
+set RunIt = 1;
 set ReRunFlag = 0;
 
 set DoVersionsOnly = 0;
@@ -57,13 +82,13 @@ set DoTalairach       = 0;
 set DoNuIntensityCor  = 0;
 set DoNormalization1  = 0;
 set DoSkullStrip     = 0;
-set DoGCAReg         = 0; 
-set DoCANormalize    = 0; 
-set DoCAReg          = 0; 
+set DoGCAReg         = 0;
+set DoCANormalize    = 0;
+set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
-set DoSegStats       = 0; 
+set DoSegStats       = 0;
 set DoNormalization2  = 0;
 set DoSegmentation    = 0;
 set DoEditWMwithASeg = 0;
@@ -85,9 +110,9 @@ set DoContraSurfReg  = 0;
 set DoAvgCurv        = 0;
 set DoAvgLabels      = 0;
 set DoFinalSurfs     = 0;
-set DoCortParc       = 0; 
+set DoCortParc       = 0;
 set DoParcStats      = 0;
-set DoCortParc2      = 0; 
+set DoCortParc2      = 0;
 set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
 
@@ -95,12 +120,12 @@ set DoCortRibbonVolMask = 0;
 set DoAParc2ASeg = 0;
 
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | egrep -e -help | wc -l` 
+set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | egrep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -115,9 +140,9 @@ check_params_return:
 set DateString = "`date '+%y%m%d%H%M'`"
 
 mkdir -p $subjdir # This variable is set in check_params
-cd $subjdir 
+cd $subjdir
 mkdir -p mri scripts surf tmp label stats
-mkdir -p mri/transforms 
+mkdir -p mri/transforms
 set touchdir = touch
 
 # Create a separate status file for the env
@@ -235,7 +260,7 @@ if($#SF == 0) then
       echo "\n\n"  >> $SF
     endif
   endif
-else 
+else
   if(-e $SF) then
     echo "\n\n"  >> $SF
     echo "New invocation of recon-all "  >> $SF
@@ -260,20 +285,20 @@ if($DoMotionCor) then
   #----------- Get input list in mri dir
   set inlist = (`ls src/[0-9][0-9][0-9].mgz`);
   if($#inlist == 0) then
-    echo "ERROR: cannot find any input files in $subjdir/mri"|& tee -a $LF 
+    echo "ERROR: cannot find any input files in $subjdir/mri"|& tee -a $LF
     goto error_exit;
   endif
-  echo "Input list: $inlist"|& tee -a $LF 
+  echo "Input list: $inlist"|& tee -a $LF
   if($#inlist == 0) then
-    echo "WARNING: only one run found. This is OK, but motion"|& tee -a $LF 
-    echo "correction cannot be performed on one run, so I'll"|& tee -a $LF 
-    echo "copy the run to rawavg.mgz and continue."|& tee -a $LF 
+    echo "WARNING: only one run found. This is OK, but motion"|& tee -a $LF
+    echo "correction cannot be performed on one run, so I'll"|& tee -a $LF
+    echo "copy the run to rawavg.mgz and continue."|& tee -a $LF
     sleep 2s;
     if($RunIt) cp $inlist mri/rawavg.mgz
   else
     set cmd = (mri_motion_correct2  ${HiRes} -o mri/rawavg.mgz -wild $inlist)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mri_motion_correct exited with non-zero status"|& tee -a $LF
       goto error_exit;
@@ -284,41 +309,41 @@ endif
 #----------- Conform to 1mm^3, 256^3 ------------------#
 if($DoConform) then
   set cmd = (mri_convert mri/rawavg.mgz mri/orig.mgz --conform)
-  pwd |& tee -a $LF 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
     echo "ERROR: mri_convert exited with non-zero status"|& tee -a $LF
     goto error_exit;
   endif
   # Add xfm to orig, eventhough it does not exist yet
   set cmd = (mri_add_xform_to_header transforms/talairach.xfm \
-             mri/orig.mgz mri/orig.mgz); 
-  echo $cmd |& tee -a $LF 
-  if($RunIt) $cmd |& tee -a $LF 
+             mri/orig.mgz mri/orig.mgz);
+  echo $cmd |& tee -a $LF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_add_xform_to_header mri/orig.mgz failed"|& tee -a $LF 
+    echo "ERROR: mri_add_xform_to_header mri/orig.mgz failed"|& tee -a $LF
     goto error_exit;
   endif
 endif
 
 #----------- Nu Intensity Correction ------------------#
 if($DoNuIntensityCor) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Nu Intensity Correction `date`" |& tee -a $SF |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Nu Intensity Correction `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_nu_correct.mni ${HiRes} --i mri/orig.mgz --o mri/nu.mgz --n 4)
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: converting orig to minc" |& tee -a $LF 
+    echo "ERROR: converting orig to minc" |& tee -a $LF
     goto error_exit;
   endif
 endif
 
 #----------- Talairach ------------------#
 if($DoTalairach) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Talairach `date`" |& tee -a $SF |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Talairach `date`" |& tee -a $SF |& tee -a $LF
   mkdir -p mri/transforms/bak
   set xfm = mri/transforms/talairach.auto.xfm
   if(-e $xfm) then
@@ -326,253 +351,253 @@ if($DoTalairach) then
     cp $xfm $xfmbak
   endif
   set cmd = (talairach --i mri/nu.mgz --xfm $xfm)
-  pwd |& tee -a $LF 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: talairach exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: talairach exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
   # Need to check for diff, keep, etc
   set cmd = (cp $xfm mri/transforms/talairach.xfm)
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
 
 endif
 
 #----------- Intensity Normalization ------------------#
 if($DoNormalization1) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Intensity Normalization 1 `date`" |& tee -a $SF |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Intensity Normalization 1 `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_normalize -g 1);
   if(-e $ControlPointsFile)  set cmd = ($cmd -f $ControlPointsFile)
   set cmd = ($cmd mri/nu.mgz mri/T1.mgz)
-  pwd |& tee -a $LF 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
 endif
 
 #----------- Skull Stripping ------------------#
 if($DoSkullStrip) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Skull Stripping `date`" |& tee -a $SF |& tee -a $LF 
-  pwd |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Skull Stripping `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
   set BMA = mri/brainmask.auto.mgz
   set BM  = mri/brainmask.mgz
   set cmd = (mri_watershed);
   if(-e $BMA && -e $BM && $KeepEdits) set cmd = ($cmd -keep $BMA $BM $BM)
   set cmd = ($cmd mri/T1.mgz $BMA)
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_watershed exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_watershed exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
   # Copy auto to man
   if(! -e $BM || ! $KeepEdits) then
     set cmd = (cp $BMA $BM)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
   endif
 endif
 
-#-------------- GCA Registration  -------------------------# 
-if($DoGCAReg) then                                           
-  echo "--------------------------------------"|& tee -a $LF 
-  echo "GCARegistration `date`" |& tee -a $SF |& tee -a $LF   
-  pwd |& tee -a $LF                                          
-  set cmd = (mri_em_register -mask mri/brainmask.mgz -p .5 mri/nu.mgz)          
-  set cmd = ($cmd $FREESURFER_HOME/average/$GCA mri/transforms/talairach.lta) 
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_em_register with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
+#-------------- GCA Registration  -------------------------#
+if($DoGCAReg) then
+  echo "--------------------------------------"|& tee -a $LF
+  echo "GCARegistration `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
+  set cmd = (mri_em_register -mask mri/brainmask.mgz -p .5 mri/nu.mgz)
+  set cmd = ($cmd $FREESURFER_HOME/average/$GCA mri/transforms/talairach.lta)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_em_register with non-zero status" |& tee -a $LF
+    goto error_exit;
   endif
-endif                                                         
+endif
 
-#---- Cannonical Spatial Normalization --------------#        
-if($DoCANormalize) then                                       
-  echo "---------------------------------------"|& tee -a $LF 
-  echo "CA Normalize `date`" |& tee -a $SF |& tee -a $LF      
-  pwd |& tee -a $LF                                          
+#---- Cannonical Spatial Normalization --------------#
+if($DoCANormalize) then
+  echo "---------------------------------------"|& tee -a $LF
+  echo "CA Normalize `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
   set cmd = (mri_ca_normalize)
   if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
   set cmd = ($cmd -mask mri/brainmask.mgz mri/nu.mgz \
                $FREESURFER_HOME/average/$GCA \
-               mri/transforms/talairach.lta mri/norm.mgz)          
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_ca_normalize with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                                                       
+               mri/transforms/talairach.lta mri/norm.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_ca_normalize with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 endif
 
-#------------ Cannonical Registration --------------#         
-if($DoCAReg) then                                             
-  echo "---------------------------------------"|& tee -a $LF 
-  echo "CA Reg `date`" |& tee -a $SF |& tee -a $LF            
-  pwd |& tee -a $LF                                          
+#------------ Cannonical Registration --------------#
+if($DoCAReg) then
+  echo "---------------------------------------"|& tee -a $LF
+  echo "CA Reg `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
   set cmd = (mri_ca_register -cross-sequence -mask mri/brainmask.mgz \
     -T mri/transforms/talairach.lta mri/norm.mgz \
-    $FREESURFER_HOME/average/$GCA mri/transforms/talairach.m3z)           
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                                                       
+    $FREESURFER_HOME/average/$GCA mri/transforms/talairach.m3z)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 endif
 
-#------------ Removes neck and part of the face  --------------#         
-if($DoRemoveNeck) then                                             
-  echo "---------------------------------------"|& tee -a $LF 
-  echo "Remove Neck `date`" |& tee -a $SF |& tee -a $LF            
+#------------ Removes neck and part of the face  --------------#
+if($DoRemoveNeck) then
+  echo "---------------------------------------"|& tee -a $LF
+  echo "Remove Neck `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_remove_neck -radius $RmNeckRadius  mri/nu.mgz \
              mri/transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
              mri/nu_noneck.mgz)
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_remove_neck exited with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                                                       
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_remove_neck exited with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 endif
 
-#------------ Recompute lta with skull but no neck  --------------#         
-if($DoSkullLTA) then                                             
-  echo "---------------------------------------"|& tee -a $LF 
-  echo "SkullLTA `date`" |& tee -a $SF |& tee -a $LF            
+#------------ Recompute lta with skull but no neck  --------------#
+if($DoSkullLTA) then
+  echo "---------------------------------------"|& tee -a $LF
+  echo "SkullLTA `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_em_register -skull -t mri/transforms/talairach.lta \
      mri/nu_noneck.mgz $FREESURFER_HOME/average/$GCASkull \
      mri/transforms/talairach_with_skull.lta)
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_em_register exited with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                                                       
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_em_register exited with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 endif
 
-#-------------- SubCort Segmentation --------------#          
-if($DoCALabel) then                                           
-  echo "---------------------------------------"|& tee -a $LF 
-  echo "SubCort Seg `date`" |& tee -a $SF |& tee -a $LF       
-  pwd |& tee -a $LF                                          
+#-------------- SubCort Segmentation --------------#
+if($DoCALabel) then
+  echo "---------------------------------------"|& tee -a $LF
+  echo "SubCort Seg `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
   set cmd = (mri_ca_label -cross-sequence mri/norm.mgz \
     mri/transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
-    mri/aseg.auto.mgz);    
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_ca_label with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                    
+    mri/aseg.auto.mgz);
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_ca_label with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
   if($RunIt) cp mri/aseg.auto.mgz mri/aseg.mgz
-endif                                                         
+endif
 
 if($DoSegStats) then
-  # Stats on the auotmatic segmentation 
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "ASeg Stats `date`" |& tee -a $SF |& tee -a $LF 
+  # Stats on the auotmatic segmentation
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "ASeg Stats `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --in mri/orig.mgz)
   set cmd = ($cmd --ctab-default --excludeid 0)
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --etiv);
   set cmd = ($cmd --subject $subjid)
-  set cmd = ($cmd --in-intensity-name orig --in-intensity-units MR) 
-  pwd |& tee -a $LF 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  set cmd = ($cmd --in-intensity-name orig --in-intensity-units MR)
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_segstats exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_segstats exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
 endif
 
 #---------------- Intensity Normalization 2 --------------------------#
 if($DoNormalization2) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Intensity Normalization2 `date`" |& tee -a $SF |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Intensity Normalization2 `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   set cmd = ($cmd -mask mri/brainmask.mgz mri/norm.mgz mri/brain.mgz)
-  pwd |& tee -a $LF 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
 endif
 
 #---------------- Segmentation --------------------------#
 if($DoSegmentation) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "WM Segmentation `date`" |& tee -a $SF |& tee -a $LF 
-  pwd |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "WM Segmentation `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
 
   set SegKeepWMEdits = 0;
   if($KeepEdits && -e mri/wm.mgz) set SegKeepWMEdits = 1;
 
   if($SegKeepWMEdits) then
     set cmd = (cp mri/wm.mgz mri/wm.seg.mgz)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
   endif
 
   set cmd = (mri_segment);
   if($SegKeepWMEdits) set cmd = ($cmd -keep)
   set cmd = ($cmd mri/brain.mgz mri/wm.seg.mgz)
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_segment exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_segment exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
 
   set cmd = (mri_edit_wm_with_aseg mri/wm.seg.mgz mri/brain.mgz \
-     mri/aseg.mgz mri/wm.asegedit.mgz) 
+     mri/aseg.mgz mri/wm.asegedit.mgz)
   if($SegKeepWMEdits) set cmd = ($cmd -keep)
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_edit_wm_with_aseg with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                                                       
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_edit_wm_with_aseg with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 
   set cmd = (mri_pretess mri/wm.asegedit.mgz wm mri/norm.mgz \
     mri/wm.auto.mgz)
-  echo $cmd |& tee -a $LF |& tee -a $CF                                     
-  if($RunIt) $cmd |& tee -a $LF                               
-  if($status) then                                            
-    echo "ERROR: mri_pretess with non-zero status" |& tee -a $LF 
-    goto error_exit;                                          
-  endif                          
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_pretess with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 
-  set cmd = (cp mri/wm.auto.mgz mri/wm.mgz) 
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  if($RunIt) $cmd |& tee -a $LF 
+  set cmd = (cp mri/wm.auto.mgz mri/wm.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
 endif
 
 #---------------- Fill --------------------------#
 if($DoFill) then
-  echo "---------------------------------------------"|& tee -a $LF 
-  echo "Fill `date`" |& tee -a $SF |& tee -a $LF 
+  echo "---------------------------------------------"|& tee -a $LF
+  echo "Fill `date`" |& tee -a $SF |& tee -a $LF
   set cmd = (mri_fill -a scripts/ponscc.cut.log \
      -xform mri/transforms/talairach.lta \
      -segmentation mri/aseg.mgz mri/wm.mgz mri/filled.mgz)
-  echo $cmd |& tee -a $LF |& tee -a $CF 
-  pwd |& tee -a $LF 
-  if($RunIt) $cmd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  pwd |& tee -a $LF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_fill exited with non-zero status" |& tee -a $LF 
+    echo "ERROR: mri_fill exited with non-zero status" |& tee -a $LF
     goto error_exit;
   endif
 endif
@@ -581,10 +606,10 @@ endif
 #########################################################
 #                  Per-Hemisphere                       #
 #########################################################
-echo "INFO: starting per-hemisphere operations" |& tee -a $SF |& tee -a $LF 
+echo "INFO: starting per-hemisphere operations" |& tee -a $SF |& tee -a $LF
 
 foreach hemi ($hemilist)
-  echo "----- Starting Hemisphere $hemi --------" |& tee -a $SF |& tee -a $LF 
+  echo "----- Starting Hemisphere $hemi --------" |& tee -a $SF |& tee -a $LF
 
   #---------------- Tessellate --------------------------#
   if($DoTessellate) then
@@ -593,14 +618,14 @@ foreach hemi ($hemilist)
     else
       set hemivalue = 127;
     endif
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Tessellate $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Tessellate $hemi `date`" |& tee -a $SF |& tee -a $LF
 
     set cmd = (mri_tessellate mri/filled.mgz $hemivalue \
                surf/$hemi.orig.nofix)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    pwd |& tee -a $LF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    pwd |& tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mri_tessellate exited with non-zero status"
       goto error_exit;
@@ -609,11 +634,11 @@ foreach hemi ($hemilist)
 
   #---------------- Smooth1 --------------------------#
   if($DoSmooth1) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Smooth1 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Smooth1 $hemi `date`" |& tee -a $SF |& tee -a $LF
     set cmd = (mris_smooth -nw surf/$hemi.orig.nofix surf/$hemi.smoothwm.nofix)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    pwd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    pwd |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_smooth exited with non-zero status"
@@ -623,12 +648,12 @@ foreach hemi ($hemilist)
 
   #---------------- Inflate1 --------------------------#
   if($DoInflate1) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Inflation1 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Inflation1 $hemi `date`" |& tee -a $SF |& tee -a $LF
     set cmd = (mris_inflate -dist 0 surf/$hemi.smoothwm.nofix \
       surf/$hemi.inflated.nofix)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    pwd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    pwd |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_inflate exited with non-zero status"
@@ -638,13 +663,13 @@ foreach hemi ($hemilist)
 
   #---------------- QSphere --------------------------#
   if($DoQSphere) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     set cmd = (mris_sphere -w 0 -inflate -in 200 \
        -q -O surf/$hemi.inflated.nofix surf/$hemi.inflated.nofix \
        surf/$hemi.qsphere.nofix)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_sphere exited with non-zero status"
@@ -654,24 +679,24 @@ foreach hemi ($hemilist)
 
   #---------------- Fix Topology --------------------------#
   if($DoFix) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Fix Topology $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Fix Topology $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     # Must copy unfixed to fixed
     set cmd = (cp surf/lh.orig.nofix surf/lh.orig)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     set cmd = (cp surf/lh.inflated.nofix surf/lh.inflated)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     #set cmd = (cp surf/lh.qsphere.nofix surf/lh.qsphere)
-    #echo $cmd |& tee -a $LF |& tee -a $CF 
+    #echo $cmd |& tee -a $LF |& tee -a $CF
     #if($RunIt) $cmd |& tee -a $LF
     # Now can run fixer
     set cmd = (mris_fix_topology -errors -mgz \
       -sphere qsphere.nofix $subjid $hemi)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_fix_topology exited with non-zero status"
       rm surf/lh.orig surf/lh.inflated surf/lh.qsphere
@@ -681,35 +706,35 @@ foreach hemi ($hemilist)
 
   #---------------- Euler Number --------------------------#
   if($DoEuler) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Euler Number $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Euler Number $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     set surffile = surf/$hemi.orig;
     set outfile  = $surffile.euler
     set cmd = (mris_euler_number surf/$hemi.orig)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      $cmd |& tee $outfile |& tee -a $LF 
+      $cmd |& tee $outfile |& tee -a $LF
       if($status) then
         echo "ERROR: mris_euler_number exited with non-zero status"
         goto error_exit;
       endif
       set NHoles = `cat $outfile | awk '{if($1=="euler") print $15}'`;
-      echo "Euler: NHoles = $NHoles" |& tee -a $SF |& tee -a $LF 
+      echo "Euler: NHoles = $NHoles" |& tee -a $SF |& tee -a $LF
       if($NHoles != 0) then
-        echo "WARNING: Number of holes is not zero"|& tee -a $SF |& tee -a $LF 
+        echo "WARNING: Number of holes is not zero"|& tee -a $SF |& tee -a $LF
       endif
     endif
   endif
 
   #---------------- Smooth2 --------------------------#
   if($DoSmooth2) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Smooth2 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Smooth2 $hemi `date`" |& tee -a $SF |& tee -a $LF
     # Should there be a -nw to keep from writing out curv and area?
     set cmd = (mris_smooth surf/$hemi.orig surf/$hemi.smoothwm)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    pwd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    pwd |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_smooth exited with non-zero status"
@@ -719,11 +744,11 @@ foreach hemi ($hemilist)
 
   #---------------- Inflate2 --------------------------#
   if($DoInflate2) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Inflation2 $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Inflation2 $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     set cmd = (mris_inflate -dist 0 surf/$hemi.smoothwm surf/$hemi.inflated)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_inflate exited with non-zero status"
@@ -733,31 +758,31 @@ foreach hemi ($hemilist)
 
   #---------------- Make Final Surfaces --------------------------#
   if($DoFinalSurfs) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Make Final Surf $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Make Final Surf $hemi `date`" |& tee -a $SF |& tee -a $LF
     # Must mask the brain with brainmask
-    pwd |& tee -a $LF 
+    pwd |& tee -a $LF
     set cmd = (mri_mask mri/brain.mgz mri/brainmask.mgz \
       mri/brain.finalsurfs.mgz)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
     set cmd = (mris_make_surfaces -mgz -w 0 \
        -T1 brain.finalsurfs $subjid $hemi);
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
 
   if($DoCortRibbonVolMask) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Cortical ribbon $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Cortical ribbon $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     set cmd = (mri_surf2vol --mkmask --hemi $hemi --fillribbon \
       --template mri/orig.mgz --volregidentity $subjid \
       --outvol mri/$hemi.ribbon.mgz);
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mri_surf2vol exited with non-zero status"
       goto error_exit;
@@ -767,12 +792,12 @@ foreach hemi ($hemilist)
   #---------------Begin Morph --------------------------------#
   #---------------- Sphere --------------------------#
   if($DoSphere) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Sphere $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Sphere $hemi `date`" |& tee -a $SF |& tee -a $LF
+    pwd |& tee -a $LF
     set cmd = (mris_sphere -w 0 surf/$hemi.inflated surf/$hemi.sphere)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_sphere exited with non-zero status"
       goto error_exit;
@@ -781,14 +806,14 @@ foreach hemi ($hemilist)
 
   #---------------- Surface Registration --------------------------#
   if($DoSurfReg) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Surf Ipsi Reg $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Surf Ipsi Reg $hemi `date`" |& tee -a $SF |& tee -a $LF
     set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
-    pwd |& tee -a $LF 
+    pwd |& tee -a $LF
     set cmd = (mris_register -w 0 -curv surf/$hemi.sphere $AvgTif \
       surf/$hemi.sphere.reg)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_register exited with non-zero status"
       goto error_exit;
@@ -802,14 +827,14 @@ foreach hemi ($hemilist)
     else
       set nothemi = lh;
     endif
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "Contra Surf Reg $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "Contra Surf Reg $hemi `date`" |& tee -a $SF |& tee -a $LF
     set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
-    pwd |& tee -a $LF 
+    pwd |& tee -a $LF
     set cmd = (mris_register -w 0 -curv -reverse surf/$hemi.sphere \
       $AvgTif surf/$hemi.$nothemi.sphere.reg)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mris_register exited with non-zero status"
       goto error_exit;
@@ -818,21 +843,21 @@ foreach hemi ($hemilist)
 
   #---------------- Average Curv for Display----------------------#
   if($DoAvgCurv) then
-    echo "---------------------------------------------"|& tee -a $LF 
-    echo "AvgCurv $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "---------------------------------------------"|& tee -a $LF
+    echo "AvgCurv $hemi `date`" |& tee -a $SF |& tee -a $LF
     set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
-    pwd |& tee -a $LF 
+    pwd |& tee -a $LF
     set cmd = (mrisp_paint -a 5 "$AvgTif#6" \
       surf/$hemi.sphere.reg surf/$hemi.avg_curv)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF 
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: mrisp_paint exited with non-zero status"
       goto error_exit;
     endif
   endif
 
-  #---------------- Cortical Parcellation------------------------# 
+  #---------------- Cortical Parcellation------------------------#
   foreach GCS ($dkGCS $cdGCS)
     if($GCS == $dkGCS) then
       set annot = label/$hemi.aparc.annot
@@ -845,33 +870,33 @@ foreach hemi ($hemilist)
       set ctab  = stats/aparc.annot.cd.ctab
     endif
 
-    if($DoCortParc) then                                             
-      echo "------------------------------------------"|& tee -a $LF 
-      echo "Cort Parc $hemi `date`" |& tee -a $SF |& tee -a $LF 
-      echo "$GCS "|& tee -a $SF |& tee -a $LF 
-      pwd |& tee -a $LF                                             
-      set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS      
-      set sphreg = surf/$hemi.sphere.reg                    
+    if($DoCortParc) then
+      echo "------------------------------------------"|& tee -a $LF
+      echo "Cort Parc $hemi `date`" |& tee -a $SF |& tee -a $LF
+      echo "$GCS "|& tee -a $SF |& tee -a $LF
+      pwd |& tee -a $LF
+      set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
+      set sphreg = surf/$hemi.sphere.reg
       set cmd = (mris_ca_label $subjid $hemi surf/$hemi.sphere.reg \
                  $CPAtlas $annot)
       echo $cmd |& tee -a $LF
-      if($RunIt) $cmd |& tee -a $LF                                  
-      if($status) then                                               
-        echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF  
-        goto error_exit;                                             
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF
+        goto error_exit;
       endif
     endif
 
     if($DoParcStats) then
       echo "------------------------------------------"|& tee -a $LF
-      echo "Parcellation Stats $hemi `date`" |& tee -a $SF |& tee -a $LF 
-      echo "$GCS "|& tee -a $SF |& tee -a $LF 
-      pwd |& tee -a $LF                                    
+      echo "Parcellation Stats $hemi `date`" |& tee -a $SF |& tee -a $LF
+      echo "$GCS "|& tee -a $SF |& tee -a $LF
+      pwd |& tee -a $LF
       set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $subjid $hemi);
-      echo $cmd |& tee -a $LF |& tee -a $CF                                        
-      if($RunIt) $cmd |& tee -a $LF                                  
-      if($status) goto error_exit;                                             
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
 
   end # Loop over cort parc
@@ -881,21 +906,21 @@ end # Loop over hemilist
 # ----------------- AParc2ASeg ---------------------------------------- #
 if($DoAParc2ASeg) then
   echo "------------------------------------------"|& tee -a $LF
-  echo "AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF 
-  pwd |& tee -a $LF                                    
+  echo "AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF
+  pwd |& tee -a $LF
   set cmd = (mri_aparc2aseg --s $subjid --ribbon)
-  echo $cmd |& tee -a $LF |& tee -a $CF                                        
-  if($RunIt) $cmd |& tee -a $LF                                  
-  if($status) then                                               
-    echo "ERROR: mri_aparc2aseg exited with non-zero status" |& tee -a $LF 
-    goto error_exit;                                             
-  endif                                                          
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_aparc2aseg exited with non-zero status" |& tee -a $LF
+    goto error_exit;
+  endif
 endif
 
 
-echo "" |& tee -a $LF 
-echo "-------------------------------------------" |& tee -a $LF 
-echo "" |& tee -a $LF 
+echo "" |& tee -a $LF
+echo "-------------------------------------------" |& tee -a $LF
+echo "" |& tee -a $LF
 
 echo "done"
 
@@ -909,8 +934,8 @@ error_exit:
   #echo "------------------------------------------" |& tee -a $LF
   #df . |& tee -a $LF
   #echo "------------------------------------------" |& tee -a $LF
-  uname -a | tee -a $LF | tee -a $SF 
-  echo "recon-all exited with errors at `date`" |& tee -a $LF |& tee -a $SF 
+  uname -a | tee -a $LF | tee -a $SF
+  echo "recon-all exited with errors at `date`" |& tee -a $LF |& tee -a $SF
   exit 1;
 endif
 
@@ -920,7 +945,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     # This is a temporary flag to test how changing the way the vertex
@@ -1024,84 +1049,84 @@ while( $#argv != 0 )
       set DoSegmentation = 0;
       breaksw
 
-    case "-gcareg":       
-      set DoGCAReg = 1;   
-      breaksw             
-    case "-nogcareg":     
-      set DoGCAReg = 0;   
-      breaksw             
+    case "-gcareg":
+      set DoGCAReg = 1;
+      breaksw
+    case "-nogcareg":
+      set DoGCAReg = 0;
+      breaksw
 
-    case "-canorm":            
-      set DoCANormalize = 1;   
-      breaksw                  
-    case "-nocanorm":          
-      set DoCANormalize = 0;   
-      breaksw                  
+    case "-canorm":
+      set DoCANormalize = 1;
+      breaksw
+    case "-nocanorm":
+      set DoCANormalize = 0;
+      breaksw
 
-    case "-careg":        
-      set DoCAReg = 1;    
-      breaksw             
-    case "-nocareg":      
-      set DoCAReg = 0;    
-      breaksw             
+    case "-careg":
+      set DoCAReg = 1;
+      breaksw
+    case "-nocareg":
+      set DoCAReg = 0;
+      breaksw
 
-    case "-rmneck":        
-      set DoRemoveNeck = 1;    
-      breaksw             
-    case "-normneck":        
-      set DoRemoveNeck = 0;    
-      breaksw             
+    case "-rmneck":
+      set DoRemoveNeck = 1;
+      breaksw
+    case "-normneck":
+      set DoRemoveNeck = 0;
+      breaksw
 
-    case "-skull-lta":        
+    case "-skull-lta":
       set DoSkullLTA  = 1;
-      breaksw             
-    case "-noskull-lta":        
+      breaksw
+    case "-noskull-lta":
       set DoSkullLTA  = 0;
-      breaksw             
+      breaksw
 
-    case "-calabel":        
-      set DoCALabel = 1;    
-      breaksw               
-    case "-nocalabel":      
-      set DoCALabel = 0;    
-      breaksw               
+    case "-calabel":
+      set DoCALabel = 1;
+      breaksw
+    case "-nocalabel":
+      set DoCALabel = 0;
+      breaksw
 
-    case "-subcortseg":     
-      set DoGCAReg         = 1; 
-      set DoRemoveNeck     = 1;    
+    case "-subcortseg":
+      set DoGCAReg         = 1;
+      set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
-      set DoCANormalize    = 1; 
-      set DoCAReg          = 1; 
-      set DoCALabel        = 1; 
-      set DoSegStats       = 1;  
-      breaksw                
+      set DoCANormalize    = 1;
+      set DoCAReg          = 1;
+      set DoCALabel        = 1;
+      set DoSegStats       = 1;
+      breaksw
 
-    case "-nosubcortseg":     
-      set DoGCAReg         = 0; 
-      set DoRemoveNeck     = 0;    
+    case "-nosubcortseg":
+      set DoGCAReg         = 0;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
-      set DoCANormalize    = 0; 
-      set DoCAReg          = 0; 
-      set DoCALabel        = 0; 
-      set DoSegStats       = 0;  
-      breaksw                
+      set DoCANormalize    = 0;
+      set DoCAReg          = 0;
+      set DoCALabel        = 0;
+      set DoSegStats       = 0;
+      breaksw
 
-    case "-edit_wm_with_aseg":     
-      set DoEditWMwithASeg      = 1; 
-      breaksw                      
-    case "-noedit_wm_with_aseg":   
-      set DoEditWMwithASeg      = 0; 
-      breaksw                      
+    case "-edit_wm_with_aseg":
+      set DoEditWMwithASeg      = 1;
+      breaksw
+    case "-noedit_wm_with_aseg":
+      set DoEditWMwithASeg      = 0;
+      breaksw
 
     case "-old-atlas"
       set OldAtlasFlag = 1;
       set FillWithASeg = 0;
-      breaksw                          
+      breaksw
 
-    case "-gca":                       
-      if ( $#argv < 1) goto arg1err;   
-      set GCA = $argv[1]; shift;       
-      breaksw                          
+    case "-gca":
+      if ( $#argv < 1) goto arg1err;
+      set GCA = $argv[1]; shift;
+      breaksw
 
     case "-fill":
       set DoFill = 1;
@@ -1157,7 +1182,7 @@ while( $#argv != 0 )
 	breaksw;
       endsw
 # YO.  You got shift to absorb argv[] for this guy
-      shift; 
+      shift;
       endif
       breaksw
     case "-wsless":
@@ -1311,47 +1336,47 @@ while( $#argv != 0 )
       set DoFinalSurfs = 0;
       breaksw
 
-    case "-cortparc":      
-      set DoCortParc = 1;  
-      breaksw              
-    case "-nocortparc":    
-      set DoCortParc = 0;  
-      breaksw              
+    case "-cortparc":
+      set DoCortParc = 1;
+      breaksw
+    case "-nocortparc":
+      set DoCortParc = 0;
+      breaksw
 
-    case "-cortparc2":      
-      set DoCortParc2 = 1;  
-      breaksw              
-    case "-nocortparc2":    
-      set DoCortParc2 = 0;  
-      breaksw              
+    case "-cortparc2":
+      set DoCortParc2 = 1;
+      breaksw
+    case "-nocortparc2":
+      set DoCortParc2 = 0;
+      breaksw
 
-    case "-parcstats":      
-      set DoParcStats = 1;  
-      breaksw              
-    case "-noparcstats":    
-      set DoParcStats = 0;  
-      breaksw              
+    case "-parcstats":
+      set DoParcStats = 1;
+      breaksw
+    case "-noparcstats":
+      set DoParcStats = 0;
+      breaksw
 
-    case "-parcstats2":      
-      set DoParcStats2 = 1;  
-      breaksw              
-    case "-noparcstats2":    
-      set DoParcStats2 = 0;  
-      breaksw              
+    case "-parcstats2":
+      set DoParcStats2 = 1;
+      breaksw
+    case "-noparcstats2":
+      set DoParcStats2 = 0;
+      breaksw
 
-    case "-segstats":      
-      set DoSegStats = 1;  
-      breaksw              
-    case "-nosegstats":      
-      set DoSegStats = 0;  
-      breaksw              
+    case "-segstats":
+      set DoSegStats = 1;
+      breaksw
+    case "-nosegstats":
+      set DoSegStats = 0;
+      breaksw
 
-    case "-aparc2aseg":      
-      set DoAParc2ASeg = 1;  
-      breaksw              
-    case "-noaparc2aseg":      
-      set DoAParc2ASeg = 0;  
-      breaksw              
+    case "-aparc2aseg":
+      set DoAParc2ASeg = 1;
+      breaksw
+    case "-noaparc2aseg":
+      set DoAParc2ASeg = 0;
+      breaksw
 
     case "-autorecon-all":
       set UseNuIntensityCor   = 1;
@@ -1363,12 +1388,12 @@ while( $#argv != 0 )
       set DoNormalization1  = 1;
       set DoSkullStrip     = 1;
       set DoGCAReg         = 1;
-      set DoRemoveNeck = 1;    
+      set DoRemoveNeck = 1;
       set DoSkullLTA  = 1;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;  
+      set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
       set DoEditWMwithASeg = 1;
@@ -1389,11 +1414,11 @@ while( $#argv != 0 )
       set DoContraSurfReg  = 1;
       set DoAvgCurv        = 1;
       set DoAvgLabels      = 0;
-      set DoCortParc       = 1; 
-      set DoParcStats      = 1; 
-      set DoCortParc2      = 1;  
-      set DoParcStats2     = 1; 
-      set DoAParc2ASeg     = 1;  
+      set DoCortParc       = 1;
+      set DoParcStats      = 1;
+      set DoCortParc2      = 1;
+      set DoParcStats2     = 1;
+      set DoAParc2ASeg     = 1;
       breaksw
 
     case "-autorecon1":
@@ -1405,17 +1430,17 @@ while( $#argv != 0 )
       set DoSkullStrip     = 1;
       set UseNuIntensityCor = 1;
       breaksw
-    
+
     case "-autorecon2":
       set UseNuIntensityCor   = 1;
       set FillWithASeg        = 1;
       set DoGCAReg         = 1;
-      set DoRemoveNeck = 1;    
+      set DoRemoveNeck = 1;
       set DoSkullLTA  = 1;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;  
+      set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
       set DoEditWMwithASeg    = 1;
@@ -1452,7 +1477,7 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
       breaksw
-   
+
     case "-autorecon2-wm":
       set UseNuIntensityCor   = 1;
       set FillWithASeg        = 1;
@@ -1480,13 +1505,13 @@ while( $#argv != 0 )
       set DoContraSurfReg  = 1;
       set DoAvgCurv        = 1;
       set DoCortParc       = 1;
-      set DoParcStats      = 1; 
-      set DoCortParc2      = 1;  
-      set DoParcStats2     = 1; 
-      set DoAParc2ASeg     = 1;  
+      set DoParcStats      = 1;
+      set DoCortParc2      = 1;
+      set DoParcStats2     = 1;
+      set DoAParc2ASeg     = 1;
       set DoAvgLabels      = 0;
       breaksw
-    
+
 
     case "-status":
       if ( $#argv < 1) goto arg1err;
@@ -1568,7 +1593,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -1646,7 +1671,7 @@ check_params:
     exit 1;
   endif
 
-  if(! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg ) then 
+  if(! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg ) then
   if(! $DoMotionCor && ! $DoTalairach && ! $DoNormalization1  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && ! $DoVersionsOnly &&\
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
@@ -1660,7 +1685,7 @@ check_params:
      echo "ERROR: nothing to do"
      exit 1;
   endif
-  endif 
+  endif
 
 goto check_params_return;
 ############--------------##################
@@ -1779,7 +1804,7 @@ usage_exit:
   echo " Other Arguments (Optional)"
   echo "  -mgz : use compressed MGH format (see help)"
   echo "  -COR : use compressed MGH format (see help)"
-  echo "  -disable-autoseg : disable automatic segmentation" 
+  echo "  -disable-autoseg : disable automatic segmentation"
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -gca gcafile    : full path to gca file (def $GCA)"
   echo "  -gca-tl gcatlfile : full path to gca temporal lobe file"
@@ -1799,7 +1824,7 @@ usage_exit:
   echo $VERSION
   echo ""
 
-  cat $0 | sed 's/dASEGd//g' | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}' 
+  cat $0 | sed 's/dASEGd//g' | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
   exit 1;
 
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
@@ -1838,7 +1863,7 @@ commands and in the register.dat matrix (for functional interfacing).
 SPECIFYING DIRECTIVES
 
 Directives instruct recon-all which part(s) of the reconstruction
-stream to run. While it is possible to do everything in one shot (using 
+stream to run. While it is possible to do everything in one shot (using
 the -autorecon-all flag), there can be some benefits to customizing the
 stream. These benefits include stopping to perform manual editing as
 well as parallelization. Directives are either clustered or step-wise.
@@ -1849,19 +1874,19 @@ step.  Directives accumulate. For example, specifying -stage1 and
 be removed from a cluster by adding -no<step> after the cluster
 flag. For example, specifying -autorecon-all followed by -notalairach
 will perform all the reconstruction steps except talairaching. However,
-note that if -notalairach *preceeded* -autorecon-all, talairaching would 
+note that if -notalairach *preceeded* -autorecon-all, talairaching would
 still be performed.
 
 
 CLUSTERED DIRECTIVES
 
--all 
+-all
 
 Perform all reconstruction steps. Implies -old-atlas.
 
--autorecon-all 
+-autorecon-all
 
-Perform all reconstruction steps including subcortical segmentation. Uses 
+Perform all reconstruction steps including subcortical segmentation. Uses
 subcortical segmentation to fill in ventricles and subcortical structures
 that would normally be manually filled. Requires using "new" cortical
 atlas (ie, do not use -old-atlas).
@@ -1956,13 +1981,13 @@ wm edits, use control points (if file exists), and apply brain mask
 instead of re-skull-stripping. If seeds points were manually selected,
 then they will be kept. Will not re-talairach in case the talairach
 transform was manually edited. Note that this does not actually create
-any directives, so you will need to tell it to do something (eg, 
+any directives, so you will need to tell it to do something (eg,
 -autorecon-all).
 
 
 LEGACY CLUSTERED DIRECTIVES
 
-Legacy clustered directives implement sets of steps associated with 
+Legacy clustered directives implement sets of steps associated with
 scripts before the advent of recon-all.
 
 STEP-WISE DIRECTIVES
@@ -1982,8 +2007,8 @@ Pentium III (Coppermine) 1GHz processor.
   -<no>skullstrip         1 min
   -<no>normalization2     5 min
   -<no>segmentation       4 min
-  -<no>gcareg            10 min                  
-  -<no>fill               1 min 
+  -<no>gcareg            10 min
+  -<no>fill               1 min
   -<no>tessellate         1 min     per hemisphere
   -<no>smooth1            1 min     per hemisphere
   -<no>inflate1           4 min     per hemisphere
@@ -1999,17 +2024,17 @@ Pentium III (Coppermine) 1GHz processor.
   -<no>contrasurfreg    1.5 hours   per hemisphere
   -<no>avgcurv            1 min     per hemisphere
   -<no>avglabels          5 min     per hemisphere
-  -<no>cortparc           5 min     per hemisphere 
-  -<no>parcstats          1 min     per hemisphere 
+  -<no>cortparc           5 min     per hemisphere
+  -<no>parcstats          1 min     per hemisphere
   -edit_wm_with_aseg
 
-EXPERT PREFERENCES 
+EXPERT PREFERENCES
 
 -usecontrolpoints
 
 Use control points during intensity normalization. They are used when
 the intensity normalization fails because it cannot determine the
-proper intensity for white matter. A control point is a manually selected 
+proper intensity for white matter. A control point is a manually selected
 location in the volume that the user feels sure is inside white matter.
 Control points are created using tkmedit. Inside tkmedit, enable
 editing of control points with Tools->EditCtrlPts. Middle-clicking
@@ -2031,7 +2056,7 @@ determined automatically. It should only be specified if there is a
 cut failure. To determine what this point should be, find the center
 of the pons in the T1 volume (in tkmedit) and record the Talairach XYZ
 values. If the talairach is not available, use the Volume RAS
-Coordinates. Creates a file called scripts/seed-ponsxyz.man.dat 
+Coordinates. Creates a file called scripts/seed-ponsxyz.man.dat
 with the XYZ.
 
 -cc-xyz X Y Z
@@ -2042,7 +2067,7 @@ this point will be determined automatically. It should only be
 specified if there is a cut failure. To determine what this point
 should be, find the center of the corpus callosum in the T1 volume (in
 tkmedit) and record the Talairach XYZ values. If the talairach is not
-available, use the Volume RAS Coordinates. Creates a file called 
+available, use the Volume RAS Coordinates. Creates a file called
 scripts/seed-ccxyz.man.dat with the XYZ.
 
 -lh-xyz X Y Z
@@ -2055,12 +2080,12 @@ should be, find a point in the white matter mass of the left
 hemisphere in the T1 volume (in tkmedit) and record the Talairach XYZ
 values. If the talairach is not available, use the Volume RAS
 Coordinates. Remember that tkmedit displays the volume in radiological
-convention (ie, left is right). Creates a file called 
+convention (ie, left is right). Creates a file called
 scripts/seed-lhxyz.man.dat with the XYZ.
 
 -rh-xyz X Y Z
 
-Same as -lh-xyz but for the right hemisphere. Creates a file called 
+Same as -lh-xyz but for the right hemisphere. Creates a file called
 scripts/seed-rhxyz.man.dat with the XYZ.
 
 -fill-with-aseg
@@ -2091,14 +2116,14 @@ should only be specified if there is a strip failure. To determine
 what this point should be, find a point in the white matter using
 tkmedit and record the Volume Index values (NOT the XYZ coordinates).
 
--gca gcafile                                                          
-                                                                      
-Specify the full path to the gaussian classifier array (GCA) file     
-to be used with GCA registration and automatic subcortical            
+-gca gcafile
+
+Specify the full path to the gaussian classifier array (GCA) file
+to be used with GCA registration and automatic subcortical
 segmentation. Default is RB40_talairach_2005-07-20.gca located in
-FREESURFER_HOME/average. With -old-atlas, uses talairach_mixed.gca.  
-This has no effect unless the GCA registration  or subcortical 
-segmentation stages are to be performed.                      
+FREESURFER_HOME/average. With -old-atlas, uses talairach_mixed.gca.
+This has no effect unless the GCA registration  or subcortical
+segmentation stages are to be performed.
 
 -old-atlas
 
@@ -2116,7 +2141,7 @@ mri_em_register.atlas.dat, mris_register.atlas.dat, and
 mris_ca_label.atlas.dat. If these files do not exist, then the old
 atlas are assumed. -old-atlas is implied by any of the "stage" flags
 (ie, -all, -stage1, -stage2, etc).
-                                                                      
+
 -nuiterations
 
 Number of iterations in the non-uniform intensity correction. Default
@@ -2188,7 +2213,7 @@ it is used in subsequent processes as if it was the motion corrected
 volume. If no volume is found, then the process exits with errors.  It
 uses the MINC program minctracc (see Collins, et al, 1994) through a
 FreeSurfer script called mri_motion_correct. Users must have the MINC
-tools installed. 
+tools installed.
 
 Talairach  (-<no>talairach)
 
@@ -2202,7 +2227,7 @@ must have a "talairach" subject in your SUBJECTS_DIR. tkregister2
 allows you to compare the orig volume against the talairach volume
 resampled into the orig space. If you modify the registration, it
 will change the talairach.xfm file. Your edits will be overwritten
-if you run recon-all without specifying -notalairach. Run 
+if you run recon-all without specifying -notalairach. Run
 "tkregister2 --help" for more information.
 
 Normalization (-<no>normalization)
@@ -2294,7 +2319,7 @@ Finds topological defects (ie, holes in a filled hemisphere) using
 surf/?h.qsphere, and changes the orig surface (surf/?h.orig) to remove
 the defects. Changes the number of vertices.  All the defects will be
 removed, but the user should check the orig surface in the volume to
-make sure that it looks appropriate. Calls mris_fix_topology. 
+make sure that it looks appropriate. Calls mris_fix_topology.
 Overwrites surf/?h.orig.
 
 Euler Number (-<no>euler)
@@ -2373,7 +2398,7 @@ matter volume (mm^3) 5. average cortical thickness (mm) 6. standard
 error of cortical thicknessr (mm) 7. integrated rectified mean
 curvature 8. integrated rectified Gaussian curvature 9. folding index
 10. intrinsic curvature index. The file is saved in
-stats/?h.aparc.stats. 
+stats/?h.aparc.stats.
 
 Automatic Subcortical Segmentation <-subcortseg>
 
@@ -2399,7 +2424,7 @@ and auxiliary (T1) volumes. Middle clicking will set a voxel value to
 255; left clicking will set a voxel value to 0. Only edit the wm
 volume. When finished, File-SaveMainVolume.
 
-To view the inflated surface simultaneosly with the volume, run the 
+To view the inflated surface simultaneosly with the volume, run the
 following command from a different shell:
 
   tksurfer subjid lh inflated
@@ -2514,7 +2539,7 @@ Manifold Surgery: Constructing Geometrically Accurate and
 Topologically Correct Models of the Human Cerebral Cortex. IEEE
 Transactions on Medical Imaging, 20(1):70-80
 
-[7] Non-Uniform Intensity Correction. 
+[7] Non-Uniform Intensity Correction.
 http://www.bic.mni.mcgill.ca/software/N3/node6.html
 
 [8] Fischl B, Salat DH, Busa E, Albert M, Dieterich M, Haselgrove C,

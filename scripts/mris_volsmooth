@@ -1,8 +1,31 @@
-#!/bin/tcsh -f
-# mris_volsmooth
-# Smooths a surface inside a volume
+#! /bin/tcsh -f
 
-set VERSION = '$Id: mris_volsmooth,v 1.5 2006/04/18 23:05:05 nicks Exp $'
+#
+# mris_volsmooth
+#
+# Smooths a surface inside a volume
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:14 $
+#    $Revision: 1.6 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: mris_volsmooth,v 1.6 2007/01/06 00:01:14 nicks Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
@@ -17,12 +40,12 @@ set cleanup = 1;
 set PrintHelp = 0;
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -86,7 +109,7 @@ foreach hemi (lh rh)
 end
 
 
-date 
+date
 echo "mris_volsmooth done"
 
 exit 0;
@@ -100,7 +123,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--i":
@@ -267,7 +290,7 @@ Duh.
 
 --reg volreg
 
-tkregister-style registration matrix that maps between the input/output 
+tkregister-style registration matrix that maps between the input/output
 volumes and the FreeSurfer surface anatomical. See tkregister2.
 
 --projfrac frac

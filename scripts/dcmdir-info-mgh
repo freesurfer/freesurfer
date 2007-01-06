@@ -1,8 +1,31 @@
-#!/bin/tcsh -f
-# dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.10 2006/12/12 18:27:54 nicks Exp $'
+#! /bin/tcsh -f
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.10 2006/12/12 18:27:54 nicks Exp $';
+#
+# dcmdir-info-mgh
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.11 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: dcmdir-info-mgh,v 1.11 2007/01/06 00:01:13 nicks Exp $';
 
 if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"
@@ -38,9 +61,9 @@ if("$argv[1]" == "-help") then
   echo "and Study Time are echo also printed out."
   echo ""
   echo "If an unpackdir is given, the the dicom files are converted to mgz "
-  echo "format with the following name: sequencename_runR.mgz, where R is the " 
+  echo "format with the following name: sequencename_runR.mgz, where R is the "
   echo "run number. "
-  echo "" 
+  echo ""
   exit 1;
 endif
 

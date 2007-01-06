@@ -1,7 +1,32 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
 # wfilemask
 #
-set VERSION = '$Id: wfilemask,v 1.4 2006/04/18 23:05:05 nicks Exp $';
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.5 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# wfilemask
+#
+set VERSION = '$Id: wfilemask,v 1.5 2007/01/06 00:01:15 nicks Exp $';
 set inputargs = ($argv);
 
 set LabelFile = ();
@@ -11,14 +36,14 @@ set PrintHelp = 0;
 set monly = 0;
 
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | egrep -e -help | wc -l` 
+set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
-  set PrintHelp = 1;  
+  set PrintHelp = 1;
   goto usage_exit;
 endif
 
@@ -82,11 +107,11 @@ if(! $monly) then
   rm -f $MLF
 endif
 
-echo "" 
-echo "" 
-echo "Started at $StartTime" 
-echo "Ended   at `date`"     
-echo "wfilemask completed" 
+echo ""
+echo ""
+echo "Started at $StartTime"
+echo "Ended   at `date`"
+echo "wfilemask completed"
 echo " "
 echo " "
 
@@ -99,7 +124,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-l":
@@ -142,7 +167,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -220,7 +245,7 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-wfilemask 
+wfilemask
 
 This program allows the user to zero-out regions of a surface value
 file (also known as a .w file) using a label. The user specifies an

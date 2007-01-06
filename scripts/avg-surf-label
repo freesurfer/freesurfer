@@ -1,8 +1,33 @@
-#!/bin/tcsh -f
+#! /bin/tcsh -f
+
+#
+# avg-surf-label
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.5 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 # avg-surf-label
 #
 
-set VERSION = '$Id: avg-surf-label,v 1.4 2006/04/18 23:05:03 nicks Exp $';
+set VERSION = '$Id: avg-surf-label,v 1.5 2007/01/06 00:01:13 nicks Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
@@ -19,12 +44,12 @@ set MLF = ();
 
 ## If there are no arguments, just print useage and exit ##
 if($#argv == 0) goto usage_exit;
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -55,7 +80,7 @@ if($#MLF == 0) set MLF = /tmp/avg-surf-label-$$.m
 rm -f $MLF
 echo matlab file is $MLF
 
-if(-e $outfile) mv $outfile $outfile.bak  
+if(-e $outfile) mv $outfile $outfile.bak
 
 #------------------------------------------------------
 tee $MLF > /dev/null <<EOF
@@ -78,19 +103,19 @@ for nthsubj = 1:nsubjs
   if(isempty(labvals))
     fprintf('ERROR: reading label %s, subj = %s\n',label,subjid);
     if(~monly) quit; end
-    return; 
+    return;
   end
   labind = labvals(:,1);
   if(isempty(find(labind ~= -1)))
     fprintf('ERROR: it appears that label is not surface-based.\n');
     fprintf('       Label = %s, subj = %s\n',label,subjid);
     if(~monly) quit; end
-    return; 
+    return;
   end
   labind = labind + 1; % convert to 1-based
   nlabel = length(labind);
 
-  
+
   infilepath = sprintf('%s/%s/surf/%s.%s',...
                      subjects_dir,subjid,hemi,measure);
   if(strcmp(fmt,'curv'))
@@ -98,14 +123,14 @@ for nthsubj = 1:nsubjs
     if(isempty(surfdat))
       fprintf('ERROR: reading curv %s for subj %s\n',infilepath,subjid);
       if(~monly) quit; end
-      return; 
+      return;
     end
   else
     [w,v] = read_wfile(infilepath);
     if(isempty(w))
       fprintf('ERROR: reading curv %s for subj %s\n',infilepath,subjid);
       if(~monly) quit; end
-      return; 
+      return;
     end
     v = v+1; % change to one-based
     nmax = max([v(:); labind(:)]);
@@ -118,9 +143,9 @@ for nthsubj = 1:nsubjs
     fprintf('ERROR: subj %s, label %s, index %d exceeds number of vertices %d\n',...
             subjid,label,max(labind),nvsurfdat);
     if(~monly) quit; end
-    return; 
+    return;
   end
-  
+
   avgsurfdat = mean(surfdat(labind));
   stdsurfdat = std(surfdat(labind));
 
@@ -152,7 +177,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--s":
@@ -207,7 +232,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
+      echo ERROR: Flag $flag unrecognized.
       echo $cmdline
       exit 1
       breaksw
@@ -223,24 +248,24 @@ check_params:
 
   if($#fsgd) then
     if(! -e $fsgd) then
-      echo "ERROR: cannot find $fsgd"    
+      echo "ERROR: cannot find $fsgd"
       exit 1;
     endif
     set sl = `cat $fsgd | awk '{if($1=="Input") print $2}'`;
     if($#sl == 0) then
-      echo "ERROR: no Inputs found in $fsgd"    
+      echo "ERROR: no Inputs found in $fsgd"
       exit 1;
     endif
     set subjlist = ($subjlist $sl);
   endif
 
   if($#subjlist == 0) then
-    echo "ERROR: no subjects specified"    
+    echo "ERROR: no subjects specified"
     exit 1;
   endif
 
   if($#hemi == 0) then
-    echo "ERROR: no hemi specified"    
+    echo "ERROR: no hemi specified"
     exit 1;
   endif
   if($hemi != lh && $hemi != rh) then
@@ -249,17 +274,17 @@ check_params:
   endif
 
   if($#measure == 0) then
-    echo "ERROR: no measure specified"    
+    echo "ERROR: no measure specified"
     exit 1;
   endif
 
   if($#label == 0) then
-    echo "ERROR: no label specified"    
+    echo "ERROR: no label specified"
     exit 1;
   endif
 
   if($#outfile == 0) then
-    echo "ERROR: no outfile specified"    
+    echo "ERROR: no outfile specified"
     exit 1;
   endif
 
@@ -328,9 +353,9 @@ format is curv, but this can be changed with --fmt.
 
 --fmt format
 
-curv or paint. Note: if you use the wrong format, it might fail in 
+curv or paint. Note: if you use the wrong format, it might fail in
 strange ways, eg, it might give an error about a label index exceeding
-the number of vertices. 
+the number of vertices.
 
 --l labelname
 

@@ -1,8 +1,28 @@
-#!/bin/tcsh -f
-# $Id: run-qdec-glm,v 1.7 2006/04/18 23:05:05 nicks Exp $
-# setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
+#! /bin/tcsh -f
 
-set version = '$Id: run-qdec-glm,v 1.7 2006/04/18 23:05:05 nicks Exp $';
+#
+# run-qdec-glm
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.8 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set version = '$Id: run-qdec-glm,v 1.8 2007/01/06 00:01:15 nicks Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"

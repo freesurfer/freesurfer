@@ -1,8 +1,33 @@
-#!/bin/tcsh -f
-# aparc2feat
-# 
+#! /bin/tcsh -f
 
-set VERSION = '$Id: aparc2feat,v 1.5 2006/04/17 20:29:25 nicks Exp $';
+#
+# aparc2feat
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.6 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# aparc2feat
+#
+
+set VERSION = '$Id: aparc2feat,v 1.6 2007/01/06 00:01:13 nicks Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -12,12 +37,12 @@ set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -40,14 +65,14 @@ foreach FeatDir ($FeatDirList)
   set LF = $FeatDir/reg/freesurfer/aparc2feat.log
   echo log file is $LF
   if(-e $LF) mv $LF $LF.bak
-  echo FeatDir is $FeatDir | tee -a $LF 
-  date | tee -a $LF 
-  pwd | tee -a $LF 
-  echo $0 | tee -a $LF 
-  echo $cmdargs | tee -a $LF 
-  uname -a | tee -a $LF 
-  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF 
-  echo "subject is $subject" | tee -a $LF 
+  echo FeatDir is $FeatDir | tee -a $LF
+  date | tee -a $LF
+  pwd | tee -a $LF
+  echo $0 | tee -a $LF
+  echo $cmdargs | tee -a $LF
+  uname -a | tee -a $LF
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+  echo "subject is $subject" | tee -a $LF
 
   set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
   set subject = `cat $reg_anat2exf| head -n 1`;
@@ -79,8 +104,8 @@ foreach FeatDir ($FeatDirList)
 
 end # FeatDir List
 
-date | tee -a $LF 
-echo "aparc2feat done" | tee -a $LF 
+date | tee -a $LF
+echo "aparc2feat done" | tee -a $LF
 
 exit 0;
 ###############################################
@@ -92,7 +117,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--feat":

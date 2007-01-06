@@ -1,8 +1,33 @@
-#!/bin/tcsh -f
-# aseg2feat
-# 
+#! /bin/tcsh -f
 
-set VERSION = '$Id: aseg2feat,v 1.11 2006/04/17 20:29:25 nicks Exp $';
+#
+# aseg2feat
+#
+# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:13 $
+#    $Revision: 1.12 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# aseg2feat
+#
+
+set VERSION = '$Id: aseg2feat,v 1.12 2007/01/06 00:01:13 nicks Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -14,12 +39,12 @@ set PrintHelp = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --version | wc -l` 
+set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | egrep -e --help | wc -l` 
+set n = `echo $argv | egrep -e --help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -42,14 +67,14 @@ foreach FeatDir ($FeatDirList)
   set LF = $FeatDir/reg/freesurfer/$asegvol"2feat.log"
   echo log file is $LF
   if(-e $LF) mv $LF $LF.bak
-  echo FeatDir is $FeatDir | tee -a $LF 
-  date | tee -a $LF 
-  pwd | tee -a $LF 
-  echo $0 | tee -a $LF 
-  echo $cmdargs | tee -a $LF 
-  uname -a | tee -a $LF 
-  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF 
-  echo "subject is $subject" | tee -a $LF 
+  echo FeatDir is $FeatDir | tee -a $LF
+  date | tee -a $LF
+  pwd | tee -a $LF
+  echo $0 | tee -a $LF
+  echo $cmdargs | tee -a $LF
+  uname -a | tee -a $LF
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+  echo "subject is $subject" | tee -a $LF
 
   if($space == native) then
     set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
@@ -95,8 +120,8 @@ foreach FeatDir ($FeatDirList)
 
 end # FeatDir List
 
-date | tee -a $LF 
-echo "aseg2feat done" | tee -a $LF 
+date | tee -a $LF
+echo "aseg2feat done" | tee -a $LF
 
 exit 0;
 ###############################################
@@ -108,7 +133,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "--aseg":
@@ -275,7 +300,7 @@ Flag to save result in featdir/stats instead of featdir/reg/freesurfer
 
 EXAMPLES
 
-aseg2feat --feat fbert.feat 
+aseg2feat --feat fbert.feat
 
 aseg2feat --feat fbert.feat --aseg aparc+aseg
 
@@ -292,7 +317,7 @@ will be the same size as the example_func and in voxel-for-voxel
 registration. The value of a voxel indicates which structure it
 belongs to. The correspondance between index number and structure can
 be found in $FREESURFER_HOME/tkmeditColorsCMA.  Eg, left putamen
-is 12. 
+is 12.
 
 A binary mask of the left putamen can be constructed with:
 

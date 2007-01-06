@@ -1,21 +1,44 @@
-#!/bin/tcsh -f
-# Name: unpackimadir
+#! /bin/tcsh -f
+
+#
+# unpackimadir
+#
 # Purpose: converts data in an IMA directory to MINC and
-# then calls unpackmincdir to convert to Sessions format 
+# then calls unpackmincdir to convert to Sessions format
 # (deletes the original MINC). Any arguments that unpackimadir
-# does not recognize are passed to unpackmincdir.  The 
+# does not recognize are passed to unpackmincdir.  The
 # temporary minc files can be kept by specifying -keepminc.
 # The temporary minc directory can be specified with -mincdir,
 # otherwise it will be put in the output directory.
+#
+# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/06 00:01:15 $
+#    $Revision: 1.5 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: unpackimadir,v 1.4 2006/04/18 23:05:05 nicks Exp $';
+
+set VERSION = '$Id: unpackimadir,v 1.5 2007/01/06 00:01:15 nicks Exp $';
 set unpackmincdiropts = ();
 set srcdir   = ();
 set targdir  = ();
 set mincdir  = ();
 set removeminc = 1;
 
-set n = `echo $argv | egrep -e -version | wc -l` 
+set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -77,7 +100,7 @@ echo " " >> $LF
 echo "ima2mnc: `which ima2mnc` " >> $LF
 echo " " >> $LF
 
-# Set up the minc directory. ima2mnc will put the output in a 
+# Set up the minc directory. ima2mnc will put the output in a
 # subdirectory of mincdir. We don't know what the name of that
 # subdirectory will be, so we restrict mincdir to be empty so
 # that we know that anything new will have been created by
@@ -161,7 +184,7 @@ set cmdline = "$argv";
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
-  
+
   switch($flag)
 
     case "-src":
