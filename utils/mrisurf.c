@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 15:58:59 $
- *    $Revision: 1.503 $
+ *    $Date: 2007/01/06 14:12:13 $
+ *    $Revision: 1.504 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.503 2007/01/01 15:58:59 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.504 2007/01/06 14:12:13 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6010,7 +6010,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
        passno+1, i+1, (int)(NCOEFS), (float)pct_error);
 
       parms->l_dist = dist_coefs[i] ;
-#if 1
+#if 0
       parms->l_area = area_coefs[i] ;
 #else
       parms->l_nlarea = area_coefs[i] ;
@@ -6022,7 +6022,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       mrisIntegrationEpoch(mris, parms, base_averages) ;
     }
 
-#if 1
+#if 0
     parms->l_area = area_coefs[NCOEFS-1] ;
 #else
     parms->l_nlarea = area_coefs[NCOEFS-1] ;
