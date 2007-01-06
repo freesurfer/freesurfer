@@ -1,0 +1,357 @@
+#!/bin/tcsh -f
+#
+umask 002;
+
+set VERSION = '$Id: dt_recon,v 1.1 2007/01/06 05:48:24 greve Exp $';
+set ProgName = `basename $0`;
+
+set inputargs = ($argv);
+
+set InputVol = ();
+set subject = ();
+
+set PrintHelp = 0;
+set LF = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+mkdir -p $OutDir
+if($status) then
+  echo "ERROR: creating $OutDir"
+  exit 1;
+endif
+
+set LF = $OutDir/dt_recon.log
+if(-e $LF) mv $LF $LF.bak
+echo "dt_recon logfile" | tee -a $LF
+echo date                | tee -a $LF
+echo "VERSION $VERSION"  | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"          | tee -a $LF
+echo $0 $inputargs       | tee -a $LF
+hostname                 | tee -a $LF
+whoami                   | tee -a $LF
+which eddy_correct       | tee -a $LF
+
+# Force FSL to use nifti
+setenv FSLOUTPUTTYPE NIFTI
+
+# Convert the input to nifti
+set f = $OutDir/dwi.nii
+set cmd = (mri_convert $InputVol $f);
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Get info dump from dicom
+set infodump = $OutDir/dwi-infodump.dat
+set cmd = (mri_probedicom --i $InputVol);
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF > $infodump
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Eddy/Motion Correct
+set fec = $OutDir/dwi-ec.nii
+set cmd = (eddy_correct $f $fec)
+#set cmd = (cp $f $fec)
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Fit tensors
+set cmd = (mri_glmfit --y $fec --glmdir $OutDir --dti $infodump)
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Register to subject
+set reg = $OutDir/register.dat
+set cmd = (fslregister --s $subject --mov $OutDir/lowb.nii)
+set cmd = ($cmd --reg $reg)
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Map Mask to talairach space
+set mask = $OutDir/mask.nii
+set masktal = $OutDir/mask-tal.nii
+set cmd = (mri_vol2vol --reg $reg --tal --interp nearest\
+            --mov $mask --o $masktal)
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+# Map FA to talairach space
+set fa = $OutDir/fa.nii
+set fatal = $OutDir/fa-tal.nii
+set cmd = (mri_vol2vol --reg $reg --tal --mov $fa --o $fatal)
+echo "cd `pwd`" |  tee -a $LF
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+echo "dt_recon finished without error at `date`" |& tee -a $LF
+
+exit 0
+#############------------------------------------#######################
+##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
+#############------------------------------------#######################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--subject":
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set subject = `basename $subject`; # removes trailing /
+      breaksw
+
+    case "--sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--i"
+      if( $#argv < 1) goto arg1err;
+      set InputVol = "$argv[1]"; shift;
+      if(! -e "$InputVol") then
+        echo "ERROR: cannot find $InputVol"
+        goto error_exit;
+      endif
+      if(! -r "$InputVol") then
+        echo "ERROR: $InputVol exists but is not readable"
+        goto error_exit;
+      endif
+      set InVolDir  = `dirname  "$InputVol"`;
+      set InVolBase = `basename "$InputVol"`;
+      pushd $InVolDir > /dev/null
+      set InVolDir = `pwd`;
+      popd > /dev/null
+      set InputVol = "$InVolDir/$InVolBase";
+      set DoConvertInput = 1;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutDir = $argv[1]; shift;
+      breaksw
+
+    case "--verbose":
+      set verbose = 1;
+      breaksw
+
+    case "--echo":
+      set echo = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      goto error_exit;
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+############--------------##################
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+check_params:
+  if($InputVol == 0) then
+    echo "ERROR: must specify input volume"
+    exit 1;
+  endif
+  if(! -e $InputVol) then
+    echo "ERROR: cannot find $InputVol"
+    exit 1;
+  endif
+  if($OutDir == 0) then
+    echo "ERROR: must specify output dir"
+    exit 1;
+  endif
+
+  if($#subject == 0) then
+    echo "ERROR: must specify a subject"
+    exit 1;
+  endif
+
+  if(! $?SUBJECTS_DIR ) then
+    echo "ERROR: environment variable SUBJECTS_DIR not set"
+    echo "  this can be done by setting it in the shell before"
+    echo "  executing recon-all or by using the -sd flag"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR ) then
+    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+    exit 1;
+  endif
+  # Get the full path #
+  echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+  set subjdir = $SUBJECTS_DIR/$subject
+  if(! -e $subjdir) then
+    echo "ERROR: $subjdir does not exist"
+    exit 1;
+  endif
+ 
+  if(! $?FREESURFER_HOME ) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1;
+  endif
+
+  which eddy_correct > /dev/null
+  if($status) then
+    echo "ERROR: cannot find eddy_correct. Make sure"
+    echo "       FSL is installed"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: $ProgName"
+  echo ""
+  echo " Required Aruments:";
+  echo "   --i dicomfile"
+  echo "   --s subjectid"
+  echo "   --o outputdir"
+  echo ""
+  echo " Other Arguments (Optional)"
+  echo "  --sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
+  echo "  --debug          : print out lots of info"
+  echo "  --version        : print version of this script and exit"
+  echo "  --help           : voluminous bits of wisdom"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs DTI reconstruction from the DWI in the input dicom file.
+Gets gradient directions and bvalues from based on values 
+found in the dicom file see
+$FREESURFER_HOME/diffusion/mgh-dti-seqpack/README.
+
+Stages:
+1. Convert dicom to nifti (creates dwi.nii)
+2. Eddy current and motion correction using FSLs eddy_correct
+   (creates dwi-ec.nii)
+3. DTI GLM Fit and tensor construction. Includes creation of:
+   tensor.nii -- maps of the tensor (9 frames)
+   eigvals.nii -- maps of the eigenvalues
+   eigvec?.nii -- maps of the eigenvectors
+   adc.nii -- apparent diffusion coefficient
+   fa.nii -- fractional anisotropy
+   ra.nii -- relative anisotropy
+   vr.nii -- volume ratio
+   ivc.nii -- intervoxel correlation
+   lowb.nii -- Low B 
+   bvals.dat -- bvalues
+   bvecs.dat -- directions
+   Also creates glm-related images: 
+     beta.nii - regression coefficients
+     eres.nii - residual error (log of dwi intensity)
+     rvar.nii - residual variance (log)
+     rstd.nii - residual stddev (log)
+     dwires.nii - residual error (dwi intensity)
+     dwirvar.nii - residual variance (dwi intensity)
+4. Registration of lowb to same-subject anatomical
+   (creates mask.nii and register.dat)
+5. Map FA to talairach space (creates fa-tal.nii)
+
+Example usage:
+
+dt_recon --i 6-1025.dcm --s M87102113 --o dti
+
+# Check registration
+tkregister2 --mov dti/lowb.nii --reg dti/register.dat \
+  --surf orig --tag
+
+# View FA on the subject's anat:
+tkmedit  M87102113 orig.mgz -overlay dti/fa.nii \
+   -overlay-reg dti/register.dat
+
+# View FA on fsaverage
+tkmedit fsaverage orig.mgz -overlay dti/fa-tal.nii
+
+# Group/Higher level GLM analysis:
+# Concatenate fa from individuals into one file
+#  Make sure the order agrees with the fsgd below
+mri_concat */fa-tal.nii --o group-fa-tal.nii
+# Create a mask:
+mri_concat */mask-tal.nii --o group-masksum-tal.nii --mean
+mri_binarize --i group-masksum-tal.nii --min .999 --o group-mask-tal.nii
+# GLM Fit
+mri_glmfit --y group-fa-tal.nii --mask group-mask-tal.nii\
+    --fsgd your.fsgd --C contrast --glm groupanadir
+
