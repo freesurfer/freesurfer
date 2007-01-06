@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/06 14:12:13 $
- *    $Revision: 1.504 $
+ *    $Date: 2007/01/06 14:15:59 $
+ *    $Revision: 1.505 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.504 2007/01/06 14:12:13 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.505 2007/01/06 14:15:59 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5844,9 +5844,11 @@ static float dist_coefs[] =
 MRI_SURFACE *
 MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 {
-  int     base_averages, i, nbrs[MAX_NBHD_SIZE], niter, passno, msec ;
+  int     base_averages, i, nbrs[MAX_NBHD_SIZE], niter, passno, msec, use_nl_area ;
   double  starting_sse, ending_sse, l_area, pct_error ;
   struct  timeb start ;
+
+  use_nl_area = (!FZERO(parms->l_nlarea));
 
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -6010,11 +6012,10 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
        passno+1, i+1, (int)(NCOEFS), (float)pct_error);
 
       parms->l_dist = dist_coefs[i] ;
-#if 0
-      parms->l_area = area_coefs[i] ;
-#else
-      parms->l_nlarea = area_coefs[i] ;
-#endif
+      if (use_nl_area)
+        parms->l_nlarea = area_coefs[i] ;
+      else
+        parms->l_area = area_coefs[i] ;
       parms->l_angle = ANGLE_AREA_SCALE * parms->l_area ;
       if (i == NCOEFS-1)  /* see if distance alone
                                can make things better */
@@ -6022,11 +6023,10 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       mrisIntegrationEpoch(mris, parms, base_averages) ;
     }
 
-#if 0
-    parms->l_area = area_coefs[NCOEFS-1] ;
-#else
-    parms->l_nlarea = area_coefs[NCOEFS-1] ;
-#endif
+    if (use_nl_area)
+      parms->l_nlarea = area_coefs[NCOEFS-1] ;
+    else
+      parms->l_area = area_coefs[NCOEFS-1] ;
     parms->l_dist = dist_coefs[NCOEFS-1] ;
     ending_sse = MRIScomputeSSE(mris, parms) ;
     if (Gdiag & DIAG_SHOW)
