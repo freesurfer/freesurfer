@@ -1,15 +1,15 @@
 /**
  * @file  mri_label_volume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for computing the volume of a set of labeled voxels
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/06 18:36:57 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,7 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static int quiet = 0 ;
 static int spread_sheet = 0 ;
 static int partial_volume = 0 ;
 static MRI *mri_vals ;  /* for use in partial volume calculation */
@@ -79,7 +80,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.25 2006/12/29 02:09:07 nicks Exp $",
+     "$Id: mri_label_volume.c,v 1.26 2007/01/06 18:36:57 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -204,7 +205,8 @@ main(int argc, char *argv[]) {
     } else {
       // Label-by-label
       label = atoi(argv[i]) ;
-      printf("processing label %d...\n", label) ;
+      if (quiet == 0)
+        printf("processing label %d...\n", label) ;
 
       if (partial_volume)
         volume = MRIvoxelsInLabelWithPartialVolumeEffects
@@ -224,7 +226,7 @@ main(int argc, char *argv[]) {
                               Progname, fname) ;
     } else log_fp = NULL ;
 
-    // print perent volume, or ...
+    // print percent volume, or ...
     if (compute_pct || icv_fname || atlas_icv > 0) {
       printf("%d voxels (%2.1f mm^3) in label %d, "
              "%%%2.6f of %s volume (%2.0f)\n",
@@ -245,8 +247,11 @@ main(int argc, char *argv[]) {
     }
     // Print actual volume (instead of percent)
     else {
-      printf("%d (%2.1f mm^3) voxels in label %d\n",
-             volume,volume*vox_volume, label) ;
+      if (quiet == 0)
+        printf("%d (%2.1f mm^3) voxels in label %d\n",
+               volume,volume*vox_volume, label) ;
+      else
+        printf("%2.1f\n", volume*vox_volume) ;
       if (log_fp) {
         if (spread_sheet)
           fprintf(log_fp,"%2.6f ", (float)volume*vox_volume) ;
@@ -300,8 +305,8 @@ get_option(int argc, char *argv[]) {
     mri_vals = MRIread(argv[2]) ;
     if (mri_vals == NULL)
       ErrorExit
-      (ERROR_NOFILE,
-       "%s: could not read intensity volume %s", Progname, argv[3]) ;
+        (ERROR_NOFILE,
+         "%s: could not read intensity volume %s", Progname, argv[3]) ;
     printf("including partial volume effects in calculations\n") ;
   } else if (!stricmp(option, "debug_voxel")) {
     Gx = atoi(argv[2]) ;
@@ -336,52 +341,55 @@ get_option(int argc, char *argv[]) {
       nargs = 2 ;
     }
   } else switch (toupper(*option)) {
-    case 'C':
-      if (ncols >=  MAX_COLS)
-        ErrorExit
+  case 'C':
+    if (ncols >=  MAX_COLS)
+      ErrorExit
         (ERROR_NOMEMORY,
          "%s: too many columns specified (max=%d)\n", Progname, ncols) ;
-      col_strings[ncols++] = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'S':
-      spread_sheet = 1  ;
-      subject_name = argv[2] ;
-      nargs = 1 ;
-      break  ;
-    case 'A':
-      all_flag = 1 ;
-      printf("computing volume of all non-zero voxels\n") ;
-      break ;
-    case 'T':
-      in_label = atoi(argv[2]) ;
-      out_label = atoi(argv[3]) ;
-      nargs = 2 ;
-      printf("translating label %d to label %d\n", in_label, out_label) ;
-      break ;
-    case 'B':
-      brain_fname = argv[2] ;
-      compute_pct = 1 ;
-      nargs = 1 ;
-      printf("reading brain volume from %s...\n", brain_fname) ;
-      break ;
-    case 'L':
-      log_fname = argv[2] ;
-      nargs = 1 ;
-      /*    fprintf(stderr, "logging results to %s\n", log_fname) ;*/
-      break ;
-    case 'P':
-      compute_pct = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      usage_exit(0) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+    col_strings[ncols++] = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'Q':
+    quiet = 1 ;
+    break;
+  case 'S':
+    spread_sheet = 1  ;
+    subject_name = argv[2] ;
+    nargs = 1 ;
+    break  ;
+  case 'A':
+    all_flag = 1 ;
+    printf("computing volume of all non-zero voxels\n") ;
+    break ;
+  case 'T':
+    in_label = atoi(argv[2]) ;
+    out_label = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("translating label %d to label %d\n", in_label, out_label) ;
+    break ;
+  case 'B':
+    brain_fname = argv[2] ;
+    compute_pct = 1 ;
+    nargs = 1 ;
+    printf("reading brain volume from %s...\n", brain_fname) ;
+    break ;
+  case 'L':
+    log_fname = argv[2] ;
+    nargs = 1 ;
+    /*    fprintf(stderr, "logging results to %s\n", log_fname) ;*/
+    break ;
+  case 'P':
+    compute_pct = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    usage_exit(0) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
