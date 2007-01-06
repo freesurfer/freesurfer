@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.2 2007/01/06 05:50:04 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.3 2007/01/06 05:59:53 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -35,6 +35,11 @@ if($status) then
   echo "ERROR: creating $OutDir"
   exit 1;
 endif
+
+# Get full path to output dir
+pushd $OutDir > /dev/null
+set OutDir = `pwd`;
+popd > /dev/null
 
 set LF = $OutDir/dt_recon.log
 if(-e $LF) mv $LF $LF.bak
@@ -71,16 +76,26 @@ if($status) exit 1;
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 
-# Eddy/Motion Correct
+# Eddy/Motion Correct (needs its own tmp dir)
 set fec = $OutDir/dwi-ec.nii
-set cmd = (eddy_correct $f $fec)
+set ectmp = $OutDir/ectmp
+mkdir -p $ectmp
+pushd $ectmp > /dev/null
+set cmd = (eddy_correct $f $fec 0) # 0 for 1st frame
 #set cmd = (cp $f $fec)
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF 
 $cmd            |& tee -a $LF
 if($status) exit 1;
+if(! -e $fec) then
+  echo "ERROR: when running eddy_correct" | tee -a $LF 
+  exit 1;
+endif
+popd > /dev/null
+rm -r $ectmp
 echo "" | tee -a $LF
 echo "" | tee -a $LF
+
 
 # Fit tensors
 set cmd = (mri_glmfit --y $fec --glmdir $OutDir --dti $infodump)
