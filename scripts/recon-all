@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.55 $
+#    $Date: 2007/01/08 18:55:38 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.55 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.56 2007/01/08 18:55:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -113,6 +113,7 @@ set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
                      # skull-strip
 set IsMPRAGE = 0     # if 1, then -mprage added to mri_normalize/segment
 set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
+set DoCropsize256 = 0 # if 1, then crop to 256^3 during mri_convert -conform
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -552,6 +553,7 @@ if($DoMotionCor) then
   else
     set cmd = ($cmd --conform)
   endif
+  if($DoCropsize256) set cmd = ($cmd --cropsize 256 256 256)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
@@ -2856,6 +2858,10 @@ while( $#argv != 0 )
       set IsWashuMPRAGE = 1;
       breaksw;
 
+    case "-cropsize256":
+      set DoCropsize256 = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3619,6 +3625,11 @@ Does not use aseg.mgz for the second mri_normalize step.
 
 The random number generator used by certain binaries is seeded with the
 same number, thus producing identical results from run to run.
+
+-cropsize256
+
+Include this flag after -autorecon1 if images have a FOV > 256.  The
+flag causes mri_convert to crop the image to dimensions of 256^3.
 
 EXPERT OPTIONS FILE
 
