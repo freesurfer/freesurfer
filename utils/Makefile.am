@@ -21,10 +21,9 @@ AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
-	$(ITK_CFLAGS) \
 	$(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
-AM_LDFLAGS=$(ITK_LIBS)
+AM_LDFLAGS=
 
 noinst_LIBRARIES= libutils.a
 
