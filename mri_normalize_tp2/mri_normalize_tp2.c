@@ -1,15 +1,17 @@
 /**
  * @file  mri_normalize_tp2.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief use tp1's ctrl volume to normalize tp2
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Used in longitudinal processing.  Rather than calculating the control
+ * points to use to normalize the volume, just use the control points from the
+ * prior scan (timepoint 1, aka tp1).
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/01/08 18:10:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,9 +27,6 @@
  *
  */
 
-
-/* use tp1's ctrl volume to normalize tp2
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize_tp2.c,v 1.5 2006/12/29 02:09:08 nicks Exp $",
+           "$Id: mri_normalize_tp2.c,v 1.6 2007/01/08 18:10:12 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -141,9 +140,9 @@ int main(int argc, char *argv[]) {
       (mri_in->width != mri_ctrl->width) ||
       (mri_in->height != mri_ctrl->height) ||
       (mri_in->depth != mri_ctrl->depth)
-
-     ) ErrorExit(ERROR_BADPARM,
-                   "%s: three input volumes have different sizes \n", Progname);
+     ) ErrorExit
+         (ERROR_BADPARM,
+          "%s: three input volumes have different sizes \n", Progname);
 
   if (mask1_fname) {
     mri_mask1 = MRIread(mask1_fname) ;
@@ -448,8 +447,8 @@ int main(int argc, char *argv[]) {
   for (num = 0.0f, b = h->nbins - 1; b >= 1; b --) {
     num += h->counts[b];
     if (num > 20000) /* this may make me only use WM points,
-                                                is it good to use only WM to compute
-                                                scale of intensity?? */
+                        is it good to use only WM to compute
+                        scale of intensity?? */
       break;
   }
 
@@ -563,7 +562,7 @@ int main(int argc, char *argv[]) {
   for (num = 0.0f, b = h->nbins - 1; b >= 1; b --) {
     num += h->counts[b];
     if (num > 20000) /* this may make me only use WM points, is it good to
-                                                use only WM to compute scale of intensity?? */
+                        use only WM to compute scale of intensity?? */
       break;
   }
 
