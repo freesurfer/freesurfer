@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/08 22:29:07 $
- *    $Revision: 1.323 $
+ *    $Author: greve $
+ *    $Date: 2007/01/08 23:44:37 $
+ *    $Revision: 1.324 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -11018,8 +11018,8 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
                     + hdr->srow_y[0]*hdr->srow_y[0] \
                     + hdr->srow_z[0]*hdr->srow_z[0]);
   mri->x_r = hdr->srow_x[0] / mri->xsize;
-  mri->x_a = hdr->srow_y[0] / mri->ysize;
-  mri->x_s = hdr->srow_z[0] / mri->zsize;
+  mri->x_a = hdr->srow_y[0] / mri->xsize;
+  mri->x_s = hdr->srow_z[0] / mri->xsize;
 
   mri->ysize = sqrt(hdr->srow_x[1]*hdr->srow_x[1] \
                     + hdr->srow_y[1]*hdr->srow_y[1] \
