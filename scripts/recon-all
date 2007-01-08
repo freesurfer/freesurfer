@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/08 18:55:38 $
-#    $Revision: 1.56 $
+#    $Date: 2007/01/08 20:39:12 $
+#    $Revision: 1.57 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.56 2007/01/08 18:55:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.57 2007/01/08 20:39:12 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -909,7 +909,6 @@ skullstrip:
         |& tee -a $LF
       #rm -f *_PFH*.auto.*
       #rm -f *_PFH*.*
-      rm -f transforms/*_PFH*.*
       # save this result, so that it is used next time, negating the need
       # to run mulitstrip (parallel jobs) again
       echo "$best_vol" > optimal_skullstrip_invol
