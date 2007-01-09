@@ -6,11 +6,11 @@
  * using a surface-based registration (typically sphere.reg)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/09 19:29:57 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/01/09 19:30:20 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.13 2007/01/09 19:29:57 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.14 2007/01/09 19:30:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.13 2007/01/09 19:29:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.14 2007/01/09 19:30:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
