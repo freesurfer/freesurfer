@@ -1,15 +1,16 @@
 /**
  * @file  mrisurf.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief MRI_SURFACE utilities.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Utilities, constants and structure definitions for manipulation and i/o of surfaces
+ * derived from MRI volumes.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 16:12:32 $
- *    $Revision: 1.276 $
+ *    $Date: 2007/01/09 19:32:00 $
+ *    $Revision: 1.277 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +28,7 @@
 
 
 
-/* $Id: mrisurf.h,v 1.276 2007/01/01 16:12:32 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.277 2007/01/09 19:32:00 fischl Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -811,6 +812,7 @@ double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
 int          MRISscaleBrainArea(MRI_SURFACE *mris) ;
 
 
+int          MRISPsetFrameVal(MRI_SP *mrisp, int frame, float val) ;
 MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 MRI_SP       *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 int          MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z,
