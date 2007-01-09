@@ -1,15 +1,17 @@
 /**
  * @file  mris_register.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief command line utility for registering a subject's surface with an atlas,
+ * 
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * command line utility for registering a subject's surface with an atlas. Can also
+ * be used with -1 to register a surface to another individual surface.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 16:14:35 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/01/09 19:33:09 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +45,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -124,10 +126,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.42 2007/01/01 16:14:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -264,6 +266,7 @@ main(int argc, char *argv[]) {
       }
       fprintf(stderr, "computing parameterization for surface %s...\n", fname);
       MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
+      MRISPsetFrameVal(mrisp_template, sno*3+1, 1.0) ;
     }
   } else {
     fprintf(stderr, "reading template parameterization from %s...\n",
