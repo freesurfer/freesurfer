@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 23:41:11 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.34 2006/12/29 02:09:09 nicks Exp $
+  $Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -64,6 +64,7 @@
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "mri.h"
 #include "mri_identify.h"
 #include "mri2.h"
@@ -87,7 +88,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.34 2006/12/29 02:09:09 nicks Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -165,6 +166,7 @@ int ReverseMapFlag = 0;
 int framesave = 0;
 
 float fwhm = 0, gstd = 0;
+float surf_fwhm = 0, surf_gstd = 0;
 
 int  srcsynth = 0;
 long seed = -1; /* < 0 for auto */
@@ -177,7 +179,7 @@ int GetProjMax = 0;
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv) {
-  int n,err, f, vtx, svtx, tvtx, nproj;
+  int n,err, f, vtx, svtx, tvtx, nproj, nSmoothSteps;
   int nrows_src, ncols_src, nslcs_src, nfrms;
   float ipr, bpr, intensity;
   float colres_src=0, rowres_src=0, slcres_src=0;
@@ -190,7 +192,7 @@ int main(int argc, char **argv) {
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.34 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -275,6 +277,7 @@ int main(int argc, char **argv) {
     Dsrc = MRItkRegMtx(TargVol,SrcVol,NULL);
     MRIfree(&TargVol);
   }
+  if(trgsubject == NULL) trgsubject = srcsubject;
 
   ncols_src = SrcVol->width;
   nrows_src = SrcVol->height;
@@ -508,13 +511,6 @@ int main(int argc, char **argv) {
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
            nTrg121,nTrgMulti,MnTrgMultiHits);
 
-    if (outtypestring != NULL &&
-        (!strcasecmp(outtypestring,"w") ||
-         !strcasecmp(outtypestring,"paint")) )
-      SurfOut = TrgSurfReg;
-    else
-      MRISfree(&TrgSurfReg);
-
     /* save the Source Hits into a .w file */
     if (srchitfile != NULL) {
       for (vtx = 0; vtx < Surf->nvertices; vtx++)
@@ -529,12 +525,21 @@ int main(int argc, char **argv) {
       MRISwriteValues(SurfOut, trghitfile) ;
       MRIfree(&TrgHits);
     }
+    SurfOut = TrgSurfReg;
   } else {
+    // Source and target subjects are the same
     SurfVals2 = SurfVals;
     SurfOut = Surf;
   }
 
-  if (scale != 0) {
+  if(surf_fwhm > 0){
+    nSmoothSteps = MRISfwhm2nitersSubj(surf_fwhm,trgsubject,hemi,"white");
+    if(nSmoothSteps == -1) exit(1);
+    printf("Surface smoothing by fwhm = %g (n=%d)\n",surf_fwhm,nSmoothSteps);
+    MRISsmoothMRI(SurfOut, SurfVals2, nSmoothSteps, NULL, SurfVals2);
+  }
+
+  if(scale != 0) {
     printf("Rescaling output by %g\n",scale);
     MRImultiplyConst(SurfVals2,scale,SurfVals2);
   }
@@ -824,6 +829,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
       nargsused = 1;
+    } else if ( !strcmp(option, "--surf-fwhm") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&surf_fwhm);
+      surf_gstd = surf_fwhm/sqrt(log(256.0));
+      nargsused = 1;
     } else if (!strcmp(option, "--srcsynth")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%ld",&seed);
@@ -860,6 +870,7 @@ static void print_usage(void) {
          "(<round>, tkregister )\n");
   printf("   --fixtkreg : make make registration matrix round-compatible\n");
   printf("   --fwhm fwhm : smooth input volume (mm)\n");
+  printf("   --surf-fwhm fwhm : smooth output surface (mm)\n");
   printf("\n");
   printf("   --trgsubject target subject (if different than reg)\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
