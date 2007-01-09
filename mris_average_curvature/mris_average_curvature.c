@@ -1,15 +1,16 @@
 /**
  * @file  mris_average_curvature.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for averaging "curvature" (scalar fields on the surface).
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * average "curvature" format files (scalar fields on the surface) across subjects
+ * using a surface-based registration (typically sphere.reg)
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 18:10:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/01/09 19:29:57 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.12 2007/01/01 18:10:12 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.13 2007/01/09 19:29:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,6 +55,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char sdir[STRLEN] = "" ;
 static int which_norm = NORM_MEAN;
 static int normalize_flag = 0 ;
 static int condition_no = 0 ;
@@ -65,13 +67,13 @@ static char *osurf = NULL ;
 
 int
 main(int argc, char *argv[]) {
-  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, *hemi ;
+  char         **av, *in_fname, *out_fname, *surf_name, fname[STRLEN], *hemi ;
   int          ac, nargs, i, skipped ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.12 2007/01/01 18:10:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.13 2007/01/09 19:29:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -80,9 +82,15 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  sdir = getenv("SUBJECTS_DIR") ;
-  if (!sdir)
-    ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
+  if (!strlen(sdir)) 
+  {
+    char *cp ;
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM,
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
@@ -227,6 +235,10 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "ohemi")) {
     ohemi = argv[2] ;
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "SDIR")) {
+    strcpy(sdir, argv[2]) ;
+    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
   } else if (!stricmp(option, "osurf")) {
     osurf = argv[2] ;
