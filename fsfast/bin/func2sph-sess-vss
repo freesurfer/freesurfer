@@ -1,10 +1,32 @@
-#!/bin/csh -f
+#! /bin/csh -f
+
+#
 # func2sph-sess-vss - this corresponds to func2sph-sess version 1.6 (01/1/19). 
 # It uses the old vss (vertex-sampled space) libraries and functions which
 # have now been replaced. This version can be accessed from func2sph-sess
 # by including a "-old" flag.
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:17 $
+#    $Revision: 1.3 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set VERSION = '$Id: func2sph-sess-vss,v 1.2 2005/08/30 17:08:49 greve Exp $'
+
+set VERSION = '$Id: func2sph-sess-vss,v 1.3 2007/01/09 22:41:17 nicks Exp $'
 
 set inputargs = "$argv";
 set analysis    = ();

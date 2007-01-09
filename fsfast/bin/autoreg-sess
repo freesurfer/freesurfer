@@ -1,6 +1,29 @@
-#!/bin/csh -f
+#! /bin/csh -f
 
-set VERSION = '$Id: autoreg-sess,v 1.3 2006/04/05 18:01:22 greve Exp $';
+#
+# autoreg-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:16 $
+#    $Revision: 1.4 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: autoreg-sess,v 1.4 2007/01/09 22:41:16 nicks Exp $';
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -41,7 +64,7 @@ endif
 echo "Logfile is $LF"
 
 echo "autreg-sess log file" >> $LF
-echo '$Id: autoreg-sess,v 1.3 2006/04/05 18:01:22 greve Exp $'   >> $LF
+echo '$Id: autoreg-sess,v 1.4 2007/01/09 22:41:16 nicks Exp $'   >> $LF
 echo $0     >> $LF
 uname -a      >> $LF
 date          >> $LF

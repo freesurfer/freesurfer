@@ -1,6 +1,7 @@
-#!/bin/csh -f
+#! /bin/csh -f
+
 #
-# Name: checkmincdir
+# checkmincdir
 #
 # Purpose: given a directory with minc files from a single exam
 # and a list of run numbers, determines whether all the expected 
@@ -13,6 +14,25 @@
 # "img-getrunlist' can be used to get the list of run numbers 
 # directly from the ima directory.
 #
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:16 $
+#    $Revision: 1.2 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 
 if($#argv < 2) then
   echo "USAGE: checkmincdir mincdir runlist"

@@ -1,10 +1,32 @@
-#!/bin/csh -f
+#! /bin/csh -f
+
+#
+# getpwdcmd
+#
 # This script returns the pwd command to use. If the command
 # pawd exists, then that is used, otherwise pwd is used.
 # pawd is used with amd and returns the current directory
 # with out all the automounter stuff prepended to it.
 #
-# $Id: getpwdcmd,v 1.1 2003/03/04 21:22:08 greve Exp $
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:17 $
+#    $Revision: 1.2 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 
 echo pwd;
 exit 0;

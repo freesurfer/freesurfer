@@ -1,6 +1,29 @@
-#!/bin/csh -f
+#! /bin/csh -f
 
-set VERSION = '$Id: mkblockpar,v 1.3 2004/02/10 22:33:56 greve Exp $';
+#
+# mkblockpar
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:18 $
+#    $Revision: 1.4 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: mkblockpar,v 1.4 2007/01/09 22:41:18 nicks Exp $';
 
 ##### Print out version info, if needed ####
 set n = `echo $argv | grep version | wc -l` 

@@ -1,11 +1,32 @@
-#!/bin/csh -f
-############################################################
-# Name:    stxgrinder
+#! /bin/csh -f
+
+#
+# stxgrinder
+#
 # Purpose: uses the same command-line args as stxgrinder
-############################################################
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/09 22:41:19 $
+#    $Revision: 1.4 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set STXGRINDER_VER = '\$Id: stxgrinder,v 1.3 2006/11/09 20:45:34 greve Exp $';
+set STXGRINDER_VER = '\$Id: stxgrinder,v 1.4 2007/01/09 22:41:19 nicks Exp $';
 
 # Set Default Values #
 set firstslice = ();
