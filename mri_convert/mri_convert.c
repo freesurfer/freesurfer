@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 08:28:08 $
- *    $Revision: 1.136 $
+ *    $Date: 2007/01/09 10:01:00 $
+ *    $Revision: 1.137 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.136 2007/01/09 08:28:08 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.137 2007/01/09 10:01:00 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.136 2007/01/09 08:28:08 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.137 2007/01/09 10:01:00 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2307,6 +2307,7 @@ void usage(FILE *stream) {
   fprintf(stream, "  -te TE : TE in msec\n");
   fprintf(stream, "  -TI TI : TI in msec (note upper case flag)\n");
   fprintf(stream, "  -flip_angle flip angle : radians \n");
+  fprintf(stream, "  --autoalign mtxfile : text file with autoalign matrix \n");
 
   fprintf(stream, "\n");
   fprintf(stream, "  --unwarp_gradient_nonlinearity \n"
