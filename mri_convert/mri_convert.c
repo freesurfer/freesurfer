@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 20:50:34 $
- *    $Revision: 1.135 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 08:28:08 $
+ *    $Revision: 1.136 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,13 +164,15 @@ int main(int argc, char *argv[]) {
   float fwhm, gstd;
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
+  char AutoAlignFile[STRLEN];
+  MATRIX *AutoAlign = NULL;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.135 2007/01/02 20:50:34 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.136 2007/01/09 08:28:08 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -270,7 +272,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.135 2007/01/02 20:50:34 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.136 2007/01/09 08:28:08 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -297,6 +299,12 @@ int main(int argc, char *argv[]) {
       conform_flag = TRUE;
     else if (strcmp(argv[i], "--sphinx") == 0 )
       sphinx_flag = TRUE;
+    else if(strcmp(argv[i], "--autoalign") == 0){
+      get_string(argc, argv, &i, AutoAlignFile);
+      AutoAlign = MatrixReadTxt(AutoAlignFile,NULL);
+      printf("Auto Align Matrix\n");
+      MatrixPrint(stdout,AutoAlign);
+    }
     else if (strcmp(argv[i], "-nc") == 0 ||
              strcmp(argv[i], "--nochange") == 0)
       nochange_flag = TRUE;
@@ -2098,6 +2106,8 @@ int main(int argc, char *argv[]) {
     printf("Changing orientation information to Sphinx\n");
     MRIhfs2Sphinx(mri);
   }
+
+  if(AutoAlign) mri->AutoAlign = AutoAlign ;
 
   /*------ Finally, write the output -----*/
   if (!no_write_flag) {
