@@ -1,15 +1,18 @@
 /**
  * @file  mrisp.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for spherical parameterization of an MRI_SURFACE
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * mrisp = MRI_SURFACE parameterization contains utilities for writing various
+ * fields over the surface (e.g. curvature, coordinate functions) into a spherical
+ * (longitude/colatitude) parameterization in the form of a 2D image. Also for
+ * Gaussian blurring and other utilities.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/09 19:30:57 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2982,3 +2985,17 @@ MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *frames, 
   return(mrisp_dst) ;
 }
 
+int
+MRISPsetFrameVal(MRI_SP *mrisp, int frame, float val)
+{
+  int u, v ;
+
+  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
+  {
+    for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
+    {
+      *IMAGEFseq_pix(mrisp->Ip, u, v, frame)   = val ;
+    }
+  }
+  return(NO_ERROR) ;
+}
