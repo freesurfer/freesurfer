@@ -8,9 +8,9 @@
 #
 # Original Author: Kevin Teich
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/05 00:21:45 $
-#    $Revision: 1.236 $
+#    $Author: kteich $
+#    $Date: 2007/01/09 17:02:31 $
+#    $Revision: 1.237 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.236 2007/01/05 00:21:45 nicks Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.237 2007/01/09 17:02:31 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2198,7 +2198,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     tkuMakeSliders $fwGrayscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
-	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -min 0 -max 0 -entry 1 -entrywidth 3 -resolution 1
 	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,grayscaleFrameSlider) $fwGrayscale.swFrame
@@ -2289,7 +2289,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     tkuMakeSliders $fwHeatscale.swFrame -sliders { 
 	{ -label "Frame" -variable gaLayer(current,frame)
-	    -min 0 -max 0 -entry 1 -entrywidth 3
+	    -min 0 -max 0 -entry 1 -entrywidth 3 -resolution 1
 	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
     }
     set gaWidget(layerProperties,heatscaleFrameSlider) $fwHeatscale.swFrame
@@ -3328,7 +3328,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames $volID]
 	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
 		tkuUpdateSlidersRange $gaWidget(layerProperties,$slider) \
-		    0 [expr $gaLayer(current,numFrames) - 1]
+		    0 [expr $gaLayer(current,numFrames) - 1] 1
 	    }
 
 	    # If we're using time point data, update the time point sliders.
@@ -6736,7 +6736,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.236 2007/01/05 00:21:45 nicks Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.237 2007/01/09 17:02:31 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
