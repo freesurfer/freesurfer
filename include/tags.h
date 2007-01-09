@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.15 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 08:03:46 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,8 @@
  *
  */
 
+
+#include "matrix.h"
 
 #ifndef TAGS_H
 #define TAGS_H
@@ -46,6 +48,8 @@
 #define TAG_MGH_XFORM               31
 #define TAG_GROUP_AVG_SURFACE_AREA  32
 
+#define TAG_AUTO_ALIGN              33
+
 #define TAG_SCALAR_DOUBLE           40
 
 int TAGreadStart(FILE *fp, long long *plen) ;
@@ -55,5 +59,7 @@ int TAGskip(FILE *fp, int tag, long long len) ;
 int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) ;
 int TAGwriteCommandLine(FILE *fp, char *cmd_line) ;
 int TAGwrite(FILE *fp, int tag, void *buf, long long len) ;
+int TAGwriteAutoAlign(FILE *fp, MATRIX *M);
+MATRIX *TAGreadAutoAlign(FILE *fp);
 
 #endif

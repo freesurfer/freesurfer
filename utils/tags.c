@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.6 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 08:03:46 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,8 +54,8 @@ TAGskip(FILE *fp, int tag, long long len)
   return(fseek(fp, len, SEEK_CUR)) ;  // doesn't work for gzipped files
 #endif
 }
-int
-TAGreadStart(FILE *fp, long long *plen)
+
+int TAGreadStart(FILE *fp, long long *plen)
 {
   int  tag ;
 
@@ -95,8 +95,7 @@ TAGwriteStart(FILE *fp, int tag, long long *phere, long long len)
   return(NO_ERROR) ;
 }
 
-int
-TAGwrite(FILE *fp, int tag, void *buf, long long len)
+int TAGwrite(FILE *fp, int tag, void *buf, long long len)
 {
   long long here ;
 
@@ -144,5 +143,41 @@ TAGwriteCommandLine(FILE *fp, char *cmd_line)
   fprintf(fp, "%s", cmd_line) ;
   TAGwriteEnd(fp, here) ;
   return(NO_ERROR) ;
+}
+
+int TAGwriteAutoAlign(FILE *fp, MATRIX *M)
+{
+  long long here ;
+  char buf[16*100];
+  long long len;
+
+  bzero(buf,16*100);
+  sprintf(buf,"AutoAlign %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
+	  M->rptr[1][1],M->rptr[1][2],M->rptr[1][3],M->rptr[1][4],
+	  M->rptr[2][1],M->rptr[2][2],M->rptr[2][3],M->rptr[2][4],
+	  M->rptr[3][1],M->rptr[3][2],M->rptr[3][3],M->rptr[3][4],
+	  M->rptr[4][1],M->rptr[4][2],M->rptr[4][3],M->rptr[4][4]);
+  len = strlen(buf);
+  TAGwriteStart(fp, TAG_AUTO_ALIGN, &here, len) ;
+  fwrite(buf, sizeof(char), len, fp) ;
+
+  TAGwriteEnd(fp, here) ;
+  return(NO_ERROR) ;
+}
+
+MATRIX *TAGreadAutoAlign(FILE *fp)
+{
+  int c,r;
+  char buf[1000];
+  MATRIX *M;
+
+  M = MatrixAlloc(4,4,MATRIX_REAL);
+  fscanf(fp,"%s",buf); // get past "AutoAlign" string
+  for(r=1; r<=4; r++){
+    for(c=1; c<=4; c++){
+      fscanf(fp,"%f",&(M->rptr[r][c]));
+    }
+  }
+  return(M);
 }
 
