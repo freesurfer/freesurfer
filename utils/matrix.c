@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.104 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 08:20:54 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: matrix.c,v 1.104 2006/12/29 01:49:34 nicks Exp $
+// $Id: matrix.c,v 1.105 2007/01/09 08:20:54 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -512,8 +512,7 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
 }
 
 
-int
-MatrixPrint(FILE *fp, MATRIX *mat)
+int MatrixPrint(FILE *fp, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
@@ -558,6 +557,46 @@ MatrixPrint(FILE *fp, MATRIX *mat)
     fprintf(fp, ";\n") ;
   }
   fflush(stdout);
+  return(NO_ERROR) ;
+}
+
+
+int MatrixPrintFmt(FILE *fp, char *fmt, MATRIX *mat)
+{
+  int  row, col, rows, cols ;
+
+  if(fp == NULL){
+    fp = stdout ;
+    ErrorPrintf(ERROR_BADPARM, "MatrixPrint: fp = NULL!") ;
+  }
+  if(mat == NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: mat = NULL!")) ;
+
+  rows = mat->rows ;
+  cols = mat->cols ;
+
+  for (row = 1 ; row <= rows ; row++)  {
+    for (col = 1 ; col <= cols ; col++)    {
+      switch (mat->type)      {
+      case MATRIX_REAL:
+        fprintf(fp, fmt, mat->rptr[row][col]) ;
+        break ;
+      case MATRIX_COMPLEX:
+        fprintf(fp, fmt, MATRIX_CELT_REAL(mat,row,col));
+	fprintf(fp, " + ");
+        fprintf(fp, fmt, MATRIX_CELT_IMAG(mat, row, col));
+	fprintf(fp, " i");
+        break ;
+      default:
+        ErrorReturn(ERROR_BADPARM,
+                    (ERROR_BADPARM,
+                     "MatrixPrint: unknown type %d\n",mat->type)) ;
+      }
+      if (col < cols) fprintf(fp, "  ") ;
+    }
+    fprintf(fp, "\n") ; // DO NOT PRINT the semi-colon!!!
+  }
+  fflush(fp);
   return(NO_ERROR) ;
 }
 

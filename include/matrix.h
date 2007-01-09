@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.61 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 08:20:54 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,7 @@ MATRIX  *MatrixRead(char *fname) ;
 int     MatrixWrite(MATRIX *mIn, char *fname, char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
 int     MatrixPrint(FILE *fp, MATRIX *mat) ;
+int MatrixPrintFmt(FILE *fp, char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
