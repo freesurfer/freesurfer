@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 07:37:29 $
- *    $Revision: 1.58 $
+ *    $Date: 2007/01/09 08:21:19 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.58 $";
+char *MRI_INFO_VERSION = "$Revision: 1.59 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.58 2007/01/09 07:37:29 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.59 2007/01/09 08:21:19 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -507,7 +507,7 @@ static void do_file(char *fname) {
       fprintf(fpout,"No auto align matrix present\n");
       return;
     }
-    MatrixPrint(fpout,mri->AutoAlign);
+    MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
     return;
   }
   if (PrintVoxel) {
